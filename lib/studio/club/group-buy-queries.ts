@@ -3,8 +3,8 @@
  * puras que reciben un SupabaseClient (RLS scope-a por tenant). Devuelven [] / null
  * ante error (no lanzan).
  *
- * `committed_cbm` se DERIVA acá (suma de estimated_cbm de participantes NO
- * retirados) — no se persiste, no puede driftear. Una sola pasada (evita N+1).
+ * `committed_cbm` se DERIVA acá (suma de estimated_cbm de participantes
+ * CONFIRMADOS) — no se persiste, no puede driftear. Una sola pasada (evita N+1).
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -13,7 +13,6 @@ import {
   type ClubGroupBuy,
   type ClubGroupBuyParticipant,
   type GroupBuyDetail,
-  type GroupBuyStats,
   type ParticipantRow,
 } from "@/lib/studio/club/group-buy-types";
 
@@ -117,27 +116,6 @@ export async function listGroupBuysWithDetail(
       participants: rows,
     };
   });
-}
-
-/** KPIs de la pestaña Compras grupales. */
-export async function groupBuyStats(supabase: SupabaseClient): Promise<GroupBuyStats> {
-  const details = await listGroupBuysWithDetail(supabase);
-  let abiertas = 0;
-  let enConsolidacion = 0;
-  let cbmAbierto = 0;
-  for (const g of details) {
-    if (g.status === "abierta") {
-      abiertas += 1;
-      cbmAbierto += g.committed_cbm;
-    } else if (g.status === "en_consolidacion") {
-      enConsolidacion += 1;
-    }
-  }
-  return {
-    abiertas,
-    enConsolidacion,
-    cbmAbierto: Math.round(cbmAbierto * 1000) / 1000,
-  };
 }
 
 /**

@@ -76,7 +76,7 @@ export interface ParticipantRow extends ClubGroupBuyParticipant {
 
 /** Compra grupal + volumen comprometido DERIVADO + #participantes, para la lista. */
 export interface GroupBuyRow extends ClubGroupBuy {
-  /** Suma de estimated_cbm de participantes NO retirados. DERIVADO (no persistido). */
+  /** Suma de estimated_cbm de participantes CONFIRMADOS. DERIVADO (no persistido). */
   committed_cbm: number;
   participants_count: number;
 }
@@ -127,9 +127,33 @@ export function participantStatusTone(
     "neutral" | "success" | "danger";
 }
 
-/** Estados que cuentan para el volumen comprometido (intención viva). */
+/**
+ * Estados que cuentan para el volumen COMPROMETIDO (decisión founder 2026-06-29):
+ * solo `confirmado`. Un `interesado` declara intención pero no compromete volumen;
+ * un `retirado` se fue. Los interesados siguen visibles por fila en la grilla.
+ */
 export function countsTowardCommitted(s: ParticipantStatus): boolean {
-  return s !== "retirado";
+  return s === "confirmado";
+}
+
+/**
+ * KPIs derivados de los detalles YA traídos (función pura, sin DB) — evita
+ * re-consultar la lista pesada solo para los contadores. `committed_cbm` ya viene
+ * computado (solo confirmados) en cada GroupBuyDetail.
+ */
+export function groupBuyStatsFrom(details: GroupBuyDetail[]): GroupBuyStats {
+  let abiertas = 0;
+  let enConsolidacion = 0;
+  let cbmAbierto = 0;
+  for (const g of details) {
+    if (g.status === "abierta") {
+      abiertas += 1;
+      cbmAbierto += g.committed_cbm;
+    } else if (g.status === "en_consolidacion") {
+      enConsolidacion += 1;
+    }
+  }
+  return { abiertas, enConsolidacion, cbmAbierto: Math.round(cbmAbierto * 1000) / 1000 };
 }
 
 // ── Validación (sin Zod) ─────────────────────────────────────

@@ -367,13 +367,24 @@ export async function softDeleteGroupBuyAction(groupBuyId: string): Promise<Resu
 
   if (!groupBuyId) return { error: "Falta la compra grupal." };
 
+  const now = new Date().toISOString();
   const { error } = await supabase
     .from("club_group_buys")
-    .update({ deleted_at: new Date().toISOString() })
+    .update({ deleted_at: now })
     .eq("id", groupBuyId)
     .is("deleted_at", null);
 
   if (error) return { error: `No se pudo eliminar la compra grupal: ${error.message}` };
+
+  // Propaga el soft-delete a los participantes vivos de la ronda (higiene de
+  // datos: no dejar participaciones "vivas" colgando de una ronda muerta). RLS
+  // scope-a por tenant; si falla, la ronda ya quedó dada de baja (no la mostramos).
+  await supabase
+    .from("club_group_buy_participants")
+    .update({ deleted_at: now })
+    .eq("group_buy_id", groupBuyId)
+    .is("deleted_at", null);
+
   revalidate();
   return { ok: true };
 }
@@ -399,6 +410,18 @@ export async function addParticipantAction(
 
   const tenantId = await resolveTenant(supabase);
   if (!tenantId) return { error: "No se pudo resolver el tenant." };
+
+  // Solo se suman miembros a una ronda ABIERTA (no a cerrada/completada/cancelada).
+  const { data: gb } = await supabase
+    .from("club_group_buys")
+    .select("status")
+    .eq("id", groupBuyId)
+    .is("deleted_at", null)
+    .maybeSingle<{ status: string }>();
+  if (!gb) return { error: "Esa compra grupal no existe o fue eliminada." };
+  if (gb.status !== "abierta") {
+    return { error: "Solo puedes sumar miembros a una ronda abierta." };
+  }
 
   const { data: row, error } = await supabase
     .from("club_group_buy_participants")

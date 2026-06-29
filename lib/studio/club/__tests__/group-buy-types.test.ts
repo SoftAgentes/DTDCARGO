@@ -79,9 +79,9 @@ describe("labels, tonos y committed", () => {
     }
   });
 
-  it("retirado NO cuenta para el volumen comprometido", () => {
-    expect(countsTowardCommitted("interesado")).toBe(true);
+  it("solo CONFIRMADO cuenta para el volumen comprometido (decisión founder)", () => {
     expect(countsTowardCommitted("confirmado")).toBe(true);
+    expect(countsTowardCommitted("interesado")).toBe(false);
     expect(countsTowardCommitted("retirado")).toBe(false);
   });
 });

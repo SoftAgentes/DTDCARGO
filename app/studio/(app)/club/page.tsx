@@ -12,9 +12,9 @@ import { requireModuleView } from "@/lib/studio/rbac-guard";
 import { listClubMembers, clubStats } from "@/lib/studio/club/club-member-queries";
 import {
   listGroupBuysWithDetail,
-  groupBuyStats,
   listEligibleMembers,
 } from "@/lib/studio/club/group-buy-queries";
+import { groupBuyStatsFrom } from "@/lib/studio/club/group-buy-types";
 import { ClubClient } from "./_components/ClubClient";
 
 export const metadata = { title: "Club DTD" };
@@ -23,13 +23,14 @@ export default async function ClubPage() {
   await requireModuleView("club");
   const supabase = await createClient();
 
-  const [stats, members, gbStats, groupBuys, eligibleMembers] = await Promise.all([
+  const [stats, members, groupBuys, eligibleMembers] = await Promise.all([
     clubStats(supabase),
     listClubMembers(supabase),
-    groupBuyStats(supabase),
     listGroupBuysWithDetail(supabase),
     listEligibleMembers(supabase),
   ]);
+  // KPIs derivados de los detalles ya traídos (evita re-consultar la lista pesada).
+  const gbStats = groupBuyStatsFrom(groupBuys);
 
   return (
     <div style={{ padding: "var(--s-6)" }}>
