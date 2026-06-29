@@ -257,7 +257,17 @@ Nombres y columnas son **propuesta**; los que dependen de una decisión de negoc
 > para una futura recurrencia si cambia D4); el `status` se reduce a `activa | pausada | cancelada`
 > (se elimina `vencida`, que solo tenía sentido con cuota).
 >
-> D5, D7–D11 siguen abiertas y bloquean Slices B+ (no Slice A).
+> **Resueltas por el founder (2026-06-28) — desbloquean Slice B:**
+> - **D5 = solo miembros del Club** participan en una compra grupal (es gancho de
+>   membresía) → `club_group_buy_participants.member_id → club_members`.
+> - **D7 = 100% intención (sin dinero):** participants guarda solo CBM/valor
+>   ESTIMADO, cero montos cobrables; el cobro va por facturas (SDD-0077) al
+>   facturar la consolidación (aislamiento financiero, lección SDD-0102). Sin pasarela.
+> - Nota de implementación: `committed_cbm` NO se persiste (derivado en lectura);
+>   el vínculo a la consolidación real (SDD-0047) existe en action+DB
+>   (`setGroupBuyStatusAction`), con el **selector de consolidación en UI diferido**.
+>
+> D8–D11 siguen abiertas y bloquean Slices C+ (no A ni B).
 
 > Este spec **expone** las decisiones de negocio; no las resuelve. El modelo deja todo
 > configurable (planes, estados, vigencia) para no clavar un número antes de tiempo.
