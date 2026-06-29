@@ -267,7 +267,23 @@ Nombres y columnas son **propuesta**; los que dependen de una decisión de negoc
 >   el vínculo a la consolidación real (SDD-0047) existe en action+DB
 >   (`setGroupBuyStatusAction`), con el **selector de consolidación en UI diferido**.
 >
-> D8–D11 siguen abiertas y bloquean Slices C+ (no A ni B).
+> **Resueltas por el founder (2026-06-29) — desbloquean Slices C/D/E:**
+> - **D9 = reusar cohortes de Academia.** Los eventos del Club NO son tablas nuevas
+>   (`club_events`/`club_event_registrations` quedan **descartadas**): se modelan sobre
+>   `academy_cohorts`/`academy_enrollments` (SDD-0093) con un **discriminador** (ej.
+>   `context = 'academia' | 'club'` o `kind`). Implica acoplar el dominio de eventos al de
+>   Academia — ripple a revisar al construir Slice C (schema + filtros + RLS).
+> - **D8 = Proveedor del mes derivado de inspecciones.** `club_featured_suppliers` se
+>   sugiere/deriva de inspecciones **verificadas** (SDD-0066); `inspection_id` pasa de
+>   opcional a **eje del slice**. Sigue **white-label** (nunca el proveedor de inspección
+>   crudo / "Canopy" — regla SDD-0066). Falta definir el criterio de ranking/elegibilidad.
+> - **D10 = solo interno/portal.** Sin landing pública `/club` en esta fase. El Club vive en
+>   `/studio/club` (admin) + tab en `/portal` (miembro, Slice E). No toca SEO ni
+>   `docs/marketing/` todavía.
+> - **D11 = solo importadores finales (V1).** El Club NO modela aliados mayoristas
+>   white-label en esta fase; `plan` y compra grupal quedan como están (intención por
+>   persona, no por aliado). Los aliados recurrentes del norte interno se modelan aparte
+>   cuando aplique.
 
 > Este spec **expone** las decisiones de negocio; no las resuelve. El modelo deja todo
 > configurable (planes, estados, vigencia) para no clavar un número antes de tiempo.
