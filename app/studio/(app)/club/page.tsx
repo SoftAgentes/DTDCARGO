@@ -15,6 +15,8 @@ import {
   listEligibleMembers,
 } from "@/lib/studio/club/group-buy-queries";
 import { groupBuyStatsFrom } from "@/lib/studio/club/group-buy-types";
+import { listClubEvents } from "@/lib/studio/club/club-event-queries";
+import { clubEventStatsFrom } from "@/lib/studio/club/club-event-types";
 import { ClubClient } from "./_components/ClubClient";
 
 export const metadata = { title: "Club DTD" };
@@ -23,14 +25,16 @@ export default async function ClubPage() {
   await requireModuleView("club");
   const supabase = await createClient();
 
-  const [stats, members, groupBuys, eligibleMembers] = await Promise.all([
+  const [stats, members, groupBuys, eligibleMembers, events] = await Promise.all([
     clubStats(supabase),
     listClubMembers(supabase),
     listGroupBuysWithDetail(supabase),
     listEligibleMembers(supabase),
+    listClubEvents(supabase),
   ]);
   // KPIs derivados de los detalles ya traídos (evita re-consultar la lista pesada).
   const gbStats = groupBuyStatsFrom(groupBuys);
+  const eventStats = clubEventStatsFrom(events);
 
   return (
     <div style={{ padding: "var(--s-6)" }}>
@@ -40,6 +44,8 @@ export default async function ClubPage() {
         gbStats={gbStats}
         groupBuys={groupBuys}
         eligibleMembers={eligibleMembers}
+        eventStats={eventStats}
+        events={events}
       />
     </div>
   );

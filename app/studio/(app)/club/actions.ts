@@ -43,6 +43,11 @@ import {
   type ParticipantActionState,
   type ParticipantInput,
 } from "@/lib/studio/club/group-buy-types";
+import {
+  validateClubEventInput,
+  type ClubEventActionState,
+  type ClubEventInput,
+} from "@/lib/studio/club/club-event-types";
 
 type Result = { ok?: boolean; error?: string };
 
@@ -492,6 +497,103 @@ export async function removeParticipantAction(participantId: string): Promise<Re
     .is("deleted_at", null);
 
   if (error) return { error: `No se pudo quitar al participante: ${error.message}` };
+  revalidate();
+  return { ok: true };
+}
+
+// ════════════════════════════════════════════════════════════════
+// Slice C · Eventos del Club (D9: reusan academy_cohorts, context='club')
+// ════════════════════════════════════════════════════════════════
+// Los eventos viven en academy_cohorts con context='club' y course_id=null. Las
+// actions filtran context='club' al editar/borrar para NO tocar cohortes de curso.
+
+export async function createClubEventAction(
+  raw: Partial<ClubEventInput>,
+): Promise<ClubEventActionState> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, MODULE);
+  if (denial) return { error: denial };
+
+  const { input, fieldErrors } = validateClubEventInput(raw);
+  if (fieldErrors) return { fieldErrors };
+  if (!input) return { error: "Datos del evento inválidos." };
+
+  const tenantId = await resolveTenant(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant." };
+
+  const { data: row, error } = await supabase
+    .from("academy_cohorts")
+    .insert({
+      tenant_id: tenantId,
+      context: "club",
+      course_id: null, // evento standalone del Club
+      name: input.name,
+      summary: input.summary,
+      modality: input.modality,
+      place: input.place,
+      starts_at: input.startsAt,
+      facilitator_name: input.facilitatorName,
+      status: input.status,
+    })
+    .select("id")
+    .single<{ id: string }>();
+
+  if (error || !row) {
+    return { error: `No se pudo crear el evento: ${error?.message ?? "desconocido"}` };
+  }
+  revalidate();
+  return { ok: true, createdId: row.id };
+}
+
+export async function updateClubEventAction(
+  eventId: string,
+  raw: Partial<ClubEventInput>,
+): Promise<ClubEventActionState> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, MODULE);
+  if (denial) return { error: denial };
+
+  if (!eventId) return { error: "Falta el evento a editar." };
+  const { input, fieldErrors } = validateClubEventInput(raw);
+  if (fieldErrors) return { fieldErrors };
+  if (!input) return { error: "Datos del evento inválidos." };
+
+  // context='club' protege de tocar cohortes de Academia por id forjado.
+  const { error } = await supabase
+    .from("academy_cohorts")
+    .update({
+      name: input.name,
+      summary: input.summary,
+      modality: input.modality,
+      place: input.place,
+      starts_at: input.startsAt,
+      facilitator_name: input.facilitatorName,
+      status: input.status,
+    })
+    .eq("id", eventId)
+    .eq("context", "club")
+    .is("deleted_at", null);
+
+  if (error) return { error: `No se pudo actualizar el evento: ${error.message}` };
+  revalidate();
+  return { ok: true, createdId: eventId };
+}
+
+export async function softDeleteClubEventAction(eventId: string): Promise<Result> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, MODULE);
+  if (denial) return { error: denial };
+
+  if (!eventId) return { error: "Falta el evento." };
+
+  const { error } = await supabase
+    .from("academy_cohorts")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", eventId)
+    .eq("context", "club")
+    .is("deleted_at", null);
+
+  if (error) return { error: `No se pudo eliminar el evento: ${error.message}` };
   revalidate();
   return { ok: true };
 }
