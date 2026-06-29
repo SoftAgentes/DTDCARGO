@@ -131,8 +131,8 @@ export async function academiaStats(supabase: SupabaseClient): Promise<AcademiaS
       supabase.from("academy_courses").select("id", live).is("deleted_at", null),
       supabase.from("academy_courses").select("id", live).eq("status", "publicado").is("deleted_at", null),
       supabase.from("academy_courses").select("id", live).eq("status", "proximamente").is("deleted_at", null),
-      supabase.from("academy_cohorts").select("id", live).is("deleted_at", null),
-      supabase.from("academy_cohorts").select("id", live).eq("status", "en_curso").is("deleted_at", null),
+      supabase.from("academy_cohorts").select("id", live).eq("context", "academia").is("deleted_at", null),
+      supabase.from("academy_cohorts").select("id", live).eq("context", "academia").eq("status", "en_curso").is("deleted_at", null),
       supabase.from("academy_enrollments").select("id", live).is("deleted_at", null),
       countDiplomasReady(supabase),
     ]);
@@ -198,6 +198,7 @@ export async function listCohortDetails(supabase: SupabaseClient): Promise<Cohor
     supabase
       .from("academy_cohorts")
       .select(COHORT_COLS)
+      .eq("context", "academia")
       .is("deleted_at", null)
       .order("starts_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false }),
@@ -275,6 +276,7 @@ export async function listCohorts(supabase: SupabaseClient): Promise<CohortWithC
     supabase
       .from("academy_cohorts")
       .select(COHORT_COLS)
+      .eq("context", "academia")
       .is("deleted_at", null)
       .order("starts_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false }),
@@ -316,6 +318,7 @@ export async function getCohortWithRoster(
     .from("academy_cohorts")
     .select(COHORT_COLS)
     .eq("id", cohortId)
+    .eq("context", "academia")
     .is("deleted_at", null)
     .maybeSingle();
   if (!cohort) return null;

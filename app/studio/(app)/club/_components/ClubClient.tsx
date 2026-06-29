@@ -11,15 +11,18 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { MembersView } from "./MembersView";
 import { GroupBuysView } from "./GroupBuysView";
+import { EventsView } from "./EventsView";
 import type { ClubMemberRow, ClubStats } from "@/lib/studio/club/club-member-types";
 import type { GroupBuyDetail, GroupBuyStats } from "@/lib/studio/club/group-buy-types";
 import type { EligibleMember } from "@/lib/studio/club/group-buy-queries";
+import type { ClubEvent, ClubEventStats } from "@/lib/studio/club/club-event-types";
 
-type Tab = "miembros" | "compras";
+type Tab = "miembros" | "compras" | "eventos";
 
 const TABS: { value: Tab; label: string }[] = [
   { value: "miembros", label: "Miembros" },
   { value: "compras", label: "Compras grupales" },
+  { value: "eventos", label: "Eventos" },
 ];
 
 export function ClubClient({
@@ -28,12 +31,16 @@ export function ClubClient({
   gbStats,
   groupBuys,
   eligibleMembers,
+  eventStats,
+  events,
 }: {
   stats: ClubStats;
   members: ClubMemberRow[];
   gbStats: GroupBuyStats;
   groupBuys: GroupBuyDetail[];
   eligibleMembers: EligibleMember[];
+  eventStats: ClubEventStats;
+  events: ClubEvent[];
 }) {
   const searchParams = useSearchParams();
 
@@ -48,9 +55,13 @@ export function ClubClient({
     return s;
   }, [groupBuys]);
 
+  const eventIds = useMemo(() => new Set(events.map((e) => e.id)), [events]);
+
   const [tab, setTab] = useState<Tab>(() => {
     const hl = searchParams.get("highlight");
-    return hl && comprasIds.has(hl) ? "compras" : "miembros";
+    if (hl && comprasIds.has(hl)) return "compras";
+    if (hl && eventIds.has(hl)) return "eventos";
+    return "miembros";
   });
 
   // Navegación por flechas del patrón ARIA tablist (complemento del roving
@@ -136,15 +147,15 @@ export function ClubClient({
       </div>
 
       <div role="tabpanel" id={`club-panel-${tab}`} aria-labelledby={`club-tab-${tab}`}>
-        {tab === "miembros" ? (
-          <MembersView stats={stats} members={members} />
-        ) : (
+        {tab === "miembros" && <MembersView stats={stats} members={members} />}
+        {tab === "compras" && (
           <GroupBuysView
             stats={gbStats}
             groupBuys={groupBuys}
             eligibleMembers={eligibleMembers}
           />
         )}
+        {tab === "eventos" && <EventsView stats={eventStats} events={events} />}
       </div>
     </div>
   );
