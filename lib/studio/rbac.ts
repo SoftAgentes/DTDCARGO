@@ -84,6 +84,8 @@ export const ROLE_MODULE_ACCESS: Record<string, readonly StudioUserRole[]> = {
   fidelizacion: ["commercial", "support"],
   // Academia (SDD-0093): contenido = commercial (Director); precio+cuenta = accounting (gate por campo en servicios).
   academia: ["commercial", "accounting", "support"],
+  // Club DTD (SDD-0116 D6): lo administra comercial; support read-only. admin siempre.
+  club: ["commercial", "support"],
 
   // ─── FINANZAS · DINERO = accounting (+admin) · admin-only = [] ─
   direccion: [], // admin only (tablero ejecutivo, SDD-0048)
