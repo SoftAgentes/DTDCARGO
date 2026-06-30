@@ -7,6 +7,32 @@
 >
 > Diseño aprobado por el founder (2026-06-29). Cuenta: `https://doortudoor.kommo.com`.
 
+## ✅ Estado (2026-06-29) — embudo único YA configurado
+
+**Decisión de ejecución del founder:** en vez de crear un embudo nuevo "DTD — Ventas", se **reusó el embudo
+principal vacío "Atencion a leeds"** (id `13967120`, 0 leads → cero riesgo) y se reconfiguraron sus etapas.
+El founder lo hizo en su propio Chrome (sin automatización) y guardó.
+
+**Etapas reales que quedaron** (nombres del founder, alineados a los estados del ERP):
+
+| Rol | Nombre real en Kommo |
+|---|---|
+| Entrante | **Leads entrantes** |
+| Activa 1 | **Contacto inicial** |
+| Activa 2 | **Tomar decisión (Estimado)** |
+| Activa 3 | **Negociación (Cotizado)** |
+| Cierre ganado | **Servicio Logrado con éxito** |
+| Cierre perdido | **Ventas Perdidos** |
+
+Flujo: `Leads entrantes → Contacto inicial → Tomar decisión (Estimado) → Negociación (Cotizado) → Servicio
+Logrado con éxito / Ventas Perdidos`. (Kommo muestra como columnas solo las 3 activas; entrante y cierre van
+aparte — es normal.)
+
+**Pendiente (coordinación / prod):** (1) sync de Kommo para que el espejo traiga los IDs nuevos de etapa;
+(2) re-mapear el write-back del ERP a estos nombres — `estimado enviado → Tomar decisión (Estimado)`,
+`aceptado → Servicio Logrado con éxito`, `rechazado → Ventas Perdidos`; (3) campo "Tipo de servicio" (si se
+quiere) + migración de leads de los otros 10 embudos, con el founder delante.
+
 ## Por qué (foto real del espejo, MCP 2026-06-29)
 
 | Embudo | Leads | Dónde se atascan | Ganados |
