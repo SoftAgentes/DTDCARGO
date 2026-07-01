@@ -24,9 +24,14 @@ import { getCompanyData } from "@/lib/studio/company-queries";
 import { CompanySection } from "./_components/CompanySection";
 import { AppearanceSection } from "./_components/AppearanceSection";
 import { NumberingSection } from "./_components/NumberingSection";
+import { AuditLogSection } from "./_components/AuditLogSection";
+import { PermissionsSection } from "./_components/PermissionsSection";
+import { MasterDataSection } from "./_components/MasterDataSection";
 import { getNumberingOverview } from "@/lib/studio/numbering-queries";
+import { getRecentAuditEvents } from "@/lib/studio/audit-queries";
 import type { CompanyData } from "@/lib/studio/company-types";
 import type { NumberingOverview } from "@/lib/studio/numbering-types";
+import type { AuditEvent } from "@/lib/studio/audit-types";
 
 export const metadata = { title: "Administración" };
 
@@ -72,7 +77,7 @@ const SECTIONS: AdminSection[] = [
     icon: "tag",
     description:
       "Catálogos editables: segmentos de cliente, tiers, servicios (LCL/FCL), estados del workflow, tipos de documento, HS codes OMA, AES arancel VE.",
-    sddRef: "SDD-0030",
+    sddRef: "SDD-0125",
   },
   {
     id: "rates",
@@ -109,7 +114,7 @@ const SECTIONS: AdminSection[] = [
     icon: "lock",
     description:
       "Roles del tenant (Admin, Comercial, Operaciones, Bodega) con scope por módulo y por almacén. Granularidad de read/write/approve.",
-    sddRef: "SDD-0024",
+    sddRef: "SDD-0124",
   },
   {
     id: "audit",
@@ -118,7 +123,7 @@ const SECTIONS: AdminSection[] = [
     icon: "eye",
     description:
       "Drill-down de quién hizo qué, cuándo y desde dónde. Filtros por usuario, módulo, acción y rango de fechas.",
-    sddRef: "Sprint C",
+    sddRef: "SDD-0123",
   },
   {
     id: "numbering",
@@ -189,12 +194,16 @@ export default async function AdminPage({
   // para no pegarle a la DB en las secciones que aún son placeholder.
   let companyData: CompanyData | null = null;
   let numberingData: NumberingOverview | null = null;
+  let auditEvents: AuditEvent[] | null = null;
   if (active.id === "company") {
     const supabase = await createClient();
     companyData = await getCompanyData(supabase);
   } else if (active.id === "numbering") {
     const supabase = await createClient();
     numberingData = await getNumberingOverview(supabase);
+  } else if (active.id === "audit") {
+    const supabase = await createClient();
+    auditEvents = await getRecentAuditEvents(supabase);
   }
 
   const grouped = GROUP_ORDER.map((g) => ({
@@ -279,7 +288,12 @@ export default async function AdminPage({
         }}
       >
         <SideNav grouped={grouped} activeId={activeId} />
-        <Content section={active} companyData={companyData} numberingData={numberingData} />
+        <Content
+          section={active}
+          companyData={companyData}
+          numberingData={numberingData}
+          auditEvents={auditEvents}
+        />
       </div>
     </div>
   );
@@ -373,10 +387,12 @@ function Content({
   section,
   companyData,
   numberingData,
+  auditEvents,
 }: {
   section: AdminSection;
   companyData: CompanyData | null;
   numberingData: NumberingOverview | null;
+  auditEvents: AuditEvent[] | null;
 }) {
   return (
     <div key={section.id}>
@@ -417,6 +433,12 @@ function Content({
         <AppearanceSection />
       ) : section.id === "numbering" && numberingData ? (
         <NumberingSection data={numberingData} />
+      ) : section.id === "audit" && auditEvents ? (
+        <AuditLogSection events={auditEvents} />
+      ) : section.id === "permissions" ? (
+        <PermissionsSection />
+      ) : section.id === "masterdata" ? (
+        <MasterDataSection />
       ) : section.href ? (
         <LinkedSectionCTA section={section} />
       ) : (

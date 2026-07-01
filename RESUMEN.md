@@ -1,13 +1,21 @@
-# RESUMEN — worktree `web-norte` · Administración (SDD-0120 + 0121 + 0122)
+# RESUMEN — worktree `web-norte` · Administración (SDD-0120 → 0125)
 
 **Sesión:** secundaria (no push, no toca `main`, no aplica migrations a prod).
 **Rama:** `feat/web-norte` (off `main`).
 **Fecha:** 2026-07-01.
 
-Tres secciones de `/studio/admin` dejan de ser placeholder:
+Seis secciones de `/studio/admin` dejan de ser placeholder:
 - **SDD-0120 · Datos de la empresa** (con migración 0190).
 - **SDD-0121 · Apariencia** (sin migración).
 - **SDD-0122 · Numeración & legal** (con migración 0191, solo texto).
+- **SDD-0123 · Audit log** (read-only, sin migración).
+- **SDD-0124 · Permisos por rol** (read-only, sin migración).
+- **SDD-0125 · Master data** (read-only hub, sin migración).
+
+Con esto quedan reales: BÁSICO = company, appearance, masterdata (+features y
+agents que ya tenían módulo); INTERMEDIO = permissions, audit, numbering.
+Faltan (cada una su spec): Tasas de cambio, Feriados (infra parcial en DB) y las
+PRO (API keys, Workflows, Import/Export).
 
 ---
 
@@ -97,7 +105,27 @@ numeración editable de verdad (prefijo/padding, notas déb/créd, control SENIA
 
 ---
 
-## Verificación (las tres slices)
+## SDD-0123/0124/0125 · Audit + Permisos + Master data (read-only, sin migración)
+
+Tres secciones read-only en un solo commit (comparten el wiring de `page.tsx`):
+
+- **Audit log (0123)** — viewer de `entity_audit_log` (últimos ~100 eventos:
+  cuándo/entidad/evento/actor/payload) + filtros client-side por entidad/actor.
+  Solo `select` (el INSERT es service_role). `lib/studio/audit-{types,queries}.ts`
+  + `_components/AuditLogSection.tsx`.
+- **Permisos por rol (0124)** — matriz rol×módulo derivada en vivo de la config
+  RBAC estática (`canAccessModule`/`canEditModule`, SDD-0085). TOTAL/V·E/V/—.
+  No editable (RBAC vive en código). `_components/PermissionsSection.tsx`.
+- **Master data (0125)** — hub read-only: tiers de cliente (código) + punteros a
+  `/studio/servicios` y `/studio/admin/rutas` + chips "por implementar"
+  (segmentos, doc types, HS, AES). `_components/MasterDataSection.tsx`.
+
+**Modificado:** `app/studio/(app)/admin/page.tsx` (fetch de audit + render de las
+tres; `sddRef` → 0123/0124/0125). Specs `docs/specs/0123..0125`.
+
+---
+
+## Verificación (las seis secciones)
 
 - `tsc --noEmit` → ✅ verde
 - `eslint` (archivos nuevos + modificados, incluye frontera público↔ERP) → ✅
@@ -114,7 +142,7 @@ numeración editable de verdad (prefijo/padding, notas déb/créd, control SENIA
    código de company/numbering referencia columnas nuevas → esas secciones no
    guardan en runtime hasta aplicarlas.
 2. **Regenerar el índice SDD** (`pnpm docs:index` → `docs/specs/README.md`) —
-   archivo compartido, no lo toqué. Debe incluir 0120, 0121 y 0122.
+   archivo compartido, no lo toqué. Debe incluir 0120 → 0125.
 3. Merge de `feat/web-norte` → `main` + push (gate del founder).
 4. Opcional: check `ui-ux-designer` pre-merge (regla del founder para pantallas
    nuevas).
