@@ -205,6 +205,11 @@ create trigger payment_reports_validate_invoice_trg
   before insert or update on public.payment_reports
   for each row execute function public.payment_reports_validate_invoice();
 
+-- Convención de seguridad del repo (deuda rpc_anon_execute): revocar EXECUTE del
+-- público/anon a la trigger fn SECURITY DEFINER (dispara igual como trigger; llamarla
+-- directo por RPC ya falla). Cierra el advisor anon_security_definer_function_executable.
+revoke execute on function public.payment_reports_validate_invoice() from public, anon;
+
 -- ╔═══════════════════════════════════════════════════════════╗
 -- ║ 6. RPC confirm_payment_report · atómico (equipo)          ║
 -- ╚═══════════════════════════════════════════════════════════╝
