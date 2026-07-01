@@ -23,7 +23,10 @@ import { createClient } from "@/lib/db/server";
 import { getCompanyData } from "@/lib/studio/company-queries";
 import { CompanySection } from "./_components/CompanySection";
 import { AppearanceSection } from "./_components/AppearanceSection";
+import { NumberingSection } from "./_components/NumberingSection";
+import { getNumberingOverview } from "@/lib/studio/numbering-queries";
 import type { CompanyData } from "@/lib/studio/company-types";
+import type { NumberingOverview } from "@/lib/studio/numbering-types";
 
 export const metadata = { title: "Administración" };
 
@@ -124,7 +127,7 @@ const SECTIONS: AdminSection[] = [
     icon: "doc",
     description:
       "Correlativos por documento (factura, nota de débito/crédito, control SENIAT) con prefijo y zero-padding configurables.",
-    sddRef: "SDD-0030",
+    sddRef: "SDD-0122",
   },
   // ─── PRO ─────────────────────────────────────────────────
   {
@@ -185,9 +188,13 @@ export default async function AdminPage({
   // Solo la sección "company" tiene implementación real (SDD-0120): fetch acá
   // para no pegarle a la DB en las secciones que aún son placeholder.
   let companyData: CompanyData | null = null;
+  let numberingData: NumberingOverview | null = null;
   if (active.id === "company") {
     const supabase = await createClient();
     companyData = await getCompanyData(supabase);
+  } else if (active.id === "numbering") {
+    const supabase = await createClient();
+    numberingData = await getNumberingOverview(supabase);
   }
 
   const grouped = GROUP_ORDER.map((g) => ({
@@ -272,7 +279,7 @@ export default async function AdminPage({
         }}
       >
         <SideNav grouped={grouped} activeId={activeId} />
-        <Content section={active} companyData={companyData} />
+        <Content section={active} companyData={companyData} numberingData={numberingData} />
       </div>
     </div>
   );
@@ -365,9 +372,11 @@ function SideNav({
 function Content({
   section,
   companyData,
+  numberingData,
 }: {
   section: AdminSection;
   companyData: CompanyData | null;
+  numberingData: NumberingOverview | null;
 }) {
   return (
     <div key={section.id}>
@@ -406,6 +415,8 @@ function Content({
         <CompanySection data={companyData} />
       ) : section.id === "appearance" ? (
         <AppearanceSection />
+      ) : section.id === "numbering" && numberingData ? (
+        <NumberingSection data={numberingData} />
       ) : section.href ? (
         <LinkedSectionCTA section={section} />
       ) : (

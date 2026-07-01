@@ -1,12 +1,13 @@
-# RESUMEN — worktree `web-norte` · Administración (SDD-0120 + SDD-0121)
+# RESUMEN — worktree `web-norte` · Administración (SDD-0120 + 0121 + 0122)
 
 **Sesión:** secundaria (no push, no toca `main`, no aplica migrations a prod).
 **Rama:** `feat/web-norte` (off `main`).
 **Fecha:** 2026-07-01.
 
-Dos secciones de `/studio/admin` dejan de ser placeholder:
+Tres secciones de `/studio/admin` dejan de ser placeholder:
 - **SDD-0120 · Datos de la empresa** (con migración 0190).
 - **SDD-0121 · Apariencia** (sin migración).
+- **SDD-0122 · Numeración & legal** (con migración 0191, solo texto).
 
 ---
 
@@ -70,7 +71,33 @@ mismo patrón que el theme existente) + material de marca read-only:
 
 ---
 
-## Verificación (ambas slices)
+## SDD-0122 · Numeración & legal (migración 0191, solo texto)
+
+Tercera sección. V1 conservadora en lo fiscal:
+- **Formatos de numeración** = **read-only**. Los correlativos son legales/fijos
+  (viven en RPCs). Facturas y Estimados muestran "próximo" en vivo (seguro:
+  `next_invoice_code`/`next_quote_code` son `SELECT max+1`, NO consumen); el
+  resto = "fijo por diseño". Hacerlos editables = spec fiscal con gate contador
+  → fuera de alcance.
+- **Leyendas legales en facturas** = editable (pie + T&C), guardado en `tenants`
+  (no en `fiscal_settings`, para no tocar el módulo Fiscal). Migración 0191 = 2
+  columnas de texto aditivas (sin lógica de numeración → no sensible).
+
+**Archivos nuevos:** `lib/studio/numbering-{types,queries}.ts`,
+`app/studio/(app)/admin/numbering-actions.ts`,
+`app/studio/(app)/admin/_components/NumberingSection.tsx`,
+`supabase/migrations/0191_invoice_legal_legends.sql`,
+`docs/specs/0122-numeracion-legal/spec.md`.
+**Modificados:** `app/studio/(app)/admin/page.tsx` (fetch + render; `sddRef` →
+SDD-0122).
+
+**Follow-ups:** consumir las leyendas en el PDF/renderer de facturación ·
+numeración editable de verdad (prefijo/padding, notas déb/créd, control SENIAT)
+= spec fiscal con gate contador.
+
+---
+
+## Verificación (las tres slices)
 
 - `tsc --noEmit` → ✅ verde
 - `eslint` (archivos nuevos + modificados, incluye frontera público↔ERP) → ✅
@@ -81,12 +108,13 @@ mismo patrón que el theme existente) + material de marca read-only:
 
 ## Pendiente para el Director (integración)
 
-1. **Aplicar migración `0190_datos_empresa.sql` a prod** (validar antes con
-   dry-run tx `begin…rollback`). Solo aplica a SDD-0120; SDD-0121 no tiene
-   migración. El código de company referencia columnas/tablas nuevas → esa
-   sección no funciona en runtime hasta aplicarla.
+1. **Aplicar migraciones a prod** (validar antes con dry-run tx
+   `begin…rollback`): `0190_datos_empresa.sql` (SDD-0120) y
+   `0191_invoice_legal_legends.sql` (SDD-0122). SDD-0121 no tiene migración. El
+   código de company/numbering referencia columnas nuevas → esas secciones no
+   guardan en runtime hasta aplicarlas.
 2. **Regenerar el índice SDD** (`pnpm docs:index` → `docs/specs/README.md`) —
-   archivo compartido, no lo toqué. Debe incluir 0120 y 0121.
+   archivo compartido, no lo toqué. Debe incluir 0120, 0121 y 0122.
 3. Merge de `feat/web-norte` → `main` + push (gate del founder).
 4. Opcional: check `ui-ux-designer` pre-merge (regla del founder para pantallas
    nuevas).
