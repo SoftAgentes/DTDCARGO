@@ -76,6 +76,23 @@ type ParticipationRow = {
 };
 
 /**
+ * Chequeo barato: ¿este cliente es miembro del Club? Solo para gatear la visibilidad
+ * de "Club" en el nav del portal (founder 2026-07-01: Club NO es visible por defecto —
+ * aparece solo si el cliente está habilitado). Selecciona una sola fila/columna; el
+ * aislamiento lo fuerza RLS de portal (0187). false ante error o sin sesión (no lanza).
+ * TODO(club-admin): sumar un flag de módulo activo por tenant cuando exista el admin del Club.
+ */
+export async function isPortalClubMember(supabase: SupabaseClient): Promise<boolean> {
+  const { data } = await supabase
+    .from("club_members")
+    .select("id")
+    .is("deleted_at", null)
+    .limit(1)
+    .maybeSingle<{ id: string }>();
+  return Boolean(data);
+}
+
+/**
  * Estado del Club del miembro del portal: su membresía (plan + estado + alta), las
  * compras grupales abiertas que puede ver, y su participación en cada una. Todo
  * scope-ado por RLS de portal (0187). No-miembro / vacío ante error o sin sesión.

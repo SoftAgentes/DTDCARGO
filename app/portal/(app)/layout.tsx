@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { jetbrainsMonoUi } from "@/lib/fonts";
 import { createClient } from "@/lib/db/server";
 import { getPortalClient } from "@/lib/portal/portal-queries";
+import { isPortalClubMember } from "@/lib/portal/portal-club-queries";
 import { showNortePortal } from "@/lib/portal/demo";
 import { PortalHeader } from "../_components/PortalHeader";
 
@@ -34,6 +35,11 @@ export default async function PortalAppLayout({
   const cookieTheme = (await cookies()).get("portal-theme")?.value;
   const theme: "dark" | "light" = cookieTheme === "light" ? "light" : "dark";
 
+  // Club en el nav: oculto por defecto (founder 2026-07-01) — solo si el cliente
+  // está habilitado (hoy = es miembro del Club). Config por tenant llega con el
+  // admin del Club más adelante.
+  const showClub = await isPortalClubMember(supabase);
+
   return (
     <div
       id="portal-shell"
@@ -45,6 +51,7 @@ export default async function PortalAppLayout({
         name={client.name}
         themed={norte}
         theme={theme}
+        showClub={showClub}
       />
       <main className="flex-1 wrap w-full py-10 lg:py-14">{children}</main>
     </div>

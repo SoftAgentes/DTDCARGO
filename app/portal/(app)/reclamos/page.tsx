@@ -8,6 +8,7 @@ import {
   type ClaimEvidenceItem,
 } from "@/lib/studio/reclamos/claim-evidence";
 import { PortalClaims } from "./_components/PortalClaims";
+import { SoporteHubTabs } from "../../_components/PortalHubTabs";
 
 export const metadata: Metadata = { title: "Mis reclamos" };
 
@@ -34,10 +35,13 @@ export default async function PortalClaimsPage() {
   for (const [k, v] of evidenceMap) evidence[k] = v;
 
   return (
-    <PortalClaims
-      claims={claims}
-      shipments={shipments.map((s) => ({ id: s.id, code: s.code }))}
-      evidence={evidence}
-    />
+    <div>
+      <SoporteHubTabs />
+      <PortalClaims
+        claims={claims}
+        shipments={shipments.map((s) => ({ id: s.id, code: s.code }))}
+        evidence={evidence}
+      />
+    </div>
   );
 }

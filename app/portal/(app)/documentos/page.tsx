@@ -10,6 +10,7 @@ import {
 } from "@/lib/studio/shipment-document-types";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ArrowIcon } from "@/components/Icon";
+import { EnviosHubTabs } from "../../_components/PortalHubTabs";
 
 export const metadata: Metadata = { title: "Documentos" };
 
@@ -47,6 +48,7 @@ export default async function PortalDocumentsPage() {
 
   return (
     <div>
+      <EnviosHubTabs />
       <span className="eyebrow">Tu cuenta</span>
       <h1 className="h-display mt-3" style={{ fontSize: "clamp(30px, 4.5vw, 48px)" }}>
         Documentos.
