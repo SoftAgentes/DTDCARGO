@@ -111,7 +111,7 @@ export function PortalShipmentsNorte({
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar por código…"
+            placeholder="Buscar por código de envío…"
             aria-label="Buscar envío por código"
             className="w-full pl-9 pr-3 h-10 rounded-[10px] bg-white border border-grey-200 text-[13.5px] text-ink placeholder:text-grey-700 outline-none transition-colors focus:border-ink"
             style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
@@ -201,7 +201,7 @@ function EmptyState({ empty }: { empty: boolean }) {
       <p className="mt-2 text-[14px] text-grey-700 max-w-[46ch] mx-auto leading-[1.55]">
         {empty
           ? "Cuando confirmes tu primera carga con tu asesor, va a aparecer acá con su estado."
-          : "Probá con otra pestaña o limpiá la búsqueda."}
+          : "Prueba con otra pestaña o limpia la búsqueda."}
       </p>
       {empty ? (
         <a
