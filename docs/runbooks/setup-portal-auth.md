@@ -140,14 +140,15 @@ Pegá cada bloque en **[Auth → Email Templates](https://supabase.com/dashboard
 
 | Plantilla (Supabase) | Subject sugerido | Variable | Estado |
 |---|---|---|---|
-| Magic Link | `Tu enlace de acceso al portal · DTD Cargo` | `{{ .ConfirmationURL }}` | ✅ brandeada · pendiente de pegar |
-| Confirm signup | `Confirma tu cuenta · DTD Cargo` | `{{ .ConfirmationURL }}` | ✅ brandeada · pendiente de pegar |
-| Invite user | `Te damos acceso a tu portal · DTD Cargo` | `{{ .ConfirmationURL }}` | ✅ brandeada · pendiente de pegar |
-| Reset Password (Recovery) | `Recupera el acceso a tu cuenta · DTD Cargo` | `{{ .ConfirmationURL }}` | ✅ brandeada · pendiente de pegar |
-| Change Email Address | `Confirma tu nuevo correo · DTD Cargo` | `{{ .ConfirmationURL }}` | ✅ brandeada · pendiente de pegar |
-| Reauthentication (código OTP) | `Tu código de verificación · DTD Cargo` | `{{ .Token }}` | ✅ brandeada · pendiente de pegar |
+| Magic Link | `Tu enlace de acceso al portal · DTD Cargo` | `{{ .ConfirmationURL }}` | ✅ pegada en dashboard |
+| Confirm signup | `Confirma tu cuenta · DTD Cargo` | `{{ .ConfirmationURL }}` | ✅ pegada en dashboard |
+| Invite user | `Te damos acceso a tu portal · DTD Cargo` | `{{ .ConfirmationURL }}` | ✅ pegada en dashboard |
+| Reset Password (Recovery) | `Recupera el acceso a tu cuenta · DTD Cargo` | `{{ .ConfirmationURL }}` | ✅ pegada en dashboard |
+| Change Email Address | `Confirma tu nuevo correo · DTD Cargo` | `{{ .ConfirmationURL }}` | ✅ pegada en dashboard |
+| Reauthentication (código OTP) | `Tu código de verificación · DTD Cargo` | `{{ .Token }}` | ✅ pegada en dashboard |
 
-> Al pegar cada una, cambiá "pendiente de pegar" → **"pegada"** en esta tabla.
+> ✅ **Las 6 quedaron pegadas en el dashboard (2026-07-01).** Si en el futuro se
+> re-brandean, actualizá el HTML acá primero y volvé a pegarlas.
 
 ### Magic Link · subject `Tu enlace de acceso al portal · DTD Cargo`
 
