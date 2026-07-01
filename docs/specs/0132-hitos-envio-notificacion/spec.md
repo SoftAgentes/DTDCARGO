@@ -1,5 +1,5 @@
 ---
-sdd: "0123"
+sdd: "0132"
 title: "Hitos del envío + notificación de estado al cliente"
 status: draft
 author: "agente-secundario (inventario portal)"
@@ -11,10 +11,9 @@ related: ["0042", "0047", "0056", "0101"]
 confidencialidad: interno
 ---
 
-# DTD-0123 — Hitos del envío + notificación de estado al cliente
+# DTD-0132 — Hitos del envío + notificación de estado al cliente
 
-> ⚠️ **Número TENTATIVO.** En `main` el máx de spec = 0119; hay ramas en vuelo hasta 0122
-> (`feat/construccion-norte`). El **Director confirma el número libre real** antes de aprobar.
+> **Número confirmado 2026-07-01** contra todas las ramas (máx en main = 0131 → libre 0132).
 > Origen: `INVENTARIO-PORTAL.md` gap **⭐1** (rama `feat/portal-inventario`).
 
 ## Contexto

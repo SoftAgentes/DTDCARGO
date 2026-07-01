@@ -1,5 +1,5 @@
 ---
-sdd: "0125"
+sdd: "0134"
 title: "Reportar pago + comprobante en el portal"
 status: draft
 author: "agente-secundario (inventario portal)"
@@ -11,9 +11,9 @@ related: ["0042", "0044", "0054", "0079"]
 confidencialidad: interno
 ---
 
-# DTD-0125 — Reportar pago + comprobante en el portal
+# DTD-0134 — Reportar pago + comprobante en el portal
 
-> ⚠️ **Número TENTATIVO** (Director confirma vs ramas en vuelo). Origen:
+> **Número confirmado 2026-07-01** (máx en main = 0131 → libre 0134). Origen:
 > `INVENTARIO-PORTAL.md` gap **#7**. **✅ Confirmado por el founder (2026-07-01): SÍ construir.**
 
 ## Contexto

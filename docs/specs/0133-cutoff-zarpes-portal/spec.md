@@ -1,5 +1,5 @@
 ---
-sdd: "0124"
+sdd: "0133"
 title: "Cut-off / calendario de zarpes en el portal"
 status: draft
 author: "agente-secundario (inventario portal)"
@@ -11,9 +11,9 @@ related: ["0042", "0047", "0101"]
 confidencialidad: interno
 ---
 
-# DTD-0124 — Cut-off / calendario de zarpes en el portal
+# DTD-0133 — Cut-off / calendario de zarpes en el portal
 
-> ⚠️ **Número TENTATIVO** (Director confirma vs ramas en vuelo). Origen:
+> **Número confirmado 2026-07-01** (máx en main = 0131 → libre 0133). Origen:
 > `INVENTARIO-PORTAL.md` gap **#2** (rama `feat/portal-inventario`).
 
 ## Contexto
