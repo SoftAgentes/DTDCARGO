@@ -856,3 +856,28 @@
   outline: 2px solid var(--wine);
   outline-offset: 2px;
 }
+
+/* Card-link navegable (módulo Marketing · SDD-0119 y sucesivos). */
+.studio-card-link {
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+.studio-card-link:hover {
+  border-color: var(--border-strong) !important;
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+.studio-card-link:focus-visible {
+  outline: 2px solid var(--wine);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .studio-card-link {
+    transition: none;
+  }
+  .studio-card-link:hover {
+    transform: none;
+  }
+}

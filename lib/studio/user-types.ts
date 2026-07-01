@@ -16,7 +16,8 @@ export type StudioUserRole =
   | "operations"
   | "accounting"
   | "warehouse"
-  | "support";
+  | "support"
+  | "marketing";
 
 export const STUDIO_USER_ROLES: StudioUserRole[] = [
   "admin",
@@ -25,6 +26,7 @@ export const STUDIO_USER_ROLES: StudioUserRole[] = [
   "accounting",
   "warehouse",
   "support",
+  "marketing",
 ];
 
 // ─── Entity types (match schema 0019) ────────────────────────
@@ -237,6 +239,7 @@ export const ROLE_LABELS: Record<StudioUserRole, string> = {
   accounting: "Contabilidad",
   warehouse: "Almacenista",
   support: "Soporte",
+  marketing: "Marketing",
 };
 
 export function roleLabel(r: StudioUserRole): string {
@@ -250,6 +253,7 @@ export const ROLE_DESCRIPTIONS: Record<StudioUserRole, string> = {
   accounting: "Facturación, costing, reportes financieros. Read en operativo.",
   warehouse: "Acceso al almacén asignado (CN o VE). Recepción y despacho.",
   support: "Lectura amplia + crear tickets. Sin permisos de edición V1.",
+  marketing: "Módulo de Marketing: HUB de marca, motor de noticias, contenido, calendario y comunidad. Sin acceso a finanzas ni operación.",
 };
 
 export function roleDescription(r: StudioUserRole): string {
@@ -271,6 +275,7 @@ export function roleBadgeTone(r: StudioUserRole): BadgeTone {
   if (r === "commercial") return "info";
   if (r === "operations") return "warning";
   if (r === "accounting") return "success";
+  if (r === "marketing") return "danger"; // 6º tono libre (rojo); ajustable si el founder prefiere otro
   return "neutral"; // warehouse + support
 }
 

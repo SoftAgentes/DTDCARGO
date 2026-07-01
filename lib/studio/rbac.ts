@@ -2,8 +2,8 @@
  * RBAC por módulo del Studio — SDD-0085.
  *
  * PROBLEMA: hoy el ERP solo distingue `admin` vs no-admin (un único gate
- * `isAdmin` en el layout). Los 6 roles (SDD-0024) existen en DB pero los 4
- * intermedios NO restringen ningún módulo — el aislamiento real es por
+ * `isAdmin` en el layout). Los 7 roles (SDD-0024 + `marketing` de SDD-0119)
+ * existen en DB pero los intermedios NO restringen ningún módulo — el aislamiento real es por
  * `tenant_id`/RLS, no por rol. Un `accounting` podía abrir Usuarios; un
  * `operations` podía abrir Tesorería.
  *
@@ -33,7 +33,7 @@
  * módulos (`modules.ts`) nunca se desincronicen.
  *
  * El `owner_role` del motor de flujo interno (FASE-FUTURA) reusa estos mismos
- * 6 roles — un solo vocabulario en todo el sistema.
+ * 7 roles — un solo vocabulario en todo el sistema.
  */
 
 import type { StudioUserRole } from "@/lib/studio/user-types";
@@ -107,7 +107,11 @@ export const ROLE_MODULE_ACCESS: Record<string, readonly StudioUserRole[]> = {
   nomina: ["accounting"],
 
   // ─── MARKETING ───────────────────────────────────────────────
-  "noticias-web": ["commercial", "support"],
+  // SDD-0119: módulo dedicado (dashboard "buenos días" + HUB + calendario).
+  // Lo administra el área de marketing; comercial lo acompaña; support lo ve
+  // read-only. admin siempre.
+  marketing: ["marketing", "commercial", "support"],
+  "noticias-web": ["commercial", "support", "marketing"],
 
   // ─── SISTEMA ─────────────────────────────────────────────────
   mentions: ["commercial", "operations", "accounting", "warehouse", "support"],

@@ -34,6 +34,7 @@ export const users = {
   "users.role.accounting": "Contabilidad",
   "users.role.warehouse": "Almacenista",
   "users.role.support": "Soporte",
+  "users.role.marketing": "Marketing",
 
   // ── Teams ────────────────────────────────────────────────
   "users.team.direccion": "Dirección",

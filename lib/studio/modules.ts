@@ -99,6 +99,7 @@ export const MODULES: ModuleDef[] = [
   { id: "nomina", group: "FINANZAS", label: "Nómina · RRHH", icon: "users", slug: "/studio/nomina" },
 
   // MARKETING
+  { id: "marketing", group: "MARKETING", label: "Marketing", icon: "spark", slug: "/studio/marketing" },
   { id: "noticias-web", group: "MARKETING", label: "Noticias Web", labelKey: "chrome.sidebar.noticias_web", icon: "doc", slug: "/studio/marketing/noticias-web" },
 
   // SISTEMA
