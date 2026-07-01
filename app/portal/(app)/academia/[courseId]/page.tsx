@@ -117,7 +117,7 @@ function LessonRow({ courseId, lesson }: { courseId: string; lesson: PortalCours
         aria-hidden
         className={`flex-shrink-0 w-5 h-5 rounded-full grid place-items-center ${
           lesson.done
-            ? "bg-status-success text-white"
+            ? "bg-status-success text-[color:var(--color-on-accent)]"
             : "border border-grey-200 text-grey-500"
         }`}
       >

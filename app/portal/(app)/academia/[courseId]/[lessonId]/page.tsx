@@ -126,7 +126,7 @@ export default async function PortalLessonPage({
                   <span
                     aria-hidden
                     className={`flex-shrink-0 w-5 h-5 rounded-full grid place-items-center text-[11px] ${
-                      ll.done ? "bg-status-success text-white" : "border border-grey-200 text-grey-500"
+                      ll.done ? "bg-status-success text-[color:var(--color-on-accent)]" : "border border-grey-200 text-grey-500"
                     }`}
                   >
                     {ll.done ? <IconCheck className="w-3 h-3" /> : i + 1}

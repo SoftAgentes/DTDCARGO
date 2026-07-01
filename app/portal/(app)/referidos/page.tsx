@@ -241,7 +241,7 @@ function HowItWorks({ program }: { program: PortalReferralProgram }) {
         {steps.map((s) => (
           <div key={s.n} className="flex flex-col gap-2">
             <span
-              className="w-8 h-8 rounded-full grid place-items-center text-[13px] text-white"
+              className="w-8 h-8 rounded-full grid place-items-center text-[13px] text-[color:var(--color-on-accent)]"
               style={{
                 background: "var(--color-wine)",
                 fontFamily: "var(--font-archivo-black)",

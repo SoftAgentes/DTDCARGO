@@ -71,7 +71,7 @@ export function PortalClaims({
         Mis reclamos.
       </h1>
       <p className="lead mt-3">
-        ¿Algo salió mal con tu carga? Repórtalo aquí y dale seguimiento. Tu asesor
+        ¿Algo salió mal con tu carga? Repórtalo acá y hazle seguimiento. Tu asesor
         lo evalúa y te confirma la resolución.
       </p>
 

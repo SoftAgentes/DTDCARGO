@@ -54,8 +54,8 @@ export default async function PortalDocumentsPage() {
         Documentos.
       </h1>
       <p className="lead mt-3">
-        Tus documentos de embarque — BL, comprobantes de entrega (POD) y más. Los
-        carga nuestro equipo y quedan disponibles para descarga.
+        BL · Packing List · Facturas comerciales · POD. Los carga nuestro equipo y
+        quedan disponibles 7 años en archivo.
       </p>
 
       {docs.length === 0 ? (

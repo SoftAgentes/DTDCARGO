@@ -408,7 +408,7 @@ function NavieraCard({
           Naviera
         </h2>
         {statusText ? (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold text-white bg-wine">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold text-[color:var(--color-on-accent)] bg-wine">
             {statusText}
           </span>
         ) : null}
