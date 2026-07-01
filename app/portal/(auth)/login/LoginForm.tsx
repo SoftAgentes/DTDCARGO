@@ -39,6 +39,11 @@ export function LoginForm({
             Entra a tu cuenta.
           </h1>
 
+          <p className="mt-3 text-[14px] text-grey-700 leading-[1.55]">
+            Aquí no usamos contraseñas. Te enviamos un enlace seguro a tu correo y
+            entras con un solo clic.
+          </p>
+
           {notice && (
             <p
               className="mt-5 rounded-[10px] bg-paper border-l-[3px] px-4 py-3 text-[13.5px] text-grey-700 leading-[1.5]"
@@ -82,8 +87,8 @@ export function LoginForm({
               </button>
 
               <p className="text-[12px] text-grey-500 leading-[1.5]">
-                Te mandamos un enlace de acceso a tu correo — entras con un clic, sin
-                contraseñas que recordar.
+                El enlace llega a tu correo, sirve por poco tiempo y es de un solo uso.
+                Si se te vence, pides otro y listo.
               </p>
             </form>
           )}
@@ -134,7 +139,8 @@ function MagicSent({
       <div className="text-[16px] font-bold text-ink">Te enviamos el enlace</div>
       <p className="mt-2 text-[14px] text-grey-700 leading-[1.55]">
         Abre el correo que mandamos a <strong className="text-ink">{email}</strong> y
-        haz clic en el enlace para entrar.
+        haz clic en el enlace para entrar. El enlace vence en poco tiempo y es de un
+        solo uso — si no lo ves, revisa spam o pídelo de nuevo.
       </p>
       <form action={action} className="mt-4">
         <input type="hidden" name="email" value={email} />
