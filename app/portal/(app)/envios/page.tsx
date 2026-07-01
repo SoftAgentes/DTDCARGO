@@ -5,6 +5,7 @@ import { showNortePortal } from "@/lib/portal/demo";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ArrowIcon } from "@/components/Icon";
 import { ShipmentRow } from "../../_components/ShipmentRow";
+import { EnviosHubTabs } from "../../_components/PortalHubTabs";
 import { PortalShipmentsNorte } from "./_components/PortalShipmentsNorte";
 
 export const metadata: Metadata = { title: "Mis envíos" };
@@ -26,7 +27,12 @@ export default async function PortalShipmentsPage() {
   ]);
 
   if (showNortePortal(client?.markbox)) {
-    return <PortalShipmentsNorte shipments={shipments} />;
+    return (
+      <div>
+        <EnviosHubTabs />
+        <PortalShipmentsNorte shipments={shipments} />
+      </div>
+    );
   }
 
   const waLink = buildWhatsAppLink(
@@ -35,6 +41,7 @@ export default async function PortalShipmentsPage() {
 
   return (
     <div>
+      <EnviosHubTabs />
       <span className="eyebrow">Tu cuenta</span>
       <h1 className="h-display mt-3" style={{ fontSize: "clamp(30px, 4.5vw, 48px)" }}>
         Mis envíos.

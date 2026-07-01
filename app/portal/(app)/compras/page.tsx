@@ -9,6 +9,7 @@ import {
 import { ArrowIcon } from "@/components/Icon";
 import { PrealertaStatusBadge } from "../../_components/PrealertaStatusBadge";
 import { NewPurchaseButton } from "../../_components/NewPurchaseButton";
+import { EnviosHubTabs } from "../../_components/PortalHubTabs";
 
 export const metadata: Metadata = { title: "Mis compras" };
 
@@ -32,6 +33,7 @@ export default async function PortalPurchasesPage() {
 
   return (
     <div>
+      <EnviosHubTabs />
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
           <span className="eyebrow">Tu cuenta</span>

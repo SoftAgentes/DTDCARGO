@@ -7,6 +7,7 @@ import {
   listActivePrealertaAddons,
 } from "@/lib/studio/prealertas/queries";
 import { summarizeSuppliers } from "@/lib/studio/prealertas/types";
+import { EnviosHubTabs } from "../../_components/PortalHubTabs";
 import { SuppliersClient } from "./SuppliersClient";
 
 export const metadata: Metadata = { title: "Tus proveedores" };
@@ -55,6 +56,9 @@ export default async function PortalSuppliersPage() {
   );
 
   return (
-    <SuppliersClient suppliers={views} markbox={client.markbox} addons={addons} />
+    <div>
+      <EnviosHubTabs />
+      <SuppliersClient suppliers={views} markbox={client.markbox} addons={addons} />
+    </div>
   );
 }

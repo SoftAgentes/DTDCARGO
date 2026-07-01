@@ -12,6 +12,7 @@ import {
   type PortalThreadMessage,
 } from "@/lib/portal/portal-conversation-queries";
 import { PortalMessageForm } from "./PortalMessageForm";
+import { SoporteHubTabs } from "../../_components/PortalHubTabs";
 import { CONTACT } from "@/lib/design-tokens";
 import { WhatsAppIcon } from "@/components/Icon";
 
@@ -50,6 +51,7 @@ export default async function PortalMensajesPage() {
 
   return (
     <div>
+      <SoporteHubTabs />
       <span className="eyebrow">Atención al cliente</span>
       <h1
         className="mt-2 text-[30px] sm:text-[36px] leading-none text-ink"
