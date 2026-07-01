@@ -146,6 +146,9 @@ public/norte.html
 
 graphify-out/
 
+# Supabase CLI · scratch local (cache de project-ref, deploys de Edge Functions). No va a git.
+supabase/.temp/
+
 # Material de trabajo crudo que NO va a git (regla AGENTS.md: contratos/financieros/PII → Drive + puntero).
 # Los .md de docs/legal SÍ se versionan (son texto/punteros); estos binarios y el paquete ZIP extraído, no.
 equipo-crm/*.pdf
