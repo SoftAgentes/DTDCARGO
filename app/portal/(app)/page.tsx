@@ -10,6 +10,7 @@ import {
   listMyShipments,
 } from "@/lib/portal/portal-queries";
 import { listPendingAcceptanceInvoices } from "@/lib/portal/portal-legal-queries";
+import { listMyRecentActivity } from "@/lib/portal/shipment-events-queries";
 import { getShipmentNaviera } from "@/lib/studio/naviera-tracking/queries";
 import type { NavieraSnapshot } from "@/lib/studio/naviera-tracking/types";
 import { showNortePortal } from "@/lib/portal/demo";
@@ -40,11 +41,12 @@ export default async function PortalHomePage() {
     return <PortalPending name={client.name} markbox={client.markbox} />;
   }
 
-  const [kpis, nextArrival, shipments, profile] = await Promise.all([
+  const [kpis, nextArrival, shipments, profile, activity] = await Promise.all([
     getDashboardKpis(supabase),
     getNextArrival(supabase),
     listMyShipments(supabase),
     getProfileCompleteness(supabase),
+    listMyRecentActivity(supabase),
   ]);
 
   // Órdenes DDP en borrador esperando aceptación de T&C (SDD-0054 · Slice C). El
@@ -83,6 +85,7 @@ export default async function PortalHomePage() {
           nextArrival={nextArrival}
           nextArrivalNaviera={nextArrivalNaviera}
           shipments={shipments}
+          activity={activity}
         />
       ) : (
         <PortalDashboard

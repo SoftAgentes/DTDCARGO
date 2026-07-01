@@ -24,6 +24,10 @@ import { formatChangeNote, findRateForDestination } from "@/lib/studio/destinati
 import type { Rate } from "@/lib/studio/rate-types";
 import type { ShipmentService, ShipmentStatus } from "@/lib/studio/shipment-types";
 import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
+import {
+  isClientNotifiableMilestone,
+  notifyShipmentMilestoneToClient,
+} from "@/lib/studio/shipment-milestone-notify";
 
 /** Estados terminales en los que no se puede cambiar el destino. */
 const TERMINAL_STATUSES: ShipmentStatus[] = ["delivered", "cancelled"];
@@ -270,6 +274,19 @@ export async function transitionShipment(
       clientMarkbox: shipment.client_markbox,
       clientName: shipment.client_name,
       sourceRef: { kind: "shipment", id },
+    });
+  }
+
+  // SDD-0132 · Slice C: aviso al cliente en otros hitos notificables (recibido en
+  // China / embarcado / en reparto / entregado). El arribo NO entra acá (ya avisó
+  // por su template arriba). Best-effort: nunca rompe el cambio de estado.
+  if (isClientNotifiableMilestone(newStatus) && shipment.status !== newStatus) {
+    const admin = createAdminClient();
+    await notifyShipmentMilestoneToClient(admin, tenantId, {
+      shipmentCode: shipment.code,
+      status: newStatus,
+      clientMarkbox: shipment.client_markbox,
+      clientName: shipment.client_name,
     });
   }
 
