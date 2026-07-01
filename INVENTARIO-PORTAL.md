@@ -107,7 +107,7 @@ Esfuerzo: **S** ≤1 día · **M** 2–4 días · **L** ≥1 semana. "Backend" =
 3. **SDD-C · "Portal Norte UI v2"** — agrupa las piezas visuales sin backend: ciclo animado en el héroe (#3), nueva-compra 3-pasos + celebración (#4), etiquetas-adjuntar-docs (#5), academia 2-col (#6). **Sin migración.** Se puede cortar en slices e ir de a poco.
 4. **Decisión de founder (no SDD todavía):** reportar-pago/subir-comprobante (#7) — confirmar si el modelo DDP prepago lo quiere o si sigue 100% por asesor.
 
-**Cierre de pendientes de specs viejas:** SDD-0075 (`portal-norte-alineacion`, proposed) agrupaba estimado-cosido / soporte / cotización — sus 3 gaps **ya están hechos** → recomiendo marcarla `superseded`/`done` para no dejar ruido en el correlativo.
+**Cierre de pendientes de specs viejas:** SDD-0075 (`portal-norte-alineacion`, proposed) agrupaba 3 frentes: **§2 soporte con casos** (✅ SDD-0102 Reclamos) y **§3 cotización desde el portal** (✅ en prod) ya están hechos; **solo queda §1** (estimado cosido al ciclo del envío + aceptación de T&C fundida en el detalle del envío). Ya la **reduje a §1** en su cabecera (`updated: 2026-07-01`) — **no se puede marcar done entera**. §1 es primo del roadmap #7 (aceptación fundida); evaluar fusionarlo con **SDD-B/SDD-C** o dejarlo como spec propia.
 
 ---
 
