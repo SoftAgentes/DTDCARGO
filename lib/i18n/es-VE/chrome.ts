@@ -119,6 +119,28 @@ export const chrome = {
   "chrome.topbar.search_modal_hint":
     "Mientras tanto, navega desde el sidebar para encontrar embarques, clientes, Shipping Mark y demás.",
 
+  // ── Buscador global ⌘K (SDD-0135) ────────────────────────
+  "chrome.search.dialog_aria": "Buscador global del Studio",
+  "chrome.search.placeholder":
+    "Buscar cliente, embarque, estimado, factura, pago…",
+  "chrome.search.searching": "Buscando…",
+  "chrome.search.scope_all": "Todo",
+  "chrome.search.facet.clients": "Clientes",
+  "chrome.search.facet.shipments": "Embarques",
+  "chrome.search.facet.quotes": "Estimados",
+  "chrome.search.facet.invoices": "Facturas",
+  "chrome.search.facet.payments": "Pagos",
+  "chrome.search.recents": "Búsquedas recientes",
+  "chrome.search.empty_hint":
+    "Escribe para buscar en todo el Studio: nombre, Shipping Mark, cédula/RIF, código o monto.",
+  "chrome.search.no_results": "Sin coincidencias.",
+  "chrome.search.locked_title": "Restringido",
+  "chrome.search.locked_note":
+    "Facturas, pagos y cobranzas las gestiona Contabilidad.",
+  "chrome.search.kbd_navigate": "moverse",
+  "chrome.search.kbd_select": "abrir",
+  "chrome.search.kbd_toggle": "buscar",
+
   // ── Toasts genéricos ─────────────────────────────────────
   "chrome.toast.success": "Listo",
   "chrome.toast.error": "Algo salió mal",
