@@ -17,6 +17,7 @@ import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
   validateClientInput,
   type ClientActionState,
+  type ClientDocKind,
   type ClientInput,
   type ClientTier,
 } from "@/lib/studio/client-types";
@@ -47,8 +48,15 @@ function inputFromFormData(formData: FormData): Partial<ClientInput> {
       ? (tierRaw as ClientTier)
       : undefined;
 
+  // SDD-0131: tipo de documento del alta (persona/empresa). Default 'persona'.
+  const docKindRaw = String(formData.get("doc_kind") ?? "persona");
+  const doc_kind: ClientDocKind =
+    docKindRaw === "empresa" ? "empresa" : "persona";
+
   return {
+    doc_kind,
     name: parseStringOrNull(formData.get("name")) ?? undefined,
+    contact_name: parseStringOrNull(formData.get("contact_name")),
     email: parseStringOrNull(formData.get("email")),
     phone: parseStringOrNull(formData.get("phone")),
     address: parseStringOrNull(formData.get("address")),
@@ -103,10 +111,12 @@ export async function createClientAction(
     tenant_id: link.tenant_id,
     markbox,
     name: input!.name,
+    contact_name: input!.contact_name,
     email: input!.email,
     phone: input!.phone,
     address: input!.address,
     rif: input!.rif,
+    doc_kind: input!.doc_kind,
     tier: input!.tier,
     notes: input!.notes,
     lat: input!.lat,
@@ -159,10 +169,12 @@ export async function updateClientAction(
     .from("clients")
     .update({
       name: input!.name,
+      contact_name: input!.contact_name,
       email: input!.email,
       phone: input!.phone,
       address: input!.address,
       rif: input!.rif,
+      doc_kind: input!.doc_kind,
       tier: input!.tier,
       notes: input!.notes,
       lat: input!.lat,

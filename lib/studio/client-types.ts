@@ -23,6 +23,11 @@ export type Client = {
   phone: string | null;
   address: string | null;
   rif: string | null;
+  /**
+   * SDD-0131: persona de contacto operativo de un cliente EMPRESA (con quién se
+   * habla). null para personas naturales (ahí `name` ES la persona).
+   */
+  contact_name: string | null;
   tier: ClientTier;
   notes: string | null;
   /** Latitud GPS · habilita "Cerca tuyo" del Mobile ERP (migración 0048). */
@@ -62,7 +67,14 @@ export type Client = {
 
 /** Subset que el operador edita (no incluye markbox, que se autogenera). */
 export type ClientInput = {
+  /**
+   * SDD-0131: tipo de documento del alta · persona (cédula) | empresa (RIF).
+   * Rutea la validación del documento y la verificación de identidad.
+   */
+  doc_kind: ClientDocKind;
   name: string;
+  /** SDD-0131: contacto operativo (solo empresa; null para persona). */
+  contact_name: string | null;
   email: string | null;
   phone: string | null;
   address: string | null;
@@ -73,6 +85,22 @@ export type ClientInput = {
   lat: number | null;
   lng: number | null;
 };
+
+export const DOC_KIND_OPTIONS: { value: ClientDocKind; label: string }[] = [
+  { value: "persona", label: "Persona (cédula)" },
+  { value: "empresa", label: "Empresa (RIF)" },
+];
+
+export function docKindLabel(kind: ClientDocKind | null): string {
+  switch (kind) {
+    case "persona":
+      return "Persona";
+    case "empresa":
+      return "Empresa";
+    default:
+      return "Sin tipo";
+  }
+}
 
 export const CLIENT_TIER_OPTIONS: { value: ClientTier; label: string }[] = [
   { value: "regular", label: "Regular" },
@@ -163,6 +191,40 @@ export function formatRif(raw: string): string {
   return `${clean[0]}-${clean.slice(1, 9)}-${clean[9]}`;
 }
 
+/**
+ * Cédula venezolana (persona): prefijo V (venezolano) o E (extranjero) + 6 a 9
+ * dígitos. Acepta con/sin guión ("V-12345678" o "V12345678"). Case-insensitive.
+ * Mismo formato que el registro público (`register-types.ts`), acá para el alta
+ * interna del Studio (SDD-0131).
+ */
+export const CEDULA_REGEX = /^[VEve]-?\d{6,9}$/;
+
+/**
+ * Normaliza una cédula a canónico "V-12345678" (prefijo mayúscula + guión).
+ * Asume que ya pasó CEDULA_REGEX.
+ */
+export function formatCedula(raw: string): string {
+  const clean = raw.replace(/[-\s]/g, "").toUpperCase();
+  return `${clean[0]}-${clean.slice(1)}`;
+}
+
+/**
+ * Normaliza el documento a su forma canónica SEGÚN el tipo (SDD-0131):
+ *   persona → cédula `formatCedula` · empresa → RIF `formatRif`.
+ * Devuelve null si el documento no matchea el formato esperado para ese tipo.
+ */
+export function normalizeDocByKind(
+  kind: ClientDocKind,
+  raw: string,
+): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  if (kind === "empresa") {
+    return RIF_REGEX.test(trimmed) ? formatRif(trimmed) : null;
+  }
+  return CEDULA_REGEX.test(trimmed) ? formatCedula(trimmed) : null;
+}
+
 const VALID_TIERS: ClientTier[] = ["regular", "vip", "premium"];
 
 export type ClientActionState = {
@@ -187,18 +249,42 @@ export function validateClientInput(input: Partial<ClientInput>): {
 } {
   const errors: ClientActionState["fieldErrors"] = {};
 
+  // Tipo de documento (persona/empresa). Default 'persona' si viene inválido —
+  // el form siempre lo manda, esto es un piso defensivo.
+  const doc_kind: ClientDocKind =
+    input.doc_kind === "empresa" ? "empresa" : "persona";
+  const isCompany = doc_kind === "empresa";
+
   const name = input.name?.trim() ?? "";
-  if (!name) errors.name = "Indica el nombre.";
-  if (name.length > 200) errors.name = "El nombre es demasiado largo (máx 200).";
+  if (!name) errors.name = isCompany ? "Indica la razón social." : "Indica el nombre.";
+  else if (name.length > 200)
+    errors.name = "El nombre es demasiado largo (máx 200).";
+
+  // Contacto operativo: solo aplica a empresa; para persona se fuerza null.
+  let contact_name: string | null = null;
+  if (isCompany) {
+    contact_name = input.contact_name?.trim() || null;
+    if (contact_name && contact_name.length > 200) {
+      errors.contact_name = "El contacto es demasiado largo (máx 200).";
+    }
+  }
 
   const email = input.email?.trim() || null;
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     errors.email = "Email inválido.";
   }
 
-  const rif = input.rif?.trim() || null;
-  if (rif && !RIF_REGEX.test(rif)) {
-    errors.rif = "RIF inválido. Formato: J-12345678-9 o V-12345678.";
+  // Documento (clients.rif): opcional, pero si viene se valida SEGÚN el tipo.
+  // persona → cédula V/E-dígitos · empresa → RIF J/G-…-verificador.
+  const rifRaw = input.rif?.trim() || null;
+  let rifCanonical: string | null = null;
+  if (rifRaw) {
+    rifCanonical = normalizeDocByKind(doc_kind, rifRaw);
+    if (!rifCanonical) {
+      errors.rif = isCompany
+        ? "RIF inválido. Formato: J-12345678-9."
+        : "Cédula inválida. Formato: V-12345678.";
+    }
   }
 
   const tier = input.tier;
@@ -225,15 +311,111 @@ export function validateClientInput(input: Partial<ClientInput>): {
 
   return {
     input: {
+      doc_kind,
       name,
+      contact_name,
       email,
       phone: input.phone?.trim() || null,
       address: input.address?.trim() || null,
-      rif: rif ? formatRif(rif) : null,
+      rif: rifCanonical,
       tier: tier!,
       notes: input.notes?.trim() || null,
       lat,
       lng,
     },
+  };
+}
+
+// ── Completitud del perfil del cliente (SDD-0131) ───────────────────────────
+// Checklist DERIVADO (sin estado nuevo en DB): qué falta para tener el cliente
+// listo para operar/analizar. Puro y testeable — la UI (ficha + aviso al crear)
+// solo pinta el resultado.
+
+export type CompletenessItem = {
+  key: string;
+  label: string;
+  done: boolean;
+};
+
+export type ClientCompleteness = {
+  items: CompletenessItem[];
+  doneCount: number;
+  total: number;
+  /** Porcentaje 0..100 redondeado. */
+  pct: number;
+  isComplete: boolean;
+  /** Labels de los ítems que faltan (para el aviso "qué falta"). */
+  missingLabels: string[];
+};
+
+/**
+ * Subset de `Client` que necesita `clientCompleteness` — así el helper se puede
+ * llamar con el `Client` completo o con un objeto mínimo (ej. desde el drawer,
+ * antes de tener la fila persistida).
+ */
+export type CompletenessSource = Pick<
+  Client,
+  | "doc_kind"
+  | "rif"
+  | "contact_name"
+  | "email"
+  | "phone"
+  | "address"
+  | "cedula_photo_path"
+  | "doc_verify_status"
+>;
+
+const hasText = (v: string | null | undefined): boolean =>
+  typeof v === "string" && v.trim().length > 0;
+
+/**
+ * Evalúa qué le falta a un cliente para estar "completo". Los ítems dependen del
+ * tipo: una EMPRESA suma "Nombre de contacto"; el resto es común. La verificación
+ * de identidad cuenta como hecha solo cuando "corresponde" (ok) — advisory, no
+ * bloquea nada, solo informa.
+ */
+export function clientCompleteness(c: CompletenessSource): ClientCompleteness {
+  const isCompany = c.doc_kind === "empresa";
+
+  const items: CompletenessItem[] = [
+    { key: "doc_kind", label: "Tipo (persona / empresa)", done: c.doc_kind != null },
+    {
+      key: "rif",
+      label: isCompany ? "RIF" : "Cédula",
+      done: hasText(c.rif),
+    },
+    ...(isCompany
+      ? [
+          {
+            key: "contact_name",
+            label: "Nombre de contacto",
+            done: hasText(c.contact_name),
+          },
+        ]
+      : []),
+    { key: "email", label: "Email", done: hasText(c.email) },
+    { key: "phone", label: "Teléfono", done: hasText(c.phone) },
+    { key: "address", label: "Dirección", done: hasText(c.address) },
+    {
+      key: "cedula_photo_path",
+      label: isCompany ? "Foto del RIF" : "Foto de la cédula",
+      done: hasText(c.cedula_photo_path),
+    },
+    {
+      key: "identity",
+      label: "Identidad verificada",
+      done: c.doc_verify_status === "ok",
+    },
+  ];
+
+  const doneCount = items.filter((i) => i.done).length;
+  const total = items.length;
+  return {
+    items,
+    doneCount,
+    total,
+    pct: total === 0 ? 100 : Math.round((doneCount / total) * 100),
+    isComplete: doneCount === total,
+    missingLabels: items.filter((i) => !i.done).map((i) => i.label),
   };
 }

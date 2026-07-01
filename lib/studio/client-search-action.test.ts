@@ -43,6 +43,7 @@ function client(over: Partial<Client> & { id: string }): Client {
     phone: null,
     address: null,
     rif: over.rif ?? null,
+    contact_name: null,
     tier: "regular",
     notes: null,
     lat: null,
