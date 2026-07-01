@@ -1,10 +1,11 @@
-# RESUMEN — worktree `web-norte` · Administración (SDD-0120 → 0127)
+# RESUMEN — worktree `web-norte` · Administración COMPLETA (SDD-0120 → 0130)
 
 **Sesión:** secundaria (no push, no toca `main`, no aplica migrations a prod).
 **Rama:** `feat/web-norte` (off `main`).
 **Fecha:** 2026-07-01.
 
-Ocho secciones de `/studio/admin` dejan de ser placeholder:
+**Todas las secciones de `/studio/admin` dejan de ser placeholder** (BÁSICO +
+INTERMEDIO + PRO). Once secciones reales:
 - **SDD-0120 · Datos de la empresa** (migración 0190).
 - **SDD-0121 · Apariencia** (sin migración).
 - **SDD-0122 · Numeración & legal** (migración 0191, solo texto).
@@ -13,10 +14,12 @@ Ocho secciones de `/studio/admin` dejan de ser placeholder:
 - **SDD-0125 · Master data** (read-only hub, sin migración).
 - **SDD-0126 · Tasas de cambio** (sin migración; gestiona tenant_fx_history).
 - **SDD-0127 · Feriados & ferias** (migración 0192, tabla nueva).
+- **SDD-0128 · API keys & webhooks** (migración 0193; tokens hasheados).
+- **SDD-0129 · Workflows custom** (puntero al motor SDD-0091; sin migración).
+- **SDD-0130 · Importar / Exportar** (export CSV; sin migración).
 
-Con esto quedan reales BÁSICO completo + INTERMEDIO completo. Faltan solo las
-PRO (API keys, Workflows, Import/Export) — infra nueva/sensible, cada una su
-spec con tu dirección.
+Con esto **Administración queda completa**: BÁSICO + INTERMEDIO + PRO. No quedan
+placeholders.
 
 ---
 
@@ -153,7 +156,27 @@ label de holidays → "Feriados & ferias"; sddRef → 0126/0127).
 
 ---
 
-## Verificación (las ocho secciones)
+## SDD-0128/0129/0130 · PRO (API keys · Workflows · Import/Export)
+
+- **API keys & webhooks (0128, migr 0193)** — gestión REAL de credenciales.
+  Token en claro NUNCA se guarda: solo su SHA-256 + prefijo; se muestra 1 vez al
+  crear (server-side `randomBytes`/`createHash`). Revoke soft. Webhooks
+  (url + eventos + secret HMAC + activo) vía drawer. Admin-gated, RLS por tenant.
+  ⚠️ **Consumo = follow-up**: no hay aún middleware que autentique con la key ni
+  dispatcher que dispare los webhooks (la UI lo avisa).
+- **Workflows custom (0129, sin migración)** — el motor de flujo YA existe
+  (SDD-0091, en Servicios · Flujo). La sección apunta ahí y marca los workflows
+  tenant-wide como por implementar. No dupliqué motor.
+- **Import/Export (0130, sin migración)** — export CSV real (client-side, BOM
+  Excel) de feriados/ferias + oficinas + bancos. Import = por implementar
+  (validación por entidad + dedup = spec dedicada).
+
+**Modificado:** `app/studio/(app)/admin/page.tsx` (fetch de api/import + render
+de las tres; sddRef → 0128/0129/0130).
+
+---
+
+## Verificación (las once secciones)
 
 - `tsc --noEmit` → ✅ verde
 - `eslint` (archivos nuevos + modificados, incluye frontera público↔ERP) → ✅
@@ -165,21 +188,25 @@ label de holidays → "Feriados & ferias"; sddRef → 0126/0127).
 ## Pendiente para el Director (integración)
 
 1. **Aplicar migraciones a prod** (validar antes con dry-run tx
-   `begin…rollback`): `0190_datos_empresa.sql` (SDD-0120),
-   `0191_invoice_legal_legends.sql` (SDD-0122) y
-   `0192_operational_calendar.sql` (SDD-0127). Las secciones read-only y Tasas
-   no necesitan migración. Company/numbering/feriados referencian columnas/tablas
-   nuevas → no guardan en runtime hasta aplicarlas.
+   `begin…rollback`), en orden: `0190_datos_empresa.sql` (0120),
+   `0191_invoice_legal_legends.sql` (0122), `0192_operational_calendar.sql`
+   (0127) y `0193_api_keys_webhooks.sql` (0128). Las secciones read-only, Tasas,
+   Workflows e Import/Export no necesitan migración. Las que sí referencian
+   columnas/tablas nuevas → no guardan en runtime hasta aplicarlas.
 2. **Regenerar el índice SDD** (`pnpm docs:index` → `docs/specs/README.md`) —
-   archivo compartido, no lo toqué. Debe incluir 0120 → 0127.
+   archivo compartido, no lo toqué. Debe incluir 0120 → 0130.
 3. Merge de `feat/web-norte` → `main` + push (gate del founder).
 4. Opcional: check `ui-ux-designer` pre-merge (regla del founder para pantallas
    nuevas).
 
-## No hecho (fuera de alcance)
+## No hecho (follow-ups, no placeholders)
 
-Las otras secciones de Administración (Master data, Tasas de cambio, Feriados,
-Numeración & legal, Permisos, Audit log, API keys, Workflows, Import/Export)
-siguen como placeholder — cada una es su propio SDD. Ojo: **Tasas** y
-**Feriados** ya tienen infra parcial en DB (`tenant_fx_history`,
-`nomina_holidays`) → conviene diseñarlas con ese contexto, no greenfield.
+Administración ya no tiene placeholders. Lo que queda son **consumos** de lo que
+esta rama dejó administrable:
+- Consumir las **leyendas legales** (0122) en el PDF de facturación.
+- **Autenticar** requests entrantes con las API keys + **dispatcher** de
+  webhooks (0128).
+- Que TMS/almacén/SLAs **consuman** el calendario de feriados/ferias (0127).
+- **Import** masivo real (0130) + numeración editable de verdad (0122) +
+  permisos editables en DB (0124) + catálogos editables nuevos (0125) → cada
+  uno su spec (varios con gate contador / cambios arquitectónicos).

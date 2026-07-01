@@ -29,15 +29,20 @@ import { PermissionsSection } from "./_components/PermissionsSection";
 import { MasterDataSection } from "./_components/MasterDataSection";
 import { ExchangeRatesSection } from "./_components/ExchangeRatesSection";
 import { CalendarSection } from "./_components/CalendarSection";
+import { ApiIntegrationSection } from "./_components/ApiIntegrationSection";
+import { WorkflowsSection } from "./_components/WorkflowsSection";
+import { ImportExportSection } from "./_components/ImportExportSection";
 import { getNumberingOverview } from "@/lib/studio/numbering-queries";
 import { getRecentAuditEvents } from "@/lib/studio/audit-queries";
 import { getExchangeRatesOverview } from "@/lib/studio/exchange-rates-queries";
 import { getOperationalCalendar } from "@/lib/studio/op-calendar-queries";
+import { getApiIntegration } from "@/lib/studio/api-integration-queries";
 import type { CompanyData } from "@/lib/studio/company-types";
 import type { NumberingOverview } from "@/lib/studio/numbering-types";
 import type { AuditEvent } from "@/lib/studio/audit-types";
 import type { ExchangeRatesOverview } from "@/lib/studio/exchange-rates-types";
 import type { CalendarEvent } from "@/lib/studio/op-calendar-types";
+import type { ApiIntegrationData } from "@/lib/studio/api-integration-types";
 
 export const metadata = { title: "Administración" };
 
@@ -158,7 +163,7 @@ const SECTIONS: AdminSection[] = [
     icon: "link",
     description:
       "Tokens para integrar con sistemas externos (CRM, BI, contabilidad). Webhooks salientes para sincronizar embarques / facturas / pagos.",
-    sddRef: "SDD-0021",
+    sddRef: "SDD-0128",
   },
   {
     id: "workflows",
@@ -167,7 +172,7 @@ const SECTIONS: AdminSection[] = [
     icon: "radar",
     description:
       "Reglas de automatización por tenant (cron, eventos, triggers). Disparan agents, mailing, alertas o cambios de estado.",
-    sddRef: "SDD-0021",
+    sddRef: "SDD-0129",
   },
   {
     id: "import",
@@ -176,7 +181,7 @@ const SECTIONS: AdminSection[] = [
     icon: "upload",
     description:
       "CSV/XLSX bulk: clientes, tarifas, embarques históricos. Export para BI o backup manual.",
-    sddRef: "Backlog",
+    sddRef: "SDD-0130",
   },
 ];
 
@@ -203,6 +208,8 @@ export default async function AdminPage({
   let auditEvents: AuditEvent[] | null = null;
   let ratesData: ExchangeRatesOverview | null = null;
   let calendarEvents: CalendarEvent[] | null = null;
+  let apiData: ApiIntegrationData | null = null;
+  let importData: { calendar: CalendarEvent[]; company: CompanyData } | null = null;
   if (active.id === "company") {
     const supabase = await createClient();
     companyData = await getCompanyData(supabase);
@@ -218,6 +225,16 @@ export default async function AdminPage({
   } else if (active.id === "holidays") {
     const supabase = await createClient();
     calendarEvents = await getOperationalCalendar(supabase);
+  } else if (active.id === "api") {
+    const supabase = await createClient();
+    apiData = await getApiIntegration(supabase);
+  } else if (active.id === "import") {
+    const supabase = await createClient();
+    const [calendar, company] = await Promise.all([
+      getOperationalCalendar(supabase),
+      getCompanyData(supabase),
+    ]);
+    importData = { calendar, company };
   }
 
   const grouped = GROUP_ORDER.map((g) => ({
@@ -309,6 +326,8 @@ export default async function AdminPage({
           auditEvents={auditEvents}
           ratesData={ratesData}
           calendarEvents={calendarEvents}
+          apiData={apiData}
+          importData={importData}
         />
       </div>
     </div>
@@ -406,6 +425,8 @@ function Content({
   auditEvents,
   ratesData,
   calendarEvents,
+  apiData,
+  importData,
 }: {
   section: AdminSection;
   companyData: CompanyData | null;
@@ -413,6 +434,8 @@ function Content({
   auditEvents: AuditEvent[] | null;
   ratesData: ExchangeRatesOverview | null;
   calendarEvents: CalendarEvent[] | null;
+  apiData: ApiIntegrationData | null;
+  importData: { calendar: CalendarEvent[]; company: CompanyData } | null;
 }) {
   return (
     <div key={section.id}>
@@ -463,6 +486,16 @@ function Content({
         <ExchangeRatesSection data={ratesData} />
       ) : section.id === "holidays" && calendarEvents ? (
         <CalendarSection events={calendarEvents} />
+      ) : section.id === "api" && apiData ? (
+        <ApiIntegrationSection data={apiData} />
+      ) : section.id === "workflows" ? (
+        <WorkflowsSection />
+      ) : section.id === "import" && importData ? (
+        <ImportExportSection
+          calendar={importData.calendar}
+          offices={importData.company.offices}
+          bankAccounts={importData.company.bankAccounts}
+        />
       ) : section.href ? (
         <LinkedSectionCTA section={section} />
       ) : (
