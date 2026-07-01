@@ -82,7 +82,9 @@ export default async function PortalMensajesPage() {
                   >
                     <div
                       className={`max-w-[80%] rounded-[14px] px-4 py-2.5 text-[13.5px] leading-[1.5] whitespace-pre-wrap break-words ${
-                        out ? "bg-grey-100 text-ink" : "bg-wine text-white"
+                        out
+                          ? "bg-grey-100 text-ink"
+                          : "bg-wine text-[color:var(--color-on-accent)]"
                       }`}
                     >
                       {m.body}
@@ -146,7 +148,7 @@ function AsesorCard({
       {model.isReal && model.name ? (
         <div className="mt-4 flex items-center gap-3">
           <div
-            className="flex shrink-0 items-center justify-center rounded-full bg-wine text-white"
+            className="flex shrink-0 items-center justify-center rounded-full bg-wine text-[color:var(--color-on-accent)]"
             style={{
               width: 44,
               height: 44,

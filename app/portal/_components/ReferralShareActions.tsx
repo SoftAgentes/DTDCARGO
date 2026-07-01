@@ -38,7 +38,8 @@ export function ReferralShareActions({
       <button
         type="button"
         onClick={copy}
-        className="inline-flex items-center gap-2 rounded-[10px] bg-white px-4 py-2.5 text-[13px] font-bold text-ink transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+        className="inline-flex items-center gap-2 rounded-[10px] px-4 py-2.5 text-[13px] font-bold transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--hero-ink)_70%,transparent)]"
+        style={{ background: "var(--hero-ink)", color: "var(--hero-from)" }}
       >
         {copied ? "Código copiado" : "Copiar código"}
         {copied ? <CheckIcon size={15} /> : null}
@@ -47,7 +48,11 @@ export function ReferralShareActions({
         href={waLink}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 rounded-[10px] border border-white/30 px-4 py-2.5 text-[13px] font-bold text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+        className="inline-flex items-center gap-2 rounded-[10px] px-4 py-2.5 text-[13px] font-bold transition-colors hover:bg-[color-mix(in_srgb,var(--hero-ink)_12%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--hero-ink)_70%,transparent)]"
+        style={{
+          color: "var(--hero-ink)",
+          border: "1px solid color-mix(in srgb, var(--hero-ink) 30%, transparent)",
+        }}
       >
         <WhatsAppIcon size={15} /> Compartir
       </a>
