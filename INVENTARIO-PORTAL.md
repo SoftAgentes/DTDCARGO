@@ -66,7 +66,7 @@ Esfuerzo: **S** ≤1 día · **M** 2–4 días · **L** ≥1 semana. "Backend" =
 | 4 | **Nueva compra full-screen 3-pasos + celebración Shipping Mark** | UI | **M** | ninguna (reusa prealertas) | Hoy `/compras` es lista + flujo plano. El Norte pide asistente guiado (proveedor→detalle→adjuntos) con celebración del MARKBOX al crear. |
 | 5 | **Etiquetas: adjuntar packing list/factura/fotos antes de generar** | UI | **S** | Storage ya existe | `TODO` explícito en `compras/[code]/etiquetas/page.tsx:33` (Norte `LabelGenerator` paso "docs"). |
 | 6 | **Academia desktop 2-columnas** | UI | **S** | ninguna | Hoy embebe la vista mobile-first; el Norte pide 2-col (catálogo + progreso) en desktop. |
-| 7 | **Reportar pago / subir comprobante de transferencia** | Producto | **M** | decisión del founder | Hoy Facturas remite "escríbele a tu asesor". Un flujo de reportar pago + subir comprobante bajaría fricción del asesor. **Probablemente intencional** (DDP prepago por transferencia) → confirmar con founder antes de construir. |
+| 7 | **Reportar pago / subir comprobante de transferencia** | Producto | **M** | migración (estado + Storage) | Hoy Facturas remite "escríbele a tu asesor". **✅ Confirmado por el founder (2026-07-01): SÍ construir.** El cliente sube comprobante de transferencia y marca la factura "pago reportado"; el asesor confirma. Baja fricción + deja evidencia. |
 
 ### Diferidos ya conocidos (no re-priorizar acá)
 - **Club Eventos + Proveedor del mes** → "próximamente" (SDD-0116 Slices C/D pendientes).
@@ -105,7 +105,7 @@ Esfuerzo: **S** ≤1 día · **M** 2–4 días · **L** ≥1 semana. "Backend" =
 1. **⭐ SDD-A · "Hitos del envío + notificación de estado al cliente"** — tabla `shipment_events` (`shipment_id`, `milestone`, `at`, `payload`) + poblado (manual al inicio, luego automatización) + stepper con fechas + notificación de hito (mail/WhatsApp/push). **Migración nueva.** Es el que más mueve la aguja: cierra la degradación del timeline y el gap de "push de estado al cliente". Empezar acá.
 2. **SDD-B · "Cut-off / calendario de zarpes en el portal"** — lógica "próximo zarpe del puerto del cliente" sobre `sailings` (ya existe) + `NextSailingCard` con cuenta regresiva al cut-off. **Sin migración** (reusa SDD-0047). Barato relativo al impacto (es la firma del Norte que falta).
 3. **SDD-C · "Portal Norte UI v2"** — agrupa las piezas visuales sin backend: ciclo animado en el héroe (#3), nueva-compra 3-pasos + celebración (#4), etiquetas-adjuntar-docs (#5), academia 2-col (#6). **Sin migración.** Se puede cortar en slices e ir de a poco.
-4. **Decisión de founder (no SDD todavía):** reportar-pago/subir-comprobante (#7) — confirmar si el modelo DDP prepago lo quiere o si sigue 100% por asesor.
+4. **SDD-D · "Reportar pago + comprobante en el portal"** (#7) — **✅ confirmado por el founder (2026-07-01).** Estado de factura "pago reportado" + subida de comprobante a Storage + confirmación del asesor en el Studio. **Migración nueva.** Prioridad: después de A/B (o en paralelo, es independiente).
 
 **Cierre de pendientes de specs viejas:** SDD-0075 (`portal-norte-alineacion`, proposed) agrupaba 3 frentes: **§2 soporte con casos** (✅ SDD-0102 Reclamos) y **§3 cotización desde el portal** (✅ en prod) ya están hechos; **solo queda §1** (estimado cosido al ciclo del envío + aceptación de T&C fundida en el detalle del envío). Ya la **reduje a §1** en su cabecera (`updated: 2026-07-01`) — **no se puede marcar done entera**. §1 es primo del roadmap #7 (aceptación fundida); evaluar fusionarlo con **SDD-B/SDD-C** o dejarlo como spec propia.
 
