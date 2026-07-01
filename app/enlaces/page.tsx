@@ -5,6 +5,7 @@ import {
   CONTACT,
   buildWhatsAppLink,
 } from "@/lib/design-tokens";
+import { jetbrainsMono } from "@/lib/fonts";
 
 /**
  * /enlaces — Hub de Enlaces (link-in-bio de Instagram) de DTD Cargo.
@@ -235,7 +236,7 @@ const PRIMARY_EXTERNAL = true;
 
 export default function EnlacesPage() {
   return (
-    <main className="enlaces-page">
+    <main className={`enlaces-page ${jetbrainsMono.variable}`}>
       <div className="enlaces-bio">
         <header className="enlaces-hero">
           <Image
@@ -248,6 +249,8 @@ export default function EnlacesPage() {
           />
           <div className="enlaces-hero-scrim" />
           <div className="enlaces-hero-top">
+            {/* Decorativo (alt=""): el wordmark de al lado ya aporta el nombre
+                accesible "DTD Cargo" — evita que el lector lo anuncie dos veces. */}
             <Image
               src={BRAND_ASSETS.isologoReverse}
               alt=""
@@ -257,7 +260,9 @@ export default function EnlacesPage() {
               className="enlaces-iso"
             />
             <div>
-              <span className="enlaces-wordmark">
+              {/* aria-label → el lector anuncia "DTD Cargo" (dos palabras); sin
+                  él, el gap visual entre spans se leería "DTDCargo" pegado. */}
+              <span className="enlaces-wordmark" aria-label="DTD Cargo">
                 DTD
                 <span className="gap" aria-hidden />
                 Cargo
@@ -325,7 +330,6 @@ export default function EnlacesPage() {
                 href={s.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label={s.label}
               >
                 <span className="ic">
                   <Icon name={s.net} size={22} />
