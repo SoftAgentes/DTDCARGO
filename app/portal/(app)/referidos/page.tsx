@@ -81,21 +81,27 @@ export default async function PortalReferralsPage() {
 function ShareHero({ program }: { program: PortalReferralProgram }) {
   return (
     <div
-      className="rounded-[18px] overflow-hidden p-7 sm:p-8 text-white"
+      className="rounded-[18px] overflow-hidden p-7 sm:p-8"
       style={{
         background:
           "linear-gradient(135deg, var(--hero-from) 0%, var(--hero-to) 100%)",
+        color: "var(--hero-ink)",
+        border: "1px solid color-mix(in srgb, var(--hero-ink) 12%, transparent)",
       }}
     >
-      <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-white/70">
+      <div
+        className="text-[11px] font-bold tracking-[0.14em] uppercase"
+        style={{ color: "var(--hero-soft)" }}
+      >
         Tu código de referido
       </div>
       <div className="mt-3.5 flex flex-wrap items-center gap-4">
         <code
-          className="text-[32px] sm:text-[36px] leading-none text-white"
+          className="text-[32px] sm:text-[36px] leading-none"
           style={{
             fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
             letterSpacing: "0.02em",
+            color: "var(--hero-ink)",
           }}
         >
           {program.shareCode}
@@ -106,30 +112,48 @@ function ShareHero({ program }: { program: PortalReferralProgram }) {
         />
       </div>
       <div className="mt-5 grid grid-cols-2 gap-3">
-        <div className="rounded-[10px] px-4 py-3 bg-white/10">
+        <div
+          className="rounded-[10px] px-4 py-3"
+          style={{ background: "color-mix(in srgb, var(--hero-ink) 10%, transparent)" }}
+        >
           <div
-            className="text-[20px] leading-none text-white"
-            style={{ fontFamily: "var(--font-archivo-black)" }}
+            className="text-[20px] leading-none"
+            style={{ fontFamily: "var(--font-archivo-black)", color: "var(--hero-ink)" }}
           >
             {fmtUsd(program.referredReward)}
           </div>
-          <div className="mt-1.5 text-[11.5px] text-white/70 leading-[1.4]">
+          <div
+            className="mt-1.5 text-[11.5px] leading-[1.4]"
+            style={{ color: "var(--hero-soft)" }}
+          >
             para tu referido en su primer embarque
           </div>
         </div>
-        <div className="rounded-[10px] px-4 py-3 bg-white/10">
+        <div
+          className="rounded-[10px] px-4 py-3"
+          style={{ background: "color-mix(in srgb, var(--hero-ink) 10%, transparent)" }}
+        >
           <div className="flex items-center gap-2">
             <div
-              className="text-[20px] leading-none text-white"
-              style={{ fontFamily: "var(--font-archivo-black)" }}
+              className="text-[20px] leading-none"
+              style={{ fontFamily: "var(--font-archivo-black)", color: "var(--hero-ink)" }}
             >
               {fmtUsd(program.referrerReward)}
             </div>
-            <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10.5px] font-bold tracking-[0.08em] uppercase text-white/80">
+            <span
+              className="rounded-full px-2 py-0.5 text-[10.5px] font-bold tracking-[0.08em] uppercase"
+              style={{
+                background: "color-mix(in srgb, var(--hero-ink) 15%, transparent)",
+                color: "var(--hero-ink)",
+              }}
+            >
               Próximamente
             </span>
           </div>
-          <div className="mt-1.5 text-[11.5px] text-white/70 leading-[1.4]">
+          <div
+            className="mt-1.5 text-[11.5px] leading-[1.4]"
+            style={{ color: "var(--hero-soft)" }}
+          >
             de crédito para ti cuando tu referido haga su primera compra
           </div>
         </div>
