@@ -36,6 +36,13 @@ export interface ModuleDef {
   badge?: string; // Pendiente de cablear contra data real — ver SDD-0014/dashboard-queries
   /** Solo admin (la matriz RBAC también lo gatea con []). Ej: Dirección (SDD-0048). */
   adminOnly?: boolean;
+  /**
+   * Sub-grupo anidado (cluster) dentro de su `group`. Clave de `PARENTS`. NO
+   * cambia routing ni RBAC — solo la presentación: el sidebar agrupa estos
+   * módulos bajo un header colapsable indentado (patrón Norte). Los hijos siguen
+   * siendo módulos normales. Vacío = ítem suelto (hoja).
+   */
+  parent?: string;
 }
 
 /** Group label → I18nKey para localización en sidebar headers. */
@@ -47,6 +54,33 @@ export const GROUP_LABEL_KEYS: Record<Group, I18nKey> = {
   "SISTEMA": "chrome.sidebar.group.system",
 };
 
+/**
+ * Sub-grupos anidados (parents) dentro de un `group`. Portado del Norte vigente
+ * (`docs/design/studio/_norte/erp/shell.jsx`, registro `PARENTS`). El header es
+ * un toggle no-navegable que colapsa/expande a sus hijos; no toca routing.
+ */
+export interface ParentDef {
+  id: string;
+  label: string;
+  labelKey?: I18nKey;
+  icon: IconName;
+}
+
+export const PARENTS: Record<string, ParentDef> = {
+  almacenes: {
+    id: "almacenes",
+    label: "Almacenes",
+    labelKey: "chrome.sidebar.cluster_almacenes",
+    icon: "warehouse",
+  },
+  despachogrp: {
+    id: "despachogrp",
+    label: "Despacho",
+    labelKey: "chrome.sidebar.cluster_despacho",
+    icon: "truck",
+  },
+};
+
 export const MODULES: ModuleDef[] = [
   // ─── OPERACIÓN · sigue el viaje de la carga ──────────────────
   // Cockpit (visión diaria): resumen + embarques + tracking + agenda
@@ -54,19 +88,19 @@ export const MODULES: ModuleDef[] = [
   { id: "shipments", group: "OPERACIÓN", label: "Embarques", labelKey: "chrome.sidebar.shipments", icon: "box", slug: "/studio/embarques" },
   { id: "tracking", group: "OPERACIÓN", label: "Tracking", labelKey: "chrome.sidebar.tracking", icon: "radar", slug: "/studio/tracking" },
   { id: "calendar", group: "OPERACIÓN", label: "Calendario", labelKey: "chrome.sidebar.calendar", icon: "clock", slug: "/studio/calendario" },
-  // Origen CN: almacén → etiquetado
-  { id: "cn", group: "OPERACIÓN", label: "Almacén CN", labelKey: "chrome.sidebar.warehouse_cn", icon: "warehouse", slug: "/studio/cn" },
-  { id: "qrqueue", group: "OPERACIÓN", label: "Cola de QR", labelKey: "chrome.sidebar.qr_queue", icon: "tag", slug: "/studio/cola-qr" },
-  { id: "labels", group: "OPERACIÓN", label: "Etiquetas CN", labelKey: "chrome.sidebar.labels_cn", icon: "tag", slug: "/studio/etiquetas" },
-  // Tránsito: naviera/consolidación → aduana → almacén VE
+  // Almacenes (cluster anidado): CN → etiquetado → VE
+  { id: "cn", group: "OPERACIÓN", label: "Almacén CN", labelKey: "chrome.sidebar.warehouse_cn", icon: "warehouse", slug: "/studio/cn", parent: "almacenes" },
+  { id: "qrqueue", group: "OPERACIÓN", label: "Cola de QR", labelKey: "chrome.sidebar.qr_queue", icon: "tag", slug: "/studio/cola-qr", parent: "almacenes" },
+  { id: "labels", group: "OPERACIÓN", label: "Etiquetas CN", labelKey: "chrome.sidebar.labels_cn", icon: "tag", slug: "/studio/etiquetas", parent: "almacenes" },
+  { id: "ve", group: "OPERACIÓN", label: "Almacén VE", labelKey: "chrome.sidebar.warehouse_ve", icon: "warehouse", slug: "/studio/ve", parent: "almacenes" },
+  // Tránsito: naviera/consolidación → aduana
   { id: "naviera", group: "OPERACIÓN", label: "Naviera & Consolidación", icon: "ship", slug: "/studio/naviera" },
   { id: "seniat", group: "OPERACIÓN", label: "Aduana SENIAT", labelKey: "chrome.sidebar.customs_seniat", icon: "shield", slug: "/studio/seniat" },
-  { id: "ve", group: "OPERACIÓN", label: "Almacén VE", labelKey: "chrome.sidebar.warehouse_ve", icon: "warehouse", slug: "/studio/ve" },
-  // Última milla: transporte + despacho (+ sub-páginas) + rutas
+  // Última milla: transporte + despacho (cluster anidado: despacho + sub-páginas) + rutas
   { id: "tms", group: "OPERACIÓN", label: "TMS · Transporte", labelKey: "chrome.sidebar.tms", icon: "truck", slug: "/studio/tms" },
-  { id: "despacho", group: "OPERACIÓN", label: "Despacho", labelKey: "chrome.sidebar.dispatch", icon: "truck", slug: "/studio/despacho" },
-  { id: "despacho-rules", group: "OPERACIÓN", label: "Reglas despacho", labelKey: "chrome.sidebar.dispatch_rules", icon: "shield", slug: "/studio/despacho/reglas" },
-  { id: "despacho-dashboard", group: "OPERACIÓN", label: "Dashboard despacho", labelKey: "chrome.sidebar.dispatch_dashboard", icon: "chart", slug: "/studio/despacho/dashboard" },
+  { id: "despacho", group: "OPERACIÓN", label: "Despacho", labelKey: "chrome.sidebar.dispatch", icon: "truck", slug: "/studio/despacho", parent: "despachogrp" },
+  { id: "despacho-rules", group: "OPERACIÓN", label: "Reglas despacho", labelKey: "chrome.sidebar.dispatch_rules", icon: "shield", slug: "/studio/despacho/reglas", parent: "despachogrp" },
+  { id: "despacho-dashboard", group: "OPERACIÓN", label: "Dashboard despacho", labelKey: "chrome.sidebar.dispatch_dashboard", icon: "chart", slug: "/studio/despacho/dashboard", parent: "despachogrp" },
   { id: "admin-rutas", group: "OPERACIÓN", label: "Rutas y ciudades", labelKey: "chrome.sidebar.routes_cities", icon: "radar", slug: "/studio/admin/rutas" },
   // Stock + post-venta
   { id: "inventory", group: "OPERACIÓN", label: "Inventario · WMS", icon: "warehouse", slug: "/studio/inventario" },

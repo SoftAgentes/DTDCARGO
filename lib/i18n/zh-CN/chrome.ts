@@ -56,6 +56,10 @@ export const chrome: ChromeDict = {
   "chrome.sidebar.group.system": "系统",
   "chrome.sidebar.collapse": "收起侧边栏",
   "chrome.sidebar.expand": "展开侧边栏",
+  // 嵌套子分组（组内 cluster · Norte 模式）
+  "chrome.sidebar.cluster_almacenes": "仓库",
+  "chrome.sidebar.cluster_despacho": "派送",
+  "chrome.sidebar.resize": "拖动以调整菜单宽度",
 
   // ── Sidebar · items ──────────────────────────────────────
   // 运营 (OPERACIÓN)

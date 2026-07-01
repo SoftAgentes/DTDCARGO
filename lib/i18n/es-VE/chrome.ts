@@ -51,6 +51,10 @@ export const chrome = {
   "chrome.sidebar.group.system": "Sistema",
   "chrome.sidebar.collapse": "Colapsar sidebar",
   "chrome.sidebar.expand": "Expandir sidebar",
+  // Sub-grupos anidados (clusters dentro de un grupo · patrón Norte)
+  "chrome.sidebar.cluster_almacenes": "Almacenes",
+  "chrome.sidebar.cluster_despacho": "Despacho",
+  "chrome.sidebar.resize": "Arrastra para ajustar el ancho del menú",
 
   // ── Sidebar · items (todos los módulos del Studio) ───────
   // OPERACIÓN
