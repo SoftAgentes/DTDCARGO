@@ -19,6 +19,10 @@
 import Link from "next/link";
 import { Icon, type IconName } from "@/app/studio/_components/icons";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
+import { createClient } from "@/lib/db/server";
+import { getCompanyData } from "@/lib/studio/company-queries";
+import { CompanySection } from "./_components/CompanySection";
+import type { CompanyData } from "@/lib/studio/company-types";
 
 export const metadata = { title: "Administración" };
 
@@ -46,7 +50,7 @@ const SECTIONS: AdminSection[] = [
     icon: "shield",
     description:
       "Identificación fiscal (RIF, razón social), oficinas CN/VE, datos bancarios que aparecen en facturas, impuestos (IVA / ISLR / IGTF).",
-    sddRef: "SDD-0030",
+    sddRef: "SDD-0120",
   },
   {
     id: "features",
@@ -177,6 +181,14 @@ export default async function AdminPage({
   const activeId: string = isSection(sp.section) ? sp.section : "company";
   const active = SECTIONS.find((s) => s.id === activeId) ?? SECTIONS[0];
 
+  // Solo la sección "company" tiene implementación real (SDD-0120): fetch acá
+  // para no pegarle a la DB en las secciones que aún son placeholder.
+  let companyData: CompanyData | null = null;
+  if (active.id === "company") {
+    const supabase = await createClient();
+    companyData = await getCompanyData(supabase);
+  }
+
   const grouped = GROUP_ORDER.map((g) => ({
     group: g,
     items: SECTIONS.filter((s) => s.group === g),
@@ -259,7 +271,7 @@ export default async function AdminPage({
         }}
       >
         <SideNav grouped={grouped} activeId={activeId} />
-        <Content section={active} />
+        <Content section={active} companyData={companyData} />
       </div>
     </div>
   );
@@ -349,7 +361,13 @@ function SideNav({
   );
 }
 
-function Content({ section }: { section: AdminSection }) {
+function Content({
+  section,
+  companyData,
+}: {
+  section: AdminSection;
+  companyData: CompanyData | null;
+}) {
   return (
     <div key={section.id}>
       {/* Header del content */}
@@ -383,7 +401,9 @@ function Content({ section }: { section: AdminSection }) {
         </p>
       </div>
 
-      {section.href ? (
+      {section.id === "company" && companyData ? (
+        <CompanySection data={companyData} />
+      ) : section.href ? (
         <LinkedSectionCTA section={section} />
       ) : (
         <PendingSectionPanel section={section} />
