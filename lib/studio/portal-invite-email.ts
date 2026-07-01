@@ -63,8 +63,7 @@ function inviteHtml(url: string, name?: string | null): string {
   <a href="${url}" style="display:inline-block;background:#7F0F1A;color:#FFFFFF;text-decoration:none;padding:12px 28px;border-radius:7px;font-weight:700;font-size:15px">Entrar a mi portal</a>
 </p>
 <p style="margin:0 0 8px;color:#6B6B6B;font-size:13px">Al entrar, toca "Enviarme el enlace de acceso" y te llega un enlace seguro a este correo para entrar sin contraseña.</p>
-<p style="margin:0 0 8px;color:#6B6B6B;font-size:13px">Si el botón no funciona, copia y pega este enlace:</p>
-<p style="margin:0 0 16px"><a href="${url}" style="color:#7F0F1A;text-decoration:underline;font-size:13px;word-break:break-all">${url}</a></p>
+<p style="margin:0 0 16px;color:#6B6B6B;font-size:13px">¿El botón no funciona? <a href="${url}" style="color:#7F0F1A;text-decoration:underline">Ábrelo aquí</a>.</p>
 <p style="margin:0 0 12px;color:#6B6B6B;font-size:13px">¿No esperabas esto? Escríbenos antes de entrar.</p>
 <hr style="border:0;border-top:1px solid #E8E6E2;margin:24px 0">
 <p style="color:#6B6B6B;font-size:12px;margin:0">DTD Cargo · Con Confianza, de China a tu puerta.</p>
