@@ -27,11 +27,17 @@ import { NumberingSection } from "./_components/NumberingSection";
 import { AuditLogSection } from "./_components/AuditLogSection";
 import { PermissionsSection } from "./_components/PermissionsSection";
 import { MasterDataSection } from "./_components/MasterDataSection";
+import { ExchangeRatesSection } from "./_components/ExchangeRatesSection";
+import { CalendarSection } from "./_components/CalendarSection";
 import { getNumberingOverview } from "@/lib/studio/numbering-queries";
 import { getRecentAuditEvents } from "@/lib/studio/audit-queries";
+import { getExchangeRatesOverview } from "@/lib/studio/exchange-rates-queries";
+import { getOperationalCalendar } from "@/lib/studio/op-calendar-queries";
 import type { CompanyData } from "@/lib/studio/company-types";
 import type { NumberingOverview } from "@/lib/studio/numbering-types";
 import type { AuditEvent } from "@/lib/studio/audit-types";
+import type { ExchangeRatesOverview } from "@/lib/studio/exchange-rates-types";
+import type { CalendarEvent } from "@/lib/studio/op-calendar-types";
 
 export const metadata = { title: "Administración" };
 
@@ -86,16 +92,16 @@ const SECTIONS: AdminSection[] = [
     icon: "invoice",
     description:
       "BCV, paralelo y CNY. Historial diario y configuración de qué tasa usa cada flujo (facturación, costing, estado de cuenta).",
-    sddRef: "SDD-0030",
+    sddRef: "SDD-0126",
   },
   {
     id: "holidays",
     group: "BÁSICO",
-    label: "Feriados CN/VE",
+    label: "Feriados & ferias",
     icon: "clock",
     description:
-      "Calendario de feriados de ambos países usado por TMS, almacén y SLAs. Sincronizado con el calendario operativo.",
-    sddRef: "SDD-0030",
+      "Calendario operativo CN/VE: feriados (días no laborables) y ferias comerciales (Cantón/Yiwu). Afecta lead times y SLAs de despacho y almacén.",
+    sddRef: "SDD-0127",
   },
   {
     id: "appearance",
@@ -195,6 +201,8 @@ export default async function AdminPage({
   let companyData: CompanyData | null = null;
   let numberingData: NumberingOverview | null = null;
   let auditEvents: AuditEvent[] | null = null;
+  let ratesData: ExchangeRatesOverview | null = null;
+  let calendarEvents: CalendarEvent[] | null = null;
   if (active.id === "company") {
     const supabase = await createClient();
     companyData = await getCompanyData(supabase);
@@ -204,6 +212,12 @@ export default async function AdminPage({
   } else if (active.id === "audit") {
     const supabase = await createClient();
     auditEvents = await getRecentAuditEvents(supabase);
+  } else if (active.id === "rates") {
+    const supabase = await createClient();
+    ratesData = await getExchangeRatesOverview(supabase);
+  } else if (active.id === "holidays") {
+    const supabase = await createClient();
+    calendarEvents = await getOperationalCalendar(supabase);
   }
 
   const grouped = GROUP_ORDER.map((g) => ({
@@ -293,6 +307,8 @@ export default async function AdminPage({
           companyData={companyData}
           numberingData={numberingData}
           auditEvents={auditEvents}
+          ratesData={ratesData}
+          calendarEvents={calendarEvents}
         />
       </div>
     </div>
@@ -388,11 +404,15 @@ function Content({
   companyData,
   numberingData,
   auditEvents,
+  ratesData,
+  calendarEvents,
 }: {
   section: AdminSection;
   companyData: CompanyData | null;
   numberingData: NumberingOverview | null;
   auditEvents: AuditEvent[] | null;
+  ratesData: ExchangeRatesOverview | null;
+  calendarEvents: CalendarEvent[] | null;
 }) {
   return (
     <div key={section.id}>
@@ -439,6 +459,10 @@ function Content({
         <PermissionsSection />
       ) : section.id === "masterdata" ? (
         <MasterDataSection />
+      ) : section.id === "rates" && ratesData ? (
+        <ExchangeRatesSection data={ratesData} />
+      ) : section.id === "holidays" && calendarEvents ? (
+        <CalendarSection events={calendarEvents} />
       ) : section.href ? (
         <LinkedSectionCTA section={section} />
       ) : (

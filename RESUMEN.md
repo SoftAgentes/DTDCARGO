@@ -1,21 +1,22 @@
-# RESUMEN — worktree `web-norte` · Administración (SDD-0120 → 0125)
+# RESUMEN — worktree `web-norte` · Administración (SDD-0120 → 0127)
 
 **Sesión:** secundaria (no push, no toca `main`, no aplica migrations a prod).
 **Rama:** `feat/web-norte` (off `main`).
 **Fecha:** 2026-07-01.
 
-Seis secciones de `/studio/admin` dejan de ser placeholder:
-- **SDD-0120 · Datos de la empresa** (con migración 0190).
+Ocho secciones de `/studio/admin` dejan de ser placeholder:
+- **SDD-0120 · Datos de la empresa** (migración 0190).
 - **SDD-0121 · Apariencia** (sin migración).
-- **SDD-0122 · Numeración & legal** (con migración 0191, solo texto).
+- **SDD-0122 · Numeración & legal** (migración 0191, solo texto).
 - **SDD-0123 · Audit log** (read-only, sin migración).
 - **SDD-0124 · Permisos por rol** (read-only, sin migración).
 - **SDD-0125 · Master data** (read-only hub, sin migración).
+- **SDD-0126 · Tasas de cambio** (sin migración; gestiona tenant_fx_history).
+- **SDD-0127 · Feriados & ferias** (migración 0192, tabla nueva).
 
-Con esto quedan reales: BÁSICO = company, appearance, masterdata (+features y
-agents que ya tenían módulo); INTERMEDIO = permissions, audit, numbering.
-Faltan (cada una su spec): Tasas de cambio, Feriados (infra parcial en DB) y las
-PRO (API keys, Workflows, Import/Export).
+Con esto quedan reales BÁSICO completo + INTERMEDIO completo. Faltan solo las
+PRO (API keys, Workflows, Import/Export) — infra nueva/sensible, cada una su
+spec con tu dirección.
 
 ---
 
@@ -125,7 +126,34 @@ tres; `sddRef` → 0123/0124/0125). Specs `docs/specs/0123..0125`.
 
 ---
 
-## Verificación (las seis secciones)
+## SDD-0126 · Tasas de cambio (sin migración)
+
+Gestiona `tenant_fx_history` (migr 0074), que YA es el store de tasas (gastos +
+posting contable leen la última). No creé fuente de verdad nueva:
+- **Tasas vigentes** — última por par (CNY/USD, VES/USD) con fecha.
+- **Registrar tasa** — INSERT append-only (el grant ya existía); warning suave
+  fuera de rango (`FX_RATE_SANITY_RANGE`).
+
+`lib/studio/exchange-rates-{types,queries}.ts` (reusa `getLastFxRate`) +
+`admin/exchange-rates-actions.ts` + `_components/ExchangeRatesSection.tsx`.
+
+## SDD-0127 · Feriados & ferias (migración 0192)
+
+Sección "Feriados CN/VE" ampliada a **ferias comerciales** (Cantón/Yiwu) — ambos
+pegan en lead times/SLAs. Tabla nueva `operational_calendar` (country VE|CN,
+kind holiday|fair, start/end date, note; RLS por tenant, soft-delete). **No**
+reusa `nomina_holidays` (dominio nómina distinto).
+
+`supabase/migrations/0192_operational_calendar.sql` +
+`lib/studio/op-calendar-{types,queries}.ts` + `admin/calendar-actions.ts` +
+`_components/CalendarSection.tsx` + `CalendarEventDrawer.tsx`. CRUD admin-gated.
+
+**Modificado (ambas):** `app/studio/(app)/admin/page.tsx` (fetch + render;
+label de holidays → "Feriados & ferias"; sddRef → 0126/0127).
+
+---
+
+## Verificación (las ocho secciones)
 
 - `tsc --noEmit` → ✅ verde
 - `eslint` (archivos nuevos + modificados, incluye frontera público↔ERP) → ✅
@@ -137,12 +165,13 @@ tres; `sddRef` → 0123/0124/0125). Specs `docs/specs/0123..0125`.
 ## Pendiente para el Director (integración)
 
 1. **Aplicar migraciones a prod** (validar antes con dry-run tx
-   `begin…rollback`): `0190_datos_empresa.sql` (SDD-0120) y
-   `0191_invoice_legal_legends.sql` (SDD-0122). SDD-0121 no tiene migración. El
-   código de company/numbering referencia columnas nuevas → esas secciones no
-   guardan en runtime hasta aplicarlas.
+   `begin…rollback`): `0190_datos_empresa.sql` (SDD-0120),
+   `0191_invoice_legal_legends.sql` (SDD-0122) y
+   `0192_operational_calendar.sql` (SDD-0127). Las secciones read-only y Tasas
+   no necesitan migración. Company/numbering/feriados referencian columnas/tablas
+   nuevas → no guardan en runtime hasta aplicarlas.
 2. **Regenerar el índice SDD** (`pnpm docs:index` → `docs/specs/README.md`) —
-   archivo compartido, no lo toqué. Debe incluir 0120 → 0125.
+   archivo compartido, no lo toqué. Debe incluir 0120 → 0127.
 3. Merge de `feat/web-norte` → `main` + push (gate del founder).
 4. Opcional: check `ui-ux-designer` pre-merge (regla del founder para pantallas
    nuevas).
