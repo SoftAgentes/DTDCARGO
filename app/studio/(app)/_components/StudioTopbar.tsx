@@ -22,8 +22,12 @@ import { pathToModuleLabel } from "./StudioSidebar";
 import { signOut } from "../actions";
 import { useDTDWiring } from "../../_components/wiring/WiringProvider";
 import { useT, useLocale } from "@/lib/i18n";
-
-const THEME_KEY = "studio_theme";
+import {
+  APPEARANCE_EVENT,
+  applyTheme,
+  readTheme,
+  type AppearanceDetail,
+} from "@/app/studio/_components/appearance-prefs";
 
 interface StudioTopbarProps {
   userEmail: string;
@@ -42,14 +46,16 @@ export function StudioTopbar({ userEmail }: StudioTopbarProps) {
   const [modKey, setModKey] = useState<"Ctrl" | "⌘">("Ctrl");
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  // Hidratar theme desde localStorage
+  // Hidratar theme desde localStorage + escuchar cambios de la sección
+  // Apariencia (admin) para no desincronizar el ícono sol/luna.
   useEffect(() => {
-    try {
-      const t = localStorage.getItem(THEME_KEY);
-      if (t === "dark") setTheme("dark");
-    } catch {
-      // ignore
-    }
+    setTheme(readTheme());
+    const onPrefs = (e: Event) => {
+      const detail = (e as CustomEvent<AppearanceDetail>).detail;
+      if (detail?.theme) setTheme(detail.theme);
+    };
+    window.addEventListener(APPEARANCE_EVENT, onPrefs);
+    return () => window.removeEventListener(APPEARANCE_EVENT, onPrefs);
   }, []);
 
   // Detectar OS para mostrar el modifier correcto (⌘ Mac vs Ctrl Win/Linux).
@@ -93,12 +99,7 @@ export function StudioTopbar({ userEmail }: StudioTopbarProps) {
   const toggleTheme = () => {
     const next = theme === "light" ? "dark" : "light";
     setTheme(next);
-    try {
-      document.documentElement.dataset.theme = next === "dark" ? "dark" : "";
-      localStorage.setItem(THEME_KEY, next);
-    } catch {
-      // ignore
-    }
+    applyTheme(next);
   };
 
   const initials = userEmail.slice(0, 2).toUpperCase();

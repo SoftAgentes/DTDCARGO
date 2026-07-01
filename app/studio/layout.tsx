@@ -54,6 +54,8 @@ const THEME_FOUC_SCRIPT = `
 try {
   var t = localStorage.getItem('studio_theme');
   if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+  var d = localStorage.getItem('studio_density');
+  if (d === 'compact' || d === 'spacious') document.documentElement.setAttribute('data-density', d);
 } catch (e) {}
 `.trim();
 

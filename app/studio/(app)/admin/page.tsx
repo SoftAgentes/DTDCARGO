@@ -19,6 +19,30 @@
 import Link from "next/link";
 import { Icon, type IconName } from "@/app/studio/_components/icons";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
+import { createClient } from "@/lib/db/server";
+import { getCompanyData } from "@/lib/studio/company-queries";
+import { CompanySection } from "./_components/CompanySection";
+import { AppearanceSection } from "./_components/AppearanceSection";
+import { NumberingSection } from "./_components/NumberingSection";
+import { AuditLogSection } from "./_components/AuditLogSection";
+import { PermissionsSection } from "./_components/PermissionsSection";
+import { MasterDataSection } from "./_components/MasterDataSection";
+import { ExchangeRatesSection } from "./_components/ExchangeRatesSection";
+import { CalendarSection } from "./_components/CalendarSection";
+import { ApiIntegrationSection } from "./_components/ApiIntegrationSection";
+import { WorkflowsSection } from "./_components/WorkflowsSection";
+import { ImportExportSection } from "./_components/ImportExportSection";
+import { getNumberingOverview } from "@/lib/studio/numbering-queries";
+import { getRecentAuditEvents } from "@/lib/studio/audit-queries";
+import { getExchangeRatesOverview } from "@/lib/studio/exchange-rates-queries";
+import { getOperationalCalendar } from "@/lib/studio/op-calendar-queries";
+import { getApiIntegration } from "@/lib/studio/api-integration-queries";
+import type { CompanyData } from "@/lib/studio/company-types";
+import type { NumberingOverview } from "@/lib/studio/numbering-types";
+import type { AuditEvent } from "@/lib/studio/audit-types";
+import type { ExchangeRatesOverview } from "@/lib/studio/exchange-rates-types";
+import type { CalendarEvent } from "@/lib/studio/op-calendar-types";
+import type { ApiIntegrationData } from "@/lib/studio/api-integration-types";
 
 export const metadata = { title: "Administración" };
 
@@ -46,7 +70,7 @@ const SECTIONS: AdminSection[] = [
     icon: "shield",
     description:
       "Identificación fiscal (RIF, razón social), oficinas CN/VE, datos bancarios que aparecen en facturas, impuestos (IVA / ISLR / IGTF).",
-    sddRef: "SDD-0030",
+    sddRef: "SDD-0120",
   },
   {
     id: "features",
@@ -64,7 +88,7 @@ const SECTIONS: AdminSection[] = [
     icon: "tag",
     description:
       "Catálogos editables: segmentos de cliente, tiers, servicios (LCL/FCL), estados del workflow, tipos de documento, HS codes OMA, AES arancel VE.",
-    sddRef: "SDD-0030",
+    sddRef: "SDD-0125",
   },
   {
     id: "rates",
@@ -73,16 +97,16 @@ const SECTIONS: AdminSection[] = [
     icon: "invoice",
     description:
       "BCV, paralelo y CNY. Historial diario y configuración de qué tasa usa cada flujo (facturación, costing, estado de cuenta).",
-    sddRef: "SDD-0030",
+    sddRef: "SDD-0126",
   },
   {
     id: "holidays",
     group: "BÁSICO",
-    label: "Feriados CN/VE",
+    label: "Feriados & ferias",
     icon: "clock",
     description:
-      "Calendario de feriados de ambos países usado por TMS, almacén y SLAs. Sincronizado con el calendario operativo.",
-    sddRef: "SDD-0030",
+      "Calendario operativo CN/VE: feriados (días no laborables) y ferias comerciales (Cantón/Yiwu). Afecta lead times y SLAs de despacho y almacén.",
+    sddRef: "SDD-0127",
   },
   {
     id: "appearance",
@@ -91,7 +115,7 @@ const SECTIONS: AdminSection[] = [
     icon: "sun",
     description:
       "Theme (light/dark), densidad (compact/normal/spacious), branding por tenant (logo, color de acento). Persistido por usuario.",
-    sddRef: "SDD-0030",
+    sddRef: "SDD-0121",
   },
   // ─── INTERMEDIO ──────────────────────────────────────────
   {
@@ -101,7 +125,7 @@ const SECTIONS: AdminSection[] = [
     icon: "lock",
     description:
       "Roles del tenant (Admin, Comercial, Operaciones, Bodega) con scope por módulo y por almacén. Granularidad de read/write/approve.",
-    sddRef: "SDD-0024",
+    sddRef: "SDD-0124",
   },
   {
     id: "audit",
@@ -110,7 +134,7 @@ const SECTIONS: AdminSection[] = [
     icon: "eye",
     description:
       "Drill-down de quién hizo qué, cuándo y desde dónde. Filtros por usuario, módulo, acción y rango de fechas.",
-    sddRef: "Sprint C",
+    sddRef: "SDD-0123",
   },
   {
     id: "numbering",
@@ -119,7 +143,7 @@ const SECTIONS: AdminSection[] = [
     icon: "doc",
     description:
       "Correlativos por documento (factura, nota de débito/crédito, control SENIAT) con prefijo y zero-padding configurables.",
-    sddRef: "SDD-0030",
+    sddRef: "SDD-0122",
   },
   // ─── PRO ─────────────────────────────────────────────────
   {
@@ -139,7 +163,7 @@ const SECTIONS: AdminSection[] = [
     icon: "link",
     description:
       "Tokens para integrar con sistemas externos (CRM, BI, contabilidad). Webhooks salientes para sincronizar embarques / facturas / pagos.",
-    sddRef: "SDD-0021",
+    sddRef: "SDD-0128",
   },
   {
     id: "workflows",
@@ -148,7 +172,7 @@ const SECTIONS: AdminSection[] = [
     icon: "radar",
     description:
       "Reglas de automatización por tenant (cron, eventos, triggers). Disparan agents, mailing, alertas o cambios de estado.",
-    sddRef: "SDD-0021",
+    sddRef: "SDD-0129",
   },
   {
     id: "import",
@@ -157,7 +181,7 @@ const SECTIONS: AdminSection[] = [
     icon: "upload",
     description:
       "CSV/XLSX bulk: clientes, tarifas, embarques históricos. Export para BI o backup manual.",
-    sddRef: "Backlog",
+    sddRef: "SDD-0130",
   },
 ];
 
@@ -176,6 +200,42 @@ export default async function AdminPage({
   const sp = await searchParams;
   const activeId: string = isSection(sp.section) ? sp.section : "company";
   const active = SECTIONS.find((s) => s.id === activeId) ?? SECTIONS[0];
+
+  // Solo la sección "company" tiene implementación real (SDD-0120): fetch acá
+  // para no pegarle a la DB en las secciones que aún son placeholder.
+  let companyData: CompanyData | null = null;
+  let numberingData: NumberingOverview | null = null;
+  let auditEvents: AuditEvent[] | null = null;
+  let ratesData: ExchangeRatesOverview | null = null;
+  let calendarEvents: CalendarEvent[] | null = null;
+  let apiData: ApiIntegrationData | null = null;
+  let importData: { calendar: CalendarEvent[]; company: CompanyData } | null = null;
+  if (active.id === "company") {
+    const supabase = await createClient();
+    companyData = await getCompanyData(supabase);
+  } else if (active.id === "numbering") {
+    const supabase = await createClient();
+    numberingData = await getNumberingOverview(supabase);
+  } else if (active.id === "audit") {
+    const supabase = await createClient();
+    auditEvents = await getRecentAuditEvents(supabase);
+  } else if (active.id === "rates") {
+    const supabase = await createClient();
+    ratesData = await getExchangeRatesOverview(supabase);
+  } else if (active.id === "holidays") {
+    const supabase = await createClient();
+    calendarEvents = await getOperationalCalendar(supabase);
+  } else if (active.id === "api") {
+    const supabase = await createClient();
+    apiData = await getApiIntegration(supabase);
+  } else if (active.id === "import") {
+    const supabase = await createClient();
+    const [calendar, company] = await Promise.all([
+      getOperationalCalendar(supabase),
+      getCompanyData(supabase),
+    ]);
+    importData = { calendar, company };
+  }
 
   const grouped = GROUP_ORDER.map((g) => ({
     group: g,
@@ -259,7 +319,16 @@ export default async function AdminPage({
         }}
       >
         <SideNav grouped={grouped} activeId={activeId} />
-        <Content section={active} />
+        <Content
+          section={active}
+          companyData={companyData}
+          numberingData={numberingData}
+          auditEvents={auditEvents}
+          ratesData={ratesData}
+          calendarEvents={calendarEvents}
+          apiData={apiData}
+          importData={importData}
+        />
       </div>
     </div>
   );
@@ -349,7 +418,25 @@ function SideNav({
   );
 }
 
-function Content({ section }: { section: AdminSection }) {
+function Content({
+  section,
+  companyData,
+  numberingData,
+  auditEvents,
+  ratesData,
+  calendarEvents,
+  apiData,
+  importData,
+}: {
+  section: AdminSection;
+  companyData: CompanyData | null;
+  numberingData: NumberingOverview | null;
+  auditEvents: AuditEvent[] | null;
+  ratesData: ExchangeRatesOverview | null;
+  calendarEvents: CalendarEvent[] | null;
+  apiData: ApiIntegrationData | null;
+  importData: { calendar: CalendarEvent[]; company: CompanyData } | null;
+}) {
   return (
     <div key={section.id}>
       {/* Header del content */}
@@ -383,7 +470,33 @@ function Content({ section }: { section: AdminSection }) {
         </p>
       </div>
 
-      {section.href ? (
+      {section.id === "company" && companyData ? (
+        <CompanySection data={companyData} />
+      ) : section.id === "appearance" ? (
+        <AppearanceSection />
+      ) : section.id === "numbering" && numberingData ? (
+        <NumberingSection data={numberingData} />
+      ) : section.id === "audit" && auditEvents ? (
+        <AuditLogSection events={auditEvents} />
+      ) : section.id === "permissions" ? (
+        <PermissionsSection />
+      ) : section.id === "masterdata" ? (
+        <MasterDataSection />
+      ) : section.id === "rates" && ratesData ? (
+        <ExchangeRatesSection data={ratesData} />
+      ) : section.id === "holidays" && calendarEvents ? (
+        <CalendarSection events={calendarEvents} />
+      ) : section.id === "api" && apiData ? (
+        <ApiIntegrationSection data={apiData} />
+      ) : section.id === "workflows" ? (
+        <WorkflowsSection />
+      ) : section.id === "import" && importData ? (
+        <ImportExportSection
+          calendar={importData.calendar}
+          offices={importData.company.offices}
+          bankAccounts={importData.company.bankAccounts}
+        />
+      ) : section.href ? (
         <LinkedSectionCTA section={section} />
       ) : (
         <PendingSectionPanel section={section} />
