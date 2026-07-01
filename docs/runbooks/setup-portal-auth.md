@@ -242,7 +242,7 @@ Pegá cada bloque en **[Auth → Email Templates](https://supabase.com/dashboard
 <p style="font-size:16px;margin:0 0 12px"><b>Tu código de verificación</b></p>
 <p style="margin:0 0 16px">Usa este código para confirmar tu identidad en DTD Cargo. Caduca pronto y se usa una sola vez.</p>
 <p style="margin:0 0 20px;text-align:center">
-  <span style="display:inline-block;background:#FFFFFF;border:1px solid #E8E6E2;color:#0F1E3D;padding:14px 28px;border-radius:7px;font-family:'JetBrains Mono',ui-monospace,monospace;font-weight:700;font-size:28px;letter-spacing:6px">{{ .Token }}</span>
+  <span style="display:inline-block;background:#FFFFFF;border:1px solid #E8E6E2;color:#0F1E3D;padding:16px 28px;border-radius:7px;font-family:'JetBrains Mono',ui-monospace,monospace;font-weight:700;font-size:28px;letter-spacing:6px">{{ .Token }}</span>
 </p>
 <p style="margin:0 0 12px;color:#6B6B6B;font-size:13px">¿No fuiste tú? Ignora este correo, tu cuenta sigue segura.</p>
 <hr style="border:0;border-top:1px solid #E8E6E2;margin:24px 0">
