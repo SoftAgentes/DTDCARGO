@@ -8,7 +8,7 @@
  */
 
 const NOMINATIM_BASE = "https://nominatim.openstreetmap.org/search";
-const USER_AGENT = "DTD-Cargo-ERP/1.0 (bigbonnysam@gmail.com)";
+const USER_AGENT = "DTD-Cargo-ERP/1.0 (info@dtdcargo.com)";
 
 export type GeocodeResult = {
   lat: number;

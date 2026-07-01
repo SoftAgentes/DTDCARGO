@@ -207,7 +207,7 @@ export default function BackLoginPage() {
         <br />
         ¿Olvidaste tu contraseña?{" "}
         <a
-          href="mailto:bigbonnysam@gmail.com"
+          href="mailto:info@dtdcargo.com"
           style={{ color: "#C2747F", textDecoration: "none" }}
         >
           Escribile a Sam
