@@ -26,7 +26,7 @@
 -- filtra referrals por referred_client_id, que hoy no tenía índice).
 --
 -- ⚠️ NO se aplica a prod desde acá (lo hace el Director/founder).
--- Número de migración: 0195 (siguiente libre tras 0194).
+-- Número de migración: 0197 (renumerado por el Director: colisión con 0195_payment_reports de portal-inventario; orden final 0195→0196→0197).
 -- ─────────────────────────────────────────────────────────────
 
 -- ╔═══════════════════════════════════════════════════════════╗
@@ -110,7 +110,7 @@ create trigger invoices_accredit_referral
   for each row execute function public.accredit_referral_on_first_invoice();
 
 -- ─────────────────────────────────────────────────────────────
--- Fin migración 0195_referral_auto_accredit.sql
--- Aplicar con: supabase migration apply 0195 · o MCP apply_migration
+-- Fin migración 0197_referral_auto_accredit.sql
+-- Aplicar con: supabase migration apply 0197 · o MCP apply_migration
 -- (lo hace el Director/founder; el harness NO aplica a prod).
 -- ─────────────────────────────────────────────────────────────

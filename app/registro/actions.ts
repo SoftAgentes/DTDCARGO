@@ -274,7 +274,7 @@ export async function registerClientAction(
   // 6b. SDD-0051 Fase 2 — linkear el referido si vino con ?ref= (invitación por
   //     correo → REF-YYYY-NNNN, o código compartido → REF-XXXX). Best-effort: un
   //     fallo NO rompe el alta. Al quedar 'registrado' con referred_client_id, el
-  //     trigger de la 1ª factura (migr 0195) podrá acreditar al referidor.
+  //     trigger de la 1ª factura (migr 0197) podrá acreditar al referidor.
   try {
     const refCode = String(formData.get("ref") ?? "").trim();
     if (refCode) {
