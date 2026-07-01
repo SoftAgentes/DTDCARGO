@@ -89,7 +89,7 @@ export default async function ClienteDetallePage({
 
   // SDD-0046: la verificación de identidad aplica a clientes self-registrados
   // o con foto de documento. El badge es advisory — nunca bloquea al cliente.
-  // SDD-0122: además de portal/foto, mostramos la card en cualquier cliente que
+  // SDD-0131: además de portal/foto, mostramos la card en cualquier cliente que
   // ya tenga documento (el alta interna ahora fija doc_kind → se puede rutear la
   // verificación y ofrecer el piso manual). El badge sigue siendo advisory.
   const hasDocument = client.rif != null && client.rif.trim() !== "";
@@ -98,7 +98,7 @@ export default async function ClienteDetallePage({
     client.cedula_photo_path != null ||
     hasDocument;
 
-  // SDD-0122: completitud del perfil — checklist derivado de qué falta para
+  // SDD-0131: completitud del perfil — checklist derivado de qué falta para
   // tener el cliente listo para operar/analizar.
   const completeness = clientCompleteness(client);
 
@@ -248,7 +248,7 @@ export default async function ClienteDetallePage({
             </div>
           </section>
 
-          {/* Perfil del cliente · qué falta para completar (SDD-0122) */}
+          {/* Perfil del cliente · qué falta para completar (SDD-0131) */}
           <section
             style={{
               background: "var(--bg-surface)",

@@ -48,7 +48,7 @@ function inputFromFormData(formData: FormData): Partial<ClientInput> {
       ? (tierRaw as ClientTier)
       : undefined;
 
-  // SDD-0122: tipo de documento del alta (persona/empresa). Default 'persona'.
+  // SDD-0131: tipo de documento del alta (persona/empresa). Default 'persona'.
   const docKindRaw = String(formData.get("doc_kind") ?? "persona");
   const doc_kind: ClientDocKind =
     docKindRaw === "empresa" ? "empresa" : "persona";

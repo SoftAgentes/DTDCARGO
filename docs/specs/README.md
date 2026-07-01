@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 115 specs)
+### Índice de specs (generado · 114 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -152,7 +152,6 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0117 | Recibo y finiquito en PDF server-side (@react-pdf/renderer) —… | done | interno |
 | 0118 | Seed migrations idempotentes — habilitar validación en branch… | draft | interno |
 | 0119 | Módulo de Marketing en el ERP — Dashboard de Marketing (salud… | draft | interno |
-| 0122 | Registro de cliente interno — persona/empresa (cédula vs RIF)… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0120, 0121 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

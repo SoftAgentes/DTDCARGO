@@ -78,7 +78,7 @@ import { createClientAction, updateClientAction } from "../actions";
 
 function clientForm(overrides: Record<string, string> = {}): FormData {
   const f = new FormData();
-  // Empresa con RIF: doc_kind rutea la validación del documento (SDD-0122).
+  // Empresa con RIF: doc_kind rutea la validación del documento (SDD-0131).
   f.set("doc_kind", "empresa");
   f.set("name", "Acme C.A.");
   f.set("tier", "regular");

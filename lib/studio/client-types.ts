@@ -24,7 +24,7 @@ export type Client = {
   address: string | null;
   rif: string | null;
   /**
-   * SDD-0122: persona de contacto operativo de un cliente EMPRESA (con quién se
+   * SDD-0131: persona de contacto operativo de un cliente EMPRESA (con quién se
    * habla). null para personas naturales (ahí `name` ES la persona).
    */
   contact_name: string | null;
@@ -68,12 +68,12 @@ export type Client = {
 /** Subset que el operador edita (no incluye markbox, que se autogenera). */
 export type ClientInput = {
   /**
-   * SDD-0122: tipo de documento del alta · persona (cédula) | empresa (RIF).
+   * SDD-0131: tipo de documento del alta · persona (cédula) | empresa (RIF).
    * Rutea la validación del documento y la verificación de identidad.
    */
   doc_kind: ClientDocKind;
   name: string;
-  /** SDD-0122: contacto operativo (solo empresa; null para persona). */
+  /** SDD-0131: contacto operativo (solo empresa; null para persona). */
   contact_name: string | null;
   email: string | null;
   phone: string | null;
@@ -195,7 +195,7 @@ export function formatRif(raw: string): string {
  * Cédula venezolana (persona): prefijo V (venezolano) o E (extranjero) + 6 a 9
  * dígitos. Acepta con/sin guión ("V-12345678" o "V12345678"). Case-insensitive.
  * Mismo formato que el registro público (`register-types.ts`), acá para el alta
- * interna del Studio (SDD-0122).
+ * interna del Studio (SDD-0131).
  */
 export const CEDULA_REGEX = /^[VEve]-?\d{6,9}$/;
 
@@ -209,7 +209,7 @@ export function formatCedula(raw: string): string {
 }
 
 /**
- * Normaliza el documento a su forma canónica SEGÚN el tipo (SDD-0122):
+ * Normaliza el documento a su forma canónica SEGÚN el tipo (SDD-0131):
  *   persona → cédula `formatCedula` · empresa → RIF `formatRif`.
  * Devuelve null si el documento no matchea el formato esperado para ese tipo.
  */
@@ -326,7 +326,7 @@ export function validateClientInput(input: Partial<ClientInput>): {
   };
 }
 
-// ── Completitud del perfil del cliente (SDD-0122) ───────────────────────────
+// ── Completitud del perfil del cliente (SDD-0131) ───────────────────────────
 // Checklist DERIVADO (sin estado nuevo en DB): qué falta para tener el cliente
 // listo para operar/analizar. Puro y testeable — la UI (ficha + aviso al crear)
 // solo pinta el resultado.

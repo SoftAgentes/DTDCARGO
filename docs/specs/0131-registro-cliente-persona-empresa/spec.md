@@ -1,5 +1,5 @@
 ---
-sdd: "0122"
+sdd: "0131"
 title: "Registro de cliente interno — persona/empresa (cédula vs RIF) + panel de completitud"
 status: in-progress
 author: "Claude Code (ventana construcción-de-norte) + founder"
@@ -11,7 +11,7 @@ related: ["0010", "0046", "0106", "0042"]
 confidencialidad: interno
 ---
 
-# SDD-0122 · Registro de cliente interno — persona/empresa + completitud
+# SDD-0131 · Registro de cliente interno — persona/empresa + completitud
 
 > El alta de cliente **interno** (`/studio/clientes`, cargada por un asesor) quedó atrás del alta
 > **pública** del portal ([SDD-0042](../0042-portal-cliente/spec.md) Fase 6): el portal ya distingue
@@ -47,7 +47,7 @@ verificación automática SENIAT (SDD-0046 Slice C).
 
 ## 3. Datos
 
-- **`clients.contact_name`** (migración `0191`, aditiva/nullable): contacto operativo de empresa.
+- **`clients.contact_name`** (migración `0194`, aditiva/nullable): contacto operativo de empresa.
 - `clients.doc_kind` — ya existe (0092). Ahora lo setea también el alta interna.
 - Sin otras columnas nuevas; la completitud es **derivada** en la capa de app.
 
@@ -77,5 +77,5 @@ verificación automática SENIAT (SDD-0046 Slice C).
 ## 7. Notas de integración (ventana secundaria)
 
 - Rama `feat/construccion-norte`, worktree `DTD-worktrees/construccion-norte`. No merge/push/migración
-  a prod desde esta ventana (Director). Migración `0191` y SDD `0122` elegidos libres mirando todas las
-  ramas (web-norte ocupa 0190 / SDD-0120-0121). El índice `docs/specs/README.md` lo regenera el Director.
+  a prod desde esta ventana (Director). Renumerado por el Director en integración: migración `0194` y
+  SDD `0131` (web-norte ocupó 0190-0193 / SDD-0120-0130). El índice `docs/specs/README.md` lo regenera el Director.

@@ -47,7 +47,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
   const [state, formAction, isPending] = useActionState(action, initialState);
 
   const [tier, setTier] = useState<ClientTier>(client?.tier ?? "regular");
-  // SDD-0122: tipo de documento del alta (persona/empresa). Cambia las etiquetas
+  // SDD-0131: tipo de documento del alta (persona/empresa). Cambia las etiquetas
   // del nombre y del documento, y muestra el contacto operativo si es empresa.
   const [docKind, setDocKind] = useState<ClientDocKind>(
     client?.doc_kind ?? "persona",
@@ -187,7 +187,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
     }
     const markbox = result.createdMarkbox;
 
-    // SDD-0122: "qué falta para completar" al crear. Se calcula del propio form
+    // SDD-0131: "qué falta para completar" al crear. Se calcula del propio form
     // (foto y verificación siempre faltan al alta → se completan luego en la
     // ficha). Aviso informativo, no bloquea. En "abrir perfil" no lo mostramos:
     // la card de la ficha ya lo dice.
@@ -356,7 +356,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
             </div>
           )}
 
-          {/* Tipo de documento · persona (cédula) / empresa (RIF) — SDD-0122 */}
+          {/* Tipo de documento · persona (cédula) / empresa (RIF) — SDD-0131 */}
           <div>
             <label className="studio-label">
               Tipo de cliente <span style={{ color: "var(--wine)" }}>*</span>
@@ -420,7 +420,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
             {state.fieldErrors?.name && <FieldError msg={state.fieldErrors.name} />}
           </div>
 
-          {/* Nombre de contacto · solo empresa (SDD-0122) */}
+          {/* Nombre de contacto · solo empresa (SDD-0131) */}
           {isCompany && (
             <div>
               <label className="studio-label" htmlFor="cl-contact-name">
@@ -662,7 +662,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
             )}
           </div>
 
-          {/* Documento · cédula (persona) o RIF (empresa) — SDD-0122 */}
+          {/* Documento · cédula (persona) o RIF (empresa) — SDD-0131 */}
           <div>
             <label className="studio-label" htmlFor="cl-rif">
               {isCompany ? "RIF" : "Cédula"}{" "}

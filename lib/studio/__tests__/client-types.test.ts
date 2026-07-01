@@ -72,7 +72,7 @@ describe("docVerifySourceLabel", () => {
   });
 });
 
-describe("validateClientInput · documento por tipo (SDD-0122)", () => {
+describe("validateClientInput · documento por tipo (SDD-0131)", () => {
   it("persona: cédula válida se normaliza a V-XXXXXXXX", () => {
     const { input, fieldErrors } = validateClientInput(
       personaInput({ rif: "v12345678" }),
@@ -134,7 +134,7 @@ describe("validateClientInput · documento por tipo (SDD-0122)", () => {
   });
 });
 
-describe("clientCompleteness (SDD-0122)", () => {
+describe("clientCompleteness (SDD-0131)", () => {
   const empty: CompletenessSource = {
     doc_kind: "persona",
     rif: null,
