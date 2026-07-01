@@ -6,6 +6,7 @@ import {
   buildWhatsAppLink,
 } from "@/lib/design-tokens";
 import { jetbrainsMono } from "@/lib/fonts";
+import { MapsRow } from "./MapsRow";
 
 /**
  * /enlaces — Hub de Enlaces (link-in-bio de Instagram) de DTD Cargo.
@@ -225,6 +226,16 @@ const LINKS: LinkRow[] = [
   },
 ];
 
+// Ubicación / "Cómo llegar" — abre la app de mapas nativa por plataforma
+// (Apple Maps en iPhone, Google Maps en el resto). El pin de Google es el
+// verificado de DTD (CONTACT.ve.mapsUrl); Apple Maps busca por nombre+dirección.
+const MAPS = {
+  google: CONTACT.ve.mapsUrl,
+  apple: `https://maps.apple.com/?q=${encodeURIComponent(
+    `DTD Cargo, ${CONTACT.ve.addressFull}`,
+  )}`,
+};
+
 const SOCIAL: { net: IconName; label: string; href: string }[] = [
   { net: "instagram", label: "Instagram", href: CONTACT.instagram.url },
   { net: "tiktok", label: "TikTok", href: CONTACT.tiktok.url },
@@ -320,6 +331,12 @@ export default function EnlacesPage() {
                 </span>
               </a>
             ))}
+            <MapsRow
+              googleMapsUrl={MAPS.google}
+              appleMapsUrl={MAPS.apple}
+              label="Cómo llegar"
+              sub="Nuestra oficina en Valencia · abre el mapa"
+            />
           </div>
 
           <div className="enlaces-label">Síguenos</div>
