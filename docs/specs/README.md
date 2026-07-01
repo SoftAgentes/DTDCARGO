@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 114 specs)
+### Índice de specs (generado · 125 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -152,6 +152,17 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0117 | Recibo y finiquito en PDF server-side (@react-pdf/renderer) —… | done | interno |
 | 0118 | Seed migrations idempotentes — habilitar validación en branch… | draft | interno |
 | 0119 | Módulo de Marketing en el ERP — Dashboard de Marketing (salud… | draft | interno |
+| 0120 | Datos de la empresa — primera sección real de Administración … | in-progress | interno |
+| 0121 | Apariencia — preferencias de Studio (tema + densidad) + mater… | in-progress | interno |
+| 0122 | Numeración & legal — formatos de correlativo (read-only) + le… | in-progress | interno |
+| 0123 | Audit log — viewer read-only del entity_audit_log en Administ… | in-progress | interno |
+| 0124 | Permisos por rol — matriz read-only rol × módulo (visualiza l… | in-progress | interno |
+| 0125 | Master data — hub read-only de catálogos (tiers + punteros a … | in-progress | interno |
+| 0126 | Tasas de cambio — gestión de tenant_fx_history desde Administ… | in-progress | interno |
+| 0127 | Feriados & ferias — calendario operativo CN/VE (feriados + fe… | in-progress | interno |
+| 0128 | API keys & webhooks — gestión de credenciales de integración … | in-progress | interno |
+| 0129 | Workflows custom — puntero al motor de flujo existente (SDD-0… | in-progress | interno |
+| 0130 | Importar / Exportar — export CSV del dominio admin (import po… | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
