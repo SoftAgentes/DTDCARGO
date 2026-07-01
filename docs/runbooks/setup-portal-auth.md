@@ -125,7 +125,29 @@ papel `#FBFAF7` · acento wine `#7F0F1A` · cierre "Con Confianza"**.
 
 > **Regla:** conservar **`{{ .ConfirmationURL }}`** tal cual (sintaxis Go de Auth,
 > distinta del `{{var}}` del Studio). Auth no conoce el nombre del cliente en estos
-> correos → saludo genérico (sin `client_name`).
+> correos → saludo genérico (sin `client_name`). La plantilla de código de
+> verificación usa **`{{ .Token }}`** (no `ConfirmationURL`) — respetá esa variable.
+
+> **Nota (SDD-0094):** el portal es **solo magic-link** (passwordless), así que el
+> **Reset Password** casi no le aplica a clientes de portal. Igual queda brandeado
+> por si hay cuentas con contraseña (ej. registro público / cuentas legacy). No lo
+> borres del dashboard: si algún día una cuenta con clave pide reset, este es el
+> correo que sale.
+
+### Checklist de plantillas (pegar en el dashboard)
+
+Pegá cada bloque en **[Auth → Email Templates](https://supabase.com/dashboard/project/xpfuzqombmjmxvprjgmi/auth/templates)** (una plantilla por pestaña), copiá el subject sugerido y marcá acá cuando quede pegada.
+
+| Plantilla (Supabase) | Subject sugerido | Variable | Estado |
+|---|---|---|---|
+| Magic Link | `Tu enlace de acceso al portal · DTD Cargo` | `{{ .ConfirmationURL }}` | ✅ brandeada · pendiente de pegar |
+| Confirm signup | `Confirma tu cuenta · DTD Cargo` | `{{ .ConfirmationURL }}` | ✅ brandeada · pendiente de pegar |
+| Invite user | `Te damos acceso a tu portal · DTD Cargo` | `{{ .ConfirmationURL }}` | ✅ brandeada · pendiente de pegar |
+| Reset Password (Recovery) | `Recupera el acceso a tu cuenta · DTD Cargo` | `{{ .ConfirmationURL }}` | ✅ brandeada · pendiente de pegar |
+| Change Email Address | `Confirma tu nuevo correo · DTD Cargo` | `{{ .ConfirmationURL }}` | ✅ brandeada · pendiente de pegar |
+| Reauthentication (código OTP) | `Tu código de verificación · DTD Cargo` | `{{ .Token }}` | ✅ brandeada · pendiente de pegar |
+
+> Al pegar cada una, cambiá "pendiente de pegar" → **"pegada"** en esta tabla.
 
 ### Magic Link · subject `Tu enlace de acceso al portal · DTD Cargo`
 
@@ -136,8 +158,7 @@ papel `#FBFAF7` · acento wine `#7F0F1A` · cierre "Con Confianza"**.
 <p style="margin:0 0 20px">
   <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#7F0F1A;color:#FFFFFF;text-decoration:none;padding:12px 28px;border-radius:7px;font-weight:700;font-size:15px">Acceder a mi portal</a>
 </p>
-<p style="margin:0 0 8px;color:#6B6B6B;font-size:13px">Si el botón no funciona, copia y pega este enlace:</p>
-<p style="margin:0 0 16px"><a href="{{ .ConfirmationURL }}" style="color:#7F0F1A;text-decoration:underline;font-size:13px;word-break:break-all">{{ .ConfirmationURL }}</a></p>
+<p style="margin:0 0 16px;color:#6B6B6B;font-size:13px">¿El botón no funciona? <a href="{{ .ConfirmationURL }}" style="color:#7F0F1A;text-decoration:underline">Ábrelo aquí</a>.</p>
 <p style="margin:0 0 12px;color:#6B6B6B;font-size:13px">¿No pediste esto? Ignora este correo, tu cuenta sigue segura.</p>
 <hr style="border:0;border-top:1px solid #E8E6E2;margin:24px 0">
 <p style="color:#6B6B6B;font-size:12px;margin:0">DTD Cargo · Con Confianza, de China a tu puerta.</p>
@@ -153,8 +174,7 @@ papel `#FBFAF7` · acento wine `#7F0F1A` · cierre "Con Confianza"**.
 <p style="margin:0 0 20px">
   <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#7F0F1A;color:#FFFFFF;text-decoration:none;padding:12px 28px;border-radius:7px;font-weight:700;font-size:15px">Confirmar mi cuenta</a>
 </p>
-<p style="margin:0 0 8px;color:#6B6B6B;font-size:13px">Si el botón no funciona, copia y pega este enlace:</p>
-<p style="margin:0 0 16px"><a href="{{ .ConfirmationURL }}" style="color:#7F0F1A;text-decoration:underline;font-size:13px;word-break:break-all">{{ .ConfirmationURL }}</a></p>
+<p style="margin:0 0 16px;color:#6B6B6B;font-size:13px">¿El botón no funciona? <a href="{{ .ConfirmationURL }}" style="color:#7F0F1A;text-decoration:underline">Ábrelo aquí</a>.</p>
 <p style="margin:0 0 12px;color:#6B6B6B;font-size:13px">¿No fuiste tú? Ignora este correo.</p>
 <hr style="border:0;border-top:1px solid #E8E6E2;margin:24px 0">
 <p style="color:#6B6B6B;font-size:12px;margin:0">DTD Cargo · Con Confianza, de China a tu puerta.</p>
@@ -170,9 +190,61 @@ papel `#FBFAF7` · acento wine `#7F0F1A` · cierre "Con Confianza"**.
 <p style="margin:0 0 20px">
   <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#7F0F1A;color:#FFFFFF;text-decoration:none;padding:12px 28px;border-radius:7px;font-weight:700;font-size:15px">Entrar a mi portal</a>
 </p>
-<p style="margin:0 0 8px;color:#6B6B6B;font-size:13px">Si el botón no funciona, copia y pega este enlace:</p>
-<p style="margin:0 0 16px"><a href="{{ .ConfirmationURL }}" style="color:#7F0F1A;text-decoration:underline;font-size:13px;word-break:break-all">{{ .ConfirmationURL }}</a></p>
+<p style="margin:0 0 16px;color:#6B6B6B;font-size:13px">¿El botón no funciona? <a href="{{ .ConfirmationURL }}" style="color:#7F0F1A;text-decoration:underline">Ábrelo aquí</a>.</p>
 <p style="margin:0 0 12px;color:#6B6B6B;font-size:13px">¿No esperabas esto? Escríbenos antes de entrar.</p>
+<hr style="border:0;border-top:1px solid #E8E6E2;margin:24px 0">
+<p style="color:#6B6B6B;font-size:12px;margin:0">DTD Cargo · Con Confianza, de China a tu puerta.</p>
+</div>
+```
+
+### Reset Password (Recovery) · subject `Recupera el acceso a tu cuenta · DTD Cargo`
+
+> Casi no aplica a clientes de portal (magic-link, sin contraseña). Queda por si
+> hay cuentas con clave (registro público / legacy). Ver la **Nota (SDD-0094)** arriba.
+
+```html
+<div style="font-family:Archivo,system-ui,sans-serif;color:#0F1E3D;max-width:560px;padding:24px;background:#FBFAF7">
+<p style="font-size:16px;margin:0 0 12px"><b>Recupera el acceso a tu cuenta</b></p>
+<p style="margin:0 0 16px">Pediste restablecer el acceso a tu cuenta de DTD Cargo. Haz clic en el botón para elegir una nueva contraseña. El enlace caduca pronto y se usa una sola vez.</p>
+<p style="margin:0 0 20px">
+  <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#7F0F1A;color:#FFFFFF;text-decoration:none;padding:12px 28px;border-radius:7px;font-weight:700;font-size:15px">Restablecer mi acceso</a>
+</p>
+<p style="margin:0 0 16px;color:#6B6B6B;font-size:13px">¿El botón no funciona? <a href="{{ .ConfirmationURL }}" style="color:#7F0F1A;text-decoration:underline">Ábrelo aquí</a>.</p>
+<p style="margin:0 0 12px;color:#6B6B6B;font-size:13px">¿No fuiste tú? Ignora este correo, tu cuenta sigue segura.</p>
+<hr style="border:0;border-top:1px solid #E8E6E2;margin:24px 0">
+<p style="color:#6B6B6B;font-size:12px;margin:0">DTD Cargo · Con Confianza, de China a tu puerta.</p>
+</div>
+```
+
+### Change Email Address · subject `Confirma tu nuevo correo · DTD Cargo`
+
+```html
+<div style="font-family:Archivo,system-ui,sans-serif;color:#0F1E3D;max-width:560px;padding:24px;background:#FBFAF7">
+<p style="font-size:16px;margin:0 0 12px"><b>Confirma tu nuevo correo</b></p>
+<p style="margin:0 0 16px">Pediste cambiar el correo de tu cuenta de DTD Cargo. Haz clic en el botón para confirmar esta dirección como tu nuevo correo de acceso.</p>
+<p style="margin:0 0 20px">
+  <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#7F0F1A;color:#FFFFFF;text-decoration:none;padding:12px 28px;border-radius:7px;font-weight:700;font-size:15px">Confirmar mi nuevo correo</a>
+</p>
+<p style="margin:0 0 16px;color:#6B6B6B;font-size:13px">¿El botón no funciona? <a href="{{ .ConfirmationURL }}" style="color:#7F0F1A;text-decoration:underline">Ábrelo aquí</a>.</p>
+<p style="margin:0 0 12px;color:#6B6B6B;font-size:13px">¿No fuiste tú? Ignora este correo, tu cuenta sigue segura.</p>
+<hr style="border:0;border-top:1px solid #E8E6E2;margin:24px 0">
+<p style="color:#6B6B6B;font-size:12px;margin:0">DTD Cargo · Con Confianza, de China a tu puerta.</p>
+</div>
+```
+
+### Reauthentication (código OTP) · subject `Tu código de verificación · DTD Cargo`
+
+> Esta plantilla usa **`{{ .Token }}`** (el código de 6 dígitos), **no**
+> `{{ .ConfirmationURL }}`. No hay botón ni enlace: se muestra el código para copiar.
+
+```html
+<div style="font-family:Archivo,system-ui,sans-serif;color:#0F1E3D;max-width:560px;padding:24px;background:#FBFAF7">
+<p style="font-size:16px;margin:0 0 12px"><b>Tu código de verificación</b></p>
+<p style="margin:0 0 16px">Usa este código para confirmar tu identidad en DTD Cargo. Caduca pronto y se usa una sola vez.</p>
+<p style="margin:0 0 20px;text-align:center">
+  <span style="display:inline-block;background:#FFFFFF;border:1px solid #E8E6E2;color:#0F1E3D;padding:14px 28px;border-radius:7px;font-family:'JetBrains Mono',ui-monospace,monospace;font-weight:700;font-size:28px;letter-spacing:6px">{{ .Token }}</span>
+</p>
+<p style="margin:0 0 12px;color:#6B6B6B;font-size:13px">¿No fuiste tú? Ignora este correo, tu cuenta sigue segura.</p>
 <hr style="border:0;border-top:1px solid #E8E6E2;margin:24px 0">
 <p style="color:#6B6B6B;font-size:12px;margin:0">DTD Cargo · Con Confianza, de China a tu puerta.</p>
 </div>
