@@ -1,0 +1,244 @@
+/**
+ * Tests de "Reportar pago" del portal (SDD-0134).
+ *
+ * Cubre:
+ *  - Validador puro `validatePaymentReportInput` (monto/método/fecha/nota) — la
+ *    frontera dura de negocio (no futuros, 2 decimales, método del enum).
+ *  - `validateProofFile` / `hasProofFile` — MIME + tamaño del comprobante.
+ *  - AISLAMIENTO de las queries: `listMyInvoiceReports` resuelve el markbox del
+ *    portal PRIMERO y filtra EXPLÍCITO por `client_markbox` + `invoice_code`; sin
+ *    markbox (principal no-cliente) corta SIN tocar la tabla. `countPendingReports`
+ *    filtra por tenant + invoice + status.
+ *  - Mapper + labels/tonos + tope de pendientes.
+ */
+import { describe, it, expect } from "vitest";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  validatePaymentReportInput,
+  paymentMethodLabel,
+  paymentStatusLabel,
+  paymentStatusTone,
+  MAX_PENDING_REPORTS_PER_INVOICE,
+} from "../payment-report-types";
+import {
+  validateProofFile,
+  hasProofFile,
+} from "../payment-proof";
+import {
+  mapPaymentReportRow,
+  listMyInvoiceReports,
+  countPendingReports,
+  isAtPendingLimit,
+} from "../payment-report-queries";
+
+const TODAY = "2026-07-01";
+
+// ── Stub encadenable de SupabaseClient (calca invoices.test.ts) ──
+function stub(opts: {
+  markbox: string | null;
+  rows?: Record<string, unknown>[];
+  count?: number;
+}) {
+  const eqCalls: [string, unknown][] = [];
+  let touchedTable: string | null = null;
+  const builder: Record<string, unknown> = {};
+  Object.assign(builder, {
+    select: () => builder,
+    eq: (col: string, val: unknown) => {
+      eqCalls.push([col, val]);
+      return builder;
+    },
+    neq: () => builder,
+    is: () => builder,
+    // Las listas resuelven en `.order()`; el count en `.select({head:true})`
+    // → devolvemos el thenable en ambos puntos.
+    order: () => Promise.resolve({ data: opts.rows ?? [], error: null }),
+    then: undefined,
+  });
+  const supabase = {
+    rpc: (fn: string) =>
+      fn === "get_portal_client_markbox"
+        ? Promise.resolve({ data: opts.markbox, error: null })
+        : Promise.resolve({ data: null, error: null }),
+    from: (table: string) => {
+      touchedTable = table;
+      return builder;
+    },
+  } as unknown as SupabaseClient;
+  return { supabase, eqCalls, touchedTable: () => touchedTable };
+}
+
+// count usa un builder que resuelve directo (head:true) — stub aparte.
+function countStub(count: number) {
+  const eqCalls: [string, unknown][] = [];
+  const builder: Record<string, unknown> = {};
+  Object.assign(builder, {
+    select: () => builder,
+    eq: (col: string, val: unknown) => {
+      eqCalls.push([col, val]);
+      return builder;
+    },
+    is: () => Promise.resolve({ count, error: null }),
+  });
+  const supabase = {
+    from: () => builder,
+  } as unknown as SupabaseClient;
+  return { supabase, eqCalls };
+}
+
+describe("validatePaymentReportInput", () => {
+  const base = { amount: "150.50", method: "transferencia", paidAt: "2026-06-30", note: "" };
+
+  it("acepta un input válido y normaliza", () => {
+    const { input, fieldErrors } = validatePaymentReportInput(base, TODAY);
+    expect(fieldErrors).toBeUndefined();
+    expect(input).toEqual({
+      amount: 150.5,
+      method: "transferencia",
+      paidAt: "2026-06-30",
+      note: null,
+    });
+  });
+
+  it("acepta coma decimal en el monto", () => {
+    const { input } = validatePaymentReportInput({ ...base, amount: "99,90" }, TODAY);
+    expect(input?.amount).toBe(99.9);
+  });
+
+  it("rechaza monto <= 0", () => {
+    const { fieldErrors } = validatePaymentReportInput({ ...base, amount: "0" }, TODAY);
+    expect(fieldErrors?.amount).toBeTruthy();
+  });
+
+  it("rechaza más de 2 decimales", () => {
+    const { fieldErrors } = validatePaymentReportInput({ ...base, amount: "10.999" }, TODAY);
+    expect(fieldErrors?.amount).toBeTruthy();
+  });
+
+  it("rechaza método fuera del enum", () => {
+    const { fieldErrors } = validatePaymentReportInput({ ...base, method: "cheque" }, TODAY);
+    expect(fieldErrors?.method).toBeTruthy();
+  });
+
+  it("rechaza fecha futura", () => {
+    const { fieldErrors } = validatePaymentReportInput({ ...base, paidAt: "2026-07-02" }, TODAY);
+    expect(fieldErrors?.paidAt).toBeTruthy();
+  });
+
+  it("rechaza fecha no válida", () => {
+    const { fieldErrors } = validatePaymentReportInput({ ...base, paidAt: "2026-13-40" }, TODAY);
+    expect(fieldErrors?.paidAt).toBeTruthy();
+  });
+
+  it("rechaza nota > 500", () => {
+    const { fieldErrors } = validatePaymentReportInput(
+      { ...base, note: "x".repeat(501) },
+      TODAY,
+    );
+    expect(fieldErrors?.note).toBeTruthy();
+  });
+});
+
+describe("validateProofFile / hasProofFile", () => {
+  it("acepta un PDF pequeño", () => {
+    const f = new File([new Uint8Array([1, 2, 3])], "recibo.pdf", { type: "application/pdf" });
+    const res = validateProofFile(f);
+    expect(res.ok).toBe(true);
+  });
+
+  it("rechaza MIME no permitido", () => {
+    const f = new File([new Uint8Array([1])], "x.exe", { type: "application/x-msdownload" });
+    const res = validateProofFile(f);
+    expect(res.ok).toBe(false);
+  });
+
+  it("rechaza archivo demasiado grande", () => {
+    const big = new File([new Uint8Array(11 * 1024 * 1024)], "big.png", { type: "image/png" });
+    const res = validateProofFile(big);
+    expect(res.ok).toBe(false);
+  });
+
+  it("hasProofFile distingue vacío de presente", () => {
+    expect(hasProofFile(null)).toBe(false);
+    expect(hasProofFile(new File([], "x.pdf", { type: "application/pdf" }))).toBe(false);
+    expect(
+      hasProofFile(new File([new Uint8Array([1])], "x.pdf", { type: "application/pdf" })),
+    ).toBe(true);
+  });
+});
+
+describe("listMyInvoiceReports · aislamiento por markbox", () => {
+  it("filtra por invoice_code + client_markbox del cliente", async () => {
+    const { supabase, eqCalls, touchedTable } = stub({
+      markbox: "DTD-0007",
+      rows: [],
+    });
+    await listMyInvoiceReports(supabase, "F-2026-0001");
+    expect(touchedTable()).toBe("payment_reports");
+    expect(eqCalls).toContainEqual(["invoice_code", "F-2026-0001"]);
+    expect(eqCalls).toContainEqual(["client_markbox", "DTD-0007"]);
+  });
+
+  it("sin markbox (principal no-cliente) → [] sin tocar la tabla", async () => {
+    const { supabase, touchedTable } = stub({ markbox: null });
+    const res = await listMyInvoiceReports(supabase, "F-2026-0001");
+    expect(res).toEqual([]);
+    expect(touchedTable()).toBeNull();
+  });
+});
+
+describe("countPendingReports", () => {
+  it("filtra por tenant + invoice + status reportado", async () => {
+    const { supabase, eqCalls } = countStub(3);
+    const n = await countPendingReports(supabase, {
+      tenantId: "t1",
+      invoiceId: "inv1",
+    });
+    expect(n).toBe(3);
+    expect(eqCalls).toContainEqual(["tenant_id", "t1"]);
+    expect(eqCalls).toContainEqual(["invoice_id", "inv1"]);
+    expect(eqCalls).toContainEqual(["status", "reportado"]);
+  });
+});
+
+describe("mapPaymentReportRow", () => {
+  it("mapea la fila cruda al modelo", () => {
+    const r = mapPaymentReportRow({
+      id: "r1",
+      invoice_id: "inv1",
+      invoice_code: "F-2026-0001",
+      client_markbox: "DTD-0007",
+      amount: "150.50",
+      currency: "USD",
+      method: "zelle",
+      paid_at: "2026-06-30",
+      proof_path: "t/inv/r/x.pdf",
+      status: "reportado",
+      note: null,
+      confirmed_by: null,
+      confirmed_at: null,
+      created_at: "2026-07-01T00:00:00Z",
+    });
+    expect(r.amount).toBe(150.5);
+    expect(r.method).toBe("zelle");
+    expect(r.status).toBe("reportado");
+    expect(r.proofPath).toBe("t/inv/r/x.pdf");
+  });
+});
+
+describe("labels / tonos / tope", () => {
+  it("labels de método y estado", () => {
+    expect(paymentMethodLabel("pago_movil")).toBe("Pago móvil");
+    expect(paymentMethodLabel("binance")).toBe("Binance / USDT");
+    expect(paymentStatusLabel("confirmado")).toBe("Pago confirmado");
+  });
+  it("tonos por estado", () => {
+    expect(paymentStatusTone("reportado")).toBe("warning");
+    expect(paymentStatusTone("confirmado")).toBe("success");
+    expect(paymentStatusTone("rechazado")).toBe("danger");
+  });
+  it("tope de pendientes", () => {
+    expect(isAtPendingLimit(MAX_PENDING_REPORTS_PER_INVOICE)).toBe(true);
+    expect(isAtPendingLimit(MAX_PENDING_REPORTS_PER_INVOICE - 1)).toBe(false);
+  });
+});

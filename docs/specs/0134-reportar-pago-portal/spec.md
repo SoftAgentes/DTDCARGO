@@ -1,7 +1,7 @@
 ---
 sdd: "0134"
 title: "Reportar pago + comprobante en el portal"
-status: draft
+status: in-progress
 author: "agente-secundario (inventario portal)"
 created: 2026-07-01
 updated: 2026-07-01
@@ -103,3 +103,23 @@ Tabla nueva `payment_reports` (mejor que un flag en `invoices` — soporta parci
   SU markbox) + el admin client no llega al bundle.
 - Migración validada con `begin … rollback` en prod antes de aplicar.
 - Bucket privado verificado (un cliente no firma URLs de otro).
+
+## Estado de implementación (2026-07-01 · rama `feat/portal-inventario`)
+
+**Slices A + B construidos y verificados** (`verify.mjs` TODO VERDE, 2984 tests). Decisiones
+founder aplicadas: confirmar = "solo marca" (suma a `paid_amount`), métodos transferencia/
+pago_movil/zelle/binance/otro, parciales + editar/borrar mientras esté `reportado`.
+
+- **Migración `0195_payment_reports.sql`** (PENDIENTE de aplicar por el Director): tabla +
+  enums + bucket privado `payment-proofs` + RLS (equipo por tenant, portal self por markbox,
+  insert/update solo en `reportado`) + trigger de coherencia invoice↔tenant↔markbox + RPC
+  atómico `confirm_payment_report`.
+- **Portal:** `lib/portal/payment-report-{types,queries}.ts`, `lib/portal/payment-proof.ts`,
+  `app/portal/(app)/facturas/[code]/reportar/` (page + form + actions), panel de reportes +
+  CTA + copy nuevo en el detalle/lista.
+- **Studio:** `app/studio/(app)/facturacion/payment-report-actions.ts` + sección
+  confirmar/rechazar (con comprobante firmado) en el detalle de factura.
+- **Aviso al asesor:** `lib/studio/payment-report-notify.ts` (mail + Telegram, best-effort).
+
+**Pendiente (Director):** aplicar migr 0195 (dry-run `begin…rollback` antes) · `pnpm build`
+antes de push · Slice C (asiento contable) diferido.

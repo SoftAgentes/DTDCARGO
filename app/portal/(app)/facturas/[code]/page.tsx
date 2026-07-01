@@ -3,10 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { getMyInvoice } from "@/lib/portal/portal-queries";
+import { listMyInvoiceReports } from "@/lib/portal/payment-report-queries";
 import { formatInvoiceAmount, invoiceBalance } from "@/lib/portal/portal-types";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
 import { InvoiceStatusBadge } from "../../../_components/InvoiceStatusBadge";
+import { InvoicePaymentReports } from "./_components/InvoicePaymentReports";
 
 type Props = { params: Promise<{ code: string }> };
 
@@ -30,6 +32,12 @@ export default async function PortalInvoiceDetailPage({ params }: Props) {
   const waLink = buildWhatsAppLink(
     `Hola DTD Cargo, tengo una consulta sobre mi factura ${inv.code}.`,
   );
+
+  // Reportes de pago del cliente sobre esta factura (SDD-0134) + si puede reportar
+  // uno nuevo (saldo abierto y factura no cerrada).
+  const reports = await listMyInvoiceReports(supabase, code);
+  const canReport =
+    balance > 0 && inv.status !== "pagada" && inv.status !== "anulada";
 
   return (
     <div>
@@ -163,15 +171,24 @@ export default async function PortalInvoiceDetailPage({ params }: Props) {
           </dl>
 
           <div className="mt-8 pt-6 border-t border-grey-200">
+            {canReport ? (
+              <Link
+                href={`/portal/facturas/${encodeURIComponent(inv.code)}/reportar`}
+                className="btn btn-primary w-full justify-center"
+              >
+                Reportar pago
+              </Link>
+            ) : null}
             <Link
               href={`/portal/facturas/${encodeURIComponent(inv.code)}/comprobante`}
-              className="btn btn-primary w-full justify-center"
+              className={`btn w-full justify-center ${canReport ? "btn-ghost mt-3" : "btn-primary"}`}
             >
               Ver / Imprimir comprobante
             </Link>
             <p className="mt-4 text-[13.5px] text-grey-700 leading-[1.55]">
-              Abre el comprobante y guárdalo como PDF desde el diálogo de
-              impresión. ¿Una duda con esta factura? Escríbele a tu asesor.
+              {canReport
+                ? "¿Ya pagaste? Repórtalo con tu comprobante y tu asesor lo confirma. También puedes abrir el comprobante de la factura y guardarlo como PDF."
+                : "Abre el comprobante y guárdalo como PDF desde el diálogo de impresión."}
             </p>
             <a
               href={waLink}
@@ -184,6 +201,12 @@ export default async function PortalInvoiceDetailPage({ params }: Props) {
           </div>
         </div>
       </div>
+
+      {reports.length > 0 ? (
+        <div className="mt-6">
+          <InvoicePaymentReports invoiceCode={inv.code} reports={reports} />
+        </div>
+      ) : null}
     </div>
   );
 }

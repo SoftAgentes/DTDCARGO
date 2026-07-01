@@ -93,8 +93,9 @@ export default async function PortalInvoicesPage() {
         Mis facturas.
       </h1>
       <p className="lead mt-3">
-        Tu estado de cuenta y comprobantes. Para dudas o pagos, escríbele a tu
-        asesor por WhatsApp.
+        Tu estado de cuenta y comprobantes. Al pagar, entra a la factura y
+        <span className="whitespace-nowrap"> reporta tu pago</span> con el
+        comprobante — tu asesor lo confirma.
       </p>
 
       {/* Card "ciclo" del Norte — GATEADA al demo (clientes reales no la ven). */}
