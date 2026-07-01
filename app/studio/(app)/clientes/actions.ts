@@ -24,7 +24,11 @@ import {
 import { geocodeAddress, type GeocodeResult } from "@/lib/studio/geocoding";
 import { validateMarkboxFormat } from "@/lib/studio/markbox-utils";
 import { sendWelcomeEmail } from "@/lib/studio/welcome-email";
-import { sendPortalInviteEmail } from "@/lib/studio/portal-invite-email";
+import {
+  sendPortalInviteEmail,
+  generatePortalAccessLink,
+} from "@/lib/studio/portal-invite-email";
+import { toWhatsAppRaw } from "@/lib/portal/portal-types";
 import { verifyIdentity, type VerifyResult } from "@/lib/studio/identity";
 import { notifyIdentityMismatch } from "@/lib/studio/identity/notify-mismatch";
 import type { DocumentKind } from "@/lib/studio/identity/document";
@@ -304,6 +308,54 @@ export async function invitePortalAction(
 
   revalidatePath(`/studio/clientes/${markbox}`);
   return { ok: true, email: email ?? undefined, warning };
+}
+
+/**
+ * Genera un enlace de acceso DIRECTO al portal para COMPARTIR por WhatsApp (founder
+ * 2026-07-01). El asesor lo manda al WhatsApp del cliente y coordina en vivo → así
+ * el TTL corto del enlace (30 min) no molesta. Devuelve el link + el número wa.me
+ * del cliente (si tiene) para que la tarjeta arme el `wa.me/…?text=`.
+ *
+ * ⚠️ Seguridad: el enlace LOGUEA a quien lo abra como el cliente → mandarlo SOLO a
+ * su WhatsApp. Es de un solo uso y caduca. El botón que llama esto solo se muestra
+ * cuando el cliente ya está invitado/activo (si no, el bind por email fallaría).
+ */
+export async function portalAccessLinkAction(
+  clientId: string,
+): Promise<
+  | { ok: true; link: string; whatsappRaw: string | null; name: string | null }
+  | { ok: false; error: string }
+> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "clients");
+  if (denial) return { ok: false, error: denial };
+
+  // Cliente (RLS scopea al tenant del usuario): email obligatorio + teléfono para wa.me.
+  const { data: client } = await supabase
+    .from("clients")
+    .select("email, name, phone")
+    .eq("id", clientId)
+    .maybeSingle<{ email: string | null; name: string | null; phone: string | null }>();
+  if (!client?.email) {
+    return {
+      ok: false,
+      error: "El cliente no tiene email — agrégalo antes de generar el acceso.",
+    };
+  }
+
+  const admin = createAdminClient();
+  const link = await generatePortalAccessLink(admin, client.email);
+  if (!link) {
+    return { ok: false, error: "No se pudo generar el enlace de acceso. Intenta de nuevo." };
+  }
+
+  return {
+    ok: true,
+    link,
+    whatsappRaw: toWhatsAppRaw(client.phone),
+    name: client.name,
+  };
 }
 
 export async function revokePortalAction(

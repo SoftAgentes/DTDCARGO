@@ -8,6 +8,7 @@ import type { ClientPortalAccess } from "@/lib/studio/client-queries";
 import {
   approvePortalAction,
   invitePortalAction,
+  portalAccessLinkAction,
   revokePortalAction,
 } from "../actions";
 
@@ -26,8 +27,10 @@ function fmt(iso: string | null): string {
 
 /**
  * Acceso al Portal del Cliente (SDD-0042) — en el detalle del cliente.
- * Habilita/revoca el portal. El cliente luego entra solo en /portal/login con
- * su email (magic-link). Read-only de cara al cliente.
+ * Habilita/revoca el portal. La invitación por correo lleva un enlace DIRECTO (un
+ * clic → adentro). Como ese enlace vence pronto (30 min), acá también se puede
+ * "Compartir acceso por WhatsApp": genera un enlace fresco para mandarlo al
+ * WhatsApp del cliente y coordinar en vivo (founder 2026-07-01).
  */
 export function PortalAccessCard({
   clientId,
@@ -45,9 +48,26 @@ export function PortalAccessCard({
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  // Enlace wa.me armado tras generar el acceso; se revela como link (no window.open
+  // para no chocar con el bloqueo de popups tras el await).
+  const [waLink, setWaLink] = useState<string | null>(null);
   const approved = approvedAt != null;
 
   const status = access?.status ?? null;
+
+  /** Genera un acceso fresco y arma el wa.me con el enlace listo para enviar. */
+  async function shareWhatsApp(): Promise<{ error: string } | void> {
+    setError(null);
+    setWaLink(null);
+    const res = await portalAccessLinkAction(clientId);
+    if (!res.ok) return { error: res.error };
+    const msg = `Hola${res.name ? " " + res.name : ""}, este es tu acceso directo al portal de DTD Cargo (un solo uso, vence pronto): ${res.link}`;
+    setWaLink(
+      res.whatsappRaw
+        ? `https://wa.me/${res.whatsappRaw}?text=${encodeURIComponent(msg)}`
+        : `https://wa.me/?text=${encodeURIComponent(msg)}`,
+    );
+  }
   const tone =
     status === "active" ? "success" : status === "invited" ? "info" : "neutral";
   const label =
@@ -97,17 +117,18 @@ export function PortalAccessCard({
           >
             {status === null && (
               <>
-                Todavía no tiene acceso. Al invitarlo, le enviamos un correo a{" "}
-                <b style={{ color: "var(--ink)" }}>{email}</b> con el enlace para
-                entrar a <b style={{ color: "var(--ink)" }}>/portal</b> y ver sus
-                envíos.
+                Todavía no tiene acceso. Al invitarlo, le llega un correo a{" "}
+                <b style={{ color: "var(--ink)" }}>{email}</b> con un{" "}
+                <b style={{ color: "var(--ink)" }}>enlace directo</b>: un clic y
+                entra a ver sus envíos.
               </>
             )}
             {status === "invited" && (
               <>
                 Invitado el {fmt(access!.invitedAt)}. Le enviamos un correo con el
                 enlace de acceso a <b style={{ color: "var(--ink)" }}>{email}</b>.
-                Esperando su primer ingreso.
+                ¿No entró? El enlace del correo vence pronto — compártele uno nuevo
+                por WhatsApp.
               </>
             )}
             {status === "active" && (
@@ -133,7 +154,7 @@ export function PortalAccessCard({
             </p>
           )}
 
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             {status === null || status === "revoked" ? (
               <ActionButton
                 variant="primary"
@@ -149,21 +170,61 @@ export function PortalAccessCard({
                 onError={setError}
               />
             ) : (
-              <ActionButton
-                variant="danger"
-                size="sm"
-                idleLabel="Revocar acceso"
-                loadingLabel="Revocando…"
-                successLabel="Acceso revocado"
-                onAction={async () => {
-                  setError(null);
-                  return revokePortalAction(clientId, markbox);
-                }}
-                onSuccess={() => router.refresh()}
-                onError={setError}
-              />
+              <>
+                <ActionButton
+                  variant="dark"
+                  size="sm"
+                  idleLabel="Compartir por WhatsApp"
+                  loadingLabel="Generando acceso…"
+                  successLabel="Acceso generado"
+                  onAction={shareWhatsApp}
+                  onError={setError}
+                />
+                {/* Destructivo separado del positivo (regla 8 de botones). */}
+                <span style={{ marginLeft: "auto" }}>
+                  <ActionButton
+                    variant="danger"
+                    size="sm"
+                    idleLabel="Revocar acceso"
+                    loadingLabel="Revocando…"
+                    successLabel="Acceso revocado"
+                    onAction={async () => {
+                      setError(null);
+                      return revokePortalAction(clientId, markbox);
+                    }}
+                    onSuccess={() => router.refresh()}
+                    onError={setError}
+                  />
+                </span>
+              </>
             )}
           </div>
+
+          {/* Enlace de WhatsApp listo: el asesor lo abre y se lo manda al cliente. */}
+          {waLink && (
+            <div style={{ marginTop: 12 }}>
+              {/* Botón del sistema en un <a> (navegación): studio-btn-primary da texto
+                  claro sobre wine en ambos temas + focus/hover, sin bug de contraste. */}
+              <a
+                href={waLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="studio-btn studio-btn-primary studio-btn-sm"
+              >
+                Abrir WhatsApp con el acceso →
+              </a>
+              <p
+                style={{
+                  font: "500 11.5px/1.45 var(--f-sans)",
+                  color: "var(--ink-soft)",
+                  margin: "8px 0 0",
+                }}
+              >
+                Se abre WhatsApp con el enlace listo. Envíaselo <b>solo al cliente</b>:
+                entra con un clic, es de un solo uso y vence pronto.
+              </p>
+            </div>
+          )}
 
           {/* ── Activación del dashboard (SDD-0042 Fase 5 · gate) ── */}
           <div
