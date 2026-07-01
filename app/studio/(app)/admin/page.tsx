@@ -22,6 +22,7 @@ import { requireModuleView } from "@/lib/studio/rbac-guard";
 import { createClient } from "@/lib/db/server";
 import { getCompanyData } from "@/lib/studio/company-queries";
 import { CompanySection } from "./_components/CompanySection";
+import { AppearanceSection } from "./_components/AppearanceSection";
 import type { CompanyData } from "@/lib/studio/company-types";
 
 export const metadata = { title: "Administración" };
@@ -95,7 +96,7 @@ const SECTIONS: AdminSection[] = [
     icon: "sun",
     description:
       "Theme (light/dark), densidad (compact/normal/spacious), branding por tenant (logo, color de acento). Persistido por usuario.",
-    sddRef: "SDD-0030",
+    sddRef: "SDD-0121",
   },
   // ─── INTERMEDIO ──────────────────────────────────────────
   {
@@ -403,6 +404,8 @@ function Content({
 
       {section.id === "company" && companyData ? (
         <CompanySection data={companyData} />
+      ) : section.id === "appearance" ? (
+        <AppearanceSection />
       ) : section.href ? (
         <LinkedSectionCTA section={section} />
       ) : (
