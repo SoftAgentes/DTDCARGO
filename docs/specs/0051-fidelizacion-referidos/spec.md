@@ -4,10 +4,10 @@ title: "Fidelización & Referidos — niveles por facturación (derivados) + pro
 status: done
 author: "Claude Code (carril Bloque 5 · Norte v2.4)"
 created: 2026-06-03
-updated: 2026-06-03
+updated: 2026-07-01
 supersedes: null
 superseded_by: null
-related: ["0021", "0041", "0010", "0046", "0043", "0048"]
+related: ["0021", "0041", "0010", "0046", "0043", "0048", "0137"]
 confidencialidad: interno
 ---
 
@@ -67,13 +67,16 @@ con ciclo invitado→registrado→primer-embarque→acreditado y crédito al ref
    no se persiste.
 5. **Reglas de recompensa = constantes en código** (referidor **$80** / referido **$60** USD) para
    V1 (`REFERRAL_RULES`). Tabla de config = V2.
-6. **Créditos = ADVISORY en V1.** "Acreditar" marca `status='acreditado'` + setea `reward_usd`; **NO**
-   postea automáticamente a Facturación/CxC (eso toca Bloque 2 y es V2). Mismo patrón advisory que la
-   verificación de identidad (0046) — el operador aplica el crédito a mano en la próxima factura. La
-   pantalla deja claro "crédito pendiente de aplicar".
+6. **Créditos = ADVISORY.** "Acreditar" marca `status='acreditado'` + setea `reward_usd`; **NO**
+   postea a Facturación/CxC ni mueve plata. Mismo patrón advisory que la verificación de identidad
+   (0046) — el crédito queda visible ("pendiente de aplicar") y el operador lo aplica a mano en la
+   próxima factura. Esto **sigue siendo cierto en la Fase 2** (la acreditación se automatizó, pero
+   la **aplicación** del crédito a la próxima factura sigue manual → la diseña [[0137]]).
 7. **Slices:** A foundation (migración + `lib/studio/fidelizacion/` + tests) → B UI
-   (`/studio/fidelizacion` 4 tabs + acciones registrar/acreditar referido + entrada sidebar COMERCIAL).
-   Slice C (créditos posteados a CxC + integración Portal/registro del referido) diferido a V2.
+   (`/studio/fidelizacion` 4 tabs + acciones registrar/acreditar referido + entrada sidebar COMERCIAL)
+   → **C acreditación automática (Fase 2, LIVE)**: captura `?ref=` en `/registro` + trigger que acredita
+   al referidor en la 1ª factura del referido. La **aplicación** del crédito (Fase 3) sale del alcance
+   de esta spec y se diseña aparte en [[0137]].
 
 ## 4. Approach — staged (Slice A arranca)
 
@@ -152,12 +155,64 @@ tabla con tier + progreso + créditos + referidos). Server actions `registerRefe
 `updateReferralStatus`. Entrada en sidebar grupo **COMERCIAL** (`/studio/fidelizacion`, icon `star`).
 `ui-ux-designer` pre-commit. **(No en Slice A.)**
 
-### Slice C — diferido a V2
+### Slice C — Acreditación automática (Fase 2, LIVE) ✅
 
-Posteo real del crédito a CxC/Facturación (genera nota de crédito o ajuste en la próxima factura) ·
-integración con `/registro` público + Portal (el referido ingresa el código al registrarse, auto-crea
-el referral en `registrado`) · auto-avance de estado por evento (primer embarque del referido →
-`primer-embarque` vía hook de `shipment_created`) · tabla de config de reglas por tenant.
+> **Shipped** (migr `0197_referral_auto_accredit` + `/registro` + Portal invitar). Cierra el lazo del
+> programa: el referido llega por un enlace, se linkea al registrarse, y el referidor cobra su crédito
+> **automático** en la 1ª compra real del referido — sin que el operador acredite a mano. **Sigue siendo
+> advisory** (no postea a CxC): solo *registra* el crédito. La **aplicación** del crédito a la próxima
+> factura la diseña [[0137]].
+
+**1. Captura del referido (`?ref=`) e invitación.**
+
+- **Invitar por correo** (Portal, cara cliente): un cliente logueado invita a un importador por correo.
+  `lib/portal/referral-invite.ts` (`inviteReferral`) crea la fila `referrals` en `status='invitado'`,
+  `reward_usd=0`, con `referral_code` secuencial (`REF-YYYY-NNNN` vía `next_referral_code`). Anti-abuso:
+  dedup por `(referrer_markbox, referred_email)` + tope diario `MAX_INVITES_PER_DAY=10`. El correo
+  (`buildReferralInviteEmail`) enlaza a `/registro?ref=REF-YYYY-NNNN`. **Invitar NO acredita nada.**
+- **Link al registro.** `app/registro/actions.ts` (paso 6b, best-effort) llama
+  `linkReferralOnRegister(admin, …)` con el `?ref=` del form si vino. Dos caminos
+  (`lib/portal/referral-link.ts`):
+  - **`ref` = código secuencial** (`REF-YYYY-NNNN`, invitación por correo): busca la fila `invitado`
+    del tenant, rechaza autoreferido (`referrer_markbox === newMarkbox`), y la avanza a
+    `status='registrado'` seteando `referred_client_id = <cliente nuevo>`.
+  - **`ref` = código compartido** (`REF-XXXX`) **o markbox** (`DTD-XXXX`): deriva el markbox del
+    referidor (`REF-5452 → DTD-5452`), verifica que exista en el tenant, dedup por
+    `referred_client_id` ya linkeado; si hay una invitación previa por correo del mismo referidor la
+    **reclama** (evita huérfanos), si no **crea** una fila nueva en `registrado`
+    (`referral_code` fresco, `reward_usd=0`).
+  - Un fallo acá **nunca** rompe el alta (igual que el vínculo del estimado web).
+
+**2. Trigger de acreditación (migr `0197_referral_auto_accredit`).**
+
+- Índice FK parcial `referrals_referred_client_idx` sobre `referred_client_id` (el trigger filtra por
+  esa columna en cada factura emitida; sin índice sería un scan).
+- Función `accredit_referral_on_first_invoice()` (`security definer`, `set search_path = public`;
+  `revoke execute … from public, anon` — convención de seguridad del repo).
+- Trigger `invoices_accredit_referral` **AFTER INSERT OR UPDATE OF status ON invoices**. Al emitirse la
+  1ª factura *billable* de un cliente referido:
+  - **Señal de "primera compra"** = factura en estado `emitida|parcial|pagada|vencida` (**NO** el
+    embarque, decisión founder 2026-07-01). Ignora `borrador`/`anulada` y filas con `deleted_at`.
+  - En `UPDATE` solo dispara si el `status` **cambió** (`old.status is not distinct from new.status` →
+    return) — evita re-disparos por otras ediciones de la factura.
+  - Resuelve el cliente por `client_markbox → clients.id` (las facturas linkean por markbox), scopeado
+    por `tenant_id` (que RLS ya forzó = tenant del caller) → sin fuga cross-tenant.
+  - `update referrals set status='acreditado', reward_usd=80` **where** `referred_client_id = <cliente>`
+    **and** `status in ('registrado','primer-embarque')`.
+
+**3. Idempotencia por estado.** No hace falta contar "es la primera factura": solo la 1ª encuentra el
+referido en `registrado`/`primer-embarque` y lo pasa a `acreditado`; las facturas siguientes lo ven
+`acreditado` y el `where` no matchea → no-op. Barato y a prueba de carreras.
+
+**4. Naturaleza advisory (crítico).** El trigger **solo registra** el crédito (`status='acreditado'`,
+`reward_usd=80`, `REFERRAL_RULES.referrerReward`). **NO** postea a CxC/Facturación/Contabilidad ni genera
+ningún asiento. El crédito queda visible en el Portal del referidor (`getMyreferralProgram` →
+`creditsEarnedUsd`) como "ganado". **Aplicarlo** a la próxima factura sigue siendo manual → lo automatiza
+[[0137]].
+
+**Fuera de esta Slice (→ [[0137]] o V2):** aplicar el crédito a la próxima factura (descuento / nota de
+crédito) + su asiento contable · auto-avance a `primer-embarque` por evento de embarque · tabla de config
+de reglas por tenant.
 
 ## 5. Acceptance
 
@@ -183,6 +238,21 @@ el referral en `registrado`) · auto-avance de estado por evento (primer embarqu
       `updateReferralStatus`); sidebar COMERCIAL muestra la entrada (`star`, `/studio/fidelizacion`);
       gate 🟢 (0 err lint + typecheck + 753 tests + docs:check). _(`ui-ux-designer` lo corre el orquestador.)_
 
+### Slice C — Acreditación automática (Fase 2, LIVE) ✅
+- [x] `/registro?ref=` captura el referido: `linkReferralOnRegister` avanza la fila a `registrado` y
+      setea `referred_client_id` (best-effort, no rompe el alta). Dos caminos (código secuencial vs
+      compartido/markbox), rechazo de autoreferido, reclamo de invitación por correo previa.
+- [x] Portal "Invitar por correo" (`inviteReferral`) crea la fila `invitado` (`reward_usd=0`) con dedup
+      + tope diario y envía el correo con enlace `/registro?ref=…`.
+- [x] Migr `0197_referral_auto_accredit`: índice FK + función `accredit_referral_on_first_invoice`
+      (`security definer`, execute revocado a `public`/`anon`) + trigger
+      `invoices_accredit_referral` (AFTER INSERT OR UPDATE OF status). Acredita al referidor
+      (`status='acreditado'`, `reward_usd=80`) en la 1ª factura *billable* del referido.
+- [x] Idempotente por estado (solo `registrado`/`primer-embarque` → `acreditado`); scopeado por
+      `tenant_id`; señal = factura billable (no embarque).
+- [x] **Advisory**: el trigger NO postea a CxC ni genera asiento. La **aplicación** del crédito queda
+      para [[0137]].
+
 ## 6. Modelo de datos (resumen)
 
 `referrals` (nueva, polimórfico-free): FK `referrer_client_id`/`referred_client_id → clients(id)`,
@@ -192,11 +262,14 @@ el referral en `registrado`) · auto-avance de estado por evento (primer embarqu
 ## 7. Fuera de alcance (respetar)
 
 - No tocar `client.tier` manual (regular/vip/premium) ni su UI/validación (SDD-0010).
-- No postear créditos a Facturación/CxC/Contabilidad (advisory en V1; Slice C/V2).
-- No integrar con `/registro` público ni Portal en V1 (el referral se registra a mano en el ERP).
-- No auto-avanzar estados por eventos de embarque (manual en V1).
-- No tabla de config de reglas (constantes en código).
-- No tocar la frontera público↔ERP. Todo es Studio (`@/lib/db/server` + Server Actions).
+- No **aplicar/postear** créditos a Facturación/CxC/Contabilidad (advisory: el crédito se *registra*,
+  Slice C lo automatizó; **aplicarlo** a la próxima factura + su asiento lo diseña [[0137]]).
+- No auto-avanzar estados por eventos de embarque (`primer-embarque` sigue manual; la acreditación de
+  Slice C dispara directo por la 1ª factura, sin pasar por embarque).
+- No tabla de config de reglas (constantes en código: `REFERRAL_RULES`).
+- La captura `?ref=` de Slice C vive en el **sitio público** (`/registro`), pero solo escribe vía el
+  **admin client del Studio** en la server action; no cruza `@/lib/studio` al bundle público (frontera
+  intacta). El resto es Studio (`@/lib/db/server` + Server Actions).
 
 ## 8. Notas de implementación
 
