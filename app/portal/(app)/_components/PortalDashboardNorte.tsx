@@ -24,8 +24,10 @@ import {
 } from "@/lib/portal/portal-types";
 import type { NavieraSnapshot } from "@/lib/studio/naviera-tracking/types";
 import type { PortalActivityItem } from "@/lib/portal/shipment-events-queries";
+import type { PortalSailing } from "@/lib/portal/next-sailing-queries";
 import { ShipmentRow } from "../../_components/ShipmentRow";
 import { NewPurchaseButton } from "../../_components/NewPurchaseButton";
+import { PortalNextSailingCard } from "./PortalNextSailingCard";
 
 /**
  * Inicio / dashboard del cliente — REDISEÑO NORTE (founder 2026-06-20).
@@ -50,6 +52,8 @@ export function PortalDashboardNorte({
   nextArrivalNaviera,
   shipments,
   activity = [],
+  sailing = null,
+  sailingDaysToCutoff = null,
 }: {
   client: PortalClient;
   kpis: PortalDashboardKpis;
@@ -59,6 +63,10 @@ export function PortalDashboardNorte({
   shipments: PortalShipmentRow[];
   /** Actividad reciente por hitos reales (SDD-0132), no por `updatedAt`. */
   activity?: PortalActivityItem[];
+  /** Próximo zarpe abierto (SDD-0133). null = sin salida publicada → card oculta. */
+  sailing?: PortalSailing | null;
+  /** Días al cut-off calculados en el server (fallback pre-hidratación de la card). */
+  sailingDaysToCutoff?: number | null;
 }) {
   const firstName = client.name.trim().split(/\s+/)[0] || client.name;
   const today = formatToday();
@@ -193,6 +201,13 @@ export function PortalDashboardNorte({
 
         {/* Columna derecha */}
         <div className="flex flex-col gap-6">
+          {/* Próxima salida / cut-off (SDD-0133): organiza compras contra el calendario. */}
+          {sailing ? (
+            <PortalNextSailingCard
+              sailing={sailing}
+              serverDaysToCutoff={sailingDaysToCutoff}
+            />
+          ) : null}
           {kpis.outstandingBalance > 0 ? <SaldoCard kpis={kpis} /> : null}
           {/* Texto listo para WeChat: dirección de bodega CN + código del cliente. */}
           <ChinaSupplierClip markbox={client.markbox} />

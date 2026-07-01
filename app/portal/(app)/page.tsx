@@ -11,6 +11,11 @@ import {
 } from "@/lib/portal/portal-queries";
 import { listPendingAcceptanceInvoices } from "@/lib/portal/portal-legal-queries";
 import { listMyRecentActivity } from "@/lib/portal/shipment-events-queries";
+import {
+  getNextOpenSailing,
+  daysUntil,
+  type PortalSailing,
+} from "@/lib/portal/next-sailing-queries";
 import { getShipmentNaviera } from "@/lib/studio/naviera-tracking/queries";
 import type { NavieraSnapshot } from "@/lib/studio/naviera-tracking/types";
 import { showNortePortal } from "@/lib/portal/demo";
@@ -66,6 +71,27 @@ export default async function PortalHomePage() {
     }
   }
 
+  // Próximo zarpe abierto (SDD-0133): calendario/cut-off del portal. Admin client
+  // scopeado por tenant (el cliente no tiene RLS sobre `sailings`). Best-effort →
+  // null no rompe; la card se oculta si no hay salida publicada.
+  let sailing: PortalSailing | null = null;
+  const todayIso = new Date().toISOString().slice(0, 10);
+  try {
+    const admin = createAdminClient();
+    const { data: clientRow } = await admin
+      .from("clients")
+      .select("tenant_id")
+      .eq("id", client.id)
+      .maybeSingle<{ tenant_id: string }>();
+    const tenantId = String(clientRow?.tenant_id ?? "").trim();
+    if (tenantId) {
+      sailing = await getNextOpenSailing(admin, tenantId, todayIso);
+    }
+  } catch {
+    sailing = null;
+  }
+  const sailingDaysToCutoff = sailing ? daysUntil(sailing.cutoff, todayIso) : null;
+
   return (
     <div className="flex flex-col gap-7">
       {pendingAcceptance.length > 0 ? (
@@ -86,6 +112,8 @@ export default async function PortalHomePage() {
           nextArrivalNaviera={nextArrivalNaviera}
           shipments={shipments}
           activity={activity}
+          sailing={sailing}
+          sailingDaysToCutoff={sailingDaysToCutoff}
         />
       ) : (
         <PortalDashboard

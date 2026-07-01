@@ -1,7 +1,7 @@
 ---
 sdd: "0133"
 title: "Cut-off / calendario de zarpes en el portal"
-status: draft
+status: in-progress
 author: "agente-secundario (inventario portal)"
 created: 2026-07-01
 updated: 2026-07-01
@@ -81,3 +81,21 @@ Mostrar en el dashboard del portal una **`NextSailingCard`** con:
 - `node scripts/verify.mjs` verde.
 - Sin migración → sin gate de DB. Si se agrega una policy de portal a `sailings`, validar con
   `begin … rollback` en prod.
+
+## Estado de implementación (2026-07-01 · rama `feat/portal-inventario`)
+
+**Construido, verify TODO VERDE. SIN migración** (lee `sailings` con admin client scopeado por
+tenant, patrón Naviera Tier 1). Decisiones founder: ruta = **próximo zarpe abierto** global
+(cut-off más cercano, sirve para LCL 95%); la card se muestra **siempre que haya zarpe**.
+
+- **`lib/portal/next-sailing-queries.ts`** — `getNextOpenSailing` (status='abierto' +
+  cutoff ≥ hoy + tenant, orden por cutoff asc, limit 1) + `daysUntil` (puro) +
+  `portalSpaceLabel`.
+- **`app/portal/(app)/_components/PortalNextSailingCard.tsx`** — card "Próxima salida" con
+  cuenta regresiva VIVA al cut-off (SSR-safe: días del server como fallback) + ETD/ETA +
+  espacio disponible + copy "tu mercancía debe llegar a China antes del <cutoff>".
+- **Wire** en `PortalDashboardNorte` (columna derecha, arriba) + fetch best-effort en la home.
+- **Tests:** `lib/portal/__tests__/next-sailing.test.ts` (7).
+
+**Diferido (V1 informativo):** reservar espacio desde el portal · selector de ruta · relación
+con prealerta · mostrar 2-3 próximos zarpes.
