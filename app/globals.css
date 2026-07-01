@@ -899,3 +899,286 @@
   .cyc-flow { animation: cyc-march 1.5s linear infinite; }
   .cyc-spin { animation: cyc-spin 16s linear infinite; }
 }
+
+/* ──────────────────────────────────────────────────────────────────
+   /enlaces — Hub de Enlaces (link-in-bio de Instagram) · handoff Norte
+   docs/design/studio/_norte/handoff-enlaces/. Página navy inmersiva,
+   standalone (sin nav/footer del sitio). Único gradiente permitido:
+   navy → ink. Texto crema, filas translúcidas sobre navy. Cero AI slop.
+   Los tokens de superficie navy viven acá (como --hero-* del portal) para
+   no meter rgba(255,255,255,X) inline en el JSX.
+   ────────────────────────────────────────────────────────────────── */
+.enlaces-page {
+  /* Tokens locales de la superficie navy (mismo patrón que --hero-* del portal) */
+  --enl-cream: #f2f0ec;
+  --enl-soft: rgba(255, 255, 255, 0.65);
+  --enl-mute: rgba(255, 255, 255, 0.5);
+  --enl-fill: rgba(255, 255, 255, 0.06);
+  --enl-fill-hover: rgba(255, 255, 255, 0.1);
+  --enl-fill-icon: rgba(255, 255, 255, 0.08);
+  --enl-border: rgba(255, 255, 255, 0.12);
+  --enl-border-hover: rgba(255, 255, 255, 0.22);
+  --enl-hairline: rgba(255, 255, 255, 0.1);
+
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  justify-content: center;
+  padding: 0 0 40px;
+  background: linear-gradient(180deg, #060d1c, #0b1428);
+  color: var(--enl-cream);
+}
+.enlaces-bio {
+  width: 100%;
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Hero con foto ── */
+.enlaces-hero {
+  position: relative;
+  padding: 32px 24px 24px;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  isolation: isolate;
+}
+.enlaces-hero-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    180deg,
+    rgba(6, 13, 28, 0.55) 0%,
+    rgba(6, 13, 28, 0.82) 55%,
+    #0b1428 100%
+  );
+}
+.enlaces-hero-photo {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  object-fit: cover;
+}
+.enlaces-hero-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.enlaces-iso {
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+}
+.enlaces-wordmark {
+  font-family: var(--font-brand-display);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  font-size: 30px;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--enl-cream);
+}
+.enlaces-wordmark .gap {
+  display: inline-block;
+  width: 0.15em;
+}
+.enlaces-handle {
+  margin-top: 5px;
+  font: 600 12px/1 var(--font-archivo);
+  color: var(--enl-soft);
+}
+.enlaces-tagline {
+  margin: 20px 0 0;
+  font-family: var(--font-archivo);
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1.28;
+  color: #fff;
+  max-width: 18ch;
+  text-wrap: balance;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+.enlaces-tagline b {
+  font-weight: 800;
+  color: var(--color-wine-soft);
+}
+
+/* ── Cuerpo ── */
+.enlaces-body {
+  padding: 8px 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.enlaces-primary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: var(--color-wine);
+  color: #fff;
+  border-radius: 10px;
+  padding: 16px 20px;
+  box-shadow: 0 8px 24px -8px rgba(127, 15, 26, 0.5);
+  transition: background 0.18s ease, transform 0.12s ease;
+}
+.enlaces-primary:hover {
+  background: var(--color-wine-deep);
+}
+.enlaces-primary:active {
+  transform: translateY(1px);
+}
+.enlaces-primary .ic {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 7px;
+}
+.enlaces-primary .tx {
+  flex: 1;
+  min-width: 0;
+}
+.enlaces-primary .tx b {
+  display: block;
+  font: 800 15px/1.2 var(--font-archivo);
+}
+.enlaces-primary .tx span {
+  display: block;
+  font: 500 12px/1.3 var(--font-archivo);
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 2px;
+}
+
+.enlaces-label {
+  font: 700 10.5px/1 var(--font-archivo);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--enl-mute);
+  padding: 12px 8px 2px;
+}
+
+.enlaces-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.enlaces-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--enl-fill);
+  border: 1px solid var(--enl-border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+}
+.enlaces-row:hover {
+  background: var(--enl-fill-hover);
+  border-color: var(--enl-border-hover);
+}
+.enlaces-row:active {
+  transform: translateY(1px);
+}
+.enlaces-row .ic {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--enl-fill-icon);
+  color: var(--enl-cream);
+}
+.enlaces-row.is-wine .ic {
+  background: rgba(194, 116, 127, 0.18);
+  color: var(--color-wine-soft);
+}
+.enlaces-row .tx {
+  flex: 1;
+  min-width: 0;
+}
+.enlaces-row .tx b {
+  display: block;
+  font: 700 14px/1.25 var(--font-archivo);
+  color: var(--enl-cream);
+}
+.enlaces-row .tx span {
+  display: block;
+  font: 500 12px/1.3 var(--font-archivo);
+  color: var(--enl-soft);
+  margin-top: 1px;
+}
+.enlaces-row .chev {
+  color: var(--enl-mute);
+  flex-shrink: 0;
+}
+
+.enlaces-social {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.enlaces-social a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  background: var(--enl-fill);
+  border: 1px solid var(--enl-border);
+  border-radius: 10px;
+  color: var(--enl-cream);
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+.enlaces-social a:hover {
+  background: var(--enl-fill-hover);
+  border-color: var(--enl-border-hover);
+}
+.enlaces-social .lbl {
+  font: 600 10.5px/1 var(--font-archivo);
+  color: var(--enl-soft);
+}
+
+.enlaces-foot {
+  margin-top: 20px;
+  padding: 16px 8px 0;
+  border-top: 1px solid var(--enl-hairline);
+}
+.enlaces-foot .web {
+  font: 700 13px/1 var(--font-archivo);
+  color: var(--color-wine-soft);
+}
+.enlaces-foot .legal {
+  margin-top: 8px;
+  font: 500 11px/1.55 var(--font-archivo);
+  color: var(--enl-mute);
+}
+.enlaces-foot .legal .mono {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 10.5px;
+}
+
+/* Foco de teclado visible sobre la superficie navy (WCAG 2.4.7) —
+   crema, no el ink oscuro que usa el resto del sitio (invisible acá). */
+.enlaces-page a:focus-visible {
+  outline: 3px solid var(--enl-cream);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enlaces-primary,
+  .enlaces-row {
+    transition: none;
+  }
+}
