@@ -9,6 +9,7 @@ import {
 } from "@/lib/portal/portal-referral-queries";
 import { type ReferralStatus } from "@/lib/studio/fidelizacion/types";
 import { ReferralShareActions } from "../../_components/ReferralShareActions";
+import { ReferralInviteForm } from "../../_components/ReferralInviteForm";
 
 export const metadata: Metadata = { title: "Referidos" };
 
@@ -54,8 +55,14 @@ export default async function PortalReferralsPage() {
       {/* ── Hero código + créditos ── */}
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-5 items-stretch">
         <ShareHero program={program} />
-        <CreditsCard program={program} />
+        <CreditsCard />
       </div>
+
+      {/* ── Invitar por correo ── */}
+      <ReferralInviteForm />
+
+      {/* ── Cómo funciona (el bono = primera compra del referido, no al invitar) ── */}
+      <HowItWorks program={program} />
 
       {/* ── Nivel ── */}
       <TierCard program={program} />
@@ -111,14 +118,19 @@ function ShareHero({ program }: { program: PortalReferralProgram }) {
           </div>
         </div>
         <div className="rounded-[10px] px-4 py-3 bg-white/10">
-          <div
-            className="text-[20px] leading-none text-white"
-            style={{ fontFamily: "var(--font-archivo-black)" }}
-          >
-            {fmtUsd(program.referrerReward)}
+          <div className="flex items-center gap-2">
+            <div
+              className="text-[20px] leading-none text-white"
+              style={{ fontFamily: "var(--font-archivo-black)" }}
+            >
+              {fmtUsd(program.referrerReward)}
+            </div>
+            <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10.5px] font-bold tracking-[0.08em] uppercase text-white/80">
+              Próximamente
+            </span>
           </div>
           <div className="mt-1.5 text-[11.5px] text-white/70 leading-[1.4]">
-            de crédito para ti al acreditarse
+            de crédito para ti cuando tu referido haga su primera compra
           </div>
         </div>
       </div>
@@ -126,40 +138,88 @@ function ShareHero({ program }: { program: PortalReferralProgram }) {
   );
 }
 
-/** Créditos del cliente. Copy honesto: el asesor los aplica (advisory V1). */
-function CreditsCard({ program }: { program: PortalReferralProgram }) {
+/**
+ * Créditos del cliente. Los pagos todavía NO se habilitan: el bono se gana con la
+ * primera compra del referido y se acreditará automático (Próximamente). Copy
+ * honesto — NO mostramos un saldo en dólares como si fuera dinero disponible.
+ */
+function CreditsCard() {
   return (
     <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-7 flex flex-col">
-      <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-grey-500">
-        Tus créditos
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-grey-500">
+          Tus créditos
+        </div>
+        <span className="rounded-full bg-grey-100 px-2.5 py-1 text-[10px] font-bold tracking-[0.08em] uppercase text-grey-500">
+          Próximamente
+        </span>
       </div>
       <div
-        className="mt-3 text-[30px] leading-none"
-        style={{
-          fontFamily: "var(--font-archivo-black)",
-          color: "var(--color-status-success)",
-          letterSpacing: "-0.01em",
-        }}
+        className="mt-3 text-[22px] leading-none text-ink"
+        style={{ fontFamily: "var(--font-archivo-black)" }}
       >
-        {fmtUsd(program.creditsEarnedUsd)}
+        En construcción
       </div>
-      <div className="mt-1.5 text-[12.5px] text-grey-700">
-        acreditados a tu cuenta
-      </div>
-      {program.pendingCreditsUsd > 0 ? (
-        <div
-          className="mt-4 rounded-[10px] px-3 py-2.5 text-[12px] font-semibold"
-          style={{
-            color: "var(--color-status-warning)",
-            background:
-              "color-mix(in srgb, var(--color-status-warning) 12%, transparent)",
-          }}
-        >
-          {fmtUsd(program.pendingCreditsUsd)} en camino · referidos en proceso
-        </div>
-      ) : null}
+      <p className="mt-2.5 text-[12.5px] text-grey-700 leading-[1.55]">
+        Cuando tu referido haga su primera compra con nosotros, tu bono se acredita{" "}
+        <b className="text-ink">automático</b>. Estamos afinando esa parte — pronto
+        verás acá lo que ganas.
+      </p>
       <div className="mt-auto pt-4 text-[11.5px] text-grey-500 leading-[1.5]">
-        Tu asesor aplica tus créditos en tu próxima factura.
+        Mientras tanto, invita a más importadores y suma tu red.
+      </div>
+    </div>
+  );
+}
+
+/**
+ * "Cómo funciona" — encode el modelo del negocio: el bono NO se gana al invitar,
+ * sino cuando el referido hace su PRIMERA compra (mitiga la expectativa
+ * "invito = cobro"). La acreditación automática es la parte "Próximamente".
+ */
+function HowItWorks({ program }: { program: PortalReferralProgram }) {
+  const steps = [
+    {
+      n: "1",
+      title: "Invitas",
+      body: "Comparte tu código o manda una invitación por correo a un importador.",
+    },
+    {
+      n: "2",
+      title: "Hace su primera compra",
+      body: `Tu referido importa con DTD y recibe ${fmtUsd(
+        program.referredReward,
+      )} de descuento en su primer embarque.`,
+    },
+    {
+      n: "3",
+      title: "Ganas tu crédito",
+      body: `Se te acredita ${fmtUsd(
+        program.referrerReward,
+      )} — automático, apenas su compra se registra.`,
+    },
+  ];
+  return (
+    <div className="mt-5 card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-7">
+      <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-grey-500">
+        Cómo funciona
+      </div>
+      <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-5">
+        {steps.map((s) => (
+          <div key={s.n} className="flex flex-col gap-2">
+            <span
+              className="w-8 h-8 rounded-full grid place-items-center text-[13px] text-white"
+              style={{
+                background: "var(--color-wine)",
+                fontFamily: "var(--font-archivo-black)",
+              }}
+            >
+              {s.n}
+            </span>
+            <div className="text-[14px] font-bold text-ink">{s.title}</div>
+            <p className="text-[12.5px] text-grey-700 leading-[1.5]">{s.body}</p>
+          </div>
+        ))}
       </div>
     </div>
   );

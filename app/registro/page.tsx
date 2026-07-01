@@ -57,12 +57,16 @@ export default async function RegistroPage({
   const raw = await searchParams;
   const estRaw = Array.isArray(raw.est) ? raw.est[0] : raw.est;
   const est = (estRaw ?? "").trim().slice(0, 40) || undefined;
+  // SDD-0051 Fase 2: código de referido (invitación por correo → REF-YYYY-NNNN, o
+  // código compartido → REF-XXXX). Se linkea al crear la cuenta.
+  const refRaw = Array.isArray(raw.ref) ? raw.ref[0] : raw.ref;
+  const refCode = (refRaw ?? "").trim().slice(0, 40) || undefined;
 
   return (
     <>
       <Nav />
       <main className={`${jetbrainsMonoUi.variable} bg-paper min-h-screen`}>
-        <RegisterForm est={est} />
+        <RegisterForm est={est} refCode={refCode} />
       </main>
       <Footer />
       <WhatsAppFAB />
