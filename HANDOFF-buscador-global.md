@@ -13,8 +13,8 @@
 
 ## Qué necesita hacer el Director
 
-1. **Asignar correlativo SDD** (siguiente libre, ~0131 — verificar contra ramas abiertas:
-   `0122 registro-cliente` sigue sin merge) y crear `docs/specs/NNNN-buscador-global/spec.md`
+1. **Asignar correlativo SDD** (siguiente libre ~0135+ — ojo: `0131` ya es Registro cliente
+   (ex-0122, mergeado) y `0132`-`0134` son drafts) y crear `docs/specs/NNNN-buscador-global/spec.md`
    con el contenido de abajo.
 2. **Abrir rama propia** (`feat/buscador-global` o similar) para implementarlo.
 3. **Decisión de producto pendiente:** ¿el rol `marketing` debe poder ubicar un contacto
