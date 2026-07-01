@@ -6,6 +6,10 @@
  */
 
 import { ModalShell } from "./ProfileModal";
+import {
+  useIsMac,
+  platformKeyLabel,
+} from "@/app/studio/_components/ui/usePlatformMod";
 
 const GROUPS: Array<{
   title: string;
@@ -57,6 +61,7 @@ const GROUPS: Array<{
 ];
 
 export function ShortcutsModal({ onClose }: { onClose: () => void }) {
+  const isMac = useIsMac();
   return (
     <ModalShell title="Atajos de teclado" onClose={onClose} width={720}>
       <div
@@ -114,7 +119,7 @@ export function ShortcutsModal({ onClose }: { onClose: () => void }) {
                           textAlign: "center",
                         }}
                       >
-                        {k}
+                        {platformKeyLabel(k, isMac)}
                       </kbd>
                     ))}
                   </span>

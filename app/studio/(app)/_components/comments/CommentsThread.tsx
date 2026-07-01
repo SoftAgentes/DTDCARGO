@@ -22,6 +22,7 @@ import { useRouter } from "next/navigation";
 import { Avatar } from "@/app/studio/_components/ui/Avatar";
 import { Icon } from "@/app/studio/_components/icons";
 import { MentionDropdown } from "./MentionDropdown";
+import { useIsMac } from "@/app/studio/_components/ui/usePlatformMod";
 import { CommentItem } from "./CommentItem";
 import {
   type CommentEntityType,
@@ -54,6 +55,7 @@ export function CommentsThread({
   initialComments: CommentWithMeta[];
 }) {
   const router = useRouter();
+  const isMac = useIsMac();
   const [pending, startTransition] = useTransition();
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -289,7 +291,7 @@ export function CommentsThread({
               color: "var(--ink-mute)",
             }}
           >
-            ⌘ + Enter para enviar
+            {isMac ? "⌘" : "Ctrl"} + Enter para enviar
           </span>
           <button
             type="button"

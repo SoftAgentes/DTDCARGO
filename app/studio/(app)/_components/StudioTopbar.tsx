@@ -21,6 +21,7 @@ import { Badge } from "../../_components/ui/Badge";
 import { pathToModuleLabel } from "./StudioSidebar";
 import { signOut } from "../actions";
 import { useDTDWiring } from "../../_components/wiring/WiringProvider";
+import { useIsMac } from "../../_components/ui/usePlatformMod";
 import { useT, useLocale } from "@/lib/i18n";
 import {
   APPEARANCE_EVENT,
@@ -41,9 +42,8 @@ export function StudioTopbar({ userEmail }: StudioTopbarProps) {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  // Default "Ctrl" para que en SSR + Windows/Linux no flashee.
-  // Mac se detecta client-side via navigator.platform → "⌘".
-  const [modKey, setModKey] = useState<"Ctrl" | "⌘">("Ctrl");
+  // Modifier según OS: ⌘ en Mac, Ctrl en Windows/Linux (hook compartido).
+  const modKey = useIsMac() ? "⌘" : "Ctrl";
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Hidratar theme desde localStorage + escuchar cambios de la sección
@@ -56,16 +56,6 @@ export function StudioTopbar({ userEmail }: StudioTopbarProps) {
     };
     window.addEventListener(APPEARANCE_EVENT, onPrefs);
     return () => window.removeEventListener(APPEARANCE_EVENT, onPrefs);
-  }, []);
-
-  // Detectar OS para mostrar el modifier correcto (⌘ Mac vs Ctrl Win/Linux).
-  // navigator.platform sigue siendo el método más confiable cross-browser
-  // (userAgentData.platform aún no es universal).
-  useEffect(() => {
-    if (typeof navigator !== "undefined") {
-      const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
-      if (isMac) setModKey("⌘");
-    }
   }, []);
 
   // Atajo ⌘K / Ctrl+K
