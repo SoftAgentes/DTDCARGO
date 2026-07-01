@@ -24,6 +24,7 @@ import {
 import { geocodeAddress, type GeocodeResult } from "@/lib/studio/geocoding";
 import { validateMarkboxFormat } from "@/lib/studio/markbox-utils";
 import { sendWelcomeEmail } from "@/lib/studio/welcome-email";
+import { sendPortalInviteEmail } from "@/lib/studio/portal-invite-email";
 import { verifyIdentity, type VerifyResult } from "@/lib/studio/identity";
 import { notifyIdentityMismatch } from "@/lib/studio/identity/notify-mismatch";
 import type { DocumentKind } from "@/lib/studio/identity/document";
@@ -248,7 +249,7 @@ export async function softDeleteClientAction(
 export async function invitePortalAction(
   clientId: string,
   markbox: string,
-): Promise<{ ok?: boolean; error?: string; email?: string }> {
+): Promise<{ ok?: boolean; error?: string; email?: string; warning?: string }> {
   const supabase = await createClient();
 
   const denial = await moduleEditDenial(supabase, "clients");
@@ -268,8 +269,41 @@ export async function invitePortalAction(
   const row = (Array.isArray(data) ? data[0] : data) as
     | { client_email?: string }
     | null;
+  const email = row?.client_email ?? null;
+
+  // Correo de invitación (best-effort · NO rompe la habilitación si falla). El
+  // correo lleva al cliente a /portal/login con su email precargado; ahí pide su
+  // propio enlace de acceso (magic-link). SDD-0042.
+  let warning: string | undefined;
+  if (email) {
+    const { data: link } = await supabase
+      .from("user_tenants")
+      .select("tenant_id")
+      .maybeSingle<{ tenant_id: string }>();
+    // Nombre del cliente para el saludo (RLS ya scopea al tenant del usuario).
+    const { data: client } = await supabase
+      .from("clients")
+      .select("name")
+      .eq("id", clientId)
+      .maybeSingle<{ name: string }>();
+
+    if (link?.tenant_id) {
+      const admin = createAdminClient();
+      const sent = await sendPortalInviteEmail(admin, link.tenant_id, {
+        email,
+        name: client?.name ?? null,
+      });
+      if (!sent.ok) {
+        warning = `Portal habilitado, pero el correo de invitación no salió: ${sent.error}`;
+        console.warn("[invitePortalAction] invite email failed:", sent.error);
+      }
+    } else {
+      warning = "Portal habilitado, pero no pude resolver el tenant para enviar el correo.";
+    }
+  }
+
   revalidatePath(`/studio/clientes/${markbox}`);
-  return { ok: true, email: row?.client_email };
+  return { ok: true, email: email ?? undefined, warning };
 }
 
 export async function revokePortalAction(
