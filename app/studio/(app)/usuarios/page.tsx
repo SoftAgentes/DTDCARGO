@@ -17,7 +17,10 @@ import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { listInvitations, listMembers } from "@/lib/studio/user-queries";
-import type { UserMembershipWithProfile } from "@/lib/studio/user-types";
+import {
+  STUDIO_USER_ROLES,
+  type UserMembershipWithProfile,
+} from "@/lib/studio/user-types";
 import { UsersClient } from "./_components/UsersClient";
 
 export const metadata = { title: "Usuarios · DTD Studio" };
@@ -87,7 +90,7 @@ export default async function UsuariosPage() {
   }
 
   const activeCount = members.filter((m) => !m.disabled_at).length;
-  const roleCount = 6; // Roles fijos en el system (STUDIO_USER_ROLES.length)
+  const roleCount = STUDIO_USER_ROLES.length; // roles oficiales del sistema
 
   return (
     <div style={{ maxWidth: 1280 }}>

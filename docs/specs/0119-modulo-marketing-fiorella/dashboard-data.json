@@ -1,0 +1,311 @@
+{
+  "_meta": "SDD-0119 Módulo de Marketing (Sam × Fiorella). Fuente: docs/specs/0119-modulo-marketing-fiorella/spec.md + kanban.md. Reunión kickoff 30-jun-2026. Mantener este JSON como fuente de verdad; usar Export del dashboard para persistir cambios.",
+
+  "project": {
+    "name": "DTD Cargo — Módulo de Marketing (SDD-0119)",
+    "client": "DTD Cargo",
+    "deal": "Módulo de Marketing en el ERP: Dashboard de Fiorella + centralización de herramientas (HUB, Motor de Noticias, calendario, academia, comunidad)",
+    "dealAmount": "Interno · crecimiento marketing",
+    "kickoff": "2026-06-30",
+    "estimatedWeeks": 52,
+    "lastUpdate": "2026-06-30",
+    "slug": "dtd-0119-marketing",
+    "eyebrow": "Dashboard maestro · DTD Marketing"
+  },
+
+  "tools": {
+    "TikTok": { "color": "#ec4899", "icon": "🎵" },
+    "Instagram": { "color": "#f59e0b", "icon": "📸" },
+    "Facebook": { "color": "#3b82f6", "icon": "👥" },
+    "Notion": { "color": "#ffffff", "icon": "🗒️" },
+    "ERP": { "color": "#6366f1", "icon": "🧩" },
+    "Motor de Noticias": { "color": "#10b981", "icon": "📰" },
+    "HUB": { "color": "#a78bfa", "icon": "🎨" },
+    "Google Reviews": { "color": "#34d399", "icon": "⭐" },
+    "Academia": { "color": "#60a5fa", "icon": "🎓" }
+  },
+
+  "statusLabels": {
+    "done": { "label": "Completado", "color": "#10b981", "icon": "✅" },
+    "in_progress": { "label": "En progreso", "color": "#fbbf24", "icon": "🟡" },
+    "pending": { "label": "Pendiente", "color": "#6b7280", "icon": "⏳" },
+    "blocked": { "label": "Bloqueado", "color": "#ef4444", "icon": "🔴" }
+  },
+
+  "blockers": [
+    {
+      "id": "BLK-001",
+      "title": "Espacio para lives depende de Javi",
+      "owner": "Javi",
+      "since": "2026-06-30",
+      "severity": "medium",
+      "description": "El lugar/espacio para hacer los lives en sede depende de Javi. Sam: 'si Javi no te hace caso, me escribes a mí en privado'. Vía de escalación = Sam.",
+      "affects": ["M2-T01"]
+    },
+    {
+      "id": "BLK-002",
+      "title": "Falta academia Alibaba para responder con autoridad",
+      "owner": "Sam",
+      "since": "2026-06-30",
+      "severity": "high",
+      "description": "Fiorella no ha comprado en Alibaba → no puede responder ni hacer seguimiento con experiencia. Se desbloquea cuando Sam entregue la academia/contenido de expertos Alibaba (M3-T02).",
+      "affects": ["M2-T03"]
+    }
+  ],
+
+  "fundamentals": {
+    "title": "Fundamentos · Plataforma del módulo (Sam construye)",
+    "description": "Infraestructura que habilita todo el marketing. Una vez lista, Fiorella opera como supervisora ('llega, revisa, play').",
+    "groups": [
+      {
+        "id": "FUND-PLAT",
+        "title": "Plataforma & conexiones",
+        "tasks": [
+          {
+            "id": "FUND-PLAT-01",
+            "title": "Conectar TikTok empresa + alinear al CRM",
+            "tools": ["TikTok", "ERP"],
+            "status": "in_progress",
+            "notes": "30-jun: 'estoy conectando hoy TikTok'. Convertir cuenta a empresa para alinearla con el CRM."
+          },
+          {
+            "id": "FUND-PLAT-02",
+            "title": "Construir el HUB (logos, fondos/portadas por red, plantillas de marca)",
+            "tools": ["HUB"],
+            "status": "pending",
+            "notes": "Incluye plantillas de historias de TikTok. Resuelve el 'no soy diseñador' de Fiorella."
+          },
+          {
+            "id": "FUND-PLAT-03",
+            "title": "Construir el Dashboard 'buenos días' de Fiorella",
+            "tools": ["ERP"],
+            "status": "pending",
+            "notes": "Sobre base 0114-dashboard-configurable. Cada mañana abre y le dice sus tareas."
+          },
+          {
+            "id": "FUND-PLAT-04",
+            "title": "Conectar Notion ↔ ERP (sincronización)",
+            "tools": ["Notion", "ERP"],
+            "status": "pending",
+            "notes": "Lo que se hace en el ERP se ve en Notion y viceversa. Construir junto con Fiorella."
+          }
+        ]
+      }
+    ]
+  },
+
+  "phases": [
+    {
+      "id": "M1",
+      "number": 1,
+      "name": "Motor de Noticias & Multicanal",
+      "subtitle": "La herramienta estrella",
+      "color": "#10b981",
+      "description": "Noticia real → SEO + GEO en /noticias → atomización a TikTok/IG/FB. La herramienta genera tareas; Fiorella le da vida.",
+      "tools": ["Motor de Noticias", "TikTok", "Instagram", "Facebook"],
+      "deliverables": [
+        "Motor de Noticias enfocado (Test de Noticia + taxonomía de negocio)",
+        "Sugeridos atomizados por red",
+        "/noticias indexado por Google e IA (SEO + GEO)"
+      ],
+      "tasks": [
+        {
+          "id": "M1-T01",
+          "title": "Desarrollar el Motor de Noticias (lógica Sam + lógica Fiorella)",
+          "description": "Construirlo entre los dos: Sam pone la lógica técnica, Fiorella la lógica de marketing. Spec 0088.",
+          "tools": ["Motor de Noticias"],
+          "status": "in_progress",
+          "notes": "Ejemplo semilla: '¿por qué subieron los fletes de China?'"
+        },
+        {
+          "id": "M1-T02",
+          "title": "Aportar la lógica de marketing al motor",
+          "description": "Fiorella define ángulos, dolores y formato por red para que el motor rute bien.",
+          "tools": ["Motor de Noticias"],
+          "status": "pending",
+          "notes": ""
+        },
+        {
+          "id": "M1-T03",
+          "title": "Atomización multicanal (TikTok/IG/FB) desde una noticia",
+          "description": "Continuo TikTok, continuo Instagram y sugeridos por red, respetando reglamento de cada una. Specs 0089/0090/0091.",
+          "tools": ["TikTok", "Instagram", "Facebook"],
+          "status": "pending",
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "id": "M2",
+      "number": 2,
+      "name": "Contenido & Producción",
+      "subtitle": "La fortaleza de Fiorella",
+      "color": "#3b82f6",
+      "description": "Lo que Fiorella hace mejor: salir, hablar en redes, crear. Recepción de mercancía, storytelling de cajas, lives y reseñas.",
+      "tools": ["Instagram", "TikTok", "Google Reviews"],
+      "deliverables": [
+        "Contenido de recepción de mercancía (mes completo)",
+        "Storytelling de cajas con autorización de clientes",
+        "Lives en vivo",
+        "Reseñas en Google (notas de voz)"
+      ],
+      "tasks": [
+        {
+          "id": "M2-T01",
+          "title": "Arrancar los lives / lo que está detenido",
+          "description": "Sam: 'el lugar que quieres hacer aquí, hazlo, no te detengas'. Si Javi no apoya → escribir a Sam.",
+          "tools": ["Instagram", "TikTok"],
+          "status": "blocked",
+          "notes": "Dependencia de espacio con Javi.",
+          "blocker": "BLK-001"
+        },
+        {
+          "id": "M2-T02",
+          "title": "Contenido de recepción de mercancía + storytelling de cajas",
+          "description": "Mostrar recepción a inicio de mes (sin revelar cómo llegó el contenido). Abrir cajas, mostrar productos con autorización del cliente. No contenido ficticio.",
+          "tools": ["Instagram", "TikTok"],
+          "status": "pending",
+          "notes": "Estilo referencia: 'esta caja costó $30…', contenido diario simple de alta interacción."
+        },
+        {
+          "id": "M2-T03",
+          "title": "Conseguir reseñas en Google (con José y el equipo)",
+          "description": "Pedir a clientes que califiquen en la encuesta/Google. Exigir a José y los muchachos reseñas, idealmente notas de voz. Afianza confianza.",
+          "tools": ["Google Reviews"],
+          "status": "pending",
+          "notes": "",
+          "blocker": "BLK-002"
+        },
+        {
+          "id": "M2-T04",
+          "title": "Crear contenido de Alibaba con expertos",
+          "description": "Sam busca expertos en Alibaba, extrae su contenido y se producen los videos. Insumo de la academia.",
+          "tools": ["Academia"],
+          "status": "in_progress",
+          "notes": "30-jun: 'estoy yendo a buscar expertos en Alibaba, sacando su contenido'."
+        }
+      ]
+    },
+    {
+      "id": "M3",
+      "number": 3,
+      "name": "Comunidad & Academia",
+      "subtitle": "Mediano plazo",
+      "color": "#f59e0b",
+      "description": "Generar comunidad real: grupo privado de importadores + academia con cursos de Alibaba.",
+      "tools": ["Facebook", "Academia"],
+      "deliverables": [
+        "Grupo privado de Facebook para importadores",
+        "Academia / cursos de Alibaba",
+        "Plan de herramientas que Fiorella exige para la comunidad"
+      ],
+      "tasks": [
+        {
+          "id": "M3-T01",
+          "title": "Crear grupo privado de Facebook para importadores",
+          "description": "Que los importadores se conozcan; base de comunidad ligada a cursos/academia.",
+          "tools": ["Facebook"],
+          "status": "pending",
+          "notes": "Fiorella lo exige; Sam lo facilita."
+        },
+        {
+          "id": "M3-T02",
+          "title": "Crear la academia / cursos de Alibaba",
+          "description": "Tarea de Sam: generar la academia para que ayude a Fiorella a responder con autoridad. Specs 0093/0107/0099.",
+          "tools": ["Academia"],
+          "status": "pending",
+          "notes": "Desbloquea BLK-002."
+        },
+        {
+          "id": "M3-T03",
+          "title": "Organizar el tema de comunidad + definir herramientas necesarias",
+          "description": "Fiorella organiza la comunidad y lista qué herramientas le va a exigir a Sam para generarla en el tiempo.",
+          "tools": ["Facebook"],
+          "status": "pending",
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "id": "M4",
+      "number": 4,
+      "name": "Estrategia & Planificación",
+      "subtitle": "El norte + el calendario",
+      "color": "#a78bfa",
+      "description": "Define el rumbo: target medianas/pequeñas empresas, speech de flujo de caja, calendario anual y cadencia de trabajo.",
+      "tools": ["Notion"],
+      "deliverables": [
+        "Norte y target definidos",
+        "Calendario anual de contenido (VE + China)",
+        "Día semanal fijo de construcción conjunta",
+        "Propuesta de contenido del ciclo de compras"
+      ],
+      "tasks": [
+        {
+          "id": "M4-T01",
+          "title": "Definir el norte: target medianas/pequeñas + speech de flujo de caja",
+          "description": "Enfocarse en dolores (no en la empresa). Speech: fraccionar crédito, rotación de inventario, 'alcancía' mensual.",
+          "tools": [],
+          "status": "done",
+          "completedAt": "2026-06-30",
+          "notes": "Definido en la reunión kickoff."
+        },
+        {
+          "id": "M4-T02",
+          "title": "Elegir el día fijo semanal (2–3 h) para construir el módulo",
+          "description": "Fiorella escoge el día. Sam y ella se sientan a construir el módulo ERP-Marketing.",
+          "tools": [],
+          "status": "pending",
+          "notes": ""
+        },
+        {
+          "id": "M4-T03",
+          "title": "Armar el calendario anual (fechas VE + China) con la Sra. Fátima",
+          "description": "Investigar fechas clave de Venezuela y China para todo el año y cargarlas al dashboard/Notion.",
+          "tools": ["Notion"],
+          "status": "pending",
+          "notes": ""
+        },
+        {
+          "id": "M4-T04",
+          "title": "Investigar el 'ciclo de compras' como contenido repetible",
+          "description": "Cotiza → compra → recibimos en China → entregamos. Ciclo que se replica. Presentar propuesta la próxima semana.",
+          "tools": [],
+          "status": "pending",
+          "notes": "Fiorella: 'me puedo poner a investigar y la próxima semana te digo'."
+        }
+      ]
+    }
+  ],
+
+  "crosscutting": {
+    "title": "Proceso recurrente",
+    "description": "No son tareas de una vez: rigen cómo trabajan Sam y Fiorella de forma continua.",
+    "tasks": [
+      {
+        "id": "CC-T01",
+        "title": "Reportar todo lo que le quita tiempo a Fiorella",
+        "description": "Botón 'esto me quita tiempo' → cola de automatización con IA en el ERP. El principio rector del módulo.",
+        "tools": ["ERP"],
+        "status": "in_progress",
+        "notes": "Fiorella reporta fricción; Sam automatiza."
+      },
+      {
+        "id": "CC-T02",
+        "title": "Automatizar lo repetitivo que Fiorella reporte",
+        "description": "Edición, montaje de contenido → IA en el ERP. Que Fiorella opere como supervisora.",
+        "tools": ["ERP"],
+        "status": "in_progress",
+        "notes": ""
+      },
+      {
+        "id": "CC-T03",
+        "title": "Fiorella exige recursos a Sam",
+        "description": "Academia, grupo de Facebook, herramientas. Sam lo pidió explícitamente: 'que me las exijas'.",
+        "tools": [],
+        "status": "in_progress",
+        "notes": ""
+      }
+    ]
+  }
+}

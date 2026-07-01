@@ -76,6 +76,7 @@ export function UsersClient({ members, invitations, currentUserId }: Props) {
       accounting: 0,
       warehouse: 0,
       support: 0,
+      marketing: 0,
     },
   );
 
@@ -363,6 +364,12 @@ const MODULES_BY_ROLE: Record<StudioUserRole, string[]> = {
     "Tracking (lectura)",
     "Documentos (lectura)",
     "Crear tickets",
+  ],
+  marketing: [
+    "Módulo de Marketing",
+    "Noticias Web",
+    "HUB de marca",
+    "Calendario de contenido",
   ],
 };
 

@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Maestro</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0f1117;
+    --bg-card: #13161f;
+    --bg-card-hover: #1a1d2e;
+    --border: #1f2330;
+    --border-hover: #2a2f44;
+    --text: #e8eaf0;
+    --text-dim: #9ca3af;
+    --text-dimmer: #6b7280;
+    --accent: #f59e0b;
+    --accent-hover: #f97316;
+    --green: #10b981;
+    --yellow: #fbbf24;
+    --red: #ef4444;
+    --blue: #60a5fa;
+    --purple: #a78bfa;
+    --gray: #6b7280;
+  }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    font-size: 14px;
+  }
+
+  /* Container */
+  .container { max-width: 1400px; margin: 0 auto; padding: 40px 30px 80px; }
+
+  /* Header */
+  .header { margin-bottom: 40px; }
+  .header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 24px; flex-wrap: wrap; }
+  .header-info .eyebrow {
+    font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 2.5px; margin-bottom: 8px;
+  }
+  .header-info h1 {
+    font-size: 32px; font-weight: 800; line-height: 1.2; letter-spacing: -0.8px;
+  }
+  .header-info h1 .accent {
+    background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .header-meta { color: var(--text-dim); font-size: 13px; margin-top: 6px; }
+  .header-meta strong { color: var(--text); }
+
+  .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn {
+    background: var(--bg-card); border: 1px solid var(--border);
+    color: var(--text-dim); padding: 8px 14px; border-radius: 8px;
+    font-size: 13px; cursor: pointer; font-family: inherit;
+    transition: all .15s; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn:hover { background: var(--bg-card-hover); border-color: var(--border-hover); color: var(--text); }
+  .btn.primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+  .btn.primary:hover { background: var(--accent-hover); color: #000; }
+  .btn.danger { color: var(--red); border-color: rgba(239,68,68,0.3); }
+  .btn.danger:hover { background: rgba(239,68,68,0.1); color: var(--red); }
+
+  /* Global progress */
+  .global-progress {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px 24px; margin-bottom: 32px;
+  }
+  .global-progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 12px; }
+  .global-progress-title { font-size: 15px; font-weight: 700; color: var(--text); }
+  .global-progress-percent { font-size: 32px; font-weight: 800; color: var(--accent); line-height: 1; }
+  .progress-bar {
+    height: 10px; background: rgba(255,255,255,0.05); border-radius: 999px; overflow: hidden; position: relative;
+  }
+  .progress-bar-fill {
+    height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+    border-radius: 999px; transition: width .5s ease; position: relative;
+  }
+  .progress-bar-fill::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    animation: shimmer 2s infinite;
+  }
+  @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+  .global-stats { display: flex; gap: 24px; margin-top: 14px; flex-wrap: wrap; font-size: 13px; color: var(--text-dim); }
+  .global-stats .stat strong { color: var(--text); font-weight: 700; }
+  .global-stats .stat .icon { margin-right: 4px; }
+
+  /* Blockers banner */
+  .blockers-banner {
+    background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25);
+    border-radius: 12px; padding: 16px 20px; margin-bottom: 32px;
+  }
+  .blockers-banner h3 {
+    color: var(--red); font-size: 13px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.5px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+  }
+  .blockers-list { display: flex; flex-direction: column; gap: 8px; }
+  .blocker-item {
+    display: flex; gap: 12px; align-items: flex-start; font-size: 13px;
+    color: var(--text); padding: 8px 12px; background: rgba(0,0,0,0.25); border-radius: 8px; cursor: pointer;
+  }
+  .blocker-item:hover { background: rgba(0,0,0,0.4); }
+  .blocker-item .severity { font-weight: 700; font-size: 11px; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0; }
+  .severity.critical { background: rgba(239,68,68,0.2); color: var(--red); }
+  .severity.high { background: rgba(251,191,36,0.2); color: var(--yellow); }
+  .severity.medium { background: rgba(167,139,250,0.2); color: var(--purple); }
+  .severity.low { background: rgba(96,165,250,0.18); color: var(--blue); }
+  .severity.resolved { background: rgba(16,185,129,0.18); color: var(--green); }
+  .blocker-info { flex: 1; }
+  .blocker-info .title { font-weight: 600; color: var(--text); }
+  .blocker-info .meta { color: var(--text-dim); font-size: 12px; margin-top: 2px; }
+
+  /* Phase cards grid */
+  .phases-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 18px; margin-bottom: 40px;
+  }
+  .phase-card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 22px; position: relative; overflow: hidden; cursor: pointer; transition: all .15s;
+  }
+  .phase-card:hover { transform: translateY(-2px); border-color: var(--border-hover); }
+  .phase-card.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .phase-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    background: var(--phase-color, var(--accent));
+  }
+  .phase-num { font-size: 11px; font-weight: 700; color: var(--text-dimmer); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 6px; }
+  .phase-title { font-size: 20px; font-weight: 800; line-height: 1.2; margin-bottom: 4px; }
+  .phase-subtitle { font-size: 13px; color: var(--phase-color, var(--accent)); font-weight: 600; margin-bottom: 14px; }
+  .phase-desc { font-size: 13px; color: var(--text-dim); line-height: 1.5; margin-bottom: 14px; min-height: 56px; }
+  .phase-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .tool-chip {
+    font-size: 11px; padding: 3px 9px; border-radius: 999px;
+    background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+  .phase-stats { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 12px; }
+  .phase-stats .progress-text { color: var(--text); font-weight: 700; }
+  .phase-stats .progress-pct { color: var(--phase-color, var(--accent)); font-weight: 800; }
+  .phase-progress-bar {
+    height: 6px; background: rgba(255,255,255,0.05); border-radius: 999px; overflow: hidden;
+  }
+  .phase-progress-fill {
+    height: 100%; background: var(--phase-color, var(--accent));
+    border-radius: 999px; transition: width .5s ease;
+  }
+  .phase-blockers {
+    margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border);
+    font-size: 11px; color: var(--red); display: flex; align-items: center; gap: 6px;
+  }
+  .phase-blockers.none { color: var(--green); }
+
+  /* Detail panel */
+  .detail-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 30px; margin-bottom: 32px; display: none; }
+  .detail-panel.visible { display: block; }
+  .detail-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+  .detail-title { font-size: 24px; font-weight: 800; }
+  .detail-title .badge {
+    display: inline-block; font-size: 11px; padding: 3px 9px; border-radius: 999px;
+    background: rgba(245,158,11,0.15); color: var(--accent); margin-left: 10px; vertical-align: middle; font-weight: 700; letter-spacing: 0.5px;
+  }
+  .detail-deliverables { color: var(--text-dim); font-size: 13px; }
+  .detail-deliverables strong { color: var(--text); display: block; margin-bottom: 6px; }
+  .detail-deliverables ul { padding-left: 20px; }
+
+  /* Filter bar */
+  .filter-bar {
+    display: flex; gap: 10px; align-items: center; margin-bottom: 20px; flex-wrap: wrap;
+    padding: 12px 16px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 10px;
+  }
+  .filter-label { font-size: 11px; color: var(--text-dimmer); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+  .filter-pill {
+    font-size: 12px; padding: 5px 11px; border-radius: 999px;
+    background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text-dim);
+    cursor: pointer; transition: all .15s;
+  }
+  .filter-pill:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+  .filter-pill.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
+
+  /* Kanban */
+  .kanban {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+  }
+  .kanban-column {
+    background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px; min-height: 200px;
+  }
+  .kanban-column-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .kanban-column-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; }
+  .kanban-column-count { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,0.06); color: var(--text-dim); font-weight: 700; }
+  .kanban-column[data-status="pending"] .kanban-column-title { color: var(--gray); }
+  .kanban-column[data-status="in_progress"] .kanban-column-title { color: var(--yellow); }
+  .kanban-column[data-status="done"] .kanban-column-title { color: var(--green); }
+  .kanban-column[data-status="blocked"] .kanban-column-title { color: var(--red); }
+
+  .task-card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px; margin-bottom: 10px; cursor: pointer; transition: all .15s;
+    position: relative;
+  }
+  .task-card:hover { background: var(--bg-card-hover); border-color: var(--border-hover); transform: translateX(2px); }
+  .task-card.blocked { border-left: 3px solid var(--red); }
+  .task-card.done { opacity: 0.65; }
+  .task-id { font-size: 10px; color: var(--text-dimmer); font-family: 'SF Mono', monospace; margin-bottom: 4px; }
+  .task-title { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.3; margin-bottom: 8px; }
+  .task-tools { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+  .task-tool-chip {
+    font-size: 9px; padding: 1px 6px; border-radius: 4px;
+    background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    color: var(--text-dimmer); text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .task-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 11px; color: var(--text-dimmer); }
+  .task-hours { display: flex; align-items: center; gap: 4px; }
+  .task-blocker-icon { color: var(--red); }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+    display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px;
+  }
+  .modal-overlay.visible { display: flex; }
+  .modal {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+    max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 30px;
+  }
+  .modal-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+  .modal-title { font-size: 20px; font-weight: 800; line-height: 1.3; }
+  .modal-close {
+    background: none; border: none; color: var(--text-dim); font-size: 22px; cursor: pointer; line-height: 1; padding: 0;
+  }
+  .modal-close:hover { color: var(--text); }
+  .modal-id { font-size: 11px; color: var(--text-dimmer); font-family: 'SF Mono', monospace; margin-bottom: 12px; }
+  .modal-desc { color: var(--text-dim); margin-bottom: 18px; line-height: 1.6; }
+  .modal-section { margin-bottom: 18px; }
+  .modal-section-title { font-size: 11px; font-weight: 700; color: var(--text-dimmer); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; }
+  .modal-tools { display: flex; flex-wrap: wrap; gap: 6px; }
+  .modal-notes textarea {
+    width: 100%; min-height: 80px; background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px; color: var(--text); font-family: inherit; font-size: 13px; resize: vertical;
+  }
+  .modal-notes textarea:focus { outline: none; border-color: var(--accent); }
+  .modal-status-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 4px;
+  }
+  .status-option {
+    padding: 10px 6px; background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+    border-radius: 8px; cursor: pointer; text-align: center; font-size: 12px; font-weight: 600; transition: all .15s;
+  }
+  .status-option:hover { background: rgba(255,255,255,0.06); }
+  .status-option.selected { background: rgba(245,158,11,0.15); border-color: var(--accent); color: var(--accent); }
+
+  /* Fundamentals section */
+  .fundamentals-section { margin-bottom: 40px; }
+  .section-title { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+  .section-subtitle { color: var(--text-dim); font-size: 13px; margin-bottom: 20px; }
+  .fund-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+  .fund-group {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 18px;
+  }
+  .fund-group-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .fund-group-count { font-size: 11px; color: var(--text-dimmer); font-weight: 600; padding: 2px 8px; background: rgba(255,255,255,0.05); border-radius: 999px; }
+  .fund-task { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 12px; cursor: pointer; }
+  .fund-task:last-child { border-bottom: none; }
+  .fund-task:hover { background: rgba(255,255,255,0.02); }
+  .fund-task .status-icon { font-size: 14px; line-height: 1.4; flex-shrink: 0; }
+  .fund-task .title { flex: 1; color: var(--text); line-height: 1.4; }
+  .fund-task.blocked .title { color: var(--red); }
+  .fund-task.done .title { color: var(--text-dim); text-decoration: line-through; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; background: var(--green); color: #000;
+    padding: 12px 20px; border-radius: 10px; font-weight: 700; font-size: 13px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4); transform: translateY(100px); opacity: 0;
+    transition: all .3s; z-index: 2000; pointer-events: none;
+  }
+  .toast.visible { transform: translateY(0); opacity: 1; }
+  .toast.error { background: var(--red); color: white; }
+
+  /* Mobile */
+  @media (max-width: 1100px) {
+    .kanban { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 640px) {
+    .container { padding: 24px 16px 60px; }
+    .header-info h1 { font-size: 24px; }
+    .kanban { grid-template-columns: 1fr; }
+    .phases-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Print */
+  @media print {
+    body { background: white; color: black; }
+    .container { padding: 0; max-width: 100%; }
+    .header-actions, .modal-overlay, .toast, .filter-bar { display: none !important; }
+    .phase-card, .kanban-column, .task-card, .global-progress, .detail-panel, .fund-group, .blockers-banner {
+      background: #fafafa; border: 1px solid #ddd; color: black;
+    }
+    .progress-bar { background: #eee; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-top">
+      <div class="header-info">
+        <div class="eyebrow">Dashboard maestro</div>
+        <h1 id="project-name">Dashboard Maestro</h1>
+        <div class="header-meta">
+          <strong id="project-deal">—</strong> · <span id="project-summary">—</span> · Kickoff <strong id="project-kickoff">—</strong> · Última actualización <strong id="last-update">—</strong>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn" onclick="exportState()">⬇ Export JSON</button>
+        <button class="btn" onclick="document.getElementById('import-input').click()">⬆ Import JSON</button>
+        <input type="file" id="import-input" accept="application/json" style="display:none;" onchange="importState(event)">
+        <button class="btn danger" onclick="resetState()">↻ Reset</button>
+      </div>
+    </div>
+
+    <!-- GLOBAL PROGRESS -->
+    <div class="global-progress">
+      <div class="global-progress-header">
+        <div>
+          <div class="global-progress-title">Avance total del proyecto</div>
+          <div class="global-stats" id="global-stats"></div>
+        </div>
+        <div class="global-progress-percent" id="global-percent">0%</div>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-bar-fill" id="global-progress-fill" style="width: 0%"></div>
+      </div>
+    </div>
+
+    <!-- BLOCKERS -->
+    <div class="blockers-banner" id="blockers-banner" style="display: none;">
+      <h3>🚧 Bloqueadores activos <span id="blockers-count"></span></h3>
+      <div class="blockers-list" id="blockers-list"></div>
+    </div>
+  </header>
+
+  <!-- PHASES GRID -->
+  <section>
+    <h2 class="section-title" id="phases-title">Fases del proyecto</h2>
+    <p class="section-subtitle">Click en cualquier fase para ver detalle Kanban abajo.</p>
+    <div class="phases-grid" id="phases-grid"></div>
+  </section>
+
+  <!-- DETAIL PANEL -->
+  <div class="detail-panel" id="detail-panel">
+    <div class="detail-header">
+      <div>
+        <div class="detail-title" id="detail-title">—</div>
+        <div class="detail-subtitle" id="detail-subtitle" style="color: var(--text-dim); margin-top: 4px;"></div>
+      </div>
+      <button class="btn" onclick="closeDetail()">✕ Cerrar</button>
+    </div>
+    <div class="detail-deliverables" id="detail-deliverables"></div>
+
+    <div class="filter-bar">
+      <span class="filter-label">Filtros:</span>
+      <span class="filter-pill active" data-filter="all" onclick="setFilter('all')">Todos</span>
+      <span class="filter-pill" data-filter="pending" onclick="setFilter('pending')">⏳ Pendientes</span>
+      <span class="filter-pill" data-filter="in_progress" onclick="setFilter('in_progress')">🟡 En progreso</span>
+      <span class="filter-pill" data-filter="done" onclick="setFilter('done')">✅ Completados</span>
+      <span class="filter-pill" data-filter="blocked" onclick="setFilter('blocked')">🔴 Bloqueados</span>
+    </div>
+
+    <div class="kanban">
+      <div class="kanban-column" data-status="pending">
+        <div class="kanban-column-header">
+          <div class="kanban-column-title">⏳ Pendiente</div>
+          <span class="kanban-column-count" id="count-pending">0</span>
+        </div>
+        <div class="kanban-cards" id="cards-pending"></div>
+      </div>
+      <div class="kanban-column" data-status="in_progress">
+        <div class="kanban-column-header">
+          <div class="kanban-column-title">🟡 En progreso</div>
+          <span class="kanban-column-count" id="count-in_progress">0</span>
+        </div>
+        <div class="kanban-cards" id="cards-in_progress"></div>
+      </div>
+      <div class="kanban-column" data-status="done">
+        <div class="kanban-column-header">
+          <div class="kanban-column-title">✅ Completado</div>
+          <span class="kanban-column-count" id="count-done">0</span>
+        </div>
+        <div class="kanban-cards" id="cards-done"></div>
+      </div>
+      <div class="kanban-column" data-status="blocked">
+        <div class="kanban-column-header">
+          <div class="kanban-column-title">🔴 Bloqueado</div>
+          <span class="kanban-column-count" id="count-blocked">0</span>
+        </div>
+        <div class="kanban-cards" id="cards-blocked"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FUNDAMENTALS -->
+  <section class="fundamentals-section" id="fundamentals-section">
+    <h2 class="section-title" id="fund-title">Fundamentos</h2>
+    <p class="section-subtitle" id="fund-subtitle"></p>
+    <div class="fund-grid" id="fund-grid"></div>
+  </section>
+
+  <!-- CROSS-CUTTING -->
+  <section class="fundamentals-section" id="crosscutting-section">
+    <h2 class="section-title" id="cc-title">Tareas transversales</h2>
+    <p class="section-subtitle" id="cc-subtitle"></p>
+    <div class="fund-grid" id="cc-grid"></div>
+  </section>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-id" id="modal-id">—</div>
+        <div class="modal-title" id="modal-title">—</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-desc" id="modal-desc">—</div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">Herramientas</div>
+      <div class="modal-tools" id="modal-tools"></div>
+    </div>
+
+    <div class="modal-section" id="modal-blocker-section" style="display: none;">
+      <div class="modal-section-title">Bloqueador</div>
+      <div id="modal-blocker"></div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">Estado</div>
+      <div class="modal-status-grid">
+        <div class="status-option" data-status="pending" onclick="setTaskStatus('pending')">⏳ Pendiente</div>
+        <div class="status-option" data-status="in_progress" onclick="setTaskStatus('in_progress')">🟡 En progreso</div>
+        <div class="status-option" data-status="done" onclick="setTaskStatus('done')">✅ Completado</div>
+        <div class="status-option" data-status="blocked" onclick="setTaskStatus('blocked')">🔴 Bloqueado</div>
+      </div>
+    </div>
+
+    <div class="modal-section modal-notes">
+      <div class="modal-section-title">Notas</div>
+      <textarea id="modal-notes" placeholder="Agrega notas sobre el avance, bloqueos o decisiones..."></textarea>
+    </div>
+
+    <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn primary" onclick="saveTask()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+let STORAGE_KEY = 'dashboard-state-v1';   // se re-deriva por proyecto en init()
+let appData = null;          // Datos cargados desde JSON
+let stateOverrides = {};     // Cambios por usuario almacenados en LocalStorage { taskId: { status, notes } }
+let currentPhaseId = null;
+let currentTaskId = null;
+let currentFilter = 'all';
+
+// ─────────────── LOAD ───────────────
+async function init() {
+  try {
+    const res = await fetch('dashboard-data.json?t=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) throw new Error('No se pudo cargar dashboard-data.json. Asegúrate que esté junto a este HTML.');
+    appData = await res.json();
+  } catch (e) {
+    showToast('❌ ' + e.message, 'error');
+    console.error(e);
+    return;
+  }
+
+  // Namespacing del estado por proyecto: evita que varios dashboards servidos desde el
+  // mismo origen (p.ej. localhost:8765) colisionen entre sí en LocalStorage.
+  const slug = (appData.project?.slug || appData.project?.name || 'project')
+    .toLowerCase().normalize('NFD').replace(new RegExp('[\\u0300-\\u036f]', 'g'), '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  STORAGE_KEY = `dashboard-state-${slug}-v1`;
+
+  // Cargar overrides
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try { stateOverrides = JSON.parse(saved); }
+    catch { stateOverrides = {}; }
+  }
+
+  renderAll();
+}
+
+// ─────────────── MERGE STATE ───────────────
+function getTaskState(task) {
+  const override = stateOverrides[task.id] || {};
+  return {
+    status: override.status ?? task.status,
+    notes: override.notes ?? task.notes ?? ''
+  };
+}
+
+function findTask(taskId) {
+  if (!appData) return null;
+  for (const phase of appData.phases) {
+    const t = phase.tasks.find(t => t.id === taskId);
+    if (t) return { task: t, container: phase, type: 'phase' };
+  }
+  for (const group of (appData.fundamentals?.groups || [])) {
+    const t = group.tasks.find(t => t.id === taskId);
+    if (t) return { task: t, container: group, type: 'fundamental' };
+  }
+  if (appData.crosscutting) {
+    const t = appData.crosscutting.tasks.find(t => t.id === taskId);
+    if (t) return { task: t, container: appData.crosscutting, type: 'crosscutting' };
+  }
+  return null;
+}
+
+// ─────────────── RENDER ───────────────
+function renderAll() {
+  renderHeader();
+  renderPhases();
+  renderFundamentals();
+  renderCrosscutting();
+  renderBlockers();
+  renderGlobalProgress();
+}
+
+function renderHeader() {
+  document.title = appData.project.name + ' — Dashboard';
+  const eyebrowEl = document.querySelector('.header-info .eyebrow');
+  if (eyebrowEl) eyebrowEl.textContent = appData.project.eyebrow || 'Dashboard maestro';
+  document.getElementById('project-name').innerHTML = appData.project.name.replace(' — ', ' — <span class="accent">') + '</span>';
+  document.getElementById('project-deal').textContent = appData.project.dealAmount || '';
+  document.getElementById('project-summary').textContent = `${appData.phases.length} módulos · ${appData.project.estimatedWeeks} semanas`;
+  document.getElementById('project-kickoff').textContent = appData.project.kickoff;
+  document.getElementById('last-update').textContent = appData.project.lastUpdate;
+}
+
+function renderPhases() {
+  const titleEl = document.getElementById('phases-title');
+  if (titleEl) titleEl.textContent = `${appData.phases.length} ${appData.phases.length === 1 ? 'fase' : 'fases'} del proyecto`;
+  const grid = document.getElementById('phases-grid');
+  grid.innerHTML = '';
+  appData.phases.forEach(phase => {
+    const stats = phaseStats(phase);
+    const phaseBlockers = countBlockers(phase.tasks);
+    const card = document.createElement('div');
+    card.className = 'phase-card';
+    card.style.setProperty('--phase-color', phase.color);
+    card.onclick = () => openPhase(phase.id);
+    card.innerHTML = `
+      <div class="phase-num">Fase ${phase.number} · Módulo ${phase.id}</div>
+      <div class="phase-title">${phase.name}</div>
+      <div class="phase-subtitle">${phase.subtitle}</div>
+      <div class="phase-desc">${phase.description}</div>
+      <div class="phase-tools">${(phase.tools || []).map(t => `<span class="tool-chip">${t}</span>`).join('')}</div>
+      <div class="phase-stats">
+        <span class="progress-text">${stats.done}/${stats.total} tareas</span>
+        <span class="progress-pct">${stats.pct}%</span>
+      </div>
+      <div class="phase-progress-bar"><div class="phase-progress-fill" style="width: ${stats.pct}%"></div></div>
+      <div class="phase-blockers ${phaseBlockers === 0 ? 'none' : ''}">
+        ${phaseBlockers === 0 ? '✓ Sin bloqueadores' : `⚠ ${phaseBlockers} ${phaseBlockers === 1 ? 'tarea bloqueada' : 'tareas bloqueadas'}`}
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+
+  // Mark active
+  document.querySelectorAll('.phase-card').forEach((c, i) => {
+    if (appData.phases[i].id === currentPhaseId) c.classList.add('active');
+  });
+}
+
+function renderFundamentals() {
+  const section = document.getElementById('fundamentals-section');
+  if (!appData.fundamentals?.groups?.length) { if (section) section.style.display = 'none'; return; }
+  if (section) section.style.display = '';
+  document.getElementById('fund-title').textContent = appData.fundamentals.title || 'Fundamentos';
+  document.getElementById('fund-subtitle').textContent = appData.fundamentals.description || '';
+  const grid = document.getElementById('fund-grid');
+  grid.innerHTML = '';
+  appData.fundamentals.groups.forEach(group => {
+    const doneCount = group.tasks.filter(t => getTaskState(t).status === 'done').length;
+    const div = document.createElement('div');
+    div.className = 'fund-group';
+    div.innerHTML = `
+      <div class="fund-group-title">${group.title}<span class="fund-group-count">${doneCount}/${group.tasks.length}</span></div>
+      ${group.tasks.map(t => {
+        const st = getTaskState(t);
+        const icon = appData.statusLabels[st.status]?.icon || '⏳';
+        return `<div class="fund-task ${st.status}" onclick="openTaskModal('${t.id}')">
+          <div class="status-icon">${icon}</div>
+          <div class="title">${t.title}</div>
+        </div>`;
+      }).join('')}
+    `;
+    grid.appendChild(div);
+  });
+}
+
+function renderCrosscutting() {
+  const section = document.getElementById('crosscutting-section');
+  if (!appData.crosscutting?.tasks?.length) { if (section) section.style.display = 'none'; return; }
+  if (section) section.style.display = '';
+  document.getElementById('cc-title').textContent = appData.crosscutting.title || 'Tareas transversales';
+  document.getElementById('cc-subtitle').textContent = appData.crosscutting.description || '';
+  const grid = document.getElementById('cc-grid');
+  grid.innerHTML = '';
+  // Group by status
+  const byStatus = { pending: [], in_progress: [], done: [], blocked: [] };
+  appData.crosscutting.tasks.forEach(t => {
+    const st = getTaskState(t);
+    byStatus[st.status]?.push(t);
+  });
+  Object.entries(byStatus).forEach(([status, tasks]) => {
+    if (tasks.length === 0) return;
+    const label = appData.statusLabels[status];
+    const div = document.createElement('div');
+    div.className = 'fund-group';
+    div.innerHTML = `
+      <div class="fund-group-title">${label.icon} ${label.label}<span class="fund-group-count">${tasks.length}</span></div>
+      ${tasks.map(t => `<div class="fund-task ${status}" onclick="openTaskModal('${t.id}')">
+        <div class="status-icon">${label.icon}</div>
+        <div class="title">${t.title}</div>
+      </div>`).join('')}
+    `;
+    grid.appendChild(div);
+  });
+}
+
+function renderBlockers() {
+  const banner = document.getElementById('blockers-banner');
+  const list = document.getElementById('blockers-list');
+  const count = document.getElementById('blockers-count');
+
+  // Bloqueador activo = NO resuelto Y afecta alguna tarea que no esté done.
+  // 'resolved' lo archiva explícitamente aunque sus tareas sigan in_progress/pending.
+  const activeBlockers = appData.blockers.filter(b => {
+    if (b.severity === 'resolved') return false;
+    return (b.affects || []).some(taskId => {
+      const r = findTask(taskId);
+      return r && getTaskState(r.task).status !== 'done';
+    });
+  });
+
+  if (activeBlockers.length === 0) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  banner.style.display = 'block';
+  count.textContent = `(${activeBlockers.length})`;
+  list.innerHTML = activeBlockers.map(b => `
+    <div class="blocker-item">
+      <span class="severity ${b.severity}">${b.severity}</span>
+      <div class="blocker-info">
+        <div class="title">${b.title}</div>
+        <div class="meta">Owner: ${b.owner} · Desde ${b.since} · Afecta ${b.affects.length} ${b.affects.length === 1 ? 'tarea' : 'tareas'}</div>
+        <div class="meta" style="margin-top: 4px; color: var(--text-dim);">${b.description}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderGlobalProgress() {
+  let totalTasks = 0, doneTasks = 0, blockedTasks = 0, inProgressTasks = 0;
+  const allTaskLists = [
+    ...appData.phases.flatMap(p => p.tasks),
+    ...(appData.fundamentals?.groups || []).flatMap(g => g.tasks),
+    ...(appData.crosscutting?.tasks || [])
+  ];
+  allTaskLists.forEach(t => {
+    totalTasks++;
+    const st = getTaskState(t);
+    if (st.status === 'done') doneTasks++;
+    else if (st.status === 'blocked') blockedTasks++;
+    else if (st.status === 'in_progress') inProgressTasks++;
+  });
+
+  const pct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+  document.getElementById('global-percent').textContent = pct + '%';
+  document.getElementById('global-progress-fill').style.width = pct + '%';
+  document.getElementById('global-stats').innerHTML = `
+    <div class="stat"><span class="icon">📊</span> <strong>${totalTasks}</strong> tareas totales</div>
+    <div class="stat"><span class="icon">✅</span> <strong>${doneTasks}</strong> completadas</div>
+    <div class="stat"><span class="icon">🟡</span> <strong>${inProgressTasks}</strong> en progreso</div>
+    <div class="stat"><span class="icon">🔴</span> <strong>${blockedTasks}</strong> bloqueadas</div>
+  `;
+}
+
+// ─────────────── PHASE DETAIL ───────────────
+function openPhase(phaseId) {
+  currentPhaseId = phaseId;
+  const phase = appData.phases.find(p => p.id === phaseId);
+  if (!phase) return;
+
+  document.getElementById('detail-title').innerHTML = `${phase.name} <span class="badge">Fase ${phase.number}</span>`;
+  document.getElementById('detail-subtitle').textContent = phase.subtitle + ' · ' + phase.hoursEstimated + 'h estimadas';
+  document.getElementById('detail-deliverables').innerHTML = `
+    <strong>Entregables:</strong>
+    <ul>${(phase.deliverables || []).map(d => `<li>${d}</li>`).join('')}</ul>
+  `;
+
+  renderKanban(phase);
+  document.getElementById('detail-panel').classList.add('visible');
+
+  // Mark active card
+  document.querySelectorAll('.phase-card').forEach((c, i) => {
+    c.classList.toggle('active', appData.phases[i].id === phaseId);
+  });
+
+  // Scroll to detail
+  document.getElementById('detail-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function closeDetail() {
+  currentPhaseId = null;
+  document.getElementById('detail-panel').classList.remove('visible');
+  document.querySelectorAll('.phase-card').forEach(c => c.classList.remove('active'));
+}
+
+function renderKanban(phase) {
+  ['pending', 'in_progress', 'done', 'blocked'].forEach(status => {
+    const tasks = phase.tasks.filter(t => {
+      const st = getTaskState(t);
+      if (currentFilter !== 'all' && st.status !== currentFilter) return false;
+      return st.status === status;
+    });
+    document.getElementById('count-' + status).textContent = tasks.length;
+    const container = document.getElementById('cards-' + status);
+    container.innerHTML = tasks.map(t => taskCardHtml(t)).join('') ||
+      '<div style="font-size: 11px; color: var(--text-dimmer); text-align: center; padding: 12px 0;">—</div>';
+  });
+}
+
+function taskCardHtml(t) {
+  const st = getTaskState(t);
+  const blocker = t.blocker ? appData.blockers.find(b => b.id === t.blocker) : null;
+  return `
+    <div class="task-card ${st.status}" onclick="openTaskModal('${t.id}')">
+      <div class="task-id">${t.id}</div>
+      <div class="task-title">${t.title}</div>
+      <div class="task-tools">${(t.tools || []).map(tool => `<span class="task-tool-chip">${tool}</span>`).join('')}</div>
+      <div class="task-meta">
+        <div class="task-hours">⏱ ${t.hoursEstimated || '-'}h</div>
+        ${blocker ? `<div class="task-blocker-icon" title="${blocker.title}">🔴 ${blocker.id}</div>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function setFilter(filter) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.filter === filter);
+  });
+  if (currentPhaseId) {
+    const phase = appData.phases.find(p => p.id === currentPhaseId);
+    if (phase) renderKanban(phase);
+  }
+}
+
+// ─────────────── TASK MODAL ───────────────
+function openTaskModal(taskId) {
+  const r = findTask(taskId);
+  if (!r) return;
+  currentTaskId = taskId;
+  const t = r.task;
+  const st = getTaskState(t);
+
+  document.getElementById('modal-id').textContent = t.id;
+  document.getElementById('modal-title').textContent = t.title;
+  document.getElementById('modal-desc').textContent = t.description || t.notes || 'Sin descripción.';
+  document.getElementById('modal-tools').innerHTML = (t.tools || []).map(tool => `<span class="tool-chip">${tool}</span>`).join('') || '<span style="color: var(--text-dimmer); font-size: 12px;">Sin herramientas</span>';
+  document.getElementById('modal-notes').value = st.notes;
+
+  // Blocker info
+  const blockerSection = document.getElementById('modal-blocker-section');
+  if (t.blocker) {
+    const b = appData.blockers.find(bl => bl.id === t.blocker);
+    if (b) {
+      document.getElementById('modal-blocker').innerHTML = `
+        <span class="severity ${b.severity}">${b.severity}</span>
+        <strong style="margin-left:8px;">${b.title}</strong>
+        <div style="color: var(--text-dim); font-size: 12px; margin-top: 6px;">${b.description}</div>
+      `;
+      blockerSection.style.display = 'block';
+    }
+  } else {
+    blockerSection.style.display = 'none';
+  }
+
+  // Status options
+  document.querySelectorAll('.status-option').forEach(opt => {
+    opt.classList.toggle('selected', opt.dataset.status === st.status);
+  });
+
+  document.getElementById('modal').classList.add('visible');
+}
+
+function closeModal() {
+  currentTaskId = null;
+  document.getElementById('modal').classList.remove('visible');
+}
+
+function setTaskStatus(status) {
+  document.querySelectorAll('.status-option').forEach(opt => {
+    opt.classList.toggle('selected', opt.dataset.status === status);
+  });
+}
+
+function saveTask() {
+  if (!currentTaskId) return;
+  const selected = document.querySelector('.status-option.selected');
+  const newStatus = selected ? selected.dataset.status : null;
+  const newNotes = document.getElementById('modal-notes').value;
+
+  if (!stateOverrides[currentTaskId]) stateOverrides[currentTaskId] = {};
+  if (newStatus) stateOverrides[currentTaskId].status = newStatus;
+  stateOverrides[currentTaskId].notes = newNotes;
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(stateOverrides));
+  closeModal();
+  renderAll();
+  if (currentPhaseId) {
+    const phase = appData.phases.find(p => p.id === currentPhaseId);
+    if (phase) renderKanban(phase);
+  }
+  showToast('✓ Guardado');
+}
+
+// ─────────────── STATS ───────────────
+function phaseStats(phase) {
+  const total = phase.tasks.length;
+  const done = phase.tasks.filter(t => getTaskState(t).status === 'done').length;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  return { total, done, pct };
+}
+
+function countBlockers(tasks) {
+  return tasks.filter(t => getTaskState(t).status === 'blocked').length;
+}
+
+// ─────────────── EXPORT / IMPORT ───────────────
+function exportState() {
+  // Combine original data with current overrides into a flat export
+  const exportData = JSON.parse(JSON.stringify(appData));
+  const applyOverrides = (tasks) => {
+    tasks.forEach(t => {
+      const o = stateOverrides[t.id];
+      if (o) {
+        if (o.status) t.status = o.status;
+        if (o.notes !== undefined) t.notes = o.notes;
+      }
+    });
+  };
+  exportData.phases.forEach(p => applyOverrides(p.tasks));
+  (exportData.fundamentals?.groups || []).forEach(g => applyOverrides(g.tasks));
+  if (exportData.crosscutting) applyOverrides(exportData.crosscutting.tasks);
+  exportData.project.lastUpdate = new Date().toISOString().slice(0,10);
+
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `dashboard-data-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✓ JSON exportado');
+}
+
+function importState(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.project || !Array.isArray(data.phases)) throw new Error('Estructura inválida: falta project o phases');
+      appData = data;
+      stateOverrides = {};
+      localStorage.removeItem(STORAGE_KEY);
+      renderAll();
+      showToast('✓ JSON importado');
+    } catch (err) {
+      showToast('❌ ' + err.message, 'error');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function resetState() {
+  if (!confirm('¿Borrar todos los cambios locales y volver al estado inicial del JSON?')) return;
+  stateOverrides = {};
+  localStorage.removeItem(STORAGE_KEY);
+  renderAll();
+  if (currentPhaseId) {
+    const phase = appData.phases.find(p => p.id === currentPhaseId);
+    if (phase) renderKanban(phase);
+  }
+  showToast('✓ Estado reiniciado');
+}
+
+// ─────────────── TOAST ───────────────
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.remove('error');
+  if (type === 'error') t.classList.add('error');
+  t.classList.add('visible');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => t.classList.remove('visible'), 2500);
+}
+
+// ─────────────── START ───────────────
+init();
+</script>
+</body>
+</html>

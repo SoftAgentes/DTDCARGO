@@ -34,6 +34,7 @@ export const users: UsersDict = {
   "users.role.accounting": "财务",
   "users.role.warehouse": "仓管员",
   "users.role.support": "客服",
+  "users.role.marketing": "市场营销",
 
   // ── 团队 ─────────────────────────────────────────────────
   "users.team.direccion": "管理层",

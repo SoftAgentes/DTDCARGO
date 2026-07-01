@@ -51,6 +51,7 @@ const ROLE_KEY: Record<StudioUserRole, I18nKey> = {
   accounting: "users.role.accounting",
   warehouse: "users.role.warehouse",
   support: "users.role.support",
+  marketing: "users.role.marketing",
 };
 import { inviteUserAction } from "../actions";
 
