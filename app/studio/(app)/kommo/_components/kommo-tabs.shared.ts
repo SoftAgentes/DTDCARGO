@@ -5,10 +5,10 @@
  * `debug-tabs.shared.ts` de la Torre de control (SDD-0050).
  */
 
-export type KommoTabKey = "direccion" | "asesor";
+export type KommoTabKey = "direccion" | "tablero" | "asesor";
 
 export function isKommoTab(v: string | undefined | null): v is KommoTabKey {
-  return v === "direccion" || v === "asesor";
+  return v === "direccion" || v === "tablero" || v === "asesor";
 }
 
 /** Pestaña por defecto = Dirección (la foto del founder). */
@@ -18,5 +18,6 @@ export function resolveKommoTab(raw: string | undefined | null): KommoTabKey {
 
 export const KOMMO_TABS: ReadonlyArray<{ key: KommoTabKey; label: string }> = [
   { key: "direccion", label: "Dirección" },
+  { key: "tablero", label: "Tablero" },
   { key: "asesor", label: "Asesor" },
 ];

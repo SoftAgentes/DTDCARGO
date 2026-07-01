@@ -15,6 +15,8 @@ import {
 } from "@/lib/studio/kommo-writeback";
 import {
   getKommoOverview,
+  getKommoStatusCounts,
+  listKommoBoardLeads,
   listKommoLeadCustomFields,
   listKommoLeads,
   listKommoPipelines,
@@ -25,9 +27,14 @@ import type {
   KommoCustomFieldRow,
   KommoStageMap,
 } from "@/lib/studio/kommo-types";
+import type { ReactNode } from "react";
 import { DireccionTab } from "./_components/DireccionTab";
+import { KommoBoardView } from "./_components/KommoBoardView";
 import { KommoClient } from "./_components/KommoClient";
 import { resolveKommoTab } from "./_components/kommo-tabs.shared";
+
+/** Tope de leads traídos por embudo para el Tablero kanban. */
+const BOARD_CAP = 2000;
 
 export const metadata = { title: "Kommo CRM" };
 
@@ -79,6 +86,44 @@ export default async function KommoPage({
     canEditStageMap = link.data?.role === "admin";
   }
 
+  // Tablero (kanban): leads del embudo activo (param ?pipeline= o el principal),
+  // agrupados por etapa en el componente. Slot server-render (read-only).
+  let tablero: ReactNode = null;
+  if (tab === "tablero") {
+    const p = single("pipeline");
+    const boardPipelineId =
+      p && /^\d+$/.test(p)
+        ? Number(p)
+        : (pipelines.find((pl) => pl.is_main)?.id ?? pipelines[0]?.id ?? null);
+    if (boardPipelineId != null) {
+      const statusIds = statuses
+        .filter((s) => s.pipeline_id === boardPipelineId)
+        .map((s) => s.id);
+      const [boardLeads, realCountByStatus] = await Promise.all([
+        listKommoBoardLeads(supabase, boardPipelineId, BOARD_CAP),
+        getKommoStatusCounts(supabase, boardPipelineId, statusIds),
+      ]);
+      const ownerName: Record<number, string> = {};
+      for (const o of analytics.ownership.owners) {
+        if (o.id != null) ownerName[o.id] = o.label;
+      }
+      tablero = (
+        <KommoBoardView
+          pipelines={pipelines}
+          statuses={statuses}
+          leads={boardLeads}
+          realCountByStatus={realCountByStatus}
+          pipelineId={boardPipelineId}
+          subdomain={overview.subdomain}
+          convertedMarkboxByLead={analytics.convertedMarkboxByLead}
+          valueByLead={analytics.valueByLead}
+          ownerName={ownerName}
+          boardCap={BOARD_CAP}
+        />
+      );
+    }
+  }
+
   // Worklist (Asesor): leads filtrados; converted/valor se derivan del análisis.
   const leads = tab === "asesor" ? await listKommoLeads(supabase, filters) : [];
   const visibleConverted: Record<number, string> = {};
@@ -107,6 +152,7 @@ export default async function KommoPage({
           />
         ) : null
       }
+      tablero={tablero}
       overview={overview}
       pipelines={pipelines}
       statuses={statuses}

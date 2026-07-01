@@ -83,6 +83,7 @@ function connLabel(status: string | null): string {
 export function KommoClient({
   tab,
   direccion,
+  tablero,
   overview,
   pipelines,
   statuses,
@@ -95,6 +96,8 @@ export function KommoClient({
   tab: KommoTabKey;
   /** Slot server-renderizado con el tablero Dirección. */
   direccion: ReactNode;
+  /** Slot server-renderizado con el Tablero kanban del embudo. */
+  tablero: ReactNode;
   overview: KommoOverview;
   pipelines: KommoPipelineRow[];
   statuses: KommoStatusRow[];
@@ -183,7 +186,7 @@ export function KommoClient({
   const goTab = (key: KommoTabKey) => {
     if (key === tab) return;
     startTransition(() => {
-      router.push(key === "direccion" ? "/studio/kommo" : "/studio/kommo?tab=asesor");
+      router.push(key === "direccion" ? "/studio/kommo" : `/studio/kommo?tab=${key}`);
     });
   };
 
@@ -296,6 +299,8 @@ export function KommoClient({
       {/* Contenido */}
       {tab === "direccion" ? (
         direccion
+      ) : tab === "tablero" ? (
+        tablero
       ) : (
         <>
           {/* Toolbar del worklist */}

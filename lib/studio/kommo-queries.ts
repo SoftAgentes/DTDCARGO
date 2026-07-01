@@ -155,6 +155,52 @@ export async function listKommoLeads(
   return (data as KommoLeadRow[] | null) ?? [];
 }
 
+/**
+ * Leads de UN embudo para el Tablero kanban (SDD-0078 · vista Tablero).
+ * Trae hasta `cap` leads del embudo ordenados por actividad reciente; el server
+ * los agrupa por etapa y computa conteo + Σ por columna. El `cap` acota embudos
+ * gigantes (ej. una etapa con miles de leads) — se avisa en la UI si se recorta.
+ * RLS filtra por tenant.
+ */
+export async function listKommoBoardLeads(
+  supabase: SupabaseClient,
+  pipelineId: number,
+  cap = 2000,
+): Promise<KommoLeadRow[]> {
+  const { data, error } = await supabase
+    .from("kommo_leads")
+    .select(LEAD_COLUMNS)
+    .eq("pipeline_id", pipelineId)
+    .order("kommo_updated_at", { ascending: false, nullsFirst: false })
+    .limit(cap);
+  if (error) throw error;
+  return (data as KommoLeadRow[] | null) ?? [];
+}
+
+/**
+ * Conteo REAL de leads por etapa de un embudo (SDD-0078 · Tablero).
+ * Independiente del `cap` de tarjetas: usa `count: exact, head` (no trae filas)
+ * por cada etapa → el header de columna nunca miente aunque el embudo esté
+ * capado. Una query liviana por etapa, en paralelo. RLS filtra por tenant.
+ */
+export async function getKommoStatusCounts(
+  supabase: SupabaseClient,
+  pipelineId: number,
+  statusIds: number[],
+): Promise<Record<number, number>> {
+  const entries = await Promise.all(
+    statusIds.map(async (sid) => {
+      const { count } = await supabase
+        .from("kommo_leads")
+        .select("*", { count: "exact", head: true })
+        .eq("pipeline_id", pipelineId)
+        .eq("status_id", sid);
+      return [sid, count ?? 0] as const;
+    }),
+  );
+  return Object.fromEntries(entries);
+}
+
 /** Parsea filtros del URL (?pipeline=&q=&asesor=&aged=&sort=). */
 export function parseKommoFiltersFromSearchParams(
   raw: Record<string, string | string[] | undefined>,
