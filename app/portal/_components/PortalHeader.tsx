@@ -1,28 +1,32 @@
 import Link from "next/link";
 import { BrandMark } from "@/components/BrandMark";
-import { signOutAction } from "../actions";
 import { PortalNav } from "./PortalNav";
 import { PortalThemeToggle } from "./PortalThemeToggle";
+import { PortalAccountMenu } from "./PortalAccountMenu";
 
 /**
- * Header del portal autenticado: logo + navegación (Envíos · Facturas · Cuenta)
- * + identidad del cliente (nombre + MARKBOX) + cerrar sesión. Server component;
- * el logout es un `<form>` que postea a la server action `signOutAction`. La
- * navegación con estado activo vive en `<PortalNav>` (client, `usePathname`).
+ * Header del portal autenticado: logo + nav de 6 destinos del Norte + identidad
+ * del cliente. La identidad ahora es un **menú** (`PortalAccountMenu`): Cuenta y
+ * Perfil "cuelgan del nombre" (Norte) en vez de ser ítems del top-nav; el logout
+ * vive dentro de ese menú. La navegación con estado activo vive en `<PortalNav>`
+ * (client, `usePathname`).
  *
  * `themed` (founder 2026-06-20): cuando la cuenta es DEMO, el portal tiene tema
  * oscuro/claro → mostramos el toggle y el logo sigue el tema (reverse en oscuro).
+ * `showClub`: Club solo aparece en el nav si el cliente está habilitado (gated).
  */
 export function PortalHeader({
   markbox,
   name,
   themed = false,
   theme = "light",
+  showClub = false,
 }: {
   markbox: string;
   name: string;
   themed?: boolean;
   theme?: "dark" | "light";
+  showClub?: boolean;
 }) {
   return (
     <header className="border-b border-grey-200 bg-white sticky top-0 z-40">
@@ -66,31 +70,12 @@ export function PortalHeader({
               </>
             )}
           </Link>
-          <PortalNav />
+          <PortalNav showClub={showClub} />
         </div>
 
         <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
-          <div className="text-right hidden sm:block">
-            <div className="text-[13px] font-semibold text-ink leading-tight truncate max-w-[200px]">
-              {name}
-            </div>
-            <div
-              className="text-[11.5px] text-grey-500 leading-tight"
-              style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
-            >
-              {markbox}
-            </div>
-          </div>
           {themed && <PortalThemeToggle initialTheme={theme} />}
-          <form action={signOutAction}>
-            <button
-              type="submit"
-              className="text-[13px] font-semibold text-grey-700 border border-grey-200 rounded-md px-3 py-2 hover:border-ink hover:text-ink transition-colors"
-            >
-              <span className="sm:hidden">Salir</span>
-              <span className="hidden sm:inline">Cerrar sesión</span>
-            </button>
-          </form>
+          <PortalAccountMenu name={name} markbox={markbox} />
         </div>
       </div>
     </header>
