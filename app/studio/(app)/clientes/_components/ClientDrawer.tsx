@@ -14,8 +14,11 @@ import { useActionState, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   CLIENT_TIER_OPTIONS,
+  DOC_KIND_OPTIONS,
+  clientCompleteness,
   type Client,
   type ClientActionState,
+  type ClientDocKind,
   type ClientTier,
 } from "@/lib/studio/client-types";
 import {
@@ -44,6 +47,12 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
   const [state, formAction, isPending] = useActionState(action, initialState);
 
   const [tier, setTier] = useState<ClientTier>(client?.tier ?? "regular");
+  // SDD-0122: tipo de documento del alta (persona/empresa). Cambia las etiquetas
+  // del nombre y del documento, y muestra el contacto operativo si es empresa.
+  const [docKind, setDocKind] = useState<ClientDocKind>(
+    client?.doc_kind ?? "persona",
+  );
+  const isCompany = docKind === "empresa";
 
   const [lat, setLat] = useState<string>(
     client?.lat != null ? String(client.lat) : "",
@@ -134,6 +143,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
     ) as HTMLFormElement | null;
     formEl?.reset();
     setTier("regular");
+    setDocKind("persona");
     setLat("");
     setLng("");
     setGeoStatus("idle");
@@ -176,6 +186,30 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
       return { error: m };
     }
     const markbox = result.createdMarkbox;
+
+    // SDD-0122: "qué falta para completar" al crear. Se calcula del propio form
+    // (foto y verificación siempre faltan al alta → se completan luego en la
+    // ficha). Aviso informativo, no bloquea. En "abrir perfil" no lo mostramos:
+    // la card de la ficha ya lo dice.
+    const missing = clientCompleteness({
+      doc_kind: docKind,
+      rif: (formData.get("rif") as string | null) || null,
+      contact_name: (formData.get("contact_name") as string | null) || null,
+      email: (formData.get("email") as string | null) || null,
+      phone: (formData.get("phone") as string | null) || null,
+      address: (formData.get("address") as string | null) || null,
+      cedula_photo_path: null,
+      doc_verify_status: null,
+    }).missingLabels;
+    if (postAction !== "open" && missing.length > 0) {
+      toast.info(`Para completar ${markbox} falta: ${missing.join(", ")}.`, {
+        link: {
+          href: `/studio/clientes/${markbox}`,
+          label: "Completar perfil",
+        },
+      });
+    }
+
     if (postAction === "close") {
       toast.success(`Cliente ${markbox} creado`, {
         link: {
@@ -322,10 +356,56 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
             </div>
           )}
 
-          {/* Nombre */}
+          {/* Tipo de documento · persona (cédula) / empresa (RIF) — SDD-0122 */}
+          <div>
+            <label className="studio-label">
+              Tipo de cliente <span style={{ color: "var(--wine)" }}>*</span>
+            </label>
+            {/* Hidden input: el value entra al FormData tanto en create
+                (new FormData(formEl)) como en edit (form action). */}
+            <input type="hidden" name="doc_kind" value={docKind} />
+            {/* Toggle de 2 opciones: `role="group"` + `aria-pressed` (no radiogroup
+                ARIA, que exigiría roving tabindex + flechas). Contrato honesto:
+                dos toggles reales, ambos en el tab order, selección con Enter/Espacio. */}
+            <div
+              role="group"
+              aria-label="Tipo de cliente"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 8,
+                marginTop: 4,
+              }}
+            >
+              {DOC_KIND_OPTIONS.map((opt) => {
+                const active = docKind === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setDocKind(opt.value)}
+                    className="studio-btn"
+                    style={{
+                      justifyContent: "center",
+                      border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
+                      background: active ? "var(--wine-tint)" : "var(--bg-surface)",
+                      color: active ? "var(--wine)" : "var(--ink-soft)",
+                      fontWeight: active ? 700 : 500,
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Nombre / Razón social */}
           <div>
             <label className="studio-label" htmlFor="cl-name">
-              Nombre <span style={{ color: "var(--wine)" }}>*</span>
+              {isCompany ? "Razón social" : "Nombre"}{" "}
+              <span style={{ color: "var(--wine)" }}>*</span>
             </label>
             <input
               id="cl-name"
@@ -333,12 +413,36 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
               type="text"
               className="studio-input"
               defaultValue={client?.name ?? ""}
-              placeholder="Empresa Demo S.A."
+              placeholder={isCompany ? "Inversiones Demo, C.A." : "Juan Pérez"}
               required
               autoFocus
             />
             {state.fieldErrors?.name && <FieldError msg={state.fieldErrors.name} />}
           </div>
+
+          {/* Nombre de contacto · solo empresa (SDD-0122) */}
+          {isCompany && (
+            <div>
+              <label className="studio-label" htmlFor="cl-contact-name">
+                Nombre de contacto{" "}
+                <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>
+                  (opcional)
+                </span>
+              </label>
+              <input
+                id="cl-contact-name"
+                name="contact_name"
+                type="text"
+                className="studio-input"
+                defaultValue={client?.contact_name ?? ""}
+                placeholder="Persona con quien se coordina"
+                autoComplete="off"
+              />
+              {state.fieldErrors?.contact_name && (
+                <FieldError msg={state.fieldErrors.contact_name} />
+              )}
+            </div>
+          )}
 
           {/* Tier */}
           <div>
@@ -558,10 +662,10 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
             )}
           </div>
 
-          {/* RIF */}
+          {/* Documento · cédula (persona) o RIF (empresa) — SDD-0122 */}
           <div>
             <label className="studio-label" htmlFor="cl-rif">
-              RIF{" "}
+              {isCompany ? "RIF" : "Cédula"}{" "}
               <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>
                 (opcional)
               </span>
@@ -572,7 +676,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
               type="text"
               className="studio-input studio-input-mono"
               defaultValue={client?.rif ?? ""}
-              placeholder="J-12345678-9"
+              placeholder={isCompany ? "J-12345678-9" : "V-12345678"}
               autoComplete="off"
             />
             {state.fieldErrors?.rif && <FieldError msg={state.fieldErrors.rif} />}
@@ -583,7 +687,9 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
                 margin: "4px 0 0",
               }}
             >
-              Formato: V/E/J/G/P + 8 dígitos + verificador.
+              {isCompany
+                ? "Formato: J-12345678-9 (RIF jurídico o gubernamental)."
+                : "Formato: V-12345678 (cédula V o E, 6 a 9 dígitos)."}
             </p>
           </div>
 
