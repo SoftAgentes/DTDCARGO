@@ -4,7 +4,7 @@ title: "Portal del cliente — alineación con el Norte (estimado, soporte, coti
 status: proposed
 author: "founder"
 created: 2026-06-13
-updated: 2026-06-13
+updated: 2026-07-01
 supersedes: null
 superseded_by: null
 related: ["0042", "0047", "0051", "0054", "0056", "0061", "0067"]
@@ -12,6 +12,13 @@ confidencialidad: interno
 ---
 
 # DTD-0075 — Portal del cliente: alineación con el Norte
+
+> **📌 Estado (2026-07-01):** de los 3 frentes, **§2 (soporte con casos)** se cerró vía
+> **SDD-0102 Reclamos** (LIVE) y **§3 (cotización desde el portal)** ya está en prod
+> (`/portal/cotizaciones` + `/nueva` + "Avanzar a cotización"). **Solo queda §1**
+> (estimado cosido dentro del ciclo del envío + aceptación de T&C **fundida en el detalle
+> del envío**, hoy vive aparte en `/portal/facturas/[code]/aceptar`). Esta spec se **reduce
+> a §1**; su prioridad y la del resto del portal viven en `INVENTARIO-PORTAL.md` (raíz).
 
 > Cierra los 3 gaps de **arquitectura** entre el portal de producción (`app/portal/`)
 > y el Norte (`docs/design/studio/_norte/portal/app.jsx`): estimado cosido al envío,

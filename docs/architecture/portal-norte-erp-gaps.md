@@ -1,5 +1,13 @@
 # Conectar el Portal al Norte — qué falta construir en el ERP
 
+> **⚠️ PARCIALMENTE SUPERADO (2026-07-01).** Desde el análisis original se construyeron
+> **#1 Naviera Tier 1** (SDD-0101, buque/ETA/tracking SeaRates) y **#3 Asesor asignado**
+> (`clients.advisor_id`, migr 0151) → ambos en prod. El estado vigente y la re-priorización
+> viven en **`INVENTARIO-PORTAL.md`** (raíz, 2026-07-01). Lo que sigue pendiente acá:
+> **#2 cut-off de zarpes**, **#4 hitos/eventos con fecha** (⭐ el que más mueve la aguja, +
+> push de estado al cliente), #5 mensajería en vivo, #6 factura fiscal PDF, #7 aceptación fundida.
+> Los ítems marcados **✅ HECHO** abajo ya no aplican.
+
 > **Estado:** análisis (founder 2026-06-20). El portal del cliente ya **apunta al Norte**
 > (rediseño + modo oscuro, formalizado para todos — `NORTE_PORTAL_LIVE`). Pero varios
 > elementos del Norte hoy se muestran **DEGRADADOS** porque el ERP todavía no tiene la
@@ -18,7 +26,7 @@ está lista para consumir.
 
 ## P0 · El corazón (lo más visible del Norte está degradado acá)
 
-### 1. Naviera Tier 1 — datos reales del embarque
+### 1. Naviera Tier 1 — datos reales del embarque · ✅ HECHO (SDD-0101, en prod)
 - **El Norte muestra:** buque + viaje + contenedor, ETD/ETA reales, **progreso real**, mapa.
 - **Hoy degrada a:** progreso DERIVADO del status (`computeProgress`), ETA ESTIMADA por
   heurística (`estimatePortalEta`), sin buque/contenedor (héroe del dashboard + detalle).
@@ -42,7 +50,7 @@ está lista para consumir.
 
 ## P1 · La relación con el cliente
 
-### 3. Asesor asignado (el "agente" del Norte)  ← QUICK WIN
+### 3. Asesor asignado (el "agente" del Norte)  ← ✅ HECHO (`clients.advisor_id`, migr 0151, en prod)
 - **El Norte muestra:** el account director ASIGNADO (nombre, foto, contacto, chat).
 - **Hoy degrada a:** contacto PÚBLICO (CRM WhatsApp), porque `clients.advisor_id` no existe.
 - **Construir en el ERP:** columna `clients.advisor_id` → `user_tenants` + UI de asignación
