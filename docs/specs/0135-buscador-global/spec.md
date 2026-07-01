@@ -1,7 +1,7 @@
 ---
 sdd: "0135"
 title: "Buscador global ⌘K del Studio — permission-aware, gating por faceta"
-status: draft
+status: done
 author: "Director (materializa handoff ventana cambio-esteticos) + founder"
 created: 2026-07-01
 updated: 2026-07-01

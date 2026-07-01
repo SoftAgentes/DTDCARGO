@@ -167,7 +167,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0132 | Hitos del envío + notificación de estado al cliente | draft | interno |
 | 0133 | Cut-off / calendario de zarpes en el portal | draft | interno |
 | 0134 | Reportar pago + comprobante en el portal | draft | interno |
-| 0135 | Buscador global ⌘K del Studio — permission-aware, gating por … | draft | interno |
+| 0135 | Buscador global ⌘K del Studio — permission-aware, gating por … | done | interno |
 | 0136 | Gestión de usuarios del ERP — alta por rol, reasignación y ba… | draft | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112 — código sin spec o renumerado, auditar caso por caso.
