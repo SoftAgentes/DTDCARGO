@@ -56,6 +56,7 @@ import {
   linkEstimateByCode,
   linkEstimatesByContact,
 } from "@/lib/studio/quote-queries";
+import { linkReferralOnRegister } from "@/lib/portal/referral-link";
 import {
   validateRegisterInput,
   type RegisterActionState,
@@ -268,6 +269,26 @@ export async function registerClientAction(
     }
   } catch (linkErr) {
     console.error("[registerClientAction] vínculo de estimado web falló:", linkErr);
+  }
+
+  // 6b. SDD-0051 Fase 2 — linkear el referido si vino con ?ref= (invitación por
+  //     correo → REF-YYYY-NNNN, o código compartido → REF-XXXX). Best-effort: un
+  //     fallo NO rompe el alta. Al quedar 'registrado' con referred_client_id, el
+  //     trigger de la 1ª factura (migr 0195) podrá acreditar al referidor.
+  try {
+    const refCode = String(formData.get("ref") ?? "").trim();
+    if (refCode) {
+      await linkReferralOnRegister(admin, {
+        tenantId,
+        ref: refCode,
+        newClientId: clientRow.id,
+        newClientMarkbox: markbox,
+        newClientName: clientDisplayName,
+        newClientEmail: input.email,
+      });
+    }
+  } catch (refErr) {
+    console.error("[registerClientAction] link de referido falló:", refErr);
   }
 
   // 7. Crear la cuenta de auth con una contraseña ALEATORIA fuerte. NUNCA la

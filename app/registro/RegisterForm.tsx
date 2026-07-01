@@ -59,7 +59,14 @@ const EMPTY: FormData0 = {
  * nomenclatura del MARKBOX en la pantalla de éxito. Se mantiene MARKBOX (término
  * público) y el acceso por enlace al correo (no "clave = cédula").
  */
-export function RegisterForm({ est }: { est?: string }) {
+export function RegisterForm({
+  est,
+  refCode,
+}: {
+  est?: string;
+  /** Código de referido del `?ref=` (invitación por correo o código compartido). */
+  refCode?: string;
+}) {
   const [state, action, pending] = useActionState(registerClientAction, initial);
   const [data, setData] = useState<FormData0>(EMPTY);
   const [tried, setTried] = useState(false);
@@ -116,6 +123,7 @@ export function RegisterForm({ est }: { est?: string }) {
               data={data}
               patch={patch}
               est={est}
+              refCode={refCode}
               action={action}
               pending={pending}
               tried={tried}
@@ -144,6 +152,7 @@ function ExpressForm({
   data,
   patch,
   est,
+  refCode,
   action,
   pending,
   tried,
@@ -154,6 +163,7 @@ function ExpressForm({
   data: FormData0;
   patch: (p: Partial<FormData0>) => void;
   est?: string;
+  refCode?: string;
   action: (formData: FormData) => void;
   pending: boolean;
   tried: boolean;
@@ -236,6 +246,8 @@ function ExpressForm({
       <input type="hidden" name="office_phone" value={data.officePhone} />
       {/* SDD-0061: código del estimado web a vincular (vacío si no vino del CTA). */}
       <input type="hidden" name="est" value={est ?? ""} />
+      {/* SDD-0051 Fase 2: código de referido (invitación por correo o compartido). */}
+      <input type="hidden" name="ref" value={refCode ?? ""} />
 
       {/*
         Honeypot anti-bot (SDD-0042 §10). Campo trampa con nombre inocuo: un
