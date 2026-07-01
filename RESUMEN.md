@@ -6,8 +6,14 @@
   - `fd1db616` — refactor(studio): reordenar sidebar por lógica de negocio
   - `a8d036cc` — feat(studio): sidebar acordeón (una sección abierta a la vez, patrón Norte)
   - `bfaea38c` — feat(studio): sub-grupos anidados + slider de ancho (patrón Norte)
-- **Archivos tocados:** `lib/studio/modules.ts` · `app/studio/(app)/_components/StudioSidebar.tsx` · `lib/i18n/es-VE/chrome.ts` · `lib/i18n/zh-CN/chrome.ts`.
+  - `98a6e21c` — docs(forja): RESUMEN de la sesión
+  - _(nuevo)_ — feat(portal): Referidos — invitar por correo + recompensa "Próximamente"
+- **Archivos tocados:** `lib/studio/modules.ts` · `app/studio/(app)/_components/StudioSidebar.tsx` · `lib/i18n/{es-VE,zh-CN}/chrome.ts` · **+ Referidos portal** (ver Cambio 4).
 - **Sin migración, sin tocar prod, sin push.**
+
+> ⚠️ **Director:** esta rama lleva DOS temas por decisión explícita del founder
+> (2026-07-01): el **sidebar** (Cambios 1-3) y **Referidos del portal** (Cambio 4).
+> Son independientes; se pueden mergear/cherry-pickear por separado si se prefiere.
 
 ## Cambio 2 — Acordeón de secciones (alinear al Norte)
 
@@ -184,3 +190,38 @@ producción: `modules.ts`, `StudioSidebar.tsx`, i18n es-VE/zh-CN.
 **Decisiones del founder ya cerradas (2026-07-01), sin pendientes:**
 - **Documentos → SISTEMA:** ✅ confirmado, se queda.
 - **Almacén VE:** ✅ confirmado, se agrupa dentro del cluster "Almacenes".
+
+---
+
+## Cambio 4 — Referidos del portal: invitar por correo + recompensa "Próximamente"
+
+**Contexto (founder 2026-07-01):** la pantalla `/portal/referidos` era solo-lectura y
+mostraba un saldo en dólares (`$0 acreditados`) como si el crédito fuera dinero
+disponible. El founder quiso: (a) habilitar **invitar por correo** a un nuevo
+importador ya, (b) **NO** encender pagos todavía, y (c) dejar claro que el bono se
+gana **solo con la primera compra del referido**, con acreditación **automática** —
+esa parte va como **"Próximamente"**.
+
+**Lo que se construyó (ahora):**
+- `lib/portal/referral-invite.ts` — core testeable: `inviteReferral` (valida correo,
+  dedupe por referidor+correo, tope 10/día, genera código, inserta `referrals` en
+  `invitado` con `reward_usd:0`) + `buildReferralInviteEmail` (correo de marca →
+  `/registro?ref=CÓDIGO`). Aislamiento: admin client scopeado explícito por
+  tenant+markbox (patrón de `portal-referral-queries.ts`).
+- `app/portal/(app)/referidos/actions.ts` — server action fina (identidad por sesión,
+  correo best-effort, `revalidatePath`).
+- `app/portal/_components/ReferralInviteForm.tsx` — card "Invita por correo".
+- `app/portal/(app)/referidos/page.tsx` — tile $80 con chip "Próximamente", tarjeta
+  de créditos → "En construcción" (sin saldo falso), bloque "Cómo funciona".
+- `lib/portal/__tests__/referral-invite.test.ts` — 9 casos.
+
+**Fase siguiente (NO en este cambio · con pagos ON · SDD aparte):** captura del código
+en `/registro` (linkear al referido) + **acreditación automática on-first-purchase**
+(cuando el referido registra su primer embarque/factura → acredita el bono al
+referidor solo). El estado enum ya lo soporta (`invitado→registrado→primer-embarque→
+acreditado`). Recomendación: **Slice C de SDD-0051** — pedir correlativo al Director.
+
+**Sin migración** (reusa `referrals`, migr 0098). **Revisado por ui-ux-designer:** OK
+(3 pulidos Low aplicados: chip legible, disclaimer menos redundante, preheader del
+correo). **Verificado:** test 9/9 · `verify.mjs` verde (2974 tests) · typecheck ·
+`next build` OK.
