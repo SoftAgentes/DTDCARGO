@@ -7,7 +7,9 @@
   - `a8d036cc` — feat(studio): sidebar acordeón (una sección abierta a la vez, patrón Norte)
   - `bfaea38c` — feat(studio): sub-grupos anidados + slider de ancho (patrón Norte)
   - `98a6e21c` — docs(forja): RESUMEN de la sesión
-  - _(nuevo)_ — feat(portal): Referidos — invitar por correo + recompensa "Próximamente"
+  - `c9b2a368` — feat(portal): Referidos — invitar por correo + recompensa "Próximamente"
+  - `6bf40663` — feat(portal): Referidos Fase 2A — capturar ?ref= en el registro
+  - `ca8ba1ab` — feat(db): Referidos Fase 2B — trigger acreditación automática (migr 0195)
 - **Archivos tocados:** `lib/studio/modules.ts` · `app/studio/(app)/_components/StudioSidebar.tsx` · `lib/i18n/{es-VE,zh-CN}/chrome.ts` · **+ Referidos portal** (ver Cambio 4).
 - **Sin migración, sin tocar prod, sin push.**
 
@@ -225,3 +227,39 @@ acreditado`). Recomendación: **Slice C de SDD-0051** — pedir correlativo al D
 (3 pulidos Low aplicados: chip legible, disclaimer menos redundante, preheader del
 correo). **Verificado:** test 9/9 · `verify.mjs` verde (2974 tests) · typecheck ·
 `next build` OK.
+
+---
+
+## Cambio 5 — Referidos Fase 2: captura del código + acreditación automática
+
+**Contexto (founder 2026-07-01, "SÍ ARRANCA"):** cerrar el lazo del programa. El bono
+se gana **solo con la primera compra del referido** y se acredita **automático**.
+Decisiones: señal = **primera factura emitida** (no el embarque); "acreditar" =
+**registrar** el crédito (status + $80 visible), **advisory** — el asesor lo aplica,
+cero movimiento de plata automático.
+
+**Fase 2A — captura del `?ref=` en el registro** (commit `6bf40663`):
+- `lib/portal/referral-link.ts` — `linkReferralOnRegister` (core testeable): dos
+  caminos (invitación por correo = `referral_code`; código compartido = shareCode/markbox),
+  guard anti-autoreferido + dedupe, best-effort. + test 10 casos.
+- `app/registro/{page,RegisterForm,actions}.ts` — leer `?ref=` (patrón `?est=`), hidden
+  input `ref`, llamada best-effort tras crear el cliente (no rompe el alta). `/registro`
+  es Supabase-backed por diseño (no restringido por la frontera). El prop se llama
+  `refCode` (`ref` es reservado en React); el campo del form sí es `"ref"`.
+
+**Fase 2B — trigger de acreditación** (commit `ca8ba1ab` · **MIGRACIÓN 0195**):
+- `supabase/migrations/0195_referral_auto_accredit.sql` — trigger `AFTER INSERT OR
+  UPDATE OF status ON invoices` → función SECURITY DEFINER que, en la 1ª factura
+  billable del cliente, resuelve `client_markbox→clients.id→referred_client_id` y
+  acredita **idempotente por estado** (`registrado→acreditado` + `reward_usd=80`).
+  Advisory: NO postea a CxC. + índice FK `referrals_referred_client_idx` (buenas
+  prácticas Postgres, skill invocado) + `revoke execute` de la función (no expuesta).
+
+> ⚠️ **DIRECTOR — MIGRACIÓN 0195 SIN APLICAR:** la escribí en la rama, **NO la apliqué
+> a prod** (ventana secundaria). Aplicala y validala vos (dry-run `begin…rollback` o
+> branch efímero). Los tests de vitest NO ejercen la DB (stubs). **E2E tras aplicar:**
+> invitar por correo → `/registro?ref=REF-YYYY-NNNN` → registrarse (queda `registrado`)
+> → emitir su 1ª factura → queda `acreditado` +$80 → el referidor lo ve en el portal.
+
+**Recomendación:** formalizar Fase 2 como **Slice C de SDD-0051** (pedir correlativo).
+**Verificado:** test 10/10 · `verify.mjs` verde (2984 tests) · typecheck · `next build` OK.
