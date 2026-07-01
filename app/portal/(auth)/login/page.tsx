@@ -32,5 +32,15 @@ export default async function PortalLoginPage({
           ? "Ese enlace no es válido. Pide uno nuevo."
           : null;
 
-  return <LoginForm notice={notice} authedNotBound={!!user} />;
+  // Email precargado desde el correo de invitación (`/portal/login?email=…`).
+  const prefillEmail =
+    sp.email && sp.email.includes("@") ? sp.email.trim().toLowerCase() : null;
+
+  return (
+    <LoginForm
+      notice={notice}
+      authedNotBound={!!user}
+      prefillEmail={prefillEmail}
+    />
+  );
 }

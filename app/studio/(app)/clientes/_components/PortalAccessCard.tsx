@@ -97,15 +97,17 @@ export function PortalAccessCard({
           >
             {status === null && (
               <>
-                Todavía no tiene acceso. Al invitarlo, podrá entrar en{" "}
-                <b style={{ color: "var(--ink)" }}>/portal</b> con{" "}
-                <b style={{ color: "var(--ink)" }}>{email}</b> y ver sus envíos.
+                Todavía no tiene acceso. Al invitarlo, le enviamos un correo a{" "}
+                <b style={{ color: "var(--ink)" }}>{email}</b> con el enlace para
+                entrar a <b style={{ color: "var(--ink)" }}>/portal</b> y ver sus
+                envíos.
               </>
             )}
             {status === "invited" && (
               <>
-                Invitado el {fmt(access!.invitedAt)}. Esperando el primer ingreso
-                con <b style={{ color: "var(--ink)" }}>{email}</b>.
+                Invitado el {fmt(access!.invitedAt)}. Le enviamos un correo con el
+                enlace de acceso a <b style={{ color: "var(--ink)" }}>{email}</b>.
+                Esperando su primer ingreso.
               </>
             )}
             {status === "active" && (
@@ -137,8 +139,8 @@ export function PortalAccessCard({
                 variant="primary"
                 size="sm"
                 idleLabel={status === "revoked" ? "Volver a invitar" : "Invitar al portal"}
-                loadingLabel="Habilitando…"
-                successLabel="Portal habilitado"
+                loadingLabel="Enviando invitación…"
+                successLabel="Invitación enviada"
                 onAction={async () => {
                   setError(null);
                   return invitePortalAction(clientId, markbox);

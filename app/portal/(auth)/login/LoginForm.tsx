@@ -12,9 +12,12 @@ const initialMagic: PortalLoginState = {};
 export function LoginForm({
   notice,
   authedNotBound,
+  prefillEmail = null,
 }: {
   notice: string | null;
   authedNotBound: boolean;
+  /** Email precargado desde el correo de invitación (`?email=…`). */
+  prefillEmail?: string | null;
 }) {
   // Método único: email + enlace de acceso (magic-link). El Shipping Mark dejó
   // de ser credencial (SDD-0094) — es solo el identificador interno de las cajas.
@@ -66,6 +69,7 @@ export function LoginForm({
                   name="email"
                   required
                   autoFocus
+                  defaultValue={prefillEmail ?? undefined}
                   autoComplete="email"
                   inputMode="email"
                   placeholder="tu@empresa.com"
