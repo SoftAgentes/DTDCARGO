@@ -5,7 +5,7 @@
  *
  * Topbar sticky con:
  * - Module label dinámico (pathname → label via pathToModuleLabel)
- * - Search button + atajo ⌘K (placeholder, abre modal — Sprint 6.4)
+ * - Search button + atajo ⌘K → buscador global permission-aware (SDD-0135)
  * - Theme toggle (sun/moon) persistido en localStorage
  * - Notifications icon (placeholder, 0 notifs)
  * - User menu dropdown con avatar + email + role + Cerrar sesión
@@ -22,6 +22,7 @@ import { pathToModuleLabel } from "./StudioSidebar";
 import { signOut } from "../actions";
 import { useDTDWiring } from "../../_components/wiring/WiringProvider";
 import { useIsMac } from "../../_components/ui/usePlatformMod";
+import { GlobalSearchModal } from "../../_components/wiring/GlobalSearchModal";
 import { useT, useLocale } from "@/lib/i18n";
 import {
   APPEARANCE_EVENT,
@@ -253,7 +254,7 @@ export function StudioTopbar({ userEmail }: StudioTopbarProps) {
         </div>
       </header>
 
-      {searchOpen && <SearchPlaceholderModal onClose={() => setSearchOpen(false)} />}
+      {searchOpen && <GlobalSearchModal onClose={() => setSearchOpen(false)} />}
     </>
   );
 }
@@ -468,84 +469,3 @@ function MenuItem({ label, onClick }: { label: string; onClick: () => void }) {
   );
 }
 
-function SearchPlaceholderModal({ onClose }: { onClose: () => void }) {
-  const t = useT();
-  return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15,30,61,0.4)",
-        zIndex: 100,
-        display: "grid",
-        placeItems: "start center",
-        paddingTop: "12vh",
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "min(560px, 92vw)",
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--r-lg)",
-          boxShadow: "var(--shadow-pop)",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            padding: "14px 18px",
-            borderBottom: "1px solid var(--border)",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-          }}
-        >
-          <span style={{ color: "var(--ink-mute)", display: "inline-flex" }}>
-            {Icon.search(16)}
-          </span>
-          <input
-            disabled
-            placeholder={t("chrome.topbar.search_modal_placeholder")}
-            style={{
-              flex: 1,
-              border: 0,
-              outline: 0,
-              background: "transparent",
-              font: "500 14px/1 var(--f-sans)",
-              color: "var(--ink-mute)",
-            }}
-          />
-          <kbd
-            style={{
-              padding: "2px 6px",
-              borderRadius: 4,
-              background: "var(--bg-elevated)",
-              border: "1px solid var(--border)",
-              font: "600 10px/1.3 var(--f-mono)",
-              color: "var(--ink-soft)",
-            }}
-          >
-            ESC
-          </kbd>
-        </div>
-        <div
-          style={{
-            padding: "20px 18px",
-            font: "500 13px/1.5 var(--f-sans)",
-            color: "var(--ink-soft)",
-          }}
-        >
-          <strong style={{ color: "var(--ink)", font: "800 13px/1 var(--f-display)" }}>
-            {t("chrome.topbar.search_modal_title")}
-          </strong>
-          <div style={{ marginTop: 8 }}>
-            {t("chrome.topbar.search_modal_hint")}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}

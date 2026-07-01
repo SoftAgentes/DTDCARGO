@@ -124,6 +124,26 @@ export const chrome: ChromeDict = {
   "chrome.topbar.search_modal_hint":
     "在此之前，请使用侧边栏查找货运、客户、唛头 (Shipping Mark) 等。",
 
+  // ── Buscador global ⌘K (SDD-0135) ────────────────────────
+  "chrome.search.dialog_aria": "Studio 全局搜索",
+  "chrome.search.placeholder": "搜索客户、货运、估价、发票、付款…",
+  "chrome.search.searching": "搜索中…",
+  "chrome.search.scope_all": "全部",
+  "chrome.search.facet.clients": "客户",
+  "chrome.search.facet.shipments": "货运",
+  "chrome.search.facet.quotes": "估价",
+  "chrome.search.facet.invoices": "发票",
+  "chrome.search.facet.payments": "付款",
+  "chrome.search.recents": "最近搜索",
+  "chrome.search.empty_hint":
+    "输入以搜索整个 Studio：姓名、唛头 (Shipping Mark)、证件号/RIF、编号或金额。",
+  "chrome.search.no_results": "无匹配结果。",
+  "chrome.search.locked_title": "受限",
+  "chrome.search.locked_note": "发票、付款和催收由财务部门管理。",
+  "chrome.search.kbd_navigate": "移动",
+  "chrome.search.kbd_select": "打开",
+  "chrome.search.kbd_toggle": "搜索",
+
   // ── Toasts genéricos ─────────────────────────────────────
   "chrome.toast.success": "完成",
   "chrome.toast.error": "出现错误",

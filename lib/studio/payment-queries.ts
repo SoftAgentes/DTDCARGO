@@ -136,6 +136,50 @@ export async function listReceipts(
   return ((data as Record<string, unknown>[] | null) ?? []).map(coerceReceipt);
 }
 
+/**
+ * Búsqueda de recibos para el buscador global (SDD-0135). Por texto libre
+ * (código / cliente / Shipping Mark / referencia) o por monto exacto (± 0.5).
+ * RLS acota al tenant. Tope pequeño (anti-scraping + UX del ⌘K).
+ *
+ * SEGURIDAD: solo la invoca el buscador cuando el rol tiene módulo de dinero
+ * (`collections`). Un rol operativo jamás llega acá — el gate está en el
+ * server action del buscador, no en la RLS (que filtra por tenant, no por rol).
+ */
+export async function searchReceipts(
+  supabase: SupabaseClient,
+  opts: { q?: string; amount?: number; limit?: number } = {},
+): Promise<PaymentReceipt[]> {
+  let query = supabase
+    .from("payment_receipts")
+    .select(RECEIPT_COLUMNS)
+    .order("received_at", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(opts.limit ?? 5);
+
+  const q = opts.q?.trim();
+  if (q) {
+    const clean = q.replace(/[,()]/g, " ").replace(/\s+/g, " ").trim();
+    query = query.or(
+      [
+        `receipt_code.ilike.%${clean}%`,
+        `client_name.ilike.%${clean}%`,
+        `client_markbox.ilike.%${clean}%`,
+        `reference.ilike.%${clean}%`,
+      ].join(","),
+    );
+  } else if (opts.amount != null && Number.isFinite(opts.amount)) {
+    query = query
+      .gte("amount", opts.amount - 0.5)
+      .lte("amount", opts.amount + 0.5);
+  } else {
+    return [];
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return ((data as Record<string, unknown>[] | null) ?? []).map(coerceReceipt);
+}
+
 /** Lista las gestiones de cobranza de una factura, más recientes primero. */
 export async function listActivities(
   supabase: SupabaseClient,
