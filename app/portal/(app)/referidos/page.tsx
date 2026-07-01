@@ -75,8 +75,11 @@ export default async function PortalReferralsPage() {
 
 /**
  * Hero del código de referido. Gradiente navy (tokens `--hero-*`, navy en AMBOS
- * temas — NO sigue `--color-ink`, que en oscuro es el texto crema). Texto blanco
- * sobre el navy. Único gradiente permitido por el brand para el portal hero.
+ * temas — NO sigue `--color-ink`, que en oscuro es el texto crema). La tinta va en
+ * los tokens `--hero-ink/soft/fill` (blancos FIJOS en ambos temas) — NO en las
+ * clases `text-white`/`bg-white`, que aquí se voltean a navy oscuro en modo oscuro
+ * (el tema del portal redefine `--color-white`). Único gradiente permitido por el
+ * brand para el portal hero.
  */
 function ShareHero({ program }: { program: PortalReferralProgram }) {
   return (
@@ -114,11 +117,14 @@ function ShareHero({ program }: { program: PortalReferralProgram }) {
       <div className="mt-5 grid grid-cols-2 gap-3">
         <div
           className="rounded-[10px] px-4 py-3"
-          style={{ background: "color-mix(in srgb, var(--hero-ink) 10%, transparent)" }}
+          style={{ background: "var(--hero-fill)" }}
         >
           <div
             className="text-[20px] leading-none"
-            style={{ fontFamily: "var(--font-archivo-black)", color: "var(--hero-ink)" }}
+            style={{
+              fontFamily: "var(--font-archivo-black)",
+              color: "var(--hero-ink)",
+            }}
           >
             {fmtUsd(program.referredReward)}
           </div>
@@ -131,19 +137,22 @@ function ShareHero({ program }: { program: PortalReferralProgram }) {
         </div>
         <div
           className="rounded-[10px] px-4 py-3"
-          style={{ background: "color-mix(in srgb, var(--hero-ink) 10%, transparent)" }}
+          style={{ background: "var(--hero-fill)" }}
         >
           <div className="flex items-center gap-2">
             <div
               className="text-[20px] leading-none"
-              style={{ fontFamily: "var(--font-archivo-black)", color: "var(--hero-ink)" }}
+              style={{
+                fontFamily: "var(--font-archivo-black)",
+                color: "var(--hero-ink)",
+              }}
             >
               {fmtUsd(program.referrerReward)}
             </div>
             <span
               className="rounded-full px-2 py-0.5 text-[10.5px] font-bold tracking-[0.08em] uppercase"
               style={{
-                background: "color-mix(in srgb, var(--hero-ink) 15%, transparent)",
+                background: "var(--hero-fill-strong)",
                 color: "var(--hero-ink)",
               }}
             >

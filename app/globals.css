@@ -57,6 +57,9 @@
   --hero-ink: #ffffff;
   --hero-soft: rgba(255, 255, 255, 0.72);
   --hero-mute: rgba(255, 255, 255, 0.66); /* AA sobre el navy del héroe (texto 10.5px) */
+  --hero-fill: rgba(255, 255, 255, 0.1);        /* cajas/chips sobre el navy */
+  --hero-fill-strong: rgba(255, 255, 255, 0.15); /* badge sobre el navy */
+  --hero-border: rgba(255, 255, 255, 0.3);       /* borde de botón ghost sobre navy */
   --hero-accent: #dd8088;          /* wine suave que lee sobre navy */
   --portal-info: #2c5d8f;          /* azul informativo (KPI Facturado · actividad) */
 }
