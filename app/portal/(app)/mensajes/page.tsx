@@ -14,7 +14,7 @@ import {
 import { PortalMessageForm } from "./PortalMessageForm";
 import { SoporteHubTabs } from "../../_components/PortalHubTabs";
 import { CONTACT } from "@/lib/design-tokens";
-import { WhatsAppIcon } from "@/components/Icon";
+import { WhatsAppIcon, MailIcon, PhoneIcon } from "@/components/Icon";
 
 export const metadata: Metadata = { title: "Mensajes" };
 
@@ -106,7 +106,10 @@ export default async function PortalMensajesPage() {
 
         {/* Asesor por WhatsApp — mudado desde el dashboard (founder 2026-06-20):
             el contacto del asesor vive acá, en Atención al cliente. */}
-        <AsesorCard client={client} advisor={advisor} />
+        <div className="flex flex-col gap-6">
+          <AsesorCard client={client} advisor={advisor} />
+          <OtrosCanalesCard />
+        </div>
       </div>
     </div>
   );
@@ -193,6 +196,53 @@ function AsesorCard({
       >
         <WhatsAppIcon size={18} /> Escribir por WhatsApp
       </a>
+    </div>
+  );
+}
+
+/**
+ * "Otros canales" (Norte · PortalSupport) — vías alternas al chat/WhatsApp del
+ * asesor: correo y teléfono fijo. Datos desde `CONTACT.ve` (fuente única de NAP).
+ */
+function OtrosCanalesCard() {
+  const mono = {
+    fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
+  } as const;
+  return (
+    <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-6">
+      <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-grey-500">
+        Otros canales
+      </div>
+      <div className="mt-4 flex flex-col gap-2">
+        <a
+          href={`mailto:${CONTACT.ve.email}`}
+          className="flex items-center gap-3 rounded-[10px] bg-grey-100 px-3 py-2.5 transition-colors hover:bg-grey-200"
+        >
+          <span className="text-wine shrink-0">
+            <MailIcon size={16} />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[12.5px] font-bold text-ink">Email</span>
+            <span className="block text-[11.5px] text-grey-700 truncate" style={mono}>
+              {CONTACT.ve.email}
+            </span>
+          </span>
+        </a>
+        <a
+          href={`tel:${CONTACT.ve.phoneRaw}`}
+          className="flex items-center gap-3 rounded-[10px] bg-grey-100 px-3 py-2.5 transition-colors hover:bg-grey-200"
+        >
+          <span className="text-wine shrink-0">
+            <PhoneIcon size={16} />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[12.5px] font-bold text-ink">Teléfono</span>
+            <span className="block text-[11.5px] text-grey-700 truncate" style={mono}>
+              {CONTACT.ve.phone}
+            </span>
+          </span>
+        </a>
+      </div>
     </div>
   );
 }

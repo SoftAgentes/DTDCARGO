@@ -10,6 +10,7 @@ import {
 import { type ReferralStatus } from "@/lib/studio/fidelizacion/types";
 import { ReferralShareActions } from "../../_components/ReferralShareActions";
 import { ReferralInviteForm } from "../../_components/ReferralInviteForm";
+import { StarIcon } from "@/components/Icon";
 
 export const metadata: Metadata = { title: "Referidos" };
 
@@ -264,15 +265,24 @@ function TierCard({ program }: { program: PortalReferralProgram }) {
   return (
     <div className="mt-5 card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-7">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-grey-500">
-            Tu nivel
-          </div>
-          <div
-            className="mt-1.5 text-[22px] leading-none text-ink"
-            style={{ fontFamily: "var(--font-archivo-black)" }}
+        <div className="flex items-center gap-3">
+          <span
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] text-wine"
+            style={{ background: "color-mix(in srgb, var(--color-wine) 12%, transparent)" }}
+            aria-hidden
           >
-            {tier.label}
+            <StarIcon size={22} />
+          </span>
+          <div>
+            <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-grey-500">
+              Tu nivel
+            </div>
+            <div
+              className="mt-1.5 text-[22px] leading-none text-ink"
+              style={{ fontFamily: "var(--font-archivo-black)" }}
+            >
+              {tier.label}
+            </div>
           </div>
         </div>
         <div className="flex flex-wrap gap-2 sm:justify-end sm:max-w-[470px]">
