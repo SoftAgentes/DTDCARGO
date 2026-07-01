@@ -146,9 +146,9 @@ export default async function MarketingCalendarioPage() {
         if (items.length === 0) return null;
         return (
           <section key={monthName} style={{ marginBottom: 24 }}>
-            <div className="studio-eyebrow" style={{ marginBottom: 12 }}>
+            <h2 className="studio-eyebrow" style={{ margin: "0 0 12px" }}>
               {monthName}
-            </div>
+            </h2>
             <div
               style={{
                 border: "1px solid var(--border)",
@@ -170,7 +170,7 @@ export default async function MarketingCalendarioPage() {
                 >
                   <div
                     style={{
-                      font: "600 12px/1.3 var(--f-mono, var(--f-sans))",
+                      font: "600 12px/1.3 var(--f-mono)",
                       color: "var(--ink)",
                       paddingTop: 2,
                     }}

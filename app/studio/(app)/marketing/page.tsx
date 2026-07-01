@@ -161,9 +161,9 @@ export default async function MarketingPage() {
 
       {/* Tareas del día */}
       <section style={{ marginBottom: 28 }}>
-        <div className="studio-eyebrow" style={{ marginBottom: 12 }}>
+        <h2 className="studio-eyebrow" style={{ margin: "0 0 12px" }}>
           Tareas del día
-        </div>
+        </h2>
         <div
           style={{
             border: "1px dashed var(--border)",
@@ -205,9 +205,9 @@ export default async function MarketingPage() {
 
       {/* Herramientas del módulo */}
       <section style={{ marginBottom: 28 }}>
-        <div className="studio-eyebrow" style={{ marginBottom: 12 }}>
+        <h2 className="studio-eyebrow" style={{ margin: "0 0 12px" }}>
           Herramientas
-        </div>
+        </h2>
         <div
           style={{
             display: "grid",
@@ -286,9 +286,9 @@ export default async function MarketingPage() {
 
       {/* Reportar fricción */}
       <section>
-        <div className="studio-eyebrow" style={{ marginBottom: 12 }}>
+        <h2 className="studio-eyebrow" style={{ margin: "0 0 12px" }}>
           Automatización
-        </div>
+        </h2>
         <div
           style={{
             border: "1px solid var(--border)",

@@ -137,9 +137,9 @@ export default async function MarketingHubPage() {
 
       {/* Logos */}
       <section style={{ marginBottom: 32 }}>
-        <div className="studio-eyebrow" style={{ marginBottom: 12 }}>
+        <h2 className="studio-eyebrow" style={{ margin: "0 0 12px" }}>
           Logos
-        </div>
+        </h2>
         <div
           style={{
             display: "grid",
@@ -213,9 +213,9 @@ export default async function MarketingHubPage() {
       {/* Secciones pendientes */}
       {PLACEHOLDERS.map((p) => (
         <section key={p.eyebrow} style={{ marginBottom: 24 }}>
-          <div className="studio-eyebrow" style={{ marginBottom: 12 }}>
+          <h2 className="studio-eyebrow" style={{ margin: "0 0 12px" }}>
             {p.eyebrow}
-          </div>
+          </h2>
           <div
             style={{
               border: "1px dashed var(--border)",
