@@ -34,14 +34,14 @@ import { canAccessModule } from "@/lib/studio/rbac";
 import type { StudioUserRole } from "@/lib/studio/user-types";
 
 const STORAGE_KEY = "studio_sidebar_collapsed";
-const GROUPS_STORAGE_KEY = "studio_sidebar_groups";
+const OPEN_GROUP_KEY = "studio_sidebar_opengroup";
 
 /**
- * Estado de grupos: `false` = cerrado, `true` o undefined = abierto (default).
- * Persistido en localStorage key `studio_sidebar_groups`. Patrón portado de
- * `docs/design/studio/_norte/erp/shell.jsx` líneas 84-90.
+ * Acordeón de secciones: UN solo grupo abierto a la vez (no todos). Al navegar
+ * a un módulo se abre su grupo y se colapsan los demás; `null` = todas cerradas.
+ * Persistido en localStorage key `studio_sidebar_opengroup`. Patrón portado del
+ * Norte vigente (`docs/design/studio/_norte/erp/shell.jsx`, estado `openGroup`).
  */
-type OpenGroups = Partial<Record<Group, boolean>>;
 
 interface Props {
   /** Feature flags del tenant · sidebar oculta módulos cuyo flag esté OFF. */
@@ -67,9 +67,20 @@ export function StudioSidebar({
   const flags = featureFlags ?? FEATURE_FLAG_DEFAULTS;
   const [collapsed, setCollapsed] = useState(false);
   const [hydrated, setHydrated] = useState(false);
-  const [openGroups, setOpenGroups] = useState<OpenGroups>({});
 
-  // Hidratar estado collapsed + openGroups desde localStorage
+  // Grupo del módulo activo (según la ruta) → sección que arranca abierta.
+  const activeGroup =
+    MODULES.find(
+      (m) => pathname === m.slug || pathname.startsWith(m.slug + "/"),
+    )?.group ?? null;
+
+  // Acordeón: arranca en el grupo activo (o el primero). Se hidrata desde
+  // localStorage solo cuando no hay grupo activo (si lo hay, manda la navegación).
+  const [openGroup, setOpenGroup] = useState<Group | null>(
+    activeGroup ?? GROUP_ORDER[0],
+  );
+
+  // Hidratar estado collapsed + restaurar la última sección abierta.
   useEffect(() => {
     try {
       const v = localStorage.getItem(STORAGE_KEY);
@@ -78,13 +89,21 @@ export function StudioSidebar({
       // ignore (SSR / disabled storage)
     }
     try {
-      const raw = localStorage.getItem(GROUPS_STORAGE_KEY);
-      if (raw) setOpenGroups(JSON.parse(raw) as OpenGroups);
+      const saved = localStorage.getItem(OPEN_GROUP_KEY);
+      if (saved && !activeGroup && GROUP_ORDER.includes(saved as Group)) {
+        setOpenGroup(saved as Group);
+      }
     } catch {
-      // ignore (parse error / disabled storage)
+      // ignore (disabled storage)
     }
     setHydrated(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Al navegar a otro módulo, abrir su grupo y colapsar los demás (acordeón).
+  useEffect(() => {
+    if (activeGroup) setOpenGroup(activeGroup);
+  }, [activeGroup]);
 
   const toggleCollapsed = () => {
     const next = !collapsed;
@@ -97,15 +116,16 @@ export function StudioSidebar({
   };
 
   const toggleGroup = (group: Group) => {
-    // Default abierto · si nunca se tocó, primera click = cerrar (false)
-    const currentlyOpen = openGroups[group] !== false;
-    const next: OpenGroups = { ...openGroups, [group]: !currentlyOpen };
-    setOpenGroups(next);
-    try {
-      localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      // ignore
-    }
+    // Acordeón: abre este grupo y colapsa el resto; si ya estaba abierto, cierra.
+    setOpenGroup((prev) => {
+      const next = prev === group ? null : group;
+      try {
+        localStorage.setItem(OPEN_GROUP_KEY, next ?? "");
+      } catch {
+        // ignore
+      }
+      return next;
+    });
   };
 
   // Match active: exacto o prefijo + "/"
@@ -122,7 +142,7 @@ export function StudioSidebar({
   const grouped = GROUP_ORDER.map((g) => ({
     group: g,
     items: visibleModules.filter((m) => m.group === g),
-    isOpen: openGroups[g] !== false, // default abierto
+    isOpen: openGroup === g, // acordeón: solo una sección abierta a la vez
   })).filter((g) => g.items.length > 0); // ocultar grupos vacíos
 
   return (
@@ -206,8 +226,11 @@ export function StudioSidebar({
       >
         {grouped.map(({ group, items, isOpen }) => {
           // Cuando sidebar colapsado: ignorar isOpen, mostrar todos los iconos.
-          // Cuando expandido: respetar estado por grupo (default abierto).
+          // Cuando expandido: respetar el acordeón (solo el grupo abierto).
           const showItems = collapsed || isOpen;
+          // Rastro de "dónde estás" cuando la sección activa está cerrada: sin
+          // esto, cerrar el grupo activo borra toda pista del módulo actual.
+          const isActiveClosed = !collapsed && group === activeGroup && !isOpen;
           return (
           <div key={group} style={{ marginBottom: 6 }}>
             {!collapsed && (
@@ -239,7 +262,28 @@ export function StudioSidebar({
                   e.currentTarget.style.color = "var(--ink-side-soft)";
                 }}
               >
-                <span>{GROUP_LABEL_KEYS[group] ? t(GROUP_LABEL_KEYS[group]) : group}</span>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    color: isActiveClosed ? "var(--ink-side-strong)" : undefined,
+                  }}
+                >
+                  {GROUP_LABEL_KEYS[group] ? t(GROUP_LABEL_KEYS[group]) : group}
+                  {isActiveClosed && (
+                    <span
+                      aria-hidden
+                      style={{
+                        width: 5,
+                        height: 5,
+                        borderRadius: "var(--r-pill)",
+                        background: "var(--wine-soft)",
+                        flexShrink: 0,
+                      }}
+                    />
+                  )}
+                </span>
                 <span
                   aria-hidden
                   style={{
