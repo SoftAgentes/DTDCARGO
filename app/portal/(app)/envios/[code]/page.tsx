@@ -3,6 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { getMyShipment, getPortalClient } from "@/lib/portal/portal-queries";
+import {
+  listMyShipmentEvents,
+  stepDatesFromEvents,
+} from "@/lib/portal/shipment-events-queries";
 import { SERVICE_LABELS, estimatePortalEta } from "@/lib/portal/portal-types";
 import { showNortePortal } from "@/lib/portal/demo";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
@@ -55,6 +59,12 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
       )
     : {};
 
+  // Hitos con fecha real (SDD-0132): el stepper de ambos detalles muestra la
+  // fecha de cada paso (del evento más antiguo de ese status). RLS portal por
+  // markbox (migr 0196) + filtro explícito.
+  const events = await listMyShipmentEvents(supabase, shipment.id);
+  const stepDates = stepDatesFromEvents(events);
+
   // Rediseño Norte (founder 2026-06-20) GATEADO al demo: stepper horizontal + 2
   // columnas. Clientes reales siguen con el detalle de abajo.
   if (showNortePortal(client?.markbox)) {
@@ -82,6 +92,7 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
         signedUrls={docUrls}
         naviera={naviera}
         live={live}
+        stepDates={stepDates}
       />
     );
   }
@@ -175,7 +186,11 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
           <h2 className="text-[12px] font-bold tracking-[0.12em] uppercase text-grey-500 mb-6">
             Estado del envío
           </h2>
-          <PortalTimeline status={shipment.status} service={shipment.service} />
+          <PortalTimeline
+            status={shipment.status}
+            service={shipment.service}
+            dates={stepDates}
+          />
           <p className="mt-2 text-[12px] text-grey-500 leading-[1.5]">
             Las actualizaciones de estado las carga nuestro equipo a medida que tu
             carga avanza.

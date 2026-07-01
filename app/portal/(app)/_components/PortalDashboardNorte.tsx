@@ -23,8 +23,11 @@ import {
   type ShipmentService,
 } from "@/lib/portal/portal-types";
 import type { NavieraSnapshot } from "@/lib/studio/naviera-tracking/types";
+import type { PortalActivityItem } from "@/lib/portal/shipment-events-queries";
+import type { PortalSailing } from "@/lib/portal/next-sailing-queries";
 import { ShipmentRow } from "../../_components/ShipmentRow";
 import { NewPurchaseButton } from "../../_components/NewPurchaseButton";
+import { PortalNextSailingCard } from "./PortalNextSailingCard";
 
 /**
  * Inicio / dashboard del cliente — REDISEÑO NORTE (founder 2026-06-20).
@@ -48,6 +51,9 @@ export function PortalDashboardNorte({
   nextArrival,
   nextArrivalNaviera,
   shipments,
+  activity = [],
+  sailing = null,
+  sailingDaysToCutoff = null,
 }: {
   client: PortalClient;
   kpis: PortalDashboardKpis;
@@ -55,13 +61,17 @@ export function PortalDashboardNorte({
   /** Snapshot naviero del próximo arribo (SDD-0101) — el héroe muestra el buque real. */
   nextArrivalNaviera?: NavieraSnapshot | null;
   shipments: PortalShipmentRow[];
+  /** Actividad reciente por hitos reales (SDD-0132), no por `updatedAt`. */
+  activity?: PortalActivityItem[];
+  /** Próximo zarpe abierto (SDD-0133). null = sin salida publicada → card oculta. */
+  sailing?: PortalSailing | null;
+  /** Días al cut-off calculados en el server (fallback pre-hidratación de la card). */
+  sailingDaysToCutoff?: number | null;
 }) {
   const firstName = client.name.trim().split(/\s+/)[0] || client.name;
   const today = formatToday();
   const preview = shipments.slice(0, 5);
-  const recent = [...shipments]
-    .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1))
-    .slice(0, 3);
+  const recent = activity.slice(0, 4);
 
   const activeWord =
     kpis.activeShipments === 1 ? "envío activo" : "envíos activos";
@@ -191,10 +201,17 @@ export function PortalDashboardNorte({
 
         {/* Columna derecha */}
         <div className="flex flex-col gap-6">
+          {/* Próxima salida / cut-off (SDD-0133): organiza compras contra el calendario. */}
+          {sailing ? (
+            <PortalNextSailingCard
+              sailing={sailing}
+              serverDaysToCutoff={sailingDaysToCutoff}
+            />
+          ) : null}
           {kpis.outstandingBalance > 0 ? <SaldoCard kpis={kpis} /> : null}
           {/* Texto listo para WeChat: dirección de bodega CN + código del cliente. */}
           <ChinaSupplierClip markbox={client.markbox} />
-          {recent.length > 0 ? <ActividadCard shipments={recent} /> : null}
+          {recent.length > 0 ? <ActividadCard activity={recent} /> : null}
         </div>
       </div>
     </div>
@@ -464,43 +481,46 @@ function SaldoCard({ kpis }: { kpis: PortalDashboardKpis }) {
   );
 }
 
-/** Actividad reciente derivada de los envíos (real: `updatedAt`), no inventada. */
-function ActividadCard({ shipments }: { shipments: PortalShipmentRow[] }) {
+/**
+ * Actividad reciente por HITOS reales del envío (`shipment_events` · SDD-0132) —
+ * cada fila es un hito con su fecha real, no el `updatedAt` del envío.
+ */
+function ActividadCard({ activity }: { activity: PortalActivityItem[] }) {
   return (
     <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-6">
       <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-grey-500">
         Actividad reciente
       </div>
       <div className="mt-4 flex flex-col gap-3.5">
-        {shipments.map((s) => {
+        {activity.map((ev) => {
           // STATUS_COLORS son hex fijos (fuente compartida): la mayoría = navy de
           // marca (#0f1e3d), invisible sobre la card oscura. En ese caso usamos el
           // token de tinta (`--color-ink`, crema en oscuro / navy en claro).
-          const raw = STATUS_COLORS[s.status];
+          const raw = STATUS_COLORS[ev.status];
           const dot = raw.toLowerCase() === "#0f1e3d" ? "var(--color-ink)" : raw;
           return (
-          <div key={s.id} className="flex items-start gap-3">
-            <span
-              className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
-              style={{ background: dot }}
-            />
-            <div className="flex-1 min-w-0">
-              <div className="text-[12.5px] font-semibold text-ink leading-snug">
-                <span
-                  style={{
-                    fontFamily:
-                      "var(--font-jetbrains-mono), ui-monospace, monospace",
-                  }}
-                >
-                  {s.code}
-                </span>{" "}
-                · {STATUS_LABELS[s.status]}
-              </div>
-              <div className="mt-0.5 text-[11px] text-grey-500">
-                {relTime(s.updatedAt)}
+            <div key={ev.id} className="flex items-start gap-3">
+              <span
+                className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
+                style={{ background: dot }}
+              />
+              <div className="flex-1 min-w-0">
+                <div className="text-[12.5px] font-semibold text-ink leading-snug">
+                  <span
+                    style={{
+                      fontFamily:
+                        "var(--font-jetbrains-mono), ui-monospace, monospace",
+                    }}
+                  >
+                    {ev.shipmentCode}
+                  </span>{" "}
+                  · {STATUS_LABELS[ev.status]}
+                </div>
+                <div className="mt-0.5 text-[11px] text-grey-500">
+                  {relTime(ev.occurredAt)}
+                </div>
               </div>
             </div>
-          </div>
           );
         })}
       </div>

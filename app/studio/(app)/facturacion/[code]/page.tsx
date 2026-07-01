@@ -9,9 +9,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
+import { createAdminClient } from "@/lib/db/admin";
 import { getInvoiceByCode } from "@/lib/studio/invoice-queries";
 import { getFiscalSettingsSafe } from "@/lib/studio/fiscal/queries";
 import { listCashAccounts, listReceipts } from "@/lib/studio/payment-queries";
+import { listInvoiceReports } from "@/lib/portal/payment-report-queries";
+import { createProofSignedUrl } from "@/lib/portal/payment-proof";
+import {
+  StudioInvoicePaymentReports,
+  type ReportWithProof,
+} from "../_components/StudioInvoicePaymentReports";
 import {
   computeBalance,
   currencyLabel,
@@ -57,6 +64,27 @@ export default async function InvoiceDetailPage({
 
   // Recibos de cobranza de la factura (SDD-0068) — con link al imprimible.
   const receipts = await listReceipts(supabase, { invoiceId: invoice.id });
+
+  // Reportes de pago del cliente (SDD-0134) + URL firmada del comprobante (admin).
+  const reports = await listInvoiceReports(supabase, {
+    tenantId: invoice.tenant_id,
+    invoiceId: invoice.id,
+  });
+  let reportItems: ReportWithProof[] = reports.map((report) => ({
+    report,
+    proofUrl: null,
+  }));
+  if (reports.some((r) => r.proofPath)) {
+    const admin = createAdminClient();
+    reportItems = await Promise.all(
+      reports.map(async (report) => ({
+        report,
+        proofUrl: report.proofPath
+          ? await createProofSignedUrl(admin, report.proofPath, 300)
+          : null,
+      })),
+    );
+  }
 
   const ivaOn = (ivaRow.data as { iva_enabled?: boolean } | null)?.iva_enabled ?? false;
   const ds = displayStatus(invoice);
@@ -456,6 +484,9 @@ export default async function InvoiceDetailPage({
           </div>
         </section>
       )}
+
+      {/* Reportes de pago del cliente (SDD-0134 · Slice B) */}
+      <StudioInvoicePaymentReports items={reportItems} />
 
       {invoice.notes && (
         <section

@@ -46,6 +46,7 @@ export function PortalShipmentDetailNorte({
   signedUrls,
   naviera,
   live,
+  stepDates,
 }: {
   shipment: PortalShipmentDetail;
   documents: DocsProps["documents"];
@@ -54,6 +55,8 @@ export function PortalShipmentDetailNorte({
   naviera?: NavieraSnapshot | null;
   /** Snapshot VIVO de SeaRates cacheado (SDD-0101 · B.3). null = aún sin rastrear. */
   live?: TrackingSnapshotRow | null;
+  /** Fecha real (ISO) por status del stepper (SDD-0132). Opcional. */
+  stepDates?: Partial<Record<ShipmentStatus, string>>;
 }) {
   const svc = SERVICE_LABELS[shipment.service];
   const serviceLabel = svc.sub ? `${svc.primary} · ${svc.sub}` : svc.primary;
@@ -106,7 +109,11 @@ export function PortalShipmentDetailNorte({
         <h2 className="text-[12px] font-bold tracking-[0.12em] uppercase text-grey-500 mb-7">
           Seguimiento
         </h2>
-        <Stepper status={shipment.status} service={shipment.service} />
+        <Stepper
+          status={shipment.status}
+          service={shipment.service}
+          stepDates={stepDates}
+        />
         <p className="mt-6 text-[12px] text-grey-500 leading-[1.5]">
           Las actualizaciones de estado las carga nuestro equipo a medida que tu
           carga avanza.
@@ -180,6 +187,19 @@ export function PortalShipmentDetailNorte({
   );
 }
 
+/** Fecha del hito (ISO) → "12 jun" corto para el stepper, o null si no parseable. */
+function formatStepDate(iso: string | undefined): string | null {
+  if (!iso) return null;
+  try {
+    return new Date(iso).toLocaleDateString("es-VE", {
+      day: "2-digit",
+      month: "short",
+    });
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Stepper horizontal de seguimiento. Usa `buildTimeline` (estados done/active/
  * pending/exception del flow canónico por servicio). Scroll horizontal en pantallas
@@ -188,9 +208,11 @@ export function PortalShipmentDetailNorte({
 function Stepper({
   status,
   service,
+  stepDates,
 }: {
   status: ShipmentStatus;
   service: ShipmentService;
+  stepDates?: Partial<Record<ShipmentStatus, string>>;
 }) {
   const steps = buildTimeline(status, service);
   return (
@@ -267,6 +289,12 @@ function Stepper({
               >
                 {STATUS_LABELS[step.status]}
               </span>
+              {/* Fecha real del hito (SDD-0132) — solo si la operación la registró. */}
+              {formatStepDate(stepDates?.[step.status]) ? (
+                <span className="mt-0.5 text-[9.5px] font-semibold text-grey-500 leading-tight">
+                  {formatStepDate(stepDates?.[step.status])}
+                </span>
+              ) : null}
             </div>
           );
         })}

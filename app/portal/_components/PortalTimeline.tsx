@@ -16,7 +16,7 @@ import {
  * dark del Studio. Muestra el paso actual resaltado + los cumplidos vs pendientes.
  */
 
-/** Copy del meta-estado de cada paso, en voseo VE. */
+/** Copy del meta-estado de cada paso. */
 function stepMeta(state: TimelineStepState, status: ShipmentStatus): string {
   switch (state) {
     case "done":
@@ -32,12 +32,29 @@ function stepMeta(state: TimelineStepState, status: ShipmentStatus): string {
   }
 }
 
+/** Fecha del hito (ISO) → "12 jun 2026" en es-VE, o null si no es parseable. */
+function formatEventDate(iso: string | undefined): string | null {
+  if (!iso) return null;
+  try {
+    return new Date(iso).toLocaleDateString("es-VE", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return null;
+  }
+}
+
 export function PortalTimeline({
   status,
   service,
+  dates,
 }: {
   status: ShipmentStatus;
   service: ShipmentService;
+  /** Fecha real (ISO) por status, del stepper (SDD-0132). Opcional. */
+  dates?: Partial<Record<ShipmentStatus, string>>;
 }) {
   const steps = buildTimeline(status, service);
 
@@ -139,6 +156,12 @@ export function PortalTimeline({
               >
                 {stepMeta(step.state, step.status)}
               </div>
+              {/* Fecha real del hito (SDD-0132) — solo si la operación la registró. */}
+              {formatEventDate(dates?.[step.status]) ? (
+                <div className="mt-0.5 text-[12px] font-semibold text-grey-700">
+                  {formatEventDate(dates?.[step.status])}
+                </div>
+              ) : null}
             </div>
           </div>
         );

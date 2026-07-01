@@ -1,7 +1,7 @@
 ---
 sdd: "0132"
 title: "Hitos del envío + notificación de estado al cliente"
-status: draft
+status: in-progress
 author: "agente-secundario (inventario portal)"
 created: 2026-07-01
 updated: 2026-07-01
@@ -141,3 +141,29 @@ Cada servicio (LCL / DDP / FCL / terrestre) usa el subconjunto que ya define el 
 - Tests de aislamiento del portal (un cliente solo ve los eventos de SU markbox).
 - Validar la migración con el patrón `begin … rollback` en prod antes de aplicar (branching
   Supabase no disponible).
+
+## Estado de implementación (2026-07-01 · rama `feat/portal-inventario`)
+
+**Hallazgo:** la spec proponía `shipment_events` como tabla nueva, pero **ya existe** (SDD-0013)
+y la operación ya la puebla → **Slices A y B en la práctica ya estaban**:
+- Auto por cambio de status (`transitionShipment` inserta el evento).
+- Manual + backdating (`addShipmentEvent`, con `occurred_at`).
+- Aviso de arribo por template (`shipment_arrived`).
+
+Se construyó **el gap real** (decisión founder: portal fechas + avisos), verify TODO VERDE
+(2990 tests):
+
+- **Migr `0196_shipment_events_portal_rls.sql`** (PENDIENTE Director): política RLS
+  portal self-read sobre `shipment_events` (EXISTS contra `shipments` por markbox; sin
+  denormalizar).
+- **Portal — fechas reales:** `lib/portal/shipment-events-queries.ts`
+  (`listMyShipmentEvents` + `stepDatesFromEvents` + `listMyRecentActivity`); el stepper de
+  AMBOS detalles (`PortalTimeline` real + `Stepper` Norte) muestra la fecha por hito; la
+  "actividad reciente" del dashboard ahora sale de `shipment_events` (no del `updated_at`).
+- **Notificación (Slice C):** `lib/studio/shipment-milestone-notify.ts` — correo directo al
+  cliente (best-effort, sin template) en `in_warehouse / shipped / out_for_delivery /
+  delivered`; el arribo sigue con su template. Wireado en `transitionShipment`.
+
+**Diferido:** mapeo SeaRates→eventos (Slice B automatización extra) · WhatsApp saliente
+(SDD-0056 F3) · push web al cliente (el portal no es PWA con push).
+**Pendiente Director:** aplicar migr 0196 (dry-run `begin…rollback`) · `pnpm build` antes de push.

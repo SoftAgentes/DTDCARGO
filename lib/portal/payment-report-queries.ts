@@ -1,0 +1,148 @@
+/**
+ * Queries de los reportes de pago (SDD-0134).
+ *
+ * Portal (por markbox, RLS self) + Studio/admin (por tenant+factura). Funciones
+ * puras que reciben un SupabaseClient (el caller elige sesión vs admin). Filtran
+ * SIEMPRE explícito (defensa en profundidad, como el resto del portal).
+ */
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type {
+  PaymentReport,
+  PaymentReportMethod,
+  PaymentReportStatus,
+} from "@/lib/portal/payment-report-types";
+import type { InvoiceCurrency } from "@/lib/studio/invoice-types";
+import { MAX_PENDING_REPORTS_PER_INVOICE } from "@/lib/portal/payment-report-types";
+
+const REPORT_COLS =
+  "id, invoice_id, invoice_code, client_markbox, amount, currency, method, paid_at, proof_path, status, note, confirmed_by, confirmed_at, created_at";
+
+type ReportRow = {
+  id: string;
+  invoice_id: string;
+  invoice_code: string;
+  client_markbox: string;
+  amount: number | string;
+  currency: string;
+  method: string;
+  paid_at: string;
+  proof_path: string | null;
+  status: string;
+  note: string | null;
+  confirmed_by: string | null;
+  confirmed_at: string | null;
+  created_at: string;
+};
+
+/** Mapea una fila cruda de `payment_reports` al modelo de presentación. */
+export function mapPaymentReportRow(row: ReportRow): PaymentReport {
+  return {
+    id: row.id,
+    invoiceId: row.invoice_id,
+    invoiceCode: row.invoice_code,
+    clientMarkbox: row.client_markbox,
+    amount: Number(row.amount ?? 0),
+    currency: row.currency as InvoiceCurrency,
+    method: row.method as PaymentReportMethod,
+    paidAt: row.paid_at,
+    proofPath: row.proof_path,
+    status: row.status as PaymentReportStatus,
+    note: row.note,
+    confirmedBy: row.confirmed_by,
+    confirmedAt: row.confirmed_at,
+    createdAt: row.created_at,
+  };
+}
+
+/** Markbox del cliente logueado (RPC), o null si el principal no es del portal. */
+async function portalMarkbox(supabase: SupabaseClient): Promise<string | null> {
+  const { data, error } = await supabase.rpc("get_portal_client_markbox");
+  if (error || !data) return null;
+  return String(data);
+}
+
+/**
+ * Reportes de pago de UNA factura del cliente logueado (portal), recientes
+ * primero. Filtra por invoice_code + markbox (RLS self + filtro explícito).
+ */
+export async function listMyInvoiceReports(
+  supabase: SupabaseClient,
+  invoiceCode: string,
+): Promise<PaymentReport[]> {
+  const markbox = await portalMarkbox(supabase);
+  if (!markbox) return [];
+
+  const { data, error } = await supabase
+    .from("payment_reports")
+    .select(REPORT_COLS)
+    .eq("invoice_code", invoiceCode)
+    .eq("client_markbox", markbox)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+  return (data as ReportRow[]).map(mapPaymentReportRow);
+}
+
+/**
+ * Reportes de pago de una factura para el Studio (equipo). Requiere client con
+ * scope de tenant (sesión del asesor o admin scopeado). Filtra explícito por
+ * tenant + invoice.
+ */
+export async function listInvoiceReports(
+  client: SupabaseClient,
+  args: { tenantId: string; invoiceId: string },
+): Promise<PaymentReport[]> {
+  const { data, error } = await client
+    .from("payment_reports")
+    .select(REPORT_COLS)
+    .eq("tenant_id", args.tenantId)
+    .eq("invoice_id", args.invoiceId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+  return (data as ReportRow[]).map(mapPaymentReportRow);
+}
+
+/**
+ * ¿Cuántos reportes `reportado` pendientes tiene la factura? (anti-abuso). Usar
+ * con admin client server-side antes de insertar.
+ */
+export async function countPendingReports(
+  client: SupabaseClient,
+  args: { tenantId: string; invoiceId: string },
+): Promise<number> {
+  const { count, error } = await client
+    .from("payment_reports")
+    .select("id", { count: "exact", head: true })
+    .eq("tenant_id", args.tenantId)
+    .eq("invoice_id", args.invoiceId)
+    .eq("status", "reportado")
+    .is("deleted_at", null);
+
+  if (error) return 0;
+  return count ?? 0;
+}
+
+/** ¿La factura alcanzó el tope de reportes pendientes? */
+export function isAtPendingLimit(pendingCount: number): boolean {
+  return pendingCount >= MAX_PENDING_REPORTS_PER_INVOICE;
+}
+
+/** UN reporte por id, scopeado por tenant (Studio/admin). */
+export async function getReportById(
+  client: SupabaseClient,
+  args: { tenantId: string; reportId: string },
+): Promise<PaymentReport | null> {
+  const { data, error } = await client
+    .from("payment_reports")
+    .select(REPORT_COLS)
+    .eq("tenant_id", args.tenantId)
+    .eq("id", args.reportId)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return mapPaymentReportRow(data as ReportRow);
+}
