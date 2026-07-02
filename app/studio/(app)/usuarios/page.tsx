@@ -127,7 +127,7 @@ export default async function UsuariosPage() {
           >
             {activeCount} usuario{activeCount === 1 ? "" : "s"} interno
             {activeCount === 1 ? "" : "s"} · {roleCount} roles definidos · acceso
-            por módulo configurable.
+            por módulo definido por rol.
           </p>
         </div>
 

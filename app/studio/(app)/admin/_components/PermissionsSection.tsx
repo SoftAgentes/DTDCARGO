@@ -10,17 +10,21 @@
 
 import { MODULES, type Group } from "@/lib/studio/modules";
 import { canAccessModule, canEditModule } from "@/lib/studio/rbac";
-import { STUDIO_USER_ROLES, ROLE_LABELS } from "@/lib/studio/user-types";
+import {
+  STUDIO_USER_ROLES,
+  ROLE_LABELS,
+  type StudioUserRole,
+} from "@/lib/studio/user-types";
 
 const GROUP_ORDER: Group[] = ["OPERACIÓN", "COMERCIAL", "FINANZAS", "MARKETING", "SISTEMA"];
 
 type Cell = { label: string; bg: string; fg: string };
 
-function cellFor(role: string, moduleId: string): Cell {
+function cellFor(role: StudioUserRole, moduleId: string): Cell {
   if (role === "admin") return { label: "TOTAL", bg: "var(--wine)", fg: "#fff" };
-  const view = canAccessModule(role as never, moduleId);
+  const view = canAccessModule(role, moduleId);
   if (!view) return { label: "—", bg: "var(--bg-elevated)", fg: "var(--ink-mute)" };
-  const edit = canEditModule(role as never, moduleId);
+  const edit = canEditModule(role, moduleId);
   return edit
     ? { label: "V·E", bg: "var(--success-bg)", fg: "var(--success)" }
     : { label: "V", bg: "var(--info-bg)", fg: "var(--info)" };

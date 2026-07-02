@@ -136,13 +136,13 @@ export function AcceptInvitationForm({ token, email, role }: Props) {
         />
       </FormField>
 
-      <FormField label="Password (mín 6 caracteres)" error={state.fieldErrors?.password}>
+      <FormField label="Password (mín 8 caracteres)" error={state.fieldErrors?.password}>
         <div style={{ position: "relative" }}>
           <input
             name="password"
             type={showPassword ? "text" : "password"}
             required
-            minLength={6}
+            minLength={8}
             autoComplete="new-password"
             disabled={isPending}
             style={{ ...inputStyle(!!state.fieldErrors?.password), paddingRight: 40 }}
