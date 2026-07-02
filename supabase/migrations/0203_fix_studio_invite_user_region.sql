@@ -1,4 +1,4 @@
-﻿-- 0203_fix_studio_invite_user_region.sql (renumerada: colisión con 0200_rbac_disabled_enforcement)
+-- 0203_fix_studio_invite_user_region.sql (renumerada: colisión con 0200_rbac_disabled_enforcement)
 --
 -- BUG (2026-07-02): "Invitar usuario" en /studio/usuarios falla con
 --   column reference "token" is ambiguous
