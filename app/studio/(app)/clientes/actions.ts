@@ -21,6 +21,13 @@ import {
   type ClientInput,
   type ClientTier,
 } from "@/lib/studio/client-types";
+import { validateClientAddressInput } from "@/lib/studio/client-address-types";
+import {
+  insertClientDeliveryAddress,
+  clearDefaultForClient,
+  setDefaultDeliveryAddress,
+  softDeleteClientDeliveryAddress,
+} from "@/lib/studio/client-address-queries";
 import { geocodeAddress, type GeocodeResult } from "@/lib/studio/geocoding";
 import { validateMarkboxFormat } from "@/lib/studio/markbox-utils";
 import { sendWelcomeEmail } from "@/lib/studio/welcome-email";
@@ -576,6 +583,87 @@ export async function assignAdvisorAction(
       return { error: "Ese asesor no es un miembro activo de tu equipo." };
     }
     return { error: `No se pudo asignar el asesor: ${error.message}` };
+  }
+
+  revalidatePath(`/studio/clientes/${markbox}`);
+  return { ok: true };
+}
+
+// ── Direcciones de entrega (SDD-0138 Slice B · client_delivery_addresses) ──
+// El asesor gestiona las direcciones del cliente desde el detalle; el cliente
+// gestiona LAS SUYAS desde /portal/cuenta — mismo esquema, dos superficies. Van
+// con el client de SESIÓN: la RLS por tenant cubre la propiedad y el trigger de
+// la migración 0198 sella tenant_id/client_markbox desde `clients`.
+
+export async function addClientAddressAction(
+  clientId: string,
+  markbox: string,
+  formData: FormData,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "clients");
+  if (denial) return { error: denial };
+
+  const parsed = validateClientAddressInput(formData);
+  if (!parsed.ok) {
+    // La card del Studio muestra un solo mensaje — devolvemos el primero.
+    const first = Object.values(parsed.errors)[0];
+    return { error: first ?? "Revisa los datos de la dirección." };
+  }
+
+  try {
+    if (parsed.value.isDefault) {
+      await clearDefaultForClient(supabase, clientId);
+    }
+    await insertClientDeliveryAddress(supabase, clientId, parsed.value);
+  } catch (e) {
+    return {
+      error: `No se pudo guardar la dirección: ${e instanceof Error ? e.message : "error inesperado"}`,
+    };
+  }
+
+  revalidatePath(`/studio/clientes/${markbox}`);
+  return { ok: true };
+}
+
+export async function setDefaultClientAddressAction(
+  clientId: string,
+  markbox: string,
+  addressId: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "clients");
+  if (denial) return { error: denial };
+
+  try {
+    await setDefaultDeliveryAddress(supabase, clientId, addressId);
+  } catch (e) {
+    return {
+      error: `No se pudo marcar la predeterminada: ${e instanceof Error ? e.message : "error inesperado"}`,
+    };
+  }
+
+  revalidatePath(`/studio/clientes/${markbox}`);
+  return { ok: true };
+}
+
+export async function deleteClientAddressAction(
+  markbox: string,
+  addressId: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "clients");
+  if (denial) return { error: denial };
+
+  try {
+    await softDeleteClientDeliveryAddress(supabase, addressId);
+  } catch (e) {
+    return {
+      error: `No se pudo eliminar la dirección: ${e instanceof Error ? e.message : "error inesperado"}`,
+    };
   }
 
   revalidatePath(`/studio/clientes/${markbox}`);

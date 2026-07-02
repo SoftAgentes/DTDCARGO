@@ -6,10 +6,18 @@ import {
   getProfileCompleteness,
 } from "@/lib/portal/portal-queries";
 import { buildPortalSupplierMark } from "@/lib/portal/portal-types";
+import { docKindLabel } from "@/lib/studio/client-types";
+import { listClientDeliveryAddresses } from "@/lib/studio/client-address-queries";
+import type { ClientDeliveryAddress } from "@/lib/studio/client-address-types";
+import {
+  getPublicCalculatorCities,
+  getPublicCalculatorConfig,
+} from "@/lib/public/rates-queries";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { showNortePortal } from "@/lib/portal/demo";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
 import { ChangePasswordCard } from "./ChangePasswordCard";
+import { PortalAddresses } from "./PortalAddresses";
 
 export const metadata: Metadata = { title: "Mi cuenta" };
 
@@ -34,6 +42,27 @@ export default async function PortalAccountPage() {
   if (!client) return null;
 
   const completeness = await getProfileCompleteness(supabase);
+  // Direcciones de entrega (SDD-0138 Slice B). Best-effort: si la migración 0198
+  // todavía no está aplicada, la query falla → degradamos a lista vacía sin romper.
+  let addresses: ClientDeliveryAddress[] = [];
+  try {
+    addresses = await listClientDeliveryAddresses(supabase, client.id);
+  } catch {
+    addresses = [];
+  }
+  // Slice C: catálogo de ciudades + config del calculador (misma fuente que
+  // /studio/tarifas) para estimar el recargo de entrega por dirección. Los
+  // fetchers nunca tiran; sin data → sin estimado (degrada honesto).
+  const [calcCities, calcConfig] = await Promise.all([
+    getPublicCalculatorCities(),
+    getPublicCalculatorConfig(),
+  ]);
+  const lastMileParams = calcConfig
+    ? {
+        thresholdCascoKm: calcConfig.thresholdCascoKm,
+        tarifaKmFueraCasco: calcConfig.tarifaKmFueraCasco,
+      }
+    : null;
   const supplierMark = buildPortalSupplierMark(client.markbox);
   const norte = showNortePortal(client.markbox);
   const waUpdate = buildWhatsAppLink(
@@ -137,6 +166,17 @@ export default async function PortalAccountPage() {
 
           <dl className="pt-6 flex flex-col gap-4">
             <Field label="Nombre / empresa" value={client.name} />
+            <Field
+              label="Tipo de cliente"
+              value={client.docKind ? docKindLabel(client.docKind) : null}
+              empty="Sin especificar"
+            />
+            <Field
+              label={client.docKind === "empresa" ? "RIF" : "Cédula / RIF"}
+              value={client.rif}
+              mono
+              empty="Sin documento cargado"
+            />
             <Field label="Email" value={client.email} mono empty="Sin email cargado" />
             <Field
               label="Teléfono"
@@ -144,12 +184,20 @@ export default async function PortalAccountPage() {
               mono
               empty="Sin teléfono cargado"
             />
-            <Field
-              label="Dirección de entrega"
-              value={client.address}
-              empty="Sin dirección de entrega cargada"
-            />
           </dl>
+
+          {/* Direcciones de entrega múltiples (SDD-0138 Slice B+C) — las gestiona
+              el cliente; el mismo esquema lo edita el asesor desde el Studio. */}
+          <PortalAddresses
+            addresses={addresses}
+            cities={calcCities.map((c) => ({
+              id: c.id,
+              label: c.label,
+              km: c.km,
+              casco: c.casco,
+            }))}
+            lastMileParams={lastMileParams}
+          />
 
           {/* Completa tu perfil (campos diferidos del registro express: foto +
               dirección). A diferencia del resto del perfil — mediado por el asesor
