@@ -7,10 +7,13 @@ import {
 } from "@/lib/portal/portal-queries";
 import { buildPortalSupplierMark } from "@/lib/portal/portal-types";
 import { docKindLabel } from "@/lib/studio/client-types";
+import { listClientDeliveryAddresses } from "@/lib/studio/client-address-queries";
+import type { ClientDeliveryAddress } from "@/lib/studio/client-address-types";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { showNortePortal } from "@/lib/portal/demo";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
 import { ChangePasswordCard } from "./ChangePasswordCard";
+import { PortalAddresses } from "./PortalAddresses";
 
 export const metadata: Metadata = { title: "Mi cuenta" };
 
@@ -35,6 +38,14 @@ export default async function PortalAccountPage() {
   if (!client) return null;
 
   const completeness = await getProfileCompleteness(supabase);
+  // Direcciones de entrega (SDD-0138 Slice B). Best-effort: si la migración 0198
+  // todavía no está aplicada, la query falla → degradamos a lista vacía sin romper.
+  let addresses: ClientDeliveryAddress[] = [];
+  try {
+    addresses = await listClientDeliveryAddresses(supabase, client.id);
+  } catch {
+    addresses = [];
+  }
   const supplierMark = buildPortalSupplierMark(client.markbox);
   const norte = showNortePortal(client.markbox);
   const waUpdate = buildWhatsAppLink(
@@ -156,12 +167,11 @@ export default async function PortalAccountPage() {
               mono
               empty="Sin teléfono cargado"
             />
-            <Field
-              label="Dirección de entrega"
-              value={client.address}
-              empty="Sin dirección de entrega cargada"
-            />
           </dl>
+
+          {/* Direcciones de entrega múltiples (SDD-0138 Slice B) — las gestiona el
+              cliente; el mismo esquema lo edita el asesor desde el Studio. */}
+          <PortalAddresses addresses={addresses} />
 
           {/* Completa tu perfil (campos diferidos del registro express: foto +
               dirección). A diferencia del resto del perfil — mediado por el asesor

@@ -43,8 +43,19 @@ Sin migración (misma fila que la RLS del portal ya deja leer).
   asesor (mismo criterio que el resto de `/cuenta`). El cliente pide correcciones por
   el CTA de WhatsApp existente.
 
-### Slice B · Direcciones de entrega múltiples — PENDIENTE (migración 0198)
-Nueva capacidad: el cliente tiene N direcciones, una predeterminada.
+### Slice B · Direcciones de entrega múltiples — ✅ CÓDIGO HECHO · migración 0198 SIN APLICAR
+Nueva capacidad: el cliente tiene N direcciones, una predeterminada. **También se
+editan desde el perfil del cliente en el ERP (Studio) — mismo esquema** (recordatorio
+founder 2026-07-01); el wiring del Studio queda como paso siguiente sobre la misma
+capa `lib/studio/client-address-*`.
+
+Construido en esta rama: migración-archivo + `lib/studio/client-address-{types,queries}.ts`
+(capa compartida portal↔Studio) + server actions del portal
+(`app/portal/(app)/cuenta/address-actions.ts`, client de SESIÓN — la RLS self
+garantiza propiedad) + UI `PortalAddresses` en `/cuenta` (lista + agregar +
+predeterminar + eliminar; fetch best-effort → si la migración no está aplicada,
+degrada a lista vacía sin romper) + tests del validador.
+
 - **Migración `0198_client_delivery_addresses.sql`** (archivo en esta rama, la aplica
   el Director tras dry-run):
   - Tabla `public.client_delivery_addresses` `{ id uuid pk, tenant_id, client_id fk
