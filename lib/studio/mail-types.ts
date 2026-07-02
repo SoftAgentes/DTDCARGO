@@ -91,6 +91,11 @@ export const MAIL_SIGNATURE_LAYOUTS: MailSignatureLayout[] = [
   "image_only",
 ];
 
+/** Idioma por defecto de la firma (columna `lang`, migr 0204). */
+export type MailSignatureLang = "es" | "en" | "zh";
+
+export const MAIL_SIGNATURE_LANGS: MailSignatureLang[] = ["es", "en", "zh"];
+
 export type MailRecipientKind = "client" | "internal" | "custom";
 
 // ─── Entity types (match schema 0018) ────────────────────────
@@ -136,6 +141,7 @@ export interface MailSignature {
   show_offices_link: boolean;
   custom_html: string | null;
   is_default: boolean;
+  lang: MailSignatureLang;
   created_at: string;
   updated_at: string;
 }
@@ -269,6 +275,24 @@ export interface CreateSignatureInput {
   show_offices_link?: boolean;
   custom_html?: string;
   is_default?: boolean;
+}
+
+/**
+ * Input del editor de firmas del Norte (Mailing → Firmas). Admin edita la
+ * firma de CUALQUIER miembro del tenant, por eso `user_id` es explícito
+ * (no se resuelve del auth.uid como en CreateSignatureInput).
+ */
+export interface UpsertSignatureInput {
+  user_id: string;
+  layout: MailSignatureLayout;
+  full_name: string;
+  role_label?: string;
+  email?: string;
+  phone?: string;
+  whatsapp?: string;
+  photo_url?: string;
+  company_name?: string;
+  lang: MailSignatureLang;
 }
 
 export interface CreateRuleInput {
@@ -489,6 +513,48 @@ export function validateCreateSignatureInput(
   };
 }
 
+export function validateUpsertSignatureInput(
+  partial: Partial<UpsertSignatureInput>,
+): { input?: UpsertSignatureInput; fieldErrors?: ActionFieldErrors } {
+  const fieldErrors: ActionFieldErrors = {};
+  if (!partial.user_id || partial.user_id.trim().length < 1) {
+    fieldErrors.user_id = "Falta el miembro del equipo";
+  }
+  if (
+    !partial.layout ||
+    !MAIL_SIGNATURE_LAYOUTS.includes(partial.layout as MailSignatureLayout)
+  ) {
+    fieldErrors.layout = "Layout inválido";
+  }
+  if (!partial.full_name || partial.full_name.trim().length < 2) {
+    fieldErrors.full_name = "Nombre requerido (min 2 caracteres)";
+  }
+  if (partial.email && !isValidEmail(partial.email)) {
+    fieldErrors.email = "Email inválido";
+  }
+  if (
+    !partial.lang ||
+    !MAIL_SIGNATURE_LANGS.includes(partial.lang as MailSignatureLang)
+  ) {
+    fieldErrors.lang = "Idioma inválido";
+  }
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
+  return {
+    input: {
+      user_id: partial.user_id!.trim(),
+      layout: partial.layout as MailSignatureLayout,
+      full_name: partial.full_name!.trim(),
+      role_label: partial.role_label?.trim() || undefined,
+      email: partial.email?.trim() || undefined,
+      phone: partial.phone?.trim() || undefined,
+      whatsapp: partial.whatsapp?.trim() || undefined,
+      photo_url: partial.photo_url?.trim() || undefined,
+      company_name: partial.company_name?.trim() || "DTD Cargo",
+      lang: partial.lang as MailSignatureLang,
+    },
+  };
+}
+
 export function validateCreateRuleInput(
   partial: Partial<CreateRuleInput>,
 ): { input?: CreateRuleInput; fieldErrors?: ActionFieldErrors } {
@@ -613,6 +679,16 @@ export const SIGNATURE_LAYOUT_LABELS: Record<MailSignatureLayout, string> = {
 
 export function signatureLayoutLabel(l: MailSignatureLayout): string {
   return SIGNATURE_LAYOUT_LABELS[l];
+}
+
+export const SIGNATURE_LANG_LABELS: Record<MailSignatureLang, string> = {
+  es: "Español",
+  en: "English",
+  zh: "中文",
+};
+
+export function signatureLangLabel(l: MailSignatureLang): string {
+  return SIGNATURE_LANG_LABELS[l];
 }
 
 // ─── Badge tone helpers (6 tonos oficiales) ──────────────────

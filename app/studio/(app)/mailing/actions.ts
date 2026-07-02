@@ -25,6 +25,7 @@ import {
   extractVariables,
   validateCreateRuleInput,
   validateUpdateTemplateInput,
+  validateUpsertSignatureInput,
   type ActionFieldErrors,
 } from "@/lib/studio/mail-types";
 import type { MailingActionState } from "./_components/mailing-types";
@@ -151,6 +152,99 @@ export async function sendTestTemplateAction(
       ? "Encolado · sin RESEND_API_KEY el envío real no ocurre, pero el log queda."
       : "Email de prueba enviado.",
   };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Signatures · upsert (Firmas · Norte)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Crea o actualiza la firma de CUALQUIER miembro del tenant (admin-only).
+ * Upsert por `user_id`: si ya existe firma de ese usuario en el tenant →
+ * UPDATE; si no → INSERT con is_default=true.
+ *
+ * Escritura tenant-wide (firmas de otros usuarios) → admin client, igual que
+ * sendTestTemplateAction. El gating admin lo hace moduleEditDenial.
+ */
+export async function upsertMailSignatureAction(
+  _prev: MailingActionState,
+  formData: FormData,
+): Promise<MailingActionState> {
+  const partial = {
+    user_id: (formData.get("user_id") as string | null)?.trim() ?? undefined,
+    layout: (formData.get("layout") as string | null) ?? undefined,
+    full_name: (formData.get("full_name") as string | null)?.trim() ?? undefined,
+    role_label: (formData.get("role_label") as string | null)?.trim() || undefined,
+    email: (formData.get("email") as string | null)?.trim() || undefined,
+    phone: (formData.get("phone") as string | null)?.trim() || undefined,
+    whatsapp: (formData.get("whatsapp") as string | null)?.trim() || undefined,
+    photo_url: (formData.get("photo_url") as string | null)?.trim() || undefined,
+    company_name:
+      (formData.get("company_name") as string | null)?.trim() || undefined,
+    lang: (formData.get("lang") as string | null) ?? undefined,
+  };
+
+  const { input, fieldErrors } = validateUpsertSignatureInput(
+    partial as Parameters<typeof validateUpsertSignatureInput>[0],
+  );
+  if (fieldErrors) return { fieldErrors };
+  if (!input) return { error: "Datos inválidos." };
+
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "mailing");
+  if (denial) return { error: denial };
+
+  const { data: link } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  if (!link?.tenant_id) return { error: "Sin tenant." };
+
+  let supabaseAdmin;
+  try {
+    supabaseAdmin = createAdminClient();
+  } catch {
+    return { error: "Admin client no configurado." };
+  }
+
+  const { data: existing } = await supabaseAdmin
+    .from("mail_signatures")
+    .select("id")
+    .eq("tenant_id", link.tenant_id)
+    .eq("user_id", input.user_id)
+    .maybeSingle<{ id: string }>();
+
+  const row = {
+    layout: input.layout,
+    full_name: input.full_name,
+    role_label: input.role_label ?? null,
+    email: input.email ?? null,
+    phone: input.phone ?? null,
+    whatsapp: input.whatsapp ?? null,
+    photo_url: input.photo_url ?? null,
+    company_name: input.company_name ?? "DTD Cargo",
+    lang: input.lang,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (existing?.id) {
+    const { error } = await supabaseAdmin
+      .from("mail_signatures")
+      .update(row)
+      .eq("id", existing.id);
+    if (error) return { error: `No se pudo guardar: ${error.message}` };
+  } else {
+    const { error } = await supabaseAdmin.from("mail_signatures").insert({
+      tenant_id: link.tenant_id,
+      user_id: input.user_id,
+      is_default: true,
+      ...row,
+    });
+    if (error) return { error: `No se pudo crear la firma: ${error.message}` };
+  }
+
+  revalidatePath("/studio/mailing");
+  return { ok: true, message: "Firma guardada." };
 }
 
 // ─────────────────────────────────────────────────────────────

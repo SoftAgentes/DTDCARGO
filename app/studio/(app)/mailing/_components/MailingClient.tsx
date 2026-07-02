@@ -12,6 +12,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import type {
   MailRuleWithTemplate,
+  MailSignature,
   MailTemplate,
 } from "@/lib/studio/mail-types";
 import {
@@ -23,8 +24,10 @@ import {
   type MailLogStatus,
   type MailingAdminTab,
   type MailingFilters,
+  type SignatureTeamMember,
 } from "./mailing-types";
 import { TemplatesView } from "./TemplatesView";
+import { SignaturesView } from "./SignaturesView";
 import { RulesView } from "./RulesView";
 import { ConfigView } from "./ConfigView";
 import { BlacklistView } from "./BlacklistView";
@@ -37,6 +40,8 @@ interface Props {
   rules: MailRuleWithTemplate[];
   config: MailConfigRow | null;
   blacklist: MailBlacklistRow[];
+  signatures: MailSignature[];
+  members: SignatureTeamMember[];
   filters: MailingFilters;
 }
 
@@ -76,6 +81,8 @@ export function MailingClient({
   rules,
   config,
   blacklist,
+  signatures,
+  members,
   filters,
 }: Props) {
   const router = useRouter();
@@ -150,11 +157,7 @@ export function MailingClient({
       {tab === "templates" && <TemplatesView templates={templatesFull} />}
 
       {tab === "signatures" && (
-        <EmptyState
-          eyebrow="En construcción · Slice B"
-          title="Firmas"
-          description="Cada empleado configura su firma con los layouts oficiales del Brand Book. Vista en construcción."
-        />
+        <SignaturesView signatures={signatures} members={members} />
       )}
 
       {tab === "compose" && (

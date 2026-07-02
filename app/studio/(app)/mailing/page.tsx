@@ -12,8 +12,16 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/db/server";
+import { createAdminClient } from "@/lib/db/admin";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
-import { listRules, listTemplates } from "@/lib/studio/mail-queries";
+import {
+  listRules,
+  listTemplates,
+  listTenantSignatures,
+} from "@/lib/studio/mail-queries";
+import { listMembers } from "@/lib/studio/user-queries";
+import { roleLabel, userDisplayName, userInitials } from "@/lib/studio/user-types";
+import type { MailSignature } from "@/lib/studio/mail-types";
 import { MailingClient } from "./_components/MailingClient";
 import type {
   MailBlacklistRow,
@@ -21,6 +29,7 @@ import type {
   MailingAdminTab,
   MailLogRow,
   MailLogStatus,
+  SignatureTeamMember,
 } from "./_components/mailing-types";
 
 export const metadata = { title: "Mailing · DTD Studio" };
@@ -161,6 +170,57 @@ export default async function MailingAdminPage({
   const blacklist =
     (blacklistResp?.data ?? []) as unknown as MailBlacklistRow[];
 
+  // ── Firmas · solo cuando el tab lo necesita ──────────────────
+  // La vista Firmas lista/edita la firma de TODO el equipo. Los miembros
+  // (nombre/cargo/email) se resuelven con admin client igual que en Usuarios
+  // (la RLS de user_tenants tapa a los no-admin más allá de su propia fila).
+  let signatures: MailSignature[] = [];
+  let members: SignatureTeamMember[] = [];
+  if (tab === "signatures") {
+    const supabaseAdminForMembers = (() => {
+      try {
+        return createAdminClient();
+      } catch {
+        return null;
+      }
+    })();
+
+    const [sigs, membersRaw] = await Promise.all([
+      listTenantSignatures(supabase),
+      listMembers(supabaseAdminForMembers ?? supabase, {
+        tenantId: link.tenant_id,
+      }),
+    ]);
+    signatures = sigs;
+
+    // Resolver emails de auth.users (listMembers los deja como '').
+    const emailMap = new Map<string, string>();
+    if (supabaseAdminForMembers) {
+      try {
+        const { data: authUsers } =
+          await supabaseAdminForMembers.auth.admin.listUsers({ perPage: 200 });
+        for (const u of authUsers?.users ?? []) {
+          if (u.email) emailMap.set(u.id, u.email);
+        }
+      } catch {
+        /* sin admin no hay emails · se cae a '—' */
+      }
+    }
+
+    members = membersRaw.map((m) => {
+      const email = emailMap.get(m.user_id) ?? "";
+      return {
+        userId: m.user_id,
+        name: userDisplayName(m.profile, email || m.user_id),
+        roleLabel: roleLabel(m.role),
+        positionLabel: m.profile?.position_label ?? null,
+        email,
+        initials: userInitials(m.profile, email || m.user_id),
+        avatarUrl: m.profile?.avatar_url ?? null,
+      };
+    });
+  }
+
   return (
     <div style={{ maxWidth: 1480 }}>
       <div style={{ marginBottom: 24 }}>
@@ -191,6 +251,8 @@ export default async function MailingAdminPage({
         rules={rules}
         config={(config?.data ?? null) as unknown as MailConfigRow | null}
         blacklist={blacklist}
+        signatures={signatures}
+        members={members}
         filters={{ status, template: templateSlug ?? "all", search: search ?? "" }}
       />
     </div>

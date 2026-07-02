@@ -118,6 +118,23 @@ export async function listSignatures(
 }
 
 /**
+ * Lista TODAS las firmas del tenant (todos los miembros, no solo la propia).
+ * Usada por la vista Firmas del Norte (admin-only en la capa app). La policy
+ * tenant-scoped de la migr 0204 permite este SELECT a cualquier miembro; el
+ * gating a rol admin lo hace page.tsx. Incluye la columna `lang` vía select("*").
+ */
+export async function listTenantSignatures(
+  supabase: SupabaseClient,
+): Promise<MailSignature[]> {
+  const { data, error } = await supabase
+    .from("mail_signatures")
+    .select("*")
+    .order("updated_at", { ascending: false });
+  if (error) return [];
+  return (data ?? []) as MailSignature[];
+}
+
+/**
  * Devuelve la firma default del user (is_default=true). Hay 1 sola
  * garantizada via partial unique index en la migración.
  */

@@ -27,6 +27,20 @@ export type MailingAdminTab =
   | "config"
   | "logs";
 
+/**
+ * Miembro del equipo (tenant) para la vista Firmas. Derivado de
+ * user_tenants + user_profiles + auth.users (email), resuelto server-side.
+ */
+export interface SignatureTeamMember {
+  userId: string;
+  name: string;
+  roleLabel: string;
+  positionLabel: string | null;
+  email: string;
+  initials: string;
+  avatarUrl: string | null;
+}
+
 export interface MailConfigRow {
   tenant_id: string;
   from_email: string;
