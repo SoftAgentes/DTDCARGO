@@ -19,6 +19,16 @@ la migración es seguro.
   (`/studio/clientes/[markbox]`) — lista + agregar + predeterminar + eliminar, patrón
   `AdvisorAssignCard`. Actions con gate `moduleEditDenial("clients")` + client de
   sesión (RLS por tenant). **El círculo portal↔ERP quedó cerrado.**
+
+## Slice C (commit `f27f4941`) · estimado de entrega por dirección — ✅
+Gate de pricing resuelto **sin inventar tarifas**: reusa `calculator_cities` (ciudad→
+km+casco) + `calculator_settings` (umbral + tarifa/km) de `/studio/tarifas` (SDD-0055),
+vía las RPCs públicas anon de retorno mínimo. Misma fórmula del calculador §5.7.
+- Columna `city_slug` agregada a la **migración 0198 (sigue SIN APLICAR** — editable
+  porque nunca se aplicó ni mergeó; el Director aplica UNA sola migración).
+- Ciudad en el form (portal + Studio) = SELECT del catálogo + "Otra ciudad…" libre.
+- Fila muestra "Entrega incluida (casco central)" o "Recargo aprox. $X" (advisory).
+- Helper puro `lastMileEstimate` con tests. Degrada honesto sin catálogo/config.
 - **Portal**: server actions con client de sesión (RLS self garantiza propiedad) + UI
   `PortalAddresses` en `/cuenta` (lista + agregar + predeterminar + eliminar) +
   tests del validador. Reemplaza el campo read-only "Dirección de entrega".
