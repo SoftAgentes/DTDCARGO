@@ -39,6 +39,31 @@ const VALID_STATUSES: MailLogStatus[] = [
   "failed",
 ];
 
+const VALID_TABS: MailingAdminTab[] = [
+  "templates",
+  "signatures",
+  "compose",
+  "scheduled",
+  "reglas",
+  "config",
+  "logs",
+];
+
+/** Subtítulo del header por tab (portado del Norte erp/modules/mailing.jsx). */
+const TAB_SUBTITLE: Record<MailingAdminTab, string> = {
+  templates:
+    "Plantillas de email y WhatsApp · variables dinámicas · multi-idioma · test send.",
+  signatures:
+    "Cada empleado configura su firma con los layouts oficiales del Brand Book DTD.",
+  compose: "Envío individual con plantilla + firma.",
+  scheduled:
+    "Correos programados en cola. Se envían en su fecha/hora; puedes adelantarlos o cancelarlos.",
+  reglas:
+    "Eventos del ERP que disparan correos automáticos. Destinatario cliente vs. interno.",
+  config: "Proveedor de envío, límites y lista negra (blacklist).",
+  logs: "Histórico de envíos. Estado de entrega, aperturas y rebotes.",
+};
+
 export default async function MailingAdminPage({
   searchParams,
 }: {
@@ -73,13 +98,9 @@ export default async function MailingAdminPage({
   };
 
   const tabRaw = singleParam("tab");
-  const tab: MailingAdminTab =
-    tabRaw === "templates" ||
-    tabRaw === "reglas" ||
-    tabRaw === "config" ||
-    tabRaw === "blacklist"
-      ? (tabRaw as MailingAdminTab)
-      : "logs";
+  const tab: MailingAdminTab = (VALID_TABS as string[]).includes(tabRaw ?? "")
+    ? (tabRaw as MailingAdminTab)
+    : "templates";
 
   const statusRaw = singleParam("status");
   const status: MailLogStatus | "all" =
@@ -127,7 +148,7 @@ export default async function MailingAdminPage({
           .eq("tenant_id", link.tenant_id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    tab === "blacklist"
+    tab === "config"
       ? supabase
           .from("mail_blacklist")
           .select("id, email, reason, notes, added_by, added_at")
@@ -148,7 +169,7 @@ export default async function MailingAdminPage({
           className="studio-display"
           style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
         >
-          Mailing
+          Mailing &amp; Notificaciones
         </h1>
         <p
           style={{
@@ -158,10 +179,7 @@ export default async function MailingAdminPage({
             maxWidth: "76ch",
           }}
         >
-          Historial de emails enviados desde el Studio (invitaciones, bug
-          reporter, futuras campañas). Webhooks de Resend actualizan
-          automáticamente el estado de entrega (sent · delivered · opened ·
-          bounced).
+          {TAB_SUBTITLE[tab]}
         </p>
       </div>
 

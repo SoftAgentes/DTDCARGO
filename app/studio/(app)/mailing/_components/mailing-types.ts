@@ -19,11 +19,13 @@ export interface MailingActionState {
 export const INITIAL_MAILING_STATE: MailingActionState = {};
 
 export type MailingAdminTab =
-  | "logs"
   | "templates"
+  | "signatures"
+  | "compose"
+  | "scheduled"
   | "reglas"
   | "config"
-  | "blacklist";
+  | "logs";
 
 export interface MailConfigRow {
   tenant_id: string;
