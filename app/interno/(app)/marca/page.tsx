@@ -244,6 +244,12 @@ export default function MarcaHubPage() {
               title="WhatsApp Business Services"
               desc="Genera las imágenes 1080×1080 del catálogo y configura el perfil de cada número con la guía paso a paso (copiar y pegar)."
             />
+            <ToolCard
+              href="/interno/marca/enlaces"
+              meta="Guía + preview"
+              title="Link-in-bio · Instagram"
+              desc="La página dtdcargo.com/enlaces que va en la bio: cómo ponerla, los botones nativos de la cuenta profesional y cómo editar los enlaces. Con preview en vivo."
+            />
             <ToolCardPlaceholder>
               Más plantillas y templates de marca van a aparecer acá.
             </ToolCardPlaceholder>
