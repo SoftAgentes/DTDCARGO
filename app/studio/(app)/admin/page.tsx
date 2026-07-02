@@ -46,7 +46,7 @@ import type { ApiIntegrationData } from "@/lib/studio/api-integration-types";
 
 export const metadata = { title: "Administración" };
 
-type SectionGroup = "BÁSICO" | "INTERMEDIO" | "PRO";
+type SectionGroup = "BÁSICO" | "MARCA" | "INTERMEDIO" | "PRO";
 
 interface AdminSection {
   id: string;
@@ -100,9 +100,18 @@ const SECTIONS: AdminSection[] = [
     sddRef: "SDD-0126",
   },
   {
+    id: "fiscal",
+    group: "BÁSICO",
+    label: "Impuestos · IVA/SENIAT",
+    icon: "shield",
+    description:
+      "Configuración fiscal: alícuotas IVA, retenciones ISLR/IGTF, contribuyente especial, resoluciones SENIAT. Vive en el módulo Fiscal · SENIAT.",
+    href: "/studio/fiscal",
+  },
+  {
     id: "holidays",
     group: "BÁSICO",
-    label: "Feriados & ferias",
+    label: "Feriados CN/VE",
     icon: "clock",
     description:
       "Calendario operativo CN/VE: feriados (días no laborables) y ferias comerciales (Cantón/Yiwu). Afecta lead times y SLAs de despacho y almacén.",
@@ -116,6 +125,56 @@ const SECTIONS: AdminSection[] = [
     description:
       "Theme (light/dark), densidad (compact/normal/spacious), branding por tenant (logo, color de acento). Persistido por usuario.",
     sddRef: "SDD-0121",
+  },
+  {
+    id: "routes",
+    group: "BÁSICO",
+    label: "Administrar rutas",
+    icon: "truck",
+    description:
+      "Rutas CN→VE y ciudades de destino: alta/edición, ciudades cubiertas y su relación con tarifas y despacho. Módulo dedicado.",
+    href: "/studio/admin/rutas",
+  },
+  // ─── MARCA ───────────────────────────────────────────────
+  {
+    id: "brand-system",
+    group: "MARCA",
+    label: "Sistema de marca",
+    icon: "spark",
+    description:
+      "Tokens, tipografía, paleta y componentes de la identidad DTD Cargo. Fuente de verdad = el Norte (docs/design/studio/_norte) y el Brand Book vigente.",
+  },
+  {
+    id: "brand-icons",
+    group: "MARCA",
+    label: "Íconos de perfil",
+    icon: "users",
+    description:
+      "Set de avatares/íconos de perfil por rol y por persona. Los assets viven en el Norte (assets/profile-icons, assets/role-icons).",
+  },
+  {
+    id: "brand-apps",
+    group: "MARCA",
+    label: "Aplicaciones de marca",
+    icon: "tag",
+    description:
+      "Aplicaciones del logo y plantillas de marca (portadas de redes, colateral impreso, membrete, tarjeta). Catálogo en el Brand Book.",
+  },
+  {
+    id: "brand-ads",
+    group: "MARCA",
+    label: "Publicidad activa",
+    icon: "flame",
+    description:
+      "Estado de las campañas pagas (Google Ads) y piezas activas. Fuente de verdad del negocio = docs/marketing.",
+  },
+  {
+    id: "brand-studio",
+    group: "MARCA",
+    label: "Estudio de Redes",
+    icon: "radar",
+    description:
+      "Generador de piezas para redes (feed, stories, portadas) a partir de embarques y plantillas de marca. Relacionado con el módulo Marketing.",
   },
   // ─── INTERMEDIO ──────────────────────────────────────────
   {
@@ -145,17 +204,24 @@ const SECTIONS: AdminSection[] = [
       "Correlativos por documento (factura, nota de débito/crédito, control SENIAT) con prefijo y zero-padding configurables.",
     sddRef: "SDD-0122",
   },
-  // ─── PRO ─────────────────────────────────────────────────
   {
-    id: "agents",
-    group: "PRO",
-    label: "Agentes y Skills",
-    icon: "spark",
+    id: "legal-docs",
+    group: "INTERMEDIO",
+    label: "Documentos legales",
+    icon: "doc",
     description:
-      "Catálogo de skills built-in, agentes instalados por tenant, audit trail de runs y métricas de costo. Runtime con Anthropic SDK + tools read-only sobre el ERP.",
-    sddRef: "SDD-0020",
-    href: "/studio/admin/agentes",
+      "T&C del cliente, acuerdo con el operador de consolidación y brief de seguro. Versionado y evidencia legal. Módulo dedicado.",
+    href: "/studio/legal",
   },
+  {
+    id: "acceptances",
+    group: "INTERMEDIO",
+    label: "Aceptaciones T&C",
+    icon: "shield",
+    description:
+      "Registro de qué versión de los T&C aceptó cada cliente, cuándo y desde dónde. Traza de consentimiento para compliance.",
+  },
+  // ─── PRO ─────────────────────────────────────────────────
   {
     id: "api",
     group: "PRO",
@@ -183,9 +249,19 @@ const SECTIONS: AdminSection[] = [
       "CSV/XLSX bulk: clientes, tarifas, embarques históricos. Export para BI o backup manual.",
     sddRef: "SDD-0130",
   },
+  {
+    id: "agents",
+    group: "PRO",
+    label: "Agentes y Skills",
+    icon: "spark",
+    description:
+      "Catálogo de skills built-in, agentes instalados por tenant, audit trail de runs y métricas de costo. Runtime con Anthropic SDK + tools read-only sobre el ERP. (No figura en el Norte; se conserva por ser feature LIVE — SDD-0020.)",
+    sddRef: "SDD-0020",
+    href: "/studio/admin/agentes",
+  },
 ];
 
-const GROUP_ORDER: SectionGroup[] = ["BÁSICO", "INTERMEDIO", "PRO"];
+const GROUP_ORDER: SectionGroup[] = ["BÁSICO", "MARCA", "INTERMEDIO", "PRO"];
 
 function isSection(s: string | undefined): s is string {
   return !!s && SECTIONS.some((sec) => sec.id === s);
