@@ -177,9 +177,10 @@ refutador por hallazgo: 21 confirmados (≈12 únicos), 4 refutados. Aplicado:
 - El ban de Auth es global a la cuenta: si un staff compartiera auth user con un
   cliente del portal, desactivarlo del Studio también le corta /portal (hoy no
   existe el caso; documentado).
-- Los `denied` de matriz para el rol `marketing` en módulos neutrales
-  (dashboard/menciones/bugs/calendario) son **decisión de matriz pendiente del
-  founder**, no de enforcement.
+- ✅ **Resuelto (2026-07-02):** el rol `marketing` ahora VE los 4 módulos
+  transversales (dashboard operativo, calendario, menciones, bugs/mis-bugs) —
+  decisión del founder. No confundir con el módulo `marketing`, que trae su
+  propio dashboard "buenos días".
 
 ---
 
