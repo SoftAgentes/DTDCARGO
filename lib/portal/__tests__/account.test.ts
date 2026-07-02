@@ -73,10 +73,12 @@ const FULL_ROW = {
   email: "compras@demosa.com.ve",
   phone: "+58 414 1234567",
   address: "Av. Bolívar, Galpón 4, Valencia, Carabobo",
+  rif: "J-40551288-3",
+  doc_kind: "empresa",
 };
 
 describe("getPortalClient — incluye address (dirección de entrega)", () => {
-  it("mapea la fila completa incluyendo address", async () => {
+  it("mapea la fila completa incluyendo address, identidad (SDD-0138)", async () => {
     const { supabase } = clientStub({ portalClientId: "c-1", row: FULL_ROW });
     const client = await getPortalClient(supabase);
 
@@ -87,13 +89,24 @@ describe("getPortalClient — incluye address (dirección de entrega)", () => {
       email: "compras@demosa.com.ve",
       phone: "+58 414 1234567",
       address: "Av. Bolívar, Galpón 4, Valencia, Carabobo",
+      docKind: "empresa",
+      rif: "J-40551288-3",
     });
   });
 
-  it("address ausente → null (no rompe; el admin puede no haberla cargado)", async () => {
+  it("doc_kind fuera de los canónicos → null (SDD-0138: sólo persona|empresa)", async () => {
+    const { supabase } = clientStub({
+      portalClientId: "c-1",
+      row: { ...FULL_ROW, doc_kind: "otro" },
+    });
+    const client = await getPortalClient(supabase);
+    expect(client?.docKind).toBeNull();
+  });
+
+  it("address/identidad ausente → null (no rompe; el admin puede no haberla cargado)", async () => {
     const { supabase } = clientStub({
       portalClientId: "c-2",
-      row: { id: "c-2", markbox: "DTD-1003", name: "Tenant Prueba SRL" }, // sin email/phone/address
+      row: { id: "c-2", markbox: "DTD-1003", name: "Tenant Prueba SRL" }, // sin email/phone/address/rif/doc_kind
     });
     const client = await getPortalClient(supabase);
 
@@ -101,6 +114,8 @@ describe("getPortalClient — incluye address (dirección de entrega)", () => {
     expect(client?.email).toBeNull();
     expect(client?.phone).toBeNull();
     expect(client?.address).toBeNull();
+    expect(client?.docKind).toBeNull();
+    expect(client?.rif).toBeNull();
   });
 
   it("aislamiento: sin client_id del portal → null SIN consultar clients", async () => {

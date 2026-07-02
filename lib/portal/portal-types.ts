@@ -53,6 +53,7 @@ export {
   flowForService,
   nextMilestone,
 } from "@/lib/studio/tracking-progress";
+import type { ClientDocKind } from "@/lib/studio/client-types";
 
 /** Estado del acceso de un cliente al portal (tabla client_users). */
 export type ClientUserStatus = "invited" | "active" | "revoked";
@@ -71,6 +72,16 @@ export type PortalClient = {
    * registro no la tiene cargada.
    */
   address: string | null;
+  /**
+   * Tipo de documento del cliente (`clients.doc_kind`, migr 0092): persona
+   * (cédula) o empresa (RIF). Null si no está determinado. SDD-0138.
+   */
+  docKind: ClientDocKind | null;
+  /**
+   * Documento del cliente (`clients.rif`, migr 0006): cédula para persona, RIF
+   * para empresa. Read-only en el portal (lo administra el asesor). SDD-0138.
+   */
+  rif: string | null;
 };
 
 /**

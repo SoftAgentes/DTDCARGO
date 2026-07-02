@@ -6,6 +6,7 @@ import {
   getProfileCompleteness,
 } from "@/lib/portal/portal-queries";
 import { buildPortalSupplierMark } from "@/lib/portal/portal-types";
+import { docKindLabel } from "@/lib/studio/client-types";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { showNortePortal } from "@/lib/portal/demo";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
@@ -137,6 +138,17 @@ export default async function PortalAccountPage() {
 
           <dl className="pt-6 flex flex-col gap-4">
             <Field label="Nombre / empresa" value={client.name} />
+            <Field
+              label="Tipo de cliente"
+              value={client.docKind ? docKindLabel(client.docKind) : null}
+              empty="Sin especificar"
+            />
+            <Field
+              label={client.docKind === "empresa" ? "RIF" : "Cédula / RIF"}
+              value={client.rif}
+              mono
+              empty="Sin documento cargado"
+            />
             <Field label="Email" value={client.email} mono empty="Sin email cargado" />
             <Field
               label="Teléfono"

@@ -63,11 +63,14 @@ export async function getPortalClient(
 
   const { data, error } = await supabase
     .from("clients")
-    .select("id, markbox, name, email, phone, address")
+    .select("id, markbox, name, email, phone, address, rif, doc_kind")
     .eq("id", portalClientId as string)
     .maybeSingle();
 
   if (error || !data) return null;
+
+  // `doc_kind` es texto libre en DB (migr 0092); sólo aceptamos los canónicos.
+  const rawDocKind = (data.doc_kind as string | null) ?? null;
 
   return {
     id: data.id as string,
@@ -76,6 +79,9 @@ export async function getPortalClient(
     email: (data.email as string | null) ?? null,
     phone: (data.phone as string | null) ?? null,
     address: (data.address as string | null) ?? null,
+    docKind:
+      rawDocKind === "persona" || rawDocKind === "empresa" ? rawDocKind : null,
+    rif: (data.rif as string | null) ?? null,
   };
 }
 
