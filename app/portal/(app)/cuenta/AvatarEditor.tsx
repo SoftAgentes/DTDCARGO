@@ -65,14 +65,31 @@ export function AvatarEditor({
           <button
             type="button"
             disabled={pending}
-            onClick={() => fileRef.current?.click()}
+            onClick={() => {
+              // Limpiar el value antes de abrir el picker: si no, re-elegir el
+              // MISMO archivo tras un error no dispara onChange (browser estándar).
+              if (fileRef.current) fileRef.current.value = "";
+              fileRef.current?.click();
+            }}
             className="text-[12.5px] font-semibold text-wine hover:text-wine-deep disabled:opacity-60"
           >
             {pending ? "Subiendo…" : avatarUrl ? "Cambiar foto" : "Subir foto de perfil"}
           </button>
         </form>
+        {/* role="status" (aria-live polite): el lector de pantalla anuncia el
+            resultado de la subida (WCAG 4.1.3). */}
         {state.error ? (
-          <p className="mt-1 text-[12px] text-wine leading-[1.4]">{state.error}</p>
+          <p role="status" className="mt-1 text-[12px] text-wine leading-[1.4]">
+            {state.error}
+          </p>
+        ) : state.ok ? (
+          <p
+            role="status"
+            className="mt-1 text-[12px] leading-[1.4]"
+            style={{ color: "var(--color-status-success)" }}
+          >
+            Foto actualizada
+          </p>
         ) : (
           <div className="text-[12.5px] text-grey-500">Cliente DTD</div>
         )}
