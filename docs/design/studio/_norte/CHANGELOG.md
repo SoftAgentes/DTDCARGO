@@ -1,5 +1,22 @@
 # Changelog · v1.1+
 
+## 2026-07-02 · 📡 Producto → Norte · corte de realidad (desde Claude Code)
+
+Anotación desde el repo de producción (no es entrega de diseño): se actualizó el bloque
+"🚀 Ya LIVE en producción" de `HANDOFF.md` al corte **2026-07-02**. Sin cambios visuales ni
+de marca — versión visible sigue **v4.5**.
+- **Shipped desde el corte 2026-06-20** (detalle por SDD en `HANDOFF.md`): Portal (reportar
+  pago + hitos + cut-off · registro real · Club DTD · crédito de referido automático · correos
+  de Auth brandeados), Studio (Administración 11 secciones · buscador global ⌘K · RBAC
+  hardening), empleados/móvil (`/m/emp` + recibo PDF · phone-first), público (`/enlaces` LIVE
+  con el diseño `handoff-enlaces` de este Norte).
+- **⚠️ Producción SUPERÓ este Norte en dos partes** (para la próxima iteración de diseño):
+  1. **Perfil del Portal** — N direcciones de entrega con predeterminada + estimado de entrega
+     por dirección + avatar editable (SDD-0138); el prototipo aún muestra una sola dirección.
+  2. **Usuarios & Roles** — `warehouse_scope` cn·ve·all (lo que `users.jsx` prometía) + desactivación
+     real con anti-lockout + auditoría append-only + capabilities (SDD-0085 h3 + SDD-0139).
+- Lo histórico no se reescribe; este corte solo anota realidad de producto sobre el Norte vigente.
+
 ## 2026-06-20 · 🔢 v4.4 → v4.5
 
 Rediseño del **Portal del Cliente** + nuevo **Sistema de Movimiento**, consolidado como **v4.5** (marca y producto comparten número visible). Esta entrada va a Norte (Claude Code) — aplicar sobre el repo de producción respetando `CLAUDE.md` §SYNC-NORTE.

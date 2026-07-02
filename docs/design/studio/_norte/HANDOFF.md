@@ -22,9 +22,35 @@
 > Book dicen todos **v4.5**. Las menciones a v2.x/v3.x en CHANGELOG y comentarios de código son
 > historia (cuándo se construyó cada cosa) y no se reescriben.
 
-> **🚀 Ya LIVE en producción (repo Claude Code · 2026-06-20).** Este Norte es la fuente de diseño;
+> **🚀 Ya LIVE en producción (repo Claude Code · 2026-07-02).** Este Norte es la fuente de diseño;
 > lo de abajo ya está **shipped en prod** (se anota para que el Norte refleje la realidad del
-> producto — misma marca/versión v4.5, cada cosa identificada por su SDD):
+> producto — misma marca/versión v4.5, cada cosa identificada por su SDD).
+>
+> **⚠️ Partes donde PRODUCCIÓN SUPERÓ este Norte** (incorporar en la próxima iteración de diseño):
+> - **Perfil del Portal (`portal/app.jsx` · PortalProfile):** prod tiene **N direcciones de entrega
+>   con predeterminada** + **estimado de entrega por dirección** (reusa config del calculador) +
+>   **avatar editable** (foto o iniciales, separada del documento de identidad) + card "¿Importas
+>   para tu negocio?" · **SDD-0138** (migr 0198/0199). El prototipo aún muestra una sola dirección.
+> - **Usuarios & Roles (`erp/modules/*users*`):** `users.jsx` prometía el scope de almacén en el
+>   alta; prod lo tiene **y más**: `warehouse_scope` cn·ve·all por usuario + **desactivación real**
+>   (RLS + ban en Auth + anti-lockout) + **auditoría append-only** de cambios de rol/disable/scope +
+>   capabilities (`approve_money`) · **SDD-0085 hardening 3 + SDD-0139** (migr 0200-0202). El rol
+>   **marketing** ve los 4 módulos transversales (dashboard, calendario, menciones, bugs).
+>
+> **Corte 2026-07-02** — shipped desde el corte anterior (resumen por área):
+> - **Portal:** reportar pago + hitos del embarque + cut-off · **SDD-0134/0132/0133** (migr 0195/0196) ·
+>   registro de cliente real · **SDD-0131** (migr 0194) · **Club DTD** · **SDD-0116** · crédito de
+>   referido auto-acreditado en la 1ª factura · **SDD-0051 F2** (migr 0197) · correos de Auth
+>   brandeados (reset/OTP/cambio de email).
+> - **Studio ERP:** módulo **Administración** completo, 11 secciones · **SDD-0120→0130** (migr
+>   0190-0193) · **buscador global ⌘K** permission-aware · **SDD-0135** · fix del invite de usuarios
+>   (migr 0203).
+> - **Empleados / móvil:** onboarding del empleado + recibo de nómina PDF en `/m/emp` ·
+>   **SDD-0113/0117** · barrido phone-first de las apps de operario (migr 0183/0184).
+> - **Público:** `/enlaces` (link-in-bio de Instagram, diseño de este Norte `handoff-enlaces`) LIVE +
+>   guía interna en el hub de marca.
+>
+> **Corte 2026-06-20:**
 > - **Packing List trilingüe del proveedor** + Caja Padre + etiquetas QR (verificables en
 >   `/verificar`) + dirección del proveedor · **SDD-0097** (migr 0148).
 > - **Cotizador público de fletes** en `/cotizador-flete` · **SDD-0095**.
