@@ -1,9 +1,25 @@
 # RESUMEN · Portal → Norte · Fase 2 (Modo Forja)
 
 **Rama:** `feat/portal-norte-fase2` (desde `main`) · **Worktree:** `DTD-worktrees/portal-norte-f2`
-**Commits (3):** `104b7dea` spec 0138 · `24d19ded` Slice A · (+ este RESUMEN)
-**Estado:** ✅ `verify.mjs` TODO VERDE (3021 tests) + `next build` OK · **fast-forward sobre main** · **sin push**
-**Migraciones aplicadas:** ninguna (Slice A no toca DB).
+**Commits (5):** `104b7dea` spec 0138 · `24d19ded` Slice A · `2678d4f2` migración 0198 · `c458c8bb` Slice B código · (+ RESUMEN)
+**Estado:** ✅ `verify.mjs` TODO VERDE + `next build` OK (tras Slice B) · **fast-forward sobre main** · **sin push**
+**⚠️ Migración `0198_client_delivery_addresses.sql`: ARCHIVO EN LA RAMA, SIN APLICAR** — la aplica
+el Director (dry-run `begin…rollback` en prod antes; `get_advisors` security después). El código
+degrada honesto mientras tanto (fetch best-effort → lista vacía), así que mergear ANTES de aplicar
+la migración es seguro.
+
+## Slice B (nuevo esta sesión) · direcciones de entrega múltiples
+- **Migración 0198**: tabla `client_delivery_addresses` — RLS dual (equipo por tenant +
+  portal self por markbox, espejo de 0195) + trigger SECURITY DEFINER que sella
+  tenant/markbox desde `clients` + revoke anon + índice único parcial (1 predeterminada
+  por cliente) + backfill no destructivo de `clients.address`.
+- **Capa compartida** `lib/studio/client-address-{types,queries}.ts` — la usan las DOS
+  superficies. **Recordatorio founder:** las direcciones también se editan en el perfil
+  del cliente del ERP (Studio), mismo esquema → **wiring del Studio = siguiente paso**
+  (la capa ya está lista; falta solo la UI en `/studio/clientes`).
+- **Portal**: server actions con client de sesión (RLS self garantiza propiedad) + UI
+  `PortalAddresses` en `/cuenta` (lista + agregar + predeterminar + eliminar) +
+  tests del validador. Reemplaza el campo read-only "Dirección de entrega".
 
 ## Qué entregué esta sesión
 1. **Auditoría de "qué falta" para el Norte** (4 subagentes) + verificación contra código.
