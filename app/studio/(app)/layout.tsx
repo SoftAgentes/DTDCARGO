@@ -72,6 +72,7 @@ export default async function StudioAppLayout({
     .from("user_tenants")
     .select("region, role")
     .eq("user_id", user.id)
+    .is("disabled_at", null)
     .maybeSingle<{ region: string | null; role: string | null }>();
 
   // Rol del user — el sidebar lo usa para esconder los módulos que el rol no

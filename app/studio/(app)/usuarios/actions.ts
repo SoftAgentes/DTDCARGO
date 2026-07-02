@@ -1,10 +1,14 @@
 "use server";
 
 /**
- * Server actions de Usuarios & Roles (SDD-0024 Fase 2).
+ * Server actions de Usuarios & Roles (SDD-0024 Fase 2 · hardening 0200).
  *
- * Wraps RPCs ya existentes (studio_invite_user, studio_change_user_role)
- * + mutaciones directas para disable / enable / revoke invitation.
+ * TODAS las mutaciones de membership van por RPCs security definer
+ * (studio_invite_user, studio_change_user_role, studio_set_user_disabled,
+ * studio_revoke_invitation): user_tenants/user_invitations NO tienen policies
+ * de escritura para authenticated, así que un UPDATE directo con el client del
+ * user era un no-op silencioso (0 filas, sin error) — hallazgo auditoría
+ * 2026-07-02.
  *
  * Pattern useActionState con UserActionState shape.
  */
@@ -18,7 +22,8 @@ import { generateTelegramLinkCode } from "@/lib/studio/telegram/link-code";
 import {
   changeUserRoleRPC,
   inviteUserRPC,
-  tenantHasOtherAdmins,
+  revokeInvitationRPC,
+  setUserDisabledRPC,
 } from "@/lib/studio/user-queries";
 import {
   ROLE_LABELS,
@@ -161,8 +166,32 @@ export async function changeUserRoleAction(
 }
 
 // ─────────────────────────────────────────────────────────────
-// disableUserAction · soft disable (set disabled_at)
+// disableUserAction / enableUserAction · vía RPC studio_set_user_disabled
+// (migr 0200) + ban/unban en Supabase Auth.
+//
+// El RPC valida admin activo + anti-lockout (no desactivar al último admin,
+// cubre auto-desactivación) EN LA DB. El ban en Auth mata la sesión viva del
+// desactivado (el corte de data ya lo garantiza la RLS vía get_user_tenant_id
+// con filtro disabled_at); si el admin client no está disponible, se loggea y
+// se sigue — el ban es cinturón, la RLS es el freno.
 // ─────────────────────────────────────────────────────────────
+
+/** Duración de ban ≈ permanente (GoTrue parsea Go durations; 100 años). */
+const BAN_FOREVER = "876000h";
+
+async function setAuthBan(targetUserId: string, banned: boolean): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { error } = await admin.auth.admin.updateUserById(targetUserId, {
+      ban_duration: banned ? BAN_FOREVER : "none",
+    });
+    if (error) {
+      console.error("[setAuthBan] updateUserById failed:", error.message);
+    }
+  } catch (err) {
+    console.error("[setAuthBan] admin client unavailable:", err);
+  }
+}
 
 export async function disableUserAction(
   _prev: UserActionState,
@@ -178,35 +207,19 @@ export async function disableUserAction(
   const denial = await moduleEditDenial(supabase, "users");
   if (denial) return { error: denial };
 
-  // Anti-lockout client-side: no puedes desactivarte a ti mismo si eres
-  // el último admin. El RPC studio_change_user_role tiene este check; acá
-  // lo replicamos para disable (que es semántica distinta).
-  if (targetUserId === userResp.user.id) {
-    const hasOthers = await tenantHasOtherAdmins(supabase, userResp.user.id);
-    if (!hasOthers) {
-      return { errorCode: "user_no_other_admins" };
-    }
+  try {
+    await setUserDisabledRPC(supabase, targetUserId, true);
+  } catch (err) {
+    // Errores del RPC (anti-lockout, permisos) vienen formateados de Postgres.
+    const msg = err instanceof Error ? err.message : String(err);
+    return { error: msg };
   }
 
-  const { error } = await supabase
-    .from("user_tenants")
-    .update({ disabled_at: new Date().toISOString() })
-    .eq("user_id", targetUserId);
-
-  if (error) {
-    if (error.code === "42501") {
-      return { errorCode: "permission_denied" };
-    }
-    return { error: error.message };
-  }
+  await setAuthBan(targetUserId, true);
 
   revalidatePath("/studio/usuarios");
   return { ok: true, userId: targetUserId };
 }
-
-// ─────────────────────────────────────────────────────────────
-// enableUserAction · reactivar usuario desactivado
-// ─────────────────────────────────────────────────────────────
 
 export async function enableUserAction(
   _prev: UserActionState,
@@ -218,24 +231,24 @@ export async function enableUserAction(
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "users");
   if (denial) return { error: denial };
-  const { error } = await supabase
-    .from("user_tenants")
-    .update({ disabled_at: null })
-    .eq("user_id", targetUserId);
 
-  if (error) {
-    if (error.code === "42501") {
-      return { errorCode: "permission_denied" };
-    }
-    return { error: error.message };
+  try {
+    await setUserDisabledRPC(supabase, targetUserId, false);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { error: msg };
   }
+
+  await setAuthBan(targetUserId, false);
 
   revalidatePath("/studio/usuarios");
   return { ok: true, userId: targetUserId };
 }
 
 // ─────────────────────────────────────────────────────────────
-// revokeInvitationAction · marca invitation como revoked
+// revokeInvitationAction · vía RPC studio_revoke_invitation (migr 0200).
+// El UPDATE directo estaba bloqueado por `no_direct_update using(false)` →
+// no-op silencioso que la UI reportaba como éxito.
 // ─────────────────────────────────────────────────────────────
 
 export async function revokeInvitationAction(
@@ -252,19 +265,11 @@ export async function revokeInvitationAction(
   const denial = await moduleEditDenial(supabase, "users");
   if (denial) return { error: denial };
 
-  const { error } = await supabase
-    .from("user_invitations")
-    .update({
-      revoked_at: new Date().toISOString(),
-      revoked_by: userResp.user.id,
-    })
-    .eq("id", invitationId);
-
-  if (error) {
-    if (error.code === "42501") {
-      return { error: "Solo admins pueden revocar invitaciones." };
-    }
-    return { error: error.message };
+  try {
+    await revokeInvitationRPC(supabase, invitationId);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { error: msg };
   }
 
   revalidatePath("/studio/usuarios");

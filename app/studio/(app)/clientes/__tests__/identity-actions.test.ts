@@ -62,15 +62,18 @@ function makeSupabase(opts: FakeOpts) {
         // SELECT chain
         select() {
           // user_tenants se consulta dos veces: para tenant_id (la action) y para
-          // role (moduleEditDenial → getStudioRole, con .select("role").limit(1)).
+          // role (moduleEditDenial → getStudioRole, con
+          // .select("role").is("disabled_at", null).limit(1)).
           // Devolvemos ambos campos; default role = admin (puede editar) para que
           // el guard no bloquee los casos felices. Casos sin tenant → null → denial.
           const userTenantsRow =
             opts.tenantId === null
               ? null
               : { tenant_id: opts.tenantId ?? "t-1", role: opts.role ?? "admin" };
-          return {
-            // getStudioRole: .select("role").limit(1).maybeSingle()
+          const sel = {
+            // getStudioRole: .is("disabled_at", null) → chainable
+            is: () => sel,
+            // getStudioRole: .limit(1).maybeSingle()
             limit: () => ({ maybeSingle: async () => ({ data: userTenantsRow }) }),
             // user_tenants.maybeSingle → tenant_id (la action)
             maybeSingle: async () => {
@@ -87,6 +90,7 @@ function makeSupabase(opts: FakeOpts) {
               };
             },
           };
+          return sel;
         },
         // UPDATE chain: .update(payload).eq(...).eq(...)
         update(payload: Record<string, unknown>) {

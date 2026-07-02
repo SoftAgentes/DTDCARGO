@@ -23,8 +23,10 @@ import { canAccessModule, canEditModule } from "@/lib/studio/rbac";
 type StudioClient = Awaited<ReturnType<typeof createClient>>;
 
 /**
- * Resuelve el rol del user logueado en su tenant (primer membership). null si
- * no hay sesión o membership. Mismo patrón que el layout (SDD-0007); `limit(1)`
+ * Resuelve el rol del user logueado en su tenant (primer membership ACTIVO).
+ * null si no hay sesión, membership, o el membership está desactivado
+ * (`disabled_at` — hardening 0200: un desactivado no conserva rol → todos los
+ * gates fail-closed). Mismo patrón que el layout (SDD-0007); `limit(1)`
  * protege contra un user en N tenants (V1 single-tenant por sesión).
  */
 export async function getStudioRole(
@@ -33,6 +35,7 @@ export async function getStudioRole(
   const { data } = await supabase
     .from("user_tenants")
     .select("role")
+    .is("disabled_at", null)
     .limit(1)
     .maybeSingle<{ role: StudioUserRole | null }>();
   return data?.role ?? null;
