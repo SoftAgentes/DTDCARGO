@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { useFormStatus } from "react-dom";
 import type { ClientDeliveryAddress } from "@/lib/studio/client-address-types";
 import {
   addAddressAction,
@@ -100,22 +101,20 @@ function AddressRow({ address }: { address: ClientDeliveryAddress }) {
         {!address.isDefault && (
           <form action={setDefaultAddressAction}>
             <input type="hidden" name="addressId" value={address.id} />
-            <button
-              type="submit"
+            <PendingTextButton
               className="text-[12px] font-semibold text-wine hover:text-wine-deep whitespace-nowrap"
-            >
-              Predeterminar
-            </button>
+              idle="Predeterminar"
+              pending="Guardando…"
+            />
           </form>
         )}
         <form action={deleteAddressAction}>
           <input type="hidden" name="addressId" value={address.id} />
-          <button
-            type="submit"
+          <PendingTextButton
             className="text-[12px] font-semibold text-grey-500 hover:text-ink"
-          >
-            Eliminar
-          </button>
+            idle="Eliminar"
+            pending="Eliminando…"
+          />
         </form>
       </div>
     </li>
@@ -174,6 +173,27 @@ function AddForm({ onDone }: { onDone: () => void }) {
   );
 }
 
+/**
+ * Botón de texto que se deshabilita mientras su <form> está en vuelo (evita el
+ * doble-click en acciones destructivas). Debe vivir DENTRO del form (useFormStatus).
+ */
+function PendingTextButton({
+  className,
+  idle,
+  pending,
+}: {
+  className: string;
+  idle: string;
+  pending: string;
+}) {
+  const { pending: busy } = useFormStatus();
+  return (
+    <button type="submit" disabled={busy} className={`${className} disabled:opacity-60`}>
+      {busy ? pending : idle}
+    </button>
+  );
+}
+
 function Input({
   name,
   label,
@@ -191,6 +211,7 @@ function Input({
     <label className="flex flex-col gap-1.5">
       <span className="text-[11px] font-semibold tracking-[0.1em] uppercase text-grey-500">
         {label}
+        {required ? <span className="text-wine"> *</span> : null}
       </span>
       <input
         name={name}

@@ -31,6 +31,9 @@ export function DeliveryAddressesCard({
   const toast = useToast();
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Guard anti doble-click de las acciones por fila (predeterminar/eliminar):
+  // mientras una está en vuelo, las demás quedan deshabilitadas.
+  const [busy, setBusy] = useState<string | null>(null);
 
   // Campos del alta (form controlado, patrón de las cards del módulo).
   const [label, setLabel] = useState("");
@@ -167,13 +170,20 @@ export function DeliveryAddressesCard({
                 {!a.isDefault && (
                   <button
                     type="button"
+                    className="studio-link-quiet"
+                    disabled={busy != null}
                     onClick={async () => {
                       setError(null);
-                      const res = await setDefaultClientAddressAction(clientId, markbox, a.id);
-                      if (res.error) setError(res.error);
-                      else {
-                        toast.success(`Predeterminada actualizada en ${markbox}`);
-                        router.refresh();
+                      setBusy(`default:${a.id}`);
+                      try {
+                        const res = await setDefaultClientAddressAction(clientId, markbox, a.id);
+                        if (res.error) setError(res.error);
+                        else {
+                          toast.success(`Predeterminada actualizada en ${markbox}`);
+                          router.refresh();
+                        }
+                      } finally {
+                        setBusy(null);
                       }
                     }}
                     style={{
@@ -181,22 +191,30 @@ export function DeliveryAddressesCard({
                       color: "var(--wine)",
                       background: "none",
                       border: 0,
-                      cursor: "pointer",
+                      cursor: busy != null ? "wait" : "pointer",
                       whiteSpace: "nowrap",
+                      opacity: busy === `default:${a.id}` ? 0.6 : 1,
                     }}
                   >
-                    Predeterminar
+                    {busy === `default:${a.id}` ? "Guardando…" : "Predeterminar"}
                   </button>
                 )}
                 <button
                   type="button"
+                  className="studio-link-quiet"
+                  disabled={busy != null}
                   onClick={async () => {
                     setError(null);
-                    const res = await deleteClientAddressAction(markbox, a.id);
-                    if (res.error) setError(res.error);
-                    else {
-                      toast.success(`Dirección eliminada de ${markbox}`);
-                      router.refresh();
+                    setBusy(`delete:${a.id}`);
+                    try {
+                      const res = await deleteClientAddressAction(markbox, a.id);
+                      if (res.error) setError(res.error);
+                      else {
+                        toast.success(`Dirección eliminada de ${markbox}`);
+                        router.refresh();
+                      }
+                    } finally {
+                      setBusy(null);
                     }
                   }}
                   style={{
@@ -204,10 +222,11 @@ export function DeliveryAddressesCard({
                     color: "var(--ink-mute)",
                     background: "none",
                     border: 0,
-                    cursor: "pointer",
+                    cursor: busy != null ? "wait" : "pointer",
+                    opacity: busy === `delete:${a.id}` ? 0.6 : 1,
                   }}
                 >
-                  Eliminar
+                  {busy === `delete:${a.id}` ? "Eliminando…" : "Eliminar"}
                 </button>
               </div>
             </li>
@@ -224,6 +243,7 @@ export function DeliveryAddressesCard({
       {!adding ? (
         <button
           type="button"
+          className="studio-link-quiet"
           onClick={() => setAdding(true)}
           style={{
             font: "600 12.5px/1 var(--f-sans)",
@@ -247,7 +267,7 @@ export function DeliveryAddressesCard({
             gap: 10,
           }}
         >
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
             <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <span className="studio-label">Etiqueta (opcional)</span>
               <input
@@ -276,7 +296,7 @@ export function DeliveryAddressesCard({
               placeholder="Calle, edificio, nº"
             />
           </label>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
             <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <span className="studio-label">Estado</span>
               <input
@@ -309,6 +329,7 @@ export function DeliveryAddressesCard({
               type="checkbox"
               checked={isDefault}
               onChange={(e) => setIsDefault(e.target.checked)}
+              style={{ accentColor: "var(--wine)" }}
             />
             Marcar como predeterminada
           </label>
@@ -334,6 +355,7 @@ export function DeliveryAddressesCard({
             />
             <button
               type="button"
+              className="studio-link-quiet"
               onClick={resetForm}
               style={{
                 font: "600 12.5px/1 var(--f-sans)",
