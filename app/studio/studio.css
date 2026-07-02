@@ -881,3 +881,25 @@
     transform: none;
   }
 }
+
+/* ───────────────────────────────────────────────────────────
+   SIDE-NAV DE ADMINISTRACIÓN (/studio/admin)
+   Hover del Norte (erp/modules/admin.jsx): bg-elevated en ítems
+   no activos. !important porque el <Link> lleva background inline
+   (server component). El activo conserva su wine-tint.
+   ─────────────────────────────────────────────────────────── */
+.studio-adminnav-item {
+  transition: background 0.15s ease;
+}
+.studio-adminnav-item:not([aria-current="page"]):hover {
+  background: var(--bg-elevated) !important;
+}
+.studio-adminnav-item:focus-visible {
+  outline: 2px solid var(--wine);
+  outline-offset: -2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .studio-adminnav-item {
+    transition: none;
+  }
+}

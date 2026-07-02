@@ -449,6 +449,7 @@ function SideNav({
                 key={s.id}
                 href={`/studio/admin?section=${s.id}`}
                 aria-current={isActive ? "page" : undefined}
+                className="studio-adminnav-item"
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -699,7 +700,7 @@ function PendingSectionPanel({ section }: { section: AdminSection }) {
           maxWidth: "62ch",
         }}
       >
-        El diseño viene del handoff Claude Design v1.3.1 (sección{" "}
+        El diseño viene del Norte de diseño (sección{" "}
         <code style={{ font: "600 12px/1 var(--f-mono)" }}>
           {section.id}
         </code>{" "}
