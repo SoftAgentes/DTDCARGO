@@ -67,11 +67,11 @@ export async function listMembers(
   supabase: SupabaseClient,
   filters: ListMembersFilters,
 ): Promise<UserMembershipWithProfile[]> {
+  // "*" a propósito: incluye warehouse_scope (migr 0202) y no rompe si la
+  // migración aún no corrió en algún entorno (SDD-0139).
   let q = supabase
     .from("user_tenants")
-    .select(
-      "user_id, tenant_id, role, disabled_at, last_login_at, invited_by, created_at, profile:user_profiles(*)",
-    )
+    .select("*, profile:user_profiles(*)")
     .order("created_at", { ascending: false });
 
   // Filtro por tenant SIEMPRE aplicado (tenantId es requerido). Con admin
@@ -378,16 +378,54 @@ export async function changeUserRoleRPC(
   return data === true;
 }
 
-/** Helper: hay al menos 1 admin? (anti-lockout check client-side antes de UI) */
-export async function tenantHasOtherAdmins(
+/**
+ * Wrapper del RPC studio_set_user_disabled (migr 0200). Desactiva/reactiva el
+ * membership del target en el tenant del caller. El RPC valida admin activo +
+ * anti-lockout (no desactivar al último admin) en la DB — el UPDATE directo a
+ * user_tenants era un no-op silencioso (sin policy de UPDATE, RLS deny).
+ */
+export async function setUserDisabledRPC(
   supabase: SupabaseClient,
-  excludingUserId: string,
+  targetUserId: string,
+  disabled: boolean,
 ): Promise<boolean> {
-  const { count } = await supabase
-    .from("user_tenants")
-    .select("user_id", { count: "exact", head: true })
-    .eq("role", "admin")
-    .is("disabled_at", null)
-    .neq("user_id", excludingUserId);
-  return (count ?? 0) > 0;
+  const { data, error } = await supabase.rpc("studio_set_user_disabled", {
+    p_target_user_id: targetUserId,
+    p_disabled: disabled,
+  });
+  if (error) throw new Error(error.message);
+  return data === true;
+}
+
+/**
+ * Wrapper del RPC studio_set_user_warehouse_scope (migr 0202 · SDD-0139).
+ * Asigna el lado de la operación que ve el usuario (cn | ve | all).
+ */
+export async function setUserWarehouseScopeRPC(
+  supabase: SupabaseClient,
+  targetUserId: string,
+  scope: "cn" | "ve" | "all",
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc("studio_set_user_warehouse_scope", {
+    p_target_user_id: targetUserId,
+    p_scope: scope,
+  });
+  if (error) throw new Error(error.message);
+  return data === true;
+}
+
+/**
+ * Wrapper del RPC studio_revoke_invitation (migr 0200). El UPDATE directo a
+ * user_invitations estaba bloqueado por `no_direct_update using(false)` →
+ * no-op silencioso. El RPC valida admin activo + invitación del tenant.
+ */
+export async function revokeInvitationRPC(
+  supabase: SupabaseClient,
+  invitationId: string,
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc("studio_revoke_invitation", {
+    p_invitation_id: invitationId,
+  });
+  if (error) throw new Error(error.message);
+  return data === true;
 }

@@ -29,6 +29,19 @@ export const STUDIO_USER_ROLES: StudioUserRole[] = [
   "marketing",
 ];
 
+/**
+ * Scope de almacén del membership (SDD-0139 · migr 0202): qué lado de la
+ * operación ve el usuario. Atributo operativo, NO dimensión de la matriz RBAC.
+ */
+export const WAREHOUSE_SCOPES = ["cn", "ve", "all"] as const;
+export type WarehouseScope = (typeof WAREHOUSE_SCOPES)[number];
+
+export const WAREHOUSE_SCOPE_LABELS: Record<WarehouseScope, string> = {
+  cn: "Almacén CN",
+  ve: "Almacén VE",
+  all: "Ambos",
+};
+
 // ─── Entity types (match schema 0019) ────────────────────────
 
 export interface UserProfile {
@@ -49,6 +62,8 @@ export interface UserTenantMembership {
   user_id: string;
   tenant_id: string;
   role: StudioUserRole;
+  /** SDD-0139 (migr 0202). Puede faltar en selects viejos → tratar como 'all'. */
+  warehouse_scope?: WarehouseScope | null;
   disabled_at: string | null;
   last_login_at: string | null;
   invited_by: string | null;
@@ -213,8 +228,8 @@ export function validateAcceptInvitationInput(
   if (!partial.token || partial.token.trim().length < 16) {
     fieldErrors.token = "Token inválido";
   }
-  if (!partial.password || partial.password.length < 6) {
-    fieldErrors.password = "Password mínimo 6 caracteres";
+  if (!partial.password || partial.password.length < 8) {
+    fieldErrors.password = "Password mínimo 8 caracteres";
   }
   if (partial.first_name !== undefined && partial.first_name.trim().length > 60) {
     fieldErrors.first_name = "Nombre muy largo";

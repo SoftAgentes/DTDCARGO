@@ -20,7 +20,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { capabilityDenial, moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { createBillFor } from "@/lib/studio/treasury/treasury-actions";
 import {
   buildBillPayloadFromPo,
@@ -382,9 +382,10 @@ export async function receivePurchaseOrder(
 }> {
   const supabase = await createClient();
   // Recibir la OC CAUSA el Bill (CxP) — es un acto de Tesorería/contabilidad,
-  // no operativo. Gate "treasury" (accounting+admin), consistente con el gate
-  // directo de tesoreria.createBill. Cierra el puente OC→Bill (SDD-0085 §C4).
-  const denial = await moduleEditDenial(supabase, "treasury");
+  // no operativo. Capability `approve_money` (accounting+admin, SDD-0139):
+  // nombra el ACTO en vez de prestarse el gate del módulo treasury. Cierra el
+  // puente OC→Bill (SDD-0085 §C4).
+  const denial = await capabilityDenial(supabase, "approve_money");
   if (denial) return { error: denial };
 
   const { data: po, error: readErr } = await supabase

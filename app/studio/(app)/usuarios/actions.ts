@@ -1,10 +1,14 @@
 "use server";
 
 /**
- * Server actions de Usuarios & Roles (SDD-0024 Fase 2).
+ * Server actions de Usuarios & Roles (SDD-0024 Fase 2 · hardening 0200).
  *
- * Wraps RPCs ya existentes (studio_invite_user, studio_change_user_role)
- * + mutaciones directas para disable / enable / revoke invitation.
+ * TODAS las mutaciones de membership van por RPCs security definer
+ * (studio_invite_user, studio_change_user_role, studio_set_user_disabled,
+ * studio_revoke_invitation): user_tenants/user_invitations NO tienen policies
+ * de escritura para authenticated, así que un UPDATE directo con el client del
+ * user era un no-op silencioso (0 filas, sin error) — hallazgo auditoría
+ * 2026-07-02.
  *
  * Pattern useActionState con UserActionState shape.
  */
@@ -18,7 +22,9 @@ import { generateTelegramLinkCode } from "@/lib/studio/telegram/link-code";
 import {
   changeUserRoleRPC,
   inviteUserRPC,
-  tenantHasOtherAdmins,
+  revokeInvitationRPC,
+  setUserDisabledRPC,
+  setUserWarehouseScopeRPC,
 } from "@/lib/studio/user-queries";
 import {
   ROLE_LABELS,
@@ -57,6 +63,42 @@ export async function inviteUserAction(
 
   const denial = await moduleEditDenial(supabase, "users");
   if (denial) return { error: denial };
+
+  // Guard: si el email ya es miembro del tenant (activo o desactivado), la
+  // invitación es un callejón sin salida — el accept no puede completarse con
+  // un auth user existente (y menos baneado). El camino es Reactivar / cambiar
+  // rol en la tabla (hallazgo review 2026-07-02). Best-effort: sin admin client
+  // se sigue y el RPC valida lo que puede.
+  try {
+    const { data: myLink } = await supabase
+      .from("user_tenants")
+      .select("tenant_id")
+      .maybeSingle<{ tenant_id: string }>();
+    if (myLink?.tenant_id) {
+      const admin = createAdminClient();
+      const { data: authUsers } = await admin.auth.admin.listUsers({ perPage: 200 });
+      const existing = authUsers?.users.find(
+        (u) => u.email?.toLowerCase() === input.email,
+      );
+      if (existing) {
+        const { data: membership } = await admin
+          .from("user_tenants")
+          .select("disabled_at")
+          .eq("user_id", existing.id)
+          .eq("tenant_id", myLink.tenant_id)
+          .maybeSingle<{ disabled_at: string | null }>();
+        if (membership) {
+          return {
+            error: membership.disabled_at
+              ? "Ese email pertenece a un usuario desactivado. Usa «Reactivar» en la tabla — una invitación nueva no puede completarse."
+              : "Ese email ya es miembro del equipo. Cambia su rol en la tabla si hace falta.",
+          };
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[inviteUserAction] member-guard skipped:", err);
+  }
 
   try {
     const { invitationId, token } = await inviteUserRPC(
@@ -161,8 +203,69 @@ export async function changeUserRoleAction(
 }
 
 // ─────────────────────────────────────────────────────────────
-// disableUserAction · soft disable (set disabled_at)
+// changeWarehouseScopeAction · vía RPC studio_set_user_warehouse_scope
+// (migr 0202 · SDD-0139). Asigna el lado de la operación (cn | ve | all)
+// que ve el usuario — solo restringe módulos de almacén para no-admin.
 // ─────────────────────────────────────────────────────────────
+
+export async function changeWarehouseScopeAction(
+  _prev: UserActionState,
+  formData: FormData,
+): Promise<UserActionState> {
+  const targetUserId = (formData.get("target_user_id") as string | null)?.trim();
+  const scopeRaw = (formData.get("new_scope") as string | null)?.trim();
+
+  if (!targetUserId) return { errorCode: "invalid_input" };
+  if (scopeRaw !== "cn" && scopeRaw !== "ve" && scopeRaw !== "all") {
+    return { errorCode: "invalid_input" };
+  }
+
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "users");
+  if (denial) return { error: denial };
+
+  try {
+    await setUserWarehouseScopeRPC(supabase, targetUserId, scopeRaw);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { error: msg };
+  }
+
+  revalidatePath("/studio/usuarios");
+  return { ok: true, userId: targetUserId };
+}
+
+// ─────────────────────────────────────────────────────────────
+// disableUserAction / enableUserAction · vía RPC studio_set_user_disabled
+// (migr 0200) + ban/unban en Supabase Auth.
+//
+// El RPC valida admin activo + anti-lockout (no desactivar al último admin,
+// cubre auto-desactivación) EN LA DB. El ban en Auth mata la sesión viva del
+// desactivado (el corte de data ya lo garantiza la RLS vía get_user_tenant_id
+// con filtro disabled_at); si el admin client no está disponible, se loggea y
+// se sigue — el ban es cinturón, la RLS es el freno.
+// ─────────────────────────────────────────────────────────────
+
+/** Duración de ban ≈ permanente (GoTrue parsea Go durations; 100 años). */
+const BAN_FOREVER = "876000h";
+
+/** true si el ban/unban quedó aplicado en Auth. Nunca lanza. */
+async function setAuthBan(targetUserId: string, banned: boolean): Promise<boolean> {
+  try {
+    const admin = createAdminClient();
+    const { error } = await admin.auth.admin.updateUserById(targetUserId, {
+      ban_duration: banned ? BAN_FOREVER : "none",
+    });
+    if (error) {
+      console.error("[setAuthBan] updateUserById failed:", error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("[setAuthBan] admin client unavailable:", err);
+    return false;
+  }
+}
 
 export async function disableUserAction(
   _prev: UserActionState,
@@ -178,35 +281,19 @@ export async function disableUserAction(
   const denial = await moduleEditDenial(supabase, "users");
   if (denial) return { error: denial };
 
-  // Anti-lockout client-side: no puedes desactivarte a ti mismo si eres
-  // el último admin. El RPC studio_change_user_role tiene este check; acá
-  // lo replicamos para disable (que es semántica distinta).
-  if (targetUserId === userResp.user.id) {
-    const hasOthers = await tenantHasOtherAdmins(supabase, userResp.user.id);
-    if (!hasOthers) {
-      return { errorCode: "user_no_other_admins" };
-    }
+  try {
+    await setUserDisabledRPC(supabase, targetUserId, true);
+  } catch (err) {
+    // Errores del RPC (anti-lockout, permisos) vienen formateados de Postgres.
+    const msg = err instanceof Error ? err.message : String(err);
+    return { error: msg };
   }
 
-  const { error } = await supabase
-    .from("user_tenants")
-    .update({ disabled_at: new Date().toISOString() })
-    .eq("user_id", targetUserId);
-
-  if (error) {
-    if (error.code === "42501") {
-      return { errorCode: "permission_denied" };
-    }
-    return { error: error.message };
-  }
+  await setAuthBan(targetUserId, true);
 
   revalidatePath("/studio/usuarios");
   return { ok: true, userId: targetUserId };
 }
-
-// ─────────────────────────────────────────────────────────────
-// enableUserAction · reactivar usuario desactivado
-// ─────────────────────────────────────────────────────────────
 
 export async function enableUserAction(
   _prev: UserActionState,
@@ -218,16 +305,25 @@ export async function enableUserAction(
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "users");
   if (denial) return { error: denial };
-  const { error } = await supabase
-    .from("user_tenants")
-    .update({ disabled_at: null })
-    .eq("user_id", targetUserId);
 
-  if (error) {
-    if (error.code === "42501") {
-      return { errorCode: "permission_denied" };
-    }
-    return { error: error.message };
+  // Al REACTIVAR el orden se invierte respecto a disable: el unban es REQUISITO
+  // (sin él, el usuario queda "Activo" en DB pero baneado 100 años en Auth y la
+  // UI mentiría con "ok" — hallazgo review 2026-07-02). Unban primero: si falla,
+  // no tocamos la DB y el admin reintenta desde un estado consistente. Si el
+  // unban pasa y el RPC falla, el user sigue disabled en DB → RLS lo frena.
+  const unbanned = await setAuthBan(targetUserId, false);
+  if (!unbanned) {
+    return {
+      error:
+        "No se pudo quitar el bloqueo de inicio de sesión (Auth). No se reactivó nada — reintenta.",
+    };
+  }
+
+  try {
+    await setUserDisabledRPC(supabase, targetUserId, false);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { error: msg };
   }
 
   revalidatePath("/studio/usuarios");
@@ -235,7 +331,9 @@ export async function enableUserAction(
 }
 
 // ─────────────────────────────────────────────────────────────
-// revokeInvitationAction · marca invitation como revoked
+// revokeInvitationAction · vía RPC studio_revoke_invitation (migr 0200).
+// El UPDATE directo estaba bloqueado por `no_direct_update using(false)` →
+// no-op silencioso que la UI reportaba como éxito.
 // ─────────────────────────────────────────────────────────────
 
 export async function revokeInvitationAction(
@@ -252,19 +350,11 @@ export async function revokeInvitationAction(
   const denial = await moduleEditDenial(supabase, "users");
   if (denial) return { error: denial };
 
-  const { error } = await supabase
-    .from("user_invitations")
-    .update({
-      revoked_at: new Date().toISOString(),
-      revoked_by: userResp.user.id,
-    })
-    .eq("id", invitationId);
-
-  if (error) {
-    if (error.code === "42501") {
-      return { error: "Solo admins pueden revocar invitaciones." };
-    }
-    return { error: error.message };
+  try {
+    await revokeInvitationRPC(supabase, invitationId);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { error: msg };
   }
 
   revalidatePath("/studio/usuarios");

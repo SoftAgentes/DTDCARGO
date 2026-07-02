@@ -3,21 +3,28 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { MODULES } from "@/lib/studio/modules";
 import {
+  ADMIN_ONLY_MODULES,
+  CAPABILITIES,
+  LOCKED_MODULES,
+  MONEY_MODULES,
   ROLE_MODULE_ACCESS,
+  WAREHOUSE_SCOPED_MODULES,
   canAccessModule,
   canEditModule,
-  moduleIdForPath,
+  canSpecial,
   isKnownModule,
+  moduleIdForPath,
+  scopeAllowsModule,
 } from "@/lib/studio/rbac";
 import { STUDIO_USER_ROLES, type StudioUserRole } from "@/lib/studio/user-types";
 
-const NON_ADMIN: StudioUserRole[] = [
-  "commercial",
-  "operations",
-  "accounting",
-  "warehouse",
-  "support",
-];
+// DERIVADO del registro de roles (no hardcodear): cuando se agregue un rol
+// nuevo (como pasó con `marketing`, SDD-0119) los candados de gobernanza lo
+// cubren automáticamente. La 1ª versión hardcodeaba 5 roles y `marketing`
+// quedó fuera de los checks (hallazgo auditoría 2026-07-02).
+const NON_ADMIN: StudioUserRole[] = STUDIO_USER_ROLES.filter(
+  (r) => r !== "admin",
+);
 
 describe("RBAC anti-drift: matriz ↔ registro de módulos", () => {
   it("todo módulo del registro tiene entrada en la matriz", () => {
@@ -49,7 +56,9 @@ describe("RBAC anti-drift: matriz ↔ registro de módulos", () => {
 });
 
 describe("RBAC: candados de gobernanza (separación de poderes)", () => {
-  // Dinero: solo accounting (+admin). El doc estructura-perfiles lo exige.
+  // Snapshot INDEPENDIENTE de los sets exportados: si alguien edita
+  // MONEY_MODULES/ADMIN_ONLY_MODULES en rbac.ts, este test lo caza (doble
+  // registro a propósito — SDD-0139).
   const MONEY = [
     "treasury",
     "accounting",
@@ -72,10 +81,29 @@ describe("RBAC: candados de gobernanza (separación de poderes)", () => {
     "mailing",
   ];
 
-  it("módulos de dinero: NUNCA operations ni commercial", () => {
+  it("los sets exportados (SDD-0139) coinciden con el snapshot del test", () => {
+    expect([...MONEY_MODULES].sort()).toEqual([...MONEY].sort());
+    expect([...ADMIN_ONLY_MODULES].sort()).toEqual([...ADMIN_ONLY].sort());
+    expect([...LOCKED_MODULES].sort()).toEqual([...MONEY, ...ADMIN_ONLY].sort());
+    for (const id of LOCKED_MODULES) {
+      expect(isKnownModule(id), `LOCKED contiene módulo fantasma "${id}"`).toBe(true);
+    }
+  });
+
+  it("matriz de módulos LOCKED: dinero = exactamente ['accounting']; admin-only = []", () => {
+    for (const id of MONEY_MODULES) {
+      expect(ROLE_MODULE_ACCESS[id], `dinero ${id}`).toEqual(["accounting"]);
+    }
+    for (const id of ADMIN_ONLY_MODULES) {
+      expect(ROLE_MODULE_ACCESS[id], `admin-only ${id}`).toEqual([]);
+    }
+  });
+
+  it("módulos de dinero: SOLO accounting entre los no-admin", () => {
     for (const id of MONEY) {
-      expect(canAccessModule("operations", id), `operations no debe ver ${id}`).toBe(false);
-      expect(canAccessModule("commercial", id), `commercial no debe ver ${id}`).toBe(false);
+      for (const r of NON_ADMIN.filter((x) => x !== "accounting")) {
+        expect(canAccessModule(r, id), `${r} no debe ver ${id}`).toBe(false);
+      }
     }
   });
 
@@ -99,6 +127,57 @@ describe("RBAC: candados de gobernanza (separación de poderes)", () => {
     expect(canAccessModule("accounting", "users")).toBe(false);
     expect(canEditModule("accounting", "users")).toBe(false);
     expect(canAccessModule("admin", "users")).toBe(true);
+  });
+});
+
+describe("RBAC: capabilities (SDD-0139)", () => {
+  it("roles de cada capability son válidos y no listan admin (implícito)", () => {
+    for (const [cap, roles] of Object.entries(CAPABILITIES)) {
+      for (const r of roles) {
+        expect(STUDIO_USER_ROLES, `${cap} usa rol desconocido "${r}"`).toContain(r);
+        expect(r, `${cap} no debe listar admin`).not.toBe("admin");
+      }
+    }
+  });
+
+  it("approve_money (causar CxP): SOLO accounting entre los no-admin", () => {
+    expect(canSpecial("accounting", "approve_money")).toBe(true);
+    expect(canSpecial("admin", "approve_money")).toBe(true);
+    for (const r of NON_ADMIN.filter((x) => x !== "accounting")) {
+      expect(canSpecial(r, "approve_money"), `${r} no debe aprobar plata`).toBe(false);
+    }
+    expect(canSpecial(null, "approve_money")).toBe(false);
+    expect(canSpecial(undefined, "approve_money")).toBe(false);
+  });
+});
+
+describe("RBAC: scope de almacén (SDD-0139)", () => {
+  it("los módulos con scope existen en el registro y tienen lado cn|ve", () => {
+    for (const [id, side] of Object.entries(WAREHOUSE_SCOPED_MODULES)) {
+      expect(isKnownModule(id), `scoped módulo fantasma "${id}"`).toBe(true);
+      expect(["cn", "ve"]).toContain(side);
+    }
+  });
+
+  it("scope restringe solo el lado contrario; 'all'/null no restringen", () => {
+    expect(scopeAllowsModule("cn", "cn")).toBe(true);
+    expect(scopeAllowsModule("cn", "qrqueue")).toBe(true);
+    expect(scopeAllowsModule("cn", "ve")).toBe(false);
+    expect(scopeAllowsModule("ve", "ve")).toBe(true);
+    expect(scopeAllowsModule("ve", "cn")).toBe(false);
+    expect(scopeAllowsModule("ve", "labels")).toBe(false);
+    expect(scopeAllowsModule("all", "cn")).toBe(true);
+    expect(scopeAllowsModule("all", "ve")).toBe(true);
+    expect(scopeAllowsModule(null, "cn")).toBe(true);
+    expect(scopeAllowsModule(undefined, "ve")).toBe(true);
+  });
+
+  it("módulos sin lado geográfico no se ven afectados por ningún scope", () => {
+    for (const scope of ["cn", "ve", "all"] as const) {
+      expect(scopeAllowsModule(scope, "treasury")).toBe(true);
+      expect(scopeAllowsModule(scope, "clients")).toBe(true);
+      expect(scopeAllowsModule(scope, "dashboard")).toBe(true);
+    }
   });
 });
 

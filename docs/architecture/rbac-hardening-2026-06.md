@@ -82,3 +82,113 @@ Esto cierra el rol-dentro-del-tenant a nivel **app** (page + action). La RLS de
 la DB ya aislaba por tenant; el endurecimiento por rol a nivel DB (RLS que mire
 el rol) sigue siendo defensa-en-profundidad futura para los módulos más
 sensibles (clientes/dinero), como ya lo hace nómina vía `nomina_can_access()`.
+
+---
+
+# Hardening 3 · Desactivación real de usuarios (2026-07-02)
+
+> Remediación de la auditoría del módulo de permisos (ventana secundaria,
+> worktree `rbac-disabled-enforcement`). Hallazgo principal: **"Desactivar" un
+> usuario era cosmético dos veces** — (a) el UPDATE directo a `user_tenants`
+> era un no-op silencioso (sin policy de UPDATE para authenticated → 0 filas,
+> sin error, la UI decía "ok"), y (b) aunque `disabled_at` quedara seteado,
+> ningún eslabón lo filtraba: `get_user_tenant_id()` (helper de TODA la RLS),
+> `current_studio_role()`, la policy SELECT de `user_tenants`, el layout y
+> `getStudioRole` → el desactivado conservaba rol, sidebar y toda la data.
+
+## Qué se arregló (migr 0200 + 0201 + app)
+
+1. **DB (migr `0200_rbac_disabled_enforcement.sql`)**
+   - `get_user_tenant_id()` + `current_studio_role()` filtran
+     `disabled_at is null` → toda la RLS por tenant y los gates de poderes en
+     triggers cierran de una para desactivados.
+   - Policy SELECT de `user_tenants`: `user_id = auth.uid() AND disabled_at is
+     null` → las policies viejas con subquery inline a user_tenants (0024
+     dispatch_* y afines) también cierran.
+   - RPC `studio_set_user_disabled(target, disabled)`: admin activo +
+     anti-lockout (no desactivar al último admin activo; cubre
+     auto-desactivación) — reemplaza el UPDATE no-op.
+   - RPC `studio_revoke_invitation(id)`: admin activo, idempotente, bloquea
+     revocar aceptadas — reemplaza el UPDATE bloqueado por
+     `no_direct_update using(false)`.
+2. **Auditoría (migr `0201_user_role_audit.sql`)** — tabla append-only
+   `user_role_audit` + trigger AFTER UPDATE en `user_tenants`: registra
+   `role_change` / `disable` / `enable` con actor y target por CUALQUIER vía
+   (RPC, admin client, SQL). SELECT solo admins activos del tenant.
+3. **App** — `getStudioRole` y el layout filtran `.is("disabled_at", null)`;
+   `disableUserAction`/`enableUserAction` van por RPC + **ban/unban en Supabase
+   Auth** (`auth.admin.updateUserById`, `ban_duration`) para matar la sesión
+   viva (la RLS ya corta la data; el ban es cinturón — si falla se loggea y
+   sigue). `revokeInvitationAction` va por RPC. `tenantHasOtherAdmins` se
+   eliminó (con RLS own-row siempre devolvía false; el anti-lockout vive en el
+   RPC).
+4. **View gates que faltaban** — `calendario`, `etiquetas`, `ve`, `servicios`,
+   `marketing/noticias-web` no tenían `requireModuleView` (URL tecleable).
+5. **Tests anti-drift**
+   - `rbac-view-guard.test.ts` (NUEVO, espejo del de actions): todo módulo del
+     registro debe tener gate de vista o excepción justificada (allowlist:
+     dashboard/mentions/bugs/mis-bugs).
+   - `rbac.test.ts`: `NON_ADMIN` ahora se DERIVA de `STUDIO_USER_ROLES` (la
+     lista hardcodeada dejó a `marketing` fuera de los candados de gobernanza);
+     candado de dinero ahora verifica que SOLO accounting pasa.
+6. **Menores** — password de invitación mín 6→8; copy "acceso por módulo
+   configurable" → "definido por rol" (la matriz es estática por diseño,
+   SDD-0124); cast `as never` en PermissionsSection → `StudioUserRole`.
+
+## Review adversarial del hardening (2026-07-02) — hallazgos aplicados
+
+Workflow de 4 lentes (SQL/RLS, regresión, caza de bypass, lockout/ops) + un
+refutador por hallazgo: 21 confirmados (≈12 únicos), 4 refutados. Aplicado:
+
+1. **`upsert_dispatch_rules` + `seed_tenant_cities_from_ve_catalog`** (0024/0046):
+   definer que ESCRIBEN sin filtrar `disabled_at` → un desactivado con JWT vivo
+   podía mutar la política de pago del despacho. Redefinidas en 0200 (H5).
+2. **TOCTOU anti-lockout**: dos admins podían desactivarse/degradarse en paralelo
+   → tenant sin admins. `pg_advisory_xact_lock` por tenant en
+   `studio_set_user_disabled` y `studio_change_user_role` (0200 H6, que además
+   corrige el falso positivo al degradar a un admin ya desactivado).
+3. **`user_profiles` PII**: policy `using(true)` dejaba a cualquier authenticated
+   (incl. desactivados) leer teléfono/telegram del staff → fila propia O miembro
+   activo (0200 H7; portal usa admin client, sin impacto).
+4. **0201 sin GRANT**: la policy de SELECT era inalcanzable ('expose new tables'
+   está OFF) → `grant select to authenticated` + revoke execute del trigger fn.
+5. **Desactivado invisible**: `listMembers` sin `includeDisabled` → el
+   desactivado se esfumaba de la tabla y "Reactivar" (único unban) quedaba
+   inalcanzable. Fix en usuarios/page.tsx.
+6. **enableUserAction**: si el unban fallaba, DB decía activo + Auth baneado 100
+   años + UI "ok". Ahora unban PRIMERO; si falla, no se toca nada y se reporta.
+7. **Re-invitar a un desactivado** = invitación muerta (auth user existente +
+   baneado). Guard en inviteUserAction → dirige a «Reactivar».
+8. **rbac-view-guard**: el test aceptaba un page.tsx de ancestro como gate del
+   hijo y no validaba el id → endurecido (id exacto en carpeta propia; ancestros
+   solo layout.tsx).
+9. **service-catalog**: el gate de vista nuevo dejaba afuera a accounting, que
+   edita precio+cuenta de Academia dentro de servicios (SDD-0093) → agregado a
+   la matriz.
+
+## Residual aceptado
+
+- Los helpers de correlativos de 0024 (`next_dispatch_order_code`,
+  `next_route_code`) validan membership sin filtrar `disabled_at`; solo
+  devuelven un código string y el INSERT posterior lo bloquea la RLS.
+- El access token vivo de un desactivado puede seguir siendo válido hasta
+  expirar (~1h) si el ban en Auth falla — la RLS ya le devuelve 0 filas y los
+  definer de escritura quedaron filtrados (H5).
+- El ban de Auth es global a la cuenta: si un staff compartiera auth user con un
+  cliente del portal, desactivarlo del Studio también le corta /portal (hoy no
+  existe el caso; documentado).
+- Los `denied` de matriz para el rol `marketing` en módulos neutrales
+  (dashboard/menciones/bugs/calendario) son **decisión de matriz pendiente del
+  founder**, no de enforcement.
+
+---
+
+# SDD-0139 · Metodología definitiva de permisos (2026-07-02)
+
+Decisión del founder tras opinión de **Codex** + **panel de 3 expertos** + juez:
+la matriz se queda EN CÓDIGO (no editable en DB, no V/C/E/D, no overrides por
+usuario), con **capabilities** explícitas (`canSpecial` — primera:
+`approve_money` en el puente OC→Bill) y **scope de almacén por usuario**
+(`warehouse_scope` cn·ve·all, migr 0202, selector en /studio/usuarios, gatea
+cn/cola-qr/etiquetas vs ve). Candados exportados como `LOCKED_MODULES` con test
+snapshot. Detalle completo: `docs/specs/0139-rbac-capabilities-scope/spec.md`.

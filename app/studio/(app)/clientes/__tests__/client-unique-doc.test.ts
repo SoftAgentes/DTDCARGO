@@ -36,7 +36,11 @@ function makeSupabase() {
         select() {
           return chain;
         },
-        // getStudioRole (moduleEditDenial): .select("role").limit(1).maybeSingle()
+        // getStudioRole (moduleEditDenial):
+        // .select("role").is("disabled_at", null).limit(1).maybeSingle()
+        is() {
+          return chain;
+        },
         limit() {
           return chain;
         },

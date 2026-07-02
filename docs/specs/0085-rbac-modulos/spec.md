@@ -4,7 +4,7 @@ title: "RBAC por módulo del Studio — matriz rol×módulo + gate de vista y de
 status: done
 author: "Claude Code (ventana rbac-modulos) + founder"
 created: 2026-06-14
-updated: 2026-06-27
+updated: 2026-07-02
 supersedes: null
 superseded_by: null
 related: ["0024", "0007", "0076", "0048", "0020"]
@@ -102,12 +102,20 @@ de dinero (tesorería, contabilidad, etc.) la RLS deja pasar a cualquier miembro
   relajar a `purchase-orders`. Default conservador = separación de poderes.
 - ⏳ Gate de acción en `naviera` (14 mutaciones, integridad operativa — NO mueve plata; ya tiene
   view gate) y en `gastos` (RLS ya scope-a a cn-team; minor).
-- ⏳ Gate central por `proxy.ts` (header `x-pathname` → `moduleIdForPath` → `canAccessModule`) para
-  cubrir de una los GET de los módulos NO sensibles (hoy se esconden en el sidebar pero la URL es
-  tecleable). Se descartó en V1 por blast-radius del proxy compartido.
+- ✅ ~~Gate central / cobertura de GET tecleables~~ — resuelto distinto (2026-07-02): view gates
+  agregados a los 5 módulos que faltaban (`calendario`, `etiquetas`, `ve`, `servicios`,
+  `noticias-web`) + test anti-drift `rbac-view-guard.test.ts` (espejo del de actions): un módulo
+  nuevo sin `requireModuleView` rompe el gate. El gate central por proxy queda descartado.
+- ✅ **Desactivación real** (2026-07-02, migr 0200/0201 + hardening 3 en
+  `docs/architecture/rbac-hardening-2026-06.md`): `get_user_tenant_id()` / `current_studio_role()` /
+  policy SELECT de `user_tenants` / `getStudioRole` / layout filtran `disabled_at`; disable/enable/
+  revoke van por RPC (`studio_set_user_disabled` con anti-lockout, `studio_revoke_invitation`) —
+  los UPDATE directos eran no-ops silenciosos — + ban en Supabase Auth + auditoría `user_role_audit`.
 - ⏳ Endurecer `getStudioRole` con `.eq("user_id", …)` explícito antes del tenant-switcher
   multi-tenant (hoy depende de la RLS de `user_tenants`; `limit(1)` sin orden → rol arbitrario si el
   user está en N tenants). No explotable en V1 single-tenant.
+- ⏳ Decidir con el founder si `marketing` entra en módulos neutrales (dashboard, menciones, bugs,
+  calendario): hoy la matriz no se los da y con los view gates nuevos la URL tecleada redirige.
 - ⏳ Hacer la matriz **editable por tenant en DB** + la "Matriz rol→persona" (titular/suplente) como
   tabla (alimenta el `owner_role` del motor de flujo). Hoy la sección `admin?section=permissions`
   es placeholder (SDD-0024).
