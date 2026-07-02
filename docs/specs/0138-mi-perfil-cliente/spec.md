@@ -97,11 +97,21 @@ retorno mínimo — no cruza la frontera).
 - Fila de dirección (portal + Studio): "Entrega incluida (casco central)" o
   "Recargo de entrega aprox. $X" — copy ADVISORY ("estimado, lo confirma tu asesor").
 
-### Slice D · Avatar editable + registrar empresa — PENDIENTE (baja prioridad)
-- Avatar editable desde Mi Perfil (hoy la foto sólo se carga en el registro express;
-  separar **foto de cédula** —privada, verificación— del **avatar** —editable).
-- Card "¿Importas para tu negocio? Registra tu empresa" (persona → alta de segunda
-  identidad empresa vinculada por `person_id`, SDD-0106/0131).
+### Slice D · Avatar editable + registrar empresa — ✅ HECHO (migración 0199 SIN APLICAR)
+- **Avatar editable** desde Mi cuenta: separado de la foto de cédula (verificación).
+  - Migración `0199_clients_avatar.sql` (archivo): columna `clients.avatar_path`.
+    Storage: REUSA el bucket privado `client-docs` con sub-path
+    `{tenant}/{markbox}/avatar/…` — sin bucket ni policies nuevas.
+  - `updateAvatarAction` (patrón `completeProfileAction`): sesión → admin scopeado →
+    validar → subir → update con rollback → borrar el avatar viejo (best-effort).
+  - `AvatarEditor` en `/portal/cuenta`: foto (signed URL server-side, 1h) o
+    iniciales + "Cambiar foto". Deploy-seguro: sin la 0199 aplicada, el fetch
+    degrada a iniciales y la action responde amable.
+- **Registrar empresa**: card en `/portal/cuenta` (solo si `doc_kind ≠ empresa`) con
+  CTA WhatsApp al asesor — **mediado por el asesor**, consistente con el modelo de
+  identidad read-only del portal. El alta self-service de la segunda identidad
+  (persona → empresa por `person_id`, SDD-0106/0131) queda como evolución si el
+  volumen lo pide.
 
 ## No-objetivos
 - No se toca la frontera pública↔ERP (el portal es superficie del ERP).
