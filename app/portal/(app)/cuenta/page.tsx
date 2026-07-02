@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/db/server";
+import { createAdminClient } from "@/lib/db/admin";
 import {
   getPortalClient,
   getProfileCompleteness,
 } from "@/lib/portal/portal-queries";
+import { PHOTO_BUCKET } from "@/lib/portal/client-photo";
 import { buildPortalSupplierMark } from "@/lib/portal/portal-types";
 import { docKindLabel } from "@/lib/studio/client-types";
 import { listClientDeliveryAddresses } from "@/lib/studio/client-address-queries";
@@ -18,6 +20,7 @@ import { showNortePortal } from "@/lib/portal/demo";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
 import { ChangePasswordCard } from "./ChangePasswordCard";
 import { PortalAddresses } from "./PortalAddresses";
+import { AvatarEditor } from "./AvatarEditor";
 
 export const metadata: Metadata = { title: "Mi cuenta" };
 
@@ -63,10 +66,35 @@ export default async function PortalAccountPage() {
         tarifaKmFueraCasco: calcConfig.tarifaKmFueraCasco,
       }
     : null;
+  // Slice D: avatar (foto de perfil cosmética). Signed URL server-side con el
+  // admin client, scopeado al cliente resuelto por sesión. Best-effort: si la
+  // migración 0199 no está aplicada (columna ausente) → sin foto, sin romper.
+  let avatarUrl: string | null = null;
+  try {
+    const admin = createAdminClient();
+    const { data: row } = await admin
+      .from("clients")
+      .select("avatar_path")
+      .eq("id", client.id)
+      .maybeSingle<{ avatar_path: string | null }>();
+    const p = String(row?.avatar_path ?? "").trim();
+    if (p) {
+      const { data: signed } = await admin.storage
+        .from(PHOTO_BUCKET)
+        .createSignedUrl(p, 3600);
+      avatarUrl = signed?.signedUrl ?? null;
+    }
+  } catch {
+    avatarUrl = null;
+  }
   const supplierMark = buildPortalSupplierMark(client.markbox);
   const norte = showNortePortal(client.markbox);
   const waUpdate = buildWhatsAppLink(
     `Hola DTD Cargo, soy ${client.name} (${client.markbox}) y necesito actualizar un dato de mi cuenta.`,
+  );
+  // Slice D: registrar empresa — mediado por el asesor (como toda la identidad).
+  const waCompany = buildWhatsAppLink(
+    `Hola DTD Cargo, soy ${client.name} (${client.markbox}) y quiero registrar mi empresa para importar a nombre de ella.`,
   );
 
   return (
@@ -87,29 +115,8 @@ export default async function PortalAccountPage() {
               "TU CÓDIGO"; clientes en modo actual: el bloque wine de siempre. */}
           {norte ? (
             <div className="pb-6 border-b border-grey-200">
-              <div className="flex items-center gap-4">
-                <span
-                  className="grid place-items-center h-14 w-14 rounded-full flex-shrink-0 text-[18px]"
-                  style={{
-                    background: "var(--color-wine)",
-                    color: "var(--color-on-accent)",
-                    fontFamily: "var(--font-archivo-black)",
-                  }}
-                >
-                  {initials(client.name)}
-                </span>
-                <div className="min-w-0">
-                  <div
-                    className="text-[18px] leading-tight text-ink truncate"
-                    style={{ fontFamily: "var(--font-archivo-black)" }}
-                  >
-                    {client.name}
-                  </div>
-                  <div className="mt-0.5 text-[12.5px] text-grey-500">
-                    Cliente DTD
-                  </div>
-                </div>
-              </div>
+              {/* Slice D: avatar editable (foto o iniciales + "Cambiar foto"). */}
+              <AvatarEditor name={client.name} avatarUrl={avatarUrl} />
               <div
                 className="mt-5 rounded-[12px] p-5 text-center"
                 style={{
@@ -185,6 +192,32 @@ export default async function PortalAccountPage() {
               empty="Sin teléfono cargado"
             />
           </dl>
+
+          {/* Slice D: registrar empresa (Norte PortalProfile). Solo si el cliente
+              NO es empresa. Mediado por el asesor — como toda la identidad. */}
+          {client.docKind !== "empresa" && (
+            <div
+              className="mt-6 rounded-[12px] bg-paper border border-grey-200 border-l-[3px] p-5"
+              style={{ borderLeftColor: "var(--color-wine)" }}
+            >
+              <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine">
+                ¿Importas para tu negocio?
+              </div>
+              <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.55]">
+                Registra tu empresa (RIF) para facturar a nombre de ella. Tu asesor
+                crea el perfil de empresa vinculado a tu cuenta — escríbele y lo
+                deja listo.
+              </p>
+              <a
+                href={waCompany}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-ghost mt-4 inline-flex items-center gap-2"
+              >
+                <WhatsAppIcon size={16} /> Registrar mi empresa
+              </a>
+            </div>
+          )}
 
           {/* Direcciones de entrega múltiples (SDD-0138 Slice B+C) — las gestiona
               el cliente; el mismo esquema lo edita el asesor desde el Studio. */}
@@ -347,13 +380,6 @@ function Field({
       </dd>
     </div>
   );
-}
-
-/** Iniciales (1-2 letras) para el avatar del perfil. */
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  return (parts[0][0] + (parts[1]?.[0] ?? "")).toUpperCase();
 }
 
 function Step({ n, title, copy }: { n: string; title: string; copy: string }) {

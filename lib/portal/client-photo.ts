@@ -85,3 +85,45 @@ export async function uploadClientPhoto(
   }
   return { path };
 }
+
+/**
+ * Valida un `File` candidato a AVATAR (foto de perfil, SDD-0138 Slice D). Mismas
+ * reglas de tipo/tamaño que la foto de identidad, mensajes propios (no es la cédula).
+ */
+export function validateAvatarFile(raw: FormDataEntryValue | null): PhotoValidation {
+  if (!(raw instanceof File) || raw.size <= 0) {
+    return { ok: false, error: "Elige una foto para tu perfil." };
+  }
+  if (!PHOTO_ALLOWED_MIME.has(raw.type)) {
+    return { ok: false, error: "Formato de foto inválido (JPG/PNG/WebP/HEIC)." };
+  }
+  if (raw.size > PHOTO_MAX_BYTES) {
+    return { ok: false, error: "Foto demasiado pesada (máx 8 MB)." };
+  }
+  return { ok: true, file: raw };
+}
+
+/**
+ * Sube el AVATAR del cliente (SDD-0138 Slice D) al mismo bucket privado, bajo el
+ * sub-path `avatar/` — separado de la foto de cédula (verificación). El path se
+ * guarda en `clients.avatar_path` (migr 0199).
+ */
+export async function uploadClientAvatar(
+  admin: SupabaseClient,
+  tenantId: string,
+  markbox: string,
+  file: File,
+): Promise<{ path?: string; error?: string }> {
+  const ext = mimeToExt(file.type);
+  const path = `${tenantId}/${markbox}/avatar/${crypto.randomUUID()}.${ext}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const { error } = await admin.storage.from(PHOTO_BUCKET).upload(path, buffer, {
+    contentType: file.type,
+    cacheControl: "31536000",
+    upsert: false,
+  });
+  if (error) {
+    return { error: error.message };
+  }
+  return { path };
+}
