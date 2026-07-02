@@ -11,13 +11,13 @@ import {
 } from "@/lib/studio/rbac";
 import { STUDIO_USER_ROLES, type StudioUserRole } from "@/lib/studio/user-types";
 
-const NON_ADMIN: StudioUserRole[] = [
-  "commercial",
-  "operations",
-  "accounting",
-  "warehouse",
-  "support",
-];
+// DERIVADO del registro de roles (no hardcodear): cuando se agregue un rol
+// nuevo (como pasó con `marketing`, SDD-0119) los candados de gobernanza lo
+// cubren automáticamente. La 1ª versión hardcodeaba 5 roles y `marketing`
+// quedó fuera de los checks (hallazgo auditoría 2026-07-02).
+const NON_ADMIN: StudioUserRole[] = STUDIO_USER_ROLES.filter(
+  (r) => r !== "admin",
+);
 
 describe("RBAC anti-drift: matriz ↔ registro de módulos", () => {
   it("todo módulo del registro tiene entrada en la matriz", () => {
@@ -72,10 +72,11 @@ describe("RBAC: candados de gobernanza (separación de poderes)", () => {
     "mailing",
   ];
 
-  it("módulos de dinero: NUNCA operations ni commercial", () => {
+  it("módulos de dinero: SOLO accounting entre los no-admin", () => {
     for (const id of MONEY) {
-      expect(canAccessModule("operations", id), `operations no debe ver ${id}`).toBe(false);
-      expect(canAccessModule("commercial", id), `commercial no debe ver ${id}`).toBe(false);
+      for (const r of NON_ADMIN.filter((x) => x !== "accounting")) {
+        expect(canAccessModule(r, id), `${r} no debe ver ${id}`).toBe(false);
+      }
     }
   });
 
