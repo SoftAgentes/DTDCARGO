@@ -60,6 +60,7 @@ const eslintConfig = defineConfig([
       "app/nosotros/**",
       "app/faq/**",
       "app/marca/**",
+      "app/enlaces/**",
       "components/**",
     ],
     rules: {
