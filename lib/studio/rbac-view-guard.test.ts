@@ -26,7 +26,7 @@ const STUDIO_APP = join(process.cwd(), "app", "studio", "(app)");
 // module id -> razón de por qué NO lleva requireModuleView.
 const ALLOWLIST: Record<string, string> = {
   dashboard:
-    "Destino del redirect ?denied= (rbac-guard). Gatearlo crearía loop para roles fuera de su matriz (ej. marketing). Contenido: KPIs generales sin data sensible por rol.",
+    "Destino del redirect ?denied= (rbac-guard): todo rol cae acá al ser denegado, así que gatearlo crearía loop. Contenido: KPIs generales sin data sensible por rol. (Todos los roles lo tienen en la matriz — 2026-07-02.)",
   mentions:
     "Menciones propias del usuario (@menciones): data scoped al user por diseño, abierto al staff.",
   bugs:

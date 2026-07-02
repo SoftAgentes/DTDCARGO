@@ -45,10 +45,13 @@ import { MODULES } from "@/lib/studio/modules";
  */
 export const ROLE_MODULE_ACCESS: Record<string, readonly StudioUserRole[]> = {
   // ─── OPERACIÓN ───────────────────────────────────────────────
-  dashboard: ["commercial", "operations", "accounting", "warehouse", "support"],
+  // dashboard (cockpit operativo) + calendario: transversales; marketing también
+  // los ve (decisión founder 2026-07-02). NO confundir con el módulo `marketing`,
+  // que trae su propio dashboard "buenos días".
+  dashboard: ["commercial", "operations", "accounting", "warehouse", "support", "marketing"],
   shipments: ["commercial", "operations", "accounting", "warehouse", "support"],
   tracking: ["commercial", "operations", "accounting", "warehouse", "support"],
-  calendar: ["commercial", "operations", "accounting", "warehouse", "support"],
+  calendar: ["commercial", "operations", "accounting", "warehouse", "support", "marketing"],
   cn: ["operations", "warehouse", "support"],
   qrqueue: ["operations", "warehouse"],
   labels: ["operations", "warehouse"],
@@ -116,14 +119,14 @@ export const ROLE_MODULE_ACCESS: Record<string, readonly StudioUserRole[]> = {
   "noticias-web": ["commercial", "support", "marketing"],
 
   // ─── SISTEMA ─────────────────────────────────────────────────
-  mentions: ["commercial", "operations", "accounting", "warehouse", "support"],
+  mentions: ["commercial", "operations", "accounting", "warehouse", "support", "marketing"],
   mailing: [], // config de reglas de correo a clientes → admin only
   "no-olvidar": [], // recovery custodial M-of-N → admin only
   legal: [], // admin only (T&C, gates legales)
   users: [], // gestión de usuarios y roles → SOLO admin (keystone)
   operarios: ["operations"], // gestión de PINs de operario PWA
-  bugs: ["commercial", "operations", "accounting", "warehouse", "support"],
-  "mis-bugs": ["commercial", "operations", "accounting", "warehouse", "support"],
+  bugs: ["commercial", "operations", "accounting", "warehouse", "support", "marketing"],
+  "mis-bugs": ["commercial", "operations", "accounting", "warehouse", "support", "marketing"],
   admin: [], // admin only
 };
 
