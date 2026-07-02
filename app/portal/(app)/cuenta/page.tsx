@@ -9,6 +9,10 @@ import { buildPortalSupplierMark } from "@/lib/portal/portal-types";
 import { docKindLabel } from "@/lib/studio/client-types";
 import { listClientDeliveryAddresses } from "@/lib/studio/client-address-queries";
 import type { ClientDeliveryAddress } from "@/lib/studio/client-address-types";
+import {
+  getPublicCalculatorCities,
+  getPublicCalculatorConfig,
+} from "@/lib/public/rates-queries";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { showNortePortal } from "@/lib/portal/demo";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
@@ -46,6 +50,19 @@ export default async function PortalAccountPage() {
   } catch {
     addresses = [];
   }
+  // Slice C: catálogo de ciudades + config del calculador (misma fuente que
+  // /studio/tarifas) para estimar el recargo de entrega por dirección. Los
+  // fetchers nunca tiran; sin data → sin estimado (degrada honesto).
+  const [calcCities, calcConfig] = await Promise.all([
+    getPublicCalculatorCities(),
+    getPublicCalculatorConfig(),
+  ]);
+  const lastMileParams = calcConfig
+    ? {
+        thresholdCascoKm: calcConfig.thresholdCascoKm,
+        tarifaKmFueraCasco: calcConfig.tarifaKmFueraCasco,
+      }
+    : null;
   const supplierMark = buildPortalSupplierMark(client.markbox);
   const norte = showNortePortal(client.markbox);
   const waUpdate = buildWhatsAppLink(
@@ -169,9 +186,18 @@ export default async function PortalAccountPage() {
             />
           </dl>
 
-          {/* Direcciones de entrega múltiples (SDD-0138 Slice B) — las gestiona el
-              cliente; el mismo esquema lo edita el asesor desde el Studio. */}
-          <PortalAddresses addresses={addresses} />
+          {/* Direcciones de entrega múltiples (SDD-0138 Slice B+C) — las gestiona
+              el cliente; el mismo esquema lo edita el asesor desde el Studio. */}
+          <PortalAddresses
+            addresses={addresses}
+            cities={calcCities.map((c) => ({
+              id: c.id,
+              label: c.label,
+              km: c.km,
+              casco: c.casco,
+            }))}
+            lastMileParams={lastMileParams}
+          />
 
           {/* Completa tu perfil (campos diferidos del registro express: foto +
               dirección). A diferencia del resto del perfil — mediado por el asesor

@@ -15,6 +15,12 @@ export type ClientDeliveryAddress = {
   /** Dirección (calle/edificio/nº). Obligatoria. */
   line: string;
   city: string | null;
+  /**
+   * Slice C: slug de `calculator_cities` (migr 0104) para estimar el recargo de
+   * entrega con la MISMA config del calculador (/studio/tarifas). Null = ciudad
+   * fuera del catálogo → sin estimado (degrada honesto).
+   */
+  citySlug: string | null;
   state: string | null;
   /** Punto de referencia / dato de last-mile. Opcional. */
   reference: string | null;
@@ -26,6 +32,7 @@ export type ClientDeliveryAddressInput = {
   label: string | null;
   line: string;
   city: string | null;
+  citySlug: string | null;
   state: string | null;
   reference: string | null;
   isDefault: boolean;
@@ -36,7 +43,7 @@ export type ClientAddressFieldErrors = Partial<
   Record<keyof ClientDeliveryAddressInput, string>
 >;
 
-const MAX = { label: 40, line: 200, city: 80, state: 80, reference: 200 } as const;
+const MAX = { label: 40, line: 200, city: 80, state: 80, reference: 200, citySlug: 60 } as const;
 
 /**
  * Parsea + valida un FormData de dirección. Reglas mínimas: `line` obligatoria y
@@ -56,6 +63,7 @@ export function validateClientAddressInput(
   const line = str("line");
   const label = str("label");
   const city = str("city");
+  const citySlug = str("citySlug");
   const state = str("state");
   const reference = str("reference");
   const isDefault = form.get("isDefault") === "on" || form.get("isDefault") === "true";
@@ -70,6 +78,8 @@ export function validateClientAddressInput(
   if (state.length > MAX.state) errors.state = `Máximo ${MAX.state} caracteres.`;
   if (reference.length > MAX.reference)
     errors.reference = `Máximo ${MAX.reference} caracteres.`;
+  if (citySlug.length > MAX.citySlug)
+    errors.citySlug = `Máximo ${MAX.citySlug} caracteres.`;
 
   if (Object.keys(errors).length > 0) return { ok: false, errors };
 
@@ -79,11 +89,30 @@ export function validateClientAddressInput(
       label: nullable(label),
       line,
       city: nullable(city),
+      citySlug: nullable(citySlug),
       state: nullable(state),
       reference: nullable(reference),
       isDefault,
     },
   };
+}
+
+/**
+ * Estimado del recargo de entrega (last-mile) de una ciudad del catálogo —
+ * MISMA fórmula del calculador público (lib/calculadora.ts §5.7): dentro del
+ * casco la entrega va incluida en el DDP; fuera, se recarga por km sobre el
+ * umbral. La config (umbral + tarifa/km) viene de calculator_settings, que el
+ * founder edita en /studio/tarifas — acá NO se inventan tarifas.
+ */
+export function lastMileEstimate(
+  city: { km: number; casco: boolean },
+  params: { thresholdCascoKm: number; tarifaKmFueraCasco: number },
+): { included: true } | { included: false; surchargeUsd: number } {
+  if (city.casco) return { included: true };
+  const kmFueraCasco = Math.max(0, city.km - params.thresholdCascoKm);
+  const surchargeUsd = Math.round(kmFueraCasco * params.tarifaKmFueraCasco);
+  if (surchargeUsd <= 0) return { included: true };
+  return { included: false, surchargeUsd };
 }
 
 /** Texto de una línea para mostrar la dirección compacta (lista, resumen). */

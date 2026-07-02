@@ -2,7 +2,10 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
-import type { ClientDeliveryAddress } from "@/lib/studio/client-address-types";
+import {
+  lastMileEstimate,
+  type ClientDeliveryAddress,
+} from "@/lib/studio/client-address-types";
 import {
   addAddressAction,
   setDefaultAddressAction,
@@ -13,16 +16,38 @@ import { ArrowIcon, CheckIcon } from "@/components/Icon";
 
 const initial: AddressActionState = {};
 
+/** Ciudad del catálogo del calculador (slug + label + datos del recargo). */
+export type AddressCity = {
+  id: string;
+  label: string;
+  km: number;
+  casco: boolean;
+};
+
+/** Config del recargo de entrega (de calculator_settings vía RPC pública). */
+export type LastMileParams = {
+  thresholdCascoKm: number;
+  tarifaKmFueraCasco: number;
+};
+
 /**
- * Direcciones de entrega del cliente (SDD-0138 Slice B · Norte PortalProfile).
+ * Direcciones de entrega del cliente (SDD-0138 Slice B+C · Norte PortalProfile).
  * Lista + marcar predeterminada + agregar + eliminar. Read-write: el cliente
  * gestiona LAS SUYAS (la RLS y las server actions garantizan la propiedad). El
  * mismo esquema lo edita el asesor desde el Studio.
+ *
+ * Slice C: si la ciudad es del catálogo del calculador, muestra el estimado del
+ * recargo de entrega (misma config de /studio/tarifas). Sin catálogo/config →
+ * ciudad libre y sin estimado (degrada honesto).
  */
 export function PortalAddresses({
   addresses,
+  cities = [],
+  lastMileParams = null,
 }: {
   addresses: ClientDeliveryAddress[];
+  cities?: AddressCity[];
+  lastMileParams?: LastMileParams | null;
 }) {
   const [adding, setAdding] = useState(false);
 
@@ -51,18 +76,39 @@ export function PortalAddresses({
       ) : (
         <ul className="mt-4 flex flex-col gap-2.5 list-none p-0">
           {addresses.map((a) => (
-            <AddressRow key={a.id} address={a} />
+            <AddressRow
+              key={a.id}
+              address={a}
+              cities={cities}
+              lastMileParams={lastMileParams}
+            />
           ))}
         </ul>
       )}
 
-      {adding && <AddForm onDone={() => setAdding(false)} />}
+      {adding && <AddForm onDone={() => setAdding(false)} cities={cities} />}
     </div>
   );
 }
 
-function AddressRow({ address }: { address: ClientDeliveryAddress }) {
+function AddressRow({
+  address,
+  cities,
+  lastMileParams,
+}: {
+  address: ClientDeliveryAddress;
+  cities: AddressCity[];
+  lastMileParams: LastMileParams | null;
+}) {
   const parts = [address.city, address.state].filter(Boolean).join(", ");
+  // Slice C: estimado del recargo de entrega si la ciudad es del catálogo.
+  const catalogCity = address.citySlug
+    ? (cities.find((c) => c.id === address.citySlug) ?? null)
+    : null;
+  const estimate =
+    catalogCity && lastMileParams
+      ? lastMileEstimate(catalogCity, lastMileParams)
+      : null;
   return (
     <li
       className="rounded-[12px] border border-grey-200 bg-paper p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3"
@@ -95,6 +141,29 @@ function AddressRow({ address }: { address: ClientDeliveryAddress }) {
             Ref: {address.reference}
           </div>
         ) : null}
+        {estimate ? (
+          <div className="mt-1 text-[12px] leading-[1.4]">
+            {estimate.included ? (
+              <span style={{ color: "var(--color-status-success)" }}>
+                Entrega incluida (casco central)
+              </span>
+            ) : (
+              <span className="text-grey-700">
+                Recargo de entrega aprox.{" "}
+                <b
+                  className="text-ink"
+                  style={{
+                    fontFamily:
+                      "var(--font-jetbrains-mono), ui-monospace, monospace",
+                  }}
+                >
+                  ${estimate.surchargeUsd}
+                </b>{" "}
+                · estimado, lo confirma tu asesor
+              </span>
+            )}
+          </div>
+        ) : null}
       </div>
 
       <div className="flex items-center gap-3 flex-shrink-0">
@@ -121,9 +190,18 @@ function AddressRow({ address }: { address: ClientDeliveryAddress }) {
   );
 }
 
-function AddForm({ onDone }: { onDone: () => void }) {
+function AddForm({
+  onDone,
+  cities,
+}: {
+  onDone: () => void;
+  cities: AddressCity[];
+}) {
   const [state, action, pending] = useActionState(addAddressAction, initial);
   const fe = state.fieldErrors;
+  // Ciudad del catálogo del calculador; "otra" → texto libre sin estimado.
+  const [citySel, setCitySel] = useState<string>(cities.length > 0 ? "" : "otra");
+  const selected = cities.find((c) => c.id === citySel) ?? null;
 
   // Al confirmarse, cerramos el form (la lista ya se revalidó server-side).
   useEffect(() => {
@@ -138,9 +216,45 @@ function AddForm({ onDone }: { onDone: () => void }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Input name="label" label="Etiqueta (opcional)" placeholder="Casa, Oficina…" error={fe?.label} />
         <Input name="line" label="Dirección" placeholder="Calle, edificio, nº" error={fe?.line} required />
-        <Input name="city" label="Ciudad" placeholder="Valencia" error={fe?.city} />
+        {cities.length > 0 ? (
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-semibold tracking-[0.1em] uppercase text-grey-500">
+              Ciudad
+            </span>
+            <select
+              value={citySel}
+              onChange={(e) => setCitySel(e.target.value)}
+              className="h-11 px-3 rounded-[10px] bg-white border-[1.5px] border-grey-200 outline-none text-[14px] text-ink transition-colors focus:border-wine"
+            >
+              <option value="">Selecciona tu ciudad…</option>
+              {cities.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                </option>
+              ))}
+              <option value="otra">Otra ciudad…</option>
+            </select>
+            {/* La ciudad del catálogo viaja como label (display) + slug (estimado). */}
+            {selected ? (
+              <>
+                <input type="hidden" name="city" value={selected.label} />
+                <input type="hidden" name="citySlug" value={selected.id} />
+              </>
+            ) : null}
+          </label>
+        ) : (
+          <Input name="city" label="Ciudad" placeholder="Valencia" error={fe?.city} />
+        )}
         <Input name="state" label="Estado" placeholder="Carabobo" error={fe?.state} />
       </div>
+      {cities.length > 0 && citySel === "otra" ? (
+        <Input
+          name="city"
+          label="¿Cuál ciudad?"
+          placeholder="Escribe tu ciudad"
+          error={fe?.city}
+        />
+      ) : null}
       <Input name="reference" label="Punto de referencia (opcional)" placeholder="Frente a la plaza…" error={fe?.reference} />
 
       <label className="flex items-center gap-2 text-[13px] text-grey-700">

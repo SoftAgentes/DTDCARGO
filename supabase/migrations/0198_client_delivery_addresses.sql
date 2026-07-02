@@ -27,7 +27,8 @@ create table public.client_delivery_addresses (
   client_markbox text not null,                 -- denormalizado para la RLS del portal
   label          text,                          -- "Casa", "Oficina", "Depósito"…
   line           text not null,                 -- dirección (calle, edificio, nº)
-  city           text,
+  city           text,                          -- nombre visible (display / "otra ciudad")
+  city_slug      text,                          -- Slice C: slug de calculator_cities (0104) → estima el recargo de entrega; null = sin estimado
   state          text,                          -- estado/provincia VE
   reference      text,                          -- punto de referencia / last-mile
   is_default     boolean not null default false,

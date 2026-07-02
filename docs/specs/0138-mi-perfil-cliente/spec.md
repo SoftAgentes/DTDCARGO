@@ -78,11 +78,24 @@ degrada a lista vacía sin romper) + tests del validador.
   `/portal/perfil`): lista + marcar predeterminada + agregar/editar/eliminar. Espeja
   `PortalProfile` del Norte (2060-2087).
 
-### Slice C · Last-mile por dirección — PENDIENTE (necesita PRICING del founder)
-El Norte muestra costo de entrega por dirección (`_lastMileZone(city, state)`).
-- Requiere fuente de tarifas: tabla `last_mile_zones` o RPC `get_last_mile_fee`.
-- **Gate del founder:** las tarifas de última milla son decisión comercial — no se
-  inventan. Bloqueado hasta que el founder defina la matriz (ciudad/estado → tarifa).
+### Slice C · Last-mile por dirección — ✅ HECHO (reusa la config del calculador)
+El Norte muestra costo de entrega por dirección. **Resolución del gate de pricing:**
+NO se creó tabla nueva ni se inventaron tarifas — se reusa la fuente que el founder
+YA controla en `/studio/tarifas` (SDD-0055 F3): `calculator_cities` (ciudad → km +
+casco, migr 0104) + `calculator_settings` (umbral casco + tarifa/km), leídas vía las
+RPCs públicas (`public_calculator_cities` / `public_calculator_config`, anon-grant,
+retorno mínimo — no cruza la frontera).
+
+- Columna `city_slug` en `client_delivery_addresses` (agregada a la migración 0198,
+  que sigue SIN APLICAR — editable porque nunca se aplicó ni mergeó).
+- Helper puro `lastMileEstimate(city, params)` — MISMA fórmula del calculador §5.7:
+  casco → incluida · fuera → `(km − umbral) × tarifa/km`. Con tests.
+- Form de dirección (portal + Studio): la ciudad ahora es un SELECT del catálogo
+  (label visible + slug para el estimado) con "Otra ciudad…" → texto libre sin
+  estimado. Sin catálogo/config publicada → texto libre y sin estimado (degrada
+  honesto).
+- Fila de dirección (portal + Studio): "Entrega incluida (casco central)" o
+  "Recargo de entrega aprox. $X" — copy ADVISORY ("estimado, lo confirma tu asesor").
 
 ### Slice D · Avatar editable + registrar empresa — PENDIENTE (baja prioridad)
 - Avatar editable desde Mi Perfil (hoy la foto sólo se carga en el registro express;

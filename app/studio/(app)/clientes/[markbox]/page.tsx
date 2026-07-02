@@ -37,6 +37,10 @@ import { DeliveryAddressesCard } from "../_components/DeliveryAddressesCard";
 import { IdentityVerificationCard } from "../_components/IdentityVerificationCard";
 import { listClientDeliveryAddresses } from "@/lib/studio/client-address-queries";
 import type { ClientDeliveryAddress } from "@/lib/studio/client-address-types";
+import {
+  getPublicCalculatorCities,
+  getPublicCalculatorConfig,
+} from "@/lib/public/rates-queries";
 import { DocsPanel } from "@/app/studio/_components/documents/DocsPanel";
 import { listDocumentsByEntity } from "@/lib/studio/documents/queries";
 
@@ -98,6 +102,19 @@ export default async function ClienteDetallePage({
   } catch {
     deliveryAddresses = [];
   }
+  // Slice C: catálogo de ciudades + config del calculador (fuente /studio/tarifas)
+  // para estimar el recargo de entrega por dirección. Nunca tiran; sin data → sin
+  // estimado.
+  const [calcCities, calcConfig] = await Promise.all([
+    getPublicCalculatorCities(),
+    getPublicCalculatorConfig(),
+  ]);
+  const lastMileParams = calcConfig
+    ? {
+        thresholdCascoKm: calcConfig.thresholdCascoKm,
+        tarifaKmFueraCasco: calcConfig.tarifaKmFueraCasco,
+      }
+    : null;
 
   // SDD-0046: la verificación de identidad aplica a clientes self-registrados
   // o con foto de documento. El badge es advisory — nunca bloquea al cliente.
@@ -414,6 +431,13 @@ export default async function ClienteDetallePage({
             clientId={client.id}
             markbox={client.markbox}
             addresses={deliveryAddresses}
+            cities={calcCities.map((c) => ({
+              id: c.id,
+              label: c.label,
+              km: c.km,
+              casco: c.casco,
+            }))}
+            lastMileParams={lastMileParams}
           />
 
           {showIdentityCard && (

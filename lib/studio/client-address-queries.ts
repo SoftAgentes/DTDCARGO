@@ -22,6 +22,7 @@ type Row = {
   label: string | null;
   line: string;
   city: string | null;
+  city_slug: string | null;
   state: string | null;
   reference: string | null;
   is_default: boolean;
@@ -34,6 +35,7 @@ function mapRow(r: Row): ClientDeliveryAddress {
     label: r.label,
     line: r.line,
     city: r.city,
+    citySlug: r.city_slug,
     state: r.state,
     reference: r.reference,
     isDefault: r.is_default,
@@ -47,7 +49,7 @@ export async function listClientDeliveryAddresses(
 ): Promise<ClientDeliveryAddress[]> {
   const { data, error } = await supabase
     .from(TABLE)
-    .select("id, client_id, label, line, city, state, reference, is_default")
+    .select("id, client_id, label, line, city, city_slug, state, reference, is_default")
     .eq("client_id", clientId)
     .is("deleted_at", null)
     .order("is_default", { ascending: false })
@@ -88,11 +90,12 @@ export async function insertClientDeliveryAddress(
       label: input.label,
       line: input.line,
       city: input.city,
+      city_slug: input.citySlug,
       state: input.state,
       reference: input.reference,
       is_default: input.isDefault,
     })
-    .select("id, client_id, label, line, city, state, reference, is_default")
+    .select("id, client_id, label, line, city, city_slug, state, reference, is_default")
     .single();
 
   if (error) throw new Error(error.message);
@@ -114,6 +117,7 @@ export async function updateClientDeliveryAddress(
       label: input.label,
       line: input.line,
       city: input.city,
+      city_slug: input.citySlug,
       state: input.state,
       reference: input.reference,
       is_default: input.isDefault,

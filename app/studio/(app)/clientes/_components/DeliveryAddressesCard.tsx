@@ -5,7 +5,14 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
-import type { ClientDeliveryAddress } from "@/lib/studio/client-address-types";
+import {
+  lastMileEstimate,
+  type ClientDeliveryAddress,
+} from "@/lib/studio/client-address-types";
+
+/** Ciudad del catálogo del calculador + config del recargo (Slice C). */
+export type AddressCity = { id: string; label: string; km: number; casco: boolean };
+export type LastMileParams = { thresholdCascoKm: number; tarifaKmFueraCasco: number };
 import {
   addClientAddressAction,
   setDefaultClientAddressAction,
@@ -22,10 +29,14 @@ export function DeliveryAddressesCard({
   clientId,
   markbox,
   addresses,
+  cities = [],
+  lastMileParams = null,
 }: {
   clientId: string;
   markbox: string;
   addresses: ClientDeliveryAddress[];
+  cities?: AddressCity[];
+  lastMileParams?: LastMileParams | null;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -35,18 +46,23 @@ export function DeliveryAddressesCard({
   // mientras una está en vuelo, las demás quedan deshabilitadas.
   const [busy, setBusy] = useState<string | null>(null);
 
-  // Campos del alta (form controlado, patrón de las cards del módulo).
+  // Campos del alta (form controlado, patrón de las cards del módulo). La ciudad
+  // sale del catálogo del calculador (Slice C: slug → estimado); "otra" = texto libre.
   const [label, setLabel] = useState("");
   const [line, setLine] = useState("");
-  const [city, setCity] = useState("");
+  const [citySel, setCitySel] = useState<string>(cities.length > 0 ? "" : "otra");
+  const [cityOther, setCityOther] = useState("");
   const [state, setState] = useState("");
   const [reference, setReference] = useState("");
   const [isDefault, setIsDefault] = useState(addresses.length === 0);
 
+  const selectedCity = cities.find((c) => c.id === citySel) ?? null;
+
   function resetForm() {
     setLabel("");
     setLine("");
-    setCity("");
+    setCitySel(cities.length > 0 ? "" : "otra");
+    setCityOther("");
     setState("");
     setReference("");
     setIsDefault(false);
@@ -58,7 +74,12 @@ export function DeliveryAddressesCard({
     const fd = new FormData();
     fd.set("label", label);
     fd.set("line", line);
-    fd.set("city", city);
+    if (selectedCity) {
+      fd.set("city", selectedCity.label);
+      fd.set("citySlug", selectedCity.id);
+    } else {
+      fd.set("city", cityOther);
+    }
     fd.set("state", state);
     fd.set("reference", reference);
     if (isDefault) fd.set("isDefault", "on");
@@ -164,6 +185,11 @@ export function DeliveryAddressesCard({
                     Ref: {a.reference}
                   </div>
                 )}
+                <AddressEstimate
+                  address={a}
+                  cities={cities}
+                  lastMileParams={lastMileParams}
+                />
               </div>
 
               <div style={{ display: "flex", gap: 10, flexShrink: 0, alignItems: "center" }}>
@@ -279,13 +305,40 @@ export function DeliveryAddressesCard({
             </label>
             <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <span className="studio-label">Ciudad</span>
-              <input
-                className="studio-input"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="Valencia"
-              />
+              {cities.length > 0 ? (
+                <select
+                  className="studio-input"
+                  value={citySel}
+                  onChange={(e) => setCitySel(e.target.value)}
+                >
+                  <option value="">Selecciona…</option>
+                  {cities.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.label}
+                    </option>
+                  ))}
+                  <option value="otra">Otra ciudad…</option>
+                </select>
+              ) : (
+                <input
+                  className="studio-input"
+                  value={cityOther}
+                  onChange={(e) => setCityOther(e.target.value)}
+                  placeholder="Valencia"
+                />
+              )}
             </label>
+            {cities.length > 0 && citySel === "otra" && (
+              <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <span className="studio-label">¿Cuál ciudad?</span>
+                <input
+                  className="studio-input"
+                  value={cityOther}
+                  onChange={(e) => setCityOther(e.target.value)}
+                  placeholder="Escribe la ciudad"
+                />
+              </label>
+            )}
           </div>
           <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <span className="studio-label">Dirección *</span>
@@ -371,5 +424,40 @@ export function DeliveryAddressesCard({
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * Estimado del recargo de entrega de una dirección (Slice C). Solo si la ciudad
+ * es del catálogo Y hay config publicada; si no, no muestra nada (degrada honesto).
+ */
+function AddressEstimate({
+  address,
+  cities,
+  lastMileParams,
+}: {
+  address: ClientDeliveryAddress;
+  cities: AddressCity[];
+  lastMileParams: LastMileParams | null;
+}) {
+  const catalogCity = address.citySlug
+    ? (cities.find((c) => c.id === address.citySlug) ?? null)
+    : null;
+  if (!catalogCity || !lastMileParams) return null;
+  const est = lastMileEstimate(catalogCity, lastMileParams);
+  return (
+    <div style={{ font: "500 11.5px/1.4 var(--f-sans)", marginTop: 3 }}>
+      {est.included ? (
+        <span style={{ color: "var(--success)" }}>Entrega incluida (casco central)</span>
+      ) : (
+        <span style={{ color: "var(--ink-soft)" }}>
+          Recargo de entrega aprox.{" "}
+          <b style={{ color: "var(--ink)", fontFamily: "var(--f-mono)" }}>
+            ${est.surchargeUsd}
+          </b>{" "}
+          (config de /studio/tarifas)
+        </span>
+      )}
+    </div>
   );
 }
