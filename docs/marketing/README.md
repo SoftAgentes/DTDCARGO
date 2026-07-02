@@ -39,6 +39,7 @@
 - **Instagram `@doortudoor_`** — 5.003 seguidores · 128 posts · audiencia activa · destacados por intención (Q&A, Servicios, Visa) + reels educativos. 🟢 **El canal más fuerte** (fuente de contenido para reciclar).
 - **YouTube `@doortudoor`** — 223 subs · 11 videos (podcast sobre China). 🔴 Abandonado → reactivar reciclando IG (prioridad 5). **Plan de reciclaje IG→YouTube en [`redes.md`](redes.md).**
 - **Google Business Profile (Valencia)** — ⏳ verificar + reseñas (prioridad 2, founder). Tracción local.
+- **Link-in-bio propio = `dtdcargo.com/enlaces`** (ruta `app/enlaces`, activo de marca): agrupa todos los enlaces bajo una URL, con atribución UTM + etiqueta de origen en WhatsApp. Cómo ponerlo en Instagram (+ botones nativos de cuenta profesional) y cómo editar los enlaces: [`link-in-bio.md`](link-in-bio.md).
 - Plan/sistema en [`redes.md`](redes.md); contexto de prioridades en [`plan-accion-digital.md`](plan-accion-digital.md).
 
 ### 🤝 CRM — Kommo
