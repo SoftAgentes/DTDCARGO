@@ -135,14 +135,60 @@ sensibles (clientes/dinero), como ya lo hace nómina vía `nomina_can_access()`.
    configurable" → "definido por rol" (la matriz es estática por diseño,
    SDD-0124); cast `as never` en PermissionsSection → `StudioUserRole`.
 
+## Review adversarial del hardening (2026-07-02) — hallazgos aplicados
+
+Workflow de 4 lentes (SQL/RLS, regresión, caza de bypass, lockout/ops) + un
+refutador por hallazgo: 21 confirmados (≈12 únicos), 4 refutados. Aplicado:
+
+1. **`upsert_dispatch_rules` + `seed_tenant_cities_from_ve_catalog`** (0024/0046):
+   definer que ESCRIBEN sin filtrar `disabled_at` → un desactivado con JWT vivo
+   podía mutar la política de pago del despacho. Redefinidas en 0200 (H5).
+2. **TOCTOU anti-lockout**: dos admins podían desactivarse/degradarse en paralelo
+   → tenant sin admins. `pg_advisory_xact_lock` por tenant en
+   `studio_set_user_disabled` y `studio_change_user_role` (0200 H6, que además
+   corrige el falso positivo al degradar a un admin ya desactivado).
+3. **`user_profiles` PII**: policy `using(true)` dejaba a cualquier authenticated
+   (incl. desactivados) leer teléfono/telegram del staff → fila propia O miembro
+   activo (0200 H7; portal usa admin client, sin impacto).
+4. **0201 sin GRANT**: la policy de SELECT era inalcanzable ('expose new tables'
+   está OFF) → `grant select to authenticated` + revoke execute del trigger fn.
+5. **Desactivado invisible**: `listMembers` sin `includeDisabled` → el
+   desactivado se esfumaba de la tabla y "Reactivar" (único unban) quedaba
+   inalcanzable. Fix en usuarios/page.tsx.
+6. **enableUserAction**: si el unban fallaba, DB decía activo + Auth baneado 100
+   años + UI "ok". Ahora unban PRIMERO; si falla, no se toca nada y se reporta.
+7. **Re-invitar a un desactivado** = invitación muerta (auth user existente +
+   baneado). Guard en inviteUserAction → dirige a «Reactivar».
+8. **rbac-view-guard**: el test aceptaba un page.tsx de ancestro como gate del
+   hijo y no validaba el id → endurecido (id exacto en carpeta propia; ancestros
+   solo layout.tsx).
+9. **service-catalog**: el gate de vista nuevo dejaba afuera a accounting, que
+   edita precio+cuenta de Academia dentro de servicios (SDD-0093) → agregado a
+   la matriz.
+
 ## Residual aceptado
 
 - Los helpers de correlativos de 0024 (`next_dispatch_order_code`,
-  `next_route_code`, etc.) validan membership sin filtrar `disabled_at`; solo
+  `next_route_code`) validan membership sin filtrar `disabled_at`; solo
   devuelven un código string y el INSERT posterior lo bloquea la RLS.
 - El access token vivo de un desactivado puede seguir siendo válido hasta
-  expirar (~1h) si el ban en Auth falla — pero la RLS ya le devuelve 0 filas
-  desde el momento del disable.
+  expirar (~1h) si el ban en Auth falla — la RLS ya le devuelve 0 filas y los
+  definer de escritura quedaron filtrados (H5).
+- El ban de Auth es global a la cuenta: si un staff compartiera auth user con un
+  cliente del portal, desactivarlo del Studio también le corta /portal (hoy no
+  existe el caso; documentado).
 - Los `denied` de matriz para el rol `marketing` en módulos neutrales
-  (dashboard/menciones/bugs) son **decisión de matriz pendiente del founder**,
-  no de enforcement.
+  (dashboard/menciones/bugs/calendario) son **decisión de matriz pendiente del
+  founder**, no de enforcement.
+
+---
+
+# SDD-0139 · Metodología definitiva de permisos (2026-07-02)
+
+Decisión del founder tras opinión de **Codex** + **panel de 3 expertos** + juez:
+la matriz se queda EN CÓDIGO (no editable en DB, no V/C/E/D, no overrides por
+usuario), con **capabilities** explícitas (`canSpecial` — primera:
+`approve_money` en el puente OC→Bill) y **scope de almacén por usuario**
+(`warehouse_scope` cn·ve·all, migr 0202, selector en /studio/usuarios, gatea
+cn/cola-qr/etiquetas vs ve). Candados exportados como `LOCKED_MODULES` con test
+snapshot. Detalle completo: `docs/specs/0139-rbac-capabilities-scope/spec.md`.
