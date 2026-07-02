@@ -60,8 +60,11 @@ export default async function UsuariosPage() {
   })();
 
   const [membersRaw, invitations] = await Promise.all([
+    // includeDisabled: sin esto el desactivado se esfuma de la tabla y el botón
+    // "Reactivar" (único unban) queda inalcanzable (hallazgo review 2026-07-02).
     listMembers(supabaseAdminForListing ?? supabase, {
       tenantId: link.tenant_id,
+      includeDisabled: true,
     }),
     listInvitations(supabase),
   ]);

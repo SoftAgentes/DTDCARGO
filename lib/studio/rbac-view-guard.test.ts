@@ -34,18 +34,33 @@ const ALLOWLIST: Record<string, string> = {
   "mis-bugs": "Bugs propios del usuario (abierto por diseño).",
 };
 
-/** ¿Algún layout.tsx/page.tsx de la carpeta del módulo (o ancestro) llama requireModuleView(? */
-function hasViewGate(slug: string): boolean {
+/**
+ * ¿El módulo tiene gate de vista?
+ *   - Carpeta PROPIA: layout.tsx o page.tsx con `requireModuleView("<id>"` — el
+ *     id EXACTO (un gate con otro id no protege este módulo).
+ *   - ANCESTROS: solo layout.tsx (un page.tsx de ancestro NO envuelve al hijo);
+ *     ahí se acepta cualquier requireModuleView( — el layout del padre gatea el
+ *     subtree con su propio id (ej. despacho/ cubre sus sub-rutas).
+ */
+function hasViewGate(id: string, slug: string): boolean {
   const rel = slug.replace(/^\/studio\//, ""); // "despacho/reglas"
   const segments = rel.split("/");
-  // Del más profundo al más superficial: la carpeta propia y sus ancestros.
-  for (let depth = segments.length; depth >= 1; depth--) {
-    const dir = join(STUDIO_APP, ...segments.slice(0, depth));
-    for (const file of ["layout.tsx", "page.tsx"]) {
-      const full = join(dir, file);
-      if (existsSync(full) && readFileSync(full, "utf8").includes("requireModuleView(")) {
-        return true;
-      }
+
+  const ownDir = join(STUDIO_APP, ...segments);
+  for (const file of ["layout.tsx", "page.tsx"]) {
+    const full = join(ownDir, file);
+    if (
+      existsSync(full) &&
+      readFileSync(full, "utf8").includes(`requireModuleView("${id}"`)
+    ) {
+      return true;
+    }
+  }
+
+  for (let depth = segments.length - 1; depth >= 1; depth--) {
+    const full = join(STUDIO_APP, ...segments.slice(0, depth), "layout.tsx");
+    if (existsSync(full) && readFileSync(full, "utf8").includes("requireModuleView(")) {
+      return true;
     }
   }
   return false;
@@ -58,7 +73,7 @@ describe("RBAC anti-drift · gate de vista por módulo (SDD-0085)", () => {
 
   for (const m of MODULES) {
     it(`${m.id} (${m.slug}) tiene requireModuleView o está en la allowlist`, () => {
-      const gated = hasViewGate(m.slug);
+      const gated = hasViewGate(m.id, m.slug);
       const allowed = m.id in ALLOWLIST;
 
       if (!gated && !allowed) {
