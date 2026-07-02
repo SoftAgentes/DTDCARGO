@@ -3,6 +3,11 @@
 > Guía práctica para el equipo. El **link de la bio** de DTD es una página propia
 > (no un Linktree de pago): agrupa todos nuestros enlaces bajo **una sola URL** y
 > nos deja **medir clics** sin marca de terceros ni costo recurrente.
+>
+> **En la app:** el equipo la ve en el hub interno de marca → `/interno/marca/enlaces`
+> (tarjeta "Link-in-bio · Instagram", con preview en vivo).
+> **Versión HTML** (para abrir en el navegador / compartir / imprimir):
+> [`assets/link-in-bio-guia.html`](assets/link-in-bio-guia.html).
 
 ## Qué es y dónde vive
 

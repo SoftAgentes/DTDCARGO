@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DTD Cargo · Guía del link-in-bio (dtdcargo.com/enlaces)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Archivo+Black&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0F1E3D; --navy-2:#1F3055; --wine:#7F0F1A; --wine-soft:#C2747F;
+    --cream:#FBFAF7; --cream-2:#F2F0EC; --gold:#B8893A; --ink:#2A3450;
+    --ink-soft:#6E7790; --ink-soft-dark:#9BA3BC;
+    --line:#E4E2DD; --ok:#1E7D4F;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Archivo',system-ui,sans-serif;background:var(--cream-2);color:var(--ink);
+    padding:28px 22px 80px;line-height:1.5}
+  .wrap{max-width:880px;margin:0 auto}
+  h1{font-family:'Archivo Black',sans-serif;font-size:26px;color:var(--navy);margin-bottom:6px}
+  .sub{color:var(--ink-soft);font-size:15px;margin-bottom:22px;max-width:700px}
+  .sub b{color:var(--wine)}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+  /* hero con la URL + copiar */
+  .url{background:var(--navy);border-radius:14px;padding:20px 22px;margin-bottom:26px;
+    display:flex;flex-wrap:wrap;align-items:center;gap:14px;justify-content:space-between}
+  .url .lbl{font-size:12px;font-weight:700;color:var(--ink-soft-dark);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+  .url .val{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:19px;color:var(--cream);font-weight:500}
+  .copy{font-family:'Archivo';font-weight:700;font-size:13px;background:var(--wine);color:#fff;border:0;
+    border-radius:8px;padding:11px 18px;cursor:pointer;white-space:nowrap;transition:background .12s}
+  .copy:hover{background:#5E0A12}
+  .copy.ok{background:var(--ok)}
+  .copy:focus-visible{outline:2px solid var(--cream);outline-offset:2px}
+
+  /* índice */
+  .toc{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+  .toc a{font-size:13px;font-weight:600;color:var(--navy);text-decoration:none;background:#fff;
+    border:1px solid var(--line);border-radius:999px;padding:6px 13px;transition:background .12s,color .12s}
+  .toc a:hover{background:var(--navy);color:#fff}
+  .toc a:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+  section{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px 24px;margin-bottom:18px;scroll-margin-top:20px}
+  section h2{font-family:'Archivo Black';color:var(--navy);font-size:19px;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+  .num{font-size:14px;width:28px;height:28px;border-radius:50%;flex:0 0 auto;
+    display:inline-flex;align-items:center;justify-content:center;background:var(--navy);color:#fff}
+
+  ol,ul{margin:0 0 0 4px;padding-left:22px}
+  li{margin-bottom:8px;font-size:14.5px}
+  li b{color:var(--navy)}
+  code{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;background:var(--cream-2);
+    border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:var(--wine)}
+
+  .path{font-size:13px;color:var(--ink-soft);background:var(--cream-2);border-radius:8px;
+    padding:8px 12px;margin:4px 0 14px;font-weight:500}
+  .path b{color:var(--navy)}
+  .note{font-size:13px;color:var(--ink-soft);background:var(--cream-2);border-radius:8px;padding:12px 14px;margin-top:12px}
+  .note b{color:var(--wine)}
+  .note.ok{background:#DDF1E5;color:#155e3b}
+  .note.ok b{color:var(--ok)}
+
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media (max-width:640px){.cols{grid-template-columns:1fr}}
+  .card{border:1px solid var(--line);border-radius:12px;padding:16px;background:#fff}
+  .card .ct{font-family:'Archivo Black';font-size:15px;color:var(--navy);margin-bottom:8px}
+
+  .check{list-style:none;padding-left:0}
+  .check li{display:flex;align-items:flex-start;gap:10px}
+  .check li::before{content:"";flex:0 0 auto;width:18px;height:18px;margin-top:2px;border:2px solid var(--wine);border-radius:5px}
+
+  footer{margin-top:24px;font-size:12.5px;color:var(--ink-soft);text-align:center}
+  footer b{color:var(--navy)}
+  @media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Guía del link-in-bio de Instagram</h1>
+  <p class="sub">El <b>link de la bio</b> de DTD es una página propia (no un Linktree de pago): agrupa todos los enlaces bajo <b>una sola URL</b> y nos deja <b>medir clics</b> sin marca de terceros ni costo recurrente.</p>
+
+  <div class="url">
+    <div>
+      <div class="lbl">La URL que va en la bio</div>
+      <div class="val" id="url">https://dtdcargo.com/enlaces</div>
+    </div>
+    <button class="copy" id="copy" type="button">Copiar</button>
+  </div>
+
+  <nav class="toc" aria-label="Secciones">
+    <a href="#instagram">Ponerlo en Instagram</a>
+    <a href="#botones">Botones nativos</a>
+    <a href="#otras">TikTok / YouTube</a>
+    <a href="#atribucion">Atribución</a>
+    <a href="#editar">Editar enlaces</a>
+    <a href="#checklist">Checklist</a>
+  </nav>
+
+  <section id="que">
+    <h2>Qué es y dónde vive</h2>
+    <ul>
+      <li><b>URL pública:</b> <code>https://dtdcargo.com/enlaces</code> — la que va en la bio.</li>
+      <li><b>En código:</b> ruta <code>app/enlaces/</code> del sitio público. Diseño aprobado en el Norte (<code>docs/design/studio/_norte/handoff-enlaces/</code>). Es <b>activo de marca</b>, no módulo de producto.</li>
+      <li><b>Contiene:</b> CTA a WhatsApp (Cotizar DDP) + accesos rápidos (Calcular CBM, Portal, Rastrear, Atención, Servicios, Cómo llegar) + redes + pie con RIF y dirección.</li>
+    </ul>
+  </section>
+
+  <section id="instagram">
+    <h2><span class="num">1</span>Ponerlo en Instagram (app)</h2>
+    <ol>
+      <li>Entra a tu <b>perfil</b> → <b>Editar perfil</b>.</li>
+      <li>Toca <b>Enlaces</b> (en cuentas viejas dice <b>Sitio web</b>).</li>
+      <li><b>Agregar enlace externo</b> → pega <code>https://dtdcargo.com/enlaces</code>.</li>
+      <li>Título (opcional): <b>Enlaces DTD</b> o <b>Cotiza y rastrea</b>.</li>
+      <li><b>Guardar</b>. Queda como el enlace debajo de la bio.</li>
+    </ol>
+    <div class="note"><b>Ojo:</b> el link escrito en el <b>texto</b> de la bio no es clickeable — tiene que ir sí o sí en el campo <b>Enlaces / Sitio web</b>.</div>
+  </section>
+
+  <section id="botones">
+    <h2><span class="num">2</span>Botones nativos de cuenta profesional</h2>
+    <p class="path">Editar perfil → <b>Botones de acción</b> (o Información de contacto)</p>
+    <p style="font-size:14.5px;margin-bottom:12px">Refuerzan el contacto directo y conviven con el link de la bio:</p>
+    <div class="cols">
+      <div class="card"><div class="ct">WhatsApp</div><code>+58 412 166 8021</code><br><span style="font-size:13px;color:var(--ink-soft)">CRM · número público primario</span></div>
+      <div class="card"><div class="ct">Cómo llegar</div>Oficina en Valencia<br><span style="font-size:13px;color:var(--ink-soft)">Av. Bolívar Norte</span></div>
+      <div class="card"><div class="ct">Correo</div><code>info@dtdcargo.com</code></div>
+    </div>
+    <div class="note">Resultado: botones nativos arriba del perfil <b>+</b> <code>/enlaces</code> como link único que agrupa todo y mide clics.</div>
+  </section>
+
+  <section id="otras">
+    <h2><span class="num">3</span>Mismo link en TikTok y YouTube</h2>
+    <p style="font-size:14.5px">La misma URL <code>dtdcargo.com/enlaces</code> sirve como link de perfil en <b>TikTok</b> (<code>@doortudoor</code>) y <b>YouTube</b> (<code>@doortudoor</code>). Un solo destino para mantener todo consistente.</p>
+  </section>
+
+  <section id="atribucion">
+    <h2><span class="num">4</span>Atribución — de dónde vino cada clic</h2>
+    <p style="font-size:14.5px;margin-bottom:10px">Ya viene integrada; no hay que hacer nada al pegar el link:</p>
+    <ul>
+      <li><b>Enlaces web</b> (Calcular, Portal, Rastrear, Servicios) llevan UTM <code>utm_source=instagram&utm_medium=bio&utm_campaign=enlaces&origen=…</code> → se ven en <b>GA4</b> (<code>G-25CD7BZH98</code>), campaña "enlaces".</li>
+      <li><b>WhatsApp</b> (Cotizar, Atención): el mensaje pre-cargado termina con <code>(Vía: dtdcargo.com/enlaces · origen)</code> → el asesor/CRM sabe de qué botón vino.</li>
+      <li><b>Cómo llegar</b>: abre mapas nativos — Apple Maps en iPhone, Google Maps con el pin verificado en Android/desktop.</li>
+    </ul>
+  </section>
+
+  <section id="editar">
+    <h2><span class="num">5</span>Editar los enlaces (sin tocar el diseño)</h2>
+    <p style="font-size:14.5px;margin-bottom:10px">Todo vive en el bloque de datos arriba del render en <code>app/enlaces/page.tsx</code>:</p>
+    <ul>
+      <li><code>PRIMARY</code> → el CTA grande (hoy: Cotizar DDP por WhatsApp).</li>
+      <li><code>LINKS[]</code> → accesos rápidos (icono, label, sub, href).</li>
+      <li><code>SOCIAL[]</code> → Instagram / TikTok / YouTube.</li>
+      <li>La fila <b>Cómo llegar</b> usa <code>CONTACT.ve.mapsUrl</code> (pin verificado) desde <code>lib/design-tokens</code>.</li>
+    </ul>
+    <div class="note">Los números y datos de contacto salen de <code>CONTACT</code> en <code>lib/design-tokens.ts</code> (fuente única de NAP). Para agregar/quitar un acceso: editar el array.</div>
+  </section>
+
+  <section id="checklist">
+    <h2>Checklist de publicación</h2>
+    <ul class="check">
+      <li>Confirmar que <code>dtdcargo.com/enlaces</code> carga en prod.</li>
+      <li>Pegar la URL en la bio de Instagram (campo Enlaces).</li>
+      <li>Activar botones nativos (WhatsApp / Cómo llegar / Correo).</li>
+      <li>Poner el mismo link en TikTok y YouTube.</li>
+      <li>Revisar en GA4 que llegan eventos con <code>utm_campaign=enlaces</code>.</li>
+    </ul>
+  </section>
+
+  <footer><b>DTD Cargo</b> · Con Confianza, de China a tu puerta. · guía interna de marketing</footer>
+</div>
+
+<script>
+  (function(){
+    var btn = document.getElementById('copy');
+    var url = document.getElementById('url').textContent.trim();
+    btn.addEventListener('click', function(){
+      navigator.clipboard.writeText(url).then(function(){
+        btn.textContent = 'Copiado ✓';
+        btn.classList.add('ok');
+        setTimeout(function(){ btn.textContent = 'Copiar'; btn.classList.remove('ok'); }, 1800);
+      });
+    });
+  })();
+</script>
+</body>
+</html>
