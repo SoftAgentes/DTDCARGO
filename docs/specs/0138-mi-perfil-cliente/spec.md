@@ -1,10 +1,10 @@
 ---
 sdd: "0138"
 title: "Mi Perfil del cliente — identidad + direcciones de entrega múltiples (Portal → Norte)"
-status: in-progress
+status: done
 author: "Ventana forja portal-norte-fase2 + founder"
 created: 2026-07-01
-updated: 2026-07-01
+updated: 2026-07-02
 supersedes: null
 superseded_by: null
 related: ["0042", "0048", "0131", "0106", "0065", "0133"]
