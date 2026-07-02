@@ -14,9 +14,11 @@ la migración es seguro.
   tenant/markbox desde `clients` + revoke anon + índice único parcial (1 predeterminada
   por cliente) + backfill no destructivo de `clients.address`.
 - **Capa compartida** `lib/studio/client-address-{types,queries}.ts` — la usan las DOS
-  superficies. **Recordatorio founder:** las direcciones también se editan en el perfil
-  del cliente del ERP (Studio), mismo esquema → **wiring del Studio = siguiente paso**
-  (la capa ya está lista; falta solo la UI en `/studio/clientes`).
+  superficies (recordatorio founder: mismo esquema en portal y ERP).
+- **Studio (commit `bb201f92`)**: `DeliveryAddressesCard` en el detalle del cliente
+  (`/studio/clientes/[markbox]`) — lista + agregar + predeterminar + eliminar, patrón
+  `AdvisorAssignCard`. Actions con gate `moduleEditDenial("clients")` + client de
+  sesión (RLS por tenant). **El círculo portal↔ERP quedó cerrado.**
 - **Portal**: server actions con client de sesión (RLS self garantiza propiedad) + UI
   `PortalAddresses` en `/cuenta` (lista + agregar + predeterminar + eliminar) +
   tests del validador. Reemplaza el campo read-only "Dirección de entrega".
