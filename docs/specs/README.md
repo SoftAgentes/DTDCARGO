@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 132 specs)
+### Índice de specs (generado · 133 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -170,6 +170,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0135 | Buscador global ⌘K del Studio — permission-aware, gating por … | done | interno |
 | 0136 | Gestión de usuarios del ERP — alta por rol, reasignación y ba… | draft | interno |
 | 0137 | Crédito de referido auto-aplicado — aplicar el bono del refer… | draft | interno |
+| 0138 | Mi Perfil del cliente — identidad + direcciones de entrega mú… | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
