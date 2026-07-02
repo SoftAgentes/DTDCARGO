@@ -19,7 +19,7 @@ import { resolveLocale } from "@/lib/i18n/resolve-server";
 import { LocaleProvider } from "@/lib/i18n";
 import { StudioSidebar } from "./_components/StudioSidebar";
 import { StudioTopbar } from "./_components/StudioTopbar";
-import type { StudioUserRole } from "@/lib/studio/user-types";
+import type { StudioUserRole, WarehouseScope } from "@/lib/studio/user-types";
 import { WiringProvider } from "../_components/wiring/WiringProvider";
 import { ToastProvider } from "../_components/ui/ToastProvider";
 import { BugFABButton } from "../_components/bug-reporter/BugFABButton";
@@ -68,18 +68,30 @@ export default async function StudioAppLayout({
   // Un user puede estar en N tenants — para V1 tomamos el primero (suficiente
   // mientras el Studio sea single-tenant por sesión; cuando haya tenant
   // switcher, leer del switcher activo).
+  // select("*") a propósito: warehouse_scope (migr 0202) puede no existir aún
+  // → la query no rompe y el scope degrada a 'all' (SDD-0139).
   const { data: tenantLink } = await supabase
     .from("user_tenants")
-    .select("region, role")
+    .select("*")
     .eq("user_id", user.id)
     .is("disabled_at", null)
-    .maybeSingle<{ region: string | null; role: string | null }>();
+    .maybeSingle<{
+      region: string | null;
+      role: string | null;
+      warehouse_scope?: string | null;
+    }>();
 
   // Rol del user — el sidebar lo usa para esconder los módulos que el rol no
   // puede ver (matriz ROLE_MODULE_ACCESS, SDD-0085). El gate real de seguridad
   // está en cada page.tsx (requireModuleView); esto solo evita mostrar un link
   // que daría redirect. `null` = sin membership (fail-closed en el sidebar).
   const role = (tenantLink?.role ?? null) as StudioUserRole | null;
+  // Scope de almacén (SDD-0139): el sidebar esconde los módulos del lado que
+  // el usuario no tiene asignado (cn/cola-qr/etiquetas vs ve).
+  const warehouseScope: WarehouseScope =
+    tenantLink?.warehouse_scope === "cn" || tenantLink?.warehouse_scope === "ve"
+      ? tenantLink.warehouse_scope
+      : "all";
 
   // Resolver locale activo. El override URL `?lang=` se aplica client-side
   // en LocaleProvider.
@@ -128,6 +140,7 @@ export default async function StudioAppLayout({
               featureFlags={featureFlags}
               expenseAlertCount={expenseAlertCount}
               role={role}
+              warehouseScope={warehouseScope}
             />
 
             <main

@@ -36,7 +36,7 @@
  * 7 roles — un solo vocabulario en todo el sistema.
  */
 
-import type { StudioUserRole } from "@/lib/studio/user-types";
+import type { StudioUserRole, WarehouseScope } from "@/lib/studio/user-types";
 import { MODULES } from "@/lib/studio/modules";
 
 /**
@@ -79,7 +79,9 @@ export const ROLE_MODULE_ACCESS: Record<string, readonly StudioUserRole[]> = {
   suppliers: ["commercial", "operations"],
   "purchase-orders": ["commercial", "operations", "accounting"],
   "sales-orders": ["commercial", "operations", "accounting"],
-  "service-catalog": ["commercial", "operations"],
+  // accounting: edita precio + cuenta contable de Academia DENTRO de servicios
+  // (SDD-0093 "gate por campo"); el gate de vista lo dejaba afuera (review 2026-07-02).
+  "service-catalog": ["commercial", "operations", "accounting"],
   rates: ["commercial", "accounting"],
   fidelizacion: ["commercial", "support"],
   // Academia (SDD-0093): contenido = commercial (Director); precio+cuenta = accounting (gate por campo en servicios).
@@ -126,6 +128,97 @@ export const ROLE_MODULE_ACCESS: Record<string, readonly StudioUserRole[]> = {
 };
 
 const MODULE_IDS: ReadonlySet<string> = new Set(MODULES.map((m) => m.id));
+
+// ─── Candados de gobernanza como invariante ejecutable (SDD-0139) ────────
+// Decisión founder 2026-07-02 (opinión Codex + panel de expertos): la matriz
+// NO se vuelve editable en DB, NO hay V/C/E/D ni overrides por usuario. Los
+// candados pasan de comentario a set exportado que los tests verifican.
+
+/** Módulos de DINERO: default = exactamente ['accounting'] (+admin implícito). */
+export const MONEY_MODULES: ReadonlySet<string> = new Set([
+  "invoices",
+  "accounting",
+  "collections",
+  "treasury",
+  "fiscal",
+  "costing",
+  "reports",
+  "nomina",
+]);
+
+/** Módulos admin-only duro: matriz = [] (solo admin). */
+export const ADMIN_ONLY_MODULES: ReadonlySet<string> = new Set([
+  "users",
+  "admin",
+  "direccion",
+  "renditions",
+  "financiero-china",
+  "legal",
+  "no-olvidar",
+  "mailing",
+]);
+
+/** Candados inmutables: cambiarlos SOLO pasa por PR + code review, jamás por UI/DB. */
+export const LOCKED_MODULES: ReadonlySet<string> = new Set([
+  ...MONEY_MODULES,
+  ...ADMIN_ONLY_MODULES,
+]);
+
+// ─── Capabilities: acciones peligrosas con gate explícito (SDD-0139) ─────
+// "Delete/Approve no son CRUD genérico, son reglas de negocio" (Codex). Una
+// capability nombra el ACTO (no el módulo) y lista los roles no-admin que lo
+// ejecutan. Se agregan solo cuando existe el flujo real — cero aspiracionales.
+
+export const CAPABILITIES = {
+  /**
+   * Causar una CxP / mover plata desde un módulo NO-dinero: el puente OC→Bill
+   * (`receivePurchaseOrder`). Antes se expresaba "prestándose" el gate del
+   * módulo treasury.
+   */
+  approve_money: ["accounting"],
+} as const satisfies Record<string, readonly StudioUserRole[]>;
+
+export type StudioCapability = keyof typeof CAPABILITIES;
+
+/** ¿El rol tiene la capability? `admin` siempre; rol nulo/desconocido = no. */
+export function canSpecial(
+  role: StudioUserRole | null | undefined,
+  capability: StudioCapability,
+): boolean {
+  if (role === "admin") return true;
+  if (!role) return false;
+  return (CAPABILITIES[capability] as readonly StudioUserRole[]).includes(role);
+}
+
+// ─── Scope de almacén por usuario (SDD-0139 · Norte users.jsx) ───────────
+// Atributo OPERATIVO del usuario (user_tenants.warehouse_scope, migr 0202),
+// NO una dimensión de la matriz. Gatea el acceso a los módulos con lado
+// geográfico claro; el rol sigue decidiendo ver/editar. 'all' = sin
+// restricción (default → cero cambio de comportamiento hasta que un admin
+// asigne un scope). Tipo y labels viven en user-types.ts (atributo del user).
+
+/** Módulos con lado geográfico → scope requerido para verlos (no-admin). */
+export const WAREHOUSE_SCOPED_MODULES: Record<string, Exclude<WarehouseScope, "all">> = {
+  cn: "cn",
+  qrqueue: "cn",
+  labels: "cn",
+  ve: "ve",
+};
+
+/**
+ * ¿El scope del usuario permite el módulo? Módulo sin lado = siempre sí.
+ * Scope nulo/desconocido se trata como 'all' (pre-migración / sin asignación)
+ * — el gate duro sigue siendo el rol; el scope solo RESTRINGE.
+ */
+export function scopeAllowsModule(
+  scope: WarehouseScope | string | null | undefined,
+  moduleId: string,
+): boolean {
+  const side = WAREHOUSE_SCOPED_MODULES[moduleId];
+  if (!side) return true;
+  if (!scope || scope === "all") return true;
+  return scope === side;
+}
 
 /**
  * ¿El rol puede VER el módulo? `admin` siempre; rol nulo/desconocido = no.

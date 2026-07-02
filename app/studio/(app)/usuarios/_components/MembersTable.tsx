@@ -10,6 +10,8 @@ import { useActionState } from "react";
 import {
   ROLE_LABELS,
   STUDIO_USER_ROLES,
+  WAREHOUSE_SCOPES,
+  WAREHOUSE_SCOPE_LABELS,
   formatLastLogin,
   memberStatus,
   memberStatusLabel,
@@ -22,9 +24,20 @@ import {
 } from "@/lib/studio/user-types";
 import {
   changeUserRoleAction,
+  changeWarehouseScopeAction,
   disableUserAction,
   enableUserAction,
 } from "../actions";
+
+/**
+ * Roles con lado de almacén asignable (Norte users.jsx: needsScope). Para el
+ * resto el scope no aplica (sus módulos no tienen lado geográfico) → "—".
+ */
+const SCOPED_ROLES: ReadonlySet<StudioUserRole> = new Set([
+  "operations",
+  "warehouse",
+  "support",
+]);
 
 const INITIAL: UserActionState = {};
 
@@ -84,6 +97,7 @@ export function MembersTable({ members, currentUserId }: Props) {
             <Th>Usuario</Th>
             <Th>Email</Th>
             <Th>Rol</Th>
+            <Th>Almacén</Th>
             <Th>Estado</Th>
             <Th>Último login</Th>
             <Th align="right">Acciones</Th>
@@ -126,12 +140,18 @@ function MemberRow({
     enableUserAction,
     INITIAL,
   );
+  const [scopeState, scopeAction, scopePending] = useActionState(
+    changeWarehouseScopeAction,
+    INITIAL,
+  );
 
   const status = memberStatus(member);
   const tone = roleBadgeTone(member.role);
   const statusTone = status === "active" ? "success" : "neutral";
-  const anyPending = rolePending || disablePending || enablePending;
-  const lastError = roleState.error || disableState.error || enableState.error;
+  const anyPending = rolePending || disablePending || enablePending || scopePending;
+  const lastError =
+    roleState.error || disableState.error || enableState.error || scopeState.error;
+  const memberScope = member.warehouse_scope ?? "all";
 
   return (
     <tr style={{ borderTop: "1px solid var(--border)" }}>
@@ -179,6 +199,7 @@ function MemberRow({
             name="new_role"
             defaultValue={member.role}
             disabled={anyPending}
+            aria-label="Rol asignado"
             onChange={(e) => {
               // Auto-submit al cambiar
               const f = e.target.form;
@@ -202,6 +223,45 @@ function MemberRow({
             ))}
           </select>
         </form>
+      </Td>
+
+      <Td>
+        {member.role === "admin" ? (
+          <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>Todos</span>
+        ) : SCOPED_ROLES.has(member.role) ? (
+          <form action={scopeAction} style={{ display: "inline-flex" }}>
+            <input type="hidden" name="target_user_id" value={member.user_id} />
+            <select
+              name="new_scope"
+              defaultValue={memberScope}
+              disabled={anyPending}
+              aria-label="Almacén asignado"
+              title="Lado de la operación que ve este usuario (módulos de almacén)"
+              onChange={(e) => {
+                const f = e.target.form;
+                if (f && e.target.value !== memberScope) f.requestSubmit();
+              }}
+              style={{
+                height: 28,
+                padding: "0 8px",
+                border: "1px solid var(--border)",
+                borderRadius: 4,
+                background: "var(--bg-surface)",
+                color: "var(--ink)",
+                fontSize: 12,
+                cursor: "pointer",
+              }}
+            >
+              {WAREHOUSE_SCOPES.map((s) => (
+                <option key={s} value={s}>
+                  {WAREHOUSE_SCOPE_LABELS[s]}
+                </option>
+              ))}
+            </select>
+          </form>
+        ) : (
+          <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>—</span>
+        )}
       </Td>
 
       <Td>

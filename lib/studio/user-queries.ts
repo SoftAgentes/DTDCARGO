@@ -67,11 +67,11 @@ export async function listMembers(
   supabase: SupabaseClient,
   filters: ListMembersFilters,
 ): Promise<UserMembershipWithProfile[]> {
+  // "*" a propósito: incluye warehouse_scope (migr 0202) y no rompe si la
+  // migración aún no corrió en algún entorno (SDD-0139).
   let q = supabase
     .from("user_tenants")
-    .select(
-      "user_id, tenant_id, role, disabled_at, last_login_at, invited_by, created_at, profile:user_profiles(*)",
-    )
+    .select("*, profile:user_profiles(*)")
     .order("created_at", { ascending: false });
 
   // Filtro por tenant SIEMPRE aplicado (tenantId es requerido). Con admin
@@ -392,6 +392,23 @@ export async function setUserDisabledRPC(
   const { data, error } = await supabase.rpc("studio_set_user_disabled", {
     p_target_user_id: targetUserId,
     p_disabled: disabled,
+  });
+  if (error) throw new Error(error.message);
+  return data === true;
+}
+
+/**
+ * Wrapper del RPC studio_set_user_warehouse_scope (migr 0202 · SDD-0139).
+ * Asigna el lado de la operación que ve el usuario (cn | ve | all).
+ */
+export async function setUserWarehouseScopeRPC(
+  supabase: SupabaseClient,
+  targetUserId: string,
+  scope: "cn" | "ve" | "all",
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc("studio_set_user_warehouse_scope", {
+    p_target_user_id: targetUserId,
+    p_scope: scope,
   });
   if (error) throw new Error(error.message);
   return data === true;

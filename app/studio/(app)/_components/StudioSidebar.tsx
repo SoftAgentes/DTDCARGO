@@ -38,8 +38,8 @@ import {
   type ModuleDef,
   type ParentDef,
 } from "@/lib/studio/modules";
-import { canAccessModule } from "@/lib/studio/rbac";
-import type { StudioUserRole } from "@/lib/studio/user-types";
+import { canAccessModule, scopeAllowsModule } from "@/lib/studio/rbac";
+import type { StudioUserRole, WarehouseScope } from "@/lib/studio/user-types";
 
 const STORAGE_KEY = "studio_sidebar_collapsed";
 const OPEN_GROUP_KEY = "studio_sidebar_opengroup";
@@ -68,12 +68,18 @@ interface Props {
    * page server-side; esto solo evita mostrar un link que daría redirect.
    */
   role?: StudioUserRole | null;
+  /**
+   * Scope de almacén del user (SDD-0139): esconde los módulos del lado que no
+   * tiene asignado (cn/cola-qr/etiquetas vs ve). admin siempre ve todo.
+   */
+  warehouseScope?: WarehouseScope;
 }
 
 export function StudioSidebar({
   featureFlags,
   expenseAlertCount = 0,
   role = null,
+  warehouseScope = "all",
 }: Props = {}) {
   const pathname = usePathname();
   const t = useT();
@@ -424,11 +430,16 @@ export function StudioSidebar({
     );
   };
 
-  // Filtrar módulos por feature flags + RBAC ANTES de agrupar. Módulos sin
-  // entry en MODULE_FLAG_MAP = siempre visibles (core); el filtro de rol usa la
-  // matriz ROLE_MODULE_ACCESS (admin ve todo, fail-closed para roles nulos).
+  // Filtrar módulos por feature flags + RBAC + scope de almacén ANTES de
+  // agrupar. Módulos sin entry en MODULE_FLAG_MAP = siempre visibles (core);
+  // el filtro de rol usa la matriz ROLE_MODULE_ACCESS (admin ve todo,
+  // fail-closed para roles nulos); el scope esconde el lado no asignado
+  // (SDD-0139; admin no se filtra por scope).
   const visibleModules = MODULES.filter(
-    (m) => isModuleEnabled(m.id, flags) && canAccessModule(role, m.id),
+    (m) =>
+      isModuleEnabled(m.id, flags) &&
+      canAccessModule(role, m.id) &&
+      (role === "admin" || scopeAllowsModule(warehouseScope, m.id)),
   );
 
   const grouped = GROUP_ORDER.map((g) => ({

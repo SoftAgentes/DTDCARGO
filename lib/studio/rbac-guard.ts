@@ -17,28 +17,52 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/db/server";
-import type { StudioUserRole } from "@/lib/studio/user-types";
-import { canAccessModule, canEditModule } from "@/lib/studio/rbac";
+import type { StudioUserRole, WarehouseScope } from "@/lib/studio/user-types";
+import {
+  canAccessModule,
+  canEditModule,
+  canSpecial,
+  scopeAllowsModule,
+  type StudioCapability,
+} from "@/lib/studio/rbac";
 
 type StudioClient = Awaited<ReturnType<typeof createClient>>;
 
+export interface StudioAccess {
+  role: StudioUserRole | null;
+  /** Scope de almacén (SDD-0139). 'all' si la columna aún no existe o no hay asignación. */
+  warehouseScope: WarehouseScope;
+}
+
 /**
- * Resuelve el rol del user logueado en su tenant (primer membership ACTIVO).
- * null si no hay sesión, membership, o el membership está desactivado
- * (`disabled_at` — hardening 0200: un desactivado no conserva rol → todos los
- * gates fail-closed). Mismo patrón que el layout (SDD-0007); `limit(1)`
- * protege contra un user en N tenants (V1 single-tenant por sesión).
+ * Resuelve rol + scope de almacén del user logueado en su tenant (primer
+ * membership ACTIVO). role=null si no hay sesión, membership, o está
+ * desactivado (`disabled_at` — hardening 0200 → fail-closed). `select("*")`
+ * a propósito: si la migr 0202 (warehouse_scope) aún no corrió, la query no
+ * rompe y el scope degrada a 'all' (el gate duro sigue siendo el rol).
+ * `limit(1)` protege contra un user en N tenants (V1 single-tenant).
  */
+export async function getStudioAccess(
+  supabase: StudioClient,
+): Promise<StudioAccess> {
+  const { data } = await supabase
+    .from("user_tenants")
+    .select("*")
+    .is("disabled_at", null)
+    .limit(1)
+    .maybeSingle<{ role: StudioUserRole | null; warehouse_scope?: string | null }>();
+  const scope = data?.warehouse_scope;
+  return {
+    role: data?.role ?? null,
+    warehouseScope: scope === "cn" || scope === "ve" ? scope : "all",
+  };
+}
+
+/** Solo el rol (compat). Prefiere `getStudioAccess` si también necesitas scope. */
 export async function getStudioRole(
   supabase: StudioClient,
 ): Promise<StudioUserRole | null> {
-  const { data } = await supabase
-    .from("user_tenants")
-    .select("role")
-    .is("disabled_at", null)
-    .limit(1)
-    .maybeSingle<{ role: StudioUserRole | null }>();
-  return data?.role ?? null;
+  return (await getStudioAccess(supabase)).role;
 }
 
 /**
@@ -59,8 +83,13 @@ export async function requireModuleView(
   moduleId: string,
 ): Promise<StudioUserRole | null> {
   const supabase = await createClient();
-  const role = await getStudioRole(supabase);
+  const { role, warehouseScope } = await getStudioAccess(supabase);
   if (!canAccessModule(role, moduleId)) {
+    redirect(`/studio/dashboard?denied=${encodeURIComponent(moduleId)}`);
+  }
+  // Scope de almacén (SDD-0139): restringe los módulos con lado geográfico
+  // (cn/cola-qr/etiquetas vs ve) para no-admin. admin siempre pasa.
+  if (role !== "admin" && !scopeAllowsModule(warehouseScope, moduleId)) {
     redirect(`/studio/dashboard?denied=${encodeURIComponent(moduleId)}`);
   }
   return role;
@@ -81,8 +110,30 @@ export async function moduleEditDenial(
   supabase: StudioClient,
   moduleId: string,
 ): Promise<string | null> {
-  const role = await getStudioRole(supabase);
+  const { role, warehouseScope } = await getStudioAccess(supabase);
   if (!canEditModule(role, moduleId)) {
+    return "No tienes permiso para realizar esta acción.";
+  }
+  if (role !== "admin" && !scopeAllowsModule(warehouseScope, moduleId)) {
+    return "No tienes permiso para realizar esta acción.";
+  }
+  return null;
+}
+
+/**
+ * Guard de CAPABILITY para server actions (SDD-0139). Para actos peligrosos
+ * que no mapean a "editar un módulo" (ej. causar una CxP desde órdenes de
+ * compra). Mismo contrato que moduleEditDenial:
+ *
+ *   const denial = await capabilityDenial(supabase, "approve_money");
+ *   if (denial) return { error: denial };
+ */
+export async function capabilityDenial(
+  supabase: StudioClient,
+  capability: StudioCapability,
+): Promise<string | null> {
+  const { role } = await getStudioAccess(supabase);
+  if (!canSpecial(role, capability)) {
     return "No tienes permiso para realizar esta acción.";
   }
   return null;

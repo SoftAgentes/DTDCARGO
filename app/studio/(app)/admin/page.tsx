@@ -124,7 +124,7 @@ const SECTIONS: AdminSection[] = [
     label: "Permisos por rol",
     icon: "lock",
     description:
-      "Roles del tenant (Admin, Comercial, Operaciones, Bodega) con scope por módulo y por almacén. Granularidad de read/write/approve.",
+      "Matriz rol × módulo (ver / ver+editar) definida en código, con candados de gobernanza inmutables. El lado de almacén (CN/VE) se asigna por usuario en Usuarios.",
     sddRef: "SDD-0124",
   },
   {
