@@ -20,6 +20,7 @@ import { useMemo, useTransition } from "react";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Badge, type BadgeTone } from "@/app/studio/_components/ui/Badge";
+import { Avatar, type AvatarColor } from "@/app/studio/_components/ui/Avatar";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { downloadTextFile } from "@/app/studio/_components/ui/download";
 import { Icon } from "@/app/studio/_components/icons";
@@ -32,8 +33,10 @@ import {
   type CashflowReport,
   type ClientMarginRow,
   type CombinedReport,
+  type CommercialByAgent,
   type CommercialByClient,
   type IncomeStatement,
+  type IvaPosition,
   type OperationalOverview,
   type ReportPeriod,
   type RouteCbmRow,
@@ -58,10 +61,14 @@ const TABS_BY_CATEGORY: Record<Category, { value: string; label: string }[]> = {
     { value: "carriers", label: "Por naviera" },
     { value: "services", label: "Por servicio" },
   ],
-  com: [{ value: "by-client", label: "Por cliente" }],
+  com: [
+    { value: "by-client", label: "Por cliente" },
+    { value: "by-agent", label: "Por agente" },
+  ],
   con: [
     { value: "income", label: "Estado de resultados" },
     { value: "aging", label: "Aging CxC/CxP" },
+    { value: "iva", label: "Posición IVA" },
     { value: "cashflow", label: "Cashflow" },
   ],
   // El Constructor no tiene nivel-2 (la fuente/dim/métrica se eligen dentro).
@@ -81,8 +88,8 @@ const CATEGORIES: {
   slice: string | null; // null = activa
 }[] = [
   { id: "op", label: "Operacionales", count: 4, slice: null },
-  { id: "com", label: "Comerciales", count: 1, slice: null },
-  { id: "con", label: "Contables & financieros", count: 3, slice: null },
+  { id: "com", label: "Comerciales", count: 2, slice: null },
+  { id: "con", label: "Contables & financieros", count: 4, slice: null },
   { id: "build", label: "Constructor", count: 2, slice: null },
   { id: "mix", label: "Combinados", count: 3, slice: null },
 ];
@@ -118,9 +125,11 @@ export function ReportesClient({
   carriers,
   services,
   byClient,
+  byAgent,
   income,
   aging,
   cashflow,
+  iva,
   builderSource,
   builderData,
   combined,
@@ -133,12 +142,14 @@ export function ReportesClient({
   routes?: RouteRow[];
   carriers?: CarrierRow[];
   services?: ServiceRow[];
-  // Comerciales (Slice B)
+  // Comerciales (Slice B + paridad Norte)
   byClient?: CommercialByClient;
-  // Contables (Slice B)
+  byAgent?: CommercialByAgent;
+  // Contables (Slice B + paridad Norte)
   income?: IncomeStatement;
   aging?: AgingReport;
   cashflow?: CashflowReport;
+  iva?: IvaPosition;
   // Constructor (Slice C)
   builderSource?: ReportSourceId;
   builderData?: BuilderRow[];
@@ -204,9 +215,11 @@ export function ReportesClient({
         carriers,
         services,
         byClient,
+        byAgent,
         income,
         aging,
         cashflow,
+        iva,
         combined,
       }),
     [
@@ -217,9 +230,11 @@ export function ReportesClient({
       carriers,
       services,
       byClient,
+      byAgent,
       income,
       aging,
       cashflow,
+      iva,
       combined,
     ],
   );
@@ -440,15 +455,23 @@ export function ReportesClient({
         <ServicesView services={services} />
       )}
 
-      {/* Vistas · Comerciales (Slice B) */}
-      {category === "com" && byClient && <ByClientView data={byClient} />}
+      {/* Vistas · Comerciales (Slice B + paridad Norte) */}
+      {category === "com" && activeRep === "by-client" && byClient && (
+        <ByClientView data={byClient} />
+      )}
+      {category === "com" && activeRep === "by-agent" && byAgent && (
+        <ByAgentView data={byAgent} />
+      )}
 
-      {/* Vistas · Contables & financieros (Slice B) */}
+      {/* Vistas · Contables & financieros (Slice B + paridad Norte) */}
       {category === "con" && activeRep === "income" && income && (
         <IncomeStatementView income={income} />
       )}
       {category === "con" && activeRep === "aging" && aging && (
         <AgingView aging={aging} />
+      )}
+      {category === "con" && activeRep === "iva" && iva && (
+        <IvaView iva={iva} />
       )}
       {category === "con" && activeRep === "cashflow" && cashflow && (
         <CashflowView cashflow={cashflow} />
@@ -971,6 +994,124 @@ function ByClientView({ data }: { data: CommercialByClient }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// Paridad Norte — Comerciales · Por agente
+// ═══════════════════════════════════════════════════════════════
+//
+// Espejo Kommo (leads por asesor + estado) cruzado con la facturación real del
+// ERP. El "revenue" es plata real (trailing 12m) de los clientes convertidos por
+// el asesor — no el price de Kommo ni un mock. NPS/tickets del Norte se omiten
+// (sin fuente real).
+const AGENT_AVATAR_COLORS: AvatarColor[] = ["wine", "info", "success", "warning", "neutral"];
+
+function agentInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "—";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function ByAgentView({ data }: { data: CommercialByAgent }) {
+  if (!data.hasKommo || data.rows.length === 0) {
+    return (
+      <EmptyState
+        eyebrow="Por agente"
+        title="Sin datos de asesores todavía"
+        description="El desempeño por agente lee el espejo de Kommo (leads por asesor) cruzado con la facturación real del ERP. Cuando el CRM esté sincronizado con leads asignados, vas a ver acá estimados, conversión y revenue por asesor."
+      />
+    );
+  }
+
+  const rows = data.rows;
+  const maxRev = Math.max(1, ...rows.map((r) => r.revenueUsd));
+  const t = data.totals;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {/* KPIs de equipo */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 14,
+        }}
+      >
+        <KpiCard value={fmtNum(t.leads)} label="Estimados" sub="leads asignados" valueColor="var(--wine)" />
+        <KpiCard value={fmtNum(t.won)} label="Ganadas" sub={`${t.convPct}% conv. promedio`} valueColor="var(--success)" />
+        <KpiCard value={fmtNum(t.clients)} label="Convertidos" sub="a cliente del ERP" />
+        <KpiCard value={fmtUsd(t.revenueUsd)} label="Revenue equipo" sub="facturado 12m · USD" valueColor="var(--success)" />
+      </div>
+
+      <Card eyebrow="Performance por agente" style={{ padding: 0 }}>
+        <HeaderRow
+          cols="44px 1fr 70px 70px 70px 1.2fr"
+          labels={["", "Agente", "Estim.", "Ganadas", "Conv.", "Revenue"]}
+          rightFrom={2}
+          rightTo={4}
+        />
+        {rows.map((r, i) => (
+          <div
+            key={r.agentId ?? `none-${i}`}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "44px 1fr 70px 70px 70px 1.2fr",
+              padding: "14px 18px",
+              gap: 14,
+              alignItems: "center",
+              borderTop: "1px solid var(--border)",
+            }}
+          >
+            <Avatar
+              initials={agentInitials(r.name)}
+              color={AGENT_AVATAR_COLORS[i % AGENT_AVATAR_COLORS.length]}
+              size={38}
+            />
+            <div style={{ minWidth: 0 }}>
+              <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {r.name}
+              </div>
+              <div style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-soft)", marginTop: 3 }}>
+                {fmtNum(r.clients)} {r.clients === 1 ? "cliente" : "clientes"} · {fmtNum(r.lost)} {r.lost === 1 ? "perdida" : "perdidas"}
+              </div>
+            </div>
+            <span style={{ font: "700 13px/1 var(--f-mono)", textAlign: "right", color: "var(--ink)" }}>
+              {fmtNum(r.leads)}
+            </span>
+            <span style={{ font: "700 13px/1 var(--f-mono)", textAlign: "right", color: "var(--ink)" }}>
+              {fmtNum(r.won)}
+            </span>
+            <span
+              style={{
+                font: "700 13px/1 var(--f-mono)",
+                textAlign: "right",
+                color: r.convPct >= 40 ? "var(--success)" : r.convPct > 0 ? "var(--warning)" : "var(--ink-mute)",
+              }}
+            >
+              {r.convPct}%
+            </span>
+            <div>
+              <span style={{ font: "800 13px/1 var(--f-mono)", color: "var(--ink)" }}>
+                {fmtUsd(r.revenueUsd)}
+              </span>
+              <div style={{ marginTop: 5 }}>
+                <Progress value={(r.revenueUsd / maxRev) * 100} tone="var(--wine)" height={3} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </Card>
+
+      <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+        Estimados = leads asignados al asesor en Kommo; ganadas/perdidas por los
+        estados de cierre del CRM. El revenue es facturación real del ERP
+        (últimos 12 meses, USD) de los leads que se convirtieron en cliente —{" "}
+        <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>no el valor estimado de Kommo</strong>.
+        NPS y satisfacción se omiten: no hay fuente real todavía.
+      </p>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Slice B — Contables · Estado de resultados
 // ═══════════════════════════════════════════════════════════════
 function IncomeStatementView({ income }: { income: IncomeStatement }) {
@@ -1148,6 +1289,145 @@ function AgingSideCard({
         </>
       )}
     </Card>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Paridad Norte — Contables · Posición de IVA (débito − crédito)
+// ═══════════════════════════════════════════════════════════════
+//
+// Débito = IVA en ventas real (facturas clasificadas por la config fiscal SDD-0073);
+// crédito = IVA en compras (V1: 0, supplier_bills no discrimina IVA). Con el módulo
+// fiscal OFF (DTD hoy) el débito es 0 (ventas exentas): la vista lo dice sin fingir.
+function IvaView({ iva }: { iva: IvaPosition }) {
+  const noOps = iva.salesRows === 0 && iva.purchaseRows === 0;
+  if (noOps) {
+    return (
+      <EmptyState
+        eyebrow="Posición IVA"
+        title="Sin operaciones en el período"
+        description="Cuando haya facturas de venta emitidas o compras registradas en el rango, vas a ver acá el débito y crédito fiscal, la cuota tributaria y el IVA a pagar o el excedente a favor."
+      />
+    );
+  }
+
+  const aPagar = iva.aPagar > 0;
+  const outcomeValue = aPagar ? iva.aPagar : iva.excedente;
+  const mixedCurrency = iva.currencies.length > 1;
+  const noCredit = iva.purchaseRows > 0 && iva.purchaseRowsWithIva === 0;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {/* KPIs de la declaración */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 14,
+        }}
+      >
+        <KpiCard value={fmtUsdFull(iva.debito)} label="Débito fiscal" sub="IVA en ventas" valueColor="var(--success)" />
+        <KpiCard value={fmtUsdFull(iva.credito)} label="Crédito fiscal" sub="IVA en compras" valueColor="var(--warning)" />
+        <KpiCard value={fmtUsdFull(iva.cuota)} label="Cuota tributaria" sub="débito − crédito" />
+        <KpiCard
+          value={fmtUsdFull(outcomeValue)}
+          label={aPagar ? "IVA a pagar" : "Excedente a favor"}
+          sub={aPagar ? "luego de retenciones" : "crédito trasladable"}
+          valueColor={aPagar ? "var(--wine)" : "var(--success)"}
+        />
+      </div>
+
+      <Card eyebrow="Posición ante el SENIAT" title="Resumen del período" style={{ maxWidth: 720 }}>
+        <p style={{ font: "500 12.5px/1.6 var(--f-sans)", color: "var(--ink)", margin: "0 0 12px" }}>
+          En el período <strong style={{ fontWeight: 700 }}>{iva.range.from} → {iva.range.to}</strong> el
+          débito fiscal (IVA cobrado en ventas) es{" "}
+          <strong style={{ fontWeight: 700 }}>{fmtUsdFull(iva.debito)}</strong> y el crédito fiscal
+          (IVA soportado en compras) es <strong style={{ fontWeight: 700 }}>{fmtUsdFull(iva.credito)}</strong>.
+          La cuota tributaria resultante es <strong style={{ fontWeight: 700 }}>{fmtUsdFull(iva.cuota)}</strong>
+          {aPagar
+            ? <>, con <strong style={{ fontWeight: 700 }}>{fmtUsdFull(iva.aPagar)}</strong> a pagar.</>
+            : <>, con <strong style={{ fontWeight: 700 }}>{fmtUsdFull(iva.excedente)}</strong> de excedente a favor.</>}
+        </p>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+            gap: 12,
+            marginBottom: 4,
+          }}
+        >
+          <MiniStat label="Base gravada" value={fmtUsdFull(iva.baseGravada)} />
+          <MiniStat label="Base no gravada" value={fmtUsdFull(iva.baseNoGravada)} sub="exenta + tasa cero" />
+          <MiniStat label="Facturas de venta" value={fmtNum(iva.salesRows)} />
+          <MiniStat label="Compras" value={fmtNum(iva.purchaseRows)} />
+        </div>
+
+        <a
+          href="/studio/fiscal"
+          className="studio-btn studio-btn-ghost studio-btn-sm"
+          style={{ marginTop: 14, display: "inline-flex" }}
+        >
+          Ver libros fiscales completos
+        </a>
+      </Card>
+
+      {/* Notas honestas: nada se finge */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {!iva.enabled && (
+          <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+            El módulo fiscal está <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>desactivado</strong>:
+            las ventas se registran exentas, por eso el débito fiscal es 0. Cuando se
+            active el IVA por factura (SDD-0073), este reporte reflejará el débito real.
+          </p>
+        )}
+        {noCredit && (
+          <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+            El crédito fiscal es 0 aproximado: las compras todavía no discriminan el IVA
+            soportado (va al costo). Cuando se capture por compra, aparecerá acá — no se
+            estima.
+          </p>
+        )}
+        {mixedCurrency && (
+          <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+            Hay más de una moneda en el período ({iva.currencies.join(", ")}). V1 no
+            normaliza con tasa de cambio: los totales mezclan monedas — consultá los
+            Libros fiscales para el detalle por moneda.
+          </p>
+        )}
+        <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+          Retenciones de IVA soportadas asumidas en 0 (V1 sin comprobantes). Reporte
+          gerencial acumulado del período seleccionado — la declaración oficial es
+          mensual y se presenta desde <span style={{ font: "600 11.5px/1 var(--f-mono)" }}>/studio/fiscal</span>.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// Mini-stat inline (label + valor mono) para el resumen de IVA.
+function MiniStat({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div
+      style={{
+        padding: "12px 14px",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-md)",
+        background: "var(--bg-elevated)",
+      }}
+    >
+      <div style={{ font: "600 10.5px/1 var(--f-sans)", color: "var(--ink-mute)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+        {label}
+      </div>
+      <div style={{ font: "800 15px/1 var(--f-mono)", color: "var(--ink)", marginTop: 7 }}>
+        {value}
+      </div>
+      {sub && (
+        <div style={{ font: "500 10.5px/1 var(--f-sans)", color: "var(--ink-mute)", marginTop: 5 }}>
+          {sub}
+        </div>
+      )}
+    </div>
   );
 }
 

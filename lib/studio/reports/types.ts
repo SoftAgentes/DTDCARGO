@@ -697,3 +697,111 @@ export function monthlyCashflow(
     collected: Math.round((collectedByMonth.get(key) ?? 0) * 100) / 100,
   }));
 }
+
+// ═══════════════════════════════════════════════════════════════
+// Paridad Norte — Comerciales (Por agente) + Contables (Posición IVA)
+// ═══════════════════════════════════════════════════════════════
+//
+// Dos reportes que faltaban vs el Norte (erp/modules/reports.jsx ·
+// ReportsAgents + ReportsIVA). Capa de presentación sobre datos REALES:
+//  - Por agente → espejo Kommo (kommo_leads.responsible_user_id + kommo_users)
+//    cruzado con la facturación real del ERP (clientAnnualBilling). El "revenue"
+//    del Norte era mock; acá es plata facturada real atribuida al asesor por sus
+//    leads convertidos a cliente. NPS/tickets del Norte se OMITEN (sin fuente).
+//  - Posición IVA → reusa la clasificación fiscal (SDD-0073 · toSalesRow/
+//    salesTotals + toPurchaseRow/purchaseTotals) sobre las facturas/compras del
+//    período. Con el módulo fiscal OFF (DTD hoy) el débito es 0 (ventas exentas);
+//    la vista lo dice honestamente. Sin fabricar retenciones (V1 → 0).
+
+// ── Comerciales · Por agente ───────────────────────────────────
+
+/** Una fila de desempeño por agente comercial (asesor de Kommo). */
+export type AgentRow = {
+  /** id del asesor en Kommo (responsible_user_id). null = "Sin asignar". */
+  agentId: number | null;
+  name: string;
+  /** Leads (estimados) asignados al asesor en el embudo. */
+  leads: number;
+  /** Leads ganados (estado de sistema Kommo 142). */
+  won: number;
+  /** Leads perdidos (estado de sistema Kommo 143). */
+  lost: number;
+  /** Leads del asesor que se convirtieron en cliente vivo del ERP. */
+  clients: number;
+  /** Facturación real (USD, trailing 12m) de esos clientes convertidos. */
+  revenueUsd: number;
+  /** Conversión = won / leads * 100 (0 si no tiene leads). */
+  convPct: number;
+};
+
+/** Payload del reporte "Por agente": filas + totales de equipo + disponibilidad. */
+export type CommercialByAgent = {
+  rows: AgentRow[];
+  totals: {
+    leads: number;
+    won: number;
+    lost: number;
+    clients: number;
+    revenueUsd: number;
+    convPct: number;
+  };
+  /**
+   * false si el espejo Kommo está vacío o no disponible (gap deploy↔migración) →
+   * la UI muestra un EmptyState honesto en vez de una tabla vacía.
+   */
+  hasKommo: boolean;
+};
+
+// ── Contables · Posición de IVA ────────────────────────────────
+
+/**
+ * Posición de IVA del período (débito − crédito). Débito = IVA en ventas real
+ * (facturas clasificadas por la config fiscal); crédito = IVA en compras (V1: 0,
+ * `supplier_bills` no discrimina IVA todavía → nota honesta). NO normaliza
+ * moneda (misma convención V1 que los Libros fiscales) → `currencies` para
+ * advertir si hay mezcla.
+ */
+export type IvaPosition = {
+  /** ¿Módulo fiscal activo? Con OFF (DTD hoy) las ventas van exentas → débito 0. */
+  enabled: boolean;
+  /** Débito fiscal (IVA cobrado en ventas emitidas del período). */
+  debito: number;
+  /** Crédito fiscal (IVA soportado en compras). V1: 0 (sin desglose en compras). */
+  credito: number;
+  /** Cuota tributaria = débito − crédito. */
+  cuota: number;
+  /** Retenciones de IVA soportadas. V1 sin comprobantes → 0. */
+  retenciones: number;
+  /** A pagar si (cuota − retenciones) > 0. */
+  aPagar: number;
+  /** Excedente / crédito a favor si (cuota − retenciones) < 0. */
+  excedente: number;
+  /** Σ base imponible gravada de ventas. */
+  baseGravada: number;
+  /** Σ base exenta + tasa cero de ventas. */
+  baseNoGravada: number;
+  /** # de facturas de venta consideradas en el período. */
+  salesRows: number;
+  /** # de compras consideradas en el período. */
+  purchaseRows: number;
+  /** # de compras con IVA discriminado (crédito real, hoy 0). */
+  purchaseRowsWithIva: number;
+  /** Monedas presentes (V1 no normaliza; >1 → la UI advierte mezcla). */
+  currencies: string[];
+  range: DateRange;
+};
+
+/**
+ * Deriva "a pagar" / "excedente a favor" de la cuota tributaria tras descontar
+ * retenciones soportadas. PURA — testeable sin DB.
+ */
+export function ivaOutcome(
+  cuota: number,
+  retenciones: number,
+): { aPagar: number; excedente: number } {
+  const neto = Math.round((cuota - retenciones) * 100) / 100;
+  return {
+    aPagar: neto > 0 ? neto : 0,
+    excedente: neto < 0 ? -neto : 0,
+  };
+}
