@@ -21,7 +21,7 @@ import {
 
 /**
  * Direcciones de entrega del cliente (SDD-0138 Slice B). El asesor las gestiona
- * acá; el cliente gestiona LAS SUYAS desde /portal/cuenta — mismo esquema
+ * acá; el cliente gestiona LAS SUYAS desde /portal/perfil — mismo esquema
  * (`client_delivery_addresses`, migr 0198), dos superficies. La predeterminada es
  * la que usa la operación para el last-mile.
  */

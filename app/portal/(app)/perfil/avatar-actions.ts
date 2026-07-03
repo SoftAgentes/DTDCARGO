@@ -2,9 +2,9 @@
 
 /**
  * Avatar del cliente (SDD-0138 Slice D). Foto de perfil COSMÉTICA, editable
- * cuando quiera — separada de la foto de cédula (verificación, "Completa tu
- * perfil"). Mismo patrón de defensa que completeProfileAction: identidad por
- * SESIÓN (`get_portal_client_id`) → escribir con ADMIN client scopeado a ese id.
+ * cuando quiera — separada de la foto de cédula (verificación, fila de
+ * documento de Mi perfil). Mismo patrón de defensa que uploadCedulaPhotoAction:
+ * identidad por SESIÓN (`get_portal_client_id`) → ADMIN client scopeado a ese id.
  * Storage: bucket privado client-docs, sub-path avatar/ (migr 0199).
  *
  * Deploy-seguro: si la migración 0199 todavía no está aplicada, el select/update
@@ -81,6 +81,6 @@ export async function updateAvatarAction(
     await admin.storage.from(PHOTO_BUCKET).remove([oldPath]).catch(() => {});
   }
 
-  revalidatePath("/portal/cuenta");
+  revalidatePath("/portal/perfil");
   return { ok: true };
 }

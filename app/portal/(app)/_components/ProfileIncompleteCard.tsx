@@ -7,10 +7,9 @@ import { ArrowIcon } from "@/components/Icon";
  * cliente completarlas antes de su primera compra. Lista exactamente lo que
  * falta y se oculta cuando el perfil ya está completo.
  *
- * Destino del CTA: la foto de cédula/RIF vive en `/portal/perfil` (verificación);
- * las direcciones de entrega viven en `/portal/cuenta` (SDD-0138, múltiples con
- * predeterminada). Si SOLO falta la dirección, mandamos a Mi cuenta — el flujo
- * viejo de una sola dirección ya no es el canónico.
+ * Destino del CTA: TODO vive en `/portal/perfil` — "Mi perfil" unificado
+ * (SDD-0145): la foto de cédula/RIF es la fila de documento pendiente y las
+ * direcciones son PortalAddresses (SDD-0138, múltiples con predeterminada).
  */
 export function ProfileIncompleteCard({
   hasPhoto,
@@ -25,7 +24,7 @@ export function ProfileIncompleteCard({
   const missingText =
     missing.length === 2 ? `${missing[0]} y ${missing[1]}` : missing[0];
   const onlyAddress = hasPhoto && !hasAddress;
-  const ctaHref = onlyAddress ? "/portal/cuenta" : "/portal/perfil";
+  const ctaHref = "/portal/perfil";
   const ctaLabel = onlyAddress ? "Agregar dirección" : "Completar ahora";
 
   return (

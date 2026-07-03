@@ -44,19 +44,29 @@ export function PortalAddresses({
   addresses,
   cities = [],
   lastMileParams = null,
+  framed = true,
 }: {
   addresses: ClientDeliveryAddress[];
   cities?: AddressCity[];
   lastMileParams?: LastMileParams | null;
+  /** true (default) = sección con divisor superior (embebida tras otro
+      contenido); false = la card padre ya da el marco (SDD-0145, Mi perfil). */
+  framed?: boolean;
 }) {
   const [adding, setAdding] = useState(false);
 
   return (
-    <div className="mt-8 pt-6 border-t border-grey-200">
+    <div className={framed ? "mt-8 pt-6 border-t border-grey-200" : undefined}>
       <div className="flex items-center justify-between gap-3">
-        <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-grey-500">
+        {/* Eyebrow wine cuando la card padre da el marco (hermana de "Datos de
+            cuenta"/"Identidad" en Mi perfil); gris cuando es sección embebida. */}
+        <h2
+          className={`text-[11px] font-bold tracking-[0.14em] uppercase ${
+            framed ? "text-grey-500" : "text-wine"
+          }`}
+        >
           Direcciones de entrega
-        </div>
+        </h2>
         {!adding && (
           <button
             type="button"
