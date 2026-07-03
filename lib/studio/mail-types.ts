@@ -216,6 +216,58 @@ export interface MailBlacklistEntry {
   notes: string | null;
 }
 
+// ─── Scheduled (SDD-0140 Slice D · Programados) ──────────────
+
+export type ScheduledStatus = "queued" | "sent" | "canceled" | "failed";
+
+export const SCHEDULED_STATUSES: ScheduledStatus[] = [
+  "queued",
+  "sent",
+  "canceled",
+  "failed",
+];
+
+/** Fila de la cola de programados (match schema 0205_mail_scheduled.sql). */
+export interface MailScheduled {
+  id: string;
+  tenant_id: string;
+  scheduled_for: string;
+  channel: MailChannel;
+  to_email: string;
+  to_name: string | null;
+  cc: string[];
+  bcc: string[];
+  subject: string;
+  body_html: string;
+  template_slug: string | null;
+  signature_user_id: string | null;
+  status: ScheduledStatus;
+  attachments_count: number;
+  created_by: string | null;
+  created_at: string;
+  sent_at: string | null;
+  sent_log_id: string | null;
+  error: string | null;
+}
+
+export const SCHEDULED_STATUS_LABELS: Record<ScheduledStatus, string> = {
+  queued: "En cola",
+  sent: "Enviado",
+  canceled: "Cancelado",
+  failed: "Falló",
+};
+
+export function scheduledStatusLabel(s: ScheduledStatus): string {
+  return SCHEDULED_STATUS_LABELS[s];
+}
+
+export function scheduledStatusBadgeTone(s: ScheduledStatus): BadgeTone {
+  if (s === "sent") return "success";
+  if (s === "failed") return "danger";
+  if (s === "canceled") return "neutral";
+  return "wine"; // queued · acento de marca (match Norte mailing-scheduled.jsx)
+}
+
 // ─── KPIs (computed) ─────────────────────────────────────────
 
 export interface MailKpis {
@@ -260,6 +312,26 @@ export interface SendEmailInput {
   /** Adjuntar la firma default del user logueado al final del body. */
   attachSignature?: boolean;
   idempotencyKey?: string;
+}
+
+/**
+ * Input para encolar un correo programado (SDD-0140 Slice D). Lo usa
+ * scheduleEmailAction (y el Compose de otro slice, que la invoca). El body
+ * ya viene renderizado (subject + body_html crudos, no templateSlug al vuelo).
+ */
+export interface ScheduleEmailInput {
+  to_email: string;
+  to_name?: string;
+  cc?: string[];
+  bcc?: string[];
+  subject: string;
+  body_html: string;
+  /** ISO 8601. Debe ser futura. */
+  scheduled_for: string;
+  channel?: MailChannel;
+  template_slug?: string;
+  signature_user_id?: string;
+  attachments_count?: number;
 }
 
 export interface CreateSignatureInput {
@@ -479,6 +551,72 @@ export function validateSendEmailInput(
 
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
   return { input: partial as SendEmailInput };
+}
+
+export function validateScheduleEmailInput(
+  partial: Partial<ScheduleEmailInput>,
+): { input?: ScheduleEmailInput; fieldErrors?: ActionFieldErrors } {
+  const fieldErrors: ActionFieldErrors = {};
+
+  if (!partial.to_email || !isValidEmail(partial.to_email)) {
+    fieldErrors.to_email = "Destinatario inválido";
+  }
+  if (!partial.subject || partial.subject.trim().length < 1) {
+    fieldErrors.subject = "Subject requerido";
+  }
+  if (!partial.body_html || partial.body_html.trim().length < 1) {
+    fieldErrors.body_html = "El cuerpo no puede estar vacío";
+  }
+
+  // scheduled_for: fecha válida y futura
+  let whenIso = "";
+  if (!partial.scheduled_for) {
+    fieldErrors.scheduled_for = "Fecha/hora requerida";
+  } else {
+    const when = new Date(partial.scheduled_for);
+    if (Number.isNaN(when.getTime())) {
+      fieldErrors.scheduled_for = "Fecha/hora inválida";
+    } else if (when.getTime() <= Date.now()) {
+      fieldErrors.scheduled_for = "La fecha/hora debe ser futura";
+    } else {
+      whenIso = when.toISOString();
+    }
+  }
+
+  if (partial.channel && !MAIL_CHANNELS.includes(partial.channel)) {
+    fieldErrors.channel = "Canal inválido";
+  }
+  if (partial.cc) {
+    const bad = partial.cc.find((e) => !isValidEmail(e));
+    if (bad) fieldErrors.cc = `Email inválido en CC: ${bad}`;
+  }
+  if (partial.bcc) {
+    const bad = partial.bcc.find((e) => !isValidEmail(e));
+    if (bad) fieldErrors.bcc = `Email inválido en BCC: ${bad}`;
+  }
+
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
+
+  return {
+    input: {
+      to_email: partial.to_email!.trim().toLowerCase(),
+      to_name: partial.to_name?.trim() || undefined,
+      cc: partial.cc,
+      bcc: partial.bcc,
+      subject: partial.subject!.trim(),
+      body_html: partial.body_html!,
+      scheduled_for: whenIso,
+      channel: partial.channel ?? "email",
+      template_slug: partial.template_slug?.trim() || undefined,
+      signature_user_id: partial.signature_user_id?.trim() || undefined,
+      attachments_count:
+        typeof partial.attachments_count === "number" &&
+        Number.isFinite(partial.attachments_count) &&
+        partial.attachments_count > 0
+          ? Math.floor(partial.attachments_count)
+          : 0,
+    },
+  };
 }
 
 export function validateCreateSignatureInput(

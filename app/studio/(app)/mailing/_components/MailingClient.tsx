@@ -12,6 +12,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import type {
   MailRuleWithTemplate,
+  MailScheduled,
   MailSignature,
   MailTemplate,
 } from "@/lib/studio/mail-types";
@@ -28,6 +29,7 @@ import {
 } from "./mailing-types";
 import { TemplatesView } from "./TemplatesView";
 import { SignaturesView } from "./SignaturesView";
+import { ScheduledView } from "./ScheduledView";
 import { RulesView } from "./RulesView";
 import { ConfigView } from "./ConfigView";
 import { BlacklistView } from "./BlacklistView";
@@ -42,6 +44,7 @@ interface Props {
   blacklist: MailBlacklistRow[];
   signatures: MailSignature[];
   members: SignatureTeamMember[];
+  scheduled: MailScheduled[];
   filters: MailingFilters;
 }
 
@@ -83,6 +86,7 @@ export function MailingClient({
   blacklist,
   signatures,
   members,
+  scheduled,
   filters,
 }: Props) {
   const router = useRouter();
@@ -168,13 +172,7 @@ export function MailingClient({
         />
       )}
 
-      {tab === "scheduled" && (
-        <EmptyState
-          eyebrow="En construcción · Slice D"
-          title="Programados"
-          description="Correos en cola que se envían en su fecha/hora. Vista en construcción."
-        />
-      )}
+      {tab === "scheduled" && <ScheduledView scheduled={scheduled} />}
 
       {tab === "reglas" && (
         <RulesView rules={rules} templates={templatesFull} />

@@ -16,12 +16,13 @@ import { createAdminClient } from "@/lib/db/admin";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import {
   listRules,
+  listScheduled,
   listTemplates,
   listTenantSignatures,
 } from "@/lib/studio/mail-queries";
 import { listMembers } from "@/lib/studio/user-queries";
 import { roleLabel, userDisplayName, userInitials } from "@/lib/studio/user-types";
-import type { MailSignature } from "@/lib/studio/mail-types";
+import type { MailScheduled, MailSignature } from "@/lib/studio/mail-types";
 import { MailingClient } from "./_components/MailingClient";
 import type {
   MailBlacklistRow,
@@ -145,7 +146,8 @@ export default async function MailingAdminPage({
 
   // Templates + rules + config + blacklist para los tabs correspondientes
   // (siempre cargamos los templates para usar como filter dropdown en tab Logs)
-  const [templatesFull, rules, config, blacklistResp] = await Promise.all([
+  const [templatesFull, rules, config, blacklistResp, scheduled] =
+    await Promise.all([
     listTemplates(supabase, { limit: 100 }),
     tab === "reglas" ? listRules(supabase) : Promise.resolve([]),
     tab === "config"
@@ -164,6 +166,9 @@ export default async function MailingAdminPage({
           .order("added_at", { ascending: false })
           .limit(200)
       : Promise.resolve({ data: [] }),
+    tab === "scheduled"
+      ? listScheduled(supabase)
+      : Promise.resolve([] as MailScheduled[]),
   ]);
 
   const templates = templatesFull.map((t) => ({ slug: t.slug, name: t.name }));
@@ -253,6 +258,7 @@ export default async function MailingAdminPage({
         blacklist={blacklist}
         signatures={signatures}
         members={members}
+        scheduled={scheduled}
         filters={{ status, template: templateSlug ?? "all", search: search ?? "" }}
       />
     </div>

@@ -17,6 +17,7 @@ import type {
   MailRule,
   MailRuleEvent,
   MailRuleWithTemplate,
+  MailScheduled,
   MailSignature,
   MailTemplate,
 } from "./mail-types";
@@ -251,6 +252,26 @@ export async function listBlacklist(
     .order("added_at", { ascending: false });
   if (error) return [];
   return (data ?? []) as MailBlacklistEntry[];
+}
+
+// ─── Scheduled (SDD-0140 Slice D · Programados) ─────────────
+
+/**
+ * Lista la cola de programados del tenant (RLS filtra tenant).
+ * Muestra queued + sent (histórico corto), oculta los cancelados —
+ * mismo criterio que la vista del Norte (mailing-scheduled.jsx). Orden
+ * por scheduled_for asc (los próximos a vencer arriba).
+ */
+export async function listScheduled(
+  supabase: SupabaseClient,
+): Promise<MailScheduled[]> {
+  const { data, error } = await supabase
+    .from("mail_scheduled")
+    .select("*")
+    .neq("status", "canceled")
+    .order("scheduled_for", { ascending: true });
+  if (error) return [];
+  return (data ?? []) as MailScheduled[];
 }
 
 // ─── KPIs ───────────────────────────────────────────────────
