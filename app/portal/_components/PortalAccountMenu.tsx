@@ -6,9 +6,9 @@ import { usePathname } from "next/navigation";
 import { signOutAction } from "../actions";
 
 /**
- * Menú de cuenta del portal (Norte 2026-07): Cuenta/Perfil "cuelgan del nombre
- * del cliente", no del top-nav. El botón muestra nombre + Shipping Mark; el
- * dropdown lleva a Mi cuenta, Mi perfil y Cerrar sesión.
+ * Menú de cuenta del portal (Norte 2026-07): el perfil "cuelga del nombre del
+ * cliente", no del top-nav. El botón muestra nombre + Shipping Mark; el
+ * dropdown lleva a Mi perfil (unificado, SDD-0145) y Cerrar sesión.
  *
  * Client: maneja abierto/cerrado + cierre por clic afuera / Escape. El logout
  * sigue siendo la server action `signOutAction` (mismo `<form>` de antes).
@@ -50,8 +50,7 @@ export function PortalAccountMenu({
     };
   }, [open]);
 
-  const accountActive =
-    pathname.startsWith("/portal/cuenta") || pathname.startsWith("/portal/perfil");
+  const accountActive = pathname.startsWith("/portal/perfil");
 
   return (
     <div className="relative" ref={ref}>
@@ -59,7 +58,8 @@ export function PortalAccountMenu({
         ref={btnRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-haspopup="true"
+        // Sin aria-haspopup: es un disclosure de links (Tab los recorre), no un
+        // menú con navegación por flechas — no prometemos semántica que no hay.
         aria-expanded={open}
         className={`flex items-center gap-2 rounded-md pl-2 pr-1.5 py-1 border transition-colors ${
           open || accountActive
@@ -108,12 +108,6 @@ export function PortalAccountMenu({
             </div>
           </div>
 
-          <Link
-            href="/portal/cuenta"
-            className="block px-3 py-2 text-[14px] font-medium text-grey-700 hover:bg-grey-100 hover:text-ink transition-colors"
-          >
-            Mi cuenta
-          </Link>
           <Link
             href="/portal/perfil"
             className="block px-3 py-2 text-[14px] font-medium text-grey-700 hover:bg-grey-100 hover:text-ink transition-colors"

@@ -591,7 +591,7 @@ export async function assignAdvisorAction(
 
 // ── Direcciones de entrega (SDD-0138 Slice B · client_delivery_addresses) ──
 // El asesor gestiona las direcciones del cliente desde el detalle; el cliente
-// gestiona LAS SUYAS desde /portal/cuenta — mismo esquema, dos superficies. Van
+// gestiona LAS SUYAS desde /portal/perfil — mismo esquema, dos superficies. Van
 // con el client de SESIÓN: la RLS por tenant cubre la propiedad y el trigger de
 // la migración 0198 sella tenant_id/client_markbox desde `clients`.
 

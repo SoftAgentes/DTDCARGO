@@ -27,7 +27,7 @@ export type AddressActionState = {
   fieldErrors?: ClientAddressFieldErrors;
 };
 
-const PATH = "/portal/cuenta";
+const PATH = "/portal/perfil";
 
 /** Alta de una dirección del cliente logueado. */
 export async function addAddressAction(
