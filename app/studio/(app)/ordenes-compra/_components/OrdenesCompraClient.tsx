@@ -437,7 +437,7 @@ function ClienteTab({
           href="/studio/proveedores"
           style={{ color: "var(--wine)", textDecoration: "none" }}
         >
-          Proveedores &amp; prealertas
+          PreAlertas de servicios
         </a>
         .
       </div>

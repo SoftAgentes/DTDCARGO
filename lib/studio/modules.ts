@@ -116,7 +116,9 @@ export const MODULES: ModuleDef[] = [
   { id: "kommo", group: "COMERCIAL", label: "Kommo CRM", icon: "radar", slug: "/studio/kommo" },
   // Órdenes: venta al cliente → sourcing (proveedores → compra)
   { id: "sales-orders", group: "COMERCIAL", label: "Órdenes de venta", icon: "invoice", slug: "/studio/ordenes-venta" },
-  { id: "suppliers", group: "COMERCIAL", label: "Proveedores CN", labelKey: "chrome.sidebar.suppliers_cn", icon: "cn", slug: "/studio/proveedores" },
+  // Renombre founder 2026-07-03: son solicitudes de servicio (prealertas), no
+  // un catálogo de proveedores. id/slug NO cambian (contrato interno).
+  { id: "suppliers", group: "COMERCIAL", label: "PreAlertas de servicios", labelKey: "chrome.sidebar.suppliers_cn", icon: "cn", slug: "/studio/proveedores" },
   { id: "purchase-orders", group: "COMERCIAL", label: "Órdenes de compra", icon: "box", slug: "/studio/ordenes-compra" },
   // Catálogo + precios
   { id: "service-catalog", group: "COMERCIAL", label: "Servicios", icon: "tag", slug: "/studio/servicios" },

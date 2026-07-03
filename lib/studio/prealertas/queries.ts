@@ -137,6 +137,35 @@ export async function listPrealertas(
 }
 
 /**
+ * CBM real por prealerta (recepciones CN · migr 0127): suma `total_cbm` de las
+ * warehouse_receipts_cn atadas a cada prealerta vía `prealerta_id`. La
+ * prealerta NO pide CBM al anunciarse — se mide al recibir en el almacén CN;
+ * antes de eso la UI muestra "—". RLS scopea al tenant del operador.
+ */
+export async function cbmByPrealerta(
+  supabase: SupabaseClient,
+): Promise<Record<string, number>> {
+  const { data, error } = await supabase
+    .from("warehouse_receipts_cn")
+    .select("prealerta_id, total_cbm")
+    .not("prealerta_id", "is", null)
+    .is("deleted_at", null)
+    .limit(4000);
+  if (error) throw error;
+  const map: Record<string, number> = {};
+  for (const r of (data ?? []) as {
+    prealerta_id: string | null;
+    total_cbm: unknown;
+  }[]) {
+    if (!r.prealerta_id) continue;
+    const n = Number(r.total_cbm);
+    if (!Number.isFinite(n) || n <= 0) continue;
+    map[r.prealerta_id] = (map[r.prealerta_id] ?? 0) + n;
+  }
+  return map;
+}
+
+/**
  * UNA compra del cliente del portal por su `code`. Filtra por code + markbox: si
  * el code no es suyo (o no existe) → null → la página llama `notFound()`. Misma
  * defensa en profundidad que el resto del portal (markbox explícito + RLS).

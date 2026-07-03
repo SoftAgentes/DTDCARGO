@@ -450,6 +450,46 @@ Si vas a usar `<button>` HTML crudo en lugar de estos componentes, debés
 justificar por qué en el PR description y validar las 8 reglas a mano
 en el UI/UX review.
 
+## Columnas configurables · usá `useColumnConfig` + `<ColumnManager>`
+
+**Regla del founder (2026-07-03):** toda tabla de listado de módulo debe ofrecer
+**columnas configurables por usuario** (mostrar/ocultar + reordenar) — cada
+operador la ve a su manera y su configuración **queda grabada**. La metodología
+viene del handoff del Norte "Almacén CN → columnas configurables"
+(`docs/design/studio/_norte/erp/modules/cn.jsx` · `CNColumnManager`).
+
+Primitiva transversal: `app/studio/_components/ui/columns/ColumnConfig.tsx`.
+Primer módulo consumidor: PreAlertas de servicios (`proveedores/`).
+
+### Contrato
+
+- El **array maestro** de columnas (`{ key, label, width, align?, sort?, render }`)
+  vive en el módulo y NO se persiste. El `key` es el contrato estable.
+- Lo persistido es `{ key, visible }[]` (orden + visibilidad) en localStorage
+  bajo clave propia del módulo (`dtd-<modulo>-cols-v1`), vía
+  `useColumnConfig(key, DEFAULTS)`. La carga **reconcilia**: descarta keys
+  muertos, agrega al final los keys nuevos del default (una columna nueva llega
+  sola a usuarios con config vieja) y cae al default ante parse inválido.
+- `visibleColumns` se deriva SIEMPRE con `.filter(Boolean)` (red de seguridad).
+- `<ColumnManager cfg setCfg defaults labels />` = botón "Columnas N" + popover:
+  ▲▼ reordena (swap con el adyacente, NO drag), checkbox muestra/oculta,
+  Restablecer.
+- **Orden clickeable**: si la columna define `sort: [primerClick, siguiente]`,
+  el header es un botón que alterna con flecha ▲/▼; el sort elegido también se
+  persiste (`dtd-<modulo>-sort-v1`).
+- **Agregar una columna nueva** = tocar DOS lugares: el array maestro + el
+  default de visibilidad. Nada más.
+- El export CSV (si el módulo tiene) es **independiente** de las columnas
+  visibles: header fijo, salvo decisión explícita.
+- Pendiente evolutivo: persistir además en preferencias de usuario vía API
+  (hoy es por navegador).
+
+### Cuándo NO aplica
+
+- Tablas cortas de detalle (líneas de un asiento, items de un drawer).
+- Kanbans, calendarios, timelines — no son tablas de columnas.
+- Tablas de configuración chicas (< 4 columnas) donde no hay nada que ocultar.
+
 ## Inputs numéricos · usá `<NumericInput>`
 
 Todos los inputs numéricos del Studio (kg, CBM, USD, cajas, montos) deben

@@ -63,7 +63,7 @@ const MODULE_LABELS: Record<string, string> = {
   cotizador: "Estimados",
   clientes: "Clientes",
   "crm-leads": "CRM · Leads",
-  proveedores: "Proveedores CN",
+  proveedores: "PreAlertas de servicios",
   tarifas: "Tarifas",
   facturacion: "Facturación",
   documentos: "Documentos",
