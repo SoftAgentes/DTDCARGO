@@ -153,3 +153,49 @@ export const ALL_HOLIDAYS_2026: Holiday[] = [
   ...CN_HOLIDAYS_2026,
   ...VE_HOLIDAYS_2026,
 ];
+
+/**
+ * Ferias y expos comerciales 2026 (sourcing en China · demanda en
+ * Venezuela). Datos estáticos V1 — mismo criterio que los feriados.
+ * El cliente viaja a comprar (CN) o a distribuir (VE); planificar
+ * embarques alrededor de estas fechas es parte de la operación.
+ */
+export type Fair = {
+  id: string;
+  country: HolidayCountry;
+  /** ISO `YYYY-MM-DD`. Inclusivo. */
+  startDate: string;
+  /** ISO `YYYY-MM-DD`. Inclusivo. */
+  endDate: string;
+  name: string;
+  shortName: string;
+  city: string;
+  sector: string;
+  /** True para ferias ancla (Cantón F3, etc.). */
+  critical?: boolean;
+};
+
+export const FAIRS_CN_2026: Fair[] = [
+  { id: "f-cn-huajiao", country: "CN", startDate: "2026-03-01", endDate: "2026-03-04", name: "Feria de China Oriental · 华交会", shortName: "Huajiao", city: "Shanghái", sector: "Textil · bienes de consumo" },
+  { id: "f-cn-canton-s1", country: "CN", startDate: "2026-04-15", endDate: "2026-04-19", name: "Feria de Cantón · Fase 1 · 广交会", shortName: "Cantón F1", city: "Guangzhou", sector: "Electrónica · maquinaria" },
+  { id: "f-cn-canton-s2", country: "CN", startDate: "2026-04-23", endDate: "2026-04-27", name: "Feria de Cantón · Fase 2 · 广交会", shortName: "Cantón F2", city: "Guangzhou", sector: "Hogar · regalos · decoración" },
+  { id: "f-cn-canton-s3", country: "CN", startDate: "2026-05-01", endDate: "2026-05-05", name: "Feria de Cantón · Fase 3 · 广交会", shortName: "Cantón F3", city: "Guangzhou", sector: "Textil · oficina · médico", critical: true },
+  { id: "f-cn-szind", country: "CN", startDate: "2026-06-10", endDate: "2026-06-12", name: "Shenzhen Industrial Expo · 深圳工业展", shortName: "Shenzhen Ind.", city: "Shenzhen", sector: "Industrial · automatización" },
+  { id: "f-cn-cantona1", country: "CN", startDate: "2026-10-15", endDate: "2026-10-19", name: "Cantón Otoño · Fase 1 · 广交会", shortName: "Cantón O1", city: "Guangzhou", sector: "Electrónica · maquinaria" },
+  { id: "f-cn-yiwu", country: "CN", startDate: "2026-10-21", endDate: "2026-10-25", name: "Feria Internacional de Yiwu · 义乌博览会", shortName: "Yiwu Fair", city: "Yiwu", sector: "Bazar · general · mayorista" },
+  { id: "f-cn-cantona3", country: "CN", startDate: "2026-10-31", endDate: "2026-11-04", name: "Cantón Otoño · Fase 3 · 广交会", shortName: "Cantón O3", city: "Guangzhou", sector: "Textil · oficina · médico" },
+  { id: "f-cn-ciie", country: "CN", startDate: "2026-11-05", endDate: "2026-11-10", name: "Expo Intl. de Importaciones · 进博会", shortName: "CIIE", city: "Shanghái", sector: "Importaciones · multisector" },
+];
+
+export const FAIRS_VE_2026: Fair[] = [
+  { id: "f-ve-construccion", country: "VE", startDate: "2026-03-12", endDate: "2026-03-15", name: "Expo Construcción & Vivienda", shortName: "Expo Construcción", city: "Caracas", sector: "Construcción · ferretería" },
+  { id: "f-ve-pyme", country: "VE", startDate: "2026-05-14", endDate: "2026-05-16", name: "Expo PyME Industrial", shortName: "Expo PyME", city: "Valencia", sector: "Industrial · manufactura" },
+  { id: "f-ve-fic", country: "VE", startDate: "2026-06-18", endDate: "2026-06-21", name: "Feria Internacional de Caracas · FIC", shortName: "FIC Caracas", city: "Caracas", sector: "Multisector · bienes y servicios" },
+  { id: "f-ve-franquicias", country: "VE", startDate: "2026-07-09", endDate: "2026-07-11", name: "Expo Franquicias Venezuela", shortName: "Expo Franquicias", city: "Caracas", sector: "Comercio · retail" },
+  { id: "f-ve-hogar", country: "VE", startDate: "2026-09-17", endDate: "2026-09-19", name: "Expo Hogar & Decoración", shortName: "Expo Hogar", city: "Maracaibo", sector: "Hogar · decoración" },
+  { id: "f-ve-importado", country: "VE", startDate: "2026-10-22", endDate: "2026-10-24", name: "Expo Comercio Importado", shortName: "Expo Importado", city: "Valencia", sector: "Importadores · mayorista" },
+  { id: "f-ve-navidad", country: "VE", startDate: "2026-11-12", endDate: "2026-11-14", name: "Expo Navidad Mayorista", shortName: "Expo Navidad", city: "Caracas", sector: "Estacional · mayorista" },
+];
+
+/** Lista combinada de ferias — los helpers ordenan / filtran por país. */
+export const ALL_FAIRS_2026: Fair[] = [...FAIRS_CN_2026, ...FAIRS_VE_2026];

@@ -5,7 +5,7 @@
  * pesado, mantengo el formateo locale "es-VE" minimal.
  */
 
-import type { Holiday } from "./calendar-data";
+import type { Fair, Holiday } from "./calendar-data";
 
 /** Mes/año estable. Mes es 1-12 (no JS 0-11) para evitar bugs off-by-one. */
 export type MonthCursor = {
@@ -109,6 +109,11 @@ export function holidaysForDate(
   all: Holiday[],
 ): Holiday[] {
   return all.filter((h) => isoDate >= h.startDate && isoDate <= h.endDate);
+}
+
+/** Devuelve las ferias que incluyen una fecha dada (rangos inclusivos). */
+export function fairsForDate(isoDate: string, all: Fair[]): Fair[] {
+  return all.filter((f) => isoDate >= f.startDate && isoDate <= f.endDate);
 }
 
 /**
