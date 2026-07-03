@@ -129,5 +129,22 @@ export async function acceptInvitationFormAction(
     };
   }
 
+  // 5. SDD-0140: si esta persona también tiene ficha de empleado en el mismo
+  // tenant (alta unificada desde Nómina), enlaza su login recién creado con la
+  // ficha (nomina_employees.auth_user_id). Best-effort: solo rellena cuando aún
+  // no hay enlace y el email coincide — nunca pisa uno existente. No rompe el
+  // accept si falla (el vínculo es conveniencia, no requisito del acceso).
+  try {
+    await supabaseAdmin
+      .from("nomina_employees")
+      .update({ auth_user_id: createResp.user.id })
+      .eq("tenant_id", invitation.tenant_id)
+      .is("auth_user_id", null)
+      .is("deleted_at", null)
+      .ilike("email", invitation.email);
+  } catch (err) {
+    console.error("[acceptInvitation] employee link skipped:", err);
+  }
+
   return { ok: true, userId: createResp.user.id };
 }

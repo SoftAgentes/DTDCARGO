@@ -77,9 +77,13 @@ import type { EmployeeInvite } from "@/lib/studio/nomina/invite-types";
 import type { EmployeeRegistration } from "@/lib/studio/nomina/registration-types";
 import type { RegistrationKpis } from "@/lib/studio/nomina/registration-queries";
 import type { Attendance, Holiday } from "@/lib/studio/nomina/attendance-types";
+import type { Position } from "@/lib/studio/nomina/position-types";
+import { PuestosTab } from "./PuestosTab";
+import { PuestoDrawer } from "./PuestoDrawer";
 
 type Tab =
   | "empleados"
+  | "puestos"
   | "solicitudes"
   | "prestadores"
   | "asistencia"
@@ -118,6 +122,7 @@ function initialsOf(name: string): string {
 
 const TABS: { value: Tab; label: string }[] = [
   { value: "empleados", label: "Empleados" },
+  { value: "puestos", label: "Puestos" },
   { value: "solicitudes", label: "Solicitudes" },
   { value: "prestadores", label: "Prestadores" },
   { value: "asistencia", label: "Asistencia" },
@@ -131,6 +136,7 @@ const TABS: { value: Tab; label: string }[] = [
 
 export function NominaClient({
   employees,
+  positions,
   contractors,
   payments,
   rules,
@@ -150,8 +156,11 @@ export function NominaClient({
   runKpis,
   settlementKpis,
   registrationKpis,
+  canManageUsers,
 }: {
   employees: Employee[];
+  positions: Position[];
+  canManageUsers: boolean;
   contractors: Contractor[];
   payments: ContractorPayment[];
   rules: PayrollRules | null;
@@ -174,6 +183,7 @@ export function NominaClient({
 }) {
   const [tab, setTab] = useState<Tab>("empleados");
   const [empDrawer, setEmpDrawer] = useState<null | { mode: "new" } | { mode: "edit"; employee: Employee }>(null);
+  const [puestoDrawer, setPuestoDrawer] = useState<null | { mode: "new" } | { mode: "edit"; position: Position }>(null);
   const [prestDrawer, setPrestDrawer] = useState<null | { mode: "new" } | { mode: "edit"; contractor: Contractor }>(null);
   const [pagoOpen, setPagoOpen] = useState(false);
   const [reglasOpen, setReglasOpen] = useState(false);
@@ -193,7 +203,7 @@ export function NominaClient({
   return (
     <div>
       {/* KPIs — Asistencia y Reglas traen lo suyo adentro */}
-      {tab !== "asistencia" && tab !== "reglas" && tab !== "comunicaciones" && (
+      {tab !== "asistencia" && tab !== "reglas" && tab !== "comunicaciones" && tab !== "puestos" && (
         <div
           style={{
             display: "grid",
@@ -298,6 +308,13 @@ export function NominaClient({
           onEdit={(employee) => setEmpDrawer({ mode: "edit", employee })}
         />
       )}
+      {tab === "puestos" && (
+        <PuestosTab
+          positions={positions}
+          onNew={() => setPuestoDrawer({ mode: "new" })}
+          onEdit={(position) => setPuestoDrawer({ mode: "edit", position })}
+        />
+      )}
       {tab === "solicitudes" && (
         <SolicitudesTab
           invites={invites}
@@ -358,7 +375,15 @@ export function NominaClient({
       {empDrawer && (
         <EmpleadoDrawer
           employee={empDrawer.mode === "edit" ? empDrawer.employee : null}
+          positions={positions.filter((p) => p.active)}
+          canManageUsers={canManageUsers}
           onClose={() => setEmpDrawer(null)}
+        />
+      )}
+      {puestoDrawer && (
+        <PuestoDrawer
+          position={puestoDrawer.mode === "edit" ? puestoDrawer.position : null}
+          onClose={() => setPuestoDrawer(null)}
         />
       )}
       {prestDrawer && (

@@ -12,7 +12,7 @@ import { num, type Employee } from "./employee-types";
 
 const EMPLOYEE_COLUMNS =
   "id, tenant_id, employee_code, full_name, national_id, position_label, " +
-  "department, phone, email, salary_usd, hire_date, birth_date, bank_name, " +
+  "department, position_id, phone, email, salary_usd, hire_date, birth_date, bank_name, " +
   "bank_account_type, bank_account, status, notes, created_by, created_at, " +
   "updated_at, deleted_at";
 

@@ -10,7 +10,9 @@
 
 import { createClient } from "@/lib/db/server";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
+import { canEditModule } from "@/lib/studio/rbac";
 import { listEmployees } from "@/lib/studio/nomina/employee-queries";
+import { listPositions } from "@/lib/studio/nomina/position-queries";
 import {
   listContractors,
   listContractorPayments,
@@ -41,11 +43,15 @@ import { NominaClient } from "./_components/NominaClient";
 export const metadata = { title: "Nómina" };
 
 export default async function NominaPage() {
-  await requireModuleView("nomina");
+  const role = await requireModuleView("nomina");
+  // Dar acceso al sistema (invitar usuario) es admin-only (Usuarios). Gatea la
+  // sección de acceso del alta unificada; la action lo re-valida server-side.
+  const canManageUsers = canEditModule(role, "users");
   const supabase = await createClient();
 
   const [
     employees,
+    positions,
     contractors,
     payments,
     rules,
@@ -59,6 +65,7 @@ export default async function NominaPage() {
     comms,
   ] = await Promise.all([
     listEmployees(supabase),
+    listPositions(supabase),
     listContractors(supabase),
     listContractorPayments(supabase),
     getVigentePayrollRules(supabase),
@@ -108,6 +115,7 @@ export default async function NominaPage() {
 
       <NominaClient
         employees={employees}
+        positions={positions}
         contractors={contractors}
         payments={payments}
         rules={rules}
@@ -127,6 +135,7 @@ export default async function NominaPage() {
         runKpis={runKpis}
         settlementKpis={settlementKpis}
         registrationKpis={registrationKpis}
+        canManageUsers={canManageUsers}
       />
     </div>
   );
