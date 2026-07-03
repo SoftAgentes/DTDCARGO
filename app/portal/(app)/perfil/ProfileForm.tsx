@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowIcon, CheckIcon } from "@/components/Icon";
 import { VE_STATES } from "@/lib/data/venezuela-catalog";
@@ -50,6 +50,13 @@ export function ProfileForm({
   const [tried, setTried] = useState(false);
 
   const done = !!state.ok;
+
+  // Al guardar OK el form se reemplaza por la tarjeta de éxito, que queda ARRIBA de
+  // donde el usuario estaba scrolleado llenando la dirección — sin esto no la ve
+  // y cree que no guardó (reporte founder 2026-07-03).
+  useEffect(() => {
+    if (done) window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [done]);
 
   function patch(p: Partial<AddressForm>) {
     setData((d) => ({ ...d, ...p }));
@@ -159,7 +166,7 @@ export function ProfileForm({
 
         <PhotoUpload value={photo} onChange={setPhoto} error={tried && !photoOk} />
         {tried && !photoOk && (
-          <p className="mt-1.5 text-[12.5px] text-wine">{state.fieldErrors?.photo ?? "Tienes que subir la foto."}</p>
+          <p className="mt-1.5 text-[12.5px] text-wine">{state.fieldErrors?.photo ?? "Falta la foto de tu cédula o RIF."}</p>
         )}
         {!tried && state.fieldErrors?.photo && (
           <p className="mt-1.5 text-[12.5px] text-wine">{state.fieldErrors.photo}</p>
@@ -242,7 +249,7 @@ export function ProfileForm({
           onChange={(v) => patch({ address: v })}
           placeholder="Av. principal, edif. Tía Mary, piso 3, apto 4-B"
           hint="Calle, número, edificio, piso, apartamento"
-          error={tried && !data.address.trim() ? "Campo obligatorio" : state.fieldErrors?.address}
+          error={tried && !data.address.trim() ? "Obligatorio" : state.fieldErrors?.address}
         />
         <Field
           label="Punto de referencia (opcional)"
@@ -250,28 +257,40 @@ export function ProfileForm({
           onChange={(v) => patch({ reference: v })}
           placeholder="Frente a la panadería La Espiga"
         />
-      </div>
 
-      {/* Footer full-width: error general + submit */}
-      <div className="lg:col-span-2 flex flex-col gap-4">
-        {state.error && (
-          <p className="text-[13.5px] text-wine leading-[1.45]">{state.error}</p>
-        )}
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="submit"
-            disabled={pending}
-            className="btn btn-primary disabled:opacity-60 disabled:cursor-wait"
-          >
-            {pending ? "Guardando…" : "Guardar mi perfil"}
-            {!pending && <CheckIcon size={16} />}
-          </button>
-          <Link href="/portal" className="btn btn-ghost">
-            Lo hago después
-          </Link>
-          <span className="text-[12px] text-grey-500" style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}>
-            {markbox}
-          </span>
+        {/* Guardar DENTRO de la tarjeta, pegado a la dirección (founder 2026-07-03;
+            mismo patrón del Norte: portal/app.jsx · "Guardar dirección" vive en la
+            card). El click siempre responde: si la validación bloquea, acá mismo se
+            dice qué falta. */}
+        <div className="pt-1 flex flex-col gap-3">
+          {state.error && (
+            <p role="alert" className="text-[13.5px] text-wine leading-[1.45]">{state.error}</p>
+          )}
+          {tried && !valid && (
+            <p role="alert" className="text-[13px] text-wine leading-[1.45]">
+              {!photoOk && !addressOk
+                ? "Falta la foto de tu cédula o RIF y completar los campos marcados de la dirección."
+                : !photoOk
+                  ? "Falta la foto de tu cédula o RIF — súbela en la tarjeta “Foto de identidad”."
+                  : "Completa los campos marcados de la dirección."}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="submit"
+              disabled={pending}
+              className="btn btn-primary disabled:opacity-60 disabled:cursor-wait"
+            >
+              {pending ? "Guardando…" : "Guardar mi perfil"}
+              {!pending && <CheckIcon size={16} />}
+            </button>
+            <Link href="/portal" className="btn btn-ghost">
+              Lo hago después
+            </Link>
+            <span className="text-[12px] text-grey-500" style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}>
+              {markbox}
+            </span>
+          </div>
         </div>
       </div>
     </form>
