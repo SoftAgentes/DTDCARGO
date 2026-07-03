@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 134 specs)
+### Índice de specs (generado · 138 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -172,6 +172,10 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0137 | Crédito de referido auto-aplicado — aplicar el bono del refer… | draft | interno |
 | 0138 | Mi Perfil del cliente — identidad + direcciones de entrega mú… | done | interno |
 | 0139 | RBAC: metodología definitiva — matriz en código + capabilitie… | done | interno |
+| 0140 | Perfiles de puesto en nómina + alta unificada (empleado + usu… | draft | interno |
+| 0141 | Calendario al Norte — vistas + eventos operativos de embarques | in-progress | interno |
+| 0142 | Reportes al Norte — reporte Por agente + reporte IVA | in-progress | interno |
+| 0143 | Mailing al Norte — Firmas, Envío manual y Programados (+ cron) | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
