@@ -97,10 +97,12 @@ import {
   isPeriodClosed,
 } from "@/lib/studio/accounting/period-queries";
 import { validateInviteInput } from "@/lib/studio/nomina/invite-types";
+import { validatePositionInput } from "@/lib/studio/nomina/position-types";
 import { validateApproveRegistrationInput } from "@/lib/studio/nomina/registration-types";
 import { getRegistration } from "@/lib/studio/nomina/registration-queries";
 import { validateSendCommInput } from "@/lib/studio/nomina/comms-types";
 import { createAdminClient } from "@/lib/db/admin";
+import { inviteUserAction } from "../usuarios/actions";
 
 const MODULE_ID = "nomina";
 const PATH = "/studio/nomina";
@@ -130,6 +132,7 @@ function employeeRawFromForm(formData: FormData): Record<string, unknown> {
     national_id: strOrNull(formData.get("national_id")),
     position_label: strOrNull(formData.get("position_label")),
     department: strOrNull(formData.get("department")),
+    position_id: strOrNull(formData.get("position_id")),
     phone: strOrNull(formData.get("phone")),
     email: strOrNull(formData.get("email")),
     salary_usd: strOrNull(formData.get("salary_usd")) ?? 0,
@@ -187,6 +190,39 @@ export async function createEmployeeAction(
   }
 
   revalidatePath(PATH);
+
+  // ── Alta unificada (SDD-0140 Fase 2) ──────────────────────────
+  // Opcionalmente invita al usuario del sistema con el rol que sugiere el puesto.
+  // Reusa inviteUserAction (gate 'users' admin-only + member-guard + envío de
+  // email Resend + link de fallback). Best-effort: el empleado YA quedó creado;
+  // si el acceso falla (p.ej. el caller no es admin) se avisa sin romper.
+  const giveAccess = formData.get("give_access") === "on";
+  if (giveAccess) {
+    if (!input!.email) {
+      return {
+        ok: true,
+        createdCode: employeeCode,
+        accessWarning:
+          "Empleado creado. Para darle acceso al sistema necesita un email — edítalo y vuelve a intentar.",
+      };
+    }
+    const inviteFd = new FormData();
+    inviteFd.set("email", input!.email);
+    inviteFd.set("role", String(formData.get("access_role") ?? ""));
+    inviteFd.set("region", String(formData.get("access_region") ?? "ve"));
+    const invite = await inviteUserAction({}, inviteFd);
+    if (invite.ok && invite.invitationLink) {
+      return { ok: true, createdCode: employeeCode, invitationLink: invite.invitationLink };
+    }
+    return {
+      ok: true,
+      createdCode: employeeCode,
+      accessWarning:
+        invite.error ??
+        "Empleado creado, pero no se pudo dar acceso al sistema. Dar acceso requiere rol admin (Usuarios).",
+    };
+  }
+
   return { ok: true, createdCode: employeeCode };
 }
 
@@ -1936,6 +1972,114 @@ export async function confirmBankChangeAction(
 
   const { error } = await supabase.rpc("confirm_bank_change", { p_change_id: changeId });
   if (error) return { error: `No se pudo confirmar el cambio bancario: ${error.message}` };
+
+  revalidatePath(PATH);
+  return { ok: true };
+}
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ Perfiles de puesto (nomina_positions · SDD-0140 Fase 1)    ║
+// ╚═══════════════════════════════════════════════════════════╝
+//
+// Capa 2 del doc estructura-perfiles: el PERFIL del puesto, desacoplado de la
+// persona. `rbac_role` es plantilla para el alta unificada (Fase 2), NO fuente
+// de permisos (esa es lib/studio/rbac.ts). Mismo gate de rol que el resto de
+// nómina (accounting/admin) + RLS backstop.
+
+function positionRawFromForm(formData: FormData): Record<string, unknown> {
+  return {
+    slug: strOrNull(formData.get("slug")),
+    title: strOrNull(formData.get("title")),
+    area: strOrNull(formData.get("area")),
+    rbac_role: strOrNull(formData.get("rbac_role")),
+    triggers: strOrNull(formData.get("triggers")),
+    responsibilities: strOrNull(formData.get("responsibilities")),
+    skills: strOrNull(formData.get("skills")),
+    kpi: strOrNull(formData.get("kpi")),
+    owner_note: strOrNull(formData.get("owner_note")),
+    governance_note: strOrNull(formData.get("governance_note")),
+    // El checkbox 'active' SIEMPRE está en el form (PuestoDrawer) → ausente = desmarcado = false.
+    active: formData.get("active") === "on",
+  };
+}
+
+export async function createPositionAction(
+  _prev: NominaActionState,
+  formData: FormData,
+): Promise<NominaActionState> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+
+  const { input, fieldErrors } = validatePositionInput(positionRawFromForm(formData));
+  if (fieldErrors) return { fieldErrors };
+
+  const tenantId = await resolveTenantId(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant del usuario." };
+
+  const { data: userResp } = await supabase.auth.getUser();
+
+  const { error } = await supabase.from("nomina_positions").insert({
+    tenant_id: tenantId,
+    ...input!,
+    created_by: userResp.user?.id ?? null,
+  });
+
+  if (error) {
+    if (error.code === "23505") {
+      return { fieldErrors: { slug: "Ya existe un puesto con ese identificador (slug)." } };
+    }
+    return { error: `No se pudo crear el puesto: ${error.message}` };
+  }
+
+  revalidatePath(PATH);
+  return { ok: true };
+}
+
+export async function updatePositionAction(
+  positionId: string,
+  _prev: NominaActionState,
+  formData: FormData,
+): Promise<NominaActionState> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+
+  const { input, fieldErrors } = validatePositionInput(positionRawFromForm(formData));
+  if (fieldErrors) return { fieldErrors };
+
+  const { error } = await supabase
+    .from("nomina_positions")
+    .update({ ...input! })
+    .eq("id", positionId);
+
+  if (error) {
+    if (error.code === "23505") {
+      return { fieldErrors: { slug: "Ya existe un puesto con ese identificador (slug)." } };
+    }
+    return { error: `No se pudo guardar el puesto: ${error.message}` };
+  }
+
+  revalidatePath(PATH);
+  return { ok: true };
+}
+
+export async function softDeletePositionAction(
+  positionId: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+
+  const { error } = await supabase
+    .from("nomina_positions")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", positionId);
+
+  if (error) return { error: `No se pudo eliminar el puesto: ${error.message}` };
 
   revalidatePath(PATH);
   return { ok: true };

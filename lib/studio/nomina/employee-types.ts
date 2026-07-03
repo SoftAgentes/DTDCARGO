@@ -114,6 +114,7 @@ export type Employee = {
   national_id: string | null;
   position_label: string | null;
   department: string | null;
+  position_id: string | null;
   phone: string | null;
   email: string | null;
   salary_usd: number;
@@ -195,6 +196,7 @@ export type EmployeeInput = {
   national_id: string | null;
   position_label: string | null;
   department: string | null;
+  position_id: string | null;
   phone: string | null;
   email: string | null;
   salary_usd: number;
@@ -215,10 +217,15 @@ export type NominaActionState = {
   createdCode?: string;
   /** Token de invitación recién generado (para mostrar el link a copiar · SDD-0113). */
   createdToken?: string;
+  /** Link de invitación de usuario del alta unificada (SDD-0140 Fase 2). */
+  invitationLink?: string;
+  /** Aviso no-fatal: el empleado se creó pero el acceso al sistema no se pudo dar. */
+  accessWarning?: string;
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Fecha ISO (YYYY-MM-DD) o null; NaN-marker si el formato es inválido. */
 function dateOrNull(v: unknown): string | null | false {
@@ -262,6 +269,9 @@ export function validateEmployeeInput(
   const birthDate = dateOrNull(raw.birth_date);
   if (birthDate === false) errors.birth_date = "Fecha de nacimiento inválida.";
 
+  const positionId = strOrNull(raw.position_id);
+  if (positionId !== null && !UUID_RE.test(positionId)) errors.position_id = "Puesto inválido.";
+
   if (Object.keys(errors).length > 0) return { input: null, fieldErrors: errors };
 
   return {
@@ -270,6 +280,7 @@ export function validateEmployeeInput(
       national_id: strOrNull(raw.national_id),
       position_label: strOrNull(raw.position_label),
       department: strOrNull(raw.department),
+      position_id: positionId,
       phone: strOrNull(raw.phone),
       email,
       salary_usd: round2(salary),
