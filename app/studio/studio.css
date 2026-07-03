@@ -702,6 +702,55 @@
   pointer-events: none;
 }
 
+/* Celda de día clickeable del grid del mes (Slice Norte).
+   El box-shadow sin !important NO pisa el inline de los feriados
+   críticos (inline gana), así que la barra wine se preserva. */
+.studio-cal-daycell {
+  appearance: none;
+  transition: box-shadow var(--dur) var(--ease);
+}
+.studio-cal-daycell:hover:not(:disabled) {
+  box-shadow: inset 0 0 0 1.5px var(--border-strong);
+}
+.studio-cal-daycell:focus-visible {
+  outline: 2px solid var(--wine);
+  outline-offset: -2px;
+}
+
+/* Selector de vista Mes/Semana/Agenda + tabs nivel-1 del calendario */
+.studio-cal-viewbtn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--ink-soft);
+  font: 500 12.5px/1 var(--f-sans);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.studio-cal-viewbtn:hover:not([aria-selected="true"]) {
+  color: var(--ink);
+}
+.studio-cal-viewbtn[aria-selected="true"] {
+  background: var(--bg-surface);
+  color: var(--ink);
+  font-weight: 700;
+  box-shadow: var(--shadow-xs);
+}
+.studio-cal-viewbtn:focus-visible {
+  outline: 2px solid var(--wine);
+  outline-offset: 2px;
+}
+.studio-cal-filterrow {
+  transition: background var(--dur) var(--ease);
+}
+.studio-cal-filterrow:hover {
+  background: var(--bg-elevated);
+}
+
 /* ── Realtime pulse · usado por RealtimeIndicator ─────────── */
 @keyframes dtd-realtime-pulse {
   0%,
