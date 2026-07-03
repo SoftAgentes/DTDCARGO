@@ -482,7 +482,7 @@ export function ComposeView({ templates, signatures }: Props) {
                 successLabel="Programado"
                 idleIcon={Icon.clock(13)}
                 successIcon={Icon.check(13)}
-                disabled={!canSend || !scheduleAt}
+                disabled={!canSend || !scheduleAt || channel === "whatsapp"}
                 onError={setError}
                 onSuccess={() => {
                   const iso = new Date(scheduleAt).toISOString();
@@ -505,6 +505,16 @@ export function ComposeView({ templates, signatures }: Props) {
               >
                 Cancelar
               </button>
+              {channel === "whatsapp" && (
+                <span
+                  style={{
+                    font: "500 11.5px/1.4 var(--f-sans)",
+                    color: "var(--ink-soft)",
+                  }}
+                >
+                  WhatsApp aún no se puede programar — cambia el canal a email.
+                </span>
+              )}
             </div>
           )}
 

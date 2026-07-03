@@ -1391,7 +1391,7 @@ function IvaView({ iva }: { iva: IvaPosition }) {
         {mixedCurrency && (
           <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
             Hay más de una moneda en el período ({iva.currencies.join(", ")}). V1 no
-            normaliza con tasa de cambio: los totales mezclan monedas — consultá los
+            normaliza con tasa de cambio: los totales mezclan monedas — consulta los
             Libros fiscales para el detalle por moneda.
           </p>
         )}
@@ -1616,7 +1616,7 @@ function CombinedKpis({ combined }: { combined: CombinedReport }) {
           {fmtNum(combined.shipments - combined.withCosts)} embarque
           {combined.shipments - combined.withCosts === 1 ? "" : "s"} del período
           sin costos cargados cuentan como costo 0 (margen = ingreso completo).
-          Cargalos en /studio/costing para una rentabilidad fiel. Costo real, sin
+          Cárgalos en /studio/costing para una rentabilidad fiel. Costo real, sin
           estimaciones.
         </p>
       )}

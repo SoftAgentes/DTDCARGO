@@ -464,7 +464,7 @@ function SignatureEditor({
             <ActionButton
               variant="primary"
               size="sm"
-              idleLabel="Guarda la firma"
+              idleLabel="Guardar firma"
               loadingLabel="Guardando…"
               successLabel="Firma guardada"
               idleIcon={Icon.check(14)}

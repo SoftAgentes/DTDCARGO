@@ -212,7 +212,7 @@ export function CalendarClient({
                 disabled={isCurrentMonth}
                 className="studio-cal-today-btn"
               >
-                HOY
+                Hoy
               </button>
               <button
                 type="button"
