@@ -12,6 +12,8 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import type {
   MailRuleWithTemplate,
+  MailScheduled,
+  MailSignature,
   MailTemplate,
 } from "@/lib/studio/mail-types";
 import {
@@ -23,8 +25,12 @@ import {
   type MailLogStatus,
   type MailingAdminTab,
   type MailingFilters,
+  type SignatureTeamMember,
 } from "./mailing-types";
 import { TemplatesView } from "./TemplatesView";
+import { SignaturesView } from "./SignaturesView";
+import { ComposeView } from "./ComposeView";
+import { ScheduledView } from "./ScheduledView";
 import { RulesView } from "./RulesView";
 import { ConfigView } from "./ConfigView";
 import { BlacklistView } from "./BlacklistView";
@@ -37,6 +43,10 @@ interface Props {
   rules: MailRuleWithTemplate[];
   config: MailConfigRow | null;
   blacklist: MailBlacklistRow[];
+  signatures: MailSignature[];
+  composeSignatures: MailSignature[];
+  members: SignatureTeamMember[];
+  scheduled: MailScheduled[];
   filters: MailingFilters;
 }
 
@@ -58,6 +68,16 @@ const TONE_FG: Record<string, string> = {
   neutral: "var(--ink-soft, #6B6B6B)",
 };
 
+const TABS: Array<{ value: MailingAdminTab; label: string }> = [
+  { value: "templates", label: "Templates" },
+  { value: "signatures", label: "Firmas" },
+  { value: "compose", label: "Envío manual" },
+  { value: "scheduled", label: "Programados" },
+  { value: "reglas", label: "Reglas auto." },
+  { value: "config", label: "Configuración" },
+  { value: "logs", label: "Logs" },
+];
+
 export function MailingClient({
   tab,
   logs,
@@ -66,6 +86,10 @@ export function MailingClient({
   rules,
   config,
   blacklist,
+  signatures,
+  composeSignatures,
+  members,
+  scheduled,
   filters,
 }: Props) {
   const router = useRouter();
@@ -86,7 +110,7 @@ export function MailingClient({
 
   const changeTab = (newTab: MailingAdminTab) => {
     const sp = new URLSearchParams();
-    if (newTab !== "logs") sp.set("tab", newTab);
+    if (newTab !== "templates") sp.set("tab", newTab);
     startTransition(() => {
       router.replace(sp.toString() ? `${pathname}?${sp.toString()}` : pathname, {
         scroll: false,
@@ -109,42 +133,61 @@ export function MailingClient({
           marginBottom: 20,
         }}
       >
-        {(["logs", "templates", "reglas", "config", "blacklist"] as const).map(
-          (t) => (
-            <button
-              key={t}
-              type="button"
-              role="tab"
-              aria-selected={tab === t}
-              onClick={() => changeTab(t)}
-              style={{
-                padding: "8px 16px",
-                border: "none",
-                background:
-                  tab === t ? "var(--bg-surface, #FFFFFF)" : "transparent",
-                color: tab === t ? "var(--ink)" : "var(--ink-soft)",
-                borderRadius: 6,
-                cursor: "pointer",
-                fontFamily: "inherit",
-                fontSize: 13,
-                fontWeight: tab === t ? 600 : 500,
-                boxShadow: tab === t ? "0 1px 2px rgba(0,0,0,0.08)" : "none",
-                transition: "all var(--dur, 180ms) var(--ease, ease-out)",
-              }}
-            >
-              {t === "logs"
-                ? "Logs"
-                : t === "templates"
-                  ? "Templates"
-                  : t === "reglas"
-                    ? "Reglas"
-                    : t === "config"
-                      ? "Config"
-                      : "Blacklist"}
-            </button>
-          ),
-        )}
+        {TABS.map((t) => (
+          <button
+            key={t.value}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.value}
+            onClick={() => changeTab(t.value)}
+            style={{
+              padding: "8px 16px",
+              border: "none",
+              background:
+                tab === t.value ? "var(--bg-surface, #FFFFFF)" : "transparent",
+              color: tab === t.value ? "var(--ink)" : "var(--ink-soft)",
+              borderRadius: 6,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              fontSize: 13,
+              fontWeight: tab === t.value ? 600 : 500,
+              boxShadow: tab === t.value ? "0 1px 2px rgba(0,0,0,0.08)" : "none",
+              transition: "all var(--dur, 180ms) var(--ease, ease-out)",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
+
+      {tab === "templates" && <TemplatesView templates={templatesFull} />}
+
+      {tab === "signatures" && (
+        <SignaturesView signatures={signatures} members={members} />
+      )}
+
+      {tab === "compose" && (
+        <ComposeView
+          templates={templatesFull}
+          signatures={composeSignatures}
+        />
+      )}
+
+      {tab === "scheduled" && <ScheduledView scheduled={scheduled} />}
+
+      {tab === "reglas" && (
+        <RulesView rules={rules} templates={templatesFull} />
+      )}
+
+      {tab === "config" && (
+        <>
+          <ConfigView config={config} />
+          <div style={{ marginTop: 24 }}>
+            <BlacklistView blacklist={blacklist} />
+          </div>
+        </>
+      )}
 
       {tab === "logs" && (
         <LogsView
@@ -154,16 +197,6 @@ export function MailingClient({
           setQp={setQp}
         />
       )}
-
-      {tab === "templates" && <TemplatesView templates={templatesFull} />}
-
-      {tab === "reglas" && (
-        <RulesView rules={rules} templates={templatesFull} />
-      )}
-
-      {tab === "config" && <ConfigView config={config} />}
-
-      {tab === "blacklist" && <BlacklistView blacklist={blacklist} />}
     </>
   );
 }

@@ -91,6 +91,11 @@ export const MAIL_SIGNATURE_LAYOUTS: MailSignatureLayout[] = [
   "image_only",
 ];
 
+/** Idioma por defecto de la firma (columna `lang`, migr 0206). */
+export type MailSignatureLang = "es" | "en" | "zh";
+
+export const MAIL_SIGNATURE_LANGS: MailSignatureLang[] = ["es", "en", "zh"];
+
 export type MailRecipientKind = "client" | "internal" | "custom";
 
 // ─── Entity types (match schema 0018) ────────────────────────
@@ -136,6 +141,7 @@ export interface MailSignature {
   show_offices_link: boolean;
   custom_html: string | null;
   is_default: boolean;
+  lang: MailSignatureLang;
   created_at: string;
   updated_at: string;
 }
@@ -210,6 +216,58 @@ export interface MailBlacklistEntry {
   notes: string | null;
 }
 
+// ─── Scheduled (SDD-0143 Slice D · Programados) ──────────────
+
+export type ScheduledStatus = "queued" | "sent" | "canceled" | "failed";
+
+export const SCHEDULED_STATUSES: ScheduledStatus[] = [
+  "queued",
+  "sent",
+  "canceled",
+  "failed",
+];
+
+/** Fila de la cola de programados (match schema 0207_mail_scheduled.sql). */
+export interface MailScheduled {
+  id: string;
+  tenant_id: string;
+  scheduled_for: string;
+  channel: MailChannel;
+  to_email: string;
+  to_name: string | null;
+  cc: string[];
+  bcc: string[];
+  subject: string;
+  body_html: string;
+  template_slug: string | null;
+  signature_user_id: string | null;
+  status: ScheduledStatus;
+  attachments_count: number;
+  created_by: string | null;
+  created_at: string;
+  sent_at: string | null;
+  sent_log_id: string | null;
+  error: string | null;
+}
+
+export const SCHEDULED_STATUS_LABELS: Record<ScheduledStatus, string> = {
+  queued: "En cola",
+  sent: "Enviado",
+  canceled: "Cancelado",
+  failed: "Falló",
+};
+
+export function scheduledStatusLabel(s: ScheduledStatus): string {
+  return SCHEDULED_STATUS_LABELS[s];
+}
+
+export function scheduledStatusBadgeTone(s: ScheduledStatus): BadgeTone {
+  if (s === "sent") return "success";
+  if (s === "failed") return "danger";
+  if (s === "canceled") return "neutral";
+  return "wine"; // queued · acento de marca (match Norte mailing-scheduled.jsx)
+}
+
 // ─── KPIs (computed) ─────────────────────────────────────────
 
 export interface MailKpis {
@@ -256,6 +314,44 @@ export interface SendEmailInput {
   idempotencyKey?: string;
 }
 
+/**
+ * Input para encolar un correo programado (SDD-0143 Slice D). Lo usa
+ * scheduleEmailAction (y el Compose de otro slice, que la invoca). El body
+ * ya viene renderizado (subject + body_html crudos, no templateSlug al vuelo).
+ */
+export interface ScheduleEmailInput {
+  to_email: string;
+  to_name?: string;
+  cc?: string[];
+  bcc?: string[];
+  subject: string;
+  body_html: string;
+  /** ISO 8601. Debe ser futura. */
+  scheduled_for: string;
+  channel?: MailChannel;
+  template_slug?: string;
+  signature_user_id?: string;
+  attachments_count?: number;
+}
+
+/**
+ * Input del Envío manual (Compose · SDD-0143 Slice C). Lo usa
+ * sendManualEmailAction. A diferencia de ScheduleEmailInput, el envío es
+ * inmediato (no lleva `scheduled_for`). El body ya viene crudo desde el
+ * textarea; la firma se adjunta en la action, no acá.
+ */
+export interface SendManualInput {
+  to: string;
+  to_name?: string;
+  cc?: string[];
+  bcc?: string[];
+  subject: string;
+  body_html: string;
+  channel: MailChannel;
+  template_slug?: string;
+  signature_user_id?: string;
+}
+
 export interface CreateSignatureInput {
   layout: MailSignatureLayout;
   full_name: string;
@@ -269,6 +365,24 @@ export interface CreateSignatureInput {
   show_offices_link?: boolean;
   custom_html?: string;
   is_default?: boolean;
+}
+
+/**
+ * Input del editor de firmas del Norte (Mailing → Firmas). Admin edita la
+ * firma de CUALQUIER miembro del tenant, por eso `user_id` es explícito
+ * (no se resuelve del auth.uid como en CreateSignatureInput).
+ */
+export interface UpsertSignatureInput {
+  user_id: string;
+  layout: MailSignatureLayout;
+  full_name: string;
+  role_label?: string;
+  email?: string;
+  phone?: string;
+  whatsapp?: string;
+  photo_url?: string;
+  company_name?: string;
+  lang: MailSignatureLang;
 }
 
 export interface CreateRuleInput {
@@ -457,6 +571,115 @@ export function validateSendEmailInput(
   return { input: partial as SendEmailInput };
 }
 
+export function validateScheduleEmailInput(
+  partial: Partial<ScheduleEmailInput>,
+): { input?: ScheduleEmailInput; fieldErrors?: ActionFieldErrors } {
+  const fieldErrors: ActionFieldErrors = {};
+
+  if (!partial.to_email || !isValidEmail(partial.to_email)) {
+    fieldErrors.to_email = "Destinatario inválido";
+  }
+  if (!partial.subject || partial.subject.trim().length < 1) {
+    fieldErrors.subject = "Subject requerido";
+  }
+  if (!partial.body_html || partial.body_html.trim().length < 1) {
+    fieldErrors.body_html = "El cuerpo no puede estar vacío";
+  }
+
+  // scheduled_for: fecha válida y futura
+  let whenIso = "";
+  if (!partial.scheduled_for) {
+    fieldErrors.scheduled_for = "Fecha/hora requerida";
+  } else {
+    const when = new Date(partial.scheduled_for);
+    if (Number.isNaN(when.getTime())) {
+      fieldErrors.scheduled_for = "Fecha/hora inválida";
+    } else if (when.getTime() <= Date.now()) {
+      fieldErrors.scheduled_for = "La fecha/hora debe ser futura";
+    } else {
+      whenIso = when.toISOString();
+    }
+  }
+
+  if (partial.channel && !MAIL_CHANNELS.includes(partial.channel)) {
+    fieldErrors.channel = "Canal inválido";
+  }
+  if (partial.cc) {
+    const bad = partial.cc.find((e) => !isValidEmail(e));
+    if (bad) fieldErrors.cc = `Email inválido en CC: ${bad}`;
+  }
+  if (partial.bcc) {
+    const bad = partial.bcc.find((e) => !isValidEmail(e));
+    if (bad) fieldErrors.bcc = `Email inválido en BCC: ${bad}`;
+  }
+
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
+
+  return {
+    input: {
+      to_email: partial.to_email!.trim().toLowerCase(),
+      to_name: partial.to_name?.trim() || undefined,
+      cc: partial.cc,
+      bcc: partial.bcc,
+      subject: partial.subject!.trim(),
+      body_html: partial.body_html!,
+      scheduled_for: whenIso,
+      channel: partial.channel ?? "email",
+      template_slug: partial.template_slug?.trim() || undefined,
+      signature_user_id: partial.signature_user_id?.trim() || undefined,
+      attachments_count:
+        typeof partial.attachments_count === "number" &&
+        Number.isFinite(partial.attachments_count) &&
+        partial.attachments_count > 0
+          ? Math.floor(partial.attachments_count)
+          : 0,
+    },
+  };
+}
+
+export function validateSendManualInput(
+  partial: Partial<SendManualInput>,
+): { input?: SendManualInput; fieldErrors?: ActionFieldErrors } {
+  const fieldErrors: ActionFieldErrors = {};
+
+  if (!partial.to || !isValidEmail(partial.to)) {
+    fieldErrors.to = "Destinatario inválido";
+  }
+  if (!partial.subject || partial.subject.trim().length < 1) {
+    fieldErrors.subject = "El asunto es requerido";
+  }
+  if (!partial.body_html || partial.body_html.trim().length < 1) {
+    fieldErrors.body_html = "El cuerpo no puede estar vacío";
+  }
+  if (partial.channel && !MAIL_CHANNELS.includes(partial.channel)) {
+    fieldErrors.channel = "Canal inválido";
+  }
+  if (partial.cc) {
+    const bad = partial.cc.find((e) => !isValidEmail(e));
+    if (bad) fieldErrors.cc = `Email inválido en CC: ${bad}`;
+  }
+  if (partial.bcc) {
+    const bad = partial.bcc.find((e) => !isValidEmail(e));
+    if (bad) fieldErrors.bcc = `Email inválido en BCC: ${bad}`;
+  }
+
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
+
+  return {
+    input: {
+      to: partial.to!.trim().toLowerCase(),
+      to_name: partial.to_name?.trim() || undefined,
+      cc: partial.cc,
+      bcc: partial.bcc,
+      subject: partial.subject!.trim(),
+      body_html: partial.body_html!,
+      channel: partial.channel ?? "email",
+      template_slug: partial.template_slug?.trim() || undefined,
+      signature_user_id: partial.signature_user_id?.trim() || undefined,
+    },
+  };
+}
+
 export function validateCreateSignatureInput(
   partial: Partial<CreateSignatureInput>,
 ): { input?: CreateSignatureInput; fieldErrors?: ActionFieldErrors } {
@@ -485,6 +708,48 @@ export function validateCreateSignatureInput(
       show_offices_link: partial.show_offices_link ?? true,
       custom_html: partial.custom_html,
       is_default: partial.is_default ?? true,
+    },
+  };
+}
+
+export function validateUpsertSignatureInput(
+  partial: Partial<UpsertSignatureInput>,
+): { input?: UpsertSignatureInput; fieldErrors?: ActionFieldErrors } {
+  const fieldErrors: ActionFieldErrors = {};
+  if (!partial.user_id || partial.user_id.trim().length < 1) {
+    fieldErrors.user_id = "Falta el miembro del equipo";
+  }
+  if (
+    !partial.layout ||
+    !MAIL_SIGNATURE_LAYOUTS.includes(partial.layout as MailSignatureLayout)
+  ) {
+    fieldErrors.layout = "Layout inválido";
+  }
+  if (!partial.full_name || partial.full_name.trim().length < 2) {
+    fieldErrors.full_name = "Nombre requerido (min 2 caracteres)";
+  }
+  if (partial.email && !isValidEmail(partial.email)) {
+    fieldErrors.email = "Email inválido";
+  }
+  if (
+    !partial.lang ||
+    !MAIL_SIGNATURE_LANGS.includes(partial.lang as MailSignatureLang)
+  ) {
+    fieldErrors.lang = "Idioma inválido";
+  }
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
+  return {
+    input: {
+      user_id: partial.user_id!.trim(),
+      layout: partial.layout as MailSignatureLayout,
+      full_name: partial.full_name!.trim(),
+      role_label: partial.role_label?.trim() || undefined,
+      email: partial.email?.trim() || undefined,
+      phone: partial.phone?.trim() || undefined,
+      whatsapp: partial.whatsapp?.trim() || undefined,
+      photo_url: partial.photo_url?.trim() || undefined,
+      company_name: partial.company_name?.trim() || "DTD Cargo",
+      lang: partial.lang as MailSignatureLang,
     },
   };
 }
@@ -613,6 +878,16 @@ export const SIGNATURE_LAYOUT_LABELS: Record<MailSignatureLayout, string> = {
 
 export function signatureLayoutLabel(l: MailSignatureLayout): string {
   return SIGNATURE_LAYOUT_LABELS[l];
+}
+
+export const SIGNATURE_LANG_LABELS: Record<MailSignatureLang, string> = {
+  es: "Español",
+  en: "English",
+  zh: "中文",
+};
+
+export function signatureLangLabel(l: MailSignatureLang): string {
+  return SIGNATURE_LANG_LABELS[l];
 }
 
 // ─── Badge tone helpers (6 tonos oficiales) ──────────────────

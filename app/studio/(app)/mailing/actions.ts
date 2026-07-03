@@ -21,11 +21,17 @@ import { createClient } from "@/lib/db/server";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { buildSampleVars } from "@/lib/studio/mail-sample-vars";
+import { getDefaultSignature } from "@/lib/studio/mail-queries";
+import { renderSignatureHtml } from "@/lib/studio/mail-signature-render";
 import {
   extractVariables,
   validateCreateRuleInput,
+  validateScheduleEmailInput,
+  validateSendManualInput,
   validateUpdateTemplateInput,
+  validateUpsertSignatureInput,
   type ActionFieldErrors,
+  type ScheduledStatus,
 } from "@/lib/studio/mail-types";
 import type { MailingActionState } from "./_components/mailing-types";
 
@@ -151,6 +157,99 @@ export async function sendTestTemplateAction(
       ? "Encolado · sin RESEND_API_KEY el envío real no ocurre, pero el log queda."
       : "Email de prueba enviado.",
   };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Signatures · upsert (Firmas · Norte)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Crea o actualiza la firma de CUALQUIER miembro del tenant (admin-only).
+ * Upsert por `user_id`: si ya existe firma de ese usuario en el tenant →
+ * UPDATE; si no → INSERT con is_default=true.
+ *
+ * Escritura tenant-wide (firmas de otros usuarios) → admin client, igual que
+ * sendTestTemplateAction. El gating admin lo hace moduleEditDenial.
+ */
+export async function upsertMailSignatureAction(
+  _prev: MailingActionState,
+  formData: FormData,
+): Promise<MailingActionState> {
+  const partial = {
+    user_id: (formData.get("user_id") as string | null)?.trim() ?? undefined,
+    layout: (formData.get("layout") as string | null) ?? undefined,
+    full_name: (formData.get("full_name") as string | null)?.trim() ?? undefined,
+    role_label: (formData.get("role_label") as string | null)?.trim() || undefined,
+    email: (formData.get("email") as string | null)?.trim() || undefined,
+    phone: (formData.get("phone") as string | null)?.trim() || undefined,
+    whatsapp: (formData.get("whatsapp") as string | null)?.trim() || undefined,
+    photo_url: (formData.get("photo_url") as string | null)?.trim() || undefined,
+    company_name:
+      (formData.get("company_name") as string | null)?.trim() || undefined,
+    lang: (formData.get("lang") as string | null) ?? undefined,
+  };
+
+  const { input, fieldErrors } = validateUpsertSignatureInput(
+    partial as Parameters<typeof validateUpsertSignatureInput>[0],
+  );
+  if (fieldErrors) return { fieldErrors };
+  if (!input) return { error: "Datos inválidos." };
+
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "mailing");
+  if (denial) return { error: denial };
+
+  const { data: link } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  if (!link?.tenant_id) return { error: "Sin tenant." };
+
+  let supabaseAdmin;
+  try {
+    supabaseAdmin = createAdminClient();
+  } catch {
+    return { error: "Admin client no configurado." };
+  }
+
+  const { data: existing } = await supabaseAdmin
+    .from("mail_signatures")
+    .select("id")
+    .eq("tenant_id", link.tenant_id)
+    .eq("user_id", input.user_id)
+    .maybeSingle<{ id: string }>();
+
+  const row = {
+    layout: input.layout,
+    full_name: input.full_name,
+    role_label: input.role_label ?? null,
+    email: input.email ?? null,
+    phone: input.phone ?? null,
+    whatsapp: input.whatsapp ?? null,
+    photo_url: input.photo_url ?? null,
+    company_name: input.company_name ?? "DTD Cargo",
+    lang: input.lang,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (existing?.id) {
+    const { error } = await supabaseAdmin
+      .from("mail_signatures")
+      .update(row)
+      .eq("id", existing.id);
+    if (error) return { error: `No se pudo guardar: ${error.message}` };
+  } else {
+    const { error } = await supabaseAdmin.from("mail_signatures").insert({
+      tenant_id: link.tenant_id,
+      user_id: input.user_id,
+      is_default: true,
+      ...row,
+    });
+    if (error) return { error: `No se pudo crear la firma: ${error.message}` };
+  }
+
+  revalidatePath("/studio/mailing");
+  return { ok: true, message: "Firma guardada." };
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -441,5 +540,345 @@ export async function removeMailBlacklistAction(
 
   revalidatePath("/studio/mailing");
   return { ok: true, message: "Email removido de la blacklist." };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Scheduled · encolar / enviar ya / cancelar (SDD-0143 Slice D)
+// ─────────────────────────────────────────────────────────────
+
+/** Parte "a@x.com, b@y.com" (coma / punto-y-coma / espacios) en lista limpia. */
+function parseEmailList(raw: string | null): string[] {
+  if (!raw) return [];
+  return raw
+    .split(/[,;\s]+/)
+    .map((e) => e.trim())
+    .filter((e) => e.length > 0);
+}
+
+/**
+ * Body final del correo: texto plano → <br> + firma del miembro adjunta al
+ * final (si se seleccionó). Compartido por el envío inmediato y el programado
+ * para que la firma y el formato salgan IDÉNTICOS por ambas vías. En el
+ * programado se hornea acá al encolar (el cron manda body_html crudo).
+ */
+async function buildOutgoingHtml(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  rawBody: string,
+  signatureUserId: string | null | undefined,
+): Promise<string> {
+  let html = rawBody.replace(/\r\n|\r|\n/g, "<br>");
+  if (signatureUserId) {
+    const sig = await getDefaultSignature(supabase, signatureUserId);
+    if (sig) {
+      const sigHtml = renderSignatureHtml({
+        layout: sig.layout,
+        full_name: sig.full_name,
+        role_label: sig.role_label,
+        email: sig.email,
+        phone: sig.phone,
+        photo_url: sig.photo_url,
+        company_name: sig.company_name,
+      });
+      if (sigHtml) html = `${html}<br><br>${sigHtml}`;
+    }
+  }
+  return html;
+}
+
+/**
+ * Encola un correo programado (status='queued'). El cron mail-scheduled lo
+ * envía cuando vence, o el admin lo adelanta con "Enviar ya".
+ *
+ * Firma estándar `(_prev, formData)` → reusable: el Compose (otro slice)
+ * arma un FormData y la invoca igual que esta vista.
+ */
+export async function scheduleEmailAction(
+  _prev: MailingActionState,
+  formData: FormData,
+): Promise<MailingActionState> {
+  const attachmentsRaw = (formData.get("attachments_count") as string | null)?.trim();
+  const partial = {
+    to_email: (formData.get("to_email") as string | null)?.trim() ?? undefined,
+    to_name: (formData.get("to_name") as string | null)?.trim() || undefined,
+    cc: parseEmailList(formData.get("cc") as string | null),
+    bcc: parseEmailList(formData.get("bcc") as string | null),
+    subject: (formData.get("subject") as string | null) ?? undefined,
+    body_html: (formData.get("body_html") as string | null) ?? undefined,
+    scheduled_for: (formData.get("scheduled_for") as string | null)?.trim() ?? undefined,
+    channel: (formData.get("channel") as string | null) || undefined,
+    template_slug: (formData.get("template_slug") as string | null)?.trim() || undefined,
+    signature_user_id:
+      (formData.get("signature_user_id") as string | null)?.trim() || undefined,
+    attachments_count: attachmentsRaw ? Number(attachmentsRaw) : undefined,
+  };
+
+  const { input, fieldErrors } = validateScheduleEmailInput(
+    partial as Parameters<typeof validateScheduleEmailInput>[0],
+  );
+  if (fieldErrors) return { fieldErrors };
+  if (!input) return { error: "Datos inválidos." };
+
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "mailing");
+  if (denial) return { error: denial };
+
+  const { data: userResp } = await supabase.auth.getUser();
+  if (!userResp.user) return { error: "Inicia sesión primero." };
+
+  const { data: link } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  if (!link?.tenant_id) return { error: "Sin tenant." };
+
+  // Hornear la firma + formato acá: el cron manda body_html crudo y no lee
+  // signature_user_id, así el programado sale igual que el envío inmediato.
+  const scheduledBodyHtml = await buildOutgoingHtml(
+    supabase,
+    input.body_html,
+    input.channel === "whatsapp" ? null : input.signature_user_id,
+  );
+
+  const { error } = await supabase.from("mail_scheduled").insert({
+    tenant_id: link.tenant_id,
+    scheduled_for: input.scheduled_for,
+    channel: input.channel ?? "email",
+    to_email: input.to_email,
+    to_name: input.to_name ?? null,
+    cc: input.cc ?? [],
+    bcc: input.bcc ?? [],
+    subject: input.subject,
+    body_html: scheduledBodyHtml,
+    template_slug: input.template_slug ?? null,
+    signature_user_id: input.signature_user_id ?? null,
+    attachments_count: input.attachments_count ?? 0,
+    status: "queued",
+    created_by: userResp.user.id,
+  });
+
+  if (error) {
+    if (error.code === "42501") return { error: "Solo admins pueden programar correos." };
+    return { error: `No se pudo programar: ${error.message}` };
+  }
+
+  revalidatePath("/studio/mailing");
+  return { ok: true, message: "Correo programado." };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Compose · envío manual inmediato (SDD-0143 Slice C)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Envía un correo individual redactado a mano (Envío manual del Norte).
+ *
+ * Firma estándar `(_prev, formData)`. Admin-only (moduleEditDenial). Valida
+ * con validateSendManualInput. Si viene `signature_user_id`, adjunta la firma
+ * de ese miembro al final del body (renderSignatureHtml, la misma función pura
+ * que usa el editor de Firmas). El envío real usa createAdminClient() porque
+ * mail_logs INSERT está bloqueado para authenticated.
+ *
+ * V1: solo canal email. `whatsapp` valida pero devuelve un aviso amable (igual
+ * que el Norte, que es display-only para ese canal · no hay integración WA).
+ */
+export async function sendManualEmailAction(
+  _prev: MailingActionState,
+  formData: FormData,
+): Promise<MailingActionState> {
+  const partial = {
+    to: (formData.get("to") as string | null)?.trim() ?? undefined,
+    to_name: (formData.get("to_name") as string | null)?.trim() || undefined,
+    cc: parseEmailList(formData.get("cc") as string | null),
+    bcc: parseEmailList(formData.get("bcc") as string | null),
+    subject: (formData.get("subject") as string | null) ?? undefined,
+    body_html: (formData.get("body_html") as string | null) ?? undefined,
+    channel: (formData.get("channel") as string | null) || undefined,
+    template_slug:
+      (formData.get("template_slug") as string | null)?.trim() || undefined,
+    signature_user_id:
+      (formData.get("signature_user_id") as string | null)?.trim() || undefined,
+  };
+
+  const { input, fieldErrors } = validateSendManualInput(
+    partial as Parameters<typeof validateSendManualInput>[0],
+  );
+  if (fieldErrors) return { fieldErrors };
+  if (!input) return { error: "Datos inválidos." };
+
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "mailing");
+  if (denial) return { error: denial };
+
+  if (input.channel === "whatsapp") {
+    return {
+      error:
+        "WhatsApp aún no está conectado. Por ahora solo se envían correos por email.",
+    };
+  }
+
+  const { data: link } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  if (!link?.tenant_id) return { error: "Sin tenant." };
+
+  // Body final: texto plano → <br> + firma adjunta (helper compartido con el
+  // envío programado, para que ambos salgan idénticos).
+  const bodyHtml = await buildOutgoingHtml(
+    supabase,
+    input.body_html,
+    input.signature_user_id,
+  );
+
+  let supabaseAdmin;
+  try {
+    supabaseAdmin = createAdminClient();
+  } catch {
+    return { error: "Admin client no configurado." };
+  }
+
+  const result = await sendEmail(supabaseAdmin, link.tenant_id, {
+    to: input.to,
+    to_name: input.to_name,
+    cc: input.cc,
+    bcc: input.bcc,
+    subject: input.subject,
+    html: bodyHtml,
+    metadata: {
+      source: "sendManualEmailAction",
+      template_slug: input.template_slug ?? null,
+      signature_user_id: input.signature_user_id ?? null,
+    },
+  });
+
+  if (!result.ok) return { error: `No se pudo enviar: ${result.error}` };
+
+  revalidatePath("/studio/mailing");
+  return {
+    ok: true,
+    message: result.queued
+      ? "Encolado · sin RESEND_API_KEY el envío real no ocurre, pero el log queda."
+      : "Correo enviado.",
+  };
+}
+
+/**
+ * Adelanta un programado: lo envía YA vía sendEmail() y lo marca 'sent'.
+ * Firma `(formData)` (sin _prev) para <ActionButton>: devuelve `{ error }`
+ * si falla, o `{ ok }` si sale bien.
+ */
+export async function sendScheduledNowAction(
+  formData: FormData,
+): Promise<MailingActionState> {
+  const id = (formData.get("id") as string | null)?.trim();
+  if (!id) return { error: "Falta id." };
+
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "mailing");
+  if (denial) return { error: denial };
+
+  const { data: link } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  if (!link?.tenant_id) return { error: "Sin tenant." };
+
+  // Cargar la fila (RLS filtra tenant). Solo se puede enviar si sigue 'queued'.
+  const { data: row } = await supabase
+    .from("mail_scheduled")
+    .select(
+      "id, status, to_email, to_name, cc, bcc, subject, body_html, template_slug",
+    )
+    .eq("id", id)
+    .maybeSingle<{
+      id: string;
+      status: ScheduledStatus;
+      to_email: string;
+      to_name: string | null;
+      cc: string[];
+      bcc: string[];
+      subject: string;
+      body_html: string;
+      template_slug: string | null;
+    }>();
+
+  if (!row) return { error: "Programado no encontrado." };
+  if (row.status !== "queued") {
+    return { error: "Este correo ya no está en cola." };
+  }
+
+  let supabaseAdmin;
+  try {
+    supabaseAdmin = createAdminClient();
+  } catch {
+    return { error: "Admin client no configurado." };
+  }
+
+  const result = await sendEmail(supabaseAdmin, link.tenant_id, {
+    to: row.to_email,
+    to_name: row.to_name ?? undefined,
+    cc: row.cc,
+    bcc: row.bcc,
+    subject: row.subject,
+    html: row.body_html,
+    metadata: { source: "sendScheduledNowAction", scheduled_id: row.id },
+  });
+
+  if (!result.ok) {
+    await supabaseAdmin
+      .from("mail_scheduled")
+      .update({ status: "failed", error: result.error })
+      .eq("id", row.id);
+    revalidatePath("/studio/mailing");
+    return { error: `No se pudo enviar: ${result.error}` };
+  }
+
+  await supabaseAdmin
+    .from("mail_scheduled")
+    .update({
+      status: "sent",
+      sent_at: new Date().toISOString(),
+      sent_log_id: result.logId,
+      error: null,
+    })
+    .eq("id", row.id);
+
+  revalidatePath("/studio/mailing");
+  return {
+    ok: true,
+    message: result.queued
+      ? "Encolado en el proveedor · sin RESEND_API_KEY el envío real no ocurre, pero el log queda."
+      : "Correo enviado.",
+  };
+}
+
+/**
+ * Cancela un programado en cola (status → 'canceled'). Solo aplica a los
+ * 'queued' (no se re-cancela un enviado). Firma `(formData)` para
+ * <ActionButton> tras confirmar en el <ConfirmDialog>.
+ */
+export async function cancelScheduledAction(
+  formData: FormData,
+): Promise<MailingActionState> {
+  const id = (formData.get("id") as string | null)?.trim();
+  if (!id) return { error: "Falta id." };
+
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "mailing");
+  if (denial) return { error: denial };
+
+  const { error } = await supabase
+    .from("mail_scheduled")
+    .update({ status: "canceled" })
+    .eq("id", id)
+    .eq("status", "queued");
+
+  if (error) {
+    if (error.code === "42501") return { error: "Solo admins." };
+    return { error: error.message };
+  }
+
+  revalidatePath("/studio/mailing");
+  return { ok: true, message: "Programado cancelado." };
 }
 

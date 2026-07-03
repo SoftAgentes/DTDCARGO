@@ -17,6 +17,7 @@ import type {
   MailRule,
   MailRuleEvent,
   MailRuleWithTemplate,
+  MailScheduled,
   MailSignature,
   MailTemplate,
 } from "./mail-types";
@@ -113,6 +114,23 @@ export async function listSignatures(
     .order("updated_at", { ascending: false });
   if (userId) q = q.eq("user_id", userId);
   const { data, error } = await q;
+  if (error) return [];
+  return (data ?? []) as MailSignature[];
+}
+
+/**
+ * Lista TODAS las firmas del tenant (todos los miembros, no solo la propia).
+ * Usada por la vista Firmas del Norte (admin-only en la capa app). La policy
+ * tenant-scoped de la migr 0206 permite este SELECT a cualquier miembro; el
+ * gating a rol admin lo hace page.tsx. Incluye la columna `lang` vía select("*").
+ */
+export async function listTenantSignatures(
+  supabase: SupabaseClient,
+): Promise<MailSignature[]> {
+  const { data, error } = await supabase
+    .from("mail_signatures")
+    .select("*")
+    .order("updated_at", { ascending: false });
   if (error) return [];
   return (data ?? []) as MailSignature[];
 }
@@ -234,6 +252,26 @@ export async function listBlacklist(
     .order("added_at", { ascending: false });
   if (error) return [];
   return (data ?? []) as MailBlacklistEntry[];
+}
+
+// ─── Scheduled (SDD-0143 Slice D · Programados) ─────────────
+
+/**
+ * Lista la cola de programados del tenant (RLS filtra tenant).
+ * Muestra queued + sent (histórico corto), oculta los cancelados —
+ * mismo criterio que la vista del Norte (mailing-scheduled.jsx). Orden
+ * por scheduled_for asc (los próximos a vencer arriba).
+ */
+export async function listScheduled(
+  supabase: SupabaseClient,
+): Promise<MailScheduled[]> {
+  const { data, error } = await supabase
+    .from("mail_scheduled")
+    .select("*")
+    .neq("status", "canceled")
+    .order("scheduled_for", { ascending: true });
+  if (error) return [];
+  return (data ?? []) as MailScheduled[];
 }
 
 // ─── KPIs ───────────────────────────────────────────────────

@@ -12,8 +12,17 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/db/server";
+import { createAdminClient } from "@/lib/db/admin";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
-import { listRules, listTemplates } from "@/lib/studio/mail-queries";
+import {
+  listRules,
+  listScheduled,
+  listTemplates,
+  listTenantSignatures,
+} from "@/lib/studio/mail-queries";
+import { listMembers } from "@/lib/studio/user-queries";
+import { roleLabel, userDisplayName, userInitials } from "@/lib/studio/user-types";
+import type { MailScheduled, MailSignature } from "@/lib/studio/mail-types";
 import { MailingClient } from "./_components/MailingClient";
 import type {
   MailBlacklistRow,
@@ -21,6 +30,7 @@ import type {
   MailingAdminTab,
   MailLogRow,
   MailLogStatus,
+  SignatureTeamMember,
 } from "./_components/mailing-types";
 
 export const metadata = { title: "Mailing · DTD Studio" };
@@ -38,6 +48,31 @@ const VALID_STATUSES: MailLogStatus[] = [
   "clicked",
   "failed",
 ];
+
+const VALID_TABS: MailingAdminTab[] = [
+  "templates",
+  "signatures",
+  "compose",
+  "scheduled",
+  "reglas",
+  "config",
+  "logs",
+];
+
+/** Subtítulo del header por tab (portado del Norte erp/modules/mailing.jsx). */
+const TAB_SUBTITLE: Record<MailingAdminTab, string> = {
+  templates:
+    "Plantillas de email y WhatsApp · variables dinámicas · multi-idioma · test send.",
+  signatures:
+    "Cada empleado configura su firma con los layouts oficiales del Brand Book DTD.",
+  compose: "Envío individual con plantilla + firma.",
+  scheduled:
+    "Correos programados en cola. Se envían en su fecha/hora; puedes adelantarlos o cancelarlos.",
+  reglas:
+    "Eventos del ERP que disparan correos automáticos. Destinatario cliente vs. interno.",
+  config: "Proveedor de envío, límites y lista negra (blacklist).",
+  logs: "Histórico de envíos. Estado de entrega, aperturas y rebotes.",
+};
 
 export default async function MailingAdminPage({
   searchParams,
@@ -73,13 +108,9 @@ export default async function MailingAdminPage({
   };
 
   const tabRaw = singleParam("tab");
-  const tab: MailingAdminTab =
-    tabRaw === "templates" ||
-    tabRaw === "reglas" ||
-    tabRaw === "config" ||
-    tabRaw === "blacklist"
-      ? (tabRaw as MailingAdminTab)
-      : "logs";
+  const tab: MailingAdminTab = (VALID_TABS as string[]).includes(tabRaw ?? "")
+    ? (tabRaw as MailingAdminTab)
+    : "templates";
 
   const statusRaw = singleParam("status");
   const status: MailLogStatus | "all" =
@@ -115,7 +146,8 @@ export default async function MailingAdminPage({
 
   // Templates + rules + config + blacklist para los tabs correspondientes
   // (siempre cargamos los templates para usar como filter dropdown en tab Logs)
-  const [templatesFull, rules, config, blacklistResp] = await Promise.all([
+  const [templatesFull, rules, config, blacklistResp, scheduled] =
+    await Promise.all([
     listTemplates(supabase, { limit: 100 }),
     tab === "reglas" ? listRules(supabase) : Promise.resolve([]),
     tab === "config"
@@ -127,18 +159,81 @@ export default async function MailingAdminPage({
           .eq("tenant_id", link.tenant_id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    tab === "blacklist"
+    tab === "config"
       ? supabase
           .from("mail_blacklist")
           .select("id, email, reason, notes, added_by, added_at")
           .order("added_at", { ascending: false })
           .limit(200)
       : Promise.resolve({ data: [] }),
+    tab === "scheduled"
+      ? listScheduled(supabase)
+      : Promise.resolve([] as MailScheduled[]),
   ]);
 
   const templates = templatesFull.map((t) => ({ slug: t.slug, name: t.name }));
   const blacklist =
     (blacklistResp?.data ?? []) as unknown as MailBlacklistRow[];
+
+  // ── Firmas · solo cuando el tab lo necesita ──────────────────
+  // La vista Firmas lista/edita la firma de TODO el equipo. Los miembros
+  // (nombre/cargo/email) se resuelven con admin client igual que en Usuarios
+  // (la RLS de user_tenants tapa a los no-admin más allá de su propia fila).
+  let signatures: MailSignature[] = [];
+  let members: SignatureTeamMember[] = [];
+  if (tab === "signatures") {
+    const supabaseAdminForMembers = (() => {
+      try {
+        return createAdminClient();
+      } catch {
+        return null;
+      }
+    })();
+
+    const [sigs, membersRaw] = await Promise.all([
+      listTenantSignatures(supabase),
+      listMembers(supabaseAdminForMembers ?? supabase, {
+        tenantId: link.tenant_id,
+      }),
+    ]);
+    signatures = sigs;
+
+    // Resolver emails de auth.users (listMembers los deja como '').
+    const emailMap = new Map<string, string>();
+    if (supabaseAdminForMembers) {
+      try {
+        const { data: authUsers } =
+          await supabaseAdminForMembers.auth.admin.listUsers({ perPage: 200 });
+        for (const u of authUsers?.users ?? []) {
+          if (u.email) emailMap.set(u.id, u.email);
+        }
+      } catch {
+        /* sin admin no hay emails · se cae a '—' */
+      }
+    }
+
+    members = membersRaw.map((m) => {
+      const email = emailMap.get(m.user_id) ?? "";
+      return {
+        userId: m.user_id,
+        name: userDisplayName(m.profile, email || m.user_id),
+        roleLabel: roleLabel(m.role),
+        positionLabel: m.profile?.position_label ?? null,
+        email,
+        initials: userInitials(m.profile, email || m.user_id),
+        avatarUrl: m.profile?.avatar_url ?? null,
+      };
+    });
+  }
+
+  // ── Firmas para el Envío manual · solo cuando el tab es compose ──────
+  // Cargamos aparte de `signatures` (que solo se llena en tab signatures)
+  // para no acoplar los dos tabs. El Compose las usa para el bloque "firma
+  // adjunta" (select por miembro + preview).
+  let composeSignatures: MailSignature[] = [];
+  if (tab === "compose") {
+    composeSignatures = await listTenantSignatures(supabase);
+  }
 
   return (
     <div style={{ maxWidth: 1480 }}>
@@ -148,7 +243,7 @@ export default async function MailingAdminPage({
           className="studio-display"
           style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
         >
-          Mailing
+          Mailing &amp; Notificaciones
         </h1>
         <p
           style={{
@@ -158,10 +253,7 @@ export default async function MailingAdminPage({
             maxWidth: "76ch",
           }}
         >
-          Historial de emails enviados desde el Studio (invitaciones, bug
-          reporter, futuras campañas). Webhooks de Resend actualizan
-          automáticamente el estado de entrega (sent · delivered · opened ·
-          bounced).
+          {TAB_SUBTITLE[tab]}
         </p>
       </div>
 
@@ -173,6 +265,10 @@ export default async function MailingAdminPage({
         rules={rules}
         config={(config?.data ?? null) as unknown as MailConfigRow | null}
         blacklist={blacklist}
+        signatures={signatures}
+        composeSignatures={composeSignatures}
+        members={members}
+        scheduled={scheduled}
         filters={{ status, template: templateSlug ?? "all", search: search ?? "" }}
       />
     </div>
