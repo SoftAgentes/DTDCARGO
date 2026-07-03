@@ -21,10 +21,13 @@ import { createClient } from "@/lib/db/server";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { buildSampleVars } from "@/lib/studio/mail-sample-vars";
+import { getDefaultSignature } from "@/lib/studio/mail-queries";
+import { renderSignatureHtml } from "@/lib/studio/mail-signature-render";
 import {
   extractVariables,
   validateCreateRuleInput,
   validateScheduleEmailInput,
+  validateSendManualInput,
   validateUpdateTemplateInput,
   validateUpsertSignatureInput,
   type ActionFieldErrors,
@@ -553,6 +556,36 @@ function parseEmailList(raw: string | null): string[] {
 }
 
 /**
+ * Body final del correo: texto plano → <br> + firma del miembro adjunta al
+ * final (si se seleccionó). Compartido por el envío inmediato y el programado
+ * para que la firma y el formato salgan IDÉNTICOS por ambas vías. En el
+ * programado se hornea acá al encolar (el cron manda body_html crudo).
+ */
+async function buildOutgoingHtml(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  rawBody: string,
+  signatureUserId: string | null | undefined,
+): Promise<string> {
+  let html = rawBody.replace(/\r\n|\r|\n/g, "<br>");
+  if (signatureUserId) {
+    const sig = await getDefaultSignature(supabase, signatureUserId);
+    if (sig) {
+      const sigHtml = renderSignatureHtml({
+        layout: sig.layout,
+        full_name: sig.full_name,
+        role_label: sig.role_label,
+        email: sig.email,
+        phone: sig.phone,
+        photo_url: sig.photo_url,
+        company_name: sig.company_name,
+      });
+      if (sigHtml) html = `${html}<br><br>${sigHtml}`;
+    }
+  }
+  return html;
+}
+
+/**
  * Encola un correo programado (status='queued'). El cron mail-scheduled lo
  * envía cuando vence, o el admin lo adelanta con "Enviar ya".
  *
@@ -598,6 +631,14 @@ export async function scheduleEmailAction(
     .maybeSingle<{ tenant_id: string }>();
   if (!link?.tenant_id) return { error: "Sin tenant." };
 
+  // Hornear la firma + formato acá: el cron manda body_html crudo y no lee
+  // signature_user_id, así el programado sale igual que el envío inmediato.
+  const scheduledBodyHtml = await buildOutgoingHtml(
+    supabase,
+    input.body_html,
+    input.channel === "whatsapp" ? null : input.signature_user_id,
+  );
+
   const { error } = await supabase.from("mail_scheduled").insert({
     tenant_id: link.tenant_id,
     scheduled_for: input.scheduled_for,
@@ -607,7 +648,7 @@ export async function scheduleEmailAction(
     cc: input.cc ?? [],
     bcc: input.bcc ?? [],
     subject: input.subject,
-    body_html: input.body_html,
+    body_html: scheduledBodyHtml,
     template_slug: input.template_slug ?? null,
     signature_user_id: input.signature_user_id ?? null,
     attachments_count: input.attachments_count ?? 0,
@@ -622,6 +663,103 @@ export async function scheduleEmailAction(
 
   revalidatePath("/studio/mailing");
   return { ok: true, message: "Correo programado." };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Compose · envío manual inmediato (SDD-0140 Slice C)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Envía un correo individual redactado a mano (Envío manual del Norte).
+ *
+ * Firma estándar `(_prev, formData)`. Admin-only (moduleEditDenial). Valida
+ * con validateSendManualInput. Si viene `signature_user_id`, adjunta la firma
+ * de ese miembro al final del body (renderSignatureHtml, la misma función pura
+ * que usa el editor de Firmas). El envío real usa createAdminClient() porque
+ * mail_logs INSERT está bloqueado para authenticated.
+ *
+ * V1: solo canal email. `whatsapp` valida pero devuelve un aviso amable (igual
+ * que el Norte, que es display-only para ese canal · no hay integración WA).
+ */
+export async function sendManualEmailAction(
+  _prev: MailingActionState,
+  formData: FormData,
+): Promise<MailingActionState> {
+  const partial = {
+    to: (formData.get("to") as string | null)?.trim() ?? undefined,
+    to_name: (formData.get("to_name") as string | null)?.trim() || undefined,
+    cc: parseEmailList(formData.get("cc") as string | null),
+    bcc: parseEmailList(formData.get("bcc") as string | null),
+    subject: (formData.get("subject") as string | null) ?? undefined,
+    body_html: (formData.get("body_html") as string | null) ?? undefined,
+    channel: (formData.get("channel") as string | null) || undefined,
+    template_slug:
+      (formData.get("template_slug") as string | null)?.trim() || undefined,
+    signature_user_id:
+      (formData.get("signature_user_id") as string | null)?.trim() || undefined,
+  };
+
+  const { input, fieldErrors } = validateSendManualInput(
+    partial as Parameters<typeof validateSendManualInput>[0],
+  );
+  if (fieldErrors) return { fieldErrors };
+  if (!input) return { error: "Datos inválidos." };
+
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "mailing");
+  if (denial) return { error: denial };
+
+  if (input.channel === "whatsapp") {
+    return {
+      error:
+        "WhatsApp aún no está conectado. Por ahora solo se envían correos por email.",
+    };
+  }
+
+  const { data: link } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  if (!link?.tenant_id) return { error: "Sin tenant." };
+
+  // Body final: texto plano → <br> + firma adjunta (helper compartido con el
+  // envío programado, para que ambos salgan idénticos).
+  const bodyHtml = await buildOutgoingHtml(
+    supabase,
+    input.body_html,
+    input.signature_user_id,
+  );
+
+  let supabaseAdmin;
+  try {
+    supabaseAdmin = createAdminClient();
+  } catch {
+    return { error: "Admin client no configurado." };
+  }
+
+  const result = await sendEmail(supabaseAdmin, link.tenant_id, {
+    to: input.to,
+    to_name: input.to_name,
+    cc: input.cc,
+    bcc: input.bcc,
+    subject: input.subject,
+    html: bodyHtml,
+    metadata: {
+      source: "sendManualEmailAction",
+      template_slug: input.template_slug ?? null,
+      signature_user_id: input.signature_user_id ?? null,
+    },
+  });
+
+  if (!result.ok) return { error: `No se pudo enviar: ${result.error}` };
+
+  revalidatePath("/studio/mailing");
+  return {
+    ok: true,
+    message: result.queued
+      ? "Encolado · sin RESEND_API_KEY el envío real no ocurre, pero el log queda."
+      : "Correo enviado.",
+  };
 }
 
 /**

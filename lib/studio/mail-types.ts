@@ -334,6 +334,24 @@ export interface ScheduleEmailInput {
   attachments_count?: number;
 }
 
+/**
+ * Input del Envío manual (Compose · SDD-0140 Slice C). Lo usa
+ * sendManualEmailAction. A diferencia de ScheduleEmailInput, el envío es
+ * inmediato (no lleva `scheduled_for`). El body ya viene crudo desde el
+ * textarea; la firma se adjunta en la action, no acá.
+ */
+export interface SendManualInput {
+  to: string;
+  to_name?: string;
+  cc?: string[];
+  bcc?: string[];
+  subject: string;
+  body_html: string;
+  channel: MailChannel;
+  template_slug?: string;
+  signature_user_id?: string;
+}
+
 export interface CreateSignatureInput {
   layout: MailSignatureLayout;
   full_name: string;
@@ -615,6 +633,49 @@ export function validateScheduleEmailInput(
         partial.attachments_count > 0
           ? Math.floor(partial.attachments_count)
           : 0,
+    },
+  };
+}
+
+export function validateSendManualInput(
+  partial: Partial<SendManualInput>,
+): { input?: SendManualInput; fieldErrors?: ActionFieldErrors } {
+  const fieldErrors: ActionFieldErrors = {};
+
+  if (!partial.to || !isValidEmail(partial.to)) {
+    fieldErrors.to = "Destinatario inválido";
+  }
+  if (!partial.subject || partial.subject.trim().length < 1) {
+    fieldErrors.subject = "El asunto es requerido";
+  }
+  if (!partial.body_html || partial.body_html.trim().length < 1) {
+    fieldErrors.body_html = "El cuerpo no puede estar vacío";
+  }
+  if (partial.channel && !MAIL_CHANNELS.includes(partial.channel)) {
+    fieldErrors.channel = "Canal inválido";
+  }
+  if (partial.cc) {
+    const bad = partial.cc.find((e) => !isValidEmail(e));
+    if (bad) fieldErrors.cc = `Email inválido en CC: ${bad}`;
+  }
+  if (partial.bcc) {
+    const bad = partial.bcc.find((e) => !isValidEmail(e));
+    if (bad) fieldErrors.bcc = `Email inválido en BCC: ${bad}`;
+  }
+
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
+
+  return {
+    input: {
+      to: partial.to!.trim().toLowerCase(),
+      to_name: partial.to_name?.trim() || undefined,
+      cc: partial.cc,
+      bcc: partial.bcc,
+      subject: partial.subject!.trim(),
+      body_html: partial.body_html!,
+      channel: partial.channel ?? "email",
+      template_slug: partial.template_slug?.trim() || undefined,
+      signature_user_id: partial.signature_user_id?.trim() || undefined,
     },
   };
 }

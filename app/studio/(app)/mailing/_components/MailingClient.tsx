@@ -29,6 +29,7 @@ import {
 } from "./mailing-types";
 import { TemplatesView } from "./TemplatesView";
 import { SignaturesView } from "./SignaturesView";
+import { ComposeView } from "./ComposeView";
 import { ScheduledView } from "./ScheduledView";
 import { RulesView } from "./RulesView";
 import { ConfigView } from "./ConfigView";
@@ -43,6 +44,7 @@ interface Props {
   config: MailConfigRow | null;
   blacklist: MailBlacklistRow[];
   signatures: MailSignature[];
+  composeSignatures: MailSignature[];
   members: SignatureTeamMember[];
   scheduled: MailScheduled[];
   filters: MailingFilters;
@@ -85,6 +87,7 @@ export function MailingClient({
   config,
   blacklist,
   signatures,
+  composeSignatures,
   members,
   scheduled,
   filters,
@@ -165,10 +168,9 @@ export function MailingClient({
       )}
 
       {tab === "compose" && (
-        <EmptyState
-          eyebrow="En construcción · Slice C"
-          title="Envío manual"
-          description="Redacta y envía un correo individual con plantilla + firma. Vista en construcción."
+        <ComposeView
+          templates={templatesFull}
+          signatures={composeSignatures}
         />
       )}
 

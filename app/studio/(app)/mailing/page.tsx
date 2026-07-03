@@ -226,6 +226,15 @@ export default async function MailingAdminPage({
     });
   }
 
+  // ── Firmas para el Envío manual · solo cuando el tab es compose ──────
+  // Cargamos aparte de `signatures` (que solo se llena en tab signatures)
+  // para no acoplar los dos tabs. El Compose las usa para el bloque "firma
+  // adjunta" (select por miembro + preview).
+  let composeSignatures: MailSignature[] = [];
+  if (tab === "compose") {
+    composeSignatures = await listTenantSignatures(supabase);
+  }
+
   return (
     <div style={{ maxWidth: 1480 }}>
       <div style={{ marginBottom: 24 }}>
@@ -257,6 +266,7 @@ export default async function MailingAdminPage({
         config={(config?.data ?? null) as unknown as MailConfigRow | null}
         blacklist={blacklist}
         signatures={signatures}
+        composeSignatures={composeSignatures}
         members={members}
         scheduled={scheduled}
         filters={{ status, template: templateSlug ?? "all", search: search ?? "" }}
