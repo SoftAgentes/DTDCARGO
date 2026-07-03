@@ -18,7 +18,6 @@ import {
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { showNortePortal } from "@/lib/portal/demo";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
-import { ChangePasswordCard } from "./ChangePasswordCard";
 import { PortalAddresses } from "./PortalAddresses";
 import { AvatarEditor } from "./AvatarEditor";
 
@@ -276,8 +275,7 @@ export default async function PortalAccountPage() {
             </a>
           </div>
 
-          {/* Cambio de contraseña OPCIONAL (SDD-0042 Fase 6) */}
-          <ChangePasswordCard />
+          {/* Cambio de contraseña eliminado (2026-07-03): acceso solo por magic link. */}
         </div>
 
         {/* ── Tu MARKBOX para tus proveedores (el VALOR) ── */}
