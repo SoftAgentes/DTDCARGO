@@ -18,7 +18,33 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { invoiceUsdAmount } from "@/lib/studio/fidelizacion/types";
-import { clientsWithTier } from "@/lib/studio/fidelizacion/queries";
+import {
+  clientsWithTier,
+  clientAnnualBilling,
+} from "@/lib/studio/fidelizacion/queries";
+import {
+  getAnalyticsLeads,
+  allConvertedLeads,
+  KOMMO_WON_STATUS_ID,
+  KOMMO_LOST_STATUS_ID,
+  type AnalyticsLead,
+} from "@/lib/studio/kommo-analytics";
+import { listKommoUsers } from "@/lib/studio/kommo-queries";
+import type { KommoUserRow } from "@/lib/studio/kommo-types";
+import {
+  getFiscalSettings,
+  SALE_STATUSES,
+  INVOICE_COLUMNS,
+} from "@/lib/studio/fiscal/queries";
+import {
+  toSalesRow,
+  salesTotals,
+  toPurchaseRow,
+  purchaseTotals,
+  type RawInvoice,
+  type RawBill,
+} from "@/lib/studio/fiscal/types";
+import type { InvoiceIvaMode } from "@/lib/studio/fiscal/config-types";
 import { listAccounts, accountBalances } from "@/lib/studio/account-queries";
 import { profitAndLoss } from "@/lib/studio/accounting/reports";
 import { receivablesQueue } from "@/lib/studio/payment-queries";
@@ -36,14 +62,18 @@ import {
   routeLabel,
   serviceLabel,
   transitDays,
+  ivaOutcome,
+  type AgentRow,
   type AgingItem,
   type AgingReport,
   type CarrierRow,
   type CashflowReport,
   type ClientRankRow,
   type CombinedReport,
+  type CommercialByAgent,
   type CommercialByClient,
   type DateRange,
+  type IvaPosition,
   type FlowItem,
   type IncomeStatement,
   type OperationalOverview,
@@ -488,6 +518,122 @@ export async function commercialByClient(
   return { ranking, tierDist, totalClients, totalBilledUsd };
 }
 
+// ── Comerciales · Por agente ───────────────────────────────────
+
+const EMPTY_AGENT_TOTALS = {
+  leads: 0,
+  won: 0,
+  lost: 0,
+  clients: 0,
+  revenueUsd: 0,
+  convPct: 0,
+};
+
+/**
+ * Desempeño por agente comercial (asesor de Kommo). REUSA el espejo Kommo
+ * (SDD-0078/0087): `getAnalyticsLeads` (leads con responsible_user_id + estado),
+ * `listKommoUsers` (nombre real del asesor) y `allConvertedLeads` (leadId →
+ * markbox de los convertidos a cliente). El REVENUE es plata REAL del ERP
+ * (`clientAnnualBilling`, USD trailing-12m) atribuida al asesor por sus leads
+ * convertidos — NO el `price` de Kommo (≈$0, la ceguera de SDD-0062) ni un valor
+ * fabricado (el Norte lo mockeaba). NPS/tickets del Norte se omiten (sin fuente).
+ *
+ * Snapshot del embudo actual (no filtra por período, igual que "Por cliente").
+ * Resiliente: si el espejo Kommo no existe o está vacío → `hasKommo: false` →
+ * EmptyState honesto. RLS filtra por tenant en cada lectura.
+ */
+export async function commercialByAgent(
+  supabase: SupabaseClient,
+  today?: Date,
+): Promise<CommercialByAgent> {
+  const now = today ?? new Date();
+
+  let leads: AnalyticsLead[];
+  try {
+    leads = await getAnalyticsLeads(supabase);
+  } catch {
+    // kommo_leads ausente (gap deploy↔migración) → sin datos, honesto.
+    return { rows: [], totals: { ...EMPTY_AGENT_TOTALS }, hasKommo: false };
+  }
+  if (leads.length === 0) {
+    return { rows: [], totals: { ...EMPTY_AGENT_TOTALS }, hasKommo: false };
+  }
+
+  const [users, converted, billing] = await Promise.all([
+    listKommoUsers(supabase).catch(() => [] as KommoUserRow[]),
+    allConvertedLeads(supabase).catch(() => ({}) as Record<number, string>),
+    clientAnnualBilling(supabase, now).catch(() => new Map<string, number>()),
+  ]);
+
+  const nameById = new Map<number, string>();
+  for (const u of users) {
+    const n = (u.name ?? "").trim();
+    if (n) nameById.set(u.id, n);
+  }
+
+  type Acc = {
+    leads: number;
+    won: number;
+    lost: number;
+    clients: number;
+    revenueUsd: number;
+  };
+  const acc = new Map<number | null, Acc>();
+  const bucket = (id: number | null): Acc => {
+    let a = acc.get(id);
+    if (!a) {
+      a = { leads: 0, won: 0, lost: 0, clients: 0, revenueUsd: 0 };
+      acc.set(id, a);
+    }
+    return a;
+  };
+
+  for (const l of leads) {
+    const a = bucket(l.responsible_user_id);
+    a.leads += 1;
+    if (l.status_id === KOMMO_WON_STATUS_ID) a.won += 1;
+    else if (l.status_id === KOMMO_LOST_STATUS_ID) a.lost += 1;
+    const markbox = converted[l.id];
+    if (markbox) {
+      a.clients += 1;
+      a.revenueUsd += billing.get(markbox) ?? 0;
+    }
+  }
+
+  const rows: AgentRow[] = [...acc.entries()]
+    .map(([id, a]) => ({
+      agentId: id,
+      name: id == null ? "Sin asignar" : (nameById.get(id) ?? `Asesor #${id}`),
+      leads: a.leads,
+      won: a.won,
+      lost: a.lost,
+      clients: a.clients,
+      revenueUsd: Math.round(a.revenueUsd * 100) / 100,
+      convPct: a.leads > 0 ? Math.round((a.won / a.leads) * 1000) / 10 : 0,
+    }))
+    .sort((x, y) => {
+      if (y.revenueUsd !== x.revenueUsd) return y.revenueUsd - x.revenueUsd;
+      return y.leads - x.leads;
+    });
+
+  const totals = rows.reduce(
+    (t, r) => ({
+      leads: t.leads + r.leads,
+      won: t.won + r.won,
+      lost: t.lost + r.lost,
+      clients: t.clients + r.clients,
+      revenueUsd: t.revenueUsd + r.revenueUsd,
+      convPct: 0,
+    }),
+    { ...EMPTY_AGENT_TOTALS },
+  );
+  totals.revenueUsd = Math.round(totals.revenueUsd * 100) / 100;
+  totals.convPct =
+    totals.leads > 0 ? Math.round((totals.won / totals.leads) * 1000) / 10 : 0;
+
+  return { rows, totals, hasKommo: true };
+}
+
 // ── Contables · Estado de resultados ───────────────────────────
 
 /**
@@ -643,6 +789,132 @@ export async function cashflowReport(
     totalCollected: Math.round(totalCollected * 100) / 100,
     outstanding: kpis.outstanding,
     overdue: kpis.overdue,
+  };
+}
+
+// ── Contables · Posición de IVA (débito − crédito) ─────────────
+
+const IVA_BILL_COLUMNS =
+  "bill_code, supplier_name, reference, currency, total_amount, issue_date, created_at, status";
+
+/**
+ * Posición de IVA del período. REUSA la clasificación fiscal (SDD-0073):
+ *  - Débito fiscal = IVA de las ventas EMITIDAS del rango (`invoices`),
+ *    clasificadas por la config del tenant vía `toSalesRow` → `salesTotals`.
+ *    Con el módulo fiscal OFF (DTD hoy) las ventas caen exentas → débito 0.
+ *  - Crédito fiscal = IVA de las compras (`supplier_bills`) vía `toPurchaseRow`
+ *    → `purchaseTotals`. V1: `supplier_bills` no discrimina IVA (va al costo,
+ *    0044) → crédito 0. NO se fabrica (regla §3.2); la UI lo advierte.
+ *
+ * Cuota = débito − crédito; a pagar / excedente vía `ivaOutcome` (retenciones V1
+ * = 0, sin comprobantes). NO normaliza moneda (misma convención V1 que los
+ * Libros fiscales, para que los números cuadren con /studio/fiscal) → devuelve
+ * `currencies` para que la UI advierta si hay mezcla. Read-only, RLS por tenant.
+ */
+export async function ivaPosition(
+  supabase: SupabaseClient,
+  period: ReportPeriod,
+  today?: Date,
+): Promise<IvaPosition> {
+  const range = periodRange(period, today);
+  const settings = await getFiscalSettings(supabase);
+
+  // ── Ventas (débito): facturas emitidas del rango, clasificadas por config.
+  const { data: invData, error: invErr } = await supabase
+    .from("invoices")
+    .select(INVOICE_COLUMNS)
+    .is("deleted_at", null)
+    .in("status", SALE_STATUSES as unknown as string[])
+    .gte("created_at", range.from)
+    .lte("created_at", `${range.to}T23:59:59.999Z`)
+    .limit(20000);
+  if (invErr) throw invErr;
+
+  const salesCurrencies = new Set<string>();
+  const salesRows = ((invData as Record<string, unknown>[] | null) ?? []).map(
+    (r) => {
+      const currency = (r.currency as string | null) ?? null;
+      if (currency) salesCurrencies.add(currency);
+      const inv: RawInvoice = {
+        invoice_code: String(r.invoice_code ?? ""),
+        // El RIF/nombre no importan para los totales de IVA → null.
+        client_name: (r.client_name as string | null) ?? null,
+        rif: null,
+        iva_mode: (r.iva_mode as InvoiceIvaMode | null) ?? null,
+        base_amount: num(r.base_amount),
+        iva_amount: num(r.iva_amount),
+        iva_rate: num(r.iva_rate),
+        total_amount: num(r.total_amount),
+        issued_at: (r.issued_at as string | null) ?? null,
+        created_at: String(r.created_at ?? ""),
+        currency,
+      };
+      return toSalesRow(inv, settings);
+    },
+  );
+  const st = salesTotals(salesRows);
+
+  // ── Compras (crédito): supplier_bills del rango por issue_date. Defensivo:
+  // si la tabla no existe en un env, crédito 0 (no rompe la vista).
+  const purchaseCurrencies = new Set<string>();
+  let pt = purchaseTotals([]);
+  try {
+    const { data: billData, error: billErr } = await supabase
+      .from("supplier_bills")
+      .select(IVA_BILL_COLUMNS)
+      .is("deleted_at", null)
+      .neq("status", "anulada")
+      .gte("issue_date", range.from)
+      .lte("issue_date", range.to)
+      .limit(20000);
+    if (billErr) throw billErr;
+    const purchaseRows = (
+      (billData as Record<string, unknown>[] | null) ?? []
+    ).map((r) => {
+      const currency = (r.currency as string | null) ?? null;
+      if (currency) purchaseCurrencies.add(currency);
+      const raw: RawBill = {
+        bill_code: String(r.bill_code ?? ""),
+        supplier_name: (r.supplier_name as string | null) ?? null,
+        reference: (r.reference as string | null) ?? null,
+        tax_id: null,
+        total_amount: num(r.total_amount),
+        issue_date: (r.issue_date as string | null) ?? null,
+        created_at: String(r.created_at ?? ""),
+        currency,
+      };
+      return toPurchaseRow(raw, settings);
+    });
+    pt = purchaseTotals(purchaseRows);
+  } catch {
+    pt = purchaseTotals([]);
+  }
+
+  const debito = st.iva;
+  const credito = pt.iva;
+  const cuota = Math.round((debito - credito) * 100) / 100;
+  const retenciones = 0; // V1: sin comprobantes de retención (columna preparada).
+  const { aPagar, excedente } = ivaOutcome(cuota, retenciones);
+
+  const currencies = [
+    ...new Set([...salesCurrencies, ...purchaseCurrencies]),
+  ].sort();
+
+  return {
+    enabled: settings.fiscal_module_enabled,
+    debito,
+    credito,
+    cuota,
+    retenciones,
+    aPagar,
+    excedente,
+    baseGravada: st.baseGravada,
+    baseNoGravada: Math.round((st.baseExenta + st.baseTasaCero) * 100) / 100,
+    salesRows: st.rows,
+    purchaseRows: pt.rows,
+    purchaseRowsWithIva: pt.rowsWithData,
+    currencies,
+    range,
   };
 }
 

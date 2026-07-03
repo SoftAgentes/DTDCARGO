@@ -23,9 +23,11 @@ import {
   reportByService,
   reportByCarrier,
   commercialByClient,
+  commercialByAgent,
   incomeStatement,
   agingReport,
   cashflowReport,
+  ivaPosition,
   builderRows,
   combinedReport,
 } from "@/lib/studio/reports/queries";
@@ -67,22 +69,27 @@ export default async function ReportesPage({
   // Cargar SOLO lo que la categoría activa necesita (las otras categorías ni se
   // consultan → menos round-trips por vista).
   if (category === "com") {
-    const byClient = await commercialByClient(supabase);
+    const [byClient, byAgent] = await Promise.all([
+      commercialByClient(supabase),
+      commercialByAgent(supabase),
+    ]);
     return (
       <ReportesClient
         period={period}
         category="com"
         rep={rep}
         byClient={byClient}
+        byAgent={byAgent}
       />
     );
   }
 
   if (category === "con") {
-    const [income, aging, cashflow] = await Promise.all([
+    const [income, aging, cashflow, iva] = await Promise.all([
       incomeStatement(supabase, period),
       agingReport(supabase),
       cashflowReport(supabase, period),
+      ivaPosition(supabase, period),
     ]);
     return (
       <ReportesClient
@@ -92,6 +99,7 @@ export default async function ReportesPage({
         income={income}
         aging={aging}
         cashflow={cashflow}
+        iva={iva}
       />
     );
   }

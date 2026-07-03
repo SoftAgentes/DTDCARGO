@@ -20,8 +20,10 @@ import type {
   AgingReport,
   CashflowReport,
   CombinedReport,
+  CommercialByAgent,
   CommercialByClient,
   IncomeStatement,
+  IvaPosition,
   OperationalOverview,
   RouteRow,
   ServiceRow,
@@ -62,9 +64,11 @@ export type ViewCsvInput = {
   carriers?: CarrierRow[];
   services?: ServiceRow[];
   byClient?: CommercialByClient;
+  byAgent?: CommercialByAgent;
   income?: IncomeStatement;
   aging?: AgingReport;
   cashflow?: CashflowReport;
+  iva?: IvaPosition;
   combined?: CombinedReport;
 };
 
@@ -118,8 +122,25 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
     return null;
   }
 
-  // Comerciales · Por cliente
+  // Comerciales · Por cliente / Por agente
   if (category === "com") {
+    if (rep === "by-agent") {
+      const data = input.byAgent;
+      if (!data || !data.hasKommo || data.rows.length === 0) return null;
+      return {
+        slug: "comercial-por-agente",
+        headers: ["Agente", "Estimados", "Ganadas", "Perdidas", "Conversión %", "Clientes", "Revenue USD 12m"],
+        rows: data.rows.map((r) => [
+          r.name,
+          r.leads,
+          r.won,
+          r.lost,
+          r.convPct,
+          r.clients,
+          r.revenueUsd,
+        ]),
+      };
+    }
     const data = input.byClient;
     if (!data) return null;
     const ranked = data.ranking.filter((r) => r.billedUsd > 0);
@@ -151,6 +172,26 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
         slug: "contable-aging-cxc-cxp",
         headers: ["Lado", "Tramo", "Monto USD", "Documentos", "%"],
         rows: [...side("CxC", ag.cxc), ...side("CxP", ag.cxp)],
+      };
+    }
+    if (rep === "iva") {
+      const iva = input.iva;
+      if (!iva || (iva.salesRows === 0 && iva.purchaseRows === 0)) return null;
+      return {
+        slug: "contable-posicion-iva",
+        headers: ["Concepto", "Monto"],
+        rows: [
+          ["Débito fiscal (IVA ventas)", iva.debito],
+          ["Crédito fiscal (IVA compras)", iva.credito],
+          ["Cuota tributaria", iva.cuota],
+          ["Retenciones soportadas", iva.retenciones],
+          ["IVA a pagar", iva.aPagar],
+          ["Excedente a favor", iva.excedente],
+          ["Base gravada", iva.baseGravada],
+          ["Base no gravada", iva.baseNoGravada],
+          ["Facturas de venta", iva.salesRows],
+          ["Compras", iva.purchaseRows],
+        ],
       };
     }
     if (rep === "cashflow") {
