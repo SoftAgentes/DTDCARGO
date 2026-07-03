@@ -1,7 +1,7 @@
 /**
  * Compras asistidas (SDD-0071) — el lado COMPRAS del modelo QuickBooks.
- * Renombre founder 2026-07-03 (ex "Órdenes de compra"); slug y código OC-
- * NO cambian (contrato interno).
+ * Renombre founder 2026-07-03 (ex "Órdenes de compra"); slug NO cambia
+ * (contrato interno). Correlativo visible: CANNNN (migr 0208, ex OC-YYYY-NNNN).
  *
  * Server component: lista los DOS sub-tipos de compra juntos:
  *   · Prealertas del cliente = prealertas (0057) — el cliente compró por su

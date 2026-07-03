@@ -2,8 +2,8 @@
 
 /**
  * OrdenesCompraClient — vista de operador de "Compras asistidas" (SDD-0071;
- * renombre founder 2026-07-03, ex "Órdenes de compra" — id/slug/código OC-
- * NO cambian, son contrato interno).
+ * renombre founder 2026-07-03, ex "Órdenes de compra" — id/slug NO cambian,
+ * son contrato interno; el correlativo visible pasó a CANNNN en migr 0208).
  *
  * Header + 4 KPIs + botón "Nueva compra" + 2 tabs:
  *   · Compras de DTD ⭐      : purchase_orders del tenant (compra asistida:

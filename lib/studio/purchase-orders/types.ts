@@ -327,10 +327,14 @@ export function buildBillPayloadFromPo(args: {
 // ║ Código correlativo (espejo en TS para test sin DB)        ║
 // ╚═══════════════════════════════════════════════════════════╝
 
-/** Patrón del purchase_order_code: OC-YYYY-NNNN (mínimo 4 dígitos). */
-export const PURCHASE_ORDER_CODE_RE = /^OC-\d{4}-\d{4,}$/;
+/**
+ * Patrón del purchase_order_code: CANNNN (mínimo 4 dígitos, sin año, sin
+ * guiones — decisión founder 2026-07-03, migr 0208). La fecha vive en
+ * created_at; el contador es global por tenant. Ex OC-YYYY-NNNN (0124).
+ */
+export const PURCHASE_ORDER_CODE_RE = /^CA\d{4,}$/;
 
 /** Formatea un purchase_order_code. Espejo en TS de la SQL next_purchase_order_code. */
-export function formatPurchaseOrderCode(year: number, seq: number): string {
-  return `OC-${year}-${String(seq).padStart(4, "0")}`;
+export function formatPurchaseOrderCode(seq: number): string {
+  return `CA${String(seq).padStart(4, "0")}`;
 }

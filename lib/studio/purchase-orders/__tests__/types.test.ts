@@ -204,9 +204,9 @@ describe("status lifecycle", () => {
 // ── mapeo OC → Bill ────────────────────────────────────────────
 
 describe("buildBillPayloadFromPo", () => {
-  it("arma el Bill con total de la OC, reference = código, proveedor de Tesorería", () => {
+  it("arma el Bill con total de la compra, reference = código, proveedor de Tesorería", () => {
     const payload = buildBillPayloadFromPo({
-      po: { purchase_order_code: "OC-2026-0007", total_cost_usd: 1234.5 },
+      po: { purchase_order_code: "CA0007", total_cost_usd: 1234.5 },
       tesorerySupplierId: "prv-9",
       expenseAccountId: "acc-5.1",
       issueDate: "2026-06-07",
@@ -216,14 +216,14 @@ describe("buildBillPayloadFromPo", () => {
     expect(payload.totalAmount).toBe(1234.5);
     expect(payload.currency).toBe("USD");
     expect(payload.fxRate).toBeNull();
-    expect(payload.reference).toBe("OC-2026-0007"); // trazabilidad Bill ← OC
+    expect(payload.reference).toBe("CA0007"); // trazabilidad Bill ← compra
     expect(payload.shipmentId).toBeNull();
-    expect(payload.concept).toContain("OC-2026-0007");
+    expect(payload.concept).toContain("CA0007");
   });
 
   it("dueDate por default = issueDate (recibido = exigible)", () => {
     const payload = buildBillPayloadFromPo({
-      po: { purchase_order_code: "OC-2026-0001", total_cost_usd: 100 },
+      po: { purchase_order_code: "CA0001", total_cost_usd: 100 },
       tesorerySupplierId: "prv-1",
       expenseAccountId: "acc",
       issueDate: "2026-01-15",
@@ -234,7 +234,7 @@ describe("buildBillPayloadFromPo", () => {
 
   it("dueDate explícito se respeta", () => {
     const payload = buildBillPayloadFromPo({
-      po: { purchase_order_code: "OC-2026-0001", total_cost_usd: 100 },
+      po: { purchase_order_code: "CA0001", total_cost_usd: 100 },
       tesorerySupplierId: "prv-1",
       expenseAccountId: "acc",
       issueDate: "2026-01-15",
@@ -245,7 +245,7 @@ describe("buildBillPayloadFromPo", () => {
 
   it("redondea el total a 2 decimales", () => {
     const payload = buildBillPayloadFromPo({
-      po: { purchase_order_code: "OC-2026-0001", total_cost_usd: 99.999 },
+      po: { purchase_order_code: "CA0001", total_cost_usd: 99.999 },
       tesorerySupplierId: "prv-1",
       expenseAccountId: "acc",
     });
@@ -256,15 +256,16 @@ describe("buildBillPayloadFromPo", () => {
 // ── código ─────────────────────────────────────────────────────
 
 describe("formatPurchaseOrderCode", () => {
-  it("formato OC-YYYY-NNNN con padding 4", () => {
-    expect(formatPurchaseOrderCode(2026, 1)).toBe("OC-2026-0001");
-    expect(formatPurchaseOrderCode(2026, 42)).toBe("OC-2026-0042");
-    expect(formatPurchaseOrderCode(2026, 12345)).toBe("OC-2026-12345");
+  it("formato CANNNN con padding 4, sin año ni guiones (migr 0208)", () => {
+    expect(formatPurchaseOrderCode(1)).toBe("CA0001");
+    expect(formatPurchaseOrderCode(42)).toBe("CA0042");
+    expect(formatPurchaseOrderCode(12345)).toBe("CA12345");
   });
 
   it("matchea el patrón PURCHASE_ORDER_CODE_RE", () => {
-    expect(PURCHASE_ORDER_CODE_RE.test("OC-2026-0001")).toBe(true);
-    expect(PURCHASE_ORDER_CODE_RE.test("OC-2026-1")).toBe(false); // sin padding
+    expect(PURCHASE_ORDER_CODE_RE.test("CA0001")).toBe(true);
+    expect(PURCHASE_ORDER_CODE_RE.test("CA1")).toBe(false); // sin padding
+    expect(PURCHASE_ORDER_CODE_RE.test("OC-2026-0001")).toBe(false); // formato legacy
     expect(PURCHASE_ORDER_CODE_RE.test("EST-2026-0001")).toBe(false);
   });
 });

@@ -29,9 +29,12 @@ proveedor en China por encargo del cliente) y qué compras están pendientes.
 Además la tabla no tenía filtros ni búsqueda.
 
 **Qué NO cambia (contrato interno):** el slug `/studio/ordenes-compra`, el id
-`purchase-orders` del RBAC, las tablas `purchase_orders`/`purchase_order_items`,
-el enum de estados en DB y el correlativo `OC-YYYY-NNNN` (RPC
-`next_purchase_order_code`). Solo cambia lo que ve el usuario.
+`purchase-orders` del RBAC, las tablas `purchase_orders`/`purchase_order_items`
+y el enum de estados en DB. **El correlativo SÍ cambió** (decisión founder
+2026-07-03, mismo día): `OC-YYYY-NNNN` → **`CANNNN`** (sin año, sin guiones;
+la fecha vive en `created_at`), migr `0208` — misma RPC
+`next_purchase_order_code`, ahora contador global por tenant + backfill de
+códigos legacy y de `supplier_bills.reference`.
 
 ## Slice A — Renombre + filtros + columnas configurables ✅ (esta ventana)
 
@@ -88,9 +91,9 @@ por el cliente. El módulo profundo debe modelar esas reglas. Norte propuesto
 
 ## Decisiones abiertas (founder)
 
-1. ¿El correlativo visible sigue `OC-YYYY-NNNN` o se migra a `CA-YYYY-NNNN`?
-   (Cambiarlo = migración + RPC nuevo; el código es solo un identificador, la
-   UI ya no depende de saber qué significa "OC".)
+1. ~~¿El correlativo visible sigue `OC-YYYY-NNNN`?~~ **RESUELTA (2026-07-03):
+   `CANNNN` sin año y sin guiones** — "las fechas no son importantes porque ya
+   están adentro del registro de la compra". Aplicada en migr `0208`.
 2. ¿Redirect `/studio/compra-asistida` → `/studio/ordenes-compra`? (Cosmético;
    hoy no hay links externos rotos.)
 3. Anticipo del cliente: ¿% fijo por defecto (100%? 50%?) y quién lo puede
