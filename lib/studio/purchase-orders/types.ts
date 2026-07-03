@@ -212,7 +212,7 @@ export function validatePurchaseOrderInput(
   const supplierName = (input.supplierName ?? "").toString().trim() || null;
   if (!supplierId && !supplierName) {
     errors.supplierName =
-      "Indicá el proveedor (elegí una ficha o escribí el nombre).";
+      "Indica el proveedor (elige una ficha o escribe el nombre).";
   }
 
   // Filtrar ítems vacíos (sin descripción) y validar el resto.
@@ -241,8 +241,8 @@ export function validatePurchaseOrderInput(
 
   if (cleaned.length === 0) {
     errors.items = badItem
-      ? "Revisá las líneas: cantidad mayor a cero y costo no negativo."
-      : "Agregá al menos un ítem con descripción.";
+      ? "Revisa las líneas: cantidad mayor a cero y costo no negativo."
+      : "Agrega al menos un ítem con descripción.";
   } else if (badItem) {
     errors.items =
       "Alguna línea tiene cantidad o costo inválido (qty > 0, costo ≥ 0).";

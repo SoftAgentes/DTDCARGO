@@ -1,10 +1,13 @@
 /**
- * Órdenes de compra (SDD-0071) — el lado COMPRAS del modelo QuickBooks.
+ * Compras asistidas (SDD-0071) — el lado COMPRAS del modelo QuickBooks.
+ * Renombre founder 2026-07-03 (ex "Órdenes de compra"); slug y código OC-
+ * NO cambian (contrato interno).
  *
- * Server component: lista las DOS sub-tipos de orden de compra juntas:
- *   · OC cliente = Prealertas (0057, existe) — etiquetadas "OC cliente".
- *   · OC DTD     = purchase_orders (0071, NUEVO) — DTD compra POR el cliente,
- *                  al recibir genera el Bill (0044).
+ * Server component: lista los DOS sub-tipos de compra juntos:
+ *   · Prealertas del cliente = prealertas (0057) — el cliente compró por su
+ *     cuenta y anuncia la mercancía desde su portal (read-only acá).
+ *   · Compras de DTD = purchase_orders (0071) — DTD compra POR el cliente
+ *     (compra asistida); al recibir genera el Bill (0044).
  *
  * Carga las OC DTD + sus ítems + stats, las prealertas + sus proveedores_cn,
  * y las cuentas de costo/gasto (para el form de recepción → Bill). Delega la UI
@@ -21,7 +24,7 @@ import { listPrealertas, listSuppliers } from "@/lib/studio/prealertas/queries";
 import { listExpenseAccounts } from "@/lib/studio/treasury/bill-queries";
 import { OrdenesCompraClient } from "./_components/OrdenesCompraClient";
 
-export const metadata = { title: "Órdenes de compra" };
+export const metadata = { title: "Compras asistidas" };
 
 export default async function OrdenesCompraPage() {
   const supabase = await createClient();

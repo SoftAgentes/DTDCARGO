@@ -169,7 +169,7 @@ export function PoDrawer({
               style={{ alignSelf: "flex-start" }}
             >
               <span style={{ display: "inline-flex" }}>{Icon.invoice(14)}</span>
-              Recibir y generar Bill
+              Recibir y generar cuenta por pagar
             </button>
           ) : (
             <ReceiveForm
@@ -179,7 +179,7 @@ export function PoDrawer({
               onError={setError}
               onDone={(billCode) => {
                 toast.success(
-                  `OC ${po.purchase_order_code} recibida · Bill ${billCode ?? ""} generado`,
+                  `Compra ${po.purchase_order_code} recibida · cuenta por pagar ${billCode ?? ""} generada`,
                 );
                 setShowReceive(false);
                 onClose();
@@ -196,11 +196,11 @@ export function PoDrawer({
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <Field
               label="Orden de venta"
-              value={po.sales_order_id ? "Vinculada" : "Standalone"}
+              value={po.sales_order_id ? "Vinculada" : "Sin vínculo"}
             />
             <Field
-              label="Bill generado"
-              value={po.bill_id ? "Sí" : "—"}
+              label="Cuenta por pagar"
+              value={po.bill_id ? "Generada" : "—"}
             />
             <Field label="Cliente" value={po.client_markbox ?? "—"} mono />
             <Field label="Proveedor" value={provName} />
@@ -325,7 +325,9 @@ export function PoDrawer({
                   setError(null);
                   const r = await setPurchaseOrderStatus(po.id, to);
                   if (r.error) return { error: r.error };
-                  toast.info(`OC ${po.purchase_order_code} → ${purchaseOrderStatusLabel(to)}`);
+                  toast.info(
+                    `Compra ${po.purchase_order_code} → ${purchaseOrderStatusLabel(to)}`,
+                  );
                   refresh();
                   if (to === "cancelada" || to === "cerrada") onClose();
                   return undefined;
@@ -379,7 +381,9 @@ function ReceiveForm({
         gap: 12,
       }}
     >
-      <div className="studio-eyebrow">Recibir mercancía · generar Bill</div>
+      <div className="studio-eyebrow">
+        Recibir mercancía · cuenta por pagar
+      </div>
       <p
         style={{
           font: "500 11.5px/1.5 var(--f-sans)",
@@ -387,8 +391,9 @@ function ReceiveForm({
           margin: 0,
         }}
       >
-        Causa el Bill en Tesorería por ${fmt(po.total_cost_usd)} (lo que DTD le
-        debe al proveedor). Elige la cuenta de costo donde se imputa la compra.
+        Genera la cuenta por pagar (Bill) en Tesorería por $
+        {fmt(po.total_cost_usd)} — lo que DTD le debe al proveedor. Elige la
+        cuenta de costo donde se imputa la compra.
       </p>
 
       <div>
@@ -403,8 +408,8 @@ function ReceiveForm({
               margin: "4px 0 0",
             }}
           >
-            No hay cuentas de costo/gasto en el plan. Sembrá el plan en
-            Contabilidad para generar el Bill con asiento.
+            No hay cuentas de costo/gasto en el plan. Siembra el plan en
+            Contabilidad para generar la cuenta por pagar con asiento.
           </p>
         ) : (
           <select
@@ -424,7 +429,7 @@ function ReceiveForm({
 
       <div>
         <label className="studio-label" htmlFor="po-rec-due">
-          Vencimiento del Bill
+          Vencimiento de la cuenta por pagar
         </label>
         <input
           id="po-rec-due"
@@ -446,9 +451,9 @@ function ReceiveForm({
         <ActionButton
           variant="primary"
           size="sm"
-          idleLabel="Recibir y generar Bill"
+          idleLabel="Recibir y generar cuenta por pagar"
           loadingLabel="Generando…"
-          successLabel="Bill generado"
+          successLabel="Cuenta por pagar generada"
           idleIcon={Icon.check(13)}
           successIcon={Icon.check(13)}
           disabled={!valid}
@@ -546,15 +551,15 @@ export function NewPoDrawer({
       setError(r.error);
       return;
     }
-    toast.success(`OC ${r.purchaseOrderCode ?? ""} creada`);
+    toast.success(`Compra ${r.purchaseOrderCode ?? ""} creada`);
     onClose();
     router.refresh();
   };
 
   return (
     <DrawerShell
-      title="Nueva orden de compra de DTD"
-      subtitle="Lo que DTD le compra al proveedor por cuenta del cliente"
+      title="Nueva compra asistida"
+      subtitle="Lo que DTD le compra al proveedor por encargo del cliente"
       onClose={onClose}
       pending={pending}
       width={660}
@@ -625,7 +630,7 @@ export function NewPoDrawer({
                   margin: 0,
                 }}
               >
-                No hay proveedores de clientes cargados. Usá nombre libre.
+                No hay proveedores de clientes cargados. Usa nombre libre.
               </p>
             ) : (
               <select
@@ -793,7 +798,7 @@ export function NewPoDrawer({
         onClose={onClose}
         isPending={pending}
         canSubmit={canSubmit}
-        submitLabel="Crear OC"
+        submitLabel="Crear compra"
         pendingLabel="Creando…"
       />
     </DrawerShell>

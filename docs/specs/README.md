@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 138 specs)
+### Índice de specs (generado · 139 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -176,6 +176,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0141 | Calendario al Norte — vistas + eventos operativos de embarques | in-progress | interno |
 | 0142 | Reportes al Norte — reporte Por agente + reporte IVA | in-progress | interno |
 | 0143 | Mailing al Norte — Firmas, Envío manual y Programados (+ cron) | in-progress | interno |
+| 0144 | Compra asistida — renombre, filtros y reglas propias del módulo | draft | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

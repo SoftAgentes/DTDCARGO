@@ -1,22 +1,35 @@
 "use client";
 
 /**
- * OrdenesCompraClient — vista de operador de Órdenes de compra (SDD-0071).
+ * OrdenesCompraClient — vista de operador de "Compras asistidas" (SDD-0071;
+ * renombre founder 2026-07-03, ex "Órdenes de compra" — id/slug/código OC-
+ * NO cambian, son contrato interno).
  *
- * Header + 4 KPIs + botón "Nueva OC de DTD" + 2 tabs:
- *   · OC de DTD   ⭐ : purchase_orders del tenant (compra asistida). Crear/editar,
- *                       cambiar estado, "Recibir" → genera el Bill (0044).
- *   · OC de cliente   : prealertas (0057), etiquetadas "OC cliente". Read-only
- *                       (las crea/edita el cliente desde el portal).
+ * Header + 4 KPIs + botón "Nueva compra" + 2 tabs:
+ *   · Compras de DTD ⭐      : purchase_orders del tenant (compra asistida:
+ *     DTD compra al proveedor por encargo del cliente). Crear/editar, cambiar
+ *     estado, "Recibir" → genera el Bill (0044). Filtros agrupados por momento
+ *     de vida (Abiertas = borrador+confirmada+recibida), búsqueda y columnas
+ *     CONFIGURABLES (orden + visibilidad, handoff Norte "Almacén CN →
+ *     columnas configurables") vía useColumnConfig/ColumnManager.
+ *   · Prealertas del cliente : prealertas (0057), read-only (las crea/edita
+ *     el cliente desde el portal).
  *
- * El detalle de una OC DTD abre un drawer con provenance (link a OV/prealerta
+ * El detalle de una compra abre un drawer con vínculos (link a OV/prealerta
  * cuando exista, Bill generado) + el flujo de recepción. Solo tokens var(--*).
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
+import {
+  ColumnManager,
+  useColumnConfig,
+  type ColumnLabels,
+  type ColumnVisibility,
+} from "@/app/studio/_components/ui/columns/ColumnConfig";
 import {
   prealertaStatusLabel,
   prealertaStatusTone,
@@ -27,6 +40,7 @@ import {
   purchaseOrderStatusTone,
   type PurchaseOrder,
   type PurchaseOrderItem,
+  type PurchaseOrderStatus,
 } from "@/lib/studio/purchase-orders/types";
 import type { PurchaseOrderStats } from "@/lib/studio/purchase-orders/queries";
 import { PoDrawer, NewPoDrawer, type AccountOption } from "./PoDrawer";
@@ -50,12 +64,21 @@ function fmtMoney(n: number): string {
     maximumFractionDigits: 0,
   });
 }
+function shortDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("es-VE", {
+    day: "2-digit",
+    month: "short",
+    year: "2-digit",
+  });
+}
 
 type Tab = "dtd" | "cliente";
 
 const TABS: { value: Tab; label: string }[] = [
-  { value: "dtd", label: "OC de DTD" },
-  { value: "cliente", label: "OC de cliente" },
+  { value: "dtd", label: "Compras de DTD" },
+  { value: "cliente", label: "Prealertas del cliente" },
 ];
 
 export function OrdenesCompraClient({
@@ -88,7 +111,7 @@ export function OrdenesCompraClient({
     return m;
   }, [suppliersCn]);
 
-  const pendientes =
+  const abiertas =
     stats.byStatus.borrador + stats.byStatus.confirmada + stats.byStatus.recibida;
 
   return (
@@ -110,7 +133,7 @@ export function OrdenesCompraClient({
             className="studio-display"
             style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
           >
-            Órdenes de compra.
+            Compras asistidas.
           </h1>
           <p
             style={{
@@ -120,11 +143,12 @@ export function OrdenesCompraClient({
               maxWidth: "72ch",
             }}
           >
-            El lado compras del ERP. Las <strong>OC de DTD</strong> registran lo
-            que DTD le compra al proveedor por cuenta del cliente (compra
-            asistida); al recibir la mercancía generan el Bill en Tesorería. Las{" "}
-            <strong>OC de cliente</strong> son las prealertas que el cliente
-            anuncia desde su portal.
+            Cada fila es una compra que DTD hace a un proveedor en China por
+            encargo de un cliente: el cliente pide, DTD compra y le sigue el
+            rastro hasta recibir la mercancía. Al recibirla se genera sola la
+            cuenta por pagar en Tesorería. La pestaña{" "}
+            <strong>Prealertas del cliente</strong> muestra las compras que el
+            cliente hizo por su cuenta y anunció desde su portal.
           </p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
@@ -133,7 +157,7 @@ export function OrdenesCompraClient({
             className="studio-btn studio-btn-primary"
             onClick={() => setShowNewPo(true)}
           >
-            Nueva OC de DTD
+            Nueva compra
           </button>
         </div>
       </div>
@@ -149,13 +173,13 @@ export function OrdenesCompraClient({
       >
         <KpiCard
           value={stats.total}
-          label="OC de DTD"
-          sub="compra asistida"
+          label="Compras"
+          sub="por encargo del cliente"
         />
         <KpiCard
-          value={pendientes}
-          label="En curso"
-          valueColor={pendientes > 0 ? "var(--warning)" : "var(--ink)"}
+          value={abiertas}
+          label="Abiertas"
+          valueColor={abiertas > 0 ? "var(--warning)" : "var(--ink)"}
           sub="borrador · confirmada · recibida"
         />
         <KpiCard
@@ -164,12 +188,12 @@ export function OrdenesCompraClient({
           valueColor={
             stats.byStatus.facturada > 0 ? "var(--success)" : "var(--ink)"
           }
-          sub="con Bill generado"
+          sub="cuenta por pagar generada"
         />
         <KpiCard
           value={`$${fmtMoney(stats.totalCostUsd)}`}
           label="Costo total"
-          sub="USD · OC vivas no canceladas"
+          sub="USD · compras vivas no canceladas"
         />
       </div>
 
@@ -258,10 +282,86 @@ export function OrdenesCompraClient({
 }
 
 // ════════════════════════════════════════════════════════════════
-// Tab: OC de DTD
+// Tab: Compras de DTD
 // ════════════════════════════════════════════════════════════════
 
-const PO_GRID = "150px 1.5fr 1.1fr 110px 130px";
+// ── Filtros agrupados por momento de vida (modelo mental del operador:
+//    pendientes / cerradas / no concluidas — sin exigir conocer los 6
+//    estados; cada fila igual muestra su estado exacto en el badge) ──────
+type FilterGroup =
+  | "todas"
+  | "abiertas"
+  | "facturadas"
+  | "cerradas"
+  | "canceladas";
+
+const OPEN_STATUSES: ReadonlySet<PurchaseOrderStatus> = new Set([
+  "borrador",
+  "confirmada",
+  "recibida",
+]);
+
+const FILTER_GROUPS: {
+  value: FilterGroup;
+  label: string;
+  match: (s: PurchaseOrderStatus) => boolean;
+}[] = [
+  { value: "todas", label: "Todas", match: () => true },
+  { value: "abiertas", label: "Abiertas", match: (s) => OPEN_STATUSES.has(s) },
+  { value: "facturadas", label: "Facturadas", match: (s) => s === "facturada" },
+  { value: "cerradas", label: "Cerradas", match: (s) => s === "cerrada" },
+  { value: "canceladas", label: "Canceladas", match: (s) => s === "cancelada" },
+];
+
+// ── Columnas configurables (regla Studio · handoff Norte 2026-07-03) ──────
+// El array maestro (label + render) vive acá; lo persistido es solo
+// { key, visible }[] bajo la clave del módulo.
+const COMPRAS_COLS_KEY = "dtd-compras-cols-v1";
+const COMPRAS_COLS_DEFAULT: ColumnVisibility[] = [
+  { key: "supplier", visible: true },
+  { key: "date", visible: true },
+  { key: "code", visible: true },
+  { key: "links", visible: true },
+  { key: "cost", visible: true },
+  { key: "status", visible: true },
+];
+
+const COMPRAS_COL_LABELS: ColumnLabels = {
+  supplier: { label: "Proveedor · cliente", hint: "nombre + Shipping Mark" },
+  date: { label: "Fecha", hint: "cuándo se registró la compra" },
+  code: { label: "Código", hint: "correlativo interno de la compra" },
+  links: { label: "Vínculos", hint: "orden de venta · cuenta por pagar" },
+  cost: { label: "Costo USD", hint: "suma de los ítems" },
+  status: { label: "Estado" },
+};
+
+// Orden clickeando el header (persistido): [primer click, click siguiente].
+type SortBy =
+  | "date-desc"
+  | "date-asc"
+  | "client-asc"
+  | "client-desc"
+  | "cost-desc"
+  | "cost-asc";
+
+const COMPRAS_SORT_KEY = "dtd-compras-sort-v1";
+const SORT_VALUES: ReadonlySet<string> = new Set([
+  "date-desc",
+  "date-asc",
+  "client-asc",
+  "client-desc",
+  "cost-desc",
+  "cost-asc",
+]);
+
+type ColDef = {
+  key: string;
+  label: string;
+  width: string;
+  align?: "right";
+  sort?: [SortBy, SortBy];
+  render: (po: PurchaseOrder) => React.ReactNode;
+};
 
 function DtdTab({
   orders,
@@ -272,135 +372,478 @@ function DtdTab({
   supplierCnName: Record<string, string>;
   onOpen: (id: string) => void;
 }) {
+  const [group, setGroup] = useState<FilterGroup>("abiertas");
+  const [search, setSearch] = useState("");
+  const [colCfg, setColCfg] = useColumnConfig(
+    COMPRAS_COLS_KEY,
+    COMPRAS_COLS_DEFAULT,
+  );
+
+  // Orden por defecto: la más reciente primero. Persistido por navegador,
+  // igual que las columnas.
+  const [sortBy, setSortBy] = useState<SortBy>("date-desc");
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(COMPRAS_SORT_KEY);
+      if (saved && SORT_VALUES.has(saved)) setSortBy(saved as SortBy);
+    } catch {
+      /* default */
+    }
+  }, []);
+  const changeSort = (v: SortBy) => {
+    setSortBy(v);
+    try {
+      localStorage.setItem(COMPRAS_SORT_KEY, v);
+    } catch {
+      /* en memoria */
+    }
+  };
+
+  const provNameOf = (po: PurchaseOrder): string =>
+    po.supplier_name
+      ? po.supplier_name
+      : po.supplier_id && supplierCnName[po.supplier_id]
+        ? supplierCnName[po.supplier_id]
+        : "Sin proveedor";
+
+  const countOf = useMemo(() => {
+    const m = {} as Record<FilterGroup, number>;
+    for (const g of FILTER_GROUPS) {
+      m[g.value] = orders.filter((po) => g.match(po.status)).length;
+    }
+    return m;
+  }, [orders]);
+
+  const rows = useMemo(() => {
+    const groupDef = FILTER_GROUPS.find((g) => g.value === group)!;
+    const q = search.trim().toLowerCase();
+    let out = orders.filter((po) => groupDef.match(po.status));
+    if (q) {
+      out = out.filter(
+        (po) =>
+          po.purchase_order_code.toLowerCase().includes(q) ||
+          (po.client_markbox ?? "").toLowerCase().includes(q) ||
+          provNameOf(po).toLowerCase().includes(q),
+      );
+    }
+    const byDateDesc = (a: PurchaseOrder, b: PurchaseOrder) =>
+      b.created_at.localeCompare(a.created_at);
+    const compare: Record<
+      SortBy,
+      (a: PurchaseOrder, b: PurchaseOrder) => number
+    > = {
+      "date-desc": byDateDesc,
+      "date-asc": (a, b) => byDateDesc(b, a),
+      "client-asc": (a, b) =>
+        (a.client_markbox ?? "").localeCompare(b.client_markbox ?? "") ||
+        byDateDesc(a, b),
+      "client-desc": (a, b) =>
+        (b.client_markbox ?? "").localeCompare(a.client_markbox ?? "") ||
+        byDateDesc(a, b),
+      "cost-desc": (a, b) =>
+        b.total_cost_usd - a.total_cost_usd || byDateDesc(a, b),
+      "cost-asc": (a, b) =>
+        a.total_cost_usd - b.total_cost_usd || byDateDesc(a, b),
+    };
+    return [...out].sort(compare[sortBy]);
+    // provNameOf es estable por render (deriva de supplierCnName).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders, group, search, sortBy, supplierCnName]);
+
+  // Array maestro de columnas (§2 del handoff): el key es el contrato estable.
+  const columns: ColDef[] = [
+    {
+      key: "supplier",
+      label: "Proveedor · cliente",
+      width: "minmax(150px, 1.4fr)",
+      sort: ["client-asc", "client-desc"],
+      render: (po) => (
+        <div style={{ overflow: "hidden" }}>
+          <div
+            style={{
+              font: "600 12.5px/1.3 var(--f-sans)",
+              color: "var(--ink)",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {provNameOf(po)}
+          </div>
+          <div
+            style={{
+              font: "500 10.5px/1.3 var(--f-mono)",
+              color: "var(--ink-mute)",
+              marginTop: 3,
+            }}
+          >
+            {po.client_markbox || "—"}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "date",
+      label: "Fecha",
+      width: "88px",
+      sort: ["date-desc", "date-asc"],
+      render: (po) => (
+        <span
+          title={new Date(po.created_at).toLocaleString("es-VE")}
+          style={{
+            font: "500 11px/1.2 var(--f-mono)",
+            color: "var(--ink-soft)",
+          }}
+        >
+          {shortDate(po.created_at)}
+        </span>
+      ),
+    },
+    {
+      key: "code",
+      label: "Código",
+      width: "148px",
+      render: (po) => (
+        <code
+          style={{
+            font: "700 12px/1.2 var(--f-mono)",
+            color: "var(--wine)",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {po.purchase_order_code}
+        </code>
+      ),
+    },
+    {
+      key: "links",
+      label: "Vínculos",
+      width: "minmax(110px, 1fr)",
+      render: (po) => (
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 6,
+            alignItems: "center",
+          }}
+        >
+          {po.sales_order_id && (
+            <Badge tone="info" size="sm">
+              Orden de venta
+            </Badge>
+          )}
+          {po.bill_id && (
+            <Badge tone="success" size="sm">
+              Cuenta por pagar
+            </Badge>
+          )}
+          {!po.sales_order_id && !po.bill_id && (
+            <span
+              style={{
+                font: "500 11px/1 var(--f-sans)",
+                color: "var(--ink-mute)",
+              }}
+            >
+              Sin vínculos
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "cost",
+      label: "Costo USD",
+      width: "110px",
+      align: "right",
+      sort: ["cost-desc", "cost-asc"],
+      render: (po) => (
+        <span
+          style={{
+            font: "700 12.5px/1 var(--f-mono)",
+            color: "var(--ink)",
+            textAlign: "right",
+            display: "block",
+          }}
+        >
+          ${fmt(po.total_cost_usd)}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      label: "Estado",
+      width: "132px",
+      align: "right",
+      render: (po) => (
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <Badge tone={purchaseOrderStatusTone(po.status)} size="sm" dot>
+            {purchaseOrderStatusLabel(po.status)}
+          </Badge>
+        </div>
+      ),
+    },
+  ];
+
+  // visibleColumns con .filter(Boolean): red de seguridad si el cfg guardado
+  // trae un key sin entrada en el mapa (§3 del handoff).
+  const colMap: Record<string, ColDef> = {};
+  for (const c of columns) colMap[c.key] = c;
+  const visibleColumns = colCfg
+    .filter((c) => c.visible)
+    .map((c) => colMap[c.key])
+    .filter(Boolean);
+  const grid = visibleColumns.map((c) => c.width).join(" ");
+
+  // Totales sobre lo filtrado (patrón del almacén CN).
+  const totCost = rows.reduce((acc, po) => acc + po.total_cost_usd, 0);
+
   if (orders.length === 0) {
     return (
       <EmptyState
-        eyebrow="Sin OC de DTD"
-        title="Todavía no hay órdenes de compra de DTD."
-        description='Crea una OC de DTD cuando vayas a comprarle la mercancía al proveedor por cuenta del cliente (compra asistida). Al recibirla genera el Bill en Tesorería. Toca "Nueva OC de DTD".'
+        eyebrow="Sin compras asistidas"
+        title="Todavía no hay compras registradas."
+        description='Registra una compra cuando DTD le vaya a comprar la mercancía al proveedor por encargo del cliente; al recibirla se genera sola la cuenta por pagar en Tesorería. Toca "Nueva compra".'
       />
     );
   }
 
+  const groupLabel =
+    FILTER_GROUPS.find((g) => g.value === group)?.label ?? "Todas";
+
   return (
-    <TableShell>
-      <HeaderRow grid={PO_GRID}>
-        <span>Código</span>
-        <span>Proveedor · cliente</span>
-        <span>Provenance</span>
-        <span style={{ textAlign: "right" }}>Costo USD</span>
-        <span style={{ textAlign: "right" }}>Estado</span>
-      </HeaderRow>
-      {orders.map((po, i) => {
-        const provName = po.supplier_name
-          ? po.supplier_name
-          : po.supplier_id && supplierCnName[po.supplier_id]
-            ? supplierCnName[po.supplier_id]
-            : "Sin proveedor";
-        return (
-          <button
-            key={po.id}
-            type="button"
-            onClick={() => onOpen(po.id)}
-            className="studio-tracking-row"
+    <>
+      {/* Toolbar: búsqueda + filtros por momento de vida + gestor de columnas */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          marginBottom: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flex: "1 1 220px",
+            minWidth: 180,
+            maxWidth: 380,
+            height: 32,
+            padding: "0 10px",
+            background: "var(--bg-elevated)",
+            borderRadius: "var(--r-sm)",
+          }}
+        >
+          <span style={{ color: "var(--ink-mute)", display: "inline-flex" }}>
+            {Icon.search(13)}
+          </span>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar código, cliente o proveedor…"
+            aria-label="Buscar compras"
             style={{
-              display: "grid",
-              gridTemplateColumns: PO_GRID,
-              gap: 12,
-              padding: "14px 20px",
-              borderTop: i > 0 ? "1px solid var(--border)" : 0,
-              alignItems: "center",
-              width: "100%",
-              textAlign: "left",
-              background: "transparent",
+              flex: 1,
+              height: "100%",
               border: 0,
-              borderTopWidth: i > 0 ? 1 : 0,
-              borderTopStyle: "solid",
-              borderTopColor: i > 0 ? "var(--border)" : "transparent",
-              cursor: "pointer",
+              background: "transparent",
+              font: "500 12px/1 var(--f-sans)",
+              color: "var(--ink)",
+            }}
+          />
+        </div>
+        {FILTER_GROUPS.map((g) => (
+          <button
+            key={g.value}
+            type="button"
+            onClick={() => setGroup(g.value)}
+            aria-pressed={group === g.value}
+            className={`studio-btn ${
+              group === g.value ? "studio-btn-primary" : "studio-btn-ghost"
+            }`}
+          >
+            {g.label}
+            <span style={{ marginLeft: 6, opacity: 0.85 }}>
+              {countOf[g.value]}
+            </span>
+          </button>
+        ))}
+        <div style={{ marginLeft: "auto" }}>
+          <ColumnManager
+            cfg={colCfg}
+            setCfg={setColCfg}
+            defaults={COMPRAS_COLS_DEFAULT}
+            labels={COMPRAS_COL_LABELS}
+          />
+        </div>
+      </div>
+
+      {rows.length === 0 ? (
+        <EmptyState
+          eyebrow={search.trim() ? "Sin resultados" : `Sin ${groupLabel.toLowerCase()}`}
+          title={
+            search.trim()
+              ? "Nada coincide con tu búsqueda."
+              : `No hay compras ${groupLabel.toLowerCase()} ahora.`
+          }
+          description={
+            search.trim()
+              ? "Prueba con el código de la compra, el Shipping Mark del cliente o el nombre del proveedor."
+              : 'Revisa otro estado o toca "Todas" para ver el historial completo.'
+          }
+        />
+      ) : (
+        <TableShell>
+          <HeaderRow grid={grid}>
+            {visibleColumns.map((col) => (
+              <SortableHeaderCell
+                key={col.key}
+                col={col}
+                sortBy={sortBy}
+                onSort={changeSort}
+              />
+            ))}
+          </HeaderRow>
+          {rows.map((po, i) => (
+            <button
+              key={po.id}
+              type="button"
+              onClick={() => onOpen(po.id)}
+              className="studio-tracking-row studio-row-btn"
+              style={{
+                display: "grid",
+                gridTemplateColumns: grid,
+                gap: 12,
+                padding: "14px 20px",
+                alignItems: "center",
+                width: "100%",
+                textAlign: "left",
+                border: 0,
+                borderTop: i > 0 ? "1px solid var(--border)" : "none",
+                cursor: "pointer",
+              }}
+            >
+              {visibleColumns.map((col) => (
+                <div key={col.key} style={{ minWidth: 0 }}>
+                  {col.render(po)}
+                </div>
+              ))}
+            </button>
+          ))}
+          {/* Totales sobre lo filtrado (patrón almacén CN: Σ label mute +
+              valor wine con peso — se lee de un vistazo) */}
+          <div
+            style={{
+              display: "flex",
+              gap: 22,
+              alignItems: "baseline",
+              padding: "11px 20px",
+              borderTop: "1px solid var(--border)",
+              background: "var(--bg-elevated)",
             }}
           >
-            <code
-              style={{
-                font: "700 12px/1.2 var(--f-mono)",
-                color: "var(--wine)",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              {po.purchase_order_code}
-            </code>
-            <div style={{ overflow: "hidden" }}>
-              <div
+            {[
+              { label: "Σ compras", value: String(rows.length) },
+              { label: "Σ costo USD", value: `$${fmt(totCost)}` },
+            ].map((t) => (
+              <span
+                key={t.label}
                 style={{
-                  font: "600 12.5px/1.3 var(--f-sans)",
-                  color: "var(--ink)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
+                  display: "inline-flex",
+                  alignItems: "baseline",
+                  gap: 6,
                 }}
               >
-                {provName}
-              </div>
-              <div
-                style={{
-                  font: "500 10.5px/1.3 var(--f-mono)",
-                  color: "var(--ink-mute)",
-                  marginTop: 3,
-                }}
-              >
-                {po.client_markbox || "—"}
-              </div>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 6,
-                alignItems: "center",
-              }}
-            >
-              {po.sales_order_id && (
-                <Badge tone="info" size="sm">
-                  OV
-                </Badge>
-              )}
-              {po.bill_id && (
-                <Badge tone="success" size="sm">
-                  Bill
-                </Badge>
-              )}
-              {!po.sales_order_id && !po.bill_id && (
                 <span
-                  style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-mute)" }}
+                  style={{
+                    font: "600 10px/1 var(--f-mono)",
+                    color: "var(--ink-mute)",
+                    letterSpacing: "0.04em",
+                    textTransform: "uppercase",
+                  }}
                 >
-                  Standalone
+                  {t.label}
                 </span>
-              )}
-            </div>
-            <span
-              style={{
-                font: "700 12.5px/1 var(--f-mono)",
-                color: "var(--ink)",
-                textAlign: "right",
-              }}
-            >
-              ${fmt(po.total_cost_usd)}
-            </span>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <Badge tone={purchaseOrderStatusTone(po.status)} size="sm" dot>
-                {purchaseOrderStatusLabel(po.status)}
-              </Badge>
-            </div>
-          </button>
-        );
-      })}
-    </TableShell>
+                <span
+                  style={{
+                    font: "800 13px/1 var(--f-mono)",
+                    color: "var(--wine)",
+                  }}
+                >
+                  {t.value}
+                </span>
+              </span>
+            ))}
+          </div>
+        </TableShell>
+      )}
+    </>
+  );
+}
+
+/**
+ * Celda del header: si la columna define `sort`, es un botón que alterna
+ * [primer click, click siguiente] con flecha ▲/▼ (mismo patrón que
+ * PreAlertas de servicios).
+ */
+function SortableHeaderCell({
+  col,
+  sortBy,
+  onSort,
+}: {
+  col: ColDef;
+  sortBy: SortBy;
+  onSort: (v: SortBy) => void;
+}) {
+  if (!col.sort) {
+    return (
+      <span style={col.align === "right" ? { textAlign: "right" } : undefined}>
+        {col.label}
+      </span>
+    );
+  }
+  const [primary, alt] = col.sort;
+  const active = sortBy === primary || sortBy === alt;
+  const next: SortBy = active && sortBy === primary ? alt : primary;
+  const dir = sortBy.endsWith("-asc") ? "ascendente" : "descendente";
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(next)}
+      title={`Ordenar por ${col.label}`}
+      aria-label={`Ordenar por ${col.label}${active ? ` (${dir})` : ""}`}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        justifySelf: col.align === "right" ? "end" : "start",
+        background: "transparent",
+        border: "none",
+        padding: 0,
+        cursor: "pointer",
+        font: "inherit",
+        letterSpacing: "inherit",
+        textTransform: "inherit",
+        color: active ? "var(--wine)" : "inherit",
+      }}
+    >
+      {col.label}
+      <span
+        aria-hidden="true"
+        style={{ font: "700 8px/1 var(--f-sans)", opacity: active ? 1 : 0.4 }}
+      >
+        {active ? (sortBy.endsWith("-asc") ? "▲" : "▼") : "▲▼"}
+      </span>
+    </button>
   );
 }
 
 // ════════════════════════════════════════════════════════════════
-// Tab: OC de cliente (prealertas, read-only)
+// Tab: Prealertas del cliente (read-only)
 // ════════════════════════════════════════════════════════════════
 
 const PREALERTA_GRID = "150px 1.4fr 1.1fr 70px 130px";
@@ -415,9 +858,9 @@ function ClienteTab({
   if (prealertas.length === 0) {
     return (
       <EmptyState
-        eyebrow="Sin OC de cliente"
+        eyebrow="Sin prealertas"
         title="Todavía no hay prealertas de clientes."
-        description="Cuando un cliente anuncie una compra desde su portal, aparecerá acá como OC de cliente (prealerta). Es de solo lectura — el cliente la gestiona desde su portal."
+        description="Cuando un cliente anuncie una compra desde su portal, aparecerá acá como prealerta. Es de solo lectura — el cliente la gestiona desde su portal."
       />
     );
   }
@@ -435,7 +878,8 @@ function ClienteTab({
         gestionan en{" "}
         <a
           href="/studio/proveedores"
-          style={{ color: "var(--wine)", textDecoration: "none" }}
+          className="studio-link-quiet"
+          style={{ color: "var(--wine)" }}
         >
           PreAlertas de servicios
         </a>

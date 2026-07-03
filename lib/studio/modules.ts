@@ -119,7 +119,9 @@ export const MODULES: ModuleDef[] = [
   // Renombre founder 2026-07-03: son solicitudes de servicio (prealertas), no
   // un catálogo de proveedores. id/slug NO cambian (contrato interno).
   { id: "suppliers", group: "COMERCIAL", label: "PreAlertas de servicios", labelKey: "chrome.sidebar.suppliers_cn", icon: "cn", slug: "/studio/proveedores" },
-  { id: "purchase-orders", group: "COMERCIAL", label: "Órdenes de compra", icon: "box", slug: "/studio/ordenes-compra" },
+  // Renombre founder 2026-07-03: "Compras asistidas" (DTD compra al proveedor
+  // por encargo del cliente) — "OC" no se entendía. id/slug NO cambian.
+  { id: "purchase-orders", group: "COMERCIAL", label: "Compras asistidas", icon: "box", slug: "/studio/ordenes-compra" },
   // Catálogo + precios
   { id: "service-catalog", group: "COMERCIAL", label: "Servicios", icon: "tag", slug: "/studio/servicios" },
   { id: "rates", group: "COMERCIAL", label: "Tarifas", labelKey: "chrome.sidebar.rates", icon: "tag", slug: "/studio/tarifas" },

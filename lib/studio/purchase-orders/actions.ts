@@ -111,7 +111,7 @@ export async function createPurchaseOrder(
   const { input, fieldErrors } = validatePurchaseOrderInput(raw);
   if (fieldErrors) {
     const first = Object.values(fieldErrors)[0];
-    return { error: first ?? "Datos de la orden de compra inválidos." };
+    return { error: first ?? "Datos de la compra inválidos." };
   }
 
   const tenantId = await resolveTenantId(supabase);
@@ -156,7 +156,7 @@ export async function createPurchaseOrder(
     input!.items,
   );
   if (itemsRes.error) {
-    return { error: `OC creada pero fallaron los ítems: ${itemsRes.error}` };
+    return { error: `Compra creada pero fallaron los ítems: ${itemsRes.error}` };
   }
 
   await audit(tenantId, inserted.id, await currentUserId(supabase), "po_created", {
@@ -182,7 +182,7 @@ export async function updatePurchaseOrder(
   const { input, fieldErrors } = validatePurchaseOrderInput(raw);
   if (fieldErrors) {
     const first = Object.values(fieldErrors)[0];
-    return { error: first ?? "Datos de la orden de compra inválidos." };
+    return { error: first ?? "Datos de la compra inválidos." };
   }
 
   const { data: po, error: readErr } = await supabase
@@ -196,10 +196,10 @@ export async function updatePurchaseOrder(
       status: string;
       bill_id: string | null;
     }>();
-  if (readErr || !po) return { error: "Orden de compra no encontrada." };
+  if (readErr || !po) return { error: "Compra no encontrada." };
   if (po.status !== "borrador" && po.status !== "confirmada") {
     return {
-      error: "Solo se puede editar una OC en borrador o confirmada.",
+      error: "Solo se puede editar una compra en borrador o confirmada.",
     };
   }
 
@@ -219,7 +219,7 @@ export async function updatePurchaseOrder(
     })
     .eq("id", po.id);
   if (updErr) {
-    return { error: `No se pudo actualizar la OC: ${updErr.message}` };
+    return { error: `No se pudo actualizar la compra: ${updErr.message}` };
   }
 
   // Reemplazar ítems (borrar + insertar).
@@ -237,7 +237,7 @@ export async function updatePurchaseOrder(
     input!.items,
   );
   if (itemsRes.error) {
-    return { error: `OC actualizada pero fallaron los ítems: ${itemsRes.error}` };
+    return { error: `Compra actualizada pero fallaron los ítems: ${itemsRes.error}` };
   }
 
   await audit(po.tenant_id, po.id, await currentUserId(supabase), "po_updated", {
@@ -270,11 +270,11 @@ export async function setPurchaseOrderStatus(
       status: string;
       purchase_order_code: string;
     }>();
-  if (readErr || !po) return { error: "Orden de compra no encontrada." };
+  if (readErr || !po) return { error: "Compra no encontrada." };
 
   if (!canTransition(po.status, to)) {
     return {
-      error: `No se puede pasar la OC de "${po.status}" a "${to}".`,
+      error: `No se puede pasar la compra de "${po.status}" a "${to}".`,
     };
   }
 
@@ -320,7 +320,7 @@ async function ensureTesorerySupplier(
   supplierName: string,
 ): Promise<{ supplierId?: string; error?: string }> {
   const name = supplierName.trim();
-  if (!name) return { error: "La OC no tiene proveedor para atar el Bill." };
+  if (!name) return { error: "La compra no tiene proveedor para atar el Bill." };
 
   // ¿Ya existe un proveedor de Tesorería con ese nombre?
   const { data: existing } = await supabase
@@ -405,24 +405,25 @@ export async function receivePurchaseOrder(
       total_cost_usd: number;
       bill_id: string | null;
     }>();
-  if (readErr || !po) return { error: "Orden de compra no encontrada." };
+  if (readErr || !po) return { error: "Compra no encontrada." };
 
   if (!canReceive({ status: po.status as PurchaseOrderStatus, bill_id: po.bill_id })) {
-    if (po.bill_id) return { error: "Esta OC ya generó su Bill." };
+    if (po.bill_id) return { error: "Esta compra ya generó su Bill." };
     return {
-      error: "Solo se puede recibir una OC confirmada (o ya recibida sin Bill).",
+      error:
+        "Solo se puede recibir una compra confirmada (o ya recibida sin Bill).",
     };
   }
 
   if (Number(po.total_cost_usd) <= 0) {
-    return { error: "La OC no tiene costo (agregá ítems antes de recibir)." };
+    return { error: "La compra no tiene costo (agrega ítems antes de recibir)." };
   }
 
   const expenseAccountId = (opts.expenseAccountId ?? "").trim();
   if (!expenseAccountId) {
     return {
       error:
-        "Faltan datos: elegí la cuenta de costo/gasto para causar el Bill.",
+        "Faltan datos: elige la cuenta de costo/gasto para causar el Bill.",
     };
   }
 
@@ -438,7 +439,7 @@ export async function receivePurchaseOrder(
     supplierName = (sc?.name ?? "").trim();
   }
   if (!supplierName) {
-    return { error: "La OC no tiene proveedor para atar el Bill." };
+    return { error: "La compra no tiene proveedor para atar el Bill." };
   }
 
   const supRes = await ensureTesorerySupplier(
@@ -497,7 +498,7 @@ export async function receivePurchaseOrder(
     .eq("id", po.id);
   if (linkErr) {
     return {
-      error: `Bill ${billRes.billCode} creado pero no se linkeó a la OC: ${linkErr.message}`,
+      error: `Bill ${billRes.billCode} creado pero no se vinculó a la compra: ${linkErr.message}`,
     };
   }
 
