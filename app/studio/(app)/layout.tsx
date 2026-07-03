@@ -2,8 +2,8 @@
  * Layout autenticado del Studio · Shell v1 (SDD-0007).
  *
  * Provee Sidebar agrupado oscuro + Topbar sticky con search/theme/user menu.
- * Auth guard server-side: el proxy.ts ya filtra, pero acá hacemos segunda
- * verificación por defensa en profundidad.
+ * Auth guard server-side: el proxy.ts filtra SESIÓN; acá además se exige
+ * membership activa en user_tenants (sesión del portal ≠ acceso al Studio).
  *
  * i18n: resuelve locale y region UNA vez por request leyendo
  * user_tenants.region + user_profiles.locale + Accept-Language. El
@@ -75,11 +75,24 @@ export default async function StudioAppLayout({
     .select("*")
     .eq("user_id", user.id)
     .is("disabled_at", null)
+    .limit(1)
     .maybeSingle<{
       region: string | null;
       role: string | null;
       warehouse_scope?: string | null;
     }>();
+
+  // ── GATE de membresía (2026-07-03) ────────────────────────────────
+  // Sesión válida ≠ acceso al Studio: el portal cliente comparte el mismo
+  // Supabase Auth, así que un cliente logueado pasaba el proxy (solo chequea
+  // sesión) y renderizaba el shell del ERP con sidebar vacío. Sin membership
+  // ACTIVA en user_tenants no hay Studio — mismo patrón que
+  // requireAnyBackRole() en el Back. Cliente del portal → su portal;
+  // cualquier otra sesión sin rol (incluye desactivados, SDD-0139) → home.
+  if (!tenantLink) {
+    const { data: portalClientId } = await supabase.rpc("get_portal_client_id");
+    redirect(portalClientId ? "/portal" : "/");
+  }
 
   // Rol del user — el sidebar lo usa para esconder los módulos que el rol no
   // puede ver (matriz ROLE_MODULE_ACCESS, SDD-0085). El gate real de seguridad

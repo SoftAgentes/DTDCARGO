@@ -57,6 +57,9 @@ export default async function MobileErpPage() {
       supabase
         .from("user_tenants")
         .select("role")
+        .eq("user_id", userResp.user.id)
+        .is("disabled_at", null)
+        .limit(1)
         .maybeSingle<{ role: string }>(),
       listShipments(supabase, {}),
       listClients(supabase, {}),
@@ -65,6 +68,15 @@ export default async function MobileErpPage() {
     ]);
   const profile = profileRes.data;
   const link = linkRes.data;
+
+  // ── GATE de membresía (2026-07-03) ── misma regla que el layout del
+  // Studio: el portal cliente comparte Supabase Auth, así que sesión válida
+  // ≠ acceso al ERP móvil. Sin membership ACTIVA en user_tenants (incluye
+  // desactivados) no se renderiza: cliente del portal → su portal; resto → home.
+  if (!link) {
+    const { data: portalClientId } = await supabase.rpc("get_portal_client_id");
+    redirect(portalClientId ? "/portal" : "/");
+  }
 
   // Signed URLs (TTL 1h) para las fotos de recibo de los expenses con receipt_path
   const receiptUrls = await signReceiptUrls(supabase, expenses);
@@ -78,7 +90,7 @@ export default async function MobileErpPage() {
   const initials =
     (firstName[0] ?? "U").toUpperCase() +
     (lastName[0] ?? "").toUpperCase();
-  const role = link?.role ?? "user";
+  const role = link.role;
 
   // Filtros: activos para Tracking (sin entregados/cancelados/borradores)
   // listShipments devuelve any[] · cast inline para satisfacer MobileShipment.
