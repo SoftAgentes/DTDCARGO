@@ -214,7 +214,10 @@ export type PortalActivation = {
 export type ProfileCompleteness = {
   /** ¿Subió la foto de cédula/RIF? (`clients.cedula_photo_path` no vacío). */
   hasPhoto: boolean;
-  /** ¿Cargó la dirección de entrega VE? (`clients.address` no vacío). */
+  /**
+   * ¿Cargó dirección de entrega VE? Canónico: alguna fila viva en
+   * `client_delivery_addresses` (SDD-0138); `clients.address` cuenta como legacy.
+   */
   hasAddress: boolean;
   /** Las dos: foto + dirección. */
   complete: boolean;

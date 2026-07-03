@@ -15,6 +15,8 @@ function stub(opts: {
   portalClientId: string | null;
   cedulaPhotoPath?: string | null;
   address?: string | null;
+  /** Filas vivas en client_delivery_addresses (SDD-0138). Default 0. */
+  deliveryAddresses?: number;
 }): SupabaseClient {
   return {
     rpc(fn: string) {
@@ -23,7 +25,16 @@ function stub(opts: {
       }
       return Promise.resolve({ data: null, error: null });
     },
-    from() {
+    from(table: string) {
+      if (table === "client_delivery_addresses") {
+        const chain = {
+          select: () => chain,
+          eq: () => chain,
+          is: () =>
+            Promise.resolve({ count: opts.deliveryAddresses ?? 0, error: null }),
+        };
+        return chain;
+      }
       const chain = {
         select: () => chain,
         eq: () => chain,
@@ -68,6 +79,18 @@ describe("getProfileCompleteness — perfil completo = foto + dirección", () =>
       stub({ portalClientId: "c-1", cedulaPhotoPath: null, address: "" }),
     );
     expect(r).toEqual({ hasPhoto: false, hasAddress: false, complete: false });
+  });
+
+  it("sin legacy pero con dirección múltiple (SDD-0138) → hasAddress true", async () => {
+    const r = await getProfileCompleteness(
+      stub({
+        portalClientId: "c-1",
+        cedulaPhotoPath: "t/DTD-1/x.jpg",
+        address: null,
+        deliveryAddresses: 2,
+      }),
+    );
+    expect(r).toEqual({ hasPhoto: true, hasAddress: true, complete: true });
   });
 
   it("principal no-cliente del portal → todo false", async () => {

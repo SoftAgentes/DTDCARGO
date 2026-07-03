@@ -485,7 +485,21 @@ export async function getProfileCompleteness(
   if (error || !data) return empty;
 
   const hasPhoto = !!String((data.cedula_photo_path as string | null) ?? "").trim();
-  const hasAddress = !!String((data.address as string | null) ?? "").trim();
+
+  // Dirección: la fuente canónica son las direcciones múltiples de SDD-0138
+  // (client_delivery_addresses, RLS portal-self por markbox); `clients.address`
+  // queda como legacy (pre-0198). Sin este OR, un cliente que cargó sus
+  // direcciones en /portal/cuenta seguía viendo "te falta tu dirección".
+  let hasAddress = !!String((data.address as string | null) ?? "").trim();
+  if (!hasAddress) {
+    const { count } = await supabase
+      .from("client_delivery_addresses")
+      .select("id", { count: "exact", head: true })
+      .eq("client_id", portalClientId as string)
+      .is("deleted_at", null);
+    hasAddress = (count ?? 0) > 0;
+  }
+
   return { hasPhoto, hasAddress, complete: hasPhoto && hasAddress };
 }
 

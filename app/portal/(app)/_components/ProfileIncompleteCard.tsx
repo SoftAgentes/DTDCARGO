@@ -4,8 +4,13 @@ import { ArrowIcon } from "@/components/Icon";
 /**
  * Aviso del dashboard: el perfil está incompleto (REGISTRO EXPRESS · founder
  * 2026-06-07). El alta express difiere foto + dirección; este card recuerda al
- * cliente completarlas antes de su primera compra y linkea a `/portal/perfil`.
- * Lista exactamente lo que falta. Se oculta cuando el perfil ya está completo.
+ * cliente completarlas antes de su primera compra. Lista exactamente lo que
+ * falta y se oculta cuando el perfil ya está completo.
+ *
+ * Destino del CTA: la foto de cédula/RIF vive en `/portal/perfil` (verificación);
+ * las direcciones de entrega viven en `/portal/cuenta` (SDD-0138, múltiples con
+ * predeterminada). Si SOLO falta la dirección, mandamos a Mi cuenta — el flujo
+ * viejo de una sola dirección ya no es el canónico.
  */
 export function ProfileIncompleteCard({
   hasPhoto,
@@ -19,6 +24,9 @@ export function ProfileIncompleteCard({
   if (!hasAddress) missing.push("tu dirección de entrega");
   const missingText =
     missing.length === 2 ? `${missing[0]} y ${missing[1]}` : missing[0];
+  const onlyAddress = hasPhoto && !hasAddress;
+  const ctaHref = onlyAddress ? "/portal/cuenta" : "/portal/perfil";
+  const ctaLabel = onlyAddress ? "Agregar dirección" : "Completar ahora";
 
   return (
     <div
@@ -36,10 +44,10 @@ export function ProfileIncompleteCard({
           </p>
         </div>
         <Link
-          href="/portal/perfil"
+          href={ctaHref}
           className="btn btn-primary flex-shrink-0 inline-flex items-center gap-2 whitespace-nowrap"
         >
-          Completar ahora <ArrowIcon />
+          {ctaLabel} <ArrowIcon />
         </Link>
       </div>
     </div>
