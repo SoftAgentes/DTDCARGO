@@ -51,9 +51,20 @@ export function ChinaSupplierClip({ markbox }: { markbox?: string } = {}) {
   }
 
   return (
-    <div className="card-shadow-dark bg-ink text-white rounded-[18px] p-7 lg:p-8 flex flex-col gap-5">
+    <div
+      className="card-shadow-dark rounded-[18px] p-7 lg:p-8 flex flex-col gap-5"
+      style={{
+        // Card navy en AMBOS temas: en el portal oscuro `bg-ink`/`text-white` se
+        // volteaban (cream sobre cream) → washed-out. Los tokens --hero-* son navy
+        // en claro y oscuro (mismo patrón que la card "TU CÓDIGO" del perfil);
+        // fuera del portal (público /contacto) el fallback --color-ink ya es navy.
+        background:
+          "linear-gradient(135deg, var(--hero-from, var(--color-ink)) 0%, var(--hero-to, var(--color-ink)) 100%)",
+        color: "var(--hero-ink, #fff)",
+      }}
+    >
       <div>
-        <div className="eyebrow" style={{ color: "rgba(255,255,255,0.5)" }}>
+        <div className="eyebrow" style={{ color: "var(--hero-mute, rgba(255,255,255,0.55))" }}>
           <FlagCN size={16} /> Para tu proveedor en China
         </div>
         <h3
@@ -62,7 +73,10 @@ export function ChinaSupplierClip({ markbox }: { markbox?: string } = {}) {
         >
           Texto listo para WeChat
         </h3>
-        <p className="mt-2 text-[13.5px] text-white/65 leading-[1.5] max-w-[42ch]">
+        <p
+          className="mt-2 text-[13.5px] leading-[1.5] max-w-[42ch]"
+          style={{ color: "var(--hero-soft, rgba(255,255,255,0.68))" }}
+        >
           Tu proveedor en China lee esto y entiende dónde entregar la carga y
           cómo marcarla con tu código Shipping Mark.
         </p>
@@ -91,9 +105,12 @@ export function ChinaSupplierClip({ markbox }: { markbox?: string } = {}) {
       )}
 
       <pre
-        className="m-0 p-4 rounded-[8px] bg-black/30 border border-white/10 text-[12.5px] leading-[1.6] text-white/92 whitespace-pre-wrap break-words"
+        className="m-0 p-4 rounded-[8px] text-[12.5px] leading-[1.6] whitespace-pre-wrap break-words"
         style={{
           fontFamily: 'var(--font-noto-sc), "Noto Sans SC", sans-serif',
+          background: "rgba(0,0,0,0.26)",
+          border: "1px solid rgba(255,255,255,0.12)",
+          color: "var(--hero-ink, #fff)",
         }}
         aria-label="Texto en chino listo para copiar"
       >
