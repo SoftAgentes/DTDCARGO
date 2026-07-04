@@ -10,7 +10,7 @@
  *    (postComment, etc.) — acá solo se CARGA el hilo para el drawer/detalle (que
  *    lo pintan en el cliente, así que necesitan un fetch, no un server-render).
  *  - Hub de documentos (SDD-0049): la fila de metadata del adjunto vive en
- *    `documents` (entity_type='bitacora_task', enum de 0214) → aparece en
+ *    `documents` (entity_type='bitacora_task', enum de 0215) → aparece en
  *    /studio/documentos. El BINARIO vive en el bucket `bitacora` (privado, 50 MB,
  *    acepta imagen/video/pdf) — signed URLs 1h con el USER client (respeta RLS).
  *
@@ -147,7 +147,7 @@ export async function listTaskAttachmentsAction(
  * Storage con el USER client). Inserta la fila en `documents`
  * (entity_type='bitacora_task') → el trigger DB `documents_validate_entity`
  * valida que la tarea exista y sea del tenant (via document_entity_in_tenant de
- * 0214). El path se re-valida contra el tenant del caller + la tarea (defensa en
+ * 0215). El path se re-valida contra el tenant del caller + la tarea (defensa en
  * profundidad). Rollback del object si el insert falla.
  */
 export async function registerTaskAttachmentAction(

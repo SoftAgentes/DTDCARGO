@@ -156,5 +156,5 @@ where unp.push_subscription is not null
 on conflict (endpoint) do nothing;
 
 -- ─────────────────────────────────────────────────────────────
--- Fin migración 0215_bitacora_push.sql
+-- Fin migración 0216_bitacora_push.sql
 -- ─────────────────────────────────────────────────────────────

@@ -2,7 +2,7 @@
  * Lecturas de actas/reuniones de Bitácora (SDD-0146 · Fase 2).
  *
  * Funciones puras que reciben SupabaseClient (patrón de la casa). Degradan a
- * []/null si la tabla aún no existe (0213/0214 las aplica el founder). La RLS
+ * []/null si la tabla aún no existe (0214/0215 las aplica el founder). La RLS
  * filtra: los borradores sólo los ve su creador (o admin); las confirmadas son
  * tenant-wide (salvo visibilidad='gestores').
  */

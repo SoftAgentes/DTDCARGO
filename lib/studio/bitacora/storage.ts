@@ -3,7 +3,7 @@
  *
  * Módulo sin dependencias (ni server-only ni supabase): lo comparten el browser
  * client (arma el path + sube), la route de transcripción (valida el path) y los
- * tests. Espejo del bucket `bitacora` de la migración 0213:
+ * tests. Espejo del bucket `bitacora` de la migración 0214:
  *   - privado, 50 MB, mimes audio: SOLO `audio/webm` y `audio/mp4`.
  *   - audio → `{tenant}/bitacora_meeting/{meetingId}/{uuid}.{ext}` (sin fila en
  *     documents; policies por `foldername(name)[1] = tenant`).
@@ -13,7 +13,7 @@
  * (el único mime audio-mp4 que el bucket acepta).
  */
 
-/** Nombre del bucket privado de Bitácora (match 0213). */
+/** Nombre del bucket privado de Bitácora (match 0214). */
 export const BITACORA_BUCKET = "bitacora";
 
 /** Tope de tamaño del bucket (50 MB) — se valida en el cliente ANTES de subir. */
@@ -110,7 +110,7 @@ export function isValidMeetingAudioPath(
 //
 // El binario va al MISMO bucket `bitacora` (privado, 50 MB) pero en la carpeta
 // `bitacora_task/{taskId}/` — CON fila en `documents` (entity_type='bitacora_task',
-// enum de 0214) para que aparezca en /studio/documentos. Mimes del bucket para
+// enum de 0215) para que aparezca en /studio/documentos. Mimes del bucket para
 // adjuntos: imágenes (jpeg/png/webp), video/mp4 y application/pdf (el audio del
 // bucket es solo para actas). Signed URLs 1h con el USER client.
 // ─────────────────────────────────────────────────────────────

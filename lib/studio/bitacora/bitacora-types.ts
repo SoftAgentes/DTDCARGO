@@ -1,6 +1,6 @@
 /**
  * Types, enums, validadores y helpers de label/badge de Bitácora (SDD-0146).
- * Match con migración 0213_bitacora.sql.
+ * Match con migración 0214_bitacora.sql.
  *
  * Convenciones del proyecto:
  *   - Sin Zod — validate*Input() propio.
