@@ -82,7 +82,7 @@ Cada tema de Short apunta a una página real (refuerza SEO de entidad + manda tr
 ---
 
 ## Reglas que NO se rompen (redes)
-1. **Una sola entidad:** nombre de canal = "DTD Cargo", branding del Brand Book v3.x; YouTube referencia la misma org que el sitio (`#organization`). No re-crear "DoorTuDoor" como marca pública suelta.
+1. **Una sola entidad:** nombre de canal = "DTD Cargo", branding del Brand Book vigente (el de mayor versión en `docs/design/studio/_norte/`); YouTube referencia la misma org que el sitio (`#organization`). No re-crear "DoorTuDoor" como marca pública suelta.
 2. **Sin watermark de IG** en los Shorts (penaliza distribución).
 3. **Todo video con salida:** CTA a dtdcargo.com o WhatsApp `+58 412 166 8021` (canal público primario).
 4. **Solo canales públicos al aire:** WhatsApp CRM + Fijo Valencia. No exponer los 6 contactos internos.
