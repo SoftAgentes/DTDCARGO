@@ -23,6 +23,18 @@ export function todayCaracasISO(now: Date = new Date()): string {
   }).format(now);
 }
 
+/**
+ * Día de la semana de HOY en Caracas, en español-VE ("sábado", "lunes"…).
+ * Se inyecta en el prompt del acta junto a la fecha ISO: sin el ancla dura de
+ * HOY, "mañana" / "el viernes 10" caen en años pasados.
+ */
+export function caracasWeekdayLabel(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat("es-VE", {
+    timeZone: VE_TIME_ZONE,
+    weekday: "long",
+  }).format(now);
+}
+
 /** ¿String con shape ISO date estricto (`^\d{4}-\d{2}-\d{2}$`) y fecha real? */
 export function isIsoDate(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;

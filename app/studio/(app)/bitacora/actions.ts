@@ -25,8 +25,19 @@ import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
   isBitacoraTaskEstado,
   validateBitacoraTaskInput,
+  validateMeetingDraftInput,
+  validateConfirmActaInput,
   type BitacoraActionState,
+  type ConfirmActaInput,
+  type MeetingDraftInput,
 } from "@/lib/studio/bitacora/bitacora-types";
+import { listAssignableProfiles } from "@/lib/studio/bitacora/bitacora-queries";
+import { extractActa } from "@/lib/studio/bitacora/extract";
+import { resolveActa, type ResolvedActa } from "@/lib/studio/bitacora/match";
+import {
+  caracasWeekdayLabel,
+  todayCaracasISO,
+} from "@/lib/studio/bitacora/dates";
 
 const MODULE_ID = "bitacora";
 
@@ -406,4 +417,187 @@ export async function takeTaskAction(
 
   revalidateBitacora();
   return { ok: true };
+}
+
+// ─── Actas con IA (Fase 2) ───────────────────────────────────
+
+export interface AnalyzeActaResult {
+  ok?: boolean;
+  meetingId?: string;
+  resolved?: ResolvedActa;
+  error?: string;
+  fieldErrors?: Record<string, string>;
+}
+
+/**
+ * CAPTURAR: inserta el borrador de acta, corre extractActa (IA o mock) +
+ * resolveActa (determinista) y persiste el acta en el borrador. Devuelve el
+ * borrador revisable para que el humano confirme (nada existe en bitacora_tasks
+ * todavía — la regla de oro). moduleEditDenial primero.
+ */
+export async function analyzeActaAction(
+  input: MeetingDraftInput,
+): Promise<AnalyzeActaResult> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+
+  const { input: draft, fieldErrors } = validateMeetingDraftInput({
+    tipo: input?.tipo,
+    transcript: input?.transcript,
+    client_id: input?.client_id,
+    contacto_libre: input?.contacto_libre,
+  });
+  if (fieldErrors || !draft) return { fieldErrors };
+
+  const ctx = await resolveContext(supabase);
+  if ("error" in ctx) return { error: ctx.error };
+
+  // Nombre del cliente (para el prompt/títulos): cliente real o contacto libre.
+  let clienteNombre: string | null = draft.contacto_libre;
+  if (draft.client_id) {
+    const { data: cli } = await supabase
+      .from("clients")
+      .select("name")
+      .eq("id", draft.client_id)
+      .maybeSingle<{ name: string }>();
+    if (cli?.name) clienteNombre = cli.name;
+  }
+
+  const hoyISO = todayCaracasISO();
+  const baseTitulo =
+    draft.tipo === "cliente"
+      ? `Conversación con ${clienteNombre?.trim() || "cliente"} · ${hoyISO}`
+      : `Reunión · ${hoyISO}`;
+
+  // Insertar el borrador (created_by = caller; la RLS lo exige).
+  const { data: meeting, error: insErr } = await supabase
+    .from("bitacora_meetings")
+    .insert({
+      tenant_id: ctx.tenantId,
+      titulo: baseTitulo,
+      fecha: hoyISO,
+      tipo: draft.tipo,
+      client_id: draft.client_id,
+      contacto_libre: draft.contacto_libre,
+      transcript: draft.transcript,
+      estado: "borrador",
+      created_by: ctx.userId,
+    })
+    .select("id")
+    .single<{ id: string }>();
+  if (insErr || !meeting) {
+    return {
+      error: `No se pudo crear el borrador: ${insErr?.message ?? "sin datos"}`,
+    };
+  }
+
+  // Pool del equipo (para nombres del prompt + matching determinista).
+  const profiles = await listAssignableProfiles(supabase);
+  const teamNames = profiles.map((p) => p.display_name);
+
+  const extracted = await extractActa(draft.transcript, {
+    tipo: draft.tipo,
+    clienteNombre,
+    teamNames,
+    hoyISO,
+    hoyDia: caracasWeekdayLabel(),
+  });
+  if ("error" in extracted) {
+    return { error: extracted.error, meetingId: meeting.id };
+  }
+
+  const resolved = resolveActa(extracted.acta, profiles, {
+    tipo: draft.tipo,
+    clienteNombre,
+    quienRegistroId: ctx.userId,
+    fechaISO: hoyISO,
+  });
+
+  // Persistir el acta en el borrador (memoria + reanudable). El freeze trigger
+  // conserva id/tenant/created_by.
+  const { error: updErr } = await supabase
+    .from("bitacora_meetings")
+    .update({
+      titulo: resolved.titulo,
+      resumen: resolved.resumen,
+      acta: {
+        puntos: resolved.puntos,
+        hablaron: resolved.hablaron,
+        decisiones: resolved.decisiones,
+        pendientes: resolved.pendientes,
+        proxima_reunion: resolved.proxima_reunion,
+      },
+    })
+    .eq("id", meeting.id);
+  if (updErr) {
+    return {
+      error: `Se analizó pero no se pudo guardar el borrador: ${updErr.message}`,
+      meetingId: meeting.id,
+    };
+  }
+
+  revalidateBitacora();
+  return { ok: true, meetingId: meeting.id, resolved };
+}
+
+/**
+ * CONFIRMAR: el humano autoriza. Llama la RPC transaccional
+ * `bitacora_confirm_meeting` (todo-o-nada): patch del acta + inserta
+ * tasks+assignees+checklist. Doble-confirm → "ya confirmada". moduleEditDenial
+ * primero; la RPC es SECURITY INVOKER (la RLS es la 2.ª capa).
+ */
+export async function confirmActaAction(
+  input: ConfirmActaInput,
+): Promise<{ ok?: boolean; meetingId?: string; error?: string }> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+
+  const { input: acta, error: vErr } = validateConfirmActaInput(input);
+  if (vErr || !acta) return { error: vErr ?? "Datos inválidos." };
+
+  // Tareas → shape que espera la RPC (assignees = array de uuid strings).
+  const pTasks = acta.tasks.map((t) => ({
+    titulo: t.titulo,
+    descripcion: t.descripcion,
+    prioridad: t.prioridad,
+    tipo: t.tipo,
+    para_agente: t.para_agente,
+    due_date: t.due_date,
+    responsable_nombre: t.responsable_nombre,
+    assignees: t.assignee_user_id ? [t.assignee_user_id] : [],
+    checklist: t.checklist,
+  }));
+
+  const pMeetingPatch = {
+    titulo: acta.titulo,
+    resumen: acta.resumen,
+    visibilidad: acta.visibilidad,
+    acta: acta.acta,
+  };
+
+  const { error } = await supabase.rpc("bitacora_confirm_meeting", {
+    p_meeting_id: acta.meetingId,
+    p_meeting_patch: pMeetingPatch,
+    p_tasks: pTasks,
+  });
+
+  if (error) {
+    const msg = error.message ?? "";
+    if (/ya confirmada/i.test(msg)) {
+      return { error: "Esta reunión ya fue confirmada." };
+    }
+    if (/no encontrada/i.test(msg)) {
+      return {
+        error: "No se encontró la reunión (¿ya fue confirmada o sin acceso?).",
+      };
+    }
+    return { error: `No se pudo confirmar: ${msg || "error desconocido"}` };
+  }
+
+  revalidateBitacora();
+  return { ok: true, meetingId: acta.meetingId };
 }

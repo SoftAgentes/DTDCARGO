@@ -1,6 +1,6 @@
 /**
  * Types, enums, validadores y helpers de label/badge de Bitácora (SDD-0146).
- * Match con migración 0212_bitacora.sql.
+ * Match con migración 0213_bitacora.sql.
  *
  * Convenciones del proyecto:
  *   - Sin Zod — validate*Input() propio.
@@ -25,6 +25,18 @@ export type BitacoraPrioridad = (typeof BITACORA_PRIORIDADES)[number];
 
 export const BITACORA_TASK_TIPOS = ["empleado", "entregable_cliente"] as const;
 export type BitacoraTaskTipo = (typeof BITACORA_TASK_TIPOS)[number];
+
+/** Tipo de reunión/acta (CHECK en bitacora_meetings). */
+export const BITACORA_MEETING_TIPOS = ["interna", "cliente"] as const;
+export type MeetingTipo = (typeof BITACORA_MEETING_TIPOS)[number];
+
+/** Estado del acta: la IA propone en borrador, el humano confirma. */
+export const BITACORA_MEETING_ESTADOS = ["borrador", "confirmada"] as const;
+export type MeetingEstado = (typeof BITACORA_MEETING_ESTADOS)[number];
+
+/** Visibilidad del acta (toggle "Reunión confidencial"). */
+export const BITACORA_MEETING_VISIBILIDADES = ["equipo", "gestores"] as const;
+export type MeetingVisibilidad = (typeof BITACORA_MEETING_VISIBILIDADES)[number];
 
 /** Roles válidos para la cola por rol (mismo vocabulario del RBAC). */
 export const BITACORA_ASSIGNABLE_ROLES = [
@@ -67,6 +79,20 @@ export function isBitacoraAssignableRole(
   return (
     typeof v === "string" &&
     (BITACORA_ASSIGNABLE_ROLES as readonly string[]).includes(v)
+  );
+}
+
+export function isMeetingTipo(v: unknown): v is MeetingTipo {
+  return (
+    typeof v === "string" &&
+    (BITACORA_MEETING_TIPOS as readonly string[]).includes(v)
+  );
+}
+
+export function isMeetingVisibilidad(v: unknown): v is MeetingVisibilidad {
+  return (
+    typeof v === "string" &&
+    (BITACORA_MEETING_VISIBILIDADES as readonly string[]).includes(v)
   );
 }
 
@@ -270,4 +296,220 @@ export function validateBitacoraTaskInput(
       para_agente,
     },
   };
+}
+
+// ─── Actas / reuniones (Fase 2) ──────────────────────────────
+
+export const MEETING_TIPO_META: Record<
+  MeetingTipo,
+  { label: string; tone: BitacoraBadgeTone }
+> = {
+  interna: { label: "Reunión interna", tone: "neutral" },
+  cliente: { label: "Con cliente", tone: "info" },
+};
+
+/** Próxima reunión dentro del acta. */
+export interface ActaProxima {
+  fecha: string | null; // YYYY-MM-DD | null
+  foco: string | null;
+}
+
+/** Forma canónica del jsonb `acta` en bitacora_meetings (columna `acta`). */
+export interface ActaData {
+  puntos: string[];
+  hablaron: string[];
+  decisiones: string[];
+  pendientes: string[];
+  proxima_reunion: ActaProxima;
+}
+
+/** Input del formulario de ingesta (pegar transcripción). */
+export interface MeetingDraftInput {
+  tipo: MeetingTipo;
+  transcript: string;
+  /** Cliente real vinculado (SDD-0108) — mutuamente excluyente con contacto_libre. */
+  client_id: string | null;
+  /** Lead sin registrar (texto libre) cuando no hay cliente en el sistema. */
+  contacto_libre: string | null;
+}
+
+/** Mínimo de caracteres de transcripción para habilitar el análisis con IA. */
+export const TRANSCRIPT_MIN_CHARS = 20;
+
+/**
+ * Valida el borrador de ingesta (sin Zod). Reglas:
+ *   - tipo fuera de enum → error (el segmented lo acota; forjado debe fallar).
+ *   - transcript: requerido, ≥ TRANSCRIPT_MIN_CHARS tras trim.
+ *   - client_id: si viene, shape uuid → si no, error.
+ *   - tipo cliente: se pide vincular cliente O escribir el contacto libre.
+ */
+export function validateMeetingDraftInput(
+  partial: Partial<Record<keyof MeetingDraftInput, unknown>>,
+): { input?: MeetingDraftInput; fieldErrors?: Record<string, string> } {
+  const fieldErrors: Record<string, string> = {};
+
+  const tipo: MeetingTipo = isMeetingTipo(partial.tipo)
+    ? partial.tipo
+    : "interna";
+  if (!isMeetingTipo(partial.tipo)) {
+    fieldErrors.tipo = "Tipo de reunión inválido.";
+  }
+
+  const transcript =
+    typeof partial.transcript === "string" ? partial.transcript.trim() : "";
+  if (transcript.length < TRANSCRIPT_MIN_CHARS) {
+    fieldErrors.transcript = `Pega al menos ${TRANSCRIPT_MIN_CHARS} caracteres de la conversación.`;
+  }
+
+  let client_id: string | null = null;
+  if (typeof partial.client_id === "string" && partial.client_id.trim() !== "") {
+    const c = partial.client_id.trim();
+    if (!UUID_RE.test(c)) {
+      fieldErrors.client_id = "Cliente inválido.";
+    } else {
+      client_id = c;
+    }
+  }
+
+  let contacto_libre: string | null = null;
+  if (typeof partial.contacto_libre === "string") {
+    const t = partial.contacto_libre.trim();
+    if (t.length > 300) {
+      fieldErrors.contacto_libre = "Máximo 300 caracteres.";
+    }
+    contacto_libre = t === "" ? null : t;
+  }
+
+  if (tipo === "cliente" && !client_id && !contacto_libre) {
+    fieldErrors.contacto_libre =
+      "Vincula un cliente o escribe con quién fue la conversación.";
+  }
+
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
+
+  return { input: { tipo, transcript, client_id, contacto_libre } };
+}
+
+// ─── Confirmación del acta (patch del acta + tareas revisadas) ─
+
+/** Una tarea revisada por el humano, lista para la RPC de confirmación. */
+export interface ConfirmTaskInput {
+  titulo: string;
+  descripcion: string | null;
+  prioridad: BitacoraPrioridad;
+  tipo: BitacoraTaskTipo;
+  due_date: string | null;
+  para_agente: boolean;
+  /** Dueño resuelto/reasignado (uuid) o null (sin asignar). */
+  assignee_user_id: string | null;
+  /** Nombre crudo que sugirió la IA (se conserva aunque no matchee). */
+  responsable_nombre: string | null;
+  checklist: string[];
+}
+
+/** Payload de la confirmación (patch del acta + tareas). */
+export interface ConfirmActaInput {
+  meetingId: string;
+  titulo: string;
+  resumen: string;
+  visibilidad: MeetingVisibilidad;
+  acta: ActaData;
+  tasks: ConfirmTaskInput[];
+}
+
+/** Tope de tareas por confirmación (espejo del guard de la RPC). */
+export const CONFIRM_TASKS_MAX = 50;
+
+/**
+ * Valida el payload de confirmación en el servidor (la RPC re-valida y es
+ * transaccional; esto da mensajes limpios antes de gastar el round-trip).
+ */
+export function validateConfirmActaInput(
+  raw: unknown,
+): { input?: ConfirmActaInput; error?: string } {
+  if (!raw || typeof raw !== "object") return { error: "Datos inválidos." };
+  const r = raw as Record<string, unknown>;
+
+  const meetingId = typeof r.meetingId === "string" ? r.meetingId.trim() : "";
+  if (!UUID_RE.test(meetingId)) return { error: "Falta la reunión a confirmar." };
+
+  const titulo =
+    typeof r.titulo === "string" ? r.titulo.trim().slice(0, 300) : "";
+  if (!titulo) return { error: "El acta necesita un título." };
+
+  const resumen = typeof r.resumen === "string" ? r.resumen.trim() : "";
+
+  const visibilidad: MeetingVisibilidad = isMeetingVisibilidad(r.visibilidad)
+    ? r.visibilidad
+    : "equipo";
+
+  const actaRaw = (r.acta ?? {}) as Record<string, unknown>;
+  const acta: ActaData = {
+    puntos: cleanStringArray(actaRaw.puntos),
+    hablaron: cleanStringArray(actaRaw.hablaron),
+    decisiones: cleanStringArray(actaRaw.decisiones),
+    pendientes: cleanStringArray(actaRaw.pendientes),
+    proxima_reunion: normalizeProxima(actaRaw.proxima_reunion),
+  };
+
+  const rawTasks = Array.isArray(r.tasks) ? r.tasks : [];
+  if (rawTasks.length > CONFIRM_TASKS_MAX) {
+    return { error: `Máximo ${CONFIRM_TASKS_MAX} tareas por acta.` };
+  }
+
+  const tasks: ConfirmTaskInput[] = [];
+  for (const t of rawTasks) {
+    if (!t || typeof t !== "object") continue;
+    const tt = t as Record<string, unknown>;
+    const tTitulo =
+      typeof tt.titulo === "string" ? tt.titulo.trim().slice(0, 300) : "";
+    if (!tTitulo) return { error: "Hay una tarea sin título. Complétala o quítala." };
+
+    const assignee =
+      typeof tt.assignee_user_id === "string" && UUID_RE.test(tt.assignee_user_id.trim())
+        ? tt.assignee_user_id.trim()
+        : null;
+
+    tasks.push({
+      titulo: tTitulo,
+      descripcion:
+        typeof tt.descripcion === "string" && tt.descripcion.trim() !== ""
+          ? tt.descripcion.trim().slice(0, 4000)
+          : null,
+      prioridad: isBitacoraPrioridad(tt.prioridad) ? tt.prioridad : "media",
+      tipo: isBitacoraTaskTipo(tt.tipo) ? tt.tipo : "empleado",
+      due_date:
+        typeof tt.due_date === "string" && isIsoDate(tt.due_date.trim())
+          ? tt.due_date.trim()
+          : null,
+      para_agente: tt.para_agente === true,
+      assignee_user_id: assignee,
+      responsable_nombre:
+        typeof tt.responsable_nombre === "string" && tt.responsable_nombre.trim() !== ""
+          ? tt.responsable_nombre.trim().slice(0, 200)
+          : null,
+      checklist: cleanStringArray(tt.checklist).map((s) => s.slice(0, 500)),
+    });
+  }
+
+  return {
+    input: { meetingId, titulo, resumen, visibilidad, acta, tasks },
+  };
+}
+
+function cleanStringArray(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((x) => (typeof x === "string" ? x.trim() : ""))
+    .filter((x) => x.length > 0);
+}
+
+function normalizeProxima(v: unknown): ActaProxima {
+  if (!v || typeof v !== "object") return { fecha: null, foco: null };
+  const p = v as Record<string, unknown>;
+  const fecha =
+    typeof p.fecha === "string" && isIsoDate(p.fecha.trim()) ? p.fecha.trim() : null;
+  const foco =
+    typeof p.foco === "string" && p.foco.trim() !== "" ? p.foco.trim() : null;
+  return { fecha, foco };
 }

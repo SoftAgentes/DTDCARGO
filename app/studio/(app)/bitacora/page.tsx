@@ -15,6 +15,7 @@ import {
   listAssignableProfiles,
   listTasks,
 } from "@/lib/studio/bitacora/bitacora-queries";
+import { listMeetings } from "@/lib/studio/bitacora/bitacora-meeting-queries";
 import { todayCaracasISO } from "@/lib/studio/bitacora/dates";
 import { BitacoraClient } from "./_components/BitacoraClient";
 
@@ -30,15 +31,17 @@ export default async function BitacoraPage() {
   const { data: userResp } = await supabase.auth.getUser();
   const myUserId = userResp.user?.id ?? null;
 
-  const [tasks, profiles] = await Promise.all([
+  const [tasks, profiles, meetings] = await Promise.all([
     listTasks(supabase, { includeDone: true, limit: 500 }),
     listAssignableProfiles(supabase),
+    listMeetings(supabase, { limit: 200 }),
   ]);
 
   return (
     <BitacoraClient
       tasks={tasks}
       profiles={profiles}
+      meetings={meetings}
       canEdit={canEdit}
       myUserId={myUserId}
       myRole={role}

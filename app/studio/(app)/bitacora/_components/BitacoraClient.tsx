@@ -15,6 +15,7 @@ import {
   useState,
   useTransition,
 } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
@@ -25,6 +26,7 @@ import type {
   AssignableProfile,
   BitacoraTask,
 } from "@/lib/studio/bitacora/bitacora-queries";
+import type { BitacoraMeetingListItem } from "@/lib/studio/bitacora/bitacora-meeting-queries";
 import {
   BITACORA_EMPTY_RULE,
   ESTADO_META,
@@ -35,14 +37,22 @@ import { moveTaskAction, takeTaskAction } from "../actions";
 import { BoardKanban } from "./BoardKanban";
 import { BoardList } from "./BoardList";
 import { TaskDrawer } from "./TaskDrawer";
+import { ActasList } from "./ActasList";
 
-type View = "tablero" | "lista";
+type View = "tablero" | "lista" | "actas";
+
+const VIEW_LABELS: Record<View, string> = {
+  tablero: "Tablero",
+  lista: "Lista",
+  actas: "Actas",
+};
 
 const VIEW_STORAGE_KEY = "bitacora:view";
 
 interface Props {
   tasks: BitacoraTask[];
   profiles: AssignableProfile[];
+  meetings: BitacoraMeetingListItem[];
   canEdit: boolean;
   myUserId: string | null;
   myRole: string | null;
@@ -52,6 +62,7 @@ interface Props {
 export function BitacoraClient({
   tasks,
   profiles,
+  meetings,
   canEdit,
   myUserId,
   myRole,
@@ -64,7 +75,9 @@ export function BitacoraClient({
   const [view, setView] = useState<View>("tablero");
   useEffect(() => {
     const saved = window.localStorage.getItem(VIEW_STORAGE_KEY);
-    if (saved === "lista" || saved === "tablero") setView(saved);
+    if (saved === "lista" || saved === "tablero" || saved === "actas") {
+      setView(saved);
+    }
   }, []);
   const changeView = (v: View) => {
     setView(v);
@@ -176,7 +189,7 @@ export function BitacoraClient({
               borderRadius: "var(--r-md)",
             }}
           >
-            {(["tablero", "lista"] as View[]).map((v) => {
+            {(["tablero", "lista", "actas"] as View[]).map((v) => {
               const active = view === v;
               return (
                 <button
@@ -196,12 +209,20 @@ export function BitacoraClient({
                     cursor: "pointer",
                   }}
                 >
-                  {v === "tablero" ? "Tablero" : "Lista"}
+                  {VIEW_LABELS[v]}
                 </button>
               );
             })}
           </div>
 
+          {canEdit && (
+            <Link
+              href="/studio/bitacora/nueva"
+              className="studio-btn studio-btn-ghost"
+            >
+              {Icon.spark(14)} Nueva conversación
+            </Link>
+          )}
           {canEdit && (
             <button
               type="button"
@@ -312,7 +333,9 @@ export function BitacoraClient({
       )}
 
       {/* Contenido principal */}
-      {localTasks.length === 0 ? (
+      {view === "actas" ? (
+        <ActasList meetings={meetings} canEdit={canEdit} />
+      ) : localTasks.length === 0 ? (
         <EmptyState
           eyebrow="Bitácora"
           title="Sin tareas todavía"
@@ -320,7 +343,7 @@ export function BitacoraClient({
             <>
               {BITACORA_EMPTY_RULE}.{" "}
               {canEdit
-                ? "Crea la primera con “Nueva tarea”."
+                ? "Crea la primera con “Nueva tarea” o analiza una conversación."
                 : "Cuando el equipo cree tareas las verás acá."}
             </>
           }
