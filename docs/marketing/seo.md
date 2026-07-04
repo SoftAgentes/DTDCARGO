@@ -94,6 +94,15 @@ Auditoría (3 frentes: integridad de schema · links internos/huérfanas/sitemap
 
 **GATED (input del founder):** `sameAs` a Google Business Profile / LinkedIn / Wikidata · `aggregateRating` (reseñas reales) · `Person` del founder · `GeoCoordinates` de las sedes.
 
+### 2026-07-04 · Fix CSP — beacon de conversión de Google Ads desbloqueado
+(commit `973aec90`, detectado por `/radar` + smoke test de prod)
+
+El `connect-src`/`img-src` del CSP (`next.config.ts`) permitía `googleads.g.doubleclick.net` pero **no** `ad.doubleclick.net`. El gtag de Ads (`AW-561290482`) emite un beacon a `ad.doubleclick.net/ccm/s/collect` que quedaba **bloqueado por CSP** en prod (2 errores de consola en cada carga). Agregado `https://ad.doubleclick.net` a ambas directivas; verificado en prod: 0 errores de consola.
+
+- **Impacto real (no exagerar):** el ping de conversión **primario** va a `googleadservices.com` / `google.com`, que **sí** estaban permitidos → las conversiones base (las ~4.231 del historial, ver [`ads-reestructura-search.md`](ads-reestructura-search.md)) **se venían registrando**. Lo que estaba degradado era el beacon `ccm/collect` de doubleclick = **enhanced conversions + señal de remarketing/audiencias**. O sea: mejora la **calidad de la señal** para Smart Bidding y las audiencias de remarketing, no "recupera conversiones perdidas" en el conteo base.
+- **Monitoreo:** en Google Ads, revisar que "Enhanced conversions" deje de reportar diagnóstico de beacon bloqueado y que las audiencias de remarketing de doubleclick vuelvan a poblarse tras el deploy.
+- **Regla:** cualquier tag/pixel externo nuevo (Meta, TikTok, Hotjar, etc.) exige sumar su dominio de `connect-src`/`img-src` en el CSP de `next.config.ts`, o el beacon se bloquea silenciosamente (solo se ve en la consola del navegador).
+
 ## 🛡️ Reglas SEO que NO se rompen
 
 1. **Nunca quitar el 301** `doortudoor.com → dtdcargo.com`.
