@@ -21,7 +21,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { createAdminClient } from "@/lib/db/admin";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { notifyBitacoraTaskAssigned } from "@/lib/studio/bitacora/notify";
 import {
   isBitacoraTaskEstado,
   validateBitacoraTaskInput,
@@ -81,6 +83,38 @@ function revalidateBitacora() {
   revalidatePath("/studio/bitacora");
   revalidatePath("/m/erp/bitacora");
   revalidatePath("/m/erp");
+}
+
+/**
+ * Dispara la notif `bitacora_task` (campanita + push + telegram según prefs) a
+ * cada asignado MENOS el actor. Best-effort TOTAL: nunca throwea → la action
+ * nunca se cae. Usa admin client (escribe bug_notifications + encola outbox) y
+ * solo lo crea si hay al menos un destinatario ≠ actor (take = auto-asignación
+ * → sin destinatario → cero trabajo). Fuera del hot-path del DB write.
+ */
+async function fireTaskAssignedNotifs(
+  tasks: Array<{ taskId: string; titulo: string; assigneeIds: string[] }>,
+  tenantId: string,
+  actorId: string,
+): Promise<void> {
+  const hasTarget = tasks.some((t) =>
+    t.assigneeIds.some((id) => id && id !== actorId),
+  );
+  if (!hasTarget) return;
+  try {
+    const admin = createAdminClient();
+    for (const t of tasks) {
+      await notifyBitacoraTaskAssigned(admin, {
+        tenantId,
+        taskId: t.taskId,
+        titulo: t.titulo,
+        assigneeUserIds: t.assigneeIds,
+        actorId,
+      });
+    }
+  } catch (err) {
+    console.error("[bitacora] fireTaskAssignedNotifs threw:", err);
+  }
 }
 
 // ─── Crear tarea manual ──────────────────────────────────────
@@ -160,6 +194,16 @@ export async function createTaskAction(
         taskId: created.id,
       };
     }
+  }
+
+  // Notif al dueño (best-effort, post-DB): campanita + push. El actor no se
+  // auto-notifica (si se asignó a sí mismo, fireTaskAssignedNotifs es no-op).
+  if (input.assignee_id) {
+    await fireTaskAssignedNotifs(
+      [{ taskId: created.id, titulo: input.titulo, assigneeIds: [input.assignee_id] }],
+      ctx.tenantId,
+      ctx.userId,
+    );
   }
 
   revalidateBitacora();
@@ -381,6 +425,22 @@ export async function reassignTaskAction(
     if (error) return { error: `No se pudo limpiar la cola: ${error.message}` };
   }
 
+  // Notif al nuevo dueño (best-effort). El actor no se auto-notifica.
+  if (newOwnerId && newOwnerId !== ctx.userId) {
+    const { data: task } = await supabase
+      .from("bitacora_tasks")
+      .select("titulo")
+      .eq("id", taskId)
+      .maybeSingle<{ titulo: string }>();
+    if (task?.titulo) {
+      await fireTaskAssignedNotifs(
+        [{ taskId, titulo: task.titulo, assigneeIds: [newOwnerId] }],
+        ctx.tenantId,
+        ctx.userId,
+      );
+    }
+  }
+
   revalidateBitacora();
   return { ok: true };
 }
@@ -416,6 +476,8 @@ export async function takeTaskAction(
     .eq("id", taskId);
   if (error) return { error: `Tomada, pero no salió de la cola: ${error.message}` };
 
+  // Sin notif a propósito: "tomar" es auto-asignación → el asignado ES el actor
+  // → la regla "menos el actor" lo excluye (nadie se auto-notifica).
   revalidateBitacora();
   return { ok: true };
 }
@@ -606,6 +668,27 @@ export async function confirmActaAction(
       };
     }
     return { error: `No se pudo confirmar: ${msg || "error desconocido"}` };
+  }
+
+  // Notif a los asignados de las tareas recién creadas (best-effort). La RPC es
+  // SQL (no mete push); leemos acá los assignees creados y avisamos a cada uno
+  // MENOS al que confirmó. Nunca tumba la confirmación (ya está commiteada).
+  const ctx = await resolveContext(supabase);
+  if (!("error" in ctx)) {
+    const { data: createdTasks } = await supabase
+      .from("bitacora_tasks")
+      .select("id, titulo, assignees:bitacora_task_assignees(user_id)")
+      .eq("meeting_id", acta.meetingId);
+    const tasks = ((createdTasks ?? []) as Array<{
+      id: string;
+      titulo: string;
+      assignees: Array<{ user_id: string }> | null;
+    }>).map((t) => ({
+      taskId: t.id,
+      titulo: t.titulo,
+      assigneeIds: (t.assignees ?? []).map((a) => a.user_id),
+    }));
+    await fireTaskAssignedNotifs(tasks, ctx.tenantId, ctx.userId);
   }
 
   revalidateBitacora();

@@ -18,6 +18,7 @@ import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { ErpBottomNav } from "@/app/m/erp/_components/ErpBottomNav";
+import { PushOptInBanner } from "./PushOptInBanner";
 import type {
   AssignableProfile,
   BitacoraTask,
@@ -256,6 +257,9 @@ export function HoyClient({
             );
           })}
         </div>
+
+        {/* Descubrimiento del recordatorio diario (opt-in · channel_push OFF por defecto) */}
+        <PushOptInBanner />
 
         {/* Cola del rol */}
         {queueTasks.length > 0 && (

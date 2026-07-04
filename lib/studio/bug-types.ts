@@ -28,7 +28,13 @@ export type BugNotifType =
   | "state_change"
   | "resolved"
   | "critical_alert"
-  | "duplicate_detected";
+  | "duplicate_detected"
+  // SDD-0146 Bitácora (Fase 5): la campanita in-app (bug_notifications) se
+  // reusa como outbox genérico. Estos dos NO son de bugs — su máscara de
+  // canales es propia (in-app siempre + push/telegram por flag + email OFF),
+  // ver lib/studio/bitacora/notify.ts. El enum bug_notif_type ya los tiene (0214).
+  | "bitacora_task"
+  | "bitacora_digest";
 
 /** Perfil mínimo del reportante (para mapear bug.reporter_id → nombre/email en la UI). */
 export type ReporterProfile = {

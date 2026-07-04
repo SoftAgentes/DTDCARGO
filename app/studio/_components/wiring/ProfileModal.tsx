@@ -1010,10 +1010,16 @@ function PushSubscriptionSection() {
     try {
       const reg = await navigator.serviceWorker.getRegistration("/sw.js");
       const sub = await reg?.pushManager.getSubscription();
+      // Capturamos el endpoint ANTES de desuscribir para desactivar SOLO este
+      // dispositivo (multi-dispositivo, SDD-0146): si el user tiene otro
+      // dispositivo activo, su push sigue vivo.
+      const endpoint = sub?.endpoint ?? null;
       if (sub) await sub.unsubscribe();
 
       const res = await fetch("/api/studio/push/subscribe", {
         method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ endpoint }),
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };

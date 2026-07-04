@@ -40,6 +40,38 @@ self.addEventListener("push", (event) => {
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
+// pushsubscriptionchange (SDD-0146 Fase 5): el browser rotó el endpoint →
+// re-suscribimos y actualizamos la sub en el Studio. La sesión Supabase (cookie
+// path "/") viaja con el fetch → el route resuelve la identidad del user.
+self.addEventListener("pushsubscriptionchange", (event) => {
+  event.waitUntil(
+    (async () => {
+      try {
+        const oldSub = event.oldSubscription || null;
+        const appServerKey =
+          (oldSub && oldSub.options && oldSub.options.applicationServerKey) ||
+          (event.newSubscription &&
+            event.newSubscription.options &&
+            event.newSubscription.options.applicationServerKey) ||
+          undefined;
+        const newSub =
+          event.newSubscription ||
+          (await self.registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: appServerKey,
+          }));
+        await fetch("/api/studio/push/subscribe", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ subscription: newSub.toJSON() }),
+        });
+      } catch {
+        // best-effort: el user re-activa desde Mi perfil si hace falta.
+      }
+    })(),
+  );
+});
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const url = (event.notification.data && event.notification.data.url) || "/studio";

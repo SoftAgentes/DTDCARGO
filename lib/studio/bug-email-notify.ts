@@ -33,6 +33,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { sendBugPushToUser } from "@/lib/studio/notify/send-bug-push";
+import { writeInAppNotification } from "@/lib/studio/notify/write-inapp";
 import { sendTelegramMessage } from "@/lib/studio/telegram/send-message";
 import {
   BUG_STATE_LABELS,
@@ -160,56 +161,12 @@ async function resolveChannels(
   return computeChannelDecision(prefs, type);
 }
 
-/**
- * Escribe la fila del outbox in-app (alimenta la campanita). Idempotencia
- * razonable: si ya hay una fila NO leída del mismo (user, bug, type) en los
- * últimos 60s, no duplica (protege contra doble-dispatch del mismo evento).
- * Devuelve el id de la fila (para estampar delivered_*_at) o null si falló.
- */
-async function writeInAppNotification(
-  supabaseAdmin: SupabaseClient,
-  args: {
-    userId: string;
-    bugId: string;
-    type: BugNotifType;
-    payload: Record<string, unknown>;
-  },
-): Promise<string | null> {
-  try {
-    const since = new Date(Date.now() - 60_000).toISOString();
-    const { data: dup } = await supabaseAdmin
-      .from("bug_notifications")
-      .select("id")
-      .eq("user_id", args.userId)
-      .eq("bug_id", args.bugId)
-      .eq("type", args.type)
-      .is("read_at", null)
-      .gte("created_at", since)
-      .limit(1)
-      .maybeSingle<{ id: string }>();
-    if (dup) return dup.id;
-
-    const { data, error } = await supabaseAdmin
-      .from("bug_notifications")
-      .insert({
-        user_id: args.userId,
-        bug_id: args.bugId,
-        type: args.type,
-        payload: args.payload,
-        delivered_inapp_at: new Date().toISOString(),
-      })
-      .select("id")
-      .single<{ id: string }>();
-    if (error) {
-      console.error("[bug-email-notify] writeInAppNotification failed:", error);
-      return null;
-    }
-    return data.id;
-  } catch (err) {
-    console.error("[bug-email-notify] writeInAppNotification threw:", err);
-    return null;
-  }
-}
+// writeInAppNotification vive ahora en ./notify/write-inapp (extraída y
+// generalizada para Bitácora SDD-0146: bugId opcional + exclusión del actor).
+// Se reexporta acá por si algún import viejo la buscaba en este módulo; los
+// call-sites de bugs la llaman con { userId, bugId, type, payload } → sin actorId
+// → comportamiento idéntico al original.
+export { writeInAppNotification };
 
 /** Estampa un delivered_*_at en la fila del outbox (best-effort). */
 async function stampDelivered(
