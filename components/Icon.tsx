@@ -96,6 +96,18 @@ export function CalcIcon({ className, size = 16 }: IconProps) {
   );
 }
 
+/** Radar — botón "Seguimiento total" del hub de alertas (Norte). */
+export function RadarIcon({ className, size = 16 }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} {...base} strokeWidth={1.6} className={className}>
+      <path d="M12 4a8 8 0 1 0 8 8" />
+      <path d="M12 8a4 4 0 1 0 4 4" />
+      <path d="M12 12 19 5" />
+      <circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 /** Corona — destino "Club" del nav (loyalty, gated). */
 export function CrownIcon({ className, size = 16 }: IconProps) {
   return (
