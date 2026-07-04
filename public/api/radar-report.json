@@ -1,84 +1,48 @@
 {
-  "generatedAt": "2026-07-03",
+  "generatedAt": "2026-07-04",
   "norteVersion": "v4.5",
   "partA": {
     "findings": [
       {
-        "id": "wildcards-destructivos-permisos",
-        "title": "✅ RESUELTO — Permisos locales: podados git rm *, git restore *, Copy-Item * y gh issue * de settings.local.json",
+        "id": "workspace-limpio",
+        "title": "Workspace y gates de marca limpios — sin hallazgos accionables nuevos",
         "severity": "baja",
-        "action": "Hecho 2026-07-03 en la misma corrida. Quedan solo permisos read-only y runners de dev/test.",
+        "action": "Sin acción. Los podados del 2026-07-03 (wildcards de permisos, skills Forge a _inactive/, BOM de settings.local) siguen en pie. Brand drift 0, book único v4.5 en sync (_norte ↔ private/marca), 0 huérfanos físicos.",
         "top": true
       },
       {
-        "id": "schema-reconciliation-desfasado",
-        "title": "✅ RESUELTO — schema-reconciliation.md regenerado 0177→0211: 19 tablas nuevas reconciliadas, Bloque 2.3 → done (posting 0178 + Slice C), hueco nómina reducido a 2 piezas gate-contador",
+        "id": "graphify-al-dia",
+        "title": "Grafo graphify actualizado hoy y server MCP reiniciado",
         "severity": "baja",
-        "action": "Hecho 2026-07-03. Snapshot ahora ≈198 tablas / 206 migraciones / próxima libre 0212. Core 22 sin cambio (18✅/4🟡/0❌)."
-      },
-      {
-        "id": "markbox-visible-portal",
-        "title": "✅ RESUELTO — MARKBOX → 'Shipping Mark' en los 2 textos visibles del portal (comprobante de factura + lección Academia). Los 3 hits en config Kommo triados como legítimos (nombran el campo externo del CRM, SDD-0086)",
-        "severity": "baja",
-        "action": "Hecho 2026-07-03 (SDD-0065)."
-      },
-      {
-        "id": "inventario-skills-forge",
-        "title": "✅ RESUELTO — 35 commands + 18 skills Forge genéricos movidos a .claude/_inactive/ (mecanismo nativo de forge-init; reversibles con /forge-activate). Quedan 14 commands + 5 skills DTD",
-        "severity": "baja",
-        "action": "Hecho 2026-07-03. Ahorro ~3-5k tokens por sesión."
-      },
-      {
-        "id": "settings-local-bom",
-        "title": "✅ RESUELTO — settings.local.json reescrito UTF-8 sin BOM",
-        "severity": "baja",
-        "action": "Hecho 2026-07-03."
-      },
-      {
-        "id": "verify-gate-flaky-timeout",
-        "title": "Gate Stop: el flaky 'failed to find the runner' de vitest reapareció esta sesión (se resolvió re-corriendo, patrón conocido); hook con timeout 180s que el verify completo puede rozar",
-        "severity": "baja",
-        "action": "Sin acción inmediata; si el gate crece, subir timeout del hook en .claude/settings.json."
+        "action": "Sin acción. /graphify update corrió (10.965 nodos / 24.849 edges / 490 comunidades); MCP verificado con graph_stats — sirve el grafo nuevo."
       },
       {
         "id": "modelo-effort-max",
         "title": "User settings: model opus[1m] + effortLevel max globales",
         "severity": "baja",
-        "action": "Para tareas mecánicas (renombres masivos, seeds, greps) delegar a subagentes Sonnet/Haiku y bajar costo."
+        "action": "Para tareas mecánicas (renombres masivos, seeds, greps) delegar a subagentes Sonnet/Haiku y bajar costo. settings.json del proyecto no fija modelo — hereda el global."
       },
       {
-        "id": "marca-limpia",
-        "title": "Gate de marca limpio: 0 drift de contenido, book único v4.5 en _norte + private/marca en sync, tagline OK, 0 huérfanos físicos, radar sin versiones literales",
+        "id": "verify-gate-flaky-timeout",
+        "title": "Gate Stop: flaky 'failed to find the runner' de vitest (patrón conocido, se resuelve re-corriendo); hook timeout 180s que el verify completo puede rozar",
         "severity": "baja",
-        "action": "Sin acción."
+        "action": "Sin acción inmediata; si el gate crece, subir timeout del hook en .claude/settings.json o correr en lotes de ~30."
       },
       {
-        "id": "agents-md-tamano-ok",
-        "title": "AGENTS.md 15 KB (~3.8k tokens) bajo el umbral de 5k; puente CLAUDE.md → @AGENTS.md OK; CLAUDE.md anidados scoped (app/studio, app/m)",
+        "id": "inventario-skills-solapamiento",
+        "title": "Solapamiento gstack↔DTD en skills (/despachar↔ship, /inspeccionar↔review, /temple↔project-auditor)",
         "severity": "baja",
-        "action": "Sin acción."
+        "action": "Duplicación gstack intencional (memoria reference_gstack_skills_layout). No consolidar sin decisión del founder."
       }
     ],
-    "estimatedTokenSavings": "~8%"
+    "estimatedTokenSavings": "~0-2%"
   },
   "partB": {
-    "counts": { "built": 66, "partial": 35, "missing": 24, "total": 125 },
+    "counts": { "built": 18, "partial": 4, "missing": 0, "total": 22 },
     "blocks": [
-      {
-        "name": "Bloques financieros 1.1-5 (roadmap)",
-        "remaining": "0%",
-        "note": "Los 7 renglones done, incluido 2.3 China (cerrado 2026-07-03: Slice C SDD-0115 + keystone de posting migr 0178/SDD-0110)."
-      },
-      {
-        "name": "Modelo de datos (doc completo, snapshot 0211)",
-        "remaining": "47%",
-        "note": "66 built / 125 markers tras regeneración 0177→0211 (19 tablas nuevas: nómina cierre+onboarding+puestos, Club DTD, Administración, pagos reportados). 35 parciales + 24 faltantes = 59 (47%)."
-      },
-      {
-        "name": "Core 22 entidades (API-CONTRACT)",
-        "remaining": "18%",
-        "note": "18 de 22 built (82%), 4 parciales (auth unificado, cola offline entrada, catálogo origen CN, salida multi-canal), 0 sin arrancar. Pendiente estructural: re-derivación completa del blueprint vs Norte v4.5."
-      }
+      { "name": "Bloques financieros 1.1-5 (roadmap)", "remaining": "0%", "note": "Los 8 renglones done (1.1/1.2/2.1/2.2/2.3/3/4/5). 2.3 China cerrado 2026-07-03: Slice C SDD-0115 + posting keystone migr 0178/SDD-0110." },
+      { "name": "Core 22 entidades (API-CONTRACT)", "remaining": "18%", "note": "18/22 built (82%), 4 parciales (auth unificado, cola offline de entrada, catálogo origen CN, salida multi-canal), 0 sin tabla. Ninguno keystone." },
+      { "name": "Superficie ampliada v4.5 (~13 dominios)", "remaining": "no documentado exacto", "note": "~120 formas con tabla / ~10 huecos. Huecos reales ≈2: tabla puente Supplier↔Client (WeChat) + detección de ferias IA. Más 2 piezas nómina gate-contador (salario integral, asiento del corte SDD-0112)." }
     ]
   }
 }
