@@ -218,11 +218,11 @@ function ToastViewport({
       aria-label={t("chrome.toast.region_aria")}
       style={{
         position: "fixed",
-        bottom: "var(--s-6, 24px)",
+        bottom: "var(--s-6)",
         // Offset extra (64px) deja aire al BugFAB cuando está encendido en
         // bottom-right (44px). El FAB está oculto por defecto, así que casi
         // siempre este espacio queda libre · no bloquea nada.
-        right: "calc(var(--s-6, 24px) + 64px)",
+        right: "calc(var(--s-6) + 64px)",
         display: "flex",
         flexDirection: "column",
         gap: 10,
@@ -279,8 +279,8 @@ function ToastCard({
         background: "var(--bg-surface)",
         border: `1px solid ${tone.border}`,
         borderLeft: `4px solid ${tone.accent}`,
-        borderRadius: "var(--r-md, 8px)",
-        boxShadow: "var(--shadow-md, 0 8px 24px rgba(0,0,0,0.15))",
+        borderRadius: "var(--r-md)",
+        boxShadow: "var(--shadow-md)",
         color: "var(--ink)",
         animation: "studio-toast-in 200ms ease-out",
       }}
@@ -344,7 +344,7 @@ function ToastCard({
           marginRight: -4,
           display: "inline-flex",
           alignItems: "center",
-          borderRadius: "var(--r-sm, 4px)",
+          borderRadius: "var(--r-sm)",
           flexShrink: 0,
         }}
         onMouseEnter={(e) => {
@@ -372,7 +372,7 @@ const TONE_BY_KIND: Record<
     icon: <CheckCircleIcon />,
   },
   info: {
-    accent: "var(--info, #2A6FDB)",
+    accent: "var(--info)",
     border: "var(--border)",
     icon: <InfoIcon />,
   },
@@ -382,7 +382,7 @@ const TONE_BY_KIND: Record<
     icon: <ErrorIcon />,
   },
   warning: {
-    accent: "var(--warning, #B8893A)",
+    accent: "var(--warning)",
     border: "var(--border)",
     icon: <WarningIcon />,
   },

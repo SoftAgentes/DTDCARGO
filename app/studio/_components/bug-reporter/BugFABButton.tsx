@@ -336,8 +336,8 @@ function CornerMenu({
         ...menuHorizontal,
         background: "var(--bg-surface)",
         border: "1px solid var(--border-strong)",
-        borderRadius: "var(--r-md, 8px)",
-        boxShadow: "var(--shadow-md, 0 8px 24px rgba(0,0,0,0.15))",
+        borderRadius: "var(--r-md)",
+        boxShadow: "var(--shadow-md)",
         padding: 8,
         minWidth: 200,
         display: "flex",
@@ -374,7 +374,7 @@ function CornerMenu({
               color: "var(--ink)",
               font: "500 12.5px/1.2 var(--f-sans)",
               cursor: "pointer",
-              borderRadius: "var(--r-sm, 6px)",
+              borderRadius: "var(--r-sm)",
               textAlign: "left",
             }}
             onMouseEnter={(e) => {
