@@ -76,7 +76,7 @@ export default async function PortalLessonPage({
             Tu dirección para Alibaba / 1688
           </h2>
           <p className="text-[13px] text-grey-500 max-w-prose">
-            Esta es la dirección de la bodega de DTD en Yiwu. Escribe tu MARKBOX y copia cada campo en el
+            Esta es la dirección de la bodega de DTD en Yiwu. Escribe tu Shipping Mark y copia cada campo en el
             formulario de tu proveedor — el chino se pega tal cual.
           </p>
           <AlibabaAddressGuide />

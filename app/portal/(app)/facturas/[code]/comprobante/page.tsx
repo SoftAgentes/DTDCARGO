@@ -199,7 +199,7 @@ export default async function PortalComprobantePage({ params }: Props) {
             <Party label="Cliente">
               <PartyName>{inv.clientName}</PartyName>
               <PartyLine mono>
-                MARKBOX ·{" "}
+                Shipping Mark ·{" "}
                 <b style={{ color: "var(--doc-wine)" }}>{client.markbox}</b>
               </PartyLine>
               {client.address ? <PartyLine>{client.address}</PartyLine> : null}
