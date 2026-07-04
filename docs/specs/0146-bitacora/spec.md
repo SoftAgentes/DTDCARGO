@@ -1,7 +1,7 @@
 ---
 sdd: "0146"
 title: "Bitácora — actas de reunión con IA + gestor de tareas del equipo (Studio + móvil staff)"
-status: approved
+status: done
 author: "Claude Code (Fable) + founder"
 created: 2026-07-04
 updated: 2026-07-04

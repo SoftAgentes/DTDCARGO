@@ -178,7 +178,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0143 | Mailing al Norte — Firmas, Envío manual y Programados (+ cron) | in-progress | interno |
 | 0144 | Compra asistida — renombre, filtros y reglas propias del módulo | draft | interno |
 | 0145 | Mi perfil unificado del portal — una sola pantalla espejando … | in-progress | interno |
-| 0146 | Bitácora — actas de reunión con IA + gestor de tareas del equ… | approved | interno |
+| 0146 | Bitácora — actas de reunión con IA + gestor de tareas del equ… | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
