@@ -224,11 +224,18 @@ function ActaDetailDrawer({
           padding: "14px 22px",
           borderTop: "1px solid var(--border)",
           display: "flex",
-          justifyContent: "flex-end",
+          justifyContent: "space-between",
+          gap: 10,
           background: "var(--bg-surface)",
           flexShrink: 0,
         }}
       >
+        <a
+          className="studio-btn studio-btn-ghost"
+          href={`/api/studio/bitacora/export?tipo=acta&id=${encodeURIComponent(meeting.id)}`}
+        >
+          {Icon.download(14)} Descargar acta
+        </a>
         <button type="button" className="studio-btn studio-btn-ghost" onClick={onClose}>
           Cerrar
         </button>

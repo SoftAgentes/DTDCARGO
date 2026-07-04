@@ -148,6 +148,14 @@ export function BitacoraClient({
     [localTasks, esperandoOnly],
   );
 
+  // Filtros activos de la Lista → params del export (respeta lo que se ve).
+  // La route re-aplica sobre datos gated por RLS (nunca confía en el cliente).
+  const exportParams = useMemo<Record<string, string>>(() => {
+    const p: Record<string, string> = {};
+    if (esperandoOnly) p.tipoTarea = "entregable_cliente";
+    return p;
+  }, [esperandoOnly]);
+
   // Cola del rol: sin dueño, con rol, no hechas.
   const queueTasks = useMemo(
     () =>
@@ -445,6 +453,7 @@ export function BitacoraClient({
           meetingTitleById={meetingTitleById}
           canEdit={canEdit}
           hoyISO={hoyISO}
+          exportParams={exportParams}
           onMove={handleMove}
           onOpen={(t) => setDrawer({ mode: "edit", task: t })}
         />

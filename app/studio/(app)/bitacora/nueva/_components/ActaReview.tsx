@@ -261,20 +261,28 @@ export function ActaReview({
         <span style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
           {tasks.length} tarea{tasks.length === 1 ? "" : "s"} se crearán al confirmar.
         </span>
-        <ActionButton
-          variant="primary"
-          idleLabel="Confirmar y crear tareas"
-          loadingLabel="Confirmando…"
-          successLabel="Acta confirmada"
-          idleIcon={Icon.check(14)}
-          disabled={!canConfirm}
-          onAction={confirm}
-          onSuccess={() => {
-            toast.success("Acta confirmada · tareas creadas");
-            router.push("/studio/bitacora");
-          }}
-          onError={(m) => toast.error(m)}
-        />
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <a
+            className="studio-btn studio-btn-ghost"
+            href={`/api/studio/bitacora/export?tipo=acta&id=${encodeURIComponent(meetingId)}`}
+          >
+            {Icon.download(14)} Descargar acta
+          </a>
+          <ActionButton
+            variant="primary"
+            idleLabel="Confirmar y crear tareas"
+            loadingLabel="Confirmando…"
+            successLabel="Acta confirmada"
+            idleIcon={Icon.check(14)}
+            disabled={!canConfirm}
+            onAction={confirm}
+            onSuccess={() => {
+              toast.success("Acta confirmada · tareas creadas");
+              router.push("/studio/bitacora");
+            }}
+            onError={(m) => toast.error(m)}
+          />
+        </div>
       </div>
     </div>
   );

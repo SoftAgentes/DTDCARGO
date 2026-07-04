@@ -139,6 +139,10 @@ const nextConfig: NextConfig = {
     // `private/marca/` (fuera de `public/`) y se sirven por fs.read en esta ruta;
     // hay que trazarlos para que viajen en el bundle de la función en prod.
     "/marca/asset/[name]": ["./private/marca/**"],
+    // Reportes de Bitácora (SDD-0146 · Fase 7): el acta/tareas embeben el isólogo
+    // como data-URI leído de `public/brand/` por fs → trazarlo para prod (si el
+    // fs falla, el reporte degrada al wordmark de texto, sin romper).
+    "/api/studio/bitacora/export": ["./public/brand/**"],
   },
   async headers() {
     // El operario PWA (`/m/*`) necesita cámara (scan QR · QrScanner) y

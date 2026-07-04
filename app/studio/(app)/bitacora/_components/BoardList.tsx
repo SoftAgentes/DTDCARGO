@@ -32,6 +32,7 @@ import {
 } from "@/lib/studio/bitacora/bitacora-types";
 import { groupTasksByPerson } from "@/lib/studio/bitacora/grouping";
 import { dueDateLabel } from "@/lib/studio/bitacora/dates";
+import { ExportMenu } from "./ExportMenu";
 
 interface Props {
   tasks: BitacoraTask[];
@@ -39,6 +40,8 @@ interface Props {
   meetingTitleById: Record<string, string>;
   canEdit: boolean;
   hoyISO: string;
+  /** Filtros activos de la Lista → query params del export (respeta lo que se ve). */
+  exportParams: Record<string, string>;
   onMove: (taskId: string, estado: BitacoraTaskEstado) => void;
   onOpen: (task: BitacoraTask) => void;
 }
@@ -238,6 +241,7 @@ export function BoardList({
   meetingTitleById,
   canEdit,
   hoyISO,
+  exportParams,
   onMove,
   onOpen,
 }: Props) {
@@ -315,16 +319,24 @@ export function BoardList({
           })}
         </div>
 
-        {mode === "lista" && (
-          <div style={{ marginLeft: "auto" }}>
+        <div
+          style={{
+            marginLeft: "auto",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          {mode === "lista" && (
             <ColumnManager
               cfg={colCfg}
               setCfg={setColCfg}
               defaults={COLS_DEFAULT}
               labels={COL_LABELS}
             />
-          </div>
-        )}
+          )}
+          <ExportMenu filterParams={exportParams} />
+        </div>
       </div>
 
       {mode === "persona" ? (

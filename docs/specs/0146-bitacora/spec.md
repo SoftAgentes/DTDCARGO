@@ -261,6 +261,12 @@ en V1 (el buscador indexa 5 facetas fijas, no módulos).
 
 Gate por fase: `node scripts/verify.mjs` verde + criterios + `/ui-check` si hubo UI nueva.
 
+> **Estado de implementación (2026-07-04):** las **7 fases** están construidas en el
+> worktree `feat/bitacora` (Fase 7 — reportes con branding — incluida). Pendiente el
+> **merge del founder**; el spec sigue `approved` (el founder lo pasa a `done` tras
+> integrar). Las migraciones `0213`/`0214`/`0215` son archivos en rama — las aplica
+> el founder (renumera al integrar si colisionan con `main`).
+
 - **Fase 0 — Spec** (este documento): draft → approved por founder; module-sdd-map;
   `pnpm docs:check`.
 - **Fase 1 — Fundación**: migr 0213+0214 (archivos), registro módulo+RBAC,
@@ -306,6 +312,11 @@ Gate por fase: `node scripts/verify.mjs` verde + criterios + `/ui-check` si hubo
   nueva. Al cierre: spec a `done` + `pnpm docs:check`. ✓ El acta baja como HTML que se ve
   bien offline y al imprimir con el branding exacto · el CSV abre en Excel con acentos y ñ
   correctos y respeta filtros · un usuario solo exporta lo que puede ver.
+  **Implementada (worktree `feat/bitacora`):** `lib/studio/bitacora/reports.ts`
+  (`buildActaHtml`/`buildTasksReportHtml`/`buildTasksCsv`/`filterTasksForExport` puros) +
+  route `app/api/studio/bitacora/export/route.ts` (gate de VISTA, RLS del user, isólogo
+  data-URI por fs con fallback a wordmark) + botones "Descargar acta" (revisión + tab Actas)
+  y "Exportar" (Reporte HTML / Datos CSV) en la Vista Lista.
 
 ## Env vars
 
