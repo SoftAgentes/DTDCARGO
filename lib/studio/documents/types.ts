@@ -103,6 +103,7 @@ export const DOCUMENT_ENTITY_TYPES = [
   "supplier",
   "consolidation",
   "booking",
+  "bitacora_task",
   "none",
 ] as const;
 
@@ -262,6 +263,10 @@ export const LINK_KIND: Record<
   supplier: { label: "Proveedor", module: "proveedores", route: "/studio/proveedores" },
   consolidation: { label: "Contenedor", module: "naviera", route: "/studio/naviera" },
   booking: { label: "Booking", module: "naviera", route: "/studio/naviera" },
+  // SDD-0146: adjunto "prueba de avance" de una tarea de Bitácora. El binario
+  // vive en el bucket `bitacora` (no en `documents`) — el "Ver" del hub no lo
+  // firma (bucket distinto); se ve desde la galería de la tarea. Ver por módulo.
+  bitacora_task: { label: "Tarea (Bitácora)", module: "bitacora", route: "/studio/bitacora" },
   none: { label: "Sin transacción", module: null, route: null },
 };
 

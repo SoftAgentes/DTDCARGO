@@ -34,12 +34,14 @@ import {
   ROLE_QUEUE_LABELS,
   type BitacoraActionState,
 } from "@/lib/studio/bitacora/bitacora-types";
+import { formatRelativeTime } from "@/lib/studio/comments/types";
 import {
   addChecklistItemAction,
   createTaskAction,
   toggleChecklistItemAction,
   updateTaskAction,
 } from "../actions";
+import { TaskCollabSection } from "./TaskCollabSection";
 
 const FORM_ID = "bitacora-task-form";
 const INITIAL_STATE: BitacoraActionState = {};
@@ -50,6 +52,7 @@ interface Props {
   profiles: AssignableProfile[];
   canEdit: boolean;
   myUserId: string | null;
+  tenantId: string | null;
   onClose: () => void;
   onSaved: () => void;
 }
@@ -60,11 +63,14 @@ export function TaskDrawer({
   profiles,
   canEdit,
   myUserId,
+  tenantId,
   onClose,
   onSaved,
 }: Props) {
   const toast = useToast();
   const isCreate = mode === "create";
+  const nameByUserId: Record<string, string> = {};
+  for (const p of profiles) nameByUserId[p.user_id] = p.display_name;
 
   const [titulo, setTitulo] = useState(task?.titulo ?? "");
   const [ownerId, setOwnerId] = useState(task?.assignees[0]?.user_id ?? "");
@@ -119,13 +125,24 @@ export function TaskDrawer({
 
   const toggleItem = (itemId: string, done: boolean) => {
     if (!canEdit || itemId.startsWith("tmp-")) return;
-    setItems((xs) => xs.map((x) => (x.id === itemId ? { ...x, done } : x)));
+    const prev = items; // snapshot para revert exacto (done + done_by/done_at)
+    // Optimista: al marcar, quién/cuándo = yo/ahora (espejo del server action).
+    setItems((xs) =>
+      xs.map((x) =>
+        x.id === itemId
+          ? {
+              ...x,
+              done,
+              done_by: done ? myUserId : null,
+              done_at: done ? new Date().toISOString() : null,
+            }
+          : x,
+      ),
+    );
     startTransition(async () => {
       const res = await toggleChecklistItemAction(itemId, done);
       if (res?.error) {
-        setItems((xs) =>
-          xs.map((x) => (x.id === itemId ? { ...x, done: !done } : x)),
-        );
+        setItems(prev);
         toast.error(res.error);
       }
     });
@@ -372,7 +389,7 @@ export function TaskDrawer({
                   disabled={!canEdit}
                   style={{
                     display: "flex",
-                    alignItems: "center",
+                    alignItems: "flex-start",
                     gap: 8,
                     padding: "8px 10px",
                     background: "var(--bg-elevated)",
@@ -382,7 +399,6 @@ export function TaskDrawer({
                     cursor: canEdit ? "pointer" : "default",
                     font: "500 12.5px/1.3 var(--f-sans)",
                     color: it.done ? "var(--ink-mute)" : "var(--ink)",
-                    textDecoration: it.done ? "line-through" : "none",
                   }}
                 >
                   <span
@@ -398,11 +414,27 @@ export function TaskDrawer({
                       alignItems: "center",
                       justifyContent: "center",
                       flexShrink: 0,
+                      marginTop: 1,
                     }}
                   >
                     {it.done && Icon.check(10)}
                   </span>
-                  {it.texto}
+                  <span style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+                    <span style={{ textDecoration: it.done ? "line-through" : "none" }}>
+                      {it.texto}
+                    </span>
+                    {it.done && (
+                      <span
+                        style={{
+                          font: "500 10.5px/1.3 var(--f-sans)",
+                          color: "var(--ink-mute)",
+                          textDecoration: "none",
+                        }}
+                      >
+                        {checklistDoneLabel(it.done_by, it.done_at, nameByUserId)}
+                      </span>
+                    )}
+                  </span>
                 </button>
               ))}
             </div>
@@ -474,6 +506,20 @@ export function TaskDrawer({
             </div>
           )}
         </div>
+
+        {/* Colaboración (SDD-0146 · Fase 4): prueba de avance + comentarios. Sin
+            <form> anidado (CommentsThread usa botones type=button + file input
+            sin name → no interfiere con el submit de la tarea). Solo en edición. */}
+        {!isCreate && task && (
+          <div style={{ borderTop: "1px solid var(--border)", paddingTop: 16 }}>
+            <TaskCollabSection
+              taskId={task.id}
+              taskTitulo={task.titulo}
+              canEdit={canEdit}
+              tenantId={tenantId ?? ""}
+            />
+          </div>
+        )}
       </form>
 
       {canEdit ? (
@@ -502,6 +548,17 @@ export function TaskDrawer({
       )}
     </DrawerShell>
   );
+}
+
+/** Línea sutil "Hecho por {nombre} · hace X" bajo un ítem completado. */
+function checklistDoneLabel(
+  doneBy: string | null,
+  doneAt: string | null,
+  nameByUserId: Record<string, string>,
+): string {
+  const who = (doneBy && nameByUserId[doneBy]) || "alguien del equipo";
+  const when = doneAt ? ` · ${formatRelativeTime(doneAt)}` : "";
+  return `Hecho por ${who}${when}`;
 }
 
 function FieldError({ msg }: { msg: string }) {

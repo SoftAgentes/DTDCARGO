@@ -18,7 +18,8 @@ export type CommentEntityType =
   | "dispatch_order"
   | "supplier_bill"
   | "warehouse_receipt_cn"
-  | "warehouse_receipt_ve";
+  | "warehouse_receipt_ve"
+  | "bitacora_task";
 
 export const COMMENT_ENTITY_TYPES: CommentEntityType[] = [
   "shipment",
@@ -29,6 +30,7 @@ export const COMMENT_ENTITY_TYPES: CommentEntityType[] = [
   "supplier_bill",
   "warehouse_receipt_cn",
   "warehouse_receipt_ve",
+  "bitacora_task",
 ];
 
 /**
@@ -81,6 +83,13 @@ export const COMMENT_ENTITY_LABELS: Record<CommentEntityType, CommentEntityMeta>
   warehouse_receipt_ve: {
     label: "Recepción VE",
     href: () => `/studio/ve`,
+  },
+  // SDD-0146: la tarea de Bitácora abre por id vía una ruta de deep-link que
+  // redirige al tablero con el drawer abierto. PATH (sin query string) →
+  // revalidatePath-safe (invariante del test entity-href) y abre la tarea.
+  bitacora_task: {
+    label: "Tarea",
+    href: (id) => `/studio/bitacora/tarea/${id}`,
   },
 };
 

@@ -25,11 +25,13 @@ import {
   nextEstado,
 } from "@/lib/studio/bitacora/bitacora-types";
 import { dueDateLabel } from "@/lib/studio/bitacora/dates";
+import { formatRelativeTime } from "@/lib/studio/comments/types";
 import {
   moveTaskAction,
   takeTaskAction,
   toggleChecklistItemAction,
 } from "@/app/studio/(app)/bitacora/actions";
+import { TaskCollabSection } from "@/app/studio/(app)/bitacora/_components/TaskCollabSection";
 
 interface Props {
   task: BitacoraTask;
@@ -37,6 +39,7 @@ interface Props {
   myUserId: string;
   myRole: string;
   canEdit: boolean;
+  tenantId: string;
   hoyISO: string;
 }
 
@@ -46,6 +49,7 @@ export function TareaDetailClient({
   myUserId,
   myRole,
   canEdit,
+  tenantId,
   hoyISO,
 }: Props) {
   const router = useRouter();
@@ -71,9 +75,20 @@ export function TareaDetailClient({
 
   const toggleItem = (itemId: string, done: boolean) => {
     if (!canEdit) return;
+    const prevItem = task.checklist.find((c) => c.id === itemId);
+    // Optimista: quién/cuándo = yo/ahora (espejo de toggleChecklistItemAction).
     setTask((t) => ({
       ...t,
-      checklist: t.checklist.map((c) => (c.id === itemId ? { ...c, done } : c)),
+      checklist: t.checklist.map((c) =>
+        c.id === itemId
+          ? {
+              ...c,
+              done,
+              done_by: done ? myUserId : null,
+              done_at: done ? new Date().toISOString() : null,
+            }
+          : c,
+      ),
     }));
     startTransition(async () => {
       const res = await toggleChecklistItemAction(itemId, done);
@@ -81,7 +96,7 @@ export function TareaDetailClient({
         setTask((t) => ({
           ...t,
           checklist: t.checklist.map((c) =>
-            c.id === itemId ? { ...c, done: !done } : c,
+            c.id === itemId && prevItem ? prevItem : c,
           ),
         }));
         toast.error(res.error);
@@ -325,7 +340,7 @@ export function TareaDetailClient({
                   disabled={!canEdit}
                   style={{
                     display: "flex",
-                    alignItems: "center",
+                    alignItems: "flex-start",
                     gap: 12,
                     minHeight: 48,
                     padding: "12px 14px",
@@ -336,7 +351,6 @@ export function TareaDetailClient({
                     cursor: canEdit ? "pointer" : "default",
                     font: "500 13px/1.4 var(--f-sans)",
                     color: it.done ? "var(--ink-mute)" : "var(--ink)",
-                    textDecoration: it.done ? "line-through" : "none",
                     width: "100%",
                   }}
                 >
@@ -353,16 +367,45 @@ export function TareaDetailClient({
                       alignItems: "center",
                       justifyContent: "center",
                       flexShrink: 0,
+                      marginTop: 1,
                     }}
                   >
                     {it.done && Icon.check(12)}
                   </span>
-                  {it.texto}
+                  <span style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
+                    <span style={{ textDecoration: it.done ? "line-through" : "none" }}>
+                      {it.texto}
+                    </span>
+                    {it.done && (
+                      <span
+                        style={{
+                          font: "500 11px/1.3 var(--f-sans)",
+                          color: "var(--ink-mute)",
+                        }}
+                      >
+                        Hecho por{" "}
+                        {(it.done_by && nameByUserId[it.done_by]) || "alguien del equipo"}
+                        {it.done_at ? ` · ${formatRelativeTime(it.done_at)}` : ""}
+                      </span>
+                    )}
+                  </span>
                 </button>
               ))}
             </div>
           </section>
         )}
+
+        {/* Colaboración (SDD-0146 · Fase 4): prueba de avance (cámara) +
+            comentarios con @menciones. */}
+        <section aria-label="Colaboración" style={{ marginBottom: 18 }}>
+          <TaskCollabSection
+            taskId={task.id}
+            taskTitulo={task.titulo}
+            canEdit={canEdit}
+            tenantId={tenantId}
+            allowCamera
+          />
+        </section>
 
         <Link
           href="/studio/bitacora"

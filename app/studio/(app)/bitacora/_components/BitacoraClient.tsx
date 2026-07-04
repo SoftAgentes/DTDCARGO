@@ -56,6 +56,9 @@ interface Props {
   canEdit: boolean;
   myUserId: string | null;
   myRole: string | null;
+  tenantId: string | null;
+  /** Deep-link (?task=): abre el drawer de esta tarea al montar. */
+  initialOpenTaskId: string | null;
   hoyISO: string;
 }
 
@@ -66,6 +69,8 @@ export function BitacoraClient({
   canEdit,
   myUserId,
   myRole,
+  tenantId,
+  initialOpenTaskId,
   hoyISO,
 }: Props) {
   const router = useRouter();
@@ -93,6 +98,16 @@ export function BitacoraClient({
     | { mode: "edit"; task: BitacoraTask }
     | null
   >(null);
+
+  // Deep-link desde la bandeja de menciones: abrir el drawer de la tarea del
+  // ?task= UNA vez al montar (no re-dispara en router.refresh — el efecto corre
+  // solo en el mount inicial; el drawer sobrevive el refresh por estado cliente).
+  useEffect(() => {
+    if (!initialOpenTaskId) return;
+    const t = tasks.find((x) => x.id === initialOpenTaskId);
+    if (t) setDrawer({ mode: "edit", task: t });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const nameByUserId = useMemo(() => {
     const m: Record<string, string> = {};
@@ -386,6 +401,7 @@ export function BitacoraClient({
           profiles={profiles}
           canEdit={canEdit}
           myUserId={myUserId}
+          tenantId={tenantId}
           onClose={closeDrawer}
           onSaved={() => {
             closeDrawer();

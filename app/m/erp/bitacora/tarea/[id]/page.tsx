@@ -47,9 +47,10 @@ export default async function MobileBitacoraTareaPage({
     redirect(portalClientId ? "/portal" : "/");
   }
 
-  const [task, profiles] = await Promise.all([
+  const [task, profiles, tenantData] = await Promise.all([
     getTask(supabase, id),
     listAssignableProfiles(supabase),
+    supabase.rpc("get_user_tenant_id"),
   ]);
 
   // Tarea inexistente / de otro tenant (RLS) → vuelta a la vista Hoy.
@@ -62,6 +63,7 @@ export default async function MobileBitacoraTareaPage({
       myUserId={userResp.user.id}
       myRole={link.role}
       canEdit={canEditModule(link.role as StudioUserRole, "bitacora")}
+      tenantId={tenantData.data ? String(tenantData.data) : ""}
       hoyISO={todayCaracasISO()}
     />
   );

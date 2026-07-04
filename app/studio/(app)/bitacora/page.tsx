@@ -10,6 +10,7 @@
  */
 
 import { createClient } from "@/lib/db/server";
+import { getUserTenantId } from "@/lib/auth/session";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 import {
   listAssignableProfiles,
@@ -23,7 +24,11 @@ export const metadata = { title: "Bitácora · DTD Studio" };
 
 export const dynamic = "force-dynamic";
 
-export default async function BitacoraPage() {
+export default async function BitacoraPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ task?: string }>;
+}) {
   const role = await requireModuleView("bitacora");
   const canEdit = role !== "support";
 
@@ -31,10 +36,16 @@ export default async function BitacoraPage() {
   const { data: userResp } = await supabase.auth.getUser();
   const myUserId = userResp.user?.id ?? null;
 
-  const [tasks, profiles, meetings] = await Promise.all([
+  const sp = await searchParams;
+  // Deep-link desde la bandeja de menciones (/studio/bitacora/tarea/[id] redirige
+  // acá con ?task=) → el tablero abre el drawer de esa tarea.
+  const openTaskId = typeof sp.task === "string" ? sp.task : null;
+
+  const [tasks, profiles, meetings, tenantId] = await Promise.all([
     listTasks(supabase, { includeDone: true, limit: 500 }),
     listAssignableProfiles(supabase),
     listMeetings(supabase, { limit: 200 }),
+    getUserTenantId(),
   ]);
 
   return (
@@ -45,6 +56,8 @@ export default async function BitacoraPage() {
       canEdit={canEdit}
       myUserId={myUserId}
       myRole={role}
+      tenantId={tenantId}
+      initialOpenTaskId={openTaskId}
       hoyISO={todayCaracasISO()}
     />
   );
