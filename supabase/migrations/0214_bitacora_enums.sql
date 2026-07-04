@@ -1,9 +1,9 @@
 -- ─────────────────────────────────────────────────────────────
 -- SDD-0146 · Bitácora — enums transversales (Fase 1)
 --
--- SEPARADA de 0212 a propósito (gotcha Postgres: un valor de enum agregado
+-- SEPARADA de 0213 a propósito (gotcha Postgres: un valor de enum agregado
 -- con ALTER TYPE ... ADD VALUE no se puede USAR en la misma transacción).
--- Se aplica JUNTO a 0212 (misma tanda del founder, transacción aparte).
+-- Se aplica JUNTO a 0213 (misma tanda del founder, transacción aparte).
 --
 --   1. document_entity_type + 'bitacora_task' + recreate del helper
 --      document_entity_in_tenant() (0097) con el CASE nuevo → los adjuntos de
@@ -12,7 +12,7 @@
 --      de notificación de Bitácora sobre la infra SDD-0036 (Fase 5).
 --   3. CHECK de comments.entity_type + 'bitacora_task' y CASE nuevo en
 --      comment_entity_in_tenant() (0090/0093) → comentarios en tareas (Fase 4).
---      (Es text+check, no enum — podría vivir en 0212; queda acá para tener
+--      (Es text+check, no enum — podría vivir en 0213; queda acá para tener
 --      TODO lo transversal en un solo archivo.)
 --
 -- Aditiva. Sin DDL destructivo (el drop del CHECK se recrea ampliado en el
@@ -148,5 +148,5 @@ comment on function public.comment_entity_in_tenant is
   'SDD-0045 (+SDD-0146 bitacora_task): ¿la entidad comentada existe y es del tenant? Fail-closed. Lo usa comments_validate_entity_trg.';
 
 -- ─────────────────────────────────────────────────────────────
--- Fin migración 0213_bitacora_enums.sql
+-- Fin migración 0214_bitacora_enums.sql
 -- ─────────────────────────────────────────────────────────────

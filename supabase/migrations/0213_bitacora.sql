@@ -721,7 +721,7 @@ grant execute on function public.bitacora_assignable_profiles() to authenticated
 -- [DELTA] bucket propio (el hub documents es 10MB sin audio/video). 50MB.
 -- Paths: audio → {tenant}/bitacora_meeting/{meetingId}/{uuid}.{ext} (sin fila
 -- en documents) · adjuntos → {tenant}/bitacora_task/{taskId}/{uuid}.{ext}
--- (con fila en documents, entity_type='bitacora_task' — enum en 0213).
+-- (con fila en documents, entity_type='bitacora_task' — enum en 0214).
 -- Molde 0097: 4 policies por foldername[1] = tenant.
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
@@ -774,5 +774,5 @@ create policy "bitacora tenant delete storage"
   );
 
 -- ─────────────────────────────────────────────────────────────
--- Fin migración 0212_bitacora.sql · aplicar JUNTO a 0213 (enums)
+-- Fin migración 0213_bitacora.sql · aplicar JUNTO a 0214 (enums)
 -- ─────────────────────────────────────────────────────────────

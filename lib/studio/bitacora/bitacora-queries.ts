@@ -2,7 +2,7 @@
  * Queries de Bitácora (SDD-0146 · Fase 1).
  *
  * Funciones puras que reciben SupabaseClient (patrón de la casa). Las de red
- * degradan a []/0 si la tabla aún no existe en la DB (las migraciones 0212/0213
+ * degradan a []/0 si la tabla aún no existe en la DB (las migraciones 0213/0214
  * las aplica el founder — mientras tanto /m/erp y /studio no deben romper).
  *
  * `groupTasksForHoy` es PURA (sin red, sin reloj) → testeable en Vitest.
@@ -16,7 +16,7 @@ import {
   type BitacoraTaskTipo,
 } from "./bitacora-types";
 
-// ─── Shapes de fila (match 0212) ─────────────────────────────
+// ─── Shapes de fila (match 0213) ─────────────────────────────
 
 export interface BitacoraChecklistItem {
   id: string;
