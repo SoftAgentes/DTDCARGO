@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BrandMark } from "./BrandMark";
+import { TERMINOS_LIVE } from "@/lib/legal-public";
 import {
   CONTACT,
   SERVICES_CN,
@@ -208,6 +209,16 @@ export function Footer() {
             <Link href="/noticias" className="hover:text-white transition-colors">
               Noticias
             </Link>
+            {/* Términos: oculto hasta v3.1 (texto final del abogado, sin
+                placeholders). Flip TERMINOS_LIVE=true en lib/legal-public.ts. */}
+            {TERMINOS_LIVE && (
+              <Link
+                href="/terminos"
+                className="hover:text-white transition-colors"
+              >
+                Términos
+              </Link>
+            )}
             <span>{CONTACT.web} · Made in Yiwu &amp; Valencia</span>
           </div>
         </div>
