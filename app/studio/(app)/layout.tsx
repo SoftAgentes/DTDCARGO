@@ -15,6 +15,8 @@ import { getUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
 import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
 import { countActiveAlerts } from "@/lib/studio/expense-alerts-queries";
+import { listNotificationsForUser } from "@/lib/studio/bug-queries";
+import type { BugNotification } from "@/lib/studio/bug-types";
 import { resolveLocale } from "@/lib/i18n/resolve-server";
 import { LocaleProvider } from "@/lib/i18n";
 import { StudioSidebar } from "./_components/StudioSidebar";
@@ -132,9 +134,14 @@ export default async function StudioAppLayout({
   // Si falla, cae a defaults del handoff v1.7.
   // En paralelo: count de alertas de gastos activas (badge sidebar · RLS
   // ya lo scopea al tenant y al rol — un VE no-accounting ve 0).
-  const [featureFlags, expenseAlertCount] = await Promise.all([
+  const [featureFlags, expenseAlertCount, initialNotifications] = await Promise.all([
     listFeatureFlags(supabase),
     countActiveAlerts(supabase),
+    // Campanita in-app (SDD-0036 Fase 5): outbox del user, RLS lo scopea a
+    // auth.uid(). Best-effort — un fallo no debe tumbar el shell.
+    listNotificationsForUser(supabase, user.id, { limit: 20 }).catch(
+      () => [] as BugNotification[],
+    ),
   ]);
 
   return (
@@ -165,7 +172,11 @@ export default async function StudioAppLayout({
               }}
             >
               <EnvBanner />
-              <StudioTopbar userEmail={user.email ?? ""} />
+              <StudioTopbar
+                userEmail={user.email ?? ""}
+                userId={user.id}
+                initialNotifications={initialNotifications}
+              />
               <div
                 style={{
                   flex: 1,

@@ -13,7 +13,13 @@
  *   - Preferencias: useActionState → updateMyPreferencesAction
  */
 
-import { useActionState, useEffect, useState, useTransition } from "react";
+import {
+  useActionState,
+  useEffect,
+  useState,
+  useTransition,
+  type CSSProperties,
+} from "react";
 import { useRouter } from "next/navigation";
 import { createClient as createBrowserSupabase } from "@/lib/db/client";
 import {
@@ -421,6 +427,54 @@ function PrefsTabContent({
     setGeoError(null);
   };
 
+  // Preferencias de notificación (SDD-0036 Fase 5) · se cargan client-side al
+  // abrir (la fila puede no existir → defaults de la DB). Se submitean junto
+  // con locale/timezone/GPS via updateMyPreferencesAction (hidden notif_section).
+  const telegramLinked = !!initialData.telegramChatId;
+  const [notifLoaded, setNotifLoaded] = useState(false);
+  const [notif, setNotif] = useState({
+    channel_inapp: true,
+    channel_email: true,
+    channel_telegram: false,
+    notify_on_state_change: true,
+    notify_on_admin_reply: true,
+    notify_on_resolved: true,
+    notify_on_critical: true,
+    sound_enabled: true,
+  });
+  const setNotifField = (k: keyof typeof notif, v: boolean) =>
+    setNotif((prev) => ({ ...prev, [k]: v }));
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const supabase = createBrowserSupabase();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data } = await supabase
+          .from("user_notification_prefs")
+          .select(
+            "channel_inapp, channel_email, channel_telegram, notify_on_state_change, notify_on_admin_reply, notify_on_resolved, notify_on_critical, sound_enabled",
+          )
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (active && data) {
+          setNotif((prev) => ({ ...prev, ...(data as typeof prev) }));
+        }
+      } catch {
+        // Best-effort: si falla, quedan los defaults (nada roto).
+      } finally {
+        if (active) setNotifLoaded(true);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const [state, formAction, pending] = useActionState(
     updateMyPreferencesAction,
     EMPTY_STATE,
@@ -637,18 +691,117 @@ function PrefsTabContent({
         botUsername={initialData.telegramBotUsername}
       />
 
-      <p
+      {/* Notificaciones · canales + eventos (SDD-0036 Fase 5) */}
+      <div
         style={{
-          font: "500 11.5px/1.4 var(--f-sans)",
-          color: "var(--ink-mute)",
-          margin: 0,
+          padding: "12px 14px",
+          background: "var(--bg-elevated)",
+          borderRadius: 7,
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
         }}
       >
-        Email, push browser y Telegram se disparan automáticamente
-        cuando hay un bug crítico nuevo, cambio de estado en tus
-        reportes o respuesta del admin. Activa los canales que
-        quieres recibir.
-      </p>
+        <div>
+          <div
+            style={{ font: "600 12.5px/1.2 var(--f-sans)", color: "var(--ink)" }}
+          >
+            Notificaciones
+          </div>
+          <div
+            style={{
+              font: "500 11px/1.4 var(--f-sans)",
+              color: "var(--ink-soft)",
+              marginTop: 2,
+            }}
+          >
+            Elige por qué canal y para qué eventos quieres que te avisemos de
+            tus reportes. La campanita del Studio está activa por defecto.
+          </div>
+        </div>
+
+        {notifLoaded && <input type="hidden" name="notif_section" value="1" />}
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={NOTIF_SUBLABEL}>Canales</div>
+          <PrefCheck
+            name="channel_inapp"
+            label="Campanita (in-app)"
+            checked={notif.channel_inapp}
+            onChange={(v) => setNotifField("channel_inapp", v)}
+            disabled={pending || !notifLoaded}
+          />
+          <PrefCheck
+            name="channel_email"
+            label="Email"
+            checked={notif.channel_email}
+            onChange={(v) => setNotifField("channel_email", v)}
+            disabled={pending || !notifLoaded}
+          />
+          <PrefCheck
+            name="channel_telegram"
+            label="Telegram"
+            checked={telegramLinked && notif.channel_telegram}
+            onChange={(v) => setNotifField("channel_telegram", v)}
+            disabled={pending || !notifLoaded || !telegramLinked}
+            hint={
+              telegramLinked
+                ? undefined
+                : "Conecta tu Telegram arriba para activarlo."
+            }
+          />
+          <div
+            style={{
+              font: "500 11px/1.4 var(--f-sans)",
+              color: "var(--ink-mute)",
+            }}
+          >
+            El push del navegador se administra en su sección de arriba.
+          </div>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={NOTIF_SUBLABEL}>Eventos</div>
+          <PrefCheck
+            name="notify_on_state_change"
+            label="Cambio de estado de mi reporte"
+            checked={notif.notify_on_state_change}
+            onChange={(v) => setNotifField("notify_on_state_change", v)}
+            disabled={pending || !notifLoaded}
+          />
+          <PrefCheck
+            name="notify_on_admin_reply"
+            label="Respuesta del admin"
+            checked={notif.notify_on_admin_reply}
+            onChange={(v) => setNotifField("notify_on_admin_reply", v)}
+            disabled={pending || !notifLoaded}
+          />
+          <PrefCheck
+            name="notify_on_resolved"
+            label="Mi reporte fue resuelto"
+            checked={notif.notify_on_resolved}
+            onChange={(v) => setNotifField("notify_on_resolved", v)}
+            disabled={pending || !notifLoaded}
+          />
+          <PrefCheck
+            name="notify_on_critical"
+            label="Bug crítico nuevo (para admins)"
+            checked={notif.notify_on_critical}
+            onChange={(v) => setNotifField("notify_on_critical", v)}
+            disabled={pending || !notifLoaded}
+          />
+        </div>
+
+        <div style={{ borderTop: "1px solid var(--border)", paddingTop: 10 }}>
+          <PrefCheck
+            name="sound_enabled"
+            label="Sonido al recibir una notificación"
+            checked={notif.sound_enabled}
+            onChange={(v) => setNotifField("sound_enabled", v)}
+            disabled={pending || !notifLoaded}
+          />
+        </div>
+      </div>
 
       {state.error && (
         <p
@@ -686,6 +839,73 @@ function PrefsTabContent({
         }
       />
     </form>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Notificaciones · toggles de canal/evento (SDD-0036 Fase 5)
+// ─────────────────────────────────────────────────────────────
+
+const NOTIF_SUBLABEL: CSSProperties = {
+  font: "700 10px/1 var(--f-sans)",
+  letterSpacing: "0.1em",
+  textTransform: "uppercase",
+  // --ink-soft (no --ink-mute): pasa WCAG AA sobre --bg-elevated y espeja el
+  // .eyebrow del sistema (tokens.css). --ink-mute daba ~2.4:1 (falla).
+  color: "var(--ink-soft)",
+};
+
+function PrefCheck({
+  name,
+  label,
+  checked,
+  onChange,
+  disabled,
+  hint,
+}: {
+  name: string;
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+  hint?: string;
+}) {
+  return (
+    <label
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 8,
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled && !checked ? 0.6 : 1,
+      }}
+    >
+      <input
+        type="checkbox"
+        name={name}
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        disabled={disabled}
+        style={{ marginTop: 1, accentColor: "var(--wine)", cursor: "inherit" }}
+      />
+      <span style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+        <span
+          style={{ font: "500 12.5px/1.3 var(--f-sans)", color: "var(--ink)" }}
+        >
+          {label}
+        </span>
+        {hint && (
+          <span
+            style={{
+              font: "500 11px/1.3 var(--f-sans)",
+              color: "var(--ink-soft)",
+            }}
+          >
+            {hint}
+          </span>
+        )}
+      </span>
+    </label>
   );
 }
 

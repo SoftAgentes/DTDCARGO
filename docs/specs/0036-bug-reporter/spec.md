@@ -4,7 +4,7 @@ title: "Bug Reporter · módulo interno de bug tracking con auto-captura técnic
 status: done
 author: "founder"
 created: 2026-05-26
-updated: 2026-05-26
+updated: 2026-07-04
 supersedes: null
 superseded_by: null
 related: ["0024", "0026", "0028"]
@@ -18,7 +18,7 @@ implementation_commits:
   - "a7cae34 feat(studio): Fase 6 polish admin"
 deferred:
   - "Fase 4.5 rrweb session replay (requiere pnpm add rrweb + storage upload)"
-  - "Fase 5 notif 4 canales (depende SDD-0026 Resend Fase 2)"
+  - "Fase 5 P3: outbox durable enqueue→drain con retry/idempotencia + cron (V1 2026-07-04 dispara inline + escribe outbox para la campanita)"
 confidencialidad: interno
 ---
 
@@ -296,10 +296,18 @@ Transiciones bloqueadas por trigger guard `bug_reports_state_transition_guard`.
 | **2** | UI base reportador (FAB + modal + mis-bugs) | 2 días |
 | **3** | UI admin (Kanban + tabla + stats + drawer) | 2 días |
 | **4** | Auto-captura técnica (rrweb + console + network sanitizer) | 2 días |
-| **5** | Notificaciones 4 canales (in-app + push + email + Telegram) | 3 días |
+| **5** | Notificaciones 4 canales (in-app + push + email + Telegram) · ✅ **V1** 2026-07-04 | 3 días |
 | **6** | Polish admin · banner bugs estancados + filtros guardados + export CSV | 1 día |
 
 **Total: 13 días** ± 1 (buffer para QA + bugs).
+
+**Fase 5 · V1 (2026-07-04) — qué entró:**
+- **Campanita in-app** funcional: `bug_notifications` (el outbox) se puebla en los 3 eventos (bug crítico nuevo → admin · cambio de estado → reportador · respuesta admin → reportador); `NotificationBell` en el topbar con badge de no-leídos + dropdown en tiempo real (Supabase Realtime) + marcar-leído (`markBugNotificationsReadAction`, RLS owner-update).
+- **Todos los canales respetan `user_notification_prefs`**: `computeChannelDecision(prefs, type)` (pura, testeada) ramifica cada canal por `channel_*` + el flag por-evento `notify_on_*`. Sin fila de prefs → defaults de la DB (in-app+email ON, push+telegram OFF).
+- **Fix de consentimiento de Telegram**: ya NO manda solo por estar linkeado — respeta `channel_telegram` (default OFF). El chat_id sigue en `user_profiles.telegram_chat_id` (fuente única).
+- **UI de preferencias**: switches de canal/evento + sonido en el tab Preferencias del perfil (`ProfileModal`), persistidos vía `updateMyPreferencesAction` (upsert de `user_notification_prefs`, preservando push/telegram_chat_id).
+- **Fuera de V1 (→ P3)**: outbox durable enqueue→drain (retry/idempotencia + cron). El dispatch de email/push/telegram sigue **inline best-effort**; el outbox se escribe para la campanita y se estampan los `delivered_*_at`.
+- Dependencia Resend (SDD-0026 F2) ya satisfecha en prod.
 
 **Dependencias externas**:
 - SDD-0026 Fase 2 (Resend runtime) debe estar listo antes de Fase 5 email

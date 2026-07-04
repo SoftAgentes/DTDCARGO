@@ -495,6 +495,37 @@ export async function updateMyPreferencesAction(
     return { error: `No se pudo guardar: ${error.message}` };
   }
 
+  // Preferencias de notificación (SDD-0036 Fase 5) · upsert de la fila del
+  // user SOLO si el form incluyó la sección (hidden `notif_section`). Se
+  // upsertean únicamente las columnas que maneja esta pantalla — los
+  // channel_push/push_subscription/telegram_chat_id los administran sus
+  // propias secciones y se preservan on-conflict (no van en el SET).
+  if (formData.has("notif_section")) {
+    const on = (k: string) => formData.get(k) !== null;
+    const { error: prefErr } = await supabase
+      .from("user_notification_prefs")
+      .upsert(
+        {
+          user_id: userResp.user.id,
+          channel_inapp: on("channel_inapp"),
+          channel_email: on("channel_email"),
+          channel_telegram: on("channel_telegram"),
+          notify_on_state_change: on("notify_on_state_change"),
+          notify_on_admin_reply: on("notify_on_admin_reply"),
+          notify_on_resolved: on("notify_on_resolved"),
+          notify_on_critical: on("notify_on_critical"),
+          sound_enabled: on("sound_enabled"),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" },
+      );
+    if (prefErr) {
+      return {
+        error: `No se pudieron guardar las notificaciones: ${prefErr.message}`,
+      };
+    }
+  }
+
   return { ok: true, userId: userResp.user.id };
 }
 

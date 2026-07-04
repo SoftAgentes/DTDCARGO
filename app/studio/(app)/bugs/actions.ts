@@ -25,6 +25,36 @@ import {
 } from "@/lib/studio/bug-types";
 
 // ─────────────────────────────────────────────────────────────
+// Campanita in-app · marcar leído (SDD-0036 Fase 5)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Marca notificaciones in-app como leídas. Con `ids` marca esas; sin `ids`
+ * marca TODAS las no-leídas del user. RLS (bug_notifications_owner_update)
+ * garantiza que solo toca las propias — el `.eq(user_id)` es defensa extra.
+ * Server action plana (no useActionState): se llama desde la campanita client.
+ */
+export async function markBugNotificationsReadAction(
+  ids?: string[],
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const { data: userResp } = await supabase.auth.getUser();
+  if (!userResp.user) return { ok: false, error: "Inicia sesión primero." };
+
+  let q = supabase
+    .from("bug_notifications")
+    .update({ read_at: new Date().toISOString() })
+    .eq("user_id", userResp.user.id)
+    .is("read_at", null);
+
+  if (ids && ids.length > 0) q = q.in("id", ids);
+
+  const { error } = await q;
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+// ─────────────────────────────────────────────────────────────
 // Advance state (admin)
 // ─────────────────────────────────────────────────────────────
 

@@ -23,6 +23,8 @@ import { signOut } from "../actions";
 import { useDTDWiring } from "../../_components/wiring/WiringProvider";
 import { useIsMac } from "../../_components/ui/usePlatformMod";
 import { GlobalSearchModal } from "../../_components/wiring/GlobalSearchModal";
+import { NotificationBell } from "./NotificationBell";
+import type { BugNotification } from "@/lib/studio/bug-types";
 import { useT, useLocale } from "@/lib/i18n";
 import {
   APPEARANCE_EVENT,
@@ -33,9 +35,15 @@ import {
 
 interface StudioTopbarProps {
   userEmail: string;
+  userId: string;
+  initialNotifications: BugNotification[];
 }
 
-export function StudioTopbar({ userEmail }: StudioTopbarProps) {
+export function StudioTopbar({
+  userEmail,
+  userId,
+  initialNotifications,
+}: StudioTopbarProps) {
   const pathname = usePathname();
   const locale = useLocale();
   const t = useT();
@@ -199,16 +207,8 @@ export function StudioTopbar({ userEmail }: StudioTopbarProps) {
             {theme === "dark" ? Icon.sun(16) : Icon.moon(16)}
           </IconButton>
 
-          {/* Notifications (placeholder) */}
-          <IconButton
-            onClick={() => {
-              /* Sprint futuro */
-            }}
-            title={t("chrome.topbar.notifications")}
-            ariaLabel={t("chrome.topbar.notifications")}
-          >
-            {Icon.bell(16)}
-          </IconButton>
+          {/* Notifications · campanita in-app (SDD-0036 Fase 5) */}
+          <NotificationBell userId={userId} initial={initialNotifications} />
 
           {/* User menu */}
           <div ref={userMenuRef} style={{ position: "relative", marginLeft: 6 }}>
