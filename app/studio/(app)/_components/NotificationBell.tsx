@@ -19,6 +19,7 @@ import { Icon } from "../../_components/icons";
 import { useRealtimeTable } from "@/lib/studio/hooks/use-realtime-table";
 import { useT, useLocale } from "@/lib/i18n";
 import { markBugNotificationsReadAction } from "../bugs/actions";
+import { createClient } from "@/lib/db/client";
 import type { BugNotification } from "@/lib/studio/bug-types";
 
 interface NotificationBellProps {
@@ -32,6 +33,38 @@ function payloadStr(
 ): string | null {
   const v = payload?.[key];
   return typeof v === "string" && v.length > 0 ? v : null;
+}
+
+/**
+ * Beep sutil de notificación (WebAudio, ~0.2s, volumen bajo). Sin asset:
+ * un oscilador seno con envolvente rápida. Best-effort: si el navegador
+ * bloquea el AudioContext (sin gesture del usuario aún) o no lo soporta,
+ * queda en silencio sin romper nada.
+ */
+function playNotifSound(): void {
+  try {
+    const Ctx =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = 880;
+    const t = ctx.currentTime;
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.05, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.2);
+    osc.onended = () => void ctx.close();
+  } catch {
+    // WebAudio no disponible / bloqueado → silencio.
+  }
 }
 
 /** Tiempo relativo compacto según locale (es-VE / zh-CN) vía Intl. */
@@ -50,6 +83,9 @@ export function NotificationBell({ userId, initial }: NotificationBellProps) {
   const locale = useLocale();
   const [open, setOpen] = useState(false);
   const [locallyRead, setLocallyRead] = useState<Set<string>>(new Set());
+  // Sonido: conservador (default OFF) — solo suena si el user tiene fila de
+  // prefs con sound_enabled=true. Sin fila = sin beep (no sorprende a todos).
+  const [soundEnabled, setSoundEnabled] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const { data } = useRealtimeTable<BugNotification>({
@@ -90,6 +126,49 @@ export function NotificationBell({ userId, initial }: NotificationBellProps) {
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
+
+  // Cargar el pref de sonido (conservador: sin fila → off).
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data } = await supabase
+          .from("user_notification_prefs")
+          .select("sound_enabled")
+          .eq("user_id", user.id)
+          .maybeSingle<{ sound_enabled: boolean }>();
+        if (active && data?.sound_enabled === true) setSoundEnabled(true);
+      } catch {
+        // best-effort: sin sonido si falla la lectura.
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Beep al LLEGAR una notif nueva por realtime — NO en el snapshot inicial
+  // ni al marcar leído. Detecta ids nuevos no-leídos contra lo ya conocido.
+  const knownIds = useRef<Set<string>>(new Set());
+  const soundArmed = useRef(false);
+  useEffect(() => {
+    const ids = new Set(items.map((n) => n.id));
+    if (!soundArmed.current) {
+      knownIds.current = ids;
+      soundArmed.current = true;
+      return;
+    }
+    const hasNewUnread = items.some(
+      (n) => !knownIds.current.has(n.id) && !n.read_at,
+    );
+    knownIds.current = ids;
+    if (hasNewUnread && soundEnabled) playNotifSound();
+  }, [items, soundEnabled]);
 
   const markAllRead = () => {
     const unreadIds = items
