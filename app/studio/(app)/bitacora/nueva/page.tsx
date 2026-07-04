@@ -24,7 +24,18 @@ export default async function NuevaReunionPage() {
   const { data: userResp } = await supabase.auth.getUser();
   const myUserId = userResp.user?.id ?? null;
 
+  // Tenant del caller: el cliente lo necesita para armar el path del audio
+  // ({tenant}/bitacora_meeting/…) ANTES de subir (Fase 3). Server-side vía RPC.
+  const { data: tenantRaw } = await supabase.rpc("get_user_tenant_id");
+  const tenantId = tenantRaw ? String(tenantRaw) : null;
+
   const profiles = await listAssignableProfiles(supabase);
 
-  return <NuevaReunionClient profiles={profiles} myUserId={myUserId} />;
+  return (
+    <NuevaReunionClient
+      profiles={profiles}
+      myUserId={myUserId}
+      tenantId={tenantId}
+    />
+  );
 }

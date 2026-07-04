@@ -236,6 +236,14 @@ export const Icon = {
         <C cx={12} cy={13} r={3.5} />
       </>,
     ),
+  mic: (s: Size = 18) =>
+    wrap(
+      s,
+      <>
+        <P d="M12 3a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z" />
+        <P d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+      </>,
+    ),
   edit: (s: Size = 14) => wrap(s, <P d="M16 3l5 5-11 11H5v-5z" />),
   trash: (s: Size = 14) =>
     wrap(s, <P d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14M10 11v6M14 11v6" />),

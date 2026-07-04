@@ -32,6 +32,7 @@ import {
   type MeetingDraftInput,
 } from "@/lib/studio/bitacora/bitacora-types";
 import { listAssignableProfiles } from "@/lib/studio/bitacora/bitacora-queries";
+import { isValidMeetingAudioPath } from "@/lib/studio/bitacora/storage";
 import { extractActa } from "@/lib/studio/bitacora/extract";
 import { resolveActa, type ResolvedActa } from "@/lib/studio/bitacora/match";
 import {
@@ -448,11 +449,19 @@ export async function analyzeActaAction(
     transcript: input?.transcript,
     client_id: input?.client_id,
     contacto_libre: input?.contacto_libre,
+    audio_path: input?.audio_path,
   });
   if (fieldErrors || !draft) return { fieldErrors };
 
   const ctx = await resolveContext(supabase);
   if ("error" in ctx) return { error: ctx.error };
+
+  // audio_path (Fase 3): solo se persiste si es un audio del PROPIO tenant. Un
+  // puntero forjado/ajeno se descarta (no bloquea la ingesta de solo-texto).
+  const audioPath =
+    draft.audio_path && isValidMeetingAudioPath(draft.audio_path, ctx.tenantId)
+      ? draft.audio_path
+      : null;
 
   // Nombre del cliente (para el prompt/títulos): cliente real o contacto libre.
   let clienteNombre: string | null = draft.contacto_libre;
@@ -482,6 +491,7 @@ export async function analyzeActaAction(
       client_id: draft.client_id,
       contacto_libre: draft.contacto_libre,
       transcript: draft.transcript,
+      audio_path: audioPath,
       estado: "borrador",
       created_by: ctx.userId,
     })

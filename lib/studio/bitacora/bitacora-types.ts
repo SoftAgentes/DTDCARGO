@@ -331,6 +331,13 @@ export interface MeetingDraftInput {
   client_id: string | null;
   /** Lead sin registrar (texto libre) cuando no hay cliente en el sistema. */
   contacto_libre: string | null;
+  /**
+   * Path del audio en el bucket `bitacora` cuando la transcripción vino de una
+   * grabación/archivo (Fase 3). null en el flujo de solo-texto. La ACTION valida
+   * que pertenezca al tenant del caller (`isValidMeetingAudioPath`) antes de
+   * persistirlo en `bitacora_meetings.audio_path`.
+   */
+  audio_path: string | null;
 }
 
 /** Mínimo de caracteres de transcripción para habilitar el análisis con IA. */
@@ -385,9 +392,18 @@ export function validateMeetingDraftInput(
       "Vincula un cliente o escribe con quién fue la conversación.";
   }
 
+  // audio_path: solo se transporta un string acotado; el shape/tenant lo re-valida
+  // la action con isValidMeetingAudioPath (tiene el tenant del caller). Aquí solo
+  // se recorta y se normaliza a null (nunca bloquea la ingesta por el puntero).
+  let audio_path: string | null = null;
+  if (typeof partial.audio_path === "string") {
+    const a = partial.audio_path.trim();
+    audio_path = a === "" || a.length > 300 ? null : a;
+  }
+
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
 
-  return { input: { tipo, transcript, client_id, contacto_libre } };
+  return { input: { tipo, transcript, client_id, contacto_libre, audio_path } };
 }
 
 // ─── Confirmación del acta (patch del acta + tareas revisadas) ─
