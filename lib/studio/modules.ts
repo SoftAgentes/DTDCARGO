@@ -43,6 +43,13 @@ export interface ModuleDef {
    * siendo módulos normales. Vacío = ítem suelto (hoja).
    */
   parent?: string;
+  /**
+   * Oculto del sidebar (no se renderiza como ítem de navegación), pero sigue
+   * siendo un módulo conocido para RBAC/guards y `moduleIdForPath`. Ej: Legal —
+   * su contenido vive dentro de Administración (parity Norte), pero sus rutas
+   * (`/studio/legal/expediente|evidencia`) conservan `requireModuleView("legal")`.
+   */
+  hidden?: boolean;
 }
 
 /** Group label → I18nKey para localización en sidebar headers. */
@@ -164,7 +171,10 @@ export const MODULES: ModuleDef[] = [
   { id: "users", group: "SISTEMA", label: "Usuarios", labelKey: "chrome.sidebar.users", icon: "shield", slug: "/studio/usuarios" },
   { id: "admin", group: "SISTEMA", label: "Administración", labelKey: "chrome.sidebar.administration", icon: "cog", slug: "/studio/admin" },
   { id: "mailing", group: "SISTEMA", label: "Mailing", labelKey: "chrome.sidebar.mailing", icon: "mail", slug: "/studio/mailing" },
-  { id: "legal", group: "SISTEMA", label: "Legal · T&C", icon: "doc", slug: "/studio/legal", adminOnly: true },
+  // Legal salió del sidebar: su contenido vive dentro de Administración →
+  // INTERMEDIO ("Documentación legal" + "Aceptaciones T&C"), parity Norte. Se
+  // conserva como módulo (RBAC + guard de las rutas expediente/evidencia).
+  { id: "legal", group: "SISTEMA", label: "Legal · T&C", icon: "doc", slug: "/studio/legal", adminOnly: true, hidden: true },
   { id: "no-olvidar", group: "SISTEMA", label: "No-Olvidar", labelKey: "chrome.sidebar.no_olvidar", icon: "lock", slug: "/studio/no-olvidar" },
 ];
 

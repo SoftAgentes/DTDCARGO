@@ -61,7 +61,7 @@ function parseJson<T>(v: unknown, fallback: T): T {
 }
 
 const DOC_COLUMNS =
-  "id, tenant_id, key, name, audience, version, effective_date, status, sections, body, created_at";
+  "id, tenant_id, key, name, audience, version, effective_date, status, sections, change_note, body, created_at";
 
 function coerceDoc(row: Record<string, unknown>): LegalDoc {
   return {
@@ -187,6 +187,43 @@ export async function listAcceptances(
   }
 
   return rows;
+}
+
+/**
+ * Overview de la capa legal para las secciones de Administración (parity Norte):
+ * versiones vigentes de cara al cliente (para marcar "stale") + KPIs de la
+ * bitácora. Puro salvo la lectura del reloj para el KPI "este mes" (UTC).
+ */
+export function legalOverview(
+  docs: LegalDoc[],
+  acceptances: LegalAcceptance[],
+): {
+  currentVersions: Record<string, string>;
+  kpis: { total: number; thisMonth: number; onCurrent: number };
+} {
+  const currentVersions: Record<string, string> = {};
+  for (const d of docs) {
+    if (d.status === "vigente" && d.audience === "cliente") {
+      currentVersions[d.key] = d.version;
+    }
+  }
+
+  const onCurrent = (refs: DocRef[]): boolean =>
+    refs.length > 0 && refs.every((r) => currentVersions[r.key] === r.version);
+
+  const now = new Date();
+  const thisMonthPrefix = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+
+  return {
+    currentVersions,
+    kpis: {
+      total: acceptances.length,
+      thisMonth: acceptances.filter((a) =>
+        (a.accepted_at ?? "").startsWith(thisMonthPrefix),
+      ).length,
+      onCurrent: acceptances.filter((a) => onCurrent(a.docs)).length,
+    },
+  };
 }
 
 export type GateQuery = {

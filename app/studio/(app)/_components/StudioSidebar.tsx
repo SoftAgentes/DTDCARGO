@@ -437,6 +437,7 @@ export function StudioSidebar({
   // (SDD-0139; admin no se filtra por scope).
   const visibleModules = MODULES.filter(
     (m) =>
+      !m.hidden &&
       isModuleEnabled(m.id, flags) &&
       canAccessModule(role, m.id) &&
       (role === "admin" || scopeAllowsModule(warehouseScope, m.id)),

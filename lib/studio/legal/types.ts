@@ -38,6 +38,9 @@ export type LegalDoc = {
   effective_date: string;
   status: LegalDocStatus;
   sections: number;
+  /** Nota de cambios de esta versión (columna "Cambios" del histórico, migr 0212).
+   *  Opcional: la columna es nueva (nullable) y no está en filas pre-0212. */
+  change_note?: string | null;
   body: LegalSection[];
   created_at: string;
 };

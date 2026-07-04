@@ -1,24 +1,23 @@
 "use client";
 
 /**
- * Orquestador client del módulo Legal (SDD-0054 · Slice B + SDD-0067).
+ * Vistas de la Capa Legal (SDD-0054 · Slice B + SDD-0067), renderizadas INLINE
+ * dentro de Administración → INTERMEDIO (parity Norte `admin-legal.jsx`). Antes
+ * eran las dos tabs del módulo suelto `/studio/legal`; el Norte las quiere como
+ * dos secciones separadas dentro de Administración:
  *
- * Read-only. Dos vistas (tabs):
- *   1. Documentos   — repositorio versionado: por cada doc (key), header con la
- *      versión vigente + histórico de versiones en tabla. Botón "Ver" abre un
- *      modal con el body completo del doc.
- *   2. Aceptaciones — KPIs + búsqueda + filtro por documento + tabla de acuses +
- *      modal de detalle con la Evidencia (cliente/markbox, estimado, docs+
- *      versión, medida, fecha/hora, IP, user agent, declaración de comerciante,
- *      factura asociada, hash) + export: "Descargar JSON" (route handler
- *      admin-only) e "Imprimir expediente" (vista imprimible).
+ *   · <LegalDocsRepo>       — sección "Documentación legal": banner del modo del
+ *     gate de facturación DDP, buscador de expediente de defensa (SDD-0070),
+ *     hero "Repositorio legal", repositorio versionado (header por doc + histórico
+ *     con columna "Cambios" + botón Ver), y card "Pendiente de revisión legal"
+ *     (placeholders `[…]` del texto vigente que faltan por definir con abogado).
  *
- * SDD-0067 además: banner del MODO del gate de Facturación (ADVISORY ⇄ bloqueo
- * duro) — refleja `LEGAL_GATE_HARD_BLOCK` (lib/studio/legal/gate-config.ts),
- * que la page server pasa como prop. El flip sigue siendo decisión founder.
+ *   · <LegalAcceptancesLog> — sección "Aceptaciones T&C": KPIs + búsqueda + filtro
+ *     + tabla de acuses + modal de evidencia (con export JSON e imprimible).
  *
- * NO publica versiones nuevas (futuro). Usa primitivas reales del Studio
- * (Badge, EmptyState, KpiCard, tokens, Icon) — no los ERPUI.* del mockup.
+ * Read-only: NO publica versiones nuevas — la próxima la traen los abogados como
+ * migración (`legal_docs`), y el modal del Portal cambia solo (acceptance-copy).
+ * Usa primitivas reales del Studio (Badge, EmptyState, KpiCard, Icon, tokens).
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -33,8 +32,6 @@ import type {
   LegalSection,
 } from "@/lib/studio/legal/types";
 
-type Tab = "docs" | "acceptances";
-
 /** Etiqueta corta de un doc por key (para badges en la bitácora). */
 function shortKey(key: string): string {
   if (key === "tyc") return "T&C";
@@ -42,14 +39,18 @@ function shortKey(key: string): string {
   return key;
 }
 
+/** Formatea una fecha ISO (`YYYY-MM-DD`) en UTC — sin corrimiento por TZ. Una
+ *  `date` de Postgres se parsea como medianoche UTC; formatearla en hora local
+ *  VE (−4) corría el día (2026-05-01 se veía "30 abr"). Fijar timeZone lo evita. */
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return "—";
-  const d = new Date(iso);
+  const d = new Date(`${String(iso).slice(0, 10)}T00:00:00Z`);
   if (Number.isNaN(d.getTime())) return String(iso).slice(0, 10);
   return d.toLocaleDateString("es-VE", {
     day: "numeric",
     month: "short",
     year: "numeric",
+    timeZone: "UTC",
   });
 }
 
@@ -77,164 +78,91 @@ function fmtDateTimeUtc(iso: string | null | undefined): string {
   return `${p(d.getUTCDate())}/${p(d.getUTCMonth() + 1)}/${d.getUTCFullYear()} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())} (UTC)`;
 }
 
-export function LegalClient({
+// ════════════════════════════════════════════════════════════
+// Sección "Documentación legal" (repositorio versionado)
+// ════════════════════════════════════════════════════════════
+
+export function LegalDocsRepo({
   docs,
   acceptances,
-  currentVersions,
-  kpis,
   gateHardBlock,
 }: {
   docs: LegalDoc[];
   acceptances: LegalAcceptance[];
-  currentVersions: Record<string, string>;
-  kpis: { total: number; thisMonth: number; onCurrent: number };
   /** Modo del gate AUT-04 (SDD-0067 · `LEGAL_GATE_HARD_BLOCK` de gate-config). */
   gateHardBlock: boolean;
 }) {
-  const [tab, setTab] = useState<Tab>("docs");
-
   return (
-    <div style={{ maxWidth: 1280 }}>
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-end",
-          gap: 24,
-          marginBottom: 20,
-          flexWrap: "wrap",
-        }}
-      >
-        <div>
-          <span className="studio-eyebrow">Sistema · Capa legal</span>
-          <h1
-            className="studio-display"
-            style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
-          >
-            Legal · T&amp;C.
-          </h1>
-          <p
-            style={{
-              font: "400 13px/1.4 var(--f-sans)",
-              color: "var(--ink-soft)",
-              margin: 0,
-              maxWidth: "64ch",
-            }}
-          >
-            Repositorio versionado de los documentos legales de cara al cliente y
-            bitácora inmutable de aceptaciones de T&amp;C. Cada aceptación queda
-            atada a la versión vigente al momento de aceptar.
-          </p>
-        </div>
-      </div>
-
-      {/* Banner del modo del gate AUT-04 (SDD-0067 · decisión #6). El flip
-          advisory ⇄ bloqueo duro es 1 línea del founder en gate-config.ts;
-          este banner lo hace VISIBLE para que no se olvide. */}
-      <div
-        role="status"
-        style={{
-          display: "flex",
-          gap: 10,
-          alignItems: "flex-start",
-          padding: "12px 14px",
-          background: gateHardBlock ? "var(--success-bg)" : "var(--warning-bg)",
-          borderRadius: "var(--r-md)",
-          marginBottom: 20,
-        }}
-      >
-        <span
-          style={{
-            color: gateHardBlock ? "var(--success)" : "var(--warning)",
-            display: "flex",
-            flexShrink: 0,
-            marginTop: 1,
-          }}
-        >
-          {Icon.shield(15)}
-        </span>
-        <div style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink)" }}>
-          <strong>
-            Gate de facturación DDP:{" "}
-            {gateHardBlock ? "BLOQUEO DURO activo" : "ADVISORY (no bloquea)"}.
-          </strong>{" "}
-          {gateHardBlock
-            ? "Una factura DDP sin aceptación vigente NO se puede emitir (sin override)."
-            : "Si un embarque DDP no tiene aceptación vigente, el operador ve el aviso pero puede emitir igual (queda auditado como override). El flip a bloqueo duro es decisión del founder: 1 línea en lib/studio/legal/gate-config.ts."}
-        </div>
-      </div>
-
-      {/* Buscar expediente de defensa por código de envío (SDD-0070). Acceso
-          secundario: navega a la vista imprimible admin-only de la operación. */}
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <GateBanner gateHardBlock={gateHardBlock} />
       <DefenseFileSearch />
-
-      {/* Tabs */}
-      <div
-        role="tablist"
-        aria-label="Vistas de la capa legal"
-        style={{
-          display: "flex",
-          gap: 4,
-          marginBottom: 20,
-          borderBottom: "1px solid var(--border)",
-        }}
-      >
-        <TabButton active={tab === "docs"} onClick={() => setTab("docs")}>
-          Documentos
-        </TabButton>
-        <TabButton
-          active={tab === "acceptances"}
-          onClick={() => setTab("acceptances")}
-        >
-          Aceptaciones
-        </TabButton>
-      </div>
-
-      {tab === "docs" ? (
-        <DocsView docs={docs} />
-      ) : (
-        <AcceptancesView
-          acceptances={acceptances}
-          docs={docs}
-          currentVersions={currentVersions}
-          kpis={kpis}
-        />
-      )}
+      <DocsView docs={docs} acceptances={acceptances} />
     </div>
   );
 }
 
-function TabButton({
-  active,
-  onClick,
-  children,
+// ════════════════════════════════════════════════════════════
+// Sección "Aceptaciones T&C" (bitácora consultable)
+// ════════════════════════════════════════════════════════════
+
+export function LegalAcceptancesLog({
+  acceptances,
+  docs,
+  currentVersions,
+  kpis,
 }: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
+  acceptances: LegalAcceptance[];
+  docs: LegalDoc[];
+  currentVersions: Record<string, string>;
+  kpis: { total: number; thisMonth: number; onCurrent: number };
 }) {
   return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={active}
-      onClick={onClick}
+    <AcceptancesView
+      acceptances={acceptances}
+      docs={docs}
+      currentVersions={currentVersions}
+      kpis={kpis}
+    />
+  );
+}
+
+// ════════════════════════════════════════════════════════════
+// Banner del modo del gate AUT-04 (SDD-0067 · decisión #6)
+// ════════════════════════════════════════════════════════════
+
+function GateBanner({ gateHardBlock }: { gateHardBlock: boolean }) {
+  return (
+    <div
+      role="status"
       style={{
-        padding: "10px 14px",
-        background: "transparent",
-        border: "none",
-        borderBottom: active
-          ? "2px solid var(--wine)"
-          : "2px solid transparent",
-        marginBottom: -1,
-        font: `${active ? 700 : 500} 13px/1 var(--f-sans)`,
-        color: active ? "var(--ink)" : "var(--ink-soft)",
-        cursor: "pointer",
+        display: "flex",
+        gap: 10,
+        alignItems: "flex-start",
+        padding: "12px 14px",
+        background: gateHardBlock ? "var(--success-bg)" : "var(--warning-bg)",
+        borderRadius: "var(--r-md)",
       }}
     >
-      {children}
-    </button>
+      <span
+        style={{
+          color: gateHardBlock ? "var(--success)" : "var(--warning)",
+          display: "flex",
+          flexShrink: 0,
+          marginTop: 1,
+        }}
+      >
+        {Icon.shield(15)}
+      </span>
+      <div style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink)" }}>
+        <strong>
+          Gate de facturación DDP:{" "}
+          {gateHardBlock ? "BLOQUEO DURO activo" : "ADVISORY (no bloquea)"}.
+        </strong>{" "}
+        {gateHardBlock
+          ? "Una factura DDP sin aceptación vigente NO se puede emitir (sin override)."
+          : "Si un embarque DDP no tiene aceptación vigente, el operador ve el aviso pero puede emitir igual (queda auditado como override). El flip a bloqueo duro es decisión del founder: 1 línea en lib/studio/legal/gate-config.ts."}
+      </div>
+    </div>
   );
 }
 
@@ -263,7 +191,6 @@ function DefenseFileSearch() {
         background: "var(--bg-surface)",
         border: "1px solid var(--border)",
         borderRadius: "var(--r-lg)",
-        marginBottom: 20,
       }}
     >
       <div style={{ flex: 1, minWidth: 240 }}>
@@ -289,7 +216,10 @@ function DefenseFileSearch() {
         className="studio-btn studio-btn-primary studio-btn-sm"
         onClick={go}
         disabled={!code.trim()}
-        style={{ opacity: code.trim() ? 1 : 0.6 }}
+        style={{
+          opacity: code.trim() ? 1 : 0.6,
+          cursor: code.trim() ? "pointer" : "not-allowed",
+        }}
       >
         Abrir expediente
       </button>
@@ -298,7 +228,7 @@ function DefenseFileSearch() {
 }
 
 // ════════════════════════════════════════════════════════════
-// 1 · Documentos · repositorio versionado
+// Repositorio versionado (hero + docs + pendientes)
 // ════════════════════════════════════════════════════════════
 
 type DocGroup = {
@@ -309,7 +239,31 @@ type DocGroup = {
   versions: LegalDoc[];
 };
 
-function DocsView({ docs }: { docs: LegalDoc[] }) {
+/** Placeholders `[…]` en el cuerpo vigente → pendientes de revisión de abogado. */
+type Placeholder = { doc: string; section: string; text: string };
+
+function collectPlaceholders(groups: DocGroup[]): Placeholder[] {
+  const out: Placeholder[] = [];
+  for (const g of groups) {
+    const cur = g.current;
+    if (!cur || !Array.isArray(cur.body)) continue;
+    for (const [heading, paragraph] of cur.body) {
+      const matches = (paragraph ?? "").match(/\[[^\]]+\]/g);
+      if (matches) {
+        for (const text of matches) out.push({ doc: g.name, section: heading, text });
+      }
+    }
+  }
+  return out;
+}
+
+function DocsView({
+  docs,
+  acceptances,
+}: {
+  docs: LegalDoc[];
+  acceptances: LegalAcceptance[];
+}) {
   const [viewing, setViewing] = useState<LegalDoc | null>(null);
 
   // Agrupar por key (las versiones ya vienen ordenadas version desc).
@@ -331,6 +285,17 @@ function DocsView({ docs }: { docs: LegalDoc[] }) {
       }));
   }, [docs]);
 
+  // Aceptaciones por (key, version) — para el contador del subtítulo (Norte).
+  const countFor = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const a of acceptances) {
+      for (const d of a.docs) m.set(`${d.key}@${d.version}`, (m.get(`${d.key}@${d.version}`) ?? 0) + 1);
+    }
+    return (key: string, version: string) => m.get(`${key}@${version}`) ?? 0;
+  }, [acceptances]);
+
+  const placeholders = useMemo(() => collectPlaceholders(groups), [groups]);
+
   if (groups.length === 0) {
     return (
       <EmptyState
@@ -343,6 +308,71 @@ function DocsView({ docs }: { docs: LegalDoc[] }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Hero · Repositorio legal. Fondo navy estable en ambos temas
+          (--bg-sidebar no invierte); texto con tokens de sidebar (siempre
+          claros sobre navy). Único gradiente de marca permitido. */}
+      <div
+        style={{
+          background:
+            "linear-gradient(135deg, var(--bg-sidebar) 0%, #1F3055 100%)",
+          borderRadius: "var(--r-lg)",
+          padding: 20,
+          display: "flex",
+          alignItems: "center",
+          gap: 16,
+        }}
+      >
+        <span
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: "var(--r-md)",
+            background: "var(--wine)",
+            color: "var(--wine-soft)",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          {Icon.doc(22)}
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              font: "700 10.5px/1 var(--f-sans)",
+              color: "var(--wine-soft)",
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+            }}
+          >
+            Repositorio legal
+          </div>
+          <div
+            style={{
+              font: "800 18px/1.1 var(--f-display)",
+              color: "var(--ink-side)",
+              marginTop: 6,
+            }}
+          >
+            Documentos versionados
+          </div>
+          <div
+            style={{
+              marginTop: 8,
+              font: "500 12px/1.5 var(--f-sans)",
+              color: "var(--ink-side-soft)",
+              maxWidth: "60ch",
+            }}
+          >
+            Cada documento tiene una versión vigente con fecha de entrada en
+            vigor. El cliente acepta siempre la{" "}
+            <b style={{ color: "var(--ink-side)" }}>versión vigente</b>, y cada
+            aceptación queda atada a esa versión en el registro.
+          </div>
+        </div>
+      </div>
+
       {groups.map((doc) => {
         const cur = doc.current;
         return (
@@ -415,22 +445,38 @@ function DocsView({ docs }: { docs: LegalDoc[] }) {
                 >
                   Audiencia: {doc.audience}
                   {cur
-                    ? ` · en vigor desde ${fmtDate(cur.effective_date)} · ${cur.sections} secciones`
+                    ? ` · en vigor desde ${fmtDate(cur.effective_date)} · ${cur.sections} secciones · ${countFor(doc.key, cur.version)} aceptaciones`
                     : ""}
                 </div>
               </div>
-              {cur && (
+              <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                {cur && (
+                  <button
+                    type="button"
+                    className="studio-btn studio-btn-ghost studio-btn-sm"
+                    onClick={() => setViewing(cur)}
+                  >
+                    <span style={{ display: "inline-flex", marginRight: 4 }}>
+                      {Icon.eye(13)}
+                    </span>
+                    Ver
+                  </button>
+                )}
+                {/* Publicar versiones desde la UI no existe (read-only): la
+                    próxima versión la traen los abogados como migración. */}
                 <button
                   type="button"
-                  className="studio-btn studio-btn-ghost studio-btn-sm"
-                  onClick={() => setViewing(cur)}
+                  className="studio-btn studio-btn-primary studio-btn-sm"
+                  disabled
+                  title="La próxima versión la publican los abogados (v3, en revisión) como actualización del repositorio."
+                  style={{ opacity: 0.5, cursor: "not-allowed" }}
                 >
                   <span style={{ display: "inline-flex", marginRight: 4 }}>
-                    {Icon.eye(13)}
+                    {Icon.plus(13)}
                   </span>
-                  Ver
+                  Nueva versión
                 </button>
-              )}
+              </div>
             </div>
 
             {/* Histórico de versiones */}
@@ -456,7 +502,7 @@ function DocsView({ docs }: { docs: LegalDoc[] }) {
               >
                 <span>Versión</span>
                 <span>Vigencia</span>
-                <span>Secciones</span>
+                <span>Cambios</span>
                 <span style={{ textAlign: "right" }}>Estado</span>
               </div>
               {doc.versions.map((v, i) => (
@@ -498,7 +544,7 @@ function DocsView({ docs }: { docs: LegalDoc[] }) {
                       color: "var(--ink-soft)",
                     }}
                   >
-                    {v.sections} secciones
+                    {v.change_note ?? `${v.sections} secciones`}
                   </span>
                   <span style={{ textAlign: "right" }}>
                     {v.status === "vigente" ? (
@@ -517,6 +563,84 @@ function DocsView({ docs }: { docs: LegalDoc[] }) {
           </div>
         );
       })}
+
+      {/* Pendiente de revisión legal · placeholders [...] del texto vigente. */}
+      {placeholders.length > 0 && (
+        <div
+          style={{
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border)",
+            borderLeft: "3px solid var(--warning)",
+            borderRadius: "var(--r-lg)",
+            padding: 20,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              marginBottom: 12,
+            }}
+          >
+            <span style={{ color: "var(--warning)", display: "flex" }}>
+              {Icon.warn(17)}
+            </span>
+            <div
+              style={{
+                font: "800 14px/1.2 var(--f-display)",
+                color: "var(--ink)",
+                flex: 1,
+              }}
+            >
+              Pendiente de revisión legal
+            </div>
+            <Badge tone="warning" size="sm">
+              {placeholders.length}
+            </Badge>
+          </div>
+          <div
+            style={{
+              font: "500 12px/1.5 var(--f-sans)",
+              color: "var(--ink-soft)",
+              marginBottom: 12,
+            }}
+          >
+            Campos sin definir en el texto vigente. Requieren validación de un
+            abogado antes de publicar la versión final.
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {placeholders.map((p, i) => (
+              <div
+                key={i}
+                style={{
+                  padding: "10px 12px",
+                  background: "var(--warning-bg)",
+                  borderRadius: "var(--r-sm)",
+                }}
+              >
+                <div
+                  style={{
+                    font: "600 11px/1.3 var(--f-sans)",
+                    color: "var(--ink-soft)",
+                  }}
+                >
+                  {p.doc} · {p.section}
+                </div>
+                <code
+                  style={{
+                    font: "600 12px/1.4 var(--f-mono)",
+                    color: "var(--ink)",
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {p.text}
+                </code>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Nota informativa (no AI slop, tono info del sistema). */}
       <div
@@ -545,9 +669,7 @@ function DocsView({ docs }: { docs: LegalDoc[] }) {
         </div>
       </div>
 
-      {viewing && (
-        <DocModal doc={viewing} onClose={() => setViewing(null)} />
-      )}
+      {viewing && <DocModal doc={viewing} onClose={() => setViewing(null)} />}
     </div>
   );
 }
@@ -679,7 +801,7 @@ function DocModal({ doc, onClose }: { doc: LegalDoc; onClose: () => void }) {
 }
 
 // ════════════════════════════════════════════════════════════
-// 2 · Aceptaciones · bitácora consultable
+// Aceptaciones · bitácora consultable
 // ════════════════════════════════════════════════════════════
 
 const ACC_GRID = "120px 1fr 140px 160px 150px 36px";
@@ -713,12 +835,7 @@ function AcceptancesView({
           return false;
         if (search.trim()) {
           const q = search.toLowerCase();
-          const hay = [
-            a.acceptance_code,
-            a.client_markbox,
-            a.quote_code,
-            a.ip,
-          ]
+          const hay = [a.acceptance_code, a.client_markbox, a.quote_code, a.ip]
             .filter(Boolean)
             .join(" ")
             .toLowerCase();
@@ -809,7 +926,9 @@ function AcceptancesView({
       {/* Tabla */}
       {filtered.length === 0 ? (
         <EmptyState
-          eyebrow={acceptances.length === 0 ? "Sin aceptaciones" : "Sin resultados"}
+          eyebrow={
+            acceptances.length === 0 ? "Sin aceptaciones" : "Sin resultados"
+          }
           title={
             acceptances.length === 0
               ? "Todavía no hay aceptaciones registradas."

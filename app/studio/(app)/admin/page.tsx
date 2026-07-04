@@ -37,6 +37,17 @@ import { getRecentAuditEvents } from "@/lib/studio/audit-queries";
 import { getExchangeRatesOverview } from "@/lib/studio/exchange-rates-queries";
 import { getOperationalCalendar } from "@/lib/studio/op-calendar-queries";
 import { getApiIntegration } from "@/lib/studio/api-integration-queries";
+import {
+  listLegalDocs,
+  listAcceptances,
+  legalOverview,
+} from "@/lib/studio/legal/queries";
+import { LEGAL_GATE_HARD_BLOCK } from "@/lib/studio/legal/gate-config";
+import type { LegalAcceptance, LegalDoc } from "@/lib/studio/legal/types";
+import {
+  LegalDocsRepo,
+  LegalAcceptancesLog,
+} from "../legal/_components/LegalClient";
 import type { CompanyData } from "@/lib/studio/company-types";
 import type { NumberingOverview } from "@/lib/studio/numbering-types";
 import type { AuditEvent } from "@/lib/studio/audit-types";
@@ -47,6 +58,15 @@ import type { ApiIntegrationData } from "@/lib/studio/api-integration-types";
 export const metadata = { title: "Administración" };
 
 type SectionGroup = "BÁSICO" | "MARCA" | "INTERMEDIO" | "PRO";
+
+/** Datos de las dos secciones legales (SDD-0054, parity Norte admin-legal). */
+type LegalSectionData = {
+  docs: LegalDoc[];
+  acceptances: LegalAcceptance[];
+  currentVersions: Record<string, string>;
+  kpis: { total: number; thisMonth: number; onCurrent: number };
+  gateHardBlock: boolean;
+};
 
 interface AdminSection {
   id: string;
@@ -207,11 +227,10 @@ const SECTIONS: AdminSection[] = [
   {
     id: "legal-docs",
     group: "INTERMEDIO",
-    label: "Documentos legales",
+    label: "Documentación legal",
     icon: "doc",
     description:
-      "T&C del cliente, acuerdo con el operador de consolidación y brief de seguro. Versionado y evidencia legal. Módulo dedicado.",
-    href: "/studio/legal",
+      "Repositorio versionado de los documentos que el cliente acepta al cotizar (Términos y Condiciones y Condiciones del Operador). Cada versión con su fecha de vigencia e historial de cambios.",
   },
   {
     id: "acceptances",
@@ -219,7 +238,7 @@ const SECTIONS: AdminSection[] = [
     label: "Aceptaciones T&C",
     icon: "shield",
     description:
-      "Registro de qué versión de los T&C aceptó cada cliente, cuándo y desde dónde. Traza de consentimiento para compliance.",
+      "Bitácora inmutable de qué versión de los documentos aceptó cada cliente, cuándo y desde dónde. Traza de consentimiento con valor probatorio.",
   },
   // ─── PRO ─────────────────────────────────────────────────
   {
@@ -286,7 +305,24 @@ export default async function AdminPage({
   let calendarEvents: CalendarEvent[] | null = null;
   let apiData: ApiIntegrationData | null = null;
   let importData: { calendar: CalendarEvent[]; company: CompanyData } | null = null;
-  if (active.id === "company") {
+  let legalData: LegalSectionData | null = null;
+  if (active.id === "legal-docs" || active.id === "acceptances") {
+    const supabase = await createClient();
+    // RLS ya acota al tenant del admin logueado; listLegalDocs sin tenantId se
+    // apoya en RLS (a diferencia del gate, que corre como service_role).
+    const [docs, acceptances] = await Promise.all([
+      listLegalDocs(supabase),
+      listAcceptances(supabase),
+    ]);
+    const { currentVersions, kpis } = legalOverview(docs, acceptances);
+    legalData = {
+      docs,
+      acceptances,
+      currentVersions,
+      kpis,
+      gateHardBlock: LEGAL_GATE_HARD_BLOCK,
+    };
+  } else if (active.id === "company") {
     const supabase = await createClient();
     companyData = await getCompanyData(supabase);
   } else if (active.id === "numbering") {
@@ -404,6 +440,7 @@ export default async function AdminPage({
           calendarEvents={calendarEvents}
           apiData={apiData}
           importData={importData}
+          legalData={legalData}
         />
       </div>
     </div>
@@ -504,6 +541,7 @@ function Content({
   calendarEvents,
   apiData,
   importData,
+  legalData,
 }: {
   section: AdminSection;
   companyData: CompanyData | null;
@@ -513,6 +551,7 @@ function Content({
   calendarEvents: CalendarEvent[] | null;
   apiData: ApiIntegrationData | null;
   importData: { calendar: CalendarEvent[]; company: CompanyData } | null;
+  legalData: LegalSectionData | null;
 }) {
   return (
     <div key={section.id}>
@@ -547,7 +586,20 @@ function Content({
         </p>
       </div>
 
-      {section.id === "company" && companyData ? (
+      {section.id === "legal-docs" && legalData ? (
+        <LegalDocsRepo
+          docs={legalData.docs}
+          acceptances={legalData.acceptances}
+          gateHardBlock={legalData.gateHardBlock}
+        />
+      ) : section.id === "acceptances" && legalData ? (
+        <LegalAcceptancesLog
+          acceptances={legalData.acceptances}
+          docs={legalData.docs}
+          currentVersions={legalData.currentVersions}
+          kpis={legalData.kpis}
+        />
+      ) : section.id === "company" && companyData ? (
         <CompanySection data={companyData} />
       ) : section.id === "appearance" ? (
         <AppearanceSection />
