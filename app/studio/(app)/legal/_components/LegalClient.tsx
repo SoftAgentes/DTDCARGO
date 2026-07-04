@@ -257,6 +257,215 @@ function collectPlaceholders(groups: DocGroup[]): Placeholder[] {
   return out;
 }
 
+/**
+ * Card de un documento (familia de versiones): header + histórico. Sirve para
+ * el VIGENTE (badge "Vigente" + Ver + Nueva versión) y para los ARCHIVADOS
+ * (badge "Archivado", sin botón de publicar). El histórico es idéntico.
+ */
+function DocCard({
+  doc,
+  countFor,
+  onView,
+}: {
+  doc: DocGroup;
+  countFor: (key: string, version: string) => number;
+  onView: (d: LegalDoc) => void;
+}) {
+  const cur = doc.current;
+  const latest = cur ?? doc.versions[0] ?? null;
+  const viewable =
+    latest && Array.isArray(latest.body) && latest.body.length > 0
+      ? latest
+      : null;
+
+  return (
+    <div
+      style={{
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-lg)",
+        padding: 20,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 14,
+          marginBottom: 16,
+          flexWrap: "wrap",
+        }}
+      >
+        <span
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: "var(--r-md)",
+            background: "var(--wine-tint)",
+            color: "var(--wine)",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          {Icon.doc(20)}
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              flexWrap: "wrap",
+            }}
+          >
+            <span
+              style={{
+                font: "800 15px/1.2 var(--f-display)",
+                color: "var(--ink)",
+              }}
+            >
+              {doc.name}
+            </span>
+            {cur ? (
+              <Badge tone="success" size="sm" dot>
+                Vigente {cur.version}
+              </Badge>
+            ) : (
+              <Badge tone="neutral" size="sm">
+                Archivado
+              </Badge>
+            )}
+          </div>
+          <div
+            style={{
+              font: "500 12px/1.3 var(--f-sans)",
+              color: "var(--ink-soft)",
+              marginTop: 5,
+            }}
+          >
+            {cur
+              ? `Audiencia: ${doc.audience} · en vigor desde ${fmtDate(cur.effective_date)} · ${cur.sections} secciones · ${countFor(doc.key, cur.version)} aceptaciones`
+              : `Audiencia: ${doc.audience} · reemplazado por el documento vigente · última versión ${latest?.version ?? "—"}`}
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+          {viewable && (
+            <button
+              type="button"
+              className="studio-btn studio-btn-ghost studio-btn-sm"
+              onClick={() => onView(viewable)}
+            >
+              <span style={{ display: "inline-flex", marginRight: 4 }}>
+                {Icon.eye(13)}
+              </span>
+              Ver
+            </button>
+          )}
+          {/* Publicar versiones desde la UI no existe (read-only): la próxima
+              versión la traen los abogados como migración. Solo en el vigente. */}
+          {cur && (
+            <button
+              type="button"
+              className="studio-btn studio-btn-primary studio-btn-sm"
+              disabled
+              title="La próxima versión la publican los abogados como actualización del repositorio."
+              style={{ opacity: 0.5, cursor: "not-allowed" }}
+            >
+              <span style={{ display: "inline-flex", marginRight: 4 }}>
+                {Icon.plus(13)}
+              </span>
+              Nueva versión
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Histórico de versiones */}
+      <div
+        style={{
+          border: "1px solid var(--border)",
+          borderRadius: "var(--r-md)",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "90px 130px 1fr 110px",
+            gap: 12,
+            padding: "9px 14px",
+            background: "var(--bg-elevated)",
+            font: "700 9.5px/1 var(--f-sans)",
+            color: "var(--ink-soft)",
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+          }}
+        >
+          <span>Versión</span>
+          <span>Vigencia</span>
+          <span>Cambios</span>
+          <span style={{ textAlign: "right" }}>Estado</span>
+        </div>
+        {doc.versions.map((v, i) => (
+          <div
+            key={v.id}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "90px 130px 1fr 110px",
+              gap: 12,
+              padding: "11px 14px",
+              alignItems: "center",
+              borderTop: i > 0 ? "1px solid var(--border)" : 0,
+              background:
+                v.status === "vigente"
+                  ? "var(--wine-tint)"
+                  : "var(--bg-surface)",
+            }}
+          >
+            <code
+              style={{
+                font: "800 12.5px/1 var(--f-mono)",
+                color: v.status === "vigente" ? "var(--wine)" : "var(--ink)",
+              }}
+            >
+              {v.version}
+            </code>
+            <span
+              style={{
+                font: "600 11.5px/1 var(--f-mono)",
+                color: "var(--ink-soft)",
+              }}
+            >
+              {fmtDate(v.effective_date)}
+            </span>
+            <span
+              style={{
+                font: "500 11.5px/1.4 var(--f-sans)",
+                color: "var(--ink-soft)",
+              }}
+            >
+              {v.change_note ?? `${v.sections} secciones`}
+            </span>
+            <span style={{ textAlign: "right" }}>
+              {v.status === "vigente" ? (
+                <Badge tone="success" size="sm">
+                  Vigente
+                </Badge>
+              ) : (
+                <Badge tone="neutral" size="sm">
+                  Archivada
+                </Badge>
+              )}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function DocsView({
   docs,
   acceptances,
@@ -295,6 +504,11 @@ function DocsView({
   }, [acceptances]);
 
   const placeholders = useMemo(() => collectPlaceholders(groups), [groups]);
+
+  // Separar lo que el cliente FIRMA hoy (con versión vigente) del historial:
+  // familias sin vigente = documentos reemplazados → sección plegada aparte.
+  const vigentes = useMemo(() => groups.filter((g) => g.current), [groups]);
+  const archivados = useMemo(() => groups.filter((g) => !g.current), [groups]);
 
   if (groups.length === 0) {
     return (
@@ -373,196 +587,15 @@ function DocsView({
         </div>
       </div>
 
-      {groups.map((doc) => {
-        const cur = doc.current;
-        return (
-          <div
-            key={doc.key}
-            style={{
-              background: "var(--bg-surface)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--r-lg)",
-              padding: 20,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 14,
-                marginBottom: 16,
-                flexWrap: "wrap",
-              }}
-            >
-              <span
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: "var(--r-md)",
-                  background: "var(--wine-tint)",
-                  color: "var(--wine)",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                {Icon.doc(20)}
-              </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <span
-                    style={{
-                      font: "800 15px/1.2 var(--f-display)",
-                      color: "var(--ink)",
-                    }}
-                  >
-                    {doc.name}
-                  </span>
-                  {cur ? (
-                    <Badge tone="success" size="sm" dot>
-                      Vigente {cur.version}
-                    </Badge>
-                  ) : (
-                    <Badge tone="neutral" size="sm">
-                      Sin versión vigente
-                    </Badge>
-                  )}
-                </div>
-                <div
-                  style={{
-                    font: "500 12px/1.3 var(--f-sans)",
-                    color: "var(--ink-soft)",
-                    marginTop: 5,
-                  }}
-                >
-                  Audiencia: {doc.audience}
-                  {cur
-                    ? ` · en vigor desde ${fmtDate(cur.effective_date)} · ${cur.sections} secciones · ${countFor(doc.key, cur.version)} aceptaciones`
-                    : ""}
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                {cur && (
-                  <button
-                    type="button"
-                    className="studio-btn studio-btn-ghost studio-btn-sm"
-                    onClick={() => setViewing(cur)}
-                  >
-                    <span style={{ display: "inline-flex", marginRight: 4 }}>
-                      {Icon.eye(13)}
-                    </span>
-                    Ver
-                  </button>
-                )}
-                {/* Publicar versiones desde la UI no existe (read-only): la
-                    próxima versión la traen los abogados como migración. */}
-                <button
-                  type="button"
-                  className="studio-btn studio-btn-primary studio-btn-sm"
-                  disabled
-                  title="La próxima versión la publican los abogados (v3, en revisión) como actualización del repositorio."
-                  style={{ opacity: 0.5, cursor: "not-allowed" }}
-                >
-                  <span style={{ display: "inline-flex", marginRight: 4 }}>
-                    {Icon.plus(13)}
-                  </span>
-                  Nueva versión
-                </button>
-              </div>
-            </div>
-
-            {/* Histórico de versiones */}
-            <div
-              style={{
-                border: "1px solid var(--border)",
-                borderRadius: "var(--r-md)",
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "90px 130px 1fr 110px",
-                  gap: 12,
-                  padding: "9px 14px",
-                  background: "var(--bg-elevated)",
-                  font: "700 9.5px/1 var(--f-sans)",
-                  color: "var(--ink-soft)",
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                }}
-              >
-                <span>Versión</span>
-                <span>Vigencia</span>
-                <span>Cambios</span>
-                <span style={{ textAlign: "right" }}>Estado</span>
-              </div>
-              {doc.versions.map((v, i) => (
-                <div
-                  key={v.id}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "90px 130px 1fr 110px",
-                    gap: 12,
-                    padding: "11px 14px",
-                    alignItems: "center",
-                    borderTop: i > 0 ? "1px solid var(--border)" : 0,
-                    background:
-                      v.status === "vigente"
-                        ? "var(--wine-tint)"
-                        : "var(--bg-surface)",
-                  }}
-                >
-                  <code
-                    style={{
-                      font: "800 12.5px/1 var(--f-mono)",
-                      color:
-                        v.status === "vigente" ? "var(--wine)" : "var(--ink)",
-                    }}
-                  >
-                    {v.version}
-                  </code>
-                  <span
-                    style={{
-                      font: "600 11.5px/1 var(--f-mono)",
-                      color: "var(--ink-soft)",
-                    }}
-                  >
-                    {fmtDate(v.effective_date)}
-                  </span>
-                  <span
-                    style={{
-                      font: "500 11.5px/1.4 var(--f-sans)",
-                      color: "var(--ink-soft)",
-                    }}
-                  >
-                    {v.change_note ?? `${v.sections} secciones`}
-                  </span>
-                  <span style={{ textAlign: "right" }}>
-                    {v.status === "vigente" ? (
-                      <Badge tone="success" size="sm">
-                        Vigente
-                      </Badge>
-                    ) : (
-                      <Badge tone="neutral" size="sm">
-                        Archivada
-                      </Badge>
-                    )}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })}
+      {/* Documento(s) VIGENTE(s) = lo que el cliente firma hoy. */}
+      {vigentes.map((doc) => (
+        <DocCard
+          key={doc.key}
+          doc={doc}
+          countFor={countFor}
+          onView={setViewing}
+        />
+      ))}
 
       {/* Pendiente de revisión legal · placeholders [...] del texto vigente. */}
       {placeholders.length > 0 && (
@@ -640,6 +673,68 @@ function DocsView({
             ))}
           </div>
         </div>
+      )}
+
+      {/* Versiones anteriores · familias sin vigente (reemplazadas por el
+          documento vigente). Plegadas para no competir con lo que se firma hoy. */}
+      {archivados.length > 0 && (
+        <details
+          style={{
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--r-lg)",
+            overflow: "hidden",
+          }}
+        >
+          <summary
+            style={{
+              cursor: "pointer",
+              padding: "14px 20px",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              userSelect: "none",
+            }}
+          >
+            <span
+              style={{
+                font: "700 13px/1.2 var(--f-sans)",
+                color: "var(--ink)",
+              }}
+            >
+              Versiones anteriores
+            </span>
+            <Badge tone="neutral" size="sm">
+              {archivados.length}
+            </Badge>
+            <span
+              style={{
+                marginLeft: "auto",
+                font: "500 11.5px/1.3 var(--f-sans)",
+                color: "var(--ink-mute)",
+              }}
+            >
+              Documentos reemplazados por el vigente — el cliente ya no los firma
+            </span>
+          </summary>
+          <div
+            style={{
+              padding: "0 16px 16px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+            }}
+          >
+            {archivados.map((doc) => (
+              <DocCard
+                key={doc.key}
+                doc={doc}
+                countFor={countFor}
+                onView={setViewing}
+              />
+            ))}
+          </div>
+        </details>
       )}
 
       {/* Nota informativa (no AI slop, tono info del sistema). */}
