@@ -77,6 +77,7 @@ export function CalendarLegend() {
         bg="var(--cal-ve-soft)"
         border="var(--success)"
       />
+      <Chip label="Tarea de Bitácora" bg="var(--neutral-bg)" border="var(--border)" />
       <Chip label="Fin de semana" bg="var(--cal-weekend)" border="var(--border)" />
       <Chip label="Hoy" bg="var(--wine)" />
     </div>

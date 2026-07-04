@@ -21,6 +21,10 @@
       "schedule": "0 3 * * 1"
     },
     {
+      "path": "/api/cron/bitacora-purge-orphans",
+      "schedule": "30 3 * * 1"
+    },
+    {
       "path": "/api/cron/mail-scheduled",
       "schedule": "*/5 * * * *"
     },

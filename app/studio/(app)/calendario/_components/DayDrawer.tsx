@@ -16,6 +16,7 @@ import {
 import type { Fair, Holiday } from "@/lib/studio/calendar-data";
 import {
   EVENT_TYPE_META,
+  calendarEventHref,
   eventsForDate,
   toneVar,
   type CalendarEvent,
@@ -160,13 +161,14 @@ export function DayDrawer({ isoDate, events, holidays, fairs, onClose }: Props) 
           </div>
         ))}
 
-        {/* Eventos operativos */}
+        {/* Eventos operativos (embarques) + tareas de Bitácora (SDD-0146) */}
         {dayEvents.map((e) => {
           const meta = EVENT_TYPE_META[e.type];
+          const primary = e.type === "tarea" ? e.title : e.shipmentCode;
           return (
             <Link
               key={e.id}
-              href={`/studio/tracking/${e.shipmentId}`}
+              href={calendarEventHref(e)}
               onClick={onClose}
               style={{
                 padding: "12px 14px",
@@ -185,7 +187,7 @@ export function DayDrawer({ isoDate, events, holidays, fairs, onClose }: Props) 
               </Badge>
               <div style={{ flex: 1 }}>
                 <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>
-                  {meta.label} · {e.shipmentCode}
+                  {meta.label} · {primary}
                 </div>
                 {(e.clientName || e.destination) && (
                   <div

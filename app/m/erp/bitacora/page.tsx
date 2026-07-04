@@ -34,11 +34,11 @@ export default async function MobileBitacoraHoyPage() {
   // Supabase Auth → sesión válida ≠ acceso al ERP móvil.
   const { data: link } = await supabase
     .from("user_tenants")
-    .select("role")
+    .select("role, tenant_id")
     .eq("user_id", userResp.user.id)
     .is("disabled_at", null)
     .limit(1)
-    .maybeSingle<{ role: string }>();
+    .maybeSingle<{ role: string; tenant_id: string }>();
   if (!link) {
     const { data: portalClientId } = await supabase.rpc("get_portal_client_id");
     redirect(portalClientId ? "/portal" : "/");
@@ -57,6 +57,7 @@ export default async function MobileBitacoraHoyPage() {
       myRole={link.role}
       canEdit={canEditModule(link.role as StudioUserRole, "bitacora")}
       hoyISO={todayCaracasISO()}
+      tenantId={link.tenant_id ?? null}
     />
   );
 }

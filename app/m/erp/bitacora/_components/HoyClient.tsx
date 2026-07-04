@@ -32,6 +32,7 @@ import {
   nextEstado,
 } from "@/lib/studio/bitacora/bitacora-types";
 import { dueDateLabel } from "@/lib/studio/bitacora/dates";
+import { useBitacoraTasksRealtime } from "@/lib/studio/bitacora/use-bitacora-realtime";
 import { moveTaskAction, takeTaskAction } from "@/app/studio/(app)/bitacora/actions";
 
 interface Props {
@@ -41,6 +42,7 @@ interface Props {
   myRole: string;
   canEdit: boolean;
   hoyISO: string;
+  tenantId: string | null;
 }
 
 export function HoyClient({
@@ -50,10 +52,15 @@ export function HoyClient({
   myRole,
   canEdit,
   hoyISO,
+  tenantId,
 }: Props) {
   const router = useRouter();
   const toast = useToast();
   const [, startRefresh] = useTransition();
+
+  // Realtime: un avance en desktop se refleja en el teléfono en <2s sin reload
+  // (el server re-pull trae las relaciones; el useEffect([tasks]) re-syncea).
+  useBitacoraTasksRealtime(tenantId);
 
   const [localTasks, setLocalTasks] = useState<BitacoraTask[]>(tasks);
   useEffect(() => setLocalTasks(tasks), [tasks]);

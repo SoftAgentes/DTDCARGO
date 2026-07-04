@@ -33,6 +33,11 @@ import {
   ROLE_QUEUE_LABELS,
   type BitacoraTaskEstado,
 } from "@/lib/studio/bitacora/bitacora-types";
+import {
+  countEsperandoCliente,
+  filterEsperandoCliente,
+} from "@/lib/studio/bitacora/grouping";
+import { useBitacoraTasksRealtime } from "@/lib/studio/bitacora/use-bitacora-realtime";
 import { moveTaskAction, takeTaskAction } from "../actions";
 import { BoardKanban } from "./BoardKanban";
 import { BoardList } from "./BoardList";
@@ -77,6 +82,10 @@ export function BitacoraClient({
   const toast = useToast();
   const [, startRefresh] = useTransition();
 
+  // Realtime: un avance en otro dispositivo re-pull del server (<2s) → el
+  // useEffect([tasks]) re-syncea localTasks. Ver use-bitacora-realtime.ts.
+  useBitacoraTasksRealtime(tenantId);
+
   const [view, setView] = useState<View>("tablero");
   useEffect(() => {
     const saved = window.localStorage.getItem(VIEW_STORAGE_KEY);
@@ -92,6 +101,9 @@ export function BitacoraClient({
   // Optimista con revert: el server refresca vía router.refresh().
   const [localTasks, setLocalTasks] = useState<BitacoraTask[]>(tasks);
   useEffect(() => setLocalTasks(tasks), [tasks]);
+
+  // Filtro "Esperando al cliente" (solo tareas tipo entregable_cliente).
+  const [esperandoOnly, setEsperandoOnly] = useState(false);
 
   const [drawer, setDrawer] = useState<
     | { mode: "create" }
@@ -115,9 +127,25 @@ export function BitacoraClient({
     return m;
   }, [profiles]);
 
+  const meetingTitleById = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const mt of meetings) m[mt.id] = mt.titulo;
+    return m;
+  }, [meetings]);
+
   const openTasks = useMemo(
     () => localTasks.filter((t) => t.estado !== "hecho"),
     [localTasks],
+  );
+
+  // Chip "Esperando al cliente": aparece solo si hay tareas de ese tipo.
+  const esperandoCount = useMemo(
+    () => countEsperandoCliente(localTasks),
+    [localTasks],
+  );
+  const boardTasks = useMemo(
+    () => (esperandoOnly ? filterEsperandoCliente(localTasks) : localTasks),
+    [localTasks, esperandoOnly],
   );
 
   // Cola del rol: sin dueño, con rol, no hechas.
@@ -250,6 +278,33 @@ export function BitacoraClient({
         </div>
       </div>
 
+      {/* Filtro "Esperando al cliente" · solo si hay tareas de ese tipo */}
+      {view !== "actas" && esperandoCount > 0 && (
+        <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+          <button
+            type="button"
+            aria-pressed={esperandoOnly}
+            onClick={() => setEsperandoOnly((v) => !v)}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 7,
+              height: 30,
+              padding: "0 12px",
+              borderRadius: "var(--r-pill)",
+              background: esperandoOnly ? "var(--warning-bg)" : "var(--bg-surface)",
+              border: `1px solid ${esperandoOnly ? "var(--warning)" : "var(--border)"}`,
+              color: esperandoOnly ? "var(--warning)" : "var(--ink-soft)",
+              font: "600 12px/1 var(--f-sans)",
+              cursor: "pointer",
+            }}
+          >
+            Esperando al cliente
+            <span style={{ font: "700 11px/1 var(--f-mono)" }}>{esperandoCount}</span>
+          </button>
+        </div>
+      )}
+
       {/* Cola del rol */}
       {queueTasks.length > 0 && (
         <section
@@ -376,7 +431,7 @@ export function BitacoraClient({
         />
       ) : view === "tablero" ? (
         <BoardKanban
-          tasks={localTasks}
+          tasks={boardTasks}
           nameByUserId={nameByUserId}
           canEdit={canEdit}
           hoyISO={hoyISO}
@@ -385,8 +440,9 @@ export function BitacoraClient({
         />
       ) : (
         <BoardList
-          tasks={localTasks}
+          tasks={boardTasks}
           nameByUserId={nameByUserId}
+          meetingTitleById={meetingTitleById}
           canEdit={canEdit}
           hoyISO={hoyISO}
           onMove={handleMove}

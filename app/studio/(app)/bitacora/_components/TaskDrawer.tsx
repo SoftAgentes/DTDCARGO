@@ -34,6 +34,7 @@ import {
   ROLE_QUEUE_LABELS,
   type BitacoraActionState,
 } from "@/lib/studio/bitacora/bitacora-types";
+import { buildAgentPrompt } from "@/lib/studio/bitacora/agent-prompt";
 import { formatRelativeTime } from "@/lib/studio/comments/types";
 import {
   addChecklistItemAction,
@@ -146,6 +147,21 @@ export function TaskDrawer({
         toast.error(res.error);
       }
     });
+  };
+
+  const copyAgentPrompt = async () => {
+    if (!task) return;
+    const text = buildAgentPrompt({
+      titulo: task.titulo,
+      descripcion: task.descripcion,
+      checklist: items.map((i) => ({ texto: i.texto, done: i.done })),
+    });
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Prompt copiado. Pégalo en Claude Code.");
+    } catch {
+      toast.error("No se pudo copiar. Copia el texto a mano.");
+    }
   };
 
   const fieldError = (k: string) => state.fieldErrors?.[k];
@@ -372,6 +388,19 @@ export function TaskDrawer({
             prompt → CC
           </Badge>
         </label>
+
+        {/* Copiar prompt para Claude Code (solo si la tarea guardada es para_agente).
+            La automatización real es V2; esto solo arma y copia el texto. */}
+        {!isCreate && task?.para_agente && (
+          <button
+            type="button"
+            className="studio-btn studio-btn-ghost studio-btn-sm"
+            onClick={copyAgentPrompt}
+            style={{ alignSelf: "flex-start" }}
+          >
+            {Icon.copy(13)} Copiar prompt para Claude Code
+          </button>
+        )}
 
         {/* Checklist */}
         <div>
