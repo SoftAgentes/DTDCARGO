@@ -39,6 +39,7 @@ type Filters = {
   zarpe: boolean;
   arribo: boolean;
   entrega: boolean;
+  tarea: boolean;
   feriado: boolean;
   feria: boolean;
 };
@@ -73,6 +74,7 @@ export function CalendarClient({
     zarpe: true,
     arribo: true,
     entrega: true,
+    tarea: true,
     feriado: true,
     feria: true,
   });
@@ -323,6 +325,7 @@ function FilterCard({
     { k: "zarpe", label: "Zarpes · ETD", dot: "var(--info)" },
     { k: "arribo", label: "Arribos · ETA", dot: "var(--wine)" },
     { k: "entrega", label: "Entregas · POD", dot: "var(--success)" },
+    { k: "tarea", label: "Tareas de Bitácora", dot: "var(--ink-soft)" },
     { k: "feriado", label: "Feriados CN / VE", dot: "var(--ink-soft)" },
     { k: "feria", label: "Ferias comerciales", dot: "var(--info)" },
   ];

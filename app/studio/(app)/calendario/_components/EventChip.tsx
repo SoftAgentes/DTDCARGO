@@ -14,12 +14,16 @@ export function EventChip({ event }: { event: CalendarEvent }) {
   const color = toneVar(event.tone);
   const bg = toneBgVar(event.tone);
   const meta = EVENT_TYPE_META[event.type];
-  // Cola del código (S-2026-0042 → 0042) para ahorrar ancho en la celda.
-  const tail = event.shipmentCode.split("-").slice(-1)[0] ?? event.shipmentCode;
+  // Embarque: cola del código (S-2026-0042 → 0042) para ahorrar ancho.
+  // Tarea (SDD-0146): el título de la tarea (no hay código de embarque).
+  const tail =
+    event.type === "tarea"
+      ? event.title
+      : (event.shipmentCode.split("-").slice(-1)[0] ?? event.shipmentCode);
 
   return (
     <span
-      title={`${meta.label} · ${event.shipmentCode}${
+      title={`${meta.label} · ${event.type === "tarea" ? event.title : event.shipmentCode}${
         event.clientName ? ` · ${event.clientName}` : ""
       }`}
       style={{

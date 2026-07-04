@@ -41,6 +41,11 @@ const cspHeader = [
   `style-src 'self' 'unsafe-inline'`,
   `font-src 'self' data:`,
   `img-src 'self' data: blob: https://*.supabase.co https://*.google-analytics.com https://www.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://ad.doubleclick.net https://www.google.com`,
+  // `media-src` para <audio>/<video>: `blob:` = preview de la grabación de Bitácora
+  // (URL.createObjectURL) · `https://*.supabase.co` = playback del audio firmado
+  // (signed URL del bucket). Sin esta línea heredarían `default-src 'self'` y ambos
+  // se bloquearían en silencio (SDD-0146 Fase 3). Aplica también a /m (mismo cspHeader).
+  `media-src 'self' blob: https://*.supabase.co`,
   `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://ad.doubleclick.net https://www.google.com${isDev ? " ws: wss:" : ""}`,
   `frame-ancestors 'none'`,
   `base-uri 'self'`,
@@ -134,6 +139,10 @@ const nextConfig: NextConfig = {
     // `private/marca/` (fuera de `public/`) y se sirven por fs.read en esta ruta;
     // hay que trazarlos para que viajen en el bundle de la función en prod.
     "/marca/asset/[name]": ["./private/marca/**"],
+    // Reportes de Bitácora (SDD-0146 · Fase 7): el acta/tareas embeben el isólogo
+    // como data-URI leído de `public/brand/` por fs → trazarlo para prod (si el
+    // fs falla, el reporte degrada al wordmark de texto, sin romper).
+    "/api/studio/bitacora/export": ["./public/brand/**"],
   },
   async headers() {
     // El operario PWA (`/m/*`) necesita cámara (scan QR · QrScanner) y
@@ -144,6 +153,20 @@ const nextConfig: NextConfig = {
     // y la cámara seguiría apagada.
     const ppMobile =
       "camera=(self), microphone=(), geolocation=(self), payment=(), usb=(), gyroscope=(), magnetometer=(), accelerometer=()";
+    // Bitácora graba audio (SDD-0146 Fase 3): microphone=(self) SOLO en sus dos
+    // superficies. Móvil = ppMobile + micrófono (mantiene cámara/GPS por si acaso);
+    // desktop = estricto + solo micrófono. Los operarios PIN (/m/cn · /m/ve) NO
+    // graban → siguen con ppMobile (micrófono apagado).
+    //
+    // GOTCHA (ya vivido con QR/GPS en /m): varios `Permissions-Policy` que matchean
+    // la misma URL se INTERSECTAN al valor MÁS restrictivo. Por eso cada regla mic
+    // debe quedar SOLA para su URL: `/studio/bitacora` se excluye del catch-all, y
+    // `/m/erp/bitacora` se excluye del `/m/:path*` de abajo (si no, el micrófono se
+    // anula en silencio).
+    const ppMobileBitacora =
+      "camera=(self), microphone=(self), geolocation=(self), payment=(), usb=(), gyroscope=(), magnetometer=(), accelerometer=()";
+    const ppStudioBitacora =
+      "camera=(), microphone=(self), geolocation=(), payment=(), usb=(), gyroscope=(), magnetometer=(), accelerometer=()";
     const baseNoPP = securityHeaders.filter(
       (h) => h.key !== "Permissions-Policy",
     );
@@ -190,9 +213,29 @@ const nextConfig: NextConfig = {
       { key: "X-Robots-Tag", value: "noindex, nofollow" },
     ];
     return [
+      // Bitácora móvil (staff): micrófono habilitado. Va ANTES de `/m/:path*` y ese
+      // rule lo excluye (negative lookahead) para que no le intersecte mic=().
       {
-        source: "/m/:path*",
+        source: "/m/erp/bitacora/:path*",
+        headers: [
+          ...baseNoPP,
+          { key: "Permissions-Policy", value: ppMobileBitacora },
+        ],
+      },
+      // Resto de la PWA móvil (operarios PIN incluidos): cámara+GPS, micrófono OFF.
+      // Excluye `erp/bitacora` (lo cubre la regla de arriba con micrófono). `/m/cn`
+      // y `/m/ve` (QR + GPS) NO empiezan con `erp/bitacora` → siguen con ppMobile.
+      {
+        source: "/m/:path((?!erp/bitacora).*)",
         headers: [...baseNoPP, { key: "Permissions-Policy", value: ppMobile }],
+      },
+      // Bitácora desktop: estricto + micrófono. Se excluye del catch-all de abajo.
+      {
+        source: "/studio/bitacora/:path*",
+        headers: [
+          ...baseNoPP,
+          { key: "Permissions-Policy", value: ppStudioBitacora },
+        ],
       },
       {
         source: "/marca/:path*",
@@ -203,7 +246,7 @@ const nextConfig: NextConfig = {
         headers: norteHeaders,
       },
       {
-        source: "/:path((?!m/|marca/|norte\\.html).*)",
+        source: "/:path((?!m/|marca/|norte\\.html|studio/bitacora).*)",
         headers: securityHeaders,
       },
     ];

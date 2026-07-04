@@ -22,6 +22,7 @@ import {
   navieraKpis,
 } from "@/lib/studio/dashboard-queries";
 import { computeAgentKpis } from "@/lib/studio/agent-queries";
+import { countMyOpenTasks } from "@/lib/studio/bitacora/bitacora-queries";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import { RecentActivityCard } from "./_components/RecentActivityCard";
 import { RecentQuotesCard } from "./_components/RecentQuotesCard";
@@ -117,6 +118,10 @@ export default async function DashboardPage() {
   ]);
 
   const tenant = tenantLink;
+  // Tareas abiertas asignadas al usuario (KpiCard "Tu día" · SDD-0146 F6).
+  // Head-only count; degrada a 0 si Bitácora aún no está aplicada.
+  const myUserId = userResp.data.user?.id ?? null;
+  const myOpenTasks = myUserId ? await countMyOpenTasks(supabase, myUserId) : 0;
   const now = new Date();
   const firstName = firstNameFromUser(
     userResp.data.user?.user_metadata,
@@ -161,6 +166,23 @@ export default async function DashboardPage() {
           .
         </p>
       </div>
+
+      {/* TU DÍA · SDD-0146 Bitácora (tareas del equipo) */}
+      <section style={{ marginBottom: 28 }}>
+        <div className="studio-eyebrow" style={{ marginBottom: 12 }}>
+          Tu día
+        </div>
+        <div style={{ maxWidth: 280 }}>
+          <Link href="/studio/bitacora" style={{ textDecoration: "none" }}>
+            <KpiCard
+              value={myOpenTasks}
+              label="Tus tareas de hoy"
+              valueColor={myOpenTasks > 0 ? "var(--wine)" : "var(--ink)"}
+              sub="Abrir Bitácora →"
+            />
+          </Link>
+        </div>
+      </section>
 
       {/* OPERATIVO */}
       <section style={{ marginBottom: 28 }}>

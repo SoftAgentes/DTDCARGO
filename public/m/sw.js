@@ -56,6 +56,48 @@ self.addEventListener("push", (event) => {
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
+// ─────────────────────────────────────────────────────────────
+// pushsubscriptionchange (SDD-0146 Fase 5)
+// ─────────────────────────────────────────────────────────────
+// El browser rota el endpoint → re-suscribimos con la MISMA VAPID key y
+// posteamos al endpoint UNIFICADO, que resuelve identidad por cookie dtd_op
+// (operario) o sesión Supabase (staff). Best-effort: si falla, el user re-activa
+// en la próxima visita.
+self.addEventListener("pushsubscriptionchange", (event) => {
+  event.waitUntil(
+    (async () => {
+      try {
+        const oldSub = event.oldSubscription || null;
+        const oldEndpoint = oldSub ? oldSub.endpoint : null;
+        const appServerKey =
+          (oldSub && oldSub.options && oldSub.options.applicationServerKey) ||
+          (event.newSubscription &&
+            event.newSubscription.options &&
+            event.newSubscription.options.applicationServerKey) ||
+          undefined;
+
+        const newSub =
+          event.newSubscription ||
+          (await self.registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: appServerKey,
+          }));
+
+        await fetch("/api/m/push/resubscribe", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            old_endpoint: oldEndpoint,
+            subscription: newSub.toJSON(),
+          }),
+        });
+      } catch {
+        // best-effort: sin re-suscripción el user la re-activa manualmente.
+      }
+    })(),
+  );
+});
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const targetUrl =

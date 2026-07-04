@@ -52,6 +52,9 @@ export const ROLE_MODULE_ACCESS: Record<string, readonly StudioUserRole[]> = {
   shipments: ["commercial", "operations", "accounting", "warehouse", "support"],
   tracking: ["commercial", "operations", "accounting", "warehouse", "support"],
   calendar: ["commercial", "operations", "accounting", "warehouse", "support", "marketing"],
+  // Bitácora (SDD-0146): tareas internas del equipo — transversal a todos los
+  // roles; support read-only vía canEditModule (V1).
+  bitacora: ["commercial", "operations", "accounting", "warehouse", "support", "marketing"],
   cn: ["operations", "warehouse", "support"],
   qrqueue: ["operations", "warehouse"],
   labels: ["operations", "warehouse"],

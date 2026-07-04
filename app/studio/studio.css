@@ -764,6 +764,27 @@
   }
 }
 
+/* ── Bitácora · punto rojo pulsante mientras se graba audio (SDD-0146 F3) ── */
+.bitacora-rec-dot {
+  animation: bitacora-rec-pulse 1.3s ease-in-out infinite;
+}
+@keyframes bitacora-rec-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bitacora-rec-dot {
+    animation: none;
+  }
+}
+
 /* ── BugFAB · tono "Fantasma" (SDD-0036 refinamiento) ─────────
    Utilitario de MENOR jerarquía: contorno + ícono navy suave sobre fondo
    transparente, sin pulso. El wine sigue siendo el único color de acción.

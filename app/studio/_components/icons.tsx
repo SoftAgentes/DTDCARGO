@@ -236,6 +236,14 @@ export const Icon = {
         <C cx={12} cy={13} r={3.5} />
       </>,
     ),
+  mic: (s: Size = 18) =>
+    wrap(
+      s,
+      <>
+        <P d="M12 3a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z" />
+        <P d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+      </>,
+    ),
   edit: (s: Size = 14) => wrap(s, <P d="M16 3l5 5-11 11H5v-5z" />),
   trash: (s: Size = 14) =>
     wrap(s, <P d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14M10 11v6M14 11v6" />),
@@ -391,6 +399,17 @@ export const Icon = {
         <R x={4} y={11} w={16} h={10} rx={2} />
         <P d="M8 11V7a4 4 0 018 0v4" />
         <C cx={12} cy={16} r={1.4} fill="fill" />
+      </>
+    ),
+  clipboard: (s: Size = 18) =>
+    wrap(
+      s,
+      <>
+        <R x={5} y={4} w={14} h={17} rx={2} />
+        <P d="M9 4V2.5h6V4" />
+        <P d="M8.5 11l1.5 1.5L12.5 9.5" />
+        <P d="M15 11.5h1" />
+        <P d="M8.5 16.5h7" />
       </>
     ),
 };

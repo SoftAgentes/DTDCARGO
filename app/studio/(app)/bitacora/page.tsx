@@ -1,0 +1,64 @@
+/**
+ * Bitácora — gestor de tareas del equipo (SDD-0146 · Fase 1).
+ *
+ * Server component: gate de módulo (RBAC SDD-0085) + fetch en paralelo de
+ * tareas (con asignados + checklist embebidos) y pool de asignables → render
+ * del orquestador client (tabs Tablero | Lista + drawer + cola por rol).
+ *
+ * Las actas con IA (capturar → confirmar) llegan en Fase 2 — esta fase es el
+ * gestor manual completo en desktop y teléfono.
+ */
+
+import { createClient } from "@/lib/db/server";
+import { getUserTenantId } from "@/lib/auth/session";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
+import {
+  listAssignableProfiles,
+  listTasks,
+} from "@/lib/studio/bitacora/bitacora-queries";
+import { listMeetings } from "@/lib/studio/bitacora/bitacora-meeting-queries";
+import { todayCaracasISO } from "@/lib/studio/bitacora/dates";
+import { BitacoraClient } from "./_components/BitacoraClient";
+
+export const metadata = { title: "Bitácora · DTD Studio" };
+
+export const dynamic = "force-dynamic";
+
+export default async function BitacoraPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ task?: string }>;
+}) {
+  const role = await requireModuleView("bitacora");
+  const canEdit = role !== "support";
+
+  const supabase = await createClient();
+  const { data: userResp } = await supabase.auth.getUser();
+  const myUserId = userResp.user?.id ?? null;
+
+  const sp = await searchParams;
+  // Deep-link desde la bandeja de menciones (/studio/bitacora/tarea/[id] redirige
+  // acá con ?task=) → el tablero abre el drawer de esa tarea.
+  const openTaskId = typeof sp.task === "string" ? sp.task : null;
+
+  const [tasks, profiles, meetings, tenantId] = await Promise.all([
+    listTasks(supabase, { includeDone: true, limit: 500 }),
+    listAssignableProfiles(supabase),
+    listMeetings(supabase, { limit: 200 }),
+    getUserTenantId(),
+  ]);
+
+  return (
+    <BitacoraClient
+      tasks={tasks}
+      profiles={profiles}
+      meetings={meetings}
+      canEdit={canEdit}
+      myUserId={myUserId}
+      myRole={role}
+      tenantId={tenantId}
+      initialOpenTaskId={openTaskId}
+      hoyISO={todayCaracasISO()}
+    />
+  );
+}

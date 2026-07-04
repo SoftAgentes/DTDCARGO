@@ -14,7 +14,11 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { CalendarEvent } from "./calendar-events-types";
+import {
+  bitacoraTaskToCalendarEvent,
+  type BitacoraTaskCalRow,
+  type CalendarEvent,
+} from "./calendar-events-types";
 
 export type CalendarRange = {
   /** ISO `YYYY-MM-DD` inclusivo. */
@@ -147,6 +151,29 @@ export async function listCalendarEvents(
       destination: s.destination ?? undefined,
       tone: "info",
     });
+  }
+
+  // ── Tareas de Bitácora con vencimiento en el rango (SDD-0146 · Fase 6) ──
+  // Aditivo: una fuente más en la union, NO una tabla nueva. Degrada a []
+  // si `bitacora_tasks` aún no existe (migr 0213 la aplica el founder) o si
+  // no hay permiso → el calendario sigue con los hitos de embarques (nunca
+  // rompe el calendario existente).
+  try {
+    const { data: taskData, error: taskErr } = await supabase
+      .from("bitacora_tasks")
+      .select("id, titulo, due_date, estado")
+      .gte("due_date", from)
+      .lte("due_date", to)
+      .neq("estado", "hecho")
+      .limit(500);
+    if (!taskErr && taskData) {
+      for (const t of taskData as BitacoraTaskCalRow[]) {
+        const ev = bitacoraTaskToCalendarEvent(t);
+        if (ev) events.push(ev);
+      }
+    }
+  } catch {
+    /* bitácora sin aplicar / sin permiso → calendario advisory, no rompe */
   }
 
   return events;

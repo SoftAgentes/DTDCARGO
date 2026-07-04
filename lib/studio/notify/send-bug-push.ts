@@ -1,30 +1,26 @@
 /**
- * Bug push notification helper (SDD-0036 Fase 5).
+ * Bug push notification helper (SDD-0036 Fase 5, multi-dispositivo desde SDD-0146).
  *
- * Wrapper de web-push para enviar Web Push notifications al
- * user_notification_prefs.push_subscription de un user dado.
+ * Wrapper de web-push para el push de bugs a un user. Desde la Fase 5 de Bitácora
+ * delega en `sendPushToUserDevices`, que envía a TODAS las subscriptions del user
+ * (`user_push_subscriptions`, 0215) con **fallback de lectura** al jsonb legacy
+ * `user_notification_prefs.push_subscription` gateado por `channel_push` — así un
+ * user que solo tiene el jsonb legacy (sin filas en la tabla) recibe el push de
+ * bug EXACTAMENTE igual que antes (sin regresión), y uno migrado gana multi-device.
  *
- * Best-effort: errores se loguean a console.error pero NO se propagan
- * (consistente con bug-email-notify). Si Resend / Web Push fallan, la
- * operación principal del bug NO se rompe.
+ * El gate de consentimiento (channel_push + notify_on_*) lo aplica upstream
+ * `bug-email-notify.ts` (computeChannelDecision) ANTES de llamar acá — este
+ * wrapper ya no re-chequea channel_push salvo en el fallback legacy (donde el
+ * flag ES el único indicador de si la sub sigue vigente).
  *
- * VAPID keys en env vars:
- *   - NEXT_PUBLIC_VAPID_PUBLIC_KEY (client + server)
- *   - VAPID_PRIVATE_KEY (server only)
- *   - VAPID_SUBJECT (mailto: del admin de contacto)
+ * Best-effort: errores se loguean pero NO se propagan. Sin VAPID (dev) → no-op.
  *
- * Si las env vars no están seteadas (dev local), el helper hace no-op
- * con un warning.
+ * @returns `true` si se entregó a ≥1 dispositivo, `false` si no (sin subscription,
+ *   opt-out, o falló).
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { ensureVapid, webpush } from "./vapid";
-
-interface PushSubscriptionStored {
-  endpoint: string;
-  keys: { p256dh: string; auth: string };
-  expirationTime?: number | null;
-}
+import { sendPushToUserDevices } from "./send-user-push";
 
 export interface PushPayload {
   title: string;
@@ -35,68 +31,15 @@ export interface PushPayload {
 }
 
 /**
- * Manda push notification a un user específico. Best-effort.
+ * Manda push notification a un user específico (todos sus dispositivos). Best-effort.
  *
- * @param supabaseAdmin · cliente con service_role (queries
- *   user_notification_prefs bypassa RLS para resolver subscription).
- * @returns `true` si se envió, `false` si skip (no subscription, no
- *   prefs, opt-out, etc) o falló.
+ * @param supabaseAdmin · cliente con service_role (lee subs + limpia muertas).
  */
 export async function sendBugPushToUser(
   supabaseAdmin: SupabaseClient,
   userId: string,
   payload: PushPayload,
 ): Promise<boolean> {
-  if (!ensureVapid()) return false;
-
-  try {
-    const { data: prefs } = await supabaseAdmin
-      .from("user_notification_prefs")
-      .select("channel_push, push_subscription")
-      .eq("user_id", userId)
-      .maybeSingle<{
-        channel_push: boolean;
-        push_subscription: PushSubscriptionStored | null;
-      }>();
-
-    if (!prefs?.channel_push || !prefs.push_subscription) {
-      // El user no opted-in para push, skip silencioso
-      return false;
-    }
-
-    const subscription = prefs.push_subscription;
-    const data = JSON.stringify({
-      title: payload.title,
-      body: payload.body,
-      tag: payload.tag,
-      requireInteraction: payload.requireInteraction,
-      data: { url: payload.url ?? "/studio" },
-    });
-
-    await webpush.sendNotification(
-      {
-        endpoint: subscription.endpoint,
-        keys: subscription.keys,
-      },
-      data,
-      { TTL: 60 * 60 * 24 }, // 24h
-    );
-
-    return true;
-  } catch (err) {
-    const statusCode = (err as { statusCode?: number })?.statusCode;
-    // 410 Gone = endpoint dead → unsubscribe automático
-    if (statusCode === 410 || statusCode === 404) {
-      await supabaseAdmin
-        .from("user_notification_prefs")
-        .update({ push_subscription: null, channel_push: false })
-        .eq("user_id", userId);
-      console.warn(
-        `[send-bug-push] subscription ${statusCode} para user ${userId}, auto-unsubscribed.`,
-      );
-      return false;
-    }
-    console.error(`[send-bug-push] sendNotification failed (user ${userId}):`, err);
-    return false;
-  }
+  const delivered = await sendPushToUserDevices(supabaseAdmin, userId, payload);
+  return delivered > 0;
 }

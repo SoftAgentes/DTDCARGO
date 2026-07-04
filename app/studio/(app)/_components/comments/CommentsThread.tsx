@@ -45,6 +45,7 @@ export function CommentsThread({
   users,
   currentUser,
   initialComments,
+  onAfterChange,
 }: {
   entityType: CommentEntityType;
   entityId: string;
@@ -53,6 +54,14 @@ export function CommentsThread({
   users: CommentTenantUser[];
   currentUser: CommentTenantUser;
   initialComments: CommentWithMeta[];
+  /**
+   * Opcional (SDD-0146): callback tras cada mutación. Cuando el hilo se embebe en
+   * un contenedor que carga los comentarios en el cliente (ej. el drawer/detalle
+   * de tarea de Bitácora, donde `router.refresh()` recarga la page pero NO la
+   * lista fetch-ada en el cliente), este callback re-fetcha. Los consumidores
+   * server-rendered (tracking, etc.) NO lo pasan → comportamiento intacto.
+   */
+  onAfterChange?: () => void;
 }) {
   const router = useRouter();
   const isMac = useIsMac();
@@ -67,6 +76,7 @@ export function CommentsThread({
 
   function refresh() {
     startTransition(() => router.refresh());
+    onAfterChange?.();
   }
 
   function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {

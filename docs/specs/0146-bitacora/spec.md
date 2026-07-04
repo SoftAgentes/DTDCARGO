@@ -86,7 +86,7 @@ adjuntos ≤50MB · meetingId generado en el cliente (`crypto.randomUUID()`) ant
 audio · digest 8am · vistas en localStorage + mutaciones optimistas con revert.
 
 **Se recorta `[DELTA]`:** 6 de las 10 tablas de Rumbo — `notifications`→SDD-0036,
-`push_subscriptions`→`user_push_subscriptions` (0214), `task_comments`+`task_mentions`→
+`push_subscriptions`→`user_push_subscriptions` (0216), `task_comments`+`task_mentions`→
 comments 0045, `task_attachments`→documents 0049 + bucket propio, `customers`→`clients`,
 `meeting_participants`→`acta.hablaron[]` · visibilidad fina por asignación/mención
 (`puede_ver_tarea`)→RLS tenant-wide + RBAC (regla de la casa SDD-0085; es lo que habilita
@@ -107,7 +107,7 @@ mock de IA sin API key · redirector de deep-link por superficie · **reportes c
 
 ## Modelo de datos
 
-### `0212_bitacora.sql` — core (archivo en rama; aplica el founder)
+### `0214_bitacora.sql` — core (archivo en rama; aplica el founder)
 
 4 tablas, todas con `tenant_id uuid NOT NULL REFERENCES tenants ON DELETE CASCADE`, GRANT
 base + RLS juntos, triggers freeze/touch:
@@ -160,13 +160,13 @@ fila en `documents` (`entity_type='bitacora_task'`). Signed URLs 1h con **user c
   JOIN `user_profiles` del tenant del caller.
 - Helper `user_in_tenant(p_user_id, p_tenant_id)` SECURITY DEFINER STABLE fail-closed.
 
-### `0213_bitacora_enums.sql` — se aplica **junto a** 0212 (gotcha: enum nuevo no se usa en
+### `0215_bitacora_enums.sql` — se aplica **junto a** 0214 (gotcha: enum nuevo no se usa en
 la misma transacción): `ALTER TYPE document_entity_type ADD VALUE 'bitacora_task'` +
 recreate `document_entity_in_tenant()` con el CASE nuevo · `ALTER TYPE bug_notif_type ADD
 VALUE 'bitacora_task', 'bitacora_digest'` · CHECK de `comments.entity_type` + CASE en
-`comment_entity_in_tenant()` (texto, no enum — puede vivir en 0212).
+`comment_entity_in_tenant()` (texto, no enum — puede vivir en 0214).
 
-### `0214_bitacora_push.sql` — Fase 5: `user_push_subscriptions` (N dispositivos por user,
+### `0216_bitacora_push.sql` — Fase 5: `user_push_subscriptions` (N dispositivos por user,
 `endpoint` UNIQUE, `user_agent`, `last_used_at`; RLS self select/insert/delete SIN UPDATE +
 service_role) + backfill desde `user_notification_prefs.push_subscription` (JOIN
 `user_tenants` activos para el tenant_id) + `enqueue_user_push` (clon de
@@ -261,9 +261,15 @@ en V1 (el buscador indexa 5 facetas fijas, no módulos).
 
 Gate por fase: `node scripts/verify.mjs` verde + criterios + `/ui-check` si hubo UI nueva.
 
+> **Estado de implementación (2026-07-04):** las **7 fases** están construidas en el
+> worktree `feat/bitacora` (Fase 7 — reportes con branding — incluida). Pendiente el
+> **merge del founder**; el spec sigue `approved` (el founder lo pasa a `done` tras
+> integrar). Las migraciones `0214`/`0215`/`0216` son archivos en rama — las aplica
+> el founder (renumera al integrar si colisionan con `main`).
+
 - **Fase 0 — Spec** (este documento): draft → approved por founder; module-sdd-map;
   `pnpm docs:check`.
-- **Fase 1 — Fundación**: migr 0212+0213 (archivos), registro módulo+RBAC,
+- **Fase 1 — Fundación**: migr 0214+0215 (archivos), registro módulo+RBAC,
   `lib/studio/bitacora/{types,queries}`, `/studio/bitacora` (Kanban+Lista manuales,
   DrawerShell), `ErpBottomNav` extraído, `/m/erp/bitacora` + `/tarea/[id]` + badge tab.
   ✓ Tarea con dueño y tarea en cola-rol recorren los 4 estados en desktop y teléfono ·
@@ -282,7 +288,7 @@ Gate por fase: `node scripts/verify.mjs` verde + criterios + `/ui-check` si hubo
   bitacora + fila documents) + checklist done_by. ✓ @mención genera fila en la bandeja del
   mencionado con link que abre la tarea · foto desde cámara visible en la tarea y en
   /studio/documentos · comentarios inmutables.
-- **Fase 5 — Notifs + push + digest**: migr 0214 + todo el bloque de push. ✓ Digest en
+- **Fase 5 — Notifs + push + digest**: migr 0216 + todo el bloque de push. ✓ Digest en
   teléfono Y desktop del mismo user · actor no se auto-notifica · email NO llega · push de
   bugs y operarios sin regresión · matar el proceso entre enqueue y send no pierde el push
   (cron del minuto drena) · POST con user_id ajeno en body → la sub queda del user de
@@ -306,6 +312,11 @@ Gate por fase: `node scripts/verify.mjs` verde + criterios + `/ui-check` si hubo
   nueva. Al cierre: spec a `done` + `pnpm docs:check`. ✓ El acta baja como HTML que se ve
   bien offline y al imprimir con el branding exacto · el CSV abre en Excel con acentos y ñ
   correctos y respeta filtros · un usuario solo exporta lo que puede ver.
+  **Implementada (worktree `feat/bitacora`):** `lib/studio/bitacora/reports.ts`
+  (`buildActaHtml`/`buildTasksReportHtml`/`buildTasksCsv`/`filterTasksForExport` puros) +
+  route `app/api/studio/bitacora/export/route.ts` (gate de VISTA, RLS del user, isólogo
+  data-URI por fs con fallback a wordmark) + botones "Descargar acta" (revisión + tab Actas)
+  y "Exportar" (Reporte HTML / Datos CSV) en la Vista Lista.
 
 ## Env vars
 
