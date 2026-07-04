@@ -64,6 +64,48 @@ export function ChevronDownIcon({ className, size = 16 }: IconProps) {
   );
 }
 
+/** Grilla / dashboard — destino "Inicio" del nav del portal (Norte). */
+export function GridIcon({ className, size = 16 }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} {...base} strokeWidth={1.5} className={className}>
+      <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" />
+      <rect x="13.5" y="3.5" width="7" height="7" rx="1.5" />
+      <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" />
+      <rect x="13.5" y="13.5" width="7" height="7" rx="1.5" />
+    </svg>
+  );
+}
+
+/** Burbuja de conversación — destino "Soporte" del nav del portal (Norte). */
+export function ChatIcon({ className, size = 16 }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} {...base} strokeWidth={1.5} className={className}>
+      <path d="M4 5.5h16a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H9l-4 3.5V16.5H4A1.5 1.5 0 0 1 2.5 15V7A1.5 1.5 0 0 1 4 5.5z" />
+    </svg>
+  );
+}
+
+/** Calculadora — CTA "Calculadora CBM" del portal + FAB flotante (Norte). */
+export function CalcIcon({ className, size = 16 }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} {...base} strokeWidth={1.8} className={className}>
+      <rect x="5" y="2.5" width="14" height="19" rx="2" />
+      <rect x="8" y="5.5" width="8" height="3.5" rx="0.5" />
+      <path d="M8.5 13h0M12 13h0M15.5 13h0M8.5 16.5h0M12 16.5h0M15.5 16.5h.5" />
+    </svg>
+  );
+}
+
+/** Corona — destino "Club" del nav (loyalty, gated). */
+export function CrownIcon({ className, size = 16 }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} {...base} strokeWidth={1.5} className={className}>
+      <path d="M4 8l3.5 3L12 5.5 16.5 11 20 8l-1.5 9.5h-13L4 8z" />
+      <path d="M5.5 20.5h13" />
+    </svg>
+  );
+}
+
 export function PinIcon({ className, size = 18 }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} {...base} strokeWidth={1.8} className={className}>

@@ -26,7 +26,7 @@ import type { NavieraSnapshot } from "@/lib/studio/naviera-tracking/types";
 import type { PortalActivityItem } from "@/lib/portal/shipment-events-queries";
 import type { PortalSailing } from "@/lib/portal/next-sailing-queries";
 import { ShipmentRow } from "../../_components/ShipmentRow";
-import { NewPurchaseButton } from "../../_components/NewPurchaseButton";
+import { PortalHomeActions } from "../../_components/PortalHomeActions";
 import { PortalNextSailingCard } from "./PortalNextSailingCard";
 
 /**
@@ -95,15 +95,7 @@ export function PortalDashboardNorte({
             {pendingWord}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2.5">
-          <NewPurchaseButton href="/portal/proveedores" />
-          <Link
-            href="/portal/cotizaciones/nueva"
-            className="btn btn-ghost inline-flex items-center gap-1.5"
-          >
-            Nueva cotización
-          </Link>
-        </div>
+        <PortalHomeActions markbox={client.markbox} />
       </div>
 
       {/* ── Héroe navy "Próximo arribo" (progreso derivado del status; buque real

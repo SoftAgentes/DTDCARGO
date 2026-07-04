@@ -1,7 +1,17 @@
 "use client";
 
+import type { ComponentType } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  GridIcon,
+  BoxIcon,
+  PaymentIcon,
+  StarIcon,
+  ShieldIcon,
+  ChatIcon,
+  CrownIcon,
+} from "@/components/Icon";
 
 /**
  * Navegación del portal autenticado (client — estado activo por `usePathname`).
@@ -18,19 +28,24 @@ import { usePathname } from "next/navigation";
  * Por eso los `match` de Mis envíos y Soporte cubren esas sub-rutas: el destino
  * queda activo aunque estés en una sub-sección.
  */
+type IconCmp = ComponentType<{ size?: number; className?: string }>;
+
 const LINKS: {
   href: string;
   label: string;
+  icon: IconCmp;
   match: (pathname: string) => boolean;
 }[] = [
   {
     href: "/portal",
     label: "Inicio",
+    icon: GridIcon,
     match: (p) => p === "/portal",
   },
   {
     href: "/portal/envios",
-    label: "Mis envíos",
+    label: "Alertas mis envíos",
+    icon: BoxIcon,
     // Hub: activo también en Compras (proveedores/compras) y Documentos, que
     // salieron del top-level pero viven dentro de Mis envíos (Norte).
     match: (p) =>
@@ -42,6 +57,7 @@ const LINKS: {
   {
     href: "/portal/finanzas",
     label: "Finanzas",
+    icon: PaymentIcon,
     // Hub: activo también en sus sub-secciones (Estimados, Facturas, Cotizaciones).
     match: (p) =>
       p.startsWith("/portal/finanzas") ||
@@ -52,16 +68,19 @@ const LINKS: {
   {
     href: "/portal/referidos",
     label: "Referidos",
+    icon: StarIcon,
     match: (p) => p.startsWith("/portal/referidos"),
   },
   {
     href: "/portal/academia",
     label: "Academia",
+    icon: ShieldIcon,
     match: (p) => p.startsWith("/portal/academia"),
   },
   {
     href: "/portal/mensajes",
     label: "Soporte",
+    icon: ChatIcon,
     // Hub: chat con el asesor + casos/reclamos (Norte: "Soporte").
     match: (p) =>
       p.startsWith("/portal/mensajes") || p.startsWith("/portal/reclamos"),
@@ -72,6 +91,7 @@ const LINKS: {
 const CLUB_LINK = {
   href: "/portal/club",
   label: "Club",
+  icon: CrownIcon as IconCmp,
   match: (p: string) => p.startsWith("/portal/club"),
 };
 
@@ -88,17 +108,24 @@ export function PortalNav({ showClub = false }: { showClub?: boolean }) {
     >
       {links.map((l) => {
         const active = l.match(pathname);
+        const Icon = l.icon;
         return (
           <Link
             key={l.href}
             href={l.href}
             aria-current={active ? "page" : undefined}
-            className={`flex-shrink-0 whitespace-nowrap text-[13px] font-semibold rounded-md px-2 sm:px-3 py-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${
+            className={`inline-flex items-center gap-1.5 sm:gap-2 flex-shrink-0 whitespace-nowrap text-[13px] font-semibold rounded-md px-2 sm:px-3 py-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${
               active
-                ? "text-ink bg-grey-100"
-                : "text-grey-500 hover:text-ink"
+                ? "text-wine"
+                : "text-grey-500 hover:text-ink hover:bg-grey-100"
             }`}
+            style={
+              active
+                ? { background: "color-mix(in srgb, var(--color-wine) 12%, transparent)" }
+                : undefined
+            }
           >
+            <Icon size={15} className="flex-shrink-0" />
             {l.label}
           </Link>
         );
