@@ -31,7 +31,8 @@ const isDev = process.env.NODE_ENV === "development";
  *   no está disponible). Sin esto el CSP bloquea gtag.js en prod.
  * - Google Ads (conversión Click WhatsApp, `AW-561290482`, mismo `Analytics.tsx`):
  *   `googleadservices.com` (pings de conversión + linker), `googleads.g.doubleclick.net`
- *   (remarketing) y `www.google.com` en img-src/connect-src (+ googleadservices en
+ *   (remarketing), `ad.doubleclick.net` (beacon de conversión `ccm/collect` del gtag AW-*)
+ *   y `www.google.com` en img-src/connect-src (+ googleadservices en
  *   script-src). Sin esto el CSP bloquea los pings de conversión a Google Ads.
  */
 const cspHeader = [
@@ -39,8 +40,8 @@ const cspHeader = [
   `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net${isDev ? " 'unsafe-eval'" : ""}`,
   `style-src 'self' 'unsafe-inline'`,
   `font-src 'self' data:`,
-  `img-src 'self' data: blob: https://*.supabase.co https://*.google-analytics.com https://www.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://www.google.com`,
-  `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://www.google.com${isDev ? " ws: wss:" : ""}`,
+  `img-src 'self' data: blob: https://*.supabase.co https://*.google-analytics.com https://www.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://ad.doubleclick.net https://www.google.com`,
+  `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://ad.doubleclick.net https://www.google.com${isDev ? " ws: wss:" : ""}`,
   `frame-ancestors 'none'`,
   `base-uri 'self'`,
   `form-action 'self'`,
