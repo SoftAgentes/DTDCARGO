@@ -764,47 +764,21 @@
   }
 }
 
-/* ── BugFAB · paleta dev-tools (violeta + cyan halo) ─────────
-   Se separa intencionalmente del wine de los botones "+ Nuevo..."
-   y del navy del topbar para que no se confunda con acciones
-   comerciales. Estilo Linear/Vercel dev tools. */
-:root {
-  --bug-fab-fill: #7c3aed; /* violeta vibrante */
-  --bug-fab-fill-hover: #6d28d9;
-  --bug-fab-fill-active: #5b21b6;
-  --bug-fab-halo: #22d3ee; /* cyan electric */
-  --bug-fab-on: #ffffff;
-}
-[data-theme="dark"] {
-  --bug-fab-fill: #8b5cf6;
-  --bug-fab-fill-hover: #a78bfa;
-  --bug-fab-fill-active: #7c3aed;
-  --bug-fab-halo: #67e8f9;
-}
+/* ── BugFAB · tono "Fantasma" (SDD-0036 refinamiento) ─────────
+   Utilitario de MENOR jerarquía: contorno + ícono navy suave sobre fondo
+   transparente, sin pulso. El wine sigue siendo el único color de acción.
+   Oculto por defecto (se enciende con Alt+B). El botón es la caja de toque
+   (44px); el disco visible mide 38px (.bug-fab-disc). */
 
-/* Pulso idle del halo · respira cada 2.8s */
-@keyframes bug-fab-pulse {
-  0%,
-  100% {
-    box-shadow:
-      0 6px 18px rgba(124, 58, 237, 0.38),
-      0 0 0 0 rgba(34, 211, 238, 0);
+/* Entrada una sola vez al encender con Alt+B (el disco se monta recién ahí) */
+@keyframes bug-fab-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
   }
-  50% {
-    box-shadow:
-      0 6px 18px rgba(124, 58, 237, 0.38),
-      0 0 0 8px rgba(34, 211, 238, 0.18);
-  }
-}
-
-/* Mientras se está arrastrando: el botón rota sutil */
-@keyframes bug-fab-wobble {
-  0%,
-  100% {
-    transform: rotate(-6deg) scale(1.12);
-  }
-  50% {
-    transform: rotate(6deg) scale(1.12);
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
@@ -820,41 +794,63 @@
   }
 }
 
+/* Caja de toque (hit-area 44px) · transparente; el disco visible va dentro. */
 .bug-fab-button {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: var(--bug-fab-fill);
-  color: var(--bug-fab-on);
+  width: 44px;
+  height: 44px;
+  padding: 3px; /* 44 − 2×3 = 38 del disco */
+  background: transparent;
   border: 0;
   cursor: grab;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: bug-fab-pulse 2.8s ease-in-out infinite;
-  transition:
-    background var(--dur, 180ms) var(--ease, ease-out),
-    transform var(--dur, 180ms) var(--ease, ease-out);
+  display: grid;
+  place-items: center;
   touch-action: none; /* no scroll mientras arrastra en touch */
 }
-.bug-fab-button:hover {
-  background: var(--bug-fab-fill-hover);
-  transform: scale(1.08);
-}
 .bug-fab-button:active {
-  background: var(--bug-fab-fill-active);
   cursor: grabbing;
 }
 .bug-fab-button:focus-visible {
-  outline: 2px solid var(--bug-fab-halo);
+  outline: 2px solid var(--wine);
   outline-offset: 3px;
+  border-radius: var(--r-pill);
 }
-.bug-fab-button[data-dragging="true"] {
-  animation: bug-fab-wobble 0.9s ease-in-out infinite;
-  cursor: grabbing;
-  box-shadow:
-    0 10px 24px rgba(124, 58, 237, 0.45),
-    0 0 0 10px rgba(34, 211, 238, 0.22);
+
+/* Disco visible (38px) · Fantasma: contorno + ícono navy suave, sin relleno. */
+.bug-fab-disc {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--r-pill);
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--ink-soft); /* ~4.9:1 sobre --bg-base · WCAG 1.4.11 ✓ */
+  display: grid;
+  place-items: center;
+  animation: bug-fab-in var(--dur) var(--ease); /* one-time al montar */
+  transition:
+    background var(--dur) var(--ease),
+    color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+/* Hover/focus: se rellena + eleva = clickeable (sin subir jerarquía). */
+.bug-fab-button:hover .bug-fab-disc,
+.bug-fab-button:focus-visible .bug-fab-disc {
+  background: var(--bg-elevated);
+  color: var(--ink);
+  border-color: var(--ink-mute);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.bug-fab-button:active .bug-fab-disc {
+  transform: scale(0.97);
+}
+/* Arrastrando: leve realce, sin wobble infinito. */
+.bug-fab-button[data-dragging="true"] .bug-fab-disc {
+  background: var(--bg-elevated);
+  border-color: var(--ink-mute);
+  box-shadow: var(--shadow-md);
+  animation: none;
 }
 
 .bug-fab-ghost {
@@ -862,32 +858,34 @@
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  border: 2px dashed var(--bug-fab-halo);
-  background: rgba(124, 58, 237, 0.08);
+  border: 2px dashed var(--border-strong);
+  background: transparent;
   pointer-events: none;
   z-index: 99;
   animation: bug-fab-ghost-in 180ms var(--ease, ease-out);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--bug-fab-fill);
+  color: var(--ink-soft);
   font: 700 9px/1 var(--f-sans);
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 .bug-fab-ghost[data-active="true"] {
-  background: rgba(34, 211, 238, 0.22);
+  background: var(--wine-tint);
   border-style: solid;
-  border-color: var(--bug-fab-fill);
-  color: var(--bug-fab-fill);
+  border-color: var(--wine);
+  color: var(--wine);
   transform: scale(1.12);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bug-fab-button,
-  .bug-fab-button[data-dragging="true"] {
+  .bug-fab-disc,
+  .bug-fab-button:hover .bug-fab-disc,
+  .bug-fab-button:focus-visible .bug-fab-disc {
     animation: none;
     transition: none;
+    transform: none;
   }
   .bug-fab-ghost {
     animation: none;

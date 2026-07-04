@@ -116,6 +116,7 @@ export const chrome = {
   "chrome.topbar.menu_password": "Cambiar contraseña",
   "chrome.topbar.menu_shortcuts": "Atajos de teclado",
   "chrome.topbar.menu_preferences": "Preferencias",
+  "chrome.topbar.menu_report_bug": "Reportar un problema",
   "chrome.topbar.menu_logout": "Cerrar sesión",
   "chrome.topbar.logging_out": "Cerrando sesión…",
   "chrome.topbar.search_modal_placeholder": "Búsqueda global (próximamente)",

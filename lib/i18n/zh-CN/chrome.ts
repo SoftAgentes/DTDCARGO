@@ -121,6 +121,7 @@ export const chrome: ChromeDict = {
   "chrome.topbar.menu_password": "修改密码",
   "chrome.topbar.menu_shortcuts": "键盘快捷键",
   "chrome.topbar.menu_preferences": "偏好设置",
+  "chrome.topbar.menu_report_bug": "报告问题",
   "chrome.topbar.menu_logout": "退出登录",
   "chrome.topbar.logging_out": "正在退出…",
   "chrome.topbar.search_modal_placeholder": "全局搜索（即将推出）",

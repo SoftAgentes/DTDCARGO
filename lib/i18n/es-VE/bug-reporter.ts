@@ -8,10 +8,10 @@
 
 export const bugReporter = {
   // ── FAB ──────────────────────────────────────────────────
-  "bug.fab.aria":
-    "Reportar un bug, mejora o sugerencia. Arrastrar para moverlo; click derecho para menú.",
-  "bug.fab.title":
-    "Click para reportar · arrastrar para mover · click derecho para menú",
+  "bug.fab.aria": "Reportar un problema",
+  "bug.fab.title": "Reportar un problema · arrastra para mover",
+  "bug.fab.toggled_on": "Botón de reportes activado · Alt+B para ocultarlo",
+  "bug.fab.toggled_off": "Botón de reportes oculto",
   "bug.fab.corner_label_top_left": "Arriba izquierda",
   "bug.fab.corner_label_top_right": "Arriba derecha",
   "bug.fab.corner_label_bottom_left": "Abajo izquierda",

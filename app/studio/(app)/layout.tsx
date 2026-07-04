@@ -140,7 +140,7 @@ export default async function StudioAppLayout({
   return (
     <LocaleProvider locale={locale} region={region}>
       <ToastProvider>
-        <WiringProvider profileInitial={profileInitial}>
+        <WiringProvider profileInitial={profileInitial} buildSha={buildSha}>
           <div
             style={{
               display: "flex",
@@ -180,10 +180,11 @@ export default async function StudioAppLayout({
             </main>
           </div>
 
-          {/* Bug Reporter · SDD-0036 · visible en todo el Studio */}
-          {/* Provider (sin UI) instala listeners de error/network para tech_data */}
+          {/* Bug Reporter · SDD-0036 · la captura técnica corre siempre; el FAB
+              queda OCULTO por defecto (se enciende con Alt+B). El modal lo
+              hostea WiringProvider · entrada canónica = menú de perfil. */}
           <BugTechCaptureProvider />
-          <BugFABButton buildSha={buildSha} />
+          <BugFABButton />
           {/* RBAC: aviso cuando requireModuleView redirige por falta de acceso. */}
           <Suspense fallback={null}>
             <DeniedToast />

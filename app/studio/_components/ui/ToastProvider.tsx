@@ -14,7 +14,8 @@
  *   });
  *
  * Renderiza un portal en `bottom-right` del viewport, con offset extra
- * a la derecha (88px) para reservar espacio al BugFAB que vive bottom-right.
+ * a la derecha (64px) para dejar aire al BugFAB cuando está encendido en
+ * bottom-right (SDD-0036: 44px, oculto por defecto).
  * Cola FIFO con máximo 3 visibles · los extras esperan turno a que se
  * cierre uno (auto-dismiss o cierre manual).
  *
@@ -218,10 +219,10 @@ function ToastViewport({
       style={{
         position: "fixed",
         bottom: "var(--s-6, 24px)",
-        // Offset extra (88px) reserva espacio al BugFAB cuando está en
-        // bottom-right · si BugFAB se movió a otra esquina (localStorage),
-        // queda un gap visible que no es ideal pero tampoco bloquea nada.
-        right: "calc(var(--s-6, 24px) + 88px)",
+        // Offset extra (64px) deja aire al BugFAB cuando está encendido en
+        // bottom-right (44px). El FAB está oculto por defecto, así que casi
+        // siempre este espacio queda libre · no bloquea nada.
+        right: "calc(var(--s-6, 24px) + 64px)",
         display: "flex",
         flexDirection: "column",
         gap: 10,

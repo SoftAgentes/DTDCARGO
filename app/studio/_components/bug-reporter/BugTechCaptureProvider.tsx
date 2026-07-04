@@ -13,7 +13,7 @@
  * Capture cubre:
  *   - 3 últimos errores de consola (sync + promise rejection)
  *   - 5 últimos network requests (fetch + XMLHttpRequest)
- *   - rrweb session replay (últimos 30s) · Fase 4.5
+ *   - rrweb session replay (últimos 15s) · Fase 4.5
  *
  * Datos sanitizados con bug-sanitizer.ts antes de entrar al buffer
  * (defense in depth contra leaks de tokens/passwords).

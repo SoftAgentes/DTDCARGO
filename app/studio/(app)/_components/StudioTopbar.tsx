@@ -407,7 +407,7 @@ function UserMenuDropdown({
 
 function UserMenuItems({ onClose }: { onClose: () => void }) {
   const t = useT();
-  const { openProfileModal, openShortcutsModal } = useDTDWiring();
+  const { openProfileModal, openShortcutsModal, openBugReport } = useDTDWiring();
   return (
     <div style={{ padding: 6 }}>
       <MenuItem
@@ -436,6 +436,15 @@ function UserMenuItems({ onClose }: { onClose: () => void }) {
         onClick={() => {
           onClose();
           openProfileModal({ tab: "prefs" });
+        }}
+      />
+      {/* Soporte · separado de las opciones de cuenta y de "Cerrar sesión". */}
+      <div style={{ margin: "6px 4px", borderTop: "1px solid var(--border)" }} />
+      <MenuItem
+        label={t("chrome.topbar.menu_report_bug")}
+        onClick={() => {
+          onClose();
+          openBugReport();
         }}
       />
     </div>

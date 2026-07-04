@@ -1,5 +1,5 @@
 /**
- * Bug rrweb capture · grabación continua de últimos 30s para el Bug Reporter
+ * Bug rrweb capture · grabación continua de últimos 15s para el Bug Reporter
  * (SDD-0036 Fase 4.5).
  *
  * Singleton client-side que arranca rrweb.record() y mantiene un buffer
@@ -8,7 +8,7 @@
  * bug_tech_data.session_replay_url.
  *
  * Diseño:
- *   - Buffer rolling 30s: cada vez que entra un evento, descarta los
+ *   - Buffer rolling 15s: cada vez que entra un evento, descarta los
  *     que están más allá de la ventana
  *   - Sin sampling agresivo · rrweb default ya inteligente (DOM mutations
  *     observa cambios, no estados)
@@ -16,9 +16,10 @@
  *   - Privacy: rrweb capture bloquea inputs por default vía mask-text
  *     pero por seguridad agregamos blockClass/maskAllInputs explícitos
  *
- * No usa rrweb.checkout (snapshot completo) para mantener payload chico.
- * V1: si el replay no tiene un full snapshot al inicio, el player puede
- * mostrar contenido incompleto los primeros segundos. Trade-off acceptable.
+ * Checkout periódico (checkoutEveryNms) cada 10s: fuerza un snapshot completo
+ * dentro de la ventana rolling de 15s. Sin esto, el snapshot inicial se
+ * desaloja tras 15s y el player no puede reconstruir la pantalla — clave para
+ * mostrar el FRAME FINAL congelado como "la foto del momento" (SDD-0036).
  *
  * Privacy notes:
  *   - maskAllInputs: ON → todos los <input> se reemplazan por asteriscos
@@ -34,8 +35,8 @@ interface RrwebEvent {
   timestamp: number;
 }
 
-const WINDOW_MS = 30_000; // 30 segundos de buffer rolling
-const MAX_EVENTS = 500; // Cap absoluto · evita memory leak en sesiones largas
+const WINDOW_MS = 15_000; // 15 segundos de buffer rolling
+const MAX_EVENTS = 300; // Cap absoluto · evita memory leak en sesiones largas
 
 class BugRrwebCapture {
   private buffer: RrwebEvent[] = [];
@@ -51,6 +52,9 @@ class BugRrwebCapture {
 
       const stop = record({
         emit: (event) => this.pushEvent(event as unknown as RrwebEvent),
+        // Snapshot completo cada 10s → garantiza uno dentro de la ventana de
+        // 15s para poder renderizar el frame final (SDD-0036).
+        checkoutEveryNms: 10_000,
         // Privacy hardening
         maskAllInputs: true,
         maskTextSelector: "[data-bug-mask]",
@@ -88,13 +92,13 @@ class BugRrwebCapture {
   private pushEvent(event: RrwebEvent): void {
     this.buffer.push(event);
 
-    // Window rolling: descartar eventos > 30s viejos
+    // Window rolling: descartar eventos > 15s viejos
     const cutoff = Date.now() - WINDOW_MS;
     while (this.buffer.length > 0 && this.buffer[0].timestamp < cutoff) {
       this.buffer.shift();
     }
 
-    // Cap absoluto · si pasaron muchos eventos en <30s
+    // Cap absoluto · si pasaron muchos eventos en <15s
     if (this.buffer.length > MAX_EVENTS) {
       this.buffer.splice(0, this.buffer.length - MAX_EVENTS);
     }

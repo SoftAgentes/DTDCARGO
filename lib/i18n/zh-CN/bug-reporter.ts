@@ -9,9 +9,10 @@ import type { BugReporterDict } from "../es-VE/bug-reporter";
 
 export const bugReporter: BugReporterDict = {
   // ── FAB ──────────────────────────────────────────────────
-  "bug.fab.aria":
-    "报告问题、改进或建议。拖动以移动；右键打开菜单。",
-  "bug.fab.title": "点击报告 · 拖动以移动 · 右键打开菜单",
+  "bug.fab.aria": "报告问题",
+  "bug.fab.title": "报告问题 · 拖动以移动",
+  "bug.fab.toggled_on": "报告按钮已开启 · 按 Alt+B 隐藏",
+  "bug.fab.toggled_off": "报告按钮已隐藏",
   "bug.fab.corner_label_top_left": "左上",
   "bug.fab.corner_label_top_right": "右上",
   "bug.fab.corner_label_bottom_left": "左下",

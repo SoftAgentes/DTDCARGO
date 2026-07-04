@@ -25,6 +25,8 @@ interface Props {
 
 interface ReplayInstance {
   $destroy?: () => void;
+  /** Salta a un offset (ms) del replay · play=false lo deja congelado ahí. */
+  goto?: (timeOffset: number, play?: boolean) => void;
 }
 
 // Tipo mínimo del constructor de rrweb-player · evita depender de tipos
@@ -127,6 +129,21 @@ export function BugReplayPlayer({ bugId }: Props) {
         },
       });
 
+      // Arrancar congelado en el FRAME FINAL = "la foto del momento"
+      // (SDD-0036): el replay termina justo cuando el usuario reportó, así
+      // que el admin ve la pantalla tal cual quedó, y puede reproducir los
+      // 15s con el control.
+      const first = events[0] as { timestamp?: number };
+      const last = events[events.length - 1] as { timestamp?: number };
+      const duration =
+        typeof first?.timestamp === "number" &&
+        typeof last?.timestamp === "number"
+          ? Math.max(0, last.timestamp - first.timestamp)
+          : 0;
+      if (duration > 0 && typeof playerRef.current.goto === "function") {
+        playerRef.current.goto(duration, false);
+      }
+
       setLoaded(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -145,7 +162,7 @@ export function BugReplayPlayer({ bugId }: Props) {
           className="studio-btn studio-btn-ghost studio-btn-sm"
           style={{ alignSelf: "flex-start" }}
         >
-          {loading ? "Cargando replay…" : "Reproducir replay (30s)"}
+          {loading ? "Cargando…" : "Ver el momento (frame final · 15s)"}
         </button>
       )}
       {error && (
@@ -169,6 +186,12 @@ export function BugReplayPlayer({ bugId }: Props) {
           overflow: "hidden",
         }}
       />
+      {loaded && (
+        <p style={{ margin: 0, fontSize: 11, color: "var(--ink-mute)" }}>
+          Arranca en el frame final (el momento del reporte). Usa el control
+          para ver los 15s previos.
+        </p>
+      )}
     </div>
   );
 }

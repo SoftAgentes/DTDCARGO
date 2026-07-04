@@ -1,34 +1,30 @@
 "use client";
 
 /**
- * BugFABButton · botón flotante para reportar bug (SDD-0036 Fase 2).
+ * BugFABButton · botón flotante para reportar un problema (SDD-0036).
  *
- * Visible en todo el Studio. Click abre BugReportModal. Solo se monta si el
- * user es uno de los roles internos (admin, commercial, operations,
- * accounting, warehouse, support). El check de rol lo hace el server (no se
- * monta en layout si no aplica) — este componente asume rol válido.
+ * OCULTO por defecto. Se enciende/apaga con Alt+B (visibilidad efímera por
+ * sesión, la maneja WiringProvider · `bugFabVisible`). La entrada canónica
+ * para reportar es el ítem "Reportar un problema" del menú de perfil; este
+ * FAB es un acelerador para cuando el usuario está cazando un problema.
  *
  * UX:
- *   - Click rápido (sin arrastrar) → abre el modal de reporte.
- *   - Mantener pulsado y arrastrar → modo drag con ghost targets visibles
- *     en las 4 esquinas. Al soltar, snappea a la esquina más cercana al
- *     cursor. Persiste en localStorage 'studio.bug-fab-corner'.
+ *   - Click rápido (sin arrastrar) → abre el modal de reporte (global, en
+ *     WiringProvider).
+ *   - Mantener pulsado y arrastrar → modo drag con ghost targets en las 4
+ *     esquinas. Al soltar, snappea a la más cercana. La esquina persiste en
+ *     localStorage 'studio.bug-fab-corner'.
  *   - Right-click → menú explícito con las 4 opciones (fallback).
  *
- * Brand intencional: el FAB usa paleta dev-tools (violeta + cyan halo)
- * separada del wine de los botones "+ Nuevo..." y del navy del topbar para
- * que no se confunda con acciones comerciales. Estilo Linear/Vercel.
- * Ver tokens en studio.css (`--bug-fab-*`).
+ * Visual (tono "Fantasma", SDD-0036 refinamiento): utilitario de menor
+ * jerarquía — contorno + ícono navy suave sobre fondo transparente, sin
+ * pulso; en hover se rellena y eleva. El wine sigue siendo el único color de
+ * acción. Ver `.bug-fab-*` en studio.css.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useT, type I18nKey } from "@/lib/i18n";
-import { BugReportModal } from "./BugReportModal";
-
-interface BugFABButtonProps {
-  /** Build SHA del deploy actual · NEXT_PUBLIC_BUILD_SHA o VERCEL_GIT_COMMIT_SHA */
-  buildSha?: string | null;
-}
+import { useDTDWiring } from "../wiring/WiringProvider";
 
 type Corner = "bottom-right" | "bottom-left" | "top-right" | "top-left";
 
@@ -38,7 +34,8 @@ const DEFAULT_CORNER: Corner = "bottom-right";
 /** Offset desde el topbar cuando está arriba. El topbar mide ~64px. */
 const TOP_OFFSET_PX = 84;
 const SIDE_OFFSET_PX = 24;
-const FAB_SIZE = 48;
+/** Caja de toque (hit-area). El disco visible es más chico (ver .bug-fab-disc). */
+const FAB_SIZE = 44;
 const DRAG_THRESHOLD_PX = 8;
 
 const CORNER_STYLES: Record<Corner, React.CSSProperties> = {
@@ -111,9 +108,9 @@ function readStoredCorner(): Corner {
   return DEFAULT_CORNER;
 }
 
-export function BugFABButton({ buildSha }: BugFABButtonProps) {
+export function BugFABButton() {
   const t = useT();
-  const [open, setOpen] = useState(false);
+  const { bugFabVisible, openBugReport } = useDTDWiring();
   // Iniciamos en default y leemos localStorage solo client-side para evitar
   // hydration mismatch · el snap a la pref real ocurre en useEffect.
   const [corner, setCorner] = useState<Corner>(DEFAULT_CORNER);
@@ -208,8 +205,8 @@ export function BugFABButton({ buildSha }: BugFABButtonProps) {
       const next = closestCorner(e.clientX, e.clientY);
       persistCorner(next);
     } else {
-      // Click puro sin arrastre · abrir modal
-      setOpen(true);
+      // Click puro sin arrastre · abrir el modal global (WiringProvider)
+      openBugReport();
     }
     pointerStartRef.current = null;
     movedRef.current = false;
@@ -238,6 +235,9 @@ export function BugFABButton({ buildSha }: BugFABButtonProps) {
         ...CORNER_STYLES[corner],
         zIndex: 100,
       };
+
+  // Oculto por defecto · WiringProvider decide la visibilidad (Alt+B).
+  if (!bugFabVisible) return null;
 
   return (
     <>
@@ -283,7 +283,9 @@ export function BugFABButton({ buildSha }: BugFABButtonProps) {
           aria-label={t("bug.fab.aria")}
           title={t("bug.fab.title")}
         >
-          <BugIcon size={22} />
+          <span className="bug-fab-disc">
+            <BugIcon size={16} />
+          </span>
         </button>
 
         {menuOpen && !dragging && (
@@ -294,13 +296,6 @@ export function BugFABButton({ buildSha }: BugFABButtonProps) {
           />
         )}
       </div>
-
-      {open && (
-        <BugReportModal
-          onClose={() => setOpen(false)}
-          buildSha={buildSha ?? null}
-        />
-      )}
     </>
   );
 }
@@ -398,7 +393,7 @@ function CornerMenu({
             {isActive && (
               <span
                 style={{
-                  color: "var(--bug-fab-fill, #7c3aed)",
+                  color: "var(--wine)",
                   font: "700 10px/1 var(--f-sans)",
                 }}
               >
@@ -454,7 +449,7 @@ function CornerGlyph({ corner }: { corner: Corner }) {
     width: 5,
     height: 5,
     borderRadius: 1,
-    background: "var(--bug-fab-fill, #7c3aed)",
+    background: "var(--wine)",
   };
   const dotPos: React.CSSProperties =
     corner === "top-left"
