@@ -136,6 +136,7 @@ export const chrome = {
   "chrome.search.facet.invoices": "Facturas",
   "chrome.search.facet.payments": "Pagos",
   "chrome.search.recents": "Búsquedas recientes",
+  "chrome.search.actions": "Acciones",
   "chrome.search.empty_hint":
     "Escribe para buscar en todo el Studio: nombre, Shipping Mark, cédula/RIF, código o monto.",
   "chrome.search.no_results": "Sin coincidencias.",

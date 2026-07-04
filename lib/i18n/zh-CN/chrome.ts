@@ -140,6 +140,7 @@ export const chrome: ChromeDict = {
   "chrome.search.facet.invoices": "发票",
   "chrome.search.facet.payments": "付款",
   "chrome.search.recents": "最近搜索",
+  "chrome.search.actions": "操作",
   "chrome.search.empty_hint":
     "输入以搜索整个 Studio：姓名、唛头 (Shipping Mark)、证件号/RIF、编号或金额。",
   "chrome.search.no_results": "无匹配结果。",

@@ -32,6 +32,16 @@ import type {
   GlobalSearchResult,
 } from "@/lib/studio/global-search/types";
 import { FACETS } from "@/lib/studio/global-search/facets";
+import { useDTDWiring } from "./WiringProvider";
+
+/** Acción del command-palette (no es una entidad · ej: "Reportar un problema"). */
+interface SearchCommand {
+  id: string;
+  label: string;
+  shortcut?: string;
+  keywords: string[];
+  run: () => void;
+}
 
 const DEBOUNCE_MS = 250;
 const RECENTS_KEY = "dtd.studio.search.recents";
@@ -72,6 +82,7 @@ export function GlobalSearchModal({ onClose }: { onClose: () => void }) {
   const t = useT();
   const router = useRouter();
   const isMac = useIsMac();
+  const { openBugReport } = useDTDWiring();
   const [value, setValue] = useState("");
   const [scope, setScope] = useState<GlobalSearchFacetId | null>(null);
   const [result, setResult] = useState<GlobalSearchResult | null>(null);
@@ -82,6 +93,33 @@ export function GlobalSearchModal({ onClose }: { onClose: () => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const reqRef = useRef(0);
   const listboxId = useId();
+
+  // Acciones (command-palette): entradas que NO son entidades. Le dan
+  // discoverability al reporter oculto vía ⌘K (SDD-0036). Se filtran por el
+  // texto tipeado y comparten la navegación por teclado con los resultados.
+  const commands = useMemo<SearchCommand[]>(
+    () => [
+      {
+        id: "report-bug",
+        label: t("chrome.topbar.menu_report_bug"),
+        shortcut: "Alt+B",
+        keywords: [
+          "reportar",
+          "problema",
+          "bug",
+          "error",
+          "fallo",
+          "reporte",
+          "report",
+        ],
+        run: () => {
+          onClose();
+          openBugReport();
+        },
+      },
+    ],
+    [t, onClose, openBugReport],
+  );
 
   useEffect(() => {
     setRecents(readRecents());
@@ -119,13 +157,27 @@ export function GlobalSearchModal({ onClose }: { onClose: () => void }) {
     [result],
   );
 
-  // Mantener el hit activo a la vista al recorrer con ↑/↓ (listas largas).
+  // Comandos que matchean el texto tipeado (≥2 chars, igual que la búsqueda).
+  const matchedCommands = useMemo(() => {
+    const q = value.trim().toLowerCase();
+    if (q.length < 2) return [];
+    return commands.filter(
+      (c) =>
+        c.label.toLowerCase().includes(q) ||
+        c.keywords.some((k) => k.includes(q)),
+    );
+  }, [value, commands]);
+
+  // Lista navegable = comandos primero, luego hits de entidades.
+  const navLen = matchedCommands.length + flatHits.length;
+
+  // Mantener el ítem activo a la vista al recorrer con ↑/↓ (listas largas).
   useEffect(() => {
-    if (flatHits.length === 0) return;
+    if (navLen === 0) return;
     document
       .getElementById(`${listboxId}-opt-${active}`)
       ?.scrollIntoView({ block: "nearest" });
-  }, [active, flatHits.length, listboxId]);
+  }, [active, navLen, listboxId]);
 
   const go = useCallback(
     (hit: GlobalSearchHit) => {
@@ -142,17 +194,21 @@ export function GlobalSearchModal({ onClose }: { onClose: () => void }) {
       onClose();
       return;
     }
-    if (flatHits.length === 0) return;
+    if (navLen === 0) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setActive((i) => (i + 1) % flatHits.length);
+      setActive((i) => (i + 1) % navLen);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setActive((i) => (i <= 0 ? flatHits.length - 1 : i - 1));
+      setActive((i) => (i <= 0 ? navLen - 1 : i - 1));
     } else if (e.key === "Enter") {
       e.preventDefault();
-      const hit = flatHits[active];
-      if (hit) go(hit);
+      if (active < matchedCommands.length) {
+        matchedCommands[active]?.run();
+      } else {
+        const hit = flatHits[active - matchedCommands.length];
+        if (hit) go(hit);
+      }
     }
   };
 
@@ -160,6 +216,7 @@ export function GlobalSearchModal({ onClose }: { onClose: () => void }) {
   const noResults =
     !loading &&
     !showRecents &&
+    matchedCommands.length === 0 &&
     result != null &&
     result.groups.length === 0 &&
     result.locked.length === 0;
@@ -214,11 +271,11 @@ export function GlobalSearchModal({ onClose }: { onClose: () => void }) {
             onChange={(e) => setValue(e.target.value)}
             placeholder={t("chrome.search.placeholder")}
             role="combobox"
-            aria-expanded={flatHits.length > 0}
+            aria-expanded={navLen > 0}
             aria-controls={listboxId}
             aria-autocomplete="list"
             aria-activedescendant={
-              flatHits.length > 0 ? `${listboxId}-opt-${active}` : undefined
+              navLen > 0 ? `${listboxId}-opt-${active}` : undefined
             }
             autoComplete="off"
             style={{
@@ -292,6 +349,32 @@ export function GlobalSearchModal({ onClose }: { onClose: () => void }) {
             />
           ) : (
             <>
+              {matchedCommands.length > 0 && (
+                <div style={{ marginBottom: 4 }}>
+                  <div
+                    style={{
+                      padding: "8px 12px 4px",
+                      font: "700 10px/1 var(--f-sans)",
+                      letterSpacing: "0.12em",
+                      textTransform: "uppercase",
+                      color: "var(--ink-mute)",
+                    }}
+                  >
+                    {t("chrome.search.actions")}
+                  </div>
+                  {matchedCommands.map((cmd, i) => (
+                    <CommandRow
+                      key={cmd.id}
+                      label={cmd.label}
+                      shortcut={cmd.shortcut}
+                      active={i === active}
+                      optionId={`${listboxId}-opt-${i}`}
+                      onHover={() => setActive(i)}
+                      onSelect={cmd.run}
+                    />
+                  ))}
+                </div>
+              )}
               {result?.groups.map((grp) => (
                 <FacetBlock
                   key={grp.facet}
@@ -299,7 +382,7 @@ export function GlobalSearchModal({ onClose }: { onClose: () => void }) {
                   icon={FACET_ICON[grp.facet]}
                 >
                   {grp.hits.map((hit) => {
-                    const idx = flatHits.indexOf(hit);
+                    const idx = matchedCommands.length + flatHits.indexOf(hit);
                     return (
                       <HitRow
                         key={`${hit.facet}-${hit.id}`}
@@ -418,6 +501,70 @@ function FacetBlock({
         {label}
       </div>
       {children}
+    </div>
+  );
+}
+
+function CommandRow({
+  label,
+  shortcut,
+  active,
+  optionId,
+  onHover,
+  onSelect,
+}: {
+  label: string;
+  shortcut?: string;
+  active: boolean;
+  optionId: string;
+  onHover: () => void;
+  onSelect: () => void;
+}) {
+  return (
+    <div
+      id={optionId}
+      role="option"
+      aria-selected={active}
+      onMouseEnter={onHover}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        onSelect();
+      }}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "8px 12px",
+        margin: "0 4px",
+        borderRadius: "var(--r-sm)",
+        cursor: "pointer",
+        background: active ? "var(--wine-tint)" : "transparent",
+      }}
+    >
+      <span
+        style={{
+          font: "500 13px/1.2 var(--f-sans)",
+          color: "var(--ink)",
+          flex: 1,
+          minWidth: 0,
+        }}
+      >
+        {label}
+      </span>
+      {shortcut && (
+        <kbd
+          style={{
+            padding: "2px 6px",
+            borderRadius: "var(--r-sm)",
+            background: "var(--bg-elevated)",
+            border: "1px solid var(--border)",
+            font: "600 10px/1.3 var(--f-mono)",
+            color: "var(--ink-soft)",
+          }}
+        >
+          {shortcut}
+        </kbd>
+      )}
     </div>
   );
 }
