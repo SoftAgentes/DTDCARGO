@@ -46,6 +46,7 @@ import {
   softDeleteExpenseAction,
   updateExpenseAction,
 } from "../actions";
+import { ErpBottomNav } from "./ErpBottomNav";
 
 // Shipment subset que devuelve listShipments (LIST_COLUMNS).
 // Mantengo solo los fields que la mobile UI muestra.
@@ -85,6 +86,10 @@ interface Props {
   /** HQ operativa del user · fallback "Cerca tuyo" si browser geo denegada. */
   operatingLat: number | null;
   operatingLng: number | null;
+  /** Tareas abiertas del user en Bitácora → badge del tab (SDD-0146). */
+  bitacoraOpenCount?: number;
+  /** Tab inicial (deep-link `/m/erp?tab=…` desde las rutas hermanas). */
+  initialTab?: Tab;
 }
 
 export function MobileErpClient({
@@ -96,8 +101,10 @@ export function MobileErpClient({
   expensesTodayUsd,
   operatingLat,
   operatingLng,
+  bitacoraOpenCount = 0,
+  initialTab,
 }: Props) {
-  const [tab, setTab] = useState<Tab>("home");
+  const [tab, setTab] = useState<Tab>(initialTab ?? "home");
   const [expenseModal, setExpenseModal] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
@@ -144,7 +151,12 @@ export function MobileErpClient({
         {tab === "more" && <MoreScreen user={user} />}
       </main>
 
-      <BottomNav tab={tab} setTab={setTab} role={user.role} />
+      <ErpBottomNav
+        active={tab}
+        role={user.role}
+        badges={{ bitacora: bitacoraOpenCount }}
+        onSelect={(k) => setTab(k)}
+      />
 
       {expenseModal && (
         <NewExpenseModal onClose={() => setExpenseModal(false)} />
@@ -250,111 +262,8 @@ function MobileTopBar({ user }: { user: UserInfo }) {
   );
 }
 
-/**
- * NAV_ITEMS con `roles` opcional · si undefined, todos los roles ven el tab.
- *
- * Plan v2 Sprint B (Mobile ERP Martina-only · bottom nav adaptativo por rol):
- * - admin (Carlos)        → ve los 5 tabs (home + tracking + clients + expenses + more).
- * - commercial (Martina)  → 4 tabs (sin clients · Studio web cubre el caso).
- * - operations (Yusneidy) → 3 tabs (home + tracking + more; despachos VE futuro).
- * - warehouse / accounting / support → 2 tabs mínimos (home + more).
- *
- * Filosofía Hick's Law: cada rol ve solo lo que usa. Menos ruido = decisiones
- * más rápidas en campo (Martina en viaje, Yusneidy en planta).
- */
-type NavRole =
-  | "admin"
-  | "commercial"
-  | "operations"
-  | "warehouse"
-  | "accounting"
-  | "support";
-
-const NAV_ITEMS: {
-  k: Tab;
-  label: string;
-  icon: (s?: number) => React.ReactNode;
-  roles?: NavRole[];
-}[] = [
-  { k: "home", label: "Inicio", icon: Icon.dashboard },
-  {
-    k: "tracking",
-    label: "Tracking",
-    icon: Icon.radar,
-    roles: ["admin", "commercial", "operations"],
-  },
-  { k: "clients", label: "Clientes", icon: Icon.users, roles: ["admin"] },
-  {
-    k: "expenses",
-    label: "Gastos",
-    icon: Icon.invoice,
-    roles: ["admin", "commercial"],
-  },
-  { k: "more", label: "Más", icon: Icon.more },
-];
-
-function visibleNavItems(role: string) {
-  return NAV_ITEMS.filter((it) => !it.roles || it.roles.includes(role as NavRole));
-}
-
-function BottomNav({
-  tab,
-  setTab,
-  role,
-}: {
-  tab: Tab;
-  setTab: (t: Tab) => void;
-  role: string;
-}) {
-  const items = visibleNavItems(role);
-  return (
-    <nav
-      style={{
-        position: "fixed",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        maxWidth: 480,
-        margin: "0 auto",
-        display: "grid",
-        gridTemplateColumns: `repeat(${items.length}, 1fr)`,
-        background: "var(--bg-surface)",
-        borderTop: "1px solid var(--border)",
-        padding: "8px 8px",
-        paddingBottom: "max(8px, env(safe-area-inset-bottom))",
-        zIndex: 30,
-      }}
-    >
-      {items.map((it) => {
-        const active = tab === it.k;
-        return (
-          <button
-            key={it.k}
-            type="button"
-            onClick={() => setTab(it.k)}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 4,
-              padding: "6px 4px",
-              borderRadius: "var(--r-md)",
-              color: active ? "var(--wine)" : "var(--ink-mute)",
-              font: `${active ? "700" : "500"} 10px/1 var(--f-sans)`,
-              border: 0,
-              background: "transparent",
-              cursor: "pointer",
-              transition: "color 160ms ease",
-            }}
-          >
-            <span>{it.icon(20)}</span>
-            {it.label}
-          </button>
-        );
-      })}
-    </nav>
-  );
-}
+// NAV: extraído a ErpBottomNav.tsx (componente ÚNICO compartido con las rutas
+// reales /m/erp/bitacora/* — SDD-0146; cero duplicación del bottom-nav).
 
 // ─────────────────────────────────────────────────────────────
 // Home screen

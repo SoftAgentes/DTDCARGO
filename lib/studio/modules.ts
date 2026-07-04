@@ -88,6 +88,9 @@ export const MODULES: ModuleDef[] = [
   { id: "shipments", group: "OPERACIÓN", label: "Embarques", labelKey: "chrome.sidebar.shipments", icon: "box", slug: "/studio/embarques" },
   { id: "tracking", group: "OPERACIÓN", label: "Tracking", labelKey: "chrome.sidebar.tracking", icon: "radar", slug: "/studio/tracking" },
   { id: "calendar", group: "OPERACIÓN", label: "Calendario", labelKey: "chrome.sidebar.calendar", icon: "clock", slug: "/studio/calendario" },
+  // Bitácora (SDD-0146): actas de reunión + gestor de tareas del equipo.
+  // Tablero de trabajo diario → vive junto a Calendario, no en SISTEMA.
+  { id: "bitacora", group: "OPERACIÓN", label: "Bitácora", icon: "clipboard", slug: "/studio/bitacora" },
   // Almacenes (cluster anidado): CN → etiquetado → VE
   { id: "cn", group: "OPERACIÓN", label: "Almacén CN", labelKey: "chrome.sidebar.warehouse_cn", icon: "warehouse", slug: "/studio/cn", parent: "almacenes" },
   { id: "qrqueue", group: "OPERACIÓN", label: "Cola de QR", labelKey: "chrome.sidebar.qr_queue", icon: "tag", slug: "/studio/cola-qr", parent: "almacenes" },

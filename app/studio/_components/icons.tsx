@@ -393,6 +393,17 @@ export const Icon = {
         <C cx={12} cy={16} r={1.4} fill="fill" />
       </>
     ),
+  clipboard: (s: Size = 18) =>
+    wrap(
+      s,
+      <>
+        <R x={5} y={4} w={14} h={17} rx={2} />
+        <P d="M9 4V2.5h6V4" />
+        <P d="M8.5 11l1.5 1.5L12.5 9.5" />
+        <P d="M15 11.5h1" />
+        <P d="M8.5 16.5h7" />
+      </>
+    ),
 };
 
 export type IconName = keyof typeof Icon;

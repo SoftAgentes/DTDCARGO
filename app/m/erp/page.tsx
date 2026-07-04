@@ -26,6 +26,7 @@ import {
   signReceiptUrls,
   sumMyExpensesTodayUsd,
 } from "@/lib/studio/expense-queries";
+import { countMyOpenTasks } from "@/lib/studio/bitacora/bitacora-queries";
 import { MobileErpClient } from "./_components/MobileErpClient";
 
 export const metadata = {
@@ -35,14 +36,30 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function MobileErpPage() {
+export default async function MobileErpPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const supabase = await createClient();
 
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) redirect("/studio/login");
 
+  // Tab inicial por deep-link (`/m/erp?tab=tracking` desde ErpBottomNav en
+  // las rutas hermanas, p. ej. /m/erp/bitacora).
+  const sp = await searchParams;
+  const rawTab = typeof sp.tab === "string" ? sp.tab : null;
+  const initialTab =
+    rawTab === "tracking" ||
+    rawTab === "clients" ||
+    rawTab === "expenses" ||
+    rawTab === "more"
+      ? rawTab
+      : undefined;
+
   // Fetch profile + tenant + data de las tabs reales en paralelo
-  const [profileRes, linkRes, shipments, clients, expenses, todaySum] =
+  const [profileRes, linkRes, shipments, clients, expenses, todaySum, bitacoraOpenCount] =
     await Promise.all([
       supabase
         .from("user_profiles")
@@ -65,6 +82,9 @@ export default async function MobileErpPage() {
       listClients(supabase, {}),
       listMyExpenses(supabase, { limit: 50 }),
       sumMyExpensesTodayUsd(supabase),
+      // Badge del tab Bitácora (SDD-0146): count barato head-only; degrada a 0
+      // hasta que el founder aplique la migración 0212.
+      countMyOpenTasks(supabase, userResp.user.id),
     ]);
   const profile = profileRes.data;
   const link = linkRes.data;
@@ -160,6 +180,8 @@ export default async function MobileErpPage() {
       expensesTodayUsd={todaySum.total}
       operatingLat={profile?.operating_lat ?? null}
       operatingLng={profile?.operating_lng ?? null}
+      bitacoraOpenCount={bitacoraOpenCount}
+      initialTab={initialTab}
     />
   );
 }
