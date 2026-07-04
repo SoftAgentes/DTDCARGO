@@ -25,10 +25,10 @@ Nunca asumas la versión; detectala en vivo cada corrida:
 
 ## Regla 0.5 · Gate de marca (brand drift · SIEMPRE)
 
-**El Brand Book vigente es UNO solo** — el de mayor versión en `_norte/` (regla de gobernanza 2026-06-10; book vigente **v4.5**, 2026-06-20). Corré este chequeo y reportá **cualquier hit como hallazgo de severidad alta** (esperado: **0** en archivos vivos):
+**El Brand Book vigente es UNO solo** — el de mayor versión en `_norte/` (regla de gobernanza 2026-06-10). **Acá NO se hardcodea la versión** (se desfasaba con cada NORTE-SYNC): detectá `<VIG>` en vivo = la `X.Y` del único `Brand Book DTD vX.Y.html` presente en `_norte/` (`ls docs/design/studio/_norte/Brand\ Book*.html`). Si hay **más de uno**, eso ya es hallazgo alta (al llegar book nuevo se borra el anterior). En los comandos de abajo reemplazá `<VIG>` por esa versión con el punto escapado (ej. `4\.5`). Corré este chequeo y reportá **cualquier hit como hallazgo de severidad alta** (esperado: **0** en archivos vivos):
 
 ```
-rg -nS "brand-book-v[12]|brand-book-v3\.[0-7]|brand-book-v4\.[0-4]|Brand Book(?: DTD)? v(1\.|2\.|3\.[0-7]|4\.[0-4])|v1\.7-claude-design|_archivo-v1|handoffs-archive|_handoff_preview|BANDBOOK" app components lib public scripts e2e supabase docs AGENTS.md BRAND.md README.md --glob "!docs/specs/**" --glob "!**/NORTE-CHANGELOG.md" --glob "!docs/design/studio/_norte/**" --glob "!public/marca/brand-book-v*.html" --glob "!supabase/migrations/**" --glob "!docs/archive/**" --glob "!docs/design/studio/bug-reporter-v1.4.1/**"
+rg -nS "brand-book-v[0-9]+(\.[0-9]+)?|Brand Book(?: DTD)? v[0-9]+(\.[0-9]+)?|v1\.7-claude-design|_archivo-v1|handoffs-archive|_handoff_preview|BANDBOOK" app components lib public scripts e2e supabase docs AGENTS.md BRAND.md README.md --glob "!docs/specs/**" --glob "!**/NORTE-CHANGELOG.md" --glob "!docs/design/studio/_norte/**" --glob "!public/marca/brand-book-v*.html" --glob "!supabase/migrations/**" --glob "!docs/archive/**" --glob "!docs/design/studio/bug-reporter-v1.4.1/**" | rg -v "v<VIG>"
 ```
 
 - **Exclusiones legítimas (historia, NO cuentan como drift):** `docs/specs/**` (registros SDD), `NORTE-CHANGELOG.md`, `_norte/**` **solo para el grep de _contenido_** (sus bitácoras citan versiones viejas a propósito — su **presencia física** se valida aparte en la Regla 0.5b de abajo), `supabase/migrations/**` (migraciones aplicadas = inmutables; editar una rompe el hash del historial), `docs/archive/**` (sesiones congeladas) y `docs/design/studio/bug-reporter-v1.4.1/**` (handoff enlazado por SDD-0036).
@@ -41,10 +41,10 @@ rg -nS "brand-book-v[12]|brand-book-v3\.[0-7]|brand-book-v4\.[0-4]|Brand Book(?:
 > **Por qué existe:** las re-extracciones de ZIPs de marca quedan `untracked` o `ignored` → sobreviven a `git rm` y **un grep de _contenido_ no las caza** (sobre todo dentro de `_norte/`, que el grep de arriba excluye). El 2026-06-12 esto dejó un `Brand Book v3.0 Package/` con su propio `CLAUDE.md` (¡permitía voseo!) sentado dentro del Norte. Estos 3 chequeos miran **archivos sueltos en el filesystem**, no texto. **Cualquier hit = severidad alta.**
 
 ```
-# 1 · Books huérfanos en disco — esperado: 0 (el v4.5 del Norte + el gateado en private/marca están excluidos)
+# 1 · Books huérfanos en disco — esperado: 0 (el book vigente <VIG> del Norte + el gateado en private/marca están excluidos)
 find . \( -path ./.git -o -path ./.claude/worktrees -o -path ./node_modules -o -path ./.next \) -prune \
   -o -type f -iname '*brand*book*.html' -print \
-  | rg -iv 'docs/design/studio/_norte/Brand Book DTD v4\.5\.html|private/marca/brand-book-v4\.5\.html|public/marca/brand-book-v4\.5\.html'
+  | rg -iv 'docs/design/studio/_norte/Brand Book DTD v<VIG>\.html|private/marca/brand-book-v<VIG>\.html|public/marca/brand-book-v<VIG>\.html'
 
 # 2 · CLAUDE.md contradictorio anidado dentro del Norte — esperado: 0 hits
 #     (válidos, ya excluidos: el canónico _norte/CLAUDE.md + la copia del paquete móvil design_handoff_mobile_app/)
@@ -59,7 +59,7 @@ find . \( -path ./.git -o -path ./.claude/worktrees -o -path ./node_modules -o -
 
 - **Excepción única:** `.claude/worktrees/**` (worktrees de **otras ventanas** — su limpieza es de esa lane, no de acá). El check #1/#3 ya los podan; no los reportes como drift de esta ventana, solo nótalos al final si querés avisarle a esa lane.
 - **`find` ignora `.gitignore` a propósito** → también caza branding viejo que esté *gitignored* (ej. una carpeta `CoWork/`).
-- **Duplicado legítimo conocido:** `_norte/design_handoff_mobile_app/CLAUDE.md` es una **copia** de los guardrails (el paquete móvil es auto-contenido). Hoy está **en sync con v3.7** (no-voseo, Nunito+Sora, book v3.7). Como es un segundo source-of-truth: **si editás el canónico `_norte/CLAUDE.md`, replicá el cambio ahí** o diverge. Si el check #2 lista **cualquier OTRO** `CLAUDE.md`, triá si contradice el canónico (voseo, fuentes, versión de book) antes de aceptarlo o whitelistearlo.
+- **Duplicado legítimo conocido:** `_norte/design_handoff_mobile_app/CLAUDE.md` es una **copia** de los guardrails (el paquete móvil es auto-contenido). **No asumas que está en sync — comparalo en vivo** contra el canónico `_norte/CLAUDE.md` (reglas duras: no-voseo, fuentes, versión de book citada); si diverge en una regla dura → hallazgo media (es copia, no fuente). Como es un segundo source-of-truth: **si editás el canónico `_norte/CLAUDE.md`, replicá el cambio ahí** o diverge. Si el check #2 lista **cualquier OTRO** `CLAUDE.md`, triá si contradice el canónico (voseo, fuentes, versión de book) antes de aceptarlo o whitelistearlo.
 - **Si hay hit:** es una re-extracción suelta. Borrala del working-tree (`rm -rf '<ruta>'`) — **no-destructivo para git** (la historia del book viejo vive en commits). **Causa raíz:** descomprimir un ZIP de marca *dentro* del repo. **Regla:** extraé **fuera** del repo (ej. `Downloads/`) y copiá solo el archivo canónico al `_norte/`.
 
 ## Parte A · Auditoría de workspace / config
@@ -152,6 +152,7 @@ artefacto en el árbol; el founder decide cuándo commitearlo.
 ## Cómo respondés
 
 - **Cero métricas inventadas:** si un dato no está en un archivo, escribí "no documentado".
+- **Anti-drift de este skill:** este archivo NO debe contener versiones literales del book/Norte — todo se deriva en vivo vía `<VIG>` (Regla 0.5) y la Regla 0. Si al correr detectás una versión hardcodeada acá (fuera de ejemplos entre paréntesis), reportala como hallazgo y proponé el fix.
 - Si el Norte avanzó de versión, **avisalo arriba** y recalculá la Parte B sobre la vigente.
 - Terse, español, porcentajes como `N%`, #1 con ⭐, sin jerga "F5/F1".
 - No commitees ni hagas `git push` — el radar solo reporta (y deja el artefacto JSON en el árbol).
