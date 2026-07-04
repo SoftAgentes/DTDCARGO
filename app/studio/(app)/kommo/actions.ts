@@ -159,7 +159,7 @@ export async function saveKommoMarkboxFieldAction(
     .maybeSingle<{ tenant_id: string; role: string }>();
   if (!link?.tenant_id) return { error: "No se pudo resolver el tenant." };
   if (link.role !== "admin") {
-    return { error: "Solo un administrador puede configurar el campo MARKBOX." };
+    return { error: "Solo un administrador puede configurar el campo de Shipping Mark." };
   }
 
   // null = limpiar. Si viene un id, debe existir como campo de leads del tenant.

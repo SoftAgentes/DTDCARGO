@@ -35,7 +35,7 @@ export function MarkboxFieldConfig({
     }
     startTransition(async () => {
       const res = await saveKommoMarkboxFieldAction(fieldId);
-      if (res.ok) toast.success("Campo MARKBOX guardado.");
+      if (res.ok) toast.success("Campo de Shipping Mark guardado.");
       else toast.error(res.error ?? "No se pudo guardar el campo.");
     });
   };
@@ -55,7 +55,7 @@ export function MarkboxFieldConfig({
           margin: 0,
         }}
       >
-        Al convertir un lead en cliente, su <strong>MARKBOX</strong> (Shipping Mark) se
+        Al convertir un lead en cliente, su <strong>Shipping Mark</strong> se
         escribe en este campo del lead en Kommo, para que el asesor vea ahí que ya es
         cliente DTD. Déjalo en <strong>Sin configurar</strong> para no escribir nada. Se
         aplica con el mismo interruptor del write-back (hoy en ensayo).

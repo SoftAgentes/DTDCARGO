@@ -547,7 +547,7 @@ export function DireccionTab({
       {/* MARKBOX → Kommo (SDD-0086): campo del lead donde va el Shipping Mark. */}
       <SectionCard
         eyebrow="Identidad"
-        title="MARKBOX en Kommo"
+        title="Shipping Mark en Kommo"
         hint="En qué campo del lead escribir el Shipping Mark cuando se convierte en cliente."
       >
         <MarkboxFieldConfig
