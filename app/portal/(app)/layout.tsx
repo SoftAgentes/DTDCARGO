@@ -9,6 +9,7 @@ import { isPortalClubMember } from "@/lib/portal/portal-club-queries";
 import { showNortePortal } from "@/lib/portal/demo";
 import { PortalHeader } from "../_components/PortalHeader";
 import { PortalCalcFab } from "../_components/PortalCalcFab";
+import { PortalPushRegister } from "../_components/PortalPushRegister";
 
 // JetBrains Mono scoped al área autenticada del portal (codes: MARKBOX,
 // tracking): el wrapper monta --font-jetbrains-mono con la instancia única
@@ -68,6 +69,8 @@ export default async function PortalAppLayout({
       <main className="flex-1 wrap w-full py-10 lg:py-14">{children}</main>
       {/* Calculadora flotante (Norte) — siempre a mano, sin salir del portal. */}
       {norte && <PortalCalcFab />}
+      {/* Registra el SW para Web Push al cliente (SDD-0148 #3b). */}
+      <PortalPushRegister />
     </div>
   );
 }

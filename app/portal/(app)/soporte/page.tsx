@@ -22,6 +22,7 @@ import { WhatsAppIcon, MailIcon, PhoneIcon } from "@/components/Icon";
 import { PortalClaims } from "../reclamos/_components/PortalClaims";
 import { PortalMessageForm } from "../mensajes/PortalMessageForm";
 import { PortalChatPoller } from "../../_components/PortalChatPoller";
+import { PortalPushOptIn } from "../../_components/PortalPushOptIn";
 
 export const metadata: Metadata = { title: "Soporte" };
 
@@ -114,6 +115,7 @@ export default async function PortalSoportePage({
         {/* ── Derecha · Chat del asesor + otros canales ── */}
         <div className="flex flex-col gap-6">
           <AsesorChatCard advisor={advisor} thread={thread} prefill={prefill} />
+          <PortalPushOptIn />
           <OtrosCanalesCard client={client} advisor={advisor} />
         </div>
       </div>

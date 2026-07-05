@@ -19,6 +19,7 @@ import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { createAdminClient } from "@/lib/db/admin";
 import { insertOutboundMessage } from "@/lib/studio/conversaciones/messages-queries";
 import { sendEmail } from "@/lib/studio/mail/send-email";
+import { notifyClientReplyPush } from "@/lib/studio/conversation-reply-push";
 import {
   validateAssignInput,
   validateMarkCaseInput,
@@ -150,6 +151,13 @@ export async function sendReplyAction(
       emailSent = false;
     }
   }
+
+  // Push al cliente (SDD-0148 #3b) — best-effort, con service_role. El email + el
+  // badge del nav ya avisan; el push llega a quien lo activó en el portal.
+  await notifyClientReplyPush(createAdminClient(), {
+    clientId: conv.client_id,
+    body: input!.body,
+  });
 
   revalidatePath("/studio/conversaciones");
   return { ok: true, emailSent };

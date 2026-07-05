@@ -119,11 +119,19 @@ el "re-aviso por tiempo" pierde urgencia → V1 va con el aviso simple.
 - **Fase 3 — deep-link + preferencia por-evento** (pend): link directo al hilo en
   `/studio/conversaciones` + toggle del evento "mensaje del portal" en prefs [[0036]].
 
-## Fuera de alcance
+- **Fase 3 — push al CLIENTE (2026-07-05, LIVE), SIN migración.** El cliente del
+  portal ES un `auth.users`, así que su push vive en la MISMA tabla
+  `user_push_subscriptions` (RLS self) que el staff → se reusa `sendPushToUserDevices`
+  + el SW raíz `public/sw.js` (su `notificationclick` abre `data.url` del payload =
+  `/portal/soporte`). Piezas: `PortalPushRegister` (registra `/sw.js` en el layout) +
+  `PortalPushOptIn` (opt-in en `/portal/soporte`, calca el del operario) + rutas
+  `/api/portal/push/{subscribe,unsubscribe}` (upsert/delete por endpoint, resuelve el
+  auth uid + tenant del cliente) + `conversation-reply-push.ts` disparado en
+  `sendReplyAction` (manda a todos los `client_users.auth_user_id` activos del cliente).
+  Requiere las env `NEXT_PUBLIC_VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` (ya en prod para
+  el push del Studio/operario). Sin ellas, el opt-in no aparece (degrada a email+badge).
 
-- **Push al CLIENTE** cuando el equipo responde (el email ya cubre el aviso; el push
-  del cliente necesita infra de suscripción en el portal — service worker + VAPID +
-  UI de opt-in — feature aparte).
+## Fuera de alcance
 - **Realtime "de verdad"** en el portal (Supabase Realtime) — requeriría una policy
   RLS SELECT del cliente sobre sus propios `conversation_messages`; se prefirió el
   poller para no tocar la seguridad de esas tablas.
