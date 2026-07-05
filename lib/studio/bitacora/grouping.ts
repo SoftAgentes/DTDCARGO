@@ -128,3 +128,36 @@ export function countEsperandoCliente<T extends { tipo: string }>(
   for (const t of tasks) if (t.tipo === "entregable_cliente") n += 1;
   return n;
 }
+
+// ─── Cola "Para Claude Code" (tareas para_agente) ─────────────
+
+/** Shape mínimo para la cola de agente (los tests usan fixtures chicos). */
+export interface AgentQueueable {
+  estado: string;
+  para_agente: boolean;
+}
+
+export interface AgentQueueSplit<T> {
+  /** para_agente accionables (estado != 'hecho'), en el orden de entrada. */
+  pendientes: T[];
+  /** para_agente ya en 'hecho', en el orden de entrada. */
+  hechas: T[];
+}
+
+/**
+ * Filtra las tareas `para_agente` y las parte en pendientes (accionables) y
+ * hechas, preservando el orden de entrada (que ya viene por vencimiento desde
+ * `listTasks`). Las que no son `para_agente` se descartan. PURA → testeable.
+ */
+export function partitionAgentTasks<T extends AgentQueueable>(
+  tasks: readonly T[],
+): AgentQueueSplit<T> {
+  const pendientes: T[] = [];
+  const hechas: T[] = [];
+  for (const t of tasks) {
+    if (!t.para_agente) continue;
+    if (t.estado === "hecho") hechas.push(t);
+    else pendientes.push(t);
+  }
+  return { pendientes, hechas };
+}

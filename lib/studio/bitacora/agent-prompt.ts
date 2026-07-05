@@ -38,3 +38,23 @@ export function buildAgentPrompt(task: AgentPromptTask): string {
 
   return parts.join("\n\n");
 }
+
+/** Divisor legible entre prompts al copiar varias tareas de una sola vez. */
+export const AGENT_PROMPT_DIVIDER = "\n\n──────────\n\n";
+
+/**
+ * Junta los prompts de varias tareas `para_agente` en un solo texto listo para
+ * pegar: un encabezado con el conteo arriba y cada prompt (reusa
+ * `buildAgentPrompt`) separado por un divisor legible. Lista vacía → "" (no hay
+ * nada que copiar). PURA → testeable. No filtra: recibe las tareas ya elegidas.
+ */
+export function buildAllAgentPrompts(
+  tasks: readonly AgentPromptTask[],
+): string {
+  if (tasks.length === 0) return "";
+  const header = `# ${tasks.length} tarea${
+    tasks.length === 1 ? "" : "s"
+  } para Claude Code — Bitácora DTD`;
+  const bodies = tasks.map((t) => buildAgentPrompt(t));
+  return [header, bodies.join(AGENT_PROMPT_DIVIDER)].join("\n\n");
+}
