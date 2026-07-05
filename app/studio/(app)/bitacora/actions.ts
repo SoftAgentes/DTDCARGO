@@ -22,7 +22,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { capabilityDenial, moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { notifyBitacoraTaskAssigned } from "@/lib/studio/bitacora/notify";
 import {
   isBitacoraTaskEstado,
@@ -40,9 +40,11 @@ import { listAssignableProfiles } from "@/lib/studio/bitacora/bitacora-queries";
 import { getMeeting } from "@/lib/studio/bitacora/bitacora-meeting-queries";
 import { isValidMeetingAudioPath } from "@/lib/studio/bitacora/storage";
 import { extractActa } from "@/lib/studio/bitacora/extract";
+import { extractEscucha } from "@/lib/studio/bitacora/escucha-extract";
 import { resolveActa, type ResolvedActa } from "@/lib/studio/bitacora/match";
 import { pickClientMatch } from "@/lib/studio/bitacora/client-match";
 import { listClients } from "@/lib/studio/client-queries";
+import { type EscuchaSugerencia } from "@/lib/studio/bitacora/bitacora-types";
 import {
   caracasWeekdayLabel,
   todayCaracasISO,
@@ -734,6 +736,64 @@ export async function confirmActaAction(
 
   revalidateBitacora();
   return { ok: true, meetingId: acta.meetingId };
+}
+
+/**
+ * ESCUCHA ACTIVA (SDD-0150 Fase D · admin-only): corre la capa suspicaz sobre el
+ * borrador. Gate por capability `escucha_activa` (admin hoy). Relee el transcript
+ * del borrador (la RLS lo restringe a creador/admin) y CRITICA el acta que el
+ * humano tiene en pantalla. NO persiste ni crea tareas — devuelve sugerencias
+ * efímeras que el founder aplica a mano en la revisión.
+ */
+export interface EscuchaActaInput {
+  meetingId: string;
+  actaResumen: string;
+  actaTareas: { titulo: string; prioridad: string }[];
+}
+
+export async function analyzeEscuchaAction(
+  input: EscuchaActaInput,
+): Promise<{ ok?: boolean; sugerencias?: EscuchaSugerencia[]; error?: string }> {
+  const supabase = await createClient();
+
+  const denial = await capabilityDenial(supabase, "escucha_activa");
+  if (denial) return { error: denial };
+
+  const meetingId =
+    typeof input?.meetingId === "string" ? input.meetingId.trim() : "";
+  if (!meetingId) return { error: "Falta la reunión a analizar." };
+
+  const meeting = await getMeeting(supabase, meetingId);
+  if (!meeting) return { error: "No se encontró la reunión (o sin acceso)." };
+  const transcript = (meeting.transcript ?? "").trim();
+  if (transcript.length < TRANSCRIPT_MIN_CHARS) {
+    return { error: "El borrador no tiene transcripción para analizar." };
+  }
+
+  const profiles = await listAssignableProfiles(supabase);
+  const teamNames = profiles.map((p) => p.display_name);
+
+  const actaTareas = Array.isArray(input.actaTareas)
+    ? input.actaTareas
+        .filter(
+          (t): t is { titulo: string; prioridad: string } =>
+            Boolean(t) && typeof t.titulo === "string",
+        )
+        .map((t) => ({
+          titulo: String(t.titulo).slice(0, 300),
+          prioridad: String(t.prioridad ?? "media"),
+        }))
+    : [];
+
+  const res = await extractEscucha(transcript, {
+    hoyISO: todayCaracasISO(),
+    hoyDia: caracasWeekdayLabel(),
+    teamNames,
+    actaResumen: typeof input.actaResumen === "string" ? input.actaResumen : "",
+    actaTareas,
+  });
+  if ("error" in res) return { error: res.error };
+  return { ok: true, sugerencias: res.sugerencias };
 }
 
 export interface RegenerateActaResult {

@@ -23,16 +23,22 @@ import type { AssignableProfile } from "@/lib/studio/bitacora/bitacora-queries";
 import type { ClientSearchHit } from "@/lib/studio/client-search-action";
 import type { ResolvedActa, ResolvedTask } from "@/lib/studio/bitacora/match";
 import {
+  ESCUCHA_SUGERENCIA_LABEL,
   type ActaData,
   type ActaDuda,
   type ActaHilo,
   type ActaVinculoCliente,
   type BitacoraPrioridad,
   type ConfirmActaInput,
+  type EscuchaSugerencia,
   type MeetingTipo,
 } from "@/lib/studio/bitacora/bitacora-types";
 import { tasksHaveManualEdits } from "@/lib/studio/bitacora/acta-edits";
-import { confirmActaAction, regenerateActaTasksAction } from "../../actions";
+import {
+  analyzeEscuchaAction,
+  confirmActaAction,
+  regenerateActaTasksAction,
+} from "../../actions";
 
 interface EditTask extends ResolvedTask {
   _id: string;
@@ -50,6 +56,8 @@ interface Props {
   tipo: MeetingTipo;
   clienteNombre: string | null;
   myUserId: string | null;
+  /** ¿Mostrar el 2º botón privado de Escucha Activa? (capability admin). */
+  canEscucha: boolean;
   onBack: () => void;
 }
 
@@ -59,6 +67,7 @@ export function ActaReview({
   profiles,
   tipo,
   myUserId,
+  canEscucha,
   onBack,
 }: Props) {
   const router = useRouter();
@@ -98,6 +107,14 @@ export function ActaReview({
   const baselineRef = useRef<EditTask[]>(tasks);
   const [regenerating, setRegenerating] = useState(false);
   const [showRegenConfirm, setShowRegenConfirm] = useState(false);
+
+  // ── Escucha Activa (SDD-0150 Fase D · privado, admin-only) ──
+  const [escucha, setEscucha] = useState<EscuchaSugerencia[] | null>(null);
+  const [escuchaTaskIds, setEscuchaTaskIds] = useState<string[]>([]);
+  const [escuchaRunning, setEscuchaRunning] = useState(false);
+  // Índices de sugerencias ya aplicadas/descartadas (para plegarlas).
+  const [resolvedSug, setResolvedSug] = useState<Set<number>>(() => new Set());
+  const escSeq = useRef(0);
 
   const nameByUserId = useMemo(() => {
     const m: Record<string, string> = {};
@@ -198,6 +215,69 @@ export function ActaReview({
       })),
     };
     return confirmActaAction(payload);
+  }
+
+  async function runEscucha() {
+    if (escuchaRunning) return;
+    setEscuchaRunning(true);
+    try {
+      const res = await analyzeEscuchaAction({
+        meetingId,
+        actaResumen: resumen.trim(),
+        actaTareas: tasks.map((t) => ({ titulo: t.titulo, prioridad: t.prioridad })),
+      });
+      if (res.ok && res.sugerencias) {
+        setEscuchaTaskIds(tasks.map((t) => t._id));
+        setResolvedSug(new Set());
+        setEscucha(res.sugerencias);
+        if (res.sugerencias.length === 0) {
+          toast.success("Escucha Activa no encontró nada que ajustar");
+        }
+      } else {
+        toast.error(res.error ?? "No se pudo correr la Escucha Activa.");
+      }
+    } catch {
+      toast.error("No se pudo correr la Escucha Activa.");
+    } finally {
+      setEscuchaRunning(false);
+    }
+  }
+
+  // Aplica una sugerencia sobre el estado local (edición manual del founder).
+  function applySugerencia(i: number, s: EscuchaSugerencia) {
+    if (s.tipo === "agregar_tarea") {
+      const nueva: EditTask = {
+        _id: `esc-${escSeq.current++}`,
+        titulo: s.sugerido.slice(0, 300),
+        descripcion: null,
+        prioridad: "media",
+        tipo: "empleado",
+        due_date: null,
+        para_agente: false,
+        checklist: [],
+        assignee_user_id: null,
+        responsable_nombre: null,
+        matched: false,
+        suggestedName: null,
+      };
+      setTasks((ts) => [...ts, nueva]);
+    } else if (s.task_index != null) {
+      const id = escuchaTaskIds[s.task_index];
+      if (!id) {
+        toast.error("Esa tarea ya no está en la lista.");
+        return;
+      }
+      if (s.tipo === "subir_prioridad") patch(id, { prioridad: "alta" });
+      else if (s.tipo === "reescribir_tarea" || s.tipo === "hacer_explicito") {
+        patch(id, { titulo: s.sugerido.slice(0, 300) });
+      }
+    }
+    setResolvedSug((prev) => new Set(prev).add(i));
+    toast.success("Sugerencia aplicada");
+  }
+
+  function dismissSugerencia(i: number) {
+    setResolvedSug((prev) => new Set(prev).add(i));
   }
 
   return (
@@ -395,6 +475,19 @@ export function ActaReview({
           nameByUserId={nameByUserId}
           onPatch={patch}
           onRemove={removeTask}
+        />
+      )}
+
+      {/* Escucha Activa (SDD-0150 Fase D · privado, solo admin) */}
+      {canEscucha && (
+        <EscuchaPanel
+          running={escuchaRunning}
+          sugerencias={escucha}
+          resolvedSug={resolvedSug}
+          escuchaTaskIds={escuchaTaskIds}
+          onRun={runEscucha}
+          onApply={applySugerencia}
+          onDismiss={dismissSugerencia}
         />
       )}
 
@@ -690,6 +783,178 @@ function VinculoPanel({
         </>
       )}
     </section>
+  );
+}
+
+/** Tipos de sugerencia que se pueden "Aplicar" (mutan una tarea); el resto es
+ *  informativo (se "descarta/visto"). */
+const ESCUCHA_APLICABLES = new Set<EscuchaSugerencia["tipo"]>([
+  "subir_prioridad",
+  "reescribir_tarea",
+  "hacer_explicito",
+  "agregar_tarea",
+]);
+
+/**
+ * Panel PRIVADO de Escucha Activa (SDD-0150 Fase D · solo admin). Corre la capa
+ * suspicaz sobre el acta y muestra recomendaciones que el founder aplica a mano.
+ * No se guarda el análisis.
+ */
+function EscuchaPanel({
+  running,
+  sugerencias,
+  resolvedSug,
+  escuchaTaskIds,
+  onRun,
+  onApply,
+  onDismiss,
+}: {
+  running: boolean;
+  sugerencias: EscuchaSugerencia[] | null;
+  resolvedSug: Set<number>;
+  escuchaTaskIds: string[];
+  onRun: () => void;
+  onApply: (i: number, s: EscuchaSugerencia) => void;
+  onDismiss: (i: number) => void;
+}) {
+  return (
+    <section
+      style={{
+        border: "1px solid var(--border)",
+        borderLeft: "3px solid var(--wine)",
+        borderRadius: "var(--r-lg)",
+        background: "var(--bg-elevated)",
+        padding: "16px 18px",
+        marginTop: 18,
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <div>
+          <div className="studio-eyebrow" style={{ color: "var(--wine)" }}>
+            Escucha Activa · privado
+          </div>
+          <p style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: "5px 0 0", maxWidth: 560 }}>
+            Análisis de escucha profunda solo para ti (lectura entre líneas). No se
+            guarda; aplicas lo que quieras.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="studio-btn studio-btn-secondary studio-btn-sm"
+          onClick={onRun}
+          disabled={running}
+          aria-busy={running}
+          style={{ alignSelf: "flex-start" }}
+        >
+          {running ? (
+            <>
+              <span className="studio-spin" aria-hidden style={{ width: 14, height: 14 }} />
+              Analizando…
+            </>
+          ) : (
+            <>
+              {Icon.spark(14)}
+              {sugerencias === null ? "Analizar con Escucha Activa" : "Volver a analizar"}
+            </>
+          )}
+        </button>
+      </div>
+
+      {sugerencias !== null && sugerencias.length === 0 && (
+        <p style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+          No encontró nada que ajustar. El acta se ve consistente.
+        </p>
+      )}
+
+      {sugerencias !== null && sugerencias.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {sugerencias.map((s, i) =>
+            resolvedSug.has(i) ? null : (
+              <SugerenciaCard
+                key={i}
+                idx={i}
+                s={s}
+                hasTask={s.task_index != null && Boolean(escuchaTaskIds[s.task_index])}
+                onApply={onApply}
+                onDismiss={onDismiss}
+              />
+            ),
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function SugerenciaCard({
+  idx,
+  s,
+  hasTask,
+  onApply,
+  onDismiss,
+}: {
+  idx: number;
+  s: EscuchaSugerencia;
+  hasTask: boolean;
+  onApply: (i: number, s: EscuchaSugerencia) => void;
+  onDismiss: (i: number) => void;
+}) {
+  const aplicable = ESCUCHA_APLICABLES.has(s.tipo);
+  return (
+    <div
+      style={{
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-md)",
+        padding: "12px 14px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <Badge tone="neutral" size="sm">
+          {ESCUCHA_SUGERENCIA_LABEL[s.tipo]}
+        </Badge>
+        {s.task_index != null && hasTask && (
+          <span style={{ font: "600 11px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
+            Tarea #{s.task_index + 1}
+          </span>
+        )}
+      </div>
+      {s.actual && (
+        <div style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-mute)" }}>
+          <span style={{ textDecoration: "line-through" }}>{s.actual}</span>
+        </div>
+      )}
+      <div style={{ font: "600 12.5px/1.5 var(--f-sans)", color: "var(--ink)" }}>
+        {s.sugerido}
+      </div>
+      <div style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", fontStyle: "italic" }}>
+        {s.motivo}
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        {aplicable && (
+          <button
+            type="button"
+            className="studio-btn studio-btn-secondary studio-btn-sm"
+            onClick={() => onApply(idx, s)}
+          >
+            {Icon.check(13)} Aplicar
+          </button>
+        )}
+        <button
+          type="button"
+          className="studio-btn studio-btn-ghost studio-btn-sm"
+          onClick={() => onDismiss(idx)}
+        >
+          {aplicable ? "Descartar" : "Visto"}
+        </button>
+      </div>
+    </div>
   );
 }
 

@@ -9,6 +9,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
+import { canSpecial } from "@/lib/studio/rbac";
 import { listAssignableProfiles } from "@/lib/studio/bitacora/bitacora-queries";
 import { NuevaReunionClient } from "./_components/NuevaReunionClient";
 
@@ -31,11 +32,16 @@ export default async function NuevaReunionPage() {
 
   const profiles = await listAssignableProfiles(supabase);
 
+  // Escucha Activa (SDD-0150 Fase D): 2º botón privado, sólo admin (capability
+  // escucha_activa, extensible por rol sin tocar la UI).
+  const canEscucha = canSpecial(role, "escucha_activa");
+
   return (
     <NuevaReunionClient
       profiles={profiles}
       myUserId={myUserId}
       tenantId={tenantId}
+      canEscucha={canEscucha}
     />
   );
 }
