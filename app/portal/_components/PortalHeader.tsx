@@ -21,12 +21,16 @@ export function PortalHeader({
   themed = false,
   theme = "light",
   showClub = false,
+  soporteLastReplyAt = null,
 }: {
   markbox: string;
   name: string;
   themed?: boolean;
   theme?: "dark" | "light";
   showClub?: boolean;
+  /** Último reply del equipo (SDD-0148 #4): el nav pinta un punto si es más
+   *  nuevo que la última visita del cliente a Soporte. */
+  soporteLastReplyAt?: string | null;
 }) {
   return (
     <header className="border-b border-grey-200 bg-white sticky top-0 z-40">
@@ -70,7 +74,7 @@ export function PortalHeader({
               </>
             )}
           </Link>
-          <PortalNav showClub={showClub} />
+          <PortalNav showClub={showClub} soporteLastReplyAt={soporteLastReplyAt} />
         </div>
 
         <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">

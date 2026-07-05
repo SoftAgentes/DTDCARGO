@@ -104,13 +104,30 @@ el "re-aviso por tiempo" pierde urgencia → V1 va con el aviso simple.
   evento "mensaje entrante del portal" en el centro de preferencias de notificaciones
   ([[0036]]) para que el agente lo pueda silenciar por canal.
 
+- **Fase 2 — activar el lazo completo (2026-07-04, LIVE).** Los tres ítems que
+  faltaban para que el chat se sienta vivo, todos SIN migración:
+  - **#2 Auto-asignación**: hilo entrante sin asesor + el cliente tiene `advisor_id`
+    → se auto-asigna a ese asesor (`update conversations set assigned_to`, guard
+    `.is(assigned_to,null)`) y el aviso va a él. Reusa la relación cliente↔asesor.
+  - **#3a Near-realtime en `/portal/soporte`**: `PortalChatPoller` refresca el server
+    component cada 20s mientras la pestaña está visible → las respuestas del equipo
+    aparecen sin recargar. Evita abrir la RLS de `conversation_messages` al cliente.
+    El **aviso al cliente** ya existe por **email** (SDD-0056 al responder).
+  - **#4 Badge de no-leídos en el nav del portal**: punto en "Soporte" cuando el
+    último reply del equipo (`getPortalLastReplyAt`) es más nuevo que la última
+    visita del cliente (localStorage `dtd-portal-soporte-seen`). Se limpia al entrar.
+- **Fase 3 — deep-link + preferencia por-evento** (pend): link directo al hilo en
+  `/studio/conversaciones` + toggle del evento "mensaje del portal" en prefs [[0036]].
+
 ## Fuera de alcance
 
-- **Asignación automática** de hilos sin asesor (round-robin / pool) — es el ítem #2
-  de la activación del chat, SDD aparte.
-- **Realtime + aviso al CLIENTE** cuando el equipo responde (hoy el portal no es
-  realtime; el email ya existe) — ítem #3, SDD aparte.
-- **Badge de no-leídos en el nav del portal** — ítem #4, aparte.
+- **Push al CLIENTE** cuando el equipo responde (el email ya cubre el aviso; el push
+  del cliente necesita infra de suscripción en el portal — service worker + VAPID +
+  UI de opt-in — feature aparte).
+- **Realtime "de verdad"** en el portal (Supabase Realtime) — requeriría una policy
+  RLS SELECT del cliente sobre sus propios `conversation_messages`; se prefirió el
+  poller para no tocar la seguridad de esas tablas.
+- **Round-robin / pool** para clientes SIN asesor asignado (hoy caen a los admins).
 
 ## Verificación
 

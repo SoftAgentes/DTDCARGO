@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentType } from "react";
+import { type ComponentType, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -98,12 +98,45 @@ const CLUB_LINK = {
   match: (p: string) => p.startsWith("/portal/club"),
 };
 
-export function PortalNav({ showClub = false }: { showClub?: boolean }) {
+export function PortalNav({
+  showClub = false,
+  soporteLastReplyAt = null,
+}: {
+  showClub?: boolean;
+  /** Último reply del equipo (SDD-0148 #4): punto en "Soporte" si es más nuevo
+   *  que la última visita del cliente (guardada en localStorage). */
+  soporteLastReplyAt?: string | null;
+}) {
   const pathname = usePathname() ?? "";
   // Club se inserta junto a Referidos (índice 3) solo si está habilitado.
   const links = showClub
     ? [...LINKS.slice(0, 4), CLUB_LINK, ...LINKS.slice(4)]
     : LINKS;
+
+  // #4 Badge de Soporte: al entrar a /portal/soporte marcamos "visto" (localStorage);
+  // en otras rutas leemos el visto para decidir si mostrar el punto. Sin migración.
+  const onSoporte = pathname.startsWith("/portal/soporte");
+  const [seenAt, setSeenAt] = useState<string | null>(null);
+  useEffect(() => {
+    try {
+      if (onSoporte) {
+        const now = new Date().toISOString();
+        localStorage.setItem("dtd-portal-soporte-seen", now);
+        setSeenAt(now);
+      } else {
+        setSeenAt(localStorage.getItem("dtd-portal-soporte-seen"));
+      }
+    } catch {
+      /* localStorage no disponible — sin badge, sin ruido */
+    }
+  }, [onSoporte]);
+
+  const showSoporteDot =
+    !!soporteLastReplyAt &&
+    !onSoporte &&
+    (!seenAt ||
+      new Date(soporteLastReplyAt).getTime() > new Date(seenAt).getTime());
+
   return (
     <nav
       className="flex items-center gap-0.5 sm:gap-1 min-w-0 overflow-x-auto no-scrollbar"
@@ -112,12 +145,14 @@ export function PortalNav({ showClub = false }: { showClub?: boolean }) {
       {links.map((l) => {
         const active = l.match(pathname);
         const Icon = l.icon;
+        const dot = l.href === "/portal/soporte" && showSoporteDot;
         return (
           <Link
             key={l.href}
             href={l.href}
             aria-current={active ? "page" : undefined}
-            className={`inline-flex items-center gap-1.5 sm:gap-2 flex-shrink-0 whitespace-nowrap text-[13px] font-semibold rounded-md px-2 sm:px-3 py-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${
+            title={dot ? `${l.label} · tienes una respuesta nueva` : undefined}
+            className={`relative inline-flex items-center gap-1.5 sm:gap-2 flex-shrink-0 whitespace-nowrap text-[13px] font-semibold rounded-md px-2 sm:px-3 py-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${
               active
                 ? "text-wine"
                 : "text-grey-500 hover:text-ink hover:bg-grey-100"
@@ -128,7 +163,15 @@ export function PortalNav({ showClub = false }: { showClub?: boolean }) {
                 : undefined
             }
           >
-            <Icon size={15} className="flex-shrink-0" />
+            <span className="relative flex-shrink-0">
+              <Icon size={15} />
+              {dot && (
+                <span
+                  aria-hidden
+                  className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-wine ring-2 ring-white"
+                />
+              )}
+            </span>
             {l.label}
           </Link>
         );

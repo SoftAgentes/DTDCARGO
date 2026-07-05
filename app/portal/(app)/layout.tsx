@@ -2,7 +2,9 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { jetbrainsMonoUi } from "@/lib/fonts";
 import { createClient } from "@/lib/db/server";
+import { createAdminClient } from "@/lib/db/admin";
 import { getPortalClient } from "@/lib/portal/portal-queries";
+import { getPortalLastReplyAt } from "@/lib/portal/portal-conversation-queries";
 import { isPortalClubMember } from "@/lib/portal/portal-club-queries";
 import { showNortePortal } from "@/lib/portal/demo";
 import { PortalHeader } from "../_components/PortalHeader";
@@ -41,6 +43,14 @@ export default async function PortalAppLayout({
   // admin del Club más adelante.
   const showClub = await isPortalClubMember(supabase);
 
+  // Badge de Soporte (SDD-0148 #4): timestamp del último mensaje del equipo, para
+  // que el nav pinte un punto si hay respuesta nueva. Best-effort (admin) — un
+  // fallo no debe tumbar el portal.
+  const soporteLastReplyAt = await getPortalLastReplyAt(
+    createAdminClient(),
+    client.id,
+  ).catch(() => null);
+
   return (
     <div
       id="portal-shell"
@@ -53,6 +63,7 @@ export default async function PortalAppLayout({
         themed={norte}
         theme={theme}
         showClub={showClub}
+        soporteLastReplyAt={soporteLastReplyAt}
       />
       <main className="flex-1 wrap w-full py-10 lg:py-14">{children}</main>
       {/* Calculadora flotante (Norte) — siempre a mano, sin salir del portal. */}

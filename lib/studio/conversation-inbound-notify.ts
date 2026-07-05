@@ -6,7 +6,9 @@
  *
  * A quién:
  *   - Hilo con asesor asignado (`assigned_to`) → a ESE agente (Telegram).
- *   - Hilo sin asignar → broadcast a los admins del tenant (Telegram).
+ *   - Hilo sin asignar PERO el cliente tiene `advisor_id` → se AUTO-ASIGNA el hilo a
+ *     ese asesor (SDD-0148 #2, reusa la relación existente) y el aviso va a él.
+ *   - Sin asignar y sin asesor del cliente → broadcast a los admins del tenant.
  * (La señal in-app es el badge del topbar `ConversationsIndicator`, siempre a la
  * vista — por eso acá no escribimos la campanita; push queda para Fase 2.)
  *
@@ -63,9 +65,21 @@ export async function notifyConversationInbound(
 
     const { data: client } = await admin
       .from("clients")
-      .select("name, markbox")
+      .select("name, markbox, advisor_id")
       .eq("id", conv.client_id)
-      .maybeSingle<{ name: string; markbox: string }>();
+      .maybeSingle<{ name: string; markbox: string; advisor_id: string | null }>();
+
+    // #2 Auto-asignación: hilo sin asesor + el cliente tiene advisor_id → se lo
+    // asignamos (guard `.is(assigned_to, null)` evita pisar una carrera).
+    let assignedTo = conv.assigned_to;
+    if (!assignedTo && client?.advisor_id) {
+      const { error: upErr } = await admin
+        .from("conversations")
+        .update({ assigned_to: client.advisor_id })
+        .eq("id", args.conversationId)
+        .is("assigned_to", null);
+      if (!upErr) assignedTo = client.advisor_id;
+    }
 
     const who = client
       ? `${client.name} (${client.markbox})`
@@ -80,11 +94,11 @@ export async function notifyConversationInbound(
       url,
     ].join("\n");
 
-    if (conv.assigned_to) {
-      // Hilo asignado → solo a ese agente.
-      await sendTelegramToUser(admin, conv.assigned_to, text);
+    if (assignedTo) {
+      // Hilo asignado (o recién auto-asignado) → solo a ese agente.
+      await sendTelegramToUser(admin, assignedTo, text);
     } else {
-      // Sin asignar → a los admins, para que alguien lo tome.
+      // Sin asignar y sin asesor del cliente → a los admins, para que alguien lo tome.
       const admins = await resolveAdminEntries(admin, conv.tenant_id);
       for (const a of admins) {
         await sendAdminTelegram(admin, a.user_id, text);

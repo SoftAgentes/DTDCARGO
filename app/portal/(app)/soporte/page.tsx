@@ -21,6 +21,7 @@ import { CONTACT } from "@/lib/design-tokens";
 import { WhatsAppIcon, MailIcon, PhoneIcon } from "@/components/Icon";
 import { PortalClaims } from "../reclamos/_components/PortalClaims";
 import { PortalMessageForm } from "../mensajes/PortalMessageForm";
+import { PortalChatPoller } from "../../_components/PortalChatPoller";
 
 export const metadata: Metadata = { title: "Soporte" };
 
@@ -85,6 +86,8 @@ export default async function PortalSoportePage({
 
   return (
     <div>
+      {/* Near-realtime: refresca el hilo del asesor cuando entra una respuesta (SDD-0148 #3a). */}
+      <PortalChatPoller />
       <span className="eyebrow eyebrow-wine">Atención al cliente</span>
       <h1
         className="mt-2 h-display"

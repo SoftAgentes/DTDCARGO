@@ -20,6 +20,37 @@ export type PortalThreadMessage = {
 };
 
 /**
+ * Timestamp del ÚLTIMO mensaje del equipo (direction='out') en el hilo `portal`
+ * del cliente, o null si no hay respuestas. Sirve para el badge de no-leídos del
+ * nav del portal (SDD-0148 #4): el client compara este ISO con lo que guardó en
+ * localStorage la última vez que abrió Soporte → punto si hay algo más nuevo.
+ * Best-effort (admin, scope por client_id); null ante cualquier problema.
+ */
+export async function getPortalLastReplyAt(
+  admin: SupabaseClient,
+  clientId: string,
+): Promise<string | null> {
+  const { data: conv } = await admin
+    .from("conversations")
+    .select("id")
+    .eq("client_id", clientId)
+    .eq("channel", "portal")
+    .is("deleted_at", null)
+    .maybeSingle<{ id: string }>();
+  if (!conv) return null;
+
+  const { data } = await admin
+    .from("conversation_messages")
+    .select("sent_at")
+    .eq("conversation_id", conv.id)
+    .eq("direction", "out")
+    .order("sent_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<{ sent_at: string }>();
+  return data?.sent_at ?? null;
+}
+
+/**
  * El hilo del canal `portal` del cliente (mensajes cronológicos). Recibe el
  * ADMIN client + el client_id resuelto por sesión. Devuelve [] si no hay hilo
  * todavía. Scope EXPLÍCITO por client_id + channel='portal'.
