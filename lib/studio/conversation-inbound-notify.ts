@@ -24,10 +24,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendTelegramToUser } from "@/lib/studio/notify/send-user-telegram";
-import {
-  resolveAdminEntries,
-  sendAdminTelegram,
-} from "@/lib/studio/new-client-notify";
+import { resolveAdminEntries } from "@/lib/studio/new-client-notify";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 
@@ -84,7 +81,8 @@ export async function notifyConversationInbound(
     const who = client
       ? `${client.name} (${client.markbox})`
       : "Un cliente";
-    const url = `${SITE_URL}/studio/conversaciones`;
+    // Deep-link al hilo puntual (SDD-0148 #1): la bandeja preselecciona `?c=<id>`.
+    const url = `${SITE_URL}/studio/conversaciones?c=${args.conversationId}`;
     const text = [
       `Nuevo mensaje del portal${conv.ref ? ` · ${conv.ref}` : ""}`,
       ``,
@@ -95,14 +93,43 @@ export async function notifyConversationInbound(
     ].join("\n");
 
     if (assignedTo) {
-      // Hilo asignado (o recién auto-asignado) → solo a ese agente.
+      // Hilo asignado (o recién auto-asignado por advisor_id) → solo a ese agente.
       await sendTelegramToUser(admin, assignedTo, text);
     } else {
-      // Sin asignar y sin asesor del cliente → a los admins, para que alguien lo tome.
+      // #2 Round-robin: sin asesor del cliente → asigna al ADMIN menos cargado
+      // (menos conversaciones abiertas asignadas) y notifica SOLO a él. Reparte la
+      // carga en vez de pingear a todos. Si no hay admins, no-op.
       const admins = await resolveAdminEntries(admin, conv.tenant_id);
-      for (const a of admins) {
-        await sendAdminTelegram(admin, a.user_id, text);
+      if (admins.length === 0) return;
+
+      const { data: openRows } = await admin
+        .from("conversations")
+        .select("assigned_to")
+        .eq("tenant_id", conv.tenant_id)
+        .is("deleted_at", null)
+        .neq("status", "resuelto")
+        .not("assigned_to", "is", null);
+      const load = new Map<string, number>();
+      for (const r of openRows ?? []) {
+        const a = (r as { assigned_to: string }).assigned_to;
+        load.set(a, (load.get(a) ?? 0) + 1);
       }
+      let best = admins[0].user_id;
+      let bestLoad = load.get(best) ?? 0;
+      for (const a of admins) {
+        const l = load.get(a.user_id) ?? 0;
+        if (l < bestLoad) {
+          best = a.user_id;
+          bestLoad = l;
+        }
+      }
+
+      await admin
+        .from("conversations")
+        .update({ assigned_to: best })
+        .eq("id", args.conversationId)
+        .is("assigned_to", null);
+      await sendTelegramToUser(admin, best, text);
     }
   } catch (err) {
     console.error("[conversation-inbound-notify] falló:", err);

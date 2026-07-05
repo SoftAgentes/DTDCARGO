@@ -31,9 +31,17 @@ interface Props {
   kpis: ConversationKpis;
   agents: ConversationAgent[];
   tenantId: string | null;
+  /** Deep-link (SDD-0148 #1): hilo a preseleccionar (viene de `?c=<id>`). */
+  initialSelectedId?: string | null;
 }
 
-export function ConversacionesClient({ conversations, kpis, agents, tenantId }: Props) {
+export function ConversacionesClient({
+  conversations,
+  kpis,
+  agents,
+  tenantId,
+  initialSelectedId = null,
+}: Props) {
   // Realtime: cualquier cambio en mensajes o hilos del tenant → refresh server.
   const msgRealtime = useRealtimeRefresh({
     table: "conversation_messages",
@@ -50,7 +58,10 @@ export function ConversacionesClient({ conversations, kpis, agents, tenantId }: 
   const [channelFilter, setChannelFilter] = useState<ConversationChannelFilter>("all");
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(
-    conversations[0]?.id ?? null,
+    // Deep-link primero (si el hilo existe en la lista), si no el primero.
+    (initialSelectedId && conversations.some((c) => c.id === initialSelectedId)
+      ? initialSelectedId
+      : conversations[0]?.id) ?? null,
   );
 
   const filtered = useMemo(

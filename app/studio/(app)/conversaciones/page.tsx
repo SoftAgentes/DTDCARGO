@@ -18,8 +18,16 @@ import { ConversacionesClient } from "./_components/ConversacionesClient";
 
 export const metadata = { title: "Conversaciones · DTD Studio" };
 
-export default async function ConversacionesPage() {
+export default async function ConversacionesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ c?: string }>;
+}) {
   await requireModuleView("conversaciones");
+
+  // Deep-link al hilo (SDD-0148 #1): el aviso de Telegram trae `?c=<id>` → la
+  // bandeja abre directo en esa conversación.
+  const { c: initialSelectedId } = await searchParams;
 
   const supabase = await createClient();
 
@@ -65,6 +73,7 @@ export default async function ConversacionesPage() {
         kpis={kpis}
         agents={agents}
         tenantId={tenantId}
+        initialSelectedId={initialSelectedId ?? null}
       />
     </div>
   );

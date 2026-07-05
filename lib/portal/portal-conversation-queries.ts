@@ -51,6 +51,25 @@ export async function getPortalLastReplyAt(
 }
 
 /**
+ * Id del hilo `portal` del cliente (o null si aún no escribió). Lo usa la pantalla
+ * de Soporte para el subscribe de realtime (SDD-0148 #3): el componente client se
+ * suscribe a `conversation_messages` filtrando por este id. Best-effort.
+ */
+export async function getPortalConversationId(
+  admin: SupabaseClient,
+  clientId: string,
+): Promise<string | null> {
+  const { data } = await admin
+    .from("conversations")
+    .select("id")
+    .eq("client_id", clientId)
+    .eq("channel", "portal")
+    .is("deleted_at", null)
+    .maybeSingle<{ id: string }>();
+  return data?.id ?? null;
+}
+
+/**
  * El hilo del canal `portal` del cliente (mensajes cronológicos). Recibe el
  * ADMIN client + el client_id resuelto por sesión. Devuelve [] si no hay hilo
  * todavía. Scope EXPLÍCITO por client_id + channel='portal'.

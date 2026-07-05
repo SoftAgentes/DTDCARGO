@@ -131,11 +131,23 @@ el "re-aviso por tiempo" pierde urgencia → V1 va con el aviso simple.
   Requiere las env `NEXT_PUBLIC_VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` (ya en prod para
   el push del Studio/operario). Sin ellas, el opt-in no aparece (degrada a email+badge).
 
+- **Fase 4 — pulido del lazo (2026-07-05, LIVE).** Los tres "menores" restantes:
+  - **#1 Deep-link al hilo**: el aviso de Telegram enlaza a `/studio/conversaciones?c=<id>`
+    y la bandeja preselecciona ese hilo (`initialSelectedId` en `ConversacionesClient`).
+    Sin migración.
+  - **#2 Round-robin**: clientes SIN `advisor_id` ya NO caen a "avisar a todos los
+    admins" — se asigna el hilo al **admin menos cargado** (menos conversaciones
+    abiertas asignadas) y se notifica solo a él. Sin migración.
+  - **#3 Realtime "de verdad"** en `/portal/soporte`: `PortalChatLive`
+    (`useRealtimeRefresh` sobre `conversation_messages` filtrado por el hilo) reemplaza
+    el poller de 20s → refresco al instante cuando el equipo responde; **queda un poll
+    lento (45s) de fallback**. Habilitado por **migr 0217** (policy RLS SELECT del
+    cliente sobre SU hilo `channel='portal'`, vía `get_portal_client_id()` — SELECT
+    only, misma data que ya ve por admin, policies del equipo intactas).
+
 ## Fuera de alcance
-- **Realtime "de verdad"** en el portal (Supabase Realtime) — requeriría una policy
-  RLS SELECT del cliente sobre sus propios `conversation_messages`; se prefirió el
-  poller para no tocar la seguridad de esas tablas.
-- **Round-robin / pool** para clientes SIN asesor asignado (hoy caen a los admins).
+- **Preferencia por-evento** del aviso (toggle "mensaje del portal" por canal en el
+  centro de prefs de [[0036]]) — mejora futura, no bloqueante.
 
 ## Verificación
 

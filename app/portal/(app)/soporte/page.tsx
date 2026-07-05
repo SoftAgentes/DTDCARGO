@@ -11,6 +11,7 @@ import {
 } from "@/lib/portal/portal-types";
 import {
   getPortalThread,
+  getPortalConversationId,
   type PortalThreadMessage,
 } from "@/lib/portal/portal-conversation-queries";
 import {
@@ -21,7 +22,7 @@ import { CONTACT } from "@/lib/design-tokens";
 import { WhatsAppIcon, MailIcon, PhoneIcon } from "@/components/Icon";
 import { PortalClaims } from "../reclamos/_components/PortalClaims";
 import { PortalMessageForm } from "../mensajes/PortalMessageForm";
-import { PortalChatPoller } from "../../_components/PortalChatPoller";
+import { PortalChatLive } from "../../_components/PortalChatLive";
 import { PortalPushOptIn } from "../../_components/PortalPushOptIn";
 
 export const metadata: Metadata = { title: "Soporte" };
@@ -78,6 +79,10 @@ export default async function PortalSoportePage({
   } catch {
     thread = [];
   }
+  // Id del hilo para el subscribe de realtime del chat (SDD-0148 #3).
+  const conversationId = await getPortalConversationId(admin, client.id).catch(
+    () => null,
+  );
   let advisor: PortalAdvisor | null = null;
   try {
     advisor = await getPortalAdvisor(admin, client.id);
@@ -87,8 +92,8 @@ export default async function PortalSoportePage({
 
   return (
     <div>
-      {/* Near-realtime: refresca el hilo del asesor cuando entra una respuesta (SDD-0148 #3a). */}
-      <PortalChatPoller />
+      {/* Realtime + fallback: refresca el hilo cuando entra una respuesta (SDD-0148 #3). */}
+      <PortalChatLive conversationId={conversationId} />
       <span className="eyebrow eyebrow-wine">Atención al cliente</span>
       <h1
         className="mt-2 h-display"
