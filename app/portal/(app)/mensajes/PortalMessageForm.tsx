@@ -13,8 +13,11 @@ const initial: PortalMessageState = {};
  * Caja "enviar mensaje" del portal (SDD-0056 · Fase 1 · canal Portal). El
  * mensaje entra a la bandeja del Studio. Tras enviar OK, limpia el textarea y
  * refresca para ver el hilo actualizado.
+ *
+ * `prefill`: texto inicial del textarea (ej. cuando el cliente llega desde
+ * "Actualizar mis datos" en Mi perfil → abre el chat con la consulta ya escrita).
  */
-export function PortalMessageForm() {
+export function PortalMessageForm({ prefill }: { prefill?: string }) {
   const [state, action, pending] = useActionState(sendPortalMessageAction, initial);
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
@@ -39,6 +42,7 @@ export function PortalMessageForm() {
           maxLength={4000}
           disabled={pending}
           placeholder="Escribe tu consulta o comentario para tu asesor…"
+          defaultValue={prefill}
           className="px-3.5 py-3 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink leading-[1.5] resize-y disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
         />
       </label>

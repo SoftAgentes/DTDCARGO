@@ -25,7 +25,19 @@ export const metadata: Metadata = { title: "Mensajes" };
  * (Conversaciones) como inbound. El hilo se lee con el admin client scopeado por
  * el client_id resuelto por sesión (el cliente no tiene RLS sobre esas tablas).
  */
-export default async function PortalMensajesPage() {
+export default async function PortalMensajesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tema?: string }>;
+}) {
+  // Prefill del chat cuando el cliente llega desde "Actualizar mis datos" (Mi
+  // perfil): abre la caja con la consulta ya escrita para que solo complete.
+  const { tema } = await searchParams;
+  const prefill =
+    tema === "datos"
+      ? "Hola, quiero actualizar unos datos de mi cuenta: "
+      : undefined;
+
   const supabase = await createClient();
   const client = await getPortalClient(supabase);
   if (!client) return null;
@@ -100,7 +112,7 @@ export default async function PortalMensajesPage() {
           )}
 
           <div className="mt-5 pt-5 border-t border-grey-200">
-            <PortalMessageForm />
+            <PortalMessageForm prefill={prefill} />
           </div>
         </div>
 

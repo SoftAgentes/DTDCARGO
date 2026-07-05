@@ -11,8 +11,9 @@ import {
   getPublicCalculatorCities,
   getPublicCalculatorConfig,
 } from "@/lib/public/rates-queries";
+import Link from "next/link";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
-import { WhatsAppIcon } from "@/components/Icon";
+import { WhatsAppIcon, ChatIcon } from "@/components/Icon";
 import { AvatarEditor } from "./AvatarEditor";
 import { PortalAddresses } from "./PortalAddresses";
 import { CopyCodeButton } from "./CopyCodeButton";
@@ -98,9 +99,6 @@ export default async function PortalProfilePage() {
   const supplierMark = buildPortalSupplierMark(client.markbox);
   const defaultAddress =
     addresses.find((a) => a.isDefault) ?? addresses[0] ?? null;
-  const waUpdate = buildWhatsAppLink(
-    `Hola DTD Cargo, soy ${client.name} (${client.markbox}) y necesito actualizar un dato de mi cuenta.`,
-  );
   const waCompany = buildWhatsAppLink(
     `Hola DTD Cargo, soy ${client.name} (${client.markbox}) y quiero registrar mi empresa para importar a nombre de ella.`,
   );
@@ -189,17 +187,15 @@ export default async function PortalProfilePage() {
             </dl>
             <div className="mt-6 pt-5 border-t border-grey-200 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
               <p className="text-[13px] text-grey-700 leading-[1.55] flex-1">
-                Estos datos los administra tu asesor. ¿Algo cambió? Escríbele y
-                lo actualizamos por ti.
+                Estos datos los administra tu asesor. ¿Algo cambió? Escríbenos
+                por el chat y lo actualizamos por ti.
               </p>
-              <a
-                href={waUpdate}
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href="/portal/mensajes?tema=datos"
                 className="btn btn-ghost inline-flex items-center gap-2 flex-shrink-0"
               >
-                <WhatsAppIcon size={16} /> Actualizar mis datos
-              </a>
+                <ChatIcon size={16} /> Actualizar mis datos
+              </Link>
             </div>
           </section>
 
