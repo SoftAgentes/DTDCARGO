@@ -119,3 +119,48 @@ ${clean}`;
 
 /** Alias de compatibilidad: el call site histórico y los tests usan este nombre. */
 export const buildActaPrompt = buildActaErpPrompt;
+
+export interface BuildEscuchaPromptOpts {
+  transcript: string;
+  hoyISO: string;
+  hoyDia: string;
+  teamNames: string[];
+  /** Resumen que ya produjo la secretaria default (para criticarlo). */
+  actaResumen: string;
+  /** Tareas ya propuestas, en orden (el índice = task_index de la sugerencia). */
+  actaTareas: { titulo: string; prioridad: string }[];
+}
+
+/**
+ * Arma el prompt de la SECRETARIA ESCUCHA ACTIVA (SDD-0150 Fase D · privado del
+ * founder). NO rehace el acta: lee ENTRE LÍNEAS la transcripción y recomienda
+ * qué CAMBIAR de lo que ya propuso la default (subir prioridad, reescribir, etc.).
+ * Puro (todo dato entra por parámetro) → testeable.
+ */
+export function buildEscuchaPrompt(opts: BuildEscuchaPromptOpts): string {
+  const clean = opts.transcript.trim();
+  const nombres =
+    opts.teamNames.filter((n) => n.trim() !== "").join(", ") || "(sin lista)";
+  const resumen = opts.actaResumen.trim() || "(sin resumen)";
+  const tareas =
+    opts.actaTareas.length > 0
+      ? opts.actaTareas
+          .map((t, i) => `[${i}] ${t.titulo} (prioridad ${t.prioridad})`)
+          .join("\n")
+      : "(sin tareas propuestas)";
+
+  return `Eres SECRETARIA ESCUCHA ACTIVA, la analista de reuniones personal de Sam, experta en escucha profunda. HOY es ${opts.hoyDia} ${opts.hoyISO}. Ya existe un acta operativa hecha por la secretaria de la oficina; NO la rehagas. Tu trabajo es leer ENTRE LÍNEAS la transcripción y recomendarle a Sam qué CAMBIAR del acta: subir prioridad, reescribir una tarea, hacerla más explícita, sumar una tarea que falta, marcar un compromiso tibio a vigilar, o señalar un black swan. Cada recomendación es una SUGERENCIA — Sam decide si la aplica; no creas trabajo por tu cuenta.
+
+Marcos con los que escuchas: Grice (violar una máxima = quiso decir algo sin decirlo); actos de habla (compromisivo/directivo/asertivo/declarativo); hedging (firme → confirmado, tibio "voy a tratar" → tentativo, fantasma → implícito); presuposición; black swans (dato suelto que cambia todo); distancia/evasión (indicio DÉBIL — confianza baja, con cita, sin acusar; JAMÁS concluyas que alguien miente).
+
+Reglas: analiza solo lo transcrito; no inventes tono, pausas ni gestos que no estén en el texto. Cita corto y textual. Tres sugerencias sólidas valen más que diez forzadas; si no hay señal, no inventes: devuelve pocas o ninguna. Cada sugerencia referencia el task_index de la tarea afectada (o null si es general). Responde en español venezolano neutro (tuteo).
+
+Equipo: ${nombres}.
+
+--- ACTA OPERATIVA (lo que ya se propuso) ---
+Resumen: ${resumen}
+Tareas:
+${tareas}
+--- TRANSCRIPCIÓN ---
+${clean}`;
+}

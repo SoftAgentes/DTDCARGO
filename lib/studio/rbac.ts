@@ -182,6 +182,13 @@ export const CAPABILITIES = {
    * módulo treasury.
    */
   approve_money: ["accounting"],
+  /**
+   * Correr la "Secretaria Escucha Activa" sobre un acta de Bitácora (SDD-0150):
+   * la capa suspicaz (lectura entre líneas) es criterio del founder, no para
+   * circular entre pares. Admin-only por ahora ([] = solo admin); se habilita a
+   * gerentes agregando su rol acá, sin tocar los call sites.
+   */
+  escucha_activa: [],
 } as const satisfies Record<string, readonly StudioUserRole[]>;
 
 export type StudioCapability = keyof typeof CAPABILITIES;

@@ -381,6 +381,51 @@ export interface ActaData {
   vinculo_cliente?: ActaVinculoCliente;
 }
 
+// ─── Escucha Activa (SDD-0150 Fase D · capa privada del founder) ──────────
+
+export const ESCUCHA_SUGERENCIA_TIPOS = [
+  "subir_prioridad",
+  "reescribir_tarea",
+  "hacer_explicito",
+  "agregar_tarea",
+  "revisar_compromiso",
+  "black_swan",
+] as const;
+export type EscuchaSugerenciaTipo = (typeof ESCUCHA_SUGERENCIA_TIPOS)[number];
+export function isEscuchaSugerenciaTipo(v: unknown): v is EscuchaSugerenciaTipo {
+  return (
+    typeof v === "string" &&
+    (ESCUCHA_SUGERENCIA_TIPOS as readonly string[]).includes(v)
+  );
+}
+
+/** Etiqueta legible por tipo de sugerencia (para el panel privado). */
+export const ESCUCHA_SUGERENCIA_LABEL: Record<EscuchaSugerenciaTipo, string> = {
+  subir_prioridad: "Subir prioridad",
+  reescribir_tarea: "Reescribir tarea",
+  hacer_explicito: "Ser más explícito",
+  agregar_tarea: "Tarea que falta",
+  revisar_compromiso: "Compromiso a vigilar",
+  black_swan: "Dato que cambia todo",
+};
+
+/**
+ * Recomendación PRIVADA de la Secretaria Escucha Activa sobre el acta que ya
+ * produjo la default. NO crea trabajo por sí sola: el founder la aplica a mano
+ * (subir prioridad, reescribir un título, etc.). No se persiste (efímera).
+ */
+export interface EscuchaSugerencia {
+  tipo: EscuchaSugerenciaTipo;
+  /** Índice de la tarea afectada en el acta default, o null (general). */
+  task_index: number | null;
+  /** Lo que la default produjo (para comparar). */
+  actual: string;
+  /** Lo que Escucha Activa recomienda. */
+  sugerido: string;
+  /** Por qué — la lectura entre líneas (cita corta + marco). */
+  motivo: string;
+}
+
 /** Input del formulario de ingesta (pegar transcripción). */
 export interface MeetingDraftInput {
   tipo: MeetingTipo;
