@@ -58,6 +58,11 @@ export interface ExtractOpts {
   teamNames: string[];
   hoyISO: string;
   hoyDia: string;
+  /**
+   * Resumen corregido por el humano (mejora "volver a generar tareas"). Se pasa
+   * al prompt como guía prioritaria. Sin valor → comportamiento original.
+   */
+  resumenGuia?: string | null;
 }
 
 export type ExtractResult = { acta: RawActa } | { error: string };
@@ -168,6 +173,7 @@ export async function extractActa(
     teamNames: opts.teamNames,
     hoyISO: opts.hoyISO,
     hoyDia: opts.hoyDia,
+    resumenGuia: opts.resumenGuia,
   });
 
   try {
@@ -293,7 +299,12 @@ function mockActa(clean: string, opts: ExtractOpts): RawActa {
   const firstLine =
     clean.split(/\r?\n/).map((l) => l.trim()).find((l) => l.length > 0) ??
     clean.slice(0, 120);
-  const snippet = firstLine.slice(0, 80);
+  // Con guía del líder (regenerar), la propuesta se deriva del resumen corregido
+  // → la nueva tanda refleja lo que el humano marcó como importante. Sin guía,
+  // cae al primer renglón del transcript (comportamiento original). Determinista
+  // en ambos casos (sin random, sin reloj).
+  const guia = (opts.resumenGuia ?? "").trim();
+  const snippet = (guia || firstLine).slice(0, 80);
   const primeros = opts.teamNames.slice(0, 2);
 
   const acta: RawActa = {

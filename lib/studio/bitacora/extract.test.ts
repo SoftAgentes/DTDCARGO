@@ -58,4 +58,23 @@ describe("extractActa (SDD-0146 · mock determinista + guard)", () => {
       expect(r.acta.entregables_cliente?.length ?? 0).toBeGreaterThan(0);
     }
   });
+
+  it("propaga resumenGuia: el mock deriva la propuesta del resumen del líder", async () => {
+    const transcript =
+      "Reunión larga sobre logística, embarques y varios temas administrativos del mes.";
+    const conGuia = await extractActa(transcript, {
+      ...OPTS,
+      resumenGuia: "Cobrar el saldo pendiente a Importadora Sol antes del viernes.",
+    });
+    const sinGuia = await extractActa(transcript, OPTS);
+    expect("acta" in conGuia && "acta" in sinGuia).toBe(true);
+    if ("acta" in conGuia && "acta" in sinGuia) {
+      const titulos = conGuia.acta.tareas.map((t) => t.titulo).join(" | ");
+      expect(titulos).toContain("Cobrar el saldo");
+      // Sin la guía la propuesta sale del transcript → distinta.
+      expect(conGuia.acta.tareas[0].titulo).not.toBe(
+        sinGuia.acta.tareas[0].titulo,
+      );
+    }
+  });
 });

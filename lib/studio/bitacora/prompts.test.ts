@@ -71,4 +71,41 @@ describe("buildActaPrompt (SDD-0146 · secretario de actas)", () => {
     const p = buildActaPrompt({ ...BASE, tipo: "interna", teamNames: [] });
     expect(p).toContain("(sin lista)");
   });
+
+  // ── resumenGuia (mejora "volver a generar tareas") ──
+  it("resumenGuia: inyecta la GUÍA PRIORITARIA con el resumen del líder", () => {
+    const p = buildActaPrompt({
+      ...BASE,
+      tipo: "interna",
+      resumenGuia: "Cobrar el saldo pendiente a Importadora Sol antes del viernes.",
+    });
+    expect(p).toContain("GUÍA PRIORITARIA");
+    expect(p).toContain("Cobrar el saldo pendiente a Importadora Sol");
+    expect(p).toContain("sin inventar nada que no esté en la transcripción");
+  });
+
+  it("resumenGuia va ANTES del bloque de la transcripción", () => {
+    const p = buildActaPrompt({
+      ...BASE,
+      tipo: "interna",
+      resumenGuia: "Prioridad: cerrar el embarque de Yiwu.",
+    });
+    expect(p.indexOf("GUÍA PRIORITARIA")).toBeGreaterThan(-1);
+    expect(p.indexOf("GUÍA PRIORITARIA")).toBeLessThan(
+      p.indexOf("--- TRANSCRIPCIÓN ---"),
+    );
+  });
+
+  it("sin resumenGuia: el prompt es idéntico al de antes (sin bloque de guía)", () => {
+    const base = buildActaPrompt({ ...BASE, tipo: "interna" });
+    const vacio = buildActaPrompt({ ...BASE, tipo: "interna", resumenGuia: "" });
+    const espacios = buildActaPrompt({
+      ...BASE,
+      tipo: "interna",
+      resumenGuia: "   ",
+    });
+    expect(base).not.toContain("GUÍA PRIORITARIA");
+    expect(vacio).toBe(base);
+    expect(espacios).toBe(base);
+  });
 });
