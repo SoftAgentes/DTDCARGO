@@ -11,7 +11,7 @@
  * transaccional `bitacora_confirm_meeting` (todo o nada).
  */
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
@@ -22,6 +22,8 @@ import type { AssignableProfile } from "@/lib/studio/bitacora/bitacora-queries";
 import type { ResolvedActa, ResolvedTask } from "@/lib/studio/bitacora/match";
 import {
   type ActaData,
+  type ActaDuda,
+  type ActaHilo,
   type BitacoraPrioridad,
   type ConfirmActaInput,
   type MeetingTipo,
@@ -71,6 +73,8 @@ export function ActaReview({
     decisiones: resolved.decisiones,
     pendientes: resolved.pendientes,
     proxima_reunion: resolved.proxima_reunion,
+    hilos: resolved.hilos,
+    dudas_clasificacion: resolved.dudas_clasificacion,
   }));
 
   // Línea base = última propuesta de la IA (para saber si el humano ya ajustó
@@ -127,6 +131,8 @@ export function ActaReview({
           decisiones: res.resolved.decisiones,
           pendientes: res.resolved.pendientes,
           proxima_reunion: res.resolved.proxima_reunion,
+          hilos: res.resolved.hilos,
+          dudas_clasificacion: res.resolved.dudas_clasificacion,
         });
         toast.success("Tareas regeneradas");
       } else {
@@ -242,6 +248,8 @@ export function ActaReview({
         <ReadonlyList label="Puntos clave" items={acta.puntos} />
         <ReadonlyList label="Decisiones" items={acta.decisiones} />
         <ReadonlyList label="Quedó en el aire" items={acta.pendientes} />
+        <HilosPanel hilos={acta.hilos ?? []} />
+        <DudasPanel dudas={acta.dudas_clasificacion ?? []} />
         {acta.hablaron.length > 0 && (
           <div style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
             <span style={{ color: "var(--ink-mute)" }}>Hablaron: </span>
@@ -430,6 +438,108 @@ function ReadonlyList({ label, items }: { label: string; items: string[] }) {
         ))}
       </ul>
     </div>
+  );
+}
+
+/**
+ * Panel colapsable (native <details>, cerrado por defecto) para los campos
+ * ricos del acta (SDD-0150). Etiqueta con contador; `tone` pinta el borde.
+ */
+function Collapsible({
+  label,
+  count,
+  tone,
+  children,
+}: {
+  label: string;
+  count: number;
+  tone: string;
+  children: ReactNode;
+}) {
+  return (
+    <details
+      style={{
+        border: "1px solid var(--border)",
+        borderLeft: `3px solid ${tone}`,
+        borderRadius: "var(--r-sm)",
+        background: "var(--bg-elevated)",
+        padding: "0 12px",
+      }}
+    >
+      <summary
+        style={{
+          cursor: "pointer",
+          listStyle: "none",
+          padding: "9px 0",
+          font: "700 11px/1 var(--f-sans)",
+          letterSpacing: "0.06em",
+          textTransform: "uppercase",
+          color: "var(--ink-soft)",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+        }}
+      >
+        {label}
+        <Badge tone="neutral" size="sm">
+          {count}
+        </Badge>
+      </summary>
+      <div style={{ paddingBottom: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+        {children}
+      </div>
+    </details>
+  );
+}
+
+/** Hilos cosidos (tema → estado final; marca las contradicciones sin resolver). */
+function HilosPanel({ hilos }: { hilos: ActaHilo[] }) {
+  if (hilos.length === 0) return null;
+  return (
+    <Collapsible label="Hilos" count={hilos.length} tone="var(--info)">
+      {hilos.map((h, i) => (
+        <div
+          key={i}
+          style={{ font: "500 12.5px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}
+        >
+          <span style={{ fontWeight: 700, color: "var(--ink)" }}>{h.tema}</span>
+          {h.estado_final ? ` — ${h.estado_final}` : ""}
+          {h.contradiccion_sin_resolver && (
+            <span style={{ marginLeft: 8 }}>
+              <Badge tone="warning" size="sm">
+                sin resolver
+              </Badge>
+            </span>
+          )}
+        </div>
+      ))}
+    </Collapsible>
+  );
+}
+
+/** Dudas de clasificación empleado-vs-externo que el humano debe resolver. */
+function DudasPanel({ dudas }: { dudas: ActaDuda[] }) {
+  if (dudas.length === 0) return null;
+  return (
+    <Collapsible label="Dudas de clasificación" count={dudas.length} tone="var(--warning)">
+      {dudas.map((d, i) => (
+        <div
+          key={i}
+          style={{ font: "500 12.5px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}
+        >
+          {d.texto}
+          {d.hablante ? (
+            <span style={{ color: "var(--ink-mute)" }}> · {d.hablante}</span>
+          ) : null}
+          {d.opciones.length > 0 && (
+            <span style={{ color: "var(--ink-mute)" }}>
+              {" "}
+              ({d.opciones.join(" / ")})
+            </span>
+          )}
+        </div>
+      ))}
+    </Collapsible>
   );
 }
 

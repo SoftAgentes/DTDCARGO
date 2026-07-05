@@ -604,6 +604,8 @@ export async function analyzeActaAction(
         decisiones: resolved.decisiones,
         pendientes: resolved.pendientes,
         proxima_reunion: resolved.proxima_reunion,
+        hilos: resolved.hilos,
+        dudas_clasificacion: resolved.dudas_clasificacion,
       },
     })
     .eq("id", meeting.id);
