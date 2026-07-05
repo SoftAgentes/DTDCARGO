@@ -24,6 +24,7 @@ import { useDTDWiring } from "../../_components/wiring/WiringProvider";
 import { useIsMac } from "../../_components/ui/usePlatformMod";
 import { GlobalSearchModal } from "../../_components/wiring/GlobalSearchModal";
 import { NotificationBell } from "./NotificationBell";
+import { ConversationsIndicator } from "./ConversationsIndicator";
 import type { BugNotification } from "@/lib/studio/bug-types";
 import { useT, useLocale } from "@/lib/i18n";
 import {
@@ -37,12 +38,18 @@ interface StudioTopbarProps {
   userEmail: string;
   userId: string;
   initialNotifications: BugNotification[];
+  /** Tenant del user, para el filtro Realtime del indicador de Conversaciones. */
+  conversationsTenantId: string | null;
+  /** Conversaciones con mensajes sin leer (badge del topbar · SDD-0148). */
+  initialUnreadConversations: { id: string; unread_count: number }[];
 }
 
 export function StudioTopbar({
   userEmail,
   userId,
   initialNotifications,
+  conversationsTenantId,
+  initialUnreadConversations,
 }: StudioTopbarProps) {
   const pathname = usePathname();
   const locale = useLocale();
@@ -206,6 +213,13 @@ export function StudioTopbar({
           >
             {theme === "dark" ? Icon.sun(16) : Icon.moon(16)}
           </IconButton>
+
+          {/* Conversaciones · badge de mensajes del cliente sin leer (SDD-0148),
+              al lado de la campana → siempre visible en cada pantalla. */}
+          <ConversationsIndicator
+            tenantId={conversationsTenantId}
+            initial={initialUnreadConversations}
+          />
 
           {/* Notifications · campanita in-app (SDD-0036 Fase 5) */}
           <NotificationBell userId={userId} initial={initialNotifications} />

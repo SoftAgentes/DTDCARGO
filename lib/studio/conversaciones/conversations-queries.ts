@@ -58,6 +58,25 @@ async function loadAgentNames(supabase: SupabaseClient): Promise<AgentNameMap> {
  *
  * Devuelve hasta `limit` (default 200), recientes primero por last_message_at.
  */
+/**
+ * Conversaciones con mensajes sin leer del tenant, mínimas (id + unread_count),
+ * para el badge del topbar (SDD-0148). RLS scopea al tenant. El componente client
+ * las mantiene vivas por Realtime (upsert en UPDATE → un hilo reabierto entra
+ * solo). Payload chico a propósito (corre en el layout de cada pantalla).
+ */
+export async function listUnreadConversationsForBadge(
+  supabase: SupabaseClient,
+): Promise<Array<{ id: string; unread_count: number }>> {
+  const { data, error } = await supabase
+    .from("conversations")
+    .select("id, unread_count")
+    .is("deleted_at", null)
+    .gt("unread_count", 0)
+    .limit(200);
+  if (error || !data) return [];
+  return data as Array<{ id: string; unread_count: number }>;
+}
+
 export async function listConversations(
   supabase: SupabaseClient,
   opts: { limit?: number } = {},

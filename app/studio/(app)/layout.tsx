@@ -16,6 +16,7 @@ import { createClient } from "@/lib/db/server";
 import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
 import { countActiveAlerts } from "@/lib/studio/expense-alerts-queries";
 import { listNotificationsForUser } from "@/lib/studio/bug-queries";
+import { listUnreadConversationsForBadge } from "@/lib/studio/conversaciones/conversations-queries";
 import type { BugNotification } from "@/lib/studio/bug-types";
 import { resolveLocale } from "@/lib/i18n/resolve-server";
 import { LocaleProvider } from "@/lib/i18n";
@@ -79,6 +80,7 @@ export default async function StudioAppLayout({
     .is("disabled_at", null)
     .limit(1)
     .maybeSingle<{
+      tenant_id: string;
       region: string | null;
       role: string | null;
       warehouse_scope?: string | null;
@@ -134,13 +136,23 @@ export default async function StudioAppLayout({
   // Si falla, cae a defaults del handoff v1.7.
   // En paralelo: count de alertas de gastos activas (badge sidebar · RLS
   // ya lo scopea al tenant y al rol — un VE no-accounting ve 0).
-  const [featureFlags, expenseAlertCount, initialNotifications] = await Promise.all([
+  const [
+    featureFlags,
+    expenseAlertCount,
+    initialNotifications,
+    initialUnreadConversations,
+  ] = await Promise.all([
     listFeatureFlags(supabase),
     countActiveAlerts(supabase),
     // Campanita in-app (SDD-0036 Fase 5): outbox del user, RLS lo scopea a
     // auth.uid(). Best-effort — un fallo no debe tumbar el shell.
     listNotificationsForUser(supabase, user.id, { limit: 20 }).catch(
       () => [] as BugNotification[],
+    ),
+    // Badge de Conversaciones sin leer del topbar (SDD-0148). RLS scopea al
+    // tenant. Best-effort — un fallo no debe tumbar el shell.
+    listUnreadConversationsForBadge(supabase).catch(
+      () => [] as { id: string; unread_count: number }[],
     ),
   ]);
 
@@ -176,6 +188,8 @@ export default async function StudioAppLayout({
                 userEmail={user.email ?? ""}
                 userId={user.id}
                 initialNotifications={initialNotifications}
+                conversationsTenantId={tenantLink?.tenant_id ?? null}
+                initialUnreadConversations={initialUnreadConversations}
               />
               <div
                 style={{
