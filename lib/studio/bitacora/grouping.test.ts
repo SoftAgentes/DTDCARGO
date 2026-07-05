@@ -3,6 +3,7 @@ import {
   groupTasksByPerson,
   filterEsperandoCliente,
   countEsperandoCliente,
+  partitionAgentTasks,
   UNASSIGNED_KEY,
   type PersonGroupable,
 } from "./grouping";
@@ -98,5 +99,47 @@ describe("filtro Esperando al cliente", () => {
     expect(
       countEsperandoCliente([{ id: "z", tipo: "empleado" }]),
     ).toBe(0);
+  });
+});
+
+describe("partitionAgentTasks", () => {
+  const tasks = [
+    { id: "a", estado: "pendiente", para_agente: true },
+    { id: "b", estado: "hecho", para_agente: true },
+    { id: "c", estado: "en_curso", para_agente: false }, // no para_agente
+    { id: "d", estado: "en_revision", para_agente: true },
+    { id: "e", estado: "hecho", para_agente: false }, // no para_agente
+  ];
+
+  it("descarta las que no son para_agente", () => {
+    const { pendientes, hechas } = partitionAgentTasks(tasks);
+    const ids = [...pendientes, ...hechas].map((t) => t.id);
+    expect(ids).not.toContain("c");
+    expect(ids).not.toContain("e");
+  });
+
+  it("pendientes = para_agente no hechas; hechas = para_agente en 'hecho'", () => {
+    const { pendientes, hechas } = partitionAgentTasks(tasks);
+    expect(pendientes.map((t) => t.id)).toEqual(["a", "d"]);
+    expect(hechas.map((t) => t.id)).toEqual(["b"]);
+  });
+
+  it("preserva el orden de entrada dentro de cada grupo", () => {
+    const seq = [
+      { id: "x1", estado: "pendiente", para_agente: true },
+      { id: "x2", estado: "en_curso", para_agente: true },
+      { id: "x3", estado: "en_revision", para_agente: true },
+    ];
+    expect(partitionAgentTasks(seq).pendientes.map((t) => t.id)).toEqual([
+      "x1",
+      "x2",
+      "x3",
+    ]);
+  });
+
+  it("lista vacía → ambos grupos vacíos", () => {
+    const { pendientes, hechas } = partitionAgentTasks([]);
+    expect(pendientes).toEqual([]);
+    expect(hechas).toEqual([]);
   });
 });

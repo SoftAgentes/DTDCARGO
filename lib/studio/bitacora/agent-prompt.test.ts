@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildAgentPrompt } from "./agent-prompt";
+import { buildAgentPrompt, buildAllAgentPrompts } from "./agent-prompt";
 
 describe("buildAgentPrompt", () => {
   it("arma título + descripción + checklist + contexto", () => {
@@ -52,5 +52,42 @@ describe("buildAgentPrompt", () => {
   it("bloques separados por doble salto de línea (legible al pegar)", () => {
     const out = buildAgentPrompt({ titulo: "T", descripcion: "D" });
     expect(out).toContain("Tarea: T\n\nD\n\n");
+  });
+});
+
+describe("buildAllAgentPrompts", () => {
+  const t1 = {
+    titulo: "Migrar tracking",
+    descripcion: "Reemplazar el mock por fetch real.",
+    checklist: [{ texto: "Leer la spec", done: false }],
+  };
+  const t2 = { titulo: "Escribir tests", descripcion: null };
+
+  it("junta varias tareas: cuerpo de cada una + un solo divisor", () => {
+    const out = buildAllAgentPrompts([t1, t2]);
+    expect(out).toContain("Tarea: Migrar tracking");
+    expect(out).toContain("Tarea: Escribir tests");
+    // Un único divisor entre las dos tareas.
+    expect(out.match(/──────────/g)?.length).toBe(1);
+  });
+
+  it("encabezado con el conteo (plural)", () => {
+    const out = buildAllAgentPrompts([t1, t2]);
+    expect(out).toContain("# 2 tareas para Claude Code — Bitácora DTD");
+  });
+
+  it("una sola tarea → encabezado en singular y sin divisor", () => {
+    const out = buildAllAgentPrompts([t1]);
+    expect(out).toContain("# 1 tarea para Claude Code — Bitácora DTD");
+    expect(out).not.toContain("──────────");
+  });
+
+  it("reusa buildAgentPrompt por tarea (mismo cuerpo)", () => {
+    const out = buildAllAgentPrompts([t1]);
+    expect(out).toContain(buildAgentPrompt(t1));
+  });
+
+  it("lista vacía → string vacío (nada que copiar)", () => {
+    expect(buildAllAgentPrompts([])).toBe("");
   });
 });

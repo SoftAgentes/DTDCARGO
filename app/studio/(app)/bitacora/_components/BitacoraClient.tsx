@@ -43,13 +43,15 @@ import { BoardKanban } from "./BoardKanban";
 import { BoardList } from "./BoardList";
 import { TaskDrawer } from "./TaskDrawer";
 import { ActasList } from "./ActasList";
+import { AgentQueue } from "./AgentQueue";
 
-type View = "tablero" | "lista" | "actas";
+type View = "tablero" | "lista" | "actas" | "agente";
 
 const VIEW_LABELS: Record<View, string> = {
   tablero: "Tablero",
   lista: "Lista",
   actas: "Actas",
+  agente: "Para Claude Code",
 };
 
 const VIEW_STORAGE_KEY = "bitacora:view";
@@ -89,7 +91,12 @@ export function BitacoraClient({
   const [view, setView] = useState<View>("tablero");
   useEffect(() => {
     const saved = window.localStorage.getItem(VIEW_STORAGE_KEY);
-    if (saved === "lista" || saved === "tablero" || saved === "actas") {
+    if (
+      saved === "lista" ||
+      saved === "tablero" ||
+      saved === "actas" ||
+      saved === "agente"
+    ) {
       setView(saved);
     }
   }, []);
@@ -240,7 +247,7 @@ export function BitacoraClient({
               borderRadius: "var(--r-md)",
             }}
           >
-            {(["tablero", "lista", "actas"] as View[]).map((v) => {
+            {(["tablero", "lista", "actas", "agente"] as View[]).map((v) => {
               const active = view === v;
               return (
                 <button
@@ -287,7 +294,7 @@ export function BitacoraClient({
       </div>
 
       {/* Filtro "Esperando al cliente" · solo si hay tareas de ese tipo */}
-      {view !== "actas" && esperandoCount > 0 && (
+      {view !== "actas" && view !== "agente" && esperandoCount > 0 && (
         <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
           <button
             type="button"
@@ -314,7 +321,7 @@ export function BitacoraClient({
       )}
 
       {/* Cola del rol */}
-      {queueTasks.length > 0 && (
+      {queueTasks.length > 0 && view !== "agente" && (
         <section
           aria-label="Cola del rol"
           style={{
@@ -413,6 +420,11 @@ export function BitacoraClient({
       {/* Contenido principal */}
       {view === "actas" ? (
         <ActasList meetings={meetings} canEdit={canEdit} />
+      ) : view === "agente" ? (
+        <AgentQueue
+          tasks={localTasks}
+          onOpen={(t) => setDrawer({ mode: "edit", task: t })}
+        />
       ) : localTasks.length === 0 ? (
         <EmptyState
           eyebrow="Bitácora"
