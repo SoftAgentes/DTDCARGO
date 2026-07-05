@@ -13,7 +13,10 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/db/server";
 import { apiError } from "@/lib/http/api-error";
 import { listMessages } from "@/lib/studio/conversaciones/messages-queries";
-import { getClientContext } from "@/lib/studio/conversaciones/conversations-queries";
+import {
+  getClientContext,
+  listClientConversationDigests,
+} from "@/lib/studio/conversaciones/conversations-queries";
 
 export const runtime = "nodejs";
 
@@ -37,10 +40,12 @@ export async function GET(
   if (error) return apiError("No se pudo leer la conversación.", error, 500, "conversaciones");
   if (!conv) return apiError("Conversación no encontrada.", null, 404, "conversaciones");
 
-  const [messages, context] = await Promise.all([
+  const [messages, context, digests] = await Promise.all([
     listMessages(supabase, id),
     getClientContext(supabase, conv.client_id),
+    // Histórico de resúmenes mensuales (SDD-0149 · Fase 2).
+    listClientConversationDigests(supabase, conv.client_id),
   ]);
 
-  return NextResponse.json({ messages, context });
+  return NextResponse.json({ messages, context, digests });
 }

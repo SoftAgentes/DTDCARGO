@@ -37,6 +37,7 @@ import {
   type ConversationRow,
   type ConversationStatus,
 } from "@/lib/studio/conversaciones/conversations-types";
+import type { ConversationDigest } from "@/lib/studio/conversaciones/conversations-queries";
 
 const EMPTY_STATE: ConversationActionState = {};
 
@@ -70,12 +71,27 @@ function fmtTime(iso: string): string {
   }
 }
 
+/** "YYYY-MM-DD" (primer día del mes) → "Julio de 2026". */
+function fmtPeriod(iso: string): string {
+  try {
+    const s = new Date(`${iso.slice(0, 10)}T00:00:00Z`).toLocaleDateString("es-VE", {
+      month: "long",
+      year: "numeric",
+      timeZone: "UTC",
+    });
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  } catch {
+    return iso;
+  }
+}
+
 export function ConversationThread({ conv, agents }: Props) {
   const router = useRouter();
   const toast = useToast();
 
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [context, setContext] = useState<ConversationClientContext | null>(null);
+  const [digests, setDigests] = useState<ConversationDigest[]>([]);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState("");
   const [showQuick, setShowQuick] = useState(false);
@@ -87,15 +103,23 @@ export function ConversationThread({ conv, agents }: Props) {
     setLoading(true);
     fetch(`/api/studio/conversaciones/${conv.id}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((data: { messages: ConversationMessage[]; context: ConversationClientContext | null }) => {
-        if (cancelled) return;
-        setMessages(data.messages ?? []);
-        setContext(data.context ?? null);
-      })
+      .then(
+        (data: {
+          messages: ConversationMessage[];
+          context: ConversationClientContext | null;
+          digests?: ConversationDigest[];
+        }) => {
+          if (cancelled) return;
+          setMessages(data.messages ?? []);
+          setContext(data.context ?? null);
+          setDigests(data.digests ?? []);
+        },
+      )
       .catch(() => {
         if (!cancelled) {
           setMessages([]);
           setContext(null);
+          setDigests([]);
         }
       })
       .finally(() => {
@@ -474,7 +498,12 @@ export function ConversationThread({ conv, agents }: Props) {
       </div>
 
       {/* Panel de contexto del cliente */}
-      <ClientContextPanel context={context} loading={loading} clientName={conv.client_name} />
+      <ClientContextPanel
+        context={context}
+        loading={loading}
+        clientName={conv.client_name}
+        digests={digests}
+      />
     </div>
   );
 }
@@ -483,10 +512,12 @@ function ClientContextPanel({
   context,
   loading,
   clientName,
+  digests,
 }: {
   context: ConversationClientContext | null;
   loading: boolean;
   clientName: string;
+  digests: ConversationDigest[];
 }) {
   return (
     <aside
@@ -609,6 +640,64 @@ function ClientContextPanel({
           Ver en Cobranzas →
         </div>
       </div>
+
+      {/* Historial de resúmenes mensuales (SDD-0149 · Fase 2). Solo lectura; cada
+          uno con su período. Vacío hasta que el cron mensual genere el primero. */}
+      {digests.length > 0 && (
+        <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
+          <div
+            style={{
+              font: "700 10.5px/1 var(--f-sans)",
+              color: "var(--ink-soft)",
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              marginBottom: 10,
+            }}
+          >
+            Historial de resúmenes
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {digests.map((d) => (
+              <div
+                key={d.id}
+                style={{
+                  background: "var(--bg-elevated)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--r-md)",
+                  padding: "10px 12px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "baseline",
+                    justifyContent: "space-between",
+                    gap: 8,
+                    marginBottom: 5,
+                  }}
+                >
+                  <span style={{ font: "700 12px/1.2 var(--f-sans)", color: "var(--ink)" }}>
+                    {fmtPeriod(d.period)}
+                  </span>
+                  <span style={{ font: "500 10px/1 var(--f-mono)", color: "var(--ink-mute)" }}>
+                    {d.messageCount} msg
+                  </span>
+                </div>
+                <p
+                  style={{
+                    font: "500 11.5px/1.5 var(--f-sans)",
+                    color: "var(--ink-soft)",
+                    margin: 0,
+                    whiteSpace: "pre-wrap",
+                  }}
+                >
+                  {d.summary}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

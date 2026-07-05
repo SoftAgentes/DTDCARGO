@@ -77,6 +77,54 @@ export async function listUnreadConversationsForBadge(
   return data as Array<{ id: string; unread_count: number }>;
 }
 
+/** Un resumen mensual del histórico (SDD-0149). `period` = primer día del mes. */
+export type ConversationDigest = {
+  id: string;
+  period: string;
+  summary: string;
+  messageCount: number;
+  inCount: number;
+  outCount: number;
+  generatedAt: string;
+};
+
+/**
+ * Historial de resúmenes mensuales del cliente (SDD-0149 · Fase 2), recientes
+ * primero. RLS filtra por tenant. Para el panel del hilo en Conversaciones — el
+ * histórico condensado de lo dialogado (cada uno con su fecha).
+ */
+export async function listClientConversationDigests(
+  supabase: SupabaseClient,
+  clientId: string,
+): Promise<ConversationDigest[]> {
+  const { data, error } = await supabase
+    .from("conversation_monthly_digests")
+    .select("id, period, summary, message_count, in_count, out_count, generated_at")
+    .eq("client_id", clientId)
+    .order("period", { ascending: false })
+    .limit(60);
+  if (error || !data) return [];
+  return (
+    data as Array<{
+      id: string;
+      period: string;
+      summary: string;
+      message_count: number;
+      in_count: number;
+      out_count: number;
+      generated_at: string;
+    }>
+  ).map((d) => ({
+    id: d.id,
+    period: d.period,
+    summary: d.summary,
+    messageCount: d.message_count,
+    inCount: d.in_count,
+    outCount: d.out_count,
+    generatedAt: d.generated_at,
+  }));
+}
+
 export async function listConversations(
   supabase: SupabaseClient,
   opts: { limit?: number } = {},

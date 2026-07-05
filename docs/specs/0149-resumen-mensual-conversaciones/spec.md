@@ -89,7 +89,11 @@ actividad ese mes, **no se guarda nada**.
 ## Fases
 
 - **Fase 1 — Backend del digest**: tabla + migración + cron + generación IA + idempotencia.
-- **Fase 2 — Vista ERP**: selector de mes + histórico en Conversaciones/detalle del cliente.
+- **Fase 2 — Vista ERP (LIVE)**: **solo historial** (decisión founder — no selector
+  mes-por-mes; cada resumen ya trae su período/fecha). En el panel del cliente del hilo
+  (`ConversationThread`): sección "Historial de resúmenes", lista cronológica (reciente
+  primero) con período + resumen + nº de mensajes. La API `/api/studio/conversaciones/[id]`
+  suma `digests` (`listClientConversationDigests`). Solo lectura; vacío hasta el 1er cron.
 - **Fase 3 (opcional)** — exponer el resumen al cliente en el portal.
 
 ## Verificación
