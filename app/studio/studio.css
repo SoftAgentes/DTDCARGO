@@ -266,8 +266,22 @@
   transition: background 0.15s, color 0.15s, box-shadow 0.15s, transform 0.12s;
 }
 .studio-btn:disabled {
-  cursor: wait;
-  opacity: 0.85;
+  /* Deshabilitado por validación (ej: "Analizar con IA" sin suficiente texto):
+     not-allowed comunica "no disponible todavía" (NO wait/reloj, que se leía
+     como colgado); opacity 0.5 lo DISTINGUE claro del activo sin borrar el texto. */
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+/* Estado "cargando" (aria-busy="true"): el botón puede estar disabled MIENTRAS
+   trabaja (spinner + "Analizando…/Enviando…/Procesando…"). No es "prohibido"
+   sino "en progreso" → cursor progress + opacidad alta (activo-trabajando, no
+   apagado). Va DESPUÉS de :disabled; el compound :disabled (mayor especificidad)
+   garantiza que gane cuando el botón trae aria-busy + disabled a la vez
+   (ej: ActionButton), y el selector plano cubre aria-busy sin disabled. */
+.studio-btn[aria-busy="true"],
+.studio-btn[aria-busy="true"]:disabled {
+  cursor: progress;
+  opacity: 0.9;
 }
 
 .studio-btn-primary {
