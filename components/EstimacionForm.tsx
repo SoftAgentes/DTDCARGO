@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, type FormEvent } from "react";
 import Link from "next/link";
 import { ORIGINS, DESTINATIONS, CONTACT } from "@/lib/design-tokens";
+import { trackWhatsAppConversion } from "@/components/Analytics";
 import { parseDecimalInput } from "@/lib/calculadora";
 import {
   buildEstimadoWhatsAppMessage,
@@ -151,6 +152,8 @@ export function EstimacionForm() {
       estimateCode,
     });
     const url = `https://wa.me/${CONTACT.ve.whatsappRaw}?text=${encodeURIComponent(text)}`;
+    // window.open NO pasa por el listener global de <a> — conversión manual.
+    trackWhatsAppConversion("estimacion");
     window.open(url, "_blank", "noopener,noreferrer");
 
     setEstimate({

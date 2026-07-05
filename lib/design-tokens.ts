@@ -131,12 +131,11 @@ export const LAYOUT = {
 /**
  * Construye un link de wa.me con mensaje pre-rellenado. Usa CONTACT.ve.whatsappRaw.
  *
- * Mientras el ERP no exponga `POST /api/public/cotizar` y `/leads` reales,
- * todos los CTAs primarios del sitio abren WhatsApp para mantener la promesa
- * "un asesor humano te responde" y no romper trust con respuestas mock.
- *
- * Cuando el ERP esté listo, este helper queda como utility para el FAB y los
- * canales de soporte que sigan siendo WhatsApp.
+ * Los CTAs primarios del sitio abren WhatsApp para mantener la promesa
+ * "un asesor humano te responde" (la captación server-side ya es real:
+ * `POST /api/contact` y `POST /api/public/estimacion`). Los clicks a estos
+ * links los cuenta el listener global de `components/Analytics.tsx`
+ * (conversión de Ads "Click WhatsApp" + evento GA4 `whatsapp_click`).
  */
 export function buildWhatsAppLink(message: string): string {
   // Acceso por nombre porque CONTACT está declarado más abajo en este archivo.

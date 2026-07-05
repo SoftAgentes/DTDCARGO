@@ -5,7 +5,7 @@ import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 import { NewsDisclaimer } from "@/components/NewsDisclaimer";
-import { buildWhatsAppLink, BRAND_ASSETS } from "@/lib/design-tokens";
+import { buildWhatsAppLink } from "@/lib/design-tokens";
 import {
   getCategoryInfo,
   gradientToCss,
@@ -19,6 +19,7 @@ import { NewsMarkdown } from "@/lib/news/markdown";
 import { ArrowIcon } from "@/components/Icon";
 import { NewsArticleJsonLd } from "./_components/NewsArticleJsonLd";
 import { FaqPageJsonLd } from "./_components/FaqPageJsonLd";
+import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -41,6 +42,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
   const description = post.meta_description || post.excerpt;
+  // og:image / twitter:image: SIN `images` acá a propósito — las inyecta la
+  // file convention `opengraph-image.tsx` (OG dinámica por artículo,
+  // remate SEO 2026-07-05), que tiene prioridad sobre config-based metadata.
   return {
     title: { absolute: post.title },
     description,
@@ -52,13 +56,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       url: `/noticias/${slug}`,
       publishedTime: post.date,
       authors: [post.author_name],
-      images: [BRAND_ASSETS.ogImage],
     },
     twitter: {
       card: "summary_large_image",
       title: post.title,
       description,
-      images: [BRAND_ASSETS.ogImage],
     },
     keywords: [
       ...(post.focus_keyword ? [post.focus_keyword] : []),
@@ -86,6 +88,14 @@ export default async function NewsPostPage({ params }: Props) {
       {/* JSON-LD schema.org NewsArticle + FAQPage (Plan v5 · Fase D) */}
       <NewsArticleJsonLd post={post} />
       <FaqPageJsonLd bodyMarkdown={post.body_markdown} />
+      {/* Migas en SERP para los artículos (long-tail) — 2026-07-05 */}
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Inicio", path: "/" },
+          { name: "Noticias", path: "/noticias" },
+          { name: post.title, path: `/noticias/${slug}` },
+        ]}
+      />
       <Nav />
       <main className="bg-paper">
         <article className="py-16 lg:py-24">

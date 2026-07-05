@@ -118,6 +118,17 @@ export default async function CalculadoraPage() {
                 Calcula tu FCL →
               </Link>
             </p>
+            {/* Reconexión SEO 2026-07-05: /estimacion quedó huérfana tras podar
+                HeroCotizador — este es su enlazador interno principal. */}
+            <p className="mt-2 text-[13px] text-grey-700">
+              ¿Prefieres que un asesor te lo estime?{" "}
+              <Link
+                href="/estimacion"
+                className="text-wine font-semibold hover:underline"
+              >
+                Estimación inicial →
+              </Link>
+            </p>
           </div>
         </section>
 

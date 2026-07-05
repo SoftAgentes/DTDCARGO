@@ -82,7 +82,12 @@ describe("SDD-0061 Fase A · SEO / no romper", () => {
   });
 
   it("enlaces internos / plantillas apuntan al URL nuevo", () => {
-    expect(read("components/HeroCotizador.tsx")).not.toContain("/cotizar");
+    // HeroCotizador.tsx (el enlazador viejo del hero) se PODÓ el 2026-07-05:
+    // era código muerto sin importadores desde el rediseño del Hero. No debe
+    // volver — el enlace a /estimacion se reconectará desde otra superficie.
+    expect(existsSync(resolve(root, "components/HeroCotizador.tsx"))).toBe(
+      false,
+    );
     expect(read("scripts/seed-mail-templates.ts")).toContain(
       "dtdcargo.com/estimacion",
     );

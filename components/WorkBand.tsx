@@ -43,13 +43,26 @@ const videoJsonLd = {
   },
 };
 
-export function WorkBand() {
+interface WorkBandProps {
+  /**
+   * true → NO emite el VideoObject JSON-LD. Fix SEO 2026-07-05: en /brochure
+   * conviven <WorkBand /> y <OperationGallery /> y ambos emitían el MISMO
+   * VideoObject → schema duplicado inválido para Google. El brochure lo apaga
+   * acá (WorkBand es la sección secundaria) y deja el de OperationGallery,
+   * que es el mismo nodo que emite el home.
+   */
+  noVideoSchema?: boolean;
+}
+
+export function WorkBand({ noVideoSchema = false }: WorkBandProps) {
   return (
     <section className="py-20 lg:py-25 bg-paper" id="operacion">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(videoJsonLd) }}
-      />
+      {!noVideoSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(videoJsonLd) }}
+        />
+      )}
       <div className="wrap">
         <div className="max-w-[58ch]">
           <span className="eyebrow">Operación real · 义乌 Yiwu</span>

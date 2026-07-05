@@ -85,9 +85,9 @@ Auditoría (3 frentes: integridad de schema · links internos/huérfanas/sitemap
 - **Sitemap**: + `/registro` y `/servicios/inspeccion` (faltaban).
 
 **Desconexiones detectadas, PENDIENTES (decisión del founder / otra ventana):**
-- ⚠️ **`/estimacion` huérfana** (0 links internos): su enlazador `components/HeroCotizador.tsx` quedó código muerto tras el rediseño del Hero. Acción: borrar el muerto + reconectar (p. ej. desde `/calculadora`). Decisión de dónde enlazar.
-- ⚠️ **`/nosotros` huérfana** (0 links internos, sí en sitemap): enlazar desde Footer/Nav (decisión de IA).
-- **`/brochure` con `VideoObject` DUPLICADO** (WorkBand + OperationGallery emiten el mismo) — inválido para Google. Fix: prop `noVideoSchema` en uno (toca componentes compartidos).
+- ~~⚠️ `/estimacion` huérfana~~ ✅ CERRADO 2026-07-05: muerto podado (`HeroCotizador.tsx` + `TrackingPreview.tsx`) y ruta **reconectada** — CTA en `/calculadora` ("¿Prefieres que un asesor te lo estime?") + link "Estimación" en el Footer.
+- ~~⚠️ `/nosotros` huérfana~~ ✅ CERRADO 2026-07-05: link "Nosotros" en el Footer.
+- ~~`/brochure` con `VideoObject` DUPLICADO~~ ✅ CERRADO 2026-07-05: prop `noVideoSchema` en `WorkBand` (el secundario) + `<WorkBand noVideoSchema />` en la página; el home intacto (queda el nodo de `OperationGallery`, el mismo del home).
 - **Ancla muerta** en Footer: `#registro-marca-coord` no existe en `/servicios` (el slug real es `registro-marca-cn`); el Footer deriva anclas de `SERVICES_VE` (design-tokens) y la página usa `servicios-detalle.ts` → dos namespaces de slugs.
 - **`/servicios/inspeccion`**: `provider` `LocalBusiness` suelto (igual patrón) + falta nodo `Service` rico + `HowTo`. NO tocado (territorio de la ventana `servicios-ux`).
 - **`llms.txt` dice "Fundada en 2008"** → contradice `foundingDate: 2010` del schema. Alinear framing (empresa 2010 · comercio China 2008 · VE 2015). Es copy de marca → decisión del founder.
@@ -102,6 +102,32 @@ El `connect-src`/`img-src` del CSP (`next.config.ts`) permitía `googleads.g.dou
 - **Impacto real (no exagerar):** el ping de conversión **primario** va a `googleadservices.com` / `google.com`, que **sí** estaban permitidos → las conversiones base (las ~4.231 del historial, ver [`ads-reestructura-search.md`](ads-reestructura-search.md)) **se venían registrando**. Lo que estaba degradado era el beacon `ccm/collect` de doubleclick = **enhanced conversions + señal de remarketing/audiencias**. O sea: mejora la **calidad de la señal** para Smart Bidding y las audiencias de remarketing, no "recupera conversiones perdidas" en el conteo base.
 - **Monitoreo:** en Google Ads, revisar que "Enhanced conversions" deje de reportar diagnóstico de beacon bloqueado y que las audiencias de remarketing de doubleclick vuelvan a poblarse tras el deploy.
 - **Regla:** cualquier tag/pixel externo nuevo (Meta, TikTok, Hotjar, etc.) exige sumar su dominio de `connect-src`/`img-src` en el CSP de `next.config.ts`, o el beacon se bloquea silenciosamente (solo se ve en la consola del navegador).
+
+### 2026-07-05 · Auditoría de medición — fuga PII tapada + conversión WhatsApp completa + eventos GA4
+(disparador: correos de Google Analytics sobre audiencias + objetivos "Requiere atención"; investigación de 6 agentes sobre el repo)
+
+**1. Fuga PII a Google TAPADA** (`components/Analytics.tsx` — endurecido tras review adversarial de 21 agentes):
+- `PRIVATE_PREFIXES` ampliado: + `/verificar` (el `?c=<Shipping Mark|folio>` viajaba en el page_view), + `/p` (packing list con token capability, SDD-0096), + `/interno`, + `/marca`, + `/calculadora/embed` (iframe del portal — filtraba el referrer del portal y contaminaba métricas públicas).
+- **`/track/[code]` EXCLUIDA por completo** (el buscador `/track` sí se mide): la primera versión solo redactaba el `page_view` manual, pero gtag adjunta la URL cruda (`dl`) y el `document.title` ("Tracking S-2026-XXXX") a CADA hit — incluido el ping del tag de Ads al cargar la página — así que redactar no basta; la única vía estanca es no cargar el tag ahí. Bonus de calidad: quien rastrea ya es cliente → sus clicks a WhatsApp dejan de contar como conversión de captación.
+- **Whitelist de query params** (`sanitizeSearch`): a GA solo viajan `utm_*`, `origen` y click IDs (`gclid`/`gbraid`/`wbraid`); `?est=EST-XXXX`, `?ref=…`, `?c=…`, tokens → se botan. `sanitizePath()` queda como defensa en profundidad.
+- **Kill-switch en navegación SPA público→privado**: `window['ga-disable-<ID>']` (GA4 + Ads) se activa al entrar a ruta privada — sin esto, la "medición mejorada" de GA4 (history changes) podría emitir hits con URLs privadas desde el script ya cargado.
+
+**2. Conversión "Click WhatsApp" — subconteo estructural arreglado:**
+- Los 3 flujos de MAYOR intención abrían WhatsApp con `window.open()` desde un `<button>` y el listener global (solo `<a>`) nunca los veía → **cero conversiones en el CTA principal**: calculadora (`CalculadoraForm`), `/estimacion` (`EstimacionForm`) y "Arma tu envío" (`ServiciosExplorer`). Ahora los 3 disparan `trackWhatsAppConversion()` — **MISMO `send_to`** (`AW-561290482/qbu2CILjn7ocEPK50osC`), no se fragmenta el historial de Smart Bidding. Esperar un salto REAL de conversiones al desplegar: antes se subcontaba.
+- Ruido eliminado: `wa.me/?text` sin número (COMPARTIR estado en `/track`) ya no cuenta como conversión; los clicks dentro de iframes tampoco (`/calculadora/embed` vive embebida en el portal de clientes ya captados).
+
+**3. Eventos GA4 nuevos** (antes: CERO eventos propios — la conversión de Ads no llega a la propiedad GA4):
+- `whatsapp_click` (param `cta_origin`) — espejo GA4 de cada click a WhatsApp.
+- `generate_lead` (param `lead_method`: `contacto` | `estimado` | `registro`) — form de contacto ACEPTADO por el servidor (res.ok — un throttle/rechazo no infla el evento), estimado confirmado en el modal y registro con MARKBOX. Con guard de iframe (el embed del portal no cuenta). Nota asumida: la cadena estimado→registro del mismo humano genera 2 `generate_lead` (son 2 acciones distintas; las audiencias cuentan usuarios, no eventos).
+
+**4. SEO on-site:** sitemap + `/cotizador-flete` + `/enlaces` (faltaban) · `robots.ts` ya NO bloquea `/track/` (bloquearlo impedía que Google leyera el meta `noindex` de `/track/[code]` — quedaban "URL-only") · `BreadcrumbJsonLd` en `/noticias/[slug]` (migas en SERP para el long-tail) · **red de seguridad del 301 de dominio** en `next.config.ts`: redirects host-based `doortudoor.com`/`www.doortudoor.com` → `dtdcargo.com/:path*` — inertes mientras el 301 externo (DNS/Hostinger) funcione, salvavidas si vuelve a caerse como con el clientHold · podado código muerto con CTAs WhatsApp fantasma (`HeroCotizador.tsx`, `TrackingPreview.tsx`, 0 importadores).
+
+**4b. Remates (modo Yunque · implementer + reviewer APPROVED):** `/estimacion` y `/nosotros` reconectadas (CTA en `/calculadora` + links en Footer) · **OG image dinámica por artículo** (`app/noticias/[slug]/opengraph-image.tsx`, 1200×630 flat navy/wine con hex canónicos de `globals.css` documentados — Satori no lee CSS vars —, fallback genérico si el post no existe; el JSON-LD `image` apunta ahí; tipografía default de ImageResponse hasta versionar un `Archivo-*.ttf` local) · **VideoObject único** en `/brochure` (prop `noVideoSchema` en `WorkBand`; home intacto) · **`lastModified` honesto** en sitemap (omitido en estáticas/geo, real solo en posts) · +10 tests en `__tests__/seo-remates.test.ts`.
+
+**5. Consola (founder / Cloud Chrome) — pendiente de ejecutar:**
+- ⚠️ **Verificar la propiedad GA4**: la sesión de Cloud Chrome miraba `a208873909…` (cuenta vieja "DoorTuDoor"); la oficial es "dtdcargo.com" (cuenta 396905128, tag `G-25CD7BZH98`). Las audiencias van en la propiedad que RECIBE los datos.
+- En GA4: marcar `generate_lead` y `whatsapp_click` como **key events** cuando fluyan post-deploy; crear audiencia **"Todos los visitantes — 30 días"** YA (supera los 100 miembros de una y desbloquea remarketing/adquisición en Ads) y luego **"Intención de cotizar"** (`whatsapp_click` O `generate_lead`, retención 90 días). Si se crean audiencias por `page_path` de `/calculadora`, excluir `/calculadora/embed`.
+- En Google Ads: conversión "Click WhatsApp" → confirmar estado "Activa" y que enhanced conversions ya no reporte beacon bloqueado (fix CSP 2026-07-04) · **eliminar "Contactar"** (viene de UA, descontinuado) · **quitar "Vista de página" como conversión principal** (9k page views contaminan Smart Bidding) · las acciones de llamada sin conversiones recientes son normales con las campañas pausadas.
 
 ## 🛡️ Reglas SEO que NO se rompen
 
@@ -118,7 +144,7 @@ Antes de tocar SEO o identidad, revisar:
 - [ ] **Nombre público = "DTD Cargo"**; razón social y RIF **solo** en `legalName`/`taxID`, nunca en texto visible.
 - [ ] **Año = 2010** (`foundingDate`) + narrativa "+15 años". No cambiar.
 - [ ] **301 `doortudoor.com`** intacto · dominio viejo sin expirar · sin contenido propio ahí.
-- [ ] **GA fuera de rutas privadas** (`/studio /portal /m /back /invitar`).
+- [ ] **GA fuera de rutas privadas** (`/studio /portal /m /back /invitar /verificar /p /interno /marca /calculadora/embed` y `/track/<código>`) · query params: solo whitelist de atribución (`sanitizeSearch`). El código del cliente NUNCA llega a Google — ojo: gtag manda `dl` y título crudos en cada hit, redactar el page_view no basta, hay que EXCLUIR la ruta. Tests en `__tests__/analytics.test.ts`.
 - [ ] Rename de ruta con SEO → **301** del slug viejo en `next.config.ts`.
 - [ ] Validar el schema en Rich Results Test antes de cerrar.
 - [ ] `SearchAction` solo si existe un buscador real (hoy no hay).

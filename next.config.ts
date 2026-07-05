@@ -282,6 +282,25 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
+      // Red de seguridad del 301 de dominio doortudoor.com → dtdcargo.com.
+      // El 301 REAL vive en el DNS/hosting externo (Hostinger) — pero ya se
+      // cayó una vez (clientHold, ver memoria project_dominio_clienthold).
+      // Estos redirects host-based son INERTES mientras el externo funcione;
+      // si algún día doortudoor.com se apunta a este deployment de Vercel, el
+      // 301 path-preserving sigue vivo desde código. Regla SEO #1: nunca
+      // quitar este redirect (docs/marketing/seo.md).
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "doortudoor.com" }],
+        destination: "https://dtdcargo.com/:path*",
+        permanent: true,
+      },
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.doortudoor.com" }],
+        destination: "https://dtdcargo.com/:path*",
+        permanent: true,
+      },
       // El kit de marca dejó de ser público: la marca ahora vive en la zona
       // interna gateada `/interno/marca` (login del ERP). El `/brand` viejo
       // (indexado) redirige al home para no dejar un 404 a quien lo tenga

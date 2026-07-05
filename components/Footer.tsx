@@ -197,6 +197,14 @@ export function Footer() {
             <Link href="/registro" className="hover:text-white transition-colors">
               Registro de cliente
             </Link>
+            {/* Reconexión SEO 2026-07-05: /estimacion y /nosotros estaban
+                huérfanas (0 links internos, sí en sitemap). */}
+            <Link href="/estimacion" className="hover:text-white transition-colors">
+              Estimación
+            </Link>
+            <Link href="/nosotros" className="hover:text-white transition-colors">
+              Nosotros
+            </Link>
             <Link href="/brochure" className="hover:text-white transition-colors">
               Brochure
             </Link>

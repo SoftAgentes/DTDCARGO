@@ -16,6 +16,7 @@ import {
   type ClientKind,
   type RegisterActionState,
 } from "@/lib/portal/register-types";
+import { trackLead } from "@/components/Analytics";
 import { registerClientAction } from "./actions";
 
 const initial: RegisterActionState = {};
@@ -72,6 +73,11 @@ export function RegisterForm({
   const [tried, setTried] = useState(false);
 
   const done = !!state.markbox;
+
+  // GA4 `generate_lead`: el registro emitió MARKBOX — lead capturado (1 vez).
+  useEffect(() => {
+    if (done) trackLead("registro");
+  }, [done]);
 
   function patch(p: Partial<FormData0>) {
     setData((d) => ({ ...d, ...p }));

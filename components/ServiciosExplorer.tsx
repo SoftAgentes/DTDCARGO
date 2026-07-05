@@ -15,6 +15,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ComponentType } from "react";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
+import { trackWhatsAppConversion } from "@/components/Analytics";
 import {
   WhatsAppIcon,
   CheckIcon,
@@ -98,6 +99,8 @@ export function ServiciosExplorer({
     const url = buildWhatsAppLink(
       `Hola DTD Cargo, quiero cotizar estos servicios:\n${lineas}\n¿Me ayudan?`,
     );
+    // window.open NO pasa por el listener global de <a> — conversión manual.
+    trackWhatsAppConversion("servicios-arma-tu-envio");
     window.open(url, "_blank", "noopener,noreferrer");
   };
 

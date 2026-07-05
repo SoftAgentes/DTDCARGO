@@ -139,8 +139,10 @@ export default function BrochurePage() {
         {/* 3 · Yiwu — ventaja estratégica (reuso) */}
         <YiwuAdvantage />
 
-        {/* 3b · Operación real en Yiwu (clip de bodega) */}
-        <WorkBand />
+        {/* 3b · Operación real en Yiwu (clip de bodega). noVideoSchema: acá
+            también se monta <OperationGallery /> (3c), que emite el MISMO
+            VideoObject — sin esto el schema quedaba duplicado (inválido). */}
+        <WorkBand noVideoSchema />
 
         {/* 3c · El sello DoorTuDoor (fotos de marca en la operación) */}
         <OperationGallery />

@@ -18,6 +18,7 @@ import { DecimalInput } from "@/components/DecimalInput";
 import { CONTACT } from "@/lib/design-tokens";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
 import { EstimadoModal, type EstimadoContact } from "@/components/EstimadoModal";
+import { trackWhatsAppConversion } from "@/components/Analytics";
 import { buildEstimadoWhatsAppMessage } from "@/lib/public/estimado-web";
 
 /**
@@ -185,6 +186,8 @@ export function CalculadoraForm({
       estimateCode,
     });
     const url = `https://wa.me/${CONTACT.ve.whatsappRaw}?text=${encodeURIComponent(text)}`;
+    // window.open NO pasa por el listener global de <a> — conversión manual.
+    trackWhatsAppConversion("calculadora");
     window.open(url, "_blank", "noopener,noreferrer");
     setSavedEstimateCode(estimateCode);
     setModalOpen(false);

@@ -74,15 +74,18 @@ Test puntual: `pnpm test path/to/file.test.ts` o `pnpm test -t "nombre"`. E2e pu
 
 `NEXT_PUBLIC_HAILUWAY_API` (base URL del ERP, HTTP) · `DTD_API_KEY` · `NEXT_PUBLIC_WHATSAPP_NUMBER` · `NEXT_PUBLIC_CONTACT_EMAIL` · `NEXT_PUBLIC_SITE_URL` (default `https://dtdcargo.com`).
 
-## Integraciones HTTP con el ERP (estado)
+## Integraciones del sitio público (estado · actualizado 2026-07-05)
 
-| Endpoint del ERP | Estado | Usado por |
+Los mocks originales **ya no existen** (`mockSubmit` desapareció del código). La captación es real:
+
+| Endpoint | Estado | Usado por |
 |---|---|---|
-| `GET /api/public/track/[code]` | ✅ existe — sitio usa MOCK hasta confirmar URL | `/track/[code]` |
-| `POST /api/public/cotizar` | ❌ no existe — MOCK | `/cotizar` |
-| `POST /api/public/leads` | ❌ no existe — MOCK | `/contacto`, `/cotizar` |
+| RPC pública `public_track_shipment` (consulta server-side) | ✅ real | `/track/[code]` |
+| `POST /api/public/estimacion` | ✅ real — crea `EST-XXXX` en el ERP | `/estimacion` y `/calculadora` (EstimadoModal) |
+| `POST /api/contact` | ✅ real — Resend equipo + cliente, honeypot + throttle IP | `/contacto` |
+| Server Action de registro + `POST /api/registro/check` | ✅ real — alta cliente + MARKBOX | `/registro` |
 
-Cuando el ERP exponga endpoints reales, reemplazar `mockSubmit`/`getTracking` por `fetch` (buscar `// TODO: reemplazar por fetch real`).
+`/cotizar` fue renombrada a `/estimacion` (301 en `next.config.ts`, SDD-0061).
 
 ## Convenciones
 

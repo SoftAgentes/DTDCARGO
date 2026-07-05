@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { ArrowIcon, WhatsAppIcon } from "./Icon";
 import { CONTACT } from "@/lib/design-tokens";
+import { trackLead } from "@/components/Analytics";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
@@ -29,13 +30,11 @@ type LeadData = {
 };
 
 /**
- * Formulario de contacto general. Actualmente MOCK — el `onSubmit` solo
- * captura los datos para que el botón "Adelantar por WhatsApp" pueda
- * pre-armar un mensaje estructurado con toda la info del cliente.
- *
- * Próximo paso (NIVEL B): conectar a Resend para envío real por email.
- * Cuando ese endpoint exista (`/api/contact`), reemplazar el setTimeout
- * por un fetch a esa ruta.
+ * Formulario de contacto general. La captación server-side es REAL: el submit
+ * hace POST best-effort a `/api/contact` (Resend al equipo + confirmación al
+ * cliente, honeypot + throttle por IP) y después muestra la pantalla de
+ * "Enviar por WhatsApp" con el mensaje pre-armado — aunque el email falle,
+ * el fallback a WhatsApp nunca pierde al lead.
  */
 export function ContactoForm() {
   const [status, setStatus] = useState<Status>("idle");
@@ -67,11 +66,14 @@ export function ContactoForm() {
     // el cliente una confirmación. Aunque falle, igual mostramos la pantalla de
     // WhatsApp — el fallback nunca pierde al lead que sí escribe.
     try {
-      await fetch("/api/contact", {
+      const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...captured, code, [HONEYPOT_FIELD]: honeypot }),
       });
+      // GA4 `generate_lead`: solo si el servidor ACEPTÓ el envío — un rechazo
+      // (throttle, validación) no debe inflar el key event con bots/ruido.
+      if (res.ok) trackLead("contacto");
     } catch {
       // best-effort: seguimos al WhatsApp igual.
     }

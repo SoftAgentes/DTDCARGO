@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { CloseIcon, WhatsAppIcon } from "./Icon";
+import { trackLead } from "./Analytics";
 
 /**
  * SDD-0061 Fase B1 — Modal de captura del estimado web.
@@ -145,6 +146,10 @@ export function EstimadoModal({
     } catch (err) {
       console.warn("[EstimadoModal] POST estimacion error de red:", err);
     }
+
+    // GA4 `generate_lead`: el contacto ya quedó capturado (nombre + teléfono),
+    // aunque el POST haya fallado — el flujo sigue a WhatsApp igual.
+    trackLead("estimado");
 
     onConfirm(contact, estimateCode);
   }

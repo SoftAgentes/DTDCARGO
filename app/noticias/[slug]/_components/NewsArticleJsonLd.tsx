@@ -42,7 +42,11 @@ export function NewsArticleJsonLd({ post }: Props) {
     "https://dtdcargo.com";
   const url = `${siteUrl}/noticias/${post.slug}`;
   const logoUrl = `${siteUrl}/brand/dtdcargo-isologo-primary.png`;
-  const ogImageUrl = `${siteUrl}/brand/dtdcargo-isologo-primary.png`;
+  // `image` del NewsArticle → la OG dinámica 1200×630 por artículo (file
+  // convention app/noticias/[slug]/opengraph-image.tsx, remate SEO
+  // 2026-07-05). Antes apuntaba al isólogo 741×764, que no cumple el aspect
+  // ratio 16:9 que Google prefiere para rich results.
+  const ogImageUrl = `${siteUrl}/noticias/${post.slug}/opengraph-image`;
 
   const cat = getCategoryInfo(post.categoria);
   const articleSection = cat.label;
@@ -83,6 +87,9 @@ export function NewsArticleJsonLd({ post }: Props) {
     description,
     image: [ogImageUrl],
     datePublished: post.date,
+    // dateModified = post.date a propósito: `news_posts` no expone updated_at
+    // en NewsPostRow (solo date/created_at). No inventar una fecha de edición
+    // que la DB no tiene; si algún día se agrega la columna, cablearla acá.
     dateModified: post.date,
     author: [author],
     publisher: {
