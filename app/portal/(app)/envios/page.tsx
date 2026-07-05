@@ -99,7 +99,13 @@ export default async function PortalShipmentsPage() {
   const banner = await loadConsolidadoBanner(client.id);
 
   return (
-    <PortalAlertasHub items={items} docs={docs} track={track} banner={banner} />
+    <PortalAlertasHub
+      items={items}
+      docs={docs}
+      track={track}
+      banner={banner}
+      markbox={client.markbox}
+    />
   );
 }
 

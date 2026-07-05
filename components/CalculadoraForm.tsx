@@ -759,10 +759,16 @@ function ResultPanel({
 
   return (
     <>
-      {/* Panel del total (gradiente navy) */}
+      {/* Panel del total (gradiente navy) — superficie navy ESTABLE: en el portal
+          oscuro `--color-ink` vira a crema y el gradiente quedaba "crema → navy".
+          `--hero-*` es navy en ambos temas; el fallback deja la página pública
+          (sin data-portal-theme) idéntica. */}
       <div
         className="rounded-[16px] p-5 lg:p-6 text-white"
-        style={{ background: "linear-gradient(150deg, var(--color-ink), #1F3055)" }}
+        style={{
+          background:
+            "linear-gradient(150deg, var(--hero-from, var(--color-ink)), var(--hero-to, #1F3055))",
+        }}
       >
         <div
           className="text-[11px] font-bold tracking-[0.12em] uppercase"
@@ -833,12 +839,15 @@ function ResultPanel({
           {/* Nudge "ya está lista" — pill navy con vibración mínima + flecha */}
           {!hasAlerta && (
             <div className="flex flex-col items-center -mb-1">
-              <div className="nudge-vibrate w-full rounded-[12px] bg-ink text-white text-center text-[13.5px] leading-[1.35] py-3 px-4">
+              <div
+                className="nudge-vibrate w-full rounded-[12px] text-white text-center text-[13.5px] leading-[1.35] py-3 px-4"
+                style={{ background: "var(--hero-from, var(--color-ink))" }}
+              >
                 Tu cotización ya está lista —{" "}
                 <strong>solo falta enviarla.</strong>
               </div>
               <svg width="22" height="11" viewBox="0 0 22 11" fill="none" aria-hidden="true">
-                <path d="M2 1l9 8 9-8" stroke="var(--color-ink)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M2 1l9 8 9-8" stroke="var(--hero-from, var(--color-ink))" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
           )}

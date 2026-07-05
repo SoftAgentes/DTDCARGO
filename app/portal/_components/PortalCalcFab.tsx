@@ -1,29 +1,45 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { CalcIcon, CloseIcon, CheckIcon, DocIcon, ArrowIcon } from "@/components/Icon";
+import { useEffect, useRef, useState } from "react";
+import { CalcIcon, CloseIcon, CheckIcon, DocIcon } from "@/components/Icon";
 
 /**
  * Calculadora flotante del portal (Norte · `PortalCalcFab` de
- * docs/design/studio/_norte/portal/app.jsx). FAB siempre visible que abre una
- * ventanita SIN sacar al cliente del portal — dos modos:
+ * docs/design/studio/_norte/portal/app.jsx). FAB redondo, icon-only y
+ * **arrastrable** que abre una ventana SIN sacar al cliente del portal. Dos modos:
+ *   · "CBM": la Calculadora CBM completa embebida (iframe a `/calculadora/embed`,
+ *     misma tarifa que la página pública, sin su chrome). Redimensionable para
+ *     verla cómoda.
  *   · "Rápida": calculadora aritmética (saca cuentas al toque, copia el total).
- *   · "CBM": acceso directo a la Calculadora CBM completa (/calculadora), el
- *     estimado real por volumen. No se embebe porque /calculadora es una página
- *     pública completa (con su propio header/footer) — un iframe chico se vería
- *     roto; el CTA la abre en su lugar.
  *
- * Se puede abrir desde afuera despachando el evento `portal:open-calc` (lo usa
- * el botón "Calculadora CBM" del dashboard) — abre directo en la pestaña CBM.
+ * Interacción (port del prototipo Norte 2026-07-04):
+ *   · FAB arrastrable; al soltar se **ancla al lado más cercano** (izq/der).
+ *   · La ventana abre del **mismo lado** que el FAB.
+ *   · Ventana arrastrable por la barra + **redimensionable por las 2 esquinas
+ *     inferiores** (derecha crece a la derecha, izquierda con borde derecho fijo).
+ *   · Barra de título en navy estable (tokens `--hero-*`) — `--color-ink` NO
+ *     sirve: en oscuro vira a crema y el texto blanco queda invisible.
+ *
+ * Se puede abrir desde afuera con el evento `portal:open-calc` → abre en CBM.
  */
-type Tab = "rapida" | "cbm";
+type Tab = "cbm" | "rapida";
+type Pos = { x: number; y: number };
+
+const W = () => (typeof window !== "undefined" ? window.innerWidth : 1200);
+const H = () => (typeof window !== "undefined" ? window.innerHeight : 800);
+const clampN = (min: number, max: number, v: number) =>
+  Math.max(min, Math.min(max, v));
 
 export function PortalCalcFab() {
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<Tab>("rapida");
+  const [tab, setTab] = useState<Tab>("cbm");
+  const [theme, setTheme] = useState<"dark" | "light">("light");
+  const [fpos, setFpos] = useState<Pos | null>(null); // posición del FAB
+  const [ppos, setPpos] = useState<Pos | null>(null); // posición de la ventana
+  const [size, setSize] = useState({ w: 372, h: 520 });
+  const draggedRef = useRef(false);
 
-  // Apertura externa (botón "Calculadora CBM" del home) → abre en CBM.
+  // Apertura externa (evento del portal) → abre en CBM.
   useEffect(() => {
     function onOpenCalc() {
       setTab("cbm");
@@ -43,20 +59,156 @@ export function PortalCalcFab() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
+  // Tema del iframe = tema del portal (shell #portal-shell). Vive el observer
+  // para re-tematizar en vivo si el cliente togglea mientras la ventana está abierta.
+  useEffect(() => {
+    const shell = document.getElementById("portal-shell");
+    const read = () =>
+      setTheme(shell?.dataset.portalTheme === "dark" ? "dark" : "light");
+    read();
+    if (!shell) return;
+    const obs = new MutationObserver(read);
+    obs.observe(shell, {
+      attributes: true,
+      attributeFilter: ["data-portal-theme"],
+    });
+    return () => obs.disconnect();
+  }, []);
+
+  // Lado del FAB → la ventana abre del mismo lado.
+  const fabOnLeft = fpos ? fpos.x + 60 < W() / 2 : false;
+  const px = ppos ? ppos.x : fabOnLeft ? 24 : W() - size.w - 24;
+  const py = ppos ? ppos.y : H() - size.h - 92;
+  const fabStyle: React.CSSProperties = fpos
+    ? { left: fpos.x, top: fpos.y }
+    : { right: 24, bottom: 24 };
+
+  // ── Drag del FAB (ancla al lado más cercano al soltar) ──
+  const startFabDrag = (e: React.PointerEvent) => {
+    draggedRef.current = false;
+    const sx = e.clientX,
+      sy = e.clientY;
+    const ox = fpos ? fpos.x : W() - 76,
+      oy = fpos ? fpos.y : H() - 76;
+    const move = (ev: PointerEvent) => {
+      if (Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy) > 4)
+        draggedRef.current = true;
+      setFpos({
+        x: clampN(8, W() - 60, ox + (ev.clientX - sx)),
+        y: clampN(8, H() - 56, oy + (ev.clientY - sy)),
+      });
+    };
+    const up = () => {
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", up);
+      // Ancla al borde más cercano; resetea la ventana para que re-derive del lado.
+      setFpos((p) =>
+        p ? { x: p.x + 28 < W() / 2 ? 24 : W() - 80, y: p.y } : p,
+      );
+      setPpos(null);
+    };
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", up);
+  };
+
+  // ── Drag de la ventana (por la barra de título) ──
+  const startPanelDrag = (e: React.PointerEvent) => {
+    e.preventDefault();
+    const sx = e.clientX,
+      sy = e.clientY;
+    const ox = ppos ? ppos.x : px,
+      oy = ppos ? ppos.y : py;
+    const move = (ev: PointerEvent) =>
+      setPpos({
+        x: clampN(8, W() - size.w, ox + (ev.clientX - sx)),
+        y: clampN(8, H() - 80, oy + (ev.clientY - sy)),
+      });
+    const up = () => {
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", up);
+    };
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", up);
+  };
+
+  // ── Resize derecha (crece a la derecha, borde izquierdo fijo) ──
+  const startResize = (e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const sx = e.clientX,
+      sy = e.clientY,
+      ow = size.w,
+      oh = size.h;
+    if (!ppos) setPpos({ x: px, y: py });
+    const move = (ev: PointerEvent) =>
+      setSize({
+        w: clampN(300, W() - 24, ow + (ev.clientX - sx)),
+        h: clampN(320, H() - 120, oh + (ev.clientY - sy)),
+      });
+    const up = () => {
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", up);
+    };
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", up);
+  };
+
+  // ── Resize izquierda (crece a la izquierda, borde DERECHO fijo) ──
+  const startResizeLeft = (e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const sx = e.clientX,
+      sy = e.clientY,
+      ow = size.w,
+      oh = size.h;
+    const rightEdge = px + size.w;
+    const startY = py;
+    if (!ppos) setPpos({ x: px, y: py });
+    const move = (ev: PointerEvent) => {
+      const dx = ev.clientX - sx;
+      const newW = clampN(300, rightEdge - 8, ow - dx);
+      setSize({ w: newW, h: clampN(320, H() - 120, oh + (ev.clientY - sy)) });
+      setPpos({ x: rightEdge - newW, y: startY });
+    };
+    const up = () => {
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", up);
+    };
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", up);
+  };
+
+  const resizeGradient = (deg: number) =>
+    `linear-gradient(${deg}deg, transparent 45%, var(--color-wine) 45%, var(--color-wine) 60%, transparent 60%, transparent 72%, var(--color-wine) 72%, var(--color-wine) 86%, transparent 86%)`;
+
   return (
     <>
       {open && (
         <div
           role="dialog"
           aria-label="Calculadora"
-          className="fixed z-[251] right-4 bottom-[84px] w-[min(360px,calc(100vw-24px))] card-shadow bg-white border border-grey-200 rounded-[16px] overflow-hidden flex flex-col"
+          className="fixed z-[251] card-shadow bg-white border border-grey-200 rounded-[16px] overflow-hidden flex flex-col"
+          style={{
+            left: px,
+            top: py,
+            width: size.w,
+            height: size.h,
+            maxWidth: "calc(100vw - 16px)",
+            maxHeight: "calc(100vh - 24px)",
+          }}
         >
-          {/* Barra navy */}
+          {/* Barra navy arrastrable — navy en AMBOS temas (tokens --hero-*, con
+              fallback para cuentas no-demo que son siempre claras). */}
           <div
-            className="flex items-center justify-between gap-2.5 px-4 py-3"
-            style={{ background: "var(--color-ink)" }}
+            onPointerDown={startPanelDrag}
+            className="flex items-center justify-between gap-2.5 px-4 py-3 cursor-move select-none"
+            style={{
+              background: "var(--hero-from, var(--color-ink))",
+              color: "var(--hero-ink, var(--color-paper))",
+              touchAction: "none",
+            }}
           >
-            <div className="flex items-center gap-2" style={{ color: "var(--color-paper)" }}>
+            <div className="flex items-center gap-2">
               <CalcIcon size={15} />
               <span
                 className="text-[13px] font-bold"
@@ -64,13 +216,22 @@ export function PortalCalcFab() {
               >
                 Calculadora
               </span>
+              <span
+                className="text-[9px] font-bold tracking-[0.08em] opacity-60"
+                style={{
+                  fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
+                }}
+              >
+                · arrastra
+              </span>
             </div>
             <button
               type="button"
+              onPointerDown={(e) => e.stopPropagation()}
               onClick={() => setOpen(false)}
               aria-label="Cerrar calculadora"
-              className="grid place-items-center h-9 w-9 rounded-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-paper)]"
-              style={{ color: "var(--color-paper)" }}
+              className="grid place-items-center h-9 w-9 rounded-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--hero-ink,var(--color-paper))]"
+              style={{ color: "var(--hero-ink, var(--color-paper))" }}
             >
               <CloseIcon size={16} />
             </button>
@@ -80,8 +241,8 @@ export function PortalCalcFab() {
           <div className="flex items-center gap-1 px-2.5 py-2 bg-paper border-b border-grey-200">
             {(
               [
-                ["rapida", "Rápida"],
                 ["cbm", "CBM"],
+                ["rapida", "Rápida"],
               ] as [Tab, string][]
             ).map(([v, label]) => {
               const on = tab === v;
@@ -105,24 +266,75 @@ export function PortalCalcFab() {
             })}
           </div>
 
-          {tab === "rapida" ? <QuickCalc /> : <CbmPanel />}
+          {/* Contenido */}
+          <div className="flex-1 min-h-0 overflow-hidden">
+            {tab === "cbm" ? (
+              <iframe
+                title="Calculadora CBM"
+                src={`/calculadora/embed?theme=${theme}`}
+                className="w-full h-full block"
+                style={{ border: 0, background: "var(--color-white)" }}
+              />
+            ) : (
+              <div className="h-full overflow-y-auto">
+                <QuickCalc />
+              </div>
+            )}
+          </div>
+
+          {/* Handles de resize (esquinas inferiores) */}
+          <div
+            onPointerDown={startResize}
+            title="Arrastra para ampliar"
+            className="absolute right-0.5 bottom-0.5"
+            style={{
+              width: 18,
+              height: 18,
+              cursor: "nwse-resize",
+              touchAction: "none",
+              background: resizeGradient(135),
+            }}
+          />
+          <div
+            onPointerDown={startResizeLeft}
+            title="Arrastra para ampliar"
+            className="absolute left-0.5 bottom-0.5"
+            style={{
+              width: 18,
+              height: 18,
+              cursor: "nesw-resize",
+              touchAction: "none",
+              background: resizeGradient(225),
+            }}
+          />
         </div>
       )}
 
-      {/* FAB */}
+      {/* FAB redondo, icon-only, arrastrable */}
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onPointerDown={startFabDrag}
+        onClick={() => {
+          if (!draggedRef.current) setOpen((o) => !o);
+        }}
         aria-label="Abrir calculadora"
         aria-expanded={open}
-        className="fixed z-[252] right-4 bottom-4 inline-flex items-center gap-2 px-4 py-3 rounded-full text-[13px] font-bold card-shadow transition-transform motion-safe:hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        className="fixed z-[252] grid place-items-center card-shadow transition-transform motion-safe:hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
         style={{
-          background: open ? "var(--color-wine-deep, var(--color-wine))" : "var(--color-wine)",
+          width: 52,
+          height: 52,
+          borderRadius: "50%",
+          background: open
+            ? "var(--color-wine)"
+            : "color-mix(in srgb, var(--color-wine) 78%, transparent)",
           color: "var(--color-on-accent)",
-          border: "2px solid var(--color-paper)",
+          border: "2px solid var(--color-white)",
+          cursor: "grab",
+          touchAction: "none",
+          ...fabStyle,
         }}
       >
-        <CalcIcon size={16} /> Calculadora
+        <CalcIcon size={20} />
       </button>
     </>
   );
@@ -243,28 +455,6 @@ function QuickCalc() {
         {copied ? <CheckIcon size={13} /> : <DocIcon size={13} />}
         {copied ? "Copiado" : "Copiar resultado"}
       </button>
-    </div>
-  );
-}
-
-/** Pestaña CBM · deriva a la Calculadora CBM completa (estimado por volumen). */
-function CbmPanel() {
-  return (
-    <div className="p-4">
-      <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine">
-        Estimado por volumen
-      </div>
-      <p className="mt-2 text-[13px] text-grey-700 leading-[1.55]">
-        La Calculadora CBM saca el costo estimado de tu envío puerta a puerta según
-        el volumen, el peso y tu destino. Genera un estimado que tu asesor puede
-        pasar a cotización.
-      </p>
-      <Link
-        href="/calculadora"
-        className="btn btn-primary mt-4 inline-flex w-full justify-center items-center gap-2"
-      >
-        Abrir Calculadora CBM <ArrowIcon size={15} />
-      </Link>
     </div>
   );
 }

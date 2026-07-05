@@ -22,6 +22,7 @@ import {
   TruckIcon,
 } from "@/components/Icon";
 import { NewPurchaseButton } from "../../../_components/NewPurchaseButton";
+import { ServiceRequestButton } from "../../../_components/ServiceRequestButton";
 
 /**
  * Hub "Alertas · mis envíos" (Norte `PortalAlertas`). Unifica el ciclo
@@ -76,11 +77,13 @@ export function PortalAlertasHub({
   docs,
   track,
   banner,
+  markbox,
 }: {
   items: AlertItem[];
   docs: Record<string, DocPresence>;
   track: TrackItem[];
   banner: { route: string; sentence: string } | null;
+  markbox: string;
 }) {
   const [view, setView] = useState<"list" | "track">("list");
   const [stage, setStage] = useState<"todas" | AlertStage>("todas");
@@ -123,6 +126,7 @@ export function PortalAlertasHub({
             <TruckIcon size={16} /> Mis proveedores
           </Link>
           <NewPurchaseButton href="/portal/proveedores" />
+          <ServiceRequestButton markbox={markbox} />
         </div>
       </div>
 

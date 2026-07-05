@@ -26,7 +26,6 @@ import type { NavieraSnapshot } from "@/lib/studio/naviera-tracking/types";
 import type { PortalActivityItem } from "@/lib/portal/shipment-events-queries";
 import type { PortalSailing } from "@/lib/portal/next-sailing-queries";
 import { ShipmentRow } from "../../_components/ShipmentRow";
-import { PortalHomeActions } from "../../_components/PortalHomeActions";
 import { PortalNextSailingCard } from "./PortalNextSailingCard";
 
 /**
@@ -80,22 +79,20 @@ export function PortalDashboardNorte({
 
   return (
     <div>
-      {/* ── Saludo + acciones ── */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-        <div>
-          <span className="eyebrow">{today}</span>
-          <h1
-            className="h-display mt-3"
-            style={{ fontSize: "clamp(30px, 4.5vw, 48px)" }}
-          >
-            Hola {firstName}.
-          </h1>
-          <p className="lead mt-2">
-            {kpis.activeShipments} {activeWord} · {kpis.pendingInvoiceCount}{" "}
-            {pendingWord}
-          </p>
-        </div>
-        <PortalHomeActions markbox={client.markbox} />
+      {/* ── Saludo ── (las acciones "Otros servicios" / calculadora se movieron:
+            servicios → Alertas · mis envíos; calculadora → FAB flotante) */}
+      <div>
+        <span className="eyebrow">{today}</span>
+        <h1
+          className="h-display mt-3"
+          style={{ fontSize: "clamp(30px, 4.5vw, 48px)" }}
+        >
+          Hola {firstName}.
+        </h1>
+        <p className="lead mt-2">
+          {kpis.activeShipments} {activeWord} · {kpis.pendingInvoiceCount}{" "}
+          {pendingWord}
+        </p>
       </div>
 
       {/* ── Héroe navy "Próximo arribo" (progreso derivado del status; buque real

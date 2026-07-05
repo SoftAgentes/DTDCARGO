@@ -97,6 +97,24 @@ const securityHeaders = [
   },
 ];
 
+// `/calculadora/embed` la enmarca el FAB del portal (ventana flotante Norte) en
+// un iframe SAME-ORIGIN. Igual que /marca y /norte.html: framing SAMEORIGIN,
+// resto estricto. Sin esto heredaría el `frame-ancestors 'none'` + `X-Frame-Options:
+// DENY` del catch-all y el iframe saldría en blanco.
+const calcEmbedHeaders = securityHeaders.map((h) =>
+  h.key === "Content-Security-Policy"
+    ? {
+        key: h.key,
+        value: cspHeader.replace(
+          "frame-ancestors 'none'",
+          "frame-ancestors 'self'",
+        ),
+      }
+    : h.key === "X-Frame-Options"
+      ? { key: h.key, value: "SAMEORIGIN" }
+      : h,
+);
+
 const nextConfig: NextConfig = {
   // Sitio público, optimizado para SEO. App Router por default.
   reactStrictMode: true,
@@ -245,8 +263,19 @@ const nextConfig: NextConfig = {
         source: "/norte.html",
         headers: norteHeaders,
       },
+      // Calc embebible del portal: SAMEORIGIN (la enmarca el FAB). Excluida del
+      // catch-all de abajo (negative lookahead) para no pisarle el DENY.
       {
-        source: "/:path((?!m/|marca/|norte\\.html|studio/bitacora).*)",
+        source: "/calculadora/embed/:path*",
+        headers: calcEmbedHeaders,
+      },
+      {
+        source: "/calculadora/embed",
+        headers: calcEmbedHeaders,
+      },
+      {
+        source:
+          "/:path((?!m/|marca/|norte\\.html|studio/bitacora|calculadora/embed).*)",
         headers: securityHeaders,
       },
     ];
