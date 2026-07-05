@@ -21,10 +21,13 @@
 import type { RawActa } from "./extract";
 import type { AssignableProfile } from "./bitacora-queries";
 import {
+  isBitacoraConfianza,
   isBitacoraPrioridad,
+  isExternoTipo,
   type ActaDuda,
   type ActaHilo,
   type ActaProxima,
+  type ActaVinculoCliente,
   type BitacoraPrioridad,
   type BitacoraTaskTipo,
   type MeetingTipo,
@@ -68,6 +71,7 @@ export interface ResolvedActa {
   proxima_reunion: ActaProxima;
   hilos: ActaHilo[];
   dudas_clasificacion: ActaDuda[];
+  vinculo_cliente: ActaVinculoCliente;
   tasks: ResolvedTask[];
 }
 
@@ -208,7 +212,31 @@ export function resolveActa(
     },
     hilos: resolveHilos(raw.hilos),
     dudas_clasificacion: resolveDudas(raw.dudas_clasificacion),
+    vinculo_cliente: resolveVinculo(raw.vinculo_cliente),
     tasks,
+  };
+}
+
+/**
+ * Normaliza la detección de externo de la IA → ActaVinculoCliente. El MATCH
+ * contra la tabla `clients` (client_id_sugerido) lo hace el servidor después
+ * (analyzeActaAction). Aquí sólo se deja la detección lista y se marca
+ * `necesita_confirmar` cuando hubo un externo.
+ */
+function resolveVinculo(raw: RawActa["vinculo_cliente"]): ActaVinculoCliente {
+  const nombre = (raw?.nombre_detectado ?? "").trim() || null;
+  return {
+    nombre_detectado: nombre,
+    tipo_externo: isExternoTipo(raw?.tipo_externo)
+      ? raw.tipo_externo
+      : nombre
+        ? "indeterminado"
+        : null,
+    posible_cliente_nuevo: raw?.posible_cliente_nuevo === true,
+    client_id_sugerido: null,
+    cliente_nombre_sugerido: null,
+    confianza: isBitacoraConfianza(raw?.confianza) ? raw.confianza : "baja",
+    necesita_confirmar: nombre != null,
   };
 }
 

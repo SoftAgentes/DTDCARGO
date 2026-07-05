@@ -55,6 +55,14 @@ export interface RawActaDuda {
   opciones?: string[];
 }
 
+/** Vínculo con cliente DETECTADO por la IA (el match lo hace el server, Fase B). */
+export interface RawActaVinculo {
+  nombre_detectado?: string;
+  tipo_externo?: string;
+  posible_cliente_nuevo?: boolean;
+  confianza?: string;
+}
+
 export interface RawActa {
   resumen: string;
   puntos: string[];
@@ -68,6 +76,8 @@ export interface RawActa {
   hilos?: RawActaHilo[];
   /** Clasificaciones ambiguas que el humano debe resolver (SDD-0150). */
   dudas_clasificacion?: RawActaDuda[];
+  /** Externo detectado para atar contra la tabla de clientes (SDD-0150 Fase B). */
+  vinculo_cliente?: RawActaVinculo;
 }
 
 export interface ExtractOpts {
@@ -183,6 +193,26 @@ const ACTA_INPUT_SCHEMA: Anthropic.Messages.Tool.InputSchema = {
           opciones: { type: "array", items: { type: "string" } },
         },
         required: ["texto"],
+      },
+    },
+    vinculo_cliente: {
+      type: "object",
+      description:
+        "Si se habló con un externo (cliente/proveedor/contratista), detecta con QUIÉN. Solo detectas el nombre — NO inventes un cliente; el sistema lo cruza con la tabla y el humano confirma.",
+      properties: {
+        nombre_detectado: {
+          type: "string",
+          description: "Nombre/empresa/apodo del externo tal como se dijo.",
+        },
+        tipo_externo: {
+          type: "string",
+          enum: ["cliente", "proveedor", "contratista", "indeterminado"],
+        },
+        posible_cliente_nuevo: {
+          type: "boolean",
+          description: "true si actúa como cliente pero no parece uno ya conocido.",
+        },
+        confianza: { type: "string", enum: ["alta", "media", "baja"] },
       },
     },
   },
@@ -362,6 +392,22 @@ function coerceRawActa(input: unknown): RawActa | null {
         .filter((d): d is RawActaDuda => d !== null)
     : [];
 
+  let vinculo_cliente: RawActaVinculo | undefined;
+  if (o.vinculo_cliente && typeof o.vinculo_cliente === "object") {
+    const v = o.vinculo_cliente as Record<string, unknown>;
+    const nombre =
+      typeof v.nombre_detectado === "string" ? v.nombre_detectado.trim() : "";
+    if (nombre) {
+      vinculo_cliente = {
+        nombre_detectado: nombre,
+        tipo_externo:
+          typeof v.tipo_externo === "string" ? v.tipo_externo : undefined,
+        posible_cliente_nuevo: v.posible_cliente_nuevo === true,
+        confianza: typeof v.confianza === "string" ? v.confianza : undefined,
+      };
+    }
+  }
+
   return {
     resumen: typeof o.resumen === "string" ? o.resumen.trim() : "",
     puntos: asStringArray(o.puntos),
@@ -373,6 +419,7 @@ function coerceRawActa(input: unknown): RawActa | null {
     entregables_cliente: entregables,
     hilos,
     dudas_clasificacion: dudas,
+    vinculo_cliente,
   };
 }
 
@@ -418,6 +465,15 @@ function mockActa(clean: string, opts: ExtractOpts): RawActa {
     acta.entregables_cliente = [
       { descripcion: "Confirmar los próximos pasos con el cliente" },
     ];
+    const cli = (opts.clienteNombre ?? "").trim();
+    if (cli) {
+      acta.vinculo_cliente = {
+        nombre_detectado: cli,
+        tipo_externo: "cliente",
+        posible_cliente_nuevo: false,
+        confianza: "baja",
+      };
+    }
   }
 
   return acta;

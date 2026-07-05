@@ -74,6 +74,7 @@ export function buildActaCommonBlock(opts: {
 - pendientes: temas que quedaron en el aire para la próxima vez.
 - hilos: cuando un tema se tocó en partes separadas y se retomó, cóselo en un solo hilo; anota el estado FINAL (si un dato se corrigió, vale el último) y si quedó una contradicción sin resolver.
 - dudas_clasificacion: cuando no quede claro si alguien es del equipo o externo (y eso cambia si va como tarea o como pendiente), NO lo decidas: anótalo como duda con las opciones.
+- vinculo_cliente: si se habló con un externo (cliente/proveedor/contratista), detecta CON QUIÉN (nombre, empresa o apodo tal como se dijo). Solo el nombre — NO inventes un cliente; el sistema lo cruza con la tabla y el humano confirma. Marca posible_cliente_nuevo si actúa como cliente pero no parece uno ya conocido.
 - proxima_reunion: fecha (YYYY-MM-DD si es deducible) y foco, si se menciona.
 ${tareasInstr}
 

@@ -286,3 +286,59 @@ describe("resolveActa · hilos y dudas de clasificación (SDD-0150 Fase A)", () 
     ]);
   });
 });
+
+describe("resolveActa · vínculo con cliente (SDD-0150 Fase B)", () => {
+  it("sin externo → nombre null, no necesita confirmar, sin sugerencia de match", () => {
+    const acta = resolveActa(emptyRaw(), PROFILES, { tipo: "interna" });
+    expect(acta.vinculo_cliente).toEqual({
+      nombre_detectado: null,
+      tipo_externo: null,
+      posible_cliente_nuevo: false,
+      client_id_sugerido: null,
+      cliente_nombre_sugerido: null,
+      confianza: "baja",
+      necesita_confirmar: false,
+    });
+  });
+
+  it("con externo detectado → necesita_confirmar=true, client_id_sugerido null (el match es server-side)", () => {
+    const acta = resolveActa(
+      emptyRaw({
+        vinculo_cliente: {
+          nombre_detectado: "González de Valencia",
+          tipo_externo: "cliente",
+          posible_cliente_nuevo: false,
+          confianza: "media",
+        },
+      }),
+      PROFILES,
+      { tipo: "cliente" },
+    );
+    expect(acta.vinculo_cliente).toEqual({
+      nombre_detectado: "González de Valencia",
+      tipo_externo: "cliente",
+      posible_cliente_nuevo: false,
+      client_id_sugerido: null,
+      cliente_nombre_sugerido: null,
+      confianza: "media",
+      necesita_confirmar: true,
+    });
+  });
+
+  it("tipo_externo inválido con nombre → 'indeterminado'; confianza inválida → 'baja'", () => {
+    const acta = resolveActa(
+      emptyRaw({
+        vinculo_cliente: {
+          nombre_detectado: "Julio (transporte)",
+          tipo_externo: "banana",
+          confianza: "altísima",
+        },
+      }),
+      PROFILES,
+      { tipo: "interna" },
+    );
+    expect(acta.vinculo_cliente.tipo_externo).toBe("indeterminado");
+    expect(acta.vinculo_cliente.confianza).toBe("baja");
+    expect(acta.vinculo_cliente.necesita_confirmar).toBe(true);
+  });
+});

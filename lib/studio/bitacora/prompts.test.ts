@@ -110,10 +110,12 @@ describe("buildActaPrompt (SDD-0146 · secretario de actas)", () => {
   });
 
   // ── SDD-0150 Fase A: contrato rico + concisión + anti-alucinación ──
-  it("pide hilos y dudas de clasificación (contrato rico)", () => {
+  it("pide hilos, dudas y vínculo con cliente (contrato rico)", () => {
     const p = buildActaPrompt({ ...BASE, tipo: "interna" });
     expect(p).toContain("- hilos:");
     expect(p).toContain("- dudas_clasificacion:");
+    expect(p).toContain("- vinculo_cliente:");
+    expect(p).toContain("NO inventes un cliente");
   });
 
   it("instruye concisión (BREVE) y la regla anti-alucinación de audio", () => {

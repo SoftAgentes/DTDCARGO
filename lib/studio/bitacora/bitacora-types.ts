@@ -328,10 +328,47 @@ export interface ActaDuda {
   opciones: string[];
 }
 
+/** Confianza de la IA / del match (SDD-0150 Fase B). */
+export const BITACORA_CONFIANZAS = ["alta", "media", "baja"] as const;
+export type BitacoraConfianza = (typeof BITACORA_CONFIANZAS)[number];
+export function isBitacoraConfianza(v: unknown): v is BitacoraConfianza {
+  return typeof v === "string" && (BITACORA_CONFIANZAS as readonly string[]).includes(v);
+}
+
+/** Tipo de interlocutor externo (SDD-0150 Fase B). */
+export const EXTERNO_TIPOS = [
+  "cliente",
+  "proveedor",
+  "contratista",
+  "indeterminado",
+] as const;
+export type ExternoTipo = (typeof EXTERNO_TIPOS)[number];
+export function isExternoTipo(v: unknown): v is ExternoTipo {
+  return typeof v === "string" && (EXTERNO_TIPOS as readonly string[]).includes(v);
+}
+
+/**
+ * Vínculo con cliente detectado por la IA (SDD-0150 Fase B). La IA sólo detecta
+ * el nombre del externo; el MATCH contra la tabla `clients` lo hace el servidor
+ * (post-proceso) y el humano confirma. NUNCA se auto-crea un cliente.
+ */
+export interface ActaVinculoCliente {
+  /** Nombre del externo detectado (null si la reunión no tuvo externos). */
+  nombre_detectado: string | null;
+  tipo_externo: ExternoTipo | null;
+  posible_cliente_nuevo: boolean;
+  /** Cliente sugerido por el match server-side (null hasta Fase B parte 2). */
+  client_id_sugerido: string | null;
+  cliente_nombre_sugerido: string | null;
+  confianza: BitacoraConfianza;
+  /** true → la UI pide confirmar el cliente antes de atar. */
+  necesita_confirmar: boolean;
+}
+
 /**
  * Forma canónica del jsonb `acta` en bitacora_meetings (columna `acta`).
- * `hilos`/`dudas_clasificacion` son OPCIONALES: las actas anteriores a SDD-0150
- * no los traen y siguen siendo válidas.
+ * `hilos`/`dudas_clasificacion`/`vinculo_cliente` son OPCIONALES: las actas
+ * anteriores a SDD-0150 no los traen y siguen siendo válidas.
  */
 export interface ActaData {
   puntos: string[];
@@ -341,6 +378,7 @@ export interface ActaData {
   proxima_reunion: ActaProxima;
   hilos?: ActaHilo[];
   dudas_clasificacion?: ActaDuda[];
+  vinculo_cliente?: ActaVinculoCliente;
 }
 
 /** Input del formulario de ingesta (pegar transcripción). */
@@ -488,6 +526,7 @@ export function validateConfirmActaInput(
     proxima_reunion: normalizeProxima(actaRaw.proxima_reunion),
     hilos: normalizeActaHilos(actaRaw.hilos),
     dudas_clasificacion: normalizeActaDudas(actaRaw.dudas_clasificacion),
+    vinculo_cliente: normalizeActaVinculo(actaRaw.vinculo_cliente),
   };
 
   const rawTasks = Array.isArray(r.tasks) ? r.tasks : [];
@@ -627,4 +666,32 @@ function normalizeActaDudas(v: unknown): ActaDuda[] {
     });
   }
   return out;
+}
+
+/** Normaliza el vínculo con cliente del payload de confirm → ActaVinculoCliente | undefined. */
+function normalizeActaVinculo(v: unknown): ActaVinculoCliente | undefined {
+  if (!v || typeof v !== "object") return undefined;
+  const o = v as Record<string, unknown>;
+  const nombre =
+    typeof o.nombre_detectado === "string" && o.nombre_detectado.trim() !== ""
+      ? o.nombre_detectado.trim().slice(0, 200)
+      : null;
+  const clientId =
+    typeof o.client_id_sugerido === "string" && UUID_RE.test(o.client_id_sugerido.trim())
+      ? o.client_id_sugerido.trim()
+      : null;
+  // Vínculo vacío (sin externo detectado ni cliente atado) → no lo persistimos.
+  if (!nombre && !clientId) return undefined;
+  return {
+    nombre_detectado: nombre,
+    tipo_externo: isExternoTipo(o.tipo_externo) ? o.tipo_externo : nombre ? "indeterminado" : null,
+    posible_cliente_nuevo: o.posible_cliente_nuevo === true,
+    client_id_sugerido: clientId,
+    cliente_nombre_sugerido:
+      typeof o.cliente_nombre_sugerido === "string" && o.cliente_nombre_sugerido.trim() !== ""
+        ? o.cliente_nombre_sugerido.trim().slice(0, 200)
+        : null,
+    confianza: isBitacoraConfianza(o.confianza) ? o.confianza : "baja",
+    necesita_confirmar: o.necesita_confirmar === true,
+  };
 }
