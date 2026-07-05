@@ -30,34 +30,16 @@ Specs en `docs/specs/NNNN-slug/spec.md`, correlativo propio desde 0001 (no compa
 
 **Commits:** `feat(studio): SDD-NNNN — título` (Studio) · `feat(DTD-NNNN): …` (público).
 
-## Modelo Director + Modo Forja
+## Ventanas autónomas + Modo Forja
 
-DTDCargo usa una sesión **Director** como única autoridad de integración. Las demás sesiones/agentes son secundarios.
+**Ventanas autónomas (default).** No hay coordinador central. Cada ventana/sesión es **su propia coordinadora**: trabaja en su `git worktree` + rama, hace commits **atómicos y selectivos** (nunca `git add -A`), integra y publica **su propio** trabajo (`git push origin HEAD:main`) y limpia su worktree al cerrar. El "OK del founder" para publicar es que el usuario diga **"cerrar"** (ciclo completo en el skill `/avivar`: contexto → tarea → worktree → ¿avanzar/cerrar? → cierre autónomo). Los pushes no se cruzan porque cada rama lleva solo su trabajo; un choque *non-fast-forward* al pushear se resuelve con `git merge origin/main` y reintento. Runbooks obligatorios: `docs/runbooks/git-worktrees-multiventana.md` · `docs/runbooks/multi-ventanas-buena-practica.md`.
 
-**Director es el único que puede:**
-- mergear o cherry-pickear hacia `main`;
-- hacer push;
-- aplicar migrations reales o tocar producción;
-- resolver conflictos entre worktrees;
-- regenerar archivos compartidos como `docs/specs/README.md`;
-- cerrar la integración final después de `node scripts/verify.mjs` y `pnpm build`.
-
-**Agentes secundarios:**
-- trabajan solo en su `git worktree` + rama;
-- nunca trabajan directo en `main`;
-- nunca hacen push;
-- nunca aplican migrations a producción;
-- escriben migrations como archivos en su rama cuando aplique;
+**Modo Forja** (competitivo, vía `/build` → Forja): N agentes implementan la MISMA spec en worktrees aislados y al final el founder compara y cherry-pickea lo mejor. Solo para tareas grandes y bien delimitadas — no para hotfixes urgentes, cambios de una línea ni migrations críticas. En Forja, los agentes secundarios:
+- trabajan solo en su `git worktree` + rama; nunca directo en `main`; nunca hacen push;
+- nunca aplican migrations a producción; las escriben como archivos en su rama cuando aplique;
 - hacen commits atómicos y selectivos, nunca `git add -A`;
 - reportan rama, worktree, commits, archivos tocados y pendientes;
-- dejan `RESUMEN.md` cuando operen en Modo Forja;
-- dejan `PROBLEMAS.md` si se bloquean.
-
-**Runbooks obligatorios:**
-- `docs/runbooks/git-worktrees-multiventana.md`
-- `docs/runbooks/multi-ventanas-buena-practica.md`
-
-Modo Forja se usa solo para tareas grandes y bien delimitadas. No usarlo para hotfixes urgentes, cambios de una línea o migrations críticas sin Director.
+- dejan `RESUMEN.md` cuando operen en Modo Forja; `PROBLEMAS.md` si se bloquean.
 
 ## Stack
 
