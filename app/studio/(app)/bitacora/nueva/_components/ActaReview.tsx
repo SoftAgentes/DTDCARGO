@@ -11,23 +11,31 @@
  * transaccional `bitacora_confirm_meeting` (todo o nada).
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import type { AssignableProfile } from "@/lib/studio/bitacora/bitacora-queries";
 import type { ResolvedActa, ResolvedTask } from "@/lib/studio/bitacora/match";
 import {
+  type ActaData,
   type BitacoraPrioridad,
   type ConfirmActaInput,
   type MeetingTipo,
 } from "@/lib/studio/bitacora/bitacora-types";
-import { confirmActaAction } from "../../actions";
+import { tasksHaveManualEdits } from "@/lib/studio/bitacora/acta-edits";
+import { confirmActaAction, regenerateActaTasksAction } from "../../actions";
 
 interface EditTask extends ResolvedTask {
   _id: string;
+}
+
+/** Mapea la propuesta resuelta a tareas editables con id estable. */
+function toEditTasks(tasks: readonly ResolvedTask[]): EditTask[] {
+  return tasks.map((t, i) => ({ ...t, _id: `t${i}` }));
 }
 
 interface Props {
@@ -54,9 +62,22 @@ export function ActaReview({
   const [titulo, setTitulo] = useState(resolved.titulo);
   const [resumen, setResumen] = useState(resolved.resumen);
   const [confidencial, setConfidencial] = useState(false);
-  const [tasks, setTasks] = useState<EditTask[]>(
-    resolved.tasks.map((t, i) => ({ ...t, _id: `t${i}` })),
-  );
+  const [tasks, setTasks] = useState<EditTask[]>(() => toEditTasks(resolved.tasks));
+  // Acta (puntos/decisiones/etc.) sólo se refresca al regenerar — título y
+  // resumen los edita el humano arriba y NUNCA se tocan al regenerar.
+  const [acta, setActa] = useState<ActaData>(() => ({
+    puntos: resolved.puntos,
+    hablaron: resolved.hablaron,
+    decisiones: resolved.decisiones,
+    pendientes: resolved.pendientes,
+    proxima_reunion: resolved.proxima_reunion,
+  }));
+
+  // Línea base = última propuesta de la IA (para saber si el humano ya ajustó
+  // tareas antes de regenerar). Se actualiza cuando la IA vuelve a proponer.
+  const baselineRef = useRef<EditTask[]>(tasks);
+  const [regenerating, setRegenerating] = useState(false);
+  const [showRegenConfirm, setShowRegenConfirm] = useState(false);
 
   const nameByUserId = useMemo(() => {
     const m: Record<string, string> = {};
@@ -75,19 +96,56 @@ export function ActaReview({
 
   const canConfirm = titulo.trim().length > 0;
 
+  // "Volver a generar tareas": si el humano ya ajustó tareas, avisa antes de
+  // reemplazarlas; si no, regenera directo.
+  function onRegenerateClick() {
+    if (regenerating) return;
+    if (tasksHaveManualEdits(tasks, baselineRef.current)) {
+      setShowRegenConfirm(true);
+    } else {
+      void runRegenerate();
+    }
+  }
+
+  async function runRegenerate() {
+    setShowRegenConfirm(false);
+    if (regenerating) return;
+    setRegenerating(true);
+    try {
+      const res = await regenerateActaTasksAction({
+        meetingId,
+        resumenEditado: resumen.trim(),
+      });
+      if (res.ok && res.resolved) {
+        const next = toEditTasks(res.resolved.tasks);
+        baselineRef.current = next;
+        setTasks(next);
+        // Refresca el acta (menos título/resumen, que son del humano).
+        setActa({
+          puntos: res.resolved.puntos,
+          hablaron: res.resolved.hablaron,
+          decisiones: res.resolved.decisiones,
+          pendientes: res.resolved.pendientes,
+          proxima_reunion: res.resolved.proxima_reunion,
+        });
+        toast.success("Tareas regeneradas");
+      } else {
+        toast.error(res.error ?? "No se pudieron regenerar las tareas.");
+      }
+    } catch {
+      toast.error("No se pudieron regenerar las tareas.");
+    } finally {
+      setRegenerating(false);
+    }
+  }
+
   async function confirm() {
     const payload: ConfirmActaInput = {
       meetingId,
       titulo: titulo.trim(),
       resumen: resumen.trim(),
       visibilidad: confidencial ? "gestores" : "equipo",
-      acta: {
-        puntos: resolved.puntos,
-        hablaron: resolved.hablaron,
-        decisiones: resolved.decisiones,
-        pendientes: resolved.pendientes,
-        proxima_reunion: resolved.proxima_reunion,
-      },
+      acta,
       tasks: tasks.map((t) => ({
         titulo: t.titulo.trim(),
         descripcion: t.descripcion,
@@ -181,19 +239,19 @@ export function ActaReview({
           />
         </div>
 
-        <ReadonlyList label="Puntos clave" items={resolved.puntos} />
-        <ReadonlyList label="Decisiones" items={resolved.decisiones} />
-        <ReadonlyList label="Quedó en el aire" items={resolved.pendientes} />
-        {resolved.hablaron.length > 0 && (
+        <ReadonlyList label="Puntos clave" items={acta.puntos} />
+        <ReadonlyList label="Decisiones" items={acta.decisiones} />
+        <ReadonlyList label="Quedó en el aire" items={acta.pendientes} />
+        {acta.hablaron.length > 0 && (
           <div style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
             <span style={{ color: "var(--ink-mute)" }}>Hablaron: </span>
-            {resolved.hablaron.join(", ")}
+            {acta.hablaron.join(", ")}
           </div>
         )}
         <div style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
           <span style={{ color: "var(--ink-mute)" }}>Próxima reunión: </span>
-          {resolved.proxima_reunion.fecha ?? "por definir"}
-          {resolved.proxima_reunion.foco ? ` · ${resolved.proxima_reunion.foco}` : ""}
+          {acta.proxima_reunion.fecha ?? "por definir"}
+          {acta.proxima_reunion.foco ? ` · ${acta.proxima_reunion.foco}` : ""}
         </div>
 
         <label
@@ -220,6 +278,51 @@ export function ActaReview({
           </span>
         </label>
       </section>
+
+      {/* Volver a generar tareas con el resumen editado como guía */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+          marginBottom: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <span
+          style={{
+            font: "500 12px/1.5 var(--f-sans)",
+            color: "var(--ink-soft)",
+            maxWidth: 520,
+          }}
+        >
+          ¿Ajustaste el resumen? Vuelve a generar las tareas tomándolo como guía.
+          Tu título y tu resumen se mantienen.
+        </span>
+        <button
+          type="button"
+          className="studio-btn studio-btn-secondary studio-btn-sm"
+          onClick={onRegenerateClick}
+          disabled={regenerating}
+          aria-busy={regenerating}
+        >
+          {regenerating ? (
+            <>
+              <span
+                className="studio-spin"
+                aria-hidden
+                style={{ width: 14, height: 14 }}
+              />
+              Regenerando…
+            </>
+          ) : (
+            <>
+              {Icon.refresh(14)} Volver a generar tareas
+            </>
+          )}
+        </button>
+      </div>
 
       {/* Tareas del equipo */}
       <TaskGroup
@@ -284,6 +387,17 @@ export function ActaReview({
           />
         </div>
       </div>
+
+      <ConfirmDialog
+        open={showRegenConfirm}
+        title="Volver a generar las tareas"
+        message="Vas a reemplazar las tareas actuales por unas nuevas que propondrá la IA. Se perderán los ajustes que hiciste en las tareas (tu título y tu resumen se mantienen). ¿Continuar?"
+        confirmLabel="Volver a generar"
+        cancelLabel="Cancelar"
+        pending={regenerating}
+        onCancel={() => setShowRegenConfirm(false)}
+        onConfirm={() => void runRegenerate()}
+      />
     </div>
   );
 }

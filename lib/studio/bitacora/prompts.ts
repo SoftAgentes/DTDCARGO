@@ -34,6 +34,13 @@ export interface BuildActaPromptOpts {
   hoyISO: string;
   /** Día de la semana de HOY en es-VE ("sábado"…). */
   hoyDia: string;
+  /**
+   * Resumen que el humano corrigió en la revisión (mejora "volver a generar
+   * tareas"). Si viene no-vacío, se inyecta como GUÍA PRIORITARIA de qué tareas
+   * extraer — sin autorizar a inventar nada fuera de la transcripción. Vacío /
+   * ausente en el flujo normal → prompt idéntico al de antes.
+   */
+  resumenGuia?: string | null;
 }
 
 /**
@@ -47,6 +54,14 @@ export function buildActaPrompt(opts: BuildActaPromptOpts): string {
 
   const nombres =
     opts.teamNames.filter((n) => n.trim() !== "").join(", ") || "(sin lista)";
+
+  // Guía del líder (regenerar): el humano ya corrigió el resumen → lo usamos
+  // como norte de qué tareas importan, ANTES de la transcripción. Sin guía el
+  // bloque es "" y el prompt queda idéntico al original.
+  const guia = (opts.resumenGuia ?? "").trim();
+  const guiaBloque = guia
+    ? `\nEl líder ya revisó esta conversación y corrigió el resumen para reflejar lo que realmente importa. Usa este resumen como GUÍA PRIORITARIA de qué tareas extraer (sin inventar nada que no esté en la transcripción):\n${guia}\n`
+    : "";
 
   const contexto =
     tipo === "cliente"
@@ -70,7 +85,7 @@ ${tareasInstr}
 
 Mapea cada responsable a uno de estos nombres reales del equipo cuando sea posible: ${nombres}.
 NO inventes tareas ni entregables que no se hayan hablado. Responde en español.
-
+${guiaBloque}
 --- TRANSCRIPCIÓN ---
 ${clean}`;
 }

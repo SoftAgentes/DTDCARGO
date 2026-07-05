@@ -513,6 +513,41 @@ export function validateConfirmActaInput(
   };
 }
 
+// ─── Regenerar tareas del acta (mejora "volver a generar") ────
+
+/**
+ * Input de la regeneración: relee el transcript del borrador con el resumen que
+ * el humano editó como guía prioritaria. NO confirma ni crea tareas — sólo
+ * re-propone en pantalla (la regla de oro intacta).
+ */
+export interface RegenerateActaInput {
+  meetingId: string;
+  /** Resumen que el humano tiene en pantalla (guía prioritaria para la IA). */
+  resumenEditado: string;
+}
+
+/**
+ * Valida la regeneración (sin Zod). meetingId debe ser uuid; resumenEditado es
+ * opcional (si el humano lo borró, se regenera sólo desde el transcript) y se
+ * recorta a 4000 chars antes de viajar al prompt.
+ */
+export function validateRegenerateActaInput(
+  raw: unknown,
+): { input?: { meetingId: string; resumenGuia: string }; error?: string } {
+  if (!raw || typeof raw !== "object") return { error: "Datos inválidos." };
+  const r = raw as Record<string, unknown>;
+
+  const meetingId = typeof r.meetingId === "string" ? r.meetingId.trim() : "";
+  if (!UUID_RE.test(meetingId)) return { error: "Falta la reunión a regenerar." };
+
+  const resumenGuia =
+    typeof r.resumenEditado === "string"
+      ? r.resumenEditado.trim().slice(0, 4000)
+      : "";
+
+  return { input: { meetingId, resumenGuia } };
+}
+
 function cleanStringArray(v: unknown): string[] {
   if (!Array.isArray(v)) return [];
   return v

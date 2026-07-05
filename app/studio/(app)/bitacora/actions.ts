@@ -29,11 +29,15 @@ import {
   validateBitacoraTaskInput,
   validateMeetingDraftInput,
   validateConfirmActaInput,
+  validateRegenerateActaInput,
+  TRANSCRIPT_MIN_CHARS,
   type BitacoraActionState,
   type ConfirmActaInput,
   type MeetingDraftInput,
+  type RegenerateActaInput,
 } from "@/lib/studio/bitacora/bitacora-types";
 import { listAssignableProfiles } from "@/lib/studio/bitacora/bitacora-queries";
+import { getMeeting } from "@/lib/studio/bitacora/bitacora-meeting-queries";
 import { isValidMeetingAudioPath } from "@/lib/studio/bitacora/storage";
 import { extractActa } from "@/lib/studio/bitacora/extract";
 import { resolveActa, type ResolvedActa } from "@/lib/studio/bitacora/match";
@@ -693,4 +697,85 @@ export async function confirmActaAction(
 
   revalidateBitacora();
   return { ok: true, meetingId: acta.meetingId };
+}
+
+export interface RegenerateActaResult {
+  ok?: boolean;
+  resolved?: ResolvedActa;
+  error?: string;
+}
+
+/**
+ * REGENERAR: "Volver a generar tareas" desde la revisión. Relee el transcript
+ * del borrador y vuelve a proponer las tareas usando el resumen que el humano
+ * corrigió como GUÍA PRIORITARIA. NO confirma NADA ni crea tareas (la regla de
+ * oro intacta: las tareas sólo nacen en confirmActaAction) — sólo devuelve la
+ * propuesta nueva para que la pantalla la muestre. Título y resumen del humano
+ * viven en el cliente hasta confirmar; acá no se tocan. moduleEditDenial primero;
+ * el borrador se lee con el user client (la RLS restringe: sólo su creador/admin
+ * lo ve). Nunca lanza al caller → `{ ok, resolved } | { error }`.
+ */
+export async function regenerateActaTasksAction(
+  input: RegenerateActaInput,
+): Promise<RegenerateActaResult> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+
+  const { input: valid, error: vErr } = validateRegenerateActaInput(input);
+  if (vErr || !valid) return { error: vErr ?? "Datos inválidos." };
+
+  const ctx = await resolveContext(supabase);
+  if ("error" in ctx) return { error: ctx.error };
+
+  // Borrador leído con el user client → la RLS ya restringe a creador/admin.
+  const meeting = await getMeeting(supabase, valid.meetingId);
+  if (!meeting) {
+    return { error: "No se encontró el borrador (¿ya confirmado o sin acceso?)." };
+  }
+  if (meeting.estado !== "borrador") {
+    return { error: "Esta reunión ya fue confirmada." };
+  }
+  const transcript = (meeting.transcript ?? "").trim();
+  if (transcript.length < TRANSCRIPT_MIN_CHARS) {
+    return { error: "El borrador no tiene transcripción para volver a analizar." };
+  }
+
+  // Nombre del cliente (para el prompt/títulos): cliente real o contacto libre.
+  let clienteNombre: string | null = meeting.contacto_libre;
+  if (meeting.client_id) {
+    const { data: cli } = await supabase
+      .from("clients")
+      .select("name")
+      .eq("id", meeting.client_id)
+      .maybeSingle<{ name: string }>();
+    if (cli?.name) clienteNombre = cli.name;
+  }
+
+  // Mismo pipeline que analyzeActaAction, con el resumen editado como guía.
+  const profiles = await listAssignableProfiles(supabase);
+  const teamNames = profiles.map((p) => p.display_name);
+  const hoyISO = todayCaracasISO();
+
+  const extracted = await extractActa(transcript, {
+    tipo: meeting.tipo,
+    clienteNombre,
+    teamNames,
+    hoyISO,
+    hoyDia: caracasWeekdayLabel(),
+    resumenGuia: valid.resumenGuia,
+  });
+  if ("error" in extracted) return { error: extracted.error };
+
+  const resolved = resolveActa(extracted.acta, profiles, {
+    tipo: meeting.tipo,
+    clienteNombre,
+    quienRegistroId: ctx.userId,
+    fechaISO: meeting.fecha ?? hoyISO,
+  });
+
+  // No se persiste ni se crean tareas: la propuesta vive en la pantalla hasta
+  // que el humano confirme (confirmActaAction patcha el acta completa).
+  return { ok: true, resolved };
 }
