@@ -31,6 +31,6 @@ export async function sendPortalMessageAction(
     return { error: "No pudimos enviar tu mensaje. Prueba de nuevo." };
   }
 
-  revalidatePath("/portal/mensajes");
+  revalidatePath("/portal/soporte");
   return { ok: true };
 }

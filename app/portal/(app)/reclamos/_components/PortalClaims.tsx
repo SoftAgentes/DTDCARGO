@@ -43,10 +43,14 @@ export function PortalClaims({
   claims,
   shipments,
   evidence,
+  embedded = false,
 }: {
   claims: PortalClaimRow[];
   shipments: { id: string; code: string }[];
   evidence: Record<string, ClaimEvidenceItem[]>;
+  /** `true` = columna "Tus casos" de la pantalla Soporte (SDD-0147): sin el h1
+   *  propio y con el formulario "Nuevo caso" colapsable. `false` = pantalla suelta. */
+  embedded?: boolean;
 }) {
   const [state, action, pending] = useActionState(
     createPortalClaimAction,
@@ -55,6 +59,8 @@ export function PortalClaims({
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
   const [justSent, setJustSent] = useState<string | null>(null);
+  // En embedded el form arranca colapsado (se abre con "Nuevo caso"); suelto, visible.
+  const [showForm, setShowForm] = useState(!embedded);
 
   useEffect(() => {
     if (state.ok && state.createdCode) {
@@ -66,17 +72,37 @@ export function PortalClaims({
 
   return (
     <div>
-      <span className="eyebrow">Postventa</span>
-      <h1 className="h-display mt-3" style={{ fontSize: "clamp(30px, 4.5vw, 48px)" }}>
-        Mis reclamos.
-      </h1>
-      <p className="lead mt-3">
-        ¿Algo salió mal con tu carga? Repórtalo acá y hazle seguimiento. Tu asesor
-        lo evalúa y te confirma la resolución.
-      </p>
+      {embedded ? (
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="eyebrow eyebrow-wine">Tus casos</div>
+          <button
+            type="button"
+            onClick={() => setShowForm((v) => !v)}
+            aria-expanded={showForm}
+            className="btn btn-primary inline-flex items-center gap-1.5"
+          >
+            <span aria-hidden className="text-[16px] leading-none">
+              {showForm ? "–" : "+"}
+            </span>{" "}
+            Nuevo caso
+          </button>
+        </div>
+      ) : (
+        <>
+          <span className="eyebrow">Postventa</span>
+          <h1 className="h-display mt-3" style={{ fontSize: "clamp(30px, 4.5vw, 48px)" }}>
+            Mis reclamos.
+          </h1>
+          <p className="lead mt-3">
+            ¿Algo salió mal con tu carga? Repórtalo acá y hazle seguimiento. Tu
+            asesor lo evalúa y te confirma la resolución.
+          </p>
+        </>
+      )}
 
-      {/* Reportar un problema */}
-      <div className="mt-8 bg-white border border-grey-200 rounded-[16px] p-5 sm:p-6">
+      {/* Reportar un problema (colapsable en embedded) */}
+      {showForm && (
+      <div className={`${embedded ? "mt-4" : "mt-8"} bg-white border border-grey-200 rounded-[16px] p-5 sm:p-6`}>
         <div className="text-[16px] font-bold text-ink">Reportar un problema</div>
         <p className="mt-1 text-[13.5px] text-grey-700 leading-[1.5]">
           Cuéntanos qué pasó. El monto y la cobertura los evalúa tu asesor.
@@ -182,22 +208,25 @@ export function PortalClaims({
             {state.evidenceSkipped && (
               <span className="block mt-1.5 text-[12.5px] text-grey-700">
                 Algunos archivos no se adjuntaron (deben ser JPG/PNG/PDF y pesar
-                menos de 10 MB). Si quieres, envíaselos a tu asesor por Mensajes.
+                menos de 10 MB). Si quieres, envíaselos a tu asesor por el chat.
               </span>
             )}
           </div>
         )}
       </div>
+      )}
 
-      {/* Tus reclamos */}
-      <div className="mt-10">
-        <div className="text-[13px] font-semibold tracking-[0.08em] uppercase text-grey-500">
-          Tus reclamos
-        </div>
+      {/* Lista de casos/reclamos */}
+      <div className={embedded ? "mt-5" : "mt-10"}>
+        {!embedded && (
+          <div className="text-[13px] font-semibold tracking-[0.08em] uppercase text-grey-500">
+            Tus reclamos
+          </div>
+        )}
         {claims.length === 0 ? (
           <p className="mt-3 text-[14px] text-grey-700 leading-[1.55] max-w-[52ch]">
             Todavía no has reportado ningún reclamo. Si tu carga llegó con un
-            problema, usa el formulario de arriba.
+            problema, {embedded ? 'usa "Nuevo caso" arriba.' : "usa el formulario de arriba."}
           </p>
         ) : (
           <div className="mt-4 flex flex-col gap-3">

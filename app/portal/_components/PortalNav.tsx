@@ -24,7 +24,7 @@ import {
  * Lo que se plegó (vive DENTRO de un destino, se alcanza por sub-pestañas —
  * `PortalHubTabs`):
  *   · Compras (proveedores + compras) y Documentos → dentro de **Mis envíos**.
- *   · Mensajes + Reclamos → dentro de **Soporte** (`/portal/mensajes`).
+ *   · Mensajes + Reclamos → fundidos en **Soporte** (`/portal/soporte`, SDD-0147).
  * Por eso los `match` de Mis envíos y Soporte cubren esas sub-rutas: el destino
  * queda activo aunque estés en una sub-sección.
  */
@@ -78,12 +78,15 @@ const LINKS: {
     match: (p) => p.startsWith("/portal/academia"),
   },
   {
-    href: "/portal/mensajes",
+    href: "/portal/soporte",
     label: "Soporte",
     icon: ChatIcon,
-    // Hub: chat con el asesor + casos/reclamos (Norte: "Soporte").
+    // Pantalla única (SDD-0147): chat con el asesor + casos/reclamos. `/mensajes`
+    // y `/reclamos` redirigen a `/soporte` — se matchean por si un link viejo pasa.
     match: (p) =>
-      p.startsWith("/portal/mensajes") || p.startsWith("/portal/reclamos"),
+      p.startsWith("/portal/soporte") ||
+      p.startsWith("/portal/mensajes") ||
+      p.startsWith("/portal/reclamos"),
   },
 ];
 

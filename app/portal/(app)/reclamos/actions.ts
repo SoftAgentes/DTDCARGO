@@ -154,7 +154,7 @@ export async function createPortalClaimAction(
     uploadedCount = r.uploaded;
   }
 
-  revalidatePath("/portal/reclamos");
+  revalidatePath("/portal/soporte");
   return {
     ok: true,
     createdCode: claimCode,

@@ -191,7 +191,7 @@ export default async function PortalProfilePage() {
                 por el chat y lo actualizamos por ti.
               </p>
               <Link
-                href="/portal/mensajes?tema=datos"
+                href="/portal/soporte?tema=datos"
                 className="btn btn-ghost inline-flex items-center gap-2 flex-shrink-0"
               >
                 <ChatIcon size={16} /> Actualizar mis datos
