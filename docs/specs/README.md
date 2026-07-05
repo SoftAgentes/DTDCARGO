@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 144 specs)
+### Índice de specs (generado · 145 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -182,6 +182,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0147 | Soporte del portal a Norte — fusión de Reclamos + chat con el… | in-progress | interno |
 | 0148 | Aviso al equipo de mensajes entrantes del portal — activar el… | in-progress | interno |
 | 0149 | Resumen mensual de conversaciones con IA — histórico navegabl… | in-progress | interno |
+| 0150 | Secretarias de reunión v2 — default rica + Escucha Activa + t… | draft | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
