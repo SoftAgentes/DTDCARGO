@@ -1,7 +1,7 @@
 ---
 sdd: "0149"
 title: "Resumen mensual de conversaciones con IA — histórico navegable del lado del ERP"
-status: draft
+status: in-progress
 author: "Claude Code (sesión Director) + founder"
 created: 2026-07-05
 updated: 2026-07-05
