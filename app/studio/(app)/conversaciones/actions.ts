@@ -18,7 +18,6 @@ import { createClient } from "@/lib/db/server";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { createAdminClient } from "@/lib/db/admin";
 import { insertOutboundMessage } from "@/lib/studio/conversaciones/messages-queries";
-import { sendEmail } from "@/lib/studio/mail/send-email";
 import { notifyClientReplyPush } from "@/lib/studio/conversation-reply-push";
 import {
   validateAssignInput,
@@ -115,63 +114,16 @@ export async function sendReplyAction(
   });
   if (!inserted.ok) return { error: `No se pudo enviar: ${inserted.error}` };
 
-  // Si el cliente tiene email → sale por Resend (best-effort, no rompe el reply).
-  let emailSent = false;
-  const { data: client } = await supabase
-    .from("clients")
-    .select("name, email")
-    .eq("id", conv.client_id)
-    .maybeSingle<{ name: string; email: string | null }>();
-
-  if (client?.email) {
-    try {
-      // Threading (SDD-0056 Fase 2): si el hilo nació de un email entrante, su
-      // external_ref guarda el Message-ID RFC del primer email del cliente
-      // (`<...>`). Lo referenciamos con In-Reply-To/References para que la
-      // respuesta del agente caiga en el mismo hilo de la casilla del cliente.
-      // Solo lo usamos si es un Message-ID con forma RFC válida; si es null o no
-      // empieza con `<` (dato viejo/sucio) → no seteamos headers (un valor
-      // incorrecto rompe el agrupamiento en Gmail/Outlook).
-      const rfcRef = conv.external_ref?.trim();
-      const threadHeaders =
-        conv.channel === "email" && rfcRef && rfcRef.startsWith("<") && rfcRef.endsWith(">")
-          ? { "In-Reply-To": rfcRef, References: rfcRef }
-          : undefined;
-
-      const result = await sendEmail(createAdminClient(), tenantId, {
-        to: client.email,
-        to_name: client.name,
-        subject: `DTD Cargo · respuesta de tu asesor`,
-        html: replyEmailHtml(client.name, input!.body, agent.name),
-        metadata: { source: "conversaciones", conversation_id: conv.id },
-        headers: threadHeaders,
-      });
-      emailSent = result.ok;
-    } catch {
-      emailSent = false;
-    }
-  }
-
-  // Push al cliente (SDD-0148 #3b) — best-effort, con service_role. El email + el
-  // badge del nav ya avisan; el push llega a quien lo activó en el portal.
+  // NO se manda email (decisión founder 2026-07-05): lo dialogado con el cliente
+  // queda REGISTRADO en el ERP (el hilo `conversation_messages`, insertado arriba) y
+  // el cliente ve la respuesta en el portal (realtime + badge + push). Cero correo.
   await notifyClientReplyPush(createAdminClient(), {
     clientId: conv.client_id,
     body: input!.body,
   });
 
   revalidatePath("/studio/conversaciones");
-  return { ok: true, emailSent };
-}
-
-/** HTML mínimo del email de respuesta (sin template — html crudo). */
-function replyEmailHtml(clientName: string, body: string, agentName: string): string {
-  const safe = (s: string) =>
-    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  return [
-    `<p>Hola ${safe(clientName)},</p>`,
-    `<p>${safe(body).replace(/\n/g, "<br>")}</p>`,
-    `<p style="color:#6B6B6B;font-size:13px;margin-top:24px">— ${safe(agentName)}, DTD Cargo</p>`,
-  ].join("");
+  return { ok: true };
 }
 
 // ─────────────────────────────────────────────────────────────

@@ -124,11 +124,7 @@ export function ConversationThread({ conv, agents }: Props) {
     if (replyState.ok) {
       setDraft("");
       setShowQuick(false);
-      toast.success(
-        replyState.emailSent
-          ? "Respuesta enviada · también por email"
-          : "Respuesta enviada",
-      );
+      toast.success("Respuesta enviada");
       router.refresh();
     } else if (replyState.error) {
       toast.error(replyState.error);

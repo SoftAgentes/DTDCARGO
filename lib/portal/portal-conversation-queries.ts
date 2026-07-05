@@ -11,6 +11,15 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+/**
+ * Ventana rodante del hilo del lado del CLIENTE (SDD-0148 · retención): el cliente
+ * ve solo los últimos N días en el portal. NO se borra nada — el registro completo
+ * vive para siempre del lado del ERP (buena práctica: data-minimization para el
+ * cliente + la empresa conserva el activo). Buena práctica de la industria = 60-90
+ * días; founder eligió 90 (3 meses). El resumen mensual (Fase 2) cubre el histórico.
+ */
+export const PORTAL_CLIENT_WINDOW_DAYS = 90;
+
 export type PortalThreadMessage = {
   id: string;
   direction: "in" | "out";
@@ -88,10 +97,17 @@ export async function getPortalThread(
 
   if (!conv) return [];
 
+  // Ventana rodante del cliente (retención · SDD-0148): solo los últimos N días.
+  // Filtro de LECTURA, no borra — el registro completo sigue en la DB para el ERP.
+  const cutoff = new Date(
+    Date.now() - PORTAL_CLIENT_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
+
   const { data, error } = await admin
     .from("conversation_messages")
     .select("id, direction, body, author_name, sent_at")
     .eq("conversation_id", conv.id)
+    .gte("sent_at", cutoff)
     .order("sent_at", { ascending: true })
     .limit(200);
 

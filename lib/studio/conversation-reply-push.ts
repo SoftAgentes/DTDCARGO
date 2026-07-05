@@ -8,8 +8,8 @@
  *
  * El click de la notificación abre `/portal/soporte` (la URL viaja en el payload;
  * el SW raíz `public/sw.js` la lee de `data.url`). Best-effort: si no tiene push
- * activado o falla, no pasa nada (el email + el badge del nav ya avisan igual).
- * SIEMPRE con service_role.
+ * activado o falla, no pasa nada (el badge del nav + el realtime ya avisan igual;
+ * NO se manda email — decisión founder 2026-07-05). SIEMPRE con service_role.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";

@@ -184,6 +184,11 @@ function AsesorChatCard({
 
       {/* Hilo */}
       <div className="px-5 py-4 flex flex-col gap-3 max-h-[380px] overflow-y-auto">
+        {thread.length > 0 && (
+          <p className="text-[11px] text-grey-500 text-center pb-1 leading-[1.4]">
+            Ves los últimos 90 días de tu conversación.
+          </p>
+        )}
         {thread.length === 0 ? (
           <p className="text-[13px] text-grey-500 leading-[1.5] py-4 text-center">
             Todavía no hay mensajes. Escríbenos abajo y tu asesor te responde.
