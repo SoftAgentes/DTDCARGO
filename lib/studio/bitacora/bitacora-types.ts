@@ -479,6 +479,8 @@ export interface ConfirmTaskInput {
   /** Nombre crudo que sugirió la IA (se conserva aunque no matchee). */
   responsable_nombre: string | null;
   checklist: string[];
+  /** Cliente atado por el humano en la revisión (uuid) o null (SDD-0150 Fase B). */
+  client_id: string | null;
 }
 
 /** Payload de la confirmación (patch del acta + tareas). */
@@ -566,6 +568,10 @@ export function validateConfirmActaInput(
           ? tt.responsable_nombre.trim().slice(0, 200)
           : null,
       checklist: cleanStringArray(tt.checklist).map((s) => s.slice(0, 500)),
+      client_id:
+        typeof tt.client_id === "string" && UUID_RE.test(tt.client_id.trim())
+          ? tt.client_id.trim()
+          : null,
     });
   }
 

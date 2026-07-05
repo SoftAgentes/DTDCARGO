@@ -17,13 +17,16 @@ import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
+import { ClientCombobox } from "@/app/studio/_components/ui/ClientCombobox";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import type { AssignableProfile } from "@/lib/studio/bitacora/bitacora-queries";
+import type { ClientSearchHit } from "@/lib/studio/client-search-action";
 import type { ResolvedActa, ResolvedTask } from "@/lib/studio/bitacora/match";
 import {
   type ActaData,
   type ActaDuda,
   type ActaHilo,
+  type ActaVinculoCliente,
   type BitacoraPrioridad,
   type ConfirmActaInput,
   type MeetingTipo,
@@ -75,7 +78,20 @@ export function ActaReview({
     proxima_reunion: resolved.proxima_reunion,
     hilos: resolved.hilos,
     dudas_clasificacion: resolved.dudas_clasificacion,
+    vinculo_cliente: resolved.vinculo_cliente,
   }));
+
+  // Cliente atado por el humano en la revisión (SDD-0150 Fase B). Se pre-ata si
+  // el meeting ya venía con cliente (necesita_confirmar=false); si es una
+  // sugerencia del match, arranca sin atar y el humano confirma.
+  const [linkedClient, setLinkedClient] = useState<{ id: string; name: string } | null>(
+    () => {
+      const v = resolved.vinculo_cliente;
+      return v.client_id_sugerido && !v.necesita_confirmar
+        ? { id: v.client_id_sugerido, name: v.cliente_nombre_sugerido ?? "Cliente" }
+        : null;
+    },
+  );
 
   // Línea base = última propuesta de la IA (para saber si el humano ya ajustó
   // tareas antes de regenerar). Se actualiza cuando la IA vuelve a proponer.
@@ -121,19 +137,22 @@ export function ActaReview({
         resumenEditado: resumen.trim(),
       });
       if (res.ok && res.resolved) {
-        const next = toEditTasks(res.resolved.tasks);
+        const r = res.resolved;
+        const next = toEditTasks(r.tasks);
         baselineRef.current = next;
         setTasks(next);
         // Refresca el acta (menos título/resumen, que son del humano).
-        setActa({
-          puntos: res.resolved.puntos,
-          hablaron: res.resolved.hablaron,
-          decisiones: res.resolved.decisiones,
-          pendientes: res.resolved.pendientes,
-          proxima_reunion: res.resolved.proxima_reunion,
-          hilos: res.resolved.hilos,
-          dudas_clasificacion: res.resolved.dudas_clasificacion,
-        });
+        setActa((prev) => ({
+          puntos: r.puntos,
+          hablaron: r.hablaron,
+          decisiones: r.decisiones,
+          pendientes: r.pendientes,
+          proxima_reunion: r.proxima_reunion,
+          hilos: r.hilos,
+          dudas_clasificacion: r.dudas_clasificacion,
+          // El vínculo no cambia al regenerar tareas: conserva el ya resuelto.
+          vinculo_cliente: prev.vinculo_cliente,
+        }));
         toast.success("Tareas regeneradas");
       } else {
         toast.error(res.error ?? "No se pudieron regenerar las tareas.");
@@ -146,12 +165,24 @@ export function ActaReview({
   }
 
   async function confirm() {
+    // Refleja el cliente confirmado por el humano en el vínculo del acta.
+    const confirmedActa: ActaData = acta.vinculo_cliente
+      ? {
+          ...acta,
+          vinculo_cliente: {
+            ...acta.vinculo_cliente,
+            client_id_sugerido: linkedClient?.id ?? null,
+            cliente_nombre_sugerido: linkedClient?.name ?? null,
+            necesita_confirmar: false,
+          },
+        }
+      : acta;
     const payload: ConfirmActaInput = {
       meetingId,
       titulo: titulo.trim(),
       resumen: resumen.trim(),
       visibilidad: confidencial ? "gestores" : "equipo",
-      acta,
+      acta: confirmedActa,
       tasks: tasks.map((t) => ({
         titulo: t.titulo.trim(),
         descripcion: t.descripcion,
@@ -162,6 +193,8 @@ export function ActaReview({
         assignee_user_id: t.assignee_user_id,
         responsable_nombre: t.responsable_nombre,
         checklist: t.checklist,
+        // Ata cada tarea al cliente confirmado (o null si el humano no ató ninguno).
+        client_id: linkedClient?.id ?? null,
       })),
     };
     return confirmActaAction(payload);
@@ -286,6 +319,13 @@ export function ActaReview({
           </span>
         </label>
       </section>
+
+      {/* Vínculo con cliente (SDD-0150 Fase B): confirmar el externo detectado */}
+      <VinculoPanel
+        vinculo={acta.vinculo_cliente}
+        linked={linkedClient}
+        onLink={setLinkedClient}
+      />
 
       {/* Volver a generar tareas con el resumen editado como guía */}
       <div
@@ -540,6 +580,116 @@ function DudasPanel({ dudas }: { dudas: ActaDuda[] }) {
         </div>
       ))}
     </Collapsible>
+  );
+}
+
+/**
+ * Vínculo con cliente (SDD-0150 Fase B). Muestra el externo que detectó la IA y
+ * deja que el humano lo ate a un cliente real (acepta la sugerencia del match, o
+ * busca otro en el combobox). NUNCA se auto-crea un cliente. Se oculta si no hubo
+ * externo detectado.
+ */
+function VinculoPanel({
+  vinculo,
+  linked,
+  onLink,
+}: {
+  vinculo: ActaVinculoCliente | undefined;
+  linked: { id: string; name: string } | null;
+  onLink: (c: { id: string; name: string } | null) => void;
+}) {
+  const [search, setSearch] = useState("");
+  if (!vinculo || !vinculo.nombre_detectado) return null;
+
+  const sugId = vinculo.client_id_sugerido;
+  const sugNombre = vinculo.cliente_nombre_sugerido;
+
+  return (
+    <section
+      style={{
+        border: "1px solid var(--border)",
+        borderLeft: "3px solid var(--wine)",
+        borderRadius: "var(--r-md)",
+        background: "var(--bg-surface)",
+        padding: "14px 16px",
+        marginBottom: 16,
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+      }}
+    >
+      <div className="studio-eyebrow" style={{ color: "var(--wine)" }}>
+        Vínculo con cliente
+      </div>
+      <div style={{ font: "500 12.5px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
+        La IA detectó que hablaste con{" "}
+        <strong style={{ color: "var(--ink)" }}>«{vinculo.nombre_detectado}»</strong>
+        {vinculo.tipo_externo && vinculo.tipo_externo !== "indeterminado"
+          ? ` (${vinculo.tipo_externo})`
+          : ""}
+        .
+      </div>
+
+      {linked ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <Badge tone="success" size="sm">
+            Atado a {linked.name}
+          </Badge>
+          <button
+            type="button"
+            className="studio-btn studio-btn-ghost studio-btn-sm"
+            onClick={() => onLink(null)}
+          >
+            Cambiar
+          </button>
+        </div>
+      ) : (
+        <>
+          {sugId && sugNombre && (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <span style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink)" }}>
+                ¿Es <strong>{sugNombre}</strong>?
+              </span>
+              <Badge tone="neutral" size="sm">
+                confianza {vinculo.confianza}
+              </Badge>
+              <button
+                type="button"
+                className="studio-btn studio-btn-secondary studio-btn-sm"
+                onClick={() => onLink({ id: sugId, name: sugNombre })}
+              >
+                Sí, atar
+              </button>
+            </div>
+          )}
+          <div>
+            <label
+              className="studio-label"
+              htmlFor="ar-vinculo-cli"
+              style={{ marginBottom: 5, display: "block" }}
+            >
+              {sugId ? "…o busca otro cliente" : "Busca y ata el cliente"}
+            </label>
+            <ClientCombobox
+              id="ar-vinculo-cli"
+              value={search}
+              onManualChange={setSearch}
+              onSelect={(hit: ClientSearchHit) => {
+                onLink({ id: hit.id, name: hit.name });
+                setSearch("");
+              }}
+              ariaLabel="Buscar cliente para atar la reunión"
+            />
+          </div>
+          {vinculo.posible_cliente_nuevo && (
+            <div style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-mute)" }}>
+              Parece un cliente nuevo. Si aplica, regístralo en Clientes; por ahora
+              puedes dejarlo sin atar.
+            </div>
+          )}
+        </>
+      )}
+    </section>
   );
 }
 
