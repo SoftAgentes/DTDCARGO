@@ -1,7 +1,7 @@
 ---
 sdd: "0150"
 title: "Secretarias de reunión v2 — default rica + Escucha Activa + transcripción diarizada"
-status: draft
+status: in-progress
 author: "founder"
 created: 2026-07-05
 updated: 2026-07-05
@@ -14,6 +14,8 @@ confidencialidad: interno
 # DTD-0150 — Secretarias de reunión v2
 
 > Evoluciona el análisis IA de Bitácora (SDD-0146) de un "secretario de actas" simple a **dos secretarias** sobre el mismo tronco: una **default rica pero concisa** para todo el equipo, y una **Escucha Activa privada** solo para el admin que critica y recomienda sobre el acta ya producida.
+
+**Estado (2026-07-05):** Fases **A, B, D implementadas** (gate `verify.mjs` verde + reviewer APROBADO, sin migración). **Fase C DIFERIDA** — necesita `ASSEMBLYAI_API_KEY` + decisión de proveedor (la ruta tiene `maxDuration=60s`; AssemblyAI es asíncrono → Deepgram síncrono encaja mejor; decidir con la key en mano).
 
 ## Contexto
 
