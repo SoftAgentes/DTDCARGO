@@ -44,20 +44,58 @@ export interface BuildActaPromptOpts {
 }
 
 /**
- * Arma el prompt del "secretario de actas". Puro: todo dato temporal /
- * contextual entra por parámetro.
+ * Bloque COMÚN compartido por ambas secretarias (default ERP y — a futuro —
+ * Escucha Activa). Núcleo que no debe desincronizarse: qué campos extraer,
+ * clasificación empleado-vs-externo, hilos, dudas de clasificación, mapeo al
+ * equipo real y la regla anti-alucinación de audio. NO incluye el intro por-tipo
+ * ni la transcripción (los agrega cada builder). Instrucción de CONCISIÓN
+ * explícita: el detalle va en los campos estructurados, no en prosa larga.
+ *
+ * `incluyeEntregables` = true en conversaciones con cliente (el externo no
+ * ejecuta tareas: sus compromisos van en `entregables_cliente`).
  */
-export function buildActaPrompt(opts: BuildActaPromptOpts): string {
+export function buildActaCommonBlock(opts: {
+  teamNames: string[];
+  incluyeEntregables: boolean;
+}): string {
+  const nombres =
+    opts.teamNames.filter((n) => n.trim() !== "").join(", ") || "(sin lista)";
+
+  const tareasInstr = opts.incluyeEntregables
+    ? `- tareas: tareas CONCRETAS para los EMPLEADOS — lo que debe hacer quien atendió al cliente y otros empleados relacionados. NO le asignes tareas al cliente. Cada una con responsable (un empleado), fecha límite (YYYY-MM-DD si es deducible), prioridad y sub-pasos (checklist) si aplica.
+- entregables_cliente: lo que el CLIENTE quedó en ENTREGAR o ENVIAR para avanzar o para la próxima llamada (ej: adelanto, logo en vector, medidas, aprobación, referencia de pago). Cada uno con: descripcion breve, responsable_seguimiento (empleado que lo persigue, si se menciona) y due_date (YYYY-MM-DD si se deduce).`
+    : `- tareas: lista de tareas CONCRETAS con responsable, fecha límite (YYYY-MM-DD si es deducible), prioridad y sub-pasos (checklist) si aplica.`;
+
+  return `A partir de la transcripción, extrae lo esencial — sé BREVE y concreto: el detalle va en los campos estructurados, no en prosa larga.
+- resumen: 2-4 frases con lo esencial.
+- puntos: puntos clave hablados (bullets).
+- hablaron: nombres de quienes participaron.
+- decisiones: acuerdos tomados.
+- pendientes: temas que quedaron en el aire para la próxima vez.
+- hilos: cuando un tema se tocó en partes separadas y se retomó, cóselo en un solo hilo; anota el estado FINAL (si un dato se corrigió, vale el último) y si quedó una contradicción sin resolver.
+- dudas_clasificacion: cuando no quede claro si alguien es del equipo o externo (y eso cambia si va como tarea o como pendiente), NO lo decidas: anótalo como duda con las opciones.
+- vinculo_cliente: si se habló con un externo (cliente/proveedor/contratista), detecta CON QUIÉN (nombre, empresa o apodo tal como se dijo). Solo el nombre — NO inventes un cliente; el sistema lo cruza con la tabla y el humano confirma. Marca posible_cliente_nuevo si actúa como cliente pero no parece uno ya conocido.
+- proxima_reunion: fecha (YYYY-MM-DD si es deducible) y foco, si se menciona.
+${tareasInstr}
+
+Mapea cada responsable a uno de estos nombres reales del equipo cuando sea posible: ${nombres}.
+Analiza solo lo transcrito; no inventes tono, pausas ni gestos que no estén en el texto.
+NO inventes tareas ni entregables que no se hayan hablado. Responde en español.`;
+}
+
+/**
+ * Arma el prompt de la SECRETARIA BITÁCORA ERP (default de la oficina).
+ * Puro: todo dato temporal / contextual entra por parámetro. Usa el bloque
+ * común + el intro por-tipo + la transcripción.
+ */
+export function buildActaErpPrompt(opts: BuildActaPromptOpts): string {
   const { tipo, hoyISO, hoyDia } = opts;
   const clean = opts.transcript.trim();
   const cliente = (opts.clienteNombre ?? "").trim() || "el cliente";
 
-  const nombres =
-    opts.teamNames.filter((n) => n.trim() !== "").join(", ") || "(sin lista)";
-
   // Guía del líder (regenerar): el humano ya corrigió el resumen → lo usamos
   // como norte de qué tareas importan, ANTES de la transcripción. Sin guía el
-  // bloque es "" y el prompt queda idéntico al original.
+  // bloque es "" y el prompt queda idéntico al de sin-guía.
   const guia = (opts.resumenGuia ?? "").trim();
   const guiaBloque = guia
     ? `\nEl líder ya revisó esta conversación y corrigió el resumen para reflejar lo que realmente importa. Usa este resumen como GUÍA PRIORITARIA de qué tareas extraer (sin inventar nada que no esté en la transcripción):\n${guia}\n`
@@ -68,24 +106,61 @@ export function buildActaPrompt(opts: BuildActaPromptOpts): string {
       ? `Esto es una CONVERSACIÓN CON EL CLIENTE "${cliente}" (por ejemplo una llamada telefónica). El cliente NO usa nuestro sistema ni ejecuta tareas: sus compromisos van en entregables_cliente, nunca como tareas.`
       : `Esto es una reunión interna de trabajo del equipo.`;
 
-  const tareasInstr =
-    tipo === "cliente"
-      ? `- tareas: tareas CONCRETAS para los EMPLEADOS — lo que debe hacer quien atendió al cliente y otros empleados relacionados. NO le asignes tareas al cliente. Cada una con responsable (un empleado), fecha límite (YYYY-MM-DD si es deducible), prioridad y sub-pasos (checklist) si aplica.
-- entregables_cliente: lo que el CLIENTE quedó en ENTREGAR o ENVIAR para avanzar o para la próxima llamada (ej: adelanto, logo en vector, medidas, aprobación, referencia de pago). Cada uno con: descripcion breve, responsable_seguimiento (empleado que lo persigue, si se menciona) y due_date (YYYY-MM-DD si se deduce).`
-      : `- tareas: lista de tareas CONCRETAS con responsable, fecha límite (YYYY-MM-DD si es deducible), prioridad y sub-pasos (checklist) si aplica.`;
+  const common = buildActaCommonBlock({
+    teamNames: opts.teamNames,
+    incluyeEntregables: tipo === "cliente",
+  });
 
-  return `Eres el secretario que documenta esta conversación de trabajo. ${contexto} HOY es ${hoyDia} ${hoyISO}. Toda fecha relativa o sin año ("mañana", "el viernes 10", "el 15 de julio") se resuelve contra HOY, hacia el presente o futuro cercano — nunca hacia años pasados. A partir de la transcripción, extrae:
-- resumen: 2-4 frases con lo esencial.
-- puntos: puntos clave hablados (bullets).
-- hablaron: nombres de quienes participaron.
-- decisiones: acuerdos tomados.
-- pendientes: temas que quedaron en el aire para la próxima vez.
-- proxima_reunion: fecha (YYYY-MM-DD si es deducible) y foco, si se menciona.
-${tareasInstr}
-
-Mapea cada responsable a uno de estos nombres reales del equipo cuando sea posible: ${nombres}.
-NO inventes tareas ni entregables que no se hayan hablado. Responde en español.
+  return `Eres el secretario que documenta esta conversación de trabajo. ${contexto} HOY es ${hoyDia} ${hoyISO}. Toda fecha relativa o sin año ("mañana", "el viernes 10", "el 15 de julio") se resuelve contra HOY, hacia el presente o futuro cercano — nunca hacia años pasados. ${common}
 ${guiaBloque}
+--- TRANSCRIPCIÓN ---
+${clean}`;
+}
+
+/** Alias de compatibilidad: el call site histórico y los tests usan este nombre. */
+export const buildActaPrompt = buildActaErpPrompt;
+
+export interface BuildEscuchaPromptOpts {
+  transcript: string;
+  hoyISO: string;
+  hoyDia: string;
+  teamNames: string[];
+  /** Resumen que ya produjo la secretaria default (para criticarlo). */
+  actaResumen: string;
+  /** Tareas ya propuestas, en orden (el índice = task_index de la sugerencia). */
+  actaTareas: { titulo: string; prioridad: string }[];
+}
+
+/**
+ * Arma el prompt de la SECRETARIA ESCUCHA ACTIVA (SDD-0150 Fase D · privado del
+ * founder). NO rehace el acta: lee ENTRE LÍNEAS la transcripción y recomienda
+ * qué CAMBIAR de lo que ya propuso la default (subir prioridad, reescribir, etc.).
+ * Puro (todo dato entra por parámetro) → testeable.
+ */
+export function buildEscuchaPrompt(opts: BuildEscuchaPromptOpts): string {
+  const clean = opts.transcript.trim();
+  const nombres =
+    opts.teamNames.filter((n) => n.trim() !== "").join(", ") || "(sin lista)";
+  const resumen = opts.actaResumen.trim() || "(sin resumen)";
+  const tareas =
+    opts.actaTareas.length > 0
+      ? opts.actaTareas
+          .map((t, i) => `[${i}] ${t.titulo} (prioridad ${t.prioridad})`)
+          .join("\n")
+      : "(sin tareas propuestas)";
+
+  return `Eres SECRETARIA ESCUCHA ACTIVA, la analista de reuniones personal de Sam, experta en escucha profunda. HOY es ${opts.hoyDia} ${opts.hoyISO}. Ya existe un acta operativa hecha por la secretaria de la oficina; NO la rehagas. Tu trabajo es leer ENTRE LÍNEAS la transcripción y recomendarle a Sam qué CAMBIAR del acta: subir prioridad, reescribir una tarea, hacerla más explícita, sumar una tarea que falta, marcar un compromiso tibio a vigilar, o señalar un black swan. Cada recomendación es una SUGERENCIA — Sam decide si la aplica; no creas trabajo por tu cuenta.
+
+Marcos con los que escuchas: Grice (violar una máxima = quiso decir algo sin decirlo); actos de habla (compromisivo/directivo/asertivo/declarativo); hedging (firme → confirmado, tibio "voy a tratar" → tentativo, fantasma → implícito); presuposición; black swans (dato suelto que cambia todo); distancia/evasión (indicio DÉBIL — confianza baja, con cita, sin acusar; JAMÁS concluyas que alguien miente).
+
+Reglas: analiza solo lo transcrito; no inventes tono, pausas ni gestos que no estén en el texto. Cita corto y textual. Tres sugerencias sólidas valen más que diez forzadas; si no hay señal, no inventes: devuelve pocas o ninguna. Cada sugerencia referencia el task_index de la tarea afectada (o null si es general). Responde en español venezolano neutro (tuteo).
+
+Equipo: ${nombres}.
+
+--- ACTA OPERATIVA (lo que ya se propuso) ---
+Resumen: ${resumen}
+Tareas:
+${tareas}
 --- TRANSCRIPCIÓN ---
 ${clean}`;
 }

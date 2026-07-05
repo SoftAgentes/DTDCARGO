@@ -22,7 +22,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { capabilityDenial, moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { notifyBitacoraTaskAssigned } from "@/lib/studio/bitacora/notify";
 import {
   isBitacoraTaskEstado,
@@ -40,7 +40,11 @@ import { listAssignableProfiles } from "@/lib/studio/bitacora/bitacora-queries";
 import { getMeeting } from "@/lib/studio/bitacora/bitacora-meeting-queries";
 import { isValidMeetingAudioPath } from "@/lib/studio/bitacora/storage";
 import { extractActa } from "@/lib/studio/bitacora/extract";
+import { extractEscucha } from "@/lib/studio/bitacora/escucha-extract";
 import { resolveActa, type ResolvedActa } from "@/lib/studio/bitacora/match";
+import { pickClientMatch } from "@/lib/studio/bitacora/client-match";
+import { listClients } from "@/lib/studio/client-queries";
+import { type EscuchaSugerencia } from "@/lib/studio/bitacora/bitacora-types";
 import {
   caracasWeekdayLabel,
   todayCaracasISO,
@@ -591,6 +595,35 @@ export async function analyzeActaAction(
     fechaISO: hoyISO,
   });
 
+  // Match del externo detectado contra la tabla de clientes (SDD-0150 Fase B).
+  // Si el humano YA ató un cliente en la ingesta, ese gana (sin confirmar). Si
+  // no, se busca por el nombre detectado y se DEJA UNA SUGERENCIA — nunca se
+  // ata a ciegas ni se auto-crea un cliente (el humano confirma en la revisión).
+  if (draft.client_id) {
+    resolved.vinculo_cliente = {
+      ...resolved.vinculo_cliente,
+      client_id_sugerido: draft.client_id,
+      cliente_nombre_sugerido: clienteNombre,
+      necesita_confirmar: false,
+    };
+  } else if (resolved.vinculo_cliente.nombre_detectado) {
+    const candidatos = (await listClients(supabase, {
+      q: resolved.vinculo_cliente.nombre_detectado,
+    })) as Array<{ id: string; name: string }>;
+    const match = pickClientMatch(
+      resolved.vinculo_cliente.nombre_detectado,
+      candidatos.map((c) => ({ id: c.id, name: c.name })),
+    );
+    if (match) {
+      resolved.vinculo_cliente = {
+        ...resolved.vinculo_cliente,
+        client_id_sugerido: match.client_id,
+        cliente_nombre_sugerido: match.cliente_nombre,
+        confianza: match.confianza,
+      };
+    }
+  }
+
   // Persistir el acta en el borrador (memoria + reanudable). El freeze trigger
   // conserva id/tenant/created_by.
   const { error: updErr } = await supabase
@@ -604,6 +637,9 @@ export async function analyzeActaAction(
         decisiones: resolved.decisiones,
         pendientes: resolved.pendientes,
         proxima_reunion: resolved.proxima_reunion,
+        hilos: resolved.hilos,
+        dudas_clasificacion: resolved.dudas_clasificacion,
+        vinculo_cliente: resolved.vinculo_cliente,
       },
     })
     .eq("id", meeting.id);
@@ -636,6 +672,8 @@ export async function confirmActaAction(
   if (vErr || !acta) return { error: vErr ?? "Datos inválidos." };
 
   // Tareas → shape que espera la RPC (assignees = array de uuid strings).
+  // client_id (SDD-0150 Fase B): ata la tarea al cliente que el humano confirmó
+  // en la revisión; la RPC lo persiste sólo si es un uuid del tenant.
   const pTasks = acta.tasks.map((t) => ({
     titulo: t.titulo,
     descripcion: t.descripcion,
@@ -646,6 +684,7 @@ export async function confirmActaAction(
     responsable_nombre: t.responsable_nombre,
     assignees: t.assignee_user_id ? [t.assignee_user_id] : [],
     checklist: t.checklist,
+    client_id: t.client_id,
   }));
 
   const pMeetingPatch = {
@@ -697,6 +736,64 @@ export async function confirmActaAction(
 
   revalidateBitacora();
   return { ok: true, meetingId: acta.meetingId };
+}
+
+/**
+ * ESCUCHA ACTIVA (SDD-0150 Fase D · admin-only): corre la capa suspicaz sobre el
+ * borrador. Gate por capability `escucha_activa` (admin hoy). Relee el transcript
+ * del borrador (la RLS lo restringe a creador/admin) y CRITICA el acta que el
+ * humano tiene en pantalla. NO persiste ni crea tareas — devuelve sugerencias
+ * efímeras que el founder aplica a mano en la revisión.
+ */
+export interface EscuchaActaInput {
+  meetingId: string;
+  actaResumen: string;
+  actaTareas: { titulo: string; prioridad: string }[];
+}
+
+export async function analyzeEscuchaAction(
+  input: EscuchaActaInput,
+): Promise<{ ok?: boolean; sugerencias?: EscuchaSugerencia[]; error?: string }> {
+  const supabase = await createClient();
+
+  const denial = await capabilityDenial(supabase, "escucha_activa");
+  if (denial) return { error: denial };
+
+  const meetingId =
+    typeof input?.meetingId === "string" ? input.meetingId.trim() : "";
+  if (!meetingId) return { error: "Falta la reunión a analizar." };
+
+  const meeting = await getMeeting(supabase, meetingId);
+  if (!meeting) return { error: "No se encontró la reunión (o sin acceso)." };
+  const transcript = (meeting.transcript ?? "").trim();
+  if (transcript.length < TRANSCRIPT_MIN_CHARS) {
+    return { error: "El borrador no tiene transcripción para analizar." };
+  }
+
+  const profiles = await listAssignableProfiles(supabase);
+  const teamNames = profiles.map((p) => p.display_name);
+
+  const actaTareas = Array.isArray(input.actaTareas)
+    ? input.actaTareas
+        .filter(
+          (t): t is { titulo: string; prioridad: string } =>
+            Boolean(t) && typeof t.titulo === "string",
+        )
+        .map((t) => ({
+          titulo: String(t.titulo).slice(0, 300),
+          prioridad: String(t.prioridad ?? "media"),
+        }))
+    : [];
+
+  const res = await extractEscucha(transcript, {
+    hoyISO: todayCaracasISO(),
+    hoyDia: caracasWeekdayLabel(),
+    teamNames,
+    actaResumen: typeof input.actaResumen === "string" ? input.actaResumen : "",
+    actaTareas,
+  });
+  if ("error" in res) return { error: res.error };
+  return { ok: true, sugerencias: res.sugerencias };
 }
 
 export interface RegenerateActaResult {

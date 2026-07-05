@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { buildActaPrompt } from "./prompts";
+import {
+  buildActaPrompt,
+  buildActaCommonBlock,
+  buildEscuchaPrompt,
+} from "./prompts";
 
 const BASE = {
   transcript:
@@ -107,5 +111,85 @@ describe("buildActaPrompt (SDD-0146 · secretario de actas)", () => {
     expect(base).not.toContain("GUÍA PRIORITARIA");
     expect(vacio).toBe(base);
     expect(espacios).toBe(base);
+  });
+
+  // ── SDD-0150 Fase A: contrato rico + concisión + anti-alucinación ──
+  it("pide hilos, dudas y vínculo con cliente (contrato rico)", () => {
+    const p = buildActaPrompt({ ...BASE, tipo: "interna" });
+    expect(p).toContain("- hilos:");
+    expect(p).toContain("- dudas_clasificacion:");
+    expect(p).toContain("- vinculo_cliente:");
+    expect(p).toContain("NO inventes un cliente");
+  });
+
+  it("instruye concisión (BREVE) y la regla anti-alucinación de audio", () => {
+    const p = buildActaPrompt({ ...BASE, tipo: "interna" });
+    expect(p).toContain("sé BREVE");
+    expect(p).toContain(
+      "no inventes tono, pausas ni gestos que no estén en el texto",
+    );
+  });
+});
+
+describe("buildActaCommonBlock (SDD-0150 · núcleo compartido)", () => {
+  it("interna (sin entregables): NO menciona entregables_cliente", () => {
+    const b = buildActaCommonBlock({
+      teamNames: ["Ana Pérez"],
+      incluyeEntregables: false,
+    });
+    expect(b).toContain("- hilos:");
+    expect(b).toContain("- dudas_clasificacion:");
+    expect(b).toContain("Ana Pérez");
+    expect(b).not.toContain("entregables_cliente");
+  });
+
+  it("cliente (con entregables): incluye entregables_cliente", () => {
+    const b = buildActaCommonBlock({
+      teamNames: [],
+      incluyeEntregables: true,
+    });
+    expect(b).toContain("entregables_cliente");
+    expect(b).toContain("(sin lista)");
+  });
+});
+
+describe("buildEscuchaPrompt (SDD-0150 Fase D · crítica privada)", () => {
+  const EBASE = {
+    transcript: "Reunión: María dijo «voy a tratar» sobre la cotización del mes.",
+    hoyISO: "2026-07-05",
+    hoyDia: "domingo",
+    teamNames: ["Ana Pérez"],
+    actaResumen: "Se habló de la cotización pendiente.",
+    actaTareas: [
+      { titulo: "Cotización nueva", prioridad: "media" },
+      { titulo: "Pago del almacén", prioridad: "baja" },
+    ],
+  };
+
+  it("NO rehace el acta: la framea como crítica + regla anti-alucinación", () => {
+    const p = buildEscuchaPrompt(EBASE);
+    expect(p).toContain("NO la rehagas");
+    expect(p).toContain(
+      "no inventes tono, pausas ni gestos que no estén en el texto",
+    );
+    expect(p).toContain("HOY es domingo 2026-07-05");
+  });
+
+  it("lista las tareas ya propuestas con su índice (task_index)", () => {
+    const p = buildEscuchaPrompt(EBASE);
+    expect(p).toContain("[0] Cotización nueva (prioridad media)");
+    expect(p).toContain("[1] Pago del almacén (prioridad baja)");
+  });
+
+  it("incluye el resumen de la default y la transcripción", () => {
+    const p = buildEscuchaPrompt(EBASE);
+    expect(p).toContain("Se habló de la cotización pendiente.");
+    expect(p).toContain("--- TRANSCRIPCIÓN ---");
+    expect(p).toContain("voy a tratar");
+  });
+
+  it("sin tareas → '(sin tareas propuestas)'", () => {
+    const p = buildEscuchaPrompt({ ...EBASE, actaTareas: [] });
+    expect(p).toContain("(sin tareas propuestas)");
   });
 });

@@ -314,13 +314,116 @@ export interface ActaProxima {
   foco: string | null;
 }
 
-/** Forma canónica del jsonb `acta` en bitacora_meetings (columna `acta`). */
+/** Hilo: tema disperso reconstruido con su dato FINAL (SDD-0150 Fase A). */
+export interface ActaHilo {
+  tema: string;
+  estado_final: string | null;
+  contradiccion_sin_resolver: boolean;
+}
+
+/** Duda de clasificación empleado-vs-externo sin resolver (SDD-0150 Fase A). */
+export interface ActaDuda {
+  texto: string;
+  hablante: string | null;
+  opciones: string[];
+}
+
+/** Confianza de la IA / del match (SDD-0150 Fase B). */
+export const BITACORA_CONFIANZAS = ["alta", "media", "baja"] as const;
+export type BitacoraConfianza = (typeof BITACORA_CONFIANZAS)[number];
+export function isBitacoraConfianza(v: unknown): v is BitacoraConfianza {
+  return typeof v === "string" && (BITACORA_CONFIANZAS as readonly string[]).includes(v);
+}
+
+/** Tipo de interlocutor externo (SDD-0150 Fase B). */
+export const EXTERNO_TIPOS = [
+  "cliente",
+  "proveedor",
+  "contratista",
+  "indeterminado",
+] as const;
+export type ExternoTipo = (typeof EXTERNO_TIPOS)[number];
+export function isExternoTipo(v: unknown): v is ExternoTipo {
+  return typeof v === "string" && (EXTERNO_TIPOS as readonly string[]).includes(v);
+}
+
+/**
+ * Vínculo con cliente detectado por la IA (SDD-0150 Fase B). La IA sólo detecta
+ * el nombre del externo; el MATCH contra la tabla `clients` lo hace el servidor
+ * (post-proceso) y el humano confirma. NUNCA se auto-crea un cliente.
+ */
+export interface ActaVinculoCliente {
+  /** Nombre del externo detectado (null si la reunión no tuvo externos). */
+  nombre_detectado: string | null;
+  tipo_externo: ExternoTipo | null;
+  posible_cliente_nuevo: boolean;
+  /** Cliente sugerido por el match server-side (null hasta Fase B parte 2). */
+  client_id_sugerido: string | null;
+  cliente_nombre_sugerido: string | null;
+  confianza: BitacoraConfianza;
+  /** true → la UI pide confirmar el cliente antes de atar. */
+  necesita_confirmar: boolean;
+}
+
+/**
+ * Forma canónica del jsonb `acta` en bitacora_meetings (columna `acta`).
+ * `hilos`/`dudas_clasificacion`/`vinculo_cliente` son OPCIONALES: las actas
+ * anteriores a SDD-0150 no los traen y siguen siendo válidas.
+ */
 export interface ActaData {
   puntos: string[];
   hablaron: string[];
   decisiones: string[];
   pendientes: string[];
   proxima_reunion: ActaProxima;
+  hilos?: ActaHilo[];
+  dudas_clasificacion?: ActaDuda[];
+  vinculo_cliente?: ActaVinculoCliente;
+}
+
+// ─── Escucha Activa (SDD-0150 Fase D · capa privada del founder) ──────────
+
+export const ESCUCHA_SUGERENCIA_TIPOS = [
+  "subir_prioridad",
+  "reescribir_tarea",
+  "hacer_explicito",
+  "agregar_tarea",
+  "revisar_compromiso",
+  "black_swan",
+] as const;
+export type EscuchaSugerenciaTipo = (typeof ESCUCHA_SUGERENCIA_TIPOS)[number];
+export function isEscuchaSugerenciaTipo(v: unknown): v is EscuchaSugerenciaTipo {
+  return (
+    typeof v === "string" &&
+    (ESCUCHA_SUGERENCIA_TIPOS as readonly string[]).includes(v)
+  );
+}
+
+/** Etiqueta legible por tipo de sugerencia (para el panel privado). */
+export const ESCUCHA_SUGERENCIA_LABEL: Record<EscuchaSugerenciaTipo, string> = {
+  subir_prioridad: "Subir prioridad",
+  reescribir_tarea: "Reescribir tarea",
+  hacer_explicito: "Ser más explícito",
+  agregar_tarea: "Tarea que falta",
+  revisar_compromiso: "Compromiso a vigilar",
+  black_swan: "Dato que cambia todo",
+};
+
+/**
+ * Recomendación PRIVADA de la Secretaria Escucha Activa sobre el acta que ya
+ * produjo la default. NO crea trabajo por sí sola: el founder la aplica a mano
+ * (subir prioridad, reescribir un título, etc.). No se persiste (efímera).
+ */
+export interface EscuchaSugerencia {
+  tipo: EscuchaSugerenciaTipo;
+  /** Índice de la tarea afectada en el acta default, o null (general). */
+  task_index: number | null;
+  /** Lo que la default produjo (para comparar). */
+  actual: string;
+  /** Lo que Escucha Activa recomienda. */
+  sugerido: string;
+  /** Por qué — la lectura entre líneas (cita corta + marco). */
+  motivo: string;
 }
 
 /** Input del formulario de ingesta (pegar transcripción). */
@@ -421,6 +524,8 @@ export interface ConfirmTaskInput {
   /** Nombre crudo que sugirió la IA (se conserva aunque no matchee). */
   responsable_nombre: string | null;
   checklist: string[];
+  /** Cliente atado por el humano en la revisión (uuid) o null (SDD-0150 Fase B). */
+  client_id: string | null;
 }
 
 /** Payload de la confirmación (patch del acta + tareas). */
@@ -466,6 +571,9 @@ export function validateConfirmActaInput(
     decisiones: cleanStringArray(actaRaw.decisiones),
     pendientes: cleanStringArray(actaRaw.pendientes),
     proxima_reunion: normalizeProxima(actaRaw.proxima_reunion),
+    hilos: normalizeActaHilos(actaRaw.hilos),
+    dudas_clasificacion: normalizeActaDudas(actaRaw.dudas_clasificacion),
+    vinculo_cliente: normalizeActaVinculo(actaRaw.vinculo_cliente),
   };
 
   const rawTasks = Array.isArray(r.tasks) ? r.tasks : [];
@@ -505,6 +613,10 @@ export function validateConfirmActaInput(
           ? tt.responsable_nombre.trim().slice(0, 200)
           : null,
       checklist: cleanStringArray(tt.checklist).map((s) => s.slice(0, 500)),
+      client_id:
+        typeof tt.client_id === "string" && UUID_RE.test(tt.client_id.trim())
+          ? tt.client_id.trim()
+          : null,
     });
   }
 
@@ -563,4 +675,74 @@ function normalizeProxima(v: unknown): ActaProxima {
   const foco =
     typeof p.foco === "string" && p.foco.trim() !== "" ? p.foco.trim() : null;
   return { fecha, foco };
+}
+
+/** Normaliza hilos del payload de confirm → ActaHilo[] (descarta los sin tema). */
+function normalizeActaHilos(v: unknown): ActaHilo[] {
+  if (!Array.isArray(v)) return [];
+  const out: ActaHilo[] = [];
+  for (const raw of v) {
+    if (!raw || typeof raw !== "object") continue;
+    const h = raw as Record<string, unknown>;
+    const tema = typeof h.tema === "string" ? h.tema.trim().slice(0, 300) : "";
+    if (!tema) continue;
+    out.push({
+      tema,
+      estado_final:
+        typeof h.estado_final === "string" && h.estado_final.trim() !== ""
+          ? h.estado_final.trim().slice(0, 2000)
+          : null,
+      contradiccion_sin_resolver: h.contradiccion_sin_resolver === true,
+    });
+  }
+  return out;
+}
+
+/** Normaliza dudas de clasificación del payload de confirm → ActaDuda[]. */
+function normalizeActaDudas(v: unknown): ActaDuda[] {
+  if (!Array.isArray(v)) return [];
+  const out: ActaDuda[] = [];
+  for (const raw of v) {
+    if (!raw || typeof raw !== "object") continue;
+    const d = raw as Record<string, unknown>;
+    const texto = typeof d.texto === "string" ? d.texto.trim().slice(0, 1000) : "";
+    if (!texto) continue;
+    out.push({
+      texto,
+      hablante:
+        typeof d.hablante === "string" && d.hablante.trim() !== ""
+          ? d.hablante.trim().slice(0, 200)
+          : null,
+      opciones: cleanStringArray(d.opciones).map((s) => s.slice(0, 300)),
+    });
+  }
+  return out;
+}
+
+/** Normaliza el vínculo con cliente del payload de confirm → ActaVinculoCliente | undefined. */
+function normalizeActaVinculo(v: unknown): ActaVinculoCliente | undefined {
+  if (!v || typeof v !== "object") return undefined;
+  const o = v as Record<string, unknown>;
+  const nombre =
+    typeof o.nombre_detectado === "string" && o.nombre_detectado.trim() !== ""
+      ? o.nombre_detectado.trim().slice(0, 200)
+      : null;
+  const clientId =
+    typeof o.client_id_sugerido === "string" && UUID_RE.test(o.client_id_sugerido.trim())
+      ? o.client_id_sugerido.trim()
+      : null;
+  // Vínculo vacío (sin externo detectado ni cliente atado) → no lo persistimos.
+  if (!nombre && !clientId) return undefined;
+  return {
+    nombre_detectado: nombre,
+    tipo_externo: isExternoTipo(o.tipo_externo) ? o.tipo_externo : nombre ? "indeterminado" : null,
+    posible_cliente_nuevo: o.posible_cliente_nuevo === true,
+    client_id_sugerido: clientId,
+    cliente_nombre_sugerido:
+      typeof o.cliente_nombre_sugerido === "string" && o.cliente_nombre_sugerido.trim() !== ""
+        ? o.cliente_nombre_sugerido.trim().slice(0, 200)
+        : null,
+    confianza: isBitacoraConfianza(o.confianza) ? o.confianza : "baja",
+    necesita_confirmar: o.necesita_confirmar === true,
+  };
 }

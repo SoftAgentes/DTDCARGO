@@ -149,6 +149,16 @@ describe("RBAC: capabilities (SDD-0139)", () => {
     expect(canSpecial(null, "approve_money")).toBe(false);
     expect(canSpecial(undefined, "approve_money")).toBe(false);
   });
+
+  it("escucha_activa (SDD-0150): SOLO admin hoy (extensible por rol)", () => {
+    expect(canSpecial("admin", "escucha_activa")).toBe(true);
+    for (const r of NON_ADMIN) {
+      expect(canSpecial(r, "escucha_activa"), `${r} no debe correr Escucha Activa`).toBe(
+        false,
+      );
+    }
+    expect(canSpecial(null, "escucha_activa")).toBe(false);
+  });
 });
 
 describe("RBAC: scope de almacén (SDD-0139)", () => {

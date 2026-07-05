@@ -21,8 +21,13 @@
 import type { RawActa } from "./extract";
 import type { AssignableProfile } from "./bitacora-queries";
 import {
+  isBitacoraConfianza,
   isBitacoraPrioridad,
+  isExternoTipo,
+  type ActaDuda,
+  type ActaHilo,
   type ActaProxima,
+  type ActaVinculoCliente,
   type BitacoraPrioridad,
   type BitacoraTaskTipo,
   type MeetingTipo,
@@ -64,6 +69,9 @@ export interface ResolvedActa {
   decisiones: string[];
   pendientes: string[];
   proxima_reunion: ActaProxima;
+  hilos: ActaHilo[];
+  dudas_clasificacion: ActaDuda[];
+  vinculo_cliente: ActaVinculoCliente;
   tasks: ResolvedTask[];
 }
 
@@ -202,6 +210,64 @@ export function resolveActa(
       fecha: isoOrNull(prox.fecha),
       foco: (prox.foco ?? "").trim() || null,
     },
+    hilos: resolveHilos(raw.hilos),
+    dudas_clasificacion: resolveDudas(raw.dudas_clasificacion),
+    vinculo_cliente: resolveVinculo(raw.vinculo_cliente),
     tasks,
   };
+}
+
+/**
+ * Normaliza la detección de externo de la IA → ActaVinculoCliente. El MATCH
+ * contra la tabla `clients` (client_id_sugerido) lo hace el servidor después
+ * (analyzeActaAction). Aquí sólo se deja la detección lista y se marca
+ * `necesita_confirmar` cuando hubo un externo.
+ */
+function resolveVinculo(raw: RawActa["vinculo_cliente"]): ActaVinculoCliente {
+  const nombre = (raw?.nombre_detectado ?? "").trim() || null;
+  return {
+    nombre_detectado: nombre,
+    tipo_externo: isExternoTipo(raw?.tipo_externo)
+      ? raw.tipo_externo
+      : nombre
+        ? "indeterminado"
+        : null,
+    posible_cliente_nuevo: raw?.posible_cliente_nuevo === true,
+    client_id_sugerido: null,
+    cliente_nombre_sugerido: null,
+    confianza: isBitacoraConfianza(raw?.confianza) ? raw.confianza : "baja",
+    necesita_confirmar: nombre != null,
+  };
+}
+
+/** RawActaHilo[] → ActaHilo[] (descarta los sin tema; normaliza null). */
+function resolveHilos(raw: RawActa["hilos"]): ActaHilo[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ActaHilo[] = [];
+  for (const h of raw) {
+    const tema = (h?.tema ?? "").trim();
+    if (!tema) continue;
+    out.push({
+      tema,
+      estado_final: (h.estado_final ?? "").trim() || null,
+      contradiccion_sin_resolver: h.contradiccion_sin_resolver === true,
+    });
+  }
+  return out;
+}
+
+/** RawActaDuda[] → ActaDuda[] (descarta las sin texto; normaliza null). */
+function resolveDudas(raw: RawActa["dudas_clasificacion"]): ActaDuda[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ActaDuda[] = [];
+  for (const d of raw) {
+    const texto = (d?.texto ?? "").trim();
+    if (!texto) continue;
+    out.push({
+      texto,
+      hablante: (d.hablante ?? "").trim() || null,
+      opciones: cleanList(d.opciones),
+    });
+  }
+  return out;
 }

@@ -46,11 +46,18 @@ interface Props {
   myUserId: string | null;
   /** Tenant del caller (resuelto server-side) para armar el path del audio. */
   tenantId: string | null;
+  /** ¿El usuario puede correr la Escucha Activa? (capability admin, SDD-0150). */
+  canEscucha: boolean;
 }
 
 type IngestaMode = "text" | "audio";
 
-export function NuevaReunionClient({ profiles, myUserId, tenantId }: Props) {
+export function NuevaReunionClient({
+  profiles,
+  myUserId,
+  tenantId,
+  canEscucha,
+}: Props) {
   const toast = useToast();
 
   const [tipo, setTipo] = useState<MeetingTipo>("interna");
@@ -126,6 +133,7 @@ export function NuevaReunionClient({ profiles, myUserId, tenantId }: Props) {
         tipo={tipo}
         clienteNombre={review.clienteNombre}
         myUserId={myUserId}
+        canEscucha={canEscucha}
         onBack={() => setReview(null)}
       />
     );

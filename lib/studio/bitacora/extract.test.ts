@@ -38,6 +38,9 @@ describe("extractActa (SDD-0146 · mock determinista + guard)", () => {
       expect(r.acta.tareas.length).toBeGreaterThan(0);
       expect(r.acta.tareas[0].titulo.length).toBeGreaterThan(0);
       expect(r.acta.tareas[0].prioridad).toBe("media");
+      // SDD-0150: el contrato ahora trae hilos + dudas (arrays, vacíos en el mock).
+      expect(Array.isArray(r.acta.hilos)).toBe(true);
+      expect(Array.isArray(r.acta.dudas_clasificacion)).toBe(true);
     }
   });
 
@@ -56,6 +59,8 @@ describe("extractActa (SDD-0146 · mock determinista + guard)", () => {
     expect("acta" in r).toBe(true);
     if ("acta" in r) {
       expect(r.acta.entregables_cliente?.length ?? 0).toBeGreaterThan(0);
+      // SDD-0150 Fase B: el mock detecta el externo por el nombre del cliente.
+      expect(r.acta.vinculo_cliente?.nombre_detectado).toBe("Sol");
     }
   });
 
