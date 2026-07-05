@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildActaPrompt } from "./prompts";
+import { buildActaPrompt, buildActaCommonBlock } from "./prompts";
 
 const BASE = {
   transcript:
@@ -107,5 +107,42 @@ describe("buildActaPrompt (SDD-0146 · secretario de actas)", () => {
     expect(base).not.toContain("GUÍA PRIORITARIA");
     expect(vacio).toBe(base);
     expect(espacios).toBe(base);
+  });
+
+  // ── SDD-0150 Fase A: contrato rico + concisión + anti-alucinación ──
+  it("pide hilos y dudas de clasificación (contrato rico)", () => {
+    const p = buildActaPrompt({ ...BASE, tipo: "interna" });
+    expect(p).toContain("- hilos:");
+    expect(p).toContain("- dudas_clasificacion:");
+  });
+
+  it("instruye concisión (BREVE) y la regla anti-alucinación de audio", () => {
+    const p = buildActaPrompt({ ...BASE, tipo: "interna" });
+    expect(p).toContain("sé BREVE");
+    expect(p).toContain(
+      "no inventes tono, pausas ni gestos que no estén en el texto",
+    );
+  });
+});
+
+describe("buildActaCommonBlock (SDD-0150 · núcleo compartido)", () => {
+  it("interna (sin entregables): NO menciona entregables_cliente", () => {
+    const b = buildActaCommonBlock({
+      teamNames: ["Ana Pérez"],
+      incluyeEntregables: false,
+    });
+    expect(b).toContain("- hilos:");
+    expect(b).toContain("- dudas_clasificacion:");
+    expect(b).toContain("Ana Pérez");
+    expect(b).not.toContain("entregables_cliente");
+  });
+
+  it("cliente (con entregables): incluye entregables_cliente", () => {
+    const b = buildActaCommonBlock({
+      teamNames: [],
+      incluyeEntregables: true,
+    });
+    expect(b).toContain("entregables_cliente");
+    expect(b).toContain("(sin lista)");
   });
 });

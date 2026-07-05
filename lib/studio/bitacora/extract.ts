@@ -41,6 +41,20 @@ export interface RawActaEntregable {
   due_date?: string;
 }
 
+/** Hilo: tema disperso reconstruido, con el dato FINAL (SDD-0150 Fase A). */
+export interface RawActaHilo {
+  tema: string;
+  estado_final?: string;
+  contradiccion_sin_resolver?: boolean;
+}
+
+/** Duda de clasificación empleado-vs-externo sin resolver (SDD-0150 Fase A). */
+export interface RawActaDuda {
+  texto: string;
+  hablante?: string;
+  opciones?: string[];
+}
+
 export interface RawActa {
   resumen: string;
   puntos: string[];
@@ -50,6 +64,10 @@ export interface RawActa {
   proxima_reunion?: { fecha?: string; foco?: string };
   tareas: RawActaTask[];
   entregables_cliente?: RawActaEntregable[];
+  /** Temas dispersos cosidos, con el dato final (SDD-0150). */
+  hilos?: RawActaHilo[];
+  /** Clasificaciones ambiguas que el humano debe resolver (SDD-0150). */
+  dudas_clasificacion?: RawActaDuda[];
 }
 
 export interface ExtractOpts {
@@ -133,6 +151,40 @@ const ACTA_INPUT_SCHEMA: Anthropic.Messages.Tool.InputSchema = {
         required: ["descripcion"],
       },
     },
+    hilos: {
+      type: "array",
+      description:
+        "Temas que se tocaron en partes separadas y se retomaron, cosidos en un solo hilo con su estado FINAL.",
+      items: {
+        type: "object",
+        properties: {
+          tema: { type: "string", description: "Nombre corto del hilo." },
+          estado_final: {
+            type: "string",
+            description: "Lo que vale al final (si un dato se corrigió, el último).",
+          },
+          contradiccion_sin_resolver: {
+            type: "boolean",
+            description: "true si quedó una contradicción que la reunión NO resolvió.",
+          },
+        },
+        required: ["tema"],
+      },
+    },
+    dudas_clasificacion: {
+      type: "array",
+      description:
+        "Cuando no quede claro si alguien es del equipo o externo (y eso cambia tarea-vs-pendiente): no decidas, anótalo como duda.",
+      items: {
+        type: "object",
+        properties: {
+          texto: { type: "string", description: "La duda, en una frase." },
+          hablante: { type: "string", description: "Nombre en cuestión, si se menciona." },
+          opciones: { type: "array", items: { type: "string" } },
+        },
+        required: ["texto"],
+      },
+    },
   },
   required: [
     "resumen",
@@ -181,7 +233,7 @@ export async function extractActa(
     const model = process.env.BITACORA_ACTA_MODEL ?? DEFAULT_MODEL;
     const response = await client.messages.create({
       model,
-      max_tokens: 4000,
+      max_tokens: 5000, // +1000 vs SDD-0146: el contrato ahora trae hilos + dudas.
       tools: [
         {
           name: TOOL_NAME,
@@ -277,6 +329,39 @@ function coerceRawActa(input: unknown): RawActa | null {
     };
   }
 
+  const hilos: RawActaHilo[] = Array.isArray(o.hilos)
+    ? o.hilos
+        .map((raw): RawActaHilo | null => {
+          if (!raw || typeof raw !== "object") return null;
+          const h = raw as Record<string, unknown>;
+          const tema = typeof h.tema === "string" ? h.tema.trim() : "";
+          if (!tema) return null;
+          return {
+            tema,
+            estado_final:
+              typeof h.estado_final === "string" ? h.estado_final : undefined,
+            contradiccion_sin_resolver: h.contradiccion_sin_resolver === true,
+          };
+        })
+        .filter((h): h is RawActaHilo => h !== null)
+    : [];
+
+  const dudas: RawActaDuda[] = Array.isArray(o.dudas_clasificacion)
+    ? o.dudas_clasificacion
+        .map((raw): RawActaDuda | null => {
+          if (!raw || typeof raw !== "object") return null;
+          const d = raw as Record<string, unknown>;
+          const texto = typeof d.texto === "string" ? d.texto.trim() : "";
+          if (!texto) return null;
+          return {
+            texto,
+            hablante: typeof d.hablante === "string" ? d.hablante : undefined,
+            opciones: asStringArray(d.opciones),
+          };
+        })
+        .filter((d): d is RawActaDuda => d !== null)
+    : [];
+
   return {
     resumen: typeof o.resumen === "string" ? o.resumen.trim() : "",
     puntos: asStringArray(o.puntos),
@@ -286,6 +371,8 @@ function coerceRawActa(input: unknown): RawActa | null {
     proxima_reunion,
     tareas,
     entregables_cliente: entregables,
+    hilos,
+    dudas_clasificacion: dudas,
   };
 }
 
@@ -323,6 +410,8 @@ function mockActa(clean: string, opts: ExtractOpts): RawActa {
       },
     ],
     entregables_cliente: [],
+    hilos: [],
+    dudas_clasificacion: [],
   };
 
   if (opts.tipo === "cliente") {

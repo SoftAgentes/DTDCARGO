@@ -242,3 +242,47 @@ describe("resolveActa · cabecera del acta", () => {
     expect(acta.titulo).toBe("Conversación con Sol · 2026-07-04");
   });
 });
+
+describe("resolveActa · hilos y dudas de clasificación (SDD-0150 Fase A)", () => {
+  it("acta sin hilos/dudas → arrays vacíos (actas viejas siguen válidas)", () => {
+    const acta = resolveActa(emptyRaw(), PROFILES, { tipo: "interna" });
+    expect(acta.hilos).toEqual([]);
+    expect(acta.dudas_clasificacion).toEqual([]);
+  });
+
+  it("hilos: normaliza estado_final null y contradiccion default false; descarta sin tema", () => {
+    const acta = resolveActa(
+      emptyRaw({
+        hilos: [
+          { tema: "entrega Maracaibo", estado_final: "10 días", contradiccion_sin_resolver: true },
+          { tema: "pago proveedor" }, // sin estado_final → null, contradiccion false
+          { tema: "  " }, // sin tema real → se descarta
+        ],
+      }),
+      PROFILES,
+      { tipo: "interna" },
+    );
+    expect(acta.hilos).toEqual([
+      { tema: "entrega Maracaibo", estado_final: "10 días", contradiccion_sin_resolver: true },
+      { tema: "pago proveedor", estado_final: null, contradiccion_sin_resolver: false },
+    ]);
+  });
+
+  it("dudas: conserva texto/opciones, hablante null si falta; descarta sin texto", () => {
+    const acta = resolveActa(
+      emptyRaw({
+        dudas_clasificacion: [
+          { texto: "¿González es cliente o del equipo?", hablante: "González", opciones: ["cliente", "equipo"] },
+          { texto: "duda sin hablante" },
+          { texto: "   " }, // se descarta
+        ],
+      }),
+      PROFILES,
+      { tipo: "interna" },
+    );
+    expect(acta.dudas_clasificacion).toEqual([
+      { texto: "¿González es cliente o del equipo?", hablante: "González", opciones: ["cliente", "equipo"] },
+      { texto: "duda sin hablante", hablante: null, opciones: [] },
+    ]);
+  });
+});

@@ -314,13 +314,33 @@ export interface ActaProxima {
   foco: string | null;
 }
 
-/** Forma canónica del jsonb `acta` en bitacora_meetings (columna `acta`). */
+/** Hilo: tema disperso reconstruido con su dato FINAL (SDD-0150 Fase A). */
+export interface ActaHilo {
+  tema: string;
+  estado_final: string | null;
+  contradiccion_sin_resolver: boolean;
+}
+
+/** Duda de clasificación empleado-vs-externo sin resolver (SDD-0150 Fase A). */
+export interface ActaDuda {
+  texto: string;
+  hablante: string | null;
+  opciones: string[];
+}
+
+/**
+ * Forma canónica del jsonb `acta` en bitacora_meetings (columna `acta`).
+ * `hilos`/`dudas_clasificacion` son OPCIONALES: las actas anteriores a SDD-0150
+ * no los traen y siguen siendo válidas.
+ */
 export interface ActaData {
   puntos: string[];
   hablaron: string[];
   decisiones: string[];
   pendientes: string[];
   proxima_reunion: ActaProxima;
+  hilos?: ActaHilo[];
+  dudas_clasificacion?: ActaDuda[];
 }
 
 /** Input del formulario de ingesta (pegar transcripción). */
@@ -466,6 +486,8 @@ export function validateConfirmActaInput(
     decisiones: cleanStringArray(actaRaw.decisiones),
     pendientes: cleanStringArray(actaRaw.pendientes),
     proxima_reunion: normalizeProxima(actaRaw.proxima_reunion),
+    hilos: normalizeActaHilos(actaRaw.hilos),
+    dudas_clasificacion: normalizeActaDudas(actaRaw.dudas_clasificacion),
   };
 
   const rawTasks = Array.isArray(r.tasks) ? r.tasks : [];
@@ -563,4 +585,46 @@ function normalizeProxima(v: unknown): ActaProxima {
   const foco =
     typeof p.foco === "string" && p.foco.trim() !== "" ? p.foco.trim() : null;
   return { fecha, foco };
+}
+
+/** Normaliza hilos del payload de confirm → ActaHilo[] (descarta los sin tema). */
+function normalizeActaHilos(v: unknown): ActaHilo[] {
+  if (!Array.isArray(v)) return [];
+  const out: ActaHilo[] = [];
+  for (const raw of v) {
+    if (!raw || typeof raw !== "object") continue;
+    const h = raw as Record<string, unknown>;
+    const tema = typeof h.tema === "string" ? h.tema.trim().slice(0, 300) : "";
+    if (!tema) continue;
+    out.push({
+      tema,
+      estado_final:
+        typeof h.estado_final === "string" && h.estado_final.trim() !== ""
+          ? h.estado_final.trim().slice(0, 2000)
+          : null,
+      contradiccion_sin_resolver: h.contradiccion_sin_resolver === true,
+    });
+  }
+  return out;
+}
+
+/** Normaliza dudas de clasificación del payload de confirm → ActaDuda[]. */
+function normalizeActaDudas(v: unknown): ActaDuda[] {
+  if (!Array.isArray(v)) return [];
+  const out: ActaDuda[] = [];
+  for (const raw of v) {
+    if (!raw || typeof raw !== "object") continue;
+    const d = raw as Record<string, unknown>;
+    const texto = typeof d.texto === "string" ? d.texto.trim().slice(0, 1000) : "";
+    if (!texto) continue;
+    out.push({
+      texto,
+      hablante:
+        typeof d.hablante === "string" && d.hablante.trim() !== ""
+          ? d.hablante.trim().slice(0, 200)
+          : null,
+      opciones: cleanStringArray(d.opciones).map((s) => s.slice(0, 300)),
+    });
+  }
+  return out;
 }
