@@ -145,9 +145,20 @@ el "re-aviso por tiempo" pierde urgencia → V1 va con el aviso simple.
     cliente sobre SU hilo `channel='portal'`, vía `get_portal_client_id()` — SELECT
     only, misma data que ya ve por admin, policies del equipo intactas).
 
+- **Fase 5 — toggle + fix de re-suscripción (2026-07-05, LIVE).**
+  - **TOGGLE**: preferencia por-evento `notify_on_portal_message` (migr **0218**,
+    default true) en `user_notification_prefs` + toggle en Mi perfil › Notificaciones ›
+    Eventos ("Mensaje nuevo de un cliente"). `conversation-inbound-notify` salta el
+    Telegram del agente que lo silenció (el hilo se asigna igual). Defensivo: sin la
+    columna → default true (best-effort, cero cambio).
+  - **PUSHSUBCR**: el `pushsubscriptionchange` del SW raíz (compartido Studio+portal)
+    ahora postea a AMBAS rutas (`/api/studio` + `/api/portal`) best-effort — cada una
+    acepta a su población y rechaza a la otra → el re-suscribe (rotación de endpoint)
+    funciona también para el cliente del portal. La ruta del portal acepta el sub
+    crudo O envuelto en `{subscription}`.
+
 ## Fuera de alcance
-- **Preferencia por-evento** del aviso (toggle "mensaje del portal" por canal en el
-  centro de prefs de [[0036]]) — mejora futura, no bloqueante.
+- (Nada pendiente en SDD-0148 — el chat quedó activado punta a punta.)
 
 ## Verificación
 

@@ -60,11 +60,22 @@ self.addEventListener("pushsubscriptionchange", (event) => {
             userVisibleOnly: true,
             applicationServerKey: appServerKey,
           }));
-        await fetch("/api/studio/push/subscribe", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ subscription: newSub.toJSON() }),
-        });
+        // El SW es compartido Studio + portal. Posteamos a AMBAS rutas: cada una
+        // acepta a SU población (staff via user_tenants / cliente via client_users) y
+        // rechaza a la otra (403, ignorado). Así el re-suscribe funciona para los dos.
+        const payload = JSON.stringify({ subscription: newSub.toJSON() });
+        await Promise.allSettled([
+          fetch("/api/studio/push/subscribe", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: payload,
+          }),
+          fetch("/api/portal/push/subscribe", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: payload,
+          }),
+        ]);
       } catch {
         // best-effort: el user re-activa desde Mi perfil si hace falta.
       }

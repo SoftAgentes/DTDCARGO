@@ -35,6 +35,27 @@ function preview(body: string, max = 140): string {
 }
 
 /**
+ * ¿El agente quiere el aviso de mensajes del portal? (SDD-0148 TOGGLE, pref
+ * `notify_on_portal_message`). Default true: sin fila / null / columna aún sin
+ * migrar → avisa igual (best-effort, cero cambio de comportamiento).
+ */
+async function wantsPortalNotif(
+  admin: SupabaseClient,
+  userId: string,
+): Promise<boolean> {
+  try {
+    const { data } = await admin
+      .from("user_notification_prefs")
+      .select("notify_on_portal_message")
+      .eq("user_id", userId)
+      .maybeSingle<{ notify_on_portal_message: boolean }>();
+    return data?.notify_on_portal_message !== false;
+  } catch {
+    return true;
+  }
+}
+
+/**
  * Avisa al equipo que entró un mensaje inbound del portal. Recibe el ADMIN client
  * + el `conversationId` que devuelve `portal_post_message` + el cuerpo del mensaje
  * (para el preview). Best-effort, nunca tira.
@@ -93,8 +114,11 @@ export async function notifyConversationInbound(
     ].join("\n");
 
     if (assignedTo) {
-      // Hilo asignado (o recién auto-asignado por advisor_id) → solo a ese agente.
-      await sendTelegramToUser(admin, assignedTo, text);
+      // Hilo asignado (o recién auto-asignado por advisor_id) → solo a ese agente,
+      // si no silenció el aviso del portal (TOGGLE).
+      if (await wantsPortalNotif(admin, assignedTo)) {
+        await sendTelegramToUser(admin, assignedTo, text);
+      }
     } else {
       // #2 Round-robin: sin asesor del cliente → asigna al ADMIN menos cargado
       // (menos conversaciones abiertas asignadas) y notifica SOLO a él. Reparte la
@@ -129,7 +153,10 @@ export async function notifyConversationInbound(
         .update({ assigned_to: best })
         .eq("id", args.conversationId)
         .is("assigned_to", null);
-      await sendTelegramToUser(admin, best, text);
+      // Se asigna igual; el Telegram respeta el TOGGLE del agente.
+      if (await wantsPortalNotif(admin, best)) {
+        await sendTelegramToUser(admin, best, text);
+      }
     }
   } catch (err) {
     console.error("[conversation-inbound-notify] falló:", err);

@@ -42,10 +42,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Body inválido." }, { status: 422 });
   }
 
-  const sub = body as {
+  // Acepta el sub crudo (lo que manda PortalPushOptIn) O envuelto en `{subscription}`
+  // (lo que manda el `pushsubscriptionchange` del SW raíz, compartido con el Studio).
+  const raw = (
+    body && typeof body === "object" && "subscription" in body
+      ? (body as { subscription: unknown }).subscription
+      : body
+  ) as {
     endpoint?: unknown;
     keys?: { p256dh?: unknown; auth?: unknown };
   };
+  const sub = raw;
   const endpoint = typeof sub.endpoint === "string" ? sub.endpoint : null;
   const p256dh =
     sub.keys && typeof sub.keys.p256dh === "string" ? sub.keys.p256dh : null;
@@ -68,7 +75,7 @@ export async function POST(req: Request) {
       tenant_id: link.tenant_id,
       user_id: user.id,
       endpoint,
-      subscription: body as Record<string, unknown>,
+      subscription: raw as unknown as Record<string, unknown>,
       user_agent: userAgent,
       last_used_at: new Date().toISOString(),
     },

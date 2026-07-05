@@ -440,6 +440,7 @@ function PrefsTabContent({
     notify_on_admin_reply: true,
     notify_on_resolved: true,
     notify_on_critical: true,
+    notify_on_portal_message: true,
     sound_enabled: true,
   });
   const setNotifField = (k: keyof typeof notif, v: boolean) =>
@@ -457,7 +458,7 @@ function PrefsTabContent({
         const { data } = await supabase
           .from("user_notification_prefs")
           .select(
-            "channel_inapp, channel_email, channel_telegram, notify_on_state_change, notify_on_admin_reply, notify_on_resolved, notify_on_critical, sound_enabled",
+            "channel_inapp, channel_email, channel_telegram, notify_on_state_change, notify_on_admin_reply, notify_on_resolved, notify_on_critical, notify_on_portal_message, sound_enabled",
           )
           .eq("user_id", user.id)
           .maybeSingle();
@@ -788,6 +789,13 @@ function PrefsTabContent({
             label="Bug crítico nuevo (para admins)"
             checked={notif.notify_on_critical}
             onChange={(v) => setNotifField("notify_on_critical", v)}
+            disabled={pending || !notifLoaded}
+          />
+          <PrefCheck
+            name="notify_on_portal_message"
+            label="Mensaje nuevo de un cliente (Soporte del portal)"
+            checked={notif.notify_on_portal_message}
+            onChange={(v) => setNotifField("notify_on_portal_message", v)}
             disabled={pending || !notifLoaded}
           />
         </div>

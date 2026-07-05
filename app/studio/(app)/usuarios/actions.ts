@@ -514,6 +514,7 @@ export async function updateMyPreferencesAction(
           notify_on_admin_reply: on("notify_on_admin_reply"),
           notify_on_resolved: on("notify_on_resolved"),
           notify_on_critical: on("notify_on_critical"),
+          notify_on_portal_message: on("notify_on_portal_message"),
           sound_enabled: on("sound_enabled"),
           updated_at: new Date().toISOString(),
         },
