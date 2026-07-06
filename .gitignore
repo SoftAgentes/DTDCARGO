@@ -88,12 +88,19 @@ docs-legal/
 !.claude/agents/implementer.md
 !.claude/agents/leader.md
 !.claude/agents/reviewer.md
+!.claude/agents/design-critic.md
 !.claude/commands/
 .claude/commands/*
 !.claude/commands/feature.md
 !.claude/commands/radar.md
 !.claude/commands/ui-check.md
+!.claude/commands/ui-pro.md
 !.claude/settings.json
+# Skill /ui-pro (auditoría de diseño profunda) — versionado para el equipo.
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/ui-pro/
+!.claude/skills/ui-pro/**
 
 # ─── Design handoffs · binarios grandes (no van al repo) ──────
 # Los standalones HTML con base64 embebido (>5MB c/u) NO se versionan bajo

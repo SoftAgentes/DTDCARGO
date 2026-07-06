@@ -103,7 +103,7 @@ Los valores canónicos viven en el Norte (`docs/design/studio/_norte/erp/tokens.
 
 --ink:         #0F1E3D   /* Texto principal · navy */
 --ink-soft:    #6B6B6B   /* Texto secundario */
---ink-mute:    #9B9B9B   /* Caption / placeholder */
+--ink-mute:    #9B9B9B   /* disabled / decorativo — NO texto legible ni placeholder de input activo (2.78:1); ver ♿ */
 
 --border:      #E8E6E2
 
@@ -133,6 +133,39 @@ Los valores canónicos viven en el Norte (`docs/design/studio/_norte/erp/tokens.
 
 ---
 
+## ♿ Contraste & legibilidad (WCAG 2.1 AA)
+
+Los hex de la paleta no dicen **qué par se lee**. Estas reglas cierran ese hueco. Ratios verificados sobre los tokens reales (2026-07-06).
+
+### Umbrales
+- Texto normal ≥ **4.5:1** · texto grande (≥24px, o ≥18.66px en negrita) ≥ **3:1** · iconos, bordes de foco y componentes ≥ **3:1** (WCAG 1.4.11).
+
+### Tokens que NO son color de texto de párrafo (medido)
+- `--ink-mute #9B9B9B` → 2.78:1 sobre blanco → solo **disabled/decorativo**, **jamás** body ni placeholder de input activo (WCAG: el placeholder informativo también exige 4.5:1).
+- `--wine-soft #C2747F` (light) → 3.44:1 → acento/borde/hover; como texto, solo grande.
+- `--warning #B8893A` → 3.14:1 como texto → no en texto chico.
+- `--success #1F8A5B` → 4.33:1 como texto → queda bajo 4.5; para texto normal, sube el tamaño o usa relleno.
+
+### Los semánticos son colores de RELLENO/estado, no de texto
+`--success / --warning / --danger / --info` marcan estado. Como texto chico sobre blanco no siempre alcanzan AA → úsalos en texto grande o como relleno con `--ink`/blanco encima (verifica el par).
+
+### Relleno + texto (CTAs / badges)
+- Sobre `--wine` / `--danger` → texto **blanco** (10.6:1 / 6.6:1).
+- Sobre `--warning` → texto `--ink` (5.24:1), **nunca** blanco.
+- Sobre `--success` → texto `--ink`, o blanco solo en texto grande.
+
+### Rol de `--wine` en dark
+Como **texto** sobre fondos oscuros falla (`#A8323E` → 2.79:1). En dark, `--wine` es **relleno** (texto blanco encima, 6.58:1); el acento de **texto** en dark es `--wine-soft #D89AA4` (7.93:1). Los tokens dark que falten (`--ink-mute`, `--border`, semánticos) se toman de `docs/design/studio/_norte/erp/tokens.css` — **no inventar**.
+
+### Paridad light/dark
+Todo par texto/fondo debe pasar el umbral en **ambos** temas. No asumas que un token de texto en light hereda contraste en dark — verifica el equivalente.
+
+### Fondo variable
+- Texto sobre imagen/gradiente → **scrim/overlay** oscuro detrás; nunca texto directo sobre foto.
+- **No comuniques solo por color** (WCAG 1.4.1): estados, links y errores llevan ícono, texto o subrayado además del color.
+
+---
+
 ## 🔤 Tipografía
 
 Tres familias, **ninguna otra**:
@@ -154,6 +187,15 @@ Tres familias, **ninguna otra**:
 - Inter, Roboto, Open Sans, Lato, Montserrat, Poppins, Helvetica, Arial — son AI slop.
 - Fuentes serif: Fraunces, Playfair, Georgia, Times — no van con el sistema.
 - Cualquier fuente cursiva o decorativa.
+
+---
+
+## 📖 Legibilidad de lectura
+
+Complementa la tipografía (no la cambia): reglas de lectura cómoda.
+- **Measure** (ancho de línea): 45–75 caracteres, 66 óptimo (`max-width: 65ch` en prosa).
+- **Tamaño body** ≥ 16px (18px en páginas de lectura larga).
+- **Interlineado:** body 1.5–1.75 · títulos 1.0–1.25 (líneas largas → más interlineado).
 
 ---
 
@@ -179,6 +221,14 @@ Solo las del sistema: `--shadow-xs`, `--shadow-sm`, `--shadow-md`, `--shadow-lg`
 
 ---
 
+## 🎚️ Perfil de densidad por superficie
+
+La densidad correcta depende de la superficie — calibra el juicio de spacing **sin** romper la escala 4px.
+- **Público** = espacioso · **Studio / ERP** = denso (tablas, KPIs) · **Portal / Móvil** = medio.
+- Una tabla ERP densa y correcta **no** es "demasiado apretada"; un landing público apretado **sí** es un problema.
+
+---
+
 ## 🧩 Componentes
 
 Los componentes viven en `erp/components.jsx` (ERP) y se reusan en `portal/app.jsx` (Portal).
@@ -189,6 +239,15 @@ Los componentes viven en `erp/components.jsx` (ERP) y se reusan en `portal/app.j
 - Si te falta un componente, **construilo siguiendo el estilo de los existentes** (mismas variables, mismo radius, mismas sombras) y dejá un comentario `/* TODO: brand-review */` para que el equipo de diseño lo apruebe.
 - **Botones**: usar las 6 variantes oficiales — `primary`, `secondary`, `ghost`, `danger`, `dark`, `soft`. No inventes.
 - **Badges**: usar tonos `success`, `warning`, `danger`, `info`, `wine`, `neutral`. No inventes tonos.
+
+---
+
+## ✅ Estados obligatorios
+
+Cada pantalla los cubre con el mismo cuidado que el "happy path".
+- **Interactivos:** hover · focus (visible) · active · disabled.
+- **Vistas de datos:** empty · loading · error · success.
+- **Pre-flight:** sin Lorem/placeholder ni `TODO: brand-review` sin resolver en pantallas ya vivas.
 
 ---
 
@@ -258,6 +317,7 @@ preferís la alternativa?
 - "Pone emojis en los buttons de éxito" → ❌ rompe tono
 - "Hacé el border-radius de 40px" → ❌ rompe escala
 - "Usá `#FF00FF` para el badge" → ❌ rompe sistema de color
+- Texto que no alcanza el contraste AA sobre su fondo real (ej. `--ink-mute` como body, `--warning` como texto chico) → ❌ rompe legibilidad
 
 **Cosas que NO disparan BRAND-CHECK** (son válidas dentro del sistema):
 - "Cambiá este botón de secondary a primary" → ✅ ambas variantes existen
@@ -276,12 +336,13 @@ preferís la alternativa?
 
 ---
 
-## 🔒 Resumen ejecutivo · 5 reglas que NO se rompen
+## 🔒 Resumen ejecutivo · 6 reglas que NO se rompen
 
 1. **Solo usar tokens CSS** (`var(--*)`). Cero hex inventados.
 2. **Solo fuentes Archivo + JetBrains Mono + Noto Sans SC**. Nada más.
 3. **Cero AI slop**: sin gradientes coloridos, sin emojis decorativos, sin glassmorphism, sin shadcn-defaults visibles.
 4. **Componentes del sistema** primero. Inventar solo con `/* TODO: brand-review */`.
 5. **Avisar antes de violar**. Formato `BRAND-CHECK` explícito.
+6. **Todo texto se lee.** Contraste AA: normal ≥4.5:1, grande ≥3:1. Un color de marca que no alcanza el ratio sobre su fondo real no se usa como texto (ver ♿).
 
 Cuando dudes, **preguntá**. Es preferible una pregunta extra antes que un cambio que el equipo de diseño tenga que revertir.
