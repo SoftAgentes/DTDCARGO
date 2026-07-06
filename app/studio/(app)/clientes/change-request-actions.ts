@@ -22,6 +22,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { identityResetOnChange } from "@/lib/studio/identity/reset-on-change";
+import { notifyChangeRequestResolvedToClient } from "@/lib/studio/change-request-notify";
 
 type ReviewResult = { ok?: boolean; error?: string };
 
@@ -82,13 +84,26 @@ export async function approveChangeRequestAction(
   if (loadErr || !req) return { error: loadErr ?? "No encontramos la solicitud." };
 
   // Aplicar SOLO los campos propuestos (no-nulos) a la ficha del cliente.
-  const patch: Record<string, string> = {};
+  const patch: Record<string, string | null> = {};
   if (req.proposed_name != null) patch.name = req.proposed_name;
   if (req.proposed_rif != null) patch.rif = req.proposed_rif;
   if (req.proposed_phone != null) patch.phone = req.proposed_phone;
   if (Object.keys(patch).length === 0) {
     return { error: "La solicitud no tiene cambios que aplicar." };
   }
+
+  // Si el cambio toca nombre o RIF/cédula, la verificación previa (SDD-0046)
+  // queda apuntando al documento viejo → resetear doc_verify_* para re-verificar.
+  const { data: cur } = await supabase
+    .from("clients")
+    .select("name, rif")
+    .eq("id", req.client_id)
+    .maybeSingle<{ name: string | null; rif: string | null }>();
+  const identityReset = identityResetOnChange(
+    { name: cur?.name ?? null, rif: cur?.rif ?? null },
+    { name: patch.name, rif: patch.rif },
+  );
+  if (identityReset) Object.assign(patch, identityReset);
 
   const { error: updErr } = await supabase
     .from("clients")
@@ -117,6 +132,12 @@ export async function approveChangeRequestAction(
     // La ficha ya se actualizó; loguear y seguir (el patch es idempotente).
     console.error("[approveChangeRequestAction] request update error:", reqErr);
   }
+
+  // Avisar al cliente que su cambio quedó aplicado (push best-effort, SDD-0148).
+  await notifyChangeRequestResolvedToClient(admin, {
+    clientId: req.client_id,
+    approved: true,
+  });
 
   if (markbox) revalidatePath(`/studio/clientes/${markbox}`);
   revalidatePath("/studio/clientes");
@@ -157,6 +178,13 @@ export async function rejectChangeRequestAction(
   if (reqErr) {
     return { error: `No se pudo rechazar: ${reqErr.message}` };
   }
+
+  // Avisar al cliente que su solicitud no se aplicó (con el motivo, si lo hay).
+  await notifyChangeRequestResolvedToClient(admin, {
+    clientId: req.client_id,
+    approved: false,
+    note: cleanNote,
+  });
 
   if (markbox) revalidatePath(`/studio/clientes/${markbox}`);
   return { ok: true };

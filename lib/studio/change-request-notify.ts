@@ -12,6 +12,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { resolveAdminEntries, sendAdminTelegram } from "@/lib/studio/new-client-notify";
+import { sendPushToUserDevices } from "@/lib/studio/notify/send-user-push";
 import type { ChangeRequestDiffRow } from "@/lib/portal/change-request-types";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
@@ -48,5 +49,59 @@ export async function notifyChangeRequestToAdmin(
     }
   } catch (err) {
     console.error("[change-request-notify] falló:", err);
+  }
+}
+
+/**
+ * Push al CLIENTE cuando su solicitud se resuelve (aprobada/rechazada). El cliente
+ * propuso un cambio y hasta ahora no se enteraba del veredicto salvo que volviera
+ * al perfil. Reusa `sendPushToUserDevices` + `client_users` activos (mismo patrón
+ * que notifyClientReplyPush, SDD-0148). El click abre `/portal/perfil`.
+ * Best-effort: si no tiene push o falla, no pasa nada (al volver al perfil igual
+ * ve el estado). SIEMPRE con service_role.
+ */
+export async function notifyChangeRequestResolvedToClient(
+  supabaseAdmin: SupabaseClient,
+  args: { clientId: string; approved: boolean; note?: string | null },
+): Promise<void> {
+  try {
+    const { data: users } = await supabaseAdmin
+      .from("client_users")
+      .select("auth_user_id")
+      .eq("client_id", args.clientId)
+      .eq("status", "active")
+      .not("auth_user_id", "is", null);
+
+    const ids = [
+      ...new Set(
+        (users ?? [])
+          .map((u) => (u as { auth_user_id: string | null }).auth_user_id)
+          .filter((v): v is string => !!v),
+      ),
+    ];
+    if (ids.length === 0) return;
+
+    const note = (args.note ?? "").trim();
+    const payload = args.approved
+      ? {
+          title: "DTD Cargo · datos actualizados",
+          body: "Tu asesor aprobó el cambio. Ya puedes verlo en tu perfil.",
+          tag: `portal-change-request-${args.clientId}`,
+          url: "/portal/perfil",
+        }
+      : {
+          title: "DTD Cargo · sobre tu solicitud de cambio",
+          body: note
+            ? `No se aplicó el cambio: ${note}`
+            : "No se aplicó el cambio. Escríbenos por el chat si tienes dudas.",
+          tag: `portal-change-request-${args.clientId}`,
+          url: "/portal/perfil",
+        };
+
+    for (const id of ids) {
+      await sendPushToUserDevices(supabaseAdmin, id, payload);
+    }
+  } catch (err) {
+    console.error("[change-request-notify] notifyResolved falló:", err);
   }
 }

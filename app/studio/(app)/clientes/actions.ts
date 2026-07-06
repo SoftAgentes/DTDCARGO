@@ -38,6 +38,7 @@ import {
 import { toWhatsAppRaw } from "@/lib/portal/portal-types";
 import { verifyIdentity, type VerifyResult } from "@/lib/studio/identity";
 import { notifyIdentityMismatch } from "@/lib/studio/identity/notify-mismatch";
+import { identityResetOnChange } from "@/lib/studio/identity/reset-on-change";
 import type { DocumentKind } from "@/lib/studio/identity/document";
 
 function parseStringOrNull(v: FormDataEntryValue | null): string | null {
@@ -177,6 +178,18 @@ export async function updateClientAction(
   const { input, fieldErrors } = validateClientInput(partial);
   if (fieldErrors) return { fieldErrors };
 
+  // Si cambia el nombre o el RIF/cédula, la verificación previa (SDD-0046) queda
+  // desalineada → resetear doc_verify_* para forzar re-verificación.
+  const { data: currentRow } = await supabase
+    .from("clients")
+    .select("name, rif")
+    .eq("markbox", markbox)
+    .maybeSingle<{ name: string | null; rif: string | null }>();
+  const identityReset = identityResetOnChange(
+    { name: currentRow?.name ?? null, rif: currentRow?.rif ?? null },
+    { name: input!.name, rif: input!.rif },
+  );
+
   const { error } = await supabase
     .from("clients")
     .update({
@@ -191,6 +204,7 @@ export async function updateClientAction(
       notes: input!.notes,
       lat: input!.lat,
       lng: input!.lng,
+      ...(identityReset ?? {}),
     })
     .eq("markbox", markbox);
 

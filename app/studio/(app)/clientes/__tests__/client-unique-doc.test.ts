@@ -36,6 +36,11 @@ function makeSupabase() {
         select() {
           return chain;
         },
+        // updateClientAction pre-lee la identidad actual:
+        // .select("name, rif").eq("markbox", markbox).maybeSingle()
+        eq() {
+          return chain;
+        },
         // getStudioRole (moduleEditDenial):
         // .select("role").is("disabled_at", null).limit(1).maybeSingle()
         is() {

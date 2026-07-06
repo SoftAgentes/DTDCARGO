@@ -102,3 +102,18 @@ Tabla de solicitudes de cambio de datos del cliente:
 
 `node scripts/verify.mjs` + `pnpm build`. E2E manual: cliente propone → asesor
 ve diff → aprueba → ficha actualizada + solicitud approved.
+
+## Adenda 2026-07-06 · post-merge
+
+Dos ajustes tras la primera corrida (migración 0220 ya en prod):
+
+- **Reset de verificación de identidad al cambiar nombre/RIF.** Al aprobar un
+  cambio que toca `name` o `rif`, se limpian los `doc_verify_*` (SDD-0046) para
+  forzar re-verificación — la ficha ya no queda "verificada" contra un documento
+  viejo. Mismo criterio en el edit directo del admin (`updateClientAction`).
+  Helper compartido `lib/studio/identity/reset-on-change.ts` (con test).
+- **Aviso al cliente al resolverse.** Push web al cliente cuando su solicitud se
+  aprueba o rechaza (con motivo), reusando `sendPushToUserDevices` +
+  `client_users` activos (patrón SDD-0148). Abre `/portal/perfil`. Best-effort.
+- E2E validado como dry-run transaccional en prod (índice único parcial +
+  loop propone→aprueba+reset), sin residuo.
