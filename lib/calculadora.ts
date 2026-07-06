@@ -330,9 +330,9 @@ export function calcularEnvioLCL(
   // REACTIVA (revierte la pausa del 2026-06-08). Se cobra sobre el peso que excede
   // `pesoIncluidoKg` por CBM, a `recargoExcedenteKg` por kg — todo configurable
   // desde el ERP (params.* ← calculator_settings · /studio/tarifas › Parámetros).
-  // El aviso de "demasiado denso" (> pesoMaxKg → derivar a FCL) lo muestra la UI
-  // (CalculadoraForm.pesoWarning); acá NO seteamos `alerta` para no ocultar el
-  // precio en el ResultPanel — el cliente debe VER el recargo aplicado.
+  // Founder 2026-07-06: el recargo es CONTINUO sin tope — `pesoMaxKg` ya NO deriva
+  // al asesor (antes la UI avisaba "demasiado denso → FCL"). Acá NUNCA seteamos
+  // `alerta` por densidad: el cliente debe VER el precio con el recargo aplicado.
   let recargoExcedente = 0;
   if (densidadKgM3 > params.pesoIncluidoKg) {
     const kgExcedente = Math.max(0, input.pesoKg - cbm * params.pesoIncluidoKg);

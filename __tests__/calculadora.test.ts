@@ -17,8 +17,8 @@ import {
  * Modelo (densidad reactivada · founder 2026-06-20): el cliente ingresa CBM + peso.
  * - Precio = CBM × tarifaBase + recargo por DENSIDAD: el peso que excede
  *   pesoIncluidoKg (500) por CBM se cobra a recargoExcedenteKg ($1) por kg
- *   (configurable desde el ERP). Sobre pesoMaxKg (600) por CBM la UI avisa
- *   "demasiado denso → FCL"; el cálculo NO setea alerta (el precio igual se ve).
+ *   (configurable desde el ERP). El recargo es CONTINUO sin tope: `pesoMaxKg`
+ *   NO entra al cálculo ni deriva al asesor (founder 2026-07-06); el precio se ve.
  * - Tope ABSOLUTO de peso: > 27.000 kg → deriva al asesor.
  * - Tope de volumen: > 68 CBM → deriva al asesor (FCL).
  * - Destinos: Valencia (descuento), Maracay/Caracas (casco), fuera del casco (km × $)
@@ -53,8 +53,7 @@ describe("calcularEnvioLCL", () => {
   });
 
   // Densidad reactivada (2026-06-20): 1 CBM @ 600 kg → density 600 > pesoIncluidoKg
-  // (500) → recargo (600 − 500) × $1 = $100. 600 no supera pesoMaxKg (600) → sin
-  // aviso "demasiado denso" y sin alerta (el precio se ve).
+  // (500) → recargo (600 − 500) × $1 = $100. Sin alerta (el precio se ve).
   it("aplica recargo por densidad cuando el peso excede pesoIncluidoKg/CBM", () => {
     const cot = calcularEnvioLCL({
       cbmTotal: 1,
@@ -73,7 +72,7 @@ describe("calcularEnvioLCL", () => {
   });
 
   // Carga MUY densa (0,3 CBM @ 1000 kg): recargo sobre lo que excede 500 kg/CBM.
-  // Sin alerta → el precio se ve (la UI muestra el aviso "demasiado denso").
+  // Sin alerta → el precio se ve, con el recargo por peso sumado.
   it("una carga muy densa (0,3 CBM @ 1000 kg) cobra recargo y NO oculta el precio", () => {
     const cot = calcularEnvioLCL({
       cbmTotal: 0.3,
@@ -88,8 +87,8 @@ describe("calcularEnvioLCL", () => {
     expect(cot.total).toBe(1090); // 240 + 850
   });
 
-  // 1 CBM @ 800 kg (density 800 > pesoMaxKg 600): la UI avisa "demasiado denso →
-  // FCL", pero el cálculo NO setea alerta → el precio se ve, con el recargo.
+  // 1 CBM @ 800 kg (density 800 > pesoMaxKg 600): el recargo sigue CONTINUO — ya
+  // no deriva al asesor (founder 2026-07-06); el cálculo NO setea alerta.
   it("carga ultra densa: cobra recargo y NO setea alerta (el precio se ve)", () => {
     const cot = calcularEnvioLCL({
       cbmTotal: 1,
@@ -401,8 +400,8 @@ describe("calcularEnvioLCL con params configurables", () => {
   });
 
   // Densidad reactivada (2026-06-20): pesoIncluidoKg + recargoExcedenteKg definen
-  // el recargo por densidad y son configurables desde el ERP. pesoMaxKg solo
-  // alimenta el aviso "demasiado denso" de la UI (no entra al cálculo del recargo).
+  // el recargo por densidad y son configurables desde el ERP. pesoMaxKg ya no se
+  // usa en el calc ni en la UI del recargo (founder 2026-07-06: cobro continuo).
   it("USA params.pesoIncluidoKg como umbral del recargo por densidad", () => {
     const cot = calcularEnvioLCL(
       { cbmTotal: 1, pesoKg: 400, embalaje: "estandar", ciudadId: "caracas" },
@@ -421,7 +420,7 @@ describe("calcularEnvioLCL con params configurables", () => {
     expect(cot.total).toBe(1000);
   });
 
-  it("pesoMaxKg no entra al cálculo del recargo (solo al aviso de la UI)", () => {
+  it("pesoMaxKg no entra al cálculo del recargo (cobro continuo, sin tope)", () => {
     const cot = calcularEnvioLCL(
       { cbmTotal: 1, pesoKg: 650, embalaje: "estandar", ciudadId: "caracas" },
       withParams({ pesoMaxKg: 700 }),
