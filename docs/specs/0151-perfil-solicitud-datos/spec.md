@@ -117,3 +117,39 @@ Dos ajustes tras la primera corrida (migración 0220 ya en prod):
   `client_users` activos (patrón SDD-0148). Abre `/portal/perfil`. Best-effort.
 - E2E validado como dry-run transaccional en prod (índice único parcial +
   loop propone→aprueba+reset), sin residuo.
+
+## Adenda 2026-07-06 · menores + backlog del área
+
+Sobre lo anterior:
+
+- **Cancelar solicitud (cliente).** En "En revisión", botón con confirm de 2
+  pasos → `cancelDataChangeRequestAction` borra la pendiente (service_role,
+  scopeada) y libera el índice → puede proponer de nuevo.
+- **Historial en el Studio.** `listResolvedChangeRequests` + `ChangeRequestHistory`
+  (read-only) en la ficha: resueltas con badge, fecha, diff y motivo.
+- **#1 Ruteo del aviso.** El Telegram de una solicitud va al **asesor asignado**
+  del cliente (`advisor_id`) si tiene Telegram; sin asesor / sin Telegram →
+  broadcast a admins (patrón SDD-0148). Quita ruido al equipo.
+- **#2 Quién revisó.** El historial muestra el nombre del revisor
+  (`reviewed_by` → `user_profiles`, `resolveReviewerNames`).
+- **#3 Traza de edits del equipo (migración 0221).** Columna `source`
+  (`client|admin`). Si el equipo cambia nombre/RIF/teléfono directo en la ficha
+  (`updateClientAction`), se registra una fila `source='admin'` auto-aprobada →
+  aparece en el historial junto a lo del cliente (badge "Editado por el equipo").
+  Las queries del portal filtran `source='client'` (el cliente solo ve lo suyo).
+- **#4 Nudge de re-verificación.** Al aprobar un cambio que reseteó la
+  verificación, el toast del asesor lo avisa ("identidad quedó sin verificar,
+  conviene re-verificar"). `approveChangeRequestAction` devuelve `identityReset`.
+- **#6 Robustez.** Historial hasta 20 (antes 10). Outbox durable para
+  notify/push **diferido** (deuda sistémica compartida con Bug Reporter — hoy
+  best-effort `console.error`).
+
+### Decisión · cambio de email (no se implementa)
+
+El **email queda fijo** (no editable por el cliente ni vía solicitud). Razón: es
+la **identidad de auth** del portal (magic-link contra `auth.users.email`).
+Cambiar `clients.email` NO cambia el login del cliente → sería un cambio a medias
+y confuso. Un cambio de email real exige re-vincular `auth.users` (Supabase Auth)
++ re-verificar el correo nuevo — flujo aparte, sensible, fuera del alcance de
+SDD-0151. Si el founder lo pide, se hace como spec propia (toca auth). Por ahora:
+cambios de correo se manejan por el asesor / soporte.

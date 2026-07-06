@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
@@ -34,6 +34,9 @@ export function ChangeRequestCard({
   const [error, setError] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState(false);
   const [note, setNote] = useState("");
+  // Si la aprobación reseteó la verificación (cambió nombre/RIF), el toast lo
+  // avisa para que el asesor re-verifique. Ref (no state) → sin re-render.
+  const identityResetRef = useRef(false);
 
   const diff = buildChangeRequestDiff(req, isEmpresa);
 
@@ -154,10 +157,16 @@ export function ChangeRequestCard({
           successLabel="Aplicado"
           onAction={async () => {
             setError(null);
-            return approveChangeRequestAction(req.id, markbox);
+            const r = await approveChangeRequestAction(req.id, markbox);
+            identityResetRef.current = !!(r && r.ok && r.identityReset);
+            return r;
           }}
           onSuccess={() => {
-            toast.success(`Datos de ${markbox} actualizados`);
+            toast.success(
+              identityResetRef.current
+                ? `Datos de ${markbox} actualizados · la identidad quedó sin verificar, conviene re-verificar`
+                : `Datos de ${markbox} actualizados`,
+            );
             router.refresh();
           }}
           onError={setError}

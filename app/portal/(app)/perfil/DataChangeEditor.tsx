@@ -5,6 +5,7 @@ import { ChatIcon } from "@/components/Icon";
 import Link from "next/link";
 import {
   submitDataChangeRequestAction,
+  cancelDataChangeRequestAction,
   type ChangeRequestActionState,
 } from "./actions";
 import {
@@ -36,8 +37,13 @@ export function DataChangeEditor({
   lastRejected: ClientChangeRequest | null;
 }) {
   const [open, setOpen] = useState(false);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [state, action, pending] = useActionState(
     submitDataChangeRequestAction,
+    initial,
+  );
+  const [cancelState, cancelAction, cancelPending] = useActionState(
+    cancelDataChangeRequestAction,
     initial,
   );
 
@@ -73,6 +79,49 @@ export function DataChangeEditor({
               </div>
             ))}
           </dl>
+        </div>
+
+        {/* Cancelar la solicitud (¿se equivocó?) — confirm de 2 pasos. Borra la
+            pendiente y lo deja proponer de nuevo. */}
+        <div className="mt-3">
+          {!confirmingCancel ? (
+            <button
+              type="button"
+              onClick={() => setConfirmingCancel(true)}
+              className="inline-flex items-center min-h-[24px] rounded-[4px] text-[12.5px] font-semibold text-grey-700 hover:text-wine focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+            >
+              Cancelar esta solicitud
+            </button>
+          ) : (
+            <form
+              action={cancelAction}
+              className="flex flex-wrap items-center gap-3"
+            >
+              <span className="text-[12.5px] text-grey-700">
+                ¿Cancelar y volver a empezar?
+              </span>
+              <button
+                type="submit"
+                disabled={cancelPending}
+                className="btn btn-ghost inline-flex items-center gap-2 disabled:opacity-60"
+              >
+                {cancelPending ? "Cancelando…" : "Sí, cancelar"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmingCancel(false)}
+                disabled={cancelPending}
+                className="inline-flex items-center min-h-[24px] rounded-[4px] text-[12.5px] font-semibold text-grey-700 hover:text-ink disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              >
+                No, seguir esperando
+              </button>
+            </form>
+          )}
+          {cancelState.error ? (
+            <p role="alert" className="mt-2 text-[12px] text-wine">
+              {cancelState.error}
+            </p>
+          ) : null}
         </div>
       </div>
     );

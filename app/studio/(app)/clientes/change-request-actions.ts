@@ -25,7 +25,7 @@ import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { identityResetOnChange } from "@/lib/studio/identity/reset-on-change";
 import { notifyChangeRequestResolvedToClient } from "@/lib/studio/change-request-notify";
 
-type ReviewResult = { ok?: boolean; error?: string };
+type ReviewResult = { ok?: boolean; error?: string; identityReset?: boolean };
 
 const REQ_COLS =
   "id, tenant_id, client_id, proposed_name, proposed_rif, proposed_phone, status";
@@ -141,7 +141,8 @@ export async function approveChangeRequestAction(
 
   if (markbox) revalidatePath(`/studio/clientes/${markbox}`);
   revalidatePath("/studio/clientes");
-  return { ok: true };
+  // identityReset → el asesor debe re-verificar (la ficha ya quedó "sin verificar").
+  return { ok: true, identityReset: !!identityReset };
 }
 
 export async function rejectChangeRequestAction(
