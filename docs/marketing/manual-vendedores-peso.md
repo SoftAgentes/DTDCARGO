@@ -14,24 +14,26 @@ que de peso** — nuestra carga real casi nunca se acerca al tope físico del co
 eso podemos ser generosos sin perder plata. Pero esa generosidad **tiene candados** para
 que nadie abuse.
 
-## Los 4 números (SOLO para ti)
+## Los números (SOLO para ti)
 
-| Candado | Límite | Qué haces si lo pasa |
+| Tramo | Regla | Qué cobra la calculadora |
 |---|---|---|
-| **Peso incluido** | hasta **1.000 kg por m³** | Cotiza normal, sin recargo |
-| **Densidad tope** | más de **1.000 kg por m³** | **No cotices de una** → recargo por peso o pásalo a FCL |
-| **Peso por envío** | más de **9.000 kg** | Cotización a medida / evalúa FCL |
-| **Volumen por envío** | más de **15 m³** | Cotización a medida / a veces conviene FCL |
+| **Gracia** | hasta **1.000 kg por m³** | Tarifa por volumen, sin recargo (el 97%) |
+| **Recargo por peso** | más de **1.000 kg por m³** | **Auto-cotiza**: tarifa + **$2 por cada kg de más**. Sin "consulta asesor". |
+| **Tope contenedor** | más de **68 m³** ó **27.000 kg** | Recién ahí deriva al asesor (FCL) |
 
 Tarifa base de referencia hoy: **$800 por m³** · mínimo facturable **$380**. (La tarifa es
 editable en la calculadora; ajústala dentro de tu margen, nunca bajo el mínimo.)
+
+**El $2/kg es tu protección:** la carga densa (maquinaria, metal) paga lo justo por el peso
+extra Y recibe precio al instante — no tienes que derivar nada al asesor salvo lo gigante.
 
 ## Cómo cotizar, paso a paso
 
 1. Pide **volumen (m³) y peso (kg)** de TODA la carga del cliente.
 2. Mételo en la calculadora. Si **da precio** → es LCL normal, ese es tu punto de partida.
-3. Si dice **"consulta con un asesor"** → cayó en un candado. Identifica cuál (densidad,
-   peso o volumen) y cotiza a medida con tu supervisor.
+3. Si dice **"consulta con un asesor"** → es un envío gigante (más de un contenedor).
+   Cotízalo a medida / FCL con tu supervisor. Ojo: la carga densa NO cae aquí — auto-cotiza.
 4. **Siempre** cierra con: *"la tarifa final se confirma con el peso y volumen reales al
    recibir tu carga"*.
 
@@ -39,10 +41,10 @@ editable en la calculadora; ajústala dentro de tu margen, nunca bajo el mínimo
 
 | Cliente trae | Densidad | Cálculo | Resultado |
 |---|---|---|---|
-| **3 m³ · 900 kg** | 300 kg/m³ | 3 × $800 | **$2.400** ✅ cotiza directo |
-| **2 m³ · 2.400 kg** | 1.200 kg/m³ | densidad > 1.000 | ⚠️ **no auto-cotiza** → recargo o FCL |
-| **12 m³ · 11.000 kg** | 917 kg/m³ | peso > 9.000 kg | ⚠️ **a medida** (densidad OK, peso alto) |
-| **20 m³ · 4.000 kg** | 200 kg/m³ | volumen > 15 m³ | ⚠️ **a medida** (liviana pero grande → mira FCL) |
+| **3 m³ · 900 kg** | 300 kg/m³ | 3 × $800 | **$2.400** ✅ por volumen |
+| **1 m³ · 2.000 kg** | 2.000 kg/m³ | 800 + (2.000−1.000) × $2 | **$2.800** ✅ auto-cotiza (recargo peso) |
+| **2 m³ · 3.000 kg** | 1.500 kg/m³ | 1.600 + (3.000−2.000) × $2 | **$3.600** ✅ auto-cotiza |
+| **12 m³ · 10.000 kg** | 833 kg/m³ | 12 × $800 | **$9.600** ✅ por volumen (dentro de la gracia) |
 
 ## 🛡️ Cómo NO caer en la estrategia del cliente
 
@@ -52,7 +54,7 @@ editable en la calculadora; ajústala dentro de tu margen, nunca bajo el mínimo
 | **Partir** un envío grande en varios para esquivar el tope | Los límites aplican a **toda su carga** (su Shipping Mark), no a cajas sueltas. No se fracciona para evadir. |
 | *"Pero la web me dio X"* | *"Ese estimado es referencial, no es el precio final."* (respaldo: cláusula 3.5 del Acuerdo) |
 | Exigir la franquicia como un derecho | La franquicia es una **condición del servicio**, no ilimitada. Carga muy densa/grande se reclasifica. |
-| Carga densísima *"métemela como LCL normal"* | Arriba de la franquicia se cotiza aparte. No hay excepción por insistencia. |
+| Carga densa *"no me cobres el peso extra"* | Arriba de 1.000 kg/m³ la calculadora suma $2/kg automático. Es el precio, no es negociable. |
 
 ## 🤝 La negociación — tus palancas
 
@@ -95,15 +97,15 @@ seca, y sumó el valor del financiamiento.*
 > **Cliente:** Ah, ponle unos 800 kg. *(realmente pesa ~2.400)*
 > **Vendedor:** Perfecto, pero te adelanto algo para que no te sorprendas: el estimado usa lo
 > que me declaras, **pero al llegar a China pesamos y medimos**, y se cobra sobre lo real. Si
-> esos repuestos pesan 2.400, ya es carga muy densa y no entra en el precio simple por m³ —
-> te la cotizo aparte. Déjame mostrarte las dos opciones (recargo por peso o un contenedor a
-> tu medida), sin sorpresas después.
+> esos repuestos pesan 2.400, la calculadora le suma un adicional justo por el peso extra —
+> te da un número claro de una (**$2.400** en vez de $1.600). Con metal muy pesado te comparo
+> un contenedor, por si te conviene.
 > **Cliente:** ¿O sea que los $1.600 no son fijos?
 > **Vendedor:** Ese número es referencial. Te lo confirmo con tu carga real y así el precio
-> es justo. Con metal pesado, muchas veces te conviene más el contenedor — te lo comparo.
+> es justo.
 
 *Lección: activó el escudo "medido, no declarado" ANTES del conflicto, no cerró sobre los
-$1.600 del peso subdeclarado, y abrió la puerta al FCL.*
+$1.600 del peso subdeclarado, y le mostró el precio real con el recargo por peso.*
 
 ### Ejemplo 3 — El mayorista grande
 > **Cliente:** Yo muevo como 18 m³ todos los meses. En la web me da **$14.400** *(18 × $800)*.

@@ -63,12 +63,13 @@ Cobramos por volumen (metros cúbicos) e incluimos un **margen de peso generoso 
 La gran mayoría de las cargas entra sin ningún recargo.
 
 **¿Hay un límite de peso?**
-Cada envío trae incluido un margen de peso amplio. Solo si tu carga es **excepcionalmente
-densa** (mucho peso en poco volumen), un asesor te la cotiza a medida para darte la mejor opción.
+Cada envío trae incluido un margen de peso amplio. Si tu carga es más densa que ese margen, la
+calculadora le suma un pequeño ajuste por el peso extra — y aun así te da el precio al instante.
 
 **¿Y si mi carga es muy pesada o muy grande?**
-La calculadora te da un estimado al instante. Si tu envío supera lo habitual en peso o tamaño,
-te conecta con un asesor —a veces te conviene más un contenedor completo (FCL).
+La calculadora te da un estimado al instante, incluso si tu carga es pesada. Solo los envíos
+muy grandes (cercanos a un contenedor completo) los cotiza un asesor —a veces te conviene más
+un contenedor completo (FCL).
 
 **¿El estimado de la calculadora es el precio final?**
 Es un **estimado**. La tarifa final la confirma un asesor con el **peso y el volumen reales**
