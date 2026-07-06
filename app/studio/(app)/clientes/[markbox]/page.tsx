@@ -43,6 +43,9 @@ import {
 } from "@/lib/public/rates-queries";
 import { DocsPanel } from "@/app/studio/_components/documents/DocsPanel";
 import { listDocumentsByEntity } from "@/lib/studio/documents/queries";
+import { getOpenChangeRequest } from "@/lib/portal/change-request-queries";
+import type { ClientChangeRequest } from "@/lib/portal/change-request-types";
+import { ChangeRequestCard } from "../_components/ChangeRequestCard";
 
 export const metadata = { title: "Detalle cliente" };
 
@@ -130,6 +133,15 @@ export default async function ClienteDetallePage({
   // SDD-0131: completitud del perfil — checklist derivado de qué falta para
   // tener el cliente listo para operar/analizar.
   const completeness = clientCompleteness(client);
+
+  // SDD-0151: solicitud de cambio de datos pendiente (la propuso el cliente
+  // desde el portal). Best-effort: sin migración 0220 → null, sin romper.
+  let changeRequest: ClientChangeRequest | null = null;
+  try {
+    changeRequest = await getOpenChangeRequest(supabase, client.id);
+  } catch {
+    changeRequest = null;
+  }
 
   // Signed URL (60s) de la foto de cédula/RIF (bucket privado client-docs). La RLS
   // de storage deja al admin del tenant leerla. Si no hay foto o el sign falla → null.
@@ -224,6 +236,16 @@ export default async function ClienteDetallePage({
         >
           {/* Columna izquierda: datos del cliente + acceso al portal */}
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          {/* Solicitud de cambio de datos pendiente (SDD-0151) — arriba del todo:
+              es un pendiente accionable que el asesor debe resolver. */}
+          {changeRequest && (
+            <ChangeRequestCard
+              req={changeRequest}
+              markbox={client.markbox}
+              isEmpresa={client.doc_kind === "empresa"}
+            />
+          )}
+
           {/* Card datos */}
           <section
             style={{

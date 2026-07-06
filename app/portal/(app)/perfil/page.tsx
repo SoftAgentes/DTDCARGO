@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import { getPortalClient, getProfileCompleteness } from "@/lib/portal/portal-queries";
 import { PHOTO_BUCKET } from "@/lib/portal/client-photo";
 import { buildPortalSupplierMark } from "@/lib/portal/portal-types";
 import { docKindLabel } from "@/lib/studio/client-types";
@@ -11,13 +11,19 @@ import {
   getPublicCalculatorCities,
   getPublicCalculatorConfig,
 } from "@/lib/public/rates-queries";
-import Link from "next/link";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
-import { WhatsAppIcon, ChatIcon } from "@/components/Icon";
+import { WhatsAppIcon } from "@/components/Icon";
+import {
+  getOpenChangeRequest,
+  getLastResolvedRequest,
+} from "@/lib/portal/change-request-queries";
+import type { ClientChangeRequest } from "@/lib/portal/change-request-types";
 import { AvatarEditor } from "./AvatarEditor";
 import { PortalAddresses } from "./PortalAddresses";
 import { CopyCodeButton } from "./CopyCodeButton";
 import { CedulaPhotoRow } from "./CedulaPhotoRow";
+import { ProfilePendingBanner } from "./ProfilePendingBanner";
+import { DataChangeEditor } from "./DataChangeEditor";
 
 export const metadata: Metadata = { title: "Mi perfil" };
 
@@ -50,9 +56,11 @@ export default async function PortalProfilePage() {
   }
 
   // Catálogo de ciudades + config del calculador (Slice C · estimado last-mile).
-  const [calcCities, calcConfig] = await Promise.all([
+  // Señal de pendientes (SDD-0151): misma fuente que el card del dashboard.
+  const [calcCities, calcConfig, completeness] = await Promise.all([
     getPublicCalculatorCities(),
     getPublicCalculatorConfig(),
+    getProfileCompleteness(supabase),
   ]);
   const lastMileParams = calcConfig
     ? {
@@ -95,6 +103,21 @@ export default async function PortalProfilePage() {
     cedulaUrl = null;
   }
 
+  // Solicitud de cambio de datos (SDD-0151). Best-effort: sin migración 0220
+  // (tabla ausente) → null, sin romper. RLS del portal deja al cliente leer las
+  // suyas (client_id = get_portal_client_id()).
+  let openRequest: ClientChangeRequest | null = null;
+  let lastResolvedRequest: ClientChangeRequest | null = null;
+  try {
+    [openRequest, lastResolvedRequest] = await Promise.all([
+      getOpenChangeRequest(supabase, client.id),
+      getLastResolvedRequest(supabase, client.id),
+    ]);
+  } catch {
+    openRequest = null;
+    lastResolvedRequest = null;
+  }
+
   const esEmpresa = client.docKind === "empresa";
   const supplierMark = buildPortalSupplierMark(client.markbox);
   const defaultAddress =
@@ -113,6 +136,11 @@ export default async function PortalProfilePage() {
         Tus datos, tus direcciones de entrega y tu código Shipping Mark — todo
         en un solo lugar.
       </p>
+
+      <ProfilePendingBanner
+        hasPhoto={completeness.hasPhoto}
+        hasAddress={completeness.hasAddress}
+      />
 
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 lg:gap-8 items-start">
         {/* ── Columna izquierda · identidad + TU CÓDIGO ── */}
@@ -185,25 +213,45 @@ export default async function PortalProfilePage() {
                 empty="Según tu dirección predeterminada"
               />
             </dl>
-            <div className="mt-6 pt-5 border-t border-grey-200 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
-              <p className="text-[13px] text-grey-700 leading-[1.55] flex-1">
-                Estos datos los administra tu asesor. ¿Algo cambió? Escríbenos
-                por el chat y lo actualizamos por ti.
-              </p>
-              <Link
-                href="/portal/soporte?tema=datos"
-                className="btn btn-ghost inline-flex items-center gap-2 flex-shrink-0"
-              >
-                <ChatIcon size={16} /> Actualizar mis datos
-              </Link>
-            </div>
+            <DataChangeEditor
+              isEmpresa={esEmpresa}
+              current={{
+                name: client.name ?? "",
+                doc: client.rif ?? "",
+                phone: client.phone ?? "",
+              }}
+              openRequest={openRequest}
+              lastRejected={
+                lastResolvedRequest?.status === "rejected"
+                  ? lastResolvedRequest
+                  : null
+              }
+            />
           </section>
 
           {/* Identidad y documentos */}
-          <section className="card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-8">
-            <h2 className="text-[11px] font-bold tracking-[0.14em] uppercase text-wine">
-              Identidad y documentos
-            </h2>
+          <section
+            id="doc-identidad"
+            className="scroll-mt-24 card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-8"
+          >
+            <div className="flex items-center gap-2.5">
+              <h2 className="text-[11px] font-bold tracking-[0.14em] uppercase text-wine">
+                Identidad y documentos
+              </h2>
+              {!completeness.hasPhoto && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full bg-paper px-2 py-0.5 text-[10px] font-bold tracking-[0.06em] uppercase text-grey-700"
+                  style={{ border: "1px solid var(--color-status-warning)" }}
+                >
+                  <span
+                    className="block h-1.5 w-1.5 rounded-full"
+                    style={{ background: "var(--color-status-warning)" }}
+                    aria-hidden
+                  />
+                  1 pendiente
+                </span>
+              )}
+            </div>
 
             <dl className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field
@@ -261,7 +309,10 @@ export default async function PortalProfilePage() {
           </section>
 
           {/* Direcciones de entrega (SDD-0138 B+C · REUSO completo) */}
-          <section className="card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-8">
+          <section
+            id="direcciones"
+            className="scroll-mt-24 card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-8"
+          >
             <PortalAddresses
               addresses={addresses}
               cities={calcCities.map((c) => ({

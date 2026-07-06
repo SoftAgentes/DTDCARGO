@@ -33,7 +33,19 @@ export function CedulaPhotoRow({
 
   return (
     <div>
-      <div className="flex items-center gap-3 rounded-[10px] bg-paper border border-grey-200 px-4 py-3">
+      {/* Pendiente → borde izquierdo ámbar (SDD-0151): que la fila resalte, no
+          solo el punto tenue. Cargada → borde neutro. */}
+      <div
+        className="flex items-center gap-3 rounded-[10px] bg-paper border border-grey-200 px-4 py-3"
+        style={
+          done
+            ? undefined
+            : {
+                borderLeftWidth: "3px",
+                borderLeftColor: "var(--color-status-warning)",
+              }
+        }
+      >
         <span
           className="flex-shrink-0"
           style={{
