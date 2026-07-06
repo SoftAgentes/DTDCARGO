@@ -1,32 +1,32 @@
 {
-  "generatedAt": "2026-07-04",
+  "generatedAt": "2026-07-06",
   "norteVersion": "v4.5",
   "partA": {
     "findings": [
       {
-        "id": "workspace-limpio",
-        "title": "Workspace y gates de marca limpios — sin hallazgos accionables nuevos",
+        "id": "stale-forge-template-agents",
+        "title": "Agentes del template Forge describen el stack equivocado (src/, Tailwind 3.4, Zod) — contradicen el repo real (app/, Tailwind v4, sin Zod)",
         "severity": "baja",
-        "action": "Sin acción. Los podados del 2026-07-03 (wildcards de permisos, skills Forge a _inactive/, BOM de settings.local) siguen en pie. Brand drift 0, book único v4.5 en sync (_norte ↔ private/marca), 0 huérfanos físicos.",
+        "action": "✅ RESUELTO 2026-07-06: banner de override DTD antepuesto en los 9 agentes del template (frontend/backend/codebase-analyst/testing/qa-auditor/gestor-documentacion/observability/design-critic/validacion-calidad) que corrige stack, frontera y 'no Zod' de entrada, degradando los patrones del template a referencia. Los nativos DTD (implementer/leader/reviewer) ya estaban correctos.",
         "top": true
       },
       {
-        "id": "graphify-al-dia",
-        "title": "Grafo graphify actualizado hoy y server MCP reiniciado",
-        "severity": "baja",
-        "action": "Sin acción. /graphify update corrió (10.965 nodos / 24.849 edges / 490 comunidades); MCP verificado con graph_stats — sirve el grafo nuevo."
-      },
-      {
         "id": "modelo-effort-max",
-        "title": "User settings: model opus[1m] + effortLevel max globales",
+        "title": "User settings global = opus[1m] + effortLevel max; settings.json del proyecto no fija modelo (hereda el global)",
         "severity": "baja",
-        "action": "Para tareas mecánicas (renombres masivos, seeds, greps) delegar a subagentes Sonnet/Haiku y bajar costo. settings.json del proyecto no fija modelo — hereda el global."
+        "action": "Para tareas mecánicas (renombres masivos, seeds, greps) delegar a subagentes Sonnet/Haiku y bajar costo; dejar Opus para diseño/seguridad/financiero."
       },
       {
         "id": "verify-gate-flaky-timeout",
         "title": "Gate Stop: flaky 'failed to find the runner' de vitest (patrón conocido, se resuelve re-corriendo); hook timeout 180s que el verify completo puede rozar",
         "severity": "baja",
-        "action": "Sin acción inmediata; si el gate crece, subir timeout del hook en .claude/settings.json o correr en lotes de ~30."
+        "action": "Sin acción inmediata; si el gate crece, subir el timeout del hook en .claude/settings.json o correr en lotes de ~30."
+      },
+      {
+        "id": "worktree-cambio-de-web-abierto",
+        "title": "Worktree feat/cambio-de-web abierto por otra ventana",
+        "severity": "baja",
+        "action": "Coordinación: esa lane cierra y poda su propio worktree. No tocar desde esta ventana; solo notar para no pisar su trabajo."
       },
       {
         "id": "inventario-skills-solapamiento",
@@ -35,13 +35,13 @@
         "action": "Duplicación gstack intencional (memoria reference_gstack_skills_layout). No consolidar sin decisión del founder."
       }
     ],
-    "estimatedTokenSavings": "~0-2%"
+    "estimatedTokenSavings": "~2-5%"
   },
   "partB": {
     "counts": { "built": 18, "partial": 4, "missing": 0, "total": 22 },
     "blocks": [
       { "name": "Bloques financieros 1.1-5 (roadmap)", "remaining": "0%", "note": "Los 8 renglones done (1.1/1.2/2.1/2.2/2.3/3/4/5). 2.3 China cerrado 2026-07-03: Slice C SDD-0115 + posting keystone migr 0178/SDD-0110." },
-      { "name": "Core 22 entidades (API-CONTRACT)", "remaining": "18%", "note": "18/22 built (82%), 4 parciales (auth unificado, cola offline de entrada, catálogo origen CN, salida multi-canal), 0 sin tabla. Ninguno keystone." },
+      { "name": "Core 22 entidades (API-CONTRACT)", "remaining": "18%", "note": "18/22 built (82%), 4 parciales (auth unificado, cola offline de entrada, catálogo origen CN, salida multi-canal WhatsApp/Telegram), 0 sin tabla. Ninguno keystone." },
       { "name": "Superficie ampliada v4.5 (~13 dominios)", "remaining": "no documentado exacto", "note": "~120 formas con tabla / ~10 huecos. Huecos reales ≈2: tabla puente Supplier↔Client (WeChat) + detección de ferias IA. Más 2 piezas nómina gate-contador (salario integral, asiento del corte SDD-0112)." }
     ]
   }
