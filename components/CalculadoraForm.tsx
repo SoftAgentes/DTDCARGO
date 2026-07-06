@@ -144,11 +144,12 @@ export function CalculadoraForm({
           }
         : null;
 
-  // Aviso del peso: tope absoluto de contenedor + densidad (peso por CBM). Founder
-  // 2026-06-20: se reactiva el aviso de densidad. Sobre pesoMaxKg/CBM = "demasiado
-  // denso" → FCL/asesor; entre pesoIncluidoKg y pesoMaxKg = excedente con recargo
-  // ($/kg configurable desde el ERP; el monto lo computa lib/calculadora.ts). Usa
-  // `effectiveCbm` (contempla el panel "CBM por medidas").
+  // Aviso del peso: tope absoluto de contenedor + recargo por densidad (peso por
+  // CBM). Founder 2026-07-06: el exceso de densidad ya NO deriva al asesor — el
+  // $/kg excedente se cobra de forma CONTINUA sobre `pesoIncluidoKg`/CBM, sin
+  // corte en `pesoMaxKg` (el monto lo computa lib/calculadora.ts). El único
+  // bloqueo real es el peso absoluto por contenedor. Usa `effectiveCbm`
+  // (contempla el panel "CBM por medidas").
   const pesoWarning = ((): CalcWarning => {
     if (form.pesoKg > params.pesoMaxContenedorKg)
       return {
@@ -158,14 +159,8 @@ export function CalculadoraForm({
     if (effectiveCbm <= 0 || form.pesoKg <= 0) return null;
     const fmt = (n: number) => parseFloat(n.toFixed(2)).toString();
     const maxSinRecargo = effectiveCbm * params.pesoIncluidoKg;
-    const maxDenso = effectiveCbm * params.pesoMaxKg;
-    // Densidad > pesoMaxKg → bloqueo (FCL/asesor): rojo.
-    if (form.pesoKg > maxDenso)
-      return {
-        text: `Para ${fmt(effectiveCbm)} m³, más de ${fmt(maxDenso)} kg es demasiado denso — consulta con tu asesor (FCL).`,
-        tone: "danger",
-      };
-    // Excedente 500-600 → NO es un problema, es info del recargo: wine.
+    // Excedente de densidad → NO es un problema, es info del recargo (wine). Se
+    // muestra para cualquier peso por encima de pesoIncluidoKg/CBM, sin tope.
     if (form.pesoKg > maxSinRecargo) {
       const exceso = form.pesoKg - maxSinRecargo;
       const recargo = exceso * params.recargoExcedenteKg;
@@ -822,6 +817,50 @@ function ResultPanel({
           </p>
         )}
       </div>
+
+      {/* Desglose · solo cuando hay recargo por peso (excedente de densidad).
+          Founder 2026-07-06: el cliente debe VER que el $/kg se está sumando —
+          antes solo se mostraba el total. El recargo por distancia sigue plegado
+          en el "Flete base" (interno, decisión founder previa); acá salen el
+          flete base, el recargo por peso y los recargos que el cliente eligió. */}
+      {tieneCarga && !hasAlerta && cot.recargoExcedente > 0 && (
+        <div className="rounded-[12px] border border-grey-200 bg-white px-4 py-3 flex flex-col gap-1.5">
+          {[
+            { label: "Flete base", value: cot.precioBase + cot.recargoCiudad, base: true, accent: false },
+            { label: "Recargo por peso", value: cot.recargoExcedente, base: false, accent: true },
+            ...(cot.recargoEmbalaje > 0
+              ? [{ label: "Embalaje especial", value: cot.recargoEmbalaje, base: false, accent: false }]
+              : []),
+            ...(cot.recargoBateria > 0
+              ? [{ label: "Baterías", value: cot.recargoBateria, base: false, accent: false }]
+              : []),
+            ...(cot.descuentoSede < 0
+              ? [{ label: "Descuento", value: cot.descuentoSede, base: false, accent: false }]
+              : []),
+            ...(cot.ajusteMinimo > 0
+              ? [{ label: "Ajuste a mínimo", value: cot.ajusteMinimo, base: false, accent: false }]
+              : []),
+          ].map((r) => (
+            <div key={r.label} className="flex items-center justify-between gap-3">
+              <span
+                className={`text-[12.5px] ${r.accent ? "font-semibold text-wine" : "text-grey-700"}`}
+              >
+                {r.label}
+              </span>
+              <span
+                className={`num text-[13px] ${r.accent ? "font-bold text-wine" : "font-semibold text-ink"}`}
+              >
+                {r.value < 0 ? "−" : r.base ? "" : "+"}
+                {money(r.value)}
+              </span>
+            </div>
+          ))}
+          <div className="mt-1 pt-2 border-t border-grey-200 flex items-center justify-between gap-3">
+            <span className="text-[12.5px] font-bold text-ink">Total</span>
+            <span className="num text-[14px] font-bold text-ink">{money(cot.total)}</span>
+          </div>
+        </div>
+      )}
 
       {/* Badge financiamiento (pill verde claro) */}
       {!hasAlerta && (
