@@ -985,3 +985,45 @@
     transition: none;
   }
 }
+
+/* Calculadora › Parámetros — desplegable "¿Por qué estos límites?" (informe atado) */
+.calc-why-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 12.5px/1 var(--f-sans);
+  color: var(--ink);
+  cursor: pointer;
+  padding: 12px 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  list-style: none;
+  user-select: none;
+  transition: border-color 0.15s ease;
+}
+.calc-why-summary::-webkit-details-marker {
+  display: none;
+}
+.calc-why-summary:hover {
+  border-color: var(--ink-soft);
+}
+.calc-why-summary:focus-visible {
+  outline: 2px solid var(--wine);
+  outline-offset: 2px;
+}
+.calc-why-chev {
+  color: var(--ink-soft);
+  font-size: 9px;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+details[open] > .calc-why-summary .calc-why-chev {
+  transform: rotate(90deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .calc-why-summary,
+  .calc-why-chev {
+    transition: none;
+  }
+}

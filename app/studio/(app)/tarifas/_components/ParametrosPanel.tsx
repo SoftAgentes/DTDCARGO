@@ -152,6 +152,40 @@ export function ParametrosPanel({
         </p>
       </div>
 
+      {/* Informe atado (interno) — por qué estos límites, calibrado con data real */}
+      <details style={{ marginBottom: 20 }}>
+        <summary className="calc-why-summary">
+          <span className="calc-why-chev" aria-hidden="true">▶</span>
+          ¿Por qué estos límites? — calibración con data real
+        </summary>
+        <div
+          style={{
+            font: "400 12.5px/1.6 var(--f-sans)",
+            color: "var(--ink-soft)",
+            padding: "12px 16px 0",
+          }}
+        >
+          <p style={{ margin: "0 0 8px" }}>
+            Calibrado con <strong style={{ color: "var(--ink)" }}>33 contenedores
+            reales</strong> (2023–2026). La densidad real promedia{" "}
+            <strong style={{ color: "var(--ink)" }}>~250 kg/m³</strong> y el tope físico del
+            contenedor es <strong style={{ color: "var(--ink)" }}>397 kg/m³</strong> — casi
+            nunca se llena por peso (0 de 32 contenedores).
+          </p>
+          <p style={{ margin: "0 0 8px" }}>
+            Por eso la gracia de{" "}
+            <strong style={{ color: "var(--ink)" }}>1.000 kg/m³</strong> (peso incluido) es
+            segura: solo ~3% de los clientes la supera. Arriba de la gracia se cobra{" "}
+            <strong style={{ color: "var(--ink)" }}>+$2/kg</strong> (recargo por excedente) —
+            la carga densa se cotiza al instante, no deriva al asesor. El asesor entra solo a
+            escala de contenedor completo.
+          </p>
+          <p style={{ margin: 0 }}>
+            Guía completa del equipo: docs/marketing/manual-vendedores-peso.md
+          </p>
+        </div>
+      </details>
+
       <form action={formAction}>
         <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
           {GROUPS.map((group) => (
