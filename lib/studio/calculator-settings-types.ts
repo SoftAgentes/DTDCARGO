@@ -78,7 +78,7 @@ export const CALC_FIELDS: CalcFieldMeta[] = [
   {
     key: "pesoMaxEnvioKg",
     label: "Peso máximo por envío",
-    hint: "Sobre este peso la calculadora deriva al asesor en vez de cotizar (evita que un solo envío monopolice el peso del contenedor).",
+    hint: "Sobre este peso, y si la carga es densa (llena el contenedor por peso), deriva al asesor en vez de cotizar. Un envío pesado pero liviano sigue cotizando.",
     kind: "weight",
     precision: 0,
     min: 0.01,

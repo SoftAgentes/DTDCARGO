@@ -320,11 +320,25 @@ export function calcularEnvioLCL(
     }, input);
   }
 
-  // 5.3c — Tope de peso POR ENVÍO (anti-monopolio). Debajo del tope absoluto de
-  // contenedor, pero un envío tan pesado (poca densidad de volumen, mucho peso)
-  // agota el presupuesto de peso del consolidado → no entra nadie más y cotizar
-  // por volumen iría a pérdida. Sobre este tope NO auto-cotizamos: al asesor.
-  if (input.pesoKg > params.pesoMaxEnvioKg) {
+  // 5.4 — Volumen (CBM) y densidad (peso/CBM). La densidad alimenta el recargo
+  // por exceso de peso en 5.6 y el tope de peso por envío en 5.4b.
+  const cbm = roundCBM(input.cbmTotal);
+  const densidadKgM3 = input.pesoKg / cbm;
+
+  // 5.4b — Tope de peso POR ENVÍO (anti-monopolio), density-aware. Deriva al
+  // asesor SOLO si el envío es pesado (> pesoMaxEnvioKg) Y denso (densidad por
+  // encima del equilibrio del contenedor = pesoMaxContenedorKg/cbmMaxContenedor,
+  // ~397 kg/m³). Ese es el caso real de monopolio: agota el presupuesto de peso
+  // dejando volumen sin vender → cotizar por volumen iría a pérdida. Un envío
+  // pesado pero LIVIANO (denso < equilibrio) sí auto-cotiza: no monopoliza el peso.
+  const equilibrioDensidad =
+    params.cbmMaxContenedor > 0
+      ? params.pesoMaxContenedorKg / params.cbmMaxContenedor
+      : Infinity;
+  if (
+    input.pesoKg > params.pesoMaxEnvioKg &&
+    densidadKgM3 > equilibrioDensidad
+  ) {
     return cotizacionVacia({
       tipo: "peso_envio_excedido",
       mensaje:
@@ -332,11 +346,6 @@ export function calcularEnvioLCL(
         "te damos el mejor precio para el consolidado.",
     }, input);
   }
-
-  // 5.4 — Volumen (CBM) y densidad (peso/CBM). La densidad alimenta el recargo
-  // por exceso de peso en 5.6.
-  const cbm = roundCBM(input.cbmTotal);
-  const densidadKgM3 = input.pesoKg / cbm;
 
   // 5.5 — Precio base por volumen
   // Si el usuario provee `tarifaCBMOverride`, se usa ese valor (debe ser >0).

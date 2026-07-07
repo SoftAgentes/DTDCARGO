@@ -244,18 +244,29 @@ describe("calcularEnvioLCL", () => {
     expect(cot.alerta?.tipo).toBe("contenedor_excedido");
   });
 
-  // Tope de peso POR ENVÍO (anti-monopolio): sobre pesoMaxEnvioKg (9.000 default)
-  // la calculadora NO auto-cotiza, deriva al asesor.
-  it("deriva al asesor cuando el peso del envío supera el tope por envío", () => {
+  // Tope de peso POR ENVÍO (anti-monopolio), density-aware: deriva SOLO si es
+  // pesado (> pesoMaxEnvioKg 9.000) Y denso (densidad > equilibrio ~397 kg/m³).
+  it("deriva al asesor si el envío es pesado Y denso", () => {
     const cot = calcularEnvioLCL({
       cbmTotal: 20,
-      pesoKg: 9001, // > 9.000
+      pesoKg: 9001, // > 9.000 · densidad 450 > 397
       embalaje: "estandar",
       ciudadId: "caracas",
     });
     expect(cot.alerta?.tipo).toBe("peso_envio_excedido");
     expect(cot.alerta?.mensaje).toContain("a medida");
     expect(cot.total).toBe(0);
+  });
+
+  it("NO deriva un envío pesado pero LIVIANO (densidad < equilibrio)", () => {
+    const cot = calcularEnvioLCL({
+      cbmTotal: 40,
+      pesoKg: 10000, // > 9.000 pero densidad 250 < 397 → no monopoliza el peso
+      embalaje: "estandar",
+      ciudadId: "caracas",
+    });
+    expect(cot.alerta).toBeUndefined();
+    expect(cot.total).toBeGreaterThan(0);
   });
 
   it("9.000 kg exacto NO dispara el tope por envío (usa `>` estricto)", () => {
