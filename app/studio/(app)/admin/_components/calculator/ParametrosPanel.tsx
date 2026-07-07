@@ -1,12 +1,13 @@
 "use client";
 
 /**
- * ParametrosPanel — pestaña "Parámetros" del módulo Tarifas (calculadora Fase 3 Slice A).
+ * ParametrosPanel — sub-pestaña "Parámetros" de la sección Calculadora pública
+ * (Administración · grupo PRO). Movido desde el módulo Tarifas.
  *
  * Edita las REGLAS escalares del calculador público LCL DDP (peso incluido,
  * $/kg excedente, descuento Valencia, ×baterías, km del casco, $/km, embalaje
  * especial). La tarifa base ($/CBM) y el piso NO se editan acá — son la tarifa
- * pública del calculador, en la pestaña Tarifas (marca una tarifa como
+ * pública del calculador, en el módulo Tarifas (marca una tarifa como
  * "Pública · calc"). Publicación instantánea: al guardar, revalidatePath
  * refresca el calculador del sitio.
  *
@@ -23,7 +24,7 @@ import {
   type CalculatorSettingsActionState,
   type CalculatorSettingsInput,
 } from "@/lib/studio/calculator-settings-types";
-import { saveCalculatorSettingsAction } from "../actions";
+import { saveCalculatorSettingsAction } from "../../calculator-actions";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { Icon } from "@/app/studio/_components/icons";
@@ -141,7 +142,7 @@ export function ParametrosPanel({
           Acá editas las <strong style={{ color: "var(--ink)" }}>reglas</strong> del
           calculador público. La <strong style={{ color: "var(--ink)" }}>tarifa
           base ($/CBM)</strong> y el <strong style={{ color: "var(--ink)" }}>piso
-          mínimo</strong> viven en la pestaña <em>Tarifas</em>: marca una tarifa por
+          mínimo</strong> viven en el módulo <em>Tarifas</em>: marca una tarifa por
           CBM como <em>Pública · calc</em>.
           {usingDefaults && (
             <>
@@ -151,40 +152,6 @@ export function ParametrosPanel({
           )}
         </p>
       </div>
-
-      {/* Informe atado (interno) — por qué estos límites, calibrado con data real */}
-      <details style={{ marginBottom: 20 }}>
-        <summary className="calc-why-summary">
-          <span className="calc-why-chev" aria-hidden="true">▶</span>
-          ¿Por qué estos límites? — calibración con data real
-        </summary>
-        <div
-          style={{
-            font: "400 12.5px/1.6 var(--f-sans)",
-            color: "var(--ink-soft)",
-            padding: "12px 16px 0",
-          }}
-        >
-          <p style={{ margin: "0 0 8px" }}>
-            Calibrado con <strong style={{ color: "var(--ink)" }}>33 contenedores
-            reales</strong> (2023–2026). La densidad real promedia{" "}
-            <strong style={{ color: "var(--ink)" }}>~250 kg/m³</strong> y el tope físico del
-            contenedor es <strong style={{ color: "var(--ink)" }}>397 kg/m³</strong> — casi
-            nunca se llena por peso (0 de 32 contenedores).
-          </p>
-          <p style={{ margin: "0 0 8px" }}>
-            Por eso la gracia de{" "}
-            <strong style={{ color: "var(--ink)" }}>1.000 kg/m³</strong> (peso incluido) es
-            segura: solo ~3% de los clientes la supera. Arriba de la gracia se cobra{" "}
-            <strong style={{ color: "var(--ink)" }}>+$2/kg</strong> (recargo por excedente) —
-            la carga densa se cotiza al instante, no deriva al asesor. El asesor entra solo a
-            escala de contenedor completo.
-          </p>
-          <p style={{ margin: 0 }}>
-            Guía completa del equipo: docs/marketing/manual-vendedores-peso.md
-          </p>
-        </div>
-      </details>
 
       <form action={formAction}>
         <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
