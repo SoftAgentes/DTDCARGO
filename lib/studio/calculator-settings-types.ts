@@ -68,20 +68,6 @@ export const CALC_FIELDS: CalcFieldMeta[] = [
     min: 0.01,
   },
   {
-    // HEREDADO — ya no entra al cálculo (lib/calculadora.ts §5.6: el recargo es
-    // continuo sin tope desde 2026-07-06). Se conserva solo porque la DB tiene un
-    // CHECK peso_max_kg ≥ peso_incluido_kg y el validador lo espeja. El panel lo
-    // oculta y lo envía por hidden input espejando la gracia.
-    // MIGRACIÓN PROPUESTA (requiere OK del founder): soltar el CHECK y la columna
-    // peso_max_kg de calculator_settings, quitar pesoMaxKg de CalcParams/validador.
-    key: "pesoMaxKg",
-    label: "Peso máximo por CBM (heredado)",
-    hint: "Ya no afecta la cotización. Se conserva solo por una validación de base de datos.",
-    kind: "weight",
-    precision: 0,
-    min: 0.01,
-  },
-  {
     key: "recargoExcedenteKg",
     label: "Recargo por kg de excedente",
     hint: "USD por cada kg por encima de la gracia. Se auto-cotiza, no deriva al asesor.",
@@ -175,20 +161,6 @@ export function validateCalculatorSettingsInput(
     }
   }
 
-  // Invariante cruzada: peso_max ≥ peso_incluido (espeja el CHECK de la DB).
-  const incluido = input.pesoIncluidoKg;
-  const max = input.pesoMaxKg;
-  if (
-    incluido != null &&
-    max != null &&
-    Number.isFinite(incluido) &&
-    Number.isFinite(max) &&
-    max < incluido &&
-    !errors.pesoMaxKg
-  ) {
-    errors.pesoMaxKg = "El peso máximo no puede ser menor al peso incluido.";
-  }
-
   if (Object.keys(errors).length > 0) {
     return { fieldErrors: errors };
   }
@@ -196,7 +168,6 @@ export function validateCalculatorSettingsInput(
   return {
     input: {
       pesoIncluidoKg: input.pesoIncluidoKg!,
-      pesoMaxKg: input.pesoMaxKg!,
       recargoExcedenteKg: input.recargoExcedenteKg!,
       descuentoValencia: input.descuentoValencia!,
       recargoEmbalajeEspecial: input.recargoEmbalajeEspecial!,

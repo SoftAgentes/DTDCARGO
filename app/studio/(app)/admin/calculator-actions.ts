@@ -83,7 +83,6 @@ async function resolveTenantAdmin(
 /** camelCase (CalcParams) → columna snake_case de calculator_settings. */
 const SETTINGS_COLUMN: Record<keyof CalculatorSettingsInput, string> = {
   pesoIncluidoKg: "peso_incluido_kg",
-  pesoMaxKg: "peso_max_kg",
   recargoExcedenteKg: "recargo_excedente_kg",
   descuentoValencia: "descuento_valencia",
   recargoEmbalajeEspecial: "recargo_embalaje_especial",

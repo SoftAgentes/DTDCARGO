@@ -103,7 +103,6 @@ export async function getPublicCalculatorConfig(): Promise<CalcParams | null> {
     // numérico/ausente invalida la config entera → null (fallback seguro).
     const params: CalcParams = {
       pesoIncluidoKg: Number(row.peso_incluido_kg),
-      pesoMaxKg: Number(row.peso_max_kg),
       recargoExcedenteKg: Number(row.recargo_excedente_kg),
       descuentoValencia: Number(row.descuento_valencia),
       recargoEmbalajeEspecial: Number(row.recargo_embalaje_especial),
