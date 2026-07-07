@@ -357,6 +357,18 @@ export function CalculadoraForm({
           Este estimado es aproximado y refleja nuestra tarifa base DDP (puerta a
           puerta).
         </p>
+        {/* Condiciones del cliente (sutil, sin números internos) — desplegable */}
+        <details className="mt-2.5 group">
+          <summary className="text-[11.5px] font-semibold text-wine cursor-pointer list-none inline-flex items-center gap-1.5 min-h-[44px] hover:text-ink transition-colors rounded-[4px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+            <span aria-hidden="true" className="text-[9px] leading-none transition-transform group-open:rotate-90">▶</span>
+            ¿Qué incluye tu estimado?
+          </summary>
+          <ul className="mt-2 pl-4 flex flex-col gap-1.5 text-[11.5px] text-grey-500 leading-[1.45] list-disc marker:text-grey-300">
+            <li>Un buen margen de peso por cada m³ — la mayoría de las cargas entra sin recargo.</li>
+            <li>Si tu carga es más densa, suma un pequeño ajuste por el peso extra; igual te da el precio al instante.</li>
+            <li>Pesamos y medimos tu carga al recibirla; la tarifa final se ajusta a lo real.</li>
+          </ul>
+        </details>
       </div>
     </div>
 
