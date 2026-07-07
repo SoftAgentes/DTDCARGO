@@ -355,7 +355,7 @@ function TableHeader({ cols, children }: { cols: string; children: React.ReactNo
         font: "700 9.5px/1 var(--f-sans)",
         letterSpacing: "0.08em",
         textTransform: "uppercase",
-        color: "var(--ink-mute)",
+        color: "var(--ink-soft)",
         borderBottom: "1px solid var(--border)",
         background: "var(--bg-elevated)",
       }}

@@ -121,7 +121,7 @@ export default async function EtiquetasPage({
             Plancha PDF bilingüe ES / 中文 con el Shipping Mark del cliente + Box X/Y.
             Mándala al supplier chino para que pegue las etiquetas antes del
             despacho a tu almacén CN.{" "}
-            <span style={{ color: "var(--ink-mute)" }}>
+            <span style={{ color: "var(--ink-soft)" }}>
               El navegador abre el diálogo de impresión — elige
               &quot;Guardar como PDF&quot; como destino.
             </span>

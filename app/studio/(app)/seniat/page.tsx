@@ -113,7 +113,7 @@ export default async function SeniatPage({
             Trámite aduanero por embarque · DUA, agente aduanal, aranceles,
             IGTF, IVA. Checklist documental de 7 items y tracking de
             liberación con timeline 6-step.{" "}
-            <span style={{ color: "var(--ink-mute)" }}>
+            <span style={{ color: "var(--ink-soft)" }}>
               Cada trámite se gestiona desde su fila — abre el detalle para
               cargar costos y marcar documentos.
             </span>

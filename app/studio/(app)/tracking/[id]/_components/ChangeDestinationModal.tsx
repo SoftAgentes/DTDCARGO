@@ -382,7 +382,7 @@ function FormPhase({
       <div>
         <label className="studio-label" htmlFor="cd-gps">
           Nuevo GPS{" "}
-          <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>
+          <span style={{ color: "var(--ink-soft)", fontWeight: 500 }}>
             (opcional)
           </span>
         </label>
@@ -415,7 +415,7 @@ function FormPhase({
         <p
           style={{
             font: "500 11px/1.4 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             margin: "4px 0 0",
           }}
         >
@@ -478,7 +478,7 @@ function RateSuggestion({
       <p
         style={{
           font: "500 11px/1.4 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           margin: "6px 0 0",
         }}
       >
@@ -620,7 +620,7 @@ function ConfirmPhase({
       <p
         style={{
           font: "500 11.5px/1.4 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           margin: 0,
         }}
       >

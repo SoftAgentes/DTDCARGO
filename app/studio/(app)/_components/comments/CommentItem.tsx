@@ -73,7 +73,7 @@ export function CommentItem({
           </span>
           {comment.author?.role && (
             <span
-              style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-mute)" }}
+              style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-soft)" }}
             >
               {comment.author.role}
             </span>
@@ -81,7 +81,7 @@ export function CommentItem({
           <span
             style={{
               font: "500 11px/1 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               marginLeft: "auto",
             }}
           >

@@ -77,7 +77,7 @@ export function KpiCard({
         <div
           style={{
             font: "500 11px/1.4 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             marginTop: 2,
           }}
         >

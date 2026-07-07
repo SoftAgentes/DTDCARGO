@@ -276,7 +276,7 @@ export function Field({
       <label className="studio-label">
         {label}
         {optional && (
-          <span style={{ color: "var(--ink-mute)" }}> (opcional)</span>
+          <span style={{ color: "var(--ink-soft)" }}> (opcional)</span>
         )}
       </label>
       {children}

@@ -95,7 +95,7 @@ function SectionCard({
           <p
             style={{
               font: "400 11.5px/1.4 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               margin: "4px 0 0",
             }}
           >
@@ -150,7 +150,7 @@ function BarRow({
         <span
           style={{
             font: "600 11px/1 var(--f-mono)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             minWidth: 42,
             textAlign: "right",
           }}
@@ -318,7 +318,7 @@ export function DireccionTab({
           hint={`${funnel.total} leads en este embudo`}
         >
           {funnel.stages.length === 0 ? (
-            <p style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-mute)" }}>
+            <p style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
               Sin etapas en el embudo principal.
             </p>
           ) : (
@@ -437,7 +437,7 @@ export function DireccionTab({
                 >
                   Valor en Kommo
                 </div>
-                <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-mute)", marginTop: 4 }}>
+                <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 4 }}>
                   Σ price de los leads
                 </div>
               </div>
@@ -463,7 +463,7 @@ export function DireccionTab({
                 >
                   Facturado en el ERP
                 </div>
-                <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-mute)", marginTop: 4 }}>
+                <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 4 }}>
                   {value.convertedWithBilling} de {value.convertedCount} leads convertidos facturan
                 </div>
               </div>
@@ -496,7 +496,7 @@ export function DireccionTab({
               <Badge tone={wbGateTone(writeback.gate)} dot>
                 {wbGateLabel(writeback.gate)}
               </Badge>
-              <span style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-mute)" }}>
+              <span style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
                 {writeback.lastDrainAt
                   ? `Último drain: ${fmtDateTime(writeback.lastDrainAt)}${writeback.lastDrainEntity === "writeback_dryrun" ? " · ensayo" : ""}`
                   : "Todavía no corrió el drain"}

@@ -85,7 +85,7 @@ export function GenerarInvitacionDrawer({ onClose }: { onClose: () => void }) {
           <Field label="Área / departamento" error={state.fieldErrors?.department}>
             <input name="department" type="text" className="studio-input" placeholder="Almacén" maxLength={80} />
           </Field>
-          <p style={{ font: "400 11px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: "-8px 0 0" }}>
+          <p style={{ font: "400 11px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: "-8px 0 0" }}>
             El cargo y el área solo <strong>precargan</strong> el formulario del candidato. El sueldo
             lo defines tú al aprobar la solicitud, no el candidato.
           </p>

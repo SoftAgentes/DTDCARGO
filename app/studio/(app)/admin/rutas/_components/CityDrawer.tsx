@@ -141,7 +141,7 @@ export function CityDrawer({
             ))}
           </select>
           {mode === "edit" && (
-            <p style={{ font: "500 10.5px/1.4 var(--f-sans)", color: "var(--ink-mute)", marginTop: 6 }}>
+            <p style={{ font: "500 10.5px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 6 }}>
               El estado no se puede cambiar después de crear. Si necesitas mover una ciudad,
               crea una nueva y desactiva la vieja.
             </p>

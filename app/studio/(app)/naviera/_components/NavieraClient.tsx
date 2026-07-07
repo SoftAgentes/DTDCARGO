@@ -402,7 +402,7 @@ function SailingsTab({
             <div
               style={{
                 font: "500 11px/1.3 var(--f-mono)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 marginTop: 4,
               }}
             >
@@ -548,7 +548,7 @@ function ConsolidationTab({
               <div
                 style={{
                   font: "500 11px/1 var(--f-sans)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                   marginBottom: 8,
                 }}
               >
@@ -769,7 +769,7 @@ function ContainerDetail({
             <span
               style={{
                 font: "500 11px/1.4 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 alignSelf: "center",
               }}
             >
@@ -857,7 +857,7 @@ function ContainerDetail({
               padding: "28px 20px",
               textAlign: "left",
               font: "500 13px/1.5 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
             }}
           >
             Sin carga asignada todavía. Usa “+ Asignar carga”.
@@ -904,7 +904,7 @@ function ContainerDetail({
                     <div
                       style={{
                         font: "500 10.5px/1.3 var(--f-sans)",
-                        color: "var(--ink-mute)",
+                        color: "var(--ink-soft)",
                         marginTop: 3,
                       }}
                     >
@@ -1083,7 +1083,7 @@ function LiveTrackingCard({
       >
         <div className="studio-eyebrow">Tracking en vivo · SeaRates</div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-mute)" }}>
+          <span style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-soft)" }}>
             {snapshot ? `Actualizado ${timeAgo(snapshot.fetchedAt)}` : "Sin rastrear todavía"}
           </span>
           {snapshot?.apiRemaining != null ? (
@@ -1218,7 +1218,7 @@ function UtilMetric({
       <div
         style={{
           font: "500 11px/1 var(--f-mono)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           marginTop: 6,
         }}
       >
@@ -1476,7 +1476,7 @@ function BookingsTab({
                 <div
                   style={{
                     font: "500 10.5px/1.3 var(--f-sans)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     marginTop: 3,
                   }}
                 >

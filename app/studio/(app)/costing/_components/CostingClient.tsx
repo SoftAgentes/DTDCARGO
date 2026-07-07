@@ -310,7 +310,7 @@ function Header({
           <span
             style={{
               font: "700 9.5px/1 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               letterSpacing: "0.12em",
               textTransform: "uppercase",
             }}
@@ -507,7 +507,7 @@ function RankList({
 }) {
   if (rows.length === 0) {
     return (
-      <div style={{ padding: "12px 20px", font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-mute)" }}>
+      <div style={{ padding: "12px 20px", font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
         {emptyLabel}
       </div>
     );
@@ -549,7 +549,7 @@ function RankList({
             </div>
             <div style={{ textAlign: "right" }}>
               <div style={{ font: "800 13px/1 var(--f-mono)", color: c }}>{money(r.eco.margin)}</div>
-              <div style={{ font: "600 10px/1 var(--f-mono)", color: "var(--ink-mute)", marginTop: 3 }}>
+              <div style={{ font: "600 10px/1 var(--f-mono)", color: "var(--ink-soft)", marginTop: 3 }}>
                 {r.eco.marginPct.toFixed(0)}%
               </div>
             </div>

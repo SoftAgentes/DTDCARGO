@@ -231,7 +231,7 @@ export function PoDrawer({
                 border: "1px dashed var(--border-strong)",
                 borderRadius: "var(--r-md)",
                 font: "500 12px/1.5 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
               }}
             >
               Sin ítems cargados.
@@ -626,7 +626,7 @@ export function NewPoDrawer({
               <p
                 style={{
                   font: "500 11.5px/1.4 var(--f-sans)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                   margin: 0,
                 }}
               >
@@ -659,7 +659,7 @@ export function NewPoDrawer({
         <div>
           <label className="studio-label" htmlFor="po-markbox">
             Shipping Mark del cliente{" "}
-            <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+            <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
           </label>
           <input
             id="po-markbox"
@@ -780,7 +780,7 @@ export function NewPoDrawer({
 
         <div>
           <label className="studio-label" htmlFor="po-notes">
-            Notas <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+            Notas <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
           </label>
           <textarea
             id="po-notes"

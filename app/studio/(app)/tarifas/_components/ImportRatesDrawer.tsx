@@ -268,7 +268,7 @@ export function ImportRatesDrawer({ onClose }: { onClose: () => void }) {
                     <span
                       style={{
                         font: "600 11px/1.4 var(--f-mono)",
-                        color: "var(--ink-mute)",
+                        color: "var(--ink-soft)",
                         flexShrink: 0,
                         width: 24,
                       }}

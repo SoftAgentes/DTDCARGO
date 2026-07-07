@@ -118,7 +118,7 @@ export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
       <p
         style={{
           font: "500 11px/1.4 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           margin: "0 0 14px",
           letterSpacing: "0.02em",
         }}
@@ -207,7 +207,7 @@ export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
               alignItems: "center",
             }}
           >
-            <span>📍 GPS destino {isTerrestre && <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>(recomendado)</span>}</span>
+            <span>📍 GPS destino {isTerrestre && <span style={{ color: "var(--ink-soft)", fontWeight: 500 }}>(recomendado)</span>}</span>
             {gpsMapsUrl && (
               <a
                 href={gpsMapsUrl}

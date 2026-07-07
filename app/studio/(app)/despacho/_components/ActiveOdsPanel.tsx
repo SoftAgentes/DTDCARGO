@@ -43,7 +43,7 @@ export function ActiveOdsPanel({
         <p
           style={{
             font: "500 12.5px/1.4 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             margin: 0,
             padding: "24px 0",
             textAlign: "center",
@@ -94,7 +94,7 @@ export function ActiveOdsPanel({
                 <div
                   style={{
                     font: "600 11px/1.2 var(--f-mono)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     marginBottom: 8,
                   }}
                 >
@@ -105,7 +105,7 @@ export function ActiveOdsPanel({
                     display: "flex",
                     gap: 10,
                     font: "600 10.5px/1 var(--f-mono)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                   }}
                 >
                   <span>{od.package_count} pkg</span>

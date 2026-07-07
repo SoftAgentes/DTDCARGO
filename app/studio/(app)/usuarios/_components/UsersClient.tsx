@@ -495,7 +495,7 @@ function PermissionsByRoleModal({ onClose }: { onClose: () => void }) {
           <p
             style={{
               font: "500 11.5px/1.4 var(--font-sans, 'Archivo')",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               margin: 0,
             }}
           >

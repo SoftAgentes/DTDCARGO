@@ -249,7 +249,7 @@ export function KommoClient({
             {connLabel(overview.connStatus)}
           </Badge>
           <span
-            style={{ font: "500 11.5px/1 var(--f-sans)", color: "var(--ink-mute)" }}
+            style={{ font: "500 11.5px/1 var(--f-sans)", color: "var(--ink-soft)" }}
           >
             Último sync: {fmtDateTime(overview.lastSyncAt)}
           </span>
@@ -443,7 +443,7 @@ export function KommoClient({
           <p
             style={{
               font: "400 11.5px/1.4 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               marginTop: 14,
             }}
           >

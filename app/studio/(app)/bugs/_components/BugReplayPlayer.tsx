@@ -187,7 +187,7 @@ export function BugReplayPlayer({ bugId }: Props) {
         }}
       />
       {loaded && (
-        <p style={{ margin: 0, fontSize: 11, color: "var(--ink-mute)" }}>
+        <p style={{ margin: 0, fontSize: 11, color: "var(--ink-soft)" }}>
           Arranca en el frame final (el momento del reporte). Usa el control
           para ver los 15s previos.
         </p>

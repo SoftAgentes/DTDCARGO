@@ -117,7 +117,7 @@ export function AppearanceSection() {
               />
               <div style={{ marginTop: 8, font: "700 12px/1 var(--f-sans)", color: "var(--ink)" }}>{c.name}</div>
               <code style={{ font: "600 10.5px/1.3 var(--f-mono)", color: "var(--ink-soft)" }}>{c.token}</code>
-              <div style={{ marginTop: 4, font: "500 10.5px/1 var(--f-mono)", color: "var(--ink-mute)" }}>{c.hex}</div>
+              <div style={{ marginTop: 4, font: "500 10.5px/1 var(--f-mono)", color: "var(--ink-soft)" }}>{c.hex}</div>
             </div>
           ))}
         </div>
@@ -233,7 +233,7 @@ function FieldBlock({
     <div style={{ marginBottom: 18 }}>
       <div style={{ font: "700 12.5px/1 var(--f-sans)", color: "var(--ink)", marginBottom: 4 }}>{label}</div>
       {hint && (
-        <div style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-mute)", marginBottom: 10 }}>{hint}</div>
+        <div style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginBottom: 10 }}>{hint}</div>
       )}
       {children}
     </div>

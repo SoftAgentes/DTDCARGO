@@ -377,7 +377,7 @@ export function RouteDrawer({ mode, route, cities, veCatalog, onClose }: Props) 
                       <div
                         style={{
                           font: "500 10.5px/1 var(--f-sans)",
-                          color: "var(--ink-mute)",
+                          color: "var(--ink-soft)",
                           marginTop: 2,
                         }}
                       >
@@ -759,7 +759,7 @@ function InfoLine({ children }: { children: React.ReactNode }) {
       style={{
         marginTop: 8,
         font: "500 11.5px/1.5 var(--f-sans)",
-        color: "var(--ink-mute)",
+        color: "var(--ink-soft)",
         display: "flex",
         alignItems: "flex-start",
         gap: 6,

@@ -383,7 +383,7 @@ export function FiscalConfig({
       </form>
 
       {settings.updated_at && (
-        <p style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-mute)", margin: "14px 0 0" }}>
+        <p style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "14px 0 0" }}>
           Última actualización:{" "}
           {new Date(settings.updated_at).toLocaleString("es-VE")}.
         </p>

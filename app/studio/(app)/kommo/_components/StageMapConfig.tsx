@@ -172,7 +172,7 @@ export function StageMapConfig({
                   {ESTIMATE_STAGE_LABELS[key]}
                 </span>
                 {unmapped && (
-                  <span style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-mute)" }}>
+                  <span style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-soft)" }}>
                     · no mueve el lead
                   </span>
                 )}
@@ -249,7 +249,7 @@ export function StageMapConfig({
           <span
             style={{
               font: "500 11.5px/1.4 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
             }}
           >
             Solo un administrador puede editar el mapa.

@@ -209,7 +209,7 @@ export function SupplierBilingualInput({
         <p
           style={{
             font: "500 11px/1.3 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             margin: "5px 0 0",
           }}
         >

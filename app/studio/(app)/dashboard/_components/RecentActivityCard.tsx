@@ -205,7 +205,7 @@ function ActivityRow({ item }: { item: RecentActivityItem }) {
         <span
           style={{
             font: "500 10.5px/1 var(--f-mono)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             flexShrink: 0,
           }}
         >

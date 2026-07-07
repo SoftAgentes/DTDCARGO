@@ -118,7 +118,7 @@ export function GenerarCorteDrawer({
               font: "700 9.5px/1 var(--f-sans)",
               letterSpacing: "0.08em",
               textTransform: "uppercase",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               marginBottom: 8,
             }}
           >
@@ -146,7 +146,7 @@ export function GenerarCorteDrawer({
           />
         </Field>
 
-        <p style={{ font: "400 11px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: "-8px 0 0" }}>
+        <p style={{ font: "400 11px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: "-8px 0 0" }}>
           Los recibos se calculan de forma <strong>mecánica y advisory</strong>: prorrateo, horas
           extra/nocturnas y deducciones sobre el sueldo base con sus topes. No incluye bonos
           salariales (criterio del contador) ni genera asiento contable.

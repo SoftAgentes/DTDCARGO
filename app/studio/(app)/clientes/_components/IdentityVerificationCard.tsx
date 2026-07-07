@@ -145,7 +145,7 @@ export function IdentityVerificationCard({
       <p
         style={{
           font: "500 12px/1.5 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           margin: "0 0 14px",
         }}
       >
@@ -261,7 +261,7 @@ export function IdentityVerificationCard({
         <p
           style={{
             font: "500 11.5px/1.4 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             margin: "0 0 14px",
           }}
         >

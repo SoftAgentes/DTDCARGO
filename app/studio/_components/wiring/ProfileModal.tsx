@@ -199,7 +199,7 @@ function ProfileTabContent({
       <p
         style={{
           font: "500 11.5px/1.4 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           margin: 0,
         }}
       >
@@ -572,7 +572,7 @@ function PrefsTabContent({
                 onClick={clearGps}
                 disabled={pending}
                 className="studio-btn studio-btn-ghost studio-btn-sm"
-                style={{ color: "var(--ink-mute)" }}
+                style={{ color: "var(--ink-soft)" }}
               >
                 Limpiar
               </button>
@@ -754,7 +754,7 @@ function PrefsTabContent({
           <div
             style={{
               font: "500 11px/1.4 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
             }}
           >
             El push del navegador se administra en su sección de arriba.
@@ -1119,7 +1119,7 @@ function PushSubscriptionSection() {
         <p
           style={{
             font: "500 11.5px/1.4 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             margin: 0,
           }}
         >
@@ -1337,7 +1337,7 @@ function TelegramSection({
           <div
             style={{
               font: "500 11px/1.4 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
             }}
           >
             Código: <code style={{ font: "700 11px/1 var(--f-mono)" }}>{linkCode}</code>
@@ -1391,7 +1391,7 @@ function PushStatusBadge({ status }: { status: PushStatus }) {
     unsupported: {
       label: "no soportado",
       bg: "var(--bg-base)",
-      fg: "var(--ink-mute)",
+      fg: "var(--ink-soft)",
     },
     blocked: {
       label: "bloqueado",
@@ -1593,7 +1593,7 @@ function Field({
         <p
           style={{
             font: "500 11px/1.3 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             margin: "6px 0 0",
           }}
         >

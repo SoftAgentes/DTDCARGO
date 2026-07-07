@@ -311,7 +311,7 @@ export function InviteUserDrawer({ onClose }: Props) {
                   {t("users.twofa.label")}{" "}
                   <span
                     style={{
-                      color: "var(--ink-mute)",
+                      color: "var(--ink-soft)",
                       fontWeight: 400,
                     }}
                   >
@@ -348,7 +348,7 @@ export function InviteUserDrawer({ onClose }: Props) {
             <p
               style={{
                 font: "500 11px/1.4 var(--font-sans, 'Archivo')",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 margin: 0,
               }}
             >
@@ -458,7 +458,7 @@ function OfficePicker({
       <p
         style={{
           font: "500 11px/1.4 var(--font-sans, 'Archivo')",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           margin: 0,
         }}
       >
@@ -509,7 +509,7 @@ function ScopeSection({
       <div
         style={{
           font: "500 11px/1.4 var(--font-sans, 'Archivo')",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           marginBottom: 10,
         }}
       >

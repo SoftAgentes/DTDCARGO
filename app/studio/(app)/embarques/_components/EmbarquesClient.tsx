@@ -538,7 +538,7 @@ function GroupedTable({
                     font: "700 10.5px/1 var(--f-sans)",
                     letterSpacing: "0.08em",
                     textTransform: "uppercase",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     minWidth: 824,
                   }}
                 >
@@ -619,7 +619,7 @@ function GroupedTable({
                           <div
                             style={{
                               font: "500 10px/1.1 var(--f-sans)",
-                              color: "var(--ink-mute)",
+                              color: "var(--ink-soft)",
                               marginTop: 2,
                               overflow: "hidden",
                               textOverflow: "ellipsis",
@@ -722,7 +722,7 @@ function ProgressBar({
         style={{
           display: "block",
           font: "600 10.5px/1 var(--f-mono)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           marginTop: 4,
         }}
       >

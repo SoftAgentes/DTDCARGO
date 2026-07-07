@@ -123,7 +123,7 @@ export function InstallSkillDrawer({
           <div
             style={{
               font: "700 10px/1 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               letterSpacing: "0.14em",
               textTransform: "uppercase",
             }}
@@ -141,7 +141,7 @@ export function InstallSkillDrawer({
           <div
             style={{
               font: "400 11.5px/1.4 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
             }}
           >
             Todas read-only. La edición granular de grants llega en Fase 2C+.
@@ -218,7 +218,7 @@ function Field(props: FieldProps) {
         <p
           style={{
             font: "400 11px/1.4 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             margin: "4px 0 0",
           }}
         >

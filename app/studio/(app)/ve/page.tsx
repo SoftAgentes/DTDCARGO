@@ -63,7 +63,7 @@ export default async function VePage({
           Recepción de containers en puertos VE, trámites{" "}
           <strong style={{ color: "var(--ink)" }}>aduana SENIAT</strong>,
           desconsolidación y entrega DDP final con POD firmado.{" "}
-          <span style={{ color: "var(--ink-mute)" }}>
+          <span style={{ color: "var(--ink-soft)" }}>
             Cada operación se gestiona desde el menú{" "}
             <code
               style={{

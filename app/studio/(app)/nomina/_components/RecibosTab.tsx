@@ -117,7 +117,7 @@ export function RecibosTab({
               font: "700 9.5px/1 var(--f-sans)",
               letterSpacing: "0.08em",
               textTransform: "uppercase",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               borderBottom: "1px solid var(--border)",
               background: "var(--bg-elevated)",
             }}
@@ -169,13 +169,13 @@ function CorteRow({
         <div style={{ font: "700 13px/1.2 var(--f-mono)", color: "var(--ink)" }}>
           {run.period_label}
         </div>
-        <div style={{ font: "600 10.5px/1.3 var(--f-sans)", color: "var(--ink-mute)" }}>
+        <div style={{ font: "600 10.5px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>
           {payFrequencyLabel(run.pay_frequency)}
         </div>
       </div>
       <div style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-soft)", minWidth: 0 }}>
         {fmtDate(run.period_start)} – {fmtDate(run.period_end)}
-        <span style={{ color: "var(--ink-mute)" }}> · {dayMethodLabel(run.day_method)}</span>
+        <span style={{ color: "var(--ink-soft)" }}> · {dayMethodLabel(run.day_method)}</span>
       </div>
       <span style={{ font: "700 12.5px/1 var(--f-mono)", color: "var(--ink)", textAlign: "right" }}>
         {fmtUsd(run.total_gross_usd)}
@@ -380,7 +380,7 @@ function CorteDetalle({ run, onBack }: { run: PayrollRun; onBack: () => void }) 
       <p
         style={{
           font: "400 11.5px/1.5 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           margin: "0 0 var(--s-4)",
           maxWidth: "70ch",
         }}
@@ -420,7 +420,7 @@ function CorteDetalle({ run, onBack }: { run: PayrollRun; onBack: () => void }) 
               font: "700 9.5px/1 var(--f-sans)",
               letterSpacing: "0.08em",
               textTransform: "uppercase",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               borderBottom: "1px solid var(--border)",
               background: "var(--bg-elevated)",
             }}
@@ -466,7 +466,7 @@ function ReciboRow({ l, first }: { l: PayrollRunLine; first: boolean }) {
         >
           {l.employee_name ?? "Empleado"}
         </div>
-        <div style={{ font: "600 11px/1.3 var(--f-mono)", color: "var(--ink-mute)" }}>
+        <div style={{ font: "600 11px/1.3 var(--f-mono)", color: "var(--ink-soft)" }}>
           {l.employee_code ?? "—"} · {l.worked_days} día(s)
         </div>
       </div>
@@ -504,7 +504,7 @@ function TotalCard({ label, value }: { label: string; value: string }) {
           font: "700 9.5px/1 var(--f-sans)",
           letterSpacing: "0.08em",
           textTransform: "uppercase",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           marginBottom: 6,
         }}
       >

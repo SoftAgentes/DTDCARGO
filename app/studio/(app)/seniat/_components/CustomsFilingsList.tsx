@@ -126,7 +126,7 @@ function FilingRow({
         <div
           style={{
             font: "600 10.5px/1.2 var(--f-mono)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
           }}
         >
           {row.dua_code}
@@ -180,7 +180,7 @@ function FilingRow({
         <div
           style={{
             font: "500 10.5px/1.3 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             marginTop: 4,
             overflow: "hidden",
             textOverflow: "ellipsis",

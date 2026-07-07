@@ -145,7 +145,7 @@ export function GenerarFiniquitoDrawer({
               font: "700 9.5px/1 var(--f-sans)",
               letterSpacing: "0.08em",
               textTransform: "uppercase",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               marginBottom: 8,
             }}
           >
@@ -173,7 +173,7 @@ export function GenerarFiniquitoDrawer({
           />
         </Field>
 
-        <p style={{ font: "400 11px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: "-8px 0 0" }}>
+        <p style={{ font: "400 11px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: "-8px 0 0" }}>
           El finiquito se calcula <strong>advisory</strong>: prestaciones (Art. 142), fracciones de
           vacaciones/bono vacacional/utilidades, indemnización Art. 92 según la causa, e intereses. El
           contador valida el criterio salarial antes de confirmar y pagar.

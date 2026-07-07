@@ -303,7 +303,7 @@ function CatalogTab({ courses }: { courses: CourseWithCounts[] }) {
                 style={{
                   marginTop: "auto",
                   font: "600 11.5px/1 var(--f-sans)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                   letterSpacing: "0.02em",
                 }}
               >
@@ -409,7 +409,7 @@ function CohortsTab({
               <div
                 style={{
                   font: "500 11px/1.4 var(--f-sans)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                 }}
               >
                 {fmtDate(c.starts_at)} · {modalityLabel(c.modality)} ·{" "}
@@ -633,7 +633,7 @@ function CohortDetailView({
           <span
             style={{
               font: "500 11.5px/1.4 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
             }}
           >
             Marca la asistencia por sesión. Aprueba con ≥ 75%.
@@ -645,7 +645,7 @@ function CohortDetailView({
             style={{
               padding: "28px 20px",
               font: "500 13px/1.5 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
             }}
           >
             Sin inscritos todavía. Usa “+ Inscribir alumno”.
@@ -767,7 +767,7 @@ function RosterRowView({
       <code
         style={{
           font: "500 10.5px/1 var(--f-mono)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
         }}
       >
         {e.student_ci ?? "—"}
@@ -799,7 +799,7 @@ function RosterRowView({
           {pct}%
         </span>
         <span
-          style={{ font: "500 9px/1 var(--f-mono)", color: "var(--ink-mute)", marginTop: 2 }}
+          style={{ font: "500 9px/1 var(--f-mono)", color: "var(--ink-soft)", marginTop: 2 }}
           title="Sesiones asistidas / total"
         >
           {attendedCount}/{sessions}

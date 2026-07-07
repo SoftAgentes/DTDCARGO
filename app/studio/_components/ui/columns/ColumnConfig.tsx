@@ -149,7 +149,7 @@ export function ColumnManager({
         }}
       >
         {Icon.cog(13)} Columnas
-        <span style={{ font: "700 10px/1 var(--f-mono)", color: "var(--ink-mute)" }}>
+        <span style={{ font: "700 10px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
           {visibleCount}
         </span>
       </button>
@@ -296,7 +296,7 @@ export function ColumnManager({
                             style={{
                               display: "block",
                               font: "500 9.5px/1.2 var(--f-sans)",
-                              color: "var(--ink-mute)",
+                              color: "var(--ink-soft)",
                               marginTop: 1,
                             }}
                           >
@@ -315,7 +315,7 @@ export function ColumnManager({
                 paddingTop: 10,
                 borderTop: "1px solid var(--border)",
                 font: "500 10.5px/1.4 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
               }}
             >
               ▲▼ reordena · ✓ muestra/oculta. Tu configuración se guarda en este

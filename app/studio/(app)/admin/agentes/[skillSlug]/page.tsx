@@ -184,7 +184,7 @@ export default async function SkillDetailPage({
           <div
             style={{
               font: "400 13px/1.5 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               padding: "16px 18px",
               background: "var(--bg-elevated)",
               borderRadius: "var(--r-md)",
@@ -320,7 +320,7 @@ function SummaryCard({
       <div
         style={{
           font: "700 10px/1 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           letterSpacing: "0.14em",
           textTransform: "uppercase",
         }}

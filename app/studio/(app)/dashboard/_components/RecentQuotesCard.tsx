@@ -115,7 +115,7 @@ export function RecentQuotesCard({ quotes }: { quotes: RecentQuoteRow[] }) {
                 <div
                   style={{
                     font: "500 10.5px/1 var(--f-sans)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     marginTop: 3,
                   }}
                 >

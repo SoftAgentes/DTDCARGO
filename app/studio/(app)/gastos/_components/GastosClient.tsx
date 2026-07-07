@@ -590,7 +590,7 @@ function ExpenseRow({
         >
           {row.expense_code}
         </code>
-        <span style={{ font: "500 10.5px/1 var(--f-mono)", color: "var(--ink-mute)" }}>
+        <span style={{ font: "500 10.5px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
           {formatDate(row.occurred_at, locale, "short")}
         </span>
       </div>
@@ -633,7 +633,7 @@ function ExpenseRow({
       >
         {row.note ?? "—"}
         {row.location && (
-          <span style={{ color: "var(--ink-mute)" }}> · {row.location}</span>
+          <span style={{ color: "var(--ink-soft)" }}> · {row.location}</span>
         )}
       </span>
 

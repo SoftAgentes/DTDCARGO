@@ -259,7 +259,7 @@ function GroupBuyCard({
           <div
             style={{
               font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               marginTop: 4,
             }}
           >
@@ -335,7 +335,7 @@ function GroupBuyCard({
             marginBottom: 8,
           }}
         >
-          <span className="studio-eyebrow" style={{ color: "var(--ink-mute)" }}>
+          <span className="studio-eyebrow" style={{ color: "var(--ink-soft)" }}>
             Participantes
           </span>
           <button
@@ -348,7 +348,7 @@ function GroupBuyCard({
         </div>
 
         {g.participants.length === 0 ? (
-          <p style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+          <p style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
             Sin participantes todavía.
           </p>
         ) : (
@@ -372,7 +372,7 @@ function GroupBuyCard({
                       <span
                         style={{
                           font: "500 11px/1.3 var(--f-sans)",
-                          color: "var(--ink-mute)",
+                          color: "var(--ink-soft)",
                           display: "block",
                           marginTop: 2,
                         }}

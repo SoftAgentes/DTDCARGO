@@ -170,7 +170,7 @@ export function CreditNoteDrawer({
 
         <div>
           <label className="studio-label" htmlFor="fc-credit-amount">
-            Monto a acreditar <span style={{ color: "var(--ink-mute)" }}>({charge.currency})</span>
+            Monto a acreditar <span style={{ color: "var(--ink-soft)" }}>({charge.currency})</span>
           </label>
           <NumericInput
             id="fc-credit-amount"
@@ -186,7 +186,7 @@ export function CreditNoteDrawer({
 
         <div>
           <label className="studio-label" htmlFor="fc-credit-date">
-            Fecha de emisión <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+            Fecha de emisión <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
           </label>
           <input
             id="fc-credit-date"

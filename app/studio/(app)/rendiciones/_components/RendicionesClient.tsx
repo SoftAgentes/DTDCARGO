@@ -267,7 +267,7 @@ export function RendicionesClient({
                           title={r.void_reason}
                           style={{
                             font: "500 11px/1.3 var(--f-sans)",
-                            color: "var(--ink-mute)",
+                            color: "var(--ink-soft)",
                           }}
                         >
                           {r.void_reason.length > 28
@@ -350,7 +350,7 @@ function QuincenaPanel({
         </span>
         <span
           className="studio-input-mono"
-          style={{ font: "500 11px/1.3 var(--f-mono)", color: "var(--ink-mute)" }}
+          style={{ font: "500 11px/1.3 var(--f-mono)", color: "var(--ink-soft)" }}
         >
           {card.from} → {card.to}
         </span>
@@ -437,7 +437,7 @@ function TotalRow({
               font: "600 9px/1 var(--f-sans)",
               letterSpacing: "0.06em",
               textTransform: "uppercase",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               marginLeft: 6,
             }}
           >

@@ -59,7 +59,7 @@ export function MasterDataSection() {
               <Badge tone={tierBadgeTone(t.value)} size="sm">
                 {t.label}
               </Badge>
-              <code style={{ font: "600 11px/1 var(--f-mono)", color: "var(--ink-mute)" }}>{t.value}</code>
+              <code style={{ font: "600 11px/1 var(--f-mono)", color: "var(--ink-soft)" }}>{t.value}</code>
             </div>
           ))}
         </div>
@@ -131,7 +131,7 @@ export function MasterDataSection() {
             </span>
           ))}
         </div>
-        <p style={{ font: "400 12px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: "12px 0 0", maxWidth: "62ch" }}>
+        <p style={{ font: "400 12px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: "12px 0 0", maxWidth: "62ch" }}>
           Hoy no existen como catálogo editable en DB. Cada uno necesita su propia spec (tabla + RLS + UI) antes de
           exponerse acá.
         </p>

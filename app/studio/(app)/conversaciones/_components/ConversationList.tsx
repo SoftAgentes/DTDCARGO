@@ -174,7 +174,7 @@ export function ConversationList({
               padding: "32px 16px",
               textAlign: "center",
               font: "500 12.5px/1.5 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
             }}
           >
             Sin conversaciones con esos filtros.
@@ -246,7 +246,7 @@ export function ConversationList({
                     {c.unread_count}
                   </span>
                 )}
-                <span style={{ font: "500 10px/1 var(--f-sans)", color: "var(--ink-mute)" }}>
+                <span style={{ font: "500 10px/1 var(--f-sans)", color: "var(--ink-soft)" }}>
                   {relativeAge(c.last_message_at)}
                 </span>
               </div>
@@ -269,7 +269,7 @@ export function ConversationList({
                     Caso
                   </Badge>
                 )}
-                <code style={{ font: "600 10px/1 var(--f-mono)", color: "var(--ink-mute)" }}>
+                <code style={{ font: "600 10px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
                   {c.markbox}
                 </code>
                 <span style={{ flex: 1 }} />

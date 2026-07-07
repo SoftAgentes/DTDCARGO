@@ -269,7 +269,7 @@ export function CreateShipmentForm({
           >
             <label htmlFor="destination_gps" className="studio-label">
               📍 GPS del destino{" "}
-              <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>
+              <span style={{ color: "var(--ink-soft)", fontWeight: 500 }}>
                 (recomendado para terrestre)
               </span>
             </label>
@@ -346,7 +346,7 @@ export function CreateShipmentForm({
               {vehicleRequired ? (
                 <span style={{ color: "var(--wine)" }}>*</span>
               ) : (
-                <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>(opcional)</span>
+                <span style={{ color: "var(--ink-soft)", fontWeight: 500 }}>(opcional)</span>
               )}
             </label>
             <select

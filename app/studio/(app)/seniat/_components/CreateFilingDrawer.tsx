@@ -397,7 +397,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
             <p
               style={{
                 font: "500 11px/1.4 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 margin: "4px 0 0",
               }}
             >

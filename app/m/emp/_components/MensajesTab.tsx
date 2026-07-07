@@ -106,7 +106,7 @@ export function MensajesTab({
                 />
               )}
               <span style={{ flex: 1 }}>
-                <span style={{ font: "600 10px/1.2 var(--f-sans)", color: "var(--ink-mute)", textTransform: "uppercase", letterSpacing: ".04em" }}>
+                <span style={{ font: "600 10px/1.2 var(--f-sans)", color: "var(--ink-soft)", textTransform: "uppercase", letterSpacing: ".04em" }}>
                   {commTypeLabel(c.type)}
                 </span>
                 <span style={{ display: "block", font: `${unread ? 700 : 600} 13.5px/1.3 var(--f-sans)`, color: "var(--ink)", marginTop: 2 }}>

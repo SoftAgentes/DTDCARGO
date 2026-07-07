@@ -296,7 +296,7 @@ export function StateActionsPanel({
 
             <label className="studio-label" htmlFor="exc-note">
               Descripción{" "}
-              <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>
+              <span style={{ color: "var(--ink-soft)", fontWeight: 500 }}>
                 (opcional pero recomendado)
               </span>
             </label>

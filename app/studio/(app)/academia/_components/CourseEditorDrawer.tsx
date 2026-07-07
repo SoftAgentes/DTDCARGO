@@ -114,13 +114,13 @@ export function CourseEditorDrawer({
         }}
       >
         {loading && (
-          <p style={{ font: "500 13px/1.5 var(--f-sans)", color: "var(--ink-mute)" }}>
+          <p style={{ font: "500 13px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
             Cargando…
           </p>
         )}
 
         {!loading && !tree && (
-          <p style={{ font: "500 13px/1.5 var(--f-sans)", color: "var(--ink-mute)" }}>
+          <p style={{ font: "500 13px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
             No se pudo cargar el curso.
           </p>
         )}
@@ -168,7 +168,7 @@ export function CourseEditorDrawer({
                 <p
                   style={{
                     font: "500 11px/1.4 var(--f-sans)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     margin: "8px 0 0",
                   }}
                 >
@@ -211,7 +211,7 @@ export function CourseEditorDrawer({
                 <p
                   style={{
                     font: "500 12.5px/1.5 var(--f-sans)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     padding: "8px 0",
                   }}
                 >
@@ -315,7 +315,7 @@ function ModuleBlock({
       >
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, minWidth: 0 }}>
           <code
-            style={{ font: "700 10px/1 var(--f-mono)", color: "var(--ink-mute)" }}
+            style={{ font: "700 10px/1 var(--f-mono)", color: "var(--ink-soft)" }}
           >
             #{module.sort}
           </code>
@@ -395,7 +395,7 @@ function ModuleBlock({
                     <span
                       style={{
                         font: "500 10.5px/1 var(--f-sans)",
-                        color: "var(--ink-mute)",
+                        color: "var(--ink-soft)",
                       }}
                     >
                       {lessonWidgetLabel(l.widget)}
@@ -403,7 +403,7 @@ function ModuleBlock({
                   )}
                   {l.duration_min != null && (
                     <code
-                      style={{ font: "500 10.5px/1 var(--f-mono)", color: "var(--ink-mute)" }}
+                      style={{ font: "500 10.5px/1 var(--f-mono)", color: "var(--ink-soft)" }}
                     >
                       {l.duration_min} min
                     </code>

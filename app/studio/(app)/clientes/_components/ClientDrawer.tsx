@@ -425,7 +425,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
             <div>
               <label className="studio-label" htmlFor="cl-contact-name">
                 Nombre de contacto{" "}
-                <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>
+                <span style={{ color: "var(--ink-soft)", fontWeight: 500 }}>
                   (opcional)
                 </span>
               </label>
@@ -547,7 +547,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
                 <div
                   style={{
                     font: "500 11.5px/1.4 var(--f-sans)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     marginTop: 4,
                   }}
                 >
@@ -579,7 +579,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
                     type="button"
                     className="studio-btn studio-btn-ghost studio-btn-sm"
                     onClick={clearGps}
-                    style={{ color: "var(--ink-mute)" }}
+                    style={{ color: "var(--ink-soft)" }}
                     aria-label="Limpiar GPS"
                   >
                     Limpiar
@@ -640,7 +640,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
                   <div
                     style={{
                       font: "500 10.5px/1.4 var(--f-sans)",
-                      color: "var(--ink-mute)",
+                      color: "var(--ink-soft)",
                       marginTop: 3,
                     }}
                   >
@@ -666,7 +666,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
           <div>
             <label className="studio-label" htmlFor="cl-rif">
               {isCompany ? "RIF" : "Cédula"}{" "}
-              <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>
+              <span style={{ color: "var(--ink-soft)", fontWeight: 500 }}>
                 (opcional)
               </span>
             </label>
@@ -683,7 +683,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
             <p
               style={{
                 font: "500 11px/1.4 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 margin: "4px 0 0",
               }}
             >

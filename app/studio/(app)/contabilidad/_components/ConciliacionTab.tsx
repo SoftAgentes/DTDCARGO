@@ -131,7 +131,7 @@ export function ConciliacionTab({
                 <span
                   style={{
                     font: "500 11px/1 var(--f-mono)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     marginLeft: 8,
                   }}
                 >
@@ -338,7 +338,7 @@ function MovementRow({
           <code
             style={{
               font: "500 10px/1 var(--f-mono)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               marginTop: 4,
               display: "inline-block",
             }}
@@ -385,7 +385,7 @@ function MovementRow({
           <span
             style={{
               font: "500 11px/1.3 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               fontStyle: "italic",
             }}
           >

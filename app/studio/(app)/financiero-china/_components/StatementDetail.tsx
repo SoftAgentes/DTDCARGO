@@ -395,7 +395,7 @@ export function StatementDetail({
                 padding: "28px 20px",
                 textAlign: "center",
                 font: "500 13px/1.5 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
               }}
             >
               {tab === "revisar"
@@ -519,7 +519,7 @@ function LineRow({
             <div
               style={{
                 font: "500 11px/1.2 var(--f-cn)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 marginTop: 3,
               }}
             >
@@ -559,7 +559,7 @@ function LineRow({
             <span
               style={{
                 font: "500 11.5px/1.4 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 fontStyle: "italic",
               }}
             >
@@ -575,7 +575,7 @@ function LineRow({
           <div
             style={{
               font: "600 10px/1 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               letterSpacing: "0.1em",
               marginTop: 4,
             }}
@@ -747,7 +747,7 @@ function LineDetailPanel({
           >
             {line.raw_description}
             {line.raw_description_cn && (
-              <div style={{ font: "500 11px/1.3 var(--f-cn)", color: "var(--ink-mute)", marginTop: 4 }}>
+              <div style={{ font: "500 11px/1.3 var(--f-cn)", color: "var(--ink-soft)", marginTop: 4 }}>
                 {line.raw_description_cn}
               </div>
             )}
@@ -802,7 +802,7 @@ function LineDetailPanel({
                           >
                             {c.description}
                           </div>
-                          <div style={{ font: "500 10px/1 var(--f-mono)", color: "var(--ink-mute)", marginTop: 3 }}>
+                          <div style={{ font: "500 10px/1 var(--f-mono)", color: "var(--ink-soft)", marginTop: 3 }}>
                             {fmtLine(c.net_amount, c.currency)} · {c.status}
                           </div>
                         </div>
@@ -861,7 +861,7 @@ function LineDetailPanel({
                 <div
                   style={{
                     font: "500 12px/1.4 var(--f-sans)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     textAlign: "center",
                     padding: "10px 0",
                   }}

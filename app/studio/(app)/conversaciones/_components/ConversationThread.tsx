@@ -240,13 +240,13 @@ export function ConversationThread({ conv, agents }: Props) {
               {conv.ref && (
                 <>
                   <span style={{ color: "var(--ink-mute)" }}>·</span>
-                  <code style={{ font: "500 11px/1 var(--f-mono)", color: "var(--ink-mute)" }}>
+                  <code style={{ font: "500 11px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
                     {conv.ref}
                   </code>
                 </>
               )}
               <span style={{ color: "var(--ink-mute)" }}>·</span>
-              <span style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-mute)" }}>
+              <span style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-soft)" }}>
                 {relativeAge(conv.last_message_at)}
               </span>
             </div>
@@ -320,7 +320,7 @@ export function ConversationThread({ conv, agents }: Props) {
               style={{
                 textAlign: "center",
                 font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 margin: "auto",
               }}
             >
@@ -332,7 +332,7 @@ export function ConversationThread({ conv, agents }: Props) {
               style={{
                 textAlign: "center",
                 font: "500 12.5px/1.5 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 margin: "auto",
               }}
             >
@@ -372,7 +372,7 @@ export function ConversationThread({ conv, agents }: Props) {
                 <div
                   style={{
                     font: "500 10px/1 var(--f-sans)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     padding: "0 4px",
                   }}
                 >
@@ -547,7 +547,7 @@ function ClientContextPanel({
           {context?.client_name ?? clientName}
         </div>
         {context?.markbox && (
-          <code style={{ font: "600 11px/1.4 var(--f-mono)", color: "var(--ink-mute)" }}>
+          <code style={{ font: "600 11px/1.4 var(--f-mono)", color: "var(--ink-soft)" }}>
             {context.markbox}
           </code>
         )}
@@ -597,7 +597,7 @@ function ClientContextPanel({
             ))}
           </div>
         ) : (
-          <span style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-mute)" }}>
+          <span style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
             Sin envíos en curso
           </span>
         )}
@@ -636,7 +636,7 @@ function ClientContextPanel({
               : "—"}
           </Link>
         )}
-        <div style={{ font: "500 10.5px/1.4 var(--f-sans)", color: "var(--ink-mute)", marginTop: 3 }}>
+        <div style={{ font: "500 10.5px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 3 }}>
           Ver en Cobranzas →
         </div>
       </div>
@@ -679,7 +679,7 @@ function ClientContextPanel({
                   <span style={{ font: "700 12px/1.2 var(--f-sans)", color: "var(--ink)" }}>
                     {fmtPeriod(d.period)}
                   </span>
-                  <span style={{ font: "500 10px/1 var(--f-mono)", color: "var(--ink-mute)" }}>
+                  <span style={{ font: "500 10px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
                     {d.messageCount} msg
                   </span>
                 </div>

@@ -221,7 +221,7 @@ export function DispatchClient({
                 </button>
               </>
             ) : (
-              <span style={{ font: "500 12px/1 var(--f-sans)", color: "var(--ink-mute)" }}>
+              <span style={{ font: "500 12px/1 var(--f-sans)", color: "var(--ink-soft)" }}>
                 Selecciona paquetes para armar una OD
               </span>
             )}

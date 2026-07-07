@@ -150,7 +150,7 @@ export function ClaimDrawer({ mode, claim, clients, shipments, onClose }: Props)
           <div>
             <label className="studio-label" htmlFor="cl-shipment">
               Embarque{" "}
-              <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>
+              <span style={{ color: "var(--ink-soft)", fontWeight: 500 }}>
                 (opcional)
               </span>
             </label>
@@ -175,7 +175,7 @@ export function ClaimDrawer({ mode, claim, clients, shipments, onClose }: Props)
           <div>
             <label className="studio-label" htmlFor="cl-container">
               Contenedor{" "}
-              <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>
+              <span style={{ color: "var(--ink-soft)", fontWeight: 500 }}>
                 (opcional)
               </span>
             </label>

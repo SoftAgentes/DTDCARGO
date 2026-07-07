@@ -103,7 +103,7 @@ export function GenerateBLModal({ onClose }: { onClose: () => void }) {
                     background: "var(--bg-elevated)",
                     borderRadius: "var(--r-sm)",
                     font: "500 12.5px/1 var(--f-sans)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                   }}
                 >
                   Cargando embarques…
@@ -281,7 +281,7 @@ export function GenerateBLModal({ onClose }: { onClose: () => void }) {
             <p
               style={{
                 font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 margin: 0,
               }}
             >

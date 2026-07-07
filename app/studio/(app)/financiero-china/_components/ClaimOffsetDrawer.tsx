@@ -89,7 +89,7 @@ export function ClaimOffsetDrawer({
 
         <div>
           <label className="studio-label" htmlFor="fc-claim-supplier">
-            Proveedor <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+            Proveedor <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
           </label>
           <select
             id="fc-claim-supplier"
@@ -122,7 +122,7 @@ export function ClaimOffsetDrawer({
 
         <div>
           <label className="studio-label" htmlFor="fc-claim-date">
-            Fecha del reclamo <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+            Fecha del reclamo <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
           </label>
           <input
             id="fc-claim-date"

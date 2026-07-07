@@ -433,7 +433,7 @@ export function BuilderView({
               <div
                 style={{
                   font: "500 11.5px/1 var(--f-sans)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                   marginTop: 4,
                 }}
               >
@@ -508,7 +508,7 @@ export function BuilderView({
                 padding: "12px 18px",
                 borderTop: "1px solid var(--border)",
                 font: "500 11px/1 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
               }}
             >
               Mostrando los 20 grupos de mayor valor · el CSV exporta los{" "}
@@ -574,7 +574,7 @@ export function BuilderView({
         </div>
       )}
 
-      <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+      <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
         Todo sobre datos reales del período. Revenue de embarques y montos de
         facturas se normalizan a USD (VES por fx; CNY → 0). Los reportes guardados
         viven en este navegador (no se comparten ni se sincronizan).

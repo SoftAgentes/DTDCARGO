@@ -69,7 +69,7 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
               <div style={{ font: "800 26px/1 var(--f-display)", color: "var(--ink)" }}>
                 {l.rate != null ? l.rate.toLocaleString("es-VE", { maximumFractionDigits: 4 }) : "—"}
               </div>
-              <div style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-mute)", marginTop: 6 }}>
+              <div style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-soft)", marginTop: 6 }}>
                 {l.rate != null ? `cargada ${formatWhen(l.setAt)}` : "sin tasa cargada"}
               </div>
             </div>
@@ -143,7 +143,7 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
             </div>
           )}
 
-          <p style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+          <p style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
             El historial es append-only: cada registro queda con su fecha. Gastos y el posting contable usan la
             última tasa cargada.
           </p>

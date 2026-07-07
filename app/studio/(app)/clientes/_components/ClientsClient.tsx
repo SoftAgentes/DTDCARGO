@@ -327,7 +327,7 @@ function ClientsTable({ clients }: { clients: Client[] }) {
               <div
                 style={{
                   font: "500 11px/1.3 var(--f-sans)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                   marginTop: 3,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -365,7 +365,7 @@ function ClientsTable({ clients }: { clients: Client[] }) {
               <div
                 style={{
                   font: "500 11.5px/1.3 var(--f-mono)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                   marginTop: 2,
                 }}
               >

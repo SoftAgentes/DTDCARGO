@@ -135,14 +135,14 @@ export function ApiIntegrationSection({ data }: { data: ApiIntegrationData }) {
         {revokeState?.error && <FormError msg={revokeState.error} />}
 
         {data.apiKeys.length === 0 ? (
-          <p style={{ font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>Sin API keys todavía.</p>
+          <p style={{ font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>Sin API keys todavía.</p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {data.apiKeys.map((k) => (
               <div key={k.id} style={{ display: "grid", gridTemplateColumns: "1fr 180px 120px 90px", gap: 12, padding: "10px 12px", background: "var(--bg-elevated)", borderRadius: "var(--r-md)", alignItems: "center" }}>
                 <div>
                   <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>{k.name}</div>
-                  <code style={{ font: "600 11px/1.3 var(--f-mono)", color: "var(--ink-mute)" }}>{k.keyPrefix}…</code>
+                  <code style={{ font: "600 11px/1.3 var(--f-mono)", color: "var(--ink-soft)" }}>{k.keyPrefix}…</code>
                 </div>
                 <code style={{ font: "500 11px/1.3 var(--f-mono)", color: "var(--ink-soft)" }}>creada {fmtDate(k.createdAt)}</code>
                 {k.revokedAt ? (
@@ -172,7 +172,7 @@ export function ApiIntegrationSection({ data }: { data: ApiIntegrationData }) {
           </button>
         </div>
         {data.webhooks.length === 0 ? (
-          <p style={{ font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>Sin webhooks configurados.</p>
+          <p style={{ font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>Sin webhooks configurados.</p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {data.webhooks.map((w) => (
@@ -180,7 +180,7 @@ export function ApiIntegrationSection({ data }: { data: ApiIntegrationData }) {
                 <div style={{ minWidth: 0 }}>
                   <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>{w.name}</div>
                   <code style={{ font: "500 11px/1.3 var(--f-mono)", color: "var(--ink-soft)", wordBreak: "break-all" }}>{w.url}</code>
-                  <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-mute)", marginTop: 2 }}>{w.events.length} evento{w.events.length === 1 ? "" : "s"}</div>
+                  <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 2 }}>{w.events.length} evento{w.events.length === 1 ? "" : "s"}</div>
                 </div>
                 {w.active ? <Badge tone="success" size="sm">Activo</Badge> : <Badge tone="neutral" size="sm">Inactivo</Badge>}
                 <button type="button" onClick={() => setWebhookDrawer({ mode: "edit", webhook: w })} style={{ font: "600 11.5px/1 var(--f-sans)", color: "var(--wine)", justifySelf: "end", background: "transparent", border: 0, cursor: "pointer" }}>

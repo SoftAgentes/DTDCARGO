@@ -81,7 +81,7 @@ function DriverCard({ driver: d }: { driver: TmsDriver }) {
             <span
               style={{
                 font: "500 10.5px/1 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
               }}
             >
               · {d.exp_years}a exp
@@ -98,7 +98,7 @@ function DriverCard({ driver: d }: { driver: TmsDriver }) {
           <div
             style={{
               font: "500 10.5px/1 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               marginTop: 4,
             }}
           >
@@ -163,7 +163,7 @@ function Stat({
       <div
         style={{
           font: "700 9.5px/1 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           letterSpacing: "0.12em",
           textTransform: "uppercase",
         }}

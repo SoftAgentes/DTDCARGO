@@ -404,7 +404,7 @@ function OdList({
                 display: "flex",
                 gap: 12,
                 font: "600 11px/1 var(--f-mono)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
               }}
             >
               <span>{od.package_count} pkg</span>
@@ -664,7 +664,7 @@ function OdDetail({
                 style={{
                   marginLeft: "auto",
                   font: "600 11px/1 var(--f-mono)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                 }}
               >
                 {group.packages.length} pkg
@@ -833,7 +833,7 @@ function PackageCard({
         <div
           style={{
             font: "500 11px/1.4 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             marginTop: 6,
             paddingTop: 6,
             borderTop: "1px dashed var(--border)",
@@ -1093,7 +1093,7 @@ function SplitModal({
             <p
               style={{
                 font: "500 11.5px/1.4 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 margin: "6px 0 0",
               }}
             >

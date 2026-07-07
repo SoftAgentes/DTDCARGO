@@ -52,7 +52,7 @@ export function PerfilTab({ me, pendingBank }: { me: MyEmployee; pendingBank: My
         <ReadRow label="Departamento" value={me.department ?? "—"} />
         <ReadRow label="Sueldo (USD)" value={me.salary_usd != null ? fmtUsd(Number(me.salary_usd)) : "—"} />
         <ReadRow label="Fecha de ingreso" value={me.hire_date ?? "—"} />
-        <p style={{ font: "400 10.5px/1.4 var(--f-sans)", color: "var(--ink-mute)", marginTop: 8 }}>
+        <p style={{ font: "400 10.5px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 8 }}>
           Para corregir estos datos, contacta a Recursos Humanos.
         </p>
       </section>
@@ -86,7 +86,7 @@ export function PerfilTab({ me, pendingBank }: { me: MyEmployee; pendingBank: My
           <h2 style={{ font: "700 12px/1.2 var(--f-sans)", color: "var(--ink-soft)", textTransform: "uppercase", letterSpacing: ".05em", margin: "0 0 4px" }}>
             Datos bancarios
           </h2>
-          <p style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-mute)", margin: "0 0 10px" }}>
+          <p style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "0 0 10px" }}>
             Un cambio de cuenta queda pendiente de verificación del administrador antes de usarse en el pago.
           </p>
 

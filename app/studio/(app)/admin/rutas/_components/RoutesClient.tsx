@@ -477,7 +477,7 @@ function RouteRowCard({
               <span
                 style={{
                   font: "700 10px/1 var(--f-sans)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                   letterSpacing: "0.1em",
                   textTransform: "uppercase",
                   alignSelf: "center",
@@ -890,7 +890,7 @@ function CitiesTab({
                           padding: "12px 14px",
                           background: "var(--bg-elevated)",
                           font: "700 10.5px/1 var(--f-sans)",
-                          color: "var(--ink-mute)",
+                          color: "var(--ink-soft)",
                           letterSpacing: "0.1em",
                           textTransform: "uppercase",
                         }}
@@ -979,7 +979,7 @@ function CityRow({
         <code
           style={{
             font: "600 10.5px/1.2 var(--f-mono)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             marginTop: 3,
             display: "inline-block",
           }}
@@ -1048,7 +1048,7 @@ function CityRow({
       <td style={{ ...tdStyle, textAlign: "center" }}>
         {usage === 0 ? (
           <span
-            style={{ font: "600 11.5px/1 var(--f-sans)", color: "var(--ink-mute)" }}
+            style={{ font: "600 11.5px/1 var(--f-sans)", color: "var(--ink-soft)" }}
           >
             Sin uso
           </span>

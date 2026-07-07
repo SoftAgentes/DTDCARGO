@@ -57,7 +57,7 @@ export function UpcomingHolidaysCard({ holidays, limit = 8 }: Props) {
         <div
           style={{
             font: "500 12.5px/1.5 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             padding: "12px 0",
           }}
         >

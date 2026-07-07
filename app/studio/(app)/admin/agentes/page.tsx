@@ -268,7 +268,7 @@ function InstalledContent({ agents }: { agents: AgentWithSkill[] }) {
                   <span style={{ font: "600 13px/1.3 var(--f-sans)", color: "var(--ink)" }}>
                     {a.name}
                   </span>
-                  <span style={{ font: "500 11px/1 var(--f-mono)", color: "var(--ink-mute)" }}>
+                  <span style={{ font: "500 11px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
                     {a.slug}
                   </span>
                 </div>
@@ -330,7 +330,7 @@ function Th({ children, align = "left" }: { children: React.ReactNode; align?: "
         textAlign: align,
         padding: "10px 14px",
         font: "700 10px/1 var(--f-sans)",
-        color: "var(--ink-mute)",
+        color: "var(--ink-soft)",
         letterSpacing: "0.14em",
         textTransform: "uppercase",
       }}

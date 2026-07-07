@@ -269,7 +269,7 @@ export function CurrentDelivery({
             <span
               style={{
                 font: "500 11px/1.3 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
               }}
             >
               Una sola vez · el próximo viaje ya está
@@ -356,7 +356,7 @@ export function CurrentDelivery({
               <div
                 style={{
                   font: "500 11.5px/1.4 var(--f-sans)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                   marginTop: 4,
                 }}
               >
@@ -372,7 +372,7 @@ export function CurrentDelivery({
             display: "flex",
             gap: 14,
             font: "700 12px/1 var(--f-mono)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
           }}
         >
           <span>{pkg.boxes_shipped} cj</span>
@@ -385,7 +385,7 @@ export function CurrentDelivery({
           <div
             style={{
               font: "500 11.5px/1.4 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               paddingTop: 6,
               borderTop: "1px dashed var(--border)",
             }}

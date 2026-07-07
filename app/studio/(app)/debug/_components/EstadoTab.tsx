@@ -322,7 +322,7 @@ export function EstadoTab({
                     <code
                       style={{
                         fontSize: 11,
-                        color: "var(--ink-mute)",
+                        color: "var(--ink-soft)",
                         background: "var(--bg-elevated)",
                         padding: "2px 6px",
                         borderRadius: "var(--r-xs)",
@@ -560,7 +560,7 @@ function HealthBadge({ health }: { health: IntegrationHealth }) {
           style={{
             fontSize: 11,
             color:
-              health.status === "error" ? "var(--danger)" : "var(--ink-mute)",
+              health.status === "error" ? "var(--danger)" : "var(--ink-soft)",
             textAlign: "right",
             maxWidth: 220,
             overflow: "hidden",
@@ -641,7 +641,7 @@ function DeploysList({
                 }}
                 title={d.commitMessage ?? undefined}
               >
-                {d.commitMessage ?? <em style={{ color: "var(--ink-mute)" }}>sin mensaje</em>}
+                {d.commitMessage ?? <em style={{ color: "var(--ink-soft)" }}>sin mensaje</em>}
               </div>
               <div
                 style={{
@@ -673,12 +673,12 @@ function DeploysList({
                   </code>
                 )}
                 {d.branch && (
-                  <span style={{ color: "var(--ink-mute)" }}>
+                  <span style={{ color: "var(--ink-soft)" }}>
                     {d.branch}
                   </span>
                 )}
                 {d.author && (
-                  <span style={{ color: "var(--ink-mute)" }}>
+                  <span style={{ color: "var(--ink-soft)" }}>
                     · {d.author}
                   </span>
                 )}

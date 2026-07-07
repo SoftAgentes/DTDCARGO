@@ -40,7 +40,7 @@ export function Field({
     <div>
       <label className="studio-label" htmlFor={htmlFor}>
         {label}
-        {optional && <span style={{ color: "var(--ink-mute)" }}> (opcional)</span>}
+        {optional && <span style={{ color: "var(--ink-soft)" }}> (opcional)</span>}
       </label>
       {control}
     </div>

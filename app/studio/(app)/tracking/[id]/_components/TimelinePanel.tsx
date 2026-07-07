@@ -236,7 +236,7 @@ export function TimelinePanel({
                   <div
                     style={{
                       font: "500 10.5px/1 var(--f-sans)",
-                      color: "var(--ink-mute)",
+                      color: "var(--ink-soft)",
                       letterSpacing: "0.02em",
                     }}
                   >

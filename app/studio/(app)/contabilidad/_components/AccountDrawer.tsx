@@ -231,7 +231,7 @@ export function AccountDrawer({ mode, account, accounts, onClose }: Props) {
             <div>
               <label className="studio-label" htmlFor="acct-subtype">
                 Subtipo{" "}
-                <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+                <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
               </label>
               <select
                 id="acct-subtype"

@@ -303,7 +303,7 @@ export function ReportesClient({
           <span
             style={{
               font: "700 9.5px/1 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               letterSpacing: "0.12em",
               textTransform: "uppercase",
             }}
@@ -324,7 +324,7 @@ export function ReportesClient({
                 border: "1px dashed var(--border-strong)",
                 background: "var(--bg-elevated)",
                 font: "600 12.5px/1 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
               }}
             >
               <span>· {inertReason}</span>
@@ -627,7 +627,7 @@ function OverviewView({ overview }: { overview: OperationalOverview }) {
 
         <Card eyebrow="Split por destino">
           {overview.portSplit.length === 0 ? (
-            <div style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-mute)" }}>
+            <div style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
               Sin embarques en el período.
             </div>
           ) : (
@@ -652,7 +652,7 @@ function OverviewView({ overview }: { overview: OperationalOverview }) {
 
       <Card eyebrow="Días de tránsito promedio" title="Por destino (creación → arribo/entrega)">
         {overview.transitByPort.length === 0 ? (
-          <div style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-mute)" }}>
+          <div style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
             Todavía no hay embarques con arribo o entrega registrados en el período.
           </div>
         ) : (
@@ -681,7 +681,7 @@ function OverviewView({ overview }: { overview: OperationalOverview }) {
                   </span>
                   <span style={{ font: "600 12px/1 var(--f-sans)", color: "var(--ink-soft)" }}>días</span>
                 </div>
-                <div style={{ marginTop: 6, font: "500 11px/1 var(--f-sans)", color: "var(--ink-mute)" }}>
+                <div style={{ marginTop: 6, font: "500 11px/1 var(--f-sans)", color: "var(--ink-soft)" }}>
                   {p.count} {p.count === 1 ? "embarque" : "embarques"}
                 </div>
               </div>
@@ -692,7 +692,7 @@ function OverviewView({ overview }: { overview: OperationalOverview }) {
 
       {/* Nota de honestidad: on-time omitido */}
       {!SERVICE_NONE && (
-        <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+        <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
           El indicador on-time se omite en esta versión: aún no hay campo ETA/SLA
           en los embarques. Las métricas mostradas son todas reales (sin mock).
         </p>
@@ -854,7 +854,7 @@ function ServicesView({ services }: { services: ServiceRow[] }) {
                 tone={palette[i % palette.length]}
                 height={10}
               />
-              <div style={{ marginTop: 5, font: "500 11px/1 var(--f-sans)", color: "var(--ink-mute)" }}>
+              <div style={{ marginTop: 5, font: "500 11px/1 var(--f-sans)", color: "var(--ink-soft)" }}>
                 {s.count} {s.count === 1 ? "embarque" : "embarques"} · {fmtNum(s.cbm)} CBM
                 {s.avgTransit != null ? ` · ${s.avgTransit} días prom.` : ""}
               </div>
@@ -910,7 +910,7 @@ function ByClientView({ data }: { data: CommercialByClient }) {
         {/* Ranking */}
         <Card eyebrow="Ranking por facturación" style={{ padding: 0 }}>
           {ranked.length === 0 ? (
-            <div style={{ padding: "18px 20px", font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-mute)" }}>
+            <div style={{ padding: "18px 20px", font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
               Hay clientes pero ninguno con facturación en los últimos 12 meses.
             </div>
           ) : (
@@ -933,7 +933,7 @@ function ByClientView({ data }: { data: CommercialByClient }) {
                     borderTop: "1px solid var(--border)",
                   }}
                 >
-                  <span style={{ font: "700 12px/1 var(--f-mono)", color: "var(--ink-mute)" }}>
+                  <span style={{ font: "700 12px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
                     {i + 1}
                   </span>
                   <div style={{ minWidth: 0 }}>
@@ -941,7 +941,7 @@ function ByClientView({ data }: { data: CommercialByClient }) {
                       {r.name || "Sin nombre"}
                     </div>
                     {r.markbox && (
-                      <div style={{ font: "600 10.5px/1.2 var(--f-mono)", color: "var(--ink-mute)" }}>
+                      <div style={{ font: "600 10.5px/1.2 var(--f-mono)", color: "var(--ink-soft)" }}>
                         {r.markbox}
                       </div>
                     )}
@@ -982,7 +982,7 @@ function ByClientView({ data }: { data: CommercialByClient }) {
               </div>
             ))}
           </div>
-          <p style={{ font: "500 11px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: "14px 0 0" }}>
+          <p style={{ font: "500 11px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: "14px 0 0" }}>
             El nivel se deriva de la facturación de los últimos 12 meses
             (USD-normalizada). Sin segmentación ni atribución de agente: esas
             métricas no tienen fuente real todavía.
@@ -1100,7 +1100,7 @@ function ByAgentView({ data }: { data: CommercialByAgent }) {
         ))}
       </Card>
 
-      <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+      <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
         Estimados = leads asignados al asesor en Kommo; ganadas/perdidas por los
         estados de cierre del CRM. El revenue es facturación real del ERP
         (últimos 12 meses, USD) de los leads que se convirtieron en cliente —{" "}
@@ -1164,13 +1164,13 @@ function IncomeStatementView({ income }: { income: IncomeStatement }) {
             >
               {fmtUsdFull(row.amount)}
             </span>
-            <span style={{ font: "600 11.5px/1 var(--f-mono)", color: "var(--ink-mute)", textAlign: "right" }}>
+            <span style={{ font: "600 11.5px/1 var(--f-mono)", color: "var(--ink-soft)", textAlign: "right" }}>
               {row.pct != null ? `${row.pct}%` : "—"}
             </span>
           </div>
         ))}
       </div>
-      <p style={{ font: "500 11px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: "8px 20px 16px" }}>
+      <p style={{ font: "500 11px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: "8px 20px 16px" }}>
         Cálculo reusado de Contabilidad sobre los saldos del período
         ({income.range.from} → {income.range.to}). Reporte gerencial, no fiscal.
       </p>
@@ -1209,7 +1209,7 @@ function AgingView({ aging }: { aging: AgingReport }) {
           emptyLabel="Sin saldos por pagar."
         />
       </div>
-      <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+      <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
         Saldos normalizados a USD (VES por fx del documento).{" "}
         <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>CNY no incluido en V1.</strong>{" "}
         Vencido por días (≥1 día desde el vencimiento); Cobranzas pondera además
@@ -1242,7 +1242,7 @@ function AgingSideCard({
   return (
     <Card eyebrow={eyebrow} title={title}>
       {side.total === 0 ? (
-        <div style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-mute)" }}>
+        <div style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
           {emptyLabel}
         </div>
       ) : (
@@ -1252,7 +1252,7 @@ function AgingSideCard({
               <div style={{ font: "900 26px/1 var(--f-display)", color: "var(--ink)", letterSpacing: "-0.02em" }}>
                 {fmtUsdFull(side.total)}
               </div>
-              <div style={{ font: "600 11px/1 var(--f-sans)", color: "var(--ink-mute)", marginTop: 4 }}>
+              <div style={{ font: "600 11px/1 var(--f-sans)", color: "var(--ink-soft)", marginTop: 4 }}>
                 Total
               </div>
             </div>
@@ -1265,7 +1265,7 @@ function AgingSideCard({
               >
                 {fmtUsdFull(side.overdue)}
               </div>
-              <div style={{ font: "600 11px/1 var(--f-sans)", color: "var(--ink-mute)", marginTop: 4 }}>
+              <div style={{ font: "600 11px/1 var(--f-sans)", color: "var(--ink-soft)", marginTop: 4 }}>
                 Vencido
               </div>
             </div>
@@ -1375,27 +1375,27 @@ function IvaView({ iva }: { iva: IvaPosition }) {
       {/* Notas honestas: nada se finge */}
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {!iva.enabled && (
-          <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+          <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
             El módulo fiscal está <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>desactivado</strong>:
             las ventas se registran exentas, por eso el débito fiscal es 0. Cuando se
             active el IVA por factura (SDD-0073), este reporte reflejará el débito real.
           </p>
         )}
         {noCredit && (
-          <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+          <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
             El crédito fiscal es 0 aproximado: las compras todavía no discriminan el IVA
             soportado (va al costo). Cuando se capture por compra, aparecerá acá — no se
             estima.
           </p>
         )}
         {mixedCurrency && (
-          <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+          <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
             Hay más de una moneda en el período ({iva.currencies.join(", ")}). V1 no
             normaliza con tasa de cambio: los totales mezclan monedas — consulta los
             Libros fiscales para el detalle por moneda.
           </p>
         )}
-        <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+        <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
           Retenciones de IVA soportadas asumidas en 0 (V1 sin comprobantes). Reporte
           gerencial acumulado del período seleccionado — la declaración oficial es
           mensual y se presenta desde <span style={{ font: "600 11.5px/1 var(--f-mono)" }}>/studio/fiscal</span>.
@@ -1416,14 +1416,14 @@ function MiniStat({ label, value, sub }: { label: string; value: string; sub?: s
         background: "var(--bg-elevated)",
       }}
     >
-      <div style={{ font: "600 10.5px/1 var(--f-sans)", color: "var(--ink-mute)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+      <div style={{ font: "600 10.5px/1 var(--f-sans)", color: "var(--ink-soft)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
         {label}
       </div>
       <div style={{ font: "800 15px/1 var(--f-mono)", color: "var(--ink)", marginTop: 7 }}>
         {value}
       </div>
       {sub && (
-        <div style={{ font: "500 10.5px/1 var(--f-sans)", color: "var(--ink-mute)", marginTop: 5 }}>
+        <div style={{ font: "500 10.5px/1 var(--f-sans)", color: "var(--ink-soft)", marginTop: 5 }}>
           {sub}
         </div>
       )}
@@ -1471,7 +1471,7 @@ function CashflowView({ cashflow }: { cashflow: CashflowReport }) {
         <CashflowChart series={cashflow.series} />
       </Card>
 
-      <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+      <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
         Facturado y cobrado del período se normalizan a USD (VES por fx de la
         factura/recibo). <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>CNY no incluido en V1.</strong>{" "}
         Por cobrar y vencido son saldos vivos totales (no del rango). Diferencia
@@ -1485,7 +1485,7 @@ function CashflowView({ cashflow }: { cashflow: CashflowReport }) {
 function CashflowChart({ series }: { series: CashflowReport["series"] }) {
   if (series.length === 0) {
     return (
-      <div style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-mute)" }}>
+      <div style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
         Sin movimientos en el período.
       </div>
     );
@@ -1524,7 +1524,7 @@ function CashflowChart({ series }: { series: CashflowReport["series"] }) {
             <g key={p.month}>
               <rect x={x + gw * 0.14} y={H - 24 - bh} width={bw} height={Math.max(0, bh)} fill="var(--wine)" rx="2" />
               <rect x={x + gw * 0.14 + bw + 3} y={H - 24 - ch} width={bw} height={Math.max(0, ch)} fill="var(--success)" rx="2" />
-              <text x={x + gw / 2} y={H - 8} fontFamily="var(--f-sans)" fontSize="9" fontWeight="600" fill="var(--ink-mute)" textAnchor="middle">
+              <text x={x + gw / 2} y={H - 8} fontFamily="var(--f-sans)" fontSize="9" fontWeight="600" fill="var(--ink-soft)" textAnchor="middle">
                 {p.label}
               </text>
             </g>
@@ -1612,7 +1612,7 @@ function CombinedKpis({ combined }: { combined: CombinedReport }) {
         <KpiCard value={fmtNum(combined.withCosts)} label="Con costos" sub={`${coveragePct}% de ${fmtNum(combined.shipments)} embarques`} />
       </div>
       {combined.withCosts < combined.shipments && (
-        <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+        <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
           {fmtNum(combined.shipments - combined.withCosts)} embarque
           {combined.shipments - combined.withCosts === 1 ? "" : "s"} del período
           sin costos cargados cuentan como costo 0 (margen = ingreso completo).
@@ -1667,7 +1667,7 @@ function MarginTable({
               {r.name}
             </div>
             {r.sub && (
-              <div style={{ font: "500 10.5px/1.2 var(--f-mono)", color: "var(--ink-mute)", marginTop: 2 }}>
+              <div style={{ font: "500 10.5px/1.2 var(--f-mono)", color: "var(--ink-soft)", marginTop: 2 }}>
                 {r.sub}
               </div>
             )}

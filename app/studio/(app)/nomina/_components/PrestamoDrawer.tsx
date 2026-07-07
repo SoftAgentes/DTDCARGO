@@ -127,7 +127,7 @@ export function PrestamoDrawer({
           />
         </Field>
 
-        <p style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-mute)", margin: "-8px 0 0" }}>
+        <p style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "-8px 0 0" }}>
           El descuento de la cuota se aplica al recibo cuando el motor de nómina lo procese.
           Acá solo registras el préstamo y su saldo.
         </p>

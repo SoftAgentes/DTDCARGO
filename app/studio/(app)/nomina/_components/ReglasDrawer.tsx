@@ -41,7 +41,7 @@ function GroupTitle({ children }: { children: React.ReactNode }) {
         font: "700 9.5px/1 var(--f-sans)",
         letterSpacing: "0.08em",
         textTransform: "uppercase",
-        color: "var(--ink-mute)",
+        color: "var(--ink-soft)",
         marginTop: "var(--s-2)",
       }}
     >
@@ -294,7 +294,7 @@ export function ReglasDrawer({
             />
           </Field>
         </Row>
-        <p style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-mute)", margin: "-8px 0 0" }}>
+        <p style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "-8px 0 0" }}>
           Utilidades: mínimo legal 30 días (LOTTT Art. 131).
         </p>
 

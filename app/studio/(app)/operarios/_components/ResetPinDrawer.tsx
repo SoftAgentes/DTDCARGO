@@ -75,7 +75,7 @@ export function ResetPinDrawer({
           <p
             style={{
               font: "500 12px/1.5 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               textAlign: "center",
               maxWidth: 360,
               margin: 0,

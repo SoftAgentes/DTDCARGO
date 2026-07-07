@@ -293,7 +293,7 @@ export function CityPicker({
                     style={{
                       padding: "14px",
                       font: "500 12px/1.4 var(--f-sans)",
-                      color: "var(--ink-mute)",
+                      color: "var(--ink-soft)",
                       textAlign: "center",
                     }}
                   >
@@ -338,7 +338,7 @@ export function CityPicker({
                           <div
                             style={{
                               font: "500 10.5px/1 var(--f-sans)",
-                              color: "var(--ink-mute)",
+                              color: "var(--ink-soft)",
                               marginTop: 3,
                             }}
                           >
@@ -618,7 +618,7 @@ function MiniField({
         <p
           style={{
             font: "500 10.5px/1.4 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             margin: "4px 0 0",
           }}
         >

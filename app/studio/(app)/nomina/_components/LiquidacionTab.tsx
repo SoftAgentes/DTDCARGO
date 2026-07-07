@@ -114,7 +114,7 @@ export function LiquidacionTab({
               font: "700 9.5px/1 var(--f-sans)",
               letterSpacing: "0.08em",
               textTransform: "uppercase",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               borderBottom: "1px solid var(--border)",
               background: "var(--bg-elevated)",
             }}
@@ -169,7 +169,7 @@ function FiniquitoRow({
         >
           {s.employee_name}
         </div>
-        <div style={{ font: "600 11px/1.3 var(--f-mono)", color: "var(--ink-mute)" }}>
+        <div style={{ font: "600 11px/1.3 var(--f-mono)", color: "var(--ink-soft)" }}>
           {s.settlement_code} · {s.employee_code}
         </div>
       </div>

@@ -58,13 +58,13 @@ export function NumberingSection({ data }: { data: NumberingOverview }) {
             >
               <div>
                 <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>{f.label}</div>
-                <code style={{ font: "600 11px/1.4 var(--f-mono)", color: "var(--ink-mute)" }}>{f.source}</code>
+                <code style={{ font: "600 11px/1.4 var(--f-mono)", color: "var(--ink-soft)" }}>{f.source}</code>
               </div>
               <code style={{ font: "700 13px/1 var(--f-mono)", color: "var(--wine)" }}>{f.format}</code>
               <div style={{ justifySelf: "start" }}>
                 {f.next ? (
                   <>
-                    <div style={{ font: "600 9.5px/1 var(--f-sans)", color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
+                    <div style={{ font: "600 9.5px/1 var(--f-sans)", color: "var(--ink-soft)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
                       Próximo
                     </div>
                     <code style={{ font: "800 13px/1 var(--f-mono)", color: "var(--ink)" }}>{f.next}</code>
@@ -123,7 +123,7 @@ export function NumberingSection({ data }: { data: NumberingOverview }) {
             </div>
           )}
 
-          <p style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+          <p style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
             Estas leyendas se imprimirán en las facturas cuando el renderer de facturación las consuma.
           </p>
 

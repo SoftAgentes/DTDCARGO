@@ -185,7 +185,7 @@ export function CommentsThread({
               background: "var(--bg-elevated)",
               borderRadius: "var(--r-md)",
               font: "500 12.5px/1.5 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
             }}
           >
             Sin comentarios aún. Comentá abajo y @mencioná a alguien del equipo.
@@ -298,7 +298,7 @@ export function CommentsThread({
             style={{
               marginLeft: "auto",
               font: "500 10.5px/1 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
             }}
           >
             {isMac ? "⌘" : "Ctrl"} + Enter para enviar

@@ -492,7 +492,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
                 <p
                   style={{
                     font: "500 11px/1.4 var(--f-sans)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     margin: "4px 0 0",
                   }}
                 >
@@ -565,7 +565,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
                 <p
                   style={{
                     font: "500 11px/1.3 var(--f-sans)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     margin: "4px 0 0",
                   }}
                 >

@@ -413,4 +413,25 @@ Antes de exportar, verifica:
 
 ---
 
+## 8 · Recepción — Cloud Design aplicó las correcciones ✅ (2026-07-06 20:41)
+
+Cloud Design reexportó el Design System y **aplicó todo el sync**. Verificado contra el nuevo export:
+
+- ✅ Voseo → **tuteo** (el kit corrige "consolidás"→"consolidas"; regla dura explícita en md + README + kit)
+- ✅ **Razón social solo en schema** (aclarado que "Doortudoor Services" es sello de footer, no legal)
+- ✅ **"Con Confianza,"** C mayúscula + hero / stats / eyebrow canónicos
+- ✅ **3 fechas** (2008 comercio / 2010 empresa / 2015 VE; años calculados)
+- ✅ **4 productos** + LCL 95% + copy DDP **"Pagas al llegar"**
+- ✅ **MARKBOX** (público) / **"Shipping Mark"** (Studio/portal/móvil)
+- ✅ **55 módulos** · **danger por superficie** (#C2353F público / #A8323E ERP)
+- ✅ Sección **♿ Contraste & legibilidad WCAG 2.2** completa (umbral 24px/18.66px, paridad light/dark, 1.4.1, scrim)
+- ✅ `colors_and_type.css`: comentario `--ink-mute` corregido (light + dark #6E7896) + **bloque `[data-theme="dark"]` añadido** + **focus ring dark = `--wine-soft`**
+- ✅ Rutas muertas marcadas "no citar"
+
+**Cloud Design ↔ Claude Code: alineados. El loop de marca queda cerrado.**
+
+**Fixes de producto derivados** (aplicados en el repo, NO en el DS): el nuevo DS prescribe el focus-ring dark = `--wine-soft` y `--ink-soft` para texto → aplicados en el repo: `app/studio/tokens.css` (override focus-ring dark) + ~569 usos de `--ink-mute` como texto migrados a `--ink-soft` en Studio/móvil.
+
+---
+
 *Generado desde el repo `DTDCargo` (auditoría DS vs repo + recómputo independiente de contraste, 2026-07-06). Cualquier duda sobre una fuente: todas las rutas 📎 son relativas a la raíz del repo.*

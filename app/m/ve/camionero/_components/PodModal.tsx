@@ -444,7 +444,7 @@ export function PodModal({
                     }}
                   >
                     Tomar foto
-                    <span style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-mute)" }}>
+                    <span style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>
                       Toca para usar la cámara
                     </span>
                     <input
@@ -519,7 +519,7 @@ export function PodModal({
                         justifyContent: "center",
                         pointerEvents: "none",
                         font: "500 13px/1 var(--f-sans)",
-                        color: "var(--ink-mute)",
+                        color: "var(--ink-soft)",
                       }}
                     >
                       Firma acá

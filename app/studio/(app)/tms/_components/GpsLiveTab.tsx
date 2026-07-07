@@ -123,7 +123,7 @@ export function GpsLiveTab({
             <div
               style={{
                 font: "700 11px/1 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 letterSpacing: "0.12em",
                 textTransform: "uppercase",
                 marginBottom: 8,
@@ -328,7 +328,7 @@ function ActiveRouteCard({ route: r }: { route: TmsRouteRow }) {
           justifyContent: "space-between",
           marginTop: 6,
           font: "600 10.5px/1 var(--f-mono)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
         }}
       >
         <span>

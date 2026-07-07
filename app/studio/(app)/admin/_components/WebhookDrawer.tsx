@@ -112,7 +112,7 @@ export function WebhookDrawer({
               >
                 <input type="checkbox" checked={events.includes(ev.key)} onChange={() => toggleEvent(ev.key)} style={{ accentColor: "var(--wine)" }} />
                 <span style={{ flex: 1 }}>{ev.label}</span>
-                <code style={{ font: "600 10.5px/1 var(--f-mono)", color: "var(--ink-mute)" }}>{ev.key}</code>
+                <code style={{ font: "600 10.5px/1 var(--f-mono)", color: "var(--ink-soft)" }}>{ev.key}</code>
               </label>
             ))}
           </div>
@@ -130,7 +130,7 @@ export function WebhookDrawer({
             <code style={{ display: "block", marginTop: 6, padding: "10px 12px", background: "var(--bg-elevated)", borderRadius: "var(--r-md)", font: "600 11.5px/1.4 var(--f-mono)", color: "var(--ink-soft)", wordBreak: "break-all" }}>
               {webhook.secret}
             </code>
-            <p style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-mute)", margin: "6px 0 0" }}>
+            <p style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "6px 0 0" }}>
               Configura este secreto del lado del receptor para verificar la firma HMAC.
             </p>
           </div>

@@ -192,7 +192,7 @@ export function QrQueueClient({ orders, kpis, filters, warehouses }: Props) {
         <span
           style={{
             font: "500 11px/1 var(--f-mono)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
           }}
         >
           Refrescado {formatTime(lastRefresh)}

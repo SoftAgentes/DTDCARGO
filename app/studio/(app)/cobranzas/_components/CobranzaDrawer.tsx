@@ -455,7 +455,7 @@ function CobroForm({
           <p
             style={{
               font: "500 11px/1.3 var(--f-sans)",
-              color: amt >= balance - 1e-6 ? "var(--ink-mute)" : "var(--warning)",
+              color: amt >= balance - 1e-6 ? "var(--ink-soft)" : "var(--warning)",
               margin: "4px 0 0",
             }}
           >
@@ -531,7 +531,7 @@ function CobroForm({
 
       <div>
         <label className="studio-label" htmlFor="cob-ref">
-          Referencia <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+          Referencia <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
         </label>
         <input
           id="cob-ref"
@@ -755,7 +755,7 @@ function PromiseForm({
         </div>
         <div>
           <label className="studio-label" htmlFor="promise-amount">
-            Monto <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+            Monto <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
           </label>
           <NumericInput
             id="promise-amount"
@@ -819,7 +819,7 @@ function HistorySection({
       <p
         style={{
           font: "500 12px/1.4 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           margin: 0,
         }}
       >
@@ -879,7 +879,7 @@ function HistorySection({
                   <div
                     style={{
                       font: "500 10.5px/1.3 var(--f-sans)",
-                      color: "var(--ink-mute)",
+                      color: "var(--ink-soft)",
                       marginTop: 2,
                     }}
                   >
@@ -983,7 +983,7 @@ function HistorySection({
                 <span
                   style={{
                     font: "500 10px/1 var(--f-mono)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     flexShrink: 0,
                   }}
                 >
@@ -1007,7 +1007,7 @@ function EmptyBox({ text }: { text: string }) {
         border: "1px dashed var(--border-strong)",
         borderRadius: "var(--r-md)",
         font: "500 12px/1.5 var(--f-sans)",
-        color: "var(--ink-mute)",
+        color: "var(--ink-soft)",
       }}
     >
       {text}
