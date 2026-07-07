@@ -108,7 +108,7 @@ Carga `references/tipografia.md`.
 
 | # | Check |
 |---|---|
-| 4.1 | Escala 4px **según la superficie del Paso 0**: · **Studio/Portal/Móvil** = solo `var(--s-*)`, cero px arbitrarios (`rg -nE "(padding\|margin\|gap):\s*[0-9]+px" <alcance>`, y filtra los que ya son múltiplo exacto vía token). · **Público** = utilidades Tailwind `p-`/`gap-`/`m-` (grid de 4px) **y** los px crudos de `app/globals.css` son convención existente — `globals.css` NO define `--s-*`, así que NO marques esos px como violación (p. ej. `padding: 0 22px`, `0.625rem` son legítimos) |
+| 4.1 | Escala 4px **según la superficie del Paso 0**: · **Studio/Portal/Móvil** = solo `var(--s-*)`, cero px arbitrarios (`rg -n "(padding\|margin\|gap):\s*[0-9]+px" <alcance>`, y filtra los que ya son múltiplo exacto vía token). · **Público** = utilidades Tailwind `p-`/`gap-`/`m-` (grid de 4px) **y** los px crudos de `app/globals.css` son convención existente — `globals.css` NO define `--s-*`, así que NO marques esos px como violación (p. ej. `padding: 0 22px`, `0.625rem` son legítimos) |
 | 4.2 | Densidad calibrada por superficie: tabla ERP compacta correcta ≠ "apretada" · hero público con aire ≠ "vacío" |
 | 4.3 | Espacio ENTRE grupos > espacio DENTRO de grupos |
 | 4.4 | Left-align por default; centrado solo headlines cortos, heros y empty states |
@@ -143,7 +143,7 @@ Carga `references/heuristicas.md`.
 | 7.1 | Targets ≥24×24px (SC 2.5.8 AA, con excepción de spacing en tablas densas); en `app/m/` y portal móvil, regla de casa 44px |
 | 7.2 | Todo input con `<label>` clickeable; errores junto al campo + focus al primer error al enviar; `aria-describedby`/`aria-invalid`; permitir enviar incompleto para que aflore la validación |
 | 7.3 | Nunca bloquear paste; `autocomplete`/`inputmode`/`type` correctos; inputs ≥16px en móvil (evita auto-zoom iOS); nunca deshabilitar zoom |
-| 7.4 | Teclado completo: navegación con `<a>`/`<Link>` (jamás div con onClick); sin `tabindex>0`; `:focus-visible` siempre (`rg -nE "outline-none|outline:\s*none"` → falla si no hay reemplazo) |
+| 7.4 | Teclado completo: navegación con `<a>`/`<Link>` (jamás div con onClick); sin `tabindex>0`; `:focus-visible` siempre (`rg -n "outline-none|outline:\s*none"` → falla si no hay reemplazo) |
 | 7.5 | Drawers/modales (patrón `DrawerShell`): focus trap + focus inicial adentro + restaurar focus al trigger al cerrar + Escape cierra + `overscroll-behavior: contain` |
 | 7.6 | Nativo antes que aria; decorativos con `aria-hidden`; `aria-live="polite"` en toasts/validación; un toast nunca es el único canal de info crítica |
 | 7.7 | Headings sin saltos de nivel; reflow a 320px (tablas de datos con su propio `overflow-x: auto` están EXENTAS del 2D — WCAG 1.4.10); zoom 200% sin pérdida (1.4.4) |
@@ -170,13 +170,13 @@ Carga `references/ai-slop.md` y corre sus greps.
 | 9.1 | Cero patrones de la lista determinista (greps 1–15 de la reference) |
 | 9.2 | Craft: radio hijo ≤ radio padre (concéntricos); sombras del sistema; sobre navy, bordes/sombras/texto tintados hacia el hue |
 | 9.3 | Componentes del sistema primero (`app/studio/_components/ui/` en Studio) antes de inventar |
-| 9.4 | Acciones que abren algo más terminan en carácter `…`; microtipografía cuidada |
+| 9.4 | Microtipografía cuidada; el `…` en acciones que cargan/abren otro paso es opcional — las CTAs de crear/editar del Studio van SIN ellipsis por convención de la casa |
 
 ### 10 · ✍️ Copy & tono
 
 | # | Check |
 |---|---|
-| 10.1 | Tuteo VE, cero voseo: `rg -nE "\b(mirá|hacé|podés|tenés|querés|sabés|cotizá|pagás|escribinos|ingresá|usá|hacelo|usalo|dale)\b" <alcance>` (excluir docs históricos y citas de terceros) |
+| 10.1 | Tuteo VE, cero voseo: `rg -n "\b(mirá|hacé|podés|tenés|querés|sabés|cotizá|pagás|escribinos|ingresá|usá|hacelo|usalo|dale)\b" <alcance>` (excluir docs históricos y citas de terceros) |
 | 10.2 | Término correcto por superficie: MARKBOX (público) · "Shipping Mark" (portal/studio/móvil); `markbox` crudo jamás visible al usuario |
 | 10.3 | DDP = "Pagas al llegar" (la palabra "prepago" SOLO en T&C); sin la palabra "responsabilidad" → "hasta dónde llega el servicio" |
 | 10.4 | CTAs con verbo directo ("Cotizar DDP", "Crear embarque"); nunca "Click acá"/"Submit" |

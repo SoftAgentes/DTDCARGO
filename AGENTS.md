@@ -12,7 +12,7 @@ Un solo Next.js app con **4 superficies** y una **frontera dura** entre el sitio
 | Superficie | Rutas | Backend | Frontera |
 |---|---|---|---|
 | **Sitio público** | `app/{cotizar,track,contacto,calculadora,servicios,noticias,glosario}` + `components/` (raíz) | HTTP al ERP HailuWay externo (`NEXT_PUBLIC_HAILUWAY_API`; hoy mocks) | ❌ NUNCA importa `@/lib/studio`, `@/lib/db`, `@supabase/*` |
-| **Studio ERP** ("DoorTuDoor") | `app/studio/(app)/<modulo>/` (20+ módulos) + `app/api/studio/` | Supabase propio (`@/lib/db/server`) + Server Actions | — |
+| **Studio ERP** ("DoorTuDoor") | `app/studio/(app)/<modulo>/` (55 módulos) + `app/api/studio/` | Supabase propio (`@/lib/db/server`) + Server Actions | — |
 | **Móvil PWA** | `app/m/{cn,ve,erp}/` | Supabase (reusa `lib/studio`, permitido) | — |
 | **Back (CMS público)** | `app/back/(app)/` | Supabase (`lib/back/`) | no importa `@/lib/studio` ni `app/studio` |
 
@@ -107,7 +107,7 @@ Los mocks originales **ya no existen** (`mockSubmit` desapareció del código). 
 
 ## Proceso UI/UX
 
-Toda pantalla nueva o cambio visual sustancial **pasa por el agente `ui-ux-designer` antes del commit** (regla del founder; check liviano, no bloqueo — spacing, jerarquía, AI slop, hover states).
+Toda pantalla nueva o cambio visual sustancial **pasa por `/ui-check`** antes del commit (regla del founder; check liviano, no bloqueo — spacing, jerarquía, AI slop, hover states). Para auditoría **profunda** (10 dimensiones, contraste WCAG medido, score 0–10) usar **`/ui-pro`**. Lente de "design director" opcional: agente `design-critic`. *(El agente `ui-ux-designer` de la plantilla Forge NO existe — no lo invoques.)*
 
 ## Brand y diseño → punteros (no duplicar acá)
 
@@ -124,7 +124,7 @@ Toda pantalla nueva o cambio visual sustancial **pasa por el agente `ui-ux-desig
 
 - **Identidad / nombres / NAP** → fuente única [`docs/marketing/identidad.md`](docs/marketing/identidad.md). Marca pública = **DTD Cargo** · sello de herencia + nombre del ERP interno = **DoorTuDoor** · handle **@doortudoor_**. La **razón social (INVERSIONES DTD SERVICES, C.A) y el RIF (J-50648869-8) van SOLO en el schema** (`legalName`/`taxID`), **nunca en texto visible**. Versión-máquina = `@graph` en [`app/layout.tsx`](app/layout.tsx) (`#organization` + `#website`); datos desde `CONTACT` en `lib/design-tokens.ts`.
 - **Estrategia / misión-visión / valores / ventas** → [`docs/marketing/estrategia.md`](docs/marketing/estrategia.md) + [`docs/marketing/ventas.md`](docs/marketing/ventas.md). Misión/visión/valores son **canónicos** (reemplazan los de 2020). Norte **interno** = **2 contenedores/mes** (umbral de equilibrio, **no se publica**) vía mayoristas recurrentes + aliados white-label.
-- **Negocio:** logística + trading puerta a puerta China↔Venezuela desde **2008** (año de fundación canónico = orígenes comerciales en China; hitos: empresa de carga formalizada 2010 · expansión a Venezuela / DTD Services LCL 2015); equipo propio en Yiwu y Valencia. El trading propio es **interno** (la web vende el servicio). El ERP (Studio "DoorTuDoor", 20+ módulos en prod) apunta a **cerrar el loop comercial** (recompra día 30/45 + alertas de cadencia + KPI 2 cont./mes + white-label aliados); **no es greenfield**.
+- **Negocio:** logística + trading puerta a puerta China↔Venezuela desde **2008** (año de fundación canónico = orígenes comerciales en China; hitos: empresa de carga formalizada 2010 · expansión a Venezuela / DTD Services LCL 2015); equipo propio en Yiwu y Valencia. El trading propio es **interno** (la web vende el servicio). El ERP (Studio "DoorTuDoor", 55 módulos en prod) apunta a **cerrar el loop comercial** (recompra día 30/45 + alertas de cadencia + KPI 2 cont./mes + white-label aliados); **no es greenfield**.
 - **Trato con el founder (Sam):** español **venezolano neutro, TUTEO, CERO voseo** (regla dura, no negociable). Usar **"tú tienes / puedes / quieres / necesitas / mira"**; **NUNCA** "vos tenés / podés / querés / necesitás / mirá" ni imperativos voseo ("cotizá", "pagás", "escribinos", "dale"). El voseo es argentino, **no se habla en Venezuela** — si lo uso es un bug. Además: directo, sin relleno ni adulación; salidas listas para copiar con rutas explícitas; opciones por prioridad con **⭐ en la #1**; preguntas cortas; decir "Fase 5", no "F5". **Verificar la rama antes de commit; NO hacer push sin su OK; commits selectivos si hay varias ventanas.**
 
 ## Organización · ISO 9001 §7.5 → detalle en `docs/README.md`

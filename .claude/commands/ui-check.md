@@ -15,7 +15,7 @@ Corré el **check liviano de UI/UX** que exige la regla del founder ANTES de com
 
 2. **Cargá los guardrails** (no inventes criterio): `BRAND.md` (las 6 reglas) + el norte vigente (`docs/design/studio/_norte/CLAUDE.md` — marca) si el cambio es del Studio/portal/móvil. Recordá el split de marca: público=Archivo+MARKBOX, Studio/portal/móvil=Nunito+Sora+"Shipping Mark".
 
-3. **Lanzá el agente `ui-ux-designer`** (read-only) sobre esos archivos con esta rúbrica. Pasale las rutas concretas:
+3. **Corre esta rúbrica sobre esos archivos** (inline, read-only; o delega a `design-critic` para una segunda lente). Pásale las rutas concretas:
    - **Marca:** solo tokens `var(--*)` (cero hex inventados); fuentes correctas por capa; **cero AI slop** (gradientes coloridos, glassmorphism, emojis decorativos, border-left random, undraw.co, centrado por default).
    - **Componentes del sistema primero** (Btn/Input/Badge/Card/Drawer/EmptyState…) antes de inventar.
    - **Spacing & jerarquía:** escala de 4px (`var(--s-*)`), sin px arbitrarios; jerarquía tipográfica clara; left-align.
