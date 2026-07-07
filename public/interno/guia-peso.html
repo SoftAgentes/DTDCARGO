@@ -1,0 +1,562 @@
+<title>Peso en la calculadora — Guía completa · DTD Cargo</title>
+<style>
+  :root{
+    --paper:#F4F0E9; --card:#FBF8F3; --ink:#14233C; --ink-soft:#4A566B;
+    --line:#E4DDD1; --wine:#7C1E2C; --wine-bright:#A32C3D; --wine-tint:#F0E3E1;
+    --green:#2C6A4B; --green-tint:#E6EFE9; --gold:#9A6B14; --gold-tint:#F3ECDA;
+    --navy-solid:#22354e; --wine-solid:#7C1E2C;
+    --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+    --sans:-apple-system,'Segoe UI',system-ui,Roboto,Helvetica,Arial,sans-serif;
+    --shadow:0 1px 2px rgba(20,35,60,.05),0 10px 30px rgba(20,35,60,.07);
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --paper:#0D1626; --card:#132135; --ink:#EAE3D8; --ink-soft:#9DA9BD;
+    --line:#25334B; --wine:#D07184; --wine-bright:#E7909F; --wine-tint:#2A1B24;
+    --green:#6FC69A; --green-tint:#15271E; --gold:#D9B15F; --gold-tint:#2A2313;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 34px rgba(0,0,0,.4);
+  }}
+  :root[data-theme="dark"]{
+    --paper:#0D1626; --card:#132135; --ink:#EAE3D8; --ink-soft:#9DA9BD;
+    --line:#25334B; --wine:#D07184; --wine-bright:#E7909F; --wine-tint:#2A1B24;
+    --green:#6FC69A; --green-tint:#15271E; --gold:#D9B15F; --gold-tint:#2A2313;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 34px rgba(0,0,0,.4);
+  }
+  :root[data-theme="light"]{
+    --paper:#F4F0E9; --card:#FBF8F3; --ink:#14233C; --ink-soft:#4A566B;
+    --line:#E4DDD1; --wine:#7C1E2C; --wine-bright:#A32C3D; --wine-tint:#F0E3E1;
+    --green:#2C6A4B; --green-tint:#E6EFE9; --gold:#9A6B14; --gold-tint:#F3ECDA;
+    --shadow:0 1px 2px rgba(20,35,60,.05),0 10px 30px rgba(20,35,60,.07);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+    line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:880px;margin:0 auto;padding:clamp(20px,5vw,56px) clamp(18px,5vw,40px)}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  strong{color:var(--ink)}
+
+  /* hero */
+  .hero{background:linear-gradient(155deg,#14233C,#25344f);border-radius:20px;color:#fff;
+    padding:clamp(26px,5vw,44px);box-shadow:var(--shadow);position:relative}
+  .hero .tag{display:inline-block;font:700 10.5px/1 var(--sans);letter-spacing:.12em;
+    text-transform:uppercase;background:rgba(255,255,255,.12);color:#fff;padding:6px 11px;border-radius:6px;margin-bottom:20px}
+  .hero h1{font-size:clamp(29px,5.6vw,50px);line-height:1.05;letter-spacing:-.025em;font-weight:800;margin:0;text-wrap:balance}
+  .hero h1 em{font-style:normal;color:#E7909F}
+  .hero p{font-size:clamp(15px,2.4vw,18px);color:rgba(255,255,255,.82);margin:18px 0 0;max-width:54ch}
+  .toc{margin-top:24px;display:flex;flex-wrap:wrap;gap:8px}
+  .toc a{font:700 11px/1 var(--sans);letter-spacing:.04em;color:#fff;text-decoration:none;
+    background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);padding:8px 12px;border-radius:8px}
+  .toc a:hover{background:rgba(255,255,255,.2)}
+
+  /* part divider */
+  .part{margin:clamp(46px,8vw,72px) 0 0;padding:20px 24px;border-radius:14px;
+    background:var(--wine-tint);border:1px solid color-mix(in srgb,var(--wine) 22%,transparent)}
+  .part .p-n{font:700 11px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--wine)}
+  .part h2{font-size:clamp(23px,4vw,32px);line-height:1.08;letter-spacing:-.02em;font-weight:800;margin:8px 0 0;text-wrap:balance}
+  .part p{margin:8px 0 0;color:var(--ink-soft);font-size:14.5px;max-width:62ch}
+
+  section{margin-top:clamp(34px,6vw,52px)}
+  .kicker{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .kicker .n{font-family:var(--mono);font-weight:700;font-size:13px;color:var(--wine);
+    border:1.5px solid var(--wine);border-radius:50%;width:30px;height:30px;display:grid;place-items:center;flex:none}
+  .kicker h3{font-size:clamp(19px,3.2vw,25px);line-height:1.14;letter-spacing:-.01em;font-weight:800;margin:0;text-wrap:balance}
+  p.body{margin:0 0 14px;max-width:64ch}
+
+  /* hero stat (headline) */
+  .headline{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);
+    padding:clamp(20px,4vw,30px);display:grid;grid-template-columns:1fr;gap:22px}
+  @media(min-width:640px){.headline{grid-template-columns:auto 1fr;align-items:center;gap:34px}}
+  .bignum{font-family:var(--mono);font-weight:700;font-size:clamp(42px,9vw,68px);line-height:.9;letter-spacing:-.03em;color:var(--wine);white-space:nowrap}
+  .bignum small{display:block;font-size:13px;font-weight:600;letter-spacing:0;color:var(--ink-soft);margin-top:10px;font-family:var(--sans)}
+
+  /* stat grid */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;
+    background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:8px}
+  .stat{background:var(--card);padding:18px 20px}
+  .stat .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:700;font-size:clamp(22px,3.4vw,28px);letter-spacing:-.02em}
+  .stat .k{font-size:12.5px;color:var(--ink-soft);margin-top:4px}
+
+  /* tables */
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--card);box-shadow:var(--shadow);margin-top:8px}
+  table{border-collapse:collapse;width:100%;font-size:14px}
+  caption{text-align:left;font:700 11px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);padding:14px 18px 0}
+  th,td{padding:11px 18px;text-align:right;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  thead th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;border-bottom:1.5px solid var(--ink)}
+  tbody tr:last-child td{border-bottom:0}
+  td.n{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .ok{color:var(--green);font-weight:700}.warn{color:var(--gold);font-weight:700}
+  .tlabel{font:700 11.5px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin:22px 0 0}
+
+  /* why + wins cards */
+  .grid2{display:grid;grid-template-columns:1fr;gap:12px;margin-top:8px}
+  @media(min-width:640px){.grid2{grid-template-columns:1fr 1fr}}
+  .wcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;box-shadow:var(--shadow)}
+  .wcard .h{font-weight:800;font-size:15.5px;margin-bottom:6px;display:flex;gap:9px;align-items:baseline}
+  .wcard .h .big{font-family:var(--mono);font-size:26px;color:var(--wine);letter-spacing:-.02em;line-height:1}
+  .wcard p{margin:0;font-size:13.5px;color:var(--ink-soft)}
+  .wins{display:grid;grid-template-columns:1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:8px}
+  .win{background:var(--card);padding:16px 20px;display:flex;gap:14px;align-items:flex-start}
+  .win .k{flex:none;width:30px;height:30px;border-radius:8px;background:var(--green-tint);color:var(--green);display:grid;place-items:center;font-weight:800;font-size:15px}
+  .win b{display:block;font-size:15px}.win span{font-size:13.5px;color:var(--ink-soft)}
+
+  /* model cards */
+  .cards{display:grid;grid-template-columns:1fr;gap:14px;margin-top:8px}
+  @media(min-width:620px){.cards{grid-template-columns:repeat(3,1fr)}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px}
+  .card .cap{font:700 10.5px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--wine)}
+  .card .big{font-family:var(--mono);font-weight:700;font-size:26px;letter-spacing:-.02em}
+  .card .sub{font-size:13px;color:var(--ink-soft)}
+  .card .tag2{margin-top:6px;font-size:11.5px;font-weight:700;color:var(--green);background:var(--green-tint);align-self:flex-start;padding:4px 9px;border-radius:6px}
+
+  /* threshold curve */
+  .curve{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+  .crow{display:grid;grid-template-columns:96px 1fr 58px;align-items:center;gap:14px}
+  .crow .lab{font-family:var(--mono);font-size:13px;text-align:right;color:var(--ink)}
+  .bar{height:26px;border-radius:6px;background:var(--line);position:relative;overflow:hidden}
+  .bar>span{position:absolute;inset:0 auto 0 0;border-radius:6px;transition:width .9s cubic-bezier(.4,0,.2,1)}
+  .crow .pct{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:700;font-size:14px}
+  .crow.grace .bar>span{background:var(--green)}.crow.grace .pct{color:var(--green)}
+  .crow.mid .bar>span{background:var(--gold)}.crow.mid .pct{color:var(--gold)}
+  .crow.low .bar>span{background:var(--wine-bright)}.crow.low .pct{color:var(--wine)}
+
+  /* scale strip */
+  .scale{margin-top:26px;padding:30px 4px 8px;position:relative}
+  .track{height:12px;border-radius:8px;background:linear-gradient(90deg,var(--green) 0%,var(--green) 22%,#c9b45a 40%,var(--wine-bright) 100%);opacity:.85}
+  .mark{position:absolute;top:-2px;transform:translateX(-50%);text-align:center}
+  .mark i{display:block;width:2px;height:16px;background:var(--ink);margin:0 auto}
+  .mark b{font-family:var(--mono);font-size:12px;font-weight:700;display:block;margin-top:-34px;color:var(--ink)}
+  .mark small{font-size:10.5px;color:var(--ink-soft);display:block;margin-top:2px;white-space:nowrap}
+  .mark.dashed i{background:repeating-linear-gradient(var(--wine),var(--wine) 3px,transparent 3px,transparent 6px)}
+
+  /* pitch + master */
+  .pitch{background:var(--wine-tint);border-radius:16px;padding:clamp(20px,4vw,28px);margin-top:8px;border:1px solid color-mix(in srgb,var(--wine) 25%,transparent)}
+  .pitch .q{font-size:17px;font-weight:700;line-height:1.4;color:var(--ink);margin:0 0 4px;font-style:italic}
+  .pitch small{color:var(--ink-soft);font-size:13px}
+  .master{background:var(--wine-solid);color:#fff;border-radius:16px;padding:clamp(22px,4vw,30px);margin-top:16px}
+  .master .eb{font:700 11px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.7)}
+  .master h4{font-size:20px;margin:12px 0 8px;font-weight:800}
+  .master p{color:rgba(255,255,255,.9);max-width:60ch;margin:0}
+  .master strong{color:#fff}
+
+  /* levers */
+  .levers{display:grid;grid-template-columns:1fr;gap:10px;margin-top:8px}
+  @media(min-width:640px){.levers{grid-template-columns:1fr 1fr}}
+  .lever{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px 17px;box-shadow:var(--shadow)}
+  .lever b{display:block;font-size:14.5px;margin-bottom:3px}.lever span{font-size:13px;color:var(--ink-soft)}
+  .lever.star{border-color:var(--wine);background:var(--wine-tint)}
+  .lever.star b::after{content:"★";color:var(--wine);margin-left:6px;font-size:12px}
+
+  /* dialogues */
+  .dlg{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 20px 16px;margin-top:16px;box-shadow:var(--shadow)}
+  .dlg .title{font-weight:800;font-size:15.5px;margin-bottom:14px;display:flex;gap:8px;align-items:center}
+  .dlg .title .pill{font:700 10px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;padding:4px 8px;border-radius:5px;background:var(--gold-tint);color:var(--gold)}
+  .bubbles{display:flex;flex-direction:column;gap:9px}
+  .b{max-width:82%;padding:11px 14px;border-radius:14px;font-size:13.6px;line-height:1.45}
+  .b.c{align-self:flex-start;background:var(--paper);border:1px solid var(--line);border-bottom-left-radius:4px}
+  .b.v{align-self:flex-end;background:var(--navy-solid);color:#fff;border-bottom-right-radius:4px}
+  .b .who{font:700 9.5px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;opacity:.6;display:block;margin-bottom:4px}
+  .b.v .who{color:#E7909F;opacity:1}
+  .b .money{font-family:var(--mono);font-weight:700}
+  .lesson{margin-top:13px;padding-top:12px;border-top:1px dashed var(--line);font-size:12.5px;color:var(--ink-soft);font-style:italic}
+  .lesson b{color:var(--wine);font-style:normal}
+
+  /* do/don't + shield */
+  .dd{display:grid;grid-template-columns:1fr;gap:12px;margin-top:8px}
+  @media(min-width:560px){.dd{grid-template-columns:1fr 1fr}}
+  .col{border-radius:14px;padding:18px 20px;border:1px solid var(--line)}
+  .col.yes{background:var(--green-tint)}.col.no{background:var(--wine-tint)}
+  .col h5{margin:0 0 10px;font-size:13px;letter-spacing:.08em;text-transform:uppercase}
+  .col.yes h5{color:var(--green)}.col.no h5{color:var(--wine)}
+  .col ul{margin:0;padding-left:18px;font-size:13.6px;line-height:1.7}.col li{margin-bottom:5px}
+  .shield{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--wine);border-radius:0 12px 12px 0;padding:14px 18px;margin-top:10px}
+  .shield b{font-size:14px}.shield p{margin:4px 0 0;font-size:13.3px;color:var(--ink-soft)}.shield em{color:var(--ink);font-style:normal;font-weight:600}
+
+  .callout{border-left:3px solid var(--wine);background:var(--card);border-radius:0 12px 12px 0;padding:18px 22px;margin:16px 0}
+  .callout p{margin:0;max-width:62ch}
+  footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-soft)}
+  footer .prov{font-family:var(--mono);font-size:11.5px;margin-top:8px;line-height:1.7}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <span class="tag">Uso interno · guía completa</span>
+    <h1>Peso en la calculadora: por qué damos <em>hasta 1.000 kg/m³</em> y cómo venderlo</h1>
+    <p>Todo el tema en un solo lugar: <strong>la data</strong> que lo respalda, <strong>el
+    modelo</strong> que cobramos, <strong>el libreto</strong> para venderlo y <strong>la campaña</strong>
+    para atraer a los que pagan sobrepeso en otros lados.</p>
+    <nav class="toc">
+      <a href="#parte1">1 · El porqué</a>
+      <a href="#parte2">2 · El modelo</a>
+      <a href="#parte3">3 · Cómo se vende</a>
+      <a href="#parte4">4 · La campaña</a>
+    </nav>
+  </header>
+
+  <!-- ══════════ PARTE 1 ══════════ -->
+  <div class="part" id="parte1">
+    <div class="p-n">Parte 1</div>
+    <h2>El porqué — la data detrás del 1.000</h2>
+    <p>Antes de vender, entiende por qué la empresa PUEDE ser tan generosa con el peso. No es
+    capricho: sale de 3 años de carga real.</p>
+  </div>
+
+  <section>
+    <div class="kicker"><span class="n">1</span><h3>La física del contenedor</h3></div>
+    <p class="body">Un 40′HQ tiene dos topes que se llenan por separado: <strong>68 m³</strong> de
+    volumen y <strong>27.000 kg</strong> de peso. El punto donde ambos se agotan a la vez —
+    <span class="num">27.000 ÷ 68 = 397 kg/m³</span>— es la densidad de equilibrio. Debajo de eso te
+    limita el <strong>volumen</strong>; encima, el <strong>peso</strong>. Toda nuestra operación vive
+    muy por debajo de esa línea.</p>
+    <div class="scale" aria-label="Escala de densidad">
+      <div class="track"></div>
+      <div class="mark" style="left:22%"><b>220</b><i></i><small>cliente típico</small></div>
+      <div class="mark" style="left:36.8%"><b>368</b><i></i><small>máx real</small></div>
+      <div class="mark dashed" style="left:39.7%"><b>397</b><i></i><small>equilibrio</small></div>
+      <div class="mark" style="left:100%"><b>1000</b><i></i><small>gracia</small></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker"><span class="n">2</span><h3>Cómo cargamos de verdad — 32 contenedores</h3></div>
+    <p class="body">Cada contenedor se llena a ~68 m³ (topado en volumen) con una mediana de solo
+    <strong>18 toneladas</strong> de las 27 posibles. Nos sobran ~9 toneladas de peso en cada uno.</p>
+    <div class="stats">
+      <div class="stat"><div class="v">269</div><div class="k">Densidad mediana (kg/m³)</div></div>
+      <div class="stat"><div class="v">368</div><div class="k">Máximo en 3 años</div></div>
+      <div class="stat"><div class="v">0 / 32</div><div class="k">Superan los 397</div></div>
+      <div class="stat"><div class="v">~9 t</div><div class="k">Peso sin usar por contenedor</div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker"><span class="n">3</span><h3>Lo que cotiza la calculadora — 738 clientes</h3></div>
+    <p class="body">La calculadora cotiza <strong>un cliente a la vez</strong>. El cliente típico es
+    chico y liviano, pero <strong>1 de cada 5</strong> es más denso que el equilibrio. Esos densos se
+    diluyen en la mayoría liviana — por eso el contenedor igual cierra en ~250.</p>
+    <div class="tablewrap">
+      <table>
+        <caption>Distribución por cliente (738 envíos)</caption>
+        <thead><tr><th>Métrica</th><th>Densidad kg/m³</th><th>Tamaño m³</th><th>Peso kg</th></tr></thead>
+        <tbody>
+          <tr><td>Mediana</td><td class="n">220</td><td class="n">0,81</td><td class="n">197</td></tr>
+          <tr><td>Percentil 90</td><td class="n">597</td><td class="n">7,2</td><td class="n">1.777</td></tr>
+          <tr><td>Percentil 95</td><td class="n">761</td><td class="n">12,3</td><td class="n">3.095</td></tr>
+          <tr><td>Máximo</td><td class="n">6.400</td><td class="n">44,1</td><td class="n">18.952</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker"><span class="n">4</span><h3>Por qué podemos ofrecer 1.000</h3></div>
+    <p class="body">Como el peso nos sobra, regalarlo <strong>no nos cuesta nada</strong> — ya estaba
+    ahí, vacío. Pero para el cliente es un imán.</p>
+    <div class="grid2">
+      <div class="wcard"><div class="h"><span class="big">~250</span><span>kg/m³ real</span></div>
+        <p>Nuestra densidad real. El tope físico es 397. Vivimos lejísimos: hay peso de sobra para regalar.</p></div>
+      <div class="wcard"><div class="h"><span class="big">97%</span><span>ni se acerca</span></div>
+        <p>Solo el 3% trae carga tan densa que llega al tope de 1.000. Al resto se lo regalamos sin arriesgar nada.</p></div>
+      <div class="wcard"><div class="h"><span class="big">0</span><span>llenos por peso</span></div>
+        <p>De 32 contenedores, ninguno se llenó de peso. Siempre se acabó el espacio primero.</p></div>
+      <div class="wcard"><div class="h"><span class="big">=</span><span>los rivales igual</span></div>
+        <p>Ofrecen 1.000 por lo mismo: casi nadie manda carga tan densa. Es un gancho seguro. Lo igualamos.</p></div>
+    </div>
+  </section>
+
+  <!-- ══════════ PARTE 2 ══════════ -->
+  <div class="part" id="parte2">
+    <div class="p-n">Parte 2</div>
+    <h2>El modelo — cómo cobra la calculadora</h2>
+    <p>Generosos para el 97%, protegidos para el 3% denso, y sin dejar a nadie sin precio.</p>
+  </div>
+
+  <section>
+    <div class="kicker"><span class="n">5</span><h3>Gracia generosa + $2/kg de protección</h3></div>
+    <p class="body">La carga densa <strong>no se deriva al asesor</strong>: se cobra por peso al
+    instante. Así la maquinaria recibe precio de una, y el peso extra queda protegido.</p>
+    <div class="cards">
+      <div class="card"><div class="cap">Gracia</div>
+        <div class="big">1.000<span style="font-size:14px;color:var(--ink-soft)"> kg/m³</span></div>
+        <div class="sub">Hasta acá, tarifa por volumen sin recargo.</div><div class="tag2">El 97%</div></div>
+      <div class="card"><div class="cap">Recargo por peso</div>
+        <div class="big">+$2<span style="font-size:14px;color:var(--ink-soft)"> /kg</span></div>
+        <div class="sub">Sobre el peso que excede 1.000 kg/m³. Auto-cotiza, sin dead-end.</div><div class="tag2">El 3% denso</div></div>
+      <div class="card"><div class="cap">Tope contenedor</div>
+        <div class="big">68<span style="font-size:14px;color:var(--ink-soft)"> m³ · 27 t</span></div>
+        <div class="sub">Recién a escala de contenedor completo, deriva al asesor (FCL).</div><div class="tag2">Casos aislados</div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker"><span class="n">6</span><h3>Por qué 1.000 y no 397</h3></div>
+    <p class="body">Si pusiéramos la gracia en el equilibrio físico (397), le cobraríamos recargo al
+    <strong>21% de los clientes</strong> — por un peso que igual nos sobra. Subir la gracia baja esa
+    fricción en picada. El 1.000 no es marketing: es el punto donde solo tocamos al <strong>2,7%</strong>.</p>
+    <div class="curve" role="img" aria-label="Porcentaje de clientes que paga recargo por peso según el límite de gracia">
+      <div class="crow low">  <div class="lab">397 kg/m³</div><div class="bar"><span style="width:21.4%"></span></div><div class="pct">21%</div></div>
+      <div class="crow low">  <div class="lab">500</div>      <div class="bar"><span style="width:14.9%"></span></div><div class="pct">15%</div></div>
+      <div class="crow mid">  <div class="lab">600</div>      <div class="bar"><span style="width:9.3%"></span></div><div class="pct">9%</div></div>
+      <div class="crow mid">  <div class="lab">800</div>      <div class="bar"><span style="width:4.5%"></span></div><div class="pct">4,5%</div></div>
+      <div class="crow grace"><div class="lab">1.000</div>    <div class="bar"><span style="width:2.7%"></span></div><div class="pct">2,7%</div></div>
+    </div>
+    <p class="body" style="margin-top:16px;font-size:13px;color:var(--ink-soft)">Barra = % de clientes
+    que pagaría recargo por peso con cada nivel de gracia. Más gracia, menos fricción.</p>
+  </section>
+
+  <section>
+    <div class="kicker"><span class="n">7</span><h3>La condición madre (anti-abuso)</h3></div>
+    <div class="master">
+      <div class="eb">Se factura sobre lo medido, no lo declarado</div>
+      <h4>El peso real manda</h4>
+      <p>El estimado usa lo que el cliente escribe. Al recibir la carga en China, <strong>DTD pesa y
+      mide</strong>, y factura sobre el <strong>mayor valor entre lo declarado y lo medido</strong>.
+      Declarar liviano para pagar menos no funciona — se cobra lo que pesó. El estimado nunca es un
+      precio cerrado.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker"><span class="n">8</span><h3>Qué ganamos con esto</h3></div>
+    <div class="wins">
+      <div class="win"><span class="k">1</span><div><b>Igualamos al competidor sin bajar el precio.</b>
+        <span>Mismo gancho, pero defendemos el margen. No regalamos plata: regalamos peso que nos sobra.</span></div></div>
+      <div class="win"><span class="k">2</span><div><b>Menos fricción, más cierres.</b>
+        <span>97% cotiza limpio, sin recargos ni "déjame consultar". Cotización clara = venta más rápida.</span></div></div>
+      <div class="win"><span class="k">3</span><div><b>La maquinaria ya no se traba.</b>
+        <span>La carga densa recibe precio al instante con el $2/kg. Adiós a los "consulta asesor" que enfriaban la venta.</span></div></div>
+      <div class="win"><span class="k">4</span><div><b>Combinado con "pagas al llegar", imbatible.</b>
+        <span>Peso generoso + no adelantas nada + todo incluido (aduana e impuestos). Difícil de superar.</span></div></div>
+    </div>
+  </section>
+
+  <!-- ══════════ PARTE 3 ══════════ -->
+  <div class="part" id="parte3">
+    <div class="p-n">Parte 3</div>
+    <h2>Cómo se vende — tu libreto</h2>
+    <p>Lo que le dices al cliente, cómo negocias, cómo manejas la maquinaria y cómo te cubres.</p>
+  </div>
+
+  <section>
+    <div class="kicker"><span class="n">9</span><h3>El pitch (vende la sensación, no el número)</h3></div>
+    <p class="body">Al cliente <strong>nunca</strong> le das cifras internas ni le explicas por qué
+    podemos. Le das la promesa y la calma.</p>
+    <div class="pitch">
+      <p class="q">"Con nosotros tu carga entra con un buen margen de peso incluido por m³ — sin
+      recargos sorpresa. Y no adelantas nada: pagas cuando llega a Venezuela, ya con aduana e
+      impuestos resueltos."</p>
+      <small>Generosidad + tranquilidad + financiamiento. Eso es todo lo que necesita oír.</small>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker"><span class="n">10</span><h3>Tus palancas para negociar</h3></div>
+    <p class="body">Cuando el cliente empuja el precio, <strong>no bajes el número — sube el valor</strong>.</p>
+    <div class="levers">
+      <div class="lever star"><b>"Pagas al llegar"</b><span>No adelanta nada. Vale más que cualquier rebaja: es flujo de caja que le queda a él.</span></div>
+      <div class="lever star"><b>Tarifa por recurrencia</b><span>Mejor $/m³ al que trae todos los meses, a cambio de continuidad. Es nuestro norte.</span></div>
+      <div class="lever"><b>Margen de peso incluido</b><span>Ya es generoso. Véndelo como beneficio, sin dar el número.</span></div>
+      <div class="lever"><b>Todo incluido (DDP)</b><span>Flete + aduana + impuestos + entrega. Recuérdalo cuando comparen precios pelados.</span></div>
+      <div class="lever"><b>Tarifa por m³ editable</b><span>Puedes ajustar el $/m³ a un cliente serio — nunca bajo el mínimo ($380).</span></div>
+      <div class="lever"><b>FCL como alternativa</b><span>Para carga grande o densa, un contenedor completo a veces le sale mejor. Ofrécelo.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker"><span class="n">11</span><h3>Tres conversaciones reales</h3></div>
+
+    <div class="dlg">
+      <div class="title"><span class="pill">Carga normal</span>El que pide rebaja</div>
+      <div class="bubbles">
+        <div class="b c"><span class="who">Cliente</span>Tengo 4 m³ y como 1.100 kg para Valencia. Me salió <span class="money">$3.200</span>… ¿me haces mejor precio?</div>
+        <div class="b v"><span class="who">Vendedor</span>Tu carga está cómoda de peso, sin recargos. Y lo mejor no es el número: con nosotros no adelantas nada — pagas cuando llega a Valencia, ya en tu puerta.</div>
+        <div class="b c"><span class="who">Cliente</span>Pero la competencia me tiró $3.000…</div>
+        <div class="b v"><span class="who">Vendedor</span>¿Todo incluido y pagando al llegar? Casi nunca. Si confirmas hoy y traes seguido, te dejo el m³ en <span class="money">$750</span> → <span class="money">$3.000</span>, y te lo fijo para tus próximos envíos.</div>
+      </div>
+      <div class="lesson"><b>Lección:</b> igualó al competidor con recurrencia, no con una rebaja seca, y sumó el financiamiento.</div>
+    </div>
+
+    <div class="dlg">
+      <div class="title"><span class="pill">Carga densa</span>El que la quiere colar</div>
+      <div class="bubbles">
+        <div class="b c"><span class="who">Cliente</span>Son 2 m³ nada más, repuestos de metal. A $800 el m³ son <span class="money">$1.600</span>, ¿verdad?</div>
+        <div class="b v"><span class="who">Vendedor</span>Déjame verlo… ¿cuánto pesa esa carga?</div>
+        <div class="b c"><span class="who">Cliente</span>Ah, ponle unos 800 kg. <span style="opacity:.6">(realmente pesa ~2.400)</span></div>
+        <div class="b v"><span class="who">Vendedor</span>El estimado usa lo que me declaras, pero al llegar a China <strong>pesamos y medimos</strong> y se cobra sobre lo real. A 2.400 kg la calculadora le suma un adicional justo por el peso — te da un número claro de una (<span class="money">$2.400</span> en vez de $1.600). Con metal muy pesado te comparo un contenedor.</div>
+      </div>
+      <div class="lesson"><b>Lección:</b> activó el escudo "medido, no declarado" y mostró el precio real con el recargo. No cerró sobre los $1.600.</div>
+    </div>
+
+    <div class="dlg">
+      <div class="title"><span class="pill">Mayorista</span>El volumen grande</div>
+      <div class="bubbles">
+        <div class="b c"><span class="who">Cliente</span>Muevo como 18 m³ todos los meses. En la web me da <span class="money">$14.400</span>. ¿Qué me haces?</div>
+        <div class="b v"><span class="who">Vendedor</span>Ese volumen lo trabajo a medida. Tarifa preferencial: <span class="money">$700</span> el m³ → <span class="money">$12.600</span> al mes, a cambio de que consolides con nosotros cada mes. Te comparo también un contenedor completo.</div>
+        <div class="b c"><span class="who">Cliente</span>¿Y si un mes traigo más pesado?</div>
+        <div class="b v"><span class="who">Vendedor</span>Tienes buen margen de peso incluido; solo si viene excepcionalmente denso lo revisamos. Te doy estabilidad de precio y el "pagas al llegar", que a tu escala es mucho capital que no inmovilizas.</div>
+      </div>
+      <div class="lesson"><b>Lección:</b> sacó al grande de la tarifa pública, negoció recurrencia ($1.800 menos al mes) y cerró con el financiamiento a escala.</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker"><span class="n">12</span><h3>Maquinaria — hasta dónde llega</h3></div>
+    <p class="body">La mejor noticia para el cliente de maquinaria: <strong>ahora todo recibe precio al
+    instante</strong>. Hasta 1.000 kg/m³ paga por volumen; arriba de eso, suma $2 por kilo de más.
+    Solo lo gigante (más de un contenedor) va a cotización a medida.</p>
+    <p class="tlabel">La regla, en una línea</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Densidad de la carga</th><th>Qué cobra</th></tr></thead>
+        <tbody>
+          <tr><td>Hasta 1.000 kg por m³</td><td class="ok">Tarifa por volumen (sin recargo)</td></tr>
+          <tr><td>Más de 1.000 kg por m³</td><td class="warn">Tarifa + $2 por kg de más (auto-cotiza)</td></tr>
+          <tr><td>Más de 68 m³ ó 27 toneladas</td><td>Cotización a medida / FCL</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tlabel">Ejemplos de maquinaria (tarifa $800/m³)</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Equipo</th><th>Tamaño</th><th>Peso</th><th>Cobra al instante</th></tr></thead>
+        <tbody>
+          <tr><td>Motor / bomba</td><td class="n">0,5 m³</td><td class="n">400 kg</td><td class="ok">$400</td></tr>
+          <tr><td>Montacargas</td><td class="n">8 m³</td><td class="n">3.000 kg</td><td class="ok">$6.400</td></tr>
+          <tr><td>Máquina grande</td><td class="n">12 m³</td><td class="n">10.000 kg</td><td class="ok">$9.600</td></tr>
+          <tr><td>Prensa / troquel</td><td class="n">2 m³</td><td class="n">3.000 kg</td><td class="warn">$3.600</td></tr>
+          <tr><td>Torno pesado</td><td class="n">3 m³</td><td class="n">4.500 kg</td><td class="warn">$5.400</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="body" style="margin-top:14px;font-size:13.5px;color:var(--ink-soft)">Tu frase:
+    <em>"La maquinaria no es problema — la calculadora te da el precio de una; si viene muy pesada,
+    suma un adicional justo por el peso extra."</em></p>
+  </section>
+
+  <section>
+    <div class="kicker"><span class="n">13</span><h3>Escudos anti-truco</h3></div>
+    <div class="shield"><b>Subdeclara el peso para pagar menos</b>
+      <p><em>"El estimado usa lo que declaras; al llegar pesamos y medimos, y se cobra sobre lo real."</em> Nunca cierres precio sobre el declarado.</p></div>
+    <div class="shield"><b>Parte un envío grande en varios para esquivar el tope</b>
+      <p>Los límites aplican a <em>toda su carga</em> (su Shipping Mark), no a cajas sueltas.</p></div>
+    <div class="shield"><b>"Pero la web me dio X"</b>
+      <p><em>"Ese estimado es referencial, no es el precio final."</em> Lo confirma el asesor con la carga real.</p></div>
+  </section>
+
+  <section>
+    <div class="kicker"><span class="n">14</span><h3>Resumen legal (para explicarlo sin problemas)</h3></div>
+    <div class="wins">
+      <div class="win"><span class="k">§</span><div><b>El límite técnico del contenedor es ~397 kg/m³.</b>
+        <span>Lo que damos por encima (la gracia de 1.000) es una cortesía comercial de la empresa, no un derecho del cliente.</span></div></div>
+      <div class="win"><span class="k">§</span><div><b>Es promocional y puede cambiar.</b>
+        <span>Nunca prometas que la gracia es fija o "para siempre". Hoy es 1.000; la empresa puede ajustarla.</span></div></div>
+      <div class="win"><span class="k">§</span><div><b>No aplica a envíos gigantes.</b>
+        <span>La generosidad es para carga normal. Los envíos muy grandes se cotizan aparte, a criterio de la empresa.</span></div></div>
+      <div class="win"><span class="k">§</span><div><b>El estimado no es el precio final.</b>
+        <span>Se confirma con el peso y volumen reales medidos en China. Está en el Acuerdo de Servicios.</span></div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker"><span class="n">15</span><h3>La regla de oro</h3></div>
+    <div class="dd">
+      <div class="col yes"><h5>✓ Le dices al cliente</h5>
+        <ul><li>"Incluyo un buen margen de peso por m³."</li><li>"Tu carga entra sin recargo."</li>
+        <li>"Pagas al llegar, todo incluido."</li><li>"Se confirma con el peso real de tu carga."</li></ul></div>
+      <div class="col no"><h5>✗ Nunca le dices</h5>
+        <ul><li>"Aguantamos hasta 1.000 kg."</li><li>"Al contenedor nos sobra peso."</li>
+        <li>Ningún número interno ni dato de densidad.</li><li>Por qué podemos permitírnoslo.</li></ul></div>
+    </div>
+  </section>
+
+  <!-- ══════════ PARTE 4 ══════════ -->
+  <div class="part" id="parte4">
+    <div class="p-n">Parte 4</div>
+    <h2>La campaña — "El sobrepeso ya no es tu problema"</h2>
+    <p>Convertimos nuestra ventaja de peso en un imán de captación: atraer a los importadores de
+    carga pesada que hoy pagan recargos de sobrepeso en la competencia.</p>
+  </div>
+
+  <section>
+    <div class="kicker"><span class="n">16</span><h3>El ángulo — el dolor que resolvemos</h3></div>
+    <p class="body">Hay un cliente que sufre: el que importa <strong>carga pesada</strong> (maquinaria,
+    repuestos, herramientas, cerámica) y en cada envío le clavan un <strong>recargo por sobrepeso</strong>.
+    Muchos forwarders cobran extra desde muy poquito peso. Ese cliente siente que lo castigan por traer
+    cosas densas. <strong>Esa es nuestra oportunidad:</strong> somos el que NO lo castiga.</p>
+    <div class="pitch">
+      <p class="q">"El peso ya no es tu problema. Trae tu carga pesada con un margen generoso incluido
+      — y si es densísima, un adicional justo y transparente, nunca una sorpresa."</p>
+      <small>Ese es el titular de la campaña. Honesto (sí cobramos lo muy denso) pero imbatible frente
+      al que cobra sobrepeso desde el primer kilo.</small>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker"><span class="n">17</span><h3>A quién le hablamos</h3></div>
+    <p class="body">Segmentos que traen carga densa y hoy pagan de más en otros lados — nuestro público
+    ideal para esta campaña:</p>
+    <div class="grid2">
+      <div class="wcard"><div class="h">🔧 Repuestos y autopartes</div>
+        <p>Metal, motores, frenos, ejes. Densos por naturaleza — los que más sufren el sobrepeso ajeno.</p></div>
+      <div class="wcard"><div class="h">⚙️ Maquinaria y equipos</div>
+        <p>Prensas, tornos, montacargas, herramienta industrial. Compran caro; el flete no debería castigarlos.</p></div>
+      <div class="wcard"><div class="h">🧱 Cerámica, azulejos, mármol</div>
+        <p>Muy pesados por m³. Con otros forwarders, el sobrepeso les come el margen.</p></div>
+      <div class="wcard"><div class="h">🛠️ Ferretería y herramientas</div>
+        <p>Tornillería, perfiles, cerraduras, insumos industriales. Volumen chico, peso alto.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker"><span class="n">18</span><h3>Los ganchos (copy para anuncios · sin números)</h3></div>
+    <p class="body">Listos para usar. <strong>Cero cifras internas</strong> — venden la sensación:</p>
+    <div class="levers">
+      <div class="lever star"><b>Titular principal</b><span>"El peso ya no es tu problema. Importa carga pesada sin recargos sorpresa."</span></div>
+      <div class="lever star"><b>Para repuestos/maquinaria</b><span>"Trae maquinaria y repuestos sin miedo al sobrepeso. Cotiza al instante, paga al llegar."</span></div>
+      <div class="lever"><b>Comparativo</b><span>"¿Te cobran sobrepeso en cada envío? Con nosotros tu carga pesada viaja con un margen generoso incluido."</span></div>
+      <div class="lever"><b>Directo a la acción</b><span>"Calcula tu carga pesada al instante. Sin sorpresas, todo incluido, pagas al llegar."</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker"><span class="n">19</span><h3>La estrategia por canal</h3></div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Canal</th><th>Qué hacer</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Google Ads</strong></td><td>Grupo nuevo "carga pesada / sobrepeso" con keywords de intención: <em>importar maquinaria de china</em>, <em>flete carga pesada china venezuela</em>, <em>recargo por peso importación</em>, <em>traer repuestos de china</em>. Landing → la calculadora.</td></tr>
+          <tr><td><strong>Instagram</strong> <span class="num">@doortudoor_</span></td><td>Reels comparativos "antes pagabas sobrepeso → con DTD no" + casos reales de maquinaria con su precio. Es nuestro canal más fuerte.</td></tr>
+          <tr><td><strong>La calculadora</strong></td><td>El gancho: "cotiza tu carga pesada al instante". Ahora sí da precio para lo denso (con el $2/kg) — antes lo mandaba al asesor. Es la landing de la campaña.</td></tr>
+          <tr><td><strong>WhatsApp</strong></td><td>El que llega por "sobrepeso" es lead caliente. Atiéndelo con el libreto de la Parte 3 (pitch + palancas + escudos).</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout"><p>💡 <strong>El embudo:</strong> anuncio con el gancho del sobrepeso →
+    calculadora (cotiza su carga pesada al instante) → WhatsApp (el vendedor cierra con el libreto) →
+    "pagas al llegar" como remate.</p></div>
+  </section>
+
+  <section>
+    <div class="kicker"><span class="n">20</span><h3>Cómo lo medimos + siguiente paso</h3></div>
+    <div class="wins">
+      <div class="win"><span class="k">1</span><div><b>Reactivar/crear la campaña de Ads</b>
+        <span>Definir presupuesto y armar el grupo "sobrepeso" con los ganchos de arriba. La conversión "click WhatsApp" ya está cableada.</span></div></div>
+      <div class="win"><span class="k">2</span><div><b>3 creativos con el ángulo del sobrepeso</b>
+        <span>Uno por segmento (repuestos, maquinaria, cerámica). Comparativo "otros te cobran / con nosotros no".</span></div></div>
+      <div class="win"><span class="k">3</span><div><b>Medir cotizaciones de carga densa y cierres</b>
+        <span>Cuántos leads de carga pesada llegan, cuántos cierran. Es el KPI de esta campaña.</span></div></div>
+      <div class="win"><span class="k">4</span><div><b>Todo el material a docs/marketing/</b>
+        <span>El copy, los creativos y los resultados se documentan ahí (tree canónico de marketing).</span></div></div>
+    </div>
+  </section>
+
+  <footer>
+    Guía completa · DTD Cargo · uso interno del equipo. Reúne el informe de calibración, el playbook
+    comercial y la estrategia de campaña en un solo documento. Los límites y el copy del cliente se reflejan en la calculadora y
+    en el Acuerdo de Servicios v3.1.
+    <div class="prov">
+      Fuente: 33 packing lists · China → Venezuela · 2023–2026 · 32 contenedores, 738 envíos.<br>
+      Modelo vigente: gracia 1.000 kg/m³ · +$2/kg sobre el excedente · asesor solo a escala de contenedor.
+    </div>
+  </footer>
+</div>

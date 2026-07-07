@@ -61,16 +61,22 @@ export type CalcFieldMeta = {
 export const CALC_FIELDS: CalcFieldMeta[] = [
   {
     key: "pesoIncluidoKg",
-    label: "Peso incluido por CBM",
-    hint: "Hasta este peso por m³ no hay recargo. Sobre esto se cobra excedente.",
+    label: "Gracia de peso incluida",
+    hint: "Densidad incluida sin recargo (kg por m³). Hasta acá no se cobra excedente.",
     kind: "weight",
     precision: 0,
     min: 0.01,
   },
   {
+    // HEREDADO — ya no entra al cálculo (lib/calculadora.ts §5.6: el recargo es
+    // continuo sin tope desde 2026-07-06). Se conserva solo porque la DB tiene un
+    // CHECK peso_max_kg ≥ peso_incluido_kg y el validador lo espeja. El panel lo
+    // oculta y lo envía por hidden input espejando la gracia.
+    // MIGRACIÓN PROPUESTA (requiere OK del founder): soltar el CHECK y la columna
+    // peso_max_kg de calculator_settings, quitar pesoMaxKg de CalcParams/validador.
     key: "pesoMaxKg",
-    label: "Peso máximo por CBM",
-    hint: "Sobre este peso por m³ el calculador alerta y deriva a FCL. Debe ser ≥ peso incluido.",
+    label: "Peso máximo por CBM (heredado)",
+    hint: "Ya no afecta la cotización. Se conserva solo por una validación de base de datos.",
     kind: "weight",
     precision: 0,
     min: 0.01,
@@ -78,7 +84,7 @@ export const CALC_FIELDS: CalcFieldMeta[] = [
   {
     key: "recargoExcedenteKg",
     label: "Recargo por kg de excedente",
-    hint: "USD por cada kg que supera el peso incluido por CBM.",
+    hint: "USD por cada kg por encima de la gracia. Se auto-cotiza, no deriva al asesor.",
     kind: "currency",
     unit: "/kg",
     min: 0,
