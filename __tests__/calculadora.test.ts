@@ -420,11 +420,13 @@ describe("calcularEnvioLCL con params configurables", () => {
     expect(cot.total).toBe(1000);
   });
 
-  it("pesoMaxKg no entra al cálculo del recargo (cobro continuo, sin tope)", () => {
-    const cot = calcularEnvioLCL(
-      { cbmTotal: 1, pesoKg: 650, embalaje: "estandar", ciudadId: "caracas" },
-      withParams({ pesoMaxKg: 700 }),
-    );
+  it("cobro por densidad continuo sin tope (650 kg/CBM sí cotiza)", () => {
+    const cot = calcularEnvioLCL({
+      cbmTotal: 1,
+      pesoKg: 650,
+      embalaje: "estandar",
+      ciudadId: "caracas",
+    });
     // El recargo es sobre pesoIncluidoKg (500): (650 − 500) × $1 = 150.
     expect(cot.recargoExcedente).toBe(150);
     expect(cot.alerta).toBeUndefined(); // el cálculo nunca setea alerta de densidad

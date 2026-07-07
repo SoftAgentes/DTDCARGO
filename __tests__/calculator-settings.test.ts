@@ -9,7 +9,6 @@ import {
  * Tests del validador de los parámetros del calculador (Fase 3 Slice A).
  * Espeja los CHECKs de supabase/migrations/0103_calculator_settings.sql:
  *  - todos los campos numéricos finitos y dentro de su mínimo
- *  - peso_max ≥ peso_incluido
  *  - multiplicador de baterías ≥ 1
  */
 describe("validateCalculatorSettingsInput", () => {
@@ -25,23 +24,12 @@ describe("validateCalculatorSettingsInput", () => {
     const { input, fieldErrors } = validateCalculatorSettingsInput({
       ...base(),
       pesoIncluidoKg: 450,
-      pesoMaxKg: 650,
       recargoExcedenteKg: 1.5,
       recargoBateriaMult: 1.8,
     });
     expect(fieldErrors).toBeUndefined();
     expect(input?.pesoIncluidoKg).toBe(450);
     expect(input?.recargoBateriaMult).toBe(1.8);
-  });
-
-  it("rechaza peso_max menor a peso_incluido", () => {
-    const { input, fieldErrors } = validateCalculatorSettingsInput({
-      ...base(),
-      pesoIncluidoKg: 500,
-      pesoMaxKg: 400,
-    });
-    expect(input).toBeUndefined();
-    expect(fieldErrors?.pesoMaxKg).toBeTruthy();
   });
 
   it("rechaza multiplicador de baterías menor a 1", () => {
