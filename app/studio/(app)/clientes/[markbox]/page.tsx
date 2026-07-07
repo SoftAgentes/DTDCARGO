@@ -43,9 +43,14 @@ import {
 } from "@/lib/public/rates-queries";
 import { DocsPanel } from "@/app/studio/_components/documents/DocsPanel";
 import { listDocumentsByEntity } from "@/lib/studio/documents/queries";
-import { getOpenChangeRequest } from "@/lib/portal/change-request-queries";
+import {
+  getOpenChangeRequest,
+  listResolvedChangeRequests,
+  resolveReviewerNames,
+} from "@/lib/portal/change-request-queries";
 import type { ClientChangeRequest } from "@/lib/portal/change-request-types";
 import { ChangeRequestCard } from "../_components/ChangeRequestCard";
+import { ChangeRequestHistory } from "../_components/ChangeRequestHistory";
 
 export const metadata = { title: "Detalle cliente" };
 
@@ -137,10 +142,19 @@ export default async function ClienteDetallePage({
   // SDD-0151: solicitud de cambio de datos pendiente (la propuso el cliente
   // desde el portal). Best-effort: sin migración 0220 → null, sin romper.
   let changeRequest: ClientChangeRequest | null = null;
+  let changeRequestHistory: ClientChangeRequest[] = [];
+  let reviewerNames: Record<string, string> = {};
   try {
     changeRequest = await getOpenChangeRequest(supabase, client.id);
+    changeRequestHistory = await listResolvedChangeRequests(supabase, client.id);
+    reviewerNames = await resolveReviewerNames(
+      supabase,
+      changeRequestHistory.map((r) => r.reviewedBy),
+    );
   } catch {
     changeRequest = null;
+    changeRequestHistory = [];
+    reviewerNames = {};
   }
 
   // Signed URL (60s) de la foto de cédula/RIF (bucket privado client-docs). La RLS
@@ -245,6 +259,14 @@ export default async function ClienteDetallePage({
               isEmpresa={client.doc_kind === "empresa"}
             />
           )}
+
+          {/* Historial de solicitudes ya resueltas (SDD-0151) — traza read-only.
+              Se auto-oculta si no hay ninguna. */}
+          <ChangeRequestHistory
+            items={changeRequestHistory}
+            isEmpresa={client.doc_kind === "empresa"}
+            reviewerNames={reviewerNames}
+          />
 
           {/* Card datos */}
           <section

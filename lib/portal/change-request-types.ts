@@ -11,6 +11,9 @@
 
 export type ChangeRequestStatus = "pending" | "approved" | "rejected";
 
+/** Origen del cambio: propuesto por el cliente (portal) o edit directo del equipo. */
+export type ChangeRequestSource = "client" | "admin";
+
 export interface ClientChangeRequest {
   id: string;
   tenantId: string;
@@ -22,6 +25,7 @@ export interface ClientChangeRequest {
   prevRif: string | null;
   prevPhone: string | null;
   status: ChangeRequestStatus;
+  source: ChangeRequestSource;
   submittedAt: string;
   reviewedAt: string | null;
   reviewedBy: string | null;
@@ -43,6 +47,7 @@ export function mapChangeRequestRow(row: {
   prev_rif: string | null;
   prev_phone: string | null;
   status: string;
+  source?: string | null;
   submitted_at: string;
   reviewed_at: string | null;
   reviewed_by: string | null;
@@ -61,6 +66,7 @@ export function mapChangeRequestRow(row: {
     status: (["pending", "approved", "rejected"].includes(row.status)
       ? row.status
       : "pending") as ChangeRequestStatus,
+    source: row.source === "admin" ? "admin" : "client",
     submittedAt: row.submitted_at,
     reviewedAt: row.reviewed_at,
     reviewedBy: row.reviewed_by,

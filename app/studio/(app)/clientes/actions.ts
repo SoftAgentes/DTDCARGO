@@ -178,13 +178,20 @@ export async function updateClientAction(
   const { input, fieldErrors } = validateClientInput(partial);
   if (fieldErrors) return { fieldErrors };
 
-  // Si cambia el nombre o el RIF/cédula, la verificación previa (SDD-0046) queda
-  // desalineada → resetear doc_verify_* para forzar re-verificación.
+  // Estado previo (para el reset de verificación + la traza de auditoría).
   const { data: currentRow } = await supabase
     .from("clients")
-    .select("name, rif")
+    .select("id, tenant_id, name, rif, phone")
     .eq("markbox", markbox)
-    .maybeSingle<{ name: string | null; rif: string | null }>();
+    .maybeSingle<{
+      id: string;
+      tenant_id: string;
+      name: string | null;
+      rif: string | null;
+      phone: string | null;
+    }>();
+  // Si cambia el nombre o el RIF/cédula, la verificación previa (SDD-0046) queda
+  // desalineada → resetear doc_verify_* para forzar re-verificación.
   const identityReset = identityResetOnChange(
     { name: currentRow?.name ?? null, rif: currentRow?.rif ?? null },
     { name: input!.name, rif: input!.rif },
@@ -215,6 +222,41 @@ export async function updateClientAction(
       return { error: "Ya existe otro cliente con ese RIF/cédula." };
     }
     return { error: `No se pudo guardar el cliente: ${error.message}` };
+  }
+
+  // Traza (SDD-0151): si el equipo cambió nombre/RIF/teléfono directo en la ficha,
+  // se registra como fila source='admin' auto-aprobada → aparece en el historial
+  // de la ficha junto a lo que propone el cliente. Best-effort, nunca rompe el save.
+  if (currentRow) {
+    const changed = (a: string | null, b: string | null) =>
+      (a ?? "").trim().toLowerCase() !== (b ?? "").trim().toLowerCase();
+    const nameChanged = changed(currentRow.name, input!.name);
+    const rifChanged = changed(currentRow.rif, input!.rif);
+    const phoneChanged = changed(currentRow.phone, input!.phone);
+    if (nameChanged || rifChanged || phoneChanged) {
+      try {
+        const admin = createAdminClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        await admin.from("client_change_requests").insert({
+          tenant_id: currentRow.tenant_id,
+          client_id: currentRow.id,
+          proposed_name: nameChanged ? input!.name : null,
+          proposed_rif: rifChanged ? input!.rif : null,
+          proposed_phone: phoneChanged ? input!.phone : null,
+          prev_name: currentRow.name,
+          prev_rif: currentRow.rif,
+          prev_phone: currentRow.phone,
+          status: "approved",
+          source: "admin",
+          reviewed_by: user?.id ?? null,
+          reviewed_at: new Date().toISOString(),
+        });
+      } catch (e) {
+        console.error("[updateClientAction] audit log falló:", e);
+      }
+    }
   }
 
   revalidatePath("/studio/clientes");

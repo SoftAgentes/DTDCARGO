@@ -144,7 +144,7 @@ export async function submitDataChangeRequestAction(
   // Estado actual (scopeado al id verificado por sesión).
   const { data: row, error: rowErr } = await admin
     .from("clients")
-    .select("tenant_id, markbox, name, rif, phone, doc_kind")
+    .select("tenant_id, markbox, name, rif, phone, doc_kind, advisor_id")
     .eq("id", clientId)
     .maybeSingle<{
       tenant_id: string;
@@ -153,6 +153,7 @@ export async function submitDataChangeRequestAction(
       rif: string | null;
       phone: string | null;
       doc_kind: string | null;
+      advisor_id: string | null;
     }>();
   if (rowErr || !row) {
     return { error: "No pudimos cargar tu cuenta. Prueba de nuevo." };
@@ -255,8 +256,48 @@ export async function submitDataChangeRequestAction(
     tenantId: row.tenant_id,
     markbox: row.markbox,
     clientName: row.name ?? row.markbox,
+    advisorId: row.advisor_id,
     diff: buildChangeRequestDiff(request, kind === "empresa"),
   });
+
+  revalidatePath("/portal/perfil");
+  return { ok: true };
+}
+
+/**
+ * El cliente CANCELA su solicitud pendiente (se equivocó / ya no quiere el
+ * cambio). Borra SOLO la PENDING scopeada a su sesión: al no estar revisada no
+ * tiene valor de auditoría, y el DELETE libera el índice único parcial → puede
+ * proponer de nuevo. Si el asesor ya la resolvió (carrera), el `.eq(status,
+ * 'pending')` no matchea nada y queda no-op (la UI mostrará el resultado real).
+ */
+export async function cancelDataChangeRequestAction(
+  _prev: ChangeRequestActionState,
+): Promise<ChangeRequestActionState> {
+  const supabase = await createClient();
+  const { data: portalClientId, error: idErr } =
+    await supabase.rpc("get_portal_client_id");
+  if (idErr || !portalClientId) {
+    return { error: "Tu sesión expiró. Vuelve a entrar al portal." };
+  }
+  const clientId = portalClientId as string;
+
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return { error: "No está disponible ahora. Prueba de nuevo en un rato." };
+  }
+
+  const { error: delErr } = await admin
+    .from("client_change_requests")
+    .delete()
+    .eq("client_id", clientId)
+    .eq("status", "pending");
+  if (delErr) {
+    console.error("[cancelDataChangeRequestAction] delete error:", delErr);
+    return { error: "No pudimos cancelar la solicitud. Prueba de nuevo." };
+  }
 
   revalidatePath("/portal/perfil");
   return { ok: true };
