@@ -13,6 +13,7 @@ type SettingsRow = {
   tenant_id: string;
   peso_incluido_kg: number | string;
   recargo_excedente_kg: number | string;
+  peso_max_envio_kg: number | string;
   descuento_valencia: number | string;
   recargo_embalaje_especial: number | string;
   recargo_bateria_mult: number | string;
@@ -37,7 +38,7 @@ export async function getCalculatorSettings(
   const { data, error } = await supabase
     .from("calculator_settings")
     .select(
-      "tenant_id, peso_incluido_kg, recargo_excedente_kg, descuento_valencia, recargo_embalaje_especial, recargo_bateria_mult, threshold_casco_km, tarifa_km_fuera_casco, cbm_max_contenedor, peso_max_contenedor_kg, updated_at, updated_by",
+      "tenant_id, peso_incluido_kg, recargo_excedente_kg, peso_max_envio_kg, descuento_valencia, recargo_embalaje_especial, recargo_bateria_mult, threshold_casco_km, tarifa_km_fuera_casco, cbm_max_contenedor, peso_max_contenedor_kg, updated_at, updated_by",
     )
     .maybeSingle<SettingsRow>();
 
@@ -47,6 +48,7 @@ export async function getCalculatorSettings(
     tenant_id: data.tenant_id,
     pesoIncluidoKg: Number(data.peso_incluido_kg),
     recargoExcedenteKg: Number(data.recargo_excedente_kg),
+    pesoMaxEnvioKg: Number(data.peso_max_envio_kg),
     descuentoValencia: Number(data.descuento_valencia),
     recargoEmbalajeEspecial: Number(data.recargo_embalaje_especial),
     recargoBateriaMult: Number(data.recargo_bateria_mult),

@@ -76,6 +76,14 @@ export const CALC_FIELDS: CalcFieldMeta[] = [
     min: 0,
   },
   {
+    key: "pesoMaxEnvioKg",
+    label: "Peso máximo por envío",
+    hint: "Sobre este peso la calculadora deriva al asesor en vez de cotizar (evita que un solo envío monopolice el peso del contenedor).",
+    kind: "weight",
+    precision: 0,
+    min: 0.01,
+  },
+  {
     key: "descuentoValencia",
     label: "Descuento entrega en Valencia",
     hint: "USD que se descuentan cuando el destino es Valencia (la sede).",
@@ -169,6 +177,7 @@ export function validateCalculatorSettingsInput(
     input: {
       pesoIncluidoKg: input.pesoIncluidoKg!,
       recargoExcedenteKg: input.recargoExcedenteKg!,
+      pesoMaxEnvioKg: input.pesoMaxEnvioKg!,
       descuentoValencia: input.descuentoValencia!,
       recargoEmbalajeEspecial: input.recargoEmbalajeEspecial!,
       recargoBateriaMult: input.recargoBateriaMult!,

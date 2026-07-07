@@ -221,14 +221,17 @@ describe("calcularEnvioLCL", () => {
     expect(cot.total).toBe(0);
   });
 
-  it("27.000 kg exacto NO dispara el límite de peso de contenedor", () => {
+  it("27.000 kg exacto NO dispara el límite ABSOLUTO de contenedor (pero sí el tope por envío)", () => {
     const cot = calcularEnvioLCL({
       cbmTotal: 50,
-      pesoKg: 27000, // en el límite, válido
+      pesoKg: 27000, // en el límite absoluto del contenedor
       embalaje: "estandar",
       ciudadId: "caracas",
     });
+    // No es el tope absoluto (usa `>` estricto)…
     expect(cot.alerta?.tipo).not.toBe("peso_contenedor_excedido");
+    // …pero sí supera el tope de peso por envío (9.000) → deriva al asesor.
+    expect(cot.alerta?.tipo).toBe("peso_envio_excedido");
   });
 
   it("el límite de CBM prima sobre el de peso si ambos exceden", () => {
@@ -239,6 +242,42 @@ describe("calcularEnvioLCL", () => {
       ciudadId: "caracas",
     });
     expect(cot.alerta?.tipo).toBe("contenedor_excedido");
+  });
+
+  // Tope de peso POR ENVÍO (anti-monopolio): sobre pesoMaxEnvioKg (9.000 default)
+  // la calculadora NO auto-cotiza, deriva al asesor.
+  it("deriva al asesor cuando el peso del envío supera el tope por envío", () => {
+    const cot = calcularEnvioLCL({
+      cbmTotal: 20,
+      pesoKg: 9001, // > 9.000
+      embalaje: "estandar",
+      ciudadId: "caracas",
+    });
+    expect(cot.alerta?.tipo).toBe("peso_envio_excedido");
+    expect(cot.alerta?.mensaje).toContain("a medida");
+    expect(cot.total).toBe(0);
+  });
+
+  it("9.000 kg exacto NO dispara el tope por envío (usa `>` estricto)", () => {
+    const cot = calcularEnvioLCL({
+      cbmTotal: 20,
+      pesoKg: 9000, // en el borde
+      embalaje: "estandar",
+      ciudadId: "caracas",
+    });
+    expect(cot.alerta).toBeUndefined();
+    expect(cot.total).toBeGreaterThan(0);
+  });
+
+  it("el caso 27 CBM / 27.000 kg ahora deriva al asesor (antes cotizaba $22.950)", () => {
+    const cot = calcularEnvioLCL({
+      cbmTotal: 27,
+      pesoKg: 27000,
+      embalaje: "estandar",
+      ciudadId: "caracas",
+    });
+    expect(cot.alerta?.tipo).toBe("peso_envio_excedido");
+    expect(cot.total).toBe(0);
   });
 
   // Validación: ciudad inválida
@@ -418,6 +457,21 @@ describe("calcularEnvioLCL con params configurables", () => {
     );
     expect(cot.recargoExcedente).toBe(200);
     expect(cot.total).toBe(1000);
+  });
+
+  it("USA params.pesoMaxEnvioKg como tope para derivar al asesor", () => {
+    const bajo = calcularEnvioLCL(
+      { cbmTotal: 20, pesoKg: 12000, embalaje: "estandar", ciudadId: "caracas" },
+      withParams({ pesoMaxEnvioKg: 15000 }), // 12.000 < 15.000 → cotiza
+    );
+    expect(bajo.alerta).toBeUndefined();
+    expect(bajo.total).toBeGreaterThan(0);
+
+    const alto = calcularEnvioLCL(
+      { cbmTotal: 20, pesoKg: 12000, embalaje: "estandar", ciudadId: "caracas" },
+      withParams({ pesoMaxEnvioKg: 8000 }), // 12.000 > 8.000 → deriva
+    );
+    expect(alto.alerta?.tipo).toBe("peso_envio_excedido");
   });
 
   it("cobro por densidad continuo sin tope (650 kg/CBM sí cotiza)", () => {

@@ -38,7 +38,7 @@ type FieldKey = keyof CalculatorSettingsInput;
 const GROUPS: { title: string; keys: FieldKey[] }[] = [
   {
     title: "Modelo de peso",
-    keys: ["pesoIncluidoKg", "recargoExcedenteKg"],
+    keys: ["pesoIncluidoKg", "recargoExcedenteKg", "pesoMaxEnvioKg"],
   },
   {
     title: "Recargos y descuentos",

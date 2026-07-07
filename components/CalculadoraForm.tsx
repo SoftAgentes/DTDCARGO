@@ -156,6 +156,12 @@ export function CalculadoraForm({
         text: "Esto es más que el peso permitido por contenedor; consulta a tu asesor.",
         tone: "danger",
       };
+    // Tope de peso por envío (anti-monopolio): sobre esto no auto-cotizamos.
+    if (form.pesoKg > params.pesoMaxEnvioKg)
+      return {
+        text: "Por el peso de esta carga la cotizamos a medida — escríbele a tu asesor.",
+        tone: "danger",
+      };
     if (effectiveCbm <= 0 || form.pesoKg <= 0) return null;
     const fmt = (n: number) => parseFloat(n.toFixed(2)).toString();
     const maxSinRecargo = effectiveCbm * params.pesoIncluidoKg;

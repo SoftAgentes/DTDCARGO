@@ -85,6 +85,15 @@ export const CONFIG = {
    * contenedor → deriva al asesor.
    */
   pesoMaxContenedorKg: 27000,
+
+  /**
+   * Tope de peso POR ENVÍO (kg). Sobre esto la calculadora NO auto-cotiza:
+   * deriva al asesor. Evita que un solo envío monopolice el peso del contenedor
+   * (ej. 27.000 kg en 27 CBM llena el peso con 40% del volumen → nadie más entra
+   * y la cotización por volumen iría a pérdida). ⅓ de 27.000 → garantiza ≥3
+   * clientes por consolidado. Configurable desde Admin › Calculadora pública.
+   */
+  pesoMaxEnvioKg: 9000,
 } as const;
 
 // ────────────────────────────────────────────────────────────────────
@@ -111,6 +120,8 @@ export type CalcParams = {
   cbmMaxContenedor: number;
   /** Peso total máximo cotizable (kg). Sobre esto → deriva al asesor. */
   pesoMaxContenedorKg: number;
+  /** Tope de peso POR ENVÍO (kg). Sobre esto → deriva al asesor (anti-monopolio). */
+  pesoMaxEnvioKg: number;
 };
 
 /** Defaults = los valores históricos de CONFIG. Fallback cuando no hay config en DB. */
@@ -124,6 +135,7 @@ export const DEFAULT_PARAMS: CalcParams = {
   tarifaKmFueraCasco: CONFIG.tarifaKmFueraCasco,
   cbmMaxContenedor: CONFIG.cbmMaxContenedor,
   pesoMaxContenedorKg: CONFIG.pesoMaxContenedorKg,
+  pesoMaxEnvioKg: CONFIG.pesoMaxEnvioKg,
 };
 
 // ────────────────────────────────────────────────────────────────────
@@ -232,7 +244,8 @@ export type EnvioCotizacion = {
       | "ciudad_invalida"
       | "carga_especial"
       | "contenedor_excedido"
-      | "peso_contenedor_excedido";
+      | "peso_contenedor_excedido"
+      | "peso_envio_excedido";
     mensaje: string;
   };
 
@@ -304,6 +317,19 @@ export function calcularEnvioLCL(
       tipo: "peso_contenedor_excedido",
       mensaje:
         "Esto es más que el peso permitido por contenedor; consulta a tu asesor",
+    }, input);
+  }
+
+  // 5.3c — Tope de peso POR ENVÍO (anti-monopolio). Debajo del tope absoluto de
+  // contenedor, pero un envío tan pesado (poca densidad de volumen, mucho peso)
+  // agota el presupuesto de peso del consolidado → no entra nadie más y cotizar
+  // por volumen iría a pérdida. Sobre este tope NO auto-cotizamos: al asesor.
+  if (input.pesoKg > params.pesoMaxEnvioKg) {
+    return cotizacionVacia({
+      tipo: "peso_envio_excedido",
+      mensaje:
+        "Por el peso de esta carga la cotizamos a medida. Escríbele a tu asesor y " +
+        "te damos el mejor precio para el consolidado.",
     }, input);
   }
 

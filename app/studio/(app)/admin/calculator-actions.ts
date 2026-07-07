@@ -84,6 +84,7 @@ async function resolveTenantAdmin(
 const SETTINGS_COLUMN: Record<keyof CalculatorSettingsInput, string> = {
   pesoIncluidoKg: "peso_incluido_kg",
   recargoExcedenteKg: "recargo_excedente_kg",
+  pesoMaxEnvioKg: "peso_max_envio_kg",
   descuentoValencia: "descuento_valencia",
   recargoEmbalajeEspecial: "recargo_embalaje_especial",
   recargoBateriaMult: "recargo_bateria_mult",
