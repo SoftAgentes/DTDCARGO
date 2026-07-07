@@ -20,8 +20,6 @@ import {
 } from "@/lib/studio/rate-types";
 import { SERVICE_LABELS } from "@/lib/studio/shipment-types";
 import type { RateFilters } from "@/lib/studio/rate-queries";
-import type { CalculatorSettings } from "@/lib/studio/calculator-settings-types";
-import type { CalculatorCity } from "@/lib/studio/calculator-cities-types";
 import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
@@ -29,28 +27,18 @@ import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { useRowHighlight } from "@/app/studio/_components/ui/useRowHighlight";
 import { RateDrawer } from "./RateDrawer";
-import { ParametrosPanel } from "./ParametrosPanel";
-import { CiudadesPanel } from "./CiudadesPanel";
 import { ImportRatesDrawer } from "./ImportRatesDrawer";
 import { publishRateAction, archiveRateAction } from "../actions";
 
 type DrawerState = null | { mode: "create" } | { mode: "edit"; rate: Rate };
-type Tab = "tarifas" | "ciudades" | "parametros";
 
 export function TarifasClient({
   rates,
   filters,
-  settings,
-  cities,
-  isAdmin,
 }: {
   rates: Rate[];
   filters: RateFilters;
-  settings: CalculatorSettings | null;
-  cities: CalculatorCity[];
-  isAdmin: boolean;
 }) {
-  const [tab, setTab] = useState<Tab>("tarifas");
   const [importOpen, setImportOpen] = useState(false);
   const router = useRouter();
   const params = useSearchParams();
@@ -129,62 +117,24 @@ export function TarifasClient({
             por ruta y vigencia. Los Estimados las consumen para sugerir precios.
           </p>
         </div>
-        {tab === "tarifas" && (
-          <div style={{ display: "flex", gap: 10 }}>
-            <button
-              type="button"
-              className="studio-btn studio-btn-ghost"
-              onClick={() => setImportOpen(true)}
-            >
-              Importar tarifas
-            </button>
-            <button
-              type="button"
-              className="studio-btn studio-btn-primary"
-              onClick={() => setDrawer({ mode: "create" })}
-            >
-              + Nueva tarifa
-            </button>
-          </div>
-        )}
+        <div style={{ display: "flex", gap: 10 }}>
+          <button
+            type="button"
+            className="studio-btn studio-btn-ghost"
+            onClick={() => setImportOpen(true)}
+          >
+            Importar tarifas
+          </button>
+          <button
+            type="button"
+            className="studio-btn studio-btn-primary"
+            onClick={() => setDrawer({ mode: "create" })}
+          >
+            + Nueva tarifa
+          </button>
+        </div>
       </div>
 
-      {/* Tabs · Tarifas (catálogo) | Parámetros (reglas del calculador) */}
-      <div
-        role="tablist"
-        aria-label="Secciones de tarifas"
-        style={{
-          display: "flex",
-          gap: 4,
-          marginBottom: 22,
-          borderBottom: "1px solid var(--border)",
-        }}
-      >
-        <TabButton
-          id="tab-tarifas"
-          controls="panel-tarifas"
-          active={tab === "tarifas"}
-          onClick={() => setTab("tarifas")}
-          label="Tarifas"
-        />
-        <TabButton
-          id="tab-ciudades"
-          controls="panel-ciudades"
-          active={tab === "ciudades"}
-          onClick={() => setTab("ciudades")}
-          label="Ciudades"
-        />
-        <TabButton
-          id="tab-parametros"
-          controls="panel-parametros"
-          active={tab === "parametros"}
-          onClick={() => setTab("parametros")}
-          label="Parámetros del calculador"
-        />
-      </div>
-
-      {tab === "tarifas" && (
-        <div role="tabpanel" id="panel-tarifas" aria-labelledby="tab-tarifas">
       {/* Toolbar */}
       <div
         style={{
@@ -276,20 +226,6 @@ export function TarifasClient({
       ) : (
         <RatesTable rates={rates} onEdit={(rate) => setDrawer({ mode: "edit", rate })} />
       )}
-        </div>
-      )}
-
-      {tab === "ciudades" && (
-        <div role="tabpanel" id="panel-ciudades" aria-labelledby="tab-ciudades">
-          <CiudadesPanel cities={cities} isAdmin={isAdmin} />
-        </div>
-      )}
-
-      {tab === "parametros" && (
-        <div role="tabpanel" id="panel-parametros" aria-labelledby="tab-parametros">
-          <ParametrosPanel settings={settings} />
-        </div>
-      )}
 
       {/* Drawer crear/editar */}
       {drawer && (
@@ -303,47 +239,6 @@ export function TarifasClient({
       {/* Importador masivo */}
       {importOpen && <ImportRatesDrawer onClose={() => setImportOpen(false)} />}
     </div>
-  );
-}
-
-// ── Tabs ──────────────────────────────────────────────────────
-
-function TabButton({
-  id,
-  controls,
-  active,
-  onClick,
-  label,
-}: {
-  id: string;
-  controls: string;
-  active: boolean;
-  onClick: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="tab"
-      id={id}
-      aria-controls={controls}
-      aria-selected={active}
-      onClick={onClick}
-      style={{
-        appearance: "none",
-        background: "transparent",
-        border: 0,
-        padding: "10px 14px",
-        marginBottom: -1,
-        cursor: "pointer",
-        font: `${active ? 700 : 500} 13px/1 var(--f-sans)`,
-        color: active ? "var(--ink)" : "var(--ink-soft)",
-        borderBottom: `2px solid ${active ? "var(--wine)" : "transparent"}`,
-        transition: "color 0.12s, border-color 0.12s",
-      }}
-    >
-      {label}
-    </button>
   );
 }
 

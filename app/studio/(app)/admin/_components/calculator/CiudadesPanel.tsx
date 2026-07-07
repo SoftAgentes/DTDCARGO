@@ -1,12 +1,13 @@
 "use client";
 
 /**
- * CiudadesPanel — pestaña "Ciudades" del módulo Tarifas (Fase 3 Slice B, SDD-0055).
+ * CiudadesPanel — sub-pestaña "Ciudades" de la sección Calculadora pública
+ * (Administración · grupo PRO). Movido desde el módulo Tarifas.
  *
  * CRUD de las ciudades de destino del calculador público LCL DDP. Admin-only:
- * si el usuario no es admin, muestra solo lectura con un aviso (la RLS de la
- * tabla + las actions refuerzan el gate). Al guardar, revalidatePath refresca
- * el calculador del sitio.
+ * la sección Administración ya exige rol admin para verse, y la RLS de la tabla
+ * + las actions refuerzan el gate de escritura. Al guardar, revalidatePath
+ * refresca el calculador del sitio.
  */
 
 import { useEffect, useState } from "react";

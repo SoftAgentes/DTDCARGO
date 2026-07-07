@@ -1,12 +1,13 @@
 "use client";
 
 /**
- * CityDrawer — crear/editar una ciudad del calculador (Fase 3 Slice B, SDD-0055).
+ * CityDrawer — crear/editar una ciudad del calculador (Administración ·
+ * sección Calculadora pública). Movido desde el módulo Tarifas.
  *
  * Drawer lateral derecho. Mode "create" o "edit". useActionState con
  * createCityAction / updateCityAction. Soft delete en footer (solo edit).
- * Admin-only: el panel ya no lo monta si el usuario no es admin, y las actions
- * + la RLS lo refuerzan.
+ * Admin-only: la sección Administración ya exige rol admin, y las actions +
+ * la RLS lo refuerzan.
  */
 
 import { useActionState, useEffect, useState, useTransition } from "react";
@@ -16,7 +17,11 @@ import {
   type CalculatorCity,
   type CalculatorCityActionState,
 } from "@/lib/studio/calculator-cities-types";
-import { createCityAction, deleteCityAction, updateCityAction } from "../actions";
+import {
+  createCityAction,
+  deleteCityAction,
+  updateCityAction,
+} from "../../calculator-actions";
 import { Icon } from "@/app/studio/_components/icons";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
@@ -54,7 +59,7 @@ export function CityDrawer({ mode, city, onClose }: Props) {
       // Al crear, resaltar la row nueva en la lista de ciudades (tono warm).
       if (mode === "create" && state.createdId) {
         router.push(
-          `/studio/tarifas?highlight=${encodeURIComponent(state.createdId)}&hl-tone=warm`,
+          `/studio/admin?section=calculadora&tab=ciudades&highlight=${encodeURIComponent(state.createdId)}&hl-tone=warm`,
         );
       }
       onClose();

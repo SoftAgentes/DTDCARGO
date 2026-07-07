@@ -32,11 +32,14 @@ import { CalendarSection } from "./_components/CalendarSection";
 import { ApiIntegrationSection } from "./_components/ApiIntegrationSection";
 import { WorkflowsSection } from "./_components/WorkflowsSection";
 import { ImportExportSection } from "./_components/ImportExportSection";
+import { CalculatorSection } from "./_components/calculator/CalculatorSection";
 import { getNumberingOverview } from "@/lib/studio/numbering-queries";
 import { getRecentAuditEvents } from "@/lib/studio/audit-queries";
 import { getExchangeRatesOverview } from "@/lib/studio/exchange-rates-queries";
 import { getOperationalCalendar } from "@/lib/studio/op-calendar-queries";
 import { getApiIntegration } from "@/lib/studio/api-integration-queries";
+import { getCalculatorSettings } from "@/lib/studio/calculator-settings-queries";
+import { listCalculatorCities } from "@/lib/studio/calculator-cities-queries";
 import {
   listLegalDocs,
   listAcceptances,
@@ -54,6 +57,8 @@ import type { AuditEvent } from "@/lib/studio/audit-types";
 import type { ExchangeRatesOverview } from "@/lib/studio/exchange-rates-types";
 import type { CalendarEvent } from "@/lib/studio/op-calendar-types";
 import type { ApiIntegrationData } from "@/lib/studio/api-integration-types";
+import type { CalculatorSettings } from "@/lib/studio/calculator-settings-types";
+import type { CalculatorCity } from "@/lib/studio/calculator-cities-types";
 
 export const metadata = { title: "Administración" };
 
@@ -269,6 +274,14 @@ const SECTIONS: AdminSection[] = [
     sddRef: "SDD-0130",
   },
   {
+    id: "calculadora",
+    group: "PRO",
+    label: "Calculadora pública",
+    icon: "calc",
+    description:
+      "Reglas del calculador de precios del sitio (LCL DDP): parámetros de peso y distancia + ciudades de destino. Config administrativa que se edita muy pocas veces. La tarifa base ($/CBM) sigue en el módulo Tarifas.",
+  },
+  {
     id: "agents",
     group: "PRO",
     label: "Agentes y Skills",
@@ -289,12 +302,13 @@ function isSection(s: string | undefined): s is string {
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ section?: string }>;
+  searchParams: Promise<{ section?: string; tab?: string }>;
 }) {
   await requireModuleView("admin");
   const sp = await searchParams;
   const activeId: string = isSection(sp.section) ? sp.section : "company";
   const active = SECTIONS.find((s) => s.id === activeId) ?? SECTIONS[0];
+  const calcInitialTab = sp.tab === "ciudades" ? "ciudades" : "parametros";
 
   // Solo la sección "company" tiene implementación real (SDD-0120): fetch acá
   // para no pegarle a la DB en las secciones que aún son placeholder.
@@ -306,6 +320,7 @@ export default async function AdminPage({
   let apiData: ApiIntegrationData | null = null;
   let importData: { calendar: CalendarEvent[]; company: CompanyData } | null = null;
   let legalData: LegalSectionData | null = null;
+  let calcData: { settings: CalculatorSettings | null; cities: CalculatorCity[] } | null = null;
   if (active.id === "legal-docs" || active.id === "acceptances") {
     const supabase = await createClient();
     // RLS ya acota al tenant del admin logueado; listLegalDocs sin tenantId se
@@ -347,6 +362,13 @@ export default async function AdminPage({
       getCompanyData(supabase),
     ]);
     importData = { calendar, company };
+  } else if (active.id === "calculadora") {
+    const supabase = await createClient();
+    const [settings, cities] = await Promise.all([
+      getCalculatorSettings(supabase),
+      listCalculatorCities(supabase),
+    ]);
+    calcData = { settings, cities };
   }
 
   const grouped = GROUP_ORDER.map((g) => ({
@@ -441,6 +463,8 @@ export default async function AdminPage({
           apiData={apiData}
           importData={importData}
           legalData={legalData}
+          calcData={calcData}
+          calcInitialTab={calcInitialTab}
         />
       </div>
     </div>
@@ -542,6 +566,8 @@ function Content({
   apiData,
   importData,
   legalData,
+  calcData,
+  calcInitialTab,
 }: {
   section: AdminSection;
   companyData: CompanyData | null;
@@ -552,6 +578,8 @@ function Content({
   apiData: ApiIntegrationData | null;
   importData: { calendar: CalendarEvent[]; company: CompanyData } | null;
   legalData: LegalSectionData | null;
+  calcData: { settings: CalculatorSettings | null; cities: CalculatorCity[] } | null;
+  calcInitialTab: "parametros" | "ciudades";
 }) {
   return (
     <div key={section.id}>
@@ -619,6 +647,13 @@ function Content({
         <ApiIntegrationSection data={apiData} />
       ) : section.id === "workflows" ? (
         <WorkflowsSection />
+      ) : section.id === "calculadora" && calcData ? (
+        <CalculatorSection
+          settings={calcData.settings}
+          cities={calcData.cities}
+          isAdmin
+          initialTab={calcInitialTab}
+        />
       ) : section.id === "import" && importData ? (
         <ImportExportSection
           calendar={importData.calendar}
