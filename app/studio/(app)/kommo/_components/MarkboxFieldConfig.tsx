@@ -62,7 +62,7 @@ export function MarkboxFieldConfig({
       </p>
 
       {fields.length === 0 ? (
-        <p style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+        <p style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
           No hay campos de lead sincronizados todavía. Corre el sync de Kommo y vuelve.
         </p>
       ) : (
@@ -105,11 +105,11 @@ export function MarkboxFieldConfig({
           {pending ? "Guardando…" : "Guardar campo"}
         </button>
         {!canEdit ? (
-          <span style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-mute)" }}>
+          <span style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
             Solo un administrador puede editar el campo.
           </span>
         ) : fields.length === 0 ? (
-          <span style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-mute)" }}>
+          <span style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
             Sincroniza los campos de Kommo para habilitarlo.
           </span>
         ) : null}

@@ -264,7 +264,7 @@ export function MonthView({
                 <span
                   style={{
                     font: "600 10px/1 var(--f-sans)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     padding: "1px 6px",
                   }}
                 >

@@ -772,7 +772,7 @@ function PhotoGallery({
 }) {
   if (sample || photos.length === 0) {
     return (
-      <p style={{ font: "600 10px/1.4 var(--f-sans)", color: "var(--ink-mute)" }}>
+      <p style={{ font: "600 10px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
         {sample
           ? "Las fotos se omiten en el modo ejemplo."
           : "Sin fotos adjuntas todavía."}

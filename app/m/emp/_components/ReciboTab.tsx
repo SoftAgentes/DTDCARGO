@@ -108,7 +108,7 @@ export function ReciboTab({
             {me.full_name} · {me.employee_code}
             {me.national_id ? ` · ${me.national_id}` : ""}
           </div>
-          <div style={{ font: "400 11.5px/1.4 var(--f-sans)", color: "var(--ink-mute)", marginTop: 1 }}>
+          <div style={{ font: "400 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 1 }}>
             Estado: {payslip.run_status === "pagado" ? "Pagado" : "Confirmado"}
           </div>
         </div>
@@ -146,7 +146,7 @@ export function ReciboTab({
           </div>
         ))}
 
-        <p style={{ font: "400 10.5px/1.4 var(--f-sans)", color: "var(--ink-mute)", marginTop: 10 }}>
+        <p style={{ font: "400 10.5px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 10 }}>
           Montos en USD (sueldo indexado). El pago en Bs se calcula a la tasa BCV del día de pago.
           Documento informativo del recibo de nómina.
         </p>

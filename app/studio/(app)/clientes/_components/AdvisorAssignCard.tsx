@@ -127,7 +127,7 @@ export function AdvisorAssignCard({
       </p>
 
       {advisors.length === 0 ? (
-        <p style={{ font: "500 12.5px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+        <p style={{ font: "500 12.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
           No hay miembros del equipo para asignar todavía.
         </p>
       ) : (

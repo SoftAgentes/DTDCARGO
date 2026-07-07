@@ -80,7 +80,7 @@ export function AuditLogSection({ events }: { events: AuditEvent[] }) {
           <option value="operario">Operario</option>
           <option value="system">Sistema</option>
         </select>
-        <span style={{ marginLeft: "auto", font: "600 11.5px/1 var(--f-mono)", color: "var(--ink-mute)" }}>
+        <span style={{ marginLeft: "auto", font: "600 11.5px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
           {filtered.length} de {events.length}
         </span>
       </div>
@@ -128,7 +128,7 @@ export function AuditLogSection({ events }: { events: AuditEvent[] }) {
                       <div style={{ font: "600 12.5px/1.3 var(--f-sans)", color: "var(--ink)" }}>
                         {auditEntityLabel(e.entityType)}
                       </div>
-                      <code style={{ font: "500 10.5px/1.3 var(--f-mono)", color: "var(--ink-mute)" }}>
+                      <code style={{ font: "500 10.5px/1.3 var(--f-mono)", color: "var(--ink-soft)" }}>
                         {e.entityId.slice(0, 8)}…
                       </code>
                     </Td>

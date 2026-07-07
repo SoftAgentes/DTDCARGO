@@ -406,7 +406,7 @@ export function NotificationBell({ userId, initial }: NotificationBellProps) {
                         display: "flex",
                         gap: 8,
                         font: "600 10.5px/1 var(--f-mono)",
-                        color: "var(--ink-mute)",
+                        color: "var(--ink-soft)",
                       }}
                     >
                       {folio && <span>{folio}</span>}

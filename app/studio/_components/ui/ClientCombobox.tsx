@@ -225,7 +225,7 @@ export function ClientCombobox({
               style={{
                 padding: "10px 12px",
                 font: "500 12px/1.3 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
               }}
             >
               Buscando…

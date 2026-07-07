@@ -118,7 +118,7 @@ export function DiplomasClient({
                 <div
                   style={{
                     font: "500 11px/1.4 var(--f-sans)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
@@ -139,7 +139,7 @@ export function DiplomasClient({
                   <code style={{ font: "600 10.5px/1 var(--f-mono)", color: "var(--wine)" }}>
                     {d.folio}
                   </code>
-                  <span style={{ font: "500 10px/1 var(--f-mono)", color: "var(--ink-mute)" }}>
+                  <span style={{ font: "500 10px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
                     {fmtShort(d.issued_at)}
                   </span>
                 </div>
@@ -235,7 +235,7 @@ function DiplomaStage({
           <span
             style={{
               font: "600 11px/1 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               textTransform: "uppercase",
               letterSpacing: "0.08em",
             }}

@@ -122,7 +122,7 @@ export function CustomsTaxTab({ breakdown }: { breakdown: TaxBreakdown }) {
               <div
                 style={{
                   font: "500 10.5px/1.3 var(--f-mono)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                   marginTop: 3,
                   textAlign: "right",
                 }}

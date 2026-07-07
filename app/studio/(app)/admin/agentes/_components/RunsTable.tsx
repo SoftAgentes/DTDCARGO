@@ -98,7 +98,7 @@ export function RunsTable({ runs }: { runs: AgentRunWithAgent[] }) {
                       <span
                         style={{
                           font: "500 11px/1 var(--f-mono)",
-                          color: "var(--ink-mute)",
+                          color: "var(--ink-soft)",
                         }}
                       >
                         {r.agent?.slug ?? "—"}
@@ -228,7 +228,7 @@ function RunDetailModal({
             <div
               style={{
                 font: "500 11px/1 var(--f-mono)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
               }}
             >
               {run.agent?.slug} · {new Date(run.created_at).toLocaleString("es-VE")}
@@ -323,7 +323,7 @@ function RunDetailModal({
                   style={{
                     marginTop: 10,
                     font: "500 11px/1.4 var(--f-mono)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                   }}
                 >
                   Fuentes: {citations.join(" · ")}
@@ -368,7 +368,7 @@ function RunDetailModal({
                         <span
                           style={{
                             font: "500 11px/1 var(--f-mono)",
-                            color: "var(--ink-mute)",
+                            color: "var(--ink-soft)",
                           }}
                         >
                           {formatLatency(tc.latency_ms)}
@@ -413,7 +413,7 @@ function Section({
       <div
         style={{
           font: "700 10px/1 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           letterSpacing: "0.14em",
           textTransform: "uppercase",
           marginBottom: 8,
@@ -455,7 +455,7 @@ function Stat({ label, value, mono }: { label: string; value: string; mono?: boo
       <div
         style={{
           font: "700 9px/1 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           letterSpacing: "0.14em",
           textTransform: "uppercase",
         }}
@@ -481,7 +481,7 @@ function Th({ children, align = "left" }: { children: React.ReactNode; align?: "
         textAlign: align,
         padding: "10px 14px",
         font: "700 10px/1 var(--f-sans)",
-        color: "var(--ink-mute)",
+        color: "var(--ink-soft)",
         letterSpacing: "0.14em",
         textTransform: "uppercase",
       }}

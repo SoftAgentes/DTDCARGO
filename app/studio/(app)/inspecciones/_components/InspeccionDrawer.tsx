@@ -133,7 +133,7 @@ export function InspeccionDrawer({ mode, report, clients, onClose }: Props) {
         <div>
           <label className="studio-label" htmlFor="ins-client">
             Cliente{" "}
-            <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>
+            <span style={{ color: "var(--ink-soft)", fontWeight: 500 }}>
               (opcional)
             </span>
           </label>
@@ -186,7 +186,7 @@ export function InspeccionDrawer({ mode, report, clients, onClose }: Props) {
           <div>
             <label className="studio-label" htmlFor="ins-product">
               Producto{" "}
-              <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>
+              <span style={{ color: "var(--ink-soft)", fontWeight: 500 }}>
                 (opcional)
               </span>
             </label>
@@ -243,7 +243,7 @@ export function InspeccionDrawer({ mode, report, clients, onClose }: Props) {
             <label className="studio-label" htmlFor="ins-score">
               Puntaje /100{" "}
               {!isFactory && (
-                <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>
+                <span style={{ color: "var(--ink-soft)", fontWeight: 500 }}>
                   (solo fábrica)
                 </span>
               )}
@@ -269,7 +269,7 @@ export function InspeccionDrawer({ mode, report, clients, onClose }: Props) {
         <div>
           <label className="studio-label" htmlFor="ins-conclusion">
             Conclusión{" "}
-            <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>
+            <span style={{ color: "var(--ink-soft)", fontWeight: 500 }}>
               (opcional)
             </span>
           </label>
@@ -300,7 +300,7 @@ export function InspeccionDrawer({ mode, report, clients, onClose }: Props) {
         >
           <label className="studio-label" htmlFor="ins-provider">
             Proveedor de inspección{" "}
-            <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>
+            <span style={{ color: "var(--ink-soft)", fontWeight: 500 }}>
               (interno)
             </span>
           </label>
@@ -316,7 +316,7 @@ export function InspeccionDrawer({ mode, report, clients, onClose }: Props) {
           <p
             style={{
               font: "500 11px/1.4 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               margin: "6px 0 0",
             }}
           >

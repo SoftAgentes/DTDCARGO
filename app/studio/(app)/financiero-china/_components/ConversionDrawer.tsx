@@ -163,7 +163,7 @@ export function ConversionDrawer({ onClose }: { onClose: () => void }) {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div>
             <label className="studio-label" htmlFor="fc-conv-market">
-              Tasa de mercado <span style={{ color: "var(--ink-mute)" }}>(opcional · para el spread)</span>
+              Tasa de mercado <span style={{ color: "var(--ink-soft)" }}>(opcional · para el spread)</span>
             </label>
             <NumericInput
               id="fc-conv-market"
@@ -176,7 +176,7 @@ export function ConversionDrawer({ onClose }: { onClose: () => void }) {
           </div>
           <div>
             <label className="studio-label" htmlFor="fc-conv-comm">
-              Comisión explícita <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+              Comisión explícita <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
             </label>
             <NumericInput
               id="fc-conv-comm"
@@ -191,7 +191,7 @@ export function ConversionDrawer({ onClose }: { onClose: () => void }) {
 
         <div>
           <label className="studio-label" htmlFor="fc-conv-date">
-            Fecha de conversión <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+            Fecha de conversión <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
           </label>
           <input
             id="fc-conv-date"
@@ -204,7 +204,7 @@ export function ConversionDrawer({ onClose }: { onClose: () => void }) {
 
         <div>
           <label className="studio-label" htmlFor="fc-conv-notes">
-            Notas <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+            Notas <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
           </label>
           <textarea
             id="fc-conv-notes"

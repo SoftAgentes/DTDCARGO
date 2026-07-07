@@ -228,7 +228,7 @@ export function PushOptInBanner() {
         </div>
       )}
       {status === "unsupported" && (
-        <div style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-mute)" }}>
+        <div style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
           Este navegador no soporta avisos push.
         </div>
       )}
@@ -241,7 +241,7 @@ export function PushOptInBanner() {
       <div
         style={{
           font: "500 11px/1.45 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           borderTop: "1px solid var(--border)",
           paddingTop: 8,
         }}

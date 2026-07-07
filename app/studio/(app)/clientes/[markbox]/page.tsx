@@ -314,7 +314,7 @@ export default async function ClienteDetallePage({
                 paddingTop: 14,
                 borderTop: "1px solid var(--border)",
                 font: "500 11px/1.4 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
               }}
             >
               Creado {formatDate(client.created_at)}
@@ -446,7 +446,7 @@ export default async function ClienteDetallePage({
             <p
               style={{
                 font: "500 11.5px/1.4 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 margin: "12px 0 0",
               }}
             >

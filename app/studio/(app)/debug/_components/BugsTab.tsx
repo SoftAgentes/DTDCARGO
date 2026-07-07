@@ -122,7 +122,7 @@ export function BugsTab({ bugs, isAdmin }: BugsTabProps) {
                   style={{
                     fontFamily: "var(--f-mono)",
                     fontSize: 11.5,
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     background: "var(--bg-elevated)",
                     padding: "2px 6px",
                     borderRadius: "var(--r-xs)",

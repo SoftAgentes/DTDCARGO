@@ -365,7 +365,7 @@ export function InvoiceDrawer({
               <p
                 style={{
                   font: "500 11px/1.3 var(--f-sans)",
-                  color: shipmentId ? "var(--success)" : "var(--ink-mute)",
+                  color: shipmentId ? "var(--success)" : "var(--ink-soft)",
                   margin: "6px 0 0",
                 }}
               >
@@ -441,7 +441,7 @@ export function InvoiceDrawer({
               <p
                 style={{
                   font: "400 11px/1.4 var(--f-sans)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                   margin: "6px 0 0",
                 }}
               >
@@ -541,7 +541,7 @@ export function InvoiceDrawer({
                         style={{
                           gridColumn: "1 / -1",
                           font: "500 10.5px/1 var(--f-mono)",
-                          color: "var(--ink-mute)",
+                          color: "var(--ink-soft)",
                           textAlign: "right",
                           marginTop: -2,
                         }}

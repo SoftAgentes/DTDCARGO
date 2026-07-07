@@ -220,7 +220,7 @@ export function WithholdingsView({
           >
             <div
               className="studio-eyebrow"
-              style={{ color: "var(--ink-mute)", marginBottom: 6 }}
+              style={{ color: "var(--ink-soft)", marginBottom: 6 }}
             >
               {c.k}
             </div>
@@ -347,7 +347,7 @@ export function WithholdingsView({
       <p
         style={{
           font: "400 11.5px/1.5 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           margin: "14px 0 0",
           maxWidth: "82ch",
         }}

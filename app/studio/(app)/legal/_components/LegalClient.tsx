@@ -711,7 +711,7 @@ function DocsView({
               style={{
                 marginLeft: "auto",
                 font: "500 11.5px/1.3 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
               }}
             >
               Documentos reemplazados por el vigente — el cliente ya no los firma
@@ -859,7 +859,7 @@ function DocModal({ doc, onClose }: { doc: LegalDoc; onClose: () => void }) {
             <p
               style={{
                 font: "500 13px/1.5 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 margin: 0,
               }}
             >

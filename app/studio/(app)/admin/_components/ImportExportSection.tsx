@@ -115,7 +115,7 @@ export function ImportExportSection({
           {exports.map((x) => (
             <div key={x.title} style={{ display: "grid", gridTemplateColumns: "1fr 120px 120px", gap: 12, padding: "12px 14px", background: "var(--bg-elevated)", borderRadius: "var(--r-md)", alignItems: "center" }}>
               <div style={{ font: "700 13px/1.3 var(--f-sans)", color: "var(--ink)" }}>{x.title}</div>
-              <span style={{ font: "600 11.5px/1 var(--f-mono)", color: "var(--ink-mute)" }}>{x.count} filas</span>
+              <span style={{ font: "600 11.5px/1 var(--f-mono)", color: "var(--ink-soft)" }}>{x.count} filas</span>
               <button
                 type="button"
                 className="studio-btn studio-btn-ghost studio-btn-sm"

@@ -346,7 +346,7 @@ export function ClubMemberDrawer({
 function CiHintNote({ hint }: { hint: CiHint }) {
   if (hint.kind === "idle") return null;
 
-  let color = "var(--ink-mute)";
+  let color = "var(--ink-soft)";
   let text = "";
   if (hint.kind === "checking") {
     text = "Buscando a la persona por cédula…";

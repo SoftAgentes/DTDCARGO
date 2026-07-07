@@ -194,7 +194,7 @@ export function QrQueueTable({
                       <code
                         style={{
                           font: "600 10.5px/1 var(--f-mono)",
-                          color: "var(--ink-mute)",
+                          color: "var(--ink-soft)",
                         }}
                       >
                         {timeAgo(o.sent_at)}
@@ -208,7 +208,7 @@ export function QrQueueTable({
                     <code
                       style={{
                         font: "600 11px/1.2 var(--f-mono)",
-                        color: "var(--ink-mute)",
+                        color: "var(--ink-soft)",
                         marginTop: 3,
                         display: "inline-block",
                       }}
@@ -239,7 +239,7 @@ export function QrQueueTable({
                       <code
                         style={{
                           font: "500 10.5px/1.2 var(--f-mono)",
-                          color: "var(--ink-mute)",
+                          color: "var(--ink-soft)",
                           marginTop: 2,
                           display: "inline-block",
                         }}
@@ -257,7 +257,7 @@ export function QrQueueTable({
                         style={{
                           marginTop: 4,
                           font: "500 10.5px/1.2 var(--f-sans)",
-                          color: "var(--ink-mute)",
+                          color: "var(--ink-soft)",
                         }}
                       >
                         {o.assigned_printer}
@@ -303,7 +303,7 @@ export function QrQueueTable({
                       <span
                         style={{
                           font: "500 11px/1 var(--f-mono)",
-                          color: "var(--ink-mute)",
+                          color: "var(--ink-soft)",
                         }}
                       >
                         {timeAgo(o.delivered_at)}

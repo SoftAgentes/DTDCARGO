@@ -227,7 +227,7 @@ function MemberRow({
 
       <Td>
         {member.role === "admin" ? (
-          <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>Todos</span>
+          <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>Todos</span>
         ) : SCOPED_ROLES.has(member.role) ? (
           <form action={scopeAction} style={{ display: "inline-flex" }}>
             <input type="hidden" name="target_user_id" value={member.user_id} />

@@ -179,7 +179,7 @@ function MenuItem({
           style={{
             display: "block",
             font: "500 11px/1.3 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
           }}
         >
           {hint}

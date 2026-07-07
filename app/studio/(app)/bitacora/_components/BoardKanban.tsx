@@ -125,7 +125,7 @@ export function BoardKanban({
                     padding: "18px 10px",
                     textAlign: "center",
                     font: "500 11.5px/1.4 var(--f-sans)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     border: "1px dashed var(--border)",
                     borderRadius: "var(--r-md)",
                   }}
@@ -273,7 +273,7 @@ function TaskCard({
             <span
               style={{
                 font: "500 10.5px/1 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
               }}
             >
               {task.responsable_nombre

@@ -261,7 +261,7 @@ export function ActivosFijosTab({
                 <span style={{ font: "600 12.5px/1.3 var(--f-sans)", color: "var(--ink)", display: "block" }}>
                   {a.name}
                 </span>
-                <span style={{ font: "500 10.5px/1 var(--f-mono)", color: "var(--ink-mute)" }}>
+                <span style={{ font: "500 10.5px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
                   {a.asset_account_code} · {s.monthsElapsed}/{a.useful_life_months} m
                 </span>
               </span>

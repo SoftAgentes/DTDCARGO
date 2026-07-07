@@ -95,7 +95,7 @@ export default async function TmsPage() {
           >
             Gestión de la última milla. Flota, choferes, rutas optimizadas y
             estado en vivo para entregas DDP.{" "}
-            <span style={{ color: "var(--ink-mute)" }}>
+            <span style={{ color: "var(--ink-soft)" }}>
               Las rutas se crean desde shipments ya liberados de aduana —
               cambian status a &quot;En reparto&quot; al asignar.
             </span>

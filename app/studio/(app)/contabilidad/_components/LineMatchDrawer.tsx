@@ -186,7 +186,7 @@ export function LineMatchDrawer({ line, candidates, onClose }: Props) {
                 <Badge tone={line.direction === "credit" ? "success" : "wine"} size="sm" dot>
                   {lineDirectionLabel(line.direction)}
                 </Badge>
-                <code style={{ font: "500 11px/1 var(--f-mono)", color: "var(--ink-mute)" }}>
+                <code style={{ font: "500 11px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
                   {line.line_date}
                 </code>
               </div>
@@ -241,7 +241,7 @@ export function LineMatchDrawer({ line, candidates, onClose }: Props) {
               <p
                 style={{
                   font: "500 12px/1.4 var(--f-sans)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                   textAlign: "center",
                   padding: "16px 0",
                 }}

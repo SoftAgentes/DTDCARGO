@@ -162,7 +162,7 @@ export function NewOperarioDrawer({
           <p
             style={{
               font: "500 11px/1.4 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               margin: "4px 0 0",
             }}
           >
@@ -204,7 +204,7 @@ export function NewOperarioDrawer({
           <p
             style={{
               font: "500 11px/1.4 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               margin: "4px 0 0",
             }}
           >
@@ -328,7 +328,7 @@ function PinRevealSuccess({
         <p
           style={{
             font: "500 12px/1.5 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             textAlign: "center",
             maxWidth: 360,
             margin: 0,

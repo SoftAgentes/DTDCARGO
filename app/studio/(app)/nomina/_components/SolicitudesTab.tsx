@@ -114,7 +114,7 @@ export function SolicitudesTab({
                 <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {r.full_name}
                 </div>
-                <div style={{ font: "600 11px/1.3 var(--f-mono)", color: "var(--ink-mute)" }}>
+                <div style={{ font: "600 11px/1.3 var(--f-mono)", color: "var(--ink-soft)" }}>
                   {r.national_id}
                 </div>
               </div>
@@ -239,7 +239,7 @@ function TableHeader({ cols, children }: { cols: string; children: React.ReactNo
         font: "700 9.5px/1 var(--f-sans)",
         letterSpacing: "0.08em",
         textTransform: "uppercase",
-        color: "var(--ink-mute)",
+        color: "var(--ink-soft)",
         borderBottom: "1px solid var(--border)",
         background: "var(--bg-elevated)",
       }}

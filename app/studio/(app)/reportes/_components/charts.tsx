@@ -97,7 +97,7 @@ export function VolumeBars({ points }: { points: MonthlyVolumePoint[] }) {
       <div
         style={{
           font: "500 12.5px/1.4 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           padding: "var(--s-4) 0",
         }}
       >
@@ -164,7 +164,7 @@ export function VolumeBars({ points }: { points: MonthlyVolumePoint[] }) {
               fontFamily="var(--f-sans)"
               fontSize="9"
               fontWeight="600"
-              fill="var(--ink-mute)"
+              fill="var(--ink-soft)"
               textAnchor="middle"
             >
               {p.label}
@@ -234,7 +234,7 @@ export function Donut({
       <div
         style={{
           font: "500 12.5px/1.4 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
         }}
       >
         Sin datos para el período.
@@ -321,7 +321,7 @@ export function Donut({
             <span
               style={{
                 font: "700 11.5px/1 var(--f-mono)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 minWidth: 40,
                 textAlign: "right",
               }}

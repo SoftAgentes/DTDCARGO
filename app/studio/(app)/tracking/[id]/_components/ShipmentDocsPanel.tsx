@@ -98,7 +98,7 @@ export function ShipmentDocsPanel({
         <p
           style={{
             font: "500 12.5px/1.5 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             margin: "0 0 16px",
           }}
         >
@@ -152,7 +152,7 @@ export function ShipmentDocsPanel({
                     <div
                       style={{
                         font: "500 11px/1.3 var(--f-sans)",
-                        color: "var(--ink-mute)",
+                        color: "var(--ink-soft)",
                       }}
                     >
                       {meta}

@@ -315,7 +315,7 @@ function LabelGeneratorInner({
             <p
               style={{
                 font: "500 11.5px/1.4 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 margin: "8px 0 10px",
               }}
             >
@@ -436,7 +436,7 @@ function LabelGeneratorInner({
                 <span
                   style={{
                     font: "500 10.5px/1 var(--f-sans)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                   }}
                 >
                   recomendado · 2
@@ -475,7 +475,7 @@ function LabelGeneratorInner({
                 style={{
                   marginTop: 6,
                   font: "500 11px/1.4 var(--f-sans)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                 }}
               >
                 Imprime la misma etiqueta {copiesPerBox}{" "}
@@ -625,7 +625,7 @@ function LabelGeneratorInner({
               <div
                 style={{
                   font: "500 11.5px/1 var(--f-sans)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                   marginTop: 4,
                 }}
               >
@@ -696,7 +696,7 @@ function LabelGeneratorInner({
                       right: 10,
                       bottom: 6,
                       font: "600 9px/1 var(--f-sans)",
-                      color: "var(--ink-mute)",
+                      color: "var(--ink-soft)",
                     }}
                   >
                     Página {pi + 1} de {pages}

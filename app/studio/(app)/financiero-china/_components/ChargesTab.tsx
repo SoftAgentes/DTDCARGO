@@ -201,7 +201,7 @@ export function ChargesTab({
                     <div
                       style={{
                         font: "500 11px/1.2 var(--f-cn)",
-                        color: "var(--ink-mute)",
+                        color: "var(--ink-soft)",
                         marginTop: 3,
                       }}
                     >

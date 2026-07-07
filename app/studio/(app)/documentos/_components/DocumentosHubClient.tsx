@@ -218,7 +218,7 @@ export function DocumentosHubClient({
             <span
               style={{
                 font: "700 11px/1 var(--f-mono)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
               }}
             >
               {folderTreeCount(counts, "all")}
@@ -312,7 +312,7 @@ export function DocumentosHubClient({
                         <span
                           style={{
                             font: "600 10px/1 var(--f-mono)",
-                            color: "var(--ink-mute)",
+                            color: "var(--ink-soft)",
                           }}
                         >
                           {folderTreeCount(counts, c.id)}
@@ -405,7 +405,7 @@ export function DocumentosHubClient({
               <span
                 style={{
                   font: "600 12px/1 var(--f-mono)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                   marginLeft: 8,
                 }}
               >
@@ -502,7 +502,7 @@ export function DocumentosHubClient({
                       <div
                         style={{
                           font: "500 10.5px/1.3 var(--f-sans)",
-                          color: "var(--ink-mute)",
+                          color: "var(--ink-soft)",
                           marginTop: 2,
                         }}
                       >
@@ -548,7 +548,7 @@ export function DocumentosHubClient({
                     style={{
                       textAlign: "right",
                       font: "500 11px/1 var(--f-mono)",
-                      color: "var(--ink-mute)",
+                      color: "var(--ink-soft)",
                     }}
                   >
                     {formatDocSize(d.size_bytes)}
@@ -578,7 +578,7 @@ export function DocumentosHubClient({
                   padding: "40px 20px",
                   textAlign: "center",
                   font: "500 13px/1.5 var(--f-sans)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                 }}
               >
                 {q

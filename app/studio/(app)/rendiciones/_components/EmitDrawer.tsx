@@ -150,7 +150,7 @@ export function EmitDrawer({
                         <span
                           style={{
                             font: "500 10px/1 var(--f-mono)",
-                            color: "var(--ink-mute)",
+                            color: "var(--ink-soft)",
                             marginLeft: 6,
                           }}
                         >
@@ -296,7 +296,7 @@ function SummaryRow({
               font: "600 9px/1 var(--f-sans)",
               letterSpacing: "0.06em",
               textTransform: "uppercase",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               marginLeft: 6,
             }}
           >

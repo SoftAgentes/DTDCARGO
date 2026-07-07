@@ -136,7 +136,7 @@ export function CuotaPrestamoDrawer({
               onError={setCancelError}
               onSuccess={onClose}
             />
-            <p style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-mute)", margin: "6px 0 0" }}>
+            <p style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "6px 0 0" }}>
               Cancelar marca el préstamo como saldado sin más cuotas (no se descuenta más).
             </p>
           </div>

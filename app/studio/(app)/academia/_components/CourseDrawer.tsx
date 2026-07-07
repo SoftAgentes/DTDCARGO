@@ -135,7 +135,7 @@ export function CourseDrawer({
           <span
             style={{
               font: "500 11px/1.4 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               marginTop: 4,
               display: "block",
             }}

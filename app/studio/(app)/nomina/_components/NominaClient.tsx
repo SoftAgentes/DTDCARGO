@@ -566,7 +566,7 @@ function RulesCard({
           font: "700 9.5px/1 var(--f-sans)",
           letterSpacing: "0.08em",
           textTransform: "uppercase",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           marginBottom: "var(--s-3)",
         }}
       >
@@ -701,7 +701,7 @@ function EmpleadoRow({
           >
             {e.full_name}
           </div>
-          <div style={{ font: "600 11px/1.3 var(--f-mono)", color: "var(--ink-mute)" }}>
+          <div style={{ font: "600 11px/1.3 var(--f-mono)", color: "var(--ink-soft)" }}>
             {e.employee_code}
           </div>
         </div>
@@ -995,7 +995,7 @@ function TableHeader({ cols, children }: { cols: string; children: React.ReactNo
         font: "700 9.5px/1 var(--f-sans)",
         letterSpacing: "0.08em",
         textTransform: "uppercase",
-        color: "var(--ink-mute)",
+        color: "var(--ink-soft)",
         borderBottom: "1px solid var(--border)",
         background: "var(--bg-elevated)",
       }}
@@ -1168,7 +1168,7 @@ function PrestamoRow({
         >
           {l.employee_name}
         </div>
-        <div style={{ font: "600 11px/1.3 var(--f-mono)", color: "var(--ink-mute)" }}>
+        <div style={{ font: "600 11px/1.3 var(--f-mono)", color: "var(--ink-soft)" }}>
           {l.employee_code}
         </div>
       </div>
@@ -1306,7 +1306,7 @@ function AmonestacionRow({
         <div style={{ font: "700 12px/1.2 var(--f-mono)", color: "var(--ink)" }}>
           {w.warning_code}
         </div>
-        <div style={{ font: "600 10.5px/1.3 var(--f-mono)", color: "var(--ink-mute)" }}>
+        <div style={{ font: "600 10.5px/1.3 var(--f-mono)", color: "var(--ink-soft)" }}>
           {fmtDate(w.issued_on)}
         </div>
       </div>

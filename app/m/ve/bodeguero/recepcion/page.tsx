@@ -212,7 +212,7 @@ function ReceiptCard({
           display: "flex",
           gap: 12,
           font: "500 11.5px/1.3 var(--f-mono)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           flexWrap: "wrap",
         }}
       >

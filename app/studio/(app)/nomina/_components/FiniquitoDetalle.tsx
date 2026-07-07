@@ -116,7 +116,7 @@ export function FiniquitoDetalle({
             {settlement.employee_name} · {settlement.employee_code} ·{" "}
             {terminationCauseLabel(settlement.termination_cause)}
           </div>
-          <div style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-mute)" }}>
+          <div style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
             Ingreso {fmtDate(settlement.hire_date)} → egreso {fmtDate(settlement.termination_date)}
           </div>
         </div>
@@ -258,7 +258,7 @@ export function FiniquitoDetalle({
               font: "700 9.5px/1 var(--f-sans)",
               letterSpacing: "0.08em",
               textTransform: "uppercase",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               borderBottom: "1px solid var(--border)",
               background: "var(--bg-elevated)",
             }}
@@ -321,7 +321,7 @@ function TotalCard({ label, value, strong }: { label: string; value: string; str
           font: "700 9.5px/1 var(--f-sans)",
           letterSpacing: "0.08em",
           textTransform: "uppercase",
-          color: strong ? "var(--ink-inv-mute)" : "var(--ink-mute)",
+          color: strong ? "var(--ink-inv-mute)" : "var(--ink-soft)",
           marginBottom: 6,
         }}
       >

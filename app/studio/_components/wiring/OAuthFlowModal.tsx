@@ -93,7 +93,7 @@ export function OAuthFlowModal({
             <p
               style={{
                 font: "500 11px/1.4 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 margin: 0,
                 maxWidth: "36ch",
               }}

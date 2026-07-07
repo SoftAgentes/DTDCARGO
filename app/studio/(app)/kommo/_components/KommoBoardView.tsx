@@ -251,7 +251,7 @@ export function KommoBoardView({
                     <span
                       style={{
                         font: "400 12px/1.4 var(--f-sans)",
-                        color: "var(--ink-mute)",
+                        color: "var(--ink-soft)",
                         padding: "8px 4px",
                       }}
                     >
@@ -368,7 +368,7 @@ export function KommoBoardView({
                               <span
                                 style={{
                                   font: "500 11px/1.2 var(--f-sans)",
-                                  color: "var(--ink-mute)",
+                                  color: "var(--ink-soft)",
                                   overflow: "hidden",
                                   textOverflow: "ellipsis",
                                   whiteSpace: "nowrap",
@@ -398,7 +398,7 @@ export function KommoBoardView({
                     <span
                       style={{
                         font: "600 11px/1.2 var(--f-sans)",
-                        color: "var(--ink-mute)",
+                        color: "var(--ink-soft)",
                         textAlign: "center",
                         padding: "4px 0",
                       }}
@@ -416,7 +416,7 @@ export function KommoBoardView({
       <p
         style={{
           font: "400 11.5px/1.4 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           marginTop: 14,
         }}
       >

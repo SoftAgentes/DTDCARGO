@@ -181,7 +181,7 @@ export function DeliveryAddressesCard({
                   </div>
                 )}
                 {a.reference && (
-                  <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-mute)", marginTop: 2 }}>
+                  <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 2 }}>
                     Ref: {a.reference}
                   </div>
                 )}

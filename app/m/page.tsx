@@ -118,7 +118,7 @@ export default function OperarioLauncherPage() {
           style={{
             textAlign: "center",
             font: "500 11px/1.4 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
           }}
         >
           DTD Cargo 2026

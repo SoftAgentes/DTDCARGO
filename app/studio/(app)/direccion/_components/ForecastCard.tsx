@@ -117,7 +117,7 @@ export function ForecastCard({ forecast }: { forecast: ForecastWeek[] }) {
         <div
           style={{
             font: "500 12px/1.5 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             padding: "var(--s-6) 0",
           }}
         >

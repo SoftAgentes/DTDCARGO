@@ -263,7 +263,7 @@ export function BillDrawer({
           <div
             style={{
               font: "500 11.5px/1.4 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
             }}
           >
             Embarque vinculado (para costing futuro).
@@ -454,7 +454,7 @@ function PayForm({
 
       <div>
         <label className="studio-label" htmlFor="tes-pay-ref">
-          Referencia <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+          Referencia <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
         </label>
         <input
           id="tes-pay-ref"
@@ -518,7 +518,7 @@ function PaymentHistory({
       <p
         style={{
           font: "500 12px/1.4 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           margin: 0,
         }}
       >
@@ -542,7 +542,7 @@ function PaymentHistory({
             border: "1px dashed var(--border-strong)",
             borderRadius: "var(--r-md)",
             font: "500 12px/1.5 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
           }}
         >
           Sin pagos registrados todavía.
@@ -569,7 +569,7 @@ function PaymentHistory({
                 <div
                   style={{
                     font: "500 10.5px/1.3 var(--f-sans)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     marginTop: 2,
                   }}
                 >
@@ -771,7 +771,7 @@ export function NewBillDrawer({
 
         <div>
           <label className="studio-label" htmlFor="nb-concept">
-            Concepto <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+            Concepto <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
           </label>
           <input
             id="nb-concept"
@@ -821,7 +821,7 @@ export function NewBillDrawer({
           <div>
             <label className="studio-label" htmlFor="nb-fx">
               Tasa {currency}/USD{" "}
-              <span style={{ color: "var(--ink-mute)" }}>
+              <span style={{ color: "var(--ink-soft)" }}>
                 (para el asiento en USD)
               </span>
             </label>
@@ -836,7 +836,7 @@ export function NewBillDrawer({
             <p
               style={{
                 font: "500 10.5px/1.4 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 margin: "4px 0 0",
               }}
             >
@@ -876,7 +876,7 @@ export function NewBillDrawer({
         <div>
           <label className="studio-label" htmlFor="nb-ref">
             Referencia del proveedor{" "}
-            <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+            <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
           </label>
           <input
             id="nb-ref"

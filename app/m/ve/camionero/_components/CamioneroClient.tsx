@@ -450,7 +450,7 @@ function OdView({
                 <code
                   style={{
                     font: "700 11px/1 var(--f-mono)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                   }}
                 >
                   {p.boxes_shipped} cj

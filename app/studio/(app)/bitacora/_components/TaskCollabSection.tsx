@@ -174,7 +174,7 @@ export function TaskCollabSection({
         >
           Prueba de avance
           {list.length > 0 && (
-            <span style={{ color: "var(--ink-mute)", marginLeft: 8 }}>
+            <span style={{ color: "var(--ink-soft)", marginLeft: 8 }}>
               {list.length}
             </span>
           )}
@@ -184,7 +184,7 @@ export function TaskCollabSection({
           <p
             style={{
               font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               margin: "0 0 12px",
             }}
           >
@@ -194,7 +194,7 @@ export function TaskCollabSection({
           <p
             style={{
               font: "500 12px/1.5 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               margin: "0 0 12px",
             }}
           >
@@ -252,7 +252,7 @@ export function TaskCollabSection({
                     <span
                       style={{
                         font: "500 11px/1.3 var(--f-sans)",
-                        color: "var(--ink-mute)",
+                        color: "var(--ink-soft)",
                       }}
                     >
                       {formatSize(a.sizeBytes)}
@@ -398,7 +398,7 @@ export function TaskCollabSection({
           <p
             style={{
               font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               margin: 0,
             }}
           >

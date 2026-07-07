@@ -206,7 +206,7 @@ export function ActiveShipmentList({ shipments, selectedId }: Props) {
                     justifyContent: "space-between",
                     marginTop: 6,
                     font: "600 10.5px/1 var(--f-mono)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                   }}
                 >
                   <span>{progress}%</span>

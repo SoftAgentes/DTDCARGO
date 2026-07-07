@@ -235,7 +235,7 @@ export function SeaRatesTab() {
           )}
         </div>
 
-        <div style={{ fontSize: 11.5, color: "var(--ink-mute)" }}>
+        <div style={{ fontSize: 11.5, color: "var(--ink-soft)" }}>
           IDs de punto conocidos: {KNOWN_POINTS}. El autocompletado nombre→ID
           llega en Fase 2.
         </div>
@@ -250,7 +250,7 @@ export function SeaRatesTab() {
           >
             {loading ? "Consultando…" : "Consultar SeaRates"}
           </button>
-          <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>
+          <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>
             Pega a <code style={{ fontFamily: "var(--f-mono)" }}>/api/studio/searates/probe</code>
           </span>
         </div>
@@ -380,7 +380,7 @@ function Stat({ label, value }: { label: string; value: string }) {
           fontSize: 11,
           textTransform: "uppercase",
           letterSpacing: "0.04em",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
         }}
       >
         {label}

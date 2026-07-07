@@ -272,7 +272,7 @@ export function WithholdingDrawer({
         >
           <span
             className="studio-eyebrow"
-            style={{ color: "var(--ink-mute)" }}
+            style={{ color: "var(--ink-soft)" }}
           >
             Monto retenido
           </span>

@@ -153,7 +153,7 @@ export function DispatchQueueTable({
                     <code
                       style={{
                         font: "600 11px/1.2 var(--f-mono)",
-                        color: "var(--ink-mute)",
+                        color: "var(--ink-soft)",
                         marginTop: 3,
                         display: "inline-block",
                       }}
@@ -189,7 +189,7 @@ export function DispatchQueueTable({
                             outline: "none",
                           }}
                         />
-                        <span style={{ font: "600 11px/1 var(--f-mono)", color: "var(--ink-mute)" }}>
+                        <span style={{ font: "600 11px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
                           / {p.boxes_total}
                         </span>
                       </div>
@@ -208,7 +208,7 @@ export function DispatchQueueTable({
                     }}
                   >
                     <div>{p.weight_kg.toFixed(0)} kg</div>
-                    <div style={{ color: "var(--ink-mute)" }}>{p.cbm.toFixed(1)} cbm</div>
+                    <div style={{ color: "var(--ink-soft)" }}>{p.cbm.toFixed(1)} cbm</div>
                   </td>
                   <td style={{ padding: "10px 12px" }}>
                     <Badge tone={DISPATCH_PAYMENT_TONES[p.pay]} size="sm">

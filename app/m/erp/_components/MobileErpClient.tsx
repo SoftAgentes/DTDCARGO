@@ -602,7 +602,7 @@ function ShipmentCard({ s, onClick }: { s: MobileShipment; onClick: () => void }
           <span style={{ color: "var(--wine)", font: "700 11.5px/1.3 var(--f-sans)" }}>
             {service.primary}
             {service.sub && (
-              <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>
+              <span style={{ color: "var(--ink-soft)", fontWeight: 500 }}>
                 {" "}
                 · {service.sub}
               </span>
@@ -934,7 +934,7 @@ function DetailField({
         <div
           style={{
             font: "500 10.5px/1 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             marginTop: 3,
           }}
         >
@@ -1384,7 +1384,7 @@ function ClientCard({ c }: { c: ClientWithDistance }) {
               gridColumn: "span 2",
               padding: "10px",
               background: "var(--bg-elevated)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               borderRadius: "var(--r-sm)",
               textAlign: "center",
               font: "500 11px/1.2 var(--f-sans)",
@@ -1616,7 +1616,7 @@ function ExpenseRow({
         <div
           style={{
             font: "500 11px/1.3 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             marginTop: 3,
             display: "flex",
             gap: 6,
@@ -2235,7 +2235,7 @@ function MoreScreen({ user }: { user: UserInfo }) {
           marginTop: 18,
           textAlign: "center",
           font: "500 10.5px/1.4 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
         }}
       >
         DTD Cargo · DoorTuDoor · Mobile ERP Fase 1
@@ -2479,7 +2479,7 @@ function MobileMini({
       <div
         style={{
           font: "500 11px/1.3 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
         }}
       >
         {sub}
@@ -2535,7 +2535,7 @@ function QuickAction({
       <div style={{ font: "700 12.5px/1.2 var(--f-sans)", color: "var(--ink)" }}>
         {label}
       </div>
-      <div style={{ font: "500 10.5px/1.3 var(--f-sans)", color: "var(--ink-mute)" }}>
+      <div style={{ font: "500 10.5px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>
         {desc}
       </div>
     </button>

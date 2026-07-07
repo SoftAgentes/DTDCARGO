@@ -189,7 +189,7 @@ export function RunAgentModal({
             <p
               style={{
                 font: "400 11px/1.4 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 margin: "4px 0 0",
               }}
             >
@@ -305,7 +305,7 @@ function RunResultView({ result }: { result: RunResponse }) {
         <div
           style={{
             font: "700 10px/1 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
             marginBottom: 6,
@@ -327,7 +327,7 @@ function RunResultView({ result }: { result: RunResponse }) {
             style={{
               marginTop: 8,
               font: "500 11px/1.4 var(--f-mono)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
             }}
           >
             Fuentes: {citations.join(" · ")}
@@ -375,7 +375,7 @@ function Stat({ label, value, mono }: { label: string; value: string; mono?: boo
       <div
         style={{
           font: "700 9px/1 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           letterSpacing: "0.14em",
           textTransform: "uppercase",
         }}

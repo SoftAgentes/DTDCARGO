@@ -365,7 +365,7 @@ export function ExpenseDrawer({
                 <p
                   style={{
                     font: "500 11px/1.4 var(--f-sans)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     margin: 0,
                   }}
                 >
@@ -478,7 +478,7 @@ export function ExpenseDrawer({
                 <p
                   style={{
                     font: "500 11px/1.4 var(--f-sans)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     margin: "4px 0 0",
                   }}
                 >

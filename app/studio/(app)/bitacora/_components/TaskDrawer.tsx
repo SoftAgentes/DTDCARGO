@@ -352,7 +352,7 @@ export function TaskDrawer({
             <p
               style={{
                 font: "500 10.5px/1.4 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 margin: "5px 0 0",
               }}
             >
@@ -456,7 +456,7 @@ export function TaskDrawer({
                       <span
                         style={{
                           font: "500 10.5px/1.3 var(--f-sans)",
-                          color: "var(--ink-mute)",
+                          color: "var(--ink-soft)",
                           textDecoration: "none",
                         }}
                       >

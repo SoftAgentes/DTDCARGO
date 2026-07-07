@@ -175,7 +175,7 @@ function EventCard({
               {clubEventStatusLabel(ev.status)}
             </Badge>
           </div>
-          <div style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-mute)", marginTop: 4 }}>
+          <div style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 4 }}>
             {meta}
           </div>
         </div>

@@ -788,7 +788,7 @@ function ReceiptDetailModal({
         <p
           style={{
             font: "500 11.5px/1.4 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             margin: "var(--s-3) 0 0",
             textAlign: "center",
           }}
@@ -833,7 +833,7 @@ function DetailRow({
       <span
         style={{
           font: "700 10.5px/1.3 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           letterSpacing: "0.06em",
           textTransform: "uppercase",
         }}
@@ -956,7 +956,7 @@ function NoSearchResults({ lang, query }: { lang: Lang; query: string }) {
         borderRadius: "var(--r-md)",
         textAlign: "center",
         font: "500 13px/1.5 var(--f-sans)",
-        color: "var(--ink-mute)",
+        color: "var(--ink-soft)",
       }}
     >
       {t(
@@ -978,7 +978,7 @@ function EmptyRecents({ lang }: { lang: Lang }) {
         borderRadius: "var(--r-md)",
         textAlign: "center",
         font: "500 13px/1.5 var(--f-sans)",
-        color: "var(--ink-mute)",
+        color: "var(--ink-soft)",
       }}
     >
       {t(

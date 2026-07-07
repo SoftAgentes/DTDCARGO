@@ -152,7 +152,7 @@ export function SupplierDrawer({
           <div>
             <label className="studio-label" htmlFor="sd-name-cn">
               Nombre 中文{" "}
-              <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+              <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
             </label>
             <input
               id="sd-name-cn"
@@ -240,7 +240,7 @@ export function SupplierDrawer({
           <div>
             <label className="studio-label" htmlFor="sd-contact">
               Contacto{" "}
-              <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+              <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
             </label>
             <input
               id="sd-contact"
@@ -253,7 +253,7 @@ export function SupplierDrawer({
           <div>
             <label className="studio-label" htmlFor="sd-phone">
               Teléfono{" "}
-              <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+              <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
             </label>
             <input
               id="sd-phone"
@@ -269,7 +269,7 @@ export function SupplierDrawer({
           <div>
             <label className="studio-label" htmlFor="sd-email">
               Email{" "}
-              <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+              <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
             </label>
             <input
               id="sd-email"
@@ -282,7 +282,7 @@ export function SupplierDrawer({
           <div>
             <label className="studio-label" htmlFor="sd-tax">
               RIF / registro{" "}
-              <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+              <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
             </label>
             <input
               id="sd-tax"
@@ -297,7 +297,7 @@ export function SupplierDrawer({
         <div>
           <label className="studio-label" htmlFor="sd-expense-acct">
             Cuenta de gasto por defecto{" "}
-            <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+            <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
           </label>
           <select
             id="sd-expense-acct"
@@ -315,7 +315,7 @@ export function SupplierDrawer({
           <p
             style={{
               font: "400 11px/1.4 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               margin: "5px 0 0",
             }}
           >

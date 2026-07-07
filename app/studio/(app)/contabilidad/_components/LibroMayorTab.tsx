@@ -228,7 +228,7 @@ export function LibroMayorTab({
         <p
           style={{
             font: "500 11px/1.4 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             margin: "10px 2px 0",
           }}
         >
@@ -256,7 +256,7 @@ function Stat({
           font: "600 9px/1 var(--f-sans)",
           letterSpacing: "0.1em",
           textTransform: "uppercase",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
         }}
       >
         {label}

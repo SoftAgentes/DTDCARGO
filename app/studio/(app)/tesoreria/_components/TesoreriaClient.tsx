@@ -423,7 +423,7 @@ function PayablesTab({
                     <div
                       style={{
                         font: "600 10.5px/1 var(--f-mono)",
-                        color: "var(--ink-mute)",
+                        color: "var(--ink-soft)",
                         marginTop: 3,
                       }}
                     >
@@ -627,7 +627,7 @@ function PaymentsTab({ payments }: { payments: SupplierPayment[] }) {
                     style={{
                       display: "block",
                       font: "500 9.5px/1 var(--f-mono)",
-                      color: "var(--ink-mute)",
+                      color: "var(--ink-soft)",
                       marginTop: 2,
                     }}
                   >
@@ -638,7 +638,7 @@ function PaymentsTab({ payments }: { payments: SupplierPayment[] }) {
               <span
                 style={{
                   font: "500 10.5px/1 var(--f-mono)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                 }}
               >
                 {p.bill_id ? "vinculada" : "—"}
@@ -814,7 +814,7 @@ function SuppliersTab({
                   <div
                     style={{
                       font: "500 11px/1.3 var(--f-cn)",
-                      color: "var(--ink-mute)",
+                      color: "var(--ink-soft)",
                       marginTop: 2,
                     }}
                   >

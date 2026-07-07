@@ -345,7 +345,7 @@ function FundsSeparationCard({ separation }: { separation: FundsSeparation }) {
         <span
           style={{
             font: "500 10.5px/1 var(--f-mono)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
           }}
         >
           {separation.from} → {separation.to} · USD
@@ -668,7 +668,7 @@ function ReceivablesTable({
                 <div
                   style={{
                     font: "700 10px/1 var(--f-sans)",
-                    color: r.daysOverdue > 0 ? "var(--danger)" : "var(--ink-mute)",
+                    color: r.daysOverdue > 0 ? "var(--danger)" : "var(--ink-soft)",
                     marginTop: 3,
                   }}
                 >
@@ -694,7 +694,7 @@ function ReceivablesTable({
                   <div
                     style={{
                       font: "500 10px/1.2 var(--f-mono)",
-                      color: "var(--ink-mute)",
+                      color: "var(--ink-soft)",
                       marginTop: 2,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
@@ -708,7 +708,7 @@ function ReceivablesTable({
                 <span
                   style={{
                     font: "500 11px/1 var(--f-sans)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                   }}
                 >
                   Sin gestión

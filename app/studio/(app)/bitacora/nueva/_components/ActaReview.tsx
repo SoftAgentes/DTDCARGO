@@ -365,12 +365,12 @@ export function ActaReview({
         <DudasPanel dudas={acta.dudas_clasificacion ?? []} />
         {acta.hablaron.length > 0 && (
           <div style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
-            <span style={{ color: "var(--ink-mute)" }}>Hablaron: </span>
+            <span style={{ color: "var(--ink-soft)" }}>Hablaron: </span>
             {acta.hablaron.join(", ")}
           </div>
         )}
         <div style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
-          <span style={{ color: "var(--ink-mute)" }}>Próxima reunión: </span>
+          <span style={{ color: "var(--ink-soft)" }}>Próxima reunión: </span>
           {acta.proxima_reunion.fecha ?? "por definir"}
           {acta.proxima_reunion.foco ? ` · ${acta.proxima_reunion.foco}` : ""}
         </div>
@@ -394,7 +394,7 @@ export function ActaReview({
             onChange={(e) => setConfidencial(e.target.checked)}
           />
           Reunión confidencial
-          <span style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-mute)" }}>
+          <span style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>
             (sólo dirección ve el acta; las tareas siguen visibles para su dueño)
           </span>
         </label>
@@ -662,10 +662,10 @@ function DudasPanel({ dudas }: { dudas: ActaDuda[] }) {
         >
           {d.texto}
           {d.hablante ? (
-            <span style={{ color: "var(--ink-mute)" }}> · {d.hablante}</span>
+            <span style={{ color: "var(--ink-soft)" }}> · {d.hablante}</span>
           ) : null}
           {d.opciones.length > 0 && (
-            <span style={{ color: "var(--ink-mute)" }}>
+            <span style={{ color: "var(--ink-soft)" }}>
               {" "}
               ({d.opciones.join(" / ")})
             </span>
@@ -775,7 +775,7 @@ function VinculoPanel({
             />
           </div>
           {vinculo.posible_cliente_nuevo && (
-            <div style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-mute)" }}>
+            <div style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
               Parece un cliente nuevo. Si aplica, regístralo en Clientes; por ahora
               puedes dejarlo sin atar.
             </div>
@@ -864,7 +864,7 @@ function EscuchaPanel({
       </div>
 
       {sugerencias !== null && sugerencias.length === 0 && (
-        <p style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+        <p style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
           No encontró nada que ajustar. El acta se ve consistente.
         </p>
       )}
@@ -987,7 +987,7 @@ function TaskGroup({
         <p
           style={{
             font: "500 12px/1.4 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             margin: 0,
           }}
         >

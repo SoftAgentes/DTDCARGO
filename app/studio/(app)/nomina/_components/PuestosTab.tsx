@@ -69,7 +69,7 @@ export function PuestosTab({
                   font: "700 9.5px/1 var(--f-sans)",
                   letterSpacing: "0.08em",
                   textTransform: "uppercase",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                   marginBottom: "var(--s-3)",
                 }}
               >
@@ -168,7 +168,7 @@ function CardBlock({ label, children }: { label: string; children: React.ReactNo
           font: "700 9.5px/1 var(--f-sans)",
           letterSpacing: "0.08em",
           textTransform: "uppercase",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           marginBottom: 4,
         }}
       >

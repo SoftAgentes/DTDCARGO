@@ -70,7 +70,7 @@ export function ComunicacionesTab({
                   {nameById.get(c.employee_id) ?? c.employee_id}
                 </div>
               </div>
-              <div style={{ textAlign: "right", font: "400 11px/1.5 var(--f-sans)", color: "var(--ink-mute)" }}>
+              <div style={{ textAlign: "right", font: "400 11px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
                 <div>Leído: {fmtDate(c.read_at)}</div>
                 {c.requires_ack ? (
                   c.acked_at ? (

@@ -258,7 +258,7 @@ export function EntryDrawer({ postableAccounts, onClose }: Props) {
                 font: "700 9.5px/1 var(--f-sans)",
                 letterSpacing: "0.08em",
                 textTransform: "uppercase",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
               }}
             >
               <span>Cuenta</span>

@@ -349,7 +349,7 @@ function CornerMenu({
         style={{
           padding: "4px 10px 6px",
           font: "700 9.5px/1 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           letterSpacing: "0.14em",
           textTransform: "uppercase",
         }}
@@ -417,7 +417,7 @@ function CornerMenu({
         <span
           style={{
             font: "500 10.5px/1.35 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             padding: "0 4px",
           }}
         >

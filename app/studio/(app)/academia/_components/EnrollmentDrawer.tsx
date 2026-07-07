@@ -233,7 +233,7 @@ function CiHintNote({ hint }: { hint: CiHint }) {
         ? "var(--success)"
         : tone === "info"
           ? "var(--info)"
-          : "var(--ink-mute)";
+          : "var(--ink-soft)";
 
   return (
     <p

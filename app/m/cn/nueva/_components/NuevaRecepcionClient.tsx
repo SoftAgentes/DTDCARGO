@@ -533,7 +533,7 @@ function Step1Photos({
           style={{
             marginTop: "var(--s-3)",
             font: "500 11.5px/1.5 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
           }}
         >
           {t(lang, "pwa.receipt.photo_hint")}
@@ -857,7 +857,7 @@ function Step2Identify({
                 <p
                   style={{
                     font: "500 12px/1.4 var(--f-sans)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     textAlign: "center",
                     padding: "var(--s-4) 0",
                   }}
@@ -1105,7 +1105,7 @@ function MobileCitySelect({
       <span
         style={{
           font: "500 11px/1.4 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           marginTop: 2,
         }}
       >
@@ -1182,7 +1182,7 @@ function MobileInput({
           }}
         />
         {suffix && (
-          <span style={{ font: "600 13px/1 var(--f-sans)", color: "var(--ink-mute)" }}>
+          <span style={{ font: "600 13px/1 var(--f-sans)", color: "var(--ink-soft)" }}>
             {suffix}
           </span>
         )}
@@ -1372,7 +1372,7 @@ function SummaryRow({
       <span
         style={{
           font: "700 10.5px/1.3 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           letterSpacing: "0.06em",
           textTransform: "uppercase",
         }}

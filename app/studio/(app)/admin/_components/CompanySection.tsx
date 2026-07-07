@@ -129,7 +129,7 @@ export function CompanySection({ data }: { data: CompanyData }) {
         <CardEyebrow>Oficinas</CardEyebrow>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {offices.length === 0 && (
-            <p style={{ font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+            <p style={{ font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
               Todavía no hay oficinas cargadas.
             </p>
           )}
@@ -173,7 +173,7 @@ export function CompanySection({ data }: { data: CompanyData }) {
         <CardEyebrow>Datos bancarios (aparecen en facturas)</CardEyebrow>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {bankAccounts.length === 0 && (
-            <p style={{ font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+            <p style={{ font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
               Todavía no hay cuentas bancarias cargadas.
             </p>
           )}

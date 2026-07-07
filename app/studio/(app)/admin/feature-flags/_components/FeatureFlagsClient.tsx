@@ -132,7 +132,7 @@ function FlagCard({
           <code
             style={{
               font: "500 10.5px/1 var(--font-mono, 'JetBrains Mono')",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
             }}
           >
             {flagKey}

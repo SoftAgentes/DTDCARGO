@@ -446,7 +446,7 @@ function PaymentModal({
             <p
               style={{
                 font: "500 11px/1.3 var(--f-sans)",
-                color: amt >= balance - 1e-6 ? "var(--ink-mute)" : "var(--warning)",
+                color: amt >= balance - 1e-6 ? "var(--ink-soft)" : "var(--warning)",
                 margin: "4px 0 0",
               }}
             >
@@ -533,7 +533,7 @@ function PaymentModal({
 
         <div>
           <label className="studio-label" htmlFor="pay-ref">
-            Referencia <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+            Referencia <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
           </label>
           <input
             id="pay-ref"

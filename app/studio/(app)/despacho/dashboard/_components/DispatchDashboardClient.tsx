@@ -154,7 +154,7 @@ export function DispatchDashboardClient({
             Ranking de rutas · eficiencia
           </div>
           {ranking.length === 0 ? (
-            <div style={{ padding: "32px 0", textAlign: "center", color: "var(--ink-mute)", font: "500 13px/1.4 var(--f-sans)" }}>
+            <div style={{ padding: "32px 0", textAlign: "center", color: "var(--ink-soft)", font: "500 13px/1.4 var(--f-sans)" }}>
               Sin datos para este periodo.
             </div>
           ) : (
@@ -204,7 +204,7 @@ export function DispatchDashboardClient({
             Top ciudades por volumen
           </div>
           {topCities.length === 0 ? (
-            <div style={{ padding: "32px 0", textAlign: "center", color: "var(--ink-mute)", font: "500 13px/1.4 var(--f-sans)" }}>
+            <div style={{ padding: "32px 0", textAlign: "center", color: "var(--ink-soft)", font: "500 13px/1.4 var(--f-sans)" }}>
               Sin movimientos en el periodo.
             </div>
           ) : (
@@ -243,7 +243,7 @@ export function DispatchDashboardClient({
                         justifyContent: "space-between",
                         marginTop: 4,
                         font: "500 10.5px/1 var(--f-sans)",
-                        color: "var(--ink-mute)",
+                        color: "var(--ink-soft)",
                       }}
                     >
                       <span>{(c.kg / 1000).toFixed(1)} t total</span>
@@ -349,7 +349,7 @@ function Kpi({
       <div
         style={{
           font: "500 11px/1.3 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           marginTop: 6,
         }}
       >

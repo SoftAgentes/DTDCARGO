@@ -117,7 +117,7 @@ export function RegistroForm({
       <Field label="Fecha de nacimiento" name="birth_date" type="date" error={fe.birth_date} />
       <Field label="Cargo" name="cargo" defaultValue={cargoSugerido} error={fe.cargo} placeholder="Operario" />
       {departamentoSugerido && (
-        <p style={{ font: "400 11.5px/1.4 var(--f-sans)", color: "var(--ink-mute)", margin: "-8px 0 14px" }}>
+        <p style={{ font: "400 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "-8px 0 14px" }}>
           Área sugerida: {departamentoSugerido}
         </p>
       )}

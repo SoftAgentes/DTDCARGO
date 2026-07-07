@@ -216,7 +216,7 @@ export function ParticipantDrawer({
               />
             </Field>
 
-            <p style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+            <p style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
               El valor estimado es intención, no un monto cobrable. El cobro va por
               facturas cuando se factura la consolidación.
             </p>

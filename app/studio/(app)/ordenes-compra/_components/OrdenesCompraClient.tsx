@@ -235,7 +235,7 @@ export function OrdenesCompraClient({
                 style={{
                   marginLeft: 7,
                   font: "600 11px/1 var(--f-mono)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                 }}
               >
                 {count}
@@ -473,7 +473,7 @@ function DtdTab({
           <div
             style={{
               font: "500 10.5px/1.3 var(--f-mono)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               marginTop: 3,
             }}
           >
@@ -543,7 +543,7 @@ function DtdTab({
             <span
               style={{
                 font: "500 11px/1 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
               }}
             >
               Sin vínculos
@@ -761,7 +761,7 @@ function DtdTab({
                 <span
                   style={{
                     font: "600 10px/1 var(--f-mono)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     letterSpacing: "0.04em",
                     textTransform: "uppercase",
                   }}
@@ -870,7 +870,7 @@ function ClienteTab({
       <div
         style={{
           font: "500 11.5px/1.4 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           margin: "0 0 12px",
         }}
       >
@@ -944,7 +944,7 @@ function ClienteTab({
               <div
                 style={{
                   font: "500 10.5px/1.3 var(--f-mono)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                   marginTop: 3,
                 }}
               >

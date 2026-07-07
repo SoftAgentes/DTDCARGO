@@ -228,7 +228,7 @@ export function UnidentifiedPaymentDrawer({
         <div>
           <label className="studio-label" htmlFor="unid-ref">
             Referencia bancaria{" "}
-            <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+            <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
           </label>
           <input
             id="unid-ref"
@@ -242,7 +242,7 @@ export function UnidentifiedPaymentDrawer({
 
         <div>
           <label className="studio-label" htmlFor="unid-notes">
-            Notas <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+            Notas <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
           </label>
           <textarea
             id="unid-notes"

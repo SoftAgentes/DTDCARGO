@@ -54,7 +54,7 @@ export function MiniStat({
         <div
           style={{
             font: "500 10.5px/1.3 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             marginTop: "var(--s-1)",
           }}
         >

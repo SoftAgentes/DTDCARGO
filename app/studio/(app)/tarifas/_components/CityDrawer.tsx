@@ -180,7 +180,7 @@ export function CityDrawer({ mode, city, onClose }: Props) {
             <p
               style={{
                 font: "400 11.5px/1.4 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 margin: "4px 0 0",
               }}
             >

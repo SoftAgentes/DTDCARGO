@@ -265,7 +265,7 @@ export function NuevaReunionClient({
             <p
               style={{
                 font: "500 10.5px/1.4 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 margin: "5px 0 0",
               }}
             >
@@ -753,7 +753,7 @@ function AudioCapture({ tenantId, meetingId, onTranscribed }: AudioCaptureProps)
               <span
                 style={{
                   font: "500 11px/1.3 var(--f-sans)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                 }}
               >
                 Máximo {fmtElapsed(AUDIO_MAX_SECONDS)}

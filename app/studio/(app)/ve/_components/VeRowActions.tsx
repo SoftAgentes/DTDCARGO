@@ -228,7 +228,7 @@ export function VeRowActions({
             style={{
               padding: "6px 10px 4px",
               font: "700 9.5px/1 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               letterSpacing: "0.14em",
               textTransform: "uppercase",
             }}

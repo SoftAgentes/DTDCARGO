@@ -572,7 +572,7 @@ function ClaimDetail({
               font: "600 10px/1 var(--f-sans)",
               letterSpacing: "0.08em",
               textTransform: "uppercase",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
             }}
           >
             Monto reclamado
@@ -667,7 +667,7 @@ function ClaimDetail({
           <div
             style={{
               font: "500 12.5px/1.4 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               marginBottom: canEdit ? 12 : 0,
             }}
           >
@@ -706,7 +706,7 @@ function ClaimDetail({
                 htmlFor={`claim-note-${claim.id}`}
               >
                 Nota de resolución{" "}
-                <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>
+                <span style={{ color: "var(--ink-soft)", fontWeight: 500 }}>
                   (opcional)
                 </span>
               </label>
@@ -757,7 +757,7 @@ function ClaimDetail({
             <div
               style={{
                 font: "500 12.5px/1.4 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
               }}
             >
               Reclamo cerrado · sin más transiciones.
@@ -922,7 +922,7 @@ function ClaimFinancials({
       <p
         style={{
           font: "500 11.5px/1.4 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           margin: "0 0 12px",
           maxWidth: "62ch",
         }}

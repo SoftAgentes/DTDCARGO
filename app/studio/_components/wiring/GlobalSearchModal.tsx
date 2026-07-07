@@ -289,7 +289,7 @@ export function GlobalSearchModal({ onClose }: { onClose: () => void }) {
           />
           {loading && (
             <span
-              style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-mute)" }}
+              style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-soft)" }}
             >
               {t("chrome.search.searching")}
             </span>
@@ -357,7 +357,7 @@ export function GlobalSearchModal({ onClose }: { onClose: () => void }) {
                       font: "700 10px/1 var(--f-sans)",
                       letterSpacing: "0.12em",
                       textTransform: "uppercase",
-                      color: "var(--ink-mute)",
+                      color: "var(--ink-soft)",
                     }}
                   >
                     {t("chrome.search.actions")}
@@ -432,7 +432,7 @@ export function GlobalSearchModal({ onClose }: { onClose: () => void }) {
             display: "flex",
             gap: 14,
             font: "500 11px/1 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
           }}
         >
           <span>↑↓ {t("chrome.search.kbd_navigate")}</span>
@@ -494,7 +494,7 @@ function FacetBlock({
           font: "700 10px/1 var(--f-sans)",
           letterSpacing: "0.12em",
           textTransform: "uppercase",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
         }}
       >
         <span style={{ display: "inline-flex" }}>{Icon[icon](12)}</span>
@@ -682,7 +682,7 @@ function LockedBlock({
           style={{
             marginTop: 3,
             font: "500 12px/1.4 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
           }}
         >
           {note}
@@ -725,7 +725,7 @@ function RecentsBlock({
           font: "700 10px/1 var(--f-sans)",
           letterSpacing: "0.12em",
           textTransform: "uppercase",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
         }}
       >
         {title}

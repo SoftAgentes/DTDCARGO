@@ -102,7 +102,7 @@ export function ActasList({ meetings, canEdit }: Props) {
                 <span
                   style={{
                     font: "600 11px/1 var(--f-mono)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                   }}
                 >
                   {m.fecha}
@@ -128,7 +128,7 @@ export function ActasList({ meetings, canEdit }: Props) {
                   display: "flex",
                   gap: 12,
                   font: "500 11px/1.3 var(--f-sans)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                 }}
               >
                 {cli && <span>{cli}</span>}
@@ -179,7 +179,7 @@ function ActaDetailDrawer({
       >
         {cli && (
           <div style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
-            <span style={{ color: "var(--ink-mute)" }}>Cliente: </span>
+            <span style={{ color: "var(--ink-soft)" }}>Cliente: </span>
             {cli}
           </div>
         )}
@@ -201,20 +201,20 @@ function ActaDetailDrawer({
 
         {acta && acta.hablaron.length > 0 && (
           <div style={{ font: "500 12.5px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
-            <span style={{ color: "var(--ink-mute)" }}>Hablaron: </span>
+            <span style={{ color: "var(--ink-soft)" }}>Hablaron: </span>
             {acta.hablaron.join(", ")}
           </div>
         )}
 
         {acta?.proxima_reunion && (acta.proxima_reunion.fecha || acta.proxima_reunion.foco) && (
           <div style={{ font: "500 12.5px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
-            <span style={{ color: "var(--ink-mute)" }}>Próxima reunión: </span>
+            <span style={{ color: "var(--ink-soft)" }}>Próxima reunión: </span>
             {acta.proxima_reunion.fecha ?? "por definir"}
             {acta.proxima_reunion.foco ? ` · ${acta.proxima_reunion.foco}` : ""}
           </div>
         )}
 
-        <div style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-mute)" }}>
+        <div style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
           {meeting.taskCount} tarea{meeting.taskCount === 1 ? "" : "s"} nacieron de esta acta.
         </div>
       </div>

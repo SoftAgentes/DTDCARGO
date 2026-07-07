@@ -363,7 +363,7 @@ export function AssetDrawer({ assetAccounts, onClose }: Props) {
           <p
             style={{
               font: "500 11px/1.5 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               margin: 0,
             }}
           >

@@ -263,7 +263,7 @@ export function AmonestacionDrawer({
             <ActaRow label="Fecha" value={issuedOn} mono />
             <ActaRow label="Relato" value={narrative || "—"} block />
             <ActaRow label="Testigos" value={witnesses.trim() || "Sin testigos"} block />
-            <p style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+            <p style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
               Al emitir, se genera un código AM-NNNN y queda como acta. Después solo
               puedes anularla (no se borra: queda el rastro).
             </p>
@@ -343,7 +343,7 @@ function ActaRow({
           font: "700 9.5px/1.4 var(--f-sans)",
           letterSpacing: "0.06em",
           textTransform: "uppercase",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           display: block ? "block" : undefined,
           marginBottom: block ? 4 : undefined,
         }}

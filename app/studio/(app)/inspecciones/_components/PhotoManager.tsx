@@ -42,7 +42,7 @@ export function PhotoManager({
         <p
           style={{
             font: "500 12.5px/1.4 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             margin: 0,
           }}
         >
@@ -145,7 +145,7 @@ function PhotoThumb({
             border: "1px solid var(--border)",
             background: "var(--bg-elevated)",
             font: "500 10px/1.2 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             textAlign: "center",
           }}
         >

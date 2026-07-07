@@ -94,7 +94,7 @@ export function SkillCard({ skill }: { skill: Skill }) {
           style={{
             font: "700 9.5px/1 var(--f-sans)",
             letterSpacing: "0.14em",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             textTransform: "uppercase",
           }}
         >
@@ -148,7 +148,7 @@ export function SkillCard({ skill }: { skill: Skill }) {
           <span
             style={{
               font: "500 11.5px/1 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
             }}
           >
             {toolCount} {toolCount === 1 ? "tool" : "tools"}

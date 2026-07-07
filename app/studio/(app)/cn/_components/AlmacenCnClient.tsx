@@ -563,7 +563,7 @@ function ReceiptRow({
         <span
           style={{
             font: "500 10.5px/1 var(--f-mono)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
           }}
         >
           {receivedDisplay}
@@ -653,7 +653,7 @@ function ReceiptRow({
               <div
                 style={{
                   font: `500 10.5px/1.3 ${isChinese(sup.secondary) ? '"Noto Sans SC", var(--f-sans)' : "var(--f-sans)"}`,
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                   marginTop: 2,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -687,7 +687,7 @@ function ReceiptRow({
         <div
           style={{
             font: `500 9.5px/1.3 ${lang === "original" ? '"Noto Sans SC", var(--f-sans)' : "var(--f-sans)"}`,
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             marginTop: 3,
             overflow: "hidden",
             textOverflow: "ellipsis",
@@ -749,7 +749,7 @@ function ReceiptRow({
           <span
             style={{
               font: "600 10.5px/1.2 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               letterSpacing: "0.02em",
             }}
             title={`Ciudad destino: ${row.destination_city}`}
@@ -822,7 +822,7 @@ function ItemsCell({
       <span
         style={{
           font: "500 11.5px/1 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
         }}
       >
         {totalCount > 0 ? `${totalCount} item${totalCount === 1 ? "" : "s"}` : "—"}
@@ -879,7 +879,7 @@ function ItemsCell({
           <span
             style={{
               font: "700 10.5px/1 var(--f-mono)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               flexShrink: 0,
             }}
           >

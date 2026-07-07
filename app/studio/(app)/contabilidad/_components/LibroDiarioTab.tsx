@@ -110,7 +110,7 @@ export function LibroDiarioTab({
           gap: 16,
           marginBottom: 14,
           font: "500 11.5px/1 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
         }}
       >
         <span>

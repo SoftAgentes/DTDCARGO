@@ -112,7 +112,7 @@ export function ChargeDrawer({
 
         <div>
           <label className="studio-label" htmlFor="fc-charge-desc-cn">
-            Concepto en chino <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+            Concepto en chino <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
           </label>
           <input
             id="fc-charge-desc-cn"
@@ -159,7 +159,7 @@ export function ChargeDrawer({
 
         <div>
           <label className="studio-label" htmlFor="fc-charge-date">
-            Fecha del cargo <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+            Fecha del cargo <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
           </label>
           <input
             id="fc-charge-date"

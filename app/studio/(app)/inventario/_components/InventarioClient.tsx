@@ -108,7 +108,7 @@ export function InventarioClient({ cn, ve }: Props) {
         <Badge tone={isCN ? "wine" : "info"} size="md">
           {isCN ? "Modo consolidación · entrada" : "Modo despacho · salida"}
         </Badge>
-        <span style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-mute)" }}>
+        <span style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
           {isCN
             ? "Carga que entra y se agrupa para el contenedor."
             : "Carga que llegó a Venezuela y avanza a entrega."}
@@ -216,7 +216,7 @@ export function InventarioClient({ cn, ve }: Props) {
             <div
               style={{
                 font: "500 11px/1.3 var(--f-mono)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 marginTop: 8,
               }}
             >
@@ -301,7 +301,7 @@ export function InventarioClient({ cn, ve }: Props) {
       <p
         style={{
           font: "400 12px/1.6 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           marginTop: "var(--s-5)",
           borderTop: "1px solid var(--border)",
           paddingTop: "var(--s-4)",
@@ -439,7 +439,7 @@ function StockTable({
                   style={{
                     padding: "12px 14px",
                     font: "500 12px/1 var(--f-mono)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     textAlign: "right",
                   }}
                 >

@@ -251,7 +251,7 @@ export default async function MarketingHubPage() {
             </div>
             <span
               className="studio-eyebrow"
-              style={{ fontSize: 10, color: "var(--ink-mute)", flexShrink: 0 }}
+              style={{ fontSize: 10, color: "var(--ink-soft)", flexShrink: 0 }}
             >
               Próximamente
             </span>

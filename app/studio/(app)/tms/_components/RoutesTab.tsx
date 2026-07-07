@@ -70,7 +70,7 @@ export function RoutesTab({ rows }: { rows: TmsRouteRow[] }) {
             <div
               style={{
                 font: "500 10.5px/1 var(--f-mono)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 marginTop: 4,
               }}
             >
@@ -169,7 +169,7 @@ export function RoutesTab({ rows }: { rows: TmsRouteRow[] }) {
             <div
               style={{
                 font: "600 10px/1 var(--f-mono)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 marginTop: 4,
                 textAlign: "right",
               }}

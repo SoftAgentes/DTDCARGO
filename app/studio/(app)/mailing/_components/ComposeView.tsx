@@ -570,7 +570,7 @@ export function ComposeView({ templates, signatures }: Props) {
               style={{
                 marginLeft: "auto",
                 font: "500 11.5px/1.3 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
               }}
             >
               {channel === "email" ? (

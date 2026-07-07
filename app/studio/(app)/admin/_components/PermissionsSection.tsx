@@ -60,14 +60,14 @@ export function PermissionsSection() {
         <span><b style={{ color: "var(--info)" }}>V</b> solo ver</span>
         <span><b style={{ color: "var(--ink-mute)" }}>—</b> sin acceso</span>
         <span
-          style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "var(--ink-mute)" }}
+          style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "var(--ink-soft)" }}
           title="Candado de gobernanza — solo se cambia en código (dinero = Contabilidad · solo admin)"
           role="img"
           aria-label="Candado de gobernanza"
         >
           {Icon.lock(12)} candado de gobernanza
         </span>
-        <span style={{ marginLeft: "auto", font: "600 11px/1 var(--f-mono)", color: "var(--ink-mute)" }}>
+        <span style={{ marginLeft: "auto", font: "600 11px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
           Definido en código (SDD-0085/0139) · read-only
         </span>
       </section>
@@ -136,7 +136,7 @@ function GroupRows({ group, items }: { group: Group; items: typeof MODULES }) {
           style={{
             padding: "10px 16px 4px",
             font: "700 9.5px/1 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
             background: "var(--bg-surface)",

@@ -143,7 +143,7 @@ export function IdentifyPaymentDrawer({
               border: "1px dashed var(--border-strong)",
               borderRadius: "var(--r-md)",
               font: "500 12px/1.5 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
             }}
           >
             No hay facturas en {receipt.currency} con saldo ≥ $

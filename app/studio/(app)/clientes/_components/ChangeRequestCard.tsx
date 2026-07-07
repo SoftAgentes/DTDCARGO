@@ -100,7 +100,7 @@ export function ChangeRequestCard({
             >
               <span
                 style={{
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                   textDecoration: "line-through",
                 }}
               >

@@ -164,7 +164,7 @@ export function CalendarClient({
                 <span
                   style={{
                     font: "700 10.5px/1 var(--f-mono)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                   }}
                 >
                   {t.count}

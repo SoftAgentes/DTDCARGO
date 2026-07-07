@@ -550,7 +550,7 @@ function ClientGroup({
                 <div
                   style={{
                     font: "500 10px/1 var(--f-mono)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     marginTop: 4,
                   }}
                 >

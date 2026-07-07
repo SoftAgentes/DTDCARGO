@@ -319,7 +319,7 @@ function DashboardTab({
               <p
                 style={{
                   font: "500 12.5px/1.5 var(--f-sans)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                   margin: 0,
                 }}
               >
@@ -430,7 +430,7 @@ function DashboardTab({
               style={{
                 padding: "24px 20px",
                 font: "500 12.5px/1.5 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
               }}
             >
               Sin referidores todavía. Registra el primer referido para empezar.
@@ -487,7 +487,7 @@ function DashboardTab({
                       <span
                         style={{
                           font: "500 10px var(--f-sans)",
-                          color: "var(--ink-mute)",
+                          color: "var(--ink-soft)",
                         }}
                       >
                         /{r.total}
@@ -635,7 +635,7 @@ function NivelesTab({ tierCounts }: { tierCounts: TierCount[] }) {
               {t.min === 0 && next
                 ? `Hasta ${fmtUsd(next.min)}`
                 : `Desde ${fmtUsd(t.min)}`}{" "}
-              <span style={{ color: "var(--ink-mute)" }}>
+              <span style={{ color: "var(--ink-soft)" }}>
                 · facturación anual
               </span>
             </div>
@@ -846,7 +846,7 @@ function ReferidosTab({
                     <div
                       style={{
                         font: "500 10.5px/1.3 var(--f-sans)",
-                        color: "var(--ink-mute)",
+                        color: "var(--ink-soft)",
                         marginTop: 3,
                       }}
                     >
@@ -974,7 +974,7 @@ function ClientesTab({
             style={{
               padding: "28px 20px",
               font: "500 13px/1.5 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
             }}
           >
             Ningún cliente coincide con “{search}”.
@@ -1025,7 +1025,7 @@ function ClientesTab({
                   <code
                     style={{
                       font: "500 10.5px/1 var(--f-mono)",
-                      color: "var(--ink-mute)",
+                      color: "var(--ink-soft)",
                     }}
                   >
                     {c.markbox}
@@ -1056,7 +1056,7 @@ function ClientesTab({
                       <div
                         style={{
                           font: "500 9.5px/1 var(--f-sans)",
-                          color: "var(--ink-mute)",
+                          color: "var(--ink-soft)",
                           marginTop: 4,
                         }}
                       >

@@ -135,7 +135,7 @@ export function DocsPanel({
         <span className="studio-eyebrow">
           {title}
           {documents.length > 0 && (
-            <span style={{ color: "var(--ink-mute)", marginLeft: 8 }}>
+            <span style={{ color: "var(--ink-soft)", marginLeft: 8 }}>
               {documents.length}
             </span>
           )}
@@ -164,7 +164,7 @@ export function DocsPanel({
             padding: "18px",
             textAlign: "center",
             font: "500 12.5px/1.5 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             marginBottom: 16,
           }}
         >
@@ -237,7 +237,7 @@ export function DocsPanel({
                       <div
                         style={{
                           font: "500 11px/1.3 var(--f-sans)",
-                          color: "var(--ink-mute)",
+                          color: "var(--ink-soft)",
                         }}
                       >
                         {doc.doc_type ? `${doc.doc_type} · ${meta}` : meta}
@@ -706,7 +706,7 @@ export function VersionHistoryDrawer({
           <p
             style={{
               font: "500 13px/1.4 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
             }}
           >
             Cargando historial…
@@ -793,7 +793,7 @@ export function VersionHistoryDrawer({
                   <div
                     style={{
                       font: "500 11px/1.3 var(--f-sans)",
-                      color: "var(--ink-mute)",
+                      color: "var(--ink-soft)",
                     }}
                   >
                     {sub}

@@ -253,7 +253,7 @@ export function NumericInput({
               top: "50%",
               transform: "translateY(-50%)",
               font: "700 11px/1 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               letterSpacing: "0.04em",
               pointerEvents: "none",
               textTransform: type === "weight" || type === "volume" ? "lowercase" : "none",

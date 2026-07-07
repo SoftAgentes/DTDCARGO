@@ -132,7 +132,7 @@ export function MembersView({ stats, members }: { stats: ClubStats; members: Clu
                         font: "700 11px/1 var(--f-sans)",
                         textTransform: "uppercase",
                         letterSpacing: "0.06em",
-                        color: "var(--ink-mute)",
+                        color: "var(--ink-soft)",
                         borderBottom: "1px solid var(--border)",
                       }}
                     >
@@ -158,7 +158,7 @@ export function MembersView({ stats, members }: { stats: ClubStats; members: Clu
                       <span
                         style={{
                           font: "500 11px/1 var(--f-sans)",
-                          color: "var(--ink-mute)",
+                          color: "var(--ink-soft)",
                           display: "block",
                           marginTop: 2,
                         }}

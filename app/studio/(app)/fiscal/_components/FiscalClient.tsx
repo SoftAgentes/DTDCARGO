@@ -527,7 +527,7 @@ function CurrencyNote({ currencies }: { currencies: string[] }) {
 
   return (
     <div style={{ marginBottom: 14 }}>
-      <div className="studio-eyebrow" style={{ color: "var(--ink-mute)", marginBottom: mixed ? 8 : 0 }}>
+      <div className="studio-eyebrow" style={{ color: "var(--ink-soft)", marginBottom: mixed ? 8 : 0 }}>
         Moneda: <span style={{ fontFamily: "var(--f-mono)", color: "var(--ink-soft)" }}>{currencies.join(" · ")}</span>
       </div>
       {mixed && (
@@ -579,7 +579,7 @@ function TotalsStrip({ totals, label }: { totals: BookTotals; label: string }) {
             padding: "14px 16px",
           }}
         >
-          <div className="studio-eyebrow" style={{ color: "var(--ink-mute)", marginBottom: 6 }}>{c.k}</div>
+          <div className="studio-eyebrow" style={{ color: "var(--ink-soft)", marginBottom: 6 }}>{c.k}</div>
           <div style={{ font: "800 22px/1 var(--f-mono)", color: "var(--ink)" }}>{c.v}</div>
         </div>
       ))}
@@ -949,7 +949,7 @@ function RateBreakdown({ totals }: { totals: BookTotals }) {
 
 function FootNote({ children }: { children: React.ReactNode }) {
   return (
-    <p style={{ font: "400 11.5px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: "14px 0 0", maxWidth: "82ch" }}>
+    <p style={{ font: "400 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: "14px 0 0", maxWidth: "82ch" }}>
       {children}
     </p>
   );

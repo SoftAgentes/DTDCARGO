@@ -181,7 +181,7 @@ export function AssignCargoDrawer({
             <div
               style={{
                 font: "500 11px/1 var(--f-mono)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
               }}
             >
               {projected.usedCbm.toFixed(1)} / {projected.cap.cbm} CBM · peso{" "}
@@ -278,7 +278,7 @@ export function AssignCargoDrawer({
         <p
           style={{
             font: "500 11.5px/1.5 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             margin: 0,
           }}
         >
