@@ -579,7 +579,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
                     type="button"
                     className="studio-btn studio-btn-ghost studio-btn-sm"
                     onClick={clearGps}
-                    style={{ color: "var(--ink-mute)" }}
+                    style={{ color: "var(--ink-soft)" }}
                     aria-label="Limpiar GPS"
                   >
                     Limpiar

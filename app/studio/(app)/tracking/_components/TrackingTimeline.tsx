@@ -52,7 +52,7 @@ function metaLabel(state: TimelineStepState): string {
 function metaColor(state: TimelineStepState): string {
   if (state === "active") return "var(--wine)";
   if (state === "exception") return "var(--danger)";
-  return "var(--ink-mute)";
+  return "var(--ink-soft)";
 }
 
 export function TrackingTimeline({ shipment }: Props) {

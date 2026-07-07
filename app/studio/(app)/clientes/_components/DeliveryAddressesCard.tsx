@@ -245,7 +245,7 @@ export function DeliveryAddressesCard({
                   }}
                   style={{
                     font: "600 12px/1 var(--f-sans)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     background: "none",
                     border: 0,
                     cursor: busy != null ? "wait" : "pointer",
