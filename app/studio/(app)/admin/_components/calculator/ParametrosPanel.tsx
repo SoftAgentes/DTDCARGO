@@ -34,11 +34,16 @@ const initialState: CalculatorSettingsActionState = {};
 
 type FieldKey = keyof CalculatorSettingsInput;
 
-/** Agrupación visual de los parámetros (jerarquía para el operador). */
+/**
+ * Agrupación visual de los parámetros (jerarquía para el operador). Dos familias:
+ * las que ajustan el PRECIO (siempre cotiza) y los "Límites de cotización
+ * automática" — topes por encima de los cuales la máquina NO cotiza y deriva al
+ * asesor (peso por envío + límites físicos del contenedor).
+ */
 const GROUPS: { title: string; keys: FieldKey[] }[] = [
   {
     title: "Modelo de peso",
-    keys: ["pesoIncluidoKg", "recargoExcedenteKg", "pesoMaxEnvioKg"],
+    keys: ["pesoIncluidoKg", "recargoExcedenteKg"],
   },
   {
     title: "Recargos y descuentos",
@@ -49,8 +54,8 @@ const GROUPS: { title: string; keys: FieldKey[] }[] = [
     keys: ["thresholdCascoKm", "tarifaKmFueraCasco"],
   },
   {
-    title: "Límites del contenedor",
-    keys: ["cbmMaxContenedor", "pesoMaxContenedorKg"],
+    title: "Límites de cotización automática",
+    keys: ["pesoMaxEnvioKg", "cbmMaxContenedor", "pesoMaxContenedorKg"],
   },
 ];
 
