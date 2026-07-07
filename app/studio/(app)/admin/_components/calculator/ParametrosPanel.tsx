@@ -25,6 +25,7 @@ import {
   type CalculatorSettingsInput,
 } from "@/lib/studio/calculator-settings-types";
 import { saveCalculatorSettingsAction } from "../../calculator-actions";
+import { WeightModelExplainer } from "./WeightModelExplainer";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { Icon } from "@/app/studio/_components/icons";
@@ -33,11 +34,15 @@ const initialState: CalculatorSettingsActionState = {};
 
 type FieldKey = keyof CalculatorSettingsInput;
 
-/** Agrupación visual de los 8 parámetros (jerarquía para el operador). */
+/**
+ * Agrupación visual de los parámetros (jerarquía para el operador).
+ * `pesoMaxKg` NO se lista: ya no entra al cálculo (recargo continuo sin tope);
+ * se conserva solo por el CHECK de la DB y se envía por hidden input (ver form).
+ */
 const GROUPS: { title: string; keys: FieldKey[] }[] = [
   {
-    title: "Peso por CBM",
-    keys: ["pesoIncluidoKg", "pesoMaxKg", "recargoExcedenteKg"],
+    title: "Modelo de peso",
+    keys: ["pesoIncluidoKg", "recargoExcedenteKg"],
   },
   {
     title: "Recargos y descuentos",
@@ -107,8 +112,19 @@ export function ParametrosPanel({
 
   const usingDefaults = settings == null;
 
+  // pesoMaxKg ya no entra al cálculo (recargo continuo sin tope), pero la DB
+  // conserva el CHECK peso_max_kg ≥ peso_incluido_kg. Lo enviamos por hidden
+  // input espejando la gracia, así el CHECK siempre se cumple y el operador no
+  // ve un campo muerto. Migración propuesta: soltar el CHECK y la columna.
+  const pesoMaxSubmit = Math.max(
+    values.pesoIncluidoKg ?? 0,
+    values.pesoMaxKg ?? 0,
+  );
+
   return (
     <div style={{ maxWidth: 880 }}>
+      <WeightModelExplainer />
+
       {/* Aviso: dónde vive la tarifa base (no acá) */}
       <div
         style={{
@@ -154,6 +170,9 @@ export function ParametrosPanel({
       </div>
 
       <form action={formAction}>
+        {/* pesoMaxKg heredado: no se edita, se envía espejando la gracia para
+            satisfacer el CHECK peso_max_kg ≥ peso_incluido_kg de la DB. */}
+        <input type="hidden" name="pesoMaxKg" value={pesoMaxSubmit} />
         <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
           {GROUPS.map((group) => (
             <fieldset
