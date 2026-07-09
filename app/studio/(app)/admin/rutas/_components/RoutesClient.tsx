@@ -15,6 +15,7 @@ import { useMemo, useState, useTransition, useActionState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
+import { ActionableRow } from "@/app/studio/_components/ui/DataTable";
 import { Icon } from "@/app/studio/_components/icons";
 import {
   seedTenantCitiesFromVeCatalogAction,
@@ -959,13 +960,13 @@ function CityRow({
   dimmed?: boolean;
 }) {
   return (
-    <tr
+    <ActionableRow
+      onSelect={onEdit}
+      label={`Editar ${c.city}`}
       style={{
         borderTop: "1px solid var(--border)",
-        cursor: "pointer",
         opacity: dimmed ? 0.6 : 1,
       }}
-      onClick={onEdit}
     >
       <td style={tdStyle}>
         <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>
@@ -1069,7 +1070,7 @@ function CityRow({
           </span>
         )}
       </td>
-    </tr>
+    </ActionableRow>
   );
 }
 

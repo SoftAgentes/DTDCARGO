@@ -14,6 +14,7 @@ import {
   type BugReport,
 } from "@/lib/studio/bug-types";
 import { moduleLabelFromSlug } from "@/lib/studio/bug-module-name";
+import { TableFrame, ActionableRow } from "@/app/studio/_components/ui/DataTable";
 import type { ReporterProfile } from "@/lib/studio/bug-types";
 
 interface Props {
@@ -105,14 +106,7 @@ export function BugTable({ bugs, reporterMap, onOpenBug }: Props) {
   }
 
   return (
-    <div
-      style={{
-        background: "var(--bg-surface, #FFFFFF)",
-        border: "1px solid var(--border, #E8E6E2)",
-        borderRadius: 8,
-        overflow: "auto",
-      }}
-    >
+    <TableFrame>
       <table
         style={{
           width: "100%",
@@ -155,21 +149,11 @@ export function BugTable({ bugs, reporterMap, onOpenBug }: Props) {
               ),
             );
             return (
-              <tr
+              <ActionableRow
                 key={bug.id}
-                onClick={() => onOpenBug(bug.id)}
-                style={{
-                  borderTop: "1px solid var(--border, #E8E6E2)",
-                  cursor: "pointer",
-                  background: "transparent",
-                  transition: "background var(--dur, 180ms) var(--ease)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "var(--bg-elevated, #F2F0EC)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "transparent";
-                }}
+                onSelect={() => onOpenBug(bug.id)}
+                label={`Ver reporte ${bug.folio}`}
+                style={{ borderTop: "1px solid var(--border)" }}
               >
                 <Td>
                   <code
@@ -248,12 +232,12 @@ export function BugTable({ bugs, reporterMap, onOpenBug }: Props) {
                     {days}d
                   </span>
                 </Td>
-              </tr>
+              </ActionableRow>
             );
           })}
         </tbody>
       </table>
-    </div>
+    </TableFrame>
   );
 }
 
@@ -272,28 +256,63 @@ function Th({
   active?: boolean;
   dir?: SortDir;
 }) {
-  return (
-    <th
-      onClick={onClick}
-      style={{
-        padding: "10px 12px",
-        textAlign: "left",
-        fontSize: 11,
-        textTransform: "uppercase",
-        letterSpacing: "0.06em",
-        color: active ? "var(--wine, #7F0F1A)" : "var(--ink-soft)",
-        cursor: onClick ? "pointer" : "default",
-        fontWeight: 600,
-        whiteSpace: "nowrap",
-        userSelect: "none",
-      }}
-    >
+  const label = (
+    <>
       {children}
       {active && dir && (
         <span style={{ marginLeft: 4, fontSize: 9 }}>
           {dir === "asc" ? "↑" : "↓"}
         </span>
       )}
+    </>
+  );
+  const cellStyle: React.CSSProperties = {
+    padding: onClick ? 0 : "10px 12px",
+    textAlign: "left",
+    fontSize: 11,
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
+    color: active ? "var(--wine)" : "var(--ink-soft)",
+    fontWeight: 600,
+    whiteSpace: "nowrap",
+    userSelect: "none",
+  };
+  // Columna ordenable → el orden va en un <button> REAL (alcanzable por
+  // teclado, WCAG 2.1.1) y el <th> declara aria-sort. Columna no ordenable →
+  // th plano.
+  if (!onClick) {
+    return (
+      <th style={cellStyle}>
+        {label}
+      </th>
+    );
+  }
+  return (
+    <th
+      style={cellStyle}
+      aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : "none"}
+    >
+      <button
+        type="button"
+        onClick={onClick}
+        style={{
+          boxSizing: "border-box",
+          display: "flex",
+          alignItems: "center",
+          width: "100%",
+          margin: 0,
+          padding: "10px 12px",
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          color: "inherit",
+          font: "inherit",
+          letterSpacing: "inherit",
+          textTransform: "inherit",
+        }}
+      >
+        {label}
+      </button>
     </th>
   );
 }
