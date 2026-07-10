@@ -122,8 +122,8 @@ export function OrdenesCompraClient({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-end",
-          gap: 24,
-          marginBottom: 24,
+          gap: "var(--s-6)",
+          marginBottom: "var(--s-6)",
           flexWrap: "wrap",
         }}
       >
@@ -131,7 +131,7 @@ export function OrdenesCompraClient({
           <span className="studio-eyebrow">Comercial · Compras</span>
           <h1
             className="studio-display"
-            style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
+            style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
           >
             Compras asistidas.
           </h1>
@@ -168,7 +168,7 @@ export function OrdenesCompraClient({
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
           gap: 14,
-          marginBottom: 20,
+          marginBottom: "var(--s-5)",
         }}
       >
         <KpiCard
@@ -201,7 +201,7 @@ export function OrdenesCompraClient({
       <div
         style={{
           display: "flex",
-          gap: 4,
+          gap: "var(--s-1)",
           marginBottom: 18,
           borderBottom: "1px solid var(--border)",
         }}
@@ -620,7 +620,7 @@ function DtdTab({
           display: "flex",
           alignItems: "center",
           gap: 10,
-          marginBottom: 12,
+          marginBottom: "var(--s-3)",
           flexWrap: "wrap",
         }}
       >
@@ -628,7 +628,7 @@ function DtdTab({
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 8,
+            gap: "var(--s-2)",
             flex: "1 1 220px",
             minWidth: 180,
             maxWidth: 380,
@@ -717,7 +717,7 @@ function DtdTab({
               style={{
                 display: "grid",
                 gridTemplateColumns: grid,
-                gap: 12,
+                gap: "var(--s-3)",
                 padding: "14px 20px",
                 alignItems: "center",
                 width: "100%",
@@ -819,7 +819,7 @@ function SortableHeaderCell({
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: 4,
+        gap: "var(--s-1)",
         justifySelf: col.align === "right" ? "end" : "start",
         background: "transparent",
         border: "none",
@@ -871,7 +871,7 @@ function ClienteTab({
         style={{
           font: "500 11.5px/1.4 var(--f-sans)",
           color: "var(--ink-soft)",
-          margin: "0 0 12px",
+          margin: "0 0 var(--s-3)",
         }}
       >
         Prealertas que los clientes anuncian desde el portal. Solo lectura — se
@@ -900,7 +900,7 @@ function ClienteTab({
             style={{
               display: "grid",
               gridTemplateColumns: PREALERTA_GRID,
-              gap: 12,
+              gap: "var(--s-3)",
               padding: "14px 20px",
               borderTop: i > 0 ? "1px solid var(--border)" : 0,
               alignItems: "center",
@@ -1003,8 +1003,8 @@ function HeaderRow({
       style={{
         display: "grid",
         gridTemplateColumns: grid,
-        gap: 12,
-        padding: "12px 20px",
+        gap: "var(--s-3)",
+        padding: "var(--s-3) var(--s-5)",
         background: "var(--bg-elevated)",
         borderBottom: "1px solid var(--border)",
         font: "700 10px/1 var(--f-sans)",

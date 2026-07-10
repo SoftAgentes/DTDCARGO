@@ -50,7 +50,7 @@ export function InventarioClient({ cn, ve }: Props) {
         <span className="studio-eyebrow">Operación · Inventario</span>
         <h1
           className="studio-display"
-          style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
+          style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
         >
           Inventario de consolidación.
         </h1>
@@ -86,7 +86,7 @@ export function InventarioClient({ cn, ve }: Props) {
                 border: `1px solid ${active ? "var(--ink)" : "var(--border)"}`,
                 background: active ? "var(--ink)" : "var(--bg-surface)",
                 color: active ? "var(--ink-inv-soft)" : "var(--ink-soft)",
-                transition: "background 120ms ease, border-color 120ms ease",
+                transition: "background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease)",
               }}
             >
               {t.label}
@@ -209,7 +209,7 @@ export function InventarioClient({ cn, ve }: Props) {
                       : stock.occupancy.tone === "warning"
                         ? "var(--warning)"
                         : "var(--success)",
-                  transition: "width .4s",
+                  transition: "width var(--dur-slow) var(--ease)",
                 }}
               />
             </div>
@@ -217,7 +217,7 @@ export function InventarioClient({ cn, ve }: Props) {
               style={{
                 font: "500 11px/1.3 var(--f-mono)",
                 color: "var(--ink-soft)",
-                marginTop: 8,
+                marginTop: "var(--s-2)",
               }}
             >
               {fmt2(stock.occupancy.usedCbm)} / {fmt(stock.occupancy.capacityCbm)} CBM ·
@@ -234,7 +234,7 @@ export function InventarioClient({ cn, ve }: Props) {
               padding: "18px 20px",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
               <span
                 style={{
                   font: "600 10px/1 var(--f-sans)",
@@ -259,7 +259,7 @@ export function InventarioClient({ cn, ve }: Props) {
                 auto · +3 días
               </span>
             </div>
-            <div style={{ font: "900 30px/1 var(--f-display)", marginTop: 8 }}>
+            <div style={{ font: "900 30px/1 var(--f-display)", marginTop: "var(--s-2)" }}>
               {stock.readyQueue.rows}{" "}
               <span
                 style={{ font: "500 14px var(--f-sans)", color: "var(--ink-inv-mute)" }}
@@ -271,7 +271,7 @@ export function InventarioClient({ cn, ve }: Props) {
               style={{
                 font: "500 11.5px/1.4 var(--f-sans)",
                 color: "var(--ink-inv-mute)",
-                marginTop: 8,
+                marginTop: "var(--s-2)",
               }}
             >
               Se deriva solo (recibido + 3 días); el bodeguero podrá marcar/desmarcar

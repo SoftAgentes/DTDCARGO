@@ -207,7 +207,7 @@ function MemberRow({
             }}
             style={{
               height: 28,
-              padding: "0 8px",
+              padding: "0 var(--s-2)",
               border: "1px solid var(--border)",
               borderRadius: 4,
               background: "var(--bg-surface)",
@@ -243,7 +243,7 @@ function MemberRow({
               }}
               style={{
                 height: 28,
-                padding: "0 8px",
+                padding: "0 var(--s-2)",
                 border: "1px solid var(--border)",
                 borderRadius: 4,
                 background: "var(--bg-surface)",
@@ -385,7 +385,7 @@ function Pill({
         display: "inline-flex",
         alignItems: "center",
         height: 20,
-        padding: "0 8px",
+        padding: "0 var(--s-2)",
         background: bg,
         color: fg,
         borderRadius: 4,

@@ -118,7 +118,7 @@ export default async function MarketingHubPage() {
         </div>
         <h1
           className="studio-display"
-          style={{ fontSize: 30, margin: "0 0 8px", color: "var(--ink)" }}
+          style={{ fontSize: 30, margin: "0 0 var(--s-2)", color: "var(--ink)" }}
         >
           HUB de marca
         </h1>
@@ -137,7 +137,7 @@ export default async function MarketingHubPage() {
 
       {/* Logos */}
       <section style={{ marginBottom: 32 }}>
-        <h2 className="studio-eyebrow" style={{ margin: "0 0 12px" }}>
+        <h2 className="studio-eyebrow" style={{ margin: "0 0 var(--s-3)" }}>
           Logos
         </h2>
         <div
@@ -189,7 +189,7 @@ export default async function MarketingHubPage() {
                   style={{
                     font: "400 12px/1.4 var(--f-sans)",
                     color: "var(--ink-soft)",
-                    margin: "0 0 12px",
+                    margin: "0 0 var(--s-3)",
                   }}
                 >
                   {logo.caption}
@@ -213,7 +213,7 @@ export default async function MarketingHubPage() {
       {/* Secciones pendientes */}
       {PLACEHOLDERS.map((p) => (
         <section key={p.eyebrow} style={{ marginBottom: 24 }}>
-          <h2 className="studio-eyebrow" style={{ margin: "0 0 12px" }}>
+          <h2 className="studio-eyebrow" style={{ margin: "0 0 var(--s-3)" }}>
             {p.eyebrow}
           </h2>
           <div
@@ -233,7 +233,7 @@ export default async function MarketingHubPage() {
                 style={{
                   font: "600 14px/1.4 var(--f-sans)",
                   color: "var(--ink)",
-                  margin: "0 0 4px",
+                  margin: "0 0 var(--s-1)",
                 }}
               >
                 {p.title}

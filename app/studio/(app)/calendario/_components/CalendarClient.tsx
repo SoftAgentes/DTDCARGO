@@ -130,7 +130,7 @@ export function CalendarClient({
         aria-label="Secciones del calendario"
         style={{
           display: "flex",
-          gap: 4,
+          gap: "var(--s-1)",
           borderBottom: "1px solid var(--border)",
           marginBottom: 18,
         }}
@@ -336,10 +336,10 @@ function FilterCard({
         background: "var(--bg-surface)",
         border: "1px solid var(--border)",
         borderRadius: 10,
-        padding: 20,
+        padding: "var(--s-5)",
       }}
     >
-      <div className="studio-eyebrow" style={{ color: "var(--wine)", marginBottom: 12 }}>
+      <div className="studio-eyebrow" style={{ color: "var(--wine)", marginBottom: "var(--s-3)" }}>
         Filtros
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>

@@ -324,7 +324,7 @@ export function ActaReview({
           border: "1px solid var(--border)",
           borderRadius: "var(--r-lg)",
           padding: "18px 20px",
-          marginBottom: 16,
+          marginBottom: "var(--s-4)",
           display: "flex",
           flexDirection: "column",
           gap: 14,
@@ -380,11 +380,11 @@ export function ActaReview({
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 8,
+            gap: "var(--s-2)",
             font: "500 12px/1.3 var(--f-sans)",
             color: "var(--ink)",
             cursor: "pointer",
-            paddingTop: 4,
+            paddingTop: "var(--s-1)",
           }}
         >
           <input
@@ -413,8 +413,8 @@ export function ActaReview({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          gap: 12,
-          marginBottom: 12,
+          gap: "var(--s-3)",
+          marginBottom: "var(--s-3)",
           flexWrap: "wrap",
         }}
       >
@@ -497,7 +497,7 @@ export function ActaReview({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          gap: 12,
+          gap: "var(--s-3)",
           marginTop: 18,
           flexWrap: "wrap",
         }}
@@ -558,7 +558,7 @@ function ReadonlyList({ label, items }: { label: string; items: string[] }) {
           paddingLeft: 18,
           display: "flex",
           flexDirection: "column",
-          gap: 4,
+          gap: "var(--s-1)",
         }}
       >
         {items.map((it, i) => (
@@ -610,7 +610,7 @@ function Collapsible({
           color: "var(--ink-soft)",
           display: "flex",
           alignItems: "center",
-          gap: 8,
+          gap: "var(--s-2)",
         }}
       >
         {label}
@@ -618,7 +618,7 @@ function Collapsible({
           {count}
         </Badge>
       </summary>
-      <div style={{ paddingBottom: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ paddingBottom: "var(--s-3)", display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
         {children}
       </div>
     </details>
@@ -638,7 +638,7 @@ function HilosPanel({ hilos }: { hilos: ActaHilo[] }) {
           <span style={{ fontWeight: 700, color: "var(--ink)" }}>{h.tema}</span>
           {h.estado_final ? ` — ${h.estado_final}` : ""}
           {h.contradiccion_sin_resolver && (
-            <span style={{ marginLeft: 8 }}>
+            <span style={{ marginLeft: "var(--s-2)" }}>
               <Badge tone="warning" size="sm">
                 sin resolver
               </Badge>
@@ -705,7 +705,7 @@ function VinculoPanel({
         borderRadius: "var(--r-md)",
         background: "var(--bg-surface)",
         padding: "14px 16px",
-        marginBottom: 16,
+        marginBottom: "var(--s-4)",
         display: "flex",
         flexDirection: "column",
         gap: 10,
@@ -828,10 +828,10 @@ function EscuchaPanel({
         marginTop: 18,
         display: "flex",
         flexDirection: "column",
-        gap: 12,
+        gap: "var(--s-3)",
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--s-3)", flexWrap: "wrap" }}>
         <div>
           <div className="studio-eyebrow" style={{ color: "var(--wine)" }}>
             Escucha Activa · privado
@@ -870,7 +870,7 @@ function EscuchaPanel({
       )}
 
       {sugerencias !== null && sugerencias.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
           {sugerencias.map((s, i) =>
             resolvedSug.has(i) ? null : (
               <SugerenciaCard
@@ -912,10 +912,10 @@ function SugerenciaCard({
         padding: "12px 14px",
         display: "flex",
         flexDirection: "column",
-        gap: 8,
+        gap: "var(--s-2)",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)", flexWrap: "wrap" }}>
         <Badge tone="neutral" size="sm">
           {ESCUCHA_SUGERENCIA_LABEL[s.tipo]}
         </Badge>
@@ -936,7 +936,7 @@ function SugerenciaCard({
       <div style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", fontStyle: "italic" }}>
         {s.motivo}
       </div>
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: "var(--s-2)" }}>
         {aplicable && (
           <button
             type="button"
@@ -979,7 +979,7 @@ function TaskGroup({
   onRemove,
 }: TaskGroupProps) {
   return (
-    <section style={{ marginBottom: 16 }}>
+    <section style={{ marginBottom: "var(--s-4)" }}>
       <div className="studio-eyebrow" style={{ color: "var(--wine)", marginBottom: 10 }}>
         {title}
       </div>
@@ -1160,7 +1160,7 @@ function TaskEditCard({
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 8,
+          gap: "var(--s-2)",
           font: "500 12px/1.3 var(--f-sans)",
           color: "var(--ink)",
           cursor: "pointer",
@@ -1183,14 +1183,14 @@ function TaskEditCard({
           Checklist
         </div>
         {task.checklist.length > 0 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: "var(--s-2)" }}>
             {task.checklist.map((c, i) => (
               <div
                 key={`${i}-${c}`}
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 8,
+                  gap: "var(--s-2)",
                   padding: "7px 10px",
                   background: "var(--bg-elevated)",
                   border: "1px solid var(--border)",
@@ -1222,7 +1222,7 @@ function TaskEditCard({
             ))}
           </div>
         )}
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: "var(--s-2)" }}>
           <input
             value={chkDraft}
             onChange={(e) => setChkDraft(e.target.value)}

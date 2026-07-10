@@ -72,7 +72,7 @@ export function CostHelpers({ onApplyIgtf, onApplyIva }: Props) {
         style={{
           display: "grid",
           gridTemplateColumns: "1fr auto auto",
-          gap: 8,
+          gap: "var(--s-2)",
           alignItems: "flex-end",
         }}
       >

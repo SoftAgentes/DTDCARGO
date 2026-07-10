@@ -195,7 +195,7 @@ export function SeniatClient({
                 whiteSpace: "nowrap",
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 8,
+                gap: "var(--s-2)",
                 marginBottom: -1,
                 transition:
                   "color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease)",
@@ -228,7 +228,7 @@ export function SeniatClient({
               display: "flex",
               gap: 10,
               alignItems: "flex-end",
-              marginBottom: 16,
+              marginBottom: "var(--s-4)",
               flexWrap: "wrap",
               justifyContent: "space-between",
             }}

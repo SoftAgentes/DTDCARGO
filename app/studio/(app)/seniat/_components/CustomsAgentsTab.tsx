@@ -60,7 +60,7 @@ function AgentCard({ agent }: { agent: CustomsAgent }) {
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 12,
+          gap: "var(--s-3)",
           marginBottom: 14,
         }}
       >
@@ -111,8 +111,8 @@ function AgentCard({ agent }: { agent: CustomsAgent }) {
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
-          gap: 12,
-          paddingTop: 12,
+          gap: "var(--s-3)",
+          paddingTop: "var(--s-3)",
           borderTop: "1px solid var(--border)",
         }}
       >

@@ -82,7 +82,7 @@ export function ClubClient({
   return (
     <div style={{ maxWidth: 1280 }}>
       {/* Header */}
-      <div style={{ marginBottom: 20 }}>
+      <div style={{ marginBottom: "var(--s-5)" }}>
         <span className="studio-eyebrow" style={{ color: "var(--wine)" }}>
           Club DTD
         </span>
@@ -112,7 +112,7 @@ export function ClubClient({
         onKeyDown={onTabKeyDown}
         style={{
           display: "flex",
-          gap: 4,
+          gap: "var(--s-1)",
           marginBottom: 18,
           borderBottom: "1px solid var(--border)",
         }}

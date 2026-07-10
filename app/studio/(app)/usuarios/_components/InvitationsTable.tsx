@@ -253,7 +253,7 @@ function Pill({
         display: "inline-flex",
         alignItems: "center",
         height: 20,
-        padding: "0 8px",
+        padding: "0 var(--s-2)",
         background: bg,
         color: fg,
         borderRadius: 4,

@@ -159,7 +159,7 @@ function CorteRow({
         display: "grid",
         gridTemplateColumns: RUN_COLS,
         gap: 12,
-        padding: "12px 20px",
+        padding: "var(--s-3) var(--s-5)",
         alignItems: "center",
         borderTop: first ? 0 : "1px solid var(--border)",
         opacity: dimmed ? 0.6 : 1,
@@ -449,7 +449,7 @@ function ReciboRow({ l, first }: { l: PayrollRunLine; first: boolean }) {
         display: "grid",
         gridTemplateColumns: LINE_COLS,
         gap: 12,
-        padding: "12px 20px",
+        padding: "var(--s-3) var(--s-5)",
         alignItems: "center",
         borderTop: first ? 0 : "1px solid var(--border)",
       }}

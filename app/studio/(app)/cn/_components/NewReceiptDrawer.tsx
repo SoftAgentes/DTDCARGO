@@ -251,7 +251,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            gap: 12,
+            gap: "var(--s-3)",
             flexShrink: 0,
           }}
         >
@@ -267,7 +267,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
               style={{
                 font: "500 11.5px/1.3 var(--f-sans)",
                 color: "var(--ink-soft)",
-                margin: "4px 0 0",
+                margin: "var(--s-1) 0 0",
               }}
             >
               {t("warehouse_cn.drawer.subtitle")}
@@ -435,7 +435,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
                     style={{
                       font: "500 11px/1.4 var(--f-sans)",
                       color: "var(--ink-soft)",
-                      marginLeft: 4,
+                      marginLeft: "var(--s-1)",
                     }}
                   >
                     {t("warehouse_cn.drawer.orphan_code_note")}{" "}
@@ -471,8 +471,8 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
               style={{
                 display: "flex",
                 flexDirection: "column",
-                gap: 12,
-                paddingLeft: 12,
+                gap: "var(--s-3)",
+                paddingLeft: "var(--s-3)",
                 borderLeft: "2px solid var(--warning)",
               }}
             >
@@ -493,7 +493,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
                   style={{
                     font: "500 11px/1.4 var(--f-sans)",
                     color: "var(--ink-soft)",
-                    margin: "4px 0 0",
+                    margin: "var(--s-1) 0 0",
                   }}
                 >
                   {t("warehouse_cn.drawer.orphan_marks_hint")}
@@ -503,7 +503,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
                 style={{
                   display: "grid",
                   gridTemplateColumns: "1fr 1fr",
-                  gap: 12,
+                  gap: "var(--s-3)",
                 }}
               >
                 <div>
@@ -555,7 +555,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                marginBottom: 8,
+                marginBottom: "var(--s-2)",
               }}
             >
               <div>
@@ -566,7 +566,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
                   style={{
                     font: "500 11px/1.3 var(--f-sans)",
                     color: "var(--ink-soft)",
-                    margin: "4px 0 0",
+                    margin: "var(--s-1) 0 0",
                   }}
                 >
                   {t("warehouse_cn.drawer.items_hint", { max: MAX_ITEMS })}

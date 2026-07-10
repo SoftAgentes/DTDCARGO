@@ -60,10 +60,10 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
       {/* Últimas tasas */}
       <Card>
         <CardEyebrow>Tasas vigentes</CardEyebrow>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "var(--s-3)" }}>
           {data.latest.map((l) => (
-            <div key={l.pair} style={{ padding: 16, background: "var(--bg-elevated)", borderRadius: "var(--r-md)" }}>
-              <div style={{ font: "600 11px/1 var(--f-sans)", color: "var(--ink-soft)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
+            <div key={l.pair} style={{ padding: "var(--s-4)", background: "var(--bg-elevated)", borderRadius: "var(--r-md)" }}>
+              <div style={{ font: "600 11px/1 var(--f-sans)", color: "var(--ink-soft)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: "var(--s-2)" }}>
                 {fxPairLabel(l.pair)}
               </div>
               <div style={{ font: "800 26px/1 var(--f-display)", color: "var(--ink)" }}>
@@ -81,7 +81,7 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
       <Card>
         <CardEyebrow>Registrar tasa nueva</CardEyebrow>
         <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, alignItems: "end" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)", alignItems: "end" }}>
             <div>
               <label className="studio-label" htmlFor="fx-pair">Par de moneda</label>
               <select
@@ -117,7 +117,7 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
           {outOfRange && (
             <div
               style={{
-                padding: 12,
+                padding: "var(--s-3)",
                 background: "var(--warning-bg)",
                 color: "var(--warning)",
                 borderRadius: "var(--r-md)",
@@ -132,7 +132,7 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
           {state?.error && (
             <div
               style={{
-                padding: 12,
+                padding: "var(--s-3)",
                 background: "var(--danger-bg)",
                 color: "var(--danger)",
                 borderRadius: "var(--r-md)",

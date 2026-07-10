@@ -96,7 +96,7 @@ export function AgentQueue({ tasks, onOpen }: Props) {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: 12,
+          gap: "var(--s-3)",
           flexWrap: "wrap",
           background: "var(--bg-surface)",
           border: "1px solid var(--border)",
@@ -143,7 +143,7 @@ export function AgentQueue({ tasks, onOpen }: Props) {
 
       {/* Pendientes (accionables) */}
       {pendientes.length > 0 ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
           {pendientes.map((t) => (
             <AgentTaskCard
               key={t.id}
@@ -183,7 +183,7 @@ export function AgentQueue({ tasks, onOpen }: Props) {
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: 8,
+              gap: "var(--s-2)",
               marginTop: 10,
             }}
           >
@@ -220,7 +220,7 @@ function AgentTaskCard({
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 12,
+        gap: "var(--s-3)",
         padding: "12px 14px",
         background: "var(--bg-surface)",
         border: "1px solid var(--border)",
@@ -270,7 +270,7 @@ function AgentTaskCard({
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 8,
+            gap: "var(--s-2)",
             marginTop: 6,
             flexWrap: "wrap",
           }}

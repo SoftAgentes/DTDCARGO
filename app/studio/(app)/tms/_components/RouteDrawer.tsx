@@ -114,7 +114,7 @@ export function RouteDrawer({
           padding: "20px 22px",
           display: "flex",
           flexDirection: "column",
-          gap: 16,
+          gap: "var(--s-4)",
         }}
       >
         <input type="hidden" name="shipment_id" value={shipmentId} />
@@ -181,7 +181,7 @@ export function RouteDrawer({
         </div>
 
         {/* Truck + Driver */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
           <FieldSelect
             label="Camión disponible"
             name="truck_id"
@@ -217,7 +217,7 @@ export function RouteDrawer({
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              marginBottom: 8,
+              marginBottom: "var(--s-2)",
             }}
           >
             <span
@@ -255,7 +255,7 @@ export function RouteDrawer({
                 style={{
                   display: "grid",
                   gridTemplateColumns: "36px 1fr 36px",
-                  gap: 8,
+                  gap: "var(--s-2)",
                   alignItems: "center",
                 }}
               >
@@ -329,8 +329,8 @@ export function RouteDrawer({
             type="button"
             onClick={addStop}
             style={{
-              marginTop: 8,
-              padding: "8px 12px",
+              marginTop: "var(--s-2)",
+              padding: "var(--s-2) var(--s-3)",
               borderRadius: "var(--r-md)",
               border: "1px dashed var(--border-strong)",
               background: "transparent",
@@ -349,7 +349,7 @@ export function RouteDrawer({
           )}
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
           <FieldText
             label="Distancia estimada (km)"
             name="distance_km"

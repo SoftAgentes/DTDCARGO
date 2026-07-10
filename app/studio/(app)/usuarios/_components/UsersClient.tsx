@@ -223,7 +223,7 @@ export function UsersClient({ members, invitations, currentUserId }: Props) {
             color: "var(--ink)",
             font: "600 13px/1.2 var(--font-sans, 'Archivo')",
             cursor: "pointer",
-            padding: "8px 0",
+            padding: "var(--s-2) 0",
           }}
         >
           <span
@@ -427,7 +427,7 @@ function PermissionsByRoleModal({ onClose }: { onClose: () => void }) {
               style={{
                 font: "500 12px/1.4 var(--font-sans, 'Archivo')",
                 color: "var(--ink-soft)",
-                margin: "4px 0 0",
+                margin: "var(--s-1) 0 0",
               }}
             >
               Resumen del acceso de cada rol a los módulos del Studio. Read-only V1.
@@ -606,7 +606,7 @@ function SearchInput({
         placeholder={placeholder}
         style={{
           height: 36,
-          padding: "0 12px",
+          padding: "0 var(--s-3)",
           border: "1px solid var(--border)",
           borderRadius: 6,
           background: "var(--bg-surface)",

@@ -244,7 +244,7 @@ function Muted({ children }: { children: React.ReactNode }) {
       style={{
         font: "500 12.5px/1.4 var(--f-sans)",
         color: "var(--ink-soft)",
-        margin: "4px 0",
+        margin: "var(--s-1) 0",
       }}
     >
       {children}

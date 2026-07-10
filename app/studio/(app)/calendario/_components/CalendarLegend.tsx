@@ -15,7 +15,7 @@ function Chip({ label, bg, border, textColor }: ChipProps) {
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: 8,
+        gap: "var(--s-2)",
       }}
     >
       <span
@@ -45,8 +45,8 @@ export function CalendarLegend() {
   return (
     <div
       style={{
-        marginTop: 16,
-        padding: "12px 16px",
+        marginTop: "var(--s-4)",
+        padding: "var(--s-3) var(--s-4)",
         background: "var(--bg-surface)",
         border: "1px solid var(--border)",
         borderRadius: 8,

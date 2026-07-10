@@ -252,7 +252,7 @@ export function KommoBoardView({
                       style={{
                         font: "400 12px/1.4 var(--f-sans)",
                         color: "var(--ink-soft)",
-                        padding: "8px 4px",
+                        padding: "var(--s-2) var(--s-1)",
                       }}
                     >
                       Sin leads en esta etapa.
@@ -400,7 +400,7 @@ export function KommoBoardView({
                         font: "600 11px/1.2 var(--f-sans)",
                         color: "var(--ink-soft)",
                         textAlign: "center",
-                        padding: "4px 0",
+                        padding: "var(--s-1) 0",
                       }}
                     >
                       +{rest} más en esta etapa

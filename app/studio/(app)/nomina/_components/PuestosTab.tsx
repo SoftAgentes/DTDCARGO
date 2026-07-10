@@ -101,7 +101,7 @@ function PuestoCard({ p, onEdit }: { p: Position; onEdit: (p: Position) => void 
         background: "var(--bg-surface)",
         border: "1px solid var(--border)",
         borderRadius: "var(--r-lg)",
-        padding: "16px 16px",
+        padding: "var(--s-4) var(--s-4)",
         display: "flex",
         flexDirection: "column",
         gap: "var(--s-3)",

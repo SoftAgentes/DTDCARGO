@@ -71,7 +71,7 @@ export function RoutesTab({ rows }: { rows: TmsRouteRow[] }) {
               style={{
                 font: "500 10.5px/1 var(--f-mono)",
                 color: "var(--ink-soft)",
-                marginTop: 4,
+                marginTop: "var(--s-1)",
               }}
             >
               {r.truck?.plate ?? "—"}
@@ -170,7 +170,7 @@ export function RoutesTab({ rows }: { rows: TmsRouteRow[] }) {
               style={{
                 font: "600 10px/1 var(--f-mono)",
                 color: "var(--ink-soft)",
-                marginTop: 4,
+                marginTop: "var(--s-1)",
                 textAlign: "right",
               }}
             >

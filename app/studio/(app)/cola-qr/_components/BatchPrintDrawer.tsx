@@ -75,7 +75,7 @@ export function BatchPrintDrawer({
           cuando salga el papel.
         </p>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
           {MOCK_PRINTERS.map((p) => {
             const active = printerId === p.id;
             return (
@@ -87,7 +87,7 @@ export function BatchPrintDrawer({
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 12,
+                  gap: "var(--s-3)",
                   padding: 14,
                   background: active ? "var(--wine-tint)" : "var(--bg-elevated)",
                   border: `1.5px solid ${active ? "var(--wine)" : "var(--border)"}`,
@@ -117,7 +117,7 @@ export function BatchPrintDrawer({
                     style={{
                       marginTop: 3,
                       display: "flex",
-                      gap: 8,
+                      gap: "var(--s-2)",
                       font: "500 11px/1.2 var(--f-sans)",
                       color: "var(--ink-soft)",
                     }}
@@ -136,7 +136,7 @@ export function BatchPrintDrawer({
         {state?.error && (
           <div
             style={{
-              padding: 12,
+              padding: "var(--s-3)",
               background: "var(--danger-bg)",
               color: "var(--danger)",
               borderRadius: "var(--r-sm)",

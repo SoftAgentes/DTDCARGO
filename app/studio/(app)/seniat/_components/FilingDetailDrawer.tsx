@@ -208,7 +208,7 @@ export function FilingDetailDrawer({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "flex-start",
-            gap: 12,
+            gap: "var(--s-3)",
             flexShrink: 0,
           }}
         >
@@ -234,7 +234,7 @@ export function FilingDetailDrawer({
               style={{
                 font: "600 11.5px/1.3 var(--f-mono)",
                 color: "var(--ink-soft)",
-                marginBottom: 4,
+                marginBottom: "var(--s-1)",
               }}
             >
               DUA {filing.dua_code} · {vePortLabel(filing.port_code)}
@@ -328,7 +328,7 @@ export function FilingDetailDrawer({
 
           {/* 2. Cost breakdown */}
           <div>
-            <div className="studio-eyebrow" style={{ marginBottom: 12 }}>
+            <div className="studio-eyebrow" style={{ marginBottom: "var(--s-3)" }}>
               Desglose de costos aduanales
             </div>
             <div
@@ -441,7 +441,7 @@ export function FilingDetailDrawer({
                     style={{
                       display: "grid",
                       gridTemplateColumns: "24px 1fr 80px 80px",
-                      gap: 12,
+                      gap: "var(--s-3)",
                       alignItems: "center",
                       padding: "10px 12px",
                       background: bg,
@@ -490,7 +490,7 @@ export function FilingDetailDrawer({
               style={{
                 font: "500 11px/1.4 var(--f-sans)",
                 color: "var(--ink-soft)",
-                margin: "8px 0 0",
+                margin: "var(--s-2) 0 0",
               }}
             >
               V1 sin upload real · marca OK cuando el documento físico/escaneado
@@ -547,7 +547,7 @@ export function FilingDetailDrawer({
                     style={{
                       font: "500 11.5px/1.3 var(--f-sans)",
                       color: "var(--ink-soft)",
-                      marginTop: 4,
+                      marginTop: "var(--s-1)",
                     }}
                   >
                     {agent.contact_name ?? "—"}
@@ -558,7 +558,7 @@ export function FilingDetailDrawer({
                       font: "600 11px/1.2 var(--f-mono)",
                       color: "var(--ink-soft)",
                       display: "block",
-                      marginTop: 4,
+                      marginTop: "var(--s-1)",
                     }}
                   >
                     {agent.phone ?? "—"}
@@ -608,7 +608,7 @@ export function FilingDetailDrawer({
                   style={{
                     display: "grid",
                     gridTemplateColumns: "90px 22px 1fr",
-                    gap: 12,
+                    gap: "var(--s-3)",
                     padding: "10px 14px",
                     borderTop: i > 0 ? "1px solid var(--border)" : 0,
                     alignItems: "center",
@@ -667,7 +667,7 @@ export function FilingDetailDrawer({
           {/* Observations */}
           {filing.observations && (
             <div>
-              <div className="studio-eyebrow" style={{ marginBottom: 8 }}>
+              <div className="studio-eyebrow" style={{ marginBottom: "var(--s-2)" }}>
                 Observaciones
               </div>
               <div

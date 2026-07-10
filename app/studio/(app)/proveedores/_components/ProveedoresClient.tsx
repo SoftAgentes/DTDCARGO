@@ -86,8 +86,8 @@ export function ProveedoresClient({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-end",
-          gap: 24,
-          marginBottom: 24,
+          gap: "var(--s-6)",
+          marginBottom: "var(--s-6)",
           flexWrap: "wrap",
         }}
       >
@@ -95,7 +95,7 @@ export function ProveedoresClient({
           <span className="studio-eyebrow">Operación · CN</span>
           <h1
             className="studio-display"
-            style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
+            style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
           >
             Solicitudes de servicio.
           </h1>
@@ -121,7 +121,7 @@ export function ProveedoresClient({
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
           gap: 14,
-          marginBottom: 20,
+          marginBottom: "var(--s-5)",
         }}
       >
         <KpiCard
@@ -165,7 +165,7 @@ export function ProveedoresClient({
       <div
         style={{
           display: "flex",
-          gap: 4,
+          gap: "var(--s-1)",
           marginBottom: 18,
           borderBottom: "1px solid var(--border)",
         }}
@@ -601,7 +601,7 @@ function IncomingTab({
           display: "flex",
           alignItems: "center",
           gap: 10,
-          marginBottom: 12,
+          marginBottom: "var(--s-3)",
           flexWrap: "wrap",
         }}
       >
@@ -609,7 +609,7 @@ function IncomingTab({
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 8,
+            gap: "var(--s-2)",
             flex: "1 1 220px",
             minWidth: 180,
             maxWidth: 380,
@@ -702,7 +702,7 @@ function IncomingTab({
               style={{
                 display: "grid",
                 gridTemplateColumns: grid,
-                gap: 12,
+                gap: "var(--s-3)",
                 padding: "14px 20px",
                 borderTop: i > 0 ? "1px solid var(--border)" : 0,
                 alignItems: "center",
@@ -812,7 +812,7 @@ function SortableHeaderCell({
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: 4,
+        gap: "var(--s-1)",
         justifySelf: col.align === "right" ? "end" : "start",
         background: "transparent",
         border: "none",
@@ -868,7 +868,7 @@ function SuppliersTab({ suppliers }: { suppliers: SupplierRow[] }) {
           style={{
             display: "grid",
             gridTemplateColumns: SUPPLIER_GRID,
-            gap: 12,
+            gap: "var(--s-3)",
             padding: "14px 20px",
             borderTop: i > 0 ? "1px solid var(--border)" : 0,
             alignItems: "center",
@@ -985,8 +985,8 @@ function HeaderRow({
       style={{
         display: "grid",
         gridTemplateColumns: grid,
-        gap: 12,
-        padding: "12px 20px",
+        gap: "var(--s-3)",
+        padding: "var(--s-3) var(--s-5)",
         background: "var(--bg-elevated)",
         borderBottom: "1px solid var(--border)",
         font: "700 10px/1 var(--f-sans)",

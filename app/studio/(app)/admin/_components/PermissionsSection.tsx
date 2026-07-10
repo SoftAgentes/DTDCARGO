@@ -45,7 +45,7 @@ export function PermissionsSection() {
           background: "var(--bg-surface)",
           border: "1px solid var(--border)",
           borderRadius: "var(--r-lg)",
-          padding: "16px 20px",
+          padding: "var(--s-4) var(--s-5)",
           display: "flex",
           gap: 18,
           flexWrap: "wrap",
@@ -60,7 +60,7 @@ export function PermissionsSection() {
         <span><b style={{ color: "var(--info)" }}>V</b> solo ver</span>
         <span><b style={{ color: "var(--ink-mute)" }}>—</b> sin acceso</span>
         <span
-          style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "var(--ink-soft)" }}
+          style={{ display: "inline-flex", alignItems: "center", gap: "var(--s-1)", color: "var(--ink-soft)" }}
           title="Candado de gobernanza — solo se cambia en código (dinero = Contabilidad · solo admin)"
           role="img"
           aria-label="Candado de gobernanza"
@@ -85,7 +85,7 @@ export function PermissionsSection() {
             <tr style={{ background: "var(--bg-elevated)" }}>
               <th
                 style={{
-                  padding: "12px 16px",
+                  padding: "var(--s-3) var(--s-4)",
                   textAlign: "left",
                   font: "700 10px/1 var(--f-sans)",
                   color: "var(--ink-soft)",
@@ -103,7 +103,7 @@ export function PermissionsSection() {
                 <th
                   key={r}
                   style={{
-                    padding: "12px 8px",
+                    padding: "var(--s-3) var(--s-2)",
                     font: "700 10px/1 var(--f-sans)",
                     color: "var(--ink-soft)",
                     letterSpacing: "0.05em",

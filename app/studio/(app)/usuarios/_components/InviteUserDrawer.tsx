@@ -701,7 +701,7 @@ function ScopeBadge({ count }: { count: number }) {
         display: "inline-flex",
         alignItems: "center",
         height: 20,
-        padding: "0 8px",
+        padding: "0 var(--s-2)",
         background: "var(--wine-tint, #FBE9EC)",
         color: "var(--wine, #7F0F1A)",
         borderRadius: 4,
@@ -861,7 +861,7 @@ function SuccessView({
           </strong>
           <p
             style={{
-              margin: "4px 0 0",
+              margin: "var(--s-1) 0 0",
               color: "var(--ink-soft)",
               fontSize: 12,
             }}

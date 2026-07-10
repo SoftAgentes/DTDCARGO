@@ -49,7 +49,7 @@ export function PartnerAlertsBanner({ alerts }: { alerts: PartnerBillAlert[] }) 
             {alerts.length} pago{alerts.length === 1 ? "" : "s"} PP/CA vencido
             {alerts.length === 1 ? "" : "s"} al socio · {fmtMoney(totalUsd, "USD")} pendiente
           </p>
-          <p style={{ margin: "4px 0 0", font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
+          <p style={{ margin: "var(--s-1) 0 0", font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
             Pre-pagos y saldos con crédito comercial (30-45 días) que pasaron su
             vencimiento con saldo. Págalos o ajusta la fecha desde Tesorería.
           </p>

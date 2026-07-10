@@ -240,7 +240,7 @@ export function ReportesClient({
   );
 
   return (
-    <div style={{ maxWidth: 1280, opacity: isPending ? 0.6 : 1, transition: "opacity 120ms" }}>
+    <div style={{ maxWidth: 1280, opacity: isPending ? 0.6 : 1, transition: "opacity var(--dur-fast) var(--ease)" }}>
       {/* Header */}
       <div
         style={{
@@ -256,7 +256,7 @@ export function ReportesClient({
           <span className="studio-eyebrow">Analítica</span>
           <h1
             className="studio-display"
-            style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
+            style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
           >
             Reportes &amp; Analytics.
           </h1>
@@ -319,7 +319,7 @@ export function ReportesClient({
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
-                padding: "0 12px",
+                padding: "0 var(--s-3)",
                 borderRadius: "var(--r-md)",
                 border: "1px dashed var(--border-strong)",
                 background: "var(--bg-elevated)",
@@ -367,7 +367,7 @@ export function ReportesClient({
                 alignItems: "center",
                 gap: 8,
                 height: 38,
-                padding: "0 16px",
+                padding: "0 var(--s-4)",
                 borderRadius: "var(--r-md)",
                 cursor: disabled ? "not-allowed" : active ? "default" : "pointer",
                 background: active ? "var(--wine)" : "var(--bg-surface)",
@@ -1128,7 +1128,7 @@ function IncomeStatementView({ income }: { income: IncomeStatement }) {
 
   return (
     <Card eyebrow="Estado de resultados" title="Gerencial · USD funcional" style={{ maxWidth: 680, padding: 0 }}>
-      <div style={{ padding: "0 0 8px" }}>
+      <div style={{ padding: "0 0 var(--s-2)" }}>
         {income.rows.map((row) => (
           <div
             key={row.label}
@@ -1170,7 +1170,7 @@ function IncomeStatementView({ income }: { income: IncomeStatement }) {
           </div>
         ))}
       </div>
-      <p style={{ font: "500 11px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: "8px 20px 16px" }}>
+      <p style={{ font: "500 11px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: "var(--s-2) var(--s-5) var(--s-4)" }}>
         Cálculo reusado de Contabilidad sobre los saldos del período
         ({income.range.from} → {income.range.to}). Reporte gerencial, no fiscal.
       </p>
@@ -1338,7 +1338,7 @@ function IvaView({ iva }: { iva: IvaPosition }) {
       </div>
 
       <Card eyebrow="Posición ante el SENIAT" title="Resumen del período" style={{ maxWidth: 720 }}>
-        <p style={{ font: "500 12.5px/1.6 var(--f-sans)", color: "var(--ink)", margin: "0 0 12px" }}>
+        <p style={{ font: "500 12.5px/1.6 var(--f-sans)", color: "var(--ink)", margin: "0 0 var(--s-3)" }}>
           En el período <strong style={{ fontWeight: 700 }}>{iva.range.from} → {iva.range.to}</strong> el
           débito fiscal (IVA cobrado en ventas) es{" "}
           <strong style={{ fontWeight: 700 }}>{fmtUsdFull(iva.debito)}</strong> y el crédito fiscal

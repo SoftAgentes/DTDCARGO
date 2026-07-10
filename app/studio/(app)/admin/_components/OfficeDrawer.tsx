@@ -198,7 +198,7 @@ function FormError({ msg }: { msg: string }) {
   return (
     <div
       style={{
-        padding: 12,
+        padding: "var(--s-3)",
         background: "var(--danger-bg)",
         color: "var(--danger)",
         borderRadius: "var(--r-md)",

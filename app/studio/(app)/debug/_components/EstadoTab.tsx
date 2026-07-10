@@ -336,7 +336,7 @@ export function EstadoTab({
                     style={{
                       color: "var(--ink-soft)",
                       fontSize: 12.5,
-                      marginTop: 4,
+                      marginTop: "var(--s-1)",
                     }}
                   >
                     {INTEGRATION_DESCRIPTIONS[k]}
@@ -380,7 +380,7 @@ export function EstadoTab({
                 style={{
                   fontSize: 11,
                   fontFamily: "var(--f-mono)",
-                  padding: "4px 8px",
+                  padding: "var(--s-1) var(--s-2)",
                   borderRadius: "var(--r-sm)",
                   background: present
                     ? "var(--success-bg)"
@@ -548,7 +548,7 @@ function HealthBadge({ health }: { health: IntegrationHealth }) {
         display: "flex",
         flexDirection: "column",
         alignItems: "flex-end",
-        gap: 4,
+        gap: "var(--s-1)",
         minWidth: 140,
       }}
     >
@@ -605,7 +605,7 @@ function DeploysList({
               style={{
                 display: "flex",
                 flexDirection: "column",
-                gap: 4,
+                gap: "var(--s-1)",
                 minWidth: 90,
               }}
             >
@@ -829,7 +829,7 @@ function Stat({
           color: "var(--ink-soft)",
           textTransform: "uppercase",
           letterSpacing: "0.06em",
-          marginTop: 4,
+          marginTop: "var(--s-1)",
         }}
       >
         {label}

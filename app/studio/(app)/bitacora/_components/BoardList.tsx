@@ -124,7 +124,7 @@ const COLUMNS: ColDef[] = [
           {t.titulo}
         </div>
         {t.tipo === "entregable_cliente" && (
-          <Badge tone="warning" size="sm" style={{ marginTop: 4 }}>
+          <Badge tone="warning" size="sm" style={{ marginTop: "var(--s-1)" }}>
             Esperando al cliente
           </Badge>
         )}
@@ -273,7 +273,7 @@ export function BoardList({
           display: "flex",
           alignItems: "center",
           gap: 10,
-          marginBottom: 12,
+          marginBottom: "var(--s-3)",
           flexWrap: "wrap",
         }}
       >
@@ -282,8 +282,8 @@ export function BoardList({
           aria-label="Modo de la lista"
           style={{
             display: "inline-flex",
-            gap: 4,
-            padding: 4,
+            gap: "var(--s-1)",
+            padding: "var(--s-1)",
             background: "var(--bg-elevated)",
             borderRadius: "var(--r-md)",
           }}
@@ -324,7 +324,7 @@ export function BoardList({
             marginLeft: "auto",
             display: "flex",
             alignItems: "center",
-            gap: 8,
+            gap: "var(--s-2)",
           }}
         >
           {mode === "lista" && (
@@ -410,8 +410,8 @@ function TableView({
         style={{
           display: "grid",
           gridTemplateColumns: grid,
-          gap: 12,
-          padding: "12px 20px",
+          gap: "var(--s-3)",
+          padding: "var(--s-3) var(--s-5)",
           background: "var(--bg-elevated)",
           borderBottom: "1px solid var(--border)",
           font: "700 10px/1 var(--f-sans)",
@@ -442,8 +442,8 @@ function TableView({
             style={{
               display: "grid",
               gridTemplateColumns: grid,
-              gap: 12,
-              padding: "12px 20px",
+              gap: "var(--s-3)",
+              padding: "var(--s-3) var(--s-5)",
               alignItems: "center",
               borderTop: i > 0 ? "1px solid var(--border)" : "none",
               cursor: "pointer",
@@ -544,7 +544,7 @@ function PersonView({
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
       {/* Progreso global */}
       <div
         style={{
@@ -554,7 +554,7 @@ function PersonView({
           padding: "14px 18px",
           display: "flex",
           alignItems: "center",
-          gap: 16,
+          gap: "var(--s-4)",
           flexWrap: "wrap",
         }}
       >
@@ -585,8 +585,8 @@ function PersonView({
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 16,
-              marginBottom: 12,
+              gap: "var(--s-4)",
+              marginBottom: "var(--s-3)",
               flexWrap: "wrap",
             }}
           >

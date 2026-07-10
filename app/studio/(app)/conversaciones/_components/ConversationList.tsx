@@ -92,7 +92,7 @@ export function ConversationList({
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 8,
+            gap: "var(--s-2)",
             height: 34,
             padding: "0 10px",
             background: "var(--bg-elevated)",
@@ -120,7 +120,7 @@ export function ConversationList({
         </div>
 
         {/* Tabs de estado */}
-        <div style={{ display: "flex", gap: 4 }}>
+        <div style={{ display: "flex", gap: "var(--s-1)" }}>
           {STATUS_TABS.map((t) => {
             const active = statusFilter === t.value;
             return (
@@ -171,7 +171,7 @@ export function ConversationList({
         {list.length === 0 && (
           <div
             style={{
-              padding: "32px 16px",
+              padding: "var(--s-8) var(--s-4)",
               textAlign: "center",
               font: "500 12.5px/1.5 var(--f-sans)",
               color: "var(--ink-soft)",
@@ -208,7 +208,7 @@ export function ConversationList({
                 if (!isSel) e.currentTarget.style.background = "transparent";
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)", marginBottom: 5 }}>
                 <span
                   style={{
                     width: 7,

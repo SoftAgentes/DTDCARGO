@@ -72,7 +72,7 @@ function Field({
           style={{
             font: "400 11.5px/1.4 var(--f-sans)",
             color: error ? "var(--danger)" : "var(--ink-soft)",
-            margin: "4px 0 0",
+            margin: "var(--s-1) 0 0",
           }}
         >
           {error ?? hint}
@@ -86,7 +86,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <legend
       className="studio-eyebrow"
-      style={{ color: "var(--ink-soft)", margin: "8px 0 12px" }}
+      style={{ color: "var(--ink-soft)", margin: "var(--s-2) 0 var(--s-3)" }}
     >
       {children}
     </legend>
@@ -152,7 +152,7 @@ export function ServicioDrawer({
         style={{
           display: "flex",
           gap: 4,
-          padding: "0 20px",
+          padding: "0 var(--s-5)",
           borderBottom: "1px solid var(--border)",
           flexShrink: 0,
         }}
@@ -173,7 +173,7 @@ export function ServicioDrawer({
                 borderBottom: `2px solid ${active ? "var(--wine)" : "transparent"}`,
                 color: active ? "var(--ink)" : "var(--ink-soft)",
                 font: `${active ? 600 : 500} 12.5px/1 var(--f-sans)`,
-                padding: "12px 8px",
+                padding: "var(--s-3) var(--s-2)",
                 cursor: "pointer",
               }}
             >
@@ -188,7 +188,7 @@ export function ServicioDrawer({
         <form
           id={FORM_ID}
           action={formAction}
-          style={{ flex: 1, overflow: "auto", padding: "16px 20px 20px" }}
+          style={{ flex: 1, overflow: "auto", padding: "var(--s-4) var(--s-5) var(--s-5)" }}
         >
           {/* ── Público ── */}
           <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
@@ -381,7 +381,7 @@ export function ServicioDrawer({
               style={{
                 font: "500 12.5px/1.4 var(--f-sans)",
                 color: "var(--danger)",
-                margin: "8px 0 0",
+                margin: "var(--s-2) 0 0",
               }}
             >
               {state.error}
@@ -389,7 +389,7 @@ export function ServicioDrawer({
           )}
         </form>
       ) : (
-        <div style={{ flex: 1, overflow: "auto", padding: "16px 20px 20px" }}>
+        <div style={{ flex: 1, overflow: "auto", padding: "var(--s-4) var(--s-5) var(--s-5)" }}>
           {tab === "oferta" && (
             <OfferMatrixEditor catalog={catalog} offerConfig={offerConfig} />
           )}

@@ -126,7 +126,7 @@ export function SupplierBilingualInput({
       {showTranslated && !disabled && (
         <div
           style={{
-            marginTop: 8,
+            marginTop: "var(--s-2)",
             padding: "10px 12px",
             background: "var(--wine-tint)",
             border: "1px solid var(--wine-soft)",
@@ -141,7 +141,7 @@ export function SupplierBilingualInput({
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              gap: 8,
+              gap: "var(--s-2)",
             }}
           >
             <label
@@ -222,7 +222,7 @@ export function SupplierBilingualInput({
           style={{
             font: "500 11px/1.3 var(--f-sans)",
             color: "var(--danger)",
-            margin: "4px 0 0",
+            margin: "var(--s-1) 0 0",
           }}
         >
           {error}

@@ -175,10 +175,10 @@ export function AlmacenCnClient({
           display: "flex",
           gap: 10,
           alignItems: "flex-end",
-          marginBottom: 16,
+          marginBottom: "var(--s-4)",
           flexWrap: "wrap",
           opacity: isPending ? 0.6 : 1,
-          transition: "opacity 0.12s",
+          transition: "opacity var(--dur-fast) var(--ease)",
         }}
       >
         <div style={{ flex: "1 1 280px", minWidth: 240 }}>
@@ -404,7 +404,7 @@ function ReceiptsTable({
         style={{
           display: "grid",
           gridTemplateColumns: RECEIPT_GRID_COLS,
-          gap: 12,
+          gap: "var(--s-3)",
           padding: "12px 18px",
           background: "var(--bg-elevated)",
           borderBottom: "1px solid var(--border)",
@@ -527,12 +527,12 @@ function ReceiptRow({
       style={{
         display: "grid",
         gridTemplateColumns: RECEIPT_GRID_COLS,
-        gap: 12,
+        gap: "var(--s-3)",
         padding: "14px 18px",
         borderTop: hasBorderTop ? "1px solid var(--border)" : 0,
         alignItems: "center",
         background: selected ? "var(--wine-tint)" : "transparent",
-        transition: "background 120ms ease",
+        transition: "background var(--dur-fast) var(--ease)",
       }}
     >
       <span style={{ display: "flex", alignItems: "center" }}>
@@ -740,7 +740,7 @@ function ReceiptRow({
       <ItemsCell items={row.items} totalCount={row.items_count} lang={lang} />
 
       {/* Status + payment + destino · stacked */}
-      <span style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
+      <span style={{ display: "flex", flexDirection: "column", gap: "var(--s-1)", alignItems: "flex-start" }}>
         <ReceiptStatusBadge status={row.status} />
         <Badge tone={PAYMENT_STATUS_TONES[row.payment_status]} size="sm">
           {PAYMENT_STATUS_LABELS[row.payment_status]}
@@ -1014,7 +1014,7 @@ function BulkBar({
         padding: "10px 14px",
         display: "flex",
         flexDirection: "column",
-        gap: 8,
+        gap: "var(--s-2)",
       }}
     >
       <div

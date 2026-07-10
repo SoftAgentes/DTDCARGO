@@ -92,7 +92,7 @@ export function GpsLiveTab({
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 8,
+              gap: "var(--s-2)",
               font: "500 11px/1 var(--f-sans)",
               color: "var(--ink-soft)",
             }}
@@ -126,7 +126,7 @@ export function GpsLiveTab({
                 color: "var(--ink-soft)",
                 letterSpacing: "0.12em",
                 textTransform: "uppercase",
-                marginBottom: 8,
+                marginBottom: "var(--s-2)",
               }}
             >
               Sin rutas en curso
@@ -179,7 +179,7 @@ export function GpsLiveTab({
         {alerts.length === 0 ? (
           <div
             style={{
-              padding: "20px 16px",
+              padding: "var(--s-5) var(--s-4)",
               background: "var(--success-bg)",
               border: "1px solid var(--success)",
               borderRadius: "var(--r-md)",
@@ -203,7 +203,7 @@ export function GpsLiveTab({
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: 8,
+              gap: "var(--s-2)",
             }}
           >
             {alerts.map((a, i) => (
@@ -289,7 +289,7 @@ function ActiveRouteCard({ route: r }: { route: TmsRouteRow }) {
         style={{
           font: "500 11px/1.3 var(--f-sans)",
           color: "var(--ink-soft)",
-          marginTop: 4,
+          marginTop: "var(--s-1)",
         }}
       >
         Embarque{" "}
@@ -305,7 +305,7 @@ function ActiveRouteCard({ route: r }: { route: TmsRouteRow }) {
 
       <div
         style={{
-          marginTop: 8,
+          marginTop: "var(--s-2)",
           height: 4,
           background: "var(--bg-surface)",
           borderRadius: "var(--r-pill)",

@@ -122,7 +122,7 @@ DTD Cargo 国际货运`;
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: 20,
+        padding: "var(--s-5)",
       }}
     >
       <div
@@ -194,7 +194,7 @@ DTD Cargo 国际货运`;
               display: "flex",
               gap: 10,
               justifyContent: "flex-end",
-              marginTop: 4,
+              marginTop: "var(--s-1)",
             }}
           >
             <button
@@ -252,7 +252,7 @@ function MsgBlock({
     >
       <div
         style={{
-          padding: "8px 12px",
+          padding: "var(--s-2) var(--s-3)",
           background: "var(--bg-elevated)",
           display: "flex",
           alignItems: "center",
@@ -279,7 +279,7 @@ function MsgBlock({
             background: "transparent",
             border: 0,
             cursor: "pointer",
-            padding: 4,
+            padding: "var(--s-1)",
           }}
         >
           {copied ? "Copiado" : "Copiar"}
@@ -288,7 +288,7 @@ function MsgBlock({
       <pre
         style={{
           margin: 0,
-          padding: 12,
+          padding: "var(--s-3)",
           font: `500 12px/1.55 ${mono === "cn" ? "'Noto Sans SC', Archivo" : "var(--f-sans)"}`,
           color: "var(--ink)",
           whiteSpace: "pre-wrap",

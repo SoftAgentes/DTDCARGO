@@ -230,7 +230,7 @@ export function ConversationThread({ conv, agents }: Props) {
                 {statusLabel(conv.status)}
               </Badge>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 5 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)", marginTop: 5 }}>
               <Link
                 href={`/studio/clientes?q=${encodeURIComponent(conv.markbox)}`}
                 style={{ font: "600 11.5px/1 var(--f-mono)", color: "var(--wine)" }}
@@ -253,7 +253,7 @@ export function ConversationThread({ conv, agents }: Props) {
           </div>
 
           {/* Acciones */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
             <button
               type="button"
               onClick={onToggleCase}
@@ -312,7 +312,7 @@ export function ConversationThread({ conv, agents }: Props) {
             background: "var(--bg-base)",
             display: "flex",
             flexDirection: "column",
-            gap: 12,
+            gap: "var(--s-3)",
           }}
         >
           {loading && (
@@ -524,11 +524,11 @@ function ClientContextPanel({
       style={{
         borderLeft: "1px solid var(--border)",
         background: "var(--bg-surface)",
-        padding: "16px 16px",
+        padding: "var(--s-4) var(--s-4)",
         overflowY: "auto",
         display: "flex",
         flexDirection: "column",
-        gap: 16,
+        gap: "var(--s-4)",
       }}
     >
       <div>
@@ -538,7 +538,7 @@ function ClientContextPanel({
             letterSpacing: "0.14em",
             textTransform: "uppercase",
             color: "var(--ink-soft)",
-            marginBottom: 8,
+            marginBottom: "var(--s-2)",
           }}
         >
           Cliente
@@ -552,7 +552,7 @@ function ClientContextPanel({
           </code>
         )}
         {context?.email && (
-          <div style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 4 }}>
+          <div style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: "var(--s-1)" }}>
             {context.email}
           </div>
         )}
@@ -571,7 +571,7 @@ function ClientContextPanel({
             letterSpacing: "0.14em",
             textTransform: "uppercase",
             color: "var(--ink-soft)",
-            marginBottom: 8,
+            marginBottom: "var(--s-2)",
           }}
         >
           Envíos activos
@@ -611,7 +611,7 @@ function ClientContextPanel({
             letterSpacing: "0.14em",
             textTransform: "uppercase",
             color: "var(--ink-soft)",
-            marginBottom: 8,
+            marginBottom: "var(--s-2)",
           }}
         >
           Saldo pendiente
@@ -644,7 +644,7 @@ function ClientContextPanel({
       {/* Historial de resúmenes mensuales (SDD-0149 · Fase 2). Solo lectura; cada
           uno con su período. Vacío hasta que el cron mensual genere el primero. */}
       {digests.length > 0 && (
-        <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
+        <div style={{ marginTop: "var(--s-4)", paddingTop: 14, borderTop: "1px solid var(--border)" }}>
           <div
             style={{
               font: "700 10.5px/1 var(--f-sans)",
@@ -672,7 +672,7 @@ function ClientContextPanel({
                     display: "flex",
                     alignItems: "baseline",
                     justifyContent: "space-between",
-                    gap: 8,
+                    gap: "var(--s-2)",
                     marginBottom: 5,
                   }}
                 >

@@ -24,7 +24,7 @@ export function Field({
       </label>
       {children}
       {error && (
-        <p style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--danger)", margin: "4px 0 0" }}>
+        <p style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--danger)", margin: "var(--s-1) 0 0" }}>
           {error}
         </p>
       )}

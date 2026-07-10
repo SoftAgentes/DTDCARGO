@@ -143,7 +143,7 @@ export default async function DashboardPage() {
         </div>
         <h1
           className="studio-display"
-          style={{ fontSize: 30, margin: "0 0 8px", color: "var(--ink)" }}
+          style={{ fontSize: 30, margin: "0 0 var(--s-2)", color: "var(--ink)" }}
         >
           {greeting}, <span style={{ color: "var(--wine)" }}>{subject}</span>.
         </h1>

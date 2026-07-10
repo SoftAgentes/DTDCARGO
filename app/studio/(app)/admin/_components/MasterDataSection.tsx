@@ -68,7 +68,7 @@ export function MasterDataSection() {
       {/* Catálogos gestionados en su módulo */}
       <Card>
         <CardEyebrow>Se gestionan en su módulo</CardEyebrow>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
           {MANAGED_ELSEWHERE.map((r) => (
             <Link
               key={r.href}
@@ -76,7 +76,7 @@ export function MasterDataSection() {
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 12,
+                gap: "var(--s-3)",
                 padding: "12px 14px",
                 textDecoration: "none",
                 background: "var(--bg-elevated)",
@@ -100,7 +100,7 @@ export function MasterDataSection() {
           background: "var(--bg-surface)",
           border: "2px dashed var(--border-strong)",
           borderRadius: "var(--r-lg)",
-          padding: "20px 24px",
+          padding: "var(--s-5) var(--s-6)",
         }}
       >
         <div
@@ -114,7 +114,7 @@ export function MasterDataSection() {
         >
           Catálogos editables · por implementar
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "var(--s-2)", flexWrap: "wrap" }}>
           {NOT_YET.map((n) => (
             <span
               key={n}

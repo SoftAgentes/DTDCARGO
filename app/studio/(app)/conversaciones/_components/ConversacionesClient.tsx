@@ -93,7 +93,7 @@ export function ConversacionesClient({
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
           gap: 14,
-          marginBottom: 20,
+          marginBottom: "var(--s-5)",
         }}
       >
         <KpiCard
@@ -132,7 +132,7 @@ export function ConversacionesClient({
         style={{
           display: "grid",
           gridTemplateColumns: "360px 1fr",
-          gap: 16,
+          gap: "var(--s-4)",
           alignItems: "stretch",
           height: "calc(100vh - 380px)",
           minHeight: 480,

@@ -48,7 +48,7 @@ export default async function ConversacionesPage({
 
   return (
     <div style={{ maxWidth: 1480 }}>
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: "var(--s-6)" }}>
         <span className="studio-eyebrow">Comercial · Atención al cliente</span>
         <h1
           className="studio-display"

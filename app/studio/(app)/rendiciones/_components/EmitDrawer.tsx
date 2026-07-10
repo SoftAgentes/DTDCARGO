@@ -88,7 +88,7 @@ export function EmitDrawer({
               letterSpacing: "0.08em",
               textTransform: "uppercase",
               color: "var(--ink-soft)",
-              margin: "0 0 8px",
+              margin: "0 0 var(--s-2)",
             }}
           >
             Recibos a rendir ({preview.receiptCount})
@@ -114,7 +114,7 @@ export function EmitDrawer({
                       key={h}
                       style={{
                         textAlign: i === 4 ? "right" : "left",
-                        padding: "8px 12px",
+                        padding: "var(--s-2) var(--s-3)",
                         font: "700 9.5px/1 var(--f-sans)",
                         letterSpacing: "0.06em",
                         textTransform: "uppercase",
@@ -136,7 +136,7 @@ export function EmitDrawer({
                   >
                     <td
                       style={{
-                        padding: "8px 12px",
+                        padding: "var(--s-2) var(--s-3)",
                         font: "600 11.5px/1 var(--f-mono)",
                         color: "var(--ink)",
                         whiteSpace: "nowrap",
@@ -144,7 +144,7 @@ export function EmitDrawer({
                     >
                       {l.receiptCode}
                     </td>
-                    <td style={{ padding: "8px 12px" }}>
+                    <td style={{ padding: "var(--s-2) var(--s-3)" }}>
                       {l.clientName ?? "—"}
                       {l.clientMarkbox && (
                         <span
@@ -160,7 +160,7 @@ export function EmitDrawer({
                     </td>
                     <td
                       style={{
-                        padding: "8px 12px",
+                        padding: "var(--s-2) var(--s-3)",
                         font: "500 11px/1 var(--f-mono)",
                         color: "var(--ink-soft)",
                         whiteSpace: "nowrap",
@@ -170,7 +170,7 @@ export function EmitDrawer({
                     </td>
                     <td
                       style={{
-                        padding: "8px 12px",
+                        padding: "var(--s-2) var(--s-3)",
                         whiteSpace: "nowrap",
                         color: "var(--ink-soft)",
                       }}
@@ -179,7 +179,7 @@ export function EmitDrawer({
                     </td>
                     <td
                       style={{
-                        padding: "8px 12px",
+                        padding: "var(--s-2) var(--s-3)",
                         textAlign: "right",
                         font: "600 11.5px/1 var(--f-mono)",
                         color: "var(--ink)",

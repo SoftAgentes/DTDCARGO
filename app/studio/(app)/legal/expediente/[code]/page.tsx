@@ -101,9 +101,9 @@ function SectionHead({
         display: "flex",
         alignItems: "baseline",
         justifyContent: "space-between",
-        gap: 12,
-        marginBottom: 12,
-        paddingBottom: 8,
+        gap: "var(--s-3)",
+        marginBottom: "var(--s-3)",
+        paddingBottom: "var(--s-2)",
         borderBottom: "1px solid var(--border)",
       }}
     >
@@ -188,7 +188,7 @@ function PhotoGrid({ photos }: { photos: DefensePhoto[] }) {
                 font: "600 10.5px/1.3 var(--f-sans)",
                 color: "var(--ink)",
                 textAlign: "center",
-                padding: 8,
+                padding: "var(--s-2)",
               }}
             >
               Imagen no disponible
@@ -198,7 +198,7 @@ function PhotoGrid({ photos }: { photos: DefensePhoto[] }) {
             style={{
               font: "500 9.5px/1.3 var(--f-sans)",
               color: "var(--ink-soft)",
-              marginTop: 4,
+              marginTop: "var(--s-1)",
               textAlign: "center",
             }}
           >
@@ -281,11 +281,11 @@ export default async function DefenseFilePage({
         data-print-hide
         style={{
           display: "flex",
-          gap: 8,
+          gap: "var(--s-2)",
           justifyContent: "space-between",
           alignItems: "center",
           flexWrap: "wrap",
-          marginBottom: 16,
+          marginBottom: "var(--s-4)",
         }}
       >
         <a
@@ -316,8 +316,8 @@ export default async function DefenseFilePage({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "flex-start",
-            gap: 16,
-            paddingBottom: 16,
+            gap: "var(--s-4)",
+            paddingBottom: "var(--s-4)",
             borderBottom: "2px solid var(--ink)",
             flexWrap: "wrap",
           }}
@@ -335,7 +335,7 @@ export default async function DefenseFilePage({
                 color: "var(--ink-soft)",
                 letterSpacing: "0.1em",
                 textTransform: "uppercase",
-                marginTop: 4,
+                marginTop: "var(--s-1)",
               }}
             >
               Expediente de defensa · operación
@@ -357,14 +357,14 @@ export default async function DefenseFilePage({
 
         {/* Índice de completitud — qué prueba existe de un vistazo. */}
         <div>
-          <div style={{ ...FIELD_LABEL, marginBottom: 8 }}>
+          <div style={{ ...FIELD_LABEL, marginBottom: "var(--s-2)" }}>
             Índice de completitud · {summary.count} de 5 piezas
           </div>
           <div
             style={{
               display: "flex",
               flexWrap: "wrap",
-              gap: 8,
+              gap: "var(--s-2)",
             }}
           >
             {summary.present.map((label) => (
@@ -405,7 +405,7 @@ export default async function DefenseFilePage({
             style={{
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
-              columnGap: 24,
+              columnGap: "var(--s-6)",
             }}
           >
             <Field label="Cliente" value={s.clientName ?? "—"} />
@@ -428,7 +428,7 @@ export default async function DefenseFilePage({
           {file.acceptances.items.length === 0 ? (
             <EmptySection text="Sin aceptaciones de T&C registradas para esta operación." />
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
               {file.acceptances.items.map((ev, i) => {
                 const a = ev.acceptance;
                 const vigente = i === 0; // la query las trae desc por accepted_at
@@ -482,7 +482,7 @@ export default async function DefenseFilePage({
                       style={{
                         display: "grid",
                         gridTemplateColumns: "1fr 1fr",
-                        columnGap: 20,
+                        columnGap: "var(--s-5)",
                       }}
                     >
                       <Field label="Documentos aceptados" value={a.docs.length > 0 ? a.docs.map((d) => `${d.key} ${d.version}`).join(" · ") : "—"} />
@@ -507,7 +507,7 @@ export default async function DefenseFilePage({
           {file.packing.items.length === 0 ? (
             <EmptySection text="Sin compras (prealertas) ni documentos de packing registrados." />
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
               {file.packing.items.map((p) => (
                 <div key={p.id} style={CARD}>
                   <div
@@ -516,7 +516,7 @@ export default async function DefenseFilePage({
                       justifyContent: "space-between",
                       gap: 10,
                       flexWrap: "wrap",
-                      marginBottom: 4,
+                      marginBottom: "var(--s-1)",
                     }}
                   >
                     <code style={{ font: "700 12px/1 var(--f-mono)", color: "var(--ink)" }}>
@@ -531,7 +531,7 @@ export default async function DefenseFilePage({
                     {p.description || "—"}
                   </div>
                   {p.documents.length === 0 ? (
-                    <div style={{ ...SUBLABEL, marginTop: 8 }}>Sin documentos subidos.</div>
+                    <div style={{ ...SUBLABEL, marginTop: "var(--s-2)" }}>Sin documentos subidos.</div>
                   ) : (
                     <PhotoGrid
                       photos={p.documents.map((d) => ({
@@ -553,7 +553,7 @@ export default async function DefenseFilePage({
           {file.originPhotos.items.length === 0 ? (
             <EmptySection text="Sin recepciones de almacén CN registradas para esta operación." />
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
               {file.originPhotos.items.map((r) => (
                 <div key={r.receiptId} style={CARD}>
                   <div
@@ -574,7 +574,7 @@ export default async function DefenseFilePage({
                     </span>
                   </div>
                   {r.photos.length === 0 ? (
-                    <div style={{ ...SUBLABEL, marginTop: 8 }}>Sin fotos en esta recepción.</div>
+                    <div style={{ ...SUBLABEL, marginTop: "var(--s-2)" }}>Sin fotos en esta recepción.</div>
                   ) : (
                     <PhotoGrid photos={r.photos} />
                   )}
@@ -601,7 +601,7 @@ export default async function DefenseFilePage({
                 style={{
                   display: "grid",
                   gridTemplateColumns: "190px 150px 1fr",
-                  gap: 12,
+                  gap: "var(--s-3)",
                   padding: "9px 14px",
                   background: "var(--bg-elevated)",
                   font: "700 9px/1 var(--f-sans)",
@@ -620,7 +620,7 @@ export default async function DefenseFilePage({
                   style={{
                     display: "grid",
                     gridTemplateColumns: "190px 150px 1fr",
-                    gap: 12,
+                    gap: "var(--s-3)",
                     padding: "10px 14px",
                     alignItems: "start",
                     borderTop: i > 0 ? "1px solid var(--border)" : 0,
@@ -647,7 +647,7 @@ export default async function DefenseFilePage({
           {file.pod.items.length === 0 ? (
             <EmptySection text="Sin prueba de entrega (POD) registrada para esta operación." />
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
               {file.pod.items.map((p) => (
                 <div key={p.id} data-pod-card style={CARD}>
                   <div
@@ -656,7 +656,7 @@ export default async function DefenseFilePage({
                       justifyContent: "space-between",
                       gap: 10,
                       flexWrap: "wrap",
-                      marginBottom: 4,
+                      marginBottom: "var(--s-1)",
                     }}
                   >
                     <code style={{ font: "700 12px/1 var(--f-mono)", color: "var(--ink)" }}>
@@ -668,7 +668,7 @@ export default async function DefenseFilePage({
                     style={{
                       display: "grid",
                       gridTemplateColumns: "1fr 1fr",
-                      columnGap: 20,
+                      columnGap: "var(--s-5)",
                     }}
                   >
                     <Field label="Recibido por" value={p.receivedBy || "—"} />
@@ -685,7 +685,7 @@ export default async function DefenseFilePage({
         {/* Pie probatorio + metadata de generación */}
         <div
           style={{
-            paddingTop: 12,
+            paddingTop: "var(--s-3)",
             borderTop: "1px solid var(--border)",
             font: "500 10.5px/1.6 var(--f-sans)",
             color: "var(--ink-soft)",

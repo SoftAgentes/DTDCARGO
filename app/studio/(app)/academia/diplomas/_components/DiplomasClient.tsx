@@ -75,11 +75,11 @@ export function DiplomasClient({
     <div style={{ maxWidth: 1280 }}>
       <Header />
 
-      <div style={{ display: "grid", gridTemplateColumns: "340px 1fr", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "340px 1fr", gap: "var(--s-4)" }}>
         {/* Lista */}
         <div
           data-print-hide
-          style={{ display: "flex", flexDirection: "column", gap: 8 }}
+          style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}
         >
           {diplomas.map((d) => {
             const active = selected?.folio === d.folio;
@@ -132,7 +132,7 @@ export function DiplomasClient({
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    gap: 8,
+                    gap: "var(--s-2)",
                     marginTop: 6,
                   }}
                 >
@@ -164,7 +164,7 @@ export function DiplomasClient({
 
 function Header() {
   return (
-    <div data-print-hide style={{ marginBottom: 20 }}>
+    <div data-print-hide style={{ marginBottom: "var(--s-5)" }}>
       <span className="studio-eyebrow" style={{ color: "var(--wine)" }}>
         Academia DTD
       </span>
@@ -219,7 +219,7 @@ function DiplomaStage({
   }, []);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
       {/* Toolbar */}
       <div
         data-print-hide
@@ -227,11 +227,11 @@ function DiplomaStage({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: 12,
+          gap: "var(--s-3)",
           flexWrap: "wrap",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
           <span
             style={{
               font: "600 11px/1 var(--f-sans)",
@@ -242,7 +242,7 @@ function DiplomaStage({
           >
             Diseño
           </span>
-          <div style={{ display: "flex", gap: 4 }}>
+          <div style={{ display: "flex", gap: "var(--s-1)" }}>
             <VariantBtn
               label="Auto"
               active={variantOverride === null}
@@ -275,7 +275,7 @@ function DiplomaStage({
           background: "var(--bg-elevated)",
           border: "1px solid var(--border)",
           borderRadius: "var(--r-lg)",
-          padding: 16,
+          padding: "var(--s-4)",
           overflow: "hidden",
           display: "flex",
           justifyContent: "center",

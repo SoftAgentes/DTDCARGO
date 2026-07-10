@@ -62,7 +62,7 @@ export function BoardKanban({
       style={{
         display: "grid",
         gridTemplateColumns: "repeat(4, minmax(220px, 1fr))",
-        gap: 12,
+        gap: "var(--s-3)",
         alignItems: "start",
         overflowX: "auto",
       }}
@@ -91,7 +91,7 @@ export function BoardKanban({
               borderRadius: "var(--r-lg)",
               padding: 10,
               minHeight: 160,
-              transition: "background 120ms ease, border-color 120ms ease",
+              transition: "background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease)",
             }}
           >
             <header
@@ -99,7 +99,7 @@ export function BoardKanban({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                gap: 8,
+                gap: "var(--s-2)",
                 padding: "4px 6px 10px",
               }}
             >
@@ -118,7 +118,7 @@ export function BoardKanban({
               </Badge>
             </header>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
               {col.length === 0 && (
                 <div
                   style={{
@@ -215,7 +215,7 @@ function TaskCard({
         cursor: canEdit ? "grab" : "pointer",
         display: "flex",
         flexDirection: "column",
-        gap: 8,
+        gap: "var(--s-2)",
         opacity: task.estado === "hecho" ? 0.75 : 1,
       }}
     >
@@ -254,7 +254,7 @@ function TaskCard({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: 8,
+          gap: "var(--s-2)",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
