@@ -684,7 +684,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
               style={{
                 font: "500 11px/1.4 var(--f-sans)",
                 color: "var(--ink-soft)",
-                margin: "4px 0 0",
+                margin: "var(--s-1) 0 0",
               }}
             >
               {isCompany
@@ -889,7 +889,7 @@ function FieldError({ msg }: { msg: string }) {
       style={{
         font: "500 11px/1.3 var(--f-sans)",
         color: "var(--danger)",
-        margin: "4px 0 0",
+        margin: "var(--s-1) 0 0",
       }}
     >
       {msg}

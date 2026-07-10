@@ -142,7 +142,7 @@ export function ChangeRequestHistory({
                   style={{
                     font: "500 12px/1.5 var(--f-sans)",
                     color: "var(--ink-soft)",
-                    margin: "8px 0 0",
+                    margin: "var(--s-2) 0 0",
                   }}
                 >
                   Motivo: {req.reviewNote}

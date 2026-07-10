@@ -217,7 +217,7 @@ export function PortalAccessCard({
                 style={{
                   font: "500 11.5px/1.45 var(--f-sans)",
                   color: "var(--ink-soft)",
-                  margin: "8px 0 0",
+                  margin: "var(--s-2) 0 0",
                 }}
               >
                 Se abre WhatsApp con el enlace listo. Envíaselo <b>solo al cliente</b>:
