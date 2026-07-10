@@ -306,7 +306,7 @@ function ActiveToggle({ op }: { op: OperarioRow }) {
         aria-label={op.active ? "Desactivar operario" : "Activar operario"}
         style={{
           width: 38,
-          height: 22,
+          height: 24,
           borderRadius: 999,
           background: op.active ? "var(--success)" : "var(--ink-mute)",
           border: 0,
@@ -319,7 +319,7 @@ function ActiveToggle({ op }: { op: OperarioRow }) {
           aria-hidden
           style={{
             position: "absolute",
-            top: 2,
+            top: 3,
             left: op.active ? 18 : 2,
             width: 18,
             height: 18,

@@ -164,8 +164,8 @@ export function PlanCuentasTab({
                     aria-label={isCollapsed ? "Expandir" : "Colapsar"}
                     aria-expanded={!isCollapsed}
                     style={{
-                      width: 18,
-                      height: 18,
+                      width: 24,
+                      height: 24,
                       display: "grid",
                       placeItems: "center",
                       border: 0,
