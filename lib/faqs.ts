@@ -288,12 +288,6 @@ export const FAQS: Faq[] = [
     categoria: "empresa-servicios",
   },
   {
-    pregunta: "¿DoorTuDoor y DTD Cargo son la misma empresa?",
-    respuesta:
-      "Sí, somos la misma empresa. DoorTuDoor es el nombre con el que nacimos como marca, y evolucionamos a DTD Cargo ('DTD' viene de DoorTuDoor). Por eso nos ves como DoorTuDoor (@doortudoor_) en redes y como DTD Cargo en la web y en tus documentos: mismo equipo, mismo servicio, mismos dueños. Puedes confiar en cualquiera de los dos nombres.",
-    categoria: "empresa-servicios",
-  },
-  {
     pregunta:
       "¿DTD Cargo hace envíos aéreos de China a Venezuela?",
     respuesta:
