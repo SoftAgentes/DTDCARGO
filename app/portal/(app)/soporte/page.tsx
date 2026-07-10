@@ -118,9 +118,11 @@ export default async function PortalSoportePage({
         </div>
 
         {/* ── Derecha · Chat del asesor + otros canales ── */}
+        {/* El aviso de notificaciones va ARRIBA del chat: es lo primero que ve el
+            cliente para activarlas y enterarse apenas le escribamos (PORT-3). */}
         <div className="flex flex-col gap-6">
-          <AsesorChatCard advisor={advisor} thread={thread} prefill={prefill} />
           <PortalPushOptIn />
+          <AsesorChatCard advisor={advisor} thread={thread} prefill={prefill} />
           <OtrosCanalesCard client={client} advisor={advisor} />
         </div>
       </div>
