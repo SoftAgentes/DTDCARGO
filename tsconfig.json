@@ -38,6 +38,7 @@
   "exclude": [
     "node_modules",
     "supabase/functions",
-    "_handoff_preview"
+    "_handoff_preview",
+    "no-olvidar-review-out"
   ]
 }

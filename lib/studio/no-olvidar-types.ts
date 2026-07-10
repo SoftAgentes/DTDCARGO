@@ -70,9 +70,9 @@ export type NoOlvidarAlertSeverity = "info" | "warning" | "critical";
 
 /**
  * NoOlvidarItem · row de no_olvidar_items. Los campos `ciphertext`, `nonce`,
- * `dek_encrypted`, `dek_nonce` llegan como Uint8Array desde Supabase
- * (bytea → base64 string en la wire, hay que castear). En el cliente
- * NUNCA exponer al render, solo pasar a crypto.ts.
+ * `dek_encrypted`, `dek_nonce` se guardan como TEXT base64 (columnas text, no
+ * bytea — decisión de storage: round-trip limpio por PostgREST). El action
+ * layer los pasa por `fromBase64` a crypto.ts. En el cliente NUNCA exponerlos.
  */
 export interface NoOlvidarItem {
   id: string;
@@ -81,10 +81,10 @@ export interface NoOlvidarItem {
   category: NoOlvidarCategory;
   url: string | null;
   username: string | null;
-  ciphertext: string;            // bytea como base64 string
-  nonce: string;                 // bytea como base64 string
-  dek_encrypted: string;
-  dek_nonce: string;
+  ciphertext: string;            // base64 (text)
+  nonce: string;                 // base64 (text)
+  dek_encrypted: string;         // base64 (text)
+  dek_nonce: string;             // base64 (text)
   key_version: number;
   notes_preview: string | null;
   favorite: boolean;

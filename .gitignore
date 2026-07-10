@@ -153,6 +153,10 @@ public/norte.html
 
 graphify-out/
 
+# Bundle del code review crypto del No-Olvidar (SDD-0025 §7.6). Se genera con
+# scripts/no-olvidar-review-bundle.mjs para enviar al revisor. No va a git.
+no-olvidar-review-out/
+
 # Supabase CLI · scratch local (cache de project-ref, deploys de Edge Functions). No va a git.
 supabase/.temp/
 

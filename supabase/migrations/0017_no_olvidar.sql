@@ -67,10 +67,10 @@ create table public.no_olvidar_items (
   category            no_olvidar_category not null,
   url                 text,
   username            text,                              -- NO encriptado (enable search)
-  ciphertext          bytea not null,                    -- payload sensible cifrado
-  nonce               bytea not null,                    -- 24 bytes XChaCha20
-  dek_encrypted       bytea not null,                    -- DEK envuelto con KEK
-  dek_nonce           bytea not null,
+  ciphertext          text not null,                     -- payload cifrado (base64)
+  nonce               text not null,                     -- 24 bytes XChaCha20 (base64)
+  dek_encrypted       text not null,                     -- DEK envuelto con KEK (base64)
+  dek_nonce           text not null,                     -- (base64)
   key_version         int not null,                      -- versión de KEK usada
   notes_preview       text,                              -- primeros 60 chars en plaintext
   favorite            boolean not null default false,
@@ -92,15 +92,15 @@ create index no_olvidar_items_user_id_search_idx
 create table public.no_olvidar_user_keys (
   user_id                      uuid primary key references auth.users(id) on delete cascade,
   has_master_password          boolean not null default false,
-  master_password_verifier     bytea,                        -- Argon2id hash
-  master_password_salt         bytea,                        -- 32 bytes random
-  public_key                   bytea,                        -- Curve25519 (reservado sharing V2)
-  private_key_ciphertext       bytea,                        -- private key cifrada
-  private_key_nonce            bytea,
-  recovery_kit_hash            bytea,                        -- Argon2id hash de las 24 palabras
-  recovery_kit_salt            bytea,
-  totp_secret_ciphertext       bytea not null,               -- TOTP secret cifrado con KEK
-  totp_secret_nonce            bytea not null,
+  master_password_verifier     text,                         -- Argon2id verifier (base64)
+  master_password_salt         text,                         -- salt (base64)
+  public_key                   text,                         -- Curve25519 (reservado sharing V2, base64)
+  private_key_ciphertext       text,                         -- private key cifrada (base64)
+  private_key_nonce            text,                         -- (base64)
+  recovery_kit_hash            text,                         -- Argon2id hash de las 24 palabras (base64)
+  recovery_kit_salt            text,                         -- (base64)
+  totp_secret_ciphertext       text not null,                -- TOTP secret cifrado con KEK (base64)
+  totp_secret_nonce            text not null,                -- (base64)
   totp_enabled                 boolean not null default false,
   setup_completed              boolean not null default false,
   role                         no_olvidar_user_role not null default 'member',
@@ -147,8 +147,8 @@ create table public.no_olvidar_recovery_requests (
   status                              no_olvidar_recovery_status not null default 'pending',
   approvals                           jsonb not null default '[]'::jsonb,
   approvals_required                  int not null default 2,
-  new_master_password_verifier        bytea,                       -- set al execute
-  new_master_password_salt            bytea,
+  new_master_password_verifier        text,                        -- set al execute (base64)
+  new_master_password_salt            text,                        -- (base64)
   expires_at                          timestamptz not null,        -- 24h desde creación
   completed_at                        timestamptz,
   created_at                          timestamptz not null default now(),
@@ -319,8 +319,8 @@ begin
       setup_completed
     ) values (
       new.id,
-      ''::bytea,                     -- placeholder, se setea en setup wizard
-      ''::bytea,                     -- placeholder, se setea en setup wizard
+      '',                            -- placeholder base64, se setea en setup wizard
+      '',                            -- placeholder base64, se setea en setup wizard
       false
     )
     on conflict (user_id) do nothing;

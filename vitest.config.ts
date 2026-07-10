@@ -28,7 +28,14 @@ export default defineConfig({
     setupFiles: ["./vitest.setup.ts"],
     // `.claude/**` excluye los worktrees del harness (checkouts de otras ramas):
     // sus tests corren en su propio entorno y no son del repo principal.
-    exclude: ["**/node_modules/**", "**/.next/**", "**/e2e/**", "**/.claude/**"],
+    exclude: [
+      "**/node_modules/**",
+      "**/.next/**",
+      "**/e2e/**",
+      "**/.claude/**",
+      // Bundle del review crypto (copias con imports reubicados, gitignored).
+      "**/no-olvidar-review-out/**",
+    ],
     css: false,
   },
 });
