@@ -155,7 +155,7 @@ export const FAQS: Faq[] = [
     pregunta:
       "¿A qué ciudades de Venezuela entregan y cómo funciona si no estoy en Valencia?",
     respuesta:
-      "Entregamos en toda Venezuela. Tenemos bodega y equipo propios en Valencia, que es nuestra sede; si estás en otra ciudad coordinamos el transporte terrestre hasta tu dirección. Como manejamos DDP puerta a puerta, la entrega nacional hasta tu puerta va incluida: la carga te llega donde estés sin que tengas que ir a buscarla a un puerto o terminal.",
+      "Entregamos en toda Venezuela. Nuestra sede y bodega están en Valencia, y el costo base cubre la entrega en el casco central de las ciudades. Si tu dirección queda fuera de la ruta de despacho, se suma el transporte terrestre hasta tu ubicación, y la calculadora te da ese aproximado automáticamente (lo cotizamos con transportistas nacionales) para que veas cuánto sale puesto en tu ciudad. Ten en cuenta que ese monto del transporte nacional es un estimado: como tu carga llega unos 90 días después, la tarifa puede moverse un poco para entonces, aunque lo normal es que se mantenga cerca de lo calculado. En todo caso, puerta a puerta significa que la carga te llega a tu dirección, sin ir a buscarla a un puerto o terminal.",
     categoria: "precio-y-pago",
   },
   {
