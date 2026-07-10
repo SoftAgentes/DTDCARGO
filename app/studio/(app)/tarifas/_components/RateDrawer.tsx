@@ -32,6 +32,7 @@ import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { SplitActionButton } from "@/app/studio/_components/ui/SplitActionButton";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
+import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 
 interface Props {
   mode: "create" | "edit";
@@ -132,84 +133,19 @@ export function RateDrawer({ mode, rate, onClose }: Props) {
   const title = mode === "create" ? "Nueva tarifa" : "Editar tarifa";
 
   return (
-    <div
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="rate-drawer-title"
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "var(--scrim)",
-        zIndex: 100,
-        display: "flex",
-        justifyContent: "flex-end",
-      }}
+    <DrawerShell
+      title={title}
+      titleAccessory={
+        mode === "edit" && rate ? (
+          <Badge tone={rateStatusTone(rate.status)} size="sm">
+            {rateStatusLabel(rate.status)}
+          </Badge>
+        ) : undefined
+      }
+      onClose={onClose}
+      pending={isPending}
+      width={560}
     >
-      <aside
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "min(560px, 96vw)",
-          height: "100vh",
-          background: "var(--bg-surface)",
-          borderLeft: "1px solid var(--border)",
-          boxShadow: "var(--shadow-pop)",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
-        {/* Header */}
-        <header
-          style={{
-            padding: "18px 22px",
-            borderBottom: "1px solid var(--border)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexShrink: 0,
-          }}
-        >
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-            <h2
-              id="rate-drawer-title"
-              className="studio-display"
-              style={{ fontSize: 18, margin: 0, color: "var(--ink)" }}
-            >
-              {title}
-            </h2>
-            {mode === "edit" && rate && (
-              <Badge tone={rateStatusTone(rate.status)} size="sm">
-                {rateStatusLabel(rate.status)}
-              </Badge>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            style={{
-              width: 32,
-              height: 32,
-              display: "grid",
-              placeItems: "center",
-              borderRadius: "var(--r-sm)",
-              color: "var(--ink-soft)",
-              background: "transparent",
-              cursor: "pointer",
-              transition: "background var(--dur-fast) var(--ease)",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "var(--bg-elevated)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-            }}
-          >
-            {Icon.close(14)}
-          </button>
-        </header>
-
         <form
           id="rate-drawer-form"
           action={mode === "edit" ? formAction : undefined}
@@ -661,8 +597,7 @@ export function RateDrawer({ mode, rate, onClose }: Props) {
             )}
           </div>
         </footer>
-      </aside>
-    </div>
+    </DrawerShell>
   );
 }
 

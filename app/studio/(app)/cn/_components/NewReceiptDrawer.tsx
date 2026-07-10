@@ -23,6 +23,7 @@ import { SupplierBilingualInput } from "./SupplierBilingualInput";
 import { SplitActionButton } from "@/app/studio/_components/ui/SplitActionButton";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
+import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import type {
   WarehouseCN,
   WarehouseReceiptActionState,
@@ -216,85 +217,13 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
   ]);
 
   return (
-    <div
-      onClick={() => !isPending && onClose()}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="receipt-drawer-title"
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15, 30, 61, 0.55)",
-        zIndex: 100,
-        display: "flex",
-        justifyContent: "flex-end",
-      }}
+    <DrawerShell
+      title={t("warehouse_cn.drawer.title")}
+      subtitle={t("warehouse_cn.drawer.subtitle")}
+      onClose={onClose}
+      pending={isPending}
+      width={680}
     >
-      <aside
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "min(680px, 96vw)",
-          height: "100vh",
-          background: "var(--bg-surface)",
-          borderLeft: "1px solid var(--border)",
-          boxShadow: "var(--shadow-pop)",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
-        {/* Header */}
-        <header
-          style={{
-            padding: "18px 22px",
-            borderBottom: "1px solid var(--border)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: "var(--s-3)",
-            flexShrink: 0,
-          }}
-        >
-          <div style={{ minWidth: 0 }}>
-            <h2
-              id="receipt-drawer-title"
-              className="studio-display"
-              style={{ fontSize: 18, margin: 0, color: "var(--ink)" }}
-            >
-              {t("warehouse_cn.drawer.title")}
-            </h2>
-            <p
-              style={{
-                font: "500 11.5px/1.3 var(--f-sans)",
-                color: "var(--ink-soft)",
-                margin: "var(--s-1) 0 0",
-              }}
-            >
-              {t("warehouse_cn.drawer.subtitle")}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isPending}
-            aria-label={t("chrome.action.close")}
-            style={{
-              width: 32,
-              height: 32,
-              display: "grid",
-              placeItems: "center",
-              borderRadius: "var(--r-sm)",
-              color: "var(--ink-soft)",
-              background: "transparent",
-              border: 0,
-              cursor: isPending ? "wait" : "pointer",
-              flexShrink: 0,
-            }}
-          >
-            {Icon.close(14)}
-          </button>
-        </header>
-
         <form
           id="receipt-drawer-form"
           onSubmit={(e) => e.preventDefault()}
@@ -771,8 +700,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
             ]}
           />
         </footer>
-      </aside>
-    </div>
+    </DrawerShell>
   );
 }
 
