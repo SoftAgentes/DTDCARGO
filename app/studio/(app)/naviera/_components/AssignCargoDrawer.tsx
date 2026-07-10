@@ -3,7 +3,7 @@
 /**
  * Drawer "Asignar carga suelta" a un contenedor — SDD-0047, Slice B.
  *
- * Elegís una pieza de carga suelta (loose_cargo) o la cargás a mano, ajustás
+ * Eliges una pieza de carga suelta (loose_cargo) o la cargas a mano, ajustas
  * CBM/peso/bultos, y se asigna como consolidation_item. Preview EN VIVO de la
  * utilización resultante con guard de capacidad ADVISORY (§4.4): si supera el
  * CBM/kg del tipo, avisa en wine pero NO bloquea — se asigna igual.

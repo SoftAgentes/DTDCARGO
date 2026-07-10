@@ -117,7 +117,7 @@ export function NavieraClient({
           <span className="studio-eyebrow">Operación · Logística marítima</span>
           <h1
             className="studio-display"
-            style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
+            style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
           >
             Naviera & Consolidación.
           </h1>
@@ -878,7 +878,7 @@ function ContainerDetail({
                   display: "grid",
                   gridTemplateColumns: ITEM_GRID,
                   gap: 12,
-                  padding: "12px 20px",
+                  padding: "var(--s-3) var(--s-5)",
                   borderTop: i > 0 ? "1px solid var(--border)" : 0,
                   alignItems: "center",
                 }}
@@ -946,7 +946,7 @@ function ContainerDetail({
                 display: "grid",
                 gridTemplateColumns: ITEM_GRID,
                 gap: 12,
-                padding: "12px 20px",
+                padding: "var(--s-3) var(--s-5)",
                 borderTop: "2px solid var(--ink)",
                 background: "var(--bg-elevated)",
                 alignItems: "center",
@@ -1091,7 +1091,7 @@ function LiveTrackingCard({
               style={{
                 font: "700 11px/1 var(--f-mono)",
                 // Aviso cuando escasea el plan (cuota dura compartida con fletes).
-                color: snapshot.apiRemaining <= 3 ? "var(--warning)" : "var(--ink-mute)",
+                color: snapshot.apiRemaining <= 3 ? "var(--warning)" : "var(--ink-soft)",
               }}
             >
               quedan {snapshot.apiRemaining}
@@ -1316,7 +1316,7 @@ function LooseCargoTab({
         ))}
         <div
           style={{
-            padding: "12px 20px",
+            padding: "var(--s-3) var(--s-5)",
             borderTop: "1px solid var(--border)",
             display: "flex",
             justifyContent: "flex-end",
@@ -1455,7 +1455,7 @@ function BookingsTab({
             <code
               style={{
                 font: "600 10.5px/1 var(--f-mono)",
-                color: b.bl_number ? "var(--ink)" : "var(--ink-mute)",
+                color: b.bl_number ? "var(--ink)" : "var(--ink-soft)",
               }}
             >
               {b.bl_number || "pendiente"}
@@ -1528,7 +1528,7 @@ function HeaderRow({
         display: "grid",
         gridTemplateColumns: grid,
         gap: 12,
-        padding: "12px 20px",
+        padding: "var(--s-3) var(--s-5)",
         background: "var(--bg-elevated)",
         borderBottom: "1px solid var(--border)",
         font: "700 10px/1 var(--f-sans)",
