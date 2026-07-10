@@ -157,7 +157,7 @@ export function QuoteDetailClient({
               style={{
                 font: "500 12px/1.4 var(--f-sans)",
                 color: "var(--danger)",
-                margin: "12px 0 0",
+                margin: "var(--s-3) 0 0",
               }}
             >
               {linkError}

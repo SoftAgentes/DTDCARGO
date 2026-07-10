@@ -112,7 +112,7 @@ export default async function QuoteDetailPage({
         <div
           style={{
             marginBottom: 20,
-            padding: "12px 16px",
+            padding: "var(--s-3) var(--s-4)",
             background: "var(--success-bg)",
             border: "1px solid var(--success)",
             borderRadius: "var(--r-sm)",

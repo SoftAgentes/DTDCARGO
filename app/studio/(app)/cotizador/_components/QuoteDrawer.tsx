@@ -399,7 +399,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
                     <div
                       style={{
                         font: "600 11px/1.3 var(--f-mono)",
-                        color: active ? "var(--wine)" : "var(--ink-mute)",
+                        color: active ? "var(--wine)" : "var(--ink-soft)",
                         marginTop: 4,
                       }}
                     >
@@ -1045,7 +1045,7 @@ function FieldError({ msg }: { msg: string }) {
       style={{
         font: "500 11px/1.3 var(--f-sans)",
         color: "var(--danger)",
-        margin: "4px 0 0",
+        margin: "var(--s-1) 0 0",
       }}
     >
       {msg}
