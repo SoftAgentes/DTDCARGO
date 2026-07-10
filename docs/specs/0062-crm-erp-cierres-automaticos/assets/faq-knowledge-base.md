@@ -52,14 +52,9 @@ En resumen: con FOB lo cubre el proveedor; con EXW lo cubres tú. Saberlo te ayu
 ### 6. Métodos de pago
 **Preguntas:** ¿Qué métodos de pago aceptan? · ¿Puedo pagar con tarjeta/Visa/Mastercard? · ¿Puedo pagar con enlace o QR? · ¿Aceptan PayPal? · ¿Cómo/dónde pago la compra o el servicio?
 
-**Respuesta (aprobada · corta):** ¡Hola! Trabajamos varias divisas:
-💵 **USD:** Zelle · Wire · efectivo en oficina
-🇻🇪 **Bs:** Pago Móvil · transferencia
-🟡 **USDT:** Binance
-🇨🇳 **Yuan:** efectivo en China · Alipay · WeChat Pay · transferencia
-Para los **datos exactos** según tu envío, un asesor te los pasa de forma segura. Y al **registrarte**, puedes aclarar cualquier otra información — la encuentras en tu sección de **preguntas y respuestas**: **dtdcargo.com/registro**.
+**Respuesta (aprobada · corta):** ¡Hola! Tu envío es un servicio de logística internacional, así que se cotiza en **dólares** (la mayor parte de los costos —flete, aduana, gestión en China— se pagan en divisas a terceros). Los **datos y la forma de pago** exactos para tu caso te los pasa un asesor de forma segura, con la referencia de tu **Shipping Mark**. ¿Te conecto con un asesor?
 
-> *Nota interna: cierre reutilizable — "al registrarte, lo demás está en tu sección de preguntas y respuestas del portal" (patrón dirigir-a-herramienta + portal). Decisión founder 2026-06-07.*
+> *Nota interna (⚠️ LEGAL — actualizado 2026-07-10): NO listar medios de pago ni afirmar/negar el bolívar en canales públicos. El bolívar es de curso legal en Venezuela: no se puede rechazar por escrito, pero en la práctica se cobra en divisas (≈95% de los costos son a terceros en USD). Enfoque acordado: enmarcar en "servicio internacional cotizado en dólares" + derivar la forma de pago al asesor, caso por caso. Reemplaza la lista anterior de medios (USD/Bs/USDT/Yuan). Pendiente de validación de la abogada — ver docs/legal/ACUERDO-PENDIENTES-v3.1.md.*
 
 ---
 

@@ -12,7 +12,9 @@ import {
 import {
   getPortalThread,
   getPortalConversationId,
+  listPortalConversationDigests,
   type PortalThreadMessage,
+  type PortalConversationDigest,
 } from "@/lib/portal/portal-conversation-queries";
 import {
   listClaimEvidence,
@@ -89,6 +91,11 @@ export default async function PortalSoportePage({
   } catch {
     advisor = null;
   }
+  // Resúmenes mensuales visibles para el cliente (SDD-0149 F3). Solo los que tienen
+  // client_summary; vacío hasta que el cron mensual genere el primero.
+  const digests = await listPortalConversationDigests(admin, client.id).catch(
+    () => [] as PortalConversationDigest[],
+  );
 
   return (
     <div>
@@ -123,6 +130,7 @@ export default async function PortalSoportePage({
         <div className="flex flex-col gap-6">
           <PortalPushOptIn />
           <AsesorChatCard advisor={advisor} thread={thread} prefill={prefill} />
+          {digests.length > 0 && <ResumenMensualCard digests={digests} />}
           <OtrosCanalesCard client={client} advisor={advisor} />
         </div>
       </div>
@@ -228,6 +236,57 @@ function AsesorChatCard({
       </div>
     </div>
   );
+}
+
+/**
+ * "Tu conversación, mes a mes" (SDD-0149 F3): el histórico condensado que el cliente
+ * SÍ puede ver — el resumen client-facing (nunca el interno del asesor). Solo lectura,
+ * reciente primero. Solo se renderiza si hay ≥1 digest con client_summary.
+ */
+function ResumenMensualCard({
+  digests,
+}: {
+  digests: PortalConversationDigest[];
+}) {
+  return (
+    <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-6">
+      <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-grey-500">
+        Tu conversación, mes a mes
+      </div>
+      <p className="mt-2 text-[12px] text-grey-700 leading-[1.5]">
+        Un resumen de lo que conversamos cada mes, para que no tengas que releer todo
+        el hilo.
+      </p>
+      <div className="mt-4 flex flex-col gap-3">
+        {digests.map((d) => (
+          <div
+            key={d.id}
+            className="rounded-[12px] bg-grey-100 px-4 py-3"
+          >
+            <div className="text-[11.5px] font-bold text-wine capitalize">
+              {fmtPeriod(d.period)}
+            </div>
+            <p className="mt-1.5 text-[13px] text-ink leading-[1.55] whitespace-pre-wrap break-words">
+              {d.clientSummary}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Período (primer día del mes, YYYY-MM-DD) → "julio 2026". */
+function fmtPeriod(period: string): string {
+  try {
+    return new Date(`${period}T00:00:00Z`).toLocaleDateString("es-VE", {
+      month: "long",
+      year: "numeric",
+      timeZone: "UTC",
+    });
+  } catch {
+    return period;
+  }
 }
 
 /**

@@ -56,6 +56,31 @@ explícitas** en el texto único. La abogada debe decidir si se reincorporan en 
 Texto original de referencia: fila `legal_docs` key `operador` v1.4 (archivada) en Supabase —
 secciones 8, 2 y 4 respectivamente.
 
+### 3. Comunicación pública de las dos modalidades de importación (2026-07-10, decisión Sam)
+
+El FAQ público ahora distingue **dos modalidades dentro del LCL**: (a) **puerta a puerta (DDP)**,
+donde la importación NO queda a nombre del Cliente y no se le entregan documentos de nacionalización
+ni factura de importación; (b) **con su propia aduana**, donde el Cliente importa a su nombre, DTD
+cobra el CBM hasta almacén fiscal y el Cliente cubre impuestos, permisos y gastos de almacén fiscal.
+
+**A validar con la abogada:** que el copy público de la modalidad DDP sea consistente con la
+arquitectura de importación del Acuerdo (cláusula 1.3: el importador de registro es el **Operador de
+Consolidación**, no DTD Services ni el Cliente). En el FAQ se dice *"la importación no queda a tu
+nombre"* SIN afirmar a nombre de quién queda, justamente para no chocar con esa estructura.
+Confirmar que es la redacción correcta y si conviene **reflejar las dos modalidades en el texto del
+Acuerdo** (hoy asume implícitamente el flujo consolidado/DDP).
+
+### 4. Manejo del bolívar en el copy público (2026-07-10, decisión Sam)
+
+El FAQ y la base del bot **ya no listan medios de pago** ni mencionan el bolívar: enmarcan el pago
+como *"servicio internacional cotizado en dólares"* y derivan la forma de pago al asesor. Razón: el
+bolívar es de curso legal (no se puede rechazar por escrito), pero en la práctica la empresa cobra
+en divisas (≈95 % de los costos son a terceros en USD).
+
+**A validar con la abogada:** que este enfoque (no negar ni prometer el bolívar; cotizar en dólares
+por la naturaleza internacional del servicio; forma de pago caso por caso) sea la postura más segura
+frente a SUNDDE/BCV, y si conviene una **cláusula de moneda de pago** en el Acuerdo.
+
 ## Pendientes del abogado ya conocidos (no duplicar aquí)
 
 Los ~11 placeholders `[…]` de v3.0 (RIF, no-competencia, DEG, días de reclamo, prima de

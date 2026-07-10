@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Avatar } from "@/app/studio/_components/ui/Avatar";
+import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import {
   CUSTOMS_DOC_LABELS,
   CUSTOMS_DOC_ORDER,
@@ -173,113 +174,44 @@ export function FilingDetailDrawer({
   ];
 
   return (
-    <div
-      onClick={() => !pending && onClose()}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="filing-detail-title"
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15, 30, 61, 0.55)",
-        zIndex: 100,
-        display: "flex",
-        justifyContent: "flex-end",
-      }}
-    >
-      <aside
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "min(720px, 96vw)",
-          height: "100vh",
-          background: "var(--bg-surface)",
-          borderLeft: "1px solid var(--border)",
-          boxShadow: "var(--shadow-pop)",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
-        {/* Header */}
-        <header
-          style={{
-            padding: "18px 22px",
-            borderBottom: "1px solid var(--border)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            gap: "var(--s-3)",
-            flexShrink: 0,
-          }}
-        >
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                marginBottom: 6,
-              }}
-            >
-              <h2
-                id="filing-detail-title"
-                className="studio-display"
-                style={{ fontSize: 18, margin: 0, color: "var(--ink)" }}
-              >
-                {shipment?.code ?? "—"}
-              </h2>
-              <CustomsStatusBadge status={filing.status} size="md" />
-            </div>
-            <div
-              style={{
-                font: "600 11.5px/1.3 var(--f-mono)",
-                color: "var(--ink-soft)",
-                marginBottom: "var(--s-1)",
-              }}
-            >
-              DUA {filing.dua_code} · {vePortLabel(filing.port_code)}
-            </div>
-            {shipment?.client_name && (
-              <div
-                style={{
-                  font: "500 12px/1.3 var(--f-sans)",
-                  color: "var(--ink-soft)",
-                }}
-              >
-                {shipment.client_name}
-                {shipment.client_markbox && (
-                  <>
-                    {" · "}
-                    <code style={{ color: "var(--wine)" }}>
-                      {shipment.client_markbox}
-                    </code>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={pending}
-            aria-label="Cerrar"
+    <DrawerShell
+      title={shipment?.code ?? "—"}
+      titleAccessory={<CustomsStatusBadge status={filing.status} size="md" />}
+      subtitle={
+        <>
+          <div
             style={{
-              width: 32,
-              height: 32,
-              display: "grid",
-              placeItems: "center",
-              borderRadius: "var(--r-sm)",
+              font: "600 11.5px/1.3 var(--f-mono)",
               color: "var(--ink-soft)",
-              background: "transparent",
-              border: 0,
-              cursor: pending ? "wait" : "pointer",
-              flexShrink: 0,
+              marginBottom: "var(--s-1)",
             }}
           >
-            {Icon.close(14)}
-          </button>
-        </header>
-
+            DUA {filing.dua_code} · {vePortLabel(filing.port_code)}
+          </div>
+          {shipment?.client_name && (
+            <div
+              style={{
+                font: "500 12px/1.3 var(--f-sans)",
+                color: "var(--ink-soft)",
+              }}
+            >
+              {shipment.client_name}
+              {shipment.client_markbox && (
+                <>
+                  {" · "}
+                  <code style={{ color: "var(--wine)" }}>
+                    {shipment.client_markbox}
+                  </code>
+                </>
+              )}
+            </div>
+          )}
+        </>
+      }
+      onClose={onClose}
+      pending={pending}
+      width={720}
+    >
         <div
           style={{
             flex: 1,
@@ -753,8 +685,7 @@ export function FilingDetailDrawer({
             </span>
           )}
         </footer>
-      </aside>
-    </div>
+    </DrawerShell>
   );
 }
 

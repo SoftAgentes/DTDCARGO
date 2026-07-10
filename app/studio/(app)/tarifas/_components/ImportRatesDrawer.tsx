@@ -19,6 +19,7 @@ import type { RateImportPreview } from "@/lib/studio/rate-import";
 import { Icon } from "@/app/studio/_components/icons";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 
 const CSV_PLACEHOLDER = `service,origin,destination,per_cbm,flat_rate,min_charge,transit_days,valid_from,valid_until,notes
 consolidacion,Yiwu,Valencia,800,,380,38,2026-01-01,2026-12-31,Tarifa Q1
@@ -46,69 +47,12 @@ export function ImportRatesDrawer({ onClose }: { onClose: () => void }) {
     !!preview && !preview.error && preview.validCount > 0 && !result?.ok;
 
   return (
-    <div
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="import-drawer-title"
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "var(--scrim)",
-        zIndex: 100,
-        display: "flex",
-        justifyContent: "flex-end",
-      }}
+    <DrawerShell
+      title="Importar tarifas"
+      onClose={onClose}
+      pending={false}
+      width={680}
     >
-      <aside
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "min(680px, 98vw)",
-          height: "100vh",
-          background: "var(--bg-surface)",
-          borderLeft: "1px solid var(--border)",
-          boxShadow: "var(--shadow-pop)",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
-        <header
-          style={{
-            padding: "18px 22px",
-            borderBottom: "1px solid var(--border)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexShrink: 0,
-          }}
-        >
-          <h2
-            id="import-drawer-title"
-            className="studio-display"
-            style={{ fontSize: 18, margin: 0, color: "var(--ink)" }}
-          >
-            Importar tarifas
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            style={{
-              width: 32,
-              height: 32,
-              display: "grid",
-              placeItems: "center",
-              borderRadius: "var(--r-sm)",
-              color: "var(--ink-soft)",
-              background: "transparent",
-              cursor: "pointer",
-            }}
-          >
-            {Icon.close(14)}
-          </button>
-        </header>
-
         <div
           style={{
             flex: 1,
@@ -359,7 +303,6 @@ export function ImportRatesDrawer({ onClose }: { onClose: () => void }) {
             onError={setError}
           />
         </footer>
-      </aside>
-    </div>
+    </DrawerShell>
   );
 }

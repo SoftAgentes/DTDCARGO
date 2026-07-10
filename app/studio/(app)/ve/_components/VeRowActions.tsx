@@ -18,6 +18,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/studio/_components/icons";
+import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 import {
   VE_ACTION_LABELS,
   availableActions,
@@ -354,15 +355,13 @@ function PromptModal({
 }) {
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    inputRef.current?.focus();
-    const onEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !pending) onCancel();
-    };
-    document.addEventListener("keydown", onEsc);
-    return () => document.removeEventListener("keydown", onEsc);
-  }, [onCancel, pending]);
+  useDialogA11y(panelRef, {
+    onClose: onCancel,
+    pending,
+    initialFocusRef: inputRef,
+  });
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -390,6 +389,8 @@ function PromptModal({
       }}
     >
       <div
+        ref={panelRef}
+        tabIndex={-1}
         style={{
           background: "var(--bg-surface, #FFFFFF)",
           color: "var(--ink)",
@@ -401,6 +402,7 @@ function PromptModal({
           display: "flex",
           flexDirection: "column",
           gap: "var(--s-4)",
+          outline: "none",
         }}
       >
         <h2

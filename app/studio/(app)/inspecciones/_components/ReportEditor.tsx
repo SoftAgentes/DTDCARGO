@@ -13,8 +13,9 @@
  * solo aquí (la marca __builder lo habilita).
  */
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 import {
   inspectionTypeShort,
   type InspectionReport,
@@ -54,6 +55,8 @@ export function ReportEditor({
   );
   const router = useRouter();
   const toast = useToast();
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(panelRef, { onClose, pending: isPending });
 
   useEffect(() => {
     if (state.ok) {
@@ -81,6 +84,8 @@ export function ReportEditor({
       onClick={onClose}
     >
       <div
+        ref={panelRef}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "min(1100px, 100%)",
@@ -91,6 +96,7 @@ export function ReportEditor({
           display: "flex",
           flexDirection: "column",
           minHeight: "min(88vh, 800px)",
+          outline: "none",
         }}
       >
         {/* Header */}

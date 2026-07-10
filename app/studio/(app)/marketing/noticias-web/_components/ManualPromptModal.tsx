@@ -18,8 +18,9 @@
 
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
+import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 import { copyToClipboard } from "./copy";
 
 interface Props {
@@ -58,20 +59,14 @@ export function ManualPromptModal({
   const [text, setText] = useState("");
   const [copied, setCopied] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
-  // Foco automático en textarea al abrir
-  useEffect(() => {
-    textareaRef.current?.focus();
-  }, []);
-
-  // Escape cierra modal
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !loading) onClose();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [onClose, loading]);
+  // Foco inicial en textarea + focus-trap + Escape + restauración de foco.
+  useDialogA11y(panelRef, {
+    onClose,
+    pending: !!loading,
+    initialFocusRef: textareaRef,
+  });
 
   const handleCopy = async () => {
     const ok = await copyToClipboard(prompt);
@@ -106,7 +101,11 @@ export function ManualPromptModal({
       />
 
       {/* Card */}
-      <div className="relative bg-paper border border-grey-200 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[88vh] flex flex-col overflow-hidden">
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        className="relative bg-paper border border-grey-200 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[88vh] flex flex-col overflow-hidden outline-none"
+      >
         {/* Header */}
         <div className="flex items-start justify-between gap-4 p-5 border-b border-grey-200">
           <div className="flex flex-col gap-1 min-w-0 flex-1">

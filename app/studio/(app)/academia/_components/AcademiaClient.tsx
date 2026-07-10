@@ -870,7 +870,8 @@ function AttendanceCell({
         background: on ? "var(--success-bg)" : "var(--bg-surface)",
         color: on ? "var(--success)" : "var(--ink-mute)",
         cursor: isPending ? "wait" : "pointer",
-        transition: "all var(--dur-fast) var(--ease)",
+        transition:
+          "border-color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease)",
       }}
     >
       {on ? Icon.check(13) : null}

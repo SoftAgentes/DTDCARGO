@@ -10,6 +10,7 @@
  */
 
 import { useState } from "react";
+import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import type { LabelClient } from "../page";
 import type { WarehouseAddress } from "./Label";
 
@@ -110,59 +111,23 @@ DTD Cargo 国际货运`;
     : null;
 
   return (
-    <div
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "var(--scrim)",
-        zIndex: 100,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "var(--s-5)",
-      }}
+    <DrawerShell
+      title="Mensaje para el supplier"
+      onClose={onClose}
+      pending={false}
+      width={640}
+      variant="centered"
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "100%",
-          maxWidth: 640,
-          maxHeight: "92dvh",
-          overflowY: "auto",
-          background: "var(--bg-surface)",
-          borderRadius: "var(--r-md)",
-          boxShadow: "var(--shadow-pop)",
-        }}
-      >
-        <header
+        <div
           style={{
-            padding: "18px 22px",
-            borderBottom: "1px solid var(--border)",
+            flex: 1,
+            overflow: "auto",
+            padding: 22,
             display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
+            flexDirection: "column",
+            gap: 14,
           }}
         >
-          <h2
-            className="studio-display"
-            style={{ fontSize: 18, margin: 0, color: "var(--ink)" }}
-          >
-            Mensaje para el supplier
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="studio-btn studio-btn-ghost studio-btn-xs"
-            style={{ color: "var(--ink-soft)" }}
-          >
-            Cerrar
-          </button>
-        </header>
-
-        <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
           <p
             style={{
               font: "500 12.5px/1.5 var(--f-sans)",
@@ -224,8 +189,7 @@ DTD Cargo 国际货运`;
             )}
           </div>
         </div>
-      </div>
-    </div>
+    </DrawerShell>
   );
 }
 
