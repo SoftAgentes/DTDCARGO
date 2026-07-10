@@ -120,7 +120,7 @@ export function Step2Outlines({
               type="button"
               onClick={() => onSelectOutline(idx)}
               aria-pressed={isSelected}
-              className="text-left transition-all"
+              className="text-left transition-colors"
               style={{
                 background: isSelected
                   ? "var(--wine-tint, rgba(127,15,26,0.06))"
