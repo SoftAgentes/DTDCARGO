@@ -79,6 +79,46 @@ export async function getPortalConversationId(
 }
 
 /**
+ * Un resumen mensual client-facing (SDD-0149 F3). `period` = primer día del mes (date).
+ */
+export type PortalConversationDigest = {
+  id: string;
+  period: string;
+  clientSummary: string;
+};
+
+/**
+ * Los resúmenes mensuales que el cliente PUEDE ver en el portal (SDD-0149 F3). Solo
+ * los que tienen `client_summary` (el `summary` interno del asesor NUNCA sale de acá).
+ * Admin client scopeado EXPLÍCITO por client_id (mismo patrón que el hilo). Reciente
+ * primero. Best-effort: [] ante cualquier problema.
+ */
+export async function listPortalConversationDigests(
+  admin: SupabaseClient,
+  clientId: string,
+): Promise<PortalConversationDigest[]> {
+  const { data, error } = await admin
+    .from("conversation_monthly_digests")
+    .select("id, period, client_summary")
+    .eq("client_id", clientId)
+    .not("client_summary", "is", null)
+    .order("period", { ascending: false })
+    .limit(24);
+
+  if (error || !data) return [];
+
+  return (
+    data as Array<{ id: string; period: string; client_summary: string | null }>
+  )
+    .filter((d) => (d.client_summary ?? "").trim().length > 0)
+    .map((d) => ({
+      id: d.id,
+      period: d.period,
+      clientSummary: (d.client_summary ?? "").trim(),
+    }));
+}
+
+/**
  * El hilo del canal `portal` del cliente (mensajes cronológicos). Recibe el
  * ADMIN client + el client_id resuelto por sesión. Devuelve [] si no hay hilo
  * todavía. Scope EXPLÍCITO por client_id + channel='portal'.
