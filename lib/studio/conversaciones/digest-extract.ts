@@ -106,7 +106,12 @@ export async function summarizeMonthThread(
     if (!summary) return { error: "Formato de resumen inesperado." };
     return { summary, model: DEFAULT_MODEL };
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "Error de IA" };
+    // Logueamos el error real de la IA (404 modelo inexistente, 401 key, rate limit…):
+    // sin esto el fallo es invisible en los logs de Vercel y el digest queda en 0 en
+    // silencio. Incluimos el modelo para diagnosticar de un vistazo cuál se pidió.
+    const msg = e instanceof Error ? e.message : "Error de IA";
+    console.error(`[digest-extract] IA falló (model=${DEFAULT_MODEL}):`, msg);
+    return { error: msg };
   }
 }
 

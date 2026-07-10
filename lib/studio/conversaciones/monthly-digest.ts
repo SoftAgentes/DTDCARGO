@@ -93,6 +93,11 @@ export async function runConversationDigestsForTenant(
 
         const r = await summarizeMonthThread(list, { clientName, periodLabel });
         if ("error" in r) {
+          // Antes se tragaba en silencio → digest en 0 sin rastro. Ahora queda en logs.
+          console.error(
+            `[monthly-digest] IA sin resumen (conv=${convId}, ${periodLabel}):`,
+            r.error,
+          );
           res.skipped += 1;
           continue;
         }
