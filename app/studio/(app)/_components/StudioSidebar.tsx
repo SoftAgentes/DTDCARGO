@@ -615,7 +615,7 @@ export function StudioSidebar({
         {grouped.length === 0 && !collapsed && (
           <div
             style={{
-              padding: "16px 12px",
+              padding: "var(--s-4) var(--s-3)",
               font: "500 12px/1.5 var(--f-sans)",
               color: "var(--ink-side-soft)",
             }}
@@ -643,7 +643,7 @@ export function StudioSidebar({
             alignItems: "center",
             justifyContent: "center",
             gap: 8,
-            padding: "8px",
+            padding: "var(--s-2)",
             borderRadius: "var(--r-md)",
             color: "var(--ink-side-soft)",
             background: "var(--bg-side-btn)",

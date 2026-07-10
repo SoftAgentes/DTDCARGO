@@ -273,7 +273,7 @@ export default async function ReceiptPrintPage({
         <div
           style={{
             marginTop: 16,
-            padding: "12px 16px",
+            padding: "var(--s-3) var(--s-4)",
             background: "var(--bg-base)",
             borderRadius: "var(--r-md)",
             border: "1px solid var(--border)",
@@ -284,7 +284,7 @@ export default async function ReceiptPrintPage({
             style={{
               font: "700 24px/1.1 var(--f-mono)",
               color: "var(--ink)",
-              margin: "4px 0 0",
+              margin: "var(--s-1) 0 0",
             }}
           >
             {fmtAmount(receipt.amount)}{" "}
@@ -333,7 +333,7 @@ export default async function ReceiptPrintPage({
             style={{
               font: "500 11px/1.6 var(--f-sans)",
               color: "var(--ink-soft)",
-              margin: "4px 0 0",
+              margin: "var(--s-1) 0 0",
             }}
           >
             {doc.acuerdoLine}

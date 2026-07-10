@@ -125,7 +125,7 @@ export function ReferralDrawer({
                         alignItems: "center",
                         justifyContent: "center",
                         background: done ? "var(--wine)" : "var(--bg-elevated)",
-                        color: done ? "var(--ink-inv)" : "var(--ink-mute)",
+                        color: done ? "var(--ink-inv)" : "var(--ink-soft)",
                         border: done ? "none" : "1px solid var(--border)",
                       }}
                     >

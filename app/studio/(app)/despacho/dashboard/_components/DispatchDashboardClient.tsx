@@ -154,7 +154,7 @@ export function DispatchDashboardClient({
             Ranking de rutas · eficiencia
           </div>
           {ranking.length === 0 ? (
-            <div style={{ padding: "32px 0", textAlign: "center", color: "var(--ink-soft)", font: "500 13px/1.4 var(--f-sans)" }}>
+            <div style={{ padding: "var(--s-8) 0", textAlign: "center", color: "var(--ink-soft)", font: "500 13px/1.4 var(--f-sans)" }}>
               Sin datos para este periodo.
             </div>
           ) : (
@@ -204,7 +204,7 @@ export function DispatchDashboardClient({
             Top ciudades por volumen
           </div>
           {topCities.length === 0 ? (
-            <div style={{ padding: "32px 0", textAlign: "center", color: "var(--ink-soft)", font: "500 13px/1.4 var(--f-sans)" }}>
+            <div style={{ padding: "var(--s-8) 0", textAlign: "center", color: "var(--ink-soft)", font: "500 13px/1.4 var(--f-sans)" }}>
               Sin movimientos en el periodo.
             </div>
           ) : (

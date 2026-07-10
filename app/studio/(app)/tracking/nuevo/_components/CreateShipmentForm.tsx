@@ -81,7 +81,7 @@ export function CreateShipmentForm({
             font: "500 12px/1 var(--f-sans)",
             color: "var(--ink-soft)",
             textDecoration: "none",
-            transition: "color 0.12s",
+            transition: "color var(--dur-fast) var(--ease)",
           }}
         >
           <span style={{ fontSize: 14 }}>←</span> Volver al listado

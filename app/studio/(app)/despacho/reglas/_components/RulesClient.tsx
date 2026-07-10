@@ -731,7 +731,7 @@ function PreviewLive({
               type="button"
               onClick={() => setSelectedId(s.id)}
               style={{
-                padding: "8px 12px",
+                padding: "var(--s-2) var(--s-3)",
                 background: active ? "var(--wine-tint)" : "var(--bg-elevated)",
                 color: active ? "var(--wine)" : "var(--ink-soft)",
                 border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,

@@ -370,7 +370,7 @@ export function EntryDrawer({ postableAccounts, onClose }: Props) {
           {/* Totales debe/haber + balance, navy LIVE */}
           <div
             style={{
-              padding: "16px 20px",
+              padding: "var(--s-4) var(--s-5)",
               background: "var(--ink)",
               color: "var(--ink-inv)",
               borderRadius: "var(--r-lg)",
@@ -518,7 +518,7 @@ function FieldError({ msg }: { msg: string }) {
       style={{
         font: "500 11px/1.3 var(--f-sans)",
         color: "var(--danger)",
-        margin: "4px 0 0",
+        margin: "var(--s-1) 0 0",
       }}
     >
       {msg}

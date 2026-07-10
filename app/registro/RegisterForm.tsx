@@ -337,7 +337,7 @@ function ExpressForm({
           hint="Lo usamos para identificarte y evitar cuentas duplicadas."
           error={
             fieldErrors?.document ??
-            (errDoc ? "Cédula inválida. Formato: V-12345678." : undefined)
+            (errDoc ? "Cédula o pasaporte inválido. Formato: V-12345678 o P-A1234567." : undefined)
           }
         />
       )}
@@ -791,11 +791,13 @@ function Field({
 const SELECT_ARROW =
   "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%237F0F1A' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>\")";
 
-// ── Cédula con prefijo de nacionalidad (V / E) ───────────────────
-// En Venezuela la cédula lleva V (venezolano) o E (extranjero). El usuario solo
-// escribe el número; la letra se elige a la izquierda (V por defecto). Emite el
-// canónico "V-12345678" hacia el padre (o "" si no hay dígitos). Portado del
-// Norte v4.3 (`CedulaInput`) a tokens de la web.
+// ── Cédula con prefijo de nacionalidad (V / E / P) ────────────────
+// En Venezuela la cédula lleva V (venezolano) o E (extranjero); P (pasaporte)
+// cubre al cliente que no tiene cédula venezolana a mano. El usuario solo
+// escribe el número (o el alfanumérico del pasaporte); la letra se elige a la
+// izquierda (V por defecto). Emite el canónico "V-12345678" / "P-A1234567"
+// hacia el padre (o "" si no hay dígitos). Portado del Norte v4.3
+// (`CedulaInput`) a tokens de la web.
 function CedulaInput({
   value,
   onChange,
@@ -808,21 +810,27 @@ function CedulaInput({
   error?: string;
 }) {
   // Estado interno: deriva la letra del valor inicial (si lo hubiera) y el resto.
-  const m = /^([VE])-?(.*)$/i.exec(value || "");
-  const [letter, setLetter] = useState<"V" | "E">(
-    m && m[1].toUpperCase() === "E" ? "E" : "V",
+  const m = /^([VEP])-?(.*)$/i.exec(value || "");
+  const initialLetter: "V" | "E" | "P" =
+    m && m[1].toUpperCase() === "E" ? "E" : m && m[1].toUpperCase() === "P" ? "P" : "V";
+  const [letter, setLetter] = useState<"V" | "E" | "P">(initialLetter);
+  const [digits, setDigits] = useState(
+    m
+      ? initialLetter === "P"
+        ? m[2].replace(/[^a-zA-Z0-9]/g, "").toUpperCase()
+        : m[2].replace(/\D/g, "")
+      : "",
   );
-  const [digits, setDigits] = useState(m ? m[2].replace(/\D/g, "") : "");
 
-  function emit(l: "V" | "E", d: string) {
+  function emit(l: "V" | "E" | "P", d: string) {
     onChange(d ? `${l}-${d}` : "");
   }
-  function onLetter(l: "V" | "E") {
+  function onLetter(l: "V" | "E" | "P") {
     setLetter(l);
     emit(l, digits);
   }
   function onDigits(raw: string) {
-    const d = raw.replace(/\D/g, "");
+    const d = letter === "P" ? raw.replace(/[^a-zA-Z0-9]/g, "").toUpperCase() : raw.replace(/\D/g, "");
     setDigits(d);
     emit(letter, d);
   }
@@ -835,7 +843,7 @@ function CedulaInput({
       <div className="flex items-stretch h-12 rounded-[10px] bg-grey-100 overflow-hidden focus-within:ring-2 focus-within:ring-wine focus-within:ring-offset-1">
         <select
           value={letter}
-          onChange={(e) => onLetter(e.target.value as "V" | "E")}
+          onChange={(e) => onLetter(e.target.value as "V" | "E" | "P")}
           aria-label="Nacionalidad de la cédula"
           className="bg-grey-200 border-0 outline-none text-[14.5px] font-bold text-wine cursor-pointer"
           style={{
@@ -850,19 +858,20 @@ function CedulaInput({
         >
           <option value="V">V</option>
           <option value="E">E</option>
+          <option value="P">P</option>
         </select>
         <input
           value={digits}
           onChange={(e) => onDigits(e.target.value)}
-          inputMode="numeric"
-          placeholder="18456321"
+          inputMode={letter === "P" ? "text" : "numeric"}
+          placeholder={letter === "P" ? "A1234567" : "18456321"}
           className="flex-1 min-w-0 px-3.5 bg-transparent border-0 outline-none text-[14.5px] text-ink"
           style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
         />
       </div>
       {hint && !error && (
         <span className="text-[11.5px] text-grey-500 leading-[1.4]">
-          V = venezolano · E = extranjero · escribe solo el número. {hint}
+          V = venezolano · E = extranjero · P = pasaporte · escribe solo el número, sin puntos. {hint}
         </span>
       )}
       {error && <span className="text-[12px] text-wine leading-[1.4]">{error}</span>}

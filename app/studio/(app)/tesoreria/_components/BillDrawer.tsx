@@ -378,8 +378,8 @@ function PayForm({
           <p
             style={{
               font: "500 11px/1.3 var(--f-sans)",
-              color: amt >= balance - 1e-6 ? "var(--ink-mute)" : "var(--warning)",
-              margin: "4px 0 0",
+              color: amt >= balance - 1e-6 ? "var(--ink-soft)" : "var(--warning)",
+              margin: "var(--s-1) 0 0",
             }}
           >
             {amt >= balance - 1e-6
@@ -398,7 +398,7 @@ function PayForm({
             style={{
               font: "500 11.5px/1.4 var(--f-sans)",
               color: "var(--warning)",
-              margin: "4px 0 0",
+              margin: "var(--s-1) 0 0",
             }}
           >
             No hay cuentas de caja/banco en el plan de cuentas. Sembrá el plan en
@@ -747,7 +747,7 @@ export function NewBillDrawer({
               style={{
                 font: "500 11.5px/1.4 var(--f-sans)",
                 color: "var(--warning)",
-                margin: "4px 0 0",
+                margin: "var(--s-1) 0 0",
               }}
             >
               No hay cuentas de costo/gasto en el plan. Sembrá el plan en
@@ -837,7 +837,7 @@ export function NewBillDrawer({
               style={{
                 font: "500 10.5px/1.4 var(--f-sans)",
                 color: "var(--ink-soft)",
-                margin: "4px 0 0",
+                margin: "var(--s-1) 0 0",
               }}
             >
               {currencyLabel(currency)} · el asiento se hace en USD funcional

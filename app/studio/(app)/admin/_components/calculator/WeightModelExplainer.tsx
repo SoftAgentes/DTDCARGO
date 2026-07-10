@@ -202,8 +202,10 @@ export function WeightModelExplainer() {
             el excedente se cobra de forma continua:{" "}
             <strong style={{ color: "var(--ink)" }}>+$2 por cada kg</strong> por encima,
             sobre el <strong style={{ color: "var(--ink)" }}>mayor entre el peso
-            declarado y el medido</strong>. Se calcula solo en la web, sin derivar al
-            asesor.
+            declarado y el medido</strong>. Se calcula solo en la web. La única
+            excepción: un envío a la vez{" "}
+            <strong style={{ color: "var(--ink)" }}>muy pesado y muy denso</strong>, que
+            acapararía el peso del contenedor, se cotiza a medida con el asesor.
           </p>
         </div>
       </div>

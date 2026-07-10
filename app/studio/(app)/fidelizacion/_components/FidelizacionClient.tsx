@@ -105,7 +105,7 @@ export function FidelizacionClient({
           <span className="studio-eyebrow">Comercial · Lealtad</span>
           <h1
             className="studio-display"
-            style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
+            style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
           >
             Fidelización & Referidos.
           </h1>
@@ -428,7 +428,7 @@ function DashboardTab({
           {topReferrers.length === 0 ? (
             <div
               style={{
-                padding: "24px 20px",
+                padding: "var(--s-6) var(--s-5)",
                 font: "500 12.5px/1.5 var(--f-sans)",
                 color: "var(--ink-soft)",
               }}
@@ -445,14 +445,14 @@ function DashboardTab({
                     gridTemplateColumns: "28px 1fr auto",
                     gap: 12,
                     alignItems: "center",
-                    padding: "12px 20px",
+                    padding: "var(--s-3) var(--s-5)",
                     borderTop: i > 0 ? "1px solid var(--border)" : 0,
                   }}
                 >
                   <span
                     style={{
                       font: "900 14px/1 var(--f-display)",
-                      color: i === 0 ? "var(--wine)" : "var(--ink-mute)",
+                      color: i === 0 ? "var(--wine)" : "var(--ink-soft)",
                     }}
                   >
                     {i + 1}
@@ -496,7 +496,7 @@ function DashboardTab({
                     <div
                       style={{
                         font: "600 9.5px/1 var(--f-sans)",
-                        color: r.credits > 0 ? "var(--success)" : "var(--ink-mute)",
+                        color: r.credits > 0 ? "var(--success)" : "var(--ink-soft)",
                         marginTop: 3,
                       }}
                     >
@@ -774,7 +774,7 @@ function ReferidosTab({
               display: "grid",
               gridTemplateColumns: REFERRAL_GRID,
               gap: 14,
-              padding: "12px 20px",
+              padding: "var(--s-3) var(--s-5)",
               background: "var(--bg-elevated)",
               borderBottom: "1px solid var(--border)",
               font: "700 10px/1 var(--f-sans)",
@@ -953,7 +953,7 @@ function ClientesTab({
             display: "grid",
             gridTemplateColumns: CLIENT_GRID,
             gap: 14,
-            padding: "12px 20px",
+            padding: "var(--s-3) var(--s-5)",
             background: "var(--bg-elevated)",
             borderBottom: "1px solid var(--border)",
             font: "700 10px/1 var(--f-sans)",

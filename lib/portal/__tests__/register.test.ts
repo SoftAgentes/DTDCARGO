@@ -62,7 +62,7 @@ describe("validateRegisterInput — alta express (persona)", () => {
 
   it("falla con cédula de formato inválido", () => {
     const { fieldErrors } = validateRegisterInput({ ...VALID_PERSONA, document: "12345" });
-    expect(fieldErrors?.document).toMatch(/inválida/i);
+    expect(fieldErrors?.document).toMatch(/inválid/i);
   });
 
   it("falla si falta WhatsApp", () => {
@@ -104,6 +104,11 @@ describe("normalizeDocument — el documento es la contraseña", () => {
 
   it("persona: acepta extranjero E", () => {
     expect(normalizeDocument("persona", "E-87654321")).toBe("E-87654321");
+  });
+
+  it("persona: acepta pasaporte P (alfanumérico)", () => {
+    expect(normalizeDocument("persona", "P-A1234567")).toBe("P-A1234567");
+    expect(normalizeDocument("persona", "pa1234567")).toBe("P-A1234567");
   });
 
   it("persona: un RIF no es cédula válida → null", () => {

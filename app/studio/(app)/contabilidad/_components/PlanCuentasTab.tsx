@@ -111,7 +111,7 @@ export function PlanCuentasTab({
             display: "grid",
             gridTemplateColumns: GRID,
             gap: 12,
-            padding: "12px 20px",
+            padding: "var(--s-3) var(--s-5)",
             background: "var(--bg-elevated)",
             borderBottom: "1px solid var(--border)",
             font: "700 10px/1 var(--f-sans)",
@@ -164,8 +164,8 @@ export function PlanCuentasTab({
                     aria-label={isCollapsed ? "Expandir" : "Colapsar"}
                     aria-expanded={!isCollapsed}
                     style={{
-                      width: 18,
-                      height: 18,
+                      width: 24,
+                      height: 24,
                       display: "grid",
                       placeItems: "center",
                       border: 0,

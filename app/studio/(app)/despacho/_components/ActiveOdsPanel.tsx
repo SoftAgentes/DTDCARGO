@@ -45,7 +45,7 @@ export function ActiveOdsPanel({
             font: "500 12.5px/1.4 var(--f-sans)",
             color: "var(--ink-soft)",
             margin: 0,
-            padding: "24px 0",
+            padding: "var(--s-6) 0",
             textAlign: "center",
           }}
         >

@@ -193,11 +193,11 @@ export function formatRif(raw: string): string {
 
 /**
  * Cédula venezolana (persona): prefijo V (venezolano) o E (extranjero) + 6 a 9
- * dígitos. Acepta con/sin guión ("V-12345678" o "V12345678"). Case-insensitive.
- * Mismo formato que el registro público (`register-types.ts`), acá para el alta
- * interna del Studio (SDD-0131).
+ * dígitos; o pasaporte, prefijo P + 5 a 12 alfanuméricos. Acepta con/sin guión
+ * ("V-12345678" o "V12345678"). Case-insensitive. Mismo formato que el registro
+ * público (`register-types.ts`), acá para el alta interna del Studio (SDD-0131).
  */
-export const CEDULA_REGEX = /^[VEve]-?\d{6,9}$/;
+export const CEDULA_REGEX = /^(?:[VEve]-?\d{6,9}|[Pp]-?[A-Za-z0-9]{5,12})$/;
 
 /**
  * Normaliza una cédula a canónico "V-12345678" (prefijo mayúscula + guión).
@@ -283,7 +283,7 @@ export function validateClientInput(input: Partial<ClientInput>): {
     if (!rifCanonical) {
       errors.rif = isCompany
         ? "RIF inválido. Formato: J-12345678-9."
-        : "Cédula inválida. Formato: V-12345678.";
+        : "Cédula o pasaporte inválido. Formato: V-12345678 o P-A1234567.";
     }
   }
 

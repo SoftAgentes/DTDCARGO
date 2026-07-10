@@ -511,6 +511,30 @@
 .studio-row-btn {
   background: var(--bg-surface);
 }
+
+/* ───────────────────────────────────────────────────────────
+   Fila accionable — primitiva <ActionableRow> (DataTable.tsx)
+   `<tr>` operable por teclado (WCAG 2.1.1). El color del ring lo hereda
+   del :focus-visible global (--wine / --wine-soft en dark), acá solo
+   metemos el ring HACIA ADENTRO (offset -2px) para que no lo recorte el
+   overflow-x del <TableFrame>. Motion por tokens, no en px/segundos crudos.
+   ─────────────────────────────────────────────────────────── */
+.studio-actionable-row {
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease);
+}
+.studio-actionable-row:hover {
+  background: var(--bg-elevated);
+}
+.studio-actionable-row:focus-visible {
+  outline-offset: -2px;
+  background: var(--bg-elevated);
+}
+@media (prefers-reduced-motion: reduce) {
+  .studio-actionable-row {
+    transition: none;
+  }
+}
 /* Link discreto en celdas de tabla (nombre que linkea sin ensuciar la grilla):
    subraya solo al hover/focus. SDD-0058 (Kommo lead → cliente). */
 .studio-link-quiet {

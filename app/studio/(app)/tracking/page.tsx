@@ -153,7 +153,7 @@ function TrackingHeader({ count }: { count: number }) {
           className="studio-display"
           style={{
             fontSize: 30,
-            margin: "8px 0 12px",
+            margin: "var(--s-2) 0 var(--s-3)",
             color: "var(--ink)",
           }}
         >

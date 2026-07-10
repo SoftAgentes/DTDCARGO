@@ -85,7 +85,7 @@ function ReportRow({ item, first }: { item: ReportWithProof; first: boolean }) {
   return (
     <div
       style={{
-        padding: "12px 0",
+        padding: "var(--s-3) 0",
         borderTop: first ? 0 : "1px solid var(--border)",
         display: "flex",
         flexDirection: "column",

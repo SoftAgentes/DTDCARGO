@@ -157,6 +157,21 @@ export function CalculadoraForm({
         tone: "danger",
       };
     if (effectiveCbm <= 0 || form.pesoKg <= 0) return null;
+    // Tope de peso por envío (anti-monopolio), density-aware: deriva al asesor
+    // solo si es pesado Y denso (densidad > equilibrio del contenedor). Un envío
+    // pesado pero liviano no monopoliza el peso → sigue cotizando.
+    const equilibrioDensidad =
+      params.cbmMaxContenedor > 0
+        ? params.pesoMaxContenedorKg / params.cbmMaxContenedor
+        : Infinity;
+    if (
+      form.pesoKg > params.pesoMaxEnvioKg &&
+      form.pesoKg / effectiveCbm > equilibrioDensidad
+    )
+      return {
+        text: "Por el peso de esta carga la cotizamos a medida — escríbele a tu asesor.",
+        tone: "danger",
+      };
     const fmt = (n: number) => parseFloat(n.toFixed(2)).toString();
     const maxSinRecargo = effectiveCbm * params.pesoIncluidoKg;
     // Excedente de densidad → NO es un problema, es info del recargo (wine). Se
