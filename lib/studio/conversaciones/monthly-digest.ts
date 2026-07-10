@@ -9,7 +9,11 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { summarizeMonthThread, type DigestMessage } from "./digest-extract";
+import {
+  summarizeMonthThread,
+  summarizeMonthThreadForClient,
+  type DigestMessage,
+} from "./digest-extract";
 
 export interface DigestRunResult {
   tenantId: string;
@@ -102,6 +106,19 @@ export async function runConversationDigestsForTenant(
           continue;
         }
 
+        // Resumen client-facing (F3 · portal). Best-effort: si falla, guardamos el
+        // interno igual y client_summary queda null (el portal simplemente no lo muestra).
+        const rc = await summarizeMonthThreadForClient(list, { clientName, periodLabel });
+        let clientSummary: string | null = null;
+        if ("error" in rc) {
+          console.error(
+            `[monthly-digest] IA cliente sin resumen (conv=${convId}, ${periodLabel}):`,
+            rc.error,
+          );
+        } else {
+          clientSummary = rc.summary;
+        }
+
         const { error: upErr } = await admin
           .from("conversation_monthly_digests")
           .upsert(
@@ -111,6 +128,7 @@ export async function runConversationDigestsForTenant(
               conversation_id: convId,
               period: monthStart,
               summary: r.summary,
+              client_summary: clientSummary,
               message_count: list.length,
               in_count: inN,
               out_count: outN,
