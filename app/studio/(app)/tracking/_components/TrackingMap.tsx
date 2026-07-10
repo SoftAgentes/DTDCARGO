@@ -58,7 +58,7 @@ export function TrackingMap({ shipment }: Props) {
       {/* Header */}
       <div
         style={{
-          padding: "16px 20px 12px",
+          padding: "var(--s-4) var(--s-5) var(--s-3)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",

@@ -50,7 +50,7 @@ export function ShipmentHeader({ shipment }: { shipment: Shipment }) {
           alignItems: "center",
           gap: 6,
           marginBottom: 14,
-          transition: "color 0.12s",
+          transition: "color var(--dur-fast) var(--ease)",
         }}
       >
         <span style={{ fontSize: 14 }}>←</span> Volver al listado
