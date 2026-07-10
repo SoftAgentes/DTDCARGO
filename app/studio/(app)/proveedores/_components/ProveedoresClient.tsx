@@ -31,7 +31,15 @@ import {
   prealertaStatusTone,
   type Prealerta,
 } from "@/lib/studio/prealertas/types";
+import type { PrealertaServiceRequest } from "@/lib/studio/prealertas/addons";
+import type { PackingListSubmission } from "@/lib/studio/prealertas/packlist-form";
 import type { PrealertaStats } from "@/lib/studio/prealertas/queries";
+import {
+  ServiceRequestsTab,
+  type PrealertaLite,
+} from "./ServiceRequestsTab";
+import { PackingListsTab } from "./PackingListsTab";
+import { ProviderLinkDrawer } from "./ProviderLinkDrawer";
 
 // Estados que el operador considera "entrantes" (esperando arribo a CN).
 const INCOMING: ReadonlySet<string> = new Set(["anunciada", "en_camino"]);
@@ -48,10 +56,12 @@ export type SupplierRow = {
   orderCount: number;
 };
 
-type Tab = "incoming" | "suppliers";
+type Tab = "services" | "incoming" | "packing" | "suppliers";
 
 const TABS: { value: Tab; label: string }[] = [
+  { value: "services", label: "Servicios solicitados" },
   { value: "incoming", label: "Prealertas entrantes" },
+  { value: "packing", label: "Packing lists" },
   { value: "suppliers", label: "Proveedores" },
 ];
 
@@ -60,14 +70,27 @@ export function ProveedoresClient({
   prealertas,
   suppliers,
   cbmByPrealertaId,
+  serviceRequests,
+  packingLists,
+  disabledShareIds,
 }: {
   stats: PrealertaStats;
   prealertas: Prealerta[];
   suppliers: SupplierRow[];
   /** CBM real medido al recibir en CN (Σ por prealerta · migr 0127). */
   cbmByPrealertaId: Record<string, number>;
+  /** Solicitudes de servicio de recepción del tenant (SDD-0098 · PORT-1). */
+  serviceRequests: PrealertaServiceRequest[];
+  /** Packing lists vigentes enviados por proveedores (SDD-0096 · PORT-2). */
+  packingLists: PackingListSubmission[];
+  /** IDs de prealertas con el link del proveedor DESACTIVADO (SDD-0096 · PORT-4). */
+  disabledShareIds: string[];
 }) {
-  const [tab, setTab] = useState<Tab>("incoming");
+  const disabledShareSet = useMemo(
+    () => new Set(disabledShareIds),
+    [disabledShareIds],
+  );
+  const [tab, setTab] = useState<Tab>("services");
 
   // nombre de proveedor por id (para la columna de la cola).
   const supplierName = useMemo(() => {
@@ -75,6 +98,23 @@ export function ProveedoresClient({
     for (const s of suppliers) m[s.id] = s.name;
     return m;
   }, [suppliers]);
+
+  // Contexto de compra por prealerta_id (código + descripción) para la bandeja.
+  const prealertaById = useMemo(() => {
+    const m: Record<string, PrealertaLite> = {};
+    for (const p of prealertas) {
+      m[p.id] = { code: p.code, description: p.description };
+    }
+    return m;
+  }, [prealertas]);
+
+  const pendingServices = useMemo(
+    () =>
+      serviceRequests.filter(
+        (r) => r.status === "solicitada" || r.status === "en_proceso",
+      ).length,
+    [serviceRequests],
+  );
 
   const incomingCount = stats.byStatus.anunciada + stats.byStatus.en_camino;
 
@@ -173,7 +213,14 @@ export function ProveedoresClient({
         {TABS.map((tDef) => {
           const active = tab === tDef.value;
           const count =
-            tDef.value === "incoming" ? prealertas.length : suppliers.length;
+            tDef.value === "services"
+              ? serviceRequests.length
+              : tDef.value === "incoming"
+                ? prealertas.length
+                : tDef.value === "packing"
+                  ? packingLists.length
+                  : suppliers.length;
+          const alert = tDef.value === "services" && pendingServices > 0;
           return (
             <button
               key={tDef.value}
@@ -196,18 +243,28 @@ export function ProveedoresClient({
             >
               {tDef.label}
               <span
+                title={alert ? `${pendingServices} pendientes por atender` : undefined}
                 style={{
                   marginLeft: 7,
-                  font: "600 11px/1 var(--f-mono)",
-                  color: "var(--ink-soft)",
+                  font: alert
+                    ? "800 11px/1 var(--f-mono)"
+                    : "600 11px/1 var(--f-mono)",
+                  color: alert ? "var(--wine)" : "var(--ink-soft)",
                 }}
               >
-                {count}
+                {alert ? pendingServices : count}
               </span>
             </button>
           );
         })}
       </div>
+
+      {tab === "services" && (
+        <ServiceRequestsTab
+          requests={serviceRequests}
+          prealertaById={prealertaById}
+        />
+      )}
 
       {tab === "incoming" && (
         <IncomingTab
@@ -215,6 +272,14 @@ export function ProveedoresClient({
           supplierName={supplierName}
           incomingCount={incomingCount}
           cbmByPrealertaId={cbmByPrealertaId}
+          disabledShareSet={disabledShareSet}
+        />
+      )}
+
+      {tab === "packing" && (
+        <PackingListsTab
+          submissions={packingLists}
+          prealertaById={prealertaById}
         />
       )}
 
@@ -241,6 +306,7 @@ const PREALERTA_COLS_DEFAULT: ColumnVisibility[] = [
   { key: "boxes", visible: true },
   { key: "cbm", visible: true },
   { key: "value", visible: false },
+  { key: "link", visible: true },
   { key: "status", visible: true },
 ];
 
@@ -252,6 +318,7 @@ const PREALERTA_COL_LABELS: ColumnLabels = {
   boxes: { label: "Cajas" },
   cbm: { label: "CBM", hint: "se mide al recibir en CN" },
   value: { label: "Valor est.", hint: "declarado por el cliente" },
+  link: { label: "Link proveedor", hint: "copiar · activar / desactivar el enlace" },
   status: { label: "Estado" },
 };
 
@@ -306,14 +373,18 @@ function IncomingTab({
   supplierName,
   incomingCount,
   cbmByPrealertaId,
+  disabledShareSet,
 }: {
   prealertas: Prealerta[];
   supplierName: Record<string, string>;
   incomingCount: number;
   cbmByPrealertaId: Record<string, number>;
+  /** IDs de prealertas con el link del proveedor desactivado (PORT-4). */
+  disabledShareSet: Set<string>;
 }) {
   const [onlyIncoming, setOnlyIncoming] = useState(true);
   const [search, setSearch] = useState("");
+  const [selectedLink, setSelectedLink] = useState<Prealerta | null>(null);
   const [colCfg, setColCfg] = useColumnConfig(
     PREALERTA_COLS_KEY,
     PREALERTA_COLS_DEFAULT,
@@ -552,6 +623,38 @@ function IncomingTab({
       ),
     },
     {
+      key: "link",
+      label: "Link proveedor",
+      width: "108px",
+      render: (p) => {
+        const active = !disabledShareSet.has(p.id);
+        return (
+          <button
+            type="button"
+            onClick={() => setSelectedLink(p)}
+            title="Gestionar el link del proveedor"
+            className="studio-btn studio-btn-ghost"
+            style={{ height: 26, padding: "0 9px" }}
+          >
+            <span
+              aria-hidden
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: "50%",
+                background: active ? "var(--success)" : "var(--danger)",
+                display: "inline-block",
+                marginRight: 6,
+              }}
+            />
+            <span style={{ font: "600 11px/1 var(--f-sans)" }}>
+              {active ? "Link" : "Revocado"}
+            </span>
+          </button>
+        );
+      },
+    },
+    {
       key: "status",
       label: "Estado",
       width: "132px",
@@ -771,6 +874,22 @@ function IncomingTab({
             ))}
           </div>
         </TableShell>
+      )}
+
+      {selectedLink && (
+        <ProviderLinkDrawer
+          prealertaId={selectedLink.id}
+          code={selectedLink.code}
+          shareToken={selectedLink.share_token}
+          clientMarkbox={selectedLink.client_markbox}
+          supplierName={
+            selectedLink.supplier_id
+              ? (supplierName[selectedLink.supplier_id] ?? null)
+              : null
+          }
+          initialActive={!disabledShareSet.has(selectedLink.id)}
+          onClose={() => setSelectedLink(null)}
+        />
       )}
     </>
   );
