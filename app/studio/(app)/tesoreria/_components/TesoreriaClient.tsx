@@ -100,7 +100,7 @@ export function TesoreriaClient({
           <span className="studio-eyebrow">Finanzas · Cuentas por pagar</span>
           <h1
             className="studio-display"
-            style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
+            style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
           >
             Tesorería.
           </h1>
@@ -346,7 +346,7 @@ function PayablesTab({
               display: "grid",
               gridTemplateColumns: PAYABLE_GRID,
               gap: 12,
-              padding: "12px 20px",
+              padding: "var(--s-3) var(--s-5)",
               background: "var(--bg-elevated)",
               borderBottom: "1px solid var(--border)",
               font: "700 10px/1 var(--f-sans)",
@@ -544,7 +544,7 @@ function PaymentsTab({ payments }: { payments: SupplierPayment[] }) {
               display: "grid",
               gridTemplateColumns: PAYMENT_GRID,
               gap: 12,
-              padding: "12px 20px",
+              padding: "var(--s-3) var(--s-5)",
               background: "var(--bg-elevated)",
               borderBottom: "1px solid var(--border)",
               font: "700 10px/1 var(--f-sans)",
@@ -764,7 +764,7 @@ function SuppliersTab({
               display: "grid",
               gridTemplateColumns: SUPPLIER_GRID,
               gap: 12,
-              padding: "12px 20px",
+              padding: "var(--s-3) var(--s-5)",
               background: "var(--bg-elevated)",
               borderBottom: "1px solid var(--border)",
               font: "700 10px/1 var(--f-sans)",
