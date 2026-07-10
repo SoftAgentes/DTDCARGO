@@ -131,7 +131,7 @@ export function LineMatchDrawer({ line, candidates, onClose }: Props) {
               style={{
                 font: "500 11.5px/1.3 var(--f-sans)",
                 color: "var(--ink-soft)",
-                margin: "4px 0 0",
+                margin: "var(--s-1) 0 0",
               }}
             >
               Liga este movimiento a un asiento existente del diario.
@@ -243,7 +243,7 @@ export function LineMatchDrawer({ line, candidates, onClose }: Props) {
                   font: "500 12px/1.4 var(--f-sans)",
                   color: "var(--ink-soft)",
                   textAlign: "center",
-                  padding: "16px 0",
+                  padding: "var(--s-4) 0",
                 }}
               >
                 No hay asientos asentados en la cuenta de este extracto para ligar.

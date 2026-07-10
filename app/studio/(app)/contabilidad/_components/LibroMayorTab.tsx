@@ -62,7 +62,7 @@ export function LibroMayorTab({
           marginBottom: 18,
           flexWrap: "wrap",
           opacity: isPending ? 0.6 : 1,
-          transition: "opacity 0.12s",
+          transition: "opacity var(--dur-fast) var(--ease)",
         }}
       >
         <div style={{ flex: "1 1 360px", minWidth: 280 }}>
@@ -88,7 +88,7 @@ export function LibroMayorTab({
             style={{
               display: "flex",
               gap: 18,
-              padding: "8px 16px",
+              padding: "var(--s-2) var(--s-4)",
               background: "var(--bg-elevated)",
               border: "1px solid var(--border)",
               borderRadius: "var(--r-md)",
@@ -135,7 +135,7 @@ export function LibroMayorTab({
               display: "grid",
               gridTemplateColumns: GRID,
               gap: 12,
-              padding: "12px 20px",
+              padding: "var(--s-3) var(--s-5)",
               background: "var(--bg-elevated)",
               borderBottom: "1px solid var(--border)",
               font: "700 10px/1 var(--f-sans)",
@@ -160,7 +160,7 @@ export function LibroMayorTab({
                 display: "grid",
                 gridTemplateColumns: GRID,
                 gap: 12,
-                padding: "12px 20px",
+                padding: "var(--s-3) var(--s-5)",
                 borderTop: i > 0 ? "1px solid var(--border)" : 0,
                 alignItems: "center",
               }}
