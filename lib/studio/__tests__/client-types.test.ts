@@ -84,12 +84,20 @@ describe("validateClientInput · documento por tipo (SDD-0131)", () => {
     expect(input?.contact_name).toBeNull();
   });
 
+  it("persona: pasaporte (P-…) se normaliza a P-XXXXXXX", () => {
+    const { input, fieldErrors } = validateClientInput(
+      personaInput({ rif: "pa1234567" }),
+    );
+    expect(fieldErrors).toBeUndefined();
+    expect(input?.rif).toBe("P-A1234567");
+  });
+
   it("persona: un RIF de empresa (J-…) es cédula inválida", () => {
     const { input, fieldErrors } = validateClientInput(
       personaInput({ rif: "J-12345678-9" }),
     );
     expect(input).toBeUndefined();
-    expect(fieldErrors?.rif).toMatch(/cédula inválida/i);
+    expect(fieldErrors?.rif).toMatch(/cédula o pasaporte inválido/i);
   });
 
   it("empresa: RIF válido se normaliza y guarda el contacto", () => {

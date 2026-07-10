@@ -194,7 +194,7 @@ export async function submitDataChangeRequestAction(
       fieldErrors.doc =
         kind === "empresa"
           ? "RIF inválido. Formato J-12345678-9."
-          : "Cédula inválida. Formato V-12345678.";
+          : "Cédula o pasaporte inválido. Formato V-12345678 o P-A1234567.";
     } else if (norm !== (row.rif ?? "").trim()) {
       proposedRif = norm;
     }

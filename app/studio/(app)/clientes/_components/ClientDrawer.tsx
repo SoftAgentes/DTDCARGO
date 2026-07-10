@@ -689,7 +689,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
             >
               {isCompany
                 ? "Formato: J-12345678-9 (RIF jurídico o gubernamental)."
-                : "Formato: V-12345678 (cédula V o E, 6 a 9 dígitos)."}
+                : "Formato: V-12345678 (cédula V o E) o P-A1234567 (pasaporte)."}
             </p>
           </div>
 
