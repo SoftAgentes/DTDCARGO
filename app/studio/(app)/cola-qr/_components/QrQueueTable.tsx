@@ -55,7 +55,7 @@ export function QrQueueTable({
           style={{
             font: "800 16px/1.2 var(--f-display)",
             color: "var(--ink)",
-            marginBottom: 8,
+            marginBottom: "var(--s-2)",
           }}
         >
           {tab === "cola" ? "Cola vacía" : "Sin historial"}
@@ -180,7 +180,7 @@ export function QrQueueTable({
                     </code>
                     <div
                       style={{
-                        marginTop: 4,
+                        marginTop: "var(--s-1)",
                         display: "flex",
                         gap: 6,
                         alignItems: "center",
@@ -255,7 +255,7 @@ export function QrQueueTable({
                     {o.assigned_printer && (
                       <div
                         style={{
-                          marginTop: 4,
+                          marginTop: "var(--s-1)",
                           font: "500 10.5px/1.2 var(--f-sans)",
                           color: "var(--ink-soft)",
                         }}
@@ -331,7 +331,7 @@ export function QrQueueTable({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: 20,
+            padding: "var(--s-5)",
           }}
         >
           <div

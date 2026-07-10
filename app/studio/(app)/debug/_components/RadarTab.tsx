@@ -114,7 +114,7 @@ function RadarBanner({
           borderRadius: "50%",
           background: accent,
           flexShrink: 0,
-          marginTop: 4,
+          marginTop: "var(--s-1)",
         }}
       />
       {isWeb ? (

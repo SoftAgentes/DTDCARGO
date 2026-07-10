@@ -257,7 +257,7 @@ export function ImportRatesDrawer({ onClose }: { onClose: () => void }) {
                     style={{
                       display: "flex",
                       gap: 10,
-                      padding: "8px 12px",
+                      padding: "var(--s-2) var(--s-3)",
                       borderTop: r.line > 1 ? "1px solid var(--border)" : 0,
                       alignItems: "flex-start",
                       background: r.input

@@ -131,7 +131,7 @@ export function TmsClient({
                 whiteSpace: "nowrap",
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 8,
+                gap: "var(--s-2)",
                 marginBottom: -1,
                 transition:
                   "color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease)",

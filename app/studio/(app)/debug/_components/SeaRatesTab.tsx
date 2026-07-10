@@ -365,7 +365,7 @@ export function SeaRatesTab() {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+    <label style={{ display: "flex", flexDirection: "column", gap: "var(--s-1)" }}>
       <span className="studio-label">{label}</span>
       {children}
     </label>

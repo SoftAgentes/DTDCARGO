@@ -287,7 +287,7 @@ function Header({
         <span className="studio-eyebrow">Finanzas</span>
         <h1
           className="studio-display"
-          style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
+          style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
         >
           Costing &amp; Margen.
         </h1>
@@ -437,7 +437,7 @@ function OverviewView({
           style={{
             font: "500 12px/1.5 var(--f-sans)",
             color: "var(--ink-soft)",
-            margin: "16px 20px 0",
+            margin: "var(--s-4) var(--s-5) 0",
             paddingTop: 14,
             borderTop: "1px solid var(--border)",
           }}
@@ -458,10 +458,10 @@ function OverviewView({
           gap: 16,
         }}
       >
-        <Card eyebrow="Top 3 más rentables" style={{ padding: "0 0 16px" }}>
+        <Card eyebrow="Top 3 más rentables" style={{ padding: "0 0 var(--s-4)" }}>
           <RankList rows={top} money={money} tone="success" emptyLabel="Sin embarques rentables todavía." />
         </Card>
-        <Card eyebrow="3 peores márgenes" style={{ padding: "0 0 16px" }}>
+        <Card eyebrow="3 peores márgenes" style={{ padding: "0 0 var(--s-4)" }}>
           <RankList rows={worst} money={money} tone="danger" emptyLabel="Sin embarques en pérdida." />
         </Card>
       </div>
@@ -507,13 +507,13 @@ function RankList({
 }) {
   if (rows.length === 0) {
     return (
-      <div style={{ padding: "12px 20px", font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
+      <div style={{ padding: "var(--s-3) var(--s-5)", font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
         {emptyLabel}
       </div>
     );
   }
   return (
-    <div style={{ padding: "12px 20px 0", display: "flex", flexDirection: "column", gap: 8 }}>
+    <div style={{ padding: "var(--s-3) var(--s-5) 0", display: "flex", flexDirection: "column", gap: 8 }}>
       {rows.map((r) => {
         const isLoss = r.eco.margin < 0;
         const c = isLoss ? "var(--danger)" : tone === "success" ? "var(--success)" : "var(--warning)";
@@ -657,7 +657,7 @@ function RankingView({
               gap: 14,
               alignItems: "center",
               borderTop: "1px solid var(--border)",
-              transition: "background 120ms",
+              transition: "background var(--dur-fast) var(--ease)",
             }}
           >
             <code style={{ font: "800 12px/1 var(--f-mono)", color: "var(--ink)" }}>
@@ -742,7 +742,7 @@ function BreakdownView({ totals, money }: { totals: CostingTotals; money: Money 
   }
 
   return (
-    <Card eyebrow={`Desglose de costos · ${rows.length} categorías`} style={{ padding: "0 0 20px" }}>
+    <Card eyebrow={`Desglose de costos · ${rows.length} categorías`} style={{ padding: "0 0 var(--s-5)" }}>
       <div style={{ padding: "14px 20px 0", display: "flex", flexDirection: "column", gap: 12 }}>
         {rows.map((r) => {
           const cat = labelByKey[r.key];
@@ -839,7 +839,7 @@ function RoutesView({ routes, money }: { routes: RouteMarginRow[]; money: Money 
             gap: 14,
             alignItems: "center",
             borderTop: "1px solid var(--border)",
-            transition: "background 120ms",
+            transition: "background var(--dur-fast) var(--ease)",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
@@ -987,7 +987,7 @@ function TemplatesView({
                   gap: 8,
                   alignItems: "center",
                   borderTop: "1px solid var(--border)",
-                  transition: "background 120ms",
+                  transition: "background var(--dur-fast) var(--ease)",
                   opacity: t.active ? 1 : 0.55,
                 }}
               >
@@ -1209,7 +1209,7 @@ function ForecastRowItem({ row, money }: { row: ForecastRow; money: Money }) {
         gap: 12,
         alignItems: "center",
         borderTop: "1px solid var(--border)",
-        transition: "background 120ms",
+        transition: "background var(--dur-fast) var(--ease)",
       }}
     >
       <div>

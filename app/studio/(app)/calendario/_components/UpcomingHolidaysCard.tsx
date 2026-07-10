@@ -43,7 +43,7 @@ export function UpcomingHolidaysCard({ holidays, limit = 8 }: Props) {
         background: "var(--bg-surface)",
         border: "1px solid var(--border)",
         borderRadius: 10,
-        padding: 20,
+        padding: "var(--s-5)",
       }}
     >
       <div

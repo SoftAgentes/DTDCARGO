@@ -32,17 +32,17 @@ export function FairsPanel({ country, fairs, holidays }: Props) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
       <section>
-        <div className="studio-eyebrow" style={{ color: "var(--wine)", marginBottom: 12 }}>
+        <div className="studio-eyebrow" style={{ color: "var(--wine)", marginBottom: "var(--s-3)" }}>
           Ferias y expos · {label}
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
           {sortedFairs.map((f) => (
             <div
               key={f.id}
               style={{
                 display: "grid",
                 gridTemplateColumns: "1fr auto",
-                gap: 12,
+                gap: "var(--s-3)",
                 padding: "12px 14px",
                 background: "var(--bg-surface)",
                 border: "1px solid var(--border)",
@@ -59,7 +59,7 @@ export function FairsPanel({ country, fairs, holidays }: Props) {
                     color: "var(--ink)",
                     display: "flex",
                     alignItems: "center",
-                    gap: 8,
+                    gap: "var(--s-2)",
                   }}
                 >
                   {f.name}
@@ -95,17 +95,17 @@ export function FairsPanel({ country, fairs, holidays }: Props) {
       </section>
 
       <section>
-        <div className="studio-eyebrow" style={{ color: "var(--wine)", marginBottom: 12 }}>
+        <div className="studio-eyebrow" style={{ color: "var(--wine)", marginBottom: "var(--s-3)" }}>
           Feriados oficiales · {label}
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
           {sortedHolidays.map((h) => (
             <div
               key={h.id}
               style={{
                 display: "grid",
                 gridTemplateColumns: "1fr auto",
-                gap: 12,
+                gap: "var(--s-3)",
                 padding: "12px 14px",
                 background: "var(--bg-surface)",
                 border: "1px solid var(--border)",
@@ -123,7 +123,7 @@ export function FairsPanel({ country, fairs, holidays }: Props) {
                   color: "var(--ink)",
                   display: "flex",
                   alignItems: "center",
-                  gap: 8,
+                  gap: "var(--s-2)",
                 }}
               >
                 {h.name}

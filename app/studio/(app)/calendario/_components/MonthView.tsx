@@ -117,7 +117,7 @@ export function MonthView({
               className="studio-cal-daycell"
               style={{
                 minHeight: 116,
-                padding: 8,
+                padding: "var(--s-2)",
                 textAlign: "left",
                 background: cellBackground(
                   cell.inMonth,
@@ -133,7 +133,7 @@ export function MonthView({
                 position: "relative",
                 display: "flex",
                 flexDirection: "column",
-                gap: 4,
+                gap: "var(--s-1)",
                 cursor: cell.inMonth ? "pointer" : "default",
                 width: "100%",
                 font: "inherit",
@@ -232,7 +232,7 @@ export function MonthView({
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 4,
+                    gap: "var(--s-1)",
                     padding: "2px 6px",
                     borderRadius: 3,
                     background: "var(--info-bg)",

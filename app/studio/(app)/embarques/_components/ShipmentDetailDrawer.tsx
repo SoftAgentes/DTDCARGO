@@ -91,7 +91,7 @@ export function ShipmentDetailDrawer({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            gap: 12,
+            gap: "var(--s-3)",
             flexShrink: 0,
           }}
         >
@@ -99,7 +99,7 @@ export function ShipmentDetailDrawer({
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: 4,
+              gap: "var(--s-1)",
               minWidth: 0,
             }}
           >
@@ -160,7 +160,7 @@ export function ShipmentDetailDrawer({
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              gap: 12,
+              gap: "var(--s-3)",
               flexWrap: "wrap",
             }}
           >
@@ -181,7 +181,7 @@ export function ShipmentDetailDrawer({
                     color: "var(--wine)",
                     textDecoration: "none",
                     letterSpacing: "0.02em",
-                    marginTop: 4,
+                    marginTop: "var(--s-1)",
                     display: "inline-block",
                   }}
                 >

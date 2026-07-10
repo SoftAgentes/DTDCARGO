@@ -86,7 +86,7 @@ export function AlmacenVeClient({ rows, filters: _filters }: Props) {
           display: "flex",
           gap: 10,
           alignItems: "flex-end",
-          marginBottom: 16,
+          marginBottom: "var(--s-4)",
           flexWrap: "wrap",
         }}
       >
@@ -196,7 +196,7 @@ function VeReceiptsTable({ rows }: { rows: VeReceiptRow[] }) {
           display: "grid",
           gridTemplateColumns:
             "130px minmax(160px, 1.4fr) 130px minmax(180px, 1.6fr) 70px 90px 100px 160px 60px",
-          gap: 12,
+          gap: "var(--s-3)",
           padding: "12px 18px",
           background: "var(--bg-elevated)",
           borderBottom: "1px solid var(--border)",
@@ -251,7 +251,7 @@ function VeRow({
         display: "grid",
         gridTemplateColumns:
           "130px minmax(160px, 1.4fr) 130px minmax(180px, 1.6fr) 70px 90px 100px 160px 60px",
-        gap: 12,
+        gap: "var(--s-3)",
         padding: "14px 18px",
         borderTop: hasBorderTop ? "1px solid var(--border)" : 0,
         alignItems: "center",

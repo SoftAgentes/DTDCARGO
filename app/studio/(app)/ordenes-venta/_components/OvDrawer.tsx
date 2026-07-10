@@ -174,7 +174,7 @@ export function OvDrawer({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            gap: 16,
+            gap: "var(--s-4)",
             flexWrap: "wrap",
           }}
         >
@@ -188,7 +188,7 @@ export function OvDrawer({
                 color: "var(--ink-soft)",
                 letterSpacing: "0.1em",
                 textTransform: "uppercase",
-                marginBottom: 4,
+                marginBottom: "var(--s-1)",
               }}
             >
               Total
@@ -226,7 +226,7 @@ export function OvDrawer({
                 background: "var(--info-bg)",
                 font: "500 12px/1.5 var(--f-sans)",
                 color: "var(--ink)",
-                marginBottom: 12,
+                marginBottom: "var(--s-3)",
               }}
             >
               {so.quote_code ? (
@@ -255,7 +255,7 @@ export function OvDrawer({
               style={{
                 font: "500 12px/1.5 var(--f-sans)",
                 color: "var(--ink-soft)",
-                marginBottom: 12,
+                marginBottom: "var(--s-3)",
               }}
             >
               OV manual (sin estimado previo · B2B / otros servicios).
@@ -275,7 +275,7 @@ export function OvDrawer({
           {so.notes && (
             <div
               style={{
-                marginTop: 12,
+                marginTop: "var(--s-3)",
                 font: "500 12px/1.5 var(--f-sans)",
                 color: "var(--ink-soft)",
               }}
@@ -293,7 +293,7 @@ export function OvDrawer({
           {prealertas.length === 0 ? (
             <div
               style={{
-                padding: 16,
+                padding: "var(--s-4)",
                 textAlign: "center",
                 border: "1px dashed var(--border-strong)",
                 borderRadius: "var(--r-md)",
@@ -507,9 +507,9 @@ function AssignPrealerta({
   return (
     <div
       style={{
-        marginTop: 12,
+        marginTop: "var(--s-3)",
         display: "flex",
-        gap: 8,
+        gap: "var(--s-2)",
         alignItems: "flex-end",
         flexWrap: "wrap",
       }}
@@ -705,7 +705,7 @@ function SalesOrderForm({
           </select>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
           <div>
             <label className="studio-label" htmlFor="ov-origin">
               Origen
@@ -734,7 +734,7 @@ function SalesOrderForm({
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
           <div>
             <label className="studio-label" htmlFor="ov-subtotal">
               Subtotal USD
@@ -847,7 +847,7 @@ export function ConvertEstimateDrawer({
           padding: "20px 22px",
           display: "flex",
           flexDirection: "column",
-          gap: 16,
+          gap: "var(--s-4)",
         }}
       >
         {error && <ErrorBanner message={error} />}

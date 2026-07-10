@@ -132,7 +132,7 @@ export function PoDrawer({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            gap: 16,
+            gap: "var(--s-4)",
             flexWrap: "wrap",
           }}
         >
@@ -146,7 +146,7 @@ export function PoDrawer({
                 color: "var(--ink-soft)",
                 letterSpacing: "0.1em",
                 textTransform: "uppercase",
-                marginBottom: 4,
+                marginBottom: "var(--s-1)",
               }}
             >
               Costo total
@@ -208,7 +208,7 @@ export function PoDrawer({
           {po.notes && (
             <div
               style={{
-                marginTop: 12,
+                marginTop: "var(--s-3)",
                 font: "500 12px/1.5 var(--f-sans)",
                 color: "var(--ink-soft)",
               }}
@@ -226,7 +226,7 @@ export function PoDrawer({
           {items.length === 0 ? (
             <div
               style={{
-                padding: 16,
+                padding: "var(--s-4)",
                 textAlign: "center",
                 border: "1px dashed var(--border-strong)",
                 borderRadius: "var(--r-md)",
@@ -378,7 +378,7 @@ function ReceiveForm({
         background: "var(--bg-elevated)",
         display: "flex",
         flexDirection: "column",
-        gap: 12,
+        gap: "var(--s-3)",
       }}
     >
       <div className="studio-eyebrow">
@@ -405,7 +405,7 @@ function ReceiveForm({
             style={{
               font: "500 11.5px/1.4 var(--f-sans)",
               color: "var(--warning)",
-              margin: "4px 0 0",
+              margin: "var(--s-1) 0 0",
             }}
           >
             No hay cuentas de costo/gasto en el plan. Siembra el plan en
@@ -596,7 +596,7 @@ export function NewPoDrawer({
         {/* Proveedor */}
         <div>
           <label className="studio-label">Proveedor</label>
-          <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+          <div style={{ display: "flex", gap: "var(--s-2)", marginBottom: "var(--s-2)" }}>
             <button
               type="button"
               className={`studio-btn studio-btn-sm ${
@@ -678,8 +678,8 @@ export function NewPoDrawer({
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: 8,
-              marginTop: 4,
+              gap: "var(--s-2)",
+              marginTop: "var(--s-1)",
             }}
           >
             {items.map((it, idx) => (
@@ -688,7 +688,7 @@ export function NewPoDrawer({
                 style={{
                   display: "grid",
                   gridTemplateColumns: "1fr 80px 120px 32px",
-                  gap: 8,
+                  gap: "var(--s-2)",
                   alignItems: "center",
                 }}
               >
@@ -742,7 +742,7 @@ export function NewPoDrawer({
             type="button"
             className="studio-btn studio-btn-ghost studio-btn-sm"
             onClick={addItem}
-            style={{ marginTop: 8 }}
+            style={{ marginTop: "var(--s-2)" }}
           >
             <span style={{ display: "inline-flex" }}>{Icon.plus(13)}</span>
             Agregar ítem

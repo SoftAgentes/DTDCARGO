@@ -197,7 +197,7 @@ export function RateDrawer({ mode, rate, onClose }: Props) {
               color: "var(--ink-soft)",
               background: "transparent",
               cursor: "pointer",
-              transition: "background 0.12s",
+              transition: "background var(--dur-fast) var(--ease)",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "var(--bg-elevated)";
@@ -672,7 +672,7 @@ function FieldError({ msg }: { msg: string }) {
       style={{
         font: "500 11px/1.3 var(--f-sans)",
         color: "var(--danger)",
-        margin: "4px 0 0",
+        margin: "var(--s-1) 0 0",
       }}
     >
       {msg}

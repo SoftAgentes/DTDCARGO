@@ -361,7 +361,7 @@ export default async function RenditionPrintPage({
             style={{
               font: "500 9.5px/1.6 var(--f-sans)",
               color: "var(--ink-soft)",
-              margin: "8px 0 0",
+              margin: "var(--s-2) 0 0",
             }}
           >
             Documento generado el {generatedAt} (UTC) · DTD Cargo. Bases: el

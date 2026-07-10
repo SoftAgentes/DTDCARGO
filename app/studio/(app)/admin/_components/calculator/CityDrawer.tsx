@@ -198,7 +198,7 @@ export function CityDrawer({ mode, city, onClose }: Props) {
 
           {/* Km + Orden */}
           <div
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}
+            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}
           >
             <div>
               <label className="studio-label" htmlFor="km">

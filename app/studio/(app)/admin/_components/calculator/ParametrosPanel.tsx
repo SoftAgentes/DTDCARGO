@@ -123,8 +123,8 @@ export function ParametrosPanel({
           display: "flex",
           gap: 10,
           alignItems: "flex-start",
-          padding: "12px 16px",
-          marginBottom: 20,
+          padding: "var(--s-3) var(--s-4)",
+          marginBottom: "var(--s-5)",
           background: "var(--bg-elevated)",
           border: "1px solid var(--border)",
           borderRadius: "var(--r-md)",
@@ -178,7 +178,7 @@ export function ParametrosPanel({
                 style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                  gap: 16,
+                  gap: "var(--s-4)",
                 }}
               >
                 {group.keys.map((key) => {
@@ -244,9 +244,9 @@ export function ParametrosPanel({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            gap: 12,
+            gap: "var(--s-3)",
             marginTop: 28,
-            paddingTop: 20,
+            paddingTop: "var(--s-5)",
             borderTop: "1px solid var(--border)",
             flexWrap: "wrap",
           }}

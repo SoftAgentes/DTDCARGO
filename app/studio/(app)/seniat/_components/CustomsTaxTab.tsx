@@ -81,7 +81,7 @@ export function CustomsTaxTab({ breakdown }: { breakdown: TaxBreakdown }) {
                   display: "flex",
                   justifyContent: "space-between",
                   marginBottom: 6,
-                  gap: 12,
+                  gap: "var(--s-3)",
                 }}
               >
                 <span
@@ -135,12 +135,12 @@ export function CustomsTaxTab({ breakdown }: { breakdown: TaxBreakdown }) {
 
         <div
           style={{
-            paddingTop: 16,
+            paddingTop: "var(--s-4)",
             borderTop: "1px solid var(--border)",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "baseline",
-            marginTop: 4,
+            marginTop: "var(--s-1)",
           }}
         >
           <span

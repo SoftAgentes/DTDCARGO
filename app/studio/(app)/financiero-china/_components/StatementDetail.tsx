@@ -213,7 +213,7 @@ export function StatementDetail({
           </button>
           <h2
             className="studio-display"
-            style={{ fontSize: 22, margin: "0 0 4px", color: "var(--ink)" }}
+            style={{ fontSize: 22, margin: "0 0 var(--s-1)", color: "var(--ink)" }}
           >
             {statement.period_label}
           </h2>

@@ -257,7 +257,7 @@ export function ReceiptRowActions({
                       borderRadius: "var(--r-sm)",
                       display: "flex",
                       alignItems: "center",
-                      gap: 8,
+                      gap: "var(--s-2)",
                     }}
                     onMouseEnter={(e) => {
                       if (!isCurrent && !pending) {
@@ -319,7 +319,7 @@ export function ReceiptRowActions({
                       borderRadius: "var(--r-sm)",
                       display: "flex",
                       alignItems: "center",
-                      gap: 8,
+                      gap: "var(--s-2)",
                     }}
                     onMouseEnter={(e) => {
                       if (!isCurrent && !pending) {
@@ -369,7 +369,7 @@ export function ReceiptRowActions({
                     color: "var(--ink-mute)",
                     display: "flex",
                     alignItems: "center",
-                    gap: 8,
+                    gap: "var(--s-2)",
                   }}
                 >
                   <span
@@ -402,7 +402,7 @@ export function ReceiptRowActions({
                   borderRadius: "var(--r-sm)",
                   display: "flex",
                   alignItems: "center",
-                  gap: 8,
+                  gap: "var(--s-2)",
                 }}
                 onMouseEnter={(e) => {
                   if (!pending) {
@@ -432,7 +432,7 @@ export function ReceiptRowActions({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  marginBottom: 8,
+                  marginBottom: "var(--s-2)",
                 }}
               >
                 <span
@@ -466,7 +466,7 @@ export function ReceiptRowActions({
               <label
                 className="studio-label"
                 htmlFor={`dest-city-${receiptId}`}
-                style={{ display: "block", marginBottom: 4 }}
+                style={{ display: "block", marginBottom: "var(--s-1)" }}
               >
                 {t("warehouse_cn.row.destination_city_label")}
               </label>
@@ -518,9 +518,9 @@ export function ReceiptRowActions({
               <div
                 style={{
                   display: "flex",
-                  gap: 8,
+                  gap: "var(--s-2)",
                   justifyContent: "flex-end",
-                  marginTop: 12,
+                  marginTop: "var(--s-3)",
                 }}
               >
                 <button

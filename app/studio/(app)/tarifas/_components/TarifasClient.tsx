@@ -101,7 +101,7 @@ export function TarifasClient({
           <span className="studio-eyebrow">Operación comercial</span>
           <h1
             className="studio-display"
-            style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
+            style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
           >
             Tarifas.
           </h1>
@@ -144,7 +144,7 @@ export function TarifasClient({
           marginBottom: 16,
           flexWrap: "wrap",
           opacity: isPending ? 0.6 : 1,
-          transition: "opacity 0.12s",
+          transition: "opacity var(--dur-fast) var(--ease)",
         }}
       >
         <div style={{ flex: "1 1 280px", minWidth: 240 }}>
@@ -279,7 +279,7 @@ function RatesTable({
           display: "grid",
           gridTemplateColumns: RATES_GRID,
           gap: 12,
-          padding: "12px 20px",
+          padding: "var(--s-3) var(--s-5)",
           background: "var(--bg-elevated)",
           borderBottom: "1px solid var(--border)",
           font: "700 10px/1 var(--f-sans)",
@@ -310,7 +310,7 @@ function RatesTable({
             borderTop: i > 0 ? "1px solid var(--border)" : 0,
             alignItems: "center",
             background: "transparent",
-            transition: "background 0.12s",
+            transition: "background var(--dur-fast) var(--ease)",
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = "var(--bg-elevated)";
@@ -429,7 +429,7 @@ function RatesTable({
                 color: "var(--ink-soft)",
                 background: "transparent",
                 cursor: "pointer",
-                transition: "background 0.12s, color 0.12s",
+                transition: "background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease)",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = "var(--bg-elevated)";

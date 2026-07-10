@@ -76,8 +76,8 @@ export function AcademiaClient({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-end",
-          gap: 24,
-          marginBottom: 24,
+          gap: "var(--s-6)",
+          marginBottom: "var(--s-6)",
           flexWrap: "wrap",
         }}
       >
@@ -130,7 +130,7 @@ export function AcademiaClient({
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
           gap: 14,
-          marginBottom: 20,
+          marginBottom: "var(--s-5)",
         }}
       >
         <KpiCard value={stats.publicados} label="Cursos publicados" sub="visibles" />
@@ -155,7 +155,7 @@ export function AcademiaClient({
         aria-label="Vistas de la Academia"
         style={{
           display: "flex",
-          gap: 4,
+          gap: "var(--s-1)",
           marginBottom: 18,
           borderBottom: "1px solid var(--border)",
         }}
@@ -230,7 +230,7 @@ function CatalogTab({ courses }: { courses: CourseWithCounts[] }) {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          gap: 12,
+          gap: "var(--s-3)",
         }}
       >
         <div className="studio-eyebrow">Catálogo · {courses.length} curso(s)</div>
@@ -360,7 +360,7 @@ function CohortsTab({
   }
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 16 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: "var(--s-4)" }}>
       {/* Lista lateral */}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {cohorts.map((d) => {
@@ -387,8 +387,8 @@ function CohortsTab({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  gap: 8,
-                  marginBottom: 8,
+                  gap: "var(--s-2)",
+                  marginBottom: "var(--s-2)",
                 }}
               >
                 <span
@@ -418,7 +418,7 @@ function CohortsTab({
               {d.readyToEmit > 0 && (
                 <div
                   style={{
-                    marginTop: 8,
+                    marginTop: "var(--s-2)",
                     font: "700 10.5px/1 var(--f-sans)",
                     color: "var(--success)",
                     letterSpacing: "0.02em",
@@ -459,7 +459,7 @@ function CohortDetailView({
   const grid = `1.4fr 110px ${sessionCols} 56px 110px`;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
       {/* Header */}
       <div
         style={{
@@ -474,7 +474,7 @@ function CohortDetailView({
             display: "flex",
             alignItems: "flex-start",
             justifyContent: "space-between",
-            gap: 16,
+            gap: "var(--s-4)",
             flexWrap: "wrap",
           }}
         >
@@ -501,7 +501,7 @@ function CohortDetailView({
               {c.facilitator_name ? ` · ${c.facilitator_name}` : ""}
             </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)", flexShrink: 0 }}>
             <button
               type="button"
               className="studio-btn studio-btn-ghost studio-btn-sm"
@@ -539,7 +539,7 @@ function CohortDetailView({
                 Emitir diplomas ({detail.readyToEmit})
               </button>
             ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
                 <span
                   style={{
                     font: "600 12px/1.35 var(--f-sans)",
@@ -623,7 +623,7 @@ function CohortDetailView({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "baseline",
-            gap: 12,
+            gap: "var(--s-3)",
             flexWrap: "wrap",
           }}
         >
@@ -658,8 +658,8 @@ function CohortDetailView({
                 style={{
                   display: "grid",
                   gridTemplateColumns: grid,
-                  gap: 8,
-                  padding: "12px 20px",
+                  gap: "var(--s-2)",
+                  padding: "var(--s-3) var(--s-5)",
                   background: "var(--bg-elevated)",
                   borderBottom: "1px solid var(--border)",
                   font: "700 10px/1 var(--f-sans)",
@@ -735,8 +735,8 @@ function RosterRowView({
       style={{
         display: "grid",
         gridTemplateColumns: grid,
-        gap: 8,
-        padding: "12px 20px",
+        gap: "var(--s-2)",
+        padding: "var(--s-3) var(--s-5)",
         borderTop: isFirst ? 0 : "1px solid var(--border)",
         alignItems: "center",
       }}

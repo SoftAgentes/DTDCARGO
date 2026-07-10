@@ -74,7 +74,7 @@ export function EventsView({
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
           gap: 14,
-          marginBottom: 20,
+          marginBottom: "var(--s-5)",
         }}
       >
         <KpiCard
@@ -164,18 +164,18 @@ function EventCard({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-start",
-          gap: 12,
+          gap: "var(--s-3)",
           flexWrap: "wrap",
         }}
       >
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)", flexWrap: "wrap" }}>
             <span style={{ font: "700 15px/1.2 var(--f-sans)", color: "var(--ink)" }}>{ev.name}</span>
             <Badge tone={clubEventStatusTone(ev.status)} size="sm">
               {clubEventStatusLabel(ev.status)}
             </Badge>
           </div>
-          <div style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 4 }}>
+          <div style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: "var(--s-1)" }}>
             {meta}
           </div>
         </div>

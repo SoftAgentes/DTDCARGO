@@ -90,7 +90,7 @@ export function AgendaView({ cursor, events, holidays, fairs }: Props) {
           style={{
             display: "grid",
             gridTemplateColumns: "120px 1fr",
-            gap: 16,
+            gap: "var(--s-4)",
             padding: "14px 18px",
             borderTop: idx > 0 ? "1px solid var(--border)" : "none",
           }}
@@ -105,7 +105,7 @@ export function AgendaView({ cursor, events, holidays, fairs }: Props) {
                 color: "var(--ink-soft)",
                 letterSpacing: "0.08em",
                 textTransform: "uppercase",
-                marginTop: 4,
+                marginTop: "var(--s-1)",
               }}
             >
               {weekdayLabel(date)}
@@ -124,7 +124,7 @@ export function AgendaView({ cursor, events, holidays, fairs }: Props) {
                     style={{
                       display: "grid",
                       gridTemplateColumns: "64px 1fr",
-                      gap: 12,
+                      gap: "var(--s-3)",
                       padding: "10px 12px",
                       background: "var(--bg-surface)",
                       border: "1px solid var(--border)",
@@ -164,7 +164,7 @@ export function AgendaView({ cursor, events, holidays, fairs }: Props) {
                     style={{
                       display: "grid",
                       gridTemplateColumns: "64px 1fr",
-                      gap: 12,
+                      gap: "var(--s-3)",
                       padding: "10px 12px",
                       background: "var(--bg-surface)",
                       border: "1px solid var(--border)",
@@ -200,7 +200,7 @@ export function AgendaView({ cursor, events, holidays, fairs }: Props) {
                   style={{
                     display: "grid",
                     gridTemplateColumns: "64px 1fr",
-                    gap: 12,
+                    gap: "var(--s-3)",
                     padding: "10px 12px",
                     background: "var(--bg-surface)",
                     border: "1px solid var(--border)",

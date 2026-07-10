@@ -10,7 +10,7 @@ export function QrQueueKpis({ kpis }: { kpis: KpisData }) {
       style={{
         display: "grid",
         gridTemplateColumns: "repeat(4, 1fr)",
-        gap: 12,
+        gap: "var(--s-3)",
       }}
     >
       <Kpi
@@ -62,7 +62,7 @@ function Kpi({
   return (
     <div
       style={{
-        padding: 16,
+        padding: "var(--s-4)",
         background: "var(--bg-surface)",
         border: "1px solid var(--border)",
         borderRadius: "var(--r-md)",

@@ -42,7 +42,7 @@ export function NumberingSection({ data }: { data: NumberingOverview }) {
           Los correlativos son legales y fijos por diseño (se generan en la base de datos). Esta vista es de
           solo lectura; cambiar un formato requiere una spec fiscal dedicada.
         </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
           {data.formats.map((f) => (
             <div
               key={f.label}
@@ -64,7 +64,7 @@ export function NumberingSection({ data }: { data: NumberingOverview }) {
               <div style={{ justifySelf: "start" }}>
                 {f.next ? (
                   <>
-                    <div style={{ font: "600 9.5px/1 var(--f-sans)", color: "var(--ink-soft)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
+                    <div style={{ font: "600 9.5px/1 var(--f-sans)", color: "var(--ink-soft)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "var(--s-1)" }}>
                       Próximo
                     </div>
                     <code style={{ font: "800 13px/1 var(--f-mono)", color: "var(--ink)" }}>{f.next}</code>
@@ -112,7 +112,7 @@ export function NumberingSection({ data }: { data: NumberingOverview }) {
           {state?.error && (
             <div
               style={{
-                padding: 12,
+                padding: "var(--s-3)",
                 background: "var(--danger-bg)",
                 color: "var(--danger)",
                 borderRadius: "var(--r-md)",

@@ -35,7 +35,7 @@ export default async function FeatureFlagsPage() {
 
   return (
     <div style={{ maxWidth: 920 }}>
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: "var(--s-6)" }}>
         <Link
           href="/studio/admin"
           style={{
@@ -44,8 +44,8 @@ export default async function FeatureFlagsPage() {
             textDecoration: "none",
             display: "inline-flex",
             alignItems: "center",
-            gap: 4,
-            marginBottom: 12,
+            gap: "var(--s-1)",
+            marginBottom: "var(--s-3)",
           }}
         >
           ← Volver a Administración

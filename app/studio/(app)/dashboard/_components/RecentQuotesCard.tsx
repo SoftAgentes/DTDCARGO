@@ -57,7 +57,7 @@ export function RecentQuotesCard({ quotes }: { quotes: RecentQuoteRow[] }) {
             font: "500 12.5px/1.5 var(--f-sans)",
             color: "var(--ink-soft)",
             margin: 0,
-            padding: "24px 20px",
+            padding: "var(--s-6) var(--s-5)",
             textAlign: "center",
           }}
         >
@@ -84,7 +84,7 @@ export function RecentQuotesCard({ quotes }: { quotes: RecentQuoteRow[] }) {
                 display: "grid",
                 gridTemplateColumns: "120px 1fr auto auto",
                 gap: 12,
-                padding: "12px 20px",
+                padding: "var(--s-3) var(--s-5)",
                 borderTop: i > 0 ? "1px solid var(--border)" : 0,
                 alignItems: "center",
                 textDecoration: "none",

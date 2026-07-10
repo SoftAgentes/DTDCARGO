@@ -47,7 +47,7 @@ export function LabelGeneratorClient(props: Props) {
           style={{
             font: "800 16px/1.2 var(--f-display)",
             color: "var(--ink)",
-            marginBottom: 8,
+            marginBottom: "var(--s-2)",
           }}
         >
           {props.clients.length === 0
@@ -218,7 +218,7 @@ function LabelGeneratorInner({
         style={{
           display: "grid",
           gridTemplateColumns: "360px 1fr",
-          gap: 20,
+          gap: "var(--s-5)",
           alignItems: "flex-start",
         }}
       >
@@ -232,7 +232,7 @@ function LabelGeneratorInner({
             top: 16,
             maxHeight: "calc(100vh - 32px)",
             overflowY: "auto",
-            paddingRight: 4,
+            paddingRight: "var(--s-1)",
           }}
         >
           {/* Cliente */}
@@ -264,7 +264,7 @@ function LabelGeneratorInner({
             >
               <div
                 className="studio-eyebrow"
-                style={{ color: "var(--wine)", marginBottom: 4 }}
+                style={{ color: "var(--wine)", marginBottom: "var(--s-1)" }}
               >
                 Shipping Mark
               </div>
@@ -280,7 +280,7 @@ function LabelGeneratorInner({
                 style={{
                   font: "600 11.5px/1.3 var(--f-sans)",
                   color: "var(--ink)",
-                  marginTop: 4,
+                  marginTop: "var(--s-1)",
                 }}
               >
                 {client.name}
@@ -294,7 +294,7 @@ function LabelGeneratorInner({
             <label
               className="studio-label"
               htmlFor="lg-supplier"
-              style={{ display: "block", marginBottom: 4 }}
+              style={{ display: "block", marginBottom: "var(--s-1)" }}
             >
               Proveedor del cliente
             </label>
@@ -362,7 +362,7 @@ function LabelGeneratorInner({
             <label
               className="studio-label"
               htmlFor="lg-warehouse"
-              style={{ marginTop: 12, display: "block" }}
+              style={{ marginTop: "var(--s-3)", display: "block" }}
             >
               Almacén CN destino
             </label>
@@ -493,7 +493,7 @@ function LabelGeneratorInner({
 
             <div
               style={{
-                marginTop: 12,
+                marginTop: "var(--s-3)",
                 padding: "10px 12px",
                 background: "var(--bg-elevated)",
                 borderRadius: "var(--r-sm)",
@@ -509,7 +509,7 @@ function LabelGeneratorInner({
               {copiesPerBox === 1 ? "copia" : "copias"}
               <div
                 style={{
-                  marginTop: 4,
+                  marginTop: "var(--s-1)",
                   font: "600 11px/1 var(--f-mono)",
                   color: "var(--wine)",
                 }}
@@ -563,8 +563,8 @@ function LabelGeneratorInner({
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 8,
-                marginTop: 12,
+                gap: "var(--s-2)",
+                marginTop: "var(--s-3)",
                 font: "600 12px/1 var(--f-sans)",
                 color: "var(--ink-soft)",
                 cursor: "pointer",
@@ -605,7 +605,7 @@ function LabelGeneratorInner({
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              marginBottom: 12,
+              marginBottom: "var(--s-3)",
             }}
           >
             <div>
@@ -617,7 +617,7 @@ function LabelGeneratorInner({
                   font: "900 18px/1.1 var(--f-display)",
                   color: "var(--ink)",
                   letterSpacing: "-0.02em",
-                  marginTop: 4,
+                  marginTop: "var(--s-1)",
                 }}
               >
                 {labels.length} etiquetas · {pages} página{pages !== 1 ? "s" : ""}
@@ -626,7 +626,7 @@ function LabelGeneratorInner({
                 style={{
                   font: "500 11.5px/1 var(--f-sans)",
                   color: "var(--ink-soft)",
-                  marginTop: 4,
+                  marginTop: "var(--s-1)",
                 }}
               >
                 {boxesInRange} caja{boxesInRange !== 1 ? "s" : ""} × {copiesPerBox}{" "}
@@ -640,7 +640,7 @@ function LabelGeneratorInner({
 
           <div
             style={{
-              padding: 24,
+              padding: "var(--s-6)",
               background: "var(--bg-elevated)",
               border: "1px solid var(--border)",
               borderRadius: "var(--r-md)",
@@ -760,7 +760,7 @@ function Card({
   return (
     <div
       style={{
-        padding: 16,
+        padding: "var(--s-4)",
         background: "var(--bg-surface)",
         border: "1px solid var(--border)",
         borderRadius: "var(--r-md)",
@@ -795,11 +795,11 @@ function Field({
   const isCn = mono === "cn";
   const isMonoFont = mono === true;
   return (
-    <div style={{ marginBottom: 8 }}>
+    <div style={{ marginBottom: "var(--s-2)" }}>
       <label
         className="studio-label"
         htmlFor={`lg-field-${label}`}
-        style={{ display: "block", marginBottom: 4 }}
+        style={{ display: "block", marginBottom: "var(--s-1)" }}
       >
         {label}
       </label>

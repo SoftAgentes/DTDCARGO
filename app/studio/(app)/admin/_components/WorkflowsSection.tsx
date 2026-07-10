@@ -24,7 +24,7 @@ export function WorkflowsSection() {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: 16,
+          gap: "var(--s-4)",
           flexWrap: "wrap",
         }}
       >
@@ -48,7 +48,7 @@ export function WorkflowsSection() {
           background: "var(--bg-surface)",
           border: "2px dashed var(--border-strong)",
           borderRadius: "var(--r-lg)",
-          padding: "20px 24px",
+          padding: "var(--s-5) var(--s-6)",
         }}
       >
         <div style={{ font: "700 10px/1 var(--f-sans)", color: "var(--wine)", letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: 10 }}>

@@ -76,7 +76,7 @@ export function MembersView({ stats, members }: { stats: ClubStats; members: Clu
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
           gap: 14,
-          marginBottom: 20,
+          marginBottom: "var(--s-5)",
         }}
       >
         <KpiCard value={stats.miembros} label="Miembros" sub="vivos" />

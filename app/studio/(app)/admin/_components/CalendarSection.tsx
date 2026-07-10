@@ -76,7 +76,7 @@ export function CalendarSection({ events }: { events: CalendarEvent[] }) {
           }
         />
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
           {filtered.map((e) => (
             <div
               key={e.id}

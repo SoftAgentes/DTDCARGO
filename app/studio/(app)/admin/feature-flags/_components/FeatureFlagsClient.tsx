@@ -47,7 +47,7 @@ export function FeatureFlagsClient({ flags }: Props) {
       style={{
         display: "grid",
         gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))",
-        gap: 12,
+        gap: "var(--s-3)",
       }}
     >
       {FEATURE_FLAG_KEYS.map((key) => (
@@ -93,10 +93,10 @@ function FlagCard({
         background: "var(--bg-surface)",
         border: "1px solid var(--border)",
         borderRadius: 8,
-        padding: 16,
+        padding: "var(--s-4)",
         display: "flex",
         flexDirection: "column",
-        gap: 8,
+        gap: "var(--s-2)",
         opacity: pending ? 0.6 : 1,
         transition: "opacity var(--dur, 180ms)",
       }}
@@ -116,7 +116,7 @@ function FlagCard({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-start",
-          gap: 12,
+          gap: "var(--s-3)",
         }}
       >
         <div style={{ flex: 1, minWidth: 0 }}>

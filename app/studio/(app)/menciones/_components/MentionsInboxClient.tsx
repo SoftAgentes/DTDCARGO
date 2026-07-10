@@ -51,7 +51,7 @@ export function MentionsInboxClient({ items }: { items: MentionInboxItem[] }) {
         style={{
           display: "flex",
           justifyContent: "flex-end",
-          marginBottom: 12,
+          marginBottom: "var(--s-3)",
         }}
       >
         <button
@@ -64,7 +64,7 @@ export function MentionsInboxClient({ items }: { items: MentionInboxItem[] }) {
         </button>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
         {items.map((item) => {
           const unread = !readIds.has(item.mention_id);
           const label =
@@ -78,7 +78,7 @@ export function MentionsInboxClient({ items }: { items: MentionInboxItem[] }) {
               style={{
                 display: "flex",
                 alignItems: "flex-start",
-                gap: 12,
+                gap: "var(--s-3)",
                 textAlign: "left",
                 width: "100%",
                 padding: "12px 14px",
@@ -108,8 +108,8 @@ export function MentionsInboxClient({ items }: { items: MentionInboxItem[] }) {
                   style={{
                     display: "flex",
                     alignItems: "baseline",
-                    gap: 8,
-                    marginBottom: 4,
+                    gap: "var(--s-2)",
+                    marginBottom: "var(--s-1)",
                     flexWrap: "wrap",
                   }}
                 >

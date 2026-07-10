@@ -152,7 +152,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            gap: 12,
+            gap: "var(--s-3)",
             flexShrink: 0,
           }}
         >
@@ -168,7 +168,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
               style={{
                 font: "500 11.5px/1.3 var(--f-sans)",
                 color: "var(--ink-soft)",
-                margin: "4px 0 0",
+                margin: "var(--s-1) 0 0",
               }}
             >
               DUA + cost breakdown + checklist se crean automáticamente
@@ -267,7 +267,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
             style={{
               display: "grid",
               gridTemplateColumns: "1fr 2fr",
-              gap: 12,
+              gap: "var(--s-3)",
             }}
           >
             <div>
@@ -319,7 +319,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
             <label htmlFor="cf-hs" className="studio-label">
               HS codes <span style={{ color: "var(--wine)" }}>*</span>
             </label>
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ display: "flex", gap: "var(--s-2)" }}>
               <input
                 id="cf-hs"
                 type="text"
@@ -351,7 +351,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
             {hsCodes.length > 0 && (
               <div
                 style={{
-                  marginTop: 8,
+                  marginTop: "var(--s-2)",
                   display: "flex",
                   flexWrap: "wrap",
                   gap: 6,
@@ -364,7 +364,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
                       display: "inline-flex",
                       alignItems: "center",
                       gap: 5,
-                      padding: "4px 8px",
+                      padding: "var(--s-1) var(--s-2)",
                       background: "var(--wine-tint)",
                       color: "var(--wine)",
                       borderRadius: "var(--r-sm)",
@@ -398,7 +398,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
               style={{
                 font: "500 11px/1.4 var(--f-sans)",
                 color: "var(--ink-soft)",
-                margin: "4px 0 0",
+                margin: "var(--s-1) 0 0",
               }}
             >
               Formato: 4 dígitos + punto + 2 dígitos (+ opcional .2 dígitos
@@ -586,7 +586,7 @@ function FieldError({ msg }: { msg: string }) {
       style={{
         font: "500 11px/1.3 var(--f-sans)",
         color: "var(--danger)",
-        margin: "4px 0 0",
+        margin: "var(--s-1) 0 0",
       }}
     >
       {msg}

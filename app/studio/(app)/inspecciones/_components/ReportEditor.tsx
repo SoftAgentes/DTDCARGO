@@ -76,7 +76,7 @@ export function ReportEditor({
         justifyContent: "center",
         alignItems: "flex-start",
         overflow: "auto",
-        padding: "24px 16px",
+        padding: "var(--s-6) var(--s-4)",
       }}
       onClick={onClose}
     >

@@ -142,7 +142,7 @@ export default async function MarketingPage() {
         </div>
         <h1
           className="studio-display"
-          style={{ fontSize: 30, margin: "0 0 8px", color: "var(--ink)" }}
+          style={{ fontSize: 30, margin: "0 0 var(--s-2)", color: "var(--ink)" }}
         >
           {greeting}, <span style={{ color: "var(--wine)" }}>{subject}</span>.
         </h1>
@@ -154,14 +154,14 @@ export default async function MarketingPage() {
             maxWidth: "64ch",
           }}
         >
-          Llega, revisa y dale play. El ERP absorbe lo repetitivo; tú te enfocas
+          Llega, revisa y da play. El ERP absorbe lo repetitivo; tú te enfocas
           en crear contenido, lives y comunidad.
         </p>
       </div>
 
       {/* Tareas del día */}
       <section style={{ marginBottom: 28 }}>
-        <h2 className="studio-eyebrow" style={{ margin: "0 0 12px" }}>
+        <h2 className="studio-eyebrow" style={{ margin: "0 0 var(--s-3)" }}>
           Tareas del día
         </h2>
         <div
@@ -183,7 +183,7 @@ export default async function MarketingPage() {
               style={{
                 font: "600 14px/1.4 var(--f-sans)",
                 color: "var(--ink)",
-                margin: "0 0 4px",
+                margin: "0 0 var(--s-1)",
               }}
             >
               Aún no hay tareas auto-generadas
@@ -205,7 +205,7 @@ export default async function MarketingPage() {
 
       {/* Herramientas del módulo */}
       <section style={{ marginBottom: 28 }}>
-        <h2 className="studio-eyebrow" style={{ margin: "0 0 12px" }}>
+        <h2 className="studio-eyebrow" style={{ margin: "0 0 var(--s-3)" }}>
           Herramientas
         </h2>
         <div
@@ -286,7 +286,7 @@ export default async function MarketingPage() {
 
       {/* Reportar fricción */}
       <section>
-        <h2 className="studio-eyebrow" style={{ margin: "0 0 12px" }}>
+        <h2 className="studio-eyebrow" style={{ margin: "0 0 var(--s-3)" }}>
           Automatización
         </h2>
         <div
@@ -308,7 +308,7 @@ export default async function MarketingPage() {
               style={{
                 font: "600 14px/1.4 var(--f-sans)",
                 color: "var(--ink)",
-                margin: "0 0 4px",
+                margin: "0 0 var(--s-1)",
               }}
             >
               ¿Algo te quita tiempo?

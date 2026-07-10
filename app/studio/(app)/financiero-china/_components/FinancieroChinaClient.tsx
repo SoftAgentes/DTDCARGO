@@ -126,7 +126,7 @@ export function FinancieroChinaClient({
           <span className="studio-eyebrow">Finanzas · Socio logístico China</span>
           <h1
             className="studio-display"
-            style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
+            style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
           >
             Financiero China.
           </h1>
@@ -175,7 +175,7 @@ export function FinancieroChinaClient({
             </p>
             <p
               style={{
-                margin: "4px 0 0",
+                margin: "var(--s-1) 0 0",
                 font: "500 12px/1.5 var(--f-sans)",
                 color: "var(--ink-soft)",
               }}
