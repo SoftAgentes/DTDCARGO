@@ -211,7 +211,7 @@ export function GastosClient({
           marginBottom: 16,
           flexWrap: "wrap",
           opacity: isPending ? 0.6 : 1,
-          transition: "opacity 0.12s",
+          transition: "opacity var(--dur-fast) var(--ease)",
         }}
       >
         <div style={{ flex: "1 1 280px", minWidth: 220 }}>

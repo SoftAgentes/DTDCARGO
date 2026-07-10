@@ -479,7 +479,7 @@ export function ExpenseDrawer({
                   style={{
                     font: "500 11px/1.4 var(--f-sans)",
                     color: "var(--ink-soft)",
-                    margin: "4px 0 0",
+                    margin: "var(--s-1) 0 0",
                   }}
                 >
                   {t("expenses.field.receipt_hint")}
