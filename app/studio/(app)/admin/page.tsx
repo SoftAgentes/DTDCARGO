@@ -33,6 +33,9 @@ import { ApiIntegrationSection } from "./_components/ApiIntegrationSection";
 import { WorkflowsSection } from "./_components/WorkflowsSection";
 import { ImportExportSection } from "./_components/ImportExportSection";
 import { CalculatorSection } from "./_components/calculator/CalculatorSection";
+import { RecepcionAddonsSection } from "./_components/RecepcionAddonsSection";
+import { listPrealertaAddonsConfig } from "@/lib/studio/prealertas/queries";
+import type { PrealertaAddon } from "@/lib/studio/prealertas/addons";
 import { getNumberingOverview } from "@/lib/studio/numbering-queries";
 import { getRecentAuditEvents } from "@/lib/studio/audit-queries";
 import { getExchangeRatesOverview } from "@/lib/studio/exchange-rates-queries";
@@ -221,6 +224,14 @@ const SECTIONS: AdminSection[] = [
     sddRef: "SDD-0123",
   },
   {
+    id: "recepcion-addons",
+    group: "INTERMEDIO",
+    label: "Servicios de recepción",
+    icon: "box",
+    description:
+      "Los 7 servicios que el cliente puede pedir sobre su compra al llegar a bodega (verificar, inspeccionar, reempacar, compactar, etiquetar, medir, retener). Prende/apaga cada uno y pega su video de ayuda de YouTube — sin tocar código.",
+  },
+  {
     id: "numbering",
     group: "INTERMEDIO",
     label: "Numeración & legal",
@@ -321,6 +332,7 @@ export default async function AdminPage({
   let importData: { calendar: CalendarEvent[]; company: CompanyData } | null = null;
   let legalData: LegalSectionData | null = null;
   let calcData: { settings: CalculatorSettings | null; cities: CalculatorCity[] } | null = null;
+  let addonsData: PrealertaAddon[] | null = null;
   if (active.id === "legal-docs" || active.id === "acceptances") {
     const supabase = await createClient();
     // RLS ya acota al tenant del admin logueado; listLegalDocs sin tenantId se
@@ -369,6 +381,9 @@ export default async function AdminPage({
       listCalculatorCities(supabase),
     ]);
     calcData = { settings, cities };
+  } else if (active.id === "recepcion-addons") {
+    const supabase = await createClient();
+    addonsData = await listPrealertaAddonsConfig(supabase);
   }
 
   const grouped = GROUP_ORDER.map((g) => ({
@@ -465,6 +480,7 @@ export default async function AdminPage({
           legalData={legalData}
           calcData={calcData}
           calcInitialTab={calcInitialTab}
+          addonsData={addonsData}
         />
       </div>
     </div>
@@ -568,6 +584,7 @@ function Content({
   legalData,
   calcData,
   calcInitialTab,
+  addonsData,
 }: {
   section: AdminSection;
   companyData: CompanyData | null;
@@ -580,6 +597,7 @@ function Content({
   legalData: LegalSectionData | null;
   calcData: { settings: CalculatorSettings | null; cities: CalculatorCity[] } | null;
   calcInitialTab: "parametros" | "ciudades";
+  addonsData: PrealertaAddon[] | null;
 }) {
   return (
     <div key={section.id}>
@@ -654,6 +672,8 @@ function Content({
           isAdmin
           initialTab={calcInitialTab}
         />
+      ) : section.id === "recepcion-addons" && addonsData ? (
+        <RecepcionAddonsSection addons={addonsData} />
       ) : section.id === "import" && importData ? (
         <ImportExportSection
           calendar={importData.calendar}
