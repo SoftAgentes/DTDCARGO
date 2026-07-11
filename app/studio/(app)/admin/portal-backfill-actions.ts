@@ -17,7 +17,11 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
-import { sendPortalInviteEmail } from "@/lib/studio/portal-invite-email";
+import {
+  sendPortalInviteEmail,
+  generatePortalAccessLink,
+} from "@/lib/studio/portal-invite-email";
+import { toWhatsAppRaw } from "@/lib/portal/portal-types";
 
 export type BulkInviteState = {
   ok?: boolean;
@@ -35,6 +39,137 @@ export type BulkInviteState = {
 
 /** Tope por tanda: acota correos y el tiempo de la action (cada uno pega a Auth+Resend). */
 const MAX_PER_BATCH = 20;
+
+/** Validación de correo (misma regla que el listado de candidatos). */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export type ContactCaptureState = {
+  ok?: boolean;
+  error?: string;
+  /** id del cliente guardado (para que la fila marque ✓). */
+  clientId?: string;
+  /** true si tras guardar el cliente quedó invitable (correo válido). */
+  invitable?: boolean;
+};
+
+/**
+ * Guarda correo/teléfono de un cliente SIN contacto (adopción · captura de contacto).
+ * No manda correos — solo persiste el dato para que el cliente pase a ser invitable.
+ * El correo, si viene, debe ser válido; el teléfono es libre. Al menos uno de los dos.
+ */
+export async function updateClientContactAction(
+  _prev: ContactCaptureState,
+  formData: FormData,
+): Promise<ContactCaptureState> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "clients");
+  if (denial) return { error: denial };
+
+  const clientId = String(formData.get("client_id") ?? "").trim();
+  if (!clientId) return { error: "Falta el cliente." };
+
+  const email = String(formData.get("email") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim();
+
+  if (!email && !phone) {
+    return { error: "Escribe un correo o un teléfono.", clientId };
+  }
+  if (email && !EMAIL_RE.test(email)) {
+    return { error: "El correo no tiene un formato válido.", clientId };
+  }
+
+  // Solo tocamos lo que el equipo escribió (no pisamos con vacío lo que no cargó).
+  const patch: { email?: string; phone?: string } = {};
+  if (email) patch.email = email;
+  if (phone) patch.phone = phone;
+
+  const { error } = await supabase
+    .from("clients")
+    .update(patch)
+    .eq("id", clientId)
+    .is("deleted_at", null);
+  if (error) return { error: `No se pudo guardar: ${error.message}`, clientId };
+
+  revalidatePath("/studio/admin");
+  return { ok: true, clientId, invitable: EMAIL_RE.test(email) };
+}
+
+export type WhatsAppInviteResult =
+  | { ok: true; link: string; whatsappRaw: string | null; name: string | null }
+  | { ok: false; error: string };
+
+/**
+ * Invitación al portal por WhatsApp (adopción · canal WA). Provisiona el acceso
+ * (`portal_invite_client`, idempotente → crea la fila `client_users 'invited'` para
+ * que el bind funcione) y genera un enlace mágico fresco, pero NO manda correo: el
+ * equipo lo comparte por WhatsApp (canal de mayor apertura en VE). Requiere email
+ * (el magic-link se ata al correo) — los solo-teléfono deben capturarlo primero.
+ *
+ * ⚠️ El enlace LOGUEA como el cliente: se comparte SOLO a su WhatsApp. Un solo uso,
+ * vence pronto (TTL de Auth). Mismo patrón que la tarjeta del cliente (PortalAccessCard).
+ */
+export async function portalWhatsAppInviteAction(
+  clientId: string,
+): Promise<WhatsAppInviteResult> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "clients");
+  if (denial) return { ok: false, error: denial };
+  if (!clientId) return { ok: false, error: "Falta el cliente." };
+
+  // Provisiona el acceso (idempotente): sin la fila client_users 'invited', el bind
+  // por email falla al abrir el enlace.
+  const { data, error } = await supabase.rpc("portal_invite_client", {
+    p_client_id: clientId,
+  });
+  if (error) {
+    return {
+      ok: false,
+      error: error.message.includes("no tiene email")
+        ? "El cliente no tiene email — captúralo antes (el enlace se ata al correo)."
+        : "No se pudo habilitar el acceso.",
+    };
+  }
+  const row = (Array.isArray(data) ? data[0] : data) as
+    | { client_email?: string }
+    | null;
+  const email = row?.client_email ?? null;
+  if (!email) {
+    return {
+      ok: false,
+      error: "El cliente no tiene email — captúralo antes (el enlace se ata al correo).",
+    };
+  }
+
+  const admin = createAdminClient();
+  const link = await generatePortalAccessLink(admin, email);
+  if (!link) {
+    return { ok: false, error: "No se pudo generar el enlace. Intenta de nuevo." };
+  }
+
+  // Contador anti-spam del canal WhatsApp (best-effort).
+  await supabase.rpc("portal_bump_invite_count", {
+    p_client_id: clientId,
+    p_channel: "whatsapp",
+  });
+
+  const { data: c } = await supabase
+    .from("clients")
+    .select("name, phone")
+    .eq("id", clientId)
+    .maybeSingle<{ name: string | null; phone: string | null }>();
+
+  // NO revalidamos: refrescar sacaría al cliente de "Sin invitar" y desmontaría la
+  // fila antes de que el equipo abra el WhatsApp con el enlace. El conteo se pone al
+  // día en la próxima carga.
+  return {
+    ok: true,
+    link,
+    whatsappRaw: toWhatsAppRaw(c?.phone ?? null),
+    name: c?.name ?? null,
+  };
+}
 
 export async function bulkInvitePortalAction(
   _prev: BulkInviteState,
@@ -99,6 +234,11 @@ export async function bulkInvitePortalAction(
     });
     if (sent.ok) {
       invited++;
+      // Contador anti-spam (best-effort: {error} se ignora, no tira).
+      await supabase.rpc("portal_bump_invite_count", {
+        p_client_id: clientId,
+        p_channel: "email",
+      });
     } else {
       emailFailed++;
       reasons.push("correo no salió");
@@ -111,6 +251,106 @@ export async function bulkInvitePortalAction(
     invited,
     emailFailed,
     failed,
+    remaining,
+    details: reasons.length
+      ? [...new Set(reasons)].slice(0, 5).join(" · ")
+      : undefined,
+  };
+}
+
+/**
+ * Reenvía la invitación (enlace mágico fresco) a clientes que YA tienen acceso al
+ * portal pero NUNCA abrieron su enlace (seguimiento de fríos · adopción). No
+ * re-provisiona: ya tienen `client_users` — solo dispara `sendPortalInviteEmail`,
+ * que genera un enlace de un clic nuevo (el anterior venció). Re-verifica en el
+ * servidor que sigan sin vincular (`status = 'invited'`) para no reenviarle a quien
+ * ya entró entre el render y el submit. Mismo tope por tanda que la invitación.
+ */
+export async function bulkResendPortalInviteAction(
+  _prev: BulkInviteState,
+  formData: FormData,
+): Promise<BulkInviteState> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "clients");
+  if (denial) return { error: denial };
+
+  const raw = String(formData.get("client_ids") ?? "").trim();
+  const ids = raw
+    ? [...new Set(raw.split(",").map((s) => s.trim()).filter(Boolean))]
+    : [];
+  if (ids.length === 0) return { error: "No seleccionaste ningún cliente." };
+
+  const batch = ids.slice(0, MAX_PER_BATCH);
+  const remaining = ids.length - batch.length;
+
+  const { data: link } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  const tenantId = link?.tenant_id ?? null;
+  if (!tenantId) return { error: "No se pudo resolver el tenant." };
+
+  // Re-verificar que sigan sin vincular (status invited): nunca abrieron el enlace.
+  const { data: coldRows } = await supabase
+    .from("client_users")
+    .select("client_id, email")
+    .in("client_id", batch)
+    .eq("status", "invited");
+  const cold =
+    (coldRows as { client_id: string; email: string | null }[] | null) ?? [];
+
+  // Nombres para el saludo del correo.
+  const { data: cli } = await supabase
+    .from("clients")
+    .select("id, name")
+    .in("id", batch);
+  const nameById = new Map(
+    ((cli as { id: string; name: string | null }[] | null) ?? []).map((c) => [
+      String(c.id),
+      c.name,
+    ]),
+  );
+
+  const admin = createAdminClient();
+
+  let invited = 0;
+  let emailFailed = 0;
+  const reasons: string[] = [];
+
+  for (const row of cold) {
+    const email = (row.email ?? "").trim();
+    if (!email) {
+      emailFailed++;
+      reasons.push("sin correo");
+      continue;
+    }
+    const sent = await sendPortalInviteEmail(admin, tenantId, {
+      email,
+      name: nameById.get(String(row.client_id)) ?? null,
+    });
+    if (sent.ok) {
+      invited++;
+      await supabase.rpc("portal_bump_invite_count", {
+        p_client_id: row.client_id,
+        p_channel: "email",
+      });
+    } else {
+      emailFailed++;
+      reasons.push("correo no salió");
+    }
+  }
+
+  // Del batch, los que ya no estaban fríos (vincularon o perdieron acceso).
+  const skipped = batch.length - cold.length;
+  if (skipped > 0) reasons.push(`${skipped} ya entraron o sin acceso`);
+
+  revalidatePath("/studio/admin");
+  return {
+    ok: true,
+    invited,
+    emailFailed,
+    failed: 0,
     remaining,
     details: reasons.length
       ? [...new Set(reasons)].slice(0, 5).join(" · ")

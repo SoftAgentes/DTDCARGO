@@ -39,8 +39,12 @@ import { PortalBackfillSection } from "./_components/PortalBackfillSection";
 import {
   listPortalInviteCandidates,
   getPortalAdoptionStats,
+  listPortalColdInvitees,
+  listPortalContactlessClients,
   type PortalInviteCandidate,
   type PortalAdoptionStats,
+  type PortalColdInvitee,
+  type PortalContactlessClient,
 } from "@/lib/studio/client-queries";
 import type { PrealertaAddon } from "@/lib/studio/prealertas/addons";
 import { getNumberingOverview } from "@/lib/studio/numbering-queries";
@@ -244,7 +248,7 @@ const SECTIONS: AdminSection[] = [
     label: "Invitaciones al portal",
     icon: "users",
     description:
-      "Adopción: invita por lotes al portal a los clientes que aún no tienen acceso (solo un puñado de tus clientes lo tenía). Filtra, excluye demos y manda las invitaciones por correo en tandas. Envía correos reales.",
+      "Adopción: invita por lotes al portal a los clientes sin acceso, reenvía el enlace a los invitados que nunca entraron, y captura correo/teléfono a los que no tienen contacto. Filtra, excluye demos y manda los correos en tandas. Envía correos reales.",
   },
   {
     id: "numbering",
@@ -350,6 +354,8 @@ export default async function AdminPage({
   let addonsData: PrealertaAddon[] | null = null;
   let inviteCandidates: PortalInviteCandidate[] | null = null;
   let adoptionStats: PortalAdoptionStats | null = null;
+  let coldInvitees: PortalColdInvitee[] | null = null;
+  let contactlessClients: PortalContactlessClient[] | null = null;
   if (active.id === "legal-docs" || active.id === "acceptances") {
     const supabase = await createClient();
     // RLS ya acota al tenant del admin logueado; listLegalDocs sin tenantId se
@@ -403,10 +409,13 @@ export default async function AdminPage({
     addonsData = await listPrealertaAddonsConfig(supabase);
   } else if (active.id === "portal-invites") {
     const supabase = await createClient();
-    [inviteCandidates, adoptionStats] = await Promise.all([
-      listPortalInviteCandidates(supabase),
-      getPortalAdoptionStats(supabase),
-    ]);
+    [inviteCandidates, adoptionStats, coldInvitees, contactlessClients] =
+      await Promise.all([
+        listPortalInviteCandidates(supabase),
+        getPortalAdoptionStats(supabase),
+        listPortalColdInvitees(supabase),
+        listPortalContactlessClients(supabase),
+      ]);
   }
 
   const grouped = GROUP_ORDER.map((g) => ({
@@ -506,6 +515,8 @@ export default async function AdminPage({
           addonsData={addonsData}
           inviteCandidates={inviteCandidates}
           adoptionStats={adoptionStats}
+          coldInvitees={coldInvitees}
+          contactlessClients={contactlessClients}
         />
       </div>
     </div>
@@ -612,6 +623,8 @@ function Content({
   addonsData,
   inviteCandidates,
   adoptionStats,
+  coldInvitees,
+  contactlessClients,
 }: {
   section: AdminSection;
   companyData: CompanyData | null;
@@ -627,6 +640,8 @@ function Content({
   addonsData: PrealertaAddon[] | null;
   inviteCandidates: PortalInviteCandidate[] | null;
   adoptionStats: PortalAdoptionStats | null;
+  coldInvitees: PortalColdInvitee[] | null;
+  contactlessClients: PortalContactlessClient[] | null;
 }) {
   return (
     <div key={section.id}>
@@ -707,6 +722,8 @@ function Content({
         <PortalBackfillSection
           candidates={inviteCandidates}
           stats={adoptionStats}
+          coldInvitees={coldInvitees ?? []}
+          contactlessClients={contactlessClients ?? []}
         />
       ) : section.id === "import" && importData ? (
         <ImportExportSection
