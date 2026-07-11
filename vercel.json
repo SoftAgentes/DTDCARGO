@@ -35,6 +35,10 @@
     {
       "path": "/api/cron/conversation-digests",
       "schedule": "0 5 1 * *"
+    },
+    {
+      "path": "/api/cron/portal-cold-reminder",
+      "schedule": "0 14 * * *"
     }
   ]
 }
