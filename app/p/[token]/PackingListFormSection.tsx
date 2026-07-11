@@ -1162,6 +1162,30 @@ export function PackingListFormSection({
             </table>
           </div>
 
+          {/* Firma y sello del proveedor — solo en impresión/PDF (Norte packlist).
+              Espacio para que el proveedor firme y estampe su sello al imprimir. */}
+          <div className="pl-sign">
+            <div>
+              <div className="pl-sign-line" />
+              <div className="pl-sign-lab">
+                <span lang="zh">供应商签字</span> ·{" "}
+                {tr(lang, "Firma del proveedor", "Supplier signature")}
+              </div>
+            </div>
+            <div>
+              <div className="pl-sign-line" />
+              <div className="pl-sign-lab">
+                <span lang="zh">盖章</span> · {tr(lang, "Sello de la empresa", "Company stamp")}
+              </div>
+            </div>
+            <div>
+              <div className="pl-sign-line" />
+              <div className="pl-sign-lab">
+                <span lang="zh">日期</span> · {tr(lang, "Fecha", "Date")}
+              </div>
+            </div>
+          </div>
+
           {/* Totales en vivo, sticky SOLO en móvil. Live region: el lector anuncia
               los totales mientras el proveedor edita las filas. */}
           <div
@@ -1622,9 +1646,26 @@ export function PackingListFormSection({
           .pl-doc thead th.c-mk { background: var(--color-grey-100); }
         }
 
+        /* Firma/sello: oculto en pantalla (form self-service), visible al imprimir. */
+        .pl-doc .pl-sign { display: none; }
+
         /* ── Impresión: 1 página A4 horizontal, sin chrome ni columna borrar. ── */
         @media print {
           .no-print { display: none !important; }
+          .pl-doc .pl-sign {
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 22px;
+            margin-top: 26px;
+            page-break-inside: avoid;
+          }
+          .pl-doc .pl-sign-line { height: 42px; border-bottom: 1px solid var(--color-ink); }
+          .pl-doc .pl-sign-lab {
+            margin-top: 5px;
+            font-size: 9.5px;
+            color: var(--color-grey-700);
+            text-align: center;
+          }
           .pl-doc { border: 0 !important; box-shadow: none !important; padding: 0 !important; }
           @page { size: A4 landscape; margin: 8mm; }
           .pl-doc td.c-del, .pl-doc td.c-act,
