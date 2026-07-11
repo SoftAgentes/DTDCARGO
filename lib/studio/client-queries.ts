@@ -337,6 +337,10 @@ export type PortalColdInvitee = {
   lastEmailInviteAt: string | null;
   /** última invitación por WhatsApp (ISO) o null. */
   lastWhatsappInviteAt: string | null;
+  /** asesor del último correo (nombre) o null (automático / sin dato). */
+  lastEmailInviteBy: string | null;
+  /** asesor de la última invitación WhatsApp (nombre) o null. */
+  lastWhatsappInviteBy: string | null;
 };
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
@@ -367,7 +371,7 @@ export async function listPortalColdInvitees(
     supabase
       .from("client_users")
       .select(
-        "client_id, email, invited_at, email_invite_count, whatsapp_invite_count, last_email_invite_at, last_whatsapp_invite_at",
+        "client_id, email, invited_at, email_invite_count, whatsapp_invite_count, last_email_invite_at, last_whatsapp_invite_at, last_email_invite_by, last_whatsapp_invite_by",
       )
       .eq("status", "invited")
       .limit(5000),
@@ -397,6 +401,32 @@ export async function listPortalColdInvitees(
   );
   const now = Date.now();
 
+  // Nombres de los asesores que invitaron (auditoría · migr 0227). Best-effort: si las
+  // columnas *_by no están o el perfil no se lee, queda null (RLS deja al admin activo
+  // leer user_profiles del staff). Sin migración → inviterIds vacío → sin nombres.
+  const inviterIds = [
+    ...new Set(
+      (linkedData ?? [])
+        .flatMap((r) => [r.last_email_invite_by, r.last_whatsapp_invite_by])
+        .filter((v): v is string => typeof v === "string" && v.length > 0),
+    ),
+  ];
+  const inviterName = new Map<string, string>();
+  if (inviterIds.length > 0) {
+    const { data: profs } = await supabase
+      .from("user_profiles")
+      .select("user_id, first_name, last_name")
+      .in("user_id", inviterIds);
+    for (const p of (profs ?? []) as {
+      user_id: string;
+      first_name: string | null;
+      last_name: string | null;
+    }[]) {
+      const nm = [p.first_name, p.last_name].filter(Boolean).join(" ").trim();
+      if (nm) inviterName.set(String(p.user_id), nm);
+    }
+  }
+
   return (linkedData ?? [])
     .map((r) => {
       const client = clientById.get(String(r.client_id));
@@ -420,6 +450,9 @@ export async function listPortalColdInvitees(
         whatsappInvites: Number(r.whatsapp_invite_count ?? 0),
         lastEmailInviteAt: (r.last_email_invite_at as string | null) ?? null,
         lastWhatsappInviteAt: (r.last_whatsapp_invite_at as string | null) ?? null,
+        lastEmailInviteBy: inviterName.get(String(r.last_email_invite_by ?? "")) ?? null,
+        lastWhatsappInviteBy:
+          inviterName.get(String(r.last_whatsapp_invite_by ?? "")) ?? null,
       } satisfies PortalColdInvitee;
     })
     .filter((x): x is PortalColdInvitee => x != null)

@@ -171,6 +171,103 @@ export async function portalWhatsAppInviteAction(
   };
 }
 
+/** Tope del lote de enlaces WhatsApp: cada uno pega a Auth (generateLink), más chico. */
+const WA_BATCH_MAX = 10;
+
+export type WhatsAppBatchItem = {
+  clientId: string;
+  name: string | null;
+  whatsappRaw: string | null;
+  link: string;
+};
+
+export type WhatsAppBatchState = {
+  ok?: boolean;
+  error?: string;
+  items?: WhatsAppBatchItem[];
+  /** seleccionados sin teléfono o sin correo (no se pudo preparar). */
+  skipped?: number;
+  /** seleccionados que no entraron por el tope del lote. */
+  remaining?: number;
+};
+
+/**
+ * Prepara enlaces de WhatsApp para VARIOS clientes de una (adopción · lista WA).
+ * Provisiona + genera el magic-link de cada uno y devuelve la lista para que el
+ * equipo la copie o abra chat por chat (WhatsApp no se puede automatizar en lote).
+ * Solo clientes con teléfono (para poder abrir wa.me a su número) y correo (el
+ * enlace se ata al correo). Cuenta cada uno en el contador WA (anti-spam). Tope
+ * chico (cada uno genera un link contra Auth). Los enlaces vencen pronto → mandar ya.
+ */
+export async function bulkWhatsAppInviteAction(
+  _prev: WhatsAppBatchState,
+  formData: FormData,
+): Promise<WhatsAppBatchState> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "clients");
+  if (denial) return { error: denial };
+
+  const raw = String(formData.get("client_ids") ?? "").trim();
+  const ids = raw
+    ? [...new Set(raw.split(",").map((s) => s.trim()).filter(Boolean))]
+    : [];
+  if (ids.length === 0) return { error: "No seleccionaste ningún cliente." };
+
+  const batch = ids.slice(0, WA_BATCH_MAX);
+  const remaining = ids.length - batch.length;
+
+  const admin = createAdminClient();
+  const items: WhatsAppBatchItem[] = [];
+  let skipped = 0;
+
+  for (const clientId of batch) {
+    // Necesitamos teléfono para wa.me; si no hay, no tiene sentido prepararlo.
+    const { data: c } = await supabase
+      .from("clients")
+      .select("name, phone")
+      .eq("id", clientId)
+      .maybeSingle<{ name: string | null; phone: string | null }>();
+    const whatsappRaw = toWhatsAppRaw(c?.phone ?? null);
+    if (!whatsappRaw) {
+      skipped++;
+      continue;
+    }
+
+    const { data, error } = await supabase.rpc("portal_invite_client", {
+      p_client_id: clientId,
+    });
+    if (error) {
+      skipped++;
+      continue;
+    }
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | { client_email?: string }
+      | null;
+    const email = row?.client_email ?? null;
+    if (!email) {
+      skipped++;
+      continue;
+    }
+
+    const link = await generatePortalAccessLink(admin, email);
+    if (!link) {
+      skipped++;
+      continue;
+    }
+
+    await supabase.rpc("portal_bump_invite_count", {
+      p_client_id: clientId,
+      p_channel: "whatsapp",
+    });
+
+    items.push({ clientId, name: c?.name ?? null, whatsappRaw, link });
+  }
+
+  // No revalidamos (igual que el 1×1): la lista de enlaces debe sobrevivir en pantalla.
+  return { ok: true, items, skipped, remaining };
+}
+
 export async function bulkInvitePortalAction(
   _prev: BulkInviteState,
   formData: FormData,

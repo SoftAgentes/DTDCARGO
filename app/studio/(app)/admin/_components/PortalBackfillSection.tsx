@@ -19,6 +19,7 @@ import {
   useMemo,
   useState,
   type MouseEvent,
+  type ReactNode,
 } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
@@ -33,9 +34,13 @@ import {
   bulkResendPortalInviteAction,
   updateClientContactAction,
   portalWhatsAppInviteAction,
+  bulkWhatsAppInviteAction,
   type BulkInviteState,
   type ContactCaptureState,
+  type WhatsAppBatchState,
 } from "../portal-backfill-actions";
+
+const WA_BATCH_MAX = 10;
 
 const MAX_PER_BATCH = 20;
 
@@ -258,6 +263,37 @@ function fmtPhone(phone: string): string {
   return phone && phone.trim() ? phone.trim() : "—";
 }
 
+/** Pill de filtro/orden segmentado (activo = wine). */
+function Chip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      style={{
+        appearance: "none",
+        cursor: "pointer",
+        font: `${active ? 700 : 600} 11.5px/1 var(--f-sans)`,
+        color: active ? "var(--ink-inv)" : "var(--ink-soft)",
+        background: active ? "var(--wine)" : "var(--bg-elevated)",
+        border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
+        borderRadius: "var(--r-pill)",
+        padding: "5px 11px",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
 /** Fecha corta es-VE para tooltips (o vacío si inválida). */
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";
@@ -272,7 +308,10 @@ function fmtDate(iso: string | null): string {
   }
 }
 
-/** Badge compacto de conteo de invitaciones por canal (anti-spam). */
+/** Umbral a partir del cual reinvitar por un canal se considera saturación (anti-spam). */
+const SPAM_THRESHOLD = 2;
+
+/** Badge compacto de conteo de invitaciones por canal (anti-spam). ≥2 → warning. */
 function InviteCountBadge({
   label,
   count,
@@ -282,15 +321,21 @@ function InviteCountBadge({
   count: number;
   title?: string;
 }) {
+  const saturated = count >= SPAM_THRESHOLD;
   const on = count > 0;
+  const color = saturated
+    ? "var(--warning)"
+    : on
+      ? "var(--wine)"
+      : "var(--ink-mute)";
   return (
     <span
       title={title}
       style={{
         font: "700 10px/1 var(--f-mono)",
-        color: on ? "var(--wine)" : "var(--ink-mute)",
-        background: "var(--bg-elevated)",
-        border: `1px solid ${on ? "var(--wine)" : "var(--border)"}`,
+        color,
+        background: saturated ? "var(--warning-tint, var(--bg-elevated))" : "var(--bg-elevated)",
+        border: `1px solid ${saturated ? "var(--warning)" : on ? "var(--wine)" : "var(--border)"}`,
         borderRadius: "var(--r-pill)",
         padding: "2px 6px",
         whiteSpace: "nowrap",
@@ -589,6 +634,150 @@ function CandidateRow({
   );
 }
 
+/**
+ * Lista de enlaces de WhatsApp para VARIOS seleccionados a la vez: genera los enlaces
+ * (provisiona + magic-link) y los muestra para abrir chat por chat o copiar todo.
+ * WhatsApp no se automatiza en lote — esto solo prepara la lista para mandar rápido.
+ */
+function WhatsAppBatchPanel({ selectedIds }: { selectedIds: string[] }) {
+  const [state, formAction, pending] = useActionState<WhatsAppBatchState, FormData>(
+    bulkWhatsAppInviteAction,
+    {},
+  );
+  const [copied, setCopied] = useState(false);
+  const items = state.items ?? [];
+  const willProcess = Math.min(selectedIds.length, WA_BATCH_MAX);
+  const overflow = selectedIds.length - WA_BATCH_MAX;
+
+  async function copyList() {
+    const text = items
+      .map(
+        (it) =>
+          `${it.name ?? "Cliente"} (+${it.whatsappRaw ?? "—"}): ${buildWaHref(it.whatsappRaw, it.name, it.link)}`,
+      )
+      .join("\n\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      /* clipboard bloqueado — el usuario puede copiar a mano de los enlaces de abajo */
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <form action={formAction}>
+          <input type="hidden" name="client_ids" value={selectedIds.join(",")} />
+          <button
+            type="submit"
+            disabled={pending || selectedIds.length === 0}
+            className="studio-btn studio-btn-dark studio-btn-sm"
+          >
+            {pending
+              ? "Generando enlaces…"
+              : `Enlaces WhatsApp ${willProcess}${overflow > 0 ? ` (de ${selectedIds.length})` : ""}`}
+          </button>
+        </form>
+        <span style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-mute)" }}>
+          Prepara los enlaces de los seleccionados con teléfono (máx {WA_BATCH_MAX}) para
+          abrirlos uno por uno. Vencen pronto — mándalos ya.
+        </span>
+      </div>
+
+      {state.error && (
+        <span style={{ font: "600 12px/1.4 var(--f-sans)", color: "var(--danger)" }}>
+          {state.error}
+        </span>
+      )}
+
+      {state.ok && (
+        <div
+          style={{
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--r-lg)",
+            padding: "12px 14px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 10,
+              flexWrap: "wrap",
+            }}
+          >
+            <span style={{ font: "600 12.5px/1.3 var(--f-sans)", color: "var(--ink)" }}>
+              {items.length} enlace{items.length === 1 ? "" : "s"} listo
+              {items.length === 1 ? "" : "s"}
+              {state.skipped ? ` · ${state.skipped} sin teléfono/correo` : ""}
+              {state.remaining ? ` · ${state.remaining} sin procesar (corre de nuevo)` : ""}
+            </span>
+            {items.length > 0 && (
+              <button
+                type="button"
+                onClick={copyList}
+                className="studio-btn studio-btn-ghost studio-btn-xs"
+              >
+                {copied ? "✓ Copiado" : "Copiar lista"}
+              </button>
+            )}
+          </div>
+          {items.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {items.map((it) => (
+                <div
+                  key={it.clientId}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 10,
+                    padding: "6px 0",
+                    borderTop: "1px solid var(--border)",
+                  }}
+                >
+                  <span style={{ minWidth: 0, display: "flex", gap: 8, alignItems: "baseline" }}>
+                    <span
+                      style={{
+                        font: "600 12.5px/1.3 var(--f-sans)",
+                        color: "var(--ink)",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {it.name || "Cliente"}
+                    </span>
+                    <span style={{ font: "500 11.5px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
+                      +{it.whatsappRaw ?? "—"}
+                    </span>
+                  </span>
+                  <a
+                    href={buildWaHref(it.whatsappRaw, it.name, it.link)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="studio-btn studio-btn-primary studio-btn-xs"
+                    style={{ flexShrink: 0 }}
+                  >
+                    Abrir WhatsApp →
+                  </a>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Pestaña 1: sin invitar (candidatos) ─────────────────────────────
 function InviteCandidatesPanel({
   candidates,
@@ -597,6 +786,7 @@ function InviteCandidatesPanel({
 }) {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [onlyPhone, setOnlyPhone] = useState(false);
   const [state, formAction, pending] = useActionState<BulkInviteState, FormData>(
     bulkInvitePortalAction,
     {},
@@ -608,14 +798,16 @@ function InviteCandidatesPanel({
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return candidates;
-    return candidates.filter(
+    let list = candidates;
+    if (onlyPhone) list = list.filter((c) => c.phone);
+    if (!q) return list;
+    return list.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
         c.markbox.toLowerCase().includes(q) ||
         c.email.toLowerCase().includes(q),
     );
-  }, [candidates, search]);
+  }, [candidates, search, onlyPhone]);
 
   // "Seleccionar todos" IGNORA los posibles demo (protección del masivo): nunca
   // los agarra en bloque; hay que marcarlos uno por uno a propósito.
@@ -706,6 +898,17 @@ function InviteCandidatesPanel({
         formAction={formAction}
       />
 
+      <WhatsAppBatchPanel selectedIds={selectedIds} />
+
+      <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
+        <Chip active={!onlyPhone} onClick={() => setOnlyPhone(false)}>
+          Todos
+        </Chip>
+        <Chip active={onlyPhone} onClick={() => setOnlyPhone(true)}>
+          Con teléfono
+        </Chip>
+      </div>
+
       {/* Tabla de candidatos */}
       <div
         style={{
@@ -788,10 +991,12 @@ function ColdRow({
   const [pending, setPending] = useState(false);
   const [waHref, setWaHref] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   async function genWhatsApp() {
     setErr(null);
     setWaHref(null);
+    setConfirming(false);
     setPending(true);
     try {
       const res = await portalWhatsAppInviteAction(c.id);
@@ -805,6 +1010,16 @@ function ColdRow({
     } finally {
       setPending(false);
     }
+  }
+
+  // Guardia anti-spam: si ya se le mandó WhatsApp ≥2 veces, pide confirmación.
+  const needsConfirm = c.whatsappInvites >= SPAM_THRESHOLD;
+  function onWhatsAppClick() {
+    if (needsConfirm && !confirming) {
+      setConfirming(true);
+      return;
+    }
+    void genWhatsApp();
   }
 
   const stop = (e: MouseEvent) => e.stopPropagation();
@@ -862,7 +1077,7 @@ function ColdRow({
                 count={c.emailInvites}
                 title={
                   c.lastEmailInviteAt
-                    ? `Último correo: ${fmtDate(c.lastEmailInviteAt)}`
+                    ? `Último correo: ${fmtDate(c.lastEmailInviteAt)}${c.lastEmailInviteBy ? ` · por ${c.lastEmailInviteBy}` : " · automático"}`
                     : "Invitaciones por correo"
                 }
               />
@@ -871,7 +1086,7 @@ function ColdRow({
                 count={c.whatsappInvites}
                 title={
                   c.lastWhatsappInviteAt
-                    ? `Último WhatsApp: ${fmtDate(c.lastWhatsappInviteAt)}`
+                    ? `Último WhatsApp: ${fmtDate(c.lastWhatsappInviteAt)}${c.lastWhatsappInviteBy ? ` · por ${c.lastWhatsappInviteBy}` : ""}`
                     : "Invitaciones por WhatsApp"
                 }
               />
@@ -917,10 +1132,29 @@ function ColdRow({
               >
                 Abrir WhatsApp →
               </a>
+            ) : confirming ? (
+              <span style={{ display: "inline-flex", gap: 5 }}>
+                <button
+                  type="button"
+                  onClick={() => void genWhatsApp()}
+                  disabled={pending}
+                  className="studio-btn studio-btn-warning studio-btn-xs"
+                >
+                  {pending ? "Generando…" : "Reenviar igual"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirming(false)}
+                  disabled={pending}
+                  className="studio-btn studio-btn-ghost studio-btn-xs"
+                >
+                  Cancelar
+                </button>
+              </span>
             ) : (
               <button
                 type="button"
-                onClick={genWhatsApp}
+                onClick={onWhatsAppClick}
                 disabled={pending}
                 className="studio-btn studio-btn-ghost studio-btn-xs"
               >
@@ -941,13 +1175,24 @@ function ColdRow({
           )}
         </span>
       </div>
-      {(waHref || err) && (
+      {(waHref || err || confirming) && (
         <div style={{ padding: "0 20px 10px 54px" }}>
           {err ? (
             <span
               style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--danger)" }}
             >
               {err}
+            </span>
+          ) : confirming ? (
+            <span
+              style={{ font: "500 11.5px/1.45 var(--f-sans)", color: "var(--warning)" }}
+            >
+              Ya le enviaste WhatsApp <b>{c.whatsappInvites}</b>{" "}
+              {c.whatsappInvites === 1 ? "vez" : "veces"}
+              {c.lastWhatsappInviteAt
+                ? ` (último: ${fmtDate(c.lastWhatsappInviteAt)})`
+                : ""}
+              . Evita saturarlo — ¿reenviar igual?
             </span>
           ) : (
             <span
@@ -973,12 +1218,16 @@ function ColdInviteesPanel({ cold }: { cold: PortalColdInvitee[] }) {
     bulkResendPortalInviteAction,
     {},
   );
+  const [coldFilter, setColdFilter] = useState<
+    "all" | "phone" | "noWa" | "saturated"
+  >("all");
+  const [coldSort, setColdSort] = useState<"oldest" | "least" | "most">("oldest");
 
   useEffect(() => {
     if (state.ok) setSelected(new Set());
   }, [state.ok]);
 
-  const filtered = useMemo(() => {
+  const searched = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return cold;
     return cold.filter(
@@ -989,8 +1238,25 @@ function ColdInviteesPanel({ cold }: { cold: PortalColdInvitee[] }) {
     );
   }, [cold, search]);
 
+  // Filtro rápido + orden (priorizar a quién nudgear).
+  const shown = useMemo(() => {
+    let list = searched;
+    if (coldFilter === "phone") list = list.filter((c) => c.phone);
+    else if (coldFilter === "noWa") list = list.filter((c) => c.whatsappInvites === 0);
+    else if (coldFilter === "saturated")
+      list = list.filter(
+        (c) => Math.max(c.emailInvites, c.whatsappInvites) >= SPAM_THRESHOLD,
+      );
+    const arr = [...list];
+    const total = (c: PortalColdInvitee) => c.emailInvites + c.whatsappInvites;
+    if (coldSort === "least") arr.sort((a, b) => total(a) - total(b) || b.daysCold - a.daysCold);
+    else if (coldSort === "most") arr.sort((a, b) => total(b) - total(a) || b.daysCold - a.daysCold);
+    else arr.sort((a, b) => b.daysCold - a.daysCold); // más viejos
+    return arr;
+  }, [searched, coldFilter, coldSort]);
+
   const allFilteredSelected =
-    filtered.length > 0 && filtered.every((c) => selected.has(c.id));
+    shown.length > 0 && shown.every((c) => selected.has(c.id));
 
   const toggle = (id: string) =>
     setSelected((prev) => {
@@ -1003,13 +1269,18 @@ function ColdInviteesPanel({ cold }: { cold: PortalColdInvitee[] }) {
   const toggleAllFiltered = () =>
     setSelected((prev) => {
       const next = new Set(prev);
-      if (allFilteredSelected) filtered.forEach((c) => next.delete(c.id));
-      else filtered.forEach((c) => next.add(c.id));
+      if (allFilteredSelected) shown.forEach((c) => next.delete(c.id));
+      else shown.forEach((c) => next.add(c.id));
       return next;
     });
 
   const selectedIds = [...selected];
   const willProcess = Math.min(selectedIds.length, MAX_PER_BATCH);
+
+  // Guardia anti-spam: seleccionados que ya recibieron ≥2 correos.
+  const saturatedSelected = cold.filter(
+    (c) => selected.has(c.id) && c.emailInvites >= SPAM_THRESHOLD,
+  ).length;
 
   if (cold.length === 0) {
     return (
@@ -1043,6 +1314,24 @@ function ColdInviteesPanel({ cold }: { cold: PortalColdInvitee[] }) {
 
       <BatchResult state={state} okNoun="reenviados" />
 
+      {saturatedSelected > 0 && (
+        <div
+          role="alert"
+          style={{
+            font: "500 12.5px/1.5 var(--f-sans)",
+            color: "var(--warning)",
+            background: "var(--warning-tint, var(--bg-elevated))",
+            border: "1px solid var(--warning)",
+            borderRadius: "var(--r-sm)",
+            padding: "10px 13px",
+          }}
+        >
+          <strong>{saturatedSelected}</strong> de los seleccionados ya recibieron{" "}
+          <strong>{SPAM_THRESHOLD}+ correos</strong>. Reenviar de nuevo puede leerse
+          como spam — revisa los badges <em>✉</em> antes de continuar.
+        </div>
+      )}
+
       <BatchToolbar
         search={search}
         setSearch={setSearch}
@@ -1057,6 +1346,49 @@ function ColdInviteesPanel({ cold }: { cold: PortalColdInvitee[] }) {
         selectedIds={selectedIds}
         formAction={formAction}
       />
+
+      {/* Filtro rápido + orden */}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+          <Chip active={coldFilter === "all"} onClick={() => setColdFilter("all")}>
+            Todos
+          </Chip>
+          <Chip active={coldFilter === "phone"} onClick={() => setColdFilter("phone")}>
+            Con teléfono
+          </Chip>
+          <Chip active={coldFilter === "noWa"} onClick={() => setColdFilter("noWa")}>
+            Nunca por WhatsApp
+          </Chip>
+          <Chip
+            active={coldFilter === "saturated"}
+            onClick={() => setColdFilter("saturated")}
+          >
+            Saturados ({SPAM_THRESHOLD}+)
+          </Chip>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            gap: 5,
+            flexWrap: "wrap",
+            marginLeft: "auto",
+            alignItems: "center",
+          }}
+        >
+          <span style={{ font: "600 10px/1 var(--f-sans)", letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--ink-mute)" }}>
+            Orden
+          </span>
+          <Chip active={coldSort === "oldest"} onClick={() => setColdSort("oldest")}>
+            Más viejos
+          </Chip>
+          <Chip active={coldSort === "least"} onClick={() => setColdSort("least")}>
+            Menos invitados
+          </Chip>
+          <Chip active={coldSort === "most"} onClick={() => setColdSort("most")}>
+            Más invitados
+          </Chip>
+        </div>
+      </div>
 
       <div
         style={{
@@ -1095,7 +1427,7 @@ function ColdInviteesPanel({ cold }: { cold: PortalColdInvitee[] }) {
           <span>WhatsApp</span>
         </div>
 
-        {filtered.length === 0 ? (
+        {shown.length === 0 ? (
           <div
             style={{
               padding: "20px",
@@ -1104,11 +1436,11 @@ function ColdInviteesPanel({ cold }: { cold: PortalColdInvitee[] }) {
               textAlign: "center",
             }}
           >
-            Nada coincide con tu búsqueda.
+            Nada coincide con el filtro o la búsqueda.
           </div>
         ) : (
           <div style={{ maxHeight: 520, overflowY: "auto" }}>
-            {filtered.map((c, i) => (
+            {shown.map((c, i) => (
               <ColdRow
                 key={c.id}
                 c={c}

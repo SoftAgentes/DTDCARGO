@@ -22,6 +22,7 @@ import {
   navieraKpis,
 } from "@/lib/studio/dashboard-queries";
 import { computeAgentKpis } from "@/lib/studio/agent-queries";
+import { getPortalAdoptionStats } from "@/lib/studio/client-queries";
 import { countMyOpenTasks } from "@/lib/studio/bitacora/bitacora-queries";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import { RecentActivityCard } from "./_components/RecentActivityCard";
@@ -40,6 +41,12 @@ function formatMoney(n: number): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   });
+}
+
+/** "X% de N" para el sub del tile de adopción. */
+function pctOf(n: number, total: number): string {
+  if (total <= 0) return "—";
+  return `${Math.round((n / total) * 100)}% de ${total}`;
 }
 
 function firstNameFromUser(
@@ -100,6 +107,7 @@ export default async function DashboardPage() {
     recentActivity,
     agentKpis,
     naviera,
+    adoption,
   ] = await Promise.all([
     supabase.auth.getUser(),
     supabase
@@ -115,6 +123,7 @@ export default async function DashboardPage() {
     getRecentActivity(supabase, 6),
     computeAgentKpis(supabase),
     navieraKpis(supabase),
+    getPortalAdoptionStats(supabase),
   ]);
 
   const tenant = tenantLink;
@@ -311,6 +320,51 @@ export default async function DashboardPage() {
                 style={{ color: "var(--wine-text)", textDecoration: "none", fontWeight: 600 }}
               >
                 Ver catálogo →
+              </Link>
+            }
+          />
+        </div>
+      </section>
+
+      {/* ADOPCIÓN DEL PORTAL (embudo · adopción) */}
+      <section style={{ marginBottom: 28 }}>
+        <div className="studio-eyebrow" style={{ marginBottom: 12 }}>
+          Adopción del portal
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gap: 14,
+          }}
+        >
+          <KpiCard
+            value={adoption.withAccess}
+            label="Con acceso"
+            sub={pctOf(adoption.withAccess, adoption.totalClients)}
+          />
+          <KpiCard
+            value={adoption.loggedIn}
+            label="Entraron"
+            valueColor="var(--wine-text)"
+            sub={pctOf(adoption.loggedIn, adoption.totalClients)}
+          />
+          <KpiCard
+            value={adoption.announced}
+            label="Anunciaron compra"
+            valueColor={adoption.announced > 0 ? "var(--success)" : "var(--ink)"}
+            sub={pctOf(adoption.announced, adoption.totalClients)}
+          />
+          <KpiCard
+            value={adoption.candidatesWithEmail}
+            label="Por invitar"
+            valueColor={adoption.candidatesWithEmail > 0 ? "var(--warning)" : "var(--ink)"}
+            sub={
+              <Link
+                href="/studio/admin?section=portal-invites"
+                style={{ color: "var(--wine-text)", textDecoration: "none", fontWeight: 600 }}
+              >
+                Invitar al portal →
               </Link>
             }
           />
