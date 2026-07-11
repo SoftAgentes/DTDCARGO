@@ -18,6 +18,7 @@
  * Exit: 0 = todo verde · 1 = al menos un check falló (corre TODOS y los lista).
  */
 import { spawnSync } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -96,7 +97,15 @@ function e2ePreflight() {
       env: { BASE_URL: running.appUrl },
       note: `reusando el dev server del worktree en ${running.appUrl} (PID ${running.pid})`,
     };
-  return null; // sin dev acá → Playwright levanta el suyo en E2E_PORT
+  return null; // sin dev acá → Playwright levanta el suyo en E2E_PORT (puerto propio por worktree, ver e2ePort)
+}
+
+// Puerto único por worktree → dos ventanas en carpetas distintas nunca
+// colisionan en el mismo puerto (evita reusar el next dev de otra ventana con
+// reuseExistingServer:true de Playwright). Determinístico: mismo cwd → mismo puerto.
+function e2ePort() {
+  const h = crypto.createHash("sha1").update(process.cwd()).digest();
+  return 3100 + (h.readUInt16BE(0) % 700); // rango 3100–3799
 }
 
 // Cada check = un binario JS invocado con el mismo node que corre este script.
@@ -116,11 +125,12 @@ const STEPS = [
   // (ej. el estimado de la calculadora que desaparecía al tocar el panel de
   // medidas). Va ÚLTIMO: los checks rápidos fallan primero. Reusa el dev server
   // de este worktree si está corriendo (ver e2ePreflight); si no, levanta el
-  // suyo en E2E_PORT. Los specs Tier-3 que piden seed se auto-omiten sin creds.
+  // suyo en un puerto PROPIO por worktree (e2ePort, derivado del hash del cwd)
+  // → dos ventanas nunca colisionan. Los specs Tier-3 que piden seed se auto-omiten sin creds.
   {
     name: "e2e",
     argv: ["node_modules/@playwright/test/cli.js", "test"],
-    env: { E2E_PORT: "3099" },
+    env: { E2E_PORT: String(e2ePort()) },
     retry: 1,
     preflight: e2ePreflight,
   },
