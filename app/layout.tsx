@@ -163,6 +163,11 @@ const jsonLd = {
         },
       ],
       hasMap: CONTACT.ve.mapsUrl,
+      geo: {
+        "@type": "GeoCoordinates",
+        latitude: CONTACT.ve.geo.lat,
+        longitude: CONTACT.ve.geo.lng,
+      },
       contactPoint: [
         {
           "@type": "ContactPoint",
