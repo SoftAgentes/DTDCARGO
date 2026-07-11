@@ -157,6 +157,159 @@ export async function getClientPortalAccess(
   };
 }
 
+/** Embudo de adopción del portal (para el tablero del backfill). */
+export type PortalAdoptionStats = {
+  /** clientes totales (vivos) del tenant. */
+  totalClients: number;
+  /** con acceso al portal (client_users). */
+  withAccess: number;
+  /** que iniciaron sesión alguna vez (client_users.last_login_at). */
+  loggedIn: number;
+  /** que anunciaron al menos una compra (prealerta). */
+  announced: number;
+  /** candidatos invitables ya (sin acceso + email válido). */
+  candidatesWithEmail: number;
+  /** sin acceso y SIN email válido → el equipo debe capturar contacto. */
+  withoutEmail: number;
+};
+
+/**
+ * Embudo de adopción del portal (adopción · 2026-07-11). Todo por RLS del tenant
+ * (clients + client_users + prealertas); "login" sale de client_users.last_login_at
+ * (no hace falta admin sobre auth.users). Defensivo: ceros si algo falla.
+ */
+export async function getPortalAdoptionStats(
+  supabase: SupabaseClient,
+): Promise<PortalAdoptionStats> {
+  const empty: PortalAdoptionStats = {
+    totalClients: 0,
+    withAccess: 0,
+    loggedIn: 0,
+    announced: 0,
+    candidatesWithEmail: 0,
+    withoutEmail: 0,
+  };
+  try {
+    const [clientsRes, linkedRes, prealertasRes] = await Promise.all([
+      supabase
+        .from("clients")
+        .select("id, markbox, email")
+        .is("deleted_at", null)
+        .limit(5000),
+      supabase
+        .from("client_users")
+        .select("client_id, last_login_at")
+        .limit(5000),
+      supabase
+        .from("prealertas")
+        .select("client_markbox")
+        .is("deleted_at", null)
+        .limit(5000),
+    ]);
+    if (clientsRes.error) throw clientsRes.error;
+    if (linkedRes.error) throw linkedRes.error;
+
+    const clients = (clientsRes.data as { id: string; markbox: string; email: string | null }[] | null) ?? [];
+    const linked = (linkedRes.data as { client_id: string; last_login_at: string | null }[] | null) ?? [];
+    const prealertas = (prealertasRes.data as { client_markbox: string | null }[] | null) ?? [];
+
+    const accessIds = new Set(linked.map((r) => String(r.client_id)));
+    const announcedMarks = new Set(
+      prealertas.map((p) => String(p.client_markbox ?? "")).filter(Boolean),
+    );
+
+    let candidatesWithEmail = 0;
+    let withoutEmail = 0;
+    for (const c of clients) {
+      if (accessIds.has(String(c.id))) continue;
+      const ok =
+        typeof c.email === "string" &&
+        PORTAL_INVITE_EMAIL_RE.test(c.email.trim());
+      if (ok) candidatesWithEmail++;
+      else withoutEmail++;
+    }
+
+    return {
+      totalClients: clients.length,
+      withAccess: accessIds.size,
+      loggedIn: linked.filter((r) => r.last_login_at != null).length,
+      announced: clients.filter((c) => announcedMarks.has(String(c.markbox)))
+        .length,
+      candidatesWithEmail,
+      withoutEmail,
+    };
+  } catch {
+    return empty;
+  }
+}
+
+/** Candidato al backfill de invitaciones al portal (adopción). */
+export type PortalInviteCandidate = {
+  id: string;
+  markbox: string;
+  name: string;
+  email: string;
+  /** heurística: parece cliente demo/prueba → NO auto-seleccionar en el masivo. */
+  isLikelyDemo: boolean;
+};
+
+const PORTAL_INVITE_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const DEMO_NAME_RE = /\b(demo|prueba|test|ejemplo|dummy|qa|sandbox)\b/i;
+const DEMO_EMAIL_RE = /(\+|demo|test|example|dummy|noreply|no-reply)/i;
+
+/** Heurística advisory: ¿parece cliente de prueba? (nombre o correo). */
+function looksLikeDemo(name: string, email: string): boolean {
+  return DEMO_NAME_RE.test(name) || DEMO_EMAIL_RE.test(email);
+}
+
+/**
+ * Clientes SIN acceso al portal (nunca invitados) que TIENEN email válido —
+ * candidatos al backfill (adopción del portal · 2026-07-11). RLS filtra por
+ * tenant en ambas tablas; el diff (clients con email − los que ya tienen
+ * client_users) se hace en memoria. Ordenado por nombre. Los sin email / con
+ * email inválido quedan fuera (no se les puede mandar el magic-link).
+ */
+export async function listPortalInviteCandidates(
+  supabase: SupabaseClient,
+): Promise<PortalInviteCandidate[]> {
+  const [clientsRes, linkedRes] = await Promise.all([
+    supabase
+      .from("clients")
+      .select("id, markbox, name, email")
+      .is("deleted_at", null)
+      .limit(5000),
+    supabase.from("client_users").select("client_id").limit(5000),
+  ]);
+  if (clientsRes.error) throw clientsRes.error;
+  if (linkedRes.error) throw linkedRes.error;
+
+  const hasAccess = new Set(
+    ((linkedRes.data as { client_id: string }[] | null) ?? []).map((r) =>
+      String(r.client_id),
+    ),
+  );
+
+  return ((clientsRes.data as Record<string, unknown>[] | null) ?? [])
+    .filter((c) => !hasAccess.has(String(c.id)))
+    .filter(
+      (c) =>
+        typeof c.email === "string" &&
+        PORTAL_INVITE_EMAIL_RE.test((c.email as string).trim()),
+    )
+    .map((c) => {
+      const name = String(c.name ?? "");
+      const email = String(c.email).trim();
+      return {
+        id: String(c.id),
+        markbox: String(c.markbox ?? ""),
+        name,
+        email,
+        isLikelyDemo: looksLikeDemo(name, email),
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, "es"));
+}
+
 /**
  * Aprobación de portal del cliente (SDD-0042 Fase 5 · gate de activación).
  * `clients.portal_approved_at` — null = pendiente de revisión. El cliente igual

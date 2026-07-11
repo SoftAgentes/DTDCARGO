@@ -35,6 +35,13 @@ import { ImportExportSection } from "./_components/ImportExportSection";
 import { CalculatorSection } from "./_components/calculator/CalculatorSection";
 import { RecepcionAddonsSection } from "./_components/RecepcionAddonsSection";
 import { listPrealertaAddonsConfig } from "@/lib/studio/prealertas/queries";
+import { PortalBackfillSection } from "./_components/PortalBackfillSection";
+import {
+  listPortalInviteCandidates,
+  getPortalAdoptionStats,
+  type PortalInviteCandidate,
+  type PortalAdoptionStats,
+} from "@/lib/studio/client-queries";
 import type { PrealertaAddon } from "@/lib/studio/prealertas/addons";
 import { getNumberingOverview } from "@/lib/studio/numbering-queries";
 import { getRecentAuditEvents } from "@/lib/studio/audit-queries";
@@ -232,6 +239,14 @@ const SECTIONS: AdminSection[] = [
       "Los 7 servicios que el cliente puede pedir sobre su compra al llegar a bodega (verificar, inspeccionar, reempacar, compactar, etiquetar, medir, retener). Prende/apaga cada uno y pega su video de ayuda de YouTube — sin tocar código.",
   },
   {
+    id: "portal-invites",
+    group: "INTERMEDIO",
+    label: "Invitaciones al portal",
+    icon: "users",
+    description:
+      "Adopción: invita por lotes al portal a los clientes que aún no tienen acceso (solo un puñado de tus clientes lo tenía). Filtra, excluye demos y manda las invitaciones por correo en tandas. Envía correos reales.",
+  },
+  {
     id: "numbering",
     group: "INTERMEDIO",
     label: "Numeración & legal",
@@ -333,6 +348,8 @@ export default async function AdminPage({
   let legalData: LegalSectionData | null = null;
   let calcData: { settings: CalculatorSettings | null; cities: CalculatorCity[] } | null = null;
   let addonsData: PrealertaAddon[] | null = null;
+  let inviteCandidates: PortalInviteCandidate[] | null = null;
+  let adoptionStats: PortalAdoptionStats | null = null;
   if (active.id === "legal-docs" || active.id === "acceptances") {
     const supabase = await createClient();
     // RLS ya acota al tenant del admin logueado; listLegalDocs sin tenantId se
@@ -384,6 +401,12 @@ export default async function AdminPage({
   } else if (active.id === "recepcion-addons") {
     const supabase = await createClient();
     addonsData = await listPrealertaAddonsConfig(supabase);
+  } else if (active.id === "portal-invites") {
+    const supabase = await createClient();
+    [inviteCandidates, adoptionStats] = await Promise.all([
+      listPortalInviteCandidates(supabase),
+      getPortalAdoptionStats(supabase),
+    ]);
   }
 
   const grouped = GROUP_ORDER.map((g) => ({
@@ -481,6 +504,8 @@ export default async function AdminPage({
           calcData={calcData}
           calcInitialTab={calcInitialTab}
           addonsData={addonsData}
+          inviteCandidates={inviteCandidates}
+          adoptionStats={adoptionStats}
         />
       </div>
     </div>
@@ -585,6 +610,8 @@ function Content({
   calcData,
   calcInitialTab,
   addonsData,
+  inviteCandidates,
+  adoptionStats,
 }: {
   section: AdminSection;
   companyData: CompanyData | null;
@@ -598,6 +625,8 @@ function Content({
   calcData: { settings: CalculatorSettings | null; cities: CalculatorCity[] } | null;
   calcInitialTab: "parametros" | "ciudades";
   addonsData: PrealertaAddon[] | null;
+  inviteCandidates: PortalInviteCandidate[] | null;
+  adoptionStats: PortalAdoptionStats | null;
 }) {
   return (
     <div key={section.id}>
@@ -674,6 +703,11 @@ function Content({
         />
       ) : section.id === "recepcion-addons" && addonsData ? (
         <RecepcionAddonsSection addons={addonsData} />
+      ) : section.id === "portal-invites" && inviteCandidates ? (
+        <PortalBackfillSection
+          candidates={inviteCandidates}
+          stats={adoptionStats}
+        />
       ) : section.id === "import" && importData ? (
         <ImportExportSection
           calendar={importData.calendar}
