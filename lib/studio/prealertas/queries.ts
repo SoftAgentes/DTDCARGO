@@ -427,6 +427,28 @@ export async function listActivePrealertaAddons(
   }
 }
 
+/**
+ * TODOS los add-ons (activos e inactivos) para el editor de config del Studio
+ * (SDD-0098 · PORT-6). Merge "DB pisa, código respalda" sin filtrar por activo.
+ * Defensivo: los 7 defaults si la tabla no existe.
+ */
+export async function listPrealertaAddonsConfig(
+  supabase: SupabaseClient,
+): Promise<PrealertaAddon[]> {
+  try {
+    const { data, error } = await supabase
+      .from("prealerta_addons")
+      .select(
+        "code, label, description, notas_placeholder, consent_text, video_url, multi_tracking, sort, is_active",
+      )
+      .limit(50);
+    if (error) throw error;
+    return mergePrealertaAddons((data as PrealertaAddonRow[] | null) ?? []);
+  } catch {
+    return mergePrealertaAddons([]);
+  }
+}
+
 // ── Solicitudes de servicio (prealerta_service_requests · migr 0150) ─────
 
 const PSR_COLUMNS =
