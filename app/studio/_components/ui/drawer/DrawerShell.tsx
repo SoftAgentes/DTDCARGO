@@ -1,15 +1,22 @@
 "use client";
 
 /**
- * DrawerShell + DrawerFooter — scaffolding compartido para drawers laterales.
+ * DrawerShell + DrawerFooter — scaffolding compartido para drawers y modales.
  *
  * Extraído de TMS (SDD-0019) para que cualquier módulo lo use con el mismo
- * patrón: backdrop scrim, panel a la derecha, header con título + cerrar,
- * footer con form="..." HTML5 estándar (sin requestSubmit hacks).
+ * patrón: backdrop scrim, panel (lateral o centrado), header con título +
+ * cerrar, footer con form="..." HTML5 estándar (sin requestSubmit hacks).
+ *
+ * A11y (Fase C · rediseño ERP): focus-trap (Tab cicla dentro), Escape para
+ * cerrar, foco inicial al panel, restauración de foco al desmontar,
+ * `overscroll-behavior:contain`. Cualquier modal `role="dialog"` del Studio
+ * debe usar este shell en vez de hand-rollear scrim + stopPropagation.
  */
 
+import { useId, useRef } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import { useT } from "@/lib/i18n";
+import { useDialogA11y } from "./useDialogA11y";
 
 export function DrawerShell({
   title,
@@ -19,42 +26,65 @@ export function DrawerShell({
   children,
   width = 620,
   closeLabel,
+  variant = "drawer",
+  titleAccessory,
 }: {
   title: string;
-  subtitle?: string;
+  subtitle?: React.ReactNode;
   onClose: () => void;
   pending: boolean;
   children: React.ReactNode;
   width?: number;
   /** aria-label del botón cerrar. Default: traducido `chrome.action.close`. */
   closeLabel?: string;
+  /** `drawer` = panel lateral derecho (default). `centered` = modal centrado. */
+  variant?: "drawer" | "centered";
+  /** Nodo inline a la derecha del título (ej. un badge de estado). */
+  titleAccessory?: React.ReactNode;
 }) {
   const t = useT();
+  const titleId = useId();
+  const panelRef = useRef<HTMLElement>(null);
+
+  useDialogA11y(panelRef, { onClose, pending });
+
+  const centered = variant === "centered";
+
   return (
     <div
       onClick={() => !pending && onClose()}
-      role="dialog"
-      aria-modal="true"
       style={{
         position: "fixed",
         inset: 0,
         background: "var(--scrim)",
         zIndex: 100,
         display: "flex",
-        justifyContent: "flex-end",
+        justifyContent: centered ? "center" : "flex-end",
+        alignItems: centered ? "center" : "stretch",
+        padding: centered ? "var(--s-4)" : 0,
+        overscrollBehavior: "contain",
       }}
     >
       <aside
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         style={{
           width: `min(${width}px, 96vw)`,
-          height: "100vh",
+          height: centered ? "auto" : "100vh",
+          maxHeight: centered ? "90vh" : undefined,
           background: "var(--bg-surface)",
-          borderLeft: "1px solid var(--border)",
+          border: centered ? "1px solid var(--border)" : undefined,
+          borderLeft: centered ? undefined : "1px solid var(--border)",
+          borderRadius: centered ? "var(--r-lg)" : undefined,
           boxShadow: "var(--shadow-pop)",
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
+          outline: "none",
         }}
       >
         <header
@@ -68,15 +98,19 @@ export function DrawerShell({
             flexShrink: 0,
           }}
         >
-          <div>
-            <h2
-              className="studio-display"
-              style={{ fontSize: 18, margin: 0, color: "var(--ink)" }}
-            >
-              {title}
-            </h2>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <h2
+                id={titleId}
+                className="studio-display"
+                style={{ fontSize: 18, margin: 0, color: "var(--ink)" }}
+              >
+                {title}
+              </h2>
+              {titleAccessory}
+            </div>
             {subtitle && (
-              <p
+              <div
                 style={{
                   font: "500 11.5px/1.3 var(--f-sans)",
                   color: "var(--ink-soft)",
@@ -84,7 +118,7 @@ export function DrawerShell({
                 }}
               >
                 {subtitle}
-              </p>
+              </div>
             )}
           </div>
           <button

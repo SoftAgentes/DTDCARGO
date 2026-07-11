@@ -366,7 +366,8 @@ function VariantBtn({
         color: active ? "var(--bg-surface)" : "var(--ink-soft)",
         font: "700 11px/1 var(--f-sans)",
         cursor: "pointer",
-        transition: "all var(--dur-fast) var(--ease)",
+        transition:
+          "border-color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease)",
       }}
     >
       {label}

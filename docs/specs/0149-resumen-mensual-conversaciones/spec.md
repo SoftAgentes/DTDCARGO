@@ -94,7 +94,15 @@ actividad ese mes, **no se guarda nada**.
   (`ConversationThread`): sección "Historial de resúmenes", lista cronológica (reciente
   primero) con período + resumen + nº de mensajes. La API `/api/studio/conversaciones/[id]`
   suma `digests` (`listClientConversationDigests`). Solo lectura; vacío hasta el 1er cron.
-- **Fase 3 (opcional)** — exponer el resumen al cliente en el portal.
+- **Fase 3 — exponer el resumen al cliente en el portal (implementada)**: el `summary`
+  interno NO se reusa (está escrito para el asesor). El cron genera un SEGUNDO resumen
+  **client-facing** (2ª persona, cálido, sin notas internas) vía
+  `summarizeMonthThreadForClient`, guardado en la columna nueva
+  `conversation_monthly_digests.client_summary` (migración 0224, nullable). El portal
+  (`/portal/soporte`) muestra "Tu conversación, mes a mes" leyendo SOLO `client_summary`
+  vía `listPortalConversationDigests` (admin scopeado por client_id, nunca expone el
+  interno). Best-effort: si la IA del cliente falla, se guarda el interno igual y el
+  portal no muestra ese mes.
 
 ## Verificación
 

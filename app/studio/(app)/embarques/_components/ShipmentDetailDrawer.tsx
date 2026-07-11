@@ -10,7 +10,6 @@
  */
 
 import Link from "next/link";
-import { useEffect } from "react";
 import {
   SERVICE_LABELS,
   STATUS_LABELS,
@@ -18,7 +17,7 @@ import {
 } from "@/lib/studio/shipment-types";
 import type { ShipmentListRow } from "@/lib/studio/shipment-queries";
 import { Badge } from "@/app/studio/_components/ui/Badge";
-import { Icon } from "@/app/studio/_components/icons";
+import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 
 function statusBadgeTone(
   status: ShipmentStatus,
@@ -46,100 +45,14 @@ export function ShipmentDetailDrawer({
   shipment: ShipmentListRow;
   onClose: () => void;
 }) {
-  // Cerrar con Esc
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
   return (
-    <div
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="ship-drawer-title"
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15, 30, 61, 0.55)",
-        zIndex: 100,
-        display: "flex",
-        justifyContent: "flex-end",
-      }}
+    <DrawerShell
+      title="Detalle del envío"
+      subtitle={shipment.code}
+      onClose={onClose}
+      pending={false}
+      width={560}
     >
-      <aside
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "min(560px, 96vw)",
-          height: "100vh",
-          background: "var(--bg-surface)",
-          borderLeft: "1px solid var(--border)",
-          boxShadow: "var(--shadow-pop)",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
-        {/* Header */}
-        <header
-          style={{
-            padding: "18px 22px",
-            borderBottom: "1px solid var(--border)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: "var(--s-3)",
-            flexShrink: 0,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--s-1)",
-              minWidth: 0,
-            }}
-          >
-            <h2
-              id="ship-drawer-title"
-              className="studio-display"
-              style={{ fontSize: 18, margin: 0, color: "var(--ink)" }}
-            >
-              Detalle del envío
-            </h2>
-            <div
-              style={{
-                font: "700 12px/1 var(--f-mono)",
-                color: "var(--ink-soft)",
-                letterSpacing: "0.02em",
-              }}
-            >
-              {shipment.code}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            style={{
-              width: 32,
-              height: 32,
-              display: "grid",
-              placeItems: "center",
-              borderRadius: "var(--r-sm)",
-              color: "var(--ink-soft)",
-              background: "transparent",
-              cursor: "pointer",
-              flexShrink: 0,
-            }}
-          >
-            {Icon.close(14)}
-          </button>
-        </header>
-
         {/* Body */}
         <div
           style={{
@@ -272,8 +185,7 @@ export function ShipmentDetailDrawer({
             Ir al tracking →
           </Link>
         </footer>
-      </aside>
-    </div>
+    </DrawerShell>
   );
 }
 
