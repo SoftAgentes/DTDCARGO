@@ -36,7 +36,7 @@
 |---|---|
 | Nombre (schema `name`) | DTD Cargo |
 | `alternateName` | DoorTuDoor · Doortudoor Services |
-| Sede Venezuela | Edificio Kokuy, Av. Bolívar Norte — Valencia, Carabobo, VE |
+| Sede Venezuela | Edificio Kokuy, Calle 151 (entre Av. Bolívar Norte y Av. Paseo Cabriales) — Valencia, Carabobo, VE · CP 2001 · GPS 10.220449, -68.008481 |
 | Bodega China | Yiwu Port Phase II, Warehouse 2, No. 2 (Cargo 7-11) — Yiwu, Zhejiang, CN |
 | Teléfono público primario | +58 412 166 8021 (CRM WhatsApp) |
 | Teléfono público secundario | +58 241 414 7886 (Fijo Valencia) |
