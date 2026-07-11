@@ -110,16 +110,22 @@ export function CalculadoraForm({
     dims.cajas,
   );
 
-  // Form efectivo que alimenta el cálculo: con el panel abierto, el CBM total
-  // viene de las medidas; cerrado, del valor escrito a mano en `form`.
-  const effectiveForm: EnvioInput = cbmPanelOpen
-    ? { ...form, cbmTotal: cbmDesdeMedidas }
-    : form;
+  // Form efectivo que alimenta el cálculo: con el panel abierto Y con medidas
+  // válidas (cbmDesdeMedidas > 0), el CBM total viene de las medidas. Si el panel
+  // está abierto pero aún NO hay medidas, se conserva el CBM manual de `form` —
+  // así abrir el panel por curiosidad no borra ni oculta un valor ya escrito
+  // (bug "a veces no muestra el cálculo": abrir/cerrar el panel sin medir dejaba
+  // el CBM en 0 y el estimado desaparecía).
+  const effectiveForm: EnvioInput =
+    cbmPanelOpen && cbmDesdeMedidas > 0
+      ? { ...form, cbmTotal: cbmDesdeMedidas }
+      : form;
 
-  // Cerrar el panel: congela el último CBM calculado en el form (queda editable
-  // a mano) y libera el campo. Abrir: solo despliega; el CBM lo deriva el render.
+  // Cerrar el panel: congela el CBM calculado SOLO si hubo medidas (> 0); si no,
+  // deja intacto el valor manual previo. Abrir: solo despliega; el CBM lo deriva
+  // el render cuando haya medidas.
   function toggleCbmPanel(open: boolean) {
-    if (!open) update("cbmTotal", cbmDesdeMedidas);
+    if (!open && cbmDesdeMedidas > 0) update("cbmTotal", cbmDesdeMedidas);
     setCbmPanelOpen(open);
   }
 
@@ -280,7 +286,13 @@ export function CalculadoraForm({
               placeholder="12"
               warning={cbmWarning}
               readOnly={cbmPanelOpen}
-              tag={cbmPanelOpen ? "auto · medidas" : undefined}
+              // El tag "auto · medidas" solo cuando el valor DE VERDAD viene de
+              // las medidas (cbmDesdeMedidas > 0). Con el panel abierto pero aún
+              // sin medir, el campo muestra el CBM manual conservado → poner el
+              // tag ahí sería engañoso (implica derivado cuando no lo es).
+              tag={
+                cbmPanelOpen && cbmDesdeMedidas > 0 ? "auto · medidas" : undefined
+              }
             />
             <BigInput
               label="Peso total"

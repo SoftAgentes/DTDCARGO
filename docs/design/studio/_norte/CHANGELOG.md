@@ -1,5 +1,13 @@
 # Changelog · v1.1+
 
+## 2026-07-11 · 📡 Producto → Norte · corte de realidad (desde Claude Code)
+
+Anotación desde el repo de producción (no es entrega de diseño): fix de un bug de interacción en el panel **"CBM por medidas"** de la Calculadora pública LCL (`/calculadora`; diseño en `HANDOFF-CBM-MEDIDAS.md`). Sin cambios visuales ni de marca; no toca la versión visible.
+- **Síntoma:** *"a veces no muestra el cálculo"* — abrir/cerrar el panel de medidas **sin medir** pisaba el CBM escrito a mano con 0 → el estimado desaparecía.
+- **Fix:** `cbmDesdeMedidas` solo reemplaza el CBM manual cuando hay medidas reales (`> 0`); abrir el panel por curiosidad ya no borra ni oculta un valor ya escrito. El tag **"auto · medidas"** también se muestra solo cuando el valor de verdad viene de las medidas (antes mentía sobre un CBM manual conservado).
+- **Blindaje:** e2e de regresión (`e2e/calculadora.spec.ts`, guard probado rojo→verde) + e2e **cableado al gate** (`scripts/verify.mjs`, reusa el dev server del worktree o levanta el suyo). Barrido adversarial 29/29 (cargas × switches × ciudad × transiciones) contra la lógica de producción — sin bugs nuevos.
+- Lo histórico no se reescribe; este corte solo anota realidad de producto sobre el Norte vigente.
+
 ## 2026-07-02 · 📡 Producto → Norte · corte de realidad (desde Claude Code)
 
 Anotación desde el repo de producción (no es entrega de diseño): se actualizó el bloque
