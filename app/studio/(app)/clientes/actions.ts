@@ -120,21 +120,25 @@ export async function createClientAction(
     };
   }
 
-  const { error } = await supabase.from("clients").insert({
-    tenant_id: link.tenant_id,
-    markbox,
-    name: input!.name,
-    contact_name: input!.contact_name,
-    email: input!.email,
-    phone: input!.phone,
-    address: input!.address,
-    rif: input!.rif,
-    doc_kind: input!.doc_kind,
-    tier: input!.tier,
-    notes: input!.notes,
-    lat: input!.lat,
-    lng: input!.lng,
-  });
+  const { data: created, error } = await supabase
+    .from("clients")
+    .insert({
+      tenant_id: link.tenant_id,
+      markbox,
+      name: input!.name,
+      contact_name: input!.contact_name,
+      email: input!.email,
+      phone: input!.phone,
+      address: input!.address,
+      rif: input!.rif,
+      doc_kind: input!.doc_kind,
+      tier: input!.tier,
+      notes: input!.notes,
+      lat: input!.lat,
+      lng: input!.lng,
+    })
+    .select("id")
+    .single<{ id: string }>();
 
   if (error) {
     // Unique-violation del índice clients_tenant_doc_unique (documento normalizado
@@ -146,7 +150,7 @@ export async function createClientAction(
   }
 
   // SDD-0032: Email de bienvenida (soft · no rompe creación si falla)
-  let warning: string | undefined;
+  const warnings: string[] = [];
   if (input!.email) {
     const admin = createAdminClient();
     const welcome = await sendWelcomeEmail(admin, link.tenant_id, {
@@ -155,13 +159,48 @@ export async function createClientAction(
       email: input!.email,
     });
     if (!welcome.ok) {
-      warning = `Email de bienvenida no se pudo encolar: ${welcome.error}`;
+      warnings.push(`Email de bienvenida no se pudo encolar: ${welcome.error}`);
       console.warn("[createClientAction] welcome email failed:", welcome.error);
+    }
+
+    // Adopción del portal (founder 2026-07-10): el cliente creado por el equipo
+    // recibe acceso al portal + invitación con magic-link, igual que un
+    // auto-registro. Arregla la fuga (antes el acceso se daba a mano, 1×1 → 23/397).
+    // Best-effort: NUNCA rompe la creación del cliente.
+    if (created?.id) {
+      const { data: inv, error: invErr } = await supabase.rpc(
+        "portal_invite_client",
+        { p_client_id: created.id },
+      );
+      if (invErr) {
+        warnings.push(
+          `Cliente creado, pero no se pudo habilitar el portal automáticamente: ${invErr.message}`,
+        );
+        console.warn("[createClientAction] portal invite failed:", invErr.message);
+      } else {
+        const row = (Array.isArray(inv) ? inv[0] : inv) as
+          | { client_email?: string }
+          | null;
+        const inviteEmail = row?.client_email ?? input!.email;
+        const sent = await sendPortalInviteEmail(admin, link.tenant_id, {
+          email: inviteEmail,
+          name: input!.name,
+        });
+        if (!sent.ok) {
+          warnings.push(
+            `Portal habilitado, pero el correo de invitación no salió: ${sent.error}`,
+          );
+        }
+      }
     }
   }
 
   revalidatePath("/studio/clientes");
-  return { ok: true, createdMarkbox: markbox, warning };
+  return {
+    ok: true,
+    createdMarkbox: markbox,
+    warning: warnings.length ? warnings.join(" · ") : undefined,
+  };
 }
 
 export async function updateClientAction(
