@@ -61,8 +61,8 @@ export function PortalDashboard({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* SDD-0057 — "Nueva compra · = prealerta" (control único del portal). */}
-          <NewPurchaseButton href="/portal/proveedores" />
+          {/* "Nueva compra" pasó al CTA educativo de abajo (adopción); acá queda
+              solo la acción secundaria. */}
           <Link
             href="/portal/cotizaciones/nueva"
             className="btn btn-ghost inline-flex items-center gap-1.5"
@@ -71,6 +71,9 @@ export function PortalDashboard({
           </Link>
         </div>
       </div>
+
+      {/* ── CTA "Anuncia tu compra" (adopción · el embudo arranca acá) ── */}
+      <AnunciarCompraCTA />
 
       {/* ── Próximo arribo (DEGRADADO: sin contenedor/buque/progreso/mapa) ── */}
       {nextArrival ? <NextArrivalCard arrival={nextArrival} /> : null}
@@ -184,6 +187,53 @@ export function PortalDashboard({
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * CTA "Anuncia tu compra" — el paso que arranca el flujo China→VE (SDD-0057).
+ * El embudo estaba seco (2 compras en 397 clientes): el punto de entrada vivía
+ * enterrado como sub-pestaña dentro de "Mis envíos". Esta card lo sube al inicio
+ * y EXPLICA el valor, atacando el hábito de avisar por WhatsApp. Reusa el control
+ * único NewPurchaseButton (misma acción que en /proveedores y /compras).
+ */
+function AnunciarCompraCTA() {
+  return (
+    <section
+      className="mt-7 card-shadow bg-white border border-grey-200 rounded-[18px] border-l-[3px] p-6 sm:p-7"
+      style={{ borderLeftColor: "var(--color-wine)" }}
+      aria-labelledby="cta-anunciar-compra"
+    >
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+        <div className="min-w-0">
+          <div className="text-[11px] font-bold tracking-[0.16em] uppercase text-wine">
+            Anuncia tu compra
+          </div>
+          <h2
+            id="cta-anunciar-compra"
+            className="h-display mt-2"
+            style={{ fontSize: "clamp(19px, 2.4vw, 24px)" }}
+          >
+            ¿Compraste en China? Cuéntanos qué viene.
+          </h2>
+          <p className="mt-2 text-[13.5px] text-grey-700 leading-[1.55] max-w-[60ch]">
+            Anúnciala y la esperamos en bodega para atarla a tu envío: con qué
+            proveedor viene y qué trae. Así no tienes que avisarnos por WhatsApp
+            cada vez, y puedes pedir servicios como verificar, medir o consolidar
+            antes de que llegue.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2.5 flex-shrink-0">
+          <NewPurchaseButton href="/portal/proveedores" />
+          <Link
+            href="/portal/proveedores"
+            className="text-[13px] font-bold text-wine hover:underline inline-flex items-center gap-1.5"
+          >
+            Ver mis compras <ArrowIcon size={14} />
+          </Link>
+        </div>
+      </div>
+    </section>
   );
 }
 
