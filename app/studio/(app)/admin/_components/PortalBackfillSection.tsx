@@ -491,6 +491,26 @@ function CandidateRow({
 
   const stop = (e: MouseEvent) => e.stopPropagation();
 
+  // Editar cliente inline (corregir teléfono/correo mal importados) — reusa la action
+  // de captura de contacto (update parcial de email/phone, no toca el resto del cliente).
+  const [editing, setEditing] = useState(false);
+  const [editEmail, setEditEmail] = useState(c.email);
+  const [editPhone, setEditPhone] = useState(c.phone);
+  const [editState, editAction, editPending] = useActionState<
+    ContactCaptureState,
+    FormData
+  >(updateClientContactAction, {});
+  useEffect(() => {
+    if (editState.ok) setEditing(false);
+  }, [editState.ok]);
+
+  function openEdit(e: MouseEvent) {
+    stop(e);
+    setEditEmail(c.email);
+    setEditPhone(c.phone);
+    setEditing((v) => !v);
+  }
+
   return (
     <div
       style={{
@@ -568,14 +588,42 @@ function CandidateRow({
         </span>
         <span
           style={{
-            font: "500 12px/1.3 var(--f-mono)",
-            color: c.phone ? "var(--ink-soft)" : "var(--ink-mute)",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            minWidth: 0,
           }}
         >
-          {fmtPhone(c.phone)}
+          <span
+            style={{
+              font: "500 12px/1.3 var(--f-mono)",
+              color: c.phone ? "var(--ink-soft)" : "var(--ink-mute)",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {fmtPhone(c.phone)}
+          </span>
+          <button
+            type="button"
+            onClick={openEdit}
+            title="Actualizar cliente (correo / teléfono)"
+            aria-label={`Actualizar ${c.name}`}
+            style={{
+              flexShrink: 0,
+              appearance: "none",
+              cursor: "pointer",
+              border: "1px solid var(--border)",
+              background: editing ? "var(--wine-tint)" : "var(--bg-elevated)",
+              borderRadius: "var(--r-sm)",
+              color: "var(--ink-soft)",
+              font: "600 11px/1 var(--f-sans)",
+              padding: "3px 6px",
+            }}
+          >
+            ✎
+          </button>
         </span>
         {/* Celda WhatsApp — no togglea la selección al interactuar. */}
         <span onClick={stop} style={{ cursor: "default" }}>
@@ -609,6 +657,61 @@ function CandidateRow({
           )}
         </span>
       </div>
+      {editing && (
+        <form
+          action={editAction}
+          onClick={stop}
+          style={{
+            display: "flex",
+            gap: 8,
+            alignItems: "center",
+            flexWrap: "wrap",
+            padding: "0 20px 12px 54px",
+          }}
+        >
+          <input type="hidden" name="client_id" value={c.id} />
+          <input
+            name="email"
+            type="email"
+            value={editEmail}
+            onChange={(e) => setEditEmail(e.target.value)}
+            placeholder="correo@cliente.com"
+            aria-label="Correo"
+            className="studio-input studio-input-mono"
+            style={{ height: 30, minWidth: 200, font: "500 12px/1 var(--f-mono)" }}
+          />
+          <input
+            name="phone"
+            type="tel"
+            value={editPhone}
+            onChange={(e) => setEditPhone(e.target.value)}
+            placeholder="+58 4XX…"
+            aria-label="Teléfono"
+            className="studio-input studio-input-mono"
+            style={{ height: 30, minWidth: 150, font: "500 12px/1 var(--f-mono)" }}
+          />
+          <button
+            type="submit"
+            disabled={editPending}
+            className="studio-btn studio-btn-primary studio-btn-xs"
+          >
+            {editPending ? "Guardando…" : "Guardar"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            disabled={editPending}
+            className="studio-btn studio-btn-ghost studio-btn-xs"
+          >
+            Cancelar
+          </button>
+          {editState.error && (
+            <span style={{ font: "600 11.5px/1.4 var(--f-sans)", color: "var(--danger)" }}>
+              {editState.error}
+            </span>
+          )}
+        </form>
+      )}
       {(waHref || err) && (
         <div style={{ padding: "0 20px 10px 54px" }}>
           {err ? (
@@ -1023,6 +1126,25 @@ function ColdRow({
   }
 
   const stop = (e: MouseEvent) => e.stopPropagation();
+
+  // Editar cliente inline (corregir teléfono/correo) — reusa la action de captura.
+  const [editing, setEditing] = useState(false);
+  const [editEmail, setEditEmail] = useState(c.email);
+  const [editPhone, setEditPhone] = useState(c.phone);
+  const [editState, editAction, editPending] = useActionState<
+    ContactCaptureState,
+    FormData
+  >(updateClientContactAction, {});
+  useEffect(() => {
+    if (editState.ok) setEditing(false);
+  }, [editState.ok]);
+  function openEdit(e: MouseEvent) {
+    stop(e);
+    setEditEmail(c.email);
+    setEditPhone(c.phone);
+    setEditing((v) => !v);
+  }
+
   const age =
     c.daysCold <= 0
       ? "hoy"
@@ -1099,15 +1221,38 @@ function ColdRow({
           {c.markbox || "—"}
         </code>
         <span
-          style={{
-            font: "500 12px/1.3 var(--f-mono)",
-            color: c.phone ? "var(--ink-soft)" : "var(--ink-mute)",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
+          style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}
         >
-          {fmtPhone(c.phone)}
+          <span
+            style={{
+              font: "500 12px/1.3 var(--f-mono)",
+              color: c.phone ? "var(--ink-soft)" : "var(--ink-mute)",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {fmtPhone(c.phone)}
+          </span>
+          <button
+            type="button"
+            onClick={openEdit}
+            title="Actualizar cliente (correo / teléfono)"
+            aria-label={`Actualizar ${c.name}`}
+            style={{
+              flexShrink: 0,
+              appearance: "none",
+              cursor: "pointer",
+              border: "1px solid var(--border)",
+              background: editing ? "var(--wine-tint)" : "var(--bg-elevated)",
+              borderRadius: "var(--r-sm)",
+              color: "var(--ink-soft)",
+              font: "600 11px/1 var(--f-sans)",
+              padding: "3px 6px",
+            }}
+          >
+            ✎
+          </button>
         </span>
         <span
           title={`Invitado ${age}, sin abrir`}
@@ -1175,6 +1320,61 @@ function ColdRow({
           )}
         </span>
       </div>
+      {editing && (
+        <form
+          action={editAction}
+          onClick={stop}
+          style={{
+            display: "flex",
+            gap: 8,
+            alignItems: "center",
+            flexWrap: "wrap",
+            padding: "0 20px 12px 54px",
+          }}
+        >
+          <input type="hidden" name="client_id" value={c.id} />
+          <input
+            name="email"
+            type="email"
+            value={editEmail}
+            onChange={(e) => setEditEmail(e.target.value)}
+            placeholder="correo@cliente.com"
+            aria-label="Correo"
+            className="studio-input studio-input-mono"
+            style={{ height: 30, minWidth: 200, font: "500 12px/1 var(--f-mono)" }}
+          />
+          <input
+            name="phone"
+            type="tel"
+            value={editPhone}
+            onChange={(e) => setEditPhone(e.target.value)}
+            placeholder="+58 4XX…"
+            aria-label="Teléfono"
+            className="studio-input studio-input-mono"
+            style={{ height: 30, minWidth: 150, font: "500 12px/1 var(--f-mono)" }}
+          />
+          <button
+            type="submit"
+            disabled={editPending}
+            className="studio-btn studio-btn-primary studio-btn-xs"
+          >
+            {editPending ? "Guardando…" : "Guardar"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            disabled={editPending}
+            className="studio-btn studio-btn-ghost studio-btn-xs"
+          >
+            Cancelar
+          </button>
+          {editState.error && (
+            <span style={{ font: "600 11.5px/1.4 var(--f-sans)", color: "var(--danger)" }}>
+              {editState.error}
+            </span>
+          )}
+        </form>
+      )}
       {(waHref || err || confirming) && (
         <div style={{ padding: "0 20px 10px 54px" }}>
           {err ? (
