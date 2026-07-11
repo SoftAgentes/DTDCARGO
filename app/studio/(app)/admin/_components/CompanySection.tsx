@@ -250,7 +250,7 @@ function CardEyebrow({ children }: { children: React.ReactNode }) {
   return (
     <div
       className="studio-eyebrow"
-      style={{ color: "var(--wine)", marginBottom: 14 }}
+      style={{ color: "var(--wine-text)", marginBottom: 14 }}
     >
       {children}
     </div>
@@ -294,7 +294,7 @@ function Field({
 
 const editLinkStyle: React.CSSProperties = {
   font: "600 11.5px/1 var(--f-sans)",
-  color: "var(--wine)",
+  color: "var(--wine-text)",
   justifySelf: "end",
   background: "transparent",
   border: 0,

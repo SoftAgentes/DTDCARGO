@@ -583,7 +583,7 @@ function FieldLink({
           font: mono
             ? "600 13px/1.3 var(--f-mono)"
             : "500 13px/1.4 var(--f-sans)",
-          color: "var(--wine)",
+          color: "var(--wine-text)",
           textDecoration: "none",
         }}
       >

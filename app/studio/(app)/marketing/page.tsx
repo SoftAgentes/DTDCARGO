@@ -136,7 +136,7 @@ export default async function MarketingPage() {
       <div style={{ marginBottom: 28 }}>
         <div
           className="studio-eyebrow"
-          style={{ marginBottom: 10, color: "var(--wine)" }}
+          style={{ marginBottom: 10, color: "var(--wine-text)" }}
         >
           MARKETING · {eyebrowDateVE(now)}
         </div>
@@ -144,7 +144,7 @@ export default async function MarketingPage() {
           className="studio-display"
           style={{ fontSize: 30, margin: "0 0 var(--s-2)", color: "var(--ink)" }}
         >
-          {greeting}, <span style={{ color: "var(--wine)" }}>{subject}</span>.
+          {greeting}, <span style={{ color: "var(--wine-text)" }}>{subject}</span>.
         </h1>
         <p
           style={{
@@ -248,7 +248,7 @@ export default async function MarketingPage() {
                       alignItems: "center",
                       justifyContent: "center",
                       background: "var(--wine-tint)",
-                      color: "var(--wine)",
+                      color: "var(--wine-text)",
                       opacity: soon ? 0.55 : 1,
                     }}
                   >
@@ -300,7 +300,7 @@ export default async function MarketingPage() {
             gap: 16,
           }}
         >
-          <span style={{ color: "var(--wine)", flexShrink: 0 }}>
+          <span style={{ color: "var(--wine-text)", flexShrink: 0 }}>
             {Icon.spark(22)}
           </span>
           <div style={{ flex: 1 }}>

@@ -202,7 +202,7 @@ export function ReclamosClient({
           label="Monto expuesto"
           value={USD(kpis.exposed_usd)}
           sub="reclamos abiertos"
-          valueColor="var(--wine)"
+          valueColor="var(--wine-text)"
           highlightWhenPositive={false}
         />
         <KpiCard
@@ -384,7 +384,7 @@ function ClaimsTable({
                   style={{
                     padding: "12px 14px",
                     font: "600 12px/1 var(--f-mono)",
-                    color: "var(--wine)",
+                    color: "var(--wine-text)",
                     whiteSpace: "nowrap",
                   }}
                 >
@@ -574,7 +574,7 @@ function ClaimDetail({
           <div
             style={{
               font: "800 26px/1 var(--f-display)",
-              color: "var(--wine)",
+              color: "var(--wine-text)",
               marginTop: 6,
             }}
           >

@@ -460,7 +460,7 @@ function SplitActionMenu({
               <span
                 style={{
                   font: "700 9px/1 var(--f-sans)",
-                  color: "var(--wine)",
+                  color: "var(--wine-text)",
                   letterSpacing: "0.12em",
                   textTransform: "uppercase",
                 }}

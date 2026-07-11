@@ -344,7 +344,7 @@ export function StudioSidebar({
               justifyContent: "center",
               borderRadius: 9,
               background: "var(--warning)",
-              color: "var(--ink)",
+              color: "var(--on-warning)",
               font: "800 10px/1 var(--f-mono)",
               flexShrink: 0,
             }}

@@ -164,7 +164,7 @@ export function RateDrawer({ mode, rate, onClose }: Props) {
           {/* Servicio */}
           <div>
             <label className="studio-label" htmlFor="service">
-              Servicio <span style={{ color: "var(--wine)" }}>*</span>
+              Servicio <span style={{ color: "var(--wine-text)" }}>*</span>
             </label>
             <select
               id="service"
@@ -195,7 +195,7 @@ export function RateDrawer({ mode, rate, onClose }: Props) {
           >
             <div>
               <label className="studio-label" htmlFor="origin">
-                Origen <span style={{ color: "var(--wine)" }}>*</span>
+                Origen <span style={{ color: "var(--wine-text)" }}>*</span>
               </label>
               <input
                 id="origin"
@@ -212,7 +212,7 @@ export function RateDrawer({ mode, rate, onClose }: Props) {
             </div>
             <div>
               <label className="studio-label" htmlFor="destination">
-                Destino <span style={{ color: "var(--wine)" }}>*</span>
+                Destino <span style={{ color: "var(--wine-text)" }}>*</span>
               </label>
               <input
                 id="destination"
@@ -233,7 +233,7 @@ export function RateDrawer({ mode, rate, onClose }: Props) {
           {mode$ === "per_cbm" ? (
             <div>
               <label className="studio-label" htmlFor="per_cbm">
-                Tarifa por CBM (USD) <span style={{ color: "var(--wine)" }}>*</span>
+                Tarifa por CBM (USD) <span style={{ color: "var(--wine-text)" }}>*</span>
               </label>
               <NumericInput
                 id="per_cbm"
@@ -258,7 +258,7 @@ export function RateDrawer({ mode, rate, onClose }: Props) {
             <div>
               <label className="studio-label" htmlFor="flat_rate">
                 Tarifa flat por contenedor (USD){" "}
-                <span style={{ color: "var(--wine)" }}>*</span>
+                <span style={{ color: "var(--wine-text)" }}>*</span>
               </label>
               <NumericInput
                 id="flat_rate"

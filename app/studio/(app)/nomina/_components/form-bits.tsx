@@ -20,7 +20,7 @@ export function Field({
     <div style={{ flex: 1, minWidth: 0 }}>
       <label className="studio-label">
         {label}
-        {required && <span style={{ color: "var(--wine)" }}> *</span>}
+        {required && <span style={{ color: "var(--wine-text)" }}> *</span>}
       </label>
       {children}
       {error && (

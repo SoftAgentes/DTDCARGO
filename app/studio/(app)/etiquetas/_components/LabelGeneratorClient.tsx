@@ -264,14 +264,14 @@ function LabelGeneratorInner({
             >
               <div
                 className="studio-eyebrow"
-                style={{ color: "var(--wine)", marginBottom: "var(--s-1)" }}
+                style={{ color: "var(--wine-text)", marginBottom: "var(--s-1)" }}
               >
                 Shipping Mark
               </div>
               <code
                 style={{
                   font: "900 20px/1 var(--f-mono)",
-                  color: "var(--wine)",
+                  color: "var(--wine-text)",
                 }}
               >
                 {client.markbox}
@@ -511,7 +511,7 @@ function LabelGeneratorInner({
                 style={{
                   marginTop: "var(--s-1)",
                   font: "600 11px/1 var(--f-mono)",
-                  color: "var(--wine)",
+                  color: "var(--wine-text)",
                 }}
               >
                 {startBox}/{totalBoxes} → {totalBoxes}/{totalBoxes}
@@ -768,7 +768,7 @@ function Card({
     >
       <div
         className="studio-eyebrow"
-        style={{ color: "var(--wine)", marginBottom: 10 }}
+        style={{ color: "var(--wine-text)", marginBottom: 10 }}
       >
         {eyebrow}
       </div>

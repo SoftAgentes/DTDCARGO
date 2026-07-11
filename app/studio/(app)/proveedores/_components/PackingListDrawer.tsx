@@ -82,7 +82,7 @@ export function PackingListDrawer({
           <div>
             <span style={label}>Compra</span>
             <code
-              style={{ font: "700 12px/1.3 var(--f-mono)", color: "var(--wine)" }}
+              style={{ font: "700 12px/1.3 var(--f-mono)", color: "var(--wine-text)" }}
             >
               {prealertaCode ?? "—"}
             </code>

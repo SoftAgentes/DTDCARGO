@@ -302,7 +302,7 @@ export function ActaReview({
       </button>
 
       <div style={{ marginBottom: 18 }}>
-        <div className="studio-eyebrow" style={{ color: "var(--wine)" }}>
+        <div className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
           Revisar y confirmar
         </div>
         <p
@@ -711,7 +711,7 @@ function VinculoPanel({
         gap: 10,
       }}
     >
-      <div className="studio-eyebrow" style={{ color: "var(--wine)" }}>
+      <div className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
         Vínculo con cliente
       </div>
       <div style={{ font: "500 12.5px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
@@ -833,7 +833,7 @@ function EscuchaPanel({
     >
       <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--s-3)", flexWrap: "wrap" }}>
         <div>
-          <div className="studio-eyebrow" style={{ color: "var(--wine)" }}>
+          <div className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
             Escucha Activa · privado
           </div>
           <p style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: "5px 0 0", maxWidth: 560 }}>
@@ -980,7 +980,7 @@ function TaskGroup({
 }: TaskGroupProps) {
   return (
     <section style={{ marginBottom: "var(--s-4)" }}>
-      <div className="studio-eyebrow" style={{ color: "var(--wine)", marginBottom: 10 }}>
+      <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: 10 }}>
         {title}
       </div>
       {tasks.length === 0 ? (

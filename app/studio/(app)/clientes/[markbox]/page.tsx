@@ -431,7 +431,7 @@ export default async function ClienteDetallePage({
                       style={{
                         marginLeft: "auto",
                         font: "600 10.5px/1 var(--f-sans)",
-                        color: "var(--wine)",
+                        color: "var(--wine-text)",
                         letterSpacing: "0.04em",
                         textTransform: "uppercase",
                       }}

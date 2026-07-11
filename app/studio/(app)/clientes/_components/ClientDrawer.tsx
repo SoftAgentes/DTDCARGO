@@ -359,7 +359,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
           {/* Tipo de documento · persona (cédula) / empresa (RIF) — SDD-0131 */}
           <div>
             <label className="studio-label">
-              Tipo de cliente <span style={{ color: "var(--wine)" }}>*</span>
+              Tipo de cliente <span style={{ color: "var(--wine-text)" }}>*</span>
             </label>
             {/* Hidden input: el value entra al FormData tanto en create
                 (new FormData(formEl)) como en edit (form action). */}
@@ -405,7 +405,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
           <div>
             <label className="studio-label" htmlFor="cl-name">
               {isCompany ? "Razón social" : "Nombre"}{" "}
-              <span style={{ color: "var(--wine)" }}>*</span>
+              <span style={{ color: "var(--wine-text)" }}>*</span>
             </label>
             <input
               id="cl-name"
@@ -447,7 +447,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
           {/* Tier */}
           <div>
             <label className="studio-label" htmlFor="cl-tier">
-              Tier <span style={{ color: "var(--wine)" }}>*</span>
+              Tier <span style={{ color: "var(--wine-text)" }}>*</span>
             </label>
             <select
               id="cl-tier"

@@ -152,7 +152,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
           {/* 1. Shipment */}
           <div>
             <label htmlFor="cf-shipment" className="studio-label">
-              Shipment <span style={{ color: "var(--wine)" }}>*</span>
+              Shipment <span style={{ color: "var(--wine-text)" }}>*</span>
             </label>
             {shipments.length === 0 ? (
               <div
@@ -202,7 +202,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
           >
             <div>
               <label htmlFor="cf-port" className="studio-label">
-                Puerto <span style={{ color: "var(--wine)" }}>*</span>
+                Puerto <span style={{ color: "var(--wine-text)" }}>*</span>
               </label>
               <select
                 id="cf-port"
@@ -247,7 +247,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
           {/* 3. HS codes */}
           <div>
             <label htmlFor="cf-hs" className="studio-label">
-              HS codes <span style={{ color: "var(--wine)" }}>*</span>
+              HS codes <span style={{ color: "var(--wine-text)" }}>*</span>
             </label>
             <div style={{ display: "flex", gap: "var(--s-2)" }}>
               <input
@@ -296,7 +296,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
                       gap: 5,
                       padding: "var(--s-1) var(--s-2)",
                       background: "var(--wine-tint)",
-                      color: "var(--wine)",
+                      color: "var(--wine-text)",
                       borderRadius: "var(--r-sm)",
                       font: "700 11.5px/1 var(--f-mono)",
                     }}
@@ -309,7 +309,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
                       style={{
                         background: "transparent",
                         border: 0,
-                        color: "var(--wine)",
+                        color: "var(--wine-text)",
                         cursor: "pointer",
                         padding: 0,
                         display: "inline-flex",

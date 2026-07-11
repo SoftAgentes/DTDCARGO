@@ -84,7 +84,7 @@ export function SkillCard({ skill }: { skill: Skill }) {
             alignItems: "center",
             justifyContent: "center",
             background: "var(--wine-tint)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             borderRadius: "var(--r-md)",
           }}
         >

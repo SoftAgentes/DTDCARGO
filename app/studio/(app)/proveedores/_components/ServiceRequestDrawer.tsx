@@ -98,7 +98,7 @@ export function ServiceRequestDrawer({
         >
           <ReadField label="Compra">
             <code
-              style={{ font: "700 12px/1.3 var(--f-mono)", color: "var(--wine)" }}
+              style={{ font: "700 12px/1.3 var(--f-mono)", color: "var(--wine-text)" }}
             >
               {prealertaCode ?? "—"}
             </code>

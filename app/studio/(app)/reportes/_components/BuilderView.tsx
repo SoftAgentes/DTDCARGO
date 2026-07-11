@@ -240,7 +240,7 @@ export function BuilderView({
         <div
           style={{
             font: "700 10px/1 var(--f-sans)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
             marginBottom: 14,
@@ -531,7 +531,7 @@ export function BuilderView({
           <div
             style={{
               font: "700 10px/1 var(--f-sans)",
-              color: "var(--wine)",
+              color: "var(--wine-text)",
               letterSpacing: "0.14em",
               textTransform: "uppercase",
               marginBottom: 12,
@@ -663,7 +663,7 @@ export function BuilderView({
             font: 700 9px/1 var(--f-sans);
             letter-spacing: 0.18em;
             text-transform: uppercase;
-            color: var(--wine);
+            color: var(--wine-text);
           }
           #dtd-report-print .rpt-brand {
             font: 900 17px/1 var(--f-display);

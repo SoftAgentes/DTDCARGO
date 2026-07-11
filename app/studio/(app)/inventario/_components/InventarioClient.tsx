@@ -134,7 +134,7 @@ export function InventarioClient({ cn, ve }: Props) {
           label="Volumen"
           value={`${fmt2(stock.kpis.cbm)} m³`}
           sub="CBM acumulado"
-          valueColor="var(--wine)"
+          valueColor="var(--wine-text)"
         />
         <KpiCard
           label="Peso"
@@ -382,7 +382,7 @@ function StockTable({
                   style={{
                     padding: "12px 14px",
                     font: "600 12.5px/1 var(--f-mono)",
-                    color: "var(--wine)",
+                    color: "var(--wine-text)",
                   }}
                 >
                   {r.markbox}

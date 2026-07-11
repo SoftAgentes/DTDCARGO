@@ -179,7 +179,7 @@ export function AppearanceSection() {
         <div
           style={{
             font: "700 10px/1 var(--f-sans)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             letterSpacing: "0.16em",
             textTransform: "uppercase",
             marginBottom: "var(--s-2)",
@@ -214,7 +214,7 @@ function Card({ children }: { children: React.ReactNode }) {
 
 function CardEyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <div className="studio-eyebrow" style={{ color: "var(--wine)", marginBottom: 14 }}>
+    <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: 14 }}>
       {children}
     </div>
   );

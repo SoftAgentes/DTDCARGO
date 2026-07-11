@@ -199,7 +199,7 @@ function ServicioCard({
         >
           {config?.title_public || catalog.nombre}
           {catalog.principal && (
-            <span style={{ color: "var(--wine)", marginLeft: 6 }}>★</span>
+            <span style={{ color: "var(--wine-text)", marginLeft: 6 }}>★</span>
           )}
         </h3>
         <Badge tone={isPublic ? "success" : "neutral"} size="sm">

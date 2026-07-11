@@ -287,7 +287,7 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
                       <code
                         style={{
                           fontFamily: "var(--font-mono, 'JetBrains Mono')",
-                          color: "var(--wine)",
+                          color: "var(--wine-text)",
                           fontWeight: 700,
                         }}
                       >

@@ -30,7 +30,7 @@ const TONES: Record<BadgeTone, { bg: string; fg: string }> = {
   warning: { bg: "var(--warning-bg)", fg: "var(--warning)" },
   danger: { bg: "var(--danger-bg)", fg: "var(--danger)" },
   info: { bg: "var(--info-bg)", fg: "var(--info)" },
-  wine: { bg: "var(--wine-tint)", fg: "var(--wine)" },
+  wine: { bg: "var(--wine-tint)", fg: "var(--wine-text)" },
   neutral: { bg: "var(--neutral-bg)", fg: "var(--ink-soft)" },
 };
 

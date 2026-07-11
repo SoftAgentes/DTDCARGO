@@ -245,7 +245,7 @@ export function ServiceRequestsTab({
                 <code
                   style={{
                     font: "700 11.5px/1.2 var(--f-mono)",
-                    color: "var(--wine)",
+                    color: "var(--wine-text)",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                   }}

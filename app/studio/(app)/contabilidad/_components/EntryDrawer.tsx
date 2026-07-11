@@ -197,7 +197,7 @@ export function EntryDrawer({ postableAccounts, onClose }: Props) {
           >
             <div>
               <label className="studio-label" htmlFor="entry-date">
-                Fecha <span style={{ color: "var(--wine)" }}>*</span>
+                Fecha <span style={{ color: "var(--wine-text)" }}>*</span>
               </label>
               <input
                 id="entry-date"

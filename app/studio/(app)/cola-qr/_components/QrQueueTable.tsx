@@ -174,7 +174,7 @@ export function QrQueueTable({
                     <code
                       style={{
                         font: "800 12.5px/1 var(--f-mono)",
-                        color: "var(--wine)",
+                        color: "var(--wine-text)",
                       }}
                     >
                       {o.order_code}

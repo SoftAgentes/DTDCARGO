@@ -233,7 +233,7 @@ export function ConversationThread({ conv, agents }: Props) {
             <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)", marginTop: 5 }}>
               <Link
                 href={`/studio/clientes?q=${encodeURIComponent(conv.markbox)}`}
-                style={{ font: "600 11.5px/1 var(--f-mono)", color: "var(--wine)" }}
+                style={{ font: "600 11.5px/1 var(--f-mono)", color: "var(--wine-text)" }}
               >
                 {conv.markbox}
               </Link>

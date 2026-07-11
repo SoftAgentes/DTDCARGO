@@ -80,7 +80,7 @@ export function EditOperarioDrawer({
 
         <div>
           <label htmlFor="edit-warehouse" className="studio-label">
-            Warehouse <span style={{ color: "var(--wine)" }}>*</span>
+            Warehouse <span style={{ color: "var(--wine-text)" }}>*</span>
           </label>
           <select
             id="edit-warehouse"
@@ -102,7 +102,7 @@ export function EditOperarioDrawer({
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div>
             <label htmlFor="edit-name" className="studio-label">
-              Nombre <span style={{ color: "var(--wine)" }}>*</span>
+              Nombre <span style={{ color: "var(--wine-text)" }}>*</span>
             </label>
             <input
               id="edit-name"
@@ -143,7 +143,7 @@ export function EditOperarioDrawer({
 
         <div>
           <label htmlFor="edit-role" className="studio-label">
-            Rol <span style={{ color: "var(--wine)" }}>*</span>
+            Rol <span style={{ color: "var(--wine-text)" }}>*</span>
           </label>
           <select
             id="edit-role"

@@ -91,7 +91,7 @@ export function ShipmentDetailDrawer({
                   href={`/studio/clientes/${shipment.client_markbox}`}
                   style={{
                     font: "700 11.5px/1 var(--f-mono)",
-                    color: "var(--wine)",
+                    color: "var(--wine-text)",
                     textDecoration: "none",
                     letterSpacing: "0.02em",
                     marginTop: "var(--s-1)",

@@ -122,7 +122,7 @@ export default async function BugsAdminPage({
             style={{
               fontFamily: "var(--font-mono, 'JetBrains Mono')",
               fontSize: 12,
-              color: "var(--wine)",
+              color: "var(--wine-text)",
               padding: "2px 6px",
               background: "var(--wine-tint, #FBE9EC)",
               borderRadius: 4,

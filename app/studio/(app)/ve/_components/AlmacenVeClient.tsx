@@ -261,7 +261,7 @@ function VeRow({
       <code
         style={{
           font: "800 11.5px/1 var(--f-mono)",
-          color: "var(--wine)",
+          color: "var(--wine-text)",
           letterSpacing: "0.02em",
         }}
       >
@@ -285,7 +285,7 @@ function VeRow({
           <code
             style={{
               font: "700 11px/1 var(--f-mono)",
-              color: "var(--wine)",
+              color: "var(--wine-text)",
             }}
           >
             {row.client_markbox}

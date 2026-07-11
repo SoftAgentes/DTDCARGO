@@ -278,7 +278,7 @@ export function LineMatchDrawer({ line, candidates, onClose }: Props) {
                 >
                   <div style={{ minWidth: 0 }}>
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                      <code style={{ font: "700 11px/1 var(--f-mono)", color: "var(--wine)" }}>
+                      <code style={{ font: "700 11px/1 var(--f-mono)", color: "var(--wine-text)" }}>
                         {c.entry_code}
                       </code>
                       {c.alreadyLinked ? (

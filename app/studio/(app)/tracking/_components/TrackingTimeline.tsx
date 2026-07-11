@@ -69,7 +69,7 @@ export function TrackingTimeline({ shipment }: Props) {
     >
       <div
         className="studio-eyebrow"
-        style={{ color: "var(--wine)", marginBottom: 16 }}
+        style={{ color: "var(--wine-text)", marginBottom: 16 }}
       >
         Eventos del embarque
       </div>

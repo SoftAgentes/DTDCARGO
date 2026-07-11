@@ -679,7 +679,7 @@ function EmpleadoRow({
             height: 36,
             borderRadius: "50%",
             background: "var(--wine-tint)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",

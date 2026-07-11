@@ -347,7 +347,7 @@ function DiplomaStyles() {
 }
 /* wordmark */
 .dpl-wm { font-family: var(--f-display); font-weight: 900; letter-spacing: -0.02em; font-size: 24px; white-space: nowrap; }
-.dpl-wm-d { color: var(--wine); } .dpl-wm-c { color: var(--ink); }
+.dpl-wm-d { color: var(--wine-text); } .dpl-wm-c { color: var(--ink); }
 .dpl-wm-sp { display: inline-block; width: 0.15em; }
 .dpl-wm--dark .dpl-wm-d { color: var(--wine-soft); } .dpl-wm--dark .dpl-wm-c { color: #F2F0EC; }
 /* QR */
@@ -357,7 +357,7 @@ function DiplomaStyles() {
 .dpl-qr-faux { width: 100%; height: 100%; display: grid; place-items: center; font: 700 16px/1 var(--f-mono); color: var(--ink-mute); background: repeating-conic-gradient(var(--border) 0% 25%, #fff 0% 50%) 50% / 12px 12px; }
 .dpl-qr-cap { display: flex; flex-direction: column; gap: 3px; }
 .dpl-qr-l { font: 600 9px/1.25 var(--f-sans); letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-mute); max-width: 96px; }
-.dpl-qr-f { font: 600 13px/1 var(--f-mono); color: var(--wine); }
+.dpl-qr-f { font: 600 13px/1 var(--f-mono); color: var(--wine-text); }
 /* seal */
 .dpl-seal { position: relative; width: 120px; height: 120px; flex: 0 0 auto; --seal-stroke: var(--wine); --seal-fill: var(--wine); }
 .dpl-seal--dark { --seal-stroke: var(--wine-soft); --seal-fill: #F2F0EC; }
@@ -376,12 +376,12 @@ function DiplomaStyles() {
 .dpl-va-top { display: flex; align-items: flex-start; justify-content: space-between; }
 .dpl-va-issuer { font: 600 11px/1.2 var(--f-sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); margin-top: 8px; }
 .dpl-va-body { margin-top: 52px; flex: 1; }
-.dpl-va-eyebrow { font: 700 13px/1 var(--f-sans); letter-spacing: 0.22em; text-transform: uppercase; color: var(--wine); }
+.dpl-va-eyebrow { font: 700 13px/1 var(--f-sans); letter-spacing: 0.22em; text-transform: uppercase; color: var(--wine-text); }
 .dpl-va-rule { width: 56px; height: 3px; background: var(--wine); margin: 16px 0 28px; }
 .dpl-va-label { font: 600 14px/1 var(--f-sans); letter-spacing: 0.04em; color: var(--ink-soft); margin-bottom: 14px; }
 .dpl-va-name { font: 600 72px/1.0 var(--f-display); letter-spacing: -0.02em; color: var(--ink); margin: 0 0 22px; }
 .dpl-va-lead { font: 400 17px/1.4 var(--f-sans); color: var(--ink-soft); margin: 0 0 8px; }
-.dpl-va-course { font: 600 32px/1.1 var(--f-display); color: var(--wine); margin-bottom: 18px; }
+.dpl-va-course { font: 600 32px/1.1 var(--f-display); color: var(--wine-text); margin-bottom: 18px; }
 .dpl-va-meta { font: 500 14px/1.5 var(--f-mono); color: var(--ink-soft); }
 .dpl-va-foot { display: flex; align-items: flex-end; justify-content: space-between; margin-top: 36px; }
 /* Variante B */
@@ -392,12 +392,12 @@ function DiplomaStyles() {
 .dpl-vb-iso { width: 60px; height: auto; margin-bottom: 12px; }
 .dpl-vb-wm { margin-bottom: 6px; }
 .dpl-vb-issuer { font: 600 10px/1 var(--f-sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 22px; }
-.dpl-vb-eyebrow { font: 700 12px/1 var(--f-sans); letter-spacing: 0.24em; text-transform: uppercase; color: var(--wine); margin-bottom: 18px; }
+.dpl-vb-eyebrow { font: 700 12px/1 var(--f-sans); letter-spacing: 0.24em; text-transform: uppercase; color: var(--wine-text); margin-bottom: 18px; }
 .dpl-vb-label { font: 600 13px/1 var(--f-sans); letter-spacing: 0.04em; color: var(--ink-soft); margin-bottom: 14px; }
 .dpl-vb-name { font: 600 60px/1.0 var(--f-display); letter-spacing: -0.02em; color: var(--ink); margin: 0; }
 .dpl-vb-namerule { width: 280px; height: 1.5px; background: var(--wine); margin: 18px 0 20px; }
 .dpl-vb-lead { font: 400 16px/1.55 var(--f-sans); color: var(--ink-soft); max-width: 640px; margin: 0 0 16px; }
-.dpl-vb-lead b { color: var(--wine); font-weight: 600; }
+.dpl-vb-lead b { color: var(--wine-text); font-weight: 600; }
 .dpl-vb-meta { font: 500 13px/1.5 var(--f-mono); color: var(--ink-soft); }
 .dpl-vb-foot { display: flex; align-items: flex-end; justify-content: center; gap: 56px; margin-top: auto; width: 100%; }
 .dpl-vb-foot .dpl-seal { margin-bottom: 4px; }
@@ -415,11 +415,11 @@ function DiplomaStyles() {
 .dpl-vc-band .dpl-qr-f { color: var(--wine-soft); }
 .dpl-vc-main { flex: 1; padding: 64px 72px; display: flex; flex-direction: column; }
 .dpl-vc-issuer { font: 600 11px/1 var(--f-sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); }
-.dpl-vc-eyebrow { font: 700 13px/1 var(--f-sans); letter-spacing: 0.22em; text-transform: uppercase; color: var(--wine); margin-top: 36px; }
+.dpl-vc-eyebrow { font: 700 13px/1 var(--f-sans); letter-spacing: 0.22em; text-transform: uppercase; color: var(--wine-text); margin-top: 36px; }
 .dpl-vc-label { font: 600 14px/1 var(--f-sans); color: var(--ink-soft); margin-top: 22px; margin-bottom: 14px; }
 .dpl-vc-name { font: 600 58px/1.0 var(--f-display); letter-spacing: -0.02em; color: var(--ink); margin: 0 0 22px; }
 .dpl-vc-lead { font: 400 16px/1.4 var(--f-sans); color: var(--ink-soft); margin: 0 0 8px; }
-.dpl-vc-course { font: 600 30px/1.1 var(--f-display); color: var(--wine); margin-bottom: 16px; }
+.dpl-vc-course { font: 600 30px/1.1 var(--f-display); color: var(--wine-text); margin-bottom: 16px; }
 .dpl-vc-meta { font: 500 13px/1.5 var(--f-mono); color: var(--ink-soft); }
 .dpl-vc-foot { display: flex; align-items: flex-end; justify-content: space-between; margin-top: auto; }
 .dpl-vc-foot .dpl-sigs { gap: 36px; }
@@ -439,12 +439,12 @@ function DiplomaStyles() {
 .dpl-vd-wm { margin-bottom: 5px; }
 .dpl-vd-issuer { font: 600 10px/1 var(--f-sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 20px; }
 .dpl-vd-eyebrow { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
-.dpl-vd-eyebrow span { font: 700 13px/1 var(--f-sans); letter-spacing: 0.2em; text-transform: uppercase; color: var(--wine); white-space: nowrap; }
+.dpl-vd-eyebrow span { font: 700 13px/1 var(--f-sans); letter-spacing: 0.2em; text-transform: uppercase; color: var(--wine-text); white-space: nowrap; }
 .dpl-vd-fl { width: 130px; height: 12px; }
 .dpl-vd-label { font: 600 13px/1 var(--f-sans); letter-spacing: 0.04em; color: var(--ink-soft); margin-bottom: 14px; }
 .dpl-vd-name { font: 600 58px/1.0 var(--f-display); letter-spacing: -0.02em; color: var(--ink); margin: 0 0 18px; }
 .dpl-vd-lead { font: 400 16px/1.55 var(--f-sans); color: var(--ink-soft); max-width: 660px; margin: 0 0 14px; }
-.dpl-vd-lead b { color: var(--wine); font-weight: 600; }
+.dpl-vd-lead b { color: var(--wine-text); font-weight: 600; }
 .dpl-vd-meta { font: 500 13px/1.5 var(--f-mono); color: var(--ink-soft); }
 .dpl-vd-foot { display: flex; align-items: flex-end; justify-content: center; gap: 52px; margin-top: auto; width: 100%; }
 .dpl-vd-foot .dpl-seal { margin-bottom: 4px; }

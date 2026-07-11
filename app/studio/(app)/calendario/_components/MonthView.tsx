@@ -189,7 +189,7 @@ export function MonthView({
                         style={{
                           font: "700 8.5px/1.2 var(--f-sans)",
                           fontFamily: "var(--f-sans), var(--f-cn)",
-                          color: "var(--wine)",
+                          color: "var(--wine-text)",
                           letterSpacing: "0.04em",
                           textTransform: "uppercase",
                           textAlign: "right",

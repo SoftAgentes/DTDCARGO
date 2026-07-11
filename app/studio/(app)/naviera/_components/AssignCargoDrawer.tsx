@@ -193,7 +193,7 @@ export function AssignCargoDrawer({
             <div
               style={{
                 font: "600 11.5px/1.4 var(--f-sans)",
-                color: "var(--wine)",
+                color: "var(--wine-text)",
               }}
             >
               {guard.message}

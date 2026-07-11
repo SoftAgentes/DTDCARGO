@@ -44,7 +44,7 @@ export function VeKpis({ kpis }: { kpis: KpisType }) {
             ? "DDP en camino al cliente"
             : "Ningún reparto activo"
         }
-        valueColor={kpis.outForDelivery > 0 ? "var(--wine)" : "var(--ink)"}
+        valueColor={kpis.outForDelivery > 0 ? "var(--wine-text)" : "var(--ink)"}
       />
       <KpiCard
         label="Entregados este mes"

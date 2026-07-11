@@ -107,7 +107,7 @@ export function CalendarSection({ events }: { events: CalendarEvent[] }) {
               <button
                 type="button"
                 onClick={() => setDrawer({ mode: "edit", event: e })}
-                style={{ font: "600 11.5px/1 var(--f-sans)", color: "var(--wine)", justifySelf: "end", background: "transparent", border: 0, cursor: "pointer" }}
+                style={{ font: "600 11.5px/1 var(--f-sans)", color: "var(--wine-text)", justifySelf: "end", background: "transparent", border: 0, cursor: "pointer" }}
               >
                 Editar →
               </button>

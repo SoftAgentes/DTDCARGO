@@ -345,7 +345,7 @@ function RatesTable({
           <span
             style={{
               font: "800 14px/1 var(--f-mono)",
-              color: "var(--wine)",
+              color: "var(--wine-text)",
               textAlign: "right",
             }}
           >

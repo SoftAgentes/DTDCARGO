@@ -120,7 +120,7 @@ export function GenerateBLModal({ onClose }: { onClose: () => void }) {
                   }}
                 >
                   No hay embarques activos. Crea uno desde{" "}
-                  <a href="/studio/embarques" style={{ color: "var(--wine)" }}>
+                  <a href="/studio/embarques" style={{ color: "var(--wine-text)" }}>
                     Embarques
                   </a>{" "}
                   primero.

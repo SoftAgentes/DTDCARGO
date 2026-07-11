@@ -542,7 +542,7 @@ function IncomingTab({
         <code
           style={{
             font: "700 12px/1.2 var(--f-mono)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             overflow: "hidden",
             textOverflow: "ellipsis",
           }}
@@ -996,7 +996,7 @@ function SuppliersTab({ suppliers }: { suppliers: SupplierRow[] }) {
           <span
             style={{
               font: "700 12.5px/1 var(--f-mono)",
-              color: "var(--wine)",
+              color: "var(--wine-text)",
             }}
           >
             #{s.supplier_seq}

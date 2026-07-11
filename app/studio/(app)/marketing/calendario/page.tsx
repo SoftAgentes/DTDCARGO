@@ -85,7 +85,7 @@ export default async function MarketingCalendarioPage() {
       <div style={{ marginBottom: 28 }}>
         <div
           className="studio-eyebrow"
-          style={{ marginBottom: 10, color: "var(--wine)" }}
+          style={{ marginBottom: 10, color: "var(--wine-text)" }}
         >
           Marketing · Calendario {YEAR}
         </div>

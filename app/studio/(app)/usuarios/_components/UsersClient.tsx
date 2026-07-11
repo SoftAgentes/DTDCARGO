@@ -113,7 +113,7 @@ export function UsersClient({ members, invitations, currentUserId }: Props) {
         <div
           className="studio-eyebrow"
           style={{
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             marginBottom: 14,
           }}
         >
@@ -242,7 +242,7 @@ export function UsersClient({ members, invitations, currentUserId }: Props) {
           {pendingInvitations.length > 0 && (
             <>
               {" · "}
-              <span style={{ color: "var(--wine)" }}>
+              <span style={{ color: "var(--wine-text)" }}>
                 {pendingInvitations.length} pendientes
               </span>
             </>

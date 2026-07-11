@@ -393,7 +393,7 @@ function CornerMenu({
             {isActive && (
               <span
                 style={{
-                  color: "var(--wine)",
+                  color: "var(--wine-text)",
                   font: "700 10px/1 var(--f-sans)",
                 }}
               >

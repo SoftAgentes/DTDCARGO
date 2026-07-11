@@ -303,7 +303,7 @@ function DocCard({
             height: 40,
             borderRadius: "var(--r-md)",
             background: "var(--wine-tint)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
@@ -779,7 +779,7 @@ function DocModal({ doc, onClose }: { doc: LegalDoc; onClose: () => void }) {
       subtitle={
         <>
           <code
-            style={{ font: "700 12px/1 var(--f-mono)", color: "var(--wine)" }}
+            style={{ font: "700 12px/1 var(--f-mono)", color: "var(--wine-text)" }}
           >
             {doc.version}
           </code>{" "}
@@ -908,7 +908,7 @@ function AcceptancesView({
         <KpiCard
           value={kpis.thisMonth}
           label="Este mes"
-          valueColor={kpis.thisMonth > 0 ? "var(--wine)" : "var(--ink)"}
+          valueColor={kpis.thisMonth > 0 ? "var(--wine-text)" : "var(--ink)"}
         />
         <KpiCard
           value={`${kpis.onCurrent}/${kpis.total}`}
@@ -1032,7 +1032,7 @@ function AcceptancesView({
               <code
                 style={{
                   font: "700 11.5px/1 var(--f-mono)",
-                  color: "var(--wine)",
+                  color: "var(--wine-text)",
                 }}
               >
                 {a.acceptance_code}

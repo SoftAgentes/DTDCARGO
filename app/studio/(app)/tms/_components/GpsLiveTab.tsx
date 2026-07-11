@@ -71,7 +71,7 @@ export function GpsLiveTab({
               className="studio-eyebrow"
               style={{
                 font: "700 10.5px/1 var(--f-sans)",
-                color: "var(--wine)",
+                color: "var(--wine-text)",
               }}
             >
               Rutas activas · {activeRoutes.length}{" "}
@@ -170,7 +170,7 @@ export function GpsLiveTab({
           className="studio-eyebrow"
           style={{
             font: "700 10.5px/1 var(--f-sans)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             marginBottom: 14,
           }}
         >
@@ -296,7 +296,7 @@ function ActiveRouteCard({ route: r }: { route: TmsRouteRow }) {
         <code
           style={{
             font: "700 11px/1 var(--f-mono)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
           }}
         >
           {r.shipment?.code ?? "—"}

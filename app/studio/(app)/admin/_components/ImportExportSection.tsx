@@ -135,7 +135,7 @@ export function ImportExportSection({
 
       {/* Import por implementar */}
       <section style={{ background: "var(--bg-surface)", border: "2px dashed var(--border-strong)", borderRadius: "var(--r-lg)", padding: "var(--s-5) var(--s-6)" }}>
-        <div style={{ font: "700 10px/1 var(--f-sans)", color: "var(--wine)", letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: 10 }}>
+        <div style={{ font: "700 10px/1 var(--f-sans)", color: "var(--wine-text)", letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: 10 }}>
           Importar (CSV / XLSX) · por implementar
         </div>
         <p style={{ font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0, maxWidth: "64ch" }}>
@@ -155,5 +155,5 @@ function Card({ children }: { children: React.ReactNode }) {
   );
 }
 function CardEyebrow({ children }: { children: React.ReactNode }) {
-  return <div className="studio-eyebrow" style={{ color: "var(--wine)", marginBottom: 14 }}>{children}</div>;
+  return <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: 14 }}>{children}</div>;
 }

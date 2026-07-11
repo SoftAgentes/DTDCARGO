@@ -413,7 +413,7 @@ function DashboardTab({
               onClick={onGoReferidos}
               style={{
                 font: "600 12px/1 var(--f-sans)",
-                color: "var(--wine)",
+                color: "var(--wine-text)",
                 background: "transparent",
                 border: "none",
                 cursor: "pointer",
@@ -469,7 +469,7 @@ function DashboardTab({
                     <div
                       style={{
                         font: "500 10.5px/1 var(--f-mono)",
-                        color: "var(--wine)",
+                        color: "var(--wine-text)",
                         marginTop: 3,
                       }}
                     >
@@ -825,7 +825,7 @@ function ReferidosTab({
                 <code
                   style={{
                     font: "700 11.5px/1 var(--f-mono)",
-                    color: "var(--wine)",
+                    color: "var(--wine-text)",
                   }}
                 >
                   {r.referrer_markbox}

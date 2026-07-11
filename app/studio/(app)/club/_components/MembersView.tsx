@@ -90,7 +90,7 @@ export function MembersView({ stats, members }: { stats: ClubStats; members: Clu
         <KpiCard
           value={stats.mayoristas}
           label="Mayoristas"
-          valueColor={stats.mayoristas > 0 ? "var(--wine)" : "var(--ink)"}
+          valueColor={stats.mayoristas > 0 ? "var(--wine-text)" : "var(--ink)"}
           sub="plan"
         />
       </div>

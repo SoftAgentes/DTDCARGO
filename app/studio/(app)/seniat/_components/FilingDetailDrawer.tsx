@@ -199,7 +199,7 @@ export function FilingDetailDrawer({
               {shipment.client_markbox && (
                 <>
                   {" · "}
-                  <code style={{ color: "var(--wine)" }}>
+                  <code style={{ color: "var(--wine-text)" }}>
                     {shipment.client_markbox}
                   </code>
                 </>

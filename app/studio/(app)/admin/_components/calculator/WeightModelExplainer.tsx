@@ -77,7 +77,7 @@ export function WeightModelExplainer() {
         }}
       >
         <div>
-          <div className="studio-eyebrow" style={{ color: "var(--wine)", marginBottom: 6 }}>
+          <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: 6 }}>
             El modelo de peso
           </div>
           <h3
@@ -136,7 +136,7 @@ export function WeightModelExplainer() {
                 <span
                   style={{
                     font: "800 22px/1 var(--f-mono)",
-                    color: "var(--wine)",
+                    color: "var(--wine-text)",
                     letterSpacing: "-0.02em",
                   }}
                 >

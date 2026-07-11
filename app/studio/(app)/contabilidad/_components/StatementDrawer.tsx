@@ -208,7 +208,7 @@ export function StatementDrawer({ bankAccounts, onClose }: Props) {
           >
             <div>
               <label className="studio-label" htmlFor="stmt-account">
-                Cuenta banco / caja <span style={{ color: "var(--wine)" }}>*</span>
+                Cuenta banco / caja <span style={{ color: "var(--wine-text)" }}>*</span>
               </label>
               <select
                 id="stmt-account"
@@ -229,7 +229,7 @@ export function StatementDrawer({ bankAccounts, onClose }: Props) {
             </div>
             <div>
               <label className="studio-label" htmlFor="stmt-period">
-                Período (YYYY-MM) <span style={{ color: "var(--wine)" }}>*</span>
+                Período (YYYY-MM) <span style={{ color: "var(--wine-text)" }}>*</span>
               </label>
               <input
                 id="stmt-period"

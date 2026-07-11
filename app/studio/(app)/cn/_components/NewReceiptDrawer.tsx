@@ -265,7 +265,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
           <div>
             <label htmlFor="rd-warehouse" className="studio-label">
               {t("warehouse_cn.drawer.section_warehouse")}{" "}
-              <span style={{ color: "var(--wine)" }}>*</span>
+              <span style={{ color: "var(--wine-text)" }}>*</span>
             </label>
             <select
               id="rd-warehouse"
@@ -293,7 +293,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
               <>
                 <label htmlFor="rd-client" className="studio-label">
                   {t("warehouse_cn.drawer.client_label")}{" "}
-                  <span style={{ color: "var(--wine)" }}>*</span>
+                  <span style={{ color: "var(--wine-text)" }}>*</span>
                 </label>
                 <select
                   id="rd-client"
@@ -551,7 +551,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
               <div>
                 <label htmlFor="rd-boxes" className="studio-label">
                   {t("warehouse_cn.drawer.boxes_field_label")}{" "}
-                  <span style={{ color: "var(--wine)" }}>*</span>
+                  <span style={{ color: "var(--wine-text)" }}>*</span>
                 </label>
                 <NumericInput
                   id="rd-boxes"
@@ -603,7 +603,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
               <div>
                 <label htmlFor="rd-received" className="studio-label">
                   {t("warehouse_cn.drawer.received_label")}{" "}
-                  <span style={{ color: "var(--wine)" }}>*</span>
+                  <span style={{ color: "var(--wine-text)" }}>*</span>
                 </label>
                 <input
                   id="rd-received"
@@ -787,7 +787,7 @@ function ItemEditor({
           htmlFor={`item-desc-${item._key}`}
         >
           {t("warehouse_cn.drawer.item_desc_label")}{" "}
-          <span style={{ color: "var(--wine)" }}>*</span>
+          <span style={{ color: "var(--wine-text)" }}>*</span>
         </label>
         <input
           id={`item-desc-${item._key}`}

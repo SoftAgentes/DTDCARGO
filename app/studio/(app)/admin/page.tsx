@@ -392,7 +392,7 @@ export default async function AdminPage({
         <div>
           <div
             className="studio-eyebrow"
-            style={{ marginBottom: 10, color: "var(--wine)" }}
+            style={{ marginBottom: 10, color: "var(--wine-text)" }}
           >
             Configuración · Studio
           </div>
@@ -425,7 +425,7 @@ export default async function AdminPage({
             gap: 6,
             padding: "6px 10px",
             background: "var(--wine-tint)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             borderRadius: "var(--r-pill)",
             font: "700 11px/1 var(--f-sans)",
             letterSpacing: "0.04em",
@@ -587,7 +587,7 @@ function Content({
       <div style={{ marginBottom: 20 }}>
         <div
           className="studio-eyebrow"
-          style={{ color: "var(--wine)", marginBottom: 6 }}
+          style={{ color: "var(--wine-text)", marginBottom: 6 }}
         >
           {section.group}
         </div>
@@ -749,7 +749,7 @@ function PendingSectionPanel({ section }: { section: AdminSection }) {
         <div
           style={{
             font: "700 10px/1 var(--f-sans)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             letterSpacing: "0.16em",
             textTransform: "uppercase",
           }}

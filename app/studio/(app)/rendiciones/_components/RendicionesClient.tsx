@@ -230,7 +230,7 @@ export function RendicionesClient({
                         className="studio-input-mono"
                         style={{
                           font: "600 12.5px/1 var(--f-mono)",
-                          color: "var(--wine)",
+                          color: "var(--wine-text)",
                           textDecoration: "none",
                         }}
                       >

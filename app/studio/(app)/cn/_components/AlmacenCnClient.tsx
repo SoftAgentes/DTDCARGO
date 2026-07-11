@@ -265,7 +265,7 @@ export function AlmacenCnClient({
               gap: 6,
               ...(showClientNames && {
                 background: "var(--wine-tint)",
-                color: "var(--wine)",
+                color: "var(--wine-text)",
                 borderColor: "var(--wine)",
               }),
             }}

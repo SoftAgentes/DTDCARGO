@@ -68,7 +68,7 @@ export default async function VePage({
             <code
               style={{
                 font: "700 12px/1 var(--f-mono)",
-                color: "var(--wine)",
+                color: "var(--wine-text)",
                 padding: "0 4px",
                 background: "var(--wine-tint)",
                 borderRadius: "var(--r-xs)",

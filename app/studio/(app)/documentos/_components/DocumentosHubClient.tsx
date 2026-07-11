@@ -521,7 +521,7 @@ export function DocumentosHubClient({
                           alignItems: "center",
                           gap: 5,
                           textDecoration: "none",
-                          color: "var(--wine)",
+                          color: "var(--wine-text)",
                           font: "600 11px/1.2 var(--f-sans)",
                         }}
                       >

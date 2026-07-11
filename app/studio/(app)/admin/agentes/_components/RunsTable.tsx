@@ -196,7 +196,7 @@ function RunDetailModal({
           <div style={{ flex: 1, minWidth: 0 }}>
             <div
               className="studio-eyebrow"
-              style={{ color: "var(--wine)", marginBottom: 4 }}
+              style={{ color: "var(--wine-text)", marginBottom: 4 }}
             >
               Run · {triggerLabel(run.trigger)}
               {run.trigger_source ? ` · ${run.trigger_source}` : ""}

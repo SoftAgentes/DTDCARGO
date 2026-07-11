@@ -114,7 +114,7 @@ export function FiscalClient({
   return (
     <div style={{ maxWidth: 1180 }}>
       <header style={{ marginBottom: 22 }}>
-        <div className="studio-eyebrow" style={{ color: "var(--wine)", marginBottom: 6 }}>
+        <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: 6 }}>
           Fiscal · SENIAT
         </div>
         <h1 className="studio-display" style={{ font: "900 26px/1.1 var(--f-display)", color: "var(--ink)", margin: 0 }}>
@@ -1026,7 +1026,7 @@ function PrintLayout({
             font: 700 9px/1 var(--f-sans);
             letter-spacing: 0.18em;
             text-transform: uppercase;
-            color: var(--wine);
+            color: var(--wine-text);
           }
           #dtd-fiscal-print .fp-title {
             font: 900 20px/1.15 var(--f-display);

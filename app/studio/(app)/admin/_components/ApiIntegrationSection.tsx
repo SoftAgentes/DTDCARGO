@@ -183,7 +183,7 @@ export function ApiIntegrationSection({ data }: { data: ApiIntegrationData }) {
                   <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 2 }}>{w.events.length} evento{w.events.length === 1 ? "" : "s"}</div>
                 </div>
                 {w.active ? <Badge tone="success" size="sm">Activo</Badge> : <Badge tone="neutral" size="sm">Inactivo</Badge>}
-                <button type="button" onClick={() => setWebhookDrawer({ mode: "edit", webhook: w })} style={{ font: "600 11.5px/1 var(--f-sans)", color: "var(--wine)", justifySelf: "end", background: "transparent", border: 0, cursor: "pointer" }}>
+                <button type="button" onClick={() => setWebhookDrawer({ mode: "edit", webhook: w })} style={{ font: "600 11.5px/1 var(--f-sans)", color: "var(--wine-text)", justifySelf: "end", background: "transparent", border: 0, cursor: "pointer" }}>
                   Editar →
                 </button>
               </div>
@@ -230,7 +230,7 @@ function Card({ children }: { children: React.ReactNode }) {
 }
 function CardEyebrow({ children, noMargin }: { children: React.ReactNode; noMargin?: boolean }) {
   return (
-    <div className="studio-eyebrow" style={{ color: "var(--wine)", marginBottom: noMargin ? 0 : 14 }}>
+    <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: noMargin ? 0 : 14 }}>
       {children}
     </div>
   );

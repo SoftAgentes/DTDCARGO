@@ -422,7 +422,7 @@ function PaymentModal({
             }}
           >
             {invoice.invoice_code} · saldo actual{" "}
-            <strong style={{ font: "700 12px/1 var(--f-mono)", color: "var(--wine)" }}>
+            <strong style={{ font: "700 12px/1 var(--f-mono)", color: "var(--wine-text)" }}>
               ${fmt(balance)}
             </strong>
           </p>

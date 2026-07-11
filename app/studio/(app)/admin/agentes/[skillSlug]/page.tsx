@@ -108,7 +108,7 @@ export default async function SkillDetailPage({
             alignItems: "center",
             justifyContent: "center",
             background: "var(--wine-tint)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             borderRadius: "var(--r-lg)",
           }}
         >
@@ -117,7 +117,7 @@ export default async function SkillDetailPage({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             className="studio-eyebrow"
-            style={{ marginBottom: 8, color: "var(--wine)" }}
+            style={{ marginBottom: 8, color: "var(--wine-text)" }}
           >
             {skill.category} · v{skill.version}
           </div>
@@ -168,7 +168,7 @@ export default async function SkillDetailPage({
         </SummaryCard>
         <SummaryCard label="Costo estimado por run">
           <span
-            style={{ font: "700 16px/1 var(--f-mono)", color: "var(--wine)" }}
+            style={{ font: "700 16px/1 var(--f-mono)", color: "var(--wine-text)" }}
           >
             {formatCostUsd(skill.cost_estimate_usd)}
           </span>
@@ -227,7 +227,7 @@ export default async function SkillDetailPage({
                     alignItems: "center",
                     justifyContent: "center",
                     background: "var(--wine-tint)",
-                    color: "var(--wine)",
+                    color: "var(--wine-text)",
                     borderRadius: "var(--r-sm)",
                     font: "700 11px/1 var(--f-mono)",
                   }}

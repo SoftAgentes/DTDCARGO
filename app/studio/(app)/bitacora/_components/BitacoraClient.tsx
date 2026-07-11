@@ -212,7 +212,7 @@ export function BitacoraClient({
         }}
       >
         <div>
-          <div className="studio-eyebrow" style={{ color: "var(--wine)" }}>
+          <div className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
             Operación · Equipo
           </div>
           <h1
@@ -334,7 +334,7 @@ export function BitacoraClient({
         >
           <div
             className="studio-eyebrow"
-            style={{ color: "var(--wine)", marginBottom: 10 }}
+            style={{ color: "var(--wine-text)", marginBottom: 10 }}
           >
             Cola del rol · sin dueño
           </div>
