@@ -38,7 +38,7 @@ export function BeforeWarehouseNotice() {
     >
       <span
         className="w-4 h-4 rounded-full grid place-items-center flex-shrink-0 mt-0.5"
-        style={{ background: "var(--color-status-success)", color: "var(--color-white)" }}
+        style={{ background: "var(--color-status-success)", color: "var(--color-on-accent)" }}
       >
         <CheckIcon size={11} />
       </span>
@@ -83,7 +83,7 @@ export function PrealertaServiceVideo({
       >
         <span
           className="w-5 h-5 rounded-full grid place-items-center flex-shrink-0"
-          style={{ background: "var(--color-wine)", color: "var(--color-white)" }}
+          style={{ background: "var(--color-wine)", color: "var(--color-on-accent)" }}
           aria-hidden
         >
           <PlayIcon size={11} />
