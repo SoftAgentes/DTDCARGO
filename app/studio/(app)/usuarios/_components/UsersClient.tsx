@@ -16,6 +16,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { InviteUserDrawer } from "./InviteUserDrawer";
 import { MembersTable } from "./MembersTable";
 import { InvitationsTable } from "./InvitationsTable";
@@ -112,7 +113,7 @@ export function UsersClient({ members, invitations, currentUserId }: Props) {
         <div
           className="studio-eyebrow"
           style={{
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             marginBottom: 14,
           }}
         >
@@ -241,7 +242,7 @@ export function UsersClient({ members, invitations, currentUserId }: Props) {
           {pendingInvitations.length > 0 && (
             <>
               {" · "}
-              <span style={{ color: "var(--wine)" }}>
+              <span style={{ color: "var(--wine-text)" }}>
                 {pendingInvitations.length} pendientes
               </span>
             </>
@@ -375,76 +376,15 @@ const MODULES_BY_ROLE: Record<StudioUserRole, string[]> = {
 
 function PermissionsByRoleModal({ onClose }: { onClose: () => void }) {
   return (
-    <div
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Permisos por rol"
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "var(--scrim, rgba(15, 30, 61, 0.5))",
-        zIndex: 100,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 20,
-      }}
+    <DrawerShell
+      title="Permisos por rol"
+      subtitle="Resumen del acceso de cada rol a los módulos del Studio. Read-only V1."
+      onClose={onClose}
+      pending={false}
+      width={720}
+      variant="centered"
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "100%",
-          maxWidth: 720,
-          maxHeight: "92dvh",
-          overflowY: "auto",
-          background: "var(--bg-surface)",
-          borderRadius: 8,
-          boxShadow: "var(--shadow-pop, 0 24px 48px rgba(0,0,0,0.18))",
-        }}
-      >
-        <header
-          style={{
-            padding: "18px 22px",
-            borderBottom: "1px solid var(--border)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <div>
-            <h2
-              className="studio-display"
-              style={{
-                fontSize: 18,
-                margin: 0,
-                color: "var(--ink)",
-              }}
-            >
-              Permisos por rol
-            </h2>
-            <p
-              style={{
-                font: "500 12px/1.4 var(--font-sans, 'Archivo')",
-                color: "var(--ink-soft)",
-                margin: "var(--s-1) 0 0",
-              }}
-            >
-              Resumen del acceso de cada rol a los módulos del Studio. Read-only V1.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="studio-btn studio-btn-ghost studio-btn-xs"
-            style={{ color: "var(--ink-soft)" }}
-            aria-label="Cerrar"
-          >
-            Cerrar
-          </button>
-        </header>
-
-        <div style={{ padding: 22 }}>
+        <div style={{ flex: 1, overflow: "auto", padding: 22 }}>
           {STUDIO_USER_ROLES.map((r) => {
             const tone = roleBadgeTone(r);
             return (
@@ -505,8 +445,7 @@ function PermissionsByRoleModal({ onClose }: { onClose: () => void }) {
             server actions.
           </p>
         </div>
-      </div>
-    </div>
+    </DrawerShell>
   );
 }
 

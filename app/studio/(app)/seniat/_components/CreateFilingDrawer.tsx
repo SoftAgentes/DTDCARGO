@@ -16,6 +16,7 @@
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
+import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { createFilingAction } from "../actions";
 import { CostHelpers } from "./CostHelpers";
 import type {
@@ -118,84 +119,13 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
   }, [shipmentId, portCode, hsCodes]);
 
   return (
-    <div
-      onClick={() => !isPending && onClose()}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="create-filing-title"
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15, 30, 61, 0.55)",
-        zIndex: 100,
-        display: "flex",
-        justifyContent: "flex-end",
-      }}
+    <DrawerShell
+      title="Nuevo trámite SENIAT"
+      subtitle="DUA + cost breakdown + checklist se crean automáticamente"
+      onClose={onClose}
+      pending={isPending}
+      width={700}
     >
-      <aside
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "min(700px, 96vw)",
-          height: "100vh",
-          background: "var(--bg-surface)",
-          borderLeft: "1px solid var(--border)",
-          boxShadow: "var(--shadow-pop)",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
-        <header
-          style={{
-            padding: "18px 22px",
-            borderBottom: "1px solid var(--border)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: "var(--s-3)",
-            flexShrink: 0,
-          }}
-        >
-          <div style={{ minWidth: 0 }}>
-            <h2
-              id="create-filing-title"
-              className="studio-display"
-              style={{ fontSize: 18, margin: 0, color: "var(--ink)" }}
-            >
-              Nuevo trámite SENIAT
-            </h2>
-            <p
-              style={{
-                font: "500 11.5px/1.3 var(--f-sans)",
-                color: "var(--ink-soft)",
-                margin: "var(--s-1) 0 0",
-              }}
-            >
-              DUA + cost breakdown + checklist se crean automáticamente
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isPending}
-            aria-label="Cerrar"
-            style={{
-              width: 32,
-              height: 32,
-              display: "grid",
-              placeItems: "center",
-              borderRadius: "var(--r-sm)",
-              color: "var(--ink-soft)",
-              background: "transparent",
-              border: 0,
-              cursor: isPending ? "wait" : "pointer",
-              flexShrink: 0,
-            }}
-          >
-            {Icon.close(14)}
-          </button>
-        </header>
-
         <form
           id="create-filing-form"
           action={formAction}
@@ -222,7 +152,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
           {/* 1. Shipment */}
           <div>
             <label htmlFor="cf-shipment" className="studio-label">
-              Shipment <span style={{ color: "var(--wine)" }}>*</span>
+              Shipment <span style={{ color: "var(--wine-text)" }}>*</span>
             </label>
             {shipments.length === 0 ? (
               <div
@@ -272,7 +202,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
           >
             <div>
               <label htmlFor="cf-port" className="studio-label">
-                Puerto <span style={{ color: "var(--wine)" }}>*</span>
+                Puerto <span style={{ color: "var(--wine-text)" }}>*</span>
               </label>
               <select
                 id="cf-port"
@@ -317,7 +247,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
           {/* 3. HS codes */}
           <div>
             <label htmlFor="cf-hs" className="studio-label">
-              HS codes <span style={{ color: "var(--wine)" }}>*</span>
+              HS codes <span style={{ color: "var(--wine-text)" }}>*</span>
             </label>
             <div style={{ display: "flex", gap: "var(--s-2)" }}>
               <input
@@ -366,7 +296,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
                       gap: 5,
                       padding: "var(--s-1) var(--s-2)",
                       background: "var(--wine-tint)",
-                      color: "var(--wine)",
+                      color: "var(--wine-text)",
                       borderRadius: "var(--r-sm)",
                       font: "700 11.5px/1 var(--f-mono)",
                     }}
@@ -379,7 +309,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
                       style={{
                         background: "transparent",
                         border: 0,
-                        color: "var(--wine)",
+                        color: "var(--wine-text)",
                         cursor: "pointer",
                         padding: 0,
                         display: "inline-flex",
@@ -548,8 +478,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
             {isPending ? "Creando…" : "Crear trámite"}
           </button>
         </footer>
-      </aside>
-    </div>
+    </DrawerShell>
   );
 }
 

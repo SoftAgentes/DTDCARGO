@@ -206,7 +206,7 @@ function ReportRow({ item, first }: { item: ReportWithProof; first: boolean }) {
       ) : null}
 
       {error ? (
-        <p style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--wine)", margin: 0 }}>
+        <p style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--wine-text)", margin: 0 }}>
           {error}
         </p>
       ) : null}

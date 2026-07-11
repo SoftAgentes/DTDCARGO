@@ -116,7 +116,7 @@ export default async function CnPage({
             <span
               style={{
                 fontFamily: '"Noto Sans SC", var(--f-sans)',
-                color: "var(--wine)",
+                color: "var(--wine-text)",
               }}
             >
               中国

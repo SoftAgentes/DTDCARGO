@@ -151,7 +151,7 @@ export function AuditLogSection({ events }: { events: AuditEvent[] }) {
                             style={{
                               cursor: "pointer",
                               font: "600 11.5px/1.3 var(--f-sans)",
-                              color: "var(--wine)",
+                              color: "var(--wine-text)",
                             }}
                           >
                             {payloadKeys.length} campo{payloadKeys.length === 1 ? "" : "s"}

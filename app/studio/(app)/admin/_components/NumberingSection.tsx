@@ -60,7 +60,7 @@ export function NumberingSection({ data }: { data: NumberingOverview }) {
                 <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>{f.label}</div>
                 <code style={{ font: "600 11px/1.4 var(--f-mono)", color: "var(--ink-soft)" }}>{f.source}</code>
               </div>
-              <code style={{ font: "700 13px/1 var(--f-mono)", color: "var(--wine)" }}>{f.format}</code>
+              <code style={{ font: "700 13px/1 var(--f-mono)", color: "var(--wine-text)" }}>{f.format}</code>
               <div style={{ justifySelf: "start" }}>
                 {f.next ? (
                   <>
@@ -156,7 +156,7 @@ function Card({ children }: { children: React.ReactNode }) {
 
 function CardEyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <div className="studio-eyebrow" style={{ color: "var(--wine)", marginBottom: 14 }}>
+    <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: 14 }}>
       {children}
     </div>
   );

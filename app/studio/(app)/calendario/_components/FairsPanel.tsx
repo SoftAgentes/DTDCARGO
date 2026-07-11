@@ -32,7 +32,7 @@ export function FairsPanel({ country, fairs, holidays }: Props) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
       <section>
-        <div className="studio-eyebrow" style={{ color: "var(--wine)", marginBottom: "var(--s-3)" }}>
+        <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: "var(--s-3)" }}>
           Ferias y expos · {label}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
@@ -95,7 +95,7 @@ export function FairsPanel({ country, fairs, holidays }: Props) {
       </section>
 
       <section>
-        <div className="studio-eyebrow" style={{ color: "var(--wine)", marginBottom: "var(--s-3)" }}>
+        <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: "var(--s-3)" }}>
           Feriados oficiales · {label}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>

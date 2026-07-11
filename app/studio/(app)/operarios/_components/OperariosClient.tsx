@@ -214,7 +214,7 @@ function OperarioRowItem({
             height: 36,
             borderRadius: "50%",
             background: "var(--wine-tint, rgba(127,15,26,0.08))",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",

@@ -37,7 +37,7 @@ export function CommercialCard({
         <span
           style={{
             font: "700 10px/1 var(--f-sans)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
           }}
@@ -48,7 +48,7 @@ export function CommercialCard({
           href="/studio/kommo"
           style={{
             font: "600 11.5px/1 var(--f-sans)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             display: "inline-flex",
             alignItems: "center",
             gap: "var(--s-1)",

@@ -121,7 +121,7 @@ export function MentionsInboxClient({ items }: { items: MentionInboxItem[] }) {
                   <span
                     style={{
                       font: "600 10px/1 var(--f-sans)",
-                      color: "var(--wine)",
+                      color: "var(--wine-text)",
                       letterSpacing: "0.08em",
                       textTransform: "uppercase",
                     }}

@@ -835,7 +835,7 @@ function LineDetailPanel({
                         style={candidateBtnStyle()}
                       >
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <code style={{ font: "700 10.5px/1 var(--f-mono)", color: "var(--wine)" }}>
+                          <code style={{ font: "700 10.5px/1 var(--f-mono)", color: "var(--wine-text)" }}>
                             {e.entry_code}
                           </code>
                           <div

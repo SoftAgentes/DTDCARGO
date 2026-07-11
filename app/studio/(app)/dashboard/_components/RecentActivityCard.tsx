@@ -72,7 +72,7 @@ export function RecentActivityCard({ items }: { items: RecentActivityItem[] }) {
         <Link
           href="/studio/tracking"
           style={{
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             font: "600 12px/1 var(--f-sans)",
             textDecoration: "none",
             alignSelf: "flex-start",
@@ -107,7 +107,7 @@ export function RecentActivityCard({ items }: { items: RecentActivityItem[] }) {
         <Link
           href="/studio/tracking"
           style={{
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             font: "600 11px/1 var(--f-sans)",
             textDecoration: "none",
           }}
@@ -187,7 +187,7 @@ function ActivityRow({ item }: { item: RecentActivityItem }) {
           <code
             style={{
               font: "700 11.5px/1 var(--f-mono)",
-              color: "var(--wine)",
+              color: "var(--wine-text)",
             }}
           >
             {item.shipment_code}

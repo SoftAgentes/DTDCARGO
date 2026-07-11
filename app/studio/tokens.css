@@ -7,6 +7,8 @@
   --wine-deep: #5E0A12;
   --wine-soft: #C2747F;
   --wine-tint: rgba(127,15,26,0.08);
+  --wine-text: #7F0F1A;                 /* wine como TEXTO (AA en ambos temas). --wine crudo NO es texto: falla AA en dark (2.79:1). Fill de botones sigue en --wine. */
+  --on-warning: #0F1E3D;                /* texto/ícono sobre relleno --warning sólido (navy fijo, ambos temas) */
 
   --bg-base: #FBFAF7;
   --bg-surface: #FFFFFF;
@@ -131,6 +133,8 @@
   --wine: #A8323E;
   --wine-soft: #D89AA4;
   --wine-tint: rgba(168,50,62,0.14);
+  --wine-text: #D89AA4;                 /* = --wine-soft dark: wine legible como texto en oscuro (~6-8:1) */
+  --on-warning: #0F1E3D;                /* navy fijo: el fill del warning cambia, el texto no */
 
   --bg-base: #0B1428;
   --bg-surface: #16264A;
@@ -232,7 +236,7 @@ a { color: inherit; text-decoration: none; }
   text-transform: uppercase;
   color: var(--ink-soft);
 }
-.eyebrow-wine { color: var(--wine); }
+.eyebrow-wine { color: var(--wine-text); }
 .h-pad { padding: var(--s-6) var(--s-8); }
 
 /* Focus rings */

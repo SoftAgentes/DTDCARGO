@@ -43,7 +43,7 @@ export function RecentQuotesCard({ quotes }: { quotes: RecentQuoteRow[] }) {
           href="/studio/cotizador"
           style={{
             font: "600 11.5px/1 var(--f-sans)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             textDecoration: "none",
           }}
         >
@@ -65,7 +65,7 @@ export function RecentQuotesCard({ quotes }: { quotes: RecentQuoteRow[] }) {
           <Link
             href="/studio/cotizador"
             style={{
-              color: "var(--wine)",
+              color: "var(--wine-text)",
               fontWeight: 600,
               textDecoration: "none",
             }}
@@ -128,7 +128,7 @@ export function RecentQuotesCard({ quotes }: { quotes: RecentQuoteRow[] }) {
               <span
                 style={{
                   font: "800 12.5px/1 var(--f-mono)",
-                  color: "var(--wine)",
+                  color: "var(--wine-text)",
                   textAlign: "right",
                   minWidth: 70,
                 }}

@@ -181,7 +181,7 @@ export function AssetDrawer({ assetAccounts, onClose }: Props) {
 
           <div>
             <label className="studio-label" htmlFor="asset-name">
-              Nombre del activo <span style={{ color: "var(--wine)" }}>*</span>
+              Nombre del activo <span style={{ color: "var(--wine-text)" }}>*</span>
             </label>
             <input
               id="asset-name"
@@ -197,7 +197,7 @@ export function AssetDrawer({ assetAccounts, onClose }: Props) {
 
           <div>
             <label className="studio-label" htmlFor="asset-account">
-              Cuenta del activo (1.2.x) <span style={{ color: "var(--wine)" }}>*</span>
+              Cuenta del activo (1.2.x) <span style={{ color: "var(--wine-text)" }}>*</span>
             </label>
             <select
               id="asset-account"
@@ -222,7 +222,7 @@ export function AssetDrawer({ assetAccounts, onClose }: Props) {
           >
             <div>
               <label className="studio-label" htmlFor="asset-cost">
-                Costo <span style={{ color: "var(--wine)" }}>*</span>
+                Costo <span style={{ color: "var(--wine-text)" }}>*</span>
               </label>
               <NumericInput
                 id="asset-cost"
@@ -259,7 +259,7 @@ export function AssetDrawer({ assetAccounts, onClose }: Props) {
           >
             <div>
               <label className="studio-label" htmlFor="asset-acquired">
-                Fecha de adquisición <span style={{ color: "var(--wine)" }}>*</span>
+                Fecha de adquisición <span style={{ color: "var(--wine-text)" }}>*</span>
               </label>
               <input
                 id="asset-acquired"
@@ -275,7 +275,7 @@ export function AssetDrawer({ assetAccounts, onClose }: Props) {
             </div>
             <div>
               <label className="studio-label" htmlFor="asset-life">
-                Vida útil (meses) <span style={{ color: "var(--wine)" }}>*</span>
+                Vida útil (meses) <span style={{ color: "var(--wine-text)" }}>*</span>
               </label>
               <NumericInput
                 id="asset-life"

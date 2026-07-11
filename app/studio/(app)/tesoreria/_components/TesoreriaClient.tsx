@@ -146,7 +146,7 @@ export function TesoreriaClient({
         <KpiCard
           value={`$${fmtMoney(kpis.porPagar)}`}
           label="Por pagar"
-          valueColor={kpis.porPagar > 0 ? "var(--wine)" : "var(--ink)"}
+          valueColor={kpis.porPagar > 0 ? "var(--wine-text)" : "var(--ink)"}
           sub={`${kpis.proveedoresActivos} proveedor(es) con saldo`}
         />
         <KpiCard
@@ -519,7 +519,7 @@ function PaymentsTab({ payments }: { payments: SupplierPayment[] }) {
         <KpiCard
           value={`$${fmtMoney(remesasTotal)}`}
           label="Remesas a China"
-          valueColor={remesasTotal > 0 ? "var(--wine)" : "var(--ink)"}
+          valueColor={remesasTotal > 0 ? "var(--wine-text)" : "var(--ink)"}
           sub={`${remesas.length} orden(es) USDT / CNY / Alipay`}
         />
       </div>

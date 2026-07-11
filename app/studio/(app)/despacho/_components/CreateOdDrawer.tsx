@@ -199,7 +199,7 @@ export function CreateOdDrawer({
               }}
             >
               No hay rutas activas en {hub}. Crea una en{" "}
-              <a href="/studio/admin/rutas" style={{ color: "var(--wine)" }}>
+              <a href="/studio/admin/rutas" style={{ color: "var(--wine-text)" }}>
                 Rutas y ciudades
               </a>
               .
@@ -336,7 +336,7 @@ export function CreateOdDrawer({
                 return (
                   <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div style={{ flex: 1 }}>
-                      <code style={{ font: "700 11.5px/1 var(--f-mono)", color: "var(--wine)" }}>
+                      <code style={{ font: "700 11.5px/1 var(--f-mono)", color: "var(--wine-text)" }}>
                         {p.markbox}
                       </code>
                       <span style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink)", marginLeft: 8 }}>

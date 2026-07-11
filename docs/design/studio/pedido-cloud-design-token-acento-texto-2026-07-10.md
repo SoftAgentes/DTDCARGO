@@ -55,4 +55,33 @@ Propongo **`--wine-text`** (claro y auto-explicativo). Alternativas si calzan me
 
 ---
 
-*Fuente: auditoría `/ui-pro` sobre `app/studio/(app)/facturacion` (2026-07-10) — score 8/10, hallazgo D1.4. Mismo patrón que el focus-ring dark ya sincronizado el 2026-07-06.*
+# Segundo token pedido — `--on-warning` (texto sobre relleno warning) · 2026-07-10 (Fase C)
+
+> Mismo espíritu: **agregado de token**, no cambia valores. Registralo como otro `BD-NNN`, fuente = auditoría `/ui-pro` del shell del ERP (Fase C).
+
+## El problema (medido)
+
+El **badge de alerta de gastos** del sidebar (`StudioSidebar.tsx`) es un relleno sólido `background: var(--warning)` con el conteo encima en `color: var(--ink)`. Pasa en light pero **falla en dark**:
+
+| Texto sobre `--warning` fill | light (#B8893A) | dark (#DCAB6B) | |
+|---|---|---|---|
+| `--ink` (light #0F1E3D / dark #F2F0EC) | 5.24:1 ✅ | **~1.7:1** ❌ | el problema |
+| `--ink-inv` (light #FBFAF7 / dark #0F1E3D) | 3.14:1 ⚠️ | 7.92:1 ✅ | tampoco sirve en ambos |
+
+**La raíz (idéntica a `--wine-text`):** el texto correcto sobre el gold del warning es **navy #0F1E3D en AMBOS temas**, pero ningún token global es navy en ambos — `--ink` es navy solo en light, `--ink-inv` es navy solo en dark. El patrón "blanco sobre relleno" NO se hereda a dark.
+
+## La solución: token nuevo `--on-warning`
+
+Color de texto/icono a poner **sobre relleno `--warning` sólido**, navy en ambos temas:
+- **light:** `#0F1E3D` · sobre `--warning` #B8893A = **5.24:1** ✅
+- **dark:** `#0F1E3D` · sobre `--warning` #DCAB6B = **7.92:1** ✅
+
+(Mismo hex en ambos temas — el fill cambia, el texto no. Si preferís un par `--on-warning` / `--on-danger` / `--on-success` completo para todos los rellenos sólidos, mejor aún; hoy el único caso vivo es warning.)
+
+## Migración (lado repo — la hago yo después del sync)
+
+Cuando baje: en `StudioSidebar.tsx` el badge de gastos → `color: var(--on-warning)`. Si aparecen más rellenos warning sólidos con texto, mismo cambio.
+
+---
+
+*Fuente: `--wine-text` de auditoría `/ui-pro` sobre `facturacion` (2026-07-10, D1.4); `--on-warning` de auditoría `/ui-pro` del shell (sidebar/topbar) en Fase C — hallazgo D1.2 (paridad light/dark). Mismo patrón que el focus-ring dark ya sincronizado el 2026-07-06.*

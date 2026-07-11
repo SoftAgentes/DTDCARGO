@@ -83,7 +83,7 @@ export function ClubClient({
     <div style={{ maxWidth: 1280 }}>
       {/* Header */}
       <div style={{ marginBottom: "var(--s-5)" }}>
-        <span className="studio-eyebrow" style={{ color: "var(--wine)" }}>
+        <span className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
           Club DTD
         </span>
         <h1

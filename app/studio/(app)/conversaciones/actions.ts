@@ -19,6 +19,7 @@ import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { createAdminClient } from "@/lib/db/admin";
 import { insertOutboundMessage } from "@/lib/studio/conversaciones/messages-queries";
 import { notifyClientReplyPush } from "@/lib/studio/conversation-reply-push";
+import { runConversationDigestsForTenant } from "@/lib/studio/conversaciones/monthly-digest";
 import {
   validateAssignInput,
   validateMarkCaseInput,
@@ -27,6 +28,7 @@ import {
   type AssignInput,
   type ConversationActionState,
   type ConversationStatus,
+  type DigestGenState,
   type MarkCaseInput,
   type SendReplyInput,
   type SetStatusInput,
@@ -124,6 +126,71 @@ export async function sendReplyAction(
 
   revalidatePath("/studio/conversaciones");
   return { ok: true };
+}
+
+// ─────────────────────────────────────────────────────────────
+// generateDigestsAction (SDD-0149 F3 · admin)
+//
+// Genera/backfillea los resúmenes mensuales de un mes puntual desde el ERP,
+// sin depender del cron ni del CRON_SECRET (oculto). Idempotente (upsert): re-
+// correr no duplica. Escribe con service_role (el runner) tras validar permiso.
+// ─────────────────────────────────────────────────────────────
+
+/** "YYYY-MM" → rango [monthStart, monthEndExcl) (date) + label "julio de 2026". */
+function monthRange(month: string): {
+  monthStart: string;
+  monthEndExcl: string;
+  periodLabel: string;
+} | null {
+  if (!/^\d{4}-\d{2}$/.test(month)) return null;
+  const [y, m] = month.split("-").map(Number);
+  if (m < 1 || m > 12) return null;
+  const start = new Date(Date.UTC(y, m - 1, 1));
+  const endExcl = new Date(Date.UTC(y, m, 1));
+  const periodLabel = start.toLocaleString("es-VE", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+  return {
+    monthStart: start.toISOString().slice(0, 10),
+    monthEndExcl: endExcl.toISOString().slice(0, 10),
+    periodLabel,
+  };
+}
+
+export async function generateDigestsAction(
+  _prev: DigestGenState,
+  formData: FormData,
+): Promise<DigestGenState> {
+  const month = str(formData.get("month"));
+  const range = month ? monthRange(month) : null;
+  if (!range) return { error: "Elige un mes válido." };
+
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "conversaciones");
+  if (denial) return { error: denial };
+
+  const tenantId = await resolveTenantId(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant." };
+
+  // El runner escribe con service_role (RLS: solo el cron/service_role escribe).
+  const res = await runConversationDigestsForTenant(
+    createAdminClient(),
+    tenantId,
+    range.monthStart,
+    range.monthEndExcl,
+    range.periodLabel,
+  );
+
+  revalidatePath("/studio/conversaciones");
+  return {
+    ok: true,
+    processed: res.processed,
+    generated: res.generated,
+    skipped: res.skipped,
+    periodLabel: range.periodLabel,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────

@@ -339,7 +339,7 @@ function FilterCard({
         padding: "var(--s-5)",
       }}
     >
-      <div className="studio-eyebrow" style={{ color: "var(--wine)", marginBottom: "var(--s-3)" }}>
+      <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: "var(--s-3)" }}>
         Filtros
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>

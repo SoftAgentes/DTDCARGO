@@ -49,7 +49,7 @@ export function CostHelpers({ onApplyIgtf, onApplyIva }: Props) {
           <div
             style={{
               font: "700 10.5px/1 var(--f-sans)",
-              color: "var(--wine)",
+              color: "var(--wine-text)",
               letterSpacing: "0.14em",
               textTransform: "uppercase",
             }}

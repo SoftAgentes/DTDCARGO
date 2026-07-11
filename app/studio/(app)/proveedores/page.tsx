@@ -13,6 +13,9 @@ import { createClient } from "@/lib/db/server";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 import {
   cbmByPrealerta,
+  listDisabledSharePrealertaIds,
+  listPackingListSubmissions,
+  listPrealertaServiceRequests,
   listPrealertas,
   listSuppliers,
   prealertaStats,
@@ -32,11 +35,23 @@ export default async function ProveedoresPage() {
   // Operador = todo el tenant (sin markbox). RLS de 0105 le da read del tenant.
   // cbmByPrealerta: CBM real medido al recibir en CN (migr 0127) — la columna
   // CBM de la cola lo muestra cuando existe.
-  const [stats, prealertas, suppliers, cbmByPrealertaId] = await Promise.all([
+  // serviceRequests + packingLists sin markbox = todo el tenant (RLS por tenant).
+  const [
+    stats,
+    prealertas,
+    suppliers,
+    cbmByPrealertaId,
+    serviceRequests,
+    packingLists,
+    disabledShareIds,
+  ] = await Promise.all([
     prealertaStats(supabase),
     listPrealertas(supabase),
     listSuppliers(supabase),
     cbmByPrealerta(supabase),
+    listPrealertaServiceRequests(supabase),
+    listPackingListSubmissions(supabase),
+    listDisabledSharePrealertaIds(supabase),
   ]);
 
   // # de compras vivas por proveedor (las prealertas ya vienen sin borradas).
@@ -65,6 +80,9 @@ export default async function ProveedoresPage() {
       prealertas={prealertas}
       suppliers={supplierRows}
       cbmByPrealertaId={cbmByPrealertaId}
+      serviceRequests={serviceRequests}
+      packingLists={packingLists}
+      disabledShareIds={disabledShareIds}
     />
   );
 }

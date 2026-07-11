@@ -146,7 +146,7 @@ export function CostingClient({
             value={money(totals.revenue)}
             label="Revenue total"
             sub={currency === "USD" ? "facturado · USD canónico" : "facturado · en Bs."}
-            valueColor="var(--wine)"
+            valueColor="var(--wine-text)"
           />
           <KpiCard
             value={money(totals.cost)}
@@ -382,7 +382,7 @@ function Card({
         <div
           style={{
             font: "700 10px/1 var(--f-sans)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
             padding: "18px 20px 0",
@@ -590,7 +590,7 @@ function RankingView({
         <span
           style={{
             font: "700 10px/1 var(--f-sans)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
           }}
@@ -846,7 +846,7 @@ function RoutesView({ routes, money }: { routes: RouteMarginRow[]; money: Money 
             <span style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>
               {r.origin || "—"}
             </span>
-            <span style={{ color: "var(--wine)" }}>→</span>
+            <span style={{ color: "var(--wine-text)" }}>→</span>
             <span style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>
               {r.destination || "—"}
             </span>
@@ -1021,7 +1021,7 @@ function TemplatesView({
                 <TplCell v={money(t.insurance)} />
                 <TplCell v={money(t.commission)} />
                 <TplCell v={money(t.other)} />
-                <span style={{ font: "800 13px/1 var(--f-mono)", color: "var(--wine)", textAlign: "right" }}>
+                <span style={{ font: "800 13px/1 var(--f-mono)", color: "var(--wine-text)", textAlign: "right" }}>
                   {money(total)}
                 </span>
                 <div style={{ textAlign: "center" }}>

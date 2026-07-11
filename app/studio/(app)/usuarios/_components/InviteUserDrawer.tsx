@@ -523,7 +523,7 @@ function ScopeSection({
       <div
         className="studio-eyebrow"
         style={{
-          color: "var(--wine)",
+          color: "var(--wine-text)",
           marginBottom: 8,
           fontSize: 10,
         }}
@@ -552,7 +552,7 @@ function ScopeSection({
       <div
         className="studio-eyebrow"
         style={{
-          color: "var(--wine)",
+          color: "var(--wine-text)",
           marginBottom: 8,
           fontSize: 10,
         }}

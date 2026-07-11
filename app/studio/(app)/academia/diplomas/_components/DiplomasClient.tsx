@@ -136,7 +136,7 @@ export function DiplomasClient({
                     marginTop: 6,
                   }}
                 >
-                  <code style={{ font: "600 10.5px/1 var(--f-mono)", color: "var(--wine)" }}>
+                  <code style={{ font: "600 10.5px/1 var(--f-mono)", color: "var(--wine-text)" }}>
                     {d.folio}
                   </code>
                   <span style={{ font: "500 10px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
@@ -165,7 +165,7 @@ export function DiplomasClient({
 function Header() {
   return (
     <div data-print-hide style={{ marginBottom: "var(--s-5)" }}>
-      <span className="studio-eyebrow" style={{ color: "var(--wine)" }}>
+      <span className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
         Academia DTD
       </span>
       <h1
@@ -366,7 +366,8 @@ function VariantBtn({
         color: active ? "var(--bg-surface)" : "var(--ink-soft)",
         font: "700 11px/1 var(--f-sans)",
         cursor: "pointer",
-        transition: "all var(--dur-fast) var(--ease)",
+        transition:
+          "border-color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease)",
       }}
     >
       {label}

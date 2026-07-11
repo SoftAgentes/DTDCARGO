@@ -137,7 +137,7 @@ export default async function DashboardPage() {
       <div style={{ marginBottom: 28 }}>
         <div
           className="studio-eyebrow"
-          style={{ marginBottom: 10, color: "var(--wine)" }}
+          style={{ marginBottom: 10, color: "var(--wine-text)" }}
         >
           {eyebrow}
         </div>
@@ -145,7 +145,7 @@ export default async function DashboardPage() {
           className="studio-display"
           style={{ fontSize: 30, margin: "0 0 var(--s-2)", color: "var(--ink)" }}
         >
-          {greeting}, <span style={{ color: "var(--wine)" }}>{subject}</span>.
+          {greeting}, <span style={{ color: "var(--wine-text)" }}>{subject}</span>.
         </h1>
         <p
           style={{
@@ -177,7 +177,7 @@ export default async function DashboardPage() {
             <KpiCard
               value={myOpenTasks}
               label="Tus tareas de hoy"
-              valueColor={myOpenTasks > 0 ? "var(--wine)" : "var(--ink)"}
+              valueColor={myOpenTasks > 0 ? "var(--wine-text)" : "var(--ink)"}
               sub="Abrir Bitácora →"
             />
           </Link>
@@ -238,7 +238,7 @@ export default async function DashboardPage() {
             sub={
               <Link
                 href="/studio/naviera"
-                style={{ color: "var(--wine)", textDecoration: "none", fontWeight: 600 }}
+                style={{ color: "var(--wine-text)", textDecoration: "none", fontWeight: 600 }}
               >
                 Gestionar →
               </Link>
@@ -247,7 +247,7 @@ export default async function DashboardPage() {
           <KpiCard
             value={`${naviera.looseCbm.toFixed(1)} CBM`}
             label="Carga suelta sin asignar"
-            valueColor={naviera.looseCbm > 0 ? "var(--wine)" : "var(--ink)"}
+            valueColor={naviera.looseCbm > 0 ? "var(--wine-text)" : "var(--ink)"}
             sub={`${naviera.looseCount} embarque(s) en CN`}
           />
           <KpiCard
@@ -281,7 +281,7 @@ export default async function DashboardPage() {
             sub={
               <Link
                 href="/studio/clientes"
-                style={{ color: "var(--wine)", textDecoration: "none", fontWeight: 600 }}
+                style={{ color: "var(--wine-text)", textDecoration: "none", fontWeight: 600 }}
               >
                 Ver catálogo →
               </Link>
@@ -295,7 +295,7 @@ export default async function DashboardPage() {
           <KpiCard
             value={`$${formatMoney(quoteStats.totalSentAndAccepted)}`}
             label="Total estimado"
-            valueColor="var(--wine)"
+            valueColor="var(--wine-text)"
             sub={
               quoteStats.countAccepted > 0
                 ? `de los cuales $${formatMoney(quoteStats.totalAccepted)} aceptado`
@@ -308,7 +308,7 @@ export default async function DashboardPage() {
             sub={
               <Link
                 href="/studio/tarifas"
-                style={{ color: "var(--wine)", textDecoration: "none", fontWeight: 600 }}
+                style={{ color: "var(--wine-text)", textDecoration: "none", fontWeight: 600 }}
               >
                 Ver catálogo →
               </Link>

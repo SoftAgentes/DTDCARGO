@@ -248,7 +248,7 @@ export function ExpenseDrawer({
               <div>
                 <label htmlFor="ex-shipment" className="studio-label">
                   {t("expenses.field.shipment")}{" "}
-                  <span style={{ color: "var(--wine)" }}>*</span>
+                  <span style={{ color: "var(--wine-text)" }}>*</span>
                 </label>
                 <select
                   id="ex-shipment"
@@ -271,7 +271,7 @@ export function ExpenseDrawer({
             <div>
               <label htmlFor="ex-category" className="studio-label">
                 {t("expenses.field.category")}{" "}
-                <span style={{ color: "var(--wine)" }}>*</span>
+                <span style={{ color: "var(--wine-text)" }}>*</span>
               </label>
               <select
                 id="ex-category"
@@ -292,7 +292,7 @@ export function ExpenseDrawer({
               <div>
                 <label htmlFor="ex-amount" className="studio-label">
                   {t("expenses.field.amount")}{" "}
-                  <span style={{ color: "var(--wine)" }}>*</span>
+                  <span style={{ color: "var(--wine-text)" }}>*</span>
                 </label>
                 <NumericInput
                   id="ex-amount"
@@ -350,7 +350,7 @@ export function ExpenseDrawer({
               >
                 <label htmlFor="ex-fx" className="studio-label" style={{ margin: 0 }}>
                   {t("expenses.fx.label", { pair })}{" "}
-                  <span style={{ color: "var(--wine)" }}>*</span>
+                  <span style={{ color: "var(--wine-text)" }}>*</span>
                 </label>
                 <NumericInput
                   id="ex-fx"
@@ -397,7 +397,7 @@ export function ExpenseDrawer({
                   <p
                     style={{
                       font: "700 13px/1 var(--f-mono)",
-                      color: "var(--wine)",
+                      color: "var(--wine-text)",
                       margin: 0,
                     }}
                   >
@@ -573,7 +573,7 @@ function ScopeCard({
           placeItems: "center",
           borderRadius: "var(--r-md)",
           background: "var(--wine-tint)",
-          color: "var(--wine)",
+          color: "var(--wine-text)",
         }}
       >
         {icon}

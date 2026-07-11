@@ -358,7 +358,7 @@ export function CityPicker({
                         </code>
                       )}
                       {sel && (
-                        <span style={{ color: "var(--wine)", display: "inline-flex" }}>
+                        <span style={{ color: "var(--wine-text)", display: "inline-flex" }}>
                           {Icon.check(13)}
                         </span>
                       )}
@@ -377,7 +377,7 @@ export function CityPicker({
                 style={{
                   padding: "11px 12px",
                   background: "var(--bg-elevated)",
-                  color: "var(--wine)",
+                  color: "var(--wine-text)",
                   borderTop: "1px solid var(--border)",
                   border: 0,
                   borderTopWidth: 1,

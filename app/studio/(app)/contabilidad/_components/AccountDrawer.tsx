@@ -161,7 +161,7 @@ export function AccountDrawer({ mode, account, accounts, onClose }: Props) {
           >
             <div>
               <label className="studio-label" htmlFor="acct-code">
-                Código <span style={{ color: "var(--wine)" }}>*</span>
+                Código <span style={{ color: "var(--wine-text)" }}>*</span>
               </label>
               <input
                 id="acct-code"
@@ -180,7 +180,7 @@ export function AccountDrawer({ mode, account, accounts, onClose }: Props) {
             </div>
             <div>
               <label className="studio-label" htmlFor="acct-name">
-                Nombre <span style={{ color: "var(--wine)" }}>*</span>
+                Nombre <span style={{ color: "var(--wine-text)" }}>*</span>
               </label>
               <input
                 id="acct-name"

@@ -20,12 +20,13 @@
  * Usa primitivas reales del Studio (Badge, EmptyState, KpiCard, Icon, tokens).
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
+import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import type {
   LegalAcceptance,
   LegalDoc,
@@ -302,7 +303,7 @@ function DocCard({
             height: 40,
             borderRadius: "var(--r-md)",
             background: "var(--wine-tint)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
@@ -772,89 +773,35 @@ function DocsView({
 function DocModal({ doc, onClose }: { doc: LegalDoc; onClose: () => void }) {
   const body: LegalSection[] = Array.isArray(doc.body) ? doc.body : [];
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
   return (
-    <div
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="legal-doc-title"
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "var(--scrim)",
-        zIndex: 110,
-        display: "grid",
-        placeItems: "center",
-        padding: "var(--s-5)",
-      }}
+    <DrawerShell
+      title={doc.name}
+      subtitle={
+        <>
+          <code
+            style={{ font: "700 12px/1 var(--f-mono)", color: "var(--wine-text)" }}
+          >
+            {doc.version}
+          </code>{" "}
+          · en vigor desde {fmtDate(doc.effective_date)} · {doc.sections}{" "}
+          secciones
+        </>
+      }
+      onClose={onClose}
+      pending={false}
+      width={720}
+      variant="centered"
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "min(720px, 96vw)",
-          maxHeight: "90vh",
-          overflow: "auto",
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--r-lg)",
-          boxShadow: "var(--shadow-pop)",
-          padding: "var(--s-6)",
-          display: "flex",
-          flexDirection: "column",
-          gap: "var(--s-4)",
-        }}
-      >
         <div
           style={{
+            flex: 1,
+            overflow: "auto",
+            padding: "var(--s-6)",
             display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-            gap: "var(--s-4)",
+            flexDirection: "column",
+            gap: 14,
           }}
         >
-          <div>
-            <h2
-              id="legal-doc-title"
-              className="studio-display"
-              style={{ fontSize: 18, margin: 0, color: "var(--ink)" }}
-            >
-              {doc.name}
-            </h2>
-            <p
-              style={{
-                font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--ink-soft)",
-                margin: "6px 0 0",
-              }}
-            >
-              <code
-                style={{ font: "700 12px/1 var(--f-mono)", color: "var(--wine)" }}
-              >
-                {doc.version}
-              </code>{" "}
-              · en vigor desde {fmtDate(doc.effective_date)} · {doc.sections}{" "}
-              secciones
-            </p>
-          </div>
-          <button
-            type="button"
-            className="studio-btn studio-btn-ghost studio-btn-sm"
-            onClick={onClose}
-            autoFocus
-          >
-            Cerrar
-          </button>
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {body.length === 0 ? (
             <p
               style={{
@@ -890,8 +837,7 @@ function DocModal({ doc, onClose }: { doc: LegalDoc; onClose: () => void }) {
             ))
           )}
         </div>
-      </div>
-    </div>
+    </DrawerShell>
   );
 }
 
@@ -962,7 +908,7 @@ function AcceptancesView({
         <KpiCard
           value={kpis.thisMonth}
           label="Este mes"
-          valueColor={kpis.thisMonth > 0 ? "var(--wine)" : "var(--ink)"}
+          valueColor={kpis.thisMonth > 0 ? "var(--wine-text)" : "var(--ink)"}
         />
         <KpiCard
           value={`${kpis.onCurrent}/${kpis.total}`}
@@ -1086,7 +1032,7 @@ function AcceptancesView({
               <code
                 style={{
                   font: "700 11.5px/1 var(--f-mono)",
-                  color: "var(--wine)",
+                  color: "var(--wine-text)",
                 }}
               >
                 {a.acceptance_code}
@@ -1200,71 +1146,24 @@ function AcceptanceModal({
   const a = acceptance;
   const anyStale = a.docs.some((d) => isStale(d.key, d.version));
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
   return (
-    <div
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="acc-modal-title"
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "var(--scrim)",
-        zIndex: 110,
-        display: "grid",
-        placeItems: "center",
-        padding: "var(--s-5)",
-      }}
+    <DrawerShell
+      title={`Acuse ${a.acceptance_code}`}
+      onClose={onClose}
+      pending={false}
+      width={540}
+      variant="centered"
     >
       <div
-        onClick={(e) => e.stopPropagation()}
         style={{
-          width: "min(540px, 96vw)",
-          maxHeight: "90vh",
+          flex: 1,
           overflow: "auto",
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--r-lg)",
-          boxShadow: "var(--shadow-pop)",
           padding: "var(--s-6)",
           display: "flex",
           flexDirection: "column",
           gap: "var(--s-4)",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-            gap: "var(--s-4)",
-          }}
-        >
-          <h2
-            id="acc-modal-title"
-            className="studio-display"
-            style={{ fontSize: 18, margin: 0, color: "var(--ink)" }}
-          >
-            Acuse {a.acceptance_code}
-          </h2>
-          <button
-            type="button"
-            className="studio-btn studio-btn-ghost studio-btn-sm"
-            onClick={onClose}
-            autoFocus
-          >
-            Cerrar
-          </button>
-        </div>
-
         <div style={{ display: "flex", gap: "var(--s-2)", flexWrap: "wrap" }}>
           {anyStale ? (
             <Badge tone="warning" size="sm" dot>
@@ -1358,6 +1257,6 @@ function AcceptanceModal({
           </a>
         </div>
       </div>
-    </div>
+    </DrawerShell>
   );
 }

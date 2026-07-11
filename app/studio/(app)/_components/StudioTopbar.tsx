@@ -254,7 +254,7 @@ export function StudioTopbar({
               >
                 {userEmail.split("@")[0]}
               </span>
-              <span style={{ color: "var(--ink-mute)", display: "inline-flex" }}>
+              <span style={{ color: "var(--ink-soft)", display: "inline-flex" }}>
                 {Icon.chevD(12)}
               </span>
             </button>

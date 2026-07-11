@@ -359,7 +359,7 @@ function ReportsTable({
                   style={{
                     padding: "12px 14px",
                     font: "600 12px/1 var(--f-mono)",
-                    color: "var(--wine)",
+                    color: "var(--wine-text)",
                     whiteSpace: "nowrap",
                   }}
                 >

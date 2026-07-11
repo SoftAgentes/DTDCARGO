@@ -482,7 +482,7 @@ function PrintLayout({
             font: 700 9px/1 var(--f-sans);
             letter-spacing: 0.18em;
             text-transform: uppercase;
-            color: var(--wine);
+            color: var(--wine-text);
           }
           #dtd-fiscal-print .fp-title {
             font: 900 20px/1.15 var(--f-display);

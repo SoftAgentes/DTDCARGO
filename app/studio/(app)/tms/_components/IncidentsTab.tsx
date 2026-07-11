@@ -41,7 +41,7 @@ export function IncidentsTab({
           label="Mantenimientos"
           value={kpis.maintenanceCount}
           sub="Programados"
-          valueColor={kpis.maintenanceCount > 0 ? "var(--wine)" : "var(--ink)"}
+          valueColor={kpis.maintenanceCount > 0 ? "var(--wine-text)" : "var(--ink)"}
         />
         <KpiCard
           label="Multas"
@@ -79,7 +79,7 @@ export function IncidentsTab({
           >
             <div
               className="studio-eyebrow"
-              style={{ font: "700 10.5px/1 var(--f-sans)", color: "var(--wine)" }}
+              style={{ font: "700 10.5px/1 var(--f-sans)", color: "var(--wine-text)" }}
             >
               Incidencias · Últimos 30 días
             </div>
@@ -107,7 +107,7 @@ export function IncidentsTab({
               <code
                 style={{
                   font: "700 11.5px/1 var(--f-mono)",
-                  color: "var(--wine)",
+                  color: "var(--wine-text)",
                 }}
               >
                 {inc.truck?.plate ?? "—"}

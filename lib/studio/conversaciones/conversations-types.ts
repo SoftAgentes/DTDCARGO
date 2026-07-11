@@ -244,6 +244,19 @@ export type ConversationActionState = {
   emailSent?: boolean;
 };
 
+/**
+ * Estado de la acción "generar resúmenes ahora" (SDD-0149 F3 · admin). Además del
+ * ok/error, devuelve los conteos del run para dar feedback ("generé N de M").
+ */
+export type DigestGenState = {
+  ok?: boolean;
+  error?: string;
+  processed?: number; // conversaciones con actividad en el mes
+  generated?: number; // resúmenes guardados
+  skipped?: number; // sin mensajes / error de IA / error de guardado
+  periodLabel?: string; // ej. "julio de 2026"
+};
+
 export type SendReplyInput = {
   conversation_id: string;
   body: string;

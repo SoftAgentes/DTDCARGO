@@ -523,7 +523,7 @@ function Card({
         <div
           style={{
             font: "700 10px/1 var(--f-sans)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
           }}
@@ -564,7 +564,7 @@ function OverviewView({ overview }: { overview: OperationalOverview }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtNum(overview.shipments)} label="Embarques" sub="en el período" valueColor="var(--wine)" />
+        <KpiCard value={fmtNum(overview.shipments)} label="Embarques" sub="en el período" valueColor="var(--wine-text)" />
         <KpiCard value={fmtNum(overview.cbm)} label="CBM movido" sub="metros cúbicos" />
         <KpiCard value={fmtUsd(overview.revenueUsd)} label="Revenue" sub="facturado · USD" valueColor="var(--success)" />
         <KpiCard value={fmtNum(overview.active)} label="Activos" sub="en curso ahora" />
@@ -754,7 +754,7 @@ function RoutesView({ routes }: { routes: RouteRow[] }) {
               <Progress value={(r.revenue / max) * 100} tone="var(--wine)" height={3} />
             </div>
           </div>
-          <span style={{ font: "700 12px/1 var(--f-mono)", color: "var(--wine)", textAlign: "right" }}>
+          <span style={{ font: "700 12px/1 var(--f-mono)", color: "var(--wine-text)", textAlign: "right" }}>
             ${r.rate}/CBM
           </span>
         </div>
@@ -894,7 +894,7 @@ function ByClientView({ data }: { data: CommercialByClient }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtNum(data.totalClients)} label="Clientes" sub="en cartera" valueColor="var(--wine)" />
+        <KpiCard value={fmtNum(data.totalClients)} label="Clientes" sub="en cartera" valueColor="var(--wine-text)" />
         <KpiCard value={fmtNum(ranked.length)} label="Con facturación" sub="últimos 12 meses" />
         <KpiCard value={fmtUsd(data.totalBilledUsd)} label="Facturado" sub="trailing 12m · USD" valueColor="var(--success)" />
       </div>
@@ -1035,7 +1035,7 @@ function ByAgentView({ data }: { data: CommercialByAgent }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtNum(t.leads)} label="Estimados" sub="leads asignados" valueColor="var(--wine)" />
+        <KpiCard value={fmtNum(t.leads)} label="Estimados" sub="leads asignados" valueColor="var(--wine-text)" />
         <KpiCard value={fmtNum(t.won)} label="Ganadas" sub={`${t.convPct}% conv. promedio`} valueColor="var(--success)" />
         <KpiCard value={fmtNum(t.clients)} label="Convertidos" sub="a cliente del ERP" />
         <KpiCard value={fmtUsd(t.revenueUsd)} label="Revenue equipo" sub="facturado 12m · USD" valueColor="var(--success)" />
@@ -1333,7 +1333,7 @@ function IvaView({ iva }: { iva: IvaPosition }) {
           value={fmtUsdFull(outcomeValue)}
           label={aPagar ? "IVA a pagar" : "Excedente a favor"}
           sub={aPagar ? "luego de retenciones" : "crédito trasladable"}
-          valueColor={aPagar ? "var(--wine)" : "var(--success)"}
+          valueColor={aPagar ? "var(--wine-text)" : "var(--success)"}
         />
       </div>
 
@@ -1461,7 +1461,7 @@ function CashflowView({ cashflow }: { cashflow: CashflowReport }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtUsd(cashflow.totalBilled)} label="Facturado" sub="en el período" valueColor="var(--wine)" />
+        <KpiCard value={fmtUsd(cashflow.totalBilled)} label="Facturado" sub="en el período" valueColor="var(--wine-text)" />
         <KpiCard value={fmtUsd(cashflow.totalCollected)} label="Cobrado" sub="en el período" valueColor="var(--success)" />
         <KpiCard value={fmtUsd(cashflow.outstanding)} label="Por cobrar" sub="saldo vivo total" />
         <KpiCard value={fmtUsd(cashflow.overdue)} label="Vencido" sub="saldo vivo" valueColor="var(--danger)" />
@@ -1608,7 +1608,7 @@ function CombinedKpis({ combined }: { combined: CombinedReport }) {
       >
         <KpiCard value={fmtUsd(t.revenue)} label="Ingreso" sub="facturado · USD" valueColor="var(--success)" />
         <KpiCard value={fmtUsd(t.cost)} label="Costo directo" sub={`${t.revenue > 0 ? Math.round((t.cost / t.revenue) * 100) : 0}% sobre ingreso`} valueColor="var(--warning)" />
-        <KpiCard value={fmtUsdFull(t.margin)} label="Margen bruto" sub={`${fmtPct(t.avgMarginPct)} margen`} valueColor="var(--wine)" />
+        <KpiCard value={fmtUsdFull(t.margin)} label="Margen bruto" sub={`${fmtPct(t.avgMarginPct)} margen`} valueColor="var(--wine-text)" />
         <KpiCard value={fmtNum(combined.withCosts)} label="Con costos" sub={`${coveragePct}% de ${fmtNum(combined.shipments)} embarques`} />
       </div>
       {combined.withCosts < combined.shipments && (

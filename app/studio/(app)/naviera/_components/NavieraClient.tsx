@@ -181,7 +181,7 @@ export function NavieraClient({
         <KpiCard
           value={`${kpis.looseCbm.toFixed(1)} CBM`}
           label="Carga suelta en CN"
-          valueColor={kpis.looseCbm > 0 ? "var(--wine)" : "var(--ink)"}
+          valueColor={kpis.looseCbm > 0 ? "var(--wine-text)" : "var(--ink)"}
           sub={`${kpis.looseCount} embarque(s) sin asignar`}
         />
         <KpiCard
@@ -886,7 +886,7 @@ function ContainerDetail({
                 <code
                   style={{
                     font: "700 11.5px/1 var(--f-mono)",
-                    color: "var(--wine)",
+                    color: "var(--wine-text)",
                   }}
                 >
                   {it.client_markbox ?? "—"}
@@ -1279,7 +1279,7 @@ function LooseCargoTab({
               {l.code}
             </code>
             <code
-              style={{ font: "700 11.5px/1 var(--f-mono)", color: "var(--wine)" }}
+              style={{ font: "700 11.5px/1 var(--f-mono)", color: "var(--wine-text)" }}
             >
               {l.client_markbox ?? "—"}
             </code>

@@ -91,7 +91,7 @@ function DriverCard({ driver: d }: { driver: TmsDriver }) {
         <div style={{ textAlign: "right" }}>
           <div
             className="studio-display"
-            style={{ fontSize: 16, color: "var(--wine)" }}
+            style={{ fontSize: 16, color: "var(--wine-text)" }}
           >
             {d.rating != null ? `★ ${d.rating.toFixed(1)}` : "—"}
           </div>

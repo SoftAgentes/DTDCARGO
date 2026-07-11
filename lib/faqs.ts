@@ -62,22 +62,48 @@ export const FAQS: Faq[] = [
     pregunta:
       "¿Qué significa DDP puerta a puerta y qué incluye el precio cuando importo de China con DTD Cargo?",
     respuesta:
-      "DDP puerta a puerta significa que nosotros nos encargamos de todo: el precio ya incluye el flete desde China, la aduana y los impuestos, y te entregamos la mercancía en tu propia dirección en Venezuela. Tú no tienes que pelear con la aduana ni hacer trámites; nosotros llevamos la carga hasta tu puerta. El monto se calcula por volumen (CBM) y destino en nuestra calculadora o al cotizarte por WhatsApp.",
+      "DDP puerta a puerta significa que nos encargamos de todo el proceso: el precio ya incluye el flete desde China, la aduana y los impuestos, y te entregamos la mercancía en tu propia dirección en Venezuela, sin que hagas trámites ni trates con la aduana. En esta modalidad la importación no queda a tu nombre: recibes tu mercancía, no documentos de importación propios. Si prefieres importar a tu nombre y tener tus documentos, existe la modalidad con tu propia aduana (la explicamos más abajo). El monto se calcula por volumen (CBM) y destino en nuestra calculadora o al cotizarte por WhatsApp.",
     categoria: "precio-y-pago",
   },
   {
     pregunta:
       "¿Cuál es la diferencia entre consolidado (LCL) y contenedor completo (FCL) para traer mercancía de China a Venezuela?",
     respuesta:
-      "En el consolidado marítimo (LCL) tu carga viaja junto a la de otros importadores y pagas solo por el volumen que ocupas (CBM), ideal cuando no tienes mercancía para llenar un contenedor. El contenedor completo (FCL) es para cuando tienes volumen suficiente y prefieres un contenedor entero para ti. Ambas son DDP puerta a puerta; cuál te conviene depende de cuánta carga tengas, y te orientamos al cotizar.",
+      "En el consolidado marítimo (LCL) tu carga viaja junto a la de otros importadores y pagas solo por el volumen que ocupas (CBM), ideal cuando no tienes mercancía para llenar un contenedor. El contenedor completo (FCL) es para cuando tienes volumen suficiente y prefieres un contenedor entero para ti. LCL y FCL son la forma de transporte; aparte eliges la modalidad de servicio: puerta a puerta con todo incluido, o con tu propia aduana. Cuál te conviene depende de tu carga, y te orientamos al cotizar.",
     categoria: "precio-y-pago",
   },
   {
     pregunta:
       "¿Quién paga la aduana y los impuestos cuando importo de China?",
     respuesta:
-      "La aduana y los impuestos ya van incluidos en el precio DDP puerta a puerta: no recibes cobros sorpresa ni tienes que gestionar nada con la aduana, de eso nos encargamos nosotros. El costo total se calcula por volumen (CBM) y tu destino, en la calculadora o al cotizarte por WhatsApp.",
+      "En la modalidad puerta a puerta (DDP), la aduana y los impuestos ya van incluidos en el precio: no recibes cobros sorpresa ni tramitas nada con la aduana, de eso nos encargamos nosotros — y por eso la importación no queda a tu nombre (no recibes documentos ni factura de importación propios). Si prefieres importar a tu nombre, existe la modalidad con tu propia aduana: llevamos la carga hasta el almacén fiscal (ahí llega nuestro cobro por CBM) y de ahí tú cubres los impuestos, permisos y gastos de almacén fiscal. El costo se calcula por volumen (CBM) y tu destino.",
     categoria: "precio-y-pago",
+  },
+  {
+    pregunta:
+      "¿La importación queda a mi nombre? ¿Recibo los documentos y la factura?",
+    respuesta:
+      "Depende de la modalidad que elijas, y conviene definirla antes de cotizar. Puerta a puerta (DDP), todo incluido: nos encargamos de flete, aduana e impuestos y te entregamos en tu casa con un precio cerrado; la importación no queda a tu nombre, así que recibes tu mercancía pero no documentos de nacionalización ni factura de importación propios — es la opción más cómoda si solo quieres tu producto sin trámites. Con tu propia aduana (importas a tu nombre): tú eres el importador; llevamos tu carga hasta el almacén fiscal (ahí llega nuestro cobro por CBM) y te acompañamos en el trámite, pero necesitas entregarnos tu documentación y una autorización para gestionar en tu nombre, y de almacén fiscal en adelante los impuestos, permisos y gastos de almacén fiscal corren por tu cuenta (van a terceros, no están en el CBM); la ventaja es que la mercancía y los documentos quedan 100% a tu nombre y, ante el SENIAT, el importador eres tú. Si necesitas los documentos a nombre de tu empresa, dilo antes de cotizar para armarlo por esa modalidad.",
+    categoria: "precio-y-pago",
+    bloques: [
+      {
+        tipo: "parrafo",
+        texto:
+          "Depende de la modalidad que elijas, y conviene definirla antes de cotizar:",
+      },
+      {
+        tipo: "lista",
+        items: [
+          "Puerta a puerta (DDP), todo incluido: nos encargamos de flete, aduana e impuestos y te entregamos en tu casa con un precio cerrado. La importación no queda a tu nombre: recibes tu mercancía, no documentos de nacionalización ni factura de importación propios. Es la opción más cómoda si solo quieres tu producto sin trámites.",
+          "Con tu propia aduana (importas a tu nombre): tú eres el importador. Llevamos tu carga hasta el almacén fiscal (ahí llega nuestro cobro por CBM) y te acompañamos en el trámite, pero necesitas entregarnos tu documentación y una autorización para gestionar en tu nombre. De almacén fiscal en adelante, los impuestos, permisos y gastos de almacén fiscal corren por tu cuenta (van a terceros, no están en el CBM). La ventaja: mercancía y documentos quedan 100% a tu nombre y, ante el SENIAT, el importador eres tú.",
+        ],
+      },
+      {
+        tipo: "parrafo",
+        texto:
+          "Si necesitas los documentos a nombre de tu empresa, dilo antes de cotizar para armarlo por esa modalidad.",
+      },
+    ],
   },
   {
     pregunta:
@@ -87,9 +113,9 @@ export const FAQS: Faq[] = [
     categoria: "precio-y-pago",
   },
   {
-    pregunta: "¿Qué métodos de pago aceptan?",
+    pregunta: "¿Cómo y en qué moneda pago mi envío?",
     respuesta:
-      "Trabajamos varias monedas y canales. En dólares: Zelle, transferencia (wire) o efectivo en oficina. En bolívares: Pago Móvil y transferencia. También USDT por Binance. Y en China: efectivo, Alipay, WeChat Pay o transferencia en yuan. Los datos exactos para tu pago te los da un asesor de forma segura según tu envío, y todo pago debe llevar la referencia de tu MARKBOX. Escríbenos por WhatsApp y te guiamos.",
+      "Tu envío es un servicio de logística internacional, así que se cotiza en dólares: la mayor parte de los costos —el flete internacional, los trámites de aduana y la gestión en China— se pagan en divisas a terceros. La forma de pago y los datos exactos para tu operación te los coordina un asesor de forma segura, siempre con la referencia de tu MARKBOX. Escríbenos por WhatsApp y te guiamos.",
     categoria: "precio-y-pago",
   },
   {
@@ -129,7 +155,7 @@ export const FAQS: Faq[] = [
     pregunta:
       "¿A qué ciudades de Venezuela entregan y cómo funciona si no estoy en Valencia?",
     respuesta:
-      "Entregamos en toda Venezuela. Tenemos bodega y equipo propios en Valencia, que es nuestra sede; si estás en otra ciudad coordinamos el transporte terrestre hasta tu dirección. Como manejamos DDP puerta a puerta, la entrega nacional hasta tu puerta va incluida: la carga te llega donde estés sin que tengas que ir a buscarla a un puerto o terminal.",
+      "Entregamos en toda Venezuela. Nuestra sede y bodega están en Valencia, y el costo base cubre la entrega en el casco central de las ciudades. Si tu dirección queda fuera de la ruta de despacho, se suma el transporte terrestre hasta tu ubicación, y la calculadora te da ese aproximado automáticamente (lo cotizamos con transportistas nacionales) para que veas cuánto sale puesto en tu ciudad. Ten en cuenta que ese monto del transporte nacional es un estimado: como tu carga llega unos 90 días después, la tarifa puede moverse un poco para entonces, aunque lo normal es que se mantenga cerca de lo calculado. En todo caso, puerta a puerta significa que la carga te llega a tu dirección, sin ir a buscarla a un puerto o terminal.",
     categoria: "precio-y-pago",
   },
   {
@@ -259,12 +285,6 @@ export const FAQS: Faq[] = [
       "¿DTD Cargo tiene oficina propia en China y en Venezuela o es un intermediario?",
     respuesta:
       "Tenemos bodega y equipo propios en Yiwu (China) y en Valencia (Venezuela). Nuestra trayectoria en el comercio con China viene de 2008 y operamos en Venezuela desde 2015: la carga la maneja gente nuestra en los dos extremos, lo que nos deja controlar la recepción en China y la entrega puerta a puerta en Venezuela.",
-    categoria: "empresa-servicios",
-  },
-  {
-    pregunta: "¿DoorTuDoor y DTD Cargo son la misma empresa?",
-    respuesta:
-      "Sí, somos la misma empresa. DoorTuDoor es el nombre con el que nacimos como marca, y evolucionamos a DTD Cargo ('DTD' viene de DoorTuDoor). Por eso nos ves como DoorTuDoor (@doortudoor_) en redes y como DTD Cargo en la web y en tus documentos: mismo equipo, mismo servicio, mismos dueños. Puedes confiar en cualquiera de los dos nombres.",
     categoria: "empresa-servicios",
   },
   {

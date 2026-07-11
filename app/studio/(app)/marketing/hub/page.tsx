@@ -112,7 +112,7 @@ export default async function MarketingHubPage() {
       <div style={{ marginBottom: 28 }}>
         <div
           className="studio-eyebrow"
-          style={{ marginBottom: 10, color: "var(--wine)" }}
+          style={{ marginBottom: 10, color: "var(--wine-text)" }}
         >
           Marketing · HUB
         </div>

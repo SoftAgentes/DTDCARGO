@@ -69,7 +69,7 @@ export function TrackingMap({ shipment }: Props) {
         <div>
           <div
             className="studio-eyebrow"
-            style={{ color: "var(--wine)" }}
+            style={{ color: "var(--wine-text)" }}
           >
             Posición actual
           </div>

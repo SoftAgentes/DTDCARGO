@@ -82,7 +82,7 @@ export function AcademiaClient({
         }}
       >
         <div>
-          <span className="studio-eyebrow" style={{ color: "var(--wine)" }}>
+          <span className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
             Academia DTD
           </span>
           <h1
@@ -137,7 +137,7 @@ export function AcademiaClient({
         <KpiCard
           value={stats.enCurso}
           label="Cohortes en curso"
-          valueColor={stats.enCurso > 0 ? "var(--wine)" : "var(--ink)"}
+          valueColor={stats.enCurso > 0 ? "var(--wine-text)" : "var(--ink)"}
           sub="activas ahora"
         />
         <KpiCard value={stats.alumnos} label="Alumnos" sub="inscritos" />
@@ -479,7 +479,7 @@ function CohortDetailView({
           }}
         >
           <div style={{ minWidth: 0 }}>
-            <div className="studio-eyebrow" style={{ color: "var(--wine)" }}>
+            <div className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
               {cohortStatusLabel(c.status)} · {fmtDate(c.starts_at)}
             </div>
             <h2
@@ -757,7 +757,7 @@ function RosterRowView({
           <code
             style={{
               font: "700 10px/1 var(--f-mono)",
-              color: "var(--wine)",
+              color: "var(--wine-text)",
             }}
           >
             {e.client_markbox}
@@ -870,7 +870,8 @@ function AttendanceCell({
         background: on ? "var(--success-bg)" : "var(--bg-surface)",
         color: on ? "var(--success)" : "var(--ink-mute)",
         cursor: isPending ? "wait" : "pointer",
-        transition: "all var(--dur-fast) var(--ease)",
+        transition:
+          "border-color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease)",
       }}
     >
       {on ? Icon.check(13) : null}

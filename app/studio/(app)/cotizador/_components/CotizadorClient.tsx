@@ -324,7 +324,7 @@ function QuotesTable({ quotes }: { quotes: Quote[] }) {
                 <div
                   style={{
                     font: "600 11px/1 var(--f-mono)",
-                    color: "var(--wine)",
+                    color: "var(--wine-text)",
                     marginTop: 3,
                   }}
                 >
@@ -363,7 +363,7 @@ function QuotesTable({ quotes }: { quotes: Quote[] }) {
             <span
               style={{
                 font: "800 13px/1 var(--f-mono)",
-                color: "var(--wine)",
+                color: "var(--wine-text)",
                 textAlign: "right",
               }}
             >

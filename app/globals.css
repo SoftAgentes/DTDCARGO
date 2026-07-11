@@ -174,6 +174,12 @@
 :root {
   --gutter: clamp(20px, 4vw, 64px);
   --maxw: 1280px;
+
+  /* Error de la web pública / marketing (más brillante que el --danger del ERP,
+     que se queda en #A8323E). Mismo valor que --color-status-danger. Solo web
+     pública → sin override en oscuro. (Norte v4.6) */
+  --danger-web: #C2353F;
+  --danger-web-bg: rgba(194,53,63,0.10);
 }
 
 @layer base {

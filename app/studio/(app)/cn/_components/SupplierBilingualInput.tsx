@@ -79,7 +79,7 @@ export function SupplierBilingualInput({
         <label htmlFor={inputId} className="studio-label" style={{ margin: 0 }}>
           {resolvedLabel}
           {required && (
-            <span style={{ color: "var(--wine)", marginLeft: 3 }}>*</span>
+            <span style={{ color: "var(--wine-text)", marginLeft: 3 }}>*</span>
           )}
         </label>
         {direction && !disabled && !showTranslated && (
@@ -93,7 +93,7 @@ export function SupplierBilingualInput({
               padding: "4px 9px",
               borderRadius: "var(--r-sm)",
               background: "var(--wine-tint)",
-              color: "var(--wine)",
+              color: "var(--wine-text)",
               font: "700 10.5px/1 var(--f-sans)",
               letterSpacing: "0.04em",
               border: 0,
@@ -148,7 +148,7 @@ export function SupplierBilingualInput({
               htmlFor={translatedId}
               style={{
                 font: "700 10px/1 var(--f-sans)",
-                color: "var(--wine)",
+                color: "var(--wine-text)",
                 letterSpacing: "0.12em",
                 textTransform: "uppercase",
               }}

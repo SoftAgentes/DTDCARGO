@@ -223,7 +223,7 @@ export default async function ReceiptPrintPage({
               <div
                 style={{
                   font: "800 16px/1.2 var(--f-mono)",
-                  color: "var(--wine)",
+                  color: "var(--wine-text)",
                   marginTop: 3,
                 }}
               >

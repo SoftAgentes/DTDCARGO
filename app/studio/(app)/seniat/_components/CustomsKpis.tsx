@@ -40,7 +40,7 @@ export function CustomsKpis({ kpis }: { kpis: KpisType }) {
         label="Impuestos pagados"
         value={totalPaidDisplay}
         sub="Aranceles + IGTF + IVA + agente"
-        valueColor="var(--wine)"
+        valueColor="var(--wine-text)"
       />
       <KpiCard
         label="Con alertas"

@@ -170,7 +170,7 @@ export function TaskCollabSection({
       <section>
         <div
           className="studio-eyebrow"
-          style={{ color: "var(--wine)", marginBottom: 10 }}
+          style={{ color: "var(--wine-text)", marginBottom: 10 }}
         >
           Prueba de avance
           {list.length > 0 && (

@@ -55,7 +55,7 @@ export function PermissionsSection() {
         }}
       >
         <b style={{ color: "var(--ink)" }}>Códigos:</b>
-        <span><b style={{ color: "var(--wine)" }}>TOTAL</b> admin (todo)</span>
+        <span><b style={{ color: "var(--wine-text)" }}>TOTAL</b> admin (todo)</span>
         <span><b style={{ color: "var(--success)" }}>V·E</b> ver + editar</span>
         <span><b style={{ color: "var(--info)" }}>V</b> solo ver</span>
         <span><b style={{ color: "var(--ink-mute)" }}>—</b> sin acceso</span>

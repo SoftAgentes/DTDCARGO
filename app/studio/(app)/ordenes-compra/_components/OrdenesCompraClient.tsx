@@ -507,7 +507,7 @@ function DtdTab({
         <code
           style={{
             font: "700 12px/1.2 var(--f-mono)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             overflow: "hidden",
             textOverflow: "ellipsis",
           }}
@@ -771,7 +771,7 @@ function DtdTab({
                 <span
                   style={{
                     font: "800 13px/1 var(--f-mono)",
-                    color: "var(--wine)",
+                    color: "var(--wine-text)",
                   }}
                 >
                   {t.value}
@@ -879,7 +879,7 @@ function ClienteTab({
         <a
           href="/studio/proveedores"
           className="studio-link-quiet"
-          style={{ color: "var(--wine)" }}
+          style={{ color: "var(--wine-text)" }}
         >
           PreAlertas de servicios
         </a>
@@ -909,7 +909,7 @@ function ClienteTab({
             <code
               style={{
                 font: "700 12px/1.2 var(--f-mono)",
-                color: "var(--wine)",
+                color: "var(--wine-text)",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
               }}

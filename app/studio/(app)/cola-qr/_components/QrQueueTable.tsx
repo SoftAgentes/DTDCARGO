@@ -7,6 +7,7 @@
 
 import { useState, useTransition } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { markPrintedAction, markDeliveredAction, cancelQrOrderAction } from "../actions";
 import {
   QR_PRIORITY_LABELS,
@@ -173,7 +174,7 @@ export function QrQueueTable({
                     <code
                       style={{
                         font: "800 12.5px/1 var(--f-mono)",
-                        color: "var(--wine)",
+                        color: "var(--wine-text)",
                       }}
                     >
                       {o.order_code}
@@ -319,46 +320,15 @@ export function QrQueueTable({
 
       {/* Cancel inline modal */}
       {cancelingId && (
-        <div
-          onClick={() => setCancelingId(null)}
-          role="dialog"
-          aria-modal="true"
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "var(--scrim)",
-            zIndex: 100,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "var(--s-5)",
-          }}
+        <DrawerShell
+          title="Cancelar orden de impresión"
+          subtitle="El operario verá un aviso de cancelación en su próximo refresh."
+          onClose={() => setCancelingId(null)}
+          pending={isPending}
+          width={480}
+          variant="centered"
         >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: "100%",
-              maxWidth: 480,
-              background: "var(--bg-surface)",
-              borderRadius: "var(--r-md)",
-              padding: 22,
-            }}
-          >
-            <h3
-              className="studio-display"
-              style={{ fontSize: 16, margin: "0 0 8px", color: "var(--ink)" }}
-            >
-              Cancelar orden de impresión
-            </h3>
-            <p
-              style={{
-                font: "500 12.5px/1.4 var(--f-sans)",
-                color: "var(--ink-soft)",
-                margin: "0 0 12px",
-              }}
-            >
-              El operario verá un aviso de cancelación en su próximo refresh.
-            </p>
+          <div style={{ padding: 22 }}>
             <label className="studio-label" htmlFor="cancel-reason">
               Motivo
             </label>
@@ -397,7 +367,7 @@ export function QrQueueTable({
               </button>
             </div>
           </div>
-        </div>
+        </DrawerShell>
       )}
     </div>
   );
