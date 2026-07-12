@@ -6,7 +6,9 @@ import {
   listPrealertas,
   listSuppliers,
   listPrealertaDocuments,
+  listActivePrealertaAddons,
 } from "@/lib/studio/prealertas/queries";
+import { summarizeSuppliers } from "@/lib/studio/prealertas/types";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import {
   computeProgress,
@@ -48,16 +50,40 @@ export default async function PortalShipmentsPage() {
     return <FallbackList />;
   }
 
-  const [shipments, prealertas, suppliers] = await Promise.all([
+  const [shipments, prealertas, suppliers, addons] = await Promise.all([
     listMyShipments(supabase),
     listPrealertas(supabase, { markbox: client.markbox }),
     listSuppliers(supabase, { markbox: client.markbox }),
+    listActivePrealertaAddons(supabase),
   ]);
 
   const supplierNameById: Record<string, string> = {};
   for (const s of suppliers) supplierNameById[s.id] = s.name;
 
   const items = buildAlertItems(prealertas, shipments, supplierNameById);
+
+  // Vistas de proveedor para el modal "Nueva compra" (mismo dato que
+  // /proveedores): conteo de compras vivas → próximo código por proveedor.
+  const orderCountBySupplierId: Record<string, number> = {};
+  for (const p of prealertas) {
+    if (p.supplier_id) {
+      orderCountBySupplierId[p.supplier_id] =
+        (orderCountBySupplierId[p.supplier_id] ?? 0) + 1;
+    }
+  }
+  const supplierViews = summarizeSuppliers(
+    client.markbox,
+    suppliers.map((s) => ({
+      id: s.id,
+      supplier_seq: s.supplier_seq,
+      name: s.name,
+      wechat: s.wechat,
+      city: s.city,
+      contact: s.contact,
+      notes: s.notes,
+    })),
+    orderCountBySupplierId,
+  );
 
   // Slice B — presencia de documentos por compra (packing/factura/foto). Solo
   // las prealertas tienen `prealerta_documents`; los envíos derivan a su detalle.
@@ -105,6 +131,8 @@ export default async function PortalShipmentsPage() {
       track={track}
       banner={banner}
       markbox={client.markbox}
+      suppliers={supplierViews}
+      addons={addons}
     />
   );
 }
