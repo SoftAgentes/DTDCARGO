@@ -10,7 +10,7 @@
  * (moduleEditDenial "suppliers") + revalidatePath. El UPDATE de solicitudes
  * de servicio pasa por la RLS "psr tenant update" (migr 0150); el alta/edición
  * de suppliers_cn pasa por las policies "suppliers_cn tenant insert/update"
- * (migr 0229 — SIN APLICAR A PROD aún, ver el archivo de la migración).
+ * (migr 0229, aplicada a prod 2026-07-12).
  */
 
 "use server";

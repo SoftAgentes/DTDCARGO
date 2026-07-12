@@ -1,9 +1,7 @@
 -- ─────────────────────────────────────────────────────────────
 -- 0229_suppliers_cn_operator_write.sql
 --
--- SIN APLICAR A PROD — requiere OK explícito del founder (AGENTS.md: "migrations
--- a prod = con tu OK explícito, nunca auto"). Este archivo queda staged en la
--- rama para que el founder decida cuándo aplicarlo.
+-- Aplicada a prod con OK explícito del founder (2026-07-12).
 --
 -- Contexto: el founder pidió (2026-07-12) construir el alta + edición de
 -- proveedores (suppliers_cn) desde el Studio, a nombre de un cliente — hasta
@@ -25,14 +23,17 @@
 -- legible, no rompe la UI mientras tanto.
 -- ─────────────────────────────────────────────────────────────
 
+-- (select ...) wrap: get_user_tenant_id() es STABLE — el wrap a nivel de
+-- policy da InitPlan caching (una sola evaluación por query, no por fila;
+-- guía Supabase de performance de RLS).
 create policy "suppliers_cn tenant insert"
   on public.suppliers_cn for insert to authenticated
-  with check (tenant_id = public.get_user_tenant_id());
+  with check (tenant_id = (select public.get_user_tenant_id()));
 
 create policy "suppliers_cn tenant update"
   on public.suppliers_cn for update to authenticated
-  using (tenant_id = public.get_user_tenant_id())
-  with check (tenant_id = public.get_user_tenant_id());
+  using (tenant_id = (select public.get_user_tenant_id()))
+  with check (tenant_id = (select public.get_user_tenant_id()));
 
 -- ─────────────────────────────────────────────────────────────
 -- Fin 0229_suppliers_cn_operator_write.sql
