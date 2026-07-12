@@ -15,10 +15,13 @@ import { ShareProviderButton } from "../../_components/ShareProviderButton";
 import type { SupplierView } from "@/lib/studio/prealertas/types";
 import {
   createSupplierAction,
+  updateSupplierAction,
+  deleteSupplierAction,
   createPrealertaAction,
 } from "./actions";
 import type {
   SupplierActionState,
+  DeleteSupplierActionState,
   PrealertaActionState,
 } from "@/lib/studio/prealertas/types";
 import type { PrealertaAddon } from "@/lib/studio/prealertas/addons";
@@ -29,6 +32,7 @@ import {
 
 const supplierInitial: SupplierActionState = {};
 const prealertaInitial: PrealertaActionState = {};
+const deleteSupplierInitial: DeleteSupplierActionState = {};
 
 /**
  * "Tus proveedores" (SDD-0057 · Slice B). Piel real del portal (paper/wine +
@@ -274,6 +278,26 @@ function SupplierCard({
   supplier: SupplierView;
   onRebuy: () => void;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteState, deleteAction, deletePending] = useActionState(
+    deleteSupplierAction,
+    deleteSupplierInitial,
+  );
+
+  if (editing) {
+    return (
+      <EditSupplierForm
+        supplier={supplier}
+        onDone={() => setEditing(false)}
+        onCancel={() => setEditing(false)}
+      />
+    );
+  }
+
+  const canDelete = supplier.orderCount === 0;
+  const subline = [supplier.city, supplier.contact].filter(Boolean).join(" · ");
+
   return (
     <div className="card-shadow bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col sm:flex-row sm:items-center gap-4">
       <span
@@ -290,6 +314,14 @@ function SupplierCard({
         <div className="text-[14.5px] font-bold text-ink truncate">
           {supplier.name}
         </div>
+        {subline && (
+          <div className="mt-0.5 text-[12px] text-grey-700 truncate">{subline}</div>
+        )}
+        {supplier.notes && (
+          <div className="mt-0.5 text-[12px] text-grey-500 truncate">
+            {supplier.notes}
+          </div>
+        )}
         <div
           className="mt-1 text-[12px] text-grey-700"
           style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
@@ -298,15 +330,176 @@ function SupplierCard({
           próxima:{" "}
           <span className="text-wine font-bold">{supplier.nextCode}</span>
         </div>
+        {deleteState.error && (
+          <p className="mt-1.5 text-[12px] text-wine leading-[1.4]">
+            {deleteState.error}
+          </p>
+        )}
       </div>
-      <button
-        type="button"
-        onClick={onRebuy}
-        className="btn btn-ghost inline-flex items-center gap-1.5 flex-shrink-0"
-      >
-        Re-comprar <ArrowIcon size={14} />
-      </button>
+
+      {confirmingDelete ? (
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="text-[12px] text-grey-700">¿Borrar proveedor?</span>
+          <form action={deleteAction}>
+            <input type="hidden" name="supplierId" value={supplier.id} />
+            <button
+              type="submit"
+              disabled={deletePending}
+              className="btn btn-ghost text-wine disabled:opacity-60"
+            >
+              {deletePending ? "Borrando…" : "Sí, borrar"}
+            </button>
+          </form>
+          <button
+            type="button"
+            onClick={() => setConfirmingDelete(false)}
+            disabled={deletePending}
+            className="btn btn-ghost disabled:opacity-60"
+          >
+            Cancelar
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="btn btn-ghost"
+          >
+            Editar
+          </button>
+          {canDelete ? (
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(true)}
+              className="btn btn-ghost"
+            >
+              Borrar
+            </button>
+          ) : (
+            <span
+              className="text-[11px] text-grey-500 px-1"
+              title="No puedes borrar un proveedor con compras registradas."
+            >
+              Con compras
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={onRebuy}
+            className="btn btn-ghost inline-flex items-center gap-1.5"
+          >
+            Re-comprar <ArrowIcon size={14} />
+          </button>
+        </div>
+      )}
     </div>
+  );
+}
+
+// ── Edición de un proveedor existente ───────────────────────────
+function EditSupplierForm({
+  supplier,
+  onDone,
+  onCancel,
+}: {
+  supplier: SupplierView;
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const [state, action, pending] = useActionState(
+    updateSupplierAction,
+    supplierInitial,
+  );
+
+  useEffect(() => {
+    if (state.ok) onDone();
+  }, [state.ok, onDone]);
+
+  return (
+    <form
+      action={action}
+      className="card-shadow bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col gap-3"
+    >
+      <input type="hidden" name="supplierId" value={supplier.id} />
+
+      <FieldLabel>Nombre del proveedor</FieldLabel>
+      <input
+        type="text"
+        name="name"
+        required
+        autoFocus
+        defaultValue={supplier.name}
+        disabled={pending}
+        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+      />
+      {state.fieldErrors?.name && (
+        <p className="text-[12px] text-wine leading-[1.4]">
+          {state.fieldErrors.name}
+        </p>
+      )}
+
+      <FieldLabel>WeChat (opcional)</FieldLabel>
+      <input
+        type="text"
+        name="wechat"
+        defaultValue={supplier.wechat ?? ""}
+        placeholder="WeChat ID o número"
+        disabled={pending}
+        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+      />
+
+      <FieldLabel>Ciudad (opcional)</FieldLabel>
+      <input
+        type="text"
+        name="city"
+        defaultValue={supplier.city ?? ""}
+        disabled={pending}
+        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+      />
+
+      <FieldLabel>Contacto (opcional)</FieldLabel>
+      <input
+        type="text"
+        name="contact"
+        defaultValue={supplier.contact ?? ""}
+        placeholder="Nombre de la persona de contacto"
+        disabled={pending}
+        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+      />
+
+      <FieldLabel>Notas (opcional)</FieldLabel>
+      <textarea
+        name="notes"
+        rows={2}
+        defaultValue={supplier.notes ?? ""}
+        disabled={pending}
+        className="px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-none disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+      />
+
+      {state.error && (
+        <p className="text-[12.5px] text-wine leading-[1.4]">{state.error}</p>
+      )}
+
+      <div className="flex gap-2.5">
+        <button
+          type="submit"
+          disabled={pending}
+          className="btn btn-primary inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-wait"
+        >
+          {pending ? "Guardando…" : "Guardar cambios"}
+          {!pending && <CheckIcon size={15} />}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={pending}
+          className="btn btn-ghost disabled:opacity-60"
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -322,6 +515,7 @@ function AddSupplierForm({
     createSupplierAction,
     supplierInitial,
   );
+  const [showMore, setShowMore] = useState(false);
 
   useEffect(() => {
     if (state.ok) onDone();
@@ -347,6 +541,51 @@ function AddSupplierForm({
           {state.fieldErrors.name}
         </p>
       )}
+
+      <FieldLabel>WeChat del proveedor (opcional)</FieldLabel>
+      <input
+        type="text"
+        name="wechat"
+        placeholder="WeChat ID o número"
+        disabled={pending}
+        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+      />
+
+      {showMore ? (
+        <>
+          <FieldLabel>Ciudad (opcional)</FieldLabel>
+          <input
+            type="text"
+            name="city"
+            disabled={pending}
+            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+          />
+          <FieldLabel>Contacto (opcional)</FieldLabel>
+          <input
+            type="text"
+            name="contact"
+            placeholder="Nombre de la persona de contacto"
+            disabled={pending}
+            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+          />
+          <FieldLabel>Notas (opcional)</FieldLabel>
+          <textarea
+            name="notes"
+            rows={2}
+            disabled={pending}
+            className="px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-none disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+          />
+        </>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShowMore(true)}
+          className="self-start text-[12.5px] font-semibold text-wine hover:underline"
+        >
+          + Agregar ciudad, contacto o notas
+        </button>
+      )}
+
       {state.error && (
         <p className="text-[12.5px] text-wine leading-[1.4]">{state.error}</p>
       )}
