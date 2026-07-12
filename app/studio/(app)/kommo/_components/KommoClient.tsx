@@ -580,7 +580,7 @@ function LeadsTable({
                     <span
                       style={{
                         ...nameStyle,
-                        color: l.name ? "var(--ink)" : "var(--ink-mute)",
+                        color: l.name ? "var(--ink)" : "var(--ink-soft)",
                       }}
                     >
                       {nameContent}

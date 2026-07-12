@@ -84,8 +84,9 @@ Los colores viven en `erp/tokens.css`. **Nunca** uses hex literales en HTML/JSX 
 --border:      #E8E6E2
 
 --success: #1F8A5B   /* Solo para confirmaciones reales */
---warning: #B8893A   /* Solo para riesgo real (ETA en demora, etc.) */
---danger:  #A8323E   /* Solo para errores y vencidos */
+--warning: #B8893A   /* Riesgo real (ETA en demora, etc.) — dorado. Como TEXTO de badge NO se lee (2.79:1) → texto --ink + dot dorado (ver ♿) */
+--danger:  #A8323E   /* Errores y vencidos · ERP / Portal */
+--danger-web: #C2353F /* Errores · marketing / web pública — split por superficie (BD-020) */
 --info:    #2A6FDB
 ```
 
@@ -104,8 +105,45 @@ Los colores viven en `erp/tokens.css`. **Nunca** uses hex literales en HTML/JSX 
 - **NUNCA** uses verde fosforescente, lima, neón, fucsia eléctrico o ningún color saturado fuera de la paleta.
 - **NUNCA** uses `red`, `blue`, `green`, `orange`, `purple` como nombres CSS. Usá los tokens.
 - **NUNCA** inventes hex como `#FF5733`, `#00FFAA`, etc.
-- **NUNCA** uses gradientes coloridos / arcoíris / "AI slop". Único gradiente permitido: dark navy → ink (`linear-gradient(135deg, var(--ink), #1F3055)`) en el login/portal hero.
+- **NUNCA** uses gradientes coloridos / arcoíris / "AI slop". Único gradiente permitido: **navy → ink** (familia `#0B1428`→`#0F1E3D`→`#1F3055`), **nunca hacia blanco**. En heros con texto (left-aligned) va **horizontal, azul FUERTE a la izquierda → navy más claro a la derecha**: `linear-gradient(90deg, #0B1428 0%, #0F1E3D 44%, #1F3055 100%)` — el texto cae sobre la parte más fuerte. **Usá hex explícito, nunca `var(--ink)` dentro del gradiente**: si el token no resuelve, el fondo se cae a blanco y el texto claro desaparece (fondo blanco + letras blancas). En cards/botones chicos el diagonal `135deg` del mismo par es aceptable. **Logo sobre este navy = variante `reverse` (cream)**; si un fondo es claro va `primary` (nunca `reverse` sobre claro). Ver BD-022.
 - **NUNCA** uses morados, púrpuras o azules brillantes para alertas. El warning es **dorado** (#B8893A), no naranja chillón.
+
+---
+
+## ♿ Contraste & legibilidad (WCAG 2.2 AA)
+
+> **Capa nueva · 2026-07-06 (BD-016, auditoría NORTE-SYNC).** Todo texto se lee. Un color de marca
+> que no alcanza el ratio sobre su fondo real **no se usa como texto**. La matriz completa (24 ratios
+> verificados) vive en `Brand Book DTD v4.6.html` y `Accesibilidad de Color · DTD-Cargo.html`.
+
+**Umbrales (1.4.3 + 1.4.11):**
+- Texto normal: **≥ 4.5:1**.
+- Texto grande: **≥ 3:1** — "grande" = **≥ 24px** o **≥ 18.66px en negrita** (NO 18px/14px). El body del ERP es 14px → casi nada califica como "grande"; el umbral operativo real es 4.5:1.
+- No-texto (íconos informativos, bordes de componente, foco, estado): **≥ 3:1** contra adyacentes. Sin redondeo: 2.999 FALLA.
+
+**Tokens que NO son texto de párrafo (medido):**
+- `--ink-mute` (#9B9B9B light · #6E7896 dark) → 2.78:1 / 2.97:1. **Solo disabled y decoración.** Nunca body, hint, caption, sub ni count. Placeholder informativo tampoco (1.4.3) → usar `--ink-soft` (5.33:1 ✅) o duplicar la info en el label.
+- `--wine-soft` light (#C2747F) → 3.44:1: solo texto grande.
+- `--warning` (#B8893A) → 3.14:1 como texto; **como badge sobre `--warning-bg` = 2.79:1 (falla hasta grande).**
+- `--success` (#1F8A5B) → 4.33:1: bajo el umbral body; texto grande o relleno.
+
+**Relleno + texto (CTAs / badges):**
+- Sobre `--wine` / `--danger` → texto **blanco** (10.58 / 6.58 ✅).
+- Sobre `--warning` → texto **`--ink`**, **nunca blanco** (5.24 ✅). Token canónico para texto sobre relleno warning sólido = **`--on-warning`** (#0F1E3D fijo en ambos temas · BD-027; `--ink` en dark es cream → ~1.7 ❌).
+- Sobre `--success` → `--ink` o texto grande/bold (blanco 4.33 no alcanza body).
+- **En dark, texto sobre cualquier relleno semántico = `--ink-inv` (#0F1E3D), nunca blanco** (blanco/success 1.93 ❌ · blanco/danger 2.94 ❌). Excepción: `--wine` dark sí acepta blanco (6.58).
+
+**`--wine` en dark:** como TEXTO falla en todas las superficies (2.79 / 2.26 / 1.98) → en dark `--wine` es **RELLENO** (blanco encima). El acento de TEXTO en dark = **`--wine-soft`** (#D89AA4 · 7.93 sobre bg-base). **Token canónico para wine-como-texto (ambos temas) = `--wine-text`** (BD-026: #7F0F1A light · #D89AA4 dark) — usalo en Shipping Mark, saldos, tabs activas, KPI, links y badge wine.
+
+**Foco visible (2.4.7 + 1.4.11):** ring ≥ 3:1 contra adyacentes. Light `--wine` ✅ (10.13). **Dark `--wine` ❌ (2.79) → `--wine-soft`** (ya en `tokens.css`). Sobre sidebar navy `--wine` es invisible (1.56) → cream/`--ink-side`. Red flag grep-able: `outline: none` sin `:focus-visible` de reemplazo.
+
+**Badges:** en light el par texto-semántico sobre su `*-bg` no llega a body (warning 2.79 ❌, success 3.83, info 4.20); danger (5.61) y neutral (4.68) pasan. **El badge `warning` usa texto `--ink` + dot dorado** (implementado en `components.jsx`). En dark el patrón pasa body salvo danger/info (solo grande/bold).
+
+**Bordes como única frontera:** `--border` / `--border-strong` son decorativos (1.25–1.49, exentos como separadores). Si el borde es la ÚNICA señal de un control (input sin fondo propio), falla → inputs con `--bg-surface` sobre `--bg-base` + focus ring.
+
+**Paridad light/dark:** verificar cada par texto/fondo en AMBOS temas — la asimetría es real (en light los semánticos como texto fino fallan; en dark pasan). No asumir herencia.
+
+**Fondo variable / no solo color:** texto sobre imagen o gradiente → scrim/overlay oscuro, nunca texto directo sobre foto. **No solo color** (1.4.1): estados, links y errores llevan ícono, texto o subrayado además del color.
 
 ---
 
@@ -133,7 +171,7 @@ Los colores viven en `erp/tokens.css`. **Nunca** uses hex literales en HTML/JSX 
 - **Nunito Sans** (`--f-sans`) para todo el body, labels, buttons del sistema.
   - ⚠ Nunito Sans no trae figuras tabulares; en columnas de montos la alineación no es perfecta (límite conocido y aceptado).
 - **Archivo / Archivo Black** (`--f-brand` / `--f-brand-display`) para el **logo corporativo, wordmark "DTD Cargo", plantillas de correo y firma**. El wordmark sigue en Archivo Black (ver `BRAND-MIGRATION`).
-- **JetBrains Mono** para códigos: MARKBOX (`DTD-XXXX`), container IDs (`DTDU-XXXXXX`), factura IDs (`F-2026-XXXX`), HS codes, RIF, tarifas, fechas/horas en tablas.
+- **JetBrains Mono** para códigos: Shipping Mark / MARKBOX (`DTD-XXXX`), container IDs (`DTDU-XXXXXX`), factura IDs (`F-2026-XXXX`), HS codes, RIF, tarifas, fechas/horas en tablas.
 - **Noto Sans SC** SOLO para texto en chino mandarín (direcciones de almacén CN, nombres bilingües).
 - **Revertir** a la marca = igualar `--f-sans`/`--f-display` a `'Archivo'`/`'Archivo Black'` en `tokens.css` (una línea cada una).
 
@@ -180,18 +218,21 @@ Los componentes viven en `erp/components.jsx` (ERP) y se reusan en `portal/app.j
 
 ---
 
-## 🏷 Terminología · Shipping Mark (término único)
+## 🏷 Terminología · Shipping Mark / MARKBOX (split por superficie)
 
-> **Decisión 2026-06-10 (autorizada por el usuario):** se eliminó "MARKBOX" de todo el lenguaje
-> visual. El término único en TODOS los contextos (cliente, proveedor, interno, marketing) es
-> **Shipping Mark** (唛头) — el lenguaje universal de carga. Siempre apunta a un registro de
-> cliente (`DTD-XXXX`).
+> **Decisión 2026-07-06 (BD-021, autorizada por el usuario · enmienda BD-004):** el término se
+> divide por superficie (auditoría NORTE-SYNC · SDD-0065): **web pública = "MARKBOX"** ·
+> **Studio / Portal / Móvil = "Shipping Mark"** (唛头) como nombre visible. Ambos apuntan al
+> mismo registro de cliente (`DTD-XXXX`).
 
-- El **valor** del código no cambia (`DTD-5532`, `DTD-5532-1-1`); solo la etiqueta con que se nombra.
+- El **valor** del código no cambia (`DTD-5532`, `DTD-5532-1-1`); solo la etiqueta con que se nombra según superficie.
 - En texto de cara al proveedor chino puede acompañarse del chino: **Shipping Mark (唛头)**.
 - En **código** (props, claves de datos: `markbox:`, `c.markbox`) el identificador interno se
   mantiene tal cual — NO renombrar claves; solo las etiquetas visibles.
-- ❌ Nunca volver a mostrar "MARKBOX" en UI, docs de cliente, marketing ni el Brand Book.
+- **Studio (ERP) / Portal / apps de operario:** etiqueta visible = **Shipping Mark** (opcional 唛头 de cara al proveedor chino).
+- **Web pública / marketing:** etiqueta visible = **MARKBOX** (término que el mercado ya reconoce).
+- ❌ Nunca mostrar "MARKBOX" en Studio, Portal ni apps de operario (ahí siempre "Shipping Mark").
+- **Antecedente:** BD-004 (2026-06-10) fijaba "Shipping Mark único en todos los contextos"; BD-021 lo enmienda reponiendo "MARKBOX" solo en la capa de web pública. Registrado como excepción en `BRAND-DECISIONS.md`.
 
 ## 🏷 Terminología · Compra / Orden / Prealerta (regla de audiencia)
 
@@ -258,7 +299,7 @@ Si el usuario pide algo así, **avisarle** y proponer alternativa que respete el
 - Estilos: **inline styles con tokens CSS** o classes del sistema. **No** Tailwind, **no** CSS-in-JS libs, **no** styled-components.
 - Archivos `.jsx` cargados via `<script type="text/babel" src=...>`.
 - Cada componente que se reutiliza globalmente se expone en `window.*` (ej: `window.ERPUI`, `window.Icon`, `window.ERPData`).
-- Mock data realista de DTD-Cargo: rutas CN→VE, MARKBOX `DTD-XXXX`, containers `DTDU-XXXXXX`, RIF venezolano, nombres verosímiles.
+- Mock data realista de DTD-Cargo: rutas CN→VE, Shipping Mark `DTD-XXXX` (clave de datos `markbox`; "MARKBOX" solo como etiqueta de web pública), containers `DTDU-XXXXXX`, RIF venezolano, nombres verosímiles.
 
 ---
 
@@ -285,6 +326,8 @@ preferís la alternativa?
 - "Pone emojis en los buttons de éxito" → ❌ rompe tono
 - "Hacé el border-radius de 40px" → ❌ rompe escala
 - "Usá `#FF00FF` para el badge" → ❌ rompe sistema de color
+- "Dejá el texto del badge warning en dorado" o "usá `--ink-mute` para el caption/hint" → ❌ rompe legibilidad (contraste AA · ver ♿)
+- Texto que no alcanza el contraste AA sobre su fondo real (ej. `--ink-mute` como body, `--warning` como texto chico, `--wine` como texto en dark) → ❌ rompe legibilidad
 
 **Cosas que NO disparan BRAND-CHECK** (son válidas dentro del sistema):
 - "Cambiá este botón de secondary a primary" → ✅ ambas variantes existen
@@ -305,7 +348,7 @@ preferís la alternativa?
 **Protocolo — cuando recibas este proyecto con una actualización de marca:**
 
 1. **El Brand Book vigente es UNO solo:** el de mayor versión en la raíz (hoy
-   `Brand Book DTD v4.5.html`). Si en Norte existen copias de brand books **anteriores
+   `Brand Book DTD v4.6.html`). Si en Norte existen copias de brand books **anteriores
    (v3.6, v3.5, …), eliminálas** — la versión nueva las reemplaza por completo; el
    historial vive en el changelog interno del book vigente.
 2. **Actualizá todo puntero** a la versión nueva (links en módulos tipo
@@ -317,9 +360,9 @@ preferís la alternativa?
 4. **No mezclar versiones:** nunca convivan dos brand books en Norte. Ante conflicto
    entre algo viejo de Norte y este proyecto, **gana este proyecto** (es la fuente).
 5. Registrá lo aplicado en el changelog/bitácora de Norte con la versión del book
-   (ej. "marca sincronizada a Brand Book v4.5").
-6. **Versión única visible: v4.5.** Marca y producto comparten número — sidebar del ERP,
-   títulos del Portal y apps de operario, tokens y Brand Book dicen todos **v4.5**. En Norte,
+   (ej. "marca sincronizada a Brand Book v4.6").
+6. **Versión única visible: v4.6.** Marca y producto comparten número — sidebar del ERP,
+   títulos del Portal y apps de operario, tokens y Brand Book dicen todos **v4.6**. En Norte,
    cualquier etiqueta visible con v2.x/v3.x viejo se actualiza a la versión vigente del book.
    Los CHANGELOG y comentarios históricos no se reescriben.
 
@@ -329,7 +372,7 @@ preferís la alternativa?
 
 - **ERP (admin):** `DTD Studio · ERP.html` + `erp/` (tokens, components, shell, modules).
 - **Portal (cliente):** `Portal del Cliente.html` + `portal/app.jsx`. Reusa `erp/tokens.css`, `erp/icons.jsx`, `erp/components.jsx`.
-- **Brand Book:** `Brand Book DTD v4.5.html` — fuente de verdad de la identidad visual. **No** mezclar pantallas de producto adentro. (v4.4 y anteriores fueron reemplazados — su historial vive en el changelog interno del book vigente, que en v4.4 suma los recursos gráficos chinos recoloreados, las plantillas de Stories/feed en el Generador de Redes y el Packing List bilingüe renovado.)
+- **Brand Book:** `Brand Book DTD v4.6.html` — fuente de verdad de la identidad visual. **No** mezclar pantallas de producto adentro. (v4.4 y anteriores fueron reemplazados — su historial vive en el changelog interno del book vigente, que en v4.4 suma los recursos gráficos chinos recoloreados, las plantillas de Stories/feed en el Generador de Redes y el Packing List bilingüe renovado.)
 - **Colateral impreso de marca:** `Tarjeta de Presentación.html` (85×55 mm, doble cara, QR vCard) + `Colateral Impreso · DTD-Cargo.html` (membrete A4, credencial CR-80 con lanyard, vinilo de camión 6.0×2.4 m, roll-up 85×200 cm — cada pieza con spec de imprenta) + `Uniformes · DTD-Cargo.html`. Usan `erp/tokens.css` + `assets/dtdcargo-isologo-*.png`. **No** inventar datos de contacto: RIF `J-50648869-8`, Av. Bolívar Norte 14 (Valencia), `info@dtdcargo.com` (correo de branding · 2026-06), `+58 241 414 7886`.
 - **Documentos legales:** carpeta `legal/` — T&C de DTD (cliente), Acuerdo con el operador de
   consolidación (interno) y Brief de seguro (interno). Cada uno en `.md` (canónico, lo lee
@@ -343,12 +386,13 @@ preferís la alternativa?
 
 ---
 
-## 🔒 Resumen ejecutivo · 5 reglas que NO se rompen
+## 🔒 Resumen ejecutivo · 6 reglas que NO se rompen
 
 1. **Solo usar tokens CSS** (`var(--*)`). Cero hex inventados.
 2. **Fuentes:** sistema → **Nunito Sans + Sora**; branding → **Archivo / Archivo Black**; + **JetBrains Mono** y **Noto Sans SC**. Ninguna otra.
 3. **Cero AI slop**: sin gradientes coloridos, sin emojis decorativos, sin glassmorphism, sin shadcn-defaults visibles.
 4. **Componentes del sistema** primero. Inventar solo con `/* TODO: brand-review */`.
 5. **Avisar antes de violar**. Formato `BRAND-CHECK` explícito. Toda excepción aprobada se registra en **`BRAND-DECISIONS.md`**.
+6. **Todo texto se lee.** Contraste AA: normal ≥ 4.5:1, grande ≥ 3:1 (grande = ≥ 24px o ≥ 18.66px negrita). Un color de marca que no alcanza el ratio sobre su fondo real no se usa como texto (ver ♿).
 
 Cuando dudes, **preguntá**. Es preferible una pregunta extra antes que un cambio que el equipo de diseño tenga que revertir.

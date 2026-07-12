@@ -1,5 +1,27 @@
 # Changelog · v1.1+
 
+## 2026-07-12 · 🔄 NORTE-SYNC patch v4.6 (BD-028) — Badge/KPI/wine-text portal/tuteo · sin bump de versión
+
+Patch sobre el ciclo v4.6 (`NORTE-SYNC-2026-07-12.md`), aplicado a este repo (Norte). Verificado ítem por ítem contra el código real, no solo copiado del checklist:
+- **Badge** (`app/studio/_components/ui/Badge.tsx`): ya cumplía el patrón completo (`success`/`info`/`wine` → texto `--ink`/`--wine-text` + dot semántico) desde el sync anterior de hoy mismo — cero cambio adicional necesario.
+- **Resto de los ítems del patch (KPI delta, `.eyebrow-wine`, barrido `var(--wine)`→`var(--wine-text)` en portal, straggler `--ink-mute` "Paso obligatorio", voseo) — verificados uno por uno, **sin equivalente vivo en este repo**:** `KpiCard.tsx` no tiene el prop `delta` del bug descrito; `.eyebrow-wine` es className inerte en `app/portal` (no importa `tokens.css` de Studio); Portal usa su propio sistema de tokens Tailwind v4 (`--color-wine` en `@theme`, con dark ya ajustado a `#c24450` para leer sobre navy) — 128 usos de `text-wine`, cero de `var(--wine)` crudo, no se toca; el copy "Paso obligatorio" no existe en este repo; voseo en `app/portal` + manifests = 0 hits (ya limpio desde BD-014).
+- Detalle completo del análisis de divergencia Portal↔ERP en `BRAND-DECISIONS.md` BD-028.
+- Versión visible **sigue v4.6** (patch, no bump) — no se tocó ninguna etiqueta de versión.
+- Lo histórico no se reescribe; este corte anota el patch sobre el Norte vigente.
+
+## 2026-07-12 · 🔄 NORTE-SYNC v4.5 → v4.6 (marca sincronizada a Brand Book v4.6, BD-016…027)
+
+Sync de marca desde el proyecto de diseño (`NORTE-SYNC-2026-07-10.md`), aplicado a este repo (Norte):
+- **Accesibilidad WCAG AA** (BD-016…019): `Badge` (`app/studio/_components/ui/Badge.tsx` + mirror `erp/components.jsx`) migrado — tonos `success/warning/info/wine` pasan a texto `--ink`/`--wine-text` + dot semántico (antes fallaban AA sobre su `-bg` en algún tema); rol `--ink-mute` documentado en `tokens.css` (comentario, solo disabled/decoración); foco `[data-surface="navy"]`/`.dtd-on-navy` agregado (faltaba el hook sobre sidebar navy).
+- **Gradientes** (BD-022/023): barrido `linear-gradient([^)]*var(--ink` → cero hits. 6 reemplazos por hex explícito manteniendo ángulo: `app/m/cn/login/page.tsx`, `app/m/ve/login/page.tsx`, `app/m/ve/modos/_components/ModosClient.tsx`, `app/studio/(app)/usuarios/_components/InviteUserDrawer.tsx`, `app/admin/cbm-estudio/content.html` (×2).
+- **Tokens** (BD-020/026/027): `--danger-web`/`-bg`, `--wine-text`, `--on-warning` — ya presentes en `app/studio/tokens.css` desde una sesión previa (confirmado); agregados a `docs/design/studio/_norte/erp/tokens.css` (mirror) y comentario de cabecera a "Brand Book v4.6".
+- **Terminología** (BD-021): verificado — split MARKBOX (público) / Shipping Mark (Studio·Portal·Móvil) ya correcto en este repo, cero drift.
+- **Docs:** `BRAND-DECISIONS.md` (BD-016…027 agregadas), `CLAUDE.md` (mirror, reescrito 1:1 desde la fuente) y `BRAND.md` (raíz — regla de gradiente, tokens nuevos, sección de terminología) actualizados.
+- **⏳ Pendiente (no entra en este sync mínimo):**
+  1. **Brand Book físico** — `Brand Book DTD v4.6.html` no se pudo transferir completo (excede 256 KiB de lectura vía MCP de diseño); `private/marca/brand-book-v4.5.html` y los punteros de código (`app/marca/`, `app/interno/(app)/marca/`, `components/BrandMark.tsx`, `lib/design-tokens.ts`) **no se tocaron** para no romper la ruta de descarga/visor.
+  2. **Migración `--ink-mute`→`--ink-soft`** (BD-019) en texto — ~57 archivos con `color: var(--ink-mute)`, mezcla real de texto/decoración; requiere pase dedicado con la heurística de BD-019 (conservar íconos/separadores/ternarios).
+- Lo histórico no se reescribe; este corte anota el sync sobre el Norte vigente.
+
 ## 2026-07-11 · 📡 Producto → Norte · corte de realidad (desde Claude Code)
 
 Anotación desde el repo de producción (no es entrega de diseño): fix de un bug de interacción en el panel **"CBM por medidas"** de la Calculadora pública LCL (`/calculadora`; diseño en `HANDOFF-CBM-MEDIDAS.md`). Sin cambios visuales ni de marca; no toca la versión visible.

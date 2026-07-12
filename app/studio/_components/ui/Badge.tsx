@@ -3,6 +3,12 @@
  *
  * Pill con tono (success/warning/danger/info/wine/neutral) y opcional dot.
  * Diseño (Norte): docs/design/studio/_norte/erp/components.jsx
+ *
+ * BRAND-SYNC v4.6 (BD-018, completado 2026-07-12): success/warning/info/wine
+ * fallan AA como texto directo sobre su -bg en algún tema (success light 3.83 ·
+ * info light 4.20 · warning light 2.79 · wine dark 2.79) → texto `--ink` (o
+ * `--wine-text`) + dot semántico. danger (5.61) y neutral (4.68) sí pasan como
+ * texto directo, quedan igual.
  */
 
 import type { CSSProperties, ReactNode } from "react";
@@ -25,12 +31,12 @@ interface BadgeProps {
   style?: CSSProperties;
 }
 
-const TONES: Record<BadgeTone, { bg: string; fg: string }> = {
-  success: { bg: "var(--success-bg)", fg: "var(--success)" },
-  warning: { bg: "var(--warning-bg)", fg: "var(--warning)" },
+const TONES: Record<BadgeTone, { bg: string; fg: string; dot?: string }> = {
+  success: { bg: "var(--success-bg)", fg: "var(--ink)", dot: "var(--success)" },
+  warning: { bg: "var(--warning-bg)", fg: "var(--ink)", dot: "var(--warning)" },
   danger: { bg: "var(--danger-bg)", fg: "var(--danger)" },
-  info: { bg: "var(--info-bg)", fg: "var(--info)" },
-  wine: { bg: "var(--wine-tint)", fg: "var(--wine-text)" },
+  info: { bg: "var(--info-bg)", fg: "var(--ink)", dot: "var(--info)" },
+  wine: { bg: "var(--wine-tint)", fg: "var(--ink)", dot: "var(--wine-text)" },
   neutral: { bg: "var(--neutral-bg)", fg: "var(--ink-soft)" },
 };
 
@@ -46,7 +52,7 @@ export function Badge({
   children,
   style,
 }: BadgeProps) {
-  const { bg, fg } = TONES[tone];
+  const { bg, fg, dot: toneDot } = TONES[tone];
   const { h, px, fs } = SIZES[size];
   return (
     <span
@@ -65,13 +71,13 @@ export function Badge({
         ...style,
       }}
     >
-      {dot && (
+      {(dot || toneDot) && (
         <span
           style={{
             width: 6,
             height: 6,
             borderRadius: "50%",
-            background: fg,
+            background: toneDot || fg,
           }}
         />
       )}

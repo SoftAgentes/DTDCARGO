@@ -202,7 +202,7 @@ export function CityPicker({
           border: `1px solid ${open ? "var(--wine)" : "var(--border)"}`,
           borderRadius: "var(--r-md)",
           font: "500 13.5px/1 var(--f-sans)",
-          color: value ? "var(--ink)" : "var(--ink-mute)",
+          color: value ? "var(--ink)" : "var(--ink-soft)",
           textAlign: "left",
           display: "flex",
           alignItems: "center",

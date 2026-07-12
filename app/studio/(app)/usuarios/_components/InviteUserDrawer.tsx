@@ -750,7 +750,7 @@ function SummaryCard({
       style={{
         padding: "14px 16px",
         background:
-          "linear-gradient(135deg, var(--ink) 0%, #1F3055 100%)",
+          "linear-gradient(135deg, #0F1E3D 0%, #1F3055 100%)",
         color: "#fff",
         borderRadius: 7,
       }}

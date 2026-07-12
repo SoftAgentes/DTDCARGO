@@ -307,7 +307,7 @@ export function KommoBoardView({
                               style={{
                                 display: "block",
                                 font: "600 13px/1.3 var(--f-sans)",
-                                color: l.name ? "var(--ink)" : "var(--ink-mute)",
+                                color: l.name ? "var(--ink)" : "var(--ink-soft)",
                                 overflow: "hidden",
                                 textOverflow: "ellipsis",
                                 whiteSpace: "nowrap",

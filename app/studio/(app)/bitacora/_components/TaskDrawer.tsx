@@ -427,7 +427,7 @@ export function TaskDrawer({
                     textAlign: "left",
                     cursor: canEdit ? "pointer" : "default",
                     font: "500 12.5px/1.3 var(--f-sans)",
-                    color: it.done ? "var(--ink-mute)" : "var(--ink)",
+                    color: it.done ? "var(--ink-soft)" : "var(--ink)",
                   }}
                 >
                   <span

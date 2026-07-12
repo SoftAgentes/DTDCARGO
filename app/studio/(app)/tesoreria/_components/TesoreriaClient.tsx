@@ -465,7 +465,7 @@ function PayablesTab({
                       style={{
                         font: "700 10px/1 var(--f-sans)",
                         color:
-                          p.daysOverdue > 0 ? "var(--danger)" : "var(--ink-mute)",
+                          p.daysOverdue > 0 ? "var(--danger)" : "var(--ink-soft)",
                         marginTop: 3,
                       }}
                     >
