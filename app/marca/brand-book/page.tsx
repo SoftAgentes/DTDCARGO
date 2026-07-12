@@ -4,11 +4,11 @@ import { DownloadIcon } from "@/components/Icon";
 import { getUser } from "@/lib/auth/session";
 
 /**
- * Visor del Brand Book DTD v4.5 — material de marca INTERNO, SOLO con login.
+ * Visor del Brand Book DTD v4.6 — material de marca INTERNO, SOLO con login.
  *
  * Acceso: gateado con `getUser()` (decisión founder 2026-06-14). El standalone ya
  * NO vive en `public/` (era servible estático a cualquiera por URL): se movió a
- * `private/marca/brand-book-v4.5.html` y se sirve por la ruta autenticada
+ * `private/marca/brand-book-v4.6.html` y se sirve por la ruta autenticada
  * `/marca/asset/brand-book` (valida sesión). Acá solo lo enmarcamos a pantalla
  * completa; el `<iframe>` lo carga con la cookie de sesión del visitante logueado.
  *
@@ -24,7 +24,7 @@ import { getUser } from "@/lib/auth/session";
 const FILE = "/marca/asset/brand-book";
 
 export const metadata: Metadata = {
-  title: "Brand Book DTD v4.5",
+  title: "Brand Book DTD v4.6",
   description: "Material de marca interno de DTD Cargo.",
   // Triple noindex: este meta + X-Robots-Tag (next.config) + Disallow (robots.ts).
   robots: {
@@ -44,7 +44,7 @@ export default async function BrandBookPage() {
     <div className="bg-paper" style={{ position: "fixed", inset: 0 }}>
       <iframe
         src={FILE}
-        title="Brand Book DTD v4.5"
+        title="Brand Book DTD v4.6"
         style={{
           position: "absolute",
           inset: 0,
@@ -55,7 +55,7 @@ export default async function BrandBookPage() {
       />
       <a
         href={FILE}
-        download="Brand Book DTD v4.5.html"
+        download="Brand Book DTD v4.6.html"
         className="btn btn-primary"
         style={{
           position: "fixed",
