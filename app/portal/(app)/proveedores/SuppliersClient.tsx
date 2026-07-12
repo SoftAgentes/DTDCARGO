@@ -311,6 +311,10 @@ function SupplierCard({
 }
 
 // ── Alta inline de proveedor ────────────────────────────────────
+// Pide nombre + al menos un contacto (WeChat o teléfono/Alibaba) — sin
+// contacto no hay cómo coordinar la compra ni compartirle el código. Mismo
+// gate que el Norte aplica en el wizard de "Nueva compra" (proveedor +
+// contacto obligatorio antes de generar el código).
 function AddSupplierForm({
   onDone,
   onCancel,
@@ -322,6 +326,10 @@ function AddSupplierForm({
     createSupplierAction,
     supplierInitial,
   );
+  const [name, setName] = useState("");
+  const [wechat, setWechat] = useState("");
+  const [contact, setContact] = useState("");
+  const canSubmit = name.trim() !== "" && (wechat.trim() !== "" || contact.trim() !== "");
 
   useEffect(() => {
     if (state.ok) onDone();
@@ -340,11 +348,51 @@ function AddSupplierForm({
         autoFocus
         placeholder="Ej. Guangzhou Textile Co"
         disabled={pending}
+        value={name}
+        onChange={(e) => setName(e.target.value)}
         className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
       />
       {state.fieldErrors?.name && (
         <p className="text-[12px] text-wine leading-[1.4]">
           {state.fieldErrors.name}
+        </p>
+      )}
+
+      <FieldLabel>WeChat del proveedor</FieldLabel>
+      <input
+        type="text"
+        name="wechat"
+        placeholder="WeChat ID o número"
+        disabled={pending}
+        value={wechat}
+        onChange={(e) => setWechat(e.target.value)}
+        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+      />
+
+      <FieldLabel>Otro contacto (teléfono, Alibaba, email) — opcional si ya diste WeChat</FieldLabel>
+      <input
+        type="text"
+        name="contact"
+        placeholder="Ej. +86 138 0000 0000 o cuenta de Alibaba"
+        disabled={pending}
+        value={contact}
+        onChange={(e) => setContact(e.target.value)}
+        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+      />
+
+      <FieldLabel>Ciudad (opcional)</FieldLabel>
+      <input
+        type="text"
+        name="city"
+        placeholder="Ej. Yiwu"
+        disabled={pending}
+        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+      />
+
+      {!canSubmit && name.trim() !== "" && (
+        <p className="text-[12px] text-grey-700 leading-[1.4]">
+          Agrega WeChat o algún otro contacto — sin eso no hay cómo coordinar
+          la compra ni compartirle el código.
         </p>
       )}
       {state.error && (
@@ -353,7 +401,7 @@ function AddSupplierForm({
       <div className="flex gap-2.5">
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || !canSubmit}
           className="btn btn-primary inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-wait"
         >
           {pending ? "Creando…" : "Crear y generar código"}
