@@ -153,7 +153,7 @@ export function PortalDashboardNorte({
             </div>
             <Link
               href="/portal/envios"
-              className="inline-flex items-center gap-1.5 text-[13px] font-bold text-wine hover:underline"
+              className="inline-flex items-center gap-1.5 text-[13px] font-bold text-wine-text hover:underline"
             >
               Ver todos <ArrowIcon size={14} />
             </Link>
