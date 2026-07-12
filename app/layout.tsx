@@ -4,6 +4,7 @@ import { BRAND_ASSETS, CONTACT } from "@/lib/design-tokens";
 import { SERVICIOS_DETALLE } from "@/lib/servicios-detalle";
 import { buildOfferCatalog, isOfferable } from "@/lib/seo-offer-catalog";
 import { Analytics } from "@/components/Analytics";
+import { CookieConsentBanner } from "@/components/CookieConsentBanner";
 import "./globals.css";
 
 const archivo = Archivo({
@@ -311,6 +312,7 @@ export default function RootLayout({
       <body>
         {children}
         <Analytics />
+        <CookieConsentBanner />
       </body>
     </html>
   );
