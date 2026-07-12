@@ -79,7 +79,7 @@ export function GenerateDigestsPanel() {
             cursor: pending ? "not-allowed" : "pointer",
             opacity: pending ? 0.55 : 1,
             background: "var(--wine)",
-            color: "var(--wine-tint)",
+            color: "var(--ink-inv)",
             font: "700 12px/1 var(--f-sans)",
           }}
         >

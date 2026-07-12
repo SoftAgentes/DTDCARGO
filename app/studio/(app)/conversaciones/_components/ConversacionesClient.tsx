@@ -43,10 +43,14 @@ export function ConversacionesClient({
   initialSelectedId = null,
 }: Props) {
   // Realtime: cualquier cambio en mensajes o hilos del tenant → refresh server.
+  // msgTick además repuebla el hilo abierto (ConversationThread mantiene su
+  // propio state de mensajes — el router.refresh() del hook no lo alcanza).
+  const [msgTick, setMsgTick] = useState(0);
   const msgRealtime = useRealtimeRefresh({
     table: "conversation_messages",
     filter: tenantId ? `tenant_id=eq.${tenantId}` : undefined,
     disabled: !tenantId,
+    onChange: () => setMsgTick((t) => t + 1),
   });
   useRealtimeRefresh({
     table: "conversations",
@@ -150,7 +154,12 @@ export function ConversacionesClient({
           setSearch={setSearch}
         />
         {selected ? (
-          <ConversationThread key={selected.id} conv={selected} agents={agents} />
+          <ConversationThread
+            key={selected.id}
+            conv={selected}
+            agents={agents}
+            realtimeTick={msgTick}
+          />
         ) : (
           <div
             style={{

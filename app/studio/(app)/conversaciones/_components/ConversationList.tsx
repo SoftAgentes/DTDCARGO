@@ -126,7 +126,9 @@ export function ConversationList({
             return (
               <button
                 key={t.value}
+                type="button"
                 onClick={() => setStatusFilter(t.value)}
+                aria-pressed={active}
                 style={{
                   flex: 1,
                   padding: "6px 4px",
@@ -188,7 +190,9 @@ export function ConversationList({
           return (
             <button
               key={c.id}
+              type="button"
               onClick={() => onSelect(c.id)}
+              aria-current={isSel ? "true" : undefined}
               style={{
                 width: "100%",
                 textAlign: "left",
@@ -238,7 +242,7 @@ export function ConversationList({
                       padding: "0 5px",
                       borderRadius: "var(--r-pill)",
                       background: "var(--wine)",
-                      color: "var(--wine-tint)",
+                      color: "var(--ink-inv)",
                       font: "700 10px/18px var(--f-sans)",
                       textAlign: "center",
                     }}
@@ -307,7 +311,9 @@ function ChannelChip({
   const t = TONE_TOKENS[tone];
   return (
     <button
+      type="button"
       onClick={onClick}
+      aria-pressed={active}
       style={{
         padding: "4px 9px",
         borderRadius: "var(--r-pill)",
