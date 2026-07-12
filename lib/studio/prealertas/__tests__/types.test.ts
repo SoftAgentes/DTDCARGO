@@ -331,6 +331,34 @@ describe("summarizeSuppliers · wechat", () => {
   });
 });
 
+describe("summarizeSuppliers · city/contact/notes (alta desde Studio, 2026-07-12)", () => {
+  it("propaga ciudad, contacto y notas a la vista (null si faltan)", () => {
+    const views = summarizeSuppliers(
+      "DTD-5532",
+      [
+        {
+          id: "s1",
+          supplier_seq: 1,
+          name: "Yiwu Co",
+          city: "Yiwu",
+          contact: "+86 138 0000 0000",
+          notes: "Prefiere WeChat",
+        },
+        { id: "s2", supplier_seq: 2, name: "Shenzhen Co" },
+      ],
+      {},
+    );
+    expect(views[0]).toMatchObject({
+      city: "Yiwu",
+      contact: "+86 138 0000 0000",
+      notes: "Prefiere WeChat",
+    });
+    expect(views[1].city).toBeNull();
+    expect(views[1].contact).toBeNull();
+    expect(views[1].notes).toBeNull();
+  });
+});
+
 describe("helpers de adjuntos de compra", () => {
   it("isPrealertaDocType discrimina los 5 tipos (SDD-0096 agrega 'otro')", () => {
     for (const t of ["packing", "factura", "foto", "whatsapp", "otro"]) {

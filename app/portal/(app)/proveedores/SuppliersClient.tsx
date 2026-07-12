@@ -1,6 +1,13 @@
 "use client";
 
-import { useActionState, useEffect, useId, useRef, useState } from "react";
+import {
+  useActionState,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
 import {
   ArrowIcon,
@@ -634,9 +641,18 @@ function NewPurchaseModal({
   const [supplierId, setSupplierId] = useState<string>(
     preselected?.id ?? suppliers[0]?.id ?? "",
   );
+  // Barra de búsqueda de proveedores ya registrados (Norte: "Crear «X»" si no
+  // hay match). También prefilla el nombre si el cliente termina creando uno.
+  const [supplierQuery, setSupplierQuery] = useState(preselected?.name ?? "");
   const [newSupplierState, newSupplierAction, newSupplierPending] =
     useActionState(createSupplierAction, supplierInitial);
   const newFormRef = useRef<HTMLFormElement>(null);
+
+  const filteredSuppliers = useMemo(() => {
+    const q = supplierQuery.trim().toLowerCase();
+    if (!q) return suppliers;
+    return suppliers.filter((s) => s.name.toLowerCase().includes(q));
+  }, [suppliers, supplierQuery]);
 
   // Si el alta inline del proveedor (dentro del modal) termina OK, conmutamos a
   // "existing" — la página revalidó, pero el id nuevo lo conocemos por el state.
@@ -717,17 +733,58 @@ function NewPurchaseModal({
               )}
 
               {mode === "existing" && suppliers.length > 0 ? (
-                <select
-                  value={supplierId}
-                  onChange={(e) => setSupplierId(e.target.value)}
-                  className="mt-2 w-full h-12 px-3 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
-                >
-                  {suppliers.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      #{s.supplierSeq} · {s.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="mt-2 flex flex-col gap-2">
+                  <input
+                    type="text"
+                    value={supplierQuery}
+                    onChange={(e) => setSupplierQuery(e.target.value)}
+                    placeholder="Busca por nombre…"
+                    aria-label="Buscar proveedor ya registrado"
+                    className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+                  />
+                  <div className="max-h-[168px] overflow-y-auto flex flex-col gap-1.5 rounded-[10px]">
+                    {filteredSuppliers.map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => setSupplierId(s.id)}
+                        aria-pressed={supplierId === s.id}
+                        className="text-left px-3.5 py-2.5 rounded-[10px] text-[14px] transition-colors"
+                        style={{
+                          background:
+                            supplierId === s.id
+                              ? "var(--color-paper)"
+                              : "var(--color-grey-100)",
+                          border:
+                            supplierId === s.id
+                              ? "1px solid var(--color-wine)"
+                              : "1px solid transparent",
+                          color:
+                            supplierId === s.id
+                              ? "var(--color-wine)"
+                              : "var(--color-ink)",
+                        }}
+                      >
+                        <span className="font-bold">#{s.supplierSeq}</span>{" "}
+                        {s.name}
+                      </button>
+                    ))}
+                    {filteredSuppliers.length === 0 && (
+                      <p className="px-1 py-2 text-[13px] text-grey-700">
+                        Ningún proveedor coincide con &ldquo;{supplierQuery}&rdquo;.
+                      </p>
+                    )}
+                  </div>
+                  {supplierQuery.trim() !== "" && (
+                    <button
+                      type="button"
+                      onClick={() => setMode("new")}
+                      className="btn btn-ghost self-start inline-flex items-center gap-2"
+                    >
+                      + Crear &ldquo;{supplierQuery.trim()}&rdquo;
+                    </button>
+                  )}
+                </div>
               ) : (
                 // Alta inline del proveedor (form propio, action propia).
                 <form
@@ -739,6 +796,7 @@ function NewPurchaseModal({
                     type="text"
                     name="name"
                     required
+                    defaultValue={supplierQuery}
                     placeholder="Nombre del proveedor nuevo"
                     disabled={newSupplierPending}
                     className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
@@ -748,14 +806,26 @@ function NewPurchaseModal({
                       {newSupplierState.fieldErrors.name}
                     </p>
                   )}
-                  <button
-                    type="submit"
-                    disabled={newSupplierPending}
-                    className="btn btn-ghost self-start inline-flex items-center gap-2 disabled:opacity-60"
-                  >
-                    {newSupplierPending ? "Creando…" : "Crear proveedor"}
-                    {!newSupplierPending && <CheckIcon size={14} />}
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="submit"
+                      disabled={newSupplierPending}
+                      className="btn btn-ghost self-start inline-flex items-center gap-2 disabled:opacity-60"
+                    >
+                      {newSupplierPending ? "Creando…" : "Crear proveedor"}
+                      {!newSupplierPending && <CheckIcon size={14} />}
+                    </button>
+                    {suppliers.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setMode("existing")}
+                        disabled={newSupplierPending}
+                        className="btn btn-ghost self-start disabled:opacity-60"
+                      >
+                        Buscar uno existente
+                      </button>
+                    )}
+                  </div>
                 </form>
               )}
 
