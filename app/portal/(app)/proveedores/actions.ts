@@ -32,6 +32,7 @@ import {
   PREALERTA_DOC_MAX_BYTES,
   type PrealertaDocType,
   type SupplierActionState,
+  type DeleteSupplierActionState,
   type PrealertaActionState,
 } from "@/lib/studio/prealertas/types";
 import {
@@ -309,6 +310,25 @@ export async function createSupplierAction(
   const markbox = await portalMarkbox(supabase);
   if (!markbox) return { error: "Tu sesión expiró. Vuelve a entrar." };
 
+  // Evita duplicar el mismo proveedor dos veces (partiría su historial en dos códigos).
+  const { data: existing, error: dupErr } = await supabase
+    .from("suppliers_cn")
+    .select("name")
+    .eq("client_markbox", markbox)
+    .is("deleted_at", null)
+    .limit(500);
+  if (dupErr) {
+    console.error("[createSupplierAction] dup check error:", dupErr);
+  } else {
+    const normalized = input.name.toLowerCase();
+    const isDup = (existing ?? []).some(
+      (r) => String((r as { name?: string }).name ?? "").trim().toLowerCase() === normalized,
+    );
+    if (isDup) {
+      return { fieldErrors: { name: "Ya tienes un proveedor con ese nombre." } };
+    }
+  }
+
   // Próximo nº de proveedor del cliente (RPC resuelve el tenant del caller).
   const { data: seqData, error: seqErr } = await supabase.rpc(
     "next_supplier_seq",
@@ -394,6 +414,51 @@ export async function updateSupplierAction(
 
   revalidatePortal();
   return { ok: true, supplierId };
+}
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ Borrar proveedor                                            ║
+// ╚═══════════════════════════════════════════════════════════╝
+
+export async function deleteSupplierAction(
+  _prev: DeleteSupplierActionState,
+  formData: FormData,
+): Promise<DeleteSupplierActionState> {
+  const supplierId = String(formData.get("supplierId") ?? "").trim();
+  if (!supplierId) return { error: "Falta el proveedor a borrar." };
+
+  const supabase = await createClient();
+  const markbox = await portalMarkbox(supabase);
+  if (!markbox) return { error: "Tu sesión expiró. Vuelve a entrar." };
+
+  // No se borra un proveedor con compras vivas — partiría su historial/código.
+  const { count, error: countErr } = await supabase
+    .from("prealertas")
+    .select("id", { count: "exact", head: true })
+    .eq("supplier_id", supplierId)
+    .eq("client_markbox", markbox)
+    .is("deleted_at", null);
+  if (countErr) {
+    console.error("[deleteSupplierAction] count error:", countErr);
+    return { error: "No pudimos borrar el proveedor. Prueba de nuevo." };
+  }
+  if ((count ?? 0) > 0) {
+    return { error: "No puedes borrar un proveedor con compras registradas." };
+  }
+
+  const { error: delErr } = await supabase
+    .from("suppliers_cn")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", supplierId)
+    .eq("client_markbox", markbox)
+    .is("deleted_at", null);
+  if (delErr) {
+    console.error("[deleteSupplierAction] update error:", delErr);
+    return { error: "No pudimos borrar el proveedor. Prueba de nuevo." };
+  }
+
+  revalidatePortal();
+  return { ok: true };
 }
 
 // ╔═══════════════════════════════════════════════════════════╗

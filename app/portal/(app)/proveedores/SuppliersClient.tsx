@@ -23,10 +23,12 @@ import type { SupplierView } from "@/lib/studio/prealertas/types";
 import {
   createSupplierAction,
   updateSupplierAction,
+  deleteSupplierAction,
   createPrealertaAction,
 } from "./actions";
 import type {
   SupplierActionState,
+  DeleteSupplierActionState,
   PrealertaActionState,
 } from "@/lib/studio/prealertas/types";
 import type { PrealertaAddon } from "@/lib/studio/prealertas/addons";
@@ -37,6 +39,7 @@ import {
 
 const supplierInitial: SupplierActionState = {};
 const prealertaInitial: PrealertaActionState = {};
+const deleteSupplierInitial: DeleteSupplierActionState = {};
 
 /**
  * "Tus proveedores" (SDD-0057 · Slice B). Piel real del portal (paper/wine +
@@ -61,8 +64,6 @@ export function SuppliersClient({
     null,
   );
   const [adding, setAdding] = useState(false);
-  // Proveedor que se está editando inline (revisar/corregir sus datos) — null cerrado.
-  const [editing, setEditing] = useState<SupplierView | null>(null);
 
   return (
     <div>
@@ -146,23 +147,13 @@ export function SuppliersClient({
         </div>
       ) : (
         <div className="mt-6 flex flex-col gap-3">
-          {suppliers.map((s) =>
-            editing?.id === s.id ? (
-              <EditSupplierForm
-                key={s.id}
-                supplier={s}
-                onDone={() => setEditing(null)}
-                onCancel={() => setEditing(null)}
-              />
-            ) : (
-              <SupplierCard
-                key={s.id}
-                supplier={s}
-                onRebuy={() => setPurchaseFor(s)}
-                onEdit={() => setEditing(s)}
-              />
-            ),
-          )}
+          {suppliers.map((s) => (
+            <SupplierCard
+              key={s.id}
+              supplier={s}
+              onRebuy={() => setPurchaseFor(s)}
+            />
+          ))}
         </div>
       )}
 
@@ -290,13 +281,30 @@ function WhyItem({
 function SupplierCard({
   supplier,
   onRebuy,
-  onEdit,
 }: {
   supplier: SupplierView;
   onRebuy: () => void;
-  onEdit: () => void;
 }) {
-  const hasDetail = supplier.city || supplier.wechat || supplier.contact;
+  const [editing, setEditing] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteState, deleteAction, deletePending] = useActionState(
+    deleteSupplierAction,
+    deleteSupplierInitial,
+  );
+
+  if (editing) {
+    return (
+      <EditSupplierForm
+        supplier={supplier}
+        onDone={() => setEditing(false)}
+        onCancel={() => setEditing(false)}
+      />
+    );
+  }
+
+  const canDelete = supplier.orderCount === 0;
+  const subline = [supplier.city, supplier.contact].filter(Boolean).join(" · ");
+
   return (
     <div className="card-shadow bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col sm:flex-row sm:items-center gap-4">
       <span
@@ -313,6 +321,14 @@ function SupplierCard({
         <div className="text-[14.5px] font-bold text-ink truncate">
           {supplier.name}
         </div>
+        {subline && (
+          <div className="mt-0.5 text-[12px] text-grey-700 truncate">{subline}</div>
+        )}
+        {supplier.notes && (
+          <div className="mt-0.5 text-[12px] text-grey-500 truncate">
+            {supplier.notes}
+          </div>
+        )}
         <div
           className="mt-1 text-[12px] text-grey-700"
           style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
@@ -321,41 +337,74 @@ function SupplierCard({
           próxima:{" "}
           <span className="text-wine font-bold">{supplier.nextCode}</span>
         </div>
-        {hasDetail ? (
-          <div className="mt-1.5 text-[12px] text-grey-700 leading-[1.5]">
-            {supplier.city && <>{supplier.city}</>}
-            {supplier.city && (supplier.wechat || supplier.contact) && " · "}
-            {supplier.wechat && <>WeChat {supplier.wechat}</>}
-            {supplier.wechat && supplier.contact && " · "}
-            {supplier.contact && <>{supplier.contact}</>}
-          </div>
-        ) : (
-          <div className="mt-1.5 text-[12px] text-wine leading-[1.5]">
-            Sin datos de contacto — agrégalos para no perderlos.
-          </div>
+        {deleteState.error && (
+          <p className="mt-1.5 text-[12px] text-wine leading-[1.4]">
+            {deleteState.error}
+          </p>
         )}
       </div>
-      <div className="flex gap-2 flex-shrink-0">
-        <button
-          type="button"
-          onClick={onEdit}
-          className="btn btn-ghost inline-flex items-center gap-1.5"
-        >
-          Editar
-        </button>
-        <button
-          type="button"
-          onClick={onRebuy}
-          className="btn btn-ghost inline-flex items-center gap-1.5"
-        >
-          Re-comprar <ArrowIcon size={14} />
-        </button>
-      </div>
+
+      {confirmingDelete ? (
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="text-[12px] text-grey-700">¿Borrar proveedor?</span>
+          <form action={deleteAction}>
+            <input type="hidden" name="supplierId" value={supplier.id} />
+            <button
+              type="submit"
+              disabled={deletePending}
+              className="btn btn-ghost text-wine disabled:opacity-60"
+            >
+              {deletePending ? "Borrando…" : "Sí, borrar"}
+            </button>
+          </form>
+          <button
+            type="button"
+            onClick={() => setConfirmingDelete(false)}
+            disabled={deletePending}
+            className="btn btn-ghost disabled:opacity-60"
+          >
+            Cancelar
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="btn btn-ghost"
+          >
+            Editar
+          </button>
+          {canDelete ? (
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(true)}
+              className="btn btn-ghost"
+            >
+              Borrar
+            </button>
+          ) : (
+            <span
+              className="text-[11px] text-grey-500 px-1"
+              title="No puedes borrar un proveedor con compras registradas."
+            >
+              Con compras
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={onRebuy}
+            className="btn btn-ghost inline-flex items-center gap-1.5"
+          >
+            Re-comprar <ArrowIcon size={14} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
-// ── Edición inline de proveedor ─────────────────────────────────
+// ── Edición de un proveedor existente ───────────────────────────
 function EditSupplierForm({
   supplier,
   onDone,
@@ -369,10 +418,6 @@ function EditSupplierForm({
     updateSupplierAction,
     supplierInitial,
   );
-  const [name, setName] = useState(supplier.name);
-  const [city, setCity] = useState(supplier.city ?? "");
-  const [wechat, setWechat] = useState(supplier.wechat ?? "");
-  const [contact, setContact] = useState(supplier.contact ?? "");
 
   useEffect(() => {
     if (state.ok) onDone();
@@ -381,7 +426,7 @@ function EditSupplierForm({
   return (
     <form
       action={action}
-      className="card-shadow bg-white border border-wine rounded-[14px] p-5 flex flex-col gap-3"
+      className="card-shadow bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col gap-3"
     >
       <input type="hidden" name="supplierId" value={supplier.id} />
 
@@ -391,8 +436,7 @@ function EditSupplierForm({
         name="name"
         required
         autoFocus
-        value={name}
-        onChange={(e) => setName(e.target.value)}
+        defaultValue={supplier.name}
         disabled={pending}
         className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
       />
@@ -402,22 +446,12 @@ function EditSupplierForm({
         </p>
       )}
 
-      <FieldLabel>WeChat del proveedor</FieldLabel>
+      <FieldLabel>WeChat (opcional)</FieldLabel>
       <input
         type="text"
         name="wechat"
-        value={wechat}
-        onChange={(e) => setWechat(e.target.value)}
-        disabled={pending}
-        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
-      />
-
-      <FieldLabel>Otro contacto (opcional)</FieldLabel>
-      <input
-        type="text"
-        name="contact"
-        value={contact}
-        onChange={(e) => setContact(e.target.value)}
+        defaultValue={supplier.wechat ?? ""}
+        placeholder="WeChat ID o número"
         disabled={pending}
         className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
       />
@@ -426,17 +460,34 @@ function EditSupplierForm({
       <input
         type="text"
         name="city"
-        value={city}
-        onChange={(e) => setCity(e.target.value)}
+        defaultValue={supplier.city ?? ""}
         disabled={pending}
         className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
       />
 
-      <input type="hidden" name="notes" value={supplier.notes ?? ""} />
+      <FieldLabel>Contacto (opcional)</FieldLabel>
+      <input
+        type="text"
+        name="contact"
+        defaultValue={supplier.contact ?? ""}
+        placeholder="Nombre de la persona de contacto"
+        disabled={pending}
+        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+      />
+
+      <FieldLabel>Notas (opcional)</FieldLabel>
+      <textarea
+        name="notes"
+        rows={2}
+        defaultValue={supplier.notes ?? ""}
+        disabled={pending}
+        className="px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-none disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+      />
 
       {state.error && (
         <p className="text-[12.5px] text-wine leading-[1.4]">{state.error}</p>
       )}
+
       <div className="flex gap-2.5">
         <button
           type="submit"
@@ -460,10 +511,6 @@ function EditSupplierForm({
 }
 
 // ── Alta inline de proveedor ────────────────────────────────────
-// Pide nombre + al menos un contacto (WeChat o teléfono/Alibaba) — sin
-// contacto no hay cómo coordinar la compra ni compartirle el código. Mismo
-// gate que el Norte aplica en el wizard de "Nueva compra" (proveedor +
-// contacto obligatorio antes de generar el código).
 function AddSupplierForm({
   onDone,
   onCancel,
@@ -475,10 +522,7 @@ function AddSupplierForm({
     createSupplierAction,
     supplierInitial,
   );
-  const [name, setName] = useState("");
-  const [wechat, setWechat] = useState("");
-  const [contact, setContact] = useState("");
-  const canSubmit = name.trim() !== "" && (wechat.trim() !== "" || contact.trim() !== "");
+  const [showMore, setShowMore] = useState(false);
 
   useEffect(() => {
     if (state.ok) onDone();
@@ -497,8 +541,6 @@ function AddSupplierForm({
         autoFocus
         placeholder="Ej. Guangzhou Textile Co"
         disabled={pending}
-        value={name}
-        onChange={(e) => setName(e.target.value)}
         className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
       />
       {state.fieldErrors?.name && (
@@ -507,50 +549,57 @@ function AddSupplierForm({
         </p>
       )}
 
-      <FieldLabel>WeChat del proveedor</FieldLabel>
+      <FieldLabel>WeChat del proveedor (opcional)</FieldLabel>
       <input
         type="text"
         name="wechat"
         placeholder="WeChat ID o número"
         disabled={pending}
-        value={wechat}
-        onChange={(e) => setWechat(e.target.value)}
         className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
       />
 
-      <FieldLabel>Otro contacto (teléfono, Alibaba, email) — opcional si ya diste WeChat</FieldLabel>
-      <input
-        type="text"
-        name="contact"
-        placeholder="Ej. +86 138 0000 0000 o cuenta de Alibaba"
-        disabled={pending}
-        value={contact}
-        onChange={(e) => setContact(e.target.value)}
-        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
-      />
-
-      <FieldLabel>Ciudad (opcional)</FieldLabel>
-      <input
-        type="text"
-        name="city"
-        placeholder="Ej. Yiwu"
-        disabled={pending}
-        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
-      />
-
-      {!canSubmit && name.trim() !== "" && (
-        <p className="text-[12px] text-grey-700 leading-[1.4]">
-          Agrega WeChat o algún otro contacto — sin eso no hay cómo coordinar
-          la compra ni compartirle el código.
-        </p>
+      {showMore ? (
+        <>
+          <FieldLabel>Ciudad (opcional)</FieldLabel>
+          <input
+            type="text"
+            name="city"
+            disabled={pending}
+            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+          />
+          <FieldLabel>Contacto (opcional)</FieldLabel>
+          <input
+            type="text"
+            name="contact"
+            placeholder="Nombre de la persona de contacto"
+            disabled={pending}
+            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+          />
+          <FieldLabel>Notas (opcional)</FieldLabel>
+          <textarea
+            name="notes"
+            rows={2}
+            disabled={pending}
+            className="px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-none disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+          />
+        </>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShowMore(true)}
+          className="self-start text-[12.5px] font-semibold text-wine hover:underline"
+        >
+          + Agregar ciudad, contacto o notas
+        </button>
       )}
+
       {state.error && (
         <p className="text-[12.5px] text-wine leading-[1.4]">{state.error}</p>
       )}
       <div className="flex gap-2.5">
         <button
           type="submit"
-          disabled={pending || !canSubmit}
+          disabled={pending}
           className="btn btn-primary inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-wait"
         >
           {pending ? "Creando…" : "Crear y generar código"}

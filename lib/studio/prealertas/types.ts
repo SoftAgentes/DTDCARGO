@@ -383,6 +383,11 @@ export type SupplierActionState = {
   supplierId?: string;
 };
 
+export type DeleteSupplierActionState = {
+  ok?: boolean;
+  error?: string;
+};
+
 /**
  * Validación manual del input de proveedor (sin zod).
  *  - name requerido (no vacío).
