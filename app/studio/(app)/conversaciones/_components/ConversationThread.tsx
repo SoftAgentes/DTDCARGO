@@ -56,6 +56,8 @@ const selectStyle: React.CSSProperties = {
 interface Props {
   conv: ConversationRow;
   agents: ConversationAgent[];
+  /** Cambia en cada evento Realtime de conversation_messages del tenant (ver ConversacionesClient). */
+  realtimeTick?: number;
 }
 
 function fmtTime(iso: string): string {
@@ -85,7 +87,7 @@ function fmtPeriod(iso: string): string {
   }
 }
 
-export function ConversationThread({ conv, agents }: Props) {
+export function ConversationThread({ conv, agents, realtimeTick = 0 }: Props) {
   const router = useRouter();
   const toast = useToast();
 
@@ -95,9 +97,13 @@ export function ConversationThread({ conv, agents }: Props) {
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState("");
   const [showQuick, setShowQuick] = useState(false);
+  const [refreshToken, setRefreshToken] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Carga lazy del hilo + contexto al cambiar de conversación.
+  // Carga lazy del hilo + contexto al cambiar de conversación o al reenviar
+  // (refreshToken) — sendReplyAction inserta el mensaje en el servidor pero
+  // este componente no se remonta al enviar, así que sin este segundo
+  // disparador la respuesta recién enviada queda invisible hasta cambiar de hilo.
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -128,7 +134,7 @@ export function ConversationThread({ conv, agents }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [conv.id]);
+  }, [conv.id, refreshToken, realtimeTick]);
 
   // Scroll al fondo cuando llegan mensajes.
   useEffect(() => {
@@ -149,6 +155,7 @@ export function ConversationThread({ conv, agents }: Props) {
       setDraft("");
       setShowQuick(false);
       toast.success("Respuesta enviada");
+      setRefreshToken((t) => t + 1);
       router.refresh();
     } else if (replyState.error) {
       toast.error(replyState.error);
@@ -258,6 +265,8 @@ export function ConversationThread({ conv, agents }: Props) {
               type="button"
               onClick={onToggleCase}
               title={conv.is_case ? "Quitar marca de caso" : "Marcar como caso"}
+              aria-label={conv.is_case ? "Quitar marca de caso" : "Marcar como caso"}
+              aria-pressed={conv.is_case}
               style={{
                 height: 32,
                 padding: "0 10px",
@@ -360,7 +369,7 @@ export function ConversationThread({ conv, agents }: Props) {
                       : "var(--r-lg) var(--r-lg) var(--r-lg) var(--r-xs)",
                     background: out ? "var(--wine)" : "var(--bg-surface)",
                     border: out ? "none" : "1px solid var(--border)",
-                    color: out ? "var(--wine-tint)" : "var(--ink)",
+                    color: out ? "var(--ink-inv)" : "var(--ink)",
                     font: "500 13px/1.5 var(--f-sans)",
                     boxShadow: "var(--shadow-xs)",
                     whiteSpace: "pre-wrap",
@@ -438,6 +447,8 @@ export function ConversationThread({ conv, agents }: Props) {
             type="button"
             onClick={() => setShowQuick((s) => !s)}
             title="Respuestas rápidas"
+            aria-label="Respuestas rápidas"
+            aria-expanded={showQuick}
             style={{
               width: 38,
               height: 38,
@@ -460,6 +471,7 @@ export function ConversationThread({ conv, agents }: Props) {
             onChange={(e) => setDraft(e.target.value)}
             placeholder={`Responder por ${channelLabel(ch)}…`}
             rows={1}
+            disabled={replyPending}
             style={{
               flex: 1,
               resize: "none",
@@ -472,6 +484,7 @@ export function ConversationThread({ conv, agents }: Props) {
               font: "500 13px/1.4 var(--f-sans)",
               color: "var(--ink)",
               outline: "none",
+              opacity: replyPending ? 0.6 : 1,
             }}
           />
           <button
@@ -488,7 +501,7 @@ export function ConversationThread({ conv, agents }: Props) {
               cursor: !draft.trim() || replyPending ? "not-allowed" : "pointer",
               opacity: !draft.trim() || replyPending ? 0.55 : 1,
               background: "var(--wine)",
-              color: "var(--wine-tint)",
+              color: "var(--ink-inv)",
               font: "700 13px/1 var(--f-sans)",
             }}
           >

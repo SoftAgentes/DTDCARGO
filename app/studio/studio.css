@@ -44,7 +44,7 @@
   --studio-border: var(--border);
   --studio-border-strong: var(--border-strong);
   --studio-text-muted: var(--ink-soft);
-  --studio-text-soft: var(--ink-mute);
+  --studio-text-soft: var(--ink-soft);
 
   /* Status colors operativos */
   --studio-green: var(--success);

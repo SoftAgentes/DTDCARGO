@@ -1139,7 +1139,7 @@ function SuppliersTab({ suppliers }: { suppliers: SupplierRow[] }) {
               <span
                 style={{
                   font: "700 12.5px/1 var(--f-mono)",
-                  color: s.orderCount > 0 ? "var(--ink)" : "var(--ink-mute)",
+                  color: s.orderCount > 0 ? "var(--ink)" : "var(--ink-soft)",
                   textAlign: "right",
                 }}
               >

@@ -15,9 +15,21 @@
 
 ---
 
-## 🟢 Estado actual · v4.5 (2026-06-20)
+## 🟢 Estado actual · v4.6 (2026-07-10)
 
-> **Versión única del proyecto: v4.5** (2026-06-20). Marca y producto comparten un solo
+> **Versión única del proyecto: v4.6** (2026-07-10). Ciclo de accesibilidad WCAG AA (BD-016…019),
+> hardening de gradientes (BD-022/023) y split de terminología MARKBOX/Shipping Mark (BD-021).
+> Ver `BRAND-DECISIONS.md` BD-016…027 para el detalle completo.
+>
+> **✅ Sync completo en este repo (Norte, 2026-07-12):** tokens (`erp/tokens.css`), componentes
+> (`erp/components.jsx` → `Badge`), gradientes (`var(--ink)` hardening), docs (`CLAUDE.md`,
+> `BRAND.md`, `BRAND-DECISIONS.md`), el barrido `--ink-mute`→`--ink-soft` en texto (BD-019, ~57
+> archivos revisados) y el patch BD-028 — todo aplicado. El **Brand Book físico** llegó como
+> standalone (todo embebido) y ya está publicado en `docs/design/studio/_norte/Brand Book DTD
+> v4.6.html` y `private/marca/brand-book-v4.6.html`; punteros de código actualizados
+> (`app/marca/`, `app/interno/(app)/marca/`, `BrandMark.tsx`, `lib/design-tokens.ts`).
+
+> **Versión anterior: v4.5** (2026-06-20). Marca y producto comparten un solo
 > número visible — sidebar del ERP, títulos del Portal y apps de operario, tokens y Brand
 > Book dicen todos **v4.5**. Las menciones a v2.x/v3.x en CHANGELOG y comentarios de código son
 > historia (cuándo se construyó cada cosa) y no se reescriben.
