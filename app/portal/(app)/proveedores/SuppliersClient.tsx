@@ -418,6 +418,7 @@ function EditSupplierForm({
     updateSupplierAction,
     supplierInitial,
   );
+  const uid = useId();
 
   useEffect(() => {
     if (state.ok) onDone();
@@ -430,8 +431,9 @@ function EditSupplierForm({
     >
       <input type="hidden" name="supplierId" value={supplier.id} />
 
-      <FieldLabel>Nombre del proveedor</FieldLabel>
+      <FieldLabel htmlFor={`${uid}-name`}>Nombre del proveedor</FieldLabel>
       <input
+        id={`${uid}-name`}
         type="text"
         name="name"
         required
@@ -446,8 +448,9 @@ function EditSupplierForm({
         </p>
       )}
 
-      <FieldLabel>WeChat (opcional)</FieldLabel>
+      <FieldLabel htmlFor={`${uid}-wechat`}>WeChat (opcional)</FieldLabel>
       <input
+        id={`${uid}-wechat`}
         type="text"
         name="wechat"
         defaultValue={supplier.wechat ?? ""}
@@ -456,8 +459,9 @@ function EditSupplierForm({
         className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
       />
 
-      <FieldLabel>Ciudad (opcional)</FieldLabel>
+      <FieldLabel htmlFor={`${uid}-city`}>Ciudad (opcional)</FieldLabel>
       <input
+        id={`${uid}-city`}
         type="text"
         name="city"
         defaultValue={supplier.city ?? ""}
@@ -465,8 +469,9 @@ function EditSupplierForm({
         className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
       />
 
-      <FieldLabel>Contacto (opcional)</FieldLabel>
+      <FieldLabel htmlFor={`${uid}-contact`}>Contacto (opcional)</FieldLabel>
       <input
+        id={`${uid}-contact`}
         type="text"
         name="contact"
         defaultValue={supplier.contact ?? ""}
@@ -475,8 +480,9 @@ function EditSupplierForm({
         className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
       />
 
-      <FieldLabel>Notas (opcional)</FieldLabel>
+      <FieldLabel htmlFor={`${uid}-notes`}>Notas (opcional)</FieldLabel>
       <textarea
+        id={`${uid}-notes`}
         name="notes"
         rows={2}
         defaultValue={supplier.notes ?? ""}
@@ -523,6 +529,7 @@ function AddSupplierForm({
     supplierInitial,
   );
   const [showMore, setShowMore] = useState(false);
+  const uid = useId();
 
   useEffect(() => {
     if (state.ok) onDone();
@@ -533,8 +540,9 @@ function AddSupplierForm({
       action={action}
       className="card-shadow bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col gap-3"
     >
-      <FieldLabel>Nombre del proveedor</FieldLabel>
+      <FieldLabel htmlFor={`${uid}-name`}>Nombre del proveedor</FieldLabel>
       <input
+        id={`${uid}-name`}
         type="text"
         name="name"
         required
@@ -549,8 +557,9 @@ function AddSupplierForm({
         </p>
       )}
 
-      <FieldLabel>WeChat del proveedor (opcional)</FieldLabel>
+      <FieldLabel htmlFor={`${uid}-wechat`}>WeChat del proveedor (opcional)</FieldLabel>
       <input
+        id={`${uid}-wechat`}
         type="text"
         name="wechat"
         placeholder="WeChat ID o número"
@@ -560,23 +569,26 @@ function AddSupplierForm({
 
       {showMore ? (
         <>
-          <FieldLabel>Ciudad (opcional)</FieldLabel>
+          <FieldLabel htmlFor={`${uid}-city`}>Ciudad (opcional)</FieldLabel>
           <input
+            id={`${uid}-city`}
             type="text"
             name="city"
             disabled={pending}
             className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
           />
-          <FieldLabel>Contacto (opcional)</FieldLabel>
+          <FieldLabel htmlFor={`${uid}-contact`}>Contacto (opcional)</FieldLabel>
           <input
+            id={`${uid}-contact`}
             type="text"
             name="contact"
             placeholder="Nombre de la persona de contacto"
             disabled={pending}
             className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
           />
-          <FieldLabel>Notas (opcional)</FieldLabel>
+          <FieldLabel htmlFor={`${uid}-notes`}>Notas (opcional)</FieldLabel>
           <textarea
+            id={`${uid}-notes`}
             name="notes"
             rows={2}
             disabled={pending}
@@ -634,6 +646,7 @@ function NewPurchaseModal({
     createPrealertaAction,
     prealertaInitial,
   );
+  const uid = useId();
   // Combobox de proveedor (Norte: un solo campo — escribís, filtra por nombre;
   // si no hay match exacto aparece "Crear «X»" dentro del propio dropdown, sin
   // toggles aparte de "existente"/"nuevo").
@@ -823,8 +836,9 @@ function NewPurchaseModal({
                     </p>
                   )}
                   <div className="mt-3">
-                    <FieldLabel>Ciudad (opcional)</FieldLabel>
+                    <FieldLabel htmlFor={`${uid}-new-city`}>Ciudad (opcional)</FieldLabel>
                     <input
+                      id={`${uid}-new-city`}
                       type="text"
                       name="city"
                       placeholder="Yiwu · Shenzhen · Guangzhou…"
@@ -862,8 +876,9 @@ function NewPurchaseModal({
 
                 {/* WeChat del proveedor: ID/número O captura del contacto */}
                 <div>
-                  <FieldLabel>WeChat del proveedor</FieldLabel>
+                  <FieldLabel htmlFor={`${uid}-supplier-wechat`}>WeChat del proveedor</FieldLabel>
                   <input
+                    id={`${uid}-supplier-wechat`}
                     type="text"
                     name="supplierWechat"
                     key={supplierId}
@@ -887,8 +902,9 @@ function NewPurchaseModal({
                 </div>
 
                 <div>
-                  <FieldLabel>Descripción de la compra</FieldLabel>
+                  <FieldLabel htmlFor={`${uid}-description`}>Descripción de la compra</FieldLabel>
                   <textarea
+                    id={`${uid}-description`}
                     name="description"
                     required
                     rows={2}
@@ -905,8 +921,9 @@ function NewPurchaseModal({
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <FieldLabel>Cajas</FieldLabel>
+                    <FieldLabel htmlFor={`${uid}-boxes`}>Cajas</FieldLabel>
                     <input
+                      id={`${uid}-boxes`}
                       type="number"
                       name="boxes"
                       min={1}
@@ -924,8 +941,9 @@ function NewPurchaseModal({
                     )}
                   </div>
                   <div>
-                    <FieldLabel>Valor estimado USD (opcional)</FieldLabel>
+                    <FieldLabel htmlFor={`${uid}-est-value`}>Valor estimado USD (opcional)</FieldLabel>
                     <input
+                      id={`${uid}-est-value`}
                       type="number"
                       name="estValueUsd"
                       min={0}
@@ -944,8 +962,9 @@ function NewPurchaseModal({
                 </div>
 
                 <div>
-                  <FieldLabel>Tracking China (opcional)</FieldLabel>
+                  <FieldLabel htmlFor={`${uid}-tracking`}>Tracking China (opcional)</FieldLabel>
                   <input
+                    id={`${uid}-tracking`}
                     type="text"
                     name="trackingCn"
                     placeholder="Ej. SF1234567890"
@@ -1081,12 +1100,28 @@ function PurchaseDone({
   );
 }
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="text-[11px] font-semibold tracking-[0.1em] uppercase text-grey-500">
-      {children}
-    </span>
-  );
+/**
+ * Label visual del campo. Con `htmlFor` renderiza `<label>` real (asociación
+ * accesible con el input); sin `htmlFor` queda como encabezado de grupo (ej.
+ * "Adjuntos", que agrupa varios FileField).
+ */
+function FieldLabel({
+  htmlFor,
+  children,
+}: {
+  htmlFor?: string;
+  children: React.ReactNode;
+}) {
+  const className =
+    "text-[11px] font-semibold tracking-[0.1em] uppercase text-grey-500";
+  if (htmlFor) {
+    return (
+      <label htmlFor={htmlFor} className={className}>
+        {children}
+      </label>
+    );
+  }
+  return <span className={className}>{children}</span>;
 }
 
 /**
