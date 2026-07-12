@@ -926,7 +926,7 @@ function SugerenciaCard({
         )}
       </div>
       {s.actual && (
-        <div style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-mute)" }}>
+        <div style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
           <span style={{ textDecoration: "line-through" }}>{s.actual}</span>
         </div>
       )}

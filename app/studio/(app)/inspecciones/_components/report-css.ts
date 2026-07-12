@@ -35,7 +35,7 @@ export const REPORT_CSS = String.raw`
 .dtd-report .rp-meta .doc-type { font:700 11px/1.2 var(--f-display); color:var(--ink); text-transform:uppercase; letter-spacing:0.04em; }
 .dtd-report .rp-meta .mono { font-family:var(--f-mono); color:var(--ink); font-weight:600; }
 .dtd-report .rp-meta dl { margin:6px 0 0; display:grid; grid-template-columns:max-content max-content; justify-content:end; column-gap:14px; row-gap:3px; }
-.dtd-report .rp-meta dt { color:var(--ink-mute); text-align:right; white-space:nowrap; }
+.dtd-report .rp-meta dt { color:var(--ink-soft); text-align:right; white-space:nowrap; }
 .dtd-report .rp-meta dd { margin:0; color:var(--ink); font-weight:600; text-align:right; }
 
 /* Títulos */
@@ -75,7 +75,7 @@ export const REPORT_CSS = String.raw`
 .dtd-report .gauge .g-fg { fill:none; stroke:var(--success); stroke-linecap:round; }
 .dtd-report .gauge .g-val { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
 .dtd-report .gauge .g-num { font:800 38px/1 var(--f-display); color:var(--ink); }
-.dtd-report .gauge .g-den { font:600 11px/1 var(--f-sans); color:var(--ink-mute); margin-top:2px; }
+.dtd-report .gauge .g-den { font:600 11px/1 var(--f-sans); color:var(--ink-soft); margin-top:2px; }
 
 /* Galería */
 .dtd-report .gal { display:grid; gap:var(--s-3); }
@@ -105,8 +105,8 @@ export const REPORT_CSS = String.raw`
 .dtd-report .foot-brand .tag small { display:block; font:500 8.5px/1.2 var(--f-sans); color:var(--ink-soft); letter-spacing:0.02em; }
 .dtd-report .foot-contact { font:500 8.6px/1.5 var(--f-mono); color:var(--ink-soft); text-align:right; }
 .dtd-report .foot-contact b { color:var(--ink); font-weight:700; }
-.dtd-report .pageno { position:absolute; bottom:8mm; right:15mm; font:600 8.5px/1 var(--f-mono); color:var(--ink-mute); z-index:1; }
-.dtd-report .val-empty { color:var(--ink-mute); }
+.dtd-report .pageno { position:absolute; bottom:8mm; right:15mm; font:600 8.5px/1 var(--f-mono); color:var(--ink-soft); z-index:1; }
+.dtd-report .val-empty { color:var(--ink-soft); }
 
 /* Impresión: solo las hojas, a A4. GLOBAL a propósito. */
 @media print {

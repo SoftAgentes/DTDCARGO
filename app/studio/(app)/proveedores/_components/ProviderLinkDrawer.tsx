@@ -111,7 +111,7 @@ export function ProviderLinkDrawer({
           <p
             style={{
               font: "500 11.5px/1.5 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               margin: "8px 0 0",
             }}
           >
@@ -128,7 +128,7 @@ export function ProviderLinkDrawer({
             <div
               style={{
                 font: "500 11.5px/1.5 var(--f-mono)",
-                color: active ? "var(--ink)" : "var(--ink-mute)",
+                color: active ? "var(--ink)" : "var(--ink-soft)",
                 background: "var(--bg-elevated)",
                 borderRadius: "var(--r-sm)",
                 padding: "9px 11px",
@@ -173,7 +173,7 @@ export function ProviderLinkDrawer({
           <p
             style={{
               font: "500 12px/1.5 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               marginBottom: 20,
             }}
           >
@@ -208,7 +208,7 @@ export function ProviderLinkDrawer({
               <p
                 style={{
                   font: "500 11px/1.5 var(--f-sans)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                   margin: "8px 0 0",
                 }}
               >

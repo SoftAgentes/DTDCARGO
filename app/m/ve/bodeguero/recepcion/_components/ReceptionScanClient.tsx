@@ -492,7 +492,7 @@ function ClientGroup({
           <code
             style={{
               font: "800 13px/1 var(--f-mono)",
-              color: fullyDone ? "var(--success)" : "var(--ink-mute)",
+              color: fullyDone ? "var(--success)" : "var(--ink-soft)",
             }}
           >
             {totalScanned}/{totalCount}
