@@ -23,7 +23,7 @@ export function NewPurchaseButton(
     <>
       <span
         className="grid place-items-center rounded-full flex-shrink-0 text-[15px] font-bold leading-none"
-        style={{ width: 22, height: 22, background: "var(--color-wine)", color: "#fff" }}
+        style={{ width: 22, height: 22, background: "var(--color-wine)", color: "var(--color-on-accent)" }}
         aria-hidden
       >
         +
