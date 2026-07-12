@@ -788,8 +788,18 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
                     disabled={isDeleting}
                     onClick={() => {
                       startDelete(async () => {
-                        const result = await softDeleteClientAction(client.markbox);
-                        if (result.ok) onClose();
+                        try {
+                          const result = await softDeleteClientAction(client.markbox);
+                          if (result.ok) {
+                            onClose();
+                          } else {
+                            toast.error(result.error ?? "No se pudo eliminar el cliente.");
+                            setConfirmDelete(false);
+                          }
+                        } catch {
+                          toast.error("No se pudo eliminar el cliente. Intenta de nuevo.");
+                          setConfirmDelete(false);
+                        }
                       });
                     }}
                   >
