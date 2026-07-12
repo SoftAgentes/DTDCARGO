@@ -30,6 +30,8 @@ interface UseRealtimeRefreshOptions {
   /** Debounce ms entre refreshes (evita storms si cambian varias rows seguidas). */
   debounceMs?: number;
   disabled?: boolean;
+  /** Se dispara junto al router.refresh() debounceado — para state local que el refresh de server no repuebla (ej. hilo abierto de un detail view). */
+  onChange?: () => void;
 }
 
 export function useRealtimeRefresh({
@@ -37,10 +39,15 @@ export function useRealtimeRefresh({
   filter,
   debounceMs = 300,
   disabled = false,
+  onChange,
 }: UseRealtimeRefreshOptions): { status: RealtimeStatus } {
   const router = useRouter();
   const [status, setStatus] = useState<RealtimeStatus>("idle");
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  });
 
   useEffect(() => {
     if (disabled) return;
@@ -63,6 +70,7 @@ export function useRealtimeRefresh({
           if (timeoutRef.current) clearTimeout(timeoutRef.current);
           timeoutRef.current = setTimeout(() => {
             router.refresh();
+            onChangeRef.current?.();
           }, debounceMs);
         },
       )
