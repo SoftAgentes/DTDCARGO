@@ -1,14 +1,16 @@
 /**
  * Server actions del módulo Proveedores · Prealertas (SDD-0098, PORT-1).
  *
- * El módulo era solo-lectura; acá se agrega la ÚNICA acción que el asesor
- * necesita para ATENDER una solicitud de servicio de recepción que el cliente
- * pidió desde su portal: cambiar su estado y cargar el monto cotizado (advisory).
+ * Además de ATENDER solicitudes de servicio y gestionar el link público, el
+ * módulo ahora permite al operador dar de alta / editar un proveedor CN a
+ * nombre de un cliente (2026-07-12, revierte el "cero writes" de SDD-0057
+ * Slice C — pedido explícito del founder).
  *
- * Patrón del Studio: "use server" + parsing/validación manual (NO Zod) + guard
- * de edición (moduleEditDenial "suppliers") + revalidatePath. La RLS
- * "psr tenant update" (migr 0150) scopea el UPDATE al tenant del operador —
- * el `.eq("id")` no puede tocar filas de otro tenant (sin IDOR).
+ * Patrón del Studio: parsing/validación manual (NO Zod) + guard de edición
+ * (moduleEditDenial "suppliers") + revalidatePath. El UPDATE de solicitudes
+ * de servicio pasa por la RLS "psr tenant update" (migr 0150); el alta/edición
+ * de suppliers_cn pasa por las policies "suppliers_cn tenant insert/update"
+ * (migr 0229 — SIN APLICAR A PROD aún, ver el archivo de la migración).
  */
 
 "use server";
@@ -20,6 +22,10 @@ import {
   PSR_STATUSES,
   type PrealertaServiceRequestStatus,
 } from "@/lib/studio/prealertas/addons";
+import {
+  validateSupplierInput,
+  type SupplierInput,
+} from "@/lib/studio/prealertas/types";
 
 export type ServiceRequestManageState = { ok?: boolean; error?: string };
 
@@ -124,4 +130,169 @@ export async function setPrealertaShareActiveAction(
 
   revalidatePath("/studio/proveedores");
   return { ok: true, active: Boolean(data) };
+}
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ Alta / edición de proveedor CN por el operador (Studio)   ║
+// ╚═══════════════════════════════════════════════════════════╝
+// El operador registra/edita el proveedor A NOMBRE de un cliente (útil
+// cuando atiende por teléfono o whatsapp) — el cliente lo revisa después
+// desde su portal, es la MISMA fila (suppliers_cn), no una copia. Usa el
+// cliente de SESIÓN (no admin): pasa por las RLS "suppliers_cn tenant
+// insert/update" (migr 0229). Si esa migración no está aplicada, el insert/
+// update devuelve el permission-denied de Postgres y acá lo traducimos a un
+// mensaje legible (no rompe la UI mientras tanto).
+
+export type StudioSupplierActionState = {
+  ok?: boolean;
+  error?: string;
+  fieldErrors?: Partial<Record<keyof SupplierInput, string>>;
+  supplierId?: string;
+};
+
+/** tenant_id del operador logueado (primer membership activo). */
+async function resolveOperatorTenantId(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  return data?.tenant_id ?? null;
+}
+
+/** Mensaje legible si el insert/update choca con una RLS sin la policy de escritura del operador (migr 0229 pendiente). */
+function friendlySupplierWriteError(error: { code?: string; message?: string }): string {
+  if (error.code === "42501" || /row-level security/i.test(error.message ?? "")) {
+    return "El alta de proveedores desde el Studio necesita una migración de base de datos que todavía no se aplicó a producción. Avísale al equipo técnico.";
+  }
+  return "No se pudo guardar el proveedor. Prueba de nuevo.";
+}
+
+/**
+ * Crea un proveedor CN a nombre de un cliente (elegido por su MARKBOX). Valida
+ * que el cliente exista en el tenant del operador (defensa en profundidad,
+ * más allá de la RLS) y arma el supplier_seq con la MISMA RPC que usa el
+ * portal (next_supplier_seq ya resuelve el tenant también para el operador).
+ */
+export async function createStudioSupplierAction(input: {
+  clientMarkbox: string;
+  name: string;
+  city: string | null;
+  wechat: string | null;
+  contact: string | null;
+  notes: string | null;
+}): Promise<StudioSupplierActionState> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "suppliers");
+  if (denial) return { error: denial };
+
+  const clientMarkbox = input.clientMarkbox.trim();
+  if (!clientMarkbox) {
+    return { error: "Elige el cliente dueño de este proveedor." };
+  }
+
+  const { input: validated, fieldErrors } = validateSupplierInput(input);
+  if (fieldErrors) return { fieldErrors };
+  if (!validated) return { error: "Datos inválidos." };
+
+  const tenantId = await resolveOperatorTenantId(supabase);
+  if (!tenantId) return { error: "No se pudo resolver tu tenant." };
+
+  // El cliente debe existir en ESTE tenant (evita crear proveedores colgados
+  // de un MARKBOX inexistente o de otro tenant).
+  const { data: clientRow } = await supabase
+    .from("clients")
+    .select("markbox")
+    .eq("tenant_id", tenantId)
+    .eq("markbox", clientMarkbox)
+    .is("deleted_at", null)
+    .maybeSingle<{ markbox: string }>();
+  if (!clientRow) {
+    return { error: "Ese cliente no existe en tu tenant." };
+  }
+
+  const { data: seqData, error: seqErr } = await supabase.rpc(
+    "next_supplier_seq",
+    { p_client_markbox: clientMarkbox },
+  );
+  if (seqErr || seqData == null) {
+    return { error: "No pudimos generar el número del proveedor." };
+  }
+
+  const { data: row, error: insErr } = await supabase
+    .from("suppliers_cn")
+    .insert({
+      tenant_id: tenantId,
+      client_markbox: clientMarkbox,
+      supplier_seq: Number(seqData),
+      name: validated.name,
+      city: validated.city,
+      wechat: validated.wechat,
+      contact: validated.contact,
+      notes: validated.notes,
+    })
+    .select("id")
+    .single<{ id: string }>();
+
+  if (insErr || !row) {
+    console.error("[createStudioSupplierAction] insert error:", insErr);
+    return { error: friendlySupplierWriteError(insErr ?? {}) };
+  }
+
+  revalidatePath("/studio/proveedores");
+  return { ok: true, supplierId: row.id };
+}
+
+/**
+ * Edita un proveedor CN existente (cualquier proveedor del tenant — el
+ * operador puede corregir datos cargados por el cliente o por otro operador).
+ * `tenant_id` defensivo en el UPDATE, además del scope de RLS.
+ */
+export async function updateStudioSupplierAction(
+  supplierId: string,
+  input: {
+    name: string;
+    city: string | null;
+    wechat: string | null;
+    contact: string | null;
+    notes: string | null;
+  },
+): Promise<StudioSupplierActionState> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "suppliers");
+  if (denial) return { error: denial };
+
+  const id = supplierId.trim();
+  if (!id) return { error: "Falta el proveedor a editar." };
+
+  const { input: validated, fieldErrors } = validateSupplierInput(input);
+  if (fieldErrors) return { fieldErrors };
+  if (!validated) return { error: "Datos inválidos." };
+
+  const tenantId = await resolveOperatorTenantId(supabase);
+  if (!tenantId) return { error: "No se pudo resolver tu tenant." };
+
+  const { error: updErr } = await supabase
+    .from("suppliers_cn")
+    .update({
+      name: validated.name,
+      city: validated.city,
+      wechat: validated.wechat,
+      contact: validated.contact,
+      notes: validated.notes,
+    })
+    .eq("id", id)
+    .eq("tenant_id", tenantId)
+    .is("deleted_at", null);
+
+  if (updErr) {
+    console.error("[updateStudioSupplierAction] update error:", updErr);
+    return { error: friendlySupplierWriteError(updErr) };
+  }
+
+  revalidatePath("/studio/proveedores");
+  return { ok: true, supplierId: id };
 }

@@ -1,6 +1,13 @@
 "use client";
 
-import { useActionState, useEffect, useId, useRef, useState } from "react";
+import {
+  useActionState,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
 import {
   ArrowIcon,
@@ -15,6 +22,7 @@ import { ShareProviderButton } from "../../_components/ShareProviderButton";
 import type { SupplierView } from "@/lib/studio/prealertas/types";
 import {
   createSupplierAction,
+  updateSupplierAction,
   createPrealertaAction,
 } from "./actions";
 import type {
@@ -53,6 +61,8 @@ export function SuppliersClient({
     null,
   );
   const [adding, setAdding] = useState(false);
+  // Proveedor que se está editando inline (revisar/corregir sus datos) — null cerrado.
+  const [editing, setEditing] = useState<SupplierView | null>(null);
 
   return (
     <div>
@@ -136,13 +146,23 @@ export function SuppliersClient({
         </div>
       ) : (
         <div className="mt-6 flex flex-col gap-3">
-          {suppliers.map((s) => (
-            <SupplierCard
-              key={s.id}
-              supplier={s}
-              onRebuy={() => setPurchaseFor(s)}
-            />
-          ))}
+          {suppliers.map((s) =>
+            editing?.id === s.id ? (
+              <EditSupplierForm
+                key={s.id}
+                supplier={s}
+                onDone={() => setEditing(null)}
+                onCancel={() => setEditing(null)}
+              />
+            ) : (
+              <SupplierCard
+                key={s.id}
+                supplier={s}
+                onRebuy={() => setPurchaseFor(s)}
+                onEdit={() => setEditing(s)}
+              />
+            ),
+          )}
         </div>
       )}
 
@@ -270,10 +290,13 @@ function WhyItem({
 function SupplierCard({
   supplier,
   onRebuy,
+  onEdit,
 }: {
   supplier: SupplierView;
   onRebuy: () => void;
+  onEdit: () => void;
 }) {
+  const hasDetail = supplier.city || supplier.wechat || supplier.contact;
   return (
     <div className="card-shadow bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col sm:flex-row sm:items-center gap-4">
       <span
@@ -298,15 +321,141 @@ function SupplierCard({
           próxima:{" "}
           <span className="text-wine font-bold">{supplier.nextCode}</span>
         </div>
+        {hasDetail ? (
+          <div className="mt-1.5 text-[12px] text-grey-700 leading-[1.5]">
+            {supplier.city && <>{supplier.city}</>}
+            {supplier.city && (supplier.wechat || supplier.contact) && " · "}
+            {supplier.wechat && <>WeChat {supplier.wechat}</>}
+            {supplier.wechat && supplier.contact && " · "}
+            {supplier.contact && <>{supplier.contact}</>}
+          </div>
+        ) : (
+          <div className="mt-1.5 text-[12px] text-wine leading-[1.5]">
+            Sin datos de contacto — agrégalos para no perderlos.
+          </div>
+        )}
       </div>
-      <button
-        type="button"
-        onClick={onRebuy}
-        className="btn btn-ghost inline-flex items-center gap-1.5 flex-shrink-0"
-      >
-        Re-comprar <ArrowIcon size={14} />
-      </button>
+      <div className="flex gap-2 flex-shrink-0">
+        <button
+          type="button"
+          onClick={onEdit}
+          className="btn btn-ghost inline-flex items-center gap-1.5"
+        >
+          Editar
+        </button>
+        <button
+          type="button"
+          onClick={onRebuy}
+          className="btn btn-ghost inline-flex items-center gap-1.5"
+        >
+          Re-comprar <ArrowIcon size={14} />
+        </button>
+      </div>
     </div>
+  );
+}
+
+// ── Edición inline de proveedor ─────────────────────────────────
+function EditSupplierForm({
+  supplier,
+  onDone,
+  onCancel,
+}: {
+  supplier: SupplierView;
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const [state, action, pending] = useActionState(
+    updateSupplierAction,
+    supplierInitial,
+  );
+  const [name, setName] = useState(supplier.name);
+  const [city, setCity] = useState(supplier.city ?? "");
+  const [wechat, setWechat] = useState(supplier.wechat ?? "");
+  const [contact, setContact] = useState(supplier.contact ?? "");
+
+  useEffect(() => {
+    if (state.ok) onDone();
+  }, [state.ok, onDone]);
+
+  return (
+    <form
+      action={action}
+      className="card-shadow bg-white border border-wine rounded-[14px] p-5 flex flex-col gap-3"
+    >
+      <input type="hidden" name="supplierId" value={supplier.id} />
+
+      <FieldLabel>Nombre del proveedor</FieldLabel>
+      <input
+        type="text"
+        name="name"
+        required
+        autoFocus
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        disabled={pending}
+        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+      />
+      {state.fieldErrors?.name && (
+        <p className="text-[12px] text-wine leading-[1.4]">
+          {state.fieldErrors.name}
+        </p>
+      )}
+
+      <FieldLabel>WeChat del proveedor</FieldLabel>
+      <input
+        type="text"
+        name="wechat"
+        value={wechat}
+        onChange={(e) => setWechat(e.target.value)}
+        disabled={pending}
+        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+      />
+
+      <FieldLabel>Otro contacto (opcional)</FieldLabel>
+      <input
+        type="text"
+        name="contact"
+        value={contact}
+        onChange={(e) => setContact(e.target.value)}
+        disabled={pending}
+        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+      />
+
+      <FieldLabel>Ciudad (opcional)</FieldLabel>
+      <input
+        type="text"
+        name="city"
+        value={city}
+        onChange={(e) => setCity(e.target.value)}
+        disabled={pending}
+        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+      />
+
+      <input type="hidden" name="notes" value={supplier.notes ?? ""} />
+
+      {state.error && (
+        <p className="text-[12.5px] text-wine leading-[1.4]">{state.error}</p>
+      )}
+      <div className="flex gap-2.5">
+        <button
+          type="submit"
+          disabled={pending}
+          className="btn btn-primary inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-wait"
+        >
+          {pending ? "Guardando…" : "Guardar cambios"}
+          {!pending && <CheckIcon size={15} />}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={pending}
+          className="btn btn-ghost disabled:opacity-60"
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -443,9 +592,18 @@ function NewPurchaseModal({
   const [supplierId, setSupplierId] = useState<string>(
     preselected?.id ?? suppliers[0]?.id ?? "",
   );
+  // Barra de búsqueda de proveedores ya registrados (Norte: "Crear «X»" si no
+  // hay match). También prefilla el nombre si el cliente termina creando uno.
+  const [supplierQuery, setSupplierQuery] = useState(preselected?.name ?? "");
   const [newSupplierState, newSupplierAction, newSupplierPending] =
     useActionState(createSupplierAction, supplierInitial);
   const newFormRef = useRef<HTMLFormElement>(null);
+
+  const filteredSuppliers = useMemo(() => {
+    const q = supplierQuery.trim().toLowerCase();
+    if (!q) return suppliers;
+    return suppliers.filter((s) => s.name.toLowerCase().includes(q));
+  }, [suppliers, supplierQuery]);
 
   // Si el alta inline del proveedor (dentro del modal) termina OK, conmutamos a
   // "existing" — la página revalidó, pero el id nuevo lo conocemos por el state.
@@ -526,17 +684,58 @@ function NewPurchaseModal({
               )}
 
               {mode === "existing" && suppliers.length > 0 ? (
-                <select
-                  value={supplierId}
-                  onChange={(e) => setSupplierId(e.target.value)}
-                  className="mt-2 w-full h-12 px-3 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
-                >
-                  {suppliers.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      #{s.supplierSeq} · {s.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="mt-2 flex flex-col gap-2">
+                  <input
+                    type="text"
+                    value={supplierQuery}
+                    onChange={(e) => setSupplierQuery(e.target.value)}
+                    placeholder="Busca por nombre…"
+                    aria-label="Buscar proveedor ya registrado"
+                    className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+                  />
+                  <div className="max-h-[168px] overflow-y-auto flex flex-col gap-1.5 rounded-[10px]">
+                    {filteredSuppliers.map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => setSupplierId(s.id)}
+                        aria-pressed={supplierId === s.id}
+                        className="text-left px-3.5 py-2.5 rounded-[10px] text-[14px] transition-colors"
+                        style={{
+                          background:
+                            supplierId === s.id
+                              ? "var(--color-paper)"
+                              : "var(--color-grey-100)",
+                          border:
+                            supplierId === s.id
+                              ? "1px solid var(--color-wine)"
+                              : "1px solid transparent",
+                          color:
+                            supplierId === s.id
+                              ? "var(--color-wine)"
+                              : "var(--color-ink)",
+                        }}
+                      >
+                        <span className="font-bold">#{s.supplierSeq}</span>{" "}
+                        {s.name}
+                      </button>
+                    ))}
+                    {filteredSuppliers.length === 0 && (
+                      <p className="px-1 py-2 text-[13px] text-grey-700">
+                        Ningún proveedor coincide con &ldquo;{supplierQuery}&rdquo;.
+                      </p>
+                    )}
+                  </div>
+                  {supplierQuery.trim() !== "" && (
+                    <button
+                      type="button"
+                      onClick={() => setMode("new")}
+                      className="btn btn-ghost self-start inline-flex items-center gap-2"
+                    >
+                      + Crear &ldquo;{supplierQuery.trim()}&rdquo;
+                    </button>
+                  )}
+                </div>
               ) : (
                 // Alta inline del proveedor (form propio, action propia).
                 <form
@@ -548,6 +747,7 @@ function NewPurchaseModal({
                     type="text"
                     name="name"
                     required
+                    defaultValue={supplierQuery}
                     placeholder="Nombre del proveedor nuevo"
                     disabled={newSupplierPending}
                     className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
@@ -557,14 +757,26 @@ function NewPurchaseModal({
                       {newSupplierState.fieldErrors.name}
                     </p>
                   )}
-                  <button
-                    type="submit"
-                    disabled={newSupplierPending}
-                    className="btn btn-ghost self-start inline-flex items-center gap-2 disabled:opacity-60"
-                  >
-                    {newSupplierPending ? "Creando…" : "Crear proveedor"}
-                    {!newSupplierPending && <CheckIcon size={14} />}
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="submit"
+                      disabled={newSupplierPending}
+                      className="btn btn-ghost self-start inline-flex items-center gap-2 disabled:opacity-60"
+                    >
+                      {newSupplierPending ? "Creando…" : "Crear proveedor"}
+                      {!newSupplierPending && <CheckIcon size={14} />}
+                    </button>
+                    {suppliers.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setMode("existing")}
+                        disabled={newSupplierPending}
+                        className="btn btn-ghost self-start disabled:opacity-60"
+                      >
+                        Buscar uno existente
+                      </button>
+                    )}
+                  </div>
                 </form>
               )}
 

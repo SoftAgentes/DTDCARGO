@@ -71,6 +71,7 @@ export default async function ProveedoresPage() {
     city: s.city,
     wechat: s.wechat,
     contact: s.contact,
+    notes: s.notes,
     orderCount: orderCountBySupplierId[s.id] ?? 0,
   }));
 

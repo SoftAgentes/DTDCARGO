@@ -134,6 +134,9 @@ export type SupplierView = {
   name: string;
   /** WeChat / WhatsApp del proveedor (número o ID); null si no se cargó. */
   wechat: string | null;
+  city: string | null;
+  contact: string | null;
+  notes: string | null;
   /** nº de compras vivas registradas a este proveedor. */
   orderCount: number;
   /** código que tendría la PRÓXIMA compra a este proveedor. */
@@ -148,7 +151,15 @@ export type SupplierView = {
  */
 export function summarizeSuppliers(
   markbox: string,
-  suppliers: { id: string; supplier_seq: number; name: string; wechat?: string | null }[],
+  suppliers: {
+    id: string;
+    supplier_seq: number;
+    name: string;
+    wechat?: string | null;
+    city?: string | null;
+    contact?: string | null;
+    notes?: string | null;
+  }[],
   orderCountBySupplierId: Record<string, number>,
 ): SupplierView[] {
   return suppliers.map((s) => {
@@ -158,6 +169,9 @@ export function summarizeSuppliers(
       supplierSeq: s.supplier_seq,
       name: s.name,
       wechat: s.wechat ?? null,
+      city: s.city ?? null,
+      contact: s.contact ?? null,
+      notes: s.notes ?? null,
       orderCount,
       nextCode: buildPrealertaCode(markbox, s.supplier_seq, orderCount + 1),
     };

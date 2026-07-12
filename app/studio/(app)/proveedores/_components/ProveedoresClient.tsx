@@ -1,18 +1,22 @@
 "use client";
 
 /**
- * ProveedoresClient — "PreAlertas de servicios" (SDD-0057 Slice C · SOLO
- * LECTURA; renombre + columnas configurables founder 2026-07-03).
+ * ProveedoresClient — "Solicitudes de servicio" (SDD-0057 · renombre +
+ * columnas configurables founder 2026-07-03; alta/edición de proveedores
+ * agregada 2026-07-12).
  *
  * Header ("Solicitudes de servicio.") + 5 KPIs por estado + 2 tabs:
  *   - Prealertas entrantes ⭐ : cola de compras del tenant. Columnas
  *     CONFIGURABLES (orden + visibilidad, handoff Norte "Almacén CN →
  *     columnas configurables") vía useColumnConfig/ColumnManager, headers
- *     clickeables para ordenar (persistido) y búsqueda. Read-only.
+ *     clickeables para ordenar (persistido) y búsqueda. Read-only (las crea
+ *     el cliente desde su portal).
  *   - Proveedores            : suppliers_cn del tenant (#, nombre, ciudad,
- *     wechat/contacto, # de compras). Read-only.
+ *     wechat/contacto, # de compras). El operador puede dar de alta un
+ *     proveedor a nombre de un cliente y editar cualquiera — misma fila que
+ *     ve el cliente en su portal (SupplierDrawer, migr 0229).
  *
- * Cero writes / cero acciones que muten (alcance founder). Solo tokens var(--*).
+ * Solo tokens var(--*).
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -40,6 +44,7 @@ import {
 } from "./ServiceRequestsTab";
 import { PackingListsTab } from "./PackingListsTab";
 import { ProviderLinkDrawer } from "./ProviderLinkDrawer";
+import { SupplierDrawer } from "./SupplierDrawer";
 
 // Estados que el operador considera "entrantes" (esperando arribo a CN).
 const INCOMING: ReadonlySet<string> = new Set(["anunciada", "en_camino"]);
@@ -53,6 +58,7 @@ export type SupplierRow = {
   city: string | null;
   wechat: string | null;
   contact: string | null;
+  notes: string | null;
   orderCount: number;
 };
 
@@ -958,118 +964,210 @@ function SortableHeaderCell({
 // Tab: Proveedores
 // ════════════════════════════════════════════════════════════════
 
-const SUPPLIER_GRID = "60px 1.4fr 1fr 1.1fr 110px";
+const SUPPLIER_GRID = "60px 1.4fr 1fr 1.1fr 90px 74px";
 
 function SuppliersTab({ suppliers }: { suppliers: SupplierRow[] }) {
-  if (suppliers.length === 0) {
-    return (
-      <EmptyState
-        eyebrow="Sin proveedores"
-        title="Todavía no hay proveedores cargados."
-        description="Los clientes registran sus proveedores chinos desde el portal. Cuando lo hagan, aparecerán acá con su nº por cliente y su historial de compras."
-      />
+  const [search, setSearch] = useState("");
+  const [drawer, setDrawer] = useState<"new" | SupplierRow | null>(null);
+
+  const rows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return suppliers;
+    return suppliers.filter(
+      (s) =>
+        s.name.toLowerCase().includes(q) ||
+        s.client_markbox.toLowerCase().includes(q) ||
+        (s.city ?? "").toLowerCase().includes(q) ||
+        (s.wechat ?? "").toLowerCase().includes(q) ||
+        (s.contact ?? "").toLowerCase().includes(q),
     );
-  }
+  }, [suppliers, search]);
 
   return (
-    <TableShell>
-      <HeaderRow grid={SUPPLIER_GRID}>
-        <span>Nº</span>
-        <span>Proveedor · cliente</span>
-        <span>Ciudad</span>
-        <span>WeChat · contacto</span>
-        <span style={{ textAlign: "right" }}>Compras</span>
-      </HeaderRow>
-      {suppliers.map((s, i) => (
+    <>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          marginBottom: "var(--s-3)",
+          flexWrap: "wrap",
+        }}
+      >
         <div
-          key={s.id}
-          className="studio-tracking-row"
           style={{
-            display: "grid",
-            gridTemplateColumns: SUPPLIER_GRID,
-            gap: "var(--s-3)",
-            padding: "14px 20px",
-            borderTop: i > 0 ? "1px solid var(--border)" : 0,
+            display: "flex",
             alignItems: "center",
+            gap: "var(--s-2)",
+            flex: "1 1 220px",
+            minWidth: 180,
+            maxWidth: 380,
+            height: 32,
+            padding: "0 10px",
+            background: "var(--bg-elevated)",
+            borderRadius: "var(--r-sm)",
           }}
         >
-          <span
-            style={{
-              font: "700 12.5px/1 var(--f-mono)",
-              color: "var(--wine-text)",
-            }}
-          >
-            #{s.supplier_seq}
+          <span style={{ color: "var(--ink-mute)", display: "inline-flex" }}>
+            {Icon.search(13)}
           </span>
-          <div style={{ overflow: "hidden" }}>
-            <div
-              style={{
-                font: "700 12.5px/1.2 var(--f-sans)",
-                color: "var(--ink)",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {s.name}
-            </div>
-            <div
-              style={{
-                font: "500 10.5px/1.3 var(--f-mono)",
-                color: "var(--ink-soft)",
-                marginTop: 3,
-              }}
-            >
-              {s.client_markbox || "—"}
-            </div>
-          </div>
-          <span
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar proveedor, cliente, ciudad o WeChat…"
+            aria-label="Buscar proveedores"
             style={{
-              font: "500 12px/1.3 var(--f-sans)",
-              color: s.city ? "var(--ink)" : "var(--ink-mute)",
+              flex: 1,
+              height: "100%",
+              border: 0,
+              background: "transparent",
+              font: "500 12px/1 var(--f-sans)",
+              color: "var(--ink)",
             }}
-          >
-            {s.city || "—"}
-          </span>
-          <div style={{ overflow: "hidden" }}>
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setDrawer("new")}
+          className="studio-btn studio-btn-primary"
+          style={{ marginLeft: "auto" }}
+        >
+          + Nuevo proveedor
+        </button>
+      </div>
+
+      {suppliers.length === 0 ? (
+        <EmptyState
+          eyebrow="Sin proveedores"
+          title="Todavía no hay proveedores cargados."
+          description="Los clientes registran sus proveedores chinos desde el portal, o dalos de alta acá a nombre de un cliente. Aparecen con su nº por cliente y su historial de compras."
+        />
+      ) : rows.length === 0 ? (
+        <EmptyState
+          eyebrow="Sin resultados"
+          title="Nada coincide con tu búsqueda."
+          description="Prueba con el nombre del proveedor, el Shipping Mark del cliente, la ciudad o el WeChat."
+        />
+      ) : (
+        <TableShell>
+          <HeaderRow grid={SUPPLIER_GRID}>
+            <span>Nº</span>
+            <span>Proveedor · cliente</span>
+            <span>Ciudad</span>
+            <span>WeChat · contacto</span>
+            <span style={{ textAlign: "right" }}>Compras</span>
+            <span />
+          </HeaderRow>
+          {rows.map((s, i) => (
             <div
+              key={s.id}
+              className="studio-tracking-row"
               style={{
-                font: "500 12px/1.3 var(--f-sans)",
-                color: s.wechat ? "var(--ink)" : "var(--ink-mute)",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
+                display: "grid",
+                gridTemplateColumns: SUPPLIER_GRID,
+                gap: "var(--s-3)",
+                padding: "14px 20px",
+                borderTop: i > 0 ? "1px solid var(--border)" : 0,
+                alignItems: "center",
               }}
             >
-              {s.wechat ? `WeChat ${s.wechat}` : "—"}
-            </div>
-            {s.contact && (
-              <div
+              <span
                 style={{
-                  font: "500 10.5px/1.3 var(--f-sans)",
-                  color: "var(--ink-soft)",
-                  marginTop: 3,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
+                  font: "700 12.5px/1 var(--f-mono)",
+                  color: "var(--wine-text)",
                 }}
               >
-                {s.contact}
+                #{s.supplier_seq}
+              </span>
+              <div style={{ overflow: "hidden" }}>
+                <div
+                  style={{
+                    font: "700 12.5px/1.2 var(--f-sans)",
+                    color: "var(--ink)",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {s.name}
+                </div>
+                <div
+                  style={{
+                    font: "500 10.5px/1.3 var(--f-mono)",
+                    color: "var(--ink-soft)",
+                    marginTop: 3,
+                  }}
+                >
+                  {s.client_markbox || "—"}
+                </div>
               </div>
-            )}
-          </div>
-          <span
-            style={{
-              font: "700 12.5px/1 var(--f-mono)",
-              color: s.orderCount > 0 ? "var(--ink)" : "var(--ink-mute)",
-              textAlign: "right",
-            }}
-          >
-            {s.orderCount}
-          </span>
-        </div>
-      ))}
-    </TableShell>
+              <span
+                style={{
+                  font: "500 12px/1.3 var(--f-sans)",
+                  color: s.city ? "var(--ink)" : "var(--ink-mute)",
+                }}
+              >
+                {s.city || "—"}
+              </span>
+              <div style={{ overflow: "hidden" }}>
+                <div
+                  style={{
+                    font: "500 12px/1.3 var(--f-sans)",
+                    color: s.wechat ? "var(--ink)" : "var(--ink-mute)",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {s.wechat ? `WeChat ${s.wechat}` : "—"}
+                </div>
+                {s.contact && (
+                  <div
+                    style={{
+                      font: "500 10.5px/1.3 var(--f-sans)",
+                      color: "var(--ink-soft)",
+                      marginTop: 3,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {s.contact}
+                  </div>
+                )}
+              </div>
+              <span
+                style={{
+                  font: "700 12.5px/1 var(--f-mono)",
+                  color: s.orderCount > 0 ? "var(--ink)" : "var(--ink-mute)",
+                  textAlign: "right",
+                }}
+              >
+                {s.orderCount}
+              </span>
+              <div style={{ textAlign: "right" }}>
+                <button
+                  type="button"
+                  onClick={() => setDrawer(s)}
+                  className="studio-btn studio-btn-ghost"
+                  style={{ height: 26, padding: "0 9px" }}
+                >
+                  Editar
+                </button>
+              </div>
+            </div>
+          ))}
+        </TableShell>
+      )}
+
+      {drawer && (
+        <SupplierDrawer
+          supplier={drawer === "new" ? undefined : drawer}
+          allSuppliers={suppliers}
+          onClose={() => setDrawer(null)}
+        />
+      )}
+    </>
   );
 }
 
