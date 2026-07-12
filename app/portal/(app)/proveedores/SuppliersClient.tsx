@@ -634,16 +634,13 @@ function NewPurchaseModal({
     createPrealertaAction,
     prealertaInitial,
   );
-  // "new" = proveedor a crear inline; o un id de proveedor existente.
-  const [mode, setMode] = useState<"existing" | "new">(
-    suppliers.length === 0 ? "new" : "existing",
-  );
-  const [supplierId, setSupplierId] = useState<string>(
-    preselected?.id ?? suppliers[0]?.id ?? "",
-  );
-  // Barra de búsqueda de proveedores ya registrados (Norte: "Crear «X»" si no
-  // hay match). También prefilla el nombre si el cliente termina creando uno.
+  // Combobox de proveedor (Norte: un solo campo — escribís, filtra por nombre;
+  // si no hay match exacto aparece "Crear «X»" dentro del propio dropdown, sin
+  // toggles aparte de "existente"/"nuevo").
+  const [supplierId, setSupplierId] = useState<string>(preselected?.id ?? "");
+  const [newSupplierName, setNewSupplierName] = useState<string | null>(null);
   const [supplierQuery, setSupplierQuery] = useState(preselected?.name ?? "");
+  const [supplierOpen, setSupplierOpen] = useState(false);
   const [newSupplierState, newSupplierAction, newSupplierPending] =
     useActionState(createSupplierAction, supplierInitial);
   const newFormRef = useRef<HTMLFormElement>(null);
@@ -654,12 +651,19 @@ function NewPurchaseModal({
     return suppliers.filter((s) => s.name.toLowerCase().includes(q));
   }, [suppliers, supplierQuery]);
 
-  // Si el alta inline del proveedor (dentro del modal) termina OK, conmutamos a
-  // "existing" — la página revalidó, pero el id nuevo lo conocemos por el state.
+  // Sin match exacto por nombre → el dropdown ofrece "Crear «X»".
+  const hasExactMatch = useMemo(() => {
+    const q = supplierQuery.trim().toLowerCase();
+    if (!q) return true;
+    return suppliers.some((s) => s.name.toLowerCase() === q);
+  }, [suppliers, supplierQuery]);
+
+  // Si el alta inline del proveedor nuevo (dentro del combobox) termina OK, lo
+  // dejamos elegido — la página revalidó, pero el id nuevo lo conocemos por el state.
   useEffect(() => {
     if (newSupplierState.ok && newSupplierState.supplierId) {
       setSupplierId(newSupplierState.supplierId);
-      setMode("existing");
+      setNewSupplierName(null);
     }
   }, [newSupplierState.ok, newSupplierState.supplierId]);
 
@@ -715,116 +719,139 @@ function NewPurchaseModal({
             />
           ) : (
             <>
-              {/* Selector de proveedor */}
+              {/* Selector de proveedor — combobox único (Norte): escribís,
+                  filtra; si no hay match exacto, "Crear «X»" vive DENTRO del
+                  dropdown (no hay toggle aparte de "existente"/"nuevo"). */}
               <FieldLabel>Proveedor</FieldLabel>
-              {suppliers.length > 0 && (
-                <div className="mt-1.5 flex gap-2 flex-wrap">
-                  <ModeChip
-                    active={mode === "existing"}
-                    onClick={() => setMode("existing")}
-                    label="Uno existente"
-                  />
-                  <ModeChip
-                    active={mode === "new"}
-                    onClick={() => setMode("new")}
-                    label="Agregar nuevo"
-                  />
-                </div>
-              )}
-
-              {mode === "existing" && suppliers.length > 0 ? (
-                <div className="mt-2 flex flex-col gap-2">
-                  <input
-                    type="text"
-                    value={supplierQuery}
-                    onChange={(e) => setSupplierQuery(e.target.value)}
-                    placeholder="Busca por nombre…"
-                    aria-label="Buscar proveedor ya registrado"
-                    className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
-                  />
-                  <div className="max-h-[168px] overflow-y-auto flex flex-col gap-1.5 rounded-[10px]">
+              <div className="relative mt-1.5">
+                <input
+                  type="text"
+                  value={supplierQuery}
+                  onChange={(e) => {
+                    setSupplierQuery(e.target.value);
+                    setSupplierId("");
+                    setNewSupplierName(null);
+                    setSupplierOpen(true);
+                  }}
+                  onFocus={() => setSupplierOpen(true)}
+                  onBlur={() => setTimeout(() => setSupplierOpen(false), 120)}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter") return;
+                    e.preventDefault();
+                    if (filteredSuppliers.length === 1 && supplierQuery.trim()) {
+                      const s = filteredSuppliers[0];
+                      setSupplierId(s.id);
+                      setNewSupplierName(null);
+                      setSupplierQuery(s.name);
+                      setSupplierOpen(false);
+                    } else if (!hasExactMatch && supplierQuery.trim()) {
+                      setNewSupplierName(supplierQuery.trim());
+                      setSupplierId("");
+                      setSupplierOpen(false);
+                    }
+                  }}
+                  placeholder="Escribe para buscar tu proveedor…"
+                  aria-label="Buscar o crear proveedor"
+                  className="w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+                />
+                {supplierOpen && (supplierQuery.trim() !== "" || filteredSuppliers.length > 0) && (
+                  <div className="absolute top-full left-0 right-0 z-20 mt-1 max-h-[240px] overflow-y-auto rounded-[10px] border border-grey-200 bg-white card-shadow">
                     {filteredSuppliers.map((s) => (
                       <button
                         key={s.id}
                         type="button"
-                        onClick={() => setSupplierId(s.id)}
-                        aria-pressed={supplierId === s.id}
-                        className="text-left px-3.5 py-2.5 rounded-[10px] text-[14px] transition-colors"
-                        style={{
-                          background:
-                            supplierId === s.id
-                              ? "var(--color-paper)"
-                              : "var(--color-grey-100)",
-                          border:
-                            supplierId === s.id
-                              ? "1px solid var(--color-wine)"
-                              : "1px solid transparent",
-                          color:
-                            supplierId === s.id
-                              ? "var(--color-wine)"
-                              : "var(--color-ink)",
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setSupplierId(s.id);
+                          setNewSupplierName(null);
+                          setSupplierQuery(s.name);
+                          setSupplierOpen(false);
                         }}
+                        className="w-full text-left px-3.5 py-2.5 text-[14px] text-ink border-b border-grey-100 last:border-b-0 hover:bg-grey-100"
                       >
                         <span className="font-bold">#{s.supplierSeq}</span>{" "}
                         {s.name}
                       </button>
                     ))}
-                    {filteredSuppliers.length === 0 && (
-                      <p className="px-1 py-2 text-[13px] text-grey-700">
-                        Ningún proveedor coincide con &ldquo;{supplierQuery}&rdquo;.
+                    {supplierQuery.trim() !== "" && !hasExactMatch && (
+                      <button
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setNewSupplierName(supplierQuery.trim());
+                          setSupplierId("");
+                          setSupplierOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2 px-3.5 py-2.5 text-[13.5px] font-bold text-wine"
+                        style={{ background: "var(--color-paper)" }}
+                      >
+                        + Crear &ldquo;{supplierQuery.trim()}&rdquo;
+                      </button>
+                    )}
+                    {filteredSuppliers.length === 0 && supplierQuery.trim() === "" && (
+                      <p className="px-3.5 py-2.5 text-[13px] text-grey-700">
+                        Escribe el nombre de tu proveedor.
                       </p>
                     )}
                   </div>
-                  {supplierQuery.trim() !== "" && (
-                    <button
-                      type="button"
-                      onClick={() => setMode("new")}
-                      className="btn btn-ghost self-start inline-flex items-center gap-2"
-                    >
-                      + Crear &ldquo;{supplierQuery.trim()}&rdquo;
-                    </button>
-                  )}
-                </div>
-              ) : (
-                // Alta inline del proveedor (form propio, action propia).
+                )}
+              </div>
+
+              {newSupplierName === null && supplierId && (
+                <p className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: "var(--color-status-success)" }}>
+                  <CheckIcon size={13} /> Proveedor listo para esta compra.
+                </p>
+              )}
+
+              {newSupplierName !== null && (
                 <form
                   ref={newFormRef}
                   action={newSupplierAction}
-                  className="mt-2 flex flex-col gap-2"
+                  className="mt-3 rounded-[12px] p-4 border"
+                  style={{ background: "var(--color-paper)", borderColor: "var(--color-wine)" }}
                 >
-                  <input
-                    type="text"
-                    name="name"
-                    required
-                    defaultValue={supplierQuery}
-                    placeholder="Nombre del proveedor nuevo"
-                    disabled={newSupplierPending}
-                    className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
-                  />
+                  <input type="hidden" name="name" value={newSupplierName} />
+                  <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-wine">
+                    Datos del proveedor nuevo
+                  </p>
+                  <p className="mt-1.5 text-[13px] font-semibold text-ink">
+                    + Se creará &ldquo;{newSupplierName}&rdquo;
+                  </p>
                   {newSupplierState.fieldErrors?.name && (
-                    <p className="text-[12px] text-wine">
+                    <p className="mt-1 text-[12px] text-wine">
                       {newSupplierState.fieldErrors.name}
                     </p>
                   )}
-                  <div className="flex gap-2">
+                  <div className="mt-3">
+                    <FieldLabel>Ciudad (opcional)</FieldLabel>
+                    <input
+                      type="text"
+                      name="city"
+                      placeholder="Yiwu · Shenzhen · Guangzhou…"
+                      disabled={newSupplierPending}
+                      className="mt-1.5 w-full h-11 px-3.5 rounded-[10px] bg-white border border-grey-200 outline-none text-[14px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+                    />
+                  </div>
+                  <div className="mt-3 flex gap-2">
                     <button
                       type="submit"
                       disabled={newSupplierPending}
-                      className="btn btn-ghost self-start inline-flex items-center gap-2 disabled:opacity-60"
+                      className="btn btn-primary inline-flex items-center gap-2 disabled:opacity-60"
                     >
-                      {newSupplierPending ? "Creando…" : "Crear proveedor"}
+                      {newSupplierPending ? "Guardando…" : "Guardar proveedor"}
                       {!newSupplierPending && <CheckIcon size={14} />}
                     </button>
-                    {suppliers.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setMode("existing")}
-                        disabled={newSupplierPending}
-                        className="btn btn-ghost self-start disabled:opacity-60"
-                      >
-                        Buscar uno existente
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewSupplierName(null);
+                        setSupplierOpen(true);
+                      }}
+                      disabled={newSupplierPending}
+                      className="btn btn-ghost disabled:opacity-60"
+                    >
+                      Cambiar
+                    </button>
                   </div>
                 </form>
               )}
@@ -1051,32 +1078,6 @@ function PurchaseDone({
         </button>
       </div>
     </div>
-  );
-}
-
-function ModeChip({
-  active,
-  onClick,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className="text-[12.5px] font-semibold rounded-full px-3 py-1.5 border transition-colors"
-      style={{
-        borderColor: active ? "var(--color-wine)" : "var(--color-grey-200)",
-        background: active ? "var(--color-paper)" : "var(--color-white)",
-        color: active ? "var(--color-wine)" : "var(--color-grey-700)",
-      }}
-    >
-      {label}
-    </button>
   );
 }
 
