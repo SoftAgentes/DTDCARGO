@@ -128,3 +128,18 @@ describe("writeInAppNotification · bugs (no-regresión)", () => {
     expect(id).toBe("dup-bug");
   });
 });
+
+describe("writeInAppNotification · markDelivered false (SDD-0036 P3, ancla de retry)", () => {
+  it("channel_inapp OFF → inserta la fila pero SIN delivered_inapp_at", async () => {
+    const { admin, rec } = makeAdmin({ dup: null });
+    const id = await writeInAppNotification(admin, {
+      userId: "u2",
+      bugId: "bug-9",
+      type: "critical_alert",
+      payload: { folio: "BUG-1", label: "crítico" },
+      markDelivered: false,
+    });
+    expect(id).toBe("new-id");
+    expect(rec.inserted).toMatchObject({ bug_id: "bug-9", delivered_inapp_at: null });
+  });
+});

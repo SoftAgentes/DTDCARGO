@@ -39,6 +39,10 @@
     {
       "path": "/api/cron/portal-cold-reminder",
       "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/bug-notifications-drain",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

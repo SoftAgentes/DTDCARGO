@@ -179,6 +179,11 @@ export type BugNotification = {
   delivered_push_at: string | null;
   delivered_email_at: string | null;
   delivered_telegram_at: string | null;
+  /** SDD-0036 P3: contador de intentos por canal (outbox durable, 0232). */
+  email_attempts: number;
+  email_last_error: string | null;
+  telegram_attempts: number;
+  telegram_last_error: string | null;
   created_at: string;
 };
 
