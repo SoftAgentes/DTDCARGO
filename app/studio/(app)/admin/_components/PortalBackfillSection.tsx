@@ -327,7 +327,7 @@ function InviteCountBadge({
     ? "var(--warning)"
     : on
       ? "var(--wine)"
-      : "var(--ink-mute)";
+      : "var(--ink-soft)";
   return (
     <span
       title={title}
@@ -650,7 +650,7 @@ function CandidateRow({
           ) : (
             <span
               title="Sin teléfono — captúralo para invitar por WhatsApp"
-              style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-mute)" }}
+              style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-soft)" }}
             >
               sin teléfono
             </span>
@@ -783,7 +783,7 @@ function WhatsAppBatchPanel({ selectedIds }: { selectedIds: string[] }) {
               : `Enlaces WhatsApp ${willProcess}${overflow > 0 ? ` (de ${selectedIds.length})` : ""}`}
           </button>
         </form>
-        <span style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-mute)" }}>
+        <span style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
           Prepara los enlaces de los seleccionados con teléfono (máx {WA_BATCH_MAX}) para
           abrirlos uno por uno. Vencen pronto — mándalos ya.
         </span>
@@ -1055,7 +1055,7 @@ function InviteCandidatesPanel({
             style={{
               padding: "20px",
               font: "500 12.5px/1.5 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               textAlign: "center",
             }}
           >
@@ -1313,7 +1313,7 @@ function ColdRow({
           ) : (
             <span
               title="Sin teléfono — captúralo para invitar por WhatsApp"
-              style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-mute)" }}
+              style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-soft)" }}
             >
               sin teléfono
             </span>
@@ -1575,7 +1575,7 @@ function ColdInviteesPanel({ cold }: { cold: PortalColdInvitee[] }) {
             alignItems: "center",
           }}
         >
-          <span style={{ font: "600 10px/1 var(--f-sans)", letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--ink-mute)" }}>
+          <span style={{ font: "600 10px/1 var(--f-sans)", letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--ink-soft)" }}>
             Orden
           </span>
           <Chip active={coldSort === "oldest"} onClick={() => setColdSort("oldest")}>
@@ -1632,7 +1632,7 @@ function ColdInviteesPanel({ cold }: { cold: PortalColdInvitee[] }) {
             style={{
               padding: "20px",
               font: "500 12.5px/1.5 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               textAlign: "center",
             }}
           >
@@ -1855,7 +1855,7 @@ function ContactlessPanel({ clients }: { clients: PortalContactlessClient[] }) {
             style={{
               padding: "20px",
               font: "500 12.5px/1.5 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               textAlign: "center",
             }}
           >

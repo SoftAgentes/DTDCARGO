@@ -203,7 +203,7 @@ export function PackingListDrawer({
               style={{
                 padding: "16px 14px",
                 font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
               }}
             >
               El proveedor no cargó filas de mercancía en este envío.
@@ -246,7 +246,7 @@ export function PackingListDrawer({
         <p
           style={{
             font: "500 11px/1.5 var(--f-mono)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             margin: "14px 0 0",
           }}
         >

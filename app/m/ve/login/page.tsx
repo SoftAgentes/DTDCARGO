@@ -60,7 +60,7 @@ export default function OperarioVeLoginPage() {
       style={{
         minHeight: "100dvh",
         background:
-          "linear-gradient(160deg, var(--ink) 0%, #1F3055 100%)",
+          "linear-gradient(160deg, #0F1E3D 0%, #1F3055 100%)",
         display: "flex",
         flexDirection: "column",
         padding:

@@ -356,7 +356,7 @@ function DiplomaStyles() {
 .dpl-qr svg { display: block; width: 100%; height: 100%; }
 .dpl-qr-faux { width: 100%; height: 100%; display: grid; place-items: center; font: 700 16px/1 var(--f-mono); color: var(--ink-mute); background: repeating-conic-gradient(var(--border) 0% 25%, #fff 0% 50%) 50% / 12px 12px; }
 .dpl-qr-cap { display: flex; flex-direction: column; gap: 3px; }
-.dpl-qr-l { font: 600 9px/1.25 var(--f-sans); letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-mute); max-width: 96px; }
+.dpl-qr-l { font: 600 9px/1.25 var(--f-sans); letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-soft); max-width: 96px; }
 .dpl-qr-f { font: 600 13px/1 var(--f-mono); color: var(--wine-text); }
 /* seal */
 .dpl-seal { position: relative; width: 120px; height: 120px; flex: 0 0 auto; --seal-stroke: var(--wine); --seal-fill: var(--wine); }
@@ -370,11 +370,11 @@ function DiplomaStyles() {
 .dpl-sig-nm { font: 600 16px/1.2 var(--f-display); color: var(--ink); margin-bottom: 4px; min-height: 19px; }
 .dpl-sig-nm--empty { min-height: 19px; }
 .dpl-sig-line { border-top: 1.5px solid var(--ink); margin-bottom: 7px; }
-.dpl-sig-rl { font: 600 10.5px/1.2 var(--f-sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-mute); }
+.dpl-sig-rl { font: 600 10.5px/1.2 var(--f-sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
 /* Variante A */
 .dpl-a { padding: 64px 76px; display: flex; flex-direction: column; }
 .dpl-va-top { display: flex; align-items: flex-start; justify-content: space-between; }
-.dpl-va-issuer { font: 600 11px/1.2 var(--f-sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); margin-top: 8px; }
+.dpl-va-issuer { font: 600 11px/1.2 var(--f-sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft); margin-top: 8px; }
 .dpl-va-body { margin-top: 52px; flex: 1; }
 .dpl-va-eyebrow { font: 700 13px/1 var(--f-sans); letter-spacing: 0.22em; text-transform: uppercase; color: var(--wine-text); }
 .dpl-va-rule { width: 56px; height: 3px; background: var(--wine); margin: 16px 0 28px; }
@@ -391,7 +391,7 @@ function DiplomaStyles() {
 .dpl-vb-inner { position: absolute; inset: 26px; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 46px 90px 40px; }
 .dpl-vb-iso { width: 60px; height: auto; margin-bottom: 12px; }
 .dpl-vb-wm { margin-bottom: 6px; }
-.dpl-vb-issuer { font: 600 10px/1 var(--f-sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 22px; }
+.dpl-vb-issuer { font: 600 10px/1 var(--f-sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 22px; }
 .dpl-vb-eyebrow { font: 700 12px/1 var(--f-sans); letter-spacing: 0.24em; text-transform: uppercase; color: var(--wine-text); margin-bottom: 18px; }
 .dpl-vb-label { font: 600 13px/1 var(--f-sans); letter-spacing: 0.04em; color: var(--ink-soft); margin-bottom: 14px; }
 .dpl-vb-name { font: 600 60px/1.0 var(--f-display); letter-spacing: -0.02em; color: var(--ink); margin: 0; }
@@ -414,7 +414,7 @@ function DiplomaStyles() {
 .dpl-vc-band .dpl-qr-l { color: rgba(242,240,236,0.75); }
 .dpl-vc-band .dpl-qr-f { color: var(--wine-soft); }
 .dpl-vc-main { flex: 1; padding: 64px 72px; display: flex; flex-direction: column; }
-.dpl-vc-issuer { font: 600 11px/1 var(--f-sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); }
+.dpl-vc-issuer { font: 600 11px/1 var(--f-sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); }
 .dpl-vc-eyebrow { font: 700 13px/1 var(--f-sans); letter-spacing: 0.22em; text-transform: uppercase; color: var(--wine-text); margin-top: 36px; }
 .dpl-vc-label { font: 600 14px/1 var(--f-sans); color: var(--ink-soft); margin-top: 22px; margin-bottom: 14px; }
 .dpl-vc-name { font: 600 58px/1.0 var(--f-display); letter-spacing: -0.02em; color: var(--ink); margin: 0 0 22px; }
@@ -437,7 +437,7 @@ function DiplomaStyles() {
 .dpl-vd-inner { position: absolute; inset: 40px; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 40px 96px 34px; }
 .dpl-vd-iso { width: 56px; height: auto; margin-bottom: 10px; }
 .dpl-vd-wm { margin-bottom: 5px; }
-.dpl-vd-issuer { font: 600 10px/1 var(--f-sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 20px; }
+.dpl-vd-issuer { font: 600 10px/1 var(--f-sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 20px; }
 .dpl-vd-eyebrow { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
 .dpl-vd-eyebrow span { font: 700 13px/1 var(--f-sans); letter-spacing: 0.2em; text-transform: uppercase; color: var(--wine-text); white-space: nowrap; }
 .dpl-vd-fl { width: 130px; height: 12px; }

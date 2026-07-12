@@ -175,7 +175,7 @@ export function ServiceRequestDrawer({
         <div
           style={{
             font: "500 11px/1.5 var(--f-mono)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             marginBottom: 22,
           }}
         >
@@ -233,7 +233,7 @@ export function ServiceRequestDrawer({
               <p
                 style={{
                   font: "500 11px/1.4 var(--f-sans)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                   margin: "6px 0 0",
                 }}
               >

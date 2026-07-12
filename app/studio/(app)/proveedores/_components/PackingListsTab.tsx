@@ -237,7 +237,7 @@ export function PackingListsTab({
                 <span
                   style={{
                     font: "700 12px/1 var(--f-mono)",
-                    color: s.totals.amount > 0 ? "var(--ink)" : "var(--ink-mute)",
+                    color: s.totals.amount > 0 ? "var(--ink)" : "var(--ink-soft)",
                     textAlign: "right",
                   }}
                 >
