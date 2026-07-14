@@ -74,6 +74,14 @@ Test puntual: `pnpm test path/to/file.test.ts` o `pnpm test -t "nombre"`. E2e pu
 
 `NEXT_PUBLIC_HAILUWAY_API` (base URL del ERP, HTTP) · `DTD_API_KEY` · `NEXT_PUBLIC_WHATSAPP_NUMBER` · `NEXT_PUBLIC_CONTACT_EMAIL` · `NEXT_PUBLIC_SITE_URL` (default `https://dtdcargo.com`).
 
+## Supabase MCP y credenciales de agentes
+
+- **Acceso interactivo:** usa el MCP hospedado de Supabase con **OAuth**, `project_ref=xpfuzqombmjmxvprjgmi`, `read_only=true` y `features=database,docs`.
+- **Nunca guardes un PAT de Supabase** (`sbp_*` / `SUPABASE_ACCESS_TOKEN`) dentro del árbol del proyecto, aunque el archivo esté gitignored (`.env.local`, `.mcp.json`, `.codex/`, worktrees o archivos temporales).
+- **Producción:** este `project_ref` corresponde al proyecto real. El uso normal del MCP se limita a documentación y metadatos; leer filas de negocio o PII requiere autorización explícita del founder.
+- **Escrituras:** el MCP habitual no autoriza escrituras. Prepara migrations como archivos, valida localmente y usa una conexión temporal separada solo cuando el founder autorice aplicar el cambio concreto.
+- **CI/automatización:** si una tarea no admite OAuth, guarda el PAT únicamente en el secret manager del proveedor, con expiración y propósito identificable; nunca en archivos locales del repo.
+
 ## Integraciones del sitio público (estado · actualizado 2026-07-05)
 
 Los mocks originales **ya no existen** (`mockSubmit` desapareció del código). La captación es real:
