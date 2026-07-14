@@ -276,6 +276,30 @@ function KpiEditor({
                   </div>
                   <button
                     type="button"
+                    onClick={() => onMoveKpi(idx, idx - 1)}
+                    disabled={idx === 0}
+                    aria-label={`Subir ${meta.label}`}
+                    className="studio-btn studio-btn-ghost studio-btn-sm"
+                    style={{ padding: 6, minWidth: 0 }}
+                  >
+                    <span aria-hidden style={{ font: "600 13px/1 var(--f-sans)" }}>
+                      ↑
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onMoveKpi(idx, idx + 1)}
+                    disabled={idx === config.kpis.length - 1}
+                    aria-label={`Bajar ${meta.label}`}
+                    className="studio-btn studio-btn-ghost studio-btn-sm"
+                    style={{ padding: 6, minWidth: 0 }}
+                  >
+                    <span aria-hidden style={{ font: "600 13px/1 var(--f-sans)" }}>
+                      ↓
+                    </span>
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => onToggleKpi(id)}
                     aria-label={`Quitar ${meta.label}`}
                     className="studio-btn studio-btn-ghost studio-btn-sm"

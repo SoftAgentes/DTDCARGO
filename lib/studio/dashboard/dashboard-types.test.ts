@@ -73,6 +73,34 @@ describe("validateDashboardConfigInput", () => {
     });
     expect(validateDashboardConfigInput({ kpis: [1, 2, "shipmentsActive"] }).kpis).toEqual(["shipmentsActive"]);
   });
+
+  it("solo ids viejos (fuera del catálogo) → arrays vacíos, sin romper", () => {
+    const cfg = validateDashboardConfigInput({
+      kpis: ["viejo1", "kpi_removido"],
+      widgets: ["widget_obsoleto"],
+      chartPeriod: "1A",
+    });
+    expect(cfg.kpis).toEqual([]);
+    expect(cfg.widgets).toEqual([]);
+  });
+
+  it("ignora entradas no-string en AMBOS arrays (null, número, objeto, boolean)", () => {
+    const cfg = validateDashboardConfigInput({
+      kpis: ["shipmentsActive", 123, null, { x: 1 }],
+      widgets: [true, "chart", 0],
+      chartPeriod: "1A",
+    });
+    expect(cfg.kpis).toEqual(["shipmentsActive"]);
+    expect(cfg.widgets).toEqual(["chart"]);
+  });
+
+  it("clave ausente degrada a [] para esa clave sin afectar a la presente", () => {
+    // widgets y chartPeriod ausentes → default por clave; kpis presente se respeta.
+    const cfg = validateDashboardConfigInput({ kpis: ["shipmentsActive"] });
+    expect(cfg.kpis).toEqual(["shipmentsActive"]);
+    expect(cfg.widgets).toEqual([]);
+    expect(cfg.chartPeriod).toBe(DEFAULT_CONFIG.chartPeriod);
+  });
 });
 
 describe("defaultConfigForAccess", () => {
@@ -103,6 +131,17 @@ describe("accessibleCatalog", () => {
     const { kpis, widgets } = accessibleCatalog(denyModules("nomina"));
     expect(kpis.some((k) => k.module === "nomina")).toBe(false);
     expect(widgets.some((w) => w.module === "nomina")).toBe(false);
+  });
+
+  it("un rol tipo comercial (sin Finanzas ni Nómina) pierde esos KPIs pero conserva operación/comercial", () => {
+    const comercial = denyModules("invoices", "costing", "nomina");
+    const { kpis } = accessibleCatalog(comercial);
+    const ids = kpis.map((k) => k.id);
+    expect(ids).not.toContain("monthRevenue"); // invoices
+    expect(ids).not.toContain("marginYTD"); // costing
+    expect(ids).not.toContain("nominaNeto"); // nomina
+    expect(ids).toContain("shipmentsActive"); // operación (tracking)
+    expect(ids).toContain("newLeads"); // comercial (kommo)
   });
 });
 
