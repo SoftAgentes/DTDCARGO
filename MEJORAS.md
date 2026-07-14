@@ -1,96 +1,62 @@
-# MEJORAS — SDD-0107 (lane pragmático · academia ligada a la persona)
+# MEJORAS — SDD-0114 (lane PRAGMÁTICO · dashboard configurable)
 
-Mejoras de UX/patterns **dentro de las convenciones del Studio** (sin Zod, sin
-arquitectura nueva, sin romper la frontera público↔ERP). Cada una nace de un
-patrón ya documentado en `app/studio/CLAUDE.md` o de un gap operativo del alta de
-inscripción. La base de la spec (migración + person_id + validación + link lazy)
-queda intacta; esto es el plus.
+Mejoras de UX/patrones **dentro de las convenciones del Studio** (sin Zod, sin
+arquitectura nueva, sin romper la frontera público↔ERP, solo tokens `var(--*)`).
+El founder decide cuáles cherry-pickea.
 
----
+## 1. Autosave optimista con debounce (LS write-through + sync diferido a DB)
+- **Qué:** al reordenar/togglear, la config se aplica en pantalla al instante, se
+  escribe en `localStorage` (write-through) y se sincroniza a la DB con un
+  **debounce de 650 ms** vía `useActionState`. El drag no dispara un guardado por
+  cada pixel; se guarda una sola vez al soltar.
+- **Por qué:** el operador de DTD trabaja desde varios equipos (spec §2.5). La DB
+  manda al cargar (el server inyecta `initialConfig`), el LS es solo cache
+  optimista y se re-alinea con la DB en mount → nunca diverge (spec §6).
+- **Dónde:** `DashboardClient.tsx` (efecto de config → LS + `setTimeout` → `saveAction`).
 
-## 1. Feedback de identidad en vivo al inscribir (on-blur de la cédula)
+## 2. Prefetch de valores para TODO el catálogo accesible → "agregar KPI" instantáneo
+- **Qué:** el server resuelve `kpiValues` para todos los KPIs **accesibles** (no
+  solo los activos). Al agregar un KPI desde el editor, su valor aparece al toque,
+  sin round-trip ni `revalidatePath`.
+- **Por qué / tradeoff:** la spec §6 sugería fetchear solo los activos. Elegí
+  fetchear los accesibles porque **las queries se comparten por bundle** (finanzas
+  = 1 pasada da 4 KPIs) y el RBAC ya evita correr nómina/finanzas para quien no las
+  ve. El costo extra es marginal y la UX de edición gana mucho.
+- **Dónde:** `page.tsx` (flags `need*` derivan de `accessibleSources`, no de la config activa).
 
-**Qué:** al salir del campo "Documento (cédula)" en el `EnrollmentDrawer`, una
-server action de SOLO LECTURA (`lookupStudentCiAction`) busca la persona por
-cédula normalizada y devuelve uno de tres estados, que el drawer pinta inline:
+## 3. `revalidatePath` OMITIDO en el autosave
+- **Qué:** las actions de guardar/reset NO revalidan la página.
+- **Por qué:** la config es estado optimista del cliente (ya la aplicó) y los
+  valores de KPI no cambian al reordenar/togglear. Revalidar en cada auto-guardado
+  del drag pagaría un ciclo completo de queries en vano.
+- **Dónde:** `actions.ts` (documentado en el doc-comment).
 
-- `existing` con carga → **"Este alumno ya es cliente DTD: DTD-1234 (María …)."** (verde)
-- `existing` sin carga → **"Persona ya registrada: María …. Se reusa su identidad."** (verde)
-- `new` → **"Alumno nuevo · se registrará la persona V-18.452.110."** (info)
-- `invalid` → aviso rojo con el formato esperado.
+## 4. Confirmación INLINE en "Restaurar defaults" (mata `window.confirm`)
+- **Qué:** el reset pide confirmación con un mini-toggle "¿Restaurar? · No / Sí,
+  restaurar" en el footer del drawer, en vez de `window.confirm` (deuda técnica
+  registrada del Studio — `window.prompt/confirm` hack).
+- **Dónde:** `DashboardEditorDrawer.tsx` (`confirmingReset`).
 
-**Por qué:** el operador sabe ANTES de confirmar si está duplicando un humano que
-ya es cliente de carga o creando uno nuevo. Cierra el loop "carga + academia =
-misma persona" de cara a quien tipea, no solo en la DB. Es el espíritu de la
-sección "Trazabilidad visual" del CLAUDE.md aplicado al alta.
+## 5. RBAC como PREDICADO inyectado (validación pura y testeable)
+- **Qué:** `validateDashboardConfigInput(raw, canAccess)` recibe el gate RBAC como
+  función `(module) => boolean` en vez de importar `rbac.ts` adentro.
+- **Por qué:** la validación queda 100% pura → se testea sin DB ni mocks (ver
+  `dashboard-types.test.ts`), y el caller inyecta `canAccessModule(role, …)`.
+  Mismo espíritu que `rbac.ts` (data pura, sin React/server-only).
 
-**Convención respetada:** server action `"use server"` con gate de vista RBAC
-(`canAccessModule`), sin Zod, lectura pura (no crea persona ni inscribe — la
-creación lazy ocurre recién al confirmar).
+## 6. Gráfico con datos REALES (el Norte tenía mock)
+- **Qué:** `getMonthlyVolume` suma `volume_m3` real por mes (12 buckets, rellena
+  meses vacíos con 0) en vez de las barras hardcodeadas del Norte. El selector de
+  período (`1M/3M/1A/YTD`) recorta sobre datos reales y persiste en la config.
+- **Dónde:** `dashboard-widget-queries.ts` + `ChartWidget`.
 
-## 2. Normalización visible de la cédula
+## 7. Defensa-en-profundidad: la action re-filtra por RBAC antes de persistir
+- **Qué:** aunque el cliente mande un KPI de un módulo que no ve, la Server Action
+  lo descarta con `canAccessModule` antes del upsert (además de la RLS de la tabla).
+- **Por qué:** las actions son invocables como endpoint; no confiar en la UI.
+- **Dónde:** `saveDashboardConfigAction`.
 
-**Qué:** `formatStudentCi()` reescribe el campo al salir: `v18452110` →
-`V-18.452.110`, `j123456789` → `J-12345678-9`. Lo que se guarda en `student_ci`
-es ese formato canónico; el ancla a `persons` usa `normalizeCedula` (idéntico al
-índice SQL de 0170/0177), así que el formato visible no afecta el dedupe.
-
-**Por qué:** consistencia de datos (mismo humano tipeado de 3 formas → un solo
-registro visible y normalizado) + confirmación visual inmediata, igual que el
-preview de `NumericInput`. Un test verifica `normalizeCedula(raw) ===
-normalizeCedula(formatStudentCi(raw))` (idempotencia del ancla).
-
-## 3. Validación inline de cédula reusando los validadores del Studio
-
-**Qué:** `isValidStudentCi()` acepta cédula venezolana simple (V/E + 5..10
-dígitos, con/sin puntos/guiones/espacios) **y** el RIF completo de clientes
-(reusa `RIF_REGEX` + `formatRif` de `client-types.ts`). En el alta, cédula con
-formato inválido → `fieldErrors.studentCi` (patrón Server Action de AGENTS.md,
-sin Zod).
-
-**Por qué:** el operador de Academia tipea la cédula simple, que NO pasa el
-`RIF_REGEX` estricto (que exige 8 dígitos + verificador). En vez de inventar un
-validador nuevo desconectado, se compone con los existentes y se cubre el caso
-real sin meter basura en `persons`.
-
-## 4. Sugerencia de nombre desde la persona conocida
-
-**Qué:** si el lookup encuentra una persona y el campo "Nombre del alumno" aún
-está vacío, se autocompleta con `persons.name`. No pisa lo que el operador ya
-escribió.
-
-**Por qué:** ahorra re-tipear datos que el tenant ya tiene de la carga. Bajo
-riesgo (solo rellena vacío), alto valor en mesa de inscripción.
-
-## 5. Toast de confirmación contextual al inscribir
-
-**Qué:** la action devuelve `person: { created, name, cargoMarkbox }` y el toast
-final dice cómo quedó anclada la identidad:
-- ya es cliente → "… inscrito · ya es cliente DTD-1234"
-- alumno nuevo → "… inscrito · alumno nuevo registrado"
-- sin cédula → "… inscrito" (sin ancla, comportamiento previo).
-
-**Por qué:** regla 2 de "Trazabilidad visual" (cambio de estado → toast con
-resumen). El operador retoma contexto tras una interrupción sabiendo qué pasó
-con la identidad, no solo que "se inscribió".
-
-## 6. Creación lazy de persona con guarda anti-carrera (23505)
-
-**Qué:** `resolvePersonForEnrollment` ubica-o-crea la persona; si dos altas
-concurrentes con la misma cédula chocan el índice único parcial de `persons`
-(0170), captura el `23505` y re-busca en vez de fallar. Espejo en runtime del
-backfill (a)/(c) de la migración 0177.
-
-**Por qué:** robustez sin arquitectura nueva — mismo patrón de reintento que la
-emisión de diplomas (`MAX_FOLIO_RETRIES`) ya presente en el módulo.
-
----
-
-### Lo que NO se hizo (respetando el alcance de la spec)
-
-- No se tocó `academy_lesson_progress` ni el RLS del portal (siguen por
-  `client_markbox`).
-- No se creó fila `clients` para alumnos academia-only (diferido por la spec).
-- No se metió combobox cédula-first ni decisión de ruta `[markbox]` vs `[id]`
-  (eso es Fase 3 / SDD-0108).
-- Cero imports cruzados público↔ERP; todo vive en `lib/studio` / `app/studio`.
+## 8. Tope de 12 KPIs con feedback (no corta en silencio)
+- **Qué:** al llegar a `MAX_KPIS`, los KPIs disponibles se deshabilitan con un aviso
+  "Quita alguno para agregar otro" en vez de ignorar el click sin explicación.
+- **Dónde:** `DashboardEditorDrawer.tsx` (`atMax`).
