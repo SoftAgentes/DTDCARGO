@@ -53,6 +53,8 @@ yarn-error.log*
 # Config local de MCP servers. Puede llevar tokens/claves de acceso a servicios
 # (regla founder 2026-06-16): NUNCA a git. Cada quien lo configura local.
 .mcp.json
+# Runtime y configuración local de Codex. Puede contener tokens de MCP; NUNCA a git.
+.codex/
 
 # vercel
 .vercel
