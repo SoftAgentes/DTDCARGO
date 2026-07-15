@@ -36,7 +36,10 @@ import {
   requireReferralCreditMode,
   type ApplicableInvoice,
 } from "@/lib/studio/fidelizacion/referral-credit-queries";
-import { postReferralCreditJournalEntry } from "@/lib/studio/accounting/referral-credit-posting";
+import {
+  postReferralCreditJournalEntry,
+  voidReferralCreditEntry,
+} from "@/lib/studio/accounting/referral-credit-posting";
 
 type Result = { ok?: boolean; error?: string };
 
@@ -404,16 +407,50 @@ export async function applyReferralCredit(
   //    del subledger. No hay payment_receipt (no entró caja): es un abono por
   //    crédito, con la misma traza temporal (applied_at). Idempotente: el claim
   //    de arriba garantiza un único paso 'acreditado'→'aplicado' por crédito.
+  //    GUARD OPTIMISTA (.eq paid_amount): `paidAmount` se leyó en el paso 2b y
+  //    entre esa lectura y este UPDATE puede haber entrado un pago real de la
+  //    factura. Escribir `viejo + 80` a ciegas PISA ese pago y lo borra del
+  //    subledger (lost update). Con el guard, si alguien lo movió el UPDATE
+  //    matchea 0 filas y lo tratamos como conflicto en vez de corromper.
+  //    (paid_amount es NOT NULL DEFAULT 0 → no hay caso NULL que rompa el .eq.)
   const newPaid = round2(paidAmount + amount);
   const fullyPaid = newPaid >= (Number(inv.total_amount) || 0) - 1e-6;
-  await supabase
+  const { data: paidRow, error: paidErr } = await supabase
     .from("invoices")
     .update({
       paid_amount: newPaid,
       status: fullyPaid ? "pagada" : "parcial",
       last_payment_at: appliedAt,
     })
-    .eq("id", invoiceId);
+    .eq("id", invoiceId)
+    .eq("paid_amount", paidAmount)
+    .select("id")
+    .maybeSingle<{ id: string }>();
+
+  //    Este paso NO puede ser best-effort: el asiento ya bajó la CxC $80 en el
+  //    GL. Si el subledger no acompaña, el mayor y la factura divergen y nadie
+  //    se entera (antes devolvía ok:true igual). Ante fallo o conflicto,
+  //    compensamos TODO hacia atrás: anulamos el asiento y devolvemos el crédito
+  //    a 'acreditado' para que se pueda reintentar sobre el saldo real.
+  if (paidErr || !paidRow) {
+    await voidReferralCreditEntry(tenantId, posting.entryId ?? "");
+    await supabase
+      .from("referrals")
+      .update({
+        status: "acreditado" satisfies ReferralStatus,
+        applied_invoice_id: null,
+        applied_entry_id: null,
+        applied_at: null,
+      })
+      .eq("id", referralId)
+      .eq("status", "aplicado");
+
+    return {
+      error: paidErr
+        ? `No se pudo abonar el crédito en la factura: ${paidErr.message}. Se revirtió todo; no se aplicó nada.`
+        : "La factura cambió de saldo mientras se aplicaba el crédito (¿entró un pago?). Se revirtió todo; volvé a intentar.",
+    };
+  }
 
   revalidate();
   revalidatePath("/studio/facturacion");
