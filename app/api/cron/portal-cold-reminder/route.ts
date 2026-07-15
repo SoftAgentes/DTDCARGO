@@ -8,6 +8,12 @@
  * recordatorios, y tope de correos automáticos por cliente. Cuenta cada envío en
  * `email_invite_count` (mismos contadores que el tool manual · migr 0226).
  *
+ * Los contadores miden ENVÍOS, no RESULTADOS — por eso hay además un filtro contra
+ * `mail_logs` que excluye buzones quemados (rebote duro o queja de spam). Sin él, cada
+ * dirección muerta recibía MAX_EMAIL_REMINDERS reintentos: con datos importados sucios
+ * eso dispara la tasa de rebote y Resend/Gmail castigan el dominio (medido 2026-07-15:
+ * 1 de 5 invitaciones rebotó). Si el historial no se puede leer, NO se envía nada.
+ *
  * GATE: OFF por default. Solo corre si `PORTAL_COLD_REMINDER=on` (env) — el founder
  * lo enciende cuando quiera. Mismo criterio que otros flips (KOMMO_PUSH_DRY_RUN).
  *
@@ -90,6 +96,35 @@ export async function GET(req: NextRequest) {
 
   const rows = (dueRows ?? []) as ColdRow[];
 
+  // Buzones quemados: rebote duro o queja de spam. El anti-spam de arriba cuenta
+  // ENVÍOS (`email_invite_count`), no RESULTADOS — sin esto el cron reintenta hasta
+  // MAX_EMAIL_REMINDERS veces contra una dirección que ya dijo que no existe, y esa
+  // tasa de rebote es justo lo que hace que Resend/Gmail bajen la reputación del
+  // dominio. Fail-closed: si no podemos leer el historial, no mandamos nada.
+  const emails = [
+    ...new Set(rows.map((r) => (r.email ?? "").trim().toLowerCase()).filter(Boolean)),
+  ];
+  const burned = new Set<string>();
+  if (emails.length > 0) {
+    const { data: badRows, error: badErr } = await admin
+      .from("mail_logs")
+      .select("to_email")
+      .in("to_email", emails)
+      .or("bounced_at.not.is.null,complained_at.not.is.null");
+
+    if (badErr) {
+      return apiError(
+        "No se pudo leer el historial de rebotes; no se envía nada.",
+        badErr,
+        500,
+        "portal-cold-reminder",
+      );
+    }
+    for (const b of (badRows ?? []) as { to_email: string | null }[]) {
+      if (b.to_email) burned.add(b.to_email.trim().toLowerCase());
+    }
+  }
+
   // Nombres para el saludo (una query, RLS-bypass por admin).
   const clientIds = [...new Set(rows.map((r) => r.client_id))];
   const nameById = new Map<string, string | null>();
@@ -107,12 +142,19 @@ export async function GET(req: NextRequest) {
   let sent = 0;
   let failed = 0;
   let skipped = 0;
+  let skippedBurned = 0;
 
   for (const row of rows) {
     const email = (row.email ?? "").trim();
     // Cliente borrado (no vino en nameById) o correo inválido → saltar.
     if (!nameById.has(String(row.client_id)) || !EMAIL_RE.test(email)) {
       skipped += 1;
+      continue;
+    }
+
+    // Ya rebotó o se quejó → no reintentar nunca.
+    if (burned.has(email.toLowerCase())) {
+      skippedBurned += 1;
       continue;
     }
 
@@ -136,7 +178,14 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const summary = { ok: true, processed: rows.length, sent, failed, skipped };
+  const summary = {
+    ok: true,
+    processed: rows.length,
+    sent,
+    failed,
+    skipped,
+    skippedBurned,
+  };
   console.log("[portal-cold-reminder]", JSON.stringify(summary));
   return NextResponse.json(summary);
 }
