@@ -111,8 +111,19 @@ export async function requireReferralCreditMode(
   return readCreditMode(supabase, tenantId);
 }
 
-/** Estados de factura "billable" (se le puede aplicar un crédito). */
-const BILLABLE_STATUSES: InvoiceStatus[] = [
+/**
+ * Estados de factura a los que se puede aplicar un crédito (no borrador/anulada/
+ * pagada). FUENTE ÚNICA: la usan el picker (acá) y el gate de la action.
+ *
+ * 'vencida' está en la lista pero en la práctica NUNCA matchea: es un estado
+ * DERIVADO para pintar (`displayStatus()` en invoice-types, comparando due_date
+ * contra hoy), no un valor que se guarde — los status reales en la columna son
+ * borrador/emitida/parcial/pagada/anulada (verificado en prod 2026-07-15). Se deja
+ * por si algún día se materializa: sacarlo volvería INAPLICABLE el crédito sobre
+ * una compra nueva que se venció esperando, y eso no es lo que la regla pide (la
+ * regla es "compra nueva", no "compra al día" → la fuerza `notBefore`, abajo).
+ */
+export const CREDIT_APPLICABLE_INVOICE_STATUSES: InvoiceStatus[] = [
   "emitida",
   "parcial",
   "vencida",
@@ -132,28 +143,85 @@ export type ApplicableInvoice = {
 };
 
 /**
+ * Normaliza cualquier marca temporal a día calendario `YYYY-MM-DD`.
+ *
+ * Existe porque los dos lados de la regla tienen TIPOS DISTINTOS:
+ *   · `invoices.issued_at`      es `date`        → PostgREST manda "2026-07-01"
+ *   · `referrals.accredited_at` es `timestamptz` → PostgREST manda "2026-07-01T00:00:00+00:00"
+ * Compararlos como strings crudos MIENTE: "2026-07-01" < "2026-07-01T00:00:00+00:00"
+ * es `true` (el más corto es prefijo → menor), así que una factura emitida el MISMO
+ * día en que se acreditó el crédito se rechazaría siendo legítima. Recortando ambos
+ * a día, la comparación lexicográfica de ISO-8601 sí equivale a la cronológica.
+ *
+ * Granularidad DÍA a propósito: issued_at no tiene hora (se setea con
+ * `toISOString().slice(0,10)`), así que el día es la única precisión real.
+ */
+export function toCalendarDay(v: string | null | undefined): string | null {
+  if (!v) return null;
+  const day = v.slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : null;
+}
+
+/**
+ * ¿La factura es una COMPRA NUEVA respecto del crédito? Regla del founder
+ * (2026-07-15): el crédito es un descuento sobre la próxima compra, NO un abono
+ * contra deuda que ya existía cuando el crédito nació.
+ *
+ * FUENTE ÚNICA de la regla: la usan el picker y el gate de la action. Que vivan
+ * separadas fue un bug real — el picker (SQL) ofrecía facturas que la action (JS)
+ * rechazaba, dejando al operador en un callejón sin salida.
+ *
+ * Fail-closed: sin fecha de emisión o sin fecha de acreditación no se puede PROBAR
+ * que sea posterior → no es elegible. Es dinero: ante la duda, no.
+ */
+export function isPurchaseAfterCredit(
+  issuedAt: string | null | undefined,
+  accreditedAt: string | null | undefined,
+): boolean {
+  const issued = toCalendarDay(issuedAt);
+  const accredited = toCalendarDay(accreditedAt);
+  if (!issued || !accredited) return false;
+  return issued >= accredited;
+}
+
+/**
  * Facturas del REFERIDOR (por MARKBOX) a las que se puede aplicar un crédito de
- * `minTotalUsd`. Reglas V1 (§3.4):
- *  - factura billable (emitida/parcial/vencida; no borrador/anulada/pagada).
+ * `minTotalUsd`. Reglas:
+ *  - factura billable (ver CREDIT_APPLICABLE_INVOICE_STATUSES).
+ *  - **COMPRA NUEVA**: emitida en o después del día en que se acreditó el crédito
+ *    (`accreditedAt`). Regla del founder: no es un abono contra deuda vieja.
  *  - moneda USD/USDT (el crédito es $80 USD; VES/CNY → fx, fuera de V1).
  *  - SALDO (total − pagado) ≥ crédito. OJO: se valida contra el saldo REAL, no
  *    el total — una 'parcial' con paid_amount alto puede tener saldo < crédito y
  *    aplicarle el $80 dejaría la CxC negativa (over-credit, hueco A). El crédito
  *    entero se aplica solo a facturas con saldo suficiente; parcial = V2.
- * Orden: la más antigua primero (se aplica a la deuda más vieja).
+ * Orden: la más ANTIGUA primero dentro de las elegibles — todas son posteriores al
+ * crédito, así que "más antigua" = la primera compra nueva, que es la que la regla
+ * quiere descontar.
+ *
+ * @param accreditedAt `referrals.accredited_at` (migr 0238) — cuándo NACIÓ el
+ *   crédito. NO usar created_at (cuándo se registró el referido: deja pasar deuda
+ *   vieja) ni updated_at (lo pisa cualquier UPDATE). Sin él → [] (fail-closed).
  */
 export async function applicableInvoicesForReferrer(
   supabase: SupabaseClient,
   referrerMarkbox: string,
   minTotalUsd: number,
+  accreditedAt: string | null,
 ): Promise<ApplicableInvoice[]> {
   if (!referrerMarkbox) return [];
+  const notBefore = toCalendarDay(accreditedAt);
+  if (!notBefore) return [];
   const { data, error } = await supabase
     .from("invoices")
     .select("id, invoice_code, client_markbox, currency, total_amount, paid_amount, status, issued_at")
     .eq("client_markbox", referrerMarkbox)
-    .in("status", BILLABLE_STATUSES)
+    .in("status", CREDIT_APPLICABLE_INVOICE_STATUSES)
     .in("currency", ["USD", "USDT"])
+    // `notBefore` ya es YYYY-MM-DD → Postgres lo coerce a `date` contra issued_at
+    // (date), misma semántica que isPurchaseAfterCredit. Mandar el timestamptz
+    // crudo acá era lo que hacía divergir al picker de la action.
+    .gte("issued_at", notBefore)
     .order("issued_at", { ascending: true })
     .limit(200);
 

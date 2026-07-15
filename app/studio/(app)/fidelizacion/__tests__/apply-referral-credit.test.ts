@@ -34,12 +34,21 @@ vi.mock("@/lib/studio/accounting/referral-credit-posting", () => ({
   voidReferralCreditEntry: (...a: unknown[]) => voidSpy(...(a as [])),
 }));
 
-vi.mock("@/lib/studio/fidelizacion/referral-credit-queries", () => ({
-  requireReferralCreditMode: vi.fn(async () => ({
-    ok: true as const,
-    mode: "marketing_expense" as const,
-  })),
-}));
+// Mock PARCIAL a propósito: solo se dobla la lectura del modo fiscal (toca DB).
+// `isPurchaseAfterCredit` y `CREDIT_APPLICABLE_INVOICE_STATUSES` quedan REALES →
+// el gate de "compra nueva" se ejerce de verdad, no contra un doble complaciente.
+vi.mock("@/lib/studio/fidelizacion/referral-credit-queries", async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import("@/lib/studio/fidelizacion/referral-credit-queries")
+  >();
+  return {
+    ...actual,
+    requireReferralCreditMode: vi.fn(async () => ({
+      ok: true as const,
+      mode: "marketing_expense" as const,
+    })),
+  };
+});
 
 /** Escrituras observadas, para afirmar sobre la compensación. */
 type Write = { table: string; values: Record<string, unknown> };
@@ -52,13 +61,19 @@ let writes: Write[] = [];
  */
 let invoiceUpdate: "hit" | "conflict" | "error" = "hit";
 
+/** Fila de factura del escenario (los tests de la regla la varían). */
+let invoiceRow: Record<string, unknown> = {};
+
+/** Forma REAL de PostgREST: accredited_at es timestamptz. */
 const REFERRAL = {
   id: "ref-1",
   referral_code: "REF-001",
   referrer_markbox: "DTD-5452",
   reward_usd: 80,
   status: "acreditado",
+  accredited_at: "2026-06-01T09:30:00+00:00",
 };
+/** Compra NUEVA (posterior al crédito). issued_at con forma `date`, como prod. */
 const INVOICE = {
   id: "inv-1",
   invoice_code: "F-100",
@@ -67,6 +82,7 @@ const INVOICE = {
   total_amount: 500,
   paid_amount: 40,
   status: "emitida",
+  issued_at: "2026-07-01",
 };
 
 function makeClient() {
@@ -96,7 +112,7 @@ function makeClient() {
               return Promise.resolve({ data: REFERRAL, error: null });
             }
             if (table === "invoices") {
-              return Promise.resolve({ data: INVOICE, error: null });
+              return Promise.resolve({ data: invoiceRow, error: null });
             }
             return Promise.resolve({ data: null, error: null });
           }
@@ -141,6 +157,7 @@ function revertWrites(): Write[] {
 beforeEach(() => {
   writes = [];
   invoiceUpdate = "hit";
+  invoiceRow = { ...INVOICE };
   postSpy.mockClear();
   voidSpy.mockClear();
 });
@@ -191,5 +208,35 @@ describe("applyReferralCredit · consistencia GL ↔ subledger", () => {
     const invWrite = writes.find((w) => w.table === "invoices");
     expect(invWrite).toBeDefined();
     expect(invWrite?.values.last_payment_at).toBeTruthy();
+  });
+});
+
+describe("applyReferralCredit · regla del founder: descuento sobre compra NUEVA", () => {
+  // Crédito acreditado el 2026-06-01. Tipos REALES: issued_at date, accredited_at timestamptz.
+
+  it("RECHAZA una factura ANTERIOR al crédito (deuda que ya existía → sería abono a cuenta)", async () => {
+    invoiceRow = { ...INVOICE, issued_at: "2026-05-01" };
+    const res = await applyReferralCredit("ref-1", "inv-1");
+
+    expect(res.error).toMatch(/compra NUEVA/i);
+    // No movió NADA: ni claim, ni asiento, ni saldo.
+    expect(postSpy).not.toHaveBeenCalled();
+    expect(writes).toHaveLength(0);
+  });
+
+  it("ACEPTA el MISMO DÍA de la acreditación (comparar los crudos como string lo rechazaba)", async () => {
+    invoiceRow = { ...INVOICE, issued_at: "2026-06-01" }; // acreditado 2026-06-01T09:30
+    const res = await applyReferralCredit("ref-1", "inv-1");
+
+    expect(res.ok).toBe(true);
+    expect(postSpy).toHaveBeenCalled();
+  });
+
+  it("RECHAZA sin fecha de emisión (no se puede probar que sea posterior → fail-closed)", async () => {
+    invoiceRow = { ...INVOICE, issued_at: null };
+    const res = await applyReferralCredit("ref-1", "inv-1");
+
+    expect(res.error).toMatch(/compra NUEVA/i);
+    expect(postSpy).not.toHaveBeenCalled();
   });
 });

@@ -33,7 +33,9 @@ import {
 } from "@/lib/studio/fidelizacion/types";
 import {
   applicableInvoicesForReferrer,
+  isPurchaseAfterCredit,
   requireReferralCreditMode,
+  CREDIT_APPLICABLE_INVOICE_STATUSES,
   type ApplicableInvoice,
 } from "@/lib/studio/fidelizacion/referral-credit-queries";
 import {
@@ -48,8 +50,11 @@ function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
 
-/** Estados de factura "billable" a los que se puede aplicar un crédito (§3.4). */
-const APPLICABLE_INVOICE_STATUSES = new Set(["emitida", "parcial", "vencida"]);
+/** Estados billable. Deriva de la FUENTE ÚNICA (referral-credit-queries) para que
+ *  el gate de la action y el filtro del picker no puedan divergir. */
+const APPLICABLE_INVOICE_STATUSES = new Set<string>(
+  CREDIT_APPLICABLE_INVOICE_STATUSES,
+);
 const APPLICABLE_INVOICE_CURRENCIES = new Set(["USD", "USDT"]);
 
 const VALID_STATUS = new Set<string>(REFERRAL_STEPS);
@@ -221,12 +226,13 @@ export async function listApplicableInvoices(
 
   const { data: ref } = await supabase
     .from("referrals")
-    .select("referrer_markbox, reward_usd, status")
+    .select("referrer_markbox, reward_usd, status, accredited_at")
     .eq("id", referralId)
     .maybeSingle<{
       referrer_markbox: string;
       reward_usd: number;
       status: ReferralStatus;
+      accredited_at: string | null;
     }>();
   if (!ref) return { error: "Crédito no encontrado." };
   if (ref.status !== "acreditado") {
@@ -238,6 +244,7 @@ export async function listApplicableInvoices(
       supabase,
       ref.referrer_markbox,
       Number(ref.reward_usd) || 0,
+      ref.accredited_at ?? null,
     );
     return { invoices };
   } catch (e) {
@@ -279,13 +286,14 @@ export async function applyReferralCredit(
   // 2a) El crédito debe estar 'acreditado' y tener monto.
   const { data: ref } = await supabase
     .from("referrals")
-    .select("id, referral_code, referrer_markbox, reward_usd, status")
+    .select("id, referral_code, referrer_markbox, reward_usd, status, accredited_at")
     .eq("id", referralId)
     .maybeSingle<{
       id: string;
       referral_code: string;
       referrer_markbox: string;
       reward_usd: number;
+      accredited_at: string | null;
       status: ReferralStatus;
     }>();
   if (!ref) return { error: "Crédito no encontrado." };
@@ -298,7 +306,7 @@ export async function applyReferralCredit(
   // 2b) La factura debe ser del MISMO referidor, billable, USD/USDT, SALDO ≥ crédito.
   const { data: inv } = await supabase
     .from("invoices")
-    .select("id, invoice_code, client_markbox, currency, total_amount, paid_amount, status")
+    .select("id, invoice_code, client_markbox, currency, total_amount, paid_amount, status, issued_at")
     .eq("id", invoiceId)
     .maybeSingle<{
       id: string;
@@ -308,6 +316,7 @@ export async function applyReferralCredit(
       total_amount: number;
       paid_amount: number;
       status: string;
+      issued_at: string | null;
     }>();
   if (!inv) return { error: "Factura no encontrada." };
   if (inv.client_markbox !== ref.referrer_markbox) {
@@ -318,6 +327,17 @@ export async function applyReferralCredit(
   }
   if (!APPLICABLE_INVOICE_CURRENCIES.has(inv.currency)) {
     return { error: "En V1 el crédito solo se aplica a facturas en USD o USDT." };
+  }
+  // COMPRA NUEVA (regla del founder 2026-07-15): la factura debe ser del día en que
+  // NACIÓ el crédito (accredited_at, migr 0238) en adelante — no de cuándo se
+  // registró el referido, que puede ser meses antes y dejaría pasar deuda vieja.
+  // Gate server-side: el picker filtra, pero la UI no es la autoridad (esta action
+  // acepta cualquier invoiceId). Mismo helper que el picker → no pueden divergir.
+  if (!isPurchaseAfterCredit(inv.issued_at, ref.accredited_at)) {
+    return {
+      error:
+        "El crédito solo se aplica a una compra NUEVA (posterior al crédito), no a facturas anteriores ni a deuda vieja.",
+    };
   }
   // Fix A (over-credit): validar contra el SALDO REAL, no el total. Una 'parcial'
   // con paid_amount alto puede tener saldo < crédito; aplicar el $80 completo
