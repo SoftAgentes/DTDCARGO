@@ -75,6 +75,31 @@ create index if not exists referrals_applied_invoice_idx
   where applied_invoice_id is not null and deleted_at is null;
 
 -- ╔═══════════════════════════════════════════════════════════╗
+-- ║ 2b. JOURNAL_ENTRIES · link al referral + idempotencia DB   ║
+-- ╚═══════════════════════════════════════════════════════════╝
+-- El asiento del crédito (source='referral_credit') se ata al referral que lo
+-- originó. Con este link + el UNIQUE parcial de abajo, la idempotencia es REAL
+-- en la base (no solo en la action): NUNCA puede haber DOS asientos vivos de un
+-- mismo crédito, aunque el proceso muera entre el claim y el linkage (hueco B).
+alter table public.journal_entries
+  add column if not exists referral_id uuid references public.referrals(id) on delete set null;
+
+comment on column public.journal_entries.referral_id is
+  'SDD-0137: referral que originó este asiento (solo source=referral_credit). Permite barrer/anular el asiento por referral en la reversión aunque referrals.applied_entry_id no se haya linkeado (crash entre claim y linkage). Idempotencia DB via journal_entries_referral_credit_uniq.';
+
+-- Idempotencia DURA: a lo sumo UN asiento vivo (no anulado) de crédito de
+-- referido por (tenant, referral). Un segundo insert del mismo crédito falla
+-- (23505) → el posting lo trata como "ya existe" y devuelve el asiento vivo.
+-- Parcial: solo aplica a los asientos de crédito de referido no anulados/vivos,
+-- así un crédito revertido (asiento anulado) puede re-aplicarse con un asiento nuevo.
+create unique index if not exists journal_entries_referral_credit_uniq
+  on public.journal_entries (tenant_id, referral_id)
+  where source = 'referral_credit'
+    and referral_id is not null
+    and status <> 'anulado'
+    and deleted_at is null;
+
+-- ╔═══════════════════════════════════════════════════════════╗
 -- ║ 3. SETTING per-tenant · referral_credit_mode              ║
 -- ╚═══════════════════════════════════════════════════════════╝
 -- Vive en fiscal_settings (la config contable/fiscal per-tenant, SDD-0073):

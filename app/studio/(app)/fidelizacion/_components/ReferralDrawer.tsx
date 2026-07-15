@@ -520,7 +520,7 @@ function ApplyCreditPanel({
           >
             {invoices.map((inv) => (
               <option key={inv.id} value={inv.id}>
-                {inv.invoice_code} · {fmtUsd(inv.total_amount)} {inv.currency}
+                {inv.invoice_code} · saldo {fmtUsd(inv.balance)} {inv.currency}
                 {inv.issued_at ? ` · ${inv.issued_at.slice(0, 10)}` : ""}
               </option>
             ))}

@@ -150,17 +150,29 @@ export async function postReferralCreditJournalEntry(
       return { ok: true, skipped: "zero-amount" };
     }
 
-    // 1. Idempotencia: ¿ya hay asiento vivo (no anulado) para este crédito?
-    //    Se linkea por el referral (referrals.applied_entry_id) — acá lo
-    //    corroboramos por source+invoice para no duplicar en reintentos.
-    const { data: refRow, error: refErr } = await admin
-      .from("referrals")
-      .select("applied_entry_id")
-      .eq("id", input.referralId)
-      .maybeSingle<{ applied_entry_id: string | null }>();
-    if (refErr) return { ok: false, error: refErr.message };
-    if (refRow?.applied_entry_id) {
-      return { ok: true, skipped: "entry-already-exists" };
+    // 1. Idempotencia REAL (hueco B): ¿ya hay un asiento VIVO (no anulado) de
+    //    este crédito? Se busca por journal_entries.referral_id — NO por
+    //    referrals.applied_entry_id, que puede quedar NULL si el proceso murió
+    //    entre el claim y el linkage. Si existe, se devuelve su id para que el
+    //    caller lo (re)linkee (idempotente). El UNIQUE parcial en DB
+    //    (journal_entries_referral_credit_uniq) es la guarda dura contra la carrera.
+    const { data: existing, error: exErr } = await admin
+      .from("journal_entries")
+      .select("id, entry_code")
+      .eq("tenant_id", input.tenantId)
+      .eq("referral_id", input.referralId)
+      .eq("source", "referral_credit")
+      .neq("status", "anulado")
+      .is("deleted_at", null)
+      .maybeSingle<{ id: string; entry_code: string }>();
+    if (exErr) return { ok: false, error: exErr.message };
+    if (existing?.id) {
+      return {
+        ok: true,
+        entryId: existing.id,
+        entryCode: existing.entry_code,
+        skipped: "entry-already-exists",
+      };
     }
 
     // 2. Cuenta del DEBE según el modo (6.11 marketing | 4.9 descuento).
@@ -211,11 +223,34 @@ export async function postReferralCreditJournalEntry(
         status: "asentado",
         source: "referral_credit",
         invoice_id: input.invoiceId,
+        referral_id: input.referralId,
         posted_at: new Date().toISOString(),
       })
       .select("id")
       .single();
     if (entryErr || !insertedEntry) {
+      // Carrera (doble-submit): el UNIQUE parcial journal_entries_referral_credit_uniq
+      // rechazó un 2º asiento del mismo crédito (23505). Ganó otro proceso →
+      // devolvemos el asiento vivo existente en vez de duplicar (idempotencia DB).
+      if (entryErr?.code === "23505") {
+        const { data: won } = await admin
+          .from("journal_entries")
+          .select("id, entry_code")
+          .eq("tenant_id", input.tenantId)
+          .eq("referral_id", input.referralId)
+          .eq("source", "referral_credit")
+          .neq("status", "anulado")
+          .is("deleted_at", null)
+          .maybeSingle<{ id: string; entry_code: string }>();
+        if (won?.id) {
+          return {
+            ok: true,
+            entryId: won.id,
+            entryCode: won.entry_code,
+            skipped: "entry-already-exists",
+          };
+        }
+      }
       return {
         ok: false,
         error: entryErr?.message ?? "no se pudo crear el asiento",
@@ -232,8 +267,20 @@ export async function postReferralCreditJournalEntry(
       .from("journal_lines")
       .insert(lines);
     if (linesErr) {
-      // Rollback manual del header (no hay tx cross-statement acá).
-      await admin.from("journal_entries").delete().eq("id", insertedEntry.id);
+      // Rollback manual del header (no hay tx cross-statement acá). Fix D: si el
+      // DELETE del header falla, NO dejamos un asiento 'asentado' sin líneas
+      // (0=0, cuenta como vivo y bloquea el UNIQUE de reintento) → fallback:
+      // marcarlo 'anulado' para que no afecte saldos ni tape la re-aplicación.
+      const { error: delErr } = await admin
+        .from("journal_entries")
+        .delete()
+        .eq("id", insertedEntry.id);
+      if (delErr) {
+        await admin
+          .from("journal_entries")
+          .update({ status: "anulado" })
+          .eq("id", insertedEntry.id);
+      }
       return { ok: false, error: linesErr.message };
     }
 
@@ -288,20 +335,58 @@ export async function revertReferralCreditsForInvoice(
 
     const { data: rows, error: readErr } = await admin
       .from("referrals")
-      .select("id, applied_entry_id")
+      .select("id, applied_entry_id, reward_usd")
       .eq("tenant_id", tenantId)
       .eq("applied_invoice_id", invoiceId)
       .eq("status", "aplicado")
       .is("deleted_at", null);
     if (readErr) return { ok: false, reverted: 0, error: readErr.message };
 
-    const credits = (rows as { id: string; applied_entry_id: string | null }[] | null) ?? [];
+    const credits =
+      (rows as { id: string; applied_entry_id: string | null; reward_usd: number }[] | null) ?? [];
     let reverted = 0;
     for (const c of credits) {
-      // Anular el asiento primero (si lo hubo).
+      // Anular el/los asiento(s) del crédito. Fix B: barrer por referral_id (no
+      // solo por applied_entry_id) → si el proceso murió antes de linkear el
+      // asiento, applied_entry_id es NULL pero el asiento vive con referral_id
+      // seteado; igual lo anulamos (nada de asientos huérfanos). Idempotente
+      // (.eq status='asentado').
+      const { data: entries } = await admin
+        .from("journal_entries")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .eq("referral_id", c.id)
+        .eq("source", "referral_credit")
+        .eq("status", "asentado")
+        .is("deleted_at", null);
+      for (const e of (entries as { id: string }[] | null) ?? []) {
+        await voidReferralCreditEntry(tenantId, e.id);
+      }
+      // Cinturón y tirantes: si quedó un applied_entry_id que no barrió el
+      // filtro de arriba (referral_id null en asientos viejos pre-fix), anularlo.
       if (c.applied_entry_id) {
         await voidReferralCreditEntry(tenantId, c.applied_entry_id);
       }
+
+      // Fix C: revertir el abono no-monetario en el subledger. Al aplicar se
+      // subió invoices.paid_amount en el monto del crédito (para que el saldo
+      // reflejara el $80 y el GL==subledger); al revertir se baja de vuelta.
+      const creditAmt = round2(Number(c.reward_usd) || 0);
+      if (creditAmt > 0) {
+        const { data: inv } = await admin
+          .from("invoices")
+          .select("paid_amount")
+          .eq("id", invoiceId)
+          .maybeSingle<{ paid_amount: number }>();
+        if (inv) {
+          const newPaid = Math.max(0, round2((Number(inv.paid_amount) || 0) - creditAmt));
+          await admin
+            .from("invoices")
+            .update({ paid_amount: newPaid })
+            .eq("id", invoiceId);
+        }
+      }
+
       // Devolver el crédito a 'acreditado' + limpiar el rastro. El guard por
       // estado ('aplicado') hace la reversión idempotente.
       const { error: updErr } = await admin

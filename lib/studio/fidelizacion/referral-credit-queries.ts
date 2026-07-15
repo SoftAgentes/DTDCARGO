@@ -51,6 +51,10 @@ export type ApplicableInvoice = {
   invoice_code: string;
   currency: InvoiceCurrency;
   total_amount: number;
+  /** Ya pagado (subledger). El crédito se valida contra el SALDO, no el total. */
+  paid_amount: number;
+  /** Saldo pendiente real = total_amount − paid_amount. */
+  balance: number;
   status: InvoiceStatus;
   issued_at: string | null;
 };
@@ -60,8 +64,10 @@ export type ApplicableInvoice = {
  * `minTotalUsd`. Reglas V1 (§3.4):
  *  - factura billable (emitida/parcial/vencida; no borrador/anulada/pagada).
  *  - moneda USD/USDT (el crédito es $80 USD; VES/CNY → fx, fuera de V1).
- *  - total ≥ crédito (el crédito entero se aplica solo a facturas suficientes;
- *    aplicación parcial = V2).
+ *  - SALDO (total − pagado) ≥ crédito. OJO: se valida contra el saldo REAL, no
+ *    el total — una 'parcial' con paid_amount alto puede tener saldo < crédito y
+ *    aplicarle el $80 dejaría la CxC negativa (over-credit, hueco A). El crédito
+ *    entero se aplica solo a facturas con saldo suficiente; parcial = V2.
  * Orden: la más antigua primero (se aplica a la deuda más vieja).
  */
 export async function applicableInvoicesForReferrer(
@@ -72,7 +78,7 @@ export async function applicableInvoicesForReferrer(
   if (!referrerMarkbox) return [];
   const { data, error } = await supabase
     .from("invoices")
-    .select("id, invoice_code, client_markbox, currency, total_amount, status, issued_at")
+    .select("id, invoice_code, client_markbox, currency, total_amount, paid_amount, status, issued_at")
     .eq("client_markbox", referrerMarkbox)
     .in("status", BILLABLE_STATUSES)
     .in("currency", ["USD", "USDT"])
@@ -83,15 +89,19 @@ export async function applicableInvoicesForReferrer(
 
   const min = Number(minTotalUsd) || 0;
   return ((data as Record<string, unknown>[] | null) ?? [])
-    .map(
-      (r): ApplicableInvoice => ({
+    .map((r): ApplicableInvoice => {
+      const total = Number(r.total_amount) || 0;
+      const paid = Number(r.paid_amount) || 0;
+      return {
         id: String(r.id ?? ""),
         invoice_code: String(r.invoice_code ?? ""),
         currency: r.currency as InvoiceCurrency,
-        total_amount: Number(r.total_amount) || 0,
+        total_amount: total,
+        paid_amount: paid,
+        balance: Math.round((total - paid + Number.EPSILON) * 100) / 100,
         status: r.status as InvoiceStatus,
         issued_at: (r.issued_at as string | null) ?? null,
-      }),
-    )
-    .filter((inv) => inv.total_amount >= min);
+      };
+    })
+    .filter((inv) => inv.balance >= min);
 }

@@ -3,6 +3,60 @@
 Rama `feat/credito-ref` · worktree `DTD-worktrees/credito-ref`. **Toca dinero**
 (Facturación/CxC/Contabilidad) → leer con lupa lo marcado 🔴 **REVISAR FOUNDER**.
 
+---
+
+## ⚠️ Cierre de huecos de dinero (review adversarial · 2ª pasada)
+
+El review `.harness/progress/review_credito-ref.md` marcó 3 🟡 + 1 🟢. Cómo quedó cada uno:
+
+### A — Over-credit en facturas 'parcial' → CERRADO
+Antes se validaba `total_amount ≥ crédito`. Una factura 'parcial' con `paid_amount`
+alto (ej. total $100, pagado $95, saldo $5) pasaba y regalaba $80 → CxC negativa.
+**Fix:** se valida contra el **SALDO real** (`total − paid ≥ crédito`) tanto en la
+action (`applyReferralCredit`) como en el picker (`applicableInvoicesForReferrer`,
+que ahora expone `paid_amount` + `balance`). **Elección: RECHAZAR** (V1 no parte el
+crédito) con mensaje que muestra el saldo — lo simple y seguro. La UI del picker
+ahora muestra "saldo $X" en vez del total.
+
+### B — Linkage no atómico → asiento huérfano + doble asiento → CERRADO
+Si el proceso moría entre el claim y el seteo de `applied_entry_id`, quedaba el
+asiento vivo con `applied_entry_id=NULL`; la reversa lo saltaba (dependía de ese
+campo) → asiento huérfano + crédito re-aplicable ($80 doble). **Fix en 3 capas:**
+1. **Link en DB por `journal_entries.referral_id`** (columna nueva en migr 0237):
+   el asiento se ata al referral desde el INSERT, no depende de un 2º UPDATE.
+2. **UNIQUE parcial `journal_entries_referral_credit_uniq`** `(tenant_id, referral_id)
+   WHERE source='referral_credit' AND status<>'anulado' AND deleted_at IS NULL`:
+   idempotencia **DURA en DB** — un 2º asiento vivo del mismo crédito falla (23505),
+   el posting lo trata como "ya existe" y devuelve el asiento vivo (no duplica).
+3. **La reversa barre por `referral_id`** (no por `applied_entry_id`): anula el
+   asiento aunque el link quede NULL por un crash → **sin huérfanos**.
+
+### C — El crédito no bajaba el subledger de la factura → CERRADO (opción consistente)
+El asiento bajaba la CxC en el GL (CR 1.1.2) pero `invoices.paid_amount` quedaba
+igual → GL ≠ subledger y el beneficio no se "entregaba" por saldo. **Fix:** el
+crédito se registra como **abono NO-MONETARIO** en la factura del referidor —
+`applyReferralCredit` sube `paid_amount` en el monto del crédito y recalcula status
+(`parcial`/`pagada`), con la misma traza (`applied_at`→`last_payment_at`). NO crea
+`payment_receipt` (no entró caja): es un abono por crédito. La reversa
+(`revertReferralCreditsForInvoice`) **baja** `paid_amount` de vuelta. Así GL↔subledger
+quedan consistentes. Mismo mecanismo de saldo que usa `identifyPaymentFor` (0068).
+- 🔴 **REVISAR FOUNDER:** si una factura queda **totalmente saldada por el crédito**
+  (saldo == $80), pasa a `pagada` y `voidInvoice` **bloquea** anularla (regla
+  existente "no se anula una pagada"). Es un estado terminal correcto (factura
+  liquidada), pero la reversa por void no es alcanzable en ese caso puntual.
+
+### D — Rollback de header sin guardia → CERRADO (menor)
+En `postReferralCreditJournalEntry`, si falla el insert de líneas se borra el
+header; **si el DELETE falla**, ahora hay **fallback**: se marca el asiento
+`anulado` (no queda un asiento 'asentado' 0=0 vivo que además tape el UNIQUE del reintento).
+
+**Tests agregados:**
+- `referral-credit-queries.test.ts` → Fix A: 'parcial' con saldo < crédito se
+  excluye aunque total ≥ crédito; expone `paid_amount`/`balance`.
+- `referral-credit-revert.test.ts` (nuevo) → Fix B: anula el asiento barriendo por
+  `referral_id` con `applied_entry_id=NULL` (sin huérfano); Fix C: baja `paid_amount`;
+  reversa idempotente (2ª pasada = 0, saldo no se descuenta doble).
+
 ## Qué hace
 Convierte el crédito **acreditado** del referidor ($80, SDD-0051 Slice C) en un
 crédito **aplicado** que baja la CxC del referidor en su próxima factura y genera

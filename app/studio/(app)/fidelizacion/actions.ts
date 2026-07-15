@@ -40,6 +40,11 @@ import { postReferralCreditJournalEntry } from "@/lib/studio/accounting/referral
 
 type Result = { ok?: boolean; error?: string };
 
+/** Redondeo a 2 decimales (dinero). */
+function round2(n: number): number {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
 /** Estados de factura "billable" a los que se puede aplicar un crédito (§3.4). */
 const APPLICABLE_INVOICE_STATUSES = new Set(["emitida", "parcial", "vencida"]);
 const APPLICABLE_INVOICE_CURRENCIES = new Set(["USD", "USDT"]);
@@ -287,10 +292,10 @@ export async function applyReferralCredit(
   const amount = Number(ref.reward_usd) || 0;
   if (amount <= 0) return { error: "El crédito no tiene monto para aplicar." };
 
-  // 2b) La factura debe ser del MISMO referidor, billable, USD/USDT, total ≥ crédito.
+  // 2b) La factura debe ser del MISMO referidor, billable, USD/USDT, SALDO ≥ crédito.
   const { data: inv } = await supabase
     .from("invoices")
-    .select("id, invoice_code, client_markbox, currency, total_amount, status")
+    .select("id, invoice_code, client_markbox, currency, total_amount, paid_amount, status")
     .eq("id", invoiceId)
     .maybeSingle<{
       id: string;
@@ -298,6 +303,7 @@ export async function applyReferralCredit(
       client_markbox: string;
       currency: string;
       total_amount: number;
+      paid_amount: number;
       status: string;
     }>();
   if (!inv) return { error: "Factura no encontrada." };
@@ -310,8 +316,16 @@ export async function applyReferralCredit(
   if (!APPLICABLE_INVOICE_CURRENCIES.has(inv.currency)) {
     return { error: "En V1 el crédito solo se aplica a facturas en USD o USDT." };
   }
-  if ((Number(inv.total_amount) || 0) < amount) {
-    return { error: "La factura es menor que el crédito; espera una factura suficiente (V1 no parte el crédito)." };
+  // Fix A (over-credit): validar contra el SALDO REAL, no el total. Una 'parcial'
+  // con paid_amount alto puede tener saldo < crédito; aplicar el $80 completo
+  // dejaría la CxC del referidor negativa (se le "regala" más de lo debido). V1
+  // no parte el crédito → si el saldo no alcanza, se rechaza y se pide otra factura.
+  const paidAmount = Number(inv.paid_amount) || 0;
+  const balance = round2(Math.max(0, (Number(inv.total_amount) || 0) - paidAmount));
+  if (balance < amount) {
+    return {
+      error: `El saldo de la factura ($${balance.toFixed(2)}) es menor que el crédito ($${amount.toFixed(2)}); espera una factura con saldo suficiente (V1 no parte el crédito).`,
+    };
   }
 
   // 3) CLAIM ATÓMICO idempotente: transición 'acreditado' → 'aplicado'. El
@@ -365,12 +379,32 @@ export async function applyReferralCredit(
   }
 
   // 5) Linkear el asiento creado al crédito (rastro + idempotencia del posting).
+  //    El asiento ya trae referral_id → la reversión lo barre aunque este link
+  //    quede NULL por un crash acá (hueco B cerrado en la reversión + UNIQUE DB).
   if (posting.entryId) {
     await supabase
       .from("referrals")
       .update({ applied_entry_id: posting.entryId })
       .eq("id", referralId);
   }
+
+  // 6) Fix C — consistencia GL↔subledger: el asiento bajó la CxC del referidor
+  //    en el GL (CR 1.1.2 $80); acá bajamos el SALDO de su factura registrando
+  //    el crédito como un ABONO NO-MONETARIO (sube paid_amount en el monto del
+  //    crédito). Así el beneficio se "entrega" por saldo y el mayor no diverge
+  //    del subledger. No hay payment_receipt (no entró caja): es un abono por
+  //    crédito, con la misma traza temporal (applied_at). Idempotente: el claim
+  //    de arriba garantiza un único paso 'acreditado'→'aplicado' por crédito.
+  const newPaid = round2(paidAmount + amount);
+  const fullyPaid = newPaid >= (Number(inv.total_amount) || 0) - 1e-6;
+  await supabase
+    .from("invoices")
+    .update({
+      paid_amount: newPaid,
+      status: fullyPaid ? "pagada" : "parcial",
+      last_payment_at: appliedAt,
+    })
+    .eq("id", invoiceId);
 
   revalidate();
   revalidatePath("/studio/facturacion");
