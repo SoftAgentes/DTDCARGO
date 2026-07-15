@@ -41,7 +41,7 @@ export default function PortalError({
         margin: "48px auto",
         padding: "32px",
         background: "var(--color-paper)",
-        border: "1px solid var(--color-border, rgba(0,0,0,.1))",
+        border: "1px solid var(--color-grey-200)",
         borderRadius: "12px",
       }}
     >
@@ -90,7 +90,7 @@ export default function PortalError({
             font: "600 13.5px/1 var(--font-archivo)",
             color: "var(--color-ink)",
             background: "transparent",
-            border: "1px solid var(--color-border, rgba(0,0,0,.15))",
+            border: "1px solid var(--color-grey-200)",
             borderRadius: "8px",
             padding: "11px 18px",
             textDecoration: "none",

@@ -61,6 +61,9 @@ function errorStub(error: { code?: string; message: string }): SupabaseClient {
         select() {
           return chain;
         },
+        eq() {
+          return chain;
+        },
         maybeSingle() {
           return Promise.resolve({ data: null, error });
         },
@@ -70,10 +73,13 @@ function errorStub(error: { code?: string; message: string }): SupabaseClient {
   } as unknown as SupabaseClient;
 }
 
+/** El camino de dinero exige tenantId explícito (service_role bypassa RLS). */
+const TENANT = "11111111-1111-1111-1111-111111111111";
+
 describe("requireReferralCreditMode (camino de DINERO · falla cerrado)", () => {
   it("devuelve el modo configurado", async () => {
     const client = stub({ fiscal_settings: { referral_credit_mode: "commercial_discount" } });
-    expect(await requireReferralCreditMode(client)).toEqual({
+    expect(await requireReferralCreditMode(client, TENANT)).toEqual({
       ok: true,
       mode: "commercial_discount",
     });
@@ -81,7 +87,7 @@ describe("requireReferralCreditMode (camino de DINERO · falla cerrado)", () => 
 
   it("sin row de config fiscal → default legítimo (el tenant nunca configuró)", async () => {
     const client = stub({ fiscal_settings: null });
-    expect(await requireReferralCreditMode(client)).toEqual({
+    expect(await requireReferralCreditMode(client, TENANT)).toEqual({
       ok: true,
       mode: "marketing_expense",
     });
@@ -89,7 +95,7 @@ describe("requireReferralCreditMode (camino de DINERO · falla cerrado)", () => 
 
   it("columna en null → default legítimo", async () => {
     const client = stub({ fiscal_settings: { referral_credit_mode: null } });
-    expect(await requireReferralCreditMode(client)).toEqual({
+    expect(await requireReferralCreditMode(client, TENANT)).toEqual({
       ok: true,
       mode: "marketing_expense",
     });
@@ -97,19 +103,19 @@ describe("requireReferralCreditMode (camino de DINERO · falla cerrado)", () => 
 
   it("ERROR de lectura → NO adivina (si adivinara, asentaría contra la cuenta equivocada)", async () => {
     const client = errorStub({ code: "42703", message: "column does not exist" });
-    const res = await requireReferralCreditMode(client);
+    const res = await requireReferralCreditMode(client, TENANT);
     expect(res.ok).toBe(false);
     expect(res.ok === false && res.error).toMatch(/no se pudo leer el modo fiscal/i);
   });
 
   it("error transitorio (timeout/RLS) tampoco cae al default", async () => {
     const client = errorStub({ message: "canceling statement due to statement timeout" });
-    expect((await requireReferralCreditMode(client)).ok).toBe(false);
+    expect((await requireReferralCreditMode(client, TENANT)).ok).toBe(false);
   });
 
   it("valor no reconocido → NO adivina (alguien guardó basura en el setting)", async () => {
     const client = stub({ fiscal_settings: { referral_credit_mode: "otra_cosa" } });
-    const res = await requireReferralCreditMode(client);
+    const res = await requireReferralCreditMode(client, TENANT);
     expect(res.ok).toBe(false);
     expect(res.ok === false && res.error).toMatch(/no reconocido/i);
   });

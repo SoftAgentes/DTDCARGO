@@ -332,7 +332,7 @@ export async function applyReferralCredit(
   //    todavía no movimos nada (después del claim habría que revertir). Falla
   //    CERRADO a propósito: asentar con el modo adivinado manda la plata a la
   //    cuenta equivocada sin ruido (ver requireReferralCreditMode).
-  const modeRes = await requireReferralCreditMode(supabase);
+  const modeRes = await requireReferralCreditMode(supabase, tenantId);
   if (!modeRes.ok) {
     return { error: `No se aplicó el crédito: ${modeRes.error}` };
   }
