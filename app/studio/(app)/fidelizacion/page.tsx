@@ -12,6 +12,7 @@
 
 import { createClient } from "@/lib/db/server";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
+import { canEditModule } from "@/lib/studio/rbac";
 import {
   clientsWithTier,
   listReferrals,
@@ -19,22 +20,30 @@ import {
   tierCounts,
   topReferrers,
 } from "@/lib/studio/fidelizacion/queries";
+import { getReferralCreditMode } from "@/lib/studio/fidelizacion/referral-credit-queries";
 import { FidelizacionClient } from "./_components/FidelizacionClient";
 
 export const metadata = { title: "Fidelización & Referidos" };
 
 export default async function FidelizacionPage() {
-  await requireModuleView("fidelizacion");
+  const role = await requireModuleView("fidelizacion");
 
   const supabase = await createClient();
 
-  const [clients, counts, referrals, stats, top] = await Promise.all([
-    clientsWithTier(supabase),
-    tierCounts(supabase),
-    listReferrals(supabase),
-    programStats(supabase),
-    topReferrers(supabase, 5),
-  ]);
+  const [clients, counts, referrals, stats, top, creditMode] =
+    await Promise.all([
+      clientsWithTier(supabase),
+      tierCounts(supabase),
+      listReferrals(supabase),
+      programStats(supabase),
+      topReferrers(supabase, 5),
+      getReferralCreditMode(supabase),
+    ]);
+
+  // Aplicar un crédito MUEVE PLATA (SDD-0137): solo lo puede hacer quien edita
+  // el módulo de dinero "accounting" (accounting/admin). El botón de la UI se
+  // esconde para el resto; el gate REAL fail-closed vive en la server action.
+  const canApplyCredit = canEditModule(role, "accounting");
 
   return (
     <FidelizacionClient
@@ -43,6 +52,8 @@ export default async function FidelizacionPage() {
       referrals={referrals}
       stats={stats}
       topReferrers={top}
+      canApplyCredit={canApplyCredit}
+      creditMode={creditMode}
     />
   );
 }

@@ -31,8 +31,18 @@ import {
   type ReferralInput,
   type ReferralStatus,
 } from "@/lib/studio/fidelizacion/types";
+import {
+  applicableInvoicesForReferrer,
+  getReferralCreditMode,
+  type ApplicableInvoice,
+} from "@/lib/studio/fidelizacion/referral-credit-queries";
+import { postReferralCreditJournalEntry } from "@/lib/studio/accounting/referral-credit-posting";
 
 type Result = { ok?: boolean; error?: string };
+
+/** Estados de factura "billable" a los que se puede aplicar un crédito (§3.4). */
+const APPLICABLE_INVOICE_STATUSES = new Set(["emitida", "parcial", "vencida"]);
+const APPLICABLE_INVOICE_CURRENCIES = new Set(["USD", "USDT"]);
 
 const VALID_STATUS = new Set<string>(REFERRAL_STEPS);
 
@@ -156,11 +166,13 @@ export async function accreditReferral(id: string): Promise<Result> {
   return { ok: true };
 }
 
-/** Avanza/cambia el estado de un referido (manual; valida enum). */
+/** Avanza/cambia el estado de un referido (manual; valida enum del PIPELINE). */
 export async function updateReferralStatus(
   id: string,
   status: ReferralStatus,
 ): Promise<Result> {
+  // VALID_STATUS = REFERRAL_STEPS → 'aplicado' NO es alcanzable por avance
+  // manual (es estado de dinero: pasa solo por applyReferralCredit con gate).
   if (!VALID_STATUS.has(status)) return { error: "Estado de referido inválido." };
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "fidelizacion");
@@ -173,4 +185,194 @@ export async function updateReferralStatus(
   if (error) return { error: `No se pudo cambiar el estado: ${error.message}` };
   revalidate();
   return { ok: true };
+}
+
+// ─────────────────────────────────────────────────────────────
+// SDD-0137 · Aplicación del crédito de referido (MUEVE PLATA)
+//
+// El sistema PROPONE, accounting APLICA (fail-closed). Aplicar el crédito
+// acreditado ($80) reduce la CxC del referidor en su próxima factura y genera
+// un asiento (DR 6.11 marketing | 4.9 descuento / CR 1.1.2 CxC, según el setting
+// per-tenant referral_credit_mode). Idempotente por estado (transición
+// 'acreditado'→'aplicado' con row-lock). NO toca la base ni el IVA de la factura.
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Facturas del referidor a las que se puede aplicar el crédito de un referido
+ * acreditado (para el picker de la UI). Gate de dinero: accounting/admin.
+ */
+export async function listApplicableInvoices(
+  referralId: string,
+): Promise<{ invoices?: ApplicableInvoice[]; error?: string }> {
+  const supabase = await createClient();
+  // Gate de DINERO (fail-closed): mostrar/aplicar créditos es de accounting/admin.
+  const denial = await moduleEditDenial(supabase, "accounting");
+  if (denial) return { error: denial };
+
+  if (!referralId) return { error: "Falta el crédito." };
+
+  const { data: ref } = await supabase
+    .from("referrals")
+    .select("referrer_markbox, reward_usd, status")
+    .eq("id", referralId)
+    .maybeSingle<{
+      referrer_markbox: string;
+      reward_usd: number;
+      status: ReferralStatus;
+    }>();
+  if (!ref) return { error: "Crédito no encontrado." };
+  if (ref.status !== "acreditado") {
+    return { error: "Este crédito no está disponible para aplicar." };
+  }
+
+  try {
+    const invoices = await applicableInvoicesForReferrer(
+      supabase,
+      ref.referrer_markbox,
+      Number(ref.reward_usd) || 0,
+    );
+    return { invoices };
+  } catch (e) {
+    return {
+      error: e instanceof Error ? e.message : "No se pudieron leer las facturas.",
+    };
+  }
+}
+
+/**
+ * Aplica el crédito acreditado de un referido a una factura del referidor.
+ *
+ * Fail-closed en capas:
+ *  1. GATE DE DINERO: moduleEditDenial("accounting") → solo accounting/admin.
+ *  2. Validación de coherencia: crédito 'acreditado' con monto, factura del
+ *     MISMO referidor, billable, USD/USDT y total ≥ crédito (V1 no parte).
+ *  3. Claim atómico idempotente: UPDATE ... WHERE status='acreditado' (row-lock
+ *     → un segundo intento no re-aplica; devuelve 0 filas).
+ *  4. Asiento best-effort (según referral_credit_mode). Si el asiento NO se pudo
+ *     crear (falta cuenta del plan, etc.) → REVIERTE el claim (todo o nada).
+ */
+export async function applyReferralCredit(
+  referralId: string,
+  invoiceId: string,
+): Promise<Result & { entryCode?: string }> {
+  const supabase = await createClient();
+  // 1) GATE DE DINERO (fail-closed). moduleEditDenial de verdad: el módulo
+  //    "accounting" solo lo edita accounting/admin (MONEY_MODULES, SDD-0085).
+  const denial = await moduleEditDenial(supabase, "accounting");
+  if (denial) return { error: denial };
+
+  if (!referralId || !invoiceId) {
+    return { error: "Faltan datos para aplicar el crédito." };
+  }
+
+  const tenantId = await resolveTenant(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant." };
+
+  // 2a) El crédito debe estar 'acreditado' y tener monto.
+  const { data: ref } = await supabase
+    .from("referrals")
+    .select("id, referral_code, referrer_markbox, reward_usd, status")
+    .eq("id", referralId)
+    .maybeSingle<{
+      id: string;
+      referral_code: string;
+      referrer_markbox: string;
+      reward_usd: number;
+      status: ReferralStatus;
+    }>();
+  if (!ref) return { error: "Crédito no encontrado." };
+  if (ref.status !== "acreditado") {
+    return { error: "Este crédito no está disponible para aplicar (debe estar acreditado)." };
+  }
+  const amount = Number(ref.reward_usd) || 0;
+  if (amount <= 0) return { error: "El crédito no tiene monto para aplicar." };
+
+  // 2b) La factura debe ser del MISMO referidor, billable, USD/USDT, total ≥ crédito.
+  const { data: inv } = await supabase
+    .from("invoices")
+    .select("id, invoice_code, client_markbox, currency, total_amount, status")
+    .eq("id", invoiceId)
+    .maybeSingle<{
+      id: string;
+      invoice_code: string;
+      client_markbox: string;
+      currency: string;
+      total_amount: number;
+      status: string;
+    }>();
+  if (!inv) return { error: "Factura no encontrada." };
+  if (inv.client_markbox !== ref.referrer_markbox) {
+    return { error: "La factura no es del cliente que refiere." };
+  }
+  if (!APPLICABLE_INVOICE_STATUSES.has(inv.status)) {
+    return { error: "La factura no admite crédito (debe estar emitida, parcial o vencida)." };
+  }
+  if (!APPLICABLE_INVOICE_CURRENCIES.has(inv.currency)) {
+    return { error: "En V1 el crédito solo se aplica a facturas en USD o USDT." };
+  }
+  if ((Number(inv.total_amount) || 0) < amount) {
+    return { error: "La factura es menor que el crédito; espera una factura suficiente (V1 no parte el crédito)." };
+  }
+
+  // 3) CLAIM ATÓMICO idempotente: transición 'acreditado' → 'aplicado'. El
+  //    filtro por status en el UPDATE + el row-lock de Postgres garantizan que
+  //    un segundo intento (doble-submit / carrera) no re-aplique: devuelve 0 filas.
+  const appliedAt = new Date().toISOString();
+  const { data: claimed, error: claimErr } = await supabase
+    .from("referrals")
+    .update({
+      status: "aplicado" satisfies ReferralStatus,
+      applied_invoice_id: invoiceId,
+      applied_at: appliedAt,
+    })
+    .eq("id", referralId)
+    .eq("status", "acreditado")
+    .select("id")
+    .maybeSingle<{ id: string }>();
+  if (claimErr) return { error: `No se pudo aplicar el crédito: ${claimErr.message}` };
+  if (!claimed) {
+    return { error: "El crédito ya fue aplicado (o cambió de estado)." };
+  }
+
+  // 4) Asiento contable según el modo configurado (best-effort). Si NO se pudo
+  //    crear (falta la cuenta del plan, monto cero, etc.) → revierte el claim:
+  //    mover plata sin asiento es peor que no moverla.
+  const mode = await getReferralCreditMode(supabase);
+  const posting = await postReferralCreditJournalEntry({
+    tenantId,
+    referralId,
+    referralCode: ref.referral_code,
+    referrerMarkbox: ref.referrer_markbox,
+    invoiceId,
+    invoiceCode: inv.invoice_code,
+    amountUsd: amount,
+    mode,
+  });
+  if (!posting.ok) {
+    await supabase
+      .from("referrals")
+      .update({
+        status: "acreditado" satisfies ReferralStatus,
+        applied_invoice_id: null,
+        applied_entry_id: null,
+        applied_at: null,
+      })
+      .eq("id", referralId)
+      .eq("status", "aplicado");
+    return {
+      error: `No se pudo generar el asiento del crédito: ${posting.error ?? posting.skipped ?? "desconocido"}. No se aplicó nada.`,
+    };
+  }
+
+  // 5) Linkear el asiento creado al crédito (rastro + idempotencia del posting).
+  if (posting.entryId) {
+    await supabase
+      .from("referrals")
+      .update({ applied_entry_id: posting.entryId })
+      .eq("id", referralId);
+  }
+
+  revalidate();
+  revalidatePath("/studio/facturacion");
+  return { ok: true, entryCode: posting.entryCode };
 }

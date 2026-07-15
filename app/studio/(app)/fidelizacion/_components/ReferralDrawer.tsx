@@ -10,7 +10,7 @@
  * Solo lectura/acciones; el alta vive en RegisterReferralDrawer.
  */
 
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
@@ -25,14 +25,32 @@ import {
   type Referral,
   type ReferralStatus,
 } from "@/lib/studio/fidelizacion/types";
+import type { ReferralCreditMode } from "@/lib/studio/accounting/referral-credit-posting";
+import type { ApplicableInvoice } from "@/lib/studio/fidelizacion/referral-credit-queries";
 import { fmtUsd } from "../format";
-import { accreditReferral, updateReferralStatus } from "../actions";
+import {
+  accreditReferral,
+  applyReferralCredit,
+  listApplicableInvoices,
+  updateReferralStatus,
+} from "../actions";
+
+/** Etiqueta legible del modo de reflejo contable (es-VE). */
+function creditModeLabel(mode: ReferralCreditMode): string {
+  return mode === "marketing_expense"
+    ? "gasto de marketing (DR 6.11 / CR 1.1.2 CxC)"
+    : "descuento sobre ventas (DR 4.9 / CR 1.1.2 CxC)";
+}
 
 export function ReferralDrawer({
   referral,
+  canApplyCredit,
+  creditMode,
   onClose,
 }: {
   referral: Referral;
+  canApplyCredit: boolean;
+  creditMode: ReferralCreditMode;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -242,9 +260,11 @@ export function ReferralDrawer({
                 marginTop: 4,
               }}
             >
-              {referral.status === "acreditado"
-                ? "Acreditado · pendiente de aplicar a la próxima factura"
-                : "Se acredita al primer embarque del referido"}
+              {referral.status === "aplicado"
+                ? `Aplicado${referral.applied_at ? ` el ${referral.applied_at.slice(0, 10)}` : ""} a la próxima factura del referidor`
+                : referral.status === "acreditado"
+                  ? "Acreditado · pendiente de aplicar a la próxima factura"
+                  : "Se acredita al primer embarque del referido"}
             </div>
           </div>
           <div
@@ -285,8 +305,55 @@ export function ReferralDrawer({
           </div>
         </div>
 
+        {/* SDD-0137 · Aplicar el crédito acreditado a una factura (mueve plata) */}
+        {referral.status === "acreditado" && canApplyCredit && (
+          <ApplyCreditPanel
+            referral={referral}
+            creditMode={creditMode}
+            onError={setError}
+            onApplied={(msg) => afterMutation(msg)}
+          />
+        )}
+
+        {/* Crédito ya aplicado: resumen (todos los roles lo ven) */}
+        {referral.status === "aplicado" && (
+          <div
+            style={{
+              padding: "14px 16px",
+              background: "var(--bg-elevated)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--r-md)",
+            }}
+          >
+            <div
+              style={{
+                font: "700 10.5px/1 var(--f-sans)",
+                color: "var(--wine-text)",
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                marginBottom: 6,
+              }}
+            >
+              Crédito aplicado
+            </div>
+            <div
+              style={{
+                font: "500 12px/1.5 var(--f-sans)",
+                color: "var(--ink-soft)",
+              }}
+            >
+              {fmtUsd(referral.reward_usd)} aplicados a la CxC del referidor
+              {referral.applied_at
+                ? ` el ${referral.applied_at.slice(0, 10)}`
+                : ""}
+              . Reflejo contable: {creditModeLabel(creditMode)}. La factura fiscal
+              queda intacta (no toca base ni IVA).
+            </div>
+          </div>
+        )}
+
         {/* Acciones manuales */}
-        {referral.status !== "acreditado" && (
+        {referral.status !== "acreditado" && referral.status !== "aplicado" && (
           <div
             style={{
               display: "flex",
@@ -352,6 +419,145 @@ export function ReferralDrawer({
         </button>
       </footer>
     </DrawerShell>
+  );
+}
+
+/**
+ * Panel de aplicación del crédito (SDD-0137). Solo lo ve rol dinero
+ * (accounting/admin) sobre un crédito 'acreditado'. Carga las facturas del
+ * referidor a las que se puede aplicar (billable · USD/USDT · total ≥ crédito)
+ * y aplica el crédito a la elegida. El gate REAL fail-closed vive en la server
+ * action; este panel solo es la UX de la propuesta.
+ */
+function ApplyCreditPanel({
+  referral,
+  creditMode,
+  onError,
+  onApplied,
+}: {
+  referral: Referral;
+  creditMode: ReferralCreditMode;
+  onError: (msg: string) => void;
+  onApplied: (msg: string) => void;
+}) {
+  const [invoices, setInvoices] = useState<ApplicableInvoice[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<string>("");
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const r = await listApplicableInvoices(referral.id);
+      if (!alive) return;
+      if (r.error) {
+        onError(r.error);
+        setInvoices([]);
+      } else {
+        setInvoices(r.invoices ?? []);
+        if (r.invoices && r.invoices.length > 0) {
+          setSelected(r.invoices[0].id);
+        }
+      }
+      setLoading(false);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [referral.id, onError]);
+
+  return (
+    <div
+      style={{
+        padding: "16px 18px",
+        background: "var(--bg-surface)",
+        border: "1px solid var(--wine)",
+        borderRadius: "var(--r-md)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+      }}
+    >
+      <div>
+        <div
+          style={{
+            font: "700 10.5px/1 var(--f-sans)",
+            color: "var(--wine-text)",
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            marginBottom: 6,
+          }}
+        >
+          Aplicar {fmtUsd(referral.reward_usd)} a una factura
+        </div>
+        <div
+          style={{
+            font: "500 11.5px/1.5 var(--f-sans)",
+            color: "var(--ink-soft)",
+          }}
+        >
+          El crédito baja la CxC del referidor {referral.referrer_markbox} en su
+          próxima factura. Reflejo contable: {creditModeLabel(creditMode)}. No
+          toca la base imponible ni el IVA.
+        </div>
+      </div>
+
+      {loading ? (
+        <div
+          style={{
+            font: "500 12px/1.4 var(--f-sans)",
+            color: "var(--ink-soft)",
+          }}
+        >
+          Buscando facturas del referidor…
+        </div>
+      ) : invoices && invoices.length > 0 ? (
+        <>
+          <select
+            className="studio-input"
+            aria-label="Factura a la que aplicar el crédito"
+            value={selected}
+            onChange={(e) => setSelected(e.target.value)}
+          >
+            {invoices.map((inv) => (
+              <option key={inv.id} value={inv.id}>
+                {inv.invoice_code} · {fmtUsd(inv.total_amount)} {inv.currency}
+                {inv.issued_at ? ` · ${inv.issued_at.slice(0, 10)}` : ""}
+              </option>
+            ))}
+          </select>
+          <div>
+            <ActionButton
+              variant="primary"
+              size="sm"
+              idleLabel={`Aplicar ${fmtUsd(referral.reward_usd)}`}
+              loadingLabel="Aplicando…"
+              successLabel="Aplicado"
+              idleIcon={Icon.check(13)}
+              disabled={!selected}
+              onAction={() => applyReferralCredit(referral.id, selected)}
+              onSuccess={() =>
+                onApplied(
+                  `Crédito de ${fmtUsd(referral.reward_usd)} aplicado a la factura de ${referral.referrer_markbox}`,
+                )
+              }
+              onError={onError}
+            />
+          </div>
+        </>
+      ) : (
+        <div
+          style={{
+            font: "500 12px/1.5 var(--f-sans)",
+            color: "var(--ink-soft)",
+          }}
+        >
+          El referidor {referral.referrer_markbox} no tiene una factura elegible
+          todavía (emitida/parcial/vencida, en USD/USDT y con total ≥{" "}
+          {fmtUsd(referral.reward_usd)}). El crédito espera a una factura
+          suficiente.
+        </div>
+      )}
+    </div>
   );
 }
 

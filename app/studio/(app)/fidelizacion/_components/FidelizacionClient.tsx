@@ -38,6 +38,7 @@ import type {
   TierCount,
   TopReferrer,
 } from "@/lib/studio/fidelizacion/queries";
+import type { ReferralCreditMode } from "@/lib/studio/accounting/referral-credit-posting";
 import { fmtUsd } from "../format";
 import { RegisterReferralDrawer } from "./RegisterReferralDrawer";
 import { ReferralDrawer } from "./ReferralDrawer";
@@ -75,12 +76,18 @@ export function FidelizacionClient({
   referrals,
   stats,
   topReferrers,
+  canApplyCredit,
+  creditMode,
 }: {
   clients: ClientWithTier[];
   tierCounts: TierCount[];
   referrals: Referral[];
   stats: ProgramStats;
   topReferrers: TopReferrer[];
+  /** ¿El rol puede APLICAR créditos? (accounting/admin — SDD-0137, mueve plata). */
+  canApplyCredit: boolean;
+  /** Modo de reflejo contable configurado (fiscal_settings.referral_credit_mode). */
+  creditMode: ReferralCreditMode;
 }) {
   const [tab, setTab] = useState<Tab>("dashboard");
   const [showRegister, setShowRegister] = useState(false);
@@ -221,6 +228,8 @@ export function FidelizacionClient({
       {selectedReferral && (
         <ReferralDrawer
           referral={selectedReferral}
+          canApplyCredit={canApplyCredit}
+          creditMode={creditMode}
           onClose={() => setSelectedReferral(null)}
         />
       )}
@@ -866,10 +875,14 @@ function ReferidosTab({
                     color:
                       r.status === "acreditado"
                         ? "var(--success)"
-                        : "var(--ink-mute)",
+                        : r.status === "aplicado"
+                          ? "var(--wine-text)"
+                          : "var(--ink-mute)",
                   }}
                 >
-                  {r.status === "acreditado" ? fmtUsd(r.reward_usd) : "—"}
+                  {r.status === "acreditado" || r.status === "aplicado"
+                    ? fmtUsd(r.reward_usd)
+                    : "—"}
                 </span>
               </div>
             );

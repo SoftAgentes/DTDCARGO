@@ -1,0 +1,99 @@
+/**
+ * Tests de las queries del crédito de referido aplicado (SDD-0137).
+ *
+ * - getReferralCreditMode: lee fiscal_settings.referral_credit_mode; cae al
+ *   default 'marketing_expense' si no hay row o el valor es inválido.
+ * - applicableInvoicesForReferrer: filtra facturas billable USD/USDT con
+ *   total ≥ crédito del referidor (client-side sobre lo que la DB devuelve).
+ *
+ * Stub de SupabaseClient chainable con select/eq/in/order/limit/maybeSingle
+ * + resolución como promise (then).
+ */
+
+import { describe, it, expect } from "vitest";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  applicableInvoicesForReferrer,
+  getReferralCreditMode,
+} from "../referral-credit-queries";
+
+function stub(rowsByTable: Record<string, Record<string, unknown>[] | Record<string, unknown> | null>): SupabaseClient {
+  return {
+    from(table: string) {
+      const value = rowsByTable[table];
+      const chain: Record<string, unknown> = {
+        select() {
+          return chain;
+        },
+        eq() {
+          return chain;
+        },
+        in() {
+          return chain;
+        },
+        order() {
+          return chain;
+        },
+        limit() {
+          return chain;
+        },
+        maybeSingle() {
+          // maybeSingle → un solo objeto (o null)
+          const data = Array.isArray(value) ? (value[0] ?? null) : (value ?? null);
+          return Promise.resolve({ data, error: null });
+        },
+        then(resolve: (v: { data: unknown; error: null }) => unknown) {
+          const data = Array.isArray(value) ? value : [];
+          return Promise.resolve({ data, error: null }).then(resolve);
+        },
+      };
+      return chain;
+    },
+  } as unknown as SupabaseClient;
+}
+
+describe("getReferralCreditMode", () => {
+  it("lee el modo configurado en fiscal_settings", async () => {
+    const client = stub({ fiscal_settings: { referral_credit_mode: "commercial_discount" } });
+    expect(await getReferralCreditMode(client)).toBe("commercial_discount");
+  });
+
+  it("cae al default marketing_expense si no hay row", async () => {
+    const client = stub({ fiscal_settings: null });
+    expect(await getReferralCreditMode(client)).toBe("marketing_expense");
+  });
+
+  it("cae al default si el valor guardado es inválido", async () => {
+    const client = stub({ fiscal_settings: { referral_credit_mode: "otra_cosa" } });
+    expect(await getReferralCreditMode(client)).toBe("marketing_expense");
+  });
+});
+
+describe("applicableInvoicesForReferrer", () => {
+  // La DB ya filtra status/currency (in()); acá probamos el filtro de total ≥ crédito
+  // y la coerción numérica del stub (devolvemos filas ya "billable USD/USDT").
+  const rows = [
+    { id: "i1", invoice_code: "F-1", client_markbox: "DTD-5452", currency: "USD", total_amount: "120", status: "emitida", issued_at: "2026-01-01" },
+    { id: "i2", invoice_code: "F-2", client_markbox: "DTD-5452", currency: "USDT", total_amount: 80, status: "parcial", issued_at: "2026-02-01" },
+    { id: "i3", invoice_code: "F-3", client_markbox: "DTD-5452", currency: "USD", total_amount: 50, status: "vencida", issued_at: "2026-03-01" },
+  ];
+
+  it("mantiene solo las facturas con total ≥ crédito", async () => {
+    const client = stub({ invoices: rows });
+    const res = await applicableInvoicesForReferrer(client, "DTD-5452", 80);
+    expect(res.map((i) => i.invoice_code)).toEqual(["F-1", "F-2"]); // 120 y 80 pasan; 50 no
+    expect(res[0].total_amount).toBe(120); // coerción de string a number
+  });
+
+  it("sin markbox → lista vacía sin consultar", async () => {
+    const client = stub({ invoices: rows });
+    const res = await applicableInvoicesForReferrer(client, "", 80);
+    expect(res).toEqual([]);
+  });
+
+  it("si ninguna alcanza el monto → vacío (el crédito espera)", async () => {
+    const client = stub({ invoices: rows });
+    const res = await applicableInvoicesForReferrer(client, "DTD-5452", 500);
+    expect(res).toEqual([]);
+  });
+});
