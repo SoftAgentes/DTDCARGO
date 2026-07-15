@@ -148,7 +148,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0113 | Onboarding y app self-service del empleado — invites + regist… | done | interno |
 | 0114 | Dashboard configurable + persistencia de preferencias por usu… | done | interno |
 | 0115 | Financiero China Slice C — forex como revenue · claim offsets… | done | confidencial |
-| 0116 | Club DTD — membresía recurrente + compra grupal (consolidació… | in-progress | interno |
+| 0116 | Club DTD — membresía recurrente + compra grupal (consolidació… | done | interno |
 | 0117 | Recibo y finiquito en PDF server-side (@react-pdf/renderer) —… | done | interno |
 | 0118 | Seed migrations idempotentes — habilitar validación en branch… | draft | interno |
 | 0119 | Módulo de Marketing en el ERP — Dashboard de Marketing (salud… | draft | interno |
