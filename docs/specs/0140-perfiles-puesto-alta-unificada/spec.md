@@ -1,10 +1,10 @@
 ---
 sdd: "0140"
 title: "Perfiles de puesto en nómina + alta unificada (empleado + usuario con rol)"
-status: draft
+status: done
 author: "Claude Code (ventana secundaria · worktree perfiles-puesto) + founder"
 created: 2026-07-02
-updated: 2026-07-02
+updated: 2026-07-14
 supersedes: null
 superseded_by: null
 related: ["0103", "0085", "0139", "0113", "0024"]

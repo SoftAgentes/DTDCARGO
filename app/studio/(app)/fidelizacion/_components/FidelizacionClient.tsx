@@ -75,12 +75,15 @@ export function FidelizacionClient({
   referrals,
   stats,
   topReferrers,
+  canApplyCredit,
 }: {
   clients: ClientWithTier[];
   tierCounts: TierCount[];
   referrals: Referral[];
   stats: ProgramStats;
   topReferrers: TopReferrer[];
+  /** ¿El rol puede APLICAR créditos? (accounting/admin — SDD-0137, mueve plata). */
+  canApplyCredit: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("dashboard");
   const [showRegister, setShowRegister] = useState(false);
@@ -221,6 +224,7 @@ export function FidelizacionClient({
       {selectedReferral && (
         <ReferralDrawer
           referral={selectedReferral}
+          canApplyCredit={canApplyCredit}
           onClose={() => setSelectedReferral(null)}
         />
       )}
@@ -866,10 +870,14 @@ function ReferidosTab({
                     color:
                       r.status === "acreditado"
                         ? "var(--success)"
-                        : "var(--ink-mute)",
+                        : r.status === "aplicado"
+                          ? "var(--wine-text)"
+                          : "var(--ink-mute)",
                   }}
                 >
-                  {r.status === "acreditado" ? fmtUsd(r.reward_usd) : "—"}
+                  {r.status === "acreditado" || r.status === "aplicado"
+                    ? fmtUsd(r.reward_usd)
+                    : "—"}
                 </span>
               </div>
             );

@@ -21,6 +21,11 @@ import {
   prealertaStats,
 } from "@/lib/studio/prealertas/queries";
 import {
+  listSupplierClaims,
+  listSupplierScorecards,
+  supplierScorecardStats,
+} from "@/lib/studio/proveedores/scorecard-queries";
+import {
   ProveedoresClient,
   type SupplierRow,
 } from "./_components/ProveedoresClient";
@@ -44,6 +49,8 @@ export default async function ProveedoresPage() {
     serviceRequests,
     packingLists,
     disabledShareIds,
+    scorecards,
+    claims,
   ] = await Promise.all([
     prealertaStats(supabase),
     listPrealertas(supabase),
@@ -52,7 +59,11 @@ export default async function ProveedoresPage() {
     listPrealertaServiceRequests(supabase),
     listPackingListSubmissions(supabase),
     listDisabledSharePrealertaIds(supabase),
+    listSupplierScorecards(supabase),
+    listSupplierClaims(supabase),
   ]);
+
+  const scorecardStats = supplierScorecardStats(scorecards);
 
   // # de compras vivas por proveedor (las prealertas ya vienen sin borradas).
   const orderCountBySupplierId: Record<string, number> = {};
@@ -84,6 +95,9 @@ export default async function ProveedoresPage() {
       serviceRequests={serviceRequests}
       packingLists={packingLists}
       disabledShareIds={disabledShareIds}
+      scorecards={scorecards}
+      claims={claims}
+      scorecardStats={scorecardStats}
     />
   );
 }

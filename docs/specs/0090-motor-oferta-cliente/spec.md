@@ -1,10 +1,10 @@
 ---
 sdd: "0090"
 title: "Motor de oferta al cliente — wizard de intención + matriz de cruce configurable + modo de cobro"
-status: proposed
+status: done
 author: "Claude Code (ventana motor-oferta) + founder"
 created: 2026-06-16
-updated: 2026-06-16
+updated: 2026-07-14
 supersedes: null
 superseded_by: null
 related: ["0076", "0061", "0063"]

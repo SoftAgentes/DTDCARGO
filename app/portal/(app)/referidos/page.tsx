@@ -399,6 +399,8 @@ const REFERRAL_BADGE: Record<ReferralStatus, { label: string; color: string }> =
     color: "var(--color-status-warning)",
   },
   acreditado: { label: "Acreditado", color: "var(--color-status-success)" },
+  // SDD-0137: crédito ya aplicado a una factura del referidor.
+  aplicado: { label: "Aplicado", color: "var(--color-wine)" },
 };
 
 function ReferralStatusBadge({ status }: { status: ReferralStatus }) {

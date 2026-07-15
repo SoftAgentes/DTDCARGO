@@ -144,13 +144,20 @@ export async function getMyReferralProgram(
   );
 
   // Espejo de creditsEarned / pendingCredits (lib/studio/fidelizacion/queries.ts):
-  //  - ganados   = Σ reward_usd de los acreditados.
-  //  - en camino = referrerReward por cada uno en pipeline (ni invitado ni acreditado).
+  //  - ganados   = Σ reward_usd de los acreditados + aplicados (SDD-0137: un
+  //                crédito aplicado sigue siendo ganado, ya se cobró).
+  //  - en camino = referrerReward por cada uno en pipeline (ni invitado ni
+  //                acreditado ni aplicado).
   const creditsEarnedUsd = referrals
-    .filter((r) => r.status === "acreditado")
+    .filter((r) => r.status === "acreditado" || r.status === "aplicado")
     .reduce((s, r) => s + r.rewardUsd, 0);
   const pendingCreditsUsd = referrals
-    .filter((r) => r.status !== "acreditado" && r.status !== "invitado")
+    .filter(
+      (r) =>
+        r.status !== "acreditado" &&
+        r.status !== "aplicado" &&
+        r.status !== "invitado",
+    )
     .reduce((s) => s + REFERRAL_RULES.referrerReward, 0);
 
   return {

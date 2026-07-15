@@ -1,5 +1,5 @@
 /**
- * Layout raíz del Studio (DoorTuDoor).
+ * Layout raíz del Studio (DTD Cargo).
  *
  * Wrapping mínimo: solo importa los estilos del Studio.
  * El <html> y <body> los provee app/layout.tsx (el root del sitio).
@@ -41,7 +41,7 @@ const nunitoSans = Nunito_Sans({
 export const metadata: Metadata = {
   title: {
     template: "%s · DTD Studio",
-    default: "DTD Studio · DoorTuDoor",
+    default: "DTD Studio",
   },
   description: "Backend interno de DTD Cargo.",
   robots: {

@@ -117,11 +117,17 @@ export const REFERRAL_RULES = {
 };
 
 // ── Estados del referido ──────────────────────────────────────
+// invitado→registrado→primer-embarque→acreditado = PIPELINE del referido.
+// 'aplicado' (SDD-0137) = estado TERMINAL de dinero: el crédito acreditado se
+// aplicó a una factura del referidor (con asiento contable). Se llega SOLO por
+// la acción con gate de dinero (applyReferralCredit), nunca por avance manual
+// → por eso NO figura en REFERRAL_STEPS (el stepper/validador del pipeline).
 export type ReferralStatus =
   | "invitado"
   | "registrado"
   | "primer-embarque"
-  | "acreditado";
+  | "acreditado"
+  | "aplicado";
 
 export const REFERRAL_STATUS: Record<
   ReferralStatus,
@@ -131,9 +137,10 @@ export const REFERRAL_STATUS: Record<
   registrado: { label: "Registrado", tone: "info", step: 1 },
   "primer-embarque": { label: "Primer embarque", tone: "warning", step: 2 },
   acreditado: { label: "Acreditado", tone: "success", step: 3 },
+  aplicado: { label: "Aplicado", tone: "wine", step: 4 },
 };
 
-/** Orden del timeline de estados. */
+/** Orden del timeline de estados del PIPELINE (no incluye 'aplicado', que es de dinero). */
 export const REFERRAL_STEPS: ReferralStatus[] = [
   "invitado",
   "registrado",
@@ -168,6 +175,10 @@ export type Referral = {
   reward_usd: number;
   lead_id: string | null;
   notes: string | null;
+  // SDD-0137 · rastro de aplicación del crédito (Opción A).
+  applied_invoice_id: string | null;
+  applied_entry_id: string | null;
+  applied_at: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;

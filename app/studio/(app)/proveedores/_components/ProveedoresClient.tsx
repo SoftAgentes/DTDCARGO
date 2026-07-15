@@ -38,6 +38,11 @@ import {
 import type { PrealertaServiceRequest } from "@/lib/studio/prealertas/addons";
 import type { PackingListSubmission } from "@/lib/studio/prealertas/packlist-form";
 import type { PrealertaStats } from "@/lib/studio/prealertas/queries";
+import type {
+  SupplierClaimRow,
+  SupplierScorecard,
+  SupplierScorecardStats,
+} from "@/lib/studio/proveedores/scorecard-queries";
 import {
   ServiceRequestsTab,
   type PrealertaLite,
@@ -45,6 +50,9 @@ import {
 import { PackingListsTab } from "./PackingListsTab";
 import { ProviderLinkDrawer } from "./ProviderLinkDrawer";
 import { SupplierDrawer } from "./SupplierDrawer";
+import { ScorecardTab } from "./ScorecardTab";
+import { ReclamosTab } from "./ReclamosTab";
+import type { SupplierOption } from "./SupplierClaimDrawer";
 
 // Estados que el operador considera "entrantes" (esperando arribo a CN).
 const INCOMING: ReadonlySet<string> = new Set(["anunciada", "en_camino"]);
@@ -62,13 +70,21 @@ export type SupplierRow = {
   orderCount: number;
 };
 
-type Tab = "services" | "incoming" | "packing" | "suppliers";
+type Tab =
+  | "services"
+  | "incoming"
+  | "packing"
+  | "suppliers"
+  | "scorecard"
+  | "reclamos";
 
 const TABS: { value: Tab; label: string }[] = [
   { value: "services", label: "Servicios solicitados" },
   { value: "incoming", label: "Prealertas entrantes" },
   { value: "packing", label: "Packing lists" },
   { value: "suppliers", label: "Proveedores" },
+  { value: "scorecard", label: "Scorecard" },
+  { value: "reclamos", label: "Reclamos" },
 ];
 
 export function ProveedoresClient({
@@ -79,6 +95,9 @@ export function ProveedoresClient({
   serviceRequests,
   packingLists,
   disabledShareIds,
+  scorecards,
+  claims,
+  scorecardStats,
 }: {
   stats: PrealertaStats;
   prealertas: Prealerta[];
@@ -91,6 +110,12 @@ export function ProveedoresClient({
   packingLists: PackingListSubmission[];
   /** IDs de prealertas con el link del proveedor DESACTIVADO (SDD-0096 · PORT-4). */
   disabledShareIds: string[];
+  /** Rating por ficha derivado en vivo (SDD-0111 · supplier_scorecard_v). */
+  scorecards: SupplierScorecard[];
+  /** Reclamos operativos al proveedor (SDD-0111 · supplier_claims). */
+  claims: SupplierClaimRow[];
+  /** KPIs del scorecard (SDD-0111). */
+  scorecardStats: SupplierScorecardStats;
 }) {
   const disabledShareSet = useMemo(
     () => new Set(disabledShareIds),
@@ -123,6 +148,18 @@ export function ProveedoresClient({
   );
 
   const incomingCount = stats.byStatus.anunciada + stats.byStatus.en_camino;
+
+  // Opciones de proveedor para el drawer de reclamo (desde el scorecard).
+  const supplierOptions: SupplierOption[] = useMemo(
+    () =>
+      scorecards.map((s) => ({
+        supplier_cn_id: s.supplier_cn_id,
+        name: s.name,
+        supplier_seq: s.supplier_seq,
+        client_markbox: s.client_markbox,
+      })),
+    [scorecards],
+  );
 
   return (
     <div style={{ maxWidth: 1280 }}>
@@ -225,7 +262,11 @@ export function ProveedoresClient({
                 ? prealertas.length
                 : tDef.value === "packing"
                   ? packingLists.length
-                  : suppliers.length;
+                  : tDef.value === "suppliers"
+                    ? suppliers.length
+                    : tDef.value === "scorecard"
+                      ? scorecards.length
+                      : claims.length;
           const alert = tDef.value === "services" && pendingServices > 0;
           return (
             <button
@@ -290,6 +331,18 @@ export function ProveedoresClient({
       )}
 
       {tab === "suppliers" && <SuppliersTab suppliers={suppliers} />}
+
+      {tab === "scorecard" && (
+        <ScorecardTab
+          scorecards={scorecards}
+          claims={claims}
+          stats={scorecardStats}
+        />
+      )}
+
+      {tab === "reclamos" && (
+        <ReclamosTab claims={claims} suppliers={supplierOptions} />
+      )}
     </div>
   );
 }
