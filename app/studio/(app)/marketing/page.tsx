@@ -12,7 +12,8 @@
  *  - Grid de navegación del módulo (HUB · Calendario · Motor de Noticias ·
  *    Academia · Comunidad) — HUB/Calendario son rutas internas placeholder;
  *    Motor/Academia/Comunidad enlazan a sus módulos existentes.
- *  - "Reportar fricción" → semilla de la cola de automatización para Sam.
+ *  - "Reportar fricción" (SDD-0119 Slice 1) → form real + mini-bandeja del
+ *    tenant. <FrictionReportsPanel> (client) + listFrictionReports (server).
  *
  * Guard: requireModuleView("marketing") (RBAC SDD-0085). Datos del usuario
  * server-fetched; el saludo reusa el patrón del dashboard operativo.
@@ -23,6 +24,8 @@ import { createClient } from "@/lib/db/server";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 import { Icon, type IconName } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { listFrictionReports } from "@/lib/studio/marketing/friction-queries";
+import { FrictionReportsPanel } from "./_components/FrictionReportsPanel";
 
 export const metadata = { title: "Marketing · DTD Studio" };
 export const dynamic = "force-dynamic";
@@ -117,10 +120,21 @@ const SECTIONS: Section[] = [
 ];
 
 export default async function MarketingPage() {
-  await requireModuleView("marketing");
+  const role = await requireModuleView("marketing");
 
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
+  const { data: tenantRow } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .is("disabled_at", null)
+    .limit(1)
+    .maybeSingle<{ tenant_id: string }>();
+
+  const tenantId = tenantRow?.tenant_id ?? null;
+  const frictionReports = tenantId
+    ? await listFrictionReports(supabase, tenantId)
+    : [];
 
   const now = new Date();
   const firstName = firstNameFromUser(
@@ -284,56 +298,12 @@ export default async function MarketingPage() {
         </div>
       </section>
 
-      {/* Reportar fricción */}
-      <section>
-        <h2 className="studio-eyebrow" style={{ margin: "0 0 var(--s-3)" }}>
-          Automatización
-        </h2>
-        <div
-          style={{
-            border: "1px solid var(--border)",
-            borderRadius: 14,
-            padding: "20px 22px",
-            background: "var(--bg-surface)",
-            display: "flex",
-            alignItems: "center",
-            gap: 16,
-          }}
-        >
-          <span style={{ color: "var(--wine-text)", flexShrink: 0 }}>
-            {Icon.spark(22)}
-          </span>
-          <div style={{ flex: 1 }}>
-            <p
-              style={{
-                font: "600 14px/1.4 var(--f-sans)",
-                color: "var(--ink)",
-                margin: "0 0 var(--s-1)",
-              }}
-            >
-              ¿Algo te quita tiempo?
-            </p>
-            <p
-              style={{
-                font: "400 13px/1.5 var(--f-sans)",
-                color: "var(--ink-soft)",
-                margin: 0,
-                maxWidth: "64ch",
-              }}
-            >
-              Reporta lo que sea repetitivo o que no te gusta hacer (edición,
-              montaje). Entra a la cola de automatización con IA del ERP. Por
-              ahora, anótalo en la sesión semanal con Sam.
-            </p>
-          </div>
-          <span
-            className="studio-eyebrow"
-            style={{ fontSize: 10, color: "var(--ink-soft)", flexShrink: 0 }}
-          >
-            Próximamente
-          </span>
-        </div>
-      </section>
+      {/* Reportar fricción (SDD-0119 Slice 1) */}
+      <FrictionReportsPanel
+        reports={frictionReports}
+        currentUserId={userResp.user?.id ?? null}
+        isAdmin={role === "admin"}
+      />
     </div>
   );
 }
