@@ -1,10 +1,10 @@
 ---
 sdd: "0114"
 title: "Dashboard configurable + persistencia de preferencias por usuario"
-status: draft
+status: done
 author: "Claude Code (redactor · ventana secundaria) + founder"
 created: 2026-06-26
-updated: 2026-06-26
+updated: 2026-07-14
 supersedes: null
 superseded_by: null
 related: ["0014", "0020", "0047", "0052", "0085", "0103", "0104", "0105"]

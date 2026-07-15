@@ -146,7 +146,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0110 | Cablear el posting contable del Financiero con el Socio Logís… | done | confidencial |
 | 0111 | Scorecard de proveedores — captura de desempeño + reclamo al … | draft | interno |
 | 0113 | Onboarding y app self-service del empleado — invites + regist… | done | interno |
-| 0114 | Dashboard configurable + persistencia de preferencias por usu… | draft | interno |
+| 0114 | Dashboard configurable + persistencia de preferencias por usu… | done | interno |
 | 0115 | Financiero China Slice C — forex como revenue · claim offsets… | done | confidencial |
 | 0116 | Club DTD — membresía recurrente + compra grupal (consolidació… | in-progress | interno |
 | 0117 | Recibo y finiquito en PDF server-side (@react-pdf/renderer) —… | done | interno |
