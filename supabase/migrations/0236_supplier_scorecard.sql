@@ -367,41 +367,32 @@ pct as (
     case when b.orders_count > 0 then round(100.0 * b.conforming_count / b.orders_count, 2) end as quality_pct,
     case when b.orders_count > 0 then round(100.0 * b.claims_count     / b.orders_count, 2) end as defect_pct
   from base b
+),
+-- Score calculado UNA sola vez (evita que score y grade diverjan si se edita
+-- la fórmula en un solo sitio). El grade se DERIVA de este score.
+scored as (
+  select
+    p.*,
+    case
+      when p.orders_count > 0 then
+        round(
+          coalesce(p.on_time_pct, 0) * 0.40
+        + coalesce(p.quality_pct, 0) * 0.40
+        + greatest(0, 100 - coalesce(p.defect_pct, 0) * 6) * 0.20
+        )::int
+    end as score
+  from pct p
 )
 select
-  p.*,
+  sc.*,
   case
-    when p.orders_count > 0 then
-      round(
-        coalesce(p.on_time_pct, 0) * 0.40
-      + coalesce(p.quality_pct, 0) * 0.40
-      + greatest(0, 100 - coalesce(p.defect_pct, 0) * 6) * 0.20
-      )::int
-  end as score,
-  case
-    when p.orders_count = 0 then null
-    else (
-      case
-        when round(
-               coalesce(p.on_time_pct, 0) * 0.40
-             + coalesce(p.quality_pct, 0) * 0.40
-             + greatest(0, 100 - coalesce(p.defect_pct, 0) * 6) * 0.20
-             ) >= 90 then 'A'
-        when round(
-               coalesce(p.on_time_pct, 0) * 0.40
-             + coalesce(p.quality_pct, 0) * 0.40
-             + greatest(0, 100 - coalesce(p.defect_pct, 0) * 6) * 0.20
-             ) >= 82 then 'B'
-        when round(
-               coalesce(p.on_time_pct, 0) * 0.40
-             + coalesce(p.quality_pct, 0) * 0.40
-             + greatest(0, 100 - coalesce(p.defect_pct, 0) * 6) * 0.20
-             ) >= 72 then 'C'
-        else 'D'
-      end
-    )
+    when sc.score is null then null   -- orders_count = 0 → "Sin datos"
+    when sc.score >= 90 then 'A'
+    when sc.score >= 82 then 'B'
+    when sc.score >= 72 then 'C'
+    else 'D'
   end as grade
-from pct p;
+from scored sc;
 
 comment on view public.supplier_scorecard_v is
   'SDD-0111: rating derivado por FICHA de proveedor (§6.4). score/grade A/B/C/D calculados EN VIVO desde supplier_order_signals + supplier_claims (§6.5, sin snapshot). Fórmula espejo de computeScore/computeGrade (scorecard-types.ts). grade NULL cuando orders_count=0 ("Sin datos"). security_invoker → RLS por tenant.';

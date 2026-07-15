@@ -11,12 +11,10 @@
  */
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
-import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import {
   gradeBadgeTone,
@@ -30,7 +28,7 @@ import type {
   SupplierScorecard,
   SupplierScorecardStats,
 } from "@/lib/studio/proveedores/scorecard-queries";
-import { createOrderSignalAction } from "../scorecard-actions";
+import { OrderSignalDrawer } from "./OrderSignalDrawer";
 
 const GRID = "minmax(160px,1.4fr) 1fr 70px 78px 78px 82px 96px";
 
@@ -454,23 +452,24 @@ function ScorecardDetailDrawer({
           )}
         </div>
 
-        {capturing ? (
-          <SignalCaptureForm
-            supplierCnId={card.supplier_cn_id}
-            clientMarkbox={card.client_markbox}
-            onClose={() => setCapturing(false)}
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setCapturing(true)}
-            className="studio-btn studio-btn-primary"
-            style={{ alignSelf: "flex-start" }}
-          >
-            + Registrar recepción
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => setCapturing(true)}
+          className="studio-btn studio-btn-primary"
+          style={{ alignSelf: "flex-start" }}
+        >
+          + Registrar recepción
+        </button>
       </div>
+
+      {capturing && (
+        <OrderSignalDrawer
+          supplierCnId={card.supplier_cn_id}
+          supplierName={card.name}
+          clientMarkbox={card.client_markbox}
+          onClose={() => setCapturing(false)}
+        />
+      )}
     </DrawerShell>
   );
 }
@@ -514,188 +513,6 @@ function MetricBar({
         <div style={{ width: `${width}%`, height: "100%", background: tone }} />
       </div>
     </div>
-  );
-}
-
-/** Captura de una señal de recepción (on-time / conforme) para la ficha. */
-function SignalCaptureForm({
-  supplierCnId,
-  clientMarkbox,
-  onClose,
-}: {
-  supplierCnId: string;
-  clientMarkbox: string;
-  onClose: () => void;
-}) {
-  const router = useRouter();
-  const toast = useToast();
-  const [onTime, setOnTime] = useState(true);
-  const [conforming, setConforming] = useState(true);
-  const [expectedAt, setExpectedAt] = useState("");
-  const [receivedAt, setReceivedAt] = useState("");
-  const [notes, setNotes] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-
-  const submit = async () => {
-    if (pending) return;
-    setError(null);
-    setPending(true);
-    const r = await createOrderSignalAction({
-      supplierCnId,
-      clientMarkbox: clientMarkbox || null,
-      onTime,
-      conforming,
-      expectedAt: expectedAt || null,
-      receivedAt: receivedAt || null,
-      notes: notes.trim() || null,
-    });
-    setPending(false);
-    if (r.error) {
-      setError(r.error);
-      return;
-    }
-    if (r.fieldErrors) {
-      setError(Object.values(r.fieldErrors)[0] ?? "Revisa los datos.");
-      return;
-    }
-    toast.success("Recepción registrada");
-    onClose();
-    router.refresh();
-  };
-
-  return (
-    <div
-      style={{
-        padding: "14px 16px",
-        background: "var(--bg-elevated)",
-        borderRadius: "var(--r-md)",
-        border: "1px solid var(--border)",
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-      }}
-    >
-      <div style={{ font: "700 12px/1 var(--f-sans)", color: "var(--ink)" }}>
-        Registrar recepción
-      </div>
-      {error && (
-        <p
-          role="alert"
-          style={{
-            font: "500 11.5px/1.4 var(--f-sans)",
-            color: "var(--danger)",
-            margin: 0,
-          }}
-        >
-          {error}
-        </p>
-      )}
-
-      <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-        <Toggle
-          label="Llegó a tiempo"
-          checked={onTime}
-          onChange={setOnTime}
-        />
-        <Toggle
-          label="Conforme a lo pedido"
-          checked={conforming}
-          onChange={setConforming}
-        />
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        <div>
-          <label className="studio-label" htmlFor="sig-expected">
-            Fecha prometida{" "}
-            <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
-          </label>
-          <input
-            id="sig-expected"
-            type="date"
-            className="studio-input"
-            value={expectedAt}
-            onChange={(e) => setExpectedAt(e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="studio-label" htmlFor="sig-received">
-            Fecha de recepción{" "}
-            <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
-          </label>
-          <input
-            id="sig-received"
-            type="date"
-            className="studio-input"
-            value={receivedAt}
-            onChange={(e) => setReceivedAt(e.target.value)}
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="studio-label" htmlFor="sig-notes">
-          Nota <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
-        </label>
-        <input
-          id="sig-notes"
-          type="text"
-          className="studio-input"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-        />
-      </div>
-
-      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-        <button
-          type="button"
-          onClick={onClose}
-          className="studio-btn studio-btn-ghost"
-          disabled={pending}
-        >
-          Cancelar
-        </button>
-        <button
-          type="button"
-          onClick={submit}
-          className="studio-btn studio-btn-primary"
-          disabled={pending}
-        >
-          {pending ? "Guardando…" : "Guardar recepción"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function Toggle({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <label
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 8,
-        cursor: "pointer",
-        font: "500 12px/1 var(--f-sans)",
-        color: "var(--ink)",
-      }}
-    >
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-      {label}
-    </label>
   );
 }
 

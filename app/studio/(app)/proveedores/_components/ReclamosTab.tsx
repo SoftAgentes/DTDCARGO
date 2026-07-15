@@ -13,6 +13,7 @@ import {
   supplierClaimKindLabel,
   supplierClaimStatusLabel,
   supplierClaimStatusTone,
+  type SupplierClaimStatus,
 } from "@/lib/studio/proveedores/scorecard-types";
 import type { SupplierClaimRow } from "@/lib/studio/proveedores/scorecard-queries";
 import {
@@ -21,6 +22,24 @@ import {
 } from "./SupplierClaimDrawer";
 
 const GRID = "128px minmax(140px,1.3fr) 96px 96px 96px 120px";
+
+// Filtros por estado (chips + contador). "abiertos" = abierto + en_revision.
+type ClaimFilter = "todos" | "abiertos" | SupplierClaimStatus;
+const CLAIM_FILTERS: { value: ClaimFilter; label: string }[] = [
+  { value: "todos", label: "Todos" },
+  { value: "abiertos", label: "Abiertos" },
+  { value: "abierto", label: "Abierto" },
+  { value: "en_revision", label: "En revisión" },
+  { value: "resuelto", label: "Resuelto" },
+  { value: "rechazado", label: "Rechazado" },
+];
+
+function matchesClaimFilter(c: SupplierClaimRow, f: ClaimFilter): boolean {
+  if (f === "todos") return true;
+  if (f === "abiertos")
+    return c.status === "abierto" || c.status === "en_revision";
+  return c.status === f;
+}
 
 function shortDate(iso: string): string {
   const d = new Date(iso);
@@ -40,19 +59,30 @@ export function ReclamosTab({
   suppliers: SupplierOption[];
 }) {
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<ClaimFilter>("todos");
   const [drawer, setDrawer] = useState<"new" | SupplierClaimRow | null>(null);
+
+  const counts = useMemo(() => {
+    const m = {} as Record<ClaimFilter, number>;
+    for (const f of CLAIM_FILTERS) {
+      m[f.value] = claims.filter((c) => matchesClaimFilter(c, f.value)).length;
+    }
+    return m;
+  }, [claims]);
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return claims;
-    return claims.filter(
-      (c) =>
+    return claims.filter((c) => {
+      if (!matchesClaimFilter(c, statusFilter)) return false;
+      if (!q) return true;
+      return (
         c.claim_code.toLowerCase().includes(q) ||
         (c.supplier_name ?? "").toLowerCase().includes(q) ||
         (c.client_markbox ?? "").toLowerCase().includes(q) ||
-        c.description.toLowerCase().includes(q),
-    );
-  }, [claims, search]);
+        c.description.toLowerCase().includes(q)
+      );
+    });
+  }, [claims, search, statusFilter]);
 
   return (
     <>
@@ -113,6 +143,42 @@ export function ReclamosTab({
         </button>
       </div>
 
+      {/* Filtros por estado (chips + contador) */}
+      {claims.length > 0 && (
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            flexWrap: "wrap",
+            marginBottom: "var(--s-3)",
+          }}
+        >
+          {CLAIM_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              onClick={() => setStatusFilter(f.value)}
+              className={
+                statusFilter === f.value
+                  ? "studio-btn studio-btn-dark studio-btn-xs"
+                  : "studio-btn studio-btn-ghost studio-btn-xs"
+              }
+            >
+              {f.label}
+              <span
+                style={{
+                  marginLeft: 6,
+                  font: "700 10px/1 var(--f-mono)",
+                  opacity: 0.7,
+                }}
+              >
+                {counts[f.value]}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {claims.length === 0 ? (
         <EmptyState
           eyebrow="Sin reclamos"
@@ -122,8 +188,8 @@ export function ReclamosTab({
       ) : rows.length === 0 ? (
         <EmptyState
           eyebrow="Sin resultados"
-          title="Nada coincide con tu búsqueda."
-          description="Prueba con el código del reclamo, el proveedor o el Shipping Mark del cliente."
+          title="Nada coincide con el filtro o la búsqueda."
+          description="Cambia el estado seleccionado o prueba con el código del reclamo, el proveedor o el Shipping Mark del cliente."
         />
       ) : (
         <TableShell>

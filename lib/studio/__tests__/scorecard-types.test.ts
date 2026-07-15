@@ -21,7 +21,9 @@ import {
   isTerminalSupplierClaimStatus,
   validateSupplierClaimInput,
   validateOrderSignalInput,
+  SUPPLIER_CLAIM_STATUSES,
 } from "../proveedores/scorecard-types";
+import { supplierScorecardStats } from "../proveedores/scorecard-queries";
 
 // ── Réplica EXACTA de la fórmula del Norte (scorecard.js) ────────
 function norteScore(s: { onTime: number; quality: number; defect: number }) {
@@ -126,6 +128,32 @@ describe("computeScorecard — derivación desde conteos + sin datos", () => {
     expect(r.score).toBe(100);
     expect(r.grade).toBe("A");
   });
+
+  it("señales PARCIALES (algunas no on-time / no conformes) → D", () => {
+    // 4 órdenes: 3 a tiempo (75%), 2 conformes (50%), 0 reclamos (0% defecto).
+    const r = computeScorecard({
+      ordersCount: 4,
+      onTimeCount: 3,
+      conformingCount: 2,
+      claimsCount: 0,
+    });
+    expect(r.onTimePct).toBe(75);
+    expect(r.qualityPct).toBe(50);
+    expect(r.defectPct).toBe(0);
+    expect(r.score).toBe(computeScore(75, 50, 0)); // 30 + 20 + 20 = 70
+    expect(r.grade).toBe("D"); // 70 < 72
+  });
+});
+
+describe("supplierScorecardStats — KPIs agregados", () => {
+  it("lista VACÍA → contadores 0 y promedios null", () => {
+    expect(supplierScorecardStats([])).toEqual({
+      supplierCount: 0,
+      avgScore: null,
+      avgOnTime: null,
+      openClaims: 0,
+    });
+  });
 });
 
 describe("gradeBadgeTone — mapeo Norte → tonos del Studio", () => {
@@ -148,6 +176,12 @@ describe("máquina de estados del reclamo", () => {
   it("en_revision puede resolver o rechazar", () => {
     expect(canTransitionSupplierClaim("en_revision", "resuelto")).toBe(true);
     expect(canTransitionSupplierClaim("en_revision", "rechazado")).toBe(true);
+  });
+
+  it("ningún estado auto-transiciona (from === to siempre false)", () => {
+    for (const s of SUPPLIER_CLAIM_STATUSES) {
+      expect(canTransitionSupplierClaim(s, s)).toBe(false);
+    }
   });
 
   it("terminales solo reabren", () => {
