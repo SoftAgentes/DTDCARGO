@@ -158,8 +158,17 @@ export type ApplicableInvoice = {
  */
 export function toCalendarDay(v: string | null | undefined): string | null {
   if (!v) return null;
-  const day = v.slice(0, 10);
-  return /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : null;
+  // Se parsea y se re-serializa en UTC en vez de recortar el string crudo: el
+  // offset con que PostgREST serializa un timestamptz NO es propiedad del tipo,
+  // sale del TimeZone del rol (hoy UTC por default de Supabase). Si alguien pusiera
+  // el rol en America/Caracas, accredited_at llegaría "2026-06-01T22:00:00-04:00"
+  // (= 2026-06-02 UTC) y un slice daría el día VE, mientras issued_at sigue en día
+  // UTC (se escribe con toISOString().slice(0,10)) → los dos lados en husos
+  // distintos y la regla corrida un día, en silencio. Con Date el `date` desnudo
+  // ("2026-07-01") también se lee como medianoche UTC → mismo resultado.
+  const t = Date.parse(v);
+  if (Number.isNaN(t)) return null;
+  return new Date(t).toISOString().slice(0, 10);
 }
 
 /**
@@ -243,5 +252,12 @@ export async function applicableInvoicesForReferrer(
         issued_at: (r.issued_at as string | null) ?? null,
       };
     })
+    // Post-filtro con el MISMO helper que usa la action. El .gte() de arriba ya
+    // acota en la DB (barato, aprovecha el índice), pero eso es la regla
+    // REIMPLEMENTADA en SQL: convergen por coincidencia de semántica, no por
+    // construcción. Pasar el resultado por el helper hace que "fuente única" sea
+    // literal — si las dos alguna vez discrepan, gana el helper y el picker jamás
+    // ofrece algo que la action vaya a rechazar (el callejón sin salida de la UI).
+    .filter((inv) => isPurchaseAfterCredit(inv.issued_at, accreditedAt))
     .filter((inv) => inv.balance >= min);
 }

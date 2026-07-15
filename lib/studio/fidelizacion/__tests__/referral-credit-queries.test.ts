@@ -10,7 +10,7 @@
  * + resolución como promise (then).
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   applicableInvoicesForReferrer,
@@ -22,6 +22,12 @@ import {
 
 /** Filtros que el stub vio en la última query (para afirmar sobre ellos). */
 let lastFilters: { op: string; col: string; val: unknown }[] = [];
+
+// Reset global: era module-level con reset a mano dentro de 2 tests → un test nuevo
+// que afirmara sin resetear heredaba basura y podía dar falso verde.
+beforeEach(() => {
+  lastFilters = [];
+});
 
 function stub(rowsByTable: Record<string, Record<string, unknown>[] | Record<string, unknown> | null>): SupabaseClient {
   return {
@@ -256,7 +262,6 @@ describe("applicableInvoicesForReferrer · corte por fecha (el picker)", () => {
   ];
 
   it("manda el corte a la DB como DÍA (no el timestamptz crudo) → picker y action coinciden", async () => {
-    lastFilters = [];
     const client = stub({ invoices: rows });
     await applicableInvoicesForReferrer(client, "DTD-5452", 80, "2026-01-01T09:30:00+00:00");
 
@@ -267,8 +272,23 @@ describe("applicableInvoicesForReferrer · corte por fecha (el picker)", () => {
     expect(gte!.val).toBe("2026-01-01");
   });
 
+  it("EXCLUYE del RESULTADO una factura anterior al crédito (no solo del filtro SQL)", async () => {
+    // El stub NO filtra: devuelve todo, como haría una DB que ignorara el .gte().
+    // Así se prueba que el picker no depende SOLO del SQL — el post-filtro con el
+    // helper compartido es lo que garantiza que jamás ofrezca algo que la action
+    // después rechace.
+    const client = stub({
+      invoices: [
+        { id: "vieja", invoice_code: "F-VIEJA", client_markbox: "DTD-5452", currency: "USD", total_amount: 500, paid_amount: 0, status: "emitida", issued_at: "2025-12-01" },
+        { id: "nueva", invoice_code: "F-NUEVA", client_markbox: "DTD-5452", currency: "USD", total_amount: 500, paid_amount: 0, status: "emitida", issued_at: "2026-02-01" },
+      ],
+    });
+    const res = await applicableInvoicesForReferrer(client, "DTD-5452", 80, ACCREDITED);
+
+    expect(res.map((i) => i.invoice_code)).toEqual(["F-NUEVA"]);
+  });
+
   it("sin fecha de acreditación → [] y NI SIQUIERA consulta (fail-closed)", async () => {
-    lastFilters = [];
     const client = stub({ invoices: rows });
     const res = await applicableInvoicesForReferrer(client, "DTD-5452", 80, null);
 

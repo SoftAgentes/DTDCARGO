@@ -60,13 +60,25 @@ create trigger referrals_seal_accredited_at_trg
   before insert or update on public.referrals
   for each row execute function public.referrals_seal_accredited_at();
 
--- Backfill defensivo. En prod es NO-OP (referrals está vacía al 2026-07-15,
--- verificado), pero deja la migración correcta en cualquier entorno con filas.
--- updated_at es el mejor proxy disponible para créditos ya acreditados; para los
--- 'aplicado' queda tirando a tarde (updated_at refleja la aplicación, no la
--- acreditación) — aceptable: un ancla tardía es CONSERVADORA (rechaza de más,
--- nunca deja pasar deuda vieja), que es el lado seguro para dinero.
-update public.referrals
-   set accredited_at = updated_at
- where accredited_at is null
-   and status::text in ('acreditado', 'aplicado');
+-- SIN BACKFILL, a propósito.
+--
+-- El borrador de esta migración backfilleaba `accredited_at = updated_at` para los
+-- créditos ya acreditados/aplicados. Se descartó por tres razones, en orden:
+--
+-- 1. Es innecesario: `referrals` está VACÍA en prod (0 filas, verificado
+--    2026-07-15). No hay nada que backfillear.
+-- 2. Escribiría dato FALSO en los 'aplicado': ahí `updated_at` es el momento de la
+--    APLICACIÓN, no de la acreditación. Ancla tardía = si ese crédito se revierte
+--    (revertReferralCreditsForInvoice), queda inaplicable a la misma factura donde
+--    ya había estado. $80 del cliente evaporados en silencio. Y no habría forma de
+--    distinguir un accredited_at sellado de uno inventado por el backfill.
+-- 3. Se pisaría su propia fuente: `referrals_touch` (0098) es BEFORE UPDATE y
+--    fuerza updated_at = now(), así que el UPDATE del backfill destruiría el
+--    updated_at de cada fila — el único dato con el que se podría recomputar si
+--    saliera mal. Puerta de una sola vía.
+--
+-- Consecuencia: los referrals PREEXISTENTES (si aparecieran en otro entorno) quedan
+-- con accredited_at NULL → `isPurchaseAfterCredit` devuelve false → su crédito no se
+-- puede aplicar hasta que se re-acredite. Fail-closed y REVERSIBLE (se arregla con
+-- un UPDATE puntual y auditado), que es lo correcto para dinero: mejor pedir una
+-- acción manual que sembrar una fecha inventada que nadie puede detectar después.
