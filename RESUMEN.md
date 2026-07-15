@@ -1,73 +1,98 @@
-# SDD-0114 · Dashboard configurable — Lane PRAGMÁTICO (forja3)
+# SDD-0111 · Scorecard de proveedores — lane FIEL (f1)
 
-Slices **A + B + C** implementados. Slice D (dashboards por rol) fuera de alcance.
-`node scripts/verify.mjs` → **TODO VERDE** (lint · rsc-boundary · typecheck · test · docs:check · e2e).
+Rama `feat/scorecard-f1`. Gate `node scripts/verify.mjs` → **TODO VERDE**
+(lint · rsc-boundary · typecheck · test · docs:check · e2e). El e2e cayó flaky
+en el 1er intento y pasó en el retry (warmup del dev server, no regresión).
 
-## Slice A — Persistencia + catálogo
-- **Migración** `supabase/migrations/0233_user_dashboard_prefs.sql` (NO aplicada — la aplica el founder):
-  tabla `user_dashboard_prefs` (jsonb `config`, `unique(tenant_id,user_id)`), RLS `for all` por
-  **dueño + tenant** (`user_id = auth.uid()` ∧ tenant ∈ `user_tenants`), trigger `touch_updated_at`,
-  grants a `authenticated`. Sin DDL destructivo, sin tabla polimórfica.
-- **Catálogo** `lib/studio/dashboard/dashboard-catalog.ts`: `KPI_CATALOG` (18 KPIs) + `WIDGET_CATALOG`
-  (7 widgets) + `DEFAULT_CONFIG` + `MAX_KPIS=12` + `CHART_PERIODS`. Cada KPI trae `module` (RBAC),
-  `source` (bundle de datos) y `status` (`ready`|`wip`). `onTime`/`avgTransit` = `wip` → muestran `—` (D-7).
-- **Tipos + validación** `lib/studio/dashboard/dashboard-types.ts`: `DashboardConfig` +
-  `validateDashboardConfigInput(raw, canAccess)` (manual, **sin Zod**): descarta ids fuera del catálogo,
-  descarta ids de módulos no accesibles (RBAC como predicado inyectado), deduplica preservando orden,
-  capa a `MAX_KPIS`, normaliza `chartPeriod`. + `defaultConfigForAccess`, `accessibleCatalog`, `isEmptyConfig`.
-- **Query** `lib/studio/dashboard/dashboard-prefs-queries.ts`: `getDashboardConfig(supabase, userId)`
-  devuelve el jsonb crudo o null (nunca lanza).
-- **Server Actions** `app/studio/(app)/dashboard/actions.ts`: `saveDashboardConfigAction` (upsert
-  `onConflict tenant_id,user_id`, re-valida con RBAC antes de persistir) + `resetDashboardConfigAction`
-  (borra la fila → vuelve al default filtrado).
+## Qué implementé, por slice
 
-## Slice B — Render configurable + editor
-- `app/studio/(app)/dashboard/page.tsx` reescrito: resuelve rol+tenant, lee la config (DB manda),
-  fetchea **en paralelo solo los bundles de módulos accesibles**, arma `kpiValues` + data de widgets,
-  y delega al cliente. Mantiene el header (saludo VE por hora).
-- `_components/DashboardClient.tsx` (`"use client"`): estado optimista (localStorage write-through +
-  autosave DEBOUNCED 650 ms vía `useActionState`), grid de KPIs (`KpiCard`), grid de widgets 2fr/1fr con
-  colapso cuando una columna queda vacía, indicador "Guardando…/Guardado ✓", empty state, editor.
-- `_components/DashboardEditorDrawer.tsx`: sobre `DrawerShell`, 2 tabs (KPIs con **drag-to-reorder** +
-  agregar/quitar por categoría; Widgets con switches por columna), **Restaurar defaults con confirmación
-  inline** (sin `window.confirm`), tope de 12 KPIs con aviso. Solo ofrece catálogo accesible (RBAC).
-- `_components/DashboardWidgets.tsx`: `ChartWidget` (SVG de CBM/mes con selector de período persistente),
-  `ActiveShipmentsWidget`, `UpcomingEtaWidget`, `AlertsWidget`, `QuickActionsWidget`, `NominaResumenWidget`.
-  Reusa `RecentActivityCard` existente para el widget de actividad.
+### Slice A — señales + scorecard (rating derivado por ficha)
+- **Migración `supabase/migrations/0236_supplier_scorecard.sql`** (TODO el DDL acá):
+  - Tabla `supplier_order_signals` (una fila por OC recibida / señal manual):
+    `on_time` + `conforming` booleanos atómicos, `expected_at`/`received_at`
+    opcionales para auditar, índice único parcial `(tenant_id, purchase_order_id)`.
+  - **VIEW `supplier_scorecard_v`** con `security_invoker = on` (RLS del usuario
+    aplica): score + grade A/B/C/D **por FICHA** de `suppliers_cn`, calculada en
+    vivo desde señales + reclamos. `grade NULL` cuando `orders_count = 0`
+    ("Sin datos", evita el 'D' por división por cero).
+  - Helpers `supplier_cn_in_tenant()` + `purchase_order_in_tenant()` (NULL-safe)
+    + triggers same-tenant + GRANTS explícitos (antes de policy) + RLS por tenant
+    + FK indexes.
+- `lib/studio/proveedores/scorecard-types.ts`: `computeScore`/`computeGrade`/
+  `computeScorecard`/`gradeBadgeTone` (fórmula **espejo exacto** de la VIEW),
+  `validateOrderSignalInput` manual (sin Zod).
+- `lib/studio/proveedores/scorecard-queries.ts`: `listSupplierScorecards`,
+  `getSupplierScorecard`, `supplierScorecardStats` (KPIs). Degradan a vacío si la
+  migración aún no está aplicada (42P01) para no tumbar la página del módulo.
+- UI: **tab "Scorecard"** (KPIs + tabla rankeada por grade + detalle con barras
+  de puntualidad/calidad/rechazo + captura de señal de recepción).
 
-## Slice C — KPIs financieros / nómina cableados
-- `lib/studio/dashboard/dashboard-kpi-queries.ts`:
-  - `financeInvoiceKpis` (1 pasada sobre `invoices`) → `monthRevenue`, `invoicesDue`, `pendingCollect`, `avgTicket`.
-  - `marginKpi` → `costingRows` + `costingTotals().avgMarginPct`.
-  - `nominaKpis` → empleados activos, saldo de préstamos, neto del corte vivo, ausencias del mes.
-  - `leadsKpi` → conteo de `kommo_leads`.
-- `lib/studio/dashboard/dashboard-widget-queries.ts`: `getActiveShipmentsPreview` + `getMonthlyVolume`
-  (CBM real por mes, 12 buckets).
-- Gating por RBAC: un usuario sin Finanzas/Nómina no dispara esas queries **ni** ve esos KPIs/widget (D-5, D-8).
+### Slice B — reclamo al proveedor
+- En el MISMO 0236: enums `supplier_claim_kind` (`dano|faltante|calidad|retraso|otro`)
+  + `supplier_claim_status` (`abierto|en_revision|resuelto|rechazado`), tabla
+  `supplier_claims` (soft delete, `amount_usd` advisory, `offset_id` FK suave sin
+  constraint), **RPC `next_supplier_claim_code`** (`RP-YYYY-NNN`, `assert_tenant_match`,
+  revoke public/anon), trigger same-tenant + sellado de `resolved_at`.
+- Types: máquina de estados (`nextSupplierClaimStatuses`/`canTransitionSupplierClaim`),
+  labels/tonos, `validateSupplierClaimInput` manual.
+- Queries: `listSupplierClaims` (join nombre proveedor + código OC).
+- UI: **tab "Reclamos"** (tabla + `SupplierClaimDrawer` sobre `DrawerShell` con
+  stepper de estado + `ActionButton` para avanzar).
 
-## Tests
-- `lib/studio/dashboard/dashboard-types.test.ts` (13 casos): descarte de ids inválidos, filtro RBAC,
-  tope MAX_KPIS, dedupe, normalización de período, entrada corrupta sin romper, default/catálogo filtrados,
-  `money()`. Cubren los criterios de aceptación de la spec (config corrupta, RBAC, tope).
+### Server actions (`app/studio/(app)/proveedores/scorecard-actions.ts`)
+`createOrderSignalAction`, `createSupplierClaimAction`, `updateSupplierClaimAction`,
+`advanceSupplierClaimAction` — todas `"use server"` + `moduleEditDenial(supabase,
+"suppliers")` llamado de verdad + validación manual + tenant desde `user_tenants`
++ `revalidatePath`. El avance de estado usa update condicional por estado actual
+(anti-carrera).
 
-## Tests ajustados (re-anclaje, NO debilitados)
-- `lib/studio/rbac-actions-guard.test.ts`: agregada `dashboard/actions.ts` a la ALLOWLIST (mecanismo
-  previsto por el propio test) — el usuario edita SU config (RLS por dueño), no datos de negocio; además
-  la action filtra ids con `canAccessModule` antes de persistir.
-- `app/studio/(app)/cotizador/__tests__/fase-c-rename.test.ts` (SDD-0061): el KPI "Estimados" dejó de ser
-  literal en `page.tsx` (ahora vive en el catálogo). Se re-ancló el invariante al catálogo + la card,
-  con la MISMA garantía (usar "Estimados", nunca "Cotizaciones"). No se debilitó ningún assert.
+## Decisiones §6 tomadas
+- **§6.4 (founder): scorecard POR FICHA** de `suppliers_cn` — la VIEW recorre
+  cada fila `suppliers_cn` viva; NO consolida por identidad. Sin maestro de
+  proveedores.
+- **§6.5 (founder): VISTA EN VIVO** `supplier_scorecard_v` como fuente de verdad.
+  Sin tabla snapshot, sin cron.
+- **§6.2 (default más simple): default optimista** — `on_time`/`conforming`
+  arrancan `true`; el operador los baja al capturar la señal.
+- **§6.3: booleano juzgado por el operador**; `expected_at`/`received_at` quedan
+  opcionales para auditar. NO se toca 0124.
+- **§6.6: `last_grade` NO** (con la VIEW sobra).
+- **§6.7/§6.8: pesos y umbrales del Norte tal cual** (on-time 40% · calidad 40% ·
+  rechazo 20%; A≥90 B≥82 C≥72 D<72).
+- **§6.10: `amount_usd` advisory** (no genera asiento en V1).
+- `defect_pct` cuenta los reclamos **vivos** (no borrados, cualquier estado),
+  literal al §3 del spec.
+
+## Fórmula (un solo lugar lógico, dos archivos físicos: TS + SQL)
+```
+score = round(on_time% * 0.40 + calidad% * 0.40 + max(0, 100 - defecto% * 6) * 0.20)
+grade = score>=90 A · >=82 B · >=72 C · else D   (orders_count=0 → null "Sin datos")
+```
+Los tests verifican paridad con la fórmula del Norte sobre los 5 proveedores del
+mock: **s1=94/A · s2=94/A · s3=87/B · s4=90/A · s5=79/C**. Nota: el brief pedía
+"s5=D", pero por la propia fórmula del Norte s5 (78/85/5.4) da 79 → **C** (es el
+peor del mock, pero no cae en D). El test refleja la fórmula canónica, no un
+valor forzado.
+
+## Nota de módulo RBAC
+El brief menciona `moduleEditDenial(supabase,"proveedores")`. El id real del
+módulo que posee `/studio/proveedores` es **`"suppliers"`** (lib/studio/modules.ts,
+mismo id que usa `requireModuleView` y el `actions.ts` existente). Usé `"suppliers"`
+— pasar un id inexistente denegaría a todos los no-admin (canEditModule fail-closed).
+
+## Archivos
+- `supabase/migrations/0236_supplier_scorecard.sql` (nuevo)
+- `lib/studio/proveedores/scorecard-types.ts` (nuevo)
+- `lib/studio/proveedores/scorecard-queries.ts` (nuevo)
+- `lib/studio/__tests__/scorecard-types.test.ts` (nuevo · 22 tests)
+- `app/studio/(app)/proveedores/scorecard-actions.ts` (nuevo)
+- `app/studio/(app)/proveedores/_components/ScorecardTab.tsx` (nuevo)
+- `app/studio/(app)/proveedores/_components/ReclamosTab.tsx` (nuevo)
+- `app/studio/(app)/proveedores/_components/SupplierClaimDrawer.tsx` (nuevo)
+- `app/studio/(app)/proveedores/_components/ProveedoresClient.tsx` (2 tabs + props)
+- `app/studio/(app)/proveedores/page.tsx` (fetch scorecards + claims)
 
 ## Cómo lo verifiqué
-- `node scripts/verify.mjs` → TODO VERDE. Typecheck, 3490 tests, e2e (reusa dev server del worktree).
-
-## Pendientes / notas
-- La migración 0233 **no está aplicada** (la aplica el founder).
-- Secciones del dashboard viejo que ya NO se renderizan por diseño (layout fijo → configurable):
-  "Tu día" (Bitácora), "Adopción del portal", "Inteligencia" (AgenticHealthCard). Candidatas a sumarse
-  como KPIs/widgets del catálogo en una iteración futura (los componentes `AgenticHealthCard`,
-  `RecentQuotesCard` siguen en el repo, sin uso desde la page).
-- `cbmInTransit` se cablea al CBM suelto en Almacén CN (`navieraKpis.looseCbm`); un "CBM realmente en
-  tránsito marítimo" requeriría timestamps de hito por embarque (mismo motivo que `avgTransit` = wip).
-- Decisiones D-1..D-8 respetadas según el brief (tabla dedicada, 100% por usuario, tope 12, RBAC Finanzas,
-  sin modo ocultar-valores, wip = `—`, nómina gated).
+`node scripts/verify.mjs` → verde. Además: typecheck limpio, 22 tests de la
+fórmula/validadores/máquina de estados verdes, lint sin errores (0 en archivos
+nuevos), rsc-boundary OK. La migración **NO se aplicó** a prod.
