@@ -144,7 +144,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0108 | Combobox de cliente cédula-first (cotizador/tracking/embarques) | done | interno |
 | 0109 | Liquidación y finiquito de nómina (LOTTT) — prestaciones, vac… | done | interno |
 | 0110 | Cablear el posting contable del Financiero con el Socio Logís… | done | confidencial |
-| 0111 | Scorecard de proveedores — captura de desempeño + reclamo al … | draft | interno |
+| 0111 | Scorecard de proveedores — captura de desempeño + reclamo al … | done | interno |
 | 0113 | Onboarding y app self-service del empleado — invites + regist… | done | interno |
 | 0114 | Dashboard configurable + persistencia de preferencias por usu… | done | interno |
 | 0115 | Financiero China Slice C — forex como revenue · claim offsets… | done | confidencial |
@@ -168,8 +168,8 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0133 | Cut-off / calendario de zarpes en el portal | in-progress | interno |
 | 0134 | Reportar pago + comprobante en el portal | in-progress | interno |
 | 0135 | Buscador global ⌘K del Studio — permission-aware, gating por … | done | interno |
-| 0136 | Gestión de usuarios del ERP — alta por rol, reasignación y ba… | draft | interno |
-| 0137 | Crédito de referido auto-aplicado — aplicar el bono del refer… | draft | interno |
+| 0136 | Gestión de usuarios del ERP — alta por rol, reasignación y ba… | done | interno |
+| 0137 | Crédito de referido auto-aplicado — aplicar el bono del refer… | done | interno |
 | 0138 | Mi Perfil del cliente — identidad + direcciones de entrega mú… | done | interno |
 | 0139 | RBAC: metodología definitiva — matriz en código + capabilitie… | done | interno |
 | 0140 | Perfiles de puesto en nómina + alta unificada (empleado + usu… | done | interno |
