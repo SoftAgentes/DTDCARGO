@@ -1,10 +1,10 @@
 ---
 sdd: "0121"
 title: "Apariencia — preferencias de Studio (tema + densidad) + material de marca read-only"
-status: in-progress
+status: done
 author: "Claude Code (sesión secundaria · worktree web-norte) + founder"
 created: 2026-07-01
-updated: 2026-07-01
+updated: 2026-07-14
 supersedes: null
 superseded_by: null
 related: ["0120"]

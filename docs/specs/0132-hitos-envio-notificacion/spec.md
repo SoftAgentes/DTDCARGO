@@ -1,10 +1,10 @@
 ---
 sdd: "0132"
 title: "Hitos del envío + notificación de estado al cliente"
-status: in-progress
+status: done
 author: "agente-secundario (inventario portal)"
 created: 2026-07-01
-updated: 2026-07-01
+updated: 2026-07-14
 supersedes: null
 superseded_by: null
 related: ["0042", "0047", "0056", "0101"]

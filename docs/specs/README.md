@@ -123,7 +123,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0087 | Espejo de usuarios de Kommo — nombres de asesor en el tablero | done | interno |
 | 0088 | Motor de contenido de marketing — cerebro de ruteo (Test de N… | proposed | interno |
 | 0089 | Clasificador de contenido + output multicanal (idea → noticia… | in-progress | interno |
-| 0090 | Motor de oferta al cliente — wizard de intención + matriz de … | proposed | interno |
+| 0090 | Motor de oferta al cliente — wizard de intención + matriz de … | done | interno |
 | 0091 | Motor de flujo interno por servicio (N8N-lite) — implementaci… | done | interno |
 | 0092 | Integración SeaRates Logistics Explorer — fletes marítimos FC… | done | interno |
 | 0093 | Academia DTD — módulo de formación (catálogo on-demand + coho… | done | interno |
@@ -153,7 +153,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0118 | Seed migrations idempotentes — habilitar validación en branch… | draft | interno |
 | 0119 | Módulo de Marketing en el ERP — Dashboard de Marketing (salud… | draft | interno |
 | 0120 | Datos de la empresa — primera sección real de Administración … | in-progress | interno |
-| 0121 | Apariencia — preferencias de Studio (tema + densidad) + mater… | in-progress | interno |
+| 0121 | Apariencia — preferencias de Studio (tema + densidad) + mater… | done | interno |
 | 0122 | Numeración & legal — formatos de correlativo (read-only) + le… | in-progress | interno |
 | 0123 | Audit log — viewer read-only del entity_audit_log en Administ… | in-progress | interno |
 | 0124 | Permisos por rol — matriz read-only rol × módulo (visualiza l… | in-progress | interno |
@@ -164,7 +164,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0129 | Workflows custom — puntero al motor de flujo existente (SDD-0… | in-progress | interno |
 | 0130 | Importar / Exportar — export CSV del dominio admin (import po… | in-progress | interno |
 | 0131 | Registro de cliente interno — persona/empresa (cédula vs RIF)… | in-progress | interno |
-| 0132 | Hitos del envío + notificación de estado al cliente | in-progress | interno |
+| 0132 | Hitos del envío + notificación de estado al cliente | done | interno |
 | 0133 | Cut-off / calendario de zarpes en el portal | in-progress | interno |
 | 0134 | Reportar pago + comprobante en el portal | in-progress | interno |
 | 0135 | Buscador global ⌘K del Studio — permission-aware, gating por … | done | interno |
@@ -172,11 +172,11 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0137 | Crédito de referido auto-aplicado — aplicar el bono del refer… | draft | interno |
 | 0138 | Mi Perfil del cliente — identidad + direcciones de entrega mú… | done | interno |
 | 0139 | RBAC: metodología definitiva — matriz en código + capabilitie… | done | interno |
-| 0140 | Perfiles de puesto en nómina + alta unificada (empleado + usu… | draft | interno |
+| 0140 | Perfiles de puesto en nómina + alta unificada (empleado + usu… | done | interno |
 | 0141 | Calendario al Norte — vistas + eventos operativos de embarques | in-progress | interno |
 | 0142 | Reportes al Norte — reporte Por agente + reporte IVA | in-progress | interno |
 | 0143 | Mailing al Norte — Firmas, Envío manual y Programados (+ cron) | in-progress | interno |
-| 0144 | Compra asistida — renombre, filtros y reglas propias del módulo | draft | interno |
+| 0144 | Compra asistida — renombre, filtros y reglas propias del módulo | done | interno |
 | 0145 | Mi perfil unificado del portal — una sola pantalla espejando … | in-progress | interno |
 | 0146 | Bitácora — actas de reunión con IA + gestor de tareas del equ… | done | interno |
 | 0147 | Soporte del portal a Norte — fusión de Reclamos + chat con el… | in-progress | interno |
