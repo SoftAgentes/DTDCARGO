@@ -48,6 +48,20 @@ import {
   type ClubEventActionState,
   type ClubEventInput,
 } from "@/lib/studio/club/club-event-types";
+import {
+  validateEventRegistrationInput,
+  EVENT_REGISTRATION_STATUSES,
+  type EventRegistrationActionState,
+  type EventRegistrationInput,
+  type EventRegistrationStatus,
+} from "@/lib/studio/club/club-event-registration-types";
+import {
+  validateFeaturedSupplierInput,
+  FEATURED_SUPPLIER_STATUSES,
+  type FeaturedSupplierActionState,
+  type FeaturedSupplierInput,
+  type FeaturedSupplierStatus,
+} from "@/lib/studio/club/featured-supplier-types";
 
 type Result = { ok?: boolean; error?: string };
 
@@ -594,6 +608,249 @@ export async function softDeleteClubEventAction(eventId: string): Promise<Result
     .is("deleted_at", null);
 
   if (error) return { error: `No se pudo eliminar el evento: ${error.message}` };
+  revalidate();
+  return { ok: true };
+}
+
+// ════════════════════════════════════════════════════════════════
+// Slice C.2 · Inscripciones de miembros a eventos del Club
+// ════════════════════════════════════════════════════════════════
+// El inscrito ES un miembro del Club (club_members); el evento es un academy_cohorts
+// context='club'. El trigger same-tenant (0235) valida ambas refs.
+
+const ALREADY_REGISTERED_MSG = "Ese miembro ya está inscrito en este evento.";
+const BAD_REGISTRATION_REF_MSG =
+  "El miembro o el evento no son válidos para este tenant.";
+
+export async function registerMemberToEventAction(
+  eventId: string,
+  raw: Partial<EventRegistrationInput>,
+): Promise<EventRegistrationActionState> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, MODULE);
+  if (denial) return { error: denial };
+
+  if (!eventId) return { error: "Falta el evento." };
+  const { input, fieldErrors } = validateEventRegistrationInput(raw);
+  if (fieldErrors) return { fieldErrors };
+  if (!input) return { error: "Datos de la inscripción inválidos." };
+
+  const tenantId = await resolveTenant(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant." };
+
+  const { data: row, error } = await supabase
+    .from("club_event_registrations")
+    .insert({
+      tenant_id: tenantId,
+      event_id: eventId,
+      member_id: input.memberId,
+      status: input.status,
+      note: input.note,
+    })
+    .select("id")
+    .single<{ id: string }>();
+
+  if (error || !row) {
+    if (error?.code === "23505") return { error: ALREADY_REGISTERED_MSG };
+    if (error?.code === "23514" || error?.message?.includes("event_id") || error?.message?.includes("member_id")) {
+      return { error: BAD_REGISTRATION_REF_MSG };
+    }
+    return { error: `No se pudo inscribir al miembro: ${error?.message ?? "desconocido"}` };
+  }
+  revalidate();
+  return { ok: true, registrationId: row.id };
+}
+
+export async function updateEventRegistrationAction(
+  registrationId: string,
+  raw: Partial<EventRegistrationInput>,
+): Promise<EventRegistrationActionState> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, MODULE);
+  if (denial) return { error: denial };
+
+  if (!registrationId) return { error: "Falta la inscripción." };
+  const { input, fieldErrors } = validateEventRegistrationInput(raw);
+  if (fieldErrors) return { fieldErrors };
+  if (!input) return { error: "Datos de la inscripción inválidos." };
+
+  // member_id no se cambia en edición (cambiar de miembro = quitar + inscribir otro).
+  const { error } = await supabase
+    .from("club_event_registrations")
+    .update({ status: input.status, note: input.note })
+    .eq("id", registrationId)
+    .is("deleted_at", null);
+
+  if (error) return { error: `No se pudo actualizar la inscripción: ${error.message}` };
+  revalidate();
+  return { ok: true, registrationId };
+}
+
+/** Marca la asistencia de una inscripción (asistio | no_asistio | inscrito). */
+export async function setRegistrationAttendanceAction(
+  registrationId: string,
+  status: EventRegistrationStatus,
+): Promise<Result> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, MODULE);
+  if (denial) return { error: denial };
+
+  if (!registrationId) return { error: "Falta la inscripción." };
+  if (!EVENT_REGISTRATION_STATUSES.includes(status)) return { error: "Estado inválido." };
+
+  const { error } = await supabase
+    .from("club_event_registrations")
+    .update({ status })
+    .eq("id", registrationId)
+    .is("deleted_at", null);
+
+  if (error) return { error: `No se pudo marcar la asistencia: ${error.message}` };
+  revalidate();
+  return { ok: true };
+}
+
+export async function removeEventRegistrationAction(registrationId: string): Promise<Result> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, MODULE);
+  if (denial) return { error: denial };
+
+  if (!registrationId) return { error: "Falta la inscripción." };
+
+  const { error } = await supabase
+    .from("club_event_registrations")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", registrationId)
+    .is("deleted_at", null);
+
+  if (error) return { error: `No se pudo quitar la inscripción: ${error.message}` };
+  revalidate();
+  return { ok: true };
+}
+
+// ════════════════════════════════════════════════════════════════
+// Slice D · Proveedor del mes (club_featured_suppliers)
+// ════════════════════════════════════════════════════════════════
+// D8: derivado de una inspección verificada (SDD-0066). White-label: supplier_name
+// es curado por DTD, NUNCA el provider_internal crudo. Único por (tenant, period).
+
+const PERIOD_TAKEN_MSG = "Ya hay un proveedor del mes para ese período. Edita el existente.";
+const BAD_INSPECTION_REF_MSG = "Esa inspección no es válida para este tenant.";
+
+export async function createFeaturedSupplierAction(
+  raw: Partial<FeaturedSupplierInput>,
+): Promise<FeaturedSupplierActionState> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, MODULE);
+  if (denial) return { error: denial };
+
+  const { input, fieldErrors } = validateFeaturedSupplierInput(raw);
+  if (fieldErrors) return { fieldErrors };
+  if (!input) return { error: "Datos del proveedor inválidos." };
+
+  const tenantId = await resolveTenant(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant." };
+
+  const { data: row, error } = await supabase
+    .from("club_featured_suppliers")
+    .insert({
+      tenant_id: tenantId,
+      period: input.period,
+      supplier_name: input.supplierName,
+      inspection_id: input.inspectionId,
+      category: input.category,
+      blurb: input.blurb,
+      cover_path: input.coverPath,
+      status: input.status,
+    })
+    .select("id")
+    .single<{ id: string }>();
+
+  if (error || !row) {
+    if (error?.code === "23505") return { fieldErrors: { period: PERIOD_TAKEN_MSG } };
+    if (error?.code === "23514" || error?.message?.includes("inspection_id")) {
+      return { fieldErrors: { inspectionId: BAD_INSPECTION_REF_MSG } };
+    }
+    return { error: `No se pudo crear el proveedor del mes: ${error?.message ?? "desconocido"}` };
+  }
+  revalidate();
+  return { ok: true, createdId: row.id };
+}
+
+export async function updateFeaturedSupplierAction(
+  supplierId: string,
+  raw: Partial<FeaturedSupplierInput>,
+): Promise<FeaturedSupplierActionState> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, MODULE);
+  if (denial) return { error: denial };
+
+  if (!supplierId) return { error: "Falta el proveedor a editar." };
+  const { input, fieldErrors } = validateFeaturedSupplierInput(raw);
+  if (fieldErrors) return { fieldErrors };
+  if (!input) return { error: "Datos del proveedor inválidos." };
+
+  const { error } = await supabase
+    .from("club_featured_suppliers")
+    .update({
+      period: input.period,
+      supplier_name: input.supplierName,
+      inspection_id: input.inspectionId,
+      category: input.category,
+      blurb: input.blurb,
+      cover_path: input.coverPath,
+      status: input.status,
+    })
+    .eq("id", supplierId)
+    .is("deleted_at", null);
+
+  if (error) {
+    if (error.code === "23505") return { fieldErrors: { period: PERIOD_TAKEN_MSG } };
+    if (error.code === "23514" || error.message?.includes("inspection_id")) {
+      return { fieldErrors: { inspectionId: BAD_INSPECTION_REF_MSG } };
+    }
+    return { error: `No se pudo actualizar el proveedor: ${error.message}` };
+  }
+  revalidate();
+  return { ok: true, createdId: supplierId };
+}
+
+/** Publica / despublica el proveedor del mes (borrador ↔ publicado). */
+export async function setFeaturedSupplierStatusAction(
+  supplierId: string,
+  status: FeaturedSupplierStatus,
+): Promise<Result> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, MODULE);
+  if (denial) return { error: denial };
+
+  if (!supplierId) return { error: "Falta el proveedor." };
+  if (!FEATURED_SUPPLIER_STATUSES.includes(status)) return { error: "Estado inválido." };
+
+  const { error } = await supabase
+    .from("club_featured_suppliers")
+    .update({ status })
+    .eq("id", supplierId)
+    .is("deleted_at", null);
+
+  if (error) return { error: `No se pudo cambiar el estado: ${error.message}` };
+  revalidate();
+  return { ok: true };
+}
+
+export async function softDeleteFeaturedSupplierAction(supplierId: string): Promise<Result> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, MODULE);
+  if (denial) return { error: denial };
+
+  if (!supplierId) return { error: "Falta el proveedor." };
+
+  const { error } = await supabase
+    .from("club_featured_suppliers")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", supplierId)
+    .is("deleted_at", null);
+
+  if (error) return { error: `No se pudo eliminar el proveedor: ${error.message}` };
   revalidate();
   return { ok: true };
 }

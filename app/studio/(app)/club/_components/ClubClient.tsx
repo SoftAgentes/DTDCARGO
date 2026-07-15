@@ -12,17 +12,25 @@ import { useSearchParams } from "next/navigation";
 import { MembersView } from "./MembersView";
 import { GroupBuysView } from "./GroupBuysView";
 import { EventsView } from "./EventsView";
+import { SuppliersView } from "./SuppliersView";
 import type { ClubMemberRow, ClubStats } from "@/lib/studio/club/club-member-types";
 import type { GroupBuyDetail, GroupBuyStats } from "@/lib/studio/club/group-buy-types";
 import type { EligibleMember } from "@/lib/studio/club/group-buy-queries";
 import type { ClubEvent, ClubEventStats } from "@/lib/studio/club/club-event-types";
+import type { EventRegistration } from "@/lib/studio/club/club-event-registration-types";
+import type {
+  FeaturedSupplier,
+  FeaturedSupplierStats,
+} from "@/lib/studio/club/featured-supplier-types";
+import type { EligibleInspection } from "@/lib/studio/club/featured-supplier-queries";
 
-type Tab = "miembros" | "compras" | "eventos";
+type Tab = "miembros" | "compras" | "eventos" | "proveedores";
 
 const TABS: { value: Tab; label: string }[] = [
   { value: "miembros", label: "Miembros" },
   { value: "compras", label: "Compras grupales" },
   { value: "eventos", label: "Eventos" },
+  { value: "proveedores", label: "Proveedor del mes" },
 ];
 
 export function ClubClient({
@@ -33,6 +41,10 @@ export function ClubClient({
   eligibleMembers,
   eventStats,
   events,
+  registrationsByEvent,
+  supplierStats,
+  suppliers,
+  eligibleInspections,
 }: {
   stats: ClubStats;
   members: ClubMemberRow[];
@@ -41,6 +53,10 @@ export function ClubClient({
   eligibleMembers: EligibleMember[];
   eventStats: ClubEventStats;
   events: ClubEvent[];
+  registrationsByEvent: Record<string, EventRegistration[]>;
+  supplierStats: FeaturedSupplierStats;
+  suppliers: FeaturedSupplier[];
+  eligibleInspections: EligibleInspection[];
 }) {
   const searchParams = useSearchParams();
 
@@ -56,11 +72,13 @@ export function ClubClient({
   }, [groupBuys]);
 
   const eventIds = useMemo(() => new Set(events.map((e) => e.id)), [events]);
+  const supplierIds = useMemo(() => new Set(suppliers.map((s) => s.id)), [suppliers]);
 
   const [tab, setTab] = useState<Tab>(() => {
     const hl = searchParams.get("highlight");
     if (hl && comprasIds.has(hl)) return "compras";
     if (hl && eventIds.has(hl)) return "eventos";
+    if (hl && supplierIds.has(hl)) return "proveedores";
     return "miembros";
   });
 
@@ -155,7 +173,21 @@ export function ClubClient({
             eligibleMembers={eligibleMembers}
           />
         )}
-        {tab === "eventos" && <EventsView stats={eventStats} events={events} />}
+        {tab === "eventos" && (
+          <EventsView
+            stats={eventStats}
+            events={events}
+            registrationsByEvent={registrationsByEvent}
+            eligibleMembers={eligibleMembers}
+          />
+        )}
+        {tab === "proveedores" && (
+          <SuppliersView
+            stats={supplierStats}
+            suppliers={suppliers}
+            eligibleInspections={eligibleInspections}
+          />
+        )}
       </div>
     </div>
   );

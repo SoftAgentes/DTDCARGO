@@ -1,9 +1,10 @@
 "use client";
 
 /**
- * Vista Eventos del Club (SDD-0116, Slice C V1). KPIs + lista de eventos
- * (tarjetas). Alta/edición vía drawer; baja con confirm. Trazabilidad: highlight
- * warm del evento creado. Inscripciones de miembros = diferidas (Slice C.2).
+ * Vista Eventos del Club (SDD-0116, Slice C + C.2). KPIs + lista de eventos
+ * (tarjetas) con su grilla de inscripciones de miembros (C.2: inscribir + marcar
+ * asistencia). Alta/edición vía drawer; baja con confirm. Trazabilidad: highlight
+ * warm del evento creado.
  */
 
 import { useState } from "react";
@@ -21,8 +22,21 @@ import {
   type ClubEvent,
   type ClubEventStats,
 } from "@/lib/studio/club/club-event-types";
+import {
+  EVENT_REGISTRATION_STATUSES,
+  eventRegistrationStatusLabel,
+  eventRegistrationStatusTone,
+  type EventRegistration,
+  type EventRegistrationStatus,
+} from "@/lib/studio/club/club-event-registration-types";
+import type { EligibleMember } from "@/lib/studio/club/group-buy-queries";
 import { ClubEventDrawer } from "./ClubEventDrawer";
-import { softDeleteClubEventAction } from "../actions";
+import { EventRegistrationDrawer } from "./EventRegistrationDrawer";
+import {
+  softDeleteClubEventAction,
+  removeEventRegistrationAction,
+  setRegistrationAttendanceAction,
+} from "../actions";
 
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 function fmtDate(iso: string | null): string {
@@ -35,9 +49,13 @@ function fmtDate(iso: string | null): string {
 export function EventsView({
   stats,
   events,
+  registrationsByEvent,
+  eligibleMembers,
 }: {
   stats: ClubEventStats;
   events: ClubEvent[];
+  registrationsByEvent: Record<string, EventRegistration[]>;
+  eligibleMembers: EligibleMember[];
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -48,6 +66,14 @@ export function EventsView({
   const [toDelete, setToDelete] = useState<ClubEvent | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Inscribir/editar inscripción: guardamos el evento + (opcional) la inscripción.
+  const [regCtx, setRegCtx] = useState<{
+    ev: ClubEvent;
+    registration: EventRegistration | null;
+  } | null>(null);
+  const [toRemove, setToRemove] = useState<EventRegistration | null>(null);
+  const [removing, setRemoving] = useState(false);
+
   const handleDelete = async () => {
     if (!toDelete) return;
     setDeleting(true);
@@ -56,6 +82,23 @@ export function EventsView({
     if (r.error) return toast.error(r.error);
     toast.success(`Evento "${toDelete.name}" eliminado`);
     setToDelete(null);
+    router.refresh();
+  };
+
+  const handleRemoveReg = async () => {
+    if (!toRemove) return;
+    setRemoving(true);
+    const r = await removeEventRegistrationAction(toRemove.id);
+    setRemoving(false);
+    if (r.error) return toast.error(r.error);
+    toast.success(`${toRemove.memberName} quitado del evento`);
+    setToRemove(null);
+    router.refresh();
+  };
+
+  const handleAttendance = async (reg: EventRegistration, status: EventRegistrationStatus) => {
+    const r = await setRegistrationAttendanceAction(reg.id, status);
+    if (r.error) return toast.error(r.error);
     router.refresh();
   };
 
@@ -103,9 +146,14 @@ export function EventsView({
             <EventCard
               key={ev.id}
               ev={ev}
+              registrations={registrationsByEvent[ev.id] ?? []}
               flashClassFor={flashClassFor}
               onEdit={() => setEditing(ev)}
               onDelete={() => setToDelete(ev)}
+              onAddRegistration={() => setRegCtx({ ev, registration: null })}
+              onEditRegistration={(reg) => setRegCtx({ ev, registration: reg })}
+              onRemoveRegistration={(reg) => setToRemove(reg)}
+              onAttendance={handleAttendance}
             />
           ))}
         </div>
@@ -113,16 +161,37 @@ export function EventsView({
 
       {showNew && <ClubEventDrawer onClose={() => setShowNew(false)} />}
       {editing && <ClubEventDrawer event={editing} onClose={() => setEditing(null)} />}
+      {regCtx && (
+        <EventRegistrationDrawer
+          eventId={regCtx.ev.id}
+          eventName={regCtx.ev.name}
+          registration={regCtx.registration}
+          eligibleMembers={eligibleMembers}
+          takenMemberIds={(registrationsByEvent[regCtx.ev.id] ?? []).map((r) => r.memberId)}
+          onClose={() => setRegCtx(null)}
+        />
+      )}
 
       <ConfirmDialog
         open={!!toDelete}
         title="Eliminar evento"
-        message={toDelete ? `¿Eliminar el evento "${toDelete.name}"?` : ""}
+        message={toDelete ? `¿Eliminar el evento "${toDelete.name}"? Sus inscripciones también se ocultan.` : ""}
         confirmLabel="Eliminar"
         danger
         pending={deleting}
         onCancel={() => setToDelete(null)}
         onConfirm={handleDelete}
+      />
+
+      <ConfirmDialog
+        open={!!toRemove}
+        title="Quitar inscripción"
+        message={toRemove ? `¿Quitar a ${toRemove.memberName} de este evento?` : ""}
+        confirmLabel="Quitar"
+        danger
+        pending={removing}
+        onCancel={() => setToRemove(null)}
+        onConfirm={handleRemoveReg}
       />
     </div>
   );
@@ -130,14 +199,24 @@ export function EventsView({
 
 function EventCard({
   ev,
+  registrations,
   flashClassFor,
   onEdit,
   onDelete,
+  onAddRegistration,
+  onEditRegistration,
+  onRemoveRegistration,
+  onAttendance,
 }: {
   ev: ClubEvent;
+  registrations: EventRegistration[];
   flashClassFor: (id: string | null | undefined) => string;
   onEdit: () => void;
   onDelete: () => void;
+  onAddRegistration: () => void;
+  onEditRegistration: (reg: EventRegistration) => void;
+  onRemoveRegistration: (reg: EventRegistration) => void;
+  onAttendance: (reg: EventRegistration, status: EventRegistrationStatus) => void;
 }) {
   const meta = [
     fmtDate(ev.startsAt),
@@ -194,6 +273,100 @@ function EventCard({
           {ev.summary}
         </p>
       )}
+
+      {/* Inscripciones (C.2) */}
+      <div style={{ marginTop: 14 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "var(--s-2)",
+          }}
+        >
+          <span className="studio-eyebrow" style={{ color: "var(--ink-soft)" }}>
+            Inscripciones ({registrations.length})
+          </span>
+          <button
+            type="button"
+            className="studio-btn studio-btn-ghost studio-btn-xs"
+            onClick={onAddRegistration}
+          >
+            + Inscribir miembro
+          </button>
+        </div>
+
+        {registrations.length === 0 ? (
+          <p style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
+            Sin inscritos todavía.
+          </p>
+        ) : (
+          <table aria-label="Inscripciones del evento" style={{ width: "100%", borderCollapse: "collapse" }}>
+            <tbody>
+              {registrations.map((reg) => (
+                <tr
+                  key={reg.id}
+                  data-row-id={reg.id}
+                  className={flashClassFor(reg.id)}
+                  style={{ borderTop: "1px solid var(--border)" }}
+                >
+                  <td style={{ padding: "8px 6px" }}>
+                    <span style={{ font: "600 13px/1.3 var(--f-sans)", color: "var(--ink)" }}>
+                      {reg.memberName}
+                    </span>
+                    {reg.note && (
+                      <span
+                        style={{
+                          font: "500 11px/1.3 var(--f-sans)",
+                          color: "var(--ink-soft)",
+                          display: "block",
+                          marginTop: 2,
+                        }}
+                      >
+                        {reg.note}
+                      </span>
+                    )}
+                  </td>
+                  <td style={{ padding: "8px 6px", textAlign: "center" }}>
+                    <Badge tone={eventRegistrationStatusTone(reg.status)} size="sm">
+                      {eventRegistrationStatusLabel(reg.status)}
+                    </Badge>
+                  </td>
+                  <td style={{ padding: "8px 6px", textAlign: "right", whiteSpace: "nowrap" }}>
+                    <select
+                      aria-label={`Asistencia de ${reg.memberName}`}
+                      className="studio-input"
+                      value={reg.status}
+                      onChange={(e) => onAttendance(reg, e.target.value as EventRegistrationStatus)}
+                      style={{ display: "inline-block", width: "auto", padding: "3px 6px", fontSize: 12 }}
+                    >
+                      {EVENT_REGISTRATION_STATUSES.map((s) => (
+                        <option key={s} value={s}>
+                          {eventRegistrationStatusLabel(s)}
+                        </option>
+                      ))}
+                    </select>{" "}
+                    <button
+                      type="button"
+                      className="studio-btn studio-btn-ghost studio-btn-xs"
+                      onClick={() => onEditRegistration(reg)}
+                    >
+                      Editar
+                    </button>{" "}
+                    <button
+                      type="button"
+                      className="studio-btn studio-btn-danger studio-btn-xs"
+                      onClick={() => onRemoveRegistration(reg)}
+                    >
+                      Quitar
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 }
