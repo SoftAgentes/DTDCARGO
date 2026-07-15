@@ -370,7 +370,7 @@ export function TaskDrawer({
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 8,
+            gap: "var(--s-2)",
             font: "500 12.5px/1.3 var(--f-sans)",
             color: "var(--ink)",
             cursor: canEdit ? "pointer" : "default",
@@ -404,12 +404,12 @@ export function TaskDrawer({
 
         {/* Checklist */}
         <div>
-          <div className="studio-label" style={{ marginBottom: 8 }}>
+          <div className="studio-label" style={{ marginBottom: "var(--s-2)" }}>
             Checklist
           </div>
 
           {!isCreate && items.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: "var(--s-2)" }}>
               {items.map((it) => (
                 <button
                   key={it.id}
@@ -419,7 +419,7 @@ export function TaskDrawer({
                   style={{
                     display: "flex",
                     alignItems: "flex-start",
-                    gap: 8,
+                    gap: "var(--s-2)",
                     padding: "8px 10px",
                     background: "var(--bg-elevated)",
                     border: "1px solid var(--border)",
@@ -427,7 +427,7 @@ export function TaskDrawer({
                     textAlign: "left",
                     cursor: canEdit ? "pointer" : "default",
                     font: "500 12.5px/1.3 var(--f-sans)",
-                    color: it.done ? "var(--ink-mute)" : "var(--ink)",
+                    color: it.done ? "var(--ink-soft)" : "var(--ink)",
                   }}
                 >
                   <span
@@ -470,14 +470,14 @@ export function TaskDrawer({
           )}
 
           {isCreate && newItems.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: "var(--s-2)" }}>
               {newItems.map((texto, i) => (
                 <div
                   key={`${i}-${texto}`}
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 8,
+                    gap: "var(--s-2)",
                     padding: "8px 10px",
                     background: "var(--bg-elevated)",
                     border: "1px solid var(--border)",
@@ -508,7 +508,7 @@ export function TaskDrawer({
           )}
 
           {canEdit && (
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ display: "flex", gap: "var(--s-2)" }}>
               <input
                 value={newItemDraft}
                 onChange={(e) => setNewItemDraft(e.target.value)}
@@ -540,7 +540,7 @@ export function TaskDrawer({
             <form> anidado (CommentsThread usa botones type=button + file input
             sin name → no interfiere con el submit de la tarea). Solo en edición. */}
         {!isCreate && task && (
-          <div style={{ borderTop: "1px solid var(--border)", paddingTop: 16 }}>
+          <div style={{ borderTop: "1px solid var(--border)", paddingTop: "var(--s-4)" }}>
             <TaskCollabSection
               taskId={task.id}
               taskTitulo={task.titulo}

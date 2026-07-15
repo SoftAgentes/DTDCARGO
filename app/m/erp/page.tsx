@@ -30,7 +30,7 @@ import { countMyOpenTasks } from "@/lib/studio/bitacora/bitacora-queries";
 import { MobileErpClient } from "./_components/MobileErpClient";
 
 export const metadata = {
-  title: "Mobile ERP · DoorTuDoor",
+  title: "Mobile ERP",
   description: "Vista mobile del ERP para uso ejecutivo y comercial.",
 };
 

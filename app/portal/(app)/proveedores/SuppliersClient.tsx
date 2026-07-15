@@ -1,34 +1,39 @@
 "use client";
 
-import { useActionState, useEffect, useId, useRef, useState } from "react";
+import {
+  useActionState,
+  useEffect,
+  useId,
+  useState,
+} from "react";
 import Link from "next/link";
 import {
   ArrowIcon,
   CheckIcon,
-  DocIcon,
   ShieldIcon,
   TruckIcon,
 } from "@/components/Icon";
 import { CONTACT } from "@/lib/design-tokens";
 import { NewPurchaseButton } from "../../_components/NewPurchaseButton";
-import { ShareProviderButton } from "../../_components/ShareProviderButton";
+import {
+  NewPurchaseModal,
+  FieldLabel,
+} from "../../_components/NewPurchaseModal";
 import type { SupplierView } from "@/lib/studio/prealertas/types";
 import {
   createSupplierAction,
-  createPrealertaAction,
+  updateSupplierAction,
+  deleteSupplierAction,
 } from "./actions";
 import type {
   SupplierActionState,
-  PrealertaActionState,
+  DeleteSupplierActionState,
 } from "@/lib/studio/prealertas/types";
 import type { PrealertaAddon } from "@/lib/studio/prealertas/addons";
-import {
-  PrealertaAddonPicker,
-  PrealertaServiceGallery,
-} from "../../_components/PrealertaAddons";
+import { PrealertaServiceGallery } from "../../_components/PrealertaAddons";
 
 const supplierInitial: SupplierActionState = {};
-const prealertaInitial: PrealertaActionState = {};
+const deleteSupplierInitial: DeleteSupplierActionState = {};
 
 /**
  * "Tus proveedores" (SDD-0057 · Slice B). Piel real del portal (paper/wine +
@@ -274,6 +279,26 @@ function SupplierCard({
   supplier: SupplierView;
   onRebuy: () => void;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteState, deleteAction, deletePending] = useActionState(
+    deleteSupplierAction,
+    deleteSupplierInitial,
+  );
+
+  if (editing) {
+    return (
+      <EditSupplierForm
+        supplier={supplier}
+        onDone={() => setEditing(false)}
+        onCancel={() => setEditing(false)}
+      />
+    );
+  }
+
+  const canDelete = supplier.orderCount === 0;
+  const subline = [supplier.city, supplier.contact].filter(Boolean).join(" · ");
+
   return (
     <div className="card-shadow bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col sm:flex-row sm:items-center gap-4">
       <span
@@ -290,6 +315,14 @@ function SupplierCard({
         <div className="text-[14.5px] font-bold text-ink truncate">
           {supplier.name}
         </div>
+        {subline && (
+          <div className="mt-0.5 text-[12px] text-grey-700 truncate">{subline}</div>
+        )}
+        {supplier.notes && (
+          <div className="mt-0.5 text-[12px] text-grey-500 truncate">
+            {supplier.notes}
+          </div>
+        )}
         <div
           className="mt-1 text-[12px] text-grey-700"
           style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
@@ -298,15 +331,172 @@ function SupplierCard({
           próxima:{" "}
           <span className="text-wine font-bold">{supplier.nextCode}</span>
         </div>
+        {deleteState.error && (
+          <p className="mt-1.5 text-[12px] text-wine leading-[1.4]">
+            {deleteState.error}
+          </p>
+        )}
       </div>
-      <button
-        type="button"
-        onClick={onRebuy}
-        className="btn btn-ghost inline-flex items-center gap-1.5 flex-shrink-0"
-      >
-        Re-comprar <ArrowIcon size={14} />
-      </button>
+
+      {confirmingDelete ? (
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="text-[12px] text-grey-700">¿Borrar proveedor?</span>
+          <form action={deleteAction}>
+            <input type="hidden" name="supplierId" value={supplier.id} />
+            <button
+              type="submit"
+              disabled={deletePending}
+              className="btn btn-ghost text-wine disabled:opacity-60"
+            >
+              {deletePending ? "Borrando…" : "Sí, borrar"}
+            </button>
+          </form>
+          <button
+            type="button"
+            onClick={() => setConfirmingDelete(false)}
+            disabled={deletePending}
+            className="btn btn-ghost disabled:opacity-60"
+          >
+            Cancelar
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="btn btn-ghost"
+          >
+            Editar
+          </button>
+          {canDelete ? (
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(true)}
+              className="btn btn-ghost"
+            >
+              Borrar
+            </button>
+          ) : (
+            <span
+              className="text-[11px] text-grey-500 px-1"
+              title="No puedes borrar un proveedor con compras registradas."
+            >
+              Con compras
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={onRebuy}
+            className="btn btn-ghost inline-flex items-center gap-1.5"
+          >
+            Re-comprar <ArrowIcon size={14} />
+          </button>
+        </div>
+      )}
     </div>
+  );
+}
+
+// ── Edición de un proveedor existente ───────────────────────────
+function EditSupplierForm({
+  supplier,
+  onDone,
+  onCancel,
+}: {
+  supplier: SupplierView;
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const [state, action, pending] = useActionState(
+    updateSupplierAction,
+    supplierInitial,
+  );
+  const uid = useId();
+
+  useEffect(() => {
+    if (state.ok) onDone();
+  }, [state.ok, onDone]);
+
+  return (
+    <form
+      action={action}
+      className="card-shadow bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col gap-3"
+    >
+      <input type="hidden" name="supplierId" value={supplier.id} />
+
+      <FieldLabel htmlFor={`${uid}-name`}>Nombre del proveedor</FieldLabel>
+      <input
+        id={`${uid}-name`}
+        type="text"
+        name="name"
+        required
+        autoFocus
+        defaultValue={supplier.name}
+        disabled={pending}
+        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+      />
+      {state.fieldErrors?.name && (
+        <p className="text-[12px] text-wine leading-[1.4]">
+          {state.fieldErrors.name}
+        </p>
+      )}
+
+      <FieldLabel htmlFor={`${uid}-wechat`}>WeChat (opcional)</FieldLabel>
+      <input
+        id={`${uid}-wechat`}
+        type="text"
+        name="wechat"
+        defaultValue={supplier.wechat ?? ""}
+        placeholder="WeChat ID o número"
+        disabled={pending}
+        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+      />
+
+      <FieldLabel htmlFor={`${uid}-contact`}>Contacto</FieldLabel>
+      <input
+        id={`${uid}-contact`}
+        type="text"
+        name="contact"
+        defaultValue={supplier.contact ?? ""}
+        placeholder="Nombre de la persona de contacto"
+        disabled={pending}
+        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+      />
+
+      <FieldLabel htmlFor={`${uid}-notes`}>Notas</FieldLabel>
+      <textarea
+        id={`${uid}-notes`}
+        name="notes"
+        rows={2}
+        defaultValue={supplier.notes ?? ""}
+        disabled={pending}
+        className="px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-none disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+      />
+
+      {state.error && (
+        <p className="text-[12.5px] text-wine leading-[1.4]">{state.error}</p>
+      )}
+
+      <div className="flex gap-2.5">
+        <button
+          type="submit"
+          disabled={pending}
+          className="btn btn-primary inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-wait"
+        >
+          {pending ? "Guardando…" : "Guardar cambios"}
+          {!pending && <CheckIcon size={15} />}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={pending}
+          className="btn btn-ghost disabled:opacity-60"
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -322,6 +512,7 @@ function AddSupplierForm({
     createSupplierAction,
     supplierInitial,
   );
+  const uid = useId();
 
   useEffect(() => {
     if (state.ok) onDone();
@@ -332,8 +523,9 @@ function AddSupplierForm({
       action={action}
       className="card-shadow bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col gap-3"
     >
-      <FieldLabel>Nombre del proveedor</FieldLabel>
+      <FieldLabel htmlFor={`${uid}-name`}>Nombre del proveedor</FieldLabel>
       <input
+        id={`${uid}-name`}
         type="text"
         name="name"
         required
@@ -347,6 +539,36 @@ function AddSupplierForm({
           {state.fieldErrors.name}
         </p>
       )}
+
+      <FieldLabel htmlFor={`${uid}-wechat`}>WeChat del proveedor (opcional)</FieldLabel>
+      <input
+        id={`${uid}-wechat`}
+        type="text"
+        name="wechat"
+        placeholder="WeChat ID o número"
+        disabled={pending}
+        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+      />
+
+      <FieldLabel htmlFor={`${uid}-contact`}>Contacto</FieldLabel>
+      <input
+        id={`${uid}-contact`}
+        type="text"
+        name="contact"
+        placeholder="Nombre de la persona de contacto"
+        disabled={pending}
+        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+      />
+
+      <FieldLabel htmlFor={`${uid}-notes`}>Notas</FieldLabel>
+      <textarea
+        id={`${uid}-notes`}
+        name="notes"
+        rows={2}
+        disabled={pending}
+        className="px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-none disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+      />
+
       {state.error && (
         <p className="text-[12.5px] text-wine leading-[1.4]">{state.error}</p>
       )}
@@ -369,484 +591,5 @@ function AddSupplierForm({
         </button>
       </div>
     </form>
-  );
-}
-
-// ── Modal "Nueva compra" ────────────────────────────────────────
-function NewPurchaseModal({
-  suppliers,
-  addons,
-  preselected,
-  onClose,
-}: {
-  suppliers: SupplierView[];
-  addons: PrealertaAddon[];
-  preselected: SupplierView | null;
-  onClose: () => void;
-}) {
-  const [state, action, pending] = useActionState(
-    createPrealertaAction,
-    prealertaInitial,
-  );
-  // "new" = proveedor a crear inline; o un id de proveedor existente.
-  const [mode, setMode] = useState<"existing" | "new">(
-    suppliers.length === 0 ? "new" : "existing",
-  );
-  const [supplierId, setSupplierId] = useState<string>(
-    preselected?.id ?? suppliers[0]?.id ?? "",
-  );
-  const [newSupplierState, newSupplierAction, newSupplierPending] =
-    useActionState(createSupplierAction, supplierInitial);
-  const newFormRef = useRef<HTMLFormElement>(null);
-
-  // Si el alta inline del proveedor (dentro del modal) termina OK, conmutamos a
-  // "existing" — la página revalidó, pero el id nuevo lo conocemos por el state.
-  useEffect(() => {
-    if (newSupplierState.ok && newSupplierState.supplierId) {
-      setSupplierId(newSupplierState.supplierId);
-      setMode("existing");
-    }
-  }, [newSupplierState.ok, newSupplierState.supplierId]);
-
-  const done = !!state.ok && !!state.prealertaCode;
-  const selectedWechat =
-    suppliers.find((s) => s.id === supplierId)?.wechat ?? "";
-
-  return (
-    <div
-      onClick={onClose}
-      className="fixed inset-0 z-50 grid place-items-center p-4"
-      style={{ background: "rgba(11, 20, 40, 0.55)" }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-[520px] max-h-[88vh] overflow-auto bg-white rounded-[18px] card-shadow"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-grey-200">
-          <div>
-            <div className="eyebrow">
-              Nueva compra
-              <span
-                className="normal-case tracking-normal text-grey-500"
-                style={{
-                  fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
-                  fontSize: 10,
-                }}
-              >
-                · prealerta
-              </span>
-            </div>
-            <div className="mt-1 text-[18px] font-bold text-ink">
-              {done ? "Compra registrada" : "Registra tu compra"}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="text-grey-500 hover:text-ink text-[22px] leading-none"
-          >
-            ×
-          </button>
-        </div>
-
-        <div className="p-6">
-          {done ? (
-            <PurchaseDone
-              code={state.prealertaCode!}
-              shareToken={state.shareToken}
-              onClose={onClose}
-            />
-          ) : (
-            <>
-              {/* Selector de proveedor */}
-              <FieldLabel>Proveedor</FieldLabel>
-              {suppliers.length > 0 && (
-                <div className="mt-1.5 flex gap-2 flex-wrap">
-                  <ModeChip
-                    active={mode === "existing"}
-                    onClick={() => setMode("existing")}
-                    label="Uno existente"
-                  />
-                  <ModeChip
-                    active={mode === "new"}
-                    onClick={() => setMode("new")}
-                    label="Agregar nuevo"
-                  />
-                </div>
-              )}
-
-              {mode === "existing" && suppliers.length > 0 ? (
-                <select
-                  value={supplierId}
-                  onChange={(e) => setSupplierId(e.target.value)}
-                  className="mt-2 w-full h-12 px-3 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
-                >
-                  {suppliers.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      #{s.supplierSeq} · {s.name}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                // Alta inline del proveedor (form propio, action propia).
-                <form
-                  ref={newFormRef}
-                  action={newSupplierAction}
-                  className="mt-2 flex flex-col gap-2"
-                >
-                  <input
-                    type="text"
-                    name="name"
-                    required
-                    placeholder="Nombre del proveedor nuevo"
-                    disabled={newSupplierPending}
-                    className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
-                  />
-                  {newSupplierState.fieldErrors?.name && (
-                    <p className="text-[12px] text-wine">
-                      {newSupplierState.fieldErrors.name}
-                    </p>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={newSupplierPending}
-                    className="btn btn-ghost self-start inline-flex items-center gap-2 disabled:opacity-60"
-                  >
-                    {newSupplierPending ? "Creando…" : "Crear proveedor"}
-                    {!newSupplierPending && <CheckIcon size={14} />}
-                  </button>
-                </form>
-              )}
-
-              {/* Form de la compra */}
-              <form action={action} className="mt-5 flex flex-col gap-4">
-                <input type="hidden" name="supplierId" value={supplierId} />
-
-                {/* WeChat del proveedor: ID/número O captura del contacto */}
-                <div>
-                  <FieldLabel>WeChat del proveedor</FieldLabel>
-                  <input
-                    type="text"
-                    name="supplierWechat"
-                    key={supplierId}
-                    defaultValue={selectedWechat}
-                    placeholder="WeChat ID o número — opcional"
-                    disabled={pending}
-                    className="mt-1.5 w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
-                  />
-                  <p className="mt-1.5 text-[11.5px] text-grey-700 leading-[1.45]">
-                    ¿Prefieres no escribir el ID? Sube una captura (screenshot) del
-                    contacto de WeChat del proveedor — su ID o código QR.
-                  </p>
-                  <div className="mt-2">
-                    <FileField
-                      name="doc_whatsapp"
-                      label="Captura de WeChat (screenshot)"
-                      accept="image/*"
-                      disabled={pending}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <FieldLabel>Descripción de la compra</FieldLabel>
-                  <textarea
-                    name="description"
-                    required
-                    rows={2}
-                    placeholder="Ej. 3 cajas de zapatos deportivos"
-                    disabled={pending}
-                    className="mt-1.5 w-full px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-none disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
-                  />
-                  {state.fieldErrors?.description && (
-                    <p className="mt-1 text-[12px] text-wine">
-                      {state.fieldErrors.description}
-                    </p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <FieldLabel>Cajas</FieldLabel>
-                    <input
-                      type="number"
-                      name="boxes"
-                      min={1}
-                      step={1}
-                      defaultValue={1}
-                      required
-                      disabled={pending}
-                      className="mt-1.5 w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
-                      style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
-                    />
-                    {state.fieldErrors?.boxes && (
-                      <p className="mt-1 text-[12px] text-wine">
-                        {state.fieldErrors.boxes}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <FieldLabel>Valor estimado USD (opcional)</FieldLabel>
-                    <input
-                      type="number"
-                      name="estValueUsd"
-                      min={0}
-                      step="0.01"
-                      placeholder="—"
-                      disabled={pending}
-                      className="mt-1.5 w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
-                      style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
-                    />
-                    {state.fieldErrors?.estValueUsd && (
-                      <p className="mt-1 text-[12px] text-wine">
-                        {state.fieldErrors.estValueUsd}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <FieldLabel>Tracking China (opcional)</FieldLabel>
-                  <input
-                    type="text"
-                    name="trackingCn"
-                    placeholder="Ej. SF1234567890"
-                    disabled={pending}
-                    className="mt-1.5 w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
-                    style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
-                  />
-                </div>
-
-                {/* Adjuntos opcionales de la compra */}
-                <div className="rounded-[12px] border border-grey-200 p-4">
-                  <FieldLabel>Adjuntos (opcional)</FieldLabel>
-                  <p className="mt-1.5 text-[11.5px] text-grey-700 leading-[1.45]">
-                    No son obligatorios, pero si los subes nos ayudas a saber qué
-                    traes y cuánto vale, procesamos tu compra más rápido y te quedan
-                    de recordatorio en tu portal.
-                  </p>
-                  <div className="mt-3 flex flex-col gap-2">
-                    <FileField
-                      name="doc_packing"
-                      label="Packing list"
-                      accept="image/*,application/pdf"
-                      disabled={pending}
-                    />
-                    <FileField
-                      name="doc_factura"
-                      label="Factura del proveedor"
-                      accept="image/*,application/pdf"
-                      disabled={pending}
-                    />
-                    <FileField
-                      name="doc_fotos"
-                      label="Fotos del producto"
-                      accept="image/*"
-                      multiple
-                      disabled={pending}
-                    />
-                  </div>
-                </div>
-
-                {/* Servicios sobre la compra (add-ons · SDD-0098) */}
-                <PrealertaAddonPicker addons={addons} />
-
-                {state.fieldErrors?.supplierId && (
-                  <p className="text-[12.5px] text-wine">
-                    {state.fieldErrors.supplierId}
-                  </p>
-                )}
-                {state.error && (
-                  <p className="text-[12.5px] text-wine">{state.error}</p>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={pending || !supplierId}
-                  className="btn btn-primary inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait"
-                >
-                  {pending ? "Registrando compra…" : "Registrar compra"}
-                  {!pending && <ArrowIcon size={15} />}
-                </button>
-              </form>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PurchaseDone({
-  code,
-  shareToken,
-  onClose,
-}: {
-  code: string;
-  shareToken?: string;
-  onClose: () => void;
-}) {
-  return (
-    <div className="flex flex-col items-center text-center gap-5">
-      <div
-        className="w-14 h-14 rounded-full grid place-items-center"
-        style={{ background: "var(--color-status-success)", color: "#fff" }}
-      >
-        <CheckIcon size={28} />
-      </div>
-      <div>
-        <div className="text-[16px] font-bold text-ink">
-          Tu compra quedó registrada.
-        </div>
-        <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.5] max-w-[42ch]">
-          Compártele el link a tu proveedor: trae la dirección de la bodega y las
-          etiquetas, las baja él directo. No tienes que descargar ni reenviar nada.
-        </p>
-      </div>
-
-      <div className="w-full rounded-[14px] px-6 py-5 bg-white border border-grey-200">
-        <div className="text-[10px] font-bold tracking-[0.18em] uppercase text-grey-500">
-          Código de la compra · prealerta
-        </div>
-        <div
-          className="mt-2 text-[28px] leading-none text-ink"
-          style={{
-            fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
-            letterSpacing: "-0.01em",
-          }}
-        >
-          {code}
-        </div>
-      </div>
-
-      {shareToken ? (
-        <div className="w-full text-left">
-          <div className="text-[12px] font-bold text-ink mb-2">
-            Compartir con tu proveedor
-          </div>
-          <ShareProviderButton token={shareToken} />
-        </div>
-      ) : null}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full">
-        <Link
-          href={`/portal/compras/${encodeURIComponent(code)}/etiquetas`}
-          className="btn btn-ghost inline-flex items-center justify-center gap-2"
-        >
-          Ver mis etiquetas <ArrowIcon size={15} />
-        </Link>
-        <button type="button" onClick={onClose} className="btn btn-ghost">
-          Listo
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function ModeChip({
-  active,
-  onClick,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className="text-[12.5px] font-semibold rounded-full px-3 py-1.5 border transition-colors"
-      style={{
-        borderColor: active ? "var(--color-wine)" : "var(--color-grey-200)",
-        background: active ? "var(--color-paper)" : "var(--color-white)",
-        color: active ? "var(--color-wine)" : "var(--color-grey-700)",
-      }}
-    >
-      {label}
-    </button>
-  );
-}
-
-function FieldLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="text-[11px] font-semibold tracking-[0.1em] uppercase text-grey-500">
-      {children}
-    </span>
-  );
-}
-
-/**
- * Campo de archivo sobrio (label estilizado + input oculto). Muestra el/los
- * nombre(s) elegido(s) y vira a verde cuando hay selección. El `<input>` va con
- * su `name` dentro del `<form action={...}>` → el archivo viaja en el FormData al
- * server action (subida server-side). `multiple` para las fotos.
- */
-function FileField({
-  name,
-  label,
-  accept,
-  multiple,
-  disabled,
-}: {
-  name: string;
-  label: string;
-  accept: string;
-  multiple?: boolean;
-  disabled?: boolean;
-}) {
-  const id = useId();
-  const [names, setNames] = useState<string[]>([]);
-  const has = names.length > 0;
-  return (
-    <div>
-      <label
-        htmlFor={id}
-        className={`flex items-center gap-2.5 px-3.5 py-3 min-h-[44px] rounded-[10px] border text-[13px] transition-colors peer-focus-visible:outline peer-focus-visible:outline-[3px] peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--color-ink)] ${
-          disabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
-        }`}
-        style={{
-          borderColor: has
-            ? "var(--color-status-success)"
-            : "var(--color-grey-200)",
-          background: has ? "var(--color-paper)" : "var(--color-white)",
-        }}
-      >
-        <span
-          className="flex-shrink-0"
-          style={{
-            color: has ? "var(--color-status-success)" : "var(--color-grey-500)",
-          }}
-        >
-          {has ? <CheckIcon size={15} /> : <DocIcon size={15} />}
-        </span>
-        <span className="min-w-0 truncate font-medium text-ink">
-          {has
-            ? names.length > 2
-              ? `${names.length} archivos`
-              : names.join(", ")
-            : label}
-        </span>
-        <span className="ml-auto flex-shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-grey-500">
-          {has ? "Cambiar" : "Subir"}
-        </span>
-      </label>
-      <input
-        id={id}
-        type="file"
-        name={name}
-        accept={accept}
-        multiple={multiple}
-        disabled={disabled}
-        className="peer sr-only"
-        onChange={(e) => {
-          const fs = e.target.files;
-          setNames(fs ? Array.from(fs).map((f) => f.name) : []);
-        }}
-      />
-    </div>
   );
 }

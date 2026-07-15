@@ -67,7 +67,7 @@ export function ApiIntegrationSection({ data }: { data: ApiIntegrationData }) {
       {/* Aviso de estado */}
       <div
         style={{
-          padding: "12px 16px",
+          padding: "var(--s-3) var(--s-4)",
           background: "var(--warning-bg)",
           color: "var(--warning)",
           borderRadius: "var(--r-md)",
@@ -92,13 +92,13 @@ export function ApiIntegrationSection({ data }: { data: ApiIntegrationData }) {
               marginBottom: 14,
             }}
           >
-            <div style={{ font: "700 12px/1.3 var(--f-sans)", color: "var(--success)", marginBottom: 8 }}>
+            <div style={{ font: "700 12px/1.3 var(--f-sans)", color: "var(--success)", marginBottom: "var(--s-2)" }}>
               Copia este token ahora — no se vuelve a mostrar.
             </div>
             <code style={{ display: "block", padding: "10px 12px", background: "var(--bg-surface)", borderRadius: "var(--r-sm)", font: "600 12px/1.5 var(--f-mono)", color: "var(--ink)", wordBreak: "break-all" }}>
               {revealToken}
             </code>
-            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            <div style={{ display: "flex", gap: "var(--s-2)", marginTop: 10 }}>
               <button
                 type="button"
                 className="studio-btn studio-btn-ghost studio-btn-sm"
@@ -118,7 +118,7 @@ export function ApiIntegrationSection({ data }: { data: ApiIntegrationData }) {
           </div>
         )}
 
-        <form action={createAction} style={{ display: "flex", gap: 10, alignItems: "flex-end", marginBottom: 16, flexWrap: "wrap" }}>
+        <form action={createAction} style={{ display: "flex", gap: 10, alignItems: "flex-end", marginBottom: "var(--s-4)", flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: 220 }}>
             <label className="studio-label" htmlFor="ak-name">Nombre de la key</label>
             <input id="ak-name" name="name" value={name} onChange={(e) => setName(e.target.value)} className="studio-input" placeholder="Integración BI" style={{ marginTop: 6 }} />
@@ -137,9 +137,9 @@ export function ApiIntegrationSection({ data }: { data: ApiIntegrationData }) {
         {data.apiKeys.length === 0 ? (
           <p style={{ font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>Sin API keys todavía.</p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
             {data.apiKeys.map((k) => (
-              <div key={k.id} style={{ display: "grid", gridTemplateColumns: "1fr 180px 120px 90px", gap: 12, padding: "10px 12px", background: "var(--bg-elevated)", borderRadius: "var(--r-md)", alignItems: "center" }}>
+              <div key={k.id} style={{ display: "grid", gridTemplateColumns: "1fr 180px 120px 90px", gap: "var(--s-3)", padding: "10px 12px", background: "var(--bg-elevated)", borderRadius: "var(--r-md)", alignItems: "center" }}>
                 <div>
                   <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>{k.name}</div>
                   <code style={{ font: "600 11px/1.3 var(--f-mono)", color: "var(--ink-soft)" }}>{k.keyPrefix}…</code>
@@ -174,16 +174,16 @@ export function ApiIntegrationSection({ data }: { data: ApiIntegrationData }) {
         {data.webhooks.length === 0 ? (
           <p style={{ font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>Sin webhooks configurados.</p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
             {data.webhooks.map((w) => (
-              <div key={w.id} style={{ display: "grid", gridTemplateColumns: "1fr 90px 80px", gap: 12, padding: "10px 12px", background: "var(--bg-elevated)", borderRadius: "var(--r-md)", alignItems: "center" }}>
+              <div key={w.id} style={{ display: "grid", gridTemplateColumns: "1fr 90px 80px", gap: "var(--s-3)", padding: "10px 12px", background: "var(--bg-elevated)", borderRadius: "var(--r-md)", alignItems: "center" }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>{w.name}</div>
                   <code style={{ font: "500 11px/1.3 var(--f-mono)", color: "var(--ink-soft)", wordBreak: "break-all" }}>{w.url}</code>
                   <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 2 }}>{w.events.length} evento{w.events.length === 1 ? "" : "s"}</div>
                 </div>
                 {w.active ? <Badge tone="success" size="sm">Activo</Badge> : <Badge tone="neutral" size="sm">Inactivo</Badge>}
-                <button type="button" onClick={() => setWebhookDrawer({ mode: "edit", webhook: w })} style={{ font: "600 11.5px/1 var(--f-sans)", color: "var(--wine)", justifySelf: "end", background: "transparent", border: 0, cursor: "pointer" }}>
+                <button type="button" onClick={() => setWebhookDrawer({ mode: "edit", webhook: w })} style={{ font: "600 11.5px/1 var(--f-sans)", color: "var(--wine-text)", justifySelf: "end", background: "transparent", border: 0, cursor: "pointer" }}>
                   Editar →
                 </button>
               </div>
@@ -230,11 +230,11 @@ function Card({ children }: { children: React.ReactNode }) {
 }
 function CardEyebrow({ children, noMargin }: { children: React.ReactNode; noMargin?: boolean }) {
   return (
-    <div className="studio-eyebrow" style={{ color: "var(--wine)", marginBottom: noMargin ? 0 : 14 }}>
+    <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: noMargin ? 0 : 14 }}>
       {children}
     </div>
   );
 }
 function FormError({ msg }: { msg: string }) {
-  return <div style={{ padding: 12, background: "var(--danger-bg)", color: "var(--danger)", borderRadius: "var(--r-md)", font: "600 13px/1.3 var(--f-sans)", marginBottom: 12 }}>{msg}</div>;
+  return <div style={{ padding: "var(--s-3)", background: "var(--danger-bg)", color: "var(--danger)", borderRadius: "var(--r-md)", font: "600 13px/1.3 var(--f-sans)", marginBottom: "var(--s-3)" }}>{msg}</div>;
 }

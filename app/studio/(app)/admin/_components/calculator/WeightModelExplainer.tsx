@@ -62,7 +62,7 @@ export function WeightModelExplainer() {
         border: "1px solid var(--border)",
         borderRadius: "var(--r-lg)",
         padding: "22px 24px",
-        marginBottom: 24,
+        marginBottom: "var(--s-6)",
       }}
     >
       {/* Encabezado */}
@@ -71,13 +71,13 @@ export function WeightModelExplainer() {
           display: "flex",
           alignItems: "flex-start",
           justifyContent: "space-between",
-          gap: 16,
+          gap: "var(--s-4)",
           flexWrap: "wrap",
-          marginBottom: 20,
+          marginBottom: "var(--s-5)",
         }}
       >
         <div>
-          <div className="studio-eyebrow" style={{ color: "var(--wine)", marginBottom: 6 }}>
+          <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: 6 }}>
             El modelo de peso
           </div>
           <h3
@@ -110,7 +110,7 @@ export function WeightModelExplainer() {
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))",
-          gap: 24,
+          gap: "var(--s-6)",
           alignItems: "start",
         }}
       >
@@ -119,7 +119,7 @@ export function WeightModelExplainer() {
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(2, 1fr)",
-            gap: 12,
+            gap: "var(--s-3)",
           }}
         >
           {STATS.map((s) => (
@@ -132,11 +132,11 @@ export function WeightModelExplainer() {
                 padding: "14px 16px",
               }}
             >
-              <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "var(--s-1)" }}>
                 <span
                   style={{
                     font: "800 22px/1 var(--f-mono)",
-                    color: "var(--wine)",
+                    color: "var(--wine-text)",
                     letterSpacing: "-0.02em",
                   }}
                 >
@@ -173,7 +173,7 @@ export function WeightModelExplainer() {
         </div>
 
         {/* Explicación */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
           <p
             style={{
               font: "400 13px/1.6 var(--f-sans)",

@@ -119,7 +119,7 @@ export default async function ShipmentDetailPage({
             background: "var(--danger-bg)",
             border: "1px solid var(--danger)",
             borderRadius: 8,
-            padding: "12px 16px",
+            padding: "var(--s-3) var(--s-4)",
             marginBottom: 24,
           }}
         >

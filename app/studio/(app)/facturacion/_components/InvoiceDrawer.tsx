@@ -311,7 +311,7 @@ export function InvoiceDrawer({
           >
             <div>
               <label className="studio-label" htmlFor="ivd-markbox">
-                Shipping Mark <span style={{ color: "var(--wine)" }}>*</span>
+                Shipping Mark <span style={{ color: "var(--wine-text)" }}>*</span>
               </label>
               <input
                 id="ivd-markbox"
@@ -329,7 +329,7 @@ export function InvoiceDrawer({
             </div>
             <div>
               <label className="studio-label" htmlFor="ivd-clname">
-                Nombre del cliente <span style={{ color: "var(--wine)" }}>*</span>
+                Nombre del cliente <span style={{ color: "var(--wine-text)" }}>*</span>
               </label>
               <input
                 id="ivd-clname"
@@ -398,7 +398,7 @@ export function InvoiceDrawer({
             {currency === "VES" && (
               <div>
                 <label className="studio-label" htmlFor="ivd-fx">
-                  Tasa BCV <span style={{ color: "var(--wine)" }}>*</span>
+                  Tasa BCV <span style={{ color: "var(--wine-text)" }}>*</span>
                 </label>
                 <NumericInput
                   id="ivd-fx"
@@ -829,7 +829,7 @@ function FieldError({ msg }: { msg: string }) {
       style={{
         font: "500 11px/1.3 var(--f-sans)",
         color: "var(--danger)",
-        margin: "4px 0 0",
+        margin: "var(--s-1) 0 0",
       }}
     >
       {msg}

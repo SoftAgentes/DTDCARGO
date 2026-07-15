@@ -77,7 +77,7 @@ export const FONT_MONO =
  * Sistema de assets de marca · DTD Cargo.
  *
  * Fuente de verdad oficial:
- *   docs/design/studio/_norte/Brand Book DTD v4.5.html
+ *   docs/design/studio/_norte/Brand Book DTD v4.6.html
  *   docs/design/studio/_norte/BRAND-MIGRATION-2026-05.md
  *
  * El isólogo oficial tiene 4 variantes según el fondo. Usa `<BrandMark>`
@@ -188,9 +188,16 @@ export const CONTACT = {
   ve: {
     label: "Venezuela",
     city: "Valencia, Carabobo",
-    address: "Edificio Kokuy, Av. Bolívar Norte",
-    addressFull: "Edificio Kokuy, Av. Bolívar Norte. Valencia, Carabobo, Venezuela",
+    address: "Edificio Kokuy, Calle 151",
+    addressFull:
+      "Edificio Kokuy, Calle 151, entre Av. Bolívar Norte y Av. Paseo Cabriales. Valencia, Carabobo, Venezuela",
     postalCode: "2001", // Valencia, Carabobo — para schema.org PostalAddress
+
+    /**
+     * Coordenadas GPS exactas del Edificio Kokuy (founder 2026-07-11) — para
+     * schema.org GeoCoordinates (señal fuerte de local SEO) y pin de mapas.
+     */
+    geo: { lat: 10.220449465809326, lng: -68.00848104738162 },
 
     /**
      * Link directo al pin de Google Maps con el logo y la info verificada de DTD.

@@ -11,9 +11,9 @@ export function CNHolidayWarning() {
         background: "var(--warning-bg, rgba(184,137,58,0.10))",
         border: "1px solid var(--warning)",
         borderRadius: 10,
-        padding: 16,
+        padding: "var(--s-4)",
         display: "flex",
-        gap: 12,
+        gap: "var(--s-3)",
         alignItems: "flex-start",
       }}
       role="note"

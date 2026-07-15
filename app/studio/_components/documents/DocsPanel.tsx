@@ -542,7 +542,7 @@ function VersionUpload({ doc }: { doc: DocumentRow }) {
           setError(null);
           setOpen(true);
         }}
-        style={{ alignSelf: "flex-start", color: "var(--wine)" }}
+        style={{ alignSelf: "flex-start", color: "var(--wine-text)" }}
       >
         + Subir nueva versión
       </button>

@@ -77,7 +77,7 @@ export function ServiciosClient({
   const publishedCount = items.filter((it) => it.config?.is_public).length;
 
   return (
-    <div style={{ padding: "24px 24px", maxWidth: 1100 }}>
+    <div style={{ padding: "var(--s-6) var(--s-6)", maxWidth: 1100 }}>
       {/* Header */}
       <header style={{ marginBottom: 24 }}>
         <h1 className="studio-display" style={{ margin: 0, fontSize: 24 }}>
@@ -87,7 +87,7 @@ export function ServiciosClient({
           style={{
             font: "400 13.5px/1.5 var(--f-sans)",
             color: "var(--ink-soft)",
-            margin: "8px 0 0",
+            margin: "var(--s-2) 0 0",
             maxWidth: 680,
           }}
         >
@@ -110,7 +110,7 @@ export function ServiciosClient({
             <section key={group.id}>
               <h2
                 className="studio-eyebrow"
-                style={{ color: "var(--ink-soft)", margin: "0 0 12px" }}
+                style={{ color: "var(--ink-soft)", margin: "0 0 var(--s-3)" }}
               >
                 {group.titulo}
               </h2>
@@ -199,7 +199,7 @@ function ServicioCard({
         >
           {config?.title_public || catalog.nombre}
           {catalog.principal && (
-            <span style={{ color: "var(--wine)", marginLeft: 6 }}>★</span>
+            <span style={{ color: "var(--wine-text)", marginLeft: 6 }}>★</span>
           )}
         </h3>
         <Badge tone={isPublic ? "success" : "neutral"} size="sm">

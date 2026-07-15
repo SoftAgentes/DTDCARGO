@@ -86,6 +86,7 @@
 
 ## 3. LO QUE NO ES DE CLAUDE CODE (queda en chat / humanos)
 - Confirmación de placeholders del Acuerdo v3.0: cargo cancelación [10]%, plazos [5]/[10] días, bodegaje [10 USD/CBM/día], excedente [90] días, foro (cláusula 12.2).
+- **Cambios de contenido acumulados para v3.1** (además de los placeholders) → `ACUERDO-PENDIENTES-v3.1.md`. P. ej.: Anexo B suma **juguetes bélicos** + **uniformes/accesorios militares** (decisión Sam 2026-07-10; la web y el bot ya los reflejan, el texto legal se alinea en v3.1).
 - Validación por abogado venezolano (Acuerdo v3.0 + Contrato Canopy v2 + preguntas de renta presunta/PT a contador).
 - Firma del contrato Canopy↔DTD Services (negociación: reciprocidad de exclusividad, idioma prevalente, carve-outs de clientes).
 - Registro de marca: CNIPA (China, urgente, first-to-file) y SAPI (Venezuela).

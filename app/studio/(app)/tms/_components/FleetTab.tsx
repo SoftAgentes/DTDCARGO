@@ -39,7 +39,7 @@ export function FleetTab({ rows }: { rows: TmsTruckRow[] }) {
           display: "grid",
           gridTemplateColumns:
             "110px minmax(180px, 1.4fr) 80px 110px 110px minmax(140px, 1fr) 78px 140px",
-          gap: 12,
+          gap: "var(--s-3)",
           padding: "12px 18px",
           background: "var(--bg-elevated)",
           borderBottom: "1px solid var(--border)",
@@ -66,7 +66,7 @@ export function FleetTab({ rows }: { rows: TmsTruckRow[] }) {
             display: "grid",
             gridTemplateColumns:
               "110px minmax(180px, 1.4fr) 80px 110px 110px minmax(140px, 1fr) 78px 140px",
-            gap: 12,
+            gap: "var(--s-3)",
             padding: "14px 18px",
             alignItems: "center",
             borderTop: i > 0 ? "1px solid var(--border)" : 0,
@@ -75,7 +75,7 @@ export function FleetTab({ rows }: { rows: TmsTruckRow[] }) {
           <code
             style={{
               font: "800 12.5px/1 var(--f-mono)",
-              color: "var(--wine)",
+              color: "var(--wine-text)",
               letterSpacing: "0.02em",
             }}
           >
@@ -151,7 +151,7 @@ export function FleetTab({ rows }: { rows: TmsTruckRow[] }) {
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 8,
+                gap: "var(--s-2)",
                 minWidth: 0,
               }}
             >

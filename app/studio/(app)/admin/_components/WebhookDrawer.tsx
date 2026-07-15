@@ -102,7 +102,7 @@ export function WebhookDrawer({
                   display: "flex",
                   alignItems: "center",
                   gap: 10,
-                  padding: "8px 12px",
+                  padding: "var(--s-2) var(--s-3)",
                   background: "var(--bg-elevated)",
                   borderRadius: "var(--r-md)",
                   cursor: "pointer",
@@ -181,5 +181,5 @@ function FieldError({ msg }: { msg?: string }) {
   return <p style={{ font: "600 11px/1.3 var(--f-sans)", color: "var(--danger)", margin: "6px 0 0" }}>{msg}</p>;
 }
 function FormError({ msg }: { msg: string }) {
-  return <div style={{ padding: 12, background: "var(--danger-bg)", color: "var(--danger)", borderRadius: "var(--r-md)", font: "600 13px/1.3 var(--f-sans)" }}>{msg}</div>;
+  return <div style={{ padding: "var(--s-3)", background: "var(--danger-bg)", color: "var(--danger)", borderRadius: "var(--r-md)", font: "600 13px/1.3 var(--f-sans)" }}>{msg}</div>;
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BrandMark } from "./BrandMark";
+import { CookiePreferencesLink } from "./CookiePreferencesLink";
 import { TERMINOS_LIVE } from "@/lib/legal-public";
 import {
   CONTACT,
@@ -208,6 +209,12 @@ export function Footer() {
             <Link href="/brochure" className="hover:text-white transition-colors">
               Brochure
             </Link>
+            <Link href="/puerta-a-puerta" className="hover:text-white transition-colors">
+              Puerta a puerta
+            </Link>
+            <Link href="/markbox" className="hover:text-white transition-colors">
+              MARKBOX
+            </Link>
             <Link href="/faq" className="hover:text-white transition-colors">
               Preguntas frecuentes
             </Link>
@@ -227,6 +234,13 @@ export function Footer() {
                 Términos
               </Link>
             )}
+            <Link href="/privacidad" className="hover:text-white transition-colors">
+              Privacidad
+            </Link>
+            <Link href="/cookies" className="hover:text-white transition-colors">
+              Cookies
+            </Link>
+            <CookiePreferencesLink className="hover:text-white transition-colors" />
             <span>{CONTACT.web} · Made in Yiwu &amp; Valencia</span>
           </div>
         </div>

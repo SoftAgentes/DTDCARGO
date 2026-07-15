@@ -183,7 +183,7 @@ export function PushOptInBanner() {
           style={{
             background: "transparent",
             border: 0,
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             font: "700 11px/1 var(--f-sans)",
             cursor: "pointer",
             padding: 4,

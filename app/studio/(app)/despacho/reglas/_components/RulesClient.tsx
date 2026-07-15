@@ -356,7 +356,7 @@ export function RulesClient({
                 border: "1px solid var(--wine)",
                 borderRadius: "var(--r-sm)",
                 font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--wine)",
+                color: "var(--wine-text)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
@@ -371,7 +371,7 @@ export function RulesClient({
                 href="/studio/clientes?tier=vip"
                 style={{
                   font: "700 11px/1 var(--f-sans)",
-                  color: "var(--wine)",
+                  color: "var(--wine-text)",
                   textDecoration: "underline",
                 }}
               >
@@ -567,7 +567,7 @@ function Card({
             {eyebrow && (
               <div
                 className="studio-eyebrow"
-                style={{ color: "var(--wine)", marginBottom: 6 }}
+                style={{ color: "var(--wine-text)", marginBottom: 6 }}
               >
                 {eyebrow}
               </div>
@@ -610,7 +610,7 @@ function WeightSlider({
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
         <span style={{ font: "700 12.5px/1 var(--f-sans)", color: "var(--ink)" }}>{label}</span>
-        <code style={{ font: "800 14px/1 var(--f-mono)", color: "var(--wine)" }}>{value}</code>
+        <code style={{ font: "800 14px/1 var(--f-mono)", color: "var(--wine-text)" }}>{value}</code>
       </div>
       <input
         type="range"
@@ -731,7 +731,7 @@ function PreviewLive({
               type="button"
               onClick={() => setSelectedId(s.id)}
               style={{
-                padding: "8px 12px",
+                padding: "var(--s-2) var(--s-3)",
                 background: active ? "var(--wine-tint)" : "var(--bg-elevated)",
                 color: active ? "var(--wine)" : "var(--ink-soft)",
                 border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
@@ -823,7 +823,7 @@ function PreviewLive({
         <div
           style={{
             font: "700 10.5px/1 var(--f-sans)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             letterSpacing: "0.16em",
             textTransform: "uppercase",
             marginBottom: 10,

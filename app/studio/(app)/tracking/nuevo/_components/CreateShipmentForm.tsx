@@ -81,7 +81,7 @@ export function CreateShipmentForm({
             font: "500 12px/1 var(--f-sans)",
             color: "var(--ink-soft)",
             textDecoration: "none",
-            transition: "color 0.12s",
+            transition: "color var(--dur-fast) var(--ease)",
           }}
         >
           <span style={{ fontSize: 14 }}>←</span> Volver al listado
@@ -125,7 +125,7 @@ export function CreateShipmentForm({
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 14 }}>
           <div>
             <label htmlFor="code" className="studio-label">
-              Código del envío <span style={{ color: "var(--wine)" }}>*</span>
+              Código del envío <span style={{ color: "var(--wine-text)" }}>*</span>
             </label>
             <input
               id="code"
@@ -143,7 +143,7 @@ export function CreateShipmentForm({
 
           <div>
             <label htmlFor="shipment_service" className="studio-label">
-              Servicio <span style={{ color: "var(--wine)" }}>*</span>
+              Servicio <span style={{ color: "var(--wine-text)" }}>*</span>
             </label>
             <select
               id="shipment_service"
@@ -344,7 +344,7 @@ export function CreateShipmentForm({
             <label htmlFor="vehicle_category" className="studio-label">
               Vehículo{" "}
               {vehicleRequired ? (
-                <span style={{ color: "var(--wine)" }}>*</span>
+                <span style={{ color: "var(--wine-text)" }}>*</span>
               ) : (
                 <span style={{ color: "var(--ink-soft)", fontWeight: 500 }}>(opcional)</span>
               )}

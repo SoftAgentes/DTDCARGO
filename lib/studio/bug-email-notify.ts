@@ -8,7 +8,7 @@
  *
  * 3 canales que dispara para cada caso:
  *   1. Email · sendEmail con template bug_notification (Resend)
- *   2. Push browser · sendBugPushToUser (Web Push + VAPID)
+ *   2. Push browser · enqueueUserPush (outbox SDD-0146, Web Push + VAPID)
  *   3. Telegram · sendBugTelegramToUser (Bot API)
  *
  * Diseño:
@@ -25,15 +25,30 @@
  *    estar linkeado. El chat_id sale de user_profiles.telegram_chat_id.
  *  - Si test_mode=true en mail_config, sendEmail redirige a internal_test_email.
  *
- * NO cubre todavía (P3, fuera de V1):
- *  - Outbox durable enqueue→drain con retry (hoy el dispatch es inline).
+ * Outbox durable (P3, SDD-0036 Fase 5): el intento inline sigue siendo el
+ * camino feliz (respuesta rápida), pero un fallo YA NO se pierde:
+ *  - Push encola en el outbox de SDD-0146 (`enqueueUserPush` +
+ *    `drainOperarioPushOutbox`, cron `/api/cron/push-drain` cada minuto).
+ *  - Email/Telegram: un fallo marca `<canal>_attempts`/`<canal>_last_error`
+ *    en la fila (migración 0232) y el cron `/api/cron/bug-notifications-drain`
+ *    reintenta hasta 5 veces (lib/studio/notify/bug-notif-outbox.ts).
+ *
+ * NO cubre todavía:
  *  - Templates específicos por tipo de notif (1 template genérico cubre los 3).
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendEmail } from "@/lib/studio/mail/send-email";
-import { sendBugPushToUser } from "@/lib/studio/notify/send-bug-push";
+import {
+  enqueueUserPush,
+  drainOperarioPushOutbox,
+} from "@/lib/studio/notify/operario-push-outbox";
+import { recordBugNotifChannelFailure } from "@/lib/studio/notify/bug-notif-outbox";
 import { writeInAppNotification } from "@/lib/studio/notify/write-inapp";
+import {
+  resolveUserEmail,
+  resolveUserDisplayName,
+} from "@/lib/studio/notify/resolve-recipient";
 import { sendTelegramMessage } from "@/lib/studio/telegram/send-message";
 import {
   BUG_STATE_LABELS,
@@ -225,8 +240,14 @@ export async function notifyBugCreatedToAdmin(
         "critical_alert",
       );
 
-      // In-app (campanita) · alimenta el outbox si el admin no lo apagó.
-      const notifId = channels.inapp
+      // Fila del outbox: ancla de retry para email/push/telegram (P3), no solo
+      // campanita — se crea si CUALQUIER canal va a intentar algo, aunque el
+      // admin haya apagado in-app (markDelivered la deja sin marcar leída/vista).
+      const excerpt = `Reportado por ${reporterName}.`;
+      const actionLabel = "Ver bug en el Studio";
+      const anyChannel =
+        channels.inapp || channels.email || channels.push || channels.telegram;
+      const notifId = anyChannel
         ? await writeInAppNotification(supabaseAdmin, {
             userId: admin.user_id,
             bugId: bug.id,
@@ -235,46 +256,61 @@ export async function notifyBugCreatedToAdmin(
               folio: bug.folio,
               title: bug.title,
               label: notifLabel,
-              excerpt: `Reportado por ${reporterName}.`,
+              excerpt,
               url: bugUrlPath,
+              actionLabel,
             },
+            markDelivered: channels.inapp,
           })
         : null;
 
-      // Email (puede skip-ar si Resend no está configurado)
+      // Email (puede skip-ar si Resend no está configurado) · fallo → outbox P3.
       if (channels.email) {
-        await sendBugNotification(supabaseAdmin, tenantId, {
+        const result = await sendBugNotification(supabaseAdmin, tenantId, {
           to: admin.email,
           bug,
           notifTypeLabel: notifLabel,
           recipientName: "Equipo admin",
-          messageExcerpt: `Reportado por ${reporterName}.`,
+          messageExcerpt: excerpt,
           bugUrlPath,
-          actionLabel: "Ver bug en el Studio",
+          actionLabel,
         });
-        await stampDelivered(supabaseAdmin, notifId, "delivered_email_at");
+        if (result.ok) {
+          await stampDelivered(supabaseAdmin, notifId, "delivered_email_at");
+        } else if (notifId) {
+          await recordBugNotifChannelFailure(supabaseAdmin, notifId, "email", 0, result.error);
+        }
       }
 
-      // Push browser (skip silencioso si el admin no opted-in)
+      // Push browser · encola en el outbox durable de SDD-0146
+      // (outbox_push_events + cron push-drain cada minuto) en vez de mandar
+      // directo — 5 reintentos gratis, sin infraestructura nueva (P3).
       if (channels.push) {
-        await sendBugPushToUser(supabaseAdmin, admin.user_id, {
+        const pushId = await enqueueUserPush(supabaseAdmin, tenantId, admin.user_id, {
           title: `${notifLabel} · ${bug.folio}`,
           body: `${bug.title} — reportado por ${reporterName}`,
           url: bugUrlPath,
           tag: `bug-${bug.id}`,
           requireInteraction: bug.severity === "critica",
         });
-        await stampDelivered(supabaseAdmin, notifId, "delivered_push_at");
+        if (pushId) {
+          await drainOperarioPushOutbox(supabaseAdmin); // near-instant; cron es backstop
+          await stampDelivered(supabaseAdmin, notifId, "delivered_push_at");
+        }
       }
 
-      // Telegram · respeta channel_telegram (default OFF) + link.
+      // Telegram · respeta channel_telegram (default OFF) + link. Fallo → outbox P3.
       if (channels.telegram) {
-        await sendBugTelegramToUser(supabaseAdmin, admin.user_id, {
+        const result = await sendBugTelegramToUser(supabaseAdmin, admin.user_id, {
           title: `${notifLabel} · ${bug.folio}`,
           body: `${bug.title}\nReportado por ${reporterName}.`,
           url: `${SITE_URL}${bugUrlPath}`,
         });
-        await stampDelivered(supabaseAdmin, notifId, "delivered_telegram_at");
+        if (result.ok) {
+          await stampDelivered(supabaseAdmin, notifId, "delivered_telegram_at");
+        } else if (notifId) {
+          await recordBugNotifChannelFailure(supabaseAdmin, notifId, "telegram", 0, result.error);
+        }
       }
     }
   } catch (err) {
@@ -308,7 +344,11 @@ export async function notifyBugStateChangeToReporter(
       notifType,
     );
 
-    const notifId = channels.inapp
+    const excerpt = "El admin actualizó el estado de tu reporte.";
+    const actionLabel = "Ver mi reporte";
+    const anyChannel =
+      channels.inapp || channels.email || channels.push || channels.telegram;
+    const notifId = anyChannel
       ? await writeInAppNotification(supabaseAdmin, {
           userId: bug.reporter_id,
           bugId: bug.id,
@@ -318,41 +358,55 @@ export async function notifyBugStateChangeToReporter(
             title: bug.title,
             state: bug.state,
             label: notifLabel,
+            excerpt,
             url: bugUrlPath,
+            actionLabel,
           },
+          markDelivered: channels.inapp,
         })
       : null;
 
     if (channels.email && reporterEmail) {
-      await sendBugNotification(supabaseAdmin, tenantId, {
+      const result = await sendBugNotification(supabaseAdmin, tenantId, {
         to: reporterEmail,
         bug,
         notifTypeLabel: notifLabel,
         recipientName: reporterName,
-        messageExcerpt: "El admin actualizó el estado de tu reporte.",
+        messageExcerpt: excerpt,
         bugUrlPath,
-        actionLabel: "Ver mi reporte",
+        actionLabel,
       });
-      await stampDelivered(supabaseAdmin, notifId, "delivered_email_at");
+      if (result.ok) {
+        await stampDelivered(supabaseAdmin, notifId, "delivered_email_at");
+      } else if (notifId) {
+        await recordBugNotifChannelFailure(supabaseAdmin, notifId, "email", 0, result.error);
+      }
     }
 
     if (channels.push) {
-      await sendBugPushToUser(supabaseAdmin, bug.reporter_id, {
+      const pushId = await enqueueUserPush(supabaseAdmin, tenantId, bug.reporter_id, {
         title: `${bug.folio} · ${stateLabel}`,
         body: `Tu reporte "${bug.title}" cambió a ${stateLabel}.`,
         url: bugUrlPath,
         tag: `bug-${bug.id}`,
       });
-      await stampDelivered(supabaseAdmin, notifId, "delivered_push_at");
+      if (pushId) {
+        await drainOperarioPushOutbox(supabaseAdmin);
+        await stampDelivered(supabaseAdmin, notifId, "delivered_push_at");
+      }
     }
 
     if (channels.telegram) {
-      await sendBugTelegramToUser(supabaseAdmin, bug.reporter_id, {
+      const result = await sendBugTelegramToUser(supabaseAdmin, bug.reporter_id, {
         title: `${bug.folio} · ${stateLabel}`,
         body: `Tu reporte "${bug.title}" cambió a ${stateLabel}.`,
         url: `${SITE_URL}${bugUrlPath}`,
       });
-      await stampDelivered(supabaseAdmin, notifId, "delivered_telegram_at");
+      if (result.ok) {
+        await stampDelivered(supabaseAdmin, notifId, "delivered_telegram_at");
+      } else if (notifId) {
+        await recordBugNotifChannelFailure(supabaseAdmin, notifId, "telegram", 0, result.error);
+      }
     }
   } catch (err) {
     console.error("[bug-email-notify] notifyBugStateChangeToReporter failed:", err);
@@ -385,7 +439,10 @@ export async function notifyBugMessageToReporter(
       "new_reply",
     );
 
-    const notifId = channels.inapp
+    const actionLabel = "Ver conversación";
+    const anyChannel =
+      channels.inapp || channels.email || channels.push || channels.telegram;
+    const notifId = anyChannel
       ? await writeInAppNotification(supabaseAdmin, {
           userId: bug.reporter_id,
           bugId: bug.id,
@@ -396,40 +453,53 @@ export async function notifyBugMessageToReporter(
             label: notifLabel,
             excerpt,
             url: bugUrlPath,
+            actionLabel,
           },
+          markDelivered: channels.inapp,
         })
       : null;
 
     if (channels.email && reporterEmail) {
-      await sendBugNotification(supabaseAdmin, tenantId, {
+      const result = await sendBugNotification(supabaseAdmin, tenantId, {
         to: reporterEmail,
         bug,
         notifTypeLabel: notifLabel,
         recipientName: reporterName,
         messageExcerpt: excerpt,
         bugUrlPath,
-        actionLabel: "Ver conversación",
+        actionLabel,
       });
-      await stampDelivered(supabaseAdmin, notifId, "delivered_email_at");
+      if (result.ok) {
+        await stampDelivered(supabaseAdmin, notifId, "delivered_email_at");
+      } else if (notifId) {
+        await recordBugNotifChannelFailure(supabaseAdmin, notifId, "email", 0, result.error);
+      }
     }
 
     if (channels.push) {
-      await sendBugPushToUser(supabaseAdmin, bug.reporter_id, {
+      const pushId = await enqueueUserPush(supabaseAdmin, tenantId, bug.reporter_id, {
         title: `${bug.folio} · Admin respondió`,
         body: excerpt,
         url: bugUrlPath,
         tag: `bug-${bug.id}`,
       });
-      await stampDelivered(supabaseAdmin, notifId, "delivered_push_at");
+      if (pushId) {
+        await drainOperarioPushOutbox(supabaseAdmin);
+        await stampDelivered(supabaseAdmin, notifId, "delivered_push_at");
+      }
     }
 
     if (channels.telegram) {
-      await sendBugTelegramToUser(supabaseAdmin, bug.reporter_id, {
+      const result = await sendBugTelegramToUser(supabaseAdmin, bug.reporter_id, {
         title: `${bug.folio} · Admin respondió`,
         body: excerpt,
         url: `${SITE_URL}${bugUrlPath}`,
       });
-      await stampDelivered(supabaseAdmin, notifId, "delivered_telegram_at");
+      if (result.ok) {
+        await stampDelivered(supabaseAdmin, notifId, "delivered_telegram_at");
+      } else if (notifId) {
+        await recordBugNotifChannelFailure(supabaseAdmin, notifId, "telegram", 0, result.error);
+      }
     }
   } catch (err) {
     console.error("[bug-email-notify] notifyBugMessageToReporter failed:", err);
@@ -454,7 +524,7 @@ async function sendBugNotification(
   supabaseAdmin: SupabaseClient,
   tenantId: string,
   opts: SendBugNotificationOpts,
-): Promise<void> {
+): Promise<{ ok: boolean; error?: string }> {
   const result = await sendEmail(supabaseAdmin, tenantId, {
     templateSlug: "bug_notification",
     to: opts.to,
@@ -480,6 +550,7 @@ async function sendBugNotification(
   if (!result.ok) {
     console.error("[bug-email-notify] sendEmail failed:", result.error);
   }
+  return result;
 }
 
 async function resolveAdminEmails(
@@ -518,33 +589,6 @@ async function resolveAdminEntries(
     .map((u) => ({ user_id: u.id, email: u.email as string }));
 }
 
-async function resolveUserEmail(
-  supabaseAdmin: SupabaseClient,
-  userId: string,
-): Promise<string | null> {
-  const { data } = await supabaseAdmin.auth.admin.getUserById(userId);
-  return data?.user?.email ?? null;
-}
-
-async function resolveUserDisplayName(
-  supabaseAdmin: SupabaseClient,
-  userId: string,
-): Promise<string> {
-  const { data: profile } = await supabaseAdmin
-    .from("user_profiles")
-    .select("first_name, last_name")
-    .eq("user_id", userId)
-    .maybeSingle<{ first_name: string | null; last_name: string | null }>();
-  const name = [profile?.first_name, profile?.last_name]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
-  if (name) return name;
-
-  const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId);
-  return userData?.user?.email ?? "Usuario";
-}
-
 /**
  * Envía notif por Telegram a un user. El gate de CONSENTIMIENTO
  * (`channel_telegram`, default OFF) se aplica upstream en `resolveChannels`
@@ -552,7 +596,9 @@ async function resolveUserDisplayName(
  * lo escribe el flujo de link) y hacemos skip silencioso si no linkeó
  * (telegram_chat_id IS NULL) o si TELEGRAM_BOT_TOKEN no está configurado.
  *
- * Best-effort: errores se loguean pero no se propagan.
+ * Best-effort: nunca throwea. Devuelve {ok,error} para que el caller decida
+ * si el fallo va al outbox de retry (P3) — antes se tragaba el error acá
+ * mismo y la notif se perdía sin dejar rastro.
  */
 async function sendBugTelegramToUser(
   supabaseAdmin: SupabaseClient,
@@ -562,7 +608,7 @@ async function sendBugTelegramToUser(
     body: string;
     url: string;
   },
-): Promise<void> {
+): Promise<{ ok: boolean; error?: string }> {
   try {
     const { data: profile } = await supabaseAdmin
       .from("user_profiles")
@@ -571,7 +617,7 @@ async function sendBugTelegramToUser(
       .maybeSingle<{ telegram_chat_id: string | null }>();
 
     const chatId = profile?.telegram_chat_id;
-    if (!chatId) return;
+    if (!chatId) return { ok: true }; // sin destino: no es un fallo a reintentar.
 
     // Plain text · evita escape hell de MarkdownV2.
     const text = `${payload.title}\n\n${payload.body}\n\n${payload.url}`;
@@ -580,7 +626,9 @@ async function sendBugTelegramToUser(
     if (!result.ok) {
       console.error("[bug-email-notify] sendTelegramMessage failed:", result.error);
     }
+    return result;
   } catch (err) {
     console.error("[bug-email-notify] sendBugTelegramToUser failed:", err);
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }

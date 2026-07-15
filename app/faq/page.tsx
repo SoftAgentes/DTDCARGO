@@ -107,7 +107,8 @@ export default function FaqPage() {
 
         {/* Acordeón de FAQs (details nativo — sin JS), agrupado por categoría
             con subheads eyebrow. El FAQPage schema de arriba NO se agrupa:
-            sigue plano con las 23 preguntas. */}
+            sigue plano con todas las preguntas. Las respuestas con lista usan
+            `bloques` (solo UI); el schema toma el string plano `respuesta`. */}
         <section className="pb-16 lg:pb-20">
           <div className="wrap max-w-[820px]">
             <span className="eyebrow">Todas las preguntas</span>
@@ -135,9 +136,32 @@ export default function FaqPage() {
                           +
                         </span>
                       </summary>
-                      <p className="-mt-1 pb-5 text-[14.5px] leading-[1.65] text-grey-700">
-                        {f.respuesta}
-                      </p>
+                      {f.bloques ? (
+                        <div className="-mt-1 flex flex-col gap-3 pb-5 text-[14.5px] leading-[1.65] text-grey-700">
+                          {f.bloques.map((b, bi) =>
+                            b.tipo === "lista" ? (
+                              <ul key={bi} className="flex flex-col gap-1.5">
+                                {b.items.map((it) => (
+                                  <li key={it} className="flex gap-2.5">
+                                    <span
+                                      aria-hidden
+                                      className="mt-[8px] h-[5px] w-[5px] flex-shrink-0 rounded-full"
+                                      style={{ background: "var(--color-wine)" }}
+                                    />
+                                    <span>{it}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p key={bi}>{b.texto}</p>
+                            ),
+                          )}
+                        </div>
+                      ) : (
+                        <p className="-mt-1 pb-5 text-[14.5px] leading-[1.65] text-grey-700">
+                          {f.respuesta}
+                        </p>
+                      )}
                     </details>
                   ))}
                 </div>

@@ -33,6 +33,20 @@ import { ApiIntegrationSection } from "./_components/ApiIntegrationSection";
 import { WorkflowsSection } from "./_components/WorkflowsSection";
 import { ImportExportSection } from "./_components/ImportExportSection";
 import { CalculatorSection } from "./_components/calculator/CalculatorSection";
+import { RecepcionAddonsSection } from "./_components/RecepcionAddonsSection";
+import { listPrealertaAddonsConfig } from "@/lib/studio/prealertas/queries";
+import { PortalBackfillSection } from "./_components/PortalBackfillSection";
+import {
+  listPortalInviteCandidates,
+  getPortalAdoptionStats,
+  listPortalColdInvitees,
+  listPortalContactlessClients,
+  type PortalInviteCandidate,
+  type PortalAdoptionStats,
+  type PortalColdInvitee,
+  type PortalContactlessClient,
+} from "@/lib/studio/client-queries";
+import type { PrealertaAddon } from "@/lib/studio/prealertas/addons";
 import { getNumberingOverview } from "@/lib/studio/numbering-queries";
 import { getRecentAuditEvents } from "@/lib/studio/audit-queries";
 import { getExchangeRatesOverview } from "@/lib/studio/exchange-rates-queries";
@@ -221,6 +235,22 @@ const SECTIONS: AdminSection[] = [
     sddRef: "SDD-0123",
   },
   {
+    id: "recepcion-addons",
+    group: "INTERMEDIO",
+    label: "Servicios de recepción",
+    icon: "box",
+    description:
+      "Los 7 servicios que el cliente puede pedir sobre su compra al llegar a bodega (verificar, inspeccionar, reempacar, compactar, etiquetar, medir, retener). Prende/apaga cada uno y pega su video de ayuda de YouTube — sin tocar código.",
+  },
+  {
+    id: "portal-invites",
+    group: "INTERMEDIO",
+    label: "Invitaciones al portal",
+    icon: "users",
+    description:
+      "Adopción: invita por lotes al portal a los clientes sin acceso, reenvía el enlace a los invitados que nunca entraron, y captura correo/teléfono a los que no tienen contacto. Filtra, excluye demos y manda los correos en tandas. Envía correos reales.",
+  },
+  {
     id: "numbering",
     group: "INTERMEDIO",
     label: "Numeración & legal",
@@ -321,6 +351,11 @@ export default async function AdminPage({
   let importData: { calendar: CalendarEvent[]; company: CompanyData } | null = null;
   let legalData: LegalSectionData | null = null;
   let calcData: { settings: CalculatorSettings | null; cities: CalculatorCity[] } | null = null;
+  let addonsData: PrealertaAddon[] | null = null;
+  let inviteCandidates: PortalInviteCandidate[] | null = null;
+  let adoptionStats: PortalAdoptionStats | null = null;
+  let coldInvitees: PortalColdInvitee[] | null = null;
+  let contactlessClients: PortalContactlessClient[] | null = null;
   if (active.id === "legal-docs" || active.id === "acceptances") {
     const supabase = await createClient();
     // RLS ya acota al tenant del admin logueado; listLegalDocs sin tenantId se
@@ -369,6 +404,18 @@ export default async function AdminPage({
       listCalculatorCities(supabase),
     ]);
     calcData = { settings, cities };
+  } else if (active.id === "recepcion-addons") {
+    const supabase = await createClient();
+    addonsData = await listPrealertaAddonsConfig(supabase);
+  } else if (active.id === "portal-invites") {
+    const supabase = await createClient();
+    [inviteCandidates, adoptionStats, coldInvitees, contactlessClients] =
+      await Promise.all([
+        listPortalInviteCandidates(supabase),
+        getPortalAdoptionStats(supabase),
+        listPortalColdInvitees(supabase),
+        listPortalContactlessClients(supabase),
+      ]);
   }
 
   const grouped = GROUP_ORDER.map((g) => ({
@@ -392,7 +439,7 @@ export default async function AdminPage({
         <div>
           <div
             className="studio-eyebrow"
-            style={{ marginBottom: 10, color: "var(--wine)" }}
+            style={{ marginBottom: 10, color: "var(--wine-text)" }}
           >
             Configuración · Studio
           </div>
@@ -425,7 +472,7 @@ export default async function AdminPage({
             gap: 6,
             padding: "6px 10px",
             background: "var(--wine-tint)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             borderRadius: "var(--r-pill)",
             font: "700 11px/1 var(--f-sans)",
             letterSpacing: "0.04em",
@@ -465,6 +512,11 @@ export default async function AdminPage({
           legalData={legalData}
           calcData={calcData}
           calcInitialTab={calcInitialTab}
+          addonsData={addonsData}
+          inviteCandidates={inviteCandidates}
+          adoptionStats={adoptionStats}
+          coldInvitees={coldInvitees}
+          contactlessClients={contactlessClients}
         />
       </div>
     </div>
@@ -568,6 +620,11 @@ function Content({
   legalData,
   calcData,
   calcInitialTab,
+  addonsData,
+  inviteCandidates,
+  adoptionStats,
+  coldInvitees,
+  contactlessClients,
 }: {
   section: AdminSection;
   companyData: CompanyData | null;
@@ -580,6 +637,11 @@ function Content({
   legalData: LegalSectionData | null;
   calcData: { settings: CalculatorSettings | null; cities: CalculatorCity[] } | null;
   calcInitialTab: "parametros" | "ciudades";
+  addonsData: PrealertaAddon[] | null;
+  inviteCandidates: PortalInviteCandidate[] | null;
+  adoptionStats: PortalAdoptionStats | null;
+  coldInvitees: PortalColdInvitee[] | null;
+  contactlessClients: PortalContactlessClient[] | null;
 }) {
   return (
     <div key={section.id}>
@@ -587,7 +649,7 @@ function Content({
       <div style={{ marginBottom: 20 }}>
         <div
           className="studio-eyebrow"
-          style={{ color: "var(--wine)", marginBottom: 6 }}
+          style={{ color: "var(--wine-text)", marginBottom: 6 }}
         >
           {section.group}
         </div>
@@ -653,6 +715,15 @@ function Content({
           cities={calcData.cities}
           isAdmin
           initialTab={calcInitialTab}
+        />
+      ) : section.id === "recepcion-addons" && addonsData ? (
+        <RecepcionAddonsSection addons={addonsData} />
+      ) : section.id === "portal-invites" && inviteCandidates ? (
+        <PortalBackfillSection
+          candidates={inviteCandidates}
+          stats={adoptionStats}
+          coldInvitees={coldInvitees ?? []}
+          contactlessClients={contactlessClients ?? []}
         />
       ) : section.id === "import" && importData ? (
         <ImportExportSection
@@ -749,7 +820,7 @@ function PendingSectionPanel({ section }: { section: AdminSection }) {
         <div
           style={{
             font: "700 10px/1 var(--f-sans)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             letterSpacing: "0.16em",
             textTransform: "uppercase",
           }}

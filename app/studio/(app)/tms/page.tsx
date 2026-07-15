@@ -68,8 +68,8 @@ export default async function TmsPage() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-end",
-          gap: 24,
-          marginBottom: 24,
+          gap: "var(--s-6)",
+          marginBottom: "var(--s-6)",
           flexWrap: "wrap",
         }}
       >
@@ -79,7 +79,7 @@ export default async function TmsPage() {
             className="studio-display"
             style={{
               fontSize: 30,
-              margin: "8px 0 8px",
+              margin: "var(--s-2) 0 var(--s-2)",
               color: "var(--ink)",
             }}
           >

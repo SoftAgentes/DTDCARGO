@@ -33,6 +33,12 @@ export interface WriteInAppArgs {
   bugId?: string | null;
   /** Quién disparó el evento: si === userId no se escribe (no auto-notif). */
   actorId?: string | null;
+  /**
+   * false → crea la fila del outbox SIN marcarla entregada in-app (el user
+   * apagó `channel_inapp`); la fila sigue sirviendo de ancla de retry para
+   * email/push/telegram (SDD-0036 P3). Default true.
+   */
+  markDelivered?: boolean;
 }
 
 export async function writeInAppNotification(
@@ -81,7 +87,8 @@ export async function writeInAppNotification(
         bug_id: bugId,
         type: args.type,
         payload: args.payload,
-        delivered_inapp_at: new Date().toISOString(),
+        delivered_inapp_at:
+          args.markDelivered === false ? null : new Date().toISOString(),
       })
       .select("id")
       .single<{ id: string }>();

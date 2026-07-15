@@ -348,7 +348,7 @@ export default async function InvoiceDetailPage({
               display: "grid",
               gridTemplateColumns: "1fr 80px 120px 120px",
               gap: 12,
-              padding: "12px 20px",
+              padding: "var(--s-3) var(--s-5)",
               background: "var(--bg-elevated)",
               borderBottom: "1px solid var(--border)",
               font: "700 10px/1 var(--f-sans)",
@@ -369,7 +369,7 @@ export default async function InvoiceDetailPage({
                 display: "grid",
                 gridTemplateColumns: "1fr 80px 120px 120px",
                 gap: 12,
-                padding: "12px 20px",
+                padding: "var(--s-3) var(--s-5)",
                 borderTop: i > 0 ? "1px solid var(--border)" : 0,
                 alignItems: "center",
               }}
@@ -583,7 +583,7 @@ function FieldLink({
           font: mono
             ? "600 13px/1.3 var(--f-mono)"
             : "500 13px/1.4 var(--f-sans)",
-          color: "var(--wine)",
+          color: "var(--wine-text)",
           textDecoration: "none",
         }}
       >

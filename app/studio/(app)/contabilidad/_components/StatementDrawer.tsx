@@ -208,7 +208,7 @@ export function StatementDrawer({ bankAccounts, onClose }: Props) {
           >
             <div>
               <label className="studio-label" htmlFor="stmt-account">
-                Cuenta banco / caja <span style={{ color: "var(--wine)" }}>*</span>
+                Cuenta banco / caja <span style={{ color: "var(--wine-text)" }}>*</span>
               </label>
               <select
                 id="stmt-account"
@@ -229,7 +229,7 @@ export function StatementDrawer({ bankAccounts, onClose }: Props) {
             </div>
             <div>
               <label className="studio-label" htmlFor="stmt-period">
-                Período (YYYY-MM) <span style={{ color: "var(--wine)" }}>*</span>
+                Período (YYYY-MM) <span style={{ color: "var(--wine-text)" }}>*</span>
               </label>
               <input
                 id="stmt-period"
@@ -428,7 +428,7 @@ export function StatementDrawer({ bankAccounts, onClose }: Props) {
           {/* Tira de saldos LIVE (navy) */}
           <div
             style={{
-              padding: "16px 20px",
+              padding: "var(--s-4) var(--s-5)",
               background: "var(--ink)",
               color: "var(--ink-inv)",
               borderRadius: "var(--r-lg)",
@@ -557,7 +557,7 @@ function FieldError({ msg }: { msg: string }) {
       style={{
         font: "500 11px/1.3 var(--f-sans)",
         color: "var(--danger)",
-        margin: "4px 0 0",
+        margin: "var(--s-1) 0 0",
       }}
     >
       {msg}

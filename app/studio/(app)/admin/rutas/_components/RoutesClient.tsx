@@ -410,7 +410,7 @@ function RouteRowCard({
               marginBottom: 6,
             }}
           >
-            <code style={{ font: "800 12px/1 var(--f-mono)", color: "var(--wine)" }}>
+            <code style={{ font: "800 12px/1 var(--f-mono)", color: "var(--wine-text)" }}>
               {route.route_code}
             </code>
             <div
@@ -509,7 +509,7 @@ function RouteRowCard({
                   </span>
                   <span
                     style={{
-                      color: "var(--wine)",
+                      color: "var(--wine-text)",
                       font: "700 11px/1 var(--f-mono)",
                     }}
                   >
@@ -1031,7 +1031,7 @@ function CityRow({
         }}
       >
         {c.is_hq ? (
-          <span style={{ font: "500 11.5px/1 var(--f-sans)", color: "var(--ink-mute)" }}>
+          <span style={{ font: "500 11.5px/1 var(--f-sans)", color: "var(--ink-soft)" }}>
             — (HQ)
           </span>
         ) : (
@@ -1062,7 +1062,7 @@ function CityRow({
               padding: "3px 8px",
               borderRadius: "var(--r-sm)",
               background: "var(--wine-tint)",
-              color: "var(--wine)",
+              color: "var(--wine-text)",
               font: "800 11px/1 var(--f-sans)",
             }}
           >

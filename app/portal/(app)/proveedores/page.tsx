@@ -51,6 +51,9 @@ export default async function PortalSuppliersPage() {
       supplier_seq: s.supplier_seq,
       name: s.name,
       wechat: s.wechat,
+      city: s.city,
+      contact: s.contact,
+      notes: s.notes,
     })),
     orderCountBySupplierId,
   );

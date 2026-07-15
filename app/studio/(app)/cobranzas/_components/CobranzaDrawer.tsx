@@ -456,7 +456,7 @@ function CobroForm({
             style={{
               font: "500 11px/1.3 var(--f-sans)",
               color: amt >= balance - 1e-6 ? "var(--ink-soft)" : "var(--warning)",
-              margin: "4px 0 0",
+              margin: "var(--s-1) 0 0",
             }}
           >
             {amt >= balance - 1e-6
@@ -475,7 +475,7 @@ function CobroForm({
             style={{
               font: "500 11.5px/1.4 var(--f-sans)",
               color: "var(--warning)",
-              margin: "4px 0 0",
+              margin: "var(--s-1) 0 0",
             }}
           >
             No hay cuentas de caja/banco en el plan de cuentas. Sembrá el plan en
@@ -657,7 +657,7 @@ function CobroForm({
                 El pagador declaró que los fondos corresponden a la operación y
                 son de origen lícito.
                 {!licitDeclared && (
-                  <span style={{ color: "var(--wine)", fontWeight: 600 }}>
+                  <span style={{ color: "var(--wine-text)", fontWeight: 600 }}>
                     {" "}
                     · requerido para registrar un pago de tercero
                   </span>
@@ -944,7 +944,7 @@ function HistorySection({
                     height: 28,
                     borderRadius: "50%",
                     background: "var(--wine-tint)",
-                    color: "var(--wine)",
+                    color: "var(--wine-text)",
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",

@@ -38,7 +38,7 @@ const labelStyle = { display: "block", marginBottom: 6 } as const;
 const emptyStyle = {
   font: "400 13px/1.5 var(--f-sans)",
   color: "var(--ink-soft)",
-  margin: "0 0 12px",
+  margin: "0 0 var(--s-3)",
 };
 
 export function WorkflowEditor({
@@ -78,7 +78,7 @@ export function WorkflowEditor({
       {steps.length === 0 ? (
         <p style={emptyStyle}>Todavía no hay pasos para este servicio.</p>
       ) : (
-        <ul style={{ listStyle: "none", padding: 0, margin: "0 0 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+        <ul style={{ listStyle: "none", padding: 0, margin: "0 0 var(--s-4)", display: "flex", flexDirection: "column", gap: 10 }}>
           {steps.map((s) => (
             <li
               key={s.id}
@@ -122,8 +122,8 @@ export function WorkflowEditor({
 
       {/* Pendientes de humano (bandeja del servicio) */}
       {awaiting.length > 0 && (
-        <div style={{ margin: "0 0 16px", padding: 12, border: "1px solid var(--border)", borderRadius: "var(--r-md)", background: "var(--bg-surface)" }}>
-          <p className="studio-eyebrow" style={{ color: "var(--ink-soft)", margin: "0 0 8px" }}>
+        <div style={{ margin: "0 0 var(--s-4)", padding: 12, border: "1px solid var(--border)", borderRadius: "var(--r-md)", background: "var(--bg-surface)" }}>
+          <p className="studio-eyebrow" style={{ color: "var(--ink-soft)", margin: "0 0 var(--s-2)" }}>
             Pendientes de acción ({awaiting.length})
           </p>
           <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 6 }}>
@@ -141,7 +141,7 @@ export function WorkflowEditor({
 
       {/* Alta de paso */}
       <form key={steps.length} action={formAction} style={{ borderTop: "1px solid var(--border)", paddingTop: 14 }}>
-        <p className="studio-eyebrow" style={{ color: "var(--ink-soft)", margin: "0 0 12px" }}>
+        <p className="studio-eyebrow" style={{ color: "var(--ink-soft)", margin: "0 0 var(--s-3)" }}>
           Agregar paso
         </p>
 

@@ -84,8 +84,8 @@ export function OrdenesVentaClient({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-end",
-          gap: 24,
-          marginBottom: 24,
+          gap: "var(--s-6)",
+          marginBottom: "var(--s-6)",
           flexWrap: "wrap",
         }}
       >
@@ -93,7 +93,7 @@ export function OrdenesVentaClient({
           <span className="studio-eyebrow">Comercial · Ventas</span>
           <h1
             className="studio-display"
-            style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
+            style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
           >
             Órdenes de venta.
           </h1>
@@ -142,7 +142,7 @@ export function OrdenesVentaClient({
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
           gap: 14,
-          marginBottom: 20,
+          marginBottom: "var(--s-5)",
         }}
       >
         <KpiCard value={stats.total} label="Órdenes de venta" sub="vivas" />
@@ -238,7 +238,7 @@ function OrdersTable({
             style={{
               display: "grid",
               gridTemplateColumns: SO_GRID,
-              gap: 12,
+              gap: "var(--s-3)",
               padding: "14px 20px",
               alignItems: "center",
               width: "100%",
@@ -254,7 +254,7 @@ function OrdersTable({
             <code
               style={{
                 font: "700 12px/1.2 var(--f-mono)",
-                color: "var(--wine)",
+                color: "var(--wine-text)",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
               }}
@@ -358,8 +358,8 @@ function HeaderRow({
       style={{
         display: "grid",
         gridTemplateColumns: grid,
-        gap: 12,
-        padding: "12px 20px",
+        gap: "var(--s-3)",
+        padding: "var(--s-3) var(--s-5)",
         background: "var(--bg-elevated)",
         borderBottom: "1px solid var(--border)",
         font: "700 10px/1 var(--f-sans)",

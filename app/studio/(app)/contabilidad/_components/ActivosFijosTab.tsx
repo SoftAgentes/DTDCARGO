@@ -129,7 +129,7 @@ export function ActivosFijosTab({
         <KpiCard
           value={`$${fmtAmount(totalAccum)}`}
           label="Depreciación acumulada"
-          valueColor="var(--wine)"
+          valueColor="var(--wine-text)"
         />
         <KpiCard
           value={`$${fmtAmount(totalNet)}`}
@@ -217,7 +217,7 @@ export function ActivosFijosTab({
             display: "grid",
             gridTemplateColumns: GRID,
             gap: 12,
-            padding: "12px 20px",
+            padding: "var(--s-3) var(--s-5)",
             background: "var(--bg-elevated)",
             borderBottom: "1px solid var(--border)",
             font: "700 10px/1 var(--f-sans)",
@@ -271,7 +271,7 @@ export function ActivosFijosTab({
               <span style={{ font: "600 12px/1 var(--f-mono)", color: "var(--ink-soft)", textAlign: "right" }}>
                 ${fmtAmount(s.monthlyAmount)}
               </span>
-              <span style={{ font: "700 12px/1 var(--f-mono)", color: "var(--wine)", textAlign: "right" }}>
+              <span style={{ font: "700 12px/1 var(--f-mono)", color: "var(--wine-text)", textAlign: "right" }}>
                 ${fmtAmount(s.accumulated)}
               </span>
               <span style={{ font: "800 12.5px/1 var(--f-mono)", color: "var(--success)", textAlign: "right" }}>

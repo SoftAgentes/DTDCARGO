@@ -120,7 +120,7 @@ export function CobranzasClient({
           <span className="studio-eyebrow">Finanzas · Cuentas por cobrar</span>
           <h1
             className="studio-display"
-            style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
+            style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
           >
             Cobranzas.
           </h1>
@@ -169,7 +169,7 @@ export function CobranzasClient({
         <KpiCard
           value={`$${fmtMoney(kpis.porCobrar)}`}
           label="Por cobrar"
-          valueColor={kpis.porCobrar > 0 ? "var(--wine)" : "var(--ink)"}
+          valueColor={kpis.porCobrar > 0 ? "var(--wine-text)" : "var(--ink)"}
           sub={`${kpis.casos} caso(s) abierto(s)`}
         />
         <KpiCard
@@ -327,7 +327,7 @@ function FundsSeparationCard({ separation }: { separation: FundsSeparation }) {
         background: "var(--bg-surface)",
         border: "1px solid var(--border)",
         borderRadius: "var(--r-lg)",
-        padding: "16px 20px",
+        padding: "var(--s-4) var(--s-5)",
         marginBottom: 20,
       }}
     >
@@ -444,7 +444,7 @@ function UnidentifiedSection({
     >
       <div
         style={{
-          padding: "12px 20px",
+          padding: "var(--s-3) var(--s-5)",
           background: "var(--warning-bg)",
           borderBottom: "1px solid var(--border)",
           display: "flex",
@@ -481,7 +481,7 @@ function UnidentifiedSection({
             display: "flex",
             alignItems: "center",
             gap: 14,
-            padding: "12px 20px",
+            padding: "var(--s-3) var(--s-5)",
             borderTop: i > 0 ? "1px solid var(--border)" : 0,
             flexWrap: "wrap",
           }}
@@ -563,7 +563,7 @@ function ReceivablesTable({
           display: "grid",
           gridTemplateColumns: GRID,
           gap: 12,
-          padding: "12px 20px",
+          padding: "var(--s-3) var(--s-5)",
           background: "var(--bg-elevated)",
           borderBottom: "1px solid var(--border)",
           font: "700 10px/1 var(--f-sans)",
@@ -639,7 +639,7 @@ function ReceivablesTable({
               <div
                 style={{
                   font: "600 11px/1 var(--f-mono)",
-                  color: "var(--wine)",
+                  color: "var(--wine-text)",
                   marginTop: 3,
                 }}
               >

@@ -155,11 +155,11 @@ export function EmbarquesClient({
   return (
     <div style={{ maxWidth: 1280 }}>
       {/* Header */}
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: "var(--s-6)" }}>
         <span className="studio-eyebrow">Operación comercial</span>
         <h1
           className="studio-display"
-          style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
+          style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
         >
           Embarques.
         </h1>
@@ -180,9 +180,9 @@ export function EmbarquesClient({
       <div
         style={{
           display: "flex",
-          gap: 4,
+          gap: "var(--s-1)",
           borderBottom: "1px solid var(--border)",
-          marginBottom: 16,
+          marginBottom: "var(--s-4)",
           overflowX: "auto",
         }}
       >
@@ -210,7 +210,7 @@ export function EmbarquesClient({
                 cursor: "pointer",
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 8,
+                gap: "var(--s-2)",
                 marginBottom: -1,
               }}
             >
@@ -238,9 +238,9 @@ export function EmbarquesClient({
         className="emb-toolbar"
         style={{
           display: "flex",
-          gap: 12,
+          gap: "var(--s-3)",
           alignItems: "stretch",
-          marginBottom: 16,
+          marginBottom: "var(--s-4)",
           flexWrap: "wrap",
         }}
       >
@@ -421,7 +421,7 @@ function GroupedTable({
                 width: "100%",
                 display: "grid",
                 gridTemplateColumns: "24px minmax(0, 1fr) auto auto",
-                gap: 12,
+                gap: "var(--s-3)",
                 padding: "14px 20px",
                 background: isOpen ? "var(--bg-elevated)" : "transparent",
                 border: 0,
@@ -476,7 +476,7 @@ function GroupedTable({
                     onClick={(e) => e.stopPropagation()}
                     style={{
                       font: "700 11.5px/1 var(--f-mono)",
-                      color: "var(--wine)",
+                      color: "var(--wine-text)",
                       textDecoration: "none",
                       letterSpacing: "0.02em",
                     }}
@@ -488,7 +488,7 @@ function GroupedTable({
               <div
                 style={{
                   display: "inline-flex",
-                  gap: 8,
+                  gap: "var(--s-2)",
                   alignItems: "center",
                 }}
               >
@@ -533,7 +533,7 @@ function GroupedTable({
                     gridTemplateColumns:
                       "24px 130px minmax(160px, 1fr) 130px 130px 110px 70px 90px",
                     gap: 10,
-                    padding: "8px 20px",
+                    padding: "var(--s-2) var(--s-5)",
                     borderTop: "1px solid var(--border)",
                     font: "700 10.5px/1 var(--f-sans)",
                     letterSpacing: "0.08em",
@@ -565,7 +565,7 @@ function GroupedTable({
                         gridTemplateColumns:
                           "24px 130px minmax(160px, 1fr) 130px 130px 110px 70px 90px",
                         gap: 10,
-                        padding: "12px 20px",
+                        padding: "var(--s-3) var(--s-5)",
                         background: "transparent",
                         border: 0,
                         borderTop: "1px solid var(--border)",
@@ -723,7 +723,7 @@ function ProgressBar({
           display: "block",
           font: "600 10.5px/1 var(--f-mono)",
           color: "var(--ink-soft)",
-          marginTop: 4,
+          marginTop: "var(--s-1)",
         }}
       >
         {safePct}%

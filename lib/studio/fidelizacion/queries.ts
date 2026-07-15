@@ -168,7 +168,7 @@ export async function tierCounts(
 // ── Referidos (tabla referrals) ───────────────────────────────
 
 const REFERRAL_COLUMNS =
-  "id, tenant_id, referral_code, referrer_client_id, referrer_markbox, referred_name, referred_company, referred_email, referred_phone, referred_client_id, status, reward_usd, lead_id, notes, created_at, updated_at, deleted_at";
+  "id, tenant_id, referral_code, referrer_client_id, referrer_markbox, referred_name, referred_company, referred_email, referred_phone, referred_client_id, status, reward_usd, lead_id, notes, applied_invoice_id, applied_entry_id, applied_at, created_at, updated_at, deleted_at";
 
 /** Coacciona los campos numéricos (Supabase devuelve numeric como string). */
 function coerceReferral(row: Record<string, unknown>): Referral {
@@ -255,7 +255,11 @@ export async function programStats(
     (r) => r.status !== "acreditado" && r.status !== "invitado",
   ).length;
   const creditsIssued = referrals.reduce(
-    (s, r) => s + (r.status === "acreditado" ? r.reward_usd : 0),
+    (s, r) =>
+      s +
+      (r.status === "acreditado" || r.status === "aplicado"
+        ? r.reward_usd
+        : 0),
     0,
   );
   const convRate = total ? (acreditados / total) * 100 : 0;
@@ -285,7 +289,7 @@ export async function topReferrers(
       map.get(r.referrer_markbox) ??
       { markbox: r.referrer_markbox, total: 0, acreditados: 0, credits: 0 };
     m.total += 1;
-    if (r.status === "acreditado") {
+    if (r.status === "acreditado" || r.status === "aplicado") {
       m.acreditados += 1;
       m.credits += r.reward_usd;
     }
@@ -299,14 +303,25 @@ export async function topReferrers(
 
 // ── Helpers puros sobre el set de referidos (como el Norte) ───
 
-/** Créditos ya acreditados a un referidor (suma reward_usd de los acreditados). */
+/**
+ * Créditos ganados por un referidor (suma reward_usd). Cuenta tanto los
+ * 'acreditado' (disponibles) como los 'aplicado' (ya cobrados en una factura,
+ * SDD-0137): ambos son crédito GANADO por el referidor.
+ */
 export function creditsEarned(
   referrals: Referral[],
   markbox: string,
 ): number {
   return referrals
     .filter((r) => r.referrer_markbox === markbox)
-    .reduce((s, r) => s + (r.status === "acreditado" ? r.reward_usd : 0), 0);
+    .reduce(
+      (s, r) =>
+        s +
+        (r.status === "acreditado" || r.status === "aplicado"
+          ? r.reward_usd
+          : 0),
+      0,
+    );
 }
 
 /**

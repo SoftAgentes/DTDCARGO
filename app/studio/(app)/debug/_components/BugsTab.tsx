@@ -79,7 +79,7 @@ export function BugsTab({ bugs, isAdmin }: BugsTabProps) {
             className="studio-btn studio-btn-ghost studio-btn-sm"
             style={{ textDecoration: "none" }}
           >
-            Abrir Bug Tracker <span aria-hidden style={{ marginLeft: 4 }}>→</span>
+            Abrir Bug Tracker <span aria-hidden style={{ marginLeft: "var(--s-1)" }}>→</span>
           </Link>
         </div>
 

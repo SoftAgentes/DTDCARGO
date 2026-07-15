@@ -111,7 +111,7 @@ export function GroupBuysView({
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
           gap: 14,
-          marginBottom: 20,
+          marginBottom: "var(--s-5)",
         }}
       >
         <KpiCard
@@ -123,7 +123,7 @@ export function GroupBuysView({
         <KpiCard
           value={stats.enConsolidacion}
           label="En consolidación"
-          valueColor={stats.enConsolidacion > 0 ? "var(--wine)" : "var(--ink)"}
+          valueColor={stats.enConsolidacion > 0 ? "var(--wine-text)" : "var(--ink)"}
           sub="rondas cerradas"
         />
         <KpiCard value={fmtCbm(stats.cbmAbierto)} label="CBM comprometido" sub="en rondas abiertas" />
@@ -243,12 +243,12 @@ function GroupBuyCard({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-start",
-          gap: 12,
+          gap: "var(--s-3)",
           flexWrap: "wrap",
         }}
       >
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)", flexWrap: "wrap" }}>
             <span style={{ font: "700 15px/1.2 var(--f-sans)", color: "var(--ink)" }}>
               {g.title}
             </span>
@@ -260,7 +260,7 @@ function GroupBuyCard({
             style={{
               font: "500 12px/1.4 var(--f-sans)",
               color: "var(--ink-soft)",
-              marginTop: 4,
+              marginTop: "var(--s-1)",
             }}
           >
             {route || "Ruta por definir"} · cierra {fmtDate(g.closes_at)} ·{" "}
@@ -284,14 +284,14 @@ function GroupBuyCard({
       )}
 
       {/* Volumen comprometido vs meta */}
-      <div style={{ marginTop: 12 }}>
+      <div style={{ marginTop: "var(--s-3)" }}>
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
             font: "600 12px/1 var(--f-sans)",
             color: "var(--ink-soft)",
-            marginBottom: 4,
+            marginBottom: "var(--s-1)",
           }}
         >
           <span>
@@ -332,7 +332,7 @@ function GroupBuyCard({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: 8,
+            marginBottom: "var(--s-2)",
           }}
         >
           <span className="studio-eyebrow" style={{ color: "var(--ink-soft)" }}>

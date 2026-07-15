@@ -1,10 +1,10 @@
 ---
 sdd: "0137"
 title: "Crédito de referido auto-aplicado — aplicar el bono del referidor a su próxima factura (cierra el lazo de plata de SDD-0051)"
-status: draft
+status: done
 author: "Claude Code (ventana docs/diseño · Modo Forja · feat/referidos-gobernanza)"
 created: 2026-07-01
-updated: 2026-07-01
+updated: 2026-07-14
 supersedes: null
 superseded_by: null
 related: ["0051", "0053", "0077", "0079"]

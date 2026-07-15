@@ -38,7 +38,7 @@ export default async function MisBugsPage() {
   return (
     <div style={{ maxWidth: 1080 }}>
       {/* Header */}
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: "var(--s-6)" }}>
         <span className="studio-eyebrow">Sistema · Reporter</span>
         <h1
           className="studio-display"
@@ -66,7 +66,7 @@ export default async function MisBugsPage() {
             display: "flex",
             gap: "var(--s-3, 12px)",
             flexWrap: "wrap",
-            marginBottom: 24,
+            marginBottom: "var(--s-6)",
           }}
         >
           <SummaryChip label="Total" count={summary.total} accent="ink" />
@@ -139,7 +139,7 @@ function SummaryChip({
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: 8,
+        gap: "var(--s-2)",
         padding: "6px 12px",
         background: c.bg,
         color: c.fg,

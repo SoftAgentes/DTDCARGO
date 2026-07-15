@@ -25,6 +25,7 @@ import {
 import { Icon } from "@/app/studio/_components/icons";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
+import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 
 interface Props {
   mode: "create" | "edit";
@@ -69,69 +70,12 @@ export function CityDrawer({ mode, city, onClose }: Props) {
   const title = mode === "create" ? "Nueva ciudad" : "Editar ciudad";
 
   return (
-    <div
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="city-drawer-title"
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "var(--scrim)",
-        zIndex: 100,
-        display: "flex",
-        justifyContent: "flex-end",
-      }}
+    <DrawerShell
+      title={title}
+      onClose={onClose}
+      pending={isPending}
+      width={480}
     >
-      <aside
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "min(480px, 96vw)",
-          height: "100vh",
-          background: "var(--bg-surface)",
-          borderLeft: "1px solid var(--border)",
-          boxShadow: "var(--shadow-pop)",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
-        <header
-          style={{
-            padding: "18px 22px",
-            borderBottom: "1px solid var(--border)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexShrink: 0,
-          }}
-        >
-          <h2
-            id="city-drawer-title"
-            className="studio-display"
-            style={{ fontSize: 18, margin: 0, color: "var(--ink)" }}
-          >
-            {title}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            style={{
-              width: 32,
-              height: 32,
-              display: "grid",
-              placeItems: "center",
-              borderRadius: "var(--r-sm)",
-              color: "var(--ink-soft)",
-              background: "transparent",
-              cursor: "pointer",
-            }}
-          >
-            {Icon.close(14)}
-          </button>
-        </header>
-
         <form
           id="city-drawer-form"
           action={formAction}
@@ -147,7 +91,7 @@ export function CityDrawer({ mode, city, onClose }: Props) {
           {/* Nombre visible */}
           <div>
             <label className="studio-label" htmlFor="label">
-              Nombre <span style={{ color: "var(--wine)" }}>*</span>
+              Nombre <span style={{ color: "var(--wine-text)" }}>*</span>
             </label>
             <input
               id="label"
@@ -198,11 +142,11 @@ export function CityDrawer({ mode, city, onClose }: Props) {
 
           {/* Km + Orden */}
           <div
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}
+            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}
           >
             <div>
               <label className="studio-label" htmlFor="km">
-                Km desde Valencia <span style={{ color: "var(--wine)" }}>*</span>
+                Km desde Valencia <span style={{ color: "var(--wine-text)" }}>*</span>
               </label>
               <NumericInput
                 id="km"
@@ -391,8 +335,7 @@ export function CityDrawer({ mode, city, onClose }: Props) {
             </button>
           </div>
         </footer>
-      </aside>
-    </div>
+    </DrawerShell>
   );
 }
 

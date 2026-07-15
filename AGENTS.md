@@ -12,7 +12,7 @@ Un solo Next.js app con **4 superficies** y una **frontera dura** entre el sitio
 | Superficie | Rutas | Backend | Frontera |
 |---|---|---|---|
 | **Sitio público** | `app/{cotizar,track,contacto,calculadora,servicios,noticias,glosario}` + `components/` (raíz) | HTTP al ERP HailuWay externo (`NEXT_PUBLIC_HAILUWAY_API`; hoy mocks) | ❌ NUNCA importa `@/lib/studio`, `@/lib/db`, `@supabase/*` |
-| **Studio ERP** ("DoorTuDoor") | `app/studio/(app)/<modulo>/` (55 módulos) + `app/api/studio/` | Supabase propio (`@/lib/db/server`) + Server Actions | — |
+| **Studio ERP** ("DTD Cargo") | `app/studio/(app)/<modulo>/` (55 módulos) + `app/api/studio/` | Supabase propio (`@/lib/db/server`) + Server Actions | — |
 | **Móvil PWA** | `app/m/{cn,ve,erp}/` | Supabase (reusa `lib/studio`, permitido) | — |
 | **Back (CMS público)** | `app/back/(app)/` | Supabase (`lib/back/`) | no importa `@/lib/studio` ni `app/studio` |
 
@@ -73,6 +73,14 @@ Test puntual: `pnpm test path/to/file.test.ts` o `pnpm test -t "nombre"`. E2e pu
 ## Variables de entorno (ver `.env.example`)
 
 `NEXT_PUBLIC_HAILUWAY_API` (base URL del ERP, HTTP) · `DTD_API_KEY` · `NEXT_PUBLIC_WHATSAPP_NUMBER` · `NEXT_PUBLIC_CONTACT_EMAIL` · `NEXT_PUBLIC_SITE_URL` (default `https://dtdcargo.com`).
+
+## Supabase MCP y credenciales de agentes
+
+- **Acceso interactivo:** usa el MCP hospedado de Supabase con **OAuth**, `project_ref=xpfuzqombmjmxvprjgmi`, `read_only=true` y `features=database,docs`.
+- **Nunca guardes un PAT de Supabase** (`sbp_*` / `SUPABASE_ACCESS_TOKEN`) dentro del árbol del proyecto, aunque el archivo esté gitignored (`.env.local`, `.mcp.json`, `.codex/`, worktrees o archivos temporales).
+- **Producción:** este `project_ref` corresponde al proyecto real. El uso normal del MCP se limita a documentación y metadatos; leer filas de negocio o PII requiere autorización explícita del founder.
+- **Escrituras:** el MCP habitual no autoriza escrituras. Prepara migrations como archivos, valida localmente y usa una conexión temporal separada solo cuando el founder autorice aplicar el cambio concreto.
+- **CI/automatización:** si una tarea no admite OAuth, guarda el PAT únicamente en el secret manager del proveedor, con expiración y propósito identificable; nunca en archivos locales del repo.
 
 ## Integraciones del sitio público (estado · actualizado 2026-07-05)
 

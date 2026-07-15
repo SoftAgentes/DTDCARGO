@@ -30,7 +30,7 @@ export function AgentKpisRow({ kpis }: { kpis: AgentKpis }) {
       <KpiCard
         value={kpis.approvalsPending}
         label="Aprobaciones"
-        valueColor={kpis.approvalsPending > 0 ? "var(--wine)" : "var(--ink)"}
+        valueColor={kpis.approvalsPending > 0 ? "var(--wine-text)" : "var(--ink)"}
         sub={
           kpis.approvalsPending > 0
             ? "esperando revisión"
@@ -40,7 +40,7 @@ export function AgentKpisRow({ kpis }: { kpis: AgentKpis }) {
       <KpiCard
         value={formatCostUsd(kpis.spendMtd)}
         label="Gasto MTD"
-        valueColor={kpis.spendMtd > 0 ? "var(--wine)" : "var(--ink)"}
+        valueColor={kpis.spendMtd > 0 ? "var(--wine-text)" : "var(--ink)"}
         sub={
           kpis.errors24h > 0
             ? `${kpis.errors24h} errores últimas 24h`

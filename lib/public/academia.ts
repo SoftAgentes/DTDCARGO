@@ -42,7 +42,7 @@ export const ACADEMIA_CURSOS: AcademiaCurso[] = [
     slug: "domina-yiwu",
     titulo: "Domina Yiwu: De la Pantalla al Contenedor",
     gancho:
-      "Tu primera importación de prueba, sin intermediarios: elegir producto, verificar al proveedor, negociar y calcular si te deja ganancia.",
+      "Tu primera importación de prueba, comprando directo de fábrica: elegir producto, verificar al proveedor, negociar y calcular si te deja ganancia.",
     nivel: "Inicial",
     meta: "Curso 1 · ~26 lecciones",
   },
@@ -68,7 +68,7 @@ export const ACADEMIA_CURSOS: AcademiaCurso[] = [
 /** Lo que el alumno logra (bloque de beneficios del hero). */
 export const ACADEMIA_LOGROS: { titulo: string; detalle: string }[] = [
   {
-    titulo: "Comprar sin intermediarios",
+    titulo: "Comprar directo de fábrica",
     detalle: "Proveedores, MOQ, muestras y precio real — directo en Alibaba y 1688.",
   },
   {

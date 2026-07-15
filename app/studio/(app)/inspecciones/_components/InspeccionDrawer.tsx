@@ -107,7 +107,7 @@ export function InspeccionDrawer({ mode, report, clients, onClose }: Props) {
         {/* Tipo */}
         <div>
           <label className="studio-label" htmlFor="ins-type">
-            Tipo de inspección <span style={{ color: "var(--wine)" }}>*</span>
+            Tipo de inspección <span style={{ color: "var(--wine-text)" }}>*</span>
           </label>
           <select
             id="ins-type"
@@ -158,7 +158,7 @@ export function InspeccionDrawer({ mode, report, clients, onClose }: Props) {
         {/* Título */}
         <div>
           <label className="studio-label" htmlFor="ins-title">
-            Título <span style={{ color: "var(--wine)" }}>*</span>
+            Título <span style={{ color: "var(--wine-text)" }}>*</span>
           </label>
           <input
             id="ins-title"
@@ -370,7 +370,7 @@ function FieldError({ msg }: { msg: string }) {
       style={{
         font: "500 11px/1.3 var(--f-sans)",
         color: "var(--danger)",
-        margin: "4px 0 0",
+        margin: "var(--s-1) 0 0",
       }}
     >
       {msg}

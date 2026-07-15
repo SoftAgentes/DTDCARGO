@@ -96,7 +96,7 @@ function SectionCard({
             style={{
               font: "400 11.5px/1.4 var(--f-sans)",
               color: "var(--ink-soft)",
-              margin: "4px 0 0",
+              margin: "var(--s-1) 0 0",
             }}
           >
             {hint}
@@ -287,7 +287,7 @@ export function DireccionTab({
         <KpiCard
           value={convertedCount}
           label="Convertidos a cliente"
-          valueColor="var(--wine)"
+          valueColor="var(--wine-text)"
           sub="Leads que ya son cliente DTD"
         />
         <KpiCard

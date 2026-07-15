@@ -1,5 +1,5 @@
 /* ── DTD Studio · ERP · Design tokens ───────────────────────── */
-/* Tokens duales (light/dark) heredados del brand book del Norte
+/* Tokens duales (light/dark) heredados del Brand Book v4.6 del Norte
    (docs/design/studio/_norte/erp/tokens.css).                   */
 :root {
   /* ── Color palette ─────────────────────────────────────── */
@@ -7,6 +7,8 @@
   --wine-deep: #5E0A12;
   --wine-soft: #C2747F;
   --wine-tint: rgba(127,15,26,0.08);
+  --wine-text: #7F0F1A;                 /* wine como TEXTO (AA en ambos temas). --wine crudo NO es texto: falla AA en dark (2.79:1). Fill de botones sigue en --wine. */
+  --on-warning: #0F1E3D;                /* texto/ícono sobre relleno --warning sólido (navy fijo, ambos temas) */
 
   --bg-base: #FBFAF7;
   --bg-surface: #FFFFFF;
@@ -19,6 +21,7 @@
 
   --ink: #0F1E3D;
   --ink-soft: #6B6B6B;
+  /* BD-019: solo disabled/decoración, NUNCA texto legible (2.78:1 sobre blanco, falla AA). */
   --ink-mute: #9B9B9B;
   --ink-inv: #FBFAF7;
   --ink-inv-soft: rgba(255,255,255,0.75);
@@ -37,6 +40,9 @@
   --warning-bg: rgba(184,137,58,0.12);
   --danger: #A8323E;
   --danger-bg: rgba(168,50,62,0.10);
+  /* BD-020: --danger-web es SOLO para web pública (marketing); Studio/Portal siguen en --danger. */
+  --danger-web: #C2353F;
+  --danger-web-bg: rgba(194,53,63,0.10);
   --info: #2A6FDB;
   --info-bg: rgba(42,111,219,0.10);
   --neutral: #6B6B6B;
@@ -131,6 +137,8 @@
   --wine: #A8323E;
   --wine-soft: #D89AA4;
   --wine-tint: rgba(168,50,62,0.14);
+  --wine-text: #D89AA4;                 /* = --wine-soft dark: wine legible como texto en oscuro (~6-8:1) */
+  --on-warning: #0F1E3D;                /* navy fijo: el fill del warning cambia, el texto no */
 
   --bg-base: #0B1428;
   --bg-surface: #16264A;
@@ -141,6 +149,7 @@
 
   --ink: #F2F0EC;
   --ink-soft: #A8B0C4;
+  /* BD-019: solo disabled/decoración (2.97:1 sobre bg-elevated, falla AA). */
   --ink-mute: #6E7896;
   --ink-inv: #0F1E3D;
   --ink-inv-soft: rgba(15,30,61,0.72);
@@ -232,7 +241,7 @@ a { color: inherit; text-decoration: none; }
   text-transform: uppercase;
   color: var(--ink-soft);
 }
-.eyebrow-wine { color: var(--wine); }
+.eyebrow-wine { color: var(--wine-text); }
 .h-pad { padding: var(--s-6) var(--s-8); }
 
 /* Focus rings */
@@ -241,3 +250,7 @@ button:focus-visible, a:focus-visible { outline-offset: 3px; }
 /* En dark, --wine (#A8323E) da 2.79:1 contra el fondo → falla WCAG 1.4.11 (≥3:1).
    El acento visible en dark es --wine-soft (#D89AA4, ~6:1). Ver BRAND.md ♿ + DS Cloud Design. */
 [data-theme="dark"] :focus-visible { outline-color: var(--wine-soft); }
+/* BD-017: sobre superficies navy fijas (sidebar) --wine es invisible (1.56:1) en cualquier
+   tema → foco en cream/--ink-side. Aplicar el hook al contenedor navy. */
+[data-surface="navy"] :focus-visible,
+.dtd-on-navy :focus-visible { outline-color: var(--ink-side); }

@@ -14,8 +14,10 @@ import { createClient } from "@/lib/db/server";
 import {
   getPortalClub,
   planLabel,
+  type PortalClubEvent,
   type PortalClubGroupBuy,
   type PortalClubMembership,
+  type PortalFeaturedSupplier,
 } from "@/lib/portal/portal-club-queries";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 
@@ -35,7 +37,8 @@ function fmtDate(iso: string | null): string | null {
 
 export default async function PortalClubPage() {
   const supabase = await createClient();
-  const { isMember, membership, openGroupBuys } = await getPortalClub(supabase);
+  const { isMember, membership, openGroupBuys, events, featuredSupplier } =
+    await getPortalClub(supabase);
 
   return (
     <div className="px-4 py-6 sm:px-6 max-w-3xl mx-auto flex flex-col gap-6">
@@ -51,7 +54,8 @@ export default async function PortalClubPage() {
         <>
           <MembershipCard membership={membership} />
           <ComprasGrupales groupBuys={openGroupBuys} />
-          <ProximamenteCard />
+          <EventosClub events={events} />
+          <ProveedorDelMes supplier={featuredSupplier} />
         </>
       )}
     </div>
@@ -191,13 +195,65 @@ function GroupBuyCard({ gb }: { gb: PortalClubGroupBuy }) {
   );
 }
 
-function ProximamenteCard() {
+function EventosClub({ events }: { events: PortalClubEvent[] }) {
   return (
-    <section className="rounded-xl border border-dashed border-grey-200 bg-grey-100 p-5 text-center">
-      <span className="text-[11px] font-bold uppercase tracking-wide text-grey-500">Próximamente</span>
-      <p className="text-sm text-grey-500 mt-1">
-        Eventos del Club y el Proveedor del mes llegan pronto a esta sección.
-      </p>
+    <section className="flex flex-col gap-3">
+      <h2 className="text-sm font-bold uppercase tracking-wide text-grey-500">Eventos del Club</h2>
+      {events.length === 0 ? (
+        <div className="rounded-xl border border-grey-200 bg-white p-6 text-center">
+          <p className="text-sm text-grey-500">
+            No hay eventos próximos ahora mismo. Cuando programemos uno, lo verás aquí.
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {events.map((e) => (
+            <EventCard key={e.id} ev={e} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function EventCard({ ev }: { ev: PortalClubEvent }) {
+  const when = fmtDate(ev.startsAt);
+  const meta = [when, ev.modalityLabel, ev.place].filter(Boolean).join(" · ");
+  return (
+    <article className="rounded-xl border border-grey-200 bg-white p-4 sm:p-5 flex flex-col gap-2">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-1 min-w-0">
+          <h3 className="text-base font-bold text-ink leading-snug">{ev.name}</h3>
+          {meta && <span className="text-xs font-semibold text-grey-500">{meta}</span>}
+        </div>
+        {ev.myRegistrationLabel && (
+          <span className="flex-shrink-0 text-[11px] font-bold uppercase tracking-wide rounded-full px-2.5 py-1 bg-wine/10 text-wine">
+            {ev.myRegistrationLabel}
+          </span>
+        )}
+      </div>
+      {ev.summary && <p className="text-sm text-grey-500">{ev.summary}</p>}
+    </article>
+  );
+}
+
+function ProveedorDelMes({ supplier }: { supplier: PortalFeaturedSupplier | null }) {
+  if (!supplier) return null;
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="text-sm font-bold uppercase tracking-wide text-grey-500">Proveedor del mes</h2>
+      <article className="rounded-xl border border-grey-200 bg-white p-5 sm:p-6 flex flex-col gap-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-1 min-w-0">
+            <h3 className="text-lg font-extrabold text-ink leading-snug">{supplier.supplierName}</h3>
+            <span className="text-xs font-semibold text-grey-500">
+              {supplier.periodLabel}
+              {supplier.category ? ` · ${supplier.category}` : ""}
+            </span>
+          </div>
+        </div>
+        {supplier.blurb && <p className="text-sm text-grey-500">{supplier.blurb}</p>}
+      </article>
     </section>
   );
 }

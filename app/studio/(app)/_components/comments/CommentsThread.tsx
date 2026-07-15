@@ -180,7 +180,7 @@ export function CommentsThread({
         {comments.length === 0 ? (
           <div
             style={{
-              padding: "24px 16px",
+              padding: "var(--s-6) var(--s-4)",
               textAlign: "center",
               background: "var(--bg-elevated)",
               borderRadius: "var(--r-md)",
@@ -210,7 +210,7 @@ export function CommentsThread({
           role="alert"
           style={{
             marginBottom: 10,
-            padding: "8px 12px",
+            padding: "var(--s-2) var(--s-3)",
             background: "var(--danger-bg)",
             border: "1px solid var(--danger)",
             borderRadius: "var(--r-sm)",

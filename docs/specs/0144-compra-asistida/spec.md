@@ -1,10 +1,10 @@
 ---
 sdd: "0144"
 title: "Compra asistida — renombre, filtros y reglas propias del módulo"
-status: draft
+status: done
 author: "Claude Code (ventana Director) + founder"
 created: 2026-07-03
-updated: 2026-07-03
+updated: 2026-07-14
 supersedes: null
 superseded_by: null
 related: ["0071", "0072", "0044", "0057"]

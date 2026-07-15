@@ -20,7 +20,7 @@
 ## 🖼 Logo y wordmark · sistema oficial
 
 > **Fuente de verdad = el Brand Book vigente del Norte** (el de mayor versión en
-> [`docs/design/studio/_norte/`](docs/design/studio/_norte/), hoy **v4.5** — regla de gobernanza: el book vigente es UNO solo).
+> [`docs/design/studio/_norte/`](docs/design/studio/_norte/), hoy **v4.6** — regla de gobernanza: el book vigente es UNO solo).
 > Spec del logo: [`docs/design/studio/_norte/BRAND-MIGRATION-2026-05.md`](docs/design/studio/_norte/BRAND-MIGRATION-2026-05.md) y [`Logo Oficial.html`](docs/design/studio/_norte/Logo%20Oficial.html).
 > Implementación en este repo: [`components/BrandMark.tsx`](components/BrandMark.tsx).
 
@@ -108,8 +108,9 @@ Los valores canónicos viven en el Norte (`docs/design/studio/_norte/erp/tokens.
 --border:      #E8E6E2
 
 --success: #1F8A5B   /* Solo para confirmaciones reales */
---warning: #B8893A   /* Solo para riesgo real (ETA en demora, etc.) */
---danger:  #A8323E   /* Solo para errores y vencidos */
+--warning: #B8893A   /* Riesgo real (ETA en demora, etc.) — dorado. Como TEXTO de badge NO se lee (2.79:1) → texto --ink + dot dorado (ver ♿) */
+--danger:  #A8323E   /* Errores y vencidos · ERP / Portal */
+--danger-web: #C2353F /* Errores · marketing / web pública — split por superficie (BD-020) */
 --info:    #2A6FDB
 ```
 
@@ -128,7 +129,7 @@ Los valores canónicos viven en el Norte (`docs/design/studio/_norte/erp/tokens.
 - **NUNCA** uses verde fosforescente, lima, neón, fucsia eléctrico o ningún color saturado fuera de la paleta.
 - **NUNCA** uses `red`, `blue`, `green`, `orange`, `purple` como nombres CSS. Usá los tokens.
 - **NUNCA** inventes hex como `#FF5733`, `#00FFAA`, etc.
-- **NUNCA** uses gradientes coloridos / arcoíris / "AI slop". Único gradiente permitido: dark navy → ink (`linear-gradient(135deg, var(--ink), #1F3055)`) en el login/portal hero.
+- **NUNCA** uses gradientes coloridos / arcoíris / "AI slop". Único gradiente permitido: **navy → ink** (familia `#0B1428`→`#0F1E3D`→`#1F3055`), **nunca hacia blanco**. En heros con texto (left-aligned) va **horizontal, azul FUERTE a la izquierda → navy más claro a la derecha**: `linear-gradient(90deg, #0B1428 0%, #0F1E3D 44%, #1F3055 100%)` (BD-022). **Hex explícito siempre, nunca `var(--ink)`/`var(--ink2)` dentro del gradiente** (BD-023) — si el token no resuelve, el fondo cae a blanco con texto claro encima (invisible); en dark, `var(--ink)` además se invierte a cream y voltea la tarjeta. En cards/botones chicos el diagonal `135deg` del mismo par es aceptable.
 - **NUNCA** uses morados, púrpuras o azules brillantes para alertas. El warning es **dorado** (#B8893A), no naranja chillón.
 
 ---
@@ -151,11 +152,12 @@ Los hex de la paleta no dicen **qué par se lee**. Estas reglas cierran ese huec
 
 ### Relleno + texto (CTAs / badges)
 - Sobre `--wine` / `--danger` → texto **blanco** (10.6:1 / 6.6:1).
-- Sobre `--warning` → texto `--ink` (5.24:1), **nunca** blanco.
+- Sobre `--warning` → texto `--ink` (5.24:1), **nunca** blanco. Token canónico ambos temas: **`--on-warning`** (#0F1E3D fijo · BD-027) — `--ink` en dark es cream y falla (~1.7:1) sobre el gold.
 - Sobre `--success` → texto `--ink`, o blanco solo en texto grande.
+- En dark, texto sobre cualquier relleno semántico → `--ink-inv`, nunca blanco (excepción: `--wine` dark sí acepta blanco).
 
 ### Rol de `--wine` en dark
-Como **texto** sobre fondos oscuros falla (`#A8323E` → 2.79:1). En dark, `--wine` es **relleno** (texto blanco encima, 6.58:1); el acento de **texto** en dark es `--wine-soft #D89AA4` (7.93:1). Los tokens dark que falten (`--ink-mute`, `--border`, semánticos) se toman de `docs/design/studio/_norte/erp/tokens.css` — **no inventar**.
+Como **texto** sobre fondos oscuros falla (`#A8323E` → 2.79:1). En dark, `--wine` es **relleno** (texto blanco encima, 6.58:1); el acento de **texto** en dark es `--wine-soft #D89AA4` (7.93:1). **Token canónico para wine-como-texto en ambos temas: `--wine-text`** (BD-026: `#7F0F1A` light · `#D89AA4` dark) — usalo en Shipping Mark por fila, saldos, tabs activas, KPI values, links y badge tono wine. Los tokens dark que falten (`--ink-mute`, `--border`, semánticos) se toman de `docs/design/studio/_norte/erp/tokens.css` — **no inventar**.
 
 ### Paridad light/dark
 Todo par texto/fondo debe pasar el umbral en **ambos** temas. No asumas que un token de texto en light hereda contraste en dark — verifica el equivalente.
@@ -163,6 +165,16 @@ Todo par texto/fondo debe pasar el umbral en **ambos** temas. No asumas que un t
 ### Fondo variable
 - Texto sobre imagen/gradiente → **scrim/overlay** oscuro detrás; nunca texto directo sobre foto.
 - **No comuniques solo por color** (WCAG 1.4.1): estados, links y errores llevan ícono, texto o subrayado además del color.
+
+---
+
+## 🏷 Terminología · Shipping Mark / MARKBOX (split por superficie)
+
+**BD-021 (2026-07-06, enmienda BD-004):** el término se divide por superficie — **web pública = "MARKBOX"** · **Studio (ERP) / Portal / apps de operario = "Shipping Mark"** (唛头). El **valor** del registro (`DTD-XXXX`) y la **clave de datos `markbox`** no cambian en ningún caso, solo la etiqueta visible.
+
+- ❌ Nunca "MARKBOX" visible en `app/studio`, `app/portal` ni `app/m` (ahí siempre "Shipping Mark").
+- ✅ "MARKBOX" es intencional en el sitio público (`app/{page,faq,glosario,servicios,cotizar,track,calculadora,noticias,estimacion,contacto,registro}` + `components/` raíz) — no es drift.
+- Detalle completo en `AGENTS.md` §Patrones del Studio ERP y `docs/design/studio/_norte/BRAND-DECISIONS.md` (BD-004, BD-021).
 
 ---
 
@@ -331,7 +343,7 @@ preferís la alternativa?
 
 - **ERP (admin):** `DTD Studio · ERP.html` + `erp/` (tokens, components, shell, modules).
 - **Portal (cliente):** `Portal del Cliente.html` + `portal/app.jsx`. Reusa `erp/tokens.css`, `erp/icons.jsx`, `erp/components.jsx`.
-- **Brand Book:** `docs/design/studio/_norte/Brand Book DTD v4.5.html` (vigente; el book es UNO solo) — fuente de verdad de la identidad visual. Publicado privado en `/marca/brand-book`. **No** mezclar pantallas de producto adentro.
+- **Brand Book:** `docs/design/studio/_norte/Brand Book DTD v4.6.html` (vigente; el book es UNO solo) — fuente de verdad de la identidad visual. Publicado privado en `/marca/brand-book`. **No** mezclar pantallas de producto adentro.
 - Mock data en `erp/data.jsx`. Cualquier dato nuevo se agrega ahí y se expone vía `window.ERPData`.
 
 ---

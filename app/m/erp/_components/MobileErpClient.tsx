@@ -2238,7 +2238,7 @@ function MoreScreen({ user }: { user: UserInfo }) {
           color: "var(--ink-soft)",
         }}
       >
-        DTD Cargo · DoorTuDoor · Mobile ERP Fase 1
+        DTD Cargo · Mobile ERP Fase 1
       </div>
     </div>
   );

@@ -37,7 +37,7 @@ export default async function MencionesPage() {
 
   return (
     <div style={{ maxWidth: 880 }}>
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: "var(--s-6)" }}>
         <span className="studio-eyebrow">Sistema · Colaboración</span>
         <h1
           className="studio-display"

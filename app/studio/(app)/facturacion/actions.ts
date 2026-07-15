@@ -31,6 +31,7 @@ import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { postInvoiceJournalEntry } from "@/lib/studio/accounting/invoice-posting";
+import { revertReferralCreditsForInvoice } from "@/lib/studio/accounting/referral-credit-posting";
 import { registerCollectionFor } from "@/lib/studio/collections-actions";
 import { LEGAL_GATE_HARD_BLOCK } from "@/lib/studio/legal/gate-config";
 import { hasValidAcceptanceForMarkbox } from "@/lib/studio/legal/queries";
@@ -691,6 +692,22 @@ export async function voidInvoice(
     "voided",
     { invoice_code: current.invoice_code },
   );
+
+  // SDD-0137 §3.6: si esta factura tenía créditos de referido aplicados, se
+  // revierten (crédito vuelve a 'acreditado' + asiento anulado) — el crédito no
+  // se "quema" por una factura anulada. Best-effort: no bloquea la anulación.
+  const revert = await revertReferralCreditsForInvoice(
+    current.tenant_id,
+    current.id,
+  );
+  if (!revert.ok) {
+    console.error(
+      `[fidelizacion] no se pudieron revertir créditos de referido de la factura ${current.invoice_code}:`,
+      revert.error,
+    );
+  } else if (revert.reverted > 0) {
+    revalidatePath("/studio/fidelizacion");
+  }
 
   revalidatePath("/studio/facturacion");
   revalidatePath(`/studio/facturacion/${current.invoice_code}`);

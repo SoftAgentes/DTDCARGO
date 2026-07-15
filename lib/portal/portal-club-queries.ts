@@ -22,6 +22,19 @@ const PARTICIPANT_STATUS_LABEL: Record<string, string> = {
   confirmado: "Confirmado",
   retirado: "Retirado",
 };
+const EVENT_MODALITY_LABEL: Record<string, string> = {
+  presencial: "Presencial",
+  online: "Online",
+};
+const REGISTRATION_STATUS_LABEL: Record<string, string> = {
+  inscrito: "Inscrito",
+  asistio: "Asististe",
+  no_asistio: "No asististe",
+};
+const MESES_LARGOS = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+];
 
 /** Etiqueta legible del plan del Club (espejo de planLabel del Studio). */
 export function planLabel(plan: string): string {
@@ -52,11 +65,33 @@ export interface PortalClubGroupBuy {
   myParticipation: PortalClubParticipation | null;
 }
 
+export interface PortalClubEvent {
+  id: string;
+  name: string;
+  summary: string | null;
+  modalityLabel: string;
+  place: string | null;
+  startsAt: string | null;
+  /** El estado de la inscripción de ESTE miembro, o null si no está inscrito. */
+  myRegistrationLabel: string | null;
+}
+
+export interface PortalFeaturedSupplier {
+  supplierName: string;
+  periodLabel: string;
+  category: string | null;
+  blurb: string | null;
+}
+
 export interface PortalClub {
   /** Miembro = tiene una membresía viva (alta del Studio, SDD-0116 Slice A). */
   isMember: boolean;
   membership: PortalClubMembership | null;
   openGroupBuys: PortalClubGroupBuy[];
+  /** Eventos del Club próximos/recientes visibles al miembro (Slice C.2 wiring). */
+  events: PortalClubEvent[];
+  /** Proveedor del mes publicado más reciente (Slice D), o null. */
+  featuredSupplier: PortalFeaturedSupplier | null;
 }
 
 type MemberRow = { id: string; plan: string; status: string; joined_at: string };
@@ -74,6 +109,30 @@ type ParticipationRow = {
   status: string;
   estimated_cbm: number | null;
 };
+type EventRow = {
+  id: string;
+  name: string;
+  summary: string | null;
+  modality: string;
+  place: string | null;
+  starts_at: string | null;
+};
+type RegistrationRow = { event_id: string; status: string };
+type SupplierRow = {
+  supplier_name: string;
+  period: string;
+  category: string | null;
+  blurb: string | null;
+};
+
+/** Etiqueta legible del período YYYY-MM (ej. "julio 2026"). */
+function periodLabelLocal(period: string): string {
+  const m = /^(\d{4})-(\d{2})$/.exec(period);
+  if (!m) return period;
+  const month = Number(m[2]);
+  if (month < 1 || month > 12) return period;
+  return `${MESES_LARGOS[month - 1]} ${m[1]}`;
+}
 
 /**
  * Chequeo barato: ¿este cliente es miembro del Club? Solo para gatear la visibilidad
@@ -105,7 +164,15 @@ export async function getPortalClub(supabase: SupabaseClient): Promise<PortalClu
     .limit(1)
     .maybeSingle<MemberRow>();
 
-  if (!member) return { isMember: false, membership: null, openGroupBuys: [] };
+  if (!member) {
+    return {
+      isMember: false,
+      membership: null,
+      openGroupBuys: [],
+      events: [],
+      featuredSupplier: null,
+    };
+  }
 
   const membership: PortalClubMembership = {
     plan: member.plan,
@@ -113,8 +180,9 @@ export async function getPortalClub(supabase: SupabaseClient): Promise<PortalClu
     joinedAt: member.joined_at,
   };
 
-  // Rondas abiertas visibles (RLS: solo si es miembro ACTIVO) + mis participaciones.
-  const [gbRes, partRes] = await Promise.all([
+  // Rondas abiertas visibles (RLS: solo si es miembro ACTIVO) + mis participaciones
+  // + eventos del Club (0235) + mis inscripciones + proveedor del mes publicado.
+  const [gbRes, partRes, evRes, regRes, supRes] = await Promise.all([
     supabase
       .from("club_group_buys")
       .select("id, title, summary, closes_at, target_cbm, origin, destination")
@@ -125,6 +193,26 @@ export async function getPortalClub(supabase: SupabaseClient): Promise<PortalClu
       .from("club_group_buy_participants")
       .select("group_buy_id, status, estimated_cbm")
       .is("deleted_at", null),
+    supabase
+      .from("academy_cohorts")
+      .select("id, name, summary, modality, place, starts_at")
+      .eq("context", "club")
+      .neq("status", "completado")
+      .is("deleted_at", null)
+      .order("starts_at", { ascending: true, nullsFirst: false })
+      .limit(6),
+    supabase
+      .from("club_event_registrations")
+      .select("event_id, status")
+      .is("deleted_at", null),
+    supabase
+      .from("club_featured_suppliers")
+      .select("supplier_name, period, category, blurb")
+      .eq("status", "publicado")
+      .is("deleted_at", null)
+      .order("period", { ascending: false })
+      .limit(1)
+      .maybeSingle<SupplierRow>(),
   ]);
 
   const myPartByGb = new Map<string, ParticipationRow>();
@@ -154,5 +242,33 @@ export async function getPortalClub(supabase: SupabaseClient): Promise<PortalClu
     },
   );
 
-  return { isMember: true, membership, openGroupBuys };
+  // Eventos + mi inscripción por evento (RLS: solo mis inscripciones).
+  const myRegByEvent = new Map<string, string>();
+  for (const r of (regRes.data ?? []) as RegistrationRow[]) {
+    myRegByEvent.set(r.event_id, r.status);
+  }
+  const events: PortalClubEvent[] = ((evRes.data ?? []) as EventRow[]).map((e) => {
+    const regStatus = myRegByEvent.get(e.id);
+    return {
+      id: e.id,
+      name: e.name,
+      summary: e.summary,
+      modalityLabel: EVENT_MODALITY_LABEL[e.modality] ?? e.modality,
+      place: e.place,
+      startsAt: e.starts_at,
+      myRegistrationLabel: regStatus ? REGISTRATION_STATUS_LABEL[regStatus] ?? regStatus : null,
+    };
+  });
+
+  const sup = supRes.data;
+  const featuredSupplier: PortalFeaturedSupplier | null = sup
+    ? {
+        supplierName: sup.supplier_name,
+        periodLabel: periodLabelLocal(sup.period),
+        category: sup.category,
+        blurb: sup.blurb,
+      }
+    : null;
+
+  return { isMember: true, membership, openGroupBuys, events, featuredSupplier };
 }

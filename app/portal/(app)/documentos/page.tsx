@@ -110,7 +110,7 @@ export default async function PortalDocumentsPage() {
                 <div className="mt-4 pt-3 border-t border-grey-200 flex items-center justify-between gap-2">
                   <span className="text-[11.5px] text-grey-500">{meta}</span>
                   {url ? (
-                    <span className="text-[12.5px] font-semibold text-wine inline-flex items-center gap-1">
+                    <span className="text-[12.5px] font-semibold text-wine-text inline-flex items-center gap-1">
                       Descargar{" "}
                       <ArrowIcon size={13} className="group-hover:translate-x-0.5 transition-transform" />
                     </span>

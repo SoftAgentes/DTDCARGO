@@ -214,7 +214,7 @@ export function DeliveryAddressesCard({
                     }}
                     style={{
                       font: "600 12px/1 var(--f-sans)",
-                      color: "var(--wine)",
+                      color: "var(--wine-text)",
                       background: "none",
                       border: 0,
                       cursor: busy != null ? "wait" : "pointer",
@@ -273,7 +273,7 @@ export function DeliveryAddressesCard({
           onClick={() => setAdding(true)}
           style={{
             font: "600 12.5px/1 var(--f-sans)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             background: "none",
             border: 0,
             cursor: "pointer",

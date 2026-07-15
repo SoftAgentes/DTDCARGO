@@ -85,13 +85,13 @@ export default async function MarketingCalendarioPage() {
       <div style={{ marginBottom: 28 }}>
         <div
           className="studio-eyebrow"
-          style={{ marginBottom: 10, color: "var(--wine)" }}
+          style={{ marginBottom: 10, color: "var(--wine-text)" }}
         >
           Marketing · Calendario {YEAR}
         </div>
         <h1
           className="studio-display"
-          style={{ fontSize: 30, margin: "0 0 8px", color: "var(--ink)" }}
+          style={{ fontSize: 30, margin: "0 0 var(--s-2)", color: "var(--ink)" }}
         >
           Calendario de contenido
         </h1>
@@ -114,7 +114,7 @@ export default async function MarketingCalendarioPage() {
         style={{
           border: "1px dashed var(--border)",
           borderRadius: 12,
-          padding: "12px 16px",
+          padding: "var(--s-3) var(--s-4)",
           background: "var(--bg-surface)",
           marginBottom: 28,
           display: "flex",
@@ -146,7 +146,7 @@ export default async function MarketingCalendarioPage() {
         if (items.length === 0) return null;
         return (
           <section key={monthName} style={{ marginBottom: 24 }}>
-            <h2 className="studio-eyebrow" style={{ margin: "0 0 12px" }}>
+            <h2 className="studio-eyebrow" style={{ margin: "0 0 var(--s-3)" }}>
               {monthName}
             </h2>
             <div

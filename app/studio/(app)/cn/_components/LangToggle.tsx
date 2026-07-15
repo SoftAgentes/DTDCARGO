@@ -54,7 +54,7 @@ export function LangToggle() {
         background: "var(--bg-elevated)",
         borderRadius: "var(--r-md)",
         alignItems: "center",
-        gap: 4,
+        gap: "var(--s-1)",
         border: "1px solid var(--border)",
       }}
     >

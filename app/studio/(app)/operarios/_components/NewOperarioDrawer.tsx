@@ -86,7 +86,7 @@ export function NewOperarioDrawer({
       >
         <div>
           <label htmlFor="op-warehouse" className="studio-label">
-            Warehouse <span style={{ color: "var(--wine)" }}>*</span>
+            Warehouse <span style={{ color: "var(--wine-text)" }}>*</span>
           </label>
           <select
             id="op-warehouse"
@@ -112,7 +112,7 @@ export function NewOperarioDrawer({
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div>
             <label htmlFor="op-name" className="studio-label">
-              Nombre <span style={{ color: "var(--wine)" }}>*</span>
+              Nombre <span style={{ color: "var(--wine-text)" }}>*</span>
             </label>
             <input
               id="op-name"
@@ -147,7 +147,7 @@ export function NewOperarioDrawer({
 
         <div>
           <label htmlFor="op-role" className="studio-label">
-            Rol <span style={{ color: "var(--wine)" }}>*</span>
+            Rol <span style={{ color: "var(--wine-text)" }}>*</span>
           </label>
           <select
             id="op-role"
@@ -174,7 +174,7 @@ export function NewOperarioDrawer({
 
         <div>
           <label htmlFor="op-pin" className="studio-label">
-            PIN <span style={{ color: "var(--wine)" }}>*</span>
+            PIN <span style={{ color: "var(--wine-text)" }}>*</span>
             <button
               type="button"
               onClick={() => setPin(randomPin())}
@@ -319,7 +319,7 @@ function PinRevealSuccess({
             border: "2px dashed var(--wine)",
             borderRadius: "var(--r-md)",
             font: "900 38px/1 var(--f-mono)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             letterSpacing: "0.16em",
           }}
         >

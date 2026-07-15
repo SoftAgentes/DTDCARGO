@@ -157,8 +157,8 @@ export function NuevaReunionClient({
         {Icon.arrowL(14)} Volver al tablero
       </Link>
 
-      <div style={{ marginBottom: 20 }}>
-        <div className="studio-eyebrow" style={{ color: "var(--wine)" }}>
+      <div style={{ marginBottom: "var(--s-5)" }}>
+        <div className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
           Operación · Equipo
         </div>
         <h1
@@ -192,7 +192,7 @@ export function NuevaReunionClient({
       >
         {/* Tipo */}
         <div>
-          <div className="studio-label" style={{ marginBottom: 8 }}>
+          <div className="studio-label" style={{ marginBottom: "var(--s-2)" }}>
             Tipo de conversación
           </div>
           <div
@@ -200,8 +200,8 @@ export function NuevaReunionClient({
             aria-label="Tipo de conversación"
             style={{
               display: "inline-flex",
-              gap: 4,
-              padding: 4,
+              gap: "var(--s-1)",
+              padding: "var(--s-1)",
               background: "var(--bg-elevated)",
               borderRadius: "var(--r-md)",
             }}
@@ -221,7 +221,7 @@ export function NuevaReunionClient({
                   aria-selected={active}
                   onClick={() => setTipo(v)}
                   style={{
-                    padding: "8px 16px",
+                    padding: "var(--s-2) var(--s-4)",
                     borderRadius: "var(--r-sm)",
                     background: active ? "var(--bg-surface)" : "transparent",
                     color: active ? "var(--ink)" : "var(--ink-soft)",
@@ -278,7 +278,7 @@ export function NuevaReunionClient({
 
         {/* Segmented: cómo aportar la conversación */}
         <div>
-          <div className="studio-label" style={{ marginBottom: 8 }}>
+          <div className="studio-label" style={{ marginBottom: "var(--s-2)" }}>
             Conversación
           </div>
           <div
@@ -286,8 +286,8 @@ export function NuevaReunionClient({
             aria-label="Cómo aportar la conversación"
             style={{
               display: "inline-flex",
-              gap: 4,
-              padding: 4,
+              gap: "var(--s-1)",
+              padding: "var(--s-1)",
               background: "var(--bg-elevated)",
               borderRadius: "var(--r-md)",
             }}
@@ -307,7 +307,7 @@ export function NuevaReunionClient({
                   aria-selected={active}
                   onClick={() => setMode(v)}
                   style={{
-                    padding: "8px 16px",
+                    padding: "var(--s-2) var(--s-4)",
                     borderRadius: "var(--r-sm)",
                     background: active ? "var(--bg-surface)" : "transparent",
                     color: active ? "var(--ink)" : "var(--ink-soft)",
@@ -719,13 +719,13 @@ function AudioCapture({ tenantId, meetingId, onTranscribed }: AudioCaptureProps)
 
       {/* Grabadora */}
       {!audioBlob && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
           {recording ? (
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 12,
+                gap: "var(--s-3)",
                 flexWrap: "wrap",
               }}
             >
@@ -784,7 +784,7 @@ function AudioCapture({ tenantId, meetingId, onTranscribed }: AudioCaptureProps)
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 8,
+              gap: "var(--s-2)",
               font: "600 12px/1 var(--f-sans)",
               color: "var(--ink-soft)",
               cursor: busy ? "default" : "pointer",
@@ -805,7 +805,7 @@ function AudioCapture({ tenantId, meetingId, onTranscribed }: AudioCaptureProps)
 
       {/* Preview + transcribir */}
       {audioBlob && audioUrl && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
           <audio controls src={audioUrl} style={{ width: "100%" }} />
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button

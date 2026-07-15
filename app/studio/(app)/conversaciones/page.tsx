@@ -9,12 +9,14 @@
 
 import { createClient } from "@/lib/db/server";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
+import { canEditModule } from "@/lib/studio/rbac";
 import {
   computeConversationKpis,
   listAssignableAgents,
   listConversations,
 } from "@/lib/studio/conversaciones/conversations-queries";
 import { ConversacionesClient } from "./_components/ConversacionesClient";
+import { GenerateDigestsPanel } from "./_components/GenerateDigestsPanel";
 
 export const metadata = { title: "Conversaciones · DTD Studio" };
 
@@ -23,7 +25,8 @@ export default async function ConversacionesPage({
 }: {
   searchParams: Promise<{ c?: string }>;
 }) {
-  await requireModuleView("conversaciones");
+  const role = await requireModuleView("conversaciones");
+  const canGenerateDigests = canEditModule(role, "conversaciones");
 
   // Deep-link al hilo (SDD-0148 #1): el aviso de Telegram trae `?c=<id>` → la
   // bandeja abre directo en esa conversación.
@@ -45,7 +48,7 @@ export default async function ConversacionesPage({
 
   return (
     <div style={{ maxWidth: 1480 }}>
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: "var(--s-6)" }}>
         <span className="studio-eyebrow">Comercial · Atención al cliente</span>
         <h1
           className="studio-display"
@@ -67,6 +70,8 @@ export default async function ConversacionesPage({
           portal (sin correos).
         </p>
       </div>
+
+      {canGenerateDigests && <GenerateDigestsPanel />}
 
       <ConversacionesClient
         conversations={conversations}

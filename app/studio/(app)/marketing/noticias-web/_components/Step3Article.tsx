@@ -144,7 +144,7 @@ export function Step3Article({
               background: "var(--bg-surface, #FFFFFF)",
               border: "1px solid var(--border, rgba(15,30,61,0.12))",
               borderRadius: "var(--r-lg, 12px)",
-              padding: "16px",
+              padding: "var(--s-4)",
               boxShadow: "var(--shadow-sm)",
               display: "flex",
               flexDirection: "column",
@@ -338,7 +338,7 @@ export function Step3Article({
                   style={{
                     fontSize: 11.5,
                     color: "var(--ink-soft, #6B6B6B)",
-                    margin: "4px 0 0 0",
+                    margin: "var(--s-1) 0 0 0",
                     lineHeight: 1.4,
                   }}
                 >

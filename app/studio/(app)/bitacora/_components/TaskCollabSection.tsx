@@ -165,16 +165,16 @@ export function TaskCollabSection({
   const list = attachments ?? [];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
       {/* ── Prueba de avance ─────────────────────────────── */}
       <section>
         <div
           className="studio-eyebrow"
-          style={{ color: "var(--wine)", marginBottom: 10 }}
+          style={{ color: "var(--wine-text)", marginBottom: 10 }}
         >
           Prueba de avance
           {list.length > 0 && (
-            <span style={{ color: "var(--ink-soft)", marginLeft: 8 }}>
+            <span style={{ color: "var(--ink-soft)", marginLeft: "var(--s-2)" }}>
               {list.length}
             </span>
           )}
@@ -209,7 +209,7 @@ export function TaskCollabSection({
               padding: 0,
               display: "flex",
               flexDirection: "column",
-              gap: 8,
+              gap: "var(--s-2)",
             }}
           >
             {list.map((a) => (
@@ -218,8 +218,8 @@ export function TaskCollabSection({
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 12,
-                  padding: 8,
+                  gap: "var(--s-3)",
+                  padding: "var(--s-2)",
                   border: "1px solid var(--border)",
                   borderRadius: "var(--r-md)",
                   background: "var(--bg-surface)",
@@ -243,7 +243,7 @@ export function TaskCollabSection({
                       display: "flex",
                       alignItems: "center",
                       gap: 6,
-                      marginTop: 4,
+                      marginTop: "var(--s-1)",
                     }}
                   >
                     <Badge tone={kindTone(a.kind)} size="sm">
@@ -274,7 +274,7 @@ export function TaskCollabSection({
 
                 {canEdit &&
                   (confirmDeleteId === a.id ? (
-                    <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                    <div style={{ display: "flex", gap: "var(--s-1)", flexShrink: 0 }}>
                       <button
                         type="button"
                         className="studio-btn studio-btn-danger studio-btn-xs"
@@ -315,7 +315,7 @@ export function TaskCollabSection({
         )}
 
         {canEdit && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s-2)" }}>
             <input
               ref={fileRef}
               type="file"

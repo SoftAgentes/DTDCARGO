@@ -117,7 +117,7 @@ export function SignaturesView({ signatures, members }: Props) {
             borderBottom: "1px solid var(--border)",
           }}
         >
-          <div className="studio-eyebrow" style={{ color: "var(--wine)" }}>
+          <div className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
             Equipo interno
           </div>
           <div
@@ -270,7 +270,7 @@ function SignatureEditor({
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {/* Selector de layout */}
       <Card>
-        <div className="studio-eyebrow" style={{ color: "var(--wine)" }}>
+        <div className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
           Layout
         </div>
         <div
@@ -347,7 +347,7 @@ function SignatureEditor({
         <Card>
           <div
             className="studio-eyebrow"
-            style={{ color: "var(--wine)", marginBottom: 14 }}
+            style={{ color: "var(--wine-text)", marginBottom: 14 }}
           >
             Datos
           </div>
@@ -494,7 +494,7 @@ function SignatureEditor({
         <Card>
           <div
             className="studio-eyebrow"
-            style={{ color: "var(--wine)", marginBottom: 14 }}
+            style={{ color: "var(--wine-text)", marginBottom: 14 }}
           >
             Preview
           </div>

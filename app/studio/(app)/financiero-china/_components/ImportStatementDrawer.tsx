@@ -271,7 +271,7 @@ export function ImportStatementDrawer({
           </div>
 
           {parseError && (
-            <p style={{ margin: "8px 0 0", font: "600 11.5px/1.4 var(--f-sans)", color: "var(--danger)" }}>
+            <p style={{ margin: "var(--s-2) 0 0", font: "600 11.5px/1.4 var(--f-sans)", color: "var(--danger)" }}>
               {parseError}
             </p>
           )}
@@ -334,7 +334,7 @@ export function ImportStatementDrawer({
                 style={{
                   border: "1px solid var(--border)",
                   borderRadius: "var(--r-md)",
-                  padding: "12px 12px 12px",
+                  padding: "var(--s-3) var(--s-3) var(--s-3)",
                   display: "flex",
                   flexDirection: "column",
                   gap: 8,

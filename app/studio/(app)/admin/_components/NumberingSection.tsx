@@ -42,7 +42,7 @@ export function NumberingSection({ data }: { data: NumberingOverview }) {
           Los correlativos son legales y fijos por diseño (se generan en la base de datos). Esta vista es de
           solo lectura; cambiar un formato requiere una spec fiscal dedicada.
         </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
           {data.formats.map((f) => (
             <div
               key={f.label}
@@ -60,11 +60,11 @@ export function NumberingSection({ data }: { data: NumberingOverview }) {
                 <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>{f.label}</div>
                 <code style={{ font: "600 11px/1.4 var(--f-mono)", color: "var(--ink-soft)" }}>{f.source}</code>
               </div>
-              <code style={{ font: "700 13px/1 var(--f-mono)", color: "var(--wine)" }}>{f.format}</code>
+              <code style={{ font: "700 13px/1 var(--f-mono)", color: "var(--wine-text)" }}>{f.format}</code>
               <div style={{ justifySelf: "start" }}>
                 {f.next ? (
                   <>
-                    <div style={{ font: "600 9.5px/1 var(--f-sans)", color: "var(--ink-soft)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
+                    <div style={{ font: "600 9.5px/1 var(--f-sans)", color: "var(--ink-soft)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "var(--s-1)" }}>
                       Próximo
                     </div>
                     <code style={{ font: "800 13px/1 var(--f-mono)", color: "var(--ink)" }}>{f.next}</code>
@@ -112,7 +112,7 @@ export function NumberingSection({ data }: { data: NumberingOverview }) {
           {state?.error && (
             <div
               style={{
-                padding: 12,
+                padding: "var(--s-3)",
                 background: "var(--danger-bg)",
                 color: "var(--danger)",
                 borderRadius: "var(--r-md)",
@@ -156,7 +156,7 @@ function Card({ children }: { children: React.ReactNode }) {
 
 function CardEyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <div className="studio-eyebrow" style={{ color: "var(--wine)", marginBottom: 14 }}>
+    <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: 14 }}>
       {children}
     </div>
   );

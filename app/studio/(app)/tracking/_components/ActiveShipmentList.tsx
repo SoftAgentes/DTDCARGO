@@ -94,7 +94,7 @@ export function ActiveShipmentList({ shipments, selectedId }: Props) {
         {filtered.length === 0 ? (
           <div
             style={{
-              padding: "24px 16px",
+              padding: "var(--s-6) var(--s-4)",
               textAlign: "center",
               color: "var(--ink-soft)",
               font: "500 12px/1.5 var(--f-sans)",

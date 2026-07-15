@@ -755,7 +755,7 @@ function ActionsTab({
         <p style={{ margin: "8px 0 0", fontSize: 11, color: "var(--ink-soft)" }}>
           Pega el prompt en Claude Code (otra ventana), revisa el fix que te propone
           y aplícalo tú. Cuando lo commitees usa{" "}
-          <code style={{ fontFamily: "var(--font-mono, monospace)", color: "var(--wine)" }}>
+          <code style={{ fontFamily: "var(--font-mono, monospace)", color: "var(--wine-text)" }}>
             fix: {bug.folio}
           </code>{" "}
           como convención de trazabilidad. <strong>Después</strong> cambia el estado a

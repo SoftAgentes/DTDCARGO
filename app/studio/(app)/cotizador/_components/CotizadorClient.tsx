@@ -84,7 +84,7 @@ export function CotizadorClient({
           <span className="studio-eyebrow">Operación comercial</span>
           <h1
             className="studio-display"
-            style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
+            style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
           >
             Estimados.
           </h1>
@@ -128,7 +128,7 @@ export function CotizadorClient({
           marginBottom: 16,
           flexWrap: "wrap",
           opacity: isPending ? 0.6 : 1,
-          transition: "opacity 0.12s",
+          transition: "opacity var(--dur-fast) var(--ease)",
         }}
       >
         <div style={{ flex: "1 1 280px", minWidth: 240 }}>
@@ -256,7 +256,7 @@ function QuotesTable({ quotes }: { quotes: Quote[] }) {
           display: "grid",
           gridTemplateColumns: "130px 1.4fr 140px 1.2fr 80px 110px 110px 110px",
           gap: 12,
-          padding: "12px 20px",
+          padding: "var(--s-3) var(--s-5)",
           background: "var(--bg-elevated)",
           borderBottom: "1px solid var(--border)",
           font: "700 10px/1 var(--f-sans)",
@@ -324,7 +324,7 @@ function QuotesTable({ quotes }: { quotes: Quote[] }) {
                 <div
                   style={{
                     font: "600 11px/1 var(--f-mono)",
-                    color: "var(--wine)",
+                    color: "var(--wine-text)",
                     marginTop: 3,
                   }}
                 >
@@ -363,7 +363,7 @@ function QuotesTable({ quotes }: { quotes: Quote[] }) {
             <span
               style={{
                 font: "800 13px/1 var(--f-mono)",
-                color: "var(--wine)",
+                color: "var(--wine-text)",
                 textAlign: "right",
               }}
             >

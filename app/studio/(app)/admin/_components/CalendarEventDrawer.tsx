@@ -78,7 +78,7 @@ export function CalendarEventDrawer({
       >
         {mode === "edit" && event && <input type="hidden" name="id" value={event.id} />}
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
           <div>
             <label className="studio-label" htmlFor="cal-country">País</label>
             <select id="cal-country" name="country" value={country} onChange={(e) => setCountry(e.target.value)} className="studio-input" style={{ marginTop: 6 }}>
@@ -105,7 +105,7 @@ export function CalendarEventDrawer({
           <FieldError msg={fe.name} />
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
           <div>
             <label className="studio-label" htmlFor="cal-start">Inicio</label>
             <input id="cal-start" name="start_date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="studio-input" style={{ marginTop: 6 }} />
@@ -182,7 +182,7 @@ function FieldError({ msg }: { msg?: string }) {
 
 function FormError({ msg }: { msg: string }) {
   return (
-    <div style={{ padding: 12, background: "var(--danger-bg)", color: "var(--danger)", borderRadius: "var(--r-md)", font: "600 13px/1.3 var(--f-sans)" }}>
+    <div style={{ padding: "var(--s-3)", background: "var(--danger-bg)", color: "var(--danger)", borderRadius: "var(--r-md)", font: "600 13px/1.3 var(--f-sans)" }}>
       {msg}
     </div>
   );

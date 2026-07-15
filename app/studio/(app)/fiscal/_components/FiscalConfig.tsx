@@ -100,7 +100,7 @@ export function FiscalConfig({
           display: "flex",
           gap: 10,
           alignItems: "flex-start",
-          padding: "12px 16px",
+          padding: "var(--s-3) var(--s-4)",
           marginBottom: 20,
           background: "var(--bg-elevated)",
           border: "1px solid var(--border)",
@@ -353,7 +353,7 @@ export function FiscalConfig({
         {!dirty && state.error && (
           <p
             role="alert"
-            style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--danger)", margin: "20px 0 0" }}
+            style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--danger)", margin: "var(--s-5) 0 0" }}
           >
             {state.error}
           </p>

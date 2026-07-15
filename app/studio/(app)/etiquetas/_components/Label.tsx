@@ -158,7 +158,7 @@ export function Label({
           display: "flex",
           alignItems: "flex-start",
           justifyContent: "space-between",
-          gap: 8,
+          gap: "var(--s-2)",
           borderBottom: "1px dashed #0F1E3D",
           paddingBottom: isCompact ? 4 : 6,
         }}
@@ -305,7 +305,7 @@ export function Label({
         <div
           style={{
             marginTop: "auto",
-            paddingTop: 4,
+            paddingTop: "var(--s-1)",
             borderTop: "1px dashed #E8E6E2",
           }}
         >

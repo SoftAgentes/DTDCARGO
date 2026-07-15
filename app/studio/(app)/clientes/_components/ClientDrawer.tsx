@@ -359,7 +359,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
           {/* Tipo de documento · persona (cédula) / empresa (RIF) — SDD-0131 */}
           <div>
             <label className="studio-label">
-              Tipo de cliente <span style={{ color: "var(--wine)" }}>*</span>
+              Tipo de cliente <span style={{ color: "var(--wine-text)" }}>*</span>
             </label>
             {/* Hidden input: el value entra al FormData tanto en create
                 (new FormData(formEl)) como en edit (form action). */}
@@ -405,7 +405,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
           <div>
             <label className="studio-label" htmlFor="cl-name">
               {isCompany ? "Razón social" : "Nombre"}{" "}
-              <span style={{ color: "var(--wine)" }}>*</span>
+              <span style={{ color: "var(--wine-text)" }}>*</span>
             </label>
             <input
               id="cl-name"
@@ -447,7 +447,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
           {/* Tier */}
           <div>
             <label className="studio-label" htmlFor="cl-tier">
-              Tier <span style={{ color: "var(--wine)" }}>*</span>
+              Tier <span style={{ color: "var(--wine-text)" }}>*</span>
             </label>
             <select
               id="cl-tier"
@@ -684,7 +684,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
               style={{
                 font: "500 11px/1.4 var(--f-sans)",
                 color: "var(--ink-soft)",
-                margin: "4px 0 0",
+                margin: "var(--s-1) 0 0",
               }}
             >
               {isCompany
@@ -788,8 +788,18 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
                     disabled={isDeleting}
                     onClick={() => {
                       startDelete(async () => {
-                        const result = await softDeleteClientAction(client.markbox);
-                        if (result.ok) onClose();
+                        try {
+                          const result = await softDeleteClientAction(client.markbox);
+                          if (result.ok) {
+                            onClose();
+                          } else {
+                            toast.error(result.error ?? "No se pudo eliminar el cliente.");
+                            setConfirmDelete(false);
+                          }
+                        } catch {
+                          toast.error("No se pudo eliminar el cliente. Intenta de nuevo.");
+                          setConfirmDelete(false);
+                        }
                       });
                     }}
                   >
@@ -889,7 +899,7 @@ function FieldError({ msg }: { msg: string }) {
       style={{
         font: "500 11px/1.3 var(--f-sans)",
         color: "var(--danger)",
-        margin: "4px 0 0",
+        margin: "var(--s-1) 0 0",
       }}
     >
       {msg}

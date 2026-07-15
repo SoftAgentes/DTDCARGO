@@ -422,7 +422,7 @@ function PaymentModal({
             }}
           >
             {invoice.invoice_code} · saldo actual{" "}
-            <strong style={{ font: "700 12px/1 var(--f-mono)", color: "var(--wine)" }}>
+            <strong style={{ font: "700 12px/1 var(--f-mono)", color: "var(--wine-text)" }}>
               ${fmt(balance)}
             </strong>
           </p>
@@ -447,7 +447,7 @@ function PaymentModal({
               style={{
                 font: "500 11px/1.3 var(--f-sans)",
                 color: amt >= balance - 1e-6 ? "var(--ink-soft)" : "var(--warning)",
-                margin: "4px 0 0",
+                margin: "var(--s-1) 0 0",
               }}
             >
               {amt >= balance - 1e-6
@@ -460,7 +460,7 @@ function PaymentModal({
               style={{
                 font: "500 11px/1.3 var(--f-sans)",
                 color: "var(--danger)",
-                margin: "4px 0 0",
+                margin: "var(--s-1) 0 0",
               }}
             >
               El monto no puede superar el saldo (${fmt(balance)}).
@@ -477,7 +477,7 @@ function PaymentModal({
               style={{
                 font: "500 11.5px/1.4 var(--f-sans)",
                 color: "var(--warning)",
-                margin: "4px 0 0",
+                margin: "var(--s-1) 0 0",
               }}
             >
               No hay cuentas de caja/banco en el plan de cuentas. Sembrá el plan
