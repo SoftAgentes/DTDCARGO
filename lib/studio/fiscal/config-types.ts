@@ -22,6 +22,22 @@
  * editables por el contador sin deploy. Cero-config arranca usable (módulo OFF).
  */
 
+// El enum del crédito de referido se importa de `referral-credit-modes`, que NO
+// tiene imports a propósito: el módulo de posting arrastra el admin client
+// (service_role) y este archivo lo consume un componente CLIENTE.
+import {
+  DEFAULT_REFERRAL_CREDIT_MODE,
+  isReferralCreditMode,
+  type ReferralCreditMode,
+} from "@/lib/studio/accounting/referral-credit-modes";
+
+export {
+  REFERRAL_CREDIT_MODES,
+  referralCreditModeHint,
+  referralCreditModeLabel,
+  type ReferralCreditMode,
+} from "@/lib/studio/accounting/referral-credit-modes";
+
 // ── Enums (espejan los CHECK de la migración 0141) ─────────────
 
 /** Modo de IVA de una factura (o el default del tenant). */
@@ -90,6 +106,8 @@ export interface FiscalSettingsInput {
   // H · período + fuente del IVA de compras
   declaration_period: DeclarationPeriod;
   purchase_iva_mode: PurchaseIvaMode;
+  // I · cómo se refleja contablemente el crédito de referido (SDD-0137, migr 0237)
+  referral_credit_mode: ReferralCreditMode;
 }
 
 /** Fila completa tal como la devuelve `getFiscalSettings()`. */
@@ -130,6 +148,7 @@ export const DEFAULT_FISCAL_SETTINGS: FiscalSettingsInput = {
   homologated_provider: null,
   declaration_period: "mensual",
   purchase_iva_mode: "derivado",
+  referral_credit_mode: DEFAULT_REFERRAL_CREDIT_MODE,
 };
 
 /** ¿El módulo fiscal está activo? Helper único (principio #1). */
@@ -206,6 +225,9 @@ export function validateFiscalSettingsInput(
   if (!isPeriod(input.declaration_period)) {
     errors.declaration_period = "Periodicidad inválida.";
   }
+  if (!isReferralCreditMode(input.referral_credit_mode)) {
+    errors.referral_credit_mode = "Elige cómo se refleja el crédito de referido.";
+  }
 
   // Rates (% en [0,100])
   checkPct(errors, "iva_rate_general", input.iva_rate_general, "la alícuota general");
@@ -241,6 +263,7 @@ export function validateFiscalSettingsInput(
       homologated_provider: provider ? provider : null,
       declaration_period: input.declaration_period as DeclarationPeriod,
       purchase_iva_mode: input.purchase_iva_mode as PurchaseIvaMode,
+      referral_credit_mode: input.referral_credit_mode as ReferralCreditMode,
     },
   };
 }

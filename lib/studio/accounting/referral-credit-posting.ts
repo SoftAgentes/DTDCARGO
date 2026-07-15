@@ -30,37 +30,28 @@
 
 import { createAdminClient } from "@/lib/db/admin";
 
-/** Modo de reflejo contable del crédito (setting fiscal_settings.referral_credit_mode). */
-export type ReferralCreditMode = "marketing_expense" | "commercial_discount";
+/**
+ * El enum y las cuentas viven en `./referral-credit-modes` (módulo SIN imports):
+ * este archivo arrastra el admin client (service_role) y no puede tocar el bundle
+ * del navegador, pero el form de config fiscal es CLIENTE y necesita las
+ * constantes. Se re-exportan acá para no romper a quien ya las importaba de este
+ * módulo.
+ */
+export {
+  DEFAULT_REFERRAL_CREDIT_MODE,
+  isReferralCreditMode,
+  REFERRAL_CREDIT_CREDIT_ACCOUNT_CODE,
+  REFERRAL_CREDIT_DEBIT_ACCOUNT_CODE,
+  REFERRAL_CREDIT_MODES,
+  type ReferralCreditMode,
+} from "./referral-credit-modes";
 
-export const REFERRAL_CREDIT_MODES: ReferralCreditMode[] = [
-  "marketing_expense",
-  "commercial_discount",
-];
-
-export const DEFAULT_REFERRAL_CREDIT_MODE: ReferralCreditMode =
-  "marketing_expense";
-
-/** Cuenta del DEBE (contra la que se reconoce el crédito) por modo → code del plan (seed 0078). */
-export const REFERRAL_CREDIT_DEBIT_ACCOUNT_CODE: Record<
-  ReferralCreditMode,
-  string
-> = {
-  // Gasto de incentivo (recomendación §3.3): Publicidad y marketing.
-  marketing_expense: "6.11",
-  // Rebaja de precio: Descuentos sobre ventas (cuenta contra-ingreso).
-  commercial_discount: "4.9",
-};
-
-/** Cuenta del HABER: siempre la CxC de clientes (baja el saldo del referidor). */
-export const REFERRAL_CREDIT_CREDIT_ACCOUNT_CODE = "1.1.2";
-
-export function isReferralCreditMode(v: unknown): v is ReferralCreditMode {
-  return (
-    typeof v === "string" &&
-    (REFERRAL_CREDIT_MODES as string[]).includes(v)
-  );
-}
+import {
+  DEFAULT_REFERRAL_CREDIT_MODE,
+  REFERRAL_CREDIT_CREDIT_ACCOUNT_CODE,
+  REFERRAL_CREDIT_DEBIT_ACCOUNT_CODE,
+  type ReferralCreditMode,
+} from "./referral-credit-modes";
 
 export type ReferralCreditPostingInput = {
   tenantId: string;

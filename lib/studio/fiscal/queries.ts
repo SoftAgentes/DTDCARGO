@@ -22,6 +22,11 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isMissingDbObject } from "@/lib/studio/db-errors";
+import {
+  DEFAULT_REFERRAL_CREDIT_MODE,
+  type ReferralCreditMode,
+} from "@/lib/studio/accounting/referral-credit-modes";
 import {
   DEFAULT_FISCAL_SETTINGS,
   type DeclarationPeriod,
@@ -57,8 +62,11 @@ export type FiscalBook<T> = {
 
 // ── Configuración fiscal (singleton por tenant) ────────────────
 
-const SETTINGS_COLUMNS =
+/** Columnas previas a la migr 0237 (sin `referral_credit_mode`). */
+const SETTINGS_COLUMNS_BASE =
   "tenant_id, fiscal_module_enabled, is_special_taxpayer, iva_rate_general, iva_rate_reduced, iva_rate_export, iva_rate_luxury_surcharge, default_invoice_iva_mode, igtf_enabled, igtf_rate_fx, igtf_is_perception_agent, iva_withholding_agent, iva_withholding_pct, digital_invoicing_enabled, homologated_provider, declaration_period, purchase_iva_mode, updated_at, updated_by";
+
+const SETTINGS_COLUMNS = `${SETTINGS_COLUMNS_BASE}, referral_credit_mode`;
 
 type SettingsRow = {
   tenant_id: string;
@@ -78,6 +86,8 @@ type SettingsRow = {
   homologated_provider: string | null;
   declaration_period: DeclarationPeriod;
   purchase_iva_mode: PurchaseIvaMode;
+  /** Puede faltar si la migr 0237 no está aplicada (ver getFiscalSettings). */
+  referral_credit_mode?: ReferralCreditMode;
   updated_at: string;
   updated_by: string | null;
 };
@@ -98,10 +108,25 @@ type SettingsRow = {
 export async function getFiscalSettings(
   supabase: SupabaseClient,
 ): Promise<FiscalSettings> {
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("fiscal_settings")
     .select(SETTINGS_COLUMNS)
     .maybeSingle<SettingsRow>();
+
+  // `referral_credit_mode` la agrega la migr 0237, que se aplica a mano → si
+  // todavía no está, releemos sin ella en vez de tumbar /studio/fiscal entero por
+  // una columna que ni siquiera usan los Libros. El modo cae al default (que es
+  // el mismo default de la columna) y el selector aparece en su valor inicial.
+  if (error && isMissingDbObject(error)) {
+    console.error(
+      "[fiscal] referral_credit_mode no existe (¿migr 0237 sin aplicar?) — leyendo sin ella:",
+      error.message,
+    );
+    ({ data, error } = await supabase
+      .from("fiscal_settings")
+      .select(SETTINGS_COLUMNS_BASE)
+      .maybeSingle<SettingsRow>());
+  }
 
   // Error real (no el "no rows" benigno) → propagar; nunca fabricar un libro
   // exento por un fallo de lectura.
@@ -137,6 +162,7 @@ export async function getFiscalSettings(
     homologated_provider: data.homologated_provider,
     declaration_period: data.declaration_period,
     purchase_iva_mode: data.purchase_iva_mode,
+    referral_credit_mode: data.referral_credit_mode ?? DEFAULT_REFERRAL_CREDIT_MODE,
     updated_at: data.updated_at,
     updated_by: data.updated_by,
   };
