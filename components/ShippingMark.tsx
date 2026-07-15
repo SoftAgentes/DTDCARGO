@@ -47,6 +47,11 @@ const PASOS: { n: string; title: string; copy: string }[] = [
   },
   {
     n: "07",
+    title: "Pasa la aduana en Venezuela",
+    copy: "Tu MARKBOX identifica cuál carga es la tuya durante la gestión aduanal y el pago de aranceles e impuestos, ya incluidos en tu cotización.",
+  },
+  {
+    n: "08",
     title: "La recibes en tu puerta",
     copy: "Llega puerta a puerta a tu dirección en Venezuela — identificada de principio a fin.",
   },

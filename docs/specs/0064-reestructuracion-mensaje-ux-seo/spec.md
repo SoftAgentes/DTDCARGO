@@ -4,7 +4,7 @@ title: "Reestructuración de mensaje, UX, SEO/GEO y confianza del sitio público
 status: in-progress
 author: "founder (brief Codex) + Claude Code"
 created: 2026-06-08
-updated: 2026-06-08
+updated: 2026-07-14
 supersedes: null
 superseded_by: null
 related: ["0062","0063","0042","0055"]
@@ -53,10 +53,10 @@ Dos disparadores convergen:
 | 0 | Spec 0064 + guía de verificación + inventario file:línea | ✅ esta sesión |
 | 1 | **Mensaje base:** voseo · variantes de marca · quitar frases absolutas/intermediarios · financiamiento reencuadrado · DDP→secundario en ganchos | 🔄 esta sesión (workflow, 46 cambios) |
 | 2 | **Home:** hero "Importa desde China hasta tu puerta" · barra de confianza nueva · sección "¿Qué significa puerta a puerta?" · tabla de transparencia (incluye/puede variar/no aplica) | ⏳ requiere OK copy |
-| 3 | **MARKBOX** como sistema de marcaje (sección + flujo 8 pasos, con datos reales del 入仓单) | ⏳ |
-| 4 | **Taxonomía + /servicios** por etapa + fichas (retoma entrevista por tandas de 0063) | ⏳ |
-| 5 | **Estimación / calculadora / tracking / registro** (copy + privacidad visible) | ⏳ |
-| 6 | **SEO/GEO:** "Respuesta rápida" + JSON-LD (Organization/LocalBusiness/Breadcrumb/FAQPage/Service) + páginas por ciudad; páginas nuevas (/puerta-a-puerta, /markbox) al final | ⏳ |
+| 3 | **MARKBOX** como sistema de marcaje (sección + flujo 8 pasos, con datos reales del 入仓单) | ✅ sección live desde Fase 2; flujo pasó de 7→**8 pasos** esta sesión (agrega "Pasa la aduana en Venezuela" antes de la entrega — paso real que faltaba, ver nota abajo) |
+| 4 | **Taxonomía + /servicios** por etapa + fichas (retoma entrevista por tandas de 0063) | ⏳ requiere entrevista founder |
+| 5 | **Estimación / calculadora / tracking / registro** (copy + privacidad visible) | ⏳ requiere OK founder |
+| 6 | **SEO/GEO:** "Respuesta rápida" + JSON-LD (Organization/LocalBusiness/Breadcrumb/FAQPage/Service) + páginas por ciudad; páginas nuevas (/puerta-a-puerta, /markbox) al final | ✅ Respuesta rápida + JSON-LD + páginas por ciudad ya vivían; **`/puerta-a-puerta` y `/markbox` creadas esta sesión** (standalone, indexables, en sitemap y footer) |
 | 7 | **Confianza/prueba real** (fotos/testimonios del founder) + QA desktop/mobile/SEO/marca | ⏳ |
 
 ## Alcance
@@ -73,3 +73,8 @@ Guía viva: [`assets/guia-verificacion.md`](assets/guia-verificacion.md) — che
 - Fotos reales (bodega Yiwu, equipo Valencia), capturas anonimizadas, testimonios reales.
 - OK de copy para Fase 2 (hero/barra/transparencia).
 - Reconciliar el conteo "16 servicios" con la taxonomía final.
+- **OK del copy "Comprar directo de fábrica"** (`lib/public/academia.ts`, Academia): reemplazó "Comprar sin intermediarios" / "...sin intermediarios" (frase absoluta prohibida por `BRAND.md`, chequeo transversal de Fase 1). Mismo significado (comprar directo del proveedor en China), sin la frase absoluta.
+
+## Nota — MARKBOX: 7 vs 8 pasos (cierre código, sesión 2026-07-14)
+
+La guía de verificación pedía un "flujo 8 pasos" pero `components/ShippingMark.tsx` tenía 7 (01 registro → 07 entrega). Investigado contra la taxonomía de servicios de esta misma spec (§ "Servicios — taxonomía"), que separa explícitamente **tránsito/aduana** de **entrega**: el flujo saltaba de "consolidamos y rastreas" directo a "la recibes en tu puerta", sin nombrar el paso real de aduana en Venezuela (donde el MARKBOX también identifica la carga durante el trámite). No era un "8 aproximado" — faltaba un paso operativo real. Se agregó **07 "Pasa la aduana en Venezuela"** (antes de la entrega, ahora 08). Grounded en lo que ya afirmaba `<PuertaAPuerta/>` ("Gestión aduanal", "Aranceles e impuestos según cotización") — sin datos nuevos inventados.
