@@ -1,10 +1,10 @@
 ---
 sdd: "0130"
 title: "Importar / Exportar — export CSV del dominio admin (import por implementar)"
-status: in-progress
+status: done
 author: "Claude Code (sesión secundaria · worktree web-norte) + founder"
 created: 2026-07-01
-updated: 2026-07-01
+updated: 2026-07-15
 supersedes: null
 superseded_by: null
 related: ["0120", "0127"]

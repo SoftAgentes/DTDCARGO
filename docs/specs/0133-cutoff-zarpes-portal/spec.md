@@ -1,10 +1,10 @@
 ---
 sdd: "0133"
 title: "Cut-off / calendario de zarpes en el portal"
-status: in-progress
+status: done
 author: "agente-secundario (inventario portal)"
 created: 2026-07-01
-updated: 2026-07-01
+updated: 2026-07-15
 supersedes: null
 superseded_by: null
 related: ["0042", "0047", "0101"]

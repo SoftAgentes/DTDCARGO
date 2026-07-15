@@ -1,10 +1,10 @@
 ---
 sdd: "0141"
 title: "Calendario al Norte — vistas + eventos operativos de embarques"
-status: in-progress
+status: done
 author: "Claude Code (ventana secundaria · worktree calendario-norte) + founder"
 created: 2026-07-03
-updated: 2026-07-03
+updated: 2026-07-15
 supersedes: null
 superseded_by: null
 related: ["0015"]

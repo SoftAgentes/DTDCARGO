@@ -1,10 +1,10 @@
 ---
 sdd: "0126"
 title: "Tasas de cambio — gestión de tenant_fx_history desde Administración"
-status: in-progress
+status: done
 author: "Claude Code (sesión secundaria · worktree web-norte) + founder"
 created: 2026-07-01
-updated: 2026-07-01
+updated: 2026-07-15
 supersedes: null
 superseded_by: null
 related: ["0039", "0110"]

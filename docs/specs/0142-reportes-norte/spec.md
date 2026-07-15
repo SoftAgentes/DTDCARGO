@@ -1,10 +1,10 @@
 ---
 sdd: "0142"
 title: "Reportes al Norte — reporte Por agente + reporte IVA"
-status: in-progress
+status: done
 author: "Claude Code (ventana secundaria · worktree reportes-norte) + founder"
 created: 2026-07-03
-updated: 2026-07-03
+updated: 2026-07-15
 supersedes: null
 superseded_by: null
 related: ["0052", "0073", "0078", "0087"]

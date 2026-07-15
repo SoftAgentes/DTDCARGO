@@ -1,10 +1,10 @@
 ---
 sdd: "0122"
 title: "Numeración & legal — formatos de correlativo (read-only) + leyendas legales de factura"
-status: in-progress
+status: done
 author: "Claude Code (sesión secundaria · worktree web-norte) + founder"
 created: 2026-07-01
-updated: 2026-07-01
+updated: 2026-07-15
 supersedes: null
 superseded_by: null
 related: ["0120", "0073", "0021", "0011"]
