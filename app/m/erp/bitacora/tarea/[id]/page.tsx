@@ -18,7 +18,7 @@ import { todayCaracasISO } from "@/lib/studio/bitacora/dates";
 import { TareaDetailClient } from "./_components/TareaDetailClient";
 
 export const metadata = {
-  title: "Tarea · Bitácora · DoorTuDoor",
+  title: "Tarea · Bitácora",
 };
 
 export const dynamic = "force-dynamic";

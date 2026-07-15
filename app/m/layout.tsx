@@ -18,7 +18,7 @@ import { ToastProvider } from "@/app/studio/_components/ui/ToastProvider";
 export const metadata: Metadata = {
   title: {
     template: "%s · DTD Operario",
-    default: "DTD Operario · DoorTuDoor",
+    default: "DTD Operario",
   },
   description: "App de recepción de mercadería · DTD Cargo",
   manifest: "/m/manifest.json",

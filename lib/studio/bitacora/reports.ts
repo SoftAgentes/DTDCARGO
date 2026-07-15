@@ -310,7 +310,7 @@ function docShell(opts: {
 <div class="doc-meta"><div class="eyebrow">${escapeHtml(opts.docTitle)}</div><div class="doc-date">Generado el ${escapeHtml(opts.generatedAt)}</div></div>
 </header>
 ${opts.bodyHtml}
-<footer class="doc-foot">Generado por DoorTuDoor · ${escapeHtml(opts.generatedAt)} · ${escapeHtml(opts.generatedBy)}</footer>
+<footer class="doc-foot">Generado por DTD Cargo · ${escapeHtml(opts.generatedAt)} · ${escapeHtml(opts.generatedBy)}</footer>
 </main>
 </body>
 </html>`;

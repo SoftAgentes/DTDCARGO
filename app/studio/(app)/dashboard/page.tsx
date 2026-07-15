@@ -267,7 +267,7 @@ export default async function DashboardPage() {
   const now = new Date();
   const firstName = firstNameFromUser(userResp.data.user?.user_metadata, userResp.data.user?.email);
   const greeting = greetingForHourVE(now);
-  const subject = firstName ?? tenant?.display_name ?? "DoorTuDoor";
+  const subject = firstName ?? tenant?.display_name ?? "equipo";
 
   return (
     <div style={{ maxWidth: 1280 }}>

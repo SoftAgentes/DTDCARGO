@@ -18,7 +18,7 @@ import { todayCaracasISO } from "@/lib/studio/bitacora/dates";
 import { HoyClient } from "./_components/HoyClient";
 
 export const metadata = {
-  title: "Bitácora · Hoy · DoorTuDoor",
+  title: "Bitácora · Hoy",
   description: "Tus tareas del día: atrasadas, para hoy y próximas.",
 };
 
