@@ -25,7 +25,6 @@ import {
   type Referral,
   type ReferralStatus,
 } from "@/lib/studio/fidelizacion/types";
-import type { ReferralCreditMode } from "@/lib/studio/accounting/referral-credit-posting";
 import type { ApplicableInvoice } from "@/lib/studio/fidelizacion/referral-credit-queries";
 import { fmtUsd } from "../format";
 import {
@@ -35,22 +34,13 @@ import {
   updateReferralStatus,
 } from "../actions";
 
-/** Etiqueta legible del modo de reflejo contable (es-VE). */
-function creditModeLabel(mode: ReferralCreditMode): string {
-  return mode === "marketing_expense"
-    ? "gasto de marketing (DR 6.11 / CR 1.1.2 CxC)"
-    : "descuento sobre ventas (DR 4.9 / CR 1.1.2 CxC)";
-}
-
 export function ReferralDrawer({
   referral,
   canApplyCredit,
-  creditMode,
   onClose,
 }: {
   referral: Referral;
   canApplyCredit: boolean;
-  creditMode: ReferralCreditMode;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -309,7 +299,6 @@ export function ReferralDrawer({
         {referral.status === "acreditado" && canApplyCredit && (
           <ApplyCreditPanel
             referral={referral}
-            creditMode={creditMode}
             onError={setError}
             onApplied={(msg) => afterMutation(msg)}
           />
@@ -346,8 +335,7 @@ export function ReferralDrawer({
               {referral.applied_at
                 ? ` el ${referral.applied_at.slice(0, 10)}`
                 : ""}
-              . Reflejo contable: {creditModeLabel(creditMode)}. La factura fiscal
-              queda intacta (no toca base ni IVA).
+              . Se registró como descuento sobre la venta.
             </div>
           </div>
         )}
@@ -431,12 +419,10 @@ export function ReferralDrawer({
  */
 function ApplyCreditPanel({
   referral,
-  creditMode,
   onError,
   onApplied,
 }: {
   referral: Referral;
-  creditMode: ReferralCreditMode;
   onError: (msg: string) => void;
   onApplied: (msg: string) => void;
 }) {
@@ -495,9 +481,8 @@ function ApplyCreditPanel({
             color: "var(--ink-soft)",
           }}
         >
-          El crédito baja la CxC del referidor {referral.referrer_markbox} en su
-          próxima factura. Reflejo contable: {creditModeLabel(creditMode)}. No
-          toca la base imponible ni el IVA.
+          El premio de {referral.referrer_markbox} se descuenta de su próxima
+          factura: paga $80 menos. Se registra como descuento sobre la venta.
         </div>
       </div>
 

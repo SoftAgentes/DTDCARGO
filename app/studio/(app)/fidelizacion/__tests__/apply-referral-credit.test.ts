@@ -34,22 +34,6 @@ vi.mock("@/lib/studio/accounting/referral-credit-posting", () => ({
   voidReferralCreditEntry: (...a: unknown[]) => voidSpy(...(a as [])),
 }));
 
-// Mock PARCIAL a propósito: solo se dobla la lectura del modo fiscal (toca DB).
-// `isPurchaseAfterCredit` y `CREDIT_APPLICABLE_INVOICE_STATUSES` quedan REALES →
-// el gate de "compra nueva" se ejerce de verdad, no contra un doble complaciente.
-vi.mock("@/lib/studio/fidelizacion/referral-credit-queries", async (importOriginal) => {
-  const actual = await importOriginal<
-    typeof import("@/lib/studio/fidelizacion/referral-credit-queries")
-  >();
-  return {
-    ...actual,
-    requireReferralCreditMode: vi.fn(async () => ({
-      ok: true as const,
-      mode: "marketing_expense" as const,
-    })),
-  };
-});
-
 /** Escrituras observadas, para afirmar sobre la compensación. */
 type Write = { table: string; values: Record<string, unknown> };
 let writes: Write[] = [];

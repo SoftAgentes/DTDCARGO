@@ -38,7 +38,6 @@ import type {
   TierCount,
   TopReferrer,
 } from "@/lib/studio/fidelizacion/queries";
-import type { ReferralCreditMode } from "@/lib/studio/accounting/referral-credit-posting";
 import { fmtUsd } from "../format";
 import { RegisterReferralDrawer } from "./RegisterReferralDrawer";
 import { ReferralDrawer } from "./ReferralDrawer";
@@ -77,7 +76,6 @@ export function FidelizacionClient({
   stats,
   topReferrers,
   canApplyCredit,
-  creditMode,
 }: {
   clients: ClientWithTier[];
   tierCounts: TierCount[];
@@ -86,8 +84,6 @@ export function FidelizacionClient({
   topReferrers: TopReferrer[];
   /** ¿El rol puede APLICAR créditos? (accounting/admin — SDD-0137, mueve plata). */
   canApplyCredit: boolean;
-  /** Modo de reflejo contable configurado (fiscal_settings.referral_credit_mode). */
-  creditMode: ReferralCreditMode;
 }) {
   const [tab, setTab] = useState<Tab>("dashboard");
   const [showRegister, setShowRegister] = useState(false);
@@ -229,7 +225,6 @@ export function FidelizacionClient({
         <ReferralDrawer
           referral={selectedReferral}
           canApplyCredit={canApplyCredit}
-          creditMode={creditMode}
           onClose={() => setSelectedReferral(null)}
         />
       )}

@@ -1,56 +1,33 @@
 /**
- * Modo de reflejo contable del crédito de referido (SDD-0137) — enum, cuentas y
- * labels. SIN dependencias a propósito.
+ * Clasificación contable del premio del referido ($80, SDD-0137). SIN imports.
  *
- * Por qué vive separado de `referral-credit-posting.ts`: ese módulo importa
- * `createAdminClient` (service_role). El formulario de config fiscal es un
- * componente CLIENTE y necesita estas constantes en runtime para pintar el
- * selector; si las importara del posting, el bundler arrastraría el admin client
- * —y la service_role key— al navegador. Acá no hay imports, así que cruza la
- * frontera RSC sin traer nada detrás.
+ * ⚠️ ESTO NO TIENE NADA DE FISCAL. Decisión del founder (2026-07-15): el módulo
+ * Fiscal está apagado, maneja su propio libro y NADA se ata a él; cuando se
+ * trabaje fiscal en el futuro se verá qué se conecta y qué no. Antes esto era un
+ * setting en `fiscal_settings` y mandaba al usuario a "Fiscal · SENIAT" —un módulo
+ * de impuestos— a configurar algo de referidos. Se cortó ese cordón.
+ * (La COLUMNA fiscal_settings.referral_credit_mode sigue existiendo en la DB pero
+ * YA NO SE LEE NI SE ESCRIBE — se deja por si la re-espec la reusa; borrarla es
+ * DDL destructivo y no hace falta.)
+ *
+ * Clasificación FIJA, sin configuración: el premio es una REBAJA DE PRECIO sobre la
+ * próxima venta (palabras del founder: "se le pone como un descuento al cliente
+ * para su próxima compra") → cuenta 4.9 Descuentos sobre ventas, contra-ingreso.
+ * No hay opción que elegir: el negocio ya decidió qué es.
+ *
+ * 🔜 Este archivo es TRANSITORIO. La re-espec de SDD-0137 (modelo "Delayed Credit"
+ * de QuickBooks: la promesa NO toca los libros hasta que aterriza como línea en una
+ * factura futura) probablemente lo elimine entero — si el crédito baja el total de
+ * la factura, la venta se registra por lo que vale y no hay asiento aparte que
+ * clasificar. Ver el handoff de la ronda 2026-07-15.
  */
 
-/** Modo de reflejo contable del crédito (setting fiscal_settings.referral_credit_mode). */
-export type ReferralCreditMode = "marketing_expense" | "commercial_discount";
+/** Cuenta del DEBE: gasto de incentivo (plan de cuentas, seed 0078). */
+export const REFERRAL_CREDIT_DEBIT_ACCOUNT_CODE = "6.11";
 
-export const REFERRAL_CREDIT_MODES: ReferralCreditMode[] = [
-  "marketing_expense",
-  "commercial_discount",
-];
-
-export const DEFAULT_REFERRAL_CREDIT_MODE: ReferralCreditMode =
-  "marketing_expense";
-
-/** Cuenta del DEBE (contra la que se reconoce el crédito) por modo → code del plan (seed 0078). */
-export const REFERRAL_CREDIT_DEBIT_ACCOUNT_CODE: Record<
-  ReferralCreditMode,
-  string
-> = {
-  // Gasto de incentivo (recomendación §3.3): Publicidad y marketing.
-  marketing_expense: "6.11",
-  // Rebaja de precio: Descuentos sobre ventas (cuenta contra-ingreso).
-  commercial_discount: "4.9",
-};
-
-/** Cuenta del HABER: siempre la CxC de clientes (baja el saldo del referidor). */
+/** Cuenta del HABER: siempre la CxC del cliente (baja el saldo del referidor). */
 export const REFERRAL_CREDIT_CREDIT_ACCOUNT_CODE = "1.1.2";
 
-export function isReferralCreditMode(v: unknown): v is ReferralCreditMode {
-  return (
-    typeof v === "string" && (REFERRAL_CREDIT_MODES as string[]).includes(v)
-  );
-}
-
-/** Label del modo para el selector de config fiscal. */
-export function referralCreditModeLabel(m: ReferralCreditMode): string {
-  return m === "marketing_expense"
-    ? "Gasto de marketing (6.11 Publicidad y marketing)"
-    : "Descuento comercial (4.9 Descuentos sobre ventas)";
-}
-
-/** Qué implica cada modo, para que el contador elija sin adivinar. */
-export function referralCreditModeHint(m: ReferralCreditMode): string {
-  return m === "marketing_expense"
-    ? "El crédito se reconoce como gasto de incentivo. El ingreso por la venta queda intacto y el costo del referido se ve en marketing."
-    : "El crédito se reconoce como rebaja de precio (contra-ingreso). Baja el ingreso neto en vez de sumar gasto.";
-}
+/** Glosa de la línea del debe. Sin jerga fiscal: esto no es un crédito fiscal. */
+export const REFERRAL_CREDIT_DEBIT_MEMO =
+  "Premio de referido (gasto de promoción)";

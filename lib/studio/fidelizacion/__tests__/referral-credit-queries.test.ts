@@ -1,8 +1,9 @@
 /**
  * Tests de las queries del crédito de referido aplicado (SDD-0137).
  *
- * - getReferralCreditMode: lee fiscal_settings.referral_credit_mode; cae al
- *   default 'marketing_expense' si no hay row o el valor es inválido.
+ * ⚠️ Ya no se testea ningún "modo fiscal": ese setting se descartó (el módulo
+ * Fiscal está apagado y nada se ata a él, founder 2026-07-15).
+ *
  * - applicableInvoicesForReferrer: filtra facturas billable USD/USDT con
  *   total ≥ crédito del referidor (client-side sobre lo que la DB devuelve).
  *
@@ -14,9 +15,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   applicableInvoicesForReferrer,
-  getReferralCreditMode,
   isPurchaseAfterCredit,
-  requireReferralCreditMode,
   toCalendarDay,
 } from "../referral-credit-queries";
 
@@ -72,98 +71,8 @@ function stub(rowsByTable: Record<string, Record<string, unknown>[] | Record<str
   } as unknown as SupabaseClient;
 }
 
-/** Stub que simula un FALLO de lectura (RLS, columna faltante, timeout). */
-function errorStub(error: { code?: string; message: string }): SupabaseClient {
-  return {
-    from() {
-      const chain: Record<string, unknown> = {
-        select() {
-          return chain;
-        },
-        eq() {
-          return chain;
-        },
-        maybeSingle() {
-          return Promise.resolve({ data: null, error });
-        },
-      };
-      return chain;
-    },
-  } as unknown as SupabaseClient;
-}
-
-/** El camino de dinero exige tenantId explícito (service_role bypassa RLS). */
-const TENANT = "11111111-1111-1111-1111-111111111111";
-
 /** Forma REAL de referrals.accredited_at (timestamptz vía PostgREST). */
 const ACCREDITED = "2026-01-01T09:30:00+00:00";
-
-describe("requireReferralCreditMode (camino de DINERO · falla cerrado)", () => {
-  it("devuelve el modo configurado", async () => {
-    const client = stub({ fiscal_settings: { referral_credit_mode: "commercial_discount" } });
-    expect(await requireReferralCreditMode(client, TENANT)).toEqual({
-      ok: true,
-      mode: "commercial_discount",
-    });
-  });
-
-  it("sin row de config fiscal → default legítimo (el tenant nunca configuró)", async () => {
-    const client = stub({ fiscal_settings: null });
-    expect(await requireReferralCreditMode(client, TENANT)).toEqual({
-      ok: true,
-      mode: "marketing_expense",
-    });
-  });
-
-  it("columna en null → default legítimo", async () => {
-    const client = stub({ fiscal_settings: { referral_credit_mode: null } });
-    expect(await requireReferralCreditMode(client, TENANT)).toEqual({
-      ok: true,
-      mode: "marketing_expense",
-    });
-  });
-
-  it("ERROR de lectura → NO adivina (si adivinara, asentaría contra la cuenta equivocada)", async () => {
-    const client = errorStub({ code: "42703", message: "column does not exist" });
-    const res = await requireReferralCreditMode(client, TENANT);
-    expect(res.ok).toBe(false);
-    expect(res.ok === false && res.error).toMatch(/no se pudo leer el modo fiscal/i);
-  });
-
-  it("error transitorio (timeout/RLS) tampoco cae al default", async () => {
-    const client = errorStub({ message: "canceling statement due to statement timeout" });
-    expect((await requireReferralCreditMode(client, TENANT)).ok).toBe(false);
-  });
-
-  it("valor no reconocido → NO adivina (alguien guardó basura en el setting)", async () => {
-    const client = stub({ fiscal_settings: { referral_credit_mode: "otra_cosa" } });
-    const res = await requireReferralCreditMode(client, TENANT);
-    expect(res.ok).toBe(false);
-    expect(res.ok === false && res.error).toMatch(/no reconocido/i);
-  });
-});
-
-describe("getReferralCreditMode", () => {
-  it("degrada al default ante error de lectura (es solo para PINTAR, no debe tumbar la página)", async () => {
-    const client = errorStub({ code: "42703", message: "column does not exist" });
-    expect(await getReferralCreditMode(client)).toBe("marketing_expense");
-  });
-
-  it("lee el modo configurado en fiscal_settings", async () => {
-    const client = stub({ fiscal_settings: { referral_credit_mode: "commercial_discount" } });
-    expect(await getReferralCreditMode(client)).toBe("commercial_discount");
-  });
-
-  it("cae al default marketing_expense si no hay row", async () => {
-    const client = stub({ fiscal_settings: null });
-    expect(await getReferralCreditMode(client)).toBe("marketing_expense");
-  });
-
-  it("cae al default si el valor guardado es inválido", async () => {
-    const client = stub({ fiscal_settings: { referral_credit_mode: "otra_cosa" } });
-    expect(await getReferralCreditMode(client)).toBe("marketing_expense");
-  });
-});
 
 describe("applicableInvoicesForReferrer", () => {
   // La DB ya filtra status/currency (in()); acá probamos el filtro de SALDO ≥ crédito

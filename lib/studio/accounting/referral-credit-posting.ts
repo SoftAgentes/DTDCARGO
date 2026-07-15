@@ -5,21 +5,24 @@
  * Hermano de `expense-posting.ts` / `claim-posting.ts`. Al APLICAR el crédito
  * acreditado ($80) del referidor a su próxima factura, se genera un asiento
  * propio (source='referral_credit', independiente del asiento de venta de la
- * factura, que queda INTACTO). El asiento depende del setting per-tenant
- * `referral_credit_mode` (fiscal_settings, migr 0237):
+ * factura, que queda INTACTO):
  *
- *   marketing_expense (default) → el crédito es GASTO DE INCENTIVO:
- *     DR  6.11  Publicidad y marketing        = 80.00
- *     CR  1.1.2 Cuentas por cobrar clientes    = 80.00   (baja el saldo del referidor)
- *   → NO toca la base ni el IVA de la factura (recomendación §3.2/§3.3 del spec).
+ *     DR  6.11  Publicidad y marketing            = 80.00   (el incentivo, gasto)
+ *     CR  1.1.2 Cuentas por cobrar clientes       = 80.00   (baja el saldo del referidor)
  *
- *   commercial_discount → el crédito es DESCUENTO SOBRE VENTAS:
- *     DR  4.9   Descuentos sobre ventas (contra ingreso) = 80.00
- *     CR  1.1.2 Cuentas por cobrar clientes              = 80.00
- *   → reduce el ingreso neto (rebaja de precio). El founder decide el modo.
+ * Clasificación FIJA — sin setting, y NADA de fiscal (decisión del founder
+ * 2026-07-15: el módulo Fiscal está apagado, lleva su propio libro, y nada se ata a
+ * él). La CUENTA no cambia: sigue siendo 6.11, lo que la spec 0137 §3.3 registra
+ * como decisión del founder. Lo que se quitó fue el SETTING que la hacía
+ * configurable vía `fiscal_settings.referral_credit_mode` — ese cordón se cortó.
  *
- * En AMBOS modos el HABER es 1.1.2 CxC (el referidor paga $80 menos); solo
- * cambia la cuenta del DEBE. Molde idéntico a expense-posting:
+ * 🔜 TRANSITORIO: la re-espec de SDD-0137 (modelo "Delayed Credit" de QuickBooks —
+ * la promesa no toca los libros hasta aterrizar como línea en una factura futura)
+ * probablemente elimine este asiento por completo: si el crédito baja el TOTAL de
+ * la factura, la venta ya se registra por lo que vale y no hay nada que asentar
+ * aparte. Ver handoff 2026-07-15.
+ *
+ * Molde idéntico a expense-posting:
  *  - Corre con admin client (service_role).
  *  - Best-effort: si falta una cuenta del plan → skip graceful (no asienta, no
  *    rompe la aplicación; el caller decide si revierte el estado).
@@ -30,27 +33,18 @@
 
 import { createAdminClient } from "@/lib/db/admin";
 
-/**
- * El enum y las cuentas viven en `./referral-credit-modes` (módulo SIN imports):
- * este archivo arrastra el admin client (service_role) y no puede tocar el bundle
- * del navegador, pero el form de config fiscal es CLIENTE y necesita las
- * constantes. Se re-exportan acá para no romper a quien ya las importaba de este
- * módulo.
- */
+// Las cuentas viven en `./referral-credit-modes` (módulo SIN imports): este
+// archivo arrastra el admin client (service_role) y no puede filtrarse al bundle
+// del navegador.
 export {
-  DEFAULT_REFERRAL_CREDIT_MODE,
-  isReferralCreditMode,
   REFERRAL_CREDIT_CREDIT_ACCOUNT_CODE,
   REFERRAL_CREDIT_DEBIT_ACCOUNT_CODE,
-  REFERRAL_CREDIT_MODES,
-  type ReferralCreditMode,
 } from "./referral-credit-modes";
 
 import {
-  DEFAULT_REFERRAL_CREDIT_MODE,
   REFERRAL_CREDIT_CREDIT_ACCOUNT_CODE,
   REFERRAL_CREDIT_DEBIT_ACCOUNT_CODE,
-  type ReferralCreditMode,
+  REFERRAL_CREDIT_DEBIT_MEMO,
 } from "./referral-credit-modes";
 
 export type ReferralCreditPostingInput = {
@@ -65,8 +59,6 @@ export type ReferralCreditPostingInput = {
   invoiceCode: string;
   /** Monto del crédito en USD (referrals.reward_usd, típ. 80). */
   amountUsd: number;
-  /** Modo de reflejo contable (fiscal_settings.referral_credit_mode). */
-  mode: ReferralCreditMode;
   /** Fecha del asiento. YYYY-MM-DD. Default hoy. */
   entryDate?: string;
 };
@@ -100,22 +92,17 @@ export type ReferralCreditLine = {
  *   CR  receivableId     = amountUsd   (1.1.2 CxC: baja el saldo del referidor)
  */
 export function buildReferralCreditLines(
-  mode: ReferralCreditMode,
   debitAccountId: string,
   receivableAccountId: string,
   amountUsd: number,
 ): ReferralCreditLine[] {
   const amt = round2(amountUsd);
-  const debitMemo =
-    mode === "marketing_expense"
-      ? "Crédito de referido (gasto de marketing)"
-      : "Crédito de referido (descuento sobre ventas)";
   return [
     {
       account_id: debitAccountId,
       debit: amt,
       credit: 0,
-      line_memo: debitMemo,
+      line_memo: REFERRAL_CREDIT_DEBIT_MEMO,
     },
     {
       account_id: receivableAccountId,
@@ -166,8 +153,8 @@ export async function postReferralCreditJournalEntry(
       };
     }
 
-    // 2. Cuenta del DEBE según el modo (6.11 marketing | 4.9 descuento).
-    const debitCode = REFERRAL_CREDIT_DEBIT_ACCOUNT_CODE[input.mode];
+    // 2. Cuenta del DEBE: fija (6.11 marketing). Ya no hay modo configurable.
+    const debitCode = REFERRAL_CREDIT_DEBIT_ACCOUNT_CODE;
     const { data: debitAcc, error: debitErr } = await admin
       .from("accounts")
       .select("id, is_postable")
@@ -249,7 +236,6 @@ export async function postReferralCreditJournalEntry(
     }
 
     const lines = buildReferralCreditLines(
-      input.mode,
       debitAcc.id,
       crAcc.id,
       amountUsd,

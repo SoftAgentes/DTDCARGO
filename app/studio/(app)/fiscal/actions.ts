@@ -67,7 +67,6 @@ function parseStrOrNull(v: FormDataEntryValue | null): string | null {
 function inputFromFormData(formData: FormData): Partial<FiscalSettingsInput> {
   const defMode = String(formData.get("default_invoice_iva_mode") ?? "");
   const mode = String(formData.get("purchase_iva_mode") ?? "");
-  const creditMode = String(formData.get("referral_credit_mode") ?? "");
   const period = String(formData.get("declaration_period") ?? "");
   return {
     // A · master
@@ -99,8 +98,6 @@ function inputFromFormData(formData: FormData): Partial<FiscalSettingsInput> {
       undefined) as FiscalSettingsInput["declaration_period"],
     purchase_iva_mode: (mode ||
       undefined) as FiscalSettingsInput["purchase_iva_mode"],
-    referral_credit_mode: (creditMode ||
-      undefined) as FiscalSettingsInput["referral_credit_mode"],
   };
 }
 
@@ -155,7 +152,6 @@ export async function saveFiscalSettingsAction(
     homologated_provider: input!.homologated_provider,
     declaration_period: input!.declaration_period,
     purchase_iva_mode: input!.purchase_iva_mode,
-    referral_credit_mode: input!.referral_credit_mode,
     updated_by: userId,
   };
 

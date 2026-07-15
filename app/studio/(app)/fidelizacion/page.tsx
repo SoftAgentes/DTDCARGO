@@ -20,7 +20,6 @@ import {
   tierCounts,
   topReferrers,
 } from "@/lib/studio/fidelizacion/queries";
-import { getReferralCreditMode } from "@/lib/studio/fidelizacion/referral-credit-queries";
 import { FidelizacionClient } from "./_components/FidelizacionClient";
 
 export const metadata = { title: "Fidelización & Referidos" };
@@ -30,14 +29,13 @@ export default async function FidelizacionPage() {
 
   const supabase = await createClient();
 
-  const [clients, counts, referrals, stats, top, creditMode] =
+  const [clients, counts, referrals, stats, top] =
     await Promise.all([
       clientsWithTier(supabase),
       tierCounts(supabase),
       listReferrals(supabase),
       programStats(supabase),
       topReferrers(supabase, 5),
-      getReferralCreditMode(supabase),
     ]);
 
   // Aplicar un crédito MUEVE PLATA (SDD-0137): solo lo puede hacer quien edita
@@ -53,7 +51,6 @@ export default async function FidelizacionPage() {
       stats={stats}
       topReferrers={top}
       canApplyCredit={canApplyCredit}
-      creditMode={creditMode}
     />
   );
 }

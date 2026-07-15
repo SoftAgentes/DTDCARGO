@@ -27,11 +27,8 @@ import { useActionState, useEffect, useState } from "react";
 import {
   INVOICE_IVA_MODES,
   PURCHASE_IVA_MODES,
-  REFERRAL_CREDIT_MODES,
   invoiceIvaModeLabel,
   purchaseIvaModeLabel,
-  referralCreditModeHint,
-  referralCreditModeLabel,
   type FiscalSettings,
   type FiscalSettingsActionState,
 } from "@/lib/studio/fiscal/config-types";
@@ -305,32 +302,6 @@ export function FiscalConfig({
               <FieldHint>
                 Nombre del proveedor homologado por el SENIAT (cuando aplique). Déjalo
                 vacío si no usas facturación digital.
-              </FieldHint>
-            </div>
-          </Group>
-
-          {/* ── I · Crédito de referido (SDD-0137) ── */}
-          <Group title="Crédito de referido">
-            <div>
-              <label className="studio-label" htmlFor="fs-refmode" style={{ display: "block", marginBottom: 6 }}>
-                Cómo se refleja contablemente
-              </label>
-              <select
-                id="fs-refmode"
-                name="referral_credit_mode"
-                className="studio-input"
-                defaultValue={settings.referral_credit_mode}
-                disabled={disabled}
-                aria-invalid={!!errFor("referral_credit_mode")}
-              >
-                {REFERRAL_CREDIT_MODES.map((m) => (
-                  <option key={m} value={m}>{referralCreditModeLabel(m)}</option>
-                ))}
-              </select>
-              <FieldHint error={errFor("referral_credit_mode")}>
-                {referralCreditModeHint(settings.referral_credit_mode)} Aplica a
-                los créditos que se apliquen de acá en adelante; los ya asentados
-                no se re-expresan.
               </FieldHint>
             </div>
           </Group>

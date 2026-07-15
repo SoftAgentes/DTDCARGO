@@ -38,7 +38,6 @@ const VALID: FiscalSettingsInput = {
   homologated_provider: null,
   declaration_period: "mensual",
   purchase_iva_mode: "derivado",
-  referral_credit_mode: "marketing_expense",
 };
 
 describe("DEFAULT_FISCAL_SETTINGS (caso DTD, spec §8.2)", () => {

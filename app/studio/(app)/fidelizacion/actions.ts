@@ -34,7 +34,6 @@ import {
 import {
   applicableInvoicesForReferrer,
   isPurchaseAfterCredit,
-  requireReferralCreditMode,
   CREDIT_APPLICABLE_INVOICE_STATUSES,
   type ApplicableInvoice,
 } from "@/lib/studio/fidelizacion/referral-credit-queries";
@@ -204,10 +203,11 @@ export async function updateReferralStatus(
 // SDD-0137 · Aplicación del crédito de referido (MUEVE PLATA)
 //
 // El sistema PROPONE, accounting APLICA (fail-closed). Aplicar el crédito
-// acreditado ($80) reduce la CxC del referidor en su próxima factura y genera
-// un asiento (DR 6.11 marketing | 4.9 descuento / CR 1.1.2 CxC, según el setting
-// per-tenant referral_credit_mode). Idempotente por estado (transición
-// 'acreditado'→'aplicado' con row-lock). NO toca la base ni el IVA de la factura.
+// acreditado ($80) reduce la CxC del referidor en su próxima factura y genera un
+// asiento con clasificación FIJA (DR 4.9 Descuentos sobre ventas / CR 1.1.2 CxC).
+// Sin setting y sin nada fiscal: el módulo Fiscal está apagado y lleva su propio
+// libro (founder 2026-07-15). Idempotente por estado ('acreditado'→'aplicado' con
+// row-lock).
 // ─────────────────────────────────────────────────────────────
 
 /**
@@ -263,8 +263,8 @@ export async function listApplicableInvoices(
  *     MISMO referidor, billable, USD/USDT y total ≥ crédito (V1 no parte).
  *  3. Claim atómico idempotente: UPDATE ... WHERE status='acreditado' (row-lock
  *     → un segundo intento no re-aplica; devuelve 0 filas).
- *  4. Asiento best-effort (según referral_credit_mode). Si el asiento NO se pudo
- *     crear (falta cuenta del plan, etc.) → REVIERTE el claim (todo o nada).
+ *  4. Asiento best-effort (clasificación fija: descuento sobre la venta). Si NO se
+ *     pudo crear (falta la cuenta del plan, etc.) → REVIERTE el claim (todo o nada).
  */
 export async function applyReferralCredit(
   referralId: string,
@@ -351,16 +351,6 @@ export async function applyReferralCredit(
     };
   }
 
-  // 2.5) Modo fiscal ANTES del claim: si no se puede leer, cortamos acá, cuando
-  //    todavía no movimos nada (después del claim habría que revertir). Falla
-  //    CERRADO a propósito: asentar con el modo adivinado manda la plata a la
-  //    cuenta equivocada sin ruido (ver requireReferralCreditMode).
-  const modeRes = await requireReferralCreditMode(supabase, tenantId);
-  if (!modeRes.ok) {
-    return { error: `No se aplicó el crédito: ${modeRes.error}` };
-  }
-  const mode = modeRes.mode;
-
   // 3) CLAIM ATÓMICO idempotente: transición 'acreditado' → 'aplicado'. El
   //    filtro por status en el UPDATE + el row-lock de Postgres garantizan que
   //    un segundo intento (doble-submit / carrera) no re-aplique: devuelve 0 filas.
@@ -392,7 +382,6 @@ export async function applyReferralCredit(
     invoiceId,
     invoiceCode: inv.invoice_code,
     amountUsd: amount,
-    mode,
   });
   if (!posting.ok) {
     await supabase

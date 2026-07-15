@@ -2,114 +2,21 @@
  * Queries del CRÉDITO DE REFERIDO aplicado (SDD-0137 · Opción A).
  *
  * Funciones puras que reciben un SupabaseClient y confían en RLS por tenant.
- * Dos piezas:
- *  - `getReferralCreditMode`: lee el setting per-tenant que decide cómo se
- *    asienta el crédito (fiscal_settings.referral_credit_mode, migr 0237).
- *    Default 'marketing_expense' si el tenant aún no guardó config fiscal.
+ *
+ * ⚠️ Acá NO se lee `fiscal_settings`. El cordón con el módulo Fiscal se cortó
+ * (decisión del founder 2026-07-15): la clasificación contable del premio es FIJA
+ * (descuento sobre la venta) y vive en `accounting/referral-credit-modes`.
+ *
  *  - `applicableInvoicesForReferrer`: facturas del referidor a las que se le
- *    puede aplicar el crédito (billable, USD/USDT, total ≥ crédito). El picker
- *    de la UI (solo rol dinero) las usa; VES/CNY quedan fuera en V1 (fx → V2).
+ *    puede aplicar el crédito (billable, USD/USDT, saldo ≥ crédito, POSTERIORES al
+ *    crédito). El picker de la UI (solo rol dinero) las usa; VES/CNY → V2.
+ *  - `isPurchaseAfterCredit` / `toCalendarDay`: la regla "solo compra nueva".
  *
  * Supabase devuelve `numeric` como string → se coerce a number en cada lectura.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import {
-  DEFAULT_REFERRAL_CREDIT_MODE,
-  isReferralCreditMode,
-  type ReferralCreditMode,
-} from "@/lib/studio/accounting/referral-credit-posting";
 import type { InvoiceCurrency, InvoiceStatus } from "@/lib/studio/invoice-types";
-
-/**
- * Modo de reflejo contable del crédito de referido — LECTURA TOLERANTE (display).
- *
- * Para PINTAR el modo en la UI. Ante cualquier fallo cae al default y sigue: una
- * página no debe morir por no poder leer una etiqueta. Loguea para que el fallo
- * no sea invisible.
- *
- * ⚠️ NO usar en el camino de dinero: al tragarse el error no distingue "el tenant
- * no configuró" (default legítimo) de "no pude leer" (adivinar = asentar contra la
- * cuenta equivocada). Para asentar usá `requireReferralCreditMode`.
- */
-export async function getReferralCreditMode(
-  supabase: SupabaseClient,
-): Promise<ReferralCreditMode> {
-  // Sin tenantId: acá el client SIEMPRE es el del usuario logueado y la RLS de
-  // fiscal_settings ya filtra por tenant. El camino de dinero no puede asumir eso
-  // (ver requireReferralCreditMode).
-  const res = await readCreditMode(supabase);
-  if (!res.ok) {
-    console.error("[getReferralCreditMode] degradando al default:", res.error);
-    return DEFAULT_REFERRAL_CREDIT_MODE;
-  }
-  return res.mode;
-}
-
-export type ReferralCreditModeResult =
-  | { ok: true; mode: ReferralCreditMode }
-  | { ok: false; error: string };
-
-/**
- * Lectura cruda del setting. `tenantId` opcional: si viene, filtra explícito en
- * vez de confiar en la RLS.
- */
-async function readCreditMode(
-  supabase: SupabaseClient,
-  tenantId?: string,
-): Promise<ReferralCreditModeResult> {
-  let query = supabase.from("fiscal_settings").select("referral_credit_mode");
-  if (tenantId) query = query.eq("tenant_id", tenantId);
-
-  const { data, error } = await query.maybeSingle<{
-    referral_credit_mode: string | null;
-  }>();
-
-  if (error) {
-    return {
-      ok: false,
-      error: `No se pudo leer el modo fiscal del crédito (fiscal_settings): ${error.message}`,
-    };
-  }
-  if (!data || data.referral_credit_mode == null) {
-    return { ok: true, mode: DEFAULT_REFERRAL_CREDIT_MODE };
-  }
-  if (!isReferralCreditMode(data.referral_credit_mode)) {
-    return {
-      ok: false,
-      error: `Modo fiscal no reconocido en fiscal_settings: "${data.referral_credit_mode}".`,
-    };
-  }
-  return { ok: true, mode: data.referral_credit_mode };
-}
-
-/**
- * Modo de reflejo contable — LECTURA ESTRICTA (dinero). Falla CERRADO.
- *
- * Distingue los tres casos que la lectura tolerante confunde:
- *  - sin row / columna null → el tenant nunca configuró: default legítimo (ok).
- *  - error de lectura (RLS, columna faltante, timeout) → NO adivina (error).
- *  - valor no reconocido → alguien guardó basura: NO adivina (error).
- *
- * El porqué (SDD-0137): el default del código ('marketing_expense') coincide con
- * el de la columna, así que hoy adivinar parece gratis. Pero cuando el tenant
- * ponga 'commercial_discount', un fallo transitorio de esta lectura asentaría
- * contra 6.11 Publicidad y marketing en vez de 4.9 Descuentos sobre ventas: mismo
- * monto, cuenta equivocada, ingreso neto inflado, sin error visible. Preferimos
- * no acreditar antes que acreditar mal (el usuario reintenta; la plata mal
- * asentada no se nota hasta el cierre).
- *
- * `tenantId` es OBLIGATORIO acá, a diferencia de la lectura de display: el
- * posting (`postReferralCreditJournalEntry`) corre con service_role, que BYPASSA
- * la RLS. Confiar en el filtro implícito funcionaría hoy por accidente
- * (mono-tenant) y leería el tenant equivocado el día que no lo sea.
- */
-export async function requireReferralCreditMode(
-  supabase: SupabaseClient,
-  tenantId: string,
-): Promise<ReferralCreditModeResult> {
-  return readCreditMode(supabase, tenantId);
-}
 
 /**
  * Estados de factura a los que se puede aplicar un crédito (no borrador/anulada/
