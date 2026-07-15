@@ -33,7 +33,7 @@ import {
 } from "@/lib/studio/fidelizacion/types";
 import {
   applicableInvoicesForReferrer,
-  getReferralCreditMode,
+  requireReferralCreditMode,
   type ApplicableInvoice,
 } from "@/lib/studio/fidelizacion/referral-credit-queries";
 import { postReferralCreditJournalEntry } from "@/lib/studio/accounting/referral-credit-posting";
@@ -328,6 +328,16 @@ export async function applyReferralCredit(
     };
   }
 
+  // 2.5) Modo fiscal ANTES del claim: si no se puede leer, cortamos acá, cuando
+  //    todavía no movimos nada (después del claim habría que revertir). Falla
+  //    CERRADO a propósito: asentar con el modo adivinado manda la plata a la
+  //    cuenta equivocada sin ruido (ver requireReferralCreditMode).
+  const modeRes = await requireReferralCreditMode(supabase);
+  if (!modeRes.ok) {
+    return { error: `No se aplicó el crédito: ${modeRes.error}` };
+  }
+  const mode = modeRes.mode;
+
   // 3) CLAIM ATÓMICO idempotente: transición 'acreditado' → 'aplicado'. El
   //    filtro por status en el UPDATE + el row-lock de Postgres garantizan que
   //    un segundo intento (doble-submit / carrera) no re-aplique: devuelve 0 filas.
@@ -351,7 +361,6 @@ export async function applyReferralCredit(
   // 4) Asiento contable según el modo configurado (best-effort). Si NO se pudo
   //    crear (falta la cuenta del plan, monto cero, etc.) → revierte el claim:
   //    mover plata sin asiento es peor que no moverla.
-  const mode = await getReferralCreditMode(supabase);
   const posting = await postReferralCreditJournalEntry({
     tenantId,
     referralId,

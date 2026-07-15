@@ -8,6 +8,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isMissingDbObject } from "@/lib/studio/db-errors";
 import type { FrictionReport } from "./friction-types";
 
 const FRICTION_COLUMNS =
@@ -30,7 +31,19 @@ export async function listFrictionReports(
     .order("created_at", { ascending: false })
     .limit(200);
 
-  if (error) throw error;
+  // La migr 0234 se aplica a mano → si todavía no está, la bandeja degrada a
+  // vacía en vez de tumbar /studio/marketing con un 500 (el módulo entero vive
+  // en esa ruta). Cualquier otro error sí se propaga: es un bug real.
+  if (error) {
+    if (isMissingDbObject(error)) {
+      console.error(
+        "[listFrictionReports] marketing_friction_reports no existe (¿migr 0234 sin aplicar?) — degradando a vacío:",
+        error.message,
+      );
+      return [];
+    }
+    throw error;
+  }
   const rows = (data as unknown as FrictionReport[] | null) ?? [];
 
   return [...rows].sort((a, b) => {

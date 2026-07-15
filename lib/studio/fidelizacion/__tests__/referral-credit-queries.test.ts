@@ -15,6 +15,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   applicableInvoicesForReferrer,
   getReferralCreditMode,
+  requireReferralCreditMode,
 } from "../referral-credit-queries";
 
 function stub(rowsByTable: Record<string, Record<string, unknown>[] | Record<string, unknown> | null>): SupabaseClient {
@@ -52,7 +53,74 @@ function stub(rowsByTable: Record<string, Record<string, unknown>[] | Record<str
   } as unknown as SupabaseClient;
 }
 
+/** Stub que simula un FALLO de lectura (RLS, columna faltante, timeout). */
+function errorStub(error: { code?: string; message: string }): SupabaseClient {
+  return {
+    from() {
+      const chain: Record<string, unknown> = {
+        select() {
+          return chain;
+        },
+        maybeSingle() {
+          return Promise.resolve({ data: null, error });
+        },
+      };
+      return chain;
+    },
+  } as unknown as SupabaseClient;
+}
+
+describe("requireReferralCreditMode (camino de DINERO · falla cerrado)", () => {
+  it("devuelve el modo configurado", async () => {
+    const client = stub({ fiscal_settings: { referral_credit_mode: "commercial_discount" } });
+    expect(await requireReferralCreditMode(client)).toEqual({
+      ok: true,
+      mode: "commercial_discount",
+    });
+  });
+
+  it("sin row de config fiscal → default legítimo (el tenant nunca configuró)", async () => {
+    const client = stub({ fiscal_settings: null });
+    expect(await requireReferralCreditMode(client)).toEqual({
+      ok: true,
+      mode: "marketing_expense",
+    });
+  });
+
+  it("columna en null → default legítimo", async () => {
+    const client = stub({ fiscal_settings: { referral_credit_mode: null } });
+    expect(await requireReferralCreditMode(client)).toEqual({
+      ok: true,
+      mode: "marketing_expense",
+    });
+  });
+
+  it("ERROR de lectura → NO adivina (si adivinara, asentaría contra la cuenta equivocada)", async () => {
+    const client = errorStub({ code: "42703", message: "column does not exist" });
+    const res = await requireReferralCreditMode(client);
+    expect(res.ok).toBe(false);
+    expect(res.ok === false && res.error).toMatch(/no se pudo leer el modo fiscal/i);
+  });
+
+  it("error transitorio (timeout/RLS) tampoco cae al default", async () => {
+    const client = errorStub({ message: "canceling statement due to statement timeout" });
+    expect((await requireReferralCreditMode(client)).ok).toBe(false);
+  });
+
+  it("valor no reconocido → NO adivina (alguien guardó basura en el setting)", async () => {
+    const client = stub({ fiscal_settings: { referral_credit_mode: "otra_cosa" } });
+    const res = await requireReferralCreditMode(client);
+    expect(res.ok).toBe(false);
+    expect(res.ok === false && res.error).toMatch(/no reconocido/i);
+  });
+});
+
 describe("getReferralCreditMode", () => {
+  it("degrada al default ante error de lectura (es solo para PINTAR, no debe tumbar la página)", async () => {
+    const client = errorStub({ code: "42703", message: "column does not exist" });
+    expect(await getReferralCreditMode(client)).toBe("marketing_expense");
+  });
+
   it("lee el modo configurado en fiscal_settings", async () => {
     const client = stub({ fiscal_settings: { referral_credit_mode: "commercial_discount" } });
     expect(await getReferralCreditMode(client)).toBe("commercial_discount");
