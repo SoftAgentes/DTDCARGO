@@ -46,6 +46,11 @@ quirúrgicos y éxito verificable. Usar Yunque para rutas compartidas, datos,
 migraciones e integración. Usar La Forja sólo con contratos cerrados y rutas
 disjuntas. Cada worker recibe `owned_paths`, `shared_paths` y `forbidden_paths`.
 
+Cuando el usuario autoriza avanzar por la cola, ejecutar `advance --json`. El
+selector elige un solo ticket aprobado y listo; la capa agente ejecuta su
+paquete completo y vuelve a consultar `advance` después del cierre atómico. No
+saltar bloqueos ni convertir features directamente en trabajo.
+
 ## 5. Verificar
 
 El constructor no se autoaprueba cuando existe un revisor especializado.

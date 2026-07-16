@@ -1,19 +1,21 @@
-# Contrato de ticket Forge Kanban v2
+# Contrato de ticket Forge Kanban v3
 
 ## Campos obligatorios
 
 | Campo | Valores |
 |---|---|
-| `schema_version` | `2` |
+| `schema_version` | `3` |
 | `id` | identificador único |
 | `title` | resultado verificable |
 | `status` | `backlog`, `planning`, `dev`, `qa`, `review`, `done` |
 | `priority` | `red`, `yellow`, `green`, `nice_to_have` |
 | `priority_reason` | criterio concreto de impacto y urgencia |
 | `complexity` | `low`, `medium`, `high`, `critical` |
-| `model` | `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna` o fallback justificado |
+| `model_class` | `sol`, `terra` o `luna` |
+| `model` | Resuelto desde `.forge/forge-kanban.yml` |
 | `model_reason` | razón concreta para seleccionar el modelo |
-| `effort` | puntos numéricos |
+| `task_effort` | puntos numéricos |
+| `reasoning_effort` | esfuerzo soportado por el provider o `null` |
 | `build_method` | `yunque` o `forja` |
 | `gate` | comando o evidencia que acepta la tarea |
 | `commit_strategy` | `atomic_selective` |
@@ -49,6 +51,13 @@ El cuerpo incluye criterios de aceptación, dependencias, riesgos, pruebas y
 evidencia de cierre. `Atómico` describe la intención del commit y `selectivo`
 describe el staging; no son alternativas.
 
+## Gate adicional de `advance`
+
+`advance` exige además `proposal_id`, recibo aplicado de `approve → apply`,
+`spec_ref`, `required_context`, `owned_paths`, declaración explícita de
+`shared_paths` y `forbidden_paths`, `llm_mode`, `methodology`, dependencias
+terminadas y ausencia de bloqueos o aprobaciones humanas pendientes.
+
 ## Prioridad
 
 - Rojo: bloquea seguridad, datos, producción, dependencia crítica o entrega.
@@ -58,7 +67,8 @@ describe el staging; no son alternativas.
 
 ## Compatibilidad legacy
 
-Tickets sin `schema_version: 2` se leen sin inventar datos:
+Tickets sin `schema_version: 3` se leen sin inventar datos, pero no son
+ejecutables por `advance` hasta migrarse al tocarlos:
 
 - `critica`/`alta` → rojo.
 - `media` → amarillo.

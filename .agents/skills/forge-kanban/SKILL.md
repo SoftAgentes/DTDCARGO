@@ -1,6 +1,6 @@
 ---
 name: forge-kanban
-description: "Control plane portable para proyectos con muchas tareas, con o sin Forge: después de /avivar o forge-kanban start clasifica tickets por dominio, riesgo y artefacto; selecciona constructor, revisor, clase de modelo, Yunque/Forja, gate y evidencia; adopta proyectos avanzados; coordina backlog, worktrees, commits atómicos/selectivos, integración y limpieza fail-closed."
+description: "Control plane portable para proyectos con muchas tareas, con o sin Forge: después de /avivar o forge-kanban start clasifica tickets por dominio, riesgo y artefacto; selecciona constructor, revisor, clase de modelo, Yunque/Forja, gate y evidencia; con advance ejecuta de forma controlada los tickets aprobados; coordina backlog, worktrees, commits atómicos/selectivos, integración y limpieza fail-closed."
 ---
 
 # Forge Kanban
@@ -45,6 +45,38 @@ tickets ni cambia el backlog sin aprobación explícita. El único flujo de alta
 es `propose → approve <ID> --by <persona> --reason <razón> → apply <ID>`.
 La aprobación queda ligada al hash de la spec y al commit base; `apply` bloquea
 deriva, decisiones humanas, contratos incompletos y duplicados.
+
+## Modo `advance`
+
+`forge-kanban advance [TICKET] --json` selecciona el siguiente ticket ejecutable
+y emite un paquete determinista. Sólo selecciona tickets v3 materializados por
+`approve → apply`, con dependencias terminadas, routing declarado, rutas propias,
+gate, evidencia y cierre atómico/selectivo. Prioriza rojo, amarillo, negro,
+verde y nice-to-have; dentro de una prioridad termina primero `review`, `qa` y
+`dev` antes de abrir trabajo nuevo.
+
+El script no invoca un LLM ni simula construcción. La capa agente consume el
+paquete y ejecuta este loop después de un `GO` humano vigente:
+
+1. Ejecutar el preflight de `source-command-cerrar` antes de la primera
+   escritura y aislar el checkout si otra tarea lo comparte.
+2. Ejecutar el preflight del arnés y el snapshot inicial.
+3. Leer únicamente el contexto y los skills constructor/revisor declarados.
+4. Construir con Yunque o La Forja respetando `owned_paths`, `shared_paths` y
+   `forbidden_paths`.
+5. Ejecutar revisor, gate y evidencia; luego snapshots finales y reporte.
+6. Actualizar el ticket por `planning/dev/qa/review/done`; `done` sólo después
+   de gate y evidencia verdes. Aplicar el protocolo de cierre: commit atómico, staging selectivo, push de la
+   rama worker y handoff. El integrador exclusivo integra y limpia.
+7. Volver a ejecutar `advance --json` y continuar mientras existan tickets
+   elegibles y el usuario haya autorizado avanzar por toda la cola.
+
+Detener el loop ante decisiones humanas, contratos incompletos, dependencias,
+secretos, infraestructura online, migraciones alojadas, producción, conflicto
+de propiedad o evidencia insuficiente. `advance` nunca convierte una feature en
+ticket: si devuelve `prepare_tickets`, ejecutar `propose → approve → apply`.
+Mantener una sola sesión coordinadora de `advance` por repositorio; otras
+ventanas trabajan únicamente los tickets/worktrees que esa coordinadora asignó.
 
 **Al invocar Forge Kanban, la salida principal es obligatoria:** ejecutar
 `doctor --json`; si está sano, ejecutar `board` y presentar su tabla completa en
@@ -201,6 +233,7 @@ node "$FORGE_KANBAN\scripts\forge-kanban.mjs" snapshot T-000 start
 ```powershell
 node "$FORGE_KANBAN\scripts\forge-kanban.mjs" snapshot T-000 end
 node "$FORGE_KANBAN\scripts\forge-kanban.mjs" report T-000
+node "$FORGE_KANBAN\scripts\forge-kanban.mjs" advance --json
 ```
 
 7. Invocar `source-command-cerrar` al terminar.
@@ -223,6 +256,7 @@ como si fueran medición.
 
 ```powershell
 node .agents/skills/forge-kanban/test-forge-kanban.mjs
+node .agents/skills/forge-kanban/test-advance.mjs
 node .agents/skills/backlog/backlog.mjs build
 node scripts/bitacora-metrics.mjs --json
 ```
