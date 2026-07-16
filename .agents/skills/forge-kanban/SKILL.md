@@ -48,6 +48,11 @@ Semáforo de features (no confundir con prioridad del ticket):
 - ⚫ evidencia ambigua: revisión humana, nunca ticket automático.
 - 🟢 completa mediante estado explícito o tickets enlazados terminados.
 
+Para specs nuevas usar el contrato de `references/feature-schema.md`, que
+separa alcance, implementación y verificación. Una implementación sólo queda
+verde cuando las rutas declaradas de código, tests y migraciones existen.
+`scope_status: complete` por sí solo significa “diseño cerrado”, no “construido”.
+
 ## Inicialización del proyecto
 
 Resolver primero el directorio de la skill. La copia local es preferida y la
@@ -223,6 +228,7 @@ queda en manos del integrador de plataforma con un recibo auditable.
 ## Referencias
 
 - `references/ticket-schema.md`: contrato v2 y compatibilidad legacy.
+- `references/feature-schema.md`: contrato de feature y evidencia verificable.
 - `references/methodology.md`: ciclo operativo y gates de preparación.
 - `references/capability-router.yaml`: registro declarativo de constructores,
   revisores, método y evidencia por dominio.

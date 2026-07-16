@@ -82,7 +82,7 @@ function status(json = false) {
   const counts = Object.fromEntries(['backlog','planning','dev','qa','review','done'].map(s => [s, all.filter(t => t.status === s).length]))
   const featureResult = reconcileFeatures({ root, config, tickets: all })
   const result = { mode: detectMode(), tickets: all.length, counts, valid: errors.length === 0, errors, feature_summary: featureResult.summary, actionable_features: featureResult.actionable.length }
-  const visual = [`🔴 Acción: ${featureResult.summary.blocked + featureResult.summary.contradiction}`, `🟡 Pendiente/parcial: ${featureResult.summary.partial + featureResult.summary.pending + featureResult.summary.done_without_evidence}`, `⚫ Revisión humana: ${featureResult.summary.review_needed}`, `🟢 Completo: ${featureResult.summary.complete}`]
+  const visual = [`🔴 Acción: ${featureResult.summary.blocked + featureResult.summary.contradiction}`, `🟡 Pendiente/parcial: ${featureResult.summary.partial + featureResult.summary.pending + featureResult.summary.done_without_evidence}`, `⚫ Revisión humana: ${featureResult.summary.review_needed}`, `🟢 Completo: ${featureResult.summary.complete}`, `⚪ Futuro/fuera: ${featureResult.summary.future}`]
   console.log(json ? JSON.stringify(result, null, 2) : [`Modo: ${result.mode}`, `Tickets: ${all.length}`, `Estado: ${result.valid ? 'válido' : 'bloqueado'}`, '', 'FEATURES', ...visual, ...errors.map(e => `- ${e}`)].join('\n'))
   process.exitCode = result.valid ? 0 : 1
 }
