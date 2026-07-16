@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { extname, join, relative, resolve } from 'node:path'
+import { createHash } from 'node:crypto'
 
 const DEFAULT_ROOTS = ['specs', 'docs/specs', 'docs/plan', 'docs/blueprints']
 const EXCLUDED_PARTS = new Set(['node_modules', '.git', '.next', 'dist', 'coverage', 'handoffs', 'uploads'])
@@ -92,6 +93,14 @@ function contractFromValues(fm, path) {
     domain: fm.domain || null,
     artifact_type: fm.artifact_type || null,
     priority: fm.priority || null,
+    owned_paths: list(fm.owned_paths),
+    shared_paths: list(fm.shared_paths),
+    forbidden_paths: list(fm.forbidden_paths),
+    gate: fm.gate || null,
+    acceptance_criteria: list(fm.acceptance_criteria),
+    risk_tags: list(fm.risk_tags),
+    task_effort: fm.task_effort || null,
+    build_method: fm.build_method || null,
   }
 }
 
@@ -213,6 +222,7 @@ export function reconcileFeatures({ root = process.cwd(), config, tickets = [] }
     const [classification, confidence, reason] = classify({ status, signal, linked, contract, evidence })
     return {
       title, spec: rel, classification, confidence, reason,
+      source_hash: createHash('sha256').update(raw).digest('hex'),
       feature_id: contract.feature_id, contract, evidence,
       explicit_status: status, ticket_refs: linked.map(ticket => ticket.id),
       unchecked_items: signal.unchecked, pending_sections: signal.pendingMarkers,

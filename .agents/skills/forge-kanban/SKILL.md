@@ -41,7 +41,10 @@ Después de `/avivar`, ejecutar `forge-kanban status` para el resumen y
 `forge-kanban features` para el inventario accionable. `forge-kanban reconcile`
 genera dos vistas del mismo análisis: Markdown auditable y dashboard HTML.
 `forge-kanban propose` genera propuestas estables con routing, pero nunca crea
-tickets ni cambia el backlog sin aprobación explícita.
+tickets ni cambia el backlog sin aprobación explícita. El único flujo de alta
+es `propose → approve <ID> --by <persona> --reason <razón> → apply <ID>`.
+La aprobación queda ligada al hash de la spec y al commit base; `apply` bloquea
+deriva, decisiones humanas, contratos incompletos y duplicados.
 
 Semáforo de features (no confundir con prioridad del ticket):
 

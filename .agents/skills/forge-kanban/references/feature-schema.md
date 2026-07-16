@@ -13,6 +13,14 @@ verification_status: pending    # pending|verified|failed
 domain: general_code
 artifact_type: code
 priority: yellow
+owned_paths: [src/features/example/**]
+shared_paths: []
+forbidden_paths: [.env*]
+gate: npm test -- example
+acceptance_criteria: [implementa el alcance aprobado, conserva evidencia del gate]
+risk_tags: []
+task_effort: 5
+build_method: yunque
 tickets: [T-001, T-002]
 evidence_code: [src/features/example/**]
 evidence_tests: [tests/example.spec.ts]
@@ -30,8 +38,13 @@ future_scope: []
   existen; una declaración rota se muestra como contradicción.
 - `future` y `out_of_scope` no generan propuestas de tickets.
 - `human_decisions` bloquea la ejecución aunque exista código.
-- `domain` y `artifact_type` son obligatorios para convertir una propuesta en
-  ticket; sin ellos la propuesta permanece negra para completar contrato.
+- `domain`, `artifact_type`, `owned_paths`, `gate` y `acceptance_criteria` son
+  obligatorios para aprobar y convertir una propuesta en ticket; sin ellos la
+  propuesta permanece negra para completar contrato.
+- El modelo se resuelve desde `.forge/forge-kanban.yml`; si la clase requerida
+  no tiene un modelo configurado, la propuesta no es elegible.
+- `approve` liga la decisión humana al hash completo de la spec y al commit
+  base. Cualquier cambio obliga a ejecutar `propose` y aprobar nuevamente.
 - Las listas son inline para mantener el parser portable sin dependencias.
 - Un documento legacy con `status: done` no equivale automáticamente a una
   implementación completa.
@@ -49,6 +62,11 @@ title: Facturación atómica
 scope_status: complete
 implementation_status: partial
 verification_status: pending
+domain: general_code
+artifact_type: code
+owned_paths: [src/features/facturacion/**]
+gate: npm test -- facturacion
+acceptance_criteria: [prueba concurrencia, conserva evidencia]
 tickets: [T-003]
 evidence_code: [src/features/facturacion/**]
 evidence_tests: [tests/facturacion.spec.ts]

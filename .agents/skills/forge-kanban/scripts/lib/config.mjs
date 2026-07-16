@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { join, relative, resolve, sep } from 'node:path'
 
 export const DEFAULT_CONFIG = {
   version: 2,
@@ -64,7 +64,10 @@ export function loadConfig(root = process.cwd()) {
   config.root = resolve(root)
   config.path = path
   config.ticket_dir_abs = resolve(root, config.ticket_dir)
+  const ticketRelative = relative(config.root, config.ticket_dir_abs)
+  if (ticketRelative === '..' || ticketRelative.startsWith(`..${sep}`)) {
+    throw new Error('ticket_dir debe permanecer dentro del repositorio')
+  }
   config.kanban_view_abs = resolve(root, config.kanban_view)
   return config
 }
-

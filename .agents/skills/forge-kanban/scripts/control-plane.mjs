@@ -7,6 +7,7 @@ import { loadConfig } from './lib/config.mjs'
 import { loadRouter, routeCapability } from './lib/router.mjs'
 import { reconcileFeatures, renderFeatureConsole, renderFeatureHtml, renderFeatureReport } from './lib/reconciler.mjs'
 import { buildProposals, renderProposalConsole, renderProposalMarkdown } from './lib/proposals.mjs'
+import { applyApprovedProposal, approveProposal } from './lib/approval.mjs'
 
 const skillRoot = dirname(dirname(fileURLToPath(import.meta.url)))
 const root = process.cwd()
@@ -122,7 +123,7 @@ function featureInventory(json = false, write = false) {
 function proposals(json = false) {
   const config = loadConfig(root); const all = tickets(config); const router = loadRouter(skillRoot)
   const result = reconcileFeatures({ root, config, tickets: all })
-  const items = buildProposals(result, domain => routeCapability(router, domain))
+  const items = buildProposals(result, domain => routeCapability(router, domain), config)
   if (json) { console.log(JSON.stringify(items, null, 2)); return }
   const reportDir = join(root, config.reconcile?.report_dir || '.forge/reports'); mkdirSync(reportDir, { recursive: true })
   const jsonPath = join(reportDir, 'ticket-proposals.json'); const mdPath = join(reportDir, 'ticket-proposals.md')
@@ -130,6 +131,35 @@ function proposals(json = false) {
   writeFileSync(jsonPath, `${JSON.stringify({ ...metadata, proposals: items }, null, 2)}\n`, 'utf8')
   writeFileSync(mdPath, renderProposalMarkdown(items, metadata), 'utf8')
   console.log(renderProposalConsole(items)); console.log(`\nReportes: ${mdPath} · ${jsonPath}`)
+}
+
+function currentProposals() {
+  const config = loadConfig(root); const all = tickets(config); const router = loadRouter(skillRoot)
+  const result = reconcileFeatures({ root, config, tickets: all })
+  return { config, items: buildProposals(result, domain => routeCapability(router, domain), config) }
+}
+
+function option(name) {
+  const index = process.argv.indexOf(name)
+  return index >= 0 ? process.argv[index + 1] : null
+}
+
+function approve(proposalId, json = false) {
+  const { config, items } = currentProposals(); const baseline = git('rev-parse', 'HEAD') || 'n/a'
+  const reportDir = join(root, config.reconcile?.report_dir || '.forge/reports')
+  try {
+    const result = approveProposal({ reportDir, proposalId, approver: option('--by'), reason: option('--reason'), baseline, currentProposals: items })
+    console.log(json ? JSON.stringify(result, null, 2) : `${result.already_approved ? '✓ Ya aprobada' : '✓ Aprobada'} ${proposalId} — ${result.path}`)
+  } catch (error) { console.error(`BLOQUEADO: ${error.message}`); process.exitCode = 1 }
+}
+
+function apply(proposalId, json = false) {
+  const { config, items } = currentProposals(); const baseline = git('rev-parse', 'HEAD') || 'n/a'
+  const reportDir = join(root, config.reconcile?.report_dir || '.forge/reports')
+  try {
+    const result = applyApprovedProposal({ root, config, reportDir, proposalId, baseline, currentProposals: items })
+    console.log(json ? JSON.stringify(result, null, 2) : `${result.already_applied ? '✓ Ya materializada' : '✓ Ticket creado'} ${proposalId} → ${result.ticket_id}\n${result.path}`)
+  } catch (error) { console.error(`BLOQUEADO: ${error.message}`); process.exitCode = 1 }
 }
 
 const [command, argument] = process.argv.slice(2); const json = process.argv.includes('--json')
@@ -140,4 +170,6 @@ else if (command === 'adopt') adoption(process.argv.includes('--deep'))
 else if (command === 'features') featureInventory(json, false)
 else if (command === 'reconcile') featureInventory(json, true)
 else if (command === 'propose') proposals(json)
-else { console.error('Uso: control-plane.mjs <doctor|start|status|features|propose|route DOMINIO|adopt [--quick|--deep]|reconcile> [--json]'); process.exit(2) }
+else if (command === 'approve' && argument) approve(argument, json)
+else if (command === 'apply' && argument) apply(argument, json)
+else { console.error('Uso: control-plane.mjs <doctor|start|status|features|reconcile|propose|approve ID --by NOMBRE --reason RAZÓN|apply ID|route DOMINIO|adopt [--quick|--deep]> [--json]'); process.exit(2) }

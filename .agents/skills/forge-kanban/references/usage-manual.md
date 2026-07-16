@@ -51,6 +51,8 @@ node "$FORGE_KANBAN\scripts\forge-kanban.mjs" status
 node "$FORGE_KANBAN\scripts\forge-kanban.mjs" features
 node "$FORGE_KANBAN\scripts\forge-kanban.mjs" reconcile
 node "$FORGE_KANBAN\scripts\forge-kanban.mjs" propose
+node "$FORGE_KANBAN\scripts\forge-kanban.mjs" approve FKP-XXXXXXXX --by "Nombre" --reason "Alcance validado"
+node "$FORGE_KANBAN\scripts\forge-kanban.mjs" apply FKP-XXXXXXXX
 ```
 
 - `doctor`: valida instalación, configuración y capacidades.
@@ -59,6 +61,8 @@ node "$FORGE_KANBAN\scripts\forge-kanban.mjs" propose
 - `features`: muestra el inventario completo con semáforo.
 - `reconcile`: genera reporte Markdown y dashboard HTML auditables.
 - `propose`: genera propuestas estables; no crea tickets.
+- `approve`: registra una autorización humana nominativa y auditable.
+- `apply`: materializa únicamente la propuesta aprobada como ticket v3.
 
 ## Escenario 1 — proyecto avanzado
 
@@ -71,7 +75,9 @@ node "$FORGE_KANBAN\scripts\forge-kanban.mjs" propose
 4. Revisa primero rojos y negros; después amarillos.
 5. Ejecuta `reconcile` sólo cuando quieras regenerar los reportes persistentes.
 6. Ejecuta `propose` sólo para preparar candidatos a tickets.
-7. Aprueba explícitamente alcance y Blueprint antes de construir.
+7. Usa `approve` únicamente sobre una propuesta elegible y revisada.
+8. Usa `apply` para crear exactamente ese ticket; repetirlo no lo duplica.
+9. Aprueba explícitamente alcance y Blueprint antes de construir.
 
 ### Adopción de un proyecto ya avanzado
 
@@ -108,7 +114,7 @@ node "$FORGE_KANBAN\scripts\init-project.mjs" --display-name "Nombre comercial"
 
 4. Registra las features del Blueprint con el contrato v1.
 5. Ejecuta `doctor`, `features` y `reconcile`.
-6. Usa `propose`; revisa y aprueba antes de materializar tickets.
+6. Usa `propose`; revisa, ejecuta `approve` y sólo después `apply`.
 7. Elige Yunque para rutas compartidas y Forja únicamente para rutas disjuntas.
 
 Forge aporta la estructura y `/avivar`; Forge Kanban aporta clasificación,
@@ -137,7 +143,7 @@ bloqueadas; el router no debe inventar skills ni modelos.
 
 ## Construcción de una tarea
 
-1. La propuesta debe convertirse en ticket sólo después de aprobación humana.
+1. La propuesta debe convertirse en ticket sólo mediante `approve → apply`.
 2. El ticket declara alcance, rutas propias/compartidas/prohibidas, constructor,
    revisor, gate, evidencia y criterios de éxito.
 3. Antes de editar:
