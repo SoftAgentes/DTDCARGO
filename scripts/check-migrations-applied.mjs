@@ -1,7 +1,11 @@
-#!/usr/bin/env node
 /**
  * scripts/check-migrations-applied.mjs — ¿hay migraciones NUEVAS en el repo que
  * nunca llegaron a prod?
+ *
+ * SIN SHEBANG a propósito: este módulo se importa desde su test (para probar la
+ * lógica pura) y el `#!` de la línea 1 rompe el parser de Vite —inyecta el require
+ * transformado antes del shebang→ "Invalid or unexpected token". No hace falta:
+ * verify.mjs lo invoca siempre como `node <entry>`, nunca como ejecutable.
  *
  * POR QUÉ EXISTE
  * La 0228 estuvo DOS rondas /GOLD perdida: el archivo vivía en el repo, nunca se
@@ -93,9 +97,33 @@ function localMigrations() {
 }
 
 /** Prefijo numérico del basename (0006b → 6, 0239_foo → 239). null si no arranca con NNNN. */
-function migrationNumber(name) {
+export function migrationNumber(name) {
   const m = name.match(/^(\d{4})/);
   return m ? parseInt(m[1], 10) : null;
+}
+
+/**
+ * LA DECISIÓN DEL CHECK, pura y testeable: ¿qué archivos del repo deberían estar
+ * en prod y no están?
+ *
+ * Vigila SOLO lo nuevo: archivos con número > cutoff que no estén declarados como
+ * espera conocida. Cada uno debe estar en el ledger con su basename EXACTO (la
+ * regla hacia adelante). Lo ≤ cutoff se da por reconciliado (ver el baseline: el
+ * `name` histórico es texto libre y reconciliarlo 1:1 son 62 casos de ruido).
+ *
+ * @param {string[]} files        basenames de supabase/migrations (sin .sql)
+ * @param {Set<string>} applied   `name`s presentes en el ledger de prod
+ * @param {number} cutoff         último número histórico dado por reconciliado
+ * @param {Record<string,string>} pending  esperas declaradas (archivo → motivo)
+ * @returns {string[]} basenames que faltan aplicar
+ */
+export function findMissing(files, applied, cutoff, pending = {}) {
+  return files.filter((f) => {
+    const n = migrationNumber(f);
+    if (n === null || n <= cutoff) return false; // histórico / sin prefijo → reconciliado
+    if (f in pending) return false; // espera conocida por encima del corte (raro pero válido)
+    return !applied.has(f);
+  });
 }
 
 function readBaseline() {
@@ -156,15 +184,7 @@ async function main() {
   }
   const appliedNames = new Set((ledger ?? []).map((r) => r.name).filter(Boolean));
 
-  // Vigilamos SOLO lo nuevo: archivos con número > cutoff que no estén declarados
-  // como espera conocida. Cada uno debe estar en el ledger con su basename EXACTO
-  // (la regla hacia adelante). Lo ≤ cutoff se da por reconciliado (ver baseline).
-  const missing = files.filter((f) => {
-    const n = migrationNumber(f);
-    if (n === null || n <= cutoff) return false; // histórico / sin prefijo → reconciliado
-    if (f in pending) return false; // espera conocida por encima del corte (raro pero válido)
-    return !appliedNames.has(f);
-  });
+  const missing = findMissing(files, appliedNames, cutoff, pending);
 
   // Entradas de pending que ya no corresponden a ningún archivo: baseline envejecido.
   // No es rojo, pero se avisa — un baseline con basura vuelve a ser ruido.
@@ -221,13 +241,25 @@ async function closeUndici() {
   }
 }
 
-main()
-  .catch((e) => {
-    if (e instanceof Exit) return e.code;
-    console.log(`${C.red}[FAIL]${C.nc} migrations-applied: error inesperado → ${e?.stack ?? e}`);
-    return 2;
-  })
-  .then(async (code) => {
-    await closeUndici();
-    process.exitCode = code;
-  });
+// Solo corre el check cuando este archivo ES el entry point. Sin el guard, el test
+// que importa findMissing/migrationNumber dispararía main() (red incluida) al
+// importar. Mismo espíritu que el `if __name__ == '__main__'` de Python.
+//
+// Se compara con `import.meta.filename` en vez de pathToFileURL(): importar
+// `node:url` acá rompe el test — Vite inyecta el require transformado ANTES del
+// shebang de la línea 1 y el parser revienta con "Invalid Character `!`".
+const isEntryPoint =
+  process.argv[1] && import.meta.filename === path.resolve(process.argv[1]);
+
+if (isEntryPoint) {
+  main()
+    .catch((e) => {
+      if (e instanceof Exit) return e.code;
+      console.log(`${C.red}[FAIL]${C.nc} migrations-applied: error inesperado → ${e?.stack ?? e}`);
+      return 2;
+    })
+    .then(async (code) => {
+      await closeUndici();
+      process.exitCode = code;
+    });
+}
