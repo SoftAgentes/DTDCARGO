@@ -16,6 +16,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   listPendingAcceptanceInvoices,
   getPendingAcceptanceInvoice,
+  getPendingAcceptanceForShipment,
 } from "../portal-legal-queries";
 import { sealAcceptance } from "@/lib/studio/legal/seal";
 import { validateAcceptanceInput, type DocRef } from "@/lib/studio/legal/types";
@@ -290,5 +291,111 @@ describe("getPendingAcceptanceInvoice", () => {
       legal_docs: docsTable(),
     });
     expect(await getPendingAcceptanceInvoice(db, { ...args, code: "F-2026-0001" })).toBeNull();
+  });
+});
+
+/**
+ * SDD-0075 §1 Slice A: el CTA de aceptación en el detalle del envío. Misma
+ * definición de "pendiente" que las de arriba, pero entrando por el envío.
+ */
+describe("getPendingAcceptanceForShipment", () => {
+  const shipArgs = { ...args, shipmentId: "s1" };
+
+  it("devuelve la orden borrador DDP pendiente de ESE envío", async () => {
+    const db = stub({
+      invoices: [invoiceRow({ id: "i1", code: "F-2026-0001", status: "borrador", shipmentId: "s1" })],
+      shipments: [shipmentRow({ id: "s1", service: "puerta_a_puerta_DDP" })],
+      legal_acceptances: [],
+      legal_docs: docsTable(),
+    });
+    const order = await getPendingAcceptanceForShipment(db, shipArgs);
+    expect(order).not.toBeNull();
+    expect(order!.code).toBe("F-2026-0001");
+    expect(order!.cbm).toBe(7);
+    expect(order!.weightKg).toBe(2800);
+    expect(order!.baseAmount).toBe(5600);
+  });
+
+  it("null si el envío no tiene borradores (la factura ya se emitió)", async () => {
+    const db = stub({
+      invoices: [invoiceRow({ id: "i1", code: "F-2026-0001", status: "emitida", shipmentId: "s1" })],
+      shipments: [shipmentRow({ id: "s1", service: "puerta_a_puerta_DDP" })],
+      legal_acceptances: [],
+      legal_docs: docsTable(),
+    });
+    expect(await getPendingAcceptanceForShipment(db, shipArgs)).toBeNull();
+  });
+
+  it("null si el envío no es DDP (sólo DDP entra al flujo de aceptación)", async () => {
+    const db = stub({
+      invoices: [invoiceRow({ id: "i1", code: "F-2026-0001", status: "borrador", shipmentId: "s1" })],
+      shipments: [shipmentRow({ id: "s1", service: "consolidacion" })],
+      legal_acceptances: [],
+      legal_docs: docsTable(),
+    });
+    expect(await getPendingAcceptanceForShipment(db, shipArgs)).toBeNull();
+  });
+
+  it("null si ya hay aceptación vigente que matchea", async () => {
+    const db = stub({
+      invoices: [invoiceRow({ id: "i1", code: "F-2026-0001", status: "borrador", shipmentId: "s1" })],
+      shipments: [shipmentRow({ id: "s1", service: "puerta_a_puerta_DDP" })],
+      legal_acceptances: [acceptedRow(5600)],
+      legal_docs: docsTable(),
+    });
+    expect(await getPendingAcceptanceForShipment(db, shipArgs)).toBeNull();
+  });
+
+  it("no toma el borrador de OTRO envío del mismo cliente", async () => {
+    const db = stub({
+      invoices: [invoiceRow({ id: "i2", code: "F-2026-0002", status: "borrador", shipmentId: "s2" })],
+      shipments: [
+        shipmentRow({ id: "s1", service: "puerta_a_puerta_DDP" }),
+        shipmentRow({ id: "s2", service: "puerta_a_puerta_DDP" }),
+      ],
+      legal_acceptances: [],
+      legal_docs: docsTable(),
+    });
+    expect(await getPendingAcceptanceForShipment(db, shipArgs)).toBeNull();
+  });
+
+  it("con 2 borradores del mismo envío, devuelve el que sigue pendiente", async () => {
+    const db = stub({
+      invoices: [
+        invoiceRow({ id: "i1", code: "F-2026-0001", status: "borrador", shipmentId: "s1", base: 5600 }),
+        invoiceRow({ id: "i2", code: "F-2026-0002", status: "borrador", shipmentId: "s1", base: 6000 }),
+      ],
+      shipments: [shipmentRow({ id: "s1", service: "puerta_a_puerta_DDP" })],
+      // Sella la de 5600 → la de 6000 sigue esperando aceptación.
+      legal_acceptances: [acceptedRow(5600)],
+      legal_docs: docsTable(),
+    });
+    const order = await getPendingAcceptanceForShipment(db, shipArgs);
+    expect(order!.code).toBe("F-2026-0002");
+    expect(order!.baseAmount).toBe(6000);
+  });
+
+  it("no cruza markbox: con el markbox de otro cliente → null", async () => {
+    const db = stub({
+      invoices: [invoiceRow({ id: "i1", code: "F-2026-0001", status: "borrador", shipmentId: "s1" })],
+      shipments: [shipmentRow({ id: "s1", service: "puerta_a_puerta_DDP" })],
+      legal_acceptances: [],
+      legal_docs: docsTable(),
+    });
+    expect(
+      await getPendingAcceptanceForShipment(db, { ...shipArgs, markbox: "DTD-9999" }),
+    ).toBeNull();
+  });
+
+  it("fail-closed: sin tenantId / markbox / shipmentId → null", async () => {
+    const db = stub({
+      invoices: [invoiceRow({ id: "i1", code: "F-2026-0001", status: "borrador", shipmentId: "s1" })],
+      shipments: [shipmentRow({ id: "s1", service: "puerta_a_puerta_DDP" })],
+      legal_acceptances: [],
+      legal_docs: docsTable(),
+    });
+    expect(await getPendingAcceptanceForShipment(db, { ...shipArgs, tenantId: "" })).toBeNull();
+    expect(await getPendingAcceptanceForShipment(db, { ...shipArgs, markbox: "" })).toBeNull();
+    expect(await getPendingAcceptanceForShipment(db, { ...shipArgs, shipmentId: "" })).toBeNull();
   });
 });
