@@ -20,4 +20,7 @@ dashboard:
   strategy: detect_and_reuse
   create_if_missing: true
   fail_on_multiple_candidates: true
-
+reconcile:
+  roots: [specs, docs/specs, docs/plan, docs/blueprints]
+  file_names: null
+  report_dir: .forge/reports

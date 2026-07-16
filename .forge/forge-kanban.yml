@@ -20,3 +20,7 @@ dashboard:
   strategy: detect_and_reuse
   create_if_missing: false
   fail_on_multiple_candidates: true
+reconcile:
+  roots: [docs/specs]
+  file_names: [spec.md]
+  report_dir: .forge/reports

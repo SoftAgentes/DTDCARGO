@@ -37,6 +37,17 @@ sesión. Consultar `references/capability-router.yaml` para seleccionar skills;
 si el proyecto registra una capacidad adicional, extender el registro sin
 inflar este archivo.
 
+Después de `/avivar`, ejecutar `forge-kanban status` para el resumen y
+`forge-kanban features` para el inventario accionable. `forge-kanban reconcile`
+genera dos vistas del mismo análisis: Markdown auditable y dashboard HTML.
+
+Semáforo de features (no confundir con prioridad del ticket):
+
+- 🔴 bloqueo o contradicción que requiere acción.
+- 🟡 feature parcial, pendiente o terminada sin evidencia suficiente.
+- ⚫ evidencia ambigua: revisión humana, nunca ticket automático.
+- 🟢 completa mediante estado explícito o tickets enlazados terminados.
+
 ## Inicialización del proyecto
 
 Resolver primero el directorio de la skill. La copia local es preferida y la

@@ -6,6 +6,7 @@ import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { resolveProjectIdentity, slugifyProjectName } from './scripts/project-identity.mjs'
 import { inspectSessions } from './scripts/lib/sessions.mjs'
+import { reconcileFeatures, renderFeatureConsole, renderFeatureHtml } from './scripts/lib/reconciler.mjs'
 
 const ROOT = dirname(dirname(dirname(dirname(fileURLToPath(import.meta.url)))))
 const INIT = join(dirname(fileURLToPath(import.meta.url)), 'scripts', 'init-project.mjs')
@@ -121,6 +122,23 @@ try {
   writeFileSync(join(fakeHome, '.claude', 'ide', '65534.lock'), JSON.stringify({ pid: 99999999, workspaceFolders: [portable] }))
   const stale = inspectSessions(portable, fakeHome)
   ok('stale Claude lock is not treated as an active window', stale.active_detected === false && stale.signals[0]?.alive === false)
+
+  const featureRoot = createRepo(sandbox, 'Feature Inventory')
+  mkdirSync(join(featureRoot, 'docs', 'plan'), { recursive: true })
+  writeFileSync(join(featureRoot, 'docs', 'plan', 'complete.md'), '# Facturación\nstatus: done\nEvidencia: prueba verificada\n')
+  writeFileSync(join(featureRoot, 'docs', 'plan', 'partial.md'), '# Portal\n- [x] Login\n- [ ] Recuperar contraseña\n')
+  writeFileSync(join(featureRoot, 'docs', 'plan', 'blocked.md'), '# Integración\nBloqueador: falta autorización humana\n')
+  writeFileSync(join(featureRoot, 'docs', 'plan', 'unknown.md'), '# Idea sin decisión\nDescripción exploratoria.\n')
+  writeFileSync(join(featureRoot, 'docs', 'plan', 'README.md'), '# No es una feature\n')
+  const featureResult = reconcileFeatures({ root: featureRoot, config: { reconcile: { roots: ['docs/plan'] } }, tickets: [] })
+  ok('feature inventory separates complete partial blocked and review-needed', featureResult.summary.complete === 1 && featureResult.summary.partial === 1 && featureResult.summary.blocked === 1 && featureResult.summary.review_needed === 2)
+  const featureHtml = renderFeatureHtml(featureResult, { baseline: 'test' })
+  ok('feature dashboard renders red yellow black and green presentation', ['red', 'yellow', 'black', 'green'].every(color => featureHtml.includes(`class="card ${color}"`)))
+  ok('feature console is summarized instead of dumping plain text', renderFeatureConsole(featureResult).includes('PRÓXIMAS DECISIONES') && renderFeatureConsole(featureResult).includes('Revisión humana'))
+  const featureCli = spawnSync('node', [CONTROL, 'features'], { cwd: featureRoot, encoding: 'utf8' })
+  ok('features command presents the four visual states', featureCli.status === 0 && ['🔴', '🟡', '⚫', '🟢'].every(icon => featureCli.stdout.includes(icon)))
+  const filteredFeatures = reconcileFeatures({ root: featureRoot, config: { reconcile: { roots: ['docs/plan'], file_names: ['partial.md'] } }, tickets: [] })
+  ok('project config can restrict which markdown files represent features', filteredFeatures.scanned === 1 && filteredFeatures.features[0].title === 'Portal')
 } finally {
   rmSync(sandbox, { recursive: true, force: true })
 }

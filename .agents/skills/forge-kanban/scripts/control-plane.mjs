@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process'
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadConfig } from './lib/config.mjs'
 import { loadRouter, routeCapability } from './lib/router.mjs'
+import { reconcileFeatures, renderFeatureConsole, renderFeatureHtml, renderFeatureReport } from './lib/reconciler.mjs'
 
 const skillRoot = dirname(dirname(fileURLToPath(import.meta.url)))
 const root = process.cwd()
@@ -79,8 +80,10 @@ function status(json = false) {
   const config = loadConfig(root); const all = tickets(config)
   const errors = all.flatMap(ticket => validateTicket(ticket, all)).concat(dependencyCycles(all))
   const counts = Object.fromEntries(['backlog','planning','dev','qa','review','done'].map(s => [s, all.filter(t => t.status === s).length]))
-  const result = { mode: detectMode(), tickets: all.length, counts, valid: errors.length === 0, errors }
-  console.log(json ? JSON.stringify(result, null, 2) : [`Modo: ${result.mode}`, `Tickets: ${all.length}`, `Estado: ${result.valid ? 'válido' : 'bloqueado'}`, ...errors.map(e => `- ${e}`)].join('\n'))
+  const featureResult = reconcileFeatures({ root, config, tickets: all })
+  const result = { mode: detectMode(), tickets: all.length, counts, valid: errors.length === 0, errors, feature_summary: featureResult.summary, actionable_features: featureResult.actionable.length }
+  const visual = [`🔴 Acción: ${featureResult.summary.blocked + featureResult.summary.contradiction}`, `🟡 Pendiente/parcial: ${featureResult.summary.partial + featureResult.summary.pending + featureResult.summary.done_without_evidence}`, `⚫ Revisión humana: ${featureResult.summary.review_needed}`, `🟢 Completo: ${featureResult.summary.complete}`]
+  console.log(json ? JSON.stringify(result, null, 2) : [`Modo: ${result.mode}`, `Tickets: ${all.length}`, `Estado: ${result.valid ? 'válido' : 'bloqueado'}`, '', 'FEATURES', ...visual, ...errors.map(e => `- ${e}`)].join('\n'))
   process.exitCode = result.valid ? 0 : 1
 }
 
@@ -101,10 +104,18 @@ function adoption(deep = false) {
   console.log(JSON.stringify(report, null, 2))
 }
 
-function reconcile() {
-  const config = loadConfig(root); const all = tickets(config); const errors = all.flatMap(t => validateTicket(t, all)).concat(dependencyCycles(all))
-  const output = ['# Forge Kanban Adoption Report', '', `- Fecha: ${new Date().toISOString()}`, `- Modo: ${detectMode()}`, `- Baseline: ${git('rev-parse', 'HEAD') || 'n/a'}`, `- Tickets: ${all.length}`, '', '## Hallazgos', '', ...(errors.length ? errors.map(e => `- ${e}`) : ['- Sin contradicciones estructurales detectadas.']), '', '> El trabajo histórico desconocido se registra como `n/a (trabajo anterior a Forge Kanban)`; no se inventan métricas.', ''].join('\n')
-  const path = join(root, 'FORGE-KANBAN-ADOPTION-REPORT.md'); writeFileSync(path, output, 'utf8'); console.log(path)
+function featureInventory(json = false, write = false) {
+  const config = loadConfig(root); const all = tickets(config); const baseline = git('rev-parse', 'HEAD') || 'n/a'; const generatedAt = new Date().toISOString()
+  const result = reconcileFeatures({ root, config, tickets: all })
+  if (write) {
+    const reportDir = join(root, config.reconcile?.report_dir || '.forge/reports'); mkdirSync(reportDir, { recursive: true })
+    const mdPath = join(reportDir, 'feature-reconciliation.md'); const htmlPath = join(reportDir, 'feature-reconciliation.html')
+    writeFileSync(mdPath, renderFeatureReport(result, { baseline, generatedAt }), 'utf8')
+    writeFileSync(htmlPath, renderFeatureHtml(result, { baseline, generatedAt }), 'utf8')
+    console.log(JSON.stringify({ markdown: mdPath, dashboard: htmlPath, summary: result.summary }, null, 2)); return
+  }
+  if (json) { console.log(JSON.stringify(result, null, 2)); return }
+  console.log(renderFeatureConsole(result))
 }
 
 const [command, argument] = process.argv.slice(2); const json = process.argv.includes('--json')
@@ -112,6 +123,6 @@ if (command === 'doctor') doctor(json)
 else if (command === 'status' || command === 'start') status(json)
 else if (command === 'route' && argument) route(argument, json)
 else if (command === 'adopt') adoption(process.argv.includes('--deep'))
-else if (command === 'reconcile') reconcile()
-else { console.error('Uso: control-plane.mjs <doctor|start|status|route DOMINIO|adopt [--quick|--deep]|reconcile> [--json]'); process.exit(2) }
-
+else if (command === 'features') featureInventory(json, false)
+else if (command === 'reconcile') featureInventory(json, true)
+else { console.error('Uso: control-plane.mjs <doctor|start|status|features|route DOMINIO|adopt [--quick|--deep]|reconcile> [--json]'); process.exit(2) }
