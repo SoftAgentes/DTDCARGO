@@ -1,0 +1,5 @@
+interface:
+  display_name: "Skill Plugin Kanban"
+  short_description: "Control plane portable para tareas, skills y worktrees"
+  default_prompt: "Usa Forge Kanban para diagnosticar el proyecto, clasificar y enrutar tickets, verificar gates y cerrar de forma segura."
+

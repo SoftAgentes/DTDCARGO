@@ -1,0 +1,124 @@
+schema_version: 1
+methodology: avivar_classify_route_forge_verify_close
+
+capabilities:
+  planning:
+    status: active
+    builder_skills: [la-herreria]
+    review_skills: [karpathy-principles]
+    default_method: yunque
+    evidence: [approved_blueprint]
+
+  general_code:
+    status: active
+    builder_skills: [karpathy-principles]
+    review_skills: [testing-engineer]
+    default_method: conditional
+    evidence: [focused_tests, typecheck]
+
+  product_design:
+    status: active
+    builder_skills: [impeccable]
+    review_skills: [web-quality]
+    default_method: conditional
+    evidence: [screenshots, responsive_review, accessibility_review]
+
+  image_asset:
+    status: active
+    builder_skills: [image-generation]
+    review_skills: [guia-identidad-marca]
+    default_method: forja
+    evidence: [generated_asset, usage_preview]
+
+  narrative_visuals:
+    status: active
+    builder_skills: [video-visuals]
+    review_skills: [guia-identidad-marca]
+    default_method: forja
+    evidence: [visual_package, narrative_review]
+
+  brand_identity:
+    status: active
+    builder_skills: [guia-identidad-marca, guia-voz-marca]
+    review_skills: [human_approval]
+    default_method: yunque
+    evidence: [approved_brand_guide]
+
+  brand_architecture:
+    status: active
+    builder_skills: [arquitectura-marca]
+    review_skills: [human_approval]
+    default_method: yunque
+    evidence: [approved_brand_architecture]
+
+  database:
+    status: active
+    builder_skills: [supabase, insforge]
+    exclusive_builder_selection: true
+    review_skills: [project-auditor]
+    default_method: yunque
+    evidence: [migration_test, policy_test, concurrency_test]
+
+  payments:
+    status: active
+    builder_skills: [add-payments]
+    review_skills: [project-auditor]
+    default_method: yunque
+    evidence: [webhook_test, idempotency_test, authorization_test]
+
+  transactional_email:
+    status: active
+    builder_skills: [add-emails]
+    review_skills: [testing-engineer]
+    default_method: conditional
+    evidence: [render_test, link_test, delivery_contract_test]
+
+  mobile_pwa:
+    status: active
+    builder_skills: [add-mobile]
+    review_skills: [web-quality]
+    default_method: yunque
+    evidence: [install_test, offline_test, responsive_review]
+
+  cinematic_web:
+    status: active
+    builder_skills: [website-3d]
+    review_skills: [web-quality]
+    default_method: conditional
+    evidence: [browser_walkthrough, reduced_motion_test, performance_review]
+
+  business_strategy:
+    status: active
+    builder_skills: [el-crisol]
+    review_skills: [human_approval]
+    default_method: yunque
+    evidence: [go_no_go_decision]
+
+  release_audit:
+    status: active
+    builder_skills: [project-auditor]
+    review_skills: [human_approval]
+    default_method: yunque
+    evidence: [audit_report, deploy_verdict]
+
+  skill_engineering:
+    status: active
+    builder_skills: [skill-creator]
+    review_skills: [autoresearch]
+    default_method: forja
+    evidence: [skill_validation, eval_results]
+
+  session_close:
+    status: active
+    builder_skills: [source-command-cerrar]
+    review_skills: [git_audit]
+    default_method: yunque
+    evidence: [commit, push_status, handoff, cleanup_receipt]
+
+policies:
+  always_start_with: source-command-avivar
+  canonical_project_contract: AGENTS.md
+  never_duplicate_specialist_logic: true
+  high_risk_profiles: [literal, quality]
+  forbidden_high_risk_profiles: [disruptive]
+  unknown_capability: block_or_create_with_skill_creator

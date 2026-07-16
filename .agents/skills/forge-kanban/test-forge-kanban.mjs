@@ -1,0 +1,129 @@
+#!/usr/bin/env node
+import { execFileSync, spawnSync } from 'node:child_process'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { basename, dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { resolveProjectIdentity, slugifyProjectName } from './scripts/project-identity.mjs'
+import { inspectSessions } from './scripts/lib/sessions.mjs'
+
+const ROOT = dirname(dirname(dirname(dirname(fileURLToPath(import.meta.url)))))
+const INIT = join(dirname(fileURLToPath(import.meta.url)), 'scripts', 'init-project.mjs')
+const SNAPSHOT = join(dirname(fileURLToPath(import.meta.url)), 'scripts', 'forge-kanban.mjs')
+const CONTROL = join(dirname(fileURLToPath(import.meta.url)), 'scripts', 'control-plane.mjs')
+const HARNESS = join(dirname(fileURLToPath(import.meta.url)), 'scripts', 'harness.mjs')
+const SKILL_ROOT = dirname(fileURLToPath(import.meta.url))
+const METHODOLOGY = join(SKILL_ROOT, 'references', 'methodology.md')
+const ROUTER = join(SKILL_ROOT, 'references', 'capability-router.yaml')
+const LOCAL_METRICS = join(ROOT, 'scripts', 'bitacora-metrics.mjs')
+const METRICS = existsSync(LOCAL_METRICS) ? LOCAL_METRICS : join(SKILL_ROOT, 'scripts', 'bitacora-metrics.mjs')
+let failed = false
+
+function ok(name, condition) {
+  console.log(`  ${condition ? 'ok  ' : 'FAIL'}: ${name}`)
+  if (!condition) failed = true
+}
+
+function git(cwd, ...args) {
+  return execFileSync('git', ['-C', cwd, ...args], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  }).trim()
+}
+
+function createRepo(parent, name) {
+  const root = join(parent, name)
+  mkdirSync(root, { recursive: true })
+  git(root, 'init')
+  git(root, '-c', 'user.name=Forge Test', '-c', 'user.email=forge@test.local', 'commit', '--allow-empty', '-m', 'init')
+  return root
+}
+
+function runInit(cwd, ...args) {
+  return spawnSync('node', [INIT, ...args], { cwd, encoding: 'utf8' })
+}
+
+const sandbox = mkdtempSync(join(tmpdir(), 'forge-kanban-'))
+try {
+  const williams = createRepo(sandbox, 'Williams Project')
+  const initial = resolveProjectIdentity(williams)
+  ok('folder fallback keeps visible name', initial.displayName === 'Williams Project')
+  ok('folder fallback creates safe slug', initial.slug === 'williams-project')
+  ok('bitacora filename is project-specific', basename(initial.bitacoraPath) === 'bitacora-williams-project.html')
+
+  const initWilliams = runInit(williams)
+  ok('Williams initialization succeeds', initWilliams.status === 0)
+  const williamsHtml = readFileSync(join(williams, 'docs', 'bitacora-williams-project.html'), 'utf8')
+  ok('Williams visible title is rendered', williamsHtml.includes('<title>Bitácora Williams Project</title>'))
+  ok('Williams storage namespace is isolated', williamsHtml.includes('williams-project-bitacora-last-open-v1'))
+
+  const worktree = join(sandbox, 'Williams Project-wt-feature')
+  git(williams, 'worktree', 'add', '-b', 'codex/test-worktree', worktree)
+  const worktreeIdentity = resolveProjectIdentity(worktree)
+  ok('worktree inherits canonical folder name', worktreeIdentity.displayName === 'Williams Project')
+  ok('worktree never leaks suffix into slug', worktreeIdentity.slug === 'williams-project')
+  ok('worktree writes inside its own checkout', worktreeIdentity.bitacoraPath.startsWith(worktree))
+  ok('worktree sees related roots', worktreeIdentity.relatedRoots.length === 2)
+
+  const atlas = createRepo(sandbox, 'Project Alpha')
+  mkdirSync(join(atlas, '.codex'), { recursive: true })
+  mkdirSync(join(atlas, 'docs'), { recursive: true })
+  writeFileSync(join(atlas, '.codex', 'project.json'), '{"displayName":"Atlas"}\n')
+  writeFileSync(join(atlas, 'docs', 'bitacora-atlas.html'), '<title>Bitácora Atlas</title>\n')
+  const initAtlas = runInit(atlas)
+  ok('configured identity reuses canonical file', initAtlas.status === 0 && /reutilizada/.test(initAtlas.stdout))
+  ok('configured identity creates no duplicate bitacora', !existsSync(join(atlas, 'docs', 'bitacora-project-alpha.html')))
+
+  const conflict = createRepo(sandbox, 'New Project')
+  mkdirSync(join(conflict, 'docs'), { recursive: true })
+  writeFileSync(join(conflict, 'docs', 'bitacora-legacy.html'), '<title>Legacy</title>\n')
+  const initConflict = runInit(conflict)
+  ok('existing mismatched bitacora fails closed', initConflict.status === 1)
+  ok('conflict creates no parallel bitacora', !existsSync(join(conflict, 'docs', 'bitacora-new-project.html')))
+
+  const metrics = spawnSync('node', [METRICS, '--write'], { cwd: williams, encoding: 'utf8' })
+  ok('metrics writes the resolved Williams bitacora', metrics.status === 0)
+  const metricsHtml = readFileSync(join(williams, 'docs', 'bitacora-williams-project.html'), 'utf8')
+  ok('metrics payload contains Williams identity', metricsHtml.includes('"slug":"williams-project"'))
+
+  const start = spawnSync('node', [SNAPSHOT, 'snapshot', 'T-001', 'start'], { cwd: williams, encoding: 'utf8' })
+  const end = spawnSync('node', [SNAPSHOT, 'snapshot', 'T-001', 'end'], { cwd: williams, encoding: 'utf8' })
+  const report = spawnSync('node', [SNAPSHOT, 'report', 'T-001'], { cwd: williams, encoding: 'utf8' })
+  const reportData = report.status === 0 ? JSON.parse(report.stdout) : {}
+  ok('ticket start/end snapshots use portable metrics', start.status === 0 && end.status === 0)
+  ok('ticket report exposes measured delta', report.status === 0 && reportData.available === true && reportData.project?.slug === 'williams-project')
+
+  ok('accented names use deterministic slug', slugifyProjectName('José & Williams') === 'jose-williams')
+  const methodology = readFileSync(METHODOLOGY, 'utf8')
+  const router = readFileSync(ROUTER, 'utf8')
+  ok('methodology declares the six-stage control plane', methodology.includes('AVIVAR → CLASIFICAR → ENRUTAR → FORJAR → VERIFICAR → CERRAR'))
+  ok('capability router separates builders and reviewers', router.includes('builder_skills:') && router.includes('review_skills:'))
+  ok('capability router keeps specialist logic external', router.includes('never_duplicate_specialist_logic: true'))
+  ok('portable package uses only generic capability identities', router.includes('product_design:') && router.includes('database:'))
+
+  const portable = createRepo(sandbox, 'Portable Project')
+  mkdirSync(join(portable, '.forge'), { recursive: true })
+  mkdirSync(join(portable, 'custom', 'tickets'), { recursive: true })
+  writeFileSync(join(portable, '.forge', 'forge-kanban.yml'), 'version: 2\nticket_dir: custom/tickets\nkanban_view: BOARD.md\n')
+  const doctor = spawnSync('node', [CONTROL, 'doctor', '--json'], { cwd: portable, encoding: 'utf8' })
+  const doctorData = doctor.status === 0 ? JSON.parse(doctor.stdout) : {}
+  ok('doctor parses project config instead of documenting it', doctorData.checks?.some(check => check.name === 'ticket_directory' && check.value === 'custom/tickets'))
+  const route = spawnSync('node', [CONTROL, 'route', 'product_design', '--json'], { cwd: portable, encoding: 'utf8' })
+  const routeData = route.status === 0 ? JSON.parse(route.stdout) : {}
+  ok('router resolves builder and reviewer from YAML', routeData.builder_skills?.includes('impeccable') && routeData.review_skills?.includes('web-quality'))
+  const unknown = spawnSync('node', [CONTROL, 'route', 'does_not_exist', '--json'], { cwd: portable, encoding: 'utf8' })
+  ok('unknown capability blocks closed', unknown.status === 1 && JSON.parse(unknown.stdout).blocked === true)
+  const cleanup = spawnSync('node', [HARNESS, 'inspect', portable], { cwd: portable, encoding: 'utf8' })
+  const cleanupData = cleanup.status === 0 ? JSON.parse(cleanup.stdout) : {}
+  ok('cleanup remains blocked without positive session and integration proof', cleanupData.verdict === 'LIMPIEZA_BLOQUEADA')
+  const fakeHome = join(sandbox, 'fake-home')
+  mkdirSync(join(fakeHome, '.claude', 'ide'), { recursive: true })
+  writeFileSync(join(fakeHome, '.claude', 'ide', '65534.lock'), JSON.stringify({ pid: 99999999, workspaceFolders: [portable] }))
+  const stale = inspectSessions(portable, fakeHome)
+  ok('stale Claude lock is not treated as an active window', stale.active_detected === false && stale.signals[0]?.alive === false)
+} finally {
+  rmSync(sandbox, { recursive: true, force: true })
+}
+
+console.log(failed ? '\nFORGE KANBAN TESTS FAILED' : '\nALL FORGE KANBAN TESTS PASSED')
+process.exit(failed ? 1 : 0)

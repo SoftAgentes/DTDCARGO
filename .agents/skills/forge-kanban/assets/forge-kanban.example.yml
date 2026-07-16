@@ -1,0 +1,23 @@
+version: 2
+mode: auto
+ticket_dir: .forge/backlog/tickets
+kanban_view: KANBAN.md
+max_forja_agents: 2
+models:
+  sol:
+    provider: configured
+    model: null
+    reasoning_effort: high
+  terra:
+    provider: configured
+    model: null
+    reasoning_effort: medium
+  luna:
+    provider: configured
+    model: null
+    reasoning_effort: null
+dashboard:
+  strategy: detect_and_reuse
+  create_if_missing: true
+  fail_on_multiple_candidates: true
+

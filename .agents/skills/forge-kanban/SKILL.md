@@ -1,0 +1,217 @@
+---
+name: forge-kanban
+description: "Control plane portable para proyectos con muchas tareas, con o sin Forge: después de /avivar o forge-kanban start clasifica tickets por dominio, riesgo y artefacto; selecciona constructor, revisor, clase de modelo, Yunque/Forja, gate y evidencia; adopta proyectos avanzados; coordina backlog, worktrees, commits atómicos/selectivos, integración y limpieza fail-closed."
+---
+
+# Forge Kanban
+
+## Propósito
+
+Transformar Specs o Blueprints aprobados en tickets ejecutables sin dejar
+decisiones al agente constructor. Forge Kanban es un control plane: clasifica y
+enruta; no copia la lógica de los skills especializados. La spec define el
+alcance, el shard conserva decisiones de ejecución y `KANBAN.md`, dashboard y
+bitácora son vistas operativas controladas.
+
+## Metodología: AVIVAR/START → CLASIFICAR → ENRUTAR → FORJAR → VERIFICAR → CERRAR
+
+1. **AVIVAR/START:** consumir el preflight de `/avivar` en Forge o ejecutar
+   `forge-kanban start` en modo standalone: identidad, memoria, specs,
+   tickets, ventanas, worktrees, Git, gates y restricciones. No repetir
+   exploración que siga vigente.
+2. **CLASIFICAR:** identificar artefacto, dominio, riesgo, dependencias y rutas
+   propias/compartidas/prohibidas.
+3. **ENRUTAR:** elegir un skill constructor y otro revisor, modelo con razón,
+   Yunque/Forja, gate y evidencia. Si falta un skill, bloquear o crear uno con
+   `skill-creator`; nunca improvisar una especialidad.
+4. **FORJAR:** ejecutar sólo tickets preparados. Yunque maneja trabajo acoplado;
+   La Forja crea workers aislados para rutas disjuntas.
+5. **VERIFICAR:** el revisor independiente evalúa el artefacto; el gate produce
+   evidencia proporcional al riesgo. Sin evidencia, no hay cierre.
+6. **CERRAR:** `source-command-cerrar` demuestra propiedad, crea commit atómico
+   con staging selectivo, publica, entrega handoff e integra. El integrador
+   exclusivo limpia worktrees sólo cuando es demostrablemente seguro.
+
+Leer `references/methodology.md` antes de planificar la primera tarea de una
+sesión. Consultar `references/capability-router.yaml` para seleccionar skills;
+si el proyecto registra una capacidad adicional, extender el registro sin
+inflar este archivo.
+
+## Inicialización del proyecto
+
+Resolver primero el directorio de la skill. La copia local es preferida y la
+instalación global permite usarla al cambiar de proyecto:
+
+```powershell
+$FORGE_KANBAN = @(
+  '.agents\skills\forge-kanban',
+  (Join-Path $HOME '.claude\skills\forge-kanban'),
+  (Join-Path $HOME '.codex\skills\forge-kanban')
+) | Where-Object { Test-Path $_ } | Select-Object -First 1
+if (-not $FORGE_KANBAN) { throw 'Forge Kanban no está instalado.' }
+$FORGE_KANBAN = (Resolve-Path $FORGE_KANBAN).Path
+node "$FORGE_KANBAN\scripts\init-project.mjs"
+```
+
+Para fijar un nombre comercial distinto de la carpeta:
+
+```powershell
+node "$FORGE_KANBAN\scripts\init-project.mjs" --display-name "Atlas"
+```
+
+La identidad se resuelve así:
+
+1. `.codex/project.json` → `displayName`.
+2. Nombre de la carpeta del repositorio principal.
+3. Los worktrees heredan el nombre del repositorio principal, no su sufijo.
+
+El título visible es `Bitácora <Nombre>` y el archivo usa slug seguro:
+`docs/bitacora-<slug>.html`. Si existe otra bitácora que no coincide con la
+identidad resuelta, detenerse; nunca crear una bitácora paralela.
+
+## Prioridades
+
+| Valor | Etiqueta | Criterio |
+|---|---|---|
+| `red` | 🔴 Rojo | Bloquea seguridad, datos, producción, dependencias críticas o entrega inmediata. |
+| `yellow` | 🟡 Amarillo | Obligatorio para el alcance, pero no bloquea el carril crítico actual. |
+| `green` | 🟢 Verde | Mejora útil, de bajo riesgo y no bloqueante. |
+| `nice_to_have` | ✨ Nice to have | Opcional y fuera de los criterios mínimos de lanzamiento. |
+
+Cada ticket v2 incluye `priority_reason`. No seleccionar un `nice_to_have`
+mientras exista un rojo elegible, salvo que corra en Forja, esté completamente
+aislado y no consuma el carril crítico.
+
+## Model router
+
+| Clase lógica | Usar para |
+|---|---|
+| `sol` | Arquitectura, seguridad, datos críticos y decisiones difíciles. |
+| `terra` | Construcción habitual de frontend, backend e integración conocida. |
+| `luna` | Documentación, contenido y verificaciones mecánicas. |
+
+Resolver `model` y `reasoning_effort` desde `.forge/forge-kanban.yml`; no
+hardcodearlos ni inferirlos. `reasoning_effort: null` es válido cuando el
+provider no admite ese parámetro. `model_reason` siempre explica la decisión.
+
+## Yunque o Forja
+
+- **Yunque:** tarea secuencial, migración, archivo compartido, integración o
+  dependencia estricta.
+- **Forja:** tarea independiente, rutas disjuntas, contrato cerrado y worktree
+  propio.
+
+No usar Forja para acelerar tareas acopladas. El paralelismo se decide por
+fronteras de archivos y datos, no por tamaño.
+
+## Contrato del ticket v3
+
+```yaml
+schema_version: 3
+id: T-000
+kind: story
+title: "Título accionable"
+pts: 8
+priority: red
+priority_reason: "Bloquea la frontera pública de datos"
+status: backlog
+complexity: critical
+model_class: sol
+model: <resuelto-desde-config>
+model_reason: "RLS y exposición internet-facing"
+task_effort: 8
+reasoning_effort: high
+build_method: yunque
+build_method_reason: "Toca rutas compartidas"
+commit_strategy: atomic_selective
+```
+
+Campos adicionales recomendados: `depends_on`, `gate`, `epic`, `sprint`,
+`blocked`, `created`, `updated`, `spec_ref`, `domain`, `artifact_type`,
+`risk_tags`, `builder_skills`, `review_skills`, `required_context`,
+`owned_paths`, `shared_paths`, `forbidden_paths` y `evidence`.
+
+Un ticket no pasa de `planning` a `dev` hasta declarar: referencia de alcance,
+constructor, revisor, gate, evidencia, propiedad de rutas y criterios de éxito.
+Constructor y revisor deben ser distintos cuando exista un skill independiente
+aplicable. Los campos multivalor usan listas separadas por coma en el formato
+flat actual del backlog.
+
+Los tickets sin `schema_version: 2` son legacy: continúan renderizando y se
+migran sólo cuando sean editados. No inventar razones faltantes; mostrar
+`n/a (legacy)`.
+
+## Tabla obligatoria
+
+La vista generada incluye:
+
+| ID | Prioridad | Criterio de prioridad | Tarea | Dependencias | Complejidad | Modelo | Criterio del modelo | Esfuerzo | Yunque/Forja | Gate | Entrega Git | Estado |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+
+Ordenar primero por prioridad: rojo, amarillo, verde y nice to have; después por
+ID. No editar `KANBAN.md` a mano: regenerar con el motor de backlog.
+
+## Ejecución y cierre
+
+1. Construir únicamente tickets con criterios de aceptación completos.
+2. Capturar el snapshot inicial antes de editar:
+
+```powershell
+node "$FORGE_KANBAN\scripts\forge-kanban.mjs" snapshot T-000 start
+```
+
+3. Mantener cada worker en worktree y rama propios.
+4. Ejecutar el gate indicado por el ticket.
+5. Crear un commit con una sola intención y staging explícito. Todo commit es
+   atómico y selectivo; `atomic_selective` es el único valor v2.
+6. Capturar el snapshot final y calcular el reporte:
+
+```powershell
+node "$FORGE_KANBAN\scripts\forge-kanban.mjs" snapshot T-000 end
+node "$FORGE_KANBAN\scripts\forge-kanban.mjs" report T-000
+```
+
+7. Invocar `source-command-cerrar` al terminar.
+8. El worker registra evidencia, tiempo y tokens medidos en su ticket/handoff.
+9. Sólo el integrador exclusivo regenera Kanban, agrega handoffs, escribe la
+   bitácora, ejecuta el gate final y publica `main`.
+10. Después de integrar y publicar, el integrador limpia cada worktree terminado
+    mediante el protocolo de `source-command-cerrar`; también verifica que la
+    carpeta física desapareció y ejecuta `git worktree prune`.
+
+Un worktree nunca se elimina desde el worker que lo está usando ni mientras otra
+ventana tenga ese `cwd`. Si hay duda sobre una ventana activa, cambios locales,
+push, integración o propiedad de archivos, conservar el worktree y marcar la
+limpieza como bloqueada. La incertidumbre prohíbe borrar; no lo autoriza.
+
+Si una plataforma no expone tiempo o tokens, registrar `n/a`; nunca estimarlos
+como si fueran medición.
+
+## Verificación
+
+```powershell
+node .agents/skills/forge-kanban/test-forge-kanban.mjs
+node .agents/skills/backlog/backlog.mjs build
+node scripts/bitacora-metrics.mjs --json
+```
+
+En un proyecto sin adaptador local, ejecutar las métricas portables con:
+
+```powershell
+node "$FORGE_KANBAN\scripts\bitacora-metrics.mjs" --json
+node "$FORGE_KANBAN\scripts\bitacora-metrics.mjs" --write
+```
+
+No aplicar migraciones, desplegar producción ni modificar servicios alojados
+como parte de esta metodología.
+
+El arnés universal es deliberadamente un **asesor fail-closed**: inspecciona,
+planifica el cierre y bloquea ante evidencia incompleta. La eliminación efectiva
+queda en manos del integrador de plataforma con un recibo auditable.
+
+## Referencias
+
+- `references/ticket-schema.md`: contrato v2 y compatibilidad legacy.
+- `references/methodology.md`: ciclo operativo y gates de preparación.
+- `references/capability-router.yaml`: registro declarativo de constructores,
+  revisores, método y evidencia por dominio.

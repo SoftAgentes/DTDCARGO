@@ -82,7 +82,12 @@ docs-legal/
 # Config local de Claude. El harness del proyecto (agentes + skills) SÍ se versiona;
 # settings/planes locales quedan fuera.
 # Forge (manifest + tooling) es toolbox LOCAL, no va al repo del equipo.
-.forge/
+# Excepción: el binding de Skill Plugin Kanban SÍ se versiona — es configuración
+# autorada (mapeo de clases de modelo + ticket_dir), no estado generado. Sin él,
+# cada ventana/clon cae a DEFAULT_CONFIG y pierde el mapeo.
+# `.forge/*` (no `.forge/`): git no re-incluye archivos si el directorio padre está excluido.
+.forge/*
+!.forge/forge-kanban.yml
 .claude/*
 # Solo el harness DTD se versiona; Forge (skills/agents/commands extra) queda LOCAL.
 !.claude/agents/
@@ -97,6 +102,9 @@ docs-legal/
 !.claude/commands/radar.md
 !.claude/commands/ui-check.md
 !.claude/commands/ui-pro.md
+# Wrappers finos de Claude sobre el núcleo canónico de Skill Plugin Kanban.
+!.claude/commands/forge-kanban.md
+!.claude/commands/cerrar.md
 !.claude/settings.json
 # Skill /ui-pro (auditoría de diseño profunda) — versionado para el equipo.
 !.claude/skills/
