@@ -53,3 +53,30 @@ export const NORTE_PORTAL_LIVE = true;
 export function showNortePortal(markbox: string | null | undefined): boolean {
   return NORTE_PORTAL_LIVE || isDemoMarkbox(markbox);
 }
+
+/**
+ * ¿El CTA de aceptación DENTRO del detalle del envío está PRENDIDO PARA TODOS?
+ * (SDD-0075 §1 · Slice A).
+ *
+ * OJO: `NORTE_PORTAL_LIVE` ya está en `true`, así que el rediseño Norte —y con él
+ * `PortalShipmentDetailNorte`— lo ve TODO cliente. Sin este segundo interruptor, el
+ * CTA nuevo saldría vivo para todos en el próximo deploy. Por eso el rollout de
+ * Slice A tiene su propio flip (founder 2026-07-16).
+ *
+ * NO abre capacidad nueva: la aceptación ya es visible para todos vía el
+ * `PendingAcceptanceCard` del dashboard; esto DUPLICA el acceso en el detalle del
+ * envío (decisión de la spec: duplicar, no mover — `/portal/facturas/[code]/aceptar`
+ * sigue intacta). Para prenderlo a todos: poné `true`. Para revertir: `false`.
+ */
+export const SHIPMENT_ACCEPTANCE_CTA_LIVE = false;
+
+/**
+ * ¿Mostrarle a este cliente el CTA de aceptación en el detalle del envío? `true`
+ * para todos cuando `SHIPMENT_ACCEPTANCE_CTA_LIVE`; mientras tanto, sólo las
+ * cuentas demo (para revisarlo en producción sin exponerlo).
+ */
+export function showShipmentAcceptanceCta(
+  markbox: string | null | undefined,
+): boolean {
+  return SHIPMENT_ACCEPTANCE_CTA_LIVE || isDemoMarkbox(markbox);
+}

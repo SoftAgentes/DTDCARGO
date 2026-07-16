@@ -9,11 +9,19 @@ import type { PendingAcceptanceInvoice } from "@/lib/portal/portal-legal-queries
  * C). El borrador NO aparece en "Mis facturas" (el portal lo oculta), así que
  * esta es la única vía por la que el cliente lo ve. Tono de ATENCIÓN (dorado
  * --warning, no wine). Si hay 1 → CTA directo a esa orden; si hay varias → lista.
+ *
+ * Se reusa tal cual en el detalle del envío (SDD-0075 §1 · Slice A): las clases
+ * (`bg-white`/`text-ink`/`grey-*`) son tokens que el tema recalcula por modo, así
+ * que lee igual en el portal claro y en el Norte oscuro. Allá el card habla de UN
+ * envío ya en pantalla → `heading` contextualiza el texto.
  */
 export function PendingAcceptanceCard({
   pending,
+  heading,
 }: {
   pending: PendingAcceptanceInvoice[];
+  /** Encabezado a medida. Default: el conteo ("Tienes N órdenes…"), para el dashboard. */
+  heading?: string;
 }) {
   if (pending.length === 0) return null;
 
@@ -30,9 +38,10 @@ export function PendingAcceptanceCard({
         Pendiente de tu aceptación
       </div>
       <div className="mt-2.5 text-[16px] font-bold text-ink">
-        {count === 1
-          ? "Tienes 1 orden esperando tu aceptación de T&C."
-          : `Tienes ${count} órdenes esperando tu aceptación de T&C.`}
+        {heading ??
+          (count === 1
+            ? "Tienes 1 orden esperando tu aceptación de T&C."
+            : `Tienes ${count} órdenes esperando tu aceptación de T&C.`)}
       </div>
       <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.55] max-w-[56ch]">
         Para que podamos emitir tu factura de puerta a puerta DDP (prepago),

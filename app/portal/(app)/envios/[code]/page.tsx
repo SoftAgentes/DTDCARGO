@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
@@ -8,7 +9,11 @@ import {
   stepDatesFromEvents,
 } from "@/lib/portal/shipment-events-queries";
 import { SERVICE_LABELS, estimatePortalEta } from "@/lib/portal/portal-types";
-import { showNortePortal } from "@/lib/portal/demo";
+import { showNortePortal, showShipmentAcceptanceCta } from "@/lib/portal/demo";
+import {
+  getPendingAcceptanceForShipment,
+  type PendingAcceptanceInvoice,
+} from "@/lib/portal/portal-legal-queries";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
 import { StatusBadge } from "../../../_components/StatusBadge";
@@ -85,6 +90,16 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
       naviera = null;
       live = null;
     }
+
+    // Orden DDP de ESTE envío esperando aceptación (SDD-0075 §1 · Slice A). Gate
+    // propio (`showShipmentAcceptanceCta`): NORTE_PORTAL_LIVE ya está en true, así
+    // que sin él el CTA saldría vivo para todos. Best-effort → un fallo del admin
+    // client no rompe el detalle del envío (el card simplemente no aparece).
+    const pendingAcceptance =
+      client && showShipmentAcceptanceCta(client.markbox)
+        ? await loadPendingAcceptance(admin, client.id, client.markbox, shipment.id)
+        : null;
+
     return (
       <PortalShipmentDetailNorte
         shipment={shipment}
@@ -93,6 +108,7 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
         naviera={naviera}
         live={live}
         stepDates={stepDates}
+        pendingAcceptance={pendingAcceptance}
       />
     );
   }
@@ -249,5 +265,36 @@ function formatDate(iso: string): string {
     });
   } catch {
     return "—";
+  }
+}
+
+/**
+ * La orden DDP de este envío que espera aceptación (SDD-0075 §1 · Slice A).
+ * Resuelve el tenant del cliente (por su id, ya verificado por sesión vía
+ * `getPortalClient`) y delega en la query, que scopea por tenant + markbox —
+ * misma invariante que el dashboard. Best-effort: un fallo del admin client no
+ * debe romper el detalle del envío → null (el card no se muestra).
+ */
+async function loadPendingAcceptance(
+  admin: SupabaseClient,
+  clientId: string,
+  markbox: string,
+  shipmentId: string,
+): Promise<PendingAcceptanceInvoice | null> {
+  try {
+    const { data: row } = await admin
+      .from("clients")
+      .select("tenant_id")
+      .eq("id", clientId)
+      .maybeSingle<{ tenant_id: string }>();
+    const tenantId = String(row?.tenant_id ?? "").trim();
+    if (!tenantId) return null;
+    return await getPendingAcceptanceForShipment(admin, {
+      tenantId,
+      markbox,
+      shipmentId,
+    });
+  } catch {
+    return null;
   }
 }

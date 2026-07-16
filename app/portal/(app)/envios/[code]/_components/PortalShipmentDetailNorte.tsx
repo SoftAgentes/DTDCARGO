@@ -17,8 +17,10 @@ import {
 } from "@/lib/studio/naviera-tracking/types";
 import { trackingUrlFromSnapshot } from "@/lib/studio/naviera-tracking/searates-deeplink";
 import type { TrackingSnapshotRow } from "@/lib/studio/naviera-tracking/snapshot-queries";
+import type { PendingAcceptanceInvoice } from "@/lib/portal/portal-legal-queries";
 import { StatusBadge } from "../../../../_components/StatusBadge";
 import { PortalDocsCard } from "../../../../_components/PortalDocsCard";
+import { PendingAcceptanceCard } from "../../../_components/PendingAcceptanceCard";
 
 /**
  * Detalle de envío — REDISEÑO NORTE (founder 2026-06-20). GATEADO al demo; los
@@ -47,6 +49,7 @@ export function PortalShipmentDetailNorte({
   naviera,
   live,
   stepDates,
+  pendingAcceptance,
 }: {
   shipment: PortalShipmentDetail;
   documents: DocsProps["documents"];
@@ -57,6 +60,12 @@ export function PortalShipmentDetailNorte({
   live?: TrackingSnapshotRow | null;
   /** Fecha real (ISO) por status del stepper (SDD-0132). Opcional. */
   stepDates?: Partial<Record<ShipmentStatus, string>>;
+  /**
+   * Orden DDP de ESTE envío esperando aceptación (SDD-0075 §1 · Slice A). null =
+   * nada que aceptar (o el CTA aún no está prendido para este cliente). La página
+   * ya resolvió el gate `showShipmentAcceptanceCta` + la query.
+   */
+  pendingAcceptance?: PendingAcceptanceInvoice | null;
 }) {
   const svc = SERVICE_LABELS[shipment.service];
   const serviceLabel = svc.sub ? `${svc.primary} · ${svc.sub}` : svc.primary;
@@ -103,6 +112,19 @@ export function PortalShipmentDetailNorte({
         </div>
         <StatusBadge status={shipment.status} />
       </div>
+
+      {/* Aceptación cosida al ciclo del envío (SDD-0075 §1 · Slice A): arriba del
+          stepper porque es lo ÚNICO que frena el avance de la carga — sin aceptar,
+          no se emite la factura. Mismo card del dashboard (acceso duplicado, no
+          movido: /portal/facturas/[code]/aceptar sigue siendo la pantalla). */}
+      {pendingAcceptance ? (
+        <div className="mt-6">
+          <PendingAcceptanceCard
+            pending={[pendingAcceptance]}
+            heading="Este envío espera tu aceptación para que podamos facturarlo."
+          />
+        </div>
+      ) : null}
 
       {/* Stepper de seguimiento (horizontal, canónico) */}
       <div className="mt-8 card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-8">
