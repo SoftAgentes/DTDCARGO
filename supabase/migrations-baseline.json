@@ -1,0 +1,34 @@
+{
+  "$doc": [
+    "Baseline de conciliación repo ↔ prod para scripts/check-migrations-applied.mjs.",
+    "",
+    "POR QUÉ EXISTE ESTE ARCHIVO Y NO UN CRUCE 1:1: el `name` del ledger de prod",
+    "(supabase_migrations.schema_migrations) es TEXTO LIBRE — lo tipea quien aplica. En 233",
+    "migraciones históricas divergió de mil formas: 168 coinciden con el basename del archivo,",
+    "44 viven bajo otro nombre (0001_init_tenancy → 'init_tenancy'; 0067_warehouse_receipts_ve →",
+    "'warehouse_receipts_ve_sprint_e'), y ~13 se aplicaron FUERA DE BANDA (su efecto está en prod",
+    "—verificado por objeto— pero no dejaron fila propia: 0085, 0086, 0141, 0222, 0223…). Cruzar",
+    "eso 1:1 son 62 casos de ruido, y un gate ruidoso se ignora — que es EXACTAMENTE cómo la 0228",
+    "estuvo dos rondas perdida.",
+    "",
+    "DECISIÓN DE DISEÑO — LÍNEA DE CORTE: todo lo histórico YA está en prod (el ERP corre con 55",
+    "módulos vivos). No hace falta re-verificarlo. `cutoff` congela ese pasado de un plumazo: los",
+    "archivos con número ≤ cutoff se dan por reconciliados. El check solo vigila lo NUEVO (número >",
+    "cutoff), donde rige la regla hacia adelante: una migración se aplica con su basename EXACTO",
+    "como `name`, y si el archivo existe en el repo pero no en el ledger de prod → rojo.",
+    "",
+    "`pendingBelowCutoff` son las excepciones conocidas por DEBAJO del corte: archivos que sí",
+    "están en el repo pero NO deben/aún-no se aplicaron. Sin esto el corte los borraría del radar.",
+    "",
+    "AL SUBIR EL CORTE (tras aplicar una tanda): poné `cutoff` en el número más alto ya aplicado y",
+    "sacá de `pendingBelowCutoff` lo que haya quedado aplicado. NO uses el corte para tapar una",
+    "migración nueva sin aplicar — para eso está el rojo del gate."
+  ],
+
+  "cutoff": 238,
+
+  "pendingBelowCutoff": {
+    "0017_no_olvidar": "SDD-0025 (No-Olvidar) vive en la rama feat/no-olvidar SIN merge, gated por un review criptográfico externo (envelope encryption). El archivo llegó a main pero NO se aplica hasta pasar ese gate. Verificado 2026-07-16: to_regclass('public.no_olvidar_items') → NULL. Al aplicarla, sacala de acá.",
+    "0169_public_verify_throttle": "🔴 PEND founder: aplicar. Verificado 2026-07-16: to_regclass('public.public_verify_throttle') → NULL. Su cabecera dice 'NO aplicar a prod (lo hace la coordinación / founder)' — el mismo patrón que perdió la 0228 dos rondas. CONSECUENCIA VIVA: isVerifyThrottled (lib/public/verify-throttle.ts:57) es fail-open → sin la tabla el count nunca llega al límite y /verificar queda SIN throttle anti-enumeración. Los códigos son secuenciales y la rama de diploma expone student_name (PII). Al aplicarla, sacala de acá."
+  }
+}
