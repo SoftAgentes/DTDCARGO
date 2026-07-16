@@ -4,6 +4,8 @@ methodology: avivar_classify_route_forge_verify_close
 capabilities:
   planning:
     status: active
+    llm_mode: required
+    methodology: blueprint_first
     builder_skills: [la-herreria]
     review_skills: [karpathy-principles]
     default_method: yunque
@@ -11,6 +13,8 @@ capabilities:
 
   general_code:
     status: active
+    llm_mode: required
+    methodology: karpathy_goal_oriented
     builder_skills: [karpathy-principles]
     review_skills: [testing-engineer]
     default_method: conditional
@@ -18,6 +22,8 @@ capabilities:
 
   product_design:
     status: active
+    llm_mode: required
+    methodology: design_quality_then_web_review
     builder_skills: [impeccable]
     review_skills: [web-quality]
     default_method: conditional
@@ -25,6 +31,8 @@ capabilities:
 
   image_asset:
     status: active
+    llm_mode: required
+    methodology: brand_aligned_generation
     builder_skills: [image-generation]
     review_skills: [guia-identidad-marca]
     default_method: forja
@@ -32,6 +40,8 @@ capabilities:
 
   narrative_visuals:
     status: active
+    llm_mode: required
+    methodology: narrative_visual_pipeline
     builder_skills: [video-visuals]
     review_skills: [guia-identidad-marca]
     default_method: forja
@@ -39,6 +49,8 @@ capabilities:
 
   brand_identity:
     status: active
+    llm_mode: required
+    methodology: brand_system_then_human_approval
     builder_skills: [guia-identidad-marca, guia-voz-marca]
     review_skills: [human_approval]
     default_method: yunque
@@ -46,6 +58,8 @@ capabilities:
 
   brand_architecture:
     status: active
+    llm_mode: required
+    methodology: architecture_options_then_human_approval
     builder_skills: [arquitectura-marca]
     review_skills: [human_approval]
     default_method: yunque
@@ -53,6 +67,8 @@ capabilities:
 
   database:
     status: active
+    llm_mode: required
+    methodology: migration_rls_concurrency
     builder_skills: [supabase, insforge]
     exclusive_builder_selection: true
     review_skills: [project-auditor]
@@ -61,6 +77,8 @@ capabilities:
 
   payments:
     status: active
+    llm_mode: required
+    methodology: provider_decision_then_idempotent_webhooks
     builder_skills: [add-payments]
     review_skills: [project-auditor]
     default_method: yunque
@@ -68,6 +86,8 @@ capabilities:
 
   transactional_email:
     status: active
+    llm_mode: required
+    methodology: template_render_link_delivery
     builder_skills: [add-emails]
     review_skills: [testing-engineer]
     default_method: conditional
@@ -75,6 +95,8 @@ capabilities:
 
   mobile_pwa:
     status: active
+    llm_mode: required
+    methodology: install_offline_responsive
     builder_skills: [add-mobile]
     review_skills: [web-quality]
     default_method: yunque
@@ -82,6 +104,8 @@ capabilities:
 
   cinematic_web:
     status: active
+    llm_mode: required
+    methodology: copy_first_motion_accessibility_performance
     builder_skills: [website-3d]
     review_skills: [web-quality]
     default_method: conditional
@@ -89,6 +113,8 @@ capabilities:
 
   business_strategy:
     status: active
+    llm_mode: required
+    methodology: crisol_dependency_pipeline
     builder_skills: [el-crisol]
     review_skills: [human_approval]
     default_method: yunque
@@ -96,6 +122,8 @@ capabilities:
 
   release_audit:
     status: active
+    llm_mode: required
+    methodology: full_project_evidence_audit
     builder_skills: [project-auditor]
     review_skills: [human_approval]
     default_method: yunque
@@ -103,6 +131,8 @@ capabilities:
 
   skill_engineering:
     status: active
+    llm_mode: required
+    methodology: skill_creator_validate_forward_test
     builder_skills: [skill-creator]
     review_skills: [autoresearch]
     default_method: forja
@@ -110,6 +140,8 @@ capabilities:
 
   session_close:
     status: active
+    llm_mode: optional
+    methodology: evidence_commit_push_handoff_cleanup
     builder_skills: [source-command-cerrar]
     review_skills: [git_audit]
     default_method: yunque

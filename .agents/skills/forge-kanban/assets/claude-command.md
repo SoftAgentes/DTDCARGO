@@ -20,12 +20,17 @@ $FK = Join-Path (Resolve-Path $FORGE_KANBAN).Path 'scripts\forge-kanban.mjs'
 La instalación del proyecto gana. El fallback global prueba Claude y después
 Codex. En proyectos Forge ejecutar `/avivar` primero; en standalone, `start`.
 
+Al invocar `/forge-kanban`, ejecutar inmediatamente `doctor --json`. Si está
+sano, ejecutar `board` y presentar su tabla completa en la respuesta. No mostrar
+solamente conteos de `status` o el resumen de `features`.
+
 ## Comandos
 
 ```powershell
 node "$FK" doctor --json
 node "$FK" start --json
 node "$FK" status --json
+node "$FK" board
 node "$FK" features
 node "$FK" reconcile
 node "$FK" propose

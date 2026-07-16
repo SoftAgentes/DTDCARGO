@@ -26,7 +26,8 @@ export function routeCapability(router, domain) {
     builder_skills: capability.builder_skills || [],
     review_skills: capability.review_skills || [],
     build_method: capability.default_method || 'conditional',
+    llm_mode: capability.llm_mode || 'unknown',
+    methodology: capability.methodology || null,
     evidence: capability.evidence || [],
   }
 }
-

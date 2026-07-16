@@ -8,6 +8,7 @@ import { resolveProjectIdentity, slugifyProjectName } from './scripts/project-id
 import { inspectSessions } from './scripts/lib/sessions.mjs'
 import { reconcileFeatures, renderFeatureConsole, renderFeatureHtml } from './scripts/lib/reconciler.mjs'
 import { buildProposals, renderProposalConsole } from './scripts/lib/proposals.mjs'
+import { buildExecutionBoard, renderExecutionHtml, renderExecutionMarkdown } from './scripts/lib/execution-board.mjs'
 
 const ROOT = dirname(dirname(dirname(dirname(fileURLToPath(import.meta.url)))))
 const INIT = join(dirname(fileURLToPath(import.meta.url)), 'scripts', 'init-project.mjs')
@@ -18,6 +19,8 @@ const HARNESS = join(dirname(fileURLToPath(import.meta.url)), 'scripts', 'harnes
 const SKILL_ROOT = dirname(fileURLToPath(import.meta.url))
 const METHODOLOGY = join(SKILL_ROOT, 'references', 'methodology.md')
 const ROUTER = join(SKILL_ROOT, 'references', 'capability-router.yaml')
+const CLAUDE_COMMAND = join(SKILL_ROOT, 'assets', 'claude-command.md')
+const OPENAI_INTERFACE = join(SKILL_ROOT, 'agents', 'openai.yaml')
 const LOCAL_METRICS = join(ROOT, 'scripts', 'bitacora-metrics.mjs')
 const METRICS = existsSync(LOCAL_METRICS) ? LOCAL_METRICS : join(SKILL_ROOT, 'scripts', 'bitacora-metrics.mjs')
 let failed = false
@@ -128,6 +131,7 @@ try {
   ok('capability router separates builders and reviewers', router.includes('builder_skills:') && router.includes('review_skills:'))
   ok('capability router keeps specialist logic external', router.includes('never_duplicate_specialist_logic: true'))
   ok('portable package uses only generic capability identities', router.includes('product_design:') && router.includes('database:'))
+  ok('Codex and Claude interfaces start with doctor and the unified board', readFileSync(CLAUDE_COMMAND, 'utf8').includes('`doctor --json`') && readFileSync(CLAUDE_COMMAND, 'utf8').includes('ejecutar `board`') && readFileSync(OPENAI_INTERFACE, 'utf8').includes('Ejecuta doctor y después board'))
 
   const portable = createRepo(sandbox, 'Portable Project')
   mkdirSync(join(portable, '.forge'), { recursive: true })
@@ -138,7 +142,7 @@ try {
   ok('doctor parses project config instead of documenting it', doctorData.checks?.some(check => check.name === 'ticket_directory' && check.value === 'custom/tickets'))
   const route = spawnSync('node', [CONTROL, 'route', 'product_design', '--json'], { cwd: portable, encoding: 'utf8' })
   const routeData = route.status === 0 ? JSON.parse(route.stdout) : {}
-  ok('router resolves builder and reviewer from YAML', routeData.builder_skills?.includes('impeccable') && routeData.review_skills?.includes('web-quality'))
+  ok('router resolves agents, LLM policy and methodology from YAML', routeData.builder_skills?.includes('impeccable') && routeData.review_skills?.includes('web-quality') && routeData.llm_mode === 'required' && routeData.methodology === 'design_quality_then_web_review')
   const unknown = spawnSync('node', [CONTROL, 'route', 'does_not_exist', '--json'], { cwd: portable, encoding: 'utf8' })
   ok('unknown capability blocks closed', unknown.status === 1 && JSON.parse(unknown.stdout).blocked === true)
   const unsafeConfig = createRepo(sandbox, 'Unsafe Ticket Directory')
@@ -170,7 +174,7 @@ try {
   const featureCli = spawnSync('node', [CONTROL, 'features'], { cwd: featureRoot, encoding: 'utf8' })
   ok('features command presents the four visual states', featureCli.status === 0 && ['🔴', '🟡', '⚫', '🟢'].every(icon => featureCli.stdout.includes(icon)))
   const usageCli = spawnSync('node', [SNAPSHOT, '--help'], { cwd: featureRoot, encoding: 'utf8' })
-  ok('command help exposes feature reconciliation and proposals', usageCli.status === 2 && usageCli.stderr.includes('features|reconcile|propose'))
+  ok('command help exposes the unified board, reconciliation and proposals', usageCli.status === 2 && usageCli.stderr.includes('board|features|reconcile|propose'))
   const filteredFeatures = reconcileFeatures({ root: featureRoot, config: { reconcile: { roots: ['docs/plan'], file_names: ['partial.md'] } }, tickets: [] })
   ok('project config can restrict which markdown files represent features', filteredFeatures.scanned === 1 && filteredFeatures.features[0].title === 'Portal')
 
@@ -207,6 +211,17 @@ try {
   ok('human decisions never become automatic tickets', contractProposals.find(proposal => proposal.feature_id === 'F-004')?.eligible_for_ticket === false)
   ok('proposal ids are stable across repeated analysis', buildProposals(contractResult)[0].proposal_id === buildProposals(contractResult)[0].proposal_id)
   ok('proposal console states that no tickets were created', renderProposalConsole(contractProposals).includes('Ningún ticket fue creado'))
+  const boardRoute = domain => ({ blocked: false, domain, builder_skills: ['builder'], review_skills: ['reviewer'], build_method: 'conditional', llm_mode: 'required', methodology: 'test_methodology', evidence: ['tests'] })
+  const executionBoard = buildExecutionBoard({
+    tickets: [{ id: 'T-900', title: 'Construir feature enrutable', status: 'planning', priority: 'red', priority_reason: 'bloquea entrega', spec_ref: 'docs/specs/proposal/spec.md', domain: 'general_code', artifact_type: 'code', build_method: 'yunque', builder_skills: 'builder', review_skills: 'reviewer', llm_mode: 'required', methodology: 'test_methodology', model: 'test-sol', gate: 'npm test' }],
+    featureResult: contractResult, proposals: contractProposals, routeDomain: boardRoute, config: contractConfig,
+  })
+  const boardMarkdown = renderExecutionMarkdown(executionBoard, { baseline: 'test' }); const boardHtml = renderExecutionHtml(executionBoard, { baseline: 'test' })
+  const inferredBoard = buildExecutionBoard({ tickets: [{ id: 'T-901', title: 'Implementar captura móvil de gastos', status: 'planning', priority: 'yellow' }], featureResult: { features: [] }, proposals: [], routeDomain: boardRoute, config: contractConfig })
+  ok('execution board de-duplicates a feature covered by an open ticket', executionBoard.rows.some(row => row.id === 'T-900') && !executionBoard.rows.some(row => row.item_type === 'feature' && row.source === 'docs/specs/proposal/spec.md'))
+  ok('execution board exposes priority engine agent LLM model methodology and gate', ['Prioridad', 'Motor', 'Agente/skill', 'LLM', 'Modelo', 'Metodología', 'Gate'].every(column => boardMarkdown.includes(column)))
+  ok('execution dashboard renders a visual responsive planning table', boardHtml.includes('Plan de ejecución') && boardHtml.includes('ready-chip') && boardHtml.includes('<th>Agente/skill</th>'))
+  ok('legacy work receives a suggested route but remains blocked for confirmation', inferredBoard.rows[0].domain === 'mobile_pwa' && inferredBoard.rows[0].domain_source === 'inferred' && inferredBoard.rows[0].builders.includes('builder') && inferredBoard.rows[0].llm_mode === 'required' && inferredBoard.rows[0].ready === false)
   git(contractRoot, 'add', '--', 'docs/specs', '.forge/forge-kanban.yml')
   git(contractRoot, '-c', 'user.name=Forge Test', '-c', 'user.email=forge@test.local', 'commit', '-m', 'add contracts')
   const proposeCli = spawnSync('node', [CONTROL, 'propose'], { cwd: contractRoot, encoding: 'utf8' })
@@ -226,14 +241,16 @@ try {
   const applyAgain = spawnSync('node', [CONTROL, 'apply', proposalId, '--json'], { cwd: contractRoot, encoding: 'utf8' })
   const healedManifest = JSON.parse(readFileSync(approvalsPath, 'utf8'))
   const appliedStatus = spawnSync('node', [CONTROL, 'status', '--json'], { cwd: contractRoot, encoding: 'utf8' })
+  const boardCli = spawnSync('node', [CONTROL, 'board'], { cwd: contractRoot, encoding: 'utf8' })
   const materialized = readFileSync(join(contractRoot, '.forge', 'backlog', 'tickets', 'T-001.md'), 'utf8')
   ok('propose writes an auditable baseline bundle', proposeCli.status === 0 && proposalBundle.baseline === git(contractRoot, 'rev-parse', 'HEAD'))
   ok('human decisions cannot be approved as tickets', rejectDecision.status === 1)
   ok('eligible proposal requires explicit named approval', approveCli.status === 0)
   ok('apply rejects proposal drift after approval', rejectDrift.status === 1)
-  ok('apply materializes one complete v3 ticket', applyCli.status === 0 && materialized.includes('schema_version: 3') && materialized.includes(`proposal_id: ${proposalId}`) && materialized.includes('commit_strategy: atomic_selective'))
+  ok('apply materializes one complete v3 ticket', applyCli.status === 0 && materialized.includes('schema_version: 3') && materialized.includes(`proposal_id: ${proposalId}`) && materialized.includes('llm_mode: required') && materialized.includes('methodology:') && materialized.includes('commit_strategy: atomic_selective'))
   ok('apply is idempotent and heals an interrupted approval receipt', applyAgain.status === 0 && JSON.parse(applyAgain.stdout).already_applied === true && healedManifest.approvals[0].status === 'applied' && healedManifest.approvals[0].applied_ticket_id === 'T-001')
   ok('materialized ticket passes the v3 planning validator', appliedStatus.status === 0 && JSON.parse(appliedStatus.stdout).valid === true)
+  ok('board command writes Markdown JSON and visual HTML reports', boardCli.status === 0 && ['execution-board.md', 'execution-board.json', 'execution-board.html'].every(name => existsSync(join(contractRoot, '.forge', 'reports', name))))
 } finally {
   rmSync(sandbox, { recursive: true, force: true })
 }

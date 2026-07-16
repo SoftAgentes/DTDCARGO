@@ -46,6 +46,15 @@ es `propose → approve <ID> --by <persona> --reason <razón> → apply <ID>`.
 La aprobación queda ligada al hash de la spec y al commit base; `apply` bloquea
 deriva, decisiones humanas, contratos incompletos y duplicados.
 
+**Al invocar Forge Kanban, la salida principal es obligatoria:** ejecutar
+`doctor --json`; si está sano, ejecutar `board` y presentar su tabla completa en
+la respuesta. No detenerse en conteos de `status` ni en la lista resumida de
+`features`. `board` unifica tickets abiertos y features pendientes, deduplica
+las cubiertas por tickets y genera `execution-board.md`, `.json` y `.html`.
+Debe mostrar prioridad, qué se construye, dominio, Yunque/Forja, constructor,
+revisor, uso de LLM, modelo, metodología, gate y situación. Un routing inferido
+se muestra como **sugerido** y queda ⚫ hasta confirmación humana.
+
 Semáforo de features (no confundir con prioridad del ticket):
 
 - 🔴 bloqueo o contradicción que requiere acción.
@@ -167,11 +176,12 @@ migran sólo cuando sean editados. No inventar razones faltantes; mostrar
 
 La vista generada incluye:
 
-| ID | Prioridad | Criterio de prioridad | Tarea | Dependencias | Complejidad | Modelo | Criterio del modelo | Esfuerzo | Yunque/Forja | Gate | Entrega Git | Estado |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Prioridad | Preparación | Tipo | ID | Qué se construye | Dominio | Motor | Agente/skill | Revisor | LLM | Modelo | Metodología | Gate | Situación |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 
-Ordenar primero por prioridad: rojo, amarillo, verde y nice to have; después por
-ID. No editar `KANBAN.md` a mano: regenerar con el motor de backlog.
+Ordenar primero por prioridad: rojo, amarillo, negro/por definir, verde y nice
+to have; después por ID. No editar `KANBAN.md` ni el execution board a mano:
+regenerar con sus motores.
 
 ## Ejecución y cierre
 

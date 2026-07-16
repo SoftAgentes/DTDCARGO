@@ -94,6 +94,7 @@ function renderTicket(proposal, ticketId, today) {
     `artifact_type: ${yamlString(proposal.artifact_type)}`, `risk_tags: ${yamlString(list(proposal.risk_tags).join(', ') || 'none')}`,
     `builder_skills: ${yamlString(list(route.builder_skills).join(', '))}`,
     `review_skills: ${yamlString(list(route.review_skills).join(', '))}`,
+    `llm_mode: ${route.llm_mode || 'unknown'}`, `methodology: ${yamlString(route.methodology || 'pending')}`,
     'required_context: "AGENTS.md, spec_ref"', `owned_paths: ${yamlString(list(proposal.owned_paths).join(', '))}`,
     `shared_paths: ${yamlString(list(proposal.shared_paths).join(', ') || 'none')}`,
     `forbidden_paths: ${yamlString(list(proposal.forbidden_paths).join(', ') || '.env*')}`,

@@ -48,6 +48,7 @@ Luego usa:
 node "$FORGE_KANBAN\scripts\forge-kanban.mjs" doctor
 node "$FORGE_KANBAN\scripts\forge-kanban.mjs" start
 node "$FORGE_KANBAN\scripts\forge-kanban.mjs" status
+node "$FORGE_KANBAN\scripts\forge-kanban.mjs" board
 node "$FORGE_KANBAN\scripts\forge-kanban.mjs" features
 node "$FORGE_KANBAN\scripts\forge-kanban.mjs" reconcile
 node "$FORGE_KANBAN\scripts\forge-kanban.mjs" propose
@@ -58,6 +59,8 @@ node "$FORGE_KANBAN\scripts\forge-kanban.mjs" apply FKP-XXXXXXXX
 - `doctor`: valida instalación, configuración y capacidades.
 - `start`: inicializa o adopta el proyecto sin exigir Forge.
 - `status`: resume backlog, Git, worktrees y bloqueos.
+- `board`: presenta la tabla principal de ejecución y genera Markdown, JSON y
+  dashboard HTML con prioridad, motor, agentes, LLM, modelo, metodología y gate.
 - `features`: muestra el inventario completo con semáforo.
 - `reconcile`: genera reporte Markdown y dashboard HTML auditables.
 - `propose`: genera propuestas estables; no crea tickets.
@@ -70,8 +73,8 @@ node "$FORGE_KANBAN\scripts\forge-kanban.mjs" apply FKP-XXXXXXXX
 
 1. Abre el repositorio correcto.
 2. Si el proyecto tiene Forge, ejecuta `/avivar`.
-3. Invoca `/forge-kanban` o pide `forge-kanban status` y
-   `forge-kanban features`.
+3. Invoca `/forge-kanban`: debe ejecutar `doctor` y `board` automáticamente y
+   mostrar la tabla completa. `status` y `features` son vistas auxiliares.
 4. Revisa primero rojos y negros; después amarillos.
 5. Ejecuta `reconcile` sólo cuando quieras regenerar los reportes persistentes.
 6. Ejecuta `propose` sólo para preparar candidatos a tickets.

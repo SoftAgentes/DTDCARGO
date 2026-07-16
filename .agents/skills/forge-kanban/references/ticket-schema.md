@@ -21,7 +21,7 @@
 Campos opcionales: `depends_on`, `pts`, `kind`, `epic`, `sprint`, `blocked`,
 `created`, `updated`, `spec_ref`, `domain`, `artifact_type`, `risk_tags`,
 `builder_skills`, `review_skills`, `required_context`, `owned_paths`,
-`shared_paths`, `forbidden_paths` y `evidence`.
+`shared_paths`, `forbidden_paths`, `llm_mode`, `methodology` y `evidence`.
 
 ## Contrato de enrutamiento
 

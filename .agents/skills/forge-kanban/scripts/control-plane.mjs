@@ -8,6 +8,7 @@ import { loadRouter, routeCapability } from './lib/router.mjs'
 import { reconcileFeatures, renderFeatureConsole, renderFeatureHtml, renderFeatureReport } from './lib/reconciler.mjs'
 import { buildProposals, renderProposalConsole, renderProposalMarkdown } from './lib/proposals.mjs'
 import { applyApprovedProposal, approveProposal } from './lib/approval.mjs'
+import { buildExecutionBoard, renderExecutionHtml, renderExecutionMarkdown } from './lib/execution-board.mjs'
 
 const skillRoot = dirname(dirname(fileURLToPath(import.meta.url)))
 const root = process.cwd()
@@ -133,6 +134,23 @@ function proposals(json = false) {
   console.log(renderProposalConsole(items)); console.log(`\nReportes: ${mdPath} · ${jsonPath}`)
 }
 
+function executionBoard(json = false) {
+  const config = loadConfig(root); const all = tickets(config); const router = loadRouter(skillRoot)
+  const featureResult = reconcileFeatures({ root, config, tickets: all })
+  const routeDomain = domain => routeCapability(router, domain)
+  const proposalItems = buildProposals(featureResult, routeDomain, config)
+  const board = buildExecutionBoard({ tickets: all, featureResult, proposals: proposalItems, routeDomain, config })
+  if (json) { console.log(JSON.stringify(board, null, 2)); return }
+  const reportDir = join(root, config.reconcile?.report_dir || '.forge/reports'); mkdirSync(reportDir, { recursive: true })
+  const metadata = { baseline: git('rev-parse', 'HEAD') || 'n/a', generatedAt: new Date().toISOString() }
+  const mdPath = join(reportDir, 'execution-board.md'); const htmlPath = join(reportDir, 'execution-board.html'); const jsonPath = join(reportDir, 'execution-board.json')
+  const markdown = renderExecutionMarkdown(board, metadata)
+  writeFileSync(mdPath, `${markdown}\n`, 'utf8')
+  writeFileSync(htmlPath, renderExecutionHtml(board, metadata), 'utf8')
+  writeFileSync(jsonPath, `${JSON.stringify({ ...metadata, ...board }, null, 2)}\n`, 'utf8')
+  console.log(markdown); console.log(`\nDashboard: ${htmlPath}\nDatos: ${jsonPath}`)
+}
+
 function currentProposals() {
   const config = loadConfig(root); const all = tickets(config); const router = loadRouter(skillRoot)
   const result = reconcileFeatures({ root, config, tickets: all })
@@ -168,8 +186,9 @@ else if (command === 'status' || command === 'start') status(json)
 else if (command === 'route' && argument) route(argument, json)
 else if (command === 'adopt') adoption(process.argv.includes('--deep'))
 else if (command === 'features') featureInventory(json, false)
+else if (command === 'board') executionBoard(json)
 else if (command === 'reconcile') featureInventory(json, true)
 else if (command === 'propose') proposals(json)
 else if (command === 'approve' && argument) approve(argument, json)
 else if (command === 'apply' && argument) apply(argument, json)
-else { console.error('Uso: control-plane.mjs <doctor|start|status|features|reconcile|propose|approve ID --by NOMBRE --reason RAZÓN|apply ID|route DOMINIO|adopt [--quick|--deep]> [--json]'); process.exit(2) }
+else { console.error('Uso: control-plane.mjs <doctor|start|status|board|features|reconcile|propose|approve ID --by NOMBRE --reason RAZÓN|apply ID|route DOMINIO|adopt [--quick|--deep]> [--json]'); process.exit(2) }

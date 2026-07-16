@@ -1,4 +1,4 @@
 interface:
   display_name: "Skill Plugin Kanban"
   short_description: "Control plane portable para tareas, skills y worktrees"
-  default_prompt: "Usa Forge Kanban para diagnosticar el proyecto, reconciliar features, proponer y materializar sólo tickets aprobados, verificar gates y cerrar de forma segura."
+  default_prompt: "Usa Forge Kanban. Ejecuta doctor y después board; presenta la tabla completa de tickets y features pendientes con prioridad, motor, agentes, LLM, modelo, metodología y gate. Luego propone y materializa sólo tickets aprobados."

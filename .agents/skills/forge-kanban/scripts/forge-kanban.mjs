@@ -10,7 +10,7 @@ const skillScripts = dirname(fileURLToPath(import.meta.url))
 const metricsDir = join(cwd, '.forge', 'metrics')
 
 function usage() {
-  console.error('Uso: forge-kanban.mjs snapshot <ticket> <start|end> | report <ticket> | doctor|start|status|features|reconcile|propose|approve|apply|route|adopt')
+  console.error('Uso: forge-kanban.mjs snapshot <ticket> <start|end> | report <ticket> | doctor|start|status|board|features|reconcile|propose|approve|apply|route|adopt')
   process.exit(2)
 }
 
@@ -89,7 +89,7 @@ function report() {
 
 if (command === 'snapshot') snapshot()
 else if (command === 'report') report()
-else if (['doctor', 'start', 'status', 'features', 'propose', 'approve', 'apply', 'route', 'adopt', 'reconcile'].includes(command)) {
+else if (['doctor', 'start', 'status', 'board', 'features', 'propose', 'approve', 'apply', 'route', 'adopt', 'reconcile'].includes(command)) {
   const control = join(skillScripts, 'control-plane.mjs')
   const result = spawnSync(process.execPath, [control, ...process.argv.slice(2)], { cwd, stdio: 'inherit' })
   process.exit(result.status ?? 1)
