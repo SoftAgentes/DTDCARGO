@@ -10,7 +10,7 @@ const skillScripts = dirname(fileURLToPath(import.meta.url))
 const metricsDir = join(cwd, '.forge', 'metrics')
 
 function usage() {
-  console.error('Uso: forge-kanban.mjs snapshot <ticket> <start|end> | report <ticket> | doctor|start|status|route|adopt|reconcile')
+  console.error('Uso: forge-kanban.mjs snapshot <ticket> <start|end> | report <ticket> | doctor|start|status|features|reconcile|propose|route|adopt')
   process.exit(2)
 }
 

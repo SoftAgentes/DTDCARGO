@@ -49,6 +49,7 @@ Semáforo de features (no confundir con prioridad del ticket):
 - 🟡 feature parcial, pendiente o terminada sin evidencia suficiente.
 - ⚫ evidencia ambigua: revisión humana, nunca ticket automático.
 - 🟢 completa mediante estado explícito o tickets enlazados terminados.
+- ⚪ futura o fuera de alcance: visible, pero no accionable.
 
 Para specs nuevas usar el contrato de `references/feature-schema.md`, que
 separa alcance, implementación y verificación. Una implementación sólo queda
@@ -228,6 +229,9 @@ planifica el cierre y bloquea ante evidencia incompleta. La eliminación efectiv
 queda en manos del integrador de plataforma con un recibo auditable.
 
 ## Referencias
+
+- `references/usage-manual.md`: manual para sesiones nuevas, proyectos
+  avanzados, proyectos Forge y proyectos standalone.
 
 - `references/ticket-schema.md`: contrato v2 y compatibilidad legacy.
 - `references/feature-schema.md`: contrato de feature y evidencia verificable.

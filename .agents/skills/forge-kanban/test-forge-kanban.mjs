@@ -138,6 +138,8 @@ try {
   ok('feature console is summarized instead of dumping plain text', renderFeatureConsole(featureResult).includes('PRÓXIMAS DECISIONES') && renderFeatureConsole(featureResult).includes('Revisión humana'))
   const featureCli = spawnSync('node', [CONTROL, 'features'], { cwd: featureRoot, encoding: 'utf8' })
   ok('features command presents the four visual states', featureCli.status === 0 && ['🔴', '🟡', '⚫', '🟢'].every(icon => featureCli.stdout.includes(icon)))
+  const usageCli = spawnSync('node', [SNAPSHOT, '--help'], { cwd: featureRoot, encoding: 'utf8' })
+  ok('command help exposes feature reconciliation and proposals', usageCli.status === 2 && usageCli.stderr.includes('features|reconcile|propose'))
   const filteredFeatures = reconcileFeatures({ root: featureRoot, config: { reconcile: { roots: ['docs/plan'], file_names: ['partial.md'] } }, tickets: [] })
   ok('project config can restrict which markdown files represent features', filteredFeatures.scanned === 1 && filteredFeatures.features[0].title === 'Portal')
 
