@@ -55,14 +55,22 @@ function frontmatterOf(raw) {
   return values
 }
 
+function valuesOf(block) {
+  const values = {}
+  for (const line of block.split(/\r?\n/)) {
+    const kv = line.trim().match(/^([A-Za-z0-9_-]+):\s*(.*)$/)
+    if (kv) values[kv[1]] = scalar(kv[2])
+  }
+  return values
+}
+
 function list(value) {
   if (Array.isArray(value)) return value
   if (!value || value === 'null') return []
   return String(value).split(',').map(item => item.trim()).filter(Boolean)
 }
 
-function contractOf(raw, path) {
-  const fm = frontmatterOf(raw)
+function contractFromValues(fm, path) {
   const explicit = String(fm.feature_schema || '') === '1' || ['scope_status', 'implementation_status', 'verification_status'].some(key => fm[key])
   return {
     explicit,
@@ -80,7 +88,27 @@ function contractOf(raw, path) {
     human_decisions: list(fm.human_decisions),
     future_scope: list(fm.future_scope),
     source: normalized(path),
+    title: fm.title || null,
+    domain: fm.domain || null,
+    artifact_type: fm.artifact_type || null,
+    priority: fm.priority || null,
   }
+}
+
+function contractOf(raw, path) {
+  return contractFromValues(frontmatterOf(raw), path)
+}
+
+function sectionDrafts(raw, rel) {
+  const matches = [...raw.matchAll(/<!--\s*forge-feature\s*\r?\n([\s\S]*?)-->/gi)]
+  if (!matches.length) return []
+  return matches.map((match, index) => {
+    const values = valuesOf(match[1]); const contract = contractFromValues({ feature_schema: '1', ...values }, rel)
+    const start = match.index + match[0].length; const end = matches[index + 1]?.index ?? raw.length
+    const body = raw.slice(start, end)
+    const id = contract.feature_id || `section-${index + 1}`
+    return { raw: body, rel: `${rel}#${id}`, specPath: rel, contract, title: contract.title || titleOf(body, id) }
+  })
 }
 
 function explicitStatus(raw) {
@@ -171,18 +199,20 @@ export function reconcileFeatures({ root = process.cwd(), config, tickets = [] }
   const fileNames = Array.isArray(configuredNames) ? new Set(configuredNames.map(name => name.toLowerCase())) : null
   const discovered = [...new Set(roots.flatMap(item => walk(root, resolve(root, item))))]
   const files = discovered.filter(path => !fileNames || fileNames.has(path.split(/[\\/]/).at(-1).toLowerCase()))
-  const drafts = files.map(path => {
+  const drafts = files.flatMap(path => {
     const raw = readFileSync(path, 'utf8')
-    const rel = normalized(relative(root, path)); const contract = contractOf(raw, rel); const refs = ticketRefs(raw, rel, contract)
-    return { path, raw, rel, contract, refs }
+    const rel = normalized(relative(root, path)); const sections = sectionDrafts(raw, rel)
+    if (sections.length) return sections.map(section => ({ ...section, path, refs: ticketRefs(section.raw, section.rel, section.contract) }))
+    const contract = contractOf(raw, rel); const refs = ticketRefs(raw, rel, contract)
+    return [{ path, raw, rel, specPath: rel, contract, refs, title: titleOf(raw, rel) }]
   })
   const needsEvidence = drafts.some(draft => Object.values(draft.contract.evidence).some(values => values.length))
   const repoFiles = needsEvidence ? walkFiles(root, root) : []
-  const features = drafts.map(({ raw, rel, contract, refs }) => {
-    const linked = linkedTicketsFor(rel, refs, tickets); const signal = signals(raw); const status = explicitStatus(raw); const evidence = verifyEvidence(contract, repoFiles)
+  const features = drafts.map(({ raw, rel, specPath, contract, refs, title }) => {
+    const linked = linkedTicketsFor(specPath, refs, tickets); const signal = signals(raw); const status = explicitStatus(raw); const evidence = verifyEvidence(contract, repoFiles)
     const [classification, confidence, reason] = classify({ status, signal, linked, contract, evidence })
     return {
-      title: titleOf(raw, rel), spec: rel, classification, confidence, reason,
+      title, spec: rel, classification, confidence, reason,
       feature_id: contract.feature_id, contract, evidence,
       explicit_status: status, ticket_refs: linked.map(ticket => ticket.id),
       unchecked_items: signal.unchecked, pending_sections: signal.pendingMarkers,

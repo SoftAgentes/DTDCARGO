@@ -89,7 +89,7 @@ function report() {
 
 if (command === 'snapshot') snapshot()
 else if (command === 'report') report()
-else if (['doctor', 'start', 'status', 'features', 'route', 'adopt', 'reconcile'].includes(command)) {
+else if (['doctor', 'start', 'status', 'features', 'propose', 'route', 'adopt', 'reconcile'].includes(command)) {
   const control = join(skillScripts, 'control-plane.mjs')
   const result = spawnSync(process.execPath, [control, ...process.argv.slice(2)], { cwd, stdio: 'inherit' })
   process.exit(result.status ?? 1)

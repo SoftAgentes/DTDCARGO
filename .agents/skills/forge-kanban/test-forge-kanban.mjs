@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { resolveProjectIdentity, slugifyProjectName } from './scripts/project-identity.mjs'
 import { inspectSessions } from './scripts/lib/sessions.mjs'
 import { reconcileFeatures, renderFeatureConsole, renderFeatureHtml } from './scripts/lib/reconciler.mjs'
+import { buildProposals, renderProposalConsole } from './scripts/lib/proposals.mjs'
 
 const ROOT = dirname(dirname(dirname(dirname(fileURLToPath(import.meta.url)))))
 const INIT = join(dirname(fileURLToPath(import.meta.url)), 'scripts', 'init-project.mjs')
@@ -145,6 +146,8 @@ try {
   mkdirSync(join(contractRoot, 'docs', 'specs', 'missing'), { recursive: true })
   mkdirSync(join(contractRoot, 'docs', 'specs', 'future'), { recursive: true })
   mkdirSync(join(contractRoot, 'docs', 'specs', 'decision'), { recursive: true })
+  mkdirSync(join(contractRoot, 'docs', 'specs', 'sections'), { recursive: true })
+  mkdirSync(join(contractRoot, 'docs', 'specs', 'proposal'), { recursive: true })
   mkdirSync(join(contractRoot, 'src'), { recursive: true }); mkdirSync(join(contractRoot, 'tests'), { recursive: true })
   writeFileSync(join(contractRoot, 'src', 'verified.js'), 'export const verified = true\n')
   writeFileSync(join(contractRoot, 'tests', 'verified.test.js'), '// verified\n')
@@ -152,11 +155,20 @@ try {
   writeFileSync(join(contractRoot, 'docs', 'specs', 'missing', 'spec.md'), `---\nfeature_schema: 1\nfeature_id: F-002\nscope_status: complete\nimplementation_status: complete\nverification_status: verified\nevidence_code: [src/missing.js]\n---\n# Evidencia rota\n`)
   writeFileSync(join(contractRoot, 'docs', 'specs', 'future', 'spec.md'), `---\nfeature_schema: 1\nfeature_id: F-003\nscope_status: future\nimplementation_status: not_started\nverification_status: pending\n---\n# Feature futura\n`)
   writeFileSync(join(contractRoot, 'docs', 'specs', 'decision', 'spec.md'), `---\nfeature_schema: 1\nfeature_id: F-004\nscope_status: complete\nimplementation_status: not_started\nverification_status: pending\nhuman_decisions: [elegir proveedor]\n---\n# Decisión humana\n`)
+  writeFileSync(join(contractRoot, 'docs', 'specs', 'sections', 'spec.md'), `# Spec con dos features\n\n<!-- forge-feature\nfeature_id: F-005\ntitle: Sección completa\nscope_status: complete\nimplementation_status: complete\nverification_status: verified\nevidence_code: [src/verified.js]\n-->\n## Sección completa\n\n<!-- forge-feature\nfeature_id: F-006\ntitle: Sección futura\nscope_status: future\nimplementation_status: not_started\nverification_status: pending\n-->\n## Sección futura\n`)
+  writeFileSync(join(contractRoot, 'docs', 'specs', 'proposal', 'spec.md'), `---\nfeature_schema: 1\nfeature_id: F-007\ntitle: Feature enrutable\nscope_status: complete\nimplementation_status: partial\nverification_status: pending\ndomain: general_code\nartifact_type: code\n---\n# Feature enrutable\n`)
   const contractResult = reconcileFeatures({ root: contractRoot, config: { reconcile: { roots: ['docs/specs'], file_names: ['spec.md'] } }, tickets: [] })
   ok('feature contract verifies real code and test paths', contractResult.features.find(feature => feature.feature_id === 'F-001')?.classification === 'complete')
   ok('missing declared evidence becomes a contradiction', contractResult.features.find(feature => feature.feature_id === 'F-002')?.classification === 'contradiction')
   ok('future scope is separated from actionable work', contractResult.features.find(feature => feature.feature_id === 'F-003')?.classification === 'future' && !contractResult.actionable.some(feature => feature.feature_id === 'F-003'))
   ok('human decisions block implementation explicitly', contractResult.features.find(feature => feature.feature_id === 'F-004')?.classification === 'blocked')
+  ok('one spec can expose independent feature sections without a duplicate document card', contractResult.features.filter(feature => feature.spec.startsWith('docs/specs/sections/spec.md#')).length === 2 && !contractResult.features.some(feature => feature.spec === 'docs/specs/sections/spec.md'))
+  const contractProposals = buildProposals(contractResult, domain => ({ blocked: false, domain, builder_skills: ['builder'], review_skills: ['reviewer'], evidence: ['tests'] }))
+  const eligibleProposal = contractProposals.find(proposal => proposal.feature_id === 'F-007')
+  ok('proposals route only declared domains and remain pending approval', eligibleProposal?.eligible_for_ticket === true && eligibleProposal.route?.builder_skills.includes('builder') && eligibleProposal.approval === 'pending')
+  ok('human decisions never become automatic tickets', contractProposals.find(proposal => proposal.feature_id === 'F-004')?.eligible_for_ticket === false)
+  ok('proposal ids are stable across repeated analysis', buildProposals(contractResult)[0].proposal_id === buildProposals(contractResult)[0].proposal_id)
+  ok('proposal console states that no tickets were created', renderProposalConsole(contractProposals).includes('Ningún ticket fue creado'))
 } finally {
   rmSync(sandbox, { recursive: true, force: true })
 }

@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { loadConfig } from './lib/config.mjs'
 import { loadRouter, routeCapability } from './lib/router.mjs'
 import { reconcileFeatures, renderFeatureConsole, renderFeatureHtml, renderFeatureReport } from './lib/reconciler.mjs'
+import { buildProposals, renderProposalConsole, renderProposalMarkdown } from './lib/proposals.mjs'
 
 const skillRoot = dirname(dirname(fileURLToPath(import.meta.url)))
 const root = process.cwd()
@@ -118,6 +119,19 @@ function featureInventory(json = false, write = false) {
   console.log(renderFeatureConsole(result))
 }
 
+function proposals(json = false) {
+  const config = loadConfig(root); const all = tickets(config); const router = loadRouter(skillRoot)
+  const result = reconcileFeatures({ root, config, tickets: all })
+  const items = buildProposals(result, domain => routeCapability(router, domain))
+  if (json) { console.log(JSON.stringify(items, null, 2)); return }
+  const reportDir = join(root, config.reconcile?.report_dir || '.forge/reports'); mkdirSync(reportDir, { recursive: true })
+  const jsonPath = join(reportDir, 'ticket-proposals.json'); const mdPath = join(reportDir, 'ticket-proposals.md')
+  const metadata = { baseline: git('rev-parse', 'HEAD') || 'n/a', generatedAt: new Date().toISOString() }
+  writeFileSync(jsonPath, `${JSON.stringify({ ...metadata, proposals: items }, null, 2)}\n`, 'utf8')
+  writeFileSync(mdPath, renderProposalMarkdown(items, metadata), 'utf8')
+  console.log(renderProposalConsole(items)); console.log(`\nReportes: ${mdPath} · ${jsonPath}`)
+}
+
 const [command, argument] = process.argv.slice(2); const json = process.argv.includes('--json')
 if (command === 'doctor') doctor(json)
 else if (command === 'status' || command === 'start') status(json)
@@ -125,4 +139,5 @@ else if (command === 'route' && argument) route(argument, json)
 else if (command === 'adopt') adoption(process.argv.includes('--deep'))
 else if (command === 'features') featureInventory(json, false)
 else if (command === 'reconcile') featureInventory(json, true)
-else { console.error('Uso: control-plane.mjs <doctor|start|status|features|route DOMINIO|adopt [--quick|--deep]|reconcile> [--json]'); process.exit(2) }
+else if (command === 'propose') proposals(json)
+else { console.error('Uso: control-plane.mjs <doctor|start|status|features|propose|route DOMINIO|adopt [--quick|--deep]|reconcile> [--json]'); process.exit(2) }

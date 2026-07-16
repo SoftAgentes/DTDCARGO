@@ -10,6 +10,9 @@ feature_id: F-001
 scope_status: complete          # draft|complete|future|out_of_scope
 implementation_status: partial  # not_started|partial|complete
 verification_status: pending    # pending|verified|failed
+domain: general_code
+artifact_type: code
+priority: yellow
 tickets: [T-001, T-002]
 evidence_code: [src/features/example/**]
 evidence_tests: [tests/example.spec.ts]
@@ -27,7 +30,32 @@ future_scope: []
   existen; una declaración rota se muestra como contradicción.
 - `future` y `out_of_scope` no generan propuestas de tickets.
 - `human_decisions` bloquea la ejecución aunque exista código.
+- `domain` y `artifact_type` son obligatorios para convertir una propuesta en
+  ticket; sin ellos la propuesta permanece negra para completar contrato.
 - Las listas son inline para mantener el parser portable sin dependencias.
 - Un documento legacy con `status: done` no equivale automáticamente a una
   implementación completa.
 
+## Varias features en una spec
+
+Usar un marcador antes de cada sección. Si existe al menos un marcador, cada
+marcador es una feature independiente y el documento no se duplica como feature
+adicional:
+
+```markdown
+<!-- forge-feature
+feature_id: F-001
+title: Facturación atómica
+scope_status: complete
+implementation_status: partial
+verification_status: pending
+tickets: [T-003]
+evidence_code: [src/features/facturacion/**]
+evidence_tests: [tests/facturacion.spec.ts]
+-->
+
+## Facturación atómica
+
+- [x] Guardar cabecera y líneas.
+- [ ] Probar concurrencia.
+```

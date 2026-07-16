@@ -40,6 +40,8 @@ inflar este archivo.
 Después de `/avivar`, ejecutar `forge-kanban status` para el resumen y
 `forge-kanban features` para el inventario accionable. `forge-kanban reconcile`
 genera dos vistas del mismo análisis: Markdown auditable y dashboard HTML.
+`forge-kanban propose` genera propuestas estables con routing, pero nunca crea
+tickets ni cambia el backlog sin aprobación explícita.
 
 Semáforo de features (no confundir con prioridad del ticket):
 
