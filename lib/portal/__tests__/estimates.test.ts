@@ -14,10 +14,15 @@ import {
   portalEstimateStatusTone,
 } from "../portal-types";
 
-/** Stub encadenable: rpc → markbox; from(quotes).select().eq().is().order().limit() → rows. */
+/**
+ * Stub encadenable: rpc → markbox; from(quotes).select().eq().is().order().limit()
+ * → rows. `shipments` resuelve el `.in()` de `attachShipmentCodes` (SDD-0075 Slice
+ * C): la cadena termina en `.is()`, que acá es awaitable vía `then`.
+ */
 function stub(opts: {
   markbox: string | null;
   quotes?: Record<string, unknown>[];
+  shipments?: Record<string, unknown>[];
 }): { supabase: SupabaseClient; touched: () => string[] } {
   const touched: string[] = [];
   function builder(rows: Record<string, unknown>[]) {
@@ -25,9 +30,13 @@ function stub(opts: {
     Object.assign(b, {
       select: () => b,
       eq: () => b,
+      neq: () => b,
+      in: () => b,
       is: () => b,
       order: () => b,
       limit: () => Promise.resolve({ data: rows, error: null }),
+      then: (resolve: (v: { data: unknown; error: null }) => unknown) =>
+        Promise.resolve({ data: rows, error: null }).then(resolve),
     });
     return b;
   }
@@ -38,7 +47,9 @@ function stub(opts: {
         : Promise.resolve({ data: null, error: null }),
     from: (table: string) => {
       touched.push(table);
-      return builder(opts.quotes ?? []);
+      return builder(
+        table === "shipments" ? (opts.shipments ?? []) : (opts.quotes ?? []),
+      );
     },
   } as unknown as SupabaseClient;
   return { supabase, touched: () => touched };
@@ -95,6 +106,7 @@ describe("listMyEstimates", () => {
       totalUsd: 1250.5,
       nota: "Tengo la mercancía lista",
       convertedToShipmentId: null,
+      convertedToShipmentCode: null,
       createdAt: "2026-06-07T10:00:00.000Z",
       updatedAt: "2026-06-07T10:00:00.000Z",
     });
@@ -107,6 +119,39 @@ describe("listMyEstimates", () => {
     const rows = await listMyEstimates(supabase);
     expect(rows).toEqual([]);
     expect(touched()).not.toContain("quotes");
+  });
+
+  /** SDD-0075 §1 Slice C: el estimado convertido enlaza a SU envío (por código). */
+  it("resuelve el código del envío de un estimado ya convertido", async () => {
+    const { supabase, touched } = stub({
+      markbox: "DTD-9001",
+      quotes: [quoteRow({ converted_to_shipment_id: "s-1" })],
+      shipments: [{ id: "s-1", code: "S-2026-0042" }],
+    });
+    const rows = await listMyEstimates(supabase);
+    expect(touched()).toContain("shipments");
+    expect(rows[0].convertedToShipmentCode).toBe("S-2026-0042");
+  });
+
+  it("no consulta shipments si ningún estimado se convirtió", async () => {
+    const { supabase, touched } = stub({
+      markbox: "DTD-9001",
+      quotes: [quoteRow({ converted_to_shipment_id: null })],
+    });
+    const rows = await listMyEstimates(supabase);
+    expect(touched()).not.toContain("shipments");
+    expect(rows[0].convertedToShipmentCode).toBeNull();
+  });
+
+  it("degrada a null si el envío no es legible (RLS no lo devuelve)", async () => {
+    const { supabase } = stub({
+      markbox: "DTD-9001",
+      quotes: [quoteRow({ converted_to_shipment_id: "s-ajeno" })],
+      shipments: [], // la RLS del portal no devuelve envíos de otro cliente
+    });
+    const rows = await listMyEstimates(supabase);
+    expect(rows[0].convertedToShipmentId).toBe("s-ajeno");
+    expect(rows[0].convertedToShipmentCode).toBeNull();
   });
 
   it("tolera total_usd nulo (→ 0)", async () => {

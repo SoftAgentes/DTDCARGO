@@ -7,6 +7,7 @@ import {
   type PortalEstimateRow,
 } from "@/lib/portal/portal-types";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
+import { ConvertedNote } from "./ConvertedNote";
 
 function formatDate(iso: string): string {
   try {
@@ -95,9 +96,10 @@ export function CotizacionRow({ cotizacion }: { cotizacion: PortalEstimateRow })
           </p>
         ) : null}
         {converted ? (
-          <p className="mt-2 text-[12.5px] font-medium text-[color:var(--color-status-success)]">
-            Convertida en envío.
-          </p>
+          <ConvertedNote
+            code={cotizacion.convertedToShipmentCode}
+            label="Convertida"
+          />
         ) : null}
       </div>
 

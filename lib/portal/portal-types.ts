@@ -459,6 +459,12 @@ export type PortalEstimateRow = {
   nota: string | null;
   /** Si ya se convirtió en embarque, su id (→ "Convertido en envío"). */
   convertedToShipmentId: string | null;
+  /**
+   * Código de ESE embarque (S-YYYY-NNNN) para enlazarlo desde la fila (SDD-0075
+   * §1 · Slice C). null si no se convirtió, o si el envío no es legible para este
+   * cliente (RLS) → la fila degrada al texto sin enlace.
+   */
+  convertedToShipmentCode: string | null;
   createdAt: string;
   updatedAt: string;
 };
