@@ -1,0 +1,38 @@
+{
+  "$doc": [
+    "Baseline de conciliación repo ↔ prod para scripts/check-migrations-applied.mjs.",
+    "",
+    "POR QUÉ EXISTE ESTE ARCHIVO Y NO UN CRUCE 1:1: el `name` del ledger de prod",
+    "(supabase_migrations.schema_migrations) es TEXTO LIBRE — lo tipea quien aplica. En 233",
+    "migraciones históricas divergió de mil formas: 168 coinciden con el basename del archivo,",
+    "44 viven bajo otro nombre (0001_init_tenancy → 'init_tenancy'; 0067_warehouse_receipts_ve →",
+    "'warehouse_receipts_ve_sprint_e'), y ~13 se aplicaron FUERA DE BANDA (su efecto está en prod",
+    "—verificado por objeto— pero no dejaron fila propia: 0085, 0086, 0141, 0222, 0223…). Cruzar",
+    "eso 1:1 son 62 casos de ruido, y un gate ruidoso se ignora — que es EXACTAMENTE cómo la 0228",
+    "estuvo dos rondas perdida.",
+    "",
+    "DECISIÓN DE DISEÑO — LÍNEA DE CORTE: todo lo histórico YA está en prod (el ERP corre con 55",
+    "módulos vivos). No hace falta re-verificarlo. `cutoff` congela ese pasado de un plumazo: los",
+    "archivos con número ≤ cutoff se dan por reconciliados. El check solo vigila lo NUEVO (número >",
+    "cutoff), donde rige la regla hacia adelante: una migración se aplica con su basename EXACTO",
+    "como `name`, y si el archivo existe en el repo pero no en el ledger de prod → rojo.",
+    "",
+    "`pendingBelowCutoff` son las excepciones conocidas por DEBAJO del corte: archivos que sí",
+    "están en el repo pero NO deben/aún-no se aplicaron. Sin esto el corte los borraría del radar.",
+    "",
+    "EL CORTE NO SE SUBE POR REFLEJO. 238 es la frontera entre el pasado desprolijo (nombres libres)",
+    "y la regla nueva (name = basename). Todo lo que se aplique de la 0239 en adelante lleva su",
+    "basename exacto, así que el check lo valida SIN ruido: subir el corte solo lo sacaría de la",
+    "vigilancia a cambio de nada. Subilo únicamente si aparece un caso legítimo de nombre divergente",
+    "que no se pueda arreglar. Y NUNCA lo uses para tapar una migración nueva sin aplicar — para eso",
+    "está el rojo del gate.",
+    "",
+    "AL APLICAR una que estaba en `pendingBelowCutoff`: sacala de ahí (ya no es una espera)."
+  ],
+
+  "cutoff": 238,
+
+  "pendingBelowCutoff": {
+    "0017_no_olvidar": "SDD-0025 (No-Olvidar) vive en la rama feat/no-olvidar SIN merge, gated por un review criptográfico externo (envelope encryption). El archivo llegó a main pero NO se aplica hasta pasar ese gate. Verificado 2026-07-16: to_regclass('public.no_olvidar_items') → NULL. El código es inerte (el page.tsx es un EmptyState 'Próximamente' que no toca la DB y nadie importa no-olvidar-queries.ts), así que la ruta no revienta. Al aplicarla, sacala de acá."
+  }
+}
