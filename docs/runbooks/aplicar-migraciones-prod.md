@@ -143,14 +143,25 @@ service_role, sin devolver `statements`/`rollback` (son el SQL crudo).
   toda función security definer.
 - **Revoke explícito en toda RPC nueva** (regla que dejaron las migr 0209-0211).
 
-## Estado al 2026-07-16
+## Estado al 2026-07-16 (cierre de la ronda /GOLD 4)
 
-- Ledger de prod: **243 filas**. Última aplicada: `0238_referrals_accredited_at`.
-- `cutoff` del baseline: **238**.
-- **Sin aplicar, declaradas** en `pendingBelowCutoff`:
-  - `0017_no_olvidar` — SDD-0025 gated por review criptográfico externo. Correcto
-    que no esté.
-  - `0169_public_verify_throttle` — 🔴 **hueco de seguridad abierto**, pendiente
-    del founder.
-- `0239_applied_migrations_rpc` — hasta que se aplique, el paso del gate queda
-  **inerte** (SKIP).
+- Ledger de prod: **245 filas** (244 nombres únicos — hay un duplicado histórico,
+  `fix_studio_accept_invitation_ambiguous`, aplicado dos veces).
+- `cutoff` del baseline: **238**, y **ahí se queda** (ver el baseline: subirlo solo
+  relajaría la vigilancia).
+- ✅ **`0169_public_verify_throttle` APLICADA** con OK del founder. Verificado
+  contra prod: tabla + índice + RLS activa sin policies + `anon`/`authenticated`
+  sin SELECT + `service_role` con INSERT. `/verificar` ya tiene su throttle.
+- ✅ **`0239_applied_migrations_rpc` APLICADA**. Verificado: security definer, owner
+  `postgres`, `search_path` sellado en vacío, `stable`, `anon`/`authenticated` sin
+  EXECUTE. **El paso del gate está VIVO** (dejó de ser SKIP).
+- ⏸ **`0017_no_olvidar`** — única espera declarada. SDD-0025 gated por review
+  criptográfico externo; correcto que no esté. Su código es inerte: el `page.tsx`
+  es un `EmptyState` "Próximamente" que no toca la DB.
+
+**Barrido de la clase de bug (16-jul):** se cruzó todo el código contra prod —
+205 tablas de `.from()` y 75 RPCs de `.rpc()`. Fuera de `no_olvidar_*` (gated), no
+falta nada. De los 8 throttles, 7 usan `portal_registro_throttle` (existe); el
+único roto era el de la 0169. ⚠️ Ojo con el método: un grep de `.from("literal")`
+**no habría encontrado la 0169** — los throttles usan `.from(CONSTANTE)`. Hay que
+resolver las constantes y las RPCs, o el barrido da un falso "todo limpio".
