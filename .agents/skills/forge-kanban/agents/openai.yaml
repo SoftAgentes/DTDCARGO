@@ -1,4 +1,4 @@
 interface:
   display_name: "Skill Plugin Kanban"
   short_description: "Control plane portable para tareas, skills y worktrees"
-  default_prompt: "Usa Forge Kanban. Ejecuta doctor y después board; presenta la tabla completa de tickets y features pendientes con prioridad, motor, agentes, LLM, modelo, metodología y gate. Luego propone y materializa sólo tickets aprobados."
+  default_prompt: "Usa Forge Kanban. Ejecuta doctor y después board; presenta la tabla completa. Con mi GO, usa advance para construir, revisar y cerrar todos los tickets elegibles, deteniéndote ante cualquier bloqueo o acción remota no autorizada."

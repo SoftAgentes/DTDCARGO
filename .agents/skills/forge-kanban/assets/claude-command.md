@@ -31,6 +31,7 @@ node "$FK" doctor --json
 node "$FK" start --json
 node "$FK" status --json
 node "$FK" board
+node "$FK" advance --json
 node "$FK" features
 node "$FK" reconcile
 node "$FK" propose
@@ -42,6 +43,12 @@ node "$FK" snapshot T-001 start
 node "$FK" snapshot T-001 end
 node "$FK" report T-001
 ```
+
+Si el usuario invoca `/forge-kanban advance`, consumir el paquete JSON y
+ejecutar el loop descrito en `SKILL.md`. Pedir `GO` si no está explícito en el
+alcance actual. Después de cada ticket cerrado, volver a consultar `advance`.
+Detenerse ante `blocked`, `prepare_tickets`, decisiones humanas o acciones
+remotas no autorizadas.
 
 `propose` no crea tickets. `approve` registra autorización nominativa. `apply`
 materializa sólo una propuesta elegible cuyo hash y baseline sigan vigentes.

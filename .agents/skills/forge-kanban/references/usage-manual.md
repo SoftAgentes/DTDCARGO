@@ -49,6 +49,7 @@ node "$FORGE_KANBAN\scripts\forge-kanban.mjs" doctor
 node "$FORGE_KANBAN\scripts\forge-kanban.mjs" start
 node "$FORGE_KANBAN\scripts\forge-kanban.mjs" status
 node "$FORGE_KANBAN\scripts\forge-kanban.mjs" board
+node "$FORGE_KANBAN\scripts\forge-kanban.mjs" advance --json
 node "$FORGE_KANBAN\scripts\forge-kanban.mjs" features
 node "$FORGE_KANBAN\scripts\forge-kanban.mjs" reconcile
 node "$FORGE_KANBAN\scripts\forge-kanban.mjs" propose
@@ -61,6 +62,8 @@ node "$FORGE_KANBAN\scripts\forge-kanban.mjs" apply FKP-XXXXXXXX
 - `status`: resume backlog, Git, worktrees y bloqueos.
 - `board`: presenta la tabla principal de ejecución y genera Markdown, JSON y
   dashboard HTML con prioridad, motor, agentes, LLM, modelo, metodología y gate.
+- `advance`: selecciona el siguiente ticket v3 aprobado y emite el paquete que
+  la IA debe construir, revisar, verificar y cerrar antes de volver a consultar.
 - `features`: muestra el inventario completo con semáforo.
 - `reconcile`: genera reporte Markdown y dashboard HTML auditables.
 - `propose`: genera propuestas estables; no crea tickets.
@@ -166,6 +169,29 @@ node "$FORGE_KANBAN\scripts\forge-kanban.mjs" report T-000
 ```
 
 8. Invoca `source-command-cerrar` o el integrador equivalente.
+
+## Avance autónomo controlado
+
+Después de revisar el board, el usuario puede autorizar toda la cola elegible
+con `GO` y pedir `/forge-kanban advance`. La capa agente debe:
+
+1. Ejecutar `advance --json` y detenerse si devuelve `blocked` o
+   `prepare_tickets`.
+2. Mostrar el ticket seleccionado y reutilizar el `GO` sólo dentro del alcance
+   expresamente autorizado.
+3. Ejecutar preflight, snapshot, constructor, revisor, gate, evidencia, cierre
+   atómico/selectivo y handoff.
+4. Actualizar el ticket hasta `done` únicamente después del gate y guardar la
+   evidencia; de lo contrario el selector lo conservará pendiente.
+5. Volver a ejecutar `advance --json` después de cerrar el ticket.
+6. Terminar cuando devuelva `complete` o aparezca un bloqueo humano/técnico.
+
+Debe existir una sola sesión coordinadora de `advance` por repositorio. Los
+workers no ejecutan su propio selector global; reciben un ticket asignado.
+
+`advance` no autoriza producción, secretos, infraestructura online ni
+migraciones alojadas. Tampoco ejecuta el LLM desde Node: el script selecciona y
+valida; Codex, Claude u otro agente compatible consume el paquete.
 
 ## Worktrees y varias ventanas
 

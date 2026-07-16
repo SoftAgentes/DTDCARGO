@@ -9,6 +9,7 @@ import { reconcileFeatures, renderFeatureConsole, renderFeatureHtml, renderFeatu
 import { buildProposals, renderProposalConsole, renderProposalMarkdown } from './lib/proposals.mjs'
 import { applyApprovedProposal, approveProposal } from './lib/approval.mjs'
 import { buildExecutionBoard, renderExecutionHtml, renderExecutionMarkdown } from './lib/execution-board.mjs'
+import { buildAdvancePlan, renderAdvanceConsole } from './lib/advance.mjs'
 
 const skillRoot = dirname(dirname(fileURLToPath(import.meta.url)))
 const root = process.cwd()
@@ -33,7 +34,10 @@ function parseFrontmatter(path) {
 
 function tickets(config) {
   if (!existsSync(config.ticket_dir_abs)) return []
-  return readdirSync(config.ticket_dir_abs).filter(name => name.endsWith('.md')).map(name => parseFrontmatter(join(config.ticket_dir_abs, name)))
+  return readdirSync(config.ticket_dir_abs).filter(name => name.endsWith('.md')).map(name => {
+    const path = join(config.ticket_dir_abs, name)
+    return { ...parseFrontmatter(path), ticket_path: path, ticket_relative_path: join(config.ticket_dir, name).replaceAll('\\', '/') }
+  })
 }
 
 function validateTicket(ticket, all) {
@@ -151,6 +155,27 @@ function executionBoard(json = false) {
   console.log(markdown); console.log(`\nDashboard: ${htmlPath}\nDatos: ${jsonPath}`)
 }
 
+function readApprovals(config) {
+  const path = join(root, config.reconcile?.report_dir || '.forge/reports', 'ticket-approvals.json')
+  if (!existsSync(path)) return []
+  try { return JSON.parse(readFileSync(path, 'utf8')).approvals || [] }
+  catch { return [] }
+}
+
+function advance(requestedId = null, json = false) {
+  const config = loadConfig(root); const all = tickets(config); const router = loadRouter(skillRoot)
+  const featureResult = reconcileFeatures({ root, config, tickets: all })
+  const routeDomain = domain => routeCapability(router, domain)
+  const proposalItems = buildProposals(featureResult, routeDomain, config)
+  const board = buildExecutionBoard({ tickets: all, featureResult, proposals: proposalItems, routeDomain, config })
+  const plan = buildAdvancePlan({
+    board, tickets: all, approvals: readApprovals(config), baseline: git('rev-parse', 'HEAD') || null,
+    skillRoot, requestedId,
+  })
+  console.log(json ? JSON.stringify(plan, null, 2) : renderAdvanceConsole(plan))
+  process.exitCode = ['execute_ticket', 'complete'].includes(plan.action) ? 0 : 1
+}
+
 function currentProposals() {
   const config = loadConfig(root); const all = tickets(config); const router = loadRouter(skillRoot)
   const result = reconcileFeatures({ root, config, tickets: all })
@@ -187,8 +212,9 @@ else if (command === 'route' && argument) route(argument, json)
 else if (command === 'adopt') adoption(process.argv.includes('--deep'))
 else if (command === 'features') featureInventory(json, false)
 else if (command === 'board') executionBoard(json)
+else if (command === 'advance') advance(argument?.startsWith('--') ? null : argument, json)
 else if (command === 'reconcile') featureInventory(json, true)
 else if (command === 'propose') proposals(json)
 else if (command === 'approve' && argument) approve(argument, json)
 else if (command === 'apply' && argument) apply(argument, json)
-else { console.error('Uso: control-plane.mjs <doctor|start|status|board|features|reconcile|propose|approve ID --by NOMBRE --reason RAZÓN|apply ID|route DOMINIO|adopt [--quick|--deep]> [--json]'); process.exit(2) }
+else { console.error('Uso: control-plane.mjs <doctor|start|status|board|advance [TICKET]|features|reconcile|propose|approve ID --by NOMBRE --reason RAZÓN|apply ID|route DOMINIO|adopt [--quick|--deep]> [--json]'); process.exit(2) }
