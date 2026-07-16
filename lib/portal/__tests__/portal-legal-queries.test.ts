@@ -39,21 +39,34 @@ function stub(tables: Record<string, Record<string, unknown>[]>): SupabaseClient
       const eqs: Array<[string, unknown]> = [];
       const isNulls: string[] = [];
       const notNulls: string[] = [];
+      let sort: { col: string; ascending: boolean } | null = null;
 
       function apply(): Record<string, unknown>[] {
-        return (tables[table] ?? []).filter((r) => {
+        const rows = (tables[table] ?? []).filter((r) => {
           for (const [c, v] of eqs) if (r[c] !== v) return false;
           for (const c of isNulls) if (r[c] != null) return false;
           for (const c of notNulls) if (r[c] == null) return false;
           return true;
         });
+        // El `.order` se honra de verdad: si no, un test de "el más nuevo primero"
+        // pasaría por orden de inserción y no probaría nada.
+        if (sort) {
+          const { col, ascending } = sort;
+          rows.sort((a, b) => {
+            const x = String(a[col] ?? "");
+            const y = String(b[col] ?? "");
+            return ascending ? x.localeCompare(y) : y.localeCompare(x);
+          });
+        }
+        return rows;
       }
 
       const chain: Record<string, unknown> = {
         select() {
           return chain;
         },
-        order() {
+        order(col: string, opts?: { ascending?: boolean }) {
+          sort = { col, ascending: opts?.ascending !== false };
           return chain;
         },
         limit() {
@@ -108,6 +121,7 @@ function invoiceRow(opts: {
   shipmentCode?: string | null;
   base?: number;
   total?: number;
+  createdAt?: string;
 }): Record<string, unknown> {
   return {
     id: opts.id,
@@ -127,7 +141,7 @@ function invoiceRow(opts: {
     shipment_id: opts.shipmentId,
     shipment_code: opts.shipmentCode ?? "S-2026-0042",
     deleted_at: null,
-    created_at: "2026-06-01T00:00:00Z",
+    created_at: opts.createdAt ?? "2026-06-01T00:00:00Z",
   };
 }
 
@@ -373,6 +387,35 @@ describe("getPendingAcceptanceForShipment", () => {
     const order = await getPendingAcceptanceForShipment(db, shipArgs);
     expect(order!.code).toBe("F-2026-0002");
     expect(order!.baseAmount).toBe(6000);
+  });
+
+  it("entre 2 borradores pendientes, devuelve el MÁS NUEVO (order created_at desc)", async () => {
+    const db = stub({
+      invoices: [
+        // El viejo va primero en el array: si el `.order` no se respetara, ganaría éste.
+        invoiceRow({
+          id: "i1",
+          code: "F-2026-0001",
+          status: "borrador",
+          shipmentId: "s1",
+          base: 5600,
+          createdAt: "2026-06-01T00:00:00Z",
+        }),
+        invoiceRow({
+          id: "i2",
+          code: "F-2026-0002",
+          status: "borrador",
+          shipmentId: "s1",
+          base: 6000,
+          createdAt: "2026-06-20T00:00:00Z",
+        }),
+      ],
+      shipments: [shipmentRow({ id: "s1", service: "puerta_a_puerta_DDP" })],
+      legal_acceptances: [],
+      legal_docs: docsTable(),
+    });
+    const order = await getPendingAcceptanceForShipment(db, shipArgs);
+    expect(order!.code).toBe("F-2026-0002");
   });
 
   it("no cruza markbox: con el markbox de otro cliente → null", async () => {

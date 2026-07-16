@@ -208,7 +208,7 @@ export async function getPendingAcceptanceForShipment(
     .eq("status", "borrador")
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
-    .limit(20);
+    .limit(100);
 
   if (error || !data) return null;
 

@@ -108,7 +108,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0072 | Orden de venta (Sales Order · modelo QuickBooks): el estimado… | done | interno |
 | 0073 | Fiscal · SENIAT — módulo configurable: Configuración fiscal (… | done | interno |
 | 0074 | Onboarding — sync del alta de cliente a Kommo (push del lead) | done | interno |
-| 0075 | Portal del cliente — alineación con el Norte (estimado, sopor… | proposed | interno |
+| 0075 | Portal del cliente — alineación con el Norte (estimado, sopor… | in-progress | interno |
 | 0076 | Configuración canónica de servicios | done | interno |
 | 0077 | Contabilidad estilo QuickBooks — proveedor→cuenta por defecto… | done | interno |
 | 0078 | Tablero CRM (Kommo ↔ ERP) read-only — Dirección + Asesor | done | interno |
