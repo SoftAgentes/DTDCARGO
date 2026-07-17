@@ -14,7 +14,9 @@
  * El insert corre con service_role (createAdminClient): el visitante es anónimo y
  * necesita bypassear RLS para escribir. quotes NO tiene FORCE RLS → pasa limpio.
  *
- * El estimado queda en el ERP aunque el cliente nunca llegue a enviar el WhatsApp.
+ * El estimado queda en el ERP aunque el cliente nunca llegue a enviar el WhatsApp,
+ * y al guardarlo se avisa al equipo (email info@ + admins + Telegram, best-effort)
+ * para que el asesor le escriba él — ver lib/studio/estimado-lead-notify.
  */
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -27,6 +29,7 @@ import {
   buildEstimadoRow,
   type EstimadoWebPayload,
 } from "@/lib/public/estimado-web";
+import { notifyEstimadoLeadToAdmin } from "@/lib/studio/estimado-lead-notify";
 
 export const runtime = "nodejs";
 
@@ -138,6 +141,31 @@ export async function POST(req: NextRequest) {
   });
   if (insertErr) {
     return apiError("No pudimos registrar tu estimado.", insertErr, 500, "estimacion");
+  }
+
+  // 6. Aviso al equipo (email info@ + admins + Telegram) — best-effort. El
+  //    estimado YA quedó persistido; a diferencia de /contacto (donde el aviso
+  //    ES la captación), acá un fallo del aviso NO rompe la respuesta al
+  //    visitante. Sin esto, el EST- quedaba huérfano en el filtro "web" del
+  //    cotizador hasta que alguien lo mirara — si el visitante no mandaba el
+  //    WhatsApp, nadie se enteraba del lead.
+  try {
+    const team = await notifyEstimadoLeadToAdmin(admin, tenantId, {
+      estimateCode,
+      prospectName: input.prospectName,
+      prospectWhatsapp: input.prospectWhatsapp,
+      prospectEmail: input.prospectEmail,
+      nota: input.nota,
+      calc: input.calc,
+      origin: input.origin,
+      destination: input.destination,
+      cbm: input.cbm,
+      weightKg: input.weightKg,
+      totalUsd: input.totalUsd,
+    });
+    if (!team.ok) console.warn("[estimacion] aviso al equipo: ningún email salió");
+  } catch (err) {
+    console.warn("[estimacion] aviso al equipo falló:", err);
   }
 
   return NextResponse.json({ ok: true, estimateCode });
