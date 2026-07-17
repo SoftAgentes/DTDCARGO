@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { jetbrainsMonoUi } from "@/lib/fonts";
 import { createAdminClient } from "@/lib/db/admin";
 import { getProviderShareByToken } from "@/lib/studio/prealertas/queries";
-import { buildLabels } from "@/lib/studio/prealertas/types";
+import { buildLabels, buildLabelsFromBoxes } from "@/lib/studio/prealertas/types";
 import { ProviderShareClient } from "./ProviderShareClient";
 
 export const runtime = "nodejs";
@@ -35,7 +35,12 @@ export default async function ProviderSharePage({
   const data = await getProviderShareByToken(admin, token);
   if (!data) notFound();
 
-  const labels = buildLabels(data.code, data.boxes);
+  // SDD-0153: etiqueta escaneable por caja si la compra ya está pre-declarada;
+  // si no, la etiqueta por cliente de siempre.
+  const labels =
+    data.predeclaredBoxes.length > 0
+      ? buildLabelsFromBoxes(data.code, data.predeclaredBoxes)
+      : buildLabels(data.code, data.boxes);
 
   // Monta --font-jetbrains-mono (instancia única de lib/fonts.ts) para los
   // códigos/etiquetas en mono del share del proveedor.

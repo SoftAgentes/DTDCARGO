@@ -16,6 +16,7 @@ import {
   type PrealertaDocType,
   type PrealertaDocument,
   type PrealertaStatus,
+  type PredeclaredBox,
   type Supplier,
   PREALERTA_STATUSES,
 } from "./types";
@@ -204,7 +205,30 @@ export type ProviderShareData = {
   clientName: string | null;
   supplierName: string | null;
   supplierWechat: string | null;
+  /** SDD-0153: cajas pre-declaradas de esta compra (para el QR escaneable por caja). */
+  predeclaredBoxes: PredeclaredBox[];
 };
+
+/**
+ * SDD-0153: las cajas pre-declaradas de una compra (`warehouse_boxes`), ordenadas
+ * por seq. En el portal las trae la RLS `warehouse_boxes portal self read` (el
+ * cliente ve solo las suyas); en la ruta pública del proveedor las trae el admin
+ * client. Devuelve `[]` si la compra no tiene cajas todavía → el consumidor cae al
+ * fallback `buildLabels` (etiqueta por cliente, sin código de caja).
+ */
+export async function listPredeclaredBoxes(
+  supabase: SupabaseClient,
+  prealertaId: string,
+): Promise<PredeclaredBox[]> {
+  const { data, error } = await supabase
+    .from("warehouse_boxes")
+    .select("code, seq")
+    .eq("prealerta_id", prealertaId)
+    .is("deleted_at", null)
+    .order("seq", { ascending: true });
+  if (error || !data) return [];
+  return data.map((b) => ({ code: b.code as string, seq: b.seq as number }));
+}
 
 /**
  * Resuelve la compra por `share_token` para la página pública del proveedor.
@@ -220,11 +244,12 @@ export async function getProviderShareByToken(
   try {
     const { data: p, error } = await supabase
       .from("prealertas")
-      .select("code, description, boxes, client_markbox, supplier_id")
+      .select("id, code, description, boxes, client_markbox, supplier_id")
       .eq("share_token", token)
       .is("deleted_at", null)
       .is("share_disabled_at", null) // PORT-4: link desactivado → notFound
       .maybeSingle<{
+        id: string;
         code: string;
         description: string;
         boxes: number;
@@ -251,6 +276,8 @@ export async function getProviderShareByToken(
       supplierWechat = s?.wechat ?? null;
     }
 
+    const predeclaredBoxes = await listPredeclaredBoxes(supabase, p.id);
+
     return {
       code: p.code,
       description: p.description,
@@ -259,6 +286,7 @@ export async function getProviderShareByToken(
       clientName: c?.name ?? null,
       supplierName,
       supplierWechat,
+      predeclaredBoxes,
     };
   } catch {
     return null;

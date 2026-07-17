@@ -45,12 +45,13 @@ export default function HomePage() {
       <main className={jetbrainsMono.variable}>
         <Hero />
         {/* Respuesta rápida (GEO): Q&A directa y citable cerca del tope; el id
-            ancla el selector `speakable`. Copy grounded (empresa 2010, puerta a
-            puerta DDP, pagas al llegar) — sin datos inventados. */}
+            ancla el selector `speakable`. Copy grounded (fundación 2015, China
+            desde 2008, puerta a puerta DDP, pagas al llegar) — sin datos
+            inventados. */}
         <RespuestaRapida
           id="respuesta-rapida"
           pregunta="¿Qué es DTD Cargo y qué hace?"
-          respuesta="DTD Cargo trae tu mercancía de China a Venezuela puerta a puerta: se encarga del flete, la aduana y la entrega en tu dirección, con equipo y bodega propios en Yiwu (China) y Valencia. Opera desde 2010 y pagas cuando tu carga llega a Venezuela (sujeto a aprobación)."
+          respuesta="DTD Cargo trae tu mercancía de China a Venezuela puerta a puerta: se encarga del flete, la aduana y la entrega en tu dirección, con equipo y bodega propios en Yiwu (China) y Valencia. Opera desde 2015, con experiencia en el comercio con China desde 2008, y pagas cuando tu carga llega a Venezuela (pueden aplicar restricciones)."
         />
         <TrustBar />
         <Stats />

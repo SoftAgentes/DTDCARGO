@@ -48,6 +48,29 @@
   --neutral: #6B6B6B;
   --neutral-bg: rgba(107,107,107,0.10);
 
+  /* ── Categóricos por cliente (SDD-0152) ────────────────────
+     Identidad de cliente, NO estado. Deliberadamente fuera de los tonos
+     semánticos: --wine ya significa "sobre capacidad" en utilizationTone() y
+     esa barra vive en la MISMA tarjeta que el visor de estiba. Se asignan por
+     hash del MARKBOX (lib/studio/naviera/client-palette.ts) para que el mismo
+     cliente sea siempre del mismo color. Mudos, industriales: conviven con
+     wine+navy sin pelear, y ninguno tiene el peso de un tono de alerta. */
+  --cat-1: #1F5F6B;   /* petróleo */
+  --cat-2: #3A4E8C;   /* índigo   */
+  --cat-3: #5A7A34;   /* musgo    */
+  --cat-4: #A85A3C;   /* arcilla  */
+  --cat-5: #6B3A5E;   /* ciruela  */
+  --cat-6: #4A6270;   /* acero    */
+
+  /* Sombreado de las caras del cubo isométrico + casco del contenedor.
+     Neutros sobre el color del cliente: así el token de cliente es UNO solo y
+     no hacen falta 3 variantes por color. */
+  --face-top-tint: rgba(255,255,255,0.14);
+  --face-left-tint: rgba(0,0,0,0.20);
+  --shell-wall: rgba(15,30,61,0.06);
+  --shell-floor: rgba(15,30,61,0.04);
+  --shell-corr: rgba(15,30,61,0.07);
+
   /* ── Calendar tints (SDD-0015) ─────────────────────────── */
   --cal-cn-soft: rgba(168,50,62,0.07);
   --cal-cn-critical: rgba(168,50,62,0.22);
@@ -171,6 +194,21 @@
   --info-bg: rgba(111,160,232,0.14);
   --neutral: #A8B0C4;
   --neutral-bg: rgba(168,176,196,0.12);
+
+  /* ── Categóricos por cliente (SDD-0152) — dark ─────────────
+     Mismos hues, subidos en luminosidad para leerse sobre navy. */
+  --cat-1: #4FA3B0;   /* petróleo */
+  --cat-2: #7C8FD4;   /* índigo   */
+  --cat-3: #96BC66;   /* musgo    */
+  --cat-4: #DE9070;   /* arcilla  */
+  --cat-5: #B279A2;   /* ciruela  */
+  --cat-6: #8AA3B4;   /* acero    */
+
+  --face-top-tint: rgba(255,255,255,0.16);
+  --face-left-tint: rgba(0,0,0,0.28);
+  --shell-wall: rgba(255,255,255,0.05);
+  --shell-floor: rgba(255,255,255,0.03);
+  --shell-corr: rgba(255,255,255,0.05);
 
   /* ── Calendar tints (SDD-0015) — dark ──────────────────── */
   --cal-cn-soft: rgba(224,119,133,0.10);
