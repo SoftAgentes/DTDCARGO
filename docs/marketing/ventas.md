@@ -4,11 +4,13 @@
 > perfil objetivo, la oferta y el plan mensual recurrente. El *por qué* y la identidad están en
 > [`estrategia.md`](estrategia.md).
 >
-> **Estado (2026-06-08):** estructura creada. Criterios de ancla confirmados; ejecución de la
-> captación pendiente.
+> **Estado (2026-07-17):** estructura creada; criterios de ancla confirmados; **la ejecución de la
+> captación ya tiene sistema**: oferta empaquetada + canal primario + proceso de prospección diario
+> en [`adquisicion.md`](adquisicion.md) (manual del asesor, nivel principiante).
 >
 > **El embudo operativo que ejecuta esta estrategia** (5 etapas, campos del Kanban, mapa de etapas
 > MARKBOX para SDD-0084, SLA y loop de recompra) vive en [`embudo-ventas.md`](embudo-ventas.md).
+> **El frente del embudo** (prospección, cadencia de toques, referidos) vive en [`adquisicion.md`](adquisicion.md).
 
 ## Objetivo
 
@@ -57,11 +59,12 @@ Se revisa **cada mes**. Una fila por mes:
 | Mes | Meta (cont.) | Prospectos ancla | Criterios que cumplen | Oferta enviada | Estado |
 |---|---|---|---|---|---|
 | 2026-06 | 2 | — | — | — | pendiente |
+| 2026-07 | 2 | armar la lista de 50 ([`adquisicion.md`](adquisicion.md) §3-§4): directorio Cámara de Valencia + base propia >45d sin comprar + referencias de clientes activos | por calificar (5 preguntas del §5) | tras calificar | **en curso** — sistema definido 17-jul; arranca la rutina diaria |
 
 > **Marketing apunta SOLO a estos dos perfiles** (mayoristas recurrentes + aliados), **no a
 > compradores de una sola vez.**
 
 ## Pendiente
 - [ ] Medir CBM promedio por cuenta → cerrar el rango "~7–14 cuentas".
-- [ ] Definir la tarifa preferencial y la condición exacta de cadencia.
-- [ ] Cablear los recordatorios de recompra (día 30/45) en el ERP (Kommo Fase 1).
+- [ ] Definir la tarifa preferencial y la condición exacta de cadencia → decisión #2 de [`adquisicion.md`](adquisicion.md) §10.
+- [ ] Cablear los recordatorios de recompra (día 30/45) en el ERP (Kommo Fase 1) → backlog #3 de [`adquisicion.md`](adquisicion.md) §8.

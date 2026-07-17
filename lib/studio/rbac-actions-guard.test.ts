@@ -24,6 +24,8 @@ const ALLOWLIST: Record<string, string> = {
   "ve/actions.ts": "App de operario VE: auth por PIN (operario-session), no por rol de Studio.",
   "debug/actions.ts": "recheckAll: re-corre health checks, no muta datos de negocio.",
   "admin/feature-flags/actions.ts": "toggleFeatureFlag valida role==='admin' inline.",
+  "admin/notificaciones/actions.ts":
+    "SDD-0156: requireAdmin() valida role==='admin' inline antes de cada mutación; config admin-only, RLS por tenant en client_notification_rules.",
   "dashboard/actions.ts":
     "SDD-0114: cada usuario edita SU PROPIA config de dashboard (fila user_dashboard_prefs, RLS por dueño). No muta datos de negocio ni de otros usuarios; además la action filtra los ids con canAccessModule antes de persistir.",
   "ordenes-compra/actions.ts": "Barrel: las actions con guard viven en lib/studio/purchase-orders/actions.ts.",
