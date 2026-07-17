@@ -172,8 +172,8 @@ export function NotificationsClient({
           }}
         >
           Estos avisos (consolidado, ETA de la naviera, recepción en Venezuela)
-          se configuran igual, pero disparan cuando se cablee su gancho (Slice D).
-          El “va llegando +5 días al ETA” vive acá.
+          se configuran igual y ya disparan desde su gancho en la operación. El
+          “va llegando” respecto al ETA vive acá.
         </p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
           {SLICE_D.map((ev) => (
@@ -399,7 +399,6 @@ function RuleRow({
               </div>
               <div style={{ font: "400 10.5px/1.3 var(--font-mono, 'JetBrains Mono')", color: "var(--ink-soft)", marginTop: 4 }}>
                 {formatOffset(offsetMinutes)} · respecto a {ANCHOR_LABEL[anchor]}
-                {anchor !== "event" ? " (dispara en Slice D)" : ""}
               </div>
             </Field>
 

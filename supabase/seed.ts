@@ -14,6 +14,7 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
+import { seedDefaultRulesForTenant } from "../lib/studio/notifications/client-notification-rules-queries";
 
 type SeedShipment = {
   code: string;
@@ -81,6 +82,15 @@ async function main() {
 
   if (tenantError || !tenant) {
     throw new Error("Tenant 'dtd' no existe. Aplica migración 0001 primero.");
+  }
+
+  // SDD-0156 · Slice C: todo tenant (incluido uno recién bootstrapeado) arranca
+  // con las reglas default de avisos al cliente = comportamiento de HOY. La migr
+  // 0247 sembró sólo los tenants existentes al aplicarse; esto cubre los nuevos.
+  // Idempotente (no pisa reglas existentes).
+  const seededRules = await seedDefaultRulesForTenant(supabase, tenant.id);
+  if (seededRules > 0) {
+    console.log(`✓ ${seededRules} reglas default de avisos al cliente sembradas`);
   }
 
   const rows = SHIPMENTS.map((s) => ({

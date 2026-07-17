@@ -12,6 +12,7 @@ import {
   type WarehouseReceiptVeBox,
   type WarehouseReceiptVeWithBoxes,
 } from "./warehouse-receipt-ve-types";
+import { scheduleReceiptVeReceived } from "./notifications/schedule-fanout";
 
 // ─────────────────────────────────────────────────────────────
 // Lista de receipts (active + recientes sellados)
@@ -194,6 +195,20 @@ export async function createReceiptVe(
       await admin.from("warehouse_receipts_ve").delete().eq("id", row.id);
       return { error: `No se pudieron crear cajas: ${boxesErr.message}` };
     }
+  }
+
+  // SDD-0156 · Slice D: al crear el recibo VE (contenedor llegando a Venezuela)
+  // programa el aviso 'received_ve' para los envíos de las cajas — cierra el
+  // pendiente "aviso al cliente en recepción" de SDD-0154. Best-effort: nunca
+  // rompe la creación del recibo.
+  if (input.boxes.length > 0) {
+    void scheduleReceiptVeReceived(
+      admin,
+      tenantId,
+      input.boxes.map((b) => b.markbox),
+    ).catch((err) => {
+      console.error("[receipt-ve] scheduleReceiptVeReceived falló:", err);
+    });
   }
 
   return { id: row.id, receipt_code: row.receipt_code };

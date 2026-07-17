@@ -70,6 +70,33 @@ export function computeProgress(status: ShipmentStatus): number {
 }
 
 /**
+ * Estado a MOSTRAR de cara al cliente cuando la config del tenant oculta hitos
+ * (SDD-0156 · `visible_in_portal`). Si el status actual está oculto (ej. "en
+ * aduana"), devuelve el último estado VISIBLE en el flow igual o anterior al
+ * actual — así el badge y el % de la lista/dashboard no delatan el hito oculto y
+ * quedan coherentes con el stepper del detalle. Si no hay estados ocultos, o el
+ * actual es visible, devuelve el mismo status. Los estados fuera del flow
+ * (exception/delayed_warehouse/cancelled/draft) se devuelven tal cual.
+ */
+export function effectiveVisibleStatus(
+  status: ShipmentStatus,
+  service: ShipmentService,
+  hiddenStatuses?: ReadonlySet<ShipmentStatus>,
+): ShipmentStatus {
+  if (!hiddenStatuses || hiddenStatuses.size === 0) return status;
+  if (!hiddenStatuses.has(status)) return status;
+
+  const flow = flowForService(service);
+  const idx = flow.indexOf(status);
+  if (idx < 0) return status; // fuera del flow → sin sustitución
+  // Camina hacia atrás hasta el primer estado visible.
+  for (let i = idx - 1; i >= 0; i--) {
+    if (!hiddenStatuses.has(flow[i])) return flow[i];
+  }
+  return status; // no hay visible anterior → deja el actual (no rompe)
+}
+
+/**
  * Devuelve el flow a usar para un servicio dado.
  * Terrestre tiene su propio flow más corto.
  */
@@ -149,8 +176,42 @@ export type TimelineStep = {
  * Comportamiento exception: si el status actual es "exception", se
  * marca el último step done como "exception" (rojo) y el resto sigue
  * pending. La idea es que el operador vea dónde se rompió el flow.
+ *
+ * `hiddenStatuses` (SDD-0156 · Slice D): estados a NO mostrar en el stepper (por
+ * `visible_in_portal=false` de la config por tenant). Se filtran DESPUÉS de
+ * calcular done/active/pending sobre el flow completo, así ocultar el hito actual
+ * (ej. "en aduana") no descoloca los pasos cumplidos ni los pendientes. El Studio
+ * y el tracking público no pasan este set → ven todo (sólo el portal lo aplica).
  */
 export function buildTimeline(
+  status: ShipmentStatus,
+  service: ShipmentService,
+  hiddenStatuses?: ReadonlySet<ShipmentStatus>,
+): TimelineStep[] {
+  const steps = buildTimelineFull(status, service);
+  if (!hiddenStatuses || hiddenStatuses.size === 0) return steps;
+
+  const visible = steps.filter((s) => !hiddenStatuses.has(s.status));
+  // Si el paso ACTUAL quedó oculto (ej. "en aduana" oculto mientras el envío está
+  // ahí), el filtrado deja al stepper sin ningún paso 'active' → se ve estancado.
+  // Promovemos el último paso visible YA cumplido a 'active' ("en curso") para que
+  // siga mostrando avance sin nombrar el hito oculto. Solo cuando había un 'active'
+  // y el filtro lo quitó (no cuando el actual sigue visible).
+  const activeWasHidden =
+    steps.some((s) => s.state === "active") &&
+    !visible.some((s) => s.state === "active");
+  if (activeWasHidden) {
+    for (let i = visible.length - 1; i >= 0; i--) {
+      if (visible[i].state === "done") {
+        visible[i] = { ...visible[i], state: "active" };
+        break;
+      }
+    }
+  }
+  return visible;
+}
+
+function buildTimelineFull(
   status: ShipmentStatus,
   service: ShipmentService,
 ): TimelineStep[] {
