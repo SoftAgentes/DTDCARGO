@@ -47,19 +47,11 @@ const CALC_LABELS: Record<string, string> = {
   maritimo: "Estimación marítima",
 };
 
-/**
- * wa.me del PROSPECTO (no el del CRM): la acción que importa es que el asesor
- * le escriba. Normalización conservadora: solo dígitos; el "04xx…" local
- * venezolano se lleva a 58-4xx…; si no parece un número usable, no hay link
- * (el número crudo igual va en el cuerpo).
- */
-export function buildProspectWaLink(whatsapp: string): string | null {
-  let digits = whatsapp.replace(/\D/g, "");
-  if (digits.length === 11 && digits.startsWith("0")) {
-    digits = "58" + digits.slice(1);
-  }
-  return digits.length >= 10 ? `https://wa.me/${digits}` : null;
-}
+// wa.me del PROSPECTO (no el del CRM): la acción que importa es que el asesor
+// le escriba. La implementación vive en estimado-linking (pura, client-safe —
+// también la usa la campaña de recuperación SDD-0157); acá se re-exporta.
+import { buildProspectWaLink } from "./estimado-linking";
+export { buildProspectWaLink };
 
 export async function notifyEstimadoLeadToAdmin(
   supabaseAdmin: SupabaseClient,

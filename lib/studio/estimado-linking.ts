@@ -37,6 +37,21 @@ export function phonesMatch(
   return na.slice(-10) === nb.slice(-10);
 }
 
+/**
+ * wa.me del contacto/prospecto (la acción "escríbele tú"). Normalización
+ * conservadora: solo dígitos; el "04xx…" local venezolano se lleva a 58-4xx…;
+ * si no parece un número usable, null (el número crudo igual se muestra).
+ * PURO y client-safe — lo consumen el aviso de estimados (server) y la campaña
+ * de recuperación (client, SDD-0157).
+ */
+export function buildProspectWaLink(whatsapp: string): string | null {
+  let digits = whatsapp.replace(/\D/g, "");
+  if (digits.length === 11 && digits.startsWith("0")) {
+    digits = "58" + digits.slice(1);
+  }
+  return digits.length >= 10 ? `https://wa.me/${digits}` : null;
+}
+
 /** Email canónico para comparar (trim + minúsculas). */
 export function normalizeEmail(raw: string | null | undefined): string {
   return (raw ?? "").trim().toLowerCase();

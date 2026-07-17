@@ -84,6 +84,7 @@ export function KommoClient({
   tab,
   direccion,
   tablero,
+  recuperacion,
   overview,
   pipelines,
   statuses,
@@ -98,6 +99,8 @@ export function KommoClient({
   direccion: ReactNode;
   /** Slot server-renderizado con el Tablero kanban del embudo. */
   tablero: ReactNode;
+  /** Slot server-renderizado con la campaña de recuperación (SDD-0157). */
+  recuperacion: ReactNode;
   overview: KommoOverview;
   pipelines: KommoPipelineRow[];
   statuses: KommoStatusRow[];
@@ -301,6 +304,8 @@ export function KommoClient({
         direccion
       ) : tab === "tablero" ? (
         tablero
+      ) : tab === "recuperacion" ? (
+        recuperacion
       ) : (
         <>
           {/* Toolbar del worklist */}
