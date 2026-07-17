@@ -137,6 +137,19 @@ export async function scheduleClientNotifications(
     if (insErr) {
       if (insErr.code === "23505") {
         // Ya estaba programado (mismo envío+evento+regla) → idempotente.
+        // Para anclas EXTERNAS (eta/etd), la fecha puede haberse corregido desde
+        // que se programó (la naviera mueve el ETA seguido). Re-anclamos el aviso
+        // AÚN PENDIENTE a la fecha fresca; si ya se envió (status≠'scheduled') no
+        // se toca (no se reenvía). Las anclas 'event' no cambian → no se re-anclan.
+        if (chosen.anchor === "eta" || chosen.anchor === "etd") {
+          await admin
+            .from("client_notification_schedule")
+            .update({ scheduled_for: scheduledFor.toISOString() })
+            .eq("shipment_id", ev.shipmentId)
+            .eq("trigger_event", ev.event)
+            .eq("rule_id", chosen.id)
+            .eq("status", "scheduled");
+        }
         return { scheduled: 0, skipped: 1 };
       }
       console.error(`[client-notif] insert agenda falló:`, insErr.message);

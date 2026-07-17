@@ -11,6 +11,7 @@ import {
   CLIENT_JOURNEY_EVENT_KEYS,
   NOTIFICATION_CHANNELS,
   NOTIFICATION_ANCHORS,
+  TEMPLATE_KEYS,
   isNotificationChannel,
   isNotificationAnchor,
   type ClientNotificationRule,
@@ -77,6 +78,10 @@ export function validateRuleInput(
   if (Math.abs(input.offset_minutes) > MAX_OFFSET_MINUTES) {
     return { error: "El corrimiento supera el máximo permitido (120 días)." };
   }
+  const templateKey = input.template_key?.trim() || null;
+  if (templateKey && !TEMPLATE_KEYS.includes(templateKey)) {
+    return { error: `Template desconocido: "${templateKey}".` };
+  }
   const clientId = input.client_id?.trim() || null;
 
   return {
@@ -87,7 +92,7 @@ export function validateRuleInput(
       channel: input.channel,
       anchor: input.anchor,
       offset_minutes: input.offset_minutes,
-      template_key: input.template_key?.trim() || null,
+      template_key: templateKey,
       custom_title: input.custom_title?.trim() || null,
       custom_body: input.custom_body?.trim() || null,
       visible_in_portal: input.visible_in_portal,

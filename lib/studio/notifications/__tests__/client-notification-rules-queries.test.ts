@@ -70,4 +70,15 @@ describe("validateRuleInput", () => {
     expect("ok" in res && res.ok).toBe(true);
     if ("ok" in res) expect(res.value.client_id).toBeNull();
   });
+
+  it("rechaza template_key desconocido (evita caer en silencio a copy genérico)", () => {
+    const res = validateRuleInput({ ...base(), template_key: "no_existe" });
+    expect("error" in res).toBe(true);
+  });
+
+  it("template_key vacío → null (usa copy default del evento)", () => {
+    const res = validateRuleInput({ ...base(), template_key: "  " });
+    expect("ok" in res && res.ok).toBe(true);
+    if ("ok" in res) expect(res.value.template_key).toBeNull();
+  });
 });
