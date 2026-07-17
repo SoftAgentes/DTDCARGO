@@ -1,0 +1,23 @@
+-- 0247 — Fix: re-grant EXECUTE de next_consolidation_ref a authenticated
+--
+-- La 0211 (revoke_authenticated_rpc_sweep) revocó `authenticated` de 35 RPCs
+-- "solo-server", con la premisa (auditoría 2026-07-03) de que ningún `.rpc()`
+-- con cliente de usuario las llamaba. Para `next_consolidation_ref` esa premisa
+-- fue INCORRECTA: app/studio/(app)/naviera/actions.ts → createConsolidation()
+-- la llama con el cliente SSR `authenticated` (await createClient(), NO
+-- admin/service_role). Resultado: crear un contenedor desde Studio fallaba con
+-- "No se pudo generar la referencia del contenedor" (permission denied) → nunca
+-- se pudo abrir una consolidación por UI (0 consolidaciones en prod, operación
+-- de estiba 0%). Restaura el grant al estado pre-0211 (definido en 0096).
+--
+-- Seguro para `authenticated`: SECURITY DEFINER + set search_path=public; solo
+-- COMPUTA el ref DTD-CONSOL-NNNN (SELECT max()+1, no escribe). El INSERT real en
+-- consolidations sigue guardado por moduleEditDenial('naviera') + RLS por tenant
+-- + resolveTenant() (el tenant lo resuelve el server, no lo elige el cliente).
+-- Mismo posture que next_markbox(uuid), que sigue con grant a authenticated.
+--
+-- ⚠️ Nota de seguimiento (NO en esta migración): 0211 también revocó
+-- next_booking_code y next_consolidation_code; auditar si alguna acción con
+-- cliente de usuario las llama (crear reserva/itinerario) — mismo riesgo.
+
+grant execute on function public.next_consolidation_ref(p_tenant_id uuid) to authenticated;
