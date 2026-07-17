@@ -91,8 +91,12 @@ el mismo `DTD-B-NNNNNN`.
   `after update OF boxes` → cuando corren, `prealerta_id` todavía es NULL. Una adopción
   ahí sería código muerto que además colisionaría en `seq` al dispararse. **La adopción
   tiene que ser un acto explícito del operario (escanear), no un efecto colateral.**
-- **Fase 2 · Etiqueta real**: QR escaneable con `&b=<code>` en `/portal/compras/[code]/etiquetas`
-  y en `/p/[token]`. Reusa `labelVerifyUrl()` (ya soporta `boxCode`) y `qrcode.react` (ya instalado).
+- **Fase 2 · Etiqueta real** ✅ — QR escaneable con `&b=<code>` en
+  `/portal/compras/[code]/etiquetas` (era placeholder que no codificaba nada) y en
+  `/p/[token]` (era `?c=<markbox>` sin caja). `buildLabelsFromBoxes()` arma la etiqueta
+  desde `warehouse_boxes`; `listPredeclaredBoxes()` las trae (RLS del portal / admin del
+  proveedor). Fallback a `buildLabels()` si la compra aún no tiene cajas. El `DTD-B-NNNNNN`
+  va también legible bajo el QR, por si el escáner falla en el galpón.
 
 ### Fuera de scope (van en sus propias specs)
 

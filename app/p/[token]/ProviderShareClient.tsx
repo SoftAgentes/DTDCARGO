@@ -5,6 +5,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { CheckIcon, DownloadIcon } from "@/components/Icon";
 import { CONTACT } from "@/lib/design-tokens";
 import type { BoxLabel } from "@/lib/studio/prealertas/types";
+import { labelVerifyUrl } from "@/lib/studio/etiquetas-qr";
 import { PackingListFormSection } from "./PackingListFormSection";
 import { SupplierUploadSection } from "./SupplierUploadSection";
 
@@ -255,12 +256,6 @@ function StepEyebrow({ n, zh, es }: { n: number; zh: string; es: string }) {
   );
 }
 
-// Base pública para el QR de verificación. Igual que el mockup del Norte
-// (packlist.js · qrSvg → "https://dtdcargo.com/verificar?c=" + mark). La página
-// /verificar (app/verificar/page.tsx, SDD-0097) confirma el Shipping Mark al escanear.
-const VERIFY_BASE =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://dtdcargo.com";
-
 function LabelCard({
   label,
   clientName,
@@ -270,8 +265,14 @@ function LabelCard({
   clientName: string;
   markbox: string;
 }) {
-  // Una etiqueta por caja; todas apuntan al mismo MARK del cliente.
-  const verifyUrl = `${VERIFY_BASE}/verificar?c=${encodeURIComponent(markbox)}`;
+  // SDD-0153: QR real → /verificar. Con la caja pre-declarada lleva su DTD-B en
+  // `&b=` (escaneable por caja al recibir/estibar); si no, solo el Shipping Mark.
+  const verifyUrl = labelVerifyUrl(
+    markbox,
+    label.boxN,
+    label.totalBoxes,
+    label.boxCode,
+  );
   return (
     <div
       className="label-card bg-white border rounded-[10px] p-4 text-center"
@@ -290,7 +291,11 @@ function LabelCard({
           fgColor="#0F1E3D"
           bgColor="#ffffff"
           level="M"
-          aria-label={`Verificar ${markbox}`}
+          aria-label={
+            label.boxCode
+              ? `扫描箱子 Escanear caja ${label.boxCode}`
+              : `Verificar ${markbox}`
+          }
         />
       </div>
       <div
@@ -305,6 +310,15 @@ function LabelCard({
       >
         第 {label.boxN}/{label.totalBoxes} 箱 · Caja {label.boxN}/{label.totalBoxes}
       </div>
+      {/* SDD-0153: el código único de la caja, legible por si el QR falla. */}
+      {label.boxCode && (
+        <div
+          className="mt-1 text-[8.5px] font-bold tracking-[0.04em]"
+          style={{ color: "var(--color-grey-700)", fontFamily: MONO }}
+        >
+          {label.boxCode}
+        </div>
+      )}
       <div
         className="mt-1 text-[8px] truncate"
         style={{ color: "var(--color-grey-700)" }}

@@ -106,6 +106,14 @@ export type BoxLabel = {
   boxN: number;
   /** total de cajas de la compra. */
   totalBoxes: number;
+  /**
+   * SDD-0153: el código ÚNICO de la caja (`DTD-B-NNNNNN`), si ya fue pre-declarada.
+   * Es lo que hace la etiqueta escaneable por caja (no solo por cliente): el QR lo
+   * lleva en `&b=` y el operario lo lee al recibir y al estibar. `null` cuando la
+   * compra no tiene cajas pre-declaradas todavía (fallback a la etiqueta vieja, que
+   * identifica al cliente pero no a la caja).
+   */
+  boxCode?: string | null;
 };
 
 /**
@@ -113,6 +121,9 @@ export type BoxLabel = {
  * `code` + su `boxN/totalBoxes`. El nº de caja NO es un 5º segmento del código
  * (el Norte muestra el code + "Caja M/N" como texto). `boxes` se normaliza a
  * entero ≥ 1.
+ *
+ * FALLBACK: sin cajas pre-declaradas (`boxCode` queda `null`). Preferir
+ * `buildLabelsFromBoxes` cuando existan filas en `warehouse_boxes`.
  */
 export function buildLabels(code: string, boxes: number): BoxLabel[] {
   const total = Math.max(1, Math.trunc(Number(boxes) || 1));
@@ -120,6 +131,32 @@ export function buildLabels(code: string, boxes: number): BoxLabel[] {
     code,
     boxN: i + 1,
     totalBoxes: total,
+    boxCode: null,
+  }));
+}
+
+/** Una caja pre-declarada, tal como la devuelve `listPredeclaredBoxes`. */
+export type PredeclaredBox = { code: string; seq: number };
+
+/**
+ * SDD-0153: arma las etiquetas desde las cajas REALES pre-declaradas
+ * (`warehouse_boxes`), para que cada etiqueta lleve su `DTD-B-NNNNNN` escaneable.
+ * El `code` de la compra sigue siendo el encabezado (lo que el cliente reconoce);
+ * `boxCode` es la identidad única de la caja. `boxN/totalBoxes` se derivan del
+ * ORDEN de la lista (1..N), no del `seq` de la DB, que puede tener huecos tras una
+ * edición de conteo — para la etiqueta impresa importa "3 de 12", no el seq crudo.
+ */
+export function buildLabelsFromBoxes(
+  prealertaCode: string,
+  boxes: PredeclaredBox[],
+): BoxLabel[] {
+  const ordered = [...boxes].sort((a, b) => a.seq - b.seq);
+  const total = ordered.length;
+  return ordered.map((b, i) => ({
+    code: prealertaCode,
+    boxN: i + 1,
+    totalBoxes: total,
+    boxCode: b.code,
   }));
 }
 
