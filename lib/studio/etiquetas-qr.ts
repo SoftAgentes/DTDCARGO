@@ -25,3 +25,70 @@ export function labelVerifyUrl(
   const c = encodeURIComponent(markbox.trim());
   return `${VERIFY_BASE}/verificar?c=${c}&n=${boxIndex}/${totalBoxes}`;
 }
+
+// ── Lectura del QR al estibar (SDD-0152) ──────────────────────
+
+/**
+ * Qué acaba de escanear el operario.
+ *
+ * Conviven DOS etiquetas físicas y NO son intercambiables:
+ *  · La del proveedor (`/studio/etiquetas`, SDD-0031) se imprime ANTES de que la
+ *    caja llegue, así que codifica `?c=<markbox>&n=<caja>/<total>` — identifica
+ *    al cliente, no a la caja: dos envíos del mismo cliente tienen ambos una
+ *    "caja 1/12".
+ *  · La del hub (SDD-0152) lleva `warehouse_boxes.code` (DTD-B-NNNNNN), que sí
+ *    es único.
+ *
+ * Distinguirlas importa: sin esto, escanear la etiqueta del proveedor devuelve
+ * "esa caja no existe", que manda al operario a buscar un problema inexistente.
+ */
+export type ScannedLabel =
+  | { kind: "box_code"; code: string }
+  | { kind: "verify_url"; markbox: string; boxIndex: number | null; totalBoxes: number | null }
+  | { kind: "unknown"; raw: string };
+
+const BOX_CODE_RE = /^DTD-B-\d{4,}$/i;
+
+/**
+ * ¿Es un código de caja del hub? Vive acá y no en las server actions porque en
+ * un archivo `"use server"` TODO export debe ser async (Turbopack lo rechaza en
+ * build, aunque tsc lo deje pasar).
+ */
+export function isBoxCode(code: string): boolean {
+  return BOX_CODE_RE.test((code ?? "").trim());
+}
+
+export function parseScannedLabel(raw: string): ScannedLabel {
+  const s = (raw ?? "").trim();
+  if (!s) return { kind: "unknown", raw: s };
+
+  // 1. El código del hub, pelado.
+  if (BOX_CODE_RE.test(s)) return { kind: "box_code", code: s.toUpperCase() };
+
+  // 2. Una URL: puede ser la del proveedor (/verificar?c=&n=) o una futura que
+  //    lleve el código en `b`.
+  if (/^https?:\/\//i.test(s)) {
+    try {
+      const url = new URL(s);
+      const b = url.searchParams.get("b");
+      if (b && BOX_CODE_RE.test(b.trim())) {
+        return { kind: "box_code", code: b.trim().toUpperCase() };
+      }
+      const c = url.searchParams.get("c");
+      if (c) {
+        const n = url.searchParams.get("n"); // "3/12"
+        const [idx, total] = (n ?? "").split("/");
+        return {
+          kind: "verify_url",
+          markbox: c.trim().toUpperCase(),
+          boxIndex: Number.isFinite(Number(idx)) && idx !== "" ? Number(idx) : null,
+          totalBoxes: Number.isFinite(Number(total)) && total !== "" ? Number(total) : null,
+        };
+      }
+    } catch {
+      // URL inválida → cae a unknown
+    }
+  }
+
+  return { kind: "unknown", raw: s };
+}

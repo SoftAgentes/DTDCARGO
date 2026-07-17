@@ -347,6 +347,29 @@ export function OperarioHomeClient({
           zIndex: 5,
         }}
       >
+        {/* Estibar (SDD-0152) · secundario: la recepción sigue siendo el acto
+            principal del día; estibar es lo que viene después. */}
+        <Link
+          href="/m/cn/estibar"
+          style={{
+            textDecoration: "none",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            minHeight: 48,
+            marginBottom: 8,
+            borderRadius: "var(--r-md)",
+            background: "var(--surface-inv)",
+            border: "1px solid var(--border-inv)",
+            color: "var(--ink-side)",
+            font: "700 13px/1 var(--f-sans)",
+          }}
+        >
+          {Icon.box(16)}
+          {t(lang, "Estibar contenedor", "装柜")}
+        </Link>
+
         <Link href="/m/cn/nueva" style={{ textDecoration: "none" }}>
           <BigButton
             label={t(lang, "+ Nueva recepción", "+ 新接收")}

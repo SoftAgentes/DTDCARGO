@@ -28,6 +28,7 @@ import {
   type ZoneCoord,
   type ZoneLayout,
 } from "@/lib/studio/naviera/zones";
+import { parseScannedLabel } from "@/lib/studio/etiquetas-qr";
 import { stuffBoxAction, unstuffBoxAction } from "../actions";
 
 type Props = {
@@ -198,10 +199,27 @@ export function EstibaClient({
             placeholder="DTD-B-000123"
             manualLabel="Escribir el código de la caja"
             hint="Escanea el QR de la etiqueta de la caja."
-            onDetected={(code) => {
-              setScanned({ code, manual: false });
+            onDetected={(raw) => {
+              // Conviven dos etiquetas físicas: la del proveedor (identifica al
+              // CLIENTE, no a la caja) y la del hub (código único DTD-B). Sin
+              // distinguirlas, escanear la del proveedor daría "esa caja no
+              // existe" y el operario saldría a buscar un problema que no hay.
+              const parsed = parseScannedLabel(raw);
+              if (parsed.kind === "box_code") {
+                setScanned({ code: parsed.code, manual: false });
+                setScanning(false);
+                setError(null);
+                return;
+              }
+              if (parsed.kind === "verify_url") {
+                setScanning(false);
+                setError(
+                  `Esa es la etiqueta del proveedor (${parsed.markbox}) · identifica al cliente, no a la caja. Escanea la etiqueta DTD-B del hub o escribe su código.`,
+                );
+                return;
+              }
               setScanning(false);
-              setError(null);
+              setError("No reconozco ese código · escanea la etiqueta DTD-B del hub.");
             }}
             onClose={() => setScanning(false)}
           />

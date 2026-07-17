@@ -14,6 +14,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/db/admin";
 import { getCurrentOperario } from "@/lib/auth/operario-session";
+import { isBoxCode } from "@/lib/studio/etiquetas-qr";
 import { isZoneInLayout, type ZoneCoord, type ZoneLayout } from "@/lib/studio/naviera/zones";
 
 export type StuffBoxActionState = {
@@ -26,11 +27,6 @@ export type StuffBoxActionState = {
   stuffedCount?: number;
   expectedCount?: number;
 };
-
-/** Mismo criterio que isValidBoxCode de VE: 4+ alfanuméricos (acepta guiones). */
-export function isValidBoxCode(code: string): boolean {
-  return /^[A-Za-z0-9-]{4,}$/.test(code.trim());
-}
 
 async function requireCnOperario() {
   const session = await getCurrentOperario();
@@ -56,8 +52,8 @@ export async function stuffBoxAction(
   if ("error" in auth) return { error: auth.error };
 
   const trimmed = code.trim();
-  if (!isValidBoxCode(trimmed)) {
-    return { error: "Código inválido · 4+ caracteres." };
+  if (!isBoxCode(trimmed)) {
+    return { error: "Ese no es un código de caja del hub (DTD-B-…)." };
   }
   // Atajo local del mismo guard que hace el RPC contra zone_layout: así el
   // operario no gasta un viaje al servidor por un tap fuera de la grilla.
@@ -112,8 +108,8 @@ export async function unstuffBoxAction(
   if ("error" in auth) return { error: auth.error };
 
   const trimmed = code.trim();
-  if (!isValidBoxCode(trimmed)) {
-    return { error: "Código inválido · 4+ caracteres." };
+  if (!isBoxCode(trimmed)) {
+    return { error: "Ese no es un código de caja del hub (DTD-B-…)." };
   }
 
   const admin = createAdminClient();
