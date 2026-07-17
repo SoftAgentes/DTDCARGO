@@ -121,6 +121,16 @@ const SECTIONS: AdminSection[] = [
     href: "/studio/admin/feature-flags",
   },
   {
+    id: "client-notifications",
+    group: "BÁSICO",
+    label: "Notificaciones al cliente",
+    icon: "bell",
+    description:
+      "Avisos del viaje China→VE: por cada hito define canal (correo/push), cuándo (offset ± respecto al hito o al ETA) y si se muestra u oculta en el portal. Ej: aduana → ocultar “llegó” + disparar cobro anticipado. Override por cliente.",
+    href: "/studio/admin/notificaciones",
+    sddRef: "SDD-0156",
+  },
+  {
     id: "masterdata",
     group: "BÁSICO",
     label: "Master data",

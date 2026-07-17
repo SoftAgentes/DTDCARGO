@@ -9,6 +9,10 @@
       "schedule": "* * * * *"
     },
     {
+      "path": "/api/cron/client-notifications-drain",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/cron/searates-refresh",
       "schedule": "0 6 * * 1"
     },
