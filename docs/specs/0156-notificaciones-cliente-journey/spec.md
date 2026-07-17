@@ -288,6 +288,11 @@ Completado sobre A+B (LIVE), **sin migración nueva** (todas las columnas ya viv
   aviso. Seed: `seedDefaultRulesForTenant` (idempotente) se llama en `supabase/seed.ts` tras
   resolver el tenant, para que un tenant recién bootstrapeado nazca con las reglas default (la migr
   0247 sólo sembró los tenants existentes al aplicarse — hallazgo de la revisión adversarial).
+- **Slice C — historial de avisos en el portal.** `listShipmentNotificationHistory`
+  (`notifications/notification-history-queries.ts`) expone las filas `sent` de
+  `client_notification_schedule` de un envío (admin, scopeado al envío PROPIO — el cliente no lee la
+  cola). Card `PortalNotificationHistory` ("Avisos que te enviamos") en el detalle del envío (Norte
+  + legacy); se oculta si no hay avisos.
 
 **Tests nuevos** (`notifications/__tests__/` + `lib/studio/__tests__/tracking-progress-hidden`):
 `parseFlexibleDate`/`resolveShipmentEta`/`resolveShipmentEtd` (preferencia de fuente + degradación),
@@ -297,7 +302,7 @@ Completado sobre A+B (LIVE), **sin migración nueva** (todas las columnas ya viv
 **Pendiente operativo (no código)**: verificar entrega push E2E a un cliente real suscrito a
 `PortalPushOptIn`. **Onboarding multi-tenant runtime**: cuando exista, debe llamar
 `seedDefaultRulesForTenant` (o un trigger de DB en `tenants` insert, como migración futura con OK
-del founder). **Diferido opcional**: historial de avisos read-only en el portal (`schedule` 'sent').
+del founder).
 
 ### Nota de anclaje ETA
 La regla "va llegando +5 al ETA" se **ancla en el ETA** y se **programa** cuando el envío alcanza un

@@ -9,6 +9,8 @@ import {
   stepDatesFromEvents,
 } from "@/lib/portal/shipment-events-queries";
 import { getHiddenPortalStatuses } from "@/lib/studio/notifications/portal-visibility-queries";
+import { listShipmentNotificationHistory } from "@/lib/studio/notifications/notification-history-queries";
+import { PortalNotificationHistory } from "../../../_components/PortalNotificationHistory";
 import type { ShipmentStatus } from "@/lib/shared/shipment-public";
 import { SERVICE_LABELS, estimatePortalEta } from "@/lib/portal/portal-types";
 import { showNortePortal, showShipmentAcceptanceCta } from "@/lib/portal/demo";
@@ -82,6 +84,13 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
     ? await getHiddenPortalStatuses(admin, tenantId, client?.id ?? null)
     : new Set<ShipmentStatus>();
 
+  // Historial de avisos enviados de este envío (SDD-0156 · Slice C · loose end).
+  // Read-only, scopeado al envío PROPIO (admin, sin RLS de cliente sobre la cola).
+  const notificationHistory = await listShipmentNotificationHistory(
+    admin,
+    shipment.id,
+  );
+
   // Rediseño Norte (founder 2026-06-20) GATEADO al demo: stepper horizontal + 2
   // columnas. Clientes reales siguen con el detalle de abajo.
   if (showNortePortal(client?.markbox)) {
@@ -120,6 +129,7 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
         live={live}
         stepDates={stepDates}
         hiddenStatuses={hiddenStatuses}
+        notificationHistory={notificationHistory}
         pendingAcceptance={pendingAcceptance}
       />
     );
@@ -230,6 +240,12 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
       <div className="mt-6">
         <PortalDocsCard documents={documents} signedUrls={docUrls} />
       </div>
+
+      {notificationHistory.length > 0 ? (
+        <div className="mt-6">
+          <PortalNotificationHistory items={notificationHistory} />
+        </div>
+      ) : null}
     </div>
   );
 }
