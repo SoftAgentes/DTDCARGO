@@ -142,8 +142,8 @@ export default function MarkboxPage() {
         {/* Flujo de 8 pasos + beneficios — mismo componente que el home */}
         <ShippingMark />
 
-        {/* Guía destacada: dirección de la bodega en Alibaba — mismo bloque
-            que /faq (una sola fuente de verdad, AlibabaAddressGuide). */}
+        {/* Guía destacada: dirección de la bodega en Alibaba — misma tarjeta
+            compacta (AlibabaAddressGuide) que se usa como widget en la FAQ. */}
         <section id="guia-alibaba" className="py-16 lg:py-20 bg-paper scroll-mt-24">
           <div className="wrap max-w-[820px]">
             <span className="eyebrow">Guía destacada</span>
@@ -151,11 +151,9 @@ export default function MarkboxPage() {
               Cómo poner tu Shipping Mark en la dirección de Alibaba, 1688 o Taobao.
             </h2>
             <p className="mt-3 mb-6 text-[14.5px] leading-[1.65] text-grey-700 max-w-[62ch]">
-              Copia y pega cada campo tal cual (en chino, sin traducir) en el
-              formulario de direcciones de Alibaba, 1688, Taobao u otra web — o
-              pásaselo directo a tu proveedor. Con tu Shipping Mark en el
-              destinatario, tu compra queda identificada apenas llega a nuestra
-              bodega de Yiwu.
+              Estos son los datos de nuestra bodega en Yiwu. Escribe tu Shipping
+              Mark, cópialos y pégalos en Alibaba, 1688 o Taobao — o pásaselos
+              directo a tu proveedor.
             </p>
             <AlibabaAddressGuide />
           </div>
