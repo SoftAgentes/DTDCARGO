@@ -38,6 +38,12 @@ import {
   type Sailing,
 } from "@/lib/studio/naviera/types";
 import { buildSeaRatesTrackingUrl } from "@/lib/studio/naviera-tracking/searates-deeplink";
+import { ContainerIsoView } from "./ContainerIsoView";
+import {
+  DEFAULT_ZONE_LAYOUT,
+  type StuffedBox,
+  type ZoneLayout,
+} from "@/lib/studio/naviera/zones";
 import type {
   ConsolidationDetail,
   LooseCargo,
@@ -80,6 +86,8 @@ export function NavieraClient({
   containerTypes,
   kpis,
   trackingByConsolidation,
+  stuffingByConsolidation,
+  zoneLayouts,
 }: {
   sailings: Sailing[];
   bookings: Booking[];
@@ -91,6 +99,10 @@ export function NavieraClient({
   kpis: NavieraKpis;
   /** Snapshots de tracking SeaRates por consolidación (SDD-0101 · Slice B.2). */
   trackingByConsolidation?: Record<string, TrackingSnapshotRow>;
+  /** Dónde quedó cada caja dentro de cada contenedor (SDD-0152). */
+  stuffingByConsolidation?: Record<string, StuffedBox[]>;
+  /** Grilla de zonas por código de tipo de contenedor (SDD-0152). */
+  zoneLayouts?: Record<string, ZoneLayout>;
 }) {
   const [tab, setTab] = useState<Tab>("consolidation");
   const [showNewSailing, setShowNewSailing] = useState(false);
@@ -243,6 +255,8 @@ export function NavieraClient({
           carriers={carriers}
           sailings={sailings}
           trackingByConsolidation={trackingByConsolidation}
+          stuffingByConsolidation={stuffingByConsolidation}
+          zoneLayouts={zoneLayouts}
           onNew={() => setShowNewConsolidation(true)}
           onAssign={(d) => setAssignTo(d)}
         />
@@ -465,6 +479,8 @@ function ConsolidationTab({
   carriers,
   sailings,
   trackingByConsolidation,
+  stuffingByConsolidation,
+  zoneLayouts,
   onNew,
   onAssign,
 }: {
@@ -472,6 +488,8 @@ function ConsolidationTab({
   carriers: Carrier[];
   sailings: Sailing[];
   trackingByConsolidation?: Record<string, TrackingSnapshotRow>;
+  stuffingByConsolidation?: Record<string, StuffedBox[]>;
+  zoneLayouts?: Record<string, ZoneLayout>;
   onNew: () => void;
   onAssign: (d: ConsolidationDetail) => void;
 }) {
@@ -581,6 +599,11 @@ function ConsolidationTab({
           carriers={carriers}
           sailings={sailings}
           snapshot={trackingByConsolidation?.[selected.consolidation.id] ?? null}
+          stuffing={stuffingByConsolidation?.[selected.consolidation.id] ?? []}
+          zoneLayout={
+            zoneLayouts?.[selected.consolidation.container_type ?? ""] ??
+            DEFAULT_ZONE_LAYOUT
+          }
           onAssign={() => onAssign(selected)}
         />
       )}
@@ -593,12 +616,16 @@ function ContainerDetail({
   carriers,
   sailings,
   snapshot,
+  stuffing,
+  zoneLayout,
   onAssign,
 }: {
   detail: ConsolidationDetail;
   carriers: Carrier[];
   sailings: Sailing[];
   snapshot: TrackingSnapshotRow | null;
+  stuffing: StuffedBox[];
+  zoneLayout: ZoneLayout;
   onAssign: () => void;
 }) {
   const c = detail.consolidation;
@@ -815,6 +842,47 @@ function ContainerDetail({
                 ? `${(st.usedKg / 1000).toFixed(1)} de ${(st.cap.kg / 1000).toFixed(1)} t · libre ${(st.freeKg / 1000).toFixed(1)} t`
                 : "Sin tipo de contenedor"
             }
+          />
+        </div>
+
+        {/* Estiba por zonas (SDD-0152) · dónde quedó realmente cada caja.
+            Debajo de las barras: primero CUÁNTO va cargado, después DÓNDE. */}
+        <div style={{ marginTop: 22 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "baseline",
+              justifyContent: "space-between",
+              gap: 12,
+              marginBottom: 10,
+            }}
+          >
+            <span
+              style={{
+                font: "700 10px/1.4 var(--f-sans)",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "var(--ink-soft)",
+              }}
+            >
+              Estiba · dónde está cada carga
+            </span>
+            {stuffing.length > 0 && (
+              <span
+                style={{
+                  font: "500 11px/1.4 var(--f-sans)",
+                  color: "var(--ink-soft)",
+                }}
+              >
+                {stuffing.length} caja{stuffing.length === 1 ? "" : "s"} escaneada
+                {stuffing.length === 1 ? "" : "s"} en el hub
+              </span>
+            )}
+          </div>
+          <ContainerIsoView
+            layout={zoneLayout}
+            boxes={stuffing}
+            idSuffix={c.id}
           />
         </div>
 
