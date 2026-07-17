@@ -210,6 +210,53 @@ export default async function MarketingHubPage() {
         </div>
       </section>
 
+      {/* Documentación de marketing (SDD-0158): acceso al lector de docs/marketing */}
+      <section style={{ marginBottom: 32 }}>
+        <h2 className="studio-eyebrow" style={{ margin: "0 0 var(--s-3)" }}>
+          Documentación
+        </h2>
+        <Link
+          href="/studio/marketing/docs"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 16,
+            border: "1px solid var(--border)",
+            borderRadius: 14,
+            padding: "20px 24px",
+            background: "var(--bg-surface)",
+            textDecoration: "none",
+          }}
+        >
+          <div>
+            <p
+              style={{
+                font: "700 15px/1.3 var(--f-sans)",
+                color: "var(--ink)",
+                margin: "0 0 var(--s-1)",
+              }}
+            >
+              Documentos de marketing
+            </p>
+            <p
+              style={{
+                font: "400 13px/1.5 var(--f-sans)",
+                color: "var(--ink-soft)",
+                margin: 0,
+                maxWidth: "64ch",
+              }}
+            >
+              Toda la estrategia en un solo lugar: sistema de adquisición, oferta, prospectos,
+              embudo, SEO y canales. Se lee acá mismo y se actualiza solo desde el repo.
+            </p>
+          </div>
+          <span style={{ color: "var(--wine-text)", flexShrink: 0, display: "inline-flex" }}>
+            {Icon.chevR(18)}
+          </span>
+        </Link>
+      </section>
+
       {/* Secciones pendientes */}
       {PLACEHOLDERS.map((p) => (
         <section key={p.eyebrow} style={{ marginBottom: 24 }}>
