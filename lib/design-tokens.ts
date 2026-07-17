@@ -796,12 +796,13 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
 
 export const HERO = {
   /**
-   * Eyebrow gris arriba del kicker: categoría + año del CORREDOR a Venezuela.
-   * El eyebrow habla de "Logística China → Venezuela", así que el año es el del
-   * corredor: 2015 (expansión a Venezuela / DTD Services LCL), NO 2010 (que es
-   * la fundación de la empresa). Alinea con la banda de Stats ("Operando en
-   * Venezuela · 2015") y evita la discordancia que confundía (founder 2026-06-13).
-   * La empresa (2010) vive en el schema/footer; el comercio con China (2008) en Stats.
+   * Eyebrow gris arriba del kicker: categoría + año de fundación.
+   * 2015 = fundación e inauguración en Venezuela = el año de la empresa (founder
+   * 2026-07-17), y coincide con el año del corredor. Alinea con la banda de Stats
+   * ("Operando en Venezuela · 2015") y con `foundingDate` del schema.
+   * 2008 = inicios en China: es EXPERIENCIA, no fundación → vive en Stats ("En el
+   * comercio con China desde 2008"). 2010 = hito histórico (se formalizó la
+   * empresa de carga), nunca un claim de "operando/empresa desde".
    */
   eyebrow: "Logística China → Venezuela · Desde 2015",
   /**

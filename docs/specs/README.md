@@ -163,7 +163,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0128 | API keys & webhooks — gestión de credenciales de integración … | done | interno |
 | 0129 | Workflows custom — puntero al motor de flujo existente (SDD-0… | done | interno |
 | 0130 | Importar / Exportar — export CSV del dominio admin (import po… | done | interno |
-| 0131 | Registro de cliente interno — persona/empresa (cédula vs RIF)… | in-progress | interno |
+| 0131 | Registro de cliente interno — persona/empresa (cédula vs RIF)… | done | interno |
 | 0132 | Hitos del envío + notificación de estado al cliente | done | interno |
 | 0133 | Cut-off / calendario de zarpes en el portal | done | interno |
 | 0134 | Reportar pago + comprobante en el portal | done | interno |
