@@ -5,10 +5,10 @@ import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
-import { FAQS, FAQ_CATEGORIAS } from "@/lib/faqs";
+import { FAQS } from "@/lib/faqs";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
-import { WhatsAppIcon, ArrowIcon } from "@/components/Icon";
 import { AlibabaAddressGuide } from "@/components/AlibabaAddressGuide";
+import { FaqExplorer } from "@/components/FaqExplorer";
 
 // JetBrains Mono (mono de marca) para los valores copiables de la guía Alibaba
 // (Shipping Mark, teléfono, código postal, email): la página monta --font-mono
@@ -106,93 +106,12 @@ export default function FaqPage() {
           </div>
         </section>
 
-        {/* Acordeón de FAQs (details nativo — sin JS), agrupado por categoría
-            con subheads eyebrow. El FAQPage schema de arriba NO se agrupa:
-            sigue plano con todas las preguntas. Las respuestas con lista usan
-            `bloques` (solo UI); el schema toma el string plano `respuesta`. */}
-        <section className="pb-16 lg:pb-20">
-          <div className="wrap max-w-[820px]">
-            <span className="eyebrow">Todas las preguntas</span>
-            <h2 className="h-card mt-3">Respuestas, una por una</h2>
-            {FAQ_CATEGORIAS.map((cat, ci) => {
-              const items = FAQS.filter((f) => f.categoria === cat.id);
-              if (items.length === 0) return null;
-              return (
-                <div
-                  key={cat.id}
-                  id={cat.id}
-                  className={`scroll-mt-24 ${ci === 0 ? "mt-6" : "mt-10"}`}
-                >
-                  <h3 className="eyebrow mb-4">{cat.label}</h3>
-                  {items.map((f) => (
-                    <details
-                      key={f.pregunta}
-                      className="group mb-3 rounded-[14px] border border-grey-200 bg-white px-5 card-shadow"
-                    >
-                      <summary className="flex items-start justify-between gap-4 cursor-pointer list-none py-5 rounded-[14px] [&::-webkit-details-marker]:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine-soft">
-                        <span className="text-[16px] lg:text-[17px] font-extrabold leading-[1.35] text-ink">
-                          {f.pregunta}
-                        </span>
-                        <span className="mt-0.5 flex-shrink-0 text-[22px] leading-none text-wine transition-transform duration-200 group-open:rotate-45">
-                          +
-                        </span>
-                      </summary>
-                      {f.bloques ? (
-                        <div className="-mt-1 flex flex-col gap-3 pb-5 text-[14.5px] leading-[1.65] text-grey-700">
-                          {f.bloques.map((b, bi) =>
-                            b.tipo === "lista" ? (
-                              <ul key={bi} className="flex flex-col gap-1.5">
-                                {b.items.map((it) => (
-                                  <li key={it} className="flex gap-2.5">
-                                    <span
-                                      aria-hidden
-                                      className="mt-[8px] h-[5px] w-[5px] flex-shrink-0 rounded-full"
-                                      style={{ background: "var(--color-wine)" }}
-                                    />
-                                    <span>{it}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            ) : (
-                              <p key={bi}>{b.texto}</p>
-                            ),
-                          )}
-                        </div>
-                      ) : (
-                        <p className="-mt-1 pb-5 text-[14.5px] leading-[1.65] text-grey-700">
-                          {f.respuesta}
-                        </p>
-                      )}
-                    </details>
-                  ))}
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* CTA */}
-        <section className="pb-20">
-          <div className="wrap max-w-[820px]">
-            <div className="card-shadow rounded-[18px] bg-ink text-white p-8 lg:p-10 text-center">
-              <h2 className="h-card text-white">¿Te quedó otra duda?</h2>
-              <p className="mt-3 text-[15px] leading-[1.55] text-white/75 max-w-[46ch] mx-auto">
-                Un asesor humano te responde por WhatsApp, sin compromiso — y te
-                arma la cotización de tu envío de China a Venezuela.
-              </p>
-              <div className="mt-6 flex flex-wrap gap-3 justify-center">
-                <a href={WA} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
-                  <WhatsAppIcon size={18} /> Escríbenos por WhatsApp
-                </a>
-                <a
-                  href="/calculadora"
-                  className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-white/85 hover:text-white underline underline-offset-4 decoration-1"
-                >
-                  Calcular mi envío <ArrowIcon size={16} />
-                </a>
-              </div>
-            </div>
-          </div>
+        {/* Explorador de FAQs (híbrido): buscador + filtro por categoría +
+            acordeón en un solo flujo, con el CTA de WhatsApp fijo en el rail.
+            El FAQPage schema de arriba sigue plano con TODAS las preguntas — no
+            depende del filtrado de cliente de este módulo. */}
+        <section className="pb-20 lg:pb-24 scroll-mt-24" id="preguntas">
+          <FaqExplorer faqs={FAQS} waHref={WA} />
         </section>
       </main>
 
