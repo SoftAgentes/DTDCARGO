@@ -19,6 +19,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Faq, FaqCategoria } from "@/lib/faqs";
 import { FAQ_CATEGORIAS } from "@/lib/faqs";
 import { WhatsAppIcon, ArrowIcon } from "@/components/Icon";
+import { AlibabaAddressGuide } from "@/components/AlibabaAddressGuide";
 
 type Filtro = "todas" | FaqCategoria;
 
@@ -183,7 +184,11 @@ export function FaqExplorer({ faqs, waHref }: { faqs: Faq[]; waHref: string }) {
                       +
                     </span>
                   </summary>
-                  {f.bloques ? (
+                  {f.widget === "alibaba-guide" ? (
+                    <div className="-mt-1 pb-5">
+                      <AlibabaAddressGuide />
+                    </div>
+                  ) : f.bloques ? (
                     <div className="-mt-1 flex flex-col gap-3 pb-5 text-[14.5px] leading-[1.65] text-grey-700">
                       {f.bloques.map((b, bi) =>
                         b.tipo === "lista" ? (

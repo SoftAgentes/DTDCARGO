@@ -7,7 +7,6 @@ import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import { FAQS } from "@/lib/faqs";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
-import { AlibabaAddressGuide } from "@/components/AlibabaAddressGuide";
 import { FaqExplorer } from "@/components/FaqExplorer";
 
 // JetBrains Mono (mono de marca) para los valores copiables de la guía Alibaba
@@ -87,24 +86,9 @@ export default function FaqPage() {
           </div>
         </section>
 
-        {/* Guía destacada: dirección de la bodega en Alibaba (F4 — lo más
-            preguntado en el CRM: "¿tienen casillero en China?") */}
-        <section id="guia-alibaba" className="pb-14 lg:pb-16 scroll-mt-24">
-          <div className="wrap max-w-[820px]">
-            <span className="eyebrow">Guía destacada</span>
-            <h2 className="h-card mt-3">
-              Cómo poner la dirección de la bodega en Alibaba, 1688 o Taobao
-            </h2>
-            <p className="mt-3 mb-6 text-[14.5px] leading-[1.65] text-grey-700 max-w-[62ch]">
-              Copia y pega cada campo tal cual (en chino, sin traducir) en el
-              formulario de direcciones de Alibaba, 1688, Taobao u otra web — o
-              pásaselo directo a tu proveedor. Con tu Shipping Mark en el
-              destinatario, tu compra queda identificada apenas llega a nuestra
-              bodega de Yiwu.
-            </p>
-            <AlibabaAddressGuide />
-          </div>
-        </section>
+        {/* La guía de dirección de Alibaba dejó de ser sección destacada aparte:
+            ahora es una FAQ más (widget "alibaba-guide" en lib/faqs.ts) que
+            renderiza la guía interactiva al abrirse, dentro del explorador. */}
 
         {/* Explorador de FAQs (híbrido): buscador + filtro por categoría +
             acordeón en un solo flujo, con el CTA de WhatsApp fijo en el rail.

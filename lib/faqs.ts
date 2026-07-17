@@ -55,6 +55,11 @@ export type Faq = {
   categoria: FaqCategoria;
   /** Render enriquecido opcional para la UI. Si falta, se pinta `respuesta` en un <p>. */
   bloques?: FaqBloque[];
+  /**
+   * Widget interactivo que reemplaza la prosa en la UI cuando se abre la FAQ.
+   * El string `respuesta` se mantiene igual para el FAQPage schema (SEO/GEO).
+   */
+  widget?: "alibaba-guide";
 };
 
 export const FAQS: Faq[] = [
@@ -187,8 +192,9 @@ export const FAQS: Faq[] = [
     pregunta:
       "¿Cómo pongo la dirección de la bodega de DTD Cargo en Alibaba, 1688, Taobao u otras webs para que mi proveedor envíe?",
     respuesta:
-      "Cuando registres tu dirección de recepción en Alibaba, 1688, Taobao u otra web (o se la pases directo a tu proveedor por WeChat), usa la dirección de nuestra bodega en Yiwu y pon TU Shipping Mark en el nombre — eso es lo que nos permite saber que la caja es tuya cuando llega. Llénalo campo por campo así: País/región → China. Nombre o empresa → DTD Cargo - tu Shipping Mark (por ejemplo DTD-1014). Teléfono (+86) → 18606891419. Dirección → 浙江省义乌市义乌港二期直通仓2栋2号 货7-货11. Estado/provincia → 浙江省 (Zhejiang). Ciudad → 义乌市 (Yiwu; en el selector suele aparecer bajo 金华市, Jinhua). Código postal → 322000. Contacto de bodega → 林冠 (Lin Guan). Email → info@dtdcargo.com. La dirección va en chino porque es para el transporte dentro de China. Si tu Shipping Mark no aparece en el nombre, tu mercancía llega a la bodega pero no podemos identificar de quién es, así que no lo olvides. Este dato lo obtienes dentro de tu registro de clientes. En esta misma página tienes la guía con botón de copiar campo por campo.",
+      "Cuando registres tu dirección de recepción en Alibaba, 1688, Taobao u otra web (o se la pases directo a tu proveedor por WeChat), usa la dirección de nuestra bodega en Yiwu y pon TU Shipping Mark en el nombre — eso es lo que nos permite saber que la caja es tuya cuando llega. Llénalo campo por campo así: País/región → China. Nombre o empresa → DTD-Canopy - tu Shipping Mark (por ejemplo DTD-1014). Teléfono (+86) → 18606891419. Dirección → 浙江省义乌市义乌港二期直通仓2栋2号 货7-货11. Estado/provincia → 浙江省 (Zhejiang). Ciudad → 义乌市 (Yiwu; en el selector suele aparecer bajo 金华市, Jinhua). Código postal → 322000. Contacto de bodega → 林冠 (Lin Guan). Email → info@dtdcargo.com. La dirección va en chino porque es para el transporte dentro de China. Si tu Shipping Mark no aparece en el nombre, tu mercancía llega a la bodega pero no podemos identificar de quién es, así que no lo olvides. Este dato lo obtienes dentro de tu registro de clientes. Abre esta pregunta para tener la guía interactiva con botón de copiar campo por campo.",
     categoria: "bodega-china-shipping-mark",
+    widget: "alibaba-guide",
   },
   {
     pregunta: "¿Cómo me registro y qué obtengo al instante?",
