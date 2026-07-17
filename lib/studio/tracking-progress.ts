@@ -70,6 +70,33 @@ export function computeProgress(status: ShipmentStatus): number {
 }
 
 /**
+ * Estado a MOSTRAR de cara al cliente cuando la config del tenant oculta hitos
+ * (SDD-0156 · `visible_in_portal`). Si el status actual está oculto (ej. "en
+ * aduana"), devuelve el último estado VISIBLE en el flow igual o anterior al
+ * actual — así el badge y el % de la lista/dashboard no delatan el hito oculto y
+ * quedan coherentes con el stepper del detalle. Si no hay estados ocultos, o el
+ * actual es visible, devuelve el mismo status. Los estados fuera del flow
+ * (exception/delayed_warehouse/cancelled/draft) se devuelven tal cual.
+ */
+export function effectiveVisibleStatus(
+  status: ShipmentStatus,
+  service: ShipmentService,
+  hiddenStatuses?: ReadonlySet<ShipmentStatus>,
+): ShipmentStatus {
+  if (!hiddenStatuses || hiddenStatuses.size === 0) return status;
+  if (!hiddenStatuses.has(status)) return status;
+
+  const flow = flowForService(service);
+  const idx = flow.indexOf(status);
+  if (idx < 0) return status; // fuera del flow → sin sustitución
+  // Camina hacia atrás hasta el primer estado visible.
+  for (let i = idx - 1; i >= 0; i--) {
+    if (!hiddenStatuses.has(flow[i])) return flow[i];
+  }
+  return status; // no hay visible anterior → deja el actual (no rompe)
+}
+
+/**
  * Devuelve el flow a usar para un servicio dado.
  * Terrestre tiene su propio flow más corto.
  */

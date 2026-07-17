@@ -3,7 +3,11 @@
  * stepper del portal sin descolocar los pasos cumplidos/pendientes.
  */
 import { describe, it, expect } from "vitest";
-import { buildTimeline } from "../tracking-progress";
+import {
+  buildTimeline,
+  computeProgress,
+  effectiveVisibleStatus,
+} from "../tracking-progress";
 
 describe("buildTimeline hiddenStatuses", () => {
   it("sin hiddenStatuses → comportamiento intacto (todos los pasos)", () => {
@@ -56,5 +60,37 @@ describe("buildTimeline hiddenStatuses", () => {
     const a = buildTimeline("shipped", "consolidacion");
     const b = buildTimeline("shipped", "consolidacion", new Set());
     expect(b).toEqual(a);
+  });
+});
+
+describe("effectiveVisibleStatus", () => {
+  it("status visible → sin cambio", () => {
+    expect(
+      effectiveVisibleStatus("in_transit", "consolidacion", new Set(["in_customs"] as const)),
+    ).toBe("in_transit");
+  });
+
+  it("status oculto → último visible anterior (aduana → tránsito)", () => {
+    const eff = effectiveVisibleStatus(
+      "in_customs",
+      "consolidacion",
+      new Set(["in_customs"] as const),
+    );
+    expect(eff).toBe("in_transit");
+    // El % de la lista/dashboard baja de 75 (aduana) a 55 (tránsito).
+    expect(computeProgress(eff)).toBe(55);
+  });
+
+  it("sin ocultos → sin cambio", () => {
+    expect(effectiveVisibleStatus("in_customs", "consolidacion")).toBe("in_customs");
+  });
+
+  it("salta varios ocultos consecutivos hasta el primer visible", () => {
+    const eff = effectiveVisibleStatus(
+      "in_customs",
+      "consolidacion",
+      new Set(["in_customs", "in_transit"] as const),
+    );
+    expect(eff).toBe("shipped");
   });
 });

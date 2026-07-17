@@ -18,6 +18,29 @@ import type { ShipmentStatus } from "@/lib/shared/shipment-public";
 const STATUS_PREFIX = "status:";
 
 /**
+ * Conveniencia para el portal: resuelve el tenant del cliente (por su id) y
+ * devuelve sus statuses ocultos. Falla-seguro → set vacío. Se llama con el admin
+ * client (el cliente no lee la tabla de reglas).
+ */
+export async function getHiddenPortalStatusesForClient(
+  admin: SupabaseClient,
+  clientId: string,
+): Promise<Set<ShipmentStatus>> {
+  try {
+    const { data } = await admin
+      .from("clients")
+      .select("tenant_id")
+      .eq("id", clientId)
+      .maybeSingle<{ tenant_id: string }>();
+    const tenantId = String(data?.tenant_id ?? "").trim();
+    if (!tenantId) return new Set();
+    return await getHiddenPortalStatuses(admin, tenantId, clientId);
+  } catch {
+    return new Set();
+  }
+}
+
+/**
  * Statuses a ocultar en el stepper de ESTE cliente. Aplica override del cliente
  * sobre el default del tenant, evento por evento.
  */
