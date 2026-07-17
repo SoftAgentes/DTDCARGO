@@ -13,7 +13,6 @@
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/db/admin";
 import { getCurrentOperario } from "@/lib/auth/operario-session";
-import { parseZoneLayout, type StuffedBox } from "@/lib/studio/naviera/zones";
 import { EstibaClient } from "../_components/EstibaClient";
 
 export const metadata = { title: "Estibar" };
@@ -51,53 +50,23 @@ export default async function EstibarPage({
   // Grilla de zonas del tipo de contenedor
   const { data: ct } = await admin
     .from("container_types")
-    .select("zone_layout, label")
+    .select("label")
     .eq("tenant_id", operario.tenant_id)
     .eq("code", consol.container_type ?? "")
-    .maybeSingle<{ zone_layout: unknown; label: string | null }>();
+    .maybeSingle<{ label: string | null }>();
 
-  const layout = parseZoneLayout(ct?.zone_layout);
-
-  // Lo ya estibado (solo posiciones vivas)
+  // Lo ya montado (solo posiciones vivas). SDD-0155: lo que importa para la UI del
+  // operario es CUÁNTAS cajas y CUÁNTOS lotes (load_order distintos), no la grilla.
   const { data: posRows } = await admin
     .from("consolidation_box_positions")
-    .select("box_id, zx, zy, zz, seq, warehouse_boxes(code, markbox, client_name)")
+    .select("load_order")
     .eq("consolidation_id", consolidationId)
     .is("unstuffed_at", null)
-    .order("seq", { ascending: true })
-    .limit(2000);
-
-  const stuffed: StuffedBox[] = ((posRows as Record<string, unknown>[] | null) ?? []).map(
-    (raw) => {
-      const embed = raw.warehouse_boxes as
-        | Record<string, unknown>
-        | Record<string, unknown>[]
-        | null;
-      const boxRow = Array.isArray(embed) ? embed[0] : embed;
-      return {
-        boxId: String(raw.box_id ?? ""),
-        code: String(boxRow?.code ?? ""),
-        markbox: (boxRow?.markbox as string | null) ?? null,
-        clientName: (boxRow?.client_name as string | null) ?? null,
-        zx: Number(raw.zx ?? 0),
-        zy: Number(raw.zy ?? 0),
-        zz: Number(raw.zz ?? 0),
-        seq: Number(raw.seq ?? 0),
-      };
-    },
-  );
-
-  // Cuántas cajas se esperan en este contenedor (suma de piezas asignadas)
-  const { data: items } = await admin
-    .from("consolidation_items")
-    .select("pieces")
-    .eq("consolidation_id", consolidationId)
     .limit(5000);
 
-  const expected = ((items as { pieces: number | null }[] | null) ?? []).reduce(
-    (s, i) => s + (i.pieces ?? 0),
-    0,
-  );
+  const rows = (posRows as { load_order: number | null }[] | null) ?? [];
+  const stuffedCount = rows.length;
+  const lotsCount = new Set(rows.map((r) => r.load_order ?? 0)).size;
 
   return (
     <EstibaClient
@@ -106,9 +75,8 @@ export default async function EstibarPage({
       containerLabel={ct?.label ?? consol.container_type ?? "Contenedor"}
       containerNo={consol.container_no}
       status={consol.status}
-      layout={layout}
-      initialStuffed={stuffed}
-      expectedCount={expected}
+      initialStuffedCount={stuffedCount}
+      lotsCount={lotsCount}
     />
   );
 }

@@ -1,21 +1,24 @@
 /**
- * SDD-0152 · Visor isométrico del contenedor por zonas.
+ * SDD-0152 → SDD-0155 · Visor isométrico del contenedor por LOTES.
  *
- * SVG inline a mano, cero dependencias. 18 zonas ≈ 54 polígonos: los motores
- * del mercado (three.js ~155 KB, Konva ~150 KB, PixiJS) están dimensionados
- * para 8.000 cajas a 60 fps — ~400× esta carga. Acá el peso es solo el de este
- * archivo + zones.ts (~3 KB).
+ * SVG inline a mano, cero dependencias. Los motores del mercado (three.js ~155 KB,
+ * Konva ~150 KB, PixiJS) están dimensionados para 8.000 cajas a 60 fps — muy por
+ * encima de esta carga. Acá el peso es solo el de este archivo + zones.ts (~3 KB).
+ *
+ * SDD-0155: el layout NO es fijo — se DERIVA de lo montado. La profundidad la da
+ * el orden de carga (la primera al fondo), el ancho es izq/centro/der, no hay
+ * altura. Antes (0152) el layout venía de container_types con nx=3 fijo, y el
+ * visor asumía `zx < 3` — con load_order creciente eso reventaba (lo marcó el
+ * review adversarial). Ahora nx = cuántas cargas hay.
  *
  * Componente PURO (sin hooks, sin estado): lo consume NavieraClient, que es
- * "use client", así que viaja en el bundle del cliente. No es server component
- * — el detalle del contenedor vive dentro del orquestador cliente.
+ * "use client", así que viaja en el bundle del cliente.
  *
- * Interactividad: ninguna en JS. Cada zona lleva un <title> nativo → el hover
- * muestra cliente + zona sin una línea de JavaScript. La leyenda textual es la
- * que desambigua (el color solo no basta: BRAND.md §6).
- *
- * Sigue los invariantes de los charts del repo (charts.tsx): viewBox +
- * width:100%/height:auto, role="img" + aria-label, colores solo var(--*).
+ * Interactividad: ninguna en JS. Cada cubo lleva un <title> nativo → el hover
+ * muestra cliente + posición sin una línea de JavaScript. La leyenda textual es
+ * la que desambigua (el color solo no basta: BRAND.md §6). Sigue los invariantes
+ * de los charts (charts.tsx): viewBox + width:100%/height:auto, role="img" +
+ * aria-label, colores solo var(--*).
  */
 
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
@@ -27,7 +30,8 @@ import {
   cubeFaces,
   isoProject,
   isoViewBox,
-  lengthLabels,
+  layoutFromStuffing,
+  lotDepthLabels,
   painterSort,
   svgPoints,
   widthLabels,
@@ -38,7 +42,6 @@ import {
 } from "@/lib/studio/naviera/zones";
 
 type Props = {
-  layout: ZoneLayout;
   boxes: StuffedBox[];
   /** Sufijo único para los ids del <defs> (evita colisión con otros visores en la página). */
   idSuffix: string;
@@ -46,17 +49,14 @@ type Props = {
   variant?: "full" | "compact";
 };
 
-export function ContainerIsoView({
-  layout,
-  boxes,
-  idSuffix,
-  variant = "full",
-}: Props) {
+export function ContainerIsoView({ boxes, idSuffix, variant = "full" }: Props) {
   const compact = variant === "compact";
   const cw = compact ? 34 : 62;
   const ch = compact ? 23 : 42;
   const pad = compact ? 10 : 30;
 
+  // SDD-0155: la profundidad la dan los datos (orden de carga), no un layout fijo.
+  const layout = layoutFromStuffing(boxes);
   const occ = zoneOccupancy(layout, boxes);
   const colors = assignClientColors(boxes.map((b) => b.markbox));
   const vb = isoViewBox(layout, cw, ch, pad);
@@ -70,7 +70,7 @@ export function ContainerIsoView({
   const wallBack = [P(0, 0, 0), P(layout.nx, 0, 0), P(layout.nx, layout.ny, 0), P(0, layout.ny, 0)];
   const wallLeft = [P(0, 0, 0), P(0, 0, layout.nz), P(0, layout.ny, layout.nz), P(0, layout.ny, 0)];
 
-  const lengthL = lengthLabels(layout.nx);
+  const lengthL = lotDepthLabels(layout.nx);
   const widthL = widthLabels(layout.nz);
 
   if (boxes.length === 0) {

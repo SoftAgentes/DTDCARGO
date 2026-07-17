@@ -57,6 +57,48 @@ export function zoneCount(layout: ZoneLayout): number {
   return layout.nx * layout.ny * layout.nz;
 }
 
+// ─────────────────────────────────────────────────────────────
+// SDD-0155 · Modelo por LOTES (reemplaza la grilla fija de 0152)
+// ─────────────────────────────────────────────────────────────
+// En el modelo por lotes la profundidad NO es fija: la da el orden de carga
+// (load_order = zx), y crece con cada lote montado. El ancho es 3 (izq/centro/
+// der = zz) y no hay altura (zy = 0). El layout se DERIVA de los datos, no de
+// container_types — así el visor nunca asume un máximo de profundidad (el bug
+// que el review adversarial marcó: `zx < nx` con nx fijo en 3).
+
+/** Ancho fijo del modelo por lotes: izquierda · centro · derecha. */
+export const LOT_WIDTH = 3;
+
+/**
+ * Layout derivado de lo que ya está montado. `nx` = cuántas cargas en profundidad
+ * hay (mínimo `minDepth`, para que el contenedor vacío no colapse a 0). `ny` = 1
+ * (una capa). `nz` = 3.
+ */
+export function layoutFromStuffing(
+  boxes: readonly ZoneCoord[],
+  minDepth = 1,
+): ZoneLayout {
+  let maxZx = -1;
+  for (const b of boxes) if (b.zx > maxZx) maxZx = b.zx;
+  return { nx: Math.max(minDepth, maxZx + 1), ny: 1, nz: LOT_WIDTH };
+}
+
+/**
+ * Etiquetas de profundidad por orden de carga: la 0 es el Fondo, la última la
+ * Puerta, las del medio "Carga N". Con una sola carga es "Fondo".
+ */
+export function lotDepthLabels(depth: number): string[] {
+  if (depth <= 1) return ["Fondo"];
+  return Array.from({ length: depth }, (_, i) => {
+    if (i === 0) return "Fondo";
+    if (i === depth - 1) return "Puerta";
+    return `Carga ${i + 1}`;
+  });
+}
+
+/** Izquierda / Centro / Derecha — lo único que elige el operario. */
+export const LOT_WIDTH_LABELS = ["Izquierda", "Centro", "Derecha"] as const;
+
 export function isZoneInLayout(layout: ZoneLayout, z: ZoneCoord): boolean {
   return (
     Number.isInteger(z.zx) &&
