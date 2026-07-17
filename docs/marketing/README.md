@@ -8,7 +8,7 @@
 
 - **Punto de entrada = este README** (índice + estado + reglas).
 - **Plan maestro de acción** (digital + Google Ads, con la auditoría de los 4 activos + las 5 prioridades y su estado): [`plan-accion-digital.md`](plan-accion-digital.md).
-- **Identidad y estrategia** (propósito · misión · visión · valores · objetivos + norte interno): [`estrategia.md`](estrategia.md) · identidad pública/legal + NAP + nombres: [`identidad.md`](identidad.md) · línea de ventas cliente-ancla: [`ventas.md`](ventas.md) · **embudo de ventas operativo + mapa de etapas Kommo (MARKBOX) + campos del Kanban**: [`embudo-ventas.md`](embudo-ventas.md).
+- **Identidad y estrategia** (propósito · misión · visión · valores · objetivos + norte interno): [`estrategia.md`](estrategia.md) · identidad pública/legal + NAP + nombres: [`identidad.md`](identidad.md) · línea de ventas cliente-ancla: [`ventas.md`](ventas.md) · **embudo de ventas operativo + mapa de etapas Kommo (MARKBOX) + campos del Kanban**: [`embudo-ventas.md`](embudo-ventas.md) · **sistema de adquisición (oferta + canal + proceso de prospección, manual del asesor)**: [`adquisicion.md`](adquisicion.md).
 - **Logs detallados por área** en archivos hermanos a medida que crezca: [`seo.md`](seo.md) (activo), [`redes.md`](redes.md) (activo), `ads.md`, `analytics.md`, … (se crean al tocar cada área).
 - La **memoria del agente** (cross-sesión) referencia este tree como fuente de verdad; este tree es lo versionado y compartido por git.
 - El **puntero en `AGENTS.md`** (sección Marketing) hace que todos los agentes lleguen acá automáticamente.
@@ -17,6 +17,15 @@
 
 ### 🎯 Identidad · Estrategia · Ventas — detalle en [`estrategia.md`](estrategia.md)
 **Estado (2026-06-08):** identidad pública **cerrada** (propósito · misión · visión · valores · objetivos) — reemplaza las versiones de 2020. Norte **interno** = **2 contenedores/mes** (umbral de equilibrio operativo, **no se publica**) vía 2 motores: mayoristas recurrentes + aliados white-label. Identidad legal + NAP + convención de nombres en [`identidad.md`](identidad.md); plan de ventas cliente-ancla en [`ventas.md`](ventas.md). La versión-máquina (schema) se cablea en `app/layout.tsx` (Fase 2, pendiente).
+
+### 🧲 Adquisición de clientes — detalle en [`adquisicion.md`](adquisicion.md)
+**Estado (2026-07-17):** sistema definido (deep research 6 líneas + verificación adversarial + merge con lo
+construido; dump con fuentes en `research/INVESTIGACION-adquisicion-clientes.md`). **UNA oferta** (DDP "pagas
+al llegar" empaquetado + tarifa preferencial por cadencia) · **UN canal primario** (calor propio: base
+existente + referidos; soporte IG→DM→WhatsApp; $0 pauta en Fase 1) · **UN proceso** (rutina diaria del asesor:
+SLA <5 min, 5 preguntas de calificación, 10 toques cálidos/día, cadencia D0→D18 + nurture, manual nivel
+principiante). Cubre el TOP del embudo; el medio sigue en [`embudo-ventas.md`](embudo-ventas.md). Los estimados
+web ya avisan al equipo (fuga #1 cerrada 2026-07-17). Pendientes founder en `adquisicion.md` §10.
 
 ### 🔍 SEO — detalle en [`seo.md`](seo.md)
 **Estado (2026-06-07):** dominio migrado `doortudoor.com → dtdcargo.com` (301 path-preserving + "Cambio de dirección" de Search Console **activo**). Rename `/cotizar → /estimacion` (308). 18 geo-páginas "Importar de China a {ciudad}". Sitemap 35 URLs. 6 redirects de recuperación de páginas viejas huérfanas. → ver `seo.md` para la cronología completa y las reglas.
