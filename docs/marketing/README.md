@@ -20,8 +20,9 @@
 
 ### 🧲 Adquisición de clientes — detalle en [`adquisicion.md`](adquisicion.md)
 **Estado (2026-07-17):** sistema definido (deep research 6 líneas + verificación adversarial + merge con lo
-construido; dump con fuentes en `research/INVESTIGACION-adquisicion-clientes.md`). **UNA oferta** (DDP "pagas
-al llegar" empaquetado + tarifa preferencial por cadencia) · **UN canal primario** (calor propio: base
+construido; dump con fuentes en `research/INVESTIGACION-adquisicion-clientes.md`). **UNA oferta** (**Puerta a
+Puerta** "pagas al llegar" empaquetado + tarifa preferencial por cadencia; "DDP" se retira como nombre — solo
+aclaración "(todos los gastos pagados)") · **UN canal primario** (calor propio: base
 existente + referidos; soporte IG→DM→WhatsApp; $0 pauta en Fase 1) · **UN proceso** (rutina diaria del asesor:
 SLA <5 min, 5 preguntas de calificación, 10 toques cálidos/día, cadencia D0→D18 + nurture, manual nivel
 principiante). Cubre el TOP del embudo; el medio sigue en [`embudo-ventas.md`](embudo-ventas.md). Los estimados

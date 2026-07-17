@@ -25,7 +25,7 @@ cada 30–45 días. No necesitamos mil leads: necesitamos **1–2 cuentas ancla 
 
 | Pieza | Decisión | Por qué (evidencia) |
 |---|---|---|
-| **La oferta** | DDP "pagas al llegar" empaquetado con nombre propio + precio preferencial condicionado a cadencia de recompra | El sector vende "landed cost, no flete"; la promesa de costo final sin sorpresas admite precio premium (línea F). Nadie del campo local comunica "pagas al llegar" como promesa central (línea C) |
+| **La oferta** | **Puerta a Puerta** "pagas al llegar" (todos los gastos pagados) empaquetado con nombre propio + precio preferencial condicionado a cadencia. Es LA oferta principal: **~80% de lo que buscan los clientes**. LCL consolidado = para empresas | El sector vende "landed cost, no flete"; la promesa de costo final sin sorpresas admite precio premium (línea F). Nadie del campo local comunica "pagas al llegar" como promesa central (línea C) |
 | **El avatar** | Mayorista que repone cada 30–45 días (ferretería, repuestos, hogar, electrónica) + aliado revendedor. **Se le dice NO al comprador de una vez** | Ya definido en [`ventas.md`](ventas.md); "one avatar · one channel · one offer" (línea A) |
 | **El canal primario** ⭐ | **Calor propio: base de clientes existente + referidos pedidos activamente** | Referido convierte **10–25% end-to-end vs 0,5–2% del frío** (3–5x, CONFIRMADO) y cierra ~38% más rápido (BNI, CONFIRMADO). Con 1 vendedor, la matemática solo da con calor (línea E) |
 | **Canal de soporte** | Instagram (5.003 seguidores) → DM → WhatsApp | El funnel real de IG es: feed descubre → Story activa → DM califica → WhatsApp cierra. Convertir seguidores existentes vale más que crecer la cuenta (línea A) |
@@ -39,7 +39,13 @@ el líder Asiaven pide registro para ver precio). No hay que fabricar demanda: h
 
 ## 2. La oferta (empaquetada, con nombre)
 
-La oferta base ya existe (DDP todo incluido, [`ventas.md`](ventas.md) + [`manual-vendedores-peso.md`](manual-vendedores-peso.md)).
+> **Regla de nombre (founder, 2026-07-17):** el servicio se llama **Puerta a Puerta** — "DDP" se **elimina**
+> como nombre de servicio y solo puede aparecer como aclaración entre paréntesis: *(todos los gastos pagados)*.
+> Puerta a Puerta es **la oferta principal (~80% de lo que buscan los clientes** — el servicio completo);
+> el **LCL consolidado** se posiciona aparte, **para empresas**. *(El enum interno `puerta_a_puerta_DDP` del
+> ERP no cambia: es identificador, no copy.)*
+
+La oferta base ya existe (puerta a puerta todo incluido, [`ventas.md`](ventas.md) + [`manual-vendedores-peso.md`](manual-vendedores-peso.md)).
 Lo que faltaba es **empaquetarla como promesa con nombre**, al estilo del sector (APL vende su garantía como
 producto "OceanGuaranteed", no como cláusula). Tres paquetes propuestos (nombres = decisión del founder, §10):
 
@@ -275,6 +281,10 @@ de pago ya la soporta el ERP (crédito en factura).
    9.000 kg · 15 m³" pero [`manual-vendedores-peso.md`](manual-vendedores-peso.md) usa tope de derivación
    **68 m³ / 27.000 kg** (y la calculadora pública deriva a asesor en 9.000 kg). Alinear los tres antes de
    entrenar al asesor con este playbook.
+7. **Barrido "DDP" en el sitio público**: la regla de nombre del §2 deja 24 menciones "DDP" en 12
+   componentes (`components/`, incl. `DdpHero.tsx` y `ServiciosExplorer`) por pasar a "Puerta a Puerta"
+   con la aclaración "(todos los gastos pagados)". Es copy + posible SEO (títulos/schema) — tarea aparte
+   con `/ui-check`.
 
 ---
 
