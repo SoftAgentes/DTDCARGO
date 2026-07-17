@@ -278,6 +278,7 @@ export async function listConsolidations(
   let query = supabase
     .from("consolidations")
     .select(CONSOLIDATION_COLUMNS)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(2000);
   if (opts.status) query = query.eq("status", opts.status);
@@ -349,6 +350,7 @@ export async function getConsolidation(
     .from("consolidations")
     .select(CONSOLIDATION_COLUMNS)
     .eq("id", id)
+    .is("deleted_at", null)
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
