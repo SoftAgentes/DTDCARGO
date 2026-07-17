@@ -34,7 +34,7 @@ export const FAQ_CATEGORIAS: ReadonlyArray<{
   label: string;
 }> = [
   { id: "precio-y-pago", label: "Precio, pago y entrega" },
-  { id: "bodega-china-shipping-mark", label: "Bodega en China y MARKBOX (Shipping Mark)" },
+  { id: "bodega-china-shipping-mark", label: "Bodega en China y Shipping Mark" },
   { id: "almacenaje-seguro-baterias", label: "Almacenaje, seguro y baterías" },
   { id: "rastreo", label: "Rastreo de tu envío" },
   { id: "empresa-servicios", label: "Empresa y servicios" },
@@ -115,7 +115,7 @@ export const FAQS: Faq[] = [
   {
     pregunta: "¿Cómo y en qué moneda pago mi envío?",
     respuesta:
-      "Tu envío es un servicio de logística internacional, así que se cotiza en dólares: la mayor parte de los costos —el flete internacional, los trámites de aduana y la gestión en China— se pagan en divisas a terceros. La forma de pago y los datos exactos para tu operación te los coordina un asesor de forma segura, siempre con la referencia de tu MARKBOX. Escríbenos por WhatsApp y te guiamos.",
+      "Tu envío es un servicio de logística internacional, así que se cotiza en dólares: la mayor parte de los costos —el flete internacional, los trámites de aduana y la gestión en China— se pagan en divisas a terceros. La forma de pago y los datos exactos para tu operación te los coordina un asesor de forma segura, siempre con la referencia de tu Shipping Mark. Escríbenos por WhatsApp y te guiamos.",
     categoria: "precio-y-pago",
   },
   {
@@ -141,7 +141,7 @@ export const FAQS: Faq[] = [
   {
     pregunta: "¿Hay un mínimo para enviar con DTD Cargo?",
     respuesta:
-      "Sí: el flete mínimo del consolidado marítimo es de USD 50 por envío — si tu carga ocupa muy poco volumen, ese es el piso que se factura. Lo bueno del consolidado es que puedes agrupar varias compras de distintos proveedores bajo tu mismo MARKBOX para aprovecharlo mejor; la calculadora te muestra el monto exacto según tu volumen y destino.",
+      "Sí: el flete mínimo del consolidado marítimo es de USD 50 por envío — si tu carga ocupa muy poco volumen, ese es el piso que se factura. Lo bueno del consolidado es que puedes agrupar varias compras de distintos proveedores bajo tu mismo Shipping Mark para aprovecharlo mejor; la calculadora te muestra el monto exacto según tu volumen y destino.",
     categoria: "precio-y-pago",
   },
   {
@@ -161,33 +161,33 @@ export const FAQS: Faq[] = [
   {
     pregunta: "¿Puedo cancelar mi envío o pedir un reembolso?",
     respuesta:
-      "Depende de en qué punto esté tu carga. Si cancelas antes de que llegue a nuestra bodega de origen o de que se embarque, se reembolsa lo pagado menos los gastos ya hechos y un cargo por gestión. Una vez que la carga fue recibida, consolidada o embarcada, ya no procede reembolso porque el servicio está en marcha. Cada caso se revisa según el Acuerdo de Servicios (Anexo A); escríbele a un asesor por WhatsApp con tu MARKBOX y lo vemos contigo.",
+      "Depende de en qué punto esté tu carga. Si cancelas antes de que llegue a nuestra bodega de origen o de que se embarque, se reembolsa lo pagado menos los gastos ya hechos y un cargo por gestión. Una vez que la carga fue recibida, consolidada o embarcada, ya no procede reembolso porque el servicio está en marcha. Cada caso se revisa según el Acuerdo de Servicios (Anexo A); escríbele a un asesor por WhatsApp con tu Shipping Mark y lo vemos contigo.",
     categoria: "precio-y-pago",
   },
   {
     pregunta: "¿Tienen casillero o bodega en China para recibir mis compras?",
     respuesta:
-      "Sí. Tenemos bodega propia en Yiwu donde recibimos lo que compras en Alibaba, 1688, Taobao o a cualquier proveedor chino. Tú compras y pides que envíen a nuestra dirección con tu MARKBOX; nosotros recibimos, consolidamos y despachamos a Venezuela.",
+      "Sí. Tenemos bodega propia en Yiwu donde recibimos lo que compras en Alibaba, 1688, Taobao o a cualquier proveedor chino. Tú compras y pides que envíen a nuestra dirección con tu Shipping Mark; nosotros recibimos, consolidamos y despachamos a Venezuela.",
     categoria: "bodega-china-shipping-mark",
   },
   {
     pregunta:
-      "¿Qué es el MARKBOX y por qué debo ponerlo? ¿Es lo mismo que el Shipping Mark?",
+      "¿Qué es el Shipping Mark y por qué debo ponerlo?",
     respuesta:
-      "El MARKBOX es tu código único en DTD Cargo (formato DTD-XXXX): la marca que va en cada una de tus cajas e identifica tu mercancía en la bodega, el sistema y todos los documentos. Es exactamente lo mismo que el Shipping Mark —el nombre internacional de ese marcado, y en China 唛头—: mismo concepto y mismo código. Ponlo siempre en el destinatario y en la caja: es lo que nos deja encontrar tu mercancía rápido y sin confusiones.",
+      "El Shipping Mark es tu código único en DTD Cargo (formato DTD-XXXX): la marca que va en cada una de tus cajas e identifica tu mercancía en la bodega, el sistema y todos los documentos. Es el nombre internacional de ese marcado —en China se conoce como 唛头—: un mismo concepto, un mismo código. Ponlo siempre en el destinatario y en la caja: es lo que nos deja encontrar tu mercancía rápido y sin confusiones.",
     categoria: "bodega-china-shipping-mark",
   },
   {
     pregunta:
-      "¿Cómo pongo la dirección de DTD Cargo en China (Alibaba) para que mi proveedor envíe a la bodega?",
+      "¿Cómo pongo la dirección de la bodega de DTD Cargo en Alibaba, 1688, Taobao u otras webs para que mi proveedor envíe?",
     respuesta:
-      "Cuando registres tu dirección de recepción en Alibaba (o se la pases a tu proveedor), usa la dirección de nuestra bodega en Yiwu y pon TU MARKBOX en el nombre — eso es lo que nos permite saber que la caja es tuya cuando llega. Llénalo campo por campo así: País/región → China. Nombre o empresa → DTD Cargo - tu MARKBOX (por ejemplo DTD-1014). Teléfono (+86) → 18006891419. Dirección → 浙江省义乌市义乌港二期直通仓2栋2号 货7-货11. Estado/provincia → 浙江省 (Zhejiang). Ciudad → 义乌市 (Yiwu; en el selector suele aparecer bajo 金华市, Jinhua). Código postal → 322000. Contacto de bodega → 林冠 (Lin Guan). Email → info@dtdcargo.com. La dirección va en chino porque es para el transporte dentro de China. Si tu MARKBOX no aparece en el nombre, tu mercancía llega a la bodega pero no podemos identificar de quién es, así que no lo olvides. En esta misma página tienes la guía con botón de copiar campo por campo.",
+      "Cuando registres tu dirección de recepción en Alibaba, 1688, Taobao u otra web (o se la pases directo a tu proveedor por WeChat), usa la dirección de nuestra bodega en Yiwu y pon TU Shipping Mark en el nombre — eso es lo que nos permite saber que la caja es tuya cuando llega. Llénalo campo por campo así: País/región → China. Nombre o empresa → DTD Cargo - tu Shipping Mark (por ejemplo DTD-1014). Teléfono (+86) → 18606891419. Dirección → 浙江省义乌市义乌港二期直通仓2栋2号 货7-货11. Estado/provincia → 浙江省 (Zhejiang). Ciudad → 义乌市 (Yiwu; en el selector suele aparecer bajo 金华市, Jinhua). Código postal → 322000. Contacto de bodega → 林冠 (Lin Guan). Email → info@dtdcargo.com. La dirección va en chino porque es para el transporte dentro de China. Si tu Shipping Mark no aparece en el nombre, tu mercancía llega a la bodega pero no podemos identificar de quién es, así que no lo olvides. Este dato lo obtienes dentro de tu registro de clientes. En esta misma página tienes la guía con botón de copiar campo por campo.",
     categoria: "bodega-china-shipping-mark",
   },
   {
     pregunta: "Ya mi proveedor envió, ¿qué hago ahora?",
     respuesta:
-      "Carga tu pre-alerta en el portal: tu MARKBOX, el número de guía (tracking) del proveedor y la descripción o packing list. Así sabemos que tu mercancía viene en camino y la recibimos a tu nombre.",
+      "Carga tu pre-alerta en el portal: tu Shipping Mark, el número de guía (tracking) del proveedor y la descripción o packing list. Así sabemos que tu mercancía viene en camino y la recibimos a tu nombre.",
     categoria: "bodega-china-shipping-mark",
   },
   {

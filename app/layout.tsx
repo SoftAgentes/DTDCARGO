@@ -257,7 +257,7 @@ const jsonLd = {
         { "@type": "DefinedTerm", name: "Consolidación de carga (grupaje LCL)" },
         {
           "@type": "DefinedTerm",
-          name: "MARKBOX — shipping mark / marca de envío (唛头)",
+          name: "Shipping Mark — marca de envío (唛头)",
         },
       ],
       // hasOfferCatalog — qué ofrece la empresa, machine-readable, ligado a la

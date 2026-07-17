@@ -213,7 +213,7 @@ export function Footer() {
               Puerta a puerta
             </Link>
             <Link href="/markbox" className="hover:text-white transition-colors">
-              MARKBOX
+              Shipping Mark
             </Link>
             <Link href="/faq" className="hover:text-white transition-colors">
               Preguntas frecuentes

@@ -76,7 +76,7 @@ export default function TrackPage() {
         <RespuestaRapida
           id="respuesta-rapida"
           pregunta="¿Cómo rastreo mi carga de China a Venezuela?"
-          respuesta="Ingresa tu BL (Bill of Lading) o tu código DTDU en el rastreador y verás el estado de tu envío en tiempo real, sin registrarte. Si no tienes el código a mano, escríbenos por WhatsApp con tu MARKBOX y un asesor te ubica el envío."
+          respuesta="Ingresa tu BL (Bill of Lading) o tu código DTDU en el rastreador y verás el estado de tu envío en tiempo real, sin registrarte. Si no tienes el código a mano, escríbenos por WhatsApp con tu Shipping Mark y un asesor te ubica el envío."
         />
       </main>
       <Footer />

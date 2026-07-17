@@ -742,16 +742,16 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   },
   {
     id: "markbox",
-    term: "MARKBOX",
-    acronym: "Shipping Mark · marca de envío · 唛头 · código del cliente DTD-XXXX",
+    term: "Shipping Mark",
+    acronym: "唛头 · marca de envío · código del cliente DTD-XXXX · antes MARKBOX",
     category: "tracking",
     body: [
-      "MARKBOX y Shipping Mark son lo mismo: MARKBOX es como llamamos en DTD Cargo a la marca que identifica cada una de tus cajas, y a nivel internacional ese mismo marcado se conoce como Shipping Mark (en China, 唛头). Es tu código único —formato DTD-XXXX— que se te asigna al darte de alta: identifica tus cajas desde origen, para que sepamos de quién es cada bulto que llega a nuestra bodega en Yiwu.",
-      "Cuando pides mercancía a tu proveedor chino, le envías por WeChat el texto pre-formateado con tu MARKBOX. El proveedor lo escribe en cada caja y al llegar a bodega sabemos exactamente a quién pertenece.",
+      "El Shipping Mark es la marca que identifica cada una de tus cajas — así se conoce este marcado a nivel internacional (en China, 唛头). Es tu código único —formato DTD-XXXX— que se te asigna al darte de alta: identifica tus cajas desde origen, para que sepamos de quién es cada bulto que llega a nuestra bodega en Yiwu.",
+      "Cuando pides mercancía a tu proveedor chino, le envías por WeChat el texto pre-formateado con tu Shipping Mark. El proveedor lo escribe en cada caja y al llegar a bodega sabemos exactamente a quién pertenece.",
     ],
     analogy: {
       label: "Lo encuentras en",
-      text: "/contacto — sección 'Texto listo para WeChat'. Si todavía no tienes tu MARKBOX, lo solicitas por WhatsApp.",
+      text: "/contacto — sección 'Texto listo para WeChat'. Si todavía no tienes tu Shipping Mark, lo solicitas por WhatsApp.",
     },
   },
 
@@ -923,13 +923,13 @@ export const STEPS: { n: string; title: string; copy: string; tag?: string }[] =
   },
   {
     n: "02",
-    title: "Pre-alerta · MARKBOX",
-    copy: "Te registras y recibes tu MARKBOX — tu proveedor en China lo escribe en cada caja antes de despachar.",
+    title: "Pre-alerta · Shipping Mark",
+    copy: "Te registras y recibes tu Shipping Mark — tu proveedor en China lo escribe en cada caja antes de despachar.",
   },
   {
     n: "03",
     title: "Recibimos",
-    copy: "Tu carga llega a nuestra bodega propia en Yiwu, identificada por tu MARKBOX. La revisamos y la consolidamos.",
+    copy: "Tu carga llega a nuestra bodega propia en Yiwu, identificada por tu Shipping Mark. La revisamos y la consolidamos.",
   },
   {
     n: "04",
@@ -1087,8 +1087,8 @@ export const PHILOSOPHY = {
     },
     {
       kicker: "唛头",
-      title: "MARKBOX desde origen",
-      copy: "Cada caja se identifica desde China con tu MARKBOX —tu shipping mark (marca de envío / 唛头) personalizado— para reducir errores y mezclas.",
+      title: "Shipping Mark desde origen",
+      copy: "Cada caja se identifica desde China con tu Shipping Mark —tu marca de envío personalizada (唛头)— para reducir errores y mezclas.",
     },
     {
       kicker: "TRAZABILIDAD",

@@ -99,7 +99,7 @@ function demoTrack(): Extract<PublicTrackResult, { found: true }> {
     pod_signed_by: null,
     created_at: iso(18),
     events: [
-      { status: "in_warehouse", note: "Recibido en nuestra bodega de Yiwu, identificado por tu MARKBOX.", occurred_at: iso(16) },
+      { status: "in_warehouse", note: "Recibido en nuestra bodega de Yiwu, identificado por tu Shipping Mark.", occurred_at: iso(16) },
       { status: "consolidating", note: "Consolidado con el resto de tu carga.", occurred_at: iso(12) },
       { status: "shipped", note: "Embarcado en el buque hacia Venezuela.", occurred_at: iso(9) },
       { status: "in_transit", note: "En tránsito marítimo hacia Puerto Cabello.", occurred_at: iso(8) },

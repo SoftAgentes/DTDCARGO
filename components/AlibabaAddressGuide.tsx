@@ -46,7 +46,7 @@ export function AlibabaAddressGuide() {
       labelCjk: "收货人",
       label: "Destinatario",
       value: `DTD Cargo - ${markOrPlaceholder}`,
-      hint: "Tu MARKBOX va al final — sin él no podemos saber que la caja es tuya.",
+      hint: "Tu Shipping Mark va al final — sin él no podemos saber que la caja es tuya.",
     },
     {
       id: "telefono",
@@ -132,7 +132,8 @@ export function AlibabaAddressGuide() {
           htmlFor="guide-shipping-mark"
           className="block text-[11px] tracking-[0.12em] uppercase font-semibold text-grey-700"
         >
-          Tu MARKBOX (opcional)
+          Tu Shipping Mark{" "}
+          <span style={{ color: "var(--color-wine)" }}>· obligatorio</span>
         </label>
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <input
@@ -144,10 +145,11 @@ export function AlibabaAddressGuide() {
             maxLength={50}
             className="h-11 w-[180px] px-3.5 rounded-[8px] bg-white border border-grey-200 outline-none text-[14px] font-semibold tracking-[0.04em] text-ink placeholder:text-grey-700/55 focus:border-wine focus-visible:ring-2 focus-visible:ring-wine-soft"
             style={{ fontFamily: FONT_MONO }}
-            aria-label="Tu código MARKBOX"
+            aria-label="Tu código Shipping Mark"
           />
           <p className="text-[12.5px] leading-[1.5] text-grey-700 max-w-[40ch]">
-            Escríbelo y el campo Destinatario se arma solo.{" "}
+            Escríbelo y el campo Destinatario se arma solo. Este dato lo
+            obtienes dentro de tu registro de clientes.{" "}
             <a
               href="/registro"
               className="font-semibold underline underline-offset-2"
@@ -200,7 +202,7 @@ export function AlibabaAddressGuide() {
                 aria-live="polite"
                 aria-label={
                   missingMark
-                    ? "Escribe tu MARKBOX primero"
+                    ? "Escribe tu Shipping Mark primero"
                     : copiedField === f.id
                       ? `${f.label}: copiado`
                       : `Copiar ${f.label}`
@@ -228,9 +230,9 @@ export function AlibabaAddressGuide() {
       >
         <p className="m-0 text-[13px] leading-[1.55] text-grey-700">
           <strong className="text-ink">Importante:</strong> en el formulario de
-          Alibaba el destinatario lleva «DTD Cargo + tu MARKBOX», pero en
+          Alibaba el destinatario lleva «DTD Cargo + tu Shipping Mark», pero en
           el <strong className="text-ink">rótulo físico de la caja</strong> va
-          SOLO tu MARKBOX — sin tu nombre, dirección ni teléfono personal
+          SOLO tu Shipping Mark — sin tu nombre, dirección ni teléfono personal
           (los datos personales en la caja causan confusión o decomiso).
         </p>
       </div>

@@ -93,13 +93,14 @@ export default function FaqPage() {
           <div className="wrap max-w-[820px]">
             <span className="eyebrow">Guía destacada</span>
             <h2 className="h-card mt-3">
-              Cómo poner la dirección de la bodega en Alibaba
+              Cómo poner la dirección de la bodega en Alibaba, 1688 o Taobao
             </h2>
             <p className="mt-3 mb-6 text-[14.5px] leading-[1.65] text-grey-700 max-w-[62ch]">
               Copia y pega cada campo tal cual (en chino, sin traducir) en el
-              formulario de direcciones de Alibaba — o pásaselo directo a tu
-              proveedor. Con tu MARKBOX (Shipping Mark) en el destinatario, tu
-              compra queda identificada apenas llega a nuestra bodega de Yiwu.
+              formulario de direcciones de Alibaba, 1688, Taobao u otra web — o
+              pásaselo directo a tu proveedor. Con tu Shipping Mark en el
+              destinatario, tu compra queda identificada apenas llega a nuestra
+              bodega de Yiwu.
             </p>
             <AlibabaAddressGuide />
           </div>
