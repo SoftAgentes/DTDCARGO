@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 146 specs)
+### Índice de specs (generado · 148 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -184,6 +184,8 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0149 | Resumen mensual de conversaciones con IA — histórico navegabl… | in-progress | interno |
 | 0150 | Secretarias de reunión v2 — default rica + Escucha Activa + t… | in-progress | interno |
 | 0151 | Perfil cliente — aviso de pendientes in-page + solicitud de c… | done | interno |
+| 0152 | Estiba por zonas — identidad por bulto, captura al cargar y v… | in-progress | interno |
+| 0153 | Etiqueta pre-declarada · la caja nace con el aviso, no con la… | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

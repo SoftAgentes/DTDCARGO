@@ -143,5 +143,9 @@ function humanizeStuffError(msg: string): string {
   if (msg.includes("P0125")) return "Esa caja ya está estibada en este contenedor.";
   if (msg.includes("P0126")) return "Esa caja ya está estibada en OTRO contenedor.";
   if (msg.includes("P0127")) return "Esa caja no está estibada.";
+  // SDD-0153: la etiqueta existe (el proveedor la imprimió y la pegó) pero la caja
+  // todavía no se recibió en el almacén. No es un error de la etiqueta.
+  if (msg.includes("P0128"))
+    return "Esa caja todavía no se recibió en el almacén · recíbela primero y vuelve a escanear.";
   return msg;
 }
