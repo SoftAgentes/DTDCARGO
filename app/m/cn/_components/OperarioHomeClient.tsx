@@ -347,6 +347,29 @@ export function OperarioHomeClient({
           zIndex: 5,
         }}
       >
+        {/* Recibir escaneando (SDD-0154) · si la mercancía ya viene con etiqueta
+            DTD, escanear es más rápido que tipear los 4 pasos de + Nueva. */}
+        <Link
+          href="/m/cn/recibir"
+          style={{
+            textDecoration: "none",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            minHeight: 48,
+            marginBottom: 8,
+            borderRadius: "var(--r-md)",
+            background: "var(--surface-inv)",
+            border: "1px solid var(--border-inv)",
+            color: "var(--ink-side)",
+            font: "700 13px/1 var(--f-sans)",
+          }}
+        >
+          {Icon.camera(16)}
+          {t(lang, "Recibir escaneando", "扫码接收")}
+        </Link>
+
         {/* Estibar (SDD-0152) · secundario: la recepción sigue siendo el acto
             principal del día; estibar es lo que viene después. */}
         <Link
