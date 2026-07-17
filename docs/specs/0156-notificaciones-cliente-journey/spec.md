@@ -1,7 +1,7 @@
 ---
 sdd: "0156"
 title: "Notificaciones al cliente configurables — journey China→Venezuela"
-status: in-progress
+status: done
 author: "Sam (founder) + agente push-cliente"
 created: 2026-07-17
 updated: 2026-07-17
@@ -250,16 +250,57 @@ founder para aplicar a prod). Archivos:
 - **Tests**: 4 archivos, 33 casos (copy, offset con signo, validadores, scheduler
   override>default/idempotencia/skips, drain claim+outcomes) + entrada en la ALLOWLIST RBAC.
 
-**Pendiente founder**: aplicar `0247_client_notifications` a prod (OK nombrándola) → habilita el
-feature y restaura los emails de hito.
-**Diferido (Slice C/D/E)**: push como canal por defecto (infra lista; hoy configurable) ·
-anclas ETA/ETD + ganchos de máquinas paralelas (consolidado/naviera/recepción VE) ·
-visibilidad del stepper del portal (`visible_in_portal`) · cobro anticipado en aduana enlazado
-a la cadencia de recobro.
+**Aplicado**: migr `0247_client_notifications` en prod (2026-07-17) → feature habilitado y emails
+de hito restaurados.
 
-### Nota de anclaje ETA en Slice A
-La regla "va llegando +5 al ETA" se **ancla en el ETA** pero se **programa** cuando el envío
-alcanza un status conocido (ej. `shipped`/`in_transit`, donde el ETA ya existe). El motor lee el
-ETA del envío (`sailings.eta` / `tracking_snapshots.pod_eta` / `warehouse_receipts_ve.eta`) al
-programar — sin necesitar aún el gancho de evento de la naviera (eso es Slice D). Sin ETA
-disponible → la regla anclada en ETA se `skip` (no rompe).
+## Cierre Slice C + D + E (2026-07-17 · rama `feat/sdd0156-avisos`)
+
+Completado sobre A+B (LIVE), **sin migración nueva** (todas las columnas ya viven en 0247):
+
+- **Slice D — anclas ETA/ETD.** `lib/studio/notifications/resolve-shipment-eta.ts`:
+  `resolveShipmentEta` recorre `tracking_snapshots.pod_eta` (SeaRates vivo) → `sailings.eta` →
+  `warehouse_receipts_ve.eta`, reusando `getShipmentTrackingSnapshot`/`getShipmentNaviera`
+  (SDD-0101) — cero JOIN nuevo. `resolveShipmentEtd` = `sailings.etd`. `resolveAnchorTime` (en
+  `schedule-client-notifications.ts`) ya no devuelve null para `eta`/`etd`. `parseFlexibleDate`
+  normaliza ISO de SeaRates vs `date` de Postgres (ancla a mediodía UTC). Sin ETA → skip.
+- **Slice D — ganchos de máquinas paralelas.** `lib/studio/notifications/schedule-fanout.ts`
+  (fan-out: un contenedor/recibo agrupa N envíos):
+  - `consolidated` ← `changeConsolidationStatus`→`cerrado` (naviera/actions).
+  - `eta_set` ← `updateSailing` (ETA presente) y `linkConsolidation` (se ata a un zarpe con ETA;
+    cubre ambos órdenes de operación).
+  - `received_ve` ← `createReceiptVe` (warehouse-receipt-ve-queries) → **cierra el pendiente
+    "aviso al cliente en recepción" de SDD-0154**. Resuelve envío por Shipping Mark (el no-terminal
+    más reciente); Shipping Mark sin envío → skip (no mal-notifica).
+- **Slice D — visibilidad del portal.** `buildTimeline(status, service, hiddenStatuses?)`
+  (tracking-progress) filtra los hitos ocultos DESPUÉS de calcular done/active/pending (ocultar el
+  hito actual no descoloca el stepper). `getHiddenPortalStatuses`
+  (`notifications/portal-visibility-queries.ts`) resuelve el set por tenant con precedencia
+  override-cliente→default; el portal (`envios/[code]/page.tsx` + `PortalTimeline` +
+  `PortalShipmentDetailNorte`) lo aplica. Falla-seguro → set vacío (muestra todo).
+- **Slice E — cobro anticipado en aduana.** Funciona end-to-end sin código nuevo: la UI de Slice B
+  ya expone **"Visible en el portal"** + selector de template (`cobro_anticipado` en
+  `TEMPLATE_COPY`). Configurar `status:in_customs` con `visible_in_portal=false` +
+  `template_key='cobro_anticipado'` oculta el hito (Slice D) y dispara el aviso de cobro. La
+  **cadencia completa de recobro** (recordatorios 15d/7d con saldo) queda como spec aparte (gap #3
+  de la memoria) — acá sólo el disparo en aduana.
+- **Slice C — push durable + seed de tenants nuevos.** El push como canal ya despacha durable
+  (markbox→`client_users.auth_user_id`→`enqueue_user_push`→outbox→push-drain) reusando el copy del
+  aviso. Seed: `seedDefaultRulesForTenant` (idempotente) se llama en `supabase/seed.ts` tras
+  resolver el tenant, para que un tenant recién bootstrapeado nazca con las reglas default (la migr
+  0247 sólo sembró los tenants existentes al aplicarse — hallazgo de la revisión adversarial).
+
+**Tests nuevos** (`notifications/__tests__/` + `lib/studio/__tests__/tracking-progress-hidden`):
+`parseFlexibleDate`/`resolveShipmentEta`/`resolveShipmentEtd` (preferencia de fuente + degradación),
+`getHiddenPortalStatuses` (precedencia override→default + falla-seguro), `buildTimeline` con
+`hiddenStatuses`, y fan-out de consolidación/recibo. `node scripts/verify.mjs` verde + `pnpm build`.
+
+**Pendiente operativo (no código)**: verificar entrega push E2E a un cliente real suscrito a
+`PortalPushOptIn`. **Onboarding multi-tenant runtime**: cuando exista, debe llamar
+`seedDefaultRulesForTenant` (o un trigger de DB en `tenants` insert, como migración futura con OK
+del founder). **Diferido opcional**: historial de avisos read-only en el portal (`schedule` 'sent').
+
+### Nota de anclaje ETA
+La regla "va llegando +5 al ETA" se **ancla en el ETA** y se **programa** cuando el envío alcanza un
+status con ETA disponible (ej. `shipped`/`in_transit`) o cuando la naviera dispara `eta_set`. El
+motor lee el ETA real (`resolveShipmentEta`); sin ETA disponible → la regla anclada en ETA se `skip`
+(no rompe).

@@ -49,6 +49,7 @@ export function PortalShipmentDetailNorte({
   naviera,
   live,
   stepDates,
+  hiddenStatuses,
   pendingAcceptance,
 }: {
   shipment: PortalShipmentDetail;
@@ -60,6 +61,8 @@ export function PortalShipmentDetailNorte({
   live?: TrackingSnapshotRow | null;
   /** Fecha real (ISO) por status del stepper (SDD-0132). Opcional. */
   stepDates?: Partial<Record<ShipmentStatus, string>>;
+  /** Statuses ocultos por config del tenant (SDD-0156 · visible_in_portal). */
+  hiddenStatuses?: ReadonlySet<ShipmentStatus>;
   /**
    * Orden DDP de ESTE envío esperando aceptación (SDD-0075 §1 · Slice A). null =
    * nada que aceptar (o el CTA aún no está prendido para este cliente). La página
@@ -135,6 +138,7 @@ export function PortalShipmentDetailNorte({
           status={shipment.status}
           service={shipment.service}
           stepDates={stepDates}
+          hiddenStatuses={hiddenStatuses}
         />
         <p className="mt-6 text-[12px] text-grey-500 leading-[1.5]">
           Las actualizaciones de estado las carga nuestro equipo a medida que tu
@@ -231,12 +235,14 @@ function Stepper({
   status,
   service,
   stepDates,
+  hiddenStatuses,
 }: {
   status: ShipmentStatus;
   service: ShipmentService;
   stepDates?: Partial<Record<ShipmentStatus, string>>;
+  hiddenStatuses?: ReadonlySet<ShipmentStatus>;
 }) {
-  const steps = buildTimeline(status, service);
+  const steps = buildTimeline(status, service, hiddenStatuses);
   return (
     <div className="overflow-x-auto -mx-1 px-1">
       <div className="flex">

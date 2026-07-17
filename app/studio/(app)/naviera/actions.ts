@@ -24,7 +24,12 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { createAdminClient } from "@/lib/db/admin";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import {
+  scheduleConsolidationEvent,
+  scheduleSailingEvent,
+} from "@/lib/studio/notifications/schedule-fanout";
 import { getContainerTracking } from "@/lib/studio/naviera-tracking/tracking-api";
 import {
   trackingQuotaConfig,
@@ -161,6 +166,21 @@ export async function updateSailing(
     })
     .eq("id", sailingId);
   if (error) return { error: `No se pudo actualizar el itinerario: ${error.message}` };
+
+  // SDD-0156 · Slice D: la naviera fijó/actualizó el ETA → programa el aviso
+  // 'eta_set' para todos los envíos de las consolidaciones de este itinerario.
+  // Idempotente (no re-programa el mismo envío/evento); best-effort.
+  if (input!.eta) {
+    const tenantId = await resolveTenant(supabase);
+    if (tenantId) {
+      await scheduleSailingEvent(
+        createAdminClient(),
+        tenantId,
+        sailingId,
+        "eta_set",
+      );
+    }
+  }
   revalidate();
   return { ok: true };
 }
@@ -510,6 +530,21 @@ export async function changeConsolidationStatus(
     .update({ status })
     .eq("id", consolidationId);
   if (error) return { error: `No se pudo cambiar el estado: ${error.message}` };
+
+  // SDD-0156 · Slice D: al CERRAR el contenedor (consolidando → cerrado) la carga
+  // quedó consolidada → programa el aviso 'consolidated' para sus envíos.
+  // Idempotente; best-effort (no rompe el cambio de estado).
+  if (status === "cerrado") {
+    const tenantId = await resolveTenant(supabase);
+    if (tenantId) {
+      await scheduleConsolidationEvent(
+        createAdminClient(),
+        tenantId,
+        consolidationId,
+        "consolidated",
+      );
+    }
+  }
   revalidate();
   return { ok: true };
 }
@@ -539,6 +574,28 @@ export async function linkConsolidation(
     .update(patch)
     .eq("id", consolidationId);
   if (error) return { error: `No se pudo vincular el contenedor: ${error.message}` };
+
+  // SDD-0156 · Slice D: atar el contenedor a un itinerario que YA tiene ETA
+  // también dispara 'eta_set' (cubre el orden "creo el zarpe con ETA y después
+  // le cuelgo la consolidación"). Idempotente; best-effort.
+  if (link.sailingId) {
+    const { data: sailing } = await supabase
+      .from("sailings")
+      .select("eta")
+      .eq("id", link.sailingId)
+      .maybeSingle<{ eta: string | null }>();
+    if (sailing?.eta) {
+      const tenantId = await resolveTenant(supabase);
+      if (tenantId) {
+        await scheduleConsolidationEvent(
+          createAdminClient(),
+          tenantId,
+          consolidationId,
+          "eta_set",
+        );
+      }
+    }
+  }
   revalidate();
   return { ok: true };
 }

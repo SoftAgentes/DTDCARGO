@@ -149,8 +149,24 @@ export type TimelineStep = {
  * Comportamiento exception: si el status actual es "exception", se
  * marca el último step done como "exception" (rojo) y el resto sigue
  * pending. La idea es que el operador vea dónde se rompió el flow.
+ *
+ * `hiddenStatuses` (SDD-0156 · Slice D): estados a NO mostrar en el stepper (por
+ * `visible_in_portal=false` de la config por tenant). Se filtran DESPUÉS de
+ * calcular done/active/pending sobre el flow completo, así ocultar el hito actual
+ * (ej. "en aduana") no descoloca los pasos cumplidos ni los pendientes. El Studio
+ * y el tracking público no pasan este set → ven todo (sólo el portal lo aplica).
  */
 export function buildTimeline(
+  status: ShipmentStatus,
+  service: ShipmentService,
+  hiddenStatuses?: ReadonlySet<ShipmentStatus>,
+): TimelineStep[] {
+  const steps = buildTimelineFull(status, service);
+  if (!hiddenStatuses || hiddenStatuses.size === 0) return steps;
+  return steps.filter((s) => !hiddenStatuses.has(s.status));
+}
+
+function buildTimelineFull(
   status: ShipmentStatus,
   service: ShipmentService,
 ): TimelineStep[] {
