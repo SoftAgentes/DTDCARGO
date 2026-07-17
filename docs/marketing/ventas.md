@@ -28,10 +28,15 @@ puerta, a cambio de un **precio mayorista especial condicionado a esa cadencia**
 
 ## Motor 2 · Aliados / revendedores (white-label)
 
-Socios que **revenden el servicio DTD** (referidos o alianza) y aportan el volumen de sus
-clientes. Beneficio clave: acceso al **ERP en white-label** para dar seguimiento a sus clientes
-sin que estos detecten que DTD está detrás.
+Socios que **revenden el servicio DTD** bajo su marca y **atienden ellos a sus propios clientes**.
+Programa público = **"Aliados DTD"**. Modelo (founder 17-jul): el aliado es un **cliente con tarifa
+FIJA especial** — DTD le da un precio por CBM, él revende al suyo. **No es % de margen.**
 
+- ⚠️ **No confundir** con el *aliado cliente* = el mayorista que trae su mercancía con DTD (Motor 1).
+  Acá "aliado" = revendedor del servicio (aliado comercial).
+- Beneficio clave: acceso al **ERP en white-label** para que sus clientes sigan su carga con la marca
+  del aliado. **Pieza a construir** (módulo tenant-aparte + codificación de letras + billing por
+  definir) → detalle en [`adquisicion.md`](adquisicion.md) §2c/§7.
 - Base técnica ya existente: arquitectura **multi-tenant** + portal cliente (SDD-0042). El
   white-label para aliados es **extensión**, no de cero.
 

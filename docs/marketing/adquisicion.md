@@ -50,35 +50,45 @@ Lo que faltaba es **empaquetarla como promesa con nombre**, al estilo del sector
 producto "OceanGuaranteed", no como cláusula). Tres paquetes propuestos — **el copy listo para aprobar
 (pitchs de WhatsApp, letra chica y % concretos) está en [`oferta-borradores.md`](oferta-borradores.md)**:
 
-### 2a. "Precio Final Garantizado" (el ancla — para todo mayorista)
+> **Decisiones del founder cerradas 2026-07-17** — copy completo en [`oferta-borradores.md`](oferta-borradores.md).
+
+### 2a. "Un Solo Precio, Hasta Tu Puerta" ✅ (el ancla — para todo mayorista)
 - **Promesa:** un solo precio por m³, todo incluido hasta tu puerta: flete + aduana + impuestos + entrega.
   Una vez medida tu carga en China, **ese número es el final — cero cobros sorpresa en destino**.
 - **Refuerzo:** "y no adelantas nada: pagas cuando tu carga llega".
-- **Condición** (ya cubierta por [`condiciones-cotizacion.md`](condiciones-cotizacion.md)): el estimado web es
-  referencial; el precio se fija con peso/volumen reales medidos al recibir la carga.
+- **Precio y pesos = atados a la calculadora** (decisión founder): la config de la calculadora es la fuente de
+  verdad; el copy nunca hardcodea tarifa ni topes. Hoy la oferta post-terremoto permite hasta 1.000 kg (sobre
+  el oficial de 500) para maquinaria — todo vive en la config, no en el texto.
 - **Por qué funciona:** ataca el anti-patrón del sector ("flete barato + sorpresas después") y la fricción #1
   del nicho local (tarifas ocultas tras registro). El research confirma que esta promesa admite precio premium.
 
-### 2b. "Primera Carga Tranquila" (el piloto — para el mayorista nuevo que duda)
+### 2b. "Pruébanos con un Metro" ✅ (el piloto — para el mayorista nuevo que duda)
 - **Promesa:** tu primer embarque desde 0,5–1 m³ para que nos pruebes chiquito, con seguimiento por el portal
   en cada hito y un asesor fijo por WhatsApp.
 - **Condición:** perfil mayorista con intención de recompra (30–45 días) — no compra única.
 - **Táctica founder-led (línea A, Kracov):** eliminar la fricción HACIENDO el trabajo por el prospecto — el
   asesor le arma el estimado, le explica el packing list, le muestra el portal en un video de 30s. No se le
   manda a un formulario.
-- **Opcional a evaluar (§10):** crédito de 10–20% del flete en el PRÓXIMO embarque si nos pasamos de la ventana
-  de tránsito comprometida (precedente APL OceanGuaranteed 20%, CONFIRMADO). El crédito — no reembolso —
-  fuerza la recompra. **No prometer hasta validar tiempos reales con el founder.**
+- **Garantía de fecha — DECISIÓN: medir tránsito real primero** ✅. No se promete crédito por demora hasta
+  revisar los tiempos de los últimos 6 meses (solo si la ventana se cumple ≥90%).
 
-### 2c. "Programa Aliado DTD" (el motor 2 — revendedores white-label)
-Estándares del mercado internacional (CONFIRMADO, línea F), a fijar por el founder (§10):
-- **Nivel Referidor** (solo pasa el contacto): 2–5% recurrente del revenue del referido, o un $/CBM fijo
-  equivalente. El pago recurrente alinea al referidor con la recompra.
-- **Nivel Aliado white-label** (vende y atiende bajo su marca): 30–50% del margen bruto, escalonado por
-  volumen trimestral. Ya tenemos la base técnica: multi-tenant + portal (SDD-0042).
-- **Exclusividad por ciudad/zona SOLO mientras cumpla volumen mínimo** (práctica estándar de las redes de
-  forwarders), con acuerdo simple de 1 página.
-- **Materiales:** lista de precios marca blanca + tracking brandeado + guiones de WhatsApp + 1 caso trimestral.
+### 2c. "Aliados DTD" ✅ (el motor 2 — revendedores white-label)
+> **⚠️ Dos cosas se decían "aliado" — el founder las separó (2026-07-17):** el **aliado cliente** = mayorista
+> que trae SU mercancía con nosotros (es nuestro cliente directo, se le venden los paquetes 2a/2b); el **aliado
+> comercial** = white-label que revende NUESTRO servicio (§ este). En marketing "Aliados DTD" = el programa
+> white-label; el mayorista es "mayorista". Detalle en [`oferta-borradores.md`](oferta-borradores.md) §3.
+
+**El modelo (corregido por el founder — NO es % de margen):** el aliado comercial es un **cliente con tarifa
+fija especial**: DTD le da un precio fijo por CBM, **él revende al precio que quiera** y **atiende él a sus
+propios clientes** (DTD no los toca).
+- **Nivel Referidor** (solo pasa el contacto, no revende): **monto fijo por CBM** del embarque referido
+  (recurrente mientras el referido embarque). *El $ exacto queda por definir con los números en mano.*
+- **Nivel Aliado white-label** (revende bajo su marca, atiende a los suyos): tarifa fija de mayorista; su
+  margen es lo que le marca a su cliente.
+- **Exclusividad por ciudad/zona SOLO mientras cumpla volumen mínimo**, con acuerdo simple de 1 página.
+- **Pieza a construir (no marketing):** módulo tipo tenant aparte para el aliado, con lectura de tracking/datos
+  para SUS clientes + codificación de letras propia + **billing por definir** (el gate). Base: multi-tenant +
+  portal (SDD-0042). Ver §7 y la memoria del proyecto.
 
 ## 3. El avatar y dónde vive (mapa de prospección)
 
@@ -239,8 +249,11 @@ Lo que ya existe en código y se usa YA:
   quien pedirle referidos. *(Escalar con cuidado: hay ~20% de rebote medido en el 1er lote — ver memoria.)*
 - **Fidelización por niveles** (SDD-0051, LIVE): el nivel del cliente es argumento del nurture mensual.
 
-Lo que falta definir (founder, §10): los % del **Programa Aliado** (§2c) y su acuerdo de 1 página. La mecánica
-de pago ya la soporta el ERP (crédito en factura).
+**El white-label (aliado comercial) pide construir** (decisión founder 17-jul): un espacio tipo **tenant
+aparte** para el aliado dentro de la plataforma, con lectura de tracking/datos para SUS clientes +
+**codificación de letras** propia + **billing por definir** (el gate). Es un SDD futuro sobre la base
+multi-tenant (SDD-0042), no marketing. El referidor cobra **monto fijo por CBM** (el ERP ya soporta crédito en
+factura); el $ exacto queda por afinar.
 
 ## 8. Qué se enciende en código (estado real)
 
@@ -254,6 +267,7 @@ de pago ya la soporta el ERP (crédito en factura).
 | 6 | **Campaña de recuperación sobre Kommo** (founder 17-jul): contactos con WhatsApp verificado clasificados (¿ya es cliente o interesado?) con guion por segmento | ✅ **HERRAMIENTA LISTA (SDD-0157, 17-jul)** — `/studio/kommo` › pestaña **Recuperación**: tandas wa.me de 10 con guion editable + export CSV para SMS (canal mixto aprobado) | El asesor registra cada toque en Kommo (nota/tarea). Read-only, sin migración |
 | 7 | **Higiene de emails del CRM** (founder 17-jul): Kommo no valida el correo y muchos están mal o vacíos | ❌ Gradual | Reforzar con el tiempo: pedir/corregir el email en cada contacto (es campo del embudo, no proyecto aparte) |
 | 8 | **Write-back ampliado ERP→Kommo** (founder 17-jul): además de valor/etapa/MARKBOX (fila 2), mandar al CRM lo que él no hace — **atar las facturas del cliente**, etc. | ❌ Roadmap | La integración Kommo↔ERP sigue en construcción; esto va DESPUÉS de prender la fila 2 |
+| 9 | **Módulo white-label del aliado comercial** (decisión founder 17-jul): tenant aparte para el aliado con lectura de tracking/datos de SUS clientes + codificación de letras + billing | ❌ SDD futuro | Gate = definir el billing. Base: multi-tenant + portal (SDD-0042). Es lo que hace vendible el "Aliados DTD" §2c |
 
 ## 9. El ritual semanal (founder + asesor, 30–45 min, viernes)
 
@@ -266,24 +280,26 @@ de pago ya la soporta el ERP (crédito en factura).
 5. **1 decisión de mejora**, máximo (un guion que no funciona, una objeción nueva para el manual, un
    territorio nuevo). No más de una por semana: el sistema gana por constancia, no por novedad.
 
-## 10. Decisiones abiertas del founder
+## 10. Decisiones del founder
 
-1. **Nombres y letra chica de los paquetes** (§2): "Precio Final Garantizado" / "Primera Carga Tranquila" /
-   "Programa Aliado DTD" son propuestas. La garantía opcional de fecha (crédito 10–20% del flete) requiere
-   validar los tiempos reales de tránsito antes de prometerla.
-2. **Tarifa preferencial mayorista**: el número exacto y la condición de cadencia (pendiente desde
-   [`ventas.md`](ventas.md); el [manual](manual-vendedores-peso.md) ya da la palanca: $/m³ contra recurrencia).
-3. **% del Programa Aliado**: fijar referidor (2–5% rec. o $/CBM) y aliado (30–50% margen, escalones).
-4. **Config Kommo** — checklist de una página con los 10 pasos que faltan (el embudo único ya está
-   configurado desde el 29-jun): [`checklist-kommo.md`](checklist-kommo.md).
-5. **Google Ads — Fase 2**: criterio de activación propuesto = cuando el SLA <5 min se cumpla 4 semanas
-   seguidas y la rutina del §5 esté corriendo (de nada sirve pagar leads que se responden tarde). La
-   reestructura está lista en [`ads-reestructura-search.md`](ads-reestructura-search.md); al reactivar, no
-   pausar por ≥2 semanas.
-6. **Discrepancia de límites a reconciliar**: el [README](README.md) describe el manual con "1.000 kg/m³ ·
-   9.000 kg · 15 m³" pero [`manual-vendedores-peso.md`](manual-vendedores-peso.md) usa tope de derivación
-   **68 m³ / 27.000 kg** (y la calculadora pública deriva a asesor en 9.000 kg). Alinear los tres antes de
-   entrenar al asesor con este playbook.
+**✅ CERRADAS (2026-07-17)** — detalle en [`oferta-borradores.md`](oferta-borradores.md):
+1. **Nombres:** "Un Solo Precio, Hasta Tu Puerta" (ancla) · "Pruébanos con un Metro" (piloto) · "Aliados DTD"
+   (white-label). **DDP** solo aclaración interna.
+2. **Garantía de fecha:** medir el tránsito real primero; no prometer hasta ventana ≥90%.
+3. **Comisión del referidor:** monto fijo por CBM (el $ exacto, por afinar).
+4. **Aliado white-label:** NO es % de margen — es **tarifa fija** (cliente especial que revende y atiende a los
+   suyos). Requiere módulo white-label + billing (§7, §8 fila 9).
+5. **Tarifa y pesos:** atados a la **calculadora** (config = fuente de verdad, no se hardcodea). Cadencia
+   30–45 días según volumen (convención de [`ventas.md`](ventas.md)).
+
+**Pendiente (números/build, no rumbo):**
+- El **$ por CBM del referidor**.
+- El **módulo white-label + su billing** (SDD futuro — §8 fila 9).
+- **Config Kommo:** los 10 pasos de [`checklist-kommo.md`](checklist-kommo.md).
+- **Google Ads — Fase 2**: activar cuando el SLA <5 min se cumpla 4 semanas seguidas y la rutina corra. La
+  reestructura está lista en [`ads-reestructura-search.md`](ads-reestructura-search.md).
+- **Verificar en la calculadora** el tope de peso vigente (hoy la oferta post-terremoto permite hasta 1.000 kg,
+  sobre el oficial de 500, para maquinaria) — la calc es la fuente de verdad; alinear README/manual a eso.
 7. **Barrido "DDP" en el sitio público**: la regla de nombre del §2 deja 24 menciones "DDP" en 12
    componentes (`components/`, incl. `DdpHero.tsx` y `ServiciosExplorer`) por pasar a "Puerta a Puerta"
    con la aclaración "(todos los gastos pagados)". Es copy + posible SEO (títulos/schema) — tarea aparte
