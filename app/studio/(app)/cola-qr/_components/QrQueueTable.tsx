@@ -266,6 +266,19 @@ export function QrQueueTable({
                     )}
                   </td>
                   <td style={{ ...tdStyle, textAlign: "right" }}>
+                    {/* SDD-0152 · abre las etiquetas del hub (una por caja, con
+                        su código único). Es lo que hace la caja escaneable. */}
+                    {o.status !== "cancelado" && (
+                      <a
+                        href={`/studio/cola-qr/${o.id}/imprimir`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="studio-btn studio-btn-ghost studio-btn-xs"
+                        style={{ marginRight: 6, textDecoration: "none" }}
+                      >
+                        Ver etiquetas
+                      </a>
+                    )}
                     {o.status === "imprimiendo" && (
                       <button
                         type="button"

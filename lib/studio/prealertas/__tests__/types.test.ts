@@ -13,6 +13,7 @@ import {
   clientNoFromMarkbox,
   buildPrealertaCode,
   buildLabels,
+  buildLabelsFromBoxes,
   summarizeSuppliers,
   prealertaStatusLabel,
   prealertaStatusTone,
@@ -239,6 +240,50 @@ describe("buildLabels", () => {
 
   it("trunca boxes fraccionario", () => {
     expect(buildLabels("DTD-5532-3-2", 4.9)).toHaveLength(4);
+  });
+
+  it("el fallback deja boxCode en null (etiqueta por cliente, no por caja)", () => {
+    const labels = buildLabels("DTD-5532-3-2", 2);
+    expect(labels.every((l) => l.boxCode === null)).toBe(true);
+  });
+});
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ buildLabelsFromBoxes · SDD-0153 · etiqueta escaneable      ║
+// ╚═══════════════════════════════════════════════════════════╝
+
+describe("buildLabelsFromBoxes", () => {
+  it("cada etiqueta lleva su DTD-B único como boxCode", () => {
+    const labels = buildLabelsFromBoxes("DTD-5532-3-2", [
+      { code: "DTD-B-000101", seq: 1 },
+      { code: "DTD-B-000102", seq: 2 },
+      { code: "DTD-B-000103", seq: 3 },
+    ]);
+    expect(labels).toHaveLength(3);
+    expect(labels.map((l) => l.boxCode)).toEqual([
+      "DTD-B-000101",
+      "DTD-B-000102",
+      "DTD-B-000103",
+    ]);
+    // el code de la compra sigue siendo el encabezado, igual en todas
+    expect(labels.every((l) => l.code === "DTD-5532-3-2")).toBe(true);
+  });
+
+  it("boxN/totalBoxes salen del ORDEN, no del seq crudo (que puede tener huecos)", () => {
+    // seq 4 y 7 tras una edición de conteo → la etiqueta dice 1/2 y 2/2
+    const labels = buildLabelsFromBoxes("DTD-9-1-1", [
+      { code: "DTD-B-000207", seq: 7 },
+      { code: "DTD-B-000204", seq: 4 },
+    ]);
+    expect(labels.map((l) => l.boxN)).toEqual([1, 2]);
+    expect(labels.every((l) => l.totalBoxes === 2)).toBe(true);
+    // ordena por seq asc: el 4 va primero
+    expect(labels[0].boxCode).toBe("DTD-B-000204");
+    expect(labels[1].boxCode).toBe("DTD-B-000207");
+  });
+
+  it("lista vacía → sin etiquetas", () => {
+    expect(buildLabelsFromBoxes("DTD-9-1-1", [])).toHaveLength(0);
   });
 });
 

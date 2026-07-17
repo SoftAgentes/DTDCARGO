@@ -8,7 +8,12 @@
 
 ## 1 · Identidad pública (canónica)
 
-Año canónico: **fundada 2010** + narrativa **"+15 años"**.
+Año canónico de fundación: **2010** — la primera empresa DTD Cargo se fundó en China ese año.
+Cronología completa (para evitar la confusión recurrente): **2008** orígenes comerciales con
+China (experiencia, no la edad de la empresa) · **2010** primera empresa DTD Cargo (China) ·
+**2015** expansión a Venezuela (DTD Services LCL). Narrativa pública: **"+15 años"** de
+trayectoria (contados desde 2008–2010). El `foundingDate` del schema (`app/layout.tsx`) queda
+en **2010**.
 
 **Propósito (por qué existimos)**
 Importar de China sigue siendo, para la mayoría, caro, lento y arriesgado. No tiene por qué

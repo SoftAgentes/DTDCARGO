@@ -12,18 +12,20 @@ import { RegisterForm } from "./RegisterForm";
 export const metadata: Metadata = {
   title: "Registro de cliente",
   description:
-    "Date de alta como cliente de DTD Cargo y obtén tu MARKBOX (shipping mark) al instante — el código que identifica tus cajas en nuestra bodega de Yiwu. Registro online en minutos; un asesor activa tu cuenta.",
+    "Date de alta como cliente de DTD Cargo y obtén tu Shipping Mark al instante — el código que identifica tus cajas en nuestra bodega de Yiwu. Registro online en minutos; un asesor activa tu cuenta.",
   keywords: [
     "registro cliente DTD Cargo",
     "darse de alta importador China Venezuela",
-    "MARKBOX shipping mark DTD",
+    "Shipping Mark DTD",
     "abrir cuenta DTD Cargo",
+    // Alias heredado por SEO (antes la marca pública era "MARKBOX").
+    "MARKBOX",
   ],
   alternates: { canonical: "/registro" },
   ...socialMeta({
     title: "Registro de cliente · DTD Cargo",
     description:
-      "Date de alta y obtén tu MARKBOX para empezar a importar de China con DTD Cargo.",
+      "Date de alta y obtén tu Shipping Mark para empezar a importar de China con DTD Cargo.",
     path: "/registro",
   }),
 };

@@ -27,22 +27,23 @@ import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
  */
 
 const DESC =
-  "MARKBOX es el sistema de marcaje (Shipping Mark · 唛头) de DTD Cargo: el código único que identifica tus cajas desde el proveedor en China hasta tu puerta en Venezuela.";
+  "El Shipping Mark (唛头) de DTD Cargo es el código único que identifica tus cajas desde el proveedor en China hasta tu puerta en Venezuela.";
 
 export const metadata: Metadata = {
-  title: "MARKBOX · Shipping Mark",
+  title: "Shipping Mark · 唛头",
   description: DESC,
   keywords: [
-    "MARKBOX",
     "Shipping Mark",
     "唛头",
     "código de bodega China",
     "casillero en China",
     "dirección bodega Yiwu",
+    // Alias heredado por SEO — antes la marca pública era "MARKBOX" (SDD-0064).
+    "MARKBOX",
   ],
   alternates: { canonical: "/markbox" },
   ...socialMeta({
-    title: "MARKBOX · Shipping Mark · DTD Cargo",
+    title: "Shipping Mark · DTD Cargo",
     description: DESC,
     path: "/markbox",
   }),
@@ -68,7 +69,7 @@ const faqJsonLd = {
 const serviceJsonLd = {
   "@context": "https://schema.org",
   "@type": "Service",
-  name: "MARKBOX — sistema de marcaje logístico",
+  name: "Shipping Mark — sistema de marcaje logístico",
   serviceType: "Shipping mark / identificación de carga en bodega de consolidación",
   description: DESC,
   areaServed: [
@@ -80,7 +81,7 @@ const serviceJsonLd = {
 };
 
 const wa = buildWhatsAppLink(
-  "Hola DTD Cargo, quiero registrarme y obtener mi MARKBOX.",
+  "Hola DTD Cargo, quiero registrarme y obtener mi Shipping Mark.",
 );
 
 export default function MarkboxPage() {
@@ -101,7 +102,7 @@ export default function MarkboxPage() {
       <BreadcrumbJsonLd
         items={[
           { name: "Inicio", path: "/" },
-          { name: "MARKBOX", path: "/markbox" },
+          { name: "Shipping Mark", path: "/markbox" },
         ]}
       />
 
@@ -109,21 +110,20 @@ export default function MarkboxPage() {
         {/* Hero */}
         <section className="py-16 lg:py-24 bg-paper">
           <div className="wrap max-w-[920px]">
-            <span className="eyebrow">MARKBOX · Shipping Mark · 唛头</span>
+            <span className="eyebrow">Shipping Mark · 唛头</span>
             <h1 className="h-display mt-5" style={{ fontSize: "clamp(34px, 5.5vw, 68px)" }}>
               Tu carga, identificada{" "}
               <span style={{ color: "var(--color-wine)" }}>de China a tu puerta.</span>
             </h1>
             <p className="lead mt-6 max-w-[60ch]">
-              El MARKBOX es el sistema de marcaje de DTD Cargo — tu Shipping
-              Mark, como se conoce este marcado a nivel internacional (唛头 en
-              China). Es el código que identifica tus cajas desde la fábrica
-              hasta Venezuela, para que tu mercancía nunca se confunda con la
-              de otro.
+              El Shipping Mark es el sistema de marcaje de DTD Cargo — así se
+              conoce este marcado a nivel internacional (唛头 en China). Es el
+              código que identifica tus cajas desde la fábrica hasta Venezuela,
+              para que tu mercancía nunca se confunda con la de otro.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/registro" className="btn btn-primary">
-                Regístrate y obtén tu MARKBOX
+                Regístrate y obtén tu Shipping Mark
               </Link>
               <a href={wa} target="_blank" rel="noopener noreferrer" className="btn btn-ghost">
                 <WhatsAppIcon size={18} /> Pregúntanos por WhatsApp
@@ -135,26 +135,25 @@ export default function MarkboxPage() {
         {/* Respuesta rápida (GEO) — citable por asistentes de voz / IA */}
         <RespuestaRapida
           id="respuesta-rapida"
-          pregunta="¿Qué es el MARKBOX y en qué se diferencia del Shipping Mark?"
-          respuesta="No hay diferencia: el MARKBOX es el nombre que le da DTD Cargo a tu Shipping Mark (唛头 en China), el código único DTD-NNNN que identifica cada una de tus cajas desde que tu proveedor las despacha hasta que llegan a tu puerta en Venezuela. Sin MARKBOX en la caja, la bodega no puede asociarla a tu cuenta."
+          pregunta="¿Qué es el Shipping Mark de DTD Cargo?"
+          respuesta="El Shipping Mark (唛头 en China) es el código único DTD-NNNN que identifica cada una de tus cajas desde que tu proveedor las despacha hasta que llegan a tu puerta en Venezuela. Sin tu Shipping Mark en la caja, la bodega no puede asociarla a tu cuenta."
         />
 
         {/* Flujo de 8 pasos + beneficios — mismo componente que el home */}
         <ShippingMark />
 
-        {/* Guía destacada: dirección de la bodega en Alibaba — mismo bloque
-            que /faq (una sola fuente de verdad, AlibabaAddressGuide). */}
+        {/* Guía destacada: dirección de la bodega en Alibaba — misma tarjeta
+            compacta (AlibabaAddressGuide) que se usa como widget en la FAQ. */}
         <section id="guia-alibaba" className="py-16 lg:py-20 bg-paper scroll-mt-24">
           <div className="wrap max-w-[820px]">
             <span className="eyebrow">Guía destacada</span>
             <h2 className="h-section mt-4">
-              Cómo poner tu MARKBOX en la dirección de Alibaba.
+              Cómo poner tu Shipping Mark en la dirección de Alibaba, 1688 o Taobao.
             </h2>
             <p className="mt-3 mb-6 text-[14.5px] leading-[1.65] text-grey-700 max-w-[62ch]">
-              Copia y pega cada campo tal cual (en chino, sin traducir) en el
-              formulario de direcciones de Alibaba — o pásaselo directo a tu
-              proveedor. Con tu MARKBOX en el destinatario, tu compra queda
-              identificada apenas llega a nuestra bodega de Yiwu.
+              Estos son los datos de nuestra bodega en Yiwu. Escribe tu Shipping
+              Mark, cópialos y pégalos en Alibaba, 1688 o Taobao — o pásaselos
+              directo a tu proveedor.
             </p>
             <AlibabaAddressGuide />
           </div>
@@ -165,7 +164,7 @@ export default function MarkboxPage() {
           <section className="py-16 lg:py-20 bg-white">
             <div className="wrap max-w-[820px]">
               <span className="eyebrow">Preguntas frecuentes</span>
-              <h2 className="h-section mt-4">MARKBOX: dudas comunes.</h2>
+              <h2 className="h-section mt-4">Shipping Mark: dudas comunes.</h2>
               <dl className="mt-8 flex flex-col gap-6 m-0">
                 {faqMarkbox.map((f) => (
                   <div key={f.pregunta}>

@@ -97,7 +97,7 @@ export function RegisterForm({
 
           {!done && (
             <p className="mt-2 text-[14px] text-grey-700 leading-[1.55]">
-              En un minuto tienes tu MARKBOX (tu shipping mark) para empezar a marcar tus cajas en China.
+              En un minuto tienes tu Shipping Mark para empezar a marcar tus cajas en China.
             </p>
           )}
 
@@ -375,7 +375,7 @@ function ExpressForm({
         className="rounded-[10px] bg-paper border-l-[3px] px-4 py-3 text-[12.5px] text-grey-700 leading-[1.55]"
         style={{ borderColor: "var(--color-wine)" }}
       >
-        Generamos tu <strong className="text-ink">MARKBOX</strong> al instante y tu
+        Generamos tu <strong className="text-ink">Shipping Mark</strong> al instante y tu
         cuenta queda <strong className="text-ink">activa</strong>. Antes de tu primera
         compra completas tu perfil (foto de cédula + dirección de entrega) desde el
         portal.
@@ -406,7 +406,7 @@ function ExpressForm({
         disabled={pending}
         className="btn btn-primary disabled:opacity-60 disabled:cursor-wait"
       >
-        {pending ? "Creando tu cuenta…" : "Crear cuenta y generar MARKBOX"}
+        {pending ? "Creando tu cuenta…" : "Crear cuenta y generar tu Shipping Mark"}
         {!pending && <CheckIcon size={16} />}
       </button>
 
@@ -485,7 +485,7 @@ function StepDone({
           ¡Felicitaciones{firstName ? `, ${firstName}` : ""}!
         </div>
         <p className="mt-2 text-[14px] text-grey-700 leading-[1.55] max-w-[42ch]">
-          Tu cuenta quedó creada. Este es tu código MARKBOX — guárdalo, vas a usarlo
+          Tu cuenta quedó creada. Este es tu código Shipping Mark — guárdalo, vas a usarlo
           mucho: es lo que tus proveedores escriben en cada caja.
         </p>
       </div>
@@ -520,7 +520,7 @@ function StepDone({
         style={{ background: "var(--color-wine)", color: "#fff" }}
       >
         <div className="text-[10px] font-bold tracking-[0.18em] uppercase" style={{ color: "var(--color-wine-soft)" }}>
-          Tu MARKBOX · 唛头 — tu shipping mark, la marca que va en tus cajas
+          Tu Shipping Mark · 唛头 — la marca que va en tus cajas
         </div>
         <div
           className="mt-2 text-[44px] sm:text-[52px] leading-none"
@@ -544,7 +544,7 @@ function StepDone({
           Cómo entrar al portal
         </div>
         <div className="mt-2 text-[12.5px] text-grey-700 leading-[1.55]">
-          No te pedimos contraseña ni tienes que recordar tu MARKBOX. Te enviamos un{" "}
+          No te pedimos contraseña ni tienes que recordar tu Shipping Mark. Te enviamos un{" "}
           <strong className="text-ink">enlace de acceso a tu correo</strong> y entras
           con un clic — sin contraseñas que se te olvidan ni códigos que apuntar. Solo
           tu correo.
@@ -618,7 +618,7 @@ function MarkboxGuide({ markbox }: { markbox: string }) {
             Cómo se arma el código de cada compra
           </span>
           <span className="block text-[12px] text-grey-700 leading-[1.45] mt-0.5">
-            Tu MARKBOX más el proveedor y la compra. Toca para ver la guía (1 min).
+            Tu Shipping Mark más el proveedor y la compra. Toca para ver la guía (1 min).
           </span>
         </span>
         <span
@@ -634,7 +634,7 @@ function MarkboxGuide({ markbox }: { markbox: string }) {
           {/* Desglose visual del código MARKBOX-proveedor-compra. */}
           <div className="rounded-[10px] bg-paper border border-grey-200 px-4 py-4">
             <div className="flex items-start justify-center gap-2">
-              <CodePart code={markbox} label="Tu MARKBOX" tone="wine" />
+              <CodePart code={markbox} label="Tu Shipping Mark" tone="wine" />
               <span
                 className="text-[18px] font-black text-grey-500 mt-0.5"
                 style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
@@ -652,7 +652,7 @@ function MarkboxGuide({ markbox }: { markbox: string }) {
             </div>
           </div>
 
-          <GuideStep n="1" title="Tu MARKBOX te identifica">
+          <GuideStep n="1" title="Tu Shipping Mark te identifica">
             <code
               className="text-[12px] font-bold text-wine px-1.5 py-0.5 rounded"
               style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace", background: "var(--color-paper)" }}

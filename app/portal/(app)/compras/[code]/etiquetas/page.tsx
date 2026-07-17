@@ -6,6 +6,7 @@ import { getPortalClient } from "@/lib/portal/portal-queries";
 import {
   getPrealertaByCode,
   listPrealertaDocuments,
+  listPredeclaredBoxes,
   listSuppliers,
   listActivePrealertaAddons,
   listPrealertaServiceRequests,
@@ -13,6 +14,7 @@ import {
 import { PrealertaServiceSection } from "./ServiceSection";
 import {
   buildLabels,
+  buildLabelsFromBoxes,
   PREALERTA_DOC_BUCKET,
   PREALERTA_DOC_TYPE_LABEL,
 } from "@/lib/studio/prealertas/types";
@@ -57,7 +59,15 @@ export default async function PortalLabelsPage({
   const supplierName = supplier?.name ?? null;
   const supplierWechat = supplier?.wechat ?? null;
 
-  const labels = buildLabels(prealerta.code, prealerta.boxes);
+  // SDD-0153: si la compra ya tiene cajas pre-declaradas, la etiqueta lleva el
+  // código único escaneable de cada caja. Si no (compra vieja, o conteo que no
+  // cuadra), cae a la etiqueta por cliente. La RLS del portal solo devuelve las
+  // cajas del propio cliente.
+  const predeclaredBoxes = await listPredeclaredBoxes(supabase, prealerta.id);
+  const labels =
+    predeclaredBoxes.length > 0
+      ? buildLabelsFromBoxes(prealerta.code, predeclaredBoxes)
+      : buildLabels(prealerta.code, prealerta.boxes);
 
   // Servicios de recepción (SDD-0098): menú activo + lo que el cliente ya pidió.
   const [addons, serviceRequests] = await Promise.all([
@@ -114,6 +124,7 @@ export default async function PortalLabelsPage({
     <>
       <LabelsClient
         code={prealerta.code}
+        markbox={client.markbox}
         clientName={client.name}
         supplierName={supplierName}
         description={prealerta.description}

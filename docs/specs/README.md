@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 146 specs)
+### Índice de specs (generado · 151 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -163,7 +163,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0128 | API keys & webhooks — gestión de credenciales de integración … | done | interno |
 | 0129 | Workflows custom — puntero al motor de flujo existente (SDD-0… | done | interno |
 | 0130 | Importar / Exportar — export CSV del dominio admin (import po… | done | interno |
-| 0131 | Registro de cliente interno — persona/empresa (cédula vs RIF)… | in-progress | interno |
+| 0131 | Registro de cliente interno — persona/empresa (cédula vs RIF)… | done | interno |
 | 0132 | Hitos del envío + notificación de estado al cliente | done | interno |
 | 0133 | Cut-off / calendario de zarpes en el portal | done | interno |
 | 0134 | Reportar pago + comprobante en el portal | done | interno |
@@ -184,6 +184,11 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0149 | Resumen mensual de conversaciones con IA — histórico navegabl… | in-progress | interno |
 | 0150 | Secretarias de reunión v2 — default rica + Escucha Activa + t… | in-progress | interno |
 | 0151 | Perfil cliente — aviso de pendientes in-page + solicitud de c… | done | interno |
+| 0152 | Estiba por zonas — identidad por bulto, captura al cargar y v… | in-progress | interno |
+| 0153 | Etiqueta pre-declarada · la caja nace con el aviso, no con la… | in-progress | interno |
+| 0154 | Recibir por escaneo · la etiqueta pre-declarada materializa l… | in-progress | interno |
+| 0155 | Estiba por lotes · escanear una caja monta el lote; posición … | in-progress | interno |
+| 0156 | Notificaciones al cliente configurables — journey China→Venez… | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

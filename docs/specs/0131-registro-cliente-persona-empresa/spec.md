@@ -1,10 +1,10 @@
 ---
 sdd: "0131"
 title: "Registro de cliente interno — persona/empresa (cédula vs RIF) + panel de completitud"
-status: in-progress
+status: done
 author: "Claude Code (ventana construcción-de-norte) + founder"
 created: 2026-07-01
-updated: 2026-07-01
+updated: 2026-07-17
 supersedes: null
 superseded_by: null
 related: ["0010", "0046", "0106", "0042"]
@@ -68,11 +68,13 @@ verificación automática SENIAT (SDD-0046 Slice C).
 
 ## 6. Aceptación
 
-- [ ] Alta interna: elijo Empresa → pide RIF + razón social + contacto; elijo Persona → pide cédula.
-- [ ] `doc_kind` y `contact_name` quedan persistidos y visibles en la ficha.
-- [ ] Cédula inválida en modo Persona / RIF inválido en modo Empresa → error de campo claro.
-- [ ] La card "qué falta" lista los campos faltantes y marca "completo" cuando están todos.
-- [ ] `node scripts/verify.mjs` verde; sin tocar `main` ni aplicar la migración a prod.
+- [x] Alta interna: elijo Empresa → pide RIF + razón social + contacto; elijo Persona → pide cédula.
+- [x] `doc_kind` y `contact_name` quedan persistidos y visibles en la ficha.
+- [x] Cédula inválida en modo Persona / RIF inválido en modo Empresa → error de campo claro.
+- [x] La card "qué falta" lista los campos faltantes y marca "completo" cuando están todos.
+- [x] `node scripts/verify.mjs` verde; sin tocar `main` ni aplicar la migración a prod.
+
+**Cierre 2026-07-17.** Migración `0194_clients_contact_name.sql` **verificada aplicada en prod** (columnas `contact_name` y `doc_kind` existen en `public.clients`) — el `done` no es falso. El código además soporta pasaporte (`P-…`) en `CEDULA_REGEX`, que §4 no menciona: drift a favor del código, no deuda.
 
 ## 7. Notas de integración (ventana secundaria)
 
