@@ -24,7 +24,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { createAdminClient } from "@/lib/db/admin";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { notifyConsolidationAuthorizedToOperario } from "@/lib/studio/naviera/consolidation-request-notify";
 import { getContainerTracking } from "@/lib/studio/naviera-tracking/tracking-api";
 import {
   trackingQuotaConfig,
@@ -519,6 +521,123 @@ export async function closeConsolidation(
   consolidationId: string,
 ): Promise<Result> {
   return changeConsolidationStatus(consolidationId, "cerrado");
+}
+
+// ── SDD-0157 · autorizar / rechazar solicitud del operario ─────
+
+/**
+ * Autoriza la solicitud de un operario (status 'solicitada' → 'consolidando').
+ * Recién acá se quema el correlativo DTD-CONSOL-NNNN (no en la solicitud, para
+ * no gastarlo en rechazos). Guardado por moduleEditDenial('naviera'). Avisa al
+ * operario por push (best-effort). Solo transiciona desde 'solicitada'.
+ */
+export async function authorizeConsolidation(
+  consolidationId: string,
+): Promise<Result> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "naviera");
+  if (denial) return { error: denial };
+
+  const tenantId = await resolveTenant(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant." };
+
+  const { data: row, error: readErr } = await supabase
+    .from("consolidations")
+    .select("id, status, tenant_id, container_type, requested_by_operario_id")
+    .eq("id", consolidationId)
+    .maybeSingle<{
+      id: string;
+      status: string;
+      tenant_id: string;
+      container_type: string | null;
+      requested_by_operario_id: string | null;
+    }>();
+  if (readErr) return { error: `No se pudo leer la solicitud: ${readErr.message}` };
+  if (!row || row.tenant_id !== tenantId) {
+    return { error: "La solicitud no existe o no es accesible." };
+  }
+  if (row.status !== "solicitada") {
+    return { error: "Esta solicitud ya no está pendiente." };
+  }
+
+  const { data: refData, error: refErr } = await supabase.rpc(
+    "next_consolidation_ref",
+    { p_tenant_id: tenantId },
+  );
+  if (refErr || !refData) {
+    return { error: "No se pudo generar la referencia del contenedor." };
+  }
+  const consolidationRef = String(refData);
+
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData.user?.id ?? null;
+
+  const { error } = await supabase
+    .from("consolidations")
+    .update({
+      ref: consolidationRef,
+      status: "consolidando",
+      authorized_by: userId,
+      authorized_at: new Date().toISOString(),
+    })
+    .eq("id", consolidationId)
+    .eq("status", "solicitada");
+  if (error) return { error: `No se pudo autorizar: ${error.message}` };
+
+  // Aviso al operario que pidió (best-effort, no bloquea).
+  if (row.requested_by_operario_id) {
+    await notifyConsolidationAuthorizedToOperario(
+      createAdminClient(),
+      row.requested_by_operario_id,
+      { ref: consolidationRef, containerType: row.container_type },
+    );
+  }
+
+  revalidate();
+  return { ok: true };
+}
+
+/**
+ * Rechaza la solicitud de un operario (status 'solicitada' → 'rechazada') con un
+ * motivo. Guardado por moduleEditDenial('naviera'). Solo transiciona desde
+ * 'solicitada'. No quema correlativo (la fila queda sin ref).
+ */
+export async function rejectConsolidation(
+  consolidationId: string,
+  reason: string,
+): Promise<Result> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "naviera");
+  if (denial) return { error: denial };
+
+  const motivo = (reason ?? "").trim();
+  if (!motivo) return { error: "Indica el motivo del rechazo." };
+
+  const tenantId = await resolveTenant(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant." };
+
+  const { data: row, error: readErr } = await supabase
+    .from("consolidations")
+    .select("id, status, tenant_id")
+    .eq("id", consolidationId)
+    .maybeSingle<{ id: string; status: string; tenant_id: string }>();
+  if (readErr) return { error: `No se pudo leer la solicitud: ${readErr.message}` };
+  if (!row || row.tenant_id !== tenantId) {
+    return { error: "La solicitud no existe o no es accesible." };
+  }
+  if (row.status !== "solicitada") {
+    return { error: "Esta solicitud ya no está pendiente." };
+  }
+
+  const { error } = await supabase
+    .from("consolidations")
+    .update({ status: "rechazada", rejected_reason: motivo })
+    .eq("id", consolidationId)
+    .eq("status", "solicitada");
+  if (error) return { error: `No se pudo rechazar: ${error.message}` };
+
+  revalidate();
+  return { ok: true };
 }
 
 /** Atar un contenedor a una reserva y/o un itinerario. */
