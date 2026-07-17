@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marketing · DTD Cargo — lector offline</title>
+<style>
+  :root {
+    --paper:#FBFAF7; --surface:#FFFFFF; --ground:#F1EDE6; --side:#14213B;
+    --ink:#17202E; --ink-soft:#55606F; --ink-mute:#8B94A1; --border:#E4DED4; --border-2:#D2CABB;
+    --wine:#7F0F1A; --wine-ink:#7F0F1A; --navy:#0F1E3D;
+    --side-ink:#EAE6DE; --side-soft:#9BA6BC; --side-active:#7F0F1A; --side-hover:rgba(255,255,255,.06);
+    --code-bg:#F3EFE8; --quote-bar:#C2747F; --quote-bg:#FAF6F0;
+    --sans:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+    --mono:ui-monospace,"Cascadia Code","Consolas","SF Mono",monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) {
+      --paper:#1B2534; --surface:#17202E; --ground:#0E1622; --side:#0B1120;
+      --ink:#ECEEF2; --ink-soft:#A7B1BF; --ink-mute:#6C7787; --border:#2A3446; --border-2:#38445A;
+      --wine:#CF4453; --wine-ink:#E7808B; --navy:#C9D4E6;
+      --side-ink:#DEE3EC; --side-soft:#7C879A; --side-active:#CF4453; --side-hover:rgba(255,255,255,.05);
+      --code-bg:#0E1622; --quote-bar:#CF4453; --quote-bg:#121C2A;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:#1B2534; --surface:#17202E; --ground:#0E1622; --side:#0B1120;
+    --ink:#ECEEF2; --ink-soft:#A7B1BF; --ink-mute:#6C7787; --border:#2A3446; --border-2:#38445A;
+    --wine:#CF4453; --wine-ink:#E7808B; --navy:#C9D4E6;
+    --side-ink:#DEE3EC; --side-soft:#7C879A; --side-active:#CF4453; --side-hover:rgba(255,255,255,.05);
+    --code-bg:#0E1622; --quote-bar:#CF4453; --quote-bg:#121C2A;
+  }
+  * { box-sizing:border-box; }
+  html,body { height:100%; }
+  body { margin:0; background:var(--ground); color:var(--ink); font-family:var(--sans); font-size:15px; line-height:1.6; -webkit-font-smoothing:antialiased; }
+  #app { display:grid; grid-template-columns:290px 1fr; height:100vh; }
+
+  /* Sidebar */
+  #side { background:var(--side); color:var(--side-ink); display:flex; flex-direction:column; min-height:0; border-right:1px solid rgba(0,0,0,.2); }
+  .side-head { padding:18px 18px 12px; }
+  .side-eyebrow { font:700 10px/1 var(--sans); letter-spacing:.18em; text-transform:uppercase; color:var(--side-soft); }
+  .side-head h1 { font:800 19px/1.1 var(--sans); letter-spacing:-.01em; margin:8px 0 2px; color:var(--side-ink); }
+  .side-head p { margin:0; font-size:11.5px; color:var(--side-soft); }
+  .search { padding:4px 14px 12px; }
+  .search input { width:100%; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); color:var(--side-ink); border-radius:8px; padding:8px 11px; font:500 13px var(--sans); }
+  .search input::placeholder { color:var(--side-soft); }
+  .search input:focus { outline:2px solid var(--side-active); outline-offset:1px; }
+  nav { overflow-y:auto; padding:0 8px 20px; flex:1; min-height:0; }
+  .grp { font:700 10px/1 var(--sans); letter-spacing:.12em; text-transform:uppercase; color:var(--side-soft); padding:16px 10px 7px; }
+  .item { display:block; width:100%; text-align:left; background:none; border:0; color:var(--side-ink); font-family:var(--sans); cursor:pointer;
+          border-radius:8px; padding:8px 10px; margin-bottom:1px; line-height:1.3; }
+  .item:hover { background:var(--side-hover); }
+  .item.active { background:var(--side-active); color:#fff; }
+  .item .t { font-size:13.5px; font-weight:600; display:block; }
+  .item .f { font:500 10.5px var(--mono); color:var(--side-soft); display:block; margin-top:1px; }
+  .item.active .f { color:rgba(255,255,255,.7); }
+  .item.hide { display:none; }
+  .grp.hide { display:none; }
+
+  /* Main */
+  #main { display:flex; flex-direction:column; min-width:0; min-height:0; }
+  #bar { display:flex; align-items:center; gap:12px; padding:11px 22px; border-bottom:1px solid var(--border); background:var(--surface); flex:none; }
+  #crumb { font:600 12.5px var(--mono); color:var(--ink-soft); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .btn { border:1px solid var(--border-2); background:var(--surface); color:var(--ink-soft); border-radius:7px; padding:7px 11px; font:600 12.5px var(--sans); cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+  .btn:hover { border-color:var(--wine); color:var(--ink); }
+  .btn:focus-visible { outline:2px solid var(--wine); outline-offset:2px; }
+  .btn svg { width:15px; height:15px; }
+  #menuBtn { display:none; }
+
+  #scroll { overflow-y:auto; flex:1; min-height:0; }
+  article { max-width:820px; margin:0 auto; padding:34px 40px 90px; background:var(--surface); min-height:100%; }
+  @media (min-width:1100px){ article { border-left:1px solid var(--border); border-right:1px solid var(--border); } }
+
+  /* Markdown */
+  article h1 { font:800 30px/1.15 var(--sans); letter-spacing:-.02em; margin:0 0 18px; text-wrap:balance; }
+  article h2 { font:800 22px/1.2 var(--sans); letter-spacing:-.01em; margin:34px 0 12px; padding-bottom:7px; border-bottom:2px solid var(--border); }
+  article h3 { font:700 17px/1.3 var(--sans); margin:26px 0 9px; }
+  article h4 { font:700 14px/1.3 var(--sans); margin:20px 0 7px; color:var(--ink-soft); }
+  article h5,article h6 { font:700 13px var(--sans); margin:16px 0 6px; color:var(--ink-soft); }
+  article p { margin:0 0 13px; }
+  article a { color:var(--wine-ink); text-decoration:underline; text-underline-offset:2px; text-decoration-thickness:1px; cursor:pointer; }
+  article a.ext::after { content:"↗"; font-size:.8em; margin-left:2px; opacity:.7; }
+  article a.dead { color:var(--ink-mute); text-decoration:underline dotted; cursor:help; }
+  article strong { font-weight:700; color:var(--ink); }
+  article del { color:var(--ink-mute); }
+  article code { font-family:var(--mono); font-size:.86em; background:var(--code-bg); border:1px solid var(--border); border-radius:4px; padding:1px 5px; color:var(--wine-ink); }
+  article pre { background:var(--code-bg); border:1px solid var(--border); border-radius:10px; padding:14px 16px; overflow-x:auto; margin:0 0 15px; }
+  article pre code { background:none; border:0; padding:0; color:var(--ink); font-size:12.5px; line-height:1.55; }
+  article ul,article ol { margin:0 0 14px; padding-left:24px; }
+  article li { margin:4px 0; }
+  article li > ul, article li > ol { margin:5px 0 2px; }
+  article blockquote { margin:0 0 15px; padding:11px 16px; border-left:3px solid var(--quote-bar); background:var(--quote-bg); border-radius:0 8px 8px 0; }
+  article blockquote > :last-child { margin-bottom:0; }
+  article hr { border:0; border-top:1px solid var(--border); margin:26px 0; }
+  .tablewrap { overflow-x:auto; margin:0 0 16px; border:1px solid var(--border); border-radius:10px; }
+  article table { border-collapse:collapse; width:100%; font-size:13px; }
+  article th,article td { text-align:left; padding:8px 12px; border-bottom:1px solid var(--border); vertical-align:top; }
+  article th { background:var(--ground); font-weight:700; font-size:11px; letter-spacing:.03em; text-transform:uppercase; color:var(--ink-soft); white-space:nowrap; }
+  article tr:last-child td { border-bottom:0; }
+  article td code { white-space:nowrap; }
+  .chk { color:var(--wine-ink); font-weight:700; }
+  .empty { color:var(--ink-mute); text-align:center; padding-top:80px; }
+
+  @media (max-width:820px){
+    #app { grid-template-columns:1fr; }
+    #side { position:fixed; z-index:30; width:290px; height:100%; transform:translateX(-100%); transition:transform .22s ease; }
+    #app.open #side { transform:none; box-shadow:0 0 60px rgba(0,0,0,.5); }
+    #menuBtn { display:inline-flex; }
+    article { padding:24px 20px 80px; }
+    #scrim { position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:20; opacity:0; pointer-events:none; transition:opacity .2s; }
+    #app.open #scrim { opacity:1; pointer-events:auto; }
+  }
+  @media (prefers-reduced-motion:reduce){ *{ transition:none !important; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="side">
+    <div class="side-head">
+      <div class="side-eyebrow">DTD Cargo</div>
+      <h1>Marketing</h1>
+      <p>Lector offline · <span id="fileCount">0</span> documentos</p>
+    </div>
+    <div class="search"><input id="q" type="search" placeholder="Buscar documento…" aria-label="Buscar documento"></div>
+    <nav id="list" aria-label="Documentos"></nav>
+  </aside>
+  <main id="main">
+    <div id="bar">
+      <button class="btn" id="menuBtn" type="button" aria-label="Menú"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+      <span id="crumb"></span>
+      <button class="btn" id="printBtn" type="button" title="Imprimir / PDF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg><span>PDF</span></button>
+      <button class="btn" id="themeBtn" type="button" aria-label="Tema"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.4 6.4l-.7-.7M6.3 6.3l-.7-.7m12.8 0l-.7.7M6.3 17.7l-.7.7"/><circle cx="12" cy="12" r="4"/></svg></button>
+    </div>
+    <div id="scroll"><article id="doc"><p class="empty">Elige un documento.</p></article></div>
+  </main>
+  <div id="scrim"></div>
+</div>
+
+<!--DOCS-->
+
+<script>
+(function(){
+  "use strict";
+  var ZERO="";
+
+  function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+  function inline(raw){
+    var codes=[];
+    var s=raw.replace(/`([^`]+)`/g,function(_,c){ codes.push(c); return ZERO+(codes.length-1)+ZERO; });
+    s=esc(s);
+    s=s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,function(_,t,u){
+      var url=u.replace(/&amp;/g,"&");
+      var base=url.split("#")[0].split("/").pop().toLowerCase();
+      if(DOCS_BY_FILE[base]) return '<a data-doc="'+DOCS_BY_FILE[base]+'">'+t+'</a>';
+      if(/^https?:/i.test(url)) return '<a class="ext" href="'+url+'" target="_blank" rel="noopener">'+t+'</a>';
+      return '<a class="dead" title="No incluido en el lector offline">'+t+'</a>';
+    });
+    s=s.replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>");
+    s=s.replace(/__([^_]+)__/g,"<strong>$1</strong>");
+    s=s.replace(/~~([^~]+)~~/g,"<del>$1</del>");
+    s=s.replace(/(^|[^\*])\*([^*\n]+)\*/g,"$1<em>$2</em>");
+    s=s.replace(new RegExp(ZERO+"(\\d+)"+ZERO,"g"),function(_,i){ return "<code>"+esc(codes[i])+"</code>"; });
+    return s;
+  }
+
+  function isSep(l){ return /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$/.test(l); }
+  function cells(l){
+    var t=l.trim().replace(/^\|/,"").replace(/\|$/,"");
+    return t.split("|").map(function(x){ return x.trim(); });
+  }
+
+  function render(src){
+    var L=src.replace(/\r\n/g,"\n").split("\n");
+    var out=[], i=0;
+    function listItem(line){ var m=line.match(/^(\s*)([-*+]|\d+\.)\s+(.*)$/); return m?{indent:m[1].length,ord:/\d/.test(m[2]),txt:m[3]}:null; }
+
+    while(i<L.length){
+      var line=L[i];
+      if(/^```/.test(line)){
+        var buf=[]; i++;
+        while(i<L.length && !/^```/.test(L[i])){ buf.push(L[i]); i++; }
+        i++;
+        out.push("<pre><code>"+esc(buf.join("\n"))+"</code></pre>");
+        continue;
+      }
+      if(/^\s*$/.test(line)){ i++; continue; }
+      var h=line.match(/^(#{1,6})\s+(.*)$/);
+      if(h){ var n=h[1].length; out.push("<h"+n+">"+inline(h[2].replace(/\s+#+\s*$/,""))+"</h"+n+">"); i++; continue; }
+      if(/^(\s*)(---|\*\*\*|___)\s*$/.test(line) && !isSep(line)){ out.push("<hr>"); i++; continue; }
+      // table
+      if(/\|/.test(line) && i+1<L.length && isSep(L[i+1])){
+        var head=cells(line); i+=2;
+        var rows=[];
+        while(i<L.length && /\|/.test(L[i]) && L[i].trim()!==""){ rows.push(cells(L[i])); i++; }
+        var t="<div class='tablewrap'><table><thead><tr>";
+        head.forEach(function(c){ t+="<th>"+inline(c)+"</th>"; });
+        t+="</tr></thead><tbody>";
+        rows.forEach(function(r){ t+="<tr>"; for(var k=0;k<head.length;k++){ t+="<td>"+inline(r[k]!=null?r[k]:"")+"</td>"; } t+="</tr>"; });
+        t+="</tbody></table></div>"; out.push(t); continue;
+      }
+      // blockquote
+      if(/^\s*>\s?/.test(line)){
+        var qb=[];
+        while(i<L.length && /^\s*>\s?/.test(L[i])){ qb.push(L[i].replace(/^\s*>\s?/,"")); i++; }
+        out.push("<blockquote>"+render(qb.join("\n"))+"</blockquote>");
+        continue;
+      }
+      // list
+      if(listItem(line)){
+        var first=listItem(line), base=first.indent, ord=first.ord;
+        var html="<"+(ord?"ol":"ul")+">", subOpen=false, subTag="ul";
+        while(i<L.length){
+          var it=listItem(L[i]);
+          if(!it) break;
+          var txt=it.txt.replace(/^\[( |x|X)\]\s+/,function(_,c){ return (c===" ")?'<span class="chk">☐</span> ':'<span class="chk">☑</span> '; });
+          if(it.indent>base){
+            if(!subOpen){ subTag=it.ord?"ol":"ul"; html+="<"+subTag+">"; subOpen=true; }
+            html+="<li>"+inline(txt)+"</li>";
+          } else {
+            if(subOpen){ html+="</"+subTag+">"; subOpen=false; }
+            html+="<li>"+inline(txt)+"</li>";
+          }
+          i++;
+        }
+        if(subOpen) html+="</"+subTag+">";
+        html+="</"+(ord?"ol":"ul")+">"; out.push(html); continue;
+      }
+      // paragraph
+      var para=[];
+      while(i<L.length && !/^\s*$/.test(L[i]) && !/^(#{1,6})\s/.test(L[i]) && !/^\s*>/.test(L[i]) && !/^```/.test(L[i]) && !listItem(L[i]) && !(/\|/.test(L[i])&&i+1<L.length&&isSep(L[i+1]))){
+        para.push(L[i]); i++;
+      }
+      out.push("<p>"+inline(para.join(" "))+"</p>");
+    }
+    return out.join("\n");
+  }
+
+  // ---- Load embedded docs ----
+  var nodes=[].slice.call(document.querySelectorAll('script[type="text/markdown"]'));
+  var DOCS=nodes.map(function(n){
+    var raw=n.textContent.replace(/^\n/,"");
+    var m=raw.match(/^#\s+(.+)$/m);
+    return { path:n.getAttribute("data-path"), group:n.getAttribute("data-group")||"Otros",
+             file:(n.getAttribute("data-path")||"").split("/").pop(), title:(m?m[1]:n.getAttribute("data-path")), src:raw };
+  });
+  var DOCS_BY_FILE={};
+  DOCS.forEach(function(d){ DOCS_BY_FILE[d.file.toLowerCase()]=d.path; });
+  var BY_PATH={}; DOCS.forEach(function(d){ BY_PATH[d.path]=d; });
+
+  document.getElementById("fileCount").textContent=DOCS.length;
+
+  // ---- Build nav ----
+  var listEl=document.getElementById("list");
+  var groups=[];
+  DOCS.forEach(function(d){ if(groups.indexOf(d.group)<0) groups.push(d.group); });
+  groups.forEach(function(g){
+    var gh=document.createElement("div"); gh.className="grp"; gh.textContent=g; gh.setAttribute("data-grp",g); listEl.appendChild(gh);
+    DOCS.filter(function(d){return d.group===g;}).forEach(function(d){
+      var b=document.createElement("button"); b.className="item"; b.type="button"; b.setAttribute("data-path",d.path); b.setAttribute("data-grp",g);
+      b.innerHTML='<span class="t"></span><span class="f"></span>';
+      b.querySelector(".t").textContent=d.title;
+      b.querySelector(".f").textContent=d.file;
+      b.addEventListener("click",function(){ open(d.path); closeSide(); });
+      listEl.appendChild(b);
+    });
+  });
+
+  var art=document.getElementById("doc"), crumb=document.getElementById("crumb"), scroll=document.getElementById("scroll");
+  var current=null;
+  function open(path){
+    var d=BY_PATH[path]; if(!d) return;
+    current=path;
+    art.innerHTML=render(d.src);
+    crumb.textContent=d.path;
+    scroll.scrollTop=0;
+    [].forEach.call(document.querySelectorAll(".item"),function(el){ el.classList.toggle("active",el.getAttribute("data-path")===path); });
+    art.querySelectorAll("a[data-doc]").forEach(function(a){ a.addEventListener("click",function(e){ e.preventDefault(); open(a.getAttribute("data-doc")); closeSide(); }); });
+    try{ localStorage.setItem("dtd-reader-last",path); }catch(e){}
+    document.title=d.title+" · Marketing DTD";
+  }
+
+  // ---- Search ----
+  document.getElementById("q").addEventListener("input",function(e){
+    var t=e.target.value.trim().toLowerCase();
+    [].forEach.call(document.querySelectorAll(".item"),function(el){
+      var d=BY_PATH[el.getAttribute("data-path")];
+      var hit=!t || d.title.toLowerCase().indexOf(t)>=0 || d.file.toLowerCase().indexOf(t)>=0 || d.src.toLowerCase().indexOf(t)>=0;
+      el.classList.toggle("hide",!hit);
+    });
+    [].forEach.call(document.querySelectorAll(".grp"),function(g){
+      var name=g.getAttribute("data-grp");
+      var any=[].some.call(document.querySelectorAll('.item[data-grp="'+CSS.escape(name)+'"]'),function(el){ return !el.classList.contains("hide"); });
+      g.classList.toggle("hide",!any);
+    });
+  });
+
+  // ---- Theme ----
+  var root=document.documentElement, saved=null;
+  try{ saved=localStorage.getItem("dtd-reader-theme"); }catch(e){}
+  if(saved) root.setAttribute("data-theme",saved);
+  document.getElementById("themeBtn").addEventListener("click",function(){
+    var cur=root.getAttribute("data-theme")||(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
+    var next=cur==="dark"?"light":"dark";
+    root.setAttribute("data-theme",next);
+    try{ localStorage.setItem("dtd-reader-theme",next); }catch(e){}
+  });
+  document.getElementById("printBtn").addEventListener("click",function(){ window.print(); });
+
+  // ---- Mobile menu ----
+  var app=document.getElementById("app");
+  function closeSide(){ app.classList.remove("open"); }
+  document.getElementById("menuBtn").addEventListener("click",function(){ app.classList.toggle("open"); });
+  document.getElementById("scrim").addEventListener("click",closeSide);
+
+  // ---- Open first / last ----
+  var last=null; try{ last=localStorage.getItem("dtd-reader-last"); }catch(e){}
+  open((last&&BY_PATH[last])?last:DOCS[0].path);
+})();
+</script>
+</body>
+</html>

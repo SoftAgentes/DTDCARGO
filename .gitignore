@@ -174,3 +174,6 @@ docs/legal/DTDcapalegalconsolidada/
 # Dashboard operativo (capa 6, estado vivo) — artefacto local, no se versiona aquí.
 # Vive dentro del repo para servirse local; la data se regenera con /actualizar-dashboards.
 /dashboard/
+
+# Artefactos generados (lector offline de marketing, montajes, etc.) — regenerables
+outputs/

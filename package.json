@@ -19,6 +19,7 @@
     "docs:index": "node scripts/build-docs-index.mjs",
     "docs:check": "node scripts/build-docs-index.mjs --check",
     "build:packlist-template": "node scripts/build-packlist-template.mjs",
+    "marketing:reader": "node scripts/build-marketing-reader.mjs",
     "verify": "node scripts/verify.mjs"
   },
   "dependencies": {
