@@ -119,6 +119,12 @@ export const FAQS: Faq[] = [
     categoria: "precio-y-pago",
   },
   {
+    pregunta: "¿Cómo reporto un pago o subo mi comprobante?",
+    respuesta:
+      "Desde tu portal, en cada factura tienes la opción de reportar tu pago: subes el comprobante e indicas si es un abono parcial o el total. Tu asesor confirma cada reporte después de revisar el comprobante, y el saldo pendiente te queda siempre a la vista.",
+    categoria: "precio-y-pago",
+  },
+  {
     pregunta:
       "¿Cómo calculan el costo del envío desde China, por peso o por volumen?",
     respuesta:
@@ -182,6 +188,19 @@ export const FAQS: Faq[] = [
       "¿Cómo pongo la dirección de la bodega de DTD Cargo en Alibaba, 1688, Taobao u otras webs para que mi proveedor envíe?",
     respuesta:
       "Cuando registres tu dirección de recepción en Alibaba, 1688, Taobao u otra web (o se la pases directo a tu proveedor por WeChat), usa la dirección de nuestra bodega en Yiwu y pon TU Shipping Mark en el nombre — eso es lo que nos permite saber que la caja es tuya cuando llega. Llénalo campo por campo así: País/región → China. Nombre o empresa → DTD Cargo - tu Shipping Mark (por ejemplo DTD-1014). Teléfono (+86) → 18606891419. Dirección → 浙江省义乌市义乌港二期直通仓2栋2号 货7-货11. Estado/provincia → 浙江省 (Zhejiang). Ciudad → 义乌市 (Yiwu; en el selector suele aparecer bajo 金华市, Jinhua). Código postal → 322000. Contacto de bodega → 林冠 (Lin Guan). Email → info@dtdcargo.com. La dirección va en chino porque es para el transporte dentro de China. Si tu Shipping Mark no aparece en el nombre, tu mercancía llega a la bodega pero no podemos identificar de quién es, así que no lo olvides. Este dato lo obtienes dentro de tu registro de clientes. En esta misma página tienes la guía con botón de copiar campo por campo.",
+    categoria: "bodega-china-shipping-mark",
+  },
+  {
+    pregunta: "¿Cómo me registro y qué obtengo al instante?",
+    respuesta:
+      "Regístrate gratis en dtdcargo.com/registro: en un minuto recibes tu Shipping Mark (tu código DTD-XXXX para marcar tus cajas en China) y tu acceso al portal de seguimiento. No necesitas contraseña —entras al portal con un enlace que te llega a tu correo— y un asesor termina de activar tu cuenta para que empieces a importar.",
+    categoria: "bodega-china-shipping-mark",
+  },
+  {
+    pregunta:
+      "¿Puedo darle a mi proveedor la dirección y las etiquetas sin que se registre?",
+    respuesta:
+      "Sí. Desde tu cuenta generas un enlace privado para tu proveedor, bilingüe chino/español: él lo abre sin registrarse y ahí tiene la dirección de nuestra bodega en Yiwu con tu Shipping Mark y las etiquetas de esa compra, listas para pegar en cada caja. Así marca tu mercancía correctamente aunque no hable español.",
     categoria: "bodega-china-shipping-mark",
   },
   {
@@ -255,6 +274,25 @@ export const FAQS: Faq[] = [
     ],
   },
   {
+    pregunta: "¿Cómo entro a mi portal de cliente y qué puedo hacer ahí?",
+    respuesta:
+      "Tu portal es tu panel privado en dtdcargo.com/portal: entras con tu correo —te llega un enlace de acceso, sin contraseña— y ahí ves tus envíos y pre-alertas paso a paso, tus facturas y saldos, tus documentos y tus mensajes con el equipo. Si el enlace te dice que tu correo todavía no tiene el portal habilitado, pídele a tu asesor que te active el acceso.",
+    categoria: "rastreo",
+  },
+  {
+    pregunta: "¿Cada cuánto sale el barco y dónde veo cómo va mi envío?",
+    respuesta:
+      "El barco sale cada 15 a 21 días. Si ya eres cliente, en tu portal ves en qué etapa va cada uno de tus envíos, actualizado a medida que avanza. Si todavía no eres cliente, escríbenos por WhatsApp y un asesor te confirma la próxima salida para tu carga.",
+    categoria: "rastreo",
+  },
+  {
+    pregunta:
+      "¿Puedo ver y descargar mis documentos (factura, BL, packing list)?",
+    respuesta:
+      "Sí. En tu portal, en las secciones de Documentos y Facturas, tienes los documentos de tu envío para consultarlos y descargarlos, junto con el comprobante de cada pago que reportas.",
+    categoria: "rastreo",
+  },
+  {
     pregunta: "¿Puedo hacerle seguimiento a mi envío para saber dónde va?",
     respuesta:
       "Sí. En la sección Rastrear de la web metes tu BL (Bill of Lading) o tu código DTDU y ves los eventos del envío en vivo, sin necesidad de registrarte. Si no tienes el código a la mano, escríbenos por WhatsApp y te lo buscamos para que le hagas seguimiento.",
@@ -278,6 +316,24 @@ export const FAQS: Faq[] = [
     pregunta: "¿DTD Cargo revisa o inspecciona mi mercancía antes de embarcar desde China?",
     respuesta:
       "Cuando tu mercancía llega a nuestra bodega en Yiwu, nuestro equipo la recibe, la cuenta y revisa su estado externo antes de consolidar, con registro fotográfico — eso va incluido. Si quieres una revisión más a fondo, ofrecemos servicios de inspección con costo: inspección del producto contra tu ficha técnica (muestreo AQL con evidencia fotográfica) e inspección de fábrica al proveedor, ideales antes de pagar o embarcar. Como tenemos equipo y bodega propios en Yiwu, el control lo hace gente nuestra en China, no un tercero a distancia. Escríbenos por WhatsApp y te pasamos el alcance y los precios.",
+    categoria: "empresa-servicios",
+  },
+  {
+    pregunta: "¿Cómo abro un reclamo si mi carga llegó dañada o incompleta?",
+    respuesta:
+      "Lamentamos el inconveniente. Si ya eres cliente, abre tu caso desde el portal, en la sección de Reclamos, con tu Shipping Mark: queda registrado y le haces seguimiento en línea. Cada situación de daño o faltante se revisa según las condiciones del Acuerdo de Servicios, y un asesor la atiende contigo.",
+    categoria: "empresa-servicios",
+  },
+  {
+    pregunta: "¿Puedo recomendar DTD Cargo y ganar algo?",
+    respuesta:
+      "Sí. En tu portal, sección Referidos, tienes un código para compartir: el importador nuevo que traes recibe un beneficio en su primer embarque, y a ti se te reconoce por cada referido que hace su primera compra. Escríbenos por WhatsApp o revisa tu portal para el detalle vigente del programa.",
+    categoria: "empresa-servicios",
+  },
+  {
+    pregunta: "¿Qué es el Club DTD?",
+    respuesta:
+      "Es la comunidad de importadores que compran con DTD Cargo: compras grupales para mejorar el costo por metro cúbico, contenido y proveedores recomendados. Si quieres sumarte, habla con tu asesor por WhatsApp y te contamos cómo entrar.",
     categoria: "empresa-servicios",
   },
   {
