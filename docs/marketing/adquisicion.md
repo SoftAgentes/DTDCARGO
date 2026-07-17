@@ -88,7 +88,7 @@ rubro de alta rotación. Formalidad NO es criterio.
 
 | Territorio | Qué hay | Cómo entrar |
 |---|---|---|
-| **La base propia** ⭐ | ~400 clientes históricos del ERP + ~2.100 leads en Kommo + opt-ins de email | Warm outreach (§5). Es el territorio #1 y es gratis |
+| **La base propia** ⭐ | ~400 clientes históricos del ERP + ~2.100 leads en Kommo (**todos con WhatsApp verificado** — fueron contactados por ahí) + opt-ins de email | Warm outreach (§5) + campaña de recuperación (§8.6). Es el territorio #1 y es gratis. ⚠️ Los emails del CRM están flojos: muchos mal o vacíos (Kommo no valida) — higiene gradual (§8.7) |
 | **Valencia (casa)** | Cámara de Comercio de Valencia (Av. Bolívar Norte) con **directorio de afiliados público** = lista de prospección legítima; centro de la ciudad | Ruta física + afiliación; el founder es local |
 | **Caracas** | La Hoyada / Mercado San Jacinto (hub mayorista del centro) · Quinta Crespo (alimentos/hogar) | Visita comercial con lista previa |
 | **Maracaibo** | Las Playitas (~15.000 comerciantes) · Mercado 21 Norte | Igual, cuando haya capacidad |
@@ -121,7 +121,7 @@ mayoristas perfectos identificados a mano (directorio de la Cámara de Valencia,
 de clientes actuales). WhatsApp con disciplina de cold-email: mensajes <150 palabras que nombren el rubro y la
 ruta, máximo 3 toques, cero blasting (reply del frío puro ~4% y riesgo de bloqueo del número).
 
-**Explícitamente NO (por ahora):** pauta paga (Fase 2, §10) · redes de forwarders WCA/JCTrans ($3.500–5.000/año
+**Explícitamente NO (por ahora):** pauta paga — Google Ads **e Instagram Ads** — (Fase 2, §10; confirmado por el founder 17-jul) · redes de forwarders WCA/JCTrans ($3.500–5.000/año
 — generan partners forwarder-a-forwarder, no mayoristas) · cold email masivo (0,45% reply en frío estricto +
 riesgo de quemar el dominio en Resend) · migrar a WhatsApp Business API (la app + Kommo cubre la escala de 1–2
 personas; revisar solo al pasar 256 contactos de difusión o 3 agentes — CONFIRMADO, línea D).
@@ -250,6 +250,9 @@ de pago ya la soporta el ERP (crédito en factura).
 | 3 | **Recordatorio de recompra día 30/45** (aviso interno al asesor de clientes sin estimado nuevo) | ❌ No existe — hoy depende de la tarea manual de Kommo | Backlog (SDD futuro). Plantilla: cron `portal-cold-reminder` |
 | 4 | **Persistir `/contacto` en DB** (hoy solo email+Telegram, sin fila consultable) | ❌ No existe | Backlog (requiere migración) |
 | 5 | **Sender de campañas** para los opt-in de email (SDD-0082 captura, nadie envía) | ❌ No existe | Backlog — el mailing por eventos (SDD-0143) ya cubre lo transaccional |
+| 6 | **Campaña de recuperación sobre Kommo** (founder 17-jul): los ~2.100 leads tienen WhatsApp verificado; clasificar cada uno — ¿estuvo interesado o ya es cliente? — y tocarlo con el guion warm del §5 (WhatsApp; SMS como alternativa) | ❌ Por diseñar | Es el primer gran movimiento del canal primario. Por tandas, sin blasting |
+| 7 | **Higiene de emails del CRM** (founder 17-jul): Kommo no valida el correo y muchos están mal o vacíos | ❌ Gradual | Reforzar con el tiempo: pedir/corregir el email en cada contacto (es campo del embudo, no proyecto aparte) |
+| 8 | **Write-back ampliado ERP→Kommo** (founder 17-jul): además de valor/etapa/MARKBOX (fila 2), mandar al CRM lo que él no hace — **atar las facturas del cliente**, etc. | ❌ Roadmap | La integración Kommo↔ERP sigue en construcción; esto va DESPUÉS de prender la fila 2 |
 
 ## 9. El ritual semanal (founder + asesor, 30–45 min, viernes)
 
