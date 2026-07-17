@@ -9,7 +9,7 @@
  *
  * Taxonomía (dictada por el founder 2026-06-09, ver
  * `docs/specs/0063-servicios-detalle-publico/assets/entrevista-servicios.md`):
- *   - PRINCIPAL: Puerta a puerta DDP (CBM) — el spine, todo incluido.
+ *   - PRINCIPAL: Puerta a puerta (CBM) — el spine, todo incluido.
  *   - SECUNDARIOS (otras modalidades de transporte): LCL Consolidado · FCL
  *     Consolidado en Bodega · FCL Directo Fábrica · Transporte terrestre.
  *   - ADD-ON MODULAR: Tránsito de aduana (incluido en DDP, opcional en LCL/FCL);
@@ -84,7 +84,7 @@ export const SERVICIOS_GRUPOS: ServicioGrupo[] = [
     id: "transporte",
     titulo: "Transporte de China a tu puerta",
     blurb:
-      "El núcleo: traer tu mercancía de China a Venezuela. Desde el puerta a puerta DDP con todo incluido (servicio principal) hasta las modalidades de carga compartida (LCL) y contenedor completo (FCL), más la aduana cuando la necesitas.",
+      "El núcleo: traer tu mercancía de China a Venezuela. Desde el puerta a puerta con todo incluido (servicio principal) hasta las modalidades de carga compartida (LCL) y contenedor completo (FCL), más la aduana cuando la necesitas.",
   },
   {
     id: "bodega",
@@ -119,7 +119,7 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
   // ── Grupo: transporte ────────────────────────────────────────────
   {
     slug: "dtd-services-lcl",
-    titulo: "Puerta a puerta DDP · Pagas al llegar",
+    titulo: "Puerta a puerta · Pagas al llegar",
     sede: "ambas",
     destacado: true,
     // grounded: FAQ §22/§23/§24/§26 + dictado founder 2026-06-09
@@ -243,7 +243,7 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
     sede: "ve",
     // grounded: dictado founder 2026-06-09 + FAQ §23
     resumen:
-      "Gestionamos el paso de tu mercancía por la aduana venezolana y su nacionalización. Es un servicio adicional opcional para las cargas LCL y FCL (en el puerta a puerta DDP ya va incluido). Tú pagas tus planillas directamente a la aduana; nosotros te representamos como tu agente con tu carta poder.",
+      "Gestionamos el paso de tu mercancía por la aduana venezolana y su nacionalización. Es un servicio adicional opcional para las cargas LCL y FCL (en el puerta a puerta ya va incluido). Tú pagas tus planillas directamente a la aduana; nosotros te representamos como tu agente con tu carta poder.",
     incluye: [
       "Gestión del paso por aduana y nacionalización de tu carga.",
       "Representación ante la aduana como tu agente (con tu carta poder).",
@@ -259,7 +259,7 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
       "Súmalo a tu carga LCL o FCL: escríbenos por WhatsApp con tu nombre o el de tu empresa para iniciar el trámite.",
     tiempos: "Nacionalización de 5 a 6 días hábiles.",
     estado: "activo",
-    nota: "Incluido en el servicio puerta a puerta DDP; opcional (adicional) en LCL y FCL.",
+    nota: "Incluido en el servicio puerta a puerta; opcional (adicional) en LCL y FCL.",
   },
   {
     slug: "documentos-importacion",

@@ -105,7 +105,7 @@ export const SERVICE_CATALOG: ServiceCatalogEntry[] = [
   // ── Transporte ───────────────────────────────────────────────────
   {
     id: "puerta-a-puerta-ddp",
-    nombre: "Puerta a puerta DDP",
+    nombre: "Puerta a puerta",
     legacySlug: "dtd-services-lcl",
     tipo: "nucleo",
     grupo: "transporte",

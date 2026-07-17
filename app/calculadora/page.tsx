@@ -42,9 +42,9 @@ const nunito = Nunito_Sans({
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: "Calculadora de envíos puerta a puerta (LCL · DDP)",
+  title: "Calculadora de envíos puerta a puerta",
   description:
-    "Calcula tu envío China → Venezuela en segundos. Tarifa LCL DDP por CBM, peso, destino y tipo de embalaje. Sin registro, sin compromiso.",
+    "Calcula tu envío China → Venezuela en segundos. Tarifa puerta a puerta (todos los gastos pagados) por CBM, peso, destino y tipo de embalaje. Sin registro, sin compromiso.",
   keywords: [
     "calculadora envío China",
     "tarifa CBM China Venezuela",
@@ -54,9 +54,9 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "/calculadora" },
   ...socialMeta({
-    title: "Calculadora de envíos puerta a puerta (LCL · DDP) · DTD Cargo",
+    title: "Calculadora de envíos puerta a puerta · DTD Cargo",
     description:
-      "Calcula tu envío China → Venezuela en segundos. Tarifa LCL DDP por CBM, peso, destino y tipo de embalaje. Sin registro, sin compromiso.",
+      "Calcula tu envío China → Venezuela en segundos. Tarifa puerta a puerta (todos los gastos pagados) por CBM, peso, destino y tipo de embalaje. Sin registro, sin compromiso.",
     path: "/calculadora",
   }),
 };

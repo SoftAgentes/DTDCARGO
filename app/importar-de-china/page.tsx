@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     absolute: "Importar de China a Venezuela, ciudad por ciudad | DTD Cargo",
   },
   description:
-    "Importa de China a Venezuela puerta a puerta: carga consolidada DDP, pagas al llegar y entrega en tu ciudad. Cobertura nacional desde Valencia.",
+    "Importa de China a Venezuela puerta a puerta: carga consolidada todo incluido, pagas al llegar y entrega en tu ciudad. Cobertura nacional desde Valencia.",
   alternates: { canonical: "/importar-de-china" },
   ...socialMeta({
     title: "Importar de China a Venezuela, ciudad por ciudad | DTD Cargo",

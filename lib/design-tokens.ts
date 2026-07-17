@@ -410,7 +410,7 @@ export const SERVICES_VE: Service[] = [
   {
     slug: "transito-aduana",
     title: "Tránsito de aduana y desaduanaje",
-    copy: "Bajo DDP nos encargamos del paso de tu carga por la aduana venezolana y de la nacionalización: la aduana y los impuestos ya van incluidos en tu precio, sin cobros sorpresa. Equipo local que conoce la normativa vigente.",
+    copy: "En el puerta a puerta nos encargamos del paso de tu carga por la aduana venezolana y de la nacionalización: la aduana y los impuestos ya van incluidos en tu precio, sin cobros sorpresa. Equipo local que conoce la normativa vigente.",
     benefit: "Nacionalización sin demoras",
     icon: "Shield",
     location: "ve",
@@ -613,7 +613,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     category: "modalidad",
     body: [
       "Servicio que cubre el recorrido físico completo: retiramos tu mercancía en la fábrica o proveedor en China y la dejamos en tu domicilio en Venezuela. No tienes que coordinar transporte, aduana, puertos ni retiros intermedios.",
-      '"Puerta a Puerta" describe el recorrido; DDP describe quién paga qué. Por eso nuestro servicio se llama "Puerta a Puerta DDP" — las dos palabras juntas describen el qué y el quién.',
+      '"Puerta a Puerta" describe el recorrido; DDP describe quién paga qué. Nuestro servicio se llama "Puerta a Puerta" — con todos los gastos pagados (DDP) ya incluidos.',
     ],
   },
   {
@@ -919,8 +919,8 @@ export const STEPS: { n: string; title: string; copy: string; tag?: string }[] =
   {
     n: "01",
     title: "Cotiza",
-    tag: "Puerta a puerta · DDP",
-    copy: "Calcula tu envío por CBM en segundos —modalidad DDP, todo incluido— o pídelo por WhatsApp. Estimación al instante.",
+    tag: "Puerta a puerta",
+    copy: "Calcula tu envío por CBM en segundos —todo incluido (DDP)— o pídelo por WhatsApp. Estimación al instante.",
   },
   {
     n: "02",

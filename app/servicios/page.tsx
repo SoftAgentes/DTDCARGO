@@ -31,7 +31,7 @@ import {
 } from "@/components/Icon";
 
 const SERVICE_META_DESC =
-  "Servicios entre Yiwu y Valencia: puerta a puerta DDP, LCL, FCL, aduana, inspección, sourcing, registro de marca, visado y transporte terrestre.";
+  "Servicios entre Yiwu y Valencia: puerta a puerta, LCL, FCL, aduana, inspección, sourcing, registro de marca, visado y transporte terrestre.";
 
 export const metadata: Metadata = {
   title: "Servicios",
@@ -114,7 +114,7 @@ export default async function ServiciosPage() {
 
         <RespuestaRapida
           pregunta="¿Qué servicios ofrece DTD Cargo para importar de China a Venezuela?"
-          respuesta="DTD Cargo lleva tu mercancía puerta a puerta de China a Venezuela en modalidad DDP —flete, aduana e impuestos incluidos— con consolidación e inspección en su bodega propia de Yiwu. Sobre esa base ofrece servicios complementarios: verificación de proveedores, compra asistida, control de calidad, laboratorio y permisología, registro de marca, visado de negocios, documentos de importación, desaduanaje y entrega final (last mile)."
+          respuesta="DTD Cargo lleva tu mercancía puerta a puerta de China a Venezuela —flete, aduana e impuestos incluidos (DDP)— con consolidación e inspección en su bodega propia de Yiwu. Sobre esa base ofrece servicios complementarios: verificación de proveedores, compra asistida, control de calidad, laboratorio y permisología, registro de marca, visado de negocios, documentos de importación, desaduanaje y entrega final (last mile)."
         />
 
         {/* Servicio principal — DDP como protagonista (slice "DDP héroe"). */}

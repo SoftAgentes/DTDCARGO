@@ -185,8 +185,8 @@ export function EstimacionForm() {
         </div>
         <p className="mt-6 text-[14.5px] text-grey-700 leading-[1.55]">
           Este es un rango referencial. Un asesor te contactará en menos de
-          24 hs con la estimación cerrada DDP — incluyendo flete, aduana,
-          impuestos y entrega.
+          24 hs con la estimación cerrada puerta a puerta — incluyendo flete,
+          aduana, impuestos y entrega.
         </p>
         <div className="mt-3 text-[12px] tracking-[0.08em] uppercase text-grey-500">
           {estimate.estimateCode

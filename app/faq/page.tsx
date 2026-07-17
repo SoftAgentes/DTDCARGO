@@ -17,7 +17,7 @@ import { FaqExplorer } from "@/components/FaqExplorer";
 export const metadata: Metadata = {
   title: "Preguntas frecuentes",
   description:
-    "Importar de China a Venezuela con DTD Cargo: qué es DDP puerta a puerta, cuándo se paga (pagas al llegar), consolidado vs contenedor, aduana y tiempos.",
+    "Importar de China a Venezuela con DTD Cargo: qué es el puerta a puerta (DDP), cuándo se paga (pagas al llegar), consolidado vs contenedor, aduana y tiempos.",
   keywords: [
     "importar de China a Venezuela",
     "DDP puerta a puerta",
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   ...socialMeta({
     title: "Preguntas frecuentes · DTD Cargo",
     description:
-      "Importar de China a Venezuela con DTD Cargo: qué es DDP puerta a puerta, cuándo se paga (pagas al llegar), consolidado vs contenedor, aduana y tiempos.",
+      "Importar de China a Venezuela con DTD Cargo: qué es el puerta a puerta (DDP), cuándo se paga (pagas al llegar), consolidado vs contenedor, aduana y tiempos.",
     path: "/faq",
   }),
 };

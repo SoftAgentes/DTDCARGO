@@ -3,7 +3,7 @@
 /**
  * Explorador interactivo de /servicios — "el viaje de tu carga".
  *
- * Capa de PRESENTACIÓN (no conoce la fuente del dato): recibe DDP (paraguas) +
+ * Capa de PRESENTACIÓN (no conoce la fuente del dato): recibe el puerta a puerta (paraguas) +
  * las fases ya agrupadas por `agruparPorViaje`. Aporta la interactividad:
  *  - Riel del viaje que FILTRA (toca una etapa → solo sus servicios).
  *  - "Arma tu envío": agrega servicios y cotiza el combo por WhatsApp.
@@ -111,7 +111,7 @@ export function ServiciosExplorer({
 
   return (
     <div className="mt-10">
-      {/* Paraguas: DDP cubre todo el recorrido */}
+      {/* Paraguas: el puerta a puerta cubre todo el recorrido */}
       {ddp && (
         <div
           id={ddp.slug}

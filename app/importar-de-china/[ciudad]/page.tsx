@@ -60,7 +60,7 @@ export default async function ImportarCiudadPage({
     "@context": "https://schema.org",
     "@type": "Service",
     name: `Importar de China a ${z.ciudad}`,
-    serviceType: "Carga consolidada DDP China → Venezuela puerta a puerta",
+    serviceType: "Carga consolidada puerta a puerta China → Venezuela (todos los gastos pagados)",
     description: z.metaDescription,
     areaServed: [
       { "@type": "City", name: z.ciudad, containedInPlace: { "@type": "Country", name: "Venezuela" } },
@@ -154,8 +154,9 @@ export default async function ImportarCiudadPage({
             <p className="lead mt-5 max-w-[64ch]">{z.anguloLocal}</p>
             <p className="mt-5 text-[15px] leading-[1.6] text-grey-700 max-w-[64ch]">
               {z.notaEntrega} Tu mercancía se consolida e inspecciona en nuestra
-              bodega de Yiwu (China) antes de embarcar y viaja en modalidad DDP
-              hasta Venezuela — un solo punto de contacto de la fábrica a tu puerta.
+              bodega de Yiwu (China) antes de embarcar y viaja con todos los
+              gastos pagados hasta Venezuela — un solo punto de contacto de la
+              fábrica a tu puerta.
             </p>
           </div>
         </section>

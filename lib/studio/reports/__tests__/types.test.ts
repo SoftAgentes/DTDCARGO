@@ -164,7 +164,7 @@ describe("routeKey / routeLabel / serviceLabel", () => {
   });
   it("serviceLabel reusa SERVICE_LABELS", () => {
     expect(serviceLabel("consolidacion")).toBe("Consolidación");
-    expect(serviceLabel("puerta_a_puerta_DDP")).toBe("Puerta a Puerta DDP");
+    expect(serviceLabel("puerta_a_puerta_DDP")).toBe("Puerta a Puerta");
   });
 });
 

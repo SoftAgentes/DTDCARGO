@@ -6,7 +6,7 @@ const BY_SLUG: Record<string, Service> = Object.fromEntries(
   [...SERVICES_CN, ...SERVICES_VE].map((s) => [s.slug, s]),
 );
 
-/** El héroe: carga consolidada DDP puerta a puerta (≈95% del negocio real). */
+/** El héroe: carga consolidada puerta a puerta, todo pagado (≈95% del negocio real). */
 const HERO = BY_SLUG["dtd-services-lcl"];
 
 /**
@@ -66,7 +66,7 @@ function ChevronDown({ className }: { className?: string }) {
 
 /**
  * Grilla de los 16 servicios para /brochure.
- * - DDP consolidado = card héroe (featured, ancho completo).
+ * - Puerta a puerta consolidado = card héroe (featured, ancho completo).
  * - Resto en 4 grupos `<details>` colapsables (nativo → teclado/lector de
  *   pantalla gratis). En `@media print` se fuerzan todos abiertos
  *   (ver globals.css + DownloadPdfButton) para que el PDF muestre los 16.
@@ -82,7 +82,7 @@ export function ServicesByOffice() {
           equipo, de punta a punta.
         </p>
 
-        {/* Héroe — DDP consolidado puerta a puerta */}
+        {/* Héroe — puerta a puerta consolidado */}
         {HERO && (
           <div className="mt-10">
             <ServiceCard s={HERO} />

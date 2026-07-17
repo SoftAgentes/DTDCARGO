@@ -61,7 +61,7 @@ const STATIONS: Station[] = [
   {
     n: "1",
     label: "Cotiza",
-    sub: "DDP",
+    sub: "Puerta a puerta",
     pos: "top",
     left: "39.06%",
     top: "31.25%",

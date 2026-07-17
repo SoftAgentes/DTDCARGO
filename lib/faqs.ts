@@ -65,9 +65,9 @@ export type Faq = {
 export const FAQS: Faq[] = [
   {
     pregunta:
-      "¿Qué significa DDP puerta a puerta y qué incluye el precio cuando importo de China con DTD Cargo?",
+      "¿Qué significa puerta a puerta (DDP) y qué incluye el precio cuando importo de China con DTD Cargo?",
     respuesta:
-      "DDP puerta a puerta significa que nos encargamos de todo el proceso: el precio ya incluye el flete desde China, la aduana y los impuestos, y te entregamos la mercancía en tu propia dirección en Venezuela, sin que hagas trámites ni trates con la aduana. En esta modalidad la importación no queda a tu nombre: recibes tu mercancía, no documentos de importación propios. Si prefieres importar a tu nombre y tener tus documentos, existe la modalidad con tu propia aduana (la explicamos más abajo). El monto se calcula por volumen (CBM) y destino en nuestra calculadora o al cotizarte por WhatsApp.",
+      "Puerta a puerta (DDP, todos los gastos pagados) significa que nos encargamos de todo el proceso: el precio ya incluye el flete desde China, la aduana y los impuestos, y te entregamos la mercancía en tu propia dirección en Venezuela, sin que hagas trámites ni trates con la aduana. En esta modalidad la importación no queda a tu nombre: recibes tu mercancía, no documentos de importación propios. Si prefieres importar a tu nombre y tener tus documentos, existe la modalidad con tu propia aduana (la explicamos más abajo). El monto se calcula por volumen (CBM) y destino en nuestra calculadora o al cotizarte por WhatsApp.",
     categoria: "precio-y-pago",
   },
   {
@@ -114,7 +114,7 @@ export const FAQS: Faq[] = [
     pregunta:
       "¿Cuándo pago mi mercancía? ¿Tengo que adelantar dinero o dar un depósito?",
     respuesta:
-      "Bajo DDP puerta a puerta pagas cuando tu carga llega a Venezuela, no por adelantado: el flete, la aduana y los impuestos van incluidos y cancelas al momento de la entrega, así que no necesitas adelantar el costo del envío. La única excepción es si usas nuestra compra asistida para pagarle al proveedor en China, que se coordina aparte; por eso, si es tu primer envío o un caso especial, confírmalo con un asesor por WhatsApp antes de embarcar.",
+      "Con el servicio puerta a puerta pagas cuando tu carga llega a Venezuela, no por adelantado: el flete, la aduana y los impuestos van incluidos y cancelas al momento de la entrega, así que no necesitas adelantar el costo del envío. La única excepción es si usas nuestra compra asistida para pagarle al proveedor en China, que se coordina aparte; por eso, si es tu primer envío o un caso especial, confírmalo con un asesor por WhatsApp antes de embarcar.",
     categoria: "precio-y-pago",
   },
   {

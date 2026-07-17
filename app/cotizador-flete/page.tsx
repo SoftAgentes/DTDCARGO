@@ -47,7 +47,7 @@ export default function CotizadorFletePage() {
               {[
                 ["Contenedor completo (FCL).", "Estimado al instante en 40' High Cube; otras medidas con tu asesor."],
                 ["Desde tu ciudad.", "Elige tu ciudad de China (Yiwu, Guangzhou, Shenzhen…) y calculamos desde su puerto."],
-                ["¿Carga suelta (LCL)?", "Calcúlala en nuestra calculadora. ¿Puerta a puerta? Pídenos el DDP."],
+                ["¿Carga suelta (LCL)?", "Calcúlala en nuestra calculadora. ¿Todo incluido? Pídenos el puerta a puerta."],
               ].map(([t, d]) => (
                 <div key={t} className="flex items-start gap-3">
                   <span

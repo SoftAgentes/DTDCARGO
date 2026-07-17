@@ -92,7 +92,7 @@ describe("buildSyncPlan (datos reales — guard de drift)", () => {
     const ddp = plan.rows.find((r) => r.serviceKey === "puerta-a-puerta-ddp");
     expect(ddp).toBeDefined();
     expect(ddp?.legacySlug).toBe("dtd-services-lcl");
-    expect(ddp?.columns.title_public).toContain("Puerta a puerta DDP");
+    expect(ddp?.columns.title_public).toContain("Puerta a puerta");
   });
 
   it("cada fila trae título y un service_state válido", () => {

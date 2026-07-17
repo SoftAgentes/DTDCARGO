@@ -383,8 +383,8 @@ export function CalculadoraForm({
           <strong className="text-grey-700">* Pagas al llegar:</strong> pagas
           el flete cuando tu carga llega a Venezuela. <strong className="text-grey-700">Pueden
           aplicar restricciones.</strong>{" "}
-          Este estimado es aproximado y refleja nuestra tarifa base DDP (puerta a
-          puerta).
+          Este estimado es aproximado y refleja nuestra tarifa base puerta a
+          puerta (todos los gastos pagados).
         </p>
         {/* Condiciones del cliente (sutil, sin números internos) — desplegable */}
         <details className="mt-2.5 group">
@@ -895,9 +895,9 @@ function ResultPanel({
               className="text-[12px] leading-[1.4] text-right"
               style={{ color: "rgba(255,255,255,0.55)" }}
             >
-              aprox · DDP
+              aprox · puerta a puerta
               <br />
-              puerta a puerta
+              todos los gastos pagados
             </span>
           </div>
         )}

@@ -1,9 +1,9 @@
 /**
- * DdpHero — el servicio principal (Puerta a puerta DDP) como PROTAGONISTA de
+ * DdpHero — el servicio principal (Puerta a puerta) como PROTAGONISTA de
  * /servicios (slice "DDP héroe", panel UX 2026-06-14).
  *
- * Por qué: el ~90% de los clientes elige DDP, pero antes era 1 card paraguas más
- * entre 20 (se diluía). Acá DDP toma una sección propia, alta, con su CTA de
+ * Por qué: el ~90% de los clientes elige el puerta a puerta, pero antes era 1
+ * card paraguas más entre 20 (se diluía). Acá toma una sección propia, alta, con su CTA de
  * conversión (Calculadora) — y las otras 19 cosas quedan como complementos
  * abajo (el explorador). Server component presentacional: cero estado.
  *
@@ -22,7 +22,7 @@ export function DdpHero({ ddp }: { ddp: ServicioDetalle | null }) {
   if (!ddp) return null;
 
   const wa = buildWhatsAppLink(
-    "Hola DTD Cargo, quiero cotizar un envío puerta a puerta DDP de China a Venezuela.",
+    "Hola DTD Cargo, quiero cotizar un envío puerta a puerta de China a Venezuela.",
   );
 
   return (
@@ -42,7 +42,7 @@ export function DdpHero({ ddp }: { ddp: ServicioDetalle | null }) {
                   className="mt-4 text-[30px] lg:text-[46px] leading-[1.04] tracking-[-0.01em] text-ink"
                   style={{ fontFamily: "var(--font-archivo-black)" }}
                 >
-                  Puerta a puerta DDP.
+                  Puerta a puerta.
                   <br />
                   <span style={{ color: "var(--color-wine)" }}>Pagas al llegar.</span>
                 </h2>

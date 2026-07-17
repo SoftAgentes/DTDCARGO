@@ -57,7 +57,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 // maestro (lib/faqs.ts, categoría "precio-y-pago"). Selección explícita por
 // texto de pregunta (no posicional) para no depender del orden del archivo.
 const PUERTA_A_PUERTA_FAQ_MATCH = [
-  "Qué significa DDP puerta a puerta",
+  "Qué significa puerta a puerta (DDP)",
   "Quién paga la aduana",
   "importación queda a mi nombre",
   "Cuándo pago mi mercancía",
@@ -83,7 +83,7 @@ const serviceJsonLd = {
   "@context": "https://schema.org",
   "@type": "Service",
   name: "Puerta a puerta (DDP) China → Venezuela",
-  serviceType: "Carga consolidada DDP China → Venezuela puerta a puerta",
+  serviceType: "Carga consolidada puerta a puerta China → Venezuela (todos los gastos pagados)",
   description: DESC,
   areaServed: { "@type": "Country", name: "Venezuela" },
   provider: { "@id": `${SITE_URL}/#organization` },
@@ -128,7 +128,7 @@ export default async function PuertaAPuertaPage() {
         {/* Hero */}
         <section className="py-16 lg:py-24 bg-paper">
           <div className="wrap max-w-[920px]">
-            <span className="eyebrow">Puerta a puerta · DDP</span>
+            <span className="eyebrow">Puerta a puerta · Todo incluido</span>
             <h1 className="h-display mt-5" style={{ fontSize: "clamp(34px, 5.5vw, 68px)" }}>
               De la fábrica en China,{" "}
               <span style={{ color: "var(--color-wine)" }}>a tu puerta en Venezuela.</span>
