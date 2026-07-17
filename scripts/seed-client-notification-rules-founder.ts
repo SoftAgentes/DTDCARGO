@@ -28,12 +28,14 @@ import {
 
 const RULES: UpsertRuleInput[] = [
   {
-    // "Va llegando": 5 días DESPUÉS del ETA (esperar a que esté cerca). El motor
+    // "Va llegando": 2 días ANTES del ETA (adelantarse al arribo). El motor
     // resuelve el ETA real (pod_eta SeaRates → sailings.eta → recepción VE).
+    // 100% editable desde /studio/admin/notificaciones (valor · unidad · antes/
+    // después · ancla) — este es solo el default sembrado.
     trigger_event: "eta_set",
     channel: "both",
     anchor: "eta",
-    offset_minutes: 5 * 24 * 60, // +7200 = +5 días
+    offset_minutes: -2 * 24 * 60, // -2880 = 2 días antes
     template_key: "va_llegando",
     custom_title: null,
     custom_body: null,

@@ -23,18 +23,33 @@ describe("buildTimeline hiddenStatuses", () => {
     expect(steps.find((s) => s.status === "in_transit")?.state).toBe("active");
   });
 
-  it("ocultar el status ACTUAL no rompe el done de los previos", () => {
-    // Envío en aduana, pero in_customs oculto: se ven los cumplidos + pendientes.
+  it("ocultar el status ACTUAL promueve el último visible a 'active' (en curso)", () => {
+    // Envío en aduana con in_customs oculto: el último paso visible cumplido
+    // (in_transit) pasa a 'active' para que el stepper no se vea estancado.
     const steps = buildTimeline(
       "in_customs",
       "consolidacion",
       new Set(["in_customs"] as const),
     );
     expect(steps.some((s) => s.status === "in_customs")).toBe(false);
-    expect(steps.find((s) => s.status === "in_transit")?.state).toBe("done");
+    expect(steps.find((s) => s.status === "in_transit")?.state).toBe("active");
     expect(steps.find((s) => s.status === "arrived_destination")?.state).toBe(
       "pending",
     );
+    // Exactamente un paso 'active' (no se duplica).
+    expect(steps.filter((s) => s.state === "active")).toHaveLength(1);
+  });
+
+  it("si el status actual NO está oculto, no promueve nada", () => {
+    // in_customs oculto pero el envío está en in_transit (visible + active).
+    const steps = buildTimeline(
+      "in_transit",
+      "consolidacion",
+      new Set(["in_customs"] as const),
+    );
+    expect(steps.find((s) => s.status === "in_transit")?.state).toBe("active");
+    expect(steps.find((s) => s.status === "shipped")?.state).toBe("done");
+    expect(steps.filter((s) => s.state === "active")).toHaveLength(1);
   });
 
   it("set vacío = mismo resultado que sin parámetro", () => {

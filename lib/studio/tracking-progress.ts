@@ -163,7 +163,25 @@ export function buildTimeline(
 ): TimelineStep[] {
   const steps = buildTimelineFull(status, service);
   if (!hiddenStatuses || hiddenStatuses.size === 0) return steps;
-  return steps.filter((s) => !hiddenStatuses.has(s.status));
+
+  const visible = steps.filter((s) => !hiddenStatuses.has(s.status));
+  // Si el paso ACTUAL quedó oculto (ej. "en aduana" oculto mientras el envío está
+  // ahí), el filtrado deja al stepper sin ningún paso 'active' → se ve estancado.
+  // Promovemos el último paso visible YA cumplido a 'active' ("en curso") para que
+  // siga mostrando avance sin nombrar el hito oculto. Solo cuando había un 'active'
+  // y el filtro lo quitó (no cuando el actual sigue visible).
+  const activeWasHidden =
+    steps.some((s) => s.state === "active") &&
+    !visible.some((s) => s.state === "active");
+  if (activeWasHidden) {
+    for (let i = visible.length - 1; i >= 0; i--) {
+      if (visible[i].state === "done") {
+        visible[i] = { ...visible[i], state: "active" };
+        break;
+      }
+    }
+  }
+  return visible;
 }
 
 function buildTimelineFull(
