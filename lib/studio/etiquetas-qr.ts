@@ -16,14 +16,28 @@
 const VERIFY_BASE =
   process.env.NEXT_PUBLIC_SITE_URL || "https://dtdcargo.com";
 
-/** URL escaneable de la etiqueta: `<base>/verificar?c=<markbox>&n=<caja>/<total>`. */
+/**
+ * URL escaneable de la etiqueta: `<base>/verificar?c=<markbox>&n=<caja>/<total>`.
+ *
+ * `boxCode` (SDD-0152) es OPCIONAL y solo lo lleva la etiqueta del HUB, que se
+ * imprime DESPUÉS de recibir — ahí ya existe `warehouse_boxes.code` y el QR
+ * puede identificar LA CAJA, no solo al cliente. La etiqueta del proveedor se
+ * imprime antes de que la caja exista, así que nunca lo tiene.
+ *
+ * Un solo QR sirve a los dos usos: `/verificar` (público) ignora `b`, y el
+ * operario lo lee al estibar. No expone nada nuevo: el código ya va impreso en
+ * la etiqueta que está pegada a la caja.
+ */
 export function labelVerifyUrl(
   markbox: string,
   boxIndex: number,
   totalBoxes: number,
+  boxCode?: string | null,
 ): string {
   const c = encodeURIComponent(markbox.trim());
-  return `${VERIFY_BASE}/verificar?c=${c}&n=${boxIndex}/${totalBoxes}`;
+  const base = `${VERIFY_BASE}/verificar?c=${c}&n=${boxIndex}/${totalBoxes}`;
+  const b = (boxCode ?? "").trim();
+  return b ? `${base}&b=${encodeURIComponent(b)}` : base;
 }
 
 // ── Lectura del QR al estibar (SDD-0152) ──────────────────────

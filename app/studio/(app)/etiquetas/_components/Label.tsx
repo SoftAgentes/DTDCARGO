@@ -117,6 +117,7 @@ export function Label({
   boxIndex,
   totalBoxes,
   qr,
+  boxCode = null,
 }: {
   format: LabelFormat;
   client: LabelClient;
@@ -124,6 +125,13 @@ export function Label({
   boxIndex: number;
   totalBoxes: number;
   qr: boolean;
+  /**
+   * SDD-0152 · código único de la caja (DTD-B-NNNNNN). Solo lo lleva la etiqueta
+   * del HUB, que se imprime DESPUÉS de recibir — ahí ya existe warehouse_boxes.
+   * La del proveedor se imprime antes de que la caja exista, así que va sin él
+   * y el QR sigue identificando solo al cliente.
+   */
+  boxCode?: string | null;
 }) {
   const isCompact = format.cell.h < 80; // A4-8up + térmica 100×100
   const padding = isCompact ? "7px 9px" : "11px 13px";
@@ -256,13 +264,17 @@ export function Label({
         {qr && (
           <div style={{ flexShrink: 0, textAlign: "center" }}>
             <QRCodeSVG
-              value={labelVerifyUrl(client.markbox, boxIndex, totalBoxes)}
+              value={labelVerifyUrl(client.markbox, boxIndex, totalBoxes, boxCode)}
               size={qrSize}
               marginSize={4}
               fgColor="#0F1E3D"
               bgColor="#FFFFFF"
               level={isCompact ? "L" : "M"}
-              aria-label={`Verificar ${client.markbox} · caja ${boxIndex} de ${totalBoxes}`}
+              aria-label={
+                boxCode
+                  ? `Caja ${boxCode} · ${client.markbox} · ${boxIndex} de ${totalBoxes}`
+                  : `Verificar ${client.markbox} · caja ${boxIndex} de ${totalBoxes}`
+              }
             />
           </div>
         )}
@@ -280,16 +292,31 @@ export function Label({
           borderRadius: 2,
         }}
       >
-        <span
-          style={{
-            font: `700 ${isCompact ? 8 : 9.5}px/1 Archivo, sans-serif`,
-            opacity: 0.8,
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
-          }}
-        >
-          BOX · 箱号
-        </span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+          <span
+            style={{
+              font: `700 ${isCompact ? 8 : 9.5}px/1 Archivo, sans-serif`,
+              opacity: 0.8,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+            }}
+          >
+            BOX · 箱号
+          </span>
+          {/* SDD-0152 · el código legible: si el QR se raya o la cámara falla,
+              el operario lo teclea a mano y la estiba sigue. */}
+          {boxCode && (
+            <span
+              style={{
+                font: `700 ${isCompact ? 7.5 : 9}px/1 'JetBrains Mono', monospace`,
+                opacity: 0.75,
+                letterSpacing: "0.02em",
+              }}
+            >
+              {boxCode}
+            </span>
+          )}
+        </div>
         <div
           style={{
             font: `900 ${isCompact ? 15 : 19}px/1 'JetBrains Mono', monospace`,
