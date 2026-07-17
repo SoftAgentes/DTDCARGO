@@ -47,7 +47,8 @@ el líder Asiaven pide registro para ver precio). No hay que fabricar demanda: h
 
 La oferta base ya existe (puerta a puerta todo incluido, [`ventas.md`](ventas.md) + [`manual-vendedores-peso.md`](manual-vendedores-peso.md)).
 Lo que faltaba es **empaquetarla como promesa con nombre**, al estilo del sector (APL vende su garantía como
-producto "OceanGuaranteed", no como cláusula). Tres paquetes propuestos (nombres = decisión del founder, §10):
+producto "OceanGuaranteed", no como cláusula). Tres paquetes propuestos — **el copy listo para aprobar
+(pitchs de WhatsApp, letra chica y % concretos) está en [`oferta-borradores.md`](oferta-borradores.md)**:
 
 ### 2a. "Precio Final Garantizado" (el ancla — para todo mayorista)
 - **Promesa:** un solo precio por m³, todo incluido hasta tu puerta: flete + aduana + impuestos + entrega.
@@ -90,8 +91,8 @@ rubro de alta rotación. Formalidad NO es criterio.
 |---|---|---|
 | **La base propia** ⭐ | ~400 clientes históricos del ERP + ~2.100 leads en Kommo (**todos con WhatsApp verificado** — fueron contactados por ahí) + opt-ins de email | Warm outreach (§5) + campaña de recuperación (§8.6). Es el territorio #1 y es gratis. ⚠️ Los emails del CRM están flojos: muchos mal o vacíos (Kommo no valida) — higiene gradual (§8.7) |
 | **Valencia (casa)** | Cámara de Comercio de Valencia (Av. Bolívar Norte) con **directorio de afiliados público** = lista de prospección legítima; centro de la ciudad | Ruta física + afiliación; el founder es local |
-| **Caracas** | La Hoyada / Mercado San Jacinto (hub mayorista del centro) · Quinta Crespo (alimentos/hogar) | Visita comercial con lista previa |
-| **Maracaibo** | Las Playitas (~15.000 comerciantes) · Mercado 21 Norte | Igual, cuando haya capacidad |
+| **Caracas** | La Hoyada / Mercado San Jacinto (hub mayorista del centro) · ~~Quinta Crespo~~ (verificado 17-jul: casi 100% víveres — fuera de rubros target) | Visita comercial con lista previa |
+| **Maracaibo** | Las Playitas (~15.000 comerciantes) · ~~Mercado 21 Norte~~ (verificado: es UN mayorista de alimentos, no una zona) | Igual, cuando haya capacidad |
 | **Margarita** | Puerto Libre **reactivado en 2025** — comerciantes insulares reabasteciéndose | Ventana de oportunidad a explorar |
 | **Gremios** | Cámara Venezolano-China (asesora importadores para ferias) · Cámara de Pto. Cabello (ya dicta cursos "cómo importar de China") · Consecomercio | Ofrecer al equipo Yiwu+Valencia como **ponente/aliado logístico** de esos cursos — captación a costo $0 |
 | **Yiwu (punto de compra)** ⭐ | El mayorista venezolano que viaja a Yiwu/Cantón es el lead más caliente del año y está físicamente al lado de nuestro equipo | Acompañamiento en mercado + contenido "estamos en Yiwu hoy". **Ningún competidor sin oficina puede copiarlo** |
@@ -166,7 +167,7 @@ ACA: reconocer–valorar–preguntar), personalizar los corchetes SIEMPRE:
 > fue con [producto]? Te escribo porque estamos cerrando el consolidado de [mes próximo] y quería avisarte con
 > tiempo por si te toca reponer. ¿Te preparo números?"*
 
-**Paso 4 — Prospección dirigida (2–3 nuevos por día de la lista de 50).**
+**Paso 4 — Prospección dirigida (2–3 nuevos por día de la lista — ya armada: [`prospectos-ancla.md`](prospectos-ancla.md), ~60 filas con ⭐ top 10).**
 Mensaje corto, específico, con la ruta y el rubro del prospecto. Máximo 3 toques y se archiva:
 
 > *"Hola [nombre], soy [asesor] de DTD Cargo (Valencia). Trabajamos con [rubro: ferreterías/repuestos/hogar]
@@ -250,7 +251,7 @@ de pago ya la soporta el ERP (crédito en factura).
 | 3 | **Recordatorio de recompra día 30/45** (aviso interno al asesor de clientes sin estimado nuevo) | ❌ No existe — hoy depende de la tarea manual de Kommo | Backlog (SDD futuro). Plantilla: cron `portal-cold-reminder` |
 | 4 | **Persistir `/contacto` en DB** (hoy solo email+Telegram, sin fila consultable) | ❌ No existe | Backlog (requiere migración) |
 | 5 | **Sender de campañas** para los opt-in de email (SDD-0082 captura, nadie envía) | ❌ No existe | Backlog — el mailing por eventos (SDD-0143) ya cubre lo transaccional |
-| 6 | **Campaña de recuperación sobre Kommo** (founder 17-jul): los ~2.100 leads tienen WhatsApp verificado; clasificar cada uno — ¿estuvo interesado o ya es cliente? — y tocarlo con el guion warm del §5 (WhatsApp; SMS como alternativa) | ❌ Por diseñar | Es el primer gran movimiento del canal primario. Por tandas, sin blasting |
+| 6 | **Campaña de recuperación sobre Kommo** (founder 17-jul): contactos con WhatsApp verificado clasificados (¿ya es cliente o interesado?) con guion por segmento | ✅ **HERRAMIENTA LISTA (SDD-0157, 17-jul)** — `/studio/kommo` › pestaña **Recuperación**: tandas wa.me de 10 con guion editable + export CSV para SMS (canal mixto aprobado) | El asesor registra cada toque en Kommo (nota/tarea). Read-only, sin migración |
 | 7 | **Higiene de emails del CRM** (founder 17-jul): Kommo no valida el correo y muchos están mal o vacíos | ❌ Gradual | Reforzar con el tiempo: pedir/corregir el email en cada contacto (es campo del embudo, no proyecto aparte) |
 | 8 | **Write-back ampliado ERP→Kommo** (founder 17-jul): además de valor/etapa/MARKBOX (fila 2), mandar al CRM lo que él no hace — **atar las facturas del cliente**, etc. | ❌ Roadmap | La integración Kommo↔ERP sigue en construcción; esto va DESPUÉS de prender la fila 2 |
 
@@ -273,9 +274,8 @@ de pago ya la soporta el ERP (crédito en factura).
 2. **Tarifa preferencial mayorista**: el número exacto y la condición de cadencia (pendiente desde
    [`ventas.md`](ventas.md); el [manual](manual-vendedores-peso.md) ya da la palanca: $/m³ contra recurrencia).
 3. **% del Programa Aliado**: fijar referidor (2–5% rec. o $/CBM) y aliado (30–50% margen, escalones).
-4. **Config Kommo** (vía navegador, ~1 h — pasos exactos en [`embudo-ventas.md`](embudo-ventas.md) §8):
-   refundar a 5 etapas · custom fields · limpieza única del cementerio (2.118) · repartir cartera · cargar
-   `stage_map` + activar write-back ([runbook](../runbooks/activar-crm-kommo.md)).
+4. **Config Kommo** — checklist de una página con los 10 pasos que faltan (el embudo único ya está
+   configurado desde el 29-jun): [`checklist-kommo.md`](checklist-kommo.md).
 5. **Google Ads — Fase 2**: criterio de activación propuesto = cuando el SLA <5 min se cumpla 4 semanas
    seguidas y la rutina del §5 esté corriendo (de nada sirve pagar leads que se responden tarde). La
    reestructura está lista en [`ads-reestructura-search.md`](ads-reestructura-search.md); al reactivar, no

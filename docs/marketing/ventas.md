@@ -59,7 +59,7 @@ Se revisa **cada mes**. Una fila por mes:
 | Mes | Meta (cont.) | Prospectos ancla | Criterios que cumplen | Oferta enviada | Estado |
 |---|---|---|---|---|---|
 | 2026-06 | 2 | — | — | — | pendiente |
-| 2026-07 | 2 | armar la lista de 50 ([`adquisicion.md`](adquisicion.md) §3-§4): directorio Cámara de Valencia + base propia >45d sin comprar + referencias de clientes activos | por calificar (5 preguntas del §5) | tras calificar | **en curso** — sistema definido 17-jul; arranca la rutina diaria |
+| 2026-07 | 2 | **lista armada: [`prospectos-ancla.md`](prospectos-ancla.md)** (~60 mayoristas, ⭐ top 10) + base Kommo en `/studio/kommo` › Recuperación | por calificar (5 preguntas de [`adquisicion.md`](adquisicion.md) §5) | tras calificar | **en curso** — sistema + herramientas listos 17-jul; arranca la rutina diaria |
 
 > **Marketing apunta SOLO a estos dos perfiles** (mayoristas recurrentes + aliados), **no a
 > compradores de una sola vez.**
