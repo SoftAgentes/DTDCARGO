@@ -16,12 +16,8 @@
  * #dtd-print-target). Es client component solo por el <style> de impresión.
  */
 
-import {
-  FORMATS,
-  Label,
-  warehouseAddress,
-  type LabelFormat,
-} from "../../etiquetas/_components/Label";
+import { Label, warehouseAddress } from "../../etiquetas/_components/Label";
+import { FORMATS, type LabelFormat } from "@/lib/studio/etiquetas-formats";
 import type { LabelWarehouseCn } from "../../etiquetas/page";
 
 type Props = {

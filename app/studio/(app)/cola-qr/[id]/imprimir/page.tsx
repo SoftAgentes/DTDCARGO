@@ -23,7 +23,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
-import { FORMATS } from "../../../etiquetas/_components/Label";
+import { FORMATS } from "@/lib/studio/etiquetas-formats";
 import type { LabelWarehouseCn } from "../../../etiquetas/page";
 import { HubLabelSheet } from "../../_components/HubLabelSheet";
 
