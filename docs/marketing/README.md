@@ -27,7 +27,8 @@ aclaración "(todos los gastos pagados)") · **UN canal primario** (calor propio
 existente + referidos; soporte IG→DM→WhatsApp; $0 pauta en Fase 1) · **UN proceso** (rutina diaria del asesor:
 SLA <5 min, 5 preguntas de calificación, 10 toques cálidos/día, cadencia D0→D18 + nurture, manual nivel
 principiante). Cubre el TOP del embudo; el medio sigue en [`embudo-ventas.md`](embudo-ventas.md). Los estimados
-web ya avisan al equipo (fuga #1 cerrada 2026-07-17). **Herramientas y material de trabajo:** lista de ~60
+web ya avisan al equipo (fuga #1 cerrada 2026-07-17). **Herramientas y material de trabajo:** guiones del asesor
+listos para pegar → [`guiones-asesor.md`](guiones-asesor.md) · lista de ~60
 prospectos → [`prospectos-ancla.md`](prospectos-ancla.md) · copy de la oferta para aprobar →
 [`oferta-borradores.md`](oferta-borradores.md) · pasos que faltan en el CRM → [`checklist-kommo.md`](checklist-kommo.md) ·
 campaña de recuperación → `/studio/kommo` › Recuperación (SDD-0157). Pendientes founder en `adquisicion.md` §10.

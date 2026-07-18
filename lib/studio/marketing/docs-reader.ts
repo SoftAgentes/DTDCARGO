@@ -26,6 +26,7 @@ const PLAN: ReadonlyArray<readonly [string, readonly string[]]> = [
       "adquisicion.md",
       "oferta-borradores.md",
       "prospectos-ancla.md",
+      "guiones-asesor.md",
       "checklist-kommo.md",
       "ventas.md",
       "embudo-ventas.md",

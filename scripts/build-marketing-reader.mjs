@@ -30,7 +30,7 @@ const OUT = process.argv[2]
 // Grupos + orden de los documentos en la barra lateral (igual que el lector del
 // Studio, `lib/studio/marketing/docs-reader.ts`).
 const PLAN = [
-  ["Sistema de adquisición", ["README.md", "adquisicion.md", "oferta-borradores.md", "prospectos-ancla.md", "checklist-kommo.md", "ventas.md", "embudo-ventas.md"]],
+  ["Sistema de adquisición", ["README.md", "adquisicion.md", "oferta-borradores.md", "prospectos-ancla.md", "guiones-asesor.md", "checklist-kommo.md", "ventas.md", "embudo-ventas.md"]],
   ["Estrategia y ventas", ["estrategia.md", "identidad.md", "manual-vendedores-peso.md", "condiciones-cotizacion.md"]],
   ["Canales y contenido", ["seo.md", "plan-accion-digital.md", "ads-reestructura-search.md", "redes.md", "whatsapp-business.md", "link-in-bio.md", "videos/video-registro-markbox.md"]],
 ];

@@ -153,6 +153,9 @@ en 30 (MIT, CONFIRMADO). La primera respuesta NUNCA es un menú frío — siempr
 > *"¡Hola [nombre]! Gracias por escribirnos 🙌 Cuéntame: ¿qué producto manejas y a qué se dedica tu negocio?
 > Así te oriento de una vez con números."*
 
+> **Guiones listos para pegar** (todos los de esta rutina, como respuestas rápidas de WhatsApp Business):
+> [`guiones-asesor.md`](guiones-asesor.md).
+
 **Paso 2 — Calificar con las 5 preguntas (en la conversación, no como interrogatorio).**
 Se hacen conversando, 1 o 2 por mensaje. Guardarlas como respuestas rápidas de WhatsApp Business:
 
