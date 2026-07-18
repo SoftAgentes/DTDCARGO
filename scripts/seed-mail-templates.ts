@@ -216,7 +216,7 @@ const MAIL_TEMPLATE_SEED: MailTemplateSeed[] = [
       <p>Lo que hacemos:</p>
       <ul style="font:14px Archivo,sans-serif;color:#0F1E3D;">
         <li>Consolidación LCL desde China — pagas solo tu espacio</li>
-        <li>Puerta a puerta DDP — pagas al llegar*</li>
+        <li>Puerta a puerta — pagas al llegar*</li>
         <li>Agente de compra e inspección en origen</li>
       </ul>
       <p>Respóndenos este correo o escríbenos por WhatsApp {{whatsapp_number}} y retomamos donde quedamos.</p>
