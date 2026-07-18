@@ -33,7 +33,6 @@
   "cutoff": 238,
 
   "pendingBelowCutoff": {
-    "0017_no_olvidar": "SDD-0025 (No-Olvidar) vive en la rama feat/no-olvidar SIN merge, gated por un review criptográfico externo (envelope encryption). El archivo llegó a main pero NO se aplica hasta pasar ese gate. Verificado 2026-07-16: to_regclass('public.no_olvidar_items') → NULL. El código es inerte (el page.tsx es un EmptyState 'Próximamente' que no toca la DB y nadie importa no-olvidar-queries.ts), así que la ruta no revienta. Al aplicarla, sacala de acá.",
-    "0243_clients_doc_kind_backfill": "SDD-0131 · backfill de clients.doc_kind (persona/empresa) en 49 clientes deducibles. El founder DIO OK NOMBRANDO la migración (2026-07-17), pero el clasificador de permisos del modo auto bloquea apply_migration → la aplica el founder desde una sesión interactiva. Es DML puro (3 UPDATE aditivos), idempotente (filtra doc_kind is null), validado en seco contra prod: 26→'empresa', 22+1→'persona', cero solapamiento, 13 ambiguos y 164 con doc inválido intactos. Al aplicarla, sacala de acá. Verificar: select count(*) filter (where doc_kind is not null) from clients where deleted_at is null → debe pasar de 31 a 80."
+    "0017_no_olvidar": "SDD-0025 (No-Olvidar) vive en la rama feat/no-olvidar SIN merge, gated por un review criptográfico externo (envelope encryption). El archivo llegó a main pero NO se aplica hasta pasar ese gate. Verificado 2026-07-16: to_regclass('public.no_olvidar_items') → NULL. El código es inerte (el page.tsx es un EmptyState 'Próximamente' que no toca la DB y nadie importa no-olvidar-queries.ts), así que la ruta no revienta. Al aplicarla, sacala de acá."
   }
 }
