@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 154 specs)
+### Índice de specs (generado · 155 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -192,6 +192,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0157 | Modo consolidación del operario · pedir contenedor → oficina … | in-progress | interno |
 | 0157 | Campaña de recuperación Kommo — contactos con WhatsApp por ta… | in-progress | interno |
 | 0158 | Documentos de Marketing en el Studio — lector read-only de do… | done | interno |
+| 0159 | Configurar referidos — montos del programa editables desde el… | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

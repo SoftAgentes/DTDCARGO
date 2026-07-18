@@ -20,6 +20,7 @@ import {
   inviteReferral,
   buildReferralInviteEmail,
 } from "@/lib/portal/referral-invite";
+import { getReferralSettings } from "@/lib/studio/fidelizacion/referral-settings-queries";
 
 export type InviteReferralState = {
   ok?: boolean;
@@ -71,11 +72,14 @@ export async function inviteReferralAction(
     "",
   );
   const registerUrl = `${site}/registro?ref=${encodeURIComponent(res.referralCode)}`;
+  // Descuento del referido = el configurado (SDD-0159, fallback $60).
+  const settings = await getReferralSettings(admin, tenantId);
   const { subject, html } = buildReferralInviteEmail({
     referrerName: client.name || "Un cliente de DTD Cargo",
     referredName: res.referredName,
     code: res.referralCode,
     registerUrl,
+    discountUsd: settings.referredRewardUsd,
   });
   await sendEmail(admin, tenantId, {
     to: res.referredEmail,

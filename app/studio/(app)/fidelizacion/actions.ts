@@ -24,13 +24,18 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
-  REFERRAL_RULES,
   REFERRAL_STEPS,
   validateReferralInput,
   type ReferralActionState,
   type ReferralInput,
   type ReferralStatus,
 } from "@/lib/studio/fidelizacion/types";
+import {
+  validateReferralSettingsInput,
+  type ReferralSettingsActionState,
+  type ReferralSettingsInput,
+} from "@/lib/studio/fidelizacion/referral-settings-types";
+import { getReferralSettings } from "@/lib/studio/fidelizacion/referral-settings-queries";
 import {
   applicableInvoicesForReferrer,
   isPurchaseAfterCredit,
@@ -157,20 +162,23 @@ export async function registerReferral(
 
 /**
  * Acredita el crédito al referidor (ADVISORY).
- * Marca status='acreditado' + setea reward_usd = referrerReward (80 USD).
- * NO postea a CxC/Facturación (decisión §3.6) — el operador aplica el crédito
- * a mano en la próxima factura.
+ * Marca status='acreditado' + setea reward_usd = el crédito configurado
+ * (referral_settings.referrer_reward_usd, fallback $80 · SDD-0159). NO postea a
+ * CxC/Facturación (decisión §3.6) — el operador aplica el crédito a mano en la
+ * próxima factura. El monto queda CONGELADO en la fila: cambiar la config luego
+ * no re-cotiza este crédito.
  */
 export async function accreditReferral(id: string): Promise<Result> {
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "fidelizacion");
   if (denial) return { error: denial };
 
+  const settings = await getReferralSettings(supabase);
   const { error } = await supabase
     .from("referrals")
     .update({
       status: "acreditado" satisfies ReferralStatus,
-      reward_usd: REFERRAL_RULES.referrerReward,
+      reward_usd: settings.referrerRewardUsd,
     })
     .eq("id", id);
   if (error) return { error: `No se pudo acreditar: ${error.message}` };
@@ -196,6 +204,66 @@ export async function updateReferralStatus(
     .eq("id", id);
   if (error) return { error: `No se pudo cambiar el estado: ${error.message}` };
   revalidate();
+  return { ok: true };
+}
+
+// ─────────────────────────────────────────────────────────────
+// SDD-0159 · Configurar referidos (montos editables desde el ERP)
+//
+// Upsert singleton por tenant en referral_settings. Gate del módulo Fidelización
+// (no mueve plata: solo cambia el monto de FUTUROS créditos). Revalida el portal
+// para que el cliente vea los montos nuevos.
+// ─────────────────────────────────────────────────────────────
+
+/** Parsea un campo numérico del form (vacío/no-numérico → undefined). */
+function parseNum(v: FormDataEntryValue | null): number | undefined {
+  if (v == null) return undefined;
+  const s = String(v).trim();
+  if (s === "") return undefined;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+export async function saveReferralSettingsAction(
+  _prev: ReferralSettingsActionState,
+  formData: FormData,
+): Promise<ReferralSettingsActionState> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "fidelizacion");
+  if (denial) return { error: denial };
+
+  const partial: Partial<ReferralSettingsInput> = {
+    referrerRewardUsd: parseNum(formData.get("referrerRewardUsd")),
+    referredRewardUsd: parseNum(formData.get("referredRewardUsd")),
+  };
+  const { input, fieldErrors } = validateReferralSettingsInput(partial);
+  if (fieldErrors) return { fieldErrors };
+
+  const { data: auth } = await supabase.auth.getUser();
+  const userId = auth.user?.id;
+  if (!userId) return { error: "Sesión no válida." };
+
+  const tenantId = await resolveTenant(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant." };
+
+  // tenant_id y updated_by son server-controlled (no vienen del form); el `with
+  // check` de la RLS además impide upsertear la fila de otro tenant.
+  const { error } = await supabase.from("referral_settings").upsert(
+    {
+      tenant_id: tenantId,
+      referrer_reward_usd: input!.referrerRewardUsd,
+      referred_reward_usd: input!.referredRewardUsd,
+      updated_by: userId,
+    },
+    { onConflict: "tenant_id" },
+  );
+  if (error) {
+    return { error: `No se pudieron guardar los montos: ${error.message}` };
+  }
+
+  revalidate();
+  // Los montos alimentan el front del cliente → refrescar su cache.
+  revalidatePath("/portal/referidos");
   return { ok: true };
 }
 
