@@ -91,6 +91,37 @@ function bytesFromUtf8(s: string): Uint8Array {
   return new Uint8Array(Buffer.from(s, "utf8"));
 }
 
+// ─── AAD (additional authenticated data) ─────────────────────
+//
+// El AEAD ata el ciphertext a un CONTEXTO (dominio + user). Sin AAD, un atacante
+// con escritura a la DB (sin la KEK) podía copiar la tupla (dek, ciphertext) de
+// otro user a un item propio y descifrarla → fuga cross-user (review 2026-07-18,
+// hallazgo AEAD-sin-AAD). Atamos `user_id`: el unwrap/decrypt de la víctima
+// falla el tag bajo el AAD del atacante. NO atamos `key_version` a propósito —
+// así la rotación (reEncryptAllItems) re-envuelve con el MISMO AAD sin recomputar
+// (el downgrade same-user/same-version queda cubierto por el column key_version,
+// no por el AAD).
+
+const AAD_SEP = "\x1f"; // unit separator: separa las partes sin ambigüedad
+
+/** AAD canónico a partir de (dominio ∥ ids). Determinista. */
+export function aadFor(...parts: (string | number)[]): Uint8Array {
+  return bytesFromUtf8(parts.map(String).join(AAD_SEP));
+}
+
+/** AAD del DEK envuelto por la KEK (atado al dueño del item). */
+export function aadDek(userId: string): Uint8Array {
+  return aadFor("no-olv/dek", userId);
+}
+/** AAD del payload del item cifrado por su DEK (atado al dueño). */
+export function aadItem(userId: string): Uint8Array {
+  return aadFor("no-olv/item", userId);
+}
+/** AAD del secret TOTP cifrado por la KEK (atado al dueño). */
+export function aadTotp(userId: string): Uint8Array {
+  return aadFor("no-olv/totp", userId);
+}
+
 // ─── AEAD: XChaCha20-Poly1305 ────────────────────────────────
 
 export interface Sealed {
@@ -104,7 +135,11 @@ export interface Sealed {
  * la misma key — el nonce de 192 bits hace la colisión aleatoria imposible en
  * la práctica). El tag Poly1305 va embebido en `ciphertext` (detached=false).
  */
-export async function encryptPayload(plaintext: string, key: Uint8Array): Promise<Sealed> {
+export async function encryptPayload(
+  plaintext: string,
+  key: Uint8Array,
+  aad: Uint8Array | null = null,
+): Promise<Sealed> {
   await ready();
   assertKey(key);
   const nonce = sodium.randombytes_buf(NONCE_BYTES);
@@ -113,7 +148,7 @@ export async function encryptPayload(plaintext: string, key: Uint8Array): Promis
     // es el que valida el `instanceof` interno de libsodium. Bajo jsdom un
     // TextEncoder de otro realm lo hace fallar con "unsupported input type".
     bytesFromUtf8(plaintext),
-    null, // additional data
+    aad, // additional authenticated data (atado al contexto; ver aadFor)
     null, // nsec (no usado)
     nonce,
     key,
@@ -131,6 +166,7 @@ export async function decryptPayload(
   ciphertext: Uint8Array,
   nonce: Uint8Array,
   key: Uint8Array,
+  aad: Uint8Array | null = null,
 ): Promise<string> {
   await ready();
   assertKey(key);
@@ -140,7 +176,7 @@ export async function decryptPayload(
     out = sodium.crypto_aead_xchacha20poly1305_ietf_decrypt(
       null, // nsec
       ciphertext,
-      null, // additional data
+      aad, // debe coincidir con el AAD usado al cifrar, o el tag no valida
       nonce,
       key,
     );
@@ -166,23 +202,25 @@ export async function generateDek(): Promise<Uint8Array> {
 export async function wrapDek(
   dek: Uint8Array,
   kek: Uint8Array,
+  aad: Uint8Array | null = null,
 ): Promise<{ wrapped: Uint8Array; nonce: Uint8Array }> {
   assertKey(dek);
-  const sealed = await encryptPayloadBytes(dek, kek);
+  const sealed = await encryptPayloadBytes(dek, kek, aad);
   return { wrapped: sealed.ciphertext, nonce: sealed.nonce };
 }
 
-/** Desenvuelve (descifra) un DEK con la KEK. Lanza si la KEK es incorrecta. */
+/** Desenvuelve (descifra) un DEK con la KEK. Lanza si la KEK o el AAD no coinciden. */
 export async function unwrapDek(
   wrapped: Uint8Array,
   nonce: Uint8Array,
   kek: Uint8Array,
+  aad: Uint8Array | null = null,
 ): Promise<Uint8Array> {
   await ready();
   assertKey(kek);
   assertNonce(nonce);
   try {
-    return sodium.crypto_aead_xchacha20poly1305_ietf_decrypt(null, wrapped, null, nonce, kek);
+    return sodium.crypto_aead_xchacha20poly1305_ietf_decrypt(null, wrapped, aad, nonce, kek);
   } catch {
     throw new NoOlvidarDecryptError("No se pudo desenvolver el DEK (¿KEK equivocada?).");
   }
@@ -319,13 +357,17 @@ export function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
 // ─── Internos ────────────────────────────────────────────────
 
 /** Igual que encryptPayload pero sobre bytes crudos (para envolver el DEK). */
-async function encryptPayloadBytes(plainBytes: Uint8Array, key: Uint8Array): Promise<Sealed> {
+async function encryptPayloadBytes(
+  plainBytes: Uint8Array,
+  key: Uint8Array,
+  aad: Uint8Array | null = null,
+): Promise<Sealed> {
   await ready();
   assertKey(key);
   const nonce = sodium.randombytes_buf(NONCE_BYTES);
   const ciphertext = sodium.crypto_aead_xchacha20poly1305_ietf_encrypt(
     plainBytes,
-    null,
+    aad,
     null,
     nonce,
     key,

@@ -87,13 +87,13 @@ describe("no-olvidar/recovery · M-of-N", () => {
 
     // sin quórum aún → no ejecuta
     await approveRecovery(sb, req.id, ADMIN_A);
-    await expect(executeRecovery(sb, req.id, "NuevaClave-Segura-9$")).rejects.toBeInstanceOf(
+    await expect(executeRecovery(sb, req.id, "NuevaClave-Segura-9$", REQUESTER)).rejects.toBeInstanceOf(
       RecoveryStateError,
     );
 
     // con quórum → ejecuta
     await approveRecovery(sb, req.id, ADMIN_B);
-    await executeRecovery(sb, req.id, "NuevaClave-Segura-9$");
+    await executeRecovery(sb, req.id, "NuevaClave-Segura-9$", REQUESTER);
 
     const reqRow = fake._rows("no_olvidar_recovery_requests")[0];
     expect(reqRow.status).toBe("completed");
@@ -113,10 +113,27 @@ describe("no-olvidar/recovery · M-of-N", () => {
     const req = await requestRecovery(sb, REQUESTER, "Perdí todo, necesito reset.");
     await approveRecovery(sb, req.id, ADMIN_A);
     await approveRecovery(sb, req.id, ADMIN_B);
-    await executeRecovery(sb, req.id, "OtraClave-Segura-1$");
-    await expect(executeRecovery(sb, req.id, "OtraClave-Segura-1$")).rejects.toBeInstanceOf(
+    await executeRecovery(sb, req.id, "OtraClave-Segura-1$", REQUESTER);
+    await expect(executeRecovery(sb, req.id, "OtraClave-Segura-1$", REQUESTER)).rejects.toBeInstanceOf(
       RecoveryStateError,
     );
+  });
+
+  it("solo el solicitante puede ejecutar: otro user (aunque sea admin) → RecoveryPolicyError", async () => {
+    const fake = setup();
+    const sb = fake as unknown as SupabaseClient;
+    const req = await requestRecovery(sb, REQUESTER, "Perdí el acceso, alguien más no puede ejecutarlo.");
+    await approveRecovery(sb, req.id, ADMIN_A);
+    await approveRecovery(sb, req.id, ADMIN_B);
+
+    // un admin ajeno con el recoveryId NO puede fijar la master password de la víctima
+    await expect(executeRecovery(sb, req.id, "Intruso-Segura-1$", ADMIN_A)).rejects.toBeInstanceOf(
+      RecoveryPolicyError,
+    );
+    // el request sigue 'approved' (no se consumió) y el requester sí puede
+    expect(fake._rows("no_olvidar_recovery_requests")[0].status).toBe("approved");
+    await executeRecovery(sb, req.id, "Legitima-Segura-9$", REQUESTER);
+    expect(fake._rows("no_olvidar_recovery_requests")[0].status).toBe("completed");
   });
 
   it("un request expirado no se puede aprobar y queda 'expired'", async () => {

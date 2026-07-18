@@ -11,6 +11,9 @@ import {
   generateDek,
   wrapDek,
   unwrapDek,
+  aadFor,
+  aadDek,
+  aadItem,
   deriveKeyFromMasterPassword,
   hashForVerifier,
   verifyMasterPassword,
@@ -41,6 +44,43 @@ describe("no-olvidar/crypto · AEAD", () => {
     const msg = "contraseña ñ 你好 🔐 café";
     const { ciphertext, nonce } = await encryptPayload(msg, key);
     expect(await decryptPayload(ciphertext, nonce, key)).toBe(msg);
+  });
+
+  it("AAD correcto descifra; AAD distinto o ausente LANZA (anti swap cross-user)", async () => {
+    const key = await generateDek();
+    const aadA = aadItem("user-A");
+    const aadB = aadItem("user-B");
+    const { ciphertext, nonce } = await encryptPayload("secreto-de-A", key, aadA);
+
+    // mismo AAD → OK
+    expect(await decryptPayload(ciphertext, nonce, key, aadA)).toBe("secreto-de-A");
+    // AAD de otro user → tag no valida (aunque la key sea la misma)
+    await expect(decryptPayload(ciphertext, nonce, key, aadB)).rejects.toBeInstanceOf(
+      NoOlvidarDecryptError,
+    );
+    // sin AAD (null) cuando se cifró con AAD → falla
+    await expect(decryptPayload(ciphertext, nonce, key)).rejects.toBeInstanceOf(
+      NoOlvidarDecryptError,
+    );
+  });
+
+  it("wrapDek/unwrapDek con AAD atado al dueño: unwrap con AAD ajeno LANZA", async () => {
+    const kek = await generateDek();
+    const dek = await generateDek();
+    const { wrapped, nonce } = await wrapDek(dek, kek, aadDek("user-A"));
+
+    const back = await unwrapDek(wrapped, nonce, kek, aadDek("user-A"));
+    expect(constantTimeEqual(back, dek)).toBe(true);
+    // copiar el DEK envuelto de A al contexto de B (swap) → falla
+    await expect(unwrapDek(wrapped, nonce, kek, aadDek("user-B"))).rejects.toBeInstanceOf(
+      NoOlvidarDecryptError,
+    );
+  });
+
+  it("aadFor es determinista y distingue partes", async () => {
+    expect(toBase64(aadFor("no-olv/item", "u1"))).toBe(toBase64(aadFor("no-olv/item", "u1")));
+    expect(toBase64(aadFor("no-olv/item", "u1"))).not.toBe(toBase64(aadFor("no-olv/item", "u2")));
+    expect(toBase64(aadDek("u1"))).not.toBe(toBase64(aadItem("u1")));
   });
 
   it("decrypt con key incorrecta LANZA (no devuelve basura)", async () => {

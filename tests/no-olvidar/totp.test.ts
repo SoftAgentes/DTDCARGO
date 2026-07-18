@@ -4,7 +4,12 @@
 
 import { describe, it, expect } from "vitest";
 import { generateSync } from "otplib";
-import { generateTotpSecret, buildTotpUri, verifyTotp } from "@/lib/studio/no-olvidar/totp";
+import {
+  generateTotpSecret,
+  buildTotpUri,
+  verifyTotp,
+  verifyTotpWithStep,
+} from "@/lib/studio/no-olvidar/totp";
 
 describe("no-olvidar/totp", () => {
   it("genera un secret base32 no vacío", () => {
@@ -37,6 +42,24 @@ describe("no-olvidar/totp", () => {
     const code = generateSync({ secret });
     const spaced = `${code.slice(0, 3)} ${code.slice(3)}`;
     expect(verifyTotp(spaced, secret)).toBe(true);
+  });
+
+  it("verifyTotpWithStep devuelve el step que casó (para anti-replay)", () => {
+    const secret = generateTotpSecret();
+    const code = generateSync({ secret });
+    const r = verifyTotpWithStep(code, secret);
+    expect(r.valid).toBe(true);
+    expect(typeof r.step).toBe("number");
+    // el mismo código verificado de nuevo casa el MISMO step → el caller lo
+    // rechaza como replay comparando contra el último consumido
+    const r2 = verifyTotpWithStep(code, secret);
+    expect(r2.step).toBe(r.step);
+  });
+
+  it("verifyTotpWithStep con código inválido → {valid:false, step:null}", () => {
+    const secret = generateTotpSecret();
+    expect(verifyTotpWithStep("000000", secret)).toEqual({ valid: false, step: null });
+    expect(verifyTotpWithStep("abc", secret)).toEqual({ valid: false, step: null });
   });
 
   it("buildTotpUri arma un otpauth:// con emisor y cuenta", () => {

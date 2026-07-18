@@ -22,7 +22,6 @@ const ALLOWLIST: Record<string, string> = {
   "bugs/actions.ts": "Bug Reporter: cualquier miembro del staff reporta bugs (abierto por diseño).",
   "mis-bugs/actions.ts": "Bugs propios del usuario (abierto por diseño).",
   "ve/actions.ts": "App de operario VE: auth por PIN (operario-session), no por rol de Studio.",
-  "no-olvidar/actions.ts": "No-Olvidar (SDD-0025): auth propia por-usuario (RLS user_id + gate 2FA requireUnlocked); las acciones admin validan no_olvidar_check_admin inline, no rol de módulo.",
   "debug/actions.ts": "recheckAll: re-corre health checks, no muta datos de negocio.",
   "admin/feature-flags/actions.ts": "toggleFeatureFlag valida role==='admin' inline.",
   "admin/notificaciones/actions.ts":

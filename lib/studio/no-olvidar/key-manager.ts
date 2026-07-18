@@ -19,7 +19,7 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { fromBase64, generateDek, KEY_BYTES, toBase64, unwrapDek, wrapDek } from "./crypto";
+import { aadDek, fromBase64, generateDek, KEY_BYTES, toBase64, unwrapDek, wrapDek } from "./crypto";
 
 // ─── Caché in-memory del KEK activo (TTL 5 min, spec §lib crypto) ──
 
@@ -198,16 +198,29 @@ export async function reEncryptAllItems(
   for (;;) {
     const { data, error } = await supabase
       .from("no_olvidar_items")
-      .select("id, dek_encrypted, dek_nonce")
+      .select("id, user_id, dek_encrypted, dek_nonce")
       .eq("key_version", fromVersion)
       .limit(PAGE);
     if (error) throw new Error(`Error leyendo items para re-encrypt: ${error.message}`);
-    const rows = (data ?? []) as { id: string; dek_encrypted: string; dek_nonce: string }[];
+    const rows = (data ?? []) as {
+      id: string;
+      user_id: string;
+      dek_encrypted: string;
+      dek_nonce: string;
+    }[];
     if (rows.length === 0) break;
 
     for (const row of rows) {
-      const dek = await unwrapDek(fromBase64(row.dek_encrypted), fromBase64(row.dek_nonce), oldKek);
-      const rewrapped = await wrapDek(dek, newKek);
+      // El AAD del DEK está atado al dueño (no a la versión) → el re-wrap usa el
+      // MISMO AAD con la KEK nueva. Ver aadDek en crypto.ts.
+      const dekAad = aadDek(row.user_id);
+      const dek = await unwrapDek(
+        fromBase64(row.dek_encrypted),
+        fromBase64(row.dek_nonce),
+        oldKek,
+        dekAad,
+      );
+      const rewrapped = await wrapDek(dek, newKek, dekAad);
       const { error: upErr } = await supabase
         .from("no_olvidar_items")
         .update({

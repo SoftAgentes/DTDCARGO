@@ -103,6 +103,8 @@ create table public.no_olvidar_user_keys (
   recovery_kit_salt            text,                         -- (base64)
   totp_secret_ciphertext       text not null,                -- TOTP secret cifrado con KEK (base64)
   totp_secret_nonce            text not null,                -- (base64)
+  totp_secret_key_version      int,                          -- versión de KEK con la que se cifró el TOTP (para descifrar tras rotar; sin esto la rotación deja el 2FA ilegible)
+  totp_last_step               bigint,                       -- último step TOTP consumido (anti-replay §4.5): un código válido no se puede reusar dentro de su ventana
   totp_enabled                 boolean not null default false,
   setup_completed              boolean not null default false,
   role                         no_olvidar_user_role not null default 'member',
@@ -120,10 +122,16 @@ create index no_olvidar_user_keys_role_idx
   on public.no_olvidar_user_keys (role) where role = 'admin';
 
 -- ─── Tabla: no_olvidar_access_log ─────────────────────────────────
+-- user_id/item_id SIN FK a propósito: el log es append-only e inmutable (trigger
+-- de 0253), y sobrevive al borrado del user/item. Con FK ON DELETE CASCADE/SET
+-- NULL, borrar un user o hacer hard-delete de un item disparaba un DELETE/UPDATE
+-- sobre el log → el trigger de inmutabilidad lo abortaba → NO se podía dar de
+-- baja a un empleado (review 2026-07-18, F4). La integridad al escribir la
+-- garantiza la app (siempre loguea con un user/item real).
 create table public.no_olvidar_access_log (
   id            uuid primary key default gen_random_uuid(),
-  user_id       uuid not null references auth.users(id) on delete cascade,
-  item_id       uuid references public.no_olvidar_items(id) on delete set null,
+  user_id       uuid not null,
+  item_id       uuid,
   action        no_olvidar_audit_action not null,
   ip_address    inet,
   user_agent    text,
@@ -132,7 +140,7 @@ create table public.no_olvidar_access_log (
 );
 
 comment on table public.no_olvidar_access_log is
-  'Append-only audit log del No-Olvidar. IMMUTABLE: policies de UPDATE/DELETE devuelven false para TODOS, incluido service_role (spec §4.7).';
+  'Append-only audit log del No-Olvidar. INMUTABLE por trigger (0253): aborta UPDATE/DELETE incluso para service_role (BYPASSRLS no evade triggers). user_id/item_id sin FK → el log sobrevive al borrado del user/item (spec §4.7).';
 
 create index no_olvidar_access_log_user_id_idx
   on public.no_olvidar_access_log (user_id, created_at desc);
@@ -185,7 +193,7 @@ create index no_olvidar_kek_versions_active_idx
 -- ─── Tabla: no_olvidar_config ─────────────────────────────────────
 create table public.no_olvidar_config (
   id                              int primary key default 1 check (id = 1),
-  recovery_approvals_required     int not null default 2,
+  recovery_approvals_required     int not null default 2 check (recovery_approvals_required >= 2),
   session_timeout_minutes         int not null default 30,
   failed_attempts_lockout         int not null default 5,
   lockout_minutes                 int not null default 15,
@@ -364,9 +372,13 @@ grant select on public.no_olvidar_kek_versions to authenticated;
 grant select on public.no_olvidar_config to authenticated;
 grant update on public.no_olvidar_config to authenticated;
 
--- RPCs
+-- RPCs. CREATE FUNCTION otorga EXECUTE a PUBLIC por defecto → hay que revocarlo
+-- de public/anon en TODAS (si no, anon las invoca por PostgREST: check_admin es
+-- un oráculo SECURITY DEFINER que revela quién es admin — review 2026-07-18, F3).
 grant execute on function public.no_olvidar_check_admin(uuid) to authenticated;
+revoke execute on function public.no_olvidar_check_admin(uuid) from public, anon;
 grant execute on function public.no_olvidar_get_active_kek_version() to authenticated;
+revoke execute on function public.no_olvidar_get_active_kek_version() from public, anon;
 grant execute on function public.no_olvidar_rotate_kek(text, uuid) to authenticated;
 revoke execute on function public.no_olvidar_rotate_kek(text, uuid) from public, anon;
 

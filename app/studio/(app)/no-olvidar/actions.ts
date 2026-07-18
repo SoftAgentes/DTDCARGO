@@ -28,6 +28,9 @@ import { headers } from "next/headers";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import {
+  aadDek,
+  aadItem,
+  aadTotp,
   decryptPayload,
   encryptPayload,
   fromBase64,
@@ -58,8 +61,11 @@ import {
   executeRecovery,
   rejectRecovery,
   requestRecovery,
+  RecoveryPolicyError,
+  RecoveryStateError,
 } from "@/lib/studio/no-olvidar/recovery";
-import { generateTotpSecret, verifyTotp } from "@/lib/studio/no-olvidar/totp";
+import { generateTotpSecret, verifyTotpWithStep } from "@/lib/studio/no-olvidar/totp";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
   validateCreateItemInput,
   validateMasterPasswordInput,
@@ -100,14 +106,20 @@ function noOlvidarError(friendly: string, e: unknown): string {
   return friendly;
 }
 
-/** Como noOlvidarError pero conserva el mensaje de DOMINIO (recovery.ts) salvo que sea infra. */
+/**
+ * Mensaje para errores del flujo de recovery. Solo propaga el texto de errores
+ * de DOMINIO conocidos (RecoveryStateError/RecoveryPolicyError, seguros y en
+ * es-VE). Cualquier otro Error (DB/PostgREST) se loguea server-side y devuelve
+ * genérico — no filtrar nombres de tabla/constraint/schema al cliente (allow-list,
+ * no deny-list: el filtro por keyword se saltaba `permission denied`, constraints,
+ * etc.). Review 2026-07-18.
+ */
 function noOlvidarDomainError(e: unknown): string {
-  const raw = extractMessage(e);
-  if (looksLikeMissingSchema(raw)) {
-    console.error("[no-olvidar] infra error —", raw);
-    return "El No-Olvidar todavía no está disponible o rechazó la operación. Avisa a un administrador.";
+  if (e instanceof RecoveryStateError || e instanceof RecoveryPolicyError) {
+    return e.message;
   }
-  return raw;
+  console.error("[no-olvidar] error de recovery —", extractMessage(e));
+  return "No se pudo completar la operación de recuperación. Avisa a un administrador.";
 }
 
 // ─── Helpers de contexto ─────────────────────────────────────
@@ -130,6 +142,16 @@ async function clientMeta(): Promise<{ ip: string | null; ua: string | null }> {
   } catch {
     return { ip: null, ua: null };
   }
+}
+
+/**
+ * Backstop RBAC server-side (SDD-0085): las server actions son endpoints POST
+ * invocables directo, así que el gate de módulo del layout.tsx NO las cubre —
+ * cada action debe validar su propio permiso. Devuelve el mensaje de denegación
+ * o null. Ver rbac-guard.moduleEditDenial.
+ */
+async function requireModule(supabase: SupabaseLike): Promise<string | null> {
+  return moduleEditDenial(supabase, "no-olvidar");
 }
 
 /**
@@ -196,14 +218,34 @@ export async function setupNoOlvidarAction(
   const supabase = await createClient();
   const userId = await getAuthedUserId(supabase);
   if (!userId) return { error: "Sesión no válida." };
+  const denial = await requireModule(supabase);
+  if (denial) return { error: denial };
 
   if (fd.get("terms") !== "on") {
     return { fieldErrors: { terms: "Tenés que aceptar los términos para continuar." } };
   }
 
+  // Anti re-enrolamiento del 2FA: si el vault YA está configurado, este flujo no
+  // puede correr — verificaría el TOTP contra el secret del propio form (elegido
+  // por quien llama) y reabriría la sesión. Re-enrolar el 2FA va por recovery
+  // M-of-N. (Review 2026-07-18, hallazgo crítico de toma de vault con sesión
+  // robada.)
+  const { data: existing } = await supabase
+    .from("no_olvidar_user_keys")
+    .select("setup_completed")
+    .eq("user_id", userId)
+    .maybeSingle<{ setup_completed: boolean }>();
+  if (existing?.setup_completed) {
+    return {
+      error:
+        "Tu No-Olvidar ya está configurado. Para cambiar el 2FA usá el flujo de recuperación (recovery).",
+    };
+  }
+
   const totpSecret = (fd.get("totp_secret")?.toString() ?? "").trim() || generateTotpSecret();
   const totpCode = (fd.get("totp_code")?.toString() ?? "").trim();
-  if (!verifyTotp(totpCode, totpSecret)) {
+  const totpCheck = verifyTotpWithStep(totpCode, totpSecret);
+  if (!totpCheck.valid) {
     return { fieldErrors: { totp_code: "El código 2FA no coincide. Reintentá." } };
   }
 
@@ -222,11 +264,13 @@ export async function setupNoOlvidarAction(
   const admin = createAdminClient();
   let totpCiphertext: string;
   let totpNonce: string;
+  let totpKeyVersion: number;
   try {
-    const { key } = await getActiveKek(admin);
-    const sealed = await encryptPayload(totpSecret, key);
+    const { version, key } = await getActiveKek(admin);
+    const sealed = await encryptPayload(totpSecret, key, aadTotp(userId));
     totpCiphertext = toBase64(sealed.ciphertext);
     totpNonce = toBase64(sealed.nonce);
+    totpKeyVersion = version; // guardar la versión para poder descifrar tras rotar
   } catch (e) {
     return { error: noOlvidarError("No se pudo inicializar el cifrado.", e) };
   }
@@ -249,6 +293,8 @@ export async function setupNoOlvidarAction(
       recovery_kit_salt: toBase64(kitSalt),
       totp_secret_ciphertext: totpCiphertext,
       totp_secret_nonce: totpNonce,
+      totp_secret_key_version: totpKeyVersion,
+      totp_last_step: totpCheck.step, // consumir el código de enrolamiento (anti-replay)
       totp_enabled: true,
       setup_completed: true,
       last_unlock_at: new Date().toISOString(), // el setup deja la sesión abierta
@@ -277,6 +323,8 @@ export async function unlockNoOlvidarAction(
   const supabase = await createClient();
   const userId = await getAuthedUserId(supabase);
   if (!userId) return { error: "Sesión no válida." };
+  const denial = await requireModule(supabase);
+  if (denial) return { error: denial };
 
   const state = await validateUnlockSession(supabase, userId);
   if (state.locked) {
@@ -286,7 +334,7 @@ export async function unlockNoOlvidarAction(
   const { data: keys, error: keysErr } = await supabase
     .from("no_olvidar_user_keys")
     .select(
-      "has_master_password, master_password_verifier, master_password_salt, totp_secret_ciphertext, totp_secret_nonce",
+      "has_master_password, master_password_verifier, master_password_salt, totp_secret_ciphertext, totp_secret_nonce, totp_secret_key_version, totp_last_step",
     )
     .eq("user_id", userId)
     .maybeSingle<{
@@ -295,25 +343,42 @@ export async function unlockNoOlvidarAction(
       master_password_salt: string | null;
       totp_secret_ciphertext: string;
       totp_secret_nonce: string;
+      totp_secret_key_version: number | null;
+      totp_last_step: number | null;
     }>();
   if (keysErr || !keys) return { error: "No se pudo leer tu configuración del No-Olvidar." };
 
   const admin = createAdminClient();
 
-  // TOTP: el secret está cifrado con el KEK activo → descifrar para verificar.
+  // TOTP: descifrar con la MISMA versión de KEK con la que se cifró (no la
+  // activa) — si no, tras una rotación el 2FA queda ilegible. Fallback a la
+  // activa solo para filas legacy sin versión guardada.
   let totpSecret: string;
   try {
-    const { key } = await getActiveKek(admin);
+    const kek =
+      keys.totp_secret_key_version != null
+        ? await getKekByVersion(admin, keys.totp_secret_key_version)
+        : (await getActiveKek(admin)).key;
     totpSecret = await decryptPayload(
       fromBase64(keys.totp_secret_ciphertext),
       fromBase64(keys.totp_secret_nonce),
-      key,
+      kek,
+      aadTotp(userId),
     );
   } catch (e) {
     return { error: noOlvidarError("No se pudo verificar el 2FA.", e) };
   }
 
-  const totpOk = verifyTotp((fd.get("totp_code")?.toString() ?? "").trim(), totpSecret);
+  const totpCheck = verifyTotpWithStep((fd.get("totp_code")?.toString() ?? "").trim(), totpSecret);
+  // Anti-replay (§4.5): un código válido de la ventana no se puede reusar. El
+  // step que casó debe ser estrictamente mayor al último consumido.
+  const replayed =
+    totpCheck.valid &&
+    keys.totp_last_step != null &&
+    totpCheck.step != null &&
+    totpCheck.step <= keys.totp_last_step;
+  const totpOk = totpCheck.valid && !replayed;
+
   let pwOk = true;
   if (keys.has_master_password && keys.master_password_verifier && keys.master_password_salt) {
     pwOk = await verifyMasterPassword(
@@ -332,10 +397,11 @@ export async function unlockNoOlvidarAction(
     };
   }
 
-  // markUnlocked resetea last_unlock_at/failed_unlock_attempts/locked_until →
-  // columnas sensibles: va por service_role (authenticated ya no tiene UPDATE
-  // sobre user_keys, migr 0225). El TOTP ya se verificó server-side arriba.
-  await markUnlocked(admin, userId);
+  // markUnlocked resetea last_unlock_at/failed_unlock_attempts/locked_until y
+  // persiste el step TOTP consumido (anti-replay) → columnas sensibles: va por
+  // service_role (authenticated ya no tiene UPDATE sobre user_keys). El TOTP ya
+  // se verificó server-side arriba.
+  await markUnlocked(admin, userId, totpCheck.step);
   const meta = await clientMeta();
   await logAccess(admin, { userId, action: "unlock", ip: meta.ip, ua: meta.ua });
   revalidatePath(BASE_PATH);
@@ -355,6 +421,8 @@ export async function createItemAction(
   const supabase = await createClient();
   const userId = await getAuthedUserId(supabase);
   if (!userId) return { error: "Sesión no válida." };
+  const denial = await requireModule(supabase);
+  if (denial) return { error: denial };
   const gate = await requireUnlocked(supabase, userId);
   if (gate) return { error: gate };
 
@@ -367,8 +435,8 @@ export async function createItemAction(
     const { version, key: kek } = await getActiveKek(admin);
     const dek = await generateDek();
     const plaintext = JSON.stringify(buildPlaintext(category, fd));
-    const sealed = await encryptPayload(plaintext, dek);
-    const wrapped = await wrapDek(dek, kek);
+    const sealed = await encryptPayload(plaintext, dek, aadItem(userId));
+    const wrapped = await wrapDek(dek, kek, aadDek(userId));
     sealedPayload = {
       ciphertext: toBase64(sealed.ciphertext),
       nonce: toBase64(sealed.nonce),
@@ -437,6 +505,8 @@ export async function revealItemAction(itemId: string): Promise<RevealResult> {
   const supabase = await createClient();
   const userId = await getAuthedUserId(supabase);
   if (!userId) return { error: "Sesión no válida." };
+  const denial = await requireModule(supabase);
+  if (denial) return { error: denial };
   const gate = await requireUnlocked(supabase, userId);
   if (gate) return { error: gate };
 
@@ -444,6 +514,7 @@ export async function revealItemAction(itemId: string): Promise<RevealResult> {
     .from("no_olvidar_items")
     .select("ciphertext, nonce, dek_encrypted, dek_nonce, key_version")
     .eq("id", itemId)
+    .eq("user_id", userId) // defensa en profundidad además de RLS
     .is("deleted_at", null)
     .maybeSingle<{
       ciphertext: string;
@@ -457,8 +528,18 @@ export async function revealItemAction(itemId: string): Promise<RevealResult> {
   const admin = createAdminClient();
   try {
     const kek = await getKekByVersion(admin, item.key_version);
-    const dek = await unwrapDek(fromBase64(item.dek_encrypted), fromBase64(item.dek_nonce), kek);
-    const raw = await decryptPayload(fromBase64(item.ciphertext), fromBase64(item.nonce), dek);
+    const dek = await unwrapDek(
+      fromBase64(item.dek_encrypted),
+      fromBase64(item.dek_nonce),
+      kek,
+      aadDek(userId),
+    );
+    const raw = await decryptPayload(
+      fromBase64(item.ciphertext),
+      fromBase64(item.nonce),
+      dek,
+      aadItem(userId),
+    );
     const plaintext = JSON.parse(raw) as NoOlvidarItemPlaintext;
 
     const meta = await clientMeta();
@@ -474,6 +555,18 @@ export async function copyItemFieldAction(itemId: string, field: string): Promis
   const supabase = await createClient();
   const userId = await getAuthedUserId(supabase);
   if (!userId) return;
+  if (await requireModule(supabase)) return;
+
+  // Validar ownership antes de auditar: sin esto un authed inyecta filas 'copy'
+  // con cualquier item_id (incluso ajeno) → ruido/envenenamiento del audit log.
+  const { data: owned } = await supabase
+    .from("no_olvidar_items")
+    .select("id")
+    .eq("id", itemId)
+    .eq("user_id", userId)
+    .maybeSingle<{ id: string }>();
+  if (!owned) return;
+
   const admin = createAdminClient();
   const meta = await clientMeta();
   await logAccess(admin, { userId, itemId, action: "copy", ip: meta.ip, ua: meta.ua, metadata: { field } });
@@ -492,6 +585,8 @@ export async function updateItemAction(
   const supabase = await createClient();
   const userId = await getAuthedUserId(supabase);
   if (!userId) return { error: "Sesión no válida." };
+  const denial = await requireModule(supabase);
+  if (denial) return { error: denial };
   const gate = await requireUnlocked(supabase, userId);
   if (gate) return { error: gate };
 
@@ -513,8 +608,8 @@ export async function updateItemAction(
     try {
       const { version, key: kek } = await getActiveKek(admin);
       const dek = await generateDek();
-      const sealed = await encryptPayload(JSON.stringify(buildPlaintext(category, fd)), dek);
-      const wrapped = await wrapDek(dek, kek);
+      const sealed = await encryptPayload(JSON.stringify(buildPlaintext(category, fd)), dek, aadItem(userId));
+      const wrapped = await wrapDek(dek, kek, aadDek(userId));
       patch.ciphertext = toBase64(sealed.ciphertext);
       patch.nonce = toBase64(sealed.nonce);
       patch.dek_encrypted = toBase64(wrapped.wrapped);
@@ -537,7 +632,11 @@ export async function updateItemAction(
   });
   if (fieldErrors) return { fieldErrors };
 
-  const { error } = await supabase.from("no_olvidar_items").update(patch).eq("id", id);
+  const { error } = await supabase
+    .from("no_olvidar_items")
+    .update(patch)
+    .eq("id", id)
+    .eq("user_id", userId); // defensa en profundidad además de RLS
   if (error) return { error: noOlvidarError("No se pudo actualizar el item.", error) };
 
   const admin = createAdminClient();
@@ -552,11 +651,17 @@ export async function softDeleteItemAction(itemId: string): Promise<NoOlvidarAct
   const supabase = await createClient();
   const userId = await getAuthedUserId(supabase);
   if (!userId) return { error: "Sesión no válida." };
+  const denial = await requireModule(supabase);
+  if (denial) return { error: denial };
+  // Operación destructiva → exige sesión 2FA vigente, igual que create/reveal/update.
+  const gate = await requireUnlocked(supabase, userId);
+  if (gate) return { error: gate };
 
   const { error } = await supabase
     .from("no_olvidar_items")
     .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-    .eq("id", itemId);
+    .eq("id", itemId)
+    .eq("user_id", userId); // defensa en profundidad además de RLS
   if (error) return { error: noOlvidarError("No se pudo eliminar el item.", error) };
 
   const admin = createAdminClient();
@@ -576,6 +681,9 @@ export async function requestRecoveryAction(
   const userId = await getAuthedUserId(supabase);
   if (!userId) return { error: "Sesión no válida." };
 
+  const denial = await requireModule(supabase);
+  if (denial) return { error: denial };
+
   const { input, fieldErrors } = validateRecoveryRequestInput({ reason: fd.get("reason")?.toString() });
   if (fieldErrors) return { fieldErrors };
 
@@ -593,6 +701,8 @@ export async function approveRecoveryAction(recoveryId: string): Promise<NoOlvid
   const supabase = await createClient();
   const userId = await getAuthedUserId(supabase);
   if (!userId) return { error: "Sesión no válida." };
+  const denial = await requireModule(supabase);
+  if (denial) return { error: denial };
 
   const admin = createAdminClient();
   const meta = await clientMeta();
@@ -612,6 +722,8 @@ export async function rejectRecoveryAction(
   const supabase = await createClient();
   const userId = await getAuthedUserId(supabase);
   if (!userId) return { error: "Sesión no válida." };
+  const denial = await requireModule(supabase);
+  if (denial) return { error: denial };
   const recoveryId = fd.get("recovery_id")?.toString();
   if (!recoveryId) return { error: "Falta el id del pedido." };
 
@@ -633,6 +745,8 @@ export async function executeRecoveryAction(
   const userId = await getAuthedUserId(supabase);
   if (!userId) return { error: "Sesión no válida." };
 
+  const denial = await requireModule(supabase);
+  if (denial) return { error: denial };
   const recoveryId = fd.get("recovery_id")?.toString();
   if (!recoveryId) return { error: "Falta el id del pedido." };
   const { input, fieldErrors } = validateMasterPasswordInput({ password: fd.get("master_password")?.toString() });
@@ -640,7 +754,9 @@ export async function executeRecoveryAction(
 
   const admin = createAdminClient();
   try {
-    await executeRecovery(admin, recoveryId, input!.password);
+    // El ejecutor debe ser el propio solicitante (fija SU nueva master password).
+    // Sin esto, cualquier admin que vea un recovery 'approved' ajeno lo secuestra.
+    await executeRecovery(admin, recoveryId, input!.password, userId);
     revalidatePath(BASE_PATH);
     return { ok: true, recoveryId };
   } catch (e) {
@@ -662,6 +778,8 @@ export async function rotateKekAction(): Promise<RotateKekResult> {
   const supabase = await createClient();
   const userId = await getAuthedUserId(supabase);
   if (!userId) return { error: "Sesión no válida." };
+  const denial = await requireModule(supabase);
+  if (denial) return { error: denial };
 
   const { data: isAdmin } = await supabase.rpc("no_olvidar_check_admin", { p_user_id: userId });
   if (isAdmin !== true) return { error: "Solo los admins pueden rotar el KEK." };
@@ -677,7 +795,7 @@ export async function rotateKekAction(): Promise<RotateKekResult> {
   }
 }
 
-/** Actualiza no_olvidar_config. Admin-only (RLS lo fuerza; chequeamos igual). */
+/** Actualiza no_olvidar_config. Admin-only: chequeo TS explícito ADEMÁS de la RLS. */
 export async function updateNoOlvidarConfigAction(
   _prev: NoOlvidarActionState,
   fd: FormData,
@@ -685,6 +803,14 @@ export async function updateNoOlvidarConfigAction(
   const supabase = await createClient();
   const userId = await getAuthedUserId(supabase);
   if (!userId) return { error: "Sesión no válida." };
+  const denial = await requireModule(supabase);
+  if (denial) return { error: denial };
+
+  // Defensa en profundidad: esta config controla parámetros de SEGURIDAD (umbral
+  // M-of-N, lockout, timeout). No confiar solo en la policy RLS (si regresa, un
+  // no-admin la degradaría). Chequeo admin explícito, igual que rotateKekAction.
+  const { data: isAdmin } = await supabase.rpc("no_olvidar_check_admin", { p_user_id: userId });
+  if (isAdmin !== true) return { error: "Solo los admins pueden cambiar la configuración." };
 
   const num = (k: string, min: number, max: number): number | undefined => {
     const raw = fd.get(k);
@@ -698,7 +824,9 @@ export async function updateNoOlvidarConfigAction(
 
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString(), updated_by: userId };
   const fields: [string, number, number][] = [
-    ["recovery_approvals_required", 1, 5],
+    // Piso 2: el M-of-N pierde sentido con 1 (un solo admin resetearía cualquier
+    // master password). El threat-model asume ≥2 aprobadores distintos.
+    ["recovery_approvals_required", 2, 5],
     ["session_timeout_minutes", 1, 480],
     ["failed_attempts_lockout", 1, 20],
     ["lockout_minutes", 1, 1440],

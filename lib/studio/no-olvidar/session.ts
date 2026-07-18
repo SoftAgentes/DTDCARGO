@@ -77,17 +77,24 @@ export async function validateUnlockSession(
 /**
  * Marca el No-Olvidar como recién desbloqueado: last_unlock_at = now, resetea
  * los intentos fallidos y limpia el lockout. Llamar tras un 2FA exitoso.
+ *
+ * `totpStep` (opcional): step TOTP que se acaba de consumir. Se persiste como
+ * `totp_last_step` para el anti-replay (§4.5) — el próximo unlock rechazará
+ * cualquier código cuyo step sea ≤ a este.
  */
-export async function markUnlocked(supabase: SupabaseClient, userId: string): Promise<void> {
-  const { error } = await supabase
-    .from("no_olvidar_user_keys")
-    .update({
-      last_unlock_at: new Date().toISOString(),
-      failed_unlock_attempts: 0,
-      locked_until: null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("user_id", userId);
+export async function markUnlocked(
+  supabase: SupabaseClient,
+  userId: string,
+  totpStep?: number | null,
+): Promise<void> {
+  const patch: Record<string, unknown> = {
+    last_unlock_at: new Date().toISOString(),
+    failed_unlock_attempts: 0,
+    locked_until: null,
+    updated_at: new Date().toISOString(),
+  };
+  if (totpStep != null) patch.totp_last_step = totpStep;
+  const { error } = await supabase.from("no_olvidar_user_keys").update(patch).eq("user_id", userId);
   if (error) throw new Error(`No se pudo marcar el desbloqueo: ${error.message}`);
 }
 

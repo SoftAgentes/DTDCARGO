@@ -15,6 +15,18 @@
 
 import { generateSecret, generateURI, verifySync } from "otplib";
 
+/**
+ * Shape REAL que devuelve `verifySync` en runtime para TOTP (verificado contra
+ * otplib 13.4.1: `{valid, delta, epoch, timeStep}`). Sus tipos públicos NO
+ * exponen `timeStep`/`delta` en el resultado, así que lo tipamos acá para el
+ * anti-replay. `timeStep + delta` = step absoluto que casó.
+ */
+interface TotpVerifyRuntimeResult {
+  valid: boolean;
+  delta?: number;
+  timeStep?: number;
+}
+
 /** Emisor mostrado en la app de autenticación (Google Authenticator, Authy…). */
 const TOTP_ISSUER = "DTD Cargo · No-Olvidar";
 
@@ -39,17 +51,44 @@ export function buildTotpUri(secret: string, accountLabel: string): string {
   return generateURI({ issuer: TOTP_ISSUER, label: accountLabel, secret });
 }
 
+export interface TotpVerification {
+  valid: boolean;
+  /**
+   * Step absoluto (contador de período de 30 s) que casó, o null si no valida.
+   * Es `timeStep + delta`: identifica de forma única el código usado dentro de la
+   * ventana, para anti-replay (guardar el último consumido y rechazar ≤).
+   */
+  step: number | null;
+}
+
 /**
- * Verifica un código de 6 dígitos contra el secret, con ±30 s de tolerancia.
- * Constante-en-tiempo lo maneja otplib. Devuelve false ante secret/código
- * malformado en vez de lanzar, para que el caller cuente el intento fallido.
+ * Verifica un código de 6 dígitos contra el secret, con ±30 s de tolerancia, y
+ * devuelve el step que casó (para anti-replay §4.5). Constante-en-tiempo lo
+ * maneja otplib. Devuelve {valid:false} ante secret/código malformado o si el
+ * plugin lanza, en vez de propagar, para que el caller cuente el intento fallido.
+ */
+export function verifyTotpWithStep(token: string, secret: string): TotpVerification {
+  const clean = token.replace(/\s/g, "");
+  if (!/^\d{6}$/.test(clean) || !secret) return { valid: false, step: null };
+  try {
+    const r = verifySync({
+      token: clean,
+      secret,
+      epochTolerance: EPOCH_TOLERANCE_SECONDS,
+    }) as unknown as TotpVerifyRuntimeResult;
+    if (!r.valid) return { valid: false, step: null };
+    const step = r.timeStep != null && r.delta != null ? r.timeStep + r.delta : null;
+    return { valid: true, step };
+  } catch {
+    return { valid: false, step: null };
+  }
+}
+
+/**
+ * Igual que verifyTotpWithStep pero solo la validez — para el enrolamiento
+ * (setup) donde no hace falta el step. NO usar en el unlock (ahí sí importa el
+ * anti-replay).
  */
 export function verifyTotp(token: string, secret: string): boolean {
-  const clean = token.replace(/\s/g, "");
-  if (!/^\d{6}$/.test(clean) || !secret) return false;
-  try {
-    return verifySync({ token: clean, secret, epochTolerance: EPOCH_TOLERANCE_SECONDS }).valid;
-  } catch {
-    return false;
-  }
+  return verifyTotpWithStep(token, secret).valid;
 }

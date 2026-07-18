@@ -162,9 +162,16 @@ export async function executeRecovery(
   supabase: SupabaseClient,
   recoveryId: string,
   newPassword: string,
+  callerUserId: string,
 ): Promise<void> {
   const req = await fetchRequest(supabase, recoveryId);
 
+  // Autorización: solo el propio solicitante fija su nueva master password. Sin
+  // esto, cualquiera con el recoveryId de un request 'approved' (p.ej. un admin,
+  // que ve todos por RLS) secuestraba el acceso de la víctima (§4.6).
+  if (req.requester_user_id !== callerUserId) {
+    throw new RecoveryPolicyError("Solo quien solicitó la recuperación puede ejecutarla.");
+  }
   if (req.status === "completed") {
     throw new RecoveryStateError("El recovery ya fue ejecutado.");
   }
@@ -193,6 +200,28 @@ export async function executeRecovery(
   const salt = await generateSalt();
   const verifier = await hashForVerifier(newPassword, salt);
 
+  // Reclamar el request de forma atómica ANTES de tocar la master password: el
+  // UPDATE guardado por status='approved' es el lock. Si matchea 0 filas, otra
+  // ejecución ganó la carrera (o el request dejó de estar aprobado) → abortar sin
+  // resetear nada. `.select("id")` deja detectar el 0-filas (un update sin filas
+  // NO devuelve error). Cierra el TOCTOU de doble ejecución.
+  const { data: claimed, error: upReqErr } = await supabase
+    .from("no_olvidar_recovery_requests")
+    .update({
+      status: "completed",
+      new_master_password_verifier: toBase64(verifier),
+      new_master_password_salt: toBase64(salt),
+      completed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", recoveryId)
+    .eq("status", "approved")
+    .select("id");
+  if (upReqErr) throw new Error(`No se pudo cerrar el request: ${upReqErr.message}`);
+  if (!claimed || claimed.length === 0) {
+    throw new RecoveryStateError("El recovery ya fue ejecutado o dejó de estar aprobado.");
+  }
+
   const { error: upKeysErr } = await supabase
     .from("no_olvidar_user_keys")
     .update({
@@ -205,19 +234,6 @@ export async function executeRecovery(
     })
     .eq("user_id", req.requester_user_id);
   if (upKeysErr) throw new Error(`No se pudo resetear la master password: ${upKeysErr.message}`);
-
-  const { error: upReqErr } = await supabase
-    .from("no_olvidar_recovery_requests")
-    .update({
-      status: "completed",
-      new_master_password_verifier: toBase64(verifier),
-      new_master_password_salt: toBase64(salt),
-      completed_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", recoveryId)
-    .eq("status", "approved"); // guard anti doble-ejecución
-  if (upReqErr) throw new Error(`No se pudo cerrar el request: ${upReqErr.message}`);
 
   await logAccess(supabase, {
     userId: req.requester_user_id,
