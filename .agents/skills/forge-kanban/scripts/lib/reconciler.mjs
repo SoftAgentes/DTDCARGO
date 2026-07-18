@@ -3,7 +3,7 @@ import { extname, join, relative, resolve } from 'node:path'
 import { createHash } from 'node:crypto'
 
 const DEFAULT_ROOTS = ['specs', 'docs/specs', 'docs/plan', 'docs/blueprints']
-const EXCLUDED_PARTS = new Set(['node_modules', '.git', '.next', 'dist', 'coverage', 'handoffs', 'uploads'])
+const EXCLUDED_PARTS = new Set(['node_modules', '.git', '.next', 'dist', 'coverage', 'handoffs', 'uploads', '_template'])
 
 function normalized(path) {
   return path.replaceAll('\\', '/').replace(/^\.\//, '')
