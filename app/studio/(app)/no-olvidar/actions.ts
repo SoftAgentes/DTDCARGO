@@ -198,7 +198,10 @@ export async function setupNoOlvidarAction(
   const kitSalt = await generateSalt();
   const kitHash = toBase64(await hashRecoveryKit(recoveryKit, kitSalt));
 
-  const { error } = await supabase
+  // Escritura de columnas sensibles (role/verifier/totp/setup/last_unlock) va por
+  // service_role: authenticated ya NO tiene UPDATE sobre user_keys (migr 0225,
+  // cierre de la escalada de privilegios). Scoping por .eq("user_id", userId).
+  const { error } = await admin
     .from("no_olvidar_user_keys")
     .update({
       has_master_password: masterVerifier != null,
@@ -291,7 +294,10 @@ export async function unlockNoOlvidarAction(
     };
   }
 
-  await markUnlocked(supabase, userId);
+  // markUnlocked resetea last_unlock_at/failed_unlock_attempts/locked_until →
+  // columnas sensibles: va por service_role (authenticated ya no tiene UPDATE
+  // sobre user_keys, migr 0225). El TOTP ya se verificó server-side arriba.
+  await markUnlocked(admin, userId);
   const meta = await clientMeta();
   await logAccess(admin, { userId, action: "unlock", ip: meta.ip, ua: meta.ua });
   revalidatePath(BASE_PATH);
