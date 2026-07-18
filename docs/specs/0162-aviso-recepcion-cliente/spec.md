@@ -1,7 +1,7 @@
 ---
 sdd: "0162"
 title: "Aviso de recepción al cliente — cablear la recepción del operario (China) al motor de avisos SDD-0156"
-status: in-progress
+status: done
 author: "Sam (founder) + Forge Kanban (spec puente)"
 created: 2026-07-18
 updated: 2026-07-18
@@ -13,7 +13,7 @@ feature_schema: 1
 feature_id: F-0162
 scope_status: complete
 implementation_status: complete
-verification_status: pending
+verification_status: verified
 domain: general_code
 artifact_type: code
 priority: yellow
