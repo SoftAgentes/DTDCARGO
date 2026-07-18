@@ -22,7 +22,6 @@ import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import { Icon } from "@/app/studio/_components/icons";
 import {
-  REFERRAL_RULES,
   REFERRAL_STATUS,
   REFERRAL_STEPS,
   TIERS,
@@ -38,9 +37,11 @@ import type {
   TierCount,
   TopReferrer,
 } from "@/lib/studio/fidelizacion/queries";
+import type { ReferralSettingsInput } from "@/lib/studio/fidelizacion/referral-settings-types";
 import { fmtUsd } from "../format";
 import { RegisterReferralDrawer } from "./RegisterReferralDrawer";
 import { ReferralDrawer } from "./ReferralDrawer";
+import { ReferralSettingsDrawer } from "./ReferralSettingsDrawer";
 
 type Tab = "dashboard" | "niveles" | "referidos" | "clientes";
 
@@ -76,6 +77,8 @@ export function FidelizacionClient({
   stats,
   topReferrers,
   canApplyCredit,
+  referralSettings,
+  canConfigure,
 }: {
   clients: ClientWithTier[];
   tierCounts: TierCount[];
@@ -84,9 +87,14 @@ export function FidelizacionClient({
   topReferrers: TopReferrer[];
   /** ¿El rol puede APLICAR créditos? (accounting/admin — SDD-0137, mueve plata). */
   canApplyCredit: boolean;
+  /** Montos vigentes del programa (para poblar el drawer de configuración). */
+  referralSettings: ReferralSettingsInput;
+  /** ¿El rol edita el módulo Fidelización? Muestra "Configurar referidos" (SDD-0159). */
+  canConfigure: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("dashboard");
   const [showRegister, setShowRegister] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [selectedReferral, setSelectedReferral] = useState<Referral | null>(
     null,
   );
@@ -125,13 +133,24 @@ export function FidelizacionClient({
             créditos.
           </p>
         </div>
-        <button
-          type="button"
-          className="studio-btn studio-btn-primary"
-          onClick={() => setShowRegister(true)}
-        >
-          + Registrar referido
-        </button>
+        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+          {canConfigure && (
+            <button
+              type="button"
+              className="studio-btn studio-btn-ghost"
+              onClick={() => setShowSettings(true)}
+            >
+              Configurar referidos
+            </button>
+          )}
+          <button
+            type="button"
+            className="studio-btn studio-btn-primary"
+            onClick={() => setShowRegister(true)}
+          >
+            + Registrar referido
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -201,6 +220,7 @@ export function FidelizacionClient({
           tierCounts={tierCounts}
           stats={stats}
           topReferrers={topReferrers}
+          referralSettings={referralSettings}
           onGoReferidos={() => setTab("referidos")}
           onGoNiveles={() => setTab("niveles")}
         />
@@ -219,7 +239,16 @@ export function FidelizacionClient({
 
       {/* Drawers */}
       {showRegister && (
-        <RegisterReferralDrawer onClose={() => setShowRegister(false)} />
+        <RegisterReferralDrawer
+          referrerReward={referralSettings.referrerRewardUsd}
+          onClose={() => setShowRegister(false)}
+        />
+      )}
+      {showSettings && (
+        <ReferralSettingsDrawer
+          settings={referralSettings}
+          onClose={() => setShowSettings(false)}
+        />
       )}
       {selectedReferral && (
         <ReferralDrawer
@@ -236,37 +265,46 @@ export function FidelizacionClient({
 // Tab: Dashboard
 // ════════════════════════════════════════════════════════════════
 
-const PROGRAM_STEPS = [
-  {
-    n: "1",
-    t: "El cliente comparte su código",
-    d: "Cada Shipping Mark tiene un código de referido único (ej. REF-5452) que comparte por WhatsApp o el portal.",
-  },
-  {
-    n: "2",
-    t: "El referido importa",
-    d: `Al registrarse y hacer su primer embarque, el referido recibe ${fmtUsd(REFERRAL_RULES.referredReward)} de descuento.`,
-  },
-  {
-    n: "3",
-    t: "Ambos ganan",
-    d: `Quien refiere recibe ${fmtUsd(REFERRAL_RULES.referrerReward)} de crédito para aplicar en su próxima factura.`,
-  },
-];
+/** Pasos del "Cómo funciona" con los montos vigentes (SDD-0159 · config). */
+function programSteps(referredReward: number, referrerReward: number) {
+  return [
+    {
+      n: "1",
+      t: "El cliente comparte su código",
+      d: "Cada Shipping Mark tiene un código de referido único (ej. REF-5452) que comparte por WhatsApp o el portal.",
+    },
+    {
+      n: "2",
+      t: "El referido importa",
+      d: `Al registrarse y hacer su primer embarque, el referido recibe ${fmtUsd(referredReward)} de descuento.`,
+    },
+    {
+      n: "3",
+      t: "Ambos ganan",
+      d: `Quien refiere recibe ${fmtUsd(referrerReward)} de crédito para aplicar en su próxima factura.`,
+    },
+  ];
+}
 
 function DashboardTab({
   tierCounts,
   stats,
   topReferrers,
+  referralSettings,
   onGoReferidos,
   onGoNiveles,
 }: {
   tierCounts: TierCount[];
   stats: ProgramStats;
   topReferrers: TopReferrer[];
+  referralSettings: ReferralSettingsInput;
   onGoReferidos: () => void;
   onGoNiveles: () => void;
 }) {
+  const PROGRAM_STEPS = programSteps(
+    referralSettings.referredRewardUsd,
+    referralSettings.referrerRewardUsd,
+  );
   const totalClients = tierCounts.reduce((s, c) => s + c.count, 0);
   const platinum = tierCounts.find((c) => c.tier.id === "platinum")?.count ?? 0;
   const gold = tierCounts.find((c) => c.tier.id === "gold")?.count ?? 0;

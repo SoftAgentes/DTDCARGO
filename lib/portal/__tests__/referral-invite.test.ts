@@ -167,6 +167,18 @@ describe("buildReferralInviteEmail", () => {
     expect(subject).toContain("Ana");
     expect(html).toContain("REF-2026-0007");
     expect(html).toContain("https://dtdcargo.com/registro?ref=REF-2026-0007");
-    expect(html).toContain("$60"); // referredReward
+    expect(html).toContain("$60"); // referredReward (fallback)
+  });
+
+  it("usa el descuento configurado cuando se pasa discountUsd (SDD-0159)", () => {
+    const { html } = buildReferralInviteEmail({
+      referrerName: "Ana",
+      referredName: "carlos@b.com",
+      code: "REF-2026-0007",
+      registerUrl: "https://dtdcargo.com/registro?ref=REF-2026-0007",
+      discountUsd: 45,
+    });
+    expect(html).toContain("$45");
+    expect(html).not.toContain("$60");
   });
 });

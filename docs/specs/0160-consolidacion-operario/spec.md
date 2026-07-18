@@ -1,5 +1,5 @@
 ---
-sdd: "0157"
+sdd: "0160"
 title: "Modo consolidación del operario · pedir contenedor → oficina autoriza → estibar"
 status: in-progress
 author: "founder"
@@ -11,7 +11,7 @@ related: ["0155", "0154", "0153", "0047"]
 confidencialidad: interno
 ---
 
-# DTD-0157 — Modo consolidación del operario
+# DTD-0160 — Modo consolidación del operario
 
 ## 1. Resumen en una línea
 
