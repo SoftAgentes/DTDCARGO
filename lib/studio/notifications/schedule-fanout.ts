@@ -202,3 +202,67 @@ export async function scheduleReceiptVeReceived(
     return 0;
   }
 }
+
+/**
+ * Programa `status:in_warehouse` ("Recibido en bodega China") para los envíos de
+ * los Shipping Mark recibidos por el operario en Yiwu (SDD-0162, puente
+ * 0154↔0156). Espeja `scheduleReceiptVeReceived`: la caja recién recibida no trae
+ * shipment_id → se resuelve el envío no terminal más reciente por Shipping Mark.
+ * Sin envío resoluble para un Shipping Mark → esa caja se salta (no mal-notifica).
+ * Best-effort: nunca throwea — un fallo acá no rompe la recepción del operario.
+ */
+export async function scheduleReceiptInWarehouse(
+  admin: SupabaseClient,
+  tenantId: string,
+  markboxes: Array<string | null | undefined>,
+  eventTime: Date = new Date(),
+): Promise<number> {
+  try {
+    const marks = Array.from(
+      new Set(
+        markboxes
+          .map((m) => (m ?? "").trim())
+          .filter((m): m is string => m.length > 0),
+      ),
+    );
+    if (marks.length === 0) return 0;
+
+    let scheduled = 0;
+    for (const markbox of marks) {
+      const { data: shipment } = await admin
+        .from("shipments")
+        .select("id, code, client_markbox, client_name")
+        .eq("tenant_id", tenantId)
+        .eq("client_markbox", markbox)
+        .not("status", "in", "(delivered,cancelled)")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle<{
+          id: string;
+          code: string;
+          client_markbox: string | null;
+          client_name: string | null;
+        }>();
+      if (!shipment) continue;
+
+      scheduled += await scheduleForTargets(
+        admin,
+        tenantId,
+        "status:in_warehouse",
+        [
+          {
+            shipmentId: shipment.id,
+            shipmentCode: shipment.code,
+            clientMarkbox: shipment.client_markbox,
+            clientName: shipment.client_name,
+          },
+        ],
+        eventTime,
+      );
+    }
+    return scheduled;
+  } catch (err) {
+    console.error(`[client-notif] scheduleReceiptInWarehouse falló:`, err);
+    return 0;
+  }
+}

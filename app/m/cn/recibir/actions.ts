@@ -19,6 +19,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/db/admin";
 import { getCurrentOperario } from "@/lib/auth/operario-session";
 import { isBoxCode } from "@/lib/studio/etiquetas-qr";
+import { scheduleReceiptInWarehouse } from "@/lib/studio/notifications/schedule-fanout";
 
 async function requireCnOperario() {
   const session = await getCurrentOperario();
@@ -203,6 +204,16 @@ export async function receivePrealertaAction(
     received?: number;
     remaining?: number;
   };
+
+  // SDD-0162 · aviso al cliente "Recibido en bodega China" (status:in_warehouse).
+  // Best-effort fire-and-forget (mismo patrón que scheduleReceiptVeReceived en
+  // warehouse-receipt-ve-queries.ts): no bloquea la respuesta del operario y un
+  // fallo del fan-out no rompe la recepción ya confirmada por el RPC.
+  void scheduleReceiptInWarehouse(admin, auth.session.tenant_id, [
+    res.client_markbox,
+  ]).catch((err) => {
+    console.error("[recibir] scheduleReceiptInWarehouse falló:", err);
+  });
 
   // El Studio web refresca KPIs + listado; el home del operario, sus recientes.
   revalidatePath("/studio/cn");

@@ -14,6 +14,7 @@ vi.mock("../schedule-client-notifications", () => ({
 import {
   scheduleConsolidationEvent,
   scheduleReceiptVeReceived,
+  scheduleReceiptInWarehouse,
 } from "../schedule-fanout";
 
 /**
@@ -100,6 +101,38 @@ describe("scheduleReceiptVeReceived", () => {
   it("Shipping Mark sin envío en curso → no programa (no mal-notifica)", async () => {
     const admin = makeAdmin({ shipments: null });
     const n = await scheduleReceiptVeReceived(admin, "t-1", ["DTD-404"]);
+    expect(n).toBe(0);
+    expect(scheduleMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("scheduleReceiptInWarehouse", () => {
+  it("resuelve envío por Shipping Mark y programa status:in_warehouse (deduplica marks)", async () => {
+    const admin = makeAdmin({
+      shipments: {
+        id: "s-7",
+        code: "ENV-7",
+        client_markbox: "DTD-7",
+        client_name: "Wei",
+      },
+    });
+    const n = await scheduleReceiptInWarehouse(admin, "t-1", [
+      "DTD-7",
+      "DTD-7",
+      "  ",
+      null,
+    ]);
+    expect(n).toBe(1); // sólo un Shipping Mark único con envío resoluble
+    expect(scheduleMock).toHaveBeenCalledTimes(1);
+    expect(scheduleMock.mock.calls[0][2]).toMatchObject({
+      shipmentId: "s-7",
+      event: "status:in_warehouse",
+    });
+  });
+
+  it("Shipping Mark sin envío en curso → no programa (no mal-notifica)", async () => {
+    const admin = makeAdmin({ shipments: null });
+    const n = await scheduleReceiptInWarehouse(admin, "t-1", ["DTD-404"]);
     expect(n).toBe(0);
     expect(scheduleMock).not.toHaveBeenCalled();
   });
