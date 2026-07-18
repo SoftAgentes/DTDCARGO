@@ -29,9 +29,9 @@ const FILES = [
   ["lib/studio/no-olvidar-types.ts", "context"],
   // Schema + RLS + audit inmutable. La superficie SQL/RLS es PRIMARIA para el
   // review (el review interno del 2026-07-17 halló los graves ahí, no en libsodium).
-  ["supabase/migrations/0250_no_olvidar.sql", "schema"],
-  ["supabase/migrations/0251_no_olvidar_hardening.sql", "schema"],
-  ["supabase/migrations/0252_no_olvidar_authz_hardening.sql", "schema"],
+  ["supabase/migrations/0251_no_olvidar.sql", "schema"],
+  ["supabase/migrations/0252_no_olvidar_hardening.sql", "schema"],
+  ["supabase/migrations/0253_no_olvidar_authz_hardening.sql", "schema"],
   // Tests (evidencia de comportamiento)
   ["tests/no-olvidar/crypto.test.ts", "tests"],
   ["tests/no-olvidar/recovery.test.ts", "tests"],
@@ -64,7 +64,7 @@ const manifest = [
   "# No-Olvidar · manifest del bundle de review (SDD-0025 §7.6)",
   "",
   "Empezá por `README.md`. Orden de lectura sugerido:",
-  "1. README.md  ·  2. schema/0250_no_olvidar.sql  ·  3. schema/0251 + 0252 (RLS/GRANT)",
+  "1. README.md  ·  2. schema/0251_no_olvidar.sql  ·  3. schema/0252 + 0253 (RLS/GRANT)",
   "4. crypto/crypto.ts  ·  5. crypto/key-manager.ts  ·  6. crypto/recovery.ts  ·  7. context/*  ·  8. tests/*",
   "",
   "## Archivos incluidos",

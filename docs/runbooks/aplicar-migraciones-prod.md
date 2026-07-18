@@ -155,9 +155,11 @@ service_role, sin devolver `statements`/`rollback` (son el SQL crudo).
 - ✅ **`0239_applied_migrations_rpc` APLICADA**. Verificado: security definer, owner
   `postgres`, `search_path` sellado en vacío, `stable`, `anon`/`authenticated` sin
   EXECUTE. **El paso del gate está VIVO** (dejó de ser SKIP).
-- ⏸ **`0017_no_olvidar`** — única espera declarada. SDD-0025 gated por review
-  criptográfico externo; correcto que no esté. Su código es inerte: el `page.tsx`
-  es un `EmptyState` "Próximamente" que no toca la DB.
+- ⏸ **`0251_no_olvidar` · `0252_no_olvidar_hardening` · `0253_no_olvidar_authz_hardening`**
+  — esperas declaradas (renumeradas 2026-07-18 desde 0017/0250-0252 al traer main a la
+  rama; el 0250 previo colisionaba con `0250_referral_settings`). SDD-0025 gated por
+  review criptográfico externo; correcto que no estén. Se aplican las tres juntas,
+  en orden, tras pasar el gate.
 
 **Barrido de la clase de bug (16-jul):** se cruzó todo el código contra prod —
 205 tablas de `.from()` y 75 RPCs de `.rpc()`. Fuera de `no_olvidar_*` (gated), no

@@ -277,7 +277,9 @@ un user pierde el acceso.
 
 ```
 docs/specs/0025-no-olvidar/spec.md
-supabase/migrations/0017_no_olvidar.sql
+supabase/migrations/0251_no_olvidar.sql
+supabase/migrations/0252_no_olvidar_hardening.sql
+supabase/migrations/0253_no_olvidar_authz_hardening.sql
 lib/studio/no-olvidar-types.ts
 lib/studio/no-olvidar-queries.ts
 lib/studio/no-olvidar/
@@ -732,7 +734,7 @@ seguro independientemente de qué tan bien implementemos crypto.**
 
 ### 7.1 Setup KEK (una sola vez, post-migration)
 
-1. Aplicar migración `0017_no_olvidar.sql`
+1. Aplicar migraciones `0251_no_olvidar.sql` → `0252_no_olvidar_hardening.sql` → `0253_no_olvidar_authz_hardening.sql` (en orden)
 2. En SQL Editor de Supabase, ejecutar:
    ```sql
    SELECT vault.create_secret(

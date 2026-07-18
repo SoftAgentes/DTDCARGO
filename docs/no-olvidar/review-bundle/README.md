@@ -35,14 +35,14 @@ Supporting context:
 **SQL / RLS / GRANT is a PRIMARY review surface — not secondary.** An internal adversarial
 review (2026-07-17) found the crypto core solid but surfaced four serious authz/RLS defects at
 the DB boundary (privilege escalation, a mutable audit log, a confused-deputy RPC, a forged
-recovery approval). They are fixed in `0252` below; we want you to confirm those fixes hold and
+recovery approval). They are fixed in `0253` below; we want you to confirm those fixes hold and
 hunt for siblings.
 
 | File | What it does |
 |---|---|
-| `migrations/0250_no_olvidar.sql` | Schema, per-user RLS, audit-log table, KEK-version RPCs |
-| `migrations/0251_no_olvidar_hardening.sql` | 2 SECURITY DEFINER RPCs (atomic lockout counter; `vault.create_secret` wrapper) — additive over 0250 |
-| `migrations/0252_no_olvidar_authz_hardening.sql` | **Authz hardening** — trigger-based immutable audit log, REVOKEs that close privilege escalation, RPC/insert lock-downs |
+| `migrations/0251_no_olvidar.sql` | Schema, per-user RLS, audit-log table, KEK-version RPCs |
+| `migrations/0252_no_olvidar_hardening.sql` | 2 SECURITY DEFINER RPCs (atomic lockout counter; `vault.create_secret` wrapper) — additive over 0251 |
+| `migrations/0253_no_olvidar_authz_hardening.sql` | **Authz hardening** — trigger-based immutable audit log, REVOKEs that close privilege escalation, RPC/insert lock-downs |
 
 Run `scripts/no-olvidar-review-bundle.mjs` to collect these into one folder for offline reading.
 
@@ -105,14 +105,14 @@ Correctness & misuse-resistance:
 7. **KEK handling** (`key-manager.ts`) — in-memory cache TTL, base64 decode of the Vault secret,
    the `vault.create_secret` path in `rotateKek`. Anything that could log/persist the KEK.
 8. **Audit immutability** — `no_olvidar_access_log`. NOTE: RLS `USING(false)` alone does **not**
-   bind `service_role` (it has `BYPASSRLS`, and it's the very role that writes the log). `0252`
+   bind `service_role` (it has `BYPASSRLS`, and it's the very role that writes the log). `0253`
    therefore adds a `BEFORE UPDATE/DELETE/TRUNCATE` trigger that raises, plus `REVOKE`s. Confirm
    the trigger genuinely blocks a `service_role` mutation and cannot be bypassed (e.g. `session_replication_role`, direct SQL, disabling the trigger).
-9. **Privilege escalation on `no_olvidar_user_keys` (C2 fix)** — `0252` REVOKEs `UPDATE` from
+9. **Privilege escalation on `no_olvidar_user_keys` (C2 fix)** — `0253` REVOKEs `UPDATE` from
    `authenticated` and drops the owner-update policy, rerouting legitimate writes to `service_role`
    in `actions.ts`. Confirm no residual column-level grant lets a user set `role='admin'`, reset
    `locked_until`, or forge `last_unlock_at` (2FA bypass) directly via PostgREST.
-10. **Recovery insert / RPC lock-down (A1/A2 fixes)** — `0252` REVOKEs `EXECUTE` on
+10. **Recovery insert / RPC lock-down (A1/A2 fixes)** — `0253` REVOKEs `EXECUTE` on
     `no_olvidar_rotate_kek` and `INSERT` on `no_olvidar_recovery_requests` from `authenticated`.
     Confirm a user cannot forge a `status='approved'` request or drive KEK rotation.
 
@@ -128,7 +128,7 @@ Please also flag any **dependency** concern (`libsodium-wrappers-sumo`, `bip39`,
 2. **SUMO build required** — the standard libsodium-wrappers omits `crypto_pwhash`/`crypto_kdf`.
 3. **`reject` audits as `action='recovery_approved'` with `metadata.rejected=true`** — the enum
    has no `recovery_rejected`; the request row's `status='rejected'` is the canonical record.
-4. **Two SECURITY DEFINER RPCs in `migrations/0251_no_olvidar_hardening.sql`** (additive over 0250):
+4. **Two SECURITY DEFINER RPCs in `migrations/0252_no_olvidar_hardening.sql`** (additive over 0251):
    - `no_olvidar_increment_failed_attempt` — atomic failed-attempt counter + lockout (replaces a
      read-then-write in TS). Please review the authz guard (`auth.uid()` owner-or-service_role)
      and the atomicity of the `UPDATE ... RETURNING`.

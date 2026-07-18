@@ -20,11 +20,11 @@ Bundle listo con `node scripts/no-olvidar-review-bundle.mjs`.
 
 Aplicar en orden, con OK explícito del founder (regla dura: migraciones a prod nunca en automático):
 
-1. `supabase/migrations/0250_no_olvidar.sql` — schema, RLS, audit log, RPCs base.
-2. `supabase/migrations/0251_no_olvidar_hardening.sql` — RPCs atómicos (increment + create_kek_secret).
-3. `supabase/migrations/0252_no_olvidar_authz_hardening.sql` — authz: audit inmutable por trigger + REVOKEs (cierra C1/C2/A1/A2).
+1. `supabase/migrations/0251_no_olvidar.sql` — schema, RLS, audit log, RPCs base.
+2. `supabase/migrations/0252_no_olvidar_hardening.sql` — RPCs atómicos (increment + create_kek_secret).
+3. `supabase/migrations/0253_no_olvidar_authz_hardening.sql` — authz: audit inmutable por trigger + REVOKEs (cierra C1/C2/A1/A2).
 
-> Renumeradas 2026-07-17 (0017/0224/0225 → 0250/0251/0252) por encima del máximo aplicado en prod (0249). Aplicar de a UNA, nombrando el archivo, SOLO tras el review cripto externo.
+> Renumeradas 2026-07-18 (0017/0224/0225 → 0251/0252/0253) por encima del máximo aplicado en prod. El número previo 0250 colisionaba con `0250_referral_settings` (SDD-0159) al traer main a la rama. Aplicar de a UNA, nombrando el archivo, SOLO tras el review cripto externo. Están declaradas en `supabase/migrations-baseline.json` (`pendingBelowCutoff`) para que el gate `migrations-applied` no las marque rojas mientras esperan.
 
 Prereq: la extensión **`vault`** de Supabase habilitada (para el KEK) y **`pgcrypto`** (para
 `gen_random_bytes`, normalmente en el schema `extensions`).

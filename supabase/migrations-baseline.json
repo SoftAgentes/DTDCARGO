@@ -33,6 +33,8 @@
   "cutoff": 238,
 
   "pendingBelowCutoff": {
-    "0017_no_olvidar": "SDD-0025 (No-Olvidar) vive en la rama feat/no-olvidar SIN merge, gated por un review criptográfico externo (envelope encryption). El archivo llegó a main pero NO se aplica hasta pasar ese gate. Verificado 2026-07-16: to_regclass('public.no_olvidar_items') → NULL. El código es inerte (el page.tsx es un EmptyState 'Próximamente' que no toca la DB y nadie importa no-olvidar-queries.ts), así que la ruta no revienta. Al aplicarla, sacala de acá."
+    "0251_no_olvidar": "SDD-0025 (No-Olvidar) — schema base. Vive en la rama feat/no-olvidar SIN merge, gated por un review criptográfico externo (envelope encryption). NO se aplica a prod hasta pasar ese gate. Renumerada 2026-07-18 (0017→0250→0251) al traer main a la rama: 0250 colisionaba con 0250_referral_settings. Verificado sin aplicar: to_regclass('public.no_olvidar_items') → NULL. Se aplican las tres (0251/0252/0253) juntas, en orden, de a una con OK del founder. Al aplicarlas, sacalas de acá y subí el cutoff.",
+    "0252_no_olvidar_hardening": "SDD-0025 (No-Olvidar) — endurecimiento crypto (2 RPCs SECURITY DEFINER). Aditiva sobre 0251. Mismo gate: review cripto externo. NO aplicar desde la rama.",
+    "0253_no_olvidar_authz_hardening": "SDD-0025 (No-Olvidar) — endurecimiento de autorización (cierra C1/C2/A1/A2 del review interno: audit inmutable por trigger + REVOKEs). Aditiva sobre 0251+0252. Mismo gate: review cripto externo. NO aplicar desde la rama."
   }
 }

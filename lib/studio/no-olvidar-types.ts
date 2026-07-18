@@ -1,7 +1,7 @@
 /**
  * Types, enums, validators y helpers de label/badge para el módulo
  * No-Olvidar interno DTD-CARGO (SDD-0025 Fase 1). Match con migración
- * 0250_no_olvidar.sql (renumerada desde 0017).
+ * 0251_no_olvidar.sql (renumerada desde 0017).
  *
  * NO incluye crypto types (esos viven en lib/studio/no-olvidar/crypto.ts
  * en Fase 2). Acá solo lo que es seguro mostrar al cliente: shapes de

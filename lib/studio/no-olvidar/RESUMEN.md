@@ -23,7 +23,7 @@ Deps nuevas: `libsodium-wrappers-sumo`, `bip39`, `otplib`. `.env.example` → `N
 ## Bundle para el review externo (spec §7.6)
 
 Enviar al revisor crypto: **`crypto.ts` + `key-manager.ts` + `recovery.ts`** (+ `session.ts`,
-`audit.ts`, `totp.ts` como contexto) + migración `0017_no_olvidar.sql`. Sin este review NO se mergea.
+`audit.ts`, `totp.ts` como contexto) + migraciones `0251_no_olvidar.sql` · `0252_no_olvidar_hardening.sql` · `0253_no_olvidar_authz_hardening.sql`. Sin este review NO se mergea.
 
 ## Desviaciones vs spec (para que el revisor las valide)
 

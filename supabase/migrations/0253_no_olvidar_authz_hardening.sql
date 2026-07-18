@@ -3,10 +3,10 @@
 --
 -- Cierra 4 hallazgos del review interno adversarial (2026-07-17) sobre la
 -- frontera RLS/GRANT. El núcleo libsodium quedó sólido; los agujeros graves
--- estaban en la capa DB. Aditiva sobre 0250 + 0251.
+-- estaban en la capa DB. Aditiva sobre 0251 + 0252.
 --
 --   C1 (CRÍTICO) · Audit log NO era inmutable frente a service_role.
---       service_role tiene BYPASSRLS → las policies USING(false) de 0250 NO le
+--       service_role tiene BYPASSRLS → las policies USING(false) de 0251 NO le
 --       aplican, y por los default privileges (0033) conserva UPDATE/DELETE. El
 --       mismo rol que escribe el log (audit.ts) podía borrar su rastro — el
 --       escenario "compromiso del server" del threat model §2. Los criterios
@@ -14,27 +14,27 @@
 --       todo UPDATE/DELETE (un trigger SÍ corre aunque el rol bypasee RLS).
 --
 --   C2 (CRÍTICO) · Escalada de privilegios en no_olvidar_user_keys.
---       GRANT UPDATE de columna-completa (0250:346) + policy que solo valida la
---       fila (0250:408) → un authenticated hacía, directo por PostgREST:
+--       GRANT UPDATE de columna-completa (0251:346) + policy que solo valida la
+--       fila (0251:408) → un authenticated hacía, directo por PostgREST:
 --         · UPDATE ... SET role='admin'      → auto-promoción a admin
 --         · SET failed_unlock_attempts=0, locked_until=null → bypass lockout
 --         · SET last_unlock_at=now()         → forja de sesión = bypass 2FA
 --       Fix: REVOKE UPDATE a authenticated + DROP de la policy owner_update.
 --       Las escrituras legítimas se reencaminan a service_role en actions.ts
 --       (setupNoOlvidarAction + markUnlocked) o al RPC SECURITY DEFINER
---       no_olvidar_increment_failed_attempt (0251). authenticated conserva
+--       no_olvidar_increment_failed_attempt (0252). authenticated conserva
 --       SELECT de su propia fila.
 --
 --   A1 (ALTO) · rotate_kek era un confused deputy.
 --       Autorizaba por el parámetro p_actor (elegido por quien llama), nunca
---       contra auth.uid() (0250:255) → cualquiera pasaba un UUID de admin y
+--       contra auth.uid() (0251:255) → cualquiera pasaba un UUID de admin y
 --       causaba DoS del módulo (KEK activa → legacy apuntando a un secret
 --       inexistente) + spoofing del audit. Fix: REVOKE EXECUTE a authenticated;
 --       solo lo invoca key-manager.rotateKek con service_role.
 --
 --   A2 (ALTO) · INSERT forjado de recovery "aprobado".
---       authenticated tenía INSERT directo (0250:355) con WITH CHECK que solo
---       validaba requester_user_id (0250:448) → se insertaba status='approved',
+--       authenticated tenía INSERT directo (0251:355) con WITH CHECK que solo
+--       validaba requester_user_id (0251:448) → se insertaba status='approved',
 --       approvals_required=0 y executeRecovery lo aceptaba sin las 2 firmas de
 --       admin (bypass M-of-N §4.6). Fix: REVOKE INSERT a authenticated + DROP de
 --       la policy insert. El request legítimo se crea con service_role
@@ -43,10 +43,10 @@
 -- Los grants explícitos a service_role de abajo son defensivos: hacen la
 -- migración auto-contenida sin depender del orden de los default privileges.
 --
--- ⚠️ NUMERACIÓN: renumerada 2026-07-17 (0225→0252) por encima del máximo de
---    main (0249) — los números 0224/0225 ya estaban tomados en prod por
---    conversation_digest / prealerta_share. El set no_olvidar quedó contiguo:
---    0250 (crear) → 0251 (hardening) → 0252 (authz). Aplicar a prod SOLO tras el
+-- ⚠️ NUMERACIÓN: renumerada 2026-07-18 (0225→0252→0253) por encima del máximo de
+--    main — al traer main a la rama, 0250_no_olvidar colisionaba con
+--    0250_referral_settings (SDD-0159). El set no_olvidar quedó contiguo y libre:
+--    0251 (crear) → 0252 (hardening) → 0253 (authz). Aplicar a prod SOLO tras el
 --    review cripto externo, de a una con OK del founder NOMBRANDO el archivo —
 --    runbook docs/runbooks/aplicar-migraciones-prod.md. NO aplicar desde la rama.
 -- ─────────────────────────────────────────────────────────────

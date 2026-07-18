@@ -1,7 +1,7 @@
 -- ─────────────────────────────────────────────────────────────
 -- SDD-0025 · No-Olvidar — endurecimiento crypto (Fase 2.1)
 --
--- Aditiva sobre 0250 (que NO cambia — está en el bundle de review). Agrega 2
+-- Aditiva sobre 0251 (que NO cambia — está en el bundle de review). Agrega 2
 -- RPCs SECURITY DEFINER que reemplazan patrones frágiles del código TS:
 --
 --   1) no_olvidar_increment_failed_attempt — cuenta el intento fallido de
@@ -16,7 +16,7 @@
 --   · Autorización validada DENTRO de la función (no solo por GRANT).
 --   · EXECUTE revocado de public/anon; grant al mínimo rol necesario.
 --
--- Prereq: 0250 aplicada (tablas + no_olvidar_check_admin + extensión vault).
+-- Prereq: 0251 aplicada (tablas + no_olvidar_check_admin + extensión vault).
 -- NO se aplica a prod desde la rama — la aplica el founder con su OK (§ regla dura).
 -- ─────────────────────────────────────────────────────────────
 

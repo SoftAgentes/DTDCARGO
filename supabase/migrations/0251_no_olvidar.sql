@@ -1,9 +1,10 @@
 -- ─────────────────────────────────────────────────────────────
 -- SDD-0025 Fase 1 · Schema base del módulo No-Olvidar interno DTD-CARGO
 --
--- (Renumerada 2026-07-17 a 0250: nunca se aplicó a prod, y su número previo
---  0017 quedaba por debajo del máximo aplicado (0249). Set no_olvidar contiguo:
---  0250 crear → 0251 hardening → 0252 authz. Se edita en sitio — bytea→text del
+-- (Renumerada 2026-07-18 a 0251: nunca se aplicó a prod. Su número previo 0250
+--  colisionaba con 0250_referral_settings (SDD-0159) al traer main a la rama; el
+--  0017 original quedaba por debajo del máximo aplicado. Set no_olvidar contiguo:
+--  0251 crear → 0252 hardening → 0253 authz. Se edita en sitio — bytea→text del
 --  material cripto — porque sigue SIN aplicar a prod.)
 --
 -- Contenido:
