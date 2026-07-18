@@ -1,7 +1,7 @@
 ---
 sdd: "0162"
 title: "Aviso de recepción al cliente — cablear la recepción del operario (China) al motor de avisos SDD-0156"
-status: proposed
+status: in-progress
 author: "Sam (founder) + Forge Kanban (spec puente)"
 created: 2026-07-18
 updated: 2026-07-18
@@ -12,7 +12,7 @@ confidencialidad: interno
 feature_schema: 1
 feature_id: F-0162
 scope_status: complete
-implementation_status: not_started
+implementation_status: complete
 verification_status: pending
 domain: general_code
 artifact_type: code
@@ -29,7 +29,7 @@ build_method: yunque
 build_method_reason: "Toca lib/studio/notifications/schedule-fanout.ts (archivo compartido por otros eventos)."
 builder_skills: [karpathy-principles]
 review_skills: [testing-engineer]
-tickets: []
+tickets: [T-001]
 evidence_code: [lib/studio/notifications/schedule-fanout.ts, app/m/cn/recibir/actions.ts]
 evidence_tests: [lib/studio/notifications/__tests__/schedule-fanout.test.ts]
 evidence_migrations: []

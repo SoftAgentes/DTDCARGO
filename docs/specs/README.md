@@ -193,7 +193,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0159 | Configurar referidos — montos del programa editables desde el… | in-progress | interno |
 | 0160 | Modo consolidación del operario · pedir contenedor → oficina … | in-progress | interno |
 | 0161 | Registro self-service — entrega real del correo de bienvenida… | done | interno |
-| 0162 | Aviso de recepción al cliente — cablear la recepción del oper… | proposed | interno |
+| 0162 | Aviso de recepción al cliente — cablear la recepción del oper… | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
