@@ -1,7 +1,7 @@
 /**
  * Types, enums, validators y helpers de label/badge para el módulo
  * No-Olvidar interno DTD-CARGO (SDD-0025 Fase 1). Match con migración
- * 0017_no_olvidar.sql.
+ * 0250_no_olvidar.sql (renumerada desde 0017).
  *
  * NO incluye crypto types (esos viven en lib/studio/no-olvidar/crypto.ts
  * en Fase 2). Acá solo lo que es seguro mostrar al cliente: shapes de
@@ -101,6 +101,65 @@ export interface NoOlvidarItem {
 export interface DecryptedNoOlvidarItem extends NoOlvidarItem {
   plaintext: NoOlvidarItemPlaintext;
 }
+
+/**
+ * Shape SEGURA del item para mandar al cliente en la lista (SDD-0025 Fase 3).
+ * SIN los campos cifrados (ciphertext/nonce/dek_*): el plaintext se busca lazy
+ * por `revealItemAction(id)` y vive solo en memoria del drawer. Mandar el
+ * ciphertext al browser no es un leak (está cifrado), pero es innecesario.
+ */
+export interface NoOlvidarItemMeta {
+  id: string;
+  name: string;
+  category: NoOlvidarCategory;
+  url: string | null;
+  username: string | null;
+  notes_preview: string | null;
+  favorite: boolean;
+  updated_at: string;
+}
+
+/** Strip de NoOlvidarItem → NoOlvidarItemMeta (descarta el material cifrado). */
+export function toItemMeta(item: NoOlvidarItem): NoOlvidarItemMeta {
+  return {
+    id: item.id,
+    name: item.name,
+    category: item.category,
+    url: item.url,
+    username: item.username,
+    notes_preview: item.notes_preview,
+    favorite: item.favorite,
+    updated_at: item.updated_at,
+  };
+}
+
+/** Campos que viven DENTRO del ciphertext por categoría (los que revela el drawer). */
+export interface PlaintextFieldDef {
+  key: string;
+  label: string;
+  /** true = secreto (se enmascara en RevealField). false = texto visible tras revelar. */
+  secret: boolean;
+}
+
+export const CATEGORY_PLAINTEXT_FIELDS: Record<NoOlvidarCategory, PlaintextFieldDef[]> = {
+  login: [
+    { key: "password", label: "Contraseña", secret: true },
+    { key: "totp", label: "Código 2FA (secret)", secret: true },
+    { key: "notes", label: "Notas", secret: false },
+  ],
+  card: [
+    { key: "number", label: "Número de tarjeta", secret: true },
+    { key: "cvc", label: "CVC", secret: true },
+    { key: "expiry", label: "Vencimiento", secret: false },
+    { key: "holder", label: "Titular", secret: false },
+    { key: "notes", label: "Notas", secret: false },
+  ],
+  note: [{ key: "body", label: "Contenido", secret: true }],
+  totp: [
+    { key: "secret", label: "Secret (base32)", secret: true },
+    { key: "label", label: "Etiqueta", secret: false },
+  ],
+};
 
 /**
  * Shape del payload desencriptado. Varía por categoría — cada cat tiene

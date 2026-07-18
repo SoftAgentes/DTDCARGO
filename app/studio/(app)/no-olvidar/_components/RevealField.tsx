@@ -273,8 +273,8 @@ export function RevealField({
 
       {/* Aviso honesto (§4.16): nunca prometer "screenshots bloqueados". */}
       <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
-        {holdToReveal ? "Mantené presionado para ver. " : ""}
-        Defensas best-effort — asumí que tu pantalla puede ser fotografiada.
+        {holdToReveal ? "Mantén presionado para ver. " : ""}
+        Defensas best-effort — asume que tu pantalla puede ser fotografiada.
       </span>
     </div>
   );

@@ -40,10 +40,10 @@ export function SetupWizard({ totpSecret, totpUri }: SetupWizardProps) {
   if (state.ok && state.recoveryKit) {
     const words = state.recoveryKit.split(" ");
     return (
-      <Shell title="Guardá tu recovery kit" step={4}>
+      <Shell title="Guarda tu recovery kit" step={4}>
         <p style={pStyle}>
-          Estas 24 palabras son tu última vía de recuperación si perdés la master password Y
-          quedás fuera. <strong>Escribilas en papel y guardalas en un lugar físico seguro.</strong>{" "}
+          Estas 24 palabras son tu última vía de recuperación si pierdes la master password Y
+          quedas fuera. <strong>Escríbelas en papel y guárdalas en un lugar físico seguro.</strong>{" "}
           No las guardes en la nube ni les saques screenshot.
         </p>
         <ol
@@ -101,8 +101,8 @@ export function SetupWizard({ totpSecret, totpUri }: SetupWizardProps) {
             (recovery M-of-N).
           </p>
           <p style={{ ...pStyle, color: "var(--ink-mute)" }}>
-            Nota honesta: en web no se pueden bloquear los screenshots. Asumí siempre que lo que
-            revelás en pantalla puede ser fotografiado.
+            Nota honesta: en web no se pueden bloquear los screenshots. Asume siempre que lo que
+            revelas en pantalla puede ser fotografiado.
           </p>
           <label style={checkRow}>
             <input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} />
@@ -119,8 +119,8 @@ export function SetupWizard({ totpSecret, totpUri }: SetupWizardProps) {
       {step === 2 && (
         <Shell title="Master password (opcional)" step={2}>
           <p style={pStyle}>
-            Una capa extra: si la configurás, hará falta además del 2FA para desbloquear. Si la
-            dejás vacía, tus items se protegen igual con la llave del servidor y el recovery es más
+            Una capa extra: si la configuras, hará falta además del 2FA para desbloquear. Si la
+            dejas vacía, tus items se protegen igual con la llave del servidor y el recovery es más
             simple.
           </p>
           <label style={checkRow}>
@@ -153,7 +153,7 @@ export function SetupWizard({ totpSecret, totpUri }: SetupWizardProps) {
       {step === 3 && (
         <Shell title="Configurá tu 2FA" step={3}>
           <p style={pStyle}>
-            Escaneá este código con tu app de autenticación (Google Authenticator, Authy…) y escribí
+            Escanea este código con tu app de autenticación (Google Authenticator, Authy…) y escribe
             el código de 6 dígitos para confirmar.
           </p>
           <div style={{ display: "flex", justifyContent: "center", padding: 12, background: "var(--surface-inv)", borderRadius: 8 }}>

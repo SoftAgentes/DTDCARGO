@@ -37,7 +37,7 @@ export function TwoFactorGate({ hasMasterPassword, nextPath }: TwoFactorGateProp
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--ink)" }}>Desbloquear No-Olvidar</h1>
         <p style={{ fontSize: 13, color: "var(--ink-mute)" }}>
-          Ingresá el código de tu app de autenticación
+          Ingresa el código de tu app de autenticación
           {hasMasterPassword ? " y tu master password" : ""}.
         </p>
       </div>

@@ -1,9 +1,10 @@
 -- ─────────────────────────────────────────────────────────────
 -- SDD-0025 Fase 1 · Schema base del módulo No-Olvidar interno DTD-CARGO
 --
--- (Renumerada de "0013" mencionada en la spec → 0017 porque las
---  migraciones 0012-0016 ya están usadas: audit fixes pre-Sprint 4
---  + SDD-0020 schema + GRANT fix.)
+-- (Renumerada 2026-07-17 a 0250: nunca se aplicó a prod, y su número previo
+--  0017 quedaba por debajo del máximo aplicado (0249). Set no_olvidar contiguo:
+--  0250 crear → 0251 hardening → 0252 authz. Se edita en sitio — bytea→text del
+--  material cripto — porque sigue SIN aplicar a prod.)
 --
 -- Contenido:
 --   - 6 enums
