@@ -107,11 +107,15 @@ export function tierProgress(billedUsd: number): TierProgress {
   return { pct, toNext: Math.max(0, nt.min - b), tier: t, next: nt };
 }
 
-// ── Reglas del programa de referidos (constantes V1) ──────────
+// ── Reglas del programa de referidos ──────────────────────────
+// SDD-0159: estos montos son los DEFAULTS / fallback. La fuente viva es la tabla
+// `referral_settings` (editable en Fidelización › Configurar referidos); los
+// consumidores la leen con `getReferralSettings()` y caen a estos valores si el
+// tenant aún no guardó config. El trigger de acreditación (migr 0250) hace lo mismo.
 export const REFERRAL_RULES = {
-  /** USD de crédito para quien refiere, al primer embarque del referido. */
+  /** USD de crédito para quien refiere, al primer embarque del referido (default). */
   referrerReward: 80,
-  /** USD de descuento para el referido en su primer embarque. */
+  /** USD de descuento para el referido en su primer embarque (default). */
   referredReward: 60,
   currency: "USD" as const,
 };
