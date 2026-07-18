@@ -72,6 +72,44 @@ import {
 
 const BASE_PATH = "/studio/no-olvidar";
 
+// ─── Errores seguros (no filtrar SQL/tabla al cliente) ───────
+
+function extractMessage(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (e && typeof e === "object" && "message" in e) return String((e as { message: unknown }).message);
+  return String(e);
+}
+
+/** Detecta el caso "módulo sin instalar" (migraciones 0250-0252 / KEK sin aplicar). */
+function looksLikeMissingSchema(raw: string): boolean {
+  return /schema cache|does not exist|could not find the table|relation .* does not|undefined table/i.test(raw);
+}
+
+/**
+ * Mensaje de error seguro para el usuario. Loguea el crudo server-side y NUNCA
+ * filtra detalles de Postgres/PostgREST (nombres de tabla, schema cache) al
+ * cliente (regla del repo: nunca `error.message` crudo). Si el módulo aún no
+ * está instalado, lo dice claro en vez del error interno.
+ */
+function noOlvidarError(friendly: string, e: unknown): string {
+  const raw = extractMessage(e);
+  console.error(`[no-olvidar] ${friendly} —`, raw);
+  if (looksLikeMissingSchema(raw)) {
+    return "El No-Olvidar todavía no está disponible: falta completar su instalación. Avisa a un administrador.";
+  }
+  return friendly;
+}
+
+/** Como noOlvidarError pero conserva el mensaje de DOMINIO (recovery.ts) salvo que sea infra. */
+function noOlvidarDomainError(e: unknown): string {
+  const raw = extractMessage(e);
+  if (looksLikeMissingSchema(raw)) {
+    console.error("[no-olvidar] infra error —", raw);
+    return "El No-Olvidar todavía no está disponible o rechazó la operación. Avisa a un administrador.";
+  }
+  return raw;
+}
+
 // ─── Helpers de contexto ─────────────────────────────────────
 
 type SupabaseLike = Awaited<ReturnType<typeof createClient>>;
@@ -190,7 +228,7 @@ export async function setupNoOlvidarAction(
     totpCiphertext = toBase64(sealed.ciphertext);
     totpNonce = toBase64(sealed.nonce);
   } catch (e) {
-    return { error: `No se pudo inicializar el cifrado: ${(e as Error).message}` };
+    return { error: noOlvidarError("No se pudo inicializar el cifrado.", e) };
   }
 
   // Recovery kit: generar, mostrar una vez, guardar SOLO el hash.
@@ -217,7 +255,7 @@ export async function setupNoOlvidarAction(
       updated_at: new Date().toISOString(),
     })
     .eq("user_id", userId);
-  if (error) return { error: `No se pudo completar el setup: ${error.message}` };
+  if (error) return { error: noOlvidarError("No se pudo completar el setup.", error) };
 
   const meta = await clientMeta();
   await logAccess(admin, { userId, action: "unlock", ip: meta.ip, ua: meta.ua, metadata: { setup: true } });
@@ -272,7 +310,7 @@ export async function unlockNoOlvidarAction(
       key,
     );
   } catch (e) {
-    return { error: `No se pudo verificar el 2FA: ${(e as Error).message}` };
+    return { error: noOlvidarError("No se pudo verificar el 2FA.", e) };
   }
 
   const totpOk = verifyTotp((fd.get("totp_code")?.toString() ?? "").trim(), totpSecret);
@@ -339,7 +377,7 @@ export async function createItemAction(
       keyVersion: version,
     };
   } catch (e) {
-    return { error: `No se pudo cifrar el item: ${(e as Error).message}` };
+    return { error: noOlvidarError("No se pudo cifrar el item.", e) };
   }
 
   const { input, fieldErrors } = validateCreateItemInput({
@@ -375,7 +413,7 @@ export async function createItemAction(
     })
     .select("id")
     .single<{ id: string }>();
-  if (error) return { error: `No se pudo guardar el item: ${error.message}` };
+  if (error) return { error: noOlvidarError("No se pudo guardar el item.", error) };
 
   const meta = await clientMeta();
   await logAccess(admin, { userId, itemId: data.id, action: "create", ip: meta.ip, ua: meta.ua });
@@ -427,7 +465,7 @@ export async function revealItemAction(itemId: string): Promise<RevealResult> {
     await logAccess(admin, { userId, itemId, action: "view", ip: meta.ip, ua: meta.ua });
     return { ok: true, plaintext };
   } catch (e) {
-    return { error: `No se pudo descifrar: ${(e as Error).message}` };
+    return { error: noOlvidarError("No se pudo descifrar el item.", e) };
   }
 }
 
@@ -483,7 +521,7 @@ export async function updateItemAction(
       patch.dek_nonce = toBase64(wrapped.nonce);
       patch.key_version = version;
     } catch (e) {
-      return { error: `No se pudo re-cifrar: ${(e as Error).message}` };
+      return { error: noOlvidarError("No se pudo re-cifrar el contenido.", e) };
     }
   }
 
@@ -500,7 +538,7 @@ export async function updateItemAction(
   if (fieldErrors) return { fieldErrors };
 
   const { error } = await supabase.from("no_olvidar_items").update(patch).eq("id", id);
-  if (error) return { error: `No se pudo actualizar: ${error.message}` };
+  if (error) return { error: noOlvidarError("No se pudo actualizar el item.", error) };
 
   const admin = createAdminClient();
   const meta = await clientMeta();
@@ -519,7 +557,7 @@ export async function softDeleteItemAction(itemId: string): Promise<NoOlvidarAct
     .from("no_olvidar_items")
     .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
     .eq("id", itemId);
-  if (error) return { error: `No se pudo eliminar: ${error.message}` };
+  if (error) return { error: noOlvidarError("No se pudo eliminar el item.", error) };
 
   const admin = createAdminClient();
   const meta = await clientMeta();
@@ -547,7 +585,7 @@ export async function requestRecoveryAction(
     revalidatePath(BASE_PATH);
     return { ok: true, recoveryId: req.id };
   } catch (e) {
-    return { error: `No se pudo crear el pedido: ${(e as Error).message}` };
+    return { error: noOlvidarError("No se pudo crear el pedido de recuperación.", e) };
   }
 }
 
@@ -563,7 +601,7 @@ export async function approveRecoveryAction(recoveryId: string): Promise<NoOlvid
     revalidatePath(`${BASE_PATH}/admin`);
     return { ok: true, recoveryId };
   } catch (e) {
-    return { error: (e as Error).message };
+    return { error: noOlvidarDomainError(e) };
   }
 }
 
@@ -583,7 +621,7 @@ export async function rejectRecoveryAction(
     revalidatePath(`${BASE_PATH}/admin`);
     return { ok: true, recoveryId };
   } catch (e) {
-    return { error: (e as Error).message };
+    return { error: noOlvidarDomainError(e) };
   }
 }
 
@@ -606,7 +644,7 @@ export async function executeRecoveryAction(
     revalidatePath(BASE_PATH);
     return { ok: true, recoveryId };
   } catch (e) {
-    return { error: (e as Error).message };
+    return { error: noOlvidarDomainError(e) };
   }
 }
 
@@ -635,7 +673,7 @@ export async function rotateKekAction(): Promise<RotateKekResult> {
     revalidatePath(`${BASE_PATH}/admin`);
     return { ok: true, itemsReencrypted: count };
   } catch (e) {
-    return { error: `Falló la rotación del KEK: ${(e as Error).message}` };
+    return { error: noOlvidarError("Falló la rotación del KEK.", e) };
   }
 }
 
@@ -677,7 +715,7 @@ export async function updateNoOlvidarConfigAction(
   }
 
   const { error } = await supabase.from("no_olvidar_config").update(patch).eq("id", 1);
-  if (error) return { error: `No se pudo actualizar la configuración: ${error.message}` };
+  if (error) return { error: noOlvidarError("No se pudo actualizar la configuración.", error) };
   revalidatePath(`${BASE_PATH}/admin`);
   return { ok: true };
 }

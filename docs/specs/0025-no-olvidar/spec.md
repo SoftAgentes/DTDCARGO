@@ -1,10 +1,10 @@
 ---
 sdd: "0025"
 title: "DoorTuDoor — No-Olvidar interno DTD-CARGO · envelope encryption + admin recovery"
-status: approved
+status: in-progress
 author: "founder"
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-07-17
 supersedes: null
 superseded_by: null
 related: ["0007"]
