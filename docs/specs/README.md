@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 155 specs)
+### Índice de specs (generado · 156 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -101,7 +101,6 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0066 | Generador de reportes de inspección en el ERP (white-label · … | done | interno |
 | 0067 | Aceptación con evidencia reforzada (SDD-B del handoff legal) … | done | interno |
 | 0068 | Recibos de cobranza con mandato (SDD-C del handoff legal) — l… | done | interno |
-| 0068 | Registro self-service — entrega real del correo de bienvenida… | done | interno |
 | 0069 | Rendición quincenal a la Operadora (SDD-D del handoff legal) … | done | interno |
 | 0070 | Expediente de defensa legal (SDD-E del handoff) — cadena de e… | done | interno |
 | 0071 | Orden de compra (Purchase Order · compra asistida → Bill): el… | done | interno |
@@ -193,6 +192,8 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0158 | Documentos de Marketing en el Studio — lector read-only de do… | done | interno |
 | 0159 | Configurar referidos — montos del programa editables desde el… | in-progress | interno |
 | 0160 | Modo consolidación del operario · pedir contenedor → oficina … | in-progress | interno |
+| 0161 | Registro self-service — entrega real del correo de bienvenida… | done | interno |
+| 0162 | Aviso de recepción al cliente — cablear la recepción del oper… | proposed | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

@@ -1,22 +1,26 @@
 ---
-sdd: "0068"
+sdd: "0161"
 title: "Registro self-service — entrega real del correo de bienvenida + aviso interno de cliente nuevo"
 status: done
 author: "Claude Code (carril registro · feat/registro-correos)"
 created: 2026-06-07
-updated: 2026-06-10
+updated: 2026-07-18
 supersedes: null
 superseded_by: null
 related: ["0042", "0032", "0026", "0010", "0036", "0046"]
 confidencialidad: interno
 ---
 
-# DTD-0068 — Registro self-service: entrega real del correo + aviso interno
+# DTD-0161 — Registro self-service: entrega real del correo + aviso interno
 
-> **Renumerado 0059 → 0068 (2026-06-10).** El correlativo `0059` colisionó entre dos
-> ventanas: lo tomó primero "Financiero con el Socio Logístico China" (created 2026-06-05,
-> con migraciones `0114`/`0115` nombradas `sdd0059` en prod) — esta spec (created
-> 2026-06-07) cede el número. Los commits históricos `SDD-0059` del carril registro
+> **Renumerado 0068 → 0161 (2026-07-18).** Segundo choque del correlativo: el `0068`
+> ya lo había tomado `0068-recibos-cobranza` (capa legal SDD-C) el 2026-06-11 11:17 en
+> git; el renumerado `0059 → 0068` de ESTA spec aterrizó a las 13:06 del mismo día, sin
+> notar la colisión. Recibos-cobranza conserva 0068 (llegó primero + preserva la
+> secuencia legal 0068-C/0069-D/0070-E); esta spec cede a `0161` (siguiente libre).
+> Historial previo: renumerada antes `0059 → 0068 (2026-06-10)` cuando "Financiero con
+> el Socio Logístico China" (migraciones `0114`/`0115` nombradas `sdd0059` en prod) se
+> quedó con 0059. Los commits históricos `SDD-0059` y `SDD-0068` del carril registro
 > (`feat/registro-correos`) refieren a ESTA spec.
 
 > Con el SEO/Ads empezaron a llegar clientes nuevos. El registro self-service de `/portal/registro` ya
