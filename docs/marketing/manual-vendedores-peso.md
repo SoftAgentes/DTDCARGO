@@ -14,13 +14,20 @@ que de peso** — nuestra carga real casi nunca se acerca al tope físico del co
 eso podemos ser generosos sin perder plata. Pero esa generosidad **tiene candados** para
 que nadie abuse.
 
+**La oferta es "por kilos": el kilo no te limita.** Cada m³ trae **hasta 1.000 kg de gracia**
+sin recargo — mucho más que lo que pesa la carga real (por eso el 97% cotiza liso). Pasado eso,
+la calculadora suma **$2 por kg**, no deriva a nadie. El único freno duro es el **tope por
+envío: 9.000 kg** — y solo muerde cuando la carga además es **densa** (ver abajo). Es la
+protección para que un solo cliente no se coma el peso del contenedor.
+
 ## Los números (SOLO para ti)
 
 | Tramo | Regla | Qué cobra la calculadora |
 |---|---|---|
 | **Gracia** | hasta **1.000 kg por m³** | Tarifa por volumen, sin recargo (el 97%) |
 | **Recargo por peso** | más de **1.000 kg por m³** | **Auto-cotiza**: tarifa + **$2 por cada kg de más**. Sin "consulta asesor". |
-| **Tope contenedor** | más de **68 m³** ó **27.000 kg** | Recién ahí deriva al asesor (FCL) |
+| **Tope por envío** (anti-abuso) | más de **9.000 kg** **Y** carga **densa** (> ≈400 kg/m³) | Deriva al asesor (a medida). Carga pesada pero **voluminosa** NO cae aquí: sigue auto-cotizando. |
+| **Tope contenedor** | más de **68 m³** ó **27.000 kg** | Deriva al asesor (FCL) |
 
 Tarifa base de referencia hoy: **$800 por m³** · mínimo facturable **$380**. (La tarifa es
 editable en la calculadora; ajústala dentro de tu margen, nunca bajo el mínimo.)
@@ -28,23 +35,37 @@ editable en la calculadora; ajústala dentro de tu margen, nunca bajo el mínimo
 **El $2/kg es tu protección:** la carga densa (maquinaria, metal) paga lo justo por el peso
 extra Y recibe precio al instante — no tienes que derivar nada al asesor salvo lo gigante.
 
+**El tope de 9.000 kg — por qué existe y cuándo muerde.** Es **⅓ de los 27.000 kg** que aguanta
+un contenedor: así garantizamos **≥3 clientes por consolidado** y nadie se come el peso solo. La
+calculadora **no lo aplica a lo bruto**: solo deriva al asesor si el envío pesa **más de 9.000 kg
+Y** además es **denso** — o sea, por encima del **punto de equilibrio del contenedor (27.000 ÷ 68
+≈ 400 kg/m³)**. Traducido: si alguien mete mucho peso en poco volumen (metal, maquinaria) y pasa
+los 9.000 kg, **acapara el peso dejando espacio sin vender → lo cotizamos a medida**. Pero un
+envío pesado y **voluminoso** (baja densidad) sí auto-cotiza: usa su parte justa de espacio, no
+monopoliza nada. *(Está automatizado en la calculadora; tú no calculas densidades — si dice
+"consulta asesor" por peso, es este caso.)*
+
 ## Cómo cotizar, paso a paso
 
 1. Pide **volumen (m³) y peso (kg)** de TODA la carga del cliente.
 2. Mételo en la calculadora. Si **da precio** → es LCL normal, ese es tu punto de partida.
-3. Si dice **"consulta con un asesor"** → es un envío gigante (más de un contenedor).
-   Cotízalo a medida / FCL con tu supervisor. Ojo: la carga densa NO cae aquí — auto-cotiza.
+3. Si dice **"consulta con un asesor"** → es uno de dos casos: **(a)** un envío **gigante** (más
+   de un contenedor: 68 m³ ó 27.000 kg), o **(b)** carga **densa que pasa los 9.000 kg** (acapara
+   el peso del contenedor). Cotízalo a medida / FCL con tu supervisor. Ojo: la carga densa que
+   **no** pasa los 9.000 kg auto-cotiza con su recargo de $2/kg — esa no la derivas.
 4. **Siempre** cierra con: *"la tarifa final se confirma con el peso y volumen reales al
    recibir tu carga"*.
 
-## Ejemplo trabajado (los 4 casos típicos · tarifa $800/m³)
+## Ejemplo trabajado (los casos típicos · tarifa $800/m³)
 
 | Cliente trae | Densidad | Cálculo | Resultado |
 |---|---|---|---|
 | **3 m³ · 900 kg** | 300 kg/m³ | 3 × $800 | **$2.400** ✅ por volumen |
 | **1 m³ · 2.000 kg** | 2.000 kg/m³ | 800 + (2.000−1.000) × $2 | **$2.800** ✅ auto-cotiza (recargo peso) |
 | **2 m³ · 3.000 kg** | 1.500 kg/m³ | 1.600 + (3.000−2.000) × $2 | **$3.600** ✅ auto-cotiza |
-| **12 m³ · 10.000 kg** | 833 kg/m³ | 12 × $800 | **$9.600** ✅ por volumen (dentro de la gracia) |
+| **12 m³ · 8.000 kg** | 667 kg/m³ | 12 × $800 | **$9.600** ✅ por volumen (dentro de la gracia, bajo los 9.000 kg) |
+| **30 m³ · 10.000 kg** | 333 kg/m³ | 30 × $800 | **$24.000** ✅ por volumen (pesa +9.000 kg **pero es voluminosa**: no acapara) |
+| **5 m³ · 10.000 kg** | 2.000 kg/m³ | — | ⚠️ **Consulta asesor** (+9.000 kg **y densa**: acapararía el peso del contenedor) |
 
 ## 🛡️ Cómo NO caer en la estrategia del cliente
 
