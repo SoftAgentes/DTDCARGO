@@ -68,7 +68,7 @@ begin
        null),
     ('F-2026-D05','DTD-2026-0402', 2100.00,    0.00, 'emitida',
        (current_date - 40), (current_date - 10), null,
-       '[{"desc":"Puerta a puerta DDP (pagas al llegar)","qty":1,"unitPrice":2100}]',
+       '[{"desc":"Puerta a puerta (pagas al llegar)","qty":1,"unitPrice":2100}]',
        'Coordinar pago con tu asesor.')
   ) as x(code, shipment_code, amount, paid, status, issued, due, last_pay, lines, notes)
   on conflict (tenant_id, invoice_code) do update
