@@ -33,9 +33,15 @@ const KEK_CACHE_TTL_MS = 5 * 60 * 1000;
 /** Caché por versión de KEK. La versión activa se resuelve aparte (RPC). */
 const kekByVersion = new Map<number, KekCacheEntry>();
 
-/** Vacía la caché — llamar tras rotar el KEK para no servir la versión vieja. */
+/**
+ * Vacía la caché — llamar tras rotar el KEK para no servir la versión vieja.
+ * NO se hace `wipe()` de las claves: `getKekByVersion`/`getActiveKek` devuelven la
+ * MISMA referencia cacheada, así que zero-earla acá corrompería una KEK que un
+ * request concurrente todavía tiene en la mano (unwrap/wrap bajo clave en ceros →
+ * pérdida de datos). Se deja al GC. El wipe de material sensible se hace solo
+ * sobre buffers locales no compartidos (masterKey en crypto.ts, DEK por operación).
+ */
 export function invalidateKekCache(): void {
-  for (const entry of kekByVersion.values()) wipe(entry.key); // borrar la KEK del heap
   kekByVersion.clear();
 }
 

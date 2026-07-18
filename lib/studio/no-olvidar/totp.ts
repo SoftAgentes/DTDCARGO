@@ -77,8 +77,11 @@ export function verifyTotpWithStep(token: string, secret: string): TotpVerificat
       epochTolerance: EPOCH_TOLERANCE_SECONDS,
     }) as unknown as TotpVerifyRuntimeResult;
     if (!r.valid) return { valid: false, step: null };
-    const step = r.timeStep != null && r.delta != null ? r.timeStep + r.delta : null;
-    return { valid: true, step };
+    // Fail-CLOSED: si otplib validó pero no expuso el step (cambio de versión /
+    // shape distinto), NO podemos garantizar el anti-replay → tratamos el código
+    // como no verificable en vez de aceptarlo sin protección de reuso.
+    if (r.timeStep == null || r.delta == null) return { valid: false, step: null };
+    return { valid: true, step: r.timeStep + r.delta };
   } catch {
     return { valid: false, step: null };
   }

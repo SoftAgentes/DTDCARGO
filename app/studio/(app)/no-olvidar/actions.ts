@@ -79,6 +79,9 @@ import {
 
 const BASE_PATH = "/studio/no-olvidar";
 
+/** Tope del payload plaintext serializado por item (anti-DoS de almacenamiento/memoria). */
+const MAX_ITEM_PLAINTEXT_BYTES = 32 * 1024; // 32 KiB — holgado para logins/notas reales
+
 // ─── Errores seguros (no filtrar SQL/tabla al cliente) ───────
 
 function extractMessage(e: unknown): string {
@@ -169,30 +172,39 @@ async function requireUnlocked(
   return null;
 }
 
-/** Arma el payload plaintext según la categoría, leyendo los campos del form. */
+/**
+ * Arma el payload plaintext según la categoría, leyendo los campos del form.
+ * `raw()` conserva los valores SENSIBLES tal cual (una contraseña/nota/secreto con
+ * espacios significativos NO se recorta — sería corrupción silenciosa del dato);
+ * `s()` (trim) es solo para metadata y checks de presencia. `default: throw`
+ * evita el `undefined` silencioso si llega una categoría inválida por cast.
+ */
 function buildPlaintext(category: NoOlvidarCategory, fd: FormData): NoOlvidarItemPlaintext {
-  const s = (k: string) => (fd.get(k)?.toString() ?? "").trim();
+  const raw = (k: string) => fd.get(k)?.toString() ?? "";
+  const s = (k: string) => raw(k).trim();
   switch (category) {
     case "login":
       return {
         kind: "login",
-        password: s("password"),
-        ...(s("totp") ? { totp: s("totp") } : {}),
-        ...(s("notes") ? { notes: s("notes") } : {}),
+        password: raw("password"),
+        ...(s("totp") ? { totp: raw("totp") } : {}),
+        ...(s("notes") ? { notes: raw("notes") } : {}),
       };
     case "card":
       return {
         kind: "card",
-        number: s("number"),
-        cvc: s("cvc"),
+        number: raw("number"),
+        cvc: raw("cvc"),
         expiry: s("expiry"),
         holder: s("holder"),
-        ...(s("notes") ? { notes: s("notes") } : {}),
+        ...(s("notes") ? { notes: raw("notes") } : {}),
       };
     case "note":
-      return { kind: "note", body: s("body") };
+      return { kind: "note", body: raw("body") };
     case "totp":
-      return { kind: "totp", secret: s("secret"), label: s("label") };
+      return { kind: "totp", secret: raw("secret"), label: s("label") };
+    default:
+      throw new Error(`Categoría de No-Olvidar inválida: ${String(category)}`);
   }
 }
 
@@ -284,7 +296,7 @@ export async function setupNoOlvidarAction(
   // Escritura de columnas sensibles (role/verifier/totp/setup/last_unlock) va por
   // service_role: authenticated ya NO tiene UPDATE sobre user_keys (migr 0225,
   // cierre de la escalada de privilegios). Scoping por .eq("user_id", userId).
-  const { error } = await admin
+  const { data: setupRows, error } = await admin
     .from("no_olvidar_user_keys")
     .update({
       has_master_password: masterVerifier != null,
@@ -301,8 +313,15 @@ export async function setupNoOlvidarAction(
       last_unlock_at: new Date().toISOString(), // el setup deja la sesión abierta
       updated_at: new Date().toISOString(),
     })
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .eq("setup_completed", false) // guard ATÓMICO: cierra el TOCTOU de re-enrolamiento
+    .select("user_id");
   if (error) return { error: noOlvidarError("No se pudo completar el setup.", error) };
+  // 0 filas = ya estaba configurado (carrera contra el SELECT de arriba) o no hay
+  // fila pre-aprovisionada → no mostrar el recovery kit ni reportar éxito falso.
+  if (!setupRows || setupRows.length === 0) {
+    return { error: "Tu No-Olvidar ya está configurado o no se pudo inicializar. Avisa a un administrador." };
+  }
 
   const meta = await clientMeta();
   await logAccess(admin, { userId, action: "unlock", ip: meta.ip, ua: meta.ua, metadata: { setup: true } });
@@ -434,8 +453,11 @@ export async function createItemAction(
   let sealedPayload: { ciphertext: string; nonce: string; dekWrapped: string; dekNonce: string; keyVersion: number };
   try {
     const { version, key: kek } = await getActiveKek(admin);
-    const dek = await generateDek();
     const plaintext = JSON.stringify(buildPlaintext(category, fd));
+    if (plaintext.length > MAX_ITEM_PLAINTEXT_BYTES) {
+      return { error: "El contenido del item es demasiado grande." };
+    }
+    const dek = await generateDek();
     const sealed = await encryptPayload(plaintext, dek, aadItem(userId));
     const wrapped = await wrapDek(dek, kek, aadDek(userId));
     wipe(dek); // el DEK en claro no se necesita más
@@ -610,8 +632,12 @@ export async function updateItemAction(
     const admin = createAdminClient();
     try {
       const { version, key: kek } = await getActiveKek(admin);
+      const plaintext = JSON.stringify(buildPlaintext(category, fd));
+      if (plaintext.length > MAX_ITEM_PLAINTEXT_BYTES) {
+        return { error: "El contenido del item es demasiado grande." };
+      }
       const dek = await generateDek();
-      const sealed = await encryptPayload(JSON.stringify(buildPlaintext(category, fd)), dek, aadItem(userId));
+      const sealed = await encryptPayload(plaintext, dek, aadItem(userId));
       const wrapped = await wrapDek(dek, kek, aadDek(userId));
       wipe(dek); // el DEK en claro no se necesita más
       patch.ciphertext = toBase64(sealed.ciphertext);
@@ -636,12 +662,16 @@ export async function updateItemAction(
   });
   if (fieldErrors) return { fieldErrors };
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("no_olvidar_items")
     .update(patch)
     .eq("id", id)
-    .eq("user_id", userId); // defensa en profundidad además de RLS
+    .eq("user_id", userId) // defensa en profundidad además de RLS
+    .select("id");
   if (error) return { error: noOlvidarError("No se pudo actualizar el item.", error) };
+  // 0 filas = el item no es del user (o no existe) → NO auditar (envenenaría el
+  // log append-only) ni reportar éxito.
+  if (!updated || updated.length === 0) return { error: "Item no encontrado." };
 
   const admin = createAdminClient();
   const meta = await clientMeta();
@@ -661,12 +691,14 @@ export async function softDeleteItemAction(itemId: string): Promise<NoOlvidarAct
   const gate = await requireUnlocked(supabase, userId);
   if (gate) return { error: gate };
 
-  const { error } = await supabase
+  const { data: deleted, error } = await supabase
     .from("no_olvidar_items")
     .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
     .eq("id", itemId)
-    .eq("user_id", userId); // defensa en profundidad además de RLS
+    .eq("user_id", userId) // defensa en profundidad además de RLS
+    .select("id");
   if (error) return { error: noOlvidarError("No se pudo eliminar el item.", error) };
+  if (!deleted || deleted.length === 0) return { error: "Item no encontrado." };
 
   const admin = createAdminClient();
   const meta = await clientMeta();

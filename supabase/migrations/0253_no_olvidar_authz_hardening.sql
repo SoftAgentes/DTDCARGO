@@ -58,6 +58,7 @@ revoke update, delete, truncate on public.no_olvidar_access_log
 create or replace function public.no_olvidar_block_audit_mutation()
 returns trigger
 language plpgsql
+set search_path = ''
 as $$
 begin
   raise exception 'no_olvidar_access_log es append-only: % prohibido', tg_op
@@ -66,12 +67,21 @@ end;
 $$;
 
 comment on function public.no_olvidar_block_audit_mutation is
-  'Aborta cualquier UPDATE/DELETE sobre el audit log del No-Olvidar. Un trigger se ejecuta aunque el rol tenga BYPASSRLS (service_role), a diferencia de las policies RLS — por eso esto SÍ hace inmutable el log (spec §4.7). service_role conserva solo INSERT.';
+  'Aborta cualquier UPDATE/DELETE/TRUNCATE sobre el audit log del No-Olvidar. Un trigger se ejecuta aunque el rol tenga BYPASSRLS (service_role), a diferencia de las policies RLS — por eso esto SÍ hace inmutable el log (spec §4.7). service_role conserva solo INSERT.';
 
 drop trigger if exists no_olvidar_access_log_immutable on public.no_olvidar_access_log;
 create trigger no_olvidar_access_log_immutable
   before update or delete on public.no_olvidar_access_log
   for each row execute function public.no_olvidar_block_audit_mutation();
+
+-- TRUNCATE NO lo cubre un trigger FOR EACH ROW → un trigger de statement aparte.
+-- Sin esto, la inmutabilidad ante TRUNCATE dependería solo del REVOKE de arriba,
+-- que un default-privilege futuro podría volver a filtrar (exactamente el patrón
+-- que C1 declaró inaceptable para UPDATE/DELETE). Cierra la última rendija.
+drop trigger if exists no_olvidar_access_log_no_truncate on public.no_olvidar_access_log;
+create trigger no_olvidar_access_log_no_truncate
+  before truncate on public.no_olvidar_access_log
+  for each statement execute function public.no_olvidar_block_audit_mutation();
 
 -- ── C2 · Cerrar la escalada por UPDATE directo a user_keys ───
 drop policy if exists "no_olvidar_user_keys_owner_update" on public.no_olvidar_user_keys;
