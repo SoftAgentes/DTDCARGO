@@ -50,13 +50,16 @@ export function PortalTimeline({
   status,
   service,
   dates,
+  hiddenStatuses,
 }: {
   status: ShipmentStatus;
   service: ShipmentService;
   /** Fecha real (ISO) por status, del stepper (SDD-0132). Opcional. */
   dates?: Partial<Record<ShipmentStatus, string>>;
+  /** Statuses ocultos por config del tenant (SDD-0156 · visible_in_portal). */
+  hiddenStatuses?: ReadonlySet<ShipmentStatus>;
 }) {
-  const steps = buildTimeline(status, service);
+  const steps = buildTimeline(status, service, hiddenStatuses);
 
   return (
     <div className="flex flex-col">

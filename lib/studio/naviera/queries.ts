@@ -55,7 +55,7 @@ const BOOKING_COLUMNS =
   "id, tenant_id, code, carrier_id, sailing_id, bl_number, container_type, mode, shipper, commodity, status, notes, created_at, updated_at, deleted_at";
 
 const CONSOLIDATION_COLUMNS =
-  "id, tenant_id, ref, booking_id, sailing_id, container_type, container_no, status, notes, created_at, updated_at, deleted_at";
+  "id, tenant_id, ref, booking_id, sailing_id, container_type, container_no, status, notes, requested_by_operario_id, requested_at, authorized_by, authorized_at, rejected_reason, created_at, updated_at, deleted_at";
 
 const ITEM_COLUMNS =
   "id, tenant_id, consolidation_id, shipment_id, client_markbox, client_name, supplier_name, cbm, weight_kg, pieces, created_at";
@@ -147,13 +147,19 @@ function coerceConsolidation(r: Record<string, unknown>): Consolidation {
   return {
     id: String(r.id),
     tenant_id: String(r.tenant_id),
-    ref: String(r.ref),
+    // SDD-0157: 'solicitada' no tiene ref todavía → null (no "null" string).
+    ref: (r.ref as string | null) ?? null,
     booking_id: (r.booking_id as string | null) ?? null,
     sailing_id: (r.sailing_id as string | null) ?? null,
     container_type: (r.container_type as string | null) ?? null,
     container_no: (r.container_no as string | null) ?? null,
     status: (r.status as Consolidation["status"]) ?? "consolidando",
     notes: (r.notes as string | null) ?? null,
+    requested_by_operario_id: (r.requested_by_operario_id as string | null) ?? null,
+    requested_at: (r.requested_at as string | null) ?? null,
+    authorized_by: (r.authorized_by as string | null) ?? null,
+    authorized_at: (r.authorized_at as string | null) ?? null,
+    rejected_reason: (r.rejected_reason as string | null) ?? null,
     created_at: String(r.created_at),
     updated_at: String(r.updated_at),
     deleted_at: (r.deleted_at as string | null) ?? null,
@@ -272,6 +278,7 @@ export async function listConsolidations(
   let query = supabase
     .from("consolidations")
     .select(CONSOLIDATION_COLUMNS)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(2000);
   if (opts.status) query = query.eq("status", opts.status);
@@ -343,6 +350,7 @@ export async function getConsolidation(
     .from("consolidations")
     .select(CONSOLIDATION_COLUMNS)
     .eq("id", id)
+    .is("deleted_at", null)
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;

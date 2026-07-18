@@ -50,6 +50,8 @@ import {
   changeConsolidationStatus,
   setConsolidationContainerNo,
   refreshTracking,
+  authorizeConsolidation,
+  rejectConsolidation,
 } from "../actions";
 import type { TrackingSnapshotRow } from "@/lib/studio/naviera-tracking/snapshot-queries";
 import { SailingDrawer } from "./SailingDrawer";
@@ -483,15 +485,27 @@ function ConsolidationTab({
   onNew: () => void;
   onAssign: (d: ConsolidationDetail) => void;
 }) {
+  // SDD-0157: separar las solicitudes del operario (pendientes de autorizar) de
+  // los contenedores ya operables. Las rechazadas no se muestran (sin ref, sin
+  // carga; su rastro queda en la fila para auditoría).
+  const requests = consolidations.filter(
+    (d) => d.consolidation.status === "solicitada",
+  );
+  const containers = consolidations.filter(
+    (d) =>
+      d.consolidation.status !== "solicitada" &&
+      d.consolidation.status !== "rechazada",
+  );
+
   const [selectedId, setSelectedId] = useState<string | null>(
-    consolidations[0]?.consolidation.id ?? null,
+    containers[0]?.consolidation.id ?? null,
   );
   const selected =
-    consolidations.find((d) => d.consolidation.id === selectedId) ??
-    consolidations[0] ??
+    containers.find((d) => d.consolidation.id === selectedId) ??
+    containers[0] ??
     null;
 
-  if (consolidations.length === 0) {
+  if (requests.length === 0 && containers.length === 0) {
     return (
       <EmptyState
         eyebrow="Sin contenedores"
@@ -511,10 +525,29 @@ function ConsolidationTab({
   }
 
   return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {requests.length > 0 && <RequestsSection requests={requests} />}
+
+      {containers.length === 0 ? (
+        <EmptyState
+          eyebrow="Sin contenedores abiertos"
+          title="No hay contenedores en consolidación todavía."
+          description="Autoriza una solicitud de arriba o crea un contenedor nuevo."
+          action={
+            <button
+              type="button"
+              className="studio-btn studio-btn-primary"
+              onClick={onNew}
+            >
+              + Nuevo contenedor
+            </button>
+          }
+        />
+      ) : (
     <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 16 }}>
       {/* Lista lateral */}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {consolidations.map((d) => {
+        {containers.map((d) => {
           const c = d.consolidation;
           const active = selected?.consolidation.id === c.id;
           return (
@@ -592,6 +625,190 @@ function ConsolidationTab({
           stuffing={stuffingByConsolidation?.[selected.consolidation.id] ?? []}
           onAssign={() => onAssign(selected)}
         />
+      )}
+    </div>
+      )}
+    </div>
+  );
+}
+
+// ── SDD-0157 · bandeja de solicitudes del operario ──────────────
+
+function RequestsSection({ requests }: { requests: ConsolidationDetail[] }) {
+  return (
+    <div
+      style={{
+        background: "var(--bg-surface)",
+        border: "1px solid var(--info)",
+        borderLeft: "3px solid var(--info)",
+        borderRadius: "var(--r-lg)",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          padding: "14px 20px",
+          borderBottom: "1px solid var(--border)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <div className="studio-eyebrow">
+          Solicitudes de consolidado · el hub pidió abrir contenedor
+        </div>
+        <Badge tone="info" size="sm">
+          {requests.length} pendiente{requests.length === 1 ? "" : "s"}
+        </Badge>
+      </div>
+      {requests.map((d, i) => (
+        <RequestRow
+          key={d.consolidation.id}
+          detail={d}
+          borderTop={i > 0}
+        />
+      ))}
+    </div>
+  );
+}
+
+function RequestRow({
+  detail,
+  borderTop,
+}: {
+  detail: ConsolidationDetail;
+  borderTop: boolean;
+}) {
+  const router = useRouter();
+  const toast = useToast();
+  const c = detail.consolidation;
+  const [rejecting, setRejecting] = useState(false);
+  const [reason, setReason] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const tipo = c.container_type ?? "sin tipo";
+
+  return (
+    <div
+      style={{
+        padding: "16px 20px",
+        borderTop: borderTop ? "1px solid var(--border)" : 0,
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 16,
+          flexWrap: "wrap",
+        }}
+      >
+        <div>
+          <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>
+            Solicitud de consolidado · {tipo}
+          </div>
+          <div
+            style={{
+              font: "500 11.5px/1.3 var(--f-sans)",
+              color: "var(--ink-soft)",
+              marginTop: 4,
+            }}
+          >
+            {c.requested_at
+              ? `Pedido ${timeAgo(c.requested_at)}`
+              : "Pedido por el hub"}
+            {" · sin correlativo hasta autorizar"}
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <ActionButton
+            variant="dark"
+            size="sm"
+            idleLabel="Autorizar"
+            loadingLabel="Autorizando…"
+            successLabel="Autorizado"
+            onAction={() => {
+              setError(null);
+              return authorizeConsolidation(c.id);
+            }}
+            onSuccess={() => {
+              toast.success("Contenedor autorizado · ya puede estibar");
+              router.refresh();
+            }}
+            onError={setError}
+          />
+          <button
+            type="button"
+            className="studio-btn studio-btn-ghost studio-btn-sm"
+            onClick={() => {
+              setRejecting((v) => !v);
+              setError(null);
+            }}
+          >
+            Rechazar
+          </button>
+        </div>
+      </div>
+
+      {rejecting && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <textarea
+            className="studio-input"
+            style={{ width: "100%", minHeight: 60, resize: "vertical" }}
+            placeholder="Motivo del rechazo (lo ve el operario)"
+            value={reason}
+            onChange={(e) => {
+              setReason(e.target.value);
+              setError(null);
+            }}
+          />
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <button
+              type="button"
+              className="studio-btn studio-btn-ghost studio-btn-sm"
+              onClick={() => {
+                setRejecting(false);
+                setReason("");
+                setError(null);
+              }}
+            >
+              Cancelar
+            </button>
+            <ActionButton
+              variant="dark"
+              size="sm"
+              idleLabel="Confirmar rechazo"
+              loadingLabel="Rechazando…"
+              successLabel="Rechazada"
+              disabled={reason.trim().length === 0}
+              onAction={() => {
+                setError(null);
+                return rejectConsolidation(c.id, reason);
+              }}
+              onSuccess={() => {
+                toast.success("Solicitud rechazada");
+                router.refresh();
+              }}
+              onError={setError}
+            />
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <span
+          style={{
+            font: "500 12px/1.4 var(--f-sans)",
+            color: "var(--danger)",
+          }}
+        >
+          {error}
+        </span>
       )}
     </div>
   );

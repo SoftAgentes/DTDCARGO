@@ -8,6 +8,10 @@ import {
   listMyShipmentEvents,
   stepDatesFromEvents,
 } from "@/lib/portal/shipment-events-queries";
+import { getHiddenPortalStatuses } from "@/lib/studio/notifications/portal-visibility-queries";
+import { listShipmentNotificationHistory } from "@/lib/studio/notifications/notification-history-queries";
+import { PortalNotificationHistory } from "../../../_components/PortalNotificationHistory";
+import type { ShipmentStatus } from "@/lib/shared/shipment-public";
 import { SERVICE_LABELS, estimatePortalEta } from "@/lib/portal/portal-types";
 import { showNortePortal, showShipmentAcceptanceCta } from "@/lib/portal/demo";
 import {
@@ -70,6 +74,23 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
   const events = await listMyShipmentEvents(supabase, shipment.id);
   const stepDates = stepDatesFromEvents(events);
 
+  // Hitos ocultos del stepper (SDD-0156 · Slice D): la config por tenant puede
+  // ocultar un status del portal (ej. "en aduana" → se dispara cobro anticipado
+  // en su lugar). Se resuelve con el admin client (el cliente no lee la tabla de
+  // reglas). Falla-seguro → set vacío (muestra todo).
+  const admin = createAdminClient();
+  const tenantId = client ? await resolveClientTenant(admin, client.id) : null;
+  const hiddenStatuses: ReadonlySet<ShipmentStatus> = tenantId
+    ? await getHiddenPortalStatuses(admin, tenantId, client?.id ?? null)
+    : new Set<ShipmentStatus>();
+
+  // Historial de avisos enviados de este envío (SDD-0156 · Slice C · loose end).
+  // Read-only, scopeado al envío PROPIO (admin, sin RLS de cliente sobre la cola).
+  const notificationHistory = await listShipmentNotificationHistory(
+    admin,
+    shipment.id,
+  );
+
   // Rediseño Norte (founder 2026-06-20) GATEADO al demo: stepper horizontal + 2
   // columnas. Clientes reales siguen con el detalle de abajo.
   if (showNortePortal(client?.markbox)) {
@@ -78,7 +99,6 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
     // portal no tiene RLS sobre sailings/consolidations/tracking_snapshots), scopeados
     // al envío PROPIO (shipment.id ya verificado por getMyShipment). El portal SOLO LEE
     // el cache del tracking (cero cuota; el refresh lo dispara el ERP). Degradan a null.
-    const admin = createAdminClient();
     let naviera: NavieraSnapshot | null = null;
     let live: TrackingSnapshotRow | null = null;
     try {
@@ -108,6 +128,8 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
         naviera={naviera}
         live={live}
         stepDates={stepDates}
+        hiddenStatuses={hiddenStatuses}
+        notificationHistory={notificationHistory}
         pendingAcceptance={pendingAcceptance}
       />
     );
@@ -206,6 +228,7 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
             status={shipment.status}
             service={shipment.service}
             dates={stepDates}
+            hiddenStatuses={hiddenStatuses}
           />
           <p className="mt-2 text-[12px] text-grey-500 leading-[1.5]">
             Las actualizaciones de estado las carga nuestro equipo a medida que tu
@@ -217,6 +240,12 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
       <div className="mt-6">
         <PortalDocsCard documents={documents} signedUrls={docUrls} />
       </div>
+
+      {notificationHistory.length > 0 ? (
+        <div className="mt-6">
+          <PortalNotificationHistory items={notificationHistory} />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -275,6 +304,23 @@ function formatDate(iso: string): string {
  * misma invariante que el dashboard. Best-effort: un fallo del admin client no
  * debe romper el detalle del envío → null (el card no se muestra).
  */
+/** Tenant del cliente logueado (por su id ya verificado por sesión). null si no. */
+async function resolveClientTenant(
+  admin: SupabaseClient,
+  clientId: string,
+): Promise<string | null> {
+  try {
+    const { data } = await admin
+      .from("clients")
+      .select("tenant_id")
+      .eq("id", clientId)
+      .maybeSingle<{ tenant_id: string }>();
+    return String(data?.tenant_id ?? "").trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 async function loadPendingAcceptance(
   admin: SupabaseClient,
   clientId: string,

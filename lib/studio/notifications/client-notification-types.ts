@@ -58,10 +58,10 @@ export const CLIENT_JOURNEY_EVENTS: readonly JourneyEventDef[] = [
   { key: "status:last_mile", label: "Última milla", hint: "En el tramo final de entrega.", slice: "A" },
   { key: "status:delivered", label: "Entregado", hint: "El envío se entregó.", slice: "A" },
   { key: "status:exception", label: "Alerta / excepción", hint: "Ocurrió una incidencia.", slice: "A" },
-  // Slice D — máquinas paralelas (gancho pendiente):
-  { key: "consolidated", label: "Consolidado (packing CN)", hint: "warehouse_receipts_cn — gancho en Slice D.", slice: "D" },
-  { key: "eta_set", label: "ETA de la naviera", hint: "sailings.eta — ancla del \"va llegando\". Slice D.", slice: "D" },
-  { key: "received_ve", label: "Recibido en Venezuela", hint: "warehouse_receipts_ve — gancho en Slice D.", slice: "D" },
+  // Máquinas paralelas (ganchos ya cableados en la operación):
+  { key: "consolidated", label: "Consolidado (packing CN)", hint: "Al cerrar el contenedor en China.", slice: "D" },
+  { key: "eta_set", label: "ETA de la naviera", hint: "Cuando la naviera fija el ETA — ancla del \"va llegando\".", slice: "D" },
+  { key: "received_ve", label: "Recibido en Venezuela", hint: "Al crear el recibo de contenedor en Venezuela.", slice: "D" },
 ] as const;
 
 export const CLIENT_JOURNEY_EVENT_KEYS: ReadonlySet<string> = new Set(

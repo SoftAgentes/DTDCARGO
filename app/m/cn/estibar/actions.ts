@@ -16,6 +16,8 @@ import { createAdminClient } from "@/lib/db/admin";
 import { getCurrentOperario } from "@/lib/auth/operario-session";
 import { isBoxCode } from "@/lib/studio/etiquetas-qr";
 import { isZoneInLayout, type ZoneCoord, type ZoneLayout } from "@/lib/studio/naviera/zones";
+import { isContainerTypeCode } from "@/lib/studio/naviera/types";
+import { notifyConsolidationRequestToOffice } from "@/lib/studio/naviera/consolidation-request-notify";
 
 export type StuffBoxActionState = {
   ok?: boolean;
@@ -35,6 +37,55 @@ async function requireCnOperario() {
     return { error: "Solo operarios de China pueden estibar." as const };
   }
   return { session };
+}
+
+// ─────────────────────────────────────────────────────────────
+// SDD-0157 · el operario pide abrir un contenedor (solicitud)
+// ─────────────────────────────────────────────────────────────
+
+export type RequestConsolidationState = {
+  ok?: boolean;
+  error?: string;
+  /** id de la consolidación creada (status 'solicitada', sin ref). */
+  id?: string;
+};
+
+/**
+ * El operario CN pide abrir un contenedor de consolidación. Crea una fila
+ * `status='solicitada'` SIN ref (el correlativo se asigna al autorizar, en el
+ * Studio). Best-effort: avisa a la oficina por Telegram. La autorización real
+ * vive en app/studio/(app)/naviera/actions.ts.
+ */
+export async function requestConsolidationAction(
+  containerType: string,
+): Promise<RequestConsolidationState> {
+  const auth = await requireCnOperario();
+  if ("error" in auth) return { error: auth.error };
+
+  const tipo = (containerType ?? "").trim();
+  if (!isContainerTypeCode(tipo)) {
+    return { error: "Elige un tipo de contenedor válido (20' GP / 40' GP / 40' HC)." };
+  }
+
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc("request_consolidation_as_operario", {
+    p_operario_id: auth.session.operario_id,
+    p_container_type: tipo,
+  });
+  if (error) {
+    return { error: "No se pudo enviar la solicitud · reintenta en un momento." };
+  }
+
+  const id = typeof data === "string" ? data : String(data ?? "");
+
+  // Aviso a la oficina (best-effort, no bloquea la solicitud).
+  await notifyConsolidationRequestToOffice(admin, auth.session.tenant_id, {
+    containerType: tipo,
+    operarioName: auth.session.display_name,
+  });
+
+  revalidatePath("/m/cn/estibar");
+  return { ok: true, id };
 }
 
 // ─────────────────────────────────────────────────────────────

@@ -50,6 +50,7 @@ export type {
 export {
   buildTimeline,
   computeProgress,
+  effectiveVisibleStatus,
   flowForService,
   nextMilestone,
 } from "@/lib/studio/tracking-progress";

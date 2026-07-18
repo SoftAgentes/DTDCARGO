@@ -11,6 +11,13 @@ vi.mock("../drain-client-notifications", () => ({
   drainClientNotifications: (...a: unknown[]) => drainMock(...a),
 }));
 
+// ETA/ETD resueltos: por default un ETA fijo (para probar anclaje/re-anclaje).
+const etaMock = vi.fn(() => Promise.resolve<Date | null>(new Date("2026-02-01T00:00:00.000Z")));
+vi.mock("../resolve-shipment-eta", () => ({
+  resolveShipmentEta: () => etaMock(),
+  resolveShipmentEtd: () => Promise.resolve(null),
+}));
+
 import { scheduleClientNotifications } from "../schedule-client-notifications";
 
 type Rule = {
@@ -32,6 +39,7 @@ interface Cfg {
 
 function makeAdmin(cfg: Cfg) {
   const inserts: Record<string, unknown>[] = [];
+  const updates: Record<string, unknown>[] = [];
   function from(table: string) {
     const builder: Record<string, unknown> = {
       select: () => builder,
@@ -47,10 +55,20 @@ function makeAdmin(cfg: Cfg) {
         inserts.push(row);
         return Promise.resolve({ error: cfg.insertError ?? null });
       },
+      // `.update({...}).eq().eq()...` — captura el patch y resuelve al await final.
+      update: (patch: Record<string, unknown>) => {
+        updates.push(patch);
+        const chain: Record<string, unknown> = {
+          eq: () => chain,
+          then: (res: (v: unknown) => unknown) =>
+            Promise.resolve({ error: null }).then(res),
+        };
+        return chain;
+      },
     };
     return builder;
   }
-  return { admin: { from } as never, inserts };
+  return { admin: { from } as never, inserts, updates };
 }
 
 const EV = {
@@ -122,7 +140,19 @@ describe("scheduleClientNotifications", () => {
     expect(inserts).toHaveLength(0);
   });
 
-  it("ancla ETA (Slice D) → skip (aún no resoluble)", async () => {
+  it("ancla ETA resoluble → programa a ETA + offset (+5 días)", async () => {
+    const { admin, inserts } = makeAdmin({
+      client: { id: "c-1" },
+      rules: [{ id: "r", client_id: null, channel: "email", anchor: "eta", offset_minutes: 7200 }],
+    });
+    const res = await scheduleClientNotifications(admin, "t-1", EV);
+    expect(res.scheduled).toBe(1);
+    // ETA 2026-02-01 + 5 días
+    expect(inserts[0].scheduled_for).toBe("2026-02-06T00:00:00.000Z");
+  });
+
+  it("ancla ETA sin fecha disponible → skip (no rompe)", async () => {
+    etaMock.mockResolvedValueOnce(null);
     const { admin, inserts } = makeAdmin({
       client: { id: "c-1" },
       rules: [{ id: "r", client_id: null, channel: "email", anchor: "eta", offset_minutes: 7200 }],
@@ -131,6 +161,30 @@ describe("scheduleClientNotifications", () => {
     expect(res.scheduled).toBe(0);
     expect(res.skipped).toBe(1);
     expect(inserts).toHaveLength(0);
+  });
+
+  it("re-ancla el aviso ETA pendiente cuando choca 23505 (ETA corregido)", async () => {
+    const { admin, updates } = makeAdmin({
+      client: { id: "c-1" },
+      rules: [{ id: "r", client_id: null, channel: "email", anchor: "eta", offset_minutes: 7200 }],
+      insertError: { code: "23505" },
+    });
+    const res = await scheduleClientNotifications(admin, "t-1", EV);
+    expect(res).toEqual({ scheduled: 0, skipped: 1 });
+    // Actualizó scheduled_for de la fila aún 'scheduled' a la fecha fresca.
+    expect(updates).toHaveLength(1);
+    expect(updates[0].scheduled_for).toBe("2026-02-06T00:00:00.000Z");
+  });
+
+  it("ancla 'event' con 23505 → NO re-ancla (la fecha del evento no cambia)", async () => {
+    const { admin, updates } = makeAdmin({
+      client: { id: "c-1" },
+      rules: [{ id: "r", client_id: null, channel: "email", anchor: "event", offset_minutes: 0 }],
+      insertError: { code: "23505" },
+    });
+    const res = await scheduleClientNotifications(admin, "t-1", EV);
+    expect(res).toEqual({ scheduled: 0, skipped: 1 });
+    expect(updates).toHaveLength(0);
   });
 
   it("sin reglas para el evento → no hace nada", async () => {

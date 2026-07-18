@@ -19,6 +19,7 @@ import {
   type NotificationAnchor,
 } from "./client-notification-types";
 import { drainClientNotifications } from "./drain-client-notifications";
+import { resolveShipmentEta, resolveShipmentEtd } from "./resolve-shipment-eta";
 
 export interface ClientDomainEvent {
   shipmentId: string;
@@ -90,7 +91,8 @@ export async function scheduleClientNotifications(
       ev.eventTime ?? new Date(),
     );
     if (!anchorTime) {
-      // ancla ETA/ETD aún no resoluble (Slice D) → se salta, no rompe.
+      // ancla ETA/ETD sin fecha disponible aún (envío no consolidado / sin
+      // itinerario) → se salta, no rompe.
       console.warn(
         `[client-notif] regla ${chosen.id} anclada en '${chosen.anchor}' sin fecha disponible (envío ${ev.shipmentCode}) → skip`,
       );
@@ -135,6 +137,19 @@ export async function scheduleClientNotifications(
     if (insErr) {
       if (insErr.code === "23505") {
         // Ya estaba programado (mismo envío+evento+regla) → idempotente.
+        // Para anclas EXTERNAS (eta/etd), la fecha puede haberse corregido desde
+        // que se programó (la naviera mueve el ETA seguido). Re-anclamos el aviso
+        // AÚN PENDIENTE a la fecha fresca; si ya se envió (status≠'scheduled') no
+        // se toca (no se reenvía). Las anclas 'event' no cambian → no se re-anclan.
+        if (chosen.anchor === "eta" || chosen.anchor === "etd") {
+          await admin
+            .from("client_notification_schedule")
+            .update({ scheduled_for: scheduledFor.toISOString() })
+            .eq("shipment_id", ev.shipmentId)
+            .eq("trigger_event", ev.event)
+            .eq("rule_id", chosen.id)
+            .eq("status", "scheduled");
+        }
         return { scheduled: 0, skipped: 1 };
       }
       console.error(`[client-notif] insert agenda falló:`, insErr.message);
@@ -155,20 +170,22 @@ export async function scheduleClientNotifications(
 }
 
 /**
- * Resuelve el timestamp-ancla de una regla.
+ * Resuelve el timestamp-ancla de una regla (SDD-0156 · Slice D).
  *  - 'event' → la hora del evento (default: ahora).
- *  - 'eta' / 'etd' → fecha de la naviera. **Slice D**: el gancho a las máquinas
- *    paralelas (sailings/consolidations) todavía no está cableado; devolvemos
- *    null → la regla anclada en ETA/ETD se salta (configurable ya, dispara en D).
+ *  - 'eta'   → ETA real del envío: pod_eta de SeaRates → sailings.eta →
+ *              warehouse_receipts_ve.eta (`resolveShipmentEta`).
+ *  - 'etd'   → sailings.etd del itinerario (`resolveShipmentEtd`).
+ * Sin fecha disponible (envío no consolidado / sin itinerario) → null: la regla
+ * anclada en ETA/ETD se salta, no rompe.
  */
 async function resolveAnchorTime(
-  _admin: SupabaseClient,
-  _shipmentId: string,
+  admin: SupabaseClient,
+  shipmentId: string,
   anchor: NotificationAnchor,
   eventTime: Date,
 ): Promise<Date | null> {
   if (anchor === "event") return eventTime;
-  // TODO(SDD-0156 Slice D): resolver ETA/ETD via shipment → consolidation →
-  // sailings.eta (o warehouse_receipts_ve.eta / tracking_snapshots.pod_eta).
+  if (anchor === "eta") return resolveShipmentEta(admin, shipmentId);
+  if (anchor === "etd") return resolveShipmentEtd(admin, shipmentId);
   return null;
 }

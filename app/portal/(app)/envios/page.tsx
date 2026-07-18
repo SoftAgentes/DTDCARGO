@@ -12,10 +12,12 @@ import { summarizeSuppliers } from "@/lib/studio/prealertas/types";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import {
   computeProgress,
+  effectiveVisibleStatus,
   isActiveShipmentStatus,
   STATUS_LABELS,
   type ShipmentStatus,
 } from "@/lib/portal/portal-types";
+import { getHiddenPortalStatusesForClient } from "@/lib/studio/notifications/portal-visibility-queries";
 import {
   getNextOpenSailing,
   daysUntil,
@@ -50,12 +52,24 @@ export default async function PortalShipmentsPage() {
     return <FallbackList />;
   }
 
-  const [shipments, prealertas, suppliers, addons] = await Promise.all([
+  const [rawShipments, prealertas, suppliers, addons] = await Promise.all([
     listMyShipments(supabase),
     listPrealertas(supabase, { markbox: client.markbox }),
     listSuppliers(supabase, { markbox: client.markbox }),
     listActivePrealertaAddons(supabase),
   ]);
+
+  // SDD-0156 · Slice D: si la config del tenant oculta un hito (ej. "en aduana"),
+  // la lista muestra el último estado VISIBLE — el badge y el % no delatan el hito
+  // oculto (coherente con el stepper del detalle). Falla-seguro → sin sustitución.
+  const hiddenStatuses = await getHiddenPortalStatusesForClient(
+    createAdminClient(),
+    client.id,
+  );
+  const shipments = rawShipments.map((s) => ({
+    ...s,
+    status: effectiveVisibleStatus(s.status, s.service, hiddenStatuses),
+  }));
 
   const supplierNameById: Record<string, string> = {};
   for (const s of suppliers) supplierNameById[s.id] = s.name;

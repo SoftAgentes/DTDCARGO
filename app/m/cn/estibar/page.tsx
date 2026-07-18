@@ -15,6 +15,14 @@ import { createAdminClient } from "@/lib/db/admin";
 import { getCurrentOperario } from "@/lib/auth/operario-session";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Icon } from "@/app/studio/_components/icons";
+import { CONTAINER_TYPES, isContainerTypeCode } from "@/lib/studio/naviera/types";
+import { AbrirContenedorButton } from "./_components/AbrirContenedorButton";
+
+/** Etiqueta legible del tipo de contenedor (20' GP…), o el código crudo / "—". */
+function containerTypeLabel(code: string | null): string {
+  if (!code) return "—";
+  return isContainerTypeCode(code) ? CONTAINER_TYPES[code].label : code;
+}
 
 export const metadata = { title: "Estibar" };
 export const dynamic = "force-dynamic";
@@ -41,6 +49,23 @@ export default async function EstibarIndexPage() {
       ref: string;
       container_type: string | null;
       container_no: string | null;
+    }[] | null) ?? [];
+
+  // Solicitudes propias esperando autorización de la oficina (SDD-0157).
+  const { data: requestRows } = await admin
+    .from("consolidations")
+    .select("id, container_type, requested_at")
+    .eq("tenant_id", operario.tenant_id)
+    .eq("status", "solicitada")
+    .is("deleted_at", null)
+    .order("requested_at", { ascending: false })
+    .limit(20);
+
+  const requests =
+    (requestRows as {
+      id: string;
+      container_type: string | null;
+      requested_at: string | null;
     }[] | null) ?? [];
 
   // Cuántas cajas ya están estibadas en cada uno
@@ -97,12 +122,78 @@ export default async function EstibarIndexPage() {
       </header>
 
       <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+        {/* Abrir contenedor (SDD-0157): siempre visible, arriba de todo. */}
+        <AbrirContenedorButton variant="inline" />
+
+        {/* Solicitudes esperando autorización de la oficina. */}
+        {requests.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
+            <span
+              style={{
+                font: "700 10px/1.4 var(--f-sans)",
+                color: "var(--ink-side-soft)",
+                textTransform: "uppercase",
+                letterSpacing: "0.07em",
+              }}
+            >
+              Esperando autorización
+            </span>
+            {requests.map((r) => (
+              <div
+                key={r.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 10,
+                  minHeight: 56,
+                  padding: "12px 14px",
+                  borderRadius: "var(--r-md)",
+                  background: "var(--surface-inv)",
+                  border: "1px dashed var(--border-inv)",
+                }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <div
+                    style={{
+                      font: "700 13px/1.3 var(--f-sans)",
+                      color: "var(--ink-side-strong)",
+                    }}
+                  >
+                    Contenedor {containerTypeLabel(r.container_type)}
+                  </div>
+                  <div
+                    style={{
+                      font: "500 11px/1.3 var(--f-sans)",
+                      color: "var(--ink-side-soft)",
+                    }}
+                  >
+                    Pediste abrirlo · la oficina lo tiene que autorizar
+                  </div>
+                </div>
+                <span
+                  style={{
+                    font: "700 10px/1 var(--f-sans)",
+                    color: "var(--ink-side-soft)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                    flexShrink: 0,
+                  }}
+                >
+                  Pendiente
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {consolidations.length === 0 ? (
-          <div style={{ paddingTop: 40 }}>
+          <div style={{ paddingTop: 24 }}>
             <EmptyState
               eyebrow="Sin contenedores"
               title="No hay nada abierto para estibar"
-              description="Cuando la oficina abra un contenedor en consolidación, va a aparecer acá."
+              description="Abre un contenedor acá arriba (la oficina lo autoriza) o espera a que la oficina abra uno en consolidación."
+              action={<AbrirContenedorButton variant="block" />}
             />
           </div>
         ) : (

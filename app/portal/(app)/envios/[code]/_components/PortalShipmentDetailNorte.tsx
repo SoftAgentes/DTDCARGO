@@ -18,8 +18,10 @@ import {
 import { trackingUrlFromSnapshot } from "@/lib/studio/naviera-tracking/searates-deeplink";
 import type { TrackingSnapshotRow } from "@/lib/studio/naviera-tracking/snapshot-queries";
 import type { PendingAcceptanceInvoice } from "@/lib/portal/portal-legal-queries";
+import type { PortalNotificationHistoryItem } from "@/lib/studio/notifications/notification-history-queries";
 import { StatusBadge } from "../../../../_components/StatusBadge";
 import { PortalDocsCard } from "../../../../_components/PortalDocsCard";
+import { PortalNotificationHistory } from "../../../../_components/PortalNotificationHistory";
 import { PendingAcceptanceCard } from "../../../_components/PendingAcceptanceCard";
 
 /**
@@ -49,6 +51,8 @@ export function PortalShipmentDetailNorte({
   naviera,
   live,
   stepDates,
+  hiddenStatuses,
+  notificationHistory,
   pendingAcceptance,
 }: {
   shipment: PortalShipmentDetail;
@@ -60,6 +64,10 @@ export function PortalShipmentDetailNorte({
   live?: TrackingSnapshotRow | null;
   /** Fecha real (ISO) por status del stepper (SDD-0132). Opcional. */
   stepDates?: Partial<Record<ShipmentStatus, string>>;
+  /** Statuses ocultos por config del tenant (SDD-0156 · visible_in_portal). */
+  hiddenStatuses?: ReadonlySet<ShipmentStatus>;
+  /** Historial de avisos enviados de este envío (SDD-0156 · Slice C). */
+  notificationHistory?: PortalNotificationHistoryItem[];
   /**
    * Orden DDP de ESTE envío esperando aceptación (SDD-0075 §1 · Slice A). null =
    * nada que aceptar (o el CTA aún no está prendido para este cliente). La página
@@ -135,6 +143,7 @@ export function PortalShipmentDetailNorte({
           status={shipment.status}
           service={shipment.service}
           stepDates={stepDates}
+          hiddenStatuses={hiddenStatuses}
         />
         <p className="mt-6 text-[12px] text-grey-500 leading-[1.5]">
           Las actualizaciones de estado las carga nuestro equipo a medida que tu
@@ -205,6 +214,13 @@ export function PortalShipmentDetailNorte({
 
         <PortalDocsCard documents={documents} signedUrls={signedUrls} />
       </div>
+
+      {/* Historial de avisos enviados (SDD-0156 · Slice C). Se oculta si no hay. */}
+      {notificationHistory && notificationHistory.length > 0 ? (
+        <div className="mt-6">
+          <PortalNotificationHistory items={notificationHistory} />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -231,12 +247,14 @@ function Stepper({
   status,
   service,
   stepDates,
+  hiddenStatuses,
 }: {
   status: ShipmentStatus;
   service: ShipmentService;
   stepDates?: Partial<Record<ShipmentStatus, string>>;
+  hiddenStatuses?: ReadonlySet<ShipmentStatus>;
 }) {
-  const steps = buildTimeline(status, service);
+  const steps = buildTimeline(status, service, hiddenStatuses);
   return (
     <div className="overflow-x-auto -mx-1 px-1">
       <div className="flex">
