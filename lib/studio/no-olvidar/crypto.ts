@@ -54,7 +54,13 @@ export const RECOVERY_ENTROPY_BYTES = 32;
  * verifier si la DB se filtra.
  */
 const ARGON2_OPSLIMIT = 3;
-const ARGON2_MEMLIMIT = 64 * 1024 * 1024; // 64 MiB
+// 128 MiB (2× el baseline original de 64, muy por encima del mínimo OWASP de
+// 19 MiB). Sube el costo de la fuerza bruta offline del verifier si la DB se
+// filtra, sin el costo/DoS de MODERATE (256 MiB) — que además hacía flaky al
+// gate por timeout bajo carga de workers. El riesgo de DoS por memoria queda
+// acotado por el lockout server-side (5 intentos / 15 min, §4.5) y lo
+// infrecuente del unlock (1 vez por sesión de 30 min).
+const ARGON2_MEMLIMIT = 128 * 1024 * 1024; // 128 MiB
 
 /** Contextos de dominio-separación para derivar subclaves del masterKey. */
 const CTX_ENC = "no-olv/e"; // clave de cifrado (8 bytes exactos, req. de crypto_kdf)
@@ -272,7 +278,9 @@ export async function deriveKeyFromMasterPassword(
   salt: Uint8Array,
 ): Promise<Uint8Array> {
   const mk = await deriveMasterKey(password, salt);
-  return subkey(mk, 1, CTX_ENC);
+  const k = subkey(mk, 1, CTX_ENC);
+  sodium.memzero(mk); // el masterKey no se necesita más → limpiar del heap
+  return k;
 }
 
 /**
@@ -282,7 +290,9 @@ export async function deriveKeyFromMasterPassword(
  */
 export async function hashForVerifier(password: string, salt: Uint8Array): Promise<Uint8Array> {
   const mk = await deriveMasterKey(password, salt);
-  return subkey(mk, 2, CTX_VRF);
+  const v = subkey(mk, 2, CTX_VRF);
+  sodium.memzero(mk); // el masterKey no se necesita más → limpiar del heap
+  return v;
 }
 
 /**
@@ -352,6 +362,19 @@ export async function verifyRecoveryKit(
 export function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false;
   return sodium.memcmp(a, b);
+}
+
+/**
+ * Pone en cero un buffer de material sensible (KEK/DEK/masterKey) cuando ya no se
+ * necesita, para reducir la ventana en que vive en el heap (defensa contra
+ * heap-dump/memory-scraping). No-op seguro si sodium no está listo todavía.
+ */
+export function wipe(bytes: Uint8Array): void {
+  try {
+    sodium.memzero(bytes);
+  } catch {
+    bytes.fill(0); // fallback si el WASM no cargó aún
+  }
 }
 
 // ─── Internos ────────────────────────────────────────────────

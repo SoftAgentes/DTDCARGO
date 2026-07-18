@@ -42,6 +42,7 @@ import {
   toBase64,
   unwrapDek,
   verifyMasterPassword,
+  wipe,
   wrapDek,
 } from "@/lib/studio/no-olvidar/crypto";
 import {
@@ -437,6 +438,7 @@ export async function createItemAction(
     const plaintext = JSON.stringify(buildPlaintext(category, fd));
     const sealed = await encryptPayload(plaintext, dek, aadItem(userId));
     const wrapped = await wrapDek(dek, kek, aadDek(userId));
+    wipe(dek); // el DEK en claro no se necesita más
     sealedPayload = {
       ciphertext: toBase64(sealed.ciphertext),
       nonce: toBase64(sealed.nonce),
@@ -540,6 +542,7 @@ export async function revealItemAction(itemId: string): Promise<RevealResult> {
       dek,
       aadItem(userId),
     );
+    wipe(dek); // el DEK en claro no se necesita más
     const plaintext = JSON.parse(raw) as NoOlvidarItemPlaintext;
 
     const meta = await clientMeta();
@@ -610,6 +613,7 @@ export async function updateItemAction(
       const dek = await generateDek();
       const sealed = await encryptPayload(JSON.stringify(buildPlaintext(category, fd)), dek, aadItem(userId));
       const wrapped = await wrapDek(dek, kek, aadDek(userId));
+      wipe(dek); // el DEK en claro no se necesita más
       patch.ciphertext = toBase64(sealed.ciphertext);
       patch.nonce = toBase64(sealed.nonce);
       patch.dek_encrypted = toBase64(wrapped.wrapped);

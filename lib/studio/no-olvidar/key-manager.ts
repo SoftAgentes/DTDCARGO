@@ -19,7 +19,7 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { aadDek, fromBase64, generateDek, KEY_BYTES, toBase64, unwrapDek, wrapDek } from "./crypto";
+import { aadDek, fromBase64, generateDek, KEY_BYTES, toBase64, unwrapDek, wipe, wrapDek } from "./crypto";
 
 // ─── Caché in-memory del KEK activo (TTL 5 min, spec §lib crypto) ──
 
@@ -35,6 +35,7 @@ const kekByVersion = new Map<number, KekCacheEntry>();
 
 /** Vacía la caché — llamar tras rotar el KEK para no servir la versión vieja. */
 export function invalidateKekCache(): void {
+  for (const entry of kekByVersion.values()) wipe(entry.key); // borrar la KEK del heap
   kekByVersion.clear();
 }
 
@@ -221,6 +222,8 @@ export async function reEncryptAllItems(
         dekAad,
       );
       const rewrapped = await wrapDek(dek, newKek, dekAad);
+      wipe(dek); // el DEK en claro no se necesita más
+
       const { error: upErr } = await supabase
         .from("no_olvidar_items")
         .update({

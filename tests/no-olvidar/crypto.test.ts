@@ -3,7 +3,7 @@
  * libsodium REAL, sin mocks — validan el contrato que va al review externo.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   ready,
   encryptPayload,
@@ -23,12 +23,18 @@ import {
   verifyRecoveryKit,
   generateSalt,
   constantTimeEqual,
+  wipe,
   toBase64,
   fromBase64,
   KEY_BYTES,
   NONCE_BYTES,
   NoOlvidarDecryptError,
 } from "@/lib/studio/no-olvidar/crypto";
+
+// Las derivaciones Argon2id (128 MiB) son caras por diseño; bajo carga de workers
+// en paralelo pueden pasar el timeout default de 5 s. 20 s da margen sin ocultar
+// cuelgues reales.
+vi.setConfig({ testTimeout: 20_000 });
 
 describe("no-olvidar/crypto · AEAD", () => {
   it("encrypt/decrypt roundtrip devuelve el plaintext original", async () => {
@@ -75,6 +81,14 @@ describe("no-olvidar/crypto · AEAD", () => {
     await expect(unwrapDek(wrapped, nonce, kek, aadDek("user-B"))).rejects.toBeInstanceOf(
       NoOlvidarDecryptError,
     );
+  });
+
+  it("wipe pone en cero el material sensible", async () => {
+    await ready();
+    const k = await generateDek();
+    expect(k.some((b) => b !== 0)).toBe(true);
+    wipe(k);
+    expect(k.every((b) => b === 0)).toBe(true);
   });
 
   it("aadFor es determinista y distingue partes", async () => {
