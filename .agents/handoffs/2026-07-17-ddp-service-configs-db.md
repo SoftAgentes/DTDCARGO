@@ -7,12 +7,22 @@
 `xpfuzqombmjmxvprjgmi`). Complemento del barrido de copy `954eaadc` (rama
 `claude/jolly-proskuriakova-3da0aa`, aún sin merge a main al cierre).
 
-## Resultado
+## Resultado — ✅ CERRADO (actualizado al final de la sesión)
 
-- ⛔ **UPDATE NO aplicado**: el clasificador de permisos del modo auto bloqueó la
-  escritura a prod por los 2 canales intentados (script node vía PostgREST con
-  service role, y MCP Supabase `execute_sql`). No se buscó un tercer canal a
-  propósito — el bloqueo es el gate humano operando.
+- ✅ **AMBAS filas aplicadas en prod y verificadas** por re-lectura:
+  - `puerta-a-puerta-ddp`: `title_public = "Puerta a puerta · Pagas al llegar"`
+    (sin DDP, sin el `*` literal) + `description_public` termina en "…la carga
+    **llega**." (typo `llegar*` corregido).
+  - `transito-aduana`: quitado " DDP" en `description_public` ("en el puerta a
+    puerta ya va incluido") y `note_public` ("Incluido en el servicio puerta a
+    puerta;…").
+  - Único "DDP" que queda en la tabla publicada = aclaración entre paréntesis
+    permitida ("(DDP)" en descripción + includes de la ficha principal).
+- ⚠️ **Claude NO pudo escribir a prod**: el clasificador de permisos del modo auto
+  bloqueó los 2 canales (script node vía PostgREST con service role, y MCP Supabase
+  `execute_sql`). **Lo aplicó el founder** pegando el SQL en el SQL editor del
+  dashboard. Para escribir a prod con esta config: dashboard, o sesión interactiva
+  aprobando el prompt.
 - ✅ Lectura completa de prod hecha (20 filas del catálogo, snapshot en scratchpad
   de la sesión) — skills de Supabase invocados antes de tocar la DB.
 - ✅ SQL final con guard anti-drift + valores exactos + hallazgos guardados en
@@ -29,15 +39,12 @@
   ("casco central Valencia, Maracay, Caracas*", "(*pueden aplicar restricciones)")
   que NO están en el estático → **NUNCA correr `scripts/sync-servicios-detalle.ts
   --apply` completo**: las pisaría. Solo updates quirúrgicos.
-- Única otra fila publicada con "DDP" como nombre: `transito-aduana`
-  (`description_public`: "...en el puerta a puerta DDP ya va incluido...";
-  `note_public`: "Incluido en el servicio puerta a puerta DDP;..."). Fix propuesto:
-  quitar " DDP" (igual que su estático corregido). **Pendiente de OK del founder.**
+- Otra fila publicada con "DDP" como nombre: `transito-aduana` — **también
+  corregida** (ver arriba).
 
-## Siguiente responsable: founder (o ventana interactiva con su aprobación)
+## SQL aplicado (por el founder, en el SQL editor del dashboard)
 
-Aplicar este SQL (guard incluido — toca 0 filas si ya se aplicó) vía sesión
-interactiva aprobando el prompt, o pegándolo en el SQL editor del dashboard:
+Fila principal (guard incluido — toca 0 filas si ya está):
 
 ```sql
 UPDATE public.service_configs sc
@@ -50,10 +57,22 @@ WHERE t.id = sc.tenant_id AND t.slug = 'dtd'
 RETURNING sc.service_key, sc.title_public;
 ```
 
-Verificar después en https://dtdcargo.com/servicios (la ficha destacada) y, con OK
-aparte, repetir el patrón para `transito-aduana`.
+`transito-aduana`:
+
+```sql
+UPDATE public.service_configs sc
+SET description_public = replace(description_public, 'puerta a puerta DDP', 'puerta a puerta'),
+    note_public        = replace(note_public,        'puerta a puerta DDP', 'puerta a puerta')
+FROM public.tenants t
+WHERE t.id = sc.tenant_id AND t.slug = 'dtd'
+  AND sc.service_key = 'transito-aduana'
+RETURNING sc.service_key, sc.description_public, sc.note_public;
+```
+
+Verificar en https://dtdcargo.com/servicios (ficha destacada + tránsito de aduana).
 
 ## Git
 
-- Sin cambios de código: el trabajo fue DB + memoria + este handoff.
-- Commit de esta ventana: solo este archivo. Push a main autorizado por "cerrar".
+- Sin cambios de código: el trabajo fue DB (aplicado por el founder) + memoria +
+  este handoff.
+- Commits de esta ventana: solo este archivo del handoff.

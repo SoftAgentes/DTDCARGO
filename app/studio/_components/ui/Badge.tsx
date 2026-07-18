@@ -21,7 +21,7 @@ export type BadgeTone =
   | "wine"
   | "neutral";
 
-export type BadgeSize = "sm" | "md";
+export type BadgeSize = "xs" | "sm" | "md";
 
 interface BadgeProps {
   tone?: BadgeTone;
@@ -41,6 +41,7 @@ const TONES: Record<BadgeTone, { bg: string; fg: string; dot?: string }> = {
 };
 
 const SIZES: Record<BadgeSize, { h: number; px: number; fs: number }> = {
+  xs: { h: 16, px: 5, fs: 9.5 },
   sm: { h: 18, px: 6, fs: 10.5 },
   md: { h: 22, px: 8, fs: 11.5 },
 };

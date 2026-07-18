@@ -91,8 +91,8 @@ export function LoginForm({
               <span style={{ color: "var(--color-wine-soft)" }}>en un click.</span>
             </div>
             <p className="mt-5 text-[14px] leading-[1.5] text-white/70 max-w-[36ch]">
-              Estima, embarca y rastrea tus cargas DDP. Facturas, documentos y
-              soporte directo con tu agente.
+              Estima, embarca y rastrea tus cargas puerta a puerta. Facturas,
+              documentos y soporte directo con tu agente.
             </p>
             <div className="mt-7 flex gap-7">
               {HERO_STATS.map((s) => (

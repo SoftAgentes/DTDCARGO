@@ -44,7 +44,7 @@ export function PendingAcceptanceCard({
             : `Tienes ${count} órdenes esperando tu aceptación de T&C.`)}
       </div>
       <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.55] max-w-[56ch]">
-        Para que podamos emitir tu factura de puerta a puerta DDP (prepago),
+        Para que podamos emitir tu factura de puerta a puerta (prepago),
         necesitamos que confirmes el monto y aceptes los términos vigentes.
       </p>
 

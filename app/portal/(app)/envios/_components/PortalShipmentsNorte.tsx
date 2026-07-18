@@ -5,10 +5,10 @@ import Link from "next/link";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ArrowIcon, SearchIcon, WhatsAppIcon } from "@/components/Icon";
 import {
+  SERVICE_SHORT_LABELS,
   computeProgress,
   isActiveShipmentStatus,
   type PortalShipmentRow,
-  type ShipmentService,
 } from "@/lib/portal/portal-types";
 import { StatusBadge } from "../../../_components/StatusBadge";
 
@@ -23,12 +23,6 @@ import { StatusBadge } from "../../../_components/StatusBadge";
  * la fila (`PortalShipmentRow`) no trae CBM/ETA, así que la card no los muestra (eso
  * vive en el detalle); en su lugar va el tipo de servicio + % + última actualización.
  */
-const SHORT_SERVICE: Record<ShipmentService, string> = {
-  consolidacion: "LCL",
-  puerta_a_puerta_DDP: "DDP",
-  reserva_FCL: "FCL",
-  transporte_terrestre: "Terrestre",
-};
 
 type Tab = "all" | "active" | "delivered";
 
@@ -161,7 +155,7 @@ function ShipCard({ s }: { s: PortalShipmentRow }) {
 
       <div className="mt-3">
         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold text-grey-700 bg-grey-100">
-          {SHORT_SERVICE[s.service]}
+          {SERVICE_SHORT_LABELS[s.service]}
         </span>
       </div>
 

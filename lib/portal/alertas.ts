@@ -23,10 +23,9 @@ import type { Prealerta, PrealertaStatus } from "@/lib/studio/prealertas/types";
 import { PREALERTA_STATUS } from "@/lib/studio/prealertas/types";
 import type {
   PortalShipmentRow,
-  ShipmentService,
   ShipmentStatus,
 } from "@/lib/portal/portal-types";
-import { STATUS_LABELS } from "@/lib/portal/portal-types";
+import { SERVICE_SHORT_LABELS, STATUS_LABELS } from "@/lib/portal/portal-types";
 
 export type AlertStage = "prealerta" | "alerta" | "envio";
 
@@ -66,14 +65,6 @@ export function prealertaStage(status: PrealertaStatus): AlertStage | null {
   }
 }
 
-/** Etiqueta corta de servicio para la meta de un envío. */
-const SHORT_SERVICE: Record<ShipmentService, string> = {
-  consolidacion: "LCL",
-  puerta_a_puerta_DDP: "DDP",
-  reserva_FCL: "FCL",
-  transporte_terrestre: "Terrestre",
-};
-
 /** Una fila del hub (prealerta, alerta o envío) ya normalizada para la UI. */
 export type AlertItem = {
   /** Clave única y estable (prefijada por origen para no colisionar). */
@@ -103,7 +94,7 @@ function prealertaMeta(p: Prealerta): string {
 }
 
 function shipmentMeta(s: PortalShipmentRow): string {
-  const svc = SHORT_SERVICE[s.service] ?? s.service;
+  const svc = SERVICE_SHORT_LABELS[s.service] ?? s.service;
   const estado = STATUS_LABELS[s.status as ShipmentStatus] ?? s.status;
   return `${svc} · ${estado}`;
 }

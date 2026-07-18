@@ -4,6 +4,7 @@ import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
 import {
   SERVICE_LABELS,
+  SERVICE_SHORT_LABELS,
   STATUS_LABELS,
   buildTimeline,
   estimatePortalEta,
@@ -36,13 +37,6 @@ import { PendingAcceptanceCard } from "../../../_components/PendingAcceptanceCar
  * Honesto donde no hay data: sin Naviera/ETD/Valor declarado (Tier 1 Naviera).
  */
 type DocsProps = ComponentProps<typeof PortalDocsCard>;
-
-const SHORT_SERVICE: Record<ShipmentService, string> = {
-  consolidacion: "LCL",
-  puerta_a_puerta_DDP: "DDP",
-  reserva_FCL: "FCL",
-  transporte_terrestre: "Terrestre",
-};
 
 export function PortalShipmentDetailNorte({
   shipment,
@@ -114,7 +108,7 @@ export function PortalShipmentDetailNorte({
               {cityOf(shipment.destination)}
             </span>
             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold text-grey-700 bg-grey-100">
-              {SHORT_SERVICE[shipment.service]}
+              {SERVICE_SHORT_LABELS[shipment.service]}
             </span>
           </div>
         </div>
