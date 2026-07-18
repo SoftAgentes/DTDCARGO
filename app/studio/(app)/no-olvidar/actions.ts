@@ -418,10 +418,14 @@ export async function unlockNoOlvidarAction(
   }
 
   // markUnlocked resetea last_unlock_at/failed_unlock_attempts/locked_until y
-  // persiste el step TOTP consumido (anti-replay) → columnas sensibles: va por
-  // service_role (authenticated ya no tiene UPDATE sobre user_keys). El TOTP ya
-  // se verificó server-side arriba.
-  await markUnlocked(admin, userId, totpCheck.step);
+  // persiste ATÓMICAMENTE el step TOTP consumido (anti-replay). Va por service_role
+  // (authenticated ya no tiene UPDATE sobre user_keys). Devuelve false si el step ya
+  // estaba consumido (carrera con otro unlock del mismo código) → tratamos como
+  // código ya usado (si otra request ganó, la sesión ya quedó desbloqueada).
+  const advanced = await markUnlocked(admin, userId, totpCheck.step);
+  if (!advanced) {
+    return { error: "Código 2FA o master password incorrectos." };
+  }
   const meta = await clientMeta();
   await logAccess(admin, { userId, action: "unlock", ip: meta.ip, ua: meta.ua });
   revalidatePath(BASE_PATH);

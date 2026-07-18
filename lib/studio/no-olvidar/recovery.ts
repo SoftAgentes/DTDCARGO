@@ -91,60 +91,73 @@ export async function approveRecovery(
   approverId: string,
   approverIp?: string,
 ): Promise<NoOlvidarRecoveryRequest> {
-  const req = await fetchRequest(supabase, recoveryId);
+  // Optimistic-locking con reintento: el append al array `approvals` es un
+  // read-modify-write. Sin el guard `updated_at` dos admins aprobando a la vez
+  // leen el mismo array y el 2º pisa la aprobación del 1º (lost-update →
+  // el quórum nunca se alcanza aunque N admins distintos hayan aprobado). El
+  // `.eq("updated_at", req.updated_at)` detecta la escritura concurrente (0 filas)
+  // y reintentamos con el estado fresco.
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const req = await fetchRequest(supabase, recoveryId);
 
-  if (req.status !== "pending") {
-    throw new RecoveryStateError(`El request no está pendiente (estado: ${req.status}).`);
-  }
-  if (isExpired(req)) {
-    await markExpired(supabase, recoveryId);
-    throw new RecoveryStateError("El request de recovery expiró.");
-  }
-  if (req.requester_user_id === approverId) {
-    throw new RecoveryPolicyError("Un admin no puede aprobar su propio recovery.");
-  }
-  if (!(await isAdmin(supabase, approverId))) {
-    throw new RecoveryPolicyError("Solo admins del No-Olvidar pueden aprobar recoveries.");
-  }
+    if (req.status !== "pending") {
+      throw new RecoveryStateError(`El request no está pendiente (estado: ${req.status}).`);
+    }
+    if (isExpired(req)) {
+      await markExpired(supabase, recoveryId);
+      throw new RecoveryStateError("El request de recovery expiró.");
+    }
+    if (req.requester_user_id === approverId) {
+      throw new RecoveryPolicyError("Un admin no puede aprobar su propio recovery.");
+    }
+    if (!(await isAdmin(supabase, approverId))) {
+      throw new RecoveryPolicyError("Solo admins del No-Olvidar pueden aprobar recoveries.");
+    }
 
-  // Idempotencia: si ya aprobó, devolver el estado actual sin cambios.
-  if (req.approvals.some((a) => a.approver_id === approverId)) {
-    return req;
+    // Idempotencia: si ya aprobó, devolver el estado actual sin cambios.
+    if (req.approvals.some((a) => a.approver_id === approverId)) {
+      return req;
+    }
+
+    const approval: NoOlvidarRecoveryApproval = {
+      approver_id: approverId,
+      approved_at: new Date().toISOString(),
+      ...(approverIp ? { ip: approverIp } : {}),
+    };
+    const approvals = [...req.approvals, approval];
+    const reachedQuorum = approvals.length >= req.approvals_required;
+
+    const { data, error } = await supabase
+      .from("no_olvidar_recovery_requests")
+      .update({
+        approvals,
+        status: reachedQuorum ? "approved" : "pending",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", recoveryId)
+      .eq("status", "pending") // no pisar un request ya resuelto
+      .eq("updated_at", req.updated_at) // optimistic: detecta append concurrente
+      .select("*")
+      .maybeSingle<NoOlvidarRecoveryRequest>();
+    if (error) throw new Error(`No se pudo registrar la aprobación: ${error.message}`);
+    if (!data) continue; // 0 filas → otra aprobación ganó la carrera → releer y reintentar
+
+    await logAccess(supabase, {
+      userId: approverId,
+      action: "recovery_approved",
+      metadata: {
+        recovery_id: recoveryId,
+        requester: req.requester_user_id,
+        approvals: approvals.length,
+        required: req.approvals_required,
+        reached_quorum: reachedQuorum,
+      },
+    });
+    return data;
   }
-
-  const approval: NoOlvidarRecoveryApproval = {
-    approver_id: approverId,
-    approved_at: new Date().toISOString(),
-    ...(approverIp ? { ip: approverIp } : {}),
-  };
-  const approvals = [...req.approvals, approval];
-  const reachedQuorum = approvals.length >= req.approvals_required;
-
-  const { data, error } = await supabase
-    .from("no_olvidar_recovery_requests")
-    .update({
-      approvals,
-      status: reachedQuorum ? "approved" : "pending",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", recoveryId)
-    .eq("status", "pending") // guard anti-carrera: no pisar un cambio concurrente
-    .select("*")
-    .single<NoOlvidarRecoveryRequest>();
-  if (error) throw new Error(`No se pudo registrar la aprobación: ${error.message}`);
-
-  await logAccess(supabase, {
-    userId: approverId,
-    action: "recovery_approved",
-    metadata: {
-      recovery_id: recoveryId,
-      requester: req.requester_user_id,
-      approvals: approvals.length,
-      required: req.approvals_required,
-      reached_quorum: reachedQuorum,
-    },
-  });
-  return data;
+  throw new RecoveryStateError(
+    "No se pudo registrar la aprobación por contención concurrente. Reintentá.",
+  );
 }
 
 // ─── executeRecovery ─────────────────────────────────────────
@@ -200,28 +213,14 @@ export async function executeRecovery(
   const salt = await generateSalt();
   const verifier = await hashForVerifier(newPassword, salt);
 
-  // Reclamar el request de forma atómica ANTES de tocar la master password: el
-  // UPDATE guardado por status='approved' es el lock. Si matchea 0 filas, otra
-  // ejecución ganó la carrera (o el request dejó de estar aprobado) → abortar sin
-  // resetear nada. `.select("id")` deja detectar el 0-filas (un update sin filas
-  // NO devuelve error). Cierra el TOCTOU de doble ejecución.
-  const { data: claimed, error: upReqErr } = await supabase
-    .from("no_olvidar_recovery_requests")
-    .update({
-      status: "completed",
-      new_master_password_verifier: toBase64(verifier),
-      new_master_password_salt: toBase64(salt),
-      completed_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", recoveryId)
-    .eq("status", "approved")
-    .select("id");
-  if (upReqErr) throw new Error(`No se pudo cerrar el request: ${upReqErr.message}`);
-  if (!claimed || claimed.length === 0) {
-    throw new RecoveryStateError("El recovery ya fue ejecutado o dejó de estar aprobado.");
-  }
-
+  // ORDEN: resetear la master password ANTES de marcar el request 'completed'.
+  // Sin transacción real (dos UPDATEs), este orden hace que la única cola de
+  // fallo sea RECUPERABLE: si el 2º update (marcar completed) fallara, el user
+  // igual recuperó el acceso y el request sigue 'approved' → re-ejecutable. Con el
+  // orden inverso (claim primero), un fallo del reset dejaba el request quemado
+  // sin recuperar el acceso. La doble-ejecución concurrente es inocua: la autz
+  // `caller===requester` (arriba) la limita al mismo usuario con la misma
+  // password, y el claim guardado por status='approved' asegura un solo cierre.
   const { error: upKeysErr } = await supabase
     .from("no_olvidar_user_keys")
     .update({
@@ -235,11 +234,29 @@ export async function executeRecovery(
     .eq("user_id", req.requester_user_id);
   if (upKeysErr) throw new Error(`No se pudo resetear la master password: ${upKeysErr.message}`);
 
-  await logAccess(supabase, {
-    userId: req.requester_user_id,
-    action: "recovery_executed",
-    metadata: { recovery_id: recoveryId, approvals: req.approvals.length },
-  });
+  const { data: claimed, error: upReqErr } = await supabase
+    .from("no_olvidar_recovery_requests")
+    .update({
+      status: "completed",
+      new_master_password_verifier: toBase64(verifier),
+      new_master_password_salt: toBase64(salt),
+      completed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", recoveryId)
+    .eq("status", "approved") // solo un cierre; 0 filas = otra ejecución concurrente ya cerró
+    .select("id");
+  if (upReqErr) throw new Error(`No se pudo cerrar el request: ${upReqErr.message}`);
+
+  // Auditar solo si NOSOTROS cerramos el request (evita doble log en carrera). Si
+  // 0 filas, el reset ya ocurrió y otra llamada concurrente registró el evento.
+  if (claimed && claimed.length > 0) {
+    await logAccess(supabase, {
+      userId: req.requester_user_id,
+      action: "recovery_executed",
+      metadata: { recovery_id: recoveryId, approvals: req.approvals.length },
+    });
+  }
 }
 
 // ─── rejectRecovery ──────────────────────────────────────────

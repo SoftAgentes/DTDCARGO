@@ -86,16 +86,33 @@ export async function markUnlocked(
   supabase: SupabaseClient,
   userId: string,
   totpStep?: number | null,
-): Promise<void> {
+): Promise<boolean> {
   const patch: Record<string, unknown> = {
     last_unlock_at: new Date().toISOString(),
     failed_unlock_attempts: 0,
     locked_until: null,
     updated_at: new Date().toISOString(),
   };
-  if (totpStep != null) patch.totp_last_step = totpStep;
+
+  // Con step: el UPDATE es ATÓMICO y condicional — solo aplica si el step es
+  // NUEVO (`totp_last_step` null o menor). Así el anti-replay (§4.5) no tiene la
+  // carrera del read-then-write: dos requests con el mismo código fresco, solo
+  // uno avanza; el otro matchea 0 filas y el caller lo trata como código ya usado.
+  if (totpStep != null) {
+    patch.totp_last_step = totpStep;
+    const { data, error } = await supabase
+      .from("no_olvidar_user_keys")
+      .update(patch)
+      .eq("user_id", userId)
+      .or(`totp_last_step.is.null,totp_last_step.lt.${totpStep}`)
+      .select("user_id");
+    if (error) throw new Error(`No se pudo marcar el desbloqueo: ${error.message}`);
+    return (data?.length ?? 0) > 0;
+  }
+
   const { error } = await supabase.from("no_olvidar_user_keys").update(patch).eq("user_id", userId);
   if (error) throw new Error(`No se pudo marcar el desbloqueo: ${error.message}`);
+  return true;
 }
 
 // ─── incrementFailedAttempt ──────────────────────────────────
