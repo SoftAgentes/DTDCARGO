@@ -10,29 +10,50 @@ import { describe, it, expect } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getMyReferralProgram } from "../portal-referral-queries";
 
-/** Stub del admin client: from(invoices|referrals) → rows; encadenable. */
+/**
+ * Stub del admin client. `from(invoices|referrals)` → listas (terminan en
+ * `.limit()`); `from(clients|referral_settings)` → fila única (`.maybeSingle()`).
+ * SDD-0159: getMyReferralProgram resuelve el tenant por `clients` y lee los
+ * montos de `referral_settings` (fallback $80/$60 sin fila).
+ */
 function stub(opts: {
   invoices?: Record<string, unknown>[];
   referrals?: Record<string, unknown>[];
+  clientTenantId?: string;
+  settings?: { referrer_reward_usd: number; referred_reward_usd: number } | null;
 }): { admin: SupabaseClient; touched: () => string[] } {
   const touched: string[] = [];
-  function builder(rows: Record<string, unknown>[]) {
+  function builder(result: {
+    listRows?: Record<string, unknown>[];
+    single?: Record<string, unknown> | null;
+  }) {
     const b: Record<string, unknown> = {};
     Object.assign(b, {
       select: () => b,
       eq: () => b,
       is: () => b,
       order: () => b,
-      limit: () => Promise.resolve({ data: rows, error: null }),
+      limit: () => Promise.resolve({ data: result.listRows ?? [], error: null }),
+      maybeSingle: () =>
+        Promise.resolve({ data: result.single ?? null, error: null }),
     });
     return b;
   }
   const admin = {
     from: (table: string) => {
       touched.push(table);
-      if (table === "invoices") return builder(opts.invoices ?? []);
-      if (table === "referrals") return builder(opts.referrals ?? []);
-      return builder([]);
+      if (table === "invoices") return builder({ listRows: opts.invoices ?? [] });
+      if (table === "referrals")
+        return builder({ listRows: opts.referrals ?? [] });
+      if (table === "clients")
+        return builder({
+          single: opts.clientTenantId
+            ? { tenant_id: opts.clientTenantId }
+            : null,
+        });
+      if (table === "referral_settings")
+        return builder({ single: opts.settings ?? null });
+      return builder({});
     },
   } as unknown as SupabaseClient;
   return { admin, touched: () => touched };
@@ -132,10 +153,27 @@ describe("getMyReferralProgram", () => {
     });
   });
 
-  it("expone las recompensas del programa", async () => {
+  it("expone las recompensas del programa (fallback $80/$60 sin config)", async () => {
     const { admin } = stub({});
     const p = await getMyReferralProgram(admin, "DTD-1004", NOW);
     expect(p.referredReward).toBe(60);
     expect(p.referrerReward).toBe(80);
+  });
+
+  it("usa los montos configurados de referral_settings (SDD-0159)", async () => {
+    const { admin } = stub({
+      clientTenantId: "t1",
+      settings: { referrer_reward_usd: 100, referred_reward_usd: 50 },
+      referrals: [
+        ref({ id: "a", status: "acreditado", reward_usd: 100 }),
+        ref({ id: "b", status: "primer-embarque", reward_usd: 0 }), // pipeline
+        ref({ id: "c", status: "registrado", reward_usd: 0 }), // pipeline
+      ],
+    });
+    const p = await getMyReferralProgram(admin, "DTD-1004", NOW);
+    expect(p.referrerReward).toBe(100);
+    expect(p.referredReward).toBe(50);
+    // en camino = referrerReward configurado × 2 en pipeline.
+    expect(p.pendingCreditsUsd).toBe(200);
   });
 });

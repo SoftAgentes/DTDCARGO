@@ -449,7 +449,7 @@ export function RecoveryTab({
                   Abrir WhatsApp →
                 </a>
                 {opened.has(b.contactId) && (
-                  <Badge tone="success" size="xs">
+                  <Badge tone="success" size="sm">
                     Abierto
                   </Badge>
                 )}
@@ -600,7 +600,7 @@ export function RecoveryTab({
                       </span>
                       <span role="cell" style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
                         {opened.has(r.contactId) && (
-                          <Badge tone="success" size="xs">
+                          <Badge tone="success" size="sm">
                             Abierto
                           </Badge>
                         )}

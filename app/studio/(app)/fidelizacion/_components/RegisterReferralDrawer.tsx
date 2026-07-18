@@ -19,16 +19,20 @@ import {
   DrawerShell,
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
-import {
-  REFERRAL_RULES,
-  type ReferralActionState,
-} from "@/lib/studio/fidelizacion/types";
+import { type ReferralActionState } from "@/lib/studio/fidelizacion/types";
 import { fmtUsd } from "../format";
 import { registerReferral } from "../actions";
 
 const INITIAL: ReferralActionState = {};
 
-export function RegisterReferralDrawer({ onClose }: { onClose: () => void }) {
+export function RegisterReferralDrawer({
+  referrerReward,
+  onClose,
+}: {
+  /** Crédito al referidor vigente (SDD-0159 · config) para el aviso advisory. */
+  referrerReward: number;
+  onClose: () => void;
+}) {
   const router = useRouter();
   const toast = useToast();
   const [state, formAction, pending] = useActionState(
@@ -150,7 +154,7 @@ export function RegisterReferralDrawer({ onClose }: { onClose: () => void }) {
           }}
         >
           El referido arranca en <strong>Invitado</strong>. Cuando haga su primer
-          embarque, acreditá el crédito de {fmtUsd(REFERRAL_RULES.referrerReward)}{" "}
+          embarque, acreditá el crédito de {fmtUsd(referrerReward)}{" "}
           al referidor — se aplica a mano en su próxima factura (crédito advisory,
           no se postea solo a Facturación).
         </div>

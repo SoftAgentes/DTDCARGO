@@ -328,10 +328,15 @@ export function creditsEarned(
  * Créditos pendientes de aplicar a un referidor (en pipeline pero aún no
  * acreditado: ni invitado ni acreditado → cuenta la regla referrerReward).
  * Espejo de pendingCredits() del Norte.
+ *
+ * `referrerReward` = crédito por referido en pipeline. Default al histórico
+ * (REFERRAL_RULES); el caller puede pasar el monto configurado (SDD-0159,
+ * referral_settings) para que la estimación use la tarifa vigente.
  */
 export function pendingCredits(
   referrals: Referral[],
   markbox: string,
+  referrerReward: number = REFERRAL_RULES.referrerReward,
 ): number {
   return referrals
     .filter((r) => r.referrer_markbox === markbox)
@@ -339,7 +344,7 @@ export function pendingCredits(
       (s, r) =>
         s +
         (r.status !== "acreditado" && r.status !== "invitado"
-          ? REFERRAL_RULES.referrerReward
+          ? referrerReward
           : 0),
       0,
     );

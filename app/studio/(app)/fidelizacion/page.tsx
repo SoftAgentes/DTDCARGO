@@ -20,6 +20,7 @@ import {
   tierCounts,
   topReferrers,
 } from "@/lib/studio/fidelizacion/queries";
+import { getReferralSettings } from "@/lib/studio/fidelizacion/referral-settings-queries";
 import { FidelizacionClient } from "./_components/FidelizacionClient";
 
 export const metadata = { title: "Fidelización & Referidos" };
@@ -29,19 +30,23 @@ export default async function FidelizacionPage() {
 
   const supabase = await createClient();
 
-  const [clients, counts, referrals, stats, top] =
+  const [clients, counts, referrals, stats, top, referralSettings] =
     await Promise.all([
       clientsWithTier(supabase),
       tierCounts(supabase),
       listReferrals(supabase),
       programStats(supabase),
       topReferrers(supabase, 5),
+      getReferralSettings(supabase),
     ]);
 
   // Aplicar un crédito MUEVE PLATA (SDD-0137): solo lo puede hacer quien edita
   // el módulo de dinero "accounting" (accounting/admin). El botón de la UI se
   // esconde para el resto; el gate REAL fail-closed vive en la server action.
   const canApplyCredit = canEditModule(role, "accounting");
+  // Configurar los montos (SDD-0159): quien edita el módulo Fidelización. El
+  // botón se esconde para el resto; el gate real vive en saveReferralSettingsAction.
+  const canConfigure = canEditModule(role, "fidelizacion");
 
   return (
     <FidelizacionClient
@@ -51,6 +56,8 @@ export default async function FidelizacionPage() {
       stats={stats}
       topReferrers={top}
       canApplyCredit={canApplyCredit}
+      referralSettings={referralSettings}
+      canConfigure={canConfigure}
     />
   );
 }

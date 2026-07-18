@@ -144,9 +144,11 @@ export function buildReferralInviteEmail(input: {
   referredName: string;
   code: string;
   registerUrl: string;
+  /** Descuento del referido en USD (SDD-0159 · config). Default al histórico. */
+  discountUsd?: number;
 }): { subject: string; html: string } {
   const { referrerName, referredName, code, registerUrl } = input;
-  const discount = REFERRAL_RULES.referredReward;
+  const discount = input.discountUsd ?? REFERRAL_RULES.referredReward;
   const greetingName = referredName.includes("@") ? "" : ` ${referredName}`;
   const subject = `${referrerName} te invita a importar con DTD Cargo`;
   const html = `
