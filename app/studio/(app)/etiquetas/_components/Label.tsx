@@ -14,62 +14,18 @@ import { QRCodeSVG } from "qrcode.react";
 
 import { CONTACT } from "@/lib/design-tokens";
 import { labelVerifyUrl } from "@/lib/studio/etiquetas-qr";
+import { FORMATS, type LabelFormat } from "@/lib/studio/etiquetas-formats";
 import type { LabelClient, LabelWarehouseCn } from "../page";
 
 // ─────────────────────────────────────────────────────────────
 // Formatos disponibles
 // ─────────────────────────────────────────────────────────────
 
-export type LabelFormat = {
-  id: string;
-  label: string;
-  desc: string;
-  page: { w: number; h: number; marginX: number; marginY: number };
-  cell: {
-    w: number;
-    h: number;
-    cols: number;
-    rows: number;
-    gutterX: number;
-    gutterY: number;
-  };
-  perPage: number;
-};
-
-export const FORMATS: LabelFormat[] = [
-  {
-    id: "a4-8up",
-    label: "A4 · 8 etiquetas",
-    desc: "99 × 67,7 mm · plancha estándar (Avery L7165)",
-    page: { w: 210, h: 297, marginX: 6, marginY: 14.5 },
-    cell: { w: 99, h: 67.7, cols: 2, rows: 4, gutterX: 0, gutterY: 0 },
-    perPage: 8,
-  },
-  {
-    id: "a4-4up",
-    label: "A4 · 4 etiquetas grandes",
-    desc: "99 × 139 mm · más grandes, mejor lectura",
-    page: { w: 210, h: 297, marginX: 6, marginY: 9.5 },
-    cell: { w: 99, h: 139, cols: 2, rows: 2, gutterX: 0, gutterY: 0 },
-    perPage: 4,
-  },
-  {
-    id: "thermal-100x150",
-    label: "Térmico 100 × 150 mm",
-    desc: "Impresora Zebra / Brother · 1 por página",
-    page: { w: 100, h: 150, marginX: 0, marginY: 0 },
-    cell: { w: 100, h: 150, cols: 1, rows: 1, gutterX: 0, gutterY: 0 },
-    perPage: 1,
-  },
-  {
-    id: "thermal-100x100",
-    label: "Térmico 100 × 100 mm",
-    desc: "Térmica cuadrada · 1 por página",
-    page: { w: 100, h: 100, marginX: 0, marginY: 0 },
-    cell: { w: 100, h: 100, cols: 1, rows: 1, gutterX: 0, gutterY: 0 },
-    perPage: 1,
-  },
-];
+// Los formatos son datos puros y viven en lib/ (server-safe): este módulo es
+// "use client", así que importar FORMATS desde un server component arrastraría
+// el cliente al grafo del servidor — lo caza el paso `rsc-boundary` del gate.
+// Se re-exportan acá para no tocar a los consumidores existentes.
+export { FORMATS, type LabelFormat };
 
 // QR real → /verificar: la URL la arma labelVerifyUrl (lib/studio/etiquetas-qr.ts);
 // el render usa <QRCodeSVG> de qrcode.react (escaneable, único por cartón).
@@ -117,6 +73,7 @@ export function Label({
   boxIndex,
   totalBoxes,
   qr,
+  boxCode = null,
 }: {
   format: LabelFormat;
   client: LabelClient;
@@ -124,6 +81,13 @@ export function Label({
   boxIndex: number;
   totalBoxes: number;
   qr: boolean;
+  /**
+   * SDD-0152 · código único de la caja (DTD-B-NNNNNN). Solo lo lleva la etiqueta
+   * del HUB, que se imprime DESPUÉS de recibir — ahí ya existe warehouse_boxes.
+   * La del proveedor se imprime antes de que la caja exista, así que va sin él
+   * y el QR sigue identificando solo al cliente.
+   */
+  boxCode?: string | null;
 }) {
   const isCompact = format.cell.h < 80; // A4-8up + térmica 100×100
   const padding = isCompact ? "7px 9px" : "11px 13px";
@@ -158,7 +122,7 @@ export function Label({
           display: "flex",
           alignItems: "flex-start",
           justifyContent: "space-between",
-          gap: 8,
+          gap: "var(--s-2)",
           borderBottom: "1px dashed #0F1E3D",
           paddingBottom: isCompact ? 4 : 6,
         }}
@@ -256,13 +220,17 @@ export function Label({
         {qr && (
           <div style={{ flexShrink: 0, textAlign: "center" }}>
             <QRCodeSVG
-              value={labelVerifyUrl(client.markbox, boxIndex, totalBoxes)}
+              value={labelVerifyUrl(client.markbox, boxIndex, totalBoxes, boxCode)}
               size={qrSize}
               marginSize={4}
               fgColor="#0F1E3D"
               bgColor="#FFFFFF"
               level={isCompact ? "L" : "M"}
-              aria-label={`Verificar ${client.markbox} · caja ${boxIndex} de ${totalBoxes}`}
+              aria-label={
+                boxCode
+                  ? `Caja ${boxCode} · ${client.markbox} · ${boxIndex} de ${totalBoxes}`
+                  : `Verificar ${client.markbox} · caja ${boxIndex} de ${totalBoxes}`
+              }
             />
           </div>
         )}
@@ -280,16 +248,31 @@ export function Label({
           borderRadius: 2,
         }}
       >
-        <span
-          style={{
-            font: `700 ${isCompact ? 8 : 9.5}px/1 Archivo, sans-serif`,
-            opacity: 0.8,
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
-          }}
-        >
-          BOX · 箱号
-        </span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+          <span
+            style={{
+              font: `700 ${isCompact ? 8 : 9.5}px/1 Archivo, sans-serif`,
+              opacity: 0.8,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+            }}
+          >
+            BOX · 箱号
+          </span>
+          {/* SDD-0152 · el código legible: si el QR se raya o la cámara falla,
+              el operario lo teclea a mano y la estiba sigue. */}
+          {boxCode && (
+            <span
+              style={{
+                font: `700 ${isCompact ? 7.5 : 9}px/1 'JetBrains Mono', monospace`,
+                opacity: 0.75,
+                letterSpacing: "0.02em",
+              }}
+            >
+              {boxCode}
+            </span>
+          )}
+        </div>
         <div
           style={{
             font: `900 ${isCompact ? 15 : 19}px/1 'JetBrains Mono', monospace`,
@@ -305,7 +288,7 @@ export function Label({
         <div
           style={{
             marginTop: "auto",
-            paddingTop: 4,
+            paddingTop: "var(--s-1)",
             borderTop: "1px dashed #E8E6E2",
           }}
         >

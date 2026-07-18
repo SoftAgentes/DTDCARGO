@@ -1,5 +1,5 @@
 /* ── DTD Studio · ERP · Design tokens ───────────────────────── */
-/* Tokens duales (light/dark) heredados del brand book del Norte
+/* Tokens duales (light/dark) heredados del Brand Book v4.6 del Norte
    (docs/design/studio/_norte/erp/tokens.css).                   */
 :root {
   /* ── Color palette ─────────────────────────────────────── */
@@ -7,6 +7,8 @@
   --wine-deep: #5E0A12;
   --wine-soft: #C2747F;
   --wine-tint: rgba(127,15,26,0.08);
+  --wine-text: #7F0F1A;                 /* wine como TEXTO (AA en ambos temas). --wine crudo NO es texto: falla AA en dark (2.79:1). Fill de botones sigue en --wine. */
+  --on-warning: #0F1E3D;                /* texto/ícono sobre relleno --warning sólido (navy fijo, ambos temas) */
 
   --bg-base: #FBFAF7;
   --bg-surface: #FFFFFF;
@@ -19,6 +21,7 @@
 
   --ink: #0F1E3D;
   --ink-soft: #6B6B6B;
+  /* BD-019: solo disabled/decoración, NUNCA texto legible (2.78:1 sobre blanco, falla AA). */
   --ink-mute: #9B9B9B;
   --ink-inv: #FBFAF7;
   --ink-inv-soft: rgba(255,255,255,0.75);
@@ -37,10 +40,36 @@
   --warning-bg: rgba(184,137,58,0.12);
   --danger: #A8323E;
   --danger-bg: rgba(168,50,62,0.10);
+  /* BD-020: --danger-web es SOLO para web pública (marketing); Studio/Portal siguen en --danger. */
+  --danger-web: #C2353F;
+  --danger-web-bg: rgba(194,53,63,0.10);
   --info: #2A6FDB;
   --info-bg: rgba(42,111,219,0.10);
   --neutral: #6B6B6B;
   --neutral-bg: rgba(107,107,107,0.10);
+
+  /* ── Categóricos por cliente (SDD-0152) ────────────────────
+     Identidad de cliente, NO estado. Deliberadamente fuera de los tonos
+     semánticos: --wine ya significa "sobre capacidad" en utilizationTone() y
+     esa barra vive en la MISMA tarjeta que el visor de estiba. Se asignan por
+     hash del MARKBOX (lib/studio/naviera/client-palette.ts) para que el mismo
+     cliente sea siempre del mismo color. Mudos, industriales: conviven con
+     wine+navy sin pelear, y ninguno tiene el peso de un tono de alerta. */
+  --cat-1: #1F5F6B;   /* petróleo */
+  --cat-2: #3A4E8C;   /* índigo   */
+  --cat-3: #5A7A34;   /* musgo    */
+  --cat-4: #A85A3C;   /* arcilla  */
+  --cat-5: #6B3A5E;   /* ciruela  */
+  --cat-6: #4A6270;   /* acero    */
+
+  /* Sombreado de las caras del cubo isométrico + casco del contenedor.
+     Neutros sobre el color del cliente: así el token de cliente es UNO solo y
+     no hacen falta 3 variantes por color. */
+  --face-top-tint: rgba(255,255,255,0.14);
+  --face-left-tint: rgba(0,0,0,0.20);
+  --shell-wall: rgba(15,30,61,0.06);
+  --shell-floor: rgba(15,30,61,0.04);
+  --shell-corr: rgba(15,30,61,0.07);
 
   /* ── Calendar tints (SDD-0015) ─────────────────────────── */
   --cal-cn-soft: rgba(168,50,62,0.07);
@@ -131,6 +160,8 @@
   --wine: #A8323E;
   --wine-soft: #D89AA4;
   --wine-tint: rgba(168,50,62,0.14);
+  --wine-text: #D89AA4;                 /* = --wine-soft dark: wine legible como texto en oscuro (~6-8:1) */
+  --on-warning: #0F1E3D;                /* navy fijo: el fill del warning cambia, el texto no */
 
   --bg-base: #0B1428;
   --bg-surface: #16264A;
@@ -141,6 +172,7 @@
 
   --ink: #F2F0EC;
   --ink-soft: #A8B0C4;
+  /* BD-019: solo disabled/decoración (2.97:1 sobre bg-elevated, falla AA). */
   --ink-mute: #6E7896;
   --ink-inv: #0F1E3D;
   --ink-inv-soft: rgba(15,30,61,0.72);
@@ -162,6 +194,21 @@
   --info-bg: rgba(111,160,232,0.14);
   --neutral: #A8B0C4;
   --neutral-bg: rgba(168,176,196,0.12);
+
+  /* ── Categóricos por cliente (SDD-0152) — dark ─────────────
+     Mismos hues, subidos en luminosidad para leerse sobre navy. */
+  --cat-1: #4FA3B0;   /* petróleo */
+  --cat-2: #7C8FD4;   /* índigo   */
+  --cat-3: #96BC66;   /* musgo    */
+  --cat-4: #DE9070;   /* arcilla  */
+  --cat-5: #B279A2;   /* ciruela  */
+  --cat-6: #8AA3B4;   /* acero    */
+
+  --face-top-tint: rgba(255,255,255,0.16);
+  --face-left-tint: rgba(0,0,0,0.28);
+  --shell-wall: rgba(255,255,255,0.05);
+  --shell-floor: rgba(255,255,255,0.03);
+  --shell-corr: rgba(255,255,255,0.05);
 
   /* ── Calendar tints (SDD-0015) — dark ──────────────────── */
   --cal-cn-soft: rgba(224,119,133,0.10);
@@ -232,7 +279,7 @@ a { color: inherit; text-decoration: none; }
   text-transform: uppercase;
   color: var(--ink-soft);
 }
-.eyebrow-wine { color: var(--wine); }
+.eyebrow-wine { color: var(--wine-text); }
 .h-pad { padding: var(--s-6) var(--s-8); }
 
 /* Focus rings */
@@ -241,3 +288,7 @@ button:focus-visible, a:focus-visible { outline-offset: 3px; }
 /* En dark, --wine (#A8323E) da 2.79:1 contra el fondo → falla WCAG 1.4.11 (≥3:1).
    El acento visible en dark es --wine-soft (#D89AA4, ~6:1). Ver BRAND.md ♿ + DS Cloud Design. */
 [data-theme="dark"] :focus-visible { outline-color: var(--wine-soft); }
+/* BD-017: sobre superficies navy fijas (sidebar) --wine es invisible (1.56:1) en cualquier
+   tema → foco en cream/--ink-side. Aplicar el hook al contenedor navy. */
+[data-surface="navy"] :focus-visible,
+.dtd-on-navy :focus-visible { outline-color: var(--ink-side); }

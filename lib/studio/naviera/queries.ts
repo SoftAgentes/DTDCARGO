@@ -21,6 +21,11 @@ import {
   type Port,
   type Sailing,
 } from "./types";
+import {
+  parseZoneLayout,
+  type StuffedBox,
+  type ZoneLayout,
+} from "./zones";
 
 // ── Coerción + columnas ────────────────────────────────────────
 
@@ -50,7 +55,7 @@ const BOOKING_COLUMNS =
   "id, tenant_id, code, carrier_id, sailing_id, bl_number, container_type, mode, shipper, commodity, status, notes, created_at, updated_at, deleted_at";
 
 const CONSOLIDATION_COLUMNS =
-  "id, tenant_id, ref, booking_id, sailing_id, container_type, container_no, status, notes, created_at, updated_at, deleted_at";
+  "id, tenant_id, ref, booking_id, sailing_id, container_type, container_no, status, notes, requested_by_operario_id, requested_at, authorized_by, authorized_at, rejected_reason, created_at, updated_at, deleted_at";
 
 const ITEM_COLUMNS =
   "id, tenant_id, consolidation_id, shipment_id, client_markbox, client_name, supplier_name, cbm, weight_kg, pieces, created_at";
@@ -142,13 +147,19 @@ function coerceConsolidation(r: Record<string, unknown>): Consolidation {
   return {
     id: String(r.id),
     tenant_id: String(r.tenant_id),
-    ref: String(r.ref),
+    // SDD-0157: 'solicitada' no tiene ref todavía → null (no "null" string).
+    ref: (r.ref as string | null) ?? null,
     booking_id: (r.booking_id as string | null) ?? null,
     sailing_id: (r.sailing_id as string | null) ?? null,
     container_type: (r.container_type as string | null) ?? null,
     container_no: (r.container_no as string | null) ?? null,
     status: (r.status as Consolidation["status"]) ?? "consolidando",
     notes: (r.notes as string | null) ?? null,
+    requested_by_operario_id: (r.requested_by_operario_id as string | null) ?? null,
+    requested_at: (r.requested_at as string | null) ?? null,
+    authorized_by: (r.authorized_by as string | null) ?? null,
+    authorized_at: (r.authorized_at as string | null) ?? null,
+    rejected_reason: (r.rejected_reason as string | null) ?? null,
     created_at: String(r.created_at),
     updated_at: String(r.updated_at),
     deleted_at: (r.deleted_at as string | null) ?? null,
@@ -267,6 +278,7 @@ export async function listConsolidations(
   let query = supabase
     .from("consolidations")
     .select(CONSOLIDATION_COLUMNS)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(2000);
   if (opts.status) query = query.eq("status", opts.status);
@@ -338,6 +350,7 @@ export async function getConsolidation(
     .from("consolidations")
     .select(CONSOLIDATION_COLUMNS)
     .eq("id", id)
+    .is("deleted_at", null)
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
@@ -502,4 +515,83 @@ export async function navieraKpis(
   } catch {
     return empty;
   }
+}
+
+// ── Estiba por zonas (SDD-0152) ────────────────────────────────
+
+/**
+ * Dónde quedó REALMENTE cada caja dentro de cada contenedor, agrupado por
+ * consolidación. Solo posiciones VIVAS (`unstuffed_at is null`): las cerradas
+ * son historia y no se dibujan.
+ *
+ * Lo escribe el operario CN al escanear (`stuff_box_as_operario`, migr 0241).
+ * Igual que `listTrackingSnapshots`, se mapea por consolidación en page.tsx
+ * para que el detalle no re-consulte.
+ */
+export async function listStuffingByConsolidation(
+  supabase: SupabaseClient,
+  consolidationIds: string[],
+): Promise<Record<string, StuffedBox[]>> {
+  if (consolidationIds.length === 0) return {};
+
+  const { data, error } = await supabase
+    .from("consolidation_box_positions")
+    .select(
+      "consolidation_id, box_id, zx, zy, zz, seq, warehouse_boxes(code, markbox, client_name)",
+    )
+    .in("consolidation_id", consolidationIds)
+    .is("unstuffed_at", null)
+    .order("seq", { ascending: true })
+    .limit(10000);
+  if (error) throw error;
+
+  const out: Record<string, StuffedBox[]> = {};
+  for (const raw of (data as Record<string, unknown>[] | null) ?? []) {
+    const consolidationId = String(raw.consolidation_id ?? "");
+    if (!consolidationId) continue;
+
+    // El embed llega como objeto (FK a-uno) o como array según el planner.
+    const embed = raw.warehouse_boxes as
+      | Record<string, unknown>
+      | Record<string, unknown>[]
+      | null;
+    const boxRow = Array.isArray(embed) ? embed[0] : embed;
+
+    const list = out[consolidationId] ?? [];
+    list.push({
+      boxId: String(raw.box_id ?? ""),
+      code: String(boxRow?.code ?? ""),
+      markbox: (boxRow?.markbox as string | null) ?? null,
+      clientName: (boxRow?.client_name as string | null) ?? null,
+      zx: Number(raw.zx ?? 0),
+      zy: Number(raw.zy ?? 0),
+      zz: Number(raw.zz ?? 0),
+      seq: Number(raw.seq ?? 0),
+    });
+    out[consolidationId] = list;
+  }
+  return out;
+}
+
+/**
+ * Grilla de zonas por `container_types.code` (ej. "40HC" → {nx:3,ny:2,nz:3}).
+ * Tolera filas sin `zone_layout` (cae al default) para no romper si la
+ * migración 0241 todavía no se aplicó en ese entorno.
+ */
+export async function getZoneLayouts(
+  supabase: SupabaseClient,
+): Promise<Record<string, ZoneLayout>> {
+  const { data, error } = await supabase
+    .from("container_types")
+    .select("code, zone_layout")
+    .limit(200);
+  if (error) return {};
+
+  const out: Record<string, ZoneLayout> = {};
+  for (const raw of (data as Record<string, unknown>[] | null) ?? []) {
+    const code = String(raw.code ?? "");
+    if (!code) continue;
+    out[code] = parseZoneLayout(raw.zone_layout);
+  }
+  return out;
 }

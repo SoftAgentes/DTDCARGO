@@ -113,7 +113,7 @@ export default function BrochurePage() {
             <h2 className="h-section mt-4">{aniosComercioChina()} años de trayectoria.</h2>
             <p className="lead mt-3 max-w-[60ch]">
               De importadores a referente logístico entre China y América
-              Latina. Operando desde 2010, contenedor a contenedor.
+              Latina. Operando desde 2015, contenedor a contenedor.
             </p>
             <ol className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4 list-none p-0">
               {TIMELINE.map((t) => (

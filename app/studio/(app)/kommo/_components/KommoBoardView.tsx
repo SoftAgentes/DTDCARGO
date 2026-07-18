@@ -252,7 +252,7 @@ export function KommoBoardView({
                       style={{
                         font: "400 12px/1.4 var(--f-sans)",
                         color: "var(--ink-soft)",
-                        padding: "8px 4px",
+                        padding: "var(--s-2) var(--s-1)",
                       }}
                     >
                       Sin leads en esta etapa.
@@ -307,7 +307,7 @@ export function KommoBoardView({
                               style={{
                                 display: "block",
                                 font: "600 13px/1.3 var(--f-sans)",
-                                color: l.name ? "var(--ink)" : "var(--ink-mute)",
+                                color: l.name ? "var(--ink)" : "var(--ink-soft)",
                                 overflow: "hidden",
                                 textOverflow: "ellipsis",
                                 whiteSpace: "nowrap",
@@ -400,7 +400,7 @@ export function KommoBoardView({
                         font: "600 11px/1.2 var(--f-sans)",
                         color: "var(--ink-soft)",
                         textAlign: "center",
-                        padding: "4px 0",
+                        padding: "var(--s-1) 0",
                       }}
                     >
                       +{rest} más en esta etapa

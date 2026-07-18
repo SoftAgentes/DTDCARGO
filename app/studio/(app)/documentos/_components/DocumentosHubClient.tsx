@@ -111,7 +111,7 @@ export function DocumentosHubClient({
           <span className="studio-eyebrow">Hub central · Adjuntos</span>
           <h1
             className="studio-display"
-            style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
+            style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
           >
             Documentos
           </h1>
@@ -195,7 +195,7 @@ export function DocumentosHubClient({
               display: "flex",
               alignItems: "center",
               gap: 10,
-              padding: "12px 16px",
+              padding: "var(--s-3) var(--s-4)",
               background:
                 folder === "all" && view === "all"
                   ? "var(--wine-tint)"
@@ -521,7 +521,7 @@ export function DocumentosHubClient({
                           alignItems: "center",
                           gap: 5,
                           textDecoration: "none",
-                          color: "var(--wine)",
+                          color: "var(--wine-text)",
                           font: "600 11px/1.2 var(--f-sans)",
                         }}
                       >
@@ -575,7 +575,7 @@ export function DocumentosHubClient({
             {rows.length === 0 && (
               <div
                 style={{
-                  padding: "40px 20px",
+                  padding: "var(--s-10) var(--s-5)",
                   textAlign: "center",
                   font: "500 13px/1.5 var(--f-sans)",
                   color: "var(--ink-soft)",

@@ -213,7 +213,7 @@ export function StatementDetail({
           </button>
           <h2
             className="studio-display"
-            style={{ fontSize: 22, margin: "0 0 4px", color: "var(--ink)" }}
+            style={{ fontSize: 22, margin: "0 0 var(--s-1)", color: "var(--ink)" }}
           >
             {statement.period_label}
           </h2>
@@ -835,7 +835,7 @@ function LineDetailPanel({
                         style={candidateBtnStyle()}
                       >
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <code style={{ font: "700 10.5px/1 var(--f-mono)", color: "var(--wine)" }}>
+                          <code style={{ font: "700 10.5px/1 var(--f-mono)", color: "var(--wine-text)" }}>
                             {e.entry_code}
                           </code>
                           <div

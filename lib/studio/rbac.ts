@@ -120,6 +120,8 @@ export const ROLE_MODULE_ACCESS: Record<string, readonly StudioUserRole[]> = {
   // read-only. admin siempre.
   marketing: ["marketing", "commercial", "support"],
   "noticias-web": ["commercial", "support", "marketing"],
+  // Lector de docs/marketing (SDD-0158): mismos roles que el módulo marketing.
+  "marketing-docs": ["marketing", "commercial", "support"],
 
   // ─── SISTEMA ─────────────────────────────────────────────────
   mentions: ["commercial", "operations", "accounting", "warehouse", "support", "marketing"],

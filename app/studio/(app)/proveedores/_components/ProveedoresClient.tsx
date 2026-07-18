@@ -1,18 +1,22 @@
 "use client";
 
 /**
- * ProveedoresClient — "PreAlertas de servicios" (SDD-0057 Slice C · SOLO
- * LECTURA; renombre + columnas configurables founder 2026-07-03).
+ * ProveedoresClient — "Solicitudes de servicio" (SDD-0057 · renombre +
+ * columnas configurables founder 2026-07-03; alta/edición de proveedores
+ * agregada 2026-07-12).
  *
  * Header ("Solicitudes de servicio.") + 5 KPIs por estado + 2 tabs:
  *   - Prealertas entrantes ⭐ : cola de compras del tenant. Columnas
  *     CONFIGURABLES (orden + visibilidad, handoff Norte "Almacén CN →
  *     columnas configurables") vía useColumnConfig/ColumnManager, headers
- *     clickeables para ordenar (persistido) y búsqueda. Read-only.
+ *     clickeables para ordenar (persistido) y búsqueda. Read-only (las crea
+ *     el cliente desde su portal).
  *   - Proveedores            : suppliers_cn del tenant (#, nombre, ciudad,
- *     wechat/contacto, # de compras). Read-only.
+ *     wechat/contacto, # de compras). El operador puede dar de alta un
+ *     proveedor a nombre de un cliente y editar cualquiera — misma fila que
+ *     ve el cliente en su portal (SupplierDrawer, migr 0229).
  *
- * Cero writes / cero acciones que muten (alcance founder). Solo tokens var(--*).
+ * Solo tokens var(--*).
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -31,7 +35,24 @@ import {
   prealertaStatusTone,
   type Prealerta,
 } from "@/lib/studio/prealertas/types";
+import type { PrealertaServiceRequest } from "@/lib/studio/prealertas/addons";
+import type { PackingListSubmission } from "@/lib/studio/prealertas/packlist-form";
 import type { PrealertaStats } from "@/lib/studio/prealertas/queries";
+import type {
+  SupplierClaimRow,
+  SupplierScorecard,
+  SupplierScorecardStats,
+} from "@/lib/studio/proveedores/scorecard-queries";
+import {
+  ServiceRequestsTab,
+  type PrealertaLite,
+} from "./ServiceRequestsTab";
+import { PackingListsTab } from "./PackingListsTab";
+import { ProviderLinkDrawer } from "./ProviderLinkDrawer";
+import { SupplierDrawer } from "./SupplierDrawer";
+import { ScorecardTab } from "./ScorecardTab";
+import { ReclamosTab } from "./ReclamosTab";
+import type { SupplierOption } from "./SupplierClaimDrawer";
 
 // Estados que el operador considera "entrantes" (esperando arribo a CN).
 const INCOMING: ReadonlySet<string> = new Set(["anunciada", "en_camino"]);
@@ -45,14 +66,25 @@ export type SupplierRow = {
   city: string | null;
   wechat: string | null;
   contact: string | null;
+  notes: string | null;
   orderCount: number;
 };
 
-type Tab = "incoming" | "suppliers";
+type Tab =
+  | "services"
+  | "incoming"
+  | "packing"
+  | "suppliers"
+  | "scorecard"
+  | "reclamos";
 
 const TABS: { value: Tab; label: string }[] = [
+  { value: "services", label: "Servicios solicitados" },
   { value: "incoming", label: "Prealertas entrantes" },
+  { value: "packing", label: "Packing lists" },
   { value: "suppliers", label: "Proveedores" },
+  { value: "scorecard", label: "Scorecard" },
+  { value: "reclamos", label: "Reclamos" },
 ];
 
 export function ProveedoresClient({
@@ -60,14 +92,36 @@ export function ProveedoresClient({
   prealertas,
   suppliers,
   cbmByPrealertaId,
+  serviceRequests,
+  packingLists,
+  disabledShareIds,
+  scorecards,
+  claims,
+  scorecardStats,
 }: {
   stats: PrealertaStats;
   prealertas: Prealerta[];
   suppliers: SupplierRow[];
   /** CBM real medido al recibir en CN (Σ por prealerta · migr 0127). */
   cbmByPrealertaId: Record<string, number>;
+  /** Solicitudes de servicio de recepción del tenant (SDD-0098 · PORT-1). */
+  serviceRequests: PrealertaServiceRequest[];
+  /** Packing lists vigentes enviados por proveedores (SDD-0096 · PORT-2). */
+  packingLists: PackingListSubmission[];
+  /** IDs de prealertas con el link del proveedor DESACTIVADO (SDD-0096 · PORT-4). */
+  disabledShareIds: string[];
+  /** Rating por ficha derivado en vivo (SDD-0111 · supplier_scorecard_v). */
+  scorecards: SupplierScorecard[];
+  /** Reclamos operativos al proveedor (SDD-0111 · supplier_claims). */
+  claims: SupplierClaimRow[];
+  /** KPIs del scorecard (SDD-0111). */
+  scorecardStats: SupplierScorecardStats;
 }) {
-  const [tab, setTab] = useState<Tab>("incoming");
+  const disabledShareSet = useMemo(
+    () => new Set(disabledShareIds),
+    [disabledShareIds],
+  );
+  const [tab, setTab] = useState<Tab>("services");
 
   // nombre de proveedor por id (para la columna de la cola).
   const supplierName = useMemo(() => {
@@ -76,7 +130,36 @@ export function ProveedoresClient({
     return m;
   }, [suppliers]);
 
+  // Contexto de compra por prealerta_id (código + descripción) para la bandeja.
+  const prealertaById = useMemo(() => {
+    const m: Record<string, PrealertaLite> = {};
+    for (const p of prealertas) {
+      m[p.id] = { code: p.code, description: p.description };
+    }
+    return m;
+  }, [prealertas]);
+
+  const pendingServices = useMemo(
+    () =>
+      serviceRequests.filter(
+        (r) => r.status === "solicitada" || r.status === "en_proceso",
+      ).length,
+    [serviceRequests],
+  );
+
   const incomingCount = stats.byStatus.anunciada + stats.byStatus.en_camino;
+
+  // Opciones de proveedor para el drawer de reclamo (desde el scorecard).
+  const supplierOptions: SupplierOption[] = useMemo(
+    () =>
+      scorecards.map((s) => ({
+        supplier_cn_id: s.supplier_cn_id,
+        name: s.name,
+        supplier_seq: s.supplier_seq,
+        client_markbox: s.client_markbox,
+      })),
+    [scorecards],
+  );
 
   return (
     <div style={{ maxWidth: 1280 }}>
@@ -86,8 +169,8 @@ export function ProveedoresClient({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-end",
-          gap: 24,
-          marginBottom: 24,
+          gap: "var(--s-6)",
+          marginBottom: "var(--s-6)",
           flexWrap: "wrap",
         }}
       >
@@ -95,7 +178,7 @@ export function ProveedoresClient({
           <span className="studio-eyebrow">Operación · CN</span>
           <h1
             className="studio-display"
-            style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
+            style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
           >
             Solicitudes de servicio.
           </h1>
@@ -121,7 +204,7 @@ export function ProveedoresClient({
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
           gap: 14,
-          marginBottom: 20,
+          marginBottom: "var(--s-5)",
         }}
       >
         <KpiCard
@@ -165,7 +248,7 @@ export function ProveedoresClient({
       <div
         style={{
           display: "flex",
-          gap: 4,
+          gap: "var(--s-1)",
           marginBottom: 18,
           borderBottom: "1px solid var(--border)",
         }}
@@ -173,7 +256,18 @@ export function ProveedoresClient({
         {TABS.map((tDef) => {
           const active = tab === tDef.value;
           const count =
-            tDef.value === "incoming" ? prealertas.length : suppliers.length;
+            tDef.value === "services"
+              ? serviceRequests.length
+              : tDef.value === "incoming"
+                ? prealertas.length
+                : tDef.value === "packing"
+                  ? packingLists.length
+                  : tDef.value === "suppliers"
+                    ? suppliers.length
+                    : tDef.value === "scorecard"
+                      ? scorecards.length
+                      : claims.length;
+          const alert = tDef.value === "services" && pendingServices > 0;
           return (
             <button
               key={tDef.value}
@@ -196,18 +290,28 @@ export function ProveedoresClient({
             >
               {tDef.label}
               <span
+                title={alert ? `${pendingServices} pendientes por atender` : undefined}
                 style={{
                   marginLeft: 7,
-                  font: "600 11px/1 var(--f-mono)",
-                  color: "var(--ink-soft)",
+                  font: alert
+                    ? "800 11px/1 var(--f-mono)"
+                    : "600 11px/1 var(--f-mono)",
+                  color: alert ? "var(--wine)" : "var(--ink-soft)",
                 }}
               >
-                {count}
+                {alert ? pendingServices : count}
               </span>
             </button>
           );
         })}
       </div>
+
+      {tab === "services" && (
+        <ServiceRequestsTab
+          requests={serviceRequests}
+          prealertaById={prealertaById}
+        />
+      )}
 
       {tab === "incoming" && (
         <IncomingTab
@@ -215,10 +319,30 @@ export function ProveedoresClient({
           supplierName={supplierName}
           incomingCount={incomingCount}
           cbmByPrealertaId={cbmByPrealertaId}
+          disabledShareSet={disabledShareSet}
+        />
+      )}
+
+      {tab === "packing" && (
+        <PackingListsTab
+          submissions={packingLists}
+          prealertaById={prealertaById}
         />
       )}
 
       {tab === "suppliers" && <SuppliersTab suppliers={suppliers} />}
+
+      {tab === "scorecard" && (
+        <ScorecardTab
+          scorecards={scorecards}
+          claims={claims}
+          stats={scorecardStats}
+        />
+      )}
+
+      {tab === "reclamos" && (
+        <ReclamosTab claims={claims} suppliers={supplierOptions} />
+      )}
     </div>
   );
 }
@@ -241,6 +365,7 @@ const PREALERTA_COLS_DEFAULT: ColumnVisibility[] = [
   { key: "boxes", visible: true },
   { key: "cbm", visible: true },
   { key: "value", visible: false },
+  { key: "link", visible: true },
   { key: "status", visible: true },
 ];
 
@@ -252,6 +377,7 @@ const PREALERTA_COL_LABELS: ColumnLabels = {
   boxes: { label: "Cajas" },
   cbm: { label: "CBM", hint: "se mide al recibir en CN" },
   value: { label: "Valor est.", hint: "declarado por el cliente" },
+  link: { label: "Link proveedor", hint: "copiar · activar / desactivar el enlace" },
   status: { label: "Estado" },
 };
 
@@ -306,14 +432,18 @@ function IncomingTab({
   supplierName,
   incomingCount,
   cbmByPrealertaId,
+  disabledShareSet,
 }: {
   prealertas: Prealerta[];
   supplierName: Record<string, string>;
   incomingCount: number;
   cbmByPrealertaId: Record<string, number>;
+  /** IDs de prealertas con el link del proveedor desactivado (PORT-4). */
+  disabledShareSet: Set<string>;
 }) {
   const [onlyIncoming, setOnlyIncoming] = useState(true);
   const [search, setSearch] = useState("");
+  const [selectedLink, setSelectedLink] = useState<Prealerta | null>(null);
   const [colCfg, setColCfg] = useColumnConfig(
     PREALERTA_COLS_KEY,
     PREALERTA_COLS_DEFAULT,
@@ -471,7 +601,7 @@ function IncomingTab({
         <code
           style={{
             font: "700 12px/1.2 var(--f-mono)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             overflow: "hidden",
             textOverflow: "ellipsis",
           }}
@@ -552,6 +682,38 @@ function IncomingTab({
       ),
     },
     {
+      key: "link",
+      label: "Link proveedor",
+      width: "108px",
+      render: (p) => {
+        const active = !disabledShareSet.has(p.id);
+        return (
+          <button
+            type="button"
+            onClick={() => setSelectedLink(p)}
+            title="Gestionar el link del proveedor"
+            className="studio-btn studio-btn-ghost"
+            style={{ height: 26, padding: "0 9px" }}
+          >
+            <span
+              aria-hidden
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: "50%",
+                background: active ? "var(--success)" : "var(--danger)",
+                display: "inline-block",
+                marginRight: 6,
+              }}
+            />
+            <span style={{ font: "600 11px/1 var(--f-sans)" }}>
+              {active ? "Link" : "Revocado"}
+            </span>
+          </button>
+        );
+      },
+    },
+    {
       key: "status",
       label: "Estado",
       width: "132px",
@@ -601,7 +763,7 @@ function IncomingTab({
           display: "flex",
           alignItems: "center",
           gap: 10,
-          marginBottom: 12,
+          marginBottom: "var(--s-3)",
           flexWrap: "wrap",
         }}
       >
@@ -609,7 +771,7 @@ function IncomingTab({
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 8,
+            gap: "var(--s-2)",
             flex: "1 1 220px",
             minWidth: 180,
             maxWidth: 380,
@@ -702,7 +864,7 @@ function IncomingTab({
               style={{
                 display: "grid",
                 gridTemplateColumns: grid,
-                gap: 12,
+                gap: "var(--s-3)",
                 padding: "14px 20px",
                 borderTop: i > 0 ? "1px solid var(--border)" : 0,
                 alignItems: "center",
@@ -772,6 +934,22 @@ function IncomingTab({
           </div>
         </TableShell>
       )}
+
+      {selectedLink && (
+        <ProviderLinkDrawer
+          prealertaId={selectedLink.id}
+          code={selectedLink.code}
+          shareToken={selectedLink.share_token}
+          clientMarkbox={selectedLink.client_markbox}
+          supplierName={
+            selectedLink.supplier_id
+              ? (supplierName[selectedLink.supplier_id] ?? null)
+              : null
+          }
+          initialActive={!disabledShareSet.has(selectedLink.id)}
+          onClose={() => setSelectedLink(null)}
+        />
+      )}
     </>
   );
 }
@@ -812,7 +990,7 @@ function SortableHeaderCell({
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: 4,
+        gap: "var(--s-1)",
         justifySelf: col.align === "right" ? "end" : "start",
         background: "transparent",
         border: "none",
@@ -839,118 +1017,210 @@ function SortableHeaderCell({
 // Tab: Proveedores
 // ════════════════════════════════════════════════════════════════
 
-const SUPPLIER_GRID = "60px 1.4fr 1fr 1.1fr 110px";
+const SUPPLIER_GRID = "60px 1.4fr 1fr 1.1fr 90px 74px";
 
 function SuppliersTab({ suppliers }: { suppliers: SupplierRow[] }) {
-  if (suppliers.length === 0) {
-    return (
-      <EmptyState
-        eyebrow="Sin proveedores"
-        title="Todavía no hay proveedores cargados."
-        description="Los clientes registran sus proveedores chinos desde el portal. Cuando lo hagan, aparecerán acá con su nº por cliente y su historial de compras."
-      />
+  const [search, setSearch] = useState("");
+  const [drawer, setDrawer] = useState<"new" | SupplierRow | null>(null);
+
+  const rows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return suppliers;
+    return suppliers.filter(
+      (s) =>
+        s.name.toLowerCase().includes(q) ||
+        s.client_markbox.toLowerCase().includes(q) ||
+        (s.city ?? "").toLowerCase().includes(q) ||
+        (s.wechat ?? "").toLowerCase().includes(q) ||
+        (s.contact ?? "").toLowerCase().includes(q),
     );
-  }
+  }, [suppliers, search]);
 
   return (
-    <TableShell>
-      <HeaderRow grid={SUPPLIER_GRID}>
-        <span>Nº</span>
-        <span>Proveedor · cliente</span>
-        <span>Ciudad</span>
-        <span>WeChat · contacto</span>
-        <span style={{ textAlign: "right" }}>Compras</span>
-      </HeaderRow>
-      {suppliers.map((s, i) => (
+    <>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          marginBottom: "var(--s-3)",
+          flexWrap: "wrap",
+        }}
+      >
         <div
-          key={s.id}
-          className="studio-tracking-row"
           style={{
-            display: "grid",
-            gridTemplateColumns: SUPPLIER_GRID,
-            gap: 12,
-            padding: "14px 20px",
-            borderTop: i > 0 ? "1px solid var(--border)" : 0,
+            display: "flex",
             alignItems: "center",
+            gap: "var(--s-2)",
+            flex: "1 1 220px",
+            minWidth: 180,
+            maxWidth: 380,
+            height: 32,
+            padding: "0 10px",
+            background: "var(--bg-elevated)",
+            borderRadius: "var(--r-sm)",
           }}
         >
-          <span
-            style={{
-              font: "700 12.5px/1 var(--f-mono)",
-              color: "var(--wine)",
-            }}
-          >
-            #{s.supplier_seq}
+          <span style={{ color: "var(--ink-mute)", display: "inline-flex" }}>
+            {Icon.search(13)}
           </span>
-          <div style={{ overflow: "hidden" }}>
-            <div
-              style={{
-                font: "700 12.5px/1.2 var(--f-sans)",
-                color: "var(--ink)",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {s.name}
-            </div>
-            <div
-              style={{
-                font: "500 10.5px/1.3 var(--f-mono)",
-                color: "var(--ink-soft)",
-                marginTop: 3,
-              }}
-            >
-              {s.client_markbox || "—"}
-            </div>
-          </div>
-          <span
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar proveedor, cliente, ciudad o WeChat…"
+            aria-label="Buscar proveedores"
             style={{
-              font: "500 12px/1.3 var(--f-sans)",
-              color: s.city ? "var(--ink)" : "var(--ink-mute)",
+              flex: 1,
+              height: "100%",
+              border: 0,
+              background: "transparent",
+              font: "500 12px/1 var(--f-sans)",
+              color: "var(--ink)",
             }}
-          >
-            {s.city || "—"}
-          </span>
-          <div style={{ overflow: "hidden" }}>
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setDrawer("new")}
+          className="studio-btn studio-btn-primary"
+          style={{ marginLeft: "auto" }}
+        >
+          + Nuevo proveedor
+        </button>
+      </div>
+
+      {suppliers.length === 0 ? (
+        <EmptyState
+          eyebrow="Sin proveedores"
+          title="Todavía no hay proveedores cargados."
+          description="Los clientes registran sus proveedores chinos desde el portal, o dalos de alta acá a nombre de un cliente. Aparecen con su nº por cliente y su historial de compras."
+        />
+      ) : rows.length === 0 ? (
+        <EmptyState
+          eyebrow="Sin resultados"
+          title="Nada coincide con tu búsqueda."
+          description="Prueba con el nombre del proveedor, el Shipping Mark del cliente, la ciudad o el WeChat."
+        />
+      ) : (
+        <TableShell>
+          <HeaderRow grid={SUPPLIER_GRID}>
+            <span>Nº</span>
+            <span>Proveedor · cliente</span>
+            <span>Ciudad</span>
+            <span>WeChat · contacto</span>
+            <span style={{ textAlign: "right" }}>Compras</span>
+            <span />
+          </HeaderRow>
+          {rows.map((s, i) => (
             <div
+              key={s.id}
+              className="studio-tracking-row"
               style={{
-                font: "500 12px/1.3 var(--f-sans)",
-                color: s.wechat ? "var(--ink)" : "var(--ink-mute)",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
+                display: "grid",
+                gridTemplateColumns: SUPPLIER_GRID,
+                gap: "var(--s-3)",
+                padding: "14px 20px",
+                borderTop: i > 0 ? "1px solid var(--border)" : 0,
+                alignItems: "center",
               }}
             >
-              {s.wechat ? `WeChat ${s.wechat}` : "—"}
-            </div>
-            {s.contact && (
-              <div
+              <span
                 style={{
-                  font: "500 10.5px/1.3 var(--f-sans)",
-                  color: "var(--ink-soft)",
-                  marginTop: 3,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
+                  font: "700 12.5px/1 var(--f-mono)",
+                  color: "var(--wine-text)",
                 }}
               >
-                {s.contact}
+                #{s.supplier_seq}
+              </span>
+              <div style={{ overflow: "hidden" }}>
+                <div
+                  style={{
+                    font: "700 12.5px/1.2 var(--f-sans)",
+                    color: "var(--ink)",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {s.name}
+                </div>
+                <div
+                  style={{
+                    font: "500 10.5px/1.3 var(--f-mono)",
+                    color: "var(--ink-soft)",
+                    marginTop: 3,
+                  }}
+                >
+                  {s.client_markbox || "—"}
+                </div>
               </div>
-            )}
-          </div>
-          <span
-            style={{
-              font: "700 12.5px/1 var(--f-mono)",
-              color: s.orderCount > 0 ? "var(--ink)" : "var(--ink-mute)",
-              textAlign: "right",
-            }}
-          >
-            {s.orderCount}
-          </span>
-        </div>
-      ))}
-    </TableShell>
+              <span
+                style={{
+                  font: "500 12px/1.3 var(--f-sans)",
+                  color: s.city ? "var(--ink)" : "var(--ink-mute)",
+                }}
+              >
+                {s.city || "—"}
+              </span>
+              <div style={{ overflow: "hidden" }}>
+                <div
+                  style={{
+                    font: "500 12px/1.3 var(--f-sans)",
+                    color: s.wechat ? "var(--ink)" : "var(--ink-mute)",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {s.wechat ? `WeChat ${s.wechat}` : "—"}
+                </div>
+                {s.contact && (
+                  <div
+                    style={{
+                      font: "500 10.5px/1.3 var(--f-sans)",
+                      color: "var(--ink-soft)",
+                      marginTop: 3,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {s.contact}
+                  </div>
+                )}
+              </div>
+              <span
+                style={{
+                  font: "700 12.5px/1 var(--f-mono)",
+                  color: s.orderCount > 0 ? "var(--ink)" : "var(--ink-soft)",
+                  textAlign: "right",
+                }}
+              >
+                {s.orderCount}
+              </span>
+              <div style={{ textAlign: "right" }}>
+                <button
+                  type="button"
+                  onClick={() => setDrawer(s)}
+                  className="studio-btn studio-btn-ghost"
+                  style={{ height: 26, padding: "0 9px" }}
+                >
+                  Editar
+                </button>
+              </div>
+            </div>
+          ))}
+        </TableShell>
+      )}
+
+      {drawer && (
+        <SupplierDrawer
+          supplier={drawer === "new" ? undefined : drawer}
+          allSuppliers={suppliers}
+          onClose={() => setDrawer(null)}
+        />
+      )}
+    </>
   );
 }
 
@@ -985,8 +1255,8 @@ function HeaderRow({
       style={{
         display: "grid",
         gridTemplateColumns: grid,
-        gap: 12,
-        padding: "12px 20px",
+        gap: "var(--s-3)",
+        padding: "var(--s-3) var(--s-5)",
         background: "var(--bg-elevated)",
         borderBottom: "1px solid var(--border)",
         font: "700 10px/1 var(--f-sans)",

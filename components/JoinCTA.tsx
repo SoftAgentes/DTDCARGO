@@ -22,7 +22,7 @@ export function JoinCTA() {
             >
               Regístrate y obtén{" "}
               <br className="hidden lg:inline" />
-              tu MARKBOX.
+              tu Shipping Mark.
             </h2>
             <p className="mt-4 text-[15px] text-white/70 leading-[1.55] max-w-[52ch]">
               Tu código de cliente identifica tus cajas en nuestra bodega de Yiwu

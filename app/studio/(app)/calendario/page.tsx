@@ -66,7 +66,7 @@ export default async function CalendarioPage({
 
 function PageHeader() {
   return (
-    <div style={{ marginBottom: 24 }}>
+    <div style={{ marginBottom: "var(--s-6)" }}>
       <span className="studio-eyebrow">Operación</span>
       <h1
         className="studio-display"

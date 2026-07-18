@@ -126,7 +126,7 @@ export function ActasList({ meetings, canEdit }: Props) {
               <div
                 style={{
                   display: "flex",
-                  gap: 12,
+                  gap: "var(--s-3)",
                   font: "500 11px/1.3 var(--f-sans)",
                   color: "var(--ink-soft)",
                 }}
@@ -174,7 +174,7 @@ function ActaDetailDrawer({
           padding: "18px 22px",
           display: "flex",
           flexDirection: "column",
-          gap: 16,
+          gap: "var(--s-4)",
         }}
       >
         {cli && (
@@ -251,7 +251,7 @@ function DetailList({ label, items }: { label: string; items: string[] }) {
       <div className="studio-label" style={{ marginBottom: 6 }}>
         {label}
       </div>
-      <ul style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 4 }}>
+      <ul style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: "var(--s-1)" }}>
         {items.map((it, i) => (
           <li key={i} style={{ font: "500 12.5px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
             {it}

@@ -1,10 +1,10 @@
 ---
 sdd: "0116"
 title: "Club DTD — membresía recurrente + compra grupal (consolidación comunitaria)"
-status: in-progress
+status: done
 author: "Claude Code (redactor de specs) + founder"
 created: 2026-06-26
-updated: 2026-06-28
+updated: 2026-07-14
 supersedes: null
 superseded_by: null
 related: ["0093", "0107", "0106", "0051", "0066", "0042", "0085", "0090", "0047", "0053", "0077"]

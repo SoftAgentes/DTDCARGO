@@ -144,7 +144,7 @@ export function ContabilidadClient({
           <span className="studio-eyebrow">Operación financiera</span>
           <h1
             className="studio-display"
-            style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
+            style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
           >
             Contabilidad.
           </h1>
@@ -236,7 +236,7 @@ export function ContabilidadClient({
           borderBottom: "1px solid var(--border)",
           flexWrap: "wrap",
           opacity: isPending ? 0.6 : 1,
-          transition: "opacity 0.12s",
+          transition: "opacity var(--dur-fast) var(--ease)",
         }}
       >
         {TABS.map((t) => {

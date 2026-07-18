@@ -38,6 +38,8 @@ import {
   type Sailing,
 } from "@/lib/studio/naviera/types";
 import { buildSeaRatesTrackingUrl } from "@/lib/studio/naviera-tracking/searates-deeplink";
+import { ContainerIsoView } from "./ContainerIsoView";
+import { type StuffedBox } from "@/lib/studio/naviera/zones";
 import type {
   ConsolidationDetail,
   LooseCargo,
@@ -48,6 +50,8 @@ import {
   changeConsolidationStatus,
   setConsolidationContainerNo,
   refreshTracking,
+  authorizeConsolidation,
+  rejectConsolidation,
 } from "../actions";
 import type { TrackingSnapshotRow } from "@/lib/studio/naviera-tracking/snapshot-queries";
 import { SailingDrawer } from "./SailingDrawer";
@@ -80,6 +84,7 @@ export function NavieraClient({
   containerTypes,
   kpis,
   trackingByConsolidation,
+  stuffingByConsolidation,
 }: {
   sailings: Sailing[];
   bookings: Booking[];
@@ -91,6 +96,8 @@ export function NavieraClient({
   kpis: NavieraKpis;
   /** Snapshots de tracking SeaRates por consolidación (SDD-0101 · Slice B.2). */
   trackingByConsolidation?: Record<string, TrackingSnapshotRow>;
+  /** Dónde quedó cada caja dentro de cada contenedor (SDD-0152 → 0155). */
+  stuffingByConsolidation?: Record<string, StuffedBox[]>;
 }) {
   const [tab, setTab] = useState<Tab>("consolidation");
   const [showNewSailing, setShowNewSailing] = useState(false);
@@ -117,7 +124,7 @@ export function NavieraClient({
           <span className="studio-eyebrow">Operación · Logística marítima</span>
           <h1
             className="studio-display"
-            style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
+            style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
           >
             Naviera & Consolidación.
           </h1>
@@ -181,7 +188,7 @@ export function NavieraClient({
         <KpiCard
           value={`${kpis.looseCbm.toFixed(1)} CBM`}
           label="Carga suelta en CN"
-          valueColor={kpis.looseCbm > 0 ? "var(--wine)" : "var(--ink)"}
+          valueColor={kpis.looseCbm > 0 ? "var(--wine-text)" : "var(--ink)"}
           sub={`${kpis.looseCount} embarque(s) sin asignar`}
         />
         <KpiCard
@@ -243,6 +250,7 @@ export function NavieraClient({
           carriers={carriers}
           sailings={sailings}
           trackingByConsolidation={trackingByConsolidation}
+          stuffingByConsolidation={stuffingByConsolidation}
           onNew={() => setShowNewConsolidation(true)}
           onAssign={(d) => setAssignTo(d)}
         />
@@ -465,6 +473,7 @@ function ConsolidationTab({
   carriers,
   sailings,
   trackingByConsolidation,
+  stuffingByConsolidation,
   onNew,
   onAssign,
 }: {
@@ -472,18 +481,31 @@ function ConsolidationTab({
   carriers: Carrier[];
   sailings: Sailing[];
   trackingByConsolidation?: Record<string, TrackingSnapshotRow>;
+  stuffingByConsolidation?: Record<string, StuffedBox[]>;
   onNew: () => void;
   onAssign: (d: ConsolidationDetail) => void;
 }) {
+  // SDD-0157: separar las solicitudes del operario (pendientes de autorizar) de
+  // los contenedores ya operables. Las rechazadas no se muestran (sin ref, sin
+  // carga; su rastro queda en la fila para auditoría).
+  const requests = consolidations.filter(
+    (d) => d.consolidation.status === "solicitada",
+  );
+  const containers = consolidations.filter(
+    (d) =>
+      d.consolidation.status !== "solicitada" &&
+      d.consolidation.status !== "rechazada",
+  );
+
   const [selectedId, setSelectedId] = useState<string | null>(
-    consolidations[0]?.consolidation.id ?? null,
+    containers[0]?.consolidation.id ?? null,
   );
   const selected =
-    consolidations.find((d) => d.consolidation.id === selectedId) ??
-    consolidations[0] ??
+    containers.find((d) => d.consolidation.id === selectedId) ??
+    containers[0] ??
     null;
 
-  if (consolidations.length === 0) {
+  if (requests.length === 0 && containers.length === 0) {
     return (
       <EmptyState
         eyebrow="Sin contenedores"
@@ -503,10 +525,29 @@ function ConsolidationTab({
   }
 
   return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {requests.length > 0 && <RequestsSection requests={requests} />}
+
+      {containers.length === 0 ? (
+        <EmptyState
+          eyebrow="Sin contenedores abiertos"
+          title="No hay contenedores en consolidación todavía."
+          description="Autoriza una solicitud de arriba o crea un contenedor nuevo."
+          action={
+            <button
+              type="button"
+              className="studio-btn studio-btn-primary"
+              onClick={onNew}
+            >
+              + Nuevo contenedor
+            </button>
+          }
+        />
+      ) : (
     <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 16 }}>
       {/* Lista lateral */}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {consolidations.map((d) => {
+        {containers.map((d) => {
           const c = d.consolidation;
           const active = selected?.consolidation.id === c.id;
           return (
@@ -581,8 +622,193 @@ function ConsolidationTab({
           carriers={carriers}
           sailings={sailings}
           snapshot={trackingByConsolidation?.[selected.consolidation.id] ?? null}
+          stuffing={stuffingByConsolidation?.[selected.consolidation.id] ?? []}
           onAssign={() => onAssign(selected)}
         />
+      )}
+    </div>
+      )}
+    </div>
+  );
+}
+
+// ── SDD-0157 · bandeja de solicitudes del operario ──────────────
+
+function RequestsSection({ requests }: { requests: ConsolidationDetail[] }) {
+  return (
+    <div
+      style={{
+        background: "var(--bg-surface)",
+        border: "1px solid var(--info)",
+        borderLeft: "3px solid var(--info)",
+        borderRadius: "var(--r-lg)",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          padding: "14px 20px",
+          borderBottom: "1px solid var(--border)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <div className="studio-eyebrow">
+          Solicitudes de consolidado · el hub pidió abrir contenedor
+        </div>
+        <Badge tone="info" size="sm">
+          {requests.length} pendiente{requests.length === 1 ? "" : "s"}
+        </Badge>
+      </div>
+      {requests.map((d, i) => (
+        <RequestRow
+          key={d.consolidation.id}
+          detail={d}
+          borderTop={i > 0}
+        />
+      ))}
+    </div>
+  );
+}
+
+function RequestRow({
+  detail,
+  borderTop,
+}: {
+  detail: ConsolidationDetail;
+  borderTop: boolean;
+}) {
+  const router = useRouter();
+  const toast = useToast();
+  const c = detail.consolidation;
+  const [rejecting, setRejecting] = useState(false);
+  const [reason, setReason] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const tipo = c.container_type ?? "sin tipo";
+
+  return (
+    <div
+      style={{
+        padding: "16px 20px",
+        borderTop: borderTop ? "1px solid var(--border)" : 0,
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 16,
+          flexWrap: "wrap",
+        }}
+      >
+        <div>
+          <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>
+            Solicitud de consolidado · {tipo}
+          </div>
+          <div
+            style={{
+              font: "500 11.5px/1.3 var(--f-sans)",
+              color: "var(--ink-soft)",
+              marginTop: 4,
+            }}
+          >
+            {c.requested_at
+              ? `Pedido ${timeAgo(c.requested_at)}`
+              : "Pedido por el hub"}
+            {" · sin correlativo hasta autorizar"}
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <ActionButton
+            variant="dark"
+            size="sm"
+            idleLabel="Autorizar"
+            loadingLabel="Autorizando…"
+            successLabel="Autorizado"
+            onAction={() => {
+              setError(null);
+              return authorizeConsolidation(c.id);
+            }}
+            onSuccess={() => {
+              toast.success("Contenedor autorizado · ya puede estibar");
+              router.refresh();
+            }}
+            onError={setError}
+          />
+          <button
+            type="button"
+            className="studio-btn studio-btn-ghost studio-btn-sm"
+            onClick={() => {
+              setRejecting((v) => !v);
+              setError(null);
+            }}
+          >
+            Rechazar
+          </button>
+        </div>
+      </div>
+
+      {rejecting && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <textarea
+            className="studio-input"
+            style={{ width: "100%", minHeight: 60, resize: "vertical" }}
+            placeholder="Motivo del rechazo (lo ve el operario)"
+            value={reason}
+            onChange={(e) => {
+              setReason(e.target.value);
+              setError(null);
+            }}
+          />
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <button
+              type="button"
+              className="studio-btn studio-btn-ghost studio-btn-sm"
+              onClick={() => {
+                setRejecting(false);
+                setReason("");
+                setError(null);
+              }}
+            >
+              Cancelar
+            </button>
+            <ActionButton
+              variant="dark"
+              size="sm"
+              idleLabel="Confirmar rechazo"
+              loadingLabel="Rechazando…"
+              successLabel="Rechazada"
+              disabled={reason.trim().length === 0}
+              onAction={() => {
+                setError(null);
+                return rejectConsolidation(c.id, reason);
+              }}
+              onSuccess={() => {
+                toast.success("Solicitud rechazada");
+                router.refresh();
+              }}
+              onError={setError}
+            />
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <span
+          style={{
+            font: "500 12px/1.4 var(--f-sans)",
+            color: "var(--danger)",
+          }}
+        >
+          {error}
+        </span>
       )}
     </div>
   );
@@ -593,12 +819,14 @@ function ContainerDetail({
   carriers,
   sailings,
   snapshot,
+  stuffing,
   onAssign,
 }: {
   detail: ConsolidationDetail;
   carriers: Carrier[];
   sailings: Sailing[];
   snapshot: TrackingSnapshotRow | null;
+  stuffing: StuffedBox[];
   onAssign: () => void;
 }) {
   const c = detail.consolidation;
@@ -818,6 +1046,43 @@ function ContainerDetail({
           />
         </div>
 
+        {/* Estiba por zonas (SDD-0152) · dónde quedó realmente cada caja.
+            Debajo de las barras: primero CUÁNTO va cargado, después DÓNDE. */}
+        <div style={{ marginTop: 22 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "baseline",
+              justifyContent: "space-between",
+              gap: 12,
+              marginBottom: 10,
+            }}
+          >
+            <span
+              style={{
+                font: "700 10px/1.4 var(--f-sans)",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "var(--ink-soft)",
+              }}
+            >
+              Estiba · dónde está cada carga
+            </span>
+            {stuffing.length > 0 && (
+              <span
+                style={{
+                  font: "500 11px/1.4 var(--f-sans)",
+                  color: "var(--ink-soft)",
+                }}
+              >
+                {stuffing.length} caja{stuffing.length === 1 ? "" : "s"} escaneada
+                {stuffing.length === 1 ? "" : "s"} en el hub
+              </span>
+            )}
+          </div>
+          <ContainerIsoView boxes={stuffing} idSuffix={c.id} />
+        </div>
+
         {st.cap && st.freeCbm > 3 && c.status === "consolidando" && (
           <div
             style={{
@@ -878,7 +1143,7 @@ function ContainerDetail({
                   display: "grid",
                   gridTemplateColumns: ITEM_GRID,
                   gap: 12,
-                  padding: "12px 20px",
+                  padding: "var(--s-3) var(--s-5)",
                   borderTop: i > 0 ? "1px solid var(--border)" : 0,
                   alignItems: "center",
                 }}
@@ -886,7 +1151,7 @@ function ContainerDetail({
                 <code
                   style={{
                     font: "700 11.5px/1 var(--f-mono)",
-                    color: "var(--wine)",
+                    color: "var(--wine-text)",
                   }}
                 >
                   {it.client_markbox ?? "—"}
@@ -946,7 +1211,7 @@ function ContainerDetail({
                 display: "grid",
                 gridTemplateColumns: ITEM_GRID,
                 gap: 12,
-                padding: "12px 20px",
+                padding: "var(--s-3) var(--s-5)",
                 borderTop: "2px solid var(--ink)",
                 background: "var(--bg-elevated)",
                 alignItems: "center",
@@ -1091,7 +1356,7 @@ function LiveTrackingCard({
               style={{
                 font: "700 11px/1 var(--f-mono)",
                 // Aviso cuando escasea el plan (cuota dura compartida con fletes).
-                color: snapshot.apiRemaining <= 3 ? "var(--warning)" : "var(--ink-mute)",
+                color: snapshot.apiRemaining <= 3 ? "var(--warning)" : "var(--ink-soft)",
               }}
             >
               quedan {snapshot.apiRemaining}
@@ -1279,7 +1544,7 @@ function LooseCargoTab({
               {l.code}
             </code>
             <code
-              style={{ font: "700 11.5px/1 var(--f-mono)", color: "var(--wine)" }}
+              style={{ font: "700 11.5px/1 var(--f-mono)", color: "var(--wine-text)" }}
             >
               {l.client_markbox ?? "—"}
             </code>
@@ -1316,7 +1581,7 @@ function LooseCargoTab({
         ))}
         <div
           style={{
-            padding: "12px 20px",
+            padding: "var(--s-3) var(--s-5)",
             borderTop: "1px solid var(--border)",
             display: "flex",
             justifyContent: "flex-end",
@@ -1455,7 +1720,7 @@ function BookingsTab({
             <code
               style={{
                 font: "600 10.5px/1 var(--f-mono)",
-                color: b.bl_number ? "var(--ink)" : "var(--ink-mute)",
+                color: b.bl_number ? "var(--ink)" : "var(--ink-soft)",
               }}
             >
               {b.bl_number || "pendiente"}
@@ -1528,7 +1793,7 @@ function HeaderRow({
         display: "grid",
         gridTemplateColumns: grid,
         gap: 12,
-        padding: "12px 20px",
+        padding: "var(--s-3) var(--s-5)",
         background: "var(--bg-elevated)",
         borderBottom: "1px solid var(--border)",
         font: "700 10px/1 var(--f-sans)",

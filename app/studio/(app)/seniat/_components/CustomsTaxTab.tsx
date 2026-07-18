@@ -6,7 +6,7 @@ import type { TaxBreakdown } from "@/lib/studio/customs-queries";
 
 export function CustomsTaxTab({ breakdown }: { breakdown: TaxBreakdown }) {
   const items: { label: string; value: number; color: string }[] = [
-    { label: "Aranceles de importación", value: breakdown.duty, color: "var(--wine)" },
+    { label: "Aranceles de importación", value: breakdown.duty, color: "var(--wine-text)" },
     { label: "IGTF 3%", value: breakdown.igtf, color: "var(--warning)" },
     { label: "IVA 16%", value: breakdown.iva, color: "var(--info)" },
     { label: "Honorarios agente aduanal", value: breakdown.agentFee, color: "var(--success)" },
@@ -29,7 +29,7 @@ export function CustomsTaxTab({ breakdown }: { breakdown: TaxBreakdown }) {
         <div
           style={{
             font: "700 10.5px/1 var(--f-sans)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             letterSpacing: "0.16em",
             textTransform: "uppercase",
             marginBottom: "var(--s-3)",
@@ -81,7 +81,7 @@ export function CustomsTaxTab({ breakdown }: { breakdown: TaxBreakdown }) {
                   display: "flex",
                   justifyContent: "space-between",
                   marginBottom: 6,
-                  gap: 12,
+                  gap: "var(--s-3)",
                 }}
               >
                 <span
@@ -135,12 +135,12 @@ export function CustomsTaxTab({ breakdown }: { breakdown: TaxBreakdown }) {
 
         <div
           style={{
-            paddingTop: 16,
+            paddingTop: "var(--s-4)",
             borderTop: "1px solid var(--border)",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "baseline",
-            marginTop: 4,
+            marginTop: "var(--s-1)",
           }}
         >
           <span
@@ -157,7 +157,7 @@ export function CustomsTaxTab({ breakdown }: { breakdown: TaxBreakdown }) {
           <code
             style={{
               font: "900 22px/1 var(--f-mono)",
-              color: "var(--wine)",
+              color: "var(--wine-text)",
               letterSpacing: "-0.01em",
             }}
           >

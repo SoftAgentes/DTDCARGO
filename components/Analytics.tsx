@@ -251,8 +251,13 @@ export function Analytics() {
         src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
         strategy="afterInteractive"
       />
+      {/* Google Consent Mode v2 — default = denied ANTES de cualquier config.
+          Mientras el usuario no acepte, gtag corre restringido (pings sin cookies).
+          `wait_for_update` da 500 ms al banner para llamar `consent update`. Si ya
+          hay decisión `granted` en la cookie `dtd_cookie_consent`, arrancamos
+          concedido para no re-medir a un usuario que ya aceptó. Ver lib/cookie-consent. */}
       <Script id="ga-init" strategy="afterInteractive">
-        {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA_ID}',{send_page_view:false});gtag('config','${ADS_ID}');`}
+        {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());var __dtdc=document.cookie.indexOf('dtd_cookie_consent=granted')!==-1?'granted':'denied';gtag('consent','default',{ad_storage:__dtdc,ad_user_data:__dtdc,ad_personalization:__dtdc,analytics_storage:__dtdc,wait_for_update:500});gtag('config','${GA_ID}',{send_page_view:false});gtag('config','${ADS_ID}');`}
       </Script>
       <Suspense fallback={null}>
         <PageViews />

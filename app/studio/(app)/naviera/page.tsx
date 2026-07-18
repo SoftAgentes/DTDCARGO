@@ -18,6 +18,7 @@ import {
   listLooseCargo,
   listPorts,
   listSailings,
+  listStuffingByConsolidation,
   navieraKpis,
 } from "@/lib/studio/naviera/queries";
 import {
@@ -51,6 +52,14 @@ export default async function NavieraPage() {
     navieraKpis(supabase),
   ]);
 
+  // Estiba por zonas (SDD-0152): dónde quedó cada caja dentro de cada
+  // contenedor. Mismo criterio que los snapshots de tracking — se mapea acá
+  // para que el detalle no re-consulte.
+  const stuffingByConsolidation = await listStuffingByConsolidation(
+    supabase,
+    consolidations.map((c) => c.consolidation.id),
+  );
+
   // Snapshots de tracking cacheados (SDD-0101 · Slice B.2) mapeados por
   // consolidación, para que el detalle muestre el dato vivo sin re-query.
   const snapshots = await listTrackingSnapshots(supabase);
@@ -72,6 +81,7 @@ export default async function NavieraPage() {
       containerTypes={containerTypes}
       kpis={kpis}
       trackingByConsolidation={trackingByConsolidation}
+      stuffingByConsolidation={stuffingByConsolidation}
     />
   );
 }

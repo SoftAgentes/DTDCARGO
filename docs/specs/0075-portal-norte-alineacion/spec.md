@@ -1,10 +1,10 @@
 ---
 sdd: "0075"
 title: "Portal del cliente — alineación con el Norte (estimado, soporte, cotización)"
-status: proposed
+status: in-progress
 author: "founder"
 created: 2026-06-13
-updated: 2026-07-01
+updated: 2026-07-16
 supersedes: null
 superseded_by: null
 related: ["0042", "0047", "0051", "0054", "0056", "0061", "0067"]
@@ -12,6 +12,25 @@ confidencialidad: interno
 ---
 
 # DTD-0075 — Portal del cliente: alineación con el Norte
+
+> **📌 Estado (2026-07-16):** **Slice A y Slice C de §1 están construidos** (Build Manual ·
+> lane `feat/portal-0075`). Decisiones del founder, las 3 como recomendaba la spec:
+> estimado = **vista derivada** (no estado nuevo · cero migración), aceptación
+> **duplicada** en el detalle del envío (no movida · `/portal/facturas/[code]/aceptar`
+> intacta), pestaña Estimados **conservada** como captación web.
+>
+> - **A** — `getPendingAcceptanceForShipment` (`lib/portal/portal-legal-queries.ts`) +
+>   el `PendingAcceptanceCard` reusado arriba del stepper en `/portal/envios/[code]`.
+> - **C** — `attachShipmentCodes` (`lib/portal/portal-queries.ts`) + `ConvertedNote`:
+>   "Convertido en el envío S-…" ahora enlaza. Se aplicó también a Cotizaciones (mismo
+>   callejón sin salida, misma query).
+> - **B** (re-aceptación por medida real) — **PENDIENTE**: es la única parte con
+>   migración y toca dinero (la factura no se emite hasta aceptar la diferencia).
+>
+> ⚠️ **Rollout gateado:** `SHIPMENT_ACCEPTANCE_CTA_LIVE = false` (`lib/portal/demo.ts`).
+> `NORTE_PORTAL_LIVE` ya está en `true` → sin ese segundo flip el CTA saldría vivo para
+> todos los clientes. Mientras está en `false` sólo lo ve la cuenta demo `DTD-1004`.
+> **Lo prende el founder.** Al prenderlo, la spec pasa a `done` si B queda fuera de alcance.
 
 > **📌 Estado (2026-07-01):** de los 3 frentes, **§2 (soporte con casos)** se cerró vía
 > **SDD-0102 Reclamos** (LIVE) y **§3 (cotización desde el portal)** ya está en prod

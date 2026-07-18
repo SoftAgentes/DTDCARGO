@@ -165,7 +165,7 @@ export async function registerClientAction(
   if (dup) {
     return {
       fieldErrors: {
-        document: `Este ${input.kind === "empresa" ? "RIF" : "cédula"} ya tiene una cuenta en DTD Cargo. Si eres tú, entra con tu MARKBOX (Shipping Mark) o pide recuperar tu contraseña.`,
+        document: `Este ${input.kind === "empresa" ? "RIF" : "cédula"} ya tiene una cuenta en DTD Cargo. Si eres tú, entra con tu Shipping Mark o pide recuperar tu contraseña.`,
       },
     };
   }
@@ -238,7 +238,7 @@ export async function registerClientAction(
       return {
         fieldErrors: {
           document:
-            "Este documento ya tiene una cuenta en DTD Cargo. Entra con tu MARKBOX (Shipping Mark) o pide recuperar tu contraseña.",
+            "Este documento ya tiene una cuenta en DTD Cargo. Entra con tu Shipping Mark o pide recuperar tu contraseña.",
         },
       };
     }
@@ -311,14 +311,14 @@ export async function registerClientAction(
       return {
         markbox,
         warning:
-          "Tu cuenta quedó creada, pero ese email ya tenía acceso. Entra con tu MARKBOX (Shipping Mark) o pide recuperar tu contraseña.",
+          "Tu cuenta quedó creada, pero ese email ya tenía acceso. Entra con tu Shipping Mark o pide recuperar tu contraseña.",
       };
     }
     console.error("[registerClientAction] createUser error:", authErr);
     return {
       markbox,
       warning:
-        "Tu cuenta quedó creada con tu MARKBOX, pero no pudimos activar el login automático. Pide recuperar tu contraseña desde el login.",
+        "Tu cuenta quedó creada con tu Shipping Mark, pero no pudimos activar el login automático. Pide recuperar tu contraseña desde el login.",
     };
   }
 

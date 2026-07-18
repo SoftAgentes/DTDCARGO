@@ -1328,7 +1328,7 @@ function TelegramSection({
             rel="noopener noreferrer"
             style={{
               font: "700 12.5px/1 var(--f-mono)",
-              color: "var(--wine)",
+              color: "var(--wine-text)",
               wordBreak: "break-all",
             }}
           >

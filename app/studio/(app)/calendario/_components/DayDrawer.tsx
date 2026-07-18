@@ -93,7 +93,7 @@ export function DayDrawer({ isoDate, events, holidays, fairs, onClose }: Props) 
               }`,
               borderRadius: 8,
               display: "flex",
-              gap: 12,
+              gap: "var(--s-3)",
               alignItems: "center",
             }}
           >
@@ -137,7 +137,7 @@ export function DayDrawer({ isoDate, events, holidays, fairs, onClose }: Props) 
               borderLeft: "3px solid var(--info)",
               borderRadius: 8,
               display: "flex",
-              gap: 12,
+              gap: "var(--s-3)",
               alignItems: "center",
             }}
           >
@@ -177,7 +177,7 @@ export function DayDrawer({ isoDate, events, holidays, fairs, onClose }: Props) 
                 borderLeft: `3px solid ${toneVar(e.tone)}`,
                 borderRadius: 8,
                 display: "flex",
-                gap: 12,
+                gap: "var(--s-3)",
                 alignItems: "center",
                 textDecoration: "none",
               }}

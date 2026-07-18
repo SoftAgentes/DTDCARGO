@@ -18,6 +18,8 @@ import {
 } from "@/lib/portal/next-sailing-queries";
 import { getShipmentNaviera } from "@/lib/studio/naviera-tracking/queries";
 import type { NavieraSnapshot } from "@/lib/studio/naviera-tracking/types";
+import { effectiveVisibleStatus } from "@/lib/portal/portal-types";
+import { getHiddenPortalStatusesForClient } from "@/lib/studio/notifications/portal-visibility-queries";
 import { showNortePortal } from "@/lib/portal/demo";
 import { PortalPending } from "../_components/PortalPending";
 import { PortalDashboard } from "./_components/PortalDashboard";
@@ -46,13 +48,35 @@ export default async function PortalHomePage() {
     return <PortalPending name={client.name} markbox={client.markbox} />;
   }
 
-  const [kpis, nextArrival, shipments, profile, activity] = await Promise.all([
+  const [kpis, rawNextArrival, rawShipments, profile, activity] = await Promise.all([
     getDashboardKpis(supabase),
     getNextArrival(supabase),
     listMyShipments(supabase),
     getProfileCompleteness(supabase),
     listMyRecentActivity(supabase),
   ]);
+
+  // SDD-0156 · Slice D: si la config del tenant oculta un hito (ej. "en aduana"),
+  // el dashboard muestra el último estado VISIBLE — el héroe y los badges no
+  // delatan el hito oculto. Falla-seguro → sin sustitución.
+  const hiddenStatuses = await getHiddenPortalStatusesForClient(
+    createAdminClient(),
+    client.id,
+  );
+  const shipments = rawShipments.map((s) => ({
+    ...s,
+    status: effectiveVisibleStatus(s.status, s.service, hiddenStatuses),
+  }));
+  const nextArrival = rawNextArrival
+    ? {
+        ...rawNextArrival,
+        status: effectiveVisibleStatus(
+          rawNextArrival.status,
+          rawNextArrival.service,
+          hiddenStatuses,
+        ),
+      }
+    : rawNextArrival;
 
   // Órdenes DDP en borrador esperando aceptación de T&C (SDD-0054 · Slice C). El
   // portal OCULTA los borradores → se leen con el admin client, scopeado EXPLÍCITO

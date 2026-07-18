@@ -11,7 +11,8 @@
 | Dato | Valor |
 |---|---|
 | Marca comercial (pública) | **DTD Cargo** |
-| Sello de herencia + nombre del ERP interno | **DoorTuDoor** |
+| Sello de herencia | **DoorTuDoor** |
+| Nombre del ERP/Studio interno | **DTD Cargo** (decisión founder 2026-07-14) |
 | Razón social | **INVERSIONES DTD SERVICES, C.A** |
 | RIF / taxID | **J-50648869-8** |
 | Representante legal | **José Méndez** |
@@ -21,7 +22,12 @@
 ## Convención de nombres (regla del founder)
 
 - **Público = "DTD Cargo"** (dos palabras; nunca "DTDCARGO").
-- **"DoorTuDoor"** = sello de herencia **y** nombre del ERP/Studio interno (`app/studio`).
+- **"DoorTuDoor"** = **sello de herencia** — ya **no** es el nombre del ERP (cambió 2026-07-14).
+  Sigue vivo en: `alternateName` del schema, el sello en `/brochure`, el dominio `doortudoor.com`
+  (301 → dtdcargo.com, no se toca) y el handle `@doortudoor_`.
+- **ERP/Studio interno (`app/studio`) = "DTD Cargo"** — mismo nombre que la marca pública.
+  ⚠️ No confundir con **"DoorTuDoor Trading" / J-50220185**: esa es otra razón social y sigue
+  **prohibida** en recibos y rendiciones (regla absoluta del handoff legal).
 - La **razón social y el RIF van SOLO en el schema** (`legalName`/`taxID`) — **nunca en texto
   visible** del sitio.
 - **RIF ÚNICO (decisión founder 2026-06-10): `J-50648869-8`.** Cualquier otro RIF de DTD que
@@ -36,7 +42,7 @@
 |---|---|
 | Nombre (schema `name`) | DTD Cargo |
 | `alternateName` | DoorTuDoor · Doortudoor Services |
-| Sede Venezuela | Edificio Kokuy, Av. Bolívar Norte — Valencia, Carabobo, VE |
+| Sede Venezuela | Edificio Kokuy, Calle 151 (entre Av. Bolívar Norte y Av. Paseo Cabriales) — Valencia, Carabobo, VE · CP 2001 · GPS 10.220449, -68.008481 |
 | Bodega China | Yiwu Port Phase II, Warehouse 2, No. 2 (Cargo 7-11) — Yiwu, Zhejiang, CN |
 | Teléfono público primario | +58 412 166 8021 (CRM WhatsApp) |
 | Teléfono público secundario | +58 241 414 7886 (Fijo Valencia) |

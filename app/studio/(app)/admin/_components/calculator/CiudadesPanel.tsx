@@ -49,7 +49,7 @@ export function CiudadesPanel({
           display: "flex",
           gap: 10,
           alignItems: "flex-start",
-          padding: "12px 16px",
+          padding: "var(--s-3) var(--s-4)",
           marginBottom: 18,
           background: "var(--bg-elevated)",
           border: "1px solid var(--border)",
@@ -82,7 +82,7 @@ export function CiudadesPanel({
           style={{
             display: "flex",
             justifyContent: "flex-end",
-            marginBottom: 12,
+            marginBottom: "var(--s-3)",
           }}
         >
           <button
@@ -159,8 +159,8 @@ function CitiesTable({
         style={{
           display: "grid",
           gridTemplateColumns: cols,
-          gap: 12,
-          padding: "12px 20px",
+          gap: "var(--s-3)",
+          padding: "var(--s-3) var(--s-5)",
           background: "var(--bg-elevated)",
           borderBottom: "1px solid var(--border)",
           font: "700 10px/1 var(--f-sans)",
@@ -184,7 +184,7 @@ function CitiesTable({
           style={{
             display: "grid",
             gridTemplateColumns: cols,
-            gap: 12,
+            gap: "var(--s-3)",
             padding: "14px 20px",
             borderTop: i > 0 ? "1px solid var(--border)" : 0,
             alignItems: "center",

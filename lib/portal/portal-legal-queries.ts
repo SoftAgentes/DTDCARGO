@@ -170,6 +170,79 @@ export async function listPendingAcceptanceInvoices(
 }
 
 /**
+ * La orden DDP pendiente de aceptar de UN envío puntual (SDD-0075 §1 · Slice A):
+ * el detalle del envío muestra el CTA "Aceptar estimado" cuando esto no es null.
+ *
+ * Es la MISMA definición de "pendiente" que `listPendingAcceptanceInvoices`
+ * (borrador + DDP + sin aceptación vigente que matchee), derivada del par
+ * envío↔factura-borrador — por eso NO agrega estado nuevo a `shipments` ni toca
+ * el enum del tracking público (compartido público↔ERP). Cero migración.
+ *
+ * La medida se lee UNA vez: todos los borradores de un mismo envío comparten
+ * `cbm`/`weight`, y ese lookup es además el que valida DDP + el scope de markbox.
+ *
+ * Un envío puede tener más de un borrador (re-facturación); se recorre del más
+ * nuevo al más viejo y se devuelve el primero que siga pendiente — tomar sólo el
+ * más nuevo escondería una orden vieja aún sin aceptar.
+ */
+export async function getPendingAcceptanceForShipment(
+  admin: SupabaseClient,
+  args: { tenantId: string; markbox: string; shipmentId: string },
+): Promise<PendingAcceptanceInvoice | null> {
+  const tenantId = String(args.tenantId ?? "").trim();
+  const markbox = String(args.markbox ?? "").trim();
+  const shipmentId = String(args.shipmentId ?? "").trim();
+  if (!tenantId || !markbox || !shipmentId) return null;
+
+  const measure = await shipmentMeasure(admin, { tenantId, shipmentId, markbox });
+  if (!measure || measure.service !== DDP_SERVICE) return null;
+
+  const { data, error } = await admin
+    .from("invoices")
+    .select(
+      "id, invoice_code, status, currency, base_amount, total_amount, shipment_id, shipment_code",
+    )
+    .eq("tenant_id", tenantId)
+    .eq("client_markbox", markbox)
+    .eq("shipment_id", shipmentId)
+    .eq("status", "borrador")
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (error || !data) return null;
+
+  for (const r of data) {
+    const baseAmount = num(r.base_amount);
+    // Mismo orderRef que sella la action (shipment_code, o invoice_code si no hay):
+    // sin él, una aceptación de OTRA factura con la misma terna ocultaría esta orden.
+    const orderRef =
+      String((r.shipment_code as string | null) ?? "").trim() ||
+      String(r.invoice_code ?? "").trim();
+    const alreadyAccepted = await hasValidAcceptanceForMarkbox(admin, {
+      tenantId,
+      clientMarkbox: markbox,
+      cbm: num(measure.cbm),
+      weight: num(measure.weightKg),
+      total: baseAmount,
+      orderRef,
+    });
+    if (alreadyAccepted) continue;
+
+    return {
+      code: r.invoice_code as string,
+      baseAmount,
+      totalAmount: num(r.total_amount),
+      currency: String(r.currency ?? "USD"),
+      shipmentCode: (r.shipment_code as string | null) ?? null,
+      cbm: measure.cbm,
+      weightKg: measure.weightKg,
+    };
+  }
+  return null;
+}
+
+/**
  * La factura BORRADOR DDP puntual de ese cliente por `code` + la medida de su
  * shipment + lines, para la página de aceptación. Devuelve null si:
  *   - no es borrador / no es de ese cliente (markbox) / no existe,

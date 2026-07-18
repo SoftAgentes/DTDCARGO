@@ -100,7 +100,7 @@ export function TesoreriaClient({
           <span className="studio-eyebrow">Finanzas · Cuentas por pagar</span>
           <h1
             className="studio-display"
-            style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
+            style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
           >
             Tesorería.
           </h1>
@@ -146,7 +146,7 @@ export function TesoreriaClient({
         <KpiCard
           value={`$${fmtMoney(kpis.porPagar)}`}
           label="Por pagar"
-          valueColor={kpis.porPagar > 0 ? "var(--wine)" : "var(--ink)"}
+          valueColor={kpis.porPagar > 0 ? "var(--wine-text)" : "var(--ink)"}
           sub={`${kpis.proveedoresActivos} proveedor(es) con saldo`}
         />
         <KpiCard
@@ -346,7 +346,7 @@ function PayablesTab({
               display: "grid",
               gridTemplateColumns: PAYABLE_GRID,
               gap: 12,
-              padding: "12px 20px",
+              padding: "var(--s-3) var(--s-5)",
               background: "var(--bg-elevated)",
               borderBottom: "1px solid var(--border)",
               font: "700 10px/1 var(--f-sans)",
@@ -465,7 +465,7 @@ function PayablesTab({
                       style={{
                         font: "700 10px/1 var(--f-sans)",
                         color:
-                          p.daysOverdue > 0 ? "var(--danger)" : "var(--ink-mute)",
+                          p.daysOverdue > 0 ? "var(--danger)" : "var(--ink-soft)",
                         marginTop: 3,
                       }}
                     >
@@ -519,7 +519,7 @@ function PaymentsTab({ payments }: { payments: SupplierPayment[] }) {
         <KpiCard
           value={`$${fmtMoney(remesasTotal)}`}
           label="Remesas a China"
-          valueColor={remesasTotal > 0 ? "var(--wine)" : "var(--ink)"}
+          valueColor={remesasTotal > 0 ? "var(--wine-text)" : "var(--ink)"}
           sub={`${remesas.length} orden(es) USDT / CNY / Alipay`}
         />
       </div>
@@ -544,7 +544,7 @@ function PaymentsTab({ payments }: { payments: SupplierPayment[] }) {
               display: "grid",
               gridTemplateColumns: PAYMENT_GRID,
               gap: 12,
-              padding: "12px 20px",
+              padding: "var(--s-3) var(--s-5)",
               background: "var(--bg-elevated)",
               borderBottom: "1px solid var(--border)",
               font: "700 10px/1 var(--f-sans)",
@@ -764,7 +764,7 @@ function SuppliersTab({
               display: "grid",
               gridTemplateColumns: SUPPLIER_GRID,
               gap: 12,
-              padding: "12px 20px",
+              padding: "var(--s-3) var(--s-5)",
               background: "var(--bg-elevated)",
               borderBottom: "1px solid var(--border)",
               font: "700 10px/1 var(--f-sans)",

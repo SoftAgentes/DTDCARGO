@@ -76,7 +76,7 @@ export function ShortcutsModal({ onClose }: { onClose: () => void }) {
           <div key={g.title}>
             <div
               className="studio-eyebrow"
-              style={{ color: "var(--wine)", marginBottom: 10 }}
+              style={{ color: "var(--wine-text)", marginBottom: 10 }}
             >
               {g.title}
             </div>

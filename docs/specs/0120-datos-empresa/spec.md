@@ -1,10 +1,10 @@
 ---
 sdd: "0120"
 title: "Datos de la empresa — primera sección real de Administración (identidad fiscal + oficinas + bancos + impuestos)"
-status: in-progress
+status: done
 author: "Claude Code (sesión secundaria · worktree web-norte) + founder"
 created: 2026-07-01
-updated: 2026-07-01
+updated: 2026-07-15
 supersedes: null
 superseded_by: null
 related: ["0085", "0030"]

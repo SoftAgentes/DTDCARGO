@@ -13,10 +13,18 @@ import { createClient } from "@/lib/db/server";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 import {
   cbmByPrealerta,
+  listDisabledSharePrealertaIds,
+  listPackingListSubmissions,
+  listPrealertaServiceRequests,
   listPrealertas,
   listSuppliers,
   prealertaStats,
 } from "@/lib/studio/prealertas/queries";
+import {
+  listSupplierClaims,
+  listSupplierScorecards,
+  supplierScorecardStats,
+} from "@/lib/studio/proveedores/scorecard-queries";
 import {
   ProveedoresClient,
   type SupplierRow,
@@ -32,12 +40,30 @@ export default async function ProveedoresPage() {
   // Operador = todo el tenant (sin markbox). RLS de 0105 le da read del tenant.
   // cbmByPrealerta: CBM real medido al recibir en CN (migr 0127) — la columna
   // CBM de la cola lo muestra cuando existe.
-  const [stats, prealertas, suppliers, cbmByPrealertaId] = await Promise.all([
+  // serviceRequests + packingLists sin markbox = todo el tenant (RLS por tenant).
+  const [
+    stats,
+    prealertas,
+    suppliers,
+    cbmByPrealertaId,
+    serviceRequests,
+    packingLists,
+    disabledShareIds,
+    scorecards,
+    claims,
+  ] = await Promise.all([
     prealertaStats(supabase),
     listPrealertas(supabase),
     listSuppliers(supabase),
     cbmByPrealerta(supabase),
+    listPrealertaServiceRequests(supabase),
+    listPackingListSubmissions(supabase),
+    listDisabledSharePrealertaIds(supabase),
+    listSupplierScorecards(supabase),
+    listSupplierClaims(supabase),
   ]);
+
+  const scorecardStats = supplierScorecardStats(scorecards);
 
   // # de compras vivas por proveedor (las prealertas ya vienen sin borradas).
   const orderCountBySupplierId: Record<string, number> = {};
@@ -56,6 +82,7 @@ export default async function ProveedoresPage() {
     city: s.city,
     wechat: s.wechat,
     contact: s.contact,
+    notes: s.notes,
     orderCount: orderCountBySupplierId[s.id] ?? 0,
   }));
 
@@ -65,6 +92,12 @@ export default async function ProveedoresPage() {
       prealertas={prealertas}
       suppliers={supplierRows}
       cbmByPrealertaId={cbmByPrealertaId}
+      serviceRequests={serviceRequests}
+      packingLists={packingLists}
+      disabledShareIds={disabledShareIds}
+      scorecards={scorecards}
+      claims={claims}
+      scorecardStats={scorecardStats}
     />
   );
 }

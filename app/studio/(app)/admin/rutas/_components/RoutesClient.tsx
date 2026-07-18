@@ -15,6 +15,7 @@ import { useMemo, useState, useTransition, useActionState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
+import { ActionableRow } from "@/app/studio/_components/ui/DataTable";
 import { Icon } from "@/app/studio/_components/icons";
 import {
   seedTenantCitiesFromVeCatalogAction,
@@ -409,7 +410,7 @@ function RouteRowCard({
               marginBottom: 6,
             }}
           >
-            <code style={{ font: "800 12px/1 var(--f-mono)", color: "var(--wine)" }}>
+            <code style={{ font: "800 12px/1 var(--f-mono)", color: "var(--wine-text)" }}>
               {route.route_code}
             </code>
             <div
@@ -508,7 +509,7 @@ function RouteRowCard({
                   </span>
                   <span
                     style={{
-                      color: "var(--wine)",
+                      color: "var(--wine-text)",
                       font: "700 11px/1 var(--f-mono)",
                     }}
                   >
@@ -959,13 +960,13 @@ function CityRow({
   dimmed?: boolean;
 }) {
   return (
-    <tr
+    <ActionableRow
+      onSelect={onEdit}
+      label={`Editar ${c.city}`}
       style={{
         borderTop: "1px solid var(--border)",
-        cursor: "pointer",
         opacity: dimmed ? 0.6 : 1,
       }}
-      onClick={onEdit}
     >
       <td style={tdStyle}>
         <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>
@@ -1030,7 +1031,7 @@ function CityRow({
         }}
       >
         {c.is_hq ? (
-          <span style={{ font: "500 11.5px/1 var(--f-sans)", color: "var(--ink-mute)" }}>
+          <span style={{ font: "500 11.5px/1 var(--f-sans)", color: "var(--ink-soft)" }}>
             — (HQ)
           </span>
         ) : (
@@ -1061,7 +1062,7 @@ function CityRow({
               padding: "3px 8px",
               borderRadius: "var(--r-sm)",
               background: "var(--wine-tint)",
-              color: "var(--wine)",
+              color: "var(--wine-text)",
               font: "800 11px/1 var(--f-sans)",
             }}
           >
@@ -1069,7 +1070,7 @@ function CityRow({
           </span>
         )}
       </td>
-    </tr>
+    </ActionableRow>
   );
 }
 

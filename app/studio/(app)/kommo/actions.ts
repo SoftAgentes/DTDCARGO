@@ -29,6 +29,12 @@ import {
   ESTIMATE_STAGE_LABELS,
   type KommoStageMap,
 } from "@/lib/studio/kommo-types";
+import {
+  buildRecoverySmsCsv,
+  filterRecoveryRows,
+  getRecoveryUniverse,
+  parseRecoveryFilters,
+} from "@/lib/studio/kommo-recovery";
 
 export async function convertLeadToClientAction(
   leadId: number,
@@ -64,6 +70,25 @@ export async function searchKommoContactsAction(
   const supabase = await createClient();
   // RLS de kommo_contacts filtra por tenant → no hace falta resolverlo acá.
   return searchKommoContacts(supabase, q);
+}
+
+/**
+ * SDD-0157 — CSV de SMS de la campaña de recuperación, sobre el universo
+ * COMPLETO filtrado (no solo la página visible en la UI). Lectura pura del
+ * espejo + clients (RLS por tenant), sin mutación → sin gate de edición.
+ */
+export async function exportRecoverySmsCsvAction(
+  rawFilters: Record<string, string | undefined>,
+): Promise<{ csv?: string; count?: number; error?: string }> {
+  const supabase = await createClient();
+  try {
+    const universe = await getRecoveryUniverse(supabase);
+    const rows = filterRecoveryRows(universe.rows, parseRecoveryFilters(rawFilters));
+    return { csv: buildRecoverySmsCsv(rows), count: rows.length };
+  } catch (e) {
+    console.error("[kommo-recovery] export CSV falló:", e);
+    return { error: "No se pudo generar el CSV. Intenta de nuevo." };
+  }
 }
 
 /**

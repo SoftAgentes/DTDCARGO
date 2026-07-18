@@ -1,10 +1,10 @@
 ---
 sdd: "0136"
 title: "Gestión de usuarios del ERP — alta por rol, reasignación y baja segura"
-status: draft
+status: done
 author: "Director (reserva de correlativo) + founder"
 created: 2026-07-01
-updated: 2026-07-01
+updated: 2026-07-14
 supersedes: null
 superseded_by: null
 related: ["0024", "0085", "0135"]

@@ -28,7 +28,7 @@ export function CustomerPreview({
         background: "var(--bg-elevated)",
         border: "1px solid var(--border)",
         borderRadius: 8,
-        padding: "16px 20px",
+        padding: "var(--s-4) var(--s-5)",
       }}
     >
       <div className="studio-eyebrow" style={{ marginBottom: 8 }}>

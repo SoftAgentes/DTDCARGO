@@ -10,6 +10,11 @@
   --color-wine: #7f0f1a;
   --color-wine-deep: #5e0a12;
   --color-wine-soft: #c2747f;
+  /* Wine como TEXTO (AA en ambos temas) — el --color-wine crudo NO es texto: falla
+     AA en el dark del portal (~3-3.7:1). Fill de botones/badges sigue en --color-wine;
+     usar --color-wine-text (clase `text-wine-text`) en labels/links pequeños. Mismo
+     patrón que `--wine-text` de app/studio/tokens.css. */
+  --color-wine-text: #7f0f1a;
   --color-ink: #0f1e3d;
 
   /* Greys */
@@ -74,6 +79,9 @@
    ────────────────────────────────────────────────────────────────── */
 [data-portal-theme="dark"] {
   --color-paper: #0b1428;     /* fondo de página (Norte --bg-base) */
+  /* ⚠️ "white" es el NOMBRE del token, no el color: acá vale navy oscuro (Norte
+     --bg-surface). `bg-white`/`text-white` en JSX del portal renderizan navy en
+     oscuro — no asumas blanco literal al leer o tocar este código. */
   --color-white: #16264a;     /* cards / superficies (Norte --bg-surface) */
   --color-grey-100: #1f3055;  /* hover / elevado (Norte --bg-elevated) */
   --color-grey-200: #29395c;  /* bordes */
@@ -84,6 +92,7 @@
   --color-ink: #f2f0ec;       /* texto principal (Norte --ink) */
   --color-wine: #c24450;      /* acento — más brillante para leer sobre navy */
   --color-wine-deep: #d35e68; /* hover del acento */
+  --color-wine-text: #d89aa4; /* = --wine-soft dark de Studio: wine legible como texto en oscuro (~6-8:1). --color-wine crudo NO alcanza AA como texto pequeño (~3-3.7:1) */
   --color-status-success: #2ea36e;
   --color-status-warning: #d3a24a;
   --color-status-danger: #e0606b;
@@ -174,6 +183,12 @@
 :root {
   --gutter: clamp(20px, 4vw, 64px);
   --maxw: 1280px;
+
+  /* Error de la web pública / marketing (más brillante que el --danger del ERP,
+     que se queda en #A8323E). Mismo valor que --color-status-danger. Solo web
+     pública → sin override en oscuro. (Norte v4.6) */
+  --danger-web: #C2353F;
+  --danger-web-bg: rgba(194,53,63,0.10);
 }
 
 @layer base {
@@ -241,6 +256,11 @@
   width: 18px;
   height: 2px;
   background: var(--color-wine);
+}
+/* Antes referenciaba `.eyebrow-wine` de app/studio/tokens.css, que el portal no
+   importa — quedaba sin efecto (gris por defecto). Se define acá para el portal. */
+.eyebrow-wine {
+  color: var(--color-wine-text);
 }
 
 .h-display {

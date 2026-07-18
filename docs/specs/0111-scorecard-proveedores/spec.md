@@ -1,10 +1,10 @@
 ---
 sdd: "0111"
 title: "Scorecard de proveedores — captura de desempeño + reclamo al proveedor (señales A/B/C/D)"
-status: draft
+status: done
 author: "Claude Code (session context) + founder"
 created: 2026-06-26
-updated: 2026-06-26
+updated: 2026-07-14
 supersedes: null
 superseded_by: null
 related: ["0057", "0105", "0124", "0102", "0059", "0066", "0049", "0085"]

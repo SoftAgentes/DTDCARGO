@@ -61,6 +61,7 @@ import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { useRowHighlight } from "@/app/studio/_components/ui/useRowHighlight";
+import { TableFrame, ActionableRow } from "@/app/studio/_components/ui/DataTable";
 import { ClaimDrawer } from "./ClaimDrawer";
 
 type DrawerState = null | { mode: "create" } | { mode: "edit"; claim: ClientClaim };
@@ -201,7 +202,7 @@ export function ReclamosClient({
           label="Monto expuesto"
           value={USD(kpis.exposed_usd)}
           sub="reclamos abiertos"
-          valueColor="var(--wine)"
+          valueColor="var(--wine-text)"
           highlightWhenPositive={false}
         />
         <KpiCard
@@ -331,14 +332,7 @@ function ClaimsTable({
   flashClassFor: (id: string) => string;
 }) {
   return (
-    <div
-      style={{
-        background: "var(--bg-surface)",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--r-lg)",
-        overflow: "hidden",
-      }}
-    >
+    <TableFrame>
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr style={{ background: "var(--bg-elevated)" }}>
@@ -374,23 +368,23 @@ function ClaimsTable({
           {rows.map((c, i) => {
             const active = selected === c.id;
             return (
-              <tr
+              <ActionableRow
                 key={c.id}
                 data-row-id={c.claim_code}
-                onClick={() => onSelect(c.id)}
+                onSelect={() => onSelect(c.id)}
+                label={`Ver reclamo ${c.claim_code}`}
+                active={active}
                 className={flashClassFor(c.claim_code)}
                 style={{
                   borderBottom:
                     i < rows.length - 1 ? "1px solid var(--border)" : "0",
-                  cursor: "pointer",
-                  background: active ? "var(--wine-tint)" : "transparent",
                 }}
               >
                 <td
                   style={{
                     padding: "12px 14px",
                     font: "600 12px/1 var(--f-mono)",
-                    color: "var(--wine)",
+                    color: "var(--wine-text)",
                     whiteSpace: "nowrap",
                   }}
                 >
@@ -457,12 +451,12 @@ function ClaimsTable({
                     {claimStatusLabel(c.status)}
                   </Badge>
                 </td>
-              </tr>
+              </ActionableRow>
             );
           })}
         </tbody>
       </table>
-    </div>
+    </TableFrame>
   );
 }
 
@@ -580,7 +574,7 @@ function ClaimDetail({
           <div
             style={{
               font: "800 26px/1 var(--f-display)",
-              color: "var(--wine)",
+              color: "var(--wine-text)",
               marginTop: 6,
             }}
           >
@@ -1175,8 +1169,8 @@ function StudioEvidenceThumb({
             position: "absolute",
             top: -7,
             right: -7,
-            width: confirm ? "auto" : 20,
-            height: 20,
+            width: confirm ? "auto" : 24,
+            height: 24,
             padding: confirm ? "0 8px" : 0,
             borderRadius: 999,
             border: "1px solid var(--border)",

@@ -12,8 +12,8 @@
  *  2. Precio = CBM × tarifaBase + recargo por DENSIDAD: el peso que excede
  *     `pesoIncluidoKg` por CBM se cobra a `recargoExcedenteKg`/kg (founder
  *     2026-06-20, reactiva la regla pausada el 2026-06-08; configurable en el ERP).
- *  3. Sobre `pesoMaxKg` por CBM la carga es "demasiado densa" → la UI avisa que
- *     deriva a FCL/asesor. Tope ABSOLUTO de peso: 27.000 kg → deriva al asesor.
+ *  3. El recargo por densidad es CONTINUO, sin tope: siempre se auto-cotiza, no
+ *     deriva al asesor. Tope ABSOLUTO de peso: 27.000 kg → deriva al asesor.
  *  4. Recargos: embalaje especial (madera/paleta) + ciudad fuera del casco central.
  *  5. Baterías: multiplican el flete (×recargoBateriaMult).
  *  6. Carga especial / peligrosa → no cotiza, deriva al asesor.
@@ -30,14 +30,11 @@ export const CONFIG = {
   /** Tarifa base por metro cúbico en USD (precio limpio sin excedente). */
   tarifaBaseCBM: 800,
 
-  /** Peso máximo por CBM incluido en la tarifa base. Sobre esto = excedente. */
+  /** Gracia de peso por CBM incluida en la tarifa base. Sobre esto = excedente. */
   pesoIncluidoKg: 500,
 
-  /** Peso máximo absoluto por CBM. Sobre esto, la calculadora alerta. */
-  pesoMaxKg: 600,
-
   /**
-   * Tarifa por kg que excede `pesoIncluidoKg` (zona 500-600 kg/CBM).
+   * Tarifa por kg que excede `pesoIncluidoKg` (recargo continuo, sin tope).
    * Ej: si la carga pesa 600 kg en 1 CBM, el excedente es 100 kg × $1 = +$100.
    */
   recargoExcedenteKg: 1,
@@ -88,6 +85,15 @@ export const CONFIG = {
    * contenedor → deriva al asesor.
    */
   pesoMaxContenedorKg: 27000,
+
+  /**
+   * Tope de peso POR ENVÍO (kg). Sobre esto la calculadora NO auto-cotiza:
+   * deriva al asesor. Evita que un solo envío monopolice el peso del contenedor
+   * (ej. 27.000 kg en 27 CBM llena el peso con 40% del volumen → nadie más entra
+   * y la cotización por volumen iría a pérdida). ⅓ de 27.000 → garantiza ≥3
+   * clientes por consolidado. Configurable desde Admin › Calculadora pública.
+   */
+  pesoMaxEnvioKg: 9000,
 } as const;
 
 // ────────────────────────────────────────────────────────────────────
@@ -104,7 +110,6 @@ export const CONFIG = {
 
 export type CalcParams = {
   pesoIncluidoKg: number;
-  pesoMaxKg: number;
   recargoExcedenteKg: number;
   descuentoValencia: number;
   recargoEmbalajeEspecial: number;
@@ -115,12 +120,13 @@ export type CalcParams = {
   cbmMaxContenedor: number;
   /** Peso total máximo cotizable (kg). Sobre esto → deriva al asesor. */
   pesoMaxContenedorKg: number;
+  /** Tope de peso POR ENVÍO (kg). Sobre esto → deriva al asesor (anti-monopolio). */
+  pesoMaxEnvioKg: number;
 };
 
 /** Defaults = los valores históricos de CONFIG. Fallback cuando no hay config en DB. */
 export const DEFAULT_PARAMS: CalcParams = {
   pesoIncluidoKg: CONFIG.pesoIncluidoKg,
-  pesoMaxKg: CONFIG.pesoMaxKg,
   recargoExcedenteKg: CONFIG.recargoExcedenteKg,
   descuentoValencia: CONFIG.descuentoValencia,
   recargoEmbalajeEspecial: CONFIG.recargoEmbalajeEspecial,
@@ -129,6 +135,7 @@ export const DEFAULT_PARAMS: CalcParams = {
   tarifaKmFueraCasco: CONFIG.tarifaKmFueraCasco,
   cbmMaxContenedor: CONFIG.cbmMaxContenedor,
   pesoMaxContenedorKg: CONFIG.pesoMaxContenedorKg,
+  pesoMaxEnvioKg: CONFIG.pesoMaxEnvioKg,
 };
 
 // ────────────────────────────────────────────────────────────────────
@@ -237,7 +244,8 @@ export type EnvioCotizacion = {
       | "ciudad_invalida"
       | "carga_especial"
       | "contenedor_excedido"
-      | "peso_contenedor_excedido";
+      | "peso_contenedor_excedido"
+      | "peso_envio_excedido";
     mensaje: string;
   };
 
@@ -313,9 +321,31 @@ export function calcularEnvioLCL(
   }
 
   // 5.4 — Volumen (CBM) y densidad (peso/CBM). La densidad alimenta el recargo
-  // por exceso de peso en 5.6.
+  // por exceso de peso en 5.6 y el tope de peso por envío en 5.4b.
   const cbm = roundCBM(input.cbmTotal);
   const densidadKgM3 = input.pesoKg / cbm;
+
+  // 5.4b — Tope de peso POR ENVÍO (anti-monopolio), density-aware. Deriva al
+  // asesor SOLO si el envío es pesado (> pesoMaxEnvioKg) Y denso (densidad por
+  // encima del equilibrio del contenedor = pesoMaxContenedorKg/cbmMaxContenedor,
+  // ~397 kg/m³). Ese es el caso real de monopolio: agota el presupuesto de peso
+  // dejando volumen sin vender → cotizar por volumen iría a pérdida. Un envío
+  // pesado pero LIVIANO (denso < equilibrio) sí auto-cotiza: no monopoliza el peso.
+  const equilibrioDensidad =
+    params.cbmMaxContenedor > 0
+      ? params.pesoMaxContenedorKg / params.cbmMaxContenedor
+      : Infinity;
+  if (
+    input.pesoKg > params.pesoMaxEnvioKg &&
+    densidadKgM3 > equilibrioDensidad
+  ) {
+    return cotizacionVacia({
+      tipo: "peso_envio_excedido",
+      mensaje:
+        "Por el peso de esta carga la cotizamos a medida. Escríbele a tu asesor y " +
+        "te damos el mejor precio para el consolidado.",
+    }, input);
+  }
 
   // 5.5 — Precio base por volumen
   // Si el usuario provee `tarifaCBMOverride`, se usa ese valor (debe ser >0).
@@ -329,10 +359,10 @@ export function calcularEnvioLCL(
   // 5.6 — Recargo por exceso de densidad (peso por CBM). Founder 2026-06-20: se
   // REACTIVA (revierte la pausa del 2026-06-08). Se cobra sobre el peso que excede
   // `pesoIncluidoKg` por CBM, a `recargoExcedenteKg` por kg — todo configurable
-  // desde el ERP (params.* ← calculator_settings · /studio/tarifas › Parámetros).
-  // Founder 2026-07-06: el recargo es CONTINUO sin tope — `pesoMaxKg` ya NO deriva
-  // al asesor (antes la UI avisaba "demasiado denso → FCL"). Acá NUNCA seteamos
-  // `alerta` por densidad: el cliente debe VER el precio con el recargo aplicado.
+  // desde el ERP (params.* ← calculator_settings · Admin › Calculadora pública).
+  // Founder 2026-07-06: el recargo es CONTINUO sin tope (el viejo `pesoMaxKg` que
+  // derivaba a FCL se eliminó en 2026-07-06). Acá NUNCA seteamos `alerta` por
+  // densidad: el cliente debe VER el precio con el recargo aplicado.
   let recargoExcedente = 0;
   if (densidadKgM3 > params.pesoIncluidoKg) {
     const kgExcedente = Math.max(0, input.pesoKg - cbm * params.pesoIncluidoKg);

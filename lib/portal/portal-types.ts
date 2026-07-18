@@ -29,6 +29,20 @@ export {
 } from "@/lib/shared/shipment-public";
 
 /**
+ * Etiqueta CORTA de servicio para chips/meta del portal (chip "Tipo" del héroe,
+ * cards de "Mis envíos", detalle de envío, hub de alertas). Fuente única — antes
+ * vivía copiada en cada componente. "DDP" dejó de ser nombre de servicio de cara
+ * al cliente (founder 2026-07-17): el servicio se llama "Puerta a Puerta"; el
+ * enum interno `puerta_a_puerta_DDP` no cambia.
+ */
+export const SERVICE_SHORT_LABELS: Record<ShipmentService, string> = {
+  consolidacion: "LCL",
+  puerta_a_puerta_DDP: "Puerta a Puerta",
+  reserva_FCL: "FCL",
+  transporte_terrestre: "Terrestre",
+};
+
+/**
  * Derivación de timeline desde el status — fuente ÚNICA del repo.
  *
  * `buildTimeline()` (status → pasos done/active/pending/exception según el flow
@@ -50,6 +64,7 @@ export type {
 export {
   buildTimeline,
   computeProgress,
+  effectiveVisibleStatus,
   flowForService,
   nextMilestone,
 } from "@/lib/studio/tracking-progress";
@@ -459,6 +474,12 @@ export type PortalEstimateRow = {
   nota: string | null;
   /** Si ya se convirtió en embarque, su id (→ "Convertido en envío"). */
   convertedToShipmentId: string | null;
+  /**
+   * Código de ESE embarque (S-YYYY-NNNN) para enlazarlo desde la fila (SDD-0075
+   * §1 · Slice C). null si no se convirtió, o si el envío no es legible para este
+   * cliente (RLS) → la fila degrada al texto sin enlace.
+   */
+  convertedToShipmentCode: string | null;
   createdAt: string;
   updatedAt: string;
 };

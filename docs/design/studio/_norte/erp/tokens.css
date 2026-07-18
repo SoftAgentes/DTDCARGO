@@ -1,5 +1,5 @@
 /* ── DTD Studio · ERP · Design tokens ───────────────────────── */
-/* Tokens duales (light/dark) heredados del Brand Book v4.5.    */
+/* Tokens duales (light/dark) heredados del Brand Book v4.6.    */
 
 /* Fuentes del SISTEMA + utilidades (un solo punto · cubre todo
    consumidor de tokens.css): Nunito Sans (cuerpo), Sora (títulos),
@@ -12,6 +12,10 @@
   --wine: #7F0F1A;
   --wine-deep: #5E0A12;
   --wine-soft: #C2747F;
+  /* BRAND-SYNC 2026-07-10 (BD-026): wine como TEXTO, voltea por tema. Reusa hexes existentes
+     (= --wine light · = --wine-soft dark). AA body ≥4.5:1 en bg-base/surface/elevated, ambos temas.
+     Usalo para Shipping Mark por fila, saldos, tabs activas, KPI values, links y badge tono wine. */
+  --wine-text: #7F0F1A;
   --wine-tint: rgba(127,15,26,0.08);
   --wine-bg: rgba(127,15,26,0.08);
 
@@ -38,7 +42,9 @@
   --wordmark-cargo: var(--ink);    /* Cargo · navy #0F1E3D */
 
   --ink: #0F1E3D;
-  --ink-soft: #6B6B6B;
+  --ink-soft: #6B6B6B;   /* texto secundario · AA body (5.33:1 sobre blanco) */
+  /* BRAND-SYNC 2026-07-06 (BD-019): placeholder / disabled decorativo — NO texto legible
+     (light 2.78:1 · dark 2.97:1 sobre bg-elevated). Placeholder informativo tampoco (WCAG 1.4.3) → usar --ink-soft */
   --ink-mute: #9B9B9B;
   --ink-inv: #FBFAF7;
   --ink-side: rgba(255,255,255,0.85);
@@ -52,8 +58,13 @@
   --success-bg: rgba(31,138,91,0.10);
   --warning: #B8893A;
   --warning-bg: rgba(184,137,58,0.12);
-  --danger: #A8323E;
+  --on-warning: #0F1E3D;   /* BD-027: texto/ícono SOBRE relleno --warning sólido — navy fijo en ambos temas (el fill cambia, el texto no). Sobre --warning light 5.24 ✅. NO usar --ink (cream en dark, ~1.7). */
+  --danger: #A8323E;              /* ERP / Portal */
   --danger-bg: rgba(168,50,62,0.10);
+  /* BRAND-SYNC 2026-07-06 (BD-020): danger se divide por superficie. Marketing / web pública
+     usa este par (#C2353F); el ERP/Portal mantiene --danger (#A8323E). Ver DS §4.7 / BRAND-DECISIONS. */
+  --danger-web: #C2353F;
+  --danger-web-bg: rgba(194,53,63,0.10);
   --info: #2A6FDB;
   --info-bg: rgba(42,111,219,0.10);
   --neutral: #6B6B6B;
@@ -117,6 +128,7 @@
 [data-theme="dark"] {
   --wine: #A8323E;
   --wine-soft: #D89AA4;
+  --wine-text: #D89AA4;   /* BD-026: en dark, wine-text = wine-soft (7.93/6.44/5.63 ✅). --wine dark falla como texto (2.79/2.26/1.98). */
   --wine-tint: rgba(168,50,62,0.14);
   --wine-bg: rgba(168,50,62,0.14);
 
@@ -143,7 +155,7 @@
 
   --ink: #F2F0EC;
   --ink-soft: #A8B0C4;
-  --ink-mute: #6E7896;
+  --ink-mute: #6E7896;   /* BRAND-SYNC 2026-07-06: placeholder / disabled — NO texto body (2.97:1 sobre bg-elevated) */
   --ink-inv: #0F1E3D;
   --ink-side: rgba(255,255,255,0.88);
   --ink-side-soft: rgba(255,255,255,0.5);
@@ -156,6 +168,7 @@
   --success-bg: rgba(91,207,160,0.14);
   --warning: #DCAB6B;
   --warning-bg: rgba(220,171,107,0.14);
+  --on-warning: #0F1E3D;   /* BD-027: navy fijo — sobre --warning dark (#DCAB6B) = 7.92 ✅ */
   --danger: #E07785;
   --danger-bg: rgba(224,119,133,0.14);
   --info: #6FA0E8;
@@ -223,12 +236,19 @@ a { color: inherit; text-decoration: none; }
   text-transform: uppercase;
   color: var(--ink-soft);
 }
-.eyebrow-wine { color: var(--wine); }
+.eyebrow-wine { color: var(--wine-text); }
 .h-pad { padding: var(--s-6) var(--s-8); }
 
 /* Focus rings */
 :focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; border-radius: var(--r-sm); }
 button:focus-visible, a:focus-visible { outline-offset: 3px; }
+/* BRAND-SYNC 2026-07-06 (BD-017): focus ring theme-aware. En dark, --wine (#A8323E) da 2.79
+   sobre bg-base → falla WCAG 1.4.11. El acento visible en dark es --wine-soft (7.93). */
+[data-theme="dark"] :focus-visible { outline-color: var(--wine-soft); }
+/* Sobre superficies navy (sidebar) --wine es invisible (1.56) → foco en cream. Vale en ambos
+   temas: el sidebar es navy en light y dark. Aplicá el hook al contenedor navy. */
+[data-surface="navy"] :focus-visible,
+.dtd-on-navy :focus-visible { outline-color: var(--ink-side); }
 
 /* ── Isólogo oficial · swap por tema (sin filtros CSS) ─────────
    .dtd-iso-auto  → primary en light, reverse en dark (sigue al tema)

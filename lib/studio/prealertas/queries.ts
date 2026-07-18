@@ -16,6 +16,7 @@ import {
   type PrealertaDocType,
   type PrealertaDocument,
   type PrealertaStatus,
+  type PredeclaredBox,
   type Supplier,
   PREALERTA_STATUSES,
 } from "./types";
@@ -28,6 +29,12 @@ import {
   type PrealertaServiceRequestTiming,
   mergePrealertaAddons,
 } from "./addons";
+import {
+  type PackingListCurrency,
+  type PackingListRow,
+  type PackingListSubmission,
+  isPackingListCurrency,
+} from "./packlist-form";
 
 // ── Coerción + columnas ────────────────────────────────────────
 
@@ -198,7 +205,30 @@ export type ProviderShareData = {
   clientName: string | null;
   supplierName: string | null;
   supplierWechat: string | null;
+  /** SDD-0153: cajas pre-declaradas de esta compra (para el QR escaneable por caja). */
+  predeclaredBoxes: PredeclaredBox[];
 };
+
+/**
+ * SDD-0153: las cajas pre-declaradas de una compra (`warehouse_boxes`), ordenadas
+ * por seq. En el portal las trae la RLS `warehouse_boxes portal self read` (el
+ * cliente ve solo las suyas); en la ruta pública del proveedor las trae el admin
+ * client. Devuelve `[]` si la compra no tiene cajas todavía → el consumidor cae al
+ * fallback `buildLabels` (etiqueta por cliente, sin código de caja).
+ */
+export async function listPredeclaredBoxes(
+  supabase: SupabaseClient,
+  prealertaId: string,
+): Promise<PredeclaredBox[]> {
+  const { data, error } = await supabase
+    .from("warehouse_boxes")
+    .select("code, seq")
+    .eq("prealerta_id", prealertaId)
+    .is("deleted_at", null)
+    .order("seq", { ascending: true });
+  if (error || !data) return [];
+  return data.map((b) => ({ code: b.code as string, seq: b.seq as number }));
+}
 
 /**
  * Resuelve la compra por `share_token` para la página pública del proveedor.
@@ -214,10 +244,12 @@ export async function getProviderShareByToken(
   try {
     const { data: p, error } = await supabase
       .from("prealertas")
-      .select("code, description, boxes, client_markbox, supplier_id")
+      .select("id, code, description, boxes, client_markbox, supplier_id")
       .eq("share_token", token)
       .is("deleted_at", null)
+      .is("share_disabled_at", null) // PORT-4: link desactivado → notFound
       .maybeSingle<{
+        id: string;
         code: string;
         description: string;
         boxes: number;
@@ -244,6 +276,8 @@ export async function getProviderShareByToken(
       supplierWechat = s?.wechat ?? null;
     }
 
+    const predeclaredBoxes = await listPredeclaredBoxes(supabase, p.id);
+
     return {
       code: p.code,
       description: p.description,
@@ -252,6 +286,7 @@ export async function getProviderShareByToken(
       clientName: c?.name ?? null,
       supplierName,
       supplierWechat,
+      predeclaredBoxes,
     };
   } catch {
     return null;
@@ -280,6 +315,7 @@ export async function getPrealertaIdsByToken(
       .select("id, tenant_id, client_markbox, code")
       .eq("share_token", token)
       .is("deleted_at", null)
+      .is("share_disabled_at", null) // PORT-4: link desactivado → notFound
       .maybeSingle<{
         id: string;
         tenant_id: string;
@@ -427,6 +463,28 @@ export async function listActivePrealertaAddons(
   }
 }
 
+/**
+ * TODOS los add-ons (activos e inactivos) para el editor de config del Studio
+ * (SDD-0098 · PORT-6). Merge "DB pisa, código respalda" sin filtrar por activo.
+ * Defensivo: los 7 defaults si la tabla no existe.
+ */
+export async function listPrealertaAddonsConfig(
+  supabase: SupabaseClient,
+): Promise<PrealertaAddon[]> {
+  try {
+    const { data, error } = await supabase
+      .from("prealerta_addons")
+      .select(
+        "code, label, description, notas_placeholder, consent_text, video_url, multi_tracking, sort, is_active",
+      )
+      .limit(50);
+    if (error) throw error;
+    return mergePrealertaAddons((data as PrealertaAddonRow[] | null) ?? []);
+  } catch {
+    return mergePrealertaAddons([]);
+  }
+}
+
 // ── Solicitudes de servicio (prealerta_service_requests · migr 0150) ─────
 
 const PSR_COLUMNS =
@@ -473,6 +531,122 @@ export async function listPrealertaServiceRequests(
     const { data, error } = await query;
     if (error) throw error;
     return ((data as Record<string, unknown>[] | null) ?? []).map(coercePsr);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * IDs de prealertas cuyo link público del proveedor está DESACTIVADO
+ * (share_disabled_at no null), del tenant del operador (SDD-0096 · PORT-4).
+ * DEFENSIVO: si la columna aún no existe (migr 0225 sin aplicar) devuelve []
+ * → el Studio trata todos los links como activos (no rompe la pantalla).
+ */
+export async function listDisabledSharePrealertaIds(
+  supabase: SupabaseClient,
+): Promise<string[]> {
+  try {
+    const { data, error } = await supabase
+      .from("prealertas")
+      .select("id")
+      .not("share_disabled_at", "is", null)
+      .is("deleted_at", null)
+      .limit(2000);
+    if (error) throw error;
+    return ((data as { id: string }[] | null) ?? []).map((r) => String(r.id));
+  } catch {
+    return [];
+  }
+}
+
+// ── Packing lists enviados por el proveedor (submissions · migr 0147) ─────
+
+const PACKING_LIST_COLUMNS =
+  "id, prealerta_id, client_markbox, version_no, is_current, supplier_company, supplier_contact, supplier_email, supplier_wechat, supplier_phone, currency, doc_date, folio, supplier_note, rows, total_ctns, total_qty, total_amount, total_weight, total_cbm, created_at";
+
+/** Coerciona una fila cruda del row jsonb a PackingListRow (saneada server-side). */
+function coercePackingRow(r: Record<string, unknown>): PackingListRow {
+  const str = (v: unknown): string => (typeof v === "string" ? v : "");
+  return {
+    brand: str(r.brand),
+    code: str(r.code),
+    zh: str(r.zh),
+    es: str(r.es),
+    hs: str(r.hs),
+    carton: str(r.carton),
+    ctns: num(r.ctns),
+    perctn: num(r.perctn),
+    unit: num(r.unit),
+    wkg: num(r.wkg),
+    cbm: num(r.cbm),
+    same: Boolean(r.same),
+    qtyDirect: num(r.qtyDirect),
+    qty: num(r.qty),
+    amount: num(r.amount),
+    weight: num(r.weight),
+    vol: num(r.vol),
+  };
+}
+
+function coercePackingSubmission(
+  r: Record<string, unknown>,
+): PackingListSubmission {
+  const rawRows = Array.isArray(r.rows) ? (r.rows as Record<string, unknown>[]) : [];
+  return {
+    id: String(r.id),
+    prealerta_id: String(r.prealerta_id),
+    client_markbox: String(r.client_markbox ?? ""),
+    version_no: Math.round(num(r.version_no)),
+    is_current: Boolean(r.is_current),
+    supplier_company: (r.supplier_company as string | null) ?? null,
+    supplier_contact: (r.supplier_contact as string | null) ?? null,
+    supplier_email: (r.supplier_email as string | null) ?? null,
+    supplier_wechat: (r.supplier_wechat as string | null) ?? null,
+    supplier_phone: (r.supplier_phone as string | null) ?? null,
+    currency: isPackingListCurrency(r.currency)
+      ? (r.currency as PackingListCurrency)
+      : "USD",
+    doc_date: (r.doc_date as string | null) ?? null,
+    folio: (r.folio as string | null) ?? null,
+    supplier_note: (r.supplier_note as string | null) ?? null,
+    rows: rawRows.map(coercePackingRow),
+    totals: {
+      ctns: num(r.total_ctns),
+      qty: num(r.total_qty),
+      amount: num(r.total_amount),
+      weight: num(r.total_weight),
+      cbm: num(r.total_cbm),
+    },
+    created_at: String(r.created_at),
+  };
+}
+
+/**
+ * Packing lists que los proveedores enviaron desde /p/{token} (SDD-0096 · PORT-2).
+ * Por defecto solo la versión VIGENTE de cada compra (`is_current`); el operador
+ * del tenant las ve todas (RLS "packing_list_submissions by tenant"). Defensivo:
+ * [] si la tabla aún no existe (0147 sin aplicar) → no rompe la pantalla.
+ */
+export async function listPackingListSubmissions(
+  supabase: SupabaseClient,
+  opts: { currentOnly?: boolean; prealertaId?: string } = {},
+): Promise<PackingListSubmission[]> {
+  const currentOnly = opts.currentOnly ?? true;
+  try {
+    let query = supabase
+      .from("packing_list_submissions")
+      .select(PACKING_LIST_COLUMNS)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .limit(1000);
+    if (currentOnly) query = query.eq("is_current", true);
+    if (opts.prealertaId) query = query.eq("prealerta_id", opts.prealertaId);
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return ((data as Record<string, unknown>[] | null) ?? []).map(
+      coercePackingSubmission,
+    );
   } catch {
     return [];
   }

@@ -72,7 +72,7 @@ export default async function AgentesPage({
       <header style={{ marginBottom: 24 }}>
         <div
           className="studio-eyebrow"
-          style={{ marginBottom: 10, color: "var(--wine)" }}
+          style={{ marginBottom: 10, color: "var(--wine-text)" }}
         >
           Administración · SDD-0020
         </div>

@@ -76,6 +76,21 @@ export async function pushQrPrintForReceiptAction(
 
   const row = Array.isArray(data) ? data[0] : null;
   const orderCode = (row as { order_code?: string } | null)?.order_code ?? "";
+  const orderId = (row as { id?: string } | null)?.id;
+
+  // SDD-0152 · dejar el rastro a la recepción para que la impresión pueda
+  // resolver las cajas y poner su código único en cada etiqueta. Va como UPDATE
+  // aparte en vez de un param nuevo del RPC: cambiarle la firma a
+  // push_qr_order_as_operario crearía una sobrecarga ambigua en Postgres.
+  // Si esto falla, la orden igual existe y la impresión cae al modo legacy
+  // (rotula sin código) — no se pierde la orden por esto.
+  if (orderId) {
+    await admin
+      .from("qr_print_orders")
+      .update({ receipt_id: receiptId })
+      .eq("id", orderId)
+      .eq("tenant_id", operario.tenant_id);
+  }
 
   return { ok: true, orderCode };
 }

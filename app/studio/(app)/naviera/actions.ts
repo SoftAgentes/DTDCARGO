@@ -24,7 +24,13 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { createAdminClient } from "@/lib/db/admin";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { notifyConsolidationAuthorizedToOperario } from "@/lib/studio/naviera/consolidation-request-notify";
+import {
+  scheduleConsolidationEvent,
+  scheduleSailingEvent,
+} from "@/lib/studio/notifications/schedule-fanout";
 import { getContainerTracking } from "@/lib/studio/naviera-tracking/tracking-api";
 import {
   trackingQuotaConfig,
@@ -161,6 +167,21 @@ export async function updateSailing(
     })
     .eq("id", sailingId);
   if (error) return { error: `No se pudo actualizar el itinerario: ${error.message}` };
+
+  // SDD-0156 · Slice D: la naviera fijó/actualizó el ETA → programa el aviso
+  // 'eta_set' para todos los envíos de las consolidaciones de este itinerario.
+  // Idempotente (no re-programa el mismo envío/evento); best-effort.
+  if (input!.eta) {
+    const tenantId = await resolveTenant(supabase);
+    if (tenantId) {
+      await scheduleSailingEvent(
+        createAdminClient(),
+        tenantId,
+        sailingId,
+        "eta_set",
+      );
+    }
+  }
   revalidate();
   return { ok: true };
 }
@@ -510,6 +531,21 @@ export async function changeConsolidationStatus(
     .update({ status })
     .eq("id", consolidationId);
   if (error) return { error: `No se pudo cambiar el estado: ${error.message}` };
+
+  // SDD-0156 · Slice D: al CERRAR el contenedor (consolidando → cerrado) la carga
+  // quedó consolidada → programa el aviso 'consolidated' para sus envíos.
+  // Idempotente; best-effort (no rompe el cambio de estado).
+  if (status === "cerrado") {
+    const tenantId = await resolveTenant(supabase);
+    if (tenantId) {
+      await scheduleConsolidationEvent(
+        createAdminClient(),
+        tenantId,
+        consolidationId,
+        "consolidated",
+      );
+    }
+  }
   revalidate();
   return { ok: true };
 }
@@ -519,6 +555,123 @@ export async function closeConsolidation(
   consolidationId: string,
 ): Promise<Result> {
   return changeConsolidationStatus(consolidationId, "cerrado");
+}
+
+// ── SDD-0157 · autorizar / rechazar solicitud del operario ─────
+
+/**
+ * Autoriza la solicitud de un operario (status 'solicitada' → 'consolidando').
+ * Recién acá se quema el correlativo DTD-CONSOL-NNNN (no en la solicitud, para
+ * no gastarlo en rechazos). Guardado por moduleEditDenial('naviera'). Avisa al
+ * operario por push (best-effort). Solo transiciona desde 'solicitada'.
+ */
+export async function authorizeConsolidation(
+  consolidationId: string,
+): Promise<Result> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "naviera");
+  if (denial) return { error: denial };
+
+  const tenantId = await resolveTenant(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant." };
+
+  const { data: row, error: readErr } = await supabase
+    .from("consolidations")
+    .select("id, status, tenant_id, container_type, requested_by_operario_id")
+    .eq("id", consolidationId)
+    .maybeSingle<{
+      id: string;
+      status: string;
+      tenant_id: string;
+      container_type: string | null;
+      requested_by_operario_id: string | null;
+    }>();
+  if (readErr) return { error: `No se pudo leer la solicitud: ${readErr.message}` };
+  if (!row || row.tenant_id !== tenantId) {
+    return { error: "La solicitud no existe o no es accesible." };
+  }
+  if (row.status !== "solicitada") {
+    return { error: "Esta solicitud ya no está pendiente." };
+  }
+
+  const { data: refData, error: refErr } = await supabase.rpc(
+    "next_consolidation_ref",
+    { p_tenant_id: tenantId },
+  );
+  if (refErr || !refData) {
+    return { error: "No se pudo generar la referencia del contenedor." };
+  }
+  const consolidationRef = String(refData);
+
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData.user?.id ?? null;
+
+  const { error } = await supabase
+    .from("consolidations")
+    .update({
+      ref: consolidationRef,
+      status: "consolidando",
+      authorized_by: userId,
+      authorized_at: new Date().toISOString(),
+    })
+    .eq("id", consolidationId)
+    .eq("status", "solicitada");
+  if (error) return { error: `No se pudo autorizar: ${error.message}` };
+
+  // Aviso al operario que pidió (best-effort, no bloquea).
+  if (row.requested_by_operario_id) {
+    await notifyConsolidationAuthorizedToOperario(
+      createAdminClient(),
+      row.requested_by_operario_id,
+      { ref: consolidationRef, containerType: row.container_type },
+    );
+  }
+
+  revalidate();
+  return { ok: true };
+}
+
+/**
+ * Rechaza la solicitud de un operario (status 'solicitada' → 'rechazada') con un
+ * motivo. Guardado por moduleEditDenial('naviera'). Solo transiciona desde
+ * 'solicitada'. No quema correlativo (la fila queda sin ref).
+ */
+export async function rejectConsolidation(
+  consolidationId: string,
+  reason: string,
+): Promise<Result> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "naviera");
+  if (denial) return { error: denial };
+
+  const motivo = (reason ?? "").trim();
+  if (!motivo) return { error: "Indica el motivo del rechazo." };
+
+  const tenantId = await resolveTenant(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant." };
+
+  const { data: row, error: readErr } = await supabase
+    .from("consolidations")
+    .select("id, status, tenant_id")
+    .eq("id", consolidationId)
+    .maybeSingle<{ id: string; status: string; tenant_id: string }>();
+  if (readErr) return { error: `No se pudo leer la solicitud: ${readErr.message}` };
+  if (!row || row.tenant_id !== tenantId) {
+    return { error: "La solicitud no existe o no es accesible." };
+  }
+  if (row.status !== "solicitada") {
+    return { error: "Esta solicitud ya no está pendiente." };
+  }
+
+  const { error } = await supabase
+    .from("consolidations")
+    .update({ status: "rechazada", rejected_reason: motivo })
+    .eq("id", consolidationId)
+    .eq("status", "solicitada");
+  if (error) return { error: `No se pudo rechazar: ${error.message}` };
+
+  revalidate();
+  return { ok: true };
 }
 
 /** Atar un contenedor a una reserva y/o un itinerario. */
@@ -539,6 +692,28 @@ export async function linkConsolidation(
     .update(patch)
     .eq("id", consolidationId);
   if (error) return { error: `No se pudo vincular el contenedor: ${error.message}` };
+
+  // SDD-0156 · Slice D: atar el contenedor a un itinerario que YA tiene ETA
+  // también dispara 'eta_set' (cubre el orden "creo el zarpe con ETA y después
+  // le cuelgo la consolidación"). Idempotente; best-effort.
+  if (link.sailingId) {
+    const { data: sailing } = await supabase
+      .from("sailings")
+      .select("eta")
+      .eq("id", link.sailingId)
+      .maybeSingle<{ eta: string | null }>();
+    if (sailing?.eta) {
+      const tenantId = await resolveTenant(supabase);
+      if (tenantId) {
+        await scheduleConsolidationEvent(
+          createAdminClient(),
+          tenantId,
+          consolidationId,
+          "eta_set",
+        );
+      }
+    }
+  }
   revalidate();
   return { ok: true };
 }

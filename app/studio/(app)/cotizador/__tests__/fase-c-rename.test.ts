@@ -92,14 +92,19 @@ describe("SDD-0061 Fase C · sidebar + i18n", () => {
 });
 
 describe("SDD-0061 Fase C · dashboard", () => {
-  it("la card y los KPIs dicen 'Estimados', no 'Cotizaciones'", () => {
+  // SDD-0114 reemplazó el layout FIJO del dashboard por uno configurable: los
+  // KPIs ya no son literales en page.tsx sino entradas del KPI_CATALOG. El
+  // invariante de terminología (usar "Estimados", nunca "Cotizaciones") se
+  // re-ancla al catálogo + la card, sin debilitarse.
+  it("la card y el catálogo de KPIs dicen 'Estimados', no 'Cotizaciones'", () => {
     expect(
       read("app/studio/(app)/dashboard/_components/RecentQuotesCard.tsx"),
     ).toContain("Estimados recientes");
+    const catalog = read("lib/studio/dashboard/dashboard-catalog.ts");
+    expect(catalog).toContain("Estimados aceptados (mes)");
+    expect(catalog).not.toMatch(/cotizaci[oó]n/i);
     const page = read("app/studio/(app)/dashboard/page.tsx");
-    expect(page).toContain('label="Estimados del mes"');
-    expect(page).toContain('label="Total estimado"');
-    expect(page).not.toContain("Cotizaciones del mes");
+    expect(page).not.toMatch(/cotizaci[oó]n/i);
   });
 });
 

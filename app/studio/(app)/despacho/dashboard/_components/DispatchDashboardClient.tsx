@@ -150,11 +150,11 @@ export function DispatchDashboardClient({
             borderRadius: "var(--r-md)",
           }}
         >
-          <div className="studio-eyebrow" style={{ marginBottom: 14, color: "var(--wine)" }}>
+          <div className="studio-eyebrow" style={{ marginBottom: 14, color: "var(--wine-text)" }}>
             Ranking de rutas · eficiencia
           </div>
           {ranking.length === 0 ? (
-            <div style={{ padding: "32px 0", textAlign: "center", color: "var(--ink-soft)", font: "500 13px/1.4 var(--f-sans)" }}>
+            <div style={{ padding: "var(--s-8) 0", textAlign: "center", color: "var(--ink-soft)", font: "500 13px/1.4 var(--f-sans)" }}>
               Sin datos para este periodo.
             </div>
           ) : (
@@ -172,7 +172,7 @@ export function DispatchDashboardClient({
                   return (
                     <tr key={r.route_id} style={{ borderTop: "1px solid var(--border)" }}>
                       <td style={{ padding: 12, font: "600 13px/1.3 var(--f-sans)", color: "var(--ink)" }}>
-                        <code style={{ font: "700 11.5px/1 var(--f-mono)", color: "var(--wine)", marginRight: 8 }}>
+                        <code style={{ font: "700 11.5px/1 var(--f-mono)", color: "var(--wine-text)", marginRight: 8 }}>
                           {r.route_code}
                         </code>
                         {r.route_name}
@@ -200,11 +200,11 @@ export function DispatchDashboardClient({
             borderRadius: "var(--r-md)",
           }}
         >
-          <div className="studio-eyebrow" style={{ marginBottom: 14, color: "var(--wine)" }}>
+          <div className="studio-eyebrow" style={{ marginBottom: 14, color: "var(--wine-text)" }}>
             Top ciudades por volumen
           </div>
           {topCities.length === 0 ? (
-            <div style={{ padding: "32px 0", textAlign: "center", color: "var(--ink-soft)", font: "500 13px/1.4 var(--f-sans)" }}>
+            <div style={{ padding: "var(--s-8) 0", textAlign: "center", color: "var(--ink-soft)", font: "500 13px/1.4 var(--f-sans)" }}>
               Sin movimientos en el periodo.
             </div>
           ) : (
@@ -216,7 +216,7 @@ export function DispatchDashboardClient({
                   <div key={c.city}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                       <span style={{ font: "700 12.5px/1 var(--f-sans)", color: "var(--ink)" }}>{c.city}</span>
-                      <span style={{ font: "700 12.5px/1 var(--f-mono)", color: "var(--wine)" }}>
+                      <span style={{ font: "700 12.5px/1 var(--f-mono)", color: "var(--wine-text)" }}>
                         {c.ods} ODs
                       </span>
                     </div>

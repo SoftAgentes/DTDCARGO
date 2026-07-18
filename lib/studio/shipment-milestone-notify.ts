@@ -1,6 +1,13 @@
 /**
  * Aviso al CLIENTE de un hito de su envío (SDD-0132 · Slice C).
  *
+ * ⚠️ SUPERADO por SDD-0156: `transitionShipment` ya NO llama a
+ * `notifyShipmentMilestoneToClient` — ahora usa el motor configurable
+ * (`lib/studio/notifications/`). Este módulo se conserva porque
+ * `isClientNotifiableMilestone` / `CLIENT_NOTIFIABLE_MILESTONES` documentan el
+ * set default (que 0156 siembra como reglas) y siguen bajo test. La función de
+ * envío quedó sin llamadores en vivo.
+ *
  * Cuando la operación cambia el status a un hito notificable, se le manda al
  * cliente un correo directo (best-effort). NO usa el motor de reglas de mail
  * (templates por evento) — que solo cubre `shipment_arrived` — sino `sendEmail`

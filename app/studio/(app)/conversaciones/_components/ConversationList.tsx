@@ -92,7 +92,7 @@ export function ConversationList({
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 8,
+            gap: "var(--s-2)",
             height: 34,
             padding: "0 10px",
             background: "var(--bg-elevated)",
@@ -120,13 +120,15 @@ export function ConversationList({
         </div>
 
         {/* Tabs de estado */}
-        <div style={{ display: "flex", gap: 4 }}>
+        <div style={{ display: "flex", gap: "var(--s-1)" }}>
           {STATUS_TABS.map((t) => {
             const active = statusFilter === t.value;
             return (
               <button
                 key={t.value}
+                type="button"
                 onClick={() => setStatusFilter(t.value)}
+                aria-pressed={active}
                 style={{
                   flex: 1,
                   padding: "6px 4px",
@@ -171,7 +173,7 @@ export function ConversationList({
         {list.length === 0 && (
           <div
             style={{
-              padding: "32px 16px",
+              padding: "var(--s-8) var(--s-4)",
               textAlign: "center",
               font: "500 12.5px/1.5 var(--f-sans)",
               color: "var(--ink-soft)",
@@ -188,7 +190,9 @@ export function ConversationList({
           return (
             <button
               key={c.id}
+              type="button"
               onClick={() => onSelect(c.id)}
+              aria-current={isSel ? "true" : undefined}
               style={{
                 width: "100%",
                 textAlign: "left",
@@ -208,7 +212,7 @@ export function ConversationList({
                 if (!isSel) e.currentTarget.style.background = "transparent";
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)", marginBottom: 5 }}>
                 <span
                   style={{
                     width: 7,
@@ -238,7 +242,7 @@ export function ConversationList({
                       padding: "0 5px",
                       borderRadius: "var(--r-pill)",
                       background: "var(--wine)",
-                      color: "var(--wine-tint)",
+                      color: "var(--ink-inv)",
                       font: "700 10px/18px var(--f-sans)",
                       textAlign: "center",
                     }}
@@ -307,7 +311,9 @@ function ChannelChip({
   const t = TONE_TOKENS[tone];
   return (
     <button
+      type="button"
       onClick={onClick}
+      aria-pressed={active}
       style={{
         padding: "4px 9px",
         borderRadius: "var(--r-pill)",

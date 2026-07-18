@@ -197,7 +197,7 @@ export function ColumnManager({
                 onClick={reset}
                 style={{
                   font: "600 11px/1 var(--f-sans)",
-                  color: "var(--wine)",
+                  color: "var(--wine-text)",
                   padding: "3px 6px",
                   background: "transparent",
                   border: "none",

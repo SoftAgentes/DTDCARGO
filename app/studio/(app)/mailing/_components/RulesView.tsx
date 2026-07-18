@@ -13,6 +13,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import { TableFrame, ActionableRow } from "@/app/studio/_components/ui/DataTable";
 import {
   RULE_EVENT_LABELS,
   ruleEventBadgeTone,
@@ -96,14 +97,7 @@ export function RulesView({ rules, templates }: Props) {
           description="Click '+ Nueva regla' para crear la primera. Ej: 'cuando se crea un embarque, mandar shipment_created al cliente'."
         />
       ) : (
-        <div
-          style={{
-            background: "var(--bg-surface, #FFFFFF)",
-            border: "1px solid var(--border, #E8E6E2)",
-            borderRadius: 8,
-            overflow: "auto",
-          }}
-        >
+        <TableFrame>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ background: "var(--bg-elevated, #F2F0EC)" }}>
@@ -118,20 +112,11 @@ export function RulesView({ rules, templates }: Props) {
               {rules.map((r) => {
                 const tone = ruleEventBadgeTone(r.event);
                 return (
-                  <tr
+                  <ActionableRow
                     key={r.id}
-                    onClick={() => setOpenRuleId(r.id)}
-                    style={{
-                      borderTop: "1px solid var(--border, #E8E6E2)",
-                      cursor: "pointer",
-                      transition: "background var(--dur, 180ms)",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background = "var(--bg-elevated)")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background = "transparent")
-                    }
+                    onSelect={() => setOpenRuleId(r.id)}
+                    label={`Editar regla ${RULE_EVENT_LABELS[r.event]}`}
+                    style={{ borderTop: "1px solid var(--border)" }}
                   >
                     <Td>
                       <span
@@ -212,12 +197,12 @@ export function RulesView({ rules, templates }: Props) {
                         </span>
                       )}
                     </Td>
-                  </tr>
+                  </ActionableRow>
                 );
               })}
             </tbody>
           </table>
-        </div>
+        </TableFrame>
       )}
 
       {creating && (

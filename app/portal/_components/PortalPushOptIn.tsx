@@ -141,8 +141,8 @@ export function PortalPushOptIn() {
           <CheckIcon size={16} />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="text-[13px] font-bold text-ink">Avisos activados</div>
-          <div className="text-[12px] text-grey-500">Te notificamos cuando tu asesor responda.</div>
+          <div className="text-[13px] font-bold text-ink">Notificaciones activadas</div>
+          <div className="text-[12px] text-grey-500">Tu navegador te avisará apenas te escribamos.</div>
         </div>
         <button
           type="button"
@@ -166,12 +166,12 @@ export function PortalPushOptIn() {
         </span>
         <div className="min-w-0 flex-1">
           <div className="text-[13.5px] font-bold text-ink">
-            Avísame cuando me respondan
+            Activa las notificaciones
           </div>
           <p className="mt-1 text-[12.5px] text-grey-700 leading-[1.5]">
             {denied
-              ? "Las notificaciones están bloqueadas en tu navegador. Actívalas desde la configuración del sitio para recibir avisos."
-              : "Activa las notificaciones y te avisamos apenas tu asesor conteste, sin tener que estar pendiente."}
+              ? "Las notificaciones están bloqueadas en tu navegador. Actívalas desde la configuración del sitio (candado 🔒 junto a la dirección) para que te avisemos cuando te escribamos."
+              : "Actívalas para que tu navegador te avise cuando DTD Cargo te escriba, aunque no tengas el portal abierto. Así no tienes que estar pendiente."}
           </p>
           {!denied && (
             <button

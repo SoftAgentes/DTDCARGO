@@ -1,48 +1,60 @@
 {
-  "generatedAt": "2026-07-06",
+  "generatedAt": "2026-07-12",
   "norteVersion": "v4.5",
   "partA": {
     "findings": [
       {
-        "id": "stale-forge-template-agents",
-        "title": "Agentes del template Forge describen el stack equivocado (src/, Tailwind 3.4, Zod) — contradicen el repo real (app/, Tailwind v4, sin Zod)",
-        "severity": "baja",
-        "action": "✅ RESUELTO 2026-07-06: banner de override DTD antepuesto en los 9 agentes del template (frontend/backend/codebase-analyst/testing/qa-auditor/gestor-documentacion/observability/design-critic/validacion-calidad) que corrige stack, frontera y 'no Zod' de entrada, degradando los patrones del template a referencia. Los nativos DTD (implementer/leader/reviewer) ya estaban correctos.",
+        "id": "modelo-effort-max",
+        "title": "User settings global = effortLevel 'max' + switchModelsOnFlag; el settings.json del proyecto no fija modelo (hereda el global)",
+        "severity": "media",
+        "action": "En tareas mecánicas (renombres masivos, seeds, greps, edits repetitivos) delegar a subagentes Sonnet/Haiku para bajar costo; reservar Opus/max para diseño, seguridad y financiero.",
         "top": true
       },
       {
-        "id": "modelo-effort-max",
-        "title": "User settings global = opus[1m] + effortLevel max; settings.json del proyecto no fija modelo (hereda el global)",
+        "id": "mcp-obsidian-config-contradictoria",
+        "title": ".claude/settings.local.json lista 'obsidian' en enabledMcpjsonServers Y en disabledMcpjsonServers a la vez (líneas 19 y 22)",
         "severity": "baja",
-        "action": "Para tareas mecánicas (renombres masivos, seeds, greps) delegar a subagentes Sonnet/Haiku y bajar costo; dejar Opus para diseño/seguridad/financiero."
+        "action": "Sacar 'obsidian' de una de las dos listas — no aparece conectado esta sesión, probablemente ya no se usa."
       },
       {
-        "id": "verify-gate-flaky-timeout",
-        "title": "Gate Stop: flaky 'failed to find the runner' de vitest (patrón conocido, se resuelve re-corriendo); hook timeout 180s que el verify completo puede rozar",
+        "id": "nested-claude-studio-grande",
+        "title": "app/studio/CLAUDE.md en 606 líneas — 2º contexto always-loaded más pesado, cargado en toda sesión de Studio",
         "severity": "baja",
-        "action": "Sin acción inmediata; si el gate crece, subir el timeout del hook en .claude/settings.json o correr en lotes de ~30."
+        "action": "Evaluar mover secciones a punteros. AGENTS.md raíz sigue sano (~4k tokens, 135 líneas)."
       },
       {
-        "id": "worktree-cambio-de-web-abierto",
-        "title": "Worktree feat/cambio-de-web abierto por otra ventana",
+        "id": "brand-drift-norte-sync-doc",
+        "title": "1 hit de books viejos (v3.2/v3.0) en docs/design/studio/norte-sync-2026-07-06-correcciones-cloud-design.md:76",
         "severity": "baja",
-        "action": "Coordinación: esa lane cierra y poda su propio worktree. No tocar desde esta ventana; solo notar para no pisar su trabajo."
+        "action": "No accionable — el doc cita esas versiones a propósito (documenta refs muertas). Regla 0.5/0.5b: 0 books huérfanos, 0 carpetas branding viejas, book único v4.5 sincronizado en _norte y private/marca, 0 voseo/casing/MARKBOX-visible drift."
       },
       {
-        "id": "inventario-skills-solapamiento",
-        "title": "Solapamiento gstack↔DTD en skills (/despachar↔ship, /inspeccionar↔review, /temple↔project-auditor)",
+        "id": "mobile-claude-copia-desactualizada",
+        "title": "_norte/design_handoff_mobile_app/CLAUDE.md (copia autocontenida) sigue citando 'Brand Book v3.7' y no tiene el paso BRAND-DECISIONS.md del canónico",
         "severity": "baja",
-        "action": "Duplicación gstack intencional (memoria reference_gstack_skills_layout). No consolidar sin decisión del founder."
+        "action": "Divergencia esperada (es copia, no fuente). Si se retoca el paquete móvil, replicar versión de book vigente + paso BRAND-DECISIONS.md."
+      },
+      {
+        "id": "otra-ventana-pusheo-en-vivo",
+        "title": "Mientras corría esta auditoría, otra ventana pusheó a main: e606e84e feat(portal): SDD-0057 — combobox de proveedor estilo Norte en Nueva compra (HEAD pasó de 6377ca2c a e606e84e)",
+        "severity": "baja",
+        "action": "Informativo — confirma multi-ventana activo. No afecta Norte ni marca; nada que hacer desde esta sesión."
+      },
+      {
+        "id": "worktrees-otras-ventanas",
+        "title": "2 worktrees abiertos por otras ventanas: feat/cambio-de-web, feat/demo-registro",
+        "severity": "baja",
+        "action": "No tocar — cada lane cierra y poda el suyo."
       }
     ],
-    "estimatedTokenSavings": "~2-5%"
+    "estimatedTokenSavings": "~5-8%"
   },
   "partB": {
     "counts": { "built": 18, "partial": 4, "missing": 0, "total": 22 },
     "blocks": [
-      { "name": "Bloques financieros 1.1-5 (roadmap)", "remaining": "0%", "note": "Los 8 renglones done (1.1/1.2/2.1/2.2/2.3/3/4/5). 2.3 China cerrado 2026-07-03: Slice C SDD-0115 + posting keystone migr 0178/SDD-0110." },
-      { "name": "Core 22 entidades (API-CONTRACT)", "remaining": "18%", "note": "18/22 built (82%), 4 parciales (auth unificado, cola offline de entrada, catálogo origen CN, salida multi-canal WhatsApp/Telegram), 0 sin tabla. Ninguno keystone." },
-      { "name": "Superficie ampliada v4.5 (~13 dominios)", "remaining": "no documentado exacto", "note": "~120 formas con tabla / ~10 huecos. Huecos reales ≈2: tabla puente Supplier↔Client (WeChat) + detección de ferias IA. Más 2 piezas nómina gate-contador (salario integral, asiento del corte SDD-0112)." }
+      { "name": "Bloques financieros 1.1-5 (roadmap)", "remaining": "0%", "note": "Los 8 renglones done (1.1/1.2/2.1/2.2/2.3/3/4/5). Sin cambios." },
+      { "name": "Core 22 entidades (API-CONTRACT)", "remaining": "18%", "note": "18/22 built (82%), 4 parciales, 0 sin tabla. schema-reconciliation.md sin cambios desde 2026-07-03." },
+      { "name": "Superficie ampliada v4.5 (~13 dominios)", "remaining": "no documentado exacto", "note": "Norte v4.2-v4.5 sumó módulos (Academia, WMS, Reclamos, Club, Administración) que expanden el blueprint más allá de las 22. Re-derivación completa pendiente como tarea aparte." }
     ]
   }
 }

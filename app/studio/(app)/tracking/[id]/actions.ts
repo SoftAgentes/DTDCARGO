@@ -24,10 +24,8 @@ import { formatChangeNote, findRateForDestination } from "@/lib/studio/destinati
 import type { Rate } from "@/lib/studio/rate-types";
 import type { ShipmentService, ShipmentStatus } from "@/lib/studio/shipment-types";
 import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
-import {
-  isClientNotifiableMilestone,
-  notifyShipmentMilestoneToClient,
-} from "@/lib/studio/shipment-milestone-notify";
+import { scheduleClientNotifications } from "@/lib/studio/notifications/schedule-client-notifications";
+import { statusEvent } from "@/lib/studio/notifications/client-notification-types";
 
 /** Estados terminales en los que no se puede cambiar el destino. */
 const TERMINAL_STATUSES: ShipmentStatus[] = ["delivered", "cancelled"];
@@ -277,16 +275,20 @@ export async function transitionShipment(
     });
   }
 
-  // SDD-0132 · Slice C: aviso al cliente en otros hitos notificables (recibido en
-  // China / embarcado / en reparto / entregado). El arribo NO entra acá (ya avisó
-  // por su template arriba). Best-effort: nunca rompe el cambio de estado.
-  if (isClientNotifiableMilestone(newStatus) && shipment.status !== newStatus) {
+  // SDD-0156: motor configurable de avisos al cliente (reemplaza el aviso inline
+  // de SDD-0132). Programa según las reglas del tenant (canal · offset · texto ·
+  // visibilidad); el drain (inline + cron) despacha. arrived_destination NO entra
+  // acá: sigue por su template shipment_arrived (arriba) para no duplicar.
+  // Best-effort: nunca rompe el cambio de estado.
+  if (shipment.status !== newStatus && newStatus !== "arrived_destination") {
     const admin = createAdminClient();
-    await notifyShipmentMilestoneToClient(admin, tenantId, {
+    await scheduleClientNotifications(admin, tenantId, {
+      shipmentId: id,
       shipmentCode: shipment.code,
-      status: newStatus,
       clientMarkbox: shipment.client_markbox,
       clientName: shipment.client_name,
+      event: statusEvent(newStatus),
+      eventTime: new Date(),
     });
   }
 

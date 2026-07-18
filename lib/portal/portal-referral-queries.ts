@@ -17,13 +17,13 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  REFERRAL_RULES,
   referralShareCode,
   tierProgress,
   invoiceUsdAmount,
   type ReferralStatus,
   type TierProgress,
 } from "@/lib/studio/fidelizacion/types";
+import { getReferralSettings } from "@/lib/studio/fidelizacion/referral-settings-queries";
 import type { InvoiceCurrency, InvoiceStatus } from "@/lib/studio/invoice-types";
 
 /** Una fila de "Tus referidos" (campos mínimos — sin PII de contacto del referido). */
@@ -117,7 +117,7 @@ export async function getMyReferralProgram(
 ): Promise<PortalReferralProgram> {
   const mk = markbox.trim().toUpperCase();
 
-  const [billedUsd, referralsRes] = await Promise.all([
+  const [billedUsd, referralsRes, tenantRes] = await Promise.all([
     billedUsdForClient(admin, mk, now),
     admin
       .from("referrals")
@@ -128,7 +128,18 @@ export async function getMyReferralProgram(
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(200),
+    // Tenant del cliente → para scopear la config de montos (SDD-0159). El
+    // portal usa admin client (sin RLS), así que el tenant va explícito.
+    admin
+      .from("clients")
+      .select("tenant_id")
+      .eq("markbox", mk)
+      .is("deleted_at", null)
+      .maybeSingle<{ tenant_id: string }>(),
   ]);
+
+  // Montos del programa (configurables · fallback $80/$60 sin fila).
+  const settings = await getReferralSettings(admin, tenantRes.data?.tenant_id);
 
   const referrals = (
     (referralsRes.data as Record<string, unknown>[] | null) ?? []
@@ -144,14 +155,21 @@ export async function getMyReferralProgram(
   );
 
   // Espejo de creditsEarned / pendingCredits (lib/studio/fidelizacion/queries.ts):
-  //  - ganados   = Σ reward_usd de los acreditados.
-  //  - en camino = referrerReward por cada uno en pipeline (ni invitado ni acreditado).
+  //  - ganados   = Σ reward_usd de los acreditados + aplicados (SDD-0137: un
+  //                crédito aplicado sigue siendo ganado, ya se cobró).
+  //  - en camino = referrerReward por cada uno en pipeline (ni invitado ni
+  //                acreditado ni aplicado).
   const creditsEarnedUsd = referrals
-    .filter((r) => r.status === "acreditado")
+    .filter((r) => r.status === "acreditado" || r.status === "aplicado")
     .reduce((s, r) => s + r.rewardUsd, 0);
   const pendingCreditsUsd = referrals
-    .filter((r) => r.status !== "acreditado" && r.status !== "invitado")
-    .reduce((s) => s + REFERRAL_RULES.referrerReward, 0);
+    .filter(
+      (r) =>
+        r.status !== "acreditado" &&
+        r.status !== "aplicado" &&
+        r.status !== "invitado",
+    )
+    .reduce((s) => s + settings.referrerRewardUsd, 0);
 
   return {
     shareCode: referralShareCode(mk),
@@ -159,8 +177,8 @@ export async function getMyReferralProgram(
     billedUsd,
     creditsEarnedUsd,
     pendingCreditsUsd,
-    referredReward: REFERRAL_RULES.referredReward,
-    referrerReward: REFERRAL_RULES.referrerReward,
+    referredReward: settings.referredRewardUsd,
+    referrerReward: settings.referrerRewardUsd,
     referrals,
   };
 }

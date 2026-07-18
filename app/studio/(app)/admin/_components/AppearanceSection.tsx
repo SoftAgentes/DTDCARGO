@@ -105,7 +105,7 @@ export function AppearanceSection() {
         </p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
           {BRAND_COLORS.map((c) => (
-            <div key={c.name} style={{ padding: 12, background: "var(--bg-elevated)", borderRadius: "var(--r-md)" }}>
+            <div key={c.name} style={{ padding: "var(--s-3)", background: "var(--bg-elevated)", borderRadius: "var(--r-md)" }}>
               <div
                 style={{
                   width: "100%",
@@ -115,9 +115,9 @@ export function AppearanceSection() {
                   border: "1px solid var(--border)",
                 }}
               />
-              <div style={{ marginTop: 8, font: "700 12px/1 var(--f-sans)", color: "var(--ink)" }}>{c.name}</div>
+              <div style={{ marginTop: "var(--s-2)", font: "700 12px/1 var(--f-sans)", color: "var(--ink)" }}>{c.name}</div>
               <code style={{ font: "600 10.5px/1.3 var(--f-mono)", color: "var(--ink-soft)" }}>{c.token}</code>
-              <div style={{ marginTop: 4, font: "500 10.5px/1 var(--f-mono)", color: "var(--ink-soft)" }}>{c.hex}</div>
+              <div style={{ marginTop: "var(--s-1)", font: "500 10.5px/1 var(--f-mono)", color: "var(--ink-soft)" }}>{c.hex}</div>
             </div>
           ))}
         </div>
@@ -126,7 +126,7 @@ export function AppearanceSection() {
       {/* 3. Recursos de marca */}
       <Card>
         <CardEyebrow>Recursos de marca</CardEyebrow>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
           {BRAND_RESOURCES.map((r) => (
             <Link
               key={r.href}
@@ -134,7 +134,7 @@ export function AppearanceSection() {
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 12,
+                gap: "var(--s-3)",
                 padding: "12px 14px",
                 textDecoration: "none",
                 background: "var(--bg-elevated)",
@@ -173,16 +173,16 @@ export function AppearanceSection() {
           background: "var(--bg-surface)",
           border: "2px dashed var(--border-strong)",
           borderRadius: "var(--r-lg)",
-          padding: "20px 24px",
+          padding: "var(--s-5) var(--s-6)",
         }}
       >
         <div
           style={{
             font: "700 10px/1 var(--f-sans)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             letterSpacing: "0.16em",
             textTransform: "uppercase",
-            marginBottom: 8,
+            marginBottom: "var(--s-2)",
           }}
         >
           Logo & favicon · por implementar
@@ -214,7 +214,7 @@ function Card({ children }: { children: React.ReactNode }) {
 
 function CardEyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <div className="studio-eyebrow" style={{ color: "var(--wine)", marginBottom: 14 }}>
+    <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: 14 }}>
       {children}
     </div>
   );
@@ -231,7 +231,7 @@ function FieldBlock({
 }) {
   return (
     <div style={{ marginBottom: 18 }}>
-      <div style={{ font: "700 12.5px/1 var(--f-sans)", color: "var(--ink)", marginBottom: 4 }}>{label}</div>
+      <div style={{ font: "700 12.5px/1 var(--f-sans)", color: "var(--ink)", marginBottom: "var(--s-1)" }}>{label}</div>
       {hint && (
         <div style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginBottom: 10 }}>{hint}</div>
       )}

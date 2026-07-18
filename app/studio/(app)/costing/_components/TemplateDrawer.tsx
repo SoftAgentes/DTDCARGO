@@ -211,7 +211,7 @@ export function TemplateDrawer({
           style={{
             background: "var(--ink)",
             borderRadius: "var(--r-lg)",
-            padding: "16px 20px",
+            padding: "var(--s-4) var(--s-5)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -427,7 +427,7 @@ function FieldError({ msg }: { msg: string }) {
       style={{
         font: "500 11px/1.3 var(--f-sans)",
         color: "var(--danger)",
-        margin: "4px 0 0",
+        margin: "var(--s-1) 0 0",
       }}
     >
       {msg}

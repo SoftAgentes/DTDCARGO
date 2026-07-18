@@ -18,6 +18,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/studio/_components/icons";
+import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 import {
   VE_ACTION_LABELS,
   availableActions,
@@ -217,7 +218,7 @@ export function VeRowActions({
             border: "1px solid var(--border-strong)",
             borderRadius: "var(--r-md)",
             boxShadow: "var(--shadow-md)",
-            padding: 4,
+            padding: "var(--s-1)",
             zIndex: 30,
             display: "flex",
             flexDirection: "column",
@@ -256,7 +257,7 @@ export function VeRowActions({
                   borderRadius: "var(--r-sm)",
                   display: "flex",
                   alignItems: "center",
-                  gap: 8,
+                  gap: "var(--s-2)",
                 }}
                 onMouseEnter={(e) => {
                   if (!pending) {
@@ -354,15 +355,13 @@ function PromptModal({
 }) {
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    inputRef.current?.focus();
-    const onEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !pending) onCancel();
-    };
-    document.addEventListener("keydown", onEsc);
-    return () => document.removeEventListener("keydown", onEsc);
-  }, [onCancel, pending]);
+  useDialogA11y(panelRef, {
+    onClose: onCancel,
+    pending,
+    initialFocusRef: inputRef,
+  });
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -386,10 +385,12 @@ function PromptModal({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: 16,
+        padding: "var(--s-4)",
       }}
     >
       <div
+        ref={panelRef}
+        tabIndex={-1}
         style={{
           background: "var(--bg-surface, #FFFFFF)",
           color: "var(--ink)",
@@ -397,10 +398,11 @@ function PromptModal({
           maxWidth: 440,
           borderRadius: "var(--r-lg, 12px)",
           boxShadow: "0 24px 64px rgba(0,0,0,0.18)",
-          padding: 24,
+          padding: "var(--s-6)",
           display: "flex",
           flexDirection: "column",
-          gap: 16,
+          gap: "var(--s-4)",
+          outline: "none",
         }}
       >
         <h2
@@ -417,7 +419,7 @@ function PromptModal({
 
         <form
           onSubmit={submit}
-          style={{ display: "flex", flexDirection: "column", gap: 12 }}
+          style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}
         >
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span
@@ -430,7 +432,7 @@ function PromptModal({
             >
               {label}
               {required && (
-                <span style={{ color: "var(--danger)", marginLeft: 4 }}>*</span>
+                <span style={{ color: "var(--danger)", marginLeft: "var(--s-1)" }}>*</span>
               )}
             </span>
             {multiline ? (
@@ -443,7 +445,7 @@ function PromptModal({
                 disabled={pending}
                 rows={4}
                 style={{
-                  padding: 12,
+                  padding: "var(--s-3)",
                   border: "1px solid var(--border, #E8E6E2)",
                   borderRadius: 6,
                   background: "var(--bg-base)",
@@ -482,9 +484,9 @@ function PromptModal({
           <div
             style={{
               display: "flex",
-              gap: 8,
+              gap: "var(--s-2)",
               justifyContent: "flex-end",
-              marginTop: 4,
+              marginTop: "var(--s-1)",
             }}
           >
             <button

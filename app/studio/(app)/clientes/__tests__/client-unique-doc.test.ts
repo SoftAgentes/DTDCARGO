@@ -56,9 +56,17 @@ function makeSupabase() {
             ? { data: { tenant_id: "tenant-1", role: "admin" }, error: null }
             : { data: null, error: null },
         insert() {
-          // create: `await supabase.from("clients").insert({...})`
+          // create: `await supabase.from("clients").insert({...}).select("id").single()`
+          const res = writeResult();
           return {
-            then: (res: (v: { error: unknown }) => unknown) => res(writeResult()),
+            select() {
+              return {
+                single: async () =>
+                  res.error
+                    ? { data: null, error: res.error }
+                    : { data: { id: "client-1" }, error: null },
+              };
+            },
           };
         },
         update() {

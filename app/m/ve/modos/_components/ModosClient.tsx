@@ -76,7 +76,7 @@ export function ModosClient({ operario, errorMsg }: Props) {
       style={{
         minHeight: "100dvh",
         background:
-          "linear-gradient(160deg, var(--ink) 0%, #1F3055 100%)",
+          "linear-gradient(160deg, #0F1E3D 0%, #1F3055 100%)",
         color: "var(--ink-inv)",
         display: "flex",
         flexDirection: "column",

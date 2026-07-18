@@ -83,7 +83,7 @@ export function DriverDrawer({ onClose }: { onClose: () => void }) {
           mono
           error={state.fieldErrors?.cedula}
         />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
           <FieldText
             label="Teléfono"
             name="phone"
@@ -101,7 +101,7 @@ export function DriverDrawer({ onClose }: { onClose: () => void }) {
             placeholder="chofer@dtdcargo.com"
           />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
           <FieldSelect
             label="Licencia de conducir"
             name="license_class"
@@ -117,7 +117,7 @@ export function DriverDrawer({ onClose }: { onClose: () => void }) {
             type="date"
           />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
           <FieldSelect
             label="Hub base"
             name="hub_code"

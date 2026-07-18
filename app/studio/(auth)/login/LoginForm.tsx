@@ -39,7 +39,7 @@ export function LoginForm({ next }: { next?: string }) {
           boxShadow: "0 30px 60px -20px rgba(0, 0, 0, 0.4)",
         }}
       >
-        <span className="studio-eyebrow-dark">DoorTuDoor · v0.1</span>
+        <span className="studio-eyebrow-dark">DTD Cargo · v0.1</span>
         <h1
           className="studio-display"
           style={{

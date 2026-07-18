@@ -136,12 +136,12 @@ export function CourseEditorDrawer({
                 padding: "16px 18px",
                 display: "flex",
                 justifyContent: "space-between",
-                gap: 16,
+                gap: "var(--s-4)",
                 alignItems: "flex-start",
               }}
             >
               <div style={{ minWidth: 0 }}>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                <div style={{ display: "flex", gap: "var(--s-2)", flexWrap: "wrap", marginBottom: "var(--s-2)" }}>
                   <Badge tone="wine" size="sm">
                     {tierLabel(tree.tier)}
                   </Badge>
@@ -186,13 +186,13 @@ export function CourseEditorDrawer({
             </section>
 
             {/* Módulos + lecciones */}
-            <section style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <section style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
               <div
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  gap: 12,
+                  gap: "var(--s-3)",
                 }}
               >
                 <div className="studio-eyebrow">
@@ -307,13 +307,13 @@ function ModuleBlock({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          gap: 12,
-          padding: "12px 16px",
+          gap: "var(--s-3)",
+          padding: "var(--s-3) var(--s-4)",
           background: "var(--bg-elevated)",
           borderBottom: module.lessons.length ? "1px solid var(--border)" : "none",
         }}
       >
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: "var(--s-2)", minWidth: 0 }}>
           <code
             style={{ font: "700 10px/1 var(--f-mono)", color: "var(--ink-soft)" }}
           >
@@ -358,12 +358,12 @@ function ModuleBlock({
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                gap: 12,
+                gap: "var(--s-3)",
                 padding: "10px 16px",
                 borderTop: i === 0 ? "none" : "1px solid var(--border)",
               }}
             >
-              <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: "var(--s-1)" }}>
                 <span
                   style={{
                     font: "600 12.5px/1.3 var(--f-sans)",

@@ -175,7 +175,7 @@ export function ComposeView({ templates, signatures }: Props) {
         Se enviará a <b style={{ color: "var(--ink)" }}>{to.split(",")[0].trim()}</b>{" "}
         el <b style={{ color: "var(--ink)" }}>{when}</b>. Lo puedes ver y
         cancelar en la pestaña{" "}
-        <b style={{ color: "var(--wine)" }}>Programados</b>.
+        <b style={{ color: "var(--wine-text)" }}>Programados</b>.
       </SuccessScreen>
     );
   }
@@ -226,7 +226,7 @@ export function ComposeView({ templates, signatures }: Props) {
         >
           <span
             className="studio-eyebrow"
-            style={{ color: "var(--wine)" }}
+            style={{ color: "var(--wine-text)" }}
           >
             Canal
           </span>
@@ -312,7 +312,7 @@ export function ComposeView({ templates, signatures }: Props) {
                   background: "transparent",
                   cursor: "pointer",
                   font: "600 11.5px/1 var(--f-sans)",
-                  color: "var(--wine)",
+                  color: "var(--wine-text)",
                   whiteSpace: "nowrap",
                 }}
               >
@@ -692,7 +692,7 @@ function SideCard({
       {eyebrow && (
         <div
           className="studio-eyebrow"
-          style={{ color: "var(--wine)", marginBottom: 10 }}
+          style={{ color: "var(--wine-text)", marginBottom: 10 }}
         >
           {eyebrow}
         </div>

@@ -387,7 +387,7 @@ export function RouteDrawer({ mode, route, cities, veCatalog, onClose }: Props) 
                         {isOverride && (
                           <span
                             style={{
-                              color: "var(--wine)",
+                              color: "var(--wine-text)",
                               marginLeft: 6,
                               font: "700 10.5px/1 var(--f-sans)",
                             }}
@@ -639,7 +639,7 @@ function Section({
         <span
           style={{
             font: "700 10.5px/1 var(--f-sans)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             letterSpacing: "0.16em",
             textTransform: "uppercase",
           }}

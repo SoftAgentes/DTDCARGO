@@ -1,10 +1,10 @@
 ---
 sdd: "0119"
 title: "Módulo de Marketing en el ERP — Dashboard de Marketing (saludo personalizado por usuario) + centralización de herramientas"
-status: draft
+status: done
 author: "Claude Code (ventana kickoff-marketing) + founder"
 created: 2026-06-30
-updated: 2026-06-30
+updated: 2026-07-15
 supersedes: null
 superseded_by: null
 related: ["0052", "0088", "0089", "0090", "0091", "0093", "0099", "0107", "0114", "0116"]

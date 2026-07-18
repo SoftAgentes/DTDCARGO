@@ -47,7 +47,7 @@ export function WeekView({
   const eventsByDate = groupEventsByDate(events);
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "var(--s-2)" }}>
       {week.map((cell, i) => {
         const dayHolidays = holidaysForDate(cell.isoDate, holidays);
         const dayFairs = fairsForDate(cell.isoDate, fairs);
@@ -65,7 +65,7 @@ export function WeekView({
               background: "var(--bg-surface)",
               border: `1px solid ${isToday ? "var(--wine)" : "var(--border)"}`,
               borderRadius: 8,
-              padding: 12,
+              padding: "var(--s-3)",
               minHeight: 340,
               textAlign: "left",
               cursor: "pointer",
@@ -89,7 +89,7 @@ export function WeekView({
               style={{
                 font: "900 22px/1 var(--f-display)",
                 color: isToday ? "var(--wine)" : "var(--ink)",
-                marginBottom: 4,
+                marginBottom: "var(--s-1)",
               }}
             >
               {cell.dayOfMonth}

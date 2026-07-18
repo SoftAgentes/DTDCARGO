@@ -1,15 +1,19 @@
 // ──────────────────────────────────────────────────────────────────
 // FAQ — Preguntas frecuentes de DTD Cargo (página /faq)
 // ──────────────────────────────────────────────────────────────────
-// Contenido verificado adversarialmente (sin datos inventados: nada de tiempos
-// en días ni precios forjados — tiempos/costos se remiten a la cotización).
+// Contenido verificado adversarialmente (sin datos inventados). El tránsito
+// marítimo se declara como rango real (60-90 días) para fijar expectativa,
+// consistente con el bot de WhatsApp (base #3); los precios/montos NO se
+// hardcodean — se remiten a la cotización.
 // Cifras de bodegaje/seguro citan el Acuerdo de Servicios v3 (fuente legal,
 // docs/legal/acuerdo-servicios-v3.mdx). Merge jun-2026: 14 FAQ SEO originales
 // + FAQ maestro del paquete F4 (faq/FAQ-sitio-DTDCargo.md). Fuente única para
 // /faq (UI + FAQPage schema.org). Voz: tuteo venezolano neutro, cero voseo.
 //
 // `categoria` agrupa SOLO la UI de /faq en 5 bloques (refinamiento ui-ux
-// 2026-06-10); el FAQPage schema NO se agrupa — sigue plano con las 23.
+// 2026-06-10); el FAQPage schema NO se agrupa — sigue plano con todas las
+// preguntas. Respuestas con lista (ej. prohibidos) usan `bloques` para la UI;
+// el schema toma el string plano `respuesta` (mismo contenido, aplanado).
 //
 // Cifras de mínimo y baterías = las MISMAS que aplica la calculadora pública
 // (confirmadas en prod 2026-06-10): piso del flete = rates.min_charge de la
@@ -30,16 +34,32 @@ export const FAQ_CATEGORIAS: ReadonlyArray<{
   label: string;
 }> = [
   { id: "precio-y-pago", label: "Precio, pago y entrega" },
-  { id: "bodega-china-shipping-mark", label: "Bodega en China y MARKBOX (Shipping Mark)" },
+  { id: "bodega-china-shipping-mark", label: "Bodega en China y Shipping Mark" },
   { id: "almacenaje-seguro-baterias", label: "Almacenaje, seguro y baterías" },
   { id: "rastreo", label: "Rastreo de tu envío" },
   { id: "empresa-servicios", label: "Empresa y servicios" },
 ];
 
+/**
+ * Bloque de respuesta enriquecida (solo UI). Cuando una FAQ necesita una lista
+ * legible (ej. rubros prohibidos) usa `bloques`; el FAQPage schema sigue usando
+ * el string plano `respuesta`, que debe contener el MISMO contenido aplanado.
+ */
+export type FaqBloque =
+  | { tipo: "parrafo"; texto: string }
+  | { tipo: "lista"; items: string[] };
+
 export type Faq = {
   pregunta: string;
   respuesta: string;
   categoria: FaqCategoria;
+  /** Render enriquecido opcional para la UI. Si falta, se pinta `respuesta` en un <p>. */
+  bloques?: FaqBloque[];
+  /**
+   * Widget interactivo que reemplaza la prosa en la UI cuando se abre la FAQ.
+   * El string `respuesta` se mantiene igual para el FAQPage schema (SEO/GEO).
+   */
+  widget?: "alibaba-guide";
 };
 
 export const FAQS: Faq[] = [
@@ -47,35 +67,66 @@ export const FAQS: Faq[] = [
     pregunta:
       "¿Qué significa DDP puerta a puerta y qué incluye el precio cuando importo de China con DTD Cargo?",
     respuesta:
-      "DDP puerta a puerta significa que nosotros nos encargamos de todo: el precio ya incluye el flete desde China, la aduana y los impuestos, y te entregamos la mercancía en tu propia dirección en Venezuela. Tú no tienes que pelear con la aduana ni hacer trámites; nosotros llevamos la carga hasta tu puerta. El monto se calcula por volumen (CBM) y destino en nuestra calculadora o al cotizarte por WhatsApp.",
+      "DDP puerta a puerta significa que nos encargamos de todo el proceso: el precio ya incluye el flete desde China, la aduana y los impuestos, y te entregamos la mercancía en tu propia dirección en Venezuela, sin que hagas trámites ni trates con la aduana. En esta modalidad la importación no queda a tu nombre: recibes tu mercancía, no documentos de importación propios. Si prefieres importar a tu nombre y tener tus documentos, existe la modalidad con tu propia aduana (la explicamos más abajo). El monto se calcula por volumen (CBM) y destino en nuestra calculadora o al cotizarte por WhatsApp.",
     categoria: "precio-y-pago",
   },
   {
     pregunta:
       "¿Cuál es la diferencia entre consolidado (LCL) y contenedor completo (FCL) para traer mercancía de China a Venezuela?",
     respuesta:
-      "En el consolidado marítimo (LCL) tu carga viaja junto a la de otros importadores y pagas solo por el volumen que ocupas (CBM), ideal cuando no tienes mercancía para llenar un contenedor. El contenedor completo (FCL) es para cuando tienes volumen suficiente y prefieres un contenedor entero para ti. Ambas son DDP puerta a puerta; cuál te conviene depende de cuánta carga tengas, y te orientamos al cotizar.",
+      "En el consolidado marítimo (LCL) tu carga viaja junto a la de otros importadores y pagas solo por el volumen que ocupas (CBM), ideal cuando no tienes mercancía para llenar un contenedor. El contenedor completo (FCL) es para cuando tienes volumen suficiente y prefieres un contenedor entero para ti. LCL y FCL son la forma de transporte; aparte eliges la modalidad de servicio: puerta a puerta con todo incluido, o con tu propia aduana. Cuál te conviene depende de tu carga, y te orientamos al cotizar.",
     categoria: "precio-y-pago",
   },
   {
     pregunta:
-      "¿Quién paga la aduana y los impuestos, y cuándo tengo que pagarle a DTD Cargo?",
+      "¿Quién paga la aduana y los impuestos cuando importo de China?",
     respuesta:
-      "La aduana y los impuestos ya van incluidos en el precio DDP, así que no recibes cobros sorpresa ni tienes que gestionar nada con la aduana: de eso nos encargamos nosotros. Además, pagas cuando la carga llega a Venezuela, no por adelantado (pueden aplicar restricciones). El costo total se calcula según el volumen (CBM) y tu destino.",
+      "En la modalidad puerta a puerta (DDP), la aduana y los impuestos ya van incluidos en el precio: no recibes cobros sorpresa ni tramitas nada con la aduana, de eso nos encargamos nosotros — y por eso la importación no queda a tu nombre (no recibes documentos ni factura de importación propios). Si prefieres importar a tu nombre, existe la modalidad con tu propia aduana: llevamos la carga hasta el almacén fiscal (ahí llega nuestro cobro por CBM) y de ahí tú cubres los impuestos, permisos y gastos de almacén fiscal. El costo se calcula por volumen (CBM) y tu destino.",
     categoria: "precio-y-pago",
   },
   {
     pregunta:
-      "Con DTD Cargo, ¿cuándo tengo que pagar la mercancía que traigo de China?",
+      "¿La importación queda a mi nombre? ¿Recibo los documentos y la factura?",
     respuesta:
-      "Pagas cuando tu carga llega a Venezuela, no antes: bajo la modalidad DDP puerta a puerta, el flete, la aduana y los impuestos van incluidos en el precio y cancelas al momento de la entrega. Pueden aplicar restricciones según el caso.",
+      "Depende de la modalidad que elijas, y conviene definirla antes de cotizar. Puerta a puerta (DDP), todo incluido: nos encargamos de flete, aduana e impuestos y te entregamos en tu casa con un precio cerrado; la importación no queda a tu nombre, así que recibes tu mercancía pero no documentos de nacionalización ni factura de importación propios — es la opción más cómoda si solo quieres tu producto sin trámites. Con tu propia aduana (importas a tu nombre): tú eres el importador; llevamos tu carga hasta el almacén fiscal (ahí llega nuestro cobro por CBM) y te acompañamos en el trámite, pero necesitas entregarnos tu documentación y una autorización para gestionar en tu nombre, y de almacén fiscal en adelante los impuestos, permisos y gastos de almacén fiscal corren por tu cuenta (van a terceros, no están en el CBM); la ventaja es que la mercancía y los documentos quedan 100% a tu nombre y, ante el SENIAT, el importador eres tú. Si necesitas los documentos a nombre de tu empresa, dilo antes de cotizar para armarlo por esa modalidad.",
     categoria: "precio-y-pago",
+    bloques: [
+      {
+        tipo: "parrafo",
+        texto:
+          "Depende de la modalidad que elijas, y conviene definirla antes de cotizar:",
+      },
+      {
+        tipo: "lista",
+        items: [
+          "Puerta a puerta (DDP), todo incluido: nos encargamos de flete, aduana e impuestos y te entregamos en tu casa con un precio cerrado. La importación no queda a tu nombre: recibes tu mercancía, no documentos de nacionalización ni factura de importación propios. Es la opción más cómoda si solo quieres tu producto sin trámites.",
+          "Con tu propia aduana (importas a tu nombre): tú eres el importador. Llevamos tu carga hasta el almacén fiscal (ahí llega nuestro cobro por CBM) y te acompañamos en el trámite, pero necesitas entregarnos tu documentación y una autorización para gestionar en tu nombre. De almacén fiscal en adelante, los impuestos, permisos y gastos de almacén fiscal corren por tu cuenta (van a terceros, no están en el CBM). La ventaja: mercancía y documentos quedan 100% a tu nombre y, ante el SENIAT, el importador eres tú.",
+        ],
+      },
+      {
+        tipo: "parrafo",
+        texto:
+          "Si necesitas los documentos a nombre de tu empresa, dilo antes de cotizar para armarlo por esa modalidad.",
+      },
+    ],
   },
   {
     pregunta:
-      "¿Tengo que adelantar plata o dar un depósito para mandar a buscar mi carga en China?",
+      "¿Cuándo pago mi mercancía? ¿Tengo que adelantar dinero o dar un depósito?",
     respuesta:
-      "La idea es que no tengas que adelantar el costo del envío: pagas al llegar la mercancía a Venezuela (pueden aplicar restricciones). Lo que adelantes depende de tu caso (por ejemplo, si usas nuestro servicio de compra asistida para pagarle al proveedor en China), así que lo mejor es confirmar las condiciones con un asesor por WhatsApp antes de embarcar.",
+      "Bajo DDP puerta a puerta pagas cuando tu carga llega a Venezuela, no por adelantado: el flete, la aduana y los impuestos van incluidos y cancelas al momento de la entrega, así que no necesitas adelantar el costo del envío. La única excepción es si usas nuestra compra asistida para pagarle al proveedor en China, que se coordina aparte; por eso, si es tu primer envío o un caso especial, confírmalo con un asesor por WhatsApp antes de embarcar.",
+    categoria: "precio-y-pago",
+  },
+  {
+    pregunta: "¿Cómo y en qué moneda pago mi envío?",
+    respuesta:
+      "Tu envío es un servicio de logística internacional, así que se cotiza en dólares: la mayor parte de los costos —el flete internacional, los trámites de aduana y la gestión en China— se pagan en divisas a terceros. La forma de pago y los datos exactos para tu operación te los coordina un asesor de forma segura, siempre con la referencia de tu Shipping Mark. Escríbenos por WhatsApp y te guiamos.",
+    categoria: "precio-y-pago",
+  },
+  {
+    pregunta: "¿Cómo reporto un pago o subo mi comprobante?",
+    respuesta:
+      "Desde tu portal, en cada factura tienes la opción de reportar tu pago: subes el comprobante e indicas si es un abono parcial o el total. Tu asesor confirma cada reporte después de revisar el comprobante, y el saldo pendiente te queda siempre a la vista.",
     categoria: "precio-y-pago",
   },
   {
@@ -86,54 +137,82 @@ export const FAQS: Faq[] = [
     categoria: "precio-y-pago",
   },
   {
+    pregunta:
+      "¿Qué significa FOB y EXW cuando mi proveedor me da el precio?",
+    respuesta:
+      "Son términos de compra (Incoterms) que definen qué incluye el precio de tu proveedor. FOB: el proveedor incluye el flete interno en China, es decir, llevar la carga hasta nuestra bodega; te cotiza usando nuestra dirección de referencia. EXW: el precio es solo la mercancía en su fábrica, y el flete interno hasta nuestra bodega lo pagas aparte. Saber cuál te dieron te deja comparar precios reales; si tienes dudas, dinos qué te ofreció el proveedor y te ayudamos a ver tu costo total.",
+    categoria: "precio-y-pago",
+  },
+  {
+    pregunta: "¿Dan descuento por volumen o a clientes frecuentes?",
+    respuesta:
+      "Sí. Premiamos el volumen y la frecuencia: mientras más CBM traigas, mejor tarifa, y nuestros clientes frecuentes tienen las mejores condiciones. Si importas seguido, te conviene registrarte para guardar tu historial y hacer recompras con mejores condiciones. Cuéntanos cuánto volumen mueves o cada cuánto importas, y un asesor te arma la tarifa con tu descuento.",
+    categoria: "precio-y-pago",
+  },
+  {
     pregunta: "¿Hay un mínimo para enviar con DTD Cargo?",
     respuesta:
-      "Sí: el flete mínimo del consolidado marítimo es de USD 50 por envío — si tu carga ocupa muy poco volumen, ese es el piso que se factura. Lo bueno del consolidado es que puedes agrupar varias compras de distintos proveedores bajo tu mismo MARKBOX para aprovecharlo mejor; la calculadora te muestra el monto exacto según tu volumen y destino.",
+      "Sí: el flete mínimo del consolidado marítimo es de USD 50 por envío — si tu carga ocupa muy poco volumen, ese es el piso que se factura. Lo bueno del consolidado es que puedes agrupar varias compras de distintos proveedores bajo tu mismo Shipping Mark para aprovecharlo mejor; la calculadora te muestra el monto exacto según tu volumen y destino.",
     categoria: "precio-y-pago",
   },
   {
     pregunta:
       "¿Cuánto tarda en llegar mi carga de China a Venezuela con DTD Cargo?",
     respuesta:
-      "El tiempo depende de la modalidad y la ruta: no es lo mismo un consolidado marítimo (LCL) que un contenedor completo (FCL), ni todas las rutas demoran igual. Apenas armamos tu cotización te confirmamos el tránsito estimado para tu caso puntual. Escríbenos por WhatsApp o usa la calculadora online y lo aterrizamos contigo.",
+      "Tu carga viaja por barco, así que el tránsito marítimo de China a Venezuela toma normalmente entre 60 y 90 días. Ese tiempo suma tres tramos: el flete interno en China hasta nuestra bodega, la espera de la próxima salida del barco (sale cada 15 a 21 días) y la travesía marítima. Es un estimado y puede variar por la aduana o el clima. Apenas armamos tu cotización te confirmamos el tránsito para tu caso; escríbenos por WhatsApp o usa la calculadora online.",
     categoria: "precio-y-pago",
   },
   {
     pregunta:
       "¿A qué ciudades de Venezuela entregan y cómo funciona si no estoy en Valencia?",
     respuesta:
-      "Entregamos en toda Venezuela. Tenemos bodega y equipo propios en Valencia, que es nuestra sede; si estás en otra ciudad coordinamos el last-mile hasta tu dirección. Como manejamos DDP puerta a puerta, la carga te llega hasta donde estés sin que tengas que ir a buscarla a un puerto o terminal.",
+      "Entregamos en toda Venezuela. Nuestra sede y bodega están en Valencia, y el costo base cubre la entrega en el casco central de las ciudades. Si tu dirección queda fuera de la ruta de despacho, se suma el transporte terrestre hasta tu ubicación, y la calculadora te da ese aproximado automáticamente (lo cotizamos con transportistas nacionales) para que veas cuánto sale puesto en tu ciudad. Ten en cuenta que ese monto del transporte nacional es un estimado: como tu carga llega unos 90 días después, la tarifa puede moverse un poco para entonces, aunque lo normal es que se mantenga cerca de lo calculado. En todo caso, puerta a puerta significa que la carga te llega a tu dirección, sin ir a buscarla a un puerto o terminal.",
+    categoria: "precio-y-pago",
+  },
+  {
+    pregunta: "¿Puedo cancelar mi envío o pedir un reembolso?",
+    respuesta:
+      "Depende de en qué punto esté tu carga. Si cancelas antes de que llegue a nuestra bodega de origen o de que se embarque, se reembolsa lo pagado menos los gastos ya hechos y un cargo por gestión. Una vez que la carga fue recibida, consolidada o embarcada, ya no procede reembolso porque el servicio está en marcha. Cada caso se revisa según el Acuerdo de Servicios (Anexo A); escríbele a un asesor por WhatsApp con tu Shipping Mark y lo vemos contigo.",
     categoria: "precio-y-pago",
   },
   {
     pregunta: "¿Tienen casillero o bodega en China para recibir mis compras?",
     respuesta:
-      "Sí. Tenemos bodega propia en Yiwu donde recibimos lo que compras en Alibaba, 1688, Taobao o a cualquier proveedor chino. Tú compras y pides que envíen a nuestra dirección con tu MARKBOX; nosotros recibimos, consolidamos y despachamos a Venezuela.",
-    categoria: "bodega-china-shipping-mark",
-  },
-  {
-    pregunta: "¿Qué es el MARKBOX (Shipping Mark) y por qué debo ponerlo?",
-    respuesta:
-      "Es tu código único en DTD Cargo (formato DTD-XXXX): la marca que va en cada una de tus cajas e identifica tu mercancía en la bodega, el sistema y todos los documentos. MARKBOX es como lo llamamos nosotros; a nivel internacional este marcado se conoce como Shipping Mark (y en China, 唛头) — es lo mismo. Ponlo siempre que puedas en el destinatario y en la caja: es lo que nos deja encontrar tu mercancía rápido y sin confusiones.",
-    categoria: "bodega-china-shipping-mark",
-  },
-  {
-    pregunta: "¿MARKBOX y Shipping Mark son lo mismo?",
-    respuesta:
-      "Sí, son exactamente lo mismo. MARKBOX es como llamamos en DTD Cargo a la marca que identifica cada una de tus cajas; a nivel internacional ese marcado se conoce como Shipping Mark, y en China como 唛头. Mismo concepto y el mismo código DTD-XXXX: si ves cualquiera de los dos nombres, se refieren a tu marca de envío.",
+      "Sí. Tenemos bodega propia en Yiwu donde recibimos lo que compras en Alibaba, 1688, Taobao o a cualquier proveedor chino. Tú compras y pides que envíen a nuestra dirección con tu Shipping Mark; nosotros recibimos, consolidamos y despachamos a Venezuela.",
     categoria: "bodega-china-shipping-mark",
   },
   {
     pregunta:
-      "¿Cómo pongo la dirección de DTD Cargo en China (Alibaba) para que mi proveedor envíe a la bodega?",
+      "¿Qué es el Shipping Mark y por qué debo ponerlo?",
     respuesta:
-      "Cuando registres tu dirección de recepción en Alibaba (o se la pases a tu proveedor), usa la dirección de nuestra bodega en Yiwu y pon TU MARKBOX en el nombre — eso es lo que nos permite saber que la caja es tuya cuando llega. Llénalo campo por campo así: País/región → China. Nombre o empresa → DTD Cargo - tu MARKBOX (por ejemplo DTD-1014). Teléfono (+86) → 18006891419. Dirección → 浙江省义乌市义乌港二期直通仓2栋2号 货7-货11. Estado/provincia → 浙江省 (Zhejiang). Ciudad → 义乌市 (Yiwu; en el selector suele aparecer bajo 金华市, Jinhua). Código postal → 322000. Contacto de bodega → 林冠 (Lin Guan). Email → info@dtdcargo.com. La dirección va en chino porque es para el transporte dentro de China. Si tu MARKBOX no aparece en el nombre, tu mercancía llega a la bodega pero no podemos identificar de quién es, así que no lo olvides. En esta misma página tienes la guía con botón de copiar campo por campo.",
+      "El Shipping Mark es tu código único en DTD Cargo (formato DTD-XXXX): la marca que va en cada una de tus cajas e identifica tu mercancía en la bodega, el sistema y todos los documentos. Es el nombre internacional de ese marcado —en China se conoce como 唛头—: un mismo concepto, un mismo código. Ponlo siempre en el destinatario y en la caja: es lo que nos deja encontrar tu mercancía rápido y sin confusiones.",
+    categoria: "bodega-china-shipping-mark",
+  },
+  {
+    pregunta:
+      "¿Cómo pongo la dirección de la bodega de DTD Cargo en Alibaba, 1688, Taobao u otras webs para que mi proveedor envíe?",
+    respuesta:
+      "Cuando registres tu dirección de recepción en Alibaba, 1688, Taobao u otra web (o se la pases directo a tu proveedor por WeChat), usa la dirección de nuestra bodega en Yiwu y pon TU Shipping Mark en el nombre — eso es lo que nos permite saber que la caja es tuya cuando llega. Llénalo campo por campo así: País/región → China. Nombre o empresa → DTD-Canopy - tu Shipping Mark (por ejemplo DTD-1014). Teléfono (+86) → 18606891419. Dirección → 浙江省义乌市义乌港二期直通仓2栋2号 货7-货11. Estado/provincia → 浙江省 (Zhejiang). Ciudad → 义乌市 (Yiwu; en el selector suele aparecer bajo 金华市, Jinhua). Código postal → 322000. Contacto de bodega → 林冠 (Lin Guan). Email → info@dtdcargo.com. La dirección va en chino porque es para el transporte dentro de China. Si tu Shipping Mark no aparece en el nombre, tu mercancía llega a la bodega pero no podemos identificar de quién es, así que no lo olvides. Este dato lo obtienes dentro de tu registro de clientes. Abre esta pregunta para tener la guía interactiva con botón de copiar campo por campo.",
+    categoria: "bodega-china-shipping-mark",
+    widget: "alibaba-guide",
+  },
+  {
+    pregunta: "¿Cómo me registro y qué obtengo al instante?",
+    respuesta:
+      "Regístrate gratis en dtdcargo.com/registro: en un minuto recibes tu Shipping Mark (tu código DTD-XXXX para marcar tus cajas en China) y tu acceso al portal de seguimiento. No necesitas contraseña —entras al portal con un enlace que te llega a tu correo— y un asesor termina de activar tu cuenta para que empieces a importar.",
+    categoria: "bodega-china-shipping-mark",
+  },
+  {
+    pregunta:
+      "¿Puedo darle a mi proveedor la dirección y las etiquetas sin que se registre?",
+    respuesta:
+      "Sí. Desde tu cuenta generas un enlace privado para tu proveedor, bilingüe chino/español: él lo abre sin registrarse y ahí tiene la dirección de nuestra bodega en Yiwu con tu Shipping Mark y las etiquetas de esa compra, listas para pegar en cada caja. Así marca tu mercancía correctamente aunque no hable español.",
     categoria: "bodega-china-shipping-mark",
   },
   {
     pregunta: "Ya mi proveedor envió, ¿qué hago ahora?",
     respuesta:
-      "Carga tu pre-alerta en el portal: tu MARKBOX, el número de guía (tracking) del proveedor y la descripción o packing list. Así sabemos que tu mercancía viene en camino y la recibimos a tu nombre.",
+      "Carga tu pre-alerta en el portal: tu Shipping Mark, el número de guía (tracking) del proveedor y la descripción o packing list. Así sabemos que tu mercancía viene en camino y la recibimos a tu nombre.",
     categoria: "bodega-china-shipping-mark",
   },
   {
@@ -163,6 +242,63 @@ export const FAQS: Faq[] = [
     categoria: "almacenaje-seguro-baterias",
   },
   {
+    pregunta: "¿Qué productos están prohibidos para importar a Venezuela?",
+    respuesta:
+      "Para cumplir con la normativa aduanera, está prohibido enviar estos artículos sin autorización expresa y su documentación regulatoria completa: baterías de litio sin certificación UN38.3 (como las grandes para scooters o paneles solares); líquidos inflamables y aerosoles; gases comprimidos y sustancias tóxicas; armas, municiones, réplicas y juguetes bélicos; uniformes y accesorios militares; medicamentos sin registro sanitario y psicotrópicos; alimentos perecederos; divisas, valores y metales preciosos; réplicas de marcas y productos pirata; pirotecnia y explosivos. Los equipos con baterías pequeñas (hasta 100 Wh, como celulares, laptops o powerbanks) sí puedes traerlos con un trámite simplificado: tu proveedor debe entregar el certificado UN38.3 y la hoja de seguridad (MSDS); escríbenos siempre antes de comprar para validarlo e indícalo en tu pre-alerta. Enviar mercancía prohibida, productos no declarados o artículos restringidos sin sus permisos previos no entra dentro de nuestro servicio: hasta dónde llega el servicio no incluye cubrir multas, decomisos ni retrasos aduaneros por cargas mal declaradas o enviadas de forma oculta. Si tienes dudas sobre un producto específico, consúltanos antes de comprar.",
+    categoria: "almacenaje-seguro-baterias",
+    bloques: [
+      {
+        tipo: "parrafo",
+        texto:
+          "Para cumplir con la normativa aduanera, está prohibido enviar estos artículos sin autorización expresa y su documentación regulatoria completa:",
+      },
+      {
+        tipo: "lista",
+        items: [
+          "Baterías de litio sin certificación UN38.3 (como las grandes para scooters o paneles solares).",
+          "Líquidos inflamables y aerosoles.",
+          "Gases comprimidos y sustancias tóxicas.",
+          "Armas, municiones, réplicas y juguetes bélicos.",
+          "Uniformes y accesorios militares.",
+          "Medicamentos sin registro sanitario y psicotrópicos.",
+          "Alimentos perecederos.",
+          "Divisas, valores y metales preciosos.",
+          "Réplicas de marcas y productos pirata.",
+          "Pirotecnia y explosivos.",
+        ],
+      },
+      {
+        tipo: "parrafo",
+        texto:
+          "¿Y los equipos electrónicos con baterías pequeñas? Los equipos con baterías pequeñas (hasta 100 Wh, como celulares, laptops o powerbanks) sí puedes traerlos con un trámite simplificado: tu proveedor debe entregar el certificado UN38.3 y la hoja de seguridad (MSDS). Escríbenos siempre antes de comprar para validarlo e indícalo en tu pre-alerta.",
+      },
+      {
+        tipo: "parrafo",
+        texto:
+          "Enviar mercancía prohibida, productos no declarados o artículos restringidos sin sus permisos previos no entra dentro de nuestro servicio: hasta dónde llega el servicio no incluye cubrir multas, decomisos ni retrasos aduaneros por cargas mal declaradas o enviadas de forma oculta. Si tienes dudas sobre un producto específico, consúltanos antes de comprar.",
+      },
+    ],
+  },
+  {
+    pregunta: "¿Cómo entro a mi portal de cliente y qué puedo hacer ahí?",
+    respuesta:
+      "Tu portal es tu panel privado en dtdcargo.com/portal: entras con tu correo —te llega un enlace de acceso, sin contraseña— y ahí ves tus envíos y pre-alertas paso a paso, tus facturas y saldos, tus documentos y tus mensajes con el equipo. Si el enlace te dice que tu correo todavía no tiene el portal habilitado, pídele a tu asesor que te active el acceso.",
+    categoria: "rastreo",
+  },
+  {
+    pregunta: "¿Cada cuánto sale el barco y dónde veo cómo va mi envío?",
+    respuesta:
+      "El barco sale cada 15 a 21 días. Si ya eres cliente, en tu portal ves en qué etapa va cada uno de tus envíos, actualizado a medida que avanza. Si todavía no eres cliente, escríbenos por WhatsApp y un asesor te confirma la próxima salida para tu carga.",
+    categoria: "rastreo",
+  },
+  {
+    pregunta:
+      "¿Puedo ver y descargar mis documentos (factura, BL, packing list)?",
+    respuesta:
+      "Sí. En tu portal, en las secciones de Documentos y Facturas, tienes los documentos de tu envío para consultarlos y descargarlos, junto con el comprobante de cada pago que reportas.",
+    categoria: "rastreo",
+  },
+  {
     pregunta: "¿Puedo hacerle seguimiento a mi envío para saber dónde va?",
     respuesta:
       "Sí. En la sección Rastrear de la web metes tu BL (Bill of Lading) o tu código DTDU y ves los eventos del envío en vivo, sin necesidad de registrarte. Si no tienes el código a la mano, escríbenos por WhatsApp y te lo buscamos para que le hagas seguimiento.",
@@ -176,16 +312,41 @@ export const FAQS: Faq[] = [
     categoria: "rastreo",
   },
   {
-    pregunta: "¿DTD Cargo revisa la mercancía antes de embarcarla desde China?",
+    pregunta:
+      "¿Validan o verifican a mi proveedor en China antes de que le compre?",
     respuesta:
-      "Sí. Antes de embarcar hacemos inspección de la mercancía en la propia fábrica del proveedor, para verificar que lo que despachamos sea lo que compraste. Tenemos equipo y bodega propios en Yiwu, así que el control lo hace gente nuestra en China, no un tercero a distancia.",
+      "Sí. Ofrecemos validación de proveedores en China: verificamos que la empresa exista y sea legítima (registro, capacidad e instalaciones) y, si quieres, revisamos la producción antes de que embarque. Es un servicio con costo, ideal para comprarle con más seguridad a un proveedor nuevo. Como tenemos equipo propio en Yiwu, la revisión la hace gente nuestra en China. Pásanos los datos del proveedor por WhatsApp y te decimos alcance y precio.",
+    categoria: "empresa-servicios",
+  },
+  {
+    pregunta: "¿DTD Cargo revisa o inspecciona mi mercancía antes de embarcar desde China?",
+    respuesta:
+      "Cuando tu mercancía llega a nuestra bodega en Yiwu, nuestro equipo la recibe, la cuenta y revisa su estado externo antes de consolidar, con registro fotográfico — eso va incluido. Si quieres una revisión más a fondo, ofrecemos servicios de inspección con costo: inspección del producto contra tu ficha técnica (muestreo AQL con evidencia fotográfica) e inspección de fábrica al proveedor, ideales antes de pagar o embarcar. Como tenemos equipo y bodega propios en Yiwu, el control lo hace gente nuestra en China, no un tercero a distancia. Escríbenos por WhatsApp y te pasamos el alcance y los precios.",
+    categoria: "empresa-servicios",
+  },
+  {
+    pregunta: "¿Cómo abro un reclamo si mi carga llegó dañada o incompleta?",
+    respuesta:
+      "Lamentamos el inconveniente. Si ya eres cliente, abre tu caso desde el portal, en la sección de Reclamos, con tu Shipping Mark: queda registrado y le haces seguimiento en línea. Cada situación de daño o faltante se revisa según las condiciones del Acuerdo de Servicios, y un asesor la atiende contigo.",
+    categoria: "empresa-servicios",
+  },
+  {
+    pregunta: "¿Puedo recomendar DTD Cargo y ganar algo?",
+    respuesta:
+      "Sí. En tu portal, sección Referidos, tienes un código para compartir: el importador nuevo que traes recibe un beneficio en su primer embarque, y a ti se te reconoce por cada referido que hace su primera compra. Escríbenos por WhatsApp o revisa tu portal para el detalle vigente del programa.",
+    categoria: "empresa-servicios",
+  },
+  {
+    pregunta: "¿Qué es el Club DTD?",
+    respuesta:
+      "Es la comunidad de importadores que compran con DTD Cargo: compras grupales para mejorar el costo por metro cúbico, contenido y proveedores recomendados. Si quieres sumarte, habla con tu asesor por WhatsApp y te contamos cómo entrar.",
     categoria: "empresa-servicios",
   },
   {
     pregunta:
       "¿DTD Cargo tiene oficina propia en China y en Venezuela o es un intermediario?",
     respuesta:
-      "Tenemos bodega y equipo propios en Yiwu (China) y en Valencia (Venezuela), operando en Venezuela desde 2015: la carga la maneja gente nuestra en los dos extremos, lo que nos deja controlar la recepción en China y la entrega puerta a puerta en Venezuela.",
+      "Tenemos bodega y equipo propios en Yiwu (China) y en Valencia (Venezuela). Nuestra trayectoria en el comercio con China viene de 2008 y operamos en Venezuela desde 2015: la carga la maneja gente nuestra en los dos extremos, lo que nos deja controlar la recepción en China y la entrega puerta a puerta en Venezuela.",
     categoria: "empresa-servicios",
   },
   {
@@ -207,6 +368,12 @@ export const FAQS: Faq[] = [
       "¿DTD Cargo trae mis productos para venderlos o compite con mi negocio?",
     respuesta:
       "No. DTD Cargo es tu operador logístico, no tu competencia. No usamos la información de tu negocio —tu proveedor, tus productos, tus diseños— para traer esa misma mercancía y revenderla por nuestra cuenta, ni contactamos a tu proveedor para competirte. Lo que importas a través de nosotros es tuyo: movemos tu carga, no te copiamos el negocio. Es un compromiso de la empresa con cada cliente, y la confidencialidad de tus proveedores está protegida.",
+    categoria: "empresa-servicios",
+  },
+  {
+    pregunta: "¿Tienen cursos para aprender a importar de China?",
+    respuesta:
+      "Sí. En la Academia DTD te enseñamos a importar paso a paso, con nuestra operación real detrás (bodega en Yiwu, consolidación y entrega puerta a puerta): cuatro cursos en escalera, del primer pedido a tu primer contenedor, con el Curso 0 gratis. Si ya eres cliente, la tienes en tu portal — regístrate en dtdcargo.com/registro y entra a la Academia desde ahí para empezar por el Curso 0. Si todavía no importas con nosotros, déjanos tus datos en dtdcargo.com/academia y te avisamos de las próximas cohortes en vivo.",
     categoria: "empresa-servicios",
   },
 ];

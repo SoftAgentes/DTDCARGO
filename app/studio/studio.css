@@ -1,5 +1,5 @@
 /**
- * Estilos del Studio (DoorTuDoor) — sistema visual.
+ * Estilos del Studio (DTD Cargo) — sistema visual.
  *
  * Este archivo NO comparte clases con app/globals.css del sitio público.
  * Todas las clases tienen prefijo `studio-*` para evitar colisiones.
@@ -44,7 +44,7 @@
   --studio-border: var(--border);
   --studio-border-strong: var(--border-strong);
   --studio-text-muted: var(--ink-soft);
-  --studio-text-soft: var(--ink-mute);
+  --studio-text-soft: var(--ink-soft);
 
   /* Status colors operativos */
   --studio-green: var(--success);
@@ -511,6 +511,30 @@
 .studio-row-btn {
   background: var(--bg-surface);
 }
+
+/* ───────────────────────────────────────────────────────────
+   Fila accionable — primitiva <ActionableRow> (DataTable.tsx)
+   `<tr>` operable por teclado (WCAG 2.1.1). El color del ring lo hereda
+   del :focus-visible global (--wine / --wine-soft en dark), acá solo
+   metemos el ring HACIA ADENTRO (offset -2px) para que no lo recorte el
+   overflow-x del <TableFrame>. Motion por tokens, no en px/segundos crudos.
+   ─────────────────────────────────────────────────────────── */
+.studio-actionable-row {
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease);
+}
+.studio-actionable-row:hover {
+  background: var(--bg-elevated);
+}
+.studio-actionable-row:focus-visible {
+  outline-offset: -2px;
+  background: var(--bg-elevated);
+}
+@media (prefers-reduced-motion: reduce) {
+  .studio-actionable-row {
+    transition: none;
+  }
+}
 /* Link discreto en celdas de tabla (nombre que linkea sin ensuciar la grilla):
    subraya solo al hover/focus. SDD-0058 (Kommo lead → cliente). */
 .studio-link-quiet {
@@ -556,7 +580,7 @@
    se escapa ANTES de inyectar el span), así que es seguro estilarlo así. */
 .mention-chip {
   background: var(--wine-tint);
-  color: var(--wine);
+  color: var(--wine-text);
   font-weight: 600;
   padding: 0 4px;
   border-radius: 4px;
@@ -691,7 +715,7 @@
   padding: 8px 14px;
   border-radius: 7px;
   background: var(--wine-tint);
-  color: var(--wine);
+  color: var(--wine-text);
   border: 1px solid transparent;
   font: 700 11px/1 var(--f-sans);
   letter-spacing: 0.06em;
@@ -910,7 +934,7 @@
   background: var(--wine-tint);
   border-style: solid;
   border-color: var(--wine);
-  color: var(--wine);
+  color: var(--wine-text);
   transform: scale(1.12);
 }
 

@@ -93,7 +93,7 @@ function FilingRow({
         gridTemplateColumns:
           "140px minmax(180px, 1.5fr) 100px 110px 110px 140px",
         gap: 14,
-        padding: "16px 20px",
+        padding: "var(--s-4) var(--s-5)",
         alignItems: "center",
         borderTop: hasBorderTop ? "1px solid var(--border)" : 0,
         background: hasAlert ? "var(--danger-bg)" : "transparent",
@@ -113,11 +113,11 @@ function FilingRow({
       }}
     >
       {/* Shipment code + DUA */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-1)" }}>
         <code
           style={{
             font: "800 12px/1 var(--f-mono)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             letterSpacing: "0.02em",
           }}
         >
@@ -150,13 +150,13 @@ function FilingRow({
           style={{
             font: "500 11px/1.4 var(--f-sans)",
             color: hasAlert ? "var(--danger)" : "var(--ink-soft)",
-            marginTop: 4,
+            marginTop: "var(--s-1)",
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
             display: "flex",
             alignItems: "center",
-            gap: 4,
+            gap: "var(--s-1)",
           }}
           title={row.alert ?? row.observations ?? undefined}
         >
@@ -181,7 +181,7 @@ function FilingRow({
           style={{
             font: "500 10.5px/1.3 var(--f-sans)",
             color: "var(--ink-soft)",
-            marginTop: 4,
+            marginTop: "var(--s-1)",
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
@@ -207,7 +207,7 @@ function FilingRow({
           style={{
             font: "800 14px/1 var(--f-mono)",
             color: docsColor,
-            marginTop: 4,
+            marginTop: "var(--s-1)",
           }}
         >
           {row.docs_uploaded}/{row.docs_total}

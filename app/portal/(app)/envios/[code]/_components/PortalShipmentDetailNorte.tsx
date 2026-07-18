@@ -4,6 +4,7 @@ import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
 import {
   SERVICE_LABELS,
+  SERVICE_SHORT_LABELS,
   STATUS_LABELS,
   buildTimeline,
   estimatePortalEta,
@@ -17,8 +18,12 @@ import {
 } from "@/lib/studio/naviera-tracking/types";
 import { trackingUrlFromSnapshot } from "@/lib/studio/naviera-tracking/searates-deeplink";
 import type { TrackingSnapshotRow } from "@/lib/studio/naviera-tracking/snapshot-queries";
+import type { PendingAcceptanceInvoice } from "@/lib/portal/portal-legal-queries";
+import type { PortalNotificationHistoryItem } from "@/lib/studio/notifications/notification-history-queries";
 import { StatusBadge } from "../../../../_components/StatusBadge";
 import { PortalDocsCard } from "../../../../_components/PortalDocsCard";
+import { PortalNotificationHistory } from "../../../../_components/PortalNotificationHistory";
+import { PendingAcceptanceCard } from "../../../_components/PendingAcceptanceCard";
 
 /**
  * Detalle de envío — REDISEÑO NORTE (founder 2026-06-20). GATEADO al demo; los
@@ -33,13 +38,6 @@ import { PortalDocsCard } from "../../../../_components/PortalDocsCard";
  */
 type DocsProps = ComponentProps<typeof PortalDocsCard>;
 
-const SHORT_SERVICE: Record<ShipmentService, string> = {
-  consolidacion: "LCL",
-  puerta_a_puerta_DDP: "DDP",
-  reserva_FCL: "FCL",
-  transporte_terrestre: "Terrestre",
-};
-
 export function PortalShipmentDetailNorte({
   shipment,
   documents,
@@ -47,6 +45,9 @@ export function PortalShipmentDetailNorte({
   naviera,
   live,
   stepDates,
+  hiddenStatuses,
+  notificationHistory,
+  pendingAcceptance,
 }: {
   shipment: PortalShipmentDetail;
   documents: DocsProps["documents"];
@@ -57,6 +58,16 @@ export function PortalShipmentDetailNorte({
   live?: TrackingSnapshotRow | null;
   /** Fecha real (ISO) por status del stepper (SDD-0132). Opcional. */
   stepDates?: Partial<Record<ShipmentStatus, string>>;
+  /** Statuses ocultos por config del tenant (SDD-0156 · visible_in_portal). */
+  hiddenStatuses?: ReadonlySet<ShipmentStatus>;
+  /** Historial de avisos enviados de este envío (SDD-0156 · Slice C). */
+  notificationHistory?: PortalNotificationHistoryItem[];
+  /**
+   * Orden DDP de ESTE envío esperando aceptación (SDD-0075 §1 · Slice A). null =
+   * nada que aceptar (o el CTA aún no está prendido para este cliente). La página
+   * ya resolvió el gate `showShipmentAcceptanceCta` + la query.
+   */
+  pendingAcceptance?: PendingAcceptanceInvoice | null;
 }) {
   const svc = SERVICE_LABELS[shipment.service];
   const serviceLabel = svc.sub ? `${svc.primary} · ${svc.sub}` : svc.primary;
@@ -97,12 +108,25 @@ export function PortalShipmentDetailNorte({
               {cityOf(shipment.destination)}
             </span>
             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold text-grey-700 bg-grey-100">
-              {SHORT_SERVICE[shipment.service]}
+              {SERVICE_SHORT_LABELS[shipment.service]}
             </span>
           </div>
         </div>
         <StatusBadge status={shipment.status} />
       </div>
+
+      {/* Aceptación cosida al ciclo del envío (SDD-0075 §1 · Slice A): arriba del
+          stepper porque es lo ÚNICO que frena el avance de la carga — sin aceptar,
+          no se emite la factura. Mismo card del dashboard (acceso duplicado, no
+          movido: /portal/facturas/[code]/aceptar sigue siendo la pantalla). */}
+      {pendingAcceptance ? (
+        <div className="mt-6">
+          <PendingAcceptanceCard
+            pending={[pendingAcceptance]}
+            heading="Este envío espera tu aceptación para que podamos facturarlo."
+          />
+        </div>
+      ) : null}
 
       {/* Stepper de seguimiento (horizontal, canónico) */}
       <div className="mt-8 card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-8">
@@ -113,6 +137,7 @@ export function PortalShipmentDetailNorte({
           status={shipment.status}
           service={shipment.service}
           stepDates={stepDates}
+          hiddenStatuses={hiddenStatuses}
         />
         <p className="mt-6 text-[12px] text-grey-500 leading-[1.5]">
           Las actualizaciones de estado las carga nuestro equipo a medida que tu
@@ -183,6 +208,13 @@ export function PortalShipmentDetailNorte({
 
         <PortalDocsCard documents={documents} signedUrls={signedUrls} />
       </div>
+
+      {/* Historial de avisos enviados (SDD-0156 · Slice C). Se oculta si no hay. */}
+      {notificationHistory && notificationHistory.length > 0 ? (
+        <div className="mt-6">
+          <PortalNotificationHistory items={notificationHistory} />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -209,12 +241,14 @@ function Stepper({
   status,
   service,
   stepDates,
+  hiddenStatuses,
 }: {
   status: ShipmentStatus;
   service: ShipmentService;
   stepDates?: Partial<Record<ShipmentStatus, string>>;
+  hiddenStatuses?: ReadonlySet<ShipmentStatus>;
 }) {
-  const steps = buildTimeline(status, service);
+  const steps = buildTimeline(status, service, hiddenStatuses);
   return (
     <div className="overflow-x-auto -mx-1 px-1">
       <div className="flex">

@@ -9,6 +9,10 @@
       "schedule": "* * * * *"
     },
     {
+      "path": "/api/cron/client-notifications-drain",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/cron/searates-refresh",
       "schedule": "0 6 * * 1"
     },
@@ -35,6 +39,18 @@
     {
       "path": "/api/cron/conversation-digests",
       "schedule": "0 5 1 * *"
+    },
+    {
+      "path": "/api/cron/portal-cold-reminder",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/bug-notifications-drain",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/workflow-drain",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

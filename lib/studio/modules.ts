@@ -161,6 +161,9 @@ export const MODULES: ModuleDef[] = [
   // ─── MARKETING ───────────────────────────────────────────────
   { id: "marketing", group: "MARKETING", label: "Marketing", icon: "spark", slug: "/studio/marketing" },
   { id: "noticias-web", group: "MARKETING", label: "Noticias Web", labelKey: "chrome.sidebar.noticias_web", icon: "doc", slug: "/studio/marketing/noticias-web" },
+  // Lector read-only de docs/marketing (SDD-0158): para que el equipo no olvide
+  // que esta documentación existe. Vive en el menú del ERP.
+  { id: "marketing-docs", group: "MARKETING", label: "Documentos", icon: "doc", slug: "/studio/marketing/docs" },
 
   // ─── SISTEMA · utilidades (todos) primero, config/admin al final ─
   { id: "mentions", group: "SISTEMA", label: "Menciones", icon: "bell", slug: "/studio/menciones" },

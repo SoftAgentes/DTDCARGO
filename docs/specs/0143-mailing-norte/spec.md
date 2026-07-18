@@ -1,10 +1,10 @@
 ---
 sdd: "0143"
 title: "Mailing al Norte — Firmas, Envío manual y Programados (+ cron)"
-status: in-progress
+status: done
 author: "Claude Code (ventana secundaria · worktree mailing-norte) + founder"
 created: 2026-07-03
-updated: 2026-07-03
+updated: 2026-07-15
 supersedes: null
 superseded_by: null
 related: ["0026", "0085"]

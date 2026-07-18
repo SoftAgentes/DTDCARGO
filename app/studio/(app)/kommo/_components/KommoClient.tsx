@@ -84,6 +84,7 @@ export function KommoClient({
   tab,
   direccion,
   tablero,
+  recuperacion,
   overview,
   pipelines,
   statuses,
@@ -98,6 +99,8 @@ export function KommoClient({
   direccion: ReactNode;
   /** Slot server-renderizado con el Tablero kanban del embudo. */
   tablero: ReactNode;
+  /** Slot server-renderizado con la campaña de recuperación (SDD-0157). */
+  recuperacion: ReactNode;
   overview: KommoOverview;
   pipelines: KommoPipelineRow[];
   statuses: KommoStatusRow[];
@@ -220,7 +223,7 @@ export function KommoClient({
           <span className="studio-eyebrow">Comercial · Integración</span>
           <h1
             className="studio-display"
-            style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
+            style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
           >
             Kommo CRM.
           </h1>
@@ -301,6 +304,8 @@ export function KommoClient({
         direccion
       ) : tab === "tablero" ? (
         tablero
+      ) : tab === "recuperacion" ? (
+        recuperacion
       ) : (
         <>
           {/* Toolbar del worklist */}
@@ -410,7 +415,7 @@ export function KommoClient({
             )}
           </div>
 
-          <div style={{ opacity: isPending ? 0.6 : 1, transition: "opacity 0.12s" }}>
+          <div style={{ opacity: isPending ? 0.6 : 1, transition: "opacity var(--dur-fast) var(--ease)" }}>
             {leads.length === 0 ? (
               <EmptyState
                 eyebrow={hasFilters ? "Sin resultados" : "Sin leads"}
@@ -500,7 +505,7 @@ function LeadsTable({
               display: "grid",
               gridTemplateColumns: GRID,
               gap: 12,
-              padding: "12px 20px",
+              padding: "var(--s-3) var(--s-5)",
               background: "var(--bg-elevated)",
               borderBottom: "1px solid var(--border)",
               font: "700 10px/1 var(--f-sans)",
@@ -559,7 +564,7 @@ function LeadsTable({
                   display: "grid",
                   gridTemplateColumns: GRID,
                   gap: 12,
-                  padding: "12px 20px",
+                  padding: "var(--s-3) var(--s-5)",
                   borderTop: i > 0 ? "1px solid var(--border)" : 0,
                   alignItems: "center",
                 }}
@@ -580,7 +585,7 @@ function LeadsTable({
                     <span
                       style={{
                         ...nameStyle,
-                        color: l.name ? "var(--ink)" : "var(--ink-mute)",
+                        color: l.name ? "var(--ink)" : "var(--ink-soft)",
                       }}
                     >
                       {nameContent}

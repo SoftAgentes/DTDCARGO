@@ -60,13 +60,13 @@ export function CompanySection({ data }: { data: CompanyData }) {
         {/* 1. Identificación fiscal */}
         <Card>
           <CardEyebrow>Identificación fiscal</CardEyebrow>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
             <Field label="Razón social" name="legal_name" defaultValue={identity.legalName} placeholder="DTD Cargo CA" error={fe.legal_name} />
             <Field label="RIF" name="rif" defaultValue={identity.rif} placeholder="J-30182554-9" mono error={fe.rif} />
             <Field label="Nombre comercial" name="trade_name" defaultValue={identity.tradeName} placeholder="DTD Cargo" />
             <Field label="Email comercial" name="commercial_email" defaultValue={identity.commercialEmail} placeholder="comercial@dtdcargo.com" error={fe.commercial_email} />
           </div>
-          <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+          <div style={{ marginTop: "var(--s-3)", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--s-3)" }}>
             <Field label="Teléfono" name="phone" defaultValue={identity.phone} placeholder="+58 241 414 7886" mono />
             <Field label="WhatsApp Business" name="whatsapp" defaultValue={identity.whatsapp} placeholder="+58 412 166 8021" mono />
             <Field label="Sitio web" name="website" defaultValue={identity.website} placeholder="dtdcargo.com" mono />
@@ -96,7 +96,7 @@ export function CompanySection({ data }: { data: CompanyData }) {
             />
             <span>IVA activo en facturación</span>
           </label>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "var(--s-3)" }}>
             <Field label="IVA (%)" name="iva_rate" defaultValue={String(identity.ivaRate)} mono error={fe.iva_rate} />
             <Field label="ISLR retención (%)" name="islr_rate" defaultValue={String(identity.islrRate)} mono error={fe.islr_rate} />
             <Field label="IGTF (%)" name="igtf_rate" defaultValue={String(identity.igtfRate)} mono error={fe.igtf_rate} />
@@ -106,7 +106,7 @@ export function CompanySection({ data }: { data: CompanyData }) {
         {state?.error && (
           <div
             style={{
-              padding: 12,
+              padding: "var(--s-3)",
               background: "var(--danger-bg)",
               color: "var(--danger)",
               borderRadius: "var(--r-md)",
@@ -250,7 +250,7 @@ function CardEyebrow({ children }: { children: React.ReactNode }) {
   return (
     <div
       className="studio-eyebrow"
-      style={{ color: "var(--wine)", marginBottom: 14 }}
+      style={{ color: "var(--wine-text)", marginBottom: 14 }}
     >
       {children}
     </div>
@@ -294,7 +294,7 @@ function Field({
 
 const editLinkStyle: React.CSSProperties = {
   font: "600 11.5px/1 var(--f-sans)",
-  color: "var(--wine)",
+  color: "var(--wine-text)",
   justifySelf: "end",
   background: "transparent",
   border: 0,
@@ -302,7 +302,7 @@ const editLinkStyle: React.CSSProperties = {
 };
 
 const addRowStyle: React.CSSProperties = {
-  padding: 12,
+  padding: "var(--s-3)",
   font: "600 12.5px/1 var(--f-sans)",
   color: "var(--ink-soft)",
   border: "1px dashed var(--border-strong)",

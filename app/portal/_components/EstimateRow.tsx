@@ -8,6 +8,7 @@ import {
 } from "@/lib/portal/portal-types";
 import { canAdvanceEstimate } from "@/lib/portal/cotizacion-request";
 import { AdvanceToCotizacionButton } from "./AdvanceToCotizacionButton";
+import { ConvertedNote } from "./ConvertedNote";
 
 function formatDate(iso: string): string {
   try {
@@ -91,11 +92,7 @@ export function EstimateRow({ estimate }: { estimate: PortalEstimateRow }) {
             <span className="text-grey-500">Tu nota:</span> {estimate.nota}
           </p>
         ) : null}
-        {converted ? (
-          <p className="mt-2 text-[12.5px] font-medium text-[color:var(--color-status-success)]">
-            Convertido en envío.
-          </p>
-        ) : null}
+        {converted ? <ConvertedNote code={estimate.convertedToShipmentCode} /> : null}
       </div>
 
       <div className="flex flex-col items-start sm:items-end gap-2.5 flex-shrink-0">

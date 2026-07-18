@@ -110,16 +110,22 @@ export function CalculadoraForm({
     dims.cajas,
   );
 
-  // Form efectivo que alimenta el cálculo: con el panel abierto, el CBM total
-  // viene de las medidas; cerrado, del valor escrito a mano en `form`.
-  const effectiveForm: EnvioInput = cbmPanelOpen
-    ? { ...form, cbmTotal: cbmDesdeMedidas }
-    : form;
+  // Form efectivo que alimenta el cálculo: con el panel abierto Y con medidas
+  // válidas (cbmDesdeMedidas > 0), el CBM total viene de las medidas. Si el panel
+  // está abierto pero aún NO hay medidas, se conserva el CBM manual de `form` —
+  // así abrir el panel por curiosidad no borra ni oculta un valor ya escrito
+  // (bug "a veces no muestra el cálculo": abrir/cerrar el panel sin medir dejaba
+  // el CBM en 0 y el estimado desaparecía).
+  const effectiveForm: EnvioInput =
+    cbmPanelOpen && cbmDesdeMedidas > 0
+      ? { ...form, cbmTotal: cbmDesdeMedidas }
+      : form;
 
-  // Cerrar el panel: congela el último CBM calculado en el form (queda editable
-  // a mano) y libera el campo. Abrir: solo despliega; el CBM lo deriva el render.
+  // Cerrar el panel: congela el CBM calculado SOLO si hubo medidas (> 0); si no,
+  // deja intacto el valor manual previo. Abrir: solo despliega; el CBM lo deriva
+  // el render cuando haya medidas.
   function toggleCbmPanel(open: boolean) {
-    if (!open) update("cbmTotal", cbmDesdeMedidas);
+    if (!open && cbmDesdeMedidas > 0) update("cbmTotal", cbmDesdeMedidas);
     setCbmPanelOpen(open);
   }
 
@@ -157,15 +163,31 @@ export function CalculadoraForm({
         tone: "danger",
       };
     if (effectiveCbm <= 0 || form.pesoKg <= 0) return null;
+    // Tope de peso por envío (anti-monopolio), density-aware: deriva al asesor
+    // solo si es pesado Y denso (densidad > equilibrio del contenedor). Un envío
+    // pesado pero liviano no monopoliza el peso → sigue cotizando.
+    const equilibrioDensidad =
+      params.cbmMaxContenedor > 0
+        ? params.pesoMaxContenedorKg / params.cbmMaxContenedor
+        : Infinity;
+    if (
+      form.pesoKg > params.pesoMaxEnvioKg &&
+      form.pesoKg / effectiveCbm > equilibrioDensidad
+    )
+      return {
+        text: "Por el peso de esta carga la cotizamos a medida — escríbele a tu asesor.",
+        tone: "danger",
+      };
     const fmt = (n: number) => parseFloat(n.toFixed(2)).toString();
     const maxSinRecargo = effectiveCbm * params.pesoIncluidoKg;
-    // Excedente de densidad → NO es un problema, es info del recargo (wine). Se
-    // muestra para cualquier peso por encima de pesoIncluidoKg/CBM, sin tope.
+    // Excedente de densidad → NO es un problema, es info del recargo (wine). El
+    // MONTO ($) y el $/kg NO van acá (founder 2026-07-12): el $/kg se ajusta con
+    // el cambio que definamos, así que el dinero vive SOLO en el desglose de la
+    // derecha ("Excedente de peso"). Acá dejamos únicamente el dato físico (kg).
     if (form.pesoKg > maxSinRecargo) {
       const exceso = form.pesoKg - maxSinRecargo;
-      const recargo = exceso * params.recargoExcedenteKg;
       return {
-        text: `El máximo de peso sin recargo para ${fmt(effectiveCbm)} m³ es ${fmt(maxSinRecargo)} kg. Te pasas por ${fmt(exceso)} kg → +$${fmt(recargo)} ($${params.recargoExcedenteKg}/kg extra).`,
+        text: `El máximo de peso sin recargo para ${fmt(effectiveCbm)} m³ es ${fmt(maxSinRecargo)} kg. Te pasas por ${fmt(exceso)} kg.`,
         tone: "info",
       };
     }
@@ -265,7 +287,13 @@ export function CalculadoraForm({
               placeholder="12"
               warning={cbmWarning}
               readOnly={cbmPanelOpen}
-              tag={cbmPanelOpen ? "auto · medidas" : undefined}
+              // El tag "auto · medidas" solo cuando el valor DE VERDAD viene de
+              // las medidas (cbmDesdeMedidas > 0). Con el panel abierto pero aún
+              // sin medir, el campo muestra el CBM manual conservado → poner el
+              // tag ahí sería engañoso (implica derivado cuando no lo es).
+              tag={
+                cbmPanelOpen && cbmDesdeMedidas > 0 ? "auto · medidas" : undefined
+              }
             />
             <BigInput
               label="Peso total"
@@ -343,6 +371,7 @@ export function CalculadoraForm({
             cotizacion={cotizacion}
             input={effectiveForm}
             tieneCarga={tieneCarga}
+            pesoIncluidoKg={params.pesoIncluidoKg}
             onEstimar={() => setModalOpen(true)}
           />
         </div>
@@ -385,7 +414,7 @@ export function CalculadoraForm({
               </span>
             </div>
             <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.45]">
-              <strong className="text-ink">Regístrate y obtén tu MARKBOX.</strong>{" "}
+              <strong className="text-ink">Regístrate y obtén tu Shipping Mark.</strong>{" "}
               Vinculamos este estimado a tu cuenta automáticamente.
             </p>
           </div>
@@ -741,27 +770,81 @@ function ContainerFill({ cbm, max }: { cbm: number; max: number }) {
 }
 
 /**
- * Panel del resultado: total (gradiente navy) + badge financiamiento + nudge
- * "ya está lista" (vibración mínima) + CTA WhatsApp + microcopy. Maneja 3
- * estados: vacío (sin CBM/peso), deriva al asesor (alerta), normal. Muestra
- * SOLO el monto total — sin desglose itemizado (el recargo por distancia es
- * interno y va dentro del total, decisión founder).
+ * Panel del resultado: total (gradiente navy) + desglose itemizado (estilo
+ * Norte / Cloud Design) + badge financiamiento + nudge "ya está lista" + CTA
+ * WhatsApp + microcopy. Maneja 3 estados: vacío (sin CBM/peso), deriva al asesor
+ * (alerta), normal.
+ *
+ * Desglose (founder 2026-07-12): SIEMPRE visible con carga válida — antes estaba
+ * detrás de `cot.recargoExcedente > 0`, así que desaparecía cuando la carga no
+ * era densa (bug "no me muestra el desglose en el 2do cálculo"). Ahora itemiza
+ * Volumen base + Excedente de peso (si hay) + Embalaje/Baterías/Descuento/Ajuste
+ * (los que apliquen) + Total. El recargo por distancia sigue plegado dentro de
+ * "Volumen base" (interno, decisión founder previa); el subtexto "CBM × tarifa"
+ * solo se muestra cuando NO hay recargo de ciudad para que la aritmética cuadre.
  */
 function ResultPanel({
   cotizacion: cot,
   input,
   tieneCarga,
+  pesoIncluidoKg,
   onEstimar,
 }: {
   cotizacion: EnvioCotizacion;
   input: EnvioInput;
   tieneCarga: boolean;
+  /** Gracia de peso por CBM (para el subtexto "X kg sobre Y kg incl."). */
+  pesoIncluidoKg: number;
   /** Abre el modal de captura del estimado web (caso con precio válido). */
   onEstimar: () => void;
 }) {
   const hasAlerta = !!cot.alerta && tieneCarga;
   const money = (n: number) =>
     `$${Math.round(Math.abs(n)).toLocaleString("en-US")}`;
+
+  // Tarifa efectiva y datos del excedente para los subtextos del desglose.
+  // La tarifa se DERIVA de precioBase/cbm (evita re-derivar el override/CONFIG).
+  const tarifaEff = cot.cbm > 0 ? Math.round(cot.precioBase / cot.cbm) : 0;
+  const incluidoKg = Math.round(cot.cbm * pesoIncluidoKg);
+  const excesoKg = Math.max(0, Math.round(input.pesoKg - incluidoKg));
+
+  // Filas del desglose. "Volumen base" pliega el recargo de ciudad (interno);
+  // el resto solo aparece si aplica. `kind` decide el signo/color del monto.
+  const rows: {
+    label: string;
+    sub: string | null;
+    value: number;
+    kind: "base" | "add" | "sub";
+    accent?: boolean;
+  }[] = [
+    {
+      label: "Volumen base",
+      sub: cot.recargoCiudad === 0 ? `${cot.cbm} CBM × $${tarifaEff}` : null,
+      value: cot.precioBase + cot.recargoCiudad,
+      kind: "base",
+    },
+    ...(cot.recargoExcedente > 0
+      ? [{
+          label: "Excedente de peso",
+          sub: `${excesoKg} kg sobre ${incluidoKg} kg incl.`,
+          value: cot.recargoExcedente,
+          kind: "add" as const,
+          accent: true,
+        }]
+      : []),
+    ...(cot.recargoEmbalaje > 0
+      ? [{ label: "Embalaje especial", sub: null, value: cot.recargoEmbalaje, kind: "add" as const }]
+      : []),
+    ...(cot.recargoBateria > 0
+      ? [{ label: "Baterías", sub: "Manejo de litio", value: cot.recargoBateria, kind: "add" as const }]
+      : []),
+    ...(cot.descuentoSede < 0
+      ? [{ label: "Descuento", sub: null, value: cot.descuentoSede, kind: "sub" as const }]
+      : []),
+    ...(cot.ajusteMinimo > 0
+      ? [{ label: "Ajuste a mínimo", sub: null, value: cot.ajusteMinimo, kind: "add" as const }]
+      : []),
+  ];
   // Caso "deriva al asesor" (carga especial / fuera de contenedor): no hay un
   // estimado que capturar → CTA directo a WhatsApp con el texto de la alerta.
   const whatsappText = whatsappTextFromCotizacion(cot, input);
@@ -830,46 +913,39 @@ function ResultPanel({
         )}
       </div>
 
-      {/* Desglose · solo cuando hay recargo por peso (excedente de densidad).
-          Founder 2026-07-06: el cliente debe VER que el $/kg se está sumando —
-          antes solo se mostraba el total. El recargo por distancia sigue plegado
-          en el "Flete base" (interno, decisión founder previa); acá salen el
-          flete base, el recargo por peso y los recargos que el cliente eligió. */}
-      {tieneCarga && !hasAlerta && cot.recargoExcedente > 0 && (
-        <div className="rounded-[12px] border border-grey-200 bg-white px-4 py-3 flex flex-col gap-1.5">
-          {[
-            { label: "Flete base", value: cot.precioBase + cot.recargoCiudad, base: true, accent: false },
-            { label: "Recargo por peso", value: cot.recargoExcedente, base: false, accent: true },
-            ...(cot.recargoEmbalaje > 0
-              ? [{ label: "Embalaje especial", value: cot.recargoEmbalaje, base: false, accent: false }]
-              : []),
-            ...(cot.recargoBateria > 0
-              ? [{ label: "Baterías", value: cot.recargoBateria, base: false, accent: false }]
-              : []),
-            ...(cot.descuentoSede < 0
-              ? [{ label: "Descuento", value: cot.descuentoSede, base: false, accent: false }]
-              : []),
-            ...(cot.ajusteMinimo > 0
-              ? [{ label: "Ajuste a mínimo", value: cot.ajusteMinimo, base: false, accent: false }]
-              : []),
-          ].map((r) => (
-            <div key={r.label} className="flex items-center justify-between gap-3">
-              <span
-                className={`text-[12.5px] ${r.accent ? "font-semibold text-wine" : "text-grey-700"}`}
-              >
-                {r.label}
+      {/* Desglose itemizado (estilo Norte / Cloud Design) · SIEMPRE visible con
+          carga válida. Founder 2026-07-12: antes estaba detrás de
+          `cot.recargoExcedente > 0` y desaparecía cuando la carga no era densa
+          (bug del 2do cálculo). Cada gasto sale "como es": Volumen base,
+          Excedente de peso (con "X kg sobre Y kg incl.", sin $/kg), Embalaje,
+          etc. El recargo por distancia sigue plegado en "Volumen base". */}
+      {tieneCarga && !hasAlerta && (
+        <div className="rounded-[12px] border border-grey-200 bg-white px-4 py-3.5 flex flex-col gap-2.5">
+          {rows.map((r) => (
+            <div key={r.label} className="flex items-start justify-between gap-3">
+              <span className="flex flex-col min-w-0">
+                <span
+                  className={`text-[13px] leading-tight ${r.accent ? "font-semibold text-wine" : "text-grey-700"}`}
+                >
+                  {r.label}
+                </span>
+                {r.sub && (
+                  <span className="num text-[11px] text-grey-500 leading-tight mt-0.5">
+                    {r.sub}
+                  </span>
+                )}
               </span>
               <span
-                className={`num text-[13px] ${r.accent ? "font-bold text-wine" : "font-semibold text-ink"}`}
+                className={`num text-[13px] whitespace-nowrap ${r.accent ? "font-bold text-wine" : "font-semibold text-ink"}`}
               >
-                {r.value < 0 ? "−" : r.base ? "" : "+"}
+                {r.kind === "sub" ? "−" : r.kind === "add" ? "+" : ""}
                 {money(r.value)}
               </span>
             </div>
           ))}
-          <div className="mt-1 pt-2 border-t border-grey-200 flex items-center justify-between gap-3">
-            <span className="text-[12.5px] font-bold text-ink">Total</span>
-            <span className="num text-[14px] font-bold text-ink">{money(cot.total)}</span>
+          <div className="mt-0.5 pt-2.5 border-t border-grey-200 flex items-center justify-between gap-3">
+            <span className="text-[13px] font-bold text-ink">Total estimado</span>
+            <span className="num text-[15px] font-bold text-ink">{money(cot.total)}</span>
           </div>
         </div>
       )}

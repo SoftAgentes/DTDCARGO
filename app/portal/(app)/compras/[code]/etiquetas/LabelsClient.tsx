@@ -2,29 +2,35 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { QRCodeSVG } from "qrcode.react";
 import { ArrowIcon, CheckIcon, DownloadIcon } from "@/components/Icon";
 import type { BoxLabel } from "@/lib/studio/prealertas/types";
+import { labelVerifyUrl } from "@/lib/studio/etiquetas-qr";
 
 /**
  * Vista de etiquetas imprimibles de una compra (SDD-0057 · Slice B · V1).
  *
- * Piel del portal (paper/wine), tokens `var(--*)`. Cada etiqueta = el MISMO code
- * de la compra + "Caja M/N" + nombre del cliente (+ placeholder de QR simple). El
- * botón "Descargar / imprimir" usa `window.print()`; el CSS `@media print` oculta
- * todo menos la grilla de etiquetas (`.labels-print-area`), que pasa a una
- * cuadrícula sin sombras lista para hoja A4.
+ * Piel del portal (paper/wine), tokens `var(--*)`. Cada etiqueta = el code de la
+ * compra + "Caja M/N" + nombre del cliente + QR escaneable. El botón "Descargar /
+ * imprimir" usa `window.print()`; el CSS `@media print` oculta todo menos la
+ * grilla (`.labels-print-area`), que pasa a una cuadrícula sin sombras lista para
+ * hoja A4.
  *
- * El QR real lo genera el almacén/SDD-0031; acá va un placeholder visual simple
- * para que el proveedor entienda dónde irá (no codifica datos).
+ * SDD-0153: el QR es REAL (`qrcode.react` → /verificar). Si la caja ya está
+ * pre-declarada, el QR lleva su `DTD-B-NNNNNN` en `&b=` y la etiqueta lo muestra
+ * legible — así el operario en Yiwu la escanea para recibir y estibar. Si no,
+ * el QR solo confirma el Shipping Mark del cliente (fallback de la etiqueta vieja).
  */
 export function LabelsClient({
   code,
+  markbox,
   clientName,
   supplierName,
   description,
   labels,
 }: {
   code: string;
+  markbox: string;
   clientName: string;
   supplierName: string | null;
   description: string;
@@ -120,10 +126,11 @@ export function LabelsClient({
 
       {/* Grilla de etiquetas (vista pantalla + área de impresión) */}
       <div className="labels-print-area mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {labels.map((l) => (
+        {labels.map((l, i) => (
           <LabelCard
-            key={l.boxN}
+            key={l.boxCode ?? `${l.code}-${l.boxN}-${i}`}
             label={l}
+            markbox={markbox}
             clientName={clientName}
           />
         ))}
@@ -132,13 +139,24 @@ export function LabelsClient({
   );
 }
 
+const MONO = "var(--font-jetbrains-mono), ui-monospace, monospace";
+
 function LabelCard({
   label,
+  markbox,
   clientName,
 }: {
   label: BoxLabel;
+  markbox: string;
   clientName: string;
 }) {
+  // QR real → /verificar. Con caja pre-declarada lleva su DTD-B en `&b=`.
+  const verifyUrl = labelVerifyUrl(
+    markbox,
+    label.boxN,
+    label.totalBoxes,
+    label.boxCode,
+  );
   return (
     <div
       className="label-card bg-white border rounded-[10px] p-4 text-center"
@@ -151,44 +169,45 @@ function LabelCard({
         Shipping to DTD-Cargo
       </div>
 
-      {/* Placeholder de QR (no codifica datos — el QR real lo genera el almacén). */}
       <div
-        aria-hidden
         className="mx-auto my-3 grid place-items-center"
-        style={{
-          width: 56,
-          height: 56,
-          background: "var(--color-grey-100)",
-          border: "1px solid var(--color-grey-200)",
-          borderRadius: 6,
-        }}
+        style={{ width: 56, height: 56 }}
       >
-        <span
-          className="text-[7px] font-bold tracking-[0.1em] uppercase"
-          style={{ color: "var(--color-grey-300)" }}
-        >
-          QR
-        </span>
+        <QRCodeSVG
+          value={verifyUrl}
+          size={56}
+          fgColor="#0F1E3D"
+          bgColor="#ffffff"
+          level="M"
+          aria-label={
+            label.boxCode
+              ? `Escanear caja ${label.boxCode}`
+              : `Verificar ${markbox}`
+          }
+        />
       </div>
 
       <div
         className="text-[12px] font-bold"
-        style={{
-          color: "var(--color-ink)",
-          fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
-        }}
+        style={{ color: "var(--color-ink)", fontFamily: MONO }}
       >
         {label.code}
       </div>
       <div
         className="mt-1 text-[10px] font-bold"
-        style={{
-          color: "var(--color-wine)",
-          fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
-        }}
+        style={{ color: "var(--color-wine)", fontFamily: MONO }}
       >
         Caja {label.boxN} / {label.totalBoxes}
       </div>
+      {/* SDD-0153: el código único de la caja, legible por si el QR falla. */}
+      {label.boxCode && (
+        <div
+          className="mt-1 text-[8.5px] font-bold tracking-[0.04em]"
+          style={{ color: "var(--color-grey-700)", fontFamily: MONO }}
+        >
+          {label.boxCode}
+        </div>
+      )}
       <div
         className="mt-1 text-[8px] truncate"
         style={{ color: "var(--color-grey-700)" }}

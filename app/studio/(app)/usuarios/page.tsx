@@ -114,7 +114,7 @@ export default async function UsuariosPage() {
             className="studio-display"
             style={{
               fontSize: 30,
-              margin: "8px 0 8px",
+              margin: "var(--s-2) 0 var(--s-2)",
               color: "var(--ink)",
             }}
           >

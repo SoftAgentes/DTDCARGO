@@ -72,7 +72,7 @@ export default async function DispatchPage({
           <span className="studio-eyebrow">Operación · Despacho</span>
           <h1
             className="studio-display"
-            style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
+            style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
           >
             Cola de despacho
           </h1>
@@ -89,7 +89,7 @@ export default async function DispatchPage({
             según las{" "}
             <a
               href="/studio/despacho/reglas"
-              style={{ color: "var(--wine)", textDecoration: "underline" }}
+              style={{ color: "var(--wine-text)", textDecoration: "underline" }}
             >
               reglas
             </a>{" "}

@@ -39,7 +39,7 @@ export default async function DispatchRulesPage() {
           <span className="studio-eyebrow">Operación · Despacho</span>
           <h1
             className="studio-display"
-            style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
+            style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
           >
             Reglas de despacho
           </h1>

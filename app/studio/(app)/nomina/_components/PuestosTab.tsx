@@ -101,7 +101,7 @@ function PuestoCard({ p, onEdit }: { p: Position; onEdit: (p: Position) => void 
         background: "var(--bg-surface)",
         border: "1px solid var(--border)",
         borderRadius: "var(--r-lg)",
-        padding: "16px 16px",
+        padding: "var(--s-4) var(--s-4)",
         display: "flex",
         flexDirection: "column",
         gap: "var(--s-3)",
@@ -146,7 +146,7 @@ function PuestoCard({ p, onEdit }: { p: Position; onEdit: (p: Position) => void 
         <div
           style={{
             font: "500 11.5px/1.45 var(--f-sans)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             background: "var(--wine-tint)",
             border: "1px solid var(--wine)",
             borderRadius: "var(--r-sm)",

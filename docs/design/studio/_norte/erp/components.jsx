@@ -43,8 +43,8 @@ function Btn({ variant = 'secondary', size = 'md', icon, iconRight, children, on
       }}
       onMouseEnter={(e) => {if (!disabled) e.currentTarget.style.filter = 'brightness(0.95)';}}
       onMouseLeave={(e) => {e.currentTarget.style.filter = 'none';}}
-      {...rest}>
-      
+      {...rest} data-comment-anchor="4d34e21aff-button-24-5">
+
       {icon}
       {children}
       {iconRight}
@@ -75,8 +75,8 @@ function Input({ label, value, onChange, placeholder, type = 'text', prefix, suf
       }}
       onFocus={(e) => {e.currentTarget.style.borderColor = 'var(--wine)';e.currentTarget.style.boxShadow = '0 0 0 3px var(--wine-tint)';}}
       onBlur={(e) => {e.currentTarget.style.borderColor = error ? 'var(--danger)' : 'var(--border)';e.currentTarget.style.boxShadow = 'none';}}>
-        
-        {prefix && <span style={{ color: 'var(--ink-mute)', font: '500 13px/1 var(--f-sans)' }}>{prefix}</span>}
+
+        {prefix && <span style={{ color: 'var(--ink-soft)', font: '500 13px/1 var(--f-sans)' }}>{prefix}</span>}
         <input
           type={calcOn ? 'text' : type}
           inputMode={calcOn ? 'decimal' : undefined}
@@ -93,10 +93,10 @@ function Input({ label, value, onChange, placeholder, type = 'text', prefix, suf
           }}
           {...rest} />
         {hasOp && <span style={{ color: 'var(--wine)', font: '700 13px/1 var(--f-mono)', whiteSpace: 'nowrap' }}>= {evalSum(raw)}</span>}
-        
-        {suffix && <span style={{ color: 'var(--ink-mute)', font: '500 13px/1 var(--f-sans)' }}>{suffix}</span>}
+
+        {suffix && <span style={{ color: 'var(--ink-soft)', font: '500 13px/1 var(--f-sans)' }}>{suffix}</span>}
       </div>
-      {hint && !error && <span style={{ font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink-mute)' }}>{hint}</span>}
+      {hint && !error && <span style={{ font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink-soft)' }}>{hint}</span>}
       {error && <span style={{ font: '600 11px/1.4 var(--f-sans)', color: 'var(--danger)' }}>{error}</span>}
     </label>);
 
@@ -117,7 +117,7 @@ function Select({ label, value, onChange, options = [], required, error, style =
           font: '500 13.5px/1 var(--f-sans)', color: 'var(--ink)',
           appearance: 'none', outline: 'none', cursor: 'pointer'
         }}>
-        
+
         {options.map((o) => {
           const val = typeof o === 'string' ? o : o.value;
           const lbl = typeof o === 'string' ? o : o.label;
@@ -132,11 +132,14 @@ function Select({ label, value, onChange, options = [], required, error, style =
 // ── Badge ─────────────────────────────────────────────────────
 function Badge({ tone = 'neutral', children, size = 'md', dot = false, style = {} }) {
   const tones = {
-    success: { bg: 'var(--success-bg)', fg: 'var(--success)' },
-    warning: { bg: 'var(--warning-bg)', fg: 'var(--warning)' },
+    /* BRAND-SYNC 2026-07-12: se completa la migración BD-018 (texto --ink + dot semántico) a los
+       tonos que fallan AA en algún tema sobre su -bg: success (light 3.83), info (light 4.20),
+       wine (dark 2.79). warning ya migrado. danger (5.61) y neutral (4.68) pasan → texto directo. */
+    success: { bg: 'var(--success-bg)', fg: 'var(--ink)', dot: 'var(--success)' },
+    warning: { bg: 'var(--warning-bg)', fg: 'var(--ink)', dot: 'var(--warning)' },
     danger: { bg: 'var(--danger-bg)', fg: 'var(--danger)' },
-    info: { bg: 'var(--info-bg)', fg: 'var(--info)' },
-    wine: { bg: 'var(--wine-tint)', fg: 'var(--wine)' },
+    info: { bg: 'var(--info-bg)', fg: 'var(--ink)', dot: 'var(--info)' },
+    wine: { bg: 'var(--wine-tint)', fg: 'var(--ink)', dot: 'var(--wine-text)' },
     neutral: { bg: 'var(--neutral-bg)', fg: 'var(--ink-soft)' }
   }[tone];
   const sizes = {
@@ -153,7 +156,7 @@ function Badge({ tone = 'neutral', children, size = 'md', dot = false, style = {
       letterSpacing: '0.02em', whiteSpace: 'nowrap',
       ...style
     }}>
-      {dot && <span style={{ width: 6, height: 6, borderRadius: '50%', background: tones.fg }} />}
+      {(dot || tones.dot) && <span style={{ width: 6, height: 6, borderRadius: '50%', background: tones.dot || tones.fg }} />}
       {children}
     </span>);
 
@@ -191,7 +194,7 @@ function Card({ children, padded = true, style = {}, hoverable = false, onClick 
           e.currentTarget.style.borderColor = 'var(--border)';
         }
       }}>
-      
+
       {children}
     </div>);
 
@@ -203,7 +206,7 @@ function PageHeader({ eyebrow, title, subtitle, actions, breadcrumbs, style = {}
     <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, marginBottom: 'var(--s-6)', ...style }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         {breadcrumbs &&
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, font: '500 12px/1 var(--f-sans)', color: 'var(--ink-mute)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, font: '500 12px/1 var(--f-sans)', color: 'var(--ink-soft)' }}>
             {breadcrumbs.map((b, i) =>
           <React.Fragment key={i}>
                 {i > 0 && <span style={{ color: 'var(--ink-mute)' }}>/</span>}
@@ -224,7 +227,7 @@ function PageHeader({ eyebrow, title, subtitle, actions, breadcrumbs, style = {}
 // ── KPI Card ──────────────────────────────────────────────────
 function KPI({ label, value, delta, tone = 'wine', icon, sub, style = {} }) {
   const tones = {
-    wine: 'var(--wine)',
+    wine: 'var(--wine-text)',
     success: 'var(--success)',
     warning: 'var(--warning)',
     danger: 'var(--danger)',
@@ -239,11 +242,12 @@ function KPI({ label, value, delta, tone = 'wine', icon, sub, style = {} }) {
       </div>
       <div style={{ font: '900 30px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em' }}>{value}</div>
       {delta &&
-      <div style={{ marginTop: 10, font: '700 12px/1 var(--f-sans)', color: tones[tone], letterSpacing: '0.02em' }}>
+      <div style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6, font: '700 12px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.02em' }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: tones[tone], flexShrink: 0 }} />
           {delta}
         </div>
       }
-      {sub && <div style={{ marginTop: 8, font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-mute)' }}>{sub}</div>}
+      {sub && <div style={{ marginTop: 8, font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-soft)' }}>{sub}</div>}
     </Card>);
 
 }
@@ -303,7 +307,7 @@ function Table({ columns, rows, onRowClick, empty, dense = false, selectable = f
                   <input type="checkbox"
                 checked={selected.length === rows.length && rows.length > 0}
                 onChange={(e) => onSelectChange?.(e.target.checked ? rows.map((r) => r.id || r.markbox || r._key) : [])} />
-                
+
                 </th>
               }
               {columns.map((c, i) => {
@@ -321,7 +325,7 @@ function Table({ columns, rows, onRowClick, empty, dense = false, selectable = f
                     whiteSpace: 'nowrap'
                   }}
                   title={sk ? 'Ordenar' : undefined}>
-                    
+
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, justifyContent: c.align === 'right' ? 'flex-end' : 'flex-start' }}>
                       {c.label}
                       {sk &&
@@ -349,7 +353,7 @@ function Table({ columns, rows, onRowClick, empty, dense = false, selectable = f
                 }}
                 onMouseEnter={(e) => {if (onRowClick && !isSel) e.currentTarget.style.background = 'var(--bg-elevated)';}}
                 onMouseLeave={(e) => {if (!isSel) e.currentTarget.style.background = 'transparent';}}>
-                  
+
                   {selectable &&
                   <td style={{ padding: cellPad, borderBottom: ri < sortedRows.length - 1 ? '1px solid var(--border)' : 0 }}>
                       <input type="checkbox" checked={isSel}
@@ -358,7 +362,7 @@ function Table({ columns, rows, onRowClick, empty, dense = false, selectable = f
                       const next = e.target.checked ? [...selected, rowId] : selected.filter((x) => x !== rowId);
                       onSelectChange?.(next);
                     }} />
-                    
+
                     </td>
                   }
                   {columns.map((c, ci) =>
@@ -387,7 +391,7 @@ function EmptyState({ icon, title, body, action, style = {} }) {
       display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 14,
       background: 'var(--bg-surface)', border: '1px dashed var(--border-strong)', borderRadius: 'var(--r-lg)',
       ...style
-    }}>
+    }} data-comment-anchor="3e0bb4c050-div-374-5">
       {icon &&
       <div style={{
         width: 56, height: 56, borderRadius: 'var(--r-pill)',
@@ -505,7 +509,7 @@ function Progress({ value, tone = 'wine', height = 6, style = {} }) {
 // ── Tabs ──────────────────────────────────────────────────────
 function Tabs({ value, onChange, items, style = {} }) {
   return (
-    <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border)', ...style }}>
+    <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border)', ...style }} data-comment-anchor="45f598c5e1-div-497-5">
       {items.map((item) => {
         const active = item.value === value;
         return (
@@ -521,13 +525,13 @@ function Tabs({ value, onChange, items, style = {} }) {
               transition: 'color var(--dur-fast) var(--ease)',
               display: 'inline-flex', alignItems: 'center', gap: 8
             }}>
-            
+
             {item.label}
             {item.count != null &&
             <span style={{
               padding: '1px 6px', borderRadius: 'var(--r-sm)',
               background: active ? 'var(--wine-tint)' : 'var(--bg-elevated)',
-              color: active ? 'var(--wine)' : 'var(--ink-mute)',
+              color: active ? 'var(--wine)' : 'var(--ink-soft)',
               font: '700 10.5px/1.4 var(--f-sans)'
             }}>{item.count}</span>
             }
@@ -576,7 +580,7 @@ function Drawer({ open, onClose, title, subtitle, width = 640, children, actions
             {window.Icon.close(16)}
           </button>
         </header>
-        <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>{children}</div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 24 }} data-comment-anchor="f494b6e03c-div-568-9">{children}</div>
         {actions &&
         <footer style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, justifyContent: 'flex-end', background: 'var(--bg-surface)' }}>
             {actions}
@@ -647,7 +651,7 @@ function Toolbar({ search, onSearchChange, searchPlaceholder = 'Buscar…', filt
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder={searchPlaceholder}
           style={{ flex: 1, height: '100%', border: 0, outline: 'none', background: 'transparent', font: '500 13px/1 var(--f-sans)', color: 'var(--ink)' }} />
-        
+
         </div>
       }
       {filters}
@@ -723,7 +727,7 @@ function ColumnManager({ cfg, setCfg, columns, defaultCfg, notes = {} }) {
         font: '600 12px/1 var(--f-sans)', color: open ? 'var(--wine)' : 'var(--ink-soft)', cursor: 'pointer'
       }}>
         {I && I.cog ? I.cog(13) : '⚙'} Columnas
-        <span style={{ font: '700 10px/1 var(--f-mono)', color: 'var(--ink-mute)' }}>{visibleCount}</span>
+        <span style={{ font: '700 10px/1 var(--f-mono)', color: 'var(--ink-soft)' }}>{visibleCount}</span>
       </button>
 
       {open &&
@@ -757,14 +761,14 @@ function ColumnManager({ cfg, setCfg, columns, defaultCfg, notes = {} }) {
                       <input type="checkbox" checked={c.visible} onChange={() => toggle(idx)} style={{ accentColor: 'var(--wine)', flexShrink: 0 }} />
                       <span style={{ minWidth: 0 }}>
                         <span style={{ display: 'block', font: '600 12px/1.2 var(--f-sans)', color: c.visible ? 'var(--ink)' : 'var(--ink-mute)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{def.label}</span>
-                        {note && <span style={{ display: 'block', font: '500 9.5px/1.2 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 1 }}>{note}</span>}
+                        {note && <span style={{ display: 'block', font: '500 9.5px/1.2 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 1 }}>{note}</span>}
                       </span>
                     </label>
                   </div>);
 
             })}
             </div>
-            <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)', font: '500 10.5px/1.4 var(--f-sans)', color: 'var(--ink-mute)' }}>
+            <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)', font: '500 10.5px/1.4 var(--f-sans)', color: 'var(--ink-soft)' }}>
               ▲▼ reordena · ✓ muestra/oculta. Tu configuración se guarda en este navegador.
             </div>
           </div>

@@ -8,8 +8,9 @@
 
 - **Punto de entrada = este README** (índice + estado + reglas).
 - **Plan maestro de acción** (digital + Google Ads, con la auditoría de los 4 activos + las 5 prioridades y su estado): [`plan-accion-digital.md`](plan-accion-digital.md).
-- **Identidad y estrategia** (propósito · misión · visión · valores · objetivos + norte interno): [`estrategia.md`](estrategia.md) · identidad pública/legal + NAP + nombres: [`identidad.md`](identidad.md) · línea de ventas cliente-ancla: [`ventas.md`](ventas.md) · **embudo de ventas operativo + mapa de etapas Kommo (MARKBOX) + campos del Kanban**: [`embudo-ventas.md`](embudo-ventas.md).
+- **Identidad y estrategia** (propósito · misión · visión · valores · objetivos + norte interno): [`estrategia.md`](estrategia.md) · identidad pública/legal + NAP + nombres: [`identidad.md`](identidad.md) · línea de ventas cliente-ancla: [`ventas.md`](ventas.md) · **embudo de ventas operativo + mapa de etapas Kommo (MARKBOX) + campos del Kanban**: [`embudo-ventas.md`](embudo-ventas.md) · **sistema de adquisición (oferta + canal + proceso de prospección, manual del asesor)**: [`adquisicion.md`](adquisicion.md).
 - **Logs detallados por área** en archivos hermanos a medida que crezca: [`seo.md`](seo.md) (activo), [`redes.md`](redes.md) (activo), `ads.md`, `analytics.md`, … (se crean al tocar cada área).
+- **Leer estos docs sin abrir el repo:** dentro del ERP en **Studio › Marketing › Documentos** (`/studio/marketing/docs`, SDD-0158, se actualiza solo) · **offline** (un HTML portable, doble clic sin internet) corriendo **`pnpm marketing:reader`** → genera `outputs/lector-marketing-dtd.html` (o `node scripts/build-marketing-reader.mjs "C:/ruta/Lector.html"` para otro destino). Ambos leen ESTOS `.md` — la fuente de verdad sigue siendo este tree.
 - La **memoria del agente** (cross-sesión) referencia este tree como fuente de verdad; este tree es lo versionado y compartido por git.
 - El **puntero en `AGENTS.md`** (sección Marketing) hace que todos los agentes lleguen acá automáticamente.
 
@@ -17,6 +18,20 @@
 
 ### 🎯 Identidad · Estrategia · Ventas — detalle en [`estrategia.md`](estrategia.md)
 **Estado (2026-06-08):** identidad pública **cerrada** (propósito · misión · visión · valores · objetivos) — reemplaza las versiones de 2020. Norte **interno** = **2 contenedores/mes** (umbral de equilibrio operativo, **no se publica**) vía 2 motores: mayoristas recurrentes + aliados white-label. Identidad legal + NAP + convención de nombres en [`identidad.md`](identidad.md); plan de ventas cliente-ancla en [`ventas.md`](ventas.md). La versión-máquina (schema) se cablea en `app/layout.tsx` (Fase 2, pendiente).
+
+### 🧲 Adquisición de clientes — detalle en [`adquisicion.md`](adquisicion.md)
+**Estado (2026-07-17):** sistema definido (deep research 6 líneas + verificación adversarial + merge con lo
+construido; dump con fuentes en `research/INVESTIGACION-adquisicion-clientes.md`). **UNA oferta** (**Puerta a
+Puerta** "pagas al llegar" empaquetado + tarifa preferencial por cadencia; "DDP" se retira como nombre — solo
+aclaración "(todos los gastos pagados)") · **UN canal primario** (calor propio: base
+existente + referidos; soporte IG→DM→WhatsApp; $0 pauta en Fase 1) · **UN proceso** (rutina diaria del asesor:
+SLA <5 min, 5 preguntas de calificación, 10 toques cálidos/día, cadencia D0→D18 + nurture, manual nivel
+principiante). Cubre el TOP del embudo; el medio sigue en [`embudo-ventas.md`](embudo-ventas.md). Los estimados
+web ya avisan al equipo (fuga #1 cerrada 2026-07-17). **Herramientas y material de trabajo:** guiones del asesor
+listos para pegar → [`guiones-asesor.md`](guiones-asesor.md) · lista de ~60
+prospectos → [`prospectos-ancla.md`](prospectos-ancla.md) · copy de la oferta para aprobar →
+[`oferta-borradores.md`](oferta-borradores.md) · pasos que faltan en el CRM → [`checklist-kommo.md`](checklist-kommo.md) ·
+campaña de recuperación → `/studio/kommo` › Recuperación (SDD-0157). Pendientes founder en `adquisicion.md` §10.
 
 ### 🔍 SEO — detalle en [`seo.md`](seo.md)
 **Estado (2026-06-07):** dominio migrado `doortudoor.com → dtdcargo.com` (301 path-preserving + "Cambio de dirección" de Search Console **activo**). Rename `/cotizar → /estimacion` (308). 18 geo-páginas "Importar de China a {ciudad}". Sitemap 35 URLs. 6 redirects de recuperación de páginas viejas huérfanas. → ver `seo.md` para la cronología completa y las reglas.
@@ -52,7 +67,7 @@ Connector SDD-0043 (sync E2E en prod: leads/contactos/pipelines/webhooks). Fuent
 - **Canales públicos = solo** CRM WhatsApp (`+58 412 166 8021`, primario) + Fijo Valencia (`+58 241 414 7886`). Ver `feedback_single_point_of_contact`.
 - **WhatsApp Business — guía de configuración de perfiles corporativos** (logo, datos, web, catálogo de servicios por número): [`whatsapp-business.md`](whatsapp-business.md). 🟡 para llenar.
 - **Condiciones de cotización — copy web + correo** (el precio online es estimado/referencial; calza con "Pagas al llegar\*" y la integración de rates): [`condiciones-cotizacion.md`](condiciones-cotizacion.md). ✅ copy listo (pulido por redactor), pendiente cablear cuando exista el cotizador online. **Incluye la FAQ del cliente sobre peso/tamaño (sin números).**
-- **Manual de vendedores — cómo cotizar el peso** (INTERNO, con números + anti-trucos + negociación + 3 diálogos con precios reales): [`manual-vendedores-peso.md`](manual-vendedores-peso.md). Calibrado con 33 contenedores reales; límites 1.000 kg/m³ · 9.000 kg · 15 m³. La evidencia (densidades reales) vive en el informe confidencial (`docs/legal/casos/`) + brief legal v3.1.
+- **Manual de vendedores — cómo cotizar el peso** (INTERNO, con números + anti-trucos + negociación + 3 diálogos con precios reales): [`manual-vendedores-peso.md`](manual-vendedores-peso.md). Calibrado con 33 contenedores reales; límites vigentes: gracia **1.000 kg/m³** · recargo **$2/kg** · tope por envío **9.000 kg** (anti-abuso, density-aware ≈400 kg/m³) · tope contenedor **68 m³ / 27.000 kg**. La evidencia (densidades reales) vive en el informe confidencial (`docs/legal/casos/`) + brief legal v3.1.
 
 ### 🎨 Marca → Web
 Brand Book vigente = el de mayor versión en `docs/design/studio/_norte/` (hoy **v3.7**; el book es UNO solo, los anteriores se borran). Publicado privado en `/marca/brand-book`; hub interno del equipo = `/interno/marca` (el kit público `/brand` se relocalizó ahí). Fuentes web = Archivo (Nunito/Sora es capa ERP, no toca la web). Ver `feedback_norte_brand_to_web`.

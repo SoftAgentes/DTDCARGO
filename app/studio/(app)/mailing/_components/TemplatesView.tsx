@@ -10,6 +10,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import { TableFrame, ActionableRow } from "@/app/studio/_components/ui/DataTable";
 import type { MailTemplate } from "@/lib/studio/mail-types";
 import { TemplateEditorDrawer } from "./TemplateEditorDrawer";
 
@@ -43,14 +44,7 @@ export function TemplatesView({ templates }: Props) {
 
   return (
     <>
-      <div
-        style={{
-          background: "var(--bg-surface, #FFFFFF)",
-          border: "1px solid var(--border, #E8E6E2)",
-          borderRadius: 8,
-          overflow: "auto",
-        }}
-      >
+      <TableFrame>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ background: "var(--bg-elevated, #F2F0EC)" }}>
@@ -64,20 +58,11 @@ export function TemplatesView({ templates }: Props) {
           </thead>
           <tbody>
             {templates.map((t) => (
-              <tr
+              <ActionableRow
                 key={t.id}
-                onClick={() => setOpenId(t.id)}
-                style={{
-                  borderTop: "1px solid var(--border, #E8E6E2)",
-                  cursor: "pointer",
-                  transition: "background var(--dur, 180ms)",
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = "var(--bg-elevated, #F2F0EC)")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.background = "transparent")
-                }
+                onSelect={() => setOpenId(t.id)}
+                label={`Editar plantilla ${t.slug}`}
+                style={{ borderTop: "1px solid var(--border)" }}
               >
                 <Td>
                   <code
@@ -155,11 +140,11 @@ export function TemplatesView({ templates }: Props) {
                     </span>
                   )}
                 </Td>
-              </tr>
+              </ActionableRow>
             ))}
           </tbody>
         </table>
-      </div>
+      </TableFrame>
 
       {openTpl && (
         <TemplateEditorDrawer

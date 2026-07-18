@@ -114,7 +114,7 @@ export function QrQueueClient({ orders, kpis, filters, warehouses }: Props) {
         style={{
           display: "flex",
           gap: 2,
-          marginTop: 20,
+          marginTop: "var(--s-5)",
           marginBottom: 14,
           borderBottom: "1px solid var(--border)",
         }}
@@ -152,7 +152,7 @@ export function QrQueueClient({ orders, kpis, filters, warehouses }: Props) {
           display: "flex",
           gap: 10,
           alignItems: "center",
-          padding: 12,
+          padding: "var(--s-3)",
           background: "var(--bg-surface)",
           border: "1px solid var(--border)",
           borderRadius: "var(--r-md)",
@@ -215,8 +215,8 @@ export function QrQueueClient({ orders, kpis, filters, warehouses }: Props) {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 12,
-            padding: 12,
+            gap: "var(--s-3)",
+            padding: "var(--s-3)",
             background: "var(--wine-tint)",
             border: "1px solid var(--wine)",
             borderRadius: "var(--r-md)",

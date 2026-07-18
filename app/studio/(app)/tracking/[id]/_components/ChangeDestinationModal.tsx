@@ -166,7 +166,7 @@ export function ChangeDestinationModal({ shipment, onClose }: Props) {
         {/* Header */}
         <header
           style={{
-            padding: "16px 20px",
+            padding: "var(--s-4) var(--s-5)",
             borderBottom: "1px solid var(--border)",
             display: "flex",
             justifyContent: "space-between",
@@ -243,7 +243,7 @@ export function ChangeDestinationModal({ shipment, onClose }: Props) {
         {/* Footer */}
         <footer
           style={{
-            padding: "12px 20px",
+            padding: "var(--s-3) var(--s-5)",
             borderTop: "1px solid var(--border)",
             display: "flex",
             justifyContent: "flex-end",
@@ -352,7 +352,7 @@ function FormPhase({
       {/* Nuevo destino */}
       <div>
         <label className="studio-label" htmlFor="cd-new-dest">
-          Nuevo destino <span style={{ color: "var(--wine)" }}>*</span>
+          Nuevo destino <span style={{ color: "var(--wine-text)" }}>*</span>
         </label>
         <input
           id="cd-new-dest"
@@ -400,7 +400,7 @@ function FormPhase({
       {/* Fee */}
       <div>
         <label className="studio-label" htmlFor="cd-fee">
-          Fee del cambio <span style={{ color: "var(--wine)" }}>*</span>
+          Fee del cambio <span style={{ color: "var(--wine-text)" }}>*</span>
         </label>
         <NumericInput
           id="cd-fee"
@@ -416,7 +416,7 @@ function FormPhase({
           style={{
             font: "500 11px/1.4 var(--f-sans)",
             color: "var(--ink-soft)",
-            margin: "4px 0 0",
+            margin: "var(--s-1) 0 0",
           }}
         >
           Se cobra al cliente y queda en el timeline. Pon 0 si es corrección sin costo.
@@ -426,7 +426,7 @@ function FormPhase({
       {/* Motivo */}
       <div>
         <label className="studio-label" htmlFor="cd-reason">
-          Motivo <span style={{ color: "var(--wine)" }}>*</span>
+          Motivo <span style={{ color: "var(--wine-text)" }}>*</span>
         </label>
         <textarea
           id="cd-reason"
@@ -447,7 +447,7 @@ function FormPhase({
             font: "500 12px/1.4 var(--f-sans)",
             color: "var(--danger)",
             margin: 0,
-            padding: "8px 12px",
+            padding: "var(--s-2) var(--s-3)",
             background: "var(--danger-bg)",
             border: "1px solid var(--danger)",
             borderRadius: "var(--r-sm)",
@@ -600,7 +600,7 @@ function ConfirmPhase({
           }}
         >
           Fee:{" "}
-          <strong style={{ color: "var(--wine)", fontWeight: 700 }}>
+          <strong style={{ color: "var(--wine-text)", fontWeight: 700 }}>
             {feeLabel}
           </strong>
         </div>
@@ -635,7 +635,7 @@ function ConfirmPhase({
             font: "500 12px/1.4 var(--f-sans)",
             color: "var(--danger)",
             margin: 0,
-            padding: "8px 12px",
+            padding: "var(--s-2) var(--s-3)",
             background: "var(--danger-bg)",
             border: "1px solid var(--danger)",
             borderRadius: "var(--r-sm)",

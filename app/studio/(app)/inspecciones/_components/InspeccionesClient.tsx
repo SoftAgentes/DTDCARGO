@@ -105,7 +105,7 @@ export function InspeccionesClient({
           <span className="studio-eyebrow">Operación · Calidad</span>
           <h1
             className="studio-display"
-            style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
+            style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
           >
             Inspecciones de calidad.
           </h1>
@@ -359,7 +359,7 @@ function ReportsTable({
                   style={{
                     padding: "12px 14px",
                     font: "600 12px/1 var(--f-mono)",
-                    color: "var(--wine)",
+                    color: "var(--wine-text)",
                     whiteSpace: "nowrap",
                   }}
                 >

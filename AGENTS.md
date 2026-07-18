@@ -12,7 +12,7 @@ Un solo Next.js app con **4 superficies** y una **frontera dura** entre el sitio
 | Superficie | Rutas | Backend | Frontera |
 |---|---|---|---|
 | **Sitio público** | `app/{cotizar,track,contacto,calculadora,servicios,noticias,glosario}` + `components/` (raíz) | HTTP al ERP HailuWay externo (`NEXT_PUBLIC_HAILUWAY_API`; hoy mocks) | ❌ NUNCA importa `@/lib/studio`, `@/lib/db`, `@supabase/*` |
-| **Studio ERP** ("DoorTuDoor") | `app/studio/(app)/<modulo>/` (55 módulos) + `app/api/studio/` | Supabase propio (`@/lib/db/server`) + Server Actions | — |
+| **Studio ERP** ("DTD Cargo") | `app/studio/(app)/<modulo>/` (55 módulos) + `app/api/studio/` | Supabase propio (`@/lib/db/server`) + Server Actions | — |
 | **Móvil PWA** | `app/m/{cn,ve,erp}/` | Supabase (reusa `lib/studio`, permitido) | — |
 | **Back (CMS público)** | `app/back/(app)/` | Supabase (`lib/back/`) | no importa `@/lib/studio` ni `app/studio` |
 
@@ -74,6 +74,14 @@ Test puntual: `pnpm test path/to/file.test.ts` o `pnpm test -t "nombre"`. E2e pu
 
 `NEXT_PUBLIC_HAILUWAY_API` (base URL del ERP, HTTP) · `DTD_API_KEY` · `NEXT_PUBLIC_WHATSAPP_NUMBER` · `NEXT_PUBLIC_CONTACT_EMAIL` · `NEXT_PUBLIC_SITE_URL` (default `https://dtdcargo.com`).
 
+## Supabase MCP y credenciales de agentes
+
+- **Acceso interactivo:** usa el MCP hospedado de Supabase con **OAuth**, `project_ref=xpfuzqombmjmxvprjgmi`, `read_only=true` y `features=database,docs`.
+- **Nunca guardes un PAT de Supabase** (`sbp_*` / `SUPABASE_ACCESS_TOKEN`) dentro del árbol del proyecto, aunque el archivo esté gitignored (`.env.local`, `.mcp.json`, `.codex/`, worktrees o archivos temporales).
+- **Producción:** este `project_ref` corresponde al proyecto real. El uso normal del MCP se limita a documentación y metadatos; leer filas de negocio o PII requiere autorización explícita del founder.
+- **Escrituras:** el MCP habitual no autoriza escrituras. Prepara migrations como archivos, valida localmente y usa una conexión temporal separada solo cuando el founder autorice aplicar el cambio concreto. **Aplicar a prod → runbook obligatorio: [`docs/runbooks/aplicar-migraciones-prod.md`](docs/runbooks/aplicar-migraciones-prod.md)** (OK del founder NOMBRANDO la migración · de a UNA, nunca en bundle · `name` = basename exacto del archivo). El gate lo vigila: el paso `migrations-applied` de `verify.mjs` grita si un archivo del repo no está en prod — así se dejaron de perder migraciones (la 0228 estuvo 2 rondas perdida; la 0169 sigue).
+- **CI/automatización:** si una tarea no admite OAuth, guarda el PAT únicamente en el secret manager del proveedor, con expiración y propósito identificable; nunca en archivos locales del repo.
+
 ## Integraciones del sitio público (estado · actualizado 2026-07-05)
 
 Los mocks originales **ya no existen** (`mockSubmit` desapareció del código). La captación es real:
@@ -124,7 +132,7 @@ Toda pantalla nueva o cambio visual sustancial **pasa por `/ui-check`** antes de
 
 - **Identidad / nombres / NAP** → fuente única [`docs/marketing/identidad.md`](docs/marketing/identidad.md). Marca pública = **DTD Cargo** · sello de herencia + nombre del ERP interno = **DoorTuDoor** · handle **@doortudoor_**. La **razón social (INVERSIONES DTD SERVICES, C.A) y el RIF (J-50648869-8) van SOLO en el schema** (`legalName`/`taxID`), **nunca en texto visible**. Versión-máquina = `@graph` en [`app/layout.tsx`](app/layout.tsx) (`#organization` + `#website`); datos desde `CONTACT` en `lib/design-tokens.ts`.
 - **Estrategia / misión-visión / valores / ventas** → [`docs/marketing/estrategia.md`](docs/marketing/estrategia.md) + [`docs/marketing/ventas.md`](docs/marketing/ventas.md). Misión/visión/valores son **canónicos** (reemplazan los de 2020). Norte **interno** = **2 contenedores/mes** (umbral de equilibrio, **no se publica**) vía mayoristas recurrentes + aliados white-label.
-- **Negocio:** logística + trading puerta a puerta China↔Venezuela desde **2008** (año de fundación canónico = orígenes comerciales en China; hitos: empresa de carga formalizada 2010 · expansión a Venezuela / DTD Services LCL 2015); equipo propio en Yiwu y Valencia. El trading propio es **interno** (la web vende el servicio). El ERP (Studio "DoorTuDoor", 55 módulos en prod) apunta a **cerrar el loop comercial** (recompra día 30/45 + alertas de cadencia + KPI 2 cont./mes + white-label aliados); **no es greenfield**.
+- **Negocio:** logística + trading puerta a puerta China↔Venezuela; equipo propio en Yiwu y Valencia. **Cronología (founder 2026-07-17):** **2008-2010** = inicios en China — etapa histórica que sustenta la **experiencia** con China, **NO es la fundación** (vive en Stats: "En el comercio con China desde 2008", KPI autocalculado) · **2015** = **fundación e inauguración en Venezuela = EL año de fundación** (`foundingDate` del schema, y todo copy de "opera/operando desde") · **2010** = solo hito histórico (se formalizó la empresa de carga), nunca un claim de "empresa desde". El trading propio es **interno** (la web vende el servicio). El ERP (Studio "DoorTuDoor", 55 módulos en prod) apunta a **cerrar el loop comercial** (recompra día 30/45 + alertas de cadencia + KPI 2 cont./mes + white-label aliados); **no es greenfield**.
 - **Trato con el founder (Sam):** español **venezolano neutro, TUTEO, CERO voseo** (regla dura, no negociable). Usar **"tú tienes / puedes / quieres / necesitas / mira"**; **NUNCA** "vos tenés / podés / querés / necesitás / mirá" ni imperativos voseo ("cotizá", "pagás", "escribinos", "dale"). El voseo es argentino, **no se habla en Venezuela** — si lo uso es un bug. Además: directo, sin relleno ni adulación; salidas listas para copiar con rutas explícitas; opciones por prioridad con **⭐ en la #1**; preguntas cortas; decir "Fase 5", no "F5". **Verificar la rama antes de commit; NO hacer push sin su OK; commits selectivos si hay varias ventanas.**
 
 ## Organización · ISO 9001 §7.5 → detalle en `docs/README.md`

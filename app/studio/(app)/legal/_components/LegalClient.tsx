@@ -20,12 +20,13 @@
  * Usa primitivas reales del Studio (Badge, EmptyState, KpiCard, Icon, tokens).
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
+import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import type {
   LegalAcceptance,
   LegalDoc,
@@ -93,7 +94,7 @@ export function LegalDocsRepo({
   gateHardBlock: boolean;
 }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
       <GateBanner gateHardBlock={gateHardBlock} />
       <DefenseFileSearch />
       <DocsView docs={docs} acceptances={acceptances} />
@@ -184,7 +185,7 @@ function DefenseFileSearch() {
     <div
       style={{
         display: "flex",
-        gap: 12,
+        gap: "var(--s-3)",
         alignItems: "flex-end",
         flexWrap: "wrap",
         padding: "14px 16px",
@@ -284,7 +285,7 @@ function DocCard({
         background: "var(--bg-surface)",
         border: "1px solid var(--border)",
         borderRadius: "var(--r-lg)",
-        padding: 20,
+        padding: "var(--s-5)",
       }}
     >
       <div
@@ -292,7 +293,7 @@ function DocCard({
           display: "flex",
           alignItems: "flex-start",
           gap: 14,
-          marginBottom: 16,
+          marginBottom: "var(--s-4)",
           flexWrap: "wrap",
         }}
       >
@@ -302,7 +303,7 @@ function DocCard({
             height: 40,
             borderRadius: "var(--r-md)",
             background: "var(--wine-tint)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
@@ -350,14 +351,14 @@ function DocCard({
               : `Audiencia: ${doc.audience} · reemplazado por el documento vigente · última versión ${latest?.version ?? "—"}`}
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: "var(--s-2)", flexShrink: 0 }}>
           {viewable && (
             <button
               type="button"
               className="studio-btn studio-btn-ghost studio-btn-sm"
               onClick={() => onView(viewable)}
             >
-              <span style={{ display: "inline-flex", marginRight: 4 }}>
+              <span style={{ display: "inline-flex", marginRight: "var(--s-1)" }}>
                 {Icon.eye(13)}
               </span>
               Ver
@@ -373,7 +374,7 @@ function DocCard({
               title="La próxima versión la publican los abogados como actualización del repositorio."
               style={{ opacity: 0.5, cursor: "not-allowed" }}
             >
-              <span style={{ display: "inline-flex", marginRight: 4 }}>
+              <span style={{ display: "inline-flex", marginRight: "var(--s-1)" }}>
                 {Icon.plus(13)}
               </span>
               Nueva versión
@@ -394,7 +395,7 @@ function DocCard({
           style={{
             display: "grid",
             gridTemplateColumns: "90px 130px 1fr 110px",
-            gap: 12,
+            gap: "var(--s-3)",
             padding: "9px 14px",
             background: "var(--bg-elevated)",
             font: "700 9.5px/1 var(--f-sans)",
@@ -414,7 +415,7 @@ function DocCard({
             style={{
               display: "grid",
               gridTemplateColumns: "90px 130px 1fr 110px",
-              gap: 12,
+              gap: "var(--s-3)",
               padding: "11px 14px",
               alignItems: "center",
               borderTop: i > 0 ? "1px solid var(--border)" : 0,
@@ -521,7 +522,7 @@ function DocsView({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
       {/* Hero · Repositorio legal. Fondo navy estable en ambos temas
           (--bg-sidebar no invierte); texto con tokens de sidebar (siempre
           claros sobre navy). Único gradiente de marca permitido. */}
@@ -530,10 +531,10 @@ function DocsView({
           background:
             "linear-gradient(135deg, var(--bg-sidebar) 0%, #1F3055 100%)",
           borderRadius: "var(--r-lg)",
-          padding: 20,
+          padding: "var(--s-5)",
           display: "flex",
           alignItems: "center",
-          gap: 16,
+          gap: "var(--s-4)",
         }}
       >
         <span
@@ -573,7 +574,7 @@ function DocsView({
           </div>
           <div
             style={{
-              marginTop: 8,
+              marginTop: "var(--s-2)",
               font: "500 12px/1.5 var(--f-sans)",
               color: "var(--ink-side-soft)",
               maxWidth: "60ch",
@@ -605,7 +606,7 @@ function DocsView({
             border: "1px solid var(--border)",
             borderLeft: "3px solid var(--warning)",
             borderRadius: "var(--r-lg)",
-            padding: 20,
+            padding: "var(--s-5)",
           }}
         >
           <div
@@ -613,7 +614,7 @@ function DocsView({
               display: "flex",
               alignItems: "center",
               gap: 10,
-              marginBottom: 12,
+              marginBottom: "var(--s-3)",
             }}
           >
             <span style={{ color: "var(--warning)", display: "flex" }}>
@@ -636,13 +637,13 @@ function DocsView({
             style={{
               font: "500 12px/1.5 var(--f-sans)",
               color: "var(--ink-soft)",
-              marginBottom: 12,
+              marginBottom: "var(--s-3)",
             }}
           >
             Campos sin definir en el texto vigente. Requieren validación de un
             abogado antes de publicar la versión final.
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
             {placeholders.map((p, i) => (
               <div
                 key={i}
@@ -722,7 +723,7 @@ function DocsView({
               padding: "0 16px 16px",
               display: "flex",
               flexDirection: "column",
-              gap: 16,
+              gap: "var(--s-4)",
             }}
           >
             {archivados.map((doc) => (
@@ -772,89 +773,35 @@ function DocsView({
 function DocModal({ doc, onClose }: { doc: LegalDoc; onClose: () => void }) {
   const body: LegalSection[] = Array.isArray(doc.body) ? doc.body : [];
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
   return (
-    <div
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="legal-doc-title"
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "var(--scrim)",
-        zIndex: 110,
-        display: "grid",
-        placeItems: "center",
-        padding: 20,
-      }}
+    <DrawerShell
+      title={doc.name}
+      subtitle={
+        <>
+          <code
+            style={{ font: "700 12px/1 var(--f-mono)", color: "var(--wine-text)" }}
+          >
+            {doc.version}
+          </code>{" "}
+          · en vigor desde {fmtDate(doc.effective_date)} · {doc.sections}{" "}
+          secciones
+        </>
+      }
+      onClose={onClose}
+      pending={false}
+      width={720}
+      variant="centered"
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "min(720px, 96vw)",
-          maxHeight: "90vh",
-          overflow: "auto",
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--r-lg)",
-          boxShadow: "var(--shadow-pop)",
-          padding: 24,
-          display: "flex",
-          flexDirection: "column",
-          gap: 16,
-        }}
-      >
         <div
           style={{
+            flex: 1,
+            overflow: "auto",
+            padding: "var(--s-6)",
             display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-            gap: 16,
+            flexDirection: "column",
+            gap: 14,
           }}
         >
-          <div>
-            <h2
-              id="legal-doc-title"
-              className="studio-display"
-              style={{ fontSize: 18, margin: 0, color: "var(--ink)" }}
-            >
-              {doc.name}
-            </h2>
-            <p
-              style={{
-                font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--ink-soft)",
-                margin: "6px 0 0",
-              }}
-            >
-              <code
-                style={{ font: "700 12px/1 var(--f-mono)", color: "var(--wine)" }}
-              >
-                {doc.version}
-              </code>{" "}
-              · en vigor desde {fmtDate(doc.effective_date)} · {doc.sections}{" "}
-              secciones
-            </p>
-          </div>
-          <button
-            type="button"
-            className="studio-btn studio-btn-ghost studio-btn-sm"
-            onClick={onClose}
-            autoFocus
-          >
-            Cerrar
-          </button>
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {body.length === 0 ? (
             <p
               style={{
@@ -872,7 +819,7 @@ function DocModal({ doc, onClose }: { doc: LegalDoc; onClose: () => void }) {
                   style={{
                     font: "800 13px/1.3 var(--f-sans)",
                     color: "var(--ink)",
-                    marginBottom: 4,
+                    marginBottom: "var(--s-1)",
                   }}
                 >
                   {heading}
@@ -890,8 +837,7 @@ function DocModal({ doc, onClose }: { doc: LegalDoc; onClose: () => void }) {
             ))
           )}
         </div>
-      </div>
-    </div>
+    </DrawerShell>
   );
 }
 
@@ -945,7 +891,7 @@ function AcceptancesView({
     !!currentVersions[key] && currentVersions[key] !== version;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
       {/* KPIs */}
       <div
         style={{
@@ -962,7 +908,7 @@ function AcceptancesView({
         <KpiCard
           value={kpis.thisMonth}
           label="Este mes"
-          valueColor={kpis.thisMonth > 0 ? "var(--wine)" : "var(--ink)"}
+          valueColor={kpis.thisMonth > 0 ? "var(--wine-text)" : "var(--ink)"}
         />
         <KpiCard
           value={`${kpis.onCurrent}/${kpis.total}`}
@@ -980,7 +926,7 @@ function AcceptancesView({
       <div
         style={{
           display: "flex",
-          gap: 12,
+          gap: "var(--s-3)",
           alignItems: "flex-end",
           flexWrap: "wrap",
         }}
@@ -1076,7 +1022,7 @@ function AcceptancesView({
                 display: "grid",
                 gridTemplateColumns: ACC_GRID,
                 gap: 10,
-                padding: "12px 16px",
+                padding: "var(--s-3) var(--s-4)",
                 alignItems: "center",
                 borderTop: i > 0 ? "1px solid var(--border)" : 0,
                 textAlign: "left",
@@ -1086,7 +1032,7 @@ function AcceptancesView({
               <code
                 style={{
                   font: "700 11.5px/1 var(--f-mono)",
-                  color: "var(--wine)",
+                  color: "var(--wine-text)",
                 }}
               >
                 {a.acceptance_code}
@@ -1109,7 +1055,7 @@ function AcceptancesView({
               >
                 {a.quote_code ?? "—"}
               </code>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s-1)" }}>
                 {a.docs.map((d, k) => (
                   <Badge
                     key={k}
@@ -1160,7 +1106,7 @@ function EvidenceRow({ k, v }: { k: string; v: React.ReactNode }) {
       style={{
         display: "flex",
         justifyContent: "space-between",
-        gap: 16,
+        gap: "var(--s-4)",
         padding: "9px 0",
         borderTop: "1px solid var(--border)",
       }}
@@ -1200,72 +1146,25 @@ function AcceptanceModal({
   const a = acceptance;
   const anyStale = a.docs.some((d) => isStale(d.key, d.version));
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
   return (
-    <div
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="acc-modal-title"
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "var(--scrim)",
-        zIndex: 110,
-        display: "grid",
-        placeItems: "center",
-        padding: 20,
-      }}
+    <DrawerShell
+      title={`Acuse ${a.acceptance_code}`}
+      onClose={onClose}
+      pending={false}
+      width={540}
+      variant="centered"
     >
       <div
-        onClick={(e) => e.stopPropagation()}
         style={{
-          width: "min(540px, 96vw)",
-          maxHeight: "90vh",
+          flex: 1,
           overflow: "auto",
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--r-lg)",
-          boxShadow: "var(--shadow-pop)",
-          padding: 24,
+          padding: "var(--s-6)",
           display: "flex",
           flexDirection: "column",
-          gap: 16,
+          gap: "var(--s-4)",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-            gap: 16,
-          }}
-        >
-          <h2
-            id="acc-modal-title"
-            className="studio-display"
-            style={{ fontSize: 18, margin: 0, color: "var(--ink)" }}
-          >
-            Acuse {a.acceptance_code}
-          </h2>
-          <button
-            type="button"
-            className="studio-btn studio-btn-ghost studio-btn-sm"
-            onClick={onClose}
-            autoFocus
-          >
-            Cerrar
-          </button>
-        </div>
-
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "var(--s-2)", flexWrap: "wrap" }}>
           {anyStale ? (
             <Badge tone="warning" size="sm" dot>
               Versión no vigente
@@ -1330,7 +1229,7 @@ function AcceptanceModal({
         <div
           style={{
             display: "flex",
-            gap: 8,
+            gap: "var(--s-2)",
             justifyContent: "flex-end",
             flexWrap: "wrap",
           }}
@@ -1340,7 +1239,7 @@ function AcceptanceModal({
             href={`/api/studio/legal/evidence/${encodeURIComponent(a.acceptance_code)}`}
             download
           >
-            <span style={{ display: "inline-flex", marginRight: 4 }}>
+            <span style={{ display: "inline-flex", marginRight: "var(--s-1)" }}>
               {Icon.download(13)}
             </span>
             Descargar JSON
@@ -1351,13 +1250,13 @@ function AcceptanceModal({
             target="_blank"
             rel="noopener"
           >
-            <span style={{ display: "inline-flex", marginRight: 4 }}>
+            <span style={{ display: "inline-flex", marginRight: "var(--s-1)" }}>
               {Icon.doc(13)}
             </span>
             Imprimir expediente
           </a>
         </div>
       </div>
-    </div>
+    </DrawerShell>
   );
 }

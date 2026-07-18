@@ -206,13 +206,13 @@ export function BitacoraClient({
           display: "flex",
           alignItems: "flex-end",
           justifyContent: "space-between",
-          gap: 16,
+          gap: "var(--s-4)",
           marginBottom: 18,
           flexWrap: "wrap",
         }}
       >
         <div>
-          <div className="studio-eyebrow" style={{ color: "var(--wine)" }}>
+          <div className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
             Operación · Equipo
           </div>
           <h1
@@ -241,8 +241,8 @@ export function BitacoraClient({
             aria-label="Vista"
             style={{
               display: "inline-flex",
-              gap: 4,
-              padding: 4,
+              gap: "var(--s-1)",
+              padding: "var(--s-1)",
               background: "var(--bg-elevated)",
               borderRadius: "var(--r-md)",
             }}
@@ -295,7 +295,7 @@ export function BitacoraClient({
 
       {/* Filtro "Esperando al cliente" · solo si hay tareas de ese tipo */}
       {view !== "actas" && view !== "agente" && esperandoCount > 0 && (
-        <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "var(--s-2)", marginBottom: "var(--s-4)", flexWrap: "wrap" }}>
           <button
             type="button"
             aria-pressed={esperandoOnly}
@@ -334,11 +334,11 @@ export function BitacoraClient({
         >
           <div
             className="studio-eyebrow"
-            style={{ color: "var(--wine)", marginBottom: 10 }}
+            style={{ color: "var(--wine-text)", marginBottom: 10 }}
           >
             Cola del rol · sin dueño
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
             {queueTasks.map((t) => {
               const roleLabel =
                 ROLE_QUEUE_LABELS[
@@ -351,7 +351,7 @@ export function BitacoraClient({
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 12,
+                    gap: "var(--s-3)",
                     padding: "10px 12px",
                     background: "var(--bg-elevated)",
                     borderRadius: "var(--r-md)",

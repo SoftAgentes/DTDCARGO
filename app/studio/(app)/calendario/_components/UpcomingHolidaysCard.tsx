@@ -21,7 +21,7 @@ function countryBadge(country: Holiday["country"]) {
     return {
       label: "CN",
       bg: "var(--cal-cn-soft)",
-      color: "var(--wine)",
+      color: "var(--wine-text)",
       border: "var(--wine-soft)",
     };
   }
@@ -43,12 +43,12 @@ export function UpcomingHolidaysCard({ holidays, limit = 8 }: Props) {
         background: "var(--bg-surface)",
         border: "1px solid var(--border)",
         borderRadius: 10,
-        padding: 20,
+        padding: "var(--s-5)",
       }}
     >
       <div
         className="studio-eyebrow"
-        style={{ color: "var(--wine)", marginBottom: 14 }}
+        style={{ color: "var(--wine-text)", marginBottom: 14 }}
       >
         Próximos feriados
       </div>

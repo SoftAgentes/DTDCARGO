@@ -102,7 +102,7 @@ export function SectionTitle({ children }: { children: ReactNode }) {
       style={{
         font: "700 14px/1.2 var(--f-display)",
         color: "var(--ink)",
-        margin: "8px 0 4px",
+        margin: "var(--s-2) 0 var(--s-1)",
         paddingBottom: 6,
         borderBottom: "1px solid var(--border)",
       }}

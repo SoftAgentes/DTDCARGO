@@ -431,7 +431,7 @@ export default async function ClienteDetallePage({
                       style={{
                         marginLeft: "auto",
                         font: "600 10.5px/1 var(--f-sans)",
-                        color: "var(--wine)",
+                        color: "var(--wine-text)",
                         letterSpacing: "0.04em",
                         textTransform: "uppercase",
                       }}
@@ -447,7 +447,7 @@ export default async function ClienteDetallePage({
               style={{
                 font: "500 11.5px/1.4 var(--f-sans)",
                 color: "var(--ink-soft)",
-                margin: "12px 0 0",
+                margin: "var(--s-3) 0 0",
               }}
             >
               {completeness.isComplete
@@ -553,7 +553,7 @@ export default async function ClienteDetallePage({
                   font: "500 13px/1.5 var(--f-sans)",
                   color: "var(--ink-soft)",
                   margin: 0,
-                  padding: "20px 0",
+                  padding: "var(--s-5) 0",
                   textAlign: "center",
                 }}
               >
@@ -570,7 +570,7 @@ export default async function ClienteDetallePage({
                       display: "grid",
                       gridTemplateColumns: "110px 1fr 120px 100px",
                       gap: 10,
-                      padding: "12px 8px",
+                      padding: "var(--s-3) var(--s-2)",
                       borderTop: i > 0 ? "1px solid var(--border)" : 0,
                       alignItems: "center",
                       textDecoration: "none",
@@ -636,7 +636,7 @@ function DataRow({
         display: "grid",
         gridTemplateColumns: "100px 1fr",
         gap: 10,
-        padding: "8px 0",
+        padding: "var(--s-2) 0",
         borderBottom: "1px solid var(--border)",
         alignItems: "baseline",
       }}

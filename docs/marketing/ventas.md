@@ -4,11 +4,13 @@
 > perfil objetivo, la oferta y el plan mensual recurrente. El *por qué* y la identidad están en
 > [`estrategia.md`](estrategia.md).
 >
-> **Estado (2026-06-08):** estructura creada. Criterios de ancla confirmados; ejecución de la
-> captación pendiente.
+> **Estado (2026-07-17):** estructura creada; criterios de ancla confirmados; **la ejecución de la
+> captación ya tiene sistema**: oferta empaquetada + canal primario + proceso de prospección diario
+> en [`adquisicion.md`](adquisicion.md) (manual del asesor, nivel principiante).
 >
 > **El embudo operativo que ejecuta esta estrategia** (5 etapas, campos del Kanban, mapa de etapas
 > MARKBOX para SDD-0084, SLA y loop de recompra) vive en [`embudo-ventas.md`](embudo-ventas.md).
+> **El frente del embudo** (prospección, cadencia de toques, referidos) vive en [`adquisicion.md`](adquisicion.md).
 
 ## Objetivo
 
@@ -26,10 +28,15 @@ puerta, a cambio de un **precio mayorista especial condicionado a esa cadencia**
 
 ## Motor 2 · Aliados / revendedores (white-label)
 
-Socios que **revenden el servicio DTD** (referidos o alianza) y aportan el volumen de sus
-clientes. Beneficio clave: acceso al **ERP en white-label** para dar seguimiento a sus clientes
-sin que estos detecten que DTD está detrás.
+Socios que **revenden el servicio DTD** bajo su marca y **atienden ellos a sus propios clientes**.
+Programa público = **"Aliados DTD"**. Modelo (founder 17-jul): el aliado es un **cliente con tarifa
+FIJA especial** — DTD le da un precio por CBM, él revende al suyo. **No es % de margen.**
 
+- ⚠️ **No confundir** con el *aliado cliente* = el mayorista que trae su mercancía con DTD (Motor 1).
+  Acá "aliado" = revendedor del servicio (aliado comercial).
+- Beneficio clave: acceso al **ERP en white-label** para que sus clientes sigan su carga con la marca
+  del aliado. **Pieza a construir** (módulo tenant-aparte + codificación de letras + billing por
+  definir) → detalle en [`adquisicion.md`](adquisicion.md) §2c/§7.
 - Base técnica ya existente: arquitectura **multi-tenant** + portal cliente (SDD-0042). El
   white-label para aliados es **extensión**, no de cero.
 
@@ -57,11 +64,12 @@ Se revisa **cada mes**. Una fila por mes:
 | Mes | Meta (cont.) | Prospectos ancla | Criterios que cumplen | Oferta enviada | Estado |
 |---|---|---|---|---|---|
 | 2026-06 | 2 | — | — | — | pendiente |
+| 2026-07 | 2 | **lista armada: [`prospectos-ancla.md`](prospectos-ancla.md)** (~60 mayoristas, ⭐ top 10) + base Kommo en `/studio/kommo` › Recuperación | por calificar (5 preguntas de [`adquisicion.md`](adquisicion.md) §5) | tras calificar | **en curso** — sistema + herramientas listos 17-jul; arranca la rutina diaria |
 
 > **Marketing apunta SOLO a estos dos perfiles** (mayoristas recurrentes + aliados), **no a
 > compradores de una sola vez.**
 
 ## Pendiente
 - [ ] Medir CBM promedio por cuenta → cerrar el rango "~7–14 cuentas".
-- [ ] Definir la tarifa preferencial y la condición exacta de cadencia.
-- [ ] Cablear los recordatorios de recompra (día 30/45) en el ERP (Kommo Fase 1).
+- [ ] Definir la tarifa preferencial y la condición exacta de cadencia → decisión #2 de [`adquisicion.md`](adquisicion.md) §10.
+- [ ] Cablear los recordatorios de recompra (día 30/45) en el ERP (Kommo Fase 1) → backlog #3 de [`adquisicion.md`](adquisicion.md) §8.

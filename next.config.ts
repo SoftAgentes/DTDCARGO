@@ -161,6 +161,9 @@ const nextConfig: NextConfig = {
     // como data-URI leído de `public/brand/` por fs → trazarlo para prod (si el
     // fs falla, el reporte degrada al wordmark de texto, sin romper).
     "/api/studio/bitacora/export": ["./public/brand/**"],
+    // Documentos de Marketing en el Studio (SDD-0158): el lector lee los `.md`
+    // de docs/marketing por fs en runtime → deben viajar en el bundle en prod.
+    "/studio/marketing/docs": ["./docs/marketing/**/*.md"],
   },
   async headers() {
     // El operario PWA (`/m/*`) necesita cámara (scan QR · QrScanner) y

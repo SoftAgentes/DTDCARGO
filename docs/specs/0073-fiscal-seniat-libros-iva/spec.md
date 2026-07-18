@@ -1,10 +1,10 @@
 ---
 sdd: "0073"
 title: "Fiscal · SENIAT — módulo configurable: Configuración fiscal (per-tenant) + Libro de Ventas + Libro de Compras (Bloque 3)"
-status: in-progress
+status: done
 author: "Claude Code (carril Bloque 3 · Norte v2.5)"
 created: 2026-06-12
-updated: 2026-06-16
+updated: 2026-07-15
 supersedes: null
 superseded_by: null
 related: ["0018", "0021", "0040", "0042", "0044", "0052", "0053"]

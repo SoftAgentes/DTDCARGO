@@ -18,7 +18,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 export const metadata: Metadata = {
   title: "Glosario de comercio exterior",
   description:
-    "Los términos de logística e importación China-Venezuela explicados sin jerga: DDP, FCL, LCL, Incoterms, BL, AWB, ETA, CBM, MARKBOX (Shipping Mark) y más.",
+    "Los términos de logística e importación China-Venezuela explicados sin jerga: DDP, FCL, LCL, Incoterms, BL, AWB, ETA, CBM, Shipping Mark y más.",
   keywords: [
     "glosario DDP",
     "Incoterms 2020",
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   ...socialMeta({
     title: "Glosario de comercio exterior · DTD Cargo",
     description:
-      "Los términos de logística e importación China-Venezuela explicados sin jerga: DDP, FCL, LCL, Incoterms, BL, AWB, ETA, CBM, MARKBOX (Shipping Mark) y más.",
+      "Los términos de logística e importación China-Venezuela explicados sin jerga: DDP, FCL, LCL, Incoterms, BL, AWB, ETA, CBM, Shipping Mark y más.",
     path: "/glosario",
   }),
 };
@@ -46,7 +46,7 @@ export default function GlosarioPage() {
     "@id": `${SITE_URL}/glosario#terminos`,
     name: "Glosario de comercio exterior — DTD Cargo",
     description:
-      "Términos de logística e importación China–Venezuela explicados sin jerga: DDP, FCL, LCL, Incoterms, BL, AWB, ETA, CBM, MARKBOX y más.",
+      "Términos de logística e importación China–Venezuela explicados sin jerga: DDP, FCL, LCL, Incoterms, BL, AWB, ETA, CBM, Shipping Mark y más.",
     url: `${SITE_URL}/glosario`,
     inLanguage: "es-VE",
     hasDefinedTerm: GLOSSARY_TERMS.map((t) => ({

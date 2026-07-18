@@ -111,9 +111,9 @@ export function ImportExportSection({
       {/* Export */}
       <Card>
         <CardEyebrow>Exportar (CSV)</CardEyebrow>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
           {exports.map((x) => (
-            <div key={x.title} style={{ display: "grid", gridTemplateColumns: "1fr 120px 120px", gap: 12, padding: "12px 14px", background: "var(--bg-elevated)", borderRadius: "var(--r-md)", alignItems: "center" }}>
+            <div key={x.title} style={{ display: "grid", gridTemplateColumns: "1fr 120px 120px", gap: "var(--s-3)", padding: "12px 14px", background: "var(--bg-elevated)", borderRadius: "var(--r-md)", alignItems: "center" }}>
               <div style={{ font: "700 13px/1.3 var(--f-sans)", color: "var(--ink)" }}>{x.title}</div>
               <span style={{ font: "600 11.5px/1 var(--f-mono)", color: "var(--ink-soft)" }}>{x.count} filas</span>
               <button
@@ -134,8 +134,8 @@ export function ImportExportSection({
       </Card>
 
       {/* Import por implementar */}
-      <section style={{ background: "var(--bg-surface)", border: "2px dashed var(--border-strong)", borderRadius: "var(--r-lg)", padding: "20px 24px" }}>
-        <div style={{ font: "700 10px/1 var(--f-sans)", color: "var(--wine)", letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: 10 }}>
+      <section style={{ background: "var(--bg-surface)", border: "2px dashed var(--border-strong)", borderRadius: "var(--r-lg)", padding: "var(--s-5) var(--s-6)" }}>
+        <div style={{ font: "700 10px/1 var(--f-sans)", color: "var(--wine-text)", letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: 10 }}>
           Importar (CSV / XLSX) · por implementar
         </div>
         <p style={{ font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0, maxWidth: "64ch" }}>
@@ -155,5 +155,5 @@ function Card({ children }: { children: React.ReactNode }) {
   );
 }
 function CardEyebrow({ children }: { children: React.ReactNode }) {
-  return <div className="studio-eyebrow" style={{ color: "var(--wine)", marginBottom: 14 }}>{children}</div>;
+  return <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: 14 }}>{children}</div>;
 }

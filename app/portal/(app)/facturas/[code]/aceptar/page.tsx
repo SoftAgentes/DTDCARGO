@@ -119,7 +119,7 @@ export default async function AcceptTermsPage({ params }: Props) {
         </h1>
         <p className="lead mt-2 max-w-[60ch]">
           Antes de emitir tu factura, necesitamos que aceptes los términos y
-          confirmes el monto y la medida de esta orden de puerta a puerta DDP
+          confirmes el monto y la medida de esta orden de puerta a puerta
           (prepago).
         </p>
       </div>

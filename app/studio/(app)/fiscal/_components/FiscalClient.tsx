@@ -114,13 +114,13 @@ export function FiscalClient({
   return (
     <div style={{ maxWidth: 1180 }}>
       <header style={{ marginBottom: 22 }}>
-        <div className="studio-eyebrow" style={{ color: "var(--wine)", marginBottom: 6 }}>
+        <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: 6 }}>
           Fiscal · SENIAT
         </div>
         <h1 className="studio-display" style={{ font: "900 26px/1.1 var(--f-display)", color: "var(--ink)", margin: 0 }}>
           Libros de IVA y configuración fiscal
         </h1>
-        <p style={{ font: "500 13.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: "8px 0 0", maxWidth: "70ch" }}>
+        <p style={{ font: "500 13.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: "var(--s-2) 0 0", maxWidth: "70ch" }}>
           Libros de Ventas y Compras en formato SENIAT, generados según la{" "}
           <strong style={{ color: "var(--ink)" }}>configuración fiscal</strong> de tu
           empresa.{" "}
@@ -1026,7 +1026,7 @@ function PrintLayout({
             font: 700 9px/1 var(--f-sans);
             letter-spacing: 0.18em;
             text-transform: uppercase;
-            color: var(--wine);
+            color: var(--wine-text);
           }
           #dtd-fiscal-print .fp-title {
             font: 900 20px/1.15 var(--f-display);

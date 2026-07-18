@@ -68,14 +68,15 @@ export type AddressInput = {
 };
 
 /**
- * Cédula venezolana: prefijo V (venezolano) o E (extranjero) + 6 a 9 dígitos.
- * Acepta con o sin guión ("V-12345678" o "V12345678"). Case-insensitive.
+ * Cédula venezolana (prefijo V venezolano / E extranjero + 6 a 9 dígitos) o
+ * pasaporte (prefijo P + 5 a 12 alfanuméricos). Acepta con o sin guión
+ * ("V-12345678" o "V12345678"). Case-insensitive.
  */
-export const CEDULA_REGEX = /^[VEve]-?\d{6,9}$/;
+export const CEDULA_REGEX = /^(?:[VEve]-?\d{6,9}|[Pp]-?[A-Za-z0-9]{5,12})$/;
 
 /**
- * Normaliza una cédula a canónico "V-12345678" (prefijo mayúscula + guión).
- * Asume que ya pasó CEDULA_REGEX.
+ * Normaliza una cédula/pasaporte a canónico "V-12345678" / "P-A1234567"
+ * (prefijo mayúscula + guión). Asume que ya pasó CEDULA_REGEX.
  */
 export function formatCedula(raw: string): string {
   const clean = raw.replace(/[-\s]/g, "").toUpperCase();
@@ -165,7 +166,7 @@ export function validateRegisterInput(partial: Partial<RegisterInput>): {
   } else if (!document) {
     errors.document = isCompany
       ? "RIF inválido. Formato: J-12345678-9."
-      : "Cédula inválida. Formato: V-12345678.";
+      : "Cédula o pasaporte inválido. Formato: V-12345678 o P-A1234567.";
   }
 
   const email = partial.email?.trim().toLowerCase() || "";

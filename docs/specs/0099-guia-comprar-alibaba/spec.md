@@ -1,10 +1,10 @@
 ---
 sdd: "0099"
 title: "Curso de bienvenida gratuito — Cómo comprar en Alibaba (guion + mini-videos + PDF)"
-status: in-progress
+status: done
 author: "Claude Code (session context) + founder"
 created: 2026-06-20
-updated: 2026-06-20
+updated: 2026-07-15
 supersedes: null
 superseded_by: null
 related: ["0088","0093","0074"]

@@ -179,7 +179,7 @@ function EmptyAgenticCard({ pendingApprovals }: { pendingApprovals: number }) {
         <div
           style={{
             font: "700 10.5px/1 var(--f-sans)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             letterSpacing: "0.16em",
             textTransform: "uppercase",
           }}
@@ -210,7 +210,7 @@ function EmptyAgenticCard({ pendingApprovals }: { pendingApprovals: number }) {
           {pendingApprovals > 0 && (
             <>
               {" · "}
-              <strong style={{ color: "var(--wine)" }}>
+              <strong style={{ color: "var(--wine-text)" }}>
                 {pendingApprovals} aprobaciones pendientes
               </strong>
               {" en cola."}

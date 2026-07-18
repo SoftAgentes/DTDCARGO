@@ -28,9 +28,16 @@ import type {
   KommoStageMap,
 } from "@/lib/studio/kommo-types";
 import type { ReactNode } from "react";
+import {
+  filterRecoveryRows,
+  getRecoveryUniverse,
+  parseRecoveryFilters,
+  RECOVERY_LIST_CAP,
+} from "@/lib/studio/kommo-recovery";
 import { DireccionTab } from "./_components/DireccionTab";
 import { KommoBoardView } from "./_components/KommoBoardView";
 import { KommoClient } from "./_components/KommoClient";
+import { RecoveryTab } from "./_components/RecoveryTab";
 import { resolveKommoTab } from "./_components/kommo-tabs.shared";
 
 /** Tope de leads traídos por embudo para el Tablero kanban. */
@@ -124,6 +131,35 @@ export default async function KommoPage({
     }
   }
 
+  // Recuperación (SDD-0157): universo de contactos con teléfono × clientes del
+  // ERP, filtrado server-side; a la UI viaja solo la página (cap 300).
+  let recuperacion: ReactNode = null;
+  if (tab === "recuperacion") {
+    const universe = await getRecoveryUniverse(supabase);
+    const rf = parseRecoveryFilters(raw);
+    const filtered = filterRecoveryRows(universe.rows, rf);
+    let clientes = 0;
+    for (const r of universe.rows) if (r.segment === "cliente") clientes += 1;
+    recuperacion = (
+      <RecoveryTab
+        rows={filtered.slice(0, RECOVERY_LIST_CAP)}
+        totalFiltered={filtered.length}
+        listCap={RECOVERY_LIST_CAP}
+        filters={rf}
+        counts={{
+          total: universe.rows.length,
+          clientes,
+          interesados: universe.rows.length - clientes,
+          noPhone: universe.noPhone,
+          noPhoneWithEmail: universe.noPhoneWithEmail,
+          deduped: universe.deduped,
+          fetched: universe.fetched,
+          cap: universe.cap,
+        }}
+      />
+    );
+  }
+
   // Worklist (Asesor): leads filtrados; converted/valor se derivan del análisis.
   const leads = tab === "asesor" ? await listKommoLeads(supabase, filters) : [];
   const visibleConverted: Record<number, string> = {};
@@ -153,6 +189,7 @@ export default async function KommoPage({
         ) : null
       }
       tablero={tablero}
+      recuperacion={recuperacion}
       overview={overview}
       pipelines={pipelines}
       statuses={statuses}

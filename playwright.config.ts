@@ -8,7 +8,12 @@ import { defineConfig, devices } from "@playwright/test";
  *   (puerto 3001 para no chocar con el dev server normal en 3000).
  * - `BASE_URL` env var permite correr contra prod/staging sin levantar dev.
  */
-const PORT = 3001;
+// Puerto configurable vía `E2E_PORT` (default 3001). El gate del harness
+// (scripts/verify.mjs) le pasa un puerto propio para no reusar un `next dev` de
+// otra ventana en 3001 y terminar testeando el código equivocado (modelo
+// multi-ventana). `BASE_URL` sigue teniendo prioridad para correr contra un
+// server ya levantado (prod/staging o el dev local) sin arrancar uno nuevo.
+const PORT = Number(process.env.E2E_PORT ?? 3001);
 const BASE_URL = process.env.BASE_URL ?? `http://localhost:${PORT}`;
 
 export default defineConfig({
@@ -33,9 +38,13 @@ export default defineConfig({
   webServer: process.env.BASE_URL
     ? undefined
     : {
-        command: `next dev --port ${PORT}`,
+        // Invocar el entry JS con `node` directo (no `next` a secas): en este
+        // entorno pnpm no linkea los .bin (ERR_PNPM_IGNORED_BUILDS) y `next` no
+        // queda en el PATH del shell del webServer → "next no se reconoce".
+        // Mismo patrón que scripts/verify.mjs.
+        command: `node node_modules/next/dist/bin/next dev --port ${PORT}`,
         url: BASE_URL,
         reuseExistingServer: !process.env.CI,
-        timeout: 60_000,
+        timeout: 120_000,
       },
 });

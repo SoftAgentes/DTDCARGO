@@ -15,7 +15,7 @@ export function TmsKpis({ kpis }: { kpis: KpisType }) {
         label="Flota total"
         value={kpis.fleetTotal}
         sub={`${kpis.fleetOwned} propios · ${kpis.fleetContracted} contratados`}
-        valueColor="var(--wine)"
+        valueColor="var(--wine-text)"
       />
       <KpiCard
         label="En ruta ahora"

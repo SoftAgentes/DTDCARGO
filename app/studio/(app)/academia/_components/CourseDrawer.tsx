@@ -136,7 +136,7 @@ export function CourseDrawer({
             style={{
               font: "500 11px/1.4 var(--f-sans)",
               color: "var(--ink-soft)",
-              marginTop: 4,
+              marginTop: "var(--s-1)",
               display: "block",
             }}
           >

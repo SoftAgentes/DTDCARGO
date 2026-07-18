@@ -112,13 +112,13 @@ export default async function MarketingHubPage() {
       <div style={{ marginBottom: 28 }}>
         <div
           className="studio-eyebrow"
-          style={{ marginBottom: 10, color: "var(--wine)" }}
+          style={{ marginBottom: 10, color: "var(--wine-text)" }}
         >
           Marketing · HUB
         </div>
         <h1
           className="studio-display"
-          style={{ fontSize: 30, margin: "0 0 8px", color: "var(--ink)" }}
+          style={{ fontSize: 30, margin: "0 0 var(--s-2)", color: "var(--ink)" }}
         >
           HUB de marca
         </h1>
@@ -137,7 +137,7 @@ export default async function MarketingHubPage() {
 
       {/* Logos */}
       <section style={{ marginBottom: 32 }}>
-        <h2 className="studio-eyebrow" style={{ margin: "0 0 12px" }}>
+        <h2 className="studio-eyebrow" style={{ margin: "0 0 var(--s-3)" }}>
           Logos
         </h2>
         <div
@@ -189,7 +189,7 @@ export default async function MarketingHubPage() {
                   style={{
                     font: "400 12px/1.4 var(--f-sans)",
                     color: "var(--ink-soft)",
-                    margin: "0 0 12px",
+                    margin: "0 0 var(--s-3)",
                   }}
                 >
                   {logo.caption}
@@ -210,10 +210,57 @@ export default async function MarketingHubPage() {
         </div>
       </section>
 
+      {/* Documentación de marketing (SDD-0158): acceso al lector de docs/marketing */}
+      <section style={{ marginBottom: 32 }}>
+        <h2 className="studio-eyebrow" style={{ margin: "0 0 var(--s-3)" }}>
+          Documentación
+        </h2>
+        <Link
+          href="/studio/marketing/docs"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 16,
+            border: "1px solid var(--border)",
+            borderRadius: 14,
+            padding: "20px 24px",
+            background: "var(--bg-surface)",
+            textDecoration: "none",
+          }}
+        >
+          <div>
+            <p
+              style={{
+                font: "700 15px/1.3 var(--f-sans)",
+                color: "var(--ink)",
+                margin: "0 0 var(--s-1)",
+              }}
+            >
+              Documentos de marketing
+            </p>
+            <p
+              style={{
+                font: "400 13px/1.5 var(--f-sans)",
+                color: "var(--ink-soft)",
+                margin: 0,
+                maxWidth: "64ch",
+              }}
+            >
+              Toda la estrategia en un solo lugar: sistema de adquisición, oferta, prospectos,
+              embudo, SEO y canales. Se lee acá mismo y se actualiza solo desde el repo.
+            </p>
+          </div>
+          <span style={{ color: "var(--wine-text)", flexShrink: 0, display: "inline-flex" }}>
+            {Icon.chevR(18)}
+          </span>
+        </Link>
+      </section>
+
       {/* Secciones pendientes */}
       {PLACEHOLDERS.map((p) => (
         <section key={p.eyebrow} style={{ marginBottom: 24 }}>
-          <h2 className="studio-eyebrow" style={{ margin: "0 0 12px" }}>
+          <h2 className="studio-eyebrow" style={{ margin: "0 0 var(--s-3)" }}>
             {p.eyebrow}
           </h2>
           <div
@@ -233,7 +280,7 @@ export default async function MarketingHubPage() {
                 style={{
                   font: "600 14px/1.4 var(--f-sans)",
                   color: "var(--ink)",
-                  margin: "0 0 4px",
+                  margin: "0 0 var(--s-1)",
                 }}
               >
                 {p.title}

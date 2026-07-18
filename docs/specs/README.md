@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 146 specs)
+### Índice de specs (generado · 156 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -101,14 +101,13 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0066 | Generador de reportes de inspección en el ERP (white-label · … | done | interno |
 | 0067 | Aceptación con evidencia reforzada (SDD-B del handoff legal) … | done | interno |
 | 0068 | Recibos de cobranza con mandato (SDD-C del handoff legal) — l… | done | interno |
-| 0068 | Registro self-service — entrega real del correo de bienvenida… | done | interno |
 | 0069 | Rendición quincenal a la Operadora (SDD-D del handoff legal) … | done | interno |
 | 0070 | Expediente de defensa legal (SDD-E del handoff) — cadena de e… | done | interno |
 | 0071 | Orden de compra (Purchase Order · compra asistida → Bill): el… | done | interno |
 | 0072 | Orden de venta (Sales Order · modelo QuickBooks): el estimado… | done | interno |
-| 0073 | Fiscal · SENIAT — módulo configurable: Configuración fiscal (… | in-progress | interno |
+| 0073 | Fiscal · SENIAT — módulo configurable: Configuración fiscal (… | done | interno |
 | 0074 | Onboarding — sync del alta de cliente a Kommo (push del lead) | done | interno |
-| 0075 | Portal del cliente — alineación con el Norte (estimado, sopor… | proposed | interno |
+| 0075 | Portal del cliente — alineación con el Norte (estimado, sopor… | in-progress | interno |
 | 0076 | Configuración canónica de servicios | done | interno |
 | 0077 | Contabilidad estilo QuickBooks — proveedor→cuenta por defecto… | done | interno |
 | 0078 | Tablero CRM (Kommo ↔ ERP) read-only — Dirección + Asesor | done | interno |
@@ -123,7 +122,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0087 | Espejo de usuarios de Kommo — nombres de asesor en el tablero | done | interno |
 | 0088 | Motor de contenido de marketing — cerebro de ruteo (Test de N… | proposed | interno |
 | 0089 | Clasificador de contenido + output multicanal (idea → noticia… | in-progress | interno |
-| 0090 | Motor de oferta al cliente — wizard de intención + matriz de … | proposed | interno |
+| 0090 | Motor de oferta al cliente — wizard de intención + matriz de … | done | interno |
 | 0091 | Motor de flujo interno por servicio (N8N-lite) — implementaci… | done | interno |
 | 0092 | Integración SeaRates Logistics Explorer — fletes marítimos FC… | done | interno |
 | 0093 | Academia DTD — módulo de formación (catálogo on-demand + coho… | done | interno |
@@ -132,7 +131,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0096 | Packing list online del proveedor + adjuntos por el link | done | interna |
 | 0097 | Packing list Norte v4.4 — propagación a producción (editor de… | done | interna |
 | 0098 | Prealertas — menú de servicios de recepción (add-ons) + video… | done | interno |
-| 0099 | Curso de bienvenida gratuito — Cómo comprar en Alibaba (guion… | in-progress | interno |
+| 0099 | Curso de bienvenida gratuito — Cómo comprar en Alibaba (guion… | done | interno |
 | 0100 | Etiquetas CN reales: QR escaneable + datos de bodega (cierra … | done | interna |
 | 0101 | Naviera Tier 1: tracking real del embarque (deep-link SeaRate… | draft | interna |
 | 0102 | Reclamos y siniestros del cliente — gestión de incidencias de… | done | interno |
@@ -144,46 +143,57 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0108 | Combobox de cliente cédula-first (cotizador/tracking/embarques) | done | interno |
 | 0109 | Liquidación y finiquito de nómina (LOTTT) — prestaciones, vac… | done | interno |
 | 0110 | Cablear el posting contable del Financiero con el Socio Logís… | done | confidencial |
-| 0111 | Scorecard de proveedores — captura de desempeño + reclamo al … | draft | interno |
+| 0111 | Scorecard de proveedores — captura de desempeño + reclamo al … | done | interno |
 | 0113 | Onboarding y app self-service del empleado — invites + regist… | done | interno |
-| 0114 | Dashboard configurable + persistencia de preferencias por usu… | draft | interno |
+| 0114 | Dashboard configurable + persistencia de preferencias por usu… | done | interno |
 | 0115 | Financiero China Slice C — forex como revenue · claim offsets… | done | confidencial |
-| 0116 | Club DTD — membresía recurrente + compra grupal (consolidació… | in-progress | interno |
+| 0116 | Club DTD — membresía recurrente + compra grupal (consolidació… | done | interno |
 | 0117 | Recibo y finiquito en PDF server-side (@react-pdf/renderer) —… | done | interno |
 | 0118 | Seed migrations idempotentes — habilitar validación en branch… | draft | interno |
-| 0119 | Módulo de Marketing en el ERP — Dashboard de Marketing (salud… | draft | interno |
-| 0120 | Datos de la empresa — primera sección real de Administración … | in-progress | interno |
-| 0121 | Apariencia — preferencias de Studio (tema + densidad) + mater… | in-progress | interno |
-| 0122 | Numeración & legal — formatos de correlativo (read-only) + le… | in-progress | interno |
-| 0123 | Audit log — viewer read-only del entity_audit_log en Administ… | in-progress | interno |
-| 0124 | Permisos por rol — matriz read-only rol × módulo (visualiza l… | in-progress | interno |
-| 0125 | Master data — hub read-only de catálogos (tiers + punteros a … | in-progress | interno |
-| 0126 | Tasas de cambio — gestión de tenant_fx_history desde Administ… | in-progress | interno |
-| 0127 | Feriados & ferias — calendario operativo CN/VE (feriados + fe… | in-progress | interno |
-| 0128 | API keys & webhooks — gestión de credenciales de integración … | in-progress | interno |
-| 0129 | Workflows custom — puntero al motor de flujo existente (SDD-0… | in-progress | interno |
-| 0130 | Importar / Exportar — export CSV del dominio admin (import po… | in-progress | interno |
-| 0131 | Registro de cliente interno — persona/empresa (cédula vs RIF)… | in-progress | interno |
-| 0132 | Hitos del envío + notificación de estado al cliente | in-progress | interno |
-| 0133 | Cut-off / calendario de zarpes en el portal | in-progress | interno |
-| 0134 | Reportar pago + comprobante en el portal | in-progress | interno |
+| 0119 | Módulo de Marketing en el ERP — Dashboard de Marketing (salud… | done | interno |
+| 0120 | Datos de la empresa — primera sección real de Administración … | done | interno |
+| 0121 | Apariencia — preferencias de Studio (tema + densidad) + mater… | done | interno |
+| 0122 | Numeración & legal — formatos de correlativo (read-only) + le… | done | interno |
+| 0123 | Audit log — viewer read-only del entity_audit_log en Administ… | done | interno |
+| 0124 | Permisos por rol — matriz read-only rol × módulo (visualiza l… | done | interno |
+| 0125 | Master data — hub read-only de catálogos (tiers + punteros a … | done | interno |
+| 0126 | Tasas de cambio — gestión de tenant_fx_history desde Administ… | done | interno |
+| 0127 | Feriados & ferias — calendario operativo CN/VE (feriados + fe… | done | interno |
+| 0128 | API keys & webhooks — gestión de credenciales de integración … | done | interno |
+| 0129 | Workflows custom — puntero al motor de flujo existente (SDD-0… | done | interno |
+| 0130 | Importar / Exportar — export CSV del dominio admin (import po… | done | interno |
+| 0131 | Registro de cliente interno — persona/empresa (cédula vs RIF)… | done | interno |
+| 0132 | Hitos del envío + notificación de estado al cliente | done | interno |
+| 0133 | Cut-off / calendario de zarpes en el portal | done | interno |
+| 0134 | Reportar pago + comprobante en el portal | done | interno |
 | 0135 | Buscador global ⌘K del Studio — permission-aware, gating por … | done | interno |
-| 0136 | Gestión de usuarios del ERP — alta por rol, reasignación y ba… | draft | interno |
-| 0137 | Crédito de referido auto-aplicado — aplicar el bono del refer… | draft | interno |
+| 0136 | Gestión de usuarios del ERP — alta por rol, reasignación y ba… | done | interno |
+| 0137 | Crédito de referido auto-aplicado — aplicar el bono del refer… | done | interno |
 | 0138 | Mi Perfil del cliente — identidad + direcciones de entrega mú… | done | interno |
 | 0139 | RBAC: metodología definitiva — matriz en código + capabilitie… | done | interno |
-| 0140 | Perfiles de puesto en nómina + alta unificada (empleado + usu… | draft | interno |
-| 0141 | Calendario al Norte — vistas + eventos operativos de embarques | in-progress | interno |
-| 0142 | Reportes al Norte — reporte Por agente + reporte IVA | in-progress | interno |
-| 0143 | Mailing al Norte — Firmas, Envío manual y Programados (+ cron) | in-progress | interno |
-| 0144 | Compra asistida — renombre, filtros y reglas propias del módulo | draft | interno |
-| 0145 | Mi perfil unificado del portal — una sola pantalla espejando … | in-progress | interno |
+| 0140 | Perfiles de puesto en nómina + alta unificada (empleado + usu… | done | interno |
+| 0141 | Calendario al Norte — vistas + eventos operativos de embarques | done | interno |
+| 0142 | Reportes al Norte — reporte Por agente + reporte IVA | done | interno |
+| 0143 | Mailing al Norte — Firmas, Envío manual y Programados (+ cron) | done | interno |
+| 0144 | Compra asistida — renombre, filtros y reglas propias del módulo | done | interno |
+| 0145 | Mi perfil unificado del portal — una sola pantalla espejando … | done | interno |
 | 0146 | Bitácora — actas de reunión con IA + gestor de tareas del equ… | done | interno |
-| 0147 | Soporte del portal a Norte — fusión de Reclamos + chat con el… | in-progress | interno |
-| 0148 | Aviso al equipo de mensajes entrantes del portal — activar el… | in-progress | interno |
+| 0147 | Soporte del portal a Norte — fusión de Reclamos + chat con el… | done | interno |
+| 0148 | Aviso al equipo de mensajes entrantes del portal — activar el… | done | interno |
 | 0149 | Resumen mensual de conversaciones con IA — histórico navegabl… | in-progress | interno |
 | 0150 | Secretarias de reunión v2 — default rica + Escucha Activa + t… | in-progress | interno |
 | 0151 | Perfil cliente — aviso de pendientes in-page + solicitud de c… | done | interno |
+| 0152 | Estiba por zonas — identidad por bulto, captura al cargar y v… | in-progress | interno |
+| 0153 | Etiqueta pre-declarada · la caja nace con el aviso, no con la… | in-progress | interno |
+| 0154 | Recibir por escaneo · la etiqueta pre-declarada materializa l… | in-progress | interno |
+| 0155 | Estiba por lotes · escanear una caja monta el lote; posición … | in-progress | interno |
+| 0156 | Notificaciones al cliente configurables — journey China→Venez… | done | interno |
+| 0157 | Campaña de recuperación Kommo — contactos con WhatsApp por ta… | in-progress | interno |
+| 0158 | Documentos de Marketing en el Studio — lector read-only de do… | done | interno |
+| 0159 | Configurar referidos — montos del programa editables desde el… | in-progress | interno |
+| 0160 | Modo consolidación del operario · pedir contenedor → oficina … | in-progress | interno |
+| 0161 | Registro self-service — entrega real del correo de bienvenida… | done | interno |
+| 0162 | Aviso de recepción al cliente — cablear la recepción del oper… | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

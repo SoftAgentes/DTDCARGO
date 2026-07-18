@@ -48,10 +48,10 @@ function DriverCard({ driver: d }: { driver: TmsDriver }) {
         padding: "16px 18px",
         display: "flex",
         flexDirection: "column",
-        gap: 12,
+        gap: "var(--s-3)",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--s-3)" }}>
         <Avatar initials={initialsFrom(d.name)} size={44} color="wine" />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
@@ -91,7 +91,7 @@ function DriverCard({ driver: d }: { driver: TmsDriver }) {
         <div style={{ textAlign: "right" }}>
           <div
             className="studio-display"
-            style={{ fontSize: 16, color: "var(--wine)" }}
+            style={{ fontSize: 16, color: "var(--wine-text)" }}
           >
             {d.rating != null ? `★ ${d.rating.toFixed(1)}` : "—"}
           </div>
@@ -99,7 +99,7 @@ function DriverCard({ driver: d }: { driver: TmsDriver }) {
             style={{
               font: "500 10.5px/1 var(--f-sans)",
               color: "var(--ink-soft)",
-              marginTop: 4,
+              marginTop: "var(--s-1)",
             }}
           >
             rating

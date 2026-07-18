@@ -18,17 +18,17 @@ const PASOS: { n: string; title: string; copy: string }[] = [
   {
     n: "01",
     title: "Te registras gratis",
-    copy: "Al darte de alta recibes tu MARKBOX al instante: tu código único DTD-NNNN.",
+    copy: "Al darte de alta recibes tu Shipping Mark al instante: tu código único DTD-NNNN.",
   },
   {
     n: "02",
     title: "Se lo pasas a tu proveedor",
-    copy: "Le compartes tu MARKBOX a tu proveedor en China cuando le haces el pedido.",
+    copy: "Le compartes tu Shipping Mark a tu proveedor en China cuando le haces el pedido.",
   },
   {
     n: "03",
     title: "Lo marca en cada bulto",
-    copy: "Tu proveedor escribe tu MARKBOX en cada caja, cartón o embalaje antes de despachar.",
+    copy: "Tu proveedor escribe tu Shipping Mark en cada caja, cartón o embalaje antes de despachar.",
   },
   {
     n: "04",
@@ -38,7 +38,7 @@ const PASOS: { n: string; title: string; copy: string }[] = [
   {
     n: "05",
     title: "La identificamos y revisamos",
-    copy: "Por tu MARKBOX sabemos que la caja es tuya, la asociamos a tu cuenta y la inspeccionamos.",
+    copy: "Por tu Shipping Mark sabemos que la caja es tuya, la asociamos a tu cuenta y la inspeccionamos.",
   },
   {
     n: "06",
@@ -47,6 +47,11 @@ const PASOS: { n: string; title: string; copy: string }[] = [
   },
   {
     n: "07",
+    title: "Pasa la aduana en Venezuela",
+    copy: "Tu Shipping Mark identifica cuál carga es la tuya durante la gestión aduanal y el pago de aranceles e impuestos, ya incluidos en tu cotización.",
+  },
+  {
+    n: "08",
     title: "La recibes en tu puerta",
     copy: "Llega puerta a puerta a tu dirección en Venezuela — identificada de principio a fin.",
   },
@@ -61,22 +66,22 @@ const BENEFICIOS = [
 
 export function ShippingMark() {
   const ctaHref = buildWhatsAppLink(
-    "Hola DTD Cargo, quiero registrarme y obtener mi MARKBOX.",
+    "Hola DTD Cargo, quiero registrarme y obtener mi Shipping Mark.",
   );
 
   return (
     <section className="py-16 lg:py-20 bg-white" id="shipping-mark">
       <div className="wrap">
-        <span className="eyebrow">MARKBOX · 唛头</span>
+        <span className="eyebrow">Shipping Mark · 唛头</span>
         <h2 className="h-section mt-4" style={{ fontSize: "clamp(28px, 4vw, 46px)" }}>
           Tu carga, identificada{" "}
           <span style={{ color: "var(--color-wine)" }}>de China a tu puerta.</span>
         </h2>
         <p className="lead mt-5 max-w-[60ch]">
-          El MARKBOX es el sistema de marcaje de DTD Cargo — tu Shipping Mark,
-          como se conoce este marcado a nivel internacional (唛头 en China). Es el
-          código que identifica tus cajas desde la fábrica hasta Venezuela, para
-          que tu mercancía nunca se confunda con la de otro.
+          El Shipping Mark es el sistema de marcaje de DTD Cargo — así se conoce
+          este marcado a nivel internacional (唛头 en China). Es el código que
+          identifica tus cajas desde la fábrica hasta Venezuela, para que tu
+          mercancía nunca se confunda con la de otro.
         </p>
 
         {/* Flujo paso a paso */}
@@ -119,12 +124,12 @@ export function ShippingMark() {
               className="text-[18px] lg:text-[20px] leading-[1.3] tracking-[-0.01em]"
               style={{ fontFamily: "var(--font-archivo-black)" }}
             >
-              Tu MARKBOX le da identidad a tu mercancía antes de que empiece
-              el viaje.
+              Tu Shipping Mark le da identidad a tu mercancía antes de que
+              empiece el viaje.
             </p>
             <div className="mt-6 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
               <Link href="/registro" className="btn btn-primary">
-                Regístrate y obtén tu MARKBOX
+                Regístrate y obtén tu Shipping Mark
               </Link>
               <a
                 href={ctaHref}

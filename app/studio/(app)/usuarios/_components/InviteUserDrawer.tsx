@@ -523,7 +523,7 @@ function ScopeSection({
       <div
         className="studio-eyebrow"
         style={{
-          color: "var(--wine)",
+          color: "var(--wine-text)",
           marginBottom: 8,
           fontSize: 10,
         }}
@@ -552,7 +552,7 @@ function ScopeSection({
       <div
         className="studio-eyebrow"
         style={{
-          color: "var(--wine)",
+          color: "var(--wine-text)",
           marginBottom: 8,
           fontSize: 10,
         }}
@@ -701,7 +701,7 @@ function ScopeBadge({ count }: { count: number }) {
         display: "inline-flex",
         alignItems: "center",
         height: 20,
-        padding: "0 8px",
+        padding: "0 var(--s-2)",
         background: "var(--wine-tint, #FBE9EC)",
         color: "var(--wine, #7F0F1A)",
         borderRadius: 4,
@@ -750,7 +750,7 @@ function SummaryCard({
       style={{
         padding: "14px 16px",
         background:
-          "linear-gradient(135deg, var(--ink) 0%, #1F3055 100%)",
+          "linear-gradient(135deg, #0F1E3D 0%, #1F3055 100%)",
         color: "#fff",
         borderRadius: 7,
       }}
@@ -861,7 +861,7 @@ function SuccessView({
           </strong>
           <p
             style={{
-              margin: "4px 0 0",
+              margin: "var(--s-1) 0 0",
               color: "var(--ink-soft)",
               fontSize: 12,
             }}

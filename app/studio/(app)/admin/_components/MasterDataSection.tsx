@@ -68,7 +68,7 @@ export function MasterDataSection() {
       {/* Catálogos gestionados en su módulo */}
       <Card>
         <CardEyebrow>Se gestionan en su módulo</CardEyebrow>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
           {MANAGED_ELSEWHERE.map((r) => (
             <Link
               key={r.href}
@@ -76,7 +76,7 @@ export function MasterDataSection() {
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 12,
+                gap: "var(--s-3)",
                 padding: "12px 14px",
                 textDecoration: "none",
                 background: "var(--bg-elevated)",
@@ -88,7 +88,7 @@ export function MasterDataSection() {
                 <span style={{ display: "block", font: "700 13px/1.3 var(--f-sans)", color: "var(--ink)" }}>{r.title}</span>
                 <span style={{ display: "block", font: "500 11.5px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>{r.sub}</span>
               </span>
-              <span style={{ color: "var(--wine)", flexShrink: 0, font: "600 12px/1 var(--f-sans)" }}>Abrir →</span>
+              <span style={{ color: "var(--wine-text)", flexShrink: 0, font: "600 12px/1 var(--f-sans)" }}>Abrir →</span>
             </Link>
           ))}
         </div>
@@ -100,13 +100,13 @@ export function MasterDataSection() {
           background: "var(--bg-surface)",
           border: "2px dashed var(--border-strong)",
           borderRadius: "var(--r-lg)",
-          padding: "20px 24px",
+          padding: "var(--s-5) var(--s-6)",
         }}
       >
         <div
           style={{
             font: "700 10px/1 var(--f-sans)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             letterSpacing: "0.16em",
             textTransform: "uppercase",
             marginBottom: 10,
@@ -114,7 +114,7 @@ export function MasterDataSection() {
         >
           Catálogos editables · por implementar
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "var(--s-2)", flexWrap: "wrap" }}>
           {NOT_YET.map((n) => (
             <span
               key={n}
@@ -158,7 +158,7 @@ function Card({ children }: { children: React.ReactNode }) {
 
 function CardEyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <div className="studio-eyebrow" style={{ color: "var(--wine)", marginBottom: 14 }}>
+    <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: 14 }}>
       {children}
     </div>
   );

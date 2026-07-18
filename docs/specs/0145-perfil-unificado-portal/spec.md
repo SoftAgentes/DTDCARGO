@@ -1,10 +1,10 @@
 ---
 sdd: "0145"
 title: "Mi perfil unificado del portal — una sola pantalla espejando el Norte"
-status: in-progress
+status: done
 author: "Claude Code (ventana secundaria · worktree perfil-norte) + founder"
 created: 2026-07-03
-updated: 2026-07-03
+updated: 2026-07-15
 supersedes: null
 superseded_by: null
 related: ["0042", "0131", "0138"]

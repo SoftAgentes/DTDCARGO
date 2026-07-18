@@ -55,7 +55,7 @@ export function TruckDrawer({ onClose }: { onClose: () => void }) {
           gap: 14,
         }}
       >
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
           <FieldText
             label="Patente *"
             name="plate"
@@ -80,7 +80,7 @@ export function TruckDrawer({ onClose }: { onClose: () => void }) {
           onChange={setBrand}
           placeholder="Volvo FH · Mercedes Atego · Iveco Daily"
         />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
           <FieldSelect
             label="Hub base"
             name="hub_code"
@@ -99,7 +99,7 @@ export function TruckDrawer({ onClose }: { onClose: () => void }) {
             ]}
           />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--s-3)" }}>
           <FieldText
             label="Capacidad kg"
             name="capacity_kg"
@@ -132,7 +132,7 @@ export function TruckDrawer({ onClose }: { onClose: () => void }) {
             error={state.fieldErrors?.km}
           />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
           <FieldSelect
             label="Combustible"
             name="fuel_type"
@@ -303,7 +303,7 @@ export function FieldError({ msg }: { msg: string }) {
       style={{
         font: "500 11px/1.3 var(--f-sans)",
         color: "var(--danger)",
-        margin: "4px 0 0",
+        margin: "var(--s-1) 0 0",
       }}
     >
       {msg}

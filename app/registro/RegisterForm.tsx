@@ -97,7 +97,7 @@ export function RegisterForm({
 
           {!done && (
             <p className="mt-2 text-[14px] text-grey-700 leading-[1.55]">
-              En un minuto tienes tu MARKBOX (tu shipping mark) para empezar a marcar tus cajas en China.
+              En un minuto tienes tu Shipping Mark para empezar a marcar tus cajas en China.
             </p>
           )}
 
@@ -337,7 +337,7 @@ function ExpressForm({
           hint="Lo usamos para identificarte y evitar cuentas duplicadas."
           error={
             fieldErrors?.document ??
-            (errDoc ? "Cédula inválida. Formato: V-12345678." : undefined)
+            (errDoc ? "Cédula o pasaporte inválido. Formato: V-12345678 o P-A1234567." : undefined)
           }
         />
       )}
@@ -375,7 +375,7 @@ function ExpressForm({
         className="rounded-[10px] bg-paper border-l-[3px] px-4 py-3 text-[12.5px] text-grey-700 leading-[1.55]"
         style={{ borderColor: "var(--color-wine)" }}
       >
-        Generamos tu <strong className="text-ink">MARKBOX</strong> al instante y tu
+        Generamos tu <strong className="text-ink">Shipping Mark</strong> al instante y tu
         cuenta queda <strong className="text-ink">activa</strong>. Antes de tu primera
         compra completas tu perfil (foto de cédula + dirección de entrega) desde el
         portal.
@@ -406,7 +406,7 @@ function ExpressForm({
         disabled={pending}
         className="btn btn-primary disabled:opacity-60 disabled:cursor-wait"
       >
-        {pending ? "Creando tu cuenta…" : "Crear cuenta y generar MARKBOX"}
+        {pending ? "Creando tu cuenta…" : "Crear cuenta y generar tu Shipping Mark"}
         {!pending && <CheckIcon size={16} />}
       </button>
 
@@ -485,7 +485,7 @@ function StepDone({
           ¡Felicitaciones{firstName ? `, ${firstName}` : ""}!
         </div>
         <p className="mt-2 text-[14px] text-grey-700 leading-[1.55] max-w-[42ch]">
-          Tu cuenta quedó creada. Este es tu código MARKBOX — guárdalo, vas a usarlo
+          Tu cuenta quedó creada. Este es tu código Shipping Mark — guárdalo, vas a usarlo
           mucho: es lo que tus proveedores escriben en cada caja.
         </p>
       </div>
@@ -520,7 +520,7 @@ function StepDone({
         style={{ background: "var(--color-wine)", color: "#fff" }}
       >
         <div className="text-[10px] font-bold tracking-[0.18em] uppercase" style={{ color: "var(--color-wine-soft)" }}>
-          Tu MARKBOX · 唛头 — tu shipping mark, la marca que va en tus cajas
+          Tu Shipping Mark · 唛头 — la marca que va en tus cajas
         </div>
         <div
           className="mt-2 text-[44px] sm:text-[52px] leading-none"
@@ -544,7 +544,7 @@ function StepDone({
           Cómo entrar al portal
         </div>
         <div className="mt-2 text-[12.5px] text-grey-700 leading-[1.55]">
-          No te pedimos contraseña ni tienes que recordar tu MARKBOX. Te enviamos un{" "}
+          No te pedimos contraseña ni tienes que recordar tu Shipping Mark. Te enviamos un{" "}
           <strong className="text-ink">enlace de acceso a tu correo</strong> y entras
           con un clic — sin contraseñas que se te olvidan ni códigos que apuntar. Solo
           tu correo.
@@ -618,7 +618,7 @@ function MarkboxGuide({ markbox }: { markbox: string }) {
             Cómo se arma el código de cada compra
           </span>
           <span className="block text-[12px] text-grey-700 leading-[1.45] mt-0.5">
-            Tu MARKBOX más el proveedor y la compra. Toca para ver la guía (1 min).
+            Tu Shipping Mark más el proveedor y la compra. Toca para ver la guía (1 min).
           </span>
         </span>
         <span
@@ -634,7 +634,7 @@ function MarkboxGuide({ markbox }: { markbox: string }) {
           {/* Desglose visual del código MARKBOX-proveedor-compra. */}
           <div className="rounded-[10px] bg-paper border border-grey-200 px-4 py-4">
             <div className="flex items-start justify-center gap-2">
-              <CodePart code={markbox} label="Tu MARKBOX" tone="wine" />
+              <CodePart code={markbox} label="Tu Shipping Mark" tone="wine" />
               <span
                 className="text-[18px] font-black text-grey-500 mt-0.5"
                 style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
@@ -652,7 +652,7 @@ function MarkboxGuide({ markbox }: { markbox: string }) {
             </div>
           </div>
 
-          <GuideStep n="1" title="Tu MARKBOX te identifica">
+          <GuideStep n="1" title="Tu Shipping Mark te identifica">
             <code
               className="text-[12px] font-bold text-wine px-1.5 py-0.5 rounded"
               style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace", background: "var(--color-paper)" }}
@@ -791,11 +791,13 @@ function Field({
 const SELECT_ARROW =
   "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%237F0F1A' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>\")";
 
-// ── Cédula con prefijo de nacionalidad (V / E) ───────────────────
-// En Venezuela la cédula lleva V (venezolano) o E (extranjero). El usuario solo
-// escribe el número; la letra se elige a la izquierda (V por defecto). Emite el
-// canónico "V-12345678" hacia el padre (o "" si no hay dígitos). Portado del
-// Norte v4.3 (`CedulaInput`) a tokens de la web.
+// ── Cédula con prefijo de nacionalidad (V / E / P) ────────────────
+// En Venezuela la cédula lleva V (venezolano) o E (extranjero); P (pasaporte)
+// cubre al cliente que no tiene cédula venezolana a mano. El usuario solo
+// escribe el número (o el alfanumérico del pasaporte); la letra se elige a la
+// izquierda (V por defecto). Emite el canónico "V-12345678" / "P-A1234567"
+// hacia el padre (o "" si no hay dígitos). Portado del Norte v4.3
+// (`CedulaInput`) a tokens de la web.
 function CedulaInput({
   value,
   onChange,
@@ -808,21 +810,27 @@ function CedulaInput({
   error?: string;
 }) {
   // Estado interno: deriva la letra del valor inicial (si lo hubiera) y el resto.
-  const m = /^([VE])-?(.*)$/i.exec(value || "");
-  const [letter, setLetter] = useState<"V" | "E">(
-    m && m[1].toUpperCase() === "E" ? "E" : "V",
+  const m = /^([VEP])-?(.*)$/i.exec(value || "");
+  const initialLetter: "V" | "E" | "P" =
+    m && m[1].toUpperCase() === "E" ? "E" : m && m[1].toUpperCase() === "P" ? "P" : "V";
+  const [letter, setLetter] = useState<"V" | "E" | "P">(initialLetter);
+  const [digits, setDigits] = useState(
+    m
+      ? initialLetter === "P"
+        ? m[2].replace(/[^a-zA-Z0-9]/g, "").toUpperCase()
+        : m[2].replace(/\D/g, "")
+      : "",
   );
-  const [digits, setDigits] = useState(m ? m[2].replace(/\D/g, "") : "");
 
-  function emit(l: "V" | "E", d: string) {
+  function emit(l: "V" | "E" | "P", d: string) {
     onChange(d ? `${l}-${d}` : "");
   }
-  function onLetter(l: "V" | "E") {
+  function onLetter(l: "V" | "E" | "P") {
     setLetter(l);
     emit(l, digits);
   }
   function onDigits(raw: string) {
-    const d = raw.replace(/\D/g, "");
+    const d = letter === "P" ? raw.replace(/[^a-zA-Z0-9]/g, "").toUpperCase() : raw.replace(/\D/g, "");
     setDigits(d);
     emit(letter, d);
   }
@@ -835,7 +843,7 @@ function CedulaInput({
       <div className="flex items-stretch h-12 rounded-[10px] bg-grey-100 overflow-hidden focus-within:ring-2 focus-within:ring-wine focus-within:ring-offset-1">
         <select
           value={letter}
-          onChange={(e) => onLetter(e.target.value as "V" | "E")}
+          onChange={(e) => onLetter(e.target.value as "V" | "E" | "P")}
           aria-label="Nacionalidad de la cédula"
           className="bg-grey-200 border-0 outline-none text-[14.5px] font-bold text-wine cursor-pointer"
           style={{
@@ -850,19 +858,20 @@ function CedulaInput({
         >
           <option value="V">V</option>
           <option value="E">E</option>
+          <option value="P">P</option>
         </select>
         <input
           value={digits}
           onChange={(e) => onDigits(e.target.value)}
-          inputMode="numeric"
-          placeholder="18456321"
+          inputMode={letter === "P" ? "text" : "numeric"}
+          placeholder={letter === "P" ? "A1234567" : "18456321"}
           className="flex-1 min-w-0 px-3.5 bg-transparent border-0 outline-none text-[14.5px] text-ink"
           style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
         />
       </div>
       {hint && !error && (
         <span className="text-[11.5px] text-grey-500 leading-[1.4]">
-          V = venezolano · E = extranjero · escribe solo el número. {hint}
+          V = venezolano · E = extranjero · P = pasaporte · escribe solo el número, sin puntos. {hint}
         </span>
       )}
       {error && <span className="text-[12px] text-wine leading-[1.4]">{error}</span>}

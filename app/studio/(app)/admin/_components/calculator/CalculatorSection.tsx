@@ -42,7 +42,7 @@ export function CalculatorSection({
         aria-label="Secciones del calculador"
         style={{
           display: "flex",
-          gap: 4,
+          gap: "var(--s-1)",
           marginBottom: 22,
           borderBottom: "1px solid var(--border)",
         }}
@@ -117,7 +117,7 @@ function TabButton({
         font: `${active ? 700 : 500} 13px/1 var(--f-sans)`,
         color: active ? "var(--ink)" : "var(--ink-soft)",
         borderBottom: `2px solid ${active ? "var(--wine)" : "transparent"}`,
-        transition: "color 0.12s, border-color 0.12s",
+        transition: "color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease)",
       }}
     >
       {label}

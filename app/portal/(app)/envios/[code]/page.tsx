@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
@@ -7,8 +8,16 @@ import {
   listMyShipmentEvents,
   stepDatesFromEvents,
 } from "@/lib/portal/shipment-events-queries";
+import { getHiddenPortalStatuses } from "@/lib/studio/notifications/portal-visibility-queries";
+import { listShipmentNotificationHistory } from "@/lib/studio/notifications/notification-history-queries";
+import { PortalNotificationHistory } from "../../../_components/PortalNotificationHistory";
+import type { ShipmentStatus } from "@/lib/shared/shipment-public";
 import { SERVICE_LABELS, estimatePortalEta } from "@/lib/portal/portal-types";
-import { showNortePortal } from "@/lib/portal/demo";
+import { showNortePortal, showShipmentAcceptanceCta } from "@/lib/portal/demo";
+import {
+  getPendingAcceptanceForShipment,
+  type PendingAcceptanceInvoice,
+} from "@/lib/portal/portal-legal-queries";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
 import { StatusBadge } from "../../../_components/StatusBadge";
@@ -65,6 +74,23 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
   const events = await listMyShipmentEvents(supabase, shipment.id);
   const stepDates = stepDatesFromEvents(events);
 
+  // Hitos ocultos del stepper (SDD-0156 · Slice D): la config por tenant puede
+  // ocultar un status del portal (ej. "en aduana" → se dispara cobro anticipado
+  // en su lugar). Se resuelve con el admin client (el cliente no lee la tabla de
+  // reglas). Falla-seguro → set vacío (muestra todo).
+  const admin = createAdminClient();
+  const tenantId = client ? await resolveClientTenant(admin, client.id) : null;
+  const hiddenStatuses: ReadonlySet<ShipmentStatus> = tenantId
+    ? await getHiddenPortalStatuses(admin, tenantId, client?.id ?? null)
+    : new Set<ShipmentStatus>();
+
+  // Historial de avisos enviados de este envío (SDD-0156 · Slice C · loose end).
+  // Read-only, scopeado al envío PROPIO (admin, sin RLS de cliente sobre la cola).
+  const notificationHistory = await listShipmentNotificationHistory(
+    admin,
+    shipment.id,
+  );
+
   // Rediseño Norte (founder 2026-06-20) GATEADO al demo: stepper horizontal + 2
   // columnas. Clientes reales siguen con el detalle de abajo.
   if (showNortePortal(client?.markbox)) {
@@ -73,7 +99,6 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
     // portal no tiene RLS sobre sailings/consolidations/tracking_snapshots), scopeados
     // al envío PROPIO (shipment.id ya verificado por getMyShipment). El portal SOLO LEE
     // el cache del tracking (cero cuota; el refresh lo dispara el ERP). Degradan a null.
-    const admin = createAdminClient();
     let naviera: NavieraSnapshot | null = null;
     let live: TrackingSnapshotRow | null = null;
     try {
@@ -85,6 +110,16 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
       naviera = null;
       live = null;
     }
+
+    // Orden DDP de ESTE envío esperando aceptación (SDD-0075 §1 · Slice A). Gate
+    // propio (`showShipmentAcceptanceCta`): NORTE_PORTAL_LIVE ya está en true, así
+    // que sin él el CTA saldría vivo para todos. Best-effort → un fallo del admin
+    // client no rompe el detalle del envío (el card simplemente no aparece).
+    const pendingAcceptance =
+      client && showShipmentAcceptanceCta(client.markbox)
+        ? await loadPendingAcceptance(admin, client.id, client.markbox, shipment.id)
+        : null;
+
     return (
       <PortalShipmentDetailNorte
         shipment={shipment}
@@ -93,6 +128,9 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
         naviera={naviera}
         live={live}
         stepDates={stepDates}
+        hiddenStatuses={hiddenStatuses}
+        notificationHistory={notificationHistory}
+        pendingAcceptance={pendingAcceptance}
       />
     );
   }
@@ -190,6 +228,7 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
             status={shipment.status}
             service={shipment.service}
             dates={stepDates}
+            hiddenStatuses={hiddenStatuses}
           />
           <p className="mt-2 text-[12px] text-grey-500 leading-[1.5]">
             Las actualizaciones de estado las carga nuestro equipo a medida que tu
@@ -201,6 +240,12 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
       <div className="mt-6">
         <PortalDocsCard documents={documents} signedUrls={docUrls} />
       </div>
+
+      {notificationHistory.length > 0 ? (
+        <div className="mt-6">
+          <PortalNotificationHistory items={notificationHistory} />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -249,5 +294,53 @@ function formatDate(iso: string): string {
     });
   } catch {
     return "—";
+  }
+}
+
+/**
+ * La orden DDP de este envío que espera aceptación (SDD-0075 §1 · Slice A).
+ * Resuelve el tenant del cliente (por su id, ya verificado por sesión vía
+ * `getPortalClient`) y delega en la query, que scopea por tenant + markbox —
+ * misma invariante que el dashboard. Best-effort: un fallo del admin client no
+ * debe romper el detalle del envío → null (el card no se muestra).
+ */
+/** Tenant del cliente logueado (por su id ya verificado por sesión). null si no. */
+async function resolveClientTenant(
+  admin: SupabaseClient,
+  clientId: string,
+): Promise<string | null> {
+  try {
+    const { data } = await admin
+      .from("clients")
+      .select("tenant_id")
+      .eq("id", clientId)
+      .maybeSingle<{ tenant_id: string }>();
+    return String(data?.tenant_id ?? "").trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+async function loadPendingAcceptance(
+  admin: SupabaseClient,
+  clientId: string,
+  markbox: string,
+  shipmentId: string,
+): Promise<PendingAcceptanceInvoice | null> {
+  try {
+    const { data: row } = await admin
+      .from("clients")
+      .select("tenant_id")
+      .eq("id", clientId)
+      .maybeSingle<{ tenant_id: string }>();
+    const tenantId = String(row?.tenant_id ?? "").trim();
+    if (!tenantId) return null;
+    return await getPendingAcceptanceForShipment(admin, {
+      tenantId,
+      markbox,
+      shipmentId,
+    });
+  } catch {
+    return null;
   }
 }

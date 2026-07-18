@@ -22,7 +22,6 @@ import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import { Icon } from "@/app/studio/_components/icons";
 import {
-  REFERRAL_RULES,
   REFERRAL_STATUS,
   REFERRAL_STEPS,
   TIERS,
@@ -38,9 +37,11 @@ import type {
   TierCount,
   TopReferrer,
 } from "@/lib/studio/fidelizacion/queries";
+import type { ReferralSettingsInput } from "@/lib/studio/fidelizacion/referral-settings-types";
 import { fmtUsd } from "../format";
 import { RegisterReferralDrawer } from "./RegisterReferralDrawer";
 import { ReferralDrawer } from "./ReferralDrawer";
+import { ReferralSettingsDrawer } from "./ReferralSettingsDrawer";
 
 type Tab = "dashboard" | "niveles" | "referidos" | "clientes";
 
@@ -75,15 +76,25 @@ export function FidelizacionClient({
   referrals,
   stats,
   topReferrers,
+  canApplyCredit,
+  referralSettings,
+  canConfigure,
 }: {
   clients: ClientWithTier[];
   tierCounts: TierCount[];
   referrals: Referral[];
   stats: ProgramStats;
   topReferrers: TopReferrer[];
+  /** ¿El rol puede APLICAR créditos? (accounting/admin — SDD-0137, mueve plata). */
+  canApplyCredit: boolean;
+  /** Montos vigentes del programa (para poblar el drawer de configuración). */
+  referralSettings: ReferralSettingsInput;
+  /** ¿El rol edita el módulo Fidelización? Muestra "Configurar referidos" (SDD-0159). */
+  canConfigure: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("dashboard");
   const [showRegister, setShowRegister] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [selectedReferral, setSelectedReferral] = useState<Referral | null>(
     null,
   );
@@ -105,7 +116,7 @@ export function FidelizacionClient({
           <span className="studio-eyebrow">Comercial · Lealtad</span>
           <h1
             className="studio-display"
-            style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
+            style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
           >
             Fidelización & Referidos.
           </h1>
@@ -122,13 +133,24 @@ export function FidelizacionClient({
             créditos.
           </p>
         </div>
-        <button
-          type="button"
-          className="studio-btn studio-btn-primary"
-          onClick={() => setShowRegister(true)}
-        >
-          + Registrar referido
-        </button>
+        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+          {canConfigure && (
+            <button
+              type="button"
+              className="studio-btn studio-btn-ghost"
+              onClick={() => setShowSettings(true)}
+            >
+              Configurar referidos
+            </button>
+          )}
+          <button
+            type="button"
+            className="studio-btn studio-btn-primary"
+            onClick={() => setShowRegister(true)}
+          >
+            + Registrar referido
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -198,6 +220,7 @@ export function FidelizacionClient({
           tierCounts={tierCounts}
           stats={stats}
           topReferrers={topReferrers}
+          referralSettings={referralSettings}
           onGoReferidos={() => setTab("referidos")}
           onGoNiveles={() => setTab("niveles")}
         />
@@ -216,11 +239,21 @@ export function FidelizacionClient({
 
       {/* Drawers */}
       {showRegister && (
-        <RegisterReferralDrawer onClose={() => setShowRegister(false)} />
+        <RegisterReferralDrawer
+          referrerReward={referralSettings.referrerRewardUsd}
+          onClose={() => setShowRegister(false)}
+        />
+      )}
+      {showSettings && (
+        <ReferralSettingsDrawer
+          settings={referralSettings}
+          onClose={() => setShowSettings(false)}
+        />
       )}
       {selectedReferral && (
         <ReferralDrawer
           referral={selectedReferral}
+          canApplyCredit={canApplyCredit}
           onClose={() => setSelectedReferral(null)}
         />
       )}
@@ -232,37 +265,46 @@ export function FidelizacionClient({
 // Tab: Dashboard
 // ════════════════════════════════════════════════════════════════
 
-const PROGRAM_STEPS = [
-  {
-    n: "1",
-    t: "El cliente comparte su código",
-    d: "Cada Shipping Mark tiene un código de referido único (ej. REF-5452) que comparte por WhatsApp o el portal.",
-  },
-  {
-    n: "2",
-    t: "El referido importa",
-    d: `Al registrarse y hacer su primer embarque, el referido recibe ${fmtUsd(REFERRAL_RULES.referredReward)} de descuento.`,
-  },
-  {
-    n: "3",
-    t: "Ambos ganan",
-    d: `Quien refiere recibe ${fmtUsd(REFERRAL_RULES.referrerReward)} de crédito para aplicar en su próxima factura.`,
-  },
-];
+/** Pasos del "Cómo funciona" con los montos vigentes (SDD-0159 · config). */
+function programSteps(referredReward: number, referrerReward: number) {
+  return [
+    {
+      n: "1",
+      t: "El cliente comparte su código",
+      d: "Cada Shipping Mark tiene un código de referido único (ej. REF-5452) que comparte por WhatsApp o el portal.",
+    },
+    {
+      n: "2",
+      t: "El referido importa",
+      d: `Al registrarse y hacer su primer embarque, el referido recibe ${fmtUsd(referredReward)} de descuento.`,
+    },
+    {
+      n: "3",
+      t: "Ambos ganan",
+      d: `Quien refiere recibe ${fmtUsd(referrerReward)} de crédito para aplicar en su próxima factura.`,
+    },
+  ];
+}
 
 function DashboardTab({
   tierCounts,
   stats,
   topReferrers,
+  referralSettings,
   onGoReferidos,
   onGoNiveles,
 }: {
   tierCounts: TierCount[];
   stats: ProgramStats;
   topReferrers: TopReferrer[];
+  referralSettings: ReferralSettingsInput;
   onGoReferidos: () => void;
   onGoNiveles: () => void;
 }) {
+  const PROGRAM_STEPS = programSteps(
+    referralSettings.referredRewardUsd,
+    referralSettings.referrerRewardUsd,
+  );
   const totalClients = tierCounts.reduce((s, c) => s + c.count, 0);
   const platinum = tierCounts.find((c) => c.tier.id === "platinum")?.count ?? 0;
   const gold = tierCounts.find((c) => c.tier.id === "gold")?.count ?? 0;
@@ -413,7 +455,7 @@ function DashboardTab({
               onClick={onGoReferidos}
               style={{
                 font: "600 12px/1 var(--f-sans)",
-                color: "var(--wine)",
+                color: "var(--wine-text)",
                 background: "transparent",
                 border: "none",
                 cursor: "pointer",
@@ -428,7 +470,7 @@ function DashboardTab({
           {topReferrers.length === 0 ? (
             <div
               style={{
-                padding: "24px 20px",
+                padding: "var(--s-6) var(--s-5)",
                 font: "500 12.5px/1.5 var(--f-sans)",
                 color: "var(--ink-soft)",
               }}
@@ -445,14 +487,14 @@ function DashboardTab({
                     gridTemplateColumns: "28px 1fr auto",
                     gap: 12,
                     alignItems: "center",
-                    padding: "12px 20px",
+                    padding: "var(--s-3) var(--s-5)",
                     borderTop: i > 0 ? "1px solid var(--border)" : 0,
                   }}
                 >
                   <span
                     style={{
                       font: "900 14px/1 var(--f-display)",
-                      color: i === 0 ? "var(--wine)" : "var(--ink-mute)",
+                      color: i === 0 ? "var(--wine)" : "var(--ink-soft)",
                     }}
                   >
                     {i + 1}
@@ -469,7 +511,7 @@ function DashboardTab({
                     <div
                       style={{
                         font: "500 10.5px/1 var(--f-mono)",
-                        color: "var(--wine)",
+                        color: "var(--wine-text)",
                         marginTop: 3,
                       }}
                     >
@@ -496,7 +538,7 @@ function DashboardTab({
                     <div
                       style={{
                         font: "600 9.5px/1 var(--f-sans)",
-                        color: r.credits > 0 ? "var(--success)" : "var(--ink-mute)",
+                        color: r.credits > 0 ? "var(--success)" : "var(--ink-soft)",
                         marginTop: 3,
                       }}
                     >
@@ -774,7 +816,7 @@ function ReferidosTab({
               display: "grid",
               gridTemplateColumns: REFERRAL_GRID,
               gap: 14,
-              padding: "12px 20px",
+              padding: "var(--s-3) var(--s-5)",
               background: "var(--bg-elevated)",
               borderBottom: "1px solid var(--border)",
               font: "700 10px/1 var(--f-sans)",
@@ -825,7 +867,7 @@ function ReferidosTab({
                 <code
                   style={{
                     font: "700 11.5px/1 var(--f-mono)",
-                    color: "var(--wine)",
+                    color: "var(--wine-text)",
                   }}
                 >
                   {r.referrer_markbox}
@@ -866,10 +908,14 @@ function ReferidosTab({
                     color:
                       r.status === "acreditado"
                         ? "var(--success)"
-                        : "var(--ink-mute)",
+                        : r.status === "aplicado"
+                          ? "var(--wine-text)"
+                          : "var(--ink-mute)",
                   }}
                 >
-                  {r.status === "acreditado" ? fmtUsd(r.reward_usd) : "—"}
+                  {r.status === "acreditado" || r.status === "aplicado"
+                    ? fmtUsd(r.reward_usd)
+                    : "—"}
                 </span>
               </div>
             );
@@ -953,7 +999,7 @@ function ClientesTab({
             display: "grid",
             gridTemplateColumns: CLIENT_GRID,
             gap: 14,
-            padding: "12px 20px",
+            padding: "var(--s-3) var(--s-5)",
             background: "var(--bg-elevated)",
             borderBottom: "1px solid var(--border)",
             font: "700 10px/1 var(--f-sans)",

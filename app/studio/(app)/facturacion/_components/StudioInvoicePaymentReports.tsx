@@ -85,7 +85,7 @@ function ReportRow({ item, first }: { item: ReportWithProof; first: boolean }) {
   return (
     <div
       style={{
-        padding: "12px 0",
+        padding: "var(--s-3) 0",
         borderTop: first ? 0 : "1px solid var(--border)",
         display: "flex",
         flexDirection: "column",
@@ -206,7 +206,7 @@ function ReportRow({ item, first }: { item: ReportWithProof; first: boolean }) {
       ) : null}
 
       {error ? (
-        <p style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--wine)", margin: 0 }}>
+        <p style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--wine-text)", margin: 0 }}>
           {error}
         </p>
       ) : null}

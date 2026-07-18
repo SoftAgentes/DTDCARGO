@@ -12,6 +12,7 @@
  */
 
 import { getAnonClient } from "./supabase-anon";
+import { DEFAULT_PARAMS } from "@/lib/calculadora";
 import type { CalcParams, Ciudad } from "@/lib/calculadora";
 
 /** Una ruta FCL pública (contenedor completo) para la calculadora FCL del sitio. */
@@ -99,11 +100,10 @@ export async function getPublicCalculatorConfig(): Promise<CalcParams | null> {
     const row = Array.isArray(data) ? data[0] : null;
     if (!row) return null;
 
-    // Mapeo snake_case (DB) → camelCase (CalcParams). Cualquier campo no
+    // Mapeo snake_case (DB) → camelCase (CalcParams). Cualquier campo CORE no
     // numérico/ausente invalida la config entera → null (fallback seguro).
-    const params: CalcParams = {
+    const core = {
       pesoIncluidoKg: Number(row.peso_incluido_kg),
-      pesoMaxKg: Number(row.peso_max_kg),
       recargoExcedenteKg: Number(row.recargo_excedente_kg),
       descuentoValencia: Number(row.descuento_valencia),
       recargoEmbalajeEspecial: Number(row.recargo_embalaje_especial),
@@ -113,7 +113,16 @@ export async function getPublicCalculatorConfig(): Promise<CalcParams | null> {
       cbmMaxContenedor: Number(row.cbm_max_contenedor),
       pesoMaxContenedorKg: Number(row.peso_max_contenedor_kg),
     };
-    if (Object.values(params).some((v) => !Number.isFinite(v))) return null;
+    if (Object.values(core).some((v) => !Number.isFinite(v))) return null;
+
+    // pesoMaxEnvioKg se agregó después (migración 0223). Es RESILIENTE al rollout:
+    // si el RPC viejo no lo trae (deploy antes de la migración), cae al default
+    // (9.000) en vez de invalidar toda la config → cero regresión de pricing.
+    const pmev = Number(row.peso_max_envio_kg);
+    const params: CalcParams = {
+      ...core,
+      pesoMaxEnvioKg: Number.isFinite(pmev) ? pmev : DEFAULT_PARAMS.pesoMaxEnvioKg,
+    };
 
     return params;
   } catch (e) {

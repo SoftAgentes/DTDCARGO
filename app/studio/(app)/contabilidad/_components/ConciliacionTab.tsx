@@ -379,7 +379,7 @@ function MovementRow({
             style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}
           >
             Sugerido:{" "}
-            <code style={{ color: "var(--wine)" }}>{suggestion.entry_code}</code>
+            <code style={{ color: "var(--wine-text)" }}>{suggestion.entry_code}</code>
           </span>
         ) : (
           <span

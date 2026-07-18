@@ -145,7 +145,7 @@ export default async function PortalFinanzasPage() {
 
           <Link
             href="/portal/facturas"
-            className="mt-5 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-wine hover:underline underline-offset-2"
+            className="mt-5 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-wine-text hover:underline underline-offset-2"
           >
             Ver tabla completa <ArrowIcon size={13} />
           </Link>

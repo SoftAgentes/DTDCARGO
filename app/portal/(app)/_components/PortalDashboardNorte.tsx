@@ -12,6 +12,7 @@ import {
 import { ChinaSupplierClip } from "@/components/ChinaSupplierClip";
 import {
   SERVICE_LABELS,
+  SERVICE_SHORT_LABELS,
   STATUS_COLORS,
   STATUS_LABELS,
   computeProgress,
@@ -20,7 +21,6 @@ import {
   type PortalDashboardKpis,
   type PortalNextArrival,
   type PortalShipmentRow,
-  type ShipmentService,
 } from "@/lib/portal/portal-types";
 import type { NavieraSnapshot } from "@/lib/studio/naviera-tracking/types";
 import type { PortalActivityItem } from "@/lib/portal/shipment-events-queries";
@@ -153,7 +153,7 @@ export function PortalDashboardNorte({
             </div>
             <Link
               href="/portal/envios"
-              className="inline-flex items-center gap-1.5 text-[13px] font-bold text-wine hover:underline"
+              className="inline-flex items-center gap-1.5 text-[13px] font-bold text-wine-text hover:underline"
             >
               Ver todos <ArrowIcon size={14} />
             </Link>
@@ -288,7 +288,7 @@ function NextArrivalHero({
               value={arrival.etaIso ? formatDate(arrival.etaIso) : "—"}
             />
             <HeroStat label="Progreso" value={`${progress}%`} accent />
-            <HeroStat label="Tipo" value={SHORT_SERVICE[arrival.service]} />
+            <HeroStat label="Tipo" value={SERVICE_SHORT_LABELS[arrival.service]} />
           </div>
         </div>
 
@@ -516,14 +516,6 @@ function ActividadCard({ activity }: { activity: PortalActivityItem[] }) {
     </div>
   );
 }
-
-/** Etiqueta corta de servicio para el chip "Tipo" del héroe. */
-const SHORT_SERVICE: Record<ShipmentService, string> = {
-  consolidacion: "LCL",
-  puerta_a_puerta_DDP: "DDP",
-  reserva_FCL: "FCL",
-  transporte_terrestre: "Terrestre",
-};
 
 /** Ciudad (parte antes de la coma) para las etiquetas del arco SVG. */
 function cityOf(loc: string | null): string {

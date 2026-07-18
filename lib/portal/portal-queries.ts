@@ -375,7 +375,7 @@ async function listMyQuotes(
 
   if (error || !data) return [];
 
-  return data.map((r) => ({
+  const rows: PortalEstimateRow[] = data.map((r) => ({
     id: r.id as string,
     code: r.quote_code as string,
     status: r.status as PortalEstimateRow["status"],
@@ -386,9 +386,53 @@ async function listMyQuotes(
     totalUsd: Number(r.total_usd ?? 0),
     nota: (r.nota as string | null) ?? null,
     convertedToShipmentId: (r.converted_to_shipment_id as string | null) ?? null,
+    convertedToShipmentCode: null,
     createdAt: r.created_at as string,
     updatedAt: r.updated_at as string,
   }));
+
+  await attachShipmentCodes(supabase, rows);
+  return rows;
+}
+
+/**
+ * Rellena `convertedToShipmentCode` de las filas ya convertidas (SDD-0075 §1 ·
+ * Slice C): `quotes.converted_to_shipment_id` guarda el uuid, pero el portal
+ * enlaza por código (`/portal/envios/[code]`).
+ *
+ * Una sola query extra (`.in`) sobre los ids distintos, con el client de SESIÓN →
+ * la RLS del portal por markbox decide qué es legible. Si un envío no lo es, su
+ * código queda en null y la fila degrada al texto sin enlace (nunca filtra un
+ * envío ajeno). Muta `rows` in-place.
+ */
+async function attachShipmentCodes(
+  supabase: SupabaseClient,
+  rows: PortalEstimateRow[],
+): Promise<void> {
+  const ids = [
+    ...new Set(
+      rows
+        .map((r) => r.convertedToShipmentId)
+        .filter((id): id is string => typeof id === "string" && id.length > 0),
+    ),
+  ];
+  if (ids.length === 0) return;
+
+  const { data, error } = await supabase
+    .from("shipments")
+    .select("id, code")
+    .in("id", ids)
+    .is("deleted_at", null);
+  if (error || !data) return;
+
+  const byId = new Map(
+    data.map((s) => [s.id as string, (s.code as string | null) ?? null]),
+  );
+  for (const r of rows) {
+    if (r.convertedToShipmentId) {
+      r.convertedToShipmentCode = byId.get(r.convertedToShipmentId) ?? null;
+    }
+  }
 }
 
 /** Estimados (lead, `source='web'`) del cliente. */

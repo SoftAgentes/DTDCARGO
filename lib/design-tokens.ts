@@ -77,7 +77,7 @@ export const FONT_MONO =
  * Sistema de assets de marca · DTD Cargo.
  *
  * Fuente de verdad oficial:
- *   docs/design/studio/_norte/Brand Book DTD v4.5.html
+ *   docs/design/studio/_norte/Brand Book DTD v4.6.html
  *   docs/design/studio/_norte/BRAND-MIGRATION-2026-05.md
  *
  * El isólogo oficial tiene 4 variantes según el fondo. Usa `<BrandMark>`
@@ -188,9 +188,16 @@ export const CONTACT = {
   ve: {
     label: "Venezuela",
     city: "Valencia, Carabobo",
-    address: "Edificio Kokuy, Av. Bolívar Norte",
-    addressFull: "Edificio Kokuy, Av. Bolívar Norte. Valencia, Carabobo, Venezuela",
+    address: "Edificio Kokuy, Calle 151",
+    addressFull:
+      "Edificio Kokuy, Calle 151, entre Av. Bolívar Norte y Av. Paseo Cabriales. Valencia, Carabobo, Venezuela",
     postalCode: "2001", // Valencia, Carabobo — para schema.org PostalAddress
+
+    /**
+     * Coordenadas GPS exactas del Edificio Kokuy (founder 2026-07-11) — para
+     * schema.org GeoCoordinates (señal fuerte de local SEO) y pin de mapas.
+     */
+    geo: { lat: 10.220449465809326, lng: -68.00848104738162 },
 
     /**
      * Link directo al pin de Google Maps con el logo y la info verificada de DTD.
@@ -735,16 +742,16 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   },
   {
     id: "markbox",
-    term: "MARKBOX",
-    acronym: "Shipping Mark · marca de envío · 唛头 · código del cliente DTD-XXXX",
+    term: "Shipping Mark",
+    acronym: "唛头 · marca de envío · código del cliente DTD-XXXX · antes MARKBOX",
     category: "tracking",
     body: [
-      "MARKBOX y Shipping Mark son lo mismo: MARKBOX es como llamamos en DTD Cargo a la marca que identifica cada una de tus cajas, y a nivel internacional ese mismo marcado se conoce como Shipping Mark (en China, 唛头). Es tu código único —formato DTD-XXXX— que se te asigna al darte de alta: identifica tus cajas desde origen, para que sepamos de quién es cada bulto que llega a nuestra bodega en Yiwu.",
-      "Cuando pides mercancía a tu proveedor chino, le envías por WeChat el texto pre-formateado con tu MARKBOX. El proveedor lo escribe en cada caja y al llegar a bodega sabemos exactamente a quién pertenece.",
+      "El Shipping Mark es la marca que identifica cada una de tus cajas — así se conoce este marcado a nivel internacional (en China, 唛头). Es tu código único —formato DTD-XXXX— que se te asigna al darte de alta: identifica tus cajas desde origen, para que sepamos de quién es cada bulto que llega a nuestra bodega en Yiwu.",
+      "Cuando pides mercancía a tu proveedor chino, le envías por WeChat el texto pre-formateado con tu Shipping Mark. El proveedor lo escribe en cada caja y al llegar a bodega sabemos exactamente a quién pertenece.",
     ],
     analogy: {
       label: "Lo encuentras en",
-      text: "/contacto — sección 'Texto listo para WeChat'. Si todavía no tienes tu MARKBOX, lo solicitas por WhatsApp.",
+      text: "/contacto — sección 'Texto listo para WeChat'. Si todavía no tienes tu Shipping Mark, lo solicitas por WhatsApp.",
     },
   },
 
@@ -789,12 +796,13 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
 
 export const HERO = {
   /**
-   * Eyebrow gris arriba del kicker: categoría + año del CORREDOR a Venezuela.
-   * El eyebrow habla de "Logística China → Venezuela", así que el año es el del
-   * corredor: 2015 (expansión a Venezuela / DTD Services LCL), NO 2010 (que es
-   * la fundación de la empresa). Alinea con la banda de Stats ("Operando en
-   * Venezuela · 2015") y evita la discordancia que confundía (founder 2026-06-13).
-   * La empresa (2010) vive en el schema/footer; el comercio con China (2008) en Stats.
+   * Eyebrow gris arriba del kicker: categoría + año de fundación.
+   * 2015 = fundación e inauguración en Venezuela = el año de la empresa (founder
+   * 2026-07-17), y coincide con el año del corredor. Alinea con la banda de Stats
+   * ("Operando en Venezuela · 2015") y con `foundingDate` del schema.
+   * 2008 = inicios en China: es EXPERIENCIA, no fundación → vive en Stats ("En el
+   * comercio con China desde 2008"). 2010 = hito histórico (se formalizó la
+   * empresa de carga), nunca un claim de "operando/empresa desde".
    */
   eyebrow: "Logística China → Venezuela · Desde 2015",
   /**
@@ -916,13 +924,13 @@ export const STEPS: { n: string; title: string; copy: string; tag?: string }[] =
   },
   {
     n: "02",
-    title: "Pre-alerta · MARKBOX",
-    copy: "Te registras y recibes tu MARKBOX — tu proveedor en China lo escribe en cada caja antes de despachar.",
+    title: "Pre-alerta · Shipping Mark",
+    copy: "Te registras y recibes tu Shipping Mark — tu proveedor en China lo escribe en cada caja antes de despachar.",
   },
   {
     n: "03",
     title: "Recibimos",
-    copy: "Tu carga llega a nuestra bodega propia en Yiwu, identificada por tu MARKBOX. La revisamos y la consolidamos.",
+    copy: "Tu carga llega a nuestra bodega propia en Yiwu, identificada por tu Shipping Mark. La revisamos y la consolidamos.",
   },
   {
     n: "04",
@@ -1080,8 +1088,8 @@ export const PHILOSOPHY = {
     },
     {
       kicker: "唛头",
-      title: "MARKBOX desde origen",
-      copy: "Cada caja se identifica desde China con tu MARKBOX —tu shipping mark (marca de envío / 唛头) personalizado— para reducir errores y mezclas.",
+      title: "Shipping Mark desde origen",
+      copy: "Cada caja se identifica desde China con tu Shipping Mark —tu marca de envío personalizada (唛头)— para reducir errores y mezclas.",
     },
     {
       kicker: "TRAZABILIDAD",

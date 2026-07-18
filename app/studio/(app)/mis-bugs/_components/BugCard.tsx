@@ -47,7 +47,7 @@ export function BugCard({ bug }: BugCardProps) {
           gap: "var(--s-2, 8px)",
         }}
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-1)" }}>
           <code
             style={{
               fontFamily: "var(--font-mono, 'JetBrains Mono')",
@@ -70,7 +70,7 @@ export function BugCard({ bug }: BugCardProps) {
           </span>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-1)", alignItems: "flex-end" }}>
           <MiniBadge tone={stateTone}>{BUG_STATE_LABELS[bug.state]}</MiniBadge>
           {bug.duplicate_count > 0 && (
             <MiniBadge tone="neutral">×{bug.duplicate_count + 1}</MiniBadge>

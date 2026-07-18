@@ -117,11 +117,11 @@ export default async function EvidencePrintPage({
         data-print-hide
         style={{
           display: "flex",
-          gap: 8,
+          gap: "var(--s-2)",
           justifyContent: "space-between",
           alignItems: "center",
           flexWrap: "wrap",
-          marginBottom: 16,
+          marginBottom: "var(--s-4)",
         }}
       >
         <a
@@ -130,7 +130,7 @@ export default async function EvidencePrintPage({
         >
           ← Volver a Legal
         </a>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: "var(--s-2)" }}>
           <a
             className="studio-btn studio-btn-ghost studio-btn-sm"
             href={`/api/studio/legal/evidence/${encodeURIComponent(a.acceptance_code)}`}
@@ -158,8 +158,8 @@ export default async function EvidencePrintPage({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "flex-start",
-            gap: 16,
-            paddingBottom: 16,
+            gap: "var(--s-4)",
+            paddingBottom: "var(--s-4)",
             borderBottom: "2px solid var(--ink)",
             flexWrap: "wrap",
           }}
@@ -177,7 +177,7 @@ export default async function EvidencePrintPage({
                 color: "var(--ink-soft)",
                 letterSpacing: "0.1em",
                 textTransform: "uppercase",
-                marginTop: 4,
+                marginTop: "var(--s-1)",
               }}
             >
               Expediente de aceptación legal
@@ -188,7 +188,7 @@ export default async function EvidencePrintPage({
             <div
               style={{
                 font: "800 18px/1.2 var(--f-mono)",
-                color: "var(--wine)",
+                color: "var(--wine-text)",
                 marginTop: 3,
               }}
             >
@@ -232,7 +232,7 @@ export default async function EvidencePrintPage({
           style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
-            columnGap: 24,
+            columnGap: "var(--s-6)",
           }}
         >
           <Field label="Cliente" value={evidence.client?.name ?? "—"} />
@@ -280,7 +280,7 @@ export default async function EvidencePrintPage({
         <div
           style={{
             marginTop: 18,
-            paddingTop: 12,
+            paddingTop: "var(--s-3)",
             borderTop: "1px solid var(--border)",
             font: "500 10.5px/1.6 var(--f-sans)",
             color: "var(--ink-soft)",

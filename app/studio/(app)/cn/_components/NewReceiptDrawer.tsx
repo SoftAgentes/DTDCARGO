@@ -23,6 +23,7 @@ import { SupplierBilingualInput } from "./SupplierBilingualInput";
 import { SplitActionButton } from "@/app/studio/_components/ui/SplitActionButton";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
+import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import type {
   WarehouseCN,
   WarehouseReceiptActionState,
@@ -216,85 +217,13 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
   ]);
 
   return (
-    <div
-      onClick={() => !isPending && onClose()}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="receipt-drawer-title"
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15, 30, 61, 0.55)",
-        zIndex: 100,
-        display: "flex",
-        justifyContent: "flex-end",
-      }}
+    <DrawerShell
+      title={t("warehouse_cn.drawer.title")}
+      subtitle={t("warehouse_cn.drawer.subtitle")}
+      onClose={onClose}
+      pending={isPending}
+      width={680}
     >
-      <aside
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "min(680px, 96vw)",
-          height: "100vh",
-          background: "var(--bg-surface)",
-          borderLeft: "1px solid var(--border)",
-          boxShadow: "var(--shadow-pop)",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
-        {/* Header */}
-        <header
-          style={{
-            padding: "18px 22px",
-            borderBottom: "1px solid var(--border)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 12,
-            flexShrink: 0,
-          }}
-        >
-          <div style={{ minWidth: 0 }}>
-            <h2
-              id="receipt-drawer-title"
-              className="studio-display"
-              style={{ fontSize: 18, margin: 0, color: "var(--ink)" }}
-            >
-              {t("warehouse_cn.drawer.title")}
-            </h2>
-            <p
-              style={{
-                font: "500 11.5px/1.3 var(--f-sans)",
-                color: "var(--ink-soft)",
-                margin: "4px 0 0",
-              }}
-            >
-              {t("warehouse_cn.drawer.subtitle")}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isPending}
-            aria-label={t("chrome.action.close")}
-            style={{
-              width: 32,
-              height: 32,
-              display: "grid",
-              placeItems: "center",
-              borderRadius: "var(--r-sm)",
-              color: "var(--ink-soft)",
-              background: "transparent",
-              border: 0,
-              cursor: isPending ? "wait" : "pointer",
-              flexShrink: 0,
-            }}
-          >
-            {Icon.close(14)}
-          </button>
-        </header>
-
         <form
           id="receipt-drawer-form"
           onSubmit={(e) => e.preventDefault()}
@@ -336,7 +265,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
           <div>
             <label htmlFor="rd-warehouse" className="studio-label">
               {t("warehouse_cn.drawer.section_warehouse")}{" "}
-              <span style={{ color: "var(--wine)" }}>*</span>
+              <span style={{ color: "var(--wine-text)" }}>*</span>
             </label>
             <select
               id="rd-warehouse"
@@ -364,7 +293,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
               <>
                 <label htmlFor="rd-client" className="studio-label">
                   {t("warehouse_cn.drawer.client_label")}{" "}
-                  <span style={{ color: "var(--wine)" }}>*</span>
+                  <span style={{ color: "var(--wine-text)" }}>*</span>
                 </label>
                 <select
                   id="rd-client"
@@ -435,7 +364,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
                     style={{
                       font: "500 11px/1.4 var(--f-sans)",
                       color: "var(--ink-soft)",
-                      marginLeft: 4,
+                      marginLeft: "var(--s-1)",
                     }}
                   >
                     {t("warehouse_cn.drawer.orphan_code_note")}{" "}
@@ -471,8 +400,8 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
               style={{
                 display: "flex",
                 flexDirection: "column",
-                gap: 12,
-                paddingLeft: 12,
+                gap: "var(--s-3)",
+                paddingLeft: "var(--s-3)",
                 borderLeft: "2px solid var(--warning)",
               }}
             >
@@ -493,7 +422,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
                   style={{
                     font: "500 11px/1.4 var(--f-sans)",
                     color: "var(--ink-soft)",
-                    margin: "4px 0 0",
+                    margin: "var(--s-1) 0 0",
                   }}
                 >
                   {t("warehouse_cn.drawer.orphan_marks_hint")}
@@ -503,7 +432,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
                 style={{
                   display: "grid",
                   gridTemplateColumns: "1fr 1fr",
-                  gap: 12,
+                  gap: "var(--s-3)",
                 }}
               >
                 <div>
@@ -555,7 +484,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                marginBottom: 8,
+                marginBottom: "var(--s-2)",
               }}
             >
               <div>
@@ -566,7 +495,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
                   style={{
                     font: "500 11px/1.3 var(--f-sans)",
                     color: "var(--ink-soft)",
-                    margin: "4px 0 0",
+                    margin: "var(--s-1) 0 0",
                   }}
                 >
                   {t("warehouse_cn.drawer.items_hint", { max: MAX_ITEMS })}
@@ -622,7 +551,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
               <div>
                 <label htmlFor="rd-boxes" className="studio-label">
                   {t("warehouse_cn.drawer.boxes_field_label")}{" "}
-                  <span style={{ color: "var(--wine)" }}>*</span>
+                  <span style={{ color: "var(--wine-text)" }}>*</span>
                 </label>
                 <NumericInput
                   id="rd-boxes"
@@ -674,7 +603,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
               <div>
                 <label htmlFor="rd-received" className="studio-label">
                   {t("warehouse_cn.drawer.received_label")}{" "}
-                  <span style={{ color: "var(--wine)" }}>*</span>
+                  <span style={{ color: "var(--wine-text)" }}>*</span>
                 </label>
                 <input
                   id="rd-received"
@@ -771,8 +700,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
             ]}
           />
         </footer>
-      </aside>
-    </div>
+    </DrawerShell>
   );
 }
 
@@ -859,7 +787,7 @@ function ItemEditor({
           htmlFor={`item-desc-${item._key}`}
         >
           {t("warehouse_cn.drawer.item_desc_label")}{" "}
-          <span style={{ color: "var(--wine)" }}>*</span>
+          <span style={{ color: "var(--wine-text)" }}>*</span>
         </label>
         <input
           id={`item-desc-${item._key}`}

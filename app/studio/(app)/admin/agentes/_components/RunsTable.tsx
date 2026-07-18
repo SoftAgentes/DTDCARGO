@@ -10,6 +10,7 @@
 
 import { useState } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { TableFrame, ActionableRow } from "@/app/studio/_components/ui/DataTable";
 import {
   formatCostUsd,
   formatLatency,
@@ -25,14 +26,7 @@ export function RunsTable({ runs }: { runs: AgentRunWithAgent[] }) {
 
   return (
     <>
-      <div
-        style={{
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--r-lg)",
-          overflow: "hidden",
-        }}
-      >
+      <TableFrame>
         <table
           style={{
             width: "100%",
@@ -60,19 +54,12 @@ export function RunsTable({ runs }: { runs: AgentRunWithAgent[] }) {
             {runs.map((r, idx) => {
               const tone = runStatusBadgeTone(r.status);
               return (
-                <tr
+                <ActionableRow
                   key={r.id}
-                  onClick={() => setSelected(r)}
+                  onSelect={() => setSelected(r)}
+                  label={`Ver corrida de ${r.agent?.name ?? "agente"}`}
                   style={{
                     borderTop: idx === 0 ? "none" : "1px solid var(--border)",
-                    cursor: "pointer",
-                    transition: "background var(--dur-fast) var(--ease)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "var(--bg-elevated)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "transparent";
                   }}
                 >
                   <Td>
@@ -130,12 +117,12 @@ export function RunsTable({ runs }: { runs: AgentRunWithAgent[] }) {
                       {formatLatency(r.latency_ms)}
                     </span>
                   </Td>
-                </tr>
+                </ActionableRow>
               );
             })}
           </tbody>
         </table>
-      </div>
+      </TableFrame>
 
       {selected && (
         <RunDetailModal
@@ -209,7 +196,7 @@ function RunDetailModal({
           <div style={{ flex: 1, minWidth: 0 }}>
             <div
               className="studio-eyebrow"
-              style={{ color: "var(--wine)", marginBottom: 4 }}
+              style={{ color: "var(--wine-text)", marginBottom: 4 }}
             >
               Run · {triggerLabel(run.trigger)}
               {run.trigger_source ? ` · ${run.trigger_source}` : ""}

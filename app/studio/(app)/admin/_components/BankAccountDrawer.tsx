@@ -95,7 +95,7 @@ export function BankAccountDrawer({
           <FieldError msg={fe.bank_name} />
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
           <div>
             <label className="studio-label" htmlFor="bk-type">Tipo de cuenta</label>
             <input
@@ -217,7 +217,7 @@ function FormError({ msg }: { msg: string }) {
   return (
     <div
       style={{
-        padding: 12,
+        padding: "var(--s-3)",
         background: "var(--danger-bg)",
         color: "var(--danger)",
         borderRadius: "var(--r-md)",

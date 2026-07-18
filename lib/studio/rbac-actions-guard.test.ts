@@ -25,6 +25,10 @@ const ALLOWLIST: Record<string, string> = {
   "no-olvidar/actions.ts": "No-Olvidar (SDD-0025): auth propia por-usuario (RLS user_id + gate 2FA requireUnlocked); las acciones admin validan no_olvidar_check_admin inline, no rol de módulo.",
   "debug/actions.ts": "recheckAll: re-corre health checks, no muta datos de negocio.",
   "admin/feature-flags/actions.ts": "toggleFeatureFlag valida role==='admin' inline.",
+  "admin/notificaciones/actions.ts":
+    "SDD-0156: requireAdmin() valida role==='admin' inline antes de cada mutación; config admin-only, RLS por tenant en client_notification_rules.",
+  "dashboard/actions.ts":
+    "SDD-0114: cada usuario edita SU PROPIA config de dashboard (fila user_dashboard_prefs, RLS por dueño). No muta datos de negocio ni de otros usuarios; además la action filtra los ids con canAccessModule antes de persistir.",
   "ordenes-compra/actions.ts": "Barrel: las actions con guard viven en lib/studio/purchase-orders/actions.ts.",
   "ordenes-venta/actions.ts": "Barrel: las actions con guard viven en lib/studio/sales-orders/actions.ts.",
   "marketing/noticias-web/actions.ts": "Gateado con requireAdminWithTenant (gate admin propio).",

@@ -1,10 +1,10 @@
 ---
 sdd: "0147"
 title: "Soporte del portal a Norte — fusión de Reclamos + chat con el asesor en una pantalla"
-status: in-progress
+status: done
 author: "Claude Code (sesión Director) + founder"
 created: 2026-07-04
-updated: 2026-07-04
+updated: 2026-07-15
 supersedes: null
 superseded_by: null
 related: ["0042", "0056", "0101", "0102", "0145"]

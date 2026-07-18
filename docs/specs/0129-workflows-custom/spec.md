@@ -1,10 +1,10 @@
 ---
 sdd: "0129"
 title: "Workflows custom — puntero al motor de flujo existente (SDD-0091)"
-status: in-progress
+status: done
 author: "Claude Code (sesión secundaria · worktree web-norte) + founder"
 created: 2026-07-01
-updated: 2026-07-01
+updated: 2026-07-15
 supersedes: null
 superseded_by: null
 related: ["0091"]

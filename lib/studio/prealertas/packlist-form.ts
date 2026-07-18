@@ -74,6 +74,31 @@ export type PackingListTotals = {
   cbm: number;
 };
 
+/**
+ * Packing list ENVIADO por el proveedor (fila de `packing_list_submissions`,
+ * migr 0147), tal como lo lee el equipo en el Studio (SDD-0096 · PORT-2).
+ * Snapshot del contacto del proveedor + cabecera + filas + totales autoritativos.
+ */
+export type PackingListSubmission = {
+  id: string;
+  prealerta_id: string;
+  client_markbox: string;
+  version_no: number;
+  is_current: boolean;
+  supplier_company: string | null;
+  supplier_contact: string | null;
+  supplier_email: string | null;
+  supplier_wechat: string | null;
+  supplier_phone: string | null;
+  currency: PackingListCurrency;
+  doc_date: string | null;
+  folio: string | null;
+  supplier_note: string | null;
+  rows: PackingListRow[];
+  totals: PackingListTotals;
+  created_at: string;
+};
+
 /** Payload crudo del form (lo que llega al route). */
 export type PackingListPayload = {
   supplierCompany?: string;

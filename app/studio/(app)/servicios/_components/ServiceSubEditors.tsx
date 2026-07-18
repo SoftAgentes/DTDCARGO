@@ -44,7 +44,7 @@ const labelStyle = { display: "block", marginBottom: 6 } as const;
 const emptyStyle = {
   font: "400 13px/1.5 var(--f-sans)",
   color: "var(--ink-soft)",
-  margin: "0 0 12px",
+  margin: "0 0 var(--s-3)",
 };
 
 // ───────────────────────── FAQ ─────────────────────────
@@ -72,7 +72,7 @@ export function FaqEditor({
       {faqs.length === 0 ? (
         <p style={emptyStyle}>Todavía no hay FAQ para este servicio.</p>
       ) : (
-        <ul style={{ listStyle: "none", padding: 0, margin: "0 0 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+        <ul style={{ listStyle: "none", padding: 0, margin: "0 0 var(--s-4)", display: "flex", flexDirection: "column", gap: 10 }}>
           {faqs.map((f) => (
             <li
               key={f.id}
@@ -129,7 +129,7 @@ export function FaqEditor({
 
       <form key={faqs.length} action={formAction} style={{ borderTop: "1px solid var(--border)", paddingTop: 14 }}>
         <input type="hidden" name="service_key" value={serviceKey} />
-        <p className="studio-eyebrow" style={{ color: "var(--ink-soft)", margin: "0 0 12px" }}>
+        <p className="studio-eyebrow" style={{ color: "var(--ink-soft)", margin: "0 0 var(--s-3)" }}>
           Agregar FAQ
         </p>
         <label className="studio-label" style={labelStyle}>Pregunta</label>
@@ -174,7 +174,7 @@ export function AddonEditor({
       {addons.length === 0 ? (
         <p style={emptyStyle}>Todavía no hay adicionales para este servicio.</p>
       ) : (
-        <ul style={{ listStyle: "none", padding: 0, margin: "0 0 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+        <ul style={{ listStyle: "none", padding: 0, margin: "0 0 var(--s-4)", display: "flex", flexDirection: "column", gap: 10 }}>
           {addons.map((a) => (
             <li
               key={a.id}
@@ -209,7 +209,7 @@ export function AddonEditor({
                 </p>
               )}
               {a.politica_texto && (
-                <p style={{ font: "400 12px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: "4px 0 0" }}>
+                <p style={{ font: "400 12px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: "var(--s-1) 0 0" }}>
                   Política: {a.politica_texto}
                 </p>
               )}
@@ -220,7 +220,7 @@ export function AddonEditor({
 
       <form key={addons.length} action={formAction} style={{ borderTop: "1px solid var(--border)", paddingTop: 14 }}>
         <input type="hidden" name="service_key" value={serviceKey} />
-        <p className="studio-eyebrow" style={{ color: "var(--ink-soft)", margin: "0 0 12px" }}>
+        <p className="studio-eyebrow" style={{ color: "var(--ink-soft)", margin: "0 0 var(--s-3)" }}>
           Agregar adicional
         </p>
         <label className="studio-label" style={labelStyle}>Nombre</label>
@@ -264,7 +264,7 @@ export function PriceHistoryEditor({
       {entries.length === 0 ? (
         <p style={emptyStyle}>Sin historial de precios todavía.</p>
       ) : (
-        <ul style={{ listStyle: "none", padding: 0, margin: "0 0 16px", display: "flex", flexDirection: "column", gap: 8 }}>
+        <ul style={{ listStyle: "none", padding: 0, margin: "0 0 var(--s-4)", display: "flex", flexDirection: "column", gap: 8 }}>
           {entries.map((e) => (
             <li
               key={e.id}
@@ -294,7 +294,7 @@ export function PriceHistoryEditor({
 
       <form key={entries.length} action={formAction} style={{ borderTop: "1px solid var(--border)", paddingTop: 14 }}>
         <input type="hidden" name="service_key" value={serviceKey} />
-        <p className="studio-eyebrow" style={{ color: "var(--ink-soft)", margin: "0 0 12px" }}>
+        <p className="studio-eyebrow" style={{ color: "var(--ink-soft)", margin: "0 0 var(--s-3)" }}>
           Registrar precio
         </p>
         <label className="studio-label" style={labelStyle}>Precio o condición</label>
@@ -372,10 +372,10 @@ export function OfferMatrixEditor({
 
       {isNucleo ? (
         <>
-          <p className="studio-eyebrow" style={{ color: "var(--ink-soft)", margin: "0 0 8px" }}>
+          <p className="studio-eyebrow" style={{ color: "var(--ink-soft)", margin: "0 0 var(--s-2)" }}>
             Add-ons cruzados
           </p>
-          <p style={{ font: "400 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "0 0 12px" }}>
+          <p style={{ font: "400 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "0 0 var(--s-3)" }}>
             <strong style={{ color: "var(--ink)" }}>Ofrecer</strong> = se sugiere como complemento.{" "}
             <strong style={{ color: "var(--ink)" }}>Incluido</strong> = ya va dentro (no se ofrece aparte).
             Si marcas ambos, gana “incluido”.
@@ -386,7 +386,7 @@ export function OfferMatrixEditor({
                 display: "grid",
                 gridTemplateColumns: "1fr 72px 72px",
                 gap: 8,
-                padding: "8px 12px",
+                padding: "var(--s-2) var(--s-3)",
                 borderBottom: "1px solid var(--border)",
                 background: "var(--bg-surface)",
                 font: "600 11px/1 var(--f-sans)",
@@ -406,7 +406,7 @@ export function OfferMatrixEditor({
                   display: "grid",
                   gridTemplateColumns: "1fr 72px 72px",
                   gap: 8,
-                  padding: "8px 12px",
+                  padding: "var(--s-2) var(--s-3)",
                   alignItems: "center",
                   borderTop: "1px solid var(--border)",
                 }}

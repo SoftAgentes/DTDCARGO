@@ -1,10 +1,10 @@
 ---
 sdd: "0148"
 title: "Aviso al equipo de mensajes entrantes del portal — activar el chat de Soporte"
-status: in-progress
+status: done
 author: "Claude Code (sesión Director) + founder"
 created: 2026-07-04
-updated: 2026-07-04
+updated: 2026-07-15
 supersedes: null
 superseded_by: null
 related: ["0056", "0036", "0134", "0147"]

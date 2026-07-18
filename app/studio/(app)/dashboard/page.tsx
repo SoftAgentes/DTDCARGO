@@ -1,46 +1,51 @@
 /**
- * Dashboard del Studio (SDD-0014 — KPIs reales).
+ * Dashboard del Studio · CONFIGURABLE por usuario (SDD-0114).
  *
- * Layout:
- *  - Header con saludo + tenant
- *  - Sección "Operativo": 4 KPIs (En tránsito / En aduana / Entregados / Con alerta)
- *  - Sección "Comercial · este mes": 4 KPIs (Clientes / Estimados / Total $ / Tarifas)
- *  - Grid 2 cols: Card "Operación activa" + Card "Estimados recientes"
+ * Server component: resuelve rol + tenant, lee la config del usuario de
+ * `user_dashboard_prefs` (o el default filtrado por RBAC), y fetchea EN PARALELO
+ * solo los bundles de datos de los módulos accesibles. El render configurable +
+ * editor vive en `DashboardClient` (cliente), que maneja el estado optimista y el
+ * autosave a DB.
  *
- * Todo server-fetched en paralelo. RLS filtra por tenant automáticamente.
+ * RBAC (SDD-0085): el catálogo se filtra por los módulos que el usuario ve — un
+ * usuario sin Nómina no recibe ni valores ni widget de nómina.
  */
 
-import Link from "next/link";
 import { createClient } from "@/lib/db/server";
+import { canAccessModule } from "@/lib/studio/rbac";
+import type { StudioUserRole } from "@/lib/studio/user-types";
 import {
-  getActiveRateCount,
   getClientCount,
   getOperationalCounts,
   getQuoteStatsThisMonth,
   getRecentActivity,
-  getRecentQuotes,
   navieraKpis,
 } from "@/lib/studio/dashboard-queries";
-import { computeAgentKpis } from "@/lib/studio/agent-queries";
-import { countMyOpenTasks } from "@/lib/studio/bitacora/bitacora-queries";
-import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
-import { RecentActivityCard } from "./_components/RecentActivityCard";
-import { RecentQuotesCard } from "./_components/RecentQuotesCard";
-import { AgenticHealthCard } from "./_components/AgenticHealthCard";
+import { getDashboardConfig } from "@/lib/studio/dashboard/dashboard-prefs-queries";
+import {
+  accessibleCatalog,
+  defaultConfigForAccess,
+  isEmptyConfig,
+  validateDashboardConfigInput,
+} from "@/lib/studio/dashboard/dashboard-types";
+import { KPI_CATALOG } from "@/lib/studio/dashboard/dashboard-catalog";
+import {
+  financeInvoiceKpis,
+  leadsKpi,
+  marginKpi,
+  nominaKpis,
+  type KpiValue,
+} from "@/lib/studio/dashboard/dashboard-kpi-queries";
+import {
+  getActiveShipmentsPreview,
+  getMonthlyVolume,
+} from "@/lib/studio/dashboard/dashboard-widget-queries";
+import { DashboardClient, type DashboardWidgetData } from "./_components/DashboardClient";
+import type { AlertItem } from "./_components/DashboardWidgets";
 
 export const metadata = { title: "Dashboard" };
 
-type TenantRow = { display_name: string; base_currency: string };
-type UserTenantWithTenant = { role: string; tenants: TenantRow | null };
-
 const VE_TZ = "America/Caracas";
-
-function formatMoney(n: number): string {
-  return n.toLocaleString("en-US", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
-}
 
 function firstNameFromUser(
   meta: Record<string, unknown> | undefined,
@@ -49,9 +54,7 @@ function firstNameFromUser(
   const fromMeta =
     (meta?.first_name as string | undefined) ??
     (meta?.given_name as string | undefined) ??
-    (typeof meta?.full_name === "string"
-      ? (meta.full_name as string).split(" ")[0]
-      : undefined) ??
+    (typeof meta?.full_name === "string" ? (meta.full_name as string).split(" ")[0] : undefined) ??
     (typeof meta?.name === "string" ? (meta.name as string).split(" ")[0] : undefined);
   if (fromMeta && fromMeta.trim().length > 0) return fromMeta.trim();
   if (email) {
@@ -62,11 +65,7 @@ function firstNameFromUser(
 }
 
 function greetingForHourVE(now: Date): string {
-  const hourStr = new Intl.DateTimeFormat("es-VE", {
-    timeZone: VE_TZ,
-    hour: "numeric",
-    hour12: false,
-  }).format(now);
+  const hourStr = new Intl.DateTimeFormat("es-VE", { timeZone: VE_TZ, hour: "numeric", hour12: false }).format(now);
   const hour = parseInt(hourStr, 10);
   if (hour < 12) return "Buenos días";
   if (hour < 19) return "Buenas tardes";
@@ -74,365 +73,227 @@ function greetingForHourVE(now: Date): string {
 }
 
 function eyebrowDateVE(now: Date): string {
-  // "OPERACIÓN · 24 MAY 2026"
   const fmt = new Intl.DateTimeFormat("es-VE", {
     timeZone: VE_TZ,
     day: "2-digit",
     month: "short",
     year: "numeric",
   }).format(now);
-  // es-VE puede devolver "24 may 2026" o "24 may. 2026" según ICU — limpiamos punto y uppercase
   return fmt.replace(/\./g, "").toUpperCase();
 }
+
+type TenantRow = { display_name: string; base_currency: string };
+type UserTenantWithTenant = { role: string | null; tenants: TenantRow | null };
 
 export default async function DashboardPage() {
   const supabase = await createClient();
 
-  // Fetch en paralelo
-  const [
-    userResp,
-    tenantLink,
-    operational,
-    clientCount,
-    rateCount,
-    quoteStats,
-    recentQuotes,
-    recentActivity,
-    agentKpis,
-    naviera,
-  ] = await Promise.all([
+  const [userResp, link] = await Promise.all([
     supabase.auth.getUser(),
     supabase
       .from("user_tenants")
       .select("role, tenants(display_name, base_currency)")
       .maybeSingle<UserTenantWithTenant>()
-      .then((r) => r.data?.tenants ?? null),
-    getOperationalCounts(supabase),
-    getClientCount(supabase),
-    getActiveRateCount(supabase),
-    getQuoteStatsThisMonth(supabase),
-    getRecentQuotes(supabase, 5),
-    getRecentActivity(supabase, 6),
-    computeAgentKpis(supabase),
-    navieraKpis(supabase),
+      .then((r) => r.data ?? null),
   ]);
 
-  const tenant = tenantLink;
-  // Tareas abiertas asignadas al usuario (KpiCard "Tu día" · SDD-0146 F6).
-  // Head-only count; degrada a 0 si Bitácora aún no está aplicada.
-  const myUserId = userResp.data.user?.id ?? null;
-  const myOpenTasks = myUserId ? await countMyOpenTasks(supabase, myUserId) : 0;
-  const now = new Date();
-  const firstName = firstNameFromUser(
-    userResp.data.user?.user_metadata,
-    userResp.data.user?.email,
+  const userId = userResp.data.user?.id ?? "";
+  const role = (link?.role as StudioUserRole | null) ?? null;
+  const tenant = link?.tenants ?? null;
+  const canAccess = (moduleId: string | null) => (moduleId === null ? true : canAccessModule(role, moduleId));
+
+  // Config del usuario (DB manda) → filtrada por RBAC. Vacía / usuario nuevo → default.
+  const rawConfig = userId ? await getDashboardConfig(supabase, userId) : null;
+  let config = validateDashboardConfigInput(rawConfig, canAccess);
+  const defaultConfig = defaultConfigForAccess(canAccess);
+  if (isEmptyConfig(config)) config = defaultConfig;
+
+  // Catálogo accesible (para el editor) + qué fuentes de datos hacen falta.
+  const { kpis: accessibleKpis, widgets: accessibleWidgets } = accessibleCatalog(canAccess);
+  const accessibleSources = new Set(accessibleKpis.map((k) => k.source));
+  const accessibleKpiIds = new Set(accessibleKpis.map((k) => k.id));
+  const accessibleWidgetIds = new Set(accessibleWidgets.map((w) => w.id));
+
+  const needOperational = accessibleSources.has("operational");
+  const needNaviera = accessibleSources.has("naviera");
+  const needFinanceInvoice = ["monthRevenue", "invoicesDue", "pendingCollect", "avgTicket"].some((id) =>
+    accessibleKpiIds.has(id),
   );
+  const needMargin = accessibleKpiIds.has("marginYTD");
+  const needQuotes = accessibleSources.has("quotes");
+  const needClients = accessibleSources.has("clients");
+  const needLeads = accessibleSources.has("leads");
+  const needNomina = accessibleSources.has("nomina");
+
+  const needActiveShipments = accessibleWidgetIds.has("activeShipments") || accessibleWidgetIds.has("upcomingEta");
+  const needChart = accessibleWidgetIds.has("chart");
+
+  // Fetch en paralelo: SOLO lo accesible (RBAC gatea nómina/finanzas/etc.).
+  const [
+    operational,
+    naviera,
+    finance,
+    margin,
+    quoteStats,
+    clientCount,
+    leads,
+    nomina,
+    activeShipments,
+    monthlyVolume,
+    recentActivity,
+  ] = await Promise.all([
+    needOperational ? getOperationalCounts(supabase) : Promise.resolve(null),
+    needNaviera ? navieraKpis(supabase) : Promise.resolve(null),
+    needFinanceInvoice ? financeInvoiceKpis(supabase) : Promise.resolve(null),
+    needMargin ? marginKpi(supabase) : Promise.resolve(null),
+    needQuotes ? getQuoteStatsThisMonth(supabase) : Promise.resolve(null),
+    needClients ? getClientCount(supabase) : Promise.resolve(null),
+    needLeads ? leadsKpi(supabase) : Promise.resolve(null),
+    needNomina ? nominaKpis(supabase) : Promise.resolve(null),
+    needActiveShipments ? getActiveShipmentsPreview(supabase, 6) : Promise.resolve([]),
+    needChart ? getMonthlyVolume(supabase) : Promise.resolve([]),
+    getRecentActivity(supabase, 6),
+  ]);
+
+  // ── Ensamblar los valores de KPI para TODO el catálogo accesible ──
+  const kpiValues: Record<string, KpiValue> = {};
+  const neutral = (value: string): KpiValue => ({ value, tone: "neutral" });
+
+  for (const k of KPI_CATALOG) {
+    if (!accessibleKpiIds.has(k.id)) continue;
+    switch (k.id) {
+      case "shipmentsActive":
+        if (operational) kpiValues[k.id] = { value: String(operational.total), sub: "en curso", tone: "wine" };
+        break;
+      case "openIncidents":
+        if (operational)
+          kpiValues[k.id] = {
+            value: String(operational.conAlerta),
+            sub: operational.conAlerta > 0 ? "requieren atención" : "sin alertas",
+            tone: operational.conAlerta > 0 ? "warning" : "success",
+          };
+        break;
+      case "cbmInTransit":
+        if (naviera) kpiValues[k.id] = { value: `${naviera.looseCbm.toFixed(1)} CBM`, sub: "carga en almacén CN", tone: "neutral" };
+        break;
+      case "cnStock":
+        if (naviera) kpiValues[k.id] = { value: String(naviera.looseCount), sub: "embarques en almacén CN", tone: "neutral" };
+        break;
+      case "monthRevenue":
+        if (finance) kpiValues[k.id] = finance.monthRevenue;
+        break;
+      case "invoicesDue":
+        if (finance) kpiValues[k.id] = finance.invoicesDue;
+        break;
+      case "pendingCollect":
+        if (finance) kpiValues[k.id] = finance.pendingCollect;
+        break;
+      case "avgTicket":
+        if (finance) kpiValues[k.id] = finance.avgTicket;
+        break;
+      case "marginYTD":
+        if (margin) kpiValues[k.id] = margin;
+        break;
+      case "newLeads":
+        if (leads) kpiValues[k.id] = leads;
+        break;
+      case "wonEstimados":
+        if (quoteStats)
+          kpiValues[k.id] = {
+            value: String(quoteStats.countAccepted),
+            sub: `${quoteStats.countSent} enviados este mes`,
+            tone: quoteStats.countAccepted > 0 ? "success" : "neutral",
+          };
+        break;
+      case "activeClients":
+        if (clientCount != null) kpiValues[k.id] = { value: String(clientCount), sub: "en el catálogo", tone: "neutral" };
+        break;
+      case "nominaNeto":
+        if (nomina) kpiValues[k.id] = nomina.nominaNeto;
+        break;
+      case "nominaPrestamos":
+        if (nomina) kpiValues[k.id] = nomina.nominaPrestamos;
+        break;
+      case "nominaAusencias":
+        if (nomina) kpiValues[k.id] = nomina.nominaAusencias;
+        break;
+      case "nominaEmpleados":
+        if (nomina) kpiValues[k.id] = nomina.nominaEmpleados;
+        break;
+      default:
+        // wip (onTime, avgTransit) → sin valor: el cliente muestra "—".
+        break;
+    }
+    if (k.status === "ready" && !kpiValues[k.id]) kpiValues[k.id] = neutral("—");
+  }
+
+  // ── Alertas del widget "atención requerida" ──
+  const alerts: AlertItem[] = [];
+  if (operational && operational.conAlerta > 0)
+    alerts.push({
+      tone: "warning",
+      title: `${operational.conAlerta} envío(s) con alerta`,
+      meta: "Revisar en tracking",
+      href: "/studio/tracking",
+    });
+  if (finance) {
+    const due = Number(finance.invoicesDue.value) || 0;
+    if (due > 0)
+      alerts.push({ tone: "danger", title: `${due} factura(s) vencida(s)`, meta: "Gestionar cobranza", href: "/studio/invoices" });
+  }
+  if (naviera && naviera.looseCount > 0)
+    alerts.push({
+      tone: "info",
+      title: `${naviera.looseCount} embarque(s) por consolidar`,
+      meta: `${naviera.looseCbm.toFixed(1)} CBM sueltos en CN`,
+      href: "/studio/naviera",
+    });
+
+  const widgetData: DashboardWidgetData = {
+    activeShipments,
+    monthlyVolume,
+    recentActivity,
+    alerts,
+    nomina: nomina
+      ? {
+          neto: nomina.nominaNeto,
+          prestamos: nomina.nominaPrestamos,
+          ausencias: nomina.nominaAusencias,
+          empleados: nomina.nominaEmpleados,
+        }
+      : null,
+  };
+
+  const now = new Date();
+  const firstName = firstNameFromUser(userResp.data.user?.user_metadata, userResp.data.user?.email);
   const greeting = greetingForHourVE(now);
-  const eyebrow = `OPERACIÓN · ${eyebrowDateVE(now)}`;
-  const subject = firstName ?? tenant?.display_name ?? "DoorTuDoor";
+  const subject = firstName ?? tenant?.display_name ?? "equipo";
 
   return (
     <div style={{ maxWidth: 1280 }}>
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
-        <div
-          className="studio-eyebrow"
-          style={{ marginBottom: 10, color: "var(--wine)" }}
-        >
-          {eyebrow}
+        <div className="studio-eyebrow" style={{ marginBottom: 10, color: "var(--wine-text)" }}>
+          {`OPERACIÓN · ${eyebrowDateVE(now)}`}
         </div>
-        <h1
-          className="studio-display"
-          style={{ fontSize: 30, margin: "0 0 8px", color: "var(--ink)" }}
-        >
-          {greeting}, <span style={{ color: "var(--wine)" }}>{subject}</span>.
+        <h1 className="studio-display" style={{ fontSize: 30, margin: "0 0 var(--s-2)", color: "var(--ink)" }}>
+          {greeting}, <span style={{ color: "var(--wine-text)" }}>{subject}</span>.
         </h1>
-        <p
-          style={{
-            font: "400 14px/1.5 var(--f-sans)",
-            color: "var(--ink-soft)",
-            margin: 0,
-          }}
-        >
-          Operando como{" "}
-          <strong style={{ color: "var(--ink)" }}>
-            {tenant?.display_name ?? "DTD Cargo"}
-          </strong>
-          {" · "}
-          Moneda base:{" "}
-          <strong style={{ color: "var(--ink)" }}>
-            {tenant?.base_currency ?? "USD"}
-          </strong>
-          .
+        <p style={{ font: "400 14px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
+          Operando como <strong style={{ color: "var(--ink)" }}>{tenant?.display_name ?? "DTD Cargo"}</strong>
+          {" · "}Moneda base: <strong style={{ color: "var(--ink)" }}>{tenant?.base_currency ?? "USD"}</strong>.
         </p>
       </div>
 
-      {/* TU DÍA · SDD-0146 Bitácora (tareas del equipo) */}
-      <section style={{ marginBottom: 28 }}>
-        <div className="studio-eyebrow" style={{ marginBottom: 12 }}>
-          Tu día
-        </div>
-        <div style={{ maxWidth: 280 }}>
-          <Link href="/studio/bitacora" style={{ textDecoration: "none" }}>
-            <KpiCard
-              value={myOpenTasks}
-              label="Tus tareas de hoy"
-              valueColor={myOpenTasks > 0 ? "var(--wine)" : "var(--ink)"}
-              sub="Abrir Bitácora →"
-            />
-          </Link>
-        </div>
-      </section>
-
-      {/* OPERATIVO */}
-      <section style={{ marginBottom: 28 }}>
-        <div className="studio-eyebrow" style={{ marginBottom: 12 }}>
-          Operativo
-        </div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: 14,
-          }}
-        >
-          <KpiCard
-            value={operational.enTransito}
-            label="En tránsito"
-            valueColor="var(--ink)"
-          />
-          <KpiCard
-            value={operational.enAduana}
-            label="En aduana"
-            valueColor="var(--warning)"
-          />
-          <KpiCard
-            value={operational.entregados}
-            label="Entregados"
-            valueColor="var(--success)"
-          />
-          <KpiCard
-            value={operational.conAlerta}
-            label="Con alerta"
-            valueColor="var(--danger)"
-          />
-        </div>
-      </section>
-
-      {/* NAVIERA & CONSOLIDACIÓN · SDD-0047 */}
-      <section style={{ marginBottom: 28 }}>
-        <div className="studio-eyebrow" style={{ marginBottom: 12 }}>
-          Naviera & consolidación
-        </div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: 14,
-          }}
-        >
-          <KpiCard
-            value={naviera.consolidating}
-            label="Contenedores consolidando"
-            valueColor={naviera.consolidating > 0 ? "var(--warning)" : "var(--ink)"}
-            sub={
-              <Link
-                href="/studio/naviera"
-                style={{ color: "var(--wine)", textDecoration: "none", fontWeight: 600 }}
-              >
-                Gestionar →
-              </Link>
-            }
-          />
-          <KpiCard
-            value={`${naviera.looseCbm.toFixed(1)} CBM`}
-            label="Carga suelta sin asignar"
-            valueColor={naviera.looseCbm > 0 ? "var(--wine)" : "var(--ink)"}
-            sub={`${naviera.looseCount} embarque(s) en CN`}
-          />
-          <KpiCard
-            value={naviera.openSailings}
-            label="Salidas con espacio"
-            sub="Itinerarios abiertos / cut-off"
-          />
-          <KpiCard
-            value={naviera.looseCount}
-            label="Embarques por consolidar"
-            sub="Listos en almacén CN"
-          />
-        </div>
-      </section>
-
-      {/* COMERCIAL · ESTE MES */}
-      <section style={{ marginBottom: 28 }}>
-        <div className="studio-eyebrow" style={{ marginBottom: 12 }}>
-          Comercial · este mes
-        </div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: 14,
-          }}
-        >
-          <KpiCard
-            value={clientCount}
-            label="Clientes"
-            sub={
-              <Link
-                href="/studio/clientes"
-                style={{ color: "var(--wine)", textDecoration: "none", fontWeight: 600 }}
-              >
-                Ver catálogo →
-              </Link>
-            }
-          />
-          <KpiCard
-            value={quoteStats.countSent + quoteStats.countAccepted}
-            label="Estimados del mes"
-            sub={`${quoteStats.countSent} enviados · ${quoteStats.countAccepted} aceptados`}
-          />
-          <KpiCard
-            value={`$${formatMoney(quoteStats.totalSentAndAccepted)}`}
-            label="Total estimado"
-            valueColor="var(--wine)"
-            sub={
-              quoteStats.countAccepted > 0
-                ? `de los cuales $${formatMoney(quoteStats.totalAccepted)} aceptado`
-                : "ninguno aceptado todavía"
-            }
-          />
-          <KpiCard
-            value={rateCount}
-            label="Tarifas vigentes"
-            sub={
-              <Link
-                href="/studio/tarifas"
-                style={{ color: "var(--wine)", textDecoration: "none", fontWeight: 600 }}
-              >
-                Ver catálogo →
-              </Link>
-            }
-          />
-        </div>
-      </section>
-
-      {/* Grid inferior 3 cols (SDD-0035 sumó RecentActivity) */}
-      <section
-        style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(0, 0.9fr) minmax(0, 1.2fr) minmax(0, 1fr)",
-          gap: 14,
-        }}
-      >
-        {/* Operación activa */}
-        {operational.total === 0 ? (
-          <EmptyOperationalCard />
-        ) : (
-          <ActiveOperationCard total={operational.total} />
-        )}
-
-        {/* Estimados recientes */}
-        <RecentQuotesCard quotes={recentQuotes} />
-
-        {/* Actividad reciente */}
-        <RecentActivityCard items={recentActivity} />
-      </section>
-
-      {/* INTELIGENCIA · SDD-0020 Fase 2A */}
-      <section style={{ marginTop: 28 }}>
-        <div className="studio-eyebrow" style={{ marginBottom: 12 }}>
-          Inteligencia
-        </div>
-        <AgenticHealthCard kpis={agentKpis} />
-      </section>
+      <DashboardClient
+        initialConfig={config}
+        defaultConfig={defaultConfig}
+        kpiValues={kpiValues}
+        accessibleKpis={accessibleKpis}
+        accessibleWidgets={accessibleWidgets}
+        widgetData={widgetData}
+        userId={userId}
+      />
     </div>
-  );
-}
-
-function ActiveOperationCard({ total }: { total: number }) {
-  return (
-    <section
-      style={{
-        background: "var(--bg-surface)",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--r-lg)",
-        padding: "20px 22px",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        gap: 14,
-        minHeight: 160,
-      }}
-    >
-      <div>
-        <div className="studio-eyebrow" style={{ marginBottom: 8 }}>
-          Operación activa
-        </div>
-        <div
-          style={{
-            font: "500 14px/1.5 var(--f-sans)",
-            color: "var(--ink)",
-          }}
-        >
-          <strong style={{ color: "var(--ink)" }}>{total}</strong>{" "}
-          {total === 1 ? "envío activo" : "envíos activos"} en el tenant
-          DTD Cargo.
-        </div>
-      </div>
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <Link
-          href="/studio/tracking"
-          className="studio-btn studio-btn-dark studio-btn-sm"
-        >
-          VER TRACKING →
-        </Link>
-      </div>
-    </section>
-  );
-}
-
-function EmptyOperationalCard() {
-  return (
-    <section
-      style={{
-        background: "var(--bg-surface)",
-        border: "2px dashed var(--border-strong)",
-        borderRadius: "var(--r-lg)",
-        padding: "28px 22px",
-        textAlign: "center",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        gap: 12,
-        minHeight: 160,
-      }}
-    >
-      <div
-        className="studio-display"
-        style={{ fontSize: 18, color: "var(--ink)" }}
-      >
-        Todavía no hay envíos.
-      </div>
-      <p
-        style={{
-          font: "400 13px/1.5 var(--f-sans)",
-          color: "var(--ink-soft)",
-          maxWidth: "44ch",
-          margin: "0 auto",
-        }}
-      >
-        Empieza creando el primer envío para que los conteos arriba se
-        llenen con datos reales.
-      </p>
-      <div>
-        <Link
-          href="/studio/tracking/nuevo"
-          className="studio-btn studio-btn-primary studio-btn-sm"
-        >
-          + Crear envío
-        </Link>
-      </div>
-    </section>
   );
 }

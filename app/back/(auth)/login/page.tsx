@@ -10,7 +10,7 @@ const REVEAL_PASSWORD_MS = 3000;
 
 /**
  * Login del back de administración. Mirror visual del Studio login pero
- * con identidad propia ("back · contenido" en vez de "DoorTuDoor · ERP").
+ * con identidad propia ("back · contenido" en vez de "DTD Cargo · ERP").
  *
  * UX:
  * - Email + password

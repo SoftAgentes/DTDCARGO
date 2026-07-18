@@ -143,19 +143,25 @@ export type BookingMode = "FCL" | "LCL";
 export const BOOKING_MODES: BookingMode[] = ["FCL", "LCL"];
 
 export type ContainerStatus =
+  | "solicitada"
   | "consolidando"
   | "cerrado"
   | "zarpado"
-  | "arribado";
+  | "arribado"
+  | "rechazada";
 
 export const CONTAINER_STATUS: Record<
   ContainerStatus,
   { label: string; tone: BadgeTone }
 > = {
+  // SDD-0157: el operario CN pide abrir el contenedor → 'solicitada' (sin ref);
+  // la oficina autoriza (→ 'consolidando') o rechaza (→ 'rechazada').
+  solicitada: { label: "Solicitada", tone: "info" },
   consolidando: { label: "Consolidando", tone: "warning" },
   cerrado: { label: "Cerrado", tone: "success" },
   zarpado: { label: "Zarpado", tone: "info" },
   arribado: { label: "Arribado", tone: "neutral" },
+  rechazada: { label: "Rechazada", tone: "neutral" },
 };
 
 export const CONTAINER_STATUSES = Object.keys(
@@ -254,7 +260,8 @@ export type Booking = {
 export type Consolidation = {
   id: string;
   tenant_id: string;
-  ref: string;
+  /** Correlativo DTD-CONSOL-NNNN. null mientras está 'solicitada' (SDD-0157): se asigna al autorizar. */
+  ref: string | null;
   booking_id: string | null;
   sailing_id: string | null;
   container_type: string | null;
@@ -262,6 +269,12 @@ export type Consolidation = {
   container_no: string | null;
   status: ContainerStatus;
   notes: string | null;
+  /** SDD-0157 · traza de la solicitud del operario CN. */
+  requested_by_operario_id: string | null;
+  requested_at: string | null;
+  authorized_by: string | null;
+  authorized_at: string | null;
+  rejected_reason: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;

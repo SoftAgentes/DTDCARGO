@@ -287,8 +287,8 @@ describe("buildActaHtml", () => {
     expect(html).not.toContain("/storage/v1/");
   });
 
-  it("footer 'Generado por DoorTuDoor · fecha · usuario'", () => {
-    expect(html).toContain("Generado por DoorTuDoor · 04 de julio de 2026, 10:00 · Ana Pérez");
+  it("footer 'Generado por DTD Cargo · fecha · usuario'", () => {
+    expect(html).toContain("Generado por DTD Cargo · 04 de julio de 2026, 10:00 · Ana Pérez");
   });
 
   it("lista las tareas creadas y los entregables del cliente", () => {
