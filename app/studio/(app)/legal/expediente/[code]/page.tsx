@@ -1,8 +1,8 @@
 /**
  * Expediente de defensa legal de UNA operación (SDD-0070 · SDD-E del handoff).
  *
- * Server component, ADMIN-ONLY (calca el gate de `evidencia/[code]` de 0067:
- * `user_tenants.role !== 'admin'` → redirect /studio/dashboard). Print-friendly:
+ * Server component. Acceso: admin + capability `view_defense_file` (commercial/
+ * support, SDD-0139) → el asesor de reclamos lo genera él mismo. Print-friendly:
  * "PDF" = imprimir del navegador — el `@media print` (patrón Reportes/Etiquetas)
  * oculta el shell del Studio y deja SOLO el expediente, con los tokens
  * re-anclados a su valor light canónico (no son hex inventados: son los valores
@@ -15,8 +15,8 @@
  * hay datos renderiza "Sin registros" en vez de romper (es evidencia: se muestra
  * lo que hay).
  *
- * Admin-only porque la evidencia tiene PII (IP/user_agent de la aceptación;
- * nombre/cédula del receptor en el POD). RLS por tenant = segunda capa.
+ * Acceso restringido porque la evidencia tiene PII (IP/user_agent de la
+ * aceptación; nombre/cédula del receptor en el POD). RLS por tenant = 2ª capa.
  */
 
 import { redirect } from "next/navigation";
@@ -32,6 +32,8 @@ import {
   summarizeCompleteness,
   type DefensePhoto,
 } from "@/lib/studio/legal/expediente-types";
+import { canSpecial } from "@/lib/studio/rbac";
+import type { StudioUserRole } from "@/lib/studio/user-types";
 import { PrintButton } from "./PrintButton";
 
 export const metadata = { title: "Expediente de defensa · DTD Studio" };
@@ -249,9 +251,14 @@ export default async function DefenseFilePage({
     );
   }
 
-  // Admin-only (la capa legal es compliance del dueño) — mismo gate que
-  // /studio/legal y /studio/legal/evidencia.
-  if (link.role !== "admin") {
+  // Acceso: admin siempre; además commercial/support vía la capability
+  // `view_defense_file` (SDD-0139) — el asesor que atiende el reclamo genera el
+  // expediente él mismo (decisión founder 2026-07-19). El resto de la capa legal
+  // (/studio/legal, /studio/legal/evidencia) sigue admin-only.
+  if (
+    link.role !== "admin" &&
+    !canSpecial(link.role as StudioUserRole, "view_defense_file")
+  ) {
     redirect("/studio/dashboard");
   }
 
