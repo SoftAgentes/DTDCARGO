@@ -4,6 +4,7 @@
  */
 
 import type { ShipmentService } from "./shipment-types";
+import { SERVICE_LABELS } from "./shipment-types";
 
 export type QuoteStatus =
   | "draft"
@@ -276,4 +277,70 @@ export function isExpired(quote: Pick<Quote, "valid_until" | "status">): boolean
   if (quote.status === "accepted" || quote.status === "rejected") return false;
   const today = new Date().toISOString().slice(0, 10);
   return quote.valid_until < today;
+}
+
+// ── Salida por WhatsApp (F1-T11) ────────────────────────────────
+//
+// El estimado no tenía forma de enviarse salvo email — y el 94,5% de los
+// contactos de Kommo no tienen email, así que hoy el envío es transcripción
+// manual. Estos helpers arman el desglose listo para WhatsApp. PUROS y testeables.
+
+const fmtUsd2 = (n: number) =>
+  Number(n).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+/**
+ * Texto del estimado para WhatsApp (desglose legible, con *negritas* de WhatsApp).
+ * Muestra CBM/tarifa para LCL/DDP y tarifa fija para FCL/terrestre. PURO.
+ */
+export function buildQuoteWhatsappText(quote: Quote): string {
+  const svc = SERVICE_LABELS[quote.service];
+  const svcLabel = svc?.sub ? `${svc.primary} (${svc.sub})` : (svc?.primary ?? quote.service);
+  const mode = quotePriceMode(quote.service);
+
+  const lines: string[] = [
+    `*Estimado DTD Cargo · ${quote.quote_code}*`,
+    `Cliente: ${quote.client_name}`,
+    `Servicio: ${svcLabel}`,
+    `Ruta: ${quote.origin} → ${quote.destination}`,
+  ];
+  if (mode === "per_cbm") {
+    if (quote.cbm != null) lines.push(`Volumen: ${Number(quote.cbm).toFixed(3)} m³`);
+    if (quote.rate_per_cbm != null) lines.push(`Tarifa: $${fmtUsd2(quote.rate_per_cbm)}/CBM`);
+  } else if (quote.flat_rate != null) {
+    lines.push(`Tarifa: $${fmtUsd2(quote.flat_rate)} (tarifa fija)`);
+  }
+  lines.push(`Subtotal: $${fmtUsd2(quote.subtotal_usd)}`);
+  if (Number(quote.packaging_cost) > 0) {
+    lines.push(`Embalaje (${packagingLabel(quote.packaging)}): +$${fmtUsd2(quote.packaging_cost)}`);
+  }
+  lines.push(`*Total: $${fmtUsd2(quote.total_usd)} USD*`);
+  lines.push(`Vigencia hasta: ${quote.valid_until}`);
+  return lines.join("\n");
+}
+
+/**
+ * Normaliza un teléfono (venezolano por defecto) a dígitos con código país para
+ * wa.me: `0412…` → `58412…`, un local de 10 dígitos → `58…`, ya con 58 se deja.
+ * PURO.
+ */
+export function normalizeWhatsappPhone(raw: string | null): string {
+  const d = (raw ?? "").replace(/\D/g, "");
+  if (!d) return "";
+  if (d.startsWith("58")) return d;
+  if (d.startsWith("0")) return `58${d.slice(1)}`;
+  if (d.length === 10) return `58${d}`;
+  return d;
+}
+
+/**
+ * URL wa.me para mandar el estimado. Con teléfono abre el chat directo; sin él,
+ * abre WhatsApp para que el asesor elija el contacto. PURO.
+ */
+export function quoteWhatsappHref(phone: string | null, text: string): string {
+  const digits = normalizeWhatsappPhone(phone);
+  const base = digits ? `https://wa.me/${digits}` : "https://wa.me/";
+  return `${base}?text=${encodeURIComponent(text)}`;
 }
