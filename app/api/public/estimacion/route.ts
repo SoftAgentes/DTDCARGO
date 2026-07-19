@@ -1,22 +1,18 @@
 /**
- * SDD-0061 Fase B1 — Endpoint público que captura el estimado web en el ERP.
+ * SDD-0061 Fase B1 — Endpoint público del estimado web · aviso al equipo.
  *
  * POST /api/public/estimacion
  *   body: EstimadoWebPayload (datos de la calc + nota + nombre + teléfono)
- *   → crea una quote source='web', status='draft' ("web · por revisar") con un
- *     código EST-XXXX, y devuelve { ok, estimateCode }.
+ *   → avisa al equipo del lead (email info@ + admins + Telegram, best-effort) y
+ *     devuelve { ok }. Ya NO crea un EST- en el ERP (decisión founder 2026-07: el
+ *     visitante no registrado no genera registros en el ERP; su cotización viaja
+ *     por el WhatsApp que la calculadora abre sola). El estimado formal lo crea el
+ *     asesor en el Cotizador si el lead progresa.
  *
- * Es el ÚNICO puente público↔ERP de esta feature: las calculadoras NO importan
- * Supabase; le pegan por HTTP a este handler (mismo origen). El handler es FINO:
- * delega validación + mapeo a `lib/public/estimado-web.ts` (lógica pura,
- * boundary-safe) y solo orquesta tenant + correlativo + insert con admin client.
- *
- * El insert corre con service_role (createAdminClient): el visitante es anónimo y
- * necesita bypassear RLS para escribir. quotes NO tiene FORCE RLS → pasa limpio.
- *
- * El estimado queda en el ERP aunque el cliente nunca llegue a enviar el WhatsApp,
- * y al guardarlo se avisa al equipo (email info@ + admins + Telegram, best-effort)
- * para que el asesor le escriba él — ver lib/studio/estimado-lead-notify.
+ * Es un puente público→ERP acotado a NOTIFICAR (no persiste): las calculadoras NO
+ * importan Supabase; le pegan por HTTP a este handler (mismo origen), que corre
+ * con admin client (service_role) solo para leer el tenant y mandar los avisos —
+ * ver lib/studio/estimado-lead-notify.
  */
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -26,7 +22,6 @@ import { readJsonBody } from "@/lib/http/read-json-body";
 import { resolveRequestIp } from "@/lib/http/request-ip";
 import {
   validateEstimadoInput,
-  buildEstimadoRow,
   type EstimadoWebPayload,
 } from "@/lib/public/estimado-web";
 import { notifyEstimadoLeadToAdmin } from "@/lib/studio/estimado-lead-notify";
@@ -79,12 +74,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 2b. Throttle por IP — DESPUÉS de validar input + crear el admin, ANTES del
-  //     trabajo pesado (next_estimate_code consume un correlativo; el insert
-  //     escribe en quotes). Contamos los intentos recientes de esta IP; si superó
-  //     el límite, devolvemos 429 sin crear nada. Fail-OPEN ante un error de
-  //     lectura del throttle: no bloqueamos un estimado legítimo por un fallo de
-  //     infraestructura del propio anti-abuso.
+  // 2b. Throttle por IP — DESPUÉS de validar input + crear el admin, ANTES de
+  //     mandar los avisos (email/Telegram también son abusables). Contamos los
+  //     intentos recientes de esta IP; si superó el límite, devolvemos 429 sin
+  //     avisar. Fail-OPEN ante un error de lectura del throttle: no bloqueamos un
+  //     lead legítimo por un fallo de infraestructura del propio anti-abuso.
   const ip = RL_IP_PREFIX + resolveRequestIp(req.headers);
   const windowStart = new Date(
     Date.now() - RL_WINDOW_MINUTES * 60 * 1000,
@@ -124,34 +118,14 @@ export async function POST(req: NextRequest) {
   }
   const tenantId = tenantRow.id;
 
-  // 4. Correlativo EST-YYYY-NNNN.
-  const { data: codeData, error: codeErr } = await admin.rpc("next_estimate_code", {
-    p_tenant_id: tenantId,
-  });
-  if (codeErr || !codeData) {
-    return apiError("No pudimos generar el código del estimado.", codeErr, 500, "estimacion");
-  }
-  const estimateCode = String(codeData);
-
-  // 5. Insert del estimado web ("web · por revisar").
-  const { error: insertErr } = await admin.from("quotes").insert({
-    tenant_id: tenantId,
-    quote_code: estimateCode,
-    ...buildEstimadoRow(input),
-  });
-  if (insertErr) {
-    return apiError("No pudimos registrar tu estimado.", insertErr, 500, "estimacion");
-  }
-
-  // 6. Aviso al equipo (email info@ + admins + Telegram) — best-effort. El
-  //    estimado YA quedó persistido; a diferencia de /contacto (donde el aviso
-  //    ES la captación), acá un fallo del aviso NO rompe la respuesta al
-  //    visitante. Sin esto, el EST- quedaba huérfano en el filtro "web" del
-  //    cotizador hasta que alguien lo mirara — si el visitante no mandaba el
-  //    WhatsApp, nadie se enteraba del lead.
+  // 4. Aviso al equipo (email info@ + admins + Telegram) — best-effort. El
+  //    visitante NO registrado ya no genera un EST- en el ERP (decisión founder):
+  //    su cotización viaja por el WhatsApp que la calculadora abre sola. Este
+  //    aviso evita que el lead se pierda si el cliente no llega a escribir — el
+  //    asesor se entera y puede escribirle él. Un fallo del aviso NO rompe la
+  //    respuesta al visitante.
   try {
     const team = await notifyEstimadoLeadToAdmin(admin, tenantId, {
-      estimateCode,
       prospectName: input.prospectName,
       prospectWhatsapp: input.prospectWhatsapp,
       prospectEmail: input.prospectEmail,
@@ -168,5 +142,5 @@ export async function POST(req: NextRequest) {
     console.warn("[estimacion] aviso al equipo falló:", err);
   }
 
-  return NextResponse.json({ ok: true, estimateCode });
+  return NextResponse.json({ ok: true });
 }

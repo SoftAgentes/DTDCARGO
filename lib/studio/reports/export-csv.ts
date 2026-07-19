@@ -25,6 +25,8 @@ import type {
   IncomeStatement,
   IvaPosition,
   OperationalOverview,
+  PipelineReport,
+  RepurchaseReport,
   RouteRow,
   ServiceRow,
   CarrierRow,
@@ -65,6 +67,8 @@ export type ViewCsvInput = {
   services?: ServiceRow[];
   byClient?: CommercialByClient;
   byAgent?: CommercialByAgent;
+  repurchase?: RepurchaseReport;
+  pipeline?: PipelineReport;
   income?: IncomeStatement;
   aging?: AgingReport;
   cashflow?: CashflowReport;
@@ -138,6 +142,36 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
           r.convPct,
           r.clients,
           r.revenueUsd,
+        ]),
+      };
+    }
+    if (rep === "repurchase") {
+      const rp = input.repurchase;
+      if (!rp || rp.rows.length === 0) return null;
+      return {
+        slug: "comercial-recompra",
+        headers: ["Cliente", "Shipping Mark", "Último embarque", "Días sin comprar", "Estado"],
+        rows: rp.rows.map((r) => [
+          r.name,
+          r.markbox,
+          r.lastCode,
+          r.daysSince,
+          r.bucket === "overdue" ? "Vencida" : "Ventana",
+        ]),
+      };
+    }
+    if (rep === "pipeline") {
+      const pl = input.pipeline;
+      if (!pl || pl.byStatus.every((s) => s.count === 0)) return null;
+      return {
+        slug: "comercial-pipeline",
+        headers: ["Estado", "Abierto", "Cantidad", "CBM", "USD"],
+        rows: pl.byStatus.map((s) => [
+          s.label,
+          s.open ? "sí" : "no",
+          s.count,
+          s.cbm,
+          s.usd,
         ]),
       };
     }

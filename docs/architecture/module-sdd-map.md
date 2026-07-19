@@ -40,7 +40,7 @@
 | Tesorería | 0044 | `app/studio/(app)/tesoreria/` | `lib/studio/treasury/` (types, supplier-queries, bill-queries, treasury-actions), `accounting/{bill-posting,supplier-payment-posting}` · `supabase/migrations/0088_tesoreria.sql` |
 | Despacho | 0029, 0030 | `app/studio/(app)/despacho/` + `app/m/ve/{bodeguero,camionero}/` | `lib/studio/dispatch-*`, `notify/` |
 | Naviera & Consolidación | 0047 | `app/studio/(app)/naviera/` | `lib/studio/naviera/` |
-| Proveedores CN & Prealertas (operador) | 0057 | `app/studio/(app)/proveedores/` + dropdown en `app/studio/(app)/etiquetas/` | `lib/studio/prealertas/` · `supabase/migrations/{0105,0118,0119}` |
+| Proveedores CN & Prealertas (operador) | 0057, 0098, 0163 | `app/studio/(app)/proveedores/` (+ `ServiceRequestsTab`) + dropdown en `app/studio/(app)/etiquetas/` | `lib/studio/prealertas/` · `supabase/migrations/{0105,0118,0119,0150}` · **0163 (`proposed`): orden al operario — eje de ejecución en `prealerta_service_requests` + modalidad en `prealertas`** |
 | Etiquetas suppliers CN | 0031 | `app/studio/(app)/etiquetas/` | (labels) |
 | QR print queue | 0033 | `app/studio/(app)/cola-qr/` | `lib/studio/qr-queue-*` |
 | Wiring modals globales | 0034 | `app/studio/_components/wiring/` | — |
@@ -56,7 +56,7 @@
 
 | App | SDD | Código |
 |---|---|---|
-| CN (recepción) | 0016, 0030 | `app/m/cn/` |
+| CN (recepción) | 0016, 0030, 0154, 0162, 0163 | `app/m/cn/` (`nueva`, `recibir`, `estibar`) — 0163 (`proposed`) suma el checklist de servicios de la llegada al recibir |
 | VE bodeguero | 0017, 0030 | `app/m/ve/bodeguero/` |
 | VE camionero | 0030 | `app/m/ve/camionero/` |
 | ERP móvil (staff) | varios | `app/m/erp/` |

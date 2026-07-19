@@ -38,6 +38,8 @@ import {
   type IncomeStatement,
   type IvaPosition,
   type OperationalOverview,
+  type PipelineReport,
+  type RepurchaseReport,
   type ReportPeriod,
   type RouteCbmRow,
   type RouteMarginRow,
@@ -64,6 +66,8 @@ const TABS_BY_CATEGORY: Record<Category, { value: string; label: string }[]> = {
   com: [
     { value: "by-client", label: "Por cliente" },
     { value: "by-agent", label: "Por agente" },
+    { value: "repurchase", label: "Recompra" },
+    { value: "pipeline", label: "Pipeline" },
   ],
   con: [
     { value: "income", label: "Estado de resultados" },
@@ -88,7 +92,7 @@ const CATEGORIES: {
   slice: string | null; // null = activa
 }[] = [
   { id: "op", label: "Operacionales", count: 4, slice: null },
-  { id: "com", label: "Comerciales", count: 2, slice: null },
+  { id: "com", label: "Comerciales", count: 4, slice: null },
   { id: "con", label: "Contables & financieros", count: 4, slice: null },
   { id: "build", label: "Constructor", count: 2, slice: null },
   { id: "mix", label: "Combinados", count: 3, slice: null },
@@ -126,6 +130,8 @@ export function ReportesClient({
   services,
   byClient,
   byAgent,
+  repurchase,
+  pipeline,
   income,
   aging,
   cashflow,
@@ -145,6 +151,8 @@ export function ReportesClient({
   // Comerciales (Slice B + paridad Norte)
   byClient?: CommercialByClient;
   byAgent?: CommercialByAgent;
+  repurchase?: RepurchaseReport;
+  pipeline?: PipelineReport;
   // Contables (Slice B + paridad Norte)
   income?: IncomeStatement;
   aging?: AgingReport;
@@ -198,7 +206,11 @@ export function ReportesClient({
   // En esas vistas mostramos un rótulo fijo en vez de un select que no hace nada.
   const inertReason =
     category === "com"
-      ? "trailing 12m"
+      ? activeRep === "pipeline"
+        ? null // el pipeline SÍ filtra estimados por período
+        : activeRep === "repurchase"
+          ? "a hoy" // recompra = snapshot por embarque a hoy
+          : "trailing 12m"
       : category === "con" && activeRep === "aging"
         ? "a hoy"
         : null;
@@ -216,6 +228,8 @@ export function ReportesClient({
         services,
         byClient,
         byAgent,
+        repurchase,
+        pipeline,
         income,
         aging,
         cashflow,
@@ -231,6 +245,8 @@ export function ReportesClient({
       services,
       byClient,
       byAgent,
+      repurchase,
+      pipeline,
       income,
       aging,
       cashflow,
@@ -461,6 +477,12 @@ export function ReportesClient({
       )}
       {category === "com" && activeRep === "by-agent" && byAgent && (
         <ByAgentView data={byAgent} />
+      )}
+      {category === "com" && activeRep === "repurchase" && repurchase && (
+        <RepurchaseView data={repurchase} />
+      )}
+      {category === "com" && activeRep === "pipeline" && pipeline && (
+        <PipelineView data={pipeline} />
       )}
 
       {/* Vistas · Contables & financieros (Slice B + paridad Norte) */}
@@ -1107,6 +1129,201 @@ function ByAgentView({ data }: { data: CommercialByAgent }) {
         <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>no el valor estimado de Kommo</strong>.
         NPS y satisfacción se omiten: no hay fuente real todavía.
       </p>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// F1-T07 — Comerciales · Recompra (la fuga #1)
+// ═══════════════════════════════════════════════════════════════
+//
+// Clientes cuyo último embarque quedó atrás sin uno nuevo. Medida POR EMBARQUE
+// (decisión founder 19-jul): días desde el último cierre (entregado/arribado). Los
+// que tienen un embarque en curso no cuentan como fuga.
+function RepurchaseView({ data }: { data: RepurchaseReport }) {
+  const toneFor = (b: "window" | "overdue"): BadgeTone =>
+    b === "overdue" ? "danger" : "warning";
+  const labelFor = (b: "window" | "overdue"): string =>
+    b === "overdue" ? "Vencida" : "Ventana";
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 14,
+        }}
+      >
+        <KpiCard value={fmtNum(data.overdueCount)} label={`Vencidos (≥${data.overdueDays}d)`} sub="recompra perdida" valueColor="var(--danger)" />
+        <KpiCard value={fmtNum(data.windowCount)} label={`En ventana (${data.windowDays}–${data.overdueDays}d)`} sub="contactar ya" valueColor="var(--wine-text)" />
+        <KpiCard value={fmtNum(data.activeCount)} label="En curso" sub="con embarque activo" valueColor="var(--success)" />
+        <KpiCard value={fmtNum(data.totalWithHistory)} label="Con historial" sub="al menos 1 embarque" />
+      </div>
+
+      {data.rows.length === 0 ? (
+        <EmptyState
+          eyebrow="Recompra"
+          title="Nadie en ventana ni vencido"
+          description={`Ningún cliente cerrado lleva ${data.windowDays}+ días sin un embarque nuevo. Cuando la operación arranque, acá van a aparecer los clientes a recontactar antes de que se enfríen.`}
+        />
+      ) : (
+        <Card eyebrow="A recontactar" title={`Sin comprar hace ${data.windowDays}+ días`} style={{ padding: 0 }}>
+          <HeaderRow
+            cols="1fr 130px 90px 90px"
+            labels={["Cliente", "Último embarque", "Días", "Estado"]}
+            rightFrom={2}
+            rightTo={2}
+          />
+          {data.rows.slice(0, 50).map((r, i) => (
+            <div
+              key={r.markbox || r.name || i}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 130px 90px 90px",
+                gap: 14,
+                alignItems: "center",
+                padding: "12px 18px",
+                borderTop: "1px solid var(--border)",
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {r.name}
+                </div>
+                {r.markbox && (
+                  <div style={{ font: "600 10.5px/1.2 var(--f-mono)", color: "var(--ink-soft)" }}>
+                    {r.markbox}
+                  </div>
+                )}
+              </div>
+              <span style={{ font: "600 12px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
+                {r.lastCode || "—"}
+              </span>
+              <span
+                style={{
+                  font: "800 13px/1 var(--f-mono)",
+                  textAlign: "right",
+                  color: r.bucket === "overdue" ? "var(--danger)" : "var(--wine-text)",
+                }}
+              >
+                {fmtNum(r.daysSince)}
+              </span>
+              <div>
+                <Badge tone={toneFor(r.bucket)} size="sm">
+                  {labelFor(r.bucket)}
+                </Badge>
+              </div>
+            </div>
+          ))}
+        </Card>
+      )}
+
+      <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
+        Recompra medida <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>por embarque</strong>:
+        días desde el último embarque cerrado (entregado/arribado) de cada cliente. Quien tiene un
+        embarque en curso no cuenta como fuga. Ventana = {data.windowDays}–{data.overdueDays} días;
+        vencida = {data.overdueDays}+ días. Las facturas serán la 2ª fuente cuando el financiero
+        arranque.
+      </p>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// F1-T07 — Comerciales · Pipeline de estimados
+// ═══════════════════════════════════════════════════════════════
+//
+// CBM/USD de estimados vivos (draft+sent) del período vs la meta de 133 CBM/mes
+// (2 contenedores). El desglose por estado muestra la actividad comercial del rango.
+function PipelineView({ data }: { data: PipelineReport }) {
+  const empty = data.byStatus.every((s) => s.count === 0);
+  if (empty) {
+    return (
+      <EmptyState
+        eyebrow="Pipeline"
+        title="Sin estimados en el período"
+        description="Cuando el asesor empiece a cargar estimados en el cotizador, acá vas a ver el CBM y USD en pipeline por estado, y qué tan cerca está de la meta de 133 CBM/mes."
+      />
+    );
+  }
+  const maxUsd = Math.max(1, ...data.byStatus.map((s) => s.usd));
+  const pct = Math.min(100, data.pctOfTarget);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 14,
+        }}
+      >
+        <KpiCard value={fmtNum(data.openCbm)} label="CBM en pipeline" sub={`${fmtNum(data.openCount)} estimados abiertos`} valueColor="var(--wine-text)" />
+        <KpiCard value={fmtUsd(data.openUsd)} label="USD en pipeline" sub="borrador + enviadas" />
+        <KpiCard
+          value={`${data.pctOfTarget}%`}
+          label="De la meta"
+          sub={`${fmtNum(data.avgMonthlyOpenCbm)} vs ${data.monthlyTargetCbm} CBM/mes`}
+          valueColor={data.pctOfTarget >= 100 ? "var(--success)" : "var(--wine-text)"}
+        />
+        <KpiCard value={fmtUsd(data.wonUsd)} label="Aceptado" sub={`${fmtNum(data.wonCount)} en el período`} valueColor="var(--success)" />
+      </div>
+
+      <Card eyebrow="Avance vs meta" title={`${fmtNum(data.avgMonthlyOpenCbm)} de ${data.monthlyTargetCbm} CBM/mes`}>
+        <Progress value={pct} tone={data.pctOfTarget >= 100 ? "var(--success)" : "var(--wine)"} height={12} />
+        <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: "12px 0 0" }}>
+          Pipeline abierto de {fmtNum(data.avgMonthlyOpenCbm)} CBM/mes en promedio sobre {data.months}{" "}
+          {data.months === 1 ? "mes" : "meses"} del período, contra la meta de {data.monthlyTargetCbm}{" "}
+          CBM/mes (2 contenedores). Solo cuentan estimados en borrador o enviados (todavía abiertos).
+        </p>
+      </Card>
+
+      <Card eyebrow="Por estado del estimado" style={{ padding: 0 }}>
+        <HeaderRow
+          cols="1fr 80px 90px 1fr"
+          labels={["Estado", "Cantidad", "CBM", "USD"]}
+          rightFrom={1}
+          rightTo={2}
+        />
+        {data.byStatus.map((s) => (
+          <div
+            key={s.status}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 80px 90px 1fr",
+              gap: 14,
+              alignItems: "center",
+              padding: "12px 18px",
+              borderTop: "1px solid var(--border)",
+              opacity: s.count === 0 ? 0.5 : 1,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Badge tone={s.tone as BadgeTone} size="sm">
+                {s.label}
+              </Badge>
+              {s.open && (
+                <span style={{ font: "600 10px/1 var(--f-sans)", color: "var(--wine-text)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  abierto
+                </span>
+              )}
+            </div>
+            <span style={{ font: "700 13px/1 var(--f-mono)", textAlign: "right", color: "var(--ink)" }}>
+              {fmtNum(s.count)}
+            </span>
+            <span style={{ font: "700 13px/1 var(--f-mono)", textAlign: "right", color: "var(--ink-soft)" }}>
+              {fmtNum(s.cbm)}
+            </span>
+            <div>
+              <span style={{ font: "800 13px/1 var(--f-mono)", color: "var(--ink)" }}>{fmtUsd(s.usd)}</span>
+              <div style={{ marginTop: 5 }}>
+                <Progress value={(s.usd / maxUsd) * 100} tone="var(--wine)" height={3} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </Card>
     </div>
   );
 }

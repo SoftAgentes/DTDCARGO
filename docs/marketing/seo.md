@@ -90,7 +90,10 @@ Auditoría (3 frentes: integridad de schema · links internos/huérfanas/sitemap
 - ~~`/brochure` con `VideoObject` DUPLICADO~~ ✅ CERRADO 2026-07-05: prop `noVideoSchema` en `WorkBand` (el secundario) + `<WorkBand noVideoSchema />` en la página; el home intacto (queda el nodo de `OperationGallery`, el mismo del home).
 - **Ancla muerta** en Footer: `#registro-marca-coord` no existe en `/servicios` (el slug real es `registro-marca-cn`); el Footer deriva anclas de `SERVICES_VE` (design-tokens) y la página usa `servicios-detalle.ts` → dos namespaces de slugs.
 - **`/servicios/inspeccion`**: `provider` `LocalBusiness` suelto (igual patrón) + falta nodo `Service` rico + `HowTo`. NO tocado (territorio de la ventana `servicios-ux`).
-- **`llms.txt` dice "Fundada en 2008"** → contradice `foundingDate: 2010` del schema. Alinear framing (empresa 2010 · comercio China 2008 · VE 2015). Es copy de marca → decisión del founder.
+- ~~**`llms.txt` dice "Fundada en 2008"**~~ ✅ CERRADO 2026-07-18: alineado al canon del founder
+  (fundada **2015** · experiencia con China desde 2008 · 2010 solo hito). Queda 1 superficie por
+  barrer: el copy de `<RespuestaRapida>` del home dice "empresa 2010" → corregir a la narrativa
+  2015 (copy visible, con OK del founder — tarea en el Motor de Crecimiento).
 
 **GATED (input del founder):** `sameAs` a Google Business Profile / LinkedIn / Wikidata · `aggregateRating` (reseñas reales) · `Person` del founder · `GeoCoordinates` de las sedes.
 
@@ -142,7 +145,9 @@ El `connect-src`/`img-src` del CSP (`next.config.ts`) permitía `googleads.g.dou
 Antes de tocar SEO o identidad, revisar:
 - [ ] **Una sola entidad:** todo nodo `Organization`/publisher referencia `#organization` por `@id` (no redeclarar "DTD Cargo" suelto). Fuente = `@graph` en `app/layout.tsx`.
 - [ ] **Nombre público = "DTD Cargo"**; razón social y RIF **solo** en `legalName`/`taxID`, nunca en texto visible.
-- [ ] **Año = 2010** (`foundingDate`) + narrativa "+15 años". No cambiar.
+- [ ] **Año de fundación = 2015** (`foundingDate`; decisión founder 2026-07-18 — resuelve la
+  contradicción 2010/2015) · experiencia "+15 años con China" se cuenta desde 2008 · 2010 = solo
+  hito histórico (formalización en China), nunca "empresa desde".
 - [ ] **301 `doortudoor.com`** intacto · dominio viejo sin expirar · sin contenido propio ahí.
 - [ ] **GA fuera de rutas privadas** (`/studio /portal /m /back /invitar /verificar /p /interno /marca /calculadora/embed` y `/track/<código>`) · query params: solo whitelist de atribución (`sanitizeSearch`). El código del cliente NUNCA llega a Google — ojo: gtag manda `dl` y título crudos en cada hit, redactar el page_view no basta, hay que EXCLUIR la ruta. Tests en `__tests__/analytics.test.ts`.
 - [ ] Rename de ruta con SEO → **301** del slug viejo en `next.config.ts`.

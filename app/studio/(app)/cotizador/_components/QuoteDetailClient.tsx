@@ -15,9 +15,11 @@ import { Icon } from "@/app/studio/_components/icons";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
+  buildQuoteWhatsappText,
   canConvertToShipment,
   isEditable,
   isUnlinkedWebEstimate,
+  quoteWhatsappHref,
   type Quote,
 } from "@/lib/studio/quote-types";
 import type { KommoContactPick } from "@/lib/studio/kommo-convert";
@@ -35,9 +37,11 @@ const SENT_SUCCESS_MS = 2500;
 export function QuoteDetailClient({
   quote,
   kommoMatches = [],
+  contactPhone = null,
 }: {
   quote: Quote;
   kommoMatches?: KommoContactPick[];
+  contactPhone?: string | null;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -331,6 +335,19 @@ export function QuoteDetailClient({
           )
         )}
 
+        <a
+          href={quoteWhatsappHref(contactPhone, buildQuoteWhatsappText(quote))}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="studio-btn studio-btn-ghost studio-btn-sm"
+          title={
+            contactPhone
+              ? "Abre WhatsApp con el desglose del estimado listo para enviar"
+              : "Abre WhatsApp con el desglose (elige el contacto al enviar)"
+          }
+        >
+          WhatsApp
+        </a>
         <button
           type="button"
           className="studio-btn studio-btn-ghost studio-btn-sm"

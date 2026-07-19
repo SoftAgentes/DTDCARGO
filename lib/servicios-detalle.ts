@@ -191,11 +191,11 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
       "Despacho de exportación en China.",
       "Reserva del contenedor y del flete.",
       "En la modalidad todo pagado: aduana, impuestos y entrega hasta tu puerta (pagas antes de la entrega).",
-      "Almacenaje gratis los primeros 7 días en la bodega de Yiwu.",
+      "Almacenaje gratis los primeros 15 días en la bodega de Yiwu.",
     ],
     noIncluye: [
       "En la modalidad hasta puerto: la desaduanización corre por tu cuenta (o sumas nuestro Tránsito de aduana como servicio adicional).",
-      "Almacenaje después de los primeros 7 días gratis: tiene un costo adicional.",
+      "Almacenaje después de los primeros 15 días gratis: tiene un costo adicional.",
     ],
     precio: "Se cotiza con un asesor por WhatsApp.",
     comoSolicitar:

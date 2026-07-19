@@ -52,6 +52,8 @@ import { payablesQueue } from "@/lib/studio/treasury/bill-queries";
 import { invoiceKpis } from "@/lib/studio/invoice-queries";
 import {
   buildAgingSide,
+  buildPipeline,
+  buildRepurchase,
   groupByRoute,
   groupByService,
   incomeStatementRows,
@@ -68,6 +70,10 @@ import {
   type AgingReport,
   type CarrierRow,
   type CashflowReport,
+  type PipelineQuote,
+  type PipelineReport,
+  type RepurchaseReport,
+  type RepurchaseShipment,
   type ClientRankRow,
   type CombinedReport,
   type CommercialByAgent,
@@ -96,6 +102,7 @@ import {
   type ShipmentService,
   type ShipmentStatus,
 } from "@/lib/shared/shipment-public";
+import type { QuoteStatus } from "@/lib/studio/quote-types";
 import {
   REPORT_SOURCES,
   type BuilderRow,
@@ -1095,6 +1102,81 @@ export async function combinedReport(
     withCosts,
     shipments: rows.length,
   };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// F1-T07 — Comerciales · Recompra vencida + Pipeline de estimados
+// ═══════════════════════════════════════════════════════════════
+//
+// Encienden el Sistema 2 (Ventas) del Motor de Crecimiento: la recompra 30/45 (la
+// fuga #1) y el CBM/USD en pipeline vs 133/mes. Capa de presentación sobre tablas
+// reales (shipments, quotes) — el cálculo vive en los helpers PUROS de ./types.
+// RLS por tenant. Sin migración, sin fabricar nada (§3.2).
+
+const REPURCHASE_SHIPMENT_COLUMNS =
+  "client_markbox, client_name, code, status, created_at, arrived_destination_at, delivered_at";
+
+/**
+ * Recompra por cliente (decisión founder 19-jul: POR EMBARQUE). Lee TODOS los
+ * embarques vivos (sin filtro de período: el último de cada cliente puede ser de
+ * cuando sea) y delega la clasificación en `buildRepurchase`. RLS por tenant.
+ */
+export async function commercialRepurchase(
+  supabase: SupabaseClient,
+  today: Date = new Date(),
+): Promise<RepurchaseReport> {
+  const { data, error } = await supabase
+    .from("shipments")
+    .select(REPURCHASE_SHIPMENT_COLUMNS)
+    .is("deleted_at", null)
+    .limit(20000);
+  if (error) throw error;
+
+  const rows: RepurchaseShipment[] = (
+    (data as Record<string, unknown>[] | null) ?? []
+  ).map((r) => ({
+    markbox: (r.client_markbox as string | null) ?? null,
+    clientName: (r.client_name as string | null) ?? null,
+    code: String(r.code ?? ""),
+    status: String(r.status ?? ""),
+    created_at: String(r.created_at ?? ""),
+    arrived_destination_at: (r.arrived_destination_at as string | null) ?? null,
+    delivered_at: (r.delivered_at as string | null) ?? null,
+  }));
+
+  return buildRepurchase(rows, today);
+}
+
+/**
+ * Pipeline de estimados del período: `quotes` creadas en el rango, agrupadas por
+ * estado con CBM/USD, y el abierto (draft+sent) vs la meta de 133 CBM/mes. El
+ * cálculo (incluida la escala de la meta por meses del rango) vive en
+ * `buildPipeline`. RLS por tenant.
+ */
+export async function commercialPipeline(
+  supabase: SupabaseClient,
+  period: ReportPeriod,
+  today?: Date,
+): Promise<PipelineReport> {
+  const range = periodRange(period, today);
+  const { data, error } = await supabase
+    .from("quotes")
+    .select("status, cbm, total_usd")
+    .is("deleted_at", null)
+    .gte("created_at", range.from)
+    .lte("created_at", `${range.to}T23:59:59.999Z`)
+    .limit(20000);
+  if (error) throw error;
+
+  const quotes: PipelineQuote[] = (
+    (data as Record<string, unknown>[] | null) ?? []
+  ).map((r) => ({
+    status: r.status as QuoteStatus,
+    cbm: numOrNull(r.cbm),
+    total_usd: num(r.total_usd),
+  }));
+
+  return buildPipeline(quotes, range);
 }
 
 // Mantiene a REPORT_SOURCES como dependencia consciente del módulo (la query y la

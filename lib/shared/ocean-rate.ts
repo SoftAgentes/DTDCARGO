@@ -209,6 +209,27 @@ export type PublicOceanRate = {
 };
 
 /**
+ * ¿La tarifa cacheada está vencida? `valid_to` es la fecha (date) hasta la que la
+ * naviera sostiene el precio. Una tarifa con `valid_to` en el pasado NO se sirve
+ * como usable: el cron semanal la refresca, pero si dejó de correr (o SeaRates no
+ * devolvió) la caché queda vieja y mostrar ese número como firme es un precio
+ * incorrecto de cara al cliente. `now` inyectable para tests. `valid_to` nulo o
+ * no parseable → NO se considera vencida (no bloquear por falta de dato).
+ */
+export function isOceanRateExpired(
+  validTo: string | null | undefined,
+  now: Date = new Date(),
+): boolean {
+  if (!validTo) return false;
+  const t = Date.parse(validTo);
+  if (Number.isNaN(t)) return false;
+  // Comparar por día: válida "hasta" incluye todo ese día.
+  const endOfDay = new Date(t);
+  endOfDay.setUTCHours(23, 59, 59, 999);
+  return now.getTime() > endOfDay.getTime();
+}
+
+/**
  * Disclaimer corto para el sitio (≈285c). Fuente: docs/marketing/condiciones-
  * cotizacion.md. El precio es REFERENCIAL (white-label: nunca se nombra al
  * proveedor ni a la naviera), calza con "Pagas al llegar*".

@@ -18,6 +18,11 @@ import {
   SERVICE_LABELS,
   type ShipmentService,
 } from "@/lib/shared/shipment-public";
+import {
+  type QuoteStatus,
+  statusLabel as quoteStatusLabel,
+  statusBadgeTone as quoteStatusTone,
+} from "@/lib/studio/quote-types";
 
 // Re-export TYPE-ONLY de Combinados (Slice C): el client component importa estos
 // tipos desde acá (server-safe, sin Supabase). Es un re-export de SOLO tipos →
@@ -803,5 +808,318 @@ export function ivaOutcome(
   return {
     aPagar: neto > 0 ? neto : 0,
     excedente: neto < 0 ? -neto : 0,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// F1-T07 — Comerciales · Recompra vencida + Pipeline de estimados
+// ═══════════════════════════════════════════════════════════════
+//
+// Dos reportes que hacen MEDIBLE al Sistema 2 (Ventas) del Motor de Crecimiento:
+//  - Recompra: clientes cuyo último embarque quedó atrás sin uno nuevo (la fuga
+//    #1). Fuente: shipments, POR EMBARQUE (decisión founder 19-jul). Solo fechas
+//    reales, cero costo fabricado (regla §3.2).
+//  - Pipeline: CBM/USD de estimados vivos (draft+sent) del período vs la meta de
+//    133 CBM/mes (2 contenedores). Fuente: quotes.
+
+/** Meta comercial norte: 2 contenedores/mes ≈ 133 CBM. */
+export const MONTHLY_TARGET_CBM = 133;
+
+/** Umbrales de recompra (días desde el último embarque cerrado). */
+export const REPURCHASE_WINDOW_DAYS = 30; // ventana: hay que contactar
+export const REPURCHASE_OVERDUE_DAYS = 45; // vencida: la fuga
+
+// ── Recompra ───────────────────────────────────────────────────
+
+/**
+ * Estados de shipment que cuentan como "en curso" (el cliente ya está comprando
+ * de nuevo → no es fuga). Todo lo demás se trata como cerrado (delivered) o
+ * cancelado. Alineado con ACTIVE_STATUSES de queries.ts + draft (recién creado).
+ */
+const REPURCHASE_ACTIVE_STATUSES = new Set<string>([
+  "draft",
+  "in_warehouse",
+  "consolidating",
+  "shipped",
+  "in_transit",
+  "in_customs",
+  "arrived_destination",
+  "out_for_delivery",
+  "last_mile",
+]);
+
+/** Forma mínima de un embarque para el cálculo de recompra (puro/testeable). */
+export type RepurchaseShipment = {
+  markbox: string | null;
+  clientName: string | null;
+  code: string;
+  status: string;
+  created_at: string;
+  arrived_destination_at: string | null;
+  delivered_at: string | null;
+};
+
+/** Una fila de recompra: un cliente cuyo último embarque quedó atrás. */
+export type RepurchaseRow = {
+  markbox: string | null;
+  name: string;
+  lastCode: string;
+  lastActivityIso: string;
+  daysSince: number;
+  bucket: "window" | "overdue";
+};
+
+/** Payload del reporte de recompra. */
+export type RepurchaseReport = {
+  rows: RepurchaseRow[]; // window + overdue, orden daysSince desc
+  totalWithHistory: number; // clientes con ≥1 embarque
+  activeCount: number; // con embarque en curso (no cuentan como fuga)
+  recentCount: number; // cerrado hace < windowDays (aún no toca)
+  windowCount: number; // [windowDays, overdueDays)
+  overdueCount: number; // ≥ overdueDays
+  windowDays: number;
+  overdueDays: number;
+};
+
+/** Días enteros entre una fecha ISO y `today` (≥0; null si no parsea). */
+export function daysSinceIso(iso: string | null, today: Date): number | null {
+  if (!iso) return null;
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return null;
+  const d = Math.floor((today.getTime() - t) / MS_PER_DAY);
+  return d >= 0 ? d : 0;
+}
+
+/**
+ * Agrupa embarques por cliente (markbox ?? nombre) y clasifica la recompra:
+ *  - Si el cliente tiene algún embarque EN CURSO → activo (no es fuga).
+ *  - Si todos cerraron → días desde el último cierre (delivered ?? arrived ??
+ *    created). < window = reciente · [window, overdue) = ventana · ≥ overdue =
+ *    vencida. Solo devuelve las filas de ventana + vencidas (las accionables),
+ *    ordenadas por días desc. PURA — testeable sin DB.
+ */
+export function buildRepurchase(
+  shipments: RepurchaseShipment[],
+  today: Date = new Date(),
+  windowDays: number = REPURCHASE_WINDOW_DAYS,
+  overdueDays: number = REPURCHASE_OVERDUE_DAYS,
+): RepurchaseReport {
+  type Acc = {
+    markbox: string | null;
+    name: string;
+    hasActive: boolean;
+    lastMs: number;
+    lastIso: string;
+    lastCode: string;
+  };
+  const groups = new Map<string, Acc>();
+
+  for (const s of shipments) {
+    const mk = (s.markbox ?? "").trim();
+    const nm = (s.clientName ?? "").trim();
+    const key = mk || nm;
+    if (!key) continue; // caja sin dueño → no es un cliente
+    if (s.status === "cancelled") continue; // cancelado no es ni cierre ni actividad
+
+    const refIso = s.delivered_at ?? s.arrived_destination_at ?? s.created_at;
+    const refMs = Date.parse(refIso);
+    const active = REPURCHASE_ACTIVE_STATUSES.has(s.status);
+
+    let g = groups.get(key);
+    if (!g) {
+      g = {
+        markbox: mk || null,
+        name: nm || mk || "Sin nombre",
+        hasActive: false,
+        lastMs: -Infinity,
+        lastIso: refIso,
+        lastCode: s.code,
+      };
+      groups.set(key, g);
+    }
+    if (active) g.hasActive = true;
+    // El embarque más reciente define la fecha de referencia y el nombre visible.
+    if (Number.isFinite(refMs) && refMs > g.lastMs) {
+      g.lastMs = refMs;
+      g.lastIso = refIso;
+      g.lastCode = s.code;
+      if (nm) g.name = nm;
+    }
+  }
+
+  const rows: RepurchaseRow[] = [];
+  let activeCount = 0;
+  let recentCount = 0;
+  let windowCount = 0;
+  let overdueCount = 0;
+
+  for (const g of groups.values()) {
+    if (g.hasActive) {
+      activeCount += 1;
+      continue;
+    }
+    const days = daysSinceIso(g.lastIso, today) ?? 0;
+    if (days >= overdueDays) {
+      overdueCount += 1;
+      rows.push({
+        markbox: g.markbox,
+        name: g.name,
+        lastCode: g.lastCode,
+        lastActivityIso: g.lastIso,
+        daysSince: days,
+        bucket: "overdue",
+      });
+    } else if (days >= windowDays) {
+      windowCount += 1;
+      rows.push({
+        markbox: g.markbox,
+        name: g.name,
+        lastCode: g.lastCode,
+        lastActivityIso: g.lastIso,
+        daysSince: days,
+        bucket: "window",
+      });
+    } else {
+      recentCount += 1;
+    }
+  }
+
+  rows.sort((a, b) => b.daysSince - a.daysSince);
+
+  return {
+    rows,
+    totalWithHistory: groups.size,
+    activeCount,
+    recentCount,
+    windowCount,
+    overdueCount,
+    windowDays,
+    overdueDays,
+  };
+}
+
+// ── Pipeline de estimados ──────────────────────────────────────
+
+/** Forma mínima de un estimado para el cálculo de pipeline (puro/testeable). */
+export type PipelineQuote = {
+  status: QuoteStatus;
+  cbm: number | null;
+  total_usd: number;
+};
+
+/** Una fila del desglose por estado del pipeline. */
+export type PipelineStatusRow = {
+  status: QuoteStatus;
+  label: string;
+  tone: string; // BadgeTone (lo resuelve la UI)
+  count: number;
+  cbm: number;
+  usd: number;
+  open: boolean; // draft|sent = oportunidad viva
+};
+
+/** Payload del reporte de pipeline. */
+export type PipelineReport = {
+  byStatus: PipelineStatusRow[];
+  openCount: number;
+  openCbm: number;
+  openUsd: number;
+  wonCount: number; // accepted
+  wonUsd: number;
+  monthlyTargetCbm: number; // 133
+  months: number; // meses del rango
+  avgMonthlyOpenCbm: number; // openCbm / months
+  pctOfTarget: number; // avgMonthlyOpenCbm / target * 100
+  range: DateRange;
+};
+
+/** Estados "abiertos" del pipeline (ni ganado ni perdido). */
+const OPEN_QUOTE_STATUSES = new Set<QuoteStatus>(["draft", "sent"]);
+
+/** Orden de presentación del desglose por estado. */
+const QUOTE_STATUS_ORDER: QuoteStatus[] = [
+  "draft",
+  "sent",
+  "accepted",
+  "rejected",
+  "expired",
+];
+
+/** # de meses calendario (≥1) que abarca un rango — para escalar la meta. */
+export function monthsInRange(range: DateRange): number {
+  const from = new Date(`${range.from}T00:00:00Z`);
+  const to = new Date(`${range.to}T00:00:00Z`);
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return 1;
+  const months =
+    (to.getUTCFullYear() - from.getUTCFullYear()) * 12 +
+    (to.getUTCMonth() - from.getUTCMonth()) +
+    1;
+  return months >= 1 ? months : 1;
+}
+
+/**
+ * Agrega estimados por estado y calcula el pipeline abierto (draft+sent) en
+ * CBM/USD, comparado con la meta mensual (133 CBM × meses del rango). El CBM solo
+ * suma donde existe (los FCL flat lo dejan null). PURA — testeable sin DB.
+ */
+export function buildPipeline(
+  quotes: PipelineQuote[],
+  range: DateRange,
+  monthlyTargetCbm: number = MONTHLY_TARGET_CBM,
+): PipelineReport {
+  const acc = new Map<QuoteStatus, { count: number; cbm: number; usd: number }>();
+  for (const st of QUOTE_STATUS_ORDER) acc.set(st, { count: 0, cbm: 0, usd: 0 });
+
+  for (const q of quotes) {
+    const b = acc.get(q.status);
+    if (!b) continue; // status fuera del enum → defensivo
+    b.count += 1;
+    b.cbm += Number(q.cbm) || 0;
+    b.usd += Number(q.total_usd) || 0;
+  }
+
+  const byStatus: PipelineStatusRow[] = QUOTE_STATUS_ORDER.map((st) => {
+    const b = acc.get(st)!;
+    return {
+      status: st,
+      label: quoteStatusLabel(st),
+      tone: quoteStatusTone(st),
+      count: b.count,
+      cbm: Math.round(b.cbm * 10) / 10,
+      usd: Math.round(b.usd * 100) / 100,
+      open: OPEN_QUOTE_STATUSES.has(st),
+    };
+  });
+
+  let openCount = 0;
+  let openCbm = 0;
+  let openUsd = 0;
+  for (const st of OPEN_QUOTE_STATUSES) {
+    const b = acc.get(st)!;
+    openCount += b.count;
+    openCbm += b.cbm;
+    openUsd += b.usd;
+  }
+  const won = acc.get("accepted")!;
+
+  const months = monthsInRange(range);
+  const avgMonthlyOpenCbm = Math.round((openCbm / months) * 10) / 10;
+  const pctOfTarget =
+    monthlyTargetCbm > 0
+      ? Math.round((avgMonthlyOpenCbm / monthlyTargetCbm) * 1000) / 10
+      : 0;
+
+  return {
+    byStatus,
+    openCount,
+    openCbm: Math.round(openCbm * 10) / 10,
+    openUsd: Math.round(openUsd * 100) / 100,
+    wonCount: won.count,
+    wonUsd: Math.round(won.usd * 100) / 100,
+    monthlyTargetCbm,
+    months,
+    avgMonthlyOpenCbm,
+    pctOfTarget,
+    range,
   };
 }

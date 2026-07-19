@@ -1,14 +1,13 @@
 /**
  * Tests del throttle por IP de POST /api/public/estimacion.
  *
- * El endpoint es público y escribe en `quotes` con service_role (bypassa RLS).
- * Sin límite, un script podía hacer POST en loop y llenar la tabla. Este test
- * cubre las 3 ramas del throttle (reusa portal_registro_throttle con namespace
- * "est:" en la columna ip):
- *   - >= LIMIT intentos recientes → 429 SIN trabajo pesado (ni next_estimate_code
- *     ni insert en quotes ni insert del intento).
- *   - < LIMIT → registra el intento y PROCEDE (rpc + insert en quotes + ok).
- *   - error de lectura del throttle → fail-OPEN (no bloquea un estimado legítimo).
+ * El endpoint es público y manda avisos (email/Telegram) con service_role. Sin
+ * límite, un script podía hacer POST en loop y spamear al equipo. Este test cubre
+ * las 3 ramas del throttle (reusa portal_registro_throttle con namespace "est:"
+ * en la columna ip):
+ *   - >= LIMIT intentos recientes → 429 SIN mandar avisos ni registrar el intento.
+ *   - < LIMIT → registra el intento y PROCEDE (aviso al equipo + ok; ya no crea EST-).
+ *   - error de lectura del throttle → fail-OPEN (no bloquea un lead legítimo).
  *
  * El admin client (createAdminClient) se mockea — sin red ni DB real. El fake
  * registra cada (table, op) + el count que devuelve el SELECT del throttle.
@@ -133,11 +132,11 @@ describe("POST /api/public/estimacion · throttle por IP", () => {
     const body = await res.json();
     expect(res.status).toBe(200);
     expect(body.ok).toBe(true);
-    expect(body.estimateCode).toBe("EST-2026-0001");
 
+    // Registró el intento del throttle, pero ya NO crea EST- en el ERP.
     expect(ops.calls.has(`${THROTTLE}:insert`)).toBe(true);
-    expect(ops.rpcNames).toContain("next_estimate_code");
-    expect(ops.calls.has("quotes:insert")).toBe(true);
+    expect(ops.rpcNames).not.toContain("next_estimate_code");
+    expect(ops.calls.has("quotes:insert")).toBe(false);
   });
 
   it("error de lectura del throttle → fail-OPEN (no bloquea)", async () => {
@@ -147,7 +146,7 @@ describe("POST /api/public/estimacion · throttle por IP", () => {
     const res = await POST(makeReq());
     expect(res.status).toBe(200);
     expect((await res.json()).ok).toBe(true);
-    expect(ops.calls.has("quotes:insert")).toBe(true);
+    expect(ops.calls.has(`${THROTTLE}:insert`)).toBe(true);
   });
 
   it("input inválido → 400 ANTES del throttle (no toca la tabla)", async () => {

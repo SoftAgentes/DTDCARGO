@@ -159,6 +159,18 @@ describe("RBAC: capabilities (SDD-0139)", () => {
     }
     expect(canSpecial(null, "escucha_activa")).toBe(false);
   });
+
+  it("view_defense_file (SDD-0070): commercial + support (asesor de reclamos) + admin", () => {
+    expect(canSpecial("admin", "view_defense_file")).toBe(true);
+    expect(canSpecial("commercial", "view_defense_file")).toBe(true);
+    expect(canSpecial("support", "view_defense_file")).toBe(true);
+    for (const r of NON_ADMIN.filter((x) => x !== "commercial" && x !== "support")) {
+      expect(canSpecial(r, "view_defense_file"), `${r} no debe ver el expediente`).toBe(
+        false,
+      );
+    }
+    expect(canSpecial(null, "view_defense_file")).toBe(false);
+  });
 });
 
 describe("RBAC: scope de almacén (SDD-0139)", () => {
