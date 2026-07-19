@@ -4,8 +4,8 @@
 
 ## Gancho
 **Un contenedor completo, solo para tu carga.** Si tu volumen llena un contenedor, viaja solo, sin
-esperar la próxima salida consolidada. Y si compras directo a la fábrica, el **BL sale a nombre de
-DTD**: tu proveedor **no puede desviar, parar ni cambiar el contenedor**.
+esperar la próxima salida consolidada. Y si compras directo a la fábrica, **el BL lo emitimos
+nosotros — no la fábrica**: tu proveedor **no puede desviar, parar ni cambiar el contenedor**.
 
 ## ¿Qué es?
 Es nuestro servicio de **contenedor completo (FCL)**: reservamos el contenedor y el buque con la
@@ -20,9 +20,10 @@ exportación en China y la reserva del contenedor y el flete incluidos.
 ### Modalidad B · FCL Directo fábrica
 Compras **directo a tu proveedor** (uno o dos fabricantes) y el contenedor **se carga en su fábrica**,
 sin pasar por nuestra bodega. Nosotros ponemos el contenedor: hacemos la reserva con la naviera y
-coordinamos la carga. Lo más importante: el **Bill of Lading (BL) sale a nombre de nuestra empresa en
-China** como shipper, **contigo como consignatario** — así tu proveedor **no puede cambiar el destino
-ni desviar el contenedor**. Tu carga queda bajo control de DTD desde que embarca.
+coordinamos la carga. Lo más importante: **el Bill of Lading (BL) lo emitimos nosotros — no la
+fábrica**: nuestra empresa en China aparece como **exportador (shipper)** y **tú como consignatario
+(quien recibe)**. La fábrica no tiene control sobre el BL: tu proveedor **no puede cambiar el destino
+ni desviar el contenedor**. Nosotros enviamos, tú recibes.
 
 > **¿Tu carga no llena un contenedor?** Mira el **[Puerta a Puerta](envio-maritimo-puerta-a-puerta.md)**
 > (hasta tu puerta, todo pagado) o el **[Consolidado LCL](consolidado-lcl.md)** (empresas, hasta puerto
@@ -43,7 +44,8 @@ ni desviar el contenedor**. Tu carga queda bajo control de DTD desde que embarca
 1. Cierras tu compra **directo con el fabricante**.
 2. Nosotros **reservamos el contenedor y el buque** con la naviera.
 3. **Coordinamos la carga** del contenedor en la fábrica de tu proveedor.
-4. El **BL sale a nombre de DTD** como shipper, contigo como consignatario, y el contenedor embarca.
+4. **Emitimos el BL** — DTD como exportador (shipper), **tú como consignatario (quien recibe)** — y
+   el contenedor embarca.
 5. En Venezuela **gestionamos el tránsito de aduana y el desaduanaje — ya van incluidos** — y tu
    mercancía queda nacionalizada, lista para retirar (el transporte hasta tu destino se suma como
    adicional).
@@ -54,8 +56,8 @@ ni desviar el contenedor**. Tu carga queda bajo control de DTD desde que embarca
 - **Aduana incluida:** el tránsito de aduana y el desaduanaje en Venezuela, con la documentación de
   importación, ya van en el precio.
 - **Solo tu mercancía:** nadie comparte el contenedor contigo.
-- **Seguridad en el directo fábrica:** con el BL a nombre de DTD, el proveedor **no puede desviar,
-  retener ni redirigir** tu contenedor.
+- **Seguridad en el directo fábrica:** el BL lo emite DTD, no la fábrica — el proveedor **no puede
+  desviar, retener ni redirigir** tu contenedor. Nosotros enviamos, tú recibes.
 - **Un solo equipo de principio a fin:** propio en China (Yiwu) y Venezuela (Valencia).
 
 ## Reglas / condiciones importantes
@@ -81,8 +83,11 @@ WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
 **Notas para Cloud Design:** UNA sola tarjeta con **selector de 2 modalidades** — jamás como dos
 servicios sueltos (HANDOFF §1). Contrastar los dos caminos: *bodega* (muchos proveedores → cajas
 convergen en la bodega de Yiwu → contenedor) vs *directo fábrica* (fábrica → contenedor → sello/candado
-"BL a nombre de DTD"). El **sello de seguridad del BL** es el gancho comercial del directo: tratarlo
-como insignia visual, no como letra chica. CTA visible a la calculadora FCL.
+«El BL lo emite DTD, no la fábrica»). El **sello de seguridad del BL** es el gancho comercial del
+directo: tratarlo como insignia visual, no como letra chica. ⚠️ **PROHIBIDO el rótulo "BL a nombre de
+DTD"** (founder 19-jul): se malinterpreta como que el BL viene consignado A DTD — el modelo real es
+DTD = exportador (shipper) que emite, cliente = consignatario que recibe, fábrica = fuera del BL.
+CTA visible a la calculadora FCL.
 
 **Nota interna (no maquetar):** tránsito 40–55 días y almacenaje gratis 7 días en bodega (Modalidad A)
 **RATIFICADOS por el founder 2026-07-18** (vigentes ~1 año; si las navieras cambian, el dato se edita en

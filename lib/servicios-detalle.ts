@@ -210,10 +210,10 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
     sede: "cn",
     // grounded: dictado founder 2026-06-09
     resumen:
-      "Tu contenedor completo se carga directamente en la fábrica de tu proveedor (uno o dos fabricantes), sin pasar por nuestra bodega. Hacemos la reserva del contenedor y del buque con la naviera; el Bill of Lading sale a nombre de nuestra empresa en China como shipper, contigo como consignatario — así tu proveedor no puede cambiar el destino ni desviar el contenedor.",
+      "Tu contenedor completo se carga directamente en la fábrica de tu proveedor (uno o dos fabricantes), sin pasar por nuestra bodega. Hacemos la reserva del contenedor y del buque con la naviera; el Bill of Lading lo emitimos nosotros — no la fábrica: nuestra empresa en China aparece como exportador (shipper) y tú como consignatario (quien recibe). La fábrica no tiene control sobre el BL, así que tu proveedor no puede cambiar el destino ni desviar el contenedor.",
     incluye: [
       "Reserva del contenedor y del buque con la naviera.",
-      "Bill of Lading a nombre de nuestra empresa china (shipper), contigo como consignatario.",
+      "Bill of Lading emitido por nosotros: DTD como exportador (shipper) y tú como consignatario (quien recibe).",
       "Coordinación de la carga en la fábrica de tu proveedor.",
       "Tránsito de aduana y desaduanaje en Venezuela, con la documentación de importación.",
     ],
@@ -226,7 +226,7 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
     tiempos:
       "40 a 55 días aproximados: al ser contenedor completo, no espera la próxima salida consolidada.",
     estado: "activo",
-    nota: "Seguridad: al salir el BL a nuestro nombre como shipper, el proveedor no puede desviar ni cambiar el destino del contenedor.",
+    nota: "Seguridad: el BL lo emitimos nosotros — la fábrica no aparece ni controla el BL, así que el proveedor no puede desviar ni cambiar el destino del contenedor. Nosotros enviamos, tú recibes.",
   },
   {
     slug: "transporte-terrestre",

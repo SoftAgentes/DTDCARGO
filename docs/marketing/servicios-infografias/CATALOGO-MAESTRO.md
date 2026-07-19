@@ -24,7 +24,7 @@ Fuente única de la lista completa de servicios, para infografías + Cloud Desig
 |---|---|---|---|---|
 | 1 | **Puerta a Puerta** (DDP, todo pagado) | `puerta-a-puerta-ddp` | Marítimo hasta tu puerta, nosotros nacionalizamos. *Insignia.* | ✅ núcleo (`puerta_a_puerta_DDP`) |
 | 2 | **LCL Consolidado** (hasta puerto, BL propio) | `lcl-consolidado` | Carga compartida; para empresas que legalizan a su nombre. | ✅ núcleo (`consolidacion`, SDD-0047) |
-| 3 | **FCL — Full Container** (2 modalidades) | `fcl-bodega` + `fcl-directo` | (a) consolidas en nuestra bodega de muchos proveedores; (b) compras directo y nosotros ponemos el contenedor con **BL a nuestro nombre** (seguridad anti-desvío). | ✅ núcleo (`reserva_FCL`, SDD-0047 + calculadora-fcl) |
+| 3 | **FCL — Full Container** (2 modalidades) | `fcl-bodega` + `fcl-directo` | (a) consolidas en nuestra bodega de muchos proveedores; (b) compras directo y nosotros ponemos el contenedor — **el BL lo emite DTD, no la fábrica** (seguridad anti-desvío: DTD exporta, el cliente recibe como consignatario). | ✅ núcleo (`reserva_FCL`, SDD-0047 + calculadora-fcl) |
 
 ---
 

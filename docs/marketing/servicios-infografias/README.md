@@ -41,7 +41,9 @@ Estructura tomada del *patrón* de OneWay (NO su copy ni sus imágenes — es co
 - **Puerta a Puerta = servicio principal** (hasta tu puerta, nosotros nacionalizamos). **DDP** = solo
   aclaración "(todo pagado)", jamás título. **LCL Consolidado = servicio APARTE** hasta puerto, para
   empresas que legalizan a su nombre — **NUNCA una modalidad del Puerta a Puerta**. **FCL** = servicio
-  propio con 2 modalidades (en bodega / directo fábrica con BL a nombre de DTD).
+  propio con 2 modalidades (en bodega / directo fábrica). **⚠️ PROHIBIDO "BL a nombre de DTD"**
+  (founder 19-jul: se malinterpreta como que DTD recibe) — la frase correcta es **"el BL lo emite
+  DTD, no la fábrica"** (DTD = exportador/shipper; el cliente = consignatario que recibe).
 - **White-label:** los terceros que ejecutan inspecciones **jamás se nombran** en material de cara al
   cliente (ni sus tarifas). Todo va como servicio DTD.
 - **Precios en VIDEOS (founder 18-jul):** los videos **jamás mencionan montos** — solo "este servicio
@@ -70,7 +72,7 @@ independiente). Ver spec en [HANDOFF-CLOUD-DESIGN.md](HANDOFF-CLOUD-DESIGN.md).
 **Piezas B · Individuales — Los 3 principales + la orden**
 - [x] [Envío marítimo Puerta a Puerta](envio-maritimo-puerta-a-puerta.md) — *ancla* ⭐
 - [x] [Consolidado (LCL) hasta puerto](consolidado-lcl.md) — *ancla* (empresas; BL propio)
-- [x] [FCL — Contenedor completo](fcl.md) (1 pieza, 2 modalidades: en bodega / directo fábrica con BL a nombre DTD)
+- [x] [FCL — Contenedor completo](fcl.md) (1 pieza, 2 modalidades: en bodega / directo fábrica — el BL lo emite DTD, no la fábrica)
 - [x] [Pre-alerta de compra (la ORDEN — nodo conector, no un servicio)](prealerta-compra.md) — *ancla*
 - [x] [Envío aéreo](envio-aereo.md) — *próximamente (visible-deshabilitado)*
 

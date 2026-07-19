@@ -32,7 +32,7 @@ servicios** — solo microcopy de UI (labels, botones, estados), siempre en tute
 |---|---|---|---|
 | `puerta-a-puerta-ddp` | **Puerta a Puerta** ⭐ | "(todo pagado)" | "DDP" como título; "LCL" |
 | `lcl-consolidado` | **Consolidado LCL** | "hasta puerto, con tu propio BL" | presentarlo como modalidad del Puerta a Puerta |
-| `fcl-bodega` + `fcl-directo` | **FCL — Contenedor completo** (UNA tarjeta, selector de 2 modalidades) | directo: "el BL sale a nombre de DTD — tu proveedor no puede desviar el contenedor" | tratarlos como 2 servicios sueltos |
+| `fcl-bodega` + `fcl-directo` | **FCL — Contenedor completo** (UNA tarjeta, selector de 2 modalidades) | directo: "el BL lo emite DTD, no la fábrica — tu proveedor no puede desviar el contenedor; tú recibes como consignatario" | tratarlos como 2 servicios sueltos · **"BL a nombre de DTD"** (founder 19-jul: se malinterpreta como que DTD recibe — DTD es el exportador/shipper que EMITE; el cliente recibe) |
 | (portal `verificacion`) | **Validación · verifica y valida al recibir** | "conteo contra tu factura" | "Verificación al recibir" (colisiona con Verificación de proveedores) |
 | (portal `inspeccion_recepcion`) | **Inspección de calidad al recibir** (en bodega) | "incluye la Validación" | confundirla con la inspección EN FÁBRICA |
 | `inspeccion-calidad` | **Inspección de calidad en fábrica** (antes del embarque) | "PSI" | confundirla con la de bodega — es la confusión #1 del cliente: tratamiento visual DISTINTO |
