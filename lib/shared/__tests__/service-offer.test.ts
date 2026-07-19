@@ -60,16 +60,10 @@ describe("service-offer · modo embarque", () => {
     expect(o.sugeridos).not.toContain("revision-recepcion");
     expect(o.sugeridos).not.toContain("etiquetado-piezas");
     expect(o.sugeridos).not.toContain("reempaque-defectuosas");
-    // sí inspección; la aduana va INCLUIDA (founder 19-jul), no sugerida
+    // sí inspección + aduana SUGERIDA (el wizard no conoce la modalidad de
+    // recepción del FCL — todo pagado la incluye, hasta puerto no)
     expect(o.sugeridos).toContain("inspeccion-calidad");
-    expect(o.incluidos).toContain("transito-aduana");
-    expect(o.sugeridos).not.toContain("transito-aduana");
-  });
-
-  it("FCL incluye aduana y NO la ofrece como sugerido (founder 19-jul)", () => {
-    const o = armarOferta({ intencion: "embarque", nucleoId: "fcl-bodega" });
-    expect(o.incluidos).toContain("transito-aduana");
-    expect(o.sugeridos).not.toContain("transito-aduana");
+    expect(o.sugeridos).toContain("transito-aduana");
   });
 
   it("FCL Bodega SÍ sugiere servicios de bodega", () => {

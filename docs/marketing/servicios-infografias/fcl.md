@@ -1,6 +1,7 @@
 # FCL — Contenedor completo
 
-> Capa 1 · Servicio principal · **Activo** · UNA ficha, 2 modalidades (en bodega / directo fábrica)
+> Capa 1 · Servicio principal · **Activo** · UNA ficha, 2 ejes: carga en China (en bodega / directo
+> fábrica) × recepción en Venezuela (todo pagado / hasta puerto)
 
 ## Gancho
 **Un contenedor completo, solo para tu carga.** Si tu volumen llena un contenedor, viaja solo, sin
@@ -25,6 +26,16 @@ fábrica**: nuestra empresa en China aparece como **exportador (shipper)** y **t
 (quien recibe)**. La fábrica no tiene control sobre el BL: tu proveedor **no puede cambiar el destino
 ni desviar el contenedor**. Nosotros enviamos, tú recibes.
 
+### En Venezuela, tú eliges cómo recibir (2 modalidades de recepción)
+Cualquiera de las dos cargas en China se combina con la recepción que prefieras:
+
+- **FCL todo pagado — hasta tu puerta:** cubrimos todo el camino: **aduana, impuestos y la entrega
+  en tu puerta**. **Pagas antes de la entrega** — sin sorpresas.
+- **FCL hasta puerto — tú desaduanizas:** te enviamos el contenedor al **puerto que elijas**; la
+  desaduanización corre por tu cuenta (o sumas nuestro **[Tránsito de aduana](transito-aduana.md)**
+  como servicio adicional). El **flete lo pagas tú**, de dos formas: **durante el tránsito** (el BL
+  se entrega al completar el pago) o **adelantado**.
+
 > **¿Tu carga no llena un contenedor?** Mira el **[Puerta a Puerta](envio-maritimo-puerta-a-puerta.md)**
 > (hasta tu puerta, todo pagado) o el **[Consolidado LCL](consolidado-lcl.md)** (empresas, hasta puerto
 > con tu propio BL).
@@ -36,9 +47,9 @@ ni desviar el contenedor**. Nosotros enviamos, tú recibes.
 2. Tus **proveedores entregan** su mercancía en nuestra bodega en Yiwu.
 3. Recibimos, preparamos y **cargamos el contenedor completo** en la bodega.
 4. Hacemos el **despacho de exportación** en China y el contenedor embarca.
-5. En Venezuela **gestionamos el tránsito de aduana y el desaduanaje — ya van incluidos** — y tu
-   mercancía queda nacionalizada, lista para retirar (el transporte hasta tu destino se suma como
-   adicional).
+5. En Venezuela recibes según tu **modalidad de recepción**: **todo pagado** → nacionalizamos y te
+   entregamos **en tu puerta** (pagas antes de la entrega) · **hasta puerto** → el contenedor llega
+   al puerto que elegiste y **desaduanizas tú** (o sumas nuestro Tránsito de aduana como adicional).
 
 **Modalidad B · Directo fábrica**
 1. Cierras tu compra **directo con el fabricante**.
@@ -46,24 +57,26 @@ ni desviar el contenedor**. Nosotros enviamos, tú recibes.
 3. **Coordinamos la carga** del contenedor en la fábrica de tu proveedor.
 4. **Emitimos el BL** — DTD como exportador (shipper), **tú como consignatario (quien recibe)** — y
    el contenedor embarca.
-5. En Venezuela **gestionamos el tránsito de aduana y el desaduanaje — ya van incluidos** — y tu
-   mercancía queda nacionalizada, lista para retirar (el transporte hasta tu destino se suma como
-   adicional).
+5. En Venezuela recibes según tu **modalidad de recepción**: **todo pagado** → nacionalizamos y te
+   entregamos **en tu puerta** (pagas antes de la entrega) · **hasta puerto** → el contenedor llega
+   al puerto que elegiste y **desaduanizas tú** (o sumas nuestro Tránsito de aduana como adicional).
 
 ## ¿Por qué te conviene?
 - **Más rápido:** al ser contenedor completo, no espera la próxima salida consolidada
   (tránsito aproximado: **40–55 días**).
-- **Aduana incluida:** el tránsito de aduana y el desaduanaje en Venezuela, con la documentación de
-  importación, ya van en el precio.
+- **Tú decides hasta dónde llegamos:** todo pagado hasta tu puerta (aduana e impuestos incluidos),
+  o hasta puerto para desaduanizar tú.
 - **Solo tu mercancía:** nadie comparte el contenedor contigo.
 - **Seguridad en el directo fábrica:** el BL lo emite DTD, no la fábrica — el proveedor **no puede
   desviar, retener ni redirigir** tu contenedor. Nosotros enviamos, tú recibes.
 - **Un solo equipo de principio a fin:** propio en China (Yiwu) y Venezuela (Valencia).
 
 ## Reglas / condiciones importantes
-- El precio del FCL **incluye el tránsito de aduana y desaduanaje en Venezuela, con la documentación
-  de importación**. Las planillas y los impuestos los pagas tú directamente a la aduana (como en todo
-  desaduanaje); el **transporte hasta tu destino** se suma como servicio adicional.
+- En la modalidad **todo pagado**, el precio cubre **aduana, impuestos y la entrega hasta tu
+  puerta**; el **pago se completa antes de la entrega**.
+- En la modalidad **hasta puerto**, la desaduanización corre por tu cuenta (o sumas nuestro
+  **Tránsito de aduana** como servicio adicional) y el **flete** se paga **durante el tránsito — el
+  BL se entrega al completar el pago — o adelantado**.
 - En la **Modalidad A**, el almacenaje en la bodega de Yiwu es **gratis los primeros 7 días**; después
   aplica un costo adicional.
 - En la **Modalidad B**, el contenedor se carga en la fábrica (uno o dos fabricantes) y **no pasa por
@@ -93,10 +106,13 @@ CTA visible a la calculadora FCL.
 **RATIFICADOS por el founder 2026-07-18** (vigentes ~1 año; si las navieras cambian, el dato se edita en
 la configuración de servicios del ERP — no en este doc). "Uno o dos fabricantes" también ratificado.
 ✅ Esta pieza puede pasar a arte final.
-**Decisión founder 19-jul (supera el dictado 06-09):** el FCL **INCLUYE el tránsito de aduana y
-desaduanaje con la documentación de importación** (ambas modalidades). Solo el LCL lo lleva como
-add-on. Planillas/impuestos directo a la aduana = modelo estándar del servicio de aduana (asumido;
-si el founder quiere otro esquema para FCL, se corrige acá y en la web).
+**Decisión founder 19-jul v2 (supera la v1 del mismo día y el dictado 06-09):** el FCL tiene **2
+modalidades de RECEPCIÓN en Venezuela** que se cruzan con las 2 de carga en China (matriz 2×2):
+**todo pagado** (aduana + impuestos + entrega en puerta incluidos; pagas ANTES de la entrega) y
+**hasta puerto** (al puerto que elija el cliente; él desaduaniza o suma el Tránsito de aduana como
+add-on; flete pagado en tránsito —BL contra pago— o adelantado). El "aduana incluida" absoluto de la
+v1 quedó DEROGADO: solo aplica a la modalidad todo pagado. Nombres ratificados: «FCL todo pagado —
+hasta tu puerta» / «FCL hasta puerto — tú desaduanizas». La condición del flete SÍ se publica.
 
 **Nota interna (no maquetar):** decisión founder 18-jul: LCL/FCL tendrán **entrada propia en el portal**
 ("Nueva orden LCL/FCL") junto a la pre-alerta; el backend puede llegar en spec posterior. Esta ficha

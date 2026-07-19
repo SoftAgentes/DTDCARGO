@@ -24,7 +24,7 @@ Fuente única de la lista completa de servicios, para infografías + Cloud Desig
 |---|---|---|---|---|
 | 1 | **Puerta a Puerta** (DDP, todo pagado) | `puerta-a-puerta-ddp` | Marítimo hasta tu puerta, nosotros nacionalizamos. *Insignia.* | ✅ núcleo (`puerta_a_puerta_DDP`) |
 | 2 | **LCL Consolidado** (hasta puerto, BL propio) | `lcl-consolidado` | Carga compartida; para empresas que legalizan a su nombre. | ✅ núcleo (`consolidacion`, SDD-0047) |
-| 3 | **FCL — Full Container** (2 modalidades) | `fcl-bodega` + `fcl-directo` | (a) consolidas en nuestra bodega de muchos proveedores; (b) compras directo y nosotros ponemos el contenedor — **el BL lo emite DTD, no la fábrica** (seguridad anti-desvío: DTD exporta, el cliente recibe como consignatario). | ✅ núcleo (`reserva_FCL`, SDD-0047 + calculadora-fcl) |
+| 3 | **FCL — Full Container** (matriz 2×2: carga × recepción) | `fcl-bodega` + `fcl-directo` | Carga en China: (a) consolidas en nuestra bodega; (b) directo fábrica — **el BL lo emite DTD, no la fábrica** (anti-desvío: DTD exporta, el cliente recibe). Recepción en VE (founder 19-jul): **todo pagado** (aduana+impuestos+entrega en puerta; pagas antes de la entrega) o **hasta puerto** (tú desaduanizas; flete en tránsito —BL contra pago— o adelantado). | ✅ núcleo (`reserva_FCL`, SDD-0047 + calculadora-fcl) |
 
 ---
 
@@ -40,7 +40,7 @@ Estado: `activo` · `proximamente` · `a-pedido` · `suspendido`. "Construido" =
 | `fcl-bodega` | FCL Consolidado en bodega | cn | activo | ✅ núcleo |
 | `fcl-directo` | FCL Directo fábrica | cn | activo | ✅ núcleo |
 | `transporte-terrestre` | Transporte terrestre nacional (VE) | ve | **proximamente** | ⚙️ calculadora (SDD-0002) + TMS interno (SDD-0019) listos; comercial al cliente aún `proximamente` |
-| `transito-aduana` | Tránsito de aduana y desaduanaje | ve | activo | ✅ módulo SENIAT (SDD-0018). Incluido en DDP **y FCL** (founder 19-jul, supera el dictado 06-09); add-on solo en LCL |
+| `transito-aduana` | Tránsito de aduana y desaduanaje | ve | activo | ✅ módulo SENIAT (SDD-0018). Incluido en DDP y **FCL todo pagado**; add-on en LCL y **FCL hasta puerto** (founder 19-jul v2) |
 | `documentos-importacion` | **Documentos de importación — FUSIONADO dentro de `transito-aduana`** (founder 19-jul): sin tarjeta pública, sin pieza propia; la gestión documental es un "incluye" de la ficha de aduana. El id queda solo para config ERP/contabilidad | ve | activo | fila `service_configs` (despublicar `is_public`) |
 
 ### Grupo 2 · En bodega (Yiwu): revisión y preparación → **servicios de la llegada**
