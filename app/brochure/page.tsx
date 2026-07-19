@@ -29,12 +29,12 @@ import {
 export const metadata: Metadata = {
   title: "Brochure",
   description:
-    "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 16 servicios, equipo y bodega propios en Yiwu y Valencia, pagas al llegar. Operando desde 2015.",
+    "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 15 servicios, equipo y bodega propios en Yiwu y Valencia, pagas al llegar. Operando desde 2015.",
   alternates: { canonical: "/brochure" },
   ...socialMeta({
     title: "Brochure · DTD Cargo",
     description:
-      "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 16 servicios, equipo y bodega propios en Yiwu y Valencia, pagas al llegar. Operando desde 2015.",
+      "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 15 servicios, equipo y bodega propios en Yiwu y Valencia, pagas al llegar. Operando desde 2015.",
     path: "/brochure",
   }),
 };
@@ -147,7 +147,7 @@ export default function BrochurePage() {
         {/* 3c · El sello DoorTuDoor (fotos de marca en la operación) */}
         <OperationGallery />
 
-        {/* 4-5 · Los 16 servicios (héroe DDP + 4 grupos) */}
+        {/* 4-5 · Los 15 servicios (héroe DDP + 4 grupos) */}
         <ServicesByOffice />
 
         {/* 6 · Mapa de servicios por sede */}

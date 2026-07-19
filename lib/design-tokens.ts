@@ -263,7 +263,7 @@ export const CONTACT = {
 
 // ──────────────────────────────────────────────────────────────────
 // SERVICIOS — fuente: Brochure DTD Cargo China-Venezuela
-// 16 servicios agrupados por sede + tabla cruzada
+// 15 servicios agrupados por sede + tabla cruzada
 // ──────────────────────────────────────────────────────────────────
 
 export type ServiceLocation = "cn" | "ve";
@@ -400,17 +400,11 @@ export const SERVICES_VE: Service[] = [
     location: "ve",
   },
   {
-    slug: "documentos-importacion",
-    title: "Documentos de importación",
-    copy: "Elaboramos, revisamos y tramitamos toda la documentación aduanera y logística: facturas de embarque, declaraciones, certificados y requerimientos normativos.",
-    benefit: "Tu carga entra sin contratiempos",
-    icon: "Doc",
-    location: "ve",
-  },
-  {
+    // Documentos de importación se FUSIONÓ acá (founder 2026-07-19): la gestión
+    // documental va dentro de aduana, sin tarjeta propia.
     slug: "transito-aduana",
     title: "Tránsito de aduana y desaduanaje",
-    copy: "Bajo DDP nos encargamos del paso de tu carga por la aduana venezolana y de la nacionalización: la aduana y los impuestos ya van incluidos en tu precio, sin cobros sorpresa. Equipo local que conoce la normativa vigente.",
+    copy: "Bajo DDP nos encargamos del paso de tu carga por la aduana venezolana y de la nacionalización, con toda la documentación de importación incluida: facturas de embarque, declaraciones, certificados y normativa. La aduana y los impuestos ya van en tu precio, sin cobros sorpresa.",
     benefit: "Nacionalización sin demoras",
     icon: "Shield",
     location: "ve",
@@ -433,7 +427,7 @@ export const SERVICES_FEATURED: Service[] = [
   SERVICES_VE[0], // DTD Services LCL (featured VE)
   SERVICES_CN[1], // Consolidación bodega Yiwu (featured CN)
   SERVICES_CN[0], // Reserva FCL (con BL propio)
-  SERVICES_VE[4], // Tránsito aduana
+  SERVICES_VE[3], // Tránsito aduana
   SERVICES_CN[5], // Compra asistida
 ];
 
@@ -450,8 +444,7 @@ export const SERVICES_MATRIX = [
   { service: "Envío de muestras y documentos", cn: "Ejecución completa", ve: "—" },
   { service: "Registro de marca en China", cn: "Ejecución legal", ve: "Coordinación y documentos" },
   { service: "Trámite de visado chino", cn: "—", ve: "Gestión completa" },
-  { service: "Documentos importación / aduana", cn: "—", ve: "Gestión completa" },
-  { service: "Tránsito aduana Venezuela", cn: "—", ve: "Gestión completa" },
+  { service: "Tránsito aduana y documentos de importación", cn: "—", ve: "Gestión completa" },
   { service: "Entrega puerta a puerta (last mile)", cn: "—", ve: "Gestión completa" },
 ] as const;
 

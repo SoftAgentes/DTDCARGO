@@ -45,7 +45,10 @@ factores, consulta el aproximado y la tarifa vigente con tu asesor por WhatsApp.
 WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
 
 ---
-**Notas para Cloud Design:** continuar la línea de tiempo de la ficha del Consolidado LCL: puerto →
+**Notas para Cloud Design:** esta pieza **absorbe los Documentos de importación** (fusión founder
+19-jul): no existe pieza ni nodo aparte de "Documentos" — esta ficha debe mostrar "documentación de
+importación incluida" (facturas de embarque, declaraciones, certificados, normativa) como parte del
+servicio. Continuar la línea de tiempo de la ficha del Consolidado LCL: puerto →
 almacén fiscal → aduana → mercancía nacionalizada, marcando dónde entra DTD como **agente** del cliente.
 Contrastar visualmente "lo que pagas tú directo (planillas, impuestos)" vs "lo que gestionamos
 nosotros". Badge "Incluido en el Puerta a Puerta" para que el cliente del servicio principal no lo

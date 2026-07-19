@@ -64,7 +64,10 @@ export const CHARGE_MODE_OPTIONS: { value: ChargeMode; label: string }[] =
   CHARGE_MODES.map((m) => ({ value: m, label: CHARGE_MODE_LABEL[m] }));
 
 // ── Grupos de add-ons (reflejan la taxonomía dictada) ────────────────
-const ADUANA: ServicioId[] = ["transito-aduana", "documentos-importacion"];
+// documentos-importacion NO va acá (fusión founder 2026-07-19): la gestión
+// documental viaja DENTRO de transito-aduana y nunca se ofrece como chip
+// propio. El id sigue en el catálogo/charge-mode para la config del ERP.
+const ADUANA: ServicioId[] = ["transito-aduana"];
 const BODEGA: ServicioId[] = [
   "revision-recepcion",
   "etiquetado-piezas",

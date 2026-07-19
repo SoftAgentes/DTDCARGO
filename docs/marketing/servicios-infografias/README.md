@@ -85,8 +85,8 @@ independiente). Ver spec en [HANDOFF-CLOUD-DESIGN.md](HANDOFF-CLOUD-DESIGN.md).
   revoca el "no se menciona" del 06-09)*
 
 **En bodega / transporte (canónicos restantes)**
-- [x] [Tránsito de aduana y desaduanaje](transito-aduana.md) (incluido en DDP; add-on en LCL/FCL)
-- [x] [Documentos de importación](documentos-importacion.md)
+- [x] [Tránsito de aduana y desaduanaje](transito-aduana.md) (incluido en DDP; add-on en LCL/FCL.
+  **Absorbe los Documentos de importación** — fusión founder 19-jul: sin pieza propia)
 - [x] [Transporte terrestre nacional](transporte-terrestre.md) — *próximamente*
 
 **Origen / calidad en China (familia Inspección — white-label, sin nombrar terceros)**

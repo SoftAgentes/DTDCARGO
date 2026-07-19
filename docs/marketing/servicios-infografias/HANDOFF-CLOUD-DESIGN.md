@@ -4,10 +4,12 @@ Instrucciones completas para Cloud Design (que rediseña la web y el portal). Fu
 [CATALOGO-MAESTRO.md](CATALOGO-MAESTRO.md) (anclado a `lib/shared/service-catalog.ts`).
 **Este brief manda sobre cualquier otra fuente** (incluido lo que se vea hoy en la web o el portal).
 
-> **Estado:** v3 · 2026-07-18 · auditado (4 lentes + síntesis) + las 4 decisiones del founder CERRADAS:
-> (1) Bodegaje = regla dentro del HOLD → **23 piezas + mapa**; (2) Seguro/Terrestre/Cursos = visibles
+> **Estado:** v3.1 · 2026-07-19 · auditado (4 lentes + síntesis) + las 5 decisiones del founder CERRADAS:
+> (1) Bodegaje = regla dentro del HOLD; (2) Seguro/Terrestre/Cursos = visibles
 > con badge "próximamente"; (3) LCL/FCL con **entrada propia** en el portal junto a la pre-alerta;
-> (4) **Shipping Mark en todas las superficies** (BD-022 enmienda BD-021). Brief definitivo.
+> (4) **Shipping Mark en todas las superficies** (BD-022 enmienda BD-021);
+> (5) **Documentos de importación FUSIONADO dentro del Tránsito de aduana** (19-jul) → el set queda en
+> **22 piezas + mapa**; sin nodo propio en el mapa general. Brief definitivo.
 
 ---
 
@@ -16,7 +18,7 @@ Instrucciones completas para Cloud Design (que rediseña la web y el portal). Fu
 | # | Entregable | Cantidad | Formatos |
 |---|---|---|---|
 | A | **Infografía GENERAL**: mapa de todos los servicios con sus dependencias | 1 | Web + PDF (+ versión presentación para el asesor) |
-| B | **Infografías individuales** (una por servicio) | **23** (20 canónicos + pre-alerta + HOLD + inspección al recibir; el Bodegaje extra NO es pieza — es la regla de cobro dentro del HOLD) | Ficha web responsive en `/servicios` + PDF vertical apto WhatsApp |
+| B | **Infografías individuales** (una por servicio) | **22** (20 canónicos + pre-alerta + HOLD + inspección al recibir, − Documentos de importación que se fusionó dentro del Tránsito de aduana; el Bodegaje extra NO es pieza — es la regla de cobro dentro del HOLD) | Ficha web responsive en `/servicios` + PDF vertical apto WhatsApp |
 | C | **Arquitectura de `/servicios`**: portada solo títulos, 4 momentos, clic → detalle | 1 | Web |
 | D | **Flujo del portal de pre-alertas** (modalidad → compra → servicios de llegada → link proveedor) | 1 flujo (3 actores) | Portal |
 
@@ -57,8 +59,9 @@ founder 18-jul — deroga el split de BD-021; "MARKBOX" ya no se usa como etique
   los servicios de la llegada.
 - **Cuelgan de la pre-alerta (6):** Validación · Inspección al recibir (⊃ INCLUYE la Validación) ·
   Etiquetado · HOLD · Re-Empaque · Bodegaje extra (ligado al HOLD: gratis «N» días, luego se cobra).
-- **Tronco transporte:** Puerta a Puerta incluye aduana+impuestos+entrega; en **LCL/FCL** la aduana,
-  los documentos y el terrestre son **add-ons contratables**.
+- **Tronco transporte:** Puerta a Puerta incluye aduana+impuestos+entrega; en **LCL/FCL** la aduana
+  (que trae los documentos de importación DENTRO — no es nodo aparte) y el terrestre son **add-ons
+  contratables**.
 - **Independientes (Capa 3, entrada aparte):** Consolidado LCL puntual · Compra asistida · Pago
   asistido · Courier muestras · Visado · Registro de marca.
 - Jerarquía visual de 3 niveles: principales dominantes → conector (pre-alerta) → colgantes. Leyenda de

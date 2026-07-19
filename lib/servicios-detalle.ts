@@ -13,7 +13,8 @@
  *   - SECUNDARIOS (otras modalidades de transporte): LCL Consolidado · FCL
  *     Consolidado en Bodega · FCL Directo Fábrica · Transporte terrestre.
  *   - ADD-ON MODULAR: Tránsito de aduana (incluido en DDP, opcional en LCL/FCL);
- *     Documentos de importación va dentro de aduana (no se vende solo).
+ *     Documentos de importación va DENTRO de aduana (fusionado 2026-07-19,
+ *     decisión founder: sin ficha propia — vive como "incluye" de aduana).
  *   - TERCIARIOS: Inspección (umbrella de 4) · Compra asistida · Asesoría de
  *     pagos · Courier de muestras · Visado · Registro de marca.
  *   - MINI-SERVICIOS de recepción en bodega (con reporte de fotos).
@@ -261,26 +262,6 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
     estado: "activo",
     nota: "Incluido en el servicio puerta a puerta DDP; opcional (adicional) en LCL y FCL.",
   },
-  {
-    slug: "documentos-importacion",
-    titulo: "Documentos de importación",
-    sede: "ve",
-    // grounded: copy actual. Dictado founder: va DENTRO del servicio de aduana.
-    resumen:
-      "Elaboramos, revisamos y tramitamos la documentación de tu importación: facturas de embarque, declaraciones, certificados y requerimientos normativos. Va de la mano del servicio de aduana.",
-    incluye: [
-      "Elaboración y revisión de facturas de embarque, declaraciones y certificados.",
-      "Gestión de los requerimientos normativos de importación.",
-    ],
-    noIncluye: [],
-    precio: "",
-    comoSolicitar: "Va dentro del servicio de aduana. Escríbenos por WhatsApp.",
-    tiempos: "",
-    estado: "activo",
-    nota: "Forma parte del servicio de aduana; no se contrata por separado.",
-    _pendiente: ["qué NO cubre", "tiempos"],
-  },
-
   // ── Grupo: bodega (mini-servicios de recepción) ──────────────────
   {
     slug: "revision-recepcion",
@@ -548,7 +529,6 @@ export const SERVICIOS_POR_GRUPO: Record<string, string[]> = {
     "reserva-contenedores",
     "transporte-terrestre",
     "transito-aduana",
-    "documentos-importacion",
   ],
   bodega: [
     "revision-recepcion",

@@ -41,13 +41,13 @@ Estado: `activo` · `proximamente` · `a-pedido` · `suspendido`. "Construido" =
 | `fcl-directo` | FCL Directo fábrica | cn | activo | ✅ núcleo |
 | `transporte-terrestre` | Transporte terrestre nacional (VE) | ve | **proximamente** | ⚙️ calculadora (SDD-0002) + TMS interno (SDD-0019) listos; comercial al cliente aún `proximamente` |
 | `transito-aduana` | Tránsito de aduana y desaduanaje | ve | activo | ✅ módulo SENIAT (SDD-0018). En DDP va incluido; en LCL/FCL es add-on |
-| `documentos-importacion` | Documentos de importación | ve | activo | add-on (sin módulo propio) |
+| `documentos-importacion` | **Documentos de importación — FUSIONADO dentro de `transito-aduana`** (founder 19-jul): sin tarjeta pública, sin pieza propia; la gestión documental es un "incluye" de la ficha de aduana. El id queda solo para config ERP/contabilidad | ve | activo | fila `service_configs` (despublicar `is_public`) |
 
 ### Grupo 2 · En bodega (Yiwu): revisión y preparación → **servicios de la llegada**
 | id | Nombre | Sede | Estado | Construido / dónde |
 |---|---|---|---|---|
 | `revision-recepcion` | Revisión de mercancía al recibir (= **Validación**/conteo) | cn | activo | ✅ add-on portal (SDD-0098 `verificacion`) |
-| `etiquetado-piezas` | Etiquetado por pieza | cn | activo | ✅ add-on portal (SDD-0098 `etiquetado_pieza`) |
+| `etiquetado-piezas` | **Etiquetado de piezas** (nombre ratificado founder 18/19-jul; el id técnico no cambia). Servicio COMERCIAL: código de barras del cliente o etiqueta física por pieza — NO es el Shipping Mark de las cajas | cn | activo | ✅ add-on portal (SDD-0098 `etiquetado_pieza`) |
 | `reempaque-defectuosas` | **Re-Empaque** (REDEFINIDO founder 18-jul: unificar compras pequeñas de Alibaba en un solo packing list; el id técnico NO se renombra) | cn | activo | ✅ add-on portal (SDD-0098 `reempaque_unificar`) |
 
 > ⚠️ **HOLD y Bodegaje extra NO están en el catálogo público (20)** — viven solo como add-ons del portal
@@ -97,16 +97,21 @@ Estado: `activo` · `proximamente` · `a-pedido` · `suspendido`. "Construido" =
 ## No aplican
 Compactación (no se maneja) · Pick-up en origen (no por ahora). *(No están en el catálogo canónico.)*
 
-## Decisiones del founder (18-jul) — cerradas
-1. ✅ **HOLD e Inspección al recibir** entran como piezas propias del set de infografías (**23 piezas +
-   mapa general**); **Bodegaje extra NO** — es la regla de cobro dentro del HOLD. (Subirlos al catálogo
-   canónico de código es tarea futura de SDD, no de marketing.)
+## Decisiones del founder (18/19-jul) — cerradas
+1. ✅ **HOLD e Inspección al recibir** entran como piezas propias del set de infografías; **Bodegaje
+   extra NO** — es la regla de cobro dentro del HOLD. (Subirlos al catálogo canónico de código es tarea
+   futura de SDD, no de marketing.) Con la fusión de la decisión 5, el set queda en **22 piezas +
+   mapa general**.
 2. ✅ **Estados**: Terrestre, Cursos y **Seguro de carga** se muestran **visibles con badge
    "próximamente"** (revoca el "no se menciona" del 06-09 para el Seguro). Aéreo = visible-deshabilitado.
 3. ✅ **LCL/FCL tienen entrada propia en el portal** junto a la pre-alerta ("Nueva orden LCL/FCL");
    Cloud Design la diseña ya, el backend puede llegar en spec posterior.
 4. ✅ **Shipping Mark en todas las superficies** (BD-022 en BRAND.md, deroga el split de BD-021);
    sweep del sitio público pendiente como deuda.
+5. ✅ **Documentos de importación FUSIONADO dentro del Tránsito de aduana** (19-jul): sin tarjeta en
+   `/servicios`, sin pieza de infografía, sin nodo propio en el mapa general — aparece como "incluido"
+   dentro de la pieza de aduana. Código barrido (servicios-detalle, design-tokens, brochure, offer);
+   falta despublicar la fila `documentos-importacion` en `/studio/servicios` (is_public → off).
 
 ## Pendientes reales
 - Los servicios **sin módulo ERP** (visado, marca, courier, pago asistido) hoy se operan por WhatsApp —
