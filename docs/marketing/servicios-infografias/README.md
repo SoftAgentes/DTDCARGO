@@ -106,9 +106,13 @@ independiente). Ver spec en [HANDOFF-CLOUD-DESIGN.md](HANDOFF-CLOUD-DESIGN.md).
 - [x] [Cursos de importación](cursos-importacion.md) — *próximamente*
 
 **Videos (5 · en [videos/](videos/GUIA-PRODUCCION.md))**
-- [x] [Guía de producción](videos/GUIA-PRODUCCION.md) (formato, marca, reglas: JAMÁS montos — "puede tener un cargo extra")
+- [x] [Guía de producción](videos/GUIA-PRODUCCION.md) (formato, marca, §6b grabación de pantalla del portal, reglas: JAMÁS montos — "puede tener un cargo extra")
 - [x] [Pre-alerta](videos/brief-prealerta.md) · [Validación](videos/brief-validacion.md) ·
   [Etiquetado](videos/brief-etiquetado.md) · [HOLD](videos/brief-hold.md) · [Re-Empaque](videos/brief-reempaque.md)
+- [x] [Entrega al productor](videos/ENTREGA-PRODUCTOR.md) → **entregable: HTML interactivo offline**
+  `../assets/produccion-videos-dtd.html` (progreso por etapa + teleprompter)
+- [x] [Prompt + paquete para Cloud Design](PROMPT-CLOUD-DESIGN.md) → consolidado P1 en
+  `C:\Users\Trabajo\Downloads\DTD-brief-cloud-design-P1.md`
 
 **No aplican (no diseñar):** Compactación · Pick-up · add-ons apagados del portal (`compactar`,
 `cotizar_medir`).
