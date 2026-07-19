@@ -187,11 +187,11 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
       "Carga y consolidación del contenedor completo (FCL).",
       "Despacho de exportación en China.",
       "Reserva del contenedor y del flete.",
-      "Almacenaje gratis los primeros 7 días en la bodega de Yiwu.",
+      "Almacenaje gratis los primeros 15 días en la bodega de Yiwu.",
     ],
     noIncluye: [
       "Gestión en Venezuela (aduana, transporte): la manejas tú, o la sumas como servicio de aduana opcional.",
-      "Almacenaje después de los primeros 7 días gratis: tiene un costo adicional.",
+      "Almacenaje después de los primeros 15 días gratis: tiene un costo adicional.",
     ],
     precio: "Se cotiza con un asesor por WhatsApp.",
     comoSolicitar:

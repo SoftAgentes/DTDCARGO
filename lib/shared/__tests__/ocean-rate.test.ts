@@ -4,6 +4,7 @@ import {
   validateOceanRouteInput,
   findOceanPoint,
   resolveOriginCity,
+  isOceanRateExpired,
   OCEAN_ORIGINS,
   OCEAN_ORIGIN_CITIES,
   OCEAN_DESTINATIONS,
@@ -121,5 +122,28 @@ describe("findOceanPoint + coherencia del catálogo", () => {
     expect(resolveOriginCity("ciudad-inexistente")).toBeUndefined();
     const portIds = new Set(OCEAN_ORIGINS.map((p) => p.id));
     expect(OCEAN_ORIGIN_CITIES.every((c) => portIds.has(c.portId))).toBe(true);
+  });
+});
+
+describe("isOceanRateExpired · vigencia de la tarifa cacheada", () => {
+  const NOW = new Date("2026-07-19T12:00:00Z");
+
+  it("valid_to en el pasado → vencida", () => {
+    expect(isOceanRateExpired("2026-07-06", NOW)).toBe(true);
+  });
+
+  it("valid_to hoy → vigente todo el día (no vencida)", () => {
+    expect(isOceanRateExpired("2026-07-19", NOW)).toBe(false);
+  });
+
+  it("valid_to futuro → vigente", () => {
+    expect(isOceanRateExpired("2026-08-01", NOW)).toBe(false);
+  });
+
+  it("nulo / vacío / no parseable → NO se considera vencida (no bloquea por falta de dato)", () => {
+    expect(isOceanRateExpired(null, NOW)).toBe(false);
+    expect(isOceanRateExpired(undefined, NOW)).toBe(false);
+    expect(isOceanRateExpired("", NOW)).toBe(false);
+    expect(isOceanRateExpired("no-es-fecha", NOW)).toBe(false);
   });
 });
