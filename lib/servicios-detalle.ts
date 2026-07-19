@@ -12,7 +12,8 @@
  *   - PRINCIPAL: Puerta a puerta DDP (CBM) — el spine, todo incluido.
  *   - SECUNDARIOS (otras modalidades de transporte): LCL Consolidado · FCL
  *     Consolidado en Bodega · FCL Directo Fábrica · Transporte terrestre.
- *   - ADD-ON MODULAR: Tránsito de aduana (incluido en DDP, opcional en LCL/FCL);
+ *   - ADD-ON MODULAR: Tránsito de aduana (incluido en DDP y FCL —founder
+ *     2026-07-19, supera el dictado 06-09—; opcional solo en LCL);
  *     Documentos de importación va DENTRO de aduana (fusionado 2026-07-19,
  *     decisión founder: sin ficha propia — vive como "incluye" de aduana).
  *   - TERCIARIOS: Inspección (umbrella de 4) · Compra asistida · Asesoría de
@@ -182,16 +183,18 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
     sede: "cn",
     // grounded: dictado founder 2026-06-09 (es FCL, no LCL)
     resumen:
-      "Llenamos tu contenedor completo en nuestra bodega de Yiwu con la mercancía de varios de tus proveedores. Hacemos el despacho de exportación en China y la reserva del contenedor y el flete. En Venezuela, tú manejas la recepción (o sumas nuestro servicio de aduana).",
+      "Llenamos tu contenedor completo en nuestra bodega de Yiwu con la mercancía de varios de tus proveedores. Hacemos el despacho de exportación en China y la reserva del contenedor y el flete. En Venezuela gestionamos el tránsito de aduana y el desaduanaje — ya van incluidos.",
     incluye: [
       "Recepción de la mercancía de tus distintos proveedores en la bodega de Yiwu.",
       "Carga y consolidación del contenedor completo (FCL).",
       "Despacho de exportación en China.",
       "Reserva del contenedor y del flete.",
+      "Tránsito de aduana y desaduanaje en Venezuela, con la documentación de importación.",
       "Almacenaje gratis los primeros 7 días en la bodega de Yiwu.",
     ],
     noIncluye: [
-      "Gestión en Venezuela (aduana, transporte): la manejas tú, o la sumas como servicio de aduana opcional.",
+      "Las planillas y los impuestos de la aduana: los pagas tú directamente a la aduana.",
+      "El transporte desde el puerto hasta tu destino: se suma como servicio adicional.",
       "Almacenaje después de los primeros 7 días gratis: tiene un costo adicional.",
     ],
     precio: "Se cotiza con un asesor por WhatsApp.",
@@ -212,9 +215,11 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
       "Reserva del contenedor y del buque con la naviera.",
       "Bill of Lading a nombre de nuestra empresa china (shipper), contigo como consignatario.",
       "Coordinación de la carga en la fábrica de tu proveedor.",
+      "Tránsito de aduana y desaduanaje en Venezuela, con la documentación de importación.",
     ],
     noIncluye: [
-      "Gestión en Venezuela (aduana, transporte): la manejas tú, o la sumas como servicio de aduana opcional.",
+      "Las planillas y los impuestos de la aduana: los pagas tú directamente a la aduana.",
+      "El transporte desde el puerto hasta tu destino: se suma como servicio adicional.",
     ],
     precio: "Se cotiza con un asesor por WhatsApp.",
     comoSolicitar: "Se cotiza con un asesor. Escríbenos por WhatsApp.",
@@ -244,7 +249,7 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
     sede: "ve",
     // grounded: dictado founder 2026-06-09 + FAQ §23
     resumen:
-      "Gestionamos el paso de tu mercancía por la aduana venezolana y su nacionalización. Es un servicio adicional opcional para las cargas LCL y FCL (en el puerta a puerta DDP ya va incluido). Tú pagas tus planillas directamente a la aduana; nosotros te representamos como tu agente con tu carta poder.",
+      "Gestionamos el paso de tu mercancía por la aduana venezolana y su nacionalización. Es un servicio adicional opcional para las cargas LCL (en el puerta a puerta DDP y en el FCL ya va incluido). Tú pagas tus planillas directamente a la aduana; nosotros te representamos como tu agente con tu carta poder.",
     incluye: [
       "Gestión del paso por aduana y nacionalización de tu carga.",
       "Representación ante la aduana como tu agente (con tu carta poder).",
@@ -257,10 +262,10 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
     precio:
       "El costo se cotiza según el valor del contenedor (por valorización de la factura). Como intervienen muchos factores, un asesor te da el aproximado por WhatsApp.",
     comoSolicitar:
-      "Súmalo a tu carga LCL o FCL: escríbenos por WhatsApp con tu nombre o el de tu empresa para iniciar el trámite.",
+      "Súmalo a tu carga LCL: escríbenos por WhatsApp con tu nombre o el de tu empresa para iniciar el trámite.",
     tiempos: "Nacionalización de 5 a 6 días hábiles.",
     estado: "activo",
-    nota: "Incluido en el servicio puerta a puerta DDP; opcional (adicional) en LCL y FCL.",
+    nota: "Incluido en el servicio puerta a puerta DDP y en el FCL; opcional (adicional) en LCL.",
   },
   // ── Grupo: bodega (mini-servicios de recepción) ──────────────────
   {

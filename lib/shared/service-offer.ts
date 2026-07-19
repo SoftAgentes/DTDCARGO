@@ -106,10 +106,12 @@ const MODO_SUELTO: ServicioId[] = [
 type MatrixEntry = { includes: ServicioId[]; suggests: ServicioId[] };
 
 /**
- * Matriz de cruce DEFAULT por núcleo. Reglas dictadas (entrevista-servicios.md):
+ * Matriz de cruce DEFAULT por núcleo. Reglas dictadas (entrevista-servicios.md
+ * + founder 2026-07-19):
  *   · origen + inspección aplican a TODO núcleo,
  *   · bodega NO aplica a FCL Fábrica (no pasa por la bodega de DTD),
- *   · aduana se ofrece solo donde NO va incluida (todos menos DDP).
+ *   · aduana va INCLUIDA en DDP y FCL (founder 19-jul, supera el dictado
+ *     06-09); se ofrece como add-on solo en LCL.
  * Solo los núcleo arman oferta; los add-on no tienen entrada (getMatrix → vacío).
  */
 export const DEFAULT_OFFER_MATRIX: Partial<Record<ServicioId, MatrixEntry>> = {
@@ -122,12 +124,12 @@ export const DEFAULT_OFFER_MATRIX: Partial<Record<ServicioId, MatrixEntry>> = {
     suggests: [...ADUANA, ...BODEGA, ...INSPECCION, ...ORIGEN_SUELTOS],
   },
   "fcl-bodega": {
-    includes: [],
-    suggests: [...ADUANA, ...BODEGA, ...INSPECCION, ...ORIGEN_SUELTOS],
+    includes: ADUANA, // aduana + documentación incluidas (founder 19-jul)
+    suggests: [...BODEGA, ...INSPECCION, ...ORIGEN_SUELTOS],
   },
   "fcl-directo": {
-    includes: [],
-    suggests: [...ADUANA, ...INSPECCION, ...ORIGEN_SUELTOS], // sin bodega
+    includes: ADUANA, // aduana + documentación incluidas (founder 19-jul)
+    suggests: [...INSPECCION, ...ORIGEN_SUELTOS], // sin bodega
   },
   "transporte-terrestre": {
     includes: [],
