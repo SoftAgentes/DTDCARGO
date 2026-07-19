@@ -143,7 +143,7 @@ export function ServicesGrid({ noHead = false, items = SERVICES_FEATURED }: Prop
             href="/servicios"
             className="inline-flex items-center gap-2 text-[15px] font-semibold text-ink hover:text-wine"
           >
-            Ver los 16 servicios completos <ArrowIcon />
+            Ver los 15 servicios completos <ArrowIcon />
           </Link>
         </div>
       </div>

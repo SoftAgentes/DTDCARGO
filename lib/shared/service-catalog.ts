@@ -182,9 +182,12 @@ export const SERVICE_CATALOG: ServiceCatalogEntry[] = [
     orden: 6,
   },
   {
+    // FUSIONADO en transito-aduana (founder 2026-07-19): sin ficha pública ni
+    // tarjeta propia — la gestión documental es un "incluye" de aduana. El id
+    // queda para la config del ERP (service_configs, charge-mode, contabilidad).
     id: "documentos-importacion",
     nombre: "Documentos de importación",
-    legacySlug: "documentos-importacion",
+    legacySlug: null, // sin ficha pública desde la fusión (ver LEGACY_SLUG_ALIASES)
     tipo: "addon",
     grupo: "transporte",
     sede: "ve",
@@ -381,10 +384,13 @@ export const SERVICE_CATALOG_BY_ID: Record<ServicioId, ServiceCatalogEntry> =
  * Documenta las fusiones; útil para redirects/anclas cuando el sitio migre (Fase 3).
  *   - `last-mile` = la entrega final → Transporte terrestre (o incluida en DDP).
  *   - `registro-marca-coord` = el mismo registro de marca, visto desde VE.
+ *   - `documentos-importacion` = fusión founder 2026-07-19: la gestión documental
+ *     va DENTRO del Tránsito de aduana (la ficha pública ya no existe).
  */
 export const LEGACY_SLUG_ALIASES: Record<string, ServicioId> = {
   "last-mile": "transporte-terrestre",
   "registro-marca-coord": "registro-marca-cn",
+  "documentos-importacion": "transito-aduana",
 };
 
 /** Solo los núcleo (transporte que mueve embarque). */

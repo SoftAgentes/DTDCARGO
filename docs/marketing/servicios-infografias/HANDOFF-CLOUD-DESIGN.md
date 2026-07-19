@@ -4,10 +4,12 @@ Instrucciones completas para Cloud Design (que rediseña la web y el portal). Fu
 [CATALOGO-MAESTRO.md](CATALOGO-MAESTRO.md) (anclado a `lib/shared/service-catalog.ts`).
 **Este brief manda sobre cualquier otra fuente** (incluido lo que se vea hoy en la web o el portal).
 
-> **Estado:** v3 · 2026-07-18 · auditado (4 lentes + síntesis) + las 4 decisiones del founder CERRADAS:
-> (1) Bodegaje = regla dentro del HOLD → **23 piezas + mapa**; (2) Seguro/Terrestre/Cursos = visibles
+> **Estado:** v3.1 · 2026-07-19 · auditado (4 lentes + síntesis) + las 5 decisiones del founder CERRADAS:
+> (1) Bodegaje = regla dentro del HOLD; (2) Seguro/Terrestre/Cursos = visibles
 > con badge "próximamente"; (3) LCL/FCL con **entrada propia** en el portal junto a la pre-alerta;
-> (4) **Shipping Mark en todas las superficies** (BD-022 enmienda BD-021). Brief definitivo.
+> (4) **Shipping Mark en todas las superficies** (BD-022 enmienda BD-021);
+> (5) **Documentos de importación FUSIONADO dentro del Tránsito de aduana** (19-jul) → el set queda en
+> **22 piezas + mapa**; sin nodo propio en el mapa general. Brief definitivo.
 
 ---
 
@@ -16,7 +18,7 @@ Instrucciones completas para Cloud Design (que rediseña la web y el portal). Fu
 | # | Entregable | Cantidad | Formatos |
 |---|---|---|---|
 | A | **Infografía GENERAL**: mapa de todos los servicios con sus dependencias | 1 | Web + PDF (+ versión presentación para el asesor) |
-| B | **Infografías individuales** (una por servicio) | **23** (20 canónicos + pre-alerta + HOLD + inspección al recibir; el Bodegaje extra NO es pieza — es la regla de cobro dentro del HOLD) | Ficha web responsive en `/servicios` + PDF vertical apto WhatsApp |
+| B | **Infografías individuales** (una por servicio) | **22** (20 canónicos + pre-alerta + HOLD + inspección al recibir, − Documentos de importación que se fusionó dentro del Tránsito de aduana; el Bodegaje extra NO es pieza — es la regla de cobro dentro del HOLD) | Ficha web responsive en `/servicios` + PDF vertical apto WhatsApp |
 | C | **Arquitectura de `/servicios`**: portada solo títulos, 4 momentos, clic → detalle | 1 | Web |
 | D | **Flujo del portal de pre-alertas** (modalidad → compra → servicios de llegada → link proveedor) | 1 flujo (3 actores) | Portal |
 
@@ -30,7 +32,7 @@ servicios** — solo microcopy de UI (labels, botones, estados), siempre en tute
 |---|---|---|---|
 | `puerta-a-puerta-ddp` | **Puerta a Puerta** ⭐ | "(todo pagado)" | "DDP" como título; "LCL" |
 | `lcl-consolidado` | **Consolidado LCL** | "hasta puerto, con tu propio BL" | presentarlo como modalidad del Puerta a Puerta |
-| `fcl-bodega` + `fcl-directo` | **FCL — Contenedor completo** (UNA tarjeta, selector de 2 modalidades) | directo: "el BL sale a nombre de DTD — tu proveedor no puede desviar el contenedor" | tratarlos como 2 servicios sueltos |
+| `fcl-bodega` + `fcl-directo` | **FCL — Contenedor completo** (UNA tarjeta, 2 ejes: selector de carga en China [bodega / directo fábrica] + selector de recepción en VE [**todo pagado — hasta tu puerta** / **hasta puerto — tú desaduanizas**]) | directo: "el BL lo emite DTD, no la fábrica — tu proveedor no puede desviar el contenedor; tú recibes como consignatario" · hasta puerto: "el flete se paga durante el tránsito (el BL se entrega al completar el pago) o adelantado" | tratarlos como 2 servicios sueltos · **"BL a nombre de DTD"** (founder 19-jul: se malinterpreta como que DTD recibe — DTD es el exportador/shipper que EMITE; el cliente recibe) · decir "aduana incluida" sin aclarar que es SOLO en la modalidad todo pagado |
 | (portal `verificacion`) | **Validación · verifica y valida al recibir** | "conteo contra tu factura" | "Verificación al recibir" (colisiona con Verificación de proveedores) |
 | (portal `inspeccion_recepcion`) | **Inspección de calidad al recibir** (en bodega) | "incluye la Validación" | confundirla con la inspección EN FÁBRICA |
 | `inspeccion-calidad` | **Inspección de calidad en fábrica** (antes del embarque) | "PSI" | confundirla con la de bodega — es la confusión #1 del cliente: tratamiento visual DISTINTO |
@@ -57,8 +59,18 @@ founder 18-jul — deroga el split de BD-021; "MARKBOX" ya no se usa como etique
   los servicios de la llegada.
 - **Cuelgan de la pre-alerta (6):** Validación · Inspección al recibir (⊃ INCLUYE la Validación) ·
   Etiquetado · HOLD · Re-Empaque · Bodegaje extra (ligado al HOLD: gratis «N» días, luego se cobra).
-- **Tronco transporte:** Puerta a Puerta incluye aduana+impuestos+entrega; en **LCL/FCL** la aduana,
-  los documentos y el terrestre son **add-ons contratables**.
+- **Tronco transporte:** Puerta a Puerta incluye aduana+impuestos+entrega. El **FCL tiene 2
+  modalidades de RECEPCIÓN** (founder 19-jul v2, matriz 2×2 con la carga en China): **todo pagado —
+  hasta tu puerta** (aduana+impuestos+entrega incluidos; pagas antes de la entrega) y **hasta puerto
+  — tú desaduanizas** (al puerto que elijas; aduana como add-on si la quieres; flete en tránsito —el
+  BL se entrega al completar el pago— o adelantado). En el **LCL** la aduana (que trae los documentos
+  de importación DENTRO — no es nodo aparte) es **add-on contratable**, igual que el terrestre.
+- ⚠️ **Regla de microcopy (founder 19-jul):** en la tarjeta del **LCL** la palabra **"incluido/a" está
+  PROHIBIDA** — DTD llega hasta el puerto / almacén fiscal, y de ahí el cliente decide. Chip correcto
+  en LCL: **«＋ si lo quieres: tránsito de aduana»**. El **Puerta a Puerta** puede decir "incluido" a
+  secas; el **FCL solo DENTRO de la modalidad todo pagado** (jamás como claim absoluto de la tarjeta).
+  En todo add-on, "incluida" solo puede referirse a lo que va dentro de ESE add-on (ej. la
+  documentación dentro del Tránsito de aduana).
 - **Independientes (Capa 3, entrada aparte):** Consolidado LCL puntual · Compra asistida · Pago
   asistido · Courier muestras · Visado · Registro de marca.
 - Jerarquía visual de 3 niveles: principales dominantes → conector (pre-alerta) → colgantes. Leyenda de

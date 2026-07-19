@@ -41,7 +41,9 @@ Estructura tomada del *patrón* de OneWay (NO su copy ni sus imágenes — es co
 - **Puerta a Puerta = servicio principal** (hasta tu puerta, nosotros nacionalizamos). **DDP** = solo
   aclaración "(todo pagado)", jamás título. **LCL Consolidado = servicio APARTE** hasta puerto, para
   empresas que legalizan a su nombre — **NUNCA una modalidad del Puerta a Puerta**. **FCL** = servicio
-  propio con 2 modalidades (en bodega / directo fábrica con BL a nombre de DTD).
+  propio con 2 modalidades (en bodega / directo fábrica). **⚠️ PROHIBIDO "BL a nombre de DTD"**
+  (founder 19-jul: se malinterpreta como que DTD recibe) — la frase correcta es **"el BL lo emite
+  DTD, no la fábrica"** (DTD = exportador/shipper; el cliente = consignatario que recibe).
 - **White-label:** los terceros que ejecutan inspecciones **jamás se nombran** en material de cara al
   cliente (ni sus tarifas). Todo va como servicio DTD.
 - **Precios en VIDEOS (founder 18-jul):** los videos **jamás mencionan montos** — solo "este servicio
@@ -70,7 +72,7 @@ independiente). Ver spec en [HANDOFF-CLOUD-DESIGN.md](HANDOFF-CLOUD-DESIGN.md).
 **Piezas B · Individuales — Los 3 principales + la orden**
 - [x] [Envío marítimo Puerta a Puerta](envio-maritimo-puerta-a-puerta.md) — *ancla* ⭐
 - [x] [Consolidado (LCL) hasta puerto](consolidado-lcl.md) — *ancla* (empresas; BL propio)
-- [x] [FCL — Contenedor completo](fcl.md) (1 pieza, 2 modalidades: en bodega / directo fábrica con BL a nombre DTD)
+- [x] [FCL — Contenedor completo](fcl.md) (1 pieza, 2 modalidades: en bodega / directo fábrica — el BL lo emite DTD, no la fábrica)
 - [x] [Pre-alerta de compra (la ORDEN — nodo conector, no un servicio)](prealerta-compra.md) — *ancla*
 - [x] [Envío aéreo](envio-aereo.md) — *próximamente (visible-deshabilitado)*
 
@@ -85,8 +87,8 @@ independiente). Ver spec en [HANDOFF-CLOUD-DESIGN.md](HANDOFF-CLOUD-DESIGN.md).
   revoca el "no se menciona" del 06-09)*
 
 **En bodega / transporte (canónicos restantes)**
-- [x] [Tránsito de aduana y desaduanaje](transito-aduana.md) (incluido en DDP; add-on en LCL/FCL)
-- [x] [Documentos de importación](documentos-importacion.md)
+- [x] [Tránsito de aduana y desaduanaje](transito-aduana.md) (incluido en DDP; add-on en LCL/FCL.
+  **Absorbe los Documentos de importación** — fusión founder 19-jul: sin pieza propia)
 - [x] [Transporte terrestre nacional](transporte-terrestre.md) — *próximamente*
 
 **Origen / calidad en China (familia Inspección — white-label, sin nombrar terceros)**
@@ -106,9 +108,13 @@ independiente). Ver spec en [HANDOFF-CLOUD-DESIGN.md](HANDOFF-CLOUD-DESIGN.md).
 - [x] [Cursos de importación](cursos-importacion.md) — *próximamente*
 
 **Videos (5 · en [videos/](videos/GUIA-PRODUCCION.md))**
-- [x] [Guía de producción](videos/GUIA-PRODUCCION.md) (formato, marca, reglas: JAMÁS montos — "puede tener un cargo extra")
+- [x] [Guía de producción](videos/GUIA-PRODUCCION.md) (formato, marca, §6b grabación de pantalla del portal, reglas: JAMÁS montos — "puede tener un cargo extra")
 - [x] [Pre-alerta](videos/brief-prealerta.md) · [Validación](videos/brief-validacion.md) ·
   [Etiquetado](videos/brief-etiquetado.md) · [HOLD](videos/brief-hold.md) · [Re-Empaque](videos/brief-reempaque.md)
+- [x] [Entrega al productor](videos/ENTREGA-PRODUCTOR.md) → **entregable: HTML interactivo offline**
+  `../assets/produccion-videos-dtd.html` (progreso por etapa + teleprompter)
+- [x] [Prompt + paquete para Cloud Design](PROMPT-CLOUD-DESIGN.md) → consolidado P1 en
+  `C:\Users\Trabajo\Downloads\DTD-brief-cloud-design-P1.md`
 
 **No aplican (no diseñar):** Compactación · Pick-up · add-ons apagados del portal (`compactar`,
 `cotizar_medir`).

@@ -60,7 +60,8 @@ describe("service-offer · modo embarque", () => {
     expect(o.sugeridos).not.toContain("revision-recepcion");
     expect(o.sugeridos).not.toContain("etiquetado-piezas");
     expect(o.sugeridos).not.toContain("reempaque-defectuosas");
-    // pero sí inspección + aduana
+    // sí inspección + aduana SUGERIDA (el wizard no conoce la modalidad de
+    // recepción del FCL — todo pagado la incluye, hasta puerto no)
     expect(o.sugeridos).toContain("inspeccion-calidad");
     expect(o.sugeridos).toContain("transito-aduana");
   });

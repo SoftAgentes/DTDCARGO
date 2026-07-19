@@ -10,7 +10,7 @@ puerto en Venezuela y la ponemos a la orden para que la nacionalices a tu nombre
 Es nuestro servicio para **empresas e importadores** que quieren legalizar la mercancía a su propio
 nombre. Llevamos tu carga por vía marítima **hasta el puerto** en Venezuela — **con tu propio BL** — y
 la entregamos a un **almacén fiscal** para que se haga el trámite de nacionalización. A diferencia del
-**Puerta a Puerta**, aquí **nuestra responsabilidad y nuestro cobro llegan hasta el puerto**.
+**Puerta a Puerta**, aquí **nuestro servicio y nuestro cobro llegan hasta el puerto**.
 
 ## ¿Cómo funciona?
 1. Lo solicitas en el portal, en **"Otros servicios"** (no va dentro de la pre-alerta de compra).
@@ -40,6 +40,11 @@ transporte final. Consulta la tarifa vigente con tu asesor.
 WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
 
 ---
-**Notas para Cloud Design:** dejar clarísimo el **límite de responsabilidad = el puerto** (vs Puerta a
+**Notas para Cloud Design:** dejar clarísimo que **el servicio llega hasta el puerto** (vs Puerta a
 Puerta = hasta tu casa). Buen recurso visual: una línea de tiempo China → puerto (nosotros) → almacén
 fiscal / aduana / puerta (cliente). Público objetivo = empresas/importadores, tono más formal.
+
+**Nota interna (no maquetar):** regla de copy dictada por el founder (06-09): la palabra
+**"responsabilidad" JAMÁS va en copy de cara al cliente** (dispara temas de seguros) — el marco
+correcto es "hasta dónde llega el servicio". Corregido en el Gate 2 de la Tanda 1 (19-jul): el ¿Qué
+es? decía "nuestra responsabilidad y nuestro cobro"; quedó "nuestro servicio y nuestro cobro".

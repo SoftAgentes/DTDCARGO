@@ -120,7 +120,7 @@ Cada bloque = un artículo. `Nombre` / `Descripción` / `Enlace` van tal cual.
 
 **④ FCL Directo Fábrica (cargado en origen)**
 - **Precio:** Consultar
-- **Descripción:** Tu contenedor completo se carga directo en la fábrica de tu proveedor, sin pasar por bodega. Reservamos contenedor y buque; el BL sale a nombre de nuestra empresa china como shipper (contigo como consignatario) → **el proveedor no puede desviar ni cambiar el destino**. ⏱️ 40–55 días.
+- **Descripción:** Tu contenedor completo se carga directo en la fábrica de tu proveedor, sin pasar por bodega. Reservamos contenedor y buque; **el BL lo emite nuestra empresa china (exportador/shipper), contigo como consignatario** → la fábrica no controla el BL: **el proveedor no puede desviar ni cambiar el destino**. ⏱️ 40–55 días.
 - **Enlace:** `www.dtdcargo.com/servicios`
 
 **⑤ Tránsito de aduana y desaduanaje** *(adicional)*

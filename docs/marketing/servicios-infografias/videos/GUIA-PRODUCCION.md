@@ -96,6 +96,26 @@ Nuestra versión de ese cierre (hablado **y** en pantalla, en los 5 videos):
 - **CTA final estándar (los 5 videos):** portal **dtdcargo.com** + WhatsApp **+58 412 166 8021**
   + "@doortudoor_" · rótulo + hablado.
 
+## 6b. Grabación de pantalla del portal (OBLIGATORIA en los 5 videos — founder 18-jul)
+
+Cada video incluye **tomas de pantalla del portal del cliente en movimiento** (screen recording), para
+que el espectador vea **exactamente dónde oprimir** para solicitar el servicio mientras Fiorella narra.
+
+- **Cuenta DEMO siempre** — jamás datos reales de clientes. Pantalla limpia (sin notificaciones,
+  sin pestañas ajenas, zoom cómodo para móvil vertical).
+- **Qué grabar por video** (el flujo de clics del cliente):
+  | Video | Flujo de pantalla a grabar |
+  |---|---|
+  | Pre-alerta | Portal → **Mis compras** → botón **Nueva compra** → llenar (proveedor, descripción, cajas) → confirmar → pantalla de **etiquetas** → botón **Compartir con mi proveedor** (el link) |
+  | Validación | Compra → sección **Servicios** → tarjeta **Validación** → clic solicitar → confirmación |
+  | Etiquetado | Compra → **Servicios** → tarjeta **Etiquetado de piezas** → elegir opción → solicitar |
+  | HOLD | Compra → **Servicios** → tarjeta **HOLD** → indicar qué espera → solicitar |
+  | Re-Empaque | Compra → **Servicios** → tarjeta **Re-Empaque** → lista de trackings → solicitar |
+- **Montaje:** la grabación de pantalla entra como **inserto** mientras Fiorella narra ese paso
+  (pantalla completa o recuadro grande; el cursor/dedo visible y pausado en cada clic ~1 s).
+- **Si el rediseño del portal (Cloud Design) llega antes de grabar → grabar sobre el portal NUEVO;**
+  si no, se graba el actual y se regraba el inserto cuando salga el rediseño (el guion no cambia).
+
 ## 7. Reglas de contenido que NO se rompen
 
 - **NUNCA mencionar precios, montos ni tarifas** (regla founder 18-jul). El cierre de costo siempre es:

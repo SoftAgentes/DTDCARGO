@@ -86,7 +86,7 @@ describe("service-catalog · mapeo a ShipmentService (núcleo)", () => {
   });
 });
 
-describe("service-catalog · reconciliación con lib/servicios-detalle (los 19)", () => {
+describe("service-catalog · reconciliación con lib/servicios-detalle (los 18)", () => {
   const legacySlugs = SERVICE_CATALOG.map((s) => s.legacySlug).filter(
     (x): x is string => x !== null,
   );
@@ -101,10 +101,10 @@ describe("service-catalog · reconciliación con lib/servicios-detalle (los 19)"
     }
   });
 
-  it("los 19 slugs de servicios-detalle quedan todos reconciliados en el catálogo", () => {
+  it("los 18 slugs de servicios-detalle quedan todos reconciliados en el catálogo", () => {
     const detalleSlugs = Object.keys(SERVICIOS_DETALLE_BY_SLUG);
     const catalogSet = new Set(legacySlugs);
-    expect(detalleSlugs).toHaveLength(19);
+    expect(detalleSlugs).toHaveLength(18);
     for (const slug of detalleSlugs) {
       expect(catalogSet.has(slug)).toBe(true);
     }
@@ -112,6 +112,10 @@ describe("service-catalog · reconciliación con lib/servicios-detalle (los 19)"
 
   it("cursos-importacion es nuevo (sin legacySlug)", () => {
     expect(SERVICE_CATALOG_BY_ID["cursos-importacion"].legacySlug).toBeNull();
+  });
+
+  it("documentos-importacion quedó sin ficha (fusionado dentro de aduana)", () => {
+    expect(SERVICE_CATALOG_BY_ID["documentos-importacion"].legacySlug).toBeNull();
   });
 });
 

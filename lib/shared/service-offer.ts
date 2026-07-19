@@ -64,7 +64,10 @@ export const CHARGE_MODE_OPTIONS: { value: ChargeMode; label: string }[] =
   CHARGE_MODES.map((m) => ({ value: m, label: CHARGE_MODE_LABEL[m] }));
 
 // ── Grupos de add-ons (reflejan la taxonomía dictada) ────────────────
-const ADUANA: ServicioId[] = ["transito-aduana", "documentos-importacion"];
+// documentos-importacion NO va acá (fusión founder 2026-07-19): la gestión
+// documental viaja DENTRO de transito-aduana y nunca se ofrece como chip
+// propio. El id sigue en el catálogo/charge-mode para la config del ERP.
+const ADUANA: ServicioId[] = ["transito-aduana"];
 const BODEGA: ServicioId[] = [
   "revision-recepcion",
   "etiquetado-piezas",
@@ -103,10 +106,14 @@ const MODO_SUELTO: ServicioId[] = [
 type MatrixEntry = { includes: ServicioId[]; suggests: ServicioId[] };
 
 /**
- * Matriz de cruce DEFAULT por núcleo. Reglas dictadas (entrevista-servicios.md):
+ * Matriz de cruce DEFAULT por núcleo. Reglas dictadas (entrevista-servicios.md
+ * + founder 2026-07-19 v2, matriz FCL 2×2):
  *   · origen + inspección aplican a TODO núcleo,
  *   · bodega NO aplica a FCL Fábrica (no pasa por la bodega de DTD),
- *   · aduana se ofrece solo donde NO va incluida (todos menos DDP).
+ *   · aduana va INCLUIDA en DDP y en el FCL "todo pagado"; en LCL y en el FCL
+ *     "hasta puerto" es add-on. El wizard no conoce la modalidad de recepción
+ *     del FCL → la SUGIERE (marcarla incluida prometería de más en el hasta
+ *     puerto; la ficha explica las 2 modalidades).
  * Solo los núcleo arman oferta; los add-on no tienen entrada (getMatrix → vacío).
  */
 export const DEFAULT_OFFER_MATRIX: Partial<Record<ServicioId, MatrixEntry>> = {

@@ -77,15 +77,18 @@ describe("buildSyncPlan (datos reales — guard de drift)", () => {
   it("arma una fila por cada entrada del catálogo con legacySlug y ficha", () => {
     const conLegacy = SERVICE_CATALOG.filter((c) => c.legacySlug).length;
     expect(plan.rows.length).toBe(conLegacy);
-    expect(plan.rows.length).toBe(19);
+    expect(plan.rows.length).toBe(18);
   });
 
   it("no hay legacySlug huérfano (todo legacySlug resuelve a una ficha)", () => {
     expect(plan.missingFicha).toEqual([]);
   });
 
-  it("salta exactamente las entradas sin ficha estática (cursos-importacion)", () => {
-    expect(plan.skippedNoLegacy).toEqual(["cursos-importacion"]);
+  it("salta exactamente las entradas sin ficha estática (documentos fusionado + cursos)", () => {
+    expect(plan.skippedNoLegacy).toEqual([
+      "documentos-importacion",
+      "cursos-importacion",
+    ]);
   });
 
   it("la clave de la fila es el id del catálogo, no el slug del estático", () => {

@@ -10,9 +10,9 @@ describe("agruparPorViaje — con el catálogo estático", () => {
     expect(ddp?.slug).toBe("dtd-services-lcl");
   });
 
-  it("cubre las 18 fichas restantes sin duplicar ni perder ninguna", () => {
+  it("cubre las 17 fichas restantes sin duplicar ni perder ninguna", () => {
     const slugs = fases.flatMap((f) => f.servicios.map((s) => s.slug));
-    expect(slugs).toHaveLength(SERVICIOS_DETALLE.length - 1); // 19 - DDP
+    expect(slugs).toHaveLength(SERVICIOS_DETALLE.length - 1); // 18 - DDP
     expect(new Set(slugs).size).toBe(slugs.length); // sin duplicados
     // DDP no aparece dentro de ninguna fase
     expect(slugs).not.toContain("dtd-services-lcl");
@@ -41,7 +41,6 @@ describe("agruparPorViaje — con el catálogo estático", () => {
       "reserva-contenedores",
       "transporte-terrestre",
       "transito-aduana",
-      "documentos-importacion",
     ]);
     expect(porFase.transversal).toEqual([
       "muestras-courier",
