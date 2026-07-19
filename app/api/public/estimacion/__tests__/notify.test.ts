@@ -1,11 +1,12 @@
 /**
  * Tests del aviso al equipo de POST /api/public/estimacion.
  *
- * El aviso (notifyEstimadoLeadToAdmin) cierra la fuga del lead huérfano: el
- * estimado quedaba en `quotes` sin que nadie se enterara. Reglas cubiertas:
- *   - insert OK → se avisa UNA vez con el código EST- y los datos del prospecto.
+ * El aviso (notifyEstimadoLeadToAdmin) cierra la fuga del lead: el visitante no
+ * registrado ya no genera un EST- en el ERP, así que sin aviso el lead se pierde.
+ * Reglas cubiertas:
+ *   - cotización válida → se avisa UNA vez con los datos del prospecto (sin EST-).
  *   - el aviso es best-effort: si lanza o devuelve !ok, la respuesta al
- *     visitante sigue siendo 200 (el estimado ya está persistido).
+ *     visitante sigue siendo 200 (el WhatsApp ya se abrió igual).
  *   - throttle (429) o input inválido (400) → NO se avisa.
  *
  * Mismo fake de admin client que throttle.test.ts (sin red ni DB real).
@@ -107,7 +108,7 @@ beforeEach(() => {
 });
 
 describe("POST /api/public/estimacion · aviso al equipo", () => {
-  it("insert OK → avisa una vez con el código y los datos del prospecto", async () => {
+  it("cotización válida → avisa una vez con los datos del prospecto (sin EST-)", async () => {
     const res = await POST(makeReq());
     expect(res.status).toBe(200);
     expect((await res.json()).ok).toBe(true);
@@ -119,7 +120,7 @@ describe("POST /api/public/estimacion · aviso al equipo", () => {
       Record<string, unknown>,
     ];
     expect(tenantId).toBe("tenant-1");
-    expect(payload.estimateCode).toBe("EST-2026-0042");
+    expect(payload.estimateCode).toBeUndefined();
     expect(payload.prospectName).toBe("Carlos Pérez");
     expect(payload.prospectWhatsapp).toBe("+58 412 1234567");
     expect(payload.totalUsd).toBe(800);
@@ -151,13 +152,6 @@ describe("POST /api/public/estimacion · aviso al equipo", () => {
   it("input inválido 400 → NO se avisa", async () => {
     const res = await POST(makeReq({ totalUsd: 0 }));
     expect(res.status).toBe(400);
-    expect(notifyMock).not.toHaveBeenCalled();
-  });
-
-  it("insert falla 500 → NO se avisa (no hay estimado que atender)", async () => {
-    ops.quotesInsertError = { message: "boom" };
-    const res = await POST(makeReq());
-    expect(res.status).toBe(500);
     expect(notifyMock).not.toHaveBeenCalled();
   });
 });

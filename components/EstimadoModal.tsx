@@ -9,11 +9,11 @@ import { trackLead } from "./Analytics";
  *
  * Aparece al oprimir el botón primario de estimar/WhatsApp en cualquier
  * calculadora pública. Pide NOTA (opcional) + NOMBRE + TELÉFONO. Al confirmar:
- *   1. POST /api/public/estimacion  (crea el estimado en el ERP con EST-XXXX)
- *   2. abre wa.me con el mensaje (datos + nota + EST) — el padre lo arma.
+ *   1. POST /api/public/estimacion  (avisa al equipo del lead — ya NO crea EST-)
+ *   2. abre wa.me con el mensaje (datos + nota) — el padre lo arma.
  *
- * Si el POST falla (red/infra), igual abrimos WhatsApp para no perder al cliente
- * (fallback): el onConfirm recibe el código real o `null`.
+ * El POST es best-effort (solo dispara el aviso): abrimos WhatsApp igual si falla.
+ * onConfirm recibe (contact, null) — ya no hay código del ERP para el visitante.
  *
  * Sobrio: solo tokens de marca + fuentes del sitio (Archivo). Cero AI slop.
  * Boundary-safe: vive en components/, no toca Supabase (el fetch va al endpoint).
@@ -250,8 +250,8 @@ export function EstimadoModal({
             {submitting ? "Enviando…" : "Enviar por WhatsApp"}
           </button>
           <p className="text-[11.5px] text-grey-500 text-center leading-[1.45]">
-            Guardamos tu estimado y abrimos WhatsApp con tus datos. Un asesor te
-            responde. No compartimos tus datos con terceros.
+            Abrimos WhatsApp con tu estimado y tus datos. Un asesor te responde.
+            No compartimos tus datos con terceros.
           </p>
         </div>
       </div>
