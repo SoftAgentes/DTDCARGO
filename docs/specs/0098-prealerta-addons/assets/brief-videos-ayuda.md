@@ -1,11 +1,17 @@
-# Brief de producción — Videos de ayuda "Servicios sobre tu compra"
+# Brief de producción — Tutoriales "Servicios sobre tu compra"
 ### Portal del cliente · DTD Cargo
 
 > **Para:** equipo de edición · **De:** DTD Cargo
-> **Qué es:** 7 videos verticales cortos que aparecen dentro del portal del cliente cuando el cliente
-> pide un **servicio sobre su compra** (verificar, reempacar, cotizar, etc.). Objetivo: que entienda en
-> **menos de 1 minuto** qué es cada servicio y cómo activarlo, con **personal propio de DTD a cámara**
-> (genera cercanía y confianza).
+> **Qué es:** 5 tutoriales verticales cortos que aparecen dentro del portal del cliente cuando el cliente
+> pide un **servicio sobre su compra** (verificar, inspeccionar, reempacar, etiquetar, retener). Objetivo:
+> que entienda en **menos de 1 minuto** qué es cada servicio y cómo activarlo.
+>
+> **Formato — decisión founder (2026-07-19): 100% SIN CARA.** Son **tutoriales gráficos**: animación/
+> ilustración branded + **grabación real del portal** + **voz en off (locución IA) en tuteo venezolano** +
+> subtítulos. Cero presentador a cámara — así, si la cara/el personal de la empresa cambia, no hay que
+> rehacer ningún video. Tomamos el **formato** de los tutoriales tipo Binance Academy (gráfico, narrado,
+> texto en pantalla), **NO su estética amarilla**: el sistema visual es DTD (vino + navy sobre paper,
+> Archivo, cero AI slop).
 
 ---
 
@@ -17,9 +23,9 @@
 | **Duración** | **30–45 s** (máximo 60 s) |
 | **Plataforma** | Cada uno se sube como **YouTube Short público** → nos pasan el **link/ID** |
 | **Audio** | Voz clara + **subtítulos quemados** (muchos clientes ven sin sonido) |
-| **Voz / tono** | Español **venezolano neutro, TUTEO ("tú")**, cálido y directo. **CERO voseo** (nada de "activá / pedí / mirá") |
+| **Voz / tono** | **Voz en off** (locución IA), español **venezolano neutro, TUTEO ("tú")**, cálido y directo. **CERO voseo** (nada de "activá / pedí / mirá"). Sin presentador a cámara. |
 | **Branding** | Logo DTD (isologo) en esquina · intro y outro de ~2 s con el isologo · paleta **vino `#7F0F1A`** + **navy `#0F1E3D`** sobre fondo claro **`#FBFAF7`** · tipografía display del Brand Book vigente |
-| **Persona** | Alguien del equipo DTD hablando a cámara (no stock, no voz en off genérica) |
+| **Formato visual** | **100% SIN CARA.** Animación/ilustración branded (estilo tutorial, no estética Binance) + **grabación real del portal** para el "cómo se pide" + texto en pantalla. Cero stock genérico, cero AI slop. |
 
 ### Reglas que NO se rompen
 - ✅ **En TODOS los videos** debe aparecer (hablado **y** texto en pantalla al cierre):
@@ -46,7 +52,7 @@
 
 ---
 
-## 3. Los 7 videos (uno por servicio)
+## 3. Los 5 tutoriales (uno por servicio)
 
 > El **código** es solo para nombrar el archivo (lo mapeamos al portal). El **título** es el del Short.
 
@@ -73,30 +79,14 @@
 - **▸ Transcripción de referencia** *(apoyo, NO copiar):*
   > Tienes varios paquetes por llegar a nuestro almacén y deseas unificarlos. Solo necesitarás la opción de reempaque. Accede al módulo de alertas. Haz clic en el botón verde para crear una nueva prealerta. Selecciona la opción de reempaque y desde allí podrás desplegar una lista para añadir todos los números de trackings que estarás recibiendo en nuestro almacén. Haz uso de las notas en caso de ser necesario y listo. Una vez tus paquetes hayan sido recibidos, tu prealerta será atendida y tu nuevo pedido reempacado será asignado a la modalidad de envío anunciada en la etiqueta de tus paquetes. Recuerda que para que este requerimiento sea válido, debe ser creado antes de que el primer paquete ingrese a nuestro almacén.
 
-### 4) `compactar` — Compactar (reducir volumen)
-- **Título:** *"Saca el aire, paga menos flete"*
-- **Gancho:** "¿Tu caja viene con mucho espacio vacío? Estás pagando por aire."
-- **Mensaje:** Reducimos el **exceso de volumen** de tu caja para que viaje **más liviana y ahorres en flete**. Nuestro equipo evalúa si aplica.
-- **Mostrar:** caja grande con relleno → re-empaque compacto · idea de "menos volumen = menos costo".
-- **▸ Transcripción de referencia** *(apoyo, NO copiar):*
-  > Con la prealerta de compactación eliminamos el excedente volumétrico de tu mercancía para que viaje ligera y tú puedas ahorrar dinero. Ingresa al módulo de alertas. Selecciona el botón verde para crear una nueva prealerta. Ingresa el número de tracking de tu pedido y haz uso de las notas en caso de ser necesario. Cierra tu prealerta y listo. Nuestros agentes evaluarán tu mercancía y determinarán si aplica para compactación o no. De ser válido tu requerimiento, tu paquete se asignará a la modalidad de envío referida en su etiqueta o en la nota de la prealerta. Recuerda que para que este requerimiento sea válido, debes crearlo antes de que la mercancía llegue a nuestro almacén.
-
-### 5) `etiquetado_pieza` — Etiquetado por pieza
+### 4) `etiquetado_pieza` — Etiquetado por pieza
 - **Título:** *"Etiquetamos tus piezas como las necesitas"*
 - **Gancho:** "¿Necesitas que marquemos o etiquetemos tus piezas?"
 - **Mensaje:** Marcamos o **etiquetamos cada pieza** según tu requerimiento antes de embarcar.
 - **Mostrar:** colocar etiquetas/marcas a productos individuales.
 - **▸ Transcripción de referencia:** *no hay — es un servicio **propio de DTD** que el courier de referencia no ofrece. Guion 100% nuevo.*
 
-### 6) `cotizar_medir` — Cotizar / medir
-- **Título:** *"¿Cuánto cuesta enviarlo? Te lo medimos"*
-- **Gancho:** "¿No sabes cuánto pesa o mide tu paquete?"
-- **Mensaje:** Medimos tu paquete (**CBM**) y te decimos cuánto cuesta enviarlo **por aéreo y por marítimo**, para que elijas la mejor opción desde el portal.
-- **Mostrar:** medir/pesar paquete · en el portal, ver costo aéreo vs marítimo y elegir con un botón.
-- **▸ Transcripción de referencia** *(apoyo, NO copiar):*
-  > Desconoces las dimensiones de tu paquete y quieres saber cuánto cuesta enviarlo en ambas modalidades antes de tomar una decisión. Puedes activar una alerta de cotización. Para hacerlo, ingresa a tu casillero, accede a la categoría de alertas, crea una nueva prealerta con el botón verde. Ingresa el número de tracking de tu pedido y haz uso de las notas en caso de ser necesaria. Cuando tu prealerta se marque como atendida, verás en el detalle las dimensiones asociadas a tu paquete, así como su costo aéreo y marítimo, para que puedas elegir por medio de un botón cuál es la modalidad de envío de tu preferencia. De forma automática, tu pedido se asignará a la salida más cercana y tu gestión continuará sin problema.
-
-### 7) `hold_consolidar` — Hold (retener para consolidar) · *multi-tracking*
+### 5) `hold_consolidar` — Hold (retener para consolidar) · *multi-tracking*
 - **Título:** *"Guárdamela para enviar todo junto"*
 - **Gancho:** "¿Esperas más mercancía? No la mandes sola."
 - **Mensaje:** **Retenemos tu carga** en bodega para juntarla con tu próxima compra y **consolidar el envío**. La pides cuando sabes que viene más.
@@ -114,9 +104,10 @@
 
 ## 5. Checklist antes de entregar cada video
 - [ ] Vertical 9:16, menos de 60 s
+- [ ] **100% sin cara** (tutorial gráfico + grabación real del portal · voz en off)
 - [ ] Subtítulos quemados
 - [ ] Logo + intro/outro DTD
-- [ ] Voz en tuteo venezolano, sin voseo
+- [ ] Voz en off en tuteo venezolano, sin voseo
 - [ ] Aparece la regla **"antes de que llegue a la bodega"**
 - [ ] **No** menciona montos/precios
 - [ ] Muestra los **pasos en el portal**
@@ -124,14 +115,6 @@
 
 ---
 
-## Anexo — Referencia adicional (modalidad aérea / marítima)
-
-> El courier de referencia tiene dos videos extra para **declarar la modalidad** (aéreo / marítimo).
-> En DTD eso lo cubre el servicio **Cotizar / medir** (#6), así que **no van como video aparte** — se
-> dejan acá solo como apoyo de mensaje.
-
-**Aérea** *(referencia, NO copiar):*
-> La prealerta aérea sirve para identificar, ratificar y modificar la modalidad de tu envío. En caso de que tu proveedor no identifique la carga como la describiste o tú lo hayas olvidado, esta alerta te permite anunciar que tu pedido debe viajar por vía aérea. Si pediste envío marítimo y deseas cambiar de modalidad, también es la alerta que necesitas. Ingresa a tu casillero → alertas → botón verde para crear → añade el tracking → notas si hace falta → cierra. Debe crearse antes de que la mercancía llegue al almacén.
-
-**Marítima** *(referencia, NO copiar):*
-> Para crear una alerta marítima, ingresa al módulo de alertas → botón verde → selecciona "marítimo" → ingresa tu tracking → notas si hace falta → cierra. Debe crearse antes de que tu mercancía llegue al almacén.
+> **Nota:** Compactar y Cotizar / medir salieron del menú de servicios de recepción (19-jul), así que
+> **no llevan tutorial**. La referencia de modalidad aérea/marítima (que cubría Cotizar) queda fuera del
+> alcance de estos tutoriales.

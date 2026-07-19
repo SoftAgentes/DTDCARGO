@@ -1,5 +1,9 @@
 # Brief de video — Etiquetado de piezas · listo para vender
 
+> ⚠️ **FORMATO (founder 19-jul): 100% SIN CARA.** Tutorial Short, nadie a cámara. Donde este brief diga
+> "presentador a cámara", se resuelve con **voz en off + animación/gráfico + rótulo** (nunca una persona);
+> la grabación de pantalla y el b-roll siguen igual. Caras = solo redes sociales. Ver [GUIA-PRODUCCION.md](GUIA-PRODUCCION.md) §5.
+
 > Código técnico: `etiquetado_pieza` · Archivo: `dtd-video-etiquetado_pieza.mp4`
 > Ficha fuente del mensaje: [`../etiquetado-piezas.md`](../etiquetado-piezas.md) — si el guion
 > contradice la ficha, gana la ficha. Guía general: [GUIA-PRODUCCION.md](GUIA-PRODUCCION.md).

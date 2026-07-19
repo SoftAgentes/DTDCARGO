@@ -59,8 +59,8 @@ WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
 dos columnas) con una franja común que abarque ambas: "verificación del proveedor incluida". La
 comisión escalonada puede ilustrarse como **escalera descendente SIN cifras** (a más monto, menos %).
 Cerrar con la conexión al tronco de envío: este servicio va ANTES de la carga.
-**Nota interna (no maquetar):** tiempos (mínimo 1 semana / hasta 15 días) = dato del dictado
-2026-06-09 — confirmar vigencia.
+**Nota interna (no maquetar):** tiempos (mínimo 1 semana / hasta 15 días) **CONFIRMADOS vigentes por
+el founder 19-jul.**
 **Nota interna (no maquetar):** ✅ RATIFICADO founder 18-jul: la tabla de comisión **NO se publica** —
 la pieza dice "pide la tabla a tu asesor" (escalera visual SIN cifras). La tabla dictada 06-09
 (A: 10%→3% regresiva · B = mitad de A · mínimo $50/orden) queda interna; cuando el módulo futuro de

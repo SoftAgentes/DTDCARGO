@@ -1,7 +1,10 @@
 # Entrega al productor de video — serie de 5 servicios DTD
 
-> **Para:** quien produce/edita los videos + **Fiorella** (cara a cámara).
-> **De:** DTD Cargo · 2026-07-18.
+> **Para:** quien produce/edita los videos.
+> **De:** DTD Cargo · act. 2026-07-19.
+> **⚠️ FORMATO (founder 19-jul): 100% SIN CARA.** Son tutoriales, no comerciales — nadie aparece a
+> cámara. Todo es **voz en off + animación/gráfico branded + grabación de pantalla** del portal, en
+> YouTube Shorts. Las **caras van solo en redes sociales** (captación/dolores), no en estos tutoriales.
 > **📦 Versión para ENTREGAR: el HTML interactivo offline** —
 > `docs/marketing/assets/produccion-videos-dtd.html` (doble clic, sin internet: trae este speech,
 > la guía completa, los 5 guiones con teleprompter y el **seguimiento de progreso por etapa**).
@@ -13,11 +16,12 @@
 
 ## Qué vamos a hacer
 
-**5 videos cortos (YouTube Shorts, vertical 9:16, 30–60 segundos)**, uno por servicio, que se verán
-en el portal del cliente y en redes. Fiorella habla a cámara, **se graba en Venezuela** (Valencia);
-las tomas de la bodega en China se cubren con material de archivo del equipo de Yiwu.
+**5 videos cortos (YouTube Shorts, vertical 9:16, 30–60 segundos)**, uno por servicio, que se ven
+dentro del portal del cliente. **Sin cara:** la narración es **voz en off** sobre **animación/gráfico
+branded + grabación de pantalla** del portal; el b-roll de operación (cajas, manos, bodega de Yiwu) va
+como apoyo, sin rostros protagonistas.
 
-**Cada video lleva además GRABACIÓN DE PANTALLA del portal del cliente**: mientras Fiorella narra,
+**Cada video lleva además GRABACIÓN DE PANTALLA del portal del cliente**: mientras la voz en off narra,
 se inserta la pantalla mostrando **dónde oprime el cliente** para solicitar ese servicio (con cuenta
 demo). El flujo exacto de clics por video está en la **§6b de la [guía](GUIA-PRODUCCION.md)** — es
 obligatorio en los 5.
@@ -48,8 +52,9 @@ veas el formato**: duración, ritmo, cómo enganchan en los primeros 3 segundos,
 
 1. **Lee [GUIA-PRODUCCION.md](GUIA-PRODUCCION.md) completa** — ahí está el formato, la marca y el
    checklist de entrega. Este doc es el resumen; la guía es el contrato.
-2. **Graba los 5 en una sola jornada** si se puede: misma luz, mismo set, cambia algún detalle de
-   vestuario entre videos para que no parezcan el mismo día.
+2. **Sin cara — nadie a cámara.** Cada video se arma con voz en off + gráfico/animación + grabación de
+   pantalla. Donde un brief diga "presentador a cámara", resuélvelo con un rótulo/animación y la voz en
+   off (nunca una persona). Ventaja: si cambia el personal, no hay que rehacer nada.
 3. **Los primeros 3 segundos son todo**: el gancho de cada guion va tal cual, sin intro larga ni
    "hola, bienvenidos".
 4. **Precios: JAMÁS.** Ningún monto, ninguna tarifa. La línea es: *"este servicio puede tener un

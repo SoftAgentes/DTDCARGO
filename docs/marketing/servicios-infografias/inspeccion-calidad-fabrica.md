@@ -36,7 +36,7 @@ decidir con información clara antes de pagar el saldo o autorizar el embarque.
   ya llegó. Esta se hace **en la fábrica del proveedor, antes de embarcar**.
 - ¿Tu producción apenas comienza? Mira **Auditoría y control de calidad** (revisión durante la
   producción).
-- Tiempos de agenda y entrega del reporte: «…» *(pendiente founder — no dictado)*.
+- **Recibes tu reporte DTD en unos 7 días hábiles** desde la inspección.
 
 ## Precio
 Consulta la tarifa vigente con tu asesor; te comparte también un **ejemplo del reporte**.

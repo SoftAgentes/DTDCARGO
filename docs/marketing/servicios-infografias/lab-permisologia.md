@@ -28,8 +28,10 @@ los resultados.
 - Cada mercado exige cosas distintas: el alcance exacto se define **según tu producto y su destino**.
 - Pídelo **con anticipación**: los ensayos toman su tiempo y conviene tener los resultados antes de
   embarcar.
-- Quién asume el costo del laboratorio y en qué casos: «…» *(pendiente founder — no dictado)*.
-- Tiempos de los ensayos: «…» *(pendiente founder — dependen del tipo de prueba)*.
+- **Coordinamos y te entregamos el reporte en unos 7 días hábiles**; la duración del ensayo en sí
+  depende del tipo de prueba.
+- **El costo del laboratorio se cotiza según el ensayo** que tu producto necesite (lo ves en la
+  cotización con tu asesor).
 
 ## Precio
 Consulta la tarifa vigente con tu asesor; depende del ensayo o permiso que tu producto necesite.

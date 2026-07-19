@@ -10,6 +10,16 @@
 > **desarrollan y reemplazan** los mini-briefs #1 (`verificacion`), #5 (`etiquetado_pieza`),
 > #7 (`hold_consolidar`) y #3 (`reempaque_unificar`) de aquel documento; el resto sigue vigente.
 
+> ### ⚠️ FORMATO ACTUALIZADO — decisión founder 2026-07-19: **100% SIN CARA**
+> Estos son **tutoriales**, no comerciales: **nadie aparece a cámara**. Se resuelven con **voz en off**
+> (locución IA o locutor DTD que no se muestra) + **animación/gráfico branded** + **grabación de pantalla**
+> del portal, en formato **YouTube Short**. **Donde cualquier brief diga "presentador a cámara", se lee
+> como voz en off + gráfico/rótulo** — nunca una persona. El b-roll de operación (cajas, manos, bodega)
+> sigue válido como apoyo, sin rostros protagonistas.
+> **Split de canal (regla founder):** las **caras van SOLO en redes sociales** (explicar los dolores del
+> cliente, captación). **Dentro de la plataforma** (cliente ya adentro) → **FAQ + Shorts tutoriales sin
+> cara**. Este cambio deja sin efecto la premisa "Fiorella a cámara" del 18-jul.
+
 ---
 
 ## 1. Regla de oro (antes que todo)
@@ -66,16 +76,17 @@ Nuestra versión de ese cierre (hablado **y** en pantalla, en los 5 videos):
   canónico de `HANDOFF-CLOUD-DESIGN.md` §1 (esa tabla manda — no inventar sinónimos).
 - Identificador del cliente = **"Shipping Mark"**, jamás "MARKBOX", si llegara a verse en pantalla.
 
-## 5. El presentador (quién habla y cómo)
+## 5. La voz y el formato (SIN CARA)
 
-- **Cara a cámara: Fiorella** (equipo DTD — decisión founder 18-jul). **Se graba en Venezuela**
-  (Valencia); el b-roll de la bodega de Yiwu se cubre con material de archivo del equipo en China.
-- **Persona real del equipo DTD a cámara** — no stock, no voz en off genérica, no avatar IA.
-  Genera cercanía y confianza; es la diferencia con el material frío de la competencia.
+- **Nadie aparece a cámara.** La narración es **voz en off**: locución IA (preferida — se re-edita si
+  cambia el copy) o un locutor DTD que **no se muestra**. Cero rostro protagonista, cero avatar IA con cara.
 - **Español venezolano neutro, TUTEO** ("tú tienes / puedes / quieres"). **CERO voseo** (nada de
   "activá / pedí / mirá") y cero anglicismos innecesarios.
 - Tono: cálido, directo, de asesor que te resuelve — no de locutor de comercial. Frases cortas.
-- Vestuario sobrio, sin marcas de terceros visibles. Si hay uniforme/franela DTD, mejor.
+- **Cómo se llena la pantalla sin cara:** animación/ilustración branded (estilo tutorial, no estética de
+  la competencia) + **grabación de pantalla** del portal (§6b) + rótulos con el mensaje clave + b-roll de
+  operación (cajas, manos, etiquetas) **sin rostros protagonistas**.
+- Ventaja del sin-cara: si cambia el personal de la empresa, **no hay que rehacer ningún video**.
 
 ## 6. Reglas de edición
 
@@ -99,7 +110,7 @@ Nuestra versión de ese cierre (hablado **y** en pantalla, en los 5 videos):
 ## 6b. Grabación de pantalla del portal (OBLIGATORIA en los 5 videos — founder 18-jul)
 
 Cada video incluye **tomas de pantalla del portal del cliente en movimiento** (screen recording), para
-que el espectador vea **exactamente dónde oprimir** para solicitar el servicio mientras Fiorella narra.
+que el espectador vea **exactamente dónde oprimir** para solicitar el servicio mientras la voz en off narra.
 
 - **Cuenta DEMO siempre** — jamás datos reales de clientes. Pantalla limpia (sin notificaciones,
   sin pestañas ajenas, zoom cómodo para móvil vertical).
@@ -111,7 +122,7 @@ que el espectador vea **exactamente dónde oprimir** para solicitar el servicio 
   | Etiquetado | Compra → **Servicios** → tarjeta **Etiquetado de piezas** → elegir opción → solicitar |
   | HOLD | Compra → **Servicios** → tarjeta **HOLD** → indicar qué espera → solicitar |
   | Re-Empaque | Compra → **Servicios** → tarjeta **Re-Empaque** → lista de trackings → solicitar |
-- **Montaje:** la grabación de pantalla entra como **inserto** mientras Fiorella narra ese paso
+- **Montaje:** la grabación de pantalla entra como **inserto** mientras la voz en off narra ese paso
   (pantalla completa o recuadro grande; el cursor/dedo visible y pausado en cada clic ~1 s).
 - **Si el rediseño del portal (Cloud Design) llega antes de grabar → grabar sobre el portal NUEVO;**
   si no, se graba el actual y se regraba el inserto cuando salga el rediseño (el guion no cambia).
@@ -133,9 +144,10 @@ que el espectador vea **exactamente dónde oprimir** para solicitar el servicio 
 ## 8. Checklist de entrega (por video)
 
 - [ ] Vertical 9:16 · menos de 60 s
+- [ ] **100% sin cara** (voz en off + gráfico + grabación de pantalla · nadie a cámara)
 - [ ] Subtítulos quemados legibles en teléfono
 - [ ] Intro/outro con isologo + logo en esquina
-- [ ] Voz en tuteo venezolano, sin voseo
+- [ ] Voz en OFF en tuteo venezolano, sin voseo
 - [ ] Rótulo con el nombre canónico del servicio en los primeros 5 s
 - [ ] Aparece la regla "antes de que llegue a la bodega" (hablado + texto)
 - [ ] NO menciona montos/precios ni plazos sin confirmar

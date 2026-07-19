@@ -33,7 +33,7 @@ Dos servicios complementarios sobre el fabricante, bajo estándares internaciona
 - Es distinta de la **Verificación de proveedores** (¿la empresa existe y es legal?) y de la
   **Inspección de calidad en fábrica** (pedido ya terminado, pre-embarque). Las tres se pueden
   combinar según tu caso.
-- Tiempos de agenda y entrega de reportes: «…» *(pendiente founder — no dictado)*.
+- **Recibes tu reporte DTD en unos 7 días hábiles** por cada intervención.
 
 ## Precio
 Consulta la tarifa vigente con tu asesor; depende del alcance (online o presencial, y cuántas
