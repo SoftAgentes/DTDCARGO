@@ -62,6 +62,12 @@ founder 18-jul — deroga el split de BD-021; "MARKBOX" ya no se usa como etique
 - **Tronco transporte:** Puerta a Puerta incluye aduana+impuestos+entrega; en **LCL/FCL** la aduana
   (que trae los documentos de importación DENTRO — no es nodo aparte) y el terrestre son **add-ons
   contratables**.
+- ⚠️ **Regla de microcopy (founder 19-jul):** en las tarjetas de LCL y FCL, la palabra **"incluido/a"
+  está PROHIBIDA** en los chips de add-on — sonó a "incluido en el precio" y NO lo está: DTD llega
+  hasta el puerto / almacén fiscal, y de ahí el cliente decide (su propio agente aduanal, o pedirle a
+  DTD la gestión como servicio adicional). Chip correcto: **«＋ si lo quieres: tránsito de aduana»**.
+  "Incluido" solo puede aparecer en la tarjeta del Puerta a Puerta (ahí sí lo está) y DENTRO de la
+  ficha del Tránsito de aduana (la documentación va incluida en ESE add-on, no en el LCL/FCL).
 - **Independientes (Capa 3, entrada aparte):** Consolidado LCL puntual · Compra asistida · Pago
   asistido · Courier muestras · Visado · Registro de marca.
 - Jerarquía visual de 3 niveles: principales dominantes → conector (pre-alerta) → colgantes. Leyenda de
