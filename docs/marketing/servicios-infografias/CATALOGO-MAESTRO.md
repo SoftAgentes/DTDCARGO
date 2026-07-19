@@ -40,7 +40,7 @@ Estado: `activo` · `proximamente` · `a-pedido` · `suspendido`. "Construido" =
 | `fcl-bodega` | FCL Consolidado en bodega | cn | activo | ✅ núcleo |
 | `fcl-directo` | FCL Directo fábrica | cn | activo | ✅ núcleo |
 | `transporte-terrestre` | Transporte terrestre nacional (VE) | ve | **proximamente** | ⚙️ calculadora (SDD-0002) + TMS interno (SDD-0019) listos; comercial al cliente aún `proximamente` |
-| `transito-aduana` | Tránsito de aduana y desaduanaje | ve | activo | ✅ módulo SENIAT (SDD-0018). En DDP va incluido; en LCL/FCL es add-on |
+| `transito-aduana` | Tránsito de aduana y desaduanaje | ve | activo | ✅ módulo SENIAT (SDD-0018). Incluido en DDP **y FCL** (founder 19-jul, supera el dictado 06-09); add-on solo en LCL |
 | `documentos-importacion` | **Documentos de importación — FUSIONADO dentro de `transito-aduana`** (founder 19-jul): sin tarjeta pública, sin pieza propia; la gestión documental es un "incluye" de la ficha de aduana. El id queda solo para config ERP/contabilidad | ve | activo | fila `service_configs` (despublicar `is_public`) |
 
 ### Grupo 2 · En bodega (Yiwu): revisión y preparación → **servicios de la llegada**

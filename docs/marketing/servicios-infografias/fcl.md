@@ -35,29 +35,33 @@ ni desviar el contenedor**. Tu carga queda bajo control de DTD desde que embarca
 2. Tus **proveedores entregan** su mercancía en nuestra bodega en Yiwu.
 3. Recibimos, preparamos y **cargamos el contenedor completo** en la bodega.
 4. Hacemos el **despacho de exportación** en China y el contenedor embarca.
-5. En Venezuela **tú manejas la recepción** — o sumas nuestro **Tránsito de aduana y desaduanaje**
-   como servicio adicional.
+5. En Venezuela **gestionamos el tránsito de aduana y el desaduanaje — ya van incluidos** — y tu
+   mercancía queda nacionalizada, lista para retirar (el transporte hasta tu destino se suma como
+   adicional).
 
 **Modalidad B · Directo fábrica**
 1. Cierras tu compra **directo con el fabricante**.
 2. Nosotros **reservamos el contenedor y el buque** con la naviera.
 3. **Coordinamos la carga** del contenedor en la fábrica de tu proveedor.
 4. El **BL sale a nombre de DTD** como shipper, contigo como consignatario, y el contenedor embarca.
-5. En Venezuela **tú manejas la recepción** — o sumas nuestro **Tránsito de aduana y desaduanaje**
-   como servicio adicional.
+5. En Venezuela **gestionamos el tránsito de aduana y el desaduanaje — ya van incluidos** — y tu
+   mercancía queda nacionalizada, lista para retirar (el transporte hasta tu destino se suma como
+   adicional).
 
 ## ¿Por qué te conviene?
 - **Más rápido:** al ser contenedor completo, no espera la próxima salida consolidada
   (tránsito aproximado: **40–55 días**).
+- **Aduana incluida:** el tránsito de aduana y el desaduanaje en Venezuela, con la documentación de
+  importación, ya van en el precio.
 - **Solo tu mercancía:** nadie comparte el contenedor contigo.
 - **Seguridad en el directo fábrica:** con el BL a nombre de DTD, el proveedor **no puede desviar,
   retener ni redirigir** tu contenedor.
 - **Un solo equipo de principio a fin:** propio en China (Yiwu) y Venezuela (Valencia).
 
 ## Reglas / condiciones importantes
-- El servicio llega **hasta el puerto en Venezuela**: la gestión allá (aduana, impuestos, transporte)
-  la manejas tú, o la sumas con nosotros como **servicio adicional** (Tránsito de aduana y
-  desaduanaje).
+- El precio del FCL **incluye el tránsito de aduana y desaduanaje en Venezuela, con la documentación
+  de importación**. Las planillas y los impuestos los pagas tú directamente a la aduana (como en todo
+  desaduanaje); el **transporte hasta tu destino** se suma como servicio adicional.
 - En la **Modalidad A**, el almacenaje en la bodega de Yiwu es **gratis los primeros 7 días**; después
   aplica un costo adicional.
 - En la **Modalidad B**, el contenedor se carga en la fábrica (uno o dos fabricantes) y **no pasa por
@@ -84,6 +88,10 @@ como insignia visual, no como letra chica. CTA visible a la calculadora FCL.
 **RATIFICADOS por el founder 2026-07-18** (vigentes ~1 año; si las navieras cambian, el dato se edita en
 la configuración de servicios del ERP — no en este doc). "Uno o dos fabricantes" también ratificado.
 ✅ Esta pieza puede pasar a arte final.
+**Decisión founder 19-jul (supera el dictado 06-09):** el FCL **INCLUYE el tránsito de aduana y
+desaduanaje con la documentación de importación** (ambas modalidades). Solo el LCL lo lleva como
+add-on. Planillas/impuestos directo a la aduana = modelo estándar del servicio de aduana (asumido;
+si el founder quiere otro esquema para FCL, se corrige acá y en la web).
 
 **Nota interna (no maquetar):** decisión founder 18-jul: LCL/FCL tendrán **entrada propia en el portal**
 ("Nueva orden LCL/FCL") junto a la pre-alerta; el backend puede llegar en spec posterior. Esta ficha

@@ -1,20 +1,20 @@
 # Tránsito de aduana y desaduanaje
 
-> Capa 1 · Servicio adicional del transporte (se suma al LCL y al FCL; en el Puerta a Puerta va incluido) · **Activo**
+> Capa 1 · Servicio adicional del transporte (se suma al Consolidado LCL; en el Puerta a Puerta y el FCL ya va incluido) · **Activo**
 
 ## Gancho
 **Tu carga llegó a puerto — nosotros la nacionalizamos por ti.** Gestionamos el trámite aduanal y el
-desaduanaje de tu carga LCL o FCL en Venezuela, representándote como tu agente ante la aduana.
+desaduanaje de tu carga LCL en Venezuela, representándote como tu agente ante la aduana.
 
 ## ¿Qué es?
-Es el servicio para clientes del **[Consolidado LCL](consolidado-lcl.md)** y del **FCL** que legalizan
+Es el servicio para clientes del **[Consolidado LCL](consolidado-lcl.md)** que legalizan
 la mercancía a su nombre: gestionamos el paso de tu carga por la **aduana venezolana** y su
 **nacionalización**, con la **documentación de importación incluida**. Tú pagas tus planillas
 directamente a la aduana; nosotros te representamos como tu **agente**, con tu carta poder.
-**En el Puerta a Puerta no necesitas contratarlo: la aduana y los impuestos ya van incluidos.**
+**En el Puerta a Puerta y en el FCL no necesitas contratarlo: ya va incluido.**
 
 ## ¿Cómo funciona?
-1. **Súmalo a tu carga LCL o FCL** con tu asesor, a tu nombre o al de tu empresa.
+1. **Súmalo a tu carga LCL** con tu asesor, a tu nombre o al de tu empresa.
 2. Firmas la **carta poder** para que te representemos como tu agente ante la aduana.
 3. Preparamos y tramitamos los **documentos de importación**: facturas de embarque, declaraciones,
    certificados y requerimientos normativos.
@@ -27,11 +27,12 @@ directamente a la aduana; nosotros te representamos como tu **agente**, con tu c
 - Importas formalmente **a tu nombre** sin pelear con el trámite: nuestro equipo lo hace todos los días.
 - **Transparencia:** las planillas de la aduana las pagas tú directo — nosotros no cobramos la aduana,
   cobramos la gestión.
-- Cierra el circuito del Consolidado LCL/FCL: del puerto a tu mercancía legalizada, con un solo
+- Cierra el circuito del Consolidado LCL: del puerto a tu mercancía legalizada, con un solo
   interlocutor.
 
 ## Reglas / condiciones importantes
-- Aplica como servicio adicional **solo para cargas LCL y FCL**; en el **Puerta a Puerta ya va incluido**.
+- Aplica como servicio adicional **solo para cargas LCL**; en el **Puerta a Puerta y el FCL ya va
+  incluido** (decisión founder 19-jul).
 - Necesitamos tu **carta poder** y tus datos (tu nombre o el de tu empresa) para representarte.
 - **Las planillas y los impuestos** los pagas tú directamente a la aduana; no pasan por nosotros.
 - Los **servicios portuarios, el almacén fiscal y el transporte interno** se facturan aparte.
@@ -57,3 +58,5 @@ contrate por error.
 **Nota interna (no maquetar):** nacionalización 5–6 días hábiles **RATIFICADO por el founder
 2026-07-18**. Valorización, planillas directas y carta poder vienen del dictado 2026-06-09
 (`entrevista-servicios.md` + `lib/servicios-detalle.ts`). ✅ Puede pasar a arte final.
+**Decisión founder 19-jul (supera el dictado 06-09):** este add-on aplica **solo al LCL** — en el
+FCL (ambas modalidades) el tránsito de aduana + documentación ya van INCLUIDOS en el precio.

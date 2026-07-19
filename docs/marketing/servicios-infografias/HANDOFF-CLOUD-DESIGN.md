@@ -59,15 +59,16 @@ founder 18-jul — deroga el split de BD-021; "MARKBOX" ya no se usa como etique
   los servicios de la llegada.
 - **Cuelgan de la pre-alerta (6):** Validación · Inspección al recibir (⊃ INCLUYE la Validación) ·
   Etiquetado · HOLD · Re-Empaque · Bodegaje extra (ligado al HOLD: gratis «N» días, luego se cobra).
-- **Tronco transporte:** Puerta a Puerta incluye aduana+impuestos+entrega; en **LCL/FCL** la aduana
-  (que trae los documentos de importación DENTRO — no es nodo aparte) y el terrestre son **add-ons
-  contratables**.
-- ⚠️ **Regla de microcopy (founder 19-jul):** en las tarjetas de LCL y FCL, la palabra **"incluido/a"
-  está PROHIBIDA** en los chips de add-on — sonó a "incluido en el precio" y NO lo está: DTD llega
-  hasta el puerto / almacén fiscal, y de ahí el cliente decide (su propio agente aduanal, o pedirle a
-  DTD la gestión como servicio adicional). Chip correcto: **«＋ si lo quieres: tránsito de aduana»**.
-  "Incluido" solo puede aparecer en la tarjeta del Puerta a Puerta (ahí sí lo está) y DENTRO de la
-  ficha del Tránsito de aduana (la documentación va incluida en ESE add-on, no en el LCL/FCL).
+- **Tronco transporte:** Puerta a Puerta incluye aduana+impuestos+entrega; el **FCL incluye el
+  tránsito de aduana + documentación** (founder 19-jul — supera el dictado 06-09); en el **LCL** la
+  aduana (que trae los documentos de importación DENTRO — no es nodo aparte) es **add-on contratable**,
+  igual que el terrestre.
+- ⚠️ **Regla de microcopy (founder 19-jul):** en la tarjeta del **LCL** la palabra **"incluido/a" está
+  PROHIBIDA** — DTD llega hasta el puerto / almacén fiscal, y de ahí el cliente decide (su propio
+  agente aduanal, o pedirle a DTD la gestión como servicio adicional). Chip correcto en LCL:
+  **«＋ si lo quieres: tránsito de aduana»**. Las tarjetas del **Puerta a Puerta y del FCL SÍ pueden
+  decir "incluido"** (en ambas la aduana lo está). En todo add-on, "incluida" solo puede referirse a lo
+  que va dentro de ESE add-on (ej. la documentación dentro del Tránsito de aduana).
 - **Independientes (Capa 3, entrada aparte):** Consolidado LCL puntual · Compra asistida · Pago
   asistido · Courier muestras · Visado · Registro de marca.
 - Jerarquía visual de 3 niveles: principales dominantes → conector (pre-alerta) → colgantes. Leyenda de
