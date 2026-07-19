@@ -126,7 +126,8 @@ independiente). Ver spec en [HANDOFF-CLOUD-DESIGN.md](HANDOFF-CLOUD-DESIGN.md).
 - ~~Días de bodegaje gratis~~ → **15 días** (confirmado 18-jul). Falta el monto del cargo por día vencido
   (vive en el ERP).
 - ~~Re-Empaque y bodegaje~~ → **exime bodegaje**: el conteo empieza al terminar el empaque (18-jul).
-- ~~Videos~~ → cara a cámara = **Fiorella**, se graba en **Venezuela** (18-jul).
+- ~~Videos~~ → **100% SIN CARA** (founder 19-jul): tutoriales Shorts = voz en off + gráfico + grabación
+  de pantalla. **Caras = solo redes sociales** (dolores/captación), nunca en los tutoriales de la plataforma.
 - Umbrales/mínimos de consolidación y del descuento por CBM.
 - Tarifas de cada servicio de llegada (van en servicios y tarifas del ERP).
 - Compra asistida: ¿la tabla de comisión pública (10%→…, según dictado 06-09) sobrevive como excepción

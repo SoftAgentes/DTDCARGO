@@ -1,5 +1,9 @@
 # Brief de video — Re-Empaque · unifica tus compras pequeñas
 
+> ⚠️ **FORMATO (founder 19-jul): 100% SIN CARA.** Tutorial Short, nadie a cámara. Donde este brief diga
+> "presentador a cámara", se resuelve con **voz en off + animación/gráfico + rótulo** (nunca una persona);
+> la grabación de pantalla y el b-roll siguen igual. Caras = solo redes sociales. Ver [GUIA-PRODUCCION.md](GUIA-PRODUCCION.md) §5.
+
 > Código técnico: `reempaque_unificar` · Archivo: `dtd-video-reempaque_unificar.mp4`
 > Fuente del mensaje: encuadre del Re-Empaque en
 > [`../CATALOGO-MAESTRO.md`](../CATALOGO-MAESTRO.md) y
