@@ -239,6 +239,14 @@ async function transitionStatus(
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
 
+  // Guard de escritura: una transición cambia el estado del estimado y dispara
+  // efectos externos (mail al cliente/prospecto + write-back a Kommo). Un rol
+  // solo-lectura (p. ej. support) NO puede enviar/aceptar/rechazar. Espeja el
+  // patrón de convertQuoteToShipment/softDeleteQuote; la RLS es por tenant y no
+  // distingue rol, así que el gate vive acá.
+  const denial = await moduleEditDenial(supabase, "quotes");
+  if (denial) return { error: denial };
+
   const { data: current, error: readErr } = await supabase
     .from("quotes")
     .select(
@@ -441,6 +449,9 @@ export async function linkEstimateToClientAction(
   markbox: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "quotes");
+  if (denial) return { error: denial };
+
   const result = await linkEstimateToClient(supabase, quoteId, markbox);
   if (result.error) return { error: result.error };
 
