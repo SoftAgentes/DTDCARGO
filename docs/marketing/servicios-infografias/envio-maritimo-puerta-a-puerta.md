@@ -36,7 +36,7 @@ todo el camino** — incluida la **nacionalización** y el pago de gastos hasta 
   un **adicional por zona**.
 - **Carga especial** (peligrosa / sobredimensionada) tiene costo extra — consúltalo con tu asesor.
 - El servicio **no incluye seguro de carga**.
-- La identificación correcta de cada compra (Shipping Mark) es responsabilidad del cliente; por eso
+- La identificación correcta de cada compra (Shipping Mark) corre por cuenta del cliente — por eso
   existe la pre-alerta.
 
 ## Precio
@@ -52,3 +52,6 @@ pequeña ("todo pagado"), nunca como título.
 
 **Nota interna (no maquetar):** tránsito 60–90 días, casco central, carga especial, sin seguro y tarifa
 desde 10 CBM **RATIFICADOS por el founder 2026-07-18**. ✅ Puede pasar a arte final.
+Regla de copy (founder 19-jul, pareja con la del 06-09): la palabra **"responsabilidad" JAMÁS de cara
+al cliente** — ni para el alcance DTD ni para deberes del cliente; se reformula ("corre por cuenta
+del cliente", "hasta dónde llega el servicio").

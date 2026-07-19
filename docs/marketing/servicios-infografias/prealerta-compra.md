@@ -29,7 +29,7 @@ recibir tu carga sin errores.
 ## Reglas / condiciones importantes
 - Haz tu pre-alerta **antes de que la mercancía llegue** a nuestra bodega en China; así la recibimos a
   tu nombre sin demoras.
-- La identificación correcta de la compra es responsabilidad del cliente.
+- La identificación correcta de la compra corre por cuenta del cliente.
 - Si tu mercancía llega **sin pre-alerta**, la recibimos igual, pero puede **demorar** mientras la
   identificamos a mano, **e incluso no embarcarse** por no tener las instrucciones correctas — lo que
   puede generar **costos de bodegaje**.
