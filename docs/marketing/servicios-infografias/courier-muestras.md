@@ -30,11 +30,12 @@ FCL); el **envío aéreo de carga** es otro servicio y estará disponible **pró
 - **No es flete aéreo de carga:** es un courier puntual para muestras, documentos y cosas pequeñas.
   Si tu carga es grande, va por vía marítima (Puerta a Puerta, LCL o FCL). El envío aéreo de carga
   es **otro servicio — próximamente**.
-- Límite de tamaño/peso por envío: «…» *(pendiente founder)*.
-- Tiempos de entrega: «…» *(pendiente founder)*.
+- **Límite de peso por envío: hasta 10 kg** (muestras, documentos y paquetes pequeños).
+- **Tiempos de entrega: 15 a 21 días.**
 
 ## Precio
-Consulta la tarifa vigente con tu asesor. *(Costo/condición del courier: «…» — pendiente.)*
+El costo depende de la **tarifa por peso volumétrico** de tu envío. Consulta la tarifa vigente con
+tu asesor.
 
 ## Contacto
 WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
@@ -44,5 +45,5 @@ WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
 **flete aéreo de carga (otro servicio, próximamente)** — que nadie intente cotizar carga grande por
 aquí. Ícono de sobre o paquete pequeño en movimiento, NO avión de carga ni contenedor.
 ✅ **RATIFICADO founder 18-jul: DHL/UPS/FedEx SOLO en texto plano, SIN logos** (el arte es 100% DTD).
-**Nota interna (no maquetar):** pendientes del founder — costo/condición, tiempos y límite de
-tamaño/peso (los `_pendiente` de `lib/servicios-detalle.ts`, slug `muestras-courier`).
+**Nota interna (no maquetar):** founder 19-jul RATIFICÓ — **hasta 10 kg · 15 a 21 días · costo por
+peso volumétrico** (sin monto fijo). ✅ Puede pasar a arte final. DHL/UPS/FedEx solo texto (18-jul).
