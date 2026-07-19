@@ -19,6 +19,7 @@ import { renderMarkdown } from "./markdown";
 
 /** Grupos + orden de los documentos en el lector. */
 const PLAN: ReadonlyArray<readonly [string, readonly string[]]> = [
+  ["Motor de Crecimiento", ["sistemas-negocio.md", "motor-crecimiento.md"]],
   [
     "Sistema de adquisición",
     [

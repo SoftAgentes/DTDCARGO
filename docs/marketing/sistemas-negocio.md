@@ -1,10 +1,14 @@
-# Los 5 sistemas de crecimiento de DTD — y dónde entra cada trabajo
+# Los 6 sistemas de crecimiento de DTD — y dónde entra cada trabajo
 
-Marco para ordenar TODO lo que hacemos. Un negocio crece cuando estos 5 sistemas están definidos,
-documentados y son repetibles. Este doc pone los 5 en orden y **mapea dónde entra cada iniciativa**
+Marco para ordenar TODO lo que hacemos. Un negocio crece cuando estos 6 sistemas están definidos,
+documentados y son repetibles. Este doc pone los 6 en orden y **mapea dónde entra cada iniciativa**
 (en especial el rediseño del portal de compras + las infografías de servicios).
 
-> **Estado:** borrador · 2026-07-18. Entrada desde [README de marketing](README.md).
+> **Estado:** borrador · 2026-07-18 (v2: +Sistema 6 Control Financiero, decisión founder 18-jul).
+> Entrada desde [README de marketing](README.md).
+> **El programa que construye estos sistemas se llama "Motor de Crecimiento DTD"** — auditoría por
+> sistema + brechas + hoja de ruta: [`motor-crecimiento.md`](motor-crecimiento.md). Base
+> conceptual (2 expertas): [`research/expertos-sistematizacion.md`](../../research/expertos-sistematizacion.md).
 
 ---
 
@@ -61,6 +65,21 @@ mide su desempeño. Si no puedes sacarte del día a día, tu negocio tiene un te
   operario nuevo se entrena con las mismas infografías/instructivos y se mide contra un proceso claro. La
   orden al operario de SDD-0163 deja **traza medible** de cada servicio ejecutado.
 
+## 6 · Control Financiero  *(sumado por el founder 2026-07-18 — "el ERP debe controlar todo")*
+**Factura, cobra, concilia y cierra el mes — o el crecimiento solo infla cuentas por cobrar.**
+Vender y entregar sin cobrar dentro del sistema deja el negocio ciego: no sabes margen, ni caja,
+ni quién te debe.
+
+- **Lo que ya tenemos:** el hilo MÁS construido del ERP — 12 módulos FINANZAS (facturación con
+  asiento automático, cobranzas con recibo correlativo, tesorería, contabilidad + cierre de
+  período, conciliación bancaria, fiscal v2 *(apagado por decisión vigente del founder 15-jul)*,
+  costing & margen, nómina + finiquito, financiero China, reportes de aging/cashflow/P&L).
+- **Dónde entra el trabajo actual:** el **embarque piloto** del pipeline (sistema 3) **también se
+  factura, se cobra y se costea en el ERP** — la Entrega y el Financiero arrancan juntos. Los
+  SOP de plata (facturar+cobrar diario · cobro contra entrega · cierre mensual) van al Manual (4).
+- **Por qué importa:** "pagas al llegar" es LA promesa pública — y hoy el cobro al arribo vive
+  100% fuera del sistema. Sin ese eslabón, crecer volumen = crecer cuentas por cobrar sin control.
+
 ---
 
 ## Resumen: dónde entra el rediseño del portal + infografías
@@ -72,6 +91,7 @@ mide su desempeño. Si no puedes sacarte del día a día, tu negocio tiene un te
 | **3 · Entrega** | **Sí (núcleo)** | **SDD-0163 + pipeline de captura: estandariza cómo entregamos** |
 | **4 · Manual de operaciones** | **Sí (núcleo)** | **El copy documenta cada servicio → instructivo del operario** |
 | 5 · Contratación | Sí (habilita) | Proceso documentado + traza medible = se puede delegar y medir |
+| **6 · Control Financiero** | **Sí (arranca con el piloto)** | **El piloto se factura/cobra/costea en el ERP; SOPs de plata al Manual** |
 
 **Conclusión:** el rediseño del portal no es solo "una pantalla más": es cómo **industrializamos la
 Entrega (3)** y escribimos el **Manual de operaciones (4)**, que son los dos sistemas que hoy le ponen
