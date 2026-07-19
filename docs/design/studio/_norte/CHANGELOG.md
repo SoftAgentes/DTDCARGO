@@ -1,5 +1,17 @@
 # Changelog · v1.1+
 
+## 2026-07-19 · 🔄 NORTE-SYNC patch v4.6 — Glass (BD-031) + Glow (BD-030) + Shipping Mark único (BD-029) + mockups T2 (BD-032) · sin bump
+
+Sync desde el proyecto de diseño (`NORTE-SYNC-2026-07-19.md`), aplicado a este repo (Norte). Cierra 4 decisiones que nunca se habían espejado (el repo cortaba en BD-028). **Sigue v4.6** (patch, sin bump); el **Brand Book físico NO se regeneró** (el .zip lo indica explícito). Verificado contra el código real, no solo copiado del checklist:
+
+- **Glass · BD-031 (founder 2026-07-17):** tokens **`--glass-*`** (`bg`/`border`/`hi`/`blur`/`ink`/`shadow`/`key`/`inset`) agregados **a producción** — `app/globals.css` (web/portal, `:root` light + `[data-portal-theme="dark"]`) **y** `app/studio/tokens.css` (ERP, `:root` + `[data-theme="dark"]`), valores 1:1 de `erp/tokens.css`/`web/tokens-brand.css` del Norte. Aplicado a la **calculadora flotante del portal** (`app/portal/_components/PortalCalcFab.tsx`): el panel es vidrio (con `-webkit-backdrop-filter` de respaldo + relleno translúcido); la barra de título sigue navy sólida por contraste AA. `BRAND.md` §AI Slop pasa "glassmorphism prohibido" → **excepción Glass documentada con límites**; regla 3 del resumen y `CLAUDE.md` del Norte, actualizadas.
+- **Glow de fondo · BD-030 (2026-07-12):** token **`--bg-glow`** agregado a `app/globals.css` (glow radial *tonal* navy→ink en dark, papel en claro; hex explícito, nunca hacia blanco). Regla de gradiente en `BRAND.md` y `CLAUDE.md` del Norte ampliada — **los gradientes coloridos siguen prohibidos**, solo se abre el glow tonal. No se jaló la tokenización `--grad-*` de la fuente (2026-07-14, cambio aparte, fuera de alcance — referencia tokens que este repo no tiene).
+- **Terminología · Shipping Mark único · BD-029 (revierte BD-021):** `CLAUDE.md` del Norte + `BRAND-DECISIONS.md` actualizados a "Shipping Mark en TODAS las superficies" (se retira "MARKBOX" del lenguaje visual). La clave de datos `markbox` NO cambia. **Barrido de "MARKBOX" en la web pública = pendiente**, entra con la reconstrucción de la web (§0 del sync), no en este ciclo.
+- **Mockups T2 · BD-032:** registrado — N/A en producción (es una decisión sobre mockups de diseño; el Studio ya corre en Archivo, la web en Archivo por default).
+- **Portal (Norte-mirror):** `portal/app.jsx` reemplazado con la reescritura de "Nueva compra" en 3 pasos + fix del botón "volver" embebido en `packlist/Packing List + Factura`. Es capa de diseño del Norte, no código de producción.
+- **⚠️ Web pública — próximo ciclo:** no se toca en este sync (§0 del `NORTE-SYNC-2026-07-19`); se reconstruye por completo en la siguiente pasada.
+- Lo histórico no se reescribe; este corte anota el patch sobre el Norte vigente.
+
 ## 2026-07-12 · 🔄 NORTE-SYNC patch v4.6 (BD-028) — Badge/KPI/wine-text portal/tuteo · sin bump de versión
 
 Patch sobre el ciclo v4.6 (`NORTE-SYNC-2026-07-12.md`), aplicado a este repo (Norte). Verificado ítem por ítem contra el código real, no solo copiado del checklist:

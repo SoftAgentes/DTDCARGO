@@ -32,7 +32,8 @@ function WCard({ children, padded = true }: { children: React.ReactNode; padded?
   return (
     <section
       style={{
-        background: "var(--bg-surface)",
+        // grad-card (BD-034): degradado sutil en vez de blanco plano.
+        background: "var(--grad-card)",
         border: "1px solid var(--border)",
         borderRadius: "var(--r-lg)",
         padding: padded ? "18px 20px" : 0,

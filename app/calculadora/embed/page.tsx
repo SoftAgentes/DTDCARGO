@@ -60,7 +60,11 @@ export default async function CalculadoraEmbedPage({
       // stylesheet global) y el form cascadea a oscuro. En claro no se pone el
       // atributo (tokens light por defecto).
       data-portal-theme={dark ? "dark" : undefined}
-      className={`min-h-screen bg-paper ${sora.variable} ${nunito.variable} ${jetbrainsMono.variable} calc-sys`}
+      // Glow de fondo (BD-030): glow radial tonal navy→ink (dark) / papel (claro)
+      // en vez de fondo plano — da profundidad sin salir del sistema. Token
+      // --bg-glow voltea por tema vía data-portal-theme (globals.css).
+      className={`min-h-screen ${sora.variable} ${nunito.variable} ${jetbrainsMono.variable} calc-sys`}
+      style={{ background: "var(--bg-glow)" }}
     >
       <div className="p-4">
         <CalculadoraForm

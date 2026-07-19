@@ -164,7 +164,9 @@ export default async function StudioAppLayout({
             style={{
               display: "flex",
               minHeight: "100vh",
-              background: "var(--bg-base)",
+              // Fondo de página con glow tonal sutil (BD-034 · --grad-page) en vez
+              // de plano. Incluye --bg-base como capa base, así que no cambia el color.
+              background: "var(--grad-page)",
               color: "var(--ink)",
             }}
           >

@@ -271,18 +271,47 @@ export default async function DashboardPage() {
 
   return (
     <div style={{ maxWidth: 1280 }}>
-      {/* Header */}
-      <div style={{ marginBottom: 28 }}>
-        <div className="studio-eyebrow" style={{ marginBottom: 10, color: "var(--wine-text)" }}>
-          {`OPERACIÓN · ${eyebrowDateVE(now)}`}
+      {/* Header · banda de bienvenida con degradado vino + marca de agua "D" (BD-034).
+          Texto en --ink-inv (cream) sobre el vino oscuro → AA. La "D" (isotipo
+          mono-light, .055) es decorativa y va detrás del texto (el contenido va en
+          un wrapper relative/zIndex:1). */}
+      <div
+        style={{
+          position: "relative",
+          overflow: "hidden",
+          borderRadius: "var(--r-lg)",
+          background: "var(--grad-wine-panel)",
+          padding: "26px 30px",
+          marginBottom: 28,
+          boxShadow: "0 14px 40px -18px rgba(127,15,26,0.6)",
+        }}
+      >
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            right: "-4%",
+            bottom: "-66%",
+            width: "32%",
+            height: "200%",
+            background:
+              "url('/brand/dtdcargo-isologo-mono-light.png') right bottom / contain no-repeat",
+            opacity: 0.08,
+            pointerEvents: "none",
+          }}
+        />
+        <div style={{ position: "relative", zIndex: 1 }}>
+          <div className="studio-eyebrow" style={{ marginBottom: 10, color: "var(--ink-inv-soft)" }}>
+            {`OPERACIÓN · ${eyebrowDateVE(now)}`}
+          </div>
+          <h1 className="studio-display" style={{ fontSize: 30, margin: "0 0 var(--s-2)", color: "var(--ink-inv)" }}>
+            {greeting}, {subject}.
+          </h1>
+          <p style={{ font: "400 14px/1.5 var(--f-sans)", color: "var(--ink-inv-soft)", margin: 0 }}>
+            Operando como <strong style={{ color: "var(--ink-inv)" }}>{tenant?.display_name ?? "DTD Cargo"}</strong>
+            {" · "}Moneda base: <strong style={{ color: "var(--ink-inv)" }}>{tenant?.base_currency ?? "USD"}</strong>.
+          </p>
         </div>
-        <h1 className="studio-display" style={{ fontSize: 30, margin: "0 0 var(--s-2)", color: "var(--ink)" }}>
-          {greeting}, <span style={{ color: "var(--wine-text)" }}>{subject}</span>.
-        </h1>
-        <p style={{ font: "400 14px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
-          Operando como <strong style={{ color: "var(--ink)" }}>{tenant?.display_name ?? "DTD Cargo"}</strong>
-          {" · "}Moneda base: <strong style={{ color: "var(--ink)" }}>{tenant?.base_currency ?? "USD"}</strong>.
-        </p>
       </div>
 
       <DashboardClient

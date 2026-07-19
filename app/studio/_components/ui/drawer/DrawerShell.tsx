@@ -57,6 +57,10 @@ export function DrawerShell({
         position: "fixed",
         inset: 0,
         background: "var(--scrim)",
+        // Frost del fondo al abrir el drawer/modal (BD-031). El panel sigue opaco
+        // → cero riesgo de legibilidad. -webkit- de respaldo para Safari.
+        backdropFilter: "var(--scrim-blur)",
+        WebkitBackdropFilter: "var(--scrim-blur)",
         zIndex: 100,
         display: "flex",
         justifyContent: centered ? "center" : "flex-end",

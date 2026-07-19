@@ -457,7 +457,8 @@ export function StudioSidebar({
         top: 0,
         height: "100vh",
         width: collapsed ? "var(--sb-collapsed)" : "var(--sb-expanded)",
-        background: "var(--bg-sidebar)",
+        // Fondo de marca (BD-034): degradado navy tonal en vez de plano.
+        background: "var(--grad-navy)",
         borderRight: "1px solid var(--border-side)",
         display: "flex",
         flexDirection: "column",
@@ -467,6 +468,35 @@ export function StudioSidebar({
         zIndex: 50,
       }}
     >
+      {/* Fondo de marca (BD-034): glow wine en la esquina superior + marca de agua
+          "D" (isotipo mono-light, wallpaper .03) recortada por overflow:hidden.
+          Decorativa y detrás del contenido (z-index:-1 dentro del stacking del aside)
+          → no toca los items del nav, no captura clicks. */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: 0,
+          zIndex: -1,
+          pointerEvents: "none",
+          background:
+            "radial-gradient(55% 40% at 100% 0%, rgba(168,50,62,0.28), transparent 58%)",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            left: "-6%",
+            bottom: "-6%",
+            width: "78%",
+            height: "52%",
+            background:
+              "url('/brand/dtdcargo-isologo-mono-light.png') left bottom / contain no-repeat",
+            opacity: 0.07,
+          }}
+        />
+      </div>
+
       {/* Logo + collapse trigger */}
       <div
         style={{

@@ -103,6 +103,48 @@
   color-scheme: dark;
 }
 
+/* ──────────────────────────────────────────────────────────────────
+   GLASS (BD-031, founder 2026-07-17) + GLOW de fondo (BD-030, 2026-07-12).
+   Espejo 1:1 del Norte (erp/tokens.css + web/tokens-brand.css).
+
+   · GLASS = vidrio esmerilado SOLO para superficies ELEVADAS/FLOTANTES:
+     calculadora flotante (FAB + panel), botón "Calcular", modales/overlays
+     y popovers sobre navy o imagen. NUNCA en tablas, body, cards de contenido
+     denso ni fondos de página (eso vuelve a ser AI slop). Texto sobre vidrio =
+     --glass-ink (cumple AA contra el peor caso: crema sobre glass navy, navy
+     sobre glass blanco — nunca gris tenue). Aplicar SIEMPRE con
+     -webkit-backdrop-filter de respaldo + relleno translúcido como fallback si
+     el navegador no soporta blur. No expandir a más superficies sin una BD nueva.
+   · GLOW = --bg-glow: glow radial navy→ink (dark) / papel (claro) para dar
+     profundidad a FONDOS sin caer en gradiente colorido. Hex explícito (BD-023),
+     nunca hacia blanco en la familia navy. No sustituye el gradiente de hero
+     horizontal (BD-022).
+
+   Light vive en :root (aplica en toda superficie); el override oscuro se activa
+   con [data-portal-theme="dark"] (tema del portal demo).
+   ────────────────────────────────────────────────────────────────── */
+:root {
+  --glass-bg: linear-gradient(160deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.44));
+  --glass-border: rgba(255, 255, 255, 0.9);
+  --glass-hi: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --glass-blur: blur(18px) saturate(150%);
+  --glass-ink: #0f1e3d;
+  --glass-shadow: 0 24px 60px rgba(15, 30, 61, 0.16);
+  --glass-key: rgba(255, 255, 255, 0.55);
+  --glass-inset: rgba(255, 255, 255, 0.5);
+  --bg-glow: radial-gradient(135% 100% at 50% -12%, #fbfaf7 0%, #f2f0ec 100%);
+}
+[data-portal-theme="dark"] {
+  --glass-bg: linear-gradient(160deg, rgba(31, 48, 85, 0.55), rgba(15, 30, 61, 0.34));
+  --glass-border: rgba(255, 255, 255, 0.22);
+  --glass-hi: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  --glass-ink: #f2f0ec;
+  --glass-shadow: 0 24px 60px rgba(5, 10, 24, 0.5);
+  --glass-key: rgba(255, 255, 255, 0.1);
+  --glass-inset: rgba(11, 20, 40, 0.32);
+  --bg-glow: radial-gradient(135% 100% at 50% -12%, #1f3055 0%, #0f1e3d 42%, #0b1428 100%);
+}
+
 /* Mostrar un elemento solo en un tema (ej. logo primary en claro, reverse en
    oscuro). El estado default (sin data-portal-theme) = claro. */
 [data-theme-show="dark"] {
