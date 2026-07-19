@@ -16,8 +16,7 @@ tratas con nadie en China: **DTD gestiona todo el proceso**.
 1. Escríbenos por **WhatsApp** con tu **marca y tu rubro**.
 2. Preparamos los **documentos y las traducciones** desde Venezuela, con asesoría estratégica.
 3. Coordinamos la **gestión legal ante la CNIPA** en China.
-4. Te damos **seguimiento del trámite** desde Venezuela hasta su resolución.
-   *(Entregable final: «…» — pendiente founder.)*
+4. Te damos **seguimiento del trámite** desde Venezuela hasta que tu marca quede registrada.
 
 ## ¿Por qué te conviene?
 - **Proteges tu marca antes de fabricar con ella.** Si no la registras en China, un tercero puede
@@ -29,15 +28,13 @@ tratas con nadie en China: **DTD gestiona todo el proceso**.
 ## Reglas / condiciones importantes
 - El trámite final se hace **en China, ante la CNIPA**, pero DTD gestiona **todo el proceso desde
   Venezuela** — no necesitas viajar.
-- Tiempos del trámite: «…» *(se mide en meses — rango exacto pendiente founder)*. Conviene iniciarlo
-  antes de mandar a producir con tu marca.
+- **El trámite puede durar de 1 a 3 meses.** Conviene iniciarlo antes de mandar a producir con tu marca.
 - La decisión final del registro la emite la **CNIPA** — nuestro servicio llega hasta la
-  preparación, la presentación y el seguimiento del trámite.
-- Qué recibes al final (certificado, constancias): «…» *(pendiente founder)*.
+  preparación, la presentación y el seguimiento del trámite hasta que tu marca quede registrada.
 
 ## Precio
-Consulta la tarifa vigente con tu asesor. *(Honorarios + tasas oficiales de la CNIPA: «…» —
-pendiente.)*
+**Un solo honorario que cubre todo el trámite, incluida la tasa oficial de la CNIPA.** Consulta el
+monto vigente con tu asesor.
 
 ## Contacto
 WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
@@ -48,6 +45,6 @@ WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
 vende es el **secuestro de marca**: mostrar antes/después (sin registrar = expuesta · registrada =
 protegida) sin caer en alarmismo. No confundir con `/marca` (brand book de DTD).
 **Nota interna (no maquetar):** decisión founder (brief 2026-07-18): el trámite final es en China
-pero DTD gestiona TODO desde Venezuela. Pendientes — qué NO incluye, honorarios + tasas oficiales,
-tiempos en meses y qué entrega (los `_pendiente` de `lib/servicios-detalle.ts`, slug
-`registro-marca-cn`).
+pero DTD gestiona TODO desde Venezuela. **Founder 19-jul RATIFICÓ: tiempo 1–3 meses · honorario
+único que cubre TODO, incluida la tasa CNIPA.** ✅ Puede pasar a arte final. (El documento exacto que
+recibe el cliente al final se puede afinar con el asesor — no bloquea el arte.)

@@ -24,14 +24,13 @@ pagues con respaldo.
 - Pagas con **respaldo**: la transacción queda documentada.
 
 ## Reglas / condiciones importantes
+- **Nos entregas el dinero en Venezuela y, máximo en 3 a 4 días, tu proveedor lo recibe en China.**
 - **Primero pagas a DTD; después pagamos a tu proveedor.** El pago al proveedor sale una vez
   recibido tu pago.
 - Es el complemento natural de la **Compra asistida** (el pago al proveedor no va incluido en ella).
-- Condiciones, montos mínimos y canales para pagarnos en Venezuela: «…» *(pendiente de dictado del
-  founder)*.
 
 ## Precio
-«…» Consulta la tarifa vigente con tu asesor.
+Consulta la tarifa vigente con tu asesor.
 
 ## Contacto
 WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
@@ -41,7 +40,6 @@ WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
 (izquierda) y DTD paga al proveedor en Yuan (derecha). Los canales chinos (Alipay, WeChat Pay,
 transferencia, efectivo) van como **íconos genéricos del paso**, no como logos oficiales ni
 "partners". Reforzar la secuencia "tú pagas primero → nosotros pagamos" — evita el reclamo típico.
-**Nota interna (no maquetar):** ficha con pendientes reales del dictado (entrevista 06-09,
-"❓ Pendientes #6 Asesoría de pagos"): incluye/no-incluye · costo/comisión · cómo se solicita en
-detalle · canales de pago del cliente en Venezuela. NO pasa a arte final con placeholders «…»
-(regla §6 del HANDOFF).
+**Nota interna (no maquetar):** founder 19-jul — **mantener SIMPLE, no sobre-explicar.** Promesa
+central ratificada: "nos entregas el dinero y máximo en 3–4 días está en China". Sin montos mínimos
+ni canales de pago en el copy (se acuerdan con el asesor). ✅ Puede pasar a arte final.

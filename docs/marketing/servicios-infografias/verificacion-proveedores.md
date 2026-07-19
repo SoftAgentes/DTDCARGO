@@ -36,7 +36,7 @@ visita**.
 - La verificación te dice **con quién tratas**; la calidad del producto se revisa con la
   **Inspección de calidad en fábrica** (servicio aparte, se pueden combinar).
 - Si compras con nuestra **Compra asistida**, la verificación del proveedor **ya va incluida**.
-- Tiempos de entrega del reporte: «…» *(pendiente founder — no dictado)*.
+- **Entregamos el reporte en 1 a 3 días hábiles** (coordinando con tu proveedor).
 
 ## Precio
 Consulta la tarifa vigente con tu asesor (varía según la modalidad: online o física). Tu asesor te
@@ -52,5 +52,6 @@ inicio de la línea de tiempo, lejos de los servicios de bodega. Mostrar un mock
 (marca DTD, sin logos ajenos).
 **Nota interna (no maquetar):** WHITE-LABEL estricto — los terceros ejecutores y sus tarifas JAMÁS
 se nombran; todo es servicio DTD con reporte DTD (dictado 2026-06-09). Las 2 modalidades
-online/física = decisión founder 18-jul. Alcance documental exacto de la modalidad online (qué
-documentos se revisan) — pendiente de dictado.
+online/física = decisión founder 18-jul. **Tiempo 1–3 días hábiles RATIFICADO founder 19-jul.**
+✅ Puede pasar a arte final. Alcance documental exacto de la modalidad online (qué documentos se
+revisan) — refinamiento menor, no bloquea el arte.
