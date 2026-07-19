@@ -28,9 +28,12 @@ gestiona **desde Venezuela**.
 - **Tiempos del trámite: 7 días en la modalidad urgente · 2 semanas en la normal.**
 - La **aprobación del visado la decide el consulado chino** — nuestro servicio llega hasta la
   preparación, la diligencia y la coordinación del trámite.
+- **La tasa oficial del consulado se paga aparte, en bolívares** — nuestro honorario cubre la
+  gestión, no la tasa consular.
 
 ## Precio
-El honorario del trámite está configurado en nuestro sistema; **consulta el monto vigente con tu asesor.**
+El **honorario cubre nuestra gestión** del trámite (configurado en el sistema; consulta el monto
+vigente con tu asesor). La **tasa oficial del consulado se paga aparte, en bolívares.**
 
 ## Contacto
 WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
@@ -41,6 +44,7 @@ El diferenciador a destacar: **todo el trámite desde Valencia, incluida la foto
 sobrio de trámite serio — nada de clichés chinos decorativos (dragones, farolillos) ni banderas de
 fondo.
 **Nota interna (no maquetar):** founder 19-jul RATIFICÓ — 2 modalidades: **urgente 7 días / normal
-2 semanas** · requisitos NO públicos (se pasan por WhatsApp) · honorario actual **$350 USD**,
-configurado en el sistema y CAMBIABLE (NO se hardcodea en la ficha; el asesor/sistema muestra el
-vigente). ⚠️ confirmar si $350 incluye la tasa consular. ✅ Puede pasar a arte final.
+2 semanas** · requisitos NO públicos (se pasan por WhatsApp) · honorario actual **$350 USD**
+(solo la gestión DTD), configurado en el sistema y CAMBIABLE (NO se hardcodea en la ficha; el asesor/
+sistema muestra el vigente). **La tasa consular va APARTE, en bolívares** (confirmado founder 19-jul).
+✅ Puede pasar a arte final.
