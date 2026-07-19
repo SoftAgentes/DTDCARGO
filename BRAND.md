@@ -168,13 +168,16 @@ Todo par texto/fondo debe pasar el umbral en **ambos** temas. No asumas que un t
 
 ---
 
-## 🏷 Terminología · Shipping Mark / MARKBOX (split por superficie)
+## 🏷 Terminología · Shipping Mark (unificado en todas las superficies)
 
-**BD-021 (2026-07-06, enmienda BD-004):** el término se divide por superficie — **web pública = "MARKBOX"** · **Studio (ERP) / Portal / apps de operario = "Shipping Mark"** (唛头). El **valor** del registro (`DTD-XXXX`) y la **clave de datos `markbox`** no cambian en ningún caso, solo la etiqueta visible.
+**BD-022 (2026-07-18, enmienda BD-021 — decisión founder):** el término visible es **"Shipping Mark"
+(唛头) en TODAS las superficies** — web pública, Studio (ERP), Portal y apps de operario. El split por
+superficie de BD-021 (web = "MARKBOX") queda **derogado**. El **valor** del registro (`DTD-XXXX`) y la
+**clave de datos `markbox`** no cambian en ningún caso — solo la etiqueta visible.
 
-- ❌ Nunca "MARKBOX" visible en `app/studio`, `app/portal` ni `app/m` (ahí siempre "Shipping Mark").
-- ✅ "MARKBOX" es intencional en el sitio público (`app/{page,faq,glosario,servicios,cotizar,track,calculadora,noticias,estimacion,contacto,registro}` + `components/` raíz) — no es drift.
-- Detalle completo en `AGENTS.md` §Patrones del Studio ERP y `docs/design/studio/_norte/BRAND-DECISIONS.md` (BD-004, BD-021).
+- ❌ Nunca "MARKBOX" visible en NINGUNA superficie nueva (fichas de servicios, infografías, portal, web).
+- ⚠️ Sweep pendiente del sitio público: las páginas que hoy dicen "MARKBOX" (`app/{faq,glosario,servicios,registro,...}` + `components/` raíz) migran a "Shipping Mark" — hasta entonces el texto viejo es deuda, no regla.
+- Historial: BD-004 → BD-021 (split, 2026-07-06) → **BD-022 (unificación, 2026-07-18)**. Detalle en `AGENTS.md` §Patrones del Studio ERP y `docs/design/studio/_norte/BRAND-DECISIONS.md`.
 
 ---
 
