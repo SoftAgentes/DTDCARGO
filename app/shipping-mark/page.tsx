@@ -18,8 +18,10 @@ import { buildWhatsAppLink } from "@/lib/design-tokens";
  *
  * Rebuild fiel al mockup Cloud Design "Shipping Mark · DTD-Cargo.html"
  * (2026-07-20): hero con el panel visual del rótulo + respuesta rápida + los 8
- * pasos + guía de la dirección de Alibaba + FAQ en acordeón + CTA final wine.
- * Estilos scopeados en `.sm-surface` (app/globals.css) — cero hex inventado.
+ * pasos + guía de la dirección de Alibaba + FAQ en acordeón + CTA final.
+ * Hero y CTA final comparten la MISMA banda navy (`--grad-navy-hero`), tal como
+ * manda el CSS real del handoff (`web/shipping-mark.css`). Estilos scopeados en
+ * `.sm-surface` (app/globals.css) — cero hex inventado.
  *
  * La ruta se llamaba `/markbox`; se renombró al término VISIBLE para el cliente
  * ("Shipping Mark"). `markbox` sigue siendo el identificador interno del ERP.

@@ -1279,9 +1279,14 @@
   --r-lg: 10px;
   --r-xl: 14px;
   --r-pill: 999px;
-  /* Motion */
+  /* Motion (escala del Norte · web/tokens-brand.css) */
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --dur-fast: 120ms;
+  --dur: 180ms;
+  --dur-slow: 260ms;
+  /* Ancho de página del handoff (`--home-max` en web/home.css = 1280px).
+     No se duplica el número: aliasa al --maxw del sitio. */
+  --home-max: var(--maxw);
   /* Fuentes: la web pública sigue en Archivo; mono = stack genérico (no carga
      JetBrains, que es del Studio/calc — mismo criterio que /servicios/inspeccion). */
   --f-brand: var(--font-archivo);
@@ -1299,6 +1304,10 @@
   /* Tinta */
   --ink: var(--color-ink);
   --ink-soft: var(--color-grey-500);
+  /* Tinta apagada (placeholders, captions, eyebrows secundarios). El Norte la
+     define como #9B9B9B, pero sobre papel eso da 2.85:1 y BRAND.md regla 6 pide
+     ≥4.5:1 en texto → se mapea al gris apagado del sitio (5.7:1 sobre blanco). */
+  --ink-mute: var(--color-grey-500);
   /* Tinta sobre navy (mismo patrón AA que --hero-*: .72 verificado AA) */
   --ink-side: rgba(255, 255, 255, 0.88);
   --ink-side-soft: rgba(255, 255, 255, 0.72);
@@ -1321,6 +1330,11 @@
      al centro; sin equivalente --color-* en el sitio, se portan del Norte. */
   --grad-navy: radial-gradient(120% 125% at 18% -20%, #243c6b, #0f1e3d 52%, #081226);
   --grad-wine: linear-gradient(135deg, #9e1522 0%, #7f0f1a 52%, #5a0910 100%);
+  /* Banda navy de las secciones oscuras del sitio público (hero + CTA final).
+     Valor del Norte: web/home.css `.hero-stats`/`.final` y web/shipping-mark.css
+     `.sm-hero`/`.sm-final` usan LITERALMENTE este degradado. Vive acá una sola
+     vez para no repetir el hex en cada regla de componente. */
+  --grad-navy-hero: linear-gradient(135deg, #16274b, #26406f);
 }
 
 /* Bold más oscuro dentro del lead de la portada */
@@ -2461,7 +2475,7 @@ a.svp-it:hover .nm {
   --wine-on-dark: var(--color-wine-soft); /* wine legible sobre navy (AA) */
   --f-cn: var(--font-noto-sc);
   --nav-h: 76px;
-  --home-navy-band: linear-gradient(135deg, #16274b, #26406f); /* banda navy (Norte) */
+  --home-navy-band: var(--grad-navy-hero); /* banda navy (Norte) — alias del token compartido */
 }
 
 /* ── Botones (sistema de la home) ── */
@@ -3280,14 +3294,50 @@ a.svp-it:hover .nm {
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   SHIPPING MARK (`app/shipping-mark/page.tsx`) — rebuild fiel al mockup
-   Cloud Design "Shipping Mark · DTD-Cargo.html" (web/shipping-mark.css).
-   Scopeado bajo `.sm-surface`, que cuelga del MISMO puente de tokens que
-   `.svc-surface`/`.home-surface` (arriba): cero hex de color inventado, todo
-   `var(--*)`. El sistema de botones y de encabezados de sección se porta acá
-   (no se hereda de `.home-surface`) para no acoplar dos páginas distintas.
+   SHIPPING MARK (`app/shipping-mark/page.tsx`) — port del CSS REAL de
+   Cloud Design (`web/shipping-mark.css`, handoff 2026-07-20). Ese archivo
+   es la FUENTE DE VERDAD: el build anterior derivó los estilos a mano y se
+   desvió — el hero salió en un radial CLARO y el CTA final en VINO, cuando
+   el diseño manda la MISMA banda NAVY (`--grad-navy-hero`) en los dos.
+
+   Tres adaptaciones al repo (el resto es 1:1 con el CSS de Cloud Design):
+
+     1. `.sm-qd` (respuesta rápida) NO se porta: la página usa el componente
+        compartido `<RespuestaRapida>` (Tailwind + selector `speakable`), no
+        el marcado del mockup. Portarlo serían reglas muertas.
+     2. `.sm-w-*` (widget de la dirección de Alibaba) NO se porta: la página
+        usa `<AlibabaAddressGuide>` (Tailwind, compartido con /faq). Son ~35
+        reglas sin marcado que las use.
+     3. Los hex del mockup se expresan con tokens: el degradado #16274B→#26406F
+        es `--grad-navy-hero`; el crema #F2F0EC es `--color-grey-100`, servido
+        por los `--sm-on-navy*` de acá abajo (con piso de contraste AA).
+
+   Además se AGREGAN reglas que el CSS real no trae y sin las cuales la página
+   queda ilegible: el `.btn-ghost` sobre navy (el mockup lo deja con la variante
+   clara, texto navy sobre navy) y los `:focus-visible` de teclado.
+
+   El sistema de botones y de encabezados de sección se porta acá (no se hereda
+   de `.home-surface`) para no acoplar dos páginas distintas.
    Nav/Footer/WhatsAppFAB/RespuestaRapida son componentes del repo (no acá).
    ══════════════════════════════════════════════════════════════════ */
+
+/* ── Tokens propios de la página (mismo criterio que `.home-surface`) ── */
+.sm-surface {
+  --wine-on-dark: var(--color-wine-soft); /* wine sobre navy (acentos) */
+  /* Tinta CREMA sobre la banda navy. Cloud Design escribe #F2F0EC (idéntico a
+     --color-grey-100) con alfas .85 / .82 / .75 / .6 / .5 / .42; acá se expresan
+     como color-mix del token y el PISO baja a 66%: medido sobre #26406F (el
+     extremo claro del degradado, el peor caso), .85 = 7.0:1 y .66 = 4.9:1, pero
+     .5 = 3.5:1 y .42 = 2.9:1 — y esas alfas las usa el mockup en labels de
+     9,5–11px. BRAND.md regla 6 (AA ≥4.5:1) es dura, así que se sube al piso. */
+  --sm-on-navy: var(--color-grey-100); /* 9.0:1 */
+  --sm-on-navy-soft: color-mix(in srgb, var(--color-grey-100) 85%, transparent); /* 7.0:1 */
+  --sm-on-navy-mute: color-mix(in srgb, var(--color-grey-100) 66%, transparent); /* 4.9:1 */
+  /* Rellenos / hairlines sobre navy (no llevan texto) */
+  --sm-navy-fill: color-mix(in srgb, var(--color-white) 5%, transparent);
+  --sm-navy-fill-strong: color-mix(in srgb, var(--color-white) 8%, transparent);
+  --sm-navy-border: color-mix(in srgb, var(--color-grey-100) 45%, transparent);
+}
 
 /* ── Botones ── */
 .sm-surface .btn {
@@ -3327,10 +3377,33 @@ a.svp-it:hover .nm {
 .sm-surface .btn-ghost:hover {
   border-color: var(--ink);
 }
+.sm-surface .btn-onwine {
+  background: var(--color-grey-100);
+  color: var(--wine);
+}
+.sm-surface .btn-onwine:hover {
+  background: var(--color-white);
+}
 .sm-surface .btn-lg {
   font-size: 17px;
   padding: 17px 30px;
   border-radius: var(--r-lg);
+}
+/* Sobre la banda navy (hero + CTA final) el ghost claro no lee → variante clara.
+   Esto NO viene del CSS de Cloud Design: allá el ghost queda navy sobre navy. */
+.sm-hero .btn-ghost,
+.sm-final .btn-ghost {
+  color: var(--sm-on-navy);
+  border-color: var(--sm-navy-border);
+}
+.sm-hero .btn-ghost:hover,
+.sm-final .btn-ghost:hover {
+  border-color: var(--sm-on-navy);
+  background: var(--sm-navy-fill-strong);
+}
+.sm-hero .btn:focus-visible,
+.sm-final .btn:focus-visible {
+  outline-color: var(--sm-on-navy);
 }
 
 /* ── Encabezados de sección ── */
@@ -3344,6 +3417,16 @@ a.svp-it:hover .nm {
   text-transform: uppercase;
   color: var(--wine-text);
   margin-bottom: var(--s-4);
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+.sm-surface .eyebrow-h {
+  font: 700 12.5px/1 var(--f-brand);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--wine-text);
+  margin-bottom: var(--s-5);
   display: flex;
   align-items: center;
   gap: var(--s-3);
@@ -3365,8 +3448,7 @@ a.svp-it:hover .nm {
   color: var(--ink);
   text-wrap: balance;
 }
-.sm-surface .h2 .accent,
-.sm-surface .sm-h1 .accent {
+.sm-surface .h2 .accent {
   color: var(--wine-text);
 }
 .sm-surface .sec-sub {
@@ -3377,358 +3459,364 @@ a.svp-it:hover .nm {
   text-wrap: pretty;
 }
 
-/* ── Hero ── */
+/* ── Hero (banda navy) ── */
 .sm-hero {
-  padding: var(--s-12) 0 var(--s-16);
-  background: radial-gradient(58% 62% at 82% 34%, var(--bg-elevated), var(--bg-base) 72%);
+  background: var(--grad-navy-hero);
+  border-bottom: 1px solid var(--border-side);
 }
 .sm-hero-in {
-  max-width: var(--maxw);
+  max-width: var(--home-max);
   margin: 0 auto;
-  padding: 0 var(--gutter);
+  padding: var(--s-16) var(--s-8) var(--s-12);
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
   gap: var(--s-12);
   align-items: center;
 }
-@media (max-width: 980px) {
+@media (max-width: 900px) {
   .sm-hero-in {
     grid-template-columns: 1fr;
-    gap: var(--s-10);
+    gap: var(--s-8);
+    padding: var(--s-12) var(--s-5);
   }
 }
-.sm-surface .eyebrow-h {
-  font: 700 12px/1 var(--f-brand);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--wine-text);
-  margin-bottom: var(--s-5);
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
+.sm-hero .eyebrow-h {
+  color: var(--wine-on-dark);
+}
+.sm-hero .eyebrow-h .rule {
+  background: var(--wine-on-dark);
 }
 .sm-surface .sm-h1 {
   font-family: var(--f-brand-display);
   font-weight: 900;
-  font-size: clamp(34px, 5vw, 64px);
+  font-size: clamp(34px, 4.4vw, 58px);
   line-height: 1.04;
-  letter-spacing: -0.025em;
-  margin: 0;
-  color: var(--ink);
+  letter-spacing: -0.02em;
+  margin: 0 0 var(--s-5);
+  color: var(--sm-on-navy);
   text-wrap: balance;
 }
+.sm-surface .sm-h1 .accent {
+  color: var(--wine-on-dark);
+}
 .sm-surface .sm-lead {
-  font: 400 17px/1.62 var(--f-brand);
-  color: var(--ink-soft);
-  margin: var(--s-6) 0 0;
-  max-width: 58ch;
+  font: 400 clamp(16px, 1.3vw, 19px) / 1.6 var(--f-brand);
+  color: var(--sm-on-navy-soft);
+  margin: 0 0 var(--s-8);
+  max-width: 54ch;
   text-wrap: pretty;
 }
 .sm-hero-ctas {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--s-3);
-  margin-top: var(--s-8);
+  gap: var(--s-4);
 }
 .sm-hero-note {
   display: flex;
   align-items: center;
   gap: var(--s-2);
-  margin-top: var(--s-6);
-  font: 600 13.5px/1.45 var(--f-brand);
-  color: var(--ink-soft);
+  font: 600 13px/1.3 var(--f-mono);
+  color: var(--sm-on-navy-mute);
+  margin-top: var(--s-5);
 }
 .sm-hero-note svg {
-  width: 17px;
-  height: 17px;
+  width: 15px;
+  height: 15px;
+  color: var(--wine-on-dark);
   flex: 0 0 auto;
-  color: var(--wine);
 }
 
-/* ── Panel visual: el Shipping Mark en la caja ── */
+/* ── Panel visual: así se ve tu Shipping Mark en la caja ── */
 .sm-tag-wrap {
   display: flex;
   flex-direction: column;
   gap: var(--s-3);
+  margin: 0 var(--s-16) var(--s-16) 0;
+}
+@media (max-width: 900px) {
+  .sm-tag-wrap {
+    margin: 0 0 var(--s-8) 0;
+  }
 }
 .sm-tag {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
+  background: var(--sm-navy-fill);
+  border: 1px solid var(--border-side);
   border-radius: var(--r-xl);
-  box-shadow: var(--shadow-md);
   padding: var(--s-6);
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-5);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
 }
 .sm-tag-top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--s-4);
+  padding-bottom: var(--s-5);
+  border-bottom: 1px dashed var(--border-side);
 }
 .sm-tag-code {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-1);
-  font: 900 34px/1 var(--f-brand-display);
+  font: 700 30px/1 var(--f-mono);
+  color: var(--sm-on-navy);
   letter-spacing: -0.01em;
-  color: var(--ink);
 }
 .sm-tag-code small {
-  font: 700 11px/1 var(--f-brand);
-  letter-spacing: 0.14em;
+  display: block;
+  font: 600 11px/1.4 var(--f-brand);
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--ink-soft);
+  color: var(--sm-on-navy-mute);
+  margin-top: 6px;
 }
 .sm-tag-pill {
-  background: var(--wine-tint);
-  color: var(--wine-text);
-  border-radius: var(--r-pill);
-  padding: 6px 12px;
-  font: 700 11px/1 var(--f-brand);
-  letter-spacing: 0.08em;
+  font: 700 10.5px/1 var(--f-mono);
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  white-space: nowrap;
+  padding: 6px 10px;
+  border-radius: var(--r-pill);
+  background: var(--sm-navy-fill-strong);
+  color: var(--sm-on-navy-soft);
+  border: 1px solid var(--border-side);
+  flex: 0 0 auto;
 }
 .sm-tag-rows {
   display: flex;
   flex-direction: column;
-  gap: var(--s-2);
-  border-top: 1px dashed var(--border-strong);
-  border-bottom: 1px dashed var(--border-strong);
-  padding: var(--s-4) 0;
+  gap: 0;
+  margin-top: var(--s-4);
 }
 .sm-tag-row {
   display: flex;
-  align-items: baseline;
   justify-content: space-between;
   gap: var(--s-4);
+  padding: var(--s-3) 0;
+}
+.sm-tag-row + .sm-tag-row {
+  border-top: 1px solid var(--sm-navy-fill);
 }
 .sm-tag-row-lbl {
-  font: 700 11px/1.3 var(--f-brand);
-  letter-spacing: 0.12em;
+  font: 700 10.5px/1 var(--f-brand);
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--ink-soft);
+  color: var(--sm-on-navy-mute);
 }
 .sm-tag-row-val {
-  font: 600 14px/1.35 var(--f-mono);
-  color: var(--ink);
+  font: 600 13.5px/1.3 var(--f-mono);
+  color: var(--sm-on-navy);
   text-align: right;
 }
 .sm-tag-handling {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--s-2);
+  gap: var(--s-5);
+  margin-top: var(--s-5);
+  padding-top: var(--s-5);
+  border-top: 1px dashed var(--border-side);
 }
 .sm-tag-hnd {
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 7px;
-  background: var(--bg-elevated);
-  border-radius: var(--r-sm);
-  padding: 7px 11px;
-  font: 600 12px/1 var(--f-brand);
-  color: var(--ink-soft);
+  gap: 6px;
+  flex: 1;
+  text-align: center;
 }
 .sm-tag-hnd svg {
-  width: 15px;
-  height: 15px;
-  color: var(--wine);
+  width: 22px;
+  height: 22px;
+  color: var(--sm-on-navy-soft);
+}
+.sm-tag-hnd span {
+  font: 700 9.5px/1.25 var(--f-brand);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sm-on-navy-mute);
 }
 .sm-tag-cap {
-  font: 400 12.5px/1.5 var(--f-brand);
-  color: var(--ink-soft);
-  margin: 0;
+  font: 500 12.5px/1.5 var(--f-brand);
+  color: var(--sm-on-navy-mute);
   text-align: center;
+  text-wrap: pretty;
+  margin: 0;
 }
 
 /* ── Cómo funciona · 8 pasos ── */
 .sm-steps {
   padding: var(--s-16) 0;
-  background: var(--bg-surface);
 }
 .sm-steps-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--s-4);
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--s-5);
+  margin: var(--s-10) 0 0;
+  /* el repo marca los pasos con <ol>/<li> (semántica de secuencia) */
   list-style: none;
   padding: 0;
-  margin: 0;
 }
-@media (max-width: 1100px) {
+@media (max-width: 1080px) {
   .sm-steps-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr 1fr;
   }
 }
-@media (max-width: 640px) {
+@media (max-width: 540px) {
   .sm-steps-grid {
     grid-template-columns: 1fr;
   }
 }
 .sm-step {
-  position: relative;
-  background: var(--bg-base);
+  background: var(--bg-surface);
   border: 1px solid var(--border);
-  border-radius: var(--r-xl);
+  border-radius: var(--r-lg);
   padding: var(--s-6);
-  transition: border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
-}
-.sm-step:hover {
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
 }
 .sm-step-n {
-  position: absolute;
-  top: var(--s-5);
-  right: var(--s-6);
-  font: 900 22px/1 var(--f-brand-display);
-  color: var(--border-strong);
+  font: 700 12px/1 var(--f-mono);
+  color: var(--wine-text);
+  background: var(--wine-tint);
+  border-radius: var(--r-pill);
+  padding: 6px 11px;
+  align-self: flex-start;
 }
 .sm-step-ic {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--r-md);
-  display: grid;
-  place-items: center;
-  background: var(--wine-tint);
+  background: var(--bg-elevated);
   color: var(--wine-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .sm-step-ic svg {
-  width: 21px;
-  height: 21px;
+  width: 22px;
+  height: 22px;
 }
 .sm-step h3 {
-  font: 800 17px/1.2 var(--f-brand);
-  letter-spacing: -0.01em;
+  font: 800 16px/1.25 var(--f-brand);
   color: var(--ink);
-  margin: var(--s-4) 0 0;
+  margin: 0;
+  letter-spacing: -0.01em;
 }
 .sm-step p {
-  font: 400 14px/1.55 var(--f-brand);
+  font: 400 13.5px/1.5 var(--f-brand);
   color: var(--ink-soft);
-  margin: var(--s-2) 0 0;
+  margin: 0;
+  text-wrap: pretty;
 }
 
-/* ── Beneficios ── */
+/* ── Por qué importa (beneficios) ── */
 .sm-bene {
-  margin-top: var(--s-10);
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-  gap: var(--s-8);
-  align-items: center;
-}
-@media (max-width: 900px) {
-  .sm-bene {
-    grid-template-columns: 1fr;
-    gap: var(--s-6);
-  }
+  border-top: 1px solid var(--border);
+  padding-top: var(--s-10);
+  margin-top: var(--s-2);
 }
 .sm-bene-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--s-3);
   list-style: none;
-  padding: 0;
   margin: 0;
-}
-@media (max-width: 640px) {
-  .sm-bene-grid {
-    grid-template-columns: 1fr;
-  }
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--s-5);
 }
 .sm-bene-grid li {
   display: flex;
   align-items: flex-start;
   gap: var(--s-3);
-  font: 400 14.5px/1.5 var(--f-brand);
-  color: var(--ink-soft);
+  font: 600 14.5px/1.4 var(--f-brand);
+  color: var(--ink);
 }
 .sm-bene-grid svg {
-  width: 17px;
-  height: 17px;
+  width: 20px;
+  height: 20px;
+  color: var(--success);
   flex: 0 0 auto;
-  margin-top: 3px;
-  color: var(--wine);
+  margin-top: 1px;
 }
 .sm-bene-tag {
   font-family: var(--f-brand-display);
-  font-weight: 900;
-  font-size: clamp(19px, 2.1vw, 24px);
-  line-height: 1.25;
-  letter-spacing: -0.015em;
+  font-weight: 700;
+  font-size: clamp(17px, 1.8vw, 21px);
+  line-height: 1.4;
+  letter-spacing: -0.01em;
   color: var(--ink);
-  background: var(--bg-base);
-  border-left: 3px solid var(--wine);
-  border-radius: 0 var(--r-lg) var(--r-lg) 0;
-  padding: var(--s-6);
-  margin: 0;
+  text-align: center;
+  margin: var(--s-10) 0 0;
   text-wrap: balance;
 }
+@media (max-width: 900px) {
+  .sm-bene-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 560px) {
+  .sm-bene-grid {
+    grid-template-columns: 1fr;
+  }
+}
 
-/* ── Guía destacada (envuelve AlibabaAddressGuide del repo) ── */
+/* ── Guía destacada (envuelve `<AlibabaAddressGuide/>` del repo) ── */
 .sm-widget {
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   padding: var(--s-16) 0;
-  background: var(--bg-base);
 }
 
 /* ── FAQ ── */
 .sm-faq {
   padding: var(--s-16) 0;
-  background: var(--bg-surface);
 }
 .sm-faq-list {
   display: flex;
   flex-direction: column;
-  gap: var(--s-2);
-  max-width: 860px;
+  gap: var(--s-3);
+  max-width: 800px;
+  margin-top: var(--s-10);
 }
 .sm-faq-item {
+  background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
-  background: var(--bg-base);
-  overflow: hidden;
+  padding: var(--s-5) var(--s-6);
 }
 .sm-faq-item > summary {
-  list-style: none;
   cursor: pointer;
+  font: 700 16px/1.35 var(--f-brand);
+  color: var(--ink);
+  list-style: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--s-4);
-  padding: var(--s-5) var(--s-6);
-  min-height: 44px;
-  font: 700 16px/1.35 var(--f-brand);
-  letter-spacing: -0.01em;
-  color: var(--ink);
-  transition: color var(--dur-fast) var(--ease);
 }
 .sm-faq-item > summary::-webkit-details-marker {
   display: none;
 }
-.sm-faq-item > summary:hover {
-  color: var(--wine-text);
-}
 .sm-faq-item > summary:focus-visible {
   outline: 3px solid var(--color-ink);
-  outline-offset: -3px;
+  outline-offset: 4px;
+  border-radius: var(--r-sm);
 }
 .sm-faq-item > summary .chev {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
+  color: var(--wine-text);
+  transition: transform var(--dur) var(--ease);
   flex: 0 0 auto;
-  color: var(--ink-soft);
-  transition: transform var(--dur-fast) var(--ease);
 }
 .sm-faq-item[open] > summary .chev {
   transform: rotate(180deg);
 }
 .sm-faq-item > p {
-  font: 400 15px/1.62 var(--f-brand);
+  font: 400 14.5px/1.6 var(--f-brand);
   color: var(--ink-soft);
-  margin: 0;
-  padding: 0 var(--s-6) var(--s-5);
-  max-width: 72ch;
+  margin: var(--s-3) 0 0;
+  text-wrap: pretty;
+}
+.sm-faq-item > p a {
+  color: var(--wine-text);
+  font-weight: 700;
 }
 .sm-faq-more {
   margin-top: var(--s-6);
@@ -3739,73 +3827,58 @@ a.svp-it:hover .nm {
   text-decoration: none;
 }
 .sm-faq-more a:hover {
-  color: var(--ink);
+  text-decoration: underline;
 }
 
-/* ── CTA final (banda wine) ── */
+/* ── CTA final (misma banda navy que el hero) ── */
 .sm-final {
-  padding: var(--s-16) 0;
-  background: var(--grad-wine);
-  color: var(--color-on-accent);
+  background: var(--grad-navy-hero);
 }
 .sm-final-in {
-  max-width: var(--maxw);
+  max-width: var(--home-max);
   margin: 0 auto;
-  padding: 0 var(--gutter);
+  padding: var(--s-16) var(--s-8);
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
-  gap: var(--s-8);
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr);
+  gap: var(--s-10);
   align-items: center;
-}
-@media (max-width: 900px) {
-  .sm-final-in {
-    grid-template-columns: 1fr;
-  }
 }
 .sm-surface .eyebrow-f {
   font: 700 12px/1 var(--f-brand);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--wine-on-dark);
   margin-bottom: var(--s-4);
 }
 .sm-final h2 {
   font-family: var(--f-brand-display);
   font-weight: 900;
-  font-size: clamp(28px, 3.4vw, 44px);
-  line-height: 1.08;
+  font-size: clamp(28px, 3.4vw, 46px);
+  line-height: 1.06;
   letter-spacing: -0.02em;
-  margin: 0;
-  color: var(--color-on-accent);
+  margin: 0 0 var(--s-4);
+  color: var(--sm-on-navy);
   text-wrap: balance;
 }
 .sm-final p {
-  font: 400 16.5px/1.6 var(--f-brand);
-  color: rgba(255, 255, 255, 0.88);
-  margin: var(--s-5) 0 0;
-  max-width: 56ch;
+  font: 400 17px/1.6 var(--f-brand);
+  color: var(--sm-on-navy-soft);
+  margin: 0;
+  max-width: 50ch;
   text-wrap: pretty;
 }
 .sm-final-ctas {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: var(--s-3);
 }
-.sm-surface .sm-final .btn-onwine {
-  background: var(--color-paper);
-  color: var(--wine-text);
+.sm-final-ctas .btn {
+  width: 100%;
 }
-.sm-surface .sm-final .btn-onwine:hover {
-  background: var(--color-white);
-}
-.sm-surface .sm-final .btn-ghost {
-  color: var(--color-on-accent);
-  border-color: rgba(255, 255, 255, 0.55);
-}
-.sm-surface .sm-final .btn-ghost:hover {
-  border-color: var(--color-on-accent);
-  background: rgba(255, 255, 255, 0.12);
-}
-.sm-surface .sm-final .btn:focus-visible {
-  outline: 3px solid var(--color-on-accent);
+@media (max-width: 780px) {
+  .sm-final-in {
+    grid-template-columns: 1fr;
+    gap: var(--s-8);
+    padding: var(--s-12) var(--s-5);
+  }
 }
