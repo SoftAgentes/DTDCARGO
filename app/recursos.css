@@ -249,6 +249,16 @@
 .rp-cta p a:not(.btn):hover {
   color: var(--wine);
 }
+/* Enlaces dentro de la banda navy — wine-on-dark (BD-026, 4,57:1 en el peor
+   caso del degradado) + subrayado. El wine crudo sobre navy no se lee. */
+.rp-hero a:not(.btn) {
+  color: var(--wine-on-dark);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.rp-hero a:not(.btn):hover {
+  color: var(--rp-on-navy);
+}
 .rp-surface a:focus-visible {
   outline: 3px solid var(--wine);
   outline-offset: 2px;
