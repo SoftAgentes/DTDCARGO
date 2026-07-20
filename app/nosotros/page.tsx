@@ -102,22 +102,22 @@ export default function NosotrosPage() {
           __html: JSON.stringify(aboutJsonLd).replace(/</g, "\\u003c"),
         }}
       />
-      <main>
-        {/* HERO */}
-        <section className="py-16 lg:py-24 bg-paper">
-          <div className="wrap">
-            <span className="eyebrow">Quiénes somos</span>
-            <h1
-              className="h-display mt-5"
-              style={{ fontSize: "clamp(40px, 6vw, 80px)" }}
-            >
-              De la experiencia comercial
-              <br />
-              <span style={{ color: "var(--color-wine)" }}>
-                a la logística integral.
-              </span>
+      {/* Revestido al Norte con la superficie de recursos (`.rp-surface`).
+          Sin mockup propio: se aplica el armazón `rp-*` de glosario/FAQ/
+          noticias, sin inventar dirección nueva. El copy de la cronología
+          (2008 experiencia / 2015 fundación) NO se toca. */}
+      <main className="rp-surface" style={{ ["--rp-w" as string]: "var(--maxw)" }}>
+        <section className="rp-hero">
+          <div className="rp-hero-in">
+            <div className="rp-eyebrow">
+              <span className="rule" />
+              Quiénes somos
+            </div>
+            <h1>
+              De la experiencia comercial{" "}
+              <span className="accent">a la logística integral.</span>
             </h1>
-            <p className="lead mt-6 max-w-[60ch]">
+            <p>
               Desde 2008 importamos de China; desde 2010 operamos logística
               integral puerta a puerta. Hoy somos un puente de confianza entre
               las fábricas asiáticas y los comercios de Venezuela — con equipo

@@ -123,22 +123,31 @@ export default async function PuertaAPuertaPage() {
         ]}
       />
 
-      <main className={jetbrainsMono.variable}>
-        {/* Hero */}
-        <section className="py-16 lg:py-24 bg-paper">
-          <div className="wrap max-w-[920px]">
-            <span className="eyebrow">Puerta a puerta · DDP</span>
-            <h1 className="h-display mt-5" style={{ fontSize: "clamp(34px, 5.5vw, 68px)" }}>
+      {/* Revestido al Norte con la superficie de recursos (`.rp-surface`).
+          Sin mockup propio: armazón `rp-*`, sin dirección visual nueva. El
+          copy comercial y el bloque RespuestaRapida (citable por IA) no se
+          tocan. */}
+      <main
+        className={`rp-surface ${jetbrainsMono.variable}`}
+        style={{ ["--rp-w" as string]: "920px" }}
+      >
+        <section className="rp-hero">
+          <div className="rp-hero-in">
+            <div className="rp-eyebrow">
+              <span className="rule" />
+              Puerta a puerta · DDP
+            </div>
+            <h1>
               De la fábrica en China,{" "}
-              <span style={{ color: "var(--color-wine)" }}>a tu puerta en Venezuela.</span>
+              <span className="accent">a tu puerta en Venezuela.</span>
             </h1>
-            <p className="lead mt-6 max-w-[60ch]">
+            <p>
               Con el servicio puerta a puerta coordinamos flete, aduana e
               impuestos como un solo paquete y pagas cuando tu carga llega a
               Venezuela — sujeto a aprobación. Un solo equipo responsable, de
               principio a fin.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="rp-hero-actions">
               <a href={wa} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
                 <WhatsAppIcon size={18} /> Cotizar por WhatsApp
               </a>
