@@ -221,6 +221,9 @@ export function Footer() {
             <Link href="/shipping-mark" className="hover:text-white transition-colors">
               Shipping Mark
             </Link>
+            <Link href="/pre-alertas" className="hover:text-white transition-colors">
+              Pre-alertas
+            </Link>
             <Link href="/faq" className="hover:text-white transition-colors">
               Preguntas frecuentes
             </Link>

@@ -47,6 +47,7 @@ const eslintConfig = defineConfig([
       "app/tarifas/**",
       "app/fcl/**",
       "app/shipping-mark/**",
+      "app/pre-alertas/**",
       "app/track/**",
       "app/contacto/**",
       "app/calculadora-terrestre/**",
