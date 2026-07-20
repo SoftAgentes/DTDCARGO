@@ -1,0 +1,639 @@
+/* ══════════════════════════════════════════════════════════════════
+   SUPERFICIE "RECURSOS" (`.rp-surface`) — web pública
+   ──────────────────────────────────────────────────────────────────
+   Fiel a los mockups de Cloud Design que comparten el MISMO armazón
+   `rp-*` (recursos page):
+     · `Glosario · DTD-Cargo.html`
+     · `Preguntas Frecuentes · DTD-Cargo.html`
+     · `Noticias · DTD-Cargo.html`
+   Los tres declaran idéntico `.rp-hero` / `.rp-hero-in` / `.rp-eyebrow` /
+   `.rp-body` y solo cambian el bloque de contenido (`.gl-*`, `.faq-*`,
+   `.nw-*`). Acá se unifica una sola vez y se reusa también en las páginas
+   SIN mockup propio (academia, nosotros, puerta a puerta, landings SEO y
+   legales) — regla del encargo: no inventar dirección nueva, aplicar el
+   sistema visual existente.
+
+   POR QUÉ ARCHIVO APARTE: `app/globals.css` ya pasa las 4.300 líneas y
+   concentra home + shipping-mark + contacto + servicios. Esta superficie
+   cubre ~11 rutas y crecería el archivo otro 10%. Se importa desde
+   `app/layout.tsx` justo detrás de `globals.css` (mismo scope global, sin
+   la restricción de orden de `@import` de CSS).
+
+   Nav / Footer / WhatsAppFAB son componentes del repo — el `.rp-foot` del
+   mockup NO se copia (el `<Footer>` del sitio ya es el del Norte).
+
+   ADAPTACIONES vs. el mockup (documentadas, no accidentales):
+   1. El mockup escribe `#fff` y `rgba(255,255,255,.78)` sobre la banda
+      navy. Acá se expresan como `color-mix` de `--color-grey-100`, mismo
+      criterio que `.sm-surface` en globals.css (BRAND.md: nada de
+      `rgba(255,255,255,X)` literal sobre navy). Ratios medidos contra
+      `#1F3055` — el extremo CLARO del radial, o sea el peor caso.
+   2. Se agrega `:focus-visible` visible en todo lo interactivo: el CSS
+      del mockup no lo trae y sin él las páginas no son navegables con
+      teclado.
+   3. El pie legal NO reproduce el "RIF J-50648869-8" del mockup: razón
+      social y RIF van SOLO en el JSON-LD (regla de marca del founder).
+   ══════════════════════════════════════════════════════════════════ */
+
+.rp-surface {
+  /* Tinta CREMA sobre la banda navy (ver adaptación 1) */
+  --rp-on-navy: var(--color-grey-100); /* 12.4:1 sobre #1F3055 */
+  --rp-on-navy-soft: color-mix(in srgb, var(--color-grey-100) 85%, transparent); /* 9.4:1 */
+  --rp-on-navy-mute: color-mix(in srgb, var(--color-grey-100) 66%, transparent); /* 6.3:1 */
+  /* Rellenos / hairlines sobre navy (no llevan texto) */
+  --rp-navy-fill: color-mix(in srgb, var(--color-white) 6%, transparent);
+  --rp-navy-border: color-mix(in srgb, var(--color-grey-100) 40%, transparent);
+  /* wine legible sobre navy (BD-026 / --color-wine-on-dark) */
+  --wine-on-dark: var(--color-wine-on-dark);
+  --f-cn: var(--font-noto-sc); /* solo para chino mandarín (唛头, 义乌) */
+  /* Ancho de lectura por defecto; cada página lo puede pisar inline */
+  --rp-w: 900px;
+  background: var(--grad-page);
+}
+
+/* ── Banda navy del hero ───────────────────────────────────────────
+   Hex explícito por BD-023: dentro de un gradiente NUNCA `var(--ink)`
+   (en dark se invierte a crema y voltea la banda). Misma familia tonal
+   navy→ink de `--bg-glow`. */
+.rp-hero {
+  background: radial-gradient(130% 95% at 50% -14%, #1f3055 0%, #0f1e3d 44%, #0b1428 100%);
+}
+.rp-hero-in {
+  max-width: var(--rp-w);
+  margin: 0 auto;
+  padding: var(--s-12) var(--s-6) var(--s-10);
+}
+@media (min-width: 768px) {
+  .rp-hero-in {
+    padding: var(--s-16) var(--s-8) var(--s-12);
+  }
+}
+
+.rp-surface .rp-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  font: 700 13px/1 var(--f-brand);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--wine-on-dark);
+  margin: 0 0 var(--s-4);
+}
+.rp-surface .rp-eyebrow .rule {
+  width: 32px;
+  height: 2px;
+  background: var(--wine-on-dark);
+  flex: 0 0 auto;
+}
+
+.rp-hero-in h1,
+.rp-h1 {
+  font-family: var(--f-brand-display);
+  font-weight: 900;
+  font-size: clamp(30px, 4.4vw, 46px);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  color: var(--rp-on-navy);
+  margin: 0 0 var(--s-4);
+  text-wrap: balance;
+}
+.rp-hero-in h1 .accent,
+.rp-h1 .accent {
+  color: var(--wine-on-dark);
+}
+.rp-hero-in > p,
+.rp-hero-sub {
+  font: 500 clamp(15px, 1.3vw, 17px) / 1.6 var(--f-brand);
+  color: var(--rp-on-navy-soft);
+  margin: 0;
+  max-width: 64ch;
+  text-wrap: pretty;
+}
+
+/* Datos sueltos bajo el titular (fecha de vigencia, contadores, etc.) */
+.rp-hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-5);
+  margin: var(--s-5) 0 0;
+  font: 600 12.5px/1.4 var(--f-brand);
+  color: var(--rp-on-navy-mute);
+}
+.rp-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  margin-top: var(--s-6);
+}
+
+/* ── Cuerpo ──────────────────────────────────────────────────────── */
+.rp-body {
+  max-width: var(--rp-w);
+  margin: 0 auto;
+  padding: var(--s-10) var(--s-6) var(--s-16);
+}
+@media (min-width: 768px) {
+  .rp-body {
+    padding: var(--s-12) var(--s-8) var(--s-16);
+  }
+}
+
+.rp-surface .rp-h2 {
+  font-family: var(--f-brand-display);
+  font-weight: 900;
+  font-size: clamp(24px, 3.2vw, 34px);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 0 0 var(--s-3);
+  text-wrap: balance;
+}
+.rp-surface .rp-h2 .accent {
+  color: var(--wine-text);
+}
+.rp-surface .rp-lead {
+  font: 500 clamp(14.5px, 1.2vw, 16px) / 1.65 var(--f-brand);
+  color: var(--ink-soft);
+  max-width: 62ch;
+  margin: 0 0 var(--s-6);
+  text-wrap: pretty;
+}
+
+/* Etiqueta de sección (equivalente claro del eyebrow del hero) */
+.rp-surface .rp-kicker {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  font: 700 12px/1 var(--f-brand);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--wine-text);
+  margin: 0 0 var(--s-4);
+}
+.rp-surface .rp-kicker .rule {
+  width: 28px;
+  height: 2px;
+  background: var(--wine);
+  flex: 0 0 auto;
+}
+
+/* ── Botones (mismo sistema que `.home-surface` / `.sm-surface`) ──── */
+.rp-surface .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  font: 700 15px/1 var(--f-brand);
+  border-radius: var(--r-md);
+  padding: 13px 22px;
+  text-decoration: none;
+  cursor: pointer;
+  border: 0;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.rp-surface .btn:active {
+  transform: translateY(1px);
+}
+.rp-surface .btn:focus-visible {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 2px;
+}
+.rp-hero .btn:focus-visible {
+  outline-color: var(--rp-on-navy);
+}
+.rp-surface .btn-primary {
+  background: var(--wine);
+  color: var(--color-on-accent);
+  box-shadow: var(--shadow-sm);
+}
+.rp-surface .btn-primary:hover {
+  background: var(--wine-deep);
+}
+.rp-surface .btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--border-strong);
+}
+.rp-surface .btn-ghost:hover {
+  border-color: var(--ink);
+}
+/* Ghost sobre la banda navy del hero */
+.rp-hero .btn-ghost {
+  color: var(--rp-on-navy);
+  border-color: var(--rp-navy-border);
+}
+.rp-hero .btn-ghost:hover {
+  border-color: var(--rp-on-navy);
+  background: var(--rp-navy-fill);
+}
+
+/* Enlaces del cuerpo: wine legible + subrayado (WCAG 1.4.1 — el color
+   solo nunca alcanza para señalar un enlace). */
+.rp-body a:not(.btn):not(.rp-plain),
+.rp-sec a:not(.btn):not(.rp-plain) {
+  color: var(--wine-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.rp-body a:not(.btn):not(.rp-plain):hover,
+.rp-sec a:not(.btn):not(.rp-plain):hover {
+  color: var(--wine);
+}
+.rp-surface a:focus-visible {
+  outline: 3px solid var(--wine);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Card genérica de contenido ───────────────────────────────────── */
+.rp-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: var(--s-6);
+}
+
+/* ── Glosario (`Glosario · DTD-Cargo.html`) ───────────────────────── */
+.rp-surface .gl-item {
+  padding: var(--s-6) 0;
+  border-bottom: 1px solid var(--border);
+  scroll-margin-top: 96px;
+}
+.rp-surface .gl-item:first-child {
+  padding-top: 0;
+}
+.rp-surface .gl-item:last-child {
+  border-bottom: 0;
+}
+.rp-surface .gl-term {
+  font: 800 19px/1.2 var(--f-brand-display);
+  color: var(--ink);
+  margin: 0 0 6px;
+  letter-spacing: -0.01em;
+}
+.rp-surface .gl-term .tag {
+  font: 700 11px/1 var(--f-mono);
+  color: var(--wine-text);
+  background: var(--wine-tint);
+  border-radius: var(--r-pill);
+  padding: 4px 9px;
+  margin-left: 10px;
+  letter-spacing: 0;
+  vertical-align: middle;
+  /* Sin `white-space: nowrap` (el mockup no lo trae y sus acrónimos son
+     cortos): en producción hay tags largos como "Delivered Duty Paid ·
+     Entrega con derechos pagados" que a 390px se saldrían de la página. */
+  display: inline-block;
+}
+.rp-surface .gl-term .tag.cn {
+  font-family: var(--f-cn);
+}
+.rp-surface .gl-def {
+  font: 500 14.5px/1.6 var(--f-brand);
+  color: var(--ink-soft);
+  margin: 0 0 var(--s-3);
+  text-wrap: pretty;
+}
+.rp-surface .gl-def:last-child {
+  margin-bottom: 0;
+}
+/* Analogía del término — el mockup no la trae (su glosario es plano); la
+   producción sí, y se conserva (regla: revestir, no recortar contenido). */
+.rp-surface .gl-analogy {
+  margin: var(--s-4) 0 0;
+  padding: var(--s-4) var(--s-5);
+  background: var(--bg-elevated);
+  border-left: 3px solid var(--wine);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+}
+.rp-surface .gl-analogy .lbl {
+  display: block;
+  font: 700 11px/1 var(--f-brand);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--wine-text);
+  margin-bottom: 6px;
+}
+.rp-surface .gl-analogy p {
+  font: 500 14px/1.55 var(--f-brand);
+  color: var(--ink-soft);
+  margin: 0;
+}
+/* Grupo por categoría */
+.rp-surface .gl-group {
+  margin-bottom: var(--s-12);
+}
+.rp-surface .gl-group:last-child {
+  margin-bottom: 0;
+}
+.rp-surface .gl-group-h {
+  font: 700 12px/1 var(--f-brand);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--wine-text);
+  margin: 0 0 var(--s-5);
+  padding-bottom: var(--s-3);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Índice lateral (TOC) — solo escritorio */
+.rp-toc {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .rp-cols {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: var(--s-12);
+    align-items: start;
+  }
+  .rp-toc {
+    display: block;
+    position: sticky;
+    top: 100px;
+  }
+}
+.rp-toc-h {
+  font: 700 11px/1 var(--f-brand);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0 0 var(--s-4);
+}
+.rp-toc-g {
+  margin-bottom: var(--s-6);
+}
+.rp-toc-g > span {
+  display: block;
+  font: 700 10.5px/1 var(--f-brand);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--wine-text);
+  margin-bottom: var(--s-2);
+}
+.rp-toc ul {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 var(--s-3);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rp-toc a {
+  display: block;
+  font: 500 13.5px/1.4 var(--f-brand);
+  color: var(--ink-soft);
+  text-decoration: none;
+  padding: 2px 0;
+}
+.rp-toc a:hover {
+  color: var(--wine-text);
+}
+
+/* ── Preguntas frecuentes (`Preguntas Frecuentes · DTD-Cargo.html`) ── */
+.rp-surface .faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.rp-surface .faq-item {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--s-5) var(--s-6);
+}
+.rp-surface .faq-item summary {
+  cursor: pointer;
+  font: 800 16px/1.35 var(--f-brand);
+  color: var(--ink);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+.rp-surface .faq-item summary::-webkit-details-marker {
+  display: none;
+}
+.rp-surface .faq-item summary:focus-visible {
+  outline: 3px solid var(--wine);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+.rp-surface .faq-item summary .ic {
+  color: var(--wine-text);
+  transition: transform 160ms var(--ease);
+  flex: 0 0 auto;
+}
+.rp-surface .faq-item[open] summary .ic {
+  transform: rotate(45deg);
+}
+.rp-surface .faq-item .faq-a {
+  font: 500 14.5px/1.6 var(--f-brand);
+  color: var(--ink-soft);
+  margin: var(--s-3) 0 0;
+  text-wrap: pretty;
+}
+
+/* ── Noticias (`Noticias · DTD-Cargo.html`) ───────────────────────── */
+.rp-surface .nw-empty {
+  text-align: center;
+  padding: var(--s-16) var(--s-6);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+}
+.rp-surface .nw-empty .ic {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto var(--s-5);
+  color: var(--wine-text);
+  background: var(--wine-tint);
+  border-radius: var(--r-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rp-surface .nw-empty h2 {
+  font: 800 22px/1.3 var(--f-brand-display);
+  color: var(--ink);
+  margin: 0 0 var(--s-3);
+}
+.rp-surface .nw-empty p {
+  font: 500 14.5px/1.6 var(--f-brand);
+  color: var(--ink-soft);
+  margin: 0 auto var(--s-6);
+  max-width: 48ch;
+}
+/* Lista de notas */
+.rp-surface .nw-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.rp-surface .nw-card {
+  display: block;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: var(--s-6);
+  text-decoration: none;
+  transition: border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+.rp-surface .nw-card:hover {
+  border-color: var(--wine);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.rp-surface .nw-card .meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+  font: 700 11px/1 var(--f-brand);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: var(--s-3);
+}
+.rp-surface .nw-card .meta .cat {
+  color: var(--wine-text);
+  background: var(--wine-tint);
+  border-radius: var(--r-pill);
+  padding: 4px 9px;
+}
+.rp-surface .nw-card h2,
+.rp-surface .nw-card h3 {
+  font: 800 20px/1.2 var(--f-brand-display);
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin: 0 0 var(--s-2);
+  text-wrap: balance;
+}
+.rp-surface .nw-card p {
+  font: 500 14.5px/1.6 var(--f-brand);
+  color: var(--ink-soft);
+  margin: 0;
+  text-wrap: pretty;
+}
+
+/* ── Prosa larga (legales, notas de prensa, guías) ────────────────── */
+.rp-prose {
+  max-width: 68ch;
+}
+.rp-prose h2 {
+  font: 800 clamp(19px, 2.2vw, 23px) / 1.25 var(--f-brand-display);
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin: var(--s-10) 0 var(--s-4);
+  scroll-margin-top: 96px;
+}
+.rp-prose > h2:first-child {
+  margin-top: 0;
+}
+.rp-prose h3 {
+  font: 800 16px/1.35 var(--f-brand);
+  color: var(--ink);
+  margin: var(--s-6) 0 var(--s-2);
+}
+.rp-prose p,
+.rp-prose li {
+  font: 400 15.5px/1.7 var(--f-brand);
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+.rp-prose p {
+  margin: 0 0 var(--s-4);
+}
+.rp-prose ul,
+.rp-prose ol {
+  margin: 0 0 var(--s-4);
+  padding-left: var(--s-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.rp-prose strong,
+.rp-prose b {
+  color: var(--ink);
+  font-weight: 700;
+}
+.rp-prose hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: var(--s-10) 0;
+}
+.rp-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font: 400 13.5px/1.5 var(--f-brand);
+  color: var(--ink-soft);
+}
+.rp-prose th {
+  text-align: left;
+  font-weight: 700;
+  color: var(--ink);
+  border-bottom: 1px solid var(--border);
+  padding: var(--s-2) var(--s-4) var(--s-2) 0;
+  vertical-align: top;
+}
+.rp-prose td {
+  border-bottom: 1px solid var(--border);
+  padding: var(--s-2) var(--s-4) var(--s-2) 0;
+  vertical-align: top;
+}
+/* Las tablas anchas hacen scroll dentro de su caja, nunca la página */
+.rp-table-scroll {
+  overflow-x: auto;
+  margin-bottom: var(--s-4);
+}
+.rp-table-scroll table {
+  min-width: 560px;
+}
+
+/* ── Sección suelta sobre el fondo de página ──────────────────────── */
+.rp-sec {
+  max-width: var(--rp-w);
+  margin: 0 auto;
+  padding: 0 var(--s-6) var(--s-16);
+}
+@media (min-width: 768px) {
+  .rp-sec {
+    padding: 0 var(--s-8) var(--s-16);
+  }
+}
+
+/* ── CTA de cierre ────────────────────────────────────────────────── */
+.rp-cta {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: var(--s-8) var(--s-6);
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+@media (min-width: 768px) {
+  .rp-cta {
+    padding: var(--s-10);
+  }
+}
+.rp-cta h2,
+.rp-cta h3 {
+  font: 800 clamp(21px, 2.6vw, 27px) / 1.2 var(--f-brand-display);
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin: 0 0 var(--s-3);
+  text-wrap: balance;
+}
+.rp-cta p {
+  font: 500 14.5px/1.6 var(--f-brand);
+  color: var(--ink-soft);
+  margin: 0 auto var(--s-6);
+  max-width: 50ch;
+}
+.rp-cta .rp-kicker {
+  justify-content: center;
+}

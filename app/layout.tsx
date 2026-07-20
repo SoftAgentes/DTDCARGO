@@ -6,6 +6,10 @@ import { buildOfferCatalog, isOfferable } from "@/lib/seo-offer-catalog";
 import { Analytics } from "@/components/Analytics";
 import { CookieConsentBanner } from "@/components/CookieConsentBanner";
 import "./globals.css";
+// Superficie "recursos" (`.rp-surface`) de la web pública — glosario, FAQ,
+// noticias, academia, nosotros, puerta a puerta, landings SEO y legales.
+// Va en archivo aparte porque globals.css ya supera las 4.300 líneas.
+import "./recursos.css";
 
 const archivo = Archivo({
   subsets: ["latin"],
