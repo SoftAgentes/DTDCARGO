@@ -7,13 +7,15 @@ import {
   DEFAULT_PARAMS,
   CONSOLIDADO_CBM_RATE,
   CONSOLIDADO_DESTINO,
-  consolidadoMinCharge,
+  CONSOLIDADO_CBM_MINIMO,
+  CONSOLIDADO_MIN_CBM_MENSAJE,
   calcularEnvioLCL,
   cbmFromDimensions,
   whatsappTextFromCotizacion,
   type EnvioInput,
   type EnvioCotizacion,
   type CalcParams,
+  type CalcModo,
   type Ciudad,
 } from "@/lib/calculadora";
 import Link from "next/link";
@@ -48,15 +50,18 @@ type ServerRate = {
 type CalcWarning = { text: string; tone: "danger" | "warning" | "info" } | null;
 
 /**
- * Modalidad que calcula el form:
+ * Modalidad que calcula el form (el tipo vive en `lib/calculadora`, que es
+ * donde se aplica la diferencia de reglas):
  *  · `ddp`          = Puerta a Puerta (DDP): tarifa pública de la DB, ciudad de
  *                     destino en Venezuela, todo incluido hasta la puerta.
  *  · `consolidado`  = LCL Consolidado: tarifa fija `CONSOLIDADO_CBM_RATE`
  *                     (dato del founder), SIN ciudad — llega hasta puerto y te
  *                     entregamos tu propio BL; aduana e impuestos van por
- *                     cuenta del cliente. Mismas reglas/recargos que el DDP.
+ *                     cuenta del cliente. Mismos recargos que el DDP, con UNA
+ *                     regla propia: por debajo de `CONSOLIDADO_CBM_MINIMO`
+ *                     (1 m³) no cotiza y deriva al asesor.
  */
-export type CalcModo = "ddp" | "consolidado";
+export type { CalcModo };
 
 export function CalculadoraForm({
   serverRate,
@@ -90,16 +95,16 @@ export function CalculadoraForm({
       ? serverRate.min_charge
       : CONFIG.minimoFacturable;
 
-  // Consolidado: tarifa fija del founder + piso que CONSERVA el mismo CBM
-  // mínimo del puerta a puerta (única diferencia = la tarifa base).
+  // Consolidado: tarifa fija del founder y SIN piso en USD — su mínimo es de
+  // VOLUMEN (1 m³, `CONSOLIDADO_CBM_MINIMO`): por debajo no cotiza y deriva al
+  // asesor, así que 1 × 580 = $580 ya queda muy por encima de cualquier piso.
   const baseRate = esConsolidado ? CONSOLIDADO_CBM_RATE : ddpRate;
-  const minCharge = esConsolidado
-    ? consolidadoMinCharge(ddpRate, ddpMinCharge)
-    : ddpMinCharge;
+  const minCharge = esConsolidado ? 0 : ddpMinCharge;
   const minChargeOverride = esConsolidado
-    ? minCharge
+    ? undefined
     : (serverRate?.min_charge ?? undefined);
   // Punto de cruce: CBM donde el cálculo iguala al mínimo. Derivado de la tarifa.
+  // En consolidado queda en 0 (no hay piso) → el aviso que aplica es el de 1 m³.
   const crossoverCbm = baseRate > 0 ? minCharge / baseRate : 0;
   const crossoverLabel = parseFloat(crossoverCbm.toFixed(4)).toString();
   const params = serverConfig ?? DEFAULT_PARAMS;
@@ -116,6 +121,9 @@ export function CalculadoraForm({
     "casco-central";
 
   const [form, setForm] = useState<EnvioInput>({
+    // El motor necesita la modalidad para aplicar la puerta de 1 m³ del
+    // consolidado (lib/calculadora · CONSOLIDADO_CBM_MINIMO).
+    modo,
     cbmTotal: 0,
     pesoKg: 0,
     embalaje: "estandar",
@@ -185,12 +193,16 @@ export function CalculadoraForm({
   const cbmWarning: CalcWarning =
     effectiveCbm > params.cbmMaxContenedor
       ? { text: "Eso es más que un contenedor. Consulta con tu asesor.", tone: "danger" }
-      : effectiveCbm > 0 && effectiveCbm < crossoverCbm
-        ? {
-            text: `Nuestro mínimo de carga es ${crossoverLabel} m³ — por debajo, el envío sale $${minCharge}.`,
-            tone: "info",
-          }
-        : null;
+      : // Consolidado: por debajo de 1 m³ no hay precio, hay asesor. Es bloqueo
+        // real (el BL propio es un fijo de hasta USD 300) → tono `danger`.
+        esConsolidado && effectiveCbm > 0 && effectiveCbm < CONSOLIDADO_CBM_MINIMO
+        ? { text: CONSOLIDADO_MIN_CBM_MENSAJE, tone: "danger" }
+        : effectiveCbm > 0 && effectiveCbm < crossoverCbm
+          ? {
+              text: `Nuestro mínimo de carga es ${crossoverLabel} m³ — por debajo, el envío sale $${minCharge}.`,
+              tone: "info",
+            }
+          : null;
 
   // Aviso del peso: tope absoluto de contenedor + recargo por densidad (peso por
   // CBM). Founder 2026-07-06: el exceso de densidad ya NO deriva al asesor — el

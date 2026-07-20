@@ -18,6 +18,9 @@
  *  5. Baterías: multiplican el flete (×recargoBateriaMult).
  *  6. Carga especial / peligrosa → no cotiza, deriva al asesor.
  *  7. Descuento sede: -$ si la ciudad de destino es Valencia.
+ *  8. LCL Consolidado por debajo de 1 m³ → no cotiza, deriva al asesor (el BL
+ *     propio es un gasto fijo de hasta USD 300 y la carga chica termina
+ *     abandonada en el almacén fiscal). Ver `CONSOLIDADO_CBM_MINIMO`.
  *  Orden: (base + ciudad + embalaje) × batería − descuento, luego piso.
  */
 
@@ -129,30 +132,52 @@ export const CONSOLIDADO_DESTINO: Ciudad = {
 };
 
 /**
- * Piso mínimo (USD) del LCL Consolidado, derivado para conservar **el mismo
- * CBM mínimo** que el puerta a puerta (regla del founder: mismas reglas, solo
- * cambia la tarifa base).
- *
- *   CBM mínimo = minCharge(DDP) / tarifa(DDP)   →   piso = CBM mínimo × 580
- *
- * Ej: piso DDP $380 con tarifa $800 → 0,475 m³ → piso consolidado $275,50.
- * Sin tarifa/piso público válidos cae al piso trivial de CONFIG.
+ * Modalidad que se está cotizando. Afecta SOLO la puerta de volumen de abajo:
+ * el resto de las reglas y recargos son idénticos en las dos.
+ *  · `ddp`          = Puerta a Puerta, todo incluido hasta la puerta.
+ *  · `consolidado`  = LCL Consolidado, hasta puerto y con BL propio del cliente.
  */
-export function consolidadoMinCharge(
-  ddpRateCbm: number,
-  ddpMinCharge: number,
-): number {
-  if (
-    !Number.isFinite(ddpRateCbm) ||
-    !Number.isFinite(ddpMinCharge) ||
-    ddpRateCbm <= 0 ||
-    ddpMinCharge <= 0
-  ) {
-    return CONFIG.minimoFacturable;
-  }
-  const cbmMinimo = ddpMinCharge / ddpRateCbm;
-  return Math.round(cbmMinimo * CONSOLIDADO_CBM_RATE * 100) / 100;
-}
+export type CalcModo = "ddp" | "consolidado";
+
+/**
+ * ⚠️ PUERTA DE VOLUMEN DEL CONSOLIDADO — regla del founder (2026-07-20).
+ *
+ * Por debajo de **1 m³** el LCL Consolidado NO se cotiza: la calculadora no
+ * muestra precio y deriva al asesor. El porqué (que es lo que hay que entender
+ * antes de tocar este número):
+ *
+ *  · El consolidado va hasta puerto **con BL propio del cliente**. Un BL aparte
+ *    es un GASTO FIJO que no baja con el volumen: puede llegar a costar
+ *    USD 300. En 0,5 m³ ese fijo se come el envío entero.
+ *  · Por eso la mercancía chica en esta modalidad es candidata a quedar
+ *    **abandonada en el almacén fiscal** cuando el cliente ve la cuenta final —
+ *    y eso es un riesgo real (y un costo) para DTD, no solo un mal negocio
+ *    para el cliente.
+ *
+ * Excepción: mercancía de muy alto valor comercial, bajo el riesgo del cliente.
+ * Eso lo evalúa un ASESOR, no la calculadora — por eso el corte deriva a
+ * WhatsApp en vez de cotizar.
+ *
+ * 🔶 PENDIENTE LEGAL: el tratamiento de esta exención (condiciones del
+ *    Consolidado, cómo se documenta la aceptación de riesgo del cliente cuando
+ *    se cotiza por debajo de 1 m³) **está sin definir**. Cuando el abogado lo
+ *    cierre, esto se refleja en las condiciones publicadas del servicio.
+ *
+ * No hay piso en USD: con el corte en 1 m³ el mínimo cobrable del consolidado
+ * es 1 × 580 = $580, muy por encima de cualquier piso — por eso el viejo
+ * `consolidadoMinCharge()` se eliminó (era código muerto).
+ */
+export const CONSOLIDADO_CBM_MINIMO = 1;
+
+/** Tope de lo que puede costar el BL propio del cliente (USD) — cifra del founder. */
+export const CONSOLIDADO_BL_COSTO_MAX = 300;
+
+/** Mensaje único del corte: explica el porqué y deriva al asesor. */
+export const CONSOLIDADO_MIN_CBM_MENSAJE =
+  `Esta modalidad requiere un BL a tu nombre, y solo el BL puede llegar a ` +
+  `costar USD ${CONSOLIDADO_BL_COSTO_MAX}. Por debajo de ` +
+  `${CONSOLIDADO_CBM_MINIMO} m³ ese gasto fijo se come tu margen. Si tu ` +
+  `mercancía es de alto valor comercial y aun así te conviene, háblalo con un asesor.`;
 
 // ────────────────────────────────────────────────────────────────────
 // 1b) PARÁMETROS CONFIGURABLES DESDE EL STUDIO (Fase 3 Slice A)
@@ -252,6 +277,12 @@ export const EMBALAJES: { id: TipoEmbalaje; label: string; recargo: number }[] =
 // ────────────────────────────────────────────────────────────────────
 
 export type EnvioInput = {
+  /**
+   * Modalidad cotizada. Default `ddp` = comportamiento histórico intacto.
+   * En `consolidado` se activa la puerta de volumen de 1 m³
+   * (`CONSOLIDADO_CBM_MINIMO`) — ver el bloque 1a.
+   */
+  modo?: CalcModo;
   /** Volumen total del envío en m³ (CBM). El cliente ya lo conoce. */
   cbmTotal: number;
   /** Peso total de toda la carga en kg. */
@@ -303,7 +334,8 @@ export type EnvioCotizacion = {
       | "carga_especial"
       | "contenedor_excedido"
       | "peso_contenedor_excedido"
-      | "peso_envio_excedido";
+      | "peso_envio_excedido"
+      | "volumen_minimo_consolidado";
     mensaje: string;
   };
 
@@ -375,6 +407,21 @@ export function calcularEnvioLCL(
       tipo: "peso_contenedor_excedido",
       mensaje:
         "Esto es más que el peso permitido por contenedor; consulta a tu asesor",
+    }, input);
+  }
+
+  // 5.3c — Puerta de volumen del LCL Consolidado (founder 2026-07-20). Por
+  // debajo de 1 m³ NO se cotiza: el BL propio es un gasto fijo (hasta USD 300)
+  // que no baja con el volumen, y la carga chica en esta modalidad termina
+  // abandonada en el almacén fiscal. La excepción (alto valor comercial, bajo
+  // el riesgo del cliente) la evalúa un asesor. Detalle en el bloque 1a.
+  if (
+    input.modo === "consolidado" &&
+    roundCBM(input.cbmTotal) < CONSOLIDADO_CBM_MINIMO
+  ) {
+    return cotizacionVacia({
+      tipo: "volumen_minimo_consolidado",
+      mensaje: CONSOLIDADO_MIN_CBM_MENSAJE,
     }, input);
   }
 
