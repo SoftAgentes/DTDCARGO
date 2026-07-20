@@ -33,6 +33,7 @@
   "cutoff": 238,
 
   "pendingBelowCutoff": {
+    "0255_rates_public_calc_modo": "Espera POR ENCIMA del corte (a propósito). Deja editar la tarifa del LCL Consolidado desde /studio/tarifas: agrega rates.public_calc_modo, abre el singleton de is_public a una pública POR MODALIDAD, pasa public_cbm_rate() a public_cbm_rate(p_modo default 'ddp') y siembra la fila del consolidado en 580. Escrita 2026-07-20, SIN aplicar: toca el índice único y la firma de una RPC anon viva, así que exige OK del founder NOMBRANDO el archivo (docs/runbooks/aplicar-migraciones-prod.md). El código de lib/calculadora.ts sigue con la constante, así que nada la consume todavía → no aplicarla no rompe nada. Al aplicarla, sacala de acá.",
     "0017_no_olvidar": "SDD-0025 (No-Olvidar) vive en la rama feat/no-olvidar SIN merge, gated por un review criptográfico externo (envelope encryption). El archivo llegó a main pero NO se aplica hasta pasar ese gate. Verificado 2026-07-16: to_regclass('public.no_olvidar_items') → NULL. El código es inerte (el page.tsx es un EmptyState 'Próximamente' que no toca la DB y nadie importa no-olvidar-queries.ts), así que la ruta no revienta. Al aplicarla, sacala de acá."
   }
 }

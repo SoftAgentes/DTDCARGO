@@ -110,10 +110,23 @@ export const CONFIG = {
  *
  * ⚠️ DATO DEL FOUNDER (2026-07-20). Es una CONSTANTE, no viene de la DB.
  *    La tarifa puerta a puerta (DDP) sí es configurable: vive en `rates`
- *    (`is_public`) y llega por la RPC anon `public_cbm_rate`. Para que ESTA
- *    también se edite desde `/studio/tarifas` hace falta una **migración
- *    pendiente** (una segunda tarifa pública marcada por modalidad, o una
- *    columna nueva en `rates`). Mientras eso no exista, se cambia acá.
+ *    (`is_public`) y llega por la RPC anon `public_cbm_rate`.
+ *
+ *    La migración que abre lo mismo para ESTA tarifa ya está escrita:
+ *    `supabase/migrations/0255_rates_public_calc_modo.sql` — agrega
+ *    `rates.public_calc_modo` ('ddp' | 'consolidado'), abre el singleton de
+ *    `is_public` a una tarifa pública POR MODALIDAD, pasa la RPC a
+ *    `public_cbm_rate(p_modo default 'ddp')` y siembra la fila del consolidado
+ *    en 580. **Todavía NO está aplicada a producción** (declarada como espera
+ *    en `supabase/migrations-baseline.json`): aplicarla exige el OK del founder
+ *    nombrando el archivo, por `docs/runbooks/aplicar-migraciones-prod.md`.
+ *
+ *    Para cerrar el ciclo, DESPUÉS de aplicarla: (1) `getPublicCbmRate()` en
+ *    `lib/public/rates-queries.ts` recibe la modalidad y llama la RPC con
+ *    `{ p_modo: "consolidado" }`; (2) `components/CalculadoraForm.tsx` usa esa
+ *    tarifa cuando `esConsolidado`, con esta constante como fallback (mismo
+ *    patrón que el DDP: si la RPC devuelve null, cero regresión).
+ *    Mientras eso no pase, se cambia acá.
  *    NO inventar otra fuente ni reusar la tarifa DDP.
  */
 export const CONSOLIDADO_CBM_RATE = 580;
