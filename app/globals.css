@@ -15,6 +15,14 @@
      usar --color-wine-text (clase `text-wine-text`) en labels/links pequeños. Mismo
      patrón que `--wine-text` de app/studio/tokens.css. */
   --color-wine-text: #7f0f1a;
+  /* Wine como TEXTO SOBRE NAVY (banda navy del Home, hero y CTA de /shipping-mark,
+     collage de /contacto). `--color-wine-soft` (#c2747f) medía 2.98:1 sobre #26406F
+     —el extremo CLARO de --grad-navy-hero, el peor caso— y reprobaba BRAND.md regla 6
+     (AA ≥4.5:1 para texto normal; los eyebrows son de 12px). Este es el MISMO wine:
+     idéntico tono (351,5°) y saturación (39%) que --color-wine-soft, solo sube la
+     luminosidad 61% → 73%. Medido: 4,57:1 sobre #26406F · 6,55:1 sobre #16274b
+     (extremo oscuro del degradado) · 8,64:1 sobre #060D1C (fondo del collage). */
+  --color-wine-on-dark: #d59fa7;
   --color-ink: #0f1e3d;
 
   /* Greys */
@@ -2483,7 +2491,7 @@ a.svp-it:hover .nm {
 .home-surface {
   /* Tokens propios de la home (del Norte · sin equivalente --color-*) */
   --crema: #e8dcc8; /* acento tan de marca (assets/container.svg) */
-  --wine-on-dark: var(--color-wine-soft); /* wine legible sobre navy (AA) */
+  --wine-on-dark: var(--color-wine-on-dark); /* wine legible sobre navy · 4,57:1 sobre #26406F (AA) */
   --f-cn: var(--font-noto-sc);
   --nav-h: 76px;
   --home-navy-band: var(--grad-navy-hero); /* banda navy (Norte) — alias del token compartido */
@@ -3334,7 +3342,7 @@ a.svp-it:hover .nm {
 
 /* ── Tokens propios de la página (mismo criterio que `.home-surface`) ── */
 .sm-surface {
-  --wine-on-dark: var(--color-wine-soft); /* wine sobre navy (acentos) */
+  --wine-on-dark: var(--color-wine-on-dark); /* wine sobre navy (acentos) · 4,57:1 sobre #26406F (AA) */
   /* Tinta CREMA sobre la banda navy. Cloud Design escribe #F2F0EC (idéntico a
      --color-grey-100) con alfas .85 / .82 / .75 / .6 / .5 / .42; acá se expresan
      como color-mix del token y el PISO baja a 66%: medido sobre #26406F (el
@@ -3930,7 +3938,7 @@ a.svp-it:hover .nm {
 /* ── Tokens propios de la página (mismo criterio que `.home-surface`) ── */
 .cx-surface {
   --crema: #e8dcc8; /* acento tan de marca (assets/container.svg) */
-  --wine-on-dark: var(--color-wine-soft); /* wine legible sobre foto oscura (AA) */
+  --wine-on-dark: var(--color-wine-on-dark); /* wine legible sobre foto oscura · 8,64:1 sobre #060D1C (AA) */
   /* Tinta blanca sobre el panel vino, con piso AA (ver adaptación 2 arriba) */
   --cx-on-wine-soft: rgba(255, 255, 255, 0.82); /* 5.5:1 */
   --cx-on-wine-mute: rgba(255, 255, 255, 0.75); /* 4.9:1 */

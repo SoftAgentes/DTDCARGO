@@ -160,6 +160,9 @@ Los hex de la paleta no dicen **qué par se lee**. Estas reglas cierran ese huec
 ### Rol de `--wine` en dark
 Como **texto** sobre fondos oscuros falla (`#A8323E` → 2.79:1). En dark, `--wine` es **relleno** (texto blanco encima, 6.58:1); el acento de **texto** en dark es `--wine-soft #D89AA4` (7.93:1). **Token canónico para wine-como-texto en ambos temas: `--wine-text`** (BD-026: `#7F0F1A` light · `#D89AA4` dark) — usalo en Shipping Mark por fila, saldos, tabs activas, KPI values, links y badge tono wine. Los tokens dark que falten (`--ink-mute`, `--border`, semánticos) se toman de `docs/design/studio/_norte/erp/tokens.css` — **no inventar**.
 
+### Wine sobre las bandas navy de la web pública
+El sitio público escribe wine sobre `--grad-navy-hero` (#16274B → **#26406F**). El peor caso es siempre el **extremo claro #26406F**: `--wine-soft #C2747F` mide ahí **2.98:1** y reprueba (los eyebrows son de 12px). Token canónico para ese uso: **`--color-wine-on-dark` (#D59FA7)** — mismo tono y saturación que `wine-soft`, solo más claro → **4.57:1** sobre #26406F · 6.55:1 sobre #16274B · 8.64:1 sobre el #060D1C del collage. Lo consumen los alias `--wine-on-dark` de `.home-surface`, `.sm-surface` y `.cx-surface`. Es token de **web pública**: el ERP no lo usa (su equivalente es `--wine-text` dark).
+
 ### Paridad light/dark
 Todo par texto/fondo debe pasar el umbral en **ambos** temas. No asumas que un token de texto en light hereda contraste en dark — verifica el equivalente.
 
