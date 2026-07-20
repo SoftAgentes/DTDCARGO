@@ -79,21 +79,13 @@ test.describe("rutas públicas críticas", () => {
     expect(bodyHtml).not.toContain("<b>");
   });
 
-  test("/track sin código muestra input", async ({ page }) => {
-    await page.goto("/track");
-    await expect(page.locator('input[aria-label="Código de tracking"]')).toBeVisible();
-  });
-
-  test("/track con código de ejemplo muestra timeline", async ({ page }) => {
-    // EJEMPLO = envío demo determinista (page.tsx, status in_transit), sin tocar la DB.
-    await page.goto("/track/EJEMPLO");
-    await expect(page.locator("body")).toContainText(/en tránsito|En tránsito/i);
-  });
-
-  test("/track con input malformado no crashea (M4 fix)", async ({ page }) => {
-    // Previo al fix M4, esto crasheaba con URIError. Ahora debe renderizar.
-    const response = await page.goto("/track/%25");
-    expect(response?.status()).toBeLessThan(500);
+  test("el rastreo público /track redirige (301) al portal", async ({ page }) => {
+    // Fase 6: el rastreo público se retiró (vive dentro del portal). El buscador
+    // y los deep-links compartidos por WhatsApp → 301 a /portal/login, sin 404.
+    for (const old of ["/track", "/track/S-2026-0142"]) {
+      await page.goto(old);
+      await expect(page).toHaveURL(/\/portal\/login/);
+    }
   });
 });
 

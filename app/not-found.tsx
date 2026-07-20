@@ -35,7 +35,7 @@ export default function NotFound() {
             <Link href="/" className="btn btn-primary">
               Ir al inicio
             </Link>
-            <Link href="/track" className="btn btn-ghost">
+            <Link href="/portal/login" className="btn btn-ghost">
               Rastrear envío
             </Link>
           </div>

@@ -330,6 +330,12 @@ const nextConfig: NextConfig = {
       // La calc embebible del portal se movió: viejo iframe → nuevo embed.
       { source: "/calculadora/embed", destination: "/fcl/embed", permanent: true },
       { source: "/tarifas/embed", destination: "/fcl/embed", permanent: true },
+      // Fase 6: el rastreo público se retiró — vive dentro del portal. El
+      // buscador `/track` y los deep-links `/track/<código>` (que se comparten
+      // por WhatsApp) hacen 301 permanente al login del portal, sin dejar 404.
+      // El más específico primero para que gane sobre el genérico.
+      { source: "/track/:path*", destination: "/portal/login", permanent: true },
+      { source: "/track", destination: "/portal/login", permanent: true },
       // Migración de dominio doortudoor.com → dtdcargo.com (Search Console
       // "Cambio de dirección" activo, 2026-06-07). El 301 del dominio viejo es
       // path-preserving, pero estas páginas del sitio VIEJO no tienen slug

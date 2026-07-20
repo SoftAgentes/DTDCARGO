@@ -26,7 +26,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/noticias`,  priority: 0.8, changeFrequency: "weekly" },
     { url: `${base}/contacto`,  priority: 0.8, changeFrequency: "monthly" },
     { url: `${base}/registro`,  priority: 0.7, changeFrequency: "monthly" },
-    { url: `${base}/track`,     priority: 0.7, changeFrequency: "monthly" },
   ];
 
   // Páginas geo-locales "Importar de China a {zona}" (fuente: lib/geo-zonas)
