@@ -153,6 +153,66 @@
   --bg-glow: radial-gradient(135% 100% at 50% -12%, #1f3055 0%, #0f1e3d 42%, #0b1428 100%);
 }
 
+/* ──────────────────────────────────────────────────────────────────
+   PORTAL · SHELL NAVY (sidebar + topbar) — espejo del Norte
+   (`_norte/portal/app.jsx` · PortalSidebar/PortalTopbar y `erp/tokens.css`
+   `.dtd-nav-navy`). La barra lateral del portal es NAVY en los DOS temas, igual
+   que en el ERP: por eso los tokens de tinta viven acá (definidos una vez, como
+   los `--hero-*`) y NUNCA como `rgba(255,255,255,X)` suelto en el JSX.
+
+   Se declaran en `.portal-sys` (el wrapper de `app/portal/layout.tsx`) para que
+   existan también en las cuentas sin tema (portal claro), y el bloque oscuro los
+   reafirma dentro de `[data-portal-theme="dark"]`.
+   ────────────────────────────────────────────────────────────────── */
+.portal-sys {
+  --portal-nav-bg: radial-gradient(120% 125% at 18% -20%, #243c6b, #0f1e3d 52%, #081226);
+  --portal-nav-ink: rgba(255, 255, 255, 0.85);
+  --portal-nav-ink-soft: rgba(255, 255, 255, 0.55);
+  --portal-nav-hover: rgba(255, 255, 255, 0.07);
+  --portal-nav-border: rgba(255, 255, 255, 0.08);
+  --portal-nav-on-active: #ffffff;
+  --portal-nav-active: linear-gradient(135deg, #9e1522 0%, #7f0f1a 52%, #5a0910 100%);
+  /* Navy PLANO del sidebar — para los bordes de los puntos de aviso, que tienen
+     que "recortar" sobre la barra. `--color-ink` no sirve: en oscuro es crema. */
+  --portal-nav-solid: #0f1e3d;
+  /* Métrica del shell (Norte: --topbar-h / --sb-collapsed). */
+  --portal-topbar-h: 60px;
+  --portal-sb-collapsed: 64px;
+  --portal-sb-w: 232px;
+}
+[data-portal-theme="dark"] {
+  --portal-nav-bg: radial-gradient(120% 125% at 18% -22%, #26406f, #0b1428 58%, #060d1c);
+  --portal-nav-ink: rgba(255, 255, 255, 0.88);
+  --portal-nav-ink-soft: rgba(255, 255, 255, 0.5);
+  --portal-nav-border: rgba(255, 255, 255, 0.06);
+  --portal-nav-active: linear-gradient(135deg, #c23c4a, #a8323e 52%, #7f0f1a);
+  --portal-nav-solid: #060d1c;
+}
+
+/* Hover de los ítems del sidebar: velo claro sobre navy (no cambia el activo,
+   que ya trae el degradado wine). */
+.portal-nav-leaf:not([aria-current="page"]):hover {
+  background: var(--portal-nav-hover) !important;
+}
+
+/* Columna de contenido del portal: se corre a la derecha del sidebar fijo SOLO
+   en escritorio (≥1024px). En teléfono el sidebar es un cajón deslizante y el
+   contenido ocupa todo el ancho. `--portal-sb-now` lo escribe el shell según
+   esté colapsado o no. */
+.portal-main {
+  transition: padding-left 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+@media (min-width: 1024px) {
+  .portal-main {
+    padding-left: var(--portal-sb-now, var(--portal-sb-w));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .portal-main {
+    transition: none;
+  }
+}
+
 /* Mostrar un elemento solo en un tema (ej. logo primary en claro, reverse en
    oscuro). El estado default (sin data-portal-theme) = claro. */
 [data-theme-show="dark"] {
