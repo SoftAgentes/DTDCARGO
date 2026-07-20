@@ -143,7 +143,7 @@ export function FaqExplorer({ faqs, waHref }: { faqs: Faq[]; waHref: string }) {
               <WhatsAppIcon size={18} /> Escríbenos por WhatsApp
             </a>
             <a
-              href="/calculadora"
+              href="/tarifas"
               className="mt-3 inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-white/85 hover:text-white underline underline-offset-4 decoration-1"
             >
               Calcular mi envío <ArrowIcon size={15} />

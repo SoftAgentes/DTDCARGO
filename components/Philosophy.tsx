@@ -92,7 +92,7 @@ export function Philosophy() {
             {PHILOSOPHY.cta}
           </p>
           <div className="flex flex-wrap gap-3 justify-center">
-            <Link href="/calculadora" className="btn btn-primary">
+            <Link href="/tarifas" className="btn btn-primary">
               Cotizar mi envío <ArrowIcon />
             </Link>
             <a

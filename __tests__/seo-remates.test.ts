@@ -21,36 +21,122 @@ import { resolve } from "node:path";
 const root = resolve(__dirname, "..");
 const read = (rel: string) => readFileSync(resolve(root, rel), "utf8");
 
-describe("Fase 3 · calc FCL-only en /fcl + Footer sin /estimacion", () => {
-  it("la calc pública es FCL-only en /fcl (cotizador SeaRates; sin CBM/LCL ni EstimadoModal)", () => {
-    const page = read("app/fcl/page.tsx");
-    expect(page).toContain("CotizadorFletes");
-    // El CBM/LCL (CalculadoraForm) y las tabs se retiraron del sitio.
-    expect(page).not.toContain("CalculadoraForm");
-    expect(page).not.toContain("TarifasTabs");
+describe("calc CBM/LCL en /tarifas + FCL en /fcl + Footer sin /estimacion", () => {
+  it("/tarifas monta la calc CBM/LCL con sus 2 pestañas (sin EstimadoModal)", () => {
+    const page = read("app/tarifas/page.tsx");
+    expect(page).toContain("TarifasTabs");
+    expect(page).toContain("getPublicCbmRate");
     expect(page).not.toContain("EstimadoModal");
-    expect(existsSync(resolve(root, "components/TarifasTabs.tsx"))).toBe(false);
+
+    const tabs = read("components/TarifasTabs.tsx");
+    // Pestaña A = Puerta a Puerta (DDP) · Pestaña B = LCL Consolidado.
+    expect(tabs).toContain("CalculadoraForm");
+    expect(tabs).toContain("Puerta a Puerta");
+    expect(tabs).toContain("LCL Consolidado");
+    expect(tabs).toContain('modo="consolidado"');
+    // Las dos con CTA WhatsApp directo — la calc NO guarda nada.
+    expect(tabs).toContain("directWhatsApp");
+    expect(tabs).not.toContain("EstimadoModal");
   });
 
-  it("el Footer enlaza a /nosotros y ya NO a /estimacion (→ 301 /fcl)", () => {
+  it("/fcl sigue siendo el cotizador FCL solo (SeaRates, sin CBM/LCL)", () => {
+    const page = read("app/fcl/page.tsx");
+    expect(page).toContain("CotizadorFletes");
+    expect(page).not.toContain("CalculadoraForm");
+    expect(page).not.toContain("TarifasTabs");
+  });
+
+  it("el Footer enlaza a /nosotros y ya NO a /estimacion (→ 301 /tarifas)", () => {
     const footer = read("components/Footer.tsx");
     expect(footer).toContain('href="/nosotros"');
     expect(footer).not.toContain('href="/estimacion"');
   });
 
-  it("las rutas viejas de calc/estimación (incl. /tarifas) se eliminaron (301 → /fcl)", () => {
+  it("las rutas viejas de calc/estimación se eliminaron y hacen 301 a la calc que toca", () => {
     for (const p of [
       "app/calculadora/page.tsx",
       "app/calculadora-fcl/page.tsx",
       "app/cotizador-flete/page.tsx",
       "app/estimacion/page.tsx",
-      "app/tarifas/page.tsx",
     ]) {
       expect(existsSync(resolve(root, p))).toBe(false);
     }
     const cfg = read("next.config.ts");
-    expect(cfg).toContain('source: "/estimacion", destination: "/fcl"');
-    expect(cfg).toContain('source: "/tarifas", destination: "/fcl"');
+    // CBM/LCL → /tarifas
+    expect(cfg).toContain('source: "/estimacion", destination: "/tarifas"');
+    expect(cfg).toContain('source: "/cotizar", destination: "/tarifas"');
+    expect(cfg).toContain('source: "/calculadora", destination: "/tarifas"');
+    expect(cfg).toContain(
+      'source: "/calculadora/embed", destination: "/tarifas/embed"',
+    );
+    // FCL → /fcl (no se toca)
+    expect(cfg).toContain('source: "/calculadora-fcl", destination: "/fcl"');
+    expect(cfg).toContain('source: "/cotizador-flete", destination: "/fcl"');
+    // /tarifas existe otra vez → su 301 al FCL se retiró.
+    expect(cfg).not.toContain('source: "/tarifas", destination: "/fcl"');
+    expect(cfg).not.toContain('source: "/tarifas/embed", destination: "/fcl/embed"');
+  });
+
+  it("los embeds de calc (tarifas + fcl) llevan headers SAMEORIGIN", () => {
+    const cfg = read("next.config.ts");
+    expect(cfg).toContain('source: "/tarifas/embed"');
+    expect(cfg).toContain('source: "/fcl/embed"');
+    // El catch-all de headers debe excluir AMBOS (si no, les pisa el DENY).
+    expect(cfg).toContain("tarifas/embed|fcl/embed");
+  });
+
+  it("el nav y el FAB del portal apuntan a la calc CBM/LCL", () => {
+    expect(read("components/Nav.tsx")).toContain('{ href: "/tarifas", label: "Calculadora" }');
+    expect(read("app/portal/_components/PortalCalcFab.tsx")).toContain(
+      "/tarifas/embed?theme=",
+    );
+  });
+
+  it("el ERP revalida /tarifas (la ruta que consume public_cbm_rate)", () => {
+    for (const p of [
+      "app/studio/(app)/admin/calculator-actions.ts",
+      "app/studio/(app)/tarifas/actions.ts",
+    ]) {
+      const src = read(p);
+      expect(src).toContain('revalidatePath("/tarifas")');
+      expect(src).not.toContain('revalidatePath("/fcl")');
+    }
+  });
+});
+
+describe("/markbox → /shipping-mark (rename con 301)", () => {
+  it("la página vive en app/shipping-mark y la vieja ya no existe", () => {
+    expect(existsSync(resolve(root, "app/shipping-mark/page.tsx"))).toBe(true);
+    expect(existsSync(resolve(root, "app/markbox/page.tsx"))).toBe(false);
+  });
+
+  it("canonical, JSON-LD y breadcrumb apuntan a /shipping-mark", () => {
+    const page = read("app/shipping-mark/page.tsx");
+    expect(page).toContain('canonical: "/shipping-mark"');
+    expect(page).toContain('path: "/shipping-mark"');
+    expect(page).toContain("${SITE_URL}/shipping-mark");
+    // El HowWeWork se queda (decisión del founder).
+    expect(page).toContain("<HowWeWork />");
+    // GEO conservado del build anterior.
+    expect(page).toContain("RespuestaRapida");
+    expect(page).toContain("WebPageJsonLd");
+  });
+
+  it("next.config hace 301 de /markbox y el sitemap lista /shipping-mark", () => {
+    expect(read("next.config.ts")).toContain(
+      'source: "/markbox", destination: "/shipping-mark"',
+    );
+    const sm = read("app/sitemap.ts");
+    expect(sm).toContain("/shipping-mark");
+    expect(sm).not.toContain("/markbox");
+    expect(sm).toContain("/tarifas");
+    expect(sm).toContain("/fcl");
+  });
+
+  it("el Footer enlaza la página nueva", () => {
+    const footer = read("components/Footer.tsx");
+    expect(footer).toContain('href="/shipping-mark"');
+    expect(footer).not.toContain('href="/markbox"');
   });
 });
 

@@ -46,7 +46,7 @@ const FIELD =
 export function CotizadorFletes() {
   const [originCityId, setOriginCity] = useState(OCEAN_ORIGIN_CITIES[0]?.id ?? "");
   const [pointIdTo, setTo] = useState(OCEAN_DESTINATIONS[0]?.id ?? "");
-  // Este cotizador es SOLO FCL (full container). El LCL público vive en /calculadora.
+  // Este cotizador es SOLO FCL (full container). El LCL público vive en /tarifas.
   // Default: 40' High Cube (decisión founder).
   const [container, setContainer] = useState<OceanContainer>("HC40");
 

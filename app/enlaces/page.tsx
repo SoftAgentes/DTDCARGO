@@ -194,7 +194,7 @@ const LINKS: LinkRow[] = [
     wine: true,
     label: "Calcular tu envío (CBM)",
     sub: "Estima el costo en segundos",
-    href: webLink("/calculadora", "calcular-cbm"),
+    href: webLink("/tarifas", "calcular-cbm"),
   },
   {
     icon: "box",

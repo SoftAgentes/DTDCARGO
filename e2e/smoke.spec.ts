@@ -30,8 +30,32 @@ test.describe("rutas públicas críticas", () => {
     await expect(page.locator("body")).toContainText(/FCL|DDP/);
   });
 
+  test("/tarifas monta la calculadora CBM/LCL con sus 2 pestañas", async ({
+    page,
+  }) => {
+    await page.goto("/tarifas");
+    await expect(page).toHaveTitle(/Tarifas|calculadora/i);
+    // Toggle de modalidad: Puerta a Puerta (DDP) ↔ LCL Consolidado.
+    const tabs = page.getByRole("tab");
+    await expect(tabs).toHaveCount(2);
+    await expect(tabs.first()).toContainText(/Puerta a Puerta/i);
+    await expect(tabs.nth(1)).toContainText(/Consolidado/i);
+
+    // Pestaña A (por default) = puerta a puerta: pide CBM/peso y ciudad destino.
+    await expect(page.locator("body")).toContainText(/CBM total/i);
+    await expect(page.locator("#ciudad")).toBeVisible();
+
+    // Pestaña B = consolidado: sin ciudad, hasta puerto y con BL propio.
+    await tabs.nth(1).click();
+    const panelB = page.locator("#panel-consolidado");
+    await expect(panelB).toBeVisible();
+    await expect(panelB).toContainText(/hasta puerto/i);
+    await expect(panelB).toContainText(/Bill of Lading/i);
+    await expect(panelB.locator("select#ciudad")).toHaveCount(0);
+  });
+
   test("/fcl muestra el cotizador FCL (contenedor completo)", async ({ page }) => {
-    // Fase 3: la calc pública quedó FCL-only en /fcl (cotizador SeaRates).
+    // El FCL sigue standalone en /fcl (cotizador SeaRates), aparte de /tarifas.
     await page.goto("/fcl");
     await expect(page).toHaveTitle(/FCL|flete/i);
     // El form del cotizador FCL es visible (selects origen/destino/contenedor).
@@ -39,23 +63,29 @@ test.describe("rutas públicas críticas", () => {
     await expect(page.locator("body")).toContainText(/FCL|contenedor/i);
   });
 
-  test("las rutas viejas de calc/estimación redirigen (301) a /fcl", async ({
+  test("las rutas viejas de calc/estimación redirigen (301) a la calc que toca", async ({
     page,
   }) => {
-    // Fase 3: /cotizar, /estimacion, /calculadora, /calculadora-fcl,
-    // /cotizador-flete y el efímero /tarifas → 301 permanente a /fcl.
-    for (const old of [
-      "/cotizar",
-      "/estimacion",
-      "/calculadora",
-      "/calculadora-fcl",
-      "/cotizador-flete",
-      "/tarifas",
-    ]) {
+    // CBM/LCL: /cotizar, /estimacion y /calculadora → /tarifas.
+    for (const old of ["/cotizar", "/estimacion", "/calculadora"]) {
+      await page.goto(old);
+      await expect(page).toHaveURL(/\/tarifas$/);
+    }
+    await expect(page).toHaveTitle(/Tarifas|calculadora/i);
+
+    // FCL: /calculadora-fcl y /cotizador-flete → /fcl (sin cambios).
+    for (const old of ["/calculadora-fcl", "/cotizador-flete"]) {
       await page.goto(old);
       await expect(page).toHaveURL(/\/fcl$/);
     }
     await expect(page).toHaveTitle(/FCL|flete/i);
+  });
+
+  test("/markbox redirige (301) a /shipping-mark", async ({ page }) => {
+    await page.goto("/markbox");
+    await expect(page).toHaveURL(/\/shipping-mark$/);
+    await expect(page).toHaveTitle(/Shipping Mark/i);
+    await expect(page.locator("h1")).toContainText(/identificada/i);
   });
 
   test("/calculadora-terrestre carga standalone", async ({ page }) => {
@@ -101,7 +131,9 @@ test.describe("SEO essentials", () => {
     expect(r.status()).toBe(200);
     const xml = await r.text();
     expect(xml).toContain("/servicios");
+    expect(xml).toContain("/tarifas");
     expect(xml).toContain("/fcl");
+    expect(xml).toContain("/shipping-mark");
     expect(xml).toContain("/calculadora-terrestre");
     expect(xml).not.toContain("/cotizar");
   });

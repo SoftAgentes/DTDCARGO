@@ -97,10 +97,11 @@ const securityHeaders = [
   },
 ];
 
-// `/calculadora/embed` la enmarca el FAB del portal (ventana flotante Norte) en
-// un iframe SAME-ORIGIN. Igual que /marca y /norte.html: framing SAMEORIGIN,
-// resto estricto. Sin esto heredaría el `frame-ancestors 'none'` + `X-Frame-Options:
-// DENY` del catch-all y el iframe saldría en blanco.
+// Los embeds de calculadora (`/tarifas/embed` = CBM/LCL, `/fcl/embed` = FCL) los
+// enmarca el FAB del portal (ventana flotante Norte) en un iframe SAME-ORIGIN.
+// Igual que /marca y /norte.html: framing SAMEORIGIN, resto estricto. Sin esto
+// heredarían el `frame-ancestors 'none'` + `X-Frame-Options: DENY` del catch-all
+// y el iframe saldría en blanco.
 const calcEmbedHeaders = securityHeaders.map((h) =>
   h.key === "Content-Security-Policy"
     ? {
@@ -266,9 +267,18 @@ const nextConfig: NextConfig = {
         source: "/norte.html",
         headers: norteHeaders,
       },
-      // Calc embebible del portal: SAMEORIGIN (la enmarca el FAB). Excluida del
-      // catch-all de abajo (negative lookahead) para no pisarle el DENY.
-      // Fase 3: la calc FCL embebible vive en /fcl/embed.
+      // Calcs embebibles del portal: SAMEORIGIN (las enmarca el FAB). Excluidas
+      // del catch-all de abajo (negative lookahead) para no pisarles el DENY.
+      // `/tarifas/embed` = calculadora CBM/LCL (la del producto principal, la
+      // que muestra el FAB) · `/fcl/embed` = cotizador de contenedor completo.
+      {
+        source: "/tarifas/embed/:path*",
+        headers: calcEmbedHeaders,
+      },
+      {
+        source: "/tarifas/embed",
+        headers: calcEmbedHeaders,
+      },
       {
         source: "/fcl/embed/:path*",
         headers: calcEmbedHeaders,
@@ -279,7 +289,7 @@ const nextConfig: NextConfig = {
       },
       {
         source:
-          "/:path((?!m/|marca/|norte\\.html|studio/bitacora|fcl/embed).*)",
+          "/:path((?!m/|marca/|norte\\.html|studio/bitacora|tarifas/embed|fcl/embed).*)",
         headers: securityHeaders,
       },
     ];
@@ -316,20 +326,22 @@ const nextConfig: NextConfig = {
         destination: "/",
         permanent: true,
       },
-      // Fase 3: la calculadora pública quedó FCL-only en `/fcl` (el CBM/LCL se
-      // retiró del sitio · rediseño aparte). Las rutas viejas de calc/cotización
-      // (LCL, FCL, flete SeaRates, estimación, el `/cotizar` histórico y el
-      // efímero `/tarifas`) hacen 301 permanente a `/fcl` — se conserva su SEO y
-      // no se dejan 404 a links externos/guardados.
-      { source: "/cotizar", destination: "/fcl", permanent: true },
-      { source: "/estimacion", destination: "/fcl", permanent: true },
-      { source: "/calculadora", destination: "/fcl", permanent: true },
+      // Calculadoras públicas: la del PRODUCTO PRINCIPAL (CBM/LCL, 2 pestañas:
+      // Puerta a Puerta + Consolidado) vive en `/tarifas`; la de contenedor
+      // completo (SeaRates) vive en `/fcl`. Las rutas viejas hacen 301 permanente
+      // a la que les corresponde — se conserva su SEO y no se dejan 404 a links
+      // externos/guardados.
+      { source: "/cotizar", destination: "/tarifas", permanent: true },
+      { source: "/estimacion", destination: "/tarifas", permanent: true },
+      { source: "/calculadora", destination: "/tarifas", permanent: true },
       { source: "/calculadora-fcl", destination: "/fcl", permanent: true },
       { source: "/cotizador-flete", destination: "/fcl", permanent: true },
-      { source: "/tarifas", destination: "/fcl", permanent: true },
       // La calc embebible del portal se movió: viejo iframe → nuevo embed.
-      { source: "/calculadora/embed", destination: "/fcl/embed", permanent: true },
-      { source: "/tarifas/embed", destination: "/fcl/embed", permanent: true },
+      { source: "/calculadora/embed", destination: "/tarifas/embed", permanent: true },
+      // `/markbox` se renombró a `/shipping-mark` (el nombre visible al cliente
+      // es "Shipping Mark"; MARKBOX quedó como identificador interno). 301 para
+      // no perder el SEO de la URL vieja, que estaba indexada.
+      { source: "/markbox", destination: "/shipping-mark", permanent: true },
       // Fase 6: el rastreo público se retiró — vive dentro del portal. El
       // buscador `/track` y los deep-links `/track/<código>` (que se comparten
       // por WhatsApp) hacen 301 permanente al login del portal, sin dejar 404.
@@ -345,9 +357,9 @@ const nextConfig: NextConfig = {
       // doortudoor.com (impresiones 3 meses entre paréntesis).
       {
         // Artículo "cómo calcular CBM" — la de más equity (397 impresiones).
-        // Fase 3: apunta directo a /fcl (evita la cadena vía /calculadora).
+        // Apunta directo a /tarifas (la calc por CBM); evita la cadena de 301.
         source: "/como-calcular-metro-cubico-cbm-de-la-mercancia",
-        destination: "/fcl",
+        destination: "/tarifas",
         permanent: true,
       },
       // `/nosotros` se reclamó: ahora es la página real "Sobre Nosotros"

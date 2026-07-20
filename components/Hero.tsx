@@ -53,7 +53,7 @@ export function Hero() {
               sub-rótulo (el destino real del CTA). */}
           <div className="flex flex-wrap items-center gap-3">
             <Link
-              href="/calculadora"
+              href="/tarifas"
               className="btn btn-primary"
               style={{
                 width: "100%",

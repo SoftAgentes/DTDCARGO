@@ -729,7 +729,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     acronym: "DTD Universal · formato propio",
     category: "tracking",
     body: [
-      "Código interno de DTD Cargo que identifica un envío de extremo a extremo. Formato: `DTDU-NNNNNN-XXXX`. Te lo damos al confirmar la cotización y lo usas en /track para ver el estado en tiempo real.",
+      "Código interno de DTD Cargo que identifica un envío de extremo a extremo. Formato: `DTDU-NNNNNN-XXXX`. Te lo damos al confirmar la cotización y lo ves entrando a tu portal del cliente (dtdcargo.com/portal), donde sigues el estado en tiempo real.",
       "El DTDU agrupa el BL marítimo, los documentos de aduana y el last mile bajo un solo identificador — más cómodo que recordar múltiples números.",
     ],
   },

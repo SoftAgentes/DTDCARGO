@@ -123,7 +123,7 @@ export default function AcademiaPage() {
                   Ver servicios
                 </Link>
                 <Link
-                  href="/calculadora"
+                  href="/tarifas"
                   className="btn inline-flex border border-white/25 bg-white/10 text-white hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
                 >
                   Calcular mi importación

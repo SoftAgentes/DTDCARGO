@@ -69,7 +69,7 @@ export function HowWeWork() {
 
         {/* CTA — momento de máxima intención del scroll. Primario: /calculadora. */}
         <div className="mt-8 text-center">
-          <Link href="/calculadora" className="btn btn-primary">
+          <Link href="/tarifas" className="btn btn-primary">
             Cotizar mi envío <ArrowIcon />
           </Link>
           <p className="mt-3 text-[13px] text-grey-700">

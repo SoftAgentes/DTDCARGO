@@ -77,7 +77,7 @@ export default function HomePage() {
                 solo equipo, de principio a fin.
               </p>
               <div className="hero-ctas">
-                <Link className="btn btn-primary btn-lg" href="/calculadora">
+                <Link className="btn btn-primary btn-lg" href="/tarifas">
                   Cotizar mi envío
                 </Link>
                 <Link className="btn btn-ghost btn-lg" href="/registro">
@@ -317,7 +317,7 @@ export default function HomePage() {
                   <div className="big">8/10</div>
                   <div className="cap">el servicio más solicitado</div>
                 </div>
-                <Link className="btn btn-onwine btn-lg" href="/calculadora">
+                <Link className="btn btn-onwine btn-lg" href="/tarifas">
                   Cotizar mi envío
                 </Link>
               </div>

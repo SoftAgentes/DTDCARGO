@@ -37,7 +37,8 @@ describe("isPrivatePath — GA no carga en rutas con PII", () => {
     // solo queda estanco NO cargando el tag en la página del código:
     "/track/DTD-1004",
     "/track/S-2026-0142/algo",
-    // Iframe del FAB del portal (clientes ya captados) · Fase 3: /fcl/embed:
+    // Iframes del FAB del portal (clientes ya captados): calc CBM/LCL + FCL.
+    "/tarifas/embed",
     "/fcl/embed",
   ])("excluye %s", (path) => {
     expect(isPrivatePath(path)).toBe(true);
@@ -46,6 +47,7 @@ describe("isPrivatePath — GA no carga en rutas con PII", () => {
   it.each([
     "/",
     "/servicios",
+    "/tarifas", // la calc pública SÍ se mide (la del embed no)
     "/fcl",
     "/contacto",
     "/registro",

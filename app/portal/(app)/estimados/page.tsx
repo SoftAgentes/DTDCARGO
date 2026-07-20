@@ -49,7 +49,7 @@ export default async function PortalEstimatesPage() {
             Cuando quede vinculado a tu cuenta, va a aparecer acá.
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <a href="/calculadora" className="btn btn-primary inline-flex">
+            <a href="/tarifas" className="btn btn-primary inline-flex">
               Ir a la calculadora <ArrowIcon />
             </a>
             <a

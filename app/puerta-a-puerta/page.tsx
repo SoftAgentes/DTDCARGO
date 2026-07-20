@@ -142,7 +142,7 @@ export default async function PuertaAPuertaPage() {
               <a href={wa} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
                 <WhatsAppIcon size={18} /> Cotizar por WhatsApp
               </a>
-              <Link href="/calculadora" className="btn btn-ghost">
+              <Link href="/tarifas" className="btn btn-ghost">
                 Calcular mi envío <ArrowIcon size={16} />
               </Link>
             </div>

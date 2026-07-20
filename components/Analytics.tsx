@@ -13,7 +13,7 @@ import { Suspense, useEffect } from "react";
  * /p/[token]) quedan EXCLUIDAS: ahí las URLs llevan datos sensibles (MARKBOX,
  * tokens, emails) y mandarlos a Google sería PII — viola los ToS de GA y
  * arriesga la cuenta. Decisión founder 2026-06-05; ampliada 2026-07-05 (fuga
- * detectada en /verificar, /p, /interno). /track/[code] y /calculadora/embed
+ * detectada en /verificar, /p, /interno). /track/[code] y los embeds de calc
  * también quedan EXCLUIDAS: gtag adjunta la URL cruda (`dl`) y el título a
  * CADA hit — incluido el ping del tag de Ads al cargar — así que redactar el
  * page_view manual NO basta; la única vía estanca es no cargar el tag ahí.
@@ -57,9 +57,10 @@ const PRIVATE_PREFIXES = [
   "/p", //          /p/[token] — packing list con token capability (SDD-0096)
   "/interno", //    zona interna del equipo (gateada por login del ERP)
   "/marca", //      brand book gated por login — sin valor de marketing
-  // Iframe del FAB del portal (clientes YA captados): medirla contamina las
-  // métricas públicas y filtra el referrer del portal a Google. Fase 3:
-  // /calculadora/embed → /fcl/embed.
+  // Iframes del FAB del portal (clientes YA captados): medirlos contamina las
+  // métricas públicas y filtra el referrer del portal a Google. La calc CBM/LCL
+  // (antes /calculadora/embed) vive en /tarifas/embed; el FCL en /fcl/embed.
+  "/tarifas/embed",
   "/fcl/embed",
 ];
 
@@ -190,7 +191,7 @@ export const WHATSAPP_SHARE_RE = /wa\.me\/\?/i;
  *  2. El espejo GA4 `whatsapp_click` — la conversión de Ads NO llega a la
  *     propiedad GA4; este evento sí (key event + audiencias de remarketing).
  *
- * Dentro de un iframe NO cuenta: /calculadora/embed vive embebida en el portal
+ * Dentro de un iframe NO cuenta: /tarifas/embed vive embebida en el portal
  * de clientes ya captados — sus clicks contaminarían la conversión de captación.
  */
 function fireWhatsAppSignals(origin: string) {
@@ -206,7 +207,7 @@ function fireWhatsAppSignals(origin: string) {
 
 /**
  * Conversión WhatsApp para flujos que abren wa.me con `window.open()` (sin
- * `<a>`): calculadora, /estimacion y "Arma tu envío" (/servicios). El listener
+ * `<a>`): calculadora (/tarifas) y "Arma tu envío" (/servicios). El listener
  * global solo ve clicks en anchors — estos 3 flujos de MAYOR intención eran
  * invisibles (subconteo del CTA principal, diagnóstico 2026-07-05). Llamar
  * JUSTO antes del `window.open`.

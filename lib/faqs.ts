@@ -301,14 +301,14 @@ export const FAQS: Faq[] = [
   {
     pregunta: "¿Puedo hacerle seguimiento a mi envío para saber dónde va?",
     respuesta:
-      "Sí. En la sección Rastrear de la web metes tu BL (Bill of Lading) o tu código DTDU y ves los eventos del envío en vivo, sin necesidad de registrarte. Si no tienes el código a la mano, escríbenos por WhatsApp y te lo buscamos para que le hagas seguimiento.",
+      "Sí. El seguimiento se hace entrando a tu portal del cliente en dtdcargo.com/portal: ahí ves los eventos de cada envío en vivo, con su BL (Bill of Lading) y su código DTDU. Entras con un enlace que te llega a tu correo, sin contraseña. Si no tienes acceso a la mano, escríbenos por WhatsApp y te ayudamos a entrar.",
     categoria: "rastreo",
   },
   {
     pregunta:
       "¿Puedo rastrear con el número que me dio mi proveedor chino?",
     respuesta:
-      "No. Ese número es del courier interno de China y solo sirve para el trayecto hasta nuestra bodega en Yiwu. Para seguir tu envío con DTD usa el código que te damos al abrir tu embarque, en dtdcargo.com/track.",
+      "No. Ese número es del courier interno de China y solo sirve para el trayecto hasta nuestra bodega en Yiwu. Para seguir tu envío con DTD entra a tu portal del cliente en dtdcargo.com/portal: ahí aparece el embarque con el código que te damos al abrirlo.",
     categoria: "rastreo",
   },
   {
