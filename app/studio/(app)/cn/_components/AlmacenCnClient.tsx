@@ -340,15 +340,22 @@ export function AlmacenCnClient({
       )}
 
       {selected.size > 0 && (
-        <BulkBar
-          count={selected.size}
-          ids={Array.from(selected)}
-          onClear={clearSelection}
-          onAfter={() => {
-            clearSelection();
-            router.refresh();
-          }}
-        />
+        <>
+          {/* Colchón: la BulkBar es `position: fixed`, así que flota sobre la
+              tabla y tapaba la última fila. Este espacio da recorrido para
+              desplazarla por encima de la barra. Solo existe mientras hay
+              selección, así que no deja hueco muerto al final de la página. */}
+          <div aria-hidden style={{ height: 96 }} />
+          <BulkBar
+            count={selected.size}
+            ids={Array.from(selected)}
+            onClear={clearSelection}
+            onAfter={() => {
+              clearSelection();
+              router.refresh();
+            }}
+          />
+        </>
       )}
     </>
   );
@@ -1007,10 +1014,16 @@ function BulkBar({
         transform: "translateX(-50%)",
         zIndex: 70,
         maxWidth: "calc(100vw - 32px)",
-        background: "var(--ink)",
-        color: "var(--ink-inv)",
+        // Panel glass (BD-029→035). NO usar `--ink` de fondo: es el token del
+        // TEXTO — en tema oscuro vale crema y la barra salía blanca sobre navy.
+        // Los `--glass-*` ya traen su variante por tema, así que no se invierte.
+        background: "var(--glass-bg)",
+        backdropFilter: "var(--glass-blur)",
+        WebkitBackdropFilter: "var(--glass-blur)",
+        border: "1px solid var(--glass-border)",
+        color: "var(--glass-ink)",
         borderRadius: "var(--r-md)",
-        boxShadow: "var(--shadow-pop)",
+        boxShadow: "var(--glass-shadow), var(--glass-hi)",
         padding: "10px 14px",
         display: "flex",
         flexDirection: "column",
@@ -1028,7 +1041,7 @@ function BulkBar({
         <div
           style={{
             font: "700 12.5px/1 var(--f-sans)",
-            color: "var(--ink-inv)",
+            color: "var(--glass-ink)",
             whiteSpace: "nowrap",
           }}
         >
@@ -1043,7 +1056,7 @@ function BulkBar({
           style={{
             width: 1,
             height: 20,
-            background: "var(--ink-inv-mute)",
+            background: "var(--glass-border)",
           }}
         />
         {(
@@ -1057,8 +1070,8 @@ function BulkBar({
             style={{
               padding: "6px 10px",
               background: "transparent",
-              color: "var(--ink-inv)",
-              border: "1px solid var(--ink-inv-mute)",
+              color: "var(--glass-ink)",
+              border: "1px solid var(--glass-border)",
               borderRadius: "var(--r-sm)",
               font: "600 11.5px/1 var(--f-sans)",
               cursor: pending ? "wait" : "pointer",
@@ -1075,7 +1088,8 @@ function BulkBar({
           style={{
             padding: "6px 10px",
             background: "transparent",
-            color: "var(--ink-inv-soft)",
+            color: "var(--glass-ink)",
+            opacity: 0.75,
             border: 0,
             font: "600 11.5px/1 var(--f-sans)",
             cursor: pending ? "wait" : "pointer",
