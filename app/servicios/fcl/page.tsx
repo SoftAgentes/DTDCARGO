@@ -325,7 +325,7 @@ export default function FclPage() {
                     <small>La tarifa final la confirma tu asesor.</small>
                   </div>
                   <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                    <CtaF2 label="Saca tu estimado al instante" href="/tarifas" />
+                    <CtaF2 label="Saca tu estimado al instante" href="/fcl" />
                     <CtaF2 label="Cotizar con tu asesor" href={ctaAsesor} ghost />
                   </div>
                 </div>

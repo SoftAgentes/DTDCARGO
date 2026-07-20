@@ -30,33 +30,32 @@ test.describe("rutas públicas críticas", () => {
     await expect(page.locator("body")).toContainText(/FCL|DDP/);
   });
 
-  test("/tarifas muestra la calculadora 2-en-1 (LCL + FCL)", async ({ page }) => {
-    // Fase 3: la calc pública (LCL/FCL) vive en /tarifas; LCL es la pestaña default.
-    await page.goto("/tarifas");
-    await expect(page).toHaveTitle(/Tarifas/i);
-    // El form LCL (CalculadoraForm) es visible: input de CBM por su placeholder.
-    await expect(page.locator('input[placeholder="12"]')).toBeVisible();
-    // Ambas modalidades presentes como pestañas.
-    await expect(page.locator("body")).toContainText(/LCL/);
-    await expect(page.locator("body")).toContainText(/FCL/);
+  test("/fcl muestra el cotizador FCL (contenedor completo)", async ({ page }) => {
+    // Fase 3: la calc pública quedó FCL-only en /fcl (cotizador SeaRates).
+    await page.goto("/fcl");
+    await expect(page).toHaveTitle(/FCL|flete/i);
+    // El form del cotizador FCL es visible (selects origen/destino/contenedor).
+    await expect(page.locator("form")).toBeVisible();
+    await expect(page.locator("body")).toContainText(/FCL|contenedor/i);
   });
 
-  test("las rutas viejas de calc/estimación redirigen (301) a /tarifas", async ({
+  test("las rutas viejas de calc/estimación redirigen (301) a /fcl", async ({
     page,
   }) => {
-    // Fase 3: /cotizar, /estimacion, /calculadora, /calculadora-fcl, /cotizador-flete
-    // → 301 permanente a /tarifas (conservan SEO, sin 404).
+    // Fase 3: /cotizar, /estimacion, /calculadora, /calculadora-fcl,
+    // /cotizador-flete y el efímero /tarifas → 301 permanente a /fcl.
     for (const old of [
       "/cotizar",
       "/estimacion",
       "/calculadora",
       "/calculadora-fcl",
       "/cotizador-flete",
+      "/tarifas",
     ]) {
       await page.goto(old);
-      await expect(page).toHaveURL(/\/tarifas$/);
+      await expect(page).toHaveURL(/\/fcl$/);
     }
-    await expect(page).toHaveTitle(/Tarifas/i);
+    await expect(page).toHaveTitle(/FCL|flete/i);
   });
 
   test("/calculadora-terrestre carga standalone", async ({ page }) => {
@@ -109,7 +108,7 @@ test.describe("SEO essentials", () => {
     expect(r.status()).toBe(200);
     const xml = await r.text();
     expect(xml).toContain("/servicios");
-    expect(xml).toContain("/tarifas");
+    expect(xml).toContain("/fcl");
     expect(xml).toContain("/calculadora-terrestre");
     expect(xml).not.toContain("/cotizar");
   });

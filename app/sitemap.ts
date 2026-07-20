@@ -17,7 +17,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/academia`,    priority: 0.8, changeFrequency: "monthly" },
     { url: `${base}/nosotros`,    priority: 0.7, changeFrequency: "monthly" },
     { url: `${base}/brochure`,    priority: 0.8, changeFrequency: "monthly" },
-    { url: `${base}/tarifas`, priority: 0.9, changeFrequency: "monthly" },
+    { url: `${base}/fcl`, priority: 0.9, changeFrequency: "monthly" },
     { url: `${base}/calculadora-terrestre`, priority: 0.8, changeFrequency: "monthly" },
     { url: `${base}/enlaces`,     priority: 0.5, changeFrequency: "monthly" },
     { url: `${base}/glosario`,    priority: 0.8, changeFrequency: "monthly" },

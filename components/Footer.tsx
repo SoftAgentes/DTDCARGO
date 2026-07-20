@@ -203,8 +203,8 @@ export function Footer() {
             <Link href="/portal/login" className="hover:text-white transition-colors">
               Rastrear envío
             </Link>
-            {/* Fase 3: /estimacion se eliminó (→ 301 /tarifas); la calc vive en
-                /tarifas con CTA WhatsApp. /nosotros sigue enlazada acá. */}
+            {/* Fase 3: /estimacion se eliminó (→ 301 /fcl); la calc pública quedó
+                FCL-only en /fcl. /nosotros sigue enlazada acá. */}
             <Link href="/nosotros" className="hover:text-white transition-colors">
               Nosotros
             </Link>

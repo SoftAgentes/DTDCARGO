@@ -153,7 +153,7 @@ export async function saveCalculatorSettingsAction(
 
   revalidatePath("/studio/admin");
   // Los parámetros alimentan el calculador del sitio → refrescar su cache ISR.
-  revalidatePath("/tarifas");
+  revalidatePath("/fcl");
   return { ok: true };
 }
 
@@ -219,7 +219,7 @@ export async function createCityAction(
   }
 
   revalidatePath("/studio/admin");
-  revalidatePath("/tarifas");
+  revalidatePath("/fcl");
   return { ok: true, createdId: inserted.id };
 }
 
@@ -257,7 +257,7 @@ export async function updateCityAction(
   }
 
   revalidatePath("/studio/admin");
-  revalidatePath("/tarifas");
+  revalidatePath("/fcl");
   return { ok: true };
 }
 
@@ -280,6 +280,6 @@ export async function deleteCityAction(
   if (error) return { error: `No se pudo eliminar la ciudad: ${error.message}` };
 
   revalidatePath("/studio/admin");
-  revalidatePath("/tarifas");
+  revalidatePath("/fcl");
   return { ok: true };
 }

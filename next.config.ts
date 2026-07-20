@@ -268,18 +268,18 @@ const nextConfig: NextConfig = {
       },
       // Calc embebible del portal: SAMEORIGIN (la enmarca el FAB). Excluida del
       // catch-all de abajo (negative lookahead) para no pisarle el DENY.
-      // Fase 3: /calculadora/embed → /tarifas/embed.
+      // Fase 3: la calc FCL embebible vive en /fcl/embed.
       {
-        source: "/tarifas/embed/:path*",
+        source: "/fcl/embed/:path*",
         headers: calcEmbedHeaders,
       },
       {
-        source: "/tarifas/embed",
+        source: "/fcl/embed",
         headers: calcEmbedHeaders,
       },
       {
         source:
-          "/:path((?!m/|marca/|norte\\.html|studio/bitacora|tarifas/embed).*)",
+          "/:path((?!m/|marca/|norte\\.html|studio/bitacora|fcl/embed).*)",
         headers: securityHeaders,
       },
     ];
@@ -316,17 +316,20 @@ const nextConfig: NextConfig = {
         destination: "/",
         permanent: true,
       },
-      // Fase 3: la calculadora 2-en-1 vive en `/tarifas`. Las rutas viejas de
-      // calc/cotización (LCL, FCL, flete SeaRates, estimación, y el `/cotizar`
-      // histórico) hacen 301 permanente a `/tarifas` — se conserva su SEO y no
-      // se dejan 404 a links externos/guardados.
-      { source: "/cotizar", destination: "/tarifas", permanent: true },
-      { source: "/estimacion", destination: "/tarifas", permanent: true },
-      { source: "/calculadora", destination: "/tarifas", permanent: true },
-      { source: "/calculadora-fcl", destination: "/tarifas", permanent: true },
-      { source: "/cotizador-flete", destination: "/tarifas", permanent: true },
+      // Fase 3: la calculadora pública quedó FCL-only en `/fcl` (el CBM/LCL se
+      // retiró del sitio · rediseño aparte). Las rutas viejas de calc/cotización
+      // (LCL, FCL, flete SeaRates, estimación, el `/cotizar` histórico y el
+      // efímero `/tarifas`) hacen 301 permanente a `/fcl` — se conserva su SEO y
+      // no se dejan 404 a links externos/guardados.
+      { source: "/cotizar", destination: "/fcl", permanent: true },
+      { source: "/estimacion", destination: "/fcl", permanent: true },
+      { source: "/calculadora", destination: "/fcl", permanent: true },
+      { source: "/calculadora-fcl", destination: "/fcl", permanent: true },
+      { source: "/cotizador-flete", destination: "/fcl", permanent: true },
+      { source: "/tarifas", destination: "/fcl", permanent: true },
       // La calc embebible del portal se movió: viejo iframe → nuevo embed.
-      { source: "/calculadora/embed", destination: "/tarifas/embed", permanent: true },
+      { source: "/calculadora/embed", destination: "/fcl/embed", permanent: true },
+      { source: "/tarifas/embed", destination: "/fcl/embed", permanent: true },
       // Migración de dominio doortudoor.com → dtdcargo.com (Search Console
       // "Cambio de dirección" activo, 2026-06-07). El 301 del dominio viejo es
       // path-preserving, pero estas páginas del sitio VIEJO no tienen slug
@@ -336,9 +339,9 @@ const nextConfig: NextConfig = {
       // doortudoor.com (impresiones 3 meses entre paréntesis).
       {
         // Artículo "cómo calcular CBM" — la de más equity (397 impresiones).
-        // Fase 3: apunta directo a /tarifas (evita la cadena vía /calculadora).
+        // Fase 3: apunta directo a /fcl (evita la cadena vía /calculadora).
         source: "/como-calcular-metro-cubico-cbm-de-la-mercancia",
-        destination: "/tarifas",
+        destination: "/fcl",
         permanent: true,
       },
       // `/nosotros` se reclamó: ahora es la página real "Sobre Nosotros"
