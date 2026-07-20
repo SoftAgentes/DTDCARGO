@@ -43,7 +43,13 @@ export const metadata: Metadata = { title: "Alertas · mis envíos" };
  * consolidado (cut-off · SDD-0133), los documentos por compra y el "Seguimiento
  * total". Gateado a Norte; el fallback conserva la lista plana previa.
  */
-export default async function PortalShipmentsPage() {
+export default async function PortalShipmentsPage({
+  searchParams,
+}: {
+  /** `?nueva=1` (menú "Crear" del sidebar) abre el modal de nueva compra. */
+  searchParams: Promise<{ nueva?: string }>;
+}) {
+  const { nueva } = await searchParams;
   const supabase = await createClient();
   const client = await getPortalClient(supabase);
   if (!client) return null;
@@ -147,6 +153,7 @@ export default async function PortalShipmentsPage() {
       markbox={client.markbox}
       suppliers={supplierViews}
       addons={addons}
+      openPurchase={nueva === "1"}
     />
   );
 }

@@ -83,6 +83,7 @@ export function PortalAlertasHub({
   markbox,
   suppliers,
   addons,
+  openPurchase = false,
 }: {
   items: AlertItem[];
   docs: Record<string, DocPresence>;
@@ -91,12 +92,14 @@ export function PortalAlertasHub({
   markbox: string;
   suppliers: SupplierView[];
   addons: PrealertaAddon[];
+  /** Llega con `?nueva=1` desde el menú "Crear" del sidebar: abre el modal. */
+  openPurchase?: boolean;
 }) {
   const [view, setView] = useState<"list" | "track">("list");
   const [stage, setStage] = useState<"todas" | AlertStage>("todas");
   const [openDocs, setOpenDocs] = useState<string | null>(null);
   // "Nueva compra" abre el modal acá mismo (no desvía a /proveedores).
-  const [purchaseOpen, setPurchaseOpen] = useState(false);
+  const [purchaseOpen, setPurchaseOpen] = useState(openPurchase);
 
   const counts = countByStage(items);
   const list = filterByStage(items, stage);
