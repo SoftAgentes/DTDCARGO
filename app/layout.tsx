@@ -10,6 +10,8 @@ import "./globals.css";
 // noticias, academia, nosotros, puerta a puerta, landings SEO y legales.
 // Va en archivo aparte porque globals.css ya supera las 4.300 líneas.
 import "./recursos.css";
+// Superficie de `/pre-alertas` (`.pa-surface`) — mismo criterio que recursos.css.
+import "./prealertas.css";
 
 const archivo = Archivo({
   subsets: ["latin"],

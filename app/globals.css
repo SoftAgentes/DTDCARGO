@@ -1330,11 +1330,13 @@
 .home-surface,
 .sm-surface,
 .cx-surface,
-.rp-surface {
+.rp-surface,
+.pa-surface {
   /* `.rp-surface` = superficie "recursos" (glosario, FAQ, noticias, academia,
-     nosotros, puerta a puerta, landings SEO y legales). Sus reglas propias NO
-     viven acá sino en `app/recursos.css` — este archivo ya pesa demasiado —
-     pero comparte este MISMO puente de tokens. */
+     nosotros, puerta a puerta, landings SEO y legales). `.pa-surface` =
+     `/pre-alertas` (app/prealertas.css). Sus reglas propias NO viven acá sino
+     en sus archivos aparte — este archivo ya pesa demasiado — pero comparten
+     este MISMO puente de tokens. */
   /* Spacing (escala 8px · geometría) */
   --s-1: 4px;
   --s-2: 8px;
