@@ -79,8 +79,8 @@ export default function ContactoPage() {
             priority
           />
           <DualHalf
-            src="/fotos/carga-contenedor-precinto-doortudoor-dtd-cargo-puerta-a-puerta-china-venezuela.jpg"
-            alt="Contenedor cargado y precintado con el sello DoorTuDoor: la carga viaja sellada hasta la nacionalización y la entrega puerta a puerta en Venezuela"
+            src="/fotos/puerto-venezuela-descarga-contenedor-dtd-cargo-china-venezuela.jpg"
+            alt="Cuadrilla de DTD Cargo descargando un contenedor en el puerto de Venezuela, con las grúas del patio al fondo"
             tag="Valencia · Venezuela"
             title="Aduana y entrega final"
             text="Nacionalización, impuestos y reparto puerta a puerta. Pagas al llegar."
