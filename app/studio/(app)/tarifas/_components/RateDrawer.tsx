@@ -50,7 +50,7 @@ export function RateDrawer({ mode, rate, onClose }: Props) {
   const [state, formAction, isPending] = useActionState(action, initialState);
 
   const [service, setService] = useState<ShipmentService>(
-    rate?.service ?? "consolidacion",
+    rate?.service ?? "consolidado_lcl",
   );
   const mode$ = priceMode(service);
 
@@ -73,7 +73,7 @@ export function RateDrawer({ mode, rate, onClose }: Props) {
       "rate-drawer-form",
     ) as HTMLFormElement | null;
     formEl?.reset();
-    setService("consolidacion");
+    setService("consolidado_lcl");
   };
 
   /**

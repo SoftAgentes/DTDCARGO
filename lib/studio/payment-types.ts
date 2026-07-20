@@ -231,7 +231,7 @@ export function fundClassTone(
  *  - `transporte_terrestre` → local_revenue (servicio local de DTD Services).
  *  - null/undefined/'' (factura SIN shipment) → local_revenue (servicios
  *    locales facturados sin embarque internacional).
- *  - consolidacion | puerta_a_puerta_DDP | reserva_FCL → third_party.
+ *  - consolidado_lcl | puerta_a_puerta_DDP | fcl_directo → third_party.
  *  - servicio desconocido (no vacío) → third_party (conservador: tratar plata
  *    dudosa como de la Operadora nunca infla el ingreso propio).
  */

@@ -185,7 +185,7 @@ export async function getPublicCalculatorCities(): Promise<Ciudad[]> {
  * Llama a la RPC `public_fcl_rates` (anon, security definer, grant anon) de
  * `supabase/migrations/0157_public_fcl_rates.sql`. Retorno MÍNIMO: origin +
  * destination + flat_rate + min_charge + transit_days + valid_until, solo de las
- * rutas reserva_FCL marcadas is_public del tenant dtd.
+ * rutas fcl_directo marcadas is_public del tenant dtd.
  *
  * Si no hay rutas públicas (o Supabase caído / RPC ausente) devuelve `[]` y la
  * calculadora muestra su estado vacío ("pídela por WhatsApp"). Nunca tira: es una

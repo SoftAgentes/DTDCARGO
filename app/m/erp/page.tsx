@@ -122,9 +122,9 @@ export default async function MobileErpPage({
     origin: string | null;
     destination: string | null;
     shipment_service:
-      | "consolidacion"
+      | "consolidado_lcl"
       | "puerta_a_puerta_DDP"
-      | "reserva_FCL"
+      | "fcl_directo"
       | "transporte_terrestre";
     status:
       | "draft"

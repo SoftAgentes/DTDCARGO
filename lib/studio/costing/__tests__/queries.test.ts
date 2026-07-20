@@ -126,11 +126,11 @@ describe("costingRows", () => {
   it("cruza shipments + costos + revenue (id, fallback code)", async () => {
     const shipments = [
       // S1 tiene revenue por id + costos
-      { id: "S1", tenant_id: "tn", code: "DTDU-1", origin: "YIW", destination: "PBL", shipment_service: "consolidacion", status: "in_transit", deleted_at: null },
+      { id: "S1", tenant_id: "tn", code: "DTDU-1", origin: "YIW", destination: "PBL", shipment_service: "consolidado_lcl", status: "in_transit", deleted_at: null },
       // S2 sin shipment_id en factura → revenue por code; sin costos
-      { id: "S2", tenant_id: "tn", code: "DTDU-2", origin: "YIW", destination: "PBL", shipment_service: "consolidacion", status: "delivered", deleted_at: null },
+      { id: "S2", tenant_id: "tn", code: "DTDU-2", origin: "YIW", destination: "PBL", shipment_service: "consolidado_lcl", status: "delivered", deleted_at: null },
       // S3 borrado → excluido
-      { id: "S3", tenant_id: "tn", code: "DTDU-3", origin: "SZX", destination: "LGU", shipment_service: "reserva_FCL", status: "draft", deleted_at: "2026-05-01" },
+      { id: "S3", tenant_id: "tn", code: "DTDU-3", origin: "SZX", destination: "LGU", shipment_service: "fcl_directo", status: "draft", deleted_at: "2026-05-01" },
     ];
     const shipment_costs = [
       { id: "c1", tenant_id: "tn", shipment_id: "S1", freight: 1000, customs: 0, transport: 0, handling: 0, insurance: 0, commission: 0, other: 0, notes: null, created_at: "", updated_at: "", deleted_at: null },

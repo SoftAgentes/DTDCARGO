@@ -74,14 +74,12 @@ export type RateInput = {
 
 /**
  * Opciones del select de servicio en el form de Tarifas.
- * Reusa las labels del módulo Tracking para consistencia.
+ *
+ * Alias de `SERVICE_OPTIONS` (fuente única en `lib/shared/shipment-public`).
+ * Antes era una lista propia con labels distintas a las del Tracking — el mismo
+ * servicio se llamaba de dos maneras según la pantalla (SDD-0164).
  */
-export const RATE_SERVICE_OPTIONS: { value: ShipmentService; label: string }[] = [
-  { value: "consolidacion", label: "Consolidación (LCL)" },
-  { value: "puerta_a_puerta_DDP", label: "Puerta a Puerta DDP (prepago)" },
-  { value: "reserva_FCL", label: "Reserva FCL (container completo)" },
-  { value: "transporte_terrestre", label: "Transporte terrestre (VE interno)" },
-];
+export { SERVICE_OPTIONS as RATE_SERVICE_OPTIONS } from "@/lib/shared/shipment-public";
 
 /**
  * Indica si el servicio se cobra por CBM (LCL-style) o por flat rate (FCL-style).
@@ -89,10 +87,11 @@ export const RATE_SERVICE_OPTIONS: { value: ShipmentService; label: string }[] =
  */
 export function priceMode(service: ShipmentService): "per_cbm" | "flat_rate" {
   switch (service) {
-    case "consolidacion":
+    case "consolidado_lcl":
     case "puerta_a_puerta_DDP":
       return "per_cbm";
-    case "reserva_FCL":
+    case "fcl_directo":
+    case "fcl_bodega":
     case "transporte_terrestre":
       return "flat_rate";
   }

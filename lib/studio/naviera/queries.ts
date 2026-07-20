@@ -4,7 +4,7 @@
  * Funciones PURAS que reciben un SupabaseClient. RLS filtra por tenant_id.
  *
  * `listLooseCargo` es DERIVADO (decisión §4.3): la carga suelta lista para
- * consolidar = embarques `shipment_service='consolidacion'` con recepción CN
+ * consolidar = embarques `shipment_service='consolidado_lcl'` con recepción CN
  * cerrada (`warehouse_receipts_cn.status='consolidado'`) que aún NO tienen fila
  * en `consolidation_items`. No es una tabla nueva (evita drift con almacén CN).
  */
@@ -387,14 +387,14 @@ export type LooseCargo = {
 
 /**
  * Carga suelta lista para consolidar (DERIVADA, no tabla — decisión §4.3):
- * embarques `shipment_service='consolidacion'` con recepción CN cerrada
+ * embarques `shipment_service='consolidado_lcl'` con recepción CN cerrada
  * (`warehouse_receipts_cn.status='consolidado'`) que NO tienen aún fila en
  * `consolidation_items`.
  *
  * Implementación:
  *  1. shipment_ids con recepción CN consolidada (closed).
  *  2. shipment_ids ya asignados a algún contenedor (consolidation_items).
- *  3. shipments consolidacion cuyo id está en (1) y no en (2).
+ *  3. shipments consolidado_lcl cuyo id está en (1) y no en (2).
  *
  * RLS filtra cada tabla por tenant. PURA respecto al cliente (sin estado).
  */
@@ -437,13 +437,13 @@ export async function listLooseCargo(
   const candidateIds = closedShipmentIds.filter((id) => !assignedIds.has(id));
   if (candidateIds.length === 0) return [];
 
-  // (3) shipments consolidacion entre los candidatos.
+  // (3) shipments consolidado_lcl entre los candidatos.
   const { data: shipmentRows, error: shipmentErr } = await supabase
     .from("shipments")
     .select(
       "id, code, client_name, client_markbox, weight_kg, volume_m3, shipment_service",
     )
-    .eq("shipment_service", "consolidacion")
+    .eq("shipment_service", "consolidado_lcl")
     .is("deleted_at", null)
     .in("id", candidateIds)
     .limit(5000);

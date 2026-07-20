@@ -28,7 +28,7 @@ export type TransitionAction = {
  * No incluye estados side-branch (delayed_warehouse, exception, cancelled).
  */
 const FLOWS: Record<ShipmentService, ShipmentStatus[]> = {
-  consolidacion: [
+  consolidado_lcl: [
     "draft",
     "in_warehouse",
     "consolidating",
@@ -50,9 +50,21 @@ const FLOWS: Record<ShipmentService, ShipmentStatus[]> = {
     "out_for_delivery",
     "delivered",
   ],
-  reserva_FCL: [
+  fcl_directo: [
     "draft",
     "in_warehouse",
+    "shipped",
+    "in_transit",
+    "in_customs",
+    "last_mile",
+    "delivered",
+  ],
+  // El FCL de bodega SÍ pasa por consolidación: el contenedor se arma en Yiwu
+  // con carga de varios proveedores. Ésa es toda la diferencia con el directo.
+  fcl_bodega: [
+    "draft",
+    "in_warehouse",
+    "consolidating",
     "shipped",
     "in_transit",
     "in_customs",
@@ -112,7 +124,7 @@ export function getNextActions(
 
   // 2. Side branch: para LCL/DDP, arrived_destination → delayed_warehouse
   if (
-    (service === "consolidacion" || service === "puerta_a_puerta_DDP") &&
+    (service === "consolidado_lcl" || service === "puerta_a_puerta_DDP") &&
     status === "arrived_destination"
   ) {
     actions.push({

@@ -11,7 +11,7 @@ import { validateRateInput, type RateInput } from "@/lib/studio/rate-types";
 
 function baseInput(overrides: Partial<RateInput> = {}): Partial<RateInput> {
   return {
-    service: "consolidacion",
+    service: "consolidado_lcl",
     origin: "Yiwu",
     destination: "Valencia",
     per_cbm: 480,
@@ -42,7 +42,7 @@ describe("validateRateInput", () => {
   it("acepta una tarifa flat (FCL) válida", () => {
     const { input, fieldErrors } = validateRateInput(
       baseInput({
-        service: "reserva_FCL",
+        service: "fcl_directo",
         origin: "Guangzhou",
         destination: "La Guaira",
         per_cbm: null,

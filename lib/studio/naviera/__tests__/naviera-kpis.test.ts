@@ -51,8 +51,8 @@ describe("navieraKpis — KPIs del dashboard", () => {
       consolidation_items: { data: [] },
       shipments: {
         data: [
-          { id: "s1", code: "DTDU-1", volume_m3: 8.2, weight_kg: 3000, shipment_service: "consolidacion" },
-          { id: "s2", code: "DTDU-2", volume_m3: 5.1, weight_kg: 2000, shipment_service: "consolidacion" },
+          { id: "s1", code: "DTDU-1", volume_m3: 8.2, weight_kg: 3000, shipment_service: "consolidado_lcl" },
+          { id: "s2", code: "DTDU-2", volume_m3: 5.1, weight_kg: 2000, shipment_service: "consolidado_lcl" },
         ],
       },
       sailings: { count: 3 },
@@ -88,7 +88,7 @@ describe("navieraKpis — KPIs del dashboard", () => {
       warehouse_receipts_cn: { data: [{ shipment_id: "s1" }] },
       consolidation_items: { data: [] },
       shipments: {
-        data: [{ id: "s1", code: "DTDU-1", volume_m3: 3.333, weight_kg: 1000, shipment_service: "consolidacion" }],
+        data: [{ id: "s1", code: "DTDU-1", volume_m3: 3.333, weight_kg: 1000, shipment_service: "consolidado_lcl" }],
       },
       sailings: { count: 1 },
     });

@@ -23,9 +23,9 @@ type SeedShipment = {
   origin: string;
   destination: string;
   shipment_service:
-    | "consolidacion"
+    | "consolidado_lcl"
     | "puerta_a_puerta_DDP"
-    | "reserva_FCL"
+    | "fcl_directo"
     | "transporte_terrestre";
   status:
     | "draft"
@@ -49,15 +49,15 @@ type SeedShipment = {
 };
 
 const SHIPMENTS: SeedShipment[] = [
-  { code: "DTDU-0001", client_name: "Empresa Demo S.A.",  client_markbox: "DTD-1001", origin: "Yiwu",     destination: "Puerto Cabello", shipment_service: "consolidacion",        status: "in_transit",         weight_kg:   850.50, volume_m3:  3.250, notes: "Tránsito normal, ETA 15 días" },
-  { code: "DTDU-0002", client_name: "Carga Ejemplo C.A.", client_markbox: "DTD-1002", origin: "Guangzhou",destination: "La Guaira",      shipment_service: "consolidacion",        status: "in_customs",        weight_kg:  1240.00, volume_m3:  4.800, notes: "En revisión aduanal CIQ" },
-  { code: "DTDU-0003", client_name: "Tenant Prueba SRL",  client_markbox: "DTD-1003", origin: "Yiwu",     destination: "Puerto Cabello", shipment_service: "consolidacion",        status: "arrived_destination",weight_kg:   620.00, volume_m3:  2.100, notes: "Esperando retiro del cliente" },
+  { code: "DTDU-0001", client_name: "Empresa Demo S.A.",  client_markbox: "DTD-1001", origin: "Yiwu",     destination: "Puerto Cabello", shipment_service: "consolidado_lcl",        status: "in_transit",         weight_kg:   850.50, volume_m3:  3.250, notes: "Tránsito normal, ETA 15 días" },
+  { code: "DTDU-0002", client_name: "Carga Ejemplo C.A.", client_markbox: "DTD-1002", origin: "Guangzhou",destination: "La Guaira",      shipment_service: "consolidado_lcl",        status: "in_customs",        weight_kg:  1240.00, volume_m3:  4.800, notes: "En revisión aduanal CIQ" },
+  { code: "DTDU-0003", client_name: "Tenant Prueba SRL",  client_markbox: "DTD-1003", origin: "Yiwu",     destination: "Puerto Cabello", shipment_service: "consolidado_lcl",        status: "arrived_destination",weight_kg:   620.00, volume_m3:  2.100, notes: "Esperando retiro del cliente" },
   { code: "DTDU-0004", client_name: "Demo Pyme C.A.",     client_markbox: "DTD-1004", origin: "Shenzhen", destination: "Valencia",       shipment_service: "puerta_a_puerta_DDP",  status: "delivered",         weight_kg:  1800.00, volume_m3:  5.500, notes: "POD firmado" },
   { code: "DTDU-0005", client_name: "Demo Pyme C.A.",     client_markbox: "DTD-1004", origin: "Yiwu",     destination: "Caracas",        shipment_service: "puerta_a_puerta_DDP",  status: "in_transit",         weight_kg:   950.00, volume_m3:  3.700, notes: "Anticipo recibido" },
-  { code: "DTDU-0006", client_name: "Tenant Industrial",  client_markbox: "DTD-1005", origin: "Ningbo",   destination: "Puerto Cabello", shipment_service: "reserva_FCL",          status: "in_transit",         weight_kg: 18500.00, volume_m3: 67.000, vehicle_category: "contenedor_maritimo", vehicle_model: "40HC Reefer", notes: "Container completo FCL 40 pies" },
-  { code: "DTDU-0007", client_name: "Tenant Industrial",  client_markbox: "DTD-1005", origin: "Shanghai", destination: "La Guaira",      shipment_service: "reserva_FCL",          status: "exception",         weight_kg: 16200.00, volume_m3: 60.000, vehicle_category: "contenedor_maritimo", vehicle_model: "40HC",        notes: "Retención aduanal, en seguimiento" },
+  { code: "DTDU-0006", client_name: "Tenant Industrial",  client_markbox: "DTD-1005", origin: "Ningbo",   destination: "Puerto Cabello", shipment_service: "fcl_directo",          status: "in_transit",         weight_kg: 18500.00, volume_m3: 67.000, vehicle_category: "contenedor_maritimo", vehicle_model: "40HC Reefer", notes: "Container completo FCL 40 pies" },
+  { code: "DTDU-0007", client_name: "Tenant Industrial",  client_markbox: "DTD-1005", origin: "Shanghai", destination: "La Guaira",      shipment_service: "fcl_directo",          status: "exception",         weight_kg: 16200.00, volume_m3: 60.000, vehicle_category: "contenedor_maritimo", vehicle_model: "40HC",        notes: "Retención aduanal, en seguimiento" },
   { code: "DTDU-0008", client_name: "Demo Local Pyme",    client_markbox: "DTD-1006", origin: "Valencia", destination: "Maracaibo",      shipment_service: "transporte_terrestre", status: "out_for_delivery",   weight_kg:  3200.00, volume_m3:  8.000, vehicle_category: "gandola",            vehicle_model: "Gandola 40 ton", notes: "Salida programada hoy" },
-  { code: "DTDU-0009", client_name: "Carga Ejemplo C.A.", client_markbox: "DTD-1002", origin: "Yiwu",     destination: "Puerto Cabello", shipment_service: "consolidacion",        status: "delayed_warehouse", weight_kg:   480.00, volume_m3:  1.800, notes: "22 días sin retiro, bodegaje activo" },
+  { code: "DTDU-0009", client_name: "Carga Ejemplo C.A.", client_markbox: "DTD-1002", origin: "Yiwu",     destination: "Puerto Cabello", shipment_service: "consolidado_lcl",        status: "delayed_warehouse", weight_kg:   480.00, volume_m3:  1.800, notes: "22 días sin retiro, bodegaje activo" },
   { code: "DTDU-0010", client_name: "Demo Pyme C.A.",     client_markbox: "DTD-1004", origin: "Guangzhou",destination: "Valencia",       shipment_service: "puerta_a_puerta_DDP",  status: "delivered",         weight_kg:  1100.00, volume_m3:  4.200, notes: "Cliente recurrente, entrega OK" },
 ];
 

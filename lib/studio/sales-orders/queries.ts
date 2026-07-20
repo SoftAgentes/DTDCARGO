@@ -52,7 +52,7 @@ function coerceSalesOrder(r: Record<string, unknown>): SalesOrder {
     quote_code: embeddedQuote?.quote_code ?? null,
     client_markbox: (r.client_markbox as string | null) ?? null,
     client_name: String(r.client_name ?? ""),
-    service: (r.service as ShipmentService) ?? "consolidacion",
+    service: (r.service as ShipmentService) ?? "consolidado_lcl",
     origin: String(r.origin ?? ""),
     destination: String(r.destination ?? ""),
     subtotal_usd: num(r.subtotal_usd),

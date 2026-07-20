@@ -32,7 +32,7 @@ import {
 describe("validateSalesOrderInput", () => {
   const valid = {
     clientName: "Importadora Caracas C.A.",
-    service: "consolidacion" as const,
+    service: "consolidado_lcl" as const,
     origin: "Yiwu",
     destination: "Valencia",
     totalUsd: 1200,
@@ -43,7 +43,7 @@ describe("validateSalesOrderInput", () => {
     const { input, fieldErrors } = validateSalesOrderInput(valid);
     expect(fieldErrors).toBeUndefined();
     expect(input?.clientName).toBe("Importadora Caracas C.A.");
-    expect(input?.service).toBe("consolidacion");
+    expect(input?.service).toBe("consolidado_lcl");
     expect(input?.totalUsd).toBe(1200);
     expect(input?.subtotalUsd).toBe(1140);
   });
@@ -99,7 +99,7 @@ describe("validateSalesOrderInput", () => {
   it("subtotal inválido/ausente cae al total", () => {
     const { input } = validateSalesOrderInput({
       clientName: "X",
-      service: "reserva_FCL",
+      service: "fcl_directo",
       origin: "Shenzhen",
       destination: "La Guaira",
       totalUsd: 5000,
@@ -202,7 +202,7 @@ describe("buildSalesOrderFromQuote", () => {
   const quote = {
     client_markbox: "DTD-5532",
     client_name: "Importadora Caracas C.A.",
-    service: "consolidacion" as const,
+    service: "consolidado_lcl" as const,
     origin: "Yiwu",
     destination: "Valencia",
     subtotal_usd: 1140,
@@ -214,7 +214,7 @@ describe("buildSalesOrderFromQuote", () => {
     const input = buildSalesOrderFromQuote(quote);
     expect(input.clientMarkbox).toBe("DTD-5532");
     expect(input.clientName).toBe("Importadora Caracas C.A.");
-    expect(input.service).toBe("consolidacion");
+    expect(input.service).toBe("consolidado_lcl");
     expect(input.origin).toBe("Yiwu");
     expect(input.destination).toBe("Valencia");
     expect(input.subtotalUsd).toBe(1140);
@@ -272,8 +272,8 @@ describe("isFromEstimate / salesOrderServiceLabel", () => {
   });
 
   it("salesOrderServiceLabel devuelve el label del servicio", () => {
-    expect(salesOrderServiceLabel("consolidacion")).toBeTruthy();
-    expect(salesOrderServiceLabel("reserva_FCL")).toBeTruthy();
+    expect(salesOrderServiceLabel("consolidado_lcl")).toBeTruthy();
+    expect(salesOrderServiceLabel("fcl_directo")).toBeTruthy();
   });
 });
 

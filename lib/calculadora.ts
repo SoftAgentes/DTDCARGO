@@ -30,7 +30,26 @@
 // ────────────────────────────────────────────────────────────────────
 
 export const CONFIG = {
-  /** Tarifa base por metro cúbico en USD (precio limpio sin excedente). */
+  /**
+   * Tarifa base por metro cúbico en USD (precio limpio sin excedente).
+   *
+   * ⚠️ ESTE 800 COINCIDE A PROPÓSITO con la tarifa pública del puerta a puerta
+   * que vive en la tabla `rates` del ERP (la fila `is_public`, editable desde
+   * /studio/tarifas). No es casualidad y no se toca a la ligera:
+   *
+   * La RPC `public_cbm_rate()` filtra por `valid_until >= current_date`. El día
+   * que la tarifa pública se venza, la RPC no devuelve NADA y el calculador del
+   * sitio cae a esta constante — sin avisarle a nadie. Mientras los dos números
+   * sean iguales, ese vencimiento es invisible para el cliente: el sitio sigue
+   * cotizando el mismo precio.
+   *
+   * Si algún día suben la tarifa en el Studio, HAY QUE SUBIR TAMBIÉN ESTE
+   * NÚMERO. Si no, se reabre la grieta: al vencer la vigencia el sitio empieza
+   * a cotizar por debajo del precio real, en silencio.
+   *
+   * El arreglo de fondo (pendiente, SDD-0164): una alerta en el ERP cuando una
+   * tarifa pública esté por vencer.
+   */
   tarifaBaseCBM: 800,
 
   /** Gracia de peso por CBM incluida en la tarifa base. Sobre esto = excedente. */

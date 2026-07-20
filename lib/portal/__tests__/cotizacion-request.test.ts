@@ -10,11 +10,11 @@ import {
 describe("validateCotizacionRequest", () => {
   it("acepta una solicitud mínima válida (service + description)", () => {
     const r = validateCotizacionRequest({
-      service: "consolidacion",
+      service: "consolidado_lcl",
       description: "Quiero traer 10 cajas de repuestos.",
     });
     expect(r.fieldErrors).toBeUndefined();
-    expect(r.input?.service).toBe("consolidacion");
+    expect(r.input?.service).toBe("consolidado_lcl");
     // Defaults sensatos cuando no se dan.
     expect(r.input?.origin).toBe("China");
     expect(r.input?.destination).toBe("Venezuela");
@@ -32,7 +32,7 @@ describe("validateCotizacionRequest", () => {
 
   it("exige descripción no vacía", () => {
     const r = validateCotizacionRequest({
-      service: "reserva_FCL",
+      service: "fcl_directo",
       description: "   ",
     });
     expect(r.fieldErrors?.description).toBeTruthy();
@@ -40,7 +40,7 @@ describe("validateCotizacionRequest", () => {
 
   it("rechaza descripción demasiado larga", () => {
     const r = validateCotizacionRequest({
-      service: "reserva_FCL",
+      service: "fcl_directo",
       description: "a".repeat(2001),
     });
     expect(r.fieldErrors?.description).toBeTruthy();
@@ -61,7 +61,7 @@ describe("validateCotizacionRequest", () => {
 
   it("números inválidos/negativos → null", () => {
     const r = validateCotizacionRequest({
-      service: "consolidacion",
+      service: "consolidado_lcl",
       description: "x",
       cbm: "-3",
       weightKg: "abc",
@@ -74,7 +74,7 @@ describe("validateCotizacionRequest", () => {
 
   it("respeta origin/destination provistos", () => {
     const r = validateCotizacionRequest({
-      service: "consolidacion",
+      service: "consolidado_lcl",
       description: "x",
       origin: "Yiwu",
       destination: "Maracay",
@@ -87,7 +87,7 @@ describe("validateCotizacionRequest", () => {
 describe("buildCotizacionNota", () => {
   it("marca la procedencia del portal y agrega volumen si existe", () => {
     const nota = buildCotizacionNota({
-      service: "consolidacion",
+      service: "consolidado_lcl",
       origin: "Yiwu",
       destination: "Valencia",
       description: "repuestos",
@@ -104,7 +104,7 @@ describe("buildCotizacionNota", () => {
 
   it("sin volumen no agrega la cola 'Aprox'", () => {
     const nota = buildCotizacionNota({
-      service: "consolidacion",
+      service: "consolidado_lcl",
       origin: "China",
       destination: "Venezuela",
       description: "consulta",
@@ -120,7 +120,7 @@ describe("buildCotizacionNota", () => {
 describe("buildCotizacionRow", () => {
   it("arma una quote source='studio' draft, precio en 0, con markbox/nombre de la sesión", () => {
     const { input } = validateCotizacionRequest({
-      service: "reserva_FCL",
+      service: "fcl_directo",
       description: "un contenedor",
       cbm: "28",
     });
@@ -132,7 +132,7 @@ describe("buildCotizacionRow", () => {
     expect(row.status).toBe("draft");
     expect(row.client_markbox).toBe("DTD-1004");
     expect(row.client_name).toBe("Empresa Demo S.A.");
-    expect(row.service).toBe("reserva_FCL");
+    expect(row.service).toBe("fcl_directo");
     expect(row.subtotal_usd).toBe(0);
     expect(row.total_usd).toBe(0);
     expect(row.packaging).toBe("carton");
@@ -175,11 +175,12 @@ describe("canAdvanceEstimate", () => {
 });
 
 describe("COTIZACION_SERVICES", () => {
-  it("son los 4 servicios núcleo", () => {
+  it("son los 5 servicios núcleo del enum", () => {
     expect(COTIZACION_SERVICES).toEqual([
-      "consolidacion",
       "puerta_a_puerta_DDP",
-      "reserva_FCL",
+      "consolidado_lcl",
+      "fcl_directo",
+      "fcl_bodega",
       "transporte_terrestre",
     ]);
   });

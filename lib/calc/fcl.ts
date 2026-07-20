@@ -1,12 +1,12 @@
 /**
- * Cálculo puro del estimado FCL (contenedor completo · reserva_FCL).
+ * Cálculo puro del estimado FCL (contenedor completo · fcl_directo).
  *
  * A diferencia del LCL (por CBM) o el terrestre (por peso/zona), el FCL se cobra
  * por TARIFA FLAT por contenedor por ruta. El "cálculo" es directo:
  *   total = nº de contenedores × tarifa flat de la ruta (con piso opcional).
  *
  * La lista de rutas públicas la trae `getPublicFclRoutes()` (RPC anon) desde la
- * tabla `rates` (service='reserva_FCL', is_public). El cliente elige una ruta y la
+ * tabla `rates` (service='fcl_directo', is_public). El cliente elige una ruta y la
  * cantidad de contenedores → ve el total al instante. La tarifa final la confirma
  * un asesor (igual que LCL): naviera, tipo de contenedor real (20'/40'/HC) y
  * disponibilidad afinan el precio.

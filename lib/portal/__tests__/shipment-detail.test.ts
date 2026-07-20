@@ -31,7 +31,7 @@ function stateOf(
 
 describe("portal timeline — derivación desde el status (reusa buildTimeline)", () => {
   it("status inicial (in_warehouse): el actual = active, el resto pending, nada done", () => {
-    const steps = buildTimeline("in_warehouse", "consolidacion");
+    const steps = buildTimeline("in_warehouse", "consolidado_lcl");
 
     // El primer paso del flow marítimo es in_warehouse → active.
     expect(steps[0]?.status).toBe("in_warehouse");
@@ -45,7 +45,7 @@ describe("portal timeline — derivación desde el status (reusa buildTimeline)"
   });
 
   it("status intermedio (in_transit): anteriores done, actual active, posteriores pending", () => {
-    const steps = buildTimeline("in_transit", "consolidacion");
+    const steps = buildTimeline("in_transit", "consolidado_lcl");
 
     // Lo recorrido antes de in_transit queda cumplido.
     expect(stateOf(steps, "in_warehouse")).toBe("done");
@@ -62,7 +62,7 @@ describe("portal timeline — derivación desde el status (reusa buildTimeline)"
   });
 
   it("entregado (delivered): todo el flow done hasta el último, sin pendientes", () => {
-    const steps = buildTimeline("delivered", "consolidacion");
+    const steps = buildTimeline("delivered", "consolidado_lcl");
     const last = steps[steps.length - 1];
 
     expect(last?.status).toBe("delivered");
@@ -73,7 +73,7 @@ describe("portal timeline — derivación desde el status (reusa buildTimeline)"
   });
 
   it("exception: marca un paso como exception y no muestra ningún active", () => {
-    const steps = buildTimeline("exception", "consolidacion");
+    const steps = buildTimeline("exception", "consolidado_lcl");
 
     expect(steps.some((s) => s.state === "exception")).toBe(true);
     // En estado de alerta no hay "en curso" normal.
@@ -94,7 +94,7 @@ describe("portal timeline — derivación desde el status (reusa buildTimeline)"
 
 describe("portal — estimatePortalEta", () => {
   const base = {
-    service: "consolidacion" as const,
+    service: "consolidado_lcl" as const,
     arrivedDestinationAt: null as string | null,
     createdAt: "2026-01-01T00:00:00.000Z",
   };
@@ -102,7 +102,7 @@ describe("portal — estimatePortalEta", () => {
   it("envío en tránsito → ETA en el futuro (createdAt + días por servicio)", () => {
     const eta = estimatePortalEta({ ...base, status: "in_transit" });
     expect(eta).not.toBeNull();
-    // consolidacion = 45 días sobre createdAt.
+    // consolidado_lcl = 45 días sobre createdAt.
     expect(new Date(eta as string).getTime()).toBe(
       new Date(base.createdAt).getTime() + 45 * 24 * 60 * 60 * 1000,
     );

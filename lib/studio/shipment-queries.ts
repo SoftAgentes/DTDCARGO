@@ -9,6 +9,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isShipmentService } from "./shipment-types";
 import type {
   Shipment,
   ShipmentService,
@@ -248,13 +249,6 @@ const ALL_VALID_STATUSES: ShipmentStatus[] = [
   "cancelled",
 ];
 
-const ALL_VALID_SERVICES: ShipmentService[] = [
-  "consolidacion",
-  "puerta_a_puerta_DDP",
-  "reserva_FCL",
-  "transporte_terrestre",
-];
-
 /**
  * Detecta palabras clave del query y devuelve servicios que matchean.
  * Permite que "terrestre", "DDP", "fcl", etc. amplien la busqueda al servicio.
@@ -269,9 +263,9 @@ function matchesServices(q: string): ShipmentService[] {
   if (/\bddp\b|\bprepago\b|\bpuerta a puerta\b|\bpuerta\b/.test(lower))
     matches.add("puerta_a_puerta_DDP");
   if (/\bfcl\b|\bcontainer\b|\bcontenedor\b|\breserva\b/.test(lower))
-    matches.add("reserva_FCL");
+    matches.add("fcl_directo");
   if (/\bconsolida|consolidacion|consolidación|\blcl\b/.test(lower))
-    matches.add("consolidacion");
+    matches.add("consolidado_lcl");
   return Array.from(matches);
 }
 
@@ -307,7 +301,7 @@ function matchesStatuses(q: string): ShipmentStatus[] {
 
 /**
  * Convierte searchParams crudos en un objeto ShipmentFilters tipado.
- * Sanitiza valores invalidos: "consolidacion-fake" → undefined.
+ * Sanitiza valores invalidos: "consolidado_lcl-fake" → undefined.
  *
  * Server-safe: pura, sin hooks. Importable desde server components.
  */
@@ -336,10 +330,7 @@ export function parseFiltersFromSearchParams(
   const onlyAlert = sp.alert === "1" || sp.alert === "true";
 
   return {
-    service:
-      service && ALL_VALID_SERVICES.includes(service as ShipmentService)
-        ? (service as ShipmentService)
-        : undefined,
+    service: isShipmentService(service) ? service : undefined,
     status:
       status && ALL_VALID_STATUSES.includes(status as ShipmentStatus)
         ? (status as ShipmentStatus)
