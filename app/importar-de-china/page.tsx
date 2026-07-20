@@ -3,7 +3,6 @@ import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
-import { HowWeWork } from "@/components/HowWeWork";
 import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import { GEO_ZONAS } from "@/lib/geo-zonas";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
@@ -145,8 +144,6 @@ export default function ImportarHubPage() {
             </div>
           </div>
         </section>
-
-        <HowWeWork />
       </main>
 
       <Footer />

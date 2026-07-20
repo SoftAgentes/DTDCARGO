@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
-import { HowWeWork } from "@/components/HowWeWork";
 import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import { GEO_ZONAS, getGeoZona } from "@/lib/geo-zonas";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
@@ -234,8 +233,6 @@ export default async function ImportarCiudadPage({
             </p>
           </div>
         </section>
-
-        <HowWeWork />
       </main>
 
       <Footer />

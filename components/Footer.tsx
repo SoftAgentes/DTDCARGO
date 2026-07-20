@@ -214,6 +214,10 @@ export function Footer() {
             <Link href="/puerta-a-puerta" className="hover:text-white transition-colors">
               Puerta a puerta
             </Link>
+            {/* Mismo destino que "Cómo trabajamos" del menú Ayuda (Nav.tsx), y es
+                DELIBERADO: dos nombres para la misma página, para que cada quien
+                la encuentre por la palabra que busca — el que ya conoce el término
+                logístico y el que solo quiere saber cómo funciona esto. No unificar. */}
             <Link href="/shipping-mark" className="hover:text-white transition-colors">
               Shipping Mark
             </Link>

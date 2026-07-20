@@ -11,10 +11,13 @@ const links = [
 ];
 
 /** Contenido de apoyo agrupado en el dropdown "Ayuda" (antes "Recursos").
- *  Orden por intención del visitante: formación → soporte → contenido.
- *  ("Cómo trabajamos" se eliminó; el rastreo público se movió al footer.) */
+ *  Orden por intención del visitante: formación → proceso → soporte → contenido.
+ *  ("Cómo trabajamos" vuelve como ENLACE — la sección homónima se retiró y el
+ *  proceso se cuenta en un solo lugar, los 8 pasos de /shipping-mark. El
+ *  rastreo público vive en el footer.) */
 const recursos = [
   { href: "/academia", label: "Academia" },
+  { href: "/shipping-mark", label: "Cómo trabajamos" },
   { href: "/faq", label: "Preguntas frecuentes" },
   { href: "/glosario", label: "Glosario" },
   { href: "/noticias", label: "Noticias" },
@@ -47,7 +50,7 @@ const FOCUSABLE_SEL =
  *
  * - Match exacto: `/glosario` activa el link `/glosario`.
  * - Match de subpath: `/noticias/incoterm-exw-explicado` activa el link `/noticias`.
- * - Anchors del home (`/#how`, etc.) nunca activan — necesitarían IntersectionObserver
+ * - Anchors del home (`/#servicios`, etc.) nunca activan — necesitarían IntersectionObserver
  *   para detectar cuando la sección está visible, fuera del scope actual.
  */
 function isLinkActive(pathname: string, linkHref: string): boolean {

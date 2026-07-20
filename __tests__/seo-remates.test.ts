@@ -115,8 +115,10 @@ describe("/markbox → /shipping-mark (rename con 301)", () => {
     expect(page).toContain('canonical: "/shipping-mark"');
     expect(page).toContain('path: "/shipping-mark"');
     expect(page).toContain("${SITE_URL}/shipping-mark");
-    // El HowWeWork se queda (decisión del founder).
-    expect(page).toContain("<HowWeWork />");
+    // "Cómo trabajamos" (<HowWeWork/>) se retiró del sitio el 2026-07-20: el
+    // proceso se cuenta en un solo lugar (los 8 pasos de esta página) y el
+    // nombre sobrevive como enlace del menú Ayuda hacia /shipping-mark.
+    expect(page).not.toContain("<HowWeWork />");
     // GEO conservado del build anterior.
     expect(page).toContain("RespuestaRapida");
     expect(page).toContain("WebPageJsonLd");

@@ -4,7 +4,6 @@ import { socialMeta } from "@/lib/seo-og";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
-import { HowWeWork } from "@/components/HowWeWork";
 import { RespuestaRapida } from "@/components/RespuestaRapida";
 import { ShippingMark } from "@/components/ShippingMark";
 import { AlibabaAddressGuide } from "@/components/AlibabaAddressGuide";
@@ -28,8 +27,11 @@ import { buildWhatsAppLink } from "@/lib/design-tokens";
  * La URL vieja hace 301 desde next.config.ts para no perder su SEO.
  *
  * Se conservan del build anterior (GEO/SEO): `<RespuestaRapida>` citable,
- * `<WebPageJsonLd>`, el JSON-LD de Service + FAQPage y `<HowWeWork>` (decisión
- * del founder) — el mockup no los contempla, así que van sin restarle nada.
+ * `<WebPageJsonLd>` y el JSON-LD de Service + FAQPage — el mockup no los
+ * contempla, así que van sin restarle nada. La sección "Cómo trabajamos"
+ * (`<HowWeWork/>`) se retiró del sitio (founder 2026-07-20): duplicaba el
+ * proceso que acá se cuenta mejor en 8 pasos; el nombre sobrevive como enlace
+ * del menú Ayuda apuntando a esta misma página.
  *
  * Reusa `<ShippingMark/>` (8 pasos) y `<AlibabaAddressGuide/>` (ya usada en
  * /faq) — una sola fuente de verdad de copy, sin datos inventados.
@@ -327,8 +329,6 @@ export default function ShippingMarkPage() {
             </div>
           </section>
         )}
-
-        <HowWeWork />
 
         {/* ── CTA final ── */}
         <section className="sm-final">
