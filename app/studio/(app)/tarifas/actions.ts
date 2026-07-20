@@ -142,7 +142,7 @@ export async function createRate(
 
   revalidatePath("/studio/tarifas");
   // La tarifa pública alimenta el calculador del sitio → refrescar su cache ISR.
-  revalidatePath("/calculadora");
+  revalidatePath("/tarifas");
   return { ok: true, createdId: inserted.id };
 }
 
@@ -186,7 +186,7 @@ export async function updateRate(
 
   revalidatePath("/studio/tarifas");
   // La tarifa pública alimenta el calculador del sitio → refrescar su cache ISR.
-  revalidatePath("/calculadora");
+  revalidatePath("/tarifas");
   return { ok: true };
 }
 
@@ -208,7 +208,7 @@ export async function softDeleteRate(
   }
 
   revalidatePath("/studio/tarifas");
-  revalidatePath("/calculadora");
+  revalidatePath("/tarifas");
   return { ok: true };
 }
 
@@ -278,7 +278,7 @@ export async function publishRateAction(
   }
 
   revalidatePath("/studio/tarifas");
-  revalidatePath("/calculadora");
+  revalidatePath("/tarifas");
   return { ok: true };
 }
 
@@ -301,7 +301,7 @@ export async function archiveRateAction(
   }
 
   revalidatePath("/studio/tarifas");
-  revalidatePath("/calculadora");
+  revalidatePath("/tarifas");
   return { ok: true };
 }
 

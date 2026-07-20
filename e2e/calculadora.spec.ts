@@ -27,8 +27,9 @@ async function typeInto(page: Page, sel: string, text: string) {
 }
 
 test.describe("calculadora pública · panel de medidas", () => {
+  // Fase 3: la calc LCL vive en la pestaña por defecto de /tarifas (2-en-1).
   test.beforeEach(async ({ page }) => {
-    await page.goto("/calculadora");
+    await page.goto("/tarifas");
     await expect(page.locator(CBM)).toBeVisible();
   });
 

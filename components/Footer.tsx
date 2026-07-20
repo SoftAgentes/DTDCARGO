@@ -203,12 +203,8 @@ export function Footer() {
             <Link href="/portal/login" className="hover:text-white transition-colors">
               Rastrear envío
             </Link>
-            {/* Reconexión SEO 2026-07-05: /estimacion y /nosotros estaban
-                huérfanas (0 links internos, sí en sitemap). /estimacion se
-                elimina en Fase 3 (→ 301 /tarifas); hasta entonces se conserva. */}
-            <Link href="/estimacion" className="hover:text-white transition-colors">
-              Estimación
-            </Link>
+            {/* Fase 3: /estimacion se eliminó (→ 301 /tarifas); la calc vive en
+                /tarifas con CTA WhatsApp. /nosotros sigue enlazada acá. */}
             <Link href="/nosotros" className="hover:text-white transition-colors">
               Nosotros
             </Link>

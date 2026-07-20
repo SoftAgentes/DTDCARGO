@@ -48,10 +48,18 @@ export function CalculadoraForm({
   serverRate,
   serverConfig,
   ciudades,
+  directWhatsApp = false,
 }: {
   serverRate?: ServerRate;
   serverConfig?: CalcParams | null;
   ciudades?: Ciudad[];
+  /**
+   * CTA en modo WhatsApp DIRECTO (Fase 3 · /tarifas): el botón "Enviar por
+   * WhatsApp" es un `<a>` a wa.me con el texto del estimado, sin abrir el modal
+   * de captura ni pegarle a `/api/public/estimacion` (la calc NO guarda nada).
+   * En false (legacy) mantiene el flujo con EstimadoModal.
+   */
+  directWhatsApp?: boolean;
 }) {
   // Tarifa base real o default de CONFIG (cero regresión si no hay pública).
   const baseRate =
@@ -373,6 +381,7 @@ export function CalculadoraForm({
             tieneCarga={tieneCarga}
             pesoIncluidoKg={params.pesoIncluidoKg}
             onEstimar={() => setModalOpen(true)}
+            directWhatsApp={directWhatsApp}
           />
         </div>
       </div>
@@ -403,8 +412,8 @@ export function CalculadoraForm({
 
       {/* SDD-0061 Fase B2 — confirmación post-estimado + CTA opcional de registro
           (baja fricción). Solo si el ERP devolvió código (si falló, no hay qué
-          vincular). */}
-      {savedEstimateCode && (
+          vincular). En modo directWhatsApp NO hay captura → no se muestra. */}
+      {!directWhatsApp && savedEstimateCode && (
         <div className="mt-4 card-shadow bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex-1">
             <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine">
@@ -427,21 +436,25 @@ export function CalculadoraForm({
         </div>
       )}
 
-      <EstimadoModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onConfirm={handleConfirm}
-        buildPayload={() => ({
-          calc: "lcl",
-          origin: "China",
-          destination: cotizacion.ciudad?.label ?? "Venezuela",
-          cbm: effectiveForm.cbmTotal,
-          weightKg: effectiveForm.pesoKg,
-          packaging: effectiveForm.embalaje === "especial" ? "madera" : "carton",
-          totalUsd: cotizacion.total,
-          subtotalUsd: cotizacion.total,
-        })}
-      />
+      {/* Modal de captura del estimado — solo en el flujo legacy. En /tarifas
+          (directWhatsApp) la calc no guarda nada, así que no se monta. */}
+      {!directWhatsApp && (
+        <EstimadoModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          onConfirm={handleConfirm}
+          buildPayload={() => ({
+            calc: "lcl",
+            origin: "China",
+            destination: cotizacion.ciudad?.label ?? "Venezuela",
+            cbm: effectiveForm.cbmTotal,
+            weightKg: effectiveForm.pesoKg,
+            packaging: effectiveForm.embalaje === "especial" ? "madera" : "carton",
+            totalUsd: cotizacion.total,
+            subtotalUsd: cotizacion.total,
+          })}
+        />
+      )}
     </>
   );
 }
@@ -789,6 +802,7 @@ function ResultPanel({
   tieneCarga,
   pesoIncluidoKg,
   onEstimar,
+  directWhatsApp = false,
 }: {
   cotizacion: EnvioCotizacion;
   input: EnvioInput;
@@ -797,6 +811,8 @@ function ResultPanel({
   pesoIncluidoKg: number;
   /** Abre el modal de captura del estimado web (caso con precio válido). */
   onEstimar: () => void;
+  /** CTA WhatsApp directo (sin modal ni POST) — Fase 3 /tarifas. */
+  directWhatsApp?: boolean;
 }) {
   const hasAlerta = !!cot.alerta && tieneCarga;
   const money = (n: number) =>
@@ -993,6 +1009,18 @@ function ResultPanel({
             >
               <WhatsAppIcon size={20} />
               Consultar con un asesor
+            </a>
+          ) : directWhatsApp ? (
+            // Fase 3 · /tarifas: WhatsApp directo con el texto del estimado (la
+            // conversión la captura el listener global de <a> a wa.me).
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn bg-whatsapp text-white"
+            >
+              <WhatsAppIcon size={20} />
+              Enviar por WhatsApp
             </a>
           ) : (
             <button

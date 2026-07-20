@@ -21,16 +21,35 @@ import { resolve } from "node:path";
 const root = resolve(__dirname, "..");
 const read = (rel: string) => readFileSync(resolve(root, rel), "utf8");
 
-describe("remate 1+3 · /estimacion y /nosotros reconectadas (links internos)", () => {
-  it("/calculadora enlaza a /estimacion (CTA de asesor)", () => {
-    const page = read("app/calculadora/page.tsx");
-    expect(page).toContain('href="/estimacion"');
+describe("Fase 3 · calc unificada en /tarifas + Footer sin /estimacion", () => {
+  it("la calc pública vive en /tarifas (2-en-1) con CTA WhatsApp directo (sin captura)", () => {
+    const page = read("app/tarifas/page.tsx");
+    expect(page).toContain("TarifasTabs");
+    const tabs = read("components/TarifasTabs.tsx");
+    // LCL en modo WhatsApp directo (no EstimadoModal / no /api/public/estimacion).
+    expect(tabs).toContain("directWhatsApp");
+    expect(tabs).toContain("CotizadorFletes");
+    expect(page).not.toContain("EstimadoModal");
   });
 
-  it("el Footer enlaza a /estimacion y /nosotros", () => {
+  it("el Footer enlaza a /nosotros y ya NO a /estimacion (→ 301 /tarifas)", () => {
     const footer = read("components/Footer.tsx");
-    expect(footer).toContain('href="/estimacion"');
     expect(footer).toContain('href="/nosotros"');
+    expect(footer).not.toContain('href="/estimacion"');
+  });
+
+  it("las rutas viejas de calc/estimación se eliminaron (viven como 301 → /tarifas)", () => {
+    for (const p of [
+      "app/calculadora/page.tsx",
+      "app/calculadora-fcl/page.tsx",
+      "app/cotizador-flete/page.tsx",
+      "app/estimacion/page.tsx",
+    ]) {
+      expect(existsSync(resolve(root, p))).toBe(false);
+    }
+    const cfg = read("next.config.ts");
+    expect(cfg).toContain('source: "/estimacion", destination: "/tarifas"');
+    expect(cfg).toContain('source: "/calculadora", destination: "/tarifas"');
   });
 });
 

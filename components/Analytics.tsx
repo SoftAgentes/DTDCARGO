@@ -58,8 +58,9 @@ const PRIVATE_PREFIXES = [
   "/interno", //    zona interna del equipo (gateada por login del ERP)
   "/marca", //      brand book gated por login — sin valor de marketing
   // Iframe del FAB del portal (clientes YA captados): medirla contamina las
-  // métricas públicas y filtra el referrer del portal a Google.
-  "/calculadora/embed",
+  // métricas públicas y filtra el referrer del portal a Google. Fase 3:
+  // /calculadora/embed → /tarifas/embed.
+  "/tarifas/embed",
 ];
 
 export function isPrivatePath(pathname: string): boolean {

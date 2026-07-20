@@ -268,17 +268,18 @@ const nextConfig: NextConfig = {
       },
       // Calc embebible del portal: SAMEORIGIN (la enmarca el FAB). Excluida del
       // catch-all de abajo (negative lookahead) para no pisarle el DENY.
+      // Fase 3: /calculadora/embed → /tarifas/embed.
       {
-        source: "/calculadora/embed/:path*",
+        source: "/tarifas/embed/:path*",
         headers: calcEmbedHeaders,
       },
       {
-        source: "/calculadora/embed",
+        source: "/tarifas/embed",
         headers: calcEmbedHeaders,
       },
       {
         source:
-          "/:path((?!m/|marca/|norte\\.html|studio/bitacora|calculadora/embed).*)",
+          "/:path((?!m/|marca/|norte\\.html|studio/bitacora|tarifas/embed).*)",
         headers: securityHeaders,
       },
     ];
@@ -315,14 +316,17 @@ const nextConfig: NextConfig = {
         destination: "/",
         permanent: true,
       },
-      // SDD-0061 Fase A: `/cotizar` se renombró a `/estimacion` (vocabulario QB:
-      // "cotización" se retira). 301 permanente para no perder el SEO ni los
-      // links externos al URL viejo.
-      {
-        source: "/cotizar",
-        destination: "/estimacion",
-        permanent: true,
-      },
+      // Fase 3: la calculadora 2-en-1 vive en `/tarifas`. Las rutas viejas de
+      // calc/cotización (LCL, FCL, flete SeaRates, estimación, y el `/cotizar`
+      // histórico) hacen 301 permanente a `/tarifas` — se conserva su SEO y no
+      // se dejan 404 a links externos/guardados.
+      { source: "/cotizar", destination: "/tarifas", permanent: true },
+      { source: "/estimacion", destination: "/tarifas", permanent: true },
+      { source: "/calculadora", destination: "/tarifas", permanent: true },
+      { source: "/calculadora-fcl", destination: "/tarifas", permanent: true },
+      { source: "/cotizador-flete", destination: "/tarifas", permanent: true },
+      // La calc embebible del portal se movió: viejo iframe → nuevo embed.
+      { source: "/calculadora/embed", destination: "/tarifas/embed", permanent: true },
       // Migración de dominio doortudoor.com → dtdcargo.com (Search Console
       // "Cambio de dirección" activo, 2026-06-07). El 301 del dominio viejo es
       // path-preserving, pero estas páginas del sitio VIEJO no tienen slug
@@ -332,8 +336,9 @@ const nextConfig: NextConfig = {
       // doortudoor.com (impresiones 3 meses entre paréntesis).
       {
         // Artículo "cómo calcular CBM" — la de más equity (397 impresiones).
+        // Fase 3: apunta directo a /tarifas (evita la cadena vía /calculadora).
         source: "/como-calcular-metro-cubico-cbm-de-la-mercancia",
-        destination: "/calculadora",
+        destination: "/tarifas",
         permanent: true,
       },
       // `/nosotros` se reclamó: ahora es la página real "Sobre Nosotros"

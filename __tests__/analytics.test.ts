@@ -37,8 +37,8 @@ describe("isPrivatePath — GA no carga en rutas con PII", () => {
     // solo queda estanco NO cargando el tag en la página del código:
     "/track/DTD-1004",
     "/track/S-2026-0142/algo",
-    // Iframe del FAB del portal (clientes ya captados):
-    "/calculadora/embed",
+    // Iframe del FAB del portal (clientes ya captados) · Fase 3: /tarifas/embed:
+    "/tarifas/embed",
   ])("excluye %s", (path) => {
     expect(isPrivatePath(path)).toBe(true);
   });
@@ -46,8 +46,7 @@ describe("isPrivatePath — GA no carga en rutas con PII", () => {
   it.each([
     "/",
     "/servicios",
-    "/calculadora",
-    "/estimacion",
+    "/tarifas",
     "/contacto",
     "/registro",
     "/track", // el buscador ES público; solo la página del código se excluye

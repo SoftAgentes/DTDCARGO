@@ -288,7 +288,7 @@ export function PortalCalcFab() {
             {tab === "cbm" ? (
               <iframe
                 title="Calculadora CBM"
-                src={`/calculadora/embed?theme=${theme}`}
+                src={`/tarifas/embed?theme=${theme}`}
                 className="w-full h-full block"
                 style={{ border: 0, background: "var(--color-white)" }}
               />
