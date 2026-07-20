@@ -53,6 +53,7 @@ export function PortalDashboardNorte({
   activity = [],
   sailing = null,
   sailingDaysToCutoff = null,
+  advisorCard = null,
 }: {
   client: PortalClient;
   kpis: PortalDashboardKpis;
@@ -66,6 +67,8 @@ export function PortalDashboardNorte({
   sailing?: PortalSailing | null;
   /** Días al cut-off calculados en el server (fallback pre-hidratación de la card). */
   sailingDaysToCutoff?: number | null;
+  /** Card "Tu asesor" del Norte, ya resuelta en el server (datos reales). */
+  advisorCard?: ReactNode;
 }) {
   const firstName = client.name.trim().split(/\s+/)[0] || client.name;
   const today = formatToday();
@@ -198,6 +201,7 @@ export function PortalDashboardNorte({
             />
           ) : null}
           {kpis.outstandingBalance > 0 ? <SaldoCard kpis={kpis} /> : null}
+          {advisorCard}
           {/* Texto listo para WeChat: dirección de bodega CN + código del cliente. */}
           <ChinaSupplierClip markbox={client.markbox} />
           {recent.length > 0 ? <ActividadCard activity={recent} /> : null}

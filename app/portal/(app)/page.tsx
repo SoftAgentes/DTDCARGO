@@ -7,6 +7,7 @@ import {
   getProfileCompleteness,
   getDashboardKpis,
   getNextArrival,
+  getPortalAdvisor,
   listMyShipments,
 } from "@/lib/portal/portal-queries";
 import { listPendingAcceptanceInvoices } from "@/lib/portal/portal-legal-queries";
@@ -26,6 +27,7 @@ import { PortalDashboard } from "./_components/PortalDashboard";
 import { PortalDashboardNorte } from "./_components/PortalDashboardNorte";
 import { PendingAcceptanceCard } from "./_components/PendingAcceptanceCard";
 import { ProfileIncompleteCard } from "./_components/ProfileIncompleteCard";
+import { PortalAdvisorCard } from "./_components/PortalAdvisorCard";
 
 export const metadata: Metadata = { title: "Inicio" };
 
@@ -116,6 +118,13 @@ export default async function PortalHomePage() {
   }
   const sailingDaysToCutoff = sailing ? daysUntil(sailing.cutoff, todayIso) : null;
 
+  // Asesor asignado (card "Tu asesor" del Norte). Admin client — el cliente del
+  // portal no tiene RLS sobre los perfiles del equipo; se resuelve SOLO el suyo.
+  // Best-effort: si falla, la card cae al contacto público (nunca inventa nombre).
+  const advisor = await getPortalAdvisor(createAdminClient(), client.id).catch(
+    () => null,
+  );
+
   return (
     <div className="flex flex-col gap-7">
       {pendingAcceptance.length > 0 ? (
@@ -138,6 +147,7 @@ export default async function PortalHomePage() {
           activity={activity}
           sailing={sailing}
           sailingDaysToCutoff={sailingDaysToCutoff}
+          advisorCard={<PortalAdvisorCard client={client} advisor={advisor} />}
         />
       ) : (
         <PortalDashboard
