@@ -29,6 +29,17 @@
 > v4.6.html` y `private/marca/brand-book-v4.6.html`; punteros de código actualizados
 > (`app/marca/`, `app/interno/(app)/marca/`, `BrandMark.tsx`, `lib/design-tokens.ts`).
 
+> **✅ Patch en este repo (Norte, 2026-07-19 · sigue v4.6):** `NORTE-SYNC-2026-07-19.md` — se cerraron
+> 4 decisiones que faltaban (el repo cortaba en BD-028): **Glass (BD-031)** — tokens `--glass-*` a
+> producción (`app/globals.css` + `app/studio/tokens.css`, light/dark) + aplicado a la calculadora
+> flotante del portal (`PortalCalcFab.tsx`); **Glow de fondo (BD-030)** — token `--bg-glow` (glow
+> radial tonal navy→ink, los coloridos siguen prohibidos); **Shipping Mark único (BD-029)** — se retira
+> "MARKBOX" del lenguaje visual (sweep de web pública **pendiente** con la reconstrucción de la web);
+> **Mockups T2 (BD-032)** — registrado, N/A en producción. `BRAND.md` §AI Slop pasa glass/glow a
+> permitido-con-límites. El **Brand Book físico NO se regeneró** (el .zip lo indica). La **web pública
+> no se toca** en este ciclo (§0). Detalle: `CHANGELOG.md` (entrada 2026-07-19) + `BRAND-DECISIONS.md`
+> BD-029…032.
+
 > **Versión anterior: v4.5** (2026-06-20). Marca y producto comparten un solo
 > número visible — sidebar del ERP, títulos del Portal y apps de operario, tokens y Brand
 > Book dicen todos **v4.5**. Las menciones a v2.x/v3.x en CHANGELOG y comentarios de código son

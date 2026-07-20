@@ -198,11 +198,13 @@ export function Footer() {
             <Link href="/registro" className="hover:text-white transition-colors">
               Registro de cliente
             </Link>
-            {/* Reconexión SEO 2026-07-05: /estimacion y /nosotros estaban
-                huérfanas (0 links internos, sí en sitemap). */}
-            <Link href="/estimacion" className="hover:text-white transition-colors">
-              Estimación
+            {/* Rastreo: el /track público se eliminó (el rastreo vive dentro del
+                portal). Este link reemplaza ese acceso desde el footer. */}
+            <Link href="/portal/login" className="hover:text-white transition-colors">
+              Rastrear envío
             </Link>
+            {/* Fase 3: /estimacion se eliminó (→ 301 /fcl); la calc pública quedó
+                FCL-only en /fcl. /nosotros sigue enlazada acá. */}
             <Link href="/nosotros" className="hover:text-white transition-colors">
               Nosotros
             </Link>
@@ -212,7 +214,11 @@ export function Footer() {
             <Link href="/puerta-a-puerta" className="hover:text-white transition-colors">
               Puerta a puerta
             </Link>
-            <Link href="/markbox" className="hover:text-white transition-colors">
+            {/* Mismo destino que "Cómo trabajamos" del menú Ayuda (Nav.tsx), y es
+                DELIBERADO: dos nombres para la misma página, para que cada quien
+                la encuentre por la palabra que busca — el que ya conoce el término
+                logístico y el que solo quiere saber cómo funciona esto. No unificar. */}
+            <Link href="/shipping-mark" className="hover:text-white transition-colors">
               Shipping Mark
             </Link>
             <Link href="/faq" className="hover:text-white transition-colors">
@@ -224,23 +230,29 @@ export function Footer() {
             <Link href="/noticias" className="hover:text-white transition-colors">
               Noticias
             </Link>
-            {/* Términos: oculto hasta v3.1 (texto final del abogado, sin
-                placeholders). Flip TERMINOS_LIVE=true en lib/legal-public.ts. */}
-            {TERMINOS_LIVE && (
-              <Link
-                href="/terminos"
-                className="hover:text-white transition-colors"
-              >
-                Términos
+
+            {/* Cluster "Legal" (decisión founder): agrupa los legales bajo un
+                rótulo, en vez de sueltos en la fila. TERMINOS_LIVE intacto. */}
+            <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="text-[10px] font-bold tracking-[0.14em] uppercase text-white/35">
+                Legal
+              </span>
+              {/* Términos: oculto hasta v3.1 (texto final del abogado, sin
+                  placeholders). Flip TERMINOS_LIVE=true en lib/legal-public.ts. */}
+              {TERMINOS_LIVE && (
+                <Link href="/terminos" className="hover:text-white transition-colors">
+                  Términos
+                </Link>
+              )}
+              <Link href="/privacidad" className="hover:text-white transition-colors">
+                Privacidad
               </Link>
-            )}
-            <Link href="/privacidad" className="hover:text-white transition-colors">
-              Privacidad
-            </Link>
-            <Link href="/cookies" className="hover:text-white transition-colors">
-              Cookies
-            </Link>
-            <CookiePreferencesLink className="hover:text-white transition-colors" />
+              <Link href="/cookies" className="hover:text-white transition-colors">
+                Cookies
+              </Link>
+              <CookiePreferencesLink className="hover:text-white transition-colors" />
+            </span>
+
             <span>{CONTACT.web} · Made in Yiwu &amp; Valencia</span>
           </div>
         </div>

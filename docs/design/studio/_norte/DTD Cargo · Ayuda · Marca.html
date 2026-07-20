@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DTD Cargo · Ayuda — marca</title>
+<!--
+  Sub-marca de contenido "DTD Cargo · Ayuda" — asset reutilizable.
+  Marca del contenido de AYUDA del portal (FAQ + Shorts tutoriales cortos). Solo
+  tipografía, sin isologo, sin caras (las caras son solo redes). Tipografía final =
+  Archivo Black (aquí simulada con system bold para que el archivo sea autónomo /
+  publicable como artifact — la CSP del artifact bloquea fuentes externas).
+
+  El watermark va en MODO GLASS: legalizado el 2026-07-17 por el founder (BD-031) y
+  sincronizado a BRAND.md el 2026-07-19 (NORTE-SYNC-2026-07-19). Ver BD-031 (Glass) +
+  BD-030 (glow de fondo) en BRAND-DECISIONS.md. Colores solo de marca: vino #7F0F1A ·
+  navy #0F1E3D · paper #FBFAF7.
+-->
+<style>
+  :root{
+    --ground:#FBFAF7;--surface:#FFFFFF;--ink:#0F1E3D;--ink-soft:#4A4640;--ink-mute:#8A8478;
+    --border:#E8E3DA;--wine:#7F0F1A;--navy:#0F1E3D;--cream:#FBFAF7;
+    --sans:"Archivo","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+    --shadow:0 1px 2px rgba(15,30,61,.06),0 12px 32px rgba(15,30,61,.09);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{--ground:#0B1730;--surface:#13223F;--ink:#F1EEE8;--ink-soft:#C0C8D8;--ink-mute:#7E8AA4;--border:#24334F;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 14px 36px rgba(0,0,0,.4);}
+  }
+  :root[data-theme="light"]{--ground:#FBFAF7;--surface:#FFFFFF;--ink:#0F1E3D;--ink-soft:#4A4640;--ink-mute:#8A8478;--border:#E8E3DA;--shadow:0 1px 2px rgba(15,30,61,.06),0 12px 32px rgba(15,30,61,.09);}
+  :root[data-theme="dark"]{--ground:#0B1730;--surface:#13223F;--ink:#F1EEE8;--ink-soft:#C0C8D8;--ink-mute:#7E8AA4;--border:#24334F;--shadow:0 1px 2px rgba(0,0,0,.3),0 14px 36px rgba(0,0,0,.4);}
+
+  *{box-sizing:border-box}
+  body{margin:0}
+  .page{min-height:100vh;background:var(--ground);color:var(--ink);font-family:var(--sans);line-height:1.5;padding:clamp(22px,4vw,56px) 20px 70px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto}
+  .eyebrow{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--wine);margin:0 0 10px}
+  h1{font-size:clamp(26px,4.4vw,40px);font-weight:800;letter-spacing:-.02em;line-height:1.08;margin:0 0 12px;text-wrap:balance}
+  .lead{font-size:15px;color:var(--ink-soft);margin:0;max-width:62ch}
+  .sect{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-mute);margin:40px 0 16px}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  @media(max-width:640px){.grid{grid-template-columns:1fr}}
+  .tile{border-radius:18px;box-shadow:var(--shadow);border:1px solid var(--border);padding:44px 26px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+  .tile .cap{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px}
+  .tile.light{background:#FBFAF7}
+  .tile.light .cap{color:#8A8478}
+  .tile.dark{background:#0F1E3D;border-color:#1c2f52}
+  .tile.dark .cap{color:#9fb0cf}
+
+  /* ── El lockup tipográfico ── */
+  .lk{display:inline-flex;flex-direction:column;align-items:center;line-height:1}
+  .lk .word{font-weight:900;letter-spacing:-.02em;font-size:clamp(30px,6vw,46px)}
+  .lk .word .d{color:var(--wine)}
+  .lk .word .sp{display:inline-block;width:.15em}
+  .lk--onlight .word .c{color:var(--navy)}
+  .lk--ondark .word .c{color:var(--cream)}
+  .lk .tagrow{display:flex;align-items:center;gap:12px;margin-top:12px;width:100%}
+  .lk .tagrow .rule{flex:1;height:1.5px;border-radius:2px}
+  .lk .tag{font-weight:800;letter-spacing:.3em;text-transform:uppercase;font-size:clamp(12px,2.4vw,15px);white-space:nowrap}
+  .lk--onlight .tag{color:var(--wine)} .lk--onlight .rule{background:#E0D7CC}
+  .lk--ondark .tag{color:#E9AEB2} .lk--ondark .rule{background:#2b3d5e}
+
+  /* variante inline (una sola línea) */
+  .lkin{display:inline-flex;align-items:center;gap:11px;line-height:1}
+  .lkin .word{font-weight:900;letter-spacing:-.02em;font-size:20px}
+  .lkin .word .d{color:var(--wine)} .lkin .word .c{color:var(--ink)}
+  .lkin .bar{width:1.5px;height:20px;background:#D8CFC3;border-radius:2px}
+  .lkin .tag{font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:var(--wine)}
+
+  .row{display:flex;flex-wrap:wrap;gap:22px}
+  .card{flex:1 1 260px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:30px 24px;display:flex;flex-direction:column;align-items:center;gap:6px}
+  .card .k{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-mute);margin-bottom:14px}
+
+  /* video watermark demo (glass · BD-031) */
+  .demo{display:flex;flex-wrap:wrap;gap:26px;align-items:center}
+  .phone{position:relative;width:200px;flex:0 0 200px;aspect-ratio:9/16;border-radius:20px;overflow:hidden;
+    background:radial-gradient(120% 70% at 50% 10%,#1a2c52,#0d1a34 70%);box-shadow:var(--shadow);border:1px solid #24334f}
+  .phone .center{position:absolute;inset:0;display:grid;place-items:center;color:#5f7099;font-size:12px;font-weight:600}
+  .phone .wmk{position:absolute;top:12px;right:12px;display:inline-flex;align-items:center;gap:7px;
+    padding:6px 11px;border-radius:999px;
+    background:rgba(251,250,247,.13);
+    backdrop-filter:blur(9px) saturate(1.15);-webkit-backdrop-filter:blur(9px) saturate(1.15);
+    border:1px solid rgba(251,250,247,.24);box-shadow:0 2px 12px rgba(0,0,0,.2)}
+  .phone .wmk .w{font-weight:900;font-size:13px;letter-spacing:-.02em}
+  .phone .wmk .w .d{color:#E0656F} .phone .wmk .w .c{color:#F1EEE8}
+  .phone .wmk .bar{width:1.5px;height:13px;background:rgba(251,250,247,.4);border-radius:2px}
+  .phone .wmk .t{font-weight:800;letter-spacing:.1em;text-transform:uppercase;font-size:8.5px;color:#E9AEB2}
+  .phone .cta{position:absolute;left:0;right:0;bottom:16px;text-align:center;color:#c9d3e6;font-size:11px}
+  .demo .note{flex:1 1 260px;font-size:13.5px;color:var(--ink-soft);line-height:1.5;max-width:44ch}
+  .demo .note b{color:var(--ink)}
+  .ok{color:#1F8A5B;font-weight:700}
+
+  .foot{margin-top:42px;font-size:13px;color:var(--ink-mute);max-width:72ch;line-height:1.6}
+  .foot b{color:var(--ink-soft)}
+  .pill{display:inline-block;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:3px 11px;font-size:12px;font-weight:700;color:var(--wine);margin-bottom:6px}
+  .spec{margin-top:14px;font-size:12.5px;color:var(--ink-soft);line-height:1.7;max-width:72ch}
+  .spec code{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11.5px;background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:1px 6px;color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="wrap">
+    <p class="eyebrow">Marca DTD · sub-marca de contenido</p>
+    <h1>DTD Cargo · Ayuda</h1>
+    <p class="lead"><span class="pill">Nombre fijado · asset reutilizable</span><br>Marca del contenido de <b>ayuda</b> del portal — FAQ + Shorts tutoriales cortos. Solo tipografía, sin isologo, sin caras (las caras son solo redes): el wordmark <b>DTD Cargo</b> con la etiqueta <b>Ayuda</b>. No compite con Academia (cursos) ni con Noticias. Tipografía final = <b>Archivo Black</b> (aquí simulada con system-bold para que el archivo sea autónomo).</p>
+
+    <div class="sect">El lockup · fondo claro y sobre navy (videos)</div>
+    <div class="grid">
+      <div class="tile light">
+        <span class="cap">Fondo claro</span>
+        <div class="lk lk--onlight">
+          <span class="word"><span class="d">DTD</span><span class="sp"></span><span class="c">Cargo</span></span>
+          <div class="tagrow"><span class="rule"></span><span class="tag">Ayuda</span><span class="rule"></span></div>
+        </div>
+      </div>
+      <div class="tile dark">
+        <span class="cap">Sobre navy</span>
+        <div class="lk lk--ondark">
+          <span class="word"><span class="d">DTD</span><span class="sp"></span><span class="c">Cargo</span></span>
+          <div class="tagrow"><span class="rule"></span><span class="tag">Ayuda</span><span class="rule"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sect">Versión de una línea (espacios estrechos)</div>
+    <div class="row">
+      <div class="card">
+        <span class="k">Inline</span>
+        <div class="lkin">
+          <span class="word"><span class="d">DTD</span> <span class="c">Cargo</span></span>
+          <span class="bar"></span><span class="tag">Ayuda</span>
+        </div>
+      </div>
+      <div class="card">
+        <span class="k">Solo etiqueta (chip)</span>
+        <div class="lkin"><span class="tag" style="letter-spacing:.22em">Ayuda</span></div>
+      </div>
+    </div>
+
+    <div class="sect">En el video · marca de agua (modo glass · BD-031)</div>
+    <div class="demo">
+      <div class="phone">
+        <div class="wmk">
+          <span class="w"><span class="d">DTD</span> <span class="c">Cargo</span></span>
+          <span class="bar"></span><span class="t">Ayuda</span>
+        </div>
+        <div class="center">tutorial en pantalla…</div>
+        <div class="cta">dtdcargo.com</div>
+      </div>
+      <div class="note">
+        Marca de agua fija en la esquina del Short, en <b>modo glass</b> (pastilla semitransparente + blur). Identifica "contenido de Ayuda DTD" al instante, ocupa poco y no depende de ninguna cara.
+        <br><br><span class="ok">✅ Glass ya es legal</span> — el founder lo autorizó el 2026-07-17 (BD-031) y quedó sincronizado a <b>BRAND.md</b> el 2026-07-19. El watermark queda válido para producción.
+      </div>
+    </div>
+
+    <p class="foot"><b>Construcción:</b> puro wordmark de marca (DTD en vino, Cargo en navy/cream según fondo) + etiqueta <b>Ayuda</b> uppercase con reglas a los lados. Colores solo de marca (vino #7F0F1A · navy #0F1E3D · paper #FBFAF7).<br><b>Estado:</b> BD-031 (Glass) + BD-030 (glow) registrados y sincronizados a BRAND.md/CLAUDE.md/tokens (NORTE-SYNC-2026-07-19). Esta marca queda guardada como asset reutilizable del Norte.</p>
+
+    <div class="spec">
+      <b>Spec del watermark glass (sobre video):</b> pastilla <code>border-radius:999px</code> · <code>padding:6px 11px</code> · relleno <code>rgba(251,250,247,.13)</code> tinte crema · <code>backdrop-filter:blur(9px) saturate(1.15)</code> (+ <code>-webkit-</code> de respaldo) · borde <code>rgba(251,250,247,.24)</code> · sombra <code>0 2px 12px rgba(0,0,0,.2)</code>. Texto: DTD <code>#E0656F</code> · Cargo <code>#F1EEE8</code> · barra <code>rgba(251,250,247,.4)</code> · "Ayuda" <code>#E9AEB2</code>, 8.5px, <code>letter-spacing:.1em</code>.
+      <br><b>Nota:</b> el watermark va sobre video (imagen arbitraria) → usa su propio vidrio con tinte crema, no los tokens <code>--glass-*</code> de la app (ésos son blanco/navy, tuneados para superficies del producto). Ambos siguen el sistema Glass de BD-031: superficie elevada, blur + relleno translúcido + borde tenue, texto que se lee sobre el peor caso.
+    </div>
+  </div>
+</div>
+</body>
+</html>

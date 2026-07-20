@@ -5,12 +5,17 @@ import {
   CONFIG,
   CIUDADES,
   DEFAULT_PARAMS,
+  CONSOLIDADO_CBM_RATE,
+  CONSOLIDADO_DESTINO,
+  CONSOLIDADO_CBM_MINIMO,
+  CONSOLIDADO_MIN_CBM_MENSAJE,
   calcularEnvioLCL,
   cbmFromDimensions,
   whatsappTextFromCotizacion,
   type EnvioInput,
   type EnvioCotizacion,
   type CalcParams,
+  type CalcModo,
   type Ciudad,
 } from "@/lib/calculadora";
 import Link from "next/link";
@@ -44,36 +49,81 @@ type ServerRate = {
  */
 type CalcWarning = { text: string; tone: "danger" | "warning" | "info" } | null;
 
+/**
+ * Modalidad que calcula el form (el tipo vive en `lib/calculadora`, que es
+ * donde se aplica la diferencia de reglas):
+ *  · `ddp`          = Puerta a Puerta (DDP): tarifa pública de la DB, ciudad de
+ *                     destino en Venezuela, todo incluido hasta la puerta.
+ *  · `consolidado`  = LCL Consolidado: tarifa fija `CONSOLIDADO_CBM_RATE`
+ *                     (dato del founder), SIN ciudad — llega hasta puerto y te
+ *                     entregamos tu propio BL; aduana e impuestos van por
+ *                     cuenta del cliente. Mismos recargos que el DDP, con UNA
+ *                     regla propia: por debajo de `CONSOLIDADO_CBM_MINIMO`
+ *                     (1 m³) no cotiza y deriva al asesor.
+ */
+export type { CalcModo };
+
 export function CalculadoraForm({
   serverRate,
   serverConfig,
   ciudades,
+  directWhatsApp = false,
+  modo = "ddp",
 }: {
   serverRate?: ServerRate;
   serverConfig?: CalcParams | null;
   ciudades?: Ciudad[];
+  /**
+   * CTA en modo WhatsApp DIRECTO (Fase 3 · /tarifas): el botón "Enviar por
+   * WhatsApp" es un `<a>` a wa.me con el texto del estimado, sin abrir el modal
+   * de captura ni pegarle a `/api/public/estimacion` (la calc NO guarda nada).
+   * En false (legacy) mantiene el flujo con EstimadoModal.
+   */
+  directWhatsApp?: boolean;
+  /** Modalidad calculada. Default `ddp` = comportamiento histórico intacto. */
+  modo?: CalcModo;
 }) {
+  const esConsolidado = modo === "consolidado";
+
   // Tarifa base real o default de CONFIG (cero regresión si no hay pública).
-  const baseRate =
+  const ddpRate =
     serverRate?.per_cbm && serverRate.per_cbm > 0
       ? serverRate.per_cbm
       : CONFIG.tarifaBaseCBM;
-  const minChargeOverride = serverRate?.min_charge ?? undefined;
-  const minCharge =
-    minChargeOverride && minChargeOverride > 0
-      ? minChargeOverride
+  const ddpMinCharge =
+    serverRate?.min_charge && serverRate.min_charge > 0
+      ? serverRate.min_charge
       : CONFIG.minimoFacturable;
+
+  // Consolidado: tarifa fija del founder y SIN piso en USD — su mínimo es de
+  // VOLUMEN (1 m³, `CONSOLIDADO_CBM_MINIMO`): por debajo no cotiza y deriva al
+  // asesor, así que 1 × 580 = $580 ya queda muy por encima de cualquier piso.
+  const baseRate = esConsolidado ? CONSOLIDADO_CBM_RATE : ddpRate;
+  const minCharge = esConsolidado ? 0 : ddpMinCharge;
+  const minChargeOverride = esConsolidado
+    ? undefined
+    : (serverRate?.min_charge ?? undefined);
   // Punto de cruce: CBM donde el cálculo iguala al mínimo. Derivado de la tarifa.
+  // En consolidado queda en 0 (no hay piso) → el aviso que aplica es el de 1 m³.
   const crossoverCbm = baseRate > 0 ? minCharge / baseRate : 0;
   const crossoverLabel = parseFloat(crossoverCbm.toFixed(4)).toString();
   const params = serverConfig ?? DEFAULT_PARAMS;
-  const cityList = ciudades && ciudades.length > 0 ? ciudades : CIUDADES;
+  // Consolidado: destino sintético (hasta puerto) → sin selector de ciudad y
+  // sin recargo por distancia. DDP: catálogo de la DB o el array por default.
+  const cityList = esConsolidado
+    ? [CONSOLIDADO_DESTINO]
+    : ciudades && ciudades.length > 0
+      ? ciudades
+      : CIUDADES;
   const defaultCiudadId =
     cityList.find((c) => c.id === "casco-central")?.id ??
     cityList[0]?.id ??
     "casco-central";
 
   const [form, setForm] = useState<EnvioInput>({
+    // El motor necesita la modalidad para aplicar la puerta de 1 m³ del
+    // consolidado (lib/calculadora · CONSOLIDADO_CBM_MINIMO).
+    modo,
     cbmTotal: 0,
     pesoKg: 0,
     embalaje: "estandar",
@@ -143,12 +193,16 @@ export function CalculadoraForm({
   const cbmWarning: CalcWarning =
     effectiveCbm > params.cbmMaxContenedor
       ? { text: "Eso es más que un contenedor. Consulta con tu asesor.", tone: "danger" }
-      : effectiveCbm > 0 && effectiveCbm < crossoverCbm
-        ? {
-            text: `Nuestro mínimo de carga es ${crossoverLabel} m³ — por debajo, el envío sale $${minCharge}.`,
-            tone: "info",
-          }
-        : null;
+      : // Consolidado: por debajo de 1 m³ no hay precio, hay asesor. Es bloqueo
+        // real (el BL propio es un fijo de hasta USD 300) → tono `danger`.
+        esConsolidado && effectiveCbm > 0 && effectiveCbm < CONSOLIDADO_CBM_MINIMO
+        ? { text: CONSOLIDADO_MIN_CBM_MENSAJE, tone: "danger" }
+        : effectiveCbm > 0 && effectiveCbm < crossoverCbm
+          ? {
+              text: `Nuestro mínimo de carga es ${crossoverLabel} m³ — por debajo, el envío sale $${minCharge}.`,
+              tone: "info",
+            }
+          : null;
 
   // Aviso del peso: tope absoluto de contenedor + recargo por densidad (peso por
   // CBM). Founder 2026-07-06: el exceso de densidad ya NO deriva al asesor — el
@@ -226,7 +280,9 @@ export function CalculadoraForm({
               <span className="text-ink">Cargo</span>
             </span>
             <span className="text-[11px] font-bold tracking-[0.14em] uppercase text-wine">
-              Calculadora puerta a puerta
+              {esConsolidado
+                ? "Calculadora LCL consolidado"
+                : "Calculadora puerta a puerta"}
             </span>
           </div>
 
@@ -236,11 +292,24 @@ export function CalculadoraForm({
               className="text-[26px] lg:text-[30px] leading-[1.1] tracking-[-0.01em] text-ink"
               style={{ fontFamily: "var(--font-archivo-black)" }}
             >
-              Cotiza tu carga China → Venezuela
+              {esConsolidado
+                ? "Cotiza tu carga consolidada hasta puerto"
+                : "Cotiza tu carga China → Venezuela"}
             </h2>
             <p className="mt-2.5 text-[14px] text-grey-700 leading-[1.5]">
-              Puerta a puerta, pagas al llegar. Indica tu volumen y peso y te
-              damos un estimado al instante.
+              {esConsolidado ? (
+                <>
+                  Tu carga viaja consolidada y te entregamos{" "}
+                  <strong className="text-ink">tu propio Bill of Lading</strong>{" "}
+                  en Venezuela. Indica tu volumen y peso y te damos un estimado al
+                  instante.
+                </>
+              ) : (
+                <>
+                  Puerta a puerta, pagas al llegar. Indica tu volumen y peso y te
+                  damos un estimado al instante.
+                </>
+              )}
             </p>
           </div>
 
@@ -273,7 +342,9 @@ export function CalculadoraForm({
               </span>
             </div>
             <p className="text-[11.5px] text-grey-500 mt-1.5 leading-[1.4]">
-              La genera el sistema. Ajústala si tu cotización es distinta.
+              {esConsolidado
+                ? "Tarifa base del consolidado. Ajústala si tu cotización es distinta."
+                : "La genera el sistema. Ajústala si tu cotización es distinta."}
             </p>
           </div>
 
@@ -341,27 +412,50 @@ export function CalculadoraForm({
             />
           </div>
 
-          {/* Destino */}
-          <div>
-            <label
-              htmlFor="ciudad"
-              className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500 mb-2 block"
-            >
-              Destino en Venezuela
-            </label>
-            <select
-              id="ciudad"
-              value={form.ciudadId}
-              onChange={(e) => update("ciudadId", e.target.value)}
-              className="w-full px-3.5 h-[52px] rounded-[12px] border border-grey-200 text-[15px] text-ink bg-white focus:outline-none focus:border-ink focus:ring-2 focus:ring-wine/40"
-            >
-              {cityList.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Destino · solo en puerta a puerta. El consolidado llega HASTA
+              PUERTO en Venezuela, así que no hay ciudad que elegir: en su lugar
+              se explica el alcance real del servicio (BL propio + aduana por
+              cuenta del cliente). Copy grounded en la ficha `lcl-consolidado`
+              de lib/servicios-detalle.ts. */}
+          {esConsolidado ? (
+            <div className="rounded-[14px] border border-grey-200 bg-paper p-4">
+              <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500">
+                Destino
+              </span>
+              <p className="mt-1.5 text-[14px] font-semibold text-ink leading-[1.35]">
+                Hasta puerto en Venezuela · con tu propio BL
+              </p>
+              <p className="mt-1.5 text-[12px] text-grey-700 leading-[1.5]">
+                El consolidado llega <strong className="text-ink">hasta puerto</strong>{" "}
+                y ahí te entregamos tu propio Bill of Lading, separado dentro del
+                Bill Master del contenedor. La{" "}
+                <strong className="text-ink">aduana y los impuestos en Venezuela
+                corren por tu cuenta</strong> (o los sumas aparte como servicio de
+                aduana).
+              </p>
+            </div>
+          ) : (
+            <div>
+              <label
+                htmlFor="ciudad"
+                className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500 mb-2 block"
+              >
+                Destino en Venezuela
+              </label>
+              <select
+                id="ciudad"
+                value={form.ciudadId}
+                onChange={(e) => update("ciudadId", e.target.value)}
+                className="w-full px-3.5 h-[52px] rounded-[12px] border border-grey-200 text-[15px] text-ink bg-white focus:outline-none focus:border-ink focus:ring-2 focus:ring-wine/40"
+              >
+                {cityList.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         {/* ── COLUMNA DERECHA · RESULTADO ── */}
@@ -373,19 +467,32 @@ export function CalculadoraForm({
             tieneCarga={tieneCarga}
             pesoIncluidoKg={params.pesoIncluidoKg}
             onEstimar={() => setModalOpen(true)}
+            directWhatsApp={directWhatsApp}
+            modo={modo}
           />
         </div>
       </div>
 
       {/* Nota al pie · ancho completo */}
       <div className="border-t border-grey-200 px-6 lg:px-9 py-4">
-        <p className="text-[11.5px] text-grey-500 leading-[1.5]">
-          <strong className="text-grey-700">* Pagas al llegar:</strong> pagas
-          el flete cuando tu carga llega a Venezuela. <strong className="text-grey-700">Pueden
-          aplicar restricciones.</strong>{" "}
-          Este estimado es aproximado y refleja nuestra tarifa base DDP (puerta a
-          puerta).
-        </p>
+        {esConsolidado ? (
+          <p className="text-[11.5px] text-grey-500 leading-[1.5]">
+            <strong className="text-grey-700">* Hasta puerto:</strong> el servicio
+            llega hasta entregarte tu Bill of Lading en Venezuela; la aduana y los
+            impuestos corren por tu cuenta.{" "}
+            <strong className="text-grey-700">Pueden aplicar restricciones.</strong>{" "}
+            Este estimado es aproximado y refleja nuestra tarifa base de
+            consolidado.
+          </p>
+        ) : (
+          <p className="text-[11.5px] text-grey-500 leading-[1.5]">
+            <strong className="text-grey-700">* Pagas al llegar:</strong> pagas
+            el flete cuando tu carga llega a Venezuela. <strong className="text-grey-700">Pueden
+            aplicar restricciones.</strong>{" "}
+            Este estimado es aproximado y refleja nuestra tarifa base DDP (puerta a
+            puerta).
+          </p>
+        )}
         {/* Condiciones del cliente (sutil, sin números internos) — desplegable */}
         <details className="mt-2.5 group">
           <summary className="text-[11.5px] font-semibold text-wine cursor-pointer list-none inline-flex items-center gap-1.5 min-h-[44px] hover:text-ink transition-colors rounded-[4px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
@@ -403,8 +510,8 @@ export function CalculadoraForm({
 
       {/* SDD-0061 Fase B2 — confirmación post-estimado + CTA opcional de registro
           (baja fricción). Solo si el ERP devolvió código (si falló, no hay qué
-          vincular). */}
-      {savedEstimateCode && (
+          vincular). En modo directWhatsApp NO hay captura → no se muestra. */}
+      {!directWhatsApp && savedEstimateCode && (
         <div className="mt-4 card-shadow bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex-1">
             <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine">
@@ -427,21 +534,25 @@ export function CalculadoraForm({
         </div>
       )}
 
-      <EstimadoModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onConfirm={handleConfirm}
-        buildPayload={() => ({
-          calc: "lcl",
-          origin: "China",
-          destination: cotizacion.ciudad?.label ?? "Venezuela",
-          cbm: effectiveForm.cbmTotal,
-          weightKg: effectiveForm.pesoKg,
-          packaging: effectiveForm.embalaje === "especial" ? "madera" : "carton",
-          totalUsd: cotizacion.total,
-          subtotalUsd: cotizacion.total,
-        })}
-      />
+      {/* Modal de captura del estimado — solo en el flujo legacy. En /tarifas
+          (directWhatsApp) la calc no guarda nada, así que no se monta. */}
+      {!directWhatsApp && (
+        <EstimadoModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          onConfirm={handleConfirm}
+          buildPayload={() => ({
+            calc: "lcl",
+            origin: "China",
+            destination: cotizacion.ciudad?.label ?? "Venezuela",
+            cbm: effectiveForm.cbmTotal,
+            weightKg: effectiveForm.pesoKg,
+            packaging: effectiveForm.embalaje === "especial" ? "madera" : "carton",
+            totalUsd: cotizacion.total,
+            subtotalUsd: cotizacion.total,
+          })}
+        />
+      )}
     </>
   );
 }
@@ -789,6 +900,8 @@ function ResultPanel({
   tieneCarga,
   pesoIncluidoKg,
   onEstimar,
+  directWhatsApp = false,
+  modo = "ddp",
 }: {
   cotizacion: EnvioCotizacion;
   input: EnvioInput;
@@ -797,7 +910,12 @@ function ResultPanel({
   pesoIncluidoKg: number;
   /** Abre el modal de captura del estimado web (caso con precio válido). */
   onEstimar: () => void;
+  /** CTA WhatsApp directo (sin modal ni POST) — Fase 3 /tarifas. */
+  directWhatsApp?: boolean;
+  /** Modalidad: cambia el sello del total, el "incluye" y el badge de pago. */
+  modo?: CalcModo;
 }) {
+  const esConsolidado = modo === "consolidado";
   const hasAlerta = !!cot.alerta && tieneCarga;
   const money = (n: number) =>
     `$${Math.round(Math.abs(n)).toLocaleString("en-US")}`;
@@ -895,9 +1013,19 @@ function ResultPanel({
               className="text-[12px] leading-[1.4] text-right"
               style={{ color: "rgba(255,255,255,0.55)" }}
             >
-              aprox · DDP
-              <br />
-              puerta a puerta
+              {esConsolidado ? (
+                <>
+                  aprox · LCL
+                  <br />
+                  hasta puerto
+                </>
+              ) : (
+                <>
+                  aprox · DDP
+                  <br />
+                  puerta a puerta
+                </>
+              )}
             </span>
           </div>
         )}
@@ -907,8 +1035,26 @@ function ResultPanel({
             style={{ color: "rgba(255,255,255,0.65)" }}
           >
             <span style={{ color: "rgba(255,255,255,0.6)" }}>Incluye:</span>{" "}
-            flete marítimo · aduana · impuestos · entrega en{" "}
-            {cot.ciudad?.label ?? "destino"}.
+            {esConsolidado ? (
+              <>
+                consolidación en nuestra bodega de Yiwu · flete marítimo
+                internacional · tu propio Bill of Lading.
+              </>
+            ) : (
+              <>
+                flete marítimo · aduana · impuestos · entrega en{" "}
+                {cot.ciudad?.label ?? "destino"}.
+              </>
+            )}
+          </p>
+        )}
+        {esConsolidado && tieneCarga && !hasAlerta && (
+          <p
+            className="mt-1.5 text-[12px] leading-[1.5]"
+            style={{ color: "rgba(255,255,255,0.55)" }}
+          >
+            No incluye: aduana e impuestos en Venezuela · servicios portuarios y
+            transporte interno.
           </p>
         )}
       </div>
@@ -950,14 +1096,18 @@ function ResultPanel({
         </div>
       )}
 
-      {/* Badge financiamiento (pill verde claro) */}
+      {/* Badge (pill verde claro) · DDP = financiamiento "pagas al llegar";
+          consolidado = tiempo real del servicio hasta entregarte el BL
+          (grounded: ficha `lcl-consolidado`, 60 a 90 días). */}
       {!hasAlerta && (
         <div
           className="inline-flex items-center gap-2.5 rounded-[10px] px-3.5 py-2.5 text-[13px] font-semibold text-ink"
           style={{ background: "rgba(31,138,91,0.12)" }}
         >
           <span className="fin-badge-dot-green" aria-hidden="true" />
-          Pagas al llegar* · cuando tu carga llega a Venezuela
+          {esConsolidado
+            ? "60 a 90 días* · hasta entregarte tu Bill of Lading"
+            : "Pagas al llegar* · cuando tu carga llega a Venezuela"}
         </div>
       )}
 
@@ -993,6 +1143,18 @@ function ResultPanel({
             >
               <WhatsAppIcon size={20} />
               Consultar con un asesor
+            </a>
+          ) : directWhatsApp ? (
+            // Fase 3 · /tarifas: WhatsApp directo con el texto del estimado (la
+            // conversión la captura el listener global de <a> a wa.me).
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn bg-whatsapp text-white"
+            >
+              <WhatsAppIcon size={20} />
+              Enviar por WhatsApp
             </a>
           ) : (
             <button

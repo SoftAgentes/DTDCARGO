@@ -729,7 +729,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     acronym: "DTD Universal · formato propio",
     category: "tracking",
     body: [
-      "Código interno de DTD Cargo que identifica un envío de extremo a extremo. Formato: `DTDU-NNNNNN-XXXX`. Te lo damos al confirmar la cotización y lo usas en /track para ver el estado en tiempo real.",
+      "Código interno de DTD Cargo que identifica un envío de extremo a extremo. Formato: `DTDU-NNNNNN-XXXX`. Te lo damos al confirmar la cotización y lo ves entrando a tu portal del cliente (dtdcargo.com/portal), donde sigues el estado en tiempo real.",
       "El DTDU agrupa el BL marítimo, los documentos de aduana y el last mile bajo un solo identificador — más cómodo que recordar múltiples números.",
     ],
   },
@@ -851,7 +851,8 @@ export const HERO = {
   /**
    * Badge circular sobre el contenedor — ícono de bucle + "De China a tu puerta"
    * = el ciclo completo puerta a puerta. Reemplaza el "360°" abstracto que no
-   * comunicaba nada (2026-06-13). El ciclo de 4 pasos se explica en HowWeWork.
+   * comunicaba nada (2026-06-13). El proceso completo se explica en
+   * /shipping-mark (8 pasos).
    */
   badge: {
     line1: "Puerta a puerta",
@@ -1064,8 +1065,8 @@ export const PHILOSOPHY = {
   ],
   pull: "La confianza no se promete. Se construye en cada envío.",
   /**
-   * 4 razones — se renderizan con el patrón de tarjeta de <HowWeWork />.
-   * `kicker` cumple el rol del índice "01 / 04" de HowWeWork (acento wine en
+   * 4 razones — se renderizan con el patrón de tarjeta del sistema.
+   * `kicker` cumple el rol de un índice "01 / 04" (acento wine en
    * Archivo Black); el de MARKBOX va en 唛头 (Noto Sans SC vía fallback de la pila).
    */
   cards: [

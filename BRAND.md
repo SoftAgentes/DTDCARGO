@@ -129,7 +129,8 @@ Los valores canónicos viven en el Norte (`docs/design/studio/_norte/erp/tokens.
 - **NUNCA** uses verde fosforescente, lima, neón, fucsia eléctrico o ningún color saturado fuera de la paleta.
 - **NUNCA** uses `red`, `blue`, `green`, `orange`, `purple` como nombres CSS. Usá los tokens.
 - **NUNCA** inventes hex como `#FF5733`, `#00FFAA`, etc.
-- **NUNCA** uses gradientes coloridos / arcoíris / "AI slop". Único gradiente permitido: **navy → ink** (familia `#0B1428`→`#0F1E3D`→`#1F3055`), **nunca hacia blanco**. En heros con texto (left-aligned) va **horizontal, azul FUERTE a la izquierda → navy más claro a la derecha**: `linear-gradient(90deg, #0B1428 0%, #0F1E3D 44%, #1F3055 100%)` (BD-022). **Hex explícito siempre, nunca `var(--ink)`/`var(--ink2)` dentro del gradiente** (BD-023) — si el token no resuelve, el fondo cae a blanco con texto claro encima (invisible); en dark, `var(--ink)` además se invierte a cream y voltea la tarjeta. En cards/botones chicos el diagonal `135deg` del mismo par es aceptable.
+- **NUNCA** uses gradientes coloridos / arcoíris / "AI slop". Los **coloridos/arcoíris siguen prohibidos**; lo permitido es **tonal navy → ink** (familia `#0B1428`→`#0F1E3D`→`#1F3055`), **nunca hacia blanco**. En heros con texto (left-aligned) va **horizontal, azul FUERTE a la izquierda → navy más claro a la derecha**: `linear-gradient(90deg, #0B1428 0%, #0F1E3D 44%, #1F3055 100%)` (BD-022). **Hex explícito siempre, nunca `var(--ink)`/`var(--ink2)` dentro del gradiente** (BD-023) — si el token no resuelve, el fondo cae a blanco con texto claro encima (invisible); en dark, `var(--ink)` además se invierte a cream y voltea la tarjeta. En cards/botones chicos el diagonal `135deg` del mismo par es aceptable.
+  - **Glow de fondo (BD-030, 2026-07-12):** además del hero, se **permite —y se recomienda para no dejar fondos planos—** un **glow radial *tonal* navy→ink** como fondo: `radial-gradient(135% 100% at 50% -12%, #1F3055 0%, #0F1E3D 42%, #0B1428 100%)` en dark; en claro, el equivalente sutil en papel `#FBFAF7`→`#F2F0EC`. Token: **`var(--bg-glow)`** (`app/globals.css`). Sigue las reglas de BD-022/023 (hex explícito, nunca hacia blanco en la familia navy) y **no** sustituye el gradiente de hero horizontal. Es **tonal, no colorido** — el glow no es una puerta a gradientes de color.
 - **NUNCA** uses morados, púrpuras o azules brillantes para alertas. El warning es **dorado** (#B8893A), no naranja chillón.
 
 ---
@@ -290,12 +291,31 @@ Estos patrones gritan "generado por AI" y **destruyen** la credibilidad del prod
 - ❌ "Empty states" con ilustraciones genéricas tipo undraw.co
 - ❌ Bordes redondeados de 24px+ en todo
 - ❌ Drop shadows muy difusas estilo macOS Sequoia
-- ❌ Modo "glassmorphism" / acrylic blur en todos lados
+- ⚠️ Modo "glassmorphism" / acrylic blur **como default en todos lados** — permitido SOLO en superficies elevadas/flotantes (ver ✅ Excepción · Glass · BD-031, abajo)
 - ❌ Texto centrado por defecto · usar left-align
 - ❌ Frases como "Made with ❤️", "Powered by AI", "Designed in 2026"
 - ❌ Dashboards con barras chart de colores aleatorios
 
 Si el usuario pide algo así, **avisarle** y proponer alternativa que respete el sistema.
+
+### ✅ Excepción · Glass (BD-031, founder 2026-07-17)
+
+El glassmorphism dejó de estar prohibido en bloque: se **permite acotado** a superficies **elevadas/flotantes** — calculadora flotante (FAB + panel), botón "Calcular", modales/overlays y popovers que floten sobre navy o imagen. **Nunca** en tablas, body, cards de contenido denso ni fondos de página (ahí sigue siendo AI slop).
+
+**Reglas (para no recaer en slop):**
+1. Solo superficies elevadas/flotantes, nunca "en todos lados".
+2. **El texto sobre el vidrio cumple AA** contra el peor caso del fondo — crema sobre glass navy, navy sobre glass blanco (nunca gris tenue). Token de texto: `--glass-ink`.
+3. El vidrio **no** reemplaza `--bg-surface` / `--color-white` en cards de contenido.
+4. Sin blur difuso estilo macOS en botones chicos de contenido.
+5. **Siempre** con `-webkit-backdrop-filter` de respaldo + relleno translúcido como fallback si el navegador no soporta blur.
+
+**Tokens (nunca hex sueltos):** `--glass-bg` · `--glass-border` · `--glass-hi` (highlight interior) · `--glass-blur` (`blur(18px) saturate(150%)`) · `--glass-ink` · `--glass-shadow` · `--glass-key` · `--glass-inset`. Voltean por tema (claro = vidrio blanco translúcido + texto navy; oscuro = vidrio navy translúcido + texto crema). Definidos en `app/globals.css` (web/portal) y `app/studio/tokens.css` (ERP), espejo 1:1 del Norte. Acentos y "=" en wine (`--color-wine` / `--wine-text` según tema).
+
+**Dónde está aplicado (no expandir sin BD nueva):**
+- **Web/Portal:** calculadora flotante del portal (`PortalCalcFab`, panel de vidrio) · glow de fondo `--bg-glow` en el embed de la calculadora (BD-030).
+- **ERP Studio (BD-033):** *scrim frosteado* — `backdrop-filter: var(--scrim-blur)` (blur suave 4px) en el overlay de todos los modales/drawers (`DrawerShell`, `ConfirmDialog`, `GlobalSearchModal`) · *panel de vidrio* del buscador ⌘K (`GlobalSearchModal`). **No** en toasts, paneles de drawer, tablas, KPIs ni fondos. Token del scrim: `--scrim-blur` (`app/studio/tokens.css`), distinto del `--glass-blur` de paneles.
+- **ERP Studio · fondos (BD-034):** las superficies vino/navy llevan **degradado tonal `--grad-*`** (sidebar navy, hero vino, KPI destacado, fondo de página, cards) + **marca de agua del isotipo "D"** (`public/brand/dtdcargo-isologo-mono-light.png`, wallpaper, opacidad baja .05–.10). Extiende BD-030 (tonal, **nunca** rainbow ni textura).
+- **ERP Studio · tipografía (BD-035):** el ERP corre en **Nunito Sans** (cuerpo/nav) + **Sora** (títulos) vía `--f-sans`/`--f-display` scopeados a `.studio-sys` (`app/studio/tokens.css`) — alinea el ERP con su fuente de diseño del Norte (BD-001). El wordmark `<BrandMark>` no migra.
 
 ---
 
@@ -355,7 +375,7 @@ preferís la alternativa?
 
 1. **Solo usar tokens CSS** (`var(--*)`). Cero hex inventados.
 2. **Solo fuentes Archivo + JetBrains Mono + Noto Sans SC**. Nada más.
-3. **Cero AI slop**: sin gradientes coloridos, sin emojis decorativos, sin glassmorphism, sin shadcn-defaults visibles.
+3. **Cero AI slop**: sin gradientes **coloridos** (el glow tonal navy→ink de fondo sí, BD-030), sin emojis decorativos, sin glassmorphism **como default** (Glass permitido solo en superficies elevadas/flotantes · BD-031), sin shadcn-defaults visibles.
 4. **Componentes del sistema** primero. Inventar solo con `/* TODO: brand-review */`.
 5. **Avisar antes de violar**. Formato `BRAND-CHECK` explícito.
 6. **Todo texto se lee.** Contraste AA: normal ≥4.5:1, grande ≥3:1. Un color de marca que no alcanza el ratio sobre su fondo real no se usa como texto (ver ♿).

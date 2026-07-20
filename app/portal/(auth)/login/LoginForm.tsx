@@ -3,27 +3,29 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import { BrandMark } from "@/components/BrandMark";
-import { ArrowIcon, CheckIcon } from "@/components/Icon";
+import { ArrowIcon, CheckIcon, MailIcon } from "@/components/Icon";
 import { requestMagicLink, type PortalLoginState } from "./actions";
 import { signOutAction } from "../../actions";
 
 const initialMagic: PortalLoginState = {};
 
-/** Prueba social del hero (Norte · PortalLogin). */
-const HERO_STATS = [
-  { v: "99.4%", l: "On-time" },
-  { v: "8.2K", l: "Cargas/año" },
-  { v: "38d", l: "Tránsito" },
+/** Beneficios del panel lateral (mockup Acceso · Transición). */
+const SIDE_BULLETS = [
+  "Seguimiento por compra y contenedor",
+  "Cotización DDP puerta a puerta",
+  "Documentos y facturas al día",
 ] as const;
 
 /**
- * Login del portal — REDISEÑO NORTE (`_norte/portal/app.jsx` · PortalLogin).
- * Hero de dos paneles: izquierda branding sobre navy (el ÚNICO gradiente que el
- * brand permite, navy→ink para el portal hero), derecha la card blanca con el
- * form magic-link. La ruta `(auth)` NO está bajo `[data-portal-theme]`, así que el
- * navy es fijo y el texto blanco es estable (no aplica el gotcha del tema oscuro).
- * Método único: email + enlace de acceso (SDD-0094 · el Shipping Mark dejó de ser
- * credencial). En móvil los paneles se apilan (branding arriba, form abajo).
+ * Acceso del portal — reskin al mockup Cloud Design "Acceso · Transición".
+ * Enlace mágico, SIN contraseña: el botón "Envíame el enlace" gira la card a
+ * "Revisa tu correo · el enlace vence en poco tiempo". Glass SOLO en el panel del
+ * formulario; el panel lateral es navy sólido con la marca.
+ *
+ * Backend INTACTO (SDD-0094): Server Action `requestMagicLink` (Supabase
+ * signInWithOtp), callback `/portal/callback`, TTL del enlace. Método único:
+ * email → enlace de acceso. El input conserva `name="email"` y NO hay password
+ * (contrato del e2e "Portal: magic link").
  */
 export function LoginForm({
   notice,
@@ -42,189 +44,218 @@ export function LoginForm({
 
   return (
     <div
-      className="min-h-screen grid place-items-center px-4 py-8 sm:px-6 sm:py-12 relative overflow-hidden"
+      className="min-h-screen flex flex-col items-center px-4 py-6 sm:px-6 sm:py-8 relative overflow-hidden"
       style={{
-        // Gradiente navy del login hero — sancionado por el brand (CLAUDE.md del
-        // Norte: "único gradiente permitido: dark navy → ink en el login/portal hero").
+        // Navy radial de marca (mockup) — el único gradiente permitido en el hero
+        // de acceso/portal (navy → ink). Fijo, no depende del tema.
         background:
-          "linear-gradient(135deg, var(--color-ink) 0%, #1f3055 50%, #0b1428 100%)",
+          "radial-gradient(135% 105% at 50% -14%, #1f3055 0%, #0f1e3d 44%, #0b1428 100%)",
       }}
     >
-      {/* Patrón decorativo (círculos concéntricos), muy sutil, arriba a la derecha. */}
-      <svg
-        aria-hidden
-        className="pointer-events-none absolute top-0 right-0"
-        style={{ opacity: 0.06 }}
-        width="500"
-        height="500"
-        viewBox="0 0 500 500"
-      >
-        <g fill="none" stroke="#ffffff" strokeWidth="1">
-          {Array.from({ length: 20 }, (_, i) => (
-            <circle key={i} cx="250" cy="250" r={20 + i * 22} />
-          ))}
-        </g>
-      </svg>
+      {/* Topline: wordmark + sello "enlace mágico" */}
+      <div className="w-full max-w-[940px] flex items-center justify-between gap-4 flex-wrap mb-6">
+        <BrandMark variant="reverse" size={30} />
+        <span
+          className="inline-flex items-center text-[10px] font-bold tracking-[0.12em] uppercase px-3.5 py-2 rounded-full"
+          style={{
+            color: "rgba(255,255,255,0.55)",
+            background: "rgba(255,255,255,0.06)",
+            border: "1px solid rgba(255,255,255,0.10)",
+          }}
+        >
+          Enlace mágico · sin contraseña
+        </span>
+      </div>
 
-      <div
-        className="relative w-full max-w-[980px] grid grid-cols-1 lg:grid-cols-[1fr_minmax(380px,420px)] rounded-[18px] overflow-hidden"
-        style={{ boxShadow: "var(--shadow-pop, 0 30px 80px rgba(0,0,0,0.4))" }}
-      >
-        {/* ── Panel izquierdo · branding ── */}
-        <div className="flex flex-col gap-5 p-8 sm:p-11 text-white">
-          <BrandMark variant="reverse" size={34} />
-          <div className="flex-1 flex flex-col justify-center">
-            <div
-              className="text-[11px] font-bold tracking-[0.18em] uppercase mb-3.5"
-              style={{ color: "var(--color-wine-soft)" }}
-            >
-              Portal del cliente
-            </div>
-            <div
-              className="text-[34px] sm:text-[38px] leading-none"
-              style={{ fontFamily: "var(--font-archivo-black)", letterSpacing: "-0.025em" }}
-            >
-              Tus envíos
-              <br />
-              desde China,
-              <br />
-              <span style={{ color: "var(--color-wine-soft)" }}>en un click.</span>
-            </div>
-            <p className="mt-5 text-[14px] leading-[1.5] text-white/70 max-w-[36ch]">
-              Estima, embarca y rastrea tus cargas puerta a puerta. Facturas,
-              documentos y soporte directo con tu agente.
-            </p>
-            <div className="mt-7 flex gap-7">
-              {HERO_STATS.map((s) => (
-                <div key={s.l}>
-                  <div
-                    className="text-[22px] leading-none"
-                    style={{
-                      fontFamily: "var(--font-archivo-black)",
-                      color: "var(--color-wine-soft)",
-                      letterSpacing: "-0.02em",
-                    }}
-                  >
-                    {s.v}
-                  </div>
-                  <div className="mt-1 text-[10px] font-medium tracking-[0.12em] uppercase text-white/50">
-                    {s.l}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="text-[11px] text-white/35">DTDCARGO.COM · v1.0 · 2026</div>
-        </div>
-
-        {/* ── Panel derecho · form ── */}
-        <div className="bg-white p-7 sm:p-10 flex flex-col justify-center">
-          <h1
-            className="text-[24px] sm:text-[26px] leading-[1.1] text-ink"
-            style={{ fontFamily: "var(--font-archivo-black)", letterSpacing: "-0.02em" }}
-          >
-            Entra con tu correo.
-          </h1>
-          <p className="mt-2 text-[13.5px] text-grey-700 leading-[1.5]">
-            Te mandamos un enlace de acceso a tu correo — entras con un clic, sin
-            contraseñas que recordar.
-          </p>
-
-          {notice && (
-            <p
-              className="mt-5 rounded-[10px] bg-paper border-l-[3px] px-4 py-3 text-[13.5px] text-grey-700 leading-[1.5]"
-              style={{ borderColor: "var(--color-wine)" }}
-            >
-              {notice}
-            </p>
-          )}
-
-          {magicState.sent ? (
-            <MagicSent
-              email={magicState.email ?? ""}
-              action={magicAction}
-              pending={magicPending}
-            />
-          ) : (
-            <form action={magicAction} className="mt-6 flex flex-col gap-4">
-              <label className="flex flex-col gap-2">
-                <span className="text-[11px] font-semibold tracking-[0.12em] uppercase text-grey-500">
-                  Tu email
-                </span>
-                <input
-                  type="email"
-                  name="email"
-                  required
-                  autoFocus
-                  defaultValue={prefillEmail ?? undefined}
-                  autoComplete="email"
-                  inputMode="email"
-                  placeholder="tu@empresa.com"
-                  disabled={magicPending}
-                  className="h-12 px-3.5 rounded-[10px] bg-white border-[1.5px] border-grey-200 outline-none text-[14.5px] text-ink transition-colors disabled:opacity-60 focus:border-wine focus-visible:border-wine focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--color-wine)_30%,transparent)]"
-                />
-              </label>
-
-              {magicState.error && (
-                <p className="text-[13.5px] text-wine leading-[1.45]">
-                  {magicState.error}
-                </p>
-              )}
-
-              <button
-                type="submit"
-                disabled={magicPending}
-                className="btn btn-primary w-full justify-center gap-2 disabled:opacity-60 disabled:cursor-wait"
-              >
-                {magicPending ? "Enviando…" : "Enviarme el enlace de acceso"}
-                {magicPending ? null : <ArrowIcon size={15} />}
-              </button>
-
-              <p className="text-[12px] text-grey-500 leading-[1.5]">
-                El enlace llega a tu correo, sirve por poco tiempo y es de un solo
-                uso. Si se te vence, pides otro y listo.
-              </p>
-            </form>
-          )}
-
-          {/* CTA de registro — puerta única del Norte: quien no tiene cuenta se registra acá. */}
+      <div className="w-full max-w-[920px] flex-1 grid place-items-center">
+        <div
+          className="w-full grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] rounded-[16px] overflow-hidden"
+          style={{
+            boxShadow: "var(--glass-shadow, 0 30px 80px rgba(0,0,0,0.4))",
+            border: "1px solid rgba(255,255,255,0.10)",
+          }}
+        >
+          {/* ── Panel del formulario · GLASS ── */}
           <div
-            className="mt-5 flex items-center justify-between gap-3 rounded-[10px] px-4 py-3"
+            className="p-7 sm:p-11 flex flex-col"
             style={{
-              background: "color-mix(in srgb, var(--color-wine) 7%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--color-wine) 22%, transparent)",
+              background: "var(--glass-bg)",
+              backdropFilter: "var(--glass-blur)",
+              WebkitBackdropFilter: "var(--glass-blur)",
             }}
           >
-            <span className="text-[12.5px] font-semibold text-ink">
-              ¿No tienes cuenta?
-            </span>
-            <Link
-              href="/registro"
-              className="inline-flex items-center gap-1.5 text-[13px] font-extrabold text-wine hover:text-wine-deep underline underline-offset-[3px]"
-            >
-              Regístrate <ArrowIcon size={13} />
-            </Link>
+            {magicState.sent ? (
+              <MagicSent
+                email={magicState.email ?? ""}
+                action={magicAction}
+                pending={magicPending}
+              />
+            ) : (
+              <>
+                <span
+                  className="text-[10px] font-bold tracking-[0.18em] uppercase"
+                  style={{ color: "var(--color-wine)" }}
+                >
+                  Acceso de cliente
+                </span>
+                <h1
+                  className="mt-3 text-[26px] sm:text-[28px] leading-[1.08] text-ink"
+                  style={{
+                    fontFamily: "var(--font-archivo-black)",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  Bienvenido de vuelta
+                </h1>
+                <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.55] max-w-[34ch]">
+                  Entra sin contraseña: te enviamos un enlace de acceso a tu correo.
+                </p>
+
+                {notice && (
+                  <p
+                    className="mt-5 rounded-[10px] bg-white/70 border-l-[3px] px-4 py-3 text-[13px] text-grey-700 leading-[1.5]"
+                    style={{ borderColor: "var(--color-wine)" }}
+                  >
+                    {notice}
+                  </p>
+                )}
+
+                <form action={magicAction} className="mt-6 flex flex-col gap-2">
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold tracking-[0.08em] uppercase text-grey-700">
+                      Correo
+                    </span>
+                    <input
+                      type="email"
+                      name="email"
+                      required
+                      autoFocus
+                      defaultValue={prefillEmail ?? undefined}
+                      autoComplete="email"
+                      inputMode="email"
+                      placeholder="tucorreo@ejemplo.com"
+                      disabled={magicPending}
+                      className="h-[46px] px-3.5 rounded-[8px] border border-grey-200 bg-white outline-none text-[14px] text-ink transition-colors disabled:opacity-60 focus:border-wine focus-visible:border-wine focus-visible:ring-[3px] focus-visible:ring-[color-mix(in_srgb,var(--color-wine)_28%,transparent)]"
+                    />
+                  </label>
+
+                  {magicState.error && (
+                    <p className="mt-1 text-[13px] text-wine leading-[1.45]">
+                      {magicState.error}
+                    </p>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={magicPending}
+                    className="btn btn-primary w-full justify-center gap-2 mt-2 h-[52px] disabled:opacity-60 disabled:cursor-wait"
+                  >
+                    <MailIcon size={16} />
+                    {magicPending ? "Enviando…" : "Envíame el enlace"}
+                  </button>
+                </form>
+
+                <p className="mt-3 text-[12px] text-grey-500 leading-[1.5]">
+                  El enlace llega a tu correo, sirve por poco tiempo y es de un solo
+                  uso. Si se te vence, pides otro y listo.
+                </p>
+
+                {/* ¿No tienes cuenta? → registro */}
+                <div className="flex items-center gap-3 mt-5 mb-1">
+                  <span className="flex-1 h-px bg-grey-200" />
+                  <span className="text-[11.5px] font-semibold text-grey-500">
+                    ¿No tienes cuenta?
+                  </span>
+                  <span className="flex-1 h-px bg-grey-200" />
+                </div>
+                <Link
+                  href="/registro"
+                  className="self-center inline-flex items-center gap-1.5 text-[12.5px] font-extrabold text-wine hover:text-wine-deep"
+                >
+                  Crea tu cuenta gratis <ArrowIcon size={13} />
+                </Link>
+              </>
+            )}
+
+            {authedNotBound && (
+              <form
+                action={signOutAction}
+                className="mt-4 pt-4 border-t border-grey-200 text-center"
+              >
+                <button
+                  type="submit"
+                  className="text-[12.5px] text-grey-500 underline underline-offset-2 hover:text-ink"
+                >
+                  Cerrar sesión y probar con otra cuenta
+                </button>
+              </form>
+            )}
           </div>
 
-          {authedNotBound && (
-            <form
-              action={signOutAction}
-              className="mt-4 pt-4 border-t border-grey-200 text-center"
+          {/* ── Panel lateral · navy sólido con marca ── */}
+          <div
+            className="relative p-9 sm:p-11 flex flex-col justify-center text-white overflow-hidden"
+            style={{
+              background:
+                "linear-gradient(150deg, #16264a 0%, #0f1e3d 52%, #0b1428 100%)",
+            }}
+          >
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -right-[70px] -bottom-[90px] w-[320px] h-[320px] rounded-full"
+              style={{
+                background:
+                  "radial-gradient(circle, color-mix(in srgb, var(--color-wine) 42%, transparent), transparent 68%)",
+                opacity: 0.5,
+              }}
+            />
+            <span
+              className="relative text-[10px] font-bold tracking-[0.18em] uppercase"
+              style={{ color: "var(--color-wine-soft)" }}
             >
-              <button
-                type="submit"
-                className="text-[12.5px] text-grey-500 underline underline-offset-2 hover:text-ink"
-              >
-                Cerrar sesión y probar con otra cuenta
-              </button>
-            </form>
-          )}
+              De China a tu puerta
+            </span>
+            <h2
+              className="relative mt-3.5 text-[28px] leading-[1.08] text-white"
+              style={{
+                fontFamily: "var(--font-archivo-black)",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              Con confianza, en cada contenedor.
+            </h2>
+            <p className="relative mt-2.5 text-[13.5px] leading-[1.6] text-white/75 max-w-[32ch]">
+              Tu Shipping Mark identifica tu carga de punta a punta. Cotiza DDP,
+              sigue tus envíos y paga, todo en un lugar.
+            </p>
+            <ul className="relative mt-6 flex flex-col gap-3 list-none p-0">
+              {SIDE_BULLETS.map((b) => (
+                <li key={b} className="flex items-center gap-2.5 text-[12.5px] text-white/85">
+                  <span
+                    className="w-[22px] h-[22px] flex-shrink-0 rounded-full grid place-items-center"
+                    style={{
+                      background: "rgba(255,255,255,0.10)",
+                      color: "var(--color-wine-soft)",
+                    }}
+                  >
+                    <CheckIcon size={13} />
+                  </span>
+                  {b}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
+
+      <p className="w-full max-w-[940px] text-center text-[11px] leading-[1.5] mt-6" style={{ color: "rgba(255,255,255,0.45)" }}>
+        DTDCARGO.COM · Portal del cliente
+      </p>
     </div>
   );
 }
 
+/** Estado "Revisa tu correo" tras enviar el enlace (transición del mockup). */
 function MagicSent({
   email,
   action,
@@ -235,23 +266,30 @@ function MagicSent({
   pending: boolean;
 }) {
   return (
-    <div className="mt-6">
-      <div
-        className="w-11 h-11 rounded-full grid place-items-center mb-3"
-        style={{
-          background: "var(--color-status-success)",
-          color: "var(--color-on-accent)",
-        }}
+    <div className="flex flex-col justify-center flex-1 gap-3">
+      <span
+        className="w-14 h-14 rounded-[12px] grid place-items-center"
+        style={{ background: "var(--color-wine-soft)", color: "#fff" }}
       >
-        <CheckIcon size={20} />
-      </div>
-      <div className="text-[16px] font-bold text-ink">Te enviamos el enlace</div>
-      <p className="mt-2 text-[14px] text-grey-700 leading-[1.55]">
-        Abre el correo que mandamos a <strong className="text-ink">{email}</strong> y
-        haz clic en el enlace para entrar. El enlace vence en poco tiempo y es de un
-        solo uso — si no lo ves, revisa spam o pídelo de nuevo.
+        <MailIcon size={26} />
+      </span>
+      <h1
+        className="text-[24px] sm:text-[26px] leading-[1.1] text-ink"
+        style={{ fontFamily: "var(--font-archivo-black)", letterSpacing: "-0.02em" }}
+      >
+        Revisa tu correo
+      </h1>
+      <p className="text-[13.5px] text-grey-700 leading-[1.6] max-w-[34ch]">
+        Te enviamos un enlace de acceso
+        {email ? (
+          <>
+            {" "}a <strong className="text-ink">{email}</strong>
+          </>
+        ) : null}
+        . Ábrelo y entrarás automáticamente — sin contraseña. El enlace vence en
+        poco tiempo y es de un solo uso; si no lo ves, revisa spam o pídelo de nuevo.
       </p>
-      <form action={action} className="mt-4">
+      <form action={action} className="mt-1 flex items-center gap-4">
         <input type="hidden" name="email" value={email} />
         <button
           type="submit"
@@ -260,6 +298,9 @@ function MagicSent({
         >
           {pending ? "Reenviando…" : "Reenviar enlace"}
         </button>
+        <span className="inline-flex items-center gap-1.5 text-[12.5px] text-grey-500">
+          <CheckIcon size={13} /> Enviado
+        </span>
       </form>
     </div>
   );

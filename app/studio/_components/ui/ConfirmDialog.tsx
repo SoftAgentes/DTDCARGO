@@ -92,6 +92,9 @@ export function ConfirmDialog({
         position: "fixed",
         inset: 0,
         background: "var(--scrim, rgba(15, 30, 61, 0.45))",
+        // Frost del fondo (BD-031) — el panel de confirmación queda opaco encima.
+        backdropFilter: "var(--scrim-blur)",
+        WebkitBackdropFilter: "var(--scrim-blur)",
         zIndex: 200,
         display: "flex",
         alignItems: "center",

@@ -4,7 +4,6 @@ import { socialMeta } from "@/lib/seo-og";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
-import { HowWeWork } from "@/components/HowWeWork";
 import { RespuestaRapida } from "@/components/RespuestaRapida";
 import { PuertaAPuerta } from "@/components/PuertaAPuerta";
 import { DdpHero } from "@/components/servicios/DdpHero";
@@ -143,7 +142,7 @@ export default async function PuertaAPuertaPage() {
               <a href={wa} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
                 <WhatsAppIcon size={18} /> Cotizar por WhatsApp
               </a>
-              <Link href="/calculadora" className="btn btn-ghost">
+              <Link href="/tarifas" className="btn btn-ghost">
                 Calcular mi envío <ArrowIcon size={16} />
               </Link>
             </div>
@@ -192,8 +191,6 @@ export default async function PuertaAPuertaPage() {
             </div>
           </section>
         )}
-
-        <HowWeWork />
       </main>
 
       <Footer />

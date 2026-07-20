@@ -187,7 +187,12 @@ export function PortalCalcFab() {
         <div
           role="dialog"
           aria-label="Calculadora"
-          className="fixed z-[251] card-shadow bg-white border border-grey-200 rounded-[16px] overflow-hidden flex flex-col"
+          // Glass (BD-031): panel flotante = vidrio esmerilado. Superficie elevada
+          // sobre el portal → aplica la excepción Glass. Siempre con
+          // -webkit-backdrop-filter de respaldo; --glass-bg es translúcido y sirve
+          // de fallback si el navegador no soporta blur. La barra de título sigue
+          // navy sólida (abajo) para que el texto blanco cumpla AA.
+          className="fixed z-[251] rounded-[16px] overflow-hidden flex flex-col"
           style={{
             left: px,
             top: py,
@@ -195,6 +200,12 @@ export function PortalCalcFab() {
             height: size.h,
             maxWidth: "calc(100vw - 16px)",
             maxHeight: "calc(100vh - 24px)",
+            background: "var(--glass-bg)",
+            border: "1px solid var(--glass-border)",
+            color: "var(--glass-ink)",
+            backdropFilter: "var(--glass-blur)",
+            WebkitBackdropFilter: "var(--glass-blur)",
+            boxShadow: "var(--glass-hi), var(--glass-shadow)",
           }}
         >
           {/* Barra navy arrastrable — navy en AMBOS temas (tokens --hero-*, con
@@ -237,8 +248,14 @@ export function PortalCalcFab() {
             </button>
           </div>
 
-          {/* Tabs */}
-          <div className="flex items-center gap-1 px-2.5 py-2 bg-paper border-b border-grey-200">
+          {/* Tabs — tira de vidrio translúcida (BD-031), no paper opaco */}
+          <div
+            className="flex items-center gap-1 px-2.5 py-2"
+            style={{
+              background: "var(--glass-key)",
+              borderBottom: "1px solid var(--glass-border)",
+            }}
+          >
             {(
               [
                 ["cbm", "CBM"],
@@ -269,9 +286,12 @@ export function PortalCalcFab() {
           {/* Contenido */}
           <div className="flex-1 min-h-0 overflow-hidden">
             {tab === "cbm" ? (
+              // TODO Fase 7: revisar con el founder qué calc va en el portal. Hoy
+              // vuelve a ser la CBM/LCL (`/tarifas/embed`), que es la del producto
+              // principal; el cotizador FCL vive aparte en `/fcl/embed`.
               <iframe
                 title="Calculadora CBM"
-                src={`/calculadora/embed?theme=${theme}`}
+                src={`/tarifas/embed?theme=${theme}`}
                 className="w-full h-full block"
                 style={{ border: 0, background: "var(--color-white)" }}
               />

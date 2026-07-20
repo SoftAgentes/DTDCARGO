@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
-import { HowWeWork } from "@/components/HowWeWork";
 import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import { GEO_ZONAS, getGeoZona } from "@/lib/geo-zonas";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
@@ -86,7 +85,7 @@ export default async function ImportarCiudadPage({
     },
     {
       q: `¿Cómo calculo el costo de mi envío a ${z.ciudad}?`,
-      a: `El costo se calcula por volumen (CBM) y destino. Saca tu estimado al instante en dtdcargo.com/calculadora, o escríbenos por WhatsApp para una cotización formal.`,
+      a: `El costo se calcula por volumen (CBM) y destino. Saca tu estimado al instante en dtdcargo.com/tarifas, o escríbenos por WhatsApp para una cotización formal.`,
     },
     {
       q: `¿Qué puedo importar a ${z.ciudad}?`,
@@ -139,7 +138,7 @@ export default async function ImportarCiudadPage({
               <a href={wa} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
                 <WhatsAppIcon size={18} /> Cotizar por WhatsApp
               </a>
-              <Link href="/calculadora" className="btn btn-ghost">
+              <Link href="/tarifas" className="btn btn-ghost">
                 Calcular mi envío <ArrowIcon size={16} />
               </Link>
             </div>
@@ -234,8 +233,6 @@ export default async function ImportarCiudadPage({
             </p>
           </div>
         </section>
-
-        <HowWeWork />
       </main>
 
       <Footer />

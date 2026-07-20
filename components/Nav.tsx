@@ -6,16 +6,18 @@ import { usePathname } from "next/navigation";
 import { BrandMark } from "./BrandMark";
 
 const links = [
-  { href: "/track", label: "Rastrear envío" },
   { href: "/servicios", label: "Servicios" },
-  { href: "/calculadora", label: "Calculadora" },
+  { href: "/tarifas", label: "Calculadora" },
 ];
 
-/** Contenido de apoyo agrupado en el dropdown "Recursos".
- *  Orden por intención del visitante: formación → proceso → soporte → términos → contenido. */
+/** Contenido de apoyo agrupado en el dropdown "Ayuda" (antes "Recursos").
+ *  Orden por intención del visitante: formación → proceso → soporte → contenido.
+ *  ("Cómo trabajamos" vuelve como ENLACE — la sección homónima se retiró y el
+ *  proceso se cuenta en un solo lugar, los 8 pasos de /shipping-mark. El
+ *  rastreo público vive en el footer.) */
 const recursos = [
   { href: "/academia", label: "Academia" },
-  { href: "/#how", label: "Cómo trabajamos" },
+  { href: "/shipping-mark", label: "Cómo trabajamos" },
   { href: "/faq", label: "Preguntas frecuentes" },
   { href: "/glosario", label: "Glosario" },
   { href: "/noticias", label: "Noticias" },
@@ -28,9 +30,9 @@ const FOCUSABLE_SEL =
 /**
  * Top navigation — sticky, blur, drawer mobile completo con focus trap.
  *
- * Desktop (lg+): logo + 3 links + dropdown "Recursos" + Acceder + CTA "Contáctanos"
+ * Desktop (lg+): logo + 2 links + dropdown "Ayuda" + Acceder + CTA "Contáctanos"
  * Mobile (<lg):  logo + [≡ hamburguesa] + [Contacto btn]
- *                El hamburger abre un drawer con los 3 links + acordeón "Recursos"
+ *                El hamburger abre un drawer con los 2 links + acordeón "Ayuda"
  *                + cuenta + CTA.
  *
  * Accesibilidad (WCAG 2.2):
@@ -48,7 +50,7 @@ const FOCUSABLE_SEL =
  *
  * - Match exacto: `/glosario` activa el link `/glosario`.
  * - Match de subpath: `/noticias/incoterm-exw-explicado` activa el link `/noticias`.
- * - Anchors del home (`/#how`, etc.) nunca activan — necesitarían IntersectionObserver
+ * - Anchors del home (`/#servicios`, etc.) nunca activan — necesitarían IntersectionObserver
  *   para detectar cuando la sección está visible, fuera del scope actual.
  */
 function isLinkActive(pathname: string, linkHref: string): boolean {
@@ -64,6 +66,9 @@ function isLinkActive(pathname: string, linkHref: string): boolean {
 
 export function Nav() {
   const [open, setOpen] = useState(false);
+  // Glass al hacer scroll: sobre el fondo de página, el nav pasa de sólido
+  // (crema) a glass (tokens `--glass-*`). Cloud Design 2026-07 — solo navbar.
+  const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
   const hamburgerRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
@@ -74,6 +79,14 @@ export function Nav() {
     setOpen(false);
     // Retornar foco después de que termine la animación slide-out
     setTimeout(() => hamburgerRef.current?.focus(), 50);
+  }, []);
+
+  // Glass on scroll: activa el estado al pasar ~8px del tope.
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   // Bloquear scroll del body cuando el drawer está abierto
@@ -153,11 +166,21 @@ export function Nav() {
   return (
     <>
       <nav
-        className="site-nav sticky top-0 z-50 border-b border-grey-200"
-        style={{
-          background: "rgba(251,250,247,0.92)",
-          backdropFilter: "blur(14px)",
-        }}
+        className="site-nav sticky top-0 z-50 border-b border-grey-200 transition-[background,box-shadow,border-color] duration-300"
+        style={
+          scrolled
+            ? {
+                background: "var(--glass-bg)",
+                backdropFilter: "var(--glass-blur)",
+                WebkitBackdropFilter: "var(--glass-blur)",
+                borderColor: "var(--glass-border)",
+                boxShadow: "var(--glass-shadow)",
+              }
+            : {
+                background: "rgba(251,250,247,0.92)",
+                backdropFilter: "blur(14px)",
+              }
+        }
       >
         <div className="wrap flex items-center justify-between h-[76px]">
           {/* Logo · lockup más compacto en móvil (<sm) para no chocar con el
@@ -198,7 +221,7 @@ export function Nav() {
                 en el useEffect de arriba. */}
             <details ref={recursosRef} className="group relative">
               <summary className="list-none cursor-pointer select-none text-[14.5px] px-2.5 py-2 rounded-md text-ink font-medium hover:text-wine hover:bg-wine/15 transition-colors whitespace-nowrap flex items-center gap-1.5 [&::-webkit-details-marker]:hidden">
-                Recursos
+                Ayuda
                 <span
                   aria-hidden
                   className="text-[9px] text-grey-500 transition-transform group-[[open]]:rotate-180"
@@ -237,7 +260,7 @@ export function Nav() {
               Acceder
             </Link>
             <Link href="/contacto" className="btn btn-ghost whitespace-nowrap">
-              Contáctanos
+              Contáctenos
             </Link>
           </div>
 
@@ -270,7 +293,7 @@ export function Nav() {
               className="btn btn-primary"
               style={{ height: 40, padding: "0 16px", fontSize: 13 }}
             >
-              Contacto
+              Contáctenos
             </Link>
           </div>
         </div>
@@ -348,7 +371,7 @@ export function Nav() {
               dropdown desktop). El focus-trap recoge el summary + sus links. */}
           <details className="group">
             <summary className="list-none cursor-pointer select-none text-[18px] py-4 px-3 -mx-3 rounded-md border-b border-grey-200 text-ink font-semibold hover:text-wine hover:bg-wine/15 transition-colors flex items-center justify-between [&::-webkit-details-marker]:hidden">
-              <span>Recursos</span>
+              <span>Ayuda</span>
               <span
                 aria-hidden
                 className="text-[13px] text-grey-500 transition-transform group-[[open]]:rotate-180"
@@ -399,7 +422,7 @@ export function Nav() {
             onClick={close}
             className="btn btn-primary w-full"
           >
-            Contáctanos
+            Contáctenos
           </Link>
         </div>
       </aside>

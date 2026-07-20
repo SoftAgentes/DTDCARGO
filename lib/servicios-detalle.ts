@@ -144,7 +144,7 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
     precio:
       "Se calcula por volumen (CBM) y ciudad de destino. Sácalo al instante en la calculadora o pídele la cotización formal a un asesor.",
     comoSolicitar:
-      "Calcula tu estimado en dtdcargo.com/calculadora, regístrate en dtdcargo.com/registro para tu Shipping Mark, o escríbenos por WhatsApp.",
+      "Calcula tu estimado en dtdcargo.com/tarifas, regístrate en dtdcargo.com/registro para tu Shipping Mark, o escríbenos por WhatsApp.",
     // grounded: FAQ §3 Kommo + decisión founder (publicar 60-90 puerta a puerta)
     tiempos:
       "60 a 90 días puerta a puerta: flete interno en China + espera de la próxima salida (cada 15-21 días) + travesía marítima + aduana y entrega en Venezuela.",

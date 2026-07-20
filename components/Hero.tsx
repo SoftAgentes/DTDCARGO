@@ -53,7 +53,7 @@ export function Hero() {
               sub-rótulo (el destino real del CTA). */}
           <div className="flex flex-wrap items-center gap-3">
             <Link
-              href="/calculadora"
+              href="/tarifas"
               className="btn btn-primary"
               style={{
                 width: "100%",
@@ -84,7 +84,7 @@ export function Hero() {
           {/* Acciones secundarias: rastrear carga + alta de cliente */}
           <p className="mt-5 text-[14px] text-grey-700">
             <Link
-              href="/track"
+              href="/portal/login"
               className="font-semibold text-wine hover:text-wine-deep underline underline-offset-2 decoration-1"
             >
               Rastrear envío
