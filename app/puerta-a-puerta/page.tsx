@@ -4,7 +4,6 @@ import { socialMeta } from "@/lib/seo-og";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
-import { HowWeWork } from "@/components/HowWeWork";
 import { RespuestaRapida } from "@/components/RespuestaRapida";
 import { PuertaAPuerta } from "@/components/PuertaAPuerta";
 import { DdpHero } from "@/components/servicios/DdpHero";
@@ -192,8 +191,6 @@ export default async function PuertaAPuertaPage() {
             </div>
           </section>
         )}
-
-        <HowWeWork />
       </main>
 
       <Footer />

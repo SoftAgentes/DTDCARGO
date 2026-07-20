@@ -226,23 +226,29 @@ export function Footer() {
             <Link href="/noticias" className="hover:text-white transition-colors">
               Noticias
             </Link>
-            {/* Términos: oculto hasta v3.1 (texto final del abogado, sin
-                placeholders). Flip TERMINOS_LIVE=true en lib/legal-public.ts. */}
-            {TERMINOS_LIVE && (
-              <Link
-                href="/terminos"
-                className="hover:text-white transition-colors"
-              >
-                Términos
+
+            {/* Cluster "Legal" (decisión founder): agrupa los legales bajo un
+                rótulo, en vez de sueltos en la fila. TERMINOS_LIVE intacto. */}
+            <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="text-[10px] font-bold tracking-[0.14em] uppercase text-white/35">
+                Legal
+              </span>
+              {/* Términos: oculto hasta v3.1 (texto final del abogado, sin
+                  placeholders). Flip TERMINOS_LIVE=true en lib/legal-public.ts. */}
+              {TERMINOS_LIVE && (
+                <Link href="/terminos" className="hover:text-white transition-colors">
+                  Términos
+                </Link>
+              )}
+              <Link href="/privacidad" className="hover:text-white transition-colors">
+                Privacidad
               </Link>
-            )}
-            <Link href="/privacidad" className="hover:text-white transition-colors">
-              Privacidad
-            </Link>
-            <Link href="/cookies" className="hover:text-white transition-colors">
-              Cookies
-            </Link>
-            <CookiePreferencesLink className="hover:text-white transition-colors" />
+              <Link href="/cookies" className="hover:text-white transition-colors">
+                Cookies
+              </Link>
+              <CookiePreferencesLink className="hover:text-white transition-colors" />
+            </span>
+
             <span>{CONTACT.web} · Made in Yiwu &amp; Valencia</span>
           </div>
         </div>

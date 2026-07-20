@@ -257,7 +257,7 @@ export function Nav() {
               Acceder
             </Link>
             <Link href="/contacto" className="btn btn-ghost whitespace-nowrap">
-              Contáctanos
+              Contáctenos
             </Link>
           </div>
 
@@ -290,7 +290,7 @@ export function Nav() {
               className="btn btn-primary"
               style={{ height: 40, padding: "0 16px", fontSize: 13 }}
             >
-              Contacto
+              Contáctenos
             </Link>
           </div>
         </div>
@@ -419,7 +419,7 @@ export function Nav() {
             onClick={close}
             className="btn btn-primary w-full"
           >
-            Contáctanos
+            Contáctenos
           </Link>
         </div>
       </aside>

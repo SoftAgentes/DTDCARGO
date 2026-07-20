@@ -67,7 +67,8 @@ test.describe("rutas públicas críticas", () => {
 
   test("/contacto muestra emails y WhatsApp", async ({ page }) => {
     await page.goto("/contacto");
-    await expect(page).toHaveTitle(/Contacto/);
+    // Fase 5: la página se renombró a "Contáctenos".
+    await expect(page).toHaveTitle(/Contáctenos/);
     await expect(page.locator("body")).toContainText(/dtdcargo\.com/);
   });
 
