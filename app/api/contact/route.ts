@@ -1,3 +1,17 @@
+/**
+ * ⚠️ DEPRECADO — 2026-07-20. NADIE LLAMA A ESTE ENDPOINT.
+ *
+ * Motivo: /contacto se rehízo al diseño real de Cloud Design (variante C) y por
+ * decisión del founder el formulario pasó a enviar SOLO por WhatsApp — arma el
+ * mensaje en el cliente y abre el chat, sin correo intermedio. Con eso murió el
+ * POST desde `components/ContactoForm.tsx`, y con él el honeypot y el límite por
+ * IP de esa página (ya no hay endpoint que proteger).
+ *
+ * Se CONSERVA a propósito, sin tocar la lógica, por si el founder revierte la
+ * decisión: volver a usarlo es un `fetch` en el form, nada más. Mismo criterio
+ * que se aplicó con `/api/public/estimacion`.
+ */
+
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { resolveRequestIp } from "@/lib/http/request-ip";
