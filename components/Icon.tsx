@@ -17,19 +17,6 @@ export function ArrowIcon({ className, size = 16 }: IconProps) {
   );
 }
 
-/** Bucle / ciclo continuo (dos flechas en círculo). Para el badge del hero y
- *  el cierre de "Cómo trabajamos" — "de China a tu puerta, una y otra vez". */
-export function LoopIcon({ className, size = 16 }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" width={size} height={size} {...base} strokeWidth={2} className={className} aria-hidden>
-      <path d="M4 12a8 8 0 0 1 13.7-5.6L20 8" />
-      <path d="M20 3.5v4.5h-4.5" />
-      <path d="M20 12a8 8 0 0 1-13.7 5.6L4 16" />
-      <path d="M4 20.5V16h4.5" />
-    </svg>
-  );
-}
-
 export function DownloadIcon({ className, size = 16 }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} {...base} strokeWidth={2} className={className}>

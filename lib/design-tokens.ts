@@ -906,34 +906,6 @@ export const STATS = [
 ] as const;
 
 // ──────────────────────────────────────────────────────────────────
-// CÓMO TRABAJAMOS — 4 pasos del flujo operativo
-// ──────────────────────────────────────────────────────────────────
-
-export const STEPS: { n: string; title: string; copy: string; tag?: string }[] = [
-  {
-    n: "01",
-    title: "Cotiza",
-    tag: "Puerta a puerta · DDP",
-    copy: "Calcula tu envío por CBM en segundos —modalidad DDP, todo incluido— o pídelo por WhatsApp. Estimación al instante.",
-  },
-  {
-    n: "02",
-    title: "Pre-alerta · Shipping Mark",
-    copy: "Te registras y recibes tu Shipping Mark — tu proveedor en China lo escribe en cada caja antes de despachar.",
-  },
-  {
-    n: "03",
-    title: "Recibimos",
-    copy: "Tu carga llega a nuestra bodega propia en Yiwu, identificada por tu Shipping Mark. La revisamos y la consolidamos.",
-  },
-  {
-    n: "04",
-    title: "Entregamos",
-    copy: "Aduana e impuestos a nuestro nombre. Te llega puerta a puerta en Venezuela, con factura final — y vuelves a pedir.",
-  },
-];
-
-// ──────────────────────────────────────────────────────────────────
 // HISTORIA — 5 hitos (2008 → 2016) — fuente: brochure "Nuestra Historia"
 // ──────────────────────────────────────────────────────────────────
 
