@@ -71,16 +71,16 @@ export default function ContactoPage() {
         {/* ── Puente CN ↔ VE ── */}
         <section className="cx-dual">
           <DualHalf
-            src="/videos/equipo-cargando-contenedor-dtd-cargo-puerta-a-puerta-china-venezuela-poster.jpg"
-            alt="Equipo propio de DTD Cargo consolidando cajas rotuladas dentro del contenedor en la bodega de Yiwu, China"
+            src="/fotos/bodega-yiwu-china-recepcion-consolidacion-dtd-cargo.jpg"
+            alt="Operación de DTD Cargo en Yiwu: el equipo con camisa DoorTuDoor junto al contenedor, un contenedor cargado de piso a techo y sacos rotulados en chino listos para consolidar"
             tag="Yiwu · China"
             title="Recepción y consolidación"
             text="Bodega propia: recibimos, revisamos y consolidamos cada compra antes de embarcarla."
             priority
           />
           <DualHalf
-            src="/fotos/puerto-venezuela-descarga-contenedor-dtd-cargo-china-venezuela.jpg"
-            alt="Cuadrilla de DTD Cargo descargando un contenedor en el puerto de Venezuela, con las grúas del patio al fondo"
+            src="/fotos/puerto-venezuela-aduana-entrega-final-dtd-cargo.jpg"
+            alt="Operación de DTD Cargo en Venezuela: la cuadrilla descargando el contenedor en el puerto con las grúas del patio al fondo, el equipo en la oficina de Valencia y un operario con la mercancía ya nacionalizada"
             tag="Valencia · Venezuela"
             title="Aduana y entrega final"
             text="Nacionalización, impuestos y reparto puerta a puerta. Pagas al llegar."
