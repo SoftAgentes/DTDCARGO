@@ -228,16 +228,25 @@
   background: var(--rp-navy-fill);
 }
 
-/* Enlaces del cuerpo: wine legible + subrayado (WCAG 1.4.1 — el color
-   solo nunca alcanza para señalar un enlace). */
-.rp-body a:not(.btn):not(.rp-plain),
-.rp-sec a:not(.btn):not(.rp-plain) {
+/* Enlaces DENTRO DE PROSA: wine legible + subrayado (WCAG 1.4.1 — el color
+   solo nunca alcanza para señalar un enlace).
+   OJO: la regla va por contexto de prosa, NO como `.rp-body a`. Con el
+   selector amplio, las tarjetas que son un `<Link>` completo (noticias,
+   cursos) heredaban subrayado y wine en TODO su contenido. */
+.rp-prose a:not(.btn),
+.gl-def a:not(.btn),
+.rp-surface .faq-a a:not(.btn),
+.rp-surface .nw-empty p a:not(.btn),
+.rp-cta p a:not(.btn) {
   color: var(--wine-text);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
-.rp-body a:not(.btn):not(.rp-plain):hover,
-.rp-sec a:not(.btn):not(.rp-plain):hover {
+.rp-prose a:not(.btn):hover,
+.gl-def a:not(.btn):hover,
+.rp-surface .faq-a a:not(.btn):hover,
+.rp-surface .nw-empty p a:not(.btn):hover,
+.rp-cta p a:not(.btn):hover {
   color: var(--wine);
 }
 .rp-surface a:focus-visible {

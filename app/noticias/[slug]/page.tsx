@@ -97,90 +97,75 @@ export default async function NewsPostPage({ params }: Props) {
         ]}
       />
       <Nav />
-      <main className="bg-paper">
-        <article className="py-16 lg:py-24">
-          <div className="wrap max-w-[760px]">
-            {/* Volver */}
-            <Link
-              href="/noticias"
-              className="inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-grey-500 hover:text-wine transition-colors"
+      {/* Revestido al Norte: mismo armazón `rp-*` que /noticias — el titular,
+          la categoría y los metadatos suben a la banda navy; el cuerpo del
+          artículo queda intacto sobre papel. */}
+      <main className="rp-surface" style={{ ["--rp-w" as string]: "800px" }}>
+        <section className="rp-hero">
+          <div className="rp-hero-in">
+            <span
+              className="inline-flex px-3 py-1 rounded-full text-[10.5px] font-bold tracking-[0.12em] uppercase text-white"
+              style={{ background: gradientToCss(cat.gradient) }}
             >
-              <span className="rotate-180 inline-block">
-                <ArrowIcon size={14} />
-              </span>
-              Volver a noticias
-            </Link>
-
-            {/* Header */}
-            <header className="mt-8">
-              <span
-                className="inline-flex px-3 py-1 rounded-full text-[10.5px] font-bold tracking-[0.12em] uppercase text-white"
-                style={{ background: gradientToCss(cat.gradient) }}
-              >
-                {cat.label}
-              </span>
-              <h1
-                className="h-display mt-5"
-                style={{ fontSize: "clamp(34px, 4.5vw, 56px)" }}
-              >
-                {post.title}
-              </h1>
-              <div className="mt-5 flex items-center gap-3 text-[13px] text-grey-500 flex-wrap">
-                <time dateTime={post.date}>{date}</time>
-                <span aria-hidden>·</span>
-                <span>{post.read_time_min} min lectura</span>
-                {post.author_name !== "DTD Cargo" && (
-                  <>
-                    <span aria-hidden>·</span>
-                    <span>
-                      Por{" "}
-                      <strong className="text-ink font-semibold">
-                        {post.author_name}
-                      </strong>
-                    </span>
-                  </>
-                )}
-              </div>
-            </header>
-
-            {/* Lead */}
-            <p
-              className="mt-8 text-[18px] lg:text-[19px] leading-[1.6] text-grey-700"
-              style={{ fontWeight: 500 }}
-            >
-              {post.excerpt}
-            </p>
-
-            {/* Body o Coming soon */}
-            {hasBody ? (
-              <div className="mt-10">
-                <NewsMarkdown source={post.body_markdown} />
-              </div>
-            ) : (
-              <ComingSoonBlock post={post} />
-            )}
-
-            {/* Disclaimer del autor (si aplica) */}
-            <NewsDisclaimer
-              tipo={post.tipo}
-              authorName={post.author_name}
-              authorRole={post.author_role}
-            />
+              {cat.label}
+            </span>
+            <h1 className="mt-5">{post.title}</h1>
+            <div className="rp-hero-meta">
+              <time dateTime={post.date}>{date}</time>
+              <span>{post.read_time_min} min lectura</span>
+              {post.author_name !== "DTD Cargo" && (
+                <span>Por {post.author_name}</span>
+              )}
+            </div>
           </div>
+        </section>
+
+        <article className="rp-body">
+          <Link
+            href="/noticias"
+            className="rp-plain inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-grey-500 hover:text-wine transition-colors"
+          >
+            <span className="rotate-180 inline-block">
+              <ArrowIcon size={14} />
+            </span>
+            Volver a noticias
+          </Link>
+
+          {/* Lead */}
+          <p
+            className="mt-8 text-[18px] lg:text-[19px] leading-[1.6] text-grey-700"
+            style={{ fontWeight: 500 }}
+          >
+            {post.excerpt}
+          </p>
+
+          {/* Body o Coming soon */}
+          {hasBody ? (
+            <div className="mt-10">
+              <NewsMarkdown source={post.body_markdown} />
+            </div>
+          ) : (
+            <ComingSoonBlock post={post} />
+          )}
+
+          {/* Disclaimer del autor (si aplica) */}
+          <NewsDisclaimer
+            tipo={post.tipo}
+            authorName={post.author_name}
+            authorRole={post.author_role}
+          />
         </article>
 
         {/* Posts relacionados */}
         {related.length > 0 && (
-          <section className="py-16 lg:py-20 border-t border-grey-200">
-            <div className="wrap max-w-[1100px]">
-              <h2 className="text-[14px] font-bold tracking-[0.14em] uppercase text-wine mb-8">
-                Sigue leyendo
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {related.map((p) => (
-                  <RelatedPostCard key={p.slug} post={p} />
-                ))}
-              </div>
+          <section className="rp-sec" style={{ ["--rp-w" as string]: "1100px" }}>
+            <h2 className="text-[14px] font-bold tracking-[0.14em] uppercase text-wine mb-8">
+              Sigue leyendo
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {related.map((p) => (
+                <RelatedPostCard key={p.slug} post={p} />
+              ))}
             </div>
           </section>
         )}

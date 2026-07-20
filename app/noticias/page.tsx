@@ -46,78 +46,63 @@ export default async function NoticiasPage() {
           { name: "Noticias", path: "/noticias" },
         ]}
       />
-      <main className="bg-paper">
-        {/* Hero */}
-        <section className="py-16 lg:py-24">
-          <div className="wrap max-w-[1100px]">
-            <span className="eyebrow">Noticias · DTD Cargo</span>
-            <h1
-              className="h-display mt-5"
-              style={{ fontSize: "clamp(40px, 5.5vw, 76px)" }}
-            >
-              Lo que pasa
-              <br />
-              <span style={{ color: "var(--color-wine)" }}>
-                en el corredor.
-              </span>
+      {/* Revestido al Norte (`Noticias · DTD-Cargo.html`): hero navy `rp-*` +
+          cuerpo sobre papel. El grid de tarjetas se conserva (el mockup solo
+          dibuja el estado vacío) y el estado vacío sí se copia tal cual. */}
+      <main className="rp-surface" style={{ ["--rp-w" as string]: "1100px" }}>
+        <section className="rp-hero">
+          <div className="rp-hero-in">
+            <div className="rp-eyebrow">
+              <span className="rule" />
+              Recursos
+            </div>
+            <h1>
+              Lo que pasa <span className="accent">en el corredor.</span>
             </h1>
-            <p className="lead mt-6 max-w-[58ch]">
-              Análisis, tutoriales y novedades sobre el comercio China-Venezuela.
-              Cosas que aprendemos en la operación y queremos compartir con
-              importadores que recién arrancan o ya tienen oficio.
+            <p>
+              Novedades y avisos de DTD Cargo: cambios de tarifa, feriados que
+              afectan tránsito y anuncios del servicio. Más lo que aprendemos en
+              la operación y queremos compartir con importadores.
             </p>
           </div>
         </section>
 
-        {/* Posts grid */}
-        <section className="pb-20">
-          <div className="wrap max-w-[1100px]">
-            {posts.length === 0 ? (
-              <EmptyState />
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {posts.map((post) => (
-                  <PostCard key={post.slug} post={post} />
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
+        <div className="rp-body">
+          {posts.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {posts.map((post) => (
+                <PostCard key={post.slug} post={post} />
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* CTA suscripción */}
-        <section className="pb-20">
-          <div className="wrap max-w-[760px]">
-            <div className="card-shadow-dark bg-ink text-white rounded-[18px] p-8 lg:p-10 text-center">
-              <span
-                className="eyebrow inline-flex"
-                style={{ color: "rgba(255,255,255,0.55)" }}
-              >
-                No te pierdas nada
-              </span>
-              <h3
-                className="mt-4 text-[24px] lg:text-[28px] leading-[1.15] tracking-[-0.01em] text-white"
-                style={{ fontFamily: "var(--font-archivo-black)" }}
-              >
-                Recibe las novedades por WhatsApp.
-              </h3>
-              <p className="mt-3 text-[14.5px] text-white/70 leading-[1.55] max-w-[48ch] mx-auto">
-                Te avisamos cuando publicamos guías nuevas, cambios en aduana o
-                tarifas actualizadas del corredor. Sin spam — solo lo
-                importante.
-              </p>
-              <a
-                href={buildWhatsAppLink(
-                  "Hola DTD Cargo, quiero recibir las novedades del corredor por WhatsApp.",
-                )}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-primary mt-6 inline-flex"
-              >
-                Suscribirme por WhatsApp <ArrowIcon />
-              </a>
-            </div>
+        <div className="rp-sec" style={{ ["--rp-w" as string]: "760px" }}>
+          <div className="rp-cta">
+            <p className="rp-kicker">
+              <span className="rule" />
+              No te pierdas nada
+            </p>
+            <h2>Recibe las novedades por WhatsApp.</h2>
+            <p>
+              Te avisamos cuando publicamos guías nuevas, cambios en aduana o
+              tarifas actualizadas del corredor. Sin spam — solo lo importante.
+            </p>
+            <a
+              href={buildWhatsAppLink(
+                "Hola DTD Cargo, quiero recibir las novedades del corredor por WhatsApp.",
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-primary"
+            >
+              Suscribirme por WhatsApp <ArrowIcon />
+            </a>
           </div>
-        </section>
+        </div>
       </main>
       <Footer />
       <WhatsAppFAB />
@@ -173,19 +158,45 @@ function PostCard({ post }: { post: NewsPostRow }) {
   );
 }
 
+/* Estado vacío copiado del mockup `Noticias · DTD-Cargo.html` (`.nw-empty`):
+   ícono de periódico en tinte wine + titular + salida a WhatsApp. Se conserva
+   el puente al glosario que ya tenía producción. */
 function EmptyState() {
   return (
-    <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-10 text-center">
-      <p className="text-[15px] text-grey-700">
-        Próximamente nuestros primeros artículos. Mientras tanto,{" "}
-        <a
-          href="/glosario"
-          className="font-semibold text-wine hover:text-wine-deep underline underline-offset-2"
+    <div className="nw-empty">
+      <div className="ic">
+        <svg
+          width="26"
+          height="26"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
         >
-          revisa el glosario
-        </a>
-        .
+          <path d="M4 5h13v14H6a2 2 0 0 1-2-2z" />
+          <path d="M17 8h3v9a2 2 0 0 1-2 2" />
+          <path d="M7 8.5h7M7 12h7M7 15.5h4" />
+        </svg>
+      </div>
+      <h2>Aún no hay publicaciones</h2>
+      <p>
+        Cuando tengamos novedades — cambios de tarifa, feriados o avisos del
+        servicio — las vas a encontrar acá. Mientras tanto,{" "}
+        <Link href="/glosario">revisa el glosario</Link>.
       </p>
+      <a
+        href={buildWhatsAppLink(
+          "Hola DTD Cargo, quiero recibir los avisos del corredor por WhatsApp.",
+        )}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="btn btn-primary"
+      >
+        Recibir avisos por WhatsApp
+      </a>
     </div>
   );
 }
