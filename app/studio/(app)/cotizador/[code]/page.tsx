@@ -158,8 +158,8 @@ export default async function QuoteDetailPage({
       {/* Total card navy */}
       <section
         style={{
-          background: "var(--ink)",
-          color: "var(--ink-inv)",
+          background: "var(--bg-sidebar)",
+          color: "var(--ink-side)",
           borderRadius: "var(--r-lg)",
           padding: "24px 26px",
           marginBottom: 24,

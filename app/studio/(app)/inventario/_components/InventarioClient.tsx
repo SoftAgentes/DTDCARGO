@@ -228,8 +228,8 @@ export function InventarioClient({ cn, ve }: Props) {
           {/* Cola "listo para consolidar" */}
           <div
             style={{
-              background: "var(--ink)",
-              color: "var(--ink-inv-soft)",
+              background: "var(--bg-sidebar)",
+              color: "var(--ink-side-soft)",
               borderRadius: "var(--r-lg)",
               padding: "18px 20px",
             }}
