@@ -359,9 +359,11 @@ export default function EnlacesPage() {
 
           <div className="enlaces-foot">
             <div className="web">dtdcargo.com</div>
+            {/* Sin RIF ni razón social: van solo en el JSON-LD (regla de
+                marca, ver app/contacto/page.tsx). El mockup de Cloud Design
+                los traía en texto visible; se retiran acá también. */}
             <div className="legal">
-              DTD Cargo · RIF{" "}
-              <span className="mono">{CONTACT.legalEntity.taxID}</span>
+              DTD Cargo
               <br />
               {CONTACT.ve.addressFull}
               <br />
