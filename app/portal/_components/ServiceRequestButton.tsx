@@ -38,7 +38,7 @@ export function ServiceRequestButton({ markbox }: { markbox: string }) {
     {
       label: "Importación de carga",
       sub: "LCL / FCL · puerta a puerta",
-      href: "/calculadora",
+      href: "/tarifas",
       external: false,
     },
     {

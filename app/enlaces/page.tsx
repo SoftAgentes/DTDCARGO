@@ -194,7 +194,7 @@ const LINKS: LinkRow[] = [
     wine: true,
     label: "Calcular tu envío (CBM)",
     sub: "Estima el costo en segundos",
-    href: webLink("/calculadora", "calcular-cbm"),
+    href: webLink("/tarifas", "calcular-cbm"),
   },
   {
     icon: "box",
@@ -206,7 +206,8 @@ const LINKS: LinkRow[] = [
     icon: "radar",
     label: "Rastrear mi embarque",
     sub: "Sigue tu carga en tiempo real",
-    href: webLink("/track", "rastreo"),
+    // Fase 6: el rastreo público se retiró → entra al portal.
+    href: webLink("/portal/login", "rastreo"),
   },
   {
     icon: "chat",

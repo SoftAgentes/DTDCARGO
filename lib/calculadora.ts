@@ -97,6 +97,64 @@ export const CONFIG = {
 } as const;
 
 // ────────────────────────────────────────────────────────────────────
+// 1a) LCL CONSOLIDADO — TARIFA BASE (hasta puerto, con BL propio)
+// ────────────────────────────────────────────────────────────────────
+
+/**
+ * Tarifa base por CBM (USD) de la modalidad **LCL Consolidado** — la carga
+ * viaja consolidada hasta puerto en Venezuela y te entregamos tu propio Bill
+ * of Lading (la aduana e impuestos corren por cuenta del cliente).
+ *
+ * ⚠️ DATO DEL FOUNDER (2026-07-20). Es una CONSTANTE, no viene de la DB.
+ *    La tarifa puerta a puerta (DDP) sí es configurable: vive en `rates`
+ *    (`is_public`) y llega por la RPC anon `public_cbm_rate`. Para que ESTA
+ *    también se edite desde `/studio/tarifas` hace falta una **migración
+ *    pendiente** (una segunda tarifa pública marcada por modalidad, o una
+ *    columna nueva en `rates`). Mientras eso no exista, se cambia acá.
+ *    NO inventar otra fuente ni reusar la tarifa DDP.
+ */
+export const CONSOLIDADO_CBM_RATE = 580;
+
+/**
+ * Destino sintético del LCL Consolidado. El servicio llega **hasta puerto** en
+ * Venezuela, así que NO hay selector de ciudad ni recargo por distancia: se le
+ * pasa a `calcularEnvioLCL` una lista de una sola "ciudad" en casco (km 0) →
+ * `recargoCiudad = 0` y `descuentoSede = 0`, sin tocar el motor de cálculo.
+ */
+export const CONSOLIDADO_DESTINO: Ciudad = {
+  id: "puerto-ve",
+  label: "Puerto en Venezuela",
+  km: 0,
+  casco: true,
+};
+
+/**
+ * Piso mínimo (USD) del LCL Consolidado, derivado para conservar **el mismo
+ * CBM mínimo** que el puerta a puerta (regla del founder: mismas reglas, solo
+ * cambia la tarifa base).
+ *
+ *   CBM mínimo = minCharge(DDP) / tarifa(DDP)   →   piso = CBM mínimo × 580
+ *
+ * Ej: piso DDP $380 con tarifa $800 → 0,475 m³ → piso consolidado $275,50.
+ * Sin tarifa/piso público válidos cae al piso trivial de CONFIG.
+ */
+export function consolidadoMinCharge(
+  ddpRateCbm: number,
+  ddpMinCharge: number,
+): number {
+  if (
+    !Number.isFinite(ddpRateCbm) ||
+    !Number.isFinite(ddpMinCharge) ||
+    ddpRateCbm <= 0 ||
+    ddpMinCharge <= 0
+  ) {
+    return CONFIG.minimoFacturable;
+  }
+  const cbmMinimo = ddpMinCharge / ddpRateCbm;
+  return Math.round(cbmMinimo * CONSOLIDADO_CBM_RATE * 100) / 100;
+}
+
+// ────────────────────────────────────────────────────────────────────
 // 1b) PARÁMETROS CONFIGURABLES DESDE EL STUDIO (Fase 3 Slice A)
 //     Las reglas escalares del calculador pueden venir de la DB
 //     (/studio/tarifas › Parámetros → tabla calculator_settings). El cálculo

@@ -46,19 +46,20 @@ const EMPTY: FormData0 = {
 };
 
 /**
- * Registro EXPRESS (founder 2026-06-07). Un solo paso, lo mínimo para emitir el
- * MARKBOX y poder contactar al cliente: tipo · nombre · documento · email ·
- * WhatsApp. La foto de cédula y la dirección de entrega se DIFIEREN a "Completa tu
- * perfil" dentro del portal (`/portal/perfil`), donde se piden antes de la 1ª
- * compra. Baja la fricción del lead de WhatsApp sin perder el dedup ni la
- * identidad básica (el documento sigue obligatorio para dedup + identidad; NO es
- * la contraseña — la cuenta nace con clave aleatoria, login por magic-link/reset).
+ * Registro de cliente — reskin al mockup Cloud Design "Registro · Rediseño":
+ * wizard de 5 pasos (Identidad → Contacto → Preferencias → Confirmar → ¡Listo!)
+ * con el rail navy a la izquierda y la celebración del Shipping Mark al final.
  *
- * Capa visual + UX llevada al Norte v4.3 (esta sesión): selector de tipo con
- * icono, cédula con prefijo V/E, teléfono con código de país, teléfono de oficina
- * opcional, chequeo en vivo "¿ya tienes cuenta?" (→ recuperar acceso) y la guía de
- * nomenclatura del MARKBOX en la pantalla de éxito. Se mantiene MARKBOX (término
- * público) y el acceso por enlace al correo (no "clave = cédula").
+ * Backend INTACTO (SDD-0061/0131): un solo <form> que postea los MISMOS campos
+ * (kind · name · company · document · email · whatsapp · office_phone · est ·
+ * ref · empresa_web · email_optin) a `registerClientAction`. Los pasos 1-3 son
+ * navegación de cliente sobre el estado controlado; el paso 4 (Confirmar) es el
+ * ÚNICO submit real. Se conserva la validación, el chequeo en vivo de duplicados,
+ * el honeypot y el flujo de datos — solo cambia el layout/pasos visuales.
+ *
+ * NOTA (choque copy↔dato): el mockup incluía un paso "Dirección"; la dirección de
+ * entrega y la foto de cédula se DIFIEREN al portal (/portal/perfil) por diseño
+ * del backend — ese paso se reemplaza por "Preferencias" (opt-in + qué sigue).
  */
 export function RegisterForm({
   est,
@@ -70,6 +71,7 @@ export function RegisterForm({
 }) {
   const [state, action, pending] = useActionState(registerClientAction, initial);
   const [data, setData] = useState<FormData0>(EMPTY);
+  const [step, setStep] = useState(0); // 0..3 (paso 5 = éxito, vía state.markbox)
   const [tried, setTried] = useState(false);
 
   const done = !!state.markbox;
@@ -83,112 +85,10 @@ export function RegisterForm({
     setData((d) => ({ ...d, ...p }));
   }
 
-  return (
-    <div className="grid place-items-center px-5 py-12">
-      <div className="w-full max-w-[520px]">
-        <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-7 sm:p-9">
-          <span className="eyebrow">Portal del cliente</span>
-          <h1
-            className="mt-3 text-[26px] sm:text-[30px] leading-[1.08] text-ink"
-            style={{ fontFamily: "var(--font-archivo-black)", letterSpacing: "-0.02em" }}
-          >
-            {done ? "Bienvenido a DTD Cargo." : "Crea tu cuenta."}
-          </h1>
-
-          {!done && (
-            <p className="mt-2 text-[14px] text-grey-700 leading-[1.55]">
-              En un minuto tienes tu Shipping Mark para empezar a marcar tus cajas en China.
-            </p>
-          )}
-
-          {!done && est && (
-            <div
-              className="mt-4 rounded-[10px] bg-paper border-l-[3px] px-4 py-2.5 text-[12.5px] text-grey-700 leading-[1.5]"
-              style={{ borderColor: "var(--color-wine)" }}
-            >
-              Vamos a vincular tu estimado{" "}
-              <strong
-                className="text-ink"
-                style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
-              >
-                {est}
-              </strong>{" "}
-              a esta cuenta.
-            </div>
-          )}
-
-          {done ? (
-            <StepDone
-              markbox={state.markbox!}
-              firstName={data.name.split(" ")[0]}
-              email={data.email}
-              warning={state.warning}
-            />
-          ) : (
-            <ExpressForm
-              data={data}
-              patch={patch}
-              est={est}
-              refCode={refCode}
-              action={action}
-              pending={pending}
-              tried={tried}
-              setTried={setTried}
-              error={state.error}
-              fieldErrors={state.fieldErrors}
-            />
-          )}
-        </div>
-
-        {!done && (
-          <p className="text-center mt-6 text-[13.5px] text-grey-500">
-            ¿Ya tienes cuenta?{" "}
-            <Link href="/portal/login" className="font-semibold text-wine hover:text-wine-deep">
-              Entra aquí
-            </Link>
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── Form express (un paso · el form real que postea) ────────────
-function ExpressForm({
-  data,
-  patch,
-  est,
-  refCode,
-  action,
-  pending,
-  tried,
-  setTried,
-  error,
-  fieldErrors,
-}: {
-  data: FormData0;
-  patch: (p: Partial<FormData0>) => void;
-  est?: string;
-  refCode?: string;
-  action: (formData: FormData) => void;
-  pending: boolean;
-  tried: boolean;
-  setTried: (v: boolean) => void;
-  error?: string;
-  fieldErrors?: RegisterActionState["fieldErrors"];
-}) {
   const isCompany = data.kind === "empresa";
   const docNorm = data.document ? normalizeDocument(data.kind, data.document) : null;
 
-  // ── Chequeo en vivo "¿este documento ya tiene cuenta?" ──────────
-  // Cuando el documento normaliza válido, con debounce, preguntamos al endpoint
-  // (que responde SOLO un booleano — cero PII). Si ya existe, ofrecemos recuperar
-  // el acceso en vez de crear un duplicado. Un error/throttle → 'free' (no
-  // bloqueamos: el dedup real del alta protege igual en el submit).
-  // Guardamos el ÚLTIMO documento confirmado como ya-existente; `alreadyExists` se
-  // deriva comparándolo con el documento normalizado actual → al cambiar el
-  // documento el aviso desaparece solo (sin un positivo viejo "pegado"), y NO hay
-  // setState síncrono dentro del effect (solo dentro del callback con debounce).
+  // ── Chequeo en vivo "¿este documento ya tiene cuenta?" (INTACTO) ──
   const [existsDoc, setExistsDoc] = useState<string | null>(null);
   useEffect(() => {
     if (!docNorm) return;
@@ -201,7 +101,7 @@ function ExpressForm({
           body: JSON.stringify({ kind: data.kind, document: docNorm }),
           signal: ctrl.signal,
         });
-        if (!res.ok) return; // throttle/error → no confirmamos (el alta valida igual)
+        if (!res.ok) return;
         const j = (await res.json()) as { exists?: boolean };
         setExistsDoc((cur) => (j.exists ? docNorm : cur === docNorm ? null : cur));
       } catch {
@@ -216,68 +116,315 @@ function ExpressForm({
 
   const alreadyExists = !!docNorm && existsDoc === docNorm;
 
+  // Validez por campo (para los errores inline) y validez total (submit final).
   const errName = tried && !data.name.trim();
   const errCompany = tried && isCompany && !data.company.trim();
   const errDoc = tried && (!data.document.trim() || !docNorm);
   const errEmail = tried && !data.email.trim();
   const errPhone = tried && !data.whatsapp.trim();
 
-  const valid =
+  const step0Valid =
     !!data.name.trim() &&
     (!isCompany || !!data.company.trim()) &&
     !!docNorm &&
     !alreadyExists &&
-    !!data.email.trim() &&
-    !!data.whatsapp.trim();
+    !!data.email.trim();
+  const step1Valid = !!data.whatsapp.trim();
+  const valid = step0Valid && step1Valid;
+
+  const STEPS = [
+    { t: "Identidad", d: "Quién eres" },
+    { t: "Contacto", d: "Cómo te ubicamos" },
+    { t: "Preferencias", d: "Últimos detalles" },
+    { t: "Confirmar", d: "Revisa tus datos" },
+    { t: "¡Listo!", d: "Tu Shipping Mark" },
+  ];
+  // Índice activo del rail: paso actual, o el 5º (éxito) cuando ya hay MARKBOX.
+  const railActive = done ? 4 : step;
+
+  function next() {
+    if (step === 0 && !step0Valid) {
+      setTried(true);
+      return;
+    }
+    if (step === 1 && !step1Valid) {
+      setTried(true);
+      return;
+    }
+    setTried(false);
+    setStep((s) => Math.min(3, s + 1));
+  }
+  function back() {
+    setTried(false);
+    setStep((s) => Math.max(0, s - 1));
+  }
+  const firstName = data.name.trim().split(/\s+/)[0] ?? "";
 
   return (
-    <form
-      action={(fd) => {
-        if (!valid) {
-          setTried(true);
-          return;
-        }
-        action(fd);
-      }}
-      className="mt-6 flex flex-col gap-5"
-      noValidate
-    >
-      {/* Datos del form (hidden mirrors de la data controlada). */}
-      <input type="hidden" name="kind" value={data.kind} />
-      <input type="hidden" name="name" value={data.name} />
-      <input type="hidden" name="company" value={data.company} />
-      <input type="hidden" name="document" value={data.document} />
-      <input type="hidden" name="email" value={data.email} />
-      <input type="hidden" name="whatsapp" value={data.whatsapp} />
-      <input type="hidden" name="office_phone" value={data.officePhone} />
-      {/* SDD-0061: código del estimado web a vincular (vacío si no vino del CTA). */}
-      <input type="hidden" name="est" value={est ?? ""} />
-      {/* SDD-0051 Fase 2: código de referido (invitación por correo o compartido). */}
-      <input type="hidden" name="ref" value={refCode ?? ""} />
+    <div className="px-5 py-8 lg:py-12">
+      <div className="mx-auto max-w-[1080px] grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-5 lg:gap-6 items-stretch">
+        {/* ── Hero navy · marca + rail de pasos ── */}
+        <aside
+          className="relative overflow-hidden rounded-[18px] p-7 sm:p-8 text-white flex flex-col"
+          style={{
+            background:
+              "radial-gradient(135% 100% at 15% -10%, #1f3055 0%, #0f1e3d 46%, #0b1428 100%)",
+          }}
+        >
+          <span
+            className="text-[10px] font-bold tracking-[0.18em] uppercase"
+            style={{ color: "var(--color-wine-soft)" }}
+          >
+            Registro de cliente
+          </span>
+          <h1
+            className="mt-2.5 text-[26px] leading-[1.08] text-white"
+            style={{ fontFamily: "var(--font-archivo-black)", letterSpacing: "-0.02em" }}
+          >
+            De China a tu puerta, con confianza.
+          </h1>
+          <p className="mt-2 text-[13px] leading-[1.55] text-white/70 max-w-[34ch]">
+            Crea tu cuenta y obtén tu Shipping Mark: el código que identifica tu
+            carga de punta a punta.
+          </p>
 
-      {/*
-        Honeypot anti-bot (SDD-0042 §10). Campo trampa con nombre inocuo: un
-        humano nunca lo ve ni lo llena (off-screen, tabIndex -1, aria-hidden);
-        un bot naive que rellena todos los inputs sí. Si llega no-vacío, la
-        server action descarta el alta sin escribir nada. Off-screen a propósito
-        (NO display:none, que algunos bots detectan y saltean).
-      */}
-      <div
-        aria-hidden="true"
-        style={{ position: "absolute", left: "-9999px", width: 1, height: 1, overflow: "hidden" }}
-      >
-        <label htmlFor="empresa_web">No completar este campo</label>
-        <input
-          id="empresa_web"
-          type="text"
-          name="empresa_web"
-          tabIndex={-1}
-          autoComplete="off"
-          defaultValue=""
-        />
+          <nav className="mt-auto pt-8 flex flex-col gap-0.5" aria-label="Pasos del registro">
+            {STEPS.map((s, i) => {
+              const isOn = i === railActive;
+              const isDone = i < railActive;
+              const canGo = !done && i <= step;
+              return (
+                <button
+                  key={s.t}
+                  type="button"
+                  disabled={!canGo}
+                  onClick={() => canGo && setStep(i)}
+                  className={`flex items-center gap-3.5 px-2.5 py-2.5 rounded-[10px] text-left w-full transition-colors ${
+                    canGo ? "hover:bg-white/[0.06] cursor-pointer" : "cursor-default"
+                  } ${isOn ? "bg-white/10" : ""}`}
+                >
+                  <span
+                    className="flex-shrink-0 w-7 h-7 rounded-full grid place-items-center text-[12px] font-extrabold"
+                    style={{
+                      background: isDone
+                        ? "var(--color-status-success)"
+                        : isOn
+                          ? "var(--color-wine)"
+                          : "rgba(255,255,255,0.12)",
+                      color: "#fff",
+                      fontFamily: "var(--font-archivo-black)",
+                    }}
+                  >
+                    {isDone ? <CheckIcon size={14} /> : i + 1}
+                  </span>
+                  <span>
+                    <span className="block text-[13px] font-bold leading-[1.1]">{s.t}</span>
+                    <span
+                      className="block text-[11px] leading-[1.3] mt-0.5"
+                      style={{ color: isOn ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.5)" }}
+                    >
+                      {s.d}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
+
+          <div className="mt-8 pt-5 border-t border-white/10 text-[11px] leading-[1.5] text-white/60">
+            ¿Ya tienes cuenta?{" "}
+            <Link href="/portal/login" className="font-bold text-white hover:underline">
+              Entra al portal
+            </Link>
+          </div>
+        </aside>
+
+        {/* ── Panel · pasos ── */}
+        <main className="card-shadow bg-white border border-grey-200 rounded-[18px] p-7 sm:p-9 flex flex-col">
+          {!done && est && (
+            <div
+              className="mb-5 rounded-[10px] bg-paper border-l-[3px] px-4 py-2.5 text-[12.5px] text-grey-700 leading-[1.5]"
+              style={{ borderColor: "var(--color-wine)" }}
+            >
+              Vamos a vincular tu estimado{" "}
+              <strong
+                className="text-ink"
+                style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
+              >
+                {est}
+              </strong>{" "}
+              a esta cuenta.
+            </div>
+          )}
+
+          <form
+            action={(fd) => {
+              if (!valid) {
+                setTried(true);
+                setStep(step0Valid ? 3 : 0);
+                return;
+              }
+              action(fd);
+            }}
+            className="flex flex-col flex-1"
+            noValidate
+          >
+            {/* Espejos ocultos de la data controlada — el submit final los envía todos. */}
+            <input type="hidden" name="kind" value={data.kind} />
+            <input type="hidden" name="name" value={data.name} />
+            <input type="hidden" name="company" value={data.company} />
+            <input type="hidden" name="document" value={data.document} />
+            <input type="hidden" name="email" value={data.email} />
+            <input type="hidden" name="whatsapp" value={data.whatsapp} />
+            <input type="hidden" name="office_phone" value={data.officePhone} />
+            <input type="hidden" name="est" value={est ?? ""} />
+            <input type="hidden" name="ref" value={refCode ?? ""} />
+            {/* email_optin se parsea por PRESENCIA (!= null) en el action → solo
+                se incluye cuando el cliente marca el opt-in (semántica de checkbox). */}
+            {data.emailOptin && <input type="hidden" name="email_optin" value="on" />}
+
+            {/* Honeypot anti-bot (SDD-0042 §10) — off-screen, un humano no lo ve. */}
+            <div
+              aria-hidden="true"
+              style={{ position: "absolute", left: "-9999px", width: 1, height: 1, overflow: "hidden" }}
+            >
+              <label htmlFor="empresa_web">No completar este campo</label>
+              <input id="empresa_web" type="text" name="empresa_web" tabIndex={-1} autoComplete="off" defaultValue="" />
+            </div>
+
+            {done ? (
+              <StepDone
+                markbox={state.markbox!}
+                firstName={firstName}
+                email={data.email}
+                warning={state.warning}
+              />
+            ) : (
+              <>
+                <div className="flex-1">
+                  {step === 0 && (
+                    <StepIdentidad
+                      data={data}
+                      patch={patch}
+                      isCompany={isCompany}
+                      errName={errName}
+                      errCompany={errCompany}
+                      errDoc={errDoc}
+                      errEmail={errEmail}
+                      docFieldError={state.fieldErrors?.document}
+                      emailFieldError={state.fieldErrors?.email}
+                      alreadyExists={alreadyExists}
+                    />
+                  )}
+                  {step === 1 && (
+                    <StepContacto
+                      firstName={firstName}
+                      isCompany={isCompany}
+                      companyName={data.company}
+                      onWhatsapp={(v) => patch({ whatsapp: v })}
+                      onOffice={(v) => patch({ officePhone: v })}
+                      errPhone={errPhone}
+                      phoneFieldError={state.fieldErrors?.whatsapp}
+                    />
+                  )}
+                  {step === 2 && (
+                    <StepPreferencias data={data} patch={patch} />
+                  )}
+                  {step === 3 && (
+                    <StepConfirmar data={data} docNorm={docNorm} isCompany={isCompany} error={state.error} />
+                  )}
+                </div>
+
+                {/* Navegación */}
+                <div className="flex gap-2.5 mt-7 pt-1">
+                  {step > 0 && (
+                    <button
+                      type="button"
+                      onClick={back}
+                      className="btn btn-ghost h-[52px] px-5 flex-shrink-0"
+                    >
+                      ‹ Volver
+                    </button>
+                  )}
+                  {step < 3 ? (
+                    <button
+                      type="button"
+                      onClick={next}
+                      className="btn btn-primary h-[52px] flex-1 justify-center gap-2"
+                    >
+                      Continuar <ArrowIcon size={15} />
+                    </button>
+                  ) : (
+                    <button
+                      type="submit"
+                      disabled={pending}
+                      className="btn btn-primary h-[52px] flex-1 justify-center gap-2 disabled:opacity-60 disabled:cursor-wait"
+                    >
+                      {pending ? "Creando tu cuenta…" : "Crear cuenta y generar tu Shipping Mark"}
+                      {!pending && <CheckIcon size={16} />}
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </form>
+        </main>
       </div>
+    </div>
+  );
+}
 
-      <SectionLabel>Tipo de cliente</SectionLabel>
+// ── Encabezado de paso ───────────────────────────────────────────
+function StepHead({ n, eyebrow, title, sub }: { n: number; eyebrow: string; title: string; sub: React.ReactNode }) {
+  return (
+    <>
+      <div className="text-[10px] font-bold tracking-[0.16em] uppercase text-wine">
+        Paso {n} de 5 · {eyebrow}
+      </div>
+      <h2
+        className="mt-2 text-[22px] sm:text-[24px] leading-[1.1] text-ink"
+        style={{ fontFamily: "var(--font-archivo-black)", letterSpacing: "-0.02em" }}
+      >
+        {title}
+      </h2>
+      <p className="mt-1.5 text-[13px] text-grey-700 leading-[1.55] max-w-[52ch]">{sub}</p>
+    </>
+  );
+}
+
+// ── Paso 1 · Identidad ───────────────────────────────────────────
+function StepIdentidad({
+  data,
+  patch,
+  isCompany,
+  errName,
+  errCompany,
+  errDoc,
+  errEmail,
+  docFieldError,
+  emailFieldError,
+  alreadyExists,
+}: {
+  data: FormData0;
+  patch: (p: Partial<FormData0>) => void;
+  isCompany: boolean;
+  errName: boolean;
+  errCompany: boolean;
+  errDoc: boolean;
+  errEmail: boolean;
+  docFieldError?: string;
+  emailFieldError?: string;
+  alreadyExists: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-5">
+      <StepHead
+        n={1}
+        eyebrow="Identidad"
+        title="Empecemos por ti"
+        sub="Elige cómo importas y déjanos tus datos de acceso. Con esto creamos tu cuenta."
+      />
+
       <div className="grid grid-cols-2 gap-2.5">
         <TypeCard
           active={!isCompany}
@@ -295,7 +442,6 @@ function ExpressForm({
         />
       </div>
 
-      <SectionLabel>Tus datos</SectionLabel>
       <Field
         label={isCompany ? "Nombre de contacto" : "Nombre completo"}
         value={data.name}
@@ -313,8 +459,6 @@ function ExpressForm({
         />
       )}
 
-      {/* Documento: cédula con prefijo V/E (persona) o RIF (empresa). El input se
-          remonta al cambiar de tipo (key) → estado interno limpio. */}
       {isCompany ? (
         <Field
           key="rif"
@@ -324,10 +468,7 @@ function ExpressForm({
           placeholder="J-12345678-9"
           mono
           hint="Lo usamos para identificarte y evitar cuentas duplicadas."
-          error={
-            fieldErrors?.document ??
-            (errDoc ? "RIF inválido. Formato: J-12345678-9." : undefined)
-          }
+          error={docFieldError ?? (errDoc ? "RIF inválido. Formato: J-12345678-9." : undefined)}
         />
       ) : (
         <CedulaInput
@@ -336,13 +477,12 @@ function ExpressForm({
           onChange={(v) => patch({ document: v })}
           hint="Lo usamos para identificarte y evitar cuentas duplicadas."
           error={
-            fieldErrors?.document ??
+            docFieldError ??
             (errDoc ? "Cédula o pasaporte inválido. Formato: V-12345678 o P-A1234567." : undefined)
           }
         />
       )}
 
-      {/* Aviso en vivo: la cuenta ya existe → recuperar acceso (no duplicar). */}
       {alreadyExists && <DupRecover isCompany={isCompany} />}
 
       <Field
@@ -351,26 +491,85 @@ function ExpressForm({
         value={data.email}
         onChange={(v) => patch({ email: v })}
         placeholder="cperez@empresa.com"
-        hint="Lo usamos para enviarte tu enlace de acceso al portal."
-        error={fieldErrors?.email ?? (errEmail ? "Campo obligatorio" : undefined)}
+        hint="Sin contraseñas: te enviamos un enlace de acceso al portal a tu correo."
+        error={emailFieldError ?? (errEmail ? "Campo obligatorio" : undefined)}
       />
+    </div>
+  );
+}
 
+// ── Paso 2 · Contacto ────────────────────────────────────────────
+function StepContacto({
+  firstName,
+  isCompany,
+  companyName,
+  onWhatsapp,
+  onOffice,
+  errPhone,
+  phoneFieldError,
+}: {
+  firstName: string;
+  isCompany: boolean;
+  companyName: string;
+  onWhatsapp: (v: string) => void;
+  onOffice: (v: string) => void;
+  errPhone: boolean;
+  phoneFieldError?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-5">
+      <StepHead
+        n={2}
+        eyebrow="Contacto"
+        title={firstName ? `Hola ${firstName}, ¿cómo te ubicamos?` : "¿Cómo te ubicamos?"}
+        sub={
+          <>
+            {isCompany && companyName ? (
+              <>
+                Registras a <strong className="text-ink">{companyName}</strong>.{" "}
+              </>
+            ) : null}
+            El WhatsApp es por donde te avisamos de tu carga: cuando llega a bodega en
+            China, cuando zarpa y cuando está lista para entrega.
+          </>
+        }
+      />
       <PhoneInput
         label="Teléfono WhatsApp"
-        onChange={(v) => patch({ whatsapp: v })}
+        onChange={onWhatsapp}
         placeholder="412 1668021"
         hint="Es el número por el que te contactamos · siempre por WhatsApp."
-        error={fieldErrors?.whatsapp ?? (errPhone ? "Campo obligatorio" : undefined)}
+        error={phoneFieldError ?? (errPhone ? "Campo obligatorio" : undefined)}
       />
-
       <PhoneInput
         label="Teléfono de oficina (opcional)"
-        onChange={(v) => patch({ officePhone: v })}
+        onChange={onOffice}
         placeholder="241 4147886"
         hint="Otro número donde podemos ubicarte (fijo u oficina) · no se usa para WhatsApp."
       />
+    </div>
+  );
+}
 
-      {/* Expectativa de lo diferido — sin foto ni dirección acá. */}
+// ── Paso 3 · Preferencias (reemplaza el "Dirección" del mockup) ───
+// La dirección de entrega + la foto de cédula se DIFIEREN al portal por diseño
+// del backend; acá quedan las preferencias (opt-in) + qué sigue.
+function StepPreferencias({
+  data,
+  patch,
+}: {
+  data: FormData0;
+  patch: (p: Partial<FormData0>) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-5">
+      <StepHead
+        n={3}
+        eyebrow="Preferencias"
+        title="Antes de crear tu cuenta"
+        sub="Un par de detalles y listo. Tu perfil completo (foto de cédula + dirección de entrega) lo terminas dentro del portal."
+      />
+
       <div
         className="rounded-[10px] bg-paper border-l-[3px] px-4 py-3 text-[12.5px] text-grey-700 leading-[1.55]"
         style={{ borderColor: "var(--color-wine)" }}
@@ -378,16 +577,12 @@ function ExpressForm({
         Generamos tu <strong className="text-ink">Shipping Mark</strong> al instante y tu
         cuenta queda <strong className="text-ink">activa</strong>. Antes de tu primera
         compra completas tu perfil (foto de cédula + dirección de entrega) desde el
-        portal.
+        portal — un par de minutos.
       </div>
 
-      {/* SDD-0082: opt-in EXPLÍCITO de marketing por email (default OFF). Es
-          consentimiento aparte — el email transaccional (bienvenida, factura,
-          avisos de envío) llega igual sin marcarlo. */}
       <label className="flex items-start gap-2.5 cursor-pointer select-none">
         <input
           type="checkbox"
-          name="email_optin"
           checked={data.emailOptin}
           onChange={(e) => patch({ emailOptin: e.target.checked })}
           className="mt-0.5 h-5 w-5 flex-shrink-0 rounded-sm focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
@@ -399,31 +594,94 @@ function ExpressForm({
         </span>
       </label>
 
-      {error && <p className="text-[13.5px] text-wine leading-[1.45]">{error}</p>}
-
-      <button
-        type="submit"
-        disabled={pending}
-        className="btn btn-primary disabled:opacity-60 disabled:cursor-wait"
-      >
-        {pending ? "Creando tu cuenta…" : "Crear cuenta y generar tu Shipping Mark"}
-        {!pending && <CheckIcon size={16} />}
-      </button>
-
-      {/* Aviso de privacidad — confianza en el punto de captura de datos
-          (SDD-0064 Fase 5). Sin enlaces a páginas legales aún inexistentes. */}
-      <p className="mt-4 text-[12.5px] leading-[1.5] text-grey-500 max-w-[54ch]">
-        Solicitamos estos datos para identificar tu carga, evitar errores de
-        entrega y cumplir con los procesos logísticos y documentales. No
-        compartimos tu información salvo obligaciones operativas o legales.
+      <p className="text-[12.5px] leading-[1.5] text-grey-500 max-w-[54ch]">
+        Solicitamos estos datos para identificar tu carga, evitar errores de entrega y
+        cumplir con los procesos logísticos y documentales. No compartimos tu
+        información salvo obligaciones operativas o legales.
       </p>
-    </form>
+    </div>
+  );
+}
+
+// ── Paso 4 · Confirmar ───────────────────────────────────────────
+function StepConfirmar({
+  data,
+  docNorm,
+  isCompany,
+  error,
+}: {
+  data: FormData0;
+  docNorm: string | null;
+  isCompany: boolean;
+  error?: string;
+}) {
+  const rows: { k: string; v: string; mono?: boolean }[] = [
+    { k: isCompany ? "RIF" : "Cédula", v: docNorm ?? "—", mono: true },
+    { k: "Correo", v: data.email || "—" },
+    { k: "WhatsApp", v: data.whatsapp || "—", mono: true },
+  ];
+  return (
+    <div className="flex flex-col gap-5">
+      <StepHead
+        n={4}
+        eyebrow="Confirmar"
+        title={data.name ? `Confirma tus datos, ${data.name.split(/\s+/)[0]}` : "Confirma tus datos"}
+        sub="Revisa que todo esté correcto antes de generar tu Shipping Mark."
+      />
+
+      <div className="rounded-[14px] border border-grey-200 bg-paper p-5">
+        <div className="text-[10px] font-bold tracking-[0.12em] uppercase text-wine">
+          {isCompany ? "Empresa" : "Persona natural"}
+        </div>
+        <div
+          className="mt-1.5 text-[16px] text-ink"
+          style={{ fontFamily: "var(--font-archivo-black)", letterSpacing: "-0.01em" }}
+        >
+          {(isCompany ? data.company : data.name) || "—"}
+        </div>
+        {isCompany && data.name && (
+          <div className="mt-0.5 text-[12px] text-grey-500">Contacto: {data.name}</div>
+        )}
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          {rows.map((r) => (
+            <div key={r.k}>
+              <div className="text-[10px] font-medium tracking-[0.08em] uppercase text-grey-500">
+                {r.k}
+              </div>
+              <div
+                className="mt-1 text-[13px] font-bold text-ink break-words"
+                style={r.mono ? { fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" } : undefined}
+              >
+                {r.v}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div
+        className="flex gap-2.5 items-start rounded-[10px] px-4 py-3 text-[12px] leading-[1.55] text-grey-700"
+        style={{
+          background: "color-mix(in srgb, var(--color-status-warning) 12%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--color-status-warning) 40%, transparent)",
+        }}
+      >
+        <span className="flex-shrink-0 mt-0.5" style={{ color: "var(--color-status-warning)" }}>
+          <WarningIcon size={16} />
+        </span>
+        <span>
+          Al confirmar se genera tu <strong className="text-ink">Shipping Mark</strong>.
+          Asegúrate de que tus datos estén correctos: algunos no podrás editarlos dentro
+          del sistema sin autorización. Datos correctos hacen tu logística puntual.
+        </span>
+      </div>
+
+      {error && <p className="text-[13.5px] text-wine leading-[1.45]">{error}</p>}
+    </div>
   );
 }
 
 // ── "¿Ya tienes cuenta?" · recuperar acceso (chequeo en vivo) ─────
-// Se muestra cuando el documento ya tiene una cuenta. NO revela a quién pertenece
-// (el endpoint solo devuelve un booleano): solo ofrece entrar / recuperar acceso.
 function DupRecover({ isCompany }: { isCompany: boolean }) {
   return (
     <div
@@ -439,8 +697,8 @@ function DupRecover({ isCompany }: { isCompany: boolean }) {
             Este {isCompany ? "RIF" : "cédula"} ya tiene una cuenta en DTD Cargo
           </div>
           <p className="mt-1 text-[12.5px] text-grey-700 leading-[1.5]">
-            Si eres tú, no hace falta crear otra. Entra al portal y pide tu enlace
-            de acceso por correo.
+            Si eres tú, no hace falta crear otra. Entra al portal y pide tu enlace de
+            acceso por correo.
           </p>
           <Link href="/portal/login" className="mt-3 inline-flex btn btn-ghost h-10 text-[13px]">
             Recuperar mi acceso <ArrowIcon size={15} />
@@ -451,7 +709,7 @@ function DupRecover({ isCompany }: { isCompany: boolean }) {
   );
 }
 
-// ── Listo ───────────────────────────────────────────────────────
+// ── Paso 5 · ¡Listo! (celebración del Shipping Mark) ─────────────
 function StepDone({
   markbox,
   firstName,
@@ -463,58 +721,53 @@ function StepDone({
   email: string;
   warning?: string;
 }) {
-  // Fade-in del aviso de "correo enviado" al montar (feedback interactivo).
   const [shown, setShown] = useState(false);
   useEffect(() => {
     setShown(true);
   }, []);
 
   return (
-    <div className="mt-6 flex flex-col items-center text-center gap-5">
+    <div className="flex flex-col items-center text-center gap-5">
       <div
-        className="w-16 h-16 rounded-full grid place-items-center"
+        className="w-[74px] h-[74px] rounded-full grid place-items-center"
         style={{ background: "var(--color-status-success)", color: "#fff" }}
       >
-        <CheckIcon size={32} />
+        <CheckIcon size={36} />
       </div>
       <div>
         <div
-          className="text-[20px] sm:text-[22px] text-ink"
-          style={{ fontFamily: "var(--font-archivo-black)", letterSpacing: "-0.01em" }}
+          className="text-[22px] sm:text-[25px] text-ink"
+          style={{ fontFamily: "var(--font-archivo-black)", letterSpacing: "-0.02em" }}
         >
-          ¡Felicitaciones{firstName ? `, ${firstName}` : ""}!
+          Bienvenido a la familia DTD Cargo
         </div>
-        <p className="mt-2 text-[14px] text-grey-700 leading-[1.55] max-w-[42ch]">
-          Tu cuenta quedó creada. Este es tu código Shipping Mark — guárdalo, vas a usarlo
-          mucho: es lo que tus proveedores escriben en cada caja.
+        <p className="mt-2 text-[13.5px] text-grey-700 leading-[1.55] max-w-[42ch]">
+          Tu cuenta está activa{firstName ? `, ${firstName}` : ""}. Este es el código de
+          tus cajas — lo usamos en bodega y con tu proveedor.
         </p>
       </div>
 
-      {/* Confirmación interactiva: correo de bienvenida enviado (fade-in al montar) */}
       {!warning && (
         <div
-          className={`w-full rounded-[10px] bg-paper border-l-[3px] px-4 py-3 text-[12.5px] text-grey-700 leading-[1.5] text-left flex items-start gap-2.5 transition-all duration-500 ${
+          className={`w-full max-w-[440px] rounded-[10px] bg-paper border-l-[3px] px-4 py-3 text-[12.5px] text-grey-700 leading-[1.5] text-left flex items-start gap-2.5 transition-all duration-500 ${
             shown ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1.5"
           }`}
           style={{ borderColor: "var(--color-status-success)" }}
         >
-          <span
-            className="mt-0.5 flex-shrink-0"
-            style={{ color: "var(--color-status-success)" }}
-          >
+          <span className="mt-0.5 flex-shrink-0" style={{ color: "var(--color-status-success)" }}>
             <CheckIcon size={15} />
           </span>
           <span>
             <strong className="text-ink">Correo de bienvenida enviado</strong>
-            {email ? ` a ${email}` : ""}. Si no lo ves en unos minutos, revisa la
-            carpeta de spam / correo no deseado.
+            {email ? ` a ${email}` : ""}. Ábrelo y haz clic en el enlace para entrar — sin
+            contraseña. Si no lo ves, revisa spam.
           </span>
         </div>
       )}
 
-      {/* Tarjeta MARKBOX — hero: más grande + entrada con fade y glow "se abre y se apaga" */}
+      {/* Tarjeta Shipping Mark — hero */}
       <div
-        className={`markbox-celebrate w-full rounded-[16px] px-6 py-7 transition-all duration-500 ${
+        className={`markbox-celebrate w-full max-w-[440px] rounded-[16px] px-6 py-7 text-left transition-all duration-500 ${
           shown ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
         }`}
         style={{ background: "var(--color-wine)", color: "#fff" }}
@@ -530,24 +783,16 @@ function StepDone({
         </div>
       </div>
 
-      {/* Guía de nomenclatura del MARKBOX — cómo se arma el código de cada compra.
-          Portada del Norte v4.3, adaptada a MARKBOX (público). Colapsada por
-          defecto: educa sin abrumar en el momento de la celebración. */}
       <MarkboxGuide markbox={markbox} />
 
-      {/* El MARKBOX es el código de las cajas, NO la credencial de acceso: al
-          portal se entra siempre por email + enlace de acceso (SDD-0094). NO
-          repetimos el código acá (ya está, grande, en el hero de arriba): este
-          bloque explica el acceso, sin competir con el hero. */}
-      <div className="w-full rounded-[12px] bg-paper border border-grey-200 px-5 py-4 text-left">
+      <div className="w-full max-w-[440px] rounded-[12px] bg-paper border border-grey-200 px-5 py-4 text-left">
         <div className="text-[10px] font-bold tracking-[0.12em] uppercase text-grey-500">
           Cómo entrar al portal
         </div>
         <div className="mt-2 text-[12.5px] text-grey-700 leading-[1.55]">
-          No te pedimos contraseña ni tienes que recordar tu Shipping Mark. Te enviamos un{" "}
-          <strong className="text-ink">enlace de acceso a tu correo</strong> y entras
-          con un clic — sin contraseñas que se te olvidan ni códigos que apuntar. Solo
-          tu correo.
+          No te pedimos contraseña ni tienes que recordar tu Shipping Mark. Te enviamos
+          un <strong className="text-ink">enlace de acceso a tu correo</strong> y entras
+          con un clic. Solo tu correo.
         </div>
         {email && (
           <div className="mt-3 flex items-center gap-2.5 rounded-[10px] bg-white border border-grey-200 px-3.5 py-3">
@@ -558,10 +803,7 @@ function StepDone({
               <div className="text-[9.5px] font-bold tracking-[0.12em] uppercase text-grey-500">
                 Tu correo registrado
               </div>
-              <div
-                className="text-[14px] font-bold text-ink"
-                style={{ wordBreak: "break-all" }}
-              >
+              <div className="text-[14px] font-bold text-ink" style={{ wordBreak: "break-all" }}>
                 {email}
               </div>
             </div>
@@ -571,41 +813,25 @@ function StepDone({
 
       {warning && (
         <p
-          className="w-full rounded-[10px] bg-paper border-l-[3px] px-4 py-3 text-[12.5px] text-grey-700 leading-[1.5] text-left"
+          className="w-full max-w-[440px] rounded-[10px] bg-paper border-l-[3px] px-4 py-3 text-[12.5px] text-grey-700 leading-[1.5] text-left"
           style={{ borderColor: "var(--color-status-warning)" }}
         >
           {warning}
         </p>
       )}
 
-      <p
-        className="w-full rounded-[10px] bg-paper border-l-[3px] px-4 py-3 text-[12.5px] text-grey-700 leading-[1.55] text-left"
-        style={{ borderColor: "var(--color-wine)" }}
-      >
-        <strong className="text-ink">Tu cuenta ya está activa.</strong> Entra al
-        portal con tu <strong className="text-ink">email</strong>. Ahí registras cada{" "}
-        <strong className="text-ink">compra</strong> que le haces a un proveedor
-        chino — eso es tu <strong className="text-wine">prealerta</strong>: nos
-        avisa que viene mercancía y la procesamos más rápido. Antes de tu primera
-        compra te pediremos completar tu perfil (foto de cédula + dirección de
-        entrega), un par de minutos desde el portal.
-      </p>
-
-      <Link href="/portal/login" className="btn btn-primary w-full">
+      <Link href="/portal/login" className="btn btn-primary w-full max-w-[440px]">
         Ir al portal <ArrowIcon />
       </Link>
     </div>
   );
 }
 
-// ── Guía de nomenclatura del MARKBOX (expandible) ────────────────
-// Explica cómo se arma el código de cada compra: MARKBOX-proveedor-compra.
-// Portada del Norte v4.3 (`portal/registro.jsx` · Guide), adaptada al término
-// público MARKBOX y a los tokens de la web.
+// ── Guía de nomenclatura del Shipping Mark (expandible) ──────────
 function MarkboxGuide({ markbox }: { markbox: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="w-full text-left">
+    <div className="w-full max-w-[440px] text-left">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -631,7 +857,6 @@ function MarkboxGuide({ markbox }: { markbox: string }) {
 
       {open && (
         <div className="mt-3 rounded-[12px] border border-grey-200 bg-white px-5 py-5">
-          {/* Desglose visual del código MARKBOX-proveedor-compra. */}
           <div className="rounded-[10px] bg-paper border border-grey-200 px-4 py-4">
             <div className="flex items-start justify-center gap-2">
               <CodePart code={markbox} label="Tu Shipping Mark" tone="wine" />
@@ -669,8 +894,8 @@ function MarkboxGuide({ markbox }: { markbox: string }) {
 
           <GuideStep n="3" title="Cada compra suma" last>
             Cada vez que le vuelves a comprar al mismo proveedor, el número de compra
-            avanza ({markbox}-1-1, {markbox}-1-2…). Todo queda separado y trazable
-            desde tu portal, sin manejar sistemas externos.
+            avanza ({markbox}-1-1, {markbox}-1-2…). Todo queda separado y trazable desde
+            tu portal, sin manejar sistemas externos.
           </GuideStep>
 
           <div
@@ -679,8 +904,8 @@ function MarkboxGuide({ markbox }: { markbox: string }) {
           >
             Cuando registres tu compra en el portal te asignamos el código y las{" "}
             <strong className="text-ink">etiquetas</strong> para que tu proveedor las
-            pegue en cada caja. Sin la etiqueta correcta, la caja entra como
-            “huérfana” y se retrasa.
+            pegue en cada caja. Sin la etiqueta correcta, la caja entra como “huérfana” y
+            se retrasa.
           </div>
         </div>
       )}
@@ -736,14 +961,6 @@ function GuideStep({
 }
 
 // ── Primitivas de form ──────────────────────────────────────────
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="text-[11px] font-semibold tracking-[0.12em] uppercase text-grey-500">
-      {children}
-    </span>
-  );
-}
-
 function Field({
   label,
   value,
@@ -774,11 +991,7 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
-        style={
-          mono
-            ? { fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }
-            : undefined
-        }
+        style={mono ? { fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" } : undefined}
       />
       {hint && !error && <span className="text-[11.5px] text-grey-500 leading-[1.4]">{hint}</span>}
       {error && <span className="text-[12px] text-wine leading-[1.4]">{error}</span>}
@@ -786,18 +999,9 @@ function Field({
   );
 }
 
-// Flecha custom (chevron wine) para los <select> con `appearance: none` — clava
-// el look del Norte v4.3 en vez de la flecha nativa del navegador. `%23` = `#`.
 const SELECT_ARROW =
   "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%237F0F1A' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>\")";
 
-// ── Cédula con prefijo de nacionalidad (V / E / P) ────────────────
-// En Venezuela la cédula lleva V (venezolano) o E (extranjero); P (pasaporte)
-// cubre al cliente que no tiene cédula venezolana a mano. El usuario solo
-// escribe el número (o el alfanumérico del pasaporte); la letra se elige a la
-// izquierda (V por defecto). Emite el canónico "V-12345678" / "P-A1234567"
-// hacia el padre (o "" si no hay dígitos). Portado del Norte v4.3
-// (`CedulaInput`) a tokens de la web.
 function CedulaInput({
   value,
   onChange,
@@ -809,7 +1013,6 @@ function CedulaInput({
   hint?: string;
   error?: string;
 }) {
-  // Estado interno: deriva la letra del valor inicial (si lo hubiera) y el resto.
   const m = /^([VEP])-?(.*)$/i.exec(value || "");
   const initialLetter: "V" | "E" | "P" =
     m && m[1].toUpperCase() === "E" ? "E" : m && m[1].toUpperCase() === "P" ? "P" : "V";
@@ -879,10 +1082,6 @@ function CedulaInput({
   );
 }
 
-// ── Teléfono con selector de código de país ──────────────────────
-// El cliente solo escribe el número; el código se elige a la izquierda (VE +58
-// por defecto, orden por frecuencia de clientes DTD). Emite "+58 4121234567"
-// hacia el padre (o "" si no hay dígitos). Portado del Norte v4.3 (`PhoneInput`).
 const COUNTRY_CODES: { c: string; dial: string }[] = [
   { c: "VE", dial: "+58" },
   { c: "US", dial: "+1" },
@@ -922,12 +1121,11 @@ function PhoneInput({
     emit(c, digits);
   }
   function onDigits(raw: string) {
-    // Si pega un "+…", autodetecta el código (el más largo que matchee).
     const s = raw.trim();
     if (s.startsWith("+")) {
       const cleaned = "+" + s.slice(1).replace(/\D/g, "");
       const match = COUNTRY_CODES.map((o) => o.dial)
-        .filter((d) => cleaned.startsWith(d))
+        .filter((dial) => cleaned.startsWith(dial))
         .sort((a, b) => b.length - a.length)[0];
       if (match) {
         const rest = cleaned.slice(match.length);
@@ -1009,9 +1207,7 @@ function TypeCard({
       aria-pressed={active}
     >
       <div className="flex items-center gap-2">
-        <span style={{ color: active ? "var(--color-wine)" : "var(--color-grey-500)" }}>
-          {icon}
-        </span>
+        <span style={{ color: active ? "var(--color-wine)" : "var(--color-grey-500)" }}>{icon}</span>
         <div className="text-[14px] font-bold" style={{ color: active ? "var(--color-wine)" : "var(--color-ink)" }}>
           {label}
         </div>

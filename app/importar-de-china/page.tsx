@@ -98,7 +98,7 @@ export default function ImportarHubPage() {
               >
                 <WhatsAppIcon size={18} /> Cotizar por WhatsApp
               </a>
-              <a href="/calculadora" className="btn btn-ghost">
+              <a href="/tarifas" className="btn btn-ghost">
                 Calcular mi envío <ArrowIcon size={16} />
               </a>
             </div>

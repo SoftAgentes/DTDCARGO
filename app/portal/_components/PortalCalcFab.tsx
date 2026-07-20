@@ -286,9 +286,12 @@ export function PortalCalcFab() {
           {/* Contenido */}
           <div className="flex-1 min-h-0 overflow-hidden">
             {tab === "cbm" ? (
+              // TODO Fase 7: revisar con el founder qué calc va en el portal. Hoy
+              // vuelve a ser la CBM/LCL (`/tarifas/embed`), que es la del producto
+              // principal; el cotizador FCL vive aparte en `/fcl/embed`.
               <iframe
                 title="Calculadora CBM"
-                src={`/calculadora/embed?theme=${theme}`}
+                src={`/tarifas/embed?theme=${theme}`}
                 className="w-full h-full block"
                 style={{ border: 0, background: "var(--color-white)" }}
               />

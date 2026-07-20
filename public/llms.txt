@@ -44,11 +44,12 @@
 - Sitio web: https://dtdcargo.com
 
 ## Enlaces útiles
-- Estimar un envío: https://dtdcargo.com/estimacion
+- Calcular tu envío y ver tarifas (CBM): https://dtdcargo.com/tarifas
+- Cotizar contenedor completo (FCL): https://dtdcargo.com/fcl
 - Servicios: https://dtdcargo.com/servicios
 - Brochure (PDF): https://dtdcargo.com/brochure
-- Calculadora de volumen (CBM): https://dtdcargo.com/calculadora
-- Rastrear envío: https://dtdcargo.com/track
+- Shipping Mark (cómo identificamos tu carga): https://dtdcargo.com/shipping-mark
+- Rastrear envío (dentro del portal del cliente): https://dtdcargo.com/portal
 - Glosario de términos de importación: https://dtdcargo.com/glosario
 - Noticias y guías de importación China-Venezuela: https://dtdcargo.com/noticias
 

@@ -78,8 +78,8 @@ Carga tu pre-alerta en el portal: tu Shipping Mark, el número de guía (trackin
 descripción/packing list. Así sabemos que tu mercancía viene en camino y la recibimos a tu nombre.
 
 **¿Puedo rastrear con el número que me dio mi proveedor chino?**
-No. Ese número es del courier interno de China. Para seguir tu envío con DTD usa el código que te
-damos al abrir tu embarque, en dtdcargo.com/track.
+No. Ese número es del courier interno de China. Para seguir tu envío con DTD entra a tu portal del
+cliente en dtdcargo.com/portal: ahí aparece el embarque con el código que te damos al abrirlo.
 
 **Si envío a la bodega de DTD en vez de a Venezuela, ¿pierdo la protección de Alibaba?**
 No. La protección de Trade Assurance depende de que pagues dentro de Alibaba, no de la dirección de

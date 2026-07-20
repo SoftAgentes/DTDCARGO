@@ -61,7 +61,7 @@ export function DdpHero({ ddp }: { ddp: ServicioDetalle | null }) {
                   <strong className="text-ink">60 a 90 días</strong> puerta a puerta.
                 </p>
                 <div className="mt-5 flex flex-col gap-2.5">
-                  <Link href="/calculadora" className="btn btn-primary w-full">
+                  <Link href="/tarifas" className="btn btn-primary w-full">
                     Calcula tu estimado
                   </Link>
                   <a

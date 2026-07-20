@@ -1,7 +1,7 @@
 /**
  * SDD-0061 Fase B1 — Lógica pura del estimado web.
  *
- * Convierte el payload que mandan las calculadoras públicas (`/calculadora` LCL
+ * Convierte el payload que mandan las calculadoras públicas (`/tarifas` LCL
  * y `/estimacion` marítimo/aéreo) en la fila de `public.quotes` que persiste el
  * route handler, valida el input (sin Zod, validador propio estilo `validate*Input`),
  * y arma el mensaje de WhatsApp con la nota + el código `EST-XXXX`.
