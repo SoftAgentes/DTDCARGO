@@ -174,3 +174,9 @@ docs/legal/DTDcapalegalconsolidada/
 
 # Artefactos generados (lector offline de marketing, montajes, etc.) — regenerables
 outputs/
+
+# Skills de terceros instalados con `npx skills add` (higgsfield): contenido de
+# terceros, re-descargable. Viven en el repo a propósito (los leen los demás
+# agentes vía .agents/skills/), pero NO se versionan. El registro sí:
+# skills-lock.json queda en git para poder reinstalarlos con `npx skills install`.
+.agents/skills/higgsfield-*/

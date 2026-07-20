@@ -429,8 +429,8 @@ export function StatementDrawer({ bankAccounts, onClose }: Props) {
           <div
             style={{
               padding: "var(--s-4) var(--s-5)",
-              background: "var(--ink)",
-              color: "var(--ink-inv)",
+              background: "var(--bg-sidebar)",
+              color: "var(--ink-side)",
               borderRadius: "var(--r-lg)",
               display: "flex",
               flexDirection: "column",

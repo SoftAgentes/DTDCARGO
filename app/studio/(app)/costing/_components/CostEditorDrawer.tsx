@@ -106,7 +106,7 @@ export function CostEditorDrawer({
         {/* Header navy · revenue / costo / margen en vivo */}
         <div
           style={{
-            background: "var(--ink)",
+            background: "var(--bg-sidebar)",
             borderRadius: "var(--r-lg)",
             padding: "18px 20px",
             display: "grid",
@@ -114,7 +114,7 @@ export function CostEditorDrawer({
             gap: 14,
           }}
         >
-          <HeaderMetric label="Revenue" value={fmtUsd(eco.revenue)} color="var(--ink-inv)" />
+          <HeaderMetric label="Revenue" value={fmtUsd(eco.revenue)} color="var(--ink-side)" />
           <HeaderMetric label="Costo total" value={fmtUsd(eco.totalCost)} color="var(--warning)" />
           <HeaderMetric
             label="Margen"
@@ -262,7 +262,7 @@ function HeaderMetric({
       <div
         style={{
           font: "700 10px/1 var(--f-sans)",
-          color: "var(--ink-inv-mute)",
+          color: "var(--ink-side-soft)",
           letterSpacing: "0.14em",
           textTransform: "uppercase",
         }}
@@ -276,7 +276,7 @@ function HeaderMetric({
         <div
           style={{
             font: "700 11px/1 var(--f-mono)",
-            color: "var(--ink-inv-mute)",
+            color: "var(--ink-side-soft)",
             marginTop: 4,
           }}
         >

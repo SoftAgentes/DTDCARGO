@@ -636,8 +636,8 @@ export function InvoiceDrawer({
           <div
             style={{
               padding: "18px 20px",
-              background: "var(--ink)",
-              color: "var(--ink-inv)",
+              background: "var(--bg-sidebar)",
+              color: "var(--ink-side)",
               borderRadius: "var(--r-lg)",
               display: "flex",
               flexDirection: "column",

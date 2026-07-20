@@ -1080,7 +1080,7 @@ function ForecastView({ forecast, money }: { forecast: Forecast; money: Money })
       {/* Resumen proyectado · navy */}
       <div
         style={{
-          background: "var(--ink)",
+          background: "var(--bg-sidebar)",
           borderRadius: "var(--r-lg)",
           padding: "20px 22px",
         }}
@@ -1088,7 +1088,7 @@ function ForecastView({ forecast, money }: { forecast: Forecast; money: Money })
         <div
           style={{
             font: "700 10px/1 var(--f-sans)",
-            color: "var(--ink-inv-soft)",
+            color: "var(--ink-side-soft)",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
           }}
@@ -1098,7 +1098,7 @@ function ForecastView({ forecast, money }: { forecast: Forecast; money: Money })
         <div
           style={{
             font: "900 18px/1.1 var(--f-display)",
-            color: "var(--ink-inv)",
+            color: "var(--ink-side)",
             marginTop: 6,
             marginBottom: 18,
           }}
@@ -1112,7 +1112,7 @@ function ForecastView({ forecast, money }: { forecast: Forecast; money: Money })
             gap: 16,
           }}
         >
-          <ForecastMetric label="Revenue proyectado" value={money(totals.revenue)} color="var(--ink-inv)" />
+          <ForecastMetric label="Revenue proyectado" value={money(totals.revenue)} color="var(--ink-side)" />
           <ForecastMetric label="Costo proyectado" value={money(totals.cost)} color="var(--warning)" />
           <ForecastMetric
             label="Margen proyectado"
@@ -1122,7 +1122,7 @@ function ForecastView({ forecast, money }: { forecast: Forecast; money: Money })
           <ForecastMetric
             label="Margen % estimado"
             value={`${totals.marginPct.toFixed(1)}%`}
-            color="var(--ink-inv)"
+            color="var(--ink-side)"
           />
         </div>
         <div
@@ -1131,7 +1131,7 @@ function ForecastView({ forecast, money }: { forecast: Forecast; money: Money })
             paddingTop: 14,
             borderTop: "1px solid var(--border-side)",
             font: "500 12px/1.5 var(--f-sans)",
-            color: "var(--ink-inv-mute)",
+            color: "var(--ink-side-soft)",
           }}
         >
           Sobre {totals.acceptedCount} estimados aceptados pendientes de
@@ -1181,7 +1181,7 @@ function ForecastMetric({ label, value, color }: { label: string; value: string;
       <div
         style={{
           font: "700 10px/1 var(--f-sans)",
-          color: "var(--ink-inv-mute)",
+          color: "var(--ink-side-soft)",
           letterSpacing: "0.14em",
           textTransform: "uppercase",
         }}

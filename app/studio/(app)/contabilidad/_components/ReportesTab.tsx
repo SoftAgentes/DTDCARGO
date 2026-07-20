@@ -115,8 +115,8 @@ function ReportCard({
   return (
     <div
       style={{
-        background: "var(--ink)",
-        color: "var(--ink-inv)",
+        background: "var(--bg-sidebar)",
+        color: "var(--ink-side)",
         borderRadius: "var(--r-lg)",
         padding: "22px 24px",
       }}

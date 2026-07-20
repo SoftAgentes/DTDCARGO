@@ -384,8 +384,8 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
                 style={{
                   marginTop: 10,
                   padding: "10px 14px",
-                  background: "var(--ink)",
-                  color: "var(--ink-inv)",
+                  background: "var(--bg-sidebar)",
+                  color: "var(--ink-side)",
                   borderRadius: "var(--r-md)",
                   display: "flex",
                   justifyContent: "space-between",
