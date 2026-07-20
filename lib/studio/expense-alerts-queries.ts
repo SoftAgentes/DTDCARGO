@@ -78,7 +78,7 @@ export async function activeAlertShipmentIds(
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Busca un contenedor (shipment service=consolidacion, status=consolidating)
+ * Busca un contenedor (shipment service=consolidado_lcl, status=consolidating)
  * abierto para ese destino, o crea uno nuevo. Devuelve el shipment_id.
  *
  * Grain: 1 contenedor por (tenant, destino) mientras siga en
@@ -98,7 +98,7 @@ export async function findOrCreateConsolidationShipment(
     .from("shipments")
     .select("id, code")
     .eq("tenant_id", opts.tenantId)
-    .eq("shipment_service", "consolidacion")
+    .eq("shipment_service", "consolidado_lcl")
     .eq("status", "consolidating")
     .eq("destination", dest)
     .is("deleted_at", null)
@@ -121,7 +121,7 @@ export async function findOrCreateConsolidationShipment(
     .insert({
       tenant_id: opts.tenantId,
       code,
-      shipment_service: "consolidacion",
+      shipment_service: "consolidado_lcl",
       status: "consolidating",
       origin: "CN",
       destination: dest,

@@ -163,7 +163,7 @@ describe("routeKey / routeLabel / serviceLabel", () => {
     expect(routeLabel(null, "Maracaibo")).toBe("— → Maracaibo");
   });
   it("serviceLabel reusa SERVICE_LABELS", () => {
-    expect(serviceLabel("consolidacion")).toBe("Consolidación");
+    expect(serviceLabel("consolidado_lcl")).toBe("Consolidado LCL");
     expect(serviceLabel("puerta_a_puerta_DDP")).toBe("Puerta a Puerta");
   });
 });
@@ -175,7 +175,7 @@ function ship(p: Partial<ReportShipment>): ReportShipment {
     code: p.code ?? "S-2026-0001",
     origin: p.origin ?? "Yiwu",
     destination: p.destination ?? "Pto Cabello",
-    shipment_service: (p.shipment_service ?? "consolidacion") as ShipmentService,
+    shipment_service: (p.shipment_service ?? "consolidado_lcl") as ShipmentService,
     status: p.status ?? "in_transit",
     cbm: p.cbm ?? 1,
     client_name: p.client_name ?? "Cliente Demo",
@@ -244,9 +244,9 @@ describe("groupByRoute", () => {
 describe("groupByService", () => {
   it("agrupa por servicio + revenue join + orden desc", () => {
     const shipments = [
-      ship({ code: "S1", shipment_service: "consolidacion", cbm: 2 }),
-      ship({ code: "S2", shipment_service: "consolidacion", cbm: 3 }),
-      ship({ code: "F1", shipment_service: "reserva_FCL", cbm: 50 }),
+      ship({ code: "S1", shipment_service: "consolidado_lcl", cbm: 2 }),
+      ship({ code: "S2", shipment_service: "consolidado_lcl", cbm: 3 }),
+      ship({ code: "F1", shipment_service: "fcl_directo", cbm: 50 }),
     ];
     const revenue = new Map<string, number>([
       ["S1", 1000],
@@ -255,13 +255,13 @@ describe("groupByService", () => {
     ]);
     const rows = groupByService(shipments, revenue);
 
-    expect(rows[0].service).toBe("reserva_FCL");
+    expect(rows[0].service).toBe("fcl_directo");
     expect(rows[0].revenue).toBe(5000);
-    expect(rows[1].service).toBe("consolidacion");
+    expect(rows[1].service).toBe("consolidado_lcl");
     expect(rows[1].revenue).toBe(2000);
     expect(rows[1].count).toBe(2);
     expect(rows[1].cbm).toBe(5);
-    expect(rows[1].label).toBe("Consolidación");
+    expect(rows[1].label).toBe("Consolidado LCL");
   });
 });
 

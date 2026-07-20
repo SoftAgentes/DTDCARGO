@@ -16,16 +16,15 @@
  * Las columnas de precio (subtotal/total) nacen en 0 — las llena el asesor al
  * cotizar; el cliente NO fija precios.
  */
-import type { ShipmentService } from "@/lib/shared/shipment-public";
+import {
+  SHIPMENT_SERVICES,
+  isShipmentService,
+  type ShipmentService,
+} from "@/lib/shared/shipment-public";
 import type { QuoteStatus } from "@/lib/studio/quote-types";
 
-/** Los 4 servicios núcleo que el cliente puede pedir cotizar. */
-export const COTIZACION_SERVICES: ShipmentService[] = [
-  "consolidacion",
-  "puerta_a_puerta_DDP",
-  "reserva_FCL",
-  "transporte_terrestre",
-];
+/** Los servicios núcleo que el cliente puede pedir cotizar (los 5 del enum). */
+export const COTIZACION_SERVICES: readonly ShipmentService[] = SHIPMENT_SERVICES;
 
 /** Input del cliente, validado y normalizado. */
 export type CotizacionRequestInput = {
@@ -88,8 +87,8 @@ export function validateCotizacionRequest(
 
   const serviceRaw = trimOrNull(payload.service);
   const service =
-    serviceRaw && (COTIZACION_SERVICES as string[]).includes(serviceRaw)
-      ? (serviceRaw as ShipmentService)
+    isShipmentService(serviceRaw)
+      ? serviceRaw
       : null;
   if (!service) fieldErrors.service = "Elige el tipo de servicio.";
 

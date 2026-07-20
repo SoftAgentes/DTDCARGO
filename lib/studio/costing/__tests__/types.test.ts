@@ -165,7 +165,7 @@ describe("matchTemplate", () => {
       name: p.name ?? "Yiwu → Pto Cabello · LCL",
       origin: p.origin ?? "YIW",
       destination: p.destination ?? "PBL",
-      shipment_service: p.shipment_service ?? "consolidacion",
+      shipment_service: p.shipment_service ?? "consolidado_lcl",
       freight: 4200,
       customs: 1800,
       transport: 1100,
@@ -183,15 +183,15 @@ describe("matchTemplate", () => {
   }
 
   const templates = [
-    tpl({ id: "a", origin: "YIW", destination: "PBL", shipment_service: "consolidacion" }),
-    tpl({ id: "b", origin: "SZX", destination: "LGU", shipment_service: "reserva_FCL" }),
+    tpl({ id: "a", origin: "YIW", destination: "PBL", shipment_service: "consolidado_lcl" }),
+    tpl({ id: "b", origin: "SZX", destination: "LGU", shipment_service: "fcl_directo" }),
   ];
 
   it("match exacto por origin+destination+service", () => {
     const m = matchTemplate(templates, {
       origin: "YIW",
       destination: "PBL",
-      shipment_service: "consolidacion",
+      shipment_service: "consolidado_lcl",
     });
     expect(m?.id).toBe("a");
   });
@@ -200,7 +200,7 @@ describe("matchTemplate", () => {
     const m = matchTemplate(templates, {
       origin: "YIW",
       destination: "PBL",
-      shipment_service: "reserva_FCL",
+      shipment_service: "fcl_directo",
     });
     expect(m).toBeNull();
   });
@@ -209,7 +209,7 @@ describe("matchTemplate", () => {
     const m = matchTemplate(templates, {
       origin: "ZZZ",
       destination: "PBL",
-      shipment_service: "consolidacion",
+      shipment_service: "consolidado_lcl",
     });
     expect(m).toBeNull();
   });
@@ -222,7 +222,7 @@ describe("matchTemplate", () => {
     const m = matchTemplate(ts, {
       origin: "YIW",
       destination: "PBL",
-      shipment_service: "consolidacion",
+      shipment_service: "consolidado_lcl",
     });
     expect(m).toBeNull();
   });
@@ -272,12 +272,12 @@ describe("validateTemplateInput", () => {
       name: "Yiwu → Pto Cabello · LCL",
       origin: "YIW",
       destination: "PBL",
-      shipment_service: "consolidacion",
+      shipment_service: "consolidado_lcl",
       ...COSTS,
     });
     expect(fieldErrors).toBeUndefined();
     expect(input?.name).toBe("Yiwu → Pto Cabello · LCL");
-    expect(input?.shipment_service).toBe("consolidacion");
+    expect(input?.shipment_service).toBe("consolidado_lcl");
     expect(input?.active).toBe(true);
   });
 

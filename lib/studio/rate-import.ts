@@ -8,10 +8,10 @@
  * Formato CSV esperado (1ª línea = encabezado, separador coma):
  *
  *   service,origin,destination,per_cbm,flat_rate,min_charge,transit_days,valid_from,valid_until,notes
- *   consolidacion,Yiwu,Valencia,800,,380,38,2026-01-01,2026-12-31,Tarifa Q1
- *   reserva_FCL,Shenzhen,La Guaira,,8500,,40,,,Contrato naviero
+ *   consolidado_lcl,Yiwu,Valencia,800,,380,38,2026-01-01,2026-12-31,Tarifa Q1
+ *   fcl_directo,Shenzhen,La Guaira,,8500,,40,,,Contrato naviero
  *
- * - `service` ∈ {consolidacion, puerta_a_puerta_DDP, reserva_FCL, transporte_terrestre}.
+ * - `service` ∈ {consolidado_lcl, puerta_a_puerta_DDP, fcl_directo, transporte_terrestre}.
  * - per_cbm O flat_rate (al menos uno > 0). Vacíos = null.
  * - origin y destination obligatorios.
  * - El encabezado es flexible en orden; columnas desconocidas se ignoran.
@@ -19,15 +19,12 @@
  * Sin Zod — validación manual, igual que el resto del Studio.
  */
 
-import type { ShipmentService } from "./shipment-types";
+import {
+  SHIPMENT_SERVICES,
+  isShipmentService,
+  type ShipmentService,
+} from "./shipment-types";
 import type { RateInput } from "./rate-types";
-
-const VALID_SERVICES: ShipmentService[] = [
-  "consolidacion",
-  "puerta_a_puerta_DDP",
-  "reserva_FCL",
-  "transporte_terrestre",
-];
 
 /** Columnas reconocidas del CSV (en cualquier orden). */
 export const IMPORT_COLUMNS = [
@@ -197,15 +194,15 @@ export function parseRatesCsv(csv: string): RateImportPreview {
     const origin = (get("origin") ?? "").trim();
     const destination = (get("destination") ?? "").trim();
 
-    if (!(VALID_SERVICES as string[]).includes(serviceRaw)) {
+    if (!isShipmentService(serviceRaw)) {
       invalidCount++;
       return {
         line,
         raw: dl.text,
-        error: `Servicio inválido: "${serviceRaw}". Usa uno de: ${VALID_SERVICES.join(", ")}.`,
+        error: `Servicio inválido: "${serviceRaw}". Usa uno de: ${SHIPMENT_SERVICES.join(", ")}.`,
       };
     }
-    const service = serviceRaw as ShipmentService;
+    const service: ShipmentService = serviceRaw;
 
     if (!origin || !destination) {
       invalidCount++;

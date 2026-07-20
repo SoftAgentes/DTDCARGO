@@ -249,8 +249,8 @@ function StatementDetail({
       <div
         style={{
           padding: "16px 22px",
-          background: "var(--ink)",
-          color: "var(--ink-inv)",
+          background: "var(--bg-sidebar)",
+          color: "var(--ink-side)",
           borderRadius: "var(--r-lg)",
           display: "grid",
           gridTemplateColumns: "repeat(5, 1fr)",

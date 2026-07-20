@@ -94,9 +94,9 @@ export function parseRateFiltersFromSearchParams(
 
   const serviceRaw = single("service");
   const service: RateFilters["service"] =
-    serviceRaw === "consolidacion" ||
+    serviceRaw === "consolidado_lcl" ||
     serviceRaw === "puerta_a_puerta_DDP" ||
-    serviceRaw === "reserva_FCL" ||
+    serviceRaw === "fcl_directo" ||
     serviceRaw === "transporte_terrestre"
       ? serviceRaw
       : "all";

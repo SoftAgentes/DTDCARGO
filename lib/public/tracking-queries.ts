@@ -98,9 +98,10 @@ export function estimateEta(result: Extract<PublicTrackResult, { found: true }>)
   // Heurística simple por servicio. ETA = created_at + N días.
   const createdAt = new Date(result.created_at);
   const daysByService: Record<ShipmentService, number> = {
-    consolidacion: 45,
+    consolidado_lcl: 45,
     puerta_a_puerta_DDP: 50,
-    reserva_FCL: 35,
+    fcl_directo: 35,
+    fcl_bodega: 35,
     transporte_terrestre: 5,
   };
   const days = daysByService[result.shipment_service] ?? 45;

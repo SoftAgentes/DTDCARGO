@@ -17,7 +17,7 @@ const mkQuote = (o: Partial<Quote> = {}): Quote => ({
   quote_code: "Q-2026-0001",
   client_markbox: "DTD-0001",
   client_name: "Cliente Uno",
-  service: "consolidacion",
+  service: "consolidado_lcl",
   origin: "Yiwu",
   destination: "Puerto Cabello",
   cbm: 3.4,
@@ -85,7 +85,7 @@ describe("buildQuoteWhatsappText", () => {
   it("FCL (flat): muestra tarifa fija y no CBM", () => {
     const t = buildQuoteWhatsappText(
       mkQuote({
-        service: "reserva_FCL",
+        service: "fcl_directo",
         cbm: null,
         rate_per_cbm: null,
         flat_rate: 5000,

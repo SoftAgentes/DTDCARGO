@@ -35,7 +35,7 @@ function tpl(over: Partial<RouteCostTemplate> = {}): RouteCostTemplate {
     name: "YIW → PBL · LCL",
     origin: "YIW",
     destination: "PBL",
-    shipment_service: "consolidacion",
+    shipment_service: "consolidado_lcl",
     freight: 4000,
     customs: 2000,
     transport: 1000,
@@ -59,7 +59,7 @@ function quote(over: Partial<Quote> = {}): Quote {
     quote_code: "DTD-Q-0001",
     client_markbox: "DTD-0001",
     client_name: "Cliente",
-    service: "consolidacion" as ShipmentService,
+    service: "consolidado_lcl" as ShipmentService,
     origin: "YIW",
     destination: "PBL",
     cbm: 10,
@@ -214,7 +214,7 @@ function costingRow(over: {
       client_name: "client_name" in over ? over.client_name : "Cliente",
       origin: over.origin ?? "YIW",
       destination: over.destination ?? "PBL",
-      shipment_service: over.service ?? "consolidacion",
+      shipment_service: over.service ?? "consolidado_lcl",
     } as CostingRow["shipment"],
     costs: null,
     eco,
@@ -247,7 +247,7 @@ describe("costingCsvRow", () => {
     expect(cells[1]).toBe("ACME");
     expect(cells[2]).toBe("YIW");
     expect(cells[3]).toBe("PBL");
-    expect(cells[4]).toBe("consolidacion");
+    expect(cells[4]).toBe("consolidado_lcl");
     expect(cells[5]).toBe(10000); // revenue
     expect(cells[6]).toBe(4000); // freight
     expect(cells[7]).toBe(2000); // customs
@@ -332,7 +332,7 @@ describe("prefillShipmentCostsFromTemplate", () => {
       id: "SHIP-1",
       origin: "YIW",
       destination: "PBL",
-      shipment_service: "consolidacion",
+      shipment_service: "consolidado_lcl",
     });
     expect(res).toEqual({ prefilled: true, templateId: "t1" });
     const row = captured.row as Record<string, unknown>;
@@ -352,7 +352,7 @@ describe("prefillShipmentCostsFromTemplate", () => {
       id: "SHIP-2",
       origin: "ZZZ",
       destination: "QQQ",
-      shipment_service: "consolidacion",
+      shipment_service: "consolidado_lcl",
     });
     expect(res).toEqual({ prefilled: false, reason: "no-template" });
     expect(captured.row).toBeUndefined();
@@ -366,7 +366,7 @@ describe("prefillShipmentCostsFromTemplate", () => {
       id: "SHIP-3",
       origin: "YIW",
       destination: "PBL",
-      shipment_service: "consolidacion",
+      shipment_service: "consolidado_lcl",
     });
     expect(res).toEqual({ prefilled: false, reason: "error" });
   });
@@ -379,7 +379,7 @@ describe("prefillShipmentCostsFromTemplate", () => {
       id: "SHIP-4",
       origin: "YIW",
       destination: "PBL",
-      shipment_service: "consolidacion",
+      shipment_service: "consolidado_lcl",
     });
     expect(res).toEqual({ prefilled: false, reason: "no-template" });
   });

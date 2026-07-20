@@ -17,9 +17,9 @@
 
 /** El servicio que se guarda en quotes.service (enum shipment_service). */
 export type EstimadoService =
-  | "consolidacion"
+  | "consolidado_lcl"
   | "puerta_a_puerta_DDP"
-  | "reserva_FCL"
+  | "fcl_directo"
   | "transporte_terrestre";
 
 /** Calculadora de origen del estimado. */

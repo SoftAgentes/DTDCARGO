@@ -51,9 +51,9 @@ interface Props {
 const initialState: QuoteActionState = {};
 
 const SERVICE_CARDS: { value: ShipmentService; label: string; hint: string }[] = [
-  { value: "consolidacion", label: "Consolidación LCL", hint: "$/CBM" },
+  { value: "consolidado_lcl", label: "Consolidación LCL", hint: "$/CBM" },
   { value: "puerta_a_puerta_DDP", label: "Puerta a Puerta DDP", hint: "$/CBM prepago" },
-  { value: "reserva_FCL", label: "Reserva FCL", hint: "tarifa flat" },
+  { value: "fcl_directo", label: "Reserva FCL", hint: "tarifa flat" },
   { value: "transporte_terrestre", label: "Transporte terrestre", hint: "VE flat" },
 ];
 
@@ -67,7 +67,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
   const [state, formAction, isPending] = useActionState(action, initialState);
 
   const [service, setService] = useState<ShipmentService>(
-    quote?.service ?? "consolidacion",
+    quote?.service ?? "consolidado_lcl",
   );
   const [clientMarkbox, setClientMarkbox] = useState(quote?.client_markbox ?? "");
   const [clientName, setClientName] = useState(quote?.client_name ?? "");
@@ -106,7 +106,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
    * acción "Crear y empezar otra" del SplitActionButton.
    */
   const resetFormFields = () => {
-    setService("consolidacion");
+    setService("consolidado_lcl");
     setClientMarkbox("");
     setClientName("");
     setOrigin("");
@@ -751,8 +751,8 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
           <div
             style={{
               padding: "18px 20px",
-              background: "var(--ink)",
-              color: "var(--ink-inv)",
+              background: "var(--bg-sidebar)",
+              color: "var(--ink-side)",
               borderRadius: "var(--r-lg)",
               display: "flex",
               flexDirection: "column",

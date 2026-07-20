@@ -36,7 +36,7 @@ function shipment(over: Partial<PortalShipmentRow> = {}): PortalShipmentRow {
   return {
     id: "sh-1",
     code: "E-2026-944",
-    service: "consolidacion",
+    service: "consolidado_lcl",
     status: "in_transit",
     origin: "Yiwu, China",
     destination: "Valencia, Venezuela",

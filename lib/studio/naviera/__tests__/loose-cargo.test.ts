@@ -7,7 +7,7 @@
  * Verifica la derivación (§4.3):
  *  1. solo embarques con recepción CN cerrada (warehouse_receipts_cn consolidado),
  *  2. menos los ya asignados a un contenedor (consolidation_items),
- *  3. intersección con shipments shipment_service='consolidacion'.
+ *  3. intersección con shipments shipment_service='consolidado_lcl'.
  */
 
 import { describe, it, expect } from "vitest";
@@ -47,7 +47,7 @@ function makeClient(
 }
 
 describe("listLooseCargo — carga suelta derivada", () => {
-  it("devuelve embarques consolidacion recibidos en CN sin contenedor", async () => {
+  it("devuelve embarques consolidado_lcl recibidos en CN sin contenedor", async () => {
     const capture: { inIds?: string[] } = {};
     const client = makeClient(
       {
@@ -60,7 +60,7 @@ describe("listLooseCargo — carga suelta derivada", () => {
         ],
         // (2) s2 ya está asignado a un contenedor.
         consolidation_items: [{ shipment_id: "s2" }],
-        // (3) shipments consolidacion entre los candidatos (s1, s3).
+        // (3) shipments consolidado_lcl entre los candidatos (s1, s3).
         // El stub no aplica .in, así que devolvemos solo los que corresponden.
         shipments: [
           {
@@ -70,7 +70,7 @@ describe("listLooseCargo — carga suelta derivada", () => {
             client_markbox: "DTD-5418",
             weight_kg: 3400,
             volume_m3: 8.2,
-            shipment_service: "consolidacion",
+            shipment_service: "consolidado_lcl",
           },
           {
             id: "s3",
@@ -79,7 +79,7 @@ describe("listLooseCargo — carga suelta derivada", () => {
             client_markbox: "DTD-5321",
             weight_kg: 2200,
             volume_m3: 5.1,
-            shipment_service: "consolidacion",
+            shipment_service: "consolidado_lcl",
           },
         ],
       },

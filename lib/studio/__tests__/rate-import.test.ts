@@ -14,14 +14,14 @@ describe("parseRatesCsv", () => {
     "service,origin,destination,per_cbm,flat_rate,min_charge,transit_days,valid_from,valid_until,notes";
 
   it("parsea una fila per_cbm válida", () => {
-    const csv = `${HEADER}\nconsolidacion,Yiwu,Valencia,800,,380,38,2026-01-01,2026-12-31,Q1`;
+    const csv = `${HEADER}\nconsolidado_lcl,Yiwu,Valencia,800,,380,38,2026-01-01,2026-12-31,Q1`;
     const p = parseRatesCsv(csv);
     expect(p.error).toBeUndefined();
     expect(p.validCount).toBe(1);
     expect(p.invalidCount).toBe(0);
     const input = p.rows[0].input;
     expect(input).toBeTruthy();
-    expect(input!.service).toBe("consolidacion");
+    expect(input!.service).toBe("consolidado_lcl");
     expect(input!.origin).toBe("Yiwu");
     expect(input!.destination).toBe("Valencia");
     expect(input!.per_cbm).toBe(800);
@@ -35,7 +35,7 @@ describe("parseRatesCsv", () => {
   });
 
   it("parsea una fila flat_rate válida (FCL)", () => {
-    const csv = `${HEADER}\nreserva_FCL,Shenzhen,La Guaira,,8500,,40,,,Contrato`;
+    const csv = `${HEADER}\nfcl_directo,Shenzhen,La Guaira,,8500,,40,,,Contrato`;
     const p = parseRatesCsv(csv);
     expect(p.validCount).toBe(1);
     const input = p.rows[0].input!;
@@ -45,7 +45,7 @@ describe("parseRatesCsv", () => {
   });
 
   it("acepta encabezado en cualquier orden e ignora columnas desconocidas", () => {
-    const csv = `destination,origin,service,extra,per_cbm\nValencia,Yiwu,consolidacion,basura,650`;
+    const csv = `destination,origin,service,extra,per_cbm\nValencia,Yiwu,consolidado_lcl,basura,650`;
     const p = parseRatesCsv(csv);
     expect(p.validCount).toBe(1);
     const input = p.rows[0].input!;
@@ -55,7 +55,7 @@ describe("parseRatesCsv", () => {
   });
 
   it("respeta comillas dobles en celdas con comas", () => {
-    const csv = `${HEADER}\nconsolidacion,Yiwu,Valencia,800,,,,,,"Nota, con coma"`;
+    const csv = `${HEADER}\nconsolidado_lcl,Yiwu,Valencia,800,,,,,,"Nota, con coma"`;
     const p = parseRatesCsv(csv);
     expect(p.validCount).toBe(1);
     expect(p.rows[0].input!.notes).toBe("Nota, con coma");
@@ -72,34 +72,34 @@ describe("parseRatesCsv", () => {
   });
 
   it("rechaza fila sin per_cbm ni flat_rate", () => {
-    const csv = `${HEADER}\nconsolidacion,Yiwu,Valencia,,,,,,,`;
+    const csv = `${HEADER}\nconsolidado_lcl,Yiwu,Valencia,,,,,,,`;
     const p = parseRatesCsv(csv);
     expect(p.invalidCount).toBe(1);
     expect(p.rows[0].error).toContain("per_cbm o flat_rate");
   });
 
   it("rechaza fila sin origin o destination", () => {
-    const csv = `${HEADER}\nconsolidacion,,Valencia,800,,,,,,`;
+    const csv = `${HEADER}\nconsolidado_lcl,,Valencia,800,,,,,,`;
     const p = parseRatesCsv(csv);
     expect(p.invalidCount).toBe(1);
     expect(p.rows[0].error).toContain("origin o destination");
   });
 
   it("rechaza valores negativos", () => {
-    const csv = `${HEADER}\nconsolidacion,Yiwu,Valencia,-5,,,,,,`;
+    const csv = `${HEADER}\nconsolidado_lcl,Yiwu,Valencia,-5,,,,,,`;
     const p = parseRatesCsv(csv);
     expect(p.invalidCount).toBe(1);
   });
 
   it("rechaza fechas inválidas y valid_from > valid_until", () => {
     const bad = parseRatesCsv(
-      `${HEADER}\nconsolidacion,Yiwu,Valencia,800,,,,no-fecha,,`,
+      `${HEADER}\nconsolidado_lcl,Yiwu,Valencia,800,,,,no-fecha,,`,
     );
     expect(bad.invalidCount).toBe(1);
     expect(bad.rows[0].error).toContain("valid_from");
 
     const inverted = parseRatesCsv(
-      `${HEADER}\nconsolidacion,Yiwu,Valencia,800,,,,2026-12-31,2026-01-01,`,
+      `${HEADER}\nconsolidado_lcl,Yiwu,Valencia,800,,,,2026-12-31,2026-01-01,`,
     );
     expect(inverted.invalidCount).toBe(1);
     expect(inverted.rows[0].error).toContain("posterior");
@@ -110,8 +110,8 @@ describe("parseRatesCsv", () => {
   it("marca como duplicada la 2ª fila con mismo service/origin/destination", () => {
     const csv =
       `${HEADER}\n` +
-      `consolidacion,Yiwu,Valencia,800,,,,,,\n` +
-      `consolidacion,Yiwu,Valencia,900,,,,,,`;
+      `consolidado_lcl,Yiwu,Valencia,800,,,,,,\n` +
+      `consolidado_lcl,Yiwu,Valencia,900,,,,,,`;
     const p = parseRatesCsv(csv);
     expect(p.validCount).toBe(1); // la 1ª gana
     expect(p.duplicateCount).toBe(1);
@@ -122,8 +122,8 @@ describe("parseRatesCsv", () => {
   it("el dedup es case-insensitive en origin/destination", () => {
     const csv =
       `${HEADER}\n` +
-      `consolidacion,Yiwu,Valencia,800,,,,,,\n` +
-      `consolidacion,YIWU,valencia,900,,,,,,`;
+      `consolidado_lcl,Yiwu,Valencia,800,,,,,,\n` +
+      `consolidado_lcl,YIWU,valencia,900,,,,,,`;
     const p = parseRatesCsv(csv);
     expect(p.validCount).toBe(1);
     expect(p.duplicateCount).toBe(1);
@@ -132,7 +132,7 @@ describe("parseRatesCsv", () => {
   it("distinto servicio NO es duplicado", () => {
     const csv =
       `${HEADER}\n` +
-      `consolidacion,Yiwu,Valencia,800,,,,,,\n` +
+      `consolidado_lcl,Yiwu,Valencia,800,,,,,,\n` +
       `puerta_a_puerta_DDP,Yiwu,Valencia,900,,,,,,`;
     const p = parseRatesCsv(csv);
     expect(p.validCount).toBe(2);
@@ -147,7 +147,7 @@ describe("parseRatesCsv", () => {
   });
 
   it("error si falta una columna obligatoria en el encabezado", () => {
-    const p = parseRatesCsv(`service,origin,per_cbm\nconsolidacion,Yiwu,800`);
+    const p = parseRatesCsv(`service,origin,per_cbm\nconsolidado_lcl,Yiwu,800`);
     expect(p.error).toContain("service, origin, destination");
   });
 
@@ -160,21 +160,21 @@ describe("rateDedupKey", () => {
   it("normaliza a minúsculas y trim", () => {
     expect(
       rateDedupKey({
-        service: "consolidacion",
+        service: "consolidado_lcl",
         origin: " Yiwu ",
         destination: "Valencia",
       }),
-    ).toBe("consolidacion|yiwu|valencia");
+    ).toBe("consolidado_lcl|yiwu|valencia");
   });
 
   it("distingue por servicio", () => {
     const a = rateDedupKey({
-      service: "consolidacion",
+      service: "consolidado_lcl",
       origin: "x",
       destination: "y",
     });
     const b = rateDedupKey({
-      service: "reserva_FCL",
+      service: "fcl_directo",
       origin: "x",
       destination: "y",
     });

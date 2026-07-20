@@ -36,18 +36,12 @@ import {
 } from "@/lib/studio/quote-queries";
 import type { Rate } from "@/lib/studio/rate-types";
 import {
+  isShipmentService,
   type ShipmentService,
   SERVICE_LABELS,
 } from "@/lib/studio/shipment-types";
 import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
 import type { MailRuleEvent } from "@/lib/studio/mail-types";
-
-const VALID_SERVICES: ShipmentService[] = [
-  "consolidacion",
-  "puerta_a_puerta_DDP",
-  "reserva_FCL",
-  "transporte_terrestre",
-];
 
 function parseNumberOrNull(v: FormDataEntryValue | null): number | null {
   if (v == null) return null;
@@ -65,8 +59,8 @@ function parseStringOrNull(v: FormDataEntryValue | null): string | null {
 
 function inputFromFormData(formData: FormData): Partial<QuoteInput> {
   const serviceRaw = String(formData.get("service") ?? "");
-  const service = (VALID_SERVICES as string[]).includes(serviceRaw)
-    ? (serviceRaw as ShipmentService)
+  const service = isShipmentService(serviceRaw)
+    ? serviceRaw
     : undefined;
 
   return {

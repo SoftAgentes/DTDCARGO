@@ -19,7 +19,7 @@ export const CUSTOMER_MESSAGES: Record<
   ShipmentService,
   Partial<Record<ShipmentStatus, string>>
 > = {
-  consolidacion: {
+  consolidado_lcl: {
     in_warehouse: "Tu carga llegó a nuestra bodega en China.",
     consolidating: "Preparando tu carga para embarque.",
     shipped: "Tu carga zarpó. En ruta a Venezuela.",
@@ -47,8 +47,19 @@ export const CUSTOMER_MESSAGES: Record<
     exception: "Pausa temporal — te contactamos pronto.",
     cancelled: "Operación cerrada.",
   },
-  reserva_FCL: {
+  fcl_directo: {
     in_warehouse: "Tu contenedor en bodega de origen.",
+    shipped: "Tu contenedor zarpó.",
+    in_transit: "En tránsito marítimo.",
+    in_customs: "En aduana Venezuela.",
+    last_mile: "Tu contenedor sale del puerto hacia tu galpón.",
+    delivered: "Entregado ✓",
+    exception: "Pausa temporal — te contactamos pronto.",
+    cancelled: "Operación cerrada.",
+  },
+  fcl_bodega: {
+    in_warehouse: "Tu carga llegó a nuestra bodega en Yiwu.",
+    consolidating: "Armando tu contenedor en la bodega de Yiwu.",
     shipped: "Tu contenedor zarpó.",
     in_transit: "En tránsito marítimo.",
     in_customs: "En aduana Venezuela.",

@@ -22,25 +22,22 @@ import type { QuoteStatus, QuoteSource } from "@/lib/studio/quote-types";
 
 export type { ShipmentService, ShipmentStatus };
 export type { QuoteStatus, QuoteSource };
+/**
+ * Etiquetas de servicio del portal. NO se definen acá: se re-exportan de la
+ * fuente única `lib/shared/shipment-public` (SDD-0164) para que las pantallas
+ * del portal sigan teniendo un solo punto de entrada.
+ *
+ * `SERVICE_SHORT_LABELS` es la variante corta para chips/meta (chip "Tipo" del
+ * héroe, cards de "Mis envíos", detalle de envío, hub de alertas). "DDP" dejó
+ * de ser nombre de servicio de cara al cliente (founder 2026-07-17): el
+ * servicio se llama "Puerta a Puerta"; el enum interno no cambia.
+ */
 export {
   SERVICE_LABELS,
+  SERVICE_SHORT_LABELS,
   STATUS_LABELS,
   STATUS_COLORS,
 } from "@/lib/shared/shipment-public";
-
-/**
- * Etiqueta CORTA de servicio para chips/meta del portal (chip "Tipo" del héroe,
- * cards de "Mis envíos", detalle de envío, hub de alertas). Fuente única — antes
- * vivía copiada en cada componente. "DDP" dejó de ser nombre de servicio de cara
- * al cliente (founder 2026-07-17): el servicio se llama "Puerta a Puerta"; el
- * enum interno `puerta_a_puerta_DDP` no cambia.
- */
-export const SERVICE_SHORT_LABELS: Record<ShipmentService, string> = {
-  consolidacion: "LCL",
-  puerta_a_puerta_DDP: "Puerta a Puerta",
-  reserva_FCL: "FCL",
-  transporte_terrestre: "Terrestre",
-};
 
 /**
  * Derivación de timeline desde el status — fuente ÚNICA del repo.
@@ -313,9 +310,10 @@ export type PortalShipmentDetail = {
  *  - cancelado/borrador → null (no hay tránsito en curso).
  */
 const ETA_DAYS_BY_SERVICE: Record<ShipmentService, number> = {
-  consolidacion: 45,
+  consolidado_lcl: 45,
   puerta_a_puerta_DDP: 50,
-  reserva_FCL: 35,
+  fcl_directo: 35,
+  fcl_bodega: 35,
   transporte_terrestre: 5,
 };
 

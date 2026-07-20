@@ -78,7 +78,9 @@ export type ServiceCatalogEntry = {
   momentoTimeline: MomentoTimeline;
   /**
    * Enum operacional — SOLO los núcleo (mueven embarque/tienen tarifa+OV+factura). `null` en add-ons.
-   * OJO: el mapeo es N:1, no 1:1 — `fcl-bodega` y `fcl-directo` comparten `reserva_FCL`.
+   * Desde SDD-0164 el mapeo de los núcleo es 1:1: `fcl-bodega` → `fcl_bodega` y
+   * `fcl-directo` → `fcl_directo`. Antes compartían `reserva_FCL` y por eso no se
+   * les podía poner tarifa distinta ni medirlos por separado.
    */
   shipmentService: ShipmentService | null;
   /** Servicio insignia (realce visual en /servicios). */
@@ -99,13 +101,13 @@ export const SERVICE_GROUPS: { id: ServicioGrupo; titulo: string }[] = [
 
 /**
  * Las 20 entradas del catálogo. Es la reconciliación de los 19 de marketing + Cursos (nuevo).
- * Los 5 núcleo cubren los 4 valores de `ShipmentService` (reserva_FCL se comparte).
+ * Los 5 núcleo cubren los 5 valores de `ShipmentService`, uno a uno (SDD-0164).
  */
 export const SERVICE_CATALOG: ServiceCatalogEntry[] = [
   // ── Transporte ───────────────────────────────────────────────────
   {
     id: "puerta-a-puerta-ddp",
-    nombre: "Puerta a puerta DDP",
+    nombre: "Puerta a Puerta",
     legacySlug: "dtd-services-lcl",
     tipo: "nucleo",
     grupo: "transporte",
@@ -118,46 +120,46 @@ export const SERVICE_CATALOG: ServiceCatalogEntry[] = [
   },
   {
     id: "lcl-consolidado",
-    nombre: "LCL Consolidado (carga compartida, con BL propio)",
+    nombre: "Consolidado LCL",
     legacySlug: "lcl-consolidado",
     tipo: "nucleo",
     grupo: "transporte",
     sede: "ambas",
     momentoTimeline: "transporte_aduana",
-    shipmentService: "consolidacion",
+    shipmentService: "consolidado_lcl",
     principal: false,
     estado: "activo",
     orden: 2,
   },
   {
     id: "fcl-bodega",
-    nombre: "FCL Consolidado en bodega (contenedor completo)",
+    nombre: "FCL en bodega",
     legacySlug: "consolidacion-bodega-yiwu",
     tipo: "nucleo",
     grupo: "transporte",
     sede: "cn",
     momentoTimeline: "recepcion_bodega",
-    shipmentService: "reserva_FCL",
+    shipmentService: "fcl_bodega",
     principal: false,
     estado: "activo",
     orden: 3,
   },
   {
     id: "fcl-directo",
-    nombre: "FCL Directo fábrica (contenedor cargado en origen)",
+    nombre: "FCL directo de fábrica",
     legacySlug: "reserva-contenedores",
     tipo: "nucleo",
     grupo: "transporte",
     sede: "cn",
     momentoTimeline: "transporte_aduana",
-    shipmentService: "reserva_FCL", // N:1 con fcl-bodega
+    shipmentService: "fcl_directo",
     principal: false,
     estado: "activo",
     orden: 4,
   },
   {
     id: "transporte-terrestre",
-    nombre: "Transporte terrestre nacional",
+    nombre: "Transporte terrestre",
     legacySlug: "transporte-terrestre", // absorbe el legacy `last-mile` (ver LEGACY_SLUG_ALIASES)
     tipo: "nucleo",
     grupo: "transporte",
@@ -399,8 +401,9 @@ export const NUCLEO_SERVICES: ServiceCatalogEntry[] = SERVICE_CATALOG.filter(
 );
 
 /**
- * Lookup inverso ShipmentService → ids del catálogo. Devuelve array porque el mapeo
- * es N:1 (reserva_FCL ← fcl-bodega + fcl-directo).
+ * Lookup inverso ShipmentService → ids del catálogo. Sigue devolviendo array
+ * aunque hoy el mapeo de los núcleo sea 1:1 (SDD-0164 separó los dos FCL): la
+ * firma aguanta que mañana dos servicios comerciales vuelvan a compartir enum.
  */
 export function serviceIdsForShipment(svc: ShipmentService): ServicioId[] {
   return SERVICE_CATALOG.filter((s) => s.shipmentService === svc).map(

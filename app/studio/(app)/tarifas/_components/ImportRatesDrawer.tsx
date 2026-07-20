@@ -22,8 +22,8 @@ import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 
 const CSV_PLACEHOLDER = `service,origin,destination,per_cbm,flat_rate,min_charge,transit_days,valid_from,valid_until,notes
-consolidacion,Yiwu,Valencia,800,,380,38,2026-01-01,2026-12-31,Tarifa Q1
-reserva_FCL,Shenzhen,La Guaira,,8500,,40,,,Contrato naviero`;
+consolidado_lcl,Yiwu,Valencia,800,,380,38,2026-01-01,2026-12-31,Tarifa Q1
+fcl_directo,Shenzhen,La Guaira,,8500,,40,,,Contrato naviero`;
 
 export function ImportRatesDrawer({ onClose }: { onClose: () => void }) {
   const toast = useToast();
@@ -85,7 +85,7 @@ export function ImportRatesDrawer({ onClose }: { onClose: () => void }) {
                 transit_days, valid_from, valid_until, notes
               </code>
               . <code style={{ font: "500 11.5px/1 var(--f-mono)" }}>service</code> ∈{" "}
-              consolidacion · puerta_a_puerta_DDP · reserva_FCL ·
+              consolidado_lcl · puerta_a_puerta_DDP · fcl_directo ·
               transporte_terrestre. Indica per_cbm o flat_rate. Las filas se
               importan como <strong style={{ color: "var(--ink)" }}>borrador</strong>{" "}
               (no van live). Dedup por servicio + origen + destino.

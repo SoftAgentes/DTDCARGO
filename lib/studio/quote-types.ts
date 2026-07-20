@@ -154,10 +154,11 @@ export function quotePriceMode(
   service: ShipmentService,
 ): "per_cbm" | "flat_rate" {
   switch (service) {
-    case "consolidacion":
+    case "consolidado_lcl":
     case "puerta_a_puerta_DDP":
       return "per_cbm";
-    case "reserva_FCL":
+    case "fcl_directo":
+    case "fcl_bodega":
     case "transporte_terrestre":
       return "flat_rate";
   }
