@@ -72,7 +72,7 @@ export default function ContactoPage() {
         <section className="cx-dual">
           <DualHalf
             src="/fotos/bodega-yiwu-china-recepcion-consolidacion-dtd-cargo.jpg"
-            alt="Operación de DTD Cargo en Yiwu: el equipo con camisa DoorTuDoor junto al contenedor, un contenedor cargado de piso a techo y sacos rotulados en chino listos para consolidar"
+            alt="Operación de DTD Cargo en Yiwu: un contenedor estibado de piso a techo con cajas de varios clientes, el equipo con camisa DTD Cargo revisando los listados junto al contenedor y sacos rotulados en chino listos para consolidar"
             tag="Yiwu · China"
             title="Recepción y consolidación"
             text="Bodega propia: recibimos, revisamos y consolidamos cada compra antes de embarcarla."
