@@ -158,7 +158,7 @@ const MAIL_TEMPLATE_SEED: MailTemplateSeed[] = [
       <p>Gracias por elegirnos para tu logística China → Venezuela. Tu cuenta quedó creada con Shipping Mark <strong>{{markbox}}</strong> — usa este código en cualquier comunicación con nosotros.</p>
       <p>Algunos atajos útiles:</p>
       <ul style="font:14px Archivo,sans-serif;color:#0F1E3D;">
-        <li><strong>Estimar:</strong> responde este correo o entra a dtdcargo.com/estimacion</li>
+        <li><strong>Estimar:</strong> responde este correo o entra a dtdcargo.com/tarifas</li>
         <li><strong>Tracking:</strong> dtdcargo.com/track + tu código de envío</li>
         <li><strong>WhatsApp:</strong> {{whatsapp_number}}</li>
       </ul>
