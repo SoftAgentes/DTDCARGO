@@ -625,6 +625,143 @@
   }
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   TARIFAS — bloque de modalidades (`Tarifas · DTD-Cargo.html`, `.tf-*`)
+   ──────────────────────────────────────────────────────────────────
+   El mockup abre con una banda navy + TRES tarjetas de modalidad (Puerta
+   a Puerta destacada, Consolidado LCL, FCL a WhatsApp) antes de la
+   calculadora. La página de producción ya tenía hero + calculadora pero
+   NO estas tarjetas — este bloque cierra ese hueco.
+
+   Los nombres de servicio NO se escriben acá: vienen de
+   `lib/shared/shipment-public.ts` (fuente única desde SDD-0164).
+
+   ADAPTACIONES vs. el mockup:
+   · El mockup pinta las tarjetas 2 y 3 con `--warning` y `--success` como
+     COLOR DE TEXTO del acrónimo (LCL dorado, FCL verde). BRAND.md ♿ dice
+     que los semánticos son colores de RELLENO, no de texto (warning 3,14:1,
+     success 4,33:1 → los dos reprueban AA en texto chico). Acá el acento
+     de las tres es wine legible y la diferencia se marca con el punto del
+     badge, que sí puede llevar el color de estado (es decorativo, no texto).
+   · Los rellenos `--warning-bg` / `--success-bg` del mockup no existen en el
+     sitio: se derivan por `color-mix` al 10%, mismo criterio que
+     `--wine-tint`.
+   ══════════════════════════════════════════════════════════════════ */
+.tf-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--s-4);
+  align-items: stretch;
+}
+@media (min-width: 900px) {
+  .tf-cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.rp-surface .tf-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: var(--s-6);
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-md);
+}
+.rp-surface .tf-card.feat {
+  border: 1.5px solid var(--wine);
+}
+.rp-surface .tf-badge {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font: 800 9.5px/1 var(--f-brand);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--wine-tint);
+  padding: 5px 9px;
+  border-radius: var(--r-pill);
+  margin-bottom: var(--s-3);
+}
+.rp-surface .tf-badge::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--wine);
+  flex: 0 0 auto;
+}
+.rp-surface .tf-badge.b-warning {
+  background: color-mix(in srgb, var(--warning) 10%, transparent);
+}
+.rp-surface .tf-badge.b-warning::before {
+  background: var(--warning);
+}
+.rp-surface .tf-badge.b-success {
+  background: color-mix(in srgb, var(--success) 10%, transparent);
+}
+.rp-surface .tf-badge.b-success::before {
+  background: var(--success);
+}
+.rp-surface .tf-mod {
+  display: block;
+  font: 700 11px/1.2 var(--f-brand);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.rp-surface .tf-mod .tf-svc {
+  display: block;
+  margin-top: 6px;
+  font: 800 23px/1.06 var(--f-brand-display);
+  letter-spacing: -0.02em;
+  text-transform: none;
+  color: var(--ink);
+}
+.rp-surface .tf-mod .tf-ac {
+  color: var(--wine-text);
+}
+.rp-surface .tf-pnote {
+  font: 500 11.5px/1.4 var(--f-brand);
+  color: var(--ink-soft);
+  margin: var(--s-2) 0 var(--s-3);
+}
+.rp-surface .tf-feats {
+  list-style: none;
+  margin: var(--s-4) 0 var(--s-4);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  flex: 1;
+}
+.rp-surface .tf-feats li {
+  position: relative;
+  padding-left: 24px;
+  font: 500 12.5px/1.5 var(--f-brand);
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+.rp-surface .tf-feats li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  top: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--wine-tint);
+  color: var(--wine-text);
+  font: 800 10px/1 var(--f-brand);
+}
+.rp-surface .tf-card .btn {
+  width: 100%;
+}
+
 /* ── CTA de cierre ────────────────────────────────────────────────── */
 .rp-cta {
   background: var(--bg-surface);
