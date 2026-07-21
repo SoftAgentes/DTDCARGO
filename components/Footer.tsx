@@ -85,7 +85,6 @@ export function Footer() {
             {/* Mismo destino que "Cómo trabajamos" del menú Ayuda (Nav.tsx) —
                 deliberado, dos nombres para la misma página (ver comentario ahí). */}
             <FooterLink href="/shipping-mark">Cómo trabajamos</FooterLink>
-            <FooterLink href="/enlaces">Enlaces</FooterLink>
           </FooterCol>
 
           {/* Enlaces rápidos */}
@@ -94,6 +93,7 @@ export function Footer() {
             <FooterLink href="/portal/login">Rastrea tu envío</FooterLink>
             <FooterLink href="/tarifas">Calculadora de envío</FooterLink>
             <FooterLink href="/contacto">Contáctenos</FooterLink>
+            <FooterLink href="/enlaces">Enlaces</FooterLink>
           </FooterCol>
 
           {/* Contacto */}
