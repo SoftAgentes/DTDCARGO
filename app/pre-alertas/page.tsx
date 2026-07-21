@@ -56,6 +56,25 @@ export const metadata: Metadata = {
   }),
 };
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
+
+// Mismo patrón que app/shipping-mark/page.tsx — paridad SEO/GEO entre las
+// páginas hermanas que explican un mecanismo del servicio (no un producto
+// del catálogo comercial, por eso no usa buildOfferCatalog).
+const serviceJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Service",
+  name: "Pre-alerta de carga",
+  serviceType: "Aviso previo de compra + elección de modalidad de envío",
+  description: DESC,
+  areaServed: [
+    { "@type": "Country", name: "China" },
+    { "@type": "Country", name: "Venezuela" },
+  ],
+  provider: { "@id": `${SITE_URL}/#organization` },
+  url: `${SITE_URL}/pre-alertas`,
+};
+
 const wa = buildWhatsAppLink(
   "Hola DTD Cargo, tengo una duda sobre cómo pre-alertar mi carga. ¿Me ayudan?",
 );
@@ -64,6 +83,10 @@ export default function PreAlertasPage() {
   return (
     <>
       <Nav />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceJsonLd) }}
+      />
       <BreadcrumbJsonLd
         items={[
           { name: "Inicio", path: "/" },
