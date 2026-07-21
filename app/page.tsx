@@ -8,9 +8,7 @@ import { RespuestaRapida } from "@/components/RespuestaRapida";
 import { WebPageJsonLd } from "@/components/WebPageJsonLd";
 import { OperationGallery } from "@/components/OperationGallery";
 import { CicloDTD } from "@/components/CicloDTD";
-import { FaqExplorer } from "@/components/FaqExplorer";
-import { FAQS } from "@/lib/faqs";
-import { aniosComercioChina, buildWhatsAppLink } from "@/lib/design-tokens";
+import { aniosComercioChina } from "@/lib/design-tokens";
 import { svcHref } from "@/components/servicios/svcHref";
 
 /**
@@ -26,10 +24,6 @@ export const metadata: Metadata = {
 // ISR mensual: la home es estática, pero el KPI "X Años" (desde 2008) sube solo
 // en enero sin redeploy (recomputa aniosComercioChina en el server).
 export const revalidate = 2592000;
-
-const WA_HELP = buildWhatsAppLink(
-  "Hola DTD Cargo, tengo una pregunta sobre mi importación de China a Venezuela.",
-);
 
 const HERO_STATS = [
   { num: String(aniosComercioChina()), small: "Años", lbl: "En el comercio con China desde 2008" },
@@ -421,23 +415,6 @@ export default function HomePage() {
                 tu carga de punta a punta.
               </div>
             </div>
-          </div>
-        </section>
-
-        {/* ── FAQ inline (dato + componente del repo) ── */}
-        <section className="home-faq" id="faq">
-          <div className="wrap">
-            <div className="sec-head">
-              <div className="eyebrow-s">
-                <span className="rule" />
-                Preguntas frecuentes
-              </div>
-              <h2 className="h2">
-                Todo lo que necesitas saber para{" "}
-                <span className="accent">importar con confianza.</span>
-              </h2>
-            </div>
-            <FaqExplorer faqs={FAQS} waHref={WA_HELP} />
           </div>
         </section>
       </main>
