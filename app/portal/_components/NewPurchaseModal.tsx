@@ -11,7 +11,7 @@ import {
 import Link from "next/link";
 import { ArrowIcon, CheckIcon, DocIcon } from "@/components/Icon";
 import { ShareProviderButton } from "./ShareProviderButton";
-import { PrealertaAddonPicker } from "./PrealertaAddons";
+import { PrealertaAddonPicker, ShippingModeNotice } from "./PrealertaAddons";
 import type { SupplierView } from "@/lib/studio/prealertas/types";
 import type {
   SupplierActionState,
@@ -395,6 +395,9 @@ export function NewPurchaseModal({
                     />
                   </div>
                 </div>
+
+                {/* Modalidad de envío (marítimo activo · aéreo próximamente) */}
+                <ShippingModeNotice />
 
                 {/* Servicios sobre la compra (add-ons · SDD-0098) */}
                 <PrealertaAddonPicker addons={addons} />

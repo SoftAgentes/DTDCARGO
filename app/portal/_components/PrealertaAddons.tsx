@@ -15,7 +15,7 @@
  */
 
 import { useState } from "react";
-import { CheckIcon, PlayIcon } from "@/components/Icon";
+import { CheckIcon, PlayIcon, ShipIcon, PlaneIcon } from "@/components/Icon";
 import type { PrealertaAddon } from "@/lib/studio/prealertas/addons";
 
 /** Extrae el id del short de una URL de YouTube (shorts/ · watch?v= · youtu.be/). */
@@ -24,6 +24,95 @@ function youtubeId(url: string): string | null {
     /(?:shorts\/|watch\?v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{6,})/,
   );
   return m ? m[1] : null;
+}
+
+// ── Escoge la modalidad del envío (marítimo activo · aéreo próximamente) ──
+//
+// Cloud Design (portal/app.jsx ~L3800-3838) la muestra como selector activo
+// de dos tarjetas. Hoy solo existe UNA modalidad real: marítimo va incluida
+// en TODA pre-alerta (no hay columna en la DB que la represente — no hace
+// falta, es el único camino). Por eso este bloque es INFORMATIVO, no un
+// input que se envía en el form: nada que seleccionar todavía. El día que
+// el founder active aéreo desde la configuración de DTD, esto pasa a selector
+// real — mismo criterio ya aplicado en /pre-alertas (la landing pública).
+export function ShippingModeNotice() {
+  return (
+    <div>
+      <span className="text-[11px] font-semibold tracking-[0.1em] uppercase text-grey-500">
+        Modalidad de envío
+      </span>
+      <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        <div
+          className="flex gap-3 rounded-[10px] p-3"
+          style={{
+            border: "1.5px solid var(--color-status-success)",
+            background:
+              "color-mix(in srgb, var(--color-status-success) 8%, transparent)",
+          }}
+        >
+          <span
+            className="flex-shrink-0 grid place-items-center rounded-[8px]"
+            style={{
+              width: 36,
+              height: 36,
+              background: "var(--color-status-success)",
+              color: "var(--color-on-accent)",
+            }}
+          >
+            <ShipIcon size={18} />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[13px] font-bold text-ink">
+              Marítimo
+            </span>
+            <span className="block mt-0.5 text-[11.5px] text-grey-700 leading-[1.4]">
+              Va incluido en toda pre-alerta — los servicios de arriba son
+              extra.
+            </span>
+          </span>
+        </div>
+
+        <div
+          className="flex gap-3 rounded-[10px] p-3 opacity-75"
+          style={{
+            border: "1.5px solid var(--color-grey-200)",
+            background: "var(--color-white)",
+          }}
+        >
+          <span
+            className="flex-shrink-0 grid place-items-center rounded-[8px]"
+            style={{
+              width: 36,
+              height: 36,
+              background: "var(--color-grey-100)",
+              color: "var(--color-grey-500)",
+            }}
+          >
+            <PlaneIcon size={18} />
+          </span>
+          <span className="min-w-0">
+            <span className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[13px] font-bold text-ink">Aéreo</span>
+              <span
+                className="text-[8.5px] font-extrabold tracking-[0.06em] uppercase px-[7px] py-[3px] rounded-full"
+                style={{
+                  color: "var(--color-status-warning)",
+                  background:
+                    "color-mix(in srgb, var(--color-status-warning) 12%, transparent)",
+                }}
+              >
+                Próximamente
+              </span>
+            </span>
+            <span className="block mt-0.5 text-[11.5px] text-grey-700 leading-[1.4]">
+              Aún no disponible — se activa desde la configuración de DTD
+              cuando esté listo.
+            </span>
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ── Aviso "antes de almacén" (principio rector) ─────────────────
