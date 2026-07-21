@@ -5,7 +5,11 @@
  * El alta express valida SOLO lo mínimo (tipo/nombre/documento/email/WhatsApp); la
  * dirección VE se difiere a "Completa tu perfil" (`validateAddressInput`). Cubre:
  *  - validación + normalización del documento (cédula persona / RIF empresa),
- *    que ES la contraseña inicial → password = cédula/RIF canónico.
+ *    que es el identificador canónico del cliente (dedup, búsqueda, Shipping
+ *    Mark). NO es la contraseña: la cuenta se crea con una clave aleatoria
+ *    fuerte (app/registro/actions.ts, `initialPassword`) — el documento es
+ *    semi-público (facturas, proveedores) y usarlo de clave dejaría el
+ *    portal abierto a quien lo conozca. El acceso real es magic-link.
  *  - el alta express NO exige dirección (la difiere).
  *  - validateAddressInput: la dirección SÍ es obligatoria al completar el perfil.
  *  - composeAddress: arma la dirección de una línea que se guarda en clients.
@@ -49,9 +53,9 @@ describe("validateRegisterInput — alta express (persona)", () => {
     expect(input).toBeDefined();
   });
 
-  it("la contraseña inicial = el documento canónico (cédula)", () => {
+  it("normaliza el documento a su forma canónica (cédula)", () => {
     const { input } = validateRegisterInput({ ...VALID_PERSONA, document: "v12345678" });
-    // El cliente tipeó sin prefijo formateado; el documento (=password) se canoniza.
+    // El cliente tipeó sin prefijo formateado; se canoniza para el dedup/Shipping Mark.
     expect(input?.document).toBe("V-12345678");
   });
 
@@ -89,14 +93,14 @@ describe("validateRegisterInput — alta express (empresa)", () => {
     expect(fieldErrors?.company).toBeDefined();
   });
 
-  it("normaliza el RIF (=password) a canónico", () => {
+  it("normaliza el RIF a su forma canónica", () => {
     const { input } = validateRegisterInput({ ...VALID_EMPRESA, document: "j123456789" });
     expect(input?.document).toBe("J-12345678-9");
     expect(input?.company).toBe("Importadora Pérez C.A.");
   });
 });
 
-describe("normalizeDocument — el documento es la contraseña", () => {
+describe("normalizeDocument — identificador canónico del cliente", () => {
   it("persona: cédula con/sin guión → canónico V-XXXXXXXX", () => {
     expect(normalizeDocument("persona", "V12345678")).toBe("V-12345678");
     expect(normalizeDocument("persona", "v-12345678")).toBe("V-12345678");
