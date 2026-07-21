@@ -86,7 +86,7 @@ describe("calc CBM/LCL en /tarifas + FCL en /fcl + Footer sin /estimacion", () =
   });
 
   it("el nav y el FAB del portal apuntan a la calc CBM/LCL", () => {
-    expect(read("components/Nav.tsx")).toContain('{ href: "/tarifas", label: "Calculadora" }');
+    expect(read("components/Nav.tsx")).toContain('{ href: "/tarifas", label: "Tarifas" }');
     expect(read("app/portal/_components/PortalCalcFab.tsx")).toContain(
       "/tarifas/embed?theme=",
     );

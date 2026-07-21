@@ -247,8 +247,16 @@ note por casualidad.
 
 ## Pendientes
 
-**⭐ 1 · Alerta en el ERP: tarifa pública por vencer.** Es el arreglo de fondo
-del riesgo de arriba. Descripción suficiente para construirlo sin volver a
+**⭐ 1 · Alerta en el ERP: tarifa pública por vencer. ✅ Construido (2026-07-20),
+falta aplicar migración.** `supabase/migrations/0257_rates_expiry_alert.sql`
+(columnas `expiry_warn_sent_at`/`expiry_overdue_sent_at`) +
+`app/api/cron/rate-expiry-alert/route.ts` (cron diario, `vercel.json`) +
+badge en `/studio/tarifas` (`rateExpiryBadge`, `lib/studio/rate-types.ts`).
+La migración 0257 queda declarada en `pendingBelowCutoff` — el cron es
+inerte hasta que el founder dé el OK para aplicarla
+(`docs/runbooks/aplicar-migraciones-prod.md`); mientras tanto `/studio/tarifas`
+sigue funcionando igual (el select de la UI no toca las columnas nuevas a
+propósito). Descripción suficiente para construirlo sin volver a
 investigar:
 
 - **Qué vigilar:** filas de `rates` con `is_public = true`, `status = 'published'`,
@@ -283,6 +291,19 @@ ampliarlo cambia qué rutas ve el público y es decisión comercial.
 
 5 · Revisar si el FCL en bodega necesita tarifa propia en `rates` ahora que
 puede tenerla — que era, justamente, el motivo de separarlo.
+
+**Nota del founder (2026-07-21), cierra la duda de las 2 filas `fcl_directo`
+en prod (Guangzhou→La Guaira $8500, Shenzhen→Puerto Cabello $7800):** el
+`flat_rate` de `rates` es el flete marítimo, **igual para bodega y directo**.
+Lo que diferencia a `fcl_bodega` es un recargo aparte — fees de warehouse en
+China (guardar la mercancía, descargarla, esperar y volver a cargarla) — que
+hoy **no existe como línea en `rates`**. Conclusión: esas 2 filas NO estaban
+mal clasificadas, quedan en `fcl_directo` (representan el flete compartido).
+Esto es exactamente lo que describe el pendiente 5: falta modelar el
+recargo de bodega como tarifa propia — no reclasificar el flete existente.
+La quote `Q-2026-0004` (Ningbo→caracas, cliente "Tenant Industrial 2" /
+markbox "NO TENGO", sin notas) se descartó como seed/dato de prueba, no
+cotización real — no se tocó.
 
 ## Estado y orden de despliegue
 

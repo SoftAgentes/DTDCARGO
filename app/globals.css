@@ -3389,12 +3389,6 @@ a.svp-it:hover .nm {
   }
 }
 
-/* ── FAQ inline (usa FaqExplorer del repo) ── */
-.home-surface .home-faq {
-  padding: var(--s-16) 0;
-  background: var(--bg-base);
-}
-
 /* ══════════════════════════════════════════════════════════════════
    SHIPPING MARK (`app/shipping-mark/page.tsx`) — port del CSS REAL de
    Cloud Design (`web/shipping-mark.css`, handoff 2026-07-20). Ese archivo

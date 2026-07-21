@@ -6,7 +6,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Rate } from "./rate-types";
+import type { Rate, RateExpiryLevel } from "./rate-types";
 import type { ShipmentService } from "./shipment-types";
 
 export type RateFilters = {
@@ -16,8 +16,20 @@ export type RateFilters = {
   onlyValid?: boolean;
 };
 
+// ⚠️ NO agregar expiry_warn_sent_at/expiry_overdue_sent_at acá: este select
+// alimenta /studio/tarifas (listRates/getRateById), que se sirve en cada
+// carga de página. Esas columnas nacen con la migración 0257, que NO está
+// aplicada a producción todavía (pendingBelowCutoff en
+// supabase/migrations-baseline.json) — incluirlas acá rompería la pantalla
+// en prod el día que este código se despliegue antes que la migración
+// (mismo riesgo de orden que documenta SDD-0164). Solo las lee/escribe el
+// cron aislado de abajo (RATE_EXPIRY_ALERT_COLUMNS), que puede fallar solo
+// sin afectar la UI.
 const RATE_COLUMNS =
   "id, tenant_id, service, origin, destination, per_cbm, flat_rate, min_charge, transit_days, valid_from, valid_until, is_public, status, notes, created_at, updated_at, deleted_at";
+
+const RATE_EXPIRY_ALERT_COLUMNS =
+  "id, tenant_id, service, origin, destination, valid_until, is_public, status, deleted_at, expiry_warn_sent_at, expiry_overdue_sent_at";
 
 /**
  * Lista de tarifas con filtros opcionales. RLS filtra por tenant.
@@ -78,6 +90,59 @@ export async function getRateById(
     throw error;
   }
   return (data as Rate | null) ?? null;
+}
+
+export type RateExpiryCandidate = Pick<
+  Rate,
+  | "id"
+  | "tenant_id"
+  | "service"
+  | "origin"
+  | "destination"
+  | "valid_until"
+  | "is_public"
+  | "status"
+  | "deleted_at"
+  | "expiry_warn_sent_at"
+  | "expiry_overdue_sent_at"
+>;
+
+/**
+ * Filas candidatas al cron de vencimiento de tarifas públicas (SDD-0164 ⭐1):
+ * las mismas que alimentan `public_cbm_rate()` / `public_fcl_rates()`. Usa
+ * cliente admin (service_role) — el cron corre para TODOS los tenants, sin
+ * sesión de usuario que acote RLS.
+ */
+export async function listPublicRatesForExpiryAlert(
+  admin: SupabaseClient,
+  tenantId: string,
+): Promise<RateExpiryCandidate[]> {
+  const { data, error } = await admin
+    .from("rates")
+    .select(RATE_EXPIRY_ALERT_COLUMNS)
+    .eq("tenant_id", tenantId)
+    .eq("is_public", true)
+    .eq("status", "published")
+    .is("deleted_at", null)
+    .not("valid_until", "is", null);
+
+  if (error) throw error;
+  return (data as RateExpiryCandidate[] | null) ?? [];
+}
+
+/** Marca el sent_at del nivel avisado — dedup del cron (ver classifyRateExpiry). */
+export async function markRateExpiryAlertSent(
+  admin: SupabaseClient,
+  rateId: string,
+  level: RateExpiryLevel,
+  sentAtIso: string,
+): Promise<void> {
+  const column = level === "overdue" ? "expiry_overdue_sent_at" : "expiry_warn_sent_at";
+  const { error } = await admin
+    .from("rates")
+    .update({ [column]: sentAtIso })
+    .eq("id", rateId);
+  if (error) throw error;
 }
 
 /**

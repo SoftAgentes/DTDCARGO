@@ -92,8 +92,12 @@ export default async function TarifasPage() {
         </section>
 
         {/* Modalidades — bloque del mockup. Los nombres de servicio salen de
-            SERVICE_LABELS (lib/shared/shipment-public.ts), nunca a mano. */}
-        <section className="rp-body" style={{ paddingBottom: 0 }}>
+            SERVICE_LABELS (lib/shared/shipment-public.ts), nunca a mano.
+            tf-modalidades = banda navy full-bleed (mismo patrón rp-hero/
+            rp-hero-in: el fondo va en la sección exterior, el max-width en
+            el div interior) — continúa el rp-hero sin costura. */}
+        <section className="tf-modalidades">
+          <div className="rp-body" style={{ paddingBottom: "var(--s-10)" }}>
           <div className="tf-cards">
             <article className="tf-card feat">
               <span className="tf-badge">El más solicitado</span>
@@ -158,6 +162,7 @@ export default async function TarifasPage() {
                 Calcular flete FCL <ArrowIcon size={16} />
               </Link>
             </article>
+          </div>
           </div>
         </section>
 

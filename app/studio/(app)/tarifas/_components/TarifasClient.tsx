@@ -14,6 +14,7 @@ import { useEffect, useState, useTransition } from "react";
 import {
   RATE_SERVICE_OPTIONS,
   formatRate,
+  rateExpiryBadge,
   rateStatusLabel,
   rateStatusTone,
   type Rate,
@@ -362,11 +363,29 @@ function RatesTable({
           </span>
           <span
             style={{
-              font: "500 11.5px/1 var(--f-mono)",
-              color: "var(--ink-soft)",
+              display: "inline-flex",
+              flexDirection: "column",
+              gap: 4,
+              alignItems: "flex-start",
             }}
           >
-            {rate.valid_until ?? "—"}
+            <span
+              style={{
+                font: "500 11.5px/1 var(--f-mono)",
+                color: "var(--ink-soft)",
+              }}
+            >
+              {rate.valid_until ?? "—"}
+            </span>
+            {(() => {
+              const expiry = rateExpiryBadge(rate);
+              if (!expiry) return null;
+              return (
+                <Badge tone={expiry.tone} size="sm">
+                  {expiry.label}
+                </Badge>
+              );
+            })()}
           </span>
 
           {/* Estado + acciones de lifecycle + editar */}

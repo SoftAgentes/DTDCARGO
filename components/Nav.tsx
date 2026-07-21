@@ -8,7 +8,7 @@ import { BrandMark } from "./BrandMark";
 const links = [
   { href: "/servicios", label: "Servicios" },
   { href: "/pre-alertas", label: "Pre-alertas" },
-  { href: "/tarifas", label: "Calculadora" },
+  { href: "/tarifas", label: "Tarifas" },
 ];
 
 /** Contenido de apoyo agrupado en el dropdown "Ayuda" (antes "Recursos").

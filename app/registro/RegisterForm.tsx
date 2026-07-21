@@ -171,6 +171,12 @@ export function RegisterForm({
               "radial-gradient(135% 100% at 15% -10%, #1f3055 0%, #0f1e3d 46%, #0b1428 100%)",
           }}
         >
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-white/70 hover:text-white transition-colors mb-4 w-fit"
+          >
+            <ArrowIcon size={13} className="rotate-180" /> Volver a dtdcargo.com
+          </Link>
           <span
             className="text-[10px] font-bold tracking-[0.18em] uppercase"
             style={{ color: "var(--color-wine-soft)" }}
