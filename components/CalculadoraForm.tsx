@@ -890,9 +890,14 @@ function ContainerFill({ cbm, max }: { cbm: number; max: number }) {
  * detrás de `cot.recargoExcedente > 0`, así que desaparecía cuando la carga no
  * era densa (bug "no me muestra el desglose en el 2do cálculo"). Ahora itemiza
  * Volumen base + Excedente de peso (si hay) + Embalaje/Baterías/Descuento/Ajuste
- * (los que apliquen) + Total. El recargo por distancia sigue plegado dentro de
- * "Volumen base" (interno, decisión founder previa); el subtexto "CBM × tarifa"
- * solo se muestra cuando NO hay recargo de ciudad para que la aritmética cuadre.
+ * (los que apliquen) + Total.
+ *
+ * Recargo por ciudad (founder 2026-07-21): línea PROPIA "Entrega a {ciudad}"
+ * cuando `recargoCiudad > 0` — antes venía plegado dentro de "Volumen base"
+ * sin mostrar el subtexto "CBM × tarifa", así que el total subía (p. ej. Isla
+ * Margarita) sin ninguna línea que lo explicara (bug "no me sale el desglose
+ * del flete"). "Volumen base" ahora es SIEMPRE solo `precioBase`, con subtexto
+ * siempre visible.
  */
 function ResultPanel({
   cotizacion: cot,
@@ -926,8 +931,8 @@ function ResultPanel({
   const incluidoKg = Math.round(cot.cbm * pesoIncluidoKg);
   const excesoKg = Math.max(0, Math.round(input.pesoKg - incluidoKg));
 
-  // Filas del desglose. "Volumen base" pliega el recargo de ciudad (interno);
-  // el resto solo aparece si aplica. `kind` decide el signo/color del monto.
+  // Filas del desglose. Cada recargo que aplica tiene su propia línea.
+  // `kind` decide el signo/color del monto.
   const rows: {
     label: string;
     sub: string | null;
@@ -937,10 +942,18 @@ function ResultPanel({
   }[] = [
     {
       label: "Volumen base",
-      sub: cot.recargoCiudad === 0 ? `${cot.cbm} CBM × $${tarifaEff}` : null,
-      value: cot.precioBase + cot.recargoCiudad,
+      sub: `${cot.cbm} CBM × $${tarifaEff}`,
+      value: cot.precioBase,
       kind: "base",
     },
+    ...(cot.recargoCiudad > 0
+      ? [{
+          label: `Entrega a ${cot.ciudad?.label ?? "tu ciudad"}`,
+          sub: null,
+          value: cot.recargoCiudad,
+          kind: "add" as const,
+        }]
+      : []),
     ...(cot.recargoExcedente > 0
       ? [{
           label: "Excedente de peso",
