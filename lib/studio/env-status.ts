@@ -3,7 +3,6 @@
  *
  * Resuelve el problema "no sé si estoy en local o prod, ni qué integraciones
  * están vivas". Usado por:
- *   - EnvBanner (app/studio/_components/EnvBanner.tsx) — barra arriba del Studio
  *   - /studio/debug (app/studio/(app)/debug/page.tsx) — detalle completo
  *
  * NUNCA expone valores de env vars, solo booleans (active/mock/missing).

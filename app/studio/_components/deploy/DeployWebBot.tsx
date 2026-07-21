@@ -3,9 +3,9 @@
 /**
  * DeployWebBot · botón "Push" + modal de confirmación.
  *
- * Vive en el EnvBanner del Studio. Solo visible cuando estás en local
- * (env === "local") porque las server actions de deploy requieren acceso
- * al filesystem · en Vercel no funcionan (gate explícito en el action).
+ * Vive en /studio/debug (card "Deploy actual"). Solo visible cuando estás
+ * en local (env === "local") porque las server actions de deploy requieren
+ * acceso al filesystem · en Vercel no funcionan (gate explícito en el action).
  *
  * Flow del modal:
  *   1. loading-status · llama a getDeployStatusAction() para leer git
