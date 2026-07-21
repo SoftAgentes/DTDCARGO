@@ -641,12 +641,24 @@
      COLOR DE TEXTO del acrónimo (LCL dorado, FCL verde). BRAND.md ♿ dice
      que los semánticos son colores de RELLENO, no de texto (warning 3,14:1,
      success 4,33:1 → los dos reprueban AA en texto chico). Acá el acento
-     de las tres es wine legible y la diferencia se marca con el punto del
-     badge, que sí puede llevar el color de estado (es decorativo, no texto).
+     de las tres es wine legible y la diferencia se marca con el borde de la
+     tarjeta + el punto del badge, que sí pueden llevar el color de estado
+     (son decorativos, no texto).
    · Los rellenos `--warning-bg` / `--success-bg` del mockup no existen en el
-     sitio: se derivan por `color-mix` al 10%, mismo criterio que
+     sitio: se derivan por `color-mix` al 10%/14%, mismo criterio que
      `--wine-tint`.
+   · Founder 2026-07-21 (captura del mockup dark): la sección entera pasa a
+     navy oscuro, continuando el `.rp-hero` de arriba sin costura visible —
+     antes era `background:var(--bg-base)` (papel claro), ahora usa el mismo
+     tono medio del gradiente del hero (`#0F1E3D`, hex explícito por el mismo
+     motivo BD-023 de `.rp-hero`: dentro de un fondo navy nunca `var(--ink)`,
+     se invierte a crema en dark). Texto sobre navy: `--rp-on-navy*` (crema,
+     ver adaptación 1 arriba de este archivo) — NUNCA `rgba(255,255,255,X)`
+     literal ni `var(--ink-soft)` (ilegible sobre oscuro).
    ══════════════════════════════════════════════════════════════════ */
+.tf-modalidades {
+  background: #0f1e3d;
+}
 .tf-cards {
   display: grid;
   grid-template-columns: 1fr;
@@ -659,16 +671,23 @@
   }
 }
 .rp-surface .tf-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
+  background: var(--rp-navy-fill);
+  border: 1px solid var(--rp-navy-border);
   border-radius: var(--r-xl);
   padding: var(--s-6);
   display: flex;
   flex-direction: column;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
 }
 .rp-surface .tf-card.feat {
   border: 1.5px solid var(--wine);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--wine) 18%, transparent), var(--shadow-lg);
+}
+.rp-surface .tf-card:nth-child(2) {
+  border-color: color-mix(in srgb, var(--warning) 55%, transparent);
+}
+.rp-surface .tf-card:nth-child(3) {
+  border-color: color-mix(in srgb, var(--success) 45%, transparent);
 }
 .rp-surface .tf-badge {
   align-self: flex-start;
@@ -678,8 +697,8 @@
   font: 800 9.5px/1 var(--f-brand);
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--ink);
-  background: var(--wine-tint);
+  color: var(--rp-on-navy);
+  background: color-mix(in srgb, var(--color-white) 10%, transparent);
   padding: 5px 9px;
   border-radius: var(--r-pill);
   margin-bottom: var(--s-3);
@@ -692,14 +711,8 @@
   background: var(--wine);
   flex: 0 0 auto;
 }
-.rp-surface .tf-badge.b-warning {
-  background: color-mix(in srgb, var(--warning) 10%, transparent);
-}
 .rp-surface .tf-badge.b-warning::before {
   background: var(--warning);
-}
-.rp-surface .tf-badge.b-success {
-  background: color-mix(in srgb, var(--success) 10%, transparent);
 }
 .rp-surface .tf-badge.b-success::before {
   background: var(--success);
@@ -709,7 +722,7 @@
   font: 700 11px/1.2 var(--f-brand);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--ink-soft);
+  color: var(--rp-on-navy-mute);
 }
 .rp-surface .tf-mod .tf-svc {
   display: block;
@@ -717,14 +730,14 @@
   font: 800 23px/1.06 var(--f-brand-display);
   letter-spacing: -0.02em;
   text-transform: none;
-  color: var(--ink);
+  color: var(--rp-on-navy);
 }
 .rp-surface .tf-mod .tf-ac {
-  color: var(--wine-text);
+  color: var(--wine-on-dark);
 }
 .rp-surface .tf-pnote {
   font: 500 11.5px/1.4 var(--f-brand);
-  color: var(--ink-soft);
+  color: var(--rp-on-navy-mute);
   margin: var(--s-2) 0 var(--s-3);
 }
 .rp-surface .tf-feats {
@@ -740,7 +753,7 @@
   position: relative;
   padding-left: 24px;
   font: 500 12.5px/1.5 var(--f-brand);
-  color: var(--ink-soft);
+  color: var(--rp-on-navy-soft);
   text-wrap: pretty;
 }
 .rp-surface .tf-feats li::before {
@@ -754,12 +767,238 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: var(--wine-tint);
-  color: var(--wine-text);
+  background: var(--rp-navy-border);
+  color: var(--rp-on-navy);
   font: 800 10px/1 var(--f-brand);
 }
 .rp-surface .tf-card .btn {
   width: 100%;
+}
+.rp-surface .tf-card .btn-ghost {
+  background: transparent;
+  border: 1.5px solid var(--rp-navy-border);
+  color: var(--rp-on-navy);
+}
+.rp-surface .tf-card .btn-ghost:hover {
+  background: var(--rp-navy-fill);
+  border-color: color-mix(in srgb, var(--color-grey-100) 60%, transparent);
+}
+
+/* ── Toggle "calc-opt" (Elige tu servicio y calcula) · reemplaza el pill
+   toggle anterior por tarjetas icono+nombre+precio+flag, mismo patrón
+   visual que las tf-card de arriba pero en superficie clara (la calculadora
+   sigue viviendo en `bg-white`, ver CalculadoraForm.tsx). ────────────── */
+.calc-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-4);
+  margin-bottom: var(--s-6);
+}
+@media (max-width: 640px) {
+  .calc-switch {
+    grid-template-columns: 1fr;
+  }
+}
+.calc-opt {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  text-align: left;
+  cursor: pointer;
+  padding: var(--s-4) var(--s-5);
+  border-radius: var(--r-lg);
+  background: var(--bg-surface);
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease), transform 160ms var(--ease);
+}
+.calc-opt:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.calc-opt-ic {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  flex-shrink: 0;
+}
+.calc-opt-ic.ddp {
+  background: var(--wine);
+  color: #fff;
+}
+.calc-opt-ic.lcl {
+  background: var(--warning);
+  color: var(--on-warning);
+}
+.calc-opt-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.calc-opt-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.calc-opt-name {
+  font: 800 16px/1.05 var(--f-brand-display);
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.calc-opt-sig {
+  font: 800 10px/1 var(--f-brand);
+  letter-spacing: 0.06em;
+  padding: 3px 7px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  color: var(--ink-soft);
+}
+.calc-opt-desc {
+  font: 600 11.5px/1.3 var(--f-brand);
+  color: var(--ink-soft);
+}
+.calc-opt-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.calc-opt-price {
+  font: 900 18px/1 var(--f-brand-display);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.calc-opt-price .u {
+  font: 700 10px/1 var(--f-brand);
+  color: var(--ink-soft);
+  margin-left: 3px;
+}
+.calc-opt-flag {
+  display: none;
+  align-items: center;
+  gap: 5px;
+  font: 800 9px/1 var(--f-brand);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: var(--r-pill);
+  white-space: nowrap;
+}
+.calc-opt.is-active .calc-opt-flag {
+  display: inline-flex;
+}
+.calc-opt.is-active[data-calc="ddp"] {
+  border-color: var(--wine);
+  background: var(--wine-tint);
+}
+.calc-opt.is-active[data-calc="ddp"] .calc-opt-flag {
+  background: var(--wine);
+  color: #fff;
+}
+.calc-opt.is-active[data-calc="lcl"] {
+  border-color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 10%, transparent);
+}
+.calc-opt.is-active[data-calc="lcl"] .calc-opt-flag {
+  background: var(--warning);
+  color: var(--on-warning);
+}
+
+/* ── Transición "hoja" al cambiar de modalidad (mockup Calculadora CBM ·
+   DTD-Cargo.html) — cubre el frame con un panel sólido (wine → DDP, warning
+   → LCL) que gira levemente en 3D mientras cruza de un lado al otro,
+   ocultando el swap de panel (`hidden`) en el punto medio de la animación
+   — mismo patrón que el mockup usaba para ocultar el reload del iframe.
+   El label grande (clamp 22-38px) usa --on-warning sobre --warning: 3,14:1,
+   cumple el umbral AA de TEXTO GRANDE (3:1) — no el de texto chico (4,5:1),
+   por eso acá SÍ es aceptable a diferencia de los badges chicos de arriba. */
+.tf-frame {
+  position: relative;
+  border-radius: var(--r-xl);
+  overflow: hidden;
+}
+.tf-leaf {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+}
+.tf-leaf-tag {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 900 clamp(22px, 3.6vw, 38px) / 1 var(--f-brand-display);
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 0 var(--s-6);
+}
+.tf-leaf.to-ddp {
+  background: var(--wine);
+}
+.tf-leaf.to-ddp .tf-leaf-tag {
+  color: #fff;
+}
+.tf-leaf.to-lcl {
+  background: var(--warning);
+}
+.tf-leaf.to-lcl .tf-leaf-tag {
+  color: var(--on-warning);
+}
+.tf-leaf.turning.to-lcl {
+  animation: tf-leaf-l 700ms var(--ease) forwards;
+}
+.tf-leaf.turning.to-ddp {
+  animation: tf-leaf-r 700ms var(--ease) forwards;
+}
+@keyframes tf-leaf-l {
+  0% {
+    opacity: 1;
+    transform: translateX(101%) rotateY(7deg);
+  }
+  48% {
+    opacity: 1;
+    transform: translateX(0) rotateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-101%) rotateY(-7deg);
+  }
+}
+@keyframes tf-leaf-r {
+  0% {
+    opacity: 1;
+    transform: translateX(-101%) rotateY(-7deg);
+  }
+  48% {
+    opacity: 1;
+    transform: translateX(0) rotateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(101%) rotateY(7deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tf-leaf.turning {
+    animation: none !important;
+    display: none;
+  }
 }
 
 /* ── CTA de cierre ────────────────────────────────────────────────── */

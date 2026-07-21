@@ -266,20 +266,32 @@ export function CalculadoraForm({
 
   return (
     <>
-    <div className="card-shadow bg-white border border-grey-200 rounded-[20px] overflow-hidden">
+    <div
+      className="card-shadow rounded-[20px] overflow-hidden"
+      style={{
+        background: "linear-gradient(180deg, #16233F 0%, #0B1428 100%)",
+        border: "1px solid rgba(255,255,255,0.1)",
+      }}
+    >
       <div className="grid grid-cols-1 lg:grid-cols-2">
         {/* ── COLUMNA IZQUIERDA · ENTRADA ── */}
-        <div className="p-6 lg:p-9 lg:border-r border-grey-200 flex flex-col gap-5">
+        <div
+          className="p-6 lg:p-9 flex flex-col gap-5"
+          style={{ borderRight: "1px solid rgba(255,255,255,0.1)" }}
+        >
           {/* Wordmark + eyebrow */}
           <div className="flex items-center justify-between gap-3">
             <span
               className="text-[19px] leading-none"
               style={{ fontFamily: "var(--font-brand-display)" }}
             >
-              <span className="text-wine">DTD</span>{" "}
-              <span className="text-ink">Cargo</span>
+              <span style={{ color: "var(--wine-on-dark, #E8748A)" }}>DTD</span>{" "}
+              <span className="text-white">Cargo</span>
             </span>
-            <span className="text-[11px] font-bold tracking-[0.14em] uppercase text-wine">
+            <span
+              className="text-[11px] font-bold tracking-[0.14em] uppercase"
+              style={{ color: "var(--wine-on-dark, #E8748A)" }}
+            >
               {esConsolidado
                 ? "Calculadora LCL consolidado"
                 : "Calculadora puerta a puerta"}
@@ -289,18 +301,21 @@ export function CalculadoraForm({
           {/* Título + subtítulo */}
           <div>
             <h2
-              className="text-[26px] lg:text-[30px] leading-[1.1] tracking-[-0.01em] text-ink"
+              className="text-[26px] lg:text-[30px] leading-[1.1] tracking-[-0.01em] text-white"
               style={{ fontFamily: "var(--font-archivo-black)" }}
             >
               {esConsolidado
                 ? "Cotiza tu carga consolidada hasta puerto"
                 : "Cotiza tu carga China → Venezuela"}
             </h2>
-            <p className="mt-2.5 text-[14px] text-grey-700 leading-[1.5]">
+            <p
+              className="mt-2.5 text-[14px] leading-[1.5]"
+              style={{ color: "rgba(255,255,255,0.65)" }}
+            >
               {esConsolidado ? (
                 <>
                   Tu carga viaja consolidada y te entregamos{" "}
-                  <strong className="text-ink">tu propio Bill of Lading</strong>{" "}
+                  <strong className="text-white">tu propio Bill of Lading</strong>{" "}
                   en Venezuela. Indica tu volumen y peso y te damos un estimado al
                   instante.
                 </>
@@ -318,16 +333,26 @@ export function CalculadoraForm({
             <div className="flex items-center gap-2 mb-2">
               <label
                 htmlFor="tarifa-cbm"
-                className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500"
+                className="text-[11px] font-bold tracking-[0.12em] uppercase"
+                style={{ color: "rgba(255,255,255,0.5)" }}
               >
                 Tarifa de CBM
               </label>
-              <span className="text-[9.5px] font-bold tracking-[0.08em] uppercase text-wine bg-wine/10 rounded-[6px] px-2 py-[3px]">
+              <span
+                className="text-[9.5px] font-bold tracking-[0.08em] uppercase rounded-[6px] px-2 py-[3px]"
+                style={{
+                  color: "var(--wine-on-dark, #E8748A)",
+                  background: "rgba(255,255,255,0.08)",
+                }}
+              >
                 Auto · editable
               </span>
             </div>
-            <div className="flex items-center gap-2 rounded-[12px] border border-grey-200 px-3.5 h-[52px] bg-white focus-within:border-ink transition-colors">
-              <span className="text-grey-500 text-[16px] font-medium">$</span>
+            <div
+              className="flex items-center gap-2 rounded-[12px] px-3.5 h-[52px] border border-white/[0.14] focus-within:border-white/40 transition-colors"
+              style={{ background: "rgba(255,255,255,0.04)" }}
+            >
+              <span className="text-[16px] font-medium" style={{ color: "rgba(255,255,255,0.5)" }}>$</span>
               <DecimalInput
                 id="tarifa-cbm"
                 value={form.tarifaCBMOverride ?? 0}
@@ -335,13 +360,13 @@ export function CalculadoraForm({
                   update("tarifaCBMOverride", n > 0 ? n : baseRate)
                 }
                 placeholder={String(baseRate)}
-                className="num flex-1 min-w-0 bg-transparent text-[18px] font-semibold text-ink outline-none"
+                className="num flex-1 min-w-0 bg-transparent text-[18px] font-semibold text-white outline-none"
               />
-              <span className="text-[12px] text-grey-500 whitespace-nowrap">
+              <span className="text-[12px] whitespace-nowrap" style={{ color: "rgba(255,255,255,0.5)" }}>
                 USD/CBM
               </span>
             </div>
-            <p className="text-[11.5px] text-grey-500 mt-1.5 leading-[1.4]">
+            <p className="text-[11.5px] mt-1.5 leading-[1.4]" style={{ color: "rgba(255,255,255,0.45)" }}>
               {esConsolidado
                 ? "Tarifa base del consolidado. Ajústala si tu cotización es distinta."
                 : "La genera el sistema. Ajústala si tu cotización es distinta."}
@@ -418,18 +443,18 @@ export function CalculadoraForm({
               cuenta del cliente). Copy grounded en la ficha `lcl-consolidado`
               de lib/servicios-detalle.ts. */}
           {esConsolidado ? (
-            <div className="rounded-[14px] border border-grey-200 bg-paper p-4">
-              <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500">
+            <div className="rounded-[14px] p-4" style={{ border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)" }}>
+              <span className="text-[11px] font-bold tracking-[0.12em] uppercase" style={{ color: "rgba(255,255,255,0.5)" }}>
                 Destino
               </span>
-              <p className="mt-1.5 text-[14px] font-semibold text-ink leading-[1.35]">
+              <p className="mt-1.5 text-[14px] font-semibold text-white leading-[1.35]">
                 Hasta puerto en Venezuela · con tu propio BL
               </p>
-              <p className="mt-1.5 text-[12px] text-grey-700 leading-[1.5]">
-                El consolidado llega <strong className="text-ink">hasta puerto</strong>{" "}
+              <p className="mt-1.5 text-[12px] leading-[1.5]" style={{ color: "rgba(255,255,255,0.65)" }}>
+                El consolidado llega <strong className="text-white">hasta puerto</strong>{" "}
                 y ahí te entregamos tu propio Bill of Lading, separado dentro del
                 Bill Master del contenedor. La{" "}
-                <strong className="text-ink">aduana y los impuestos en Venezuela
+                <strong className="text-white">aduana y los impuestos en Venezuela
                 corren por tu cuenta</strong> (o los sumas aparte como servicio de
                 aduana).
               </p>
@@ -438,7 +463,8 @@ export function CalculadoraForm({
             <div>
               <label
                 htmlFor="ciudad"
-                className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500 mb-2 block"
+                className="text-[11px] font-bold tracking-[0.12em] uppercase mb-2 block"
+                style={{ color: "rgba(255,255,255,0.5)" }}
               >
                 Destino en Venezuela
               </label>
@@ -446,10 +472,11 @@ export function CalculadoraForm({
                 id="ciudad"
                 value={form.ciudadId}
                 onChange={(e) => update("ciudadId", e.target.value)}
-                className="w-full px-3.5 h-[52px] rounded-[12px] border border-grey-200 text-[15px] text-ink bg-white focus:outline-none focus:border-ink focus:ring-2 focus:ring-wine/40"
+                className="w-full px-3.5 h-[52px] rounded-[12px] text-[15px] text-white focus:outline-none focus:ring-2 focus:ring-wine/40"
+                style={{ border: "1.5px solid rgba(255,255,255,0.14)", background: "rgba(255,255,255,0.04)" }}
               >
                 {cityList.map((c) => (
-                  <option key={c.id} value={c.id}>
+                  <option key={c.id} value={c.id} className="text-ink">
                     {c.label}
                   </option>
                 ))}
@@ -459,7 +486,7 @@ export function CalculadoraForm({
         </div>
 
         {/* ── COLUMNA DERECHA · RESULTADO ── */}
-        <div className="p-6 lg:p-9 bg-paper flex flex-col gap-4">
+        <div className="p-6 lg:p-9 flex flex-col gap-4" style={{ background: "rgba(0,0,0,0.15)" }}>
           <ContainerFill cbm={effectiveForm.cbmTotal} max={params.cbmMaxContenedor} />
           <ResultPanel
             cotizacion={cotizacion}
@@ -474,20 +501,20 @@ export function CalculadoraForm({
       </div>
 
       {/* Nota al pie · ancho completo */}
-      <div className="border-t border-grey-200 px-6 lg:px-9 py-4">
+      <div className="px-6 lg:px-9 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }}>
         {esConsolidado ? (
-          <p className="text-[11.5px] text-grey-500 leading-[1.5]">
-            <strong className="text-grey-700">* Hasta puerto:</strong> el servicio
+          <p className="text-[11.5px] leading-[1.5]" style={{ color: "rgba(255,255,255,0.45)" }}>
+            <strong style={{ color: "rgba(255,255,255,0.65)" }}>* Hasta puerto:</strong> el servicio
             llega hasta entregarte tu Bill of Lading en Venezuela; la aduana y los
             impuestos corren por tu cuenta.{" "}
-            <strong className="text-grey-700">Pueden aplicar restricciones.</strong>{" "}
+            <strong style={{ color: "rgba(255,255,255,0.65)" }}>Pueden aplicar restricciones.</strong>{" "}
             Este estimado es aproximado y refleja nuestra tarifa base de
             consolidado.
           </p>
         ) : (
-          <p className="text-[11.5px] text-grey-500 leading-[1.5]">
-            <strong className="text-grey-700">* Pagas al llegar:</strong> pagas
-            el flete cuando tu carga llega a Venezuela. <strong className="text-grey-700">Pueden
+          <p className="text-[11.5px] leading-[1.5]" style={{ color: "rgba(255,255,255,0.45)" }}>
+            <strong style={{ color: "rgba(255,255,255,0.65)" }}>* Pagas al llegar:</strong> pagas
+            el flete cuando tu carga llega a Venezuela. <strong style={{ color: "rgba(255,255,255,0.65)" }}>Pueden
             aplicar restricciones.</strong>{" "}
             Este estimado es aproximado y refleja nuestra tarifa base DDP (puerta a
             puerta).
@@ -495,11 +522,17 @@ export function CalculadoraForm({
         )}
         {/* Condiciones del cliente (sutil, sin números internos) — desplegable */}
         <details className="mt-2.5 group">
-          <summary className="text-[11.5px] font-semibold text-wine cursor-pointer list-none inline-flex items-center gap-1.5 min-h-[44px] hover:text-ink transition-colors rounded-[4px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+          <summary
+            className="text-[11.5px] font-semibold cursor-pointer list-none inline-flex items-center gap-1.5 min-h-[44px] transition-colors rounded-[4px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            style={{ color: "var(--wine-on-dark, #E8748A)" }}
+          >
             <span aria-hidden="true" className="text-[9px] leading-none transition-transform group-open:rotate-90">▶</span>
             ¿Qué incluye tu estimado?
           </summary>
-          <ul className="mt-2 pl-4 flex flex-col gap-1.5 text-[11.5px] text-grey-500 leading-[1.45] list-disc marker:text-grey-300">
+          <ul
+            className="mt-2 pl-4 flex flex-col gap-1.5 text-[11.5px] leading-[1.45] list-disc"
+            style={{ color: "rgba(255,255,255,0.5)" }}
+          >
             <li>Un buen margen de peso por cada m³ — la mayoría de las cargas entra sin recargo.</li>
             <li>Si tu carga es más densa, suma un pequeño ajuste por el peso extra; igual te da el precio al instante.</li>
             <li>Pesamos y medimos tu carga al recibirla; la tarifa final se ajusta a lo real.</li>
@@ -602,37 +635,37 @@ function BigInput({
   return (
     <label className="flex flex-col gap-1.5 min-w-0">
       <span className="flex items-center gap-2 min-w-0">
-        <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500">
+        <span className="text-[11px] font-bold tracking-[0.12em] uppercase" style={{ color: "rgba(255,255,255,0.5)" }}>
           {label}
         </span>
         {tag && (
-          <span className="text-[9px] font-bold tracking-[0.06em] uppercase text-wine bg-wine/10 rounded-[5px] px-1.5 py-[2px] whitespace-nowrap">
+          <span
+            className="text-[9px] font-bold tracking-[0.06em] uppercase rounded-[5px] px-1.5 py-[2px] whitespace-nowrap"
+            style={{ color: "var(--wine-on-dark, #E8748A)", background: "rgba(255,255,255,0.08)" }}
+          >
             {tag}
           </span>
         )}
       </span>
       <div
         className={`flex items-center gap-2 rounded-[12px] border px-3.5 h-[60px] transition-colors ${
-          warning
-            ? `${warnBorder} bg-white`
-            : readOnly
-              ? "border-grey-200 bg-paper"
-              : "border-grey-200 bg-white focus-within:border-ink"
+          warning ? warnBorder : "border-white/[0.14] focus-within:border-white/40"
         }`}
+        style={{ background: readOnly ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.04)" }}
       >
         {readOnly ? (
-          <span className="num flex-1 min-w-0 text-[24px] font-bold text-ink truncate">
-            {value > 0 ? value : <span className="text-grey-300">{placeholder}</span>}
+          <span className="num flex-1 min-w-0 text-[24px] font-bold text-white truncate">
+            {value > 0 ? value : <span style={{ color: "rgba(255,255,255,0.3)" }}>{placeholder}</span>}
           </span>
         ) : (
           <DecimalInput
             value={value}
             onValueChange={onChange}
             placeholder={placeholder}
-            className="num flex-1 min-w-0 bg-transparent text-[24px] font-bold text-ink outline-none"
+            className="num flex-1 min-w-0 bg-transparent text-[24px] font-bold text-white outline-none"
           />
         )}
-        <span className="text-[13px] text-grey-500 whitespace-nowrap">{suffix}</span>
+        <span className="text-[13px] whitespace-nowrap" style={{ color: "rgba(255,255,255,0.5)" }}>{suffix}</span>
       </div>
       {warning && (
         <span className={`text-[11px] leading-[1.35] font-medium ${warnText}`}>
@@ -677,7 +710,8 @@ function CbmPorMedidas({
         type="button"
         onClick={() => onToggle(!open)}
         aria-expanded={open}
-        className="self-start inline-flex items-center gap-2 text-[13px] font-bold text-wine hover:text-ink transition-colors rounded-[4px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        className="self-start inline-flex items-center gap-2 text-[13px] font-bold hover:text-white transition-colors rounded-[4px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        style={{ color: "var(--wine-on-dark, #E8748A)" }}
       >
         <span
           aria-hidden="true"
@@ -692,12 +726,15 @@ function CbmPorMedidas({
       </button>
 
       {open && (
-        <div className="rounded-[14px] border border-grey-200 bg-paper p-4 flex flex-col gap-3.5">
+        <div
+          className="rounded-[14px] p-4 flex flex-col gap-3.5"
+          style={{ border: "1px solid rgba(255,255,255,0.12)", background: "rgba(0,0,0,0.15)" }}
+        >
           <div className="flex items-center justify-between gap-3">
-            <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500">
+            <span className="text-[11px] font-bold tracking-[0.12em] uppercase" style={{ color: "rgba(255,255,255,0.5)" }}>
               Medidas de tu caja
             </span>
-            <span className="text-[11px] text-grey-500">en centímetros</span>
+            <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.5)" }}>en centímetros</span>
           </div>
 
           <div className="grid grid-cols-3 gap-2.5">
@@ -713,13 +750,13 @@ function CbmPorMedidas({
             placeholder="1"
           />
 
-          <p className="text-[11.5px] text-grey-500 leading-[1.45]">
+          <p className="text-[11.5px] leading-[1.45]" style={{ color: "rgba(255,255,255,0.5)" }}>
             {cbmTotal > 0 ? (
               <>
-                <span className="num font-semibold text-grey-700">{cbmCaja} m³</span> por
+                <span className="num font-semibold" style={{ color: "rgba(255,255,255,0.75)" }}>{cbmCaja} m³</span> por
                 caja ×{" "}
-                <span className="num font-semibold text-grey-700">{dims.cajas}</span> ={" "}
-                <span className="num font-semibold text-ink">{cbmTotal} m³</span> — ya
+                <span className="num font-semibold" style={{ color: "rgba(255,255,255,0.75)" }}>{dims.cajas}</span> ={" "}
+                <span className="num font-semibold text-white">{cbmTotal} m³</span> — ya
                 cargado arriba.
               </>
             ) : (
@@ -748,18 +785,18 @@ function DimInput({
 }) {
   return (
     <label className="flex flex-col gap-1.5 min-w-0">
-      <span className="text-[10.5px] font-bold tracking-[0.1em] uppercase text-grey-500">
+      <span className="text-[10.5px] font-bold tracking-[0.1em] uppercase" style={{ color: "rgba(255,255,255,0.5)" }}>
         {label}
       </span>
-      <div className="flex items-center gap-1.5 rounded-[10px] border border-grey-200 px-3 h-[46px] bg-white focus-within:border-ink transition-colors">
+      <div className="flex items-center gap-1.5 rounded-[10px] px-3 h-[46px] border border-white/[0.14] focus-within:border-white/40 transition-colors" style={{ background: "rgba(255,255,255,0.04)" }}>
         <DecimalInput
           value={value}
           onValueChange={onChange}
           placeholder={placeholder}
-          className="num flex-1 min-w-0 bg-transparent text-[16px] font-semibold text-ink outline-none"
+          className="num flex-1 min-w-0 bg-transparent text-[16px] font-semibold text-white outline-none"
         />
         {suffix && (
-          <span className="text-[12px] text-grey-500 whitespace-nowrap">{suffix}</span>
+          <span className="text-[12px] whitespace-nowrap" style={{ color: "rgba(255,255,255,0.5)" }}>{suffix}</span>
         )}
       </div>
     </label>
@@ -782,13 +819,13 @@ function SwitchField({
 }) {
   return (
     <label
-      className={`flex items-center gap-3 p-3.5 rounded-[12px] border cursor-pointer transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-ink focus-within:outline-offset-2 ${
-        checked ? "border-wine bg-wine/5" : "border-grey-200 hover:border-grey-500"
+      className={`flex items-center gap-3 p-3.5 rounded-[12px] border cursor-pointer transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-white focus-within:outline-offset-2 ${
+        checked ? "border-wine bg-wine/10" : "border-white/[0.14] hover:border-white/30"
       }`}
     >
       <span
         className={`relative inline-flex shrink-0 h-[26px] w-[46px] rounded-full transition-colors ${
-          checked ? "bg-wine" : "bg-grey-300"
+          checked ? "bg-wine" : "bg-white/20"
         }`}
       >
         <input
@@ -804,13 +841,13 @@ function SwitchField({
         />
       </span>
       <span className="flex flex-col flex-1 min-w-0">
-        <span className="text-[14px] font-semibold text-ink leading-[1.2]">
+        <span className="text-[14px] font-semibold text-white leading-[1.2]">
           {label}
         </span>
-        <span className="text-[11.5px] text-grey-500 leading-[1.35]">{hint}</span>
+        <span className="text-[11.5px] leading-[1.35]" style={{ color: "rgba(255,255,255,0.5)" }}>{hint}</span>
       </span>
       {badge && (
-        <span className="num text-[12px] font-semibold text-grey-500 whitespace-nowrap">
+        <span className="num text-[12px] font-semibold whitespace-nowrap" style={{ color: "rgba(255,255,255,0.5)" }}>
           {badge}
         </span>
       )}
@@ -830,22 +867,25 @@ function ContainerFill({ cbm, max }: { cbm: number; max: number }) {
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3 mb-2.5">
-        <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500">
+        <span className="text-[11px] font-bold tracking-[0.12em] uppercase" style={{ color: "rgba(255,255,255,0.5)" }}>
           En un contenedor 40&apos;HC
         </span>
-        <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500">
+        <span className="text-[11px] font-bold tracking-[0.12em] uppercase" style={{ color: "rgba(255,255,255,0.5)" }}>
           <span className="num">{max}</span> CBM
         </span>
       </div>
       <div className="flex gap-2 items-stretch h-[140px]">
         {/* Cuerpo del contenedor */}
-        <div className="relative flex-1 rounded-[12px] border-2 border-ink overflow-hidden bg-white">
+        <div
+          className="relative flex-1 rounded-[12px] overflow-hidden"
+          style={{ border: "2px solid rgba(255,255,255,0.16)", background: "rgba(255,255,255,0.03)" }}
+        >
           {/* Corrugado vertical */}
           <div
             className="absolute inset-0"
             style={{
               backgroundImage:
-                "repeating-linear-gradient(90deg, transparent 0, transparent 13px, rgba(15,30,61,0.10) 13px, rgba(15,30,61,0.10) 14px)",
+                "repeating-linear-gradient(90deg, transparent 0, transparent 13px, rgba(255,255,255,0.05) 13px, rgba(255,255,255,0.05) 14px)",
             }}
           />
           {/* Relleno wine (scaleX desde la izquierda) */}
@@ -860,20 +900,23 @@ function ContainerFill({ cbm, max }: { cbm: number; max: number }) {
           {/* % lleno centrado */}
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span
-              className="num text-[34px] leading-none text-ink"
+              className="num text-[34px] leading-none text-white"
               style={{ fontFamily: "var(--font-archivo-black)" }}
             >
               {over ? "100%+" : `${pct}%`}
             </span>
-            <span className="text-[10.5px] font-bold tracking-[0.16em] uppercase text-grey-500 mt-1">
+            <span className="text-[10.5px] font-bold tracking-[0.16em] uppercase mt-1" style={{ color: "rgba(255,255,255,0.55)" }}>
               Lleno
             </span>
           </div>
         </div>
         {/* Puerta del contenedor */}
-        <div className="w-[40px] rounded-[12px] border-2 border-ink flex items-center justify-center gap-1.5">
-          <span className="block w-[3px] h-[44px] rounded bg-ink/45" />
-          <span className="block w-[3px] h-[44px] rounded bg-ink/45" />
+        <div
+          className="w-[40px] rounded-[12px] flex items-center justify-center gap-1.5"
+          style={{ border: "2px solid rgba(255,255,255,0.16)" }}
+        >
+          <span className="block w-[3px] h-[44px] rounded bg-white/25" />
+          <span className="block w-[3px] h-[44px] rounded bg-white/25" />
         </div>
       </div>
     </div>
@@ -1066,32 +1109,40 @@ function ResultPanel({
           Excedente de peso (con "X kg sobre Y kg incl.", sin $/kg), Embalaje,
           etc. El recargo por distancia sigue plegado en "Volumen base". */}
       {tieneCarga && !hasAlerta && (
-        <div className="rounded-[12px] border border-grey-200 bg-white px-4 py-3.5 flex flex-col gap-2.5">
+        <div
+          className="rounded-[12px] px-4 py-3.5 flex flex-col gap-2.5"
+          style={{ border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)" }}
+        >
           {rows.map((r) => (
             <div key={r.label} className="flex items-start justify-between gap-3">
               <span className="flex flex-col min-w-0">
                 <span
-                  className={`text-[13px] leading-tight ${r.accent ? "font-semibold text-wine" : "text-grey-700"}`}
+                  className="text-[13px] leading-tight"
+                  style={r.accent ? { fontWeight: 600, color: "var(--wine-on-dark, #E8748A)" } : { color: "rgba(255,255,255,0.7)" }}
                 >
                   {r.label}
                 </span>
                 {r.sub && (
-                  <span className="num text-[11px] text-grey-500 leading-tight mt-0.5">
+                  <span className="num text-[11px] leading-tight mt-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>
                     {r.sub}
                   </span>
                 )}
               </span>
               <span
-                className={`num text-[13px] whitespace-nowrap ${r.accent ? "font-bold text-wine" : "font-semibold text-ink"}`}
+                className="num text-[13px] whitespace-nowrap"
+                style={r.accent ? { fontWeight: 700, color: "var(--wine-on-dark, #E8748A)" } : { fontWeight: 600, color: "#fff" }}
               >
                 {r.kind === "sub" ? "−" : r.kind === "add" ? "+" : ""}
                 {money(r.value)}
               </span>
             </div>
           ))}
-          <div className="mt-0.5 pt-2.5 border-t border-grey-200 flex items-center justify-between gap-3">
-            <span className="text-[13px] font-bold text-ink">Total estimado</span>
-            <span className="num text-[15px] font-bold text-ink">{money(cot.total)}</span>
+          <div
+            className="mt-0.5 pt-2.5 flex items-center justify-between gap-3"
+            style={{ borderTop: "1px solid rgba(255,255,255,0.12)" }}
+          >
+            <span className="text-[13px] font-bold text-white">Total estimado</span>
+            <span className="num text-[15px] font-bold text-white">{money(cot.total)}</span>
           </div>
         </div>
       )}
@@ -1102,7 +1153,7 @@ function ResultPanel({
       {!hasAlerta && (
         <div
           className="inline-flex items-center gap-2.5 rounded-[10px] px-3.5 py-2.5 text-[13px] font-semibold text-ink"
-          style={{ background: "rgba(31,138,91,0.12)" }}
+          style={{ background: "#CFE9DC" }}
         >
           <span className="fin-badge-dot-green" aria-hidden="true" />
           {esConsolidado
@@ -1168,7 +1219,7 @@ function ResultPanel({
           )}
 
           {/* Microcopy */}
-          <p className="text-[11.5px] text-grey-500 text-center leading-[1.45]">
+          <p className="text-[11.5px] text-center leading-[1.45]" style={{ color: "rgba(255,255,255,0.45)" }}>
             Tu mensaje se arma solo con estos datos. Con Confianza, de China a tu
             puerta.
           </p>

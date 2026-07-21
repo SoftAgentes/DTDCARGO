@@ -1,8 +1,8 @@
 "use client";
 
-import { forwardRef, useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { CalculadoraForm } from "@/components/CalculadoraForm";
-import type { CalcParams, Ciudad } from "@/lib/calculadora";
+import { CONFIG, CONSOLIDADO_CBM_RATE, type CalcParams, type Ciudad } from "@/lib/calculadora";
 
 /**
  * Calculadora CBM/LCL de `/tarifas` — un toggle de 2 pestañas sobre un mismo
@@ -19,6 +19,14 @@ import type { CalcParams, Ciudad } from "@/lib/calculadora";
  * Ninguna guarda nada: el CTA de las dos es WhatsApp DIRECTO con el texto del
  * estimado (`directWhatsApp`) — sin modal de captura ni POST al ERP.
  * Fuente Archivo (sin calc-sys/Sora).
+ *
+ * Transición "hoja" (SDD-0164, captura founder 2026-07-21): al cambiar de
+ * tab, un panel sólido (wine → DDP, warning → LCL) cruza el frame en 700ms
+ * con un leve giro 3D, mostrando el nombre de la modalidad centrado. El swap
+ * real de panel (`tab` state) ocurre a los 340ms — el punto medio de la
+ * animación, cuando la hoja cubre TODO el frame — así el cambio de contenido
+ * queda oculto detrás de la hoja, igual que el mockup ocultaba el reload del
+ * iframe. Ver `.tf-leaf`/`@keyframes tf-leaf-l/r` en app/recursos.css.
  */
 
 type ServerRate = {
@@ -28,6 +36,7 @@ type ServerRate = {
 } | null;
 
 type Tab = "ddp" | "consolidado";
+type LeafState = { dir: "to-ddp" | "to-lcl"; label: string } | null;
 
 export function TarifasTabs({
   serverRate,
@@ -39,90 +48,181 @@ export function TarifasTabs({
   ciudades?: Ciudad[];
 }) {
   const [tab, setTab] = useState<Tab>("ddp");
+  const [leaf, setLeaf] = useState<LeafState>(null);
+  const [leafRun, setLeafRun] = useState(0);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  // Pastilla deslizante detrás del tab activo: mide el botón activo y anima
-  // left/width hacia él, en vez del swap instantáneo de fondo de antes (cada
-  // botón tenía su propio bg-wine, sin indicar de dónde a dónde se movía).
-  const ddpRef = useRef<HTMLButtonElement>(null);
-  const consolidadoRef = useRef<HTMLButtonElement>(null);
-  const [pill, setPill] = useState<{ left: number; width: number } | null>(null);
+  const ddpRate =
+    serverRate?.per_cbm && serverRate.per_cbm > 0
+      ? serverRate.per_cbm
+      : CONFIG.tarifaBaseCBM;
 
-  useEffect(() => {
-    const measure = () => {
-      const el = tab === "ddp" ? ddpRef.current : consolidadoRef.current;
-      if (el) setPill({ left: el.offsetLeft, width: el.offsetWidth });
-    };
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, [tab]);
+  function selectTab(next: Tab) {
+    if (next === tab) return;
+    timers.current.forEach(clearTimeout);
+    timers.current = [];
+
+    const reduceMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) {
+      setTab(next);
+      return;
+    }
+
+    setLeaf({
+      dir: next === "consolidado" ? "to-lcl" : "to-ddp",
+      label: next === "consolidado" ? "Consolidado" : "Puerta a puerta",
+    });
+    setLeafRun((n) => n + 1);
+    timers.current.push(setTimeout(() => setTab(next), 340));
+    timers.current.push(setTimeout(() => setLeaf(null), 720));
+  }
 
   return (
     <div>
-      {/* Toggle de modalidad */}
-      <div
-        role="tablist"
-        aria-label="Modalidad de envío"
-        className="relative inline-flex p-1 rounded-[14px] bg-grey-100 border border-grey-200 mb-6"
-      >
-        {pill && (
-          <span
-            aria-hidden="true"
-            className="absolute inset-y-1 rounded-[10px] bg-wine shadow-sm transition-all duration-300 ease-out"
-            style={{ left: pill.left, width: pill.width }}
-          />
-        )}
-        <TabButton
-          ref={ddpRef}
+      {/* Toggle de modalidad — tarjetas icono+nombre+precio+flag */}
+      <div className="calc-switch" role="tablist" aria-label="Modalidad de envío">
+        <CalcOpt
+          id="ddp"
           active={tab === "ddp"}
-          onClick={() => setTab("ddp")}
-          id="tab-ddp"
+          onClick={() => selectTab("ddp")}
           panelId="panel-ddp"
-        >
-          Puerta a Puerta <span className="opacity-70">· DDP</span>
-        </TabButton>
-        <TabButton
-          ref={consolidadoRef}
+          icon={<TruckIcon />}
+          name="Puerta a puerta"
+          sig="DDP"
+          desc="Hasta tu puerta · todo incluido"
+          price={ddpRate}
+        />
+        <CalcOpt
+          id="lcl"
           active={tab === "consolidado"}
-          onClick={() => setTab("consolidado")}
-          id="tab-consolidado"
+          onClick={() => selectTab("consolidado")}
           panelId="panel-consolidado"
+          icon={<BoxesIcon />}
+          name="Consolidado"
+          sig="LCL"
+          desc="Hasta el puerto · compartes contenedor"
+          price={CONSOLIDADO_CBM_RATE}
+        />
+      </div>
+
+      {/* Frame de la calculadora — la hoja cubre esto al cambiar de tab */}
+      <div className="tf-frame">
+        {leaf && (
+          <div
+            key={leafRun}
+            aria-hidden="true"
+            className={`tf-leaf turning ${leaf.dir}`}
+          >
+            <span className="tf-leaf-tag">{leaf.label}</span>
+          </div>
+        )}
+
+        {/* Panel · Puerta a Puerta (DDP) */}
+        <div id="panel-ddp" role="tabpanel" aria-labelledby="ddp" hidden={tab !== "ddp"}>
+          <CalculadoraForm
+            serverRate={serverRate}
+            serverConfig={serverConfig}
+            ciudades={ciudades}
+            directWhatsApp
+          />
+        </div>
+
+        {/* Panel · LCL Consolidado (hasta puerto, con BL propio) */}
+        <div
+          id="panel-consolidado"
+          role="tabpanel"
+          aria-labelledby="lcl"
+          hidden={tab !== "consolidado"}
         >
-          LCL Consolidado <span className="opacity-70">· hasta puerto</span>
-        </TabButton>
-      </div>
-
-      {/* Panel · Puerta a Puerta (DDP) */}
-      <div
-        id="panel-ddp"
-        role="tabpanel"
-        aria-labelledby="tab-ddp"
-        hidden={tab !== "ddp"}
-      >
-        <CalculadoraForm
-          serverRate={serverRate}
-          serverConfig={serverConfig}
-          ciudades={ciudades}
-          directWhatsApp
-        />
-      </div>
-
-      {/* Panel · LCL Consolidado (hasta puerto, con BL propio) */}
-      <div
-        id="panel-consolidado"
-        role="tabpanel"
-        aria-labelledby="tab-consolidado"
-        hidden={tab !== "consolidado"}
-      >
-        <CalculadoraForm
-          serverRate={serverRate}
-          serverConfig={serverConfig}
-          modo="consolidado"
-          directWhatsApp
-        />
-        <ConsolidadoFicha />
+          <CalculadoraForm
+            serverRate={serverRate}
+            serverConfig={serverConfig}
+            modo="consolidado"
+            directWhatsApp
+          />
+          <ConsolidadoFicha />
+        </div>
       </div>
     </div>
+  );
+}
+
+function CalcOpt({
+  id,
+  active,
+  onClick,
+  panelId,
+  icon,
+  name,
+  sig,
+  desc,
+  price,
+}: {
+  id: "ddp" | "lcl";
+  active: boolean;
+  onClick: () => void;
+  panelId: string;
+  icon: React.ReactNode;
+  name: string;
+  sig: string;
+  desc: string;
+  price: number;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      id={id}
+      data-calc={id}
+      aria-selected={active}
+      aria-controls={panelId}
+      onClick={onClick}
+      className={`calc-opt${active ? " is-active" : ""}`}
+    >
+      <span className={`calc-opt-ic ${id}`}>{icon}</span>
+      <span className="calc-opt-body">
+        <span className="calc-opt-top">
+          <span className="calc-opt-name">{name}</span>
+          <span className="calc-opt-sig">{sig}</span>
+        </span>
+        <span className="calc-opt-desc">{desc}</span>
+      </span>
+      <span className="calc-opt-side">
+        <span className="calc-opt-price">
+          ${Math.round(price).toLocaleString("en-US")}
+          <span className="u">/ CBM</span>
+        </span>
+        <span className="calc-opt-flag">✓ Estás aquí</span>
+      </span>
+    </button>
+  );
+}
+
+function TruckIcon() {
+  return (
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 6.5h11v8H3z" />
+      <path d="M14 9h3.5l3 3v2.5H14z" />
+      <circle cx="7" cy="17.5" r="1.7" />
+      <circle cx="17.5" cy="17.5" r="1.7" />
+    </svg>
+  );
+}
+
+function BoxesIcon() {
+  return (
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="7" width="18" height="12" rx="1.4" />
+      <g fill="currentColor" stroke="none">
+        <rect x="5.4" y="13.2" width="3.6" height="4" />
+        <rect x="9.3" y="13.2" width="3.6" height="4" />
+        <rect x="13.2" y="13.2" width="3.6" height="4" />
+        <rect x="5.4" y="9.4" width="3.6" height="3.2" />
+        <rect x="9.3" y="9.4" width="3.6" height="3.2" />
+      </g>
+    </svg>
   );
 }
 
@@ -189,31 +289,3 @@ function FichaCard({
     </div>
   );
 }
-
-const TabButton = forwardRef<
-  HTMLButtonElement,
-  {
-    active: boolean;
-    onClick: () => void;
-    children: React.ReactNode;
-    id: string;
-    panelId: string;
-  }
->(function TabButton({ active, onClick, children, id, panelId }, ref) {
-  return (
-    <button
-      ref={ref}
-      type="button"
-      role="tab"
-      id={id}
-      aria-selected={active}
-      aria-controls={panelId}
-      onClick={onClick}
-      className={`relative z-10 px-4 sm:px-5 h-11 rounded-[10px] text-[15px] sm:text-[16px] font-semibold transition-colors duration-300 ${
-        active ? "text-white" : "text-grey-700 hover:text-ink"
-      }`}
-    >
-      {children}
-    </button>
-  );
-});
