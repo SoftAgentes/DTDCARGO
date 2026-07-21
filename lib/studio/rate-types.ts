@@ -30,6 +30,8 @@ export type Rate = {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  expiry_warn_sent_at: string | null;    // SDD-0164 ⭐1 · último aviso "por vencer"
+  expiry_overdue_sent_at: string | null; // SDD-0164 ⭐1 · último aviso "ya vencida"
 };
 
 /** Label + tono de badge por estado de tarifa (para la UI). */
@@ -95,6 +97,94 @@ export function priceMode(service: ShipmentService): "per_cbm" | "flat_rate" {
     case "transporte_terrestre":
       return "flat_rate";
   }
+}
+
+/**
+ * Nivel de alerta de vencimiento de una tarifa pública (SDD-0164, ⭐1).
+ * "warn" = por vencer (<=7 días) · "overdue" = ya vencida, el sitio ya
+ * está cayendo en silencio al respaldo hardcodeado del código.
+ */
+export type RateExpiryLevel = "warn" | "overdue";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Normaliza a ms de medianoche UTC. Fecha inválida → NaN. */
+function toDateMs(d: string | Date): number {
+  if (d instanceof Date) {
+    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  }
+  const [y, m, day] = d.split("-").map(Number);
+  if (!y || !m || !day) return NaN;
+  return Date.UTC(y, m - 1, day);
+}
+
+/**
+ * Badge de vigencia para /studio/tarifas — solo informativo, no decide si
+ * hay que alertar (eso es `classifyRateExpiry`). Windowed a 7 días, igual
+ * ventana que el cron de alerta.
+ */
+export function rateExpiryBadge(
+  rate: Pick<Rate, "is_public" | "status" | "valid_until">,
+  today: string | Date = new Date(),
+  windowDays = 7,
+): { label: string; tone: "warning" | "danger" } | null {
+  if (!rate.is_public || rate.status !== "published" || !rate.valid_until) return null;
+
+  const todayMs = toDateMs(today);
+  const validMs = toDateMs(rate.valid_until);
+  if (Number.isNaN(todayMs) || Number.isNaN(validMs)) return null;
+
+  if (validMs < todayMs) return { label: "Vencida", tone: "danger" };
+  if (validMs < todayMs + windowDays * DAY_MS) return { label: "Por vencer", tone: "warning" };
+  return null;
+}
+
+/**
+ * Decide si el cron de vencimiento (SDD-0164 ⭐1) tiene que DISPARAR el
+ * aviso Telegram+email para esta fila, o si ya se avisó y hay que callar.
+ *
+ * Dedup self-healing: en vez de comparar contra "hoy" (que reenviaría cada
+ * corrida), compara el `sent_at` contra el INICIO de la ventana de la
+ * vigencia ACTUAL (`valid_until - windowDays` para warn, `valid_until`
+ * para overdue). Si el founder renueva `valid_until` en /studio/tarifas,
+ * esa ventana se corre para adelante sola — sin resetear columnas a mano,
+ * el aviso viejo queda "antes" de la ventana nueva y se re-arma solo.
+ */
+export function classifyRateExpiry(
+  rate: Pick<
+    Rate,
+    | "is_public"
+    | "status"
+    | "deleted_at"
+    | "valid_until"
+    | "expiry_warn_sent_at"
+    | "expiry_overdue_sent_at"
+  >,
+  today: string | Date = new Date(),
+  windowDays = 7,
+): RateExpiryLevel | null {
+  if (!rate.is_public || rate.status !== "published" || rate.deleted_at || !rate.valid_until) {
+    return null;
+  }
+
+  const todayMs = toDateMs(today);
+  const validMs = toDateMs(rate.valid_until);
+  if (Number.isNaN(todayMs) || Number.isNaN(validMs)) return null;
+
+  if (validMs < todayMs) {
+    const sentMs = rate.expiry_overdue_sent_at ? toDateMs(rate.expiry_overdue_sent_at) : null;
+    if (sentMs !== null && sentMs >= validMs) return null;
+    return "overdue";
+  }
+
+  const warnWindowStartMs = validMs - windowDays * DAY_MS;
+  if (todayMs >= warnWindowStartMs) {
+    const sentMs = rate.expiry_warn_sent_at ? toDateMs(rate.expiry_warn_sent_at) : null;
+    if (sentMs !== null && sentMs >= warnWindowStartMs) return null;
+    return "warn";
+  }
+
+  return null;
 }
 
 /** Format helper para mostrar la tarifa en la tabla. */

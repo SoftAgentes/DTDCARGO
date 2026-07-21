@@ -247,8 +247,16 @@ note por casualidad.
 
 ## Pendientes
 
-**⭐ 1 · Alerta en el ERP: tarifa pública por vencer.** Es el arreglo de fondo
-del riesgo de arriba. Descripción suficiente para construirlo sin volver a
+**⭐ 1 · Alerta en el ERP: tarifa pública por vencer. ✅ Construido (2026-07-20),
+falta aplicar migración.** `supabase/migrations/0257_rates_expiry_alert.sql`
+(columnas `expiry_warn_sent_at`/`expiry_overdue_sent_at`) +
+`app/api/cron/rate-expiry-alert/route.ts` (cron diario, `vercel.json`) +
+badge en `/studio/tarifas` (`rateExpiryBadge`, `lib/studio/rate-types.ts`).
+La migración 0257 queda declarada en `pendingBelowCutoff` — el cron es
+inerte hasta que el founder dé el OK para aplicarla
+(`docs/runbooks/aplicar-migraciones-prod.md`); mientras tanto `/studio/tarifas`
+sigue funcionando igual (el select de la UI no toca las columnas nuevas a
+propósito). Descripción suficiente para construirlo sin volver a
 investigar:
 
 - **Qué vigilar:** filas de `rates` con `is_public = true`, `status = 'published'`,
