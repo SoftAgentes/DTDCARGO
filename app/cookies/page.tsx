@@ -74,13 +74,13 @@ function CookieTable({ rows }: { rows: Row[] }) {
 const NECESARIAS: Row[] = [
   {
     cookie: "sb-…-auth-token",
-    quien: "DTD Cargo (Supabase)",
+    quien: "DTD Cargo (proveedor de infraestructura)",
     duracion: "Sesión",
     para: "Mantener tu sesión iniciada de forma segura en el Portal del Cliente.",
   },
   {
     cookie: "Verificación de login (PKCE)",
-    quien: "DTD Cargo (Supabase)",
+    quien: "DTD Cargo (proveedor de infraestructura)",
     duracion: "Minutos, durante el login",
     para: "Completar el inicio de sesión con enlace mágico de forma segura.",
   },

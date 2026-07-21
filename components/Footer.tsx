@@ -94,11 +94,6 @@ export function Footer() {
             <FooterLink href="/portal/login">Rastrea tu envío</FooterLink>
             <FooterLink href="/tarifas">Calculadora de envío</FooterLink>
             <FooterLink href="/contacto">Contáctenos</FooterLink>
-            {/* Oculto hasta v3.1 (texto final del abogado). Flip TERMINOS_LIVE en lib/legal-public.ts. */}
-            {TERMINOS_LIVE && <FooterLink href="/terminos">Condiciones</FooterLink>}
-            <FooterLink href="/privacidad">Privacidad</FooterLink>
-            <FooterLink href="/cookies">Cookies</FooterLink>
-            <CookiePreferencesLink className="text-[14.5px] font-medium text-white/85 hover:text-white transition-colors w-fit" />
           </FooterCol>
 
           {/* Contacto */}
@@ -172,11 +167,24 @@ export function Footer() {
           </a>
         </div>
 
-        <div className="pt-7 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-          <span className="text-[12.5px] font-medium tracking-[0.06em] text-white/45">
-            © {new Date().getFullYear()} {CONTACT.legalName}. Todos los
-            derechos reservados.
-          </span>
+        <div className="pt-7 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-5">
+            <span className="text-[12.5px] font-medium tracking-[0.06em] text-white/45">
+              © {new Date().getFullYear()} {CONTACT.legalName}. Todos los
+              derechos reservados.
+            </span>
+            {/* Franja legal compacta (patrón Términos/Privacidad/Cookies bajo
+                el copyright, referencia del founder 2026-07-21). Reemplaza los
+                links sueltos que antes vivían en "Enlaces rápidos". */}
+            <div className="flex items-center gap-x-5 gap-y-2 flex-wrap">
+              {TERMINOS_LIVE && (
+                <FooterLegalLink href="/terminos">Términos</FooterLegalLink>
+              )}
+              <FooterLegalLink href="/privacidad">Privacidad</FooterLegalLink>
+              <FooterLegalLink href="/cookies">Cookies</FooterLegalLink>
+              <CookiePreferencesLink className="text-[12.5px] font-medium text-white/45 hover:text-white/80 transition-colors w-fit" />
+            </div>
+          </div>
           <span className="text-[11px] font-bold tracking-[0.14em] uppercase text-white/35">
             CN → VE · Puerta a puerta, todo pagado
           </span>
@@ -206,6 +214,17 @@ function FooterLink({ href, children }: { href: string; children: React.ReactNod
     <Link
       href={href}
       className="text-[14.5px] font-medium text-white/85 hover:text-white transition-colors"
+    >
+      {children}
+    </Link>
+  );
+}
+
+function FooterLegalLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="text-[12.5px] font-medium text-white/45 hover:text-white/80 transition-colors"
     >
       {children}
     </Link>
