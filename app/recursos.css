@@ -768,7 +768,7 @@
   height: 16px;
   border-radius: 50%;
   background: var(--rp-navy-border);
-  color: var(--rp-on-navy);
+  color: var(--success);
   font: 800 10px/1 var(--f-brand);
 }
 .rp-surface .tf-card .btn {
