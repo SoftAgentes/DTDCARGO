@@ -343,10 +343,21 @@
    Brand classes (portadas desde Brand Book DTD.html)
    ────────────────────────────────────────────────────────────────── */
 
-.wrap {
-  max-width: var(--maxw);
-  margin: 0 auto;
-  padding: 0 var(--gutter);
+/* .wrap va DENTRO de @layer base (no suelta, a diferencia del resto de este
+   bloque) a propósito: en CSS Cascade Layers, una regla SIN capa le gana a
+   CUALQUIER regla con capa, sin importar el orden de @layer ni la
+   especificidad. Suelta, `.wrap` bloqueaba TODA utilidad de Tailwind que
+   tocara max-width/margin/padding — 24 usos reales en el repo (`wrap
+   max-w-[…]` en /brochure, /tarifas, /importar-de-china, FaqExplorer,
+   Philosophy…; `wrap py-*` en PortalShell, PortalFooter, RespuestaRapida,
+   TrustBar…) nunca aplicaban su override, silenciosamente. Encontrado y
+   corregido acá, 2026-07-20; NO repetir el patrón suelto para clases nuevas. */
+@layer base {
+  .wrap {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: 0 var(--gutter);
+  }
 }
 
 .eyebrow {
