@@ -116,10 +116,13 @@ export function FiniquitoDocument({
           <Text style={styles.totalAmount}>{usd(s.total_net_usd)}</Text>
         </View>
 
+        {/* Sin razón social ni RIF en texto visible (regla de marca, founder
+            2026-07-20 · "por ahora"): si el finiquito necesita la identidad
+            legal completa para trámites LOTTT, es una excepción a pedir
+            explícitamente, no la regla por defecto. */}
         <Text style={styles.note}>
           Liquidación de prestaciones sociales conforme a la LOTTT. Montos en USD; el pago en Bs se
-          calcula a la tasa BCV del día de pago. Documento emitido por DTD Cargo (INVERSIONES DTD
-          SERVICES, C.A · RIF J-50648869-8).
+          calcula a la tasa BCV del día de pago. Documento emitido por DTD Cargo.
         </Text>
       </Page>
     </Document>

@@ -4,7 +4,10 @@
  * ReportPreview — render white-label del reporte de inspección (SDD-0066).
  *
  * Llena la plantilla del Norte (Producto/PSI o Fábrica) con los datos del
- * payload + cabecera. Marca DTD: lockup, RIF J-50648869-8, footer canónico.
+ * payload + cabecera. Marca DTD: lockup, footer canónico (sin RIF ni razón
+ * social en texto visible — regla de marca, van solo en el JSON-LD del sitio
+ * público; este reporte no es un instrumento fiscal, así que no aplica la
+ * excepción de documentos SENIAT).
  *
  * REGLA DURA (white-label): este componente NUNCA renderiza `provider_internal`
  * ni el nombre del tercero ("Canopy") en la salida del reporte. El campo puede
@@ -90,7 +93,7 @@ function Footer() {
           </div>
         </div>
         <div className="foot-contact">
-          <b>DTD&nbsp;Cargo</b> · RIF&nbsp;J-50648869-8
+          <b>DTD&nbsp;Cargo</b>
           <br />
           Av.&nbsp;Bolívar&nbsp;Norte&nbsp;14, Valencia
         </div>
