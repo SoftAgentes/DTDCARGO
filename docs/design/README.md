@@ -42,3 +42,4 @@ docs/design/
 - Reglas de marca → `BRAND.md` (espejo del `_norte/CLAUDE.md`)
 - Materiales visuales → `docs/design/studio/_norte/`
 - Tokens CSS de producción → `app/globals.css` (web) · `app/studio/tokens.css` (Studio)
+- Comportamiento, interacción y gobierno del sistema → `docs/governance/`
