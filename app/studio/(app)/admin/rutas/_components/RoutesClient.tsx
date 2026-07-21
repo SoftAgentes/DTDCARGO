@@ -16,6 +16,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import { ActionableRow } from "@/app/studio/_components/ui/DataTable";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { Icon } from "@/app/studio/_components/icons";
 import {
   seedTenantCitiesFromVeCatalogAction,
@@ -369,6 +370,8 @@ function RouteRowCard({
 }) {
   const isDir = route.route_type === "directa";
   const intermediates = route.intermediate_cities ?? [];
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [, startDeleteTransition] = useTransition();
   const [archiveState, archiveAction, archivePending] = useActionState(
     toggleRouteActiveAction,
     {} as RoutesActionState,
@@ -382,6 +385,7 @@ function RouteRowCard({
   void deleteState;
 
   return (
+    <>
     <div
       style={{
         background: "var(--bg-surface)",
@@ -557,32 +561,39 @@ function RouteRowCard({
               {route.active ? "Archivar" : "Reactivar"}
             </button>
           </form>
-          <form action={deleteAction} style={{ display: "inline-flex" }}>
-            <input type="hidden" name="id" value={route.id} />
+          <div style={{ display: "inline-flex" }}>
             <button
-              type="submit"
+              type="button"
               className="studio-btn studio-btn-ghost studio-btn-sm"
               disabled={archivePending || deletePending}
               style={{ color: "var(--danger)" }}
-              onClick={(e) => {
-                if (
-                  !confirm(
-                    `¿Eliminar la ruta ${route.route_code}? Queda soft-deleted (deja de aparecer en cualquier lista).`,
-                  )
-                ) {
-                  e.preventDefault();
-                }
-              }}
+              onClick={() => setDeleteConfirmOpen(true)}
             >
               <span style={{ marginRight: 6, display: "inline-flex" }}>
                 {Icon.trash(13)}
               </span>
               Eliminar
             </button>
-          </form>
+          </div>
         </div>
       </div>
     </div>
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        danger
+        pending={deletePending}
+        title={`Eliminar ruta ${route.route_code}`}
+        message="La ruta quedará desactivada y dejará de aparecer en las listas. Su historial se conserva."
+        confirmLabel="Eliminar ruta"
+        error={deleteState?.error}
+        onCancel={() => setDeleteConfirmOpen(false)}
+        onConfirm={() => {
+          const data = new FormData();
+          data.set("id", route.id);
+          startDeleteTransition(() => deleteAction(data));
+        }}
+      />
+    </>
   );
 }
 

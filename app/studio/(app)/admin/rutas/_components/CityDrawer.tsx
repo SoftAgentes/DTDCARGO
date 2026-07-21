@@ -7,8 +7,9 @@
  * como autocomplete + auto-fill. Permite agregar ciudades custom no en el catálogo.
  */
 
-import { useActionState, useState, useMemo } from "react";
+import { useActionState, useState, useMemo, useTransition } from "react";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import {
   createCityAction,
   softDeleteCityAction,
@@ -39,6 +40,8 @@ export function CityDrawer({
   const [defaultRadiusKm, setDefaultRadiusKm] = useState<number>(city?.default_radius_km ?? 5);
   const [isHq, setIsHq] = useState(city?.is_hq ?? false);
   const [active, setActive] = useState(city?.active ?? true);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [, startDeleteTransition] = useTransition();
 
   const action = mode === "create" ? createCityAction : updateCityAction;
   const [state, formAction, isPending] = useActionState(action, INITIAL_STATE);
@@ -310,22 +313,17 @@ export function CityDrawer({
         }}
       >
         {mode === "edit" && city ? (
-          <form action={deleteAction}>
-            <input type="hidden" name="id" value={city.id} />
+          <div>
             <button
-              type="submit"
+              type="button"
               className="studio-btn studio-btn-ghost"
               disabled={isPending || deletePending}
               style={{ color: "var(--danger)" }}
-              onClick={(e) => {
-                if (!confirm("¿Desactivar esta ciudad? Sigue en DB pero deja de aparecer en filtros.")) {
-                  e.preventDefault();
-                }
-              }}
+              onClick={() => setDeleteConfirmOpen(true)}
             >
               Desactivar
             </button>
-          </form>
+          </div>
         ) : (
           <div />
         )}
@@ -348,6 +346,23 @@ export function CityDrawer({
           </button>
         </div>
       </footer>
+      {mode === "edit" && city && (
+        <ConfirmDialog
+          open={deleteConfirmOpen}
+          danger
+          pending={deletePending}
+          title="Desactivar ciudad"
+          message="La ciudad seguirá en la base de datos, pero dejará de aparecer en los filtros."
+          confirmLabel="Desactivar"
+          error={deleteState?.error}
+          onCancel={() => setDeleteConfirmOpen(false)}
+          onConfirm={() => {
+            const data = new FormData();
+            data.set("id", city.id);
+            startDeleteTransition(() => deleteAction(data));
+          }}
+        />
+      )}
     </DrawerShell>
   );
 }

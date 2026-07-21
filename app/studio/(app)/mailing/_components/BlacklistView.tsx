@@ -11,9 +11,10 @@
  * sendEmail helper bloquea envíos a emails en blacklist (step 4: check).
  */
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import {
   addMailBlacklistAction,
   removeMailBlacklistAction,
@@ -58,9 +59,17 @@ export function BlacklistView({ blacklist }: Props) {
     removeMailBlacklistAction,
     INITIAL_MAILING_STATE,
   );
+  const [removeCandidate, setRemoveCandidate] = useState<MailBlacklistRow | null>(null);
+  const [, startRemoveTransition] = useTransition();
 
   useEffect(() => {
+    const closeFrame = removeState.ok
+      ? window.requestAnimationFrame(() => setRemoveCandidate(null))
+      : null;
     if (addState.ok || removeState.ok) router.refresh();
+    return () => {
+      if (closeFrame !== null) window.cancelAnimationFrame(closeFrame);
+    };
   }, [addState.ok, removeState.ok, router]);
 
   const pending = addPending || removePending;
@@ -317,26 +326,17 @@ export function BlacklistView({ blacklist }: Props) {
                       <RelTime iso={entry.added_at} />
                     </Td>
                     <Td>
-                      <form action={removeAction}>
-                        <input type="hidden" name="id" value={entry.id} />
+                      <div>
                         <button
-                          type="submit"
+                          type="button"
                           disabled={pending}
                           className="studio-btn studio-btn-ghost studio-btn-xs"
-                          onClick={(e) => {
-                            if (
-                              !confirm(
-                                `¿Remover ${entry.email} de la blacklist? Va a recibir emails de nuevo.`,
-                              )
-                            ) {
-                              e.preventDefault();
-                            }
-                          }}
+                          onClick={() => setRemoveCandidate(entry)}
                           style={{ color: "var(--danger)" }}
                         >
                           Remover
                         </button>
-                      </form>
+                      </div>
                     </Td>
                   </tr>
                 );
@@ -362,6 +362,26 @@ export function BlacklistView({ blacklist }: Props) {
           {removeState.error}
         </div>
       )}
+      <ConfirmDialog
+        open={removeCandidate !== null}
+        danger
+        pending={removePending}
+        title="Remover de la blacklist"
+        message={
+          removeCandidate
+            ? `${removeCandidate.email} podrá volver a recibir correos del Studio.`
+            : ""
+        }
+        confirmLabel="Remover"
+        error={removeState.error}
+        onCancel={() => setRemoveCandidate(null)}
+        onConfirm={() => {
+          if (!removeCandidate) return;
+          const data = new FormData();
+          data.set("id", removeCandidate.id);
+          startRemoveTransition(() => removeAction(data));
+        }}
+      />
     </>
   );
 }
@@ -392,7 +412,7 @@ function Td({ children }: { children: React.ReactNode }) {
 
 function RelTime({ iso }: { iso: string }) {
   const d = new Date(iso);
-  const now = Date.now();
+  const [now] = useState(() => Date.now());
   const diffMs = now - d.getTime();
   const diffMin = Math.floor(diffMs / 60000);
   const label =

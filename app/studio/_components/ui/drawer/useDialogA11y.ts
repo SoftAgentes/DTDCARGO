@@ -23,6 +23,14 @@ import { useEffect, type RefObject } from "react";
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+const MODAL_SELECTOR = '[role="dialog"][aria-modal="true"]';
+
+/** Solo la capa modal superior debe manejar foco, Tab y Escape. */
+function isTopmostDialog(panel: HTMLElement): boolean {
+  const dialogs = document.querySelectorAll<HTMLElement>(MODAL_SELECTOR);
+  return dialogs.length === 0 || dialogs.item(dialogs.length - 1) === panel;
+}
+
 export function useDialogA11y(
   panelRef: RefObject<HTMLElement | null>,
   {
@@ -42,7 +50,10 @@ export function useDialogA11y(
   // Foco inicial + restauración al cerrar.
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null;
-    (initialFocusRef?.current ?? panelRef.current)?.focus();
+    const panel = panelRef.current;
+    if (panel && isTopmostDialog(panel)) {
+      (initialFocusRef?.current ?? panel)?.focus();
+    }
     return () => previouslyFocused?.focus?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -50,6 +61,8 @@ export function useDialogA11y(
   // Escape para cerrar + focus-trap.
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
+      const panel = panelRef.current;
+      if (!panel || !isTopmostDialog(panel)) return;
       if (e.key === "Escape") {
         if (!pending) {
           e.stopPropagation();
@@ -58,8 +71,6 @@ export function useDialogA11y(
         return;
       }
       if (e.key !== "Tab") return;
-      const panel = panelRef.current;
-      if (!panel) return;
       const focusables = Array.from(
         panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
       ).filter(
