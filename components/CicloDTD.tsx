@@ -97,23 +97,31 @@ export function CicloDTD() {
           <line x1="7" y1="-13" x2="7" y2="13" stroke="#F2F0EC" strokeWidth="1" opacity="0.5" />
         </g>
 
-        {/* Centro */}
-        <svg
-          x="303"
-          y="278"
-          width="34"
-          height="34"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="var(--wine)"
-          strokeWidth="1.9"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="cyc-loopicon"
-        >
-          <path d="M3.5 9a8.5 8.5 0 0 1 14.8-3.2M20.5 15a8.5 8.5 0 0 1-14.8 3.2" />
-          <path d="M18.5 2.5v3.5h-3.5M5.5 21.5v-3.5h3.5" />
-        </svg>
+        {/* Centro. Antes era un <svg x y width height viewBox> anidado — abría su
+            propio viewport y el giro (CSS `animation` sobre `.cyc-loopicon`,
+            ver globals.css) terminaba orbitando lejísimos de su sitio (bug
+            "da vueltas sobre un área que no es"). La causa real: un <g> con
+            atributo SVG `transform` (translate+scale) Y una animación CSS que
+            también anima la propiedad `transform` en el MISMO elemento — la
+            animación CSS reemplaza por completo el atributo SVG (no componen),
+            así que el ícono perdía su translate/scale y giraba desde el
+            origen del SVG. Fix: el posicionamiento (translate+scale, estático,
+            atributo SVG) va en un <g> PADRE; el giro (CSS, clase cyc-loopicon)
+            va en un <g> HIJO sin atributo `transform` propio — cada uno en su
+            propio elemento, sin pisarse. */}
+        <g transform="translate(303 278) scale(1.41667)">
+          <g
+            className="cyc-loopicon"
+            fill="none"
+            stroke="var(--wine)"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M3.5 9a8.5 8.5 0 0 1 14.8-3.2M20.5 15a8.5 8.5 0 0 1-14.8 3.2" />
+            <path d="M18.5 2.5v3.5h-3.5M5.5 21.5v-3.5h3.5" />
+          </g>
+        </g>
         <text
           x="320"
           y="330"

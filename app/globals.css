@@ -2947,6 +2947,11 @@ a.svp-it:hover .nm {
     animation: home-cyc-march 1.5s linear infinite;
   }
   .home-surface .cyc-loopicon {
+    /* fill-box + center: correcto AHORA que el <g> animado no carga su propio
+       atributo SVG `transform` (ver CicloDTD.tsx — el posicionamiento vive en
+       un <g> padre aparte). Con ambos en el mismo elemento, esta misma regla
+       reemplazaba el atributo por completo y el ícono giraba lejos de su
+       sitio (bug "da vueltas sobre un área que no es"). */
     transform-box: fill-box;
     transform-origin: center;
     animation: home-cyc-spin 16s linear infinite;
