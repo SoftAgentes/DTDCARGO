@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 import { CalculadoraForm } from "@/components/CalculadoraForm";
 import type { CalcParams, Ciudad } from "@/lib/calculadora";
 
@@ -40,15 +40,40 @@ export function TarifasTabs({
 }) {
   const [tab, setTab] = useState<Tab>("ddp");
 
+  // Pastilla deslizante detrás del tab activo: mide el botón activo y anima
+  // left/width hacia él, en vez del swap instantáneo de fondo de antes (cada
+  // botón tenía su propio bg-wine, sin indicar de dónde a dónde se movía).
+  const ddpRef = useRef<HTMLButtonElement>(null);
+  const consolidadoRef = useRef<HTMLButtonElement>(null);
+  const [pill, setPill] = useState<{ left: number; width: number } | null>(null);
+
+  useEffect(() => {
+    const measure = () => {
+      const el = tab === "ddp" ? ddpRef.current : consolidadoRef.current;
+      if (el) setPill({ left: el.offsetLeft, width: el.offsetWidth });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [tab]);
+
   return (
     <div>
       {/* Toggle de modalidad */}
       <div
         role="tablist"
         aria-label="Modalidad de envío"
-        className="inline-flex p-1 rounded-[14px] bg-grey-100 border border-grey-200 mb-6"
+        className="relative inline-flex p-1 rounded-[14px] bg-grey-100 border border-grey-200 mb-6"
       >
+        {pill && (
+          <span
+            aria-hidden="true"
+            className="absolute inset-y-1 rounded-[10px] bg-wine shadow-sm transition-all duration-300 ease-out"
+            style={{ left: pill.left, width: pill.width }}
+          />
+        )}
         <TabButton
+          ref={ddpRef}
           active={tab === "ddp"}
           onClick={() => setTab("ddp")}
           id="tab-ddp"
@@ -57,6 +82,7 @@ export function TarifasTabs({
           Puerta a Puerta <span className="opacity-70">· DDP</span>
         </TabButton>
         <TabButton
+          ref={consolidadoRef}
           active={tab === "consolidado"}
           onClick={() => setTab("consolidado")}
           id="tab-consolidado"
@@ -164,34 +190,30 @@ function FichaCard({
   );
 }
 
-function TabButton({
-  active,
-  onClick,
-  children,
-  id,
-  panelId,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-  id: string;
-  panelId: string;
-}) {
+const TabButton = forwardRef<
+  HTMLButtonElement,
+  {
+    active: boolean;
+    onClick: () => void;
+    children: React.ReactNode;
+    id: string;
+    panelId: string;
+  }
+>(function TabButton({ active, onClick, children, id, panelId }, ref) {
   return (
     <button
+      ref={ref}
       type="button"
       role="tab"
       id={id}
       aria-selected={active}
       aria-controls={panelId}
       onClick={onClick}
-      className={`px-4 sm:px-5 h-11 rounded-[10px] text-[13.5px] sm:text-[14.5px] font-semibold transition-colors ${
-        active
-          ? "bg-wine text-white shadow-sm"
-          : "bg-transparent text-grey-700 hover:text-ink"
+      className={`relative z-10 px-4 sm:px-5 h-11 rounded-[10px] text-[15px] sm:text-[16px] font-semibold transition-colors duration-300 ${
+        active ? "text-white" : "text-grey-700 hover:text-ink"
       }`}
     >
       {children}
     </button>
   );
-}
+});
