@@ -54,7 +54,7 @@ export function LoginForm({
     >
       {/* Topline: wordmark + sello "enlace mágico" */}
       <div className="w-full max-w-[940px] flex items-center justify-between gap-4 flex-wrap mb-6">
-        <BrandMark variant="reverse" size={30} />
+        <BrandMark asLink variant="reverse" size={30} />
         <span
           className="inline-flex items-center text-[10px] font-bold tracking-[0.12em] uppercase px-3.5 py-2 rounded-full"
           style={{

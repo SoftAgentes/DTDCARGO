@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import {
   BRAND_ASSETS,
   CONTACT,
@@ -260,7 +261,7 @@ export default function EnlacesPage() {
             className="enlaces-hero-photo"
           />
           <div className="enlaces-hero-scrim" />
-          <div className="enlaces-hero-top">
+          <Link href="/" className="enlaces-hero-top" aria-label="DTD Cargo — Inicio">
             {/* Decorativo (alt=""): el wordmark de al lado ya aporta el nombre
                 accesible "DTD Cargo" — evita que el lector lo anuncie dos veces. */}
             <Image
@@ -283,7 +284,7 @@ export default function EnlacesPage() {
                 {CONTACT.instagram.handle} · dtdcargo.com
               </div>
             </div>
-          </div>
+          </Link>
           <p className="enlaces-tagline">
             Con <b>Confianza</b>, de China a tu puerta.
           </p>
