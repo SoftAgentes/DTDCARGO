@@ -274,10 +274,14 @@ export function CalculadoraForm({
       }}
     >
       <div className="grid grid-cols-1 lg:grid-cols-2">
-        {/* ── COLUMNA IZQUIERDA · ENTRADA ── */}
+        {/* ── COLUMNA IZQUIERDA · ENTRADA ──
+            En consolidado (LCL) el orden se invierte (`lg:order-2`, solo desde
+            el breakpoint de 2 columnas): el contenedor que se llena cambia de
+            lado para marcar visualmente que es otra lógica de precio que el
+            puerta a puerta — mismo criterio del mockup Cloud Design
+            "Tarifas · DTD-Cargo.html". */}
         <div
-          className="p-6 lg:p-9 flex flex-col gap-5"
-          style={{ borderRight: "1px solid rgba(255,255,255,0.1)" }}
+          className={`p-6 lg:p-9 flex flex-col gap-5 ${esConsolidado ? "lg:order-2" : "lg:order-1"}`}
         >
           {/* Wordmark + eyebrow */}
           <div className="flex items-center justify-between gap-3">
@@ -485,8 +489,18 @@ export function CalculadoraForm({
           )}
         </div>
 
-        {/* ── COLUMNA DERECHA · RESULTADO ── */}
-        <div className="p-6 lg:p-9 flex flex-col gap-4" style={{ background: "rgba(0,0,0,0.15)" }}>
+        {/* ── COLUMNA DERECHA · RESULTADO ──
+            El divisor vive acá (no en la entrada) para que siempre quede del
+            lado que mira a la columna de entrada, sin importar en qué orden
+            caiga cada una. */}
+        <div
+          className={`p-6 lg:p-9 flex flex-col gap-4 ${esConsolidado ? "lg:order-1" : "lg:order-2"}`}
+          style={{
+            background: "rgba(0,0,0,0.15)",
+            borderLeft: esConsolidado ? "none" : "1px solid rgba(255,255,255,0.1)",
+            borderRight: esConsolidado ? "1px solid rgba(255,255,255,0.1)" : "none",
+          }}
+        >
           <ContainerFill cbm={effectiveForm.cbmTotal} max={params.cbmMaxContenedor} />
           <ResultPanel
             cotizacion={cotizacion}

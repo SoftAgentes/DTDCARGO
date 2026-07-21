@@ -926,6 +926,21 @@
   position: relative;
   border-radius: var(--r-xl);
   overflow: hidden;
+  border: 3px solid var(--border);
+  transition: border-color 300ms var(--ease), box-shadow 300ms var(--ease);
+}
+/* Anillo "estás aquí" del frame completo (no solo de las tarjetas calc-opt de
+   arriba): wine → DDP, warning → LCL — mismo código de color del mockup
+   "Tarifas · DTD-Cargo.html" (#calc[data-mode] .tf-frame). Refuerza que el
+   cliente sepa en qué lado/lógica está parado mientras la calculadora
+   (columnas + contenedor que se llena) cambia de lado al cambiar de modo. */
+.tf-frame[data-mode="ddp"] {
+  border-color: var(--wine);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--wine) 18%, transparent), var(--shadow-lg);
+}
+.tf-frame[data-mode="lcl"] {
+  border-color: var(--warning);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--warning) 18%, transparent), var(--shadow-lg);
 }
 .tf-leaf {
   position: absolute;

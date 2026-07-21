@@ -27,6 +27,16 @@ import { CONFIG, CONSOLIDADO_CBM_RATE, type CalcParams, type Ciudad } from "@/li
  * animación, cuando la hoja cubre TODO el frame — así el cambio de contenido
  * queda oculto detrás de la hoja, igual que el mockup ocultaba el reload del
  * iframe. Ver `.tf-leaf`/`@keyframes tf-leaf-l/r` en app/recursos.css.
+ *
+ * Dos señales más del mockup original ("Tarifas · DTD-Cargo.html", handoff
+ * founder), que faltaban en este puerto y se restauran acá:
+ *  · **Anillo "estás aquí"** del `.tf-frame` completo vía `data-mode` (wine/
+ *    warning) — no solo las tarjetas `calc-opt` de arriba.
+ *  · **Espejo de columnas** dentro de `<CalculadoraForm>`: en consolidado
+ *    (LCL) la entrada y el contenedor que se llena invierten de lado
+ *    (`lg:order-1`/`lg:order-2` según `esConsolidado`) — refuerza que DDP y
+ *    LCL son dos lógicas de precio distintas, no la misma calculadora con
+ *    otro número.
  */
 
 type ServerRate = {
@@ -107,8 +117,9 @@ export function TarifasTabs({
         />
       </div>
 
-      {/* Frame de la calculadora — la hoja cubre esto al cambiar de tab */}
-      <div className="tf-frame">
+      {/* Frame de la calculadora — la hoja cubre esto al cambiar de tab.
+          data-mode maneja el anillo "estás aquí" (wine/warning) del .tf-frame. */}
+      <div className="tf-frame" data-mode={tab === "consolidado" ? "lcl" : "ddp"}>
         {leaf && (
           <div
             key={leafRun}
