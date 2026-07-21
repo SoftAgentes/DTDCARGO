@@ -81,6 +81,52 @@ en divisas (≈95 % de los costos son a terceros en USD).
 por la naturaleza internacional del servicio; forma de pago caso por caso) sea la postura más segura
 frente a SUNDDE/BCV, y si conviene una **cláusula de moneda de pago** en el Acuerdo.
 
+### 5. Piso de volumen del LCL Consolidado + excepción por alto valor comercial (2026-07-21, propuesta Sam/Claude — falta redacción final de la abogada)
+
+La calculadora pública (`lib/calculadora.ts`, constante `CONSOLIDADO_CBM_MINIMO`, regla del
+founder 2026-07-20) no cotiza el LCL Consolidado por debajo de **1 m³**: deriva al asesor por
+WhatsApp con este mensaje —
+
+> *"Esta modalidad requiere un BL a tu nombre, y solo el BL puede llegar a costar
+> USD 300. Por debajo de 1 m³ ese gasto fijo se come tu margen. Si tu mercancía es de
+> alto valor comercial y aun así te conviene, háblalo con un asesor."*
+
+**Por qué existe el piso:** el Consolidado va hasta puerto con **BL propio del cliente** — un
+gasto fijo (hasta **USD 300**, `CONSOLIDADO_BL_COSTO_MAX`) que no baja con el volumen. Bajo
+1 m³ ese fijo se come el envío entero, y la mercancía chica queda en riesgo real de **abandono
+en el almacén fiscal** cuando el cliente ve la cuenta final — costo y riesgo para DTD, no solo
+mal negocio para el cliente.
+
+**La excepción (hoy sin tratamiento legal — código en `lib/calculadora.ts` marcado
+`🔶 PENDIENTE LEGAL`):** mercancía de muy alto valor comercial puede justificar el Consolidado
+aun bajo 1 m³, **bajo el riesgo del cliente**. Hoy la calculadora deriva a un asesor humano; no
+hay proceso ni documento que formalice la aceptación de ese riesgo.
+
+**Propuesta a validar/redactar por la abogada** (punto de partida, no texto final):
+
+1. **Cláusula del piso de volumen** en el Acuerdo: declarar explícitamente que el Consolidado
+   LCL tiene un volumen mínimo comercializable (hoy 1 m³) por el gasto fijo del BL propio, y que
+   DTD puede rechazar o derivar a evaluación comercial cualquier solicitud por debajo de ese
+   piso.
+2. **Cláusula de excepción por alto valor comercial:** DTD puede, a su sola discreción y previa
+   evaluación de un asesor, aceptar carga bajo el piso cuando el valor comercial de la mercancía
+   lo justifique. En ese caso el Cliente **reconoce y acepta expresamente** que el costo fijo del
+   BL propio puede representar una proporción desproporcionada del valor del flete, y asume ese
+   riesgo económico.
+3. **Cómo se documenta la aceptación** (abierto — necesita decisión de la abogada, no solo
+   redacción): la excepción hoy se resuelve por WhatsApp con un asesor, canal que no deja
+   evidencia con la misma fuerza que la aceptación digital versión+hash del Acuerdo (cláusula
+   13.1). Opciones a evaluar: (a) capturar la conversación de WhatsApp como evidencia informal
+   —ya es lo que pasa hoy, sin respaldo formal—; (b) un addendum/rider digital específico para
+   estos casos, firmado con el mismo mecanismo de versión+hash antes de confirmar el embarque;
+   (c) un checkbox de riesgo explícito en el flujo de aceptación del Portal cuando el asesor
+   registre el embarque bajo el piso. **No implementar nada de esto en código hasta que la
+   abogada defina el mecanismo** — es una decisión legal, no solo de producto.
+
+**Al publicar v3.1, si se incorpora:** sincronizar los mismos 3 espejos del punto 1 de este
+archivo (`acuerdo-servicios-v3.mdx`, `lib/legal-public.ts`, migración `legal_docs`) — y si se
+elige la opción (b) o (c) de arriba, hay trabajo de código pendiente aparte (no cubierto acá).
+
 ## Pendientes del abogado ya conocidos (no duplicar aquí)
 
 Los ~11 placeholders `[…]` de v3.0 (RIF, no-competencia, DEG, días de reclamo, prima de
