@@ -301,6 +301,49 @@ export function InstagramIcon({ className, size = 22 }: IconProps) {
   );
 }
 
+/** Mismo frame cuadrado redondeado que InstagramIcon, para la fila de redes del Footer. */
+export function YoutubeIcon({ className, size = 22 }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <rect x="2" y="2" width="20" height="20" rx="5" />
+      <path d="M10 8.5v7l6-3.5z" />
+    </svg>
+  );
+}
+
+/** Mismo frame cuadrado redondeado que InstagramIcon, para la fila de redes del Footer. */
+export function TiktokIcon({ className, size = 22 }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <rect x="2" y="2" width="20" height="20" rx="5" />
+      <path d="M14.5 6.5v7.8a2.7 2.7 0 1 1-2.3-2.67" />
+      <path d="M14.5 6.5c.4 1.9 1.9 3.3 3.8 3.5" />
+    </svg>
+  );
+}
+
 export function PhoneIcon({ className, size = 16 }: IconProps) {
   return (
     <svg
