@@ -157,6 +157,8 @@ export const chrome = {
   "chrome.toast.dismiss": "Cerrar",
   "chrome.toast.region_aria": "Notificaciones del Studio",
   "chrome.toast.dismiss_aria": "Cerrar notificación",
+  "chrome.toast.acting": "Procesando…",
+  "chrome.toast.action_failed": "No se pudo completar. Intenta de nuevo.",
 
   // ── Badges de status comunes ─────────────────────────────
   "chrome.badge.pending": "Pendiente",

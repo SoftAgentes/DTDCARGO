@@ -9,8 +9,9 @@
  * En modo edit, también ofrece Delete con confirm.
  */
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import {
   createMailRuleAction,
   deleteMailRuleAction,
@@ -61,6 +62,8 @@ export function RuleEditorDrawer({
   const [recipientKind, setRecipientKind] = useState<MailRecipientKind>(
     rule?.recipient_kind ?? "internal",
   );
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [, startDeleteTransition] = useTransition();
 
   useEffect(() => {
     if (state.ok || deleteState.ok) {
@@ -206,21 +209,16 @@ export function RuleEditorDrawer({
         }}
       >
         {mode === "edit" && rule ? (
-          <form action={deleteFormAction}>
-            <input type="hidden" name="id" value={rule.id} />
+          <div>
             <button
-              type="submit"
+              type="button"
               disabled={isPending}
               className="studio-btn studio-btn-danger studio-btn-sm"
-              onClick={(e) => {
-                if (!confirm("¿Borrar esta regla? La acción es definitiva.")) {
-                  e.preventDefault();
-                }
-              }}
+              onClick={() => setDeleteConfirmOpen(true)}
             >
               {deletePending ? "Borrando…" : "Borrar regla"}
             </button>
-          </form>
+          </div>
         ) : (
           <div />
         )}
@@ -250,6 +248,23 @@ export function RuleEditorDrawer({
           </button>
         </div>
       </footer>
+      {mode === "edit" && rule && (
+        <ConfirmDialog
+          open={deleteConfirmOpen}
+          danger
+          pending={deletePending}
+          title="Borrar regla de correo"
+          message="La regla se eliminará definitivamente y dejará de disparar correos."
+          confirmLabel="Borrar regla"
+          error={deleteState.error}
+          onCancel={() => setDeleteConfirmOpen(false)}
+          onConfirm={() => {
+            const data = new FormData();
+            data.set("id", rule.id);
+            startDeleteTransition(() => deleteFormAction(data));
+          }}
+        />
+      )}
     </DrawerShell>
   );
 }

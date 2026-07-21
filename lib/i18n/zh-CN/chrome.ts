@@ -160,6 +160,8 @@ export const chrome: ChromeDict = {
   "chrome.toast.dismiss": "关闭",
   "chrome.toast.region_aria": "Studio 通知",
   "chrome.toast.dismiss_aria": "关闭通知",
+  "chrome.toast.acting": "处理中…",
+  "chrome.toast.action_failed": "无法完成操作，请重试。",
 
   // ── Badges de status comunes ─────────────────────────────
   "chrome.badge.pending": "待处理",

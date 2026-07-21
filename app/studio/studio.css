@@ -467,6 +467,102 @@
   }
 }
 
+/* AVS-01 · viewport adaptativo de avisos. En móvil deja libre la barra de
+   navegación del ERP y el safe area; en escritorio conserva el offset del FAB. */
+.studio-toast-viewport {
+  position: fixed;
+  right: calc(var(--s-6) + var(--s-16));
+  bottom: var(--s-6);
+  z-index: 150;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  width: max-content;
+  max-width: min(560px, calc(100vw - var(--s-12)));
+  pointer-events: none;
+}
+
+.studio-toast-action {
+  min-height: var(--s-6);
+  margin-top: calc(var(--s-1) / 2);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--wine-text);
+  font: 700 12px/1.4 var(--f-sans);
+  text-decoration: underline;
+  text-underline-offset: calc(var(--s-1) / 2);
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.studio-toast-action:hover:not(:disabled) {
+  color: var(--ink);
+  text-decoration-thickness: 2px;
+}
+
+.studio-toast-action:focus-visible,
+.studio-toast-close:focus-visible {
+  outline: 2px solid var(--wine-text);
+  outline-offset: 2px;
+}
+
+.studio-toast-action:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.studio-toast-close {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--s-8);
+  height: var(--s-8);
+  margin-top: calc(var(--s-1) / -2);
+  margin-right: calc(var(--s-1) * -1);
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ink-mute);
+  cursor: pointer;
+}
+
+.studio-toast-close:hover:not(:disabled) {
+  background: var(--bg-elevated);
+  color: var(--ink);
+}
+
+.studio-toast-close:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+@media (max-width: 767px) {
+  .studio-toast-viewport {
+    right: var(--s-4);
+    bottom: calc(
+      76px + env(safe-area-inset-bottom) + var(--s-3) +
+        var(--studio-toast-keyboard-offset, 0px)
+    );
+    left: var(--s-4);
+    width: auto;
+    max-width: none;
+  }
+
+  .studio-toast {
+    min-width: 0 !important;
+    width: 100%;
+    max-width: none !important;
+  }
+
+  .studio-toast-close {
+    width: calc(var(--s-10) + var(--s-1));
+    height: calc(var(--s-10) + var(--s-1));
+  }
+}
+
 /* Animación de entrada del ToastCard (parte de Trazabilidad visual). */
 @keyframes studio-toast-in {
   from {
