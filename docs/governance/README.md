@@ -10,7 +10,7 @@
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-22 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-018 · revisión técnica local A2 2026-07-22](BASELINE-2026-07-22-08.md) |
+| Línea base vigente | [LB-SGE-019 · aplicación y verificación A2 2026-07-22](BASELINE-2026-07-22-09.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -61,6 +61,8 @@ artefactos permanecen en sus fuentes correspondientes.
 | Revisión del diseño Corte A | [REV-AUD-002](reviews/aud-corte-a.md) |
 | Revisión de aplicación individual A1 | [REV-AUD-003](reviews/aud-corte-a1.md) |
 | Recibo de aplicación A1 | [REV-AUD-004](reviews/aud-corte-a1-aplicacion.md) |
+| Revisión de aplicación individual A2 | [REV-AUD-005](reviews/aud-corte-a2.md) |
+| Recibo de aplicación A2 | [REV-AUD-006](reviews/aud-corte-a2-aplicacion.md) |
 | Jerarquía visual | [VIS-01 v1.0](policies/vis-01.md) |
 | Tipografía por voz e idioma | [VIS-02 v1.0](policies/vis-02.md) |
 | Accesibilidad transversal | [A11Y-01 v0.1](policies/a11y-01.md) |
@@ -118,11 +120,11 @@ disfraza elevando el estado normativo.
 | Código | Política | Estado normativo | Estado del ERP | Documento o próximo gate |
 |---|---|---|---|---|
 | SGE-00 | Principios constitucionales de experiencia | aprobada | Constitución vigente para cambios nuevos/modificados; legado aún no auditado transversalmente | [REV-SGE-002 aprobada](reviews/sge-00-btn-01.md) |
-| MP-01 | Matriz de permanencia | aprobada v1.1 | [SDD-0168](../specs/0168-mp-01-comentarios-permanencia-restauracion/spec.md) aprobado como primer slice P2 para comentarios; todavía sin implementación | A2, diseño técnico, migración, RBAC, Cloud y cualquier purga mantienen gates separados |
+| MP-01 | Matriz de permanencia | aprobada v1.1 | [SDD-0168](../specs/0168-mp-01-comentarios-permanencia-restauracion/spec.md) aprobado como primer slice P2 para comentarios; todavía sin implementación | Diseño técnico, migración, RBAC, Cloud y cualquier purga mantienen gates separados |
 | BTN-01 | Semántica, jerarquía y contrato de botones | aprobada | [Vocabulario, orden, estados y contrato](policies/btn-01.md) vigentes; adopción del legado no auditada | Crear SDD por alcance antes de migrar consumidores |
 | HTD-01 | Confirmación por presión sostenida | aprobada | [Contrato v1.0](policies/htd-01.md) consolidado; no implementado | Crear SDD solo para una entidad R3 clasificada por MP-01 |
 | AVS-01 | Avisos y confirmaciones | verificada | Primitiva compatible implementada; consumidores heredados pendientes | [SDD-0165](../specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md) |
-| AUD-01 | Evento auditable y vínculo con acciones | aprobada | [A1 `0258_audit_entity_catalog.sql`](../../supabase/migrations/0258_audit_entity_catalog.sql) aplicado y verificado; [A2 `0261_audit_entity_catalog_validate.sql`](../../supabase/migrations/0261_audit_entity_catalog_validate.sql) revisado localmente, no aplicado; Cloud conserva FK `NOT VALID` y CHECK | [REV-AUD-005](reviews/aud-corte-a2.md); aplicación A2 mantiene gate independiente |
+| AUD-01 | Evento auditable y vínculo con acciones | aprobada | Corte A completado: [A1 `0258_audit_entity_catalog.sql`](../../supabase/migrations/0258_audit_entity_catalog.sql) y [A2 `0261_audit_entity_catalog_validate.sql`](../../supabase/migrations/0261_audit_entity_catalog_validate.sql) aplicadas y verificadas; FK validada y CHECK legacy retirado | [REV-AUD-006](reviews/aud-corte-a2-aplicacion.md); Cortes B–E mantienen gates independientes |
 | AUD-02 | Consulta, conservación, exportación y acceso | aprobada | [Matriz ACL aprobada](reviews/aud-corte-a.md), secuenciada B/C para no romper viewer/writers; implementación ausente | Mantener revocaciones fuera de A; preparar gates B/C después del catálogo |
 | VIS-01 | Jerarquía visual y distribución 60-30-10 | aprobada | [Documento canónico v1.0](policies/vis-01.md); tokens/Norte cubren parte, falta auditoría de adopción | Auditar superficies y excepciones |
 | VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | [Documento canónico v1.0](policies/vis-02.md); Noto Sans SC está cargada, Noto Serif SC no | Crear SDD de tokens y verificar correo/PDF |
@@ -184,9 +186,8 @@ aprobaron en LB-SGE-004. El orden que gobierna la siguiente fase es:
 1. conservar [SDD-0168](../specs/0168-mp-01-comentarios-permanencia-restauracion/spec.md)
    como primer alcance P2 aprobado documentalmente; no existe autorización para
    diseño técnico, implementación, migraciones, RBAC, Cloud ni purgas;
-2. conservar A1 y su recibo en Git; A2 está aprobado técnicamente para una
-   futura aplicación individual, todavía sin autorización Cloud; no ejecutar
-   la matriz ACL;
+2. conservar A1, A2 y sus recibos en Git; el Corte A está aplicado y verificado;
+   no ejecutar la matriz ACL ni abrir los Cortes B–E sin sus gates propios;
 3. revisar las políticas v0.1 por bloques coherentes, no como aprobación masiva;
 4. implementar VIS-02 (Noto Serif SC/tokens/salidas) y auditar VIS-01;
 5. convertir componentes existentes a estados CMP-01 con evidencia;
@@ -213,7 +214,8 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-018 · revisión técnica local A2](BASELINE-2026-07-22-08.md). La
+[LB-SGE-019 · aplicación y verificación A2](BASELINE-2026-07-22-09.md). La
+revisión técnica local de A2 [LB-SGE-018](BASELINE-2026-07-22-08.md), la
 aprobación documental de SDD-0168 [LB-SGE-017](BASELINE-2026-07-22-07.md), la
 aprobación normativa MP-01 [LB-SGE-016](BASELINE-2026-07-22-06.md), la
 propuesta previa [LB-SGE-015](BASELINE-2026-07-22-05.md), el cierre de A1

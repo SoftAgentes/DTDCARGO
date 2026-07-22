@@ -46,7 +46,7 @@ El slice convierte el `deleted_at` actual en un contrato P2 verificable:
 | Badge | `countUnreadMentions()` cuenta filas sin unir el estado del comentario | Puede quedar un conteo no visible mientras el comentario está eliminado. |
 | Integridad | `comments_freeze_immutable` congela tenant, entidad, autor, padre y fecha; body, `edited_at` y `deleted_at` siguen mutables | La identidad ya se preserva, pero el acceso directo todavía permite transiciones sin el contrato nuevo. |
 | RLS | El autor o un admin pueden actualizar; `authenticated` no puede hacer hard-delete; `service_role` conserva acceso total | La autorización actual es más amplia que una acción gobernada y no expresa capabilities de restauración/moderación. |
-| Auditoría | No hay evento por eliminar/restaurar y `comment` no está en el catálogo A1 | No cumple AUD-01; el gate A2 de SDD-0166 sigue siendo dependencia independiente. |
+| Auditoría | No hay evento por eliminar/restaurar y `comment` todavía no está en el catálogo AUD | A2 ya fue aplicado y verificó el catálogo extensible; el alta aditiva de `comment` y la atomicidad del dominio conservan gates propios. |
 | Pruebas | Existen pruebas de actions, queries y workflow de comentarios | Cubren el soft-delete actual, no ventanas, restauración, atomicidad ni carreras. |
 
 La restauración real disponible hoy es **manual a nivel de dato**: limpiar
@@ -186,13 +186,14 @@ El payload no copia el body, menciones, email, nombre completo ni otra PII. Usa
 IDs y metadatos mínimos. La retención de estos eventos permanece P4 y se rige
 por AUD-02; SDD-0168 no habilita su purga.
 
-### 7.2 Dependencia A2
+### 7.2 Estado de la dependencia A2
 
-El Corte A1 creó `audit_entity_types`, pero el CHECK legacy sigue activo y no
-incluye `comment`. SDD-0168 no reabre ni reemplaza ese CHECK. Antes de implementar
-la auditoría de comentarios debe completarse y autorizarse por separado el
-Corte A2 de SDD-0166; luego el cambio de dominio puede registrar `comment` de
-forma aditiva. El Corte D de atomicidad también conserva revisión propia.
+El Corte A1 creó `audit_entity_types` y el Corte A2 validó su FK y retiró el
+CHECK legacy. [REV-AUD-006](../../governance/reviews/aud-corte-a2-aplicacion.md)
+registra la aplicación y verificación individual de A2. SDD-0168 no reabre ni
+reemplaza ese CHECK, tampoco agrega `comment` por sí mismo: el futuro cambio de
+dominio debe registrarlo de forma aditiva. El Corte D de atomicidad conserva
+revisión y autorización propias.
 
 ## 8. Cambios que exigiría una implementación futura
 
@@ -206,7 +207,7 @@ Esta sección define el impacto, no crea una migración ni autoriza cambios.
   que validen tenant, estado, ventana y actor, y escriban AUD-01 atómicamente.
 - Impedir que un `UPDATE` directo altere `deleted_at` fuera de esas
   transiciones, incluidos clientes privilegiados según el gate aplicable.
-- Agregar `comment` al catálogo AUD después de A2, sin reconstruir listas
+- Agregar `comment` de forma aditiva al catálogo AUD, sin reconstruir listas
   regresivas.
 - Mantener las FK y no añadir `ON DELETE` ni rutina de purga.
 
@@ -318,7 +319,9 @@ parte del gate UI. El orden y jerarquía de acciones deben cumplir BTN-01.
 
 - [x] SDD-0168 fue aprobado documentalmente el 2026-07-22, sin autorizar
       implementación.
-- [ ] A2 y el corte de atomicidad aplicable de SDD-0166 tienen autorización y
+- [x] A2 fue aplicado y verificado individualmente, con evidencia en
+      REV-AUD-006.
+- [ ] El corte de atomicidad aplicable de SDD-0166 tiene autorización y
       evidencia propias.
 - [ ] Migración, RBAC, Cloud/producción, commit y push reciben autorización
       individual; ninguna se infiere de aprobar este documento.
@@ -347,7 +350,7 @@ parte del gate UI. El orden y jerarquía de acciones deben cumplir BTN-01.
 | Restauración por actor o tenant incorrecto | Identidad server-side, capability y prueba cruzada de tenant. |
 | Badge fantasma de menciones | Conteo condicionado al comentario activo y prueba de ida/vuelta. |
 | Reenviar efectos al restaurar | Reusar filas existentes; cero fan-out de notificación. |
-| CHECK AUD regresivo | Depender de A2; no reconstruir la whitelist desde este dominio. |
+| CHECK AUD regresivo | A2 retiró la whitelist; no reconstruirla desde este dominio. |
 | Historia legacy inventada | Actor desconocido permanece no resuelto; solo se audita la transición nueva. |
 | `service_role` salta el contrato | Funciones/grants estrechos bajo el corte AUD autorizado; prueba de abuso. |
 
@@ -355,8 +358,8 @@ parte del gate UI. El orden y jerarquía de acciones deben cumplir BTN-01.
 
 1. **Aprobación documental cerrada el 2026-07-22:** SDD-0168 fija alcance y
    contrato sin autorizar implementación.
-2. **Autorizar y cerrar A2 de SDD-0166**; conservar independiente el Corte D de
-   atomicidad y cualquier cambio de grants.
+2. **A2 cerrado el 2026-07-22:** FK validada y CHECK legacy retirado; el Corte D
+   de atomicidad y cualquier cambio de grants permanecen independientes.
 3. **Autorizar diseño técnico local** de migración y RBAC para comentarios.
 4. **Implementar y verificar localmente** con pruebas de DB, actions, UI,
    accesibilidad y fallo seguro.
