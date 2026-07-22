@@ -3,14 +3,14 @@
 | Control | Valor |
 |---|---|
 | Documento | Índice maestro del Sistema de Gobernanza |
-| Versión | 2.8 |
+| Versión | 2.9 |
 | Dueño | Sam (founder) |
 | Custodia | Producto + Diseño + Ingeniería |
 | Estado | activo |
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-22 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-016 · aprobación normativa MP-01 v1.1 2026-07-22](BASELINE-2026-07-22-06.md) |
+| Línea base vigente | [LB-SGE-017 · aprobación documental SDD-0168 2026-07-22](BASELINE-2026-07-22-07.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -49,6 +49,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Revisión conjunta Constitución + botones | [REV-SGE-002](reviews/sge-00-btn-01.md) |
 | Permanencia y eliminación | [MP-01 v1.1](policies/mp-01.md) |
 | Aprobación de defaults MP-D1 a MP-D7 | [REV-MP-001](reviews/mp-01-decisions.md) |
+| Primer slice MP-01 aprobado | [SDD-0168 · comentarios internos](../specs/0168-mp-01-comentarios-permanencia-restauracion/spec.md) |
 | Botones y acciones | [BTN-01 v1.0](policies/btn-01.md) |
 | Presión sostenida crítica | [HTD-01 v1.0](policies/htd-01.md) |
 | Auditoría de mutaciones | [AUD-01 v1.0](policies/aud-01.md) |
@@ -117,7 +118,7 @@ disfraza elevando el estado normativo.
 | Código | Política | Estado normativo | Estado del ERP | Documento o próximo gate |
 |---|---|---|---|---|
 | SGE-00 | Principios constitucionales de experiencia | aprobada | Constitución vigente para cambios nuevos/modificados; legado aún no auditado transversalmente | [REV-SGE-002 aprobada](reviews/sge-00-btn-01.md) |
-| MP-01 | Matriz de permanencia | aprobada v1.1 | [REV-MP-001](reviews/mp-01-decisions.md) aprobó MP-D1 a MP-D7; no existe implementación de retención, restauración o purga | Crear SDD separado de implementación; validar clasificación contable/legal y backups antes de cualquier purga |
+| MP-01 | Matriz de permanencia | aprobada v1.1 | [SDD-0168](../specs/0168-mp-01-comentarios-permanencia-restauracion/spec.md) aprobado como primer slice P2 para comentarios; todavía sin implementación | A2, diseño técnico, migración, RBAC, Cloud y cualquier purga mantienen gates separados |
 | BTN-01 | Semántica, jerarquía y contrato de botones | aprobada | [Vocabulario, orden, estados y contrato](policies/btn-01.md) vigentes; adopción del legado no auditada | Crear SDD por alcance antes de migrar consumidores |
 | HTD-01 | Confirmación por presión sostenida | aprobada | [Contrato v1.0](policies/htd-01.md) consolidado; no implementado | Crear SDD solo para una entidad R3 clasificada por MP-01 |
 | AVS-01 | Avisos y confirmaciones | verificada | Primitiva compatible implementada; consumidores heredados pendientes | [SDD-0165](../specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md) |
@@ -180,9 +181,9 @@ cómo pasar de una política aprobada a contrato, pruebas y evidencia visual.
 La extracción documental concluyó en LB-SGE-003 y la constitución/acciones se
 aprobaron en LB-SGE-004. El orden que gobierna la siguiente fase es:
 
-1. clasificar entidades por estado usando MP-01 v1.1 y redactar un SDD separado
-   para el primer alcance de implementación, sin autorizar todavía migraciones
-   ni purgas;
+1. conservar [SDD-0168](../specs/0168-mp-01-comentarios-permanencia-restauracion/spec.md)
+   como primer alcance P2 aprobado documentalmente; no existe autorización para
+   diseño técnico, implementación, migraciones, RBAC, Cloud ni purgas;
 2. conservar A1 y su recibo en Git; no existe permiso para redactar/aplicar A2
    ni ejecutar la matriz ACL;
 3. revisar las políticas v0.1 por bloques coherentes, no como aprobación masiva;
@@ -211,7 +212,8 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-016 · aprobación normativa MP-01 v1.1](BASELINE-2026-07-22-06.md). La
+[LB-SGE-017 · aprobación documental SDD-0168](BASELINE-2026-07-22-07.md). La
+aprobación normativa MP-01 [LB-SGE-016](BASELINE-2026-07-22-06.md), la
 propuesta previa [LB-SGE-015](BASELINE-2026-07-22-05.md), el cierre de A1
 [LB-SGE-014](BASELINE-2026-07-22-04.md), la aprobación de
 aplicación [LB-SGE-013](BASELINE-2026-07-22-03.md), la redacción
