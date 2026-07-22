@@ -13,10 +13,11 @@ confidencialidad: interno
 
 # SDD-0168 — MP-01 Slice 1: permanencia y restauración de comentarios internos
 
-> **Estado de control:** aprobado documentalmente el 2026-07-22. Esta aprobación
-> fija alcance y criterios; no autoriza código, migraciones, cambios de RBAC,
-> Supabase Cloud, producción, jobs, Storage, purgas, commit ni push. Cada gate
-> descrito aquí conserva autorización propia.
+> **Estado de control:** aprobado documentalmente el 2026-07-22. El
+> [diseño técnico v1.0](diseno-tecnico.md) fue aprobado técnicamente por
+> [REV-MP-002](../../governance/reviews/mp-01-comments-design.md), sin autorizar
+> código, migraciones, cambios efectivos de RBAC, Supabase Cloud, producción,
+> jobs, Storage ni purgas. Cada gate de ejecución conserva autorización propia.
 
 ## 1. Propósito
 
@@ -197,7 +198,10 @@ revisión y autorización propias.
 
 ## 8. Cambios que exigiría una implementación futura
 
-Esta sección define el impacto, no crea una migración ni autoriza cambios.
+El contrato ejecutable, la frontera de confianza, datos, RPCs, rollout
+`DB-1 → APP → DB-2`, pruebas y forward-fix están fijados en
+[DT-SDD-0168 v1.0](diseno-tecnico.md). Esta sección resume el impacto; no crea
+una migración ni autoriza cambios.
 
 ### Base de datos
 
@@ -321,8 +325,9 @@ parte del gate UI. El orden y jerarquía de acciones deben cumplir BTN-01.
       implementación.
 - [x] A2 fue aplicado y verificado individualmente, con evidencia en
       REV-AUD-006.
-- [ ] El corte de atomicidad aplicable de SDD-0166 tiene autorización y
-      evidencia propias.
+- [x] El diseño técnico del corte de atomicidad aplicable fue aprobado en
+      REV-MP-002, sin declarar completo el Corte D global.
+- [ ] DB-1, APP y DB-2 tienen implementación, autorización y evidencia propias.
 - [ ] Migración, RBAC, Cloud/producción, commit y push reciben autorización
       individual; ninguna se infiere de aprobar este documento.
 
@@ -360,8 +365,9 @@ parte del gate UI. El orden y jerarquía de acciones deben cumplir BTN-01.
    contrato sin autorizar implementación.
 2. **A2 cerrado el 2026-07-22:** FK validada y CHECK legacy retirado; el Corte D
    de atomicidad y cualquier cambio de grants permanecen independientes.
-3. **Autorizar diseño técnico local** de migración y RBAC para comentarios.
-4. **Implementar y verificar localmente** con pruebas de DB, actions, UI,
+3. **Diseño técnico cerrado el 2026-07-22:** DT-SDD-0168 v1.0 aprobado por
+   REV-MP-002, sin autorizar ejecución.
+4. **Implementar y verificar localmente** DB-1, APP y DB-2 con pruebas de DB, actions, UI,
    accesibilidad y fallo seguro.
 5. **Revisar el gate SGE/MP/AUD/BTN/AVS** con evidencia.
 6. **Autorizar por nombre** cada migración Cloud; después verificar producción.
@@ -377,6 +383,8 @@ El ajuste de revisión fijó una frontera determinista: `public.comments` es
 colaboración interna P2 y no puede ser la fuente autoritativa de evidencia o
 decisiones P4.
 
-La aprobación no autoriza pasar automáticamente al diseño técnico ni modificar
-código, base de datos, RBAC o Cloud. El próximo gate debe ser solicitado y
-autorizado de forma separada.
+La autorización posterior permitió completar
+[DT-SDD-0168 v1.0](diseno-tecnico.md). REV-MP-002 lo aprueba técnicamente para
+implementación local por gates, pero no autoriza modificar código, base de
+datos, RBAC, Vercel o Cloud. El próximo gate es DB-1 local y debe conservar
+revisión y autorización separadas.
