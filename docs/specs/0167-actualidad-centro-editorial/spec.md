@@ -135,15 +135,21 @@ La corrección reemplaza los tokens nuevos por un valor opaco cifrado y
 autenticado que viaja dentro de `/api/email/unsubscribe/[token]`. El payload ya
 no deja correo ni tenant legibles en la URL o en los access logs. La ruta
 anterior con `?token=` y los tokens HMAC históricos permanecen compatibles para
-los correos ya enviados. No requiere migración y debe validarse primero en un
-nuevo Preview antes de repetir una única prueba interna.
+los correos ya enviados. No requiere migración.
+
+El Preview `https://dtdcargo-lo6kjy75y-hailu-wey.vercel.app` (deployment
+`dpl_3CyswbFrZcU3pW914E6XgqKEN28F`, READY) validó la nueva ruta sin ejecutar una
+baja real: Vercel resolvió `X-Matched-Path: /api/email/unsubscribe/[token]`, el
+diagnóstico registró `tokenTransport = path`, `tokenPresent = true` y cuatro
+segmentos, y la respuesta `303` retiró el token al redirigir a `/email/baja`.
+También se comprobó que la ruta query histórica permanece operativa. No se envió
+otro correo ni se cambió el estado de ningún suscriptor.
 
 El gate que falta es:
 
-1. desplegar y validar la nueva ruta dinámica en un Preview autorizado;
-2. repetir una única prueba exclusivamente interna y confirmar que la respuesta
+1. repetir una única prueba exclusivamente interna y confirmar que la respuesta
    menciona Actualidad y persiste `status = 'unsubscribed'` sin reparación manual;
-3. autorizar por separado la publicación a producción.
+2. autorizar por separado la publicación a producción.
 
 Publicar un artículo nunca envía una campaña automáticamente.
 
