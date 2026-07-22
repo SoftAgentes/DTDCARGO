@@ -9,6 +9,7 @@ const links = [
   { href: "/servicios", label: "Servicios" },
   { href: "/pre-alertas", label: "Pre-alertas" },
   { href: "/tarifas", label: "Tarifas" },
+  { href: "/noticias", label: "Actualidad" },
 ];
 
 /** Contenido de apoyo agrupado en el dropdown "Ayuda" (antes "Recursos").
@@ -21,7 +22,6 @@ const recursos = [
   { href: "/shipping-mark", label: "Cómo trabajamos" },
   { href: "/faq", label: "Preguntas frecuentes" },
   { href: "/glosario", label: "Glosario" },
-  { href: "/noticias", label: "Noticias" },
 ];
 
 /** Selector de elementos enfocables para focus trap (WCAG 2.4.3) */
@@ -31,9 +31,9 @@ const FOCUSABLE_SEL =
 /**
  * Top navigation — sticky, blur, drawer mobile completo con focus trap.
  *
- * Desktop (lg+): logo + 2 links + dropdown "Ayuda" + Acceder + CTA "Contáctanos"
+ * Desktop (lg+): logo + enlaces principales + dropdown "Ayuda" + Acceder + CTA.
  * Mobile (<lg):  logo + [≡ hamburguesa] + [Contacto btn]
- *                El hamburger abre un drawer con los 2 links + acordeón "Ayuda"
+ *                El hamburger abre un drawer con los enlaces + acordeón "Ayuda"
  *                + cuenta + CTA.
  *
  * Accesibilidad (WCAG 2.2):
@@ -195,9 +195,8 @@ export function Nav() {
             <BrandMark asLink size={38} />
           </span>
 
-          {/* Desktop nav: full horizontal desde lg (1024px). 3 links + dropdown
-              "Recursos" + Acceder + CTA; por debajo de lg va el drawer hamburguesa.
-              (Cómo trabajamos, FAQ, Glosario y Noticias viven en Recursos.) */}
+          {/* Desktop nav: full horizontal desde lg (1024px). Actualidad es
+              enlace principal; Academia, proceso, FAQ y Glosario viven en Ayuda. */}
           <div className="hidden lg:flex items-center gap-x-3">
             {links.map((l) => {
               const active = isLinkActive(pathname, l.href);

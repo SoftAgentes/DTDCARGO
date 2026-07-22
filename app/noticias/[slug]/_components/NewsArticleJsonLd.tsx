@@ -14,8 +14,9 @@
  * de env vars públicas del sitio.
  */
 
-import type { NewsPostRow } from "@/lib/news/queries";
+import type { NewsPostRow } from "@/lib/news/types";
 import { getCategoryInfo } from "@/lib/news/categories";
+import { articleSchemaTypeOf } from "@/lib/news/editorial";
 
 interface Props {
   post: NewsPostRow;
@@ -50,6 +51,7 @@ export function NewsArticleJsonLd({ post }: Props) {
 
   const cat = getCategoryInfo(post.categoria);
   const articleSection = cat.label;
+  const schemaType = articleSchemaTypeOf(post);
 
   const description = post.meta_description || post.excerpt;
   const wordCount = wordCountOf(post.body_markdown);
@@ -61,6 +63,7 @@ export function NewsArticleJsonLd({ post }: Props) {
     post.author_name === "DTD Cargo"
       ? {
           "@type": "Organization" as const,
+          "@id": `${siteUrl}/#organization`,
           name: "DTD Cargo",
           url: siteUrl,
         }
@@ -78,7 +81,7 @@ export function NewsArticleJsonLd({ post }: Props) {
 
   const data = {
     "@context": "https://schema.org",
-    "@type": "NewsArticle",
+    "@type": schemaType,
     mainEntityOfPage: {
       "@type": "WebPage",
       "@id": url,
@@ -87,10 +90,7 @@ export function NewsArticleJsonLd({ post }: Props) {
     description,
     image: [ogImageUrl],
     datePublished: post.date,
-    // dateModified = post.date a propósito: `news_posts` no expone updated_at
-    // en NewsPostRow (solo date/created_at). No inventar una fecha de edición
-    // que la DB no tiene; si algún día se agrega la columna, cablearla acá.
-    dateModified: post.date,
+    dateModified: post.updated_at || post.date,
     author: [author],
     publisher: {
       "@type": "Organization",
@@ -110,12 +110,20 @@ export function NewsArticleJsonLd({ post }: Props) {
     wordCount,
     inLanguage: "es",
     ...(post.author_role ? { creditText: post.author_role } : {}),
+    ...(post.reviewer_name
+      ? {
+          reviewedBy: {
+            "@type": "Person",
+            name: post.reviewer_name,
+            ...(post.reviewer_role ? { jobTitle: post.reviewer_role } : {}),
+          },
+        }
+      : {}),
   };
 
   return (
     <script
       type="application/ld+json"
-      // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
     />
   );

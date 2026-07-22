@@ -132,6 +132,22 @@ El `connect-src`/`img-src` del CSP (`next.config.ts`) permitía `googleads.g.dou
 - En GA4: marcar `generate_lead` y `whatsapp_click` como **key events** cuando fluyan post-deploy; crear audiencia **"Todos los visitantes — 30 días"** YA (supera los 100 miembros de una y desbloquea remarketing/adquisición en Ads) y luego **"Intención de cotizar"** (`whatsapp_click` O `generate_lead`, retención 90 días). Si se crean audiencias por `page_path` de `/calculadora`, excluir `/calculadora/embed`.
 - En Google Ads: conversión "Click WhatsApp" → confirmar estado "Activa" y que enhanced conversions ya no reporte beacon bloqueado (fix CSP 2026-07-04) · **eliminar "Contactar"** (viene de UA, descontinuado) · **quitar "Vista de página" como conversión principal** (9k page views contaminan Smart Bidding) · las acciones de llamada sin conversiones recientes son normales con las campañas pausadas.
 
+### 2026-07-22 · `/noticias` pasa a “Actualidad”
+
+- La ruta canónica sigue siendo `/noticias`; no se crea `/blog` ni se dividen intenciones.
+- Nombre corto en el menú principal: **Actualidad**. Título visible aprobado:
+  **“Actualidad, guía y noticias”**.
+- La portada organiza el CMS existente por las seis categorías de negocio de
+  SDD-0088, oculta categorías vacías, muestra búsqueda desde ocho publicaciones
+  y pagina el archivo cada doce.
+- Cada artículo emite `BlogPosting`, `NewsArticle` o `Article` según su naturaleza.
+  Se retiró el `FAQPage` automático: las preguntas siguen dentro del contenido,
+  sin convertir cualquier encabezado interrogativo en datos estructurados.
+- La web pública consulta `news_posts` mediante `lib/public/news-queries.ts`.
+  El newsletter se muestra inactivo hasta aprobar la migración y verificar alta,
+  envío manual y baja firmada de punta a punta.
+- Spec y gates: [`../specs/0167-actualidad-centro-editorial/spec.md`](../specs/0167-actualidad-centro-editorial/spec.md).
+
 ## 🛡️ Reglas SEO que NO se rompen
 
 1. **Nunca quitar el 301** `doortudoor.com → dtdcargo.com`.
