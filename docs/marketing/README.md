@@ -88,11 +88,14 @@ Connector SDD-0043 (sync E2E en prod: leads/contactos/pipelines/webhooks). Fuent
   solo correo a `vzla@dtdcargo.com`, con cero destinatarios externos; el enlace
   llegó al endpoint del Preview, pero terminó en `estado=invalido` y el suscriptor
   permaneció `subscribed`, sin reparación manual. El gate de baja firmada sigue
-  fallido: falta diagnosticar la estructura/firma sin exponer el token, corregir
-  en otro Preview autorizado y repetir una única prueba interna antes de habilitar
-  campañas. La instrumentación local ya correlaciona emisor y endpoint con una
-  huella irreversible y sin PII; pasó pruebas dirigidas, TypeScript y lint, pero
-  todavía no fue desplegada. Publicar una noticia nunca envía una campaña.
+  fallido. El diagnóstico desplegado en
+  `dtdcargo-j6tgb6pxy-hailu-wey.vercel.app` confirmó que la huella recibida por
+  correo coincidía con la emitida, pero Outlook retiró `?token=...` y la API
+  recibió el token ausente. La corrección transporta un token opaco cifrado en
+  `/api/email/unsubscribe/[token]`, conserva compatibilidad con enlaces HMAC
+  anteriores y no requiere migración. Falta validarla en un nuevo Preview y
+  repetir una única prueba interna antes de habilitar campañas. Publicar una
+  noticia nunca envía una campaña.
 - **Alta de cliente web = `/registro`** (registro REAL: crea el cliente con Shipping Mark/MARKBOX vía `rpc('next_markbox')` + opt-in email + aviso a admins — `app/registro/actions.ts`; ya no es mock).
 - **Portal cliente = `/portal`** (passwordless). **Productos comerciales:** consolidación · puerta_a_puerta_DDP · reserva_FCL · transporte_terrestre.
 - **Canales públicos = solo** CRM WhatsApp (`+58 412 166 8021`, primario) + Fijo Valencia (`+58 241 414 7886`). Ver `feedback_single_point_of_contact`.

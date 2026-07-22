@@ -2,8 +2,10 @@
  * Tests del token firmado de unsubscribe (SDD-0082 · SDD-0062 Slice D).
  */
 
+import { createHmac } from "node:crypto";
 import { describe, it, expect } from "vitest";
 import {
+  buildUnsubscribeUrl,
   signUnsubscribeToken,
   unsubscribeTokenFingerprint,
   verifyUnsubscribeToken,
@@ -23,6 +25,9 @@ describe("unsubscribe token", () => {
       tenantId: "tenant-1",
       audience: "marketing",
     });
+    expect(tok.split(".")).toHaveLength(4);
+    expect(tok.startsWith("v2.")).toBe(true);
+    expect(tok).not.toContain("cliente");
   });
 
   it("firma y verifica baja de newsletter", () => {
@@ -47,13 +52,40 @@ describe("unsubscribe token", () => {
     expect(verifyUnsubscribeToken(tok, "otro-secreto")).toBeNull();
   });
 
-  it("rechaza token manipulado (payload cambiado, firma vieja)", () => {
+  it("rechaza token cifrado manipulado", () => {
     const tok = signUnsubscribeToken({ email: "a@b.com", tenantId: "t" }, SECRET);
-    const forged =
-      signUnsubscribeToken({ email: "victima@b.com", tenantId: "t" }, SECRET).split(".")[0] +
-      "." +
-      tok.split(".")[1];
+    const parts = tok.split(".");
+    parts[2] = `${parts[2].slice(0, -1)}${parts[2].endsWith("A") ? "B" : "A"}`;
+    const forged = parts.join(".");
     expect(verifyUnsubscribeToken(forged, SECRET)).toBeNull();
+  });
+
+  it("mantiene compatibilidad con tokens HMAC ya enviados", () => {
+    const body = Buffer.from(JSON.stringify({
+      e: "legacy@dtdcargo.com",
+      t: "tenant-1",
+      a: "newsletter",
+    })).toString("base64url");
+    const signature = createHmac("sha256", SECRET)
+      .update(body)
+      .digest("base64url");
+
+    expect(verifyUnsubscribeToken(`${body}.${signature}`, SECRET)).toEqual({
+      email: "legacy@dtdcargo.com",
+      tenantId: "tenant-1",
+      audience: "newsletter",
+    });
+  });
+
+  it("transporta el token opaco dentro de la ruta", () => {
+    const tok = signUnsubscribeToken(
+      { email: "cliente@dtdcargo.com", tenantId: "tenant-1", audience: "newsletter" },
+      SECRET,
+    );
+    const url = buildUnsubscribeUrl("https://dtdcargo.com/", tok);
+
+    expect(url).toBe(`https://dtdcargo.com/api/email/unsubscribe/${encodeURIComponent(tok)}`);
+    expect(url).not.toContain("?token=");
   });
 
   it("rechaza basura / vacío / sin punto", () => {

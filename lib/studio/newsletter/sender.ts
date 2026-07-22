@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { resendBatchSend, type ResendSendInput } from "@/lib/studio/mail/resend-api";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import {
+  buildUnsubscribeUrl,
   signUnsubscribeToken,
   unsubscribeSecret,
   unsubscribeTokenFingerprint,
@@ -70,7 +71,7 @@ function unsubscribeLink(email: string, tenantId: string, secret: string): {
   const token = signUnsubscribeToken({ email, tenantId, audience: "newsletter" }, secret);
   const siteUrl = resolveNewsletterSiteUrl();
   return {
-    url: `${siteUrl}/api/email/unsubscribe?token=${encodeURIComponent(token)}`,
+    url: buildUnsubscribeUrl(siteUrl, token),
     fingerprint: unsubscribeTokenFingerprint(token),
   };
 }

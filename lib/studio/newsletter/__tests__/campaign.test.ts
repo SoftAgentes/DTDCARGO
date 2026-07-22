@@ -53,12 +53,12 @@ describe("campañas del newsletter", () => {
   it("escapa HTML, incluye versión texto y enlace de baja", () => {
     const rendered = renderNewsletterEmail(
       { ...VALID, heading: "Importa <sin sorpresas>" },
-      "https://dtdcargo.com/api/email/unsubscribe?token=abc",
+      "https://dtdcargo.com/api/email/unsubscribe/v2.abc.def.ghi",
     );
     expect(rendered.html).toContain("Importa &lt;sin sorpresas&gt;");
     expect(rendered.html).not.toContain("Importa <sin sorpresas>");
     expect(rendered.html).toContain("Darte de baja");
-    expect(rendered.text).toContain("https://dtdcargo.com/api/email/unsubscribe?token=abc");
+    expect(rendered.text).toContain("https://dtdcargo.com/api/email/unsubscribe/v2.abc.def.ghi");
   });
 
   it("rechaza lotes mayores de 100 sin llamar a Resend", async () => {

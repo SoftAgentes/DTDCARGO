@@ -124,20 +124,26 @@ redirigir, pero terminó en `estado=invalido`: la firma no fue aceptada y
 manual. Por tanto, el gate firmado sigue **fallido** y campañas reales continúan
 bloqueadas.
 
-Quedó preparado localmente un diagnóstico sin PII: el emisor guarda en
-`mail_logs.metadata` una huella SHA-256 truncada del token y el endpoint inválido
-registra solo presencia, longitud, cantidad de segmentos, la misma huella y la
-fuente nominal del secreto. Nunca registra el token, el correo ni el tenant. Sus
-13 pruebas dirigidas, TypeScript y lint están en verde; todavía no fue desplegado.
+El diagnóstico sin PII se desplegó después en el Preview
+`https://dtdcargo-j6tgb6pxy-hailu-wey.vercel.app`. La huella emitida y la huella
+del enlace recibido en el correo coincidieron, pero la solicitud que llegó al
+endpoint registró `tokenPresent = false`: Outlook retiró la consulta
+`?token=...` antes de abrir la ruta. El suscriptor permaneció `subscribed`; no se
+reparó manualmente ni se habilitaron campañas reales.
+
+La corrección reemplaza los tokens nuevos por un valor opaco cifrado y
+autenticado que viaja dentro de `/api/email/unsubscribe/[token]`. El payload ya
+no deja correo ni tenant legibles en la URL o en los access logs. La ruta
+anterior con `?token=` y los tokens HMAC históricos permanecen compatibles para
+los correos ya enviados. No requiere migración y debe validarse primero en un
+nuevo Preview antes de repetir una única prueba interna.
 
 El gate que falta es:
 
-1. identificar si el token llega ausente/truncado o si su firma no coincide entre
-   el emisor y el endpoint, sin registrar el token ni el correo en logs;
-2. corregir y desplegar un nuevo Preview autorizado;
-3. repetir una única prueba exclusivamente interna y confirmar que la respuesta
+1. desplegar y validar la nueva ruta dinámica en un Preview autorizado;
+2. repetir una única prueba exclusivamente interna y confirmar que la respuesta
    menciona Actualidad y persiste `status = 'unsubscribed'` sin reparación manual;
-4. autorizar por separado la publicación a producción.
+3. autorizar por separado la publicación a producción.
 
 Publicar un artículo nunca envía una campaña automáticamente.
 
