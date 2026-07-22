@@ -40,6 +40,7 @@ import {
  * tocando el velo.
  */
 type IconCmp = ComponentType<{ size?: number; className?: string }>;
+type CalcTab = "rapida" | "fcl";
 
 type NavItem = {
   key: string;
@@ -51,14 +52,20 @@ type NavItem = {
   href?: string;
   /** Ítems que no navegan: hoy solo la calculadora, que vive en el FAB flotante. */
   action?: "calc";
+  /** Pestaña que debe abrir un CTA con intención específica. Sin valor, conserva la activa. */
+  calcTab?: CalcTab;
   match?: (pathname: string) => boolean;
 };
 
 type NavGroup = { name: string; items: NavItem[] };
 
-/** Abre la calculadora flotante (`PortalCalcFab` escucha este evento). */
-function openCalc() {
-  window.dispatchEvent(new Event("portal:open-calc"));
+/** Abre la calculadora; un CTA de cotización puede pedir FCL explícitamente. */
+function openCalc(tab?: CalcTab) {
+  window.dispatchEvent(
+    tab
+      ? new CustomEvent("portal:open-calc", { detail: { tab } })
+      : new Event("portal:open-calc"),
+  );
 }
 
 function buildGroups(showClub: boolean): NavGroup[] {
@@ -179,6 +186,7 @@ const CREATE_ITEMS: {
   icon: IconCmp;
   href?: string;
   action?: "calc";
+  calcTab?: CalcTab;
 }[] = [
   {
     key: "nueva-compra",
@@ -207,6 +215,7 @@ const CREATE_ITEMS: {
     sub: "Calcula tu envío",
     icon: CalcIcon,
     action: "calc",
+    calcTab: "fcl",
   },
 ];
 
@@ -469,7 +478,7 @@ export function PortalSidebar({
                     onClick={() => {
                       setCreateOpen(false);
                       onCloseMobile();
-                      openCalc();
+                      openCalc(it.calcTab);
                     }}
                   >
                     {inner}
@@ -688,7 +697,7 @@ function SidebarLeaf({
       title={title ?? "Abrir la calculadora"}
       onClick={() => {
         onNavigate();
-        openCalc();
+        openCalc(item.calcTab);
       }}
       className={`${cls} portal-nav-leaf`}
       style={style}

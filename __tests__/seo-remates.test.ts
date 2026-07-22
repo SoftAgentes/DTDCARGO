@@ -92,6 +92,24 @@ describe("calc CBM/LCL en /tarifas + FCL en /fcl + Footer sin /estimacion", () =
     expect(fab).not.toContain('src={`/tarifas/embed');
   });
 
+  it("Cotizar un servicio abre FCL; el acceso genérico conserva Rápida por defecto", () => {
+    const fab = read("app/portal/_components/PortalCalcFab.tsx");
+    const sidebar = read("app/portal/_components/PortalSidebar.tsx");
+
+    expect(fab).toContain('useState<Tab>("rapida")');
+    expect(fab).toContain('requestedTab === "rapida" || requestedTab === "fcl"');
+    expect(sidebar).toContain(
+      'new CustomEvent("portal:open-calc", { detail: { tab } })',
+    );
+
+    const quoteCta = sidebar.slice(
+      sidebar.indexOf('key: "cotizar"'),
+      sidebar.indexOf("];", sidebar.indexOf('key: "cotizar"')),
+    );
+    expect(quoteCta).toContain('label: "Cotizar un servicio"');
+    expect(quoteCta).toContain('calcTab: "fcl"');
+  });
+
   it("el ERP revalida /tarifas (la ruta que consume public_cbm_rate)", () => {
     for (const p of [
       "app/studio/(app)/admin/calculator-actions.ts",

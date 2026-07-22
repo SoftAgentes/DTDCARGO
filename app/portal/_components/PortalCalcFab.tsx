@@ -23,9 +23,9 @@ import { CalcIcon, CloseIcon, CheckIcon, DocIcon } from "@/components/Icon";
  *   · Barra de título en navy estable (tokens `--hero-*`) — `--color-ink` NO
  *     sirve: en oscuro vira a crema y el texto blanco queda invisible.
  *
- * Se puede abrir desde afuera con el evento `portal:open-calc` (sidebar
- * "Cotizar" + botón del topbar) → abre en la pestaña que ya estaba activa
- * (Rápida por defecto).
+ * Se puede abrir desde afuera con `portal:open-calc`: el evento genérico
+ * conserva la pestaña activa (Rápida por defecto); un CTA con intención puede
+ * enviar `{ tab: "fcl" }` para abrir el cotizador directamente.
  */
 type Tab = "rapida" | "fcl";
 type Pos = { x: number; y: number };
@@ -44,9 +44,16 @@ export function PortalCalcFab() {
   const [size, setSize] = useState({ w: 372, h: 520 });
   const draggedRef = useRef(false);
 
-  // Apertura externa (evento del portal) → abre en la pestaña activa (no fuerza).
+  // Apertura externa: el evento plano conserva la pestaña; un CTA puede pedir
+  // una pestaña válida mediante CustomEvent sin permitir valores arbitrarios.
   useEffect(() => {
-    function onOpenCalc() {
+    function onOpenCalc(event: Event) {
+      if (event instanceof CustomEvent) {
+        const requestedTab = event.detail?.tab;
+        if (requestedTab === "rapida" || requestedTab === "fcl") {
+          setTab(requestedTab);
+        }
+      }
       setOpen(true);
     }
     window.addEventListener("portal:open-calc", onOpenCalc);
