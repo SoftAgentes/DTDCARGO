@@ -1,4 +1,4 @@
-# Propuesta de cierre de decisiones reservadas MP-01
+# Aprobación de decisiones reservadas MP-01
 
 | Control | Valor |
 |---|---|
@@ -42,11 +42,11 @@ el análisis de contratos, aduanas, trabajo, reclamos, litigios o normas
 especiales. Cuando dos plazos aplicables compitan, gobierna el más largo y un
 hold suspende cualquier disposición.
 
-## 3. Defaults recomendados
+## 3. Defaults normativos aprobados
 
 ### D1 — Retención por clase y jurisdicción
 
-| Clase | Default recomendado | Disposición al vencer |
+| Clase | Default aprobado | Disposición al vencer |
 |---|---|---|
 | Venezuela · libros, comprobantes y correspondencia comercial | 10 años mínimo desde el último asiento/cierre del expediente. | Revisión previa; anonimizar lo separable y purgar solo con calendario aprobado, cero hold y evento AUD. |
 | Venezuela · obligación tributaria o fiscal | 10 años como default conservador; extender por interrupción, omisión, litigio o norma especial. | Nunca disponer por cronología simple: requiere validación contable del expediente. |
@@ -109,7 +109,7 @@ implementación; no se agregan de forma aspiracional a `rbac.ts`.
 
 ### D5 — Cierre de tenant
 
-| Momento | Comportamiento recomendado |
+| Momento | Comportamiento aprobado |
 |---|---|
 | Día 0 | Suspender acceso y mutaciones ordinarias; congelar estados y abrir expediente de cierre. |
 | Días 0–30 | Ventana controlada para exportación autorizada y conciliación de obligaciones. |
@@ -122,7 +122,7 @@ colateral de restaurar una fila.
 
 ### D6 — Fotos, adjuntos y documentos rechazados
 
-| Caso | Resultado recomendado |
+| Caso | Resultado aprobado |
 |---|---|
 | Vinculado a factura, pago, inspección, reclamo, aduana, entrega o decisión | P4/versionado; hereda el plazo del expediente padre. |
 | Borrador vinculado pero todavía no emitido | P2; 30 días de restauración. El objeto queda en cuarentena privada, no se borra best-effort al ocultar la fila. |
@@ -159,7 +159,7 @@ ser elegible para disposición controlada.
 | MP-D3 | Capability explícita y doble decisión para purga. | RBAC, job y gate de producción separados. |
 | MP-D4 | Eliminar/anonimizar cuando pueda; si no, bloquear uso y conservar de forma restringida. | Inventario de backups y proveedores antes de fijar SLA técnico. |
 | MP-D5 | Cierre de tenant con 30 días de conciliación/exportación y archivo legal separado. | Flujo, permisos y exportación mediante SDD separado. |
-| MP-D6 | Evidencia hereda al padre; uploads sin vínculo se purgan tras 30 días. | Máquina de estados de Storage y job mediante SDD separado. |
+| MP-D6 | Evidencia hereda al padre; uploads sin vínculo quedan elegibles para P0 después de 30 días. | La purga requiere máquina de estados de Storage, job, SDD y gate separados. |
 | MP-D7 | “Borrador” no permite borrar si ya produjo identidad, dependencia o efecto. | Clasificación por entidad/estado antes de cambiar acciones visibles. |
 
 ## 5. Registro de aprobación
