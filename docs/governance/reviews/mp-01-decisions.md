@@ -3,16 +3,16 @@
 | Control | Valor |
 |---|---|
 | Revisión | REV-MP-001 |
-| Política | [MP-01 v1.0](../policies/mp-01.md) |
+| Política | [MP-01 v1.1](../policies/mp-01.md) |
 | Fecha | 2026-07-22 |
-| Resultado técnico | propuesta lista para revisión |
-| Estado normativo | MP-01 continúa aprobada; decisiones reservadas todavía no aprobadas |
+| Resultado técnico | aprobada y consolidada en MP-01 v1.1 |
+| Estado normativo | REV-MP-001 aprobada; MP-D1 a MP-D7 son defaults obligatorios |
 | Alcance | gobierno de datos y experiencia; sin código, migración ni purga |
 
 ## 1. Veredicto
 
-Las siete decisiones reservadas pueden convertirse en defaults operativos sin
-presentar una recomendación técnica como dictamen legal. La propuesta separa:
+Las siete decisiones reservadas se convierten en defaults operativos sin
+presentar una recomendación técnica como dictamen legal. La norma separa:
 
 1. mínimos sustentados por una fuente aplicable;
 2. ventanas internas de restauración y cierre;
@@ -20,8 +20,9 @@ presentar una recomendación técnica como dictamen legal. La propuesta separa:
    determinada;
 4. una futura validación con contador/abogada antes de activar purgas.
 
-Hasta la aprobación explícita de esta revisión continúa vigente el default de
-MP-01: **no purgar; archivar, anular o conservar**.
+La aprobación explícita del founder mantiene el default conservador de
+**no purgar; archivar, anular o conservar** hasta que cada implementación tenga
+SDD y gate propios. Ningún plazo aprobado ejecuta disposición automática.
 
 ## 2. Fuentes y límites
 
@@ -149,35 +150,37 @@ Solo un borrador interno, no enviado, sin consecutivo externo, sin hijos, sin
 archivo probatorio y sin evento con efecto puede conservar P2 y eventualmente
 ser elegible para disposición controlada.
 
-## 4. Decisiones para aprobación conjunta
+## 4. Decisiones aprobadas
 
-| ID | Default propuesto | Recomendación |
+| ID | Default aprobado | Condición de aplicación |
 |---|---|---|
-| MP-D1 | Calendario anterior; Venezuela 10 años conservador y China por clase 10/30/permanente. | Aprobar sujeto a clasificación contable antes de purgar. |
-| MP-D2 | Restauración 10 s / 30 días / excepcional hasta 90 días. | Aprobar. |
-| MP-D3 | Capability explícita y doble decisión para purga. | Aprobar. |
-| MP-D4 | Eliminar/anonimizar cuando pueda; si no, bloquear uso y conservar de forma restringida. | Aprobar; inventario de backups sigue como gate técnico. |
-| MP-D5 | Cierre de tenant con 30 días de conciliación/exportación y archivo legal separado. | Aprobar. |
-| MP-D6 | Evidencia hereda al padre; uploads sin vínculo se purgan tras 30 días. | Aprobar. |
-| MP-D7 | “Borrador” no permite borrar si ya produjo identidad, dependencia o efecto. | Aprobar. |
+| MP-D1 | Calendario anterior; Venezuela 10 años conservador y China por clase 10/30/permanente. | Clasificación contable y SDD antes de activar disposición. |
+| MP-D2 | Restauración 10 s / 30 días / excepcional hasta 90 días. | Implementación y pruebas mediante SDD separado. |
+| MP-D3 | Capability explícita y doble decisión para purga. | RBAC, job y gate de producción separados. |
+| MP-D4 | Eliminar/anonimizar cuando pueda; si no, bloquear uso y conservar de forma restringida. | Inventario de backups y proveedores antes de fijar SLA técnico. |
+| MP-D5 | Cierre de tenant con 30 días de conciliación/exportación y archivo legal separado. | Flujo, permisos y exportación mediante SDD separado. |
+| MP-D6 | Evidencia hereda al padre; uploads sin vínculo se purgan tras 30 días. | Máquina de estados de Storage y job mediante SDD separado. |
+| MP-D7 | “Borrador” no permite borrar si ya produjo identidad, dependencia o efecto. | Clasificación por entidad/estado antes de cambiar acciones visibles. |
 
-## 5. Criterios para convertirlo en MP-01 v1.1
+## 5. Registro de aprobación
 
-- aprobación explícita de MP-D1 a MP-D7, indicando cualquier excepción;
-- validación posterior del mapeo fiscal/contable por país antes de activar purga;
-- inventario técnico de backups y proveedores antes de fijar su SLA de borrado;
-- SDD separado para implementar estados, capabilities, jobs, storage y pruebas;
-- cero migración, job de purga o cambio de producción derivado únicamente de la
-  aprobación normativa.
-
-Frase de aprobación sugerida:
+El 2026-07-22, Sam (founder) aprobó REV-MP-001 con los defaults MP-D1 a MP-D7
+mediante la siguiente decisión explícita:
 
 > Apruebo REV-MP-001 con los defaults MP-D1 a MP-D7. La aprobación es normativa;
 > toda implementación, plazo especial y purga conserva su SDD y gate separado.
 
+La decisión consolida [MP-01 v1.1](../policies/mp-01.md). No autoriza:
+
+- migraciones, cambios de RBAC o Storage;
+- creación o ejecución de jobs de retención o purga;
+- aplicación de plazos especiales no clasificados;
+- cambios en producción;
+- presentar los defaults como asesoría legal o contable.
+
 ## 6. Límite de esta revisión
 
-Este documento no cambia MP-01 v1.0, no actualiza RBAC, no crea un calendario
-ejecutable, no elimina archivos, no aplica migraciones y no constituye asesoría
-legal. Su propósito es que la siguiente revisión conjunta tenga decisiones
-concretas, medibles y trazables.
+Este documento actualiza únicamente el contrato normativo de MP-01. No
+actualiza RBAC, no crea un calendario ejecutable, no elimina archivos, no
+aplica migraciones y no constituye asesoría legal. Cada adopción requiere SDD,
+pruebas, gate y evidencia propios.
