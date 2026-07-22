@@ -3,14 +3,14 @@
 | Control | Valor |
 |---|---|
 | Documento | Índice maestro del Sistema de Gobernanza |
-| Versión | 2.9 |
+| Versión | 3.0 |
 | Dueño | Sam (founder) |
 | Custodia | Producto + Diseño + Ingeniería |
 | Estado | activo |
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-22 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-017 · aprobación documental SDD-0168 2026-07-22](BASELINE-2026-07-22-07.md) |
+| Línea base vigente | [LB-SGE-018 · revisión técnica local A2 2026-07-22](BASELINE-2026-07-22-08.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -122,7 +122,7 @@ disfraza elevando el estado normativo.
 | BTN-01 | Semántica, jerarquía y contrato de botones | aprobada | [Vocabulario, orden, estados y contrato](policies/btn-01.md) vigentes; adopción del legado no auditada | Crear SDD por alcance antes de migrar consumidores |
 | HTD-01 | Confirmación por presión sostenida | aprobada | [Contrato v1.0](policies/htd-01.md) consolidado; no implementado | Crear SDD solo para una entidad R3 clasificada por MP-01 |
 | AVS-01 | Avisos y confirmaciones | verificada | Primitiva compatible implementada; consumidores heredados pendientes | [SDD-0165](../specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md) |
-| AUD-01 | Evento auditable y vínculo con acciones | aprobada | [A1 `0258_audit_entity_catalog.sql`](../../supabase/migrations/0258_audit_entity_catalog.sql) aplicado y verificado; catálogo activo, FK `NOT VALID`, CHECK preservado; A2 ausente | Conservar recibo en Git; A2 mantiene gate independiente |
+| AUD-01 | Evento auditable y vínculo con acciones | aprobada | [A1 `0258_audit_entity_catalog.sql`](../../supabase/migrations/0258_audit_entity_catalog.sql) aplicado y verificado; [A2 `0261_audit_entity_catalog_validate.sql`](../../supabase/migrations/0261_audit_entity_catalog_validate.sql) revisado localmente, no aplicado; Cloud conserva FK `NOT VALID` y CHECK | [REV-AUD-005](reviews/aud-corte-a2.md); aplicación A2 mantiene gate independiente |
 | AUD-02 | Consulta, conservación, exportación y acceso | aprobada | [Matriz ACL aprobada](reviews/aud-corte-a.md), secuenciada B/C para no romper viewer/writers; implementación ausente | Mantener revocaciones fuera de A; preparar gates B/C después del catálogo |
 | VIS-01 | Jerarquía visual y distribución 60-30-10 | aprobada | [Documento canónico v1.0](policies/vis-01.md); tokens/Norte cubren parte, falta auditoría de adopción | Auditar superficies y excepciones |
 | VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | [Documento canónico v1.0](policies/vis-02.md); Noto Sans SC está cargada, Noto Serif SC no | Crear SDD de tokens y verificar correo/PDF |
@@ -184,8 +184,9 @@ aprobaron en LB-SGE-004. El orden que gobierna la siguiente fase es:
 1. conservar [SDD-0168](../specs/0168-mp-01-comentarios-permanencia-restauracion/spec.md)
    como primer alcance P2 aprobado documentalmente; no existe autorización para
    diseño técnico, implementación, migraciones, RBAC, Cloud ni purgas;
-2. conservar A1 y su recibo en Git; no existe permiso para redactar/aplicar A2
-   ni ejecutar la matriz ACL;
+2. conservar A1 y su recibo en Git; A2 está aprobado técnicamente para una
+   futura aplicación individual, todavía sin autorización Cloud; no ejecutar
+   la matriz ACL;
 3. revisar las políticas v0.1 por bloques coherentes, no como aprobación masiva;
 4. implementar VIS-02 (Noto Serif SC/tokens/salidas) y auditar VIS-01;
 5. convertir componentes existentes a estados CMP-01 con evidencia;
@@ -212,7 +213,8 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-017 · aprobación documental SDD-0168](BASELINE-2026-07-22-07.md). La
+[LB-SGE-018 · revisión técnica local A2](BASELINE-2026-07-22-08.md). La
+aprobación documental de SDD-0168 [LB-SGE-017](BASELINE-2026-07-22-07.md), la
 aprobación normativa MP-01 [LB-SGE-016](BASELINE-2026-07-22-06.md), la
 propuesta previa [LB-SGE-015](BASELINE-2026-07-22-05.md), el cierre de A1
 [LB-SGE-014](BASELINE-2026-07-22-04.md), la aprobación de

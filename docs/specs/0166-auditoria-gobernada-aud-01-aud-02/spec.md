@@ -17,8 +17,9 @@ confidencialidad: interno
 > `entity_audit_log` desde su viewer básico actual hasta los contratos
 > aprobados [AUD-01](../../governance/policies/aud-01.md) y
 > [AUD-02](../../governance/policies/aud-02.md). A1 fue aplicado y verificado
-> individualmente; A2 y los cortes restantes continúan sin implementar. A1 no
-> cambió grants, filas de negocio, viewer ni writers.
+> individualmente; A2 fue redactado y aprobado técnicamente para aplicación
+> individual, pero continúa sin aplicar. Los cortes restantes siguen sin
+> implementar. A1/A2 no cambian grants, filas de negocio, viewer ni writers.
 
 ## 1. Propósito
 
@@ -422,5 +423,10 @@ seguridad aquí definidos.
 La autorización posterior permitió inventariar Corte A y redactar/revisar A1.
 [REV-AUD-003](../../governance/reviews/aud-corte-a1.md) lo aprobó técnicamente y
 [REV-AUD-004](../../governance/reviews/aud-corte-a1-aplicacion.md) registra su
-aplicación y verificación individual en Cloud. A2 y cada futuro archivo
-conservan un gate independiente por basename exacto.
+aplicación y verificación individual en Cloud.
+
+La autorización independiente posterior permitió redactar y revisar A2 de
+forma local. [REV-AUD-005](../../governance/reviews/aud-corte-a2.md) aprueba
+`0261_audit_entity_catalog_validate.sql` para una futura aplicación individual,
+todavía no autorizada ni ejecutada. Cada aplicación y futuro archivo conserva
+un gate independiente por basename exacto.

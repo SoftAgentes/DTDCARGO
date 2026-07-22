@@ -5,13 +5,15 @@
 | SDD | [SDD-0166](spec.md) |
 | Diseño | Catálogo aditivo + matriz exacta de revocación |
 | Versión | 1.0 |
-| Estado | aprobado; A1 aplicado y verificado, A2 ausente |
+| Estado | aprobado; A1 aplicado y verificado; A2 revisado localmente, no aplicado |
 | Fecha | 2026-07-22 |
 | Decisión | Sam (founder) + revisión técnica Codex |
 | Evidencia | [Inventario repo/local/Cloud](inventario-corte-a-2026-07-21.md) |
 | Migración creada | `0258_audit_entity_catalog.sql` (A1) |
 | Revisión A1 | [REV-AUD-003](../../governance/reviews/aud-corte-a1.md) · aprobada |
 | Aplicación A1 | [REV-AUD-004](../../governance/reviews/aud-corte-a1-aplicacion.md) · aplicada y verificada |
+| Migración A2 | `0261_audit_entity_catalog_validate.sql` · revisión local |
+| Revisión A2 | [REV-AUD-005](../../governance/reviews/aud-corte-a2.md) · aprobada para aplicación individual, no aplicada |
 
 ## 1. Veredicto
 
@@ -224,5 +226,10 @@ consumidores externos.
 La autorización posterior del founder permitió redactar y luego aplicar
 individualmente `0258_audit_entity_catalog.sql`. REV-AUD-003 lo aprobó y
 REV-AUD-004 verificó su aplicación en Cloud. A1 no cambió código ni revocó
-privilegios de `entity_audit_log`. Esto no autoriza redactar/aplicar A2/B/C;
-cada archivo futuro y su aplicación conservan gates separados.
+privilegios de `entity_audit_log`.
+
+Una autorización independiente permitió después redactar y revisar localmente
+`0261_audit_entity_catalog_validate.sql`. REV-AUD-005 lo aprobó técnicamente
+para aplicación individual, pero no autorizó Cloud. A2, B y C conservan gates
+operativos separados; SDD-0168 y el Corte D tampoco se infieren de esta
+revisión.
