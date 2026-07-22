@@ -31,7 +31,7 @@ const FOCUSABLE_SEL =
 /**
  * Top navigation — sticky, blur, drawer mobile completo con focus trap.
  *
- * Desktop (lg+): logo + enlaces principales + dropdown "Ayuda" + Acceder + CTA.
+ * Desktop (lg+): logo + enlaces principales + dropdown "Ayuda" + Mi portal + CTA.
  * Mobile (<lg):  logo + [≡ hamburguesa] + [Contacto btn]
  *                El hamburger abre un drawer con los enlaces + acordeón "Ayuda"
  *                + cuenta + CTA.
@@ -257,7 +257,7 @@ export function Nav() {
               href="/portal/login"
               className="text-[14.5px] px-2.5 py-2 rounded-md text-ink font-semibold hover:text-wine hover:bg-wine/15 transition-colors whitespace-nowrap"
             >
-              Acceder
+              Mi portal
             </Link>
             <Link href="/contacto" className="btn btn-ghost whitespace-nowrap">
               Contáctenos
@@ -399,13 +399,13 @@ export function Nav() {
             })}
           </details>
 
-          {/* Cuenta · Acceder al portal + Regístrate */}
+          {/* Cuenta · Mi portal + Regístrate */}
           <Link
             href="/portal/login"
             onClick={close}
             className="text-[18px] py-4 px-3 -mx-3 rounded-md border-b border-grey-200 text-ink font-semibold hover:text-wine hover:bg-wine/15 transition-colors"
           >
-            Acceder al portal
+            Mi portal
           </Link>
           <Link
             href="/registro"

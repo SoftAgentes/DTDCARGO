@@ -72,7 +72,7 @@ export function Footer() {
             <FooterLink href="/servicios">Servicios</FooterLink>
             <FooterLink href="/pre-alertas">Pre-alertas</FooterLink>
             <FooterLink href="/nosotros">Nosotros</FooterLink>
-            <FooterLink href="/portal/login">Acceder</FooterLink>
+            <FooterLink href="/portal/login">Mi portal</FooterLink>
             <FooterLink href="/registro">Regístrate</FooterLink>
           </FooterCol>
 
