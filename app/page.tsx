@@ -74,8 +74,24 @@ export default function HomePage() {
                 <Link className="btn btn-primary btn-lg" href="/tarifas">
                   Cotizar mi envío
                 </Link>
-                <Link className="btn btn-ghost btn-lg" href="/registro">
-                  Regístrate y obtén tu Shipping Mark
+                <Link
+                  className="btn btn-ghost btn-lg"
+                  href="/registro"
+                  style={{ flexDirection: "column", gap: 2, lineHeight: 1.2, paddingTop: 12, paddingBottom: 12 }}
+                >
+                  <span>Regístrate y obtén tu Shipping Mark</span>
+                  {/* Gesto pedagógico (Norte BD-029): el cliente ex-courier reconoce
+                      "casillero" — lo tachamos para anclar el término nuevo. */}
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 500,
+                      color: "var(--color-grey-500)",
+                      textDecoration: "line-through",
+                    }}
+                  >
+                    &quot;Casillero&quot;
+                  </span>
                 </Link>
               </div>
               <ul className="hero-feats">
