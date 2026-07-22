@@ -7,10 +7,13 @@ import { CalcIcon, CloseIcon, CheckIcon, DocIcon } from "@/components/Icon";
  * Calculadora flotante del portal (Norte · `PortalCalcFab` de
  * docs/design/studio/_norte/portal/app.jsx). FAB redondo, icon-only y
  * **arrastrable** que abre una ventana SIN sacar al cliente del portal. Dos modos:
- *   · "CBM": la Calculadora CBM completa embebida (iframe a `/calculadora/embed`,
- *     misma tarifa que la página pública, sin su chrome). Redimensionable para
- *     verla cómoda.
- *   · "Rápida": calculadora aritmética (saca cuentas al toque, copia el total).
+ *   · "Rápida" (default): calculadora aritmética (saca cuentas al toque, copia
+ *     el total) — la ayuda simple, sin tarifas.
+ *   · "FCL": cotizador de contenedor completo embebido (iframe a `/fcl/embed`,
+ *     mismo form que la página pública, sin su chrome). Redimensionable para
+ *     verlo cómodo.
+ * El CBM/LCL (`/tarifas/embed`) SALIÓ de acá (founder 2026-07-22): ya está
+ * accesible en otro lado del portal/sitio — no hace falta duplicarlo en el FAB.
  *
  * Interacción (port del prototipo Norte 2026-07-04):
  *   · FAB arrastrable; al soltar se **ancla al lado más cercano** (izq/der).
@@ -20,9 +23,11 @@ import { CalcIcon, CloseIcon, CheckIcon, DocIcon } from "@/components/Icon";
  *   · Barra de título en navy estable (tokens `--hero-*`) — `--color-ink` NO
  *     sirve: en oscuro vira a crema y el texto blanco queda invisible.
  *
- * Se puede abrir desde afuera con el evento `portal:open-calc` → abre en CBM.
+ * Se puede abrir desde afuera con el evento `portal:open-calc` (sidebar
+ * "Cotizar" + botón del topbar) → abre en la pestaña que ya estaba activa
+ * (Rápida por defecto).
  */
-type Tab = "cbm" | "rapida";
+type Tab = "rapida" | "fcl";
 type Pos = { x: number; y: number };
 
 const W = () => (typeof window !== "undefined" ? window.innerWidth : 1200);
@@ -32,17 +37,16 @@ const clampN = (min: number, max: number, v: number) =>
 
 export function PortalCalcFab() {
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<Tab>("cbm");
+  const [tab, setTab] = useState<Tab>("rapida");
   const [theme, setTheme] = useState<"dark" | "light">("light");
   const [fpos, setFpos] = useState<Pos | null>(null); // posición del FAB
   const [ppos, setPpos] = useState<Pos | null>(null); // posición de la ventana
   const [size, setSize] = useState({ w: 372, h: 520 });
   const draggedRef = useRef(false);
 
-  // Apertura externa (evento del portal) → abre en CBM.
+  // Apertura externa (evento del portal) → abre en la pestaña activa (no fuerza).
   useEffect(() => {
     function onOpenCalc() {
-      setTab("cbm");
       setOpen(true);
     }
     window.addEventListener("portal:open-calc", onOpenCalc);
@@ -258,8 +262,8 @@ export function PortalCalcFab() {
           >
             {(
               [
-                ["cbm", "CBM"],
                 ["rapida", "Rápida"],
+                ["fcl", "FCL"],
               ] as [Tab, string][]
             ).map(([v, label]) => {
               const on = tab === v;
@@ -285,13 +289,10 @@ export function PortalCalcFab() {
 
           {/* Contenido */}
           <div className="flex-1 min-h-0 overflow-hidden">
-            {tab === "cbm" ? (
-              // TODO Fase 7: revisar con el founder qué calc va en el portal. Hoy
-              // vuelve a ser la CBM/LCL (`/tarifas/embed`), que es la del producto
-              // principal; el cotizador FCL vive aparte en `/fcl/embed`.
+            {tab === "fcl" ? (
               <iframe
-                title="Calculadora CBM"
-                src={`/tarifas/embed?theme=${theme}`}
+                title="Cotizador FCL"
+                src={`/fcl/embed?theme=${theme}`}
                 className="w-full h-full block"
                 style={{ border: 0, background: "var(--color-white)" }}
               />
