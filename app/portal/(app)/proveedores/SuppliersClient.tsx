@@ -15,10 +15,7 @@ import {
 } from "@/components/Icon";
 import { CONTACT } from "@/lib/design-tokens";
 import { NewPurchaseButton } from "../../_components/NewPurchaseButton";
-import {
-  NewPurchaseModal,
-  FieldLabel,
-} from "../../_components/NewPurchaseModal";
+import { FieldLabel } from "../../_components/PortalFormField";
 import type { SupplierView } from "@/lib/studio/prealertas/types";
 import {
   createSupplierAction,
@@ -53,10 +50,6 @@ export function SuppliersClient({
   markbox: string;
   addons: PrealertaAddon[];
 }) {
-  // Modal "Nueva compra" — null cerrado; objeto = proveedor preseleccionado (o vacío).
-  const [purchaseFor, setPurchaseFor] = useState<SupplierView | null | "new">(
-    null,
-  );
   const [adding, setAdding] = useState(false);
 
   return (
@@ -79,7 +72,7 @@ export function SuppliersClient({
             que ya tengas.
           </p>
         </div>
-        <NewPurchaseButton onClick={() => setPurchaseFor("new")} />
+        <NewPurchaseButton href="/portal/compras/nueva" />
       </div>
 
       {/* ── Por qué registrar importa ── */}
@@ -142,11 +135,7 @@ export function SuppliersClient({
       ) : (
         <div className="mt-6 flex flex-col gap-3">
           {suppliers.map((s) => (
-            <SupplierCard
-              key={s.id}
-              supplier={s}
-              onRebuy={() => setPurchaseFor(s)}
-            />
+            <SupplierCard key={s.id} supplier={s} />
           ))}
         </div>
       )}
@@ -181,16 +170,6 @@ export function SuppliersClient({
           Ver todas mis compras <ArrowIcon size={14} />
         </Link>
       </div>
-
-      {/* ── Modal "Nueva compra" ── */}
-      {purchaseFor !== null && (
-        <NewPurchaseModal
-          suppliers={suppliers}
-          addons={addons}
-          preselected={purchaseFor === "new" ? null : purchaseFor}
-          onClose={() => setPurchaseFor(null)}
-        />
-      )}
     </div>
   );
 }
@@ -272,13 +251,7 @@ function WhyItem({
   );
 }
 
-function SupplierCard({
-  supplier,
-  onRebuy,
-}: {
-  supplier: SupplierView;
-  onRebuy: () => void;
-}) {
+function SupplierCard({ supplier }: { supplier: SupplierView }) {
   const [editing, setEditing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteState, deleteAction, deletePending] = useActionState(
@@ -385,13 +358,12 @@ function SupplierCard({
               Con compras
             </span>
           )}
-          <button
-            type="button"
-            onClick={onRebuy}
+          <Link
+            href={`/portal/compras/nueva?proveedor=${encodeURIComponent(supplier.id)}`}
             className="btn btn-ghost inline-flex items-center gap-1.5"
           >
             Re-comprar <ArrowIcon size={14} />
-          </button>
+          </Link>
         </div>
       )}
     </div>

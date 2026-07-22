@@ -185,7 +185,7 @@ const CREATE_ITEMS: {
     label: "Nueva compra",
     sub: "Pre-alerta · avisa tu carga",
     icon: CartIcon,
-    href: "/portal/envios?nueva=1",
+    href: "/portal/compras/nueva",
   },
   {
     key: "nueva-cotizacion",

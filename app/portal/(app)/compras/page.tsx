@@ -67,7 +67,7 @@ export default async function PortalPurchasesPage() {
             ves el estado de todas y vuelves a generar sus etiquetas.
           </p>
         </div>
-        <NewPurchaseButton href="/portal/proveedores" />
+        <NewPurchaseButton href="/portal/compras/nueva" />
       </div>
 
       {items.length === 0 ? (
@@ -76,14 +76,13 @@ export default async function PortalPurchasesPage() {
             Todavía no registraste compras.
           </div>
           <p className="mt-2 text-[14px] text-grey-700 max-w-[46ch] mx-auto leading-[1.55]">
-            Registra tu primera compra desde Tus proveedores para obtener su
-            código y las etiquetas.
+            Registra tu primera compra para obtener su código y las etiquetas.
           </p>
           <Link
-            href="/portal/proveedores"
+            href="/portal/compras/nueva"
             className="btn btn-primary mt-6 inline-flex"
           >
-            Ir a Tus proveedores <ArrowIcon />
+            Registrar compra <ArrowIcon />
           </Link>
         </div>
       ) : (

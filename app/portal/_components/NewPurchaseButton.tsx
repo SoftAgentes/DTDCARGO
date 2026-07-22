@@ -9,16 +9,12 @@ import Link from "next/link";
  * ya conoce. Los dos términos viajan SIEMPRE juntos en el mismo control.
  *
  * Compacto (~40px, ghost bordeado en vino) en vez del bloque vino lleno de 48px:
- * baja el peso visual (el vino lleno queda para "Registrar compra" dentro del
- * modal, que es el commit real) y es IDÉNTICO en `/proveedores` y `/compras`
- * (mismas pantallas hermanas → el cliente aprende un solo control).
- *
- * Polimórfico: `href` → `<Link>` (página server, ej. /compras); `onClick` →
- * `<button>` (cliente, ej. SuppliersClient que abre el modal).
+ * baja el peso visual (el vino lleno queda para "Registrar compra" dentro de
+ * la pantalla completa, que es el commit real) y es IDÉNTICO en todo el
+ * portal (sidebar, dashboard, /proveedores, /compras, hub de alertas —
+ * mismo control, siempre lleva a `/portal/compras/nueva`).
  */
-export function NewPurchaseButton(
-  props: { href: string; onClick?: never } | { onClick: () => void; href?: never },
-) {
+export function NewPurchaseButton({ href }: { href: string }) {
   const inner = (
     <>
       <span
@@ -49,23 +45,9 @@ export function NewPurchaseButton(
   } as const;
   const ariaLabel = "Registrar una nueva compra (prealerta)";
 
-  if ("href" in props && props.href) {
-    return (
-      <Link href={props.href} aria-label={ariaLabel} className={className} style={style}>
-        {inner}
-      </Link>
-    );
-  }
-
   return (
-    <button
-      type="button"
-      onClick={props.onClick}
-      aria-label={ariaLabel}
-      className={className}
-      style={style}
-    >
+    <Link href={href} aria-label={ariaLabel} className={className} style={style}>
       {inner}
-    </button>
+    </Link>
   );
 }
