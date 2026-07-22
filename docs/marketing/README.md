@@ -97,9 +97,15 @@ Connector SDD-0043 (sync E2E en prod: leads/contactos/pipelines/webhooks). Fuent
   punta en `dtdcargo-3jtv0vceu-hailu-wey.vercel.app`: un correo interno
   `delivered`, cero externos, ruta dinámica `303`, confirmación de Actualidad y
   persistencia `unsubscribed` con `signed_link`, sin reparación manual. La
-  verificación detectó dos ajustes locales adicionales, también sin migración:
-  limpiar el motivo al resuscribir y actualizar `last_delivered_at` en pruebas
-  internas. Falta validarlos en otro Preview y autorizar producción por separado.
+  verificación detectó dos ajustes adicionales, también sin migración. Ambos
+  quedaron validados el 2026-07-22: el Preview
+  `dtdcargo-jscugtgxl-hailu-wey.vercel.app` resuscribió el correo interno y dejó
+  `unsubscribed_at`/`unsubscribe_reason` en `null`; después, el Preview temporal
+  `dtdcargo-mmsf7a59p-hailu-wey.vercel.app` reprodujo de forma firmada el evento
+  `email.delivered` ya existente y persistió `last_delivered_at =
+  2026-07-22T21:57:02.499Z`. No se envió otro correo, la ruta temporal se retiró
+  y las campañas reales permanecen deshabilitadas. Falta autorizar producción
+  por separado.
   Publicar una noticia nunca envía una campaña.
 - **Alta de cliente web = `/registro`** (registro REAL: crea el cliente con Shipping Mark/MARKBOX vía `rpc('next_markbox')` + opt-in email + aviso a admins — `app/registro/actions.ts`; ya no es mock).
 - **Portal cliente = `/portal`** (passwordless). **Productos comerciales:** consolidación · puerta_a_puerta_DDP · reserva_FCL · transporte_terrestre.

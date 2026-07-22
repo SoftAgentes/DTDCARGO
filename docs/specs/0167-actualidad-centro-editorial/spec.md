@@ -153,16 +153,24 @@ respondió `303`, abrió `/email/baja?estado=actualidad` y persistió
 `newsletter_subscribers.status = 'unsubscribed'` con motivo `signed_link`, sin
 reparación manual ni errores `5xx`.
 
-La verificación reveló dos inconsistencias secundarias corregidas localmente sin
-migración: la resuscripción ahora limpia `unsubscribed_at` y
-`unsubscribe_reason`, y los webhooks `email.delivered` de pruebas internas
-actualizan `last_delivered_at` por tenant + correo. Las campañas reales conservan
-la correlación más estricta por `subscriber_id`.
+La verificación reveló dos inconsistencias secundarias corregidas sin migración:
+la resuscripción ahora limpia `unsubscribed_at` y `unsubscribe_reason`, y los
+webhooks `email.delivered` de pruebas internas actualizan `last_delivered_at` por
+tenant + correo. Las campañas reales conservan la correlación más estricta por
+`subscriber_id`.
 
-El gate que falta es:
+Ambas correcciones quedaron validadas el 2026-07-22. El Preview
+`https://dtdcargo-jscugtgxl-hailu-wey.vercel.app` resuscribió
+`vzla@dtdcargo.com` y persistió `status = 'subscribed'`, `unsubscribed_at = null`
+y `unsubscribe_reason = null`. Como Resend entrega sus webhooks al dominio
+canónico de producción, se desplegó una ruta efímera, limitada a Preview y a un
+único `email_id`, en `https://dtdcargo-mmsf7a59p-hailu-wey.vercel.app`. Esa ruta
+reprodujo con firma válida el evento `email.delivered` ya recibido, devolvió
+`200`, aplicó `status_applied = 'delivered'` y persistió
+`last_delivered_at = '2026-07-22T21:57:02.499Z'`. No generó otro correo. La ruta
+temporal se retiró inmediatamente después de comprobar Supabase.
 
-1. validar estas dos correcciones en un nuevo Preview sin habilitar campañas;
-2. autorizar por separado la publicación a producción.
+El único gate restante es autorizar por separado la publicación a producción.
 
 Publicar un artículo nunca envía una campaña automáticamente.
 
