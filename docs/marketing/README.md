@@ -93,11 +93,14 @@ Connector SDD-0043 (sync E2E en prod: leads/contactos/pipelines/webhooks). Fuent
   correo coincidía con la emitida, pero Outlook retiró `?token=...` y la API
   recibió el token ausente. La corrección transporta un token opaco cifrado en
   `/api/email/unsubscribe/[token]`, conserva compatibilidad con enlaces HMAC
-  anteriores y no requiere migración. La ruta dinámica quedó validada sin baja
-  real en el Preview READY `dtdcargo-lo6kjy75y-hailu-wey.vercel.app`: el token
-  llegó presente por la ruta y fue retirado de la URL final. Falta repetir una
-  única prueba interna con un correo nuevo antes de habilitar campañas. Publicar
-  una noticia nunca envía una campaña.
+  anteriores y no requiere migración. La baja firmada quedó validada de punta a
+  punta en `dtdcargo-3jtv0vceu-hailu-wey.vercel.app`: un correo interno
+  `delivered`, cero externos, ruta dinámica `303`, confirmación de Actualidad y
+  persistencia `unsubscribed` con `signed_link`, sin reparación manual. La
+  verificación detectó dos ajustes locales adicionales, también sin migración:
+  limpiar el motivo al resuscribir y actualizar `last_delivered_at` en pruebas
+  internas. Falta validarlos en otro Preview y autorizar producción por separado.
+  Publicar una noticia nunca envía una campaña.
 - **Alta de cliente web = `/registro`** (registro REAL: crea el cliente con Shipping Mark/MARKBOX vía `rpc('next_markbox')` + opt-in email + aviso a admins — `app/registro/actions.ts`; ya no es mock).
 - **Portal cliente = `/portal`** (passwordless). **Productos comerciales:** consolidación · puerta_a_puerta_DDP · reserva_FCL · transporte_terrestre.
 - **Canales públicos = solo** CRM WhatsApp (`+58 412 166 8021`, primario) + Fijo Valencia (`+58 241 414 7886`). Ver `feedback_single_point_of_contact`.

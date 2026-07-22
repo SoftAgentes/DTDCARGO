@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { NEWSLETTER_HONEYPOT_FIELD } from "../constants";
-import { validateNewsletterSubscribePayload } from "../subscription";
+import {
+  buildNewsletterSubscriberUpsert,
+  validateNewsletterSubscribePayload,
+} from "../subscription";
 
 describe("newsletter subscription validation", () => {
   it("normaliza email y source válido", () => {
@@ -55,5 +58,24 @@ describe("newsletter subscription validation", () => {
         [NEWSLETTER_HONEYPOT_FIELD]: "bot",
       }),
     ).toEqual({ ok: false, reason: "honeypot" });
+  });
+
+  it("limpia fecha y motivo de baja al resuscribir", () => {
+    expect(buildNewsletterSubscriberUpsert({
+      tenantId: "tenant-1",
+      email: "cliente@dtdcargo.com",
+      source: "noticias",
+      consentAt: "2026-07-22T21:30:00.000Z",
+      consentIpHash: "hash-ip",
+      userAgent: "Vitest",
+    })).toMatchObject({
+      tenant_id: "tenant-1",
+      email: "cliente@dtdcargo.com",
+      status: "subscribed",
+      unsubscribed_at: null,
+      unsubscribe_reason: null,
+      consent_at: "2026-07-22T21:30:00.000Z",
+      updated_at: "2026-07-22T21:30:00.000Z",
+    });
   });
 });

@@ -179,11 +179,22 @@ export async function POST(request: NextRequest) {
     if (status === "failed") recipientUpdate.error = update.error ?? "failed (sin detalle)";
     await supabaseAdmin.from("newsletter_campaign_recipients").update(recipientUpdate)
       .eq("id", recipientId).eq("campaign_id", campaignId).eq("tenant_id", log.tenant_id);
-    if (status === "delivered" && subscriberId) {
-      await supabaseAdmin.from("newsletter_subscribers").update({ last_delivered_at: event.created_at })
-        .eq("id", subscriberId).eq("tenant_id", log.tenant_id);
-    }
     await refreshCampaignCounters(supabaseAdmin, campaignId, log.tenant_id);
+  }
+
+  if (campaignId && status === "delivered") {
+    const deliveryUpdate = supabaseAdmin
+      .from("newsletter_subscribers")
+      .update({ last_delivered_at: event.created_at })
+      .eq("tenant_id", log.tenant_id);
+
+    if (subscriberId) {
+      await deliveryUpdate.eq("id", subscriberId);
+    } else if (log.metadata?.newsletter_test === true) {
+      // Las pruebas internas no crean newsletter_campaign_recipients. Se
+      // correlacionan exclusivamente por tenant + correo del mail_log.
+      await deliveryUpdate.eq("email", log.to_email.trim().toLowerCase());
+    }
   }
 
   return NextResponse.json({

@@ -5,6 +5,7 @@ import { apiError } from "@/lib/http/api-error";
 import { readJsonBody } from "@/lib/http/read-json-body";
 import { resolveRequestIp } from "@/lib/http/request-ip";
 import {
+  buildNewsletterSubscriberUpsert,
   newsletterSuccessMessage,
   validateNewsletterSubscribePayload,
 } from "@/lib/newsletter/subscription";
@@ -128,19 +129,14 @@ export async function POST(req: NextRequest) {
   const { error: upsertErr } = await admin
     .from("newsletter_subscribers")
     .upsert(
-      {
-        tenant_id: tenantId,
+      buildNewsletterSubscriberUpsert({
+        tenantId,
         email,
-        status: "subscribed",
-        origin: source,
-        consent_text:
-          "Acepto recibir comunicaciones por email de DTD Cargo. Máximo dos correos al mes. Puedo darme de baja cuando quiera.",
-        consent_at: now,
-        consent_ip_hash: hashIp(ip),
-        user_agent: userAgent,
-        unsubscribed_at: null,
-        updated_at: now,
-      },
+        source,
+        consentAt: now,
+        consentIpHash: hashIp(ip),
+        userAgent,
+      }),
       { onConflict: "tenant_id,email" },
     );
 

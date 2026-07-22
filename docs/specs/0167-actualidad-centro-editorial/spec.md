@@ -145,10 +145,23 @@ segmentos, y la respuesta `303` retiró el token al redirigir a `/email/baja`.
 También se comprobó que la ruta query histórica permanece operativa. No se envió
 otro correo ni se cambió el estado de ningún suscriptor.
 
+La prueba firmada final se completó en el Preview
+`https://dtdcargo-3jtv0vceu-hailu-wey.vercel.app` el 2026-07-22. Se generó un
+solo `mail_log` para `vzla@dtdcargo.com`, sin CC, BCC ni destinatarios externos;
+Resend confirmó `delivered`. El enlace cifrado llegó por la ruta dinámica,
+respondió `303`, abrió `/email/baja?estado=actualidad` y persistió
+`newsletter_subscribers.status = 'unsubscribed'` con motivo `signed_link`, sin
+reparación manual ni errores `5xx`.
+
+La verificación reveló dos inconsistencias secundarias corregidas localmente sin
+migración: la resuscripción ahora limpia `unsubscribed_at` y
+`unsubscribe_reason`, y los webhooks `email.delivered` de pruebas internas
+actualizan `last_delivered_at` por tenant + correo. Las campañas reales conservan
+la correlación más estricta por `subscriber_id`.
+
 El gate que falta es:
 
-1. repetir una única prueba exclusivamente interna y confirmar que la respuesta
-   menciona Actualidad y persiste `status = 'unsubscribed'` sin reparación manual;
+1. validar estas dos correcciones en un nuevo Preview sin habilitar campañas;
 2. autorizar por separado la publicación a producción.
 
 Publicar un artículo nunca envía una campaña automáticamente.
