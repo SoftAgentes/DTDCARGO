@@ -3,14 +3,14 @@
 | Control | Valor |
 |---|---|
 | Documento | Índice maestro del Sistema de Gobernanza |
-| Versión | 1.5 |
+| Versión | 2.6 |
 | Dueño | Sam (founder) |
 | Custodia | Producto + Diseño + Ingeniería |
 | Estado | activo |
 | Creado | 2026-07-21 |
-| Última revisión | 2026-07-21 |
+| Última revisión | 2026-07-22 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-004 · aprobación constitucional 2026-07-21](BASELINE-2026-07-21-04.md) |
+| Línea base vigente | [LB-SGE-014 · A1 aplicado y verificado 2026-07-22](BASELINE-2026-07-22-04.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -51,7 +51,14 @@ artefactos permanecen en sus fuentes correspondientes.
 | Botones y acciones | [BTN-01 v1.0](policies/btn-01.md) |
 | Presión sostenida crítica | [HTD-01 v1.0](policies/htd-01.md) |
 | Auditoría de mutaciones | [AUD-01 v1.0](policies/aud-01.md) |
-| Consulta, retención y exportación de logs | [AUD-02 v0.1](policies/aud-02.md) |
+| Consulta, retención y exportación de logs | [AUD-02 v1.0](policies/aud-02.md) |
+| Revisión normativa AUD-02 | [REV-AUD-001](reviews/aud-02.md) |
+| Corrección conjunta de auditoría | [SDD-0166](../specs/0166-auditoria-gobernada-aud-01-aud-02/spec.md) |
+| Evidencia del inventario AUD | [Corte A · repo/local](../specs/0166-auditoria-gobernada-aud-01-aud-02/inventario-corte-a-2026-07-21.md) |
+| Diseño correctivo del Corte A | [Catálogo + matriz ACL v1.0](../specs/0166-auditoria-gobernada-aud-01-aud-02/diseno-correctivo-corte-a.md) |
+| Revisión del diseño Corte A | [REV-AUD-002](reviews/aud-corte-a.md) |
+| Revisión de aplicación individual A1 | [REV-AUD-003](reviews/aud-corte-a1.md) |
+| Recibo de aplicación A1 | [REV-AUD-004](reviews/aud-corte-a1-aplicacion.md) |
 | Jerarquía visual | [VIS-01 v1.0](policies/vis-01.md) |
 | Tipografía por voz e idioma | [VIS-02 v1.0](policies/vis-02.md) |
 | Accesibilidad transversal | [A11Y-01 v0.1](policies/a11y-01.md) |
@@ -75,7 +82,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Plugin de gobernanza | [PLG-01 v0.1](policies/plg-01.md) |
 | Investigación de skills | [Mapa de capacidades y límites](research/skills-map.md) |
 | Contrato implementado de avisos | [SDD-0165 · AVS-01](../specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md) |
-| Inventario y estado oficial vigente | [LB-SGE-004](BASELINE-2026-07-21-04.md) |
+| Inventario y estado oficial vigente | [LB-SGE-014](BASELINE-2026-07-22-04.md) |
 
 Regla de frontera: `BRAND.md` y el Norte gobiernan **cómo se ve**; este sistema
 gobierna **cómo se comporta**. Una implementación concreta se especifica en un
@@ -113,8 +120,8 @@ disfraza elevando el estado normativo.
 | BTN-01 | Semántica, jerarquía y contrato de botones | aprobada | [Vocabulario, orden, estados y contrato](policies/btn-01.md) vigentes; adopción del legado no auditada | Crear SDD por alcance antes de migrar consumidores |
 | HTD-01 | Confirmación por presión sostenida | aprobada | [Contrato v1.0](policies/htd-01.md) consolidado; no implementado | Crear SDD solo para una entidad R3 clasificada por MP-01 |
 | AVS-01 | Avisos y confirmaciones | verificada | Primitiva compatible implementada; consumidores heredados pendientes | [SDD-0165](../specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md) |
-| AUD-01 | Evento auditable y vínculo con acciones | aprobada | [Contrato consolidado](policies/aud-01.md); escritores best-effort y whitelist regresiva incumplen atomicidad | Crear SDD correctivo sobre [SDD-0123](../specs/0123-audit-log/spec.md) |
-| AUD-02 | Consulta, conservación, exportación y acceso | redactada | [Contrato v0.1](policies/aud-02.md); viewer limitado, sin retención/exportación ni RBAC fino | Revisar decisiones reservadas y aprobar |
+| AUD-01 | Evento auditable y vínculo con acciones | aprobada | [A1 `0258_audit_entity_catalog.sql`](../../supabase/migrations/0258_audit_entity_catalog.sql) aplicado y verificado; catálogo activo, FK `NOT VALID`, CHECK preservado; A2 ausente | Conservar recibo en Git; A2 mantiene gate independiente |
+| AUD-02 | Consulta, conservación, exportación y acceso | aprobada | [Matriz ACL aprobada](reviews/aud-corte-a.md), secuenciada B/C para no romper viewer/writers; implementación ausente | Mantener revocaciones fuera de A; preparar gates B/C después del catálogo |
 | VIS-01 | Jerarquía visual y distribución 60-30-10 | aprobada | [Documento canónico v1.0](policies/vis-01.md); tokens/Norte cubren parte, falta auditoría de adopción | Auditar superficies y excepciones |
 | VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | [Documento canónico v1.0](policies/vis-02.md); Noto Sans SC está cargada, Noto Serif SC no | Crear SDD de tokens y verificar correo/PDF |
 | BUS-01 | Buscadores predictivos y contexto de resultados | redactada | [Contrato v0.1](policies/bus-01.md); búsqueda global y `ClientCombobox` existen | Auditar scopes, ranking y desambiguación |
@@ -173,7 +180,8 @@ La extracción documental concluyó en LB-SGE-003 y la constitución/acciones se
 aprobaron en LB-SGE-004. El orden que gobierna la siguiente fase es:
 
 1. resolver decisiones reservadas de MP-01 y clasificar entidades por estado;
-2. aprobar AUD-02 y corregir los incumplimientos críticos de AUD-01 mediante SDD;
+2. conservar A1 y su recibo en Git; no existe permiso para redactar/aplicar A2
+   ni ejecutar la matriz ACL;
 3. revisar las políticas v0.1 por bloques coherentes, no como aprobación masiva;
 4. implementar VIS-02 (Noto Serif SC/tokens/salidas) y auditar VIS-01;
 5. convertir componentes existentes a estados CMP-01 con evidencia;
@@ -200,8 +208,18 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-004 · aprobación constitucional 1.3](BASELINE-2026-07-21-04.md). El
-cierre documental [LB-SGE-003](BASELINE-2026-07-21-03.md), la rectificación
+[LB-SGE-014 · A1 aplicado y verificado 2.3](BASELINE-2026-07-22-04.md). La
+aprobación de aplicación [LB-SGE-013](BASELINE-2026-07-22-03.md), la redacción
+A1 [LB-SGE-012](BASELINE-2026-07-22-02.md), el diseño
+aprobado [LB-SGE-011](BASELINE-2026-07-22.md), el inventario Cloud
+[LB-SGE-010](BASELINE-2026-07-21-10.md), la revalidación local
+[LB-SGE-009](BASELINE-2026-07-21-09.md), el primer inventario
+[LB-SGE-008](BASELINE-2026-07-21-08.md), la aprobación de SDD-0166
+[LB-SGE-007](BASELINE-2026-07-21-07.md), la redacción del SDD
+[LB-SGE-006](BASELINE-2026-07-21-06.md), la aprobación AUD-02
+[LB-SGE-005](BASELINE-2026-07-21-05.md), la aprobación
+constitucional [LB-SGE-004](BASELINE-2026-07-21-04.md), el cierre documental
+[LB-SGE-003](BASELINE-2026-07-21-03.md), la rectificación
 [LB-SGE-002](BASELINE-2026-07-21-02.md) y la línea inicial
 [LB-SGE-001](BASELINE-2026-07-21.md) se conservan como evidencia histórica y no
 se sobrescriben.

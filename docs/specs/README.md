@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 159 specs)
+### Índice de specs (generado · 160 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -197,6 +197,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0163 | Orden accionable al operario · el operario ve y ejecuta los s… | proposed | interno |
 | 0164 | Unificación de nombres de servicios: un servicio, un nombre, … | in-progress | interno |
 | 0165 | Sistema de Gobernanza de Experiencia ERP_Studio — AVS-01 | done | interno |
+| 0166 | Auditoría gobernada — corrección conjunta AUD-01 y AUD-02 | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
