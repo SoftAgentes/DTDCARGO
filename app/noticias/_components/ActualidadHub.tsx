@@ -30,6 +30,13 @@ const CATEGORY_DESCRIPTIONS: Record<NewsCategoria, string> = {
   "novedades-dtd": "Avisos y cambios que afectan tu operación.",
 };
 
+const QUICK_ACTIONS = [
+  { href: "/portal/login", label: "Rastrear un envío" },
+  { href: "/fcl", label: "Ver referencia FCL" },
+  { href: "/servicios/lcl", label: "Elegir LCL o FCL" },
+  { href: "/servicios/inspeccion", label: "Verificar proveedor" },
+];
+
 function dateLabel(value: string) {
   return new Date(`${value}T12:00:00`).toLocaleDateString("es-VE", {
     day: "numeric",
@@ -103,15 +110,19 @@ export function ActualidadHub({ posts }: { posts: NewsPostRow[] }) {
               <button type="submit">Buscar</button>
             </form>
           )}
+
+          <div className="actual-quick-actions" aria-label="Accesos rápidos">
+            <span>También puedes:</span>
+            {QUICK_ACTIONS.map((action) => (
+              <Link key={action.href} href={action.href}>{action.label}</Link>
+            ))}
+          </div>
         </div>
       </section>
 
       {visibleCategories.length > 0 && (
         <nav className="actual-category-band" aria-label="Categorías editoriales">
-          <div
-            className="actual-wrap actual-category-scroll"
-            style={{ ["--actual-category-count" as string]: Math.min(visibleCategories.length, 3) }}
-          >
+          <div className="actual-wrap actual-category-scroll">
             {visibleCategories.map((slug) => {
               const info = getCategoryInfo(slug);
               const active = category === slug;
