@@ -14,7 +14,14 @@
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-export type UnsubscribePayload = { email: string; tenantId: string };
+export type UnsubscribeAudience = "marketing" | "newsletter";
+
+export type UnsubscribePayload = {
+  email: string;
+  tenantId: string;
+  /** Default histórico: marketing de clientes. */
+  audience?: UnsubscribeAudience;
+};
 
 function b64url(buf: Buffer): string {
   return buf.toString("base64url");
@@ -34,6 +41,7 @@ export function signUnsubscribeToken(
       JSON.stringify({
         e: payload.email.trim().toLowerCase(),
         t: payload.tenantId,
+        a: payload.audience ?? "marketing",
       }),
     ),
   );
@@ -64,8 +72,12 @@ export function verifyUnsubscribeToken(
     const parsed = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
     const email = typeof parsed?.e === "string" ? parsed.e : "";
     const tenantId = typeof parsed?.t === "string" ? parsed.t : "";
+    const audience =
+      parsed?.a === "newsletter" || parsed?.a === "marketing"
+        ? parsed.a
+        : "marketing";
     if (!email || !tenantId) return null;
-    return { email, tenantId };
+    return { email, tenantId, audience };
   } catch {
     return null;
   }

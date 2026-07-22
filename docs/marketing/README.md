@@ -67,6 +67,11 @@ Connector SDD-0043 (sync E2E en prod: leads/contactos/pipelines/webhooks). Fuent
 - **Centro editorial = `/noticias`**, nombre público **Actualidad** y portada
   **“Actualidad, guía y noticias”**. Conserva el motor existente de las SDD-0088/0089;
   no existe un `/blog` paralelo. Rediseño y gates en [`../specs/0167-actualidad-centro-editorial/spec.md`](../specs/0167-actualidad-centro-editorial/spec.md).
+- **Newsletter de Actualidad = solo email**. El formulario vive en `/noticias` y
+  artículos; no usa WhatsApp como canal de suscripción. Backend local: tabla
+  privada `newsletter_subscribers`, endpoint `/api/newsletter/subscribe`,
+  honeypot, throttle, lista de exclusión e idempotencia. Producción requiere
+  autorización separada para aplicar migración y verificar alta/envío/baja.
 - **Alta de cliente web = `/registro`** (registro REAL: crea el cliente con Shipping Mark/MARKBOX vía `rpc('next_markbox')` + opt-in email + aviso a admins — `app/registro/actions.ts`; ya no es mock).
 - **Portal cliente = `/portal`** (passwordless). **Productos comerciales:** consolidación · puerta_a_puerta_DDP · reserva_FCL · transporte_terrestre.
 - **Canales públicos = solo** CRM WhatsApp (`+58 412 166 8021`, primario) + Fijo Valencia (`+58 241 414 7886`). Ver `feedback_single_point_of_contact`.

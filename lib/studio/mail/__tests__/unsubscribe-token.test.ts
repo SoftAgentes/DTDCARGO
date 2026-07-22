@@ -17,7 +17,28 @@ describe("unsubscribe token", () => {
       SECRET,
     );
     const out = verifyUnsubscribeToken(tok, SECRET);
-    expect(out).toEqual({ email: "cliente@dtd.com", tenantId: "tenant-1" });
+    expect(out).toEqual({
+      email: "cliente@dtd.com",
+      tenantId: "tenant-1",
+      audience: "marketing",
+    });
+  });
+
+  it("firma y verifica baja de newsletter", () => {
+    const tok = signUnsubscribeToken(
+      {
+        email: "cliente@dtdcargo.com",
+        tenantId: "tenant-1",
+        audience: "newsletter",
+      },
+      SECRET,
+    );
+    const out = verifyUnsubscribeToken(tok, SECRET);
+    expect(out).toEqual({
+      email: "cliente@dtdcargo.com",
+      tenantId: "tenant-1",
+      audience: "newsletter",
+    });
   });
 
   it("rechaza con secreto distinto", () => {

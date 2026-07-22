@@ -330,10 +330,13 @@
 .actual-newsletter button { width: 100%; min-height: 48px; margin-top: var(--s-2); border: 0; border-radius: var(--r-md); background: var(--wine); color: var(--color-on-accent); font-weight: 700; }
 .actual-newsletter input:disabled,
 .actual-newsletter button:disabled { opacity: .72; cursor: not-allowed; }
+.actual-newsletter-hp { position: absolute; left: -10000px; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 .actual-consent { margin-top: var(--s-3); display: flex; align-items: flex-start; gap: var(--s-2); color: var(--ink-side-soft); font: 500 11px/1.45 var(--f-brand); }
 .actual-consent input { margin-top: 2px; accent-color: var(--wine); }
 .actual-consent a { color: var(--color-wine-on-dark); text-underline-offset: 2px; }
 .actual-newsletter .actual-newsletter-status { margin-top: var(--s-3); padding-top: var(--s-3); border-top: 1px solid var(--border-side); font-size: 11px; }
+.actual-newsletter-status--ok { color: var(--color-on-accent); }
+.actual-newsletter-status--error { color: var(--color-wine-on-dark); font-weight: 700; }
 
 .actual-newsletter--compact { margin-top: var(--s-10); }
 .actual-newsletter--compact h2 { max-width: 26ch; }

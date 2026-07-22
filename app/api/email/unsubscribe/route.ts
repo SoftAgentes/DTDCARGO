@@ -63,20 +63,35 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Revocar el consentimiento de marketing por email en los clientes que calcen
-  // (case-insensitive) dentro del tenant del token. NO se agrega a mail_blacklist:
-  // esa lista bloquea TODO envío (incl. transaccional); la baja es solo de marketing
-  // y el sender de campañas filtra por email_marketing_optin_at (ver docstring).
-  await admin
-    .from("clients")
-    .update({ email_marketing_optin_at: null })
-    .eq("tenant_id", payload.tenantId)
-    .ilike("email", email);
+  if (payload.audience === "newsletter") {
+    await admin
+      .from("newsletter_subscribers")
+      .update({
+        status: "unsubscribed",
+        unsubscribed_at: new Date().toISOString(),
+        unsubscribe_reason: "signed_link",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("tenant_id", payload.tenantId)
+      .eq("email", email);
+  } else {
+    // Revocar el consentimiento de marketing por email en los clientes que calcen
+    // (case-insensitive) dentro del tenant del token. NO se agrega a mail_blacklist:
+    // esa lista bloquea TODO envío (incl. transaccional); la baja es solo de marketing
+    // y el sender de campañas filtra por email_marketing_optin_at (ver docstring).
+    await admin
+      .from("clients")
+      .update({ email_marketing_optin_at: null })
+      .eq("tenant_id", payload.tenantId)
+      .ilike("email", email);
+  }
 
   return htmlResponse(
     200,
     "Listo, te diste de baja",
-    "No vas a recibir más correos de marketing de DTD Cargo. Los avisos de tus envíos y facturas siguen llegando normalmente.",
+    payload.audience === "newsletter"
+      ? "No vas a recibir más correos de Actualidad de DTD Cargo. Los avisos de tus envíos y facturas siguen llegando normalmente."
+      : "No vas a recibir más correos de marketing de DTD Cargo. Los avisos de tus envíos y facturas siguen llegando normalmente.",
   );
 }
 

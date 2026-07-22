@@ -54,15 +54,22 @@ aprobarse por separado.
 
 ## 4. Newsletter
 
-El newsletter es exclusivamente por email. La tarjeta se implementa en estado
-no interactivo para preservar el diseño sin capturar datos antes de tiempo.
-Activarlo requiere, en una autorización separada:
+El newsletter es exclusivamente por email. La implementación local agrega:
 
-1. tabla privada con RLS y sin lectura anónima;
-2. endpoint con validación, honeypot, throttle e idempotencia;
-3. baja firmada para suscriptores independientes de `clients`;
-4. prueba completa de alta, envío manual y baja;
-5. revisión de asesores de Supabase después de aplicar la migración.
+1. tabla privada `newsletter_subscribers` con RLS y sin lectura anónima;
+2. endpoint `/api/newsletter/subscribe` con validación, honeypot, throttle,
+   lista de exclusión e idempotencia;
+3. baja firmada extendida para audiencia `newsletter`, independiente de
+   `clients`;
+4. formulario activo en `/noticias` y artículos, sin opción de WhatsApp.
+
+Activarlo en producción requiere, en una autorización separada:
+
+1. aplicar la migración `0259_newsletter_subscribers.sql`;
+2. verificar alta, reintento/duplicado y honeypot contra Supabase;
+3. verificar envío manual desde Studio con links de baja firmados;
+4. verificar baja de punta a punta;
+5. revisar asesores de Supabase después de aplicar la migración.
 
 Publicar un artículo nunca envía una campaña automáticamente.
 
@@ -76,7 +83,9 @@ Publicar un artículo nunca envía una campaña automáticamente.
 - fotografías tienen texto alternativo en artículos;
 - cuerpo de lectura con ancho aproximado de 65 caracteres;
 - foco visible, targets móviles y reflujo en 390, 768 y 1440 px;
-- newsletter no envía ni guarda datos mientras no exista backend aprobado;
+- newsletter por email valida consentimiento explícito y no usa WhatsApp;
+- endpoint no revela si un correo ya existe o está bloqueado;
+- tabla de suscriptores no tiene lectura directa anónima ni autenticada;
 - TypeScript, lint, unitarias, build y prueba visual en verde.
 
 ## 6. Gates externos
