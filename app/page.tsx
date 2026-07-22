@@ -425,6 +425,11 @@ export default function HomePage() {
                   Regístrate y obtén tu Shipping Mark
                 </Link>
               </div>
+              {/* Anti-fricción (anotación Agentation #5): el CTA de cierre resuelve
+                  la última objeción. Claims ya publicados en la página (gratis, 24h). */}
+              <p className="final-reassure">
+                Gratis · Sin compromiso · Cotización inicial estimada en 24 h
+              </p>
               <div className="final-mark">
                 Tu código: <b>DTD-XXXX</b> · Shipping Mark{" "}
                 <span style={{ fontFamily: "var(--f-cn)" }}>(唛头)</span> — identifica
