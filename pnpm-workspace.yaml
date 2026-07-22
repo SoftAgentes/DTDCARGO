@@ -1,5 +1,6 @@
 # pnpm 11+ requiere whitelist explícita de packages que pueden correr build scripts.
 allowBuilds:
-  esbuild: set this to true or false
+  better-sqlite3: true
+  esbuild: true
   sharp: true
   unrs-resolver: true
