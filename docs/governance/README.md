@@ -3,14 +3,14 @@
 | Control | Valor |
 |---|---|
 | Documento | Índice maestro del Sistema de Gobernanza |
-| Versión | 2.6 |
+| Versión | 2.7 |
 | Dueño | Sam (founder) |
 | Custodia | Producto + Diseño + Ingeniería |
 | Estado | activo |
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-22 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-014 · A1 aplicado y verificado 2026-07-22](BASELINE-2026-07-22-04.md) |
+| Línea base vigente | [LB-SGE-015 · propuesta de cierre MP-01 2026-07-22](BASELINE-2026-07-22-05.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -48,6 +48,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Constitución de experiencia | [SGE-00 v1.0](policies/sge-00.md) |
 | Revisión conjunta Constitución + botones | [REV-SGE-002](reviews/sge-00-btn-01.md) |
 | Permanencia y eliminación | [MP-01 v1.0](policies/mp-01.md) |
+| Propuesta de cierre de decisiones MP-01 | [REV-MP-001](reviews/mp-01-decisions.md) |
 | Botones y acciones | [BTN-01 v1.0](policies/btn-01.md) |
 | Presión sostenida crítica | [HTD-01 v1.0](policies/htd-01.md) |
 | Auditoría de mutaciones | [AUD-01 v1.0](policies/aud-01.md) |
@@ -116,7 +117,7 @@ disfraza elevando el estado normativo.
 | Código | Política | Estado normativo | Estado del ERP | Documento o próximo gate |
 |---|---|---|---|---|
 | SGE-00 | Principios constitucionales de experiencia | aprobada | Constitución vigente para cambios nuevos/modificados; legado aún no auditado transversalmente | [REV-SGE-002 aprobada](reviews/sge-00-btn-01.md) |
-| MP-01 | Matriz de permanencia | aprobada | [Mapa inicial](policies/mp-01.md) por clases completado; faltan retenciones legales y decisiones por excepción | Resolver decisiones reservadas y convertir el mapa por entidad en SDD de implementación |
+| MP-01 | Matriz de permanencia | aprobada | [Mapa inicial](policies/mp-01.md) por clases completado; [REV-MP-001](reviews/mp-01-decisions.md) propone defaults cerrables sin cambiar todavía v1.0 | Revisar y decidir MP-D1 a MP-D7; después consolidar v1.1 y crear SDD de implementación |
 | BTN-01 | Semántica, jerarquía y contrato de botones | aprobada | [Vocabulario, orden, estados y contrato](policies/btn-01.md) vigentes; adopción del legado no auditada | Crear SDD por alcance antes de migrar consumidores |
 | HTD-01 | Confirmación por presión sostenida | aprobada | [Contrato v1.0](policies/htd-01.md) consolidado; no implementado | Crear SDD solo para una entidad R3 clasificada por MP-01 |
 | AVS-01 | Avisos y confirmaciones | verificada | Primitiva compatible implementada; consumidores heredados pendientes | [SDD-0165](../specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md) |
@@ -179,7 +180,8 @@ cómo pasar de una política aprobada a contrato, pruebas y evidencia visual.
 La extracción documental concluyó en LB-SGE-003 y la constitución/acciones se
 aprobaron en LB-SGE-004. El orden que gobierna la siguiente fase es:
 
-1. resolver decisiones reservadas de MP-01 y clasificar entidades por estado;
+1. revisar [REV-MP-001](reviews/mp-01-decisions.md), resolver MP-D1 a MP-D7 y
+   clasificar entidades por estado;
 2. conservar A1 y su recibo en Git; no existe permiso para redactar/aplicar A2
    ni ejecutar la matriz ACL;
 3. revisar las políticas v0.1 por bloques coherentes, no como aprobación masiva;
@@ -208,8 +210,9 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-014 · A1 aplicado y verificado 2.3](BASELINE-2026-07-22-04.md). La
-aprobación de aplicación [LB-SGE-013](BASELINE-2026-07-22-03.md), la redacción
+[LB-SGE-015 · propuesta de cierre MP-01 2.4](BASELINE-2026-07-22-05.md). El
+cierre de A1 [LB-SGE-014](BASELINE-2026-07-22-04.md), la aprobación de
+aplicación [LB-SGE-013](BASELINE-2026-07-22-03.md), la redacción
 A1 [LB-SGE-012](BASELINE-2026-07-22-02.md), el diseño
 aprobado [LB-SGE-011](BASELINE-2026-07-22.md), el inventario Cloud
 [LB-SGE-010](BASELINE-2026-07-21-10.md), la revalidación local
