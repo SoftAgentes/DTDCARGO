@@ -385,7 +385,7 @@ function PurchaseDone({
     <div className="flex flex-col items-center text-center gap-5">
       <div
         className="w-14 h-14 rounded-full grid place-items-center"
-        style={{ background: "var(--color-status-success)", color: "#fff" }}
+        style={{ background: "var(--color-status-success)", color: "var(--color-on-accent)" }}
       >
         <CheckIcon size={28} />
       </div>
