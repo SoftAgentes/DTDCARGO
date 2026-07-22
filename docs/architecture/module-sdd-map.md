@@ -46,7 +46,7 @@
 | QR print queue | 0033 | `app/studio/(app)/cola-qr/` | `lib/studio/qr-queue-*` |
 | Wiring modals globales | 0034 | `app/studio/_components/wiring/` | — |
 | Bug Reporter | 0036 | `app/studio/(app)/{bugs,mis-bugs}/` + `_components/bug-reporter/` | `lib/studio/bug-*` |
-| Comentarios + @menciones | 0045 | `app/studio/(app)/menciones/` + `_components/comments/` + `_actions/comments.ts` (embed en `tracking/[id]`) | `lib/studio/comments/` · `supabase/migrations/0090_comments.sql` |
+| Comentarios + @menciones | 0045, 0168 (`approved`) | `app/studio/(app)/menciones/` + `_components/comments/` + `_actions/comments.ts` (embed en `tracking/[id]`) | `lib/studio/comments/` · `supabase/migrations/0090_comments.sql` · 0168 aprueba permanencia/restauración sin implementación |
 | Dirección · Tablero ejecutivo | 0048 | app/studio/(app)/direccion/ | lib/studio/direccion/ |
 | Documentos · Hub (DMS) | 0049 | app/studio/(app)/documentos/ + _components/documents/DocsPanel | lib/studio/documents/ · supabase/migrations/0097 |
 | Inventario de Consolidación (WMS) | 0081 | `app/studio/(app)/inventario/` *(propuesto)* | `lib/studio/inventory/` *(propuesto)* — derivación sobre warehouse_receipts_* + consolidations (SDD-0047) |
