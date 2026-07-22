@@ -1,0 +1,178 @@
+.email-baja-surface {
+  min-height: 100dvh;
+  background: var(--grad-page);
+  color: var(--ink);
+}
+
+.email-baja-shell {
+  width: min(100% - (2 * var(--s-6)), 760px);
+  min-height: 100dvh;
+  margin-inline: auto;
+  padding-block: clamp(28px, 6vw, 72px) var(--s-8);
+  display: flex;
+  flex-direction: column;
+}
+
+.email-baja-brand {
+  padding-bottom: var(--s-8);
+  border-bottom: 1px solid var(--border);
+}
+
+.email-baja-brand-dark {
+  display: none;
+}
+
+.email-baja-panel {
+  margin-block: clamp(48px, 9vw, 96px);
+  max-width: 640px;
+}
+
+.email-baja-symbol {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+}
+
+.email-baja-symbol svg {
+  width: 27px;
+  height: 27px;
+}
+
+.email-baja-symbol--success {
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  color: var(--success);
+}
+
+.email-baja-symbol--warning {
+  background: var(--wine-tint);
+  color: var(--wine-text);
+}
+
+.email-baja-eyebrow {
+  margin: var(--s-6) 0 var(--s-3);
+  color: var(--wine-text);
+  font: 700 12px/1.2 var(--f-brand);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.email-baja-panel h1 {
+  max-width: 17ch;
+  margin: 0;
+  color: var(--ink);
+  font: 400 clamp(34px, 6vw, 52px)/1.04 var(--f-brand-display);
+  letter-spacing: -.03em;
+  text-wrap: balance;
+}
+
+.email-baja-copy {
+  max-width: 58ch;
+  margin: var(--s-5) 0 0;
+  color: var(--ink-soft);
+  font: 500 clamp(16px, 2vw, 18px)/1.65 var(--f-brand);
+  text-wrap: pretty;
+}
+
+.email-baja-actions {
+  margin-top: var(--s-8);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-4) var(--s-5);
+}
+
+.email-baja-secondary {
+  color: var(--wine-text);
+  font: 700 14px/1.4 var(--f-brand);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 5px;
+}
+
+.email-baja-secondary:hover {
+  color: var(--wine-deep);
+}
+
+.email-baja-surface a:focus-visible {
+  outline: 3px solid var(--wine-text);
+  outline-offset: 3px;
+}
+
+.email-baja-footer {
+  margin-top: auto;
+  padding-top: var(--s-5);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  border-top: 1px solid var(--border);
+  color: var(--ink-soft);
+  font: 600 12px/1.5 var(--f-brand);
+}
+
+@media (max-width: 560px) {
+  .email-baja-shell {
+    width: min(100% - (2 * var(--s-5)), 760px);
+    padding-top: var(--s-6);
+  }
+
+  .email-baja-brand {
+    padding-bottom: var(--s-6);
+  }
+
+  .email-baja-panel {
+    margin-block: var(--s-12) var(--s-16);
+  }
+
+  .email-baja-panel h1 {
+    font-size: 36px;
+  }
+
+  .email-baja-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .email-baja-actions .btn,
+  .email-baja-secondary {
+    width: 100%;
+    text-align: center;
+  }
+
+  .email-baja-secondary {
+    padding: var(--s-3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .email-baja-surface * {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .email-baja-surface {
+    /* Paleta oscura construida solo con tokens oficiales del sitio. */
+    --bg-base: var(--color-ink);
+    --bg-surface: var(--color-grey-900);
+    --bg-elevated: color-mix(in srgb, var(--color-paper) 8%, transparent);
+    --border: color-mix(in srgb, var(--color-paper) 16%, transparent);
+    --ink: var(--color-paper);
+    --ink-soft: var(--color-grey-300);
+    --wine-text: var(--color-wine-on-dark);
+    --wine-deep: var(--color-wine-on-dark);
+    --wine-tint: color-mix(in srgb, var(--color-wine-on-dark) 12%, transparent);
+    --grad-page: var(--grad-navy);
+    color-scheme: dark;
+  }
+
+  .email-baja-brand-light {
+    display: none;
+  }
+
+  .email-baja-brand-dark {
+    display: inline;
+  }
+}

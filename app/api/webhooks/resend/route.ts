@@ -23,6 +23,7 @@ import {
   verifyResendWebhookSignature,
   type ResendWebhookEvent,
 } from "@/lib/studio/mail/resend-api";
+import { refreshCampaignCounters } from "@/lib/studio/newsletter/sender";
 
 export const runtime = "nodejs";
 
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest) {
 
   const { data: log } = await supabaseAdmin
     .from("mail_logs")
-    .select("id, tenant_id, to_email, template_id, status")
+    .select("id, tenant_id, to_email, template_id, status, metadata")
     .eq("resend_message_id", emailId)
     .maybeSingle<{
       id: string;
@@ -105,6 +106,7 @@ export async function POST(request: NextRequest) {
       to_email: string;
       template_id: string | null;
       status: string;
+      metadata: Record<string, unknown> | null;
     }>();
 
   if (!log) {
@@ -153,6 +155,35 @@ export async function POST(request: NextRequest) {
         },
         { onConflict: "tenant_id,email" },
       );
+  }
+
+  // 8. Sincronizar la trazabilidad de campañas de Actualidad. Los IDs viven en
+  // metadata del mail_log; los emails enviados fuera del newsletter no entran.
+  const campaignId = typeof log.metadata?.newsletter_campaign_id === "string"
+    ? log.metadata.newsletter_campaign_id
+    : null;
+  const recipientId = typeof log.metadata?.newsletter_recipient_id === "string"
+    ? log.metadata.newsletter_recipient_id
+    : null;
+  const subscriberId = typeof log.metadata?.newsletter_subscriber_id === "string"
+    ? log.metadata.newsletter_subscriber_id
+    : null;
+  if (campaignId && recipientId && status) {
+    const recipientUpdate: Record<string, unknown> = { status };
+    if (status === "sent") recipientUpdate.sent_at = event.created_at;
+    if (status === "delivered") recipientUpdate.delivered_at = event.created_at;
+    if (status === "opened") recipientUpdate.opened_at = event.created_at;
+    if (status === "clicked") recipientUpdate.clicked_at = event.created_at;
+    if (status === "bounced") recipientUpdate.bounced_at = event.created_at;
+    if (status === "complained") recipientUpdate.complained_at = event.created_at;
+    if (status === "failed") recipientUpdate.error = update.error ?? "failed (sin detalle)";
+    await supabaseAdmin.from("newsletter_campaign_recipients").update(recipientUpdate)
+      .eq("id", recipientId).eq("campaign_id", campaignId).eq("tenant_id", log.tenant_id);
+    if (status === "delivered" && subscriberId) {
+      await supabaseAdmin.from("newsletter_subscribers").update({ last_delivered_at: event.created_at })
+        .eq("id", subscriberId).eq("tenant_id", log.tenant_id);
+    }
+    await refreshCampaignCounters(supabaseAdmin, campaignId, log.tenant_id);
   }
 
   return NextResponse.json({

@@ -5,6 +5,7 @@
 import { describe, it, expect } from "vitest";
 import {
   signUnsubscribeToken,
+  unsubscribeTokenFingerprint,
   verifyUnsubscribeToken,
 } from "../unsubscribe-token";
 
@@ -60,5 +61,16 @@ describe("unsubscribe token", () => {
     expect(verifyUnsubscribeToken("", SECRET)).toBeNull();
     expect(verifyUnsubscribeToken("sinpunto", SECRET)).toBeNull();
     expect(verifyUnsubscribeToken(".", SECRET)).toBeNull();
+  });
+
+  it("genera una huella estable sin exponer el token", () => {
+    const tok = signUnsubscribeToken(
+      { email: "cliente@dtdcargo.com", tenantId: "tenant-1", audience: "newsletter" },
+      SECRET,
+    );
+    const fingerprint = unsubscribeTokenFingerprint(tok);
+    expect(fingerprint).toMatch(/^[a-f0-9]{16}$/);
+    expect(unsubscribeTokenFingerprint(tok)).toBe(fingerprint);
+    expect(fingerprint).not.toContain(tok);
   });
 });

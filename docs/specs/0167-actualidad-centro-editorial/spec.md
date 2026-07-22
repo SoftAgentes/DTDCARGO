@@ -63,13 +63,81 @@ El newsletter es exclusivamente por email. La implementación local agrega:
    `clients`;
 4. formulario activo en `/noticias` y artículos, sin opción de WhatsApp.
 
-Activarlo en producción requiere, en una autorización separada:
+El envío administrativo se implementa como un flujo deliberadamente manual:
 
-1. aplicar la migración `0259_newsletter_subscribers.sql`;
-2. verificar alta, reintento/duplicado y honeypot contra Supabase;
-3. verificar envío manual desde Studio con links de baja firmados;
-4. verificar baja de punta a punta;
-5. revisar asesores de Supabase después de aplicar la migración.
+1. el equipo de Marketing crea y edita un borrador con vista previa;
+2. el borrador pasa a revisión;
+3. solo un administrador puede aprobarlo y congelar la audiencia;
+4. antes de enviar se puede mandar una prueba al correo interno de Mailing;
+5. solo un administrador inicia cada lote real, con máximo 100 destinatarios;
+6. si quedan destinatarios, el siguiente lote requiere otro clic explícito;
+7. se bloquea una tercera campaña dentro del mismo mes calendario;
+8. publicar una noticia nunca crea ni envía una campaña.
+
+La migración `0260_newsletter_campaigns.sql` crea campañas y snapshots de
+destinatarios privados, RLS fail-closed y un RPC `service_role` para reclamar
+lotes de forma atómica. Cada lote usa una clave idempotente de Resend y cada
+correo incluye baja visible y encabezados RFC 8058. Entregas, aperturas, clics,
+rebotes y quejas se sincronizan desde el webhook existente.
+
+Las migraciones `0259_newsletter_subscribers.sql` y
+`0260_newsletter_campaigns.sql` ya fueron aplicadas. La 0260 fue verificada el
+2026-07-22 contra objetos reales: tablas con RLS, sin grants directos para
+`anon`/`authenticated`, RPC de lotes exclusivo de `service_role`, RPC de lectura
+limitado a roles autorizados y sin asesores nuevos para estas tablas.
+
+Preview de validación:
+`https://dtdcargo-pkge69mpf-hailu-wey.vercel.app` (deployment
+`dpl_4r5asFg25bp1pLfFfrPCQNfDqpuC`, READY). El 2026-07-22 se validó con una
+sesión administrativa real el flujo borrador → prueba interna → revisión →
+aprobación. La aprobación congeló una audiencia de un suscriptor, conservó el
+hash del contenido aprobado y creó un solo destinatario pendiente. No se inició
+ningún lote real: la campaña de prueba quedó `cancelled`, con cero envíos y su
+destinatario marcado `skipped` para impedir un despacho accidental. Activar
+campañas reales todavía requiere:
+
+El mismo día se ejecutó un lote controlado: un destinatario interno enviado y
+confirmado como `delivered`, un destinatario externo omitido antes del despacho,
+cero envíos externos y cero fallos. Al abrir la baja firmada, el correo del
+Preview dirigió al dominio público, cuya ruta todavía usa el flujo anterior de
+marketing: mostró la confirmación de marketing y no actualizó
+`newsletter_subscribers`. El registro interno se reparó a `unsubscribed` después
+del consentimiento explícito, pero este gate técnico sigue abierto.
+
+La corrección quedó construida y validada visualmente en el Preview
+`https://dtdcargo-jnag8kgv4-hailu-wey.vercel.app` (deployment
+`dpl_2R4EQ46zLmJ7WjfLdqZvdQFWwvqR`, READY) el 2026-07-22. Los correos generados
+en Preview ahora usan el hostname exacto del deployment, mientras producción
+conserva el canonical público. El endpoint procesa la baja y redirige a
+`/email/baja` sin dejar el token ni el correo en la URL. La pantalla de marca
+incluye estados separados para Actualidad, marketing, enlace inválido y error,
+con `noindex`; se verificó en 1440 y 390 px, en tema claro y oscuro. También se comprobó en el Preview
+que un token inválido termina en `estado=invalido` sin exponer el token.
+
+El 2026-07-22 se repitió la prueba desde ese deployment con el suscriptor interno
+reactivado mediante el formulario público. Se creó exactamente un `mail_log`
+nuevo para `vzla@dtdcargo.com`, Resend lo confirmó como `delivered` y la ventana
+de auditoría registró cero destinatarios externos. El enlace sí abrió
+`/api/email/unsubscribe` en el hostname exacto del Preview y retiró el token al
+redirigir, pero terminó en `estado=invalido`: la firma no fue aceptada y
+`newsletter_subscribers.status` permaneció en `subscribed`. No hubo reparación
+manual. Por tanto, el gate firmado sigue **fallido** y campañas reales continúan
+bloqueadas.
+
+Quedó preparado localmente un diagnóstico sin PII: el emisor guarda en
+`mail_logs.metadata` una huella SHA-256 truncada del token y el endpoint inválido
+registra solo presencia, longitud, cantidad de segmentos, la misma huella y la
+fuente nominal del secreto. Nunca registra el token, el correo ni el tenant. Sus
+13 pruebas dirigidas, TypeScript y lint están en verde; todavía no fue desplegado.
+
+El gate que falta es:
+
+1. identificar si el token llega ausente/truncado o si su firma no coincide entre
+   el emisor y el endpoint, sin registrar el token ni el correo en logs;
+2. corregir y desplegar un nuevo Preview autorizado;
+3. repetir una única prueba exclusivamente interna y confirmar que la respuesta
+   menciona Actualidad y persiste `status = 'unsubscribed'` sin reparación manual;
+4. autorizar por separado la publicación a producción.
 
 Publicar un artículo nunca envía una campaña automáticamente.
 
@@ -86,11 +154,17 @@ Publicar un artículo nunca envía una campaña automáticamente.
 - newsletter por email valida consentimiento explícito y no usa WhatsApp;
 - endpoint no revela si un correo ya existe o está bloqueado;
 - tabla de suscriptores no tiene lectura directa anónima ni autenticada;
+- campañas y snapshots de destinatarios tampoco tienen lectura directa pública;
+- un editor no puede aprobar ni enviar y un admin no puede enviar contenido alterado;
+- el modo prueba bloquea el envío real y solo permite el correo interno;
+- cada lote tiene máximo 100 destinatarios e idempotencia por ejecución;
 - TypeScript, lint, unitarias, build y prueba visual en verde.
 
 ## 6. Gates externos
 
-- no aplicar migraciones a producción;
-- no activar newsletter público;
-- no hacer push, Preview ni producción sin autorización del founder;
+- las migraciones 0259 y 0260 ya están aplicadas y verificadas; cualquier nueva
+  migración requiere autorización separada;
+- no activar campañas reales hasta repetir desde el nuevo Preview la prueba firmada
+  sin reparación manual;
+- Preview autorizado y desplegado; no hacer push ni producción sin autorización separada;
 - validar datos estructurados en Rich Results Test después de Preview.

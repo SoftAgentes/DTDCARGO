@@ -70,8 +70,29 @@ Connector SDD-0043 (sync E2E en prod: leads/contactos/pipelines/webhooks). Fuent
 - **Newsletter de Actualidad = solo email**. El formulario vive en `/noticias` y
   artículos; no usa WhatsApp como canal de suscripción. Backend local: tabla
   privada `newsletter_subscribers`, endpoint `/api/newsletter/subscribe`,
-  honeypot, throttle, lista de exclusión e idempotencia. Producción requiere
-  autorización separada para aplicar migración y verificar alta/envío/baja.
+  honeypot, throttle, lista de exclusión e idempotencia. El alta y la baja ya
+  fueron verificadas con la migración 0259. El envío administrativo vive en
+  `/studio/marketing/newsletter`: borrador → revisión → aprobación admin →
+  prueba interna → lotes manuales de hasta 100. Migraciones privadas 0259 y 0260
+  aplicadas; RLS, grants y RPC verificados el 2026-07-22. Preview 0260 READY en
+  `dtdcargo-pkge69mpf-hailu-wey.vercel.app`; flujo autenticado de borrador,
+  prueba interna, revisión y aprobación verificado. La campaña de prueba quedó
+  cancelada con cero envíos reales. Lote controlado validado después: un correo
+  interno entregado, cero externos y cero fallos. La baja reveló un gate: el
+  correo del Preview apuntó a la ruta pública anterior de marketing y no actualizó
+  `newsletter_subscribers`; el registro interno se reparó tras el consentimiento.
+  El host y la confirmación visual quedaron corregidos en el Preview READY
+  `dtdcargo-jnag8kgv4-hailu-wey.vercel.app` (pantalla pública `/email/baja`,
+  `noindex`, token retirado de la URL, estados Actualidad/marketing/error y reflujo
+  1440/390 px en tema claro/oscuro). La repetición controlada creó y entregó un
+  solo correo a `vzla@dtdcargo.com`, con cero destinatarios externos; el enlace
+  llegó al endpoint del Preview, pero terminó en `estado=invalido` y el suscriptor
+  permaneció `subscribed`, sin reparación manual. El gate de baja firmada sigue
+  fallido: falta diagnosticar la estructura/firma sin exponer el token, corregir
+  en otro Preview autorizado y repetir una única prueba interna antes de habilitar
+  campañas. La instrumentación local ya correlaciona emisor y endpoint con una
+  huella irreversible y sin PII; pasó pruebas dirigidas, TypeScript y lint, pero
+  todavía no fue desplegada. Publicar una noticia nunca envía una campaña.
 - **Alta de cliente web = `/registro`** (registro REAL: crea el cliente con Shipping Mark/MARKBOX vía `rpc('next_markbox')` + opt-in email + aviso a admins — `app/registro/actions.ts`; ya no es mock).
 - **Portal cliente = `/portal`** (passwordless). **Productos comerciales:** consolidación · puerta_a_puerta_DDP · reserva_FCL · transporte_terrestre.
 - **Canales públicos = solo** CRM WhatsApp (`+58 412 166 8021`, primario) + Fijo Valencia (`+58 241 414 7886`). Ver `feedback_single_point_of_contact`.

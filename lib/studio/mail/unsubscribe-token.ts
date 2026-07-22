@@ -12,7 +12,7 @@
  * HMAC es de una vía).
  */
 
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
 export type UnsubscribeAudience = "marketing" | "newsletter";
 
@@ -29,6 +29,14 @@ function b64url(buf: Buffer): string {
 
 function hmac(data: string, secret: string): Buffer {
   return createHmac("sha256", secret).update(data).digest();
+}
+
+/**
+ * Huella corta e irreversible para correlacionar emisión y recepción sin
+ * registrar el token, el correo ni el tenant. No sirve para verificar la firma.
+ */
+export function unsubscribeTokenFingerprint(token: string): string {
+  return createHash("sha256").update(token).digest("hex").slice(0, 16);
 }
 
 /** Firma un token `<payload-b64url>.<sig-b64url>`. Email canónico (lower) por estabilidad. */

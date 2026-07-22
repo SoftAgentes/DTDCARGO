@@ -62,6 +62,7 @@ export function NewsletterCard({ compact = false }: { compact?: boolean }) {
 
   return (
     <aside
+      id="newsletter"
       className={`actual-newsletter ${compact ? "actual-newsletter--compact" : ""}`}
       aria-labelledby={compact ? "newsletter-article-title" : "newsletter-title"}
     >
