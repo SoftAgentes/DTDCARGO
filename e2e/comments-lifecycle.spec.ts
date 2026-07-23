@@ -92,6 +92,10 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
     const admin = createE2EAdminClient(environment);
     const fixture = SDD_0168_FIXTURE;
     const browserErrors: string[] = [];
+    const monitoredOrigins = new Set([
+      new URL(process.env.BASE_URL!).origin,
+      new URL(environment.supabaseUrl).origin,
+    ]);
 
     page.on("pageerror", (error) => browserErrors.push(`pageerror: ${error.message}`));
     page.on("console", (message) => {
@@ -99,10 +103,22 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
         browserErrors.push(`console: ${message.text()}`);
       }
     });
+    page.on("response", (response) => {
+      const responseUrl = new URL(response.url());
+      if (
+        monitoredOrigins.has(responseUrl.origin) &&
+        response.status() >= 400
+      ) {
+        browserErrors.push(
+          `response: ${response.status()} ${response.request().method()} ${
+            responseUrl.pathname
+          }`,
+        );
+      }
+    });
     page.on("requestfailed", (request) => {
       const requestUrl = new URL(request.url());
-      const baseUrl = new URL(process.env.BASE_URL!);
-      if (requestUrl.origin === baseUrl.origin) {
+      if (monitoredOrigins.has(requestUrl.origin)) {
         browserErrors.push(
           `requestfailed: ${request.method()} ${requestUrl.pathname} · ${
             request.failure()?.errorText ?? "sin detalle"
