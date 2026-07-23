@@ -27,10 +27,10 @@
  */
 
 import { ImageResponse } from "next/og";
-import { getPostBySlug } from "@/lib/news/queries";
+import { getPostBySlug } from "@/lib/public/news-queries";
 import { getCategoryInfo } from "@/lib/news/categories";
 
-export const alt = "DTD Cargo · Noticias";
+export const alt = "DTD Cargo · Actualidad, guía y noticias";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -45,8 +45,8 @@ type Props = { params: Promise<{ slug: string }> };
 export default async function Image({ params }: Props) {
   const { slug } = await params;
 
-  let title = "Noticias de comercio China → Venezuela";
-  let category = "Noticias";
+  let title = "Actualidad del comercio China → Venezuela";
+  let category = "Actualidad";
   try {
     const post = await getPostBySlug(slug);
     if (post) {

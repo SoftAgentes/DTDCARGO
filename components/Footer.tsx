@@ -72,7 +72,7 @@ export function Footer() {
             <FooterLink href="/servicios">Servicios</FooterLink>
             <FooterLink href="/pre-alertas">Pre-alertas</FooterLink>
             <FooterLink href="/nosotros">Nosotros</FooterLink>
-            <FooterLink href="/portal/login">Acceder</FooterLink>
+            <FooterLink href="/portal/login">Mi portal</FooterLink>
             <FooterLink href="/registro">Regístrate</FooterLink>
           </FooterCol>
 
@@ -80,7 +80,7 @@ export function Footer() {
           <FooterCol title="Ayuda">
             <FooterLink href="/faq">Preguntas frecuentes</FooterLink>
             <FooterLink href="/glosario">Glosario</FooterLink>
-            <FooterLink href="/noticias">Noticias</FooterLink>
+              <FooterLink href="/noticias">Actualidad</FooterLink>
             <FooterLink href="/academia">Academia</FooterLink>
             {/* Mismo destino que "Cómo trabajamos" del menú Ayuda (Nav.tsx) —
                 deliberado, dos nombres para la misma página (ver comentario ahí). */}

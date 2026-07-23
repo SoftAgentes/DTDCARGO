@@ -104,6 +104,13 @@ const SECTIONS: Section[] = [
     status: "Disponible",
   },
   {
+    href: "/studio/marketing/newsletter",
+    icon: "mail",
+    title: "Campañas de Actualidad",
+    desc: "Redacta, revisa, aprueba y envía manualmente el newsletter por email.",
+    status: "Disponible",
+  },
+  {
     href: "/studio/academia",
     icon: "star",
     title: "Academia",
