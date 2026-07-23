@@ -199,6 +199,10 @@ export const CAPABILITIES = {
    * legal (T&C, aceptaciones, evidencia individual) sigue admin-only.
    */
   view_defense_file: ["commercial", "support"],
+  /** Moderar comentarios ajenos (SDD-0168): admin-only por defecto. */
+  moderate_comments: [],
+  /** Consultar eliminados y restaurarlos (SDD-0168): admin-only por defecto. */
+  restore_comments: [],
 } as const satisfies Record<string, readonly StudioUserRole[]>;
 
 export type StudioCapability = keyof typeof CAPABILITIES;

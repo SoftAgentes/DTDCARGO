@@ -4,7 +4,7 @@ title: "MP-01 Slice 1 — Permanencia y restauración de comentarios internos"
 status: approved
 author: "Codex"
 created: 2026-07-22
-updated: 2026-07-22
+updated: 2026-07-23
 supersedes: null
 superseded_by: null
 related: ["0045", "0123", "0165", "0166"]
@@ -15,9 +15,10 @@ confidencialidad: interno
 
 > **Estado de control:** aprobado documentalmente el 2026-07-22. El
 > [diseño técnico v1.0](diseno-tecnico.md) fue aprobado técnicamente por
-> [REV-MP-002](../../governance/reviews/mp-01-comments-design.md), sin autorizar
-> código, migraciones, cambios efectivos de RBAC, Supabase Cloud, producción,
-> jobs, Storage ni purgas. Cada gate de ejecución conserva autorización propia.
+> [REV-MP-002](../../governance/reviews/mp-01-comments-design.md). El gate APP
+> recibió autorización local el 2026-07-23 y quedó implementado sin push,
+> integración, Cloud ni cambios de ACL históricos. Los demás gates
+> conservan autorización propia.
 
 ## 1. Propósito
 
@@ -327,9 +328,12 @@ parte del gate UI. El orden y jerarquía de acciones deben cumplir BTN-01.
       REV-AUD-006.
 - [x] El diseño técnico del corte de atomicidad aplicable fue aprobado en
       REV-MP-002, sin declarar completo el Corte D global.
+- [x] Gate APP implementado y verificado localmente el 2026-07-23: RPCs de
+      delete/undo/restore, capabilities admin-only, recuperación por entidad,
+      badge coherente y deadline absoluto; sin tocar ACL históricos.
 - [ ] DB-1, APP y DB-2 tienen implementación, autorización y evidencia propias.
-- [ ] Migración, RBAC, Cloud/producción, commit y push reciben autorización
-      individual; ninguna se infiere de aprobar este documento.
+- [ ] DB-2, Cloud/producción, commit, push e integración reciben autorización
+      individual; ninguna se infiere del gate APP local.
 
 ## 12. Fuera de alcance
 

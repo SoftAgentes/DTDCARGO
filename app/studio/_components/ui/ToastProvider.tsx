@@ -62,6 +62,13 @@ export interface GovernedToastInput {
   duration?: ToastDuration;
   /** Referencia a un evento ya auditado; el toast nunca escribe auditoría. */
   correlationId?: string;
+  /**
+   * Deadline absoluto emitido por el servidor para una acción temporal.
+   * A diferencia de la duración visual, no se pausa por hover, foco ni pestaña
+   * oculta.
+   */
+  actionExpiresAt?: string;
+  actionExpiredMessage?: string;
   /** Solo para errores que impiden continuar la tarea actual. */
   urgent?: boolean;
 }
@@ -110,6 +117,9 @@ interface ToastRecord {
   sequence: number;
   actionState: ActionState;
   actionError?: string;
+  actionExpiresAtMs?: number;
+  actionExpired: boolean;
+  actionExpiredMessage?: string;
 }
 
 interface RunningTimer {
@@ -176,6 +186,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const maxVisibleRef = useRef(DESKTOP_MAX_VISIBLE);
   const sequenceRef = useRef(0);
   const timersRef = useRef<Map<string, RunningTimer>>(new Map());
+  const actionExpiryTimersRef = useRef<
+    Map<string, ReturnType<typeof setTimeout>>
+  >(new Map());
   const pauseReasonsRef = useRef<Map<string, Set<PauseReason>>>(new Map());
   const dedupeIdsRef = useRef<Map<string, string>>(new Map());
   const returnFocusRef = useRef<Map<string, HTMLElement>>(new Map());
@@ -192,6 +205,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     const running = timersRef.current.get(toast.id);
     if (running) clearTimeout(running.handle);
     timersRef.current.delete(toast.id);
+    const actionExpiryTimer = actionExpiryTimersRef.current.get(toast.id);
+    if (actionExpiryTimer) clearTimeout(actionExpiryTimer);
+    actionExpiryTimersRef.current.delete(toast.id);
     pauseReasonsRef.current.delete(toast.id);
     setPausedIds((previous) => {
       if (!previous.has(toast.id)) return previous;
@@ -285,6 +301,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     (input: GovernedToastInput) => {
       const existingId = dedupeIdsRef.current.get(input.dedupeKey);
       if (existingId) {
+        const existingExpiryTimer = actionExpiryTimersRef.current.get(existingId);
+        if (existingExpiryTimer) clearTimeout(existingExpiryTimer);
+        actionExpiryTimersRef.current.delete(existingId);
         // Puede llegar justo después del rechazo, antes de que `toastsRef`
         // refleje el nuevo render. Limpiar el motivo directamente evita dejar
         // el aviso actualizado pausado para siempre; si sigue `acting`, el
@@ -297,6 +316,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           if (existing.actionState === "acting") return previous;
           const isVisible = index < maxVisibleRef.current;
           const durationMs = durationToMs(input.duration, Boolean(input.action));
+          const actionExpiresAtMs = input.actionExpiresAt
+            ? Date.parse(input.actionExpiresAt)
+            : undefined;
+          const hasInvalidActionDeadline =
+            input.actionExpiresAt !== undefined &&
+            !Number.isFinite(actionExpiresAtMs);
           const updated: ToastRecord = {
             ...existing,
             eventKey: input.eventKey,
@@ -309,6 +334,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             urgent: input.tone === "error" && input.urgent === true,
             actionState: "idle",
             actionError: undefined,
+            actionExpiresAtMs:
+              actionExpiresAtMs !== undefined && Number.isFinite(actionExpiresAtMs)
+                ? actionExpiresAtMs
+                : undefined,
+            actionExpired:
+              hasInvalidActionDeadline ||
+              (actionExpiresAtMs !== undefined &&
+                Number.isFinite(actionExpiresAtMs) &&
+                actionExpiresAtMs <= Date.now()),
+            actionExpiredMessage: input.actionExpiredMessage,
             ...(isVisible
               ? {}
               : { durationMs, remainingMs: durationMs }),
@@ -330,6 +365,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
       const id = `toast-${Date.now()}-${++sequenceRef.current}`;
       const durationMs = durationToMs(input.duration, Boolean(input.action));
+      const parsedActionExpiry = input.actionExpiresAt
+        ? Date.parse(input.actionExpiresAt)
+        : undefined;
+      const actionExpiresAtMs =
+        parsedActionExpiry !== undefined && Number.isFinite(parsedActionExpiry)
+          ? parsedActionExpiry
+          : undefined;
+      const hasInvalidActionDeadline =
+        input.actionExpiresAt !== undefined &&
+        !Number.isFinite(parsedActionExpiry);
       const record: ToastRecord = {
         id,
         eventKey: input.eventKey,
@@ -345,6 +390,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         urgent: input.tone === "error" && input.urgent === true,
         sequence: sequenceRef.current,
         actionState: "idle",
+        actionExpiresAtMs,
+        actionExpired:
+          hasInvalidActionDeadline ||
+          (actionExpiresAtMs !== undefined && actionExpiresAtMs <= Date.now()),
+        actionExpiredMessage: input.actionExpiredMessage,
       };
       if (document.hidden) {
         pauseReasonsRef.current.set(id, new Set(["document-hidden"]));
@@ -382,6 +432,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         urgent: false,
         sequence: sequenceRef.current,
         actionState: "idle",
+        actionExpired: false,
       };
       if (document.hidden) {
         pauseReasonsRef.current.set(id, new Set(["document-hidden"]));
@@ -500,13 +551,54 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, [dismiss, maxVisible, stopTimer, toasts]);
 
   useEffect(() => {
+    const currentIds = new Set(toasts.map((toast) => toast.id));
+    actionExpiryTimersRef.current.forEach((handle, id) => {
+      if (!currentIds.has(id)) {
+        clearTimeout(handle);
+        actionExpiryTimersRef.current.delete(id);
+      }
+    });
+
+    toasts.forEach((toast) => {
+      if (
+        toast.actionExpired ||
+        toast.actionExpiresAtMs === undefined ||
+        actionExpiryTimersRef.current.has(toast.id)
+      ) {
+        return;
+      }
+      const remaining = toast.actionExpiresAtMs - Date.now();
+      if (remaining <= 0) {
+        setToasts((previous) =>
+          previous.map((item) =>
+            item.id === toast.id ? { ...item, actionExpired: true } : item,
+          ),
+        );
+        return;
+      }
+      const handle = setTimeout(() => {
+        actionExpiryTimersRef.current.delete(toast.id);
+        setToasts((previous) =>
+          previous.map((item) =>
+            item.id === toast.id ? { ...item, actionExpired: true } : item,
+          ),
+        );
+      }, remaining);
+      actionExpiryTimersRef.current.set(toast.id, handle);
+    });
+  }, [toasts]);
+
+  useEffect(() => {
     const timers = timersRef.current;
+    const actionExpiryTimers = actionExpiryTimersRef.current;
     const pauseReasons = pauseReasonsRef.current;
     const dedupeIds = dedupeIdsRef.current;
     const returnFocus = returnFocusRef.current;
     return () => {
       timers.forEach(({ handle }) => clearTimeout(handle));
       timers.clear();
+      actionExpiryTimers.forEach((handle) => clearTimeout(handle));
+      actionExpiryTimers.clear();
       pauseReasons.clear();
       dedupeIds.clear();
       returnFocus.clear();
@@ -515,7 +607,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const handleAction = useCallback(
     async (toast: ToastRecord) => {
-      if (!toast.action || "href" in toast.action || toast.actionState === "acting") {
+      if (
+        !toast.action ||
+        "href" in toast.action ||
+        toast.actionState === "acting" ||
+        toast.actionExpired
+      ) {
         return;
       }
       resume(toast.id, "action-failed");
@@ -755,7 +852,21 @@ function ToastCard({
             {failureMessage}
           </div>
         )}
-        {toast.action && "href" in toast.action && toast.action.href ? (
+        {toast.actionExpired && (
+          <div
+            style={{
+              font: "500 12px/1.4 var(--f-sans)",
+              color: "var(--ink-soft)",
+            }}
+          >
+            {toast.actionExpiredMessage ??
+              "Terminó la ventana inmediata para esta acción."}
+          </div>
+        )}
+        {!toast.actionExpired &&
+        toast.action &&
+        "href" in toast.action &&
+        toast.action.href ? (
           <Link
             href={toast.action.href}
             onClick={() => onDismiss(toast.id)}
@@ -763,10 +874,10 @@ function ToastCard({
           >
             {toast.action.label} →
           </Link>
-        ) : toast.action ? (
+        ) : toast.action && !("href" in toast.action) ? (
           <button
             type="button"
-            disabled={toast.actionState === "acting"}
+            disabled={toast.actionState === "acting" || toast.actionExpired}
             aria-busy={toast.actionState === "acting"}
             onClick={() => void onAction(toast)}
             className="studio-toast-action"

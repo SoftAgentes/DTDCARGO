@@ -32,6 +32,10 @@ export function CommentItem({
   onReact,
   onEdit,
   onDelete,
+  onModerate,
+  canDeleteOwn = true,
+  canModerate = false,
+  lifecyclePending = false,
 }: {
   comment: CommentWithMeta;
   users: CommentTenantUser[];
@@ -39,6 +43,10 @@ export function CommentItem({
   onReact: (emoji: ReactionEmoji) => void;
   onEdit: (body: string) => void;
   onDelete: () => void;
+  onModerate?: () => void;
+  canDeleteOwn?: boolean;
+  canModerate?: boolean;
+  lifecyclePending?: boolean;
 }) {
   const [showPicker, setShowPicker] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -202,7 +210,7 @@ export function CommentItem({
                 style={{
                   padding: "3px 8px",
                   borderRadius: "var(--r-pill)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                   font: "600 11px/1.2 var(--f-sans)",
                   border: "1px dashed var(--border-strong)",
                   background: "transparent",
@@ -249,7 +257,7 @@ export function CommentItem({
               )}
             </div>
 
-            {isMine && (
+            {isMine && canDeleteOwn && (
               <>
                 <button
                   type="button"
@@ -262,7 +270,7 @@ export function CommentItem({
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     padding: "4px 6px",
                     background: "transparent",
                   }}
@@ -272,19 +280,30 @@ export function CommentItem({
                 <button
                   type="button"
                   onClick={onDelete}
+                  disabled={lifecyclePending}
                   title="Eliminar"
                   aria-label="Eliminar comentario"
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     padding: "4px 6px",
                     background: "transparent",
                   }}
                 >
-                  {Icon.trash(13)}
+                  {lifecyclePending ? "Procesando…" : Icon.trash(13)}
                 </button>
               </>
+            )}
+            {!isMine && canModerate && onModerate && (
+              <button
+                type="button"
+                onClick={onModerate}
+                disabled={lifecyclePending}
+                className="studio-btn studio-btn-ghost studio-btn-xs"
+              >
+                {lifecyclePending ? "Procesando…" : "Moderar"}
+              </button>
             )}
           </div>
         )}

@@ -171,6 +171,18 @@ describe("RBAC: capabilities (SDD-0139)", () => {
     }
     expect(canSpecial(null, "view_defense_file")).toBe(false);
   });
+
+  it("ciclo de comentarios (SDD-0168): moderar y restaurar son admin-only", () => {
+    for (const capability of ["moderate_comments", "restore_comments"] as const) {
+      expect(canSpecial("admin", capability)).toBe(true);
+      for (const role of NON_ADMIN) {
+        expect(canSpecial(role, capability), `${role} no debe usar ${capability}`).toBe(
+          false,
+        );
+      }
+      expect(canSpecial(null, capability)).toBe(false);
+    }
+  });
 });
 
 describe("RBAC: scope de almacén (SDD-0139)", () => {
