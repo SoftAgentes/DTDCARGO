@@ -15,10 +15,11 @@ confidencialidad: interno
 
 > **Estado de control:** aprobado documentalmente el 2026-07-22. El
 > [diseño técnico v1.0](diseno-tecnico.md) fue aprobado técnicamente por
-> [REV-MP-002](../../governance/reviews/mp-01-comments-design.md). El gate APP
-> recibió autorización local el 2026-07-23 y quedó implementado sin push,
-> integración, Cloud ni cambios de ACL históricos. Los demás gates
-> conservan autorización propia.
+> [REV-MP-002](../../governance/reviews/mp-01-comments-design.md). DB-1 fue
+> aplicado en Cloud y APP fue validada en un Preview aislado el 2026-07-23,
+> según [REV-MP-003](../../governance/reviews/mp-01-comments-implementation.md).
+> DB-2, push, integración, `main`, Producción APP y los ACL históricos
+> conservan gates propios.
 
 ## 1. Propósito
 
@@ -331,9 +332,13 @@ parte del gate UI. El orden y jerarquía de acciones deben cumplir BTN-01.
 - [x] Gate APP implementado y verificado localmente el 2026-07-23: RPCs de
       delete/undo/restore, capabilities admin-only, recuperación por entidad,
       badge coherente y deadline absoluto; sin tocar ACL históricos.
-- [ ] DB-1, APP y DB-2 tienen implementación, autorización y evidencia propias.
-- [ ] DB-2, Cloud/producción, commit, push e integración reciben autorización
-      individual; ninguna se infiere del gate APP local.
+- [x] DB-1 (`0262_comments_lifecycle_contract`) fue autorizado por basename,
+      aplicado en Cloud y verificado por ledger y postcondiciones metadata-only.
+- [x] APP fue validada en Preview aislado con seed controlado y recorrido
+      autenticado crear/eliminar/deshacer/eliminar/restaurar.
+- [ ] DB-2 tiene implementación, revisión y autorización propias.
+- [ ] Push, integración, `main` y Producción APP reciben autorización
+      individual; ninguna se infiere de DB-1 ni del Preview.
 
 ## 12. Fuera de alcance
 
