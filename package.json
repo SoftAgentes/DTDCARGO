@@ -16,6 +16,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "seed": "tsx scripts/seed.ts",
+    "seed:e2e": "tsx scripts/seed-e2e.ts",
     "docs:index": "node scripts/build-docs-index.mjs",
     "docs:check": "node scripts/build-docs-index.mjs --check",
     "build:packlist-template": "node scripts/build-packlist-template.mjs",
