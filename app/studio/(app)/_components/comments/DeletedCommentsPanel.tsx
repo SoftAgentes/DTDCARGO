@@ -27,7 +27,6 @@ export function DeletedCommentsPanel({
   const [open, setOpen] = useState(false);
   const [comments, setComments] = useState<DeletedComment[]>([]);
   const [cursor, setCursor] = useState<DeletedCommentsCursor | null>(null);
-  const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [restoreTarget, setRestoreTarget] = useState<DeletedComment | null>(null);
@@ -44,7 +43,6 @@ export function DeletedCommentsPanel({
       nextCursor ?? null,
     );
     setLoading(false);
-    setLoaded(true);
     if (!result.ok) {
       setError(result.error);
       return;
@@ -105,7 +103,7 @@ export function DeletedCommentsPanel({
         onClick={() => {
           const nextOpen = !open;
           setOpen(nextOpen);
-          if (nextOpen && !loaded) void load(null);
+          if (nextOpen) void load(null);
         }}
       >
         Comentarios eliminados

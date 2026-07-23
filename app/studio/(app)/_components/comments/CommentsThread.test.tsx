@@ -161,13 +161,41 @@ describe("CommentsThread · ciclo de permanencia", () => {
     );
   });
 
-  it("la recuperación admin permanece colapsada y carga bajo demanda", async () => {
+  it("la recuperación admin permanece colapsada y refresca cada vez que se abre", async () => {
+    mockListDeletedComments
+      .mockResolvedValueOnce({
+        ok: true,
+        page: { comments: [], nextCursor: null },
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        page: {
+          comments: [
+            {
+              ...comment("c3", CURRENT_USER.id, CURRENT_USER.name),
+              deleted_at: "2026-07-23T12:05:00Z",
+              deleted_by: CURRENT_USER.id,
+              deletion_mode: "self",
+              deletion_reason: null,
+              lifecycle_correlation_id:
+                "20000000-0000-4000-8000-000000000002",
+              last_lifecycle_operation_id:
+                "50000000-0000-4000-8000-000000000005",
+              lifecycle_contract_version: 1,
+              lifecycleState: "deleted_restorable",
+            },
+          ],
+          nextCursor: null,
+        },
+      });
+
     renderThread([]);
     expect(mockListDeletedComments).not.toHaveBeenCalled();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Comentarios eliminados" }),
-    );
+    const deletedCommentsButton = screen.getByRole("button", {
+      name: "Comentarios eliminados",
+    });
+    fireEvent.click(deletedCommentsButton);
 
     await waitFor(() =>
       expect(mockListDeletedComments).toHaveBeenCalledWith(
@@ -179,5 +207,11 @@ describe("CommentsThread · ciclo de permanencia", () => {
     expect(
       screen.getByText("No hay comentarios eliminados en este registro."),
     ).toBeInTheDocument();
+
+    fireEvent.click(deletedCommentsButton);
+    fireEvent.click(deletedCommentsButton);
+
+    await waitFor(() => expect(mockListDeletedComments).toHaveBeenCalledTimes(2));
+    expect(screen.getByText("Comentario de Ana Pérez")).toBeInTheDocument();
   });
 });
