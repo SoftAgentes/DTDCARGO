@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
@@ -32,6 +32,14 @@ export function DeletedCommentsPanel({
   const [restoreTarget, setRestoreTarget] = useState<DeletedComment | null>(null);
   const [restorePending, setRestorePending] = useState(false);
   const [restoreError, setRestoreError] = useState<string | undefined>();
+  const toggleRef = useRef<HTMLButtonElement | null>(null);
+  const restoreFocusAfterSuccessRef = useRef(false);
+
+  useEffect(() => {
+    if (restoreTarget !== null || !restoreFocusAfterSuccessRef.current) return;
+    restoreFocusAfterSuccessRef.current = false;
+    toggleRef.current?.focus();
+  }, [restoreTarget]);
 
   async function load(nextCursor?: DeletedCommentsCursor | null) {
     if (loading) return;
@@ -75,6 +83,7 @@ export function DeletedCommentsPanel({
     setComments((previous) =>
       previous.filter((comment) => comment.id !== targetId),
     );
+    restoreFocusAfterSuccessRef.current = true;
     setRestoreTarget(null);
     toast.show({
       eventKey: "comment:restored",
@@ -97,6 +106,7 @@ export function DeletedCommentsPanel({
       }}
     >
       <button
+        ref={toggleRef}
         type="button"
         className="studio-btn studio-btn-ghost studio-btn-sm"
         aria-expanded={open}

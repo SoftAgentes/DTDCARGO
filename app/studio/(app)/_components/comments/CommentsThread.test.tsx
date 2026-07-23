@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "@/app/studio/_components/ui/ToastProvider";
 import type { CommentWithMeta } from "@/lib/studio/comments/types";
@@ -213,5 +214,53 @@ describe("CommentsThread · ciclo de permanencia", () => {
 
     await waitFor(() => expect(mockListDeletedComments).toHaveBeenCalledTimes(2));
     expect(screen.getByText("Comentario de Ana Pérez")).toBeInTheDocument();
+  });
+
+  it("devuelve el foco al panel estable después de restaurar", async () => {
+    const user = userEvent.setup();
+    mockListDeletedComments.mockResolvedValueOnce({
+      ok: true,
+      page: {
+        comments: [
+          {
+            ...comment("c3", CURRENT_USER.id, CURRENT_USER.name),
+            deleted_at: "2026-07-23T12:05:00Z",
+            deleted_by: CURRENT_USER.id,
+            deletion_mode: "self",
+            deletion_reason: null,
+            lifecycle_correlation_id:
+              "20000000-0000-4000-8000-000000000002",
+            last_lifecycle_operation_id:
+              "50000000-0000-4000-8000-000000000005",
+            lifecycle_contract_version: 1,
+            lifecycleState: "deleted_restorable",
+          },
+        ],
+        nextCursor: null,
+      },
+    });
+
+    renderThread([]);
+    const deletedCommentsButton = screen.getByRole("button", {
+      name: "Comentarios eliminados",
+    });
+    await user.click(deletedCommentsButton);
+    const restoreButton = await screen.findByRole("button", {
+      name: "Restaurar",
+    });
+    await user.click(restoreButton);
+    const dialog = screen.getByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Restaurar" }));
+
+    await waitFor(() =>
+      expect(mockRestoreComment).toHaveBeenCalledWith(
+        "c3",
+        expect.any(String),
+        "20000000-0000-4000-8000-000000000002",
+        "ordinary",
+        undefined,
+      ),
+    );
+    await waitFor(() => expect(deletedCommentsButton).toHaveFocus());
   });
 });
