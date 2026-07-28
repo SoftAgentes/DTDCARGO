@@ -7,19 +7,20 @@
 | Diseño | [DT-SDD-0168 v1.0](../../specs/0168-mp-01-comentarios-permanencia-restauracion/diseno-tecnico.md) |
 | Migración | `0265_comments_lifecycle_hardening` |
 | Fecha | 2026-07-28 |
-| Resultado técnico | implementación y revisión local aprobadas |
-| Estado operativo | Cloud, push, integración, `main` y Producción cerrados |
+| Resultado técnico | implementación local y aplicación Cloud verificadas |
+| Estado operativo | Cloud cerrado; push, integración, `main` y Producción APP cerrados |
 
 ## 1. Veredicto
 
-DB-2 queda implementado y validado localmente como gate independiente. La
-migración reduce el acceso directo a `comments`, endurece la visibilidad de
-comentarios eliminados y alinea menciones y reacciones con el estado visible
-del comentario padre.
+DB-2 quedó implementado y validado localmente como gate independiente. Sam
+(founder) autorizó por basename exacto
+`0265_comments_lifecycle_hardening`, que fue aplicada y verificada en Supabase
+Cloud el 2026-07-28.
 
-Esta revisión no autoriza aplicar `0265_comments_lifecycle_hardening` en
-Supabase Cloud. Tampoco autoriza push, integración, cambios en `main` ni
-Producción.
+La migración reduce el acceso directo a `comments`, endurece la visibilidad de
+comentarios eliminados y alinea menciones y reacciones con el estado visible
+del comentario padre. Esta aplicación no autoriza push, integración, cambios
+en `main` ni Producción APP.
 
 ## 2. Controles implementados
 
@@ -54,14 +55,34 @@ Producción.
 Todos los contenedores de prueba fueron desechables y se eliminaron al
 finalizar. No se consultaron filas de negocio.
 
-## 4. Límites y siguiente gate
+## 4. Recibo de Supabase Cloud
+
+- ledger: versión `20260728220034`, basename exacto
+  `0265_comments_lifecycle_hardening`;
+- preflight fresco: 0265 ausente, 0264 como última migración, tres tablas con
+  RLS, seis columnas lifecycle, 14 políticas esperadas y cero locks;
+- postcondiciones: contrato exacto de 14 políticas, `authenticated` sin UPDATE
+  general y con `UPDATE (body, edited_at)`, `service_role` sin
+  UPDATE/DELETE/TRUNCATE directo y RPCs lifecycle con ACL intacto;
+- `comments_freeze_immutable()` conserva owner `postgres`, `search_path` vacío,
+  no es security definer, bloquea cambios lifecycle directos y no tiene EXECUTE
+  para `anon`, `authenticated` ni `service_role`;
+- la política de lectura verifica recuperación admin, Deshacer propio durante
+  `00:00:10`, reloj de base de datos y `lifecycle_contract_version = 1`;
+- cero locks al terminar y cero hallazgos de seguridad del dominio en los
+  advisors.
+
+Los avisos de rendimiento del dominio son informativos y preexistentes:
+foreign keys sin índice de cobertura e índices todavía no observados en uso.
+No fueron introducidos ni ampliados por 0265.
+
+## 5. Límites y siguiente gate
 
 La corrección global de ACL históricos continúa fuera de alcance. También
 permanecen fuera de alcance la purga/hard-delete y la ampliación de restauración
 a roles no administradores.
 
-El siguiente gate de base de datos exige autorización individual que nombre
-exactamente `0265_comments_lifecycle_hardening`, seguida del runbook de
-migraciones de Producción, preflight metadata-only, aplicación de una sola
-migración y postcondiciones. Un entorno efímero nuevo conserva además su gate de
-costo y creación.
+El siguiente gate exige consultar y confirmar el costo vigente de un entorno
+efímero nuevo, crearlo sin datos de Producción, vincularlo exclusivamente al
+Preview y repetir el recorrido E2E autenticado. Push e integración conservan
+sus autorizaciones separadas.

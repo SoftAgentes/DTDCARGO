@@ -13,10 +13,10 @@
 
 DB-1 y el gate APP ya no están en estado de diseño. El contrato de ciclo de
 vida fue aplicado en Supabase Cloud y el recorrido autenticado de aplicación se
-validó en un Preview aislado. DB-2 fue implementado y validado localmente el
-2026-07-28 en [REV-MP-004](mp-01-comments-db2.md). La entrega todavía no cumple
-el cierre completo de SDD-0168 porque DB-2 no está aplicado en Cloud y la
-aplicación no ha sido integrada en `main`.
+validó en un Preview aislado. DB-2 fue implementado, aplicado y verificado en
+Cloud el 2026-07-28 en [REV-MP-004](mp-01-comments-db2.md). La entrega todavía
+no cumple el cierre completo de SDD-0168 porque la aplicación no ha sido
+integrada en `main`.
 
 ## 2. Recibos de Supabase Cloud
 
@@ -39,9 +39,9 @@ Una consulta adicional, limitada a catálogos y privilegios, confirmó:
   `anon` ni `authenticated`;
 - `comment_mentions_validate()` no tiene EXECUTE directo para
   `anon`, `authenticated` ni `service_role`;
-- Antes de DB-2, `authenticated` conserva UPDATE general sobre `comments` y
-  `service_role` conserva DELETE directo. La migración local 0265 corrige ese
-  estado, pero Cloud no cambia hasta recibir su autorización individual.
+- DB-2 retiró en Cloud el UPDATE general de `authenticated` y
+  UPDATE/DELETE/TRUNCATE directo de `service_role`; el ledger y las
+  postcondiciones están registrados en REV-MP-004.
 
 No se consultaron cuerpos, menciones, identidades ni filas de negocio.
 
@@ -71,12 +71,10 @@ Verificaciones locales posteriores:
 
 ## 4. Gates que permanecen cerrados
 
-1. autorizar y aplicar en Cloud `0265_comments_lifecycle_hardening` por
-   separado, con su preflight y postcondiciones;
-2. recrear un entorno efímero solo si se decide repetir el E2E completo;
-3. autorizar el push conjunto de los commits locales pendientes;
-4. autorizar después la integración en `main` y la validación de Producción;
-5. definir otro alcance para ACL históricos; 0263 solo corrige defaults futuros
+1. confirmar el costo y recrear un entorno efímero para repetir el E2E completo;
+2. autorizar el push conjunto de los commits locales pendientes;
+3. autorizar después la integración en `main` y la validación de Producción;
+4. definir otro alcance para ACL históricos; 0263 solo corrige defaults futuros
    del rol `postgres`.
 
 Ninguno de estos gates habilita purga o hard-delete.
