@@ -4,7 +4,7 @@ title: "MP-01 Slice 1 — Permanencia y restauración de comentarios internos"
 status: approved
 author: "Codex"
 created: 2026-07-22
-updated: 2026-07-22
+updated: 2026-07-28
 supersedes: null
 superseded_by: null
 related: ["0045", "0123", "0165", "0166"]
@@ -15,9 +15,13 @@ confidencialidad: interno
 
 > **Estado de control:** aprobado documentalmente el 2026-07-22. El
 > [diseño técnico v1.0](diseno-tecnico.md) fue aprobado técnicamente por
-> [REV-MP-002](../../governance/reviews/mp-01-comments-design.md), sin autorizar
-> código, migraciones, cambios efectivos de RBAC, Supabase Cloud, producción,
-> jobs, Storage ni purgas. Cada gate de ejecución conserva autorización propia.
+> [REV-MP-002](../../governance/reviews/mp-01-comments-design.md). DB-1 fue
+> aplicado en Cloud y APP fue validada en un Preview aislado el 2026-07-23,
+> según [REV-MP-003](../../governance/reviews/mp-01-comments-implementation.md).
+> DB-2 fue implementado, aplicado en Cloud y verificado el 2026-07-28 según
+> [REV-MP-004](../../governance/reviews/mp-01-comments-db2.md). Push,
+> integración, `main`, Producción APP y los ACL históricos conservan gates
+> propios.
 
 ## 1. Propósito
 
@@ -327,9 +331,20 @@ parte del gate UI. El orden y jerarquía de acciones deben cumplir BTN-01.
       REV-AUD-006.
 - [x] El diseño técnico del corte de atomicidad aplicable fue aprobado en
       REV-MP-002, sin declarar completo el Corte D global.
-- [ ] DB-1, APP y DB-2 tienen implementación, autorización y evidencia propias.
-- [ ] Migración, RBAC, Cloud/producción, commit y push reciben autorización
-      individual; ninguna se infiere de aprobar este documento.
+- [x] Gate APP implementado y verificado localmente el 2026-07-23: RPCs de
+      delete/undo/restore, capabilities admin-only, recuperación por entidad,
+      badge coherente y deadline absoluto; sin tocar ACL históricos.
+- [x] DB-1 (`0262_comments_lifecycle_contract`) fue autorizado por basename,
+      aplicado en Cloud y verificado por ledger y postcondiciones metadata-only.
+- [x] APP fue validada en Preview aislado con seed controlado y recorrido
+      autenticado crear/eliminar/deshacer/eliminar/restaurar.
+- [x] DB-2 (`0265_comments_lifecycle_hardening`) fue implementado, revisado y
+      validado localmente según REV-MP-004.
+- [x] DB-2 fue autorizado por basename exacto, aplicado de a una en Cloud como
+      versión `20260728220034` y verificado con preflight, postcondiciones y
+      advisors.
+- [ ] Push, integración, `main` y Producción APP reciben autorización
+      individual; ninguna se infiere de DB-1 ni del Preview.
 
 ## 12. Fuera de alcance
 
@@ -367,8 +382,8 @@ parte del gate UI. El orden y jerarquía de acciones deben cumplir BTN-01.
    de atomicidad y cualquier cambio de grants permanecen independientes.
 3. **Diseño técnico cerrado el 2026-07-22:** DT-SDD-0168 v1.0 aprobado por
    REV-MP-002, sin autorizar ejecución.
-4. **Implementar y verificar localmente** DB-1, APP y DB-2 con pruebas de DB, actions, UI,
-   accesibilidad y fallo seguro.
+4. **Implementación local cerrada:** DB-1, APP y DB-2 tienen pruebas de DB,
+   actions, UI, accesibilidad y fallo seguro.
 5. **Revisar el gate SGE/MP/AUD/BTN/AVS** con evidencia.
 6. **Autorizar por nombre** cada migración Cloud; después verificar producción.
 7. **Autorizar commit y push** de forma separada.

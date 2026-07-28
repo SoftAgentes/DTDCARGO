@@ -21,7 +21,11 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { getUser, getUserTenantId } from "@/lib/auth/session";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import {
+  getStudioRole,
+  moduleEditDenial,
+} from "@/lib/studio/rbac-guard";
+import { canSpecial } from "@/lib/studio/rbac";
 import {
   listComments,
   loadTenantUsers,
@@ -53,6 +57,8 @@ export type TaskCommentsPayload = {
   comments: CommentWithMeta[];
   users: CommentTenantUser[];
   currentUser: CommentTenantUser;
+  canModerateComments: boolean;
+  canRestoreComments: boolean;
 };
 
 /**
@@ -85,8 +91,15 @@ export async function getTaskCommentsAction(
       avatar: "YO",
       role: "Equipo",
     };
+  const role = await getStudioRole(supabase);
 
-  return { comments, users, currentUser };
+  return {
+    comments,
+    users,
+    currentUser,
+    canModerateComments: canSpecial(role, "moderate_comments"),
+    canRestoreComments: canSpecial(role, "restore_comments"),
+  };
 }
 
 // ─── Adjuntos "prueba de avance" ─────────────────────────────

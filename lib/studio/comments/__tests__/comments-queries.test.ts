@@ -141,6 +141,27 @@ describe("countUnreadMentions", () => {
     const n = await countUnreadMentions(client, "u-005");
     expect(n).toBe(0);
   });
+
+  it("une el comentario padre activo para que el badge no cuente eliminados", async () => {
+    const calls: Array<[string, ...unknown[]]> = [];
+    const chain: Record<string, unknown> = {};
+    for (const method of ["select", "eq", "is"]) {
+      chain[method] = (...args: unknown[]) => {
+        calls.push([method, ...args]);
+        return chain;
+      };
+    }
+    chain.then = (resolve: (value: unknown) => unknown) =>
+      Promise.resolve({ count: 1, error: null }).then(resolve);
+    const client = {
+      from: () => chain,
+    } as unknown as SupabaseClient;
+
+    expect(await countUnreadMentions(client, "u-005")).toBe(1);
+    expect(calls[0][0]).toBe("select");
+    expect(calls[0][1]).toContain("comments!inner");
+    expect(calls).toContainEqual(["is", "comment.deleted_at", null]);
+  });
 });
 
 describe("listMyMentions", () => {

@@ -24,7 +24,9 @@ import { isReactionEmoji } from "./types";
 
 const COMMENT_COLUMNS =
   "id, tenant_id, entity_type, entity_id, entity_code, author_id, body, " +
-  "parent_id, edited_at, created_at, deleted_at";
+  "parent_id, edited_at, created_at, deleted_at, deleted_by, deletion_mode, " +
+  "deletion_reason, lifecycle_correlation_id, last_lifecycle_operation_id, " +
+  "lifecycle_contract_version";
 
 type RawReaction = { comment_id: string; user_id: string; emoji: string };
 type RawMention = { comment_id: string; mentioned_user_id: string };
@@ -140,9 +142,10 @@ export async function listMyMentions(
     .from("comment_mentions")
     .select(
       "id, comment_id, read_at, created_at, " +
-        "comment:comments(entity_type, entity_id, entity_code, body, author_id, deleted_at)",
+        "comment:comments!inner(entity_type, entity_id, entity_code, body, author_id, deleted_at)",
     )
     .eq("mentioned_user_id", currentUserId)
+    .is("comment.deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(opts.limit ?? 100);
 
@@ -291,9 +294,10 @@ export async function countUnreadMentions(
 ): Promise<number> {
   const { count, error } = await supabase
     .from("comment_mentions")
-    .select("id", { count: "exact", head: true })
+    .select("id, comment:comments!inner(id)", { count: "exact", head: true })
     .eq("mentioned_user_id", currentUserId)
-    .is("read_at", null);
+    .is("read_at", null)
+    .is("comment.deleted_at", null);
 
   if (error) throw error;
   return count ?? 0;
