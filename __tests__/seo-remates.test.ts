@@ -85,11 +85,29 @@ describe("calc CBM/LCL en /tarifas + FCL en /fcl + Footer sin /estimacion", () =
     expect(cfg).toContain("tarifas/embed|fcl/embed");
   });
 
-  it("el nav y el FAB del portal apuntan a la calc CBM/LCL", () => {
+  it("el nav público apunta a la calc CBM/LCL; el FAB del portal a FCL (founder 2026-07-22)", () => {
     expect(read("components/Nav.tsx")).toContain('{ href: "/tarifas", label: "Tarifas" }');
-    expect(read("app/portal/_components/PortalCalcFab.tsx")).toContain(
-      "/tarifas/embed?theme=",
+    const fab = read("app/portal/_components/PortalCalcFab.tsx");
+    expect(fab).toContain("/fcl/embed?theme=");
+    expect(fab).not.toContain('src={`/tarifas/embed');
+  });
+
+  it("Cotizar un servicio abre FCL; el acceso genérico conserva Rápida por defecto", () => {
+    const fab = read("app/portal/_components/PortalCalcFab.tsx");
+    const sidebar = read("app/portal/_components/PortalSidebar.tsx");
+
+    expect(fab).toContain('useState<Tab>("rapida")');
+    expect(fab).toContain('requestedTab === "rapida" || requestedTab === "fcl"');
+    expect(sidebar).toContain(
+      'new CustomEvent("portal:open-calc", { detail: { tab } })',
     );
+
+    const quoteCta = sidebar.slice(
+      sidebar.indexOf('key: "cotizar"'),
+      sidebar.indexOf("];", sidebar.indexOf('key: "cotizar"')),
+    );
+    expect(quoteCta).toContain('label: "Cotizar un servicio"');
+    expect(quoteCta).toContain('calcTab: "fcl"');
   });
 
   it("el ERP revalida /tarifas (la ruta que consume public_cbm_rate)", () => {

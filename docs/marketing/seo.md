@@ -149,6 +149,22 @@ El `connect-src`/`img-src` del CSP (`next.config.ts`) permitía `googleads.g.dou
   especial ni `llms.txt`, y desde el 7 de mayo de 2026 dejó de mostrar resultados enriquecidos FAQ.
   El `FAQPage` existente no se considera una palanca de ranking ni una garantía de cita.
 
+### 2026-07-22 · `/noticias` pasa a “Actualidad”
+
+- La ruta canónica sigue siendo `/noticias`; no se crea `/blog` ni se dividen intenciones.
+- Nombre corto en el menú principal: **Actualidad**. Título visible aprobado:
+  **“Actualidad, guía y noticias”**.
+- La portada organiza el CMS existente por las seis categorías de negocio de
+  SDD-0088, oculta categorías vacías, muestra búsqueda desde ocho publicaciones
+  y pagina el archivo cada doce.
+- Cada artículo emite `BlogPosting`, `NewsArticle` o `Article` según su naturaleza.
+  Se retiró el `FAQPage` automático: las preguntas siguen dentro del contenido,
+  sin convertir cualquier encabezado interrogativo en datos estructurados.
+- La web pública consulta `news_posts` mediante `lib/public/news-queries.ts`.
+  El newsletter se muestra inactivo hasta aprobar la migración y verificar alta,
+  envío manual y baja firmada de punta a punta.
+- Spec y gates: [`../specs/0167-actualidad-centro-editorial/spec.md`](../specs/0167-actualidad-centro-editorial/spec.md).
+
 ## 🛡️ Reglas SEO que NO se rompen
 
 1. **Nunca quitar el 301** `doortudoor.com → dtdcargo.com`.

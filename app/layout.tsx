@@ -5,11 +5,13 @@ import { SERVICIOS_DETALLE } from "@/lib/servicios-detalle";
 import { buildOfferCatalog, isOfferable } from "@/lib/seo-offer-catalog";
 import { Analytics } from "@/components/Analytics";
 import { CookieConsentBanner } from "@/components/CookieConsentBanner";
+import { Agentation } from "agentation";
 import "./globals.css";
 // Superficie "recursos" (`.rp-surface`) de la web pública — glosario, FAQ,
 // noticias, academia, nosotros, puerta a puerta, landings SEO y legales.
 // Va en archivo aparte porque globals.css ya supera las 4.300 líneas.
 import "./recursos.css";
+import "./noticias/noticias.css";
 // Superficie de `/pre-alertas` (`.pa-surface`) — mismo criterio que recursos.css.
 import "./prealertas.css";
 
@@ -319,6 +321,7 @@ export default function RootLayout({
         {children}
         <Analytics />
         <CookieConsentBanner />
+        {process.env.NODE_ENV === "development" && <Agentation />}
       </body>
     </html>
   );

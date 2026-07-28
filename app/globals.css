@@ -3383,6 +3383,11 @@ a.svp-it:hover .nm {
   color: var(--wine-on-dark);
   font-weight: 700;
 }
+.home-surface .final-reassure {
+  font: 500 13px/1.4 var(--f-brand);
+  color: rgba(242, 240, 236, 0.75);
+  margin-top: var(--s-4);
+}
 @media (max-width: 900px) {
   .home-surface .final-in {
     padding: var(--s-12) var(--s-5);

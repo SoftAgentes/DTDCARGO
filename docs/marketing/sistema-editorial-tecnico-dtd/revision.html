@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revisión · Sistema Editorial Técnico DTD Cargo</title>
+  <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100,400;100,600;100,700&family=Archivo+Black&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --navy:#0F1E3D; --wine:#7F0F1A; --paper:#FBFAF7; --white:#FFFFFF; --gray:#6B6B6B; --line:#E8E6E2; }
+    * { box-sizing: border-box; }
+    body { margin:0; color:var(--navy); background:var(--line); font-family:Archivo,Arial,sans-serif; }
+    header { max-width:1440px; margin:0 auto; padding:48px 32px 28px; }
+    header p { max-width:780px; margin:10px 0 0; color:var(--gray); font-size:18px; line-height:1.55; }
+    h1 { margin:0; font:40px/1.05 "Archivo Black",Archivo,sans-serif; letter-spacing:-1.2px; }
+    .status { display:inline-block; margin-bottom:16px; padding:7px 10px; border:1px solid var(--line); background:var(--white); color:var(--wine); font:700 12px/1 "JetBrains Mono",monospace; text-transform:uppercase; letter-spacing:.08em; }
+    main { display:grid; grid-template-columns:repeat(3,minmax(280px,1fr)); gap:28px; max-width:1440px; margin:0 auto; padding:0 32px 64px; align-items:start; }
+    .option { margin:0; }
+    .artboard { position:relative; width:100%; aspect-ratio:4/5; overflow:hidden; background:var(--paper); box-shadow:0 8px 22px rgba(15,30,61,.08); }
+    .inner { position:absolute; inset:0; padding:6.67%; display:flex; flex-direction:column; }
+    .eyebrow { display:flex; align-items:center; gap:10px; color:var(--wine); font:700 11px/1.2 "JetBrains Mono",monospace; letter-spacing:.08em; text-transform:uppercase; }
+    .eyebrow:before { content:""; width:24px; height:3px; background:var(--wine); }
+    h2 { max-width:94%; margin:18px 0 0; font:clamp(31px,3.25vw,54px)/.97 "Archivo Black",Archivo,sans-serif; letter-spacing:-.045em; }
+    .visual { position:relative; flex:1; min-height:0; margin-top:20px; }
+    .explain { margin:14px 0 0; max-width:92%; font-size:clamp(15px,1.35vw,22px); line-height:1.28; font-weight:600; }
+    .meta { display:grid; grid-template-columns:1fr auto; align-items:end; gap:16px; margin-top:14px; padding-top:12px; border-top:1px solid var(--line); }
+    .source { color:var(--gray); font:500 clamp(8px,.67vw,11px)/1.4 "JetBrains Mono",monospace; }
+    .cta { display:inline-block; margin-bottom:5px; color:var(--wine); font-weight:700; }
+    .brand { display:flex; align-items:center; gap:8px; white-space:nowrap; }
+    .brand img { width:32px; height:32px; object-fit:contain; }
+    .brand span { font-weight:700; font-size:8px; line-height:1.15; }
+    figcaption { padding:15px 2px 0; color:var(--gray); font-size:14px; line-height:1.45; }
+    figcaption strong { color:var(--navy); }
+    .cube-scene { display:grid; grid-template-columns:1.18fr .82fr; gap:18px; height:100%; align-items:center; }
+    .cube { position:relative; width:68%; aspect-ratio:1; margin:0 auto; border:3px solid var(--navy); background:var(--white); }
+    .cube:before { content:""; position:absolute; inset:-20px 20px 20px -20px; border-top:2px solid var(--navy); border-left:2px solid var(--navy); opacity:.35; }
+    .cube:after { content:""; position:absolute; inset:14% -22% -22% 14%; border-right:2px solid var(--navy); border-bottom:2px solid var(--navy); opacity:.22; }
+    .measure { position:absolute; font:700 clamp(10px,.95vw,16px)/1 "JetBrains Mono",monospace; background:var(--paper); padding:4px; }
+    .measure.top { top:-25px; left:34%; } .measure.side { right:-42px; top:49%; transform:rotate(90deg); }
+    .measure.bottom { bottom:-28px; left:34%; }
+    .formula { align-self:center; }
+    .formula b { display:block; color:var(--wine); font:clamp(38px,4vw,66px)/.95 "Archivo Black",Archivo,sans-serif; letter-spacing:-.045em; }
+    .formula code { display:block; margin-top:14px; color:var(--navy); font:700 clamp(12px,1vw,17px)/1.5 "JetBrains Mono",monospace; }
+    .note { margin-top:15px; padding:11px 13px; border-left:4px solid var(--wine); background:var(--white); color:var(--gray); font-size:clamp(10px,.8vw,13px); line-height:1.35; }
+    .compare { display:grid; grid-template-columns:1fr 1fr; gap:18px; height:100%; align-items:stretch; }
+    .compare-card h2, .capacity-card h2 { font-size:clamp(31px,2.9vw,42px); }
+    .compare-card .visual { flex:0 0 215px; align-items:start; }
+    .mode { position:relative; height:195px; padding:10px; border-top:4px solid var(--navy); background:var(--white); overflow:hidden; }
+    .mode:last-child { transform:translateY(18px); border-top-color:var(--wine); }
+    .mode h3 { margin:0; font:clamp(25px,2.15vw,34px)/1 "Archivo Black",Archivo,sans-serif; }
+    .mode h3 span { display:block; margin-top:7px; color:var(--gray); font:600 clamp(9px,.8vw,13px)/1.2 Archivo,sans-serif; }
+    .container { display:grid; grid-template-columns:repeat(4,1fr); grid-template-rows:repeat(3,1fr); gap:4px; height:60px; margin:10px 0 9px; padding:6px; border:2px solid var(--navy); }
+    .box { background:var(--line); } .mode:first-child .box:nth-child(-n+5) { background:var(--wine); }
+    .mode:last-child .box { background:var(--navy); }
+    .mode p { margin:0; font-size:clamp(11px,.85vw,14px); line-height:1.28; }
+    .capacity-card .visual { flex:0 0 155px; margin-top:12px; }
+    .capacity { display:grid; grid-template-columns:1.08fr .92fr; gap:16px; height:100%; align-items:start; }
+    .stack { display:grid; grid-template-columns:repeat(5,1fr); gap:5px; margin-top:14px; padding:14px 9px 9px; border-bottom:3px solid var(--navy); }
+    .parcel { aspect-ratio:1.2; border:2px solid var(--navy); background:var(--white); position:relative; }
+    .parcel:after { content:""; position:absolute; left:48%; top:0; bottom:0; border-left:1px solid var(--wine); }
+    .capacity-data b { display:block; color:var(--wine); font:clamp(33px,3vw,46px)/.86 "Archivo Black",Archivo,sans-serif; letter-spacing:-.05em; }
+    .capacity-data code { display:block; margin:6px 0 7px; font:700 clamp(9px,.75vw,12px)/1.3 "JetBrains Mono",monospace; }
+    .factors { margin:0; padding:0; list-style:none; }
+    .factors li { margin:3px 0; padding-left:13px; position:relative; font-size:clamp(8px,.66vw,11px); line-height:1.15; }
+    .factors li:before { content:""; position:absolute; left:0; top:.48em; width:6px; height:6px; background:var(--wine); border-radius:50%; }
+    @media (max-width:980px) { main { grid-template-columns:1fr; max-width:600px; } header { max-width:600px; } }
+    @media print { body { background:white; } header, figcaption { display:none; } main { display:block; padding:0; } .option { break-after:page; } .artboard { width:1080px; height:1350px; box-shadow:none; } }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="status">Propuesta v0.1 · No publicada</span>
+    <h1>Sistema Editorial Técnico DTD Cargo</h1>
+    <p>Tres rutas de plantilla para evaluar el lenguaje visual. Comparten identidad, pero cambian la estructura según la pregunta: concepto, comparación y capacidad operativa.</p>
+  </header>
+  <main>
+    <figure class="option">
+      <article class="artboard">
+        <div class="inner">
+          <div class="eyebrow">¿Qué es?</div>
+          <h2>¿Qué significa 1 CBM?</h2>
+          <div class="visual cube-scene">
+            <div class="cube" aria-label="Cubo de un metro por un metro por un metro">
+              <span class="measure top">1 m</span><span class="measure side">1 m</span><span class="measure bottom">1 m</span>
+            </div>
+            <div class="formula">
+              <b>1,00<br>CBM</b>
+              <code>largo × ancho × alto</code>
+              <div class="note">Ejemplo: 0,50 × 0,40 × 0,50 m = 0,10 CBM.</div>
+            </div>
+          </div>
+          <p class="explain">CBM mide el volumen que ocupa tu carga. Usa metros para calcularlo.</p>
+          <div class="meta">
+            <div class="source"><span class="cta">MIDE TU CARGA ANTES DE COTIZAR.</span><br>CONDICIÓN: EL CBM NO REEMPLAZA EL PESO.<br>FUENTE: CÁLCULO VOLUMÉTRICO DTD CARGO.</div>
+            <div class="brand"><img src="../assets/logo-primary.png" alt="Logo DTD Cargo"><span>Con Confianza,<br>de China a tu puerta.</span></div>
+          </div>
+        </div>
+      </article>
+      <figcaption><strong>A · Concepto.</strong> Fórmula, escala tridimensional y una sola equivalencia comprobable.</figcaption>
+    </figure>
+
+    <figure class="option">
+      <article class="artboard compare-card">
+        <div class="inner">
+          <div class="eyebrow">Comparativa</div>
+          <h2>LCL o FCL: ¿qué cambia?</h2>
+          <div class="visual compare">
+            <section class="mode">
+              <h3>LCL<span>Consolidado</span></h3>
+              <div class="container" aria-label="Espacio compartido"><i class="box"></i><i class="box"></i><i class="box"></i><i class="box"></i><i class="box"></i><i class="box"></i><i class="box"></i><i class="box"></i><i class="box"></i><i class="box"></i><i class="box"></i><i class="box"></i></div>
+              <p>Tu carga comparte espacio de transporte con otras cargas.</p>
+            </section>
+            <section class="mode">
+              <h3>FCL<span>Contenedor completo</span></h3>
+              <div class="container" aria-label="Espacio completo"><i class="box"></i><i class="box"></i><i class="box"></i><i class="box"></i><i class="box"></i><i class="box"></i><i class="box"></i><i class="box"></i><i class="box"></i><i class="box"></i><i class="box"></i><i class="box"></i></div>
+              <p>Reservas el contenedor completo para una sola operación.</p>
+            </section>
+          </div>
+          <p class="explain">La decisión depende de volumen, peso, ruta, frecuencia y modalidad aduanera.</p>
+          <div class="meta">
+            <div class="source"><span class="cta">COMPARA TU OPERACIÓN CON UN ASESOR.</span><br>NO SE ELIGE SÓLO POR CBM.<br>FUENTE: CATÁLOGO DE SERVICIOS DTD CARGO.</div>
+            <div class="brand"><img src="../assets/logo-primary.png" alt="Logo DTD Cargo"><span>Con Confianza,<br>de China a tu puerta.</span></div>
+          </div>
+        </div>
+      </article>
+      <figcaption><strong>B · Comparación.</strong> Una variable visual compartida y diferencias operativas, sin prometer umbrales universales.</figcaption>
+    </figure>
+
+    <figure class="option">
+      <article class="artboard capacity-card">
+        <div class="inner">
+          <div class="eyebrow">Capacidad operativa</div>
+          <h2>1 CBM no siempre son 10 cajas</h2>
+          <div class="visual capacity">
+            <div class="stack" aria-label="Diez cajas como ejemplo teórico">
+              <i class="parcel"></i><i class="parcel"></i><i class="parcel"></i><i class="parcel"></i><i class="parcel"></i><i class="parcel"></i><i class="parcel"></i><i class="parcel"></i><i class="parcel"></i><i class="parcel"></i>
+            </div>
+            <div class="capacity-data">
+              <b>10 ×<br>0,10</b>
+              <code>= 1,00 CBM<br>teórico</code>
+              <ul class="factors"><li>Espacios entre cajas</li><li>Embalaje y fragilidad</li><li>Orientación de estiba</li><li>Peso permitido</li></ul>
+            </div>
+          </div>
+          <p class="explain">El volumen nominal suma medidas. La capacidad operativa considera cómo puede estibarse la carga.</p>
+          <div class="meta">
+            <div class="source"><span class="cta">ENVÍA MEDIDAS Y PESO DE CADA CAJA.</span><br>EJEMPLO GEOMÉTRICO, NO PROMESA DE CAPACIDAD.<br>FUENTE: CÁLCULO + CONDICIONES DE ESTIBA.</div>
+            <div class="brand"><img src="../assets/logo-primary.png" alt="Logo DTD Cargo"><span>Con Confianza,<br>de China a tu puerta.</span></div>
+          </div>
+        </div>
+      </article>
+      <figcaption><strong>C · Capacidad.</strong> Diferencia explícita entre volumen nominal y uso operativo.</figcaption>
+    </figure>
+  </main>
+</body>
+</html>

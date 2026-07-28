@@ -34,6 +34,10 @@ export type ResendSendResult =
   | { ok: true; id: string }                  // resend_message_id
   | { ok: false; error: string; code?: string };
 
+export type ResendBatchResult =
+  | { ok: true; ids: string[] }
+  | { ok: false; error: string; code?: string };
+
 /**
  * Envía un email via Resend API.
  *
@@ -76,6 +80,58 @@ export async function resendSend(input: ResendSendInput): Promise<ResendSendResu
       return { ok: false, error: "Resend response sin id" };
     }
     return { ok: true, id: data.id };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: `network: ${msg}` };
+  }
+}
+
+/**
+ * Envía un lote de hasta 100 correos. `idempotencyKey` permite reintentar el
+ * mismo lote sin duplicar mensajes si el proceso se corta después del request.
+ */
+export async function resendBatchSend(
+  inputs: ResendSendInput[],
+  idempotencyKey: string,
+): Promise<ResendBatchResult> {
+  if (inputs.length < 1 || inputs.length > 100) {
+    return { ok: false, error: "El lote debe contener entre 1 y 100 correos." };
+  }
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return { ok: false, error: "mock_no_key" };
+
+  try {
+    const res = await fetch(`${RESEND_API_BASE}/emails/batch`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "Idempotency-Key": idempotencyKey,
+      },
+      body: JSON.stringify(inputs),
+    });
+    if (!res.ok) {
+      let errBody: { message?: string; name?: string } = {};
+      try {
+        errBody = (await res.json()) as { message?: string; name?: string };
+      } catch {
+        // body no JSON
+      }
+      return {
+        ok: false,
+        error: errBody.message ?? `HTTP ${res.status} ${res.statusText}`,
+        code: errBody.name ?? String(res.status),
+      };
+    }
+
+    const payload = (await res.json()) as {
+      data?: Array<{ id?: string }>;
+    };
+    const ids = (payload.data ?? []).map((item) => item.id ?? "");
+    if (ids.length !== inputs.length || ids.some((id) => !id)) {
+      return { ok: false, error: "Resend devolvió un lote incompleto." };
+    }
+    return { ok: true, ids };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return { ok: false, error: `network: ${msg}` };

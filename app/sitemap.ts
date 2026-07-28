@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { listPublishedPosts } from "@/lib/news/queries";
+import { listPublishedPosts } from "@/lib/public/news-queries";
 import { GEO_ZONAS } from "@/lib/geo-zonas";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

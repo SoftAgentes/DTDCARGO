@@ -2,9 +2,9 @@
  * Cliente Supabase anon compartido por la capa de datos del sitio público.
  *
  * El sitio público NO está autenticado: usa la anon key (NO service_role).
- * Toda lectura pública pasa por RPCs `SECURITY DEFINER` de retorno mínimo
- * (ver supabase/migrations/0059_public_track_rpc.sql, 0099_rates_*.sql) —
- * nunca queries directas a tablas (RLS por tenant las bloquea para anon).
+ * Las operaciones sensibles pasan por RPCs `SECURITY DEFINER` de retorno
+ * mínimo (tracking, tarifas). La excepción editorial es `news_posts`: la tabla
+ * tiene un grant SELECT explícito y RLS limita anon a `published = true`.
  *
  * Frontera público↔ERP: este módulo vive en `lib/public/`, la única capa
  * autorizada por ESLint a importar `@supabase/*` desde el lado público.

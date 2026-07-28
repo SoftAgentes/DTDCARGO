@@ -26,6 +26,9 @@ import { PortalClaims } from "../reclamos/_components/PortalClaims";
 import { PortalMessageForm } from "../mensajes/PortalMessageForm";
 import { PortalChatLive } from "../../_components/PortalChatLive";
 import { PortalPushOptIn } from "../../_components/PortalPushOptIn";
+import { getProfileCompleteness } from "@/lib/portal/portal-queries";
+import { isModuleLocked } from "@/lib/portal/verify-gate";
+import { PortalVerifyGate } from "../_components/PortalVerifyGate";
 
 export const metadata: Metadata = { title: "Soporte" };
 
@@ -56,6 +59,14 @@ export default async function PortalSoportePage({
   const supabase = await createClient();
   const client = await getPortalClient(supabase);
   if (!client) return null;
+
+  // Gate de verificación (SDD-0169). Soporte se cierra por fidelidad al Norte,
+  // pero la pantalla del gate deja WhatsApp y teléfono a la vista: nadie con
+  // una carga en curso queda sin canal por no haber subido la cédula todavía.
+  const profile = await getProfileCompleteness(supabase).catch(() => null);
+  if (profile && isModuleLocked("soporte", profile)) {
+    return <PortalVerifyGate module="soporte" profile={profile} />;
+  }
 
   const admin = createAdminClient();
 
