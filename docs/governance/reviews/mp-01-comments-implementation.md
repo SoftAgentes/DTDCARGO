@@ -7,16 +7,19 @@
 | Diseño | [DT-SDD-0168 v1.0](../../specs/0168-mp-01-comentarios-permanencia-restauracion/diseno-tecnico.md) |
 | Fecha | 2026-07-23 |
 | Resultado técnico | DB-1 y APP verificados; DB-2 validado localmente en REV-MP-004 |
-| Estado de publicación | push, integración, `main` y aplicación APP en Producción cerrados |
+| Estado de publicación | base integrada hasta `b92116d4`; correctivo final sin push ni integración |
 
 ## 1. Veredicto
 
 DB-1 y el gate APP ya no están en estado de diseño. El contrato de ciclo de
 vida fue aplicado en Supabase Cloud y el recorrido autenticado de aplicación se
 validó en un Preview aislado. DB-2 fue implementado, aplicado y verificado en
-Cloud el 2026-07-28 en [REV-MP-004](mp-01-comments-db2.md). La entrega todavía
-no cumple el cierre completo de SDD-0168 porque la aplicación no ha sido
-integrada en `main`.
+Cloud el 2026-07-28 en [REV-MP-004](mp-01-comments-db2.md), y la APP fue
+revalidada después de DB-2 en
+[REV-MP-005](mp-01-comments-preview-e2e.md). La entrega todavía no cumple el
+cierre completo de SDD-0168: otra ventana integró el historial hasta
+`b92116d4` en `main` mediante `67b1a46b` y disparó el despliegue automático de
+Producción, pero el correctivo final `592226e9` y su evidencia siguen locales.
 
 ## 2. Recibos de Supabase Cloud
 
@@ -60,6 +63,12 @@ No se consultaron cuerpos, menciones, identidades ni filas de negocio.
   de abrirse vacío.
 - `c1a1c0e6` devuelve el foco a **Comentarios eliminados** cuando la restauración
   retira el control que abrió el diálogo.
+- `592226e9` corrige el deadline de Deshacer ante relojes desajustados,
+  estabiliza la persistencia observada por el E2E y elimina el error rrweb
+  detectado en Preview.
+- REV-MP-005 registra la repetición posterior a DB-2: 1 E2E aprobado, 25
+  pruebas locales aprobadas, cero errores runtime/5xx y retiro confirmado del
+  entorno efímero.
 
 Verificaciones locales posteriores:
 
@@ -71,10 +80,10 @@ Verificaciones locales posteriores:
 
 ## 4. Gates que permanecen cerrados
 
-1. confirmar el costo y recrear un entorno efímero para repetir el E2E completo;
-2. autorizar el push conjunto de los commits locales pendientes;
-3. autorizar después la integración en `main` y la validación de Producción;
-4. definir otro alcance para ACL históricos; 0263 solo corrige defaults futuros
+1. revisar y autorizar el push de `592226e9` y REV-MP-005;
+2. autorizar después su integración en `main` y la validación funcional de
+   Producción;
+3. definir otro alcance para ACL históricos; 0263 solo corrige defaults futuros
    del rol `postgres`.
 
 Ninguno de estos gates habilita purga o hard-delete.

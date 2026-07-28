@@ -124,7 +124,7 @@ disfraza elevando el estado normativo.
 | Código | Política | Estado normativo | Estado del ERP | Documento o próximo gate |
 |---|---|---|---|---|
 | SGE-00 | Principios constitucionales de experiencia | aprobada | Constitución vigente para cambios nuevos/modificados; legado aún no auditado transversalmente | [REV-SGE-002 aprobada](reviews/sge-00-btn-01.md) |
-| MP-01 | Matriz de permanencia | aprobada v1.1 | [SDD-0168](../specs/0168-mp-01-comentarios-permanencia-restauracion/spec.md): DB-1 y DB-2 aplicados en Cloud; APP validada una vez en Preview aislado; nueva validación, push e integración pendientes | [REV-MP-004](reviews/mp-01-comments-db2.md); push, integración y cualquier purga mantienen gates separados |
+| MP-01 | Matriz de permanencia | aprobada v1.1 | [SDD-0168](../specs/0168-mp-01-comentarios-permanencia-restauracion/spec.md): DB-1 y DB-2 aplicados en Cloud; base APP integrada hasta `b92116d4`; correctivo final revalidado en Preview pero aún local | [REV-MP-005](reviews/mp-01-comments-preview-e2e.md); push e integración del correctivo, validación de Producción y cualquier purga mantienen gates separados |
 | BTN-01 | Semántica, jerarquía y contrato de botones | aprobada | [Vocabulario, orden, estados y contrato](policies/btn-01.md) vigentes; adopción del legado no auditada | Crear SDD por alcance antes de migrar consumidores |
 | HTD-01 | Confirmación por presión sostenida | aprobada | [Contrato v1.0](policies/htd-01.md) consolidado; no implementado | Crear SDD solo para una entidad R3 clasificada por MP-01 |
 | AVS-01 | Avisos y confirmaciones | verificada | Primitiva compatible implementada; consumidores heredados pendientes | [SDD-0165](../specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md) |
@@ -189,8 +189,10 @@ aprobaron en LB-SGE-004. El orden que gobierna la siguiente fase es:
 
 1. cerrar [SDD-0168](../specs/0168-mp-01-comentarios-permanencia-restauracion/spec.md)
    desde su [revisión DB-2](reviews/mp-01-comments-db2.md): DB-1, APP y DB-2
-   tienen evidencia Cloud/local; nueva validación Preview, push, integración y
-   cualquier purga conservan gates separados;
+   tienen evidencia Cloud/local y la
+   [revalidación Preview](reviews/mp-01-comments-preview-e2e.md) está cerrada;
+   el correctivo final sigue local y su push, integración, validación de
+   Producción y cualquier purga conservan gates separados;
 2. conservar A1, A2 y sus recibos en Git; el Corte A está aplicado y verificado;
    no ejecutar la matriz ACL ni abrir los Cortes B–E sin sus gates propios;
 3. revisar las políticas v0.1 por bloques coherentes, no como aprobación masiva;
