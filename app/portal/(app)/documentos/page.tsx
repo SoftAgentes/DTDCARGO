@@ -10,7 +10,10 @@ import {
 } from "@/lib/studio/shipment-document-types";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ArrowIcon } from "@/components/Icon";
+import { getProfileCompleteness } from "@/lib/portal/portal-queries";
+import { isModuleLocked } from "@/lib/portal/verify-gate";
 import { EnviosHubTabs } from "../../_components/PortalHubTabs";
+import { PortalVerifyGate } from "../_components/PortalVerifyGate";
 
 export const metadata: Metadata = { title: "Documentos" };
 
@@ -35,6 +38,15 @@ function formatDate(iso: string): string {
  */
 export default async function PortalDocumentsPage() {
   const supabase = await createClient();
+
+  // Gate de verificación (SDD-0169): cerrado hasta completar el registro. Se
+  // resuelve ANTES de leer documentos — un módulo cerrado no consulta ni firma
+  // URLs de nada.
+  const profile = await getProfileCompleteness(supabase).catch(() => null);
+  if (profile && isModuleLocked("documentos", profile)) {
+    return <PortalVerifyGate module="documentos" profile={profile} />;
+  }
+
   const docs = await listMyDocuments(supabase);
   const urls = docs.length
     ? await signDocumentUrls(

@@ -14,12 +14,14 @@ import {
   CrownIcon,
   DocIcon,
   GridIcon,
+  LockIcon,
   PaymentIcon,
   QuoteIcon,
   ShieldIcon,
   ShipIcon,
   StarIcon,
 } from "@/components/Icon";
+import { LOCKED_MODULES, LOCK_TOOLTIP } from "@/lib/portal/verify-gate";
 
 /**
  * Barra lateral del Portal del Cliente — diseño de Cloud Design
@@ -227,6 +229,7 @@ export function PortalSidebar({
   onCloseMobile,
   showClub = false,
   soporteDot = false,
+  profileComplete = true,
 }: {
   markbox: string;
   collapsed: boolean;
@@ -236,6 +239,10 @@ export function PortalSidebar({
   showClub?: boolean;
   /** Punto en "Soporte": hay respuesta del equipo sin leer (SDD-0148 #4). */
   soporteDot?: boolean;
+  /** Registro completo (SDD-0169): si es `false`, los módulos de
+   *  `LOCKED_MODULES` llevan candado. Default abierto — un fallo de lectura no
+   *  puede candar el portal. */
+  profileComplete?: boolean;
 }) {
   const pathname = usePathname() ?? "";
   const [createOpen, setCreateOpen] = useState(false);
@@ -512,16 +519,25 @@ export function PortalSidebar({
                 />
               )}
               <div className="flex flex-col gap-0.5">
-                {g.items.map((it) => (
-                  <SidebarLeaf
-                    key={it.key}
-                    item={it}
-                    active={it.match ? it.match(pathname) : false}
-                    showLabels={showLabels}
-                    dot={it.key === "soporte" && soporteDot}
-                    onNavigate={onCloseMobile}
-                  />
-                ))}
+                {g.items.map((it) => {
+                  // El candado es señalización: el ítem SIGUE navegando y la
+                  // propia página muestra el gate (con el CTA para abrirlo).
+                  // Un botón muerto solo dejaría al cliente sin saber por qué.
+                  const locked =
+                    !profileComplete &&
+                    (LOCKED_MODULES as readonly string[]).includes(it.key);
+                  return (
+                    <SidebarLeaf
+                      key={it.key}
+                      item={it}
+                      active={it.match ? it.match(pathname) : false}
+                      showLabels={showLabels}
+                      dot={it.key === "soporte" && soporteDot && !locked}
+                      locked={locked}
+                      onNavigate={onCloseMobile}
+                    />
+                  );
+                })}
               </div>
             </div>
           ))}
@@ -594,18 +610,22 @@ function SidebarLeaf({
   active,
   showLabels,
   dot,
+  locked = false,
   onNavigate,
 }: {
   item: NavItem;
   active: boolean;
   showLabels: boolean;
   dot: boolean;
+  /** Módulo cerrado por el gate de verificación (SDD-0169). */
+  locked?: boolean;
   onNavigate: () => void;
 }) {
   const Icon = item.icon;
-  const title = showLabels
-    ? undefined
-    : item.label + (item.sub ? ` · ${item.sub}` : "");
+  const base = item.label + (item.sub ? ` · ${item.sub}` : "");
+  // Colapsada el título hace de tooltip del ítem; con candado, el motivo del
+  // cierre gana — es lo que el cliente necesita saber.
+  const title = locked ? LOCK_TOOLTIP : showLabels ? undefined : base;
 
   const body = (
     <>
@@ -633,6 +653,24 @@ function SidebarLeaf({
             }}
           />
         )}
+        {/* Colapsada el candado se reduce a una insignia ámbar sobre el ícono
+            (Norte) — sigue siendo la única señal visible del cierre. */}
+        {locked && !showLabels && (
+          <span
+            aria-hidden
+            className="absolute -top-1 -right-1 inline-flex h-[13px] w-[13px] items-center justify-center rounded-full"
+            style={{
+              background: "var(--color-status-warning)",
+              border: "2px solid var(--portal-nav-solid)",
+              // Glifo navy sobre relleno ámbar (BRAND §♿: sobre warning va
+              // tinta oscura, nunca blanco). `--portal-nav-solid` es navy en
+              // los dos temas del portal, así que no se voltea.
+              color: "var(--portal-nav-solid)",
+            }}
+          >
+            <LockIcon size={7} />
+          </span>
+        )}
       </span>
       {showLabels &&
         (item.sub ? (
@@ -659,6 +697,15 @@ function SidebarLeaf({
           className="h-2 w-2 flex-shrink-0 rounded-full"
           style={{ background: "var(--color-status-danger)" }}
         />
+      )}
+      {showLabels && locked && (
+        <span
+          className="inline-flex flex-shrink-0"
+          style={{ color: "var(--color-status-warning)", opacity: 0.72 }}
+        >
+          <LockIcon size={13} />
+          <span className="sr-only"> · {LOCK_TOOLTIP}</span>
+        </span>
       )}
     </>
   );
