@@ -23,9 +23,9 @@ confidencialidad: interno
 > revalidada después de DB-2 en un Preview aislado según
 > [REV-MP-005](../../governance/reviews/mp-01-comments-preview-e2e.md). Otra
 > ventana integró hasta `b92116d4` en `main` mediante `67b1a46b` y activó el
-> despliegue automático de Producción; el correctivo final de Preview, su push,
-> integración, validación funcional de Producción y los ACL históricos
-> conservan gates propios.
+> despliegue automático de Producción. El correctivo final fue publicado en su
+> rama y pasó CI; integración, validación funcional de Producción y los ACL
+> históricos conservan gates propios.
 
 ## 1. Propósito
 
@@ -350,8 +350,11 @@ parte del gate UI. El orden y jerarquía de acciones deben cumplir BTN-01.
       advisors.
 - [x] El historial hasta `b92116d4` fue integrado por otra ventana mediante
       `67b1a46b` y Vercel lo desplegó automáticamente a Producción.
-- [ ] El correctivo final `592226e9`, su evidencia, push, integración y
-      validación funcional de Producción reciben gates individuales.
+- [x] El correctivo final `592226e9` y la evidencia `1f831b63` fueron
+      publicados en `codex/sdd-0168-db1-local`; Vercel y GitHub reportaron
+      `success`.
+- [ ] Integración del correctivo final y validación funcional de Producción
+      reciben gates individuales.
 
 ## 12. Fuera de alcance
 

@@ -7,7 +7,7 @@
 | Diseño | [DT-SDD-0168 v1.0](../../specs/0168-mp-01-comentarios-permanencia-restauracion/diseno-tecnico.md) |
 | Fecha | 2026-07-23 |
 | Resultado técnico | DB-1 y APP verificados; DB-2 validado localmente en REV-MP-004 |
-| Estado de publicación | base integrada hasta `b92116d4`; correctivo final sin push ni integración |
+| Estado de publicación | correctivo final publicado y CI verde; integración pendiente |
 
 ## 1. Veredicto
 
@@ -19,7 +19,9 @@ revalidada después de DB-2 en
 [REV-MP-005](mp-01-comments-preview-e2e.md). La entrega todavía no cumple el
 cierre completo de SDD-0168: otra ventana integró el historial hasta
 `b92116d4` en `main` mediante `67b1a46b` y disparó el despliegue automático de
-Producción, pero el correctivo final `592226e9` y su evidencia siguen locales.
+Producción. El correctivo final `592226e9` y su evidencia `1f831b63` ya están
+publicados en `codex/sdd-0168-db1-local` con CI verde, pero no han sido
+integrados en `main`.
 
 ## 2. Recibos de Supabase Cloud
 
@@ -58,7 +60,8 @@ No se consultaron cuerpos, menciones, identidades ni filas de negocio.
   `crear → eliminar → deshacer → eliminar → restaurar`, conservando identidad,
   mención, reacción y los cuatro eventos de auditoría esperados.
 - La rama efímera de Supabase y sus variables exclusivas de Preview se
-  eliminaron al terminar; `main` y Producción no recibieron la APP.
+  eliminaron al terminar. `main` y Producción contienen la base hasta
+  `b92116d4`, pero no el correctivo final.
 - `c429a09a` corrige el panel de recuperación que podía quedar obsoleto después
   de abrirse vacío.
 - `c1a1c0e6` devuelve el foco a **Comentarios eliminados** cuando la restauración
@@ -69,6 +72,8 @@ No se consultaron cuerpos, menciones, identidades ni filas de negocio.
 - REV-MP-005 registra la repetición posterior a DB-2: 1 E2E aprobado, 25
   pruebas locales aprobadas, cero errores runtime/5xx y retiro confirmado del
   entorno efímero.
+- El push hasta `1f831b63` fue fast-forward; Vercel terminó `READY`, GitHub
+  reportó `success` y no se observaron errores runtime ni respuestas 5xx.
 
 Verificaciones locales posteriores:
 
@@ -80,9 +85,8 @@ Verificaciones locales posteriores:
 
 ## 4. Gates que permanecen cerrados
 
-1. revisar y autorizar el push de `592226e9` y REV-MP-005;
-2. autorizar después su integración en `main` y la validación funcional de
-   Producción;
+1. autorizar la integración del correctivo final y su recibo en `main`;
+2. validar funcionalmente Producción después de integrar;
 3. definir otro alcance para ACL históricos; 0263 solo corrige defaults futuros
    del rol `postgres`.
 

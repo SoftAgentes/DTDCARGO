@@ -7,7 +7,7 @@
 | Fecha | 2026-07-28 |
 | Resultado técnico | Preview aislado y recorrido E2E aprobados después de DB-2 |
 | Commit correctivo local | `592226e9` |
-| Estado operativo | entorno efímero retirado; corrección final sin push ni integración |
+| Estado operativo | entorno efímero retirado; push y CI aprobados; integración pendiente |
 
 ## 1. Veredicto
 
@@ -22,8 +22,12 @@ ventana integró en `main` el historial hasta `b92116d4` mediante el merge
 Ese despliegue no contiene `592226e9` ni esta revisión y no recibió validación
 funcional de Producción desde este gate.
 
-REV-MP-005 no autoriza el push ni la integración del correctivo final,
-validación funcional de Producción ni corrección global de ACL históricos.
+Sam autorizó después el push exacto de `592226e9` y `1f831b63`. La rama remota
+`codex/sdd-0168-db1-local` avanzó por fast-forward hasta `1f831b63` y su check
+Vercel terminó en `success`.
+
+REV-MP-005 no autoriza la integración del correctivo final, validación
+funcional de Producción ni corrección global de ACL históricos.
 
 ## 2. Entorno aislado
 
@@ -107,6 +111,21 @@ segunda ejecución porque la rama efímera ya había sido eliminada. Su ejecuci�
 aislada previa permanece acreditada por el resultado `1 passed` y la evidencia
 relacional de la sección 3.
 
+Recibo del push y CI:
+
+- rama remota: `codex/sdd-0168-db1-local`;
+- HEAD publicado: `1f831b63`;
+- push fast-forward confirmado;
+- despliegue automático de CI:
+  `dpl_ExccfvZZpdLBGp2VTZftnDxGmvGb`;
+- Vercel Preview `READY`;
+- status GitHub `Vercel: success`;
+- cero logs runtime de nivel error y cero respuestas 5xx observadas.
+
+Este Preview de CI sólo acredita build y disponibilidad. No repite el E2E
+aislado, porque la rama Supabase temporal y sus variables fueron retiradas al
+cerrar la sección 3.
+
 ## 5. Hallazgo de infraestructura temporal
 
 La creación inicial de la rama no reconstruyó dos piezas históricas que el
@@ -120,10 +139,8 @@ Producción no fue modificada durante estas reparaciones.
 
 ## 6. Gates que permanecen cerrados
 
-1. revisión de `592226e9` y de esta evidencia, y autorización explícita de su
-   push;
-2. integración posterior del correctivo final en `main`;
-3. validación funcional de Producción ya con el correctivo integrado;
-4. cualquier corrección global de ACL históricos.
+1. integración del correctivo final y este recibo en `main`;
+2. validación funcional de Producción ya con el correctivo integrado;
+3. cualquier corrección global de ACL históricos.
 
 Ninguno de estos gates habilita purga o hard-delete.
