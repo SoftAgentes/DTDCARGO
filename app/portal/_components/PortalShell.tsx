@@ -122,6 +122,7 @@ export function PortalShell({
         onCloseMobile={() => setMobileOpen(false)}
         showClub={showClub}
         soporteDot={soporteDot}
+        profileComplete={profileComplete}
       />
 
       <div

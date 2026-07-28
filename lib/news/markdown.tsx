@@ -211,6 +211,8 @@ function tokenize(source: string): Block[] {
 
 export function NewsMarkdown({ source }: { source: string }) {
   const blocks = tokenize(source ?? "");
+  const headingIds = buildHeadingIds(blocks);
+  let headingIndex = 0;
 
   return (
     <div className="flex flex-col">
@@ -221,6 +223,7 @@ export function NewsMarkdown({ source }: { source: string }) {
             return (
               <h2
                 key={key}
+                id={headingIds[headingIndex++]}
                 className="h-display mt-12 mb-5"
                 style={{
                   fontSize: "clamp(26px, 3.2vw, 32px)",
@@ -235,6 +238,7 @@ export function NewsMarkdown({ source }: { source: string }) {
             return (
               <h2
                 key={key}
+                id={headingIds[headingIndex++]}
                 className="text-ink font-extrabold mt-10 mb-4"
                 style={{
                   fontSize: "clamp(22px, 2.6vw, 26px)",
@@ -249,6 +253,7 @@ export function NewsMarkdown({ source }: { source: string }) {
             return (
               <h3
                 key={key}
+                id={headingIds[headingIndex++]}
                 className="text-ink font-bold mt-8 mb-3"
                 style={{ fontSize: 20, lineHeight: 1.3 }}
               >
@@ -313,4 +318,48 @@ export function NewsMarkdown({ source }: { source: string }) {
       })}
     </div>
   );
+}
+
+export type NewsHeading = { id: string; text: string; level: 2 | 3 };
+
+function plainHeadingText(value: string) {
+  return value
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/[*_`<>]/g, "")
+    .trim();
+}
+
+function headingSlug(value: string) {
+  return plainHeadingText(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("es-VE")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "") || "seccion";
+}
+
+function buildHeadingIds(blocks: Block[]) {
+  const seen = new Map<string, number>();
+  return blocks.flatMap((block) => {
+      if (block.type !== "h1" && block.type !== "h2" && block.type !== "h3") return [];
+      const base = headingSlug(block.content);
+      const count = seen.get(base) ?? 0;
+      seen.set(base, count + 1);
+      return [count === 0 ? base : `${base}-${count + 1}`];
+    });
+}
+
+export function extractNewsHeadings(source: string): NewsHeading[] {
+  const blocks = tokenize(source ?? "");
+  const ids = buildHeadingIds(blocks);
+  let index = 0;
+  return blocks.flatMap((block) => {
+    if (block.type !== "h1" && block.type !== "h2" && block.type !== "h3") return [];
+    const heading: NewsHeading = {
+      id: ids[index++],
+      text: plainHeadingText(block.content),
+      level: block.type === "h3" ? 3 : 2,
+    };
+    return [heading];
+  });
 }
