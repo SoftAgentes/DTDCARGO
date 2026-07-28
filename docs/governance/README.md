@@ -53,6 +53,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Diseño técnico del primer slice MP-01 | [DT-SDD-0168 v1.0](../specs/0168-mp-01-comentarios-permanencia-restauracion/diseno-tecnico.md) |
 | Revisión técnica del diseño de comentarios | [REV-MP-002](reviews/mp-01-comments-design.md) |
 | Revisión de implementación de comentarios | [REV-MP-003](reviews/mp-01-comments-implementation.md) |
+| Revisión local de DB-2 de comentarios | [REV-MP-004](reviews/mp-01-comments-db2.md) |
 | Botones y acciones | [BTN-01 v1.0](policies/btn-01.md) |
 | Presión sostenida crítica | [HTD-01 v1.0](policies/htd-01.md) |
 | Auditoría de mutaciones | [AUD-01 v1.0](policies/aud-01.md) |
@@ -123,7 +124,7 @@ disfraza elevando el estado normativo.
 | Código | Política | Estado normativo | Estado del ERP | Documento o próximo gate |
 |---|---|---|---|---|
 | SGE-00 | Principios constitucionales de experiencia | aprobada | Constitución vigente para cambios nuevos/modificados; legado aún no auditado transversalmente | [REV-SGE-002 aprobada](reviews/sge-00-btn-01.md) |
-| MP-01 | Matriz de permanencia | aprobada v1.1 | [SDD-0168](../specs/0168-mp-01-comentarios-permanencia-restauracion/spec.md): DB-1 aplicado en Cloud y APP validada en Preview aislado; DB-2, push e integración pendientes | [REV-MP-003](reviews/mp-01-comments-implementation.md); DB-2 y cualquier purga mantienen gates separados |
+| MP-01 | Matriz de permanencia | aprobada v1.1 | [SDD-0168](../specs/0168-mp-01-comentarios-permanencia-restauracion/spec.md): DB-1 aplicado en Cloud, APP validada en Preview aislado y DB-2 validado localmente; Cloud DB-2, push e integración pendientes | [REV-MP-004](reviews/mp-01-comments-db2.md); Cloud DB-2 y cualquier purga mantienen gates separados |
 | BTN-01 | Semántica, jerarquía y contrato de botones | aprobada | [Vocabulario, orden, estados y contrato](policies/btn-01.md) vigentes; adopción del legado no auditada | Crear SDD por alcance antes de migrar consumidores |
 | HTD-01 | Confirmación por presión sostenida | aprobada | [Contrato v1.0](policies/htd-01.md) consolidado; no implementado | Crear SDD solo para una entidad R3 clasificada por MP-01 |
 | AVS-01 | Avisos y confirmaciones | verificada | Primitiva compatible implementada; consumidores heredados pendientes | [SDD-0165](../specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md) |
@@ -187,8 +188,8 @@ La extracción documental concluyó en LB-SGE-003 y la constitución/acciones se
 aprobaron en LB-SGE-004. El orden que gobierna la siguiente fase es:
 
 1. cerrar [SDD-0168](../specs/0168-mp-01-comentarios-permanencia-restauracion/spec.md)
-   desde su [revisión de implementación](reviews/mp-01-comments-implementation.md):
-   DB-1 y APP tienen evidencia; DB-2, push, integración y cualquier purga
+   desde su [revisión DB-2](reviews/mp-01-comments-db2.md): DB-1, APP y DB-2
+   local tienen evidencia; Cloud DB-2, push, integración y cualquier purga
    conservan gates separados;
 2. conservar A1, A2 y sus recibos en Git; el Corte A está aplicado y verificado;
    no ejecutar la matriz ACL ni abrir los Cortes B–E sin sus gates propios;
