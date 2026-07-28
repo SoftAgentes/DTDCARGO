@@ -57,7 +57,14 @@ function tint(color: string, pct = 14) {
   return `color-mix(in srgb, ${color} ${pct}%, transparent)`;
 }
 
-/** ETA del zarpe → "llega aprox. 14 ago". null si no hay fecha o no parsea. */
+/**
+ * ETA del zarpe → "llega aprox. 14 ago". null si no hay fecha o no parsea.
+ *
+ * `timeZone: "UTC"` NO es decorativo: `sailings.eta` es una columna `date`
+ * (sin hora), y `new Date("2026-08-14")` la ancla a medianoche UTC. Formateándola
+ * en la zona local (Venezuela, GMT-4) retrocede al día anterior — el cliente veía
+ * "13 ago" para una llegada del 14.
+ */
 function formatEta(iso: string | null): string | null {
   if (!iso) return null;
   const d = new Date(iso);
@@ -65,6 +72,7 @@ function formatEta(iso: string | null): string | null {
   return `llega aprox. ${d.toLocaleDateString("es-VE", {
     day: "numeric",
     month: "short",
+    timeZone: "UTC",
   })}`;
 }
 
@@ -235,7 +243,11 @@ function AlertRow({
 }) {
   const m = ALERT_STAGE_META[item.stage];
   const color = TONE_COLOR[m.tone];
-  const isEnvio = item.stage === "envio";
+  // Es un ENVÍO (tiene detalle propio) vs. una compra todavía en prealerta (tiene
+  // panel de documentos). Ojo: NO se puede derivar de la etapa — desde SDD-0170 un
+  // envío puede estar en `envio`, `bodegave` o `recibido`. El dato que lo define
+  // es tener `shipmentId`.
+  const isEnvio = item.shipmentId !== null;
   const docCount = docs
     ? (docs.packing ? 1 : 0) + (docs.factura ? 1 : 0) + (docs.foto ? 1 : 0)
     : 0;
@@ -259,13 +271,23 @@ function AlertRow({
               {item.code}
             </span>
             <span
-              className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em]"
+              className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em]"
               style={{
-                color,
+                // Texto en --color-ink + PUNTO del color de etapa (BRAND §♿).
+                // El tono como texto a 10px no llega a AA: medido en el tema
+                // oscuro daba wine 2.69 · info 3.91 · success 3.73. El color
+                // sigue identificando la etapa en el punto, el borde, el fondo y
+                // el ícono de la fila — sin apoyar la legibilidad en él.
+                color: "var(--color-ink)",
                 background: tint(color, 16),
                 border: `1px solid ${tint(color, 42)}`,
               }}
             >
+              <span
+                aria-hidden
+                className="h-1.5 w-1.5 rounded-full flex-shrink-0"
+                style={{ background: color }}
+              />
               {m.label}
             </span>
           </div>
@@ -400,7 +422,10 @@ function SeguimientoTotal({
       <button
         type="button"
         onClick={onBack}
-        className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-grey-700 hover:text-ink mb-4"
+        // `flex w-fit`, no `inline-flex`: `.eyebrow` de abajo también es
+        // inline-flex, así que en inline los dos caían en la MISMA línea y el
+        // guion del eyebrow se montaba sobre el texto del botón.
+        className="flex w-fit items-center gap-1.5 text-[12.5px] font-semibold text-grey-700 hover:text-ink mb-4"
       >
         <ArrowIcon size={13} className="rotate-180" /> Volver a Alertas · mis envíos
       </button>
