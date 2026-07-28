@@ -94,6 +94,56 @@ Cada tema de Short apunta a una página real (refuerza SEO de entidad + manda tr
 - [ ] **Founder:** optimizar títulos/descripciones de los **11 videos largos** existentes (quick win SEO sin producir nada nuevo).
 - [ ] Verificar Google Business (prioridad 2) para cerrar el triángulo IG + YouTube + GBP local.
 
+> **Dónde están las imágenes:** las carpetas `assets/` y `exports/` de `redes/` no viven
+> en git (71 MB de láminas, más fotos del equipo con permisos abiertos). El texto y los
+> `.html` fuente sí. Ver [`redes/ASSETS-EN-DRIVE.md`](redes/ASSETS-EN-DRIVE.md).
+
+## Sistema Editorial Técnico · piloto de carrusel (2026-07-22)
+
+Se creó una plantilla maestra de seis láminas para validar el lenguaje de
+**infografía editorial técnica minimalista** antes de extenderlo al resto de
+las redes. El piloto explica la capacidad operativa de 20GP y 40HQ con esta
+secuencia reutilizable: gancho → concepto → comparación → ficha A → ficha B →
+decisión y CTA.
+
+- Fuente editable y exportaciones: [`redes/carrusel-maestro-capacidad-operativa/`](redes/carrusel-maestro-capacidad-operativa/README.md).
+- Estado: validado técnica y visualmente; aprobado como plantilla maestra.
+- Publicación: no realizada.
+
+## Feed de transición · nueve publicaciones (2026-07-22)
+
+Se diseñó una vista previa 3 × 3 para evaluar cómo conviven las nuevas piezas
+antes de publicar la primera. La secuencia combina cuatro infografías sobre
+papel marfil, tres portadas de reels operativos y dos anclas navy de marca/CTA.
+
+- Fuente editable, orden y exportaciones: [`redes/feed-transicion-9-publicaciones/`](redes/feed-transicion-9-publicaciones/README.md).
+- Vista de aprobación: `exports/00-vista-feed-3x3.png` — está fuera de git, ver [`ASSETS-EN-DRIVE.md`](redes/ASSETS-EN-DRIVE.md).
+- Estado: V0.1 conservada como biblioteca estructural; no es la dirección maestra.
+- Fotografías: conceptuales, no representan al equipo real.
+- Publicación: no realizada.
+
+### Variante fotográfica V0.2
+
+Se añadió una segunda cuadrícula utilizando fotografías reales del archivo de
+DTD Cargo y las infografías cálidas aprobadas como referencia. El fondo marfil
+se formalizó en [`redes/tokens-social.css`](redes/tokens-social.css) como token
+exclusivo de redes; todavía no forma parte de la paleta global ni del Brand
+Book.
+
+- Vista: [`feed-transicion-9-publicaciones/fotografico-v2/`](redes/feed-transicion-9-publicaciones/fotografico-v2/README.md).
+- Estado: **V0.2 aprobada como dirección maestra**; piezas aún no publicadas.
+- Gate de producción: la selección V1 sustituye las fotografías históricas
+  bloqueadas por seis escenas editoriales generadas; permisos históricos quedan
+  fuera del gate del primer lote.
+- Publicación: no realizada.
+- Decisión: [`DECISION-DIRECCION-MAESTRA.md`](redes/feed-transicion-9-publicaciones/DECISION-DIRECCION-MAESTRA.md).
+- Lote de producción: [`LOTE-PRODUCCION-V1.md`](redes/feed-transicion-9-publicaciones/fotografico-v2/LOTE-PRODUCCION-V1.md).
+- Permisos e identidad histórica: [`AUDITORIA-PERMISOS-FOTOGRAFIAS.md`](redes/feed-transicion-9-publicaciones/fotografico-v2/AUDITORIA-PERMISOS-FOTOGRAFIAS.md).
+- Expediente y solicitudes de autorización: [`permisos/`](redes/feed-transicion-9-publicaciones/fotografico-v2/permisos/README.md).
+- Gate prioritario del lote: [`GATE-LOTE-FINAL-01-02-06-07-08.md`](redes/feed-transicion-9-publicaciones/fotografico-v2/permisos/GATE-LOTE-FINAL-01-02-06-07-08.md).
+- Copias corregidas de control interno: [`assets/corregidas-v1/`](redes/feed-transicion-9-publicaciones/fotografico-v2/assets/corregidas-v1/README.md).
+- Validación de miniaturas: [`VALIDACION-INSTAGRAM.md`](redes/feed-transicion-9-publicaciones/fotografico-v2/VALIDACION-INSTAGRAM.md).
+
 ## Ver también
 - [`plan-accion-digital.md`](plan-accion-digital.md) — prioridad 5 (origen de este plan) + las otras 4.
 - [`identidad.md`](identidad.md) — nombres, handles, NAP, contactos públicos.
