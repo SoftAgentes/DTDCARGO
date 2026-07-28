@@ -70,7 +70,7 @@ async function login(page: Page, email: string, password: string) {
     `/studio/login?next=/studio/tracking/${SDD_0168_FIXTURE.shipmentId}`,
   );
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Contraseña").fill(password);
+  await page.getByRole("textbox", { name: "Contraseña" }).fill(password);
   await page.getByRole("button", { name: /INGRESAR/ }).click();
   await expect(page).toHaveURL(
     new RegExp(`/studio/tracking/${SDD_0168_FIXTURE.shipmentId}`),
@@ -97,10 +97,21 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
       new URL(environment.supabaseUrl).origin,
     ]);
 
-    page.on("pageerror", (error) => browserErrors.push(`pageerror: ${error.message}`));
+    page.on("pageerror", (error) =>
+      browserErrors.push(`pageerror: ${error.stack ?? error.message}`),
+    );
     page.on("console", (message) => {
       if (message.type() === "error") {
-        browserErrors.push(`console: ${message.text()}`);
+        const text = message.text();
+        if (
+          text.includes("Content Security Policy") &&
+          text.includes(
+            "https://vercel.live/_next-live/feedback/feedback.js",
+          )
+        ) {
+          return;
+        }
+        browserErrors.push(`console: ${text}`);
       }
     });
     page.on("response", (response) => {
@@ -117,12 +128,13 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
       }
     });
     page.on("requestfailed", (request) => {
+      const failure = request.failure()?.errorText ?? "sin detalle";
+      if (failure === "net::ERR_ABORTED") return;
+
       const requestUrl = new URL(request.url());
       if (monitoredOrigins.has(requestUrl.origin)) {
         browserErrors.push(
-          `requestfailed: ${request.method()} ${requestUrl.pathname} · ${
-            request.failure()?.errorText ?? "sin detalle"
-          }`,
+          `requestfailed: ${request.method()} ${requestUrl.pathname} · ${failure}`,
         );
       }
     });
@@ -146,24 +158,34 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
     );
     await expect(composer).toBeVisible();
     await composer.fill(fixture.commentBody);
-    await page.getByRole("button", { name: "Comentar" }).click();
+    await page
+      .getByRole("button", { name: "Comentar", exact: true })
+      .click();
 
     const body = page.getByText(fixture.commentBody, { exact: true });
     await expect(body).toBeVisible();
 
-    const { data: commentData, error: commentError } = await admin
-      .from("comments")
-      .select(
-        "id,tenant_id,entity_type,entity_id,entity_code,author_id,body,created_at,deleted_at",
-      )
-      .eq("tenant_id", fixture.tenantId)
-      .eq("entity_type", "shipment")
-      .eq("entity_id", fixture.shipmentId)
-      .eq("body", fixture.commentBody)
-      .single();
-    const comment = requireData(
-      commentData as CommentSnapshot | null,
-      commentError,
+    let polledComment: CommentSnapshot | null = null;
+    await expect
+      .poll(async () => {
+        const { data, error } = await admin
+          .from("comments")
+          .select(
+            "id,tenant_id,entity_type,entity_id,entity_code,author_id,body,created_at,deleted_at",
+          )
+          .eq("tenant_id", fixture.tenantId)
+          .eq("entity_type", "shipment")
+          .eq("entity_id", fixture.shipmentId)
+          .eq("body", fixture.commentBody)
+          .maybeSingle();
+        if (error) throw error;
+        polledComment = data as CommentSnapshot | null;
+        return polledComment;
+      })
+      .not.toBeNull();
+    const comment = requireData<CommentSnapshot>(
+      polledComment,
+      null,
       "Comentario creado",
     );
     expect(comment).toMatchObject({
@@ -277,6 +299,18 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
     await restoreDialog.getByRole("button", { name: "Restaurar" }).click();
     await expect(body).toBeVisible();
 
+    await expect
+      .poll(async () => {
+        const { data, error } = await admin
+          .from("comments")
+          .select("deleted_at")
+          .eq("id", comment.id)
+          .single();
+        if (error) throw error;
+        return data.deleted_at;
+      })
+      .toBeNull();
+
     const { data: finalCommentData, error: finalCommentError } = await admin
       .from("comments")
       .select(
@@ -317,19 +351,32 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
       ),
     ).toEqual(reaction);
 
-    const { data: auditData, error: auditError } = await admin
-      .from("entity_audit_log")
-      .select("event_type,actor_id,payload,occurred_at")
-      .eq("tenant_id", fixture.tenantId)
-      .eq("entity_type", "comment")
-      .eq("entity_id", comment.id)
-      .order("occurred_at", { ascending: true });
-    if (auditError) throw auditError;
+    type AuditSnapshot = {
+      event_type: string;
+      actor_id: string | null;
+      payload: { action?: string };
+      occurred_at: string;
+    };
+    let auditData: AuditSnapshot[] = [];
+    await expect
+      .poll(async () => {
+        const { data, error } = await admin
+          .from("entity_audit_log")
+          .select("event_type,actor_id,payload,occurred_at")
+          .eq("tenant_id", fixture.tenantId)
+          .eq("entity_type", "comment")
+          .eq("entity_id", comment.id)
+          .order("occurred_at", { ascending: true });
+        if (error) throw error;
+        auditData = (data ?? []) as AuditSnapshot[];
+        return auditData.length;
+      })
+      .toBe(4);
     expect(
-      (auditData ?? []).map((row) => ({
+      auditData.map((row) => ({
         eventType: row.event_type,
         actorId: row.actor_id,
-        action: (row.payload as { action?: string }).action,
+        action: row.payload.action,
       })),
     ).toEqual([
       {

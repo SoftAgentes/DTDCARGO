@@ -162,10 +162,14 @@ export function CommentsThread({
       return;
     }
     refresh();
+    const undoRemainingMs =
+      typeof res.undoRemainingMs === "number"
+        ? res.undoRemainingMs
+        : 0;
     const undoAvailable =
       Boolean(res.correlationId) &&
-      Boolean(res.undoExpiresAt) &&
-      Number.isFinite(Date.parse(res.undoExpiresAt ?? ""));
+      Number.isFinite(undoRemainingMs) &&
+      undoRemainingMs > 0;
     toast.show({
       eventKey: "comment:soft-deleted",
       tone: "warning",
@@ -175,7 +179,7 @@ export function CommentsThread({
       dedupeKey: `comment:soft-deleted:${commentId}`,
       duration: undoAvailable ? "undo" : "default",
       correlationId: res.correlationId ?? undefined,
-      actionExpiresAt: res.undoExpiresAt ?? undefined,
+      actionDurationMs: undoAvailable ? undoRemainingMs : undefined,
       actionExpiredMessage: "Terminó la ventana inmediata para deshacer.",
       action: undoAvailable
         ? {

@@ -196,6 +196,30 @@ describe("ToastProvider · AVS-01", () => {
     ).toBeInTheDocument();
   });
 
+  it("inicia el deadline relativo desde el reloj local del navegador", () => {
+    const toast = renderProvider();
+    act(() =>
+      toast.show({
+        eventKey: "comment:undo-relative",
+        tone: "warning",
+        message: "Comentario eliminado con tiempo relativo.",
+        priority: "high",
+        scope: "module",
+        dedupeKey: "comment:undo-relative:c1",
+        duration: "persistent",
+        actionDurationMs: 1_000,
+        actionExpiredMessage: "Terminó la ventana inmediata para deshacer.",
+        action: { label: "Deshacer", onSelect: vi.fn() },
+      }),
+    );
+
+    expect(screen.getByRole("button", { name: "Deshacer" })).toBeEnabled();
+    act(() => vi.advanceTimersByTime(999));
+    expect(screen.getByRole("button", { name: "Deshacer" })).toBeEnabled();
+    act(() => vi.advanceTimersByTime(1));
+    expect(screen.getByRole("button", { name: "Deshacer" })).toBeDisabled();
+  });
+
   it("no consume el tiempo de un aviso mientras está en cola", () => {
     const toast = renderProvider();
     act(() => {

@@ -34,6 +34,7 @@ export interface CommentLifecycleResult {
   correlationId?: string | null;
   deletedAt?: string | null;
   undoExpiresAt?: string | null;
+  undoRemainingMs?: number | null;
   error?: string;
 }
 
@@ -123,6 +124,7 @@ export function lifecycleErrorMessage(code: CommentLifecycleCode): string {
 
 export function parseCommentLifecycleResult(
   value: unknown,
+  nowMs = Date.now(),
 ): CommentLifecycleResult {
   if (!value || typeof value !== "object") {
     return {
@@ -137,6 +139,17 @@ export function parseCommentLifecycleResult(
     : "state_conflict";
   const ok = row.ok === true && SUCCESS_CODES.has(code);
   const deletedAt = typeof row.deleted_at === "string" ? row.deleted_at : null;
+  const undoExpiresAt =
+    typeof row.undo_expires_at === "string" ? row.undo_expires_at : null;
+  const parsedUndoExpiry = undoExpiresAt
+    ? Date.parse(undoExpiresAt)
+    : Number.NaN;
+  const undoRemainingMs = Number.isFinite(parsedUndoExpiry)
+    ? Math.max(
+        0,
+        Math.min(COMMENT_UNDO_WINDOW_MS, parsedUndoExpiry - nowMs),
+      )
+    : null;
   const rawState = typeof row.state === "string" ? row.state : undefined;
   const state =
     rawState === "active" ||
@@ -156,8 +169,8 @@ export function parseCommentLifecycleResult(
     correlationId:
       typeof row.correlation_id === "string" ? row.correlation_id : null,
     deletedAt,
-    undoExpiresAt:
-      typeof row.undo_expires_at === "string" ? row.undo_expires_at : null,
+    undoExpiresAt,
+    undoRemainingMs,
     error: ok ? undefined : lifecycleErrorMessage(code),
   };
 }

@@ -95,7 +95,8 @@ beforeEach(() => {
     code: "deleted",
     commentId: "c1",
     correlationId: "20000000-0000-4000-8000-000000000002",
-    undoExpiresAt: new Date(Date.now() + 10_000).toISOString(),
+    undoExpiresAt: "2026-07-23T12:00:10.000Z",
+    undoRemainingMs: 10_000,
   });
   mockRestoreComment.mockResolvedValue({
     ok: true,
