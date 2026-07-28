@@ -1,0 +1,6 @@
+# Las infografías exportadas NO van a git — ver ../../redes/ASSETS-EN-DRIVE.md.
+# Regla AGENTS.md: adjunto de documentación en git solo si pesa <1 MB.
+*.png
+*.jpg
+*.jpeg
+*.webp

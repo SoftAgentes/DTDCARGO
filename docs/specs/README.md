@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 162 specs)
+### Índice de specs (generado · 164 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -200,6 +200,8 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0166 | Auditoría gobernada — corrección conjunta AUD-01 y AUD-02 | in-progress | interno |
 | 0167 | Actualidad — centro editorial público | in-progress | interno |
 | 0168 | MP-01 Slice 1 — Permanencia y restauración de comentarios int… | approved | interno |
+| 0169 | Portal — gate de verificación de identidad | in-progress | interno |
+| 0170 | Portal — ciclo de 5 etapas y Seguimiento total por contenedor | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

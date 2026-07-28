@@ -11,6 +11,9 @@ import { type ReferralStatus } from "@/lib/studio/fidelizacion/types";
 import { ReferralShareActions } from "../../_components/ReferralShareActions";
 import { ReferralInviteForm } from "../../_components/ReferralInviteForm";
 import { StarIcon } from "@/components/Icon";
+import { getProfileCompleteness } from "@/lib/portal/portal-queries";
+import { isModuleLocked } from "@/lib/portal/verify-gate";
+import { PortalVerifyGate } from "../_components/PortalVerifyGate";
 
 export const metadata: Metadata = { title: "Referidos" };
 
@@ -31,6 +34,14 @@ const fmtUsd = (n: number) =>
 
 export default async function PortalReferralsPage() {
   const supabase = await createClient();
+
+  // Gate de verificación (SDD-0169): sin registro completo no se reparte código
+  // de referido — el referido nuevo llegaría atado a una cuenta sin verificar.
+  const profile = await getProfileCompleteness(supabase).catch(() => null);
+  if (profile && isModuleLocked("referidos", profile)) {
+    return <PortalVerifyGate module="referidos" profile={profile} />;
+  }
+
   const client = await getPortalClient(supabase);
   if (!client) return null;
 

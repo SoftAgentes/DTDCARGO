@@ -11,7 +11,8 @@
 - **Identidad y estrategia** (propósito · misión · visión · valores · objetivos + norte interno): [`estrategia.md`](estrategia.md) · identidad pública/legal + NAP + nombres: [`identidad.md`](identidad.md) · línea de ventas cliente-ancla: [`ventas.md`](ventas.md) · **embudo de ventas operativo + mapa de etapas Kommo (MARKBOX) + campos del Kanban**: [`embudo-ventas.md`](embudo-ventas.md) · **sistema de adquisición (oferta + canal + proceso de prospección, manual del asesor)**: [`adquisicion.md`](adquisicion.md).
 - **Motor de Crecimiento DTD** — marco de los 6 sistemas (adquisición · ventas · entrega · manual de operaciones · contratación · control financiero) + dónde entra cada trabajo: [`sistemas-negocio.md`](sistemas-negocio.md) · **el programa de construcción (re-auditoría ultra 18-jul + brechas + hoja de ruta por dueño + decisiones + metodología de activación §M)**: [`motor-crecimiento.md`](motor-crecimiento.md) · **el ritual del viernes que lo mueve (agenda de 30 min lista para correr)**: [`revision-del-motor.md`](revision-del-motor.md) · base conceptual (transcripciones de 2 expertas): [`research/expertos-sistematizacion.md`](../../research/expertos-sistematizacion.md) · prompt histórico que generó la v1: [`prompt-sesion-5-sistemas.md`](prompt-sesion-5-sistemas.md).
 - **Infografías de servicios** (copy fuente por servicio, nuestro proceso China→VE; alimenta Cloud Design + web/PDF): [`servicios-infografias/`](servicios-infografias/README.md).
-- **Logs detallados por área** en archivos hermanos a medida que crezca: [`seo.md`](seo.md) (activo), [`redes.md`](redes.md) (activo), `ads.md`, `analytics.md`, … (se crean al tocar cada área).
+- **Sistema Editorial Técnico DTD Cargo** (pauta aplicada en Canva Brand Hub; reglas de composición y 3 plantillas piloto para redes): [`sistema-editorial-tecnico-dtd/`](sistema-editorial-tecnico-dtd/README.md).
+- **Logs detallados por área** en archivos hermanos a medida que crezca: [`seo.md`](seo.md) (activo), **[20 preguntas SEO/AEO desde el CRM](seo-aeo-preguntas-crm.md)** (contenido fuente basado en 401 conversaciones), [`redes.md`](redes.md) (activo), `ads.md`, `analytics.md`, … (se crean al tocar cada área).
 - **Leer estos docs sin abrir el repo:** dentro del ERP en **Studio › Marketing › Documentos** (`/studio/marketing/docs`, SDD-0158, se actualiza solo) · **offline** (un HTML portable, doble clic sin internet) corriendo **`pnpm marketing:reader`** → genera `outputs/lector-marketing-dtd.html` (o `node scripts/build-marketing-reader.mjs "C:/ruta/Lector.html"` para otro destino). Ambos leen ESTOS `.md` — la fuente de verdad sigue siendo este tree.
 - La **memoria del agente** (cross-sesión) referencia este tree como fuente de verdad; este tree es lo versionado y compartido por git.
 - El **puntero en `AGENTS.md`** (sección Marketing) hace que todos los agentes lleguen acá automáticamente.
@@ -37,6 +38,12 @@ campaña de recuperación → `/studio/kommo` › Recuperación (SDD-0157). Pend
 
 ### 🔍 SEO — detalle en [`seo.md`](seo.md)
 **Estado (2026-06-07):** dominio migrado `doortudoor.com → dtdcargo.com` (301 path-preserving + "Cambio de dirección" de Search Console **activo**). Rename `/cotizar → /estimacion` (308). 18 geo-páginas "Importar de China a {ciudad}". Sitemap 35 URLs. 6 redirects de recuperación de páginas viejas huérfanas. → ver `seo.md` para la cronología completa y las reglas.
+
+**SEO/AEO desde el CRM (2026-07-22):** top 20 operativo, respuestas directas, cruce de palabras
+clave y tres ideas futuras revisados en [`seo-aeo-preguntas-crm.md`](seo-aeo-preguntas-crm.md).
+Estado: aprobado editorialmente con condiciones; todavía no autorizado para el sitio público. Fuente:
+análisis sin PII de 401 conversaciones de Kommo (SDD-0062); las posiciones 1–6 tienen señal explícita
+de alta frecuencia y 7–20 quedan marcadas como prioridad editorial hasta instrumentar conteo.
 
 ### 📣 Publicidad — Google Ads
 - Cuenta **"Dooortudoor services"** (ocid `579348138`).

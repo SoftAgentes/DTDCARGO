@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DTD Cargo · Lote editorial fotográfico V1</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700&family=Archivo+Black&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../tokens-social.css" />
+  <style>
+    :root { --navy:#0f1e3d; --wine:#7f0f1a; --paper:#fbfaf7; --warm:var(--social-paper-warm); --edge:var(--social-paper-edge); --soft:#6b6b6b; --display:"Archivo Black","Archivo",sans-serif; --body:"Archivo",sans-serif; --mono:"JetBrains Mono",monospace; }
+    * { box-sizing: border-box; }
+    html,body { margin:0; background:#d9d7d2; color:var(--navy); font-family:var(--body); }
+    body { display:grid; justify-content:center; padding:40px; }
+    .board { width:1180px; padding:54px; background:radial-gradient(ellipse 120% 90% at 50% 4%, var(--paper), var(--warm) 58%, var(--edge)); box-shadow:0 18px 48px rgba(15,30,61,.14); }
+    .status { display:inline-block; padding:9px 12px; border:1px solid rgba(127,15,26,.15); background:rgba(255,255,255,.52); color:var(--wine); font:700 13px/1 var(--mono); letter-spacing:.1em; text-transform:uppercase; }
+    h1 { margin:22px 0 10px; font:900 48px/.98 var(--display); letter-spacing:-.035em; }
+    .intro { margin:0; font-size:20px; color:var(--soft); }
+    .palette { display:flex; align-items:center; gap:12px; margin-top:20px; font:700 13px/1 var(--mono); color:var(--wine); }
+    .swatch { width:42px; height:22px; background:var(--warm); border:1px solid rgba(127,15,26,.18); }
+    .direction { margin:26px 0 14px; display:flex; justify-content:space-between; font:700 13px/1 var(--mono); color:var(--wine); text-transform:uppercase; letter-spacing:.07em; }
+    .grid { width:1072px; display:grid; grid-template-columns:repeat(3,352px); grid-auto-rows:469px; gap:8px; padding:8px; background:white; box-shadow:0 12px 30px rgba(15,30,61,.12); }
+    .tile { position:relative; overflow:hidden; background:var(--warm); }
+    .tile img { width:100%; height:100%; display:block; object-fit:cover; object-position:center; }
+    .tile::after { content:attr(data-order); position:absolute; right:12px; bottom:12px; min-width:34px; height:34px; padding:0 8px; display:grid; place-items:center; border:1px solid rgba(255,255,255,.65); background:rgba(11,20,40,.76); color:white; font:700 13px/1 var(--mono); }
+    .legend { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-top:26px; }
+    .legend div { padding:18px; border-top:3px solid var(--wine); background:rgba(255,255,255,.55); }
+    .legend strong { display:block; font:900 23px/1 var(--display); }
+    .legend span { display:block; margin-top:7px; font-size:15px; color:var(--soft); }
+    .note { margin:24px 0 0; font:600 14px/1.45 var(--mono); color:var(--soft); }
+  </style>
+</head>
+<body class="social-editorial">
+  <main class="board">
+    <span class="status">Lote V1 · Preproducción · No publicado</span>
+    <h1>Feed editorial fotográfico</h1>
+    <p class="intro">Fotografía editorial controlada + infografía técnica + fondo marfil cálido</p>
+    <div class="palette"><span class="swatch"></span><span>Marfil de referencia · #FBF2E9</span></div>
+    <div class="direction"><span>Más nueva ← publicación 09</span><span>Publicación 01 → más antigua</span></div>
+    <section class="grid">
+      <article class="tile" data-order="09"><img src="exports/09-40hq-escala-real.png" alt="40HQ en escala real" /></article>
+      <article class="tile" data-order="08"><img src="exports/08-del-puerto-a-tu-puerta.png" alt="Del puerto a tu puerta" /></article>
+      <article class="tile" data-order="07"><img src="exports/07-coordinacion-que-responde.png" alt="Coordinación que sí responde" /></article>
+      <article class="tile" data-order="06"><img src="exports/06-recibimos-tu-contenedor.png" alt="Así recibimos tu contenedor" /></article>
+      <article class="tile" data-order="05"><img src="exports/05-20gp-o-40hq.png" alt="20GP o 40HQ" /></article>
+      <article class="tile" data-order="04"><img src="exports/04-cada-caja-necesita-identidad.png" alt="Cada caja necesita identidad" /></article>
+      <article class="tile" data-order="03"><img src="exports/03-10-cbm.png" alt="Diez CBM" /></article>
+      <article class="tile" data-order="02"><img src="exports/02-equipo-propio-china.png" alt="Coordinamos desde China" /></article>
+      <article class="tile" data-order="01"><img src="exports/01-cada-caja-empieza.png" alt="Cada caja empieza con una decisión" /></article>
+    </section>
+    <div class="legend"><div><strong>3 técnicas</strong><span>CBM y capacidad con escala visual.</span></div><div><strong>4 operativas</strong><span>Puerto, cajas, recepción y seguimiento.</span></div><div><strong>2 humanas</strong><span>Equipo, cercanía y educación logística.</span></div></div>
+    <p class="note">Las publicaciones 01, 02, 04, 06, 07 y 08 usan fotografías editoriales generadas para este lote; no representan empleados ni operaciones documentales reales. Las piezas 03, 05 y 09 conservan las infografías CBM aprobadas.</p>
+  </main>
+</body>
+</html>

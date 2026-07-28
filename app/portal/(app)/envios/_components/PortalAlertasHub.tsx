@@ -12,14 +12,20 @@ import {
   type AlertStageTone,
 } from "@/lib/portal/alertas";
 import {
+  groupCountLabel,
+  type TrackGroup,
+} from "@/lib/portal/seguimiento";
+import {
   ArrowIcon,
   BoxIcon,
   ShipIcon,
+  ContainerIcon,
   DocIcon,
   CheckIcon,
   DownloadIcon,
   RadarIcon,
   TruckIcon,
+  WarehouseIcon,
 } from "@/components/Icon";
 import { NewPurchaseButton } from "../../../_components/NewPurchaseButton";
 import { ServiceRequestButton } from "../../../_components/ServiceRequestButton";
@@ -38,23 +44,36 @@ import { ServiceRequestButton } from "../../../_components/ServiceRequestButton"
  */
 export type DocPresence = { packing: boolean; factura: boolean; foto: boolean };
 
-export type TrackItem = {
-  id: string;
-  code: string;
-  /** 0–100, derivado del status (computeProgress). */
-  progress: number;
-  statusLabel: string;
-  route: string | null;
-};
-
+/** Solo tiñe ICONOS y fondos (los rótulos van en `text-ink`) → umbral 3:1. */
 const TONE_COLOR: Record<AlertStageTone, string> = {
   wine: "var(--color-wine)",
   warning: "var(--color-status-warning)",
   info: "var(--portal-info)",
+  neutral: "var(--color-ink)",
+  success: "var(--color-status-success)",
 };
 
 function tint(color: string, pct = 14) {
   return `color-mix(in srgb, ${color} ${pct}%, transparent)`;
+}
+
+/**
+ * ETA del zarpe → "llega aprox. 14 ago". null si no hay fecha o no parsea.
+ *
+ * `timeZone: "UTC"` NO es decorativo: `sailings.eta` es una columna `date`
+ * (sin hora), y `new Date("2026-08-14")` la ancla a medianoche UTC. Formateándola
+ * en la zona local (Venezuela, GMT-4) retrocede al día anterior — el cliente veía
+ * "13 ago" para una llegada del 14.
+ */
+function formatEta(iso: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return `llega aprox. ${d.toLocaleDateString("es-VE", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  })}`;
 }
 
 function StageIcon({ stage, size = 16 }: { stage: AlertStage; size?: number }) {
@@ -69,19 +88,21 @@ function StageIcon({ stage, size = 16 }: { stage: AlertStage; size?: number }) {
       </span>
     );
   if (stage === "alerta") return <BoxIcon size={size} />;
+  if (stage === "bodegave") return <WarehouseIcon size={size} />;
+  if (stage === "recibido") return <CheckIcon size={size} />;
   return <ShipIcon size={size} />;
 }
 
 export function PortalAlertasHub({
   items,
   docs,
-  track,
+  trackGroups,
   banner,
   markbox,
 }: {
   items: AlertItem[];
   docs: Record<string, DocPresence>;
-  track: TrackItem[];
+  trackGroups: TrackGroup[];
   banner: { route: string; sentence: string } | null;
   markbox: string;
 }) {
@@ -93,14 +114,19 @@ export function PortalAlertasHub({
   const list = filterByStage(items, stage);
 
   if (view === "track") {
-    return <SeguimientoTotal track={track} onBack={() => setView("list")} />;
+    return (
+      <SeguimientoTotal groups={trackGroups} onBack={() => setView("list")} />
+    );
   }
 
+  // Una pestaña por etapa del ciclo (SDD-0170: 5, antes 3).
   const tabs: { k: "todas" | AlertStage; l: string }[] = [
     { k: "todas", l: "Todas" },
     { k: "prealerta", l: "Pre-alertas" },
     { k: "alerta", l: "Alertas" },
     { k: "envio", l: "Envíos" },
+    { k: "bodegave", l: "En casa" },
+    { k: "recibido", l: "Recibidos" },
   ];
 
   return (
@@ -217,7 +243,11 @@ function AlertRow({
 }) {
   const m = ALERT_STAGE_META[item.stage];
   const color = TONE_COLOR[m.tone];
-  const isEnvio = item.stage === "envio";
+  // Es un ENVÍO (tiene detalle propio) vs. una compra todavía en prealerta (tiene
+  // panel de documentos). Ojo: NO se puede derivar de la etapa — desde SDD-0170 un
+  // envío puede estar en `envio`, `bodegave` o `recibido`. El dato que lo define
+  // es tener `shipmentId`.
+  const isEnvio = item.shipmentId !== null;
   const docCount = docs
     ? (docs.packing ? 1 : 0) + (docs.factura ? 1 : 0) + (docs.foto ? 1 : 0)
     : 0;
@@ -241,13 +271,23 @@ function AlertRow({
               {item.code}
             </span>
             <span
-              className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em]"
+              className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em]"
               style={{
-                color,
+                // Texto en --color-ink + PUNTO del color de etapa (BRAND §♿).
+                // El tono como texto a 10px no llega a AA: medido en el tema
+                // oscuro daba wine 2.69 · info 3.91 · success 3.73. El color
+                // sigue identificando la etapa en el punto, el borde, el fondo y
+                // el ícono de la fila — sin apoyar la legibilidad en él.
+                color: "var(--color-ink)",
                 background: tint(color, 16),
                 border: `1px solid ${tint(color, 42)}`,
               }}
             >
+              <span
+                aria-hidden
+                className="h-1.5 w-1.5 rounded-full flex-shrink-0"
+                style={{ background: color }}
+              />
               {m.label}
             </span>
           </div>
@@ -365,12 +405,16 @@ function ConsolidadoBanner({
   );
 }
 
-/** Seguimiento total (Slice C): envíos en camino con su progreso. */
+/**
+ * Seguimiento total — agrupado por CONTENEDOR (SDD-0170). Las compras que viajan
+ * consolidadas se muestran como UN solo seguimiento con su lista adentro; las que
+ * todavía no tienen contenedor asignado salen como tarjeta suelta.
+ */
 function SeguimientoTotal({
-  track,
+  groups,
   onBack,
 }: {
-  track: TrackItem[];
+  groups: TrackGroup[];
   onBack: () => void;
 }) {
   return (
@@ -378,7 +422,10 @@ function SeguimientoTotal({
       <button
         type="button"
         onClick={onBack}
-        className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-grey-700 hover:text-ink mb-4"
+        // `flex w-fit`, no `inline-flex`: `.eyebrow` de abajo también es
+        // inline-flex, así que en inline los dos caían en la MISMA línea y el
+        // guion del eyebrow se montaba sobre el texto del botón.
+        className="flex w-fit items-center gap-1.5 text-[12.5px] font-semibold text-grey-700 hover:text-ink mb-4"
       >
         <ArrowIcon size={13} className="rotate-180" /> Volver a Alertas · mis envíos
       </button>
@@ -388,67 +435,149 @@ function SeguimientoTotal({
       </h1>
       <p className="lead mt-2 max-w-[60ch]">
         El estado de cada carga que ya viaja hacia ti, con su avance en el viaje
-        China → Venezuela.
+        China → Venezuela. Las compras que van en el mismo contenedor se siguen
+        juntas.
       </p>
 
-      {track.length === 0 ? (
+      {groups.length === 0 ? (
         <div className="mt-8 card-shadow bg-white border border-grey-200 rounded-[18px] p-10 text-center text-[14px] text-grey-700">
           Aún no tienes envíos en camino.
         </div>
       ) : (
         <div className="mt-7 flex flex-col gap-3">
-          {track.map((t) => (
-            <Link
-              key={t.id}
-              href={`/portal/envios/${encodeURIComponent(t.code)}`}
-              className="card-shadow card-link group bg-white border border-grey-200 rounded-[16px] p-5 transition-colors hover:border-ink focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-            >
-              <div className="flex items-center gap-3 flex-wrap">
-                <span
-                  className="grid place-items-center h-9 w-9 rounded-[10px] flex-shrink-0"
-                  style={{ background: tint("var(--color-wine)", 14), color: "var(--color-wine)" }}
-                >
-                  <ShipIcon size={17} />
-                </span>
-                <div className="flex-1 min-w-[160px]">
-                  <span
-                    className="text-[13.5px] font-bold text-ink"
-                    style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
-                  >
-                    {t.code}
-                  </span>
-                  <div className="mt-0.5 text-[12px] text-grey-500">
-                    {t.statusLabel}
-                    {t.route ? ` · ${t.route}` : ""}
-                  </div>
-                </div>
-                <span className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-wine">
-                  Ver <ArrowIcon size={13} />
-                </span>
-              </div>
-              <div
-                className="mt-4 h-1.5 rounded-full bg-grey-100 overflow-hidden"
-                role="progressbar"
-                aria-valuenow={t.progress}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-label={`${t.progress}% del viaje`}
-              >
-                <div
-                  className="h-full rounded-full"
-                  style={{ width: `${t.progress}%`, background: "var(--color-wine)" }}
-                />
-              </div>
-              <div
-                className="mt-1.5 text-[11px] text-grey-500"
-                style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
-              >
-                {t.progress}%
-              </div>
-            </Link>
+          {groups.map((g) => (
+            <TrackGroupCard key={g.key} group={g} />
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Una tarjeta de seguimiento: un contenedor con sus compras, o un envío suelto.
+ * El grupo entero comparte barra de progreso — es la misma caja viajando.
+ */
+function TrackGroupCard({ group }: { group: TrackGroup }) {
+  const consolidado = group.kind === "consolidado";
+  const countLabel = groupCountLabel(group);
+  // Un envío suelto es clicable entero; un consolidado no, porque sus compras
+  // tienen cada una su propio destino — el enlace vive en cada fila.
+  const solo = group.items[0];
+
+  const cabecera = (
+    <div className="flex items-center gap-3 flex-wrap">
+      <span
+        className="grid place-items-center h-9 w-9 rounded-[10px] flex-shrink-0"
+        style={{ background: tint("var(--color-wine)", 14), color: "var(--color-wine)" }}
+      >
+        {consolidado ? <ContainerIcon size={17} /> : <ShipIcon size={17} />}
+      </span>
+      <div className="flex-1 min-w-[160px]">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span
+            className="text-[13.5px] font-bold text-ink"
+            style={
+              group.labelIsContainer
+                ? { fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }
+                : undefined
+            }
+          >
+            {group.label}
+          </span>
+          {countLabel ? (
+            <span
+              className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em]"
+              style={{
+                background: tint("var(--color-wine)", 12),
+                color: "var(--color-wine-text)",
+              }}
+            >
+              Consolidado · {group.items.length}
+            </span>
+          ) : null}
+        </div>
+        {/* El chip ya dice "Consolidado · N": acá va lo que NO se repite —
+            la ruta y cuándo llega. En el envío suelto, su estado. */}
+        <div className="mt-0.5 text-[12px] text-grey-500">
+          {[
+            consolidado ? group.route : solo.statusLabel,
+            consolidado ? null : group.route,
+            formatEta(group.eta),
+          ]
+            .filter(Boolean)
+            .join(" · ") || countLabel}
+        </div>
+      </div>
+      {consolidado ? null : (
+        <span className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-wine">
+          Ver <ArrowIcon size={13} />
+        </span>
+      )}
+    </div>
+  );
+
+  const barra = (
+    <>
+      <div
+        className="mt-4 h-1.5 rounded-full bg-grey-100 overflow-hidden"
+        role="progressbar"
+        aria-valuenow={group.progress}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`${group.progress}% del viaje`}
+      >
+        <div
+          className="h-full rounded-full"
+          style={{ width: `${group.progress}%`, background: "var(--color-wine)" }}
+        />
+      </div>
+      <div
+        className="mt-1.5 text-[11px] text-grey-500"
+        style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
+      >
+        {group.progress}%
+      </div>
+    </>
+  );
+
+  if (!consolidado) {
+    return (
+      <Link
+        href={`/portal/envios/${encodeURIComponent(solo.code)}`}
+        className="card-shadow card-link group bg-white border border-grey-200 rounded-[16px] p-5 transition-colors hover:border-ink focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+      >
+        {cabecera}
+        {barra}
+      </Link>
+    );
+  }
+
+  return (
+    <div className="card-shadow bg-white border border-grey-200 rounded-[16px] p-5">
+      {cabecera}
+      {barra}
+      <ul className="mt-4 flex flex-col gap-1 border-t border-grey-200 pt-3">
+        {group.items.map((t) => (
+          <li key={t.id}>
+            <Link
+              href={`/portal/envios/${encodeURIComponent(t.code)}`}
+              className="flex items-center gap-3 rounded-[10px] px-2 py-2 transition-colors hover:bg-paper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+            >
+              <span
+                className="text-[12.5px] font-bold text-ink flex-shrink-0"
+                style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
+              >
+                {t.code}
+              </span>
+              <span className="flex-1 min-w-0 truncate text-[12px] text-grey-500">
+                {t.statusLabel}
+              </span>
+              <ArrowIcon size={13} className="text-wine flex-shrink-0" />
+            </Link>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

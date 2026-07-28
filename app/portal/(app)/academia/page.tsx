@@ -13,11 +13,22 @@ import Link from "next/link";
 import { createClient } from "@/lib/db/server";
 import { getPortalAcademy, tierLabel } from "@/lib/portal/portal-academy-queries";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
+import { getProfileCompleteness } from "@/lib/portal/portal-queries";
+import { isModuleLocked } from "@/lib/portal/verify-gate";
+import { PortalVerifyGate } from "../_components/PortalVerifyGate";
 
 export const metadata = { title: "Academia · DTD Cargo" };
 
 export default async function PortalAcademiaPage() {
   const supabase = await createClient();
+
+  // Gate de verificación (SDD-0169): la Academia emite diplomas verificables a
+  // nombre del cliente — sin identidad confirmada no se emiten.
+  const profile = await getProfileCompleteness(supabase).catch(() => null);
+  if (profile && isModuleLocked("academia", profile)) {
+    return <PortalVerifyGate module="academia" profile={profile} />;
+  }
+
   const { isMember, courses, diplomas } = await getPortalAcademy(supabase);
 
   return (

@@ -22,6 +22,8 @@ import {
   type PortalSailing,
 } from "@/lib/portal/next-sailing-queries";
 import { buildAlertItems } from "@/lib/portal/alertas";
+import { getConsolidationsForShipments } from "@/lib/portal/consolidation-queries";
+import { groupTrackByContainer, type TrackItem } from "@/lib/portal/seguimiento";
 import { showNortePortal } from "@/lib/portal/demo";
 import { ArrowIcon } from "@/components/Icon";
 import { ShipmentRow } from "../../_components/ShipmentRow";
@@ -29,7 +31,6 @@ import { EnviosHubTabs } from "../../_components/PortalHubTabs";
 import {
   PortalAlertasHub,
   type DocPresence,
-  type TrackItem,
 } from "./_components/PortalAlertasHub";
 
 export const metadata: Metadata = { title: "Alertas · mis envíos" };
@@ -108,6 +109,17 @@ export default async function PortalShipmentsPage() {
           : null,
     }));
 
+  // SDD-0170 — "Seguimiento total" agrupado por CONTENEDOR (decisión del Norte:
+  // varias compras consolidadas se muestran como UN solo seguimiento). Los ids
+  // que entran son los de `listMyShipments`, ya filtrada por `client_markbox`, así
+  // que el admin client queda scopeado a envíos propios. Best-effort: si falla,
+  // el mapa vacío degrada a la lista plana de antes.
+  const consolidations = await getConsolidationsForShipments(
+    createAdminClient(),
+    track.map((t) => t.id),
+  ).catch(() => ({}));
+  const trackGroups = groupTrackByContainer(track, consolidations);
+
   // Banner del próximo consolidado (cut-off). Admin client scopeado por tenant (el
   // cliente no tiene RLS sobre `sailings`); best-effort → null oculta el banner.
   const banner = await loadConsolidadoBanner(client.id);
@@ -116,7 +128,7 @@ export default async function PortalShipmentsPage() {
     <PortalAlertasHub
       items={items}
       docs={docs}
-      track={track}
+      trackGroups={trackGroups}
       banner={banner}
       markbox={client.markbox}
     />

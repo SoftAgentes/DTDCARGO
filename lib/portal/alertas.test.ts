@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   prealertaStage,
+  shipmentStage,
   buildAlertItems,
   countByStage,
   filterByStage,
@@ -131,6 +132,8 @@ describe("countByStage / filterByStage", () => {
       prealerta: 1,
       alerta: 2,
       envio: 2,
+      bodegave: 0,
+      recibido: 0,
     });
   });
 
@@ -138,5 +141,66 @@ describe("countByStage / filterByStage", () => {
     expect(filterByStage(items, "todas")).toHaveLength(5);
     expect(filterByStage(items, "alerta")).toHaveLength(2);
     expect(filterByStage(items, "envio")).toHaveLength(2);
+  });
+});
+
+/**
+ * Las 2 etapas que faltaban del Norte (SDD-0170): "En casa" (ya en Venezuela) y
+ * "Recibiste" (en tu puerta). El corte es geográfico sobre el flow canónico.
+ */
+describe("shipmentStage", () => {
+  it("deja en 'envio' todo lo que viene en camino", () => {
+    for (const s of [
+      "draft",
+      "in_warehouse",
+      "consolidating",
+      "shipped",
+      "in_transit",
+      "in_customs",
+    ] as const) {
+      expect(shipmentStage(s)).toBe("envio");
+    }
+  });
+
+  it("pasa a 'bodegave' desde que la carga toca Venezuela", () => {
+    // Incluye el reparto y la última milla: ya no viene en camino, ya está acá.
+    for (const s of [
+      "arrived_destination",
+      "delayed_warehouse",
+      "out_for_delivery",
+      "last_mile",
+    ] as const) {
+      expect(shipmentStage(s)).toBe("bodegave");
+    }
+  });
+
+  it("'delivered' es la única que llega a 'recibido'", () => {
+    expect(shipmentStage("delivered")).toBe("recibido");
+  });
+
+  it("'exception' se queda en 'envio' (es transversal, no un paso del flow)", () => {
+    expect(shipmentStage("exception")).toBe("envio");
+  });
+
+  it("'cancelled' no se muestra", () => {
+    expect(shipmentStage("cancelled")).toBeNull();
+  });
+
+  it("un envío cancelado no entra en el hub", () => {
+    const out = buildAlertItems([], [shipment({ id: "s1", status: "cancelled" })], {});
+    expect(out).toHaveLength(0);
+  });
+
+  it("los envíos se reparten en su etapa real, no todos en 'envio'", () => {
+    const out = buildAlertItems(
+      [],
+      [
+        shipment({ id: "s1", status: "in_transit" }),
+        shipment({ id: "s2", status: "arrived_destination" }),
+        shipment({ id: "s3", status: "delivered" }),
+      ],
+      {},
+    );
+    expect(out.map((i) => i.stage).sort()).toEqual(["bodegave", "envio", "recibido"]);
   });
 });

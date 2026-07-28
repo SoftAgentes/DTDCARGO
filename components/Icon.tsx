@@ -193,6 +193,17 @@ export function ShieldIcon({ className, size = 28 }: IconProps) {
   );
 }
 
+/** Candado cerrado — módulos del portal que esperan la verificación de
+ *  identidad (SDD-0169, `LOCKED_MODULES`). */
+export function LockIcon({ className, size = 28 }: IconProps) {
+  return (
+    <svg viewBox="0 0 32 32" width={size} height={size} {...base} strokeWidth={1.6} className={className}>
+      <rect x="6" y="14" width="20" height="13" rx="2.5" />
+      <path d="M11 14v-3a5 5 0 0 1 10 0v3" />
+    </svg>
+  );
+}
+
 /** Persona — cabeza + hombros. Para el selector persona natural / empresa del
  *  registro (par con ShieldIcon). */
 export function UserIcon({ className, size = 28 }: IconProps) {
