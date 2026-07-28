@@ -21,6 +21,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { createAdminClient } from "@/lib/db/admin";
 import { getUser, getUserTenantId } from "@/lib/auth/session";
 import {
   COMMENT_ENTITY_TYPES,
@@ -35,9 +36,62 @@ import {
 } from "@/lib/studio/comments/comments-queries";
 import { parseMentions } from "@/lib/studio/comments/mention-parse";
 import { entityHref } from "@/lib/studio/comments/types";
+import {
+  isUuid,
+  parseCommentLifecycleResult,
+  type CommentLifecycleResult,
+  type CommentRestoreMode,
+  type DeletedCommentsCursor,
+  type DeletedCommentsPage,
+} from "@/lib/studio/comments/lifecycle-types";
+import { listDeletedComments } from "@/lib/studio/comments/lifecycle-queries";
+import {
+  capabilityDenial,
+  moduleEditDenial,
+} from "@/lib/studio/rbac-guard";
 
 function isEntityType(v: string): v is CommentEntityType {
   return (COMMENT_ENTITY_TYPES as string[]).includes(v);
+}
+
+const COMMENT_LIFECYCLE_MODULE = {
+  shipment: "tracking",
+  bitacora_task: "bitacora",
+} as const;
+
+type LifecycleEntityType = keyof typeof COMMENT_LIFECYCLE_MODULE;
+
+function isLifecycleEntityType(value: string): value is LifecycleEntityType {
+  return value === "shipment" || value === "bitacora_task";
+}
+
+function validateOperationId(operationId: string): string | null {
+  return isUuid(operationId) ? null : "Operación inválida.";
+}
+
+function validateLifecycleReason(
+  reason: string | undefined,
+  required: boolean,
+): { value: string | null; error?: string } {
+  const value = reason?.trim() ?? "";
+  if (required && value.length === 0) {
+    return { value: null, error: "Debes indicar el motivo." };
+  }
+  if (value.length > 500) {
+    return { value: null, error: "El motivo no puede superar 500 caracteres." };
+  }
+  return { value: value || null };
+}
+
+function revalidateCommentContext(current: {
+  entity_type: CommentEntityType;
+  entity_id: string;
+  entity_code: string | null;
+}) {
+  revalidatePath(
+    entityHref(current.entity_type, current.entity_id, current.entity_code),
+  );
+  revalidatePath("/studio/menciones");
 }
 
 /**
@@ -209,26 +263,253 @@ export async function editComment(
 
 export async function deleteComment(
   commentId: string,
-): Promise<{ ok: boolean; error?: string }> {
+  operationId: string,
+  reason?: string,
+): Promise<CommentLifecycleResult> {
   const user = await getUser();
-  if (!user) return { ok: false, error: "No autenticado." };
+  const tenantId = await getUserTenantId();
+  if (!user || !tenantId) {
+    return { ok: false, code: "not_allowed", error: "No autenticado." };
+  }
+  const operationError = validateOperationId(operationId);
+  if (operationError) {
+    return { ok: false, code: "operation_conflict", error: operationError };
+  }
 
   const supabase = await createClient();
   const current = await getCommentById(supabase, commentId);
-  if (!current) return { ok: false, error: "Comentario no encontrado." };
+  if (!current) {
+    return {
+      ok: false,
+      code: "not_allowed",
+      error: "Comentario no encontrado o sin acceso.",
+    };
+  }
+  if (!isLifecycleEntityType(current.entity_type)) {
+    return {
+      ok: false,
+      code: "unsupported_context",
+      error: "Este comentario no admite esa acción.",
+    };
+  }
 
-  // RLS permite UPDATE al autor o admin; aplicamos soft-delete.
-  const { error } = await supabase
-    .from("comments")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", commentId);
-
-  if (error) return { ok: false, error: "No se pudo eliminar (¿eres el autor o admin?)." };
-
-  revalidatePath(
-    entityHref(current.entity_type, current.entity_id, current.entity_code),
+  const moduleDenial = await moduleEditDenial(
+    supabase,
+    COMMENT_LIFECYCLE_MODULE[current.entity_type],
   );
-  return { ok: true };
+  if (moduleDenial) {
+    return { ok: false, code: "not_allowed", error: moduleDenial };
+  }
+
+  const moderation = current.author_id !== user.id;
+  if (moderation) {
+    const capability = await capabilityDenial(supabase, "moderate_comments");
+    if (capability) {
+      return { ok: false, code: "not_allowed", error: capability };
+    }
+  }
+
+  const validatedReason = validateLifecycleReason(reason, moderation);
+  if (validatedReason.error) {
+    return {
+      ok: false,
+      code: "state_conflict",
+      error: validatedReason.error,
+    };
+  }
+
+  let admin: ReturnType<typeof createAdminClient>;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return {
+      ok: false,
+      code: "state_conflict",
+      error: "El servicio de comentarios no está disponible.",
+    };
+  }
+
+  const { data, error } = await admin.rpc("rpc_soft_delete_comment", {
+    p_comment_id: commentId,
+    p_actor_id: user.id,
+    p_tenant_id: tenantId,
+    p_operation_id: operationId,
+    p_reason: validatedReason.value,
+  });
+  if (error) {
+    return {
+      ok: false,
+      code: "state_conflict",
+      error: "No se pudo eliminar el comentario.",
+    };
+  }
+
+  const result = parseCommentLifecycleResult(data);
+  if (result.ok) revalidateCommentContext(current);
+  return result;
+}
+
+export async function restoreComment(
+  commentId: string,
+  operationId: string,
+  expectedCorrelationId: string | null,
+  mode: CommentRestoreMode,
+  reason?: string,
+): Promise<CommentLifecycleResult> {
+  const user = await getUser();
+  const tenantId = await getUserTenantId();
+  if (!user || !tenantId) {
+    return { ok: false, code: "not_allowed", error: "No autenticado." };
+  }
+  const operationError = validateOperationId(operationId);
+  if (operationError) {
+    return { ok: false, code: "operation_conflict", error: operationError };
+  }
+  if (
+    expectedCorrelationId !== null &&
+    !isUuid(expectedCorrelationId)
+  ) {
+    return {
+      ok: false,
+      code: "operation_conflict",
+      error: "La correlación del comentario no es válida.",
+    };
+  }
+  if (!["undo", "ordinary", "exceptional"].includes(mode)) {
+    return {
+      ok: false,
+      code: "state_conflict",
+      error: "Modo de restauración inválido.",
+    };
+  }
+
+  const supabase = await createClient();
+  const current = await getCommentById(supabase, commentId);
+  if (!current) {
+    return {
+      ok: false,
+      code: "not_allowed",
+      error: "Comentario no encontrado o sin acceso.",
+    };
+  }
+  if (!isLifecycleEntityType(current.entity_type)) {
+    return {
+      ok: false,
+      code: "unsupported_context",
+      error: "Este comentario no admite esa acción.",
+    };
+  }
+
+  const moduleDenial = await moduleEditDenial(
+    supabase,
+    COMMENT_LIFECYCLE_MODULE[current.entity_type],
+  );
+  if (moduleDenial) {
+    return { ok: false, code: "not_allowed", error: moduleDenial };
+  }
+  if (mode !== "undo") {
+    const capability = await capabilityDenial(supabase, "restore_comments");
+    if (capability) {
+      return { ok: false, code: "not_allowed", error: capability };
+    }
+  }
+
+  const validatedReason = validateLifecycleReason(
+    reason,
+    mode === "exceptional",
+  );
+  if (validatedReason.error) {
+    return {
+      ok: false,
+      code: "state_conflict",
+      error: validatedReason.error,
+    };
+  }
+  if (mode !== "exceptional" && validatedReason.value) {
+    return {
+      ok: false,
+      code: "state_conflict",
+      error: "Este tipo de restauración no admite motivo.",
+    };
+  }
+
+  let admin: ReturnType<typeof createAdminClient>;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return {
+      ok: false,
+      code: "state_conflict",
+      error: "El servicio de comentarios no está disponible.",
+    };
+  }
+  const { data, error } = await admin.rpc("rpc_restore_comment", {
+    p_comment_id: commentId,
+    p_actor_id: user.id,
+    p_tenant_id: tenantId,
+    p_operation_id: operationId,
+    p_expected_correlation_id: expectedCorrelationId,
+    p_mode: mode,
+    p_reason: validatedReason.value,
+  });
+  if (error) {
+    return {
+      ok: false,
+      code: "state_conflict",
+      error: "No se pudo restaurar el comentario.",
+    };
+  }
+
+  const result = parseCommentLifecycleResult(data);
+  if (result.ok) revalidateCommentContext(current);
+  return result;
+}
+
+export async function listDeletedCommentsAction(
+  entityType: string,
+  entityId: string,
+  cursor?: DeletedCommentsCursor | null,
+): Promise<
+  { ok: true; page: DeletedCommentsPage } | { ok: false; error: string }
+> {
+  const user = await getUser();
+  const tenantId = await getUserTenantId();
+  if (!user || !tenantId) return { ok: false, error: "No autenticado." };
+  if (!isLifecycleEntityType(entityType) || !entityId) {
+    return { ok: false, error: "Contexto de comentarios inválido." };
+  }
+  if (
+    cursor &&
+    (!cursor.deletedAt || !Number.isFinite(Date.parse(cursor.deletedAt)) || !isUuid(cursor.id))
+  ) {
+    return { ok: false, error: "Cursor inválido." };
+  }
+
+  const supabase = await createClient();
+  const moduleDenial = await moduleEditDenial(
+    supabase,
+    COMMENT_LIFECYCLE_MODULE[entityType],
+  );
+  if (moduleDenial) return { ok: false, error: moduleDenial };
+  const capability = await capabilityDenial(supabase, "restore_comments");
+  if (capability) return { ok: false, error: capability };
+
+  try {
+    const users = await loadTenantUsers(tenantId);
+    const page = await listDeletedComments(
+      supabase,
+      entityType,
+      entityId,
+      users,
+      cursor,
+    );
+    return { ok: true, page };
+  } catch {
+    return {
+      ok: false,
+      error: "No se pudieron cargar los comentarios eliminados.",
+    };
+  }
 }
 
 /**

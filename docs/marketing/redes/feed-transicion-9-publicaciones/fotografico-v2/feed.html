@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DTD Cargo · Feed fotográfico editorial · Lote V1</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700&family=Archivo+Black&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../tokens-social.css" />
+  <style>
+    :root {
+      --navy: #0f1e3d;
+      --navy-deep: #0b1428;
+      --wine: #7f0f1a;
+      --wine-soft: #c2747f;
+      --paper: #fbfaf7;
+      --warm-paper: var(--social-paper-warm);
+      --warm-edge: var(--social-paper-edge);
+      --surface: #ffffff;
+      --border: #e8e6e2;
+      --ink-soft: #6b6b6b;
+      --display: "Archivo Black", "Archivo", sans-serif;
+      --body: "Archivo", sans-serif;
+      --mono: "JetBrains Mono", monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: #d9d7d2; color: var(--navy); font-family: var(--body); }
+    body { display: grid; justify-content: center; gap: 56px; padding: 56px; }
+
+    .post {
+      position: relative;
+      width: 1080px;
+      height: 1350px;
+      overflow: hidden;
+      isolation: isolate;
+      background: radial-gradient(ellipse 120% 90% at 50% 4%, var(--paper) 0%, var(--warm-paper) 57%, var(--warm-edge) 100%);
+      box-shadow: 0 16px 42px rgba(15,30,61,.14);
+    }
+
+    .post::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      pointer-events: none;
+      opacity: .085;
+      mix-blend-mode: multiply;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.84' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.13'/%3E%3C/svg%3E");
+    }
+
+    .content { position: relative; z-index: 5; height: 100%; padding: 54px 66px 48px; }
+    .topbar, .brand, .footer { display: flex; align-items: center; }
+    .topbar, .footer { justify-content: space-between; }
+    .series { font: 700 17px/1 var(--mono); letter-spacing: .09em; text-transform: uppercase; color: var(--wine); }
+    .brand { gap: 10px; font: 900 19px/1 var(--display); }
+    .brand img { width: 32px; height: 32px; object-fit: contain; }
+    .brand .dtd { color: var(--wine); }
+    .brand .cargo { color: var(--navy); }
+    .display { margin: 0; color: var(--navy); font: 900 74px/.96 var(--display); letter-spacing: -.04em; text-transform: uppercase; }
+    .display .red { color: var(--wine); }
+    @supports ((-webkit-background-clip: text) or (background-clip: text)) {
+      .display {
+        background: linear-gradient(90deg, #0b1428 0%, #0f1e3d 55%, #1f3055 100%);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .display .red {
+        background: none;
+        color: var(--wine);
+        -webkit-text-fill-color: var(--wine);
+      }
+    }
+    .subtitle { margin: 20px 0 0; font: 600 25px/1.35 var(--body); color: var(--ink-soft); }
+    .footer { position: absolute; left: 66px; right: 66px; bottom: 40px; z-index: 9; font: 600 15px/1 var(--mono); color: var(--ink-soft); }
+    .page { color: var(--wine); }
+
+    /* Fotografía documental con dirección editorial */
+    .photo-post .display { margin-top: 48px; max-width: 920px; }
+    .photo-stage {
+      position: absolute;
+      left: 44px;
+      right: 44px;
+      top: 350px;
+      height: 844px;
+      overflow: hidden;
+      border: 1px solid rgba(127,15,26,.14);
+      background: var(--navy-deep);
+      box-shadow: 0 16px 40px rgba(15,30,61,.12);
+    }
+    .photo-stage img { width: 100%; height: 100%; display: block; object-fit: cover; }
+    .photo-stage::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0;
+      height: 270px;
+      background: linear-gradient(to bottom, transparent, rgba(11,20,40,.86));
+    }
+    .caption {
+      position: absolute;
+      z-index: 3;
+      left: 32px;
+      right: 32px;
+      bottom: 28px;
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 30px;
+      color: var(--surface);
+    }
+    .caption p { max-width: 680px; margin: 0; padding-left: 18px; border-left: 4px solid var(--wine-soft); font: 600 24px/1.28 var(--body); }
+    .caption span { font: 700 14px/1 var(--mono); letter-spacing: .07em; text-transform: uppercase; color: #f1d7d8; white-space: nowrap; }
+
+    .portrait-top .photo-stage img { object-position: center 32%; }
+    .team-china .photo-stage img { object-position: center 42%; }
+    .boxes .photo-stage img { object-position: center 52%; }
+    .receiving .photo-stage img { object-position: center 48%; }
+    .office .photo-stage img { object-position: center 48%; }
+    .port .photo-stage img { object-position: center 54%; }
+
+    /* Láminas ya resueltas como infografía fotográfica */
+    .technical-portrait { background: var(--warm-paper); }
+    .technical-portrait .technical-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: radial-gradient(ellipse 120% 90% at 50% 4%, var(--paper) 0%, var(--warm-paper) 60%, var(--warm-edge) 100%);
+    }
+    .technical-portrait .version {
+      position: absolute;
+      z-index: 4;
+      top: 22px;
+      right: 24px;
+      padding: 8px 10px;
+      background: rgba(251,242,233,.86);
+      color: var(--wine);
+      font: 700 12px/1 var(--mono);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .technical-brand {
+      position: absolute;
+      z-index: 6;
+      right: 180px;
+      bottom: 32px;
+      width: 340px;
+      height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      padding: 16px 20px;
+        background: var(--paper);
+        box-shadow: 0 0 20px 20px var(--paper);
+      color: var(--navy);
+      font: 900 30px/1 var(--display);
+    }
+    .technical-brand img { width: 56px; height: 56px; object-fit: contain; }
+    .technical-brand .dtd { color: var(--wine); }
+
+    /* 09 · ficha landscape adaptada a Instagram */
+    .hq-card .display { margin-top: 46px; font-size: 84px; }
+    .hq-card .hero-landscape {
+      position: absolute;
+      left: 40px;
+      right: 40px;
+      top: 304px;
+      height: 560px;
+      overflow: hidden;
+      border: 1px solid rgba(127,15,26,.14);
+      background: var(--warm-paper);
+    }
+    .hq-card .hero-landscape img { width: 100%; height: 100%; object-fit: cover; object-position: center 50%; }
+    .metric-grid {
+      position: absolute;
+      left: 66px;
+      right: 66px;
+      top: 915px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+    }
+    .metric {
+      min-height: 204px;
+      padding: 28px;
+      border-top: 4px solid var(--wine);
+      background: rgba(255,255,255,.58);
+    }
+    .metric span { display: block; font: 700 15px/1.1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft); }
+    .metric strong { display: block; margin-top: 18px; font: 900 48px/.98 var(--display); color: var(--navy); }
+    .metric strong.red { color: var(--wine); }
+
+    /* Primera pieza, con más carácter de apertura */
+    .opener .display { font-size: 78px; }
+    .opener .photo-stage { top: 360px; height: 834px; }
+    .opener .photo-stage img { filter: saturate(.82) contrast(1.04) sepia(.05); }
+  </style>
+</head>
+<body class="social-editorial">
+  <section class="post photo-post opener portrait-top" data-post="01">
+    <div class="content">
+      <div class="topbar"><span class="series">Concepto · Decisión</span><div class="brand"><img src="../../../../../public/brand/dtdcargo-isologo-primary.png" alt="" /><span><span class="dtd">DTD</span> <span class="cargo">Cargo</span></span></div></div>
+      <h1 class="display">Cada caja empieza con <span class="red">una decisión</span></h1>
+      <div class="photo-stage"><img src="assets/generadas-v1/01-decision-medicion-generada.jpg" alt="Manos midiendo una caja de cartón sobre una mesa de trabajo" /><div class="caption"><p>Medir bien es el primer paso para definir tu operación.</p><span>Educación logística</span></div></div>
+      <div class="footer"><span>China → Venezuela</span><span class="page">01 / 09</span></div>
+    </div>
+  </section>
+
+  <section class="post photo-post team-china" data-post="02">
+    <div class="content">
+      <div class="topbar"><span class="series">Origen · Coordinación</span><div class="brand"><img src="../../../../../public/brand/dtdcargo-isologo-primary.png" alt="" /><span><span class="dtd">DTD</span> <span class="cargo">Cargo</span></span></div></div>
+      <h2 class="display">Coordinamos <span class="red">desde China</span></h2>
+      <p class="subtitle">Acompañamos tu operación desde el origen.</p>
+      <div class="photo-stage"><img src="assets/generadas-v1/02-coordinacion-china-generada.jpg" alt="Mesa de coordinación logística con laptop, etiquetas y cajas" /><div class="caption"><p>Control de proveedores, referencias y preparación de carga.</p><span>Experiencia local</span></div></div>
+      <div class="footer"><span>Presencia operativa en origen</span><span class="page">02 / 09</span></div>
+    </div>
+  </section>
+
+  <section class="post technical-portrait" data-post="03">
+    <img class="technical-img" src="assets/03-10-cbm.png" alt="Infografía fotográfica de 10 CBM con escala humana y medidas" />
+    <span class="version">Infografía fotográfica</span>
+  </section>
+
+  <section class="post photo-post boxes" data-post="04">
+    <div class="content">
+      <div class="topbar"><span class="series">Control · Identificación</span><div class="brand"><img src="../../../../../public/brand/dtdcargo-isologo-primary.png" alt="" /><span><span class="dtd">DTD</span> <span class="cargo">Cargo</span></span></div></div>
+      <h2 class="display">Cada caja necesita <span class="red">identidad</span></h2>
+      <p class="subtitle">El Shipping Mark conecta cada bulto con su operación.</p>
+      <div class="photo-stage"><img src="assets/generadas-v1/04-cajas-shipping-mark-generada.jpg" alt="Cajas de mercancía con etiquetas limpias preparadas para identificación" /><div class="caption"><p>Identificamos, consolidamos y preparamos tu mercancía.</p><span>Shipping Mark</span></div></div>
+      <div class="footer"><span>Control desde el origen</span><span class="page">04 / 09</span></div>
+    </div>
+  </section>
+
+  <section class="post technical-portrait" data-post="05">
+    <img class="technical-img" src="assets/05-20gp-40hq.png" alt="Infografía fotográfica sobre capacidad operativa de 20GP y 40HQ" />
+    <span class="version">Capacidad operativa</span>
+    <div class="technical-brand"><img src="../../../../../public/brand/dtdcargo-isologo-primary.png" alt="" /><span><span class="dtd">DTD</span> Cargo</span></div>
+  </section>
+
+  <section class="post photo-post receiving" data-post="06">
+    <div class="content">
+      <div class="topbar"><span class="series">Venezuela · Recepción</span><div class="brand"><img src="../../../../../public/brand/dtdcargo-isologo-primary.png" alt="" /><span><span class="dtd">DTD</span> <span class="cargo">Cargo</span></span></div></div>
+      <h2 class="display">Así recibimos <span class="red">tu contenedor</span></h2>
+      <p class="subtitle">La operación continúa cuando la unidad llega al almacén.</p>
+      <div class="photo-stage"><img src="assets/generadas-v1/06-contenedor-recibido-generada.jpg" alt="Contenedor navy abierto con cajas y pallets de mercancía" /><div class="caption"><p>Verificación visual antes de iniciar la descarga.</p><span>Recepción de carga</span></div></div>
+      <div class="footer"><span>Recepción · control · descarga</span><span class="page">06 / 09</span></div>
+    </div>
+  </section>
+
+  <section class="post photo-post office" data-post="07">
+    <div class="content">
+      <div class="topbar"><span class="series">Servicio · Seguimiento</span><div class="brand"><img src="../../../../../public/brand/dtdcargo-isologo-primary.png" alt="" /><span><span class="dtd">DTD</span> <span class="cargo">Cargo</span></span></div></div>
+      <h2 class="display">Coordinación que <span class="red">sí responde</span></h2>
+      <p class="subtitle">La logística también ocurre frente a una pantalla.</p>
+      <div class="photo-stage"><img src="assets/generadas-v1/07-coordinacion-humana-generada.jpg" alt="Profesional coordinando una operación logística desde una tableta" /><div class="caption"><p>Seguimiento organizado en cada etapa de la operación.</p><span>Atención coordinada</span></div></div>
+      <div class="footer"><span>Acompañamiento humano</span><span class="page">07 / 09</span></div>
+    </div>
+  </section>
+
+  <section class="post photo-post port" data-post="08">
+    <div class="content">
+      <div class="topbar"><span class="series">Puerto · Última milla</span><div class="brand"><img src="../../../../../public/brand/dtdcargo-isologo-primary.png" alt="" /><span><span class="dtd">DTD</span> <span class="cargo">Cargo</span></span></div></div>
+      <h2 class="display">Del puerto <span class="red">a tu puerta</span></h2>
+      <p class="subtitle">El recorrido no termina cuando el contenedor toca tierra.</p>
+      <div class="photo-stage"><img src="assets/generadas-v1/08-puerto-puerta-generada.jpg" alt="Contenedor navy y pallets de cajas en una terminal portuaria" /><div class="caption"><p>Coordinamos la recepción y continuidad de la carga.</p><span>Ruta completa</span></div></div>
+      <div class="footer"><span>China → Venezuela</span><span class="page">08 / 09</span></div>
+    </div>
+  </section>
+
+  <section class="post hq-card" data-post="09">
+    <div class="content">
+      <div class="topbar"><span class="series">Ficha técnica · 40HQ</span><div class="brand"><img src="../../../../../public/brand/dtdcargo-isologo-primary.png" alt="" /><span><span class="dtd">DTD</span> <span class="cargo">Cargo</span></span></div></div>
+      <h2 class="display">40HQ en <span class="red">escala real</span></h2>
+      <p class="subtitle">Volumen interior y capacidad útil no significan lo mismo.</p>
+      <div class="hero-landscape"><img src="assets/09-40hq.png" alt="Infografía de un contenedor 40HQ cargado con cajas" /></div>
+      <div class="metric-grid"><div class="metric"><span>Volumen interior nominal</span><strong>76,3 CBM</strong></div><div class="metric"><span>Carga operativa aproximada</span><strong class="red">Hasta ~68 CBM</strong></div></div>
+      <div class="footer"><span>Depende del embalaje y la estiba.</span><span class="page">09 / 09</span></div>
+    </div>
+  </section>
+</body>
+</html>

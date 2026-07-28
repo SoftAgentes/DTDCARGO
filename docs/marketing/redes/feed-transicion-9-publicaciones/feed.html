@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DTD Cargo · Vista previa de nueve publicaciones</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100,400;100,600;100,700&family=Archivo+Black&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --navy: #0f1e3d;
+      --navy-deep: #0b1428;
+      --navy-elevated: #1f3055;
+      --wine: #7f0f1a;
+      --wine-soft: #c2747f;
+      --wine-on-dark: #d59fa7;
+      --paper: #fbfaf7;
+      --surface: #ffffff;
+      --elevated: #f2f0ec;
+      --border: #e8e6e2;
+      --ink-soft: #6b6b6b;
+      --font-display: "Archivo Black", "Archivo", sans-serif;
+      --font-body: "Archivo", sans-serif;
+      --font-mono: "JetBrains Mono", monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      background: #d9d7d2;
+      color: var(--navy);
+      font-family: var(--font-body);
+    }
+
+    body {
+      display: grid;
+      justify-content: center;
+      gap: 56px;
+      padding: 56px;
+    }
+
+    .post {
+      position: relative;
+      width: 1080px;
+      height: 1350px;
+      overflow: hidden;
+      isolation: isolate;
+      background: var(--paper);
+      box-shadow: 0 16px 42px rgba(15, 30, 61, 0.14);
+    }
+
+    .post.paper {
+      background: radial-gradient(120% 90% at 50% 5%, var(--surface) 0%, var(--paper) 55%, var(--elevated) 100%);
+    }
+
+    .post::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      pointer-events: none;
+      opacity: 0.10;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.92' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.10'/%3E%3C/svg%3E");
+      mix-blend-mode: multiply;
+    }
+
+    .content {
+      position: relative;
+      z-index: 5;
+      height: 100%;
+      padding: 66px 72px 58px;
+    }
+
+    .topbar,
+    .footer,
+    .brand-mini {
+      display: flex;
+      align-items: center;
+    }
+
+    .topbar,
+    .footer { justify-content: space-between; }
+
+    .series {
+      font: 700 18px/1 var(--font-mono);
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--wine);
+    }
+
+    .brand-mini {
+      gap: 11px;
+      font: 900 21px/1 var(--font-display);
+      letter-spacing: -0.025em;
+      white-space: nowrap;
+    }
+
+    .brand-mini img { width: 34px; height: 34px; object-fit: contain; }
+    .brand-mini .dtd { color: var(--wine); }
+    .brand-mini .cargo { color: var(--navy); }
+
+    .footer {
+      position: absolute;
+      left: 72px;
+      right: 72px;
+      bottom: 48px;
+      z-index: 8;
+      font: 600 17px/1 var(--font-mono);
+      color: var(--ink-soft);
+    }
+
+    .page-no { color: var(--wine); }
+    .rule { width: 100%; height: 3px; background: var(--wine); }
+
+    .display {
+      margin: 0;
+      font-family: var(--font-display);
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 0.94;
+      text-transform: uppercase;
+    }
+
+    .eyebrow {
+      margin: 0 0 20px;
+      font: 700 20px/1.15 var(--font-mono);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--wine);
+    }
+
+    .red { color: var(--wine); }
+    .soft { color: var(--ink-soft); }
+
+    /* 01 y 09 · anclas oscuras */
+    .anchor {
+      color: var(--surface);
+      background: var(--navy-deep);
+    }
+
+    .anchor::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 78% 25%, rgba(31,48,85,.95) 0 14%, transparent 38%),
+        linear-gradient(135deg, var(--navy-deep), var(--navy));
+      z-index: -2;
+    }
+
+    .anchor::after { mix-blend-mode: screen; opacity: .07; }
+    .anchor .series { color: var(--wine-on-dark); }
+    .anchor .brand-mini .dtd { color: var(--wine-on-dark); }
+    .anchor .brand-mini .cargo { color: var(--surface); }
+    .anchor .footer { color: rgba(255,255,255,.65); }
+    .anchor .page-no { color: var(--wine-on-dark); }
+
+    .anchor .signal {
+      position: absolute;
+      right: 74px;
+      top: 216px;
+      width: 148px;
+      height: 12px;
+      background: var(--wine);
+    }
+
+    .anchor .hero {
+      margin-top: 160px;
+      max-width: 900px;
+      font-size: 98px;
+    }
+
+    .anchor .hero strong {
+      display: block;
+      color: var(--wine-on-dark);
+      font: inherit;
+    }
+
+    .anchor .sub {
+      max-width: 700px;
+      margin: 42px 0 0;
+      font-size: 31px;
+      line-height: 1.36;
+      color: rgba(255,255,255,.78);
+    }
+
+    .anchor .route {
+      position: absolute;
+      left: 72px;
+      right: 72px;
+      bottom: 150px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 22px;
+      font: 700 22px/1 var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .anchor .route-line { height: 2px; background: var(--wine-on-dark); position: relative; }
+    .anchor .route-line::before,
+    .anchor .route-line::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: var(--wine-on-dark);
+      transform: translateY(-50%);
+    }
+    .anchor .route-line::before { left: 0; }
+    .anchor .route-line::after { right: 0; }
+
+    .cta-anchor .hero { margin-top: 132px; font-size: 112px; }
+    .cta-anchor .button {
+      display: inline-flex;
+      margin-top: 54px;
+      padding: 22px 30px;
+      border: 2px solid var(--wine-on-dark);
+      color: var(--surface);
+      font: 700 23px/1 var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .cta-anchor .metric {
+      position: absolute;
+      left: 72px;
+      right: 72px;
+      bottom: 146px;
+      padding-top: 28px;
+      border-top: 2px solid rgba(255,255,255,.3);
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font: 600 22px/1.2 var(--font-mono);
+      color: rgba(255,255,255,.72);
+    }
+    .cta-anchor .metric strong { color: var(--wine-on-dark); font-size: 38px; }
+
+    /* 02, 05 y 08 · portadas de reel */
+    .photo-cover { color: var(--surface); background: var(--navy-deep); }
+    .photo-cover .photo {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: -3;
+    }
+    .photo-cover .shade {
+      position: absolute;
+      inset: 0;
+      z-index: -2;
+      background: linear-gradient(to bottom, rgba(11,20,40,.88) 0%, rgba(11,20,40,.48) 38%, rgba(11,20,40,.08) 65%, rgba(11,20,40,.78) 100%);
+    }
+    .photo-cover::after { mix-blend-mode: screen; opacity: .05; }
+    .photo-cover .series { color: var(--wine-on-dark); }
+    .photo-cover .brand-mini .dtd { color: var(--wine-on-dark); }
+    .photo-cover .brand-mini .cargo { color: var(--surface); }
+    .photo-cover .footer { color: rgba(255,255,255,.78); }
+    .photo-cover .page-no { color: var(--wine-on-dark); }
+
+    .reel-mark {
+      width: 42px;
+      height: 42px;
+      border: 2px solid rgba(255,255,255,.86);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+    }
+    .reel-mark::before {
+      content: "";
+      width: 0;
+      height: 0;
+      margin-left: 4px;
+      border-top: 8px solid transparent;
+      border-bottom: 8px solid transparent;
+      border-left: 13px solid var(--surface);
+    }
+
+    .photo-cover .headline {
+      max-width: 870px;
+      margin-top: 82px;
+      font-size: 84px;
+      text-shadow: 0 3px 20px rgba(11,20,40,.25);
+    }
+    .photo-cover .headline strong { color: var(--wine-on-dark); font: inherit; }
+    .photo-cover .caption {
+      position: absolute;
+      left: 72px;
+      bottom: 108px;
+      max-width: 760px;
+      margin: 0;
+      padding-left: 22px;
+      border-left: 4px solid var(--wine-on-dark);
+      font: 600 25px/1.35 var(--font-body);
+      color: rgba(255,255,255,.92);
+    }
+
+    .shipping .headline { font-size: 76px; }
+    .shipping-label {
+      position: absolute;
+      left: 438px;
+      top: 858px;
+      width: 316px;
+      min-height: 214px;
+      padding: 24px 26px;
+      background: var(--surface);
+      color: var(--navy);
+      transform: rotate(-1.1deg);
+      box-shadow: 0 8px 20px rgba(11,20,40,.22);
+      z-index: 3;
+      text-align: center;
+    }
+    .shipping-label .mini { font: 700 16px/1 var(--font-mono); color: var(--wine); letter-spacing: .07em; }
+    .shipping-label strong { display: block; margin-top: 18px; font: 900 40px/1 var(--font-display); }
+    .shipping-label span { display: block; margin-top: 18px; font: 600 16px/1.4 var(--font-mono); color: var(--ink-soft); }
+    .shipping .caption { max-width: 410px; }
+
+    /* 03 · concepto CBM */
+    .concept .display { margin-top: 68px; max-width: 900px; font-size: 84px; }
+    .concept .formula {
+      margin-top: 34px;
+      font: 700 28px/1 var(--font-mono);
+      color: var(--wine);
+    }
+    .cube-scene {
+      position: absolute;
+      left: 72px;
+      right: 72px;
+      top: 505px;
+      height: 610px;
+    }
+    .cube {
+      position: absolute;
+      left: 96px;
+      top: 58px;
+      width: 470px;
+      height: 470px;
+      border: 5px solid var(--navy);
+      background:
+        linear-gradient(90deg, transparent 49.5%, rgba(127,15,26,.35) 50%, transparent 50.5%),
+        linear-gradient(transparent 49.5%, rgba(127,15,26,.35) 50%, transparent 50.5%),
+        rgba(255,255,255,.42);
+    }
+    .cube::before {
+      content: "";
+      position: absolute;
+      left: 54px;
+      top: 54px;
+      width: 356px;
+      height: 356px;
+      border: 2px solid rgba(15,30,61,.22);
+    }
+    .measure { position: absolute; font: 700 20px/1 var(--font-mono); color: var(--navy); }
+    .measure::before { content: ""; position: absolute; background: var(--wine); }
+    .m-top { left: 290px; top: 18px; }
+    .m-left { left: 40px; top: 287px; transform: rotate(-90deg); }
+    .m-bottom { left: 293px; top: 552px; }
+    .cube-note {
+      position: absolute;
+      right: 0;
+      top: 82px;
+      width: 300px;
+      padding: 30px 0 0 28px;
+      border-top: 4px solid var(--wine);
+    }
+    .cube-note strong { display: block; font: 900 82px/.9 var(--font-display); color: var(--wine); }
+    .cube-note span { display: block; margin-top: 20px; font: 600 24px/1.35 var(--font-body); }
+
+    /* 04 · comparativa contenedores */
+    .containers .display { margin-top: 62px; font-size: 78px; }
+    .containers .compare-photo {
+      position: absolute;
+      left: 110px;
+      top: 390px;
+      width: 860px;
+      height: 460px;
+      object-fit: cover;
+      object-position: center 48%;
+      mix-blend-mode: multiply;
+    }
+    .container-cards {
+      position: absolute;
+      left: 72px;
+      right: 72px;
+      bottom: 112px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    .container-card {
+      padding: 26px 28px 24px;
+      border: 2px solid var(--border);
+      background: rgba(255,255,255,.7);
+    }
+    .container-card strong { display: block; font: 900 48px/1 var(--font-display); }
+    .container-card .capacity { display: block; margin-top: 13px; font: 700 27px/1 var(--font-mono); color: var(--wine); }
+    .container-card small { display: block; margin-top: 13px; font-size: 19px; line-height: 1.25; color: var(--ink-soft); }
+
+    /* 06 · checklist */
+    .checklist .display { margin-top: 66px; max-width: 920px; font-size: 76px; }
+    .checklist-list {
+      position: absolute;
+      left: 72px;
+      right: 72px;
+      top: 456px;
+      display: grid;
+      gap: 18px;
+    }
+    .check-row {
+      display: grid;
+      grid-template-columns: 96px 1fr auto;
+      align-items: center;
+      gap: 28px;
+      min-height: 176px;
+      padding: 26px 30px;
+      border-top: 2px solid var(--border);
+    }
+    .check-row:last-child { border-bottom: 2px solid var(--border); }
+    .check-no { font: 900 66px/1 var(--font-display); color: var(--wine); }
+    .check-copy strong { display: block; font: 900 36px/1.05 var(--font-display); text-transform: uppercase; }
+    .check-copy span { display: block; margin-top: 10px; font-size: 22px; color: var(--ink-soft); }
+    .check-unit { font: 700 22px/1 var(--font-mono); color: var(--wine); }
+
+    /* 07 · LCL/FCL */
+    .lclfcl .display { margin-top: 62px; max-width: 850px; font-size: 78px; }
+    .mode-grid {
+      position: absolute;
+      left: 72px;
+      right: 72px;
+      top: 454px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+    }
+    .mode {
+      min-height: 590px;
+      padding: 38px 34px;
+      border: 2px solid var(--border);
+      background: rgba(255,255,255,.64);
+    }
+    .mode-title { font: 900 62px/1 var(--font-display); }
+    .mode-sub { display: block; margin-top: 10px; font: 700 18px/1 var(--font-mono); color: var(--wine); text-transform: uppercase; }
+    .cargo-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 7px;
+      margin-top: 42px;
+      padding: 16px;
+      border: 3px solid var(--navy);
+    }
+    .cargo-grid i { display: block; aspect-ratio: 1; background: var(--elevated); }
+    .cargo-grid i.owned { background: var(--wine); }
+    .fcl .cargo-grid i { background: var(--navy); }
+    .mode p { margin: 34px 0 0; font-size: 24px; line-height: 1.35; color: var(--ink-soft); }
+    .mode p strong { color: var(--navy); }
+
+    .proof-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 32px;
+      padding: 12px 16px;
+      border-left: 4px solid var(--wine);
+      background: var(--surface);
+      font: 700 17px/1.2 var(--font-mono);
+      color: var(--navy);
+    }
+  </style>
+</head>
+<body>
+  <section class="post anchor" data-post="01" aria-label="Publicación 1: manifiesto de marca">
+    <div class="content">
+      <div class="topbar">
+        <span class="series">Nueva etapa · 01</span>
+        <div class="brand-mini"><img src="../../../../public/brand/dtdcargo-isologo-reverse.png" alt="" /><span><span class="dtd">DTD</span> <span class="cargo">Cargo</span></span></div>
+      </div>
+      <span class="signal"></span>
+      <h1 class="display hero">Importar de China <strong>sin improvisar</strong></h1>
+      <p class="sub">Decisiones claras, control operativo y acompañamiento desde origen hasta Venezuela.</p>
+      <div class="route"><span>China</span><span class="route-line"></span><span>Venezuela</span></div>
+      <div class="footer"><span>Logística + trading puerta a puerta</span><span class="page-no">01 / 09</span></div>
+    </div>
+  </section>
+
+  <section class="post photo-cover" data-post="02" aria-label="Publicación 2: antes de pagar al proveedor">
+    <img class="photo" src="assets/inspeccion-proveedor-conceptual.png" alt="Inspección conceptual de cajas con un proveedor" />
+    <div class="shade"></div>
+    <div class="content">
+      <div class="topbar">
+        <span class="series">Control en origen · Reel</span>
+        <span class="reel-mark" aria-hidden="true"></span>
+      </div>
+      <h2 class="display headline">Antes de pagar a tu <strong>proveedor</strong></h2>
+      <p class="caption">Verifica producto, cantidad, embalaje y condiciones acordadas.</p>
+      <div class="footer"><div class="brand-mini"><img src="../../../../public/brand/dtdcargo-isologo-reverse.png" alt="" /><span><span class="dtd">DTD</span> <span class="cargo">Cargo</span></span></div><span class="page-no">02 / 09</span></div>
+    </div>
+  </section>
+
+  <section class="post paper concept" data-post="03" aria-label="Publicación 3: qué significa un CBM">
+    <div class="content">
+      <div class="topbar">
+        <span class="series">Concepto logístico · 01</span>
+        <div class="brand-mini"><img src="../../../../public/brand/dtdcargo-isologo-primary.png" alt="" /><span><span class="dtd">DTD</span> <span class="cargo">Cargo</span></span></div>
+      </div>
+      <h2 class="display">¿Qué significa <span class="red">1 CBM?</span></h2>
+      <p class="formula">largo × ancho × alto</p>
+      <div class="cube-scene" aria-hidden="true">
+        <span class="measure m-top">1 m</span>
+        <span class="measure m-left">1 m</span>
+        <span class="measure m-bottom">1 m</span>
+        <div class="cube"></div>
+        <div class="cube-note"><strong>1,00<br />CBM</strong><span>El volumen que ocupa tu carga.</span></div>
+      </div>
+      <div class="footer"><span>El CBM no reemplaza el peso.</span><span class="page-no">03 / 09</span></div>
+    </div>
+  </section>
+
+  <section class="post paper containers" data-post="04" aria-label="Publicación 4: comparación 20GP y 40HQ">
+    <div class="content">
+      <div class="topbar">
+        <span class="series">Capacidad operativa</span>
+        <div class="brand-mini"><img src="../../../../public/brand/dtdcargo-isologo-primary.png" alt="" /><span><span class="dtd">DTD</span> <span class="cargo">Cargo</span></span></div>
+      </div>
+      <h2 class="display">20GP <span class="red">vs</span> 40HQ</h2>
+      <p class="eyebrow" style="margin-top:24px">Sólo dimensiones interiores</p>
+      <img class="compare-photo" src="../carrusel-maestro-capacidad-operativa/assets/contenedores-20gp-40hq-studio.png" alt="Comparación conceptual de contenedores 20GP y 40HQ" />
+      <div class="container-cards">
+        <div class="container-card"><strong>20GP</strong><span class="capacity">≈ 33,2 CBM</span><small>5,90 × 2,35 × 2,39 m</small></div>
+        <div class="container-card"><strong>40HQ</strong><span class="capacity">≈ 76,3 CBM</span><small>12,03 × 2,35 × 2,70 m</small></div>
+      </div>
+      <div class="footer"><span>Medidas interiores aproximadas.</span><span class="page-no">04 / 09</span></div>
+    </div>
+  </section>
+
+  <section class="post photo-cover" data-post="05" aria-label="Publicación 5: inspección antes de embarcar">
+    <img class="photo" src="assets/inspeccion-contenedor-conceptual.png" alt="Inspección conceptual de carga en un contenedor" />
+    <div class="shade"></div>
+    <div class="content">
+      <div class="topbar">
+        <span class="series">Operación · Reel</span>
+        <span class="reel-mark" aria-hidden="true"></span>
+      </div>
+      <h2 class="display headline">Inspeccionamos <strong>antes de embarcar</strong></h2>
+      <p class="caption">La carga se revisa antes de que el problema viaje contigo.</p>
+      <div class="footer"><div class="brand-mini"><img src="../../../../public/brand/dtdcargo-isologo-reverse.png" alt="" /><span><span class="dtd">DTD</span> <span class="cargo">Cargo</span></span></div><span class="page-no">05 / 09</span></div>
+    </div>
+  </section>
+
+  <section class="post paper checklist" data-post="06" aria-label="Publicación 6: datos para calcular la carga">
+    <div class="content">
+      <div class="topbar">
+        <span class="series">Checklist de cotización</span>
+        <div class="brand-mini"><img src="../../../../public/brand/dtdcargo-isologo-primary.png" alt="" /><span><span class="dtd">DTD</span> <span class="cargo">Cargo</span></span></div>
+      </div>
+      <h2 class="display">3 datos para calcular <span class="red">tu carga</span></h2>
+      <div class="checklist-list">
+        <div class="check-row"><span class="check-no">01</span><div class="check-copy"><strong>Medidas</strong><span>Largo × ancho × alto por bulto</span></div><span class="check-unit">cm / m</span></div>
+        <div class="check-row"><span class="check-no">02</span><div class="check-copy"><strong>Cantidad</strong><span>Número total de cajas o piezas</span></div><span class="check-unit">unid.</span></div>
+        <div class="check-row"><span class="check-no">03</span><div class="check-copy"><strong>Peso</strong><span>Peso bruto total de la mercancía</span></div><span class="check-unit">kg</span></div>
+      </div>
+      <div class="footer"><span>Datos completos = estimación más útil.</span><span class="page-no">06 / 09</span></div>
+    </div>
+  </section>
+
+  <section class="post paper lclfcl" data-post="07" aria-label="Publicación 7: comparación LCL y FCL">
+    <div class="content">
+      <div class="topbar">
+        <span class="series">Comparativa logística</span>
+        <div class="brand-mini"><img src="../../../../public/brand/dtdcargo-isologo-primary.png" alt="" /><span><span class="dtd">DTD</span> <span class="cargo">Cargo</span></span></div>
+      </div>
+      <h2 class="display">LCL o FCL: <span class="red">¿qué cambia?</span></h2>
+      <div class="mode-grid">
+        <div class="mode lcl">
+          <span class="mode-title">LCL</span><span class="mode-sub">Carga consolidada</span>
+          <div class="cargo-grid" aria-hidden="true"><i class="owned"></i><i class="owned"></i><i></i><i></i><i class="owned"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <p>Tu carga <strong>comparte espacio</strong> con otros embarques.</p>
+          <span class="proof-tag">Pagas por el espacio utilizado</span>
+        </div>
+        <div class="mode fcl">
+          <span class="mode-title">FCL</span><span class="mode-sub">Contenedor completo</span>
+          <div class="cargo-grid" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <p>Reservas el contenedor para <strong>una sola operación</strong>.</p>
+          <span class="proof-tag">Mayor control de la unidad</span>
+        </div>
+      </div>
+      <div class="footer"><span>No se elige sólo por CBM.</span><span class="page-no">07 / 09</span></div>
+    </div>
+  </section>
+
+  <section class="post photo-cover shipping" data-post="08" aria-label="Publicación 8: Shipping Mark">
+    <img class="photo" src="assets/shipping-mark-conceptual.png" alt="Aplicación conceptual de una etiqueta de identificación sobre una caja" />
+    <div class="shade"></div>
+    <div class="content">
+      <div class="topbar">
+        <span class="series">Identificación · Reel</span>
+        <span class="reel-mark" aria-hidden="true"></span>
+      </div>
+      <h2 class="display headline">Shipping Mark: <strong>así identificamos tu carga</strong></h2>
+      <div class="shipping-label" aria-hidden="true"><span class="mini">DTD Cargo</span><strong>DTD-1234</strong><span>CLIENTE / BULTOS<br />DESTINO</span></div>
+      <p class="caption">Una marca clara reduce confusiones durante la consolidación.</p>
+      <div class="footer"><div class="brand-mini"><img src="../../../../public/brand/dtdcargo-isologo-reverse.png" alt="" /><span><span class="dtd">DTD</span> <span class="cargo">Cargo</span></span></div><span class="page-no">08 / 09</span></div>
+    </div>
+  </section>
+
+  <section class="post anchor cta-anchor" data-post="09" aria-label="Publicación 9: llamada a calcular el envío">
+    <div class="content">
+      <div class="topbar">
+        <span class="series">Siguiente paso · 09</span>
+        <div class="brand-mini"><img src="../../../../public/brand/dtdcargo-isologo-reverse.png" alt="" /><span><span class="dtd">DTD</span> <span class="cargo">Cargo</span></span></div>
+      </div>
+      <span class="signal"></span>
+      <h2 class="display hero">Calcula <strong>tu envío</strong></h2>
+      <p class="sub">Cuéntanos qué quieres traer y te ayudamos a definir la operación.</p>
+      <span class="button">Solicitar estimación</span>
+      <div class="metric"><span>China → Venezuela</span><strong>dtdcargo.com</strong></div>
+      <div class="footer"><span>Puerta a puerta · Equipo propio</span><span class="page-no">09 / 09</span></div>
+    </div>
+  </section>
+</body>
+</html>

@@ -392,6 +392,9 @@ export function TaskCollabSection({
             users={collab.users}
             currentUser={collab.currentUser}
             initialComments={collab.comments}
+            canEditComments={canEdit}
+            canModerateComments={collab.canModerateComments}
+            canRestoreComments={collab.canRestoreComments}
             onAfterChange={refetchComments}
           />
         ) : (

@@ -24,6 +24,7 @@ BASE_URL=http://localhost:3001 node node_modules/@playwright/test/cli.js test e2
 |---|---|---|---|
 | `smoke.spec.ts` | 0 | ✅ | nada (rutas públicas, 200 + contenido) |
 | `auth.spec.ts` | 1 | ✅ | nada (render + negativos de los 4 logins) |
+| `comments-lifecycle.spec.ts` | 1 | ✅ | Preview + branch efímero + `seed:e2e` |
 | `journey-core.spec.ts` | 1 | ⬜ pendiente | branch + seed-e2e |
 | `portal-cliente.spec.ts` | 2 | ⬜ | branch + seed-e2e |
 | `mobile-operario.spec.ts` | 2 | ⬜ | branch + seed-e2e |
@@ -47,17 +48,23 @@ corrida CI** — NO contra prod ni dev. Flujo:
 
 1. **Crear branch** (Supabase MCP `create_branch` o `supabase branches create`) → DB limpia
    con todas las migraciones aplicadas.
-2. **Seed e2e** (`scripts/seed-e2e.ts`, pendiente): 1 tenant + usuarios auth con
-   email/password conocidos (Studio/Back) + 1 operario con PIN + datos operativos con
-   IDs fijos (cliente, cotización, embarque) para asserts deterministas.
+2. **Seed e2e** (`scripts/seed-e2e.ts`): fixture mínimo y determinista para
+   SDD-0168 (tenant + 2 usuarios + perfiles/membresías + embarque). Se niega a
+   ejecutar contra el `project_ref` productivo y valida que URL/ref coincidan.
+   La ampliación al journey transversal sigue pendiente:
+   1 tenant + usuarios auth con email/password conocidos (Studio/Back) + 1 operario
+   con PIN + datos operativos con IDs fijos (cliente, cotización, embarque).
    - Usuarios auth se crean con service-role (`auth.admin.createUser`).
    - Sesión del Portal se mintea con `auth.admin.generateLink` (magic link no tipeable).
 3. **Correr** Playwright con `BASE_URL` apuntando al deploy/preview del branch.
+   Si el Preview usa Vercel Authentication, definir también
+   `VERCEL_AUTOMATION_BYPASS_SECRET`; el spec envía los headers oficiales de
+   bypass sin volver obligatoria esa variable para entornos desprotegidos.
 4. **Destruir branch** (`delete_branch`) al terminar.
 
 ### Pendiente de wiring (próximos pasos, en orden)
-1. `scripts/seed-e2e.ts` — seed operativo determinista (hoy `scripts/seed.ts` solo siembra
-   catálogos globales, no data de tenant).
+1. Ampliar `scripts/seed-e2e.ts` más allá del fixture SDD-0168 al journey operativo
+   transversal.
 2. `e2e/fixtures/auth.ts` — helpers de login por rol + `storageState` reutilizable
    (password para Studio/Back, inyección de sesión para Portal, cookie/numpad para operario).
 3. `.github/workflows/e2e.yml` — **primer workflow CI del repo**: create_branch → seed →

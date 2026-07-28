@@ -168,6 +168,34 @@ describe("ToastProvider · AVS-01", () => {
     expect(screen.getByText("Persistente").closest("[role=alert]")).toBeInTheDocument();
   });
 
+  it("el deadline absoluto vence aunque el aviso esté pausado", () => {
+    const toast = renderProvider();
+    act(() =>
+      toast.show({
+        eventKey: "comment:undo",
+        tone: "warning",
+        message: "Comentario eliminado.",
+        priority: "high",
+        scope: "module",
+        dedupeKey: "comment:undo:c1",
+        duration: "persistent",
+        actionExpiresAt: new Date(Date.now() + 1_000).toISOString(),
+        actionExpiredMessage: "Terminó la ventana inmediata para deshacer.",
+        action: { label: "Deshacer", onSelect: vi.fn() },
+      }),
+    );
+    const card = screen.getByText("Comentario eliminado.").closest("[role=status]");
+    fireEvent.mouseEnter(card!);
+    expect(screen.getByRole("button", { name: "Deshacer" })).toBeEnabled();
+
+    act(() => vi.advanceTimersByTime(1_000));
+
+    expect(screen.getByRole("button", { name: "Deshacer" })).toBeDisabled();
+    expect(
+      screen.getByText("Terminó la ventana inmediata para deshacer."),
+    ).toBeInTheDocument();
+  });
+
   it("no consume el tiempo de un aviso mientras está en cola", () => {
     const toast = renderProvider();
     act(() => {

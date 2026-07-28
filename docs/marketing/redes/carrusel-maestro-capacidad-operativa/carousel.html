@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DTD Cargo · Carrusel maestro · Capacidad operativa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100,400;100,600;100,700&family=Archivo+Black&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --wine: #7f0f1a;
+      --wine-deep: #5e0a12;
+      --paper: #fbfaf7;
+      --surface: #ffffff;
+      --elevated: #f2f0ec;
+      --ink: #0f1e3d;
+      --ink-soft: #6b6b6b;
+      --border: #e8e6e2;
+      --font-display: "Archivo Black", "Archivo", sans-serif;
+      --font-body: "Archivo", sans-serif;
+      --font-mono: "JetBrains Mono", monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      background: #d9d7d2;
+      color: var(--ink);
+      font-family: var(--font-body);
+    }
+
+    body {
+      display: grid;
+      justify-content: center;
+      gap: 56px;
+      padding: 56px;
+    }
+
+    .slide {
+      position: relative;
+      width: 1080px;
+      height: 1350px;
+      overflow: hidden;
+      background:
+        radial-gradient(100% 70% at 50% 0%, #ffffff 0%, var(--paper) 66%, #f6f3ed 100%);
+      box-shadow: 0 16px 42px rgba(15, 30, 61, 0.14);
+      isolation: isolate;
+    }
+
+    .slide::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.12;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.12'/%3E%3C/svg%3E");
+      mix-blend-mode: multiply;
+      z-index: 10;
+    }
+
+    .content {
+      position: relative;
+      z-index: 2;
+      height: 100%;
+      padding: 72px;
+    }
+
+    .topbar,
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .topbar { height: 46px; }
+
+    .series {
+      font: 700 20px/1 var(--font-mono);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--wine);
+    }
+
+    .brand-mini {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font: 900 22px/1 var(--font-display);
+      letter-spacing: -0.02em;
+    }
+
+    .brand-mini img { width: 34px; height: 34px; object-fit: contain; }
+    .brand-mini .dtd { color: var(--wine); }
+    .brand-mini .cargo { color: var(--ink); }
+
+    .rule {
+      height: 2px;
+      background: var(--wine);
+      margin-top: 24px;
+    }
+
+    .display {
+      margin: 0;
+      font-family: var(--font-display);
+      font-weight: 900;
+      letter-spacing: -0.035em;
+      line-height: 0.96;
+      text-transform: uppercase;
+    }
+
+    .kicker {
+      margin: 0 0 22px;
+      font: 700 22px/1.25 var(--font-mono);
+      letter-spacing: 0.08em;
+      color: var(--wine);
+      text-transform: uppercase;
+    }
+
+    .body-copy {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.45;
+      color: var(--ink-soft);
+    }
+
+    .footer {
+      position: absolute;
+      left: 72px;
+      right: 72px;
+      bottom: 54px;
+      z-index: 4;
+      font: 600 18px/1 var(--font-mono);
+      color: var(--ink-soft);
+    }
+
+    .page-no { color: var(--wine); }
+
+    /* 01 · portada */
+    .cover .hero-title {
+      max-width: 870px;
+      margin-top: 68px;
+      font-size: 96px;
+    }
+
+    .cover .hero-subtitle {
+      margin-top: 30px;
+      font: 700 31px/1.25 var(--font-mono);
+      color: var(--wine);
+    }
+
+    .cover .hero-photo {
+      position: absolute;
+      z-index: 1;
+      width: 1120px;
+      height: 700px;
+      left: -20px;
+      bottom: 76px;
+      object-fit: cover;
+      object-position: center 55%;
+      mix-blend-mode: multiply;
+    }
+
+    .cover .photo-fade {
+      position: absolute;
+      z-index: 2;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 240px;
+      background: linear-gradient(to bottom, rgba(251,250,247,0), var(--paper) 72%);
+    }
+
+    /* 02 · concepto */
+    .concept .display {
+      margin-top: 74px;
+      max-width: 900px;
+      font-size: 78px;
+    }
+
+    .concept .definition {
+      margin-top: 58px;
+      max-width: 850px;
+      font-size: 38px;
+      line-height: 1.32;
+      font-weight: 600;
+    }
+
+    .concept .definition strong { color: var(--wine); }
+
+    .factors {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+      margin-top: 76px;
+    }
+
+    .factor {
+      min-height: 280px;
+      padding: 34px 28px;
+      border: 2px solid var(--border);
+      background: rgba(255,255,255,0.7);
+    }
+
+    .factor-num {
+      display: block;
+      font: 700 18px/1 var(--font-mono);
+      color: var(--wine);
+    }
+
+    .factor h3 {
+      margin: 66px 0 14px;
+      font: 900 30px/1 var(--font-display);
+      text-transform: uppercase;
+    }
+
+    .factor p {
+      margin: 0;
+      font-size: 21px;
+      line-height: 1.42;
+      color: var(--ink-soft);
+    }
+
+    /* 03 · comparación */
+    .compare .display {
+      margin-top: 68px;
+      font-size: 82px;
+    }
+
+    .compare .compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      margin-top: 58px;
+    }
+
+    .capacity-card {
+      min-height: 390px;
+      padding: 42px;
+      border: 2px solid var(--border);
+      background: rgba(255,255,255,0.82);
+    }
+
+    .capacity-card.featured {
+      color: var(--paper);
+      border-color: var(--ink);
+      background: var(--ink);
+    }
+
+    .capacity-card .type {
+      font: 900 54px/1 var(--font-display);
+    }
+
+    .capacity-card .label {
+      margin-top: 18px;
+      font-size: 24px;
+      color: var(--ink-soft);
+    }
+
+    .capacity-card.featured .label { color: #c7cddd; }
+
+    .capacity-card .value {
+      margin-top: 74px;
+      font: 700 72px/1 var(--font-mono);
+      letter-spacing: -0.05em;
+      color: var(--wine);
+    }
+
+    .capacity-card.featured .value { color: #d59fa7; }
+
+    .capacity-card .caption {
+      margin-top: 18px;
+      font: 700 19px/1 var(--font-mono);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .compare .compare-photo {
+      width: 100%;
+      height: 365px;
+      margin-top: 26px;
+      object-fit: cover;
+      object-position: center 58%;
+      mix-blend-mode: multiply;
+    }
+
+    /* 04 / 05 · ficha */
+    .profile .profile-grid {
+      display: grid;
+      grid-template-columns: 0.92fr 1.08fr;
+      gap: 54px;
+      margin-top: 72px;
+    }
+
+    .profile .type-label {
+      margin-top: 30px;
+      font: 900 96px/0.9 var(--font-display);
+    }
+
+    .profile .type-name {
+      margin-top: 26px;
+      font-size: 26px;
+      font-weight: 600;
+      color: var(--ink-soft);
+    }
+
+    .profile .capacity {
+      margin-top: 92px;
+      font: 700 110px/0.85 var(--font-mono);
+      letter-spacing: -0.075em;
+      color: var(--wine);
+    }
+
+    .profile .capacity small {
+      display: block;
+      margin-top: 24px;
+      font: 700 21px/1 var(--font-mono);
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--ink);
+    }
+
+    .profile-copy {
+      padding-top: 26px;
+    }
+
+    .profile-copy h2 {
+      margin: 0;
+      font: 900 48px/1.05 var(--font-display);
+      letter-spacing: -0.025em;
+      text-transform: uppercase;
+    }
+
+    .profile-copy p {
+      margin: 30px 0 0;
+      font-size: 28px;
+      line-height: 1.46;
+      color: var(--ink-soft);
+    }
+
+    .check-list {
+      list-style: none;
+      padding: 0;
+      margin: 52px 0 0;
+      border-top: 2px solid var(--border);
+    }
+
+    .check-list li {
+      position: relative;
+      padding: 24px 0 24px 34px;
+      border-bottom: 2px solid var(--border);
+      font-size: 23px;
+      line-height: 1.35;
+    }
+
+    .check-list li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 33px;
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--wine);
+    }
+
+    .profile .container-crop {
+      position: absolute;
+      left: 38px;
+      right: 38px;
+      bottom: 84px;
+      width: calc(100% - 76px);
+      height: 350px;
+      object-fit: cover;
+      object-position: center 58%;
+      mix-blend-mode: multiply;
+      opacity: 0.94;
+    }
+
+    .profile.hq .profile-grid { grid-template-columns: 1.04fr 0.96fr; }
+    .profile.hq .profile-copy { order: -1; }
+    .profile.hq .capacity { color: var(--ink); }
+    .profile.hq .capacity small { color: var(--wine); }
+
+    /* 06 · CTA */
+    .cta {
+      color: var(--paper);
+      background:
+        radial-gradient(135% 100% at 50% -12%, #1f3055 0%, #0f1e3d 42%, #0b1428 100%);
+    }
+
+    .cta::before {
+      content: "";
+      position: absolute;
+      width: 780px;
+      height: 780px;
+      right: -270px;
+      bottom: -260px;
+      background: url("../../../../public/brand/dtdcargo-isologo-mono-light.png") center/contain no-repeat;
+      opacity: 0.055;
+    }
+
+    .cta .brand-mini .cargo { color: var(--paper); }
+    .cta .display {
+      max-width: 900px;
+      margin-top: 78px;
+      font-size: 80px;
+    }
+
+    .cta .display em {
+      display: block;
+      margin-top: 12px;
+      color: #d59fa7;
+      font-style: normal;
+    }
+
+    .cta .ask {
+      margin-top: 74px;
+      font-size: 30px;
+      line-height: 1.42;
+      color: #dfe3ec;
+    }
+
+    .cta .data-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-top: 38px;
+    }
+
+    .cta .data-item {
+      padding: 26px 22px;
+      border-top: 2px solid #d59fa7;
+      font: 700 20px/1.25 var(--font-mono);
+      text-transform: uppercase;
+    }
+
+    .cta .action {
+      display: inline-flex;
+      align-items: center;
+      min-height: 92px;
+      margin-top: 66px;
+      padding: 0 34px;
+      color: #ffffff;
+      background: var(--wine);
+      font: 700 25px/1 var(--font-body);
+    }
+
+    .cta .tagline {
+      position: absolute;
+      left: 72px;
+      bottom: 158px;
+      font-size: 29px;
+      line-height: 1.2;
+    }
+
+    .cta .tagline strong { color: #d59fa7; }
+    .cta .footer { color: #a8b0c4; }
+  </style>
+</head>
+<body>
+  <section class="slide cover" data-slide="01">
+    <div class="content">
+      <header class="topbar">
+        <span class="series">Guía DTD · Contenedores</span>
+        <span class="brand-mini"><img src="../../../../public/brand/dtdcargo-isologo-primary.png" alt="" /><span><span class="dtd">DTD</span>&nbsp;<span class="cargo">Cargo</span></span></span>
+      </header>
+      <div class="rule"></div>
+      <h1 class="display hero-title">¿Cuánto cabe de verdad?</h1>
+      <p class="hero-subtitle">CAPACIDAD OPERATIVA · 20GP VS 40HQ</p>
+    </div>
+    <img class="hero-photo" src="assets/contenedores-20gp-40hq-studio.png" alt="Persona junto a contenedores 20GP y 40HQ" />
+    <div class="photo-fade"></div>
+    <footer class="footer"><span>Desliza para comparar</span><span class="page-no">01 / 06</span></footer>
+  </section>
+
+  <section class="slide concept" data-slide="02">
+    <div class="content">
+      <header class="topbar">
+        <span class="series">Primero, una diferencia</span>
+        <span class="brand-mini"><img src="../../../../public/brand/dtdcargo-isologo-primary.png" alt="" /><span><span class="dtd">DTD</span>&nbsp;<span class="cargo">Cargo</span></span></span>
+      </header>
+      <div class="rule"></div>
+      <h1 class="display">Operativo no es lo mismo que vacío</h1>
+      <p class="definition">La capacidad operativa es el espacio que <strong>realmente puedes aprovechar</strong> después de preparar y estibar tu carga.</p>
+      <div class="factors">
+        <article class="factor"><span class="factor-num">01</span><h3>Embalaje</h3><p>La forma y protección de cada pieza ocupan espacio.</p></article>
+        <article class="factor"><span class="factor-num">02</span><h3>Estiba</h3><p>El orden de carga determina cuánto se aprovecha.</p></article>
+        <article class="factor"><span class="factor-num">03</span><h3>Seguridad</h3><p>La mercancía necesita una distribución estable.</p></article>
+      </div>
+      <footer class="footer"><span>Capacidad útil para carga real</span><span class="page-no">02 / 06</span></footer>
+    </div>
+  </section>
+
+  <section class="slide compare" data-slide="03">
+    <div class="content">
+      <header class="topbar">
+        <span class="series">Comparación directa</span>
+        <span class="brand-mini"><img src="../../../../public/brand/dtdcargo-isologo-primary.png" alt="" /><span><span class="dtd">DTD</span>&nbsp;<span class="cargo">Cargo</span></span></span>
+      </header>
+      <div class="rule"></div>
+      <h1 class="display">Dos capacidades operativas</h1>
+      <div class="compare-grid">
+        <article class="capacity-card">
+          <div class="type">20GP</div><div class="label">20 pies estándar</div>
+          <div class="value">~28 CBM</div><div class="caption">Hasta · carga real</div>
+        </article>
+        <article class="capacity-card featured">
+          <div class="type">40HQ</div><div class="label">40 pies High Cube</div>
+          <div class="value">~68 CBM</div><div class="caption">Hasta · carga real</div>
+        </article>
+      </div>
+      <img class="compare-photo" src="assets/contenedores-20gp-40hq-studio.png" alt="Comparación visual de contenedores" />
+      <footer class="footer"><span>La estiba define el aprovechamiento final</span><span class="page-no">03 / 06</span></footer>
+    </div>
+  </section>
+
+  <section class="slide profile" data-slide="04">
+    <div class="content">
+      <header class="topbar">
+        <span class="series">Ficha operativa</span>
+        <span class="brand-mini"><img src="../../../../public/brand/dtdcargo-isologo-primary.png" alt="" /><span><span class="dtd">DTD</span>&nbsp;<span class="cargo">Cargo</span></span></span>
+      </header>
+      <div class="rule"></div>
+      <div class="profile-grid">
+        <div>
+          <div class="type-label">20GP</div>
+          <div class="type-name">20 pies estándar</div>
+          <div class="capacity">~28<small>CBM · hasta</small></div>
+        </div>
+        <div class="profile-copy">
+          <p class="kicker">Carga operativa</p>
+          <h2>Una opción compacta</h2>
+          <p>Para operaciones que no necesitan el volumen de un contenedor High Cube.</p>
+          <ul class="check-list">
+            <li>El cálculo parte de las cajas embaladas.</li>
+            <li>La distribución debe ser estable y segura.</li>
+            <li>El espacio útil puede variar según la estiba.</li>
+          </ul>
+        </div>
+      </div>
+      <img class="container-crop" src="assets/contenedor-20gp-banner.png" alt="Contenedor 20GP" />
+      <footer class="footer"><span>Referencia operativa DTD Cargo</span><span class="page-no">04 / 06</span></footer>
+    </div>
+  </section>
+
+  <section class="slide profile hq" data-slide="05">
+    <div class="content">
+      <header class="topbar">
+        <span class="series">Ficha operativa</span>
+        <span class="brand-mini"><img src="../../../../public/brand/dtdcargo-isologo-primary.png" alt="" /><span><span class="dtd">DTD</span>&nbsp;<span class="cargo">Cargo</span></span></span>
+      </header>
+      <div class="rule"></div>
+      <div class="profile-grid">
+        <div>
+          <div class="type-label">40HQ</div>
+          <div class="type-name">40 pies High Cube</div>
+          <div class="capacity">~68<small>CBM · hasta</small></div>
+        </div>
+        <div class="profile-copy">
+          <p class="kicker">Carga operativa</p>
+          <h2>Más espacio para volumen</h2>
+          <p>Su mayor capacidad permite organizar cargas voluminosas con más flexibilidad.</p>
+          <ul class="check-list">
+            <li>El embalaje cambia el espacio disponible.</li>
+            <li>No todo el volumen nominal es aprovechable.</li>
+            <li>La planificación de estiba sigue siendo clave.</li>
+          </ul>
+        </div>
+      </div>
+      <img class="container-crop" src="assets/contenedor-40hq-banner.png" alt="Contenedor 40HQ" />
+      <footer class="footer"><span>Referencia operativa DTD Cargo</span><span class="page-no">05 / 06</span></footer>
+    </div>
+  </section>
+
+  <section class="slide cta" data-slide="06">
+    <div class="content">
+      <header class="topbar">
+        <span class="series" style="color:#d59fa7">Antes de elegir</span>
+        <span class="brand-mini"><img src="../../../../public/brand/dtdcargo-isologo-reverse.png" alt="" /><span><span class="dtd" style="color:#d59fa7">DTD</span>&nbsp;<span class="cargo">Cargo</span></span></span>
+      </header>
+      <div class="rule" style="background:#d59fa7"></div>
+      <h1 class="display">No elijas sólo por el contenedor.<em>Elige por tu carga.</em></h1>
+      <p class="ask">Para orientarte necesitamos tres datos:</p>
+      <div class="data-row">
+        <div class="data-item">Cantidad de piezas</div>
+        <div class="data-item">Largo × ancho × alto</div>
+        <div class="data-item">Peso total</div>
+      </div>
+      <div class="action">Calcula tu envío en dtdcargo.com/calculadora</div>
+      <div class="tagline"><strong>Con Confianza,</strong><br />de China a tu puerta.</div>
+      <footer class="footer"><span>@doortudoor_</span><span class="page-no" style="color:#d59fa7">06 / 06</span></footer>
+    </div>
+  </section>
+</body>
+</html>
