@@ -103,13 +103,16 @@ export function showNewPurchaseWizard(
  * ¿El alta de proveedor pide la ficha extendida del Norte? (SDD-0172 · de dónde
  * salió · si ya le había comprado · canal de comunicación).
  *
- * 🔴 **Depende de la migración `0266_suppliers_cn_portal_profile`, que NO está
- * aplicada.** Con el flag en `false` la ficha no se pinta y la server action no
- * manda esos campos — el alta funciona igual aunque este código llegue a prod
- * antes que la migración. ORDEN OBLIGATORIO: primero aplicar la migración,
- * DESPUÉS prender esto. Al revés el insert revienta.
+ * ✅ Su migración `0266_suppliers_cn_portal_profile` está **APLICADA en prod**
+ * (2026-07-28, OK del founder nombrándola). Verificado contra el objeto: 4
+ * columnas nullable + 3 CHECK + fila en el ledger.
  *
- * Por eso NO cuelga de `isDemoMarkbox`: ni siquiera las cuentas demo pueden
- * verlo antes de tiempo, porque el que rompería es el INSERT, no la vista.
+ * NO cuelga de `isDemoMarkbox` a propósito: mientras la migración no existía, lo
+ * que rompía era el INSERT y no la vista, así que ni las cuentas demo debían
+ * verlo. Ahora que existe, el interruptor es uno solo. Para revertir: `false`.
+ *
+ * ⚠️ Alcance real: el alta de proveedor vive en `SupplierPicker`, que usan TANTO
+ * el asistente COMO el formulario largo. En `true`, las 3 preguntas las ve todo
+ * cliente que dé de alta un proveedor, no sólo quien esté en el asistente.
  */
-export const SUPPLIER_PROFILE_EXTENDED_LIVE = false;
+export const SUPPLIER_PROFILE_EXTENDED_LIVE = true;

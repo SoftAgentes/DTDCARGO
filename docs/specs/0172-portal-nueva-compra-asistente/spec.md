@@ -140,13 +140,18 @@ prod eso era falso**: `suppliers_cn` ya tiene `industry` (= "¿qué vende?") y
 `contact_phone`. Sólo faltaban **4 columnas** (3 respuestas + la nota condicional
 del origen) → `0266_suppliers_cn_portal_profile.sql`.
 
-- **La migración NO está aplicada.** Registrada en `migrations-baseline.json`; se
-  aplica sólo con OK del founder **nombrando el archivo** (runbook).
-- **El código es inerte** con `SUPPLIER_PROFILE_EXTENDED_LIVE = false`: la ficha no
-  se pinta y la action no nombra esas columnas, así que puede llegar a prod antes
-  que la migración. `SUPPLIER_COLUMNS` tampoco las lee.
-- 🔴 **ORDEN OBLIGATORIO: primero la migración, después el flag.** Al revés el
-  insert revienta.
+- ✅ **APLICADA en prod el 2026-07-28** con OK del founder nombrando el archivo,
+  de a UNA, con el basename exacto como `name` (runbook). Verificada **contra el
+  objeto, no contra el nombre**: 4 columnas nullable + los 3 CHECK con su
+  definición + fila en el ledger. `get_advisors(security)`: **0 menciones de
+  `suppliers_cn`** en los 125 hallazgos del proyecto → no introdujo ninguno.
+  Sacada de `pendingBelowCutoff`; el `cutoff` sigue en 238 (subirlo sólo relajaría
+  la vigilancia).
+- `SUPPLIER_PROFILE_EXTENDED_LIVE` pasó a `true` — el orden fue migración primero,
+  flag después.
+- ⚠️ **Alcance del flag:** `SupplierPicker` lo usan el asistente **y** el
+  formulario largo, así que las 3 preguntas las ve todo cliente que dé de alta un
+  proveedor, no sólo quien esté en el asistente.
 - Divergencia deliberada del Norte: allá las 3 preguntas son **obligatorias**; acá
   son opcionales. Bloquear el alta de un proveedor por "¿de dónde lo sacaste?"
   cuesta compras; la respuesta se pide, no se exige.
