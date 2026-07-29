@@ -288,6 +288,14 @@ export const CIUDADES: Ciudad[] = [
   { id: "puerto-ordaz", label: "Puerto Ordaz",     km: 770, casco: false },
   { id: "punto-fijo",   label: "Punto Fijo",       km: 290, casco: false },
   { id: "coro",         label: "Coro",             km: 260, casco: false },
+  // Destinos con landing SEO en lib/geo-zonas.ts que faltaban acá (migración
+  // 0277). Acarigua queda bajo el threshold del casco (200 km) → su recargo
+  // por distancia calcula $0; sale de la fórmula, no de una excepción.
+  { id: "acarigua",     label: "Acarigua",         km: 175, casco: false },
+  { id: "valera",       label: "Valera",           km: 360, casco: false },
+  { id: "san-fernando", label: "San Fernando de Apure", km: 370, casco: false },
+  { id: "cumana",       label: "Cumaná",           km: 560, casco: false },
+  { id: "maturin",      label: "Maturín",          km: 650, casco: false },
   // Margarita (isla) — caso especial: mismo cálculo por km pero advertir
   // que cruza ferry. Edita el km si quieres que pague más por la travesía.
   { id: "margarita",    label: "Isla Margarita",   km: 540, casco: false },
