@@ -3,14 +3,14 @@
 | Control | Valor |
 |---|---|
 | Documento | Índice maestro del Sistema de Gobernanza |
-| Versión | 5.2 |
+| Versión | 5.3 |
 | Dueño | Sam (founder) |
 | Custodia | Producto + Diseño + Ingeniería |
 | Estado | activo |
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-29 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-045 · destino repo/team PLG-01](BASELINE-2026-07-29-17.md) |
+| Línea base vigente | [LB-SGE-071 · ACL histórico tenant listo para aplicación individual](BASELINE-2026-07-29-43.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -55,7 +55,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Revisión de implementación de comentarios | [REV-MP-003](reviews/mp-01-comments-implementation.md) |
 | Revisión local de DB-2 de comentarios | [REV-MP-004](reviews/mp-01-comments-db2.md) |
 | Revalidación Preview, Producción y limpieza de comentarios | [REV-MP-005](reviews/mp-01-comments-preview-e2e.md) |
-| Botones y acciones | [BTN-01 v1.0](policies/btn-01.md) |
+| Botones y acciones | [BTN-01 v1.1](policies/btn-01.md) |
 | Presión sostenida crítica | [HTD-01 v1.0](policies/htd-01.md) |
 | Auditoría de mutaciones | [AUD-01 v1.0](policies/aud-01.md) |
 | Consulta, retención y exportación de logs | [AUD-02 v1.0](policies/aud-02.md) |
@@ -81,6 +81,8 @@ artefactos permanecen en sus fuentes correspondientes.
 | Intento efímero y teardown terminal SDD-0172 | [REV-AUD-019](reviews/aud-tenant-fixtures-ephemeral-validation.md) |
 | Reparación local del payload 0210 | [REV-AUD-028](reviews/aud-sdd-0118-pin-search-path-history.md) |
 | Recibo Cloud de 0275 | [REV-AUD-029](reviews/aud-sdd-0118-pin-search-path-history-application.md) |
+| Reparación histórica de `rls_auto_enable` | [REV-AUD-032](reviews/aud-sdd-0118-rls-auto-enable-history.md) |
+| Reparación histórica del ACL tenant antes de 0268 | [REV-AUD-033](reviews/aud-sdd-0172-tenant-acl-history.md) |
 | Inventario read-only del Corte C | [C0 · repo y Cloud](../specs/0166-auditoria-gobernada-aud-01-aud-02/inventario-corte-c-2026-07-28.md) |
 | Diseño correctivo del Corte C | [Consulta gobernada y RBAC v1.1](../specs/0166-auditoria-gobernada-aud-01-aud-02/diseno-correctivo-corte-c.md) |
 | Revisión del diseño Corte C | [REV-AUD-012](reviews/aud-corte-c.md) |
@@ -95,14 +97,14 @@ artefactos permanecen en sus fuentes correspondientes.
 | Diseño y revisión del Corte E | [REV-AUD-016](reviews/aud-corte-e.md) |
 | Jerarquía visual | [VIS-01 v1.0](policies/vis-01.md) |
 | Tipografía por voz e idioma | [VIS-02 v1.0](policies/vis-02.md) |
-| Accesibilidad transversal | [A11Y-01 v1.0](policies/a11y-01.md) |
+| Accesibilidad transversal | [A11Y-01 v1.1](policies/a11y-01.md) |
 | Movimiento y tiempos | [MOT-01 v1.0](policies/mot-01.md) |
 | Carga y espera | [LOD-01 v1.0](policies/lod-01.md) |
 | Errores y recuperación | [ERR-01 v1.0](policies/err-01.md) |
-| Búsqueda | [BUS-01 v1.0](policies/bus-01.md) |
+| Búsqueda | [BUS-01 v1.1](policies/bus-01.md) |
 | Creación rápida | [CRT-01 v1.0](policies/crt-01.md) |
 | Campos numéricos | [NUM-01 v1.0](policies/num-01.md) |
-| Formularios | [FRM-01 v1.0](policies/frm-01.md) |
+| Formularios | [FRM-01 v1.1](policies/frm-01.md) |
 | Tablas | [TBL-01 v1.0](policies/tbl-01.md) |
 | Iconografía | [ICO-01 v1.0](policies/ico-01.md) |
 | Carga de archivos | [UPL-01 v1.0](policies/upl-01.md) |
@@ -123,6 +125,13 @@ artefactos permanecen en sus fuentes correspondientes.
 | Destino repo/team PLG-01 | [REV-SGE-013](reviews/plg-01-destination.md) |
 | Auditoría SGE/BTN/VIS/AVS | [REV-SGE-008](reviews/adoption-sge-btn-vis-avs-2026-07-29.md) |
 | Plan de adopción por slices | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
+| Revisión de patrones UX en videos | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
+| Portabilidad EOL de SDD-0118 | [REV-AUD-030](reviews/aud-sdd-0118-eol-portability.md) |
+| Dependencias ejecutables CMP-01 | [REV-SGE-015](reviews/cmp-01-dependency-validation.md) |
+| Estabilidad bajo carga del guardia SDD-0164 | [REV-SGE-016](reviews/shipment-public-test-load-hardening.md) |
+| Tabs accesibles en Fiscal | [SDD-0180](../specs/0180-tabs-accesibles-fiscal/spec.md) |
+| Selectores accesibles y colisión | [SDD-0181](../specs/0181-selectores-accesibles-colision/spec.md) |
+| Validación progresiva en Club | [SDD-0182](../specs/0182-validacion-progresiva-identidad-club/spec.md) |
 | Implementación VIS-02 | [SDD-0175 aprobado](../specs/0175-vis-02-tipografia-voz-idioma/spec.md) |
 | Decisión documental Noto Serif SC | [REV-VIS-002 · BD-036](reviews/vis-02-brand-gate.md) |
 | Investigación de skills | [Mapa de capacidades y límites](research/skills-map.md) |
@@ -162,14 +171,14 @@ disfraza elevando el estado normativo.
 |---|---|---|---|---|
 | SGE-00 | Principios constitucionales de experiencia | aprobada | Adopción parcial; plan por superficies y riesgo aprobado | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | MP-01 | Matriz de permanencia | aprobada v1.1 | [SDD-0168](../specs/0168-mp-01-comentarios-permanencia-restauracion/spec.md) cerrado: DB-1 y DB-2 en Cloud, APP integrada en `d93c56e4`, Vercel Producción y E2E autenticado aprobados, fixtures retirados | [REV-MP-005](reviews/mp-01-comments-preview-e2e.md); ACL históricos, purga y retención permanecen fuera de alcance |
-| BTN-01 | Semántica, jerarquía y contrato de botones | aprobada | Adopción parcial; slices R2/R3 definidos sin barrido masivo | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
+| BTN-01 | Semántica, jerarquía y contrato de botones | aprobada v1.1 | Contrato menu button precisado; adopción parcial | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | HTD-01 | Confirmación por presión sostenida | aprobada | [Contrato v1.0](policies/htd-01.md) consolidado; no implementado | Crear SDD solo para una entidad R3 clasificada por MP-01 |
 | AVS-01 | Avisos y confirmaciones | verificada | Primitiva conforme; consumidores legacy se migran solo dentro de slices R2/R3 | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | AUD-01 | Evento auditable y vínculo con acciones | aprobada | Diseño D1 aprobado: 24 operaciones obligatorias y workflow Auth durable; implementación pendiente | [REV-AUD-017](reviews/aud-d1-access-config-design.md) |
 | AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B y guardrail tenant 0268 aplicados; intento efímero detenido por SDD-0118 y teardown terminal verificado | [REV-AUD-019](reviews/aud-tenant-fixtures-ephemeral-validation.md); consulta/RBAC y `0270` conservan gates separados |
 | VIS-01 | Jerarquía visual y distribución 60-30-10 | aprobada | Adopción parcial; muestreo acotado a slices y clasificación de literales | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | SDD-0175 aprobado; BD-036 cierra V0 sin cargar la fuente | Ejecutar V1 tokens/fuente |
-| BUS-01 | Buscadores predictivos y contexto de resultados | aprobada v1.0 | Búsqueda global y `ClientCombobox` existen; adopción no auditada | Auditar scopes, ranking y desambiguación |
+| BUS-01 | Buscadores predictivos y contexto de resultados | aprobada v1.1 | Teclado y colisión formalizados; adopción no auditada | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | CRT-01 | Creación rápida desde contexto | aprobada v1.0 | Patrones locales sin primitiva común | Auditar flujos de retorno |
 | NUM-01 | Campos numéricos y financieros | aprobada v1.0 | `NumericInput` existe; adopción no auditada | Auditar precisión por dominio |
 | MOT-01 | Movimiento, tiempos y reducción de movimiento | aprobada v1.0 | Tokens 120/180/260 ms existen; quedan duraciones locales | Auditar excepciones |
@@ -182,9 +191,9 @@ disfraza elevando el estado normativo.
 | ERR-01 | Taxonomía y presentación de errores | aprobada v1.0 | `ErrorAlert`, campos y toasts coexisten | Auditar adopción |
 | UPL-01 | Carga de archivos e imágenes | aprobada v1.0 | Implementaciones dispersas | Auditar límites y Storage por módulo |
 | ICO-01 | Iconografía semántica | aprobada v1.0 | Catálogo central parcial | Auditar metáforas y accesibilidad |
-| FRM-01 | Formularios y validación | aprobada v1.0 | Patrones compartidos parciales | Auditar por riesgo y conservación |
+| FRM-01 | Formularios y validación | aprobada v1.1 | Ciclo progresivo formalizado; patrones compartidos parciales | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | TBL-01 | Tablas, densidad y configuración | aprobada v1.0 | `ColumnManager` tiene adopción limitada | Auditar listados y móvil |
-| A11Y-01 | Accesibilidad transversal | aprobada v1.0 | Buenas bases; sin matriz integral | Ejecutar auditoría transversal |
+| A11Y-01 | Accesibilidad transversal | aprobada v1.1 | Contratos tabs/menu/listbox explícitos; sin matriz integral | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | IA-01 | Interacciones asistidas por IA | aprobada v1.0 | Regla local “IA propone”; sin gate transversal | Auditar permisos, privacidad y evidencia |
 | CMP-01 | Ciclo de vida y madurez de componentes | aprobada v1.0 | `ConfirmDialog` recorrió proposed→canonical; agregado y tests verdes; falta caso deprecated | [REV-SGE-012](reviews/cmp-confirm-dialog-canonical.md) |
 | PLG-01 | Plugin ejecutable de gobernanza | aprobada v1.0 | SDD-0178 aprobado; destino repo/team decidido; plugin no creado ni instalado | Completar estabilidad CMP antes de solicitar scaffold |
@@ -261,7 +270,23 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-062 · replay R7 y teardown terminal](BASELINE-2026-07-29-34.md).
+[LB-SGE-070 · historial RLS listo para aplicación individual](BASELINE-2026-07-29-42.md).
+La estabilidad bajo carga del guardia SDD-0164 permanece en
+[LB-SGE-069](BASELINE-2026-07-29-41.md).
+La validación de dependencias CMP-01 permanece en
+[LB-SGE-068](BASELINE-2026-07-29-40.md).
+La portabilidad EOL de SDD-0118 permanece en
+[LB-SGE-067](BASELINE-2026-07-29-39.md).
+La validación progresiva permanece en
+[LB-SGE-066](BASELINE-2026-07-29-38.md).
+Los selectores accesibles permanecen en
+[LB-SGE-065](BASELINE-2026-07-29-37.md).
+Los tabs accesibles en Fiscal permanecen en
+[LB-SGE-064](BASELINE-2026-07-29-36.md).
+Los contratos UX formalizados permanecen en
+[LB-SGE-063](BASELINE-2026-07-29-35.md).
+El replay R7 y su teardown terminal permanecen en
+[LB-SGE-062](BASELINE-2026-07-29-34.md).
 La aplicación Cloud de 0276 permanece en
 [LB-SGE-061](BASELINE-2026-07-29-33.md).
 La reparación local del payload 0209 permanece en

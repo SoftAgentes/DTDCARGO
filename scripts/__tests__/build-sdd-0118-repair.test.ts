@@ -37,6 +37,10 @@ const {
   SQL_TEST_PATH,
 } = repairModule;
 
+async function readNormalized(path: string): Promise<string> {
+  return (await readFile(path, "utf8")).replace(/\r\n/g, "\n");
+}
+
 describe("SDD-0118 branch replay repair", () => {
   it("cubre los dos prerequisitos adelantados y nueve placeholders post-hoc", () => {
     expect(REPAIRS).toHaveLength(11);
@@ -64,10 +68,10 @@ describe("SDD-0118 branch replay repair", () => {
 
   it("mantiene sincronizados la migración y su prueba transaccional", async () => {
     const repairs = await loadRepairs();
-    await expect(readFile(MIGRATION_PATH, "utf8")).resolves.toBe(
+    await expect(readNormalized(MIGRATION_PATH)).resolves.toBe(
       buildMigration(repairs),
     );
-    await expect(readFile(SQL_TEST_PATH, "utf8")).resolves.toBe(
+    await expect(readNormalized(SQL_TEST_PATH)).resolves.toBe(
       buildSqlTest(repairs),
     );
   });
@@ -79,10 +83,10 @@ describe("SDD-0118 branch replay repair", () => {
     expect(followups).toHaveLength(2);
     expect(followups.map((followup: { version: string }) => followup.version))
       .toEqual(["20260528060007", "20260528060008"]);
-    await expect(readFile(FOLLOWUP_MIGRATION_PATH, "utf8")).resolves.toBe(
+    await expect(readNormalized(FOLLOWUP_MIGRATION_PATH)).resolves.toBe(
       buildFollowupMigration(followups),
     );
-    await expect(readFile(FOLLOWUP_SQL_TEST_PATH, "utf8")).resolves.toBe(
+    await expect(readNormalized(FOLLOWUP_SQL_TEST_PATH)).resolves.toBe(
       buildFollowupSqlTest(followups),
     );
   });
@@ -123,10 +127,10 @@ describe("SDD-0118 branch replay repair", () => {
       "insert into public.platform_admins",
     );
     await expect(
-      readFile(PLATFORM_ADMIN_MIGRATION_PATH, "utf8"),
+      readNormalized(PLATFORM_ADMIN_MIGRATION_PATH),
     ).resolves.toBe(buildPlatformAdminMigration(repair));
     await expect(
-      readFile(PLATFORM_ADMIN_SQL_TEST_PATH, "utf8"),
+      readNormalized(PLATFORM_ADMIN_SQL_TEST_PATH),
     ).resolves.toBe(buildPlatformAdminSqlTest(repair));
   });
 
@@ -165,10 +169,10 @@ describe("SDD-0118 branch replay repair", () => {
       "insert into public.calculator_settings",
     );
     await expect(
-      readFile(CALCULATOR_SETTINGS_MIGRATION_PATH, "utf8"),
+      readNormalized(CALCULATOR_SETTINGS_MIGRATION_PATH),
     ).resolves.toBe(buildCalculatorSettingsMigration(repair));
     await expect(
-      readFile(CALCULATOR_SETTINGS_SQL_TEST_PATH, "utf8"),
+      readNormalized(CALCULATOR_SETTINGS_SQL_TEST_PATH),
     ).resolves.toBe(buildCalculatorSettingsSqlTest(repair));
   });
 
@@ -213,10 +217,10 @@ describe("SDD-0118 branch replay repair", () => {
       "alter function public.comments_validate_entity()",
     );
     await expect(
-      readFile(PIN_SEARCH_PATH_MIGRATION_PATH, "utf8"),
+      readNormalized(PIN_SEARCH_PATH_MIGRATION_PATH),
     ).resolves.toBe(buildPinSearchPathMigration(repair));
     await expect(
-      readFile(PIN_SEARCH_PATH_SQL_TEST_PATH, "utf8"),
+      readNormalized(PIN_SEARCH_PATH_SQL_TEST_PATH),
     ).resolves.toBe(buildPinSearchPathSqlTest(repair));
   });
 
@@ -250,10 +254,10 @@ describe("SDD-0118 branch replay repair", () => {
       "revoke execute on function public.comment_mentions_validate()",
     );
     await expect(
-      readFile(REVOKE_ANON_SWEEP_MIGRATION_PATH, "utf8"),
+      readNormalized(REVOKE_ANON_SWEEP_MIGRATION_PATH),
     ).resolves.toBe(buildRevokeAnonSweepMigration(repair));
     await expect(
-      readFile(REVOKE_ANON_SWEEP_SQL_TEST_PATH, "utf8"),
+      readNormalized(REVOKE_ANON_SWEEP_SQL_TEST_PATH),
     ).resolves.toBe(buildRevokeAnonSweepSqlTest(repair));
   });
 });

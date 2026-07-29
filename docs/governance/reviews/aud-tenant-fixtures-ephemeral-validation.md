@@ -429,3 +429,69 @@ comportamiento fail-closed y el teardown terminal del séptimo intento. No
 aprueba SDD-0172: el contrato reproducible de `rls_auto_enable()` y
 `ensure_rls` requiere diseño forward-only propio y, si produce un basename
 nuevo, autorización expresa antes de cualquier aplicación Cloud.
+
+## 19. Octavo intento después de `0277`
+
+Producción ya contenía `0277_version_rls_auto_enable`, pero esa migración tiene
+una versión posterior a 0209. Se creó R8 para comprobar el comportamiento real:
+
+| Campo | Valor |
+|---|---|
+| Nombre | `sdd-0172-ephemeral-20260729-r8` |
+| `branch_id` | `fdcc9a71-e7b7-4cbd-a278-52551e10f70e` |
+| `project_ref` | `alcyqfunqvszooxmufqd` |
+| Costo | USD 0,01344 por hora |
+| Datos de Producción | no |
+
+El branch terminó `MIGRATIONS_FAILED` con el mismo error:
+
+```text
+function public.rls_auto_enable() does not exist
+```
+
+Los logs confirman que el fallo volvió a ocurrir en el REVOKE de 0209. No se
+ejecutaron seed, Auth, fixtures, Playwright o SQL correctivo.
+
+## 20. Teardown terminal R8
+
+`delete_branch` devolvió `success=true` para el ID exacto. El inventario
+posterior contiene únicamente `main` con `ACTIVE_HEALTHY`; el `branch_id` y
+`project_ref` R8 están ausentes.
+
+REV-AUD-019 aprueba el fail-closed y teardown de R8. La reparación local
+resultante se documenta en
+[REV-AUD-032](aud-sdd-0118-rls-auto-enable-history.md).
+
+## 21. Noveno intento después de `0278`
+
+Después de aplicar y verificar individualmente
+`0278_restore_rls_auto_enable_history`, se creó otro entorno sin datos de
+Producción:
+
+| Campo | Valor |
+|---|---|
+| Nombre | `sdd-0172-ephemeral-20260729-r9` |
+| `branch_id` | `6746b74f-6fe4-4485-b0ef-d06cae5b259a` |
+| `project_ref` | `csekuuxlrtmtubnjxaep` |
+| Costo | USD 0,01344 por hora |
+| Estado final | `MIGRATIONS_FAILED` |
+
+R9 superó el payload restaurado de 0209 y avanzó hasta
+`0268_tenant_lifecycle_guardrails`. El preflight abortó con:
+
+```text
+0268 abortado: un rol cliente puede borrar tenants
+```
+
+No se ejecutaron seed, Auth, fixtures, Playwright o SQL correctivo. Tampoco se
+leyeron filas de negocio o PII.
+
+## 22. Teardown terminal R9
+
+`delete_branch` devolvió `success=true` para
+`6746b74f-6fe4-4485-b0ef-d06cae5b259a`. El inventario posterior devolvió
+únicamente `main` `ACTIVE_HEALTHY`; el `branch_id` y `project_ref` R9 quedaron
+ausentes.
+
+El análisis y la reparación forward-only local resultante están en
+[REV-AUD-033](aud-sdd-0172-tenant-acl-history.md).

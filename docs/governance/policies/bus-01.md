@@ -1,9 +1,9 @@
-# BUS-01 v1.0 — Búsqueda predictiva y contexto de resultados
+# BUS-01 v1.1 — Búsqueda predictiva y contexto de resultados
 
 | Control | Valor |
 |---|---|
 | Estado | aprobada — adopción pendiente |
-| Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-004 |
+| Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-014 |
 | Base actual | `GlobalSearchModal`, `ClientCombobox` y búsquedas por módulo |
 
 ## Contrato
@@ -22,6 +22,11 @@
 - Teclado: foco, flechas, Enter, Escape y anuncio de cantidad/selección.
 - Seleccionar cierra o conserva el popup según el patrón, restaura foco y no
   ejecuta una mutación oculta.
+- El popup evita clipping y puede abrir arriba o abajo según el viewport; zoom
+  200 % y reflow no esconden opciones ni el control que lo abrió.
+- La necesidad de búsqueda, paginación o virtualización depende de contenido,
+  frecuencia, latencia y medición. Umbrales aislados de 10 o 100 opciones no
+  son reglas universales.
 - “Crear nuevo” solo aparece mediante CRT-01 y permiso válido.
 
 ## Gate

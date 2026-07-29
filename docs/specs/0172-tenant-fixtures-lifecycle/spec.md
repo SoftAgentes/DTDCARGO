@@ -157,6 +157,10 @@ No crea funciones ni modifica otra FK.
 | Unit test | `scripts/__tests__/sdd-0168-fixture.test.ts` |
 | DB | `supabase/migrations/0268_tenant_lifecycle_guardrails.sql` |
 | DB test | `supabase/tests/0268_tenant_lifecycle_guardrails.test.sql` |
+| Reparación ACL generador | `scripts/build-sdd-0172-tenant-acl-history.mjs` |
+| Reparación ACL unit | `scripts/__tests__/build-sdd-0172-tenant-acl-history.test.ts` |
+| Reparación ACL DB | `supabase/migrations/0279_restore_tenant_lifecycle_acl_history.sql` |
+| Reparación ACL DB test | `supabase/tests/0279_restore_tenant_lifecycle_acl_history.test.sql` |
 | Operación | `docs/runbooks/e2e-supabase-efimero.md` |
 
 ## 9. Aceptación
@@ -199,6 +203,13 @@ No crea funciones ni modifica otra FK.
 | Teardown remoto R6 | terminal · branch y project ref ausentes; sólo `main` saludable |
 | Supabase efímero R7 | intento fail-closed · 215 migraciones · `0209` referencia `rls_auto_enable()` ausente |
 | Teardown remoto R7 | terminal · branch y project ref ausentes; sólo `main` saludable |
+| Supabase efímero R8 | intento fail-closed · `0209` vuelve a fallar porque 0277 llega después en el ledger |
+| Teardown remoto R8 | terminal · branch y project ref ausentes; sólo `main` saludable |
+| Reparación RLS local | 0277 recuperada; 0278 determinista y verde en PostgreSQL 15/17 · [REV-AUD-032](../../governance/reviews/aud-sdd-0118-rls-auto-enable-history.md) |
+| Reparación RLS Cloud | 0278 aplicada; cardinalidad/digests, invariantes y advisors verdes |
+| Supabase efímero R9 | intento fail-closed · supera 0209; 0268 detecta DELETE efectivo en rol cliente |
+| Teardown remoto R9 | terminal · branch y project ref ausentes; sólo `main` saludable |
+| Reparación ACL tenant local | 0279 determinista; PostgreSQL 15/17 reproducen R9, ejecutan 0268 y terminan en rollback · [REV-AUD-033](../../governance/reviews/aud-sdd-0172-tenant-acl-history.md) |
 
 ## 11. Rollback
 
@@ -210,8 +221,8 @@ No crea funciones ni modifica otra FK.
 
 ## 12. Gates pendientes
 
-1. resolver mediante gate propio la ausencia histórica de
-   `rls_auto_enable()` y `ensure_rls`;
+1. aplicar individualmente `0279_restore_tenant_lifecycle_acl_history` después de
+   autorización nominal y verificar postcondiciones/advisors;
 2. crear un Supabase efímero completamente nuevo que alcance
    `MIGRATIONS_PASSED`;
 3. ejecutar seed, recorrido E2E y verificación sin DML de cleanup;
@@ -225,11 +236,15 @@ El gate Cloud de 0274 quedó cerrado en
 [REV-AUD-027](../../governance/reviews/aud-sdd-0118-calculator-settings-history-application.md).
 El gate Cloud de 0275 quedó cerrado en
 [REV-AUD-029](../../governance/reviews/aud-sdd-0118-pin-search-path-history-application.md).
-Los siete intentos reales y sus teardowns quedaron registrados en
+Los nueve intentos reales y sus teardowns terminales quedaron registrados en
 [REV-AUD-019](../../governance/reviews/aud-tenant-fixtures-ephemeral-validation.md).
 El diseño local de `0276` quedó aprobado en
 [REV-AUD-030](../../governance/reviews/aud-sdd-0118-revoke-anon-history.md).
 El gate Cloud de `0276` quedó cerrado en
 [REV-AUD-031](../../governance/reviews/aud-sdd-0118-revoke-anon-history-application.md).
+El gate Cloud de 0278 y el gate local de 0279 quedaron aprobados en
+[REV-AUD-033](../../governance/reviews/aud-sdd-0172-tenant-acl-history.md).
+El gate local de 0277/0278 quedó documentado en
+[REV-AUD-032](../../governance/reviews/aud-sdd-0118-rls-auto-enable-history.md).
 SDD-0172 permanece `in-progress`: el teardown fue válido, pero el fixture no
 se ejecutó porque el replay histórico falló antes de construir el schema.

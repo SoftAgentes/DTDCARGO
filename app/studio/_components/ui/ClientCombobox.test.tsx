@@ -117,4 +117,31 @@ describe("ClientCombobox", () => {
     await user.type(screen.getByRole("combobox"), "zz");
     expect(await screen.findByText(/Sin coincidencias/i)).toBeInTheDocument();
   });
+
+  it("abre hacia arriba cuando el viewport no deja espacio debajo", async () => {
+    const user = userEvent.setup();
+    render(<Harness onSelect={() => {}} />);
+
+    const input = screen.getByRole("combobox");
+    vi.spyOn(input.parentElement!, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 700,
+      top: 700,
+      right: 320,
+      bottom: 740,
+      left: 0,
+      width: 320,
+      height: 40,
+      toJSON: () => ({}),
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 800,
+    });
+
+    await user.type(input, "ana");
+    const listbox = await screen.findByRole("listbox");
+    await waitFor(() => expect(listbox).toHaveAttribute("data-placement", "up"));
+    expect(listbox).toHaveStyle({ bottom: "calc(100% + 4px)" });
+  });
 });

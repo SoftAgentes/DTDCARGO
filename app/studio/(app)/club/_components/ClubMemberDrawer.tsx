@@ -12,7 +12,7 @@
  * Shipping Mark, origen y notas.
  */
 
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
@@ -46,6 +46,7 @@ type CiHint =
   | { kind: "idle" }
   | { kind: "checking" }
   | { kind: "invalid" }
+  | { kind: "valid"; normalized: string }
   | { kind: "new"; normalized: string }
   | {
       kind: "existing";
@@ -79,6 +80,9 @@ export function ClubMemberDrawer({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [ciHint, setCiHint] = useState<CiHint>({ kind: "idle" });
+  const [ciLiveValidation, setCiLiveValidation] = useState(false);
+  const ciInputRef = useRef<HTMLInputElement>(null);
+  const ciHintId = useId();
 
   const canSubmit = isEdit
     ? !pending
@@ -93,8 +97,10 @@ export function ClubMemberDrawer({
     }
     if (!isValidStudentCi(raw)) {
       setCiHint({ kind: "invalid" });
+      setCiLiveValidation(true);
       return;
     }
+    setCiLiveValidation(false);
     setCi(formatStudentCi(raw));
     setCiHint({ kind: "checking" });
     const r = await lookupMemberCiAction(raw);
@@ -116,9 +122,30 @@ export function ClubMemberDrawer({
     }
   };
 
+  const handleCiChange = (nextCi: string) => {
+    setCi(nextCi);
+    if (!ciLiveValidation) {
+      if (ciHint.kind !== "idle") setCiHint({ kind: "idle" });
+      return;
+    }
+
+    const raw = nextCi.trim();
+    if (!isValidStudentCi(raw)) {
+      setCiHint({ kind: "invalid" });
+      return;
+    }
+    setCiHint({ kind: "valid", normalized: formatStudentCi(raw) });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
+    if (!isEdit && !isValidStudentCi(ci.trim())) {
+      setCiHint({ kind: "invalid" });
+      setCiLiveValidation(true);
+      ciInputRef.current?.focus();
+      return;
+    }
     setError(null);
     setPending(true);
 
@@ -240,13 +267,14 @@ export function ClubMemberDrawer({
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <Field label="Documento (cédula)">
                 <input
+                  ref={ciInputRef}
+                  id="club-member-ci"
                   className="studio-input studio-input-mono"
                   placeholder="V-18.452.110"
                   value={ci}
-                  onChange={(e) => {
-                    setCi(e.target.value);
-                    if (ciHint.kind !== "idle") setCiHint({ kind: "idle" });
-                  }}
+                  aria-invalid={ciHint.kind === "invalid"}
+                  aria-describedby={ciHint.kind === "idle" ? undefined : ciHintId}
+                  onChange={(e) => handleCiChange(e.target.value)}
                   onBlur={handleCiBlur}
                 />
               </Field>
@@ -261,7 +289,7 @@ export function ClubMemberDrawer({
               </Field>
             </div>
 
-            <CiHintNote hint={ciHint} />
+            <CiHintNote id={ciHintId} hint={ciHint} />
           </>
         )}
 
@@ -343,7 +371,7 @@ export function ClubMemberDrawer({
 }
 
 /** Nota inline bajo el par cédula/correo: estado del lookup de identidad. */
-function CiHintNote({ hint }: { hint: CiHint }) {
+function CiHintNote({ id, hint }: { id: string; hint: CiHint }) {
   if (hint.kind === "idle") return null;
 
   let color = "var(--ink-soft)";
@@ -353,6 +381,9 @@ function CiHintNote({ hint }: { hint: CiHint }) {
   } else if (hint.kind === "invalid") {
     color = "var(--danger)";
     text = "Cédula con formato inválido. Ej: V-18.452.110 o J-12345678-9.";
+  } else if (hint.kind === "valid") {
+    color = "var(--success)";
+    text = `Formato correcto: ${hint.normalized}. La identidad se verificará al salir del campo.`;
   } else if (hint.kind === "new") {
     color = "var(--info)";
     text = `Persona nueva · se registrará ${hint.normalized}.`;
@@ -367,7 +398,11 @@ function CiHintNote({ hint }: { hint: CiHint }) {
   }
 
   return (
-    <p role="status" style={{ font: "500 12px/1.4 var(--f-sans)", color, margin: "-4px 0 0" }}>
+    <p
+      id={id}
+      role={hint.kind === "invalid" ? "alert" : "status"}
+      style={{ font: "500 12px/1.4 var(--f-sans)", color, margin: "-4px 0 0" }}
+    >
       {text}
     </p>
   );

@@ -64,7 +64,13 @@ const LEDGER_ONLY = new Set([
   "0274_restore_calculator_settings_history.sql",
   "0275_restore_pin_search_path_history.sql",
   "0276_restore_revoke_anon_rpc_sweep_history.sql",
+  "0278_restore_rls_auto_enable_history.sql",
+  "0279_restore_tenant_lifecycle_acl_history.sql",
 ]);
+// ⚠️ MANTENIMIENTO: SDD-0118 sigue publicando migraciones de este tipo. Cuando el
+// gate muera en una `*_history.sql` con un error "drift en <version> <name>", es
+// una nueva sólo-ledger: agregala acá. La verificación empírica de más abajo se
+// encarga de que no puedas colar DDL de negocio con esa excusa.
 
 const MIGRATIONS_DIR = resolve(process.cwd(), "supabase/migrations");
 const STUBS = resolve(process.cwd(), "supabase/tests/_supabase-platform-stubs.sql");
@@ -210,6 +216,11 @@ try {
     console.log(`${C.red}[FAIL]${C.nc} el schema NO se reconstruye: murió en ${file} (tras ${count} migraciones)`);
     console.log(`${C.dim}   ${err.trim()}${C.nc}`);
     console.log(`${C.dim}   Si la migración ya está en prod, el archivo del repo igual tiene que ser aplicable:\n   una base que no se puede reconstruir no se puede auditar ni restaurar.${C.nc}`);
+    if (/drift en |supabase_migrations/.test(err)) {
+      console.log(
+        `${C.yellow}   → Ese error es de un preflight de LEDGER (SDD-0118): la migración repara\n     supabase_migrations y no tiene nada que reparar en una base limpia.\n     Agregá "${file}" a LEDGER_ONLY en este script. El chequeo empírico de\n     abajo verifica igual que no toque tablas, funciones ni policies.${C.nc}`,
+      );
+    }
     process.exit(1);
   }
 

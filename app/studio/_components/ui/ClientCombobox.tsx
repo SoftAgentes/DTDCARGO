@@ -49,6 +49,8 @@ interface Props {
 }
 
 const DEBOUNCE_MS = 300;
+const ESTIMATED_LISTBOX_HEIGHT = 280;
+type ListboxDirection = "down" | "up";
 
 function prefersReducedMotion(): boolean {
   return (
@@ -74,6 +76,7 @@ export function ClientCombobox({
   const [active, setActive] = useState(-1);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [direction, setDirection] = useState<ListboxDirection>("down");
 
   const listboxId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -130,6 +133,19 @@ export function ClientCombobox({
     [onSelect],
   );
 
+  const updateDirection = useCallback(() => {
+    const root = rootRef.current;
+    if (!root || typeof window === "undefined") return;
+    const rect = root.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    setDirection(
+      spaceBelow < ESTIMATED_LISTBOX_HEIGHT && spaceAbove > spaceBelow
+        ? "up"
+        : "down",
+    );
+  }, []);
+
   const handleChange = (text: string) => {
     onManualChange(text);
     if (!open) setOpen(true);
@@ -146,6 +162,11 @@ export function ClientCombobox({
       setActive((i) => (i + 1) % hits.length);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
+      if (!open) {
+        setOpen(true);
+        setActive(hits.length > 0 ? hits.length - 1 : -1);
+        return;
+      }
       if (hits.length === 0) return;
       setActive((i) => (i <= 0 ? hits.length - 1 : i - 1));
     } else if (e.key === "Enter") {
@@ -167,6 +188,17 @@ export function ClientCombobox({
   const hasContent = loading || searched || hits.length > 0;
   const showDropdown = open && value.trim().length >= 2 && hasContent;
   const reduced = prefersReducedMotion();
+
+  useEffect(() => {
+    if (!showDropdown) return;
+    updateDirection();
+    window.addEventListener("resize", updateDirection);
+    window.addEventListener("scroll", updateDirection, true);
+    return () => {
+      window.removeEventListener("resize", updateDirection);
+      window.removeEventListener("scroll", updateDirection, true);
+    };
+  }, [showDropdown, updateDirection]);
 
   return (
     <div ref={rootRef} style={{ position: "relative" }}>
@@ -201,9 +233,11 @@ export function ClientCombobox({
           id={listboxId}
           role="listbox"
           aria-label="Clientes coincidentes"
+          data-placement={direction}
           style={{
             position: "absolute",
-            top: "calc(100% + 4px)",
+            top: direction === "down" ? "calc(100% + 4px)" : undefined,
+            bottom: direction === "up" ? "calc(100% + 4px)" : undefined,
             left: 0,
             right: 0,
             zIndex: 50,

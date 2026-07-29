@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
   "generatedAt": "2026-07-29T00:00:00.000Z",
-  "sourceCommit": "f667be0694eeb47b88db55c8fa09f9c441720643",
+  "sourceCommit": "3c9d6a9682dd74feaff73b810e86667c5732a37f",
   "components": [
     {
       "schemaVersion": "1.0",
@@ -22,7 +22,7 @@
         },
         {
           "code": "BTN-01",
-          "version": "1.0",
+          "version": "1.1",
           "path": "docs/governance/policies/btn-01.md"
         },
         {
