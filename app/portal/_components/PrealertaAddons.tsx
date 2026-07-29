@@ -15,7 +15,13 @@
  */
 
 import { useState } from "react";
-import { CheckIcon, PlayIcon, ShipIcon, PlaneIcon } from "@/components/Icon";
+import {
+  CheckIcon,
+  PlayIcon,
+  ShipIcon,
+  PlaneIcon,
+  ArrowIcon,
+} from "@/components/Icon";
 import type { PrealertaAddon } from "@/lib/studio/prealertas/addons";
 
 /** Extrae el id del short de una URL de YouTube (shorts/ · watch?v= · youtu.be/). */
@@ -302,12 +308,15 @@ export function PrealertaAddonPicker({
   selected: selectedProp,
   onToggle,
   renderExtra,
+  teaser = "quiet",
 }: {
   addons: PrealertaAddon[];
   selected?: ReadonlySet<string>;
   onToggle?: (code: string) => void;
   /** Controles extra por servicio (ver `AddonRow.extra`). */
   renderExtra?: (addon: PrealertaAddon) => React.ReactNode;
+  /** `invite` = la pregunta grande en wine del Norte (asistente). */
+  teaser?: "quiet" | "invite";
 }) {
   const [selectedOwn, setSelectedOwn] = useState<Set<string>>(new Set());
   const [show, setShow] = useState(false);
@@ -333,6 +342,40 @@ export function PrealertaAddonPicker({
   // Revelado de una vía (no colapsa de vuelta → no se pierde la selección): el
   // teaser deja claro que hay servicios sin cargar el modal de entrada (UX review).
   if (!show) {
+    // El asistente usa el teaser del Norte: una pregunta grande en wine, que
+    // invita en vez de anunciar. El resto sigue con el bloque discreto.
+    if (teaser === "invite") {
+      return (
+        <button
+          type="button"
+          onClick={() => setShow(true)}
+          aria-expanded={false}
+          className="w-full flex items-center justify-between gap-3 text-left rounded-[14px] p-4 border"
+          style={{
+            borderColor: "var(--color-wine)",
+            background: "var(--color-paper)",
+          }}
+        >
+          <span
+            className="text-[15px] font-bold leading-[1.3]"
+            style={{ color: "var(--color-wine-text)" }}
+          >
+            ¿Sabías que puedes pedir servicios extra para esta compra?
+          </span>
+          <span
+            className="flex-shrink-0 grid place-items-center rounded-full"
+            style={{
+              width: 34,
+              height: 34,
+              background: "var(--color-wine)",
+              color: "var(--color-on-accent)",
+            }}
+          >
+            <ArrowIcon size={16} className="rotate-90" />
+          </span>
+        </button>
+      );
+    }
     return (
       <div className="rounded-[12px] border border-grey-200 p-4">
         <span className="text-[11px] font-semibold tracking-[0.1em] uppercase text-grey-500">

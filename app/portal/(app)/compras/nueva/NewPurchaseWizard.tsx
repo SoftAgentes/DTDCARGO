@@ -126,6 +126,10 @@ export function NewPurchaseWizard({
     <div>
       <PurchaseWizardSteps step={1} />
 
+      <div className="eyebrow eyebrow-wine mb-4" style={{ fontSize: 13 }}>
+        Nueva compra · prealerta
+      </div>
+
       <form
         action={action}
         className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start"
@@ -188,6 +192,7 @@ export function NewPurchaseWizard({
               addons={addons}
               selected={selected}
               onToggle={toggle}
+              teaser="invite"
               renderExtra={(a) => {
                 if (a.code === "hold_consolidar") {
                   return (

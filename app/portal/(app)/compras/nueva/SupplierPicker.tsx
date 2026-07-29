@@ -226,6 +226,26 @@ export function SupplierPicker({
     return suppliers.some((s) => s.name.toLowerCase() === q);
   }, [suppliers, supplierQuery]);
 
+  const selected = useMemo(
+    () => suppliers.find((s) => s.id === supplierId) ?? null,
+    [suppliers, supplierId],
+  );
+
+  /**
+   * Atajos (Norte, `chipList`): con un proveedor ya elegido se muestran TODOS
+   * los demás — el elegido llenó el buscador, y filtrar por ese texto dejaría la
+   * fila vacía justo cuando el cliente podría querer cambiar. Sin selección, se
+   * filtran por lo que va escribiendo.
+   */
+  const chipSuppliers = useMemo(
+    () =>
+      (supplierId
+        ? suppliers.filter((s) => s.id !== supplierId)
+        : filteredSuppliers
+      ).slice(0, 6),
+    [suppliers, filteredSuppliers, supplierId],
+  );
+
   // Si el alta inline del proveedor nuevo termina OK, lo dejamos elegido — la
   // página revalidó, pero el id nuevo lo conocemos por el state.
   useEffect(() => {
@@ -314,13 +334,80 @@ export function SupplierPicker({
           )}
       </div>
 
-      {newSupplierName === null && supplierId && (
-        <p
-          className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-semibold"
-          style={{ color: "var(--color-status-success)" }}
+      {/* Atajos a los proveedores de siempre. Al Norte le importan porque la
+          re-compra al MISMO proveedor es el caso normal: verlos ahí ahorra
+          escribir. Se ocultan los ya elegidos. */}
+      {newSupplierName === null && chipSuppliers.length > 0 && (
+        <div className="mt-2.5 flex flex-wrap gap-2">
+          {chipSuppliers.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => {
+                onSelect(s.id);
+                setSupplierQuery(s.name);
+                setSupplierOpen(false);
+              }}
+              className="inline-flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full border border-grey-200 text-[12px] font-bold text-ink hover:bg-grey-100 transition-colors"
+            >
+              <span
+                className="grid place-items-center rounded-[6px] text-[10px] font-bold"
+                style={{
+                  width: 20,
+                  height: 20,
+                  background: "var(--color-paper)",
+                  color: "var(--color-wine-text)",
+                }}
+              >
+                #{s.supplierSeq}
+              </span>
+              {s.name}
+              <span className="font-medium text-grey-700">
+                · {s.orderCount} compra{s.orderCount === 1 ? "" : "s"}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {newSupplierName === null && selected && (
+        <div
+          className="mt-3 flex items-center gap-3 rounded-[10px] p-3 border"
+          style={{
+            borderColor: "var(--color-status-success)",
+            background: "var(--color-paper)",
+          }}
         >
-          <CheckIcon size={13} /> Proveedor listo para esta compra.
-        </p>
+          <span
+            className="flex-shrink-0"
+            style={{ color: "var(--color-status-success)" }}
+          >
+            <CheckIcon size={18} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[13px] font-bold text-ink truncate">
+              {selected.name}
+            </div>
+            <div className="mt-0.5 text-[11.5px] text-grey-700">
+              Proveedor seleccionado
+              {selected.orderCount > 0
+                ? ` · ${selected.orderCount} compra${selected.orderCount === 1 ? "" : "s"} anterior${selected.orderCount === 1 ? "" : "es"}`
+                : " · primera compra"}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              onSelect("");
+              setSupplierQuery("");
+              setSupplierOpen(true);
+            }}
+            className="flex-shrink-0 text-[12px] font-semibold"
+            style={{ color: "var(--color-wine-text)" }}
+          >
+            Cambiar
+          </button>
+        </div>
       )}
 
       {newSupplierName !== null && (

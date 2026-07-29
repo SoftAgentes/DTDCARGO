@@ -74,20 +74,29 @@ export default async function NuevaCompraPage({
         <ArrowIcon size={15} className="rotate-180" /> Volver a mis compras
       </Link>
 
-      <div className="mt-5">
-        <span className="eyebrow">Tu cuenta</span>
-        <h1
-          className="h-display mt-3"
-          style={{ fontSize: "clamp(30px, 4.5vw, 48px)" }}
-        >
-          Registra tu compra.
-        </h1>
-      </div>
-      <p className="mt-3 text-[14px] text-grey-700 leading-[1.55] max-w-[60ch]">
-        Cada <strong className="text-ink">compra</strong> es una{" "}
-        <strong className="text-wine">prealerta</strong>: nos avisas que viene
-        mercancía de China para esperarla en bodega y procesarla más rápido.
-      </p>
+      {/* El asistente trae su propio encabezado: la barra de 3 pasos manda, y
+          debajo va el eyebrow "NUEVA COMPRA · PREALERTA" del Norte. Un h1
+          "Registra tu compra." arriba competiría con el paso 1. El formulario
+          largo, que no tiene barra, sí lo necesita. */}
+      {!showNewPurchaseWizard(client.markbox) && (
+        <>
+          <div className="mt-5">
+            <span className="eyebrow">Tu cuenta</span>
+            <h1
+              className="h-display mt-3"
+              style={{ fontSize: "clamp(30px, 4.5vw, 48px)" }}
+            >
+              Registra tu compra.
+            </h1>
+          </div>
+          <p className="mt-3 text-[14px] text-grey-700 leading-[1.55] max-w-[60ch]">
+            Cada <strong className="text-ink">compra</strong> es una{" "}
+            <strong className="text-wine">prealerta</strong>: nos avisas que
+            viene mercancía de China para esperarla en bodega y procesarla más
+            rápido.
+          </p>
+        </>
+      )}
 
       {/* El asistente de 3 pasos (SDD-0172) necesita el ancho del panel lateral
           "tu orden en vivo"; el formulario largo sigue en su columna angosta. */}
