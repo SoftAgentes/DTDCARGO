@@ -6,7 +6,7 @@
 | Fecha | 2026-07-29 |
 | SDD | [SDD-0118](../../specs/0118-seed-migrations-idempotentes/spec.md) |
 | Basenames | `0277_version_rls_auto_enable` y `0278_restore_rls_auto_enable_history` |
-| Resultado | 0277 recuperada; 0278 aprobada localmente, aplicación pendiente |
+| Resultado | 0277 recuperada; 0278 aplicada y verificada |
 
 ## 1. Evidencia metadata-only
 
@@ -91,11 +91,22 @@ Cualquier otro estado aborta.
 - Docker residual: cero contenedores del gate;
 - `git diff --check`: verde.
 
-## 5. Límite operativo
+## 5. Aplicación individual y postcondiciones
 
-REV-AUD-032 aprueba el diseño y las pruebas locales. El runbook de Producción
-continúa exigiendo autorización que nombre exactamente
-`0278_restore_rls_auto_enable_history` antes de aplicar. Después se requiere un
-branch completamente nuevo para replay, seed, E2E, verificación y teardown.
+La autorización nominal fue recibida y `0278_restore_rls_auto_enable_history`
+se aplicó individualmente. Recibo:
+
+```text
+20260729223452 · 0278_restore_rls_auto_enable_history
+```
+
+`0209` quedó con cardinalidad 2 y los MD5 esperados en orden. La función,
+trigger y ACL vivos no cambiaron. El delta de advisors antes/después fue cero.
+
+## 6. Continuación
+
+R9 superó 0209 y falló cerrado después, en el preflight ACL de 0268. Su
+diagnóstico, teardown y reparación local están en
+[REV-AUD-033](aud-sdd-0172-tenant-acl-history.md).
 
 No modifica producto, Auth, Vercel, CMP-01, D1, D2–D5, slices o PLG-P3.
