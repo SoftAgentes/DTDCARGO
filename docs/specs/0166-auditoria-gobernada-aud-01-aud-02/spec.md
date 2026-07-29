@@ -27,7 +27,10 @@ confidencialidad: interno
 > [REV-AUD-010](../../governance/reviews/aud-tenant-fixtures.md) aprueba el
 > diseño obligatorio del ciclo de vida tenant/fixtures. Su implementación
 > local vive en [SDD-0172](../0172-tenant-fixtures-lifecycle/spec.md), todavía
-> pendiente de Cloud y recorrido efímero antes del cierre global.
+> pendiente de Cloud y recorrido efímero antes del cierre global. El
+> [inventario C0](inventario-corte-c-2026-07-28.md) y
+> [REV-AUD-012](../../governance/reviews/aud-corte-c.md) aprobaron técnicamente
+> el diseño del Corte C; C1 local todavía no está abierto.
 
 ## 1. Propósito
 
@@ -457,4 +460,10 @@ tenant/fixtures fue diseñado y aprobado en
 [REV-AUD-010](../../governance/reviews/aud-tenant-fixtures.md), pero su
 implementación local se separó en
 [SDD-0172](../0172-tenant-fixtures-lifecycle/spec.md). `0268` y el recorrido
-efímero permanecen pendientes. Los Cortes C–E conservan gates separados.
+efímero permanecen pendientes.
+
+El mismo día se completó el inventario metadata-only C0.
+[REV-AUD-012](../../governance/reviews/aud-corte-c.md) aprobó la versión 1.0
+del [diseño correctivo del Corte C](diseno-correctivo-corte-c.md). No se creó
+la migración candidata `0269`, no se cambió el viewer y no se aplicó DDL.
+C1 y los Cortes D–E conservan gates separados.
