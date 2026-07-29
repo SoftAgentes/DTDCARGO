@@ -75,3 +75,51 @@ export function showShipmentAcceptanceCta(
 ): boolean {
   return SHIPMENT_ACCEPTANCE_CTA_LIVE || isDemoMarkbox(markbox);
 }
+
+/**
+ * ¿"Nueva compra" es el asistente de 3 pasos del Norte? (SDD-0173 · brecha 3 de
+ * la Fase 7 del Revestido).
+ *
+ * Nace APAGADO a propósito: se entrega por partes (paso 1 → 2 → 3), y mientras
+ * tanto el formulario largo de siempre sigue atendiendo a los clientes reales.
+ * Las cuentas demo ven el asistente desde el primer tramo, que es como se revisa
+ * en producción sin exponerlo. Se prende cuando los 3 pasos están verificados en
+ * el navegador. Para revertir: poné `false`.
+ */
+export const NEW_PURCHASE_WIZARD_LIVE = false;
+
+/**
+ * ¿Mostrarle a este cliente el asistente de 3 pasos de "Nueva compra"? `true`
+ * para todos cuando `NEW_PURCHASE_WIZARD_LIVE`; mientras tanto, sólo las cuentas
+ * demo.
+ */
+export function showNewPurchaseWizard(
+  markbox: string | null | undefined,
+): boolean {
+  return NEW_PURCHASE_WIZARD_LIVE || isDemoMarkbox(markbox);
+}
+
+/**
+ * 🔴 TEMPORAL · ¿ya existe `prealertas.client_note`? (SDD-0173, migr **0269**).
+ *
+ * La migración NO está aplicada. Con esto en `false` el campo "Nota" del paso 1
+ * no se pinta y la server action no nombra la columna, así que el alta de compra
+ * funciona igual si el código llega a prod antes que la migración.
+ *
+ * **Esta const se BORRA al aplicar la 0268** — no es un interruptor de producto,
+ * es un andamio mientras la columna no existe. ORDEN: migración primero.
+ */
+export const PREALERTA_CLIENT_NOTE_LIVE = false;
+
+/*
+ * La ficha extendida del proveedor (SDD-0173) NO tiene flag propio a propósito.
+ *
+ * Lo tuvo mientras su migración `0266_suppliers_cn_portal_profile` no estaba
+ * aplicada; ya lo está (2026-07-28, verificada contra el objeto). Un segundo
+ * interruptor sólo dejaba abierta la puerta a prenderlo antes que el asistente y
+ * cambiarle el alta de proveedor a TODO cliente en el formulario largo — que es
+ * justo el formulario que el asistente viene a reemplazar.
+ *
+ * Ahora es una prop: `<SupplierPicker showProfile />`, que sólo pasa el
+ * asistente. La ficha viaja con él y no puede quedar suelta.
+ */

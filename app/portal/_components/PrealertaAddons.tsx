@@ -15,7 +15,13 @@
  */
 
 import { useState } from "react";
-import { CheckIcon, PlayIcon, ShipIcon, PlaneIcon } from "@/components/Icon";
+import {
+  CheckIcon,
+  PlayIcon,
+  ShipIcon,
+  PlaneIcon,
+  ArrowIcon,
+} from "@/components/Icon";
 import type { PrealertaAddon } from "@/lib/studio/prealertas/addons";
 
 /** Extrae el id del short de una URL de YouTube (shorts/ · watch?v= · youtu.be/). */
@@ -93,14 +99,27 @@ export function ShippingModeNotice() {
           <span className="min-w-0">
             <span className="flex items-center gap-1.5 flex-wrap">
               <span className="text-[13px] font-bold text-ink">Aéreo</span>
+              {/* El ámbar como TEXTO no se lee a este tamaño (medido: 3.64:1
+                  en oscuro, bajo el 4.5 de AA). Patrón de BRAND ♿ para badges
+                  warning: la tinta es --color-ink y el color lo lleva un PUNTO
+                  —que además cumple "no sólo color" (WCAG 1.4.1)—. */}
               <span
-                className="text-[8.5px] font-extrabold tracking-[0.06em] uppercase px-[7px] py-[3px] rounded-full"
+                className="inline-flex items-center gap-[5px] text-[8.5px] font-extrabold tracking-[0.06em] uppercase px-[7px] py-[3px] rounded-full"
                 style={{
-                  color: "var(--color-status-warning)",
+                  color: "var(--color-ink)",
                   background:
                     "color-mix(in srgb, var(--color-status-warning) 12%, transparent)",
                 }}
               >
+                <span
+                  aria-hidden="true"
+                  className="block rounded-full flex-shrink-0"
+                  style={{
+                    width: 5,
+                    height: 5,
+                    background: "var(--color-status-warning)",
+                  }}
+                />
                 Próximamente
               </span>
             </span>
@@ -204,10 +223,17 @@ function AddonRow({
   addon,
   checked,
   onToggle,
+  extra,
 }: {
   addon: PrealertaAddon;
   checked: boolean;
   onToggle: () => void;
+  /**
+   * Controles propios de un servicio, dentro del bloque que se abre al marcarlo.
+   * Hoy lo usa el HOLD del asistente (stepper 2-10 + acople con re-empaque ·
+   * SDD-0173); la fila sigue siendo genérica y no sabe de qué servicio se trata.
+   */
+  extra?: React.ReactNode;
 }) {
   return (
     <div
@@ -261,20 +287,49 @@ function AddonRow({
               }}
             />
           )}
+          {extra}
         </div>
       )}
     </div>
   );
 }
 
-// ── Picker multi-select (va DENTRO del <form> de Nueva compra) ──
-export function PrealertaAddonPicker({ addons }: { addons: PrealertaAddon[] }) {
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+/**
+ * Picker multi-select (va DENTRO del `<form>` de "Nueva compra").
+ *
+ * Por default maneja su propia selección — así lo usan el formulario largo y
+ * `/portal/proveedores`, que no necesitan enterarse de nada. Pasándole
+ * `selected` + `onToggle` queda CONTROLADO, que es como lo usa el asistente de
+ * 3 pasos: el panel "tu orden en vivo" tiene que leer la misma selección
+ * mientras el cliente la arma (SDD-0173).
+ */
+export function PrealertaAddonPicker({
+  addons,
+  selected: selectedProp,
+  onToggle,
+  renderExtra,
+  teaser = "quiet",
+}: {
+  addons: PrealertaAddon[];
+  selected?: ReadonlySet<string>;
+  onToggle?: (code: string) => void;
+  /** Controles extra por servicio (ver `AddonRow.extra`). */
+  renderExtra?: (addon: PrealertaAddon) => React.ReactNode;
+  /** `invite` = la pregunta grande en wine del Norte (asistente). */
+  teaser?: "quiet" | "invite";
+}) {
+  const [selectedOwn, setSelectedOwn] = useState<Set<string>>(new Set());
   const [show, setShow] = useState(false);
+  const controlled = selectedProp !== undefined;
+  const selected = controlled ? selectedProp : selectedOwn;
   if (addons.length === 0) return null;
 
   function toggle(code: string) {
-    setSelected((prev) => {
+    if (controlled) {
+      onToggle?.(code);
+      return;
+    }
+    setSelectedOwn((prev) => {
       const next = new Set(prev);
       if (next.has(code)) next.delete(code);
       else next.add(code);
@@ -287,6 +342,40 @@ export function PrealertaAddonPicker({ addons }: { addons: PrealertaAddon[] }) {
   // Revelado de una vía (no colapsa de vuelta → no se pierde la selección): el
   // teaser deja claro que hay servicios sin cargar el modal de entrada (UX review).
   if (!show) {
+    // El asistente usa el teaser del Norte: una pregunta grande en wine, que
+    // invita en vez de anunciar. El resto sigue con el bloque discreto.
+    if (teaser === "invite") {
+      return (
+        <button
+          type="button"
+          onClick={() => setShow(true)}
+          aria-expanded={false}
+          className="w-full flex items-center justify-between gap-3 text-left rounded-[14px] p-4 border"
+          style={{
+            borderColor: "var(--color-wine)",
+            background: "var(--color-paper)",
+          }}
+        >
+          <span
+            className="text-[15px] font-bold leading-[1.3]"
+            style={{ color: "var(--color-wine-text)" }}
+          >
+            ¿Sabías que puedes pedir servicios extra para esta compra?
+          </span>
+          <span
+            className="flex-shrink-0 grid place-items-center rounded-full"
+            style={{
+              width: 34,
+              height: 34,
+              background: "var(--color-wine)",
+              color: "var(--color-on-accent)",
+            }}
+          >
+            <ArrowIcon size={16} className="rotate-90" />
+          </span>
+        </button>
+      );
+    }
     return (
       <div className="rounded-[12px] border border-grey-200 p-4">
         <span className="text-[11px] font-semibold tracking-[0.1em] uppercase text-grey-500">
@@ -328,6 +417,7 @@ export function PrealertaAddonPicker({ addons }: { addons: PrealertaAddon[] }) {
             addon={a}
             checked={selected.has(a.code)}
             onToggle={() => toggle(a.code)}
+            extra={renderExtra?.(a)}
           />
         ))}
       </div>

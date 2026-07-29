@@ -413,6 +413,118 @@ export type SupplierInput = {
   notes: string | null;
 };
 
+// ── Ficha extendida del proveedor (SDD-0173 · migr 0266) ───────
+//
+// Las 3 preguntas del Norte al dar de alta un proveedor. Son datos DEL CLIENTE
+// para su propio control ("te ayudan a reconocerlo cuando tengas varios"), no
+// de operación. Se guardan SLUGS —el vocabulario lo cierra un CHECK en la DB—
+// y las etiquetas visibles viven acá al lado.
+
+export const SUPPLIER_SOURCE_ORIGINS = [
+  "alibaba",
+  "1688",
+  "feria_canton",
+  "recomendado",
+  "otro",
+] as const;
+export type SupplierSourceOrigin = (typeof SUPPLIER_SOURCE_ORIGINS)[number];
+
+export const SUPPLIER_SOURCE_ORIGIN_LABEL: Record<SupplierSourceOrigin, string> =
+  {
+    alibaba: "Alibaba",
+    "1688": "1688",
+    feria_canton: "Feria (Cantón)",
+    recomendado: "Me lo recomendaron",
+    otro: "Otro",
+  };
+
+/** Los dos que piden explicar de dónde salió (Norte: `needNote`). */
+export const SUPPLIER_ORIGINS_NEEDING_NOTE: readonly SupplierSourceOrigin[] = [
+  "recomendado",
+  "otro",
+];
+
+export const SUPPLIER_PURCHASE_HISTORIES = ["nuevo", "previo"] as const;
+export type SupplierPurchaseHistory =
+  (typeof SUPPLIER_PURCHASE_HISTORIES)[number];
+
+export const SUPPLIER_PURCHASE_HISTORY_LABEL: Record<
+  SupplierPurchaseHistory,
+  string
+> = { nuevo: "Primera vez", previo: "Ya le compraba" };
+
+export const SUPPLIER_COMM_METHODS = [
+  "whatsapp",
+  "wechat",
+  "alibaba",
+  "otro",
+] as const;
+export type SupplierCommMethod = (typeof SUPPLIER_COMM_METHODS)[number];
+
+export const SUPPLIER_COMM_METHOD_LABEL: Record<SupplierCommMethod, string> = {
+  whatsapp: "WhatsApp",
+  wechat: "WeChat",
+  alibaba: "Alibaba",
+  otro: "Otro",
+};
+
+export type SupplierProfileInput = {
+  /** "¿Qué vende?" — columna `industry`, que YA existía en prod. */
+  industry: string | null;
+  /** Teléfono — columna `contact_phone`, que YA existía en prod. */
+  contactPhone: string | null;
+  sourceOrigin: SupplierSourceOrigin | null;
+  sourceOriginNote: string | null;
+  purchaseHistory: SupplierPurchaseHistory | null;
+  commMethod: SupplierCommMethod | null;
+};
+
+function pickFrom<T extends string>(
+  allowed: readonly T[],
+  raw: unknown,
+): T | null {
+  const v = String(raw ?? "").trim();
+  return (allowed as readonly string[]).includes(v) ? (v as T) : null;
+}
+
+/**
+ * Normaliza la ficha extendida. Es TODA opcional: un valor que no esté en su
+ * vocabulario se descarta en silencio (cae a `null`) en vez de romper el alta —
+ * el CHECK de la DB es la última línea, no la primera. La nota sólo sobrevive
+ * si el origen la pide; si no, sería un texto huérfano que nadie vuelve a leer.
+ */
+export function normalizeSupplierProfileInput(
+  raw: Partial<Record<keyof SupplierProfileInput, unknown>>,
+): SupplierProfileInput {
+  const sourceOrigin = pickFrom(SUPPLIER_SOURCE_ORIGINS, raw.sourceOrigin);
+  const needsNote =
+    sourceOrigin !== null && SUPPLIER_ORIGINS_NEEDING_NOTE.includes(sourceOrigin);
+  return {
+    industry: String(raw.industry ?? "").trim() || null,
+    contactPhone: String(raw.contactPhone ?? "").trim() || null,
+    sourceOrigin,
+    sourceOriginNote: needsNote
+      ? String(raw.sourceOriginNote ?? "").trim() || null
+      : null,
+    purchaseHistory: pickFrom(SUPPLIER_PURCHASE_HISTORIES, raw.purchaseHistory),
+    commMethod: pickFrom(SUPPLIER_COMM_METHODS, raw.commMethod),
+  };
+}
+
+/** Fila lista para el insert (claves = columnas de la migr 0266). */
+export function supplierProfileRow(
+  p: SupplierProfileInput,
+): Record<string, string | null> {
+  return {
+    industry: p.industry,
+    contact_phone: p.contactPhone,
+    source_origin: p.sourceOrigin,
+    source_origin_note: p.sourceOriginNote,
+    purchase_history: p.purchaseHistory,
+    comm_method: p.commMethod,
+  };
+}
+
 export type SupplierActionState = {
   ok?: boolean;
   error?: string;
@@ -473,23 +585,72 @@ export type PrealertaActionState = {
 };
 
 /**
+ * Marcador que ocupa `description` cuando la compra se registra sin detalle
+ * (asistente de 3 pasos · SDD-0173: el cliente lo completa en el paso 2).
+ *
+ * La columna `prealertas.description` es NOT NULL, así que el hueco necesita un
+ * texto — pero uno que el operario del ERP pueda LEER como "todavía no llegó",
+ * en vez de una celda en blanco que parece un bug.
+ */
+export const PREALERTA_DESCRIPCION_PENDIENTE = "Pendiente — el cliente la completa";
+
+/** Tope de la nota del cliente (== CHECK de la migr 0269). */
+export const PREALERTA_CLIENT_NOTE_MAX = 2000;
+
+/**
+ * Normaliza la nota del cliente sobre la compra (SDD-0173 · migr 0269).
+ *
+ * Recorta en vez de rechazar: una nota larguísima es un pegado accidental, no un
+ * error que valga la pena mostrarle a alguien que sólo quería registrar su
+ * compra. El CHECK de la DB es la red, no la puerta.
+ */
+export function normalizeClientNote(raw: unknown): string | null {
+  const s = String(raw ?? "").trim();
+  if (!s) return null;
+  return s.length > PREALERTA_CLIENT_NOTE_MAX
+    ? s.slice(0, PREALERTA_CLIENT_NOTE_MAX)
+    : s;
+}
+
+/**
  * Validación manual del input de prealerta/compra (sin zod).
  *  - description requerida (no vacía).
  *  - boxes entero ≥ 1.
  *  - status normaliza a 'anunciada' si inválido.
  *  - estValueUsd opcional; si viene debe ser ≥ 0.
  *  - supplierId opcional (la cross-tenant la valida el trigger en DB).
+ *
+ * `opts.requireDetalle` (default `true`) mantiene EXACTAMENTE el comportamiento
+ * histórico para todos los callers de siempre (ERP y `/portal/proveedores`). En
+ * `false` — sólo lo pide el asistente de 3 pasos (SDD-0173 §3.2), donde el Norte
+ * pone esos campos en el paso 2 y marcados "· opcional" — la compra puede nacer
+ * con proveedor y nada más:
+ *  - description ausente/vacía → `PREALERTA_DESCRIPCION_PENDIENTE`.
+ *  - boxes ausente (`null`/`undefined`) → `1`.
+ *
+ * Se afloja la OBLIGATORIEDAD, nunca el FORMATO: si el cliente escribe cajas,
+ * `0` y `1.5` siguen siendo errores en los dos modos.
  */
-export function validatePrealertaInput(input: Partial<PrealertaInput>): {
+export function validatePrealertaInput(
+  input: Partial<PrealertaInput>,
+  opts: { requireDetalle?: boolean } = {},
+): {
   input?: PrealertaInput;
   fieldErrors?: PrealertaActionState["fieldErrors"];
 } {
+  const requireDetalle = opts.requireDetalle ?? true;
   const errors: PrealertaActionState["fieldErrors"] = {};
 
-  const description = (input.description ?? "").trim();
-  if (!description) errors.description = "Describe qué viene en la compra.";
+  const descriptionRaw = (input.description ?? "").trim();
+  if (!descriptionRaw && requireDetalle) {
+    errors.description = "Describe qué viene en la compra.";
+  }
+  const description = descriptionRaw || PREALERTA_DESCRIPCION_PENDIENTE;
 
-  const boxesNum = Number(input.boxes);
+  // Ausente ≠ inválido: sin detalle exigido, "no lo escribió" cae a 1 caja; pero
+  // un valor escrito se valida igual de duro (0 y 1.5 fallan en ambos modos).
+  const boxesOmitted = input.boxes == null || `${input.boxes}`.trim() === "";
+  const boxesNum = boxesOmitted && !requireDetalle ? 1 : Number(input.boxes);
   if (!Number.isFinite(boxesNum) || boxesNum < 1) {
     errors.boxes = "Indica la cantidad de cajas (mínimo 1).";
   } else if (!Number.isInteger(boxesNum)) {

@@ -24,6 +24,9 @@ import { createAdminClient } from "@/lib/db/admin";
 import {
   validateSupplierInput,
   validatePrealertaInput,
+  normalizeClientNote,
+  normalizeSupplierProfileInput,
+  supplierProfileRow,
   buildPrealertaCode,
   buildPrealertaDocPath,
   isAllowedPrealertaDocMime,
@@ -40,6 +43,8 @@ import {
   type ServiceRequestInput,
   type ServiceRequestActionState,
 } from "@/lib/studio/prealertas/addons";
+import { reconcileServiceRequests } from "@/lib/portal/purchase-order-lines";
+import { PREALERTA_CLIENT_NOTE_LIVE } from "@/lib/portal/demo";
 import {
   listActivePrealertaAddons,
   getPrealertaByCode,
@@ -264,7 +269,19 @@ async function insertPrealertaServiceRequestsFromForm(args: {
     const reqs = parseServiceRequestsFromForm(args.formData, activeCodes);
     if (reqs.length === 0) return;
 
-    const rows = reqs.map((r) => ({
+    // Asistente de 3 pasos (SDD-0173): lo que DTD recibe es LO MISMO que el
+    // cliente leyó en "Así queda tu orden a DTD — en vivo". La reconciliación
+    // (línea encabeza las notas + reponer lo que el acople sumó) vive en
+    // `reconcileServiceRequests`, que es puro y está testeado.
+    const reconciled = reconcileServiceRequests({
+      addons: active,
+      requests: reqs,
+      wizard: isTruthy(args.formData.get("wizard")),
+      holdCount: Number(args.formData.get("hold_count")),
+      holdTie: isTruthy(args.formData.get("hold_tie")),
+    });
+
+    const rows = reconciled.map((r) => ({
       tenant_id: args.tenantId,
       prealerta_id: args.prealertaId,
       client_markbox: args.markbox,
@@ -343,6 +360,21 @@ export async function createSupplierAction(
   const tenantId = tenantData ? String(tenantData) : null;
   if (!tenantId) return { error: "No pudimos resolver tu cuenta." };
 
+  // Ficha extendida del Norte (SDD-0173 · columnas de la migr 0266, aplicada).
+  // Se lee siempre: la pinta sólo el asistente (`<SupplierPicker showProfile />`),
+  // y cuando no viene, el normalizador devuelve nulls — que es exactamente lo que
+  // guardaba el alta de antes.
+  const profileRow = supplierProfileRow(
+    normalizeSupplierProfileInput({
+      industry: formData.get("industry"),
+      contactPhone: formData.get("contactPhone"),
+      sourceOrigin: formData.get("sourceOrigin"),
+      sourceOriginNote: formData.get("sourceOriginNote"),
+      purchaseHistory: formData.get("purchaseHistory"),
+      commMethod: formData.get("commMethod"),
+    }),
+  );
+
   const { data: row, error: insErr } = await supabase
     .from("suppliers_cn")
     .insert({
@@ -354,6 +386,7 @@ export async function createSupplierAction(
       wechat: input.wechat,
       contact: input.contact,
       notes: input.notes,
+      ...profileRow,
     })
     .select("id")
     .single<{ id: string }>();
@@ -472,15 +505,23 @@ export async function createPrealertaAction(
   formData: FormData,
 ): Promise<PrealertaActionState> {
   const estValueRaw = String(formData.get("estValueUsd") ?? "").trim();
-  const { input, fieldErrors } = validatePrealertaInput({
-    supplierId: (formData.get("supplierId") as string | null) ?? undefined,
-    description: (formData.get("description") as string | null) ?? undefined,
-    trackingCn: (formData.get("trackingCn") as string | null) ?? undefined,
-    boxes: Number(formData.get("boxes")),
-    estValueUsd: estValueRaw === "" ? null : Number(estValueRaw),
-    // El cliente siempre crea en 'anunciada' (el avance de estado lo hace el operador).
-    status: "anunciada",
-  });
+  const boxesRaw = String(formData.get("boxes") ?? "").trim();
+  // El asistente de 3 pasos (SDD-0173) registra la compra al terminar el paso 1:
+  // descripción, cajas, valor y tracking llegan después, en el paso 2. El
+  // formulario largo de siempre no manda `wizard` y sigue exigiéndolo todo.
+  const fromWizard = isTruthy(formData.get("wizard"));
+  const { input, fieldErrors } = validatePrealertaInput(
+    {
+      supplierId: (formData.get("supplierId") as string | null) ?? undefined,
+      description: (formData.get("description") as string | null) ?? undefined,
+      trackingCn: (formData.get("trackingCn") as string | null) ?? undefined,
+      boxes: boxesRaw === "" ? undefined : Number(boxesRaw),
+      estValueUsd: estValueRaw === "" ? null : Number(estValueRaw),
+      // El cliente siempre crea en 'anunciada' (el avance de estado lo hace el operador).
+      status: "anunciada",
+    },
+    { requireDetalle: !fromWizard },
+  );
   if (fieldErrors) return { fieldErrors };
   if (!input) return { error: "Datos inválidos." };
 
@@ -538,6 +579,11 @@ export async function createPrealertaAction(
         boxes: input.boxes,
         est_value_usd: input.estValueUsd,
         status: "anunciada",
+        // Nota del cliente sobre ESTA compra (paso 1 · migr 0269). Mientras la
+        // columna no exista, ni se nombra.
+        ...(PREALERTA_CLIENT_NOTE_LIVE
+          ? { client_note: normalizeClientNote(formData.get("clientNote")) }
+          : {}),
       })
       .select("id, share_token")
       .single<{ id: string; share_token: string | null }>();
@@ -657,4 +703,85 @@ export async function requestPrealertaServiceAction(
   revalidatePortal();
   revalidatePath(`/portal/compras/${encodeURIComponent(code)}/etiquetas`);
   return { ok: true, requestedCount: 1 };
+}
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ Completar el detalle de una compra ya creada (SDD-0173)   ║
+// ╚═══════════════════════════════════════════════════════════╝
+// Paso 2 del asistente: el Norte registra la compra apenas hay proveedor y
+// deja descripción, cajas, valor, tracking y adjuntos para después. Esta
+// action es la que los adjunta.
+
+export async function updatePrealertaDetalleAction(
+  _prev: PrealertaActionState,
+  formData: FormData,
+): Promise<PrealertaActionState> {
+  const code = String(formData.get("prealertaCode") ?? "").trim();
+  if (!code) return { error: "Falta la compra." };
+
+  const supabase = await createClient();
+  const markbox = await portalMarkbox(supabase);
+  if (!markbox) return { error: "Tu sesión expiró. Vuelve a entrar." };
+
+  // Scopeado por markbox: una compra de otro cliente no existe para esta sesión.
+  const pre = await getPrealertaByCode(supabase, code, { markbox });
+  if (!pre) return { error: "Esa compra no es válida." };
+
+  // Sólo mientras nadie la haya tocado en bodega: una vez recibida, el detalle
+  // lo manda el operario con la carga delante, no el cliente desde el portal.
+  if (pre.status !== "anunciada") {
+    return {
+      error:
+        "Esta compra ya está en proceso. Escríbele a tu asesor para cambiar el detalle.",
+    };
+  }
+
+  const estValueRaw = String(formData.get("estValueUsd") ?? "").trim();
+  const boxesRaw = String(formData.get("boxes") ?? "").trim();
+  const { input, fieldErrors } = validatePrealertaInput(
+    {
+      supplierId: pre.supplier_id,
+      description: (formData.get("description") as string | null) ?? undefined,
+      trackingCn: (formData.get("trackingCn") as string | null) ?? undefined,
+      boxes: boxesRaw === "" ? undefined : Number(boxesRaw),
+      estValueUsd: estValueRaw === "" ? null : Number(estValueRaw),
+      status: pre.status,
+    },
+    { requireDetalle: false },
+  );
+  if (fieldErrors) return { fieldErrors };
+  if (!input) return { error: "Datos inválidos." };
+
+  const { data: tenantData } = await supabase.rpc("get_portal_client_tenant");
+  const tenantId = tenantData ? String(tenantData) : null;
+  if (!tenantId) return { error: "No pudimos resolver tu cuenta." };
+
+  const { error: updErr } = await supabase
+    .from("prealertas")
+    .update({
+      description: input.description,
+      tracking_cn: input.trackingCn,
+      boxes: input.boxes,
+      est_value_usd: input.estValueUsd,
+    })
+    .eq("id", pre.id)
+    .eq("client_markbox", markbox)
+    .is("deleted_at", null);
+
+  if (updErr) {
+    console.error("[updatePrealertaDetalleAction] update error:", updErr);
+    return { error: "No pudimos guardar el detalle. Prueba de nuevo." };
+  }
+
+  // Adjuntos del paso 2 (packing/factura/fotos) — mismo camino que el alta.
+  await uploadPrealertaDocsFromForm({
+    formData,
+    tenantId,
+    prealertaId: pre.id,
+    markbox,
+  });
+
+  revalidatePortal();
+  revalidatePath(`/portal/compras/${encodeURIComponent(code)}`);
+  return { ok: true, prealertaCode: code, shareToken: pre.share_token ?? undefined };
 }
