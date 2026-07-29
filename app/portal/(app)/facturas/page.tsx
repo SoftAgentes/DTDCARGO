@@ -54,7 +54,7 @@ export default async function PortalInvoicesPage({
   // Crear: ese ítem prometía subir un comprobante y aterrizaba en la lista
   // completa, dejando al cliente a tres saltos de la acción anunciada.
   //
-  // `?vista=cuenta` → estado de cuenta (libro de movimientos, SDD-0175) en vez
+  // `?vista=cuenta` → estado de cuenta (libro de movimientos, SDD-0177) en vez
   // de la lista. Va en la URL y no en `useState` para que la vista se pueda
   // compartir por link y la página siga siendo server component.
   searchParams: Promise<{ saldo?: string; vista?: string }>;

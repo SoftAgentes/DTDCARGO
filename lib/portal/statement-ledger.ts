@@ -1,5 +1,5 @@
 /**
- * Estado de cuenta del portal — libro de movimientos (SDD-0175).
+ * Estado de cuenta del portal — libro de movimientos (SDD-0177).
  *
  * Deriva un ledger de cargos/abonos con saldo corrido a partir de las facturas
  * que ya trae `listMyInvoices`. **Función pura**: sin red, sin Supabase, sin

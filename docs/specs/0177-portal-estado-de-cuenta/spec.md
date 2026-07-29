@@ -1,5 +1,5 @@
 ---
-sdd: "0175"
+sdd: "0177"
 title: "Portal — Estado de cuenta (libro de movimientos)"
 status: done
 author: "Sam (founder) + Claude Code"
@@ -11,7 +11,7 @@ related: ["0042", "0134", "0169", "0170", "0171", "0173"]
 confidencialidad: interno
 ---
 
-# SDD-0175 — Portal · Estado de cuenta
+# SDD-0177 — Portal · Estado de cuenta
 
 ## 1. Decisión aprobada
 
@@ -119,9 +119,17 @@ ambos temas, no se mira:
 
 ## 6. Bitácora
 
-- **2026-07-29** — spec abierta. Numerada **0175** porque 0174 ya estaba tomada
-  por `0174-audit-atomicidad-dominios` (ventana de governance) — tercera colisión
-  evitada chequeando `origin/main` antes de numerar.
+- **2026-07-29** — spec abierta. Nació como **0175** (la 0174 ya estaba tomada
+  por `0174-audit-atomicidad-dominios`) y terminó en **0177**: entre que se
+  escribió y que se publicó, otra ventana pusheó
+  `0175-vis-02-tipografia-voz-idioma`. Como la otra ya estaba en `main`, la que
+  se mueve es esta — mismo criterio que cuando 0172 pasó a 0173.
+
+  **Cuarta colisión de numeración del día.** Chequear `origin/main` antes de
+  numerar NO alcanza cuando el trabajo dura horas: entre el chequeo y el push
+  hay ventana. Lo único que la cierra de verdad sería reservar el número con un
+  commit vacío al abrir la spec, o que `docs:check` detecte números duplicados
+  (hoy **no lo hace** — sólo mira el front-matter de cada spec por separado).
 
 - **2026-07-29 — CONSTRUIDA.** `lib/portal/statement-ledger.ts` (función pura,
   13 tests) + `StatementLedgerTable.tsx` + `?vista=cuenta` en `/portal/facturas`.

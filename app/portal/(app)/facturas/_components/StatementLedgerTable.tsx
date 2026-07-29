@@ -39,7 +39,7 @@ function formatDate(iso: string | null): string {
 }
 
 /**
- * Estado de cuenta · libro de movimientos (SDD-0175 · brecha 4 de la Fase 7).
+ * Estado de cuenta · libro de movimientos (SDD-0177 · brecha 4 de la Fase 7).
  *
  * Server component: no tiene estado. Alternar con la lista de facturas es un
  * `?vista=` en la URL, no `useState` — así la vista se comparte por link y no
