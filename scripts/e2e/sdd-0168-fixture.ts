@@ -11,15 +11,14 @@ export const SDD_0168_FIXTURE = {
 } as const;
 
 const PRODUCTION_PROJECT_REF = "xpfuzqombmjmxvprjgmi";
-const PRODUCTION_CONFIRMATION_ENV =
-  "E2E_PRODUCTION_CONFIRM_PROJECT_REF";
+const EPHEMERAL_ENVIRONMENT_KIND = "ephemeral";
 
 export type E2EEnvironment = {
   projectRef: string;
   supabaseUrl: string;
   serviceRoleKey: string;
   password: string;
-  isProduction: boolean;
+  environmentKind: typeof EPHEMERAL_ENVIRONMENT_KIND;
 };
 
 function required(name: string): string {
@@ -33,15 +32,22 @@ export function loadE2EEnvironment(): E2EEnvironment {
   const supabaseUrl = required("E2E_SUPABASE_URL");
   const serviceRoleKey = required("E2E_SUPABASE_SERVICE_ROLE_KEY");
   const password = required("STUDIO_E2E_PASSWORD");
+  const environmentKind = required("E2E_ENVIRONMENT_KIND");
+  const confirmedProjectRef = required("E2E_EPHEMERAL_PROJECT_REF");
 
-  const isProduction = projectRef === PRODUCTION_PROJECT_REF;
-  if (
-    isProduction &&
-    process.env[PRODUCTION_CONFIRMATION_ENV]?.trim() !==
-      PRODUCTION_PROJECT_REF
-  ) {
+  if (projectRef === PRODUCTION_PROJECT_REF) {
     throw new Error(
-      `Supabase Producción requiere ${PRODUCTION_CONFIRMATION_ENV}=${PRODUCTION_PROJECT_REF}.`,
+      "Las fixtures E2E están prohibidas en Supabase Producción.",
+    );
+  }
+  if (environmentKind !== EPHEMERAL_ENVIRONMENT_KIND) {
+    throw new Error(
+      `E2E_ENVIRONMENT_KIND debe ser ${EPHEMERAL_ENVIRONMENT_KIND}.`,
+    );
+  }
+  if (confirmedProjectRef !== projectRef) {
+    throw new Error(
+      "E2E_EPHEMERAL_PROJECT_REF no coincide con E2E_SUPABASE_PROJECT_REF.",
     );
   }
 
@@ -61,7 +67,7 @@ export function loadE2EEnvironment(): E2EEnvironment {
     supabaseUrl,
     serviceRoleKey,
     password,
-    isProduction,
+    environmentKind,
   };
 }
 

@@ -26,7 +26,8 @@ confidencialidad: interno
 > aplicación y verificación en Cloud. Los Cortes C–E siguen sin implementar y
 > [REV-AUD-010](../../governance/reviews/aud-tenant-fixtures.md) aprueba el
 > diseño obligatorio del ciclo de vida tenant/fixtures. Su implementación
-> requiere SDD propio antes del cierre global.
+> local vive en [SDD-0172](../0172-tenant-fixtures-lifecycle/spec.md), todavía
+> pendiente de Cloud y recorrido efímero antes del cierre global.
 
 ## 1. Propósito
 
@@ -454,5 +455,6 @@ aplicación y verificación en Cloud bajo el basename exacto. La FK de tenant
 conserva `ON DELETE CASCADE` como excepción transitoria: el ciclo de vida
 tenant/fixtures fue diseñado y aprobado en
 [REV-AUD-010](../../governance/reviews/aud-tenant-fixtures.md), pero su
-implementación requiere SDD propio antes del cierre global. Los Cortes C–E
-conservan gates separados.
+implementación local se separó en
+[SDD-0172](../0172-tenant-fixtures-lifecycle/spec.md). `0268` y el recorrido
+efímero permanecen pendientes. Los Cortes C–E conservan gates separados.
