@@ -3,14 +3,14 @@
 | Control | Valor |
 |---|---|
 | Documento | Índice maestro del Sistema de Gobernanza |
-| Versión | 4.3 |
+| Versión | 4.4 |
 | Dueño | Sam (founder) |
 | Custodia | Producto + Diseño + Ingeniería |
 | Estado | activo |
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-29 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-033 · CMP-01 aprobado](BASELINE-2026-07-29-05.md) |
+| Línea base vigente | [LB-SGE-034 · registro normativo completo](BASELINE-2026-07-29-06.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -110,10 +110,11 @@ artefactos permanecen en sus fuentes correspondientes.
 | Aprobación normativa de 17 políticas | [REV-SGE-003 a REV-SGE-005](reviews/sge-policy-blocks-01-04.md) |
 | Ciclo de vida de componentes | [CMP-01 v1.0](policies/cmp-01.md) |
 | Revisión normativa CMP-01 | [REV-SGE-006](reviews/cmp-01.md) |
-| Plugin de gobernanza | [PLG-01 v0.1](policies/plg-01.md) |
+| Plugin de gobernanza | [PLG-01 v1.0](policies/plg-01.md) |
+| Revisión normativa PLG-01 | [REV-SGE-007](reviews/plg-01.md) |
 | Investigación de skills | [Mapa de capacidades y límites](research/skills-map.md) |
 | Contrato implementado de avisos | [SDD-0165 · AVS-01](../specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md) |
-| Inventario y estado oficial vigente | [LB-SGE-033](BASELINE-2026-07-29-05.md) |
+| Inventario y estado oficial vigente | [LB-SGE-034](BASELINE-2026-07-29-06.md) |
 
 Regla de frontera: `BRAND.md` y el Norte gobiernan **cómo se ve**; este sistema
 gobierna **cómo se comporta**. Una implementación concreta se especifica en un
@@ -173,7 +174,7 @@ disfraza elevando el estado normativo.
 | A11Y-01 | Accesibilidad transversal | aprobada v1.0 | Buenas bases; sin matriz integral | Ejecutar auditoría transversal |
 | IA-01 | Interacciones asistidas por IA | aprobada v1.0 | Regla local “IA propone”; sin gate transversal | Auditar permisos, privacidad y evidencia |
 | CMP-01 | Ciclo de vida y madurez de componentes | aprobada v1.0 | No existe catálogo ejecutable | Crear registro de componentes mediante SDD |
-| PLG-01 | Plugin ejecutable de gobernanza | redactada | [Arquitectura v0.1](policies/plg-01.md); no creado ni instalado | Aprobar fuentes/alcance antes de scaffold |
+| PLG-01 | Plugin ejecutable de gobernanza | aprobada v1.0 | No creado ni instalado | Crear SDD propio antes de scaffold |
 
 ## 5. Jerarquía y resolución de conflictos
 
@@ -247,7 +248,9 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-033 · CMP-01 aprobado](BASELINE-2026-07-29-05.md).
+[LB-SGE-034 · registro normativo completo](BASELINE-2026-07-29-06.md).
+La aprobación previa y separada de CMP-01 permanece en
+[LB-SGE-033](BASELINE-2026-07-29-05.md).
 La aprobación de las diecisiete políticas por bloques permanece en
 [LB-SGE-032](BASELINE-2026-07-29-04.md).
 El diseño del Corte E permanece en

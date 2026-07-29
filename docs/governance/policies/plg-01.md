@@ -1,8 +1,9 @@
-# PLG-01 v0.1 — Plugin ejecutable de gobernanza
+# PLG-01 v1.0 — Plugin ejecutable de gobernanza
 
 | Control | Valor |
 |---|---|
-| Estado | redactada — no creado ni instalado |
+| Estado | aprobada — no creado ni instalado |
+| Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-007 |
 | Nombre técnico propuesto | `erp-studio-governance` |
 | Fuente normativa | `docs/governance/` dentro del repositorio |
 | Depende de | SGE-00, CMP-01 y políticas aprobadas |
