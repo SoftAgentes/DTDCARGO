@@ -80,13 +80,13 @@ export function showShipmentAcceptanceCta(
  * ¿"Nueva compra" es el asistente de 3 pasos del Norte? (SDD-0173 · brecha 3 de
  * la Fase 7 del Revestido).
  *
- * Nace APAGADO a propósito: se entrega por partes (paso 1 → 2 → 3), y mientras
- * tanto el formulario largo de siempre sigue atendiendo a los clientes reales.
- * Las cuentas demo ven el asistente desde el primer tramo, que es como se revisa
- * en producción sin exponerlo. Se prende cuando los 3 pasos están verificados en
- * el navegador. Para revertir: poné `false`.
+ * Nació APAGADO a propósito: se entregó por partes (paso 1 → 2 → 3) mientras el
+ * formulario largo seguía atendiendo a los clientes reales. **PRENDIDO el
+ * 2026-07-29 con OK del founder**, ya con los 3 pasos verificados en el navegador
+ * y la migr 0269 aplicada. Para revertir: poné `false` (el formulario largo sigue
+ * en el árbol y vuelve solo).
  */
-export const NEW_PURCHASE_WIZARD_LIVE = false;
+export const NEW_PURCHASE_WIZARD_LIVE = true;
 
 /**
  * ¿Mostrarle a este cliente el asistente de 3 pasos de "Nueva compra"? `true`
@@ -98,18 +98,6 @@ export function showNewPurchaseWizard(
 ): boolean {
   return NEW_PURCHASE_WIZARD_LIVE || isDemoMarkbox(markbox);
 }
-
-/**
- * 🔴 TEMPORAL · ¿ya existe `prealertas.client_note`? (SDD-0173, migr **0269**).
- *
- * La migración NO está aplicada. Con esto en `false` el campo "Nota" del paso 1
- * no se pinta y la server action no nombra la columna, así que el alta de compra
- * funciona igual si el código llega a prod antes que la migración.
- *
- * **Esta const se BORRA al aplicar la 0268** — no es un interruptor de producto,
- * es un andamio mientras la columna no existe. ORDEN: migración primero.
- */
-export const PREALERTA_CLIENT_NOTE_LIVE = false;
 
 /*
  * La ficha extendida del proveedor (SDD-0173) NO tiene flag propio a propósito.
