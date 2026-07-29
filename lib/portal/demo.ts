@@ -86,7 +86,12 @@ export function showShipmentAcceptanceCta(
  * en producción sin exponerlo. Se prende cuando los 3 pasos están verificados en
  * el navegador. Para revertir: poné `false`.
  */
-export const NEW_PURCHASE_WIZARD_LIVE = false;
+// 🟡 SOLO-PREVIEW · SDD-0172 — este `true` vive ÚNICAMENTE en la rama
+// `preview/portal-nueva-compra`, para que el founder pueda revisar el asistente
+// con SU cuenta y no sólo con la demo DTD-1004. La rama de la feature
+// (`feat/portal-nueva-compra-wizard`) lo mantiene en `false`.
+// ⚠️ Este commit NO debe llegar a `main`.
+export const NEW_PURCHASE_WIZARD_LIVE = true;
 
 /**
  * ¿Mostrarle a este cliente el asistente de 3 pasos de "Nueva compra"? `true`
