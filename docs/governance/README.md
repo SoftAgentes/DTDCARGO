@@ -10,7 +10,7 @@
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-29 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-068 · dependencias CMP reproducibles](BASELINE-2026-07-29-40.md) |
+| Línea base vigente | [LB-SGE-069 · guardia SDD-0164 estable bajo carga](BASELINE-2026-07-29-41.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -126,6 +126,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Revisión de patrones UX en videos | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | Portabilidad EOL de SDD-0118 | [REV-AUD-030](reviews/aud-sdd-0118-eol-portability.md) |
 | Dependencias ejecutables CMP-01 | [REV-SGE-015](reviews/cmp-01-dependency-validation.md) |
+| Estabilidad bajo carga del guardia SDD-0164 | [REV-SGE-016](reviews/shipment-public-test-load-hardening.md) |
 | Tabs accesibles en Fiscal | [SDD-0180](../specs/0180-tabs-accesibles-fiscal/spec.md) |
 | Selectores accesibles y colisión | [SDD-0181](../specs/0181-selectores-accesibles-colision/spec.md) |
 | Validación progresiva en Club | [SDD-0182](../specs/0182-validacion-progresiva-identidad-club/spec.md) |
@@ -267,7 +268,9 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-068 · dependencias CMP reproducibles](BASELINE-2026-07-29-40.md).
+[LB-SGE-069 · guardia SDD-0164 estable bajo carga](BASELINE-2026-07-29-41.md).
+La validación de dependencias CMP-01 permanece en
+[LB-SGE-068](BASELINE-2026-07-29-40.md).
 La portabilidad EOL de SDD-0118 permanece en
 [LB-SGE-067](BASELINE-2026-07-29-39.md).
 La validación progresiva permanece en

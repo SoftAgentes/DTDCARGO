@@ -10,6 +10,7 @@
  *  4. ningún archivo del repo vuelve a escribir los literales viejos del enum.
  */
 import { describe, it, expect } from "vitest";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import {
@@ -110,35 +111,81 @@ describe("isShipmentService / serviceLabel", () => {
  */
 describe("ningún archivo reintroduce los literales viejos del enum", () => {
   const RAIZ = path.resolve(__dirname, "../../..");
-  const IGNORAR = new Set([
-    "node_modules",
-    ".next",
-    ".git",
-    "graphify-out",
-    "playwright-report",
-    "test-results",
-  ]);
   // Este propio archivo los nombra a propósito (en los tests de rechazo).
   const ESTE = path.resolve(__filename);
-  const VIEJOS = /["'](consolidacion|reserva_FCL)["']/;
+  const ESTE_RELATIVO = path.relative(RAIZ, ESTE).replace(/\\/g, "/");
+  // Se construyen por partes para que el propio guardia no se detecte.
+  const CONSOLIDACION = ["consolida", "cion"].join("");
+  const RESERVA_FCL = ["reserva_", "FCL"].join("");
+  const VIEJOS = new RegExp(`["'](${CONSOLIDACION}|${RESERVA_FCL})["']`);
 
-  function* archivos(dir: string): Generator<string> {
-    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-      if (e.name.startsWith(".") || IGNORAR.has(e.name)) continue;
-      const full = path.join(dir, e.name);
-      if (e.isDirectory()) yield* archivos(full);
-      else if (/\.(ts|tsx)$/.test(e.name)) yield full;
+  function ejecutarGit(args: string[]) {
+    const resultado = spawnSync("git", args, {
+      cwd: RAIZ,
+      encoding: "utf8",
+      windowsHide: true,
+    });
+    if (resultado.error) throw resultado.error;
+    return resultado;
+  }
+
+  function archivosVersionadosConLiteralesViejos(): string[] {
+    const resultado = ejecutarGit([
+      "grep",
+      "-I",
+      "-l",
+      "-E",
+      VIEJOS.source,
+      "--",
+      "*.ts",
+      "*.tsx",
+      `:(exclude)${ESTE_RELATIVO}`,
+    ]);
+
+    // `git grep` usa 1 para indicar que no encontró coincidencias.
+    if (resultado.status === 1) return [];
+    if (resultado.status !== 0) {
+      throw new Error(
+        `git grep falló (${resultado.status ?? "sin estado"}): ${resultado.stderr.trim()}`,
+      );
     }
+
+    return resultado.stdout
+      .split(/\r?\n/)
+      .map((archivo) => archivo.trim())
+      .filter(Boolean);
+  }
+
+  function archivosNoVersionadosConLiteralesViejos(): string[] {
+    const resultado = ejecutarGit([
+      "ls-files",
+      "--others",
+      "--exclude-standard",
+      "-z",
+      "--",
+      "*.ts",
+      "*.tsx",
+    ]);
+    if (resultado.status !== 0) {
+      throw new Error(
+        `git ls-files falló (${resultado.status ?? "sin estado"}): ${resultado.stderr.trim()}`,
+      );
+    }
+
+    return resultado.stdout
+      .split("\0")
+      .filter(Boolean)
+      .filter((archivo) => archivo.replace(/\\/g, "/") !== ESTE_RELATIVO)
+      .filter((archivo) =>
+        VIEJOS.test(fs.readFileSync(path.join(RAIZ, archivo), "utf8")),
+      );
   }
 
   it("no queda ningún \"consolidacion\" ni \"reserva_FCL\" entrecomillado", () => {
-    const culpables: string[] = [];
-    for (const f of archivos(RAIZ)) {
-      if (path.resolve(f) === ESTE) continue;
-      if (VIEJOS.test(fs.readFileSync(f, "utf8"))) {
-        culpables.push(path.relative(RAIZ, f).replace(/\\/g, "/"));
-      }
-    }
+    const culpables = [
+      ...archivosVersionadosConLiteralesViejos(),
+      ...archivosNoVersionadosConLiteralesViejos(),
+    ].sort();
     expect(culpables).toEqual([]);
   });
 });
