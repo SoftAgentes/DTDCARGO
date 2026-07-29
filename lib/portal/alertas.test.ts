@@ -19,6 +19,7 @@ function prealerta(over: Partial<Prealerta> = {}): Prealerta {
     code: "DTD-5452-1-1",
     description: "",
     tracking_cn: null,
+    client_note: null,
     boxes: 3,
     est_value_usd: null,
     status: "anunciada",

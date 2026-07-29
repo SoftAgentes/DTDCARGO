@@ -34,7 +34,7 @@ const SO_COLUMNS =
 const SO_SELECT = `${SO_COLUMNS}, quotes(quote_code)`;
 
 const PREALERTA_COLUMNS =
-  "id, tenant_id, client_markbox, supplier_id, code, description, tracking_cn, boxes, est_value_usd, status, received_at, shipment_id, share_token, deleted_at, created_at, updated_at";
+  "id, tenant_id, client_markbox, supplier_id, code, description, tracking_cn, client_note, boxes, est_value_usd, status, received_at, shipment_id, share_token, deleted_at, created_at, updated_at";
 
 function coerceSalesOrder(r: Record<string, unknown>): SalesOrder {
   // Embed to-one de quotes(quote_code): supabase-js puede devolver objeto o array.
@@ -74,6 +74,7 @@ function coercePrealerta(r: Record<string, unknown>): Prealerta {
     code: String(r.code ?? ""),
     description: String(r.description ?? ""),
     tracking_cn: (r.tracking_cn as string | null) ?? null,
+    client_note: (r.client_note as string | null) ?? null,
     boxes: Math.round(num(r.boxes)),
     est_value_usd: r.est_value_usd == null ? null : num(r.est_value_usd),
     status: (r.status as Prealerta["status"]) ?? "anunciada",

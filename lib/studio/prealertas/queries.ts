@@ -52,7 +52,7 @@ const SUPPLIER_COLUMNS =
   "id, tenant_id, client_markbox, supplier_seq, name, city, wechat, contact, notes, deleted_at, created_at, updated_at";
 
 const PREALERTA_COLUMNS =
-  "id, tenant_id, client_markbox, supplier_id, code, description, tracking_cn, boxes, est_value_usd, status, received_at, shipment_id, share_token, sales_order_id, deleted_at, created_at, updated_at";
+  "id, tenant_id, client_markbox, supplier_id, code, description, tracking_cn, client_note, boxes, est_value_usd, status, received_at, shipment_id, share_token, sales_order_id, deleted_at, created_at, updated_at";
 
 function coerceSupplier(r: Record<string, unknown>): Supplier {
   return {
@@ -80,6 +80,7 @@ function coercePrealerta(r: Record<string, unknown>): Prealerta {
     code: String(r.code ?? ""),
     description: String(r.description ?? ""),
     tracking_cn: (r.tracking_cn as string | null) ?? null,
+    client_note: (r.client_note as string | null) ?? null,
     boxes: Math.round(num(r.boxes)),
     est_value_usd: numOrNull(r.est_value_usd),
     status: (r.status as PrealertaStatus) ?? "anunciada",
