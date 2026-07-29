@@ -20,6 +20,7 @@
 |---|---|---|---|
 | Shell + Auth | 0004, 0007 | `app/studio/(app)/` shell, `(auth)/login` | `lib/auth/session.ts`, `proxy.ts` |
 | Administración · Audit log | 0123, 0166, 0172, 0174 | `app/studio/(app)/admin/` | `lib/studio/audit-*` · `entity_audit_log` · `scripts/{seed-e2e,verify-e2e-teardown}.ts` · migraciones por corte |
+| Tipografía transversal · VIS-02 | 0175 | `app/{layout,globals}.tsx` · `app/studio/` | `next/font` · tokens de voz · renderers email/PDF |
 | Tracking / Embarques | 0005, 0006, 0012, 0013 | `app/studio/(app)/{tracking,embarques}/` | `lib/studio/shipment-*`, `tracking-progress` |
 | Cambio de destino | 0009 | (dentro de tracking) | `lib/studio/destination-change.ts` |
 | Tarifas (+ config calculadora pública) | 0008, 0055 | `app/studio/(app)/tarifas/` | `lib/studio/rate-*`, `calculator-cities-*` · `supabase/migrations/{0103,0104}` |

@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 168 specs)
+### Índice de specs (generado · 169 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -206,6 +206,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0172 | Lifecycle de tenant y fixtures E2E efímeras | in-progress | interno |
 | 0173 | Portal — Nueva compra como asistente de 3 pasos | in-progress | interno |
 | 0174 | Auditoría — atomicidad por dominios | in-progress | interno |
+| 0175 | VIS-02 — tipografía por voz, destinatario e idioma | proposed | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
