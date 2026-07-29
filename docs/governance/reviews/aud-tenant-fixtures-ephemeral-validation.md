@@ -236,3 +236,67 @@ El `branch_id` y `project_ref` R4 quedaron ausentes. REV-AUD-019 aprueba el
 comportamiento fail-closed y el teardown terminal del cuarto intento. No
 aprueba SDD-0172: `0103_calculator_settings` requiere otro gate forward-only
 antes de crear un entorno nuevo.
+
+## 13. Quinto intento después de `0274`
+
+Después del postflight verde de
+`0274_restore_calculator_settings_history`, se creó un quinto entorno sin
+datos de Producción:
+
+| Campo | Valor |
+|---|---|
+| Nombre | `sdd-0172-ephemeral-20260729-r5` |
+| `branch_id` | `bec996e4-bd52-461b-8c07-66315e5307de` |
+| `project_ref` | `jmgisgfeoosvxztwjple` |
+| Creado | 2026-07-29T14:37:41.853027Z |
+| Costo | USD 0,01344 por hora |
+| Datos de Producción | no |
+
+El replay avanzó de 120 a 266 entradas. La última migración confirmada fue:
+
+```text
+20260723135825 · 0261b_comments_acl_least_privilege
+```
+
+La siguiente entrada de Producción es:
+
+```text
+20260723140120 · 0262_comments_lifecycle_contract
+```
+
+PostgreSQL abortó el preflight DB-1 con:
+
+```text
+DB-1 detectó drift en propiedades de funciones comments
+```
+
+El diagnóstico metadata-only aisló el estado exacto. Las funciones
+`comments_freeze_immutable()` y `comments_validate_entity()` existen, son
+`SECURITY INVOKER` y retornan `trigger`, pero ambas tienen `proconfig = NULL`.
+El contrato de `0262` exige `search_path=public`.
+
+La entrada histórica que debía fijar esa propiedad está registrada en
+Producción como:
+
+```text
+20260703235255 · 0210_pin_search_path_triggers · statements = NULL
+```
+
+Así, el replay fresco no ejecuta los dos `ALTER FUNCTION ... SET search_path`
+del archivo canónico. No se ejecutaron seed E2E, Auth, fixtures, reset,
+rebase, merge ni SQL correctivo. Tampoco se leyeron filas de negocio o PII.
+
+## 14. Teardown terminal R5
+
+`delete_branch` devolvió `success=true` para el `branch_id` exacto. El
+inventario posterior volvió a mostrar únicamente:
+
+```text
+main · xpfuzqombmjmxvprjgmi · ACTIVE_HEALTHY
+```
+
+El `branch_id` y `project_ref` R5 quedaron ausentes. REV-AUD-019 aprueba el
+comportamiento fail-closed y el teardown terminal del quinto intento. No
+aprueba SDD-0172: el payload reproducible de
+`0210_pin_search_path_triggers` requiere un gate forward-only propio y
+autorización expresa de su nuevo basename antes de cualquier aplicación.

@@ -6,7 +6,7 @@
 | SDD | [SDD-0118](../../specs/0118-seed-migrations-idempotentes/spec.md) |
 | Candidata | `0274_restore_calculator_settings_history` |
 | Fecha | 2026-07-29 |
-| Resultado | aplicada y verificada; nuevo branch pendiente |
+| Resultado | aplicada y verificada; R5 confirma reparación y revela próximo bloqueo |
 
 ## 1. Evidencia y causa
 
@@ -104,8 +104,18 @@ REV-AUD-026 aprueba técnicamente el diseño, artefacto determinista y pruebas
 locales de `0274_restore_calculator_settings_history`.
 
 La aplicación individual y su postflight están registrados en
-[REV-AUD-027](aud-sdd-0118-calculator-settings-history-application.md). El
-próximo gate es crear otro entorno efímero para continuar SDD-0172.
+[REV-AUD-027](aud-sdd-0118-calculator-settings-history-application.md).
+
+R5 confirmó que `0274` reparó `0103`: el replay avanzó de 120 a 266
+migraciones. El siguiente bloqueo es independiente: `0262` detectó que dos
+funciones trigger de comments no tienen `search_path=public` porque
+`0210_pin_search_path_triggers` está registrado con `statements = NULL`.
+R5 fue eliminado terminalmente; la evidencia vive en
+[REV-AUD-019](aud-tenant-fixtures-ephemeral-validation.md).
+
+El próximo gate es diseñar y validar localmente una reparación forward-only
+del payload reproducible de `0210`, y obtener autorización expresa del nuevo
+basename antes de aplicarla.
 
 CMP-01 v1.1, caso deprecated, D1, slices de adopción, D2–D5, Vercel y PLG-P3
 permanecen cerrados. No existe plugin ni marketplace.

@@ -154,6 +154,24 @@ el payload canónico de `0103_calculator_settings.sql`. Producción no ejecuta
 ese payload: sólo lo almacena para futuros replays. La segunda ejecución
 reconoce el digest final y no vuelve a escribir.
 
+### Bloqueo posterior al quinto replay
+
+R5 confirmó la reparación de `0103` y avanzó de 120 a 266 migraciones. El
+preflight de `0262_comments_lifecycle_contract` abortó porque
+`comments_freeze_immutable()` y `comments_validate_entity()` nacieron sin
+`search_path=public`.
+
+El diagnóstico metadata-only confirmó que ambas funciones tienen
+`proconfig = NULL`. La entrada que debía fijar esa propiedad es:
+
+```text
+20260703235255 · 0210_pin_search_path_triggers · statements = NULL
+```
+
+El próximo gate debe restaurar forward-only el payload reproducible de
+`0210`; no debe ejecutar esos `ALTER FUNCTION` directamente sobre un branch
+fallido ni aplicar un basename nuevo sin autorización expresa.
+
 ## 3. Generación y control de drift
 
 El generador
@@ -217,11 +235,15 @@ metadatos técnicos del ledger.
 | Cuarto branch | 120 migraciones; falta `calculator_settings` por `0103` con statements NULL; teardown terminal |
 | Calculator local | `0274` determinista · Vitest 8/8 · PostgreSQL 15/17 · [REV-AUD-026](../../governance/reviews/aud-sdd-0118-calculator-settings-history.md) |
 | Calculator Cloud | `0274` aplicada individualmente; recibo `20260729143620` · [REV-AUD-027](../../governance/reviews/aud-sdd-0118-calculator-settings-history-application.md) |
+| Quinto branch | 266 migraciones; `0262` detecta `proconfig = NULL` porque `0210` tiene statements NULL; teardown terminal · [REV-AUD-019](../../governance/reviews/aud-tenant-fixtures-ephemeral-validation.md) |
 | Diff | verde |
 
 ## 7. Gates restantes
 
-1. crear un entorno efímero nuevo y completar replay, seed, E2E, verificación
+1. diseñar y validar localmente la reparación forward-only del payload de
+   `0210_pin_search_path_triggers`;
+2. obtener autorización expresa del nuevo basename antes de aplicarlo;
+3. crear un entorno efímero nuevo y completar replay, seed, E2E, verificación
    y teardown terminal.
 
 SDD-0118 permanece `in-progress` hasta que un entorno nuevo demuestre el
