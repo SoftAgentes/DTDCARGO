@@ -161,6 +161,9 @@ No crea funciones ni modifica otra FK.
 | Reparación ACL unit | `scripts/__tests__/build-sdd-0172-tenant-acl-history.test.ts` |
 | Reparación ACL DB | `supabase/migrations/0279_restore_tenant_lifecycle_acl_history.sql` |
 | Reparación ACL DB test | `supabase/tests/0279_restore_tenant_lifecycle_acl_history.test.sql` |
+| Reparación split generador | `scripts/build-sdd-0118-split-history.mjs` |
+| Reparación split DB | `supabase/migrations/0280_repair_sdd0118_split_history.sql` |
+| Reparación split DB test | `supabase/tests/0280_repair_sdd0118_split_history.test.sql` |
 | Operación | `docs/runbooks/e2e-supabase-efimero.md` |
 
 ## 9. Aceptación
@@ -210,6 +213,12 @@ No crea funciones ni modifica otra FK.
 | Supabase efímero R9 | intento fail-closed · supera 0209; 0268 detecta DELETE efectivo en rol cliente |
 | Teardown remoto R9 | terminal · branch y project ref ausentes; sólo `main` saludable |
 | Reparación ACL tenant local | 0279 determinista; PostgreSQL 15/17 reproducen R9, ejecutan 0268 y terminan en rollback · [REV-AUD-033](../../governance/reviews/aud-sdd-0172-tenant-acl-history.md) |
+| Reparación ACL tenant Cloud | 0279 aplicada individualmente; recibo `20260729224850`; ACL, FK y advisors sin drift |
+| Supabase efímero R10 | intento fail-closed · `0271` no reconoce el ledger fragmentado por el replay |
+| Teardown remoto R10 | terminal · branch y project ref ausentes; sólo `main` saludable |
+| Supabase efímero R11 | diagnóstico metadata-only · 11 fingerprints fragmentados confirmados |
+| Teardown remoto R11 | terminal · branch y project ref ausentes; sólo `main` saludable |
+| Reparación split local | 0280 determinista; Vitest 4/4; PostgreSQL 15/17 UPDATE 1/0 + rollback · [REV-AUD-034](../../governance/reviews/aud-sdd-0118-split-replay-history.md) |
 
 ## 11. Rollback
 
@@ -221,7 +230,7 @@ No crea funciones ni modifica otra FK.
 
 ## 12. Gates pendientes
 
-1. aplicar individualmente `0279_restore_tenant_lifecycle_acl_history` después de
+1. aplicar individualmente `0280_repair_sdd0118_split_history` después de
    autorización nominal y verificar postcondiciones/advisors;
 2. crear un Supabase efímero completamente nuevo que alcance
    `MIGRATIONS_PASSED`;
@@ -244,6 +253,8 @@ El gate Cloud de `0276` quedó cerrado en
 [REV-AUD-031](../../governance/reviews/aud-sdd-0118-revoke-anon-history-application.md).
 El gate Cloud de 0278 y el gate local de 0279 quedaron aprobados en
 [REV-AUD-033](../../governance/reviews/aud-sdd-0172-tenant-acl-history.md).
+El gate Cloud de 0279 y el gate local de 0280 quedaron aprobados en
+[REV-AUD-034](../../governance/reviews/aud-sdd-0118-split-replay-history.md).
 El gate local de 0277/0278 quedó documentado en
 [REV-AUD-032](../../governance/reviews/aud-sdd-0118-rls-auto-enable-history.md).
 SDD-0172 permanece `in-progress`: el teardown fue válido, pero el fixture no
