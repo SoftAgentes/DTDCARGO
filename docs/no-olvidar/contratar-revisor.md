@@ -1,5 +1,37 @@
 # Contratar al revisor criptográfico (SDD-0025)
 
+> ## ⛔ DECISIÓN DEL FOUNDER · 2026-07-29 — NO se contrata (por ahora)
+>
+> **No se paga nada**: ni review criptográfico, ni gestor de contraseñas comercial.
+> Este documento queda como referencia para el día que eso cambie. **No re-proponer
+> pagar** sin que el founder lo pida.
+>
+> **Qué significa en la práctica.** El módulo NO se enciende con el gate original
+> (review humano). La ruta gratuita, si algún día se enciende, es esta:
+>
+> 1. **Lo que ya tiene, gratis y hecho:** dos vueltas de review adversarial de IA
+>    (6 auditores; cerró 1 crítico, 4 altos y 2 regresiones que introdujeron sus
+>    propios fixes) · 48 tests con libsodium real · el contrato SQL
+>    [`supabase/tests/0253_no_olvidar_authz_hardening.test.sql`](../../supabase/tests/0253_no_olvidar_authz_hardening.test.sql)
+>    validado con 6 mutantes · los gates `sql-tests` y `schema-rebuild` que corren
+>    en cada `verify` desde `main`.
+> 2. **Lo que sigue sin cubrir:** ningún humano experto miró el núcleo libsodium
+>    (AEAD, envelope, parámetros de Argon2id, el flujo M-of-N en TypeScript).
+>    Riesgo residual asumido; el scope es interno (~5 personas, un tenant).
+> 3. ⚠️ **Lo que NO es negociable y además es GRATIS:** el **backup offline de la
+>    KEK** (dos USBs, founder + un socio, cajas separadas — [`runbook.md §3`](runbook.md))
+>    y **3 admins mínimo** para que el M-of-N de 2 funcione. Sin el backup, una
+>    falla de Supabase = **pérdida total e irrecuperable**. Eso no lo arregla
+>    ningún review, pagado o no: es el riesgo más grande del módulo y cuesta $0.
+>
+> **Alternativa gratuita al módulo propio:** **Vaultwarden** (reimplementación
+> del servidor de Bitwarden en Rust, autohospedada, compatible con los clientes
+> oficiales) es **gratis** — es *Bitwarden Teams* el que cobra por usuario.
+> Contra: Vaultwarden **nunca pasó una auditoría formal de terceros**, así que en
+> ese eje no es mejor que el No-Olvidar; su ventaja es que no hay que mantenerlo
+> como código propio.
+
+
 Este es el **único bloqueo real** del No-Olvidar. El código está construido, el gate lo espera a él.
 Ver [runbook.md §0](runbook.md) — "no se despliega nada hasta pasar el review externo".
 
