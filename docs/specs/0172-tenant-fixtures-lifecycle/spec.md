@@ -197,6 +197,8 @@ No crea funciones ni modifica otra FK.
 | Teardown remoto R5 | terminal · branch y project ref ausentes; sólo `main` saludable |
 | Supabase efímero R6 | intento fail-closed · 268 migraciones · `0264` detecta EXECUTE de `anon` por payload 0209 ausente |
 | Teardown remoto R6 | terminal · branch y project ref ausentes; sólo `main` saludable |
+| Supabase efímero R7 | intento fail-closed · 215 migraciones · `0209` referencia `rls_auto_enable()` ausente |
+| Teardown remoto R7 | terminal · branch y project ref ausentes; sólo `main` saludable |
 
 ## 11. Rollback
 
@@ -208,10 +210,12 @@ No crea funciones ni modifica otra FK.
 
 ## 12. Gates pendientes
 
-1. crear un Supabase efímero completamente nuevo que alcance
+1. resolver mediante gate propio la ausencia histórica de
+   `rls_auto_enable()` y `ensure_rls`;
+2. crear un Supabase efímero completamente nuevo que alcance
    `MIGRATIONS_PASSED`;
-2. ejecutar seed, recorrido E2E y verificación sin DML de cleanup;
-3. destruir ese entorno y volver a comprobar estado terminal.
+3. ejecutar seed, recorrido E2E y verificación sin DML de cleanup;
+4. destruir ese entorno y volver a comprobar estado terminal.
 
 El gate Cloud de 0268 quedó cerrado en
 [REV-AUD-018](../../governance/reviews/aud-tenant-lifecycle-aplicacion.md).
@@ -221,7 +225,7 @@ El gate Cloud de 0274 quedó cerrado en
 [REV-AUD-027](../../governance/reviews/aud-sdd-0118-calculator-settings-history-application.md).
 El gate Cloud de 0275 quedó cerrado en
 [REV-AUD-029](../../governance/reviews/aud-sdd-0118-pin-search-path-history-application.md).
-Los seis intentos reales y sus teardowns quedaron registrados en
+Los siete intentos reales y sus teardowns quedaron registrados en
 [REV-AUD-019](../../governance/reviews/aud-tenant-fixtures-ephemeral-validation.md).
 El diseño local de `0276` quedó aprobado en
 [REV-AUD-030](../../governance/reviews/aud-sdd-0118-revoke-anon-history.md).

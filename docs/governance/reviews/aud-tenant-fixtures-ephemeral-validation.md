@@ -362,3 +362,70 @@ comportamiento fail-closed y el teardown terminal del sexto intento. No
 aprueba SDD-0172: el payload reproducible de
 `0209_revoke_anon_rpc_sweep` requiere un gate forward-only propio antes de
 crear otro entorno.
+
+## 17. Séptimo intento después de `0276`
+
+Después del postflight verde de
+`0276_restore_revoke_anon_rpc_sweep_history`, se creó otro entorno
+completamente nuevo y sin datos de Producción:
+
+| Campo | Valor |
+|---|---|
+| Nombre | `sdd-0172-ephemeral-20260729-r7` |
+| `branch_id` | `ab5ab1b5-2db5-462b-bd39-50fad398fab1` |
+| `project_ref` | `mlwggagdcvwrrprqrhrn` |
+| Creado | 2026-07-29T16:31:14.51346Z |
+| Costo | USD 0,01344 por hora |
+| Datos de Producción | no |
+
+R7 ejecutó 215 migraciones. La última confirmada fue:
+
+```text
+20260703213609 · 0208_purchase_order_code_ca
+```
+
+Al ejecutar el payload ya restaurado de
+`20260703234254 0209_revoke_anon_rpc_sweep`, PostgreSQL abortó con:
+
+```text
+function public.rls_auto_enable() does not exist
+```
+
+Los logs muestran que los pares ACL anteriores se procesaron y el fallo ocurrió
+en:
+
+```sql
+revoke execute on function public.rls_auto_enable() from public, anon;
+```
+
+El diagnóstico metadata-only de Producción comprobó que
+`public.rls_auto_enable()` existe como `SECURITY DEFINER`, retorna
+`event_trigger`, usa `search_path=pg_catalog`, pertenece a `postgres` y sólo
+concede EXECUTE a `postgres` y `service_role`. El event trigger
+`ensure_rls` la invoca en `ddl_command_end` para `CREATE TABLE`,
+`CREATE TABLE AS` y `SELECT INTO`.
+
+El repositorio no contiene una migración que cree esa función o el event
+trigger: `0209` y `0211` sólo referencian la función para ajustar ACL. Por eso
+el payload canónico de `0209`, aunque ya está presente, no es autosuficiente en
+un replay desde cero.
+
+No se ejecutaron seed E2E, Auth, fixtures, Playwright, verificación por script,
+reset, rebase, merge ni SQL correctivo. Tampoco se leyeron filas de negocio o
+PII.
+
+## 18. Teardown terminal R7
+
+`delete_branch` devolvió `success=true` para
+`ab5ab1b5-2db5-462b-bd39-50fad398fab1`. El inventario posterior devolvió
+únicamente:
+
+```text
+main · xpfuzqombmjmxvprjgmi · ACTIVE_HEALTHY
+```
+
+El `branch_id` y `project_ref` R7 quedaron ausentes. REV-AUD-019 aprueba el
+comportamiento fail-closed y el teardown terminal del séptimo intento. No
+aprueba SDD-0172: el contrato reproducible de `rls_auto_enable()` y
+`ensure_rls` requiere diseño forward-only propio y, si produce un basename
+nuevo, autorización expresa antes de cualquier aplicación Cloud.

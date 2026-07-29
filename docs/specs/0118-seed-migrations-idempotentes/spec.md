@@ -288,13 +288,16 @@ metadatos técnicos del ledger.
 | Sexto branch | 268 migraciones; `0264` detecta EXECUTE de `anon` porque `0209` tiene statements NULL; teardown terminal · [REV-AUD-019](../../governance/reviews/aud-tenant-fixtures-ephemeral-validation.md) |
 | Revoke anon local | `0276` determinista · Vitest 12/12 · PostgreSQL 15/17 · 48 pares ACL · UPDATE 1/0 · rollback · [REV-AUD-030](../../governance/reviews/aud-sdd-0118-revoke-anon-history.md) |
 | Revoke anon Cloud | `0276` aplicada individualmente; recibo `20260729163005` · [REV-AUD-031](../../governance/reviews/aud-sdd-0118-revoke-anon-history-application.md) |
+| Séptimo branch | 215 migraciones; `0209` falla porque `rls_auto_enable()` no existe en el historial; teardown terminal · [REV-AUD-019](../../governance/reviews/aud-tenant-fixtures-ephemeral-validation.md) |
 | Diff | verde |
 
 ## 7. Gates restantes
 
-1. crear un entorno efímero nuevo;
-2. completar replay, seed, E2E y verificación;
-3. ejecutar y comprobar el teardown terminal.
+1. diseñar y validar localmente un gate forward-only para hacer reproducibles
+   `rls_auto_enable()` y el event trigger `ensure_rls`;
+2. obtener autorización expresa del basename nuevo antes de aplicarlo;
+3. crear otro entorno efímero y completar replay, seed, E2E, verificación y
+   teardown terminal.
 
 SDD-0118 permanece `in-progress` hasta que un entorno nuevo demuestre el
 replay completo. Un test local verde no sustituye esa evidencia.
