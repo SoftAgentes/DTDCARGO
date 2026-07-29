@@ -14,12 +14,15 @@ const {
   buildCalculatorSettingsSqlTest,
   buildPinSearchPathMigration,
   buildPinSearchPathSqlTest,
+  buildRevokeAnonSweepMigration,
+  buildRevokeAnonSweepSqlTest,
   CALCULATOR_SETTINGS_MIGRATION_PATH,
   CALCULATOR_SETTINGS_SQL_TEST_PATH,
   FOLLOWUP_MIGRATION_PATH,
   FOLLOWUP_SQL_TEST_PATH,
   loadCalculatorSettingsRepair,
   loadPinSearchPathRepair,
+  loadRevokeAnonSweepRepair,
   loadFollowups,
   loadPlatformAdminRepair,
   loadRepairs,
@@ -28,6 +31,8 @@ const {
   PLATFORM_ADMIN_SQL_TEST_PATH,
   PIN_SEARCH_PATH_MIGRATION_PATH,
   PIN_SEARCH_PATH_SQL_TEST_PATH,
+  REVOKE_ANON_SWEEP_MIGRATION_PATH,
+  REVOKE_ANON_SWEEP_SQL_TEST_PATH,
   REPAIRS,
   SQL_TEST_PATH,
 } = repairModule;
@@ -213,5 +218,42 @@ describe("SDD-0118 branch replay repair", () => {
     await expect(
       readFile(PIN_SEARCH_PATH_SQL_TEST_PATH, "utf8"),
     ).resolves.toBe(buildPinSearchPathSqlTest(repair));
+  });
+
+  it("restaura los 48 pares ACL canónicos del sweep anon", async () => {
+    const repair = await loadRevokeAnonSweepRepair();
+
+    expect(repair.version).toBe("20260703234254");
+    expect(repair.name).toBe("0209_revoke_anon_rpc_sweep");
+    expect(repair.targetMd5).toBe("c6c722efdb7ff79ef037e0d826739205");
+    expect(repair.targets).toHaveLength(48);
+    expect(
+      repair.targets.map((target: { identity: string }) => target.identity),
+    ).toContain("public.comment_mentions_validate()");
+    expect(
+      repair.targets.map((target: { identity: string }) => target.identity),
+    ).not.toContain("public.public_track_shipment(text)");
+  });
+
+  it("mantiene sincronizado y fail-closed el gate 0276", async () => {
+    const repair = await loadRevokeAnonSweepRepair();
+    const migration = buildRevokeAnonSweepMigration(repair);
+    const executableSql = migration.replace(
+      /\$sdd0118_revoke_anon_target\$[\s\S]*?\$sdd0118_revoke_anon_target\$/g,
+      "<revoke-anon-sql-as-text>",
+    );
+
+    expect(migration).toContain("statements is null");
+    expect(migration).toContain("SDD-0118 revoke_anon: drift");
+    expect(migration).toContain(repair.targetMd5);
+    expect(executableSql).not.toContain(
+      "revoke execute on function public.comment_mentions_validate()",
+    );
+    await expect(
+      readFile(REVOKE_ANON_SWEEP_MIGRATION_PATH, "utf8"),
+    ).resolves.toBe(buildRevokeAnonSweepMigration(repair));
+    await expect(
+      readFile(REVOKE_ANON_SWEEP_SQL_TEST_PATH, "utf8"),
+    ).resolves.toBe(buildRevokeAnonSweepSqlTest(repair));
   });
 });

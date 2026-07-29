@@ -203,6 +203,17 @@ El próximo gate debe restaurar forward-only el payload reproducible de
 `0209`; no debe ejecutar el sweep directamente sobre un branch fallido ni
 aplicar un basename nuevo sin autorización expresa.
 
+La reparación aprobada localmente es:
+
+```text
+0276_restore_revoke_anon_rpc_sweep_history
+```
+
+`0276` convierte únicamente el `NULL` técnico de esa entrada en un array con
+el payload canónico completo de `0209_revoke_anon_rpc_sweep.sql`. Producción
+no ejecuta los 48 pares `REVOKE/GRANT`: sólo almacena el texto para futuros
+replays. La segunda ejecución reconoce el digest final y no vuelve a escribir.
+
 ## 3. Generación y control de drift
 
 El generador
@@ -212,7 +223,7 @@ El generador
 2. lee los quince archivos fuente del repositorio;
 3. normaliza únicamente finales de línea;
 4. calcula y publica el digest de cada payload;
-5. genera `0271`, `0272`, `0273`, `0274`, `0275` y sus pruebas
+5. genera `0271`, `0272`, `0273`, `0274`, `0275`, `0276` y sus pruebas
    transaccionales;
 6. ofrece `--check` para impedir drift entre fuentes y artefactos.
 
@@ -247,8 +258,10 @@ metadatos técnicos del ledger.
 | Calculator DB test | `supabase/tests/0274_restore_calculator_settings_history.test.sql` |
 | Pin search_path migración | `supabase/migrations/0275_restore_pin_search_path_history.sql` |
 | Pin search_path DB test | `supabase/tests/0275_restore_pin_search_path_history.test.sql` |
+| Revoke anon migración | `supabase/migrations/0276_restore_revoke_anon_rpc_sweep_history.sql` |
+| Revoke anon DB test | `supabase/tests/0276_restore_revoke_anon_rpc_sweep_history.test.sql` |
 | Spec | `docs/specs/0118-seed-migrations-idempotentes/spec.md` |
-| Revisiones | `docs/governance/reviews/aud-sdd-0118-branch-replay.md` · `docs/governance/reviews/aud-sdd-0118-platform-admin-bootstrap.md` · `docs/governance/reviews/aud-sdd-0118-calculator-settings-history.md` · `docs/governance/reviews/aud-sdd-0118-pin-search-path-history.md` |
+| Revisiones | `docs/governance/reviews/aud-sdd-0118-branch-replay.md` · `docs/governance/reviews/aud-sdd-0118-platform-admin-bootstrap.md` · `docs/governance/reviews/aud-sdd-0118-calculator-settings-history.md` · `docs/governance/reviews/aud-sdd-0118-pin-search-path-history.md` · `docs/governance/reviews/aud-sdd-0118-revoke-anon-history.md` |
 
 ## 6. Evidencia local
 
@@ -273,13 +286,14 @@ metadatos técnicos del ledger.
 | Pin search_path local | `0275` determinista · PostgreSQL 15/17 · 33 firmas · UPDATE 1/0 · rollback · [REV-AUD-028](../../governance/reviews/aud-sdd-0118-pin-search-path-history.md) |
 | Pin search_path Cloud | `0275` aplicada individualmente; recibo `20260729152036` · [REV-AUD-029](../../governance/reviews/aud-sdd-0118-pin-search-path-history-application.md) |
 | Sexto branch | 268 migraciones; `0264` detecta EXECUTE de `anon` porque `0209` tiene statements NULL; teardown terminal · [REV-AUD-019](../../governance/reviews/aud-tenant-fixtures-ephemeral-validation.md) |
+| Revoke anon local | `0276` determinista · Vitest 12/12 · PostgreSQL 15/17 · 48 pares ACL · UPDATE 1/0 · rollback · [REV-AUD-030](../../governance/reviews/aud-sdd-0118-revoke-anon-history.md) |
 | Diff | verde |
 
 ## 7. Gates restantes
 
-1. diseñar y validar localmente la reparación forward-only del payload de
-   `0209_revoke_anon_rpc_sweep`;
-2. obtener autorización expresa del nuevo basename antes de aplicarlo;
+1. obtener autorización expresa de
+   `0276_restore_revoke_anon_rpc_sweep_history` antes de aplicarlo;
+2. aplicar individualmente `0276` y verificar postcondiciones y advisors;
 3. crear un entorno efímero nuevo y completar replay, seed, E2E, verificación
    y teardown terminal.
 

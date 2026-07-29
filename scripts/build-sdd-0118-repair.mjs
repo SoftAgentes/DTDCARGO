@@ -46,6 +46,14 @@ export const PIN_SEARCH_PATH_SQL_TEST_PATH = resolve(
   ROOT,
   "supabase/tests/0275_restore_pin_search_path_history.test.sql",
 );
+export const REVOKE_ANON_SWEEP_MIGRATION_PATH = resolve(
+  ROOT,
+  "supabase/migrations/0276_restore_revoke_anon_rpc_sweep_history.sql",
+);
+export const REVOKE_ANON_SWEEP_SQL_TEST_PATH = resolve(
+  ROOT,
+  "supabase/tests/0276_restore_revoke_anon_rpc_sweep_history.test.sql",
+);
 
 const PLATFORM_ADMIN_SOURCE_PATH = resolve(
   ROOT,
@@ -69,6 +77,11 @@ const PIN_SEARCH_PATH_SOURCE_PATH = resolve(
   "supabase/migrations/0210_pin_search_path_triggers.sql",
 );
 const PIN_SEARCH_PATH_TARGET_MD5 = "c3131d8ea3756049d6455bc98b4d0ecc";
+const REVOKE_ANON_SWEEP_SOURCE_PATH = resolve(
+  ROOT,
+  "supabase/migrations/0209_revoke_anon_rpc_sweep.sql",
+);
+const REVOKE_ANON_SWEEP_TARGET_MD5 = "c6c722efdb7ff79ef037e0d826739205";
 
 const SEED_TEAM_INVITATION = String.raw`-- Seed template "team_invitation" por cada tenant existente.
 -- Idempotente · on conflict do nothing.
@@ -1222,6 +1235,247 @@ select to_regnamespace('supabase_migrations') is null
 `;
 }
 
+function signatureArgumentTypes(argumentsSql) {
+  if (argumentsSql === "") {
+    return "";
+  }
+  return argumentsSql
+    .split(",")
+    .map((argument) => argument.trim().replace(/^[a-z0-9_]+\s+/, ""))
+    .join(", ");
+}
+
+export async function loadRevokeAnonSweepRepair() {
+  const targetSql = normalizeSql(
+    await readFile(REVOKE_ANON_SWEEP_SOURCE_PATH, "utf8"),
+  );
+  if (md5(targetSql) !== REVOKE_ANON_SWEEP_TARGET_MD5) {
+    throw new Error(
+      "0209_revoke_anon_rpc_sweep.sql no coincide con el digest canónico esperado",
+    );
+  }
+
+  const revokePattern =
+    /^revoke execute on function public\.([a-z0-9_]+)\(([^)]*)\) from public, anon;$/gm;
+  const grantPattern =
+    /^grant execute on function public\.([a-z0-9_]+)\(([^)]*)\) to authenticated, service_role;$/gm;
+  const revokes = Array.from(
+    targetSql.matchAll(revokePattern),
+    ([statement, name, argumentsSql]) => ({
+      statement,
+      name,
+      argumentsSql,
+      identity: `public.${name}(${argumentsSql})`,
+      regprocedure: `public.${name}(${signatureArgumentTypes(argumentsSql)})`,
+    }),
+  );
+  const grants = Array.from(
+    targetSql.matchAll(grantPattern),
+    ([statement, name, argumentsSql]) => ({
+      statement,
+      identity: `public.${name}(${argumentsSql})`,
+    }),
+  );
+
+  if (revokes.length !== 48 || grants.length !== 48) {
+    throw new Error(
+      `0209_revoke_anon_rpc_sweep.sql debe contener 48 pares ACL; encontrados ${revokes.length}/${grants.length}`,
+    );
+  }
+  if (new Set(revokes.map((target) => target.identity)).size !== 48) {
+    throw new Error(
+      "0209_revoke_anon_rpc_sweep.sql contiene firmas duplicadas",
+    );
+  }
+  if (
+    revokes.some(
+      (target, index) => target.identity !== grants[index]?.identity,
+    )
+  ) {
+    throw new Error(
+      "0209_revoke_anon_rpc_sweep.sql cambió el orden o emparejamiento REVOKE/GRANT",
+    );
+  }
+  if (
+    !revokes.some(
+      (target) => target.identity === "public.comment_mentions_validate()",
+    )
+  ) {
+    throw new Error(
+      "0209_revoke_anon_rpc_sweep.sql perdió comment_mentions_validate()",
+    );
+  }
+
+  return {
+    version: "20260703234254",
+    name: "0209_revoke_anon_rpc_sweep",
+    targetSql,
+    targetMd5: REVOKE_ANON_SWEEP_TARGET_MD5,
+    targets: revokes,
+  };
+}
+
+export function buildRevokeAnonSweepMigration(repair) {
+  return `-- SDD-0118 · restaurar el payload reproducible del sweep ACL de RPCs.
+-- Sólo reemplaza statements NULL del ledger; no ejecuta los REVOKE/GRANT almacenados.
+
+do $sdd0118_revoke_anon_preflight$
+begin
+  if not exists (
+    select 1
+    from supabase_migrations.schema_migrations
+    where version = '${repair.version}'
+      and name = '${repair.name}'
+      and (
+        statements is null
+        or (
+          cardinality(statements) = 1
+          and md5(statements[1]) = '${repair.targetMd5}'
+        )
+      )
+  ) then
+    raise exception 'SDD-0118 revoke_anon: drift en ${repair.version} ${repair.name}';
+  end if;
+end
+$sdd0118_revoke_anon_preflight$;
+
+update supabase_migrations.schema_migrations
+set statements = array[
+  ${sqlLiteral(repair.targetSql, "sdd0118_revoke_anon_target")}
+]
+where version = '${repair.version}'
+  and name = '${repair.name}'
+  and statements is null;
+
+do $sdd0118_revoke_anon_postflight$
+begin
+  if not exists (
+    select 1
+    from supabase_migrations.schema_migrations
+    where version = '${repair.version}'
+      and name = '${repair.name}'
+      and cardinality(statements) = 1
+      and md5(statements[1]) = '${repair.targetMd5}'
+  ) then
+    raise exception 'SDD-0118 revoke_anon: postcondición falló en ${repair.version} ${repair.name}';
+  end if;
+end
+$sdd0118_revoke_anon_postflight$;
+`;
+}
+
+export function buildRevokeAnonSweepSqlTest(repair) {
+  const functionFixtures = repair.targets
+    .map(
+      (target) => `create function public.${target.name}(${target.argumentsSql})
+returns boolean
+language sql
+as $fixture$
+  select true
+$fixture$;
+
+grant execute on function ${target.identity} to anon, authenticated, service_role;`,
+    )
+    .join("\n\n");
+  const replayAssertions = repair.targets
+    .map(
+      (target) => `  if has_function_privilege('anon', '${target.regprocedure}', 'EXECUTE') then
+    raise exception 'TEST 0276: anon conserva EXECUTE en ${target.identity}';
+  end if;
+  if not has_function_privilege('authenticated', '${target.regprocedure}', 'EXECUTE')
+    or not has_function_privilege('service_role', '${target.regprocedure}', 'EXECUTE')
+  then
+    raise exception 'TEST 0276: grants legítimos incompletos en ${target.identity}';
+  end if;
+  if exists (
+    select 1
+    from aclexplode(coalesce(
+      (select proacl from pg_proc where oid = '${target.regprocedure}'::regprocedure),
+      acldefault('f', (select proowner from pg_proc where oid = '${target.regprocedure}'::regprocedure))
+    )) acl
+    where acl.grantee = 0
+      and acl.privilege_type = 'EXECUTE'
+  ) then
+    raise exception 'TEST 0276: PUBLIC conserva EXECUTE en ${target.identity}';
+  end if;`,
+    )
+    .join("\n\n");
+
+  return `\\set ON_ERROR_STOP on
+
+begin;
+
+do $roles$
+begin
+  if not exists (select 1 from pg_roles where rolname = 'anon') then
+    create role anon nologin;
+  end if;
+  if not exists (select 1 from pg_roles where rolname = 'authenticated') then
+    create role authenticated nologin;
+  end if;
+  if not exists (select 1 from pg_roles where rolname = 'service_role') then
+    create role service_role nologin;
+  end if;
+end
+$roles$;
+
+create schema supabase_migrations;
+create table supabase_migrations.schema_migrations (
+  version text primary key,
+  name text not null,
+  statements text[]
+);
+
+insert into supabase_migrations.schema_migrations (version, name, statements)
+values ('${repair.version}', '${repair.name}', null);
+
+create type public.document_status as enum ('fixture');
+create type public.document_entity_type as enum ('fixture');
+create type public.back_role as enum ('fixture');
+
+${functionFixtures}
+
+\\ir ../migrations/0276_restore_revoke_anon_rpc_sweep_history.sql
+\\ir ../migrations/0276_restore_revoke_anon_rpc_sweep_history.sql
+
+do $ledger_contract$
+begin
+  if not exists (
+    select 1
+    from supabase_migrations.schema_migrations
+    where version = '${repair.version}'
+      and name = '${repair.name}'
+      and cardinality(statements) = 1
+      and md5(statements[1]) = '${repair.targetMd5}'
+  ) then
+    raise exception 'TEST 0276: estado final incorrecto en ${repair.version}';
+  end if;
+  if not has_function_privilege(
+    'anon',
+    'public.comment_mentions_validate()',
+    'EXECUTE'
+  ) then
+    raise exception 'TEST 0276: la migración ejecutó el payload almacenado';
+  end if;
+end
+$ledger_contract$;
+
+${repair.targetSql}
+
+do $replay_contract$
+begin
+${replayAssertions}
+end
+$replay_contract$;
+
+rollback;
+
+select to_regnamespace('supabase_migrations') is null
+  and to_regprocedure('public.comment_mentions_validate()') is null
+  as sdd_0118_revoke_anon_fixture_rolled_back;
+`;
+}
+
 async function run() {
   const repairs = await loadRepairs();
   const migration = buildMigration(repairs);
@@ -1246,6 +1500,13 @@ async function run() {
     pinSearchPathRepair,
   );
   const pinSearchPathSqlTest = buildPinSearchPathSqlTest(pinSearchPathRepair);
+  const revokeAnonSweepRepair = await loadRevokeAnonSweepRepair();
+  const revokeAnonSweepMigration = buildRevokeAnonSweepMigration(
+    revokeAnonSweepRepair,
+  );
+  const revokeAnonSweepSqlTest = buildRevokeAnonSweepSqlTest(
+    revokeAnonSweepRepair,
+  );
   const checkOnly = process.argv.includes("--check");
 
   if (checkOnly) {
@@ -1260,6 +1521,8 @@ async function run() {
       currentCalculatorSettingsTest,
       currentPinSearchPathMigration,
       currentPinSearchPathTest,
+      currentRevokeAnonSweepMigration,
+      currentRevokeAnonSweepTest,
     ] = await Promise.all([
       readFile(MIGRATION_PATH, "utf8"),
       readFile(SQL_TEST_PATH, "utf8"),
@@ -1271,6 +1534,8 @@ async function run() {
       readFile(CALCULATOR_SETTINGS_SQL_TEST_PATH, "utf8"),
       readFile(PIN_SEARCH_PATH_MIGRATION_PATH, "utf8"),
       readFile(PIN_SEARCH_PATH_SQL_TEST_PATH, "utf8"),
+      readFile(REVOKE_ANON_SWEEP_MIGRATION_PATH, "utf8"),
+      readFile(REVOKE_ANON_SWEEP_SQL_TEST_PATH, "utf8"),
     ]);
     if (
       normalizeSql(currentMigration) !== migration ||
@@ -1286,7 +1551,10 @@ async function run() {
         calculatorSettingsSqlTest ||
       normalizeSql(currentPinSearchPathMigration) !==
         pinSearchPathMigration ||
-      normalizeSql(currentPinSearchPathTest) !== pinSearchPathSqlTest
+      normalizeSql(currentPinSearchPathTest) !== pinSearchPathSqlTest ||
+      normalizeSql(currentRevokeAnonSweepMigration) !==
+        revokeAnonSweepMigration ||
+      normalizeSql(currentRevokeAnonSweepTest) !== revokeAnonSweepSqlTest
     ) {
       throw new Error("Los artefactos generados de SDD-0118 están desactualizados");
     }
@@ -1316,6 +1584,16 @@ async function run() {
     ),
     writeFile(PIN_SEARCH_PATH_MIGRATION_PATH, pinSearchPathMigration, "utf8"),
     writeFile(PIN_SEARCH_PATH_SQL_TEST_PATH, pinSearchPathSqlTest, "utf8"),
+    writeFile(
+      REVOKE_ANON_SWEEP_MIGRATION_PATH,
+      revokeAnonSweepMigration,
+      "utf8",
+    ),
+    writeFile(
+      REVOKE_ANON_SWEEP_SQL_TEST_PATH,
+      revokeAnonSweepSqlTest,
+      "utf8",
+    ),
   ]);
 }
 
