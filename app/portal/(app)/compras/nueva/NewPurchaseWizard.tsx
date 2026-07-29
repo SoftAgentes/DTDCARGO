@@ -45,7 +45,6 @@ import {
   clampHoldCount,
   buildPurchaseOrderLines,
 } from "@/lib/portal/purchase-order-lines";
-import { PREALERTA_CLIENT_NOTE_LIVE } from "@/lib/portal/demo";
 
 const prealertaInitial: PrealertaActionState = {};
 
@@ -180,8 +179,8 @@ export function NewPurchaseWizard({
 
           {/* Nota del cliente sobre ESTA compra (Norte, paso 1). Sale sólo
               cuando ya hay proveedor: antes de eso no hay compra de la que
-              hablar. Depende de la migr 0269 — ver PREALERTA_CLIENT_NOTE_LIVE. */}
-          {PREALERTA_CLIENT_NOTE_LIVE && supplierId && (
+              hablar. */}
+          {supplierId && (
             <div className="mt-4">
               <FieldLabel htmlFor={`${uid}-client-note`}>
                 Nota{" "}

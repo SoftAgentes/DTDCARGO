@@ -385,6 +385,13 @@ export type Prealerta = {
   code: string;
   description: string;
   tracking_cn: string | null;
+  /**
+   * SDD-0173 (migr 0269): nota que el CLIENTE escribió sobre esta compra en el
+   * paso 1 del asistente ("pedido urgente", "incluye una muestra"…). No
+   * confundir con `suppliers_cn.notes` (describe al proveedor) ni con las notas
+   * por servicio (instrucciones operativas).
+   */
+  client_note: string | null;
   boxes: number;
   est_value_usd: number | null;
   status: PrealertaStatus;

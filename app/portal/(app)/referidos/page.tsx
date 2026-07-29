@@ -420,7 +420,10 @@ function ReferralStatusBadge({ status }: { status: ReferralStatus }) {
     <span
       className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-semibold whitespace-nowrap"
       style={{
-        color,
+        // El texto NO va en el color del tono: sobre su propio tinte, "primer
+        // embarque" (dorado) medía 2.91:1 y "acreditado" (verde) 3.93:1 en tema
+        // claro. El color se queda en el punto/borde/fondo. SDD-0176.
+        color: "var(--color-ink)",
         background: `color-mix(in srgb, ${color} 10%, transparent)`,
         border: `1px solid color-mix(in srgb, ${color} 22%, transparent)`,
       }}

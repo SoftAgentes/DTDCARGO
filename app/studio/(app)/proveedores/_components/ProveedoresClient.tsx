@@ -590,6 +590,26 @@ function IncomingTab({
               tracking {p.tracking_cn}
             </div>
           )}
+          {/* Nota que el CLIENTE escribió sobre esta compra (SDD-0173, migr
+              0269). Va acá y no en una columna propia: es contexto de la
+              compra, se lee junto a la descripción y no ensancha la tabla.
+              Hasta este cambio la columna era write-only — el cliente escribía
+              "pedido urgente" y nadie en DTD lo veía. */}
+          {p.client_note && (
+            <div
+              title={p.client_note}
+              style={{
+                font: "500 11px/1.35 var(--f-sans)",
+                color: "var(--ink-soft)",
+                marginTop: 3,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Nota del cliente: {p.client_note}
+            </div>
+          )}
         </div>
       ),
     },

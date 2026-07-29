@@ -44,7 +44,6 @@ import {
   type ServiceRequestActionState,
 } from "@/lib/studio/prealertas/addons";
 import { reconcileServiceRequests } from "@/lib/portal/purchase-order-lines";
-import { PREALERTA_CLIENT_NOTE_LIVE } from "@/lib/portal/demo";
 import {
   listActivePrealertaAddons,
   getPrealertaByCode,
@@ -579,11 +578,9 @@ export async function createPrealertaAction(
         boxes: input.boxes,
         est_value_usd: input.estValueUsd,
         status: "anunciada",
-        // Nota del cliente sobre ESTA compra (paso 1 · migr 0269). Mientras la
-        // columna no exista, ni se nombra.
-        ...(PREALERTA_CLIENT_NOTE_LIVE
-          ? { client_note: normalizeClientNote(formData.get("clientNote")) }
-          : {}),
+        // Nota del cliente sobre ESTA compra (paso 1 · migr 0269, aplicada
+        // 2026-07-29).
+        client_note: normalizeClientNote(formData.get("clientNote")),
       })
       .select("id, share_token")
       .single<{ id: string; share_token: string | null }>();

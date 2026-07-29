@@ -1,10 +1,10 @@
 ---
 sdd: "0173"
 title: "Portal — Nueva compra como asistente de 3 pasos"
-status: in-progress
+status: done
 author: "Sam (founder) + Claude Code"
 created: 2026-07-28
-updated: 2026-07-28
+updated: 2026-07-29
 supersedes: null
 superseded_by: null
 related: ["0057", "0096", "0098", "0169", "0170", "0171"]
@@ -204,3 +204,19 @@ del origen) → `0266_suppliers_cn_portal_profile.sql`.
   **Hallazgo preexistente reportado, NO tocado:** el badge "Próximamente" del
   envío aéreo (`ShippingModeNotice`, SDD-0098) mide **3.64:1**. Vive en 3
   pantallas más; arreglarlo es su propio trabajo.
+
+- **2026-07-29 — CERRADA.** Con OK del founder:
+  1. **`0269_prealertas_client_note` APLICADA** a prod. Verificada contra el
+     OBJETO (no contra el nombre, per runbook): columna `client_note` `text`
+     nullable + constraint `prealertas_client_note_len_chk` + fila en el ledger
+     con el basename exacto. Sacada de `pendingBelowCutoff`; el `cutoff` **no se
+     sube** (se aplicó con la regla hacia adelante, el check la valida sin ruido).
+  2. **Andamio `PREALERTA_CLIENT_NOTE_LIVE` BORRADO** — no era un interruptor de
+     producto. El campo "Nota" del paso 1 se pinta siempre y la server action
+     nombra la columna sin condicional.
+  3. **`NEW_PURCHASE_WIZARD_LIVE = true`** — el asistente atiende a todos los
+     clientes. El formulario largo (`NewPurchaseForm.tsx`) queda en el árbol: es
+     la reversión de una línea si algo sale mal.
+
+  Con esto queda cerrada la **brecha 3 de la Fase 7**. Sólo resta la brecha 4
+  (`StatementLedger`), que va en su propia spec.

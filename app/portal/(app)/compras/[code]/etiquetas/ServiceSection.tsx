@@ -70,7 +70,9 @@ export function PrealertaServiceSection({
                   <span
                     className="inline-flex items-center text-[11px] font-semibold rounded-full px-2 py-0.5"
                     style={{
-                      color: "var(--color-status-warning)",
+                      // Texto en ink, no en ámbar: sobre su propio tinte medía
+                      // 2.91:1 en claro. El dorado queda en el fondo. SDD-0176.
+                      color: "var(--color-ink)",
                       background:
                         "color-mix(in srgb, var(--color-status-warning) 10%, transparent)",
                     }}
@@ -216,7 +218,9 @@ function AddServiceForm({
         <p
           className="text-[12px] leading-[1.45] rounded-[8px] px-3 py-2"
           style={{
-            color: "var(--color-status-warning)",
+            // Texto en ink, no en ámbar: sobre su propio tinte medía 2.91:1 en
+            // claro y esto es un AVISO — tiene que leerse. SDD-0176.
+            color: "var(--color-ink)",
             background:
               "color-mix(in srgb, var(--color-status-warning) 8%, transparent)",
           }}
