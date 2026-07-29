@@ -1,87 +1,158 @@
 ---
 sdd: "0118"
-title: "Seed migrations idempotentes — habilitar validación en branch efímero de Supabase"
-status: draft
+title: "Historial reproducible — habilitar validación en branch efímero de Supabase"
+status: in-progress
 author: "Claude Code (Director) + founder"
 created: 2026-06-29
-updated: 2026-06-29
+updated: 2026-07-29
 supersedes: null
 superseded_by: null
-related: ["0116"]
+related: ["0116", "0172"]
 confidencialidad: interno
 ---
 
-# SDD-0118 · Seed migrations idempotentes — habilitar branch efímero de Supabase
+# SDD-0118 · Historial reproducible para branches efímeros
 
-> **Deuda técnica descubierta aplicando SDD-0116 Slice B (migr 0186).** El flujo de
-> validación que pide §7 ("migración probada en branch efímero de Supabase, no prod")
-> es **infeasible hoy** porque el replay del historial completo de migraciones revienta
-> en una migración de *seed* no idempotente. Esta spec lo documenta y propone el arreglo.
+## 0. Decisión
 
-## 0. Problema
+Se repara el historial remoto mediante una migración forward-only y
+fail-closed:
 
-Al crear un branch efímero de Supabase (`create_branch`, `with_data: false`) para validar
-una migración nueva, el branch **replaya todo el historial** de migraciones desde cero. En el
-proyecto DTD (`xpfuzqombmjmxvprjgmi`) ese replay **falla a las 32/185** migraciones, en:
-
+```text
+0271_repair_branch_replay_history
 ```
+
+La migración no ejecuta el DDL histórico sobre Producción ni toca tablas de
+negocio. Sólo corrige `supabase_migrations.schema_migrations.statements` para
+que un branch nuevo pueda reproducir el schema desde cero. Cada cambio exige
+versión, nombre y digest MD5 exactos; cualquier drift aborta toda la
+transacción.
+
+La aplicación Cloud de `0271` y la creación del branch posterior son gates
+separados. Esta spec no autoriza `0270`, Vercel, Auth, lectura de filas de
+negocio ni PII.
+
+## 1. Causa raíz comprobada
+
+El primer branch de SDD-0172 quedó en `MIGRATIONS_FAILED` después de 32
+migraciones. La siguiente entrada era:
+
+```text
 20260526213130 · seed_team_invitation_template
 ```
 
-Es una migración de **seed** que hace `INSERT` asumiendo filas (tenant / datos) que **solo
-existen en producción**. En un DB fresco esas filas no están → la migración aborta →
-`status: MIGRATIONS_FAILED`. El branch queda a medio construir (sin `persons`,
-`consolidations`, ni nada posterior a mayo) y **no sirve para validar** ninguna migración que
-dependa del schema real. **Cualquier** branch nuevo morirá en el mismo punto.
+El diagnóstico metadata-only corrigió la hipótesis original:
 
-## 1. Impacto
+- el seed ya usa `ON CONFLICT DO NOTHING`;
+- `0001_init_tenancy` sí crea un tenant bootstrap;
+- el fallo ocurre porque el seed referencia `public.mail_templates` antes de
+  que exista;
+- la entrada remota `20260528060001 · 0018_mailing` contiene sólo un comentario
+  post-hoc, no el DDL canónico de `0018_mailing.sql`;
+- `0051_brand_v3_templates` también referencia `mail_templates` antes de esa
+  entrada;
+- `realtime_dispatch` referencia tablas de `0024_dispatch_core` antes del
+  placeholder post-hoc que documentó su aplicación manual.
 
-- **No se puede cumplir §7 literal** ("validar en branch efímero") para ninguna migración nueva.
-- Workaround vigente (probado en 0186): **dry-run en transacción sobre prod** —
-  `begin; <DDL>; rollback;` + `select to_regclass(...)` para confirmar que no persistió.
-  Valida que el DDL ejecuta limpio contra el schema real, **pero no corre `get_advisors`**
-  (los advisors necesitan los objetos creados de verdad). Para advisors hay que aplicar a
-  prod (additivo/idempotente) y correr advisors después.
-- Mientras el historial tenga seeds no idempotentes, el branching de Supabase queda inutilizable
-  (también para previews de Vercel/Supabase si algún día se conectan).
+Por tanto, el problema no era un seed no idempotente aislado. Era historial
+remoto incompleto y fuera de orden, originado por cambios antiguos aplicados
+mediante SQL editor y registrados después sólo como comentarios.
 
-## 2. Alcance propuesto
+## 2. Reparación exacta
 
-Hacer **idempotentes y fail-safe** las migraciones de seed del historial, para que un replay en
-DB fresco (sin datos) no aborte:
+`0271` modifica once entradas del ledger:
 
-- **Auditar** todas las migraciones que hacen `INSERT`/seed de datos (no solo
-  `seed_team_invitation_template` — barrer el historial completo).
-- **Patrón de arreglo** (sin reescribir historia aplicada en prod; additivo):
-  - Seeds que dependen de filas existentes → envolver en guard
-    (`insert ... where exists (...)` / `on conflict do nothing` / `if exists` en bloque `do`).
-  - Seeds de catálogo/plantillas globales → `on conflict do nothing` con clave natural.
-  - Lo que dependa de un tenant concreto → mover fuera del historial de migraciones a un
-    **script de seed** (`pnpm seed`) que NO corre en el replay del branch.
-- **Validar** creando un branch efímero limpio que llegue a `MIGRATIONS_PASSED` end-to-end.
+| Entrada remota | Acción para replay |
+|---|---|
+| `20260526213130 seed_team_invitation_template` | antepone `0018_mailing.sql` y conserva el seed original como segundo statement |
+| `20260527073053 realtime_dispatch` | antepone `0024_dispatch_core.sql` y `0025_operario_roles_extend.sql`; conserva realtime como tercero |
+| `20260528060005 0026_welcome_email_template_seed` | reemplaza el comentario por el SQL canónico |
+| `20260528060006 0027_qr_print_orders` | reemplaza el comentario por el SQL canónico |
+| `20260528060007 0031_fix_studio_invite_gen_random_bytes` | reemplaza el comentario por el SQL canónico |
+| `20260528060008 0032_fix_studio_invite_ambiguous_token` | reemplaza el comentario por el SQL canónico |
+| `20260528060009 0033_grant_service_role_policies` | reemplaza el comentario por el SQL canónico |
+| `20260528060010 0035_fix_verify_operario_pin_extensions` | reemplaza el comentario por el SQL canónico |
+| `20260528060011 0036_fk_user_tenants_profile` | reemplaza el comentario por el SQL canónico |
+| `20260528060012 0037_harden_operario_pin_validator` | reemplaza el comentario por el SQL canónico |
+| `20260528060013 0039_fix_bug_advance_state_actor_type_cast` | reemplaza el comentario por el SQL canónico |
 
-## 3. Decisión de diseño (a confirmar founder)
+No se reejecuta contenido sobre Producción: los archivos históricos se
+almacenan como elementos `text[]` para el próximo replay. Al llegar a `0271`
+en un branch ya reparado, la migración reconoce el estado final por digest y
+no duplica statements.
 
-- **¿Tocar el historial aplicado?** Postgres/Supabase ya tienen esas migraciones registradas en
-  `schema_migrations` de prod; **NO** se re-ejecutan en prod. Editar el `.sql` histórico solo
-  afecta replays nuevos (branches). Riesgo: divergencia entre lo aplicado en prod y el archivo.
-  Alternativa más limpia: **dejar el histórico tal cual** y agregar una migración nueva que
-  "repare" o un `seeds/` aparte — pero eso no arregla el replay (el branch sigue corriendo el
-  `.sql` viejo). → **Para habilitar branching hay que editar los `.sql` de seed históricos**
-  para que sean idempotentes/guardados. Confirmar que se acepta esa edición.
-- **¿Vale la pena?** Si el dry-run tx cubre el 90% del valor (validar ejecución sin tocar prod),
-  quizás el branching real no justifica el esfuerzo. Decisión founder: **arreglar seeds** vs
-  **formalizar el dry-run tx como el método oficial de §7** y cerrar esta deuda como "won't fix".
+Los placeholders `0020b`, `0057` y `0058` quedan fuera:
 
-## 4. Criterios de aceptación
+- `0020b` tiene sus cambios funcionales cubiertos por entradas anteriores y
+  reemplazos posteriores del mismo flujo;
+- `0057_user_profiles_locale_nullable` ya tiene SQL real en
+  `20260528024234`;
+- `0058_user_invitations_region` ya tiene SQL real en `20260528035934`.
 
-- Un branch efímero nuevo del proyecto llega a `MIGRATIONS_PASSED` (replay completo 185+).
-- `get_advisors` corre en el branch sobre una migración nueva sin deps faltantes.
-- Si se opta por "won't fix": §7 de la plantilla de spec se actualiza para documentar el
-  **dry-run tx** como método de validación aceptado, y se referencia esta spec.
+## 3. Generación y control de drift
 
-## 5. Notas
+El generador
+`scripts/build-sdd-0118-repair.mjs`:
 
-- Descubierto por el Director aplicando 0116/0186 el 2026-06-29.
-- Workaround dry-run tx documentado en memoria y reutilizable.
-- No bloquea ningún slice en curso; es habilitador de tooling + higiene de migraciones.
+1. valida los digests del estado remoto observado;
+2. lee los doce archivos fuente del repositorio;
+3. normaliza únicamente finales de línea;
+4. calcula y publica el digest de cada payload;
+5. genera `0271` y su prueba transaccional;
+6. ofrece `--check` para impedir drift entre fuentes y artefactos.
+
+No descarga ni guarda secretos. Los únicos datos Cloud incorporados son
+metadatos técnicos del ledger.
+
+## 4. Seguridad
+
+- una versión, nombre o digest inesperado aborta antes de escribir;
+- la operación es una sola transacción corta;
+- los `UPDATE` apuntan exclusivamente a
+  `supabase_migrations.schema_migrations`;
+- no se consulta ni modifica ninguna fila de negocio;
+- no se reordena ni elimina una migración;
+- no se usa `migration repair` para fingir ejecución;
+- no se toca Auth, Storage, Vercel ni `0270`;
+- el branch fallido anterior permanece destruido.
+
+## 5. Allowlist
+
+| Tipo | Archivo |
+|---|---|
+| Generador | `scripts/build-sdd-0118-repair.mjs` |
+| Unit | `scripts/__tests__/build-sdd-0118-repair.test.ts` |
+| Migración | `supabase/migrations/0271_repair_branch_replay_history.sql` |
+| DB test | `supabase/tests/0271_repair_branch_replay_history.test.sql` |
+| Spec | `docs/specs/0118-seed-migrations-idempotentes/spec.md` |
+| Revisión | `docs/governance/reviews/aud-sdd-0118-branch-replay.md` |
+
+## 6. Evidencia local
+
+| Gate | Resultado |
+|---|---|
+| Generación determinista | verde · `node scripts/build-sdd-0118-repair.mjs --check` |
+| Vitest focal | verde · 1 archivo · 3 pruebas |
+| PostgreSQL 15 | verde · 11 cambios + segunda ejecución idempotente + rollback |
+| PostgreSQL 17 | verde · 11 cambios + segunda ejecución idempotente + rollback |
+| Residuo Docker propio | cero |
+| Diff | verde |
+
+## 7. Gates restantes
+
+1. autorización explícita del basename exacto
+   `0271_repair_branch_replay_history`;
+2. preflight metadata-only fresco y aplicación individual de `0271`;
+3. postflight de los once estados y advisors;
+4. creación de un branch efímero nuevo;
+5. replay completo hasta `MIGRATIONS_PASSED`;
+6. ejecución y teardown terminal de SDD-0172.
+
+SDD-0118 permanece `in-progress` hasta que un entorno nuevo demuestre el
+replay completo. Un test local verde no sustituye esa evidencia.
+
+## 8. Rollback
+
+- antes de Cloud: revertir el commit local;
+- después de Cloud: forward-fix; no restaurar comentarios ciegamente;
+- branch fallido: destruir el branch completo, sin reset, rebase ni SQL ad hoc.
