@@ -24,7 +24,9 @@ confidencialidad: interno
 > lo aprobó técnicamente y
 > [REV-AUD-009](../../governance/reviews/aud-corte-b1-aplicacion.md) registra su
 > aplicación y verificación en Cloud. Los Cortes C–E siguen sin implementar y
-> el ciclo de vida tenant/fixtures debe diseñarse antes del cierre global.
+> [REV-AUD-010](../../governance/reviews/aud-tenant-fixtures.md) aprueba el
+> diseño obligatorio del ciclo de vida tenant/fixtures. Su implementación
+> requiere SDD propio antes del cierre global.
 
 ## 1. Propósito
 
@@ -450,5 +452,7 @@ individual. La migración fue integrada en
 [REV-AUD-009](../../governance/reviews/aud-corte-b1-aplicacion.md) registra su
 aplicación y verificación en Cloud bajo el basename exacto. La FK de tenant
 conserva `ON DELETE CASCADE` como excepción transitoria: el ciclo de vida
-tenant/fixtures debe diseñarse antes del cierre global. Los Cortes C–E
+tenant/fixtures fue diseñado y aprobado en
+[REV-AUD-010](../../governance/reviews/aud-tenant-fixtures.md), pero su
+implementación requiere SDD propio antes del cierre global. Los Cortes C–E
 conservan gates separados.
