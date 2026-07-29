@@ -41,7 +41,15 @@
  *   - onAction acepta `void` o `{ error }`.
  */
 
-import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useTransition,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+} from "react";
 
 const DEFAULT_SUCCESS_MS = 2500;
 
@@ -124,6 +132,7 @@ function writeStoredKey(memoryKey: string, lastKey: string) {
 const ESTIMATED_MENU_HEIGHT = 220;
 
 type MenuDirection = "down" | "up";
+type InitialMenuFocus = "active" | "first" | "last";
 
 export function SplitActionButton({
   memoryKey,
@@ -138,10 +147,14 @@ export function SplitActionButton({
   // Estado de UI
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuDirection, setMenuDirection] = useState<MenuDirection>("down");
+  const [initialMenuFocus, setInitialMenuFocus] =
+    useState<InitialMenuFocus>("active");
   const [activeKey, setActiveKey] = useState<string>(actions[0]?.key ?? "");
   const [isPending, startTransition] = useTransition();
   const [successKey, setSuccessKey] = useState<string | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuId = useId();
 
   // Cargar la última opción guardada (solo client-side · evita hydration mismatch).
   useEffect(() => {
@@ -157,27 +170,40 @@ export function SplitActionButton({
    * inferior) · si abriera hacia abajo quedaría fuera del viewport o
    * tapado por la barra de tareas / safe area.
    */
-  const toggleMenu = () => {
-    if (menuOpen) {
-      setMenuOpen(false);
-      return;
-    }
+  const openMenu = (initialFocus: InitialMenuFocus) => {
+    if (disabled || isPending || successKey != null) return;
+    setInitialMenuFocus(initialFocus);
     const el = wrapRef.current;
     if (el && typeof window !== "undefined") {
       const rect = el.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
       const spaceAbove = rect.top;
-      // Si no hay espacio suficiente debajo, abrimos hacia arriba.
-      if (spaceBelow < ESTIMATED_MENU_HEIGHT && spaceAbove > spaceBelow) {
-        setMenuDirection("up");
-      } else {
-        setMenuDirection("down");
-      }
+      setMenuDirection(
+        spaceBelow < ESTIMATED_MENU_HEIGHT && spaceAbove > spaceBelow
+          ? "up"
+          : "down",
+      );
     }
     setMenuOpen(true);
   };
 
-  // Cerrar el menú con click afuera o Escape.
+  const toggleMenu = () => {
+    if (menuOpen) {
+      setMenuOpen(false);
+      return;
+    }
+    openMenu("active");
+  };
+
+  const closeMenu = (restoreFocus = false) => {
+    setMenuOpen(false);
+    if (restoreFocus) {
+      requestAnimationFrame(() => triggerRef.current?.focus());
+    }
+  };
+
+  // Cerrar el menú con click afuera. Escape se resuelve dentro del menu para
+  // restaurar el foco al trigger de forma determinista.
   useEffect(() => {
     if (!menuOpen) return;
     const onDocClick = (e: MouseEvent) => {
@@ -185,14 +211,9 @@ export function SplitActionButton({
         setMenuOpen(false);
       }
     };
-    const onEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMenuOpen(false);
-    };
     document.addEventListener("mousedown", onDocClick);
-    document.addEventListener("keydown", onEsc);
     return () => {
       document.removeEventListener("mousedown", onDocClick);
-      document.removeEventListener("keydown", onEsc);
     };
   }, [menuOpen]);
 
@@ -315,19 +336,30 @@ export function SplitActionButton({
         style={{
           width: 1,
           alignSelf: "stretch",
-          background: "rgba(255,255,255,0.20)",
+          background: "var(--border-inv)",
         }}
       />
 
       {/* Chevron · abre menú de opciones alternativas. */}
       <button
+        ref={triggerRef}
         type="button"
         className={sharedBtnClass}
         onClick={toggleMenu}
+        onKeyDown={(event: ReactKeyboardEvent<HTMLButtonElement>) => {
+          if (event.key === "ArrowDown") {
+            event.preventDefault();
+            openMenu("first");
+          } else if (event.key === "ArrowUp") {
+            event.preventDefault();
+            openMenu("last");
+          }
+        }}
         disabled={disabled || inFlight}
         aria-label="Más opciones de la acción"
         aria-haspopup="menu"
         aria-expanded={menuOpen}
+        aria-controls={menuOpen ? menuId : undefined}
         style={{
           borderTopLeftRadius: 0,
           borderBottomLeftRadius: 0,
@@ -342,9 +374,12 @@ export function SplitActionButton({
       {/* Menú de opciones · abre hacia abajo o arriba según el espacio. */}
       {menuOpen && (
         <SplitActionMenu
+          id={menuId}
           actions={actions}
           activeKey={active.key}
           direction={menuDirection}
+          initialFocus={initialMenuFocus}
+          onClose={closeMenu}
           onSelect={runAction}
         />
       )}
@@ -353,16 +388,68 @@ export function SplitActionButton({
 }
 
 function SplitActionMenu({
+  id,
   actions,
   activeKey,
   direction,
+  initialFocus,
+  onClose,
   onSelect,
 }: {
+  id: string;
   actions: SplitAction[];
   activeKey: string;
   direction: MenuDirection;
+  initialFocus: InitialMenuFocus;
+  onClose: (restoreFocus?: boolean) => void;
   onSelect: (a: SplitAction) => void;
 }) {
+  const activeIndex = Math.max(
+    0,
+    actions.findIndex((action) => action.key === activeKey),
+  );
+  const firstFocus =
+    initialFocus === "first"
+      ? 0
+      : initialFocus === "last"
+        ? Math.max(0, actions.length - 1)
+        : activeIndex;
+  const [focusIndex, setFocusIndex] = useState(firstFocus);
+  const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  useEffect(() => {
+    itemRefs.current[firstFocus]?.focus();
+  }, [firstFocus]);
+
+  const moveFocus = (nextIndex: number) => {
+    setFocusIndex(nextIndex);
+    itemRefs.current[nextIndex]?.focus();
+  };
+
+  const handleKeyDown = (
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) => {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      moveFocus((index + 1) % actions.length);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      moveFocus((index - 1 + actions.length) % actions.length);
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      moveFocus(0);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      moveFocus(actions.length - 1);
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      onClose(true);
+    } else if (event.key === "Tab") {
+      onClose(false);
+    }
+  };
+
   // Posicionamiento según dirección · evita que el menú quede fuera del
   // viewport cuando el botón vive en el footer de un drawer.
   const verticalAnchor: React.CSSProperties =
@@ -372,6 +459,7 @@ function SplitActionMenu({
 
   return (
     <div
+      id={id}
       role="menu"
       aria-label="Opciones alternativas de la acción"
       style={{
@@ -382,7 +470,7 @@ function SplitActionMenu({
         background: "var(--bg-surface)",
         border: "1px solid var(--border-strong)",
         borderRadius: "var(--r-md, 8px)",
-        boxShadow: "var(--shadow-md, 0 8px 24px rgba(0,0,0,0.15))",
+        boxShadow: "var(--shadow-pop)",
         padding: 6,
         zIndex: 200,
         display: "flex",
@@ -401,14 +489,20 @@ function SplitActionMenu({
       >
         Variantes de la acción
       </div>
-      {actions.map((a) => {
+      {actions.map((a, index) => {
         const isActive = a.key === activeKey;
         return (
           <button
             key={a.key}
+            ref={(node) => {
+              itemRefs.current[index] = node;
+            }}
             type="button"
             role="menuitem"
+            tabIndex={focusIndex === index ? 0 : -1}
             onClick={() => onSelect(a)}
+            onFocus={() => setFocusIndex(index)}
+            onKeyDown={(event) => handleKeyDown(event, index)}
             style={{
               display: "flex",
               alignItems: "center",
