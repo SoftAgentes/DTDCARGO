@@ -206,12 +206,9 @@ No crea funciones ni modifica otra FK.
 
 ## 12. Gates pendientes
 
-1. obtener autorización expresa y aplicar individualmente
-   `0275_restore_pin_search_path_history`, ya aprobado localmente en
-   [REV-AUD-028](../../governance/reviews/aud-sdd-0118-pin-search-path-history.md);
-2. crear un Supabase efímero nuevo que alcance `MIGRATIONS_PASSED`;
-3. ejecutar seed, recorrido E2E y verificación sin DML de cleanup;
-4. destruir ese entorno y volver a comprobar estado terminal.
+1. crear un Supabase efímero nuevo que alcance `MIGRATIONS_PASSED`;
+2. ejecutar seed, recorrido E2E y verificación sin DML de cleanup;
+3. destruir ese entorno y volver a comprobar estado terminal.
 
 El gate Cloud de 0268 quedó cerrado en
 [REV-AUD-018](../../governance/reviews/aud-tenant-lifecycle-aplicacion.md).
@@ -219,6 +216,8 @@ El gate Cloud de 0273 quedó cerrado en
 [REV-AUD-025](../../governance/reviews/aud-sdd-0118-platform-admin-bootstrap-application.md).
 El gate Cloud de 0274 quedó cerrado en
 [REV-AUD-027](../../governance/reviews/aud-sdd-0118-calculator-settings-history-application.md).
+El gate Cloud de 0275 quedó cerrado en
+[REV-AUD-029](../../governance/reviews/aud-sdd-0118-pin-search-path-history-application.md).
 Los cinco intentos reales y sus teardowns quedaron registrados en
 [REV-AUD-019](../../governance/reviews/aud-tenant-fixtures-ephemeral-validation.md).
 SDD-0172 permanece `in-progress`: el teardown fue válido, pero el fixture no

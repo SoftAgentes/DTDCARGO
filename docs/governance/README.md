@@ -80,6 +80,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Recibo Cloud de 0268 | [REV-AUD-018](reviews/aud-tenant-lifecycle-aplicacion.md) |
 | Intento efímero y teardown terminal SDD-0172 | [REV-AUD-019](reviews/aud-tenant-fixtures-ephemeral-validation.md) |
 | Reparación local del payload 0210 | [REV-AUD-028](reviews/aud-sdd-0118-pin-search-path-history.md) |
+| Recibo Cloud de 0275 | [REV-AUD-029](reviews/aud-sdd-0118-pin-search-path-history-application.md) |
 | Inventario read-only del Corte C | [C0 · repo y Cloud](../specs/0166-auditoria-gobernada-aud-01-aud-02/inventario-corte-c-2026-07-28.md) |
 | Diseño correctivo del Corte C | [Consulta gobernada y RBAC v1.1](../specs/0166-auditoria-gobernada-aud-01-aud-02/diseno-correctivo-corte-c.md) |
 | Revisión del diseño Corte C | [REV-AUD-012](reviews/aud-corte-c.md) |
@@ -260,7 +261,9 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-057 · reparación local del payload 0210](BASELINE-2026-07-29-29.md).
+[LB-SGE-058 · aplicación Cloud de 0275](BASELINE-2026-07-29-30.md).
+La reparación local del payload 0210 permanece en
+[LB-SGE-057](BASELINE-2026-07-29-29.md).
 El replay R5 y su teardown terminal permanecen en
 [LB-SGE-056](BASELINE-2026-07-29-28.md).
 La aplicación Cloud de 0274 permanece en

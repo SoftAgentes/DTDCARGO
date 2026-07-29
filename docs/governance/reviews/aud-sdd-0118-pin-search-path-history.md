@@ -6,7 +6,7 @@
 | SDD | [SDD-0118](../../specs/0118-seed-migrations-idempotentes/spec.md) |
 | Candidata | `0275_restore_pin_search_path_history` |
 | Fecha | 2026-07-29 |
-| Resultado | aprobada localmente; Cloud no autorizado |
+| Resultado | aplicada y verificada; nuevo efímero pendiente |
 
 ## 1. Evidencia y causa
 
@@ -126,9 +126,14 @@ fallido, aplicar otra migración, alterar Auth, leer PII o abrir Vercel.
 REV-AUD-028 aprueba el diseño, el artefacto determinista y las pruebas locales
 de `0275_restore_pin_search_path_history`.
 
-No autoriza Cloud. La atomicidad se limita a una transacción PostgreSQL sobre
-una fila del ledger técnico; no se declara atomicidad con Auth ni con el
-control plane.
+La aplicación individual y su postflight están registrados en
+[REV-AUD-029](aud-sdd-0118-pin-search-path-history-application.md). La
+atomicidad se limita a una transacción PostgreSQL sobre una fila del ledger
+técnico; no se declara atomicidad con Auth ni con el control plane.
+
+El próximo gate es crear un entorno efímero totalmente nuevo para continuar
+SDD-0172. La aplicación de `0275` no sustituye la evidencia de replay, seed,
+E2E, verificación y teardown terminal.
 
 CMP-01 v1.1, caso deprecated, D1, slices de adopción, D2–D5 y PLG-P3
 permanecen cerrados. No existe plugin ni marketplace.

@@ -252,14 +252,12 @@ metadatos técnicos del ledger.
 | Calculator Cloud | `0274` aplicada individualmente; recibo `20260729143620` · [REV-AUD-027](../../governance/reviews/aud-sdd-0118-calculator-settings-history-application.md) |
 | Quinto branch | 266 migraciones; `0262` detecta `proconfig = NULL` porque `0210` tiene statements NULL; teardown terminal · [REV-AUD-019](../../governance/reviews/aud-tenant-fixtures-ephemeral-validation.md) |
 | Pin search_path local | `0275` determinista · PostgreSQL 15/17 · 33 firmas · UPDATE 1/0 · rollback · [REV-AUD-028](../../governance/reviews/aud-sdd-0118-pin-search-path-history.md) |
+| Pin search_path Cloud | `0275` aplicada individualmente; recibo `20260729152036` · [REV-AUD-029](../../governance/reviews/aud-sdd-0118-pin-search-path-history-application.md) |
 | Diff | verde |
 
 ## 7. Gates restantes
 
-1. obtener autorización expresa de
-   `0275_restore_pin_search_path_history`;
-2. aplicar únicamente ese basename con preflight y postflight propios;
-3. crear un entorno efímero nuevo y completar replay, seed, E2E, verificación
+1. crear un entorno efímero nuevo y completar replay, seed, E2E, verificación
    y teardown terminal.
 
 SDD-0118 permanece `in-progress` hasta que un entorno nuevo demuestre el
