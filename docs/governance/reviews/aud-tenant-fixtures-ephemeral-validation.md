@@ -85,3 +85,46 @@ repetir el recorrido completo sobre un entorno nuevo.
 
 No se autoriza editar migraciones históricas, crear otra rama, aplicar SQL a
 Producción ni abrir D1 o D2–D5 mediante esta revisión.
+
+## 7. Segundo intento después de `0271`
+
+Después de aplicar y verificar individualmente
+`0271_repair_branch_replay_history`, se creó un entorno totalmente nuevo:
+
+| Campo | Valor |
+|---|---|
+| Nombre | `sdd-0172-ephemeral-20260729-r2` |
+| `branch_id` | `9c4d596b-02de-4759-ac1f-59fde07504de` |
+| `project_ref` | `efnbhwrbdpgwlgtynacw` |
+| Creado | 2026-07-29T13:53:18.736494Z |
+| Datos de Producción | no |
+
+El replay avanzó de 32 a 63 entradas. Su última migración confirmada fue:
+
+```text
+20260528060006 · 0027_qr_print_orders
+```
+
+PostgreSQL registró después:
+
+```text
+20260528060007 · 0031_fix_studio_invite_gen_random_bytes
+ERROR: function name "public.studio_invite_user" is not unique
+```
+
+La causa es el `COMMENT ON FUNCTION` sin firma de `0031`: el historial ya
+había creado el overload vigente de tres parámetros. No se ejecutaron seed,
+Auth, fixtures, reset, rebase ni SQL correctivo.
+
+## 8. Teardown terminal R2
+
+`delete_branch` devolvió `success=true` para el `branch_id` exacto. El
+inventario posterior volvió a mostrar únicamente:
+
+```text
+main · xpfuzqombmjmxvprjgmi
+```
+
+El `branch_id` y `project_ref` R2 quedaron ausentes. La corrección propuesta
+se documenta en
+[REV-AUD-022](aud-sdd-0118-branch-replay-followup.md).

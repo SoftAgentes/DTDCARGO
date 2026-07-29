@@ -14,6 +14,14 @@ export const SQL_TEST_PATH = resolve(
   ROOT,
   "supabase/tests/0271_repair_branch_replay_history.test.sql",
 );
+export const FOLLOWUP_MIGRATION_PATH = resolve(
+  ROOT,
+  "supabase/migrations/0272_skip_superseded_invite_history.sql",
+);
+export const FOLLOWUP_SQL_TEST_PATH = resolve(
+  ROOT,
+  "supabase/tests/0272_skip_superseded_invite_history.test.sql",
+);
 
 const SEED_TEAM_INVITATION = String.raw`-- Seed template "team_invitation" por cada tenant existente.
 -- Idempotente · on conflict do nothing.
@@ -161,6 +169,21 @@ export async function loadRepairs() {
       return { ...repair, sources };
     }),
   );
+}
+
+export function loadFollowups(repairs) {
+  return repairs
+    .filter((repair) =>
+      ["20260528060007", "20260528060008"].includes(repair.version),
+    )
+    .map((repair) => ({
+      version: repair.version,
+      name: repair.name,
+      sourceSql: repair.sources[0].sql,
+      sourceMd5: repair.sources[0].md5,
+      targetSql: repair.oldStatement,
+      targetMd5: repair.expectedOldMd5,
+    }));
 }
 
 function currentStatePredicate(repair) {
@@ -322,20 +345,149 @@ select to_regnamespace('supabase_migrations') is null
 `;
 }
 
+export function buildFollowupMigration(followups) {
+  const preflight = followups
+    .map(
+      (followup) => `  if not exists (
+    select 1
+    from supabase_migrations.schema_migrations
+    where version = '${followup.version}'
+      and name = '${followup.name}'
+      and cardinality(statements) = 1
+      and md5(statements[1]) in ('${followup.sourceMd5}', '${followup.targetMd5}')
+  ) then
+    raise exception 'SDD-0118 follow-up: drift en ${followup.version} ${followup.name}';
+  end if;`,
+    )
+    .join("\n\n");
+  const updates = followups
+    .map(
+      (followup, index) => `update supabase_migrations.schema_migrations
+set statements = array[
+  ${sqlLiteral(followup.targetSql, `sdd0118_followup_${index}`)}
+]
+where version = '${followup.version}'
+  and name = '${followup.name}'
+  and cardinality(statements) = 1
+  and md5(statements[1]) = '${followup.sourceMd5}';`,
+    )
+    .join("\n\n");
+  const postflight = followups
+    .map(
+      (followup) => `  if not exists (
+    select 1
+    from supabase_migrations.schema_migrations
+    where version = '${followup.version}'
+      and name = '${followup.name}'
+      and cardinality(statements) = 1
+      and md5(statements[1]) = '${followup.targetMd5}'
+  ) then
+    raise exception 'SDD-0118 follow-up: postcondición falló en ${followup.version} ${followup.name}';
+  end if;`,
+    )
+    .join("\n\n");
+
+  return `-- SDD-0118 · omitir dos fixes de invitaciones supersedidos.
+-- Sólo restaura comments no-op en el ledger; no ejecuta DDL de negocio.
+
+do $sdd0118_followup_preflight$
+begin
+${preflight}
+end
+$sdd0118_followup_preflight$;
+
+${updates}
+
+do $sdd0118_followup_postflight$
+begin
+${postflight}
+end
+$sdd0118_followup_postflight$;
+`;
+}
+
+export function buildFollowupSqlTest(followups) {
+  const fixtureRows = followups
+    .map(
+      (followup, index) => `  (
+    '${followup.version}',
+    '${followup.name}',
+    array[${sqlLiteral(followup.sourceSql, `sdd0118_followup_source_${index}`)}]
+  )`,
+    )
+    .join(",\n");
+  const assertions = followups
+    .map(
+      (followup) => `  if not exists (
+    select 1
+    from supabase_migrations.schema_migrations
+    where version = '${followup.version}'
+      and name = '${followup.name}'
+      and cardinality(statements) = 1
+      and md5(statements[1]) = '${followup.targetMd5}'
+  ) then
+    raise exception 'TEST 0272: estado incorrecto en ${followup.version}';
+  end if;`,
+    )
+    .join("\n\n");
+
+  return `\\set ON_ERROR_STOP on
+
+begin;
+
+create schema supabase_migrations;
+create table supabase_migrations.schema_migrations (
+  version text primary key,
+  name text not null,
+  statements text[] not null
+);
+
+insert into supabase_migrations.schema_migrations (version, name, statements)
+values
+${fixtureRows};
+
+\\ir ../migrations/0272_skip_superseded_invite_history.sql
+\\ir ../migrations/0272_skip_superseded_invite_history.sql
+
+do $contract$
+begin
+${assertions}
+end
+$contract$;
+
+rollback;
+
+select to_regnamespace('supabase_migrations') is null
+  as sdd_0118_followup_fixture_rolled_back;
+`;
+}
+
 async function run() {
   const repairs = await loadRepairs();
   const migration = buildMigration(repairs);
   const sqlTest = buildSqlTest(repairs);
+  const followups = loadFollowups(repairs);
+  const followupMigration = buildFollowupMigration(followups);
+  const followupSqlTest = buildFollowupSqlTest(followups);
   const checkOnly = process.argv.includes("--check");
 
   if (checkOnly) {
-    const [currentMigration, currentTest] = await Promise.all([
+    const [
+      currentMigration,
+      currentTest,
+      currentFollowupMigration,
+      currentFollowupTest,
+    ] = await Promise.all([
       readFile(MIGRATION_PATH, "utf8"),
       readFile(SQL_TEST_PATH, "utf8"),
+      readFile(FOLLOWUP_MIGRATION_PATH, "utf8"),
+      readFile(FOLLOWUP_SQL_TEST_PATH, "utf8"),
     ]);
     if (
       normalizeSql(currentMigration) !== migration ||
-      normalizeSql(currentTest) !== sqlTest
+      normalizeSql(currentTest) !== sqlTest ||
+      normalizeSql(currentFollowupMigration) !== followupMigration ||
+      normalizeSql(currentFollowupTest) !== followupSqlTest
     ) {
       throw new Error("Los artefactos generados de SDD-0118 están desactualizados");
     }
@@ -345,6 +497,8 @@ async function run() {
   await Promise.all([
     writeFile(MIGRATION_PATH, migration, "utf8"),
     writeFile(SQL_TEST_PATH, sqlTest, "utf8"),
+    writeFile(FOLLOWUP_MIGRATION_PATH, followupMigration, "utf8"),
+    writeFile(FOLLOWUP_SQL_TEST_PATH, followupSqlTest, "utf8"),
   ]);
 }
 

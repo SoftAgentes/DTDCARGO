@@ -89,6 +89,23 @@ Los placeholders `0020b`, `0057` y `0058` quedan fuera:
   `20260528024234`;
 - `0058_user_invitations_region` ya tiene SQL real en `20260528035934`.
 
+### Corrección posterior al segundo replay
+
+El segundo branch llegó a 63 migraciones y reveló que `0031` y `0032` no
+debían restaurarse. El historial anterior ya había creado el overload vigente
+de `studio_invite_user(text,text,text)`; el `COMMENT ON FUNCTION` sin firma de
+`0031` quedó ambiguo al recrear el overload antiguo de dos parámetros.
+
+La migración candidata:
+
+```text
+0272_skip_superseded_invite_history
+```
+
+restaura únicamente los comments no-op de `0031` y `0032`. Las dos entradas
+son fixes supersedidos por la implementación de tres parámetros ya registrada.
+`0272` no modifica funciones ni tablas de negocio.
+
 ## 3. Generación y control de drift
 
 El generador
@@ -137,13 +154,17 @@ metadatos técnicos del ledger.
 | PostgreSQL 17 | verde · 11 cambios + segunda ejecución idempotente + rollback |
 | Residuo Docker propio | cero |
 | Cloud | `0271` aplicada individualmente · [REV-AUD-021](../../governance/reviews/aud-sdd-0118-branch-replay-application.md) |
+| Segundo branch | 63 migraciones; fallo preciso en `0031`; teardown terminal |
+| Follow-up local | `0272` verde en Vitest y PostgreSQL 15/17 · [REV-AUD-022](../../governance/reviews/aud-sdd-0118-branch-replay-followup.md) |
 | Diff | verde |
 
 ## 7. Gates restantes
 
-1. creación de un branch efímero nuevo;
-2. replay completo hasta `MIGRATIONS_PASSED`;
-3. ejecución y teardown terminal de SDD-0172.
+1. autorización expresa y aplicación individual de
+   `0272_skip_superseded_invite_history`;
+2. creación de un tercer branch efímero nuevo;
+3. replay completo hasta `MIGRATIONS_PASSED`;
+4. ejecución y teardown terminal de SDD-0172.
 
 SDD-0118 permanece `in-progress` hasta que un entorno nuevo demuestre el
 replay completo. Un test local verde no sustituye esa evidencia.

@@ -5,7 +5,12 @@ import * as repairModule from "../build-sdd-0118-repair.mjs";
 
 const {
   buildMigration,
+  buildFollowupMigration,
+  buildFollowupSqlTest,
   buildSqlTest,
+  FOLLOWUP_MIGRATION_PATH,
+  FOLLOWUP_SQL_TEST_PATH,
+  loadFollowups,
   loadRepairs,
   MIGRATION_PATH,
   REPAIRS,
@@ -44,6 +49,21 @@ describe("SDD-0118 branch replay repair", () => {
     );
     await expect(readFile(SQL_TEST_PATH, "utf8")).resolves.toBe(
       buildSqlTest(repairs),
+    );
+  });
+
+  it("convierte los dos fixes de invitación supersedidos en no-op", async () => {
+    const repairs = await loadRepairs();
+    const followups = loadFollowups(repairs);
+
+    expect(followups).toHaveLength(2);
+    expect(followups.map((followup: { version: string }) => followup.version))
+      .toEqual(["20260528060007", "20260528060008"]);
+    await expect(readFile(FOLLOWUP_MIGRATION_PATH, "utf8")).resolves.toBe(
+      buildFollowupMigration(followups),
+    );
+    await expect(readFile(FOLLOWUP_SQL_TEST_PATH, "utf8")).resolves.toBe(
+      buildFollowupSqlTest(followups),
     );
   });
 });

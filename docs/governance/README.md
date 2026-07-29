@@ -259,7 +259,9 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-047 · aplicación Cloud de la reparación del replay](BASELINE-2026-07-29-19.md).
+[LB-SGE-048 · replay R2 y follow-up 0272](BASELINE-2026-07-29-20.md).
+La aplicación Cloud de la primera reparación permanece en
+[LB-SGE-047](BASELINE-2026-07-29-19.md).
 La reparación local del replay permanece en
 [LB-SGE-046](BASELINE-2026-07-29-18.md).
 El destino repo/team de PLG-01 permanece en

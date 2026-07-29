@@ -187,6 +187,8 @@ No crea funciones ni modifica otra FK.
 | Cloud | aplicado y verificado · [REV-AUD-018](../../governance/reviews/aud-tenant-lifecycle-aplicacion.md) |
 | Supabase efímero | intento fail-closed · replay detenido en `20260526213130 seed_team_invitation_template` |
 | Teardown remoto | terminal · branch eliminado y ausente del inventario posterior · [REV-AUD-019](../../governance/reviews/aud-tenant-fixtures-ephemeral-validation.md) |
+| Supabase efímero R2 | intento fail-closed · 63 migraciones · `0031_fix_studio_invite_gen_random_bytes` ambiguo |
+| Teardown remoto R2 | terminal · branch y project ref ausentes del inventario posterior |
 
 ## 11. Rollback
 
@@ -206,7 +208,7 @@ No crea funciones ni modifica otra FK.
 
 El gate Cloud de 0268 quedó cerrado en
 [REV-AUD-018](../../governance/reviews/aud-tenant-lifecycle-aplicacion.md).
-El primer intento real y su teardown quedaron registrados en
+Los dos intentos reales y sus teardowns quedaron registrados en
 [REV-AUD-019](../../governance/reviews/aud-tenant-fixtures-ephemeral-validation.md).
 SDD-0172 permanece `in-progress`: el teardown fue válido, pero el fixture no
 se ejecutó porque el replay histórico falló antes de construir el schema.
