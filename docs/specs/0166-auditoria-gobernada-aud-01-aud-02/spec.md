@@ -21,8 +21,10 @@ confidencialidad: interno
 > El diseño B0 fue aprobado por
 > [REV-AUD-007](../../governance/reviews/aud-corte-b.md). B1 fue implementado y
 > verificado localmente mediante `0267`; [REV-AUD-008](../../governance/reviews/aud-corte-b1.md)
-> lo aprueba técnicamente para una futura aplicación individual. Cloud conserva
-> el estado B0 y los Cortes C–E siguen sin implementar.
+> lo aprobó técnicamente y
+> [REV-AUD-009](../../governance/reviews/aud-corte-b1-aplicacion.md) registra su
+> aplicación y verificación en Cloud. Los Cortes C–E siguen sin implementar y
+> el ciclo de vida tenant/fixtures debe diseñarse antes del cierre global.
 
 ## 1. Propósito
 
@@ -443,5 +445,10 @@ Una autorización posterior abrió únicamente B1 local.
 [REV-AUD-008](../../governance/reviews/aud-corte-b1.md) registra
 `0267_audit_contract_append_only.sql`, su prueba contractual verde en
 PostgreSQL 15/17 y su aprobación técnica para una futura aplicación
-individual. La migración no fue aplicada en Cloud; push, integración y Cortes
-C–E conservan gates separados.
+individual. La migración fue integrada en
+`dcbc259354d83c895fff96615e9f14eedf5a9f59` y
+[REV-AUD-009](../../governance/reviews/aud-corte-b1-aplicacion.md) registra su
+aplicación y verificación en Cloud bajo el basename exacto. La FK de tenant
+conserva `ON DELETE CASCADE` como excepción transitoria: el ciclo de vida
+tenant/fixtures debe diseñarse antes del cierre global. Los Cortes C–E
+conservan gates separados.

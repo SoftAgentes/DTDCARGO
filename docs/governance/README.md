@@ -3,14 +3,14 @@
 | Control | Valor |
 |---|---|
 | Documento | Índice maestro del Sistema de Gobernanza |
-| Versión | 3.3 |
+| Versión | 3.4 |
 | Dueño | Sam (founder) |
 | Custodia | Producto + Diseño + Ingeniería |
 | Estado | activo |
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-28 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-023 · Corte B1 implementado y verificado localmente](BASELINE-2026-07-28-03.md) |
+| Línea base vigente | [LB-SGE-024 · Corte B1 aplicado y verificado en Cloud](BASELINE-2026-07-28-04.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -72,6 +72,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Diseño correctivo del Corte B | [Contrato aditivo y append-only v1.0](../specs/0166-auditoria-gobernada-aud-01-aud-02/diseno-correctivo-corte-b.md) |
 | Revisión del diseño Corte B | [REV-AUD-007](reviews/aud-corte-b.md) |
 | Revisión técnica local Corte B1 | [REV-AUD-008](reviews/aud-corte-b1.md) |
+| Recibo de aplicación Cloud Corte B1 | [REV-AUD-009](reviews/aud-corte-b1-aplicacion.md) |
 | Jerarquía visual | [VIS-01 v1.0](policies/vis-01.md) |
 | Tipografía por voz e idioma | [VIS-02 v1.0](policies/vis-02.md) |
 | Accesibilidad transversal | [A11Y-01 v0.1](policies/a11y-01.md) |
@@ -95,7 +96,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Plugin de gobernanza | [PLG-01 v0.1](policies/plg-01.md) |
 | Investigación de skills | [Mapa de capacidades y límites](research/skills-map.md) |
 | Contrato implementado de avisos | [SDD-0165 · AVS-01](../specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md) |
-| Inventario y estado oficial vigente | [LB-SGE-023](BASELINE-2026-07-28-03.md) |
+| Inventario y estado oficial vigente | [LB-SGE-024](BASELINE-2026-07-28-04.md) |
 
 Regla de frontera: `BRAND.md` y el Norte gobiernan **cómo se ve**; este sistema
 gobierna **cómo se comporta**. Una implementación concreta se especifica en un
@@ -133,8 +134,8 @@ disfraza elevando el estado normativo.
 | BTN-01 | Semántica, jerarquía y contrato de botones | aprobada | [Vocabulario, orden, estados y contrato](policies/btn-01.md) vigentes; adopción del legado no auditada | Crear SDD por alcance antes de migrar consumidores |
 | HTD-01 | Confirmación por presión sostenida | aprobada | [Contrato v1.0](policies/htd-01.md) consolidado; no implementado | Crear SDD solo para una entidad R3 clasificada por MP-01 |
 | AVS-01 | Avisos y confirmaciones | verificada | Primitiva compatible implementada; consumidores heredados pendientes | [SDD-0165](../specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md) |
-| AUD-01 | Evento auditable y vínculo con acciones | aprobada | Corte A completado; B1 implementado y verificado localmente con siete writers SQL preservados y ocho TS todavía directos | [REV-AUD-008](reviews/aud-corte-b1.md); Cloud no aplicado y cascade de tenant como excepción transitoria |
-| AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B implementada localmente; consulta/RBAC y ciclo de vida del tenant siguen pendientes | Aplicación Cloud de `0267` conserva gate propio; Corte C y brecha cascade mantienen alcance separado |
+| AUD-01 | Evento auditable y vínculo con acciones | aprobada | Corte A completado; B1 aplicado y verificado en Cloud con siete writers SQL preservados y ocho TS todavía directos | [REV-AUD-009](reviews/aud-corte-b1-aplicacion.md); cascade de tenant permanece como excepción transitoria |
+| AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B aplicada; consulta/RBAC y ciclo de vida del tenant siguen pendientes | Diseñar tenant/fixtures antes del cierre global; Cortes C–E conservan gates separados |
 | VIS-01 | Jerarquía visual y distribución 60-30-10 | aprobada | [Documento canónico v1.0](policies/vis-01.md); tokens/Norte cubren parte, falta auditoría de adopción | Auditar superficies y excepciones |
 | VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | [Documento canónico v1.0](policies/vis-02.md); Noto Sans SC está cargada, Noto Serif SC no | Crear SDD de tokens y verificar correo/PDF |
 | BUS-01 | Buscadores predictivos y contexto de resultados | redactada | [Contrato v0.1](policies/bus-01.md); búsqueda global y `ClientCombobox` existen | Auditar scopes, ranking y desambiguación |
@@ -199,8 +200,8 @@ aprobaron en LB-SGE-004. El orden que gobierna la siguiente fase es:
    está cerrada; cualquier ACL histórico, purga o retención conserva gate y
    alcance propios;
 2. conservar A1, A2 y sus recibos en Git; el Corte A está aplicado y verificado;
-   B1 local está implementado y aprobado por REV-AUD-008, pero `0267` no está
-   aplicado en Cloud; no abrir C–E ni presentar Corte B como aplicado;
+   B1 está aplicado y verificado en Cloud por REV-AUD-009; diseñar el ciclo de
+   vida tenant/fixtures antes del cierre global y mantener C–E cerrados;
 3. revisar las políticas v0.1 por bloques coherentes, no como aprobación masiva;
 4. implementar VIS-02 (Noto Serif SC/tokens/salidas) y auditar VIS-01;
 5. convertir componentes existentes a estados CMP-01 con evidencia;
@@ -227,8 +228,10 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-023 · Corte B1 implementado y verificado localmente](BASELINE-2026-07-28-03.md).
-El diseño B0 aprobado [LB-SGE-022](BASELINE-2026-07-28-02.md), la
+[LB-SGE-024 · Corte B1 aplicado y verificado en Cloud](BASELINE-2026-07-28-04.md).
+La implementación local de B1
+[LB-SGE-023](BASELINE-2026-07-28-03.md), el diseño B0 aprobado
+[LB-SGE-022](BASELINE-2026-07-28-02.md), la
 consolidación maestra de las tres etapas
 [LB-SGE-021](BASELINE-2026-07-28.md), el diseño técnico previo de SDD-0168
 [LB-SGE-020](BASELINE-2026-07-22-10.md), la aplicación y verificación de A2
