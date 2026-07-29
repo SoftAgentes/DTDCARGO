@@ -216,14 +216,12 @@ metadatos técnicos del ledger.
 | Platform admin Cloud | `0273` aplicada individualmente; recibo `20260729141805` · [REV-AUD-025](../../governance/reviews/aud-sdd-0118-platform-admin-bootstrap-application.md) |
 | Cuarto branch | 120 migraciones; falta `calculator_settings` por `0103` con statements NULL; teardown terminal |
 | Calculator local | `0274` determinista · Vitest 8/8 · PostgreSQL 15/17 · [REV-AUD-026](../../governance/reviews/aud-sdd-0118-calculator-settings-history.md) |
+| Calculator Cloud | `0274` aplicada individualmente; recibo `20260729143620` · [REV-AUD-027](../../governance/reviews/aud-sdd-0118-calculator-settings-history-application.md) |
 | Diff | verde |
 
 ## 7. Gates restantes
 
-1. obtener autorización expresa para aplicar individualmente
-   `0274_restore_calculator_settings_history`;
-2. aplicar y verificar esa reparación con el runbook de Producción;
-3. crear un entorno efímero nuevo y completar replay, seed, E2E, verificación
+1. crear un entorno efímero nuevo y completar replay, seed, E2E, verificación
    y teardown terminal.
 
 SDD-0118 permanece `in-progress` hasta que un entorno nuevo demuestre el
