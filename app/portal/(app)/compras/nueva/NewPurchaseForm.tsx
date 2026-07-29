@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useActionState, useId, useState } from "react";
 import Link from "next/link";
 import { ArrowIcon, CheckIcon } from "@/components/Icon";
 import { ShareProviderButton } from "../../../_components/ShareProviderButton";
@@ -9,15 +9,12 @@ import {
   ShippingModeNotice,
 } from "../../../_components/PrealertaAddons";
 import { FieldLabel, FileField } from "../../../_components/PortalFormField";
+import { SupplierPicker } from "./SupplierPicker";
 import type { SupplierView } from "@/lib/studio/prealertas/types";
-import type {
-  SupplierActionState,
-  PrealertaActionState,
-} from "@/lib/studio/prealertas/types";
+import type { PrealertaActionState } from "@/lib/studio/prealertas/types";
 import type { PrealertaAddon } from "@/lib/studio/prealertas/addons";
-import { createSupplierAction, createPrealertaAction } from "../../proveedores/actions";
+import { createPrealertaAction } from "../../proveedores/actions";
 
-const supplierInitial: SupplierActionState = {};
 const prealertaInitial: PrealertaActionState = {};
 
 /**
@@ -41,38 +38,7 @@ export function NewPurchaseForm({
     prealertaInitial,
   );
   const uid = useId();
-  // Combobox de proveedor (Norte: un solo campo — escribís, filtra por nombre;
-  // si no hay match exacto aparece "Crear «X»" dentro del propio dropdown, sin
-  // toggles aparte de "existente"/"nuevo").
   const [supplierId, setSupplierId] = useState<string>(preselected?.id ?? "");
-  const [newSupplierName, setNewSupplierName] = useState<string | null>(null);
-  const [supplierQuery, setSupplierQuery] = useState(preselected?.name ?? "");
-  const [supplierOpen, setSupplierOpen] = useState(false);
-  const [newSupplierState, newSupplierAction, newSupplierPending] =
-    useActionState(createSupplierAction, supplierInitial);
-  const newFormRef = useRef<HTMLFormElement>(null);
-
-  const filteredSuppliers = useMemo(() => {
-    const q = supplierQuery.trim().toLowerCase();
-    if (!q) return suppliers;
-    return suppliers.filter((s) => s.name.toLowerCase().includes(q));
-  }, [suppliers, supplierQuery]);
-
-  // Sin match exacto por nombre → el dropdown ofrece "Crear «X»".
-  const hasExactMatch = useMemo(() => {
-    const q = supplierQuery.trim().toLowerCase();
-    if (!q) return true;
-    return suppliers.some((s) => s.name.toLowerCase() === q);
-  }, [suppliers, supplierQuery]);
-
-  // Si el alta inline del proveedor nuevo (dentro del combobox) termina OK, lo
-  // dejamos elegido — la página revalidó, pero el id nuevo lo conocemos por el state.
-  useEffect(() => {
-    if (newSupplierState.ok && newSupplierState.supplierId) {
-      setSupplierId(newSupplierState.supplierId);
-      setNewSupplierName(null);
-    }
-  }, [newSupplierState.ok, newSupplierState.supplierId]);
 
   const done = !!state.ok && !!state.prealertaCode;
   const selectedWechat =
@@ -88,134 +54,14 @@ export function NewPurchaseForm({
 
   return (
     <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-8">
-      {/* Selector de proveedor — combobox único (Norte): escribís,
-          filtra; si no hay match exacto, "Crear «X»" vive DENTRO del
-          dropdown (no hay toggle aparte de "existente"/"nuevo"). */}
-      <FieldLabel>Proveedor</FieldLabel>
-      <div className="relative mt-1.5">
-        <input
-          type="text"
-          value={supplierQuery}
-          onChange={(e) => {
-            setSupplierQuery(e.target.value);
-            setSupplierId("");
-            setNewSupplierName(null);
-            setSupplierOpen(true);
-          }}
-          onFocus={() => setSupplierOpen(true)}
-          onBlur={() => setTimeout(() => setSupplierOpen(false), 120)}
-          onKeyDown={(e) => {
-            if (e.key !== "Enter") return;
-            e.preventDefault();
-            if (filteredSuppliers.length === 1 && supplierQuery.trim()) {
-              const s = filteredSuppliers[0];
-              setSupplierId(s.id);
-              setNewSupplierName(null);
-              setSupplierQuery(s.name);
-              setSupplierOpen(false);
-            } else if (!hasExactMatch && supplierQuery.trim()) {
-              setNewSupplierName(supplierQuery.trim());
-              setSupplierId("");
-              setSupplierOpen(false);
-            }
-          }}
-          placeholder="Escribe para buscar tu proveedor…"
-          aria-label="Buscar o crear proveedor"
-          className="w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
-        />
-        {supplierOpen && (supplierQuery.trim() !== "" || filteredSuppliers.length > 0) && (
-          <div className="absolute top-full left-0 right-0 z-20 mt-1 max-h-[240px] overflow-y-auto rounded-[10px] border border-grey-200 bg-white card-shadow">
-            {filteredSuppliers.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  setSupplierId(s.id);
-                  setNewSupplierName(null);
-                  setSupplierQuery(s.name);
-                  setSupplierOpen(false);
-                }}
-                className="w-full text-left px-3.5 py-2.5 text-[14px] text-ink border-b border-grey-100 last:border-b-0 hover:bg-grey-100"
-              >
-                <span className="font-bold">#{s.supplierSeq}</span> {s.name}
-              </button>
-            ))}
-            {supplierQuery.trim() !== "" && !hasExactMatch && (
-              <button
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  setNewSupplierName(supplierQuery.trim());
-                  setSupplierId("");
-                  setSupplierOpen(false);
-                }}
-                className="w-full flex items-center gap-2 px-3.5 py-2.5 text-[13.5px] font-bold text-wine"
-                style={{ background: "var(--color-paper)" }}
-              >
-                + Crear &ldquo;{supplierQuery.trim()}&rdquo;
-              </button>
-            )}
-            {filteredSuppliers.length === 0 && supplierQuery.trim() === "" && (
-              <p className="px-3.5 py-2.5 text-[13px] text-grey-700">
-                Escribe el nombre de tu proveedor.
-              </p>
-            )}
-          </div>
-        )}
-      </div>
-
-      {newSupplierName === null && supplierId && (
-        <p
-          className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-semibold"
-          style={{ color: "var(--color-status-success)" }}
-        >
-          <CheckIcon size={13} /> Proveedor listo para esta compra.
-        </p>
-      )}
-
-      {newSupplierName !== null && (
-        <form
-          ref={newFormRef}
-          action={newSupplierAction}
-          className="mt-3 rounded-[12px] p-4 border"
-          style={{ background: "var(--color-paper)", borderColor: "var(--color-wine)" }}
-        >
-          <input type="hidden" name="name" value={newSupplierName} />
-          <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-wine">
-            Datos del proveedor nuevo
-          </p>
-          <p className="mt-1.5 text-[13px] font-semibold text-ink">
-            + Se creará &ldquo;{newSupplierName}&rdquo;
-          </p>
-          {newSupplierState.fieldErrors?.name && (
-            <p className="mt-1 text-[12px] text-wine">
-              {newSupplierState.fieldErrors.name}
-            </p>
-          )}
-          <div className="mt-3 flex gap-2">
-            <button
-              type="submit"
-              disabled={newSupplierPending}
-              className="btn btn-primary inline-flex items-center gap-2 disabled:opacity-60"
-            >
-              {newSupplierPending ? "Guardando…" : "Guardar proveedor"}
-              {!newSupplierPending && <CheckIcon size={14} />}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setNewSupplierName(null);
-                setSupplierOpen(true);
-              }}
-              disabled={newSupplierPending}
-              className="btn btn-ghost disabled:opacity-60"
-            >
-              Cambiar
-            </button>
-          </div>
-        </form>
-      )}
+      {/* Selector de proveedor — combobox único (Norte). Vive en
+          `SupplierPicker` porque el asistente de 3 pasos usa el mismo. */}
+      <SupplierPicker
+        suppliers={suppliers}
+        preselected={preselected}
+        supplierId={supplierId}
+        onSelect={setSupplierId}
+      />
 
       {/* Form de la compra */}
       <form action={action} className="mt-5 flex flex-col gap-4">
@@ -374,7 +220,12 @@ export function NewPurchaseForm({
   );
 }
 
-function PurchaseDone({
+/**
+ * Pantalla de éxito de la compra: código, link para el proveedor y etiquetas.
+ * La comparte el asistente de 3 pasos mientras sus pasos 2 y 3 no existan
+ * (SDD-0172) — así el registro nunca queda a mitad de camino.
+ */
+export function PurchaseDone({
   code,
   shareToken,
 }: {

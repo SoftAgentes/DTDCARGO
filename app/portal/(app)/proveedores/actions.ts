@@ -40,6 +40,7 @@ import {
   type ServiceRequestInput,
   type ServiceRequestActionState,
 } from "@/lib/studio/prealertas/addons";
+import { buildPurchaseOrderLines } from "@/lib/portal/purchase-order-lines";
 import {
   listActivePrealertaAddons,
   getPrealertaByCode,
@@ -264,13 +265,38 @@ async function insertPrealertaServiceRequestsFromForm(args: {
     const reqs = parseServiceRequestsFromForm(args.formData, activeCodes);
     if (reqs.length === 0) return;
 
+    // Asistente de 3 pasos (SDD-0172): lo que DTD recibe es LO MISMO que el
+    // cliente leyó en "Así queda tu orden a DTD — en vivo". El HOLD y su acople
+    // con re-empaque sólo existen como frase (no hay columnas), así que la línea
+    // encabeza las notas y el comentario propio del cliente va debajo.
+    let orderLines: Map<string, string> | null = null;
+    if (isTruthy(args.formData.get("wizard"))) {
+      const lines = buildPurchaseOrderLines({
+        addons: active,
+        selected: reqs.map((r) => r.addonCode),
+        holdCount: Number(args.formData.get("hold_count")),
+        holdTie: isTruthy(args.formData.get("hold_tie")),
+      });
+      orderLines = new Map(lines.map((l) => [l.code as string, l.desc]));
+      // El acople puede sumar un servicio que el form no traía (re-empaque
+      // arrastrado por el HOLD). Si el cliente lo leyó en su orden, DTD tiene
+      // que recibir la fila — si no, prometimos algo que nadie va a ver.
+      for (const l of lines) {
+        if (!reqs.some((r) => r.addonCode === l.code)) {
+          reqs.push({ addonCode: l.code, notes: null, trackings: [] });
+        }
+      }
+    }
+
     const rows = reqs.map((r) => ({
       tenant_id: args.tenantId,
       prealerta_id: args.prealertaId,
       client_markbox: args.markbox,
       addon_code: r.addonCode,
       consent_accepted: true,
-      notes: r.notes,
+      notes:
+        [orderLines?.get(r.addonCode), r.notes].filter(Boolean).join("\n\n") ||
+        null,
       trackings: r.trackings.length ? r.trackings : null,
     }));
 
@@ -472,15 +498,23 @@ export async function createPrealertaAction(
   formData: FormData,
 ): Promise<PrealertaActionState> {
   const estValueRaw = String(formData.get("estValueUsd") ?? "").trim();
-  const { input, fieldErrors } = validatePrealertaInput({
-    supplierId: (formData.get("supplierId") as string | null) ?? undefined,
-    description: (formData.get("description") as string | null) ?? undefined,
-    trackingCn: (formData.get("trackingCn") as string | null) ?? undefined,
-    boxes: Number(formData.get("boxes")),
-    estValueUsd: estValueRaw === "" ? null : Number(estValueRaw),
-    // El cliente siempre crea en 'anunciada' (el avance de estado lo hace el operador).
-    status: "anunciada",
-  });
+  const boxesRaw = String(formData.get("boxes") ?? "").trim();
+  // El asistente de 3 pasos (SDD-0172) registra la compra al terminar el paso 1:
+  // descripción, cajas, valor y tracking llegan después, en el paso 2. El
+  // formulario largo de siempre no manda `wizard` y sigue exigiéndolo todo.
+  const fromWizard = isTruthy(formData.get("wizard"));
+  const { input, fieldErrors } = validatePrealertaInput(
+    {
+      supplierId: (formData.get("supplierId") as string | null) ?? undefined,
+      description: (formData.get("description") as string | null) ?? undefined,
+      trackingCn: (formData.get("trackingCn") as string | null) ?? undefined,
+      boxes: boxesRaw === "" ? undefined : Number(boxesRaw),
+      estValueUsd: estValueRaw === "" ? null : Number(estValueRaw),
+      // El cliente siempre crea en 'anunciada' (el avance de estado lo hace el operador).
+      status: "anunciada",
+    },
+    { requireDetalle: !fromWizard },
+  );
   if (fieldErrors) return { fieldErrors };
   if (!input) return { error: "Datos inválidos." };
 

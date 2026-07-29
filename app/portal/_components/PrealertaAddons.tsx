@@ -204,10 +204,17 @@ function AddonRow({
   addon,
   checked,
   onToggle,
+  extra,
 }: {
   addon: PrealertaAddon;
   checked: boolean;
   onToggle: () => void;
+  /**
+   * Controles propios de un servicio, dentro del bloque que se abre al marcarlo.
+   * Hoy lo usa el HOLD del asistente (stepper 2-10 + acople con re-empaque ·
+   * SDD-0172); la fila sigue siendo genérica y no sabe de qué servicio se trata.
+   */
+  extra?: React.ReactNode;
 }) {
   return (
     <div
@@ -261,20 +268,46 @@ function AddonRow({
               }}
             />
           )}
+          {extra}
         </div>
       )}
     </div>
   );
 }
 
-// ── Picker multi-select (va DENTRO del <form> de Nueva compra) ──
-export function PrealertaAddonPicker({ addons }: { addons: PrealertaAddon[] }) {
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+/**
+ * Picker multi-select (va DENTRO del `<form>` de "Nueva compra").
+ *
+ * Por default maneja su propia selección — así lo usan el formulario largo y
+ * `/portal/proveedores`, que no necesitan enterarse de nada. Pasándole
+ * `selected` + `onToggle` queda CONTROLADO, que es como lo usa el asistente de
+ * 3 pasos: el panel "tu orden en vivo" tiene que leer la misma selección
+ * mientras el cliente la arma (SDD-0172).
+ */
+export function PrealertaAddonPicker({
+  addons,
+  selected: selectedProp,
+  onToggle,
+  renderExtra,
+}: {
+  addons: PrealertaAddon[];
+  selected?: ReadonlySet<string>;
+  onToggle?: (code: string) => void;
+  /** Controles extra por servicio (ver `AddonRow.extra`). */
+  renderExtra?: (addon: PrealertaAddon) => React.ReactNode;
+}) {
+  const [selectedOwn, setSelectedOwn] = useState<Set<string>>(new Set());
   const [show, setShow] = useState(false);
+  const controlled = selectedProp !== undefined;
+  const selected = controlled ? selectedProp : selectedOwn;
   if (addons.length === 0) return null;
 
   function toggle(code: string) {
-    setSelected((prev) => {
+    if (controlled) {
+      onToggle?.(code);
+      return;
+    }
+    setSelectedOwn((prev) => {
       const next = new Set(prev);
       if (next.has(code)) next.delete(code);
       else next.add(code);
@@ -328,6 +361,7 @@ export function PrealertaAddonPicker({ addons }: { addons: PrealertaAddon[] }) {
             addon={a}
             checked={selected.has(a.code)}
             onToggle={() => toggle(a.code)}
+            extra={renderExtra?.(a)}
           />
         ))}
       </div>
