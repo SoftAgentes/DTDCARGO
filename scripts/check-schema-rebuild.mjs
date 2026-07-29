@@ -64,7 +64,12 @@ const LEDGER_ONLY = new Set([
   "0274_restore_calculator_settings_history.sql",
   "0275_restore_pin_search_path_history.sql",
   "0276_restore_revoke_anon_rpc_sweep_history.sql",
+  "0278_restore_rls_auto_enable_history.sql",
 ]);
+// ⚠️ MANTENIMIENTO: SDD-0118 sigue publicando migraciones de este tipo. Cuando el
+// gate muera en una `*_history.sql` con un error "drift en <version> <name>", es
+// una nueva sólo-ledger: agregala acá. La verificación empírica de más abajo se
+// encarga de que no puedas colar DDL de negocio con esa excusa.
 
 const MIGRATIONS_DIR = resolve(process.cwd(), "supabase/migrations");
 const STUBS = resolve(process.cwd(), "supabase/tests/_supabase-platform-stubs.sql");
