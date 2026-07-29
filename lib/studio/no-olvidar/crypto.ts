@@ -23,9 +23,9 @@
  *     libsodium en vez de node-argon2 (nativo) para (a) mantener TODO el
  *     crypto sobre una sola librería auditada — abarata el review — y (b)
  *     evitar el build nativo que rompe en Windows.
- *   - Params: memlimit = 64 MiB, opslimit = 3 (≈ Argon2id m=64MB, t=3).
+ *   - Params: memlimit = 128 MiB, opslimit = 3 (≈ Argon2id m=128MB, t=3).
  *     DESVIACIÓN vs spec §4.4 (pedía p=4): libsodium fija p=1 internamente.
- *     Con m=64MB/t=3 la fortaleza es equivalente y supera el mínimo OWASP.
+ *     Con m=128MB/t=3 la fortaleza es equivalente y supera el mínimo OWASP.
  *   - Del masterKey se derivan por separado (BLAKE2b con contexto) la clave de
  *     cifrado y el verifier, para que el verifier almacenado NO revele la clave.
  *
@@ -49,7 +49,7 @@ export const NONCE_BYTES = 24;
 export const RECOVERY_ENTROPY_BYTES = 32;
 
 /**
- * Params Argon2id (ver nota de cabecera). opslimit=3 t, memlimit=64 MiB.
+ * Params Argon2id (ver nota de cabecera). opslimit=3 t, memlimit=128 MiB.
  * NO bajar sin re-review: son el costo que frena fuerza bruta offline del
  * verifier si la DB se filtra.
  */
