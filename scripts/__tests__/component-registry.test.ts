@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  buildRegistry,
-  loadSourceRecords,
-  validateSourceRecords,
-} from "../build-component-registry.mjs";
+// @ts-expect-error El generador es ESM ejecutable (.mjs); Vitest valida su API runtime.
+import { buildRegistry, loadSourceRecords, validateSourceRecords } from "../build-component-registry.mjs";
 
 describe("CMP-01 component registry", () => {
   it("valida la fuente real de ConfirmDialog", async () => {
