@@ -147,11 +147,14 @@ del origen) → `0266_suppliers_cn_portal_profile.sql`.
   `suppliers_cn`** en los 125 hallazgos del proyecto → no introdujo ninguno.
   Sacada de `pendingBelowCutoff`; el `cutoff` sigue en 238 (subirlo sólo relajaría
   la vigilancia).
-- `SUPPLIER_PROFILE_EXTENDED_LIVE` pasó a `true` — el orden fue migración primero,
-  flag después.
-- ⚠️ **Alcance del flag:** `SupplierPicker` lo usan el asistente **y** el
-  formulario largo, así que las 3 preguntas las ve todo cliente que dé de alta un
-  proveedor, no sólo quien esté en el asistente.
+- **La ficha NO tiene flag propio.** Lo tuvo mientras la migración no estaba
+  aplicada; una vez aplicada, un segundo interruptor sólo dejaba abierta la puerta
+  a prenderlo antes que el asistente y cambiarle el alta de proveedor a TODO
+  cliente **en el formulario largo que el asistente viene a reemplazar**. Ahora es
+  una prop — `<SupplierPicker showProfile />` — que sólo pasa el asistente: la
+  ficha viaja con él y no puede quedar suelta.
+- La server action lee los campos siempre; cuando no vienen (formulario largo), el
+  normalizador devuelve `null` en los seis — exactamente lo que guardaba antes.
 - Divergencia deliberada del Norte: allá las 3 preguntas son **obligatorias**; acá
   son opcionales. Bloquear el alta de un proveedor por "¿de dónde lo sacaste?"
   cuesta compras; la respuesta se pide, no se exige.

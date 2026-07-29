@@ -147,6 +147,7 @@ export function NewPurchaseWizard({
               preselected={preselected}
               supplierId={supplierId}
               onSelect={setSupplierId}
+              showProfile
             />
           </div>
 

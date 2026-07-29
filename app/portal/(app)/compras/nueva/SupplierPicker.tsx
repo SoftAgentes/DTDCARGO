@@ -29,7 +29,6 @@ import {
   type SupplierView,
   type SupplierActionState,
 } from "@/lib/studio/prealertas/types";
-import { SUPPLIER_PROFILE_EXTENDED_LIVE } from "@/lib/portal/demo";
 import { createSupplierAction } from "../../proveedores/actions";
 
 const supplierInitial: SupplierActionState = {};
@@ -189,11 +188,23 @@ export function SupplierPicker({
   preselected,
   supplierId,
   onSelect,
+  showProfile = false,
 }: {
   suppliers: SupplierView[];
   preselected: SupplierView | null;
   supplierId: string;
   onSelect: (id: string) => void;
+  /**
+   * ¿Pedir la ficha extendida del Norte al crear un proveedor? (SDD-0172).
+   *
+   * Es una PROP y no un flag global a propósito: la ficha se diseñó para el
+   * paso 1 del asistente, y el formulario largo al que reemplaza tiene los días
+   * contados. Con un flag aparte, prenderlo antes que el asistente le habría
+   * cambiado el alta de proveedor a TODO cliente en un formulario que se va a
+   * borrar. Así la ficha no puede existir fuera del asistente aunque alguien se
+   * distraiga: viaja con él, sin un segundo interruptor que coordinar.
+   */
+  showProfile?: boolean;
 }) {
   const [newSupplierName, setNewSupplierName] = useState<string | null>(null);
   const [supplierQuery, setSupplierQuery] = useState(preselected?.name ?? "");
@@ -340,9 +351,7 @@ export function SupplierPicker({
             </p>
           )}
 
-          {SUPPLIER_PROFILE_EXTENDED_LIVE && (
-            <SupplierProfileFields disabled={newSupplierPending} />
-          )}
+          {showProfile && <SupplierProfileFields disabled={newSupplierPending} />}
 
           <div className="mt-3 flex gap-2">
             <button

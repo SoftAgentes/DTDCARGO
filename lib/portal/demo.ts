@@ -99,20 +99,15 @@ export function showNewPurchaseWizard(
   return NEW_PURCHASE_WIZARD_LIVE || isDemoMarkbox(markbox);
 }
 
-/**
- * ¿El alta de proveedor pide la ficha extendida del Norte? (SDD-0172 · de dónde
- * salió · si ya le había comprado · canal de comunicación).
+/*
+ * La ficha extendida del proveedor (SDD-0172) NO tiene flag propio a propósito.
  *
- * ✅ Su migración `0266_suppliers_cn_portal_profile` está **APLICADA en prod**
- * (2026-07-28, OK del founder nombrándola). Verificado contra el objeto: 4
- * columnas nullable + 3 CHECK + fila en el ledger.
+ * Lo tuvo mientras su migración `0266_suppliers_cn_portal_profile` no estaba
+ * aplicada; ya lo está (2026-07-28, verificada contra el objeto). Un segundo
+ * interruptor sólo dejaba abierta la puerta a prenderlo antes que el asistente y
+ * cambiarle el alta de proveedor a TODO cliente en el formulario largo — que es
+ * justo el formulario que el asistente viene a reemplazar.
  *
- * NO cuelga de `isDemoMarkbox` a propósito: mientras la migración no existía, lo
- * que rompía era el INSERT y no la vista, así que ni las cuentas demo debían
- * verlo. Ahora que existe, el interruptor es uno solo. Para revertir: `false`.
- *
- * ⚠️ Alcance real: el alta de proveedor vive en `SupplierPicker`, que usan TANTO
- * el asistente COMO el formulario largo. En `true`, las 3 preguntas las ve todo
- * cliente que dé de alta un proveedor, no sólo quien esté en el asistente.
+ * Ahora es una prop: `<SupplierPicker showProfile />`, que sólo pasa el
+ * asistente. La ficha viaja con él y no puede quedar suelta.
  */
-export const SUPPLIER_PROFILE_EXTENDED_LIVE = true;

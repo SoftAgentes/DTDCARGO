@@ -43,7 +43,6 @@ import {
   type ServiceRequestActionState,
 } from "@/lib/studio/prealertas/addons";
 import { reconcileServiceRequests } from "@/lib/portal/purchase-order-lines";
-import { SUPPLIER_PROFILE_EXTENDED_LIVE } from "@/lib/portal/demo";
 import {
   listActivePrealertaAddons,
   getPrealertaByCode,
@@ -359,22 +358,20 @@ export async function createSupplierAction(
   const tenantId = tenantData ? String(tenantData) : null;
   if (!tenantId) return { error: "No pudimos resolver tu cuenta." };
 
-  // Ficha extendida del Norte (SDD-0172). Las columnas viven en la migración
-  // 0266, que NO está aplicada: mientras el flag esté apagado ni siquiera se
-  // nombran en el insert, así que este código puede llegar a prod antes que la
-  // migración sin romper el alta. Prender el flag ANTES de aplicarla la rompe.
-  const profileRow = SUPPLIER_PROFILE_EXTENDED_LIVE
-    ? supplierProfileRow(
-        normalizeSupplierProfileInput({
-          industry: formData.get("industry"),
-          contactPhone: formData.get("contactPhone"),
-          sourceOrigin: formData.get("sourceOrigin"),
-          sourceOriginNote: formData.get("sourceOriginNote"),
-          purchaseHistory: formData.get("purchaseHistory"),
-          commMethod: formData.get("commMethod"),
-        }),
-      )
-    : {};
+  // Ficha extendida del Norte (SDD-0172 · columnas de la migr 0266, aplicada).
+  // Se lee siempre: la pinta sólo el asistente (`<SupplierPicker showProfile />`),
+  // y cuando no viene, el normalizador devuelve nulls — que es exactamente lo que
+  // guardaba el alta de antes.
+  const profileRow = supplierProfileRow(
+    normalizeSupplierProfileInput({
+      industry: formData.get("industry"),
+      contactPhone: formData.get("contactPhone"),
+      sourceOrigin: formData.get("sourceOrigin"),
+      sourceOriginNote: formData.get("sourceOriginNote"),
+      purchaseHistory: formData.get("purchaseHistory"),
+      commMethod: formData.get("commMethod"),
+    }),
+  );
 
   const { data: row, error: insErr } = await supabase
     .from("suppliers_cn")
