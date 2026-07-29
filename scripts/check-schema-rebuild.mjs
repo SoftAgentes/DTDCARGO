@@ -197,6 +197,30 @@ try {
   const okLine = out.split("\n").find((l) => l.startsWith("OK|"));
   const n = okLine ? okLine.split("|")[1] : "?";
   console.log(`${C.dim}   ${n} migraciones aplicadas desde cero · schema reconstruible${C.nc}`);
+
+  // Sobre ese schema completo (219 tablas reales, no un fixture recortado)
+  // corremos el contrato de aislamiento multi-tenant. Reusa la base ya
+  // construida: cuesta ~1s más, no otros 18.
+  const iso = docker([
+    "exec", container,
+    "psql", "-U", "postgres", "-q",
+    "-v", "ON_ERROR_STOP=1",
+    "-f", "/sb/tests/_tenant-isolation.assert.sql",
+  ]);
+  if (iso.status !== 0) {
+    const err = `${iso.stdout || ""}${iso.stderr || ""}`
+      .split("\n")
+      .filter((l) => l.includes("ERROR:"))
+      .slice(0, 2)
+      .join("\n   ");
+    console.log(`${C.red}[FAIL]${C.nc} contrato de aislamiento multi-tenant roto:`);
+    console.log(`${C.dim}   ${err}${C.nc}`);
+    console.log(
+      `${C.dim}   Es LA propiedad de la que cuelga todo el ERP: que un tenant no vea los datos de otro.${C.nc}`,
+    );
+    process.exit(1);
+  }
+  console.log(`${C.dim}   aislamiento multi-tenant verificado (barrido de 219 tablas + 2 tenants reales)${C.nc}`);
 } finally {
   docker(["rm", "-f", container], { stdio: "ignore" });
 }
