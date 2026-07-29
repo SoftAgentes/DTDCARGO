@@ -1,0 +1,24 @@
+# Los saltos de linea se normalizan a LF en el checkout, en todas las plataformas.
+#
+# POR QUE: en Windows `core.autocrlf=true` entregaba los .sql con CRLF mientras
+# los generadores del repo (build-sdd-0118-repair.mjs, build-component-registry.mjs)
+# escriben LF. Los tests que comparan "archivo en disco == lo que genera el script"
+# fallaban solo en Windows, y los md5 de los preflights de ledger daban drift.
+# Los objetos en git ya estan en LF: esto solo fija como se hace el checkout.
+* text=auto eol=lf
+
+# Binarios: git no los toca.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.zip binary
+*.mp4 binary
+*.webm binary
