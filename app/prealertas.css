@@ -63,7 +63,7 @@
      cada superficie con banda navy los redeclara (mismo patrón que
      `.sm-surface` / `.home-surface`). */
   --wine-on-dark: var(--color-wine-on-dark); /* wine legible sobre navy · 4,57:1 sobre #26406F (AA) */
-  --f-cn: var(--font-noto-sc); /* solo para chino mandarín (唛头) */
+  --f-cn: var(--f-cn-ui); /* alias UI: Noto Sans SC para chino mandarín (唛头) */
   --nav-h: 76px; /* altura real de <Nav> — ver adaptación 2 */
   /* Tinta crema sobre `--grad-navy-hero` — MISMO degradado y mismos
      ratios verificados que `.sm-surface` (peor caso #26406F). */

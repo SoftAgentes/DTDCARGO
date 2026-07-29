@@ -45,7 +45,7 @@
   --rp-navy-border: color-mix(in srgb, var(--color-grey-100) 40%, transparent);
   /* wine legible sobre navy (BD-026 / --color-wine-on-dark) */
   --wine-on-dark: var(--color-wine-on-dark);
-  --f-cn: var(--font-noto-sc); /* solo para chino mandarín (唛头, 义乌) */
+  --f-cn: var(--f-cn-ui); /* alias UI: Noto Sans SC para chino mandarín (唛头, 义乌) */
   /* Ancho de lectura por defecto; cada página lo puede pisar inline */
   --rp-w: 900px;
   background: var(--grad-page);

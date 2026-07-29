@@ -151,7 +151,13 @@
   --f-sans: var(--font-archivo), 'Archivo', system-ui, -apple-system, sans-serif;
   --f-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   --f-display: var(--font-archivo-black), 'Archivo Black', 'Archivo', sans-serif;
-  --f-cn: var(--font-noto-sc), 'Noto Sans SC', 'Archivo', sans-serif;
+  --f-cn-ui:
+    var(--font-noto-sc), 'Noto Sans SC', var(--font-archivo), 'Archivo',
+    sans-serif;
+  --f-cn-document:
+    var(--font-noto-serif-sc), 'Noto Serif SC', var(--font-noto-sc),
+    'Noto Sans SC', var(--font-archivo), 'Archivo', sans-serif;
+  --f-cn: var(--f-cn-ui);
 
   /* ── Motion ────────────────────────────────────────────── */
   --ease: cubic-bezier(0.22, 1, 0.36, 1);

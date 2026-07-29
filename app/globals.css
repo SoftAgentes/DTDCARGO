@@ -57,6 +57,18 @@
   --font-noto-sc: var(--font-noto-sc), "Noto Sans SC", sans-serif;
 }
 
+/* VIS-02 · chino por contexto. El alias histórico --f-cn permanece en UI
+   y Noto Serif SC solo queda disponible para documento formal lang="zh-CN". */
+:root {
+  --f-cn-ui:
+    var(--font-noto-sc), "Noto Sans SC", var(--font-archivo), "Archivo",
+    system-ui, sans-serif;
+  --f-cn-document:
+    var(--font-noto-serif-sc), "Noto Serif SC", var(--font-noto-sc),
+    "Noto Sans SC", var(--font-archivo), "Archivo", system-ui, sans-serif;
+  --f-cn: var(--f-cn-ui);
+}
+
 /* ──────────────────────────────────────────────────────────────────
    PORTAL · tokens del rediseño Norte (founder 2026-06-20) — gateados al demo.
    Sólo existen cuando el shell tiene [data-portal-theme] (lo pone el layout SOLO
@@ -2575,7 +2587,7 @@ a.svp-it:hover .nm {
   /* Tokens propios de la home (del Norte · sin equivalente --color-*) */
   --crema: #e8dcc8; /* acento tan de marca (assets/container.svg) */
   --wine-on-dark: var(--color-wine-on-dark); /* wine legible sobre navy · 4,57:1 sobre #26406F (AA) */
-  --f-cn: var(--font-noto-sc);
+  --f-cn: var(--f-cn-ui);
   --nav-h: 76px;
   --home-navy-band: var(--grad-navy-hero); /* banda navy (Norte) — alias del token compartido */
 }
