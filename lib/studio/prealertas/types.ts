@@ -473,23 +473,54 @@ export type PrealertaActionState = {
 };
 
 /**
+ * Marcador que ocupa `description` cuando la compra se registra sin detalle
+ * (asistente de 3 pasos · SDD-0172: el cliente lo completa en el paso 2).
+ *
+ * La columna `prealertas.description` es NOT NULL, así que el hueco necesita un
+ * texto — pero uno que el operario del ERP pueda LEER como "todavía no llegó",
+ * en vez de una celda en blanco que parece un bug.
+ */
+export const PREALERTA_DESCRIPCION_PENDIENTE = "Pendiente — el cliente la completa";
+
+/**
  * Validación manual del input de prealerta/compra (sin zod).
  *  - description requerida (no vacía).
  *  - boxes entero ≥ 1.
  *  - status normaliza a 'anunciada' si inválido.
  *  - estValueUsd opcional; si viene debe ser ≥ 0.
  *  - supplierId opcional (la cross-tenant la valida el trigger en DB).
+ *
+ * `opts.requireDetalle` (default `true`) mantiene EXACTAMENTE el comportamiento
+ * histórico para todos los callers de siempre (ERP y `/portal/proveedores`). En
+ * `false` — sólo lo pide el asistente de 3 pasos (SDD-0172 §3.2), donde el Norte
+ * pone esos campos en el paso 2 y marcados "· opcional" — la compra puede nacer
+ * con proveedor y nada más:
+ *  - description ausente/vacía → `PREALERTA_DESCRIPCION_PENDIENTE`.
+ *  - boxes ausente (`null`/`undefined`) → `1`.
+ *
+ * Se afloja la OBLIGATORIEDAD, nunca el FORMATO: si el cliente escribe cajas,
+ * `0` y `1.5` siguen siendo errores en los dos modos.
  */
-export function validatePrealertaInput(input: Partial<PrealertaInput>): {
+export function validatePrealertaInput(
+  input: Partial<PrealertaInput>,
+  opts: { requireDetalle?: boolean } = {},
+): {
   input?: PrealertaInput;
   fieldErrors?: PrealertaActionState["fieldErrors"];
 } {
+  const requireDetalle = opts.requireDetalle ?? true;
   const errors: PrealertaActionState["fieldErrors"] = {};
 
-  const description = (input.description ?? "").trim();
-  if (!description) errors.description = "Describe qué viene en la compra.";
+  const descriptionRaw = (input.description ?? "").trim();
+  if (!descriptionRaw && requireDetalle) {
+    errors.description = "Describe qué viene en la compra.";
+  }
+  const description = descriptionRaw || PREALERTA_DESCRIPCION_PENDIENTE;
 
-  const boxesNum = Number(input.boxes);
+  // Ausente ≠ inválido: sin detalle exigido, "no lo escribió" cae a 1 caja; pero
+  // un valor escrito se valida igual de duro (0 y 1.5 fallan en ambos modos).
+  const boxesOmitted = input.boxes == null || `${input.boxes}`.trim() === "";
+  const boxesNum = boxesOmitted && !requireDetalle ? 1 : Number(input.boxes);
   if (!Number.isFinite(boxesNum) || boxesNum < 1) {
     errors.boxes = "Indica la cantidad de cajas (mínimo 1).";
   } else if (!Number.isInteger(boxesNum)) {

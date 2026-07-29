@@ -75,3 +75,26 @@ export function showShipmentAcceptanceCta(
 ): boolean {
   return SHIPMENT_ACCEPTANCE_CTA_LIVE || isDemoMarkbox(markbox);
 }
+
+/**
+ * ¿"Nueva compra" es el asistente de 3 pasos del Norte? (SDD-0172 · brecha 3 de
+ * la Fase 7 del Revestido).
+ *
+ * Nace APAGADO a propósito: se entrega por partes (paso 1 → 2 → 3), y mientras
+ * tanto el formulario largo de siempre sigue atendiendo a los clientes reales.
+ * Las cuentas demo ven el asistente desde el primer tramo, que es como se revisa
+ * en producción sin exponerlo. Se prende cuando los 3 pasos están verificados en
+ * el navegador. Para revertir: poné `false`.
+ */
+export const NEW_PURCHASE_WIZARD_LIVE = false;
+
+/**
+ * ¿Mostrarle a este cliente el asistente de 3 pasos de "Nueva compra"? `true`
+ * para todos cuando `NEW_PURCHASE_WIZARD_LIVE`; mientras tanto, sólo las cuentas
+ * demo.
+ */
+export function showNewPurchaseWizard(
+  markbox: string | null | undefined,
+): boolean {
+  return NEW_PURCHASE_WIZARD_LIVE || isDemoMarkbox(markbox);
+}

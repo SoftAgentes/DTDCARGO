@@ -10,6 +10,7 @@ import { describe, it, expect } from "vitest";
 import {
   validateSupplierInput,
   validatePrealertaInput,
+  PREALERTA_DESCRIPCION_PENDIENTE,
   clientNoFromMarkbox,
   buildPrealertaCode,
   buildLabels,
@@ -166,6 +167,76 @@ describe("validatePrealertaInput", () => {
   it("default status = 'anunciada' cuando no viene", () => {
     const { input } = validatePrealertaInput({ description: "algo", boxes: 1 });
     expect(input?.status).toBe("anunciada");
+  });
+});
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ validatePrealertaInput · requireDetalle: false (SDD-0172)  ║
+// ╚═══════════════════════════════════════════════════════════╝
+
+describe("validatePrealertaInput · sin detalle exigido (asistente 3 pasos)", () => {
+  const suelto = { requireDetalle: false } as const;
+
+  it("crea la compra sólo con proveedor", () => {
+    const { input, fieldErrors } = validatePrealertaInput(
+      { supplierId: "abc-123" },
+      suelto,
+    );
+    expect(fieldErrors).toBeUndefined();
+    expect(input?.supplierId).toBe("abc-123");
+  });
+
+  it("description vacía cae al marcador legible, no a cadena vacía", () => {
+    const { input } = validatePrealertaInput({ description: "   " }, suelto);
+    expect(input?.description).toBe(PREALERTA_DESCRIPCION_PENDIENTE);
+    expect(input?.description.trim()).not.toBe("");
+  });
+
+  it("respeta la description cuando el cliente sí la escribió", () => {
+    const { input } = validatePrealertaInput(
+      { description: "  3 cajas de zapatos  " },
+      suelto,
+    );
+    expect(input?.description).toBe("3 cajas de zapatos");
+  });
+
+  it("boxes ausente cae a 1", () => {
+    const { input } = validatePrealertaInput({}, suelto);
+    expect(input?.boxes).toBe(1);
+  });
+
+  it("boxes vacío ('') cae a 1 — el campo existe pero el cliente no lo tocó", () => {
+    const { input } = validatePrealertaInput(
+      { boxes: "" as unknown as number },
+      suelto,
+    );
+    expect(input?.boxes).toBe(1);
+  });
+
+  // El formato NO se afloja: lo que el cliente escribe se sigue validando duro.
+  it("sigue rechazando boxes = 0", () => {
+    const { fieldErrors } = validatePrealertaInput({ boxes: 0 }, suelto);
+    expect(fieldErrors?.boxes).toBeTruthy();
+  });
+
+  it("sigue rechazando boxes no entero", () => {
+    const { fieldErrors } = validatePrealertaInput({ boxes: 1.5 }, suelto);
+    expect(fieldErrors?.boxes).toBeTruthy();
+  });
+
+  it("sigue rechazando est_value negativo", () => {
+    const { fieldErrors } = validatePrealertaInput(
+      { estValueUsd: -10 },
+      suelto,
+    );
+    expect(fieldErrors?.estValueUsd).toBeTruthy();
+  });
+
+  it("el modo por default sigue siendo el estricto de siempre", () => {
+    const { input, fieldErrors } = validatePrealertaInput({});
+    expect(input).toBeUndefined();
+    expect(fieldErrors?.description).toBeTruthy();
+    expect(fieldErrors?.boxes).toBeTruthy();
   });
 });
 
