@@ -450,7 +450,12 @@
 }
 .btn-primary {
   background: var(--color-wine);
-  color: var(--color-white);
+  /* `--color-on-accent`, NO `--color-white`: bajo [data-portal-theme="dark"]
+     `--color-white` vale navy (#16264a), así que TODO CTA primario del portal
+     quedaba navy-sobre-wine → 3.00:1, bajo AA. `--color-on-accent` es #ffffff
+     en :root y no se remapea nunca, así que en claro y en el sitio público
+     esto no cambia absolutamente nada. Medido tras el fix: 4.96:1. */
+  color: var(--color-on-accent);
   box-shadow:
     0 1px 0 rgba(0, 0, 0, 0.04),
     0 8px 24px -8px rgba(127, 15, 26, 0.45);

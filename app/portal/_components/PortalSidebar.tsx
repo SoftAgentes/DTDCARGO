@@ -209,7 +209,10 @@ const CREATE_ITEMS: {
     label: "Reportar un pago",
     sub: "Sube tu comprobante",
     icon: QuoteIcon,
-    href: "/portal/finanzas",
+    // A las facturas POR PAGAR, no a la lista completa: el ítem promete subir un
+    // comprobante y antes aterrizaba en Finanzas, dejando al cliente a tres
+    // saltos de la acción anunciada (founder 2026-07-28).
+    href: "/portal/facturas?saldo=1",
   },
   {
     key: "cotizar",
