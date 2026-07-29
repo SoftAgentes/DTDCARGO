@@ -36,8 +36,11 @@ confidencialidad: interno
 > separados. El [inventario D0](inventario-corte-d-2026-07-29.md) encontró 30
 > escrituras best-effort y cobertura obligatoria incompleta.
 > [REV-AUD-014](../../governance/reviews/aud-corte-d.md) aprueba el
-> [diseño por dominios](diseno-correctivo-corte-d.md); D1–D5 no están abiertos
-> y el Corte E permanece pendiente.
+> [diseño por dominios](diseno-correctivo-corte-d.md).
+> [SDD-0174](../0174-audit-atomicidad-dominios/spec.md) está abierto y su
+> inventario D1 fue aprobado por
+> [REV-AUD-015](../../governance/reviews/aud-d1-access-config.md); diseño e
+> implementación D1 y D2–D5 permanecen pendientes. Corte E sigue pendiente.
 
 ## 1. Propósito
 
@@ -486,3 +489,10 @@ incompleta y dos eventos de cuenta que usan un identificador incompatible con
 UUID. [REV-AUD-014](../../governance/reviews/aud-corte-d.md) aprueba separar la
 ejecución en D1–D5 mediante un SDD hijo. No se creó migración, RPC ni cambio de
 aplicación.
+
+Después de revalidar el correlativo contra `origin/main` y los worktrees, se
+abrió [SDD-0174](../0174-audit-atomicidad-dominios/spec.md).
+[REV-AUD-015](../../governance/reviews/aud-d1-access-config.md) aprueba el
+inventario read-only de 47 acciones server-side de D1. No se creó migración ni
+se abrió implementación; el workflow durable de Auth y el ledger por acción
+son condiciones del próximo gate.

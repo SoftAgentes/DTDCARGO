@@ -3,14 +3,14 @@
 | Control | Valor |
 |---|---|
 | Documento | Índice maestro del Sistema de Gobernanza |
-| Versión | 3.9 |
+| Versión | 4.0 |
 | Dueño | Sam (founder) |
 | Custodia | Producto + Diseño + Ingeniería |
 | Estado | activo |
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-29 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-029 · diseño del Corte D aprobado](BASELINE-2026-07-29.md) |
+| Línea base vigente | [LB-SGE-030 · SDD-0174 abierto e inventario D1 aprobado](BASELINE-2026-07-29-02.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -84,6 +84,8 @@ artefactos permanecen en sus fuentes correspondientes.
 | Inventario read-only del Corte D | [D0 · repo y Cloud](../specs/0166-auditoria-gobernada-aud-01-aud-02/inventario-corte-d-2026-07-29.md) |
 | Diseño correctivo del Corte D | [Atomicidad por dominio v1.0](../specs/0166-auditoria-gobernada-aud-01-aud-02/diseno-correctivo-corte-d.md) |
 | Revisión del diseño Corte D | [REV-AUD-014](reviews/aud-corte-d.md) |
+| Atomicidad por dominios | [SDD-0174](../specs/0174-audit-atomicidad-dominios/spec.md) |
+| Inventario y revisión D1 | [REV-AUD-015](reviews/aud-d1-access-config.md) |
 | Jerarquía visual | [VIS-01 v1.0](policies/vis-01.md) |
 | Tipografía por voz e idioma | [VIS-02 v1.0](policies/vis-02.md) |
 | Accesibilidad transversal | [A11Y-01 v0.1](policies/a11y-01.md) |
@@ -107,7 +109,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Plugin de gobernanza | [PLG-01 v0.1](policies/plg-01.md) |
 | Investigación de skills | [Mapa de capacidades y límites](research/skills-map.md) |
 | Contrato implementado de avisos | [SDD-0165 · AVS-01](../specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md) |
-| Inventario y estado oficial vigente | [LB-SGE-029](BASELINE-2026-07-29.md) |
+| Inventario y estado oficial vigente | [LB-SGE-030](BASELINE-2026-07-29-02.md) |
 
 Regla de frontera: `BRAND.md` y el Norte gobiernan **cómo se ve**; este sistema
 gobierna **cómo se comporta**. Una implementación concreta se especifica en un
@@ -241,7 +243,9 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-029 · diseño del Corte D aprobado](BASELINE-2026-07-29.md).
+[LB-SGE-030 · SDD-0174 abierto e inventario D1 aprobado](BASELINE-2026-07-29-02.md).
+El diseño D0 aprobado permanece en
+[LB-SGE-029](BASELINE-2026-07-29.md).
 La implementación local de C1 permanece registrada en
 [LB-SGE-028](BASELINE-2026-07-28-08.md).
 El diseño C0 aprobado permanece en
