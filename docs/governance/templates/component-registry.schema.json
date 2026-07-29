@@ -1,0 +1,331 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dtdcargo.com/schemas/governance/component-registry-v1.json",
+  "title": "CMP-01 component source record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "name",
+    "purpose",
+    "owner",
+    "status",
+    "implementation",
+    "policyRefs",
+    "api",
+    "tokens",
+    "accessibility",
+    "breakpoints",
+    "examples",
+    "tests",
+    "consumers",
+    "review"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 80
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 12,
+      "maxLength": 500
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 120
+    },
+    "status": {
+      "enum": [
+        "experimental",
+        "proposed",
+        "canonical",
+        "deprecated",
+        "retired"
+      ]
+    },
+    "implementation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "exportName"],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/repoPath"
+        },
+        "exportName": {
+          "type": "string",
+          "pattern": "^[A-Za-z_$][A-Za-z0-9_$]*$"
+        }
+      }
+    },
+    "policyRefs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/policyRef"
+      },
+      "uniqueItems": true
+    },
+    "recommendationRefs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/repoPath"
+      },
+      "uniqueItems": true,
+      "default": []
+    },
+    "api": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contractPath", "summary"],
+      "properties": {
+        "contractPath": {
+          "$ref": "#/$defs/repoPath"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 500
+        }
+      }
+    },
+    "tokens": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^--[a-z0-9-]+$"
+      },
+      "uniqueItems": true
+    },
+    "accessibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "keyboard",
+        "focus",
+        "screenReader",
+        "contrast",
+        "reducedMotion",
+        "evidence"
+      ],
+      "properties": {
+        "keyboard": {
+          "$ref": "#/$defs/evidenceState"
+        },
+        "focus": {
+          "$ref": "#/$defs/evidenceState"
+        },
+        "screenReader": {
+          "$ref": "#/$defs/evidenceState"
+        },
+        "contrast": {
+          "$ref": "#/$defs/evidenceState"
+        },
+        "reducedMotion": {
+          "$ref": "#/$defs/evidenceState"
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/repoPath"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "breakpoints": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "enum": ["mobile", "tablet", "desktop", "print"]
+      },
+      "uniqueItems": true
+    },
+    "examples": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["correct", "incorrect"],
+      "properties": {
+        "correct": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/repoPath"
+          },
+          "uniqueItems": true
+        },
+        "incorrect": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/repoPath"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "path", "case"],
+        "properties": {
+          "type": {
+            "enum": ["unit", "integration", "e2e", "visual", "accessibility"]
+          },
+          "path": {
+            "$ref": "#/$defs/repoPath"
+          },
+          "case": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 200
+          }
+        }
+      }
+    },
+    "consumers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "verifiedAt"],
+        "properties": {
+          "path": {
+            "$ref": "#/$defs/repoPath"
+          },
+          "verifiedAt": {
+            "$ref": "#/$defs/isoDate"
+          }
+        }
+      }
+    },
+    "replacement": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["componentId", "planPath"],
+      "properties": {
+        "componentId": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "planPath": {
+          "$ref": "#/$defs/repoPath"
+        }
+      },
+      "default": null
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reviewPath",
+        "reviewer",
+        "approvedBy",
+        "lastReviewedAt",
+        "nextReviewAt"
+      ],
+      "properties": {
+        "reviewPath": {
+          "$ref": "#/$defs/repoPath"
+        },
+        "reviewer": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "approvedBy": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "lastReviewedAt": {
+          "$ref": "#/$defs/isoDate"
+        },
+        "nextReviewAt": {
+          "$ref": "#/$defs/isoDate"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "repoPath": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.?(?:/|$))[A-Za-z0-9_@().\\[\\] -]+(?:/[A-Za-z0-9_@().\\[\\] -]+)*\\.[A-Za-z0-9]+$"
+    },
+    "isoDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "evidenceState": {
+      "enum": ["verified", "not-applicable"]
+    },
+    "policyRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "version", "path"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[A-Z]{2,4}-[0-9]{2}$"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$"
+        },
+        "path": {
+          "$ref": "#/$defs/repoPath"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "deprecated"
+          }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "required": ["replacement"],
+        "properties": {
+          "replacement": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "retired"
+          }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "consumers": {
+            "maxItems": 0
+          }
+        }
+      }
+    }
+  ]
+}
