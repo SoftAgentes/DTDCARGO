@@ -4,7 +4,7 @@ title: "Lifecycle de tenant y fixtures E2E efímeras"
 status: in-progress
 author: "Sam (founder) + Codex"
 created: 2026-07-28
-updated: 2026-07-28
+updated: 2026-07-29
 supersedes: null
 superseded_by: null
 related: ["0166", "0168"]
@@ -189,6 +189,8 @@ No crea funciones ni modifica otra FK.
 | Teardown remoto | terminal · branch eliminado y ausente del inventario posterior · [REV-AUD-019](../../governance/reviews/aud-tenant-fixtures-ephemeral-validation.md) |
 | Supabase efímero R2 | intento fail-closed · 63 migraciones · `0031_fix_studio_invite_gen_random_bytes` ambiguo |
 | Teardown remoto R2 | terminal · branch y project ref ausentes del inventario posterior |
+| Supabase efímero R3 | intento fail-closed · 83 migraciones · `platform_admins` viola FK hacia Auth |
+| Teardown remoto R3 | terminal · branch y project ref ausentes del inventario posterior |
 
 ## 11. Rollback
 
@@ -200,15 +202,17 @@ No crea funciones ni modifica otra FK.
 
 ## 12. Gates pendientes
 
-1. resolver mediante gate propio la deuda histórica de replay descrita en
+1. resolver mediante gate propio el seed histórico no reproducible de
+   `platform_admins`, descrito en
    [SDD-0118](../0118-seed-migrations-idempotentes/spec.md);
-2. crear un Supabase efímero nuevo que alcance `MIGRATIONS_PASSED`;
-3. ejecutar seed, recorrido E2E y verificación sin DML de cleanup;
-4. destruir ese entorno y volver a comprobar estado terminal.
+2. aplicar su reparación sólo con autorización expresa del basename;
+3. crear un Supabase efímero nuevo que alcance `MIGRATIONS_PASSED`;
+4. ejecutar seed, recorrido E2E y verificación sin DML de cleanup;
+5. destruir ese entorno y volver a comprobar estado terminal.
 
 El gate Cloud de 0268 quedó cerrado en
 [REV-AUD-018](../../governance/reviews/aud-tenant-lifecycle-aplicacion.md).
-Los dos intentos reales y sus teardowns quedaron registrados en
+Los tres intentos reales y sus teardowns quedaron registrados en
 [REV-AUD-019](../../governance/reviews/aud-tenant-fixtures-ephemeral-validation.md).
 SDD-0172 permanece `in-progress`: el teardown fue válido, pero el fixture no
 se ejecutó porque el replay histórico falló antes de construir el schema.

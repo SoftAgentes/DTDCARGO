@@ -106,6 +106,19 @@ restaura únicamente los comments no-op de `0031` y `0032`. Las dos entradas
 son fixes supersedidos por la implementación de tres parámetros ya registrada.
 `0272` no modifica funciones ni tablas de negocio.
 
+### Bloqueo posterior al tercer replay
+
+El tercer branch confirmó que `0272` resolvió el bloqueo anterior y avanzó a
+83 migraciones. La entrada siguiente,
+`20260529071707 platform_admins`, ejecuta el seed histórico de
+`0058_platform_admins.sql` con un UUID fijo de Auth. Como un branch sin datos
+no contiene esa identidad, PostgreSQL aborta por
+`platform_admins_user_id_fkey`.
+
+El gate no debe fabricar ese usuario ni corregir el branch manualmente. La
+reparación requiere diseño, prueba y migración forward-only propios antes de
+repetir el recorrido en otro entorno nuevo.
+
 ## 3. Generación y control de drift
 
 El generador
@@ -157,13 +170,16 @@ metadatos técnicos del ledger.
 | Segundo branch | 63 migraciones; fallo preciso en `0031`; teardown terminal |
 | Follow-up local | `0272` verde en Vitest y PostgreSQL 15/17 · [REV-AUD-022](../../governance/reviews/aud-sdd-0118-branch-replay-followup.md) |
 | Follow-up Cloud | `0272` aplicada individualmente; recibo `20260729140214` · [REV-AUD-023](../../governance/reviews/aud-sdd-0118-branch-replay-followup-application.md) |
+| Tercer branch | 83 migraciones; fallo preciso en `platform_admins`; teardown terminal |
 | Diff | verde |
 
 ## 7. Gates restantes
 
-1. creación de un tercer branch efímero nuevo;
-2. replay completo hasta `MIGRATIONS_PASSED`;
-3. ejecución y teardown terminal de SDD-0172.
+1. diseñar y aprobar una reparación forward-only del seed histórico de
+   `platform_admins`;
+2. aplicar esa reparación sólo con autorización expresa del basename;
+3. crear un entorno efímero nuevo y completar replay, seed, E2E, verificación
+   y teardown terminal.
 
 SDD-0118 permanece `in-progress` hasta que un entorno nuevo demuestre el
 replay completo. Un test local verde no sustituye esa evidencia.

@@ -259,7 +259,9 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-049 · aplicación Cloud de 0272](BASELINE-2026-07-29-21.md).
+[LB-SGE-050 · replay R3 y teardown terminal](BASELINE-2026-07-29-22.md).
+La aplicación Cloud de 0272 permanece en
+[LB-SGE-049](BASELINE-2026-07-29-21.md).
 El replay R2 y el diseño del follow-up permanecen en
 [LB-SGE-048](BASELINE-2026-07-29-20.md).
 La aplicación Cloud de la primera reparación permanece en

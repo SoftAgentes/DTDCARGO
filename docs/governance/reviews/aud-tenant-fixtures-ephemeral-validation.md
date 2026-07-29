@@ -128,3 +128,58 @@ main · xpfuzqombmjmxvprjgmi
 El `branch_id` y `project_ref` R2 quedaron ausentes. La corrección propuesta
 se documenta en
 [REV-AUD-022](aud-sdd-0118-branch-replay-followup.md).
+
+## 9. Tercer intento después de `0272`
+
+Después de aplicar y verificar individualmente
+`0272_skip_superseded_invite_history`, se creó un tercer entorno totalmente
+nuevo. El costo confirmado fue USD 0,01344 por hora.
+
+| Campo | Valor |
+|---|---|
+| Nombre | `sdd-0172-ephemeral-20260729-r3` |
+| `branch_id` | `7c0c93f7-4813-4dcd-98d5-0af8a6b34986` |
+| `project_ref` | `snoupcomlgekwhlzxfvr` |
+| Creado | 2026-07-29T14:04:39.064837Z |
+| Datos de Producción | no |
+
+El replay avanzó de 63 a 83 entradas. Su última migración confirmada fue:
+
+```text
+20260529070616 · fix_seal_status_enum_cast
+```
+
+La siguiente entrada del ledger de Producción es:
+
+```text
+20260529071707 · platform_admins
+```
+
+PostgreSQL registró:
+
+```text
+insert or update on table "platform_admins" violates foreign key constraint
+"platform_admins_user_id_fkey"
+```
+
+La causa es el seed histórico de `0058_platform_admins.sql`: intenta insertar
+un UUID fijo que existe en Auth de Producción, pero no existe en un branch
+fresco sin datos. Crear esa identidad o alterar el branch manualmente habría
+falseado el replay, por lo que el recorrido volvió a detenerse fail-closed.
+
+No se ejecutaron seed E2E, Auth, fixtures, reset, rebase, merge ni SQL
+correctivo. Tampoco se leyeron filas de negocio o PII.
+
+## 10. Teardown terminal R3
+
+`delete_branch` devolvió `success=true` para el `branch_id` exacto. El
+inventario posterior volvió a mostrar únicamente:
+
+```text
+main · xpfuzqombmjmxvprjgmi
+```
+
+El `branch_id` y `project_ref` R3 quedaron ausentes. REV-AUD-019 aprueba el
+comportamiento fail-closed y el teardown terminal del tercer intento, pero no
+aprueba SDD-0172: hace falta un nuevo gate de reparación del historial y un
+entorno nuevo para completar seed, E2E y verificación.

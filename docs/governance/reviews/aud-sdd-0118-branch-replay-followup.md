@@ -63,3 +63,15 @@ branch sólo se crea después de ese postflight.
 
 `0270`, CMP-01 v1.1, D1, slices de adopción, D2–D5, Vercel y PLG-P3
 permanecen fuera de alcance.
+
+## 5. Resultado del tercer replay
+
+R3 probó que `0272` resolvió el bloqueo de invitaciones: el replay avanzó de
+63 a 83 migraciones. El siguiente bloqueo quedó aislado en
+`20260529071707 platform_admins`: su seed histórico inserta un UUID fijo que
+no existe en Auth de un branch sin datos y viola
+`platform_admins_user_id_fkey`.
+
+El branch fue eliminado terminalmente sin ejecutar seed E2E, Auth, fixtures o
+SQL correctivo. La evidencia completa vive en
+[REV-AUD-019](aud-tenant-fixtures-ephemeral-validation.md).
