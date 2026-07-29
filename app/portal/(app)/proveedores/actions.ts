@@ -42,7 +42,7 @@ import {
   type ServiceRequestInput,
   type ServiceRequestActionState,
 } from "@/lib/studio/prealertas/addons";
-import { buildPurchaseOrderLines } from "@/lib/portal/purchase-order-lines";
+import { reconcileServiceRequests } from "@/lib/portal/purchase-order-lines";
 import { SUPPLIER_PROFILE_EXTENDED_LIVE } from "@/lib/portal/demo";
 import {
   listActivePrealertaAddons,
@@ -269,37 +269,24 @@ async function insertPrealertaServiceRequestsFromForm(args: {
     if (reqs.length === 0) return;
 
     // Asistente de 3 pasos (SDD-0172): lo que DTD recibe es LO MISMO que el
-    // cliente leyó en "Así queda tu orden a DTD — en vivo". El HOLD y su acople
-    // con re-empaque sólo existen como frase (no hay columnas), así que la línea
-    // encabeza las notas y el comentario propio del cliente va debajo.
-    let orderLines: Map<string, string> | null = null;
-    if (isTruthy(args.formData.get("wizard"))) {
-      const lines = buildPurchaseOrderLines({
-        addons: active,
-        selected: reqs.map((r) => r.addonCode),
-        holdCount: Number(args.formData.get("hold_count")),
-        holdTie: isTruthy(args.formData.get("hold_tie")),
-      });
-      orderLines = new Map(lines.map((l) => [l.code as string, l.desc]));
-      // El acople puede sumar un servicio que el form no traía (re-empaque
-      // arrastrado por el HOLD). Si el cliente lo leyó en su orden, DTD tiene
-      // que recibir la fila — si no, prometimos algo que nadie va a ver.
-      for (const l of lines) {
-        if (!reqs.some((r) => r.addonCode === l.code)) {
-          reqs.push({ addonCode: l.code, notes: null, trackings: [] });
-        }
-      }
-    }
+    // cliente leyó en "Así queda tu orden a DTD — en vivo". La reconciliación
+    // (línea encabeza las notas + reponer lo que el acople sumó) vive en
+    // `reconcileServiceRequests`, que es puro y está testeado.
+    const reconciled = reconcileServiceRequests({
+      addons: active,
+      requests: reqs,
+      wizard: isTruthy(args.formData.get("wizard")),
+      holdCount: Number(args.formData.get("hold_count")),
+      holdTie: isTruthy(args.formData.get("hold_tie")),
+    });
 
-    const rows = reqs.map((r) => ({
+    const rows = reconciled.map((r) => ({
       tenant_id: args.tenantId,
       prealerta_id: args.prealertaId,
       client_markbox: args.markbox,
       addon_code: r.addonCode,
       consent_accepted: true,
-      notes:
-        [orderLines?.get(r.addonCode), r.notes].filter(Boolean).join("\n\n") ||
-        null,
+      notes: r.notes,
       trackings: r.trackings.length ? r.trackings : null,
     }));
 

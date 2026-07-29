@@ -9,6 +9,7 @@
 import { describe, it, expect } from "vitest";
 import {
   buildPurchaseOrderLines,
+  reconcileServiceRequests,
   holdOrderLine,
   reempaqueTiedOrderLine,
   clampHoldCount,
@@ -187,5 +188,123 @@ describe("buildPurchaseOrderLines", () => {
       selected: ["compactar", "verificacion"],
     });
     expect(codes(lines)).toEqual(["verificacion"]);
+  });
+});
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ reconcileServiceRequests — lo que DTD termina recibiendo   ║
+// ╚═══════════════════════════════════════════════════════════╝
+//
+// Es la lógica más fácil de romper en silencio del asistente: si una línea que
+// el cliente LEYÓ no termina en una fila, DTD nunca se entera de un servicio ya
+// prometido. Por eso se prueba sola, sin DB.
+
+describe("reconcileServiceRequests", () => {
+  const req = (addonCode: string, notes: string | null = null, trackings: string[] = []) =>
+    ({ addonCode, notes, trackings }) as never;
+
+  it("fuera del asistente no toca nada (formulario largo)", () => {
+    const out = reconcileServiceRequests({
+      addons: CATALOGO,
+      requests: [req("verificacion", "mi nota")],
+      wizard: false,
+      holdTie: true,
+      holdCount: 5,
+    });
+    expect(out).toEqual([
+      { addonCode: "verificacion", notes: "mi nota", trackings: [] },
+    ]);
+  });
+
+  it("la línea de la orden ENCABEZA la nota del cliente", () => {
+    const out = reconcileServiceRequests({
+      addons: CATALOGO,
+      requests: [req("verificacion", "ojo con las tallas")],
+      wizard: true,
+    });
+    expect(out[0].notes).toBe(
+      "Cuando llegue a bodega, cuéntenla contra mi factura y envíenme fotos.\n\nojo con las tallas",
+    );
+  });
+
+  it("sin nota del cliente queda sólo la línea", () => {
+    const out = reconcileServiceRequests({
+      addons: CATALOGO,
+      requests: [req("verificacion")],
+      wizard: true,
+    });
+    expect(out[0].notes).toBe(
+      "Cuando llegue a bodega, cuéntenla contra mi factura y envíenme fotos.",
+    );
+  });
+
+  it("el HOLD guarda la frase con SU contador, no la genérica", () => {
+    const out = reconcileServiceRequests({
+      addons: CATALOGO,
+      requests: [req("hold_consolidar")],
+      wizard: true,
+      holdCount: 4,
+    });
+    expect(out[0].notes).toContain("lleguen 4 compras en total");
+  });
+
+  // ⭐ El caso que motivó extraer esto: el acople promete un servicio que el
+  // form puede no traer. Si no se repone, el cliente lo leyó y DTD no lo ve.
+  it("repone el re-empaque que arrastró el HOLD aunque el form no lo traiga", () => {
+    const out = reconcileServiceRequests({
+      addons: CATALOGO,
+      requests: [req("hold_consolidar")],
+      wizard: true,
+      holdCount: 3,
+      holdTie: true,
+    });
+    const codes = out.map((r) => r.addonCode);
+    expect(codes).toContain("reempaque_unificar");
+    expect(out.find((r) => r.addonCode === "reempaque_unificar")?.notes).toBe(
+      "Reempaque de las 3 compras que estoy consolidando en el HOLD.",
+    );
+  });
+
+  it("no duplica el re-empaque cuando el form SÍ lo traía", () => {
+    const out = reconcileServiceRequests({
+      addons: CATALOGO,
+      requests: [req("hold_consolidar"), req("reempaque_unificar", "unifiquen todo")],
+      wizard: true,
+      holdCount: 3,
+      holdTie: true,
+    });
+    const reempaques = out.filter((r) => r.addonCode === "reempaque_unificar");
+    expect(reempaques).toHaveLength(1);
+    // Y conserva la nota propia del cliente debajo de la línea.
+    expect(reempaques[0].notes).toContain("unifiquen todo");
+  });
+
+  it("conserva los trackings de cada solicitud", () => {
+    const out = reconcileServiceRequests({
+      addons: CATALOGO,
+      requests: [req("reempaque_unificar", null, ["SF1", "SF2"])],
+      wizard: true,
+    });
+    expect(out[0].trackings).toEqual(["SF1", "SF2"]);
+  });
+
+  it("toda línea leída por el cliente tiene su fila (invariante)", () => {
+    const requests = [req("hold_consolidar"), req("verificacion")];
+    const out = reconcileServiceRequests({
+      addons: CATALOGO,
+      requests,
+      wizard: true,
+      holdCount: 6,
+      holdTie: true,
+    });
+    const lineas = buildPurchaseOrderLines({
+      addons: CATALOGO,
+      selected: requests.map((r) => (r as unknown as { addonCode: string }).addonCode) as never,
+      holdCount: 6,
+      holdTie: true,
+    });
+    for (const l of lineas) {
+      expect(out.some((r) => r.addonCode === l.code)).toBe(true);
+    }
   });
 });

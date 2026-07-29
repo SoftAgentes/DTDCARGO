@@ -131,3 +131,69 @@ export function buildPurchaseOrderLines({
 
   return lines;
 }
+
+// ── Qué recibe DTD (lo que la server action guarda) ────────────
+
+export type ServiceRequestLike = {
+  addonCode: PrealertaAddonCode;
+  notes: string | null;
+  trackings: string[];
+};
+
+/**
+ * Reconcilia lo que el cliente PIDIÓ (los checkboxes del form) con lo que el
+ * cliente LEYÓ (las líneas del panel en vivo), y devuelve las solicitudes que
+ * hay que guardar.
+ *
+ * Vive acá y no dentro de la server action porque es la lógica más fácil de
+ * romper en silencio de todo el asistente: si una línea que el cliente leyó no
+ * termina en una fila, DTD nunca se entera de un servicio que ya prometimos.
+ *
+ * Dos cosas pasan:
+ *  1. la línea de la orden ENCABEZA las notas (el comentario propio del cliente
+ *     va debajo) — así lo que lee el equipo es exactamente lo que leyó el cliente;
+ *  2. una línea sin solicitud se REPONE (el re-empaque que arrastra el HOLD puede
+ *     no venir en el form).
+ *
+ * Fuera del asistente (`wizard: false`) no toca nada: el formulario largo guarda
+ * las notas tal cual, como siempre.
+ */
+export function reconcileServiceRequests({
+  addons,
+  requests,
+  wizard,
+  holdCount,
+  holdTie,
+}: {
+  addons: PrealertaAddon[];
+  requests: ServiceRequestLike[];
+  wizard: boolean;
+  holdCount?: number;
+  holdTie?: boolean;
+}): { addonCode: PrealertaAddonCode; notes: string | null; trackings: string[] }[] {
+  if (!wizard) {
+    return requests.map((r) => ({ ...r, notes: r.notes || null }));
+  }
+
+  const lines = buildPurchaseOrderLines({
+    addons,
+    selected: requests.map((r) => r.addonCode),
+    holdCount,
+    holdTie,
+  });
+  const byCode = new Map(lines.map((l) => [l.code, l.desc]));
+
+  const out = requests.map((r) => ({
+    addonCode: r.addonCode,
+    notes: [byCode.get(r.addonCode), r.notes].filter(Boolean).join("\n\n") || null,
+    trackings: r.trackings,
+  }));
+
+  for (const l of lines) {
+    if (!out.some((r) => r.addonCode === l.code)) {
+      out.push({ addonCode: l.code, notes: l.desc, trackings: [] });
+    }
+  }
+
+  return out;
+}
