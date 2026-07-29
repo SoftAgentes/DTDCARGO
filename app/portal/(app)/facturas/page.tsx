@@ -22,6 +22,7 @@ import { ArrowIcon } from "@/components/Icon";
 import { InvoiceRow } from "../../_components/InvoiceRow";
 import { InvoiceStatusBadge } from "../../_components/InvoiceStatusBadge";
 import { InvoiceCycleCard } from "./_components/InvoiceCycleCard";
+import { StatementLedgerTable } from "./_components/StatementLedgerTable";
 
 export const metadata: Metadata = { title: "Mis facturas" };
 
@@ -52,10 +53,15 @@ export default async function PortalInvoicesPage({
   // `?saldo=1` → solo facturas por pagar. Lo usa "Reportar un pago" del menú
   // Crear: ese ítem prometía subir un comprobante y aterrizaba en la lista
   // completa, dejando al cliente a tres saltos de la acción anunciada.
-  searchParams: Promise<{ saldo?: string }>;
+  //
+  // `?vista=cuenta` → estado de cuenta (libro de movimientos, SDD-0175) en vez
+  // de la lista. Va en la URL y no en `useState` para que la vista se pueda
+  // compartir por link y la página siga siendo server component.
+  searchParams: Promise<{ saldo?: string; vista?: string }>;
 }) {
-  const { saldo } = await searchParams;
+  const { saldo, vista } = await searchParams;
   const soloConSaldo = saldo === "1";
+  const vistaCuenta = vista === "cuenta";
   const supabase = await createClient();
   // Rediseño Norte (founder 2026-06-20) GATEADO al demo: la card "ciclo"
   // (Estimado→Aprobado→Facturado) necesita estimados + envíos; sólo se cargan para
@@ -187,29 +193,52 @@ export default async function PortalInvoicesPage({
             </p>
           )}
 
-          {/* Mobile: cards */}
-          <div className="mt-6 flex flex-col gap-3 sm:hidden">
-            {invoices.map((inv) => (
-              <InvoiceRow key={inv.id} invoice={inv} />
-            ))}
-          </div>
+          {vistaCuenta ? (
+            // El estado de cuenta se arma SIEMPRE con todas las facturas, aunque
+            // esté puesto `?saldo=1`: un libro al que le faltan movimientos no
+            // cuadra el saldo corrido, y eso es peor que no mostrarlo.
+            <StatementLedgerTable invoices={todasLasFacturas} />
+          ) : (
+            <>
+              {/* Mobile: cards */}
+              <div className="mt-6 flex flex-col gap-3 sm:hidden">
+                {invoices.map((inv) => (
+                  <InvoiceRow key={inv.id} invoice={inv} />
+                ))}
+              </div>
 
-          {/* Desktop: tabla */}
-          <div className="mt-6 hidden sm:block card-shadow bg-white border border-grey-200 rounded-[18px] overflow-hidden">
-            <div className="grid grid-cols-[112px_1fr_96px_96px_112px_120px_44px] items-center gap-3 px-5 py-3 bg-paper border-b border-grey-200">
-              {["Factura", "Envío", "Emitida", "Vence", "Monto", "Estado", ""].map((h, i) => (
-                <span
-                  key={h || "act"}
-                  className={`text-[10.5px] font-bold tracking-[0.1em] uppercase text-grey-500 ${i === 4 ? "text-right" : ""}`}
-                >
-                  {h}
-                </span>
-              ))}
-            </div>
-            {invoices.map((inv) => (
-              <TableRow key={inv.id} inv={inv} />
-            ))}
-          </div>
+              {/* Desktop: tabla */}
+              <div className="mt-6 hidden sm:block card-shadow bg-white border border-grey-200 rounded-[18px] overflow-hidden">
+                <div className="grid grid-cols-[112px_1fr_96px_96px_112px_120px_44px] items-center gap-3 px-5 py-3 bg-paper border-b border-grey-200">
+                  {["Factura", "Envío", "Emitida", "Vence", "Monto", "Estado", ""].map((h, i) => (
+                    <span
+                      key={h || "act"}
+                      className={`text-[10.5px] font-bold tracking-[0.1em] uppercase text-grey-500 ${i === 4 ? "text-right" : ""}`}
+                    >
+                      {h}
+                    </span>
+                  ))}
+                </div>
+                {invoices.map((inv) => (
+                  <TableRow key={inv.id} inv={inv} />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Alternar lista ↔ estado de cuenta (Norte: dos lecturas del mismo
+              dato, no dos pantallas). Conserva `?saldo=1` para no tirar el
+              filtro al volver. */}
+          <Link
+            href={
+              vistaCuenta
+                ? `/portal/facturas${soloConSaldo ? "?saldo=1" : ""}`
+                : `/portal/facturas?vista=cuenta${soloConSaldo ? "&saldo=1" : ""}`
+            }
+            className="btn btn-secondary mt-6 inline-flex"
+          >
+            {vistaCuenta ? "Ver como lista" : "Ver estado de cuenta"} <ArrowIcon />
+          </Link>
         </>
       )}
     </div>
