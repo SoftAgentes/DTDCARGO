@@ -472,8 +472,11 @@ conserva `ON DELETE CASCADE` como excepción transitoria: el ciclo de vida
 tenant/fixtures fue diseñado y aprobado en
 [REV-AUD-010](../../governance/reviews/aud-tenant-fixtures.md), pero su
 implementación local se separó en
-[SDD-0172](../0172-tenant-fixtures-lifecycle/spec.md). `0268` y el recorrido
-efímero permanecen pendientes.
+[SDD-0172](../0172-tenant-fixtures-lifecycle/spec.md).
+[REV-AUD-018](../../governance/reviews/aud-tenant-lifecycle-aplicacion.md)
+registra la aplicación individual y verificación de `0268` en Producción. Solo
+el recorrido real en Supabase efímero y su teardown terminal permanecen
+pendientes dentro de SDD-0172.
 
 El mismo día se completó el inventario metadata-only C0.
 [REV-AUD-012](../../governance/reviews/aud-corte-c.md) aprobó la versión 1.0

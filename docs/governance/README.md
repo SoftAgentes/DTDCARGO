@@ -3,14 +3,14 @@
 | Control | Valor |
 |---|---|
 | Documento | Índice maestro del Sistema de Gobernanza |
-| Versión | 4.8 |
+| Versión | 4.9 |
 | Dueño | Sam (founder) |
 | Custodia | Producto + Diseño + Ingeniería |
 | Estado | activo |
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-29 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-038 · Diseño D1 aprobado](BASELINE-2026-07-29-10.md) |
+| Línea base vigente | [LB-SGE-039 · 0268 aplicada](BASELINE-2026-07-29-11.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -77,6 +77,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Revisión del ciclo de vida tenant/fixtures | [REV-AUD-010](reviews/aud-tenant-fixtures.md) |
 | Implementación del ciclo tenant/fixtures | [SDD-0172](../specs/0172-tenant-fixtures-lifecycle/spec.md) |
 | Revisión técnica local de SDD-0172 | [REV-AUD-011](reviews/aud-tenant-fixtures-implementation.md) |
+| Recibo Cloud de 0268 | [REV-AUD-018](reviews/aud-tenant-lifecycle-aplicacion.md) |
 | Inventario read-only del Corte C | [C0 · repo y Cloud](../specs/0166-auditoria-gobernada-aud-01-aud-02/inventario-corte-c-2026-07-28.md) |
 | Diseño correctivo del Corte C | [Consulta gobernada y RBAC v1.1](../specs/0166-auditoria-gobernada-aud-01-aud-02/diseno-correctivo-corte-c.md) |
 | Revisión del diseño Corte C | [REV-AUD-012](reviews/aud-corte-c.md) |
@@ -157,7 +158,7 @@ disfraza elevando el estado normativo.
 | HTD-01 | Confirmación por presión sostenida | aprobada | [Contrato v1.0](policies/htd-01.md) consolidado; no implementado | Crear SDD solo para una entidad R3 clasificada por MP-01 |
 | AVS-01 | Avisos y confirmaciones | verificada | Primitiva conforme; 26 llamadas gobernadas y 261 legacy compatibles | Migrar consumidores por módulo |
 | AUD-01 | Evento auditable y vínculo con acciones | aprobada | Diseño D1 aprobado: 24 operaciones obligatorias y workflow Auth durable; implementación pendiente | [REV-AUD-017](reviews/aud-d1-access-config-design.md) |
-| AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B aplicada; lifecycle local verificado; consulta/RBAC pendientes | Aplicar `0268` solo por gate exacto; Cortes C–E conservan gates separados |
+| AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B y guardrail tenant 0268 aplicados; consulta/RBAC pendientes | [REV-AUD-018](reviews/aud-tenant-lifecycle-aplicacion.md); `0270` conserva gate separado |
 | VIS-01 | Jerarquía visual y distribución 60-30-10 | aprobada | Adopción parcial; tokens presentes y literales pendientes de clasificar | Muestreo visual y registro de excepciones |
 | VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | SDD-0175 aprobado; BD-036 cierra V0 sin cargar la fuente | Ejecutar V1 tokens/fuente |
 | BUS-01 | Buscadores predictivos y contexto de resultados | aprobada v1.0 | Búsqueda global y `ClientCombobox` existen; adopción no auditada | Auditar scopes, ranking y desambiguación |
@@ -252,7 +253,9 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-038 · Diseño D1 aprobado](BASELINE-2026-07-29-10.md).
+[LB-SGE-039 · 0268 aplicada y verificada](BASELINE-2026-07-29-11.md).
+El diseño D1 permanece en
+[LB-SGE-038](BASELINE-2026-07-29-10.md).
 El Gate V0 de VIS-02 permanece en
 [LB-SGE-037](BASELINE-2026-07-29-09.md).
 La apertura propuesta de SDD-0175 permanece en

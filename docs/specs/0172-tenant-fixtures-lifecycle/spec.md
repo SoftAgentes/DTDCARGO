@@ -60,7 +60,7 @@ fixture SDD-0168.
 ### No incluye
 
 - ejecutar teardown de un proyecto real en este cambio;
-- aplicar `0268` en Cloud;
+- reaplicar `0268` o aplicar otra migración en Cloud;
 - crear estados persistidos activo/suspendido/archivado;
 - cambiar las otras 191 FK;
 - crear purga de auditoría;
@@ -184,7 +184,7 @@ No crea funciones ni modifica otra FK.
 | PostgreSQL 15 | verde · rollback total |
 | PostgreSQL 17 | verde · rollback total |
 | Docker residual | cero contenedores de prueba |
-| Cloud | no aplicado |
+| Cloud | aplicado y verificado · [REV-AUD-018](../../governance/reviews/aud-tenant-lifecycle-aplicacion.md) |
 
 ## 11. Rollback
 
@@ -196,14 +196,9 @@ No crea funciones ni modifica otra FK.
 
 ## 12. Gates pendientes
 
-1. revisión técnica local;
-2. commit selectivo;
-3. integración/push;
-4. autorización Cloud que nombre exactamente
-   `0268_tenant_lifecycle_guardrails`;
-5. preflight Cloud fresco, aplicación única y postcondiciones;
-6. prueba transaccional, advisors y recibo;
-7. validación real en un Supabase efímero y evidencia de teardown terminal.
+1. validación real en un Supabase efímero;
+2. evidencia de teardown terminal del proyecto efímero.
 
-SDD-0172 permanece `in-progress` hasta cerrar Cloud y un recorrido efímero
-completo.
+El gate Cloud de 0268 quedó cerrado en
+[REV-AUD-018](../../governance/reviews/aud-tenant-lifecycle-aplicacion.md).
+SDD-0172 permanece `in-progress` hasta cerrar un recorrido efímero completo.
