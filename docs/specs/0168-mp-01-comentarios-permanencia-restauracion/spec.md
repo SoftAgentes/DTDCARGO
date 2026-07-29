@@ -413,8 +413,9 @@ Vercel Producción, smoke público, E2E autenticado y limpieza controlada. La
 frontera determinista se conserva: `public.comments` es colaboración interna
 P2 y no puede ser la fuente autoritativa de evidencia o decisiones P4.
 
-La autorización posterior permitió completar
-[DT-SDD-0168 v1.0](diseno-tecnico.md). REV-MP-002 lo aprueba técnicamente para
-implementación local por gates, pero no autoriza modificar código, base de
-datos, RBAC, Vercel o Cloud. El próximo gate es DB-1 local y debe conservar
-revisión y autorización separadas.
+El [diseño técnico v1.0](diseno-tecnico.md) y su aprobación REV-MP-002 se
+conservan como evidencia del gate previo. DB-1, APP, DB-2, Preview,
+integración y Producción fueron ejecutados después mediante autorizaciones
+separadas y quedaron cerrados. SDD-0168 no tiene un próximo gate interno:
+cualquier ACL histórico global, purga, retención o ampliación de roles requiere
+otro SDD con alcance y gates propios.

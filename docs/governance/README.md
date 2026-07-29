@@ -3,14 +3,14 @@
 | Control | Valor |
 |---|---|
 | Documento | Índice maestro del Sistema de Gobernanza |
-| Versión | 3.0 |
+| Versión | 3.1 |
 | Dueño | Sam (founder) |
 | Custodia | Producto + Diseño + Ingeniería |
 | Estado | activo |
 | Creado | 2026-07-21 |
-| Última revisión | 2026-07-22 |
+| Última revisión | 2026-07-28 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-020 · diseño técnico SDD-0168 2026-07-22](BASELINE-2026-07-22-10.md) |
+| Línea base vigente | [LB-SGE-021 · consolidación maestra de las tres etapas 2026-07-28](BASELINE-2026-07-28.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -54,6 +54,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Revisión técnica del diseño de comentarios | [REV-MP-002](reviews/mp-01-comments-design.md) |
 | Revisión de implementación de comentarios | [REV-MP-003](reviews/mp-01-comments-implementation.md) |
 | Revisión local de DB-2 de comentarios | [REV-MP-004](reviews/mp-01-comments-db2.md) |
+| Revalidación Preview, Producción y limpieza de comentarios | [REV-MP-005](reviews/mp-01-comments-preview-e2e.md) |
 | Botones y acciones | [BTN-01 v1.0](policies/btn-01.md) |
 | Presión sostenida crítica | [HTD-01 v1.0](policies/htd-01.md) |
 | Auditoría de mutaciones | [AUD-01 v1.0](policies/aud-01.md) |
@@ -90,7 +91,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Plugin de gobernanza | [PLG-01 v0.1](policies/plg-01.md) |
 | Investigación de skills | [Mapa de capacidades y límites](research/skills-map.md) |
 | Contrato implementado de avisos | [SDD-0165 · AVS-01](../specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md) |
-| Inventario y estado oficial vigente | [LB-SGE-016](BASELINE-2026-07-22-06.md) |
+| Inventario y estado oficial vigente | [LB-SGE-021](BASELINE-2026-07-28.md) |
 
 Regla de frontera: `BRAND.md` y el Norte gobiernan **cómo se ve**; este sistema
 gobierna **cómo se comporta**. Una implementación concreta se especifica en un
@@ -221,8 +222,10 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-020 · diseño técnico SDD-0168](BASELINE-2026-07-22-10.md). La
-aplicación y verificación de A2 [LB-SGE-019](BASELINE-2026-07-22-09.md), la
+[LB-SGE-021 · consolidación maestra de las tres etapas](BASELINE-2026-07-28.md).
+El diseño técnico previo de SDD-0168
+[LB-SGE-020](BASELINE-2026-07-22-10.md), la aplicación y verificación de A2
+[LB-SGE-019](BASELINE-2026-07-22-09.md), la
 revisión técnica local de A2 [LB-SGE-018](BASELINE-2026-07-22-08.md), la
 aprobación documental de SDD-0168 [LB-SGE-017](BASELINE-2026-07-22-07.md), la
 aprobación normativa MP-01 [LB-SGE-016](BASELINE-2026-07-22-06.md), la
