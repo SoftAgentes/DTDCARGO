@@ -6,7 +6,7 @@
 | Diseño | Corte D · D0 v1.0 |
 | Base | [Inventario read-only](inventario-corte-d-2026-07-29.md) |
 | Revisión | [REV-AUD-014](../../governance/reviews/aud-corte-d.md) |
-| Estado | aprobado técnicamente; implementación no abierta |
+| Estado | aprobado técnicamente; SDD hijo abierto, D1 inventariado |
 
 ## 1. Decisión
 
@@ -141,10 +141,11 @@ un defecto. Si una fase causa regresión:
 
 ## 8. Numeración y allowlist del siguiente gate
 
-El siguiente SDD disponible debe revalidarse contra `origin/main` y todos los
-worktrees. El candidato actual es SDD-0174, sin reservarlo en D0.
+El correlativo fue revalidado contra `origin/main` y todos los worktrees.
+[SDD-0174](../0174-audit-atomicidad-dominios/spec.md) quedó abierto con D1
+inventariado; todavía no existe migración ni cambio de aplicación.
 
-La futura apertura del SDD hijo puede modificar únicamente:
+La apertura documental del SDD hijo modificó únicamente:
 
 1. un nuevo `docs/specs/NNNN-audit-atomicidad-dominios/spec.md`;
 2. `docs/specs/README.md` generado;
@@ -154,8 +155,8 @@ La futura apertura del SDD hijo puede modificar únicamente:
 6. una revisión y línea base nuevas;
 7. `docs/governance/README.md`.
 
-Implementar D1 exige una allowlist nueva de código/migración después del
-inventario específico.
+Implementar D1 exige una allowlist nueva de código/migración después de aprobar
+el workflow durable de Auth y cerrar el ledger específico.
 
 ## 9. Gates
 

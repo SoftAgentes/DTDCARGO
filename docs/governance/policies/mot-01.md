@@ -1,9 +1,10 @@
-# MOT-01 v0.1 — Movimiento, tiempos e interrupción
+# MOT-01 v1.0 — Movimiento, tiempos e interrupción
 
 | Control | Valor |
 |---|---|
 | Código | MOT-01 |
-| Estado | redactada — pendiente de aprobación |
+| Estado | aprobada — adopción pendiente |
+| Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-003 |
 | Creado | 2026-07-21 |
 | Depende de | VIS-01 y A11Y-01 |
 

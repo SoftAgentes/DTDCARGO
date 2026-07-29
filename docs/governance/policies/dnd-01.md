@@ -1,8 +1,9 @@
-# DND-01 v0.1 — Drag and drop y Kanban
+# DND-01 v1.0 — Drag and drop y Kanban
 
 | Control | Valor |
 |---|---|
-| Estado | redactada — pendiente de aprobación |
+| Estado | aprobada — adopción no conforme |
+| Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-005 |
 | Depende de | MOT-01, A11Y-01, AVS-01 y AUD-01 |
 
 ## Contrato

@@ -8,7 +8,7 @@
 | Estado | aprobada — implementación parcial |
 | Creado | 2026-07-21 |
 | Depende de | [VIS-01](vis-01.md) y A11Y-01 |
-| Fuente visual | [`BRAND.md`](../../../BRAND.md), BD-035 y Norte vigente |
+| Fuente visual | [`BRAND.md`](../../../BRAND.md), BD-035, BD-036 y Norte vigente |
 
 ## 1. Ley central
 
@@ -110,8 +110,7 @@ salida corporativa se selecciona explícitamente la voz de marca.
 - verificar español y `zh-CN` en Gmail, Outlook y Apple Mail;
 - comprobar PDF impreso, glifos, peso, copy/paste y tamaño del archivo;
 - validar que label/valor sigue distinguiéndose sin webfonts;
-- actualizar `BRAND.md`/decisiones si la fuente de verdad todavía presenta una
-  lista global que contradiga la excepción aprobada de Studio;
+- conservar BD-036 y `BRAND.md` sincronizados con la excepción documental;
 - ejecutar revisión visual antes de declarar implementación completa.
 
 Esta política documenta la decisión aprobada. No autoriza por sí sola cargar

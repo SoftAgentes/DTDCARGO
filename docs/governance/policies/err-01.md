@@ -1,9 +1,10 @@
-# ERR-01 v0.1 — Taxonomía de errores y recuperación
+# ERR-01 v1.0 — Taxonomía de errores y recuperación
 
 | Control | Valor |
 |---|---|
 | Código | ERR-01 |
-| Estado | redactada — pendiente de aprobación |
+| Estado | aprobada — adopción pendiente |
+| Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-003 |
 | Creado | 2026-07-21 |
 | Depende de | SGE-00, AVS-01 y AUD-01 |
 

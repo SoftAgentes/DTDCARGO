@@ -1,8 +1,9 @@
-# PRG-01 v0.1 — Progreso de procesos
+# PRG-01 v1.0 — Progreso de procesos
 
 | Control | Valor |
 |---|---|
-| Estado | redactada — pendiente de aprobación |
+| Estado | aprobada — adopción pendiente |
+| Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-003 |
 | Depende de | LOD-01, MOT-01 y A11Y-01 |
 
 ## Contrato

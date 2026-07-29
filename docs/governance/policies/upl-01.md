@@ -1,8 +1,9 @@
-# UPL-01 v0.1 — Carga de archivos e imágenes
+# UPL-01 v1.0 — Carga de archivos e imágenes
 
 | Control | Valor |
 |---|---|
-| Estado | redactada — pendiente de aprobación |
+| Estado | aprobada — adopción pendiente |
+| Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-005 |
 | Depende de | SGE-00, LOD-01, ERR-01, MP-01 y AUD-01 |
 
 ## Contrato

@@ -1,8 +1,9 @@
-# ICO-01 v0.1 — Iconografía semántica
+# ICO-01 v1.0 — Iconografía semántica
 
 | Control | Valor |
 |---|---|
-| Estado | redactada — pendiente de aprobación |
+| Estado | aprobada — adopción pendiente |
+| Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-005 |
 | Base actual | `app/studio/_components/icons.tsx` y sets heredados |
 
 ## Contrato
