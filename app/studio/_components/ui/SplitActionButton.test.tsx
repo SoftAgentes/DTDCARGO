@@ -58,6 +58,34 @@ describe("SplitActionButton menu", () => {
     });
   });
 
+  it("Tab cierra el menú y continúa hacia el control siguiente", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <SplitActionButton memoryKey="test-tab" actions={actions} />
+        <button type="button">Control siguiente</button>
+      </>,
+    );
+
+    const trigger = screen.getByRole("button", {
+      name: "Más opciones de la acción",
+    });
+    trigger.focus();
+    await user.keyboard("{ArrowDown}");
+    await waitFor(() =>
+      expect(screen.getAllByRole("menuitem")[0]).toHaveFocus(),
+    );
+
+    await user.tab();
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Control siguiente" }),
+      ).toHaveFocus();
+      expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    });
+  });
+
   it("abre hacia arriba cuando el espacio inferior no alcanza", async () => {
     const user = userEvent.setup();
     render(<SplitActionButton memoryKey="test-placement" actions={actions} />);

@@ -446,7 +446,10 @@ function SplitActionMenu({
       event.preventDefault();
       onClose(true);
     } else if (event.key === "Tab") {
-      onClose(false);
+      // Dejar que el navegador resuelva primero la navegación Tab. Si el menú
+      // se desmonta sincrónicamente, el elemento enfocado desaparece y algunos
+      // navegadores devuelven el foco al body.
+      requestAnimationFrame(() => onClose(false));
     }
   };
 

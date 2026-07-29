@@ -81,6 +81,27 @@ describe("FiscalClient tabs", () => {
     );
   });
 
+  it("ArrowLeft hace wrap desde el primer tab hacia el último", async () => {
+    const user = userEvent.setup();
+    render(
+      <FiscalClient
+        tab="config"
+        period="2026-07"
+        settings={SETTINGS}
+        canEditConfig
+      />,
+    );
+
+    const tabs = screen.getAllByRole("tab");
+    tabs[0].focus();
+    await user.keyboard("{ArrowLeft}");
+
+    expect(tabs[3]).toHaveFocus();
+    expect(pushMock).toHaveBeenLastCalledWith(
+      "/studio/fiscal?tab=retenciones&period=2026-07",
+    );
+  });
+
   it("Home y End recorren los extremos sin sacar el foco del tablist", async () => {
     const user = userEvent.setup();
     render(
