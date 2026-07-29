@@ -38,6 +38,14 @@ export const CALCULATOR_SETTINGS_SQL_TEST_PATH = resolve(
   ROOT,
   "supabase/tests/0274_restore_calculator_settings_history.test.sql",
 );
+export const PIN_SEARCH_PATH_MIGRATION_PATH = resolve(
+  ROOT,
+  "supabase/migrations/0275_restore_pin_search_path_history.sql",
+);
+export const PIN_SEARCH_PATH_SQL_TEST_PATH = resolve(
+  ROOT,
+  "supabase/tests/0275_restore_pin_search_path_history.test.sql",
+);
 
 const PLATFORM_ADMIN_SOURCE_PATH = resolve(
   ROOT,
@@ -56,6 +64,11 @@ const CALCULATOR_SETTINGS_SOURCE_PATH = resolve(
   "supabase/migrations/0103_calculator_settings.sql",
 );
 const CALCULATOR_SETTINGS_TARGET_MD5 = "0f7deee22e3a978c52159b6fc211ee2c";
+const PIN_SEARCH_PATH_SOURCE_PATH = resolve(
+  ROOT,
+  "supabase/migrations/0210_pin_search_path_triggers.sql",
+);
+const PIN_SEARCH_PATH_TARGET_MD5 = "c3131d8ea3756049d6455bc98b4d0ecc";
 
 const SEED_TEAM_INVITATION = String.raw`-- Seed template "team_invitation" por cada tenant existente.
 -- Idempotente · on conflict do nothing.
@@ -1017,6 +1030,198 @@ select to_regnamespace('supabase_migrations') is null
 `;
 }
 
+export async function loadPinSearchPathRepair() {
+  const targetSql = normalizeSql(
+    await readFile(PIN_SEARCH_PATH_SOURCE_PATH, "utf8"),
+  );
+  if (md5(targetSql) !== PIN_SEARCH_PATH_TARGET_MD5) {
+    throw new Error(
+      "0210_pin_search_path_triggers.sql no coincide con el digest canónico esperado",
+    );
+  }
+
+  const targets = Array.from(
+    targetSql.matchAll(
+      /^alter function public\.([a-z0-9_]+)\(([^)]*)\) set search_path = public;$/gm,
+    ),
+    ([statement, name, argumentsSql]) => ({
+      statement,
+      name,
+      argumentsSql,
+      identity: `public.${name}(${argumentsSql})`,
+      regprocedure: `public.${name}(${
+        argumentsSql === "p_pin text" ? "text" : argumentsSql
+      })`,
+    }),
+  );
+  if (targets.length !== 33) {
+    throw new Error(
+      `0210_pin_search_path_triggers.sql debe contener 33 ALTER FUNCTION; encontrados ${targets.length}`,
+    );
+  }
+  if (new Set(targets.map((target) => target.identity)).size !== targets.length) {
+    throw new Error(
+      "0210_pin_search_path_triggers.sql contiene firmas duplicadas",
+    );
+  }
+  if (
+    targets.filter((target) => target.argumentsSql !== "").length !== 1 ||
+    !targets.some(
+      (target) =>
+        target.identity ===
+        "public.validate_operario_pin_format(p_pin text)",
+    )
+  ) {
+    throw new Error(
+      "0210_pin_search_path_triggers.sql cambió su contrato de firmas",
+    );
+  }
+
+  return {
+    version: "20260703235255",
+    name: "0210_pin_search_path_triggers",
+    targetSql,
+    targetMd5: PIN_SEARCH_PATH_TARGET_MD5,
+    targets,
+  };
+}
+
+export function buildPinSearchPathMigration(repair) {
+  return `-- SDD-0118 · restaurar el payload reproducible del pin de search_path.
+-- Sólo reemplaza statements NULL del ledger; no ejecuta los ALTER almacenados.
+
+do $sdd0118_pin_search_path_preflight$
+begin
+  if not exists (
+    select 1
+    from supabase_migrations.schema_migrations
+    where version = '${repair.version}'
+      and name = '${repair.name}'
+      and (
+        statements is null
+        or (
+          cardinality(statements) = 1
+          and md5(statements[1]) = '${repair.targetMd5}'
+        )
+      )
+  ) then
+    raise exception 'SDD-0118 pin_search_path: drift en ${repair.version} ${repair.name}';
+  end if;
+end
+$sdd0118_pin_search_path_preflight$;
+
+update supabase_migrations.schema_migrations
+set statements = array[
+  ${sqlLiteral(repair.targetSql, "sdd0118_pin_search_path_target")}
+]
+where version = '${repair.version}'
+  and name = '${repair.name}'
+  and statements is null;
+
+do $sdd0118_pin_search_path_postflight$
+begin
+  if not exists (
+    select 1
+    from supabase_migrations.schema_migrations
+    where version = '${repair.version}'
+      and name = '${repair.name}'
+      and cardinality(statements) = 1
+      and md5(statements[1]) = '${repair.targetMd5}'
+  ) then
+    raise exception 'SDD-0118 pin_search_path: postcondición falló en ${repair.version} ${repair.name}';
+  end if;
+end
+$sdd0118_pin_search_path_postflight$;
+`;
+}
+
+export function buildPinSearchPathSqlTest(repair) {
+  const functionFixtures = repair.targets
+    .map((target) => {
+      if (target.argumentsSql === "") {
+        return `create function public.${target.name}()
+returns trigger
+language plpgsql
+as $$
+begin
+  return new;
+end
+$$;`;
+      }
+      return `create function public.${target.name}(${target.argumentsSql})
+returns boolean
+language sql
+as $$
+  select true
+$$;`;
+    })
+    .join("\n\n");
+  const replayAssertions = repair.targets
+    .map(
+      (target) => `  if not exists (
+    select 1
+    from pg_proc
+    where oid = '${target.regprocedure}'::regprocedure
+      and proconfig @> array['search_path=public']::text[]
+  ) then
+    raise exception 'TEST 0275: falta pin en ${target.identity}';
+  end if;`,
+    )
+    .join("\n\n");
+
+  return `\\set ON_ERROR_STOP on
+
+begin;
+
+create schema supabase_migrations;
+create table supabase_migrations.schema_migrations (
+  version text primary key,
+  name text not null,
+  statements text[]
+);
+
+insert into supabase_migrations.schema_migrations (version, name, statements)
+values ('${repair.version}', '${repair.name}', null);
+
+\\ir ../migrations/0275_restore_pin_search_path_history.sql
+\\ir ../migrations/0275_restore_pin_search_path_history.sql
+
+do $ledger_contract$
+begin
+  if not exists (
+    select 1
+    from supabase_migrations.schema_migrations
+    where version = '${repair.version}'
+      and name = '${repair.name}'
+      and cardinality(statements) = 1
+      and md5(statements[1]) = '${repair.targetMd5}'
+  ) then
+    raise exception 'TEST 0275: estado final incorrecto en ${repair.version}';
+  end if;
+  if to_regprocedure('public.comments_freeze_immutable()') is not null then
+    raise exception 'TEST 0275: la migración ejecutó el payload almacenado';
+  end if;
+end
+$ledger_contract$;
+
+${functionFixtures}
+
+${repair.targetSql}
+
+do $replay_contract$
+begin
+${replayAssertions}
+end
+$replay_contract$;
+
+rollback;
+
+select to_regnamespace('supabase_migrations') is null
+  and to_regprocedure('public.comments_freeze_immutable()') is null
+  as sdd_0118_pin_search_path_fixture_rolled_back;
+`;
+}
+
 async function run() {
   const repairs = await loadRepairs();
   const migration = buildMigration(repairs);
@@ -1036,6 +1241,11 @@ async function run() {
   const calculatorSettingsSqlTest = buildCalculatorSettingsSqlTest(
     calculatorSettingsRepair,
   );
+  const pinSearchPathRepair = await loadPinSearchPathRepair();
+  const pinSearchPathMigration = buildPinSearchPathMigration(
+    pinSearchPathRepair,
+  );
+  const pinSearchPathSqlTest = buildPinSearchPathSqlTest(pinSearchPathRepair);
   const checkOnly = process.argv.includes("--check");
 
   if (checkOnly) {
@@ -1048,6 +1258,8 @@ async function run() {
       currentPlatformAdminTest,
       currentCalculatorSettingsMigration,
       currentCalculatorSettingsTest,
+      currentPinSearchPathMigration,
+      currentPinSearchPathTest,
     ] = await Promise.all([
       readFile(MIGRATION_PATH, "utf8"),
       readFile(SQL_TEST_PATH, "utf8"),
@@ -1057,6 +1269,8 @@ async function run() {
       readFile(PLATFORM_ADMIN_SQL_TEST_PATH, "utf8"),
       readFile(CALCULATOR_SETTINGS_MIGRATION_PATH, "utf8"),
       readFile(CALCULATOR_SETTINGS_SQL_TEST_PATH, "utf8"),
+      readFile(PIN_SEARCH_PATH_MIGRATION_PATH, "utf8"),
+      readFile(PIN_SEARCH_PATH_SQL_TEST_PATH, "utf8"),
     ]);
     if (
       normalizeSql(currentMigration) !== migration ||
@@ -1069,7 +1283,10 @@ async function run() {
       normalizeSql(currentCalculatorSettingsMigration) !==
         calculatorSettingsMigration ||
       normalizeSql(currentCalculatorSettingsTest) !==
-        calculatorSettingsSqlTest
+        calculatorSettingsSqlTest ||
+      normalizeSql(currentPinSearchPathMigration) !==
+        pinSearchPathMigration ||
+      normalizeSql(currentPinSearchPathTest) !== pinSearchPathSqlTest
     ) {
       throw new Error("Los artefactos generados de SDD-0118 están desactualizados");
     }
@@ -1097,6 +1314,8 @@ async function run() {
       calculatorSettingsSqlTest,
       "utf8",
     ),
+    writeFile(PIN_SEARCH_PATH_MIGRATION_PATH, pinSearchPathMigration, "utf8"),
+    writeFile(PIN_SEARCH_PATH_SQL_TEST_PATH, pinSearchPathSqlTest, "utf8"),
   ]);
 }
 

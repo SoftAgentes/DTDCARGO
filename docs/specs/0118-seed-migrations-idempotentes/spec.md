@@ -172,16 +172,29 @@ El próximo gate debe restaurar forward-only el payload reproducible de
 `0210`; no debe ejecutar esos `ALTER FUNCTION` directamente sobre un branch
 fallido ni aplicar un basename nuevo sin autorización expresa.
 
+La reparación aprobada localmente es:
+
+```text
+0275_restore_pin_search_path_history
+```
+
+`0275` convierte únicamente el `NULL` técnico de esa entrada en un array con
+el payload canónico completo de `0210_pin_search_path_triggers.sql`.
+Producción no ejecuta los 33 `ALTER FUNCTION`: sólo almacena el texto para
+futuros replays. La segunda ejecución reconoce el digest final y no vuelve a
+escribir.
+
 ## 3. Generación y control de drift
 
 El generador
 `scripts/build-sdd-0118-repair.mjs`:
 
 1. valida los digests del estado remoto observado;
-2. lee los catorce archivos fuente del repositorio;
+2. lee los quince archivos fuente del repositorio;
 3. normaliza únicamente finales de línea;
 4. calcula y publica el digest de cada payload;
-5. genera `0271`, `0272`, `0273`, `0274` y sus pruebas transaccionales;
+5. genera `0271`, `0272`, `0273`, `0274`, `0275` y sus pruebas
+   transaccionales;
 6. ofrece `--check` para impedir drift entre fuentes y artefactos.
 
 No descarga ni guarda secretos. Los únicos datos Cloud incorporados son
@@ -213,15 +226,17 @@ metadatos técnicos del ledger.
 | Platform admin DB test | `supabase/tests/0273_skip_platform_admin_bootstrap_history.test.sql` |
 | Calculator migración | `supabase/migrations/0274_restore_calculator_settings_history.sql` |
 | Calculator DB test | `supabase/tests/0274_restore_calculator_settings_history.test.sql` |
+| Pin search_path migración | `supabase/migrations/0275_restore_pin_search_path_history.sql` |
+| Pin search_path DB test | `supabase/tests/0275_restore_pin_search_path_history.test.sql` |
 | Spec | `docs/specs/0118-seed-migrations-idempotentes/spec.md` |
-| Revisiones | `docs/governance/reviews/aud-sdd-0118-branch-replay.md` · `docs/governance/reviews/aud-sdd-0118-platform-admin-bootstrap.md` · `docs/governance/reviews/aud-sdd-0118-calculator-settings-history.md` |
+| Revisiones | `docs/governance/reviews/aud-sdd-0118-branch-replay.md` · `docs/governance/reviews/aud-sdd-0118-platform-admin-bootstrap.md` · `docs/governance/reviews/aud-sdd-0118-calculator-settings-history.md` · `docs/governance/reviews/aud-sdd-0118-pin-search-path-history.md` |
 
 ## 6. Evidencia local
 
 | Gate | Resultado |
 |---|---|
 | Generación determinista | verde · `node scripts/build-sdd-0118-repair.mjs --check` |
-| Vitest focal | verde · 1 archivo · 3 pruebas |
+| Vitest focal | verde · 1 archivo · 10 pruebas |
 | PostgreSQL 15 | verde · 11 cambios + segunda ejecución idempotente + rollback |
 | PostgreSQL 17 | verde · 11 cambios + segunda ejecución idempotente + rollback |
 | Residuo Docker propio | cero |
@@ -236,13 +251,14 @@ metadatos técnicos del ledger.
 | Calculator local | `0274` determinista · Vitest 8/8 · PostgreSQL 15/17 · [REV-AUD-026](../../governance/reviews/aud-sdd-0118-calculator-settings-history.md) |
 | Calculator Cloud | `0274` aplicada individualmente; recibo `20260729143620` · [REV-AUD-027](../../governance/reviews/aud-sdd-0118-calculator-settings-history-application.md) |
 | Quinto branch | 266 migraciones; `0262` detecta `proconfig = NULL` porque `0210` tiene statements NULL; teardown terminal · [REV-AUD-019](../../governance/reviews/aud-tenant-fixtures-ephemeral-validation.md) |
+| Pin search_path local | `0275` determinista · PostgreSQL 15/17 · 33 firmas · UPDATE 1/0 · rollback · [REV-AUD-028](../../governance/reviews/aud-sdd-0118-pin-search-path-history.md) |
 | Diff | verde |
 
 ## 7. Gates restantes
 
-1. diseñar y validar localmente la reparación forward-only del payload de
-   `0210_pin_search_path_triggers`;
-2. obtener autorización expresa del nuevo basename antes de aplicarlo;
+1. obtener autorización expresa de
+   `0275_restore_pin_search_path_history`;
+2. aplicar únicamente ese basename con preflight y postflight propios;
 3. crear un entorno efímero nuevo y completar replay, seed, E2E, verificación
    y teardown terminal.
 

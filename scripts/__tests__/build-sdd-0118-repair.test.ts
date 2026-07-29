@@ -12,17 +12,22 @@ const {
   buildPlatformAdminSqlTest,
   buildCalculatorSettingsMigration,
   buildCalculatorSettingsSqlTest,
+  buildPinSearchPathMigration,
+  buildPinSearchPathSqlTest,
   CALCULATOR_SETTINGS_MIGRATION_PATH,
   CALCULATOR_SETTINGS_SQL_TEST_PATH,
   FOLLOWUP_MIGRATION_PATH,
   FOLLOWUP_SQL_TEST_PATH,
   loadCalculatorSettingsRepair,
+  loadPinSearchPathRepair,
   loadFollowups,
   loadPlatformAdminRepair,
   loadRepairs,
   MIGRATION_PATH,
   PLATFORM_ADMIN_MIGRATION_PATH,
   PLATFORM_ADMIN_SQL_TEST_PATH,
+  PIN_SEARCH_PATH_MIGRATION_PATH,
+  PIN_SEARCH_PATH_SQL_TEST_PATH,
   REPAIRS,
   SQL_TEST_PATH,
 } = repairModule;
@@ -160,5 +165,53 @@ describe("SDD-0118 branch replay repair", () => {
     await expect(
       readFile(CALCULATOR_SETTINGS_SQL_TEST_PATH, "utf8"),
     ).resolves.toBe(buildCalculatorSettingsSqlTest(repair));
+  });
+
+  it("restaura las 33 firmas canónicas de pin search_path", async () => {
+    const repair = await loadPinSearchPathRepair();
+
+    expect(repair.version).toBe("20260703235255");
+    expect(repair.name).toBe("0210_pin_search_path_triggers");
+    expect(repair.targetMd5).toBe("c3131d8ea3756049d6455bc98b4d0ecc");
+    expect(repair.targets).toHaveLength(33);
+    expect(
+      repair.targets.map((target: { identity: string }) => target.identity),
+    ).toContain("public.comments_freeze_immutable()");
+    expect(
+      repair.targets.map((target: { identity: string }) => target.identity),
+    ).toContain("public.comments_validate_entity()");
+    expect(
+      repair.targets.map((target: { identity: string }) => target.identity),
+    ).toContain("public.validate_operario_pin_format(p_pin text)");
+    expect(
+      repair.targets.map(
+        (target: { regprocedure: string }) => target.regprocedure,
+      ),
+    ).toContain("public.validate_operario_pin_format(text)");
+  });
+
+  it("mantiene sincronizado y fail-closed el gate 0275", async () => {
+    const repair = await loadPinSearchPathRepair();
+    const migration = buildPinSearchPathMigration(repair);
+    const executableSql = migration.replace(
+      /\$sdd0118_pin_search_path_target\$[\s\S]*?\$sdd0118_pin_search_path_target\$/g,
+      "<pin-search-path-sql-as-text>",
+    );
+
+    expect(migration).toContain("statements is null");
+    expect(migration).toContain("SDD-0118 pin_search_path: drift");
+    expect(migration).toContain(repair.targetMd5);
+    expect(executableSql).not.toContain(
+      "alter function public.comments_freeze_immutable()",
+    );
+    expect(executableSql).not.toContain(
+      "alter function public.comments_validate_entity()",
+    );
+    await expect(
+      readFile(PIN_SEARCH_PATH_MIGRATION_PATH, "utf8"),
+    ).resolves.toBe(buildPinSearchPathMigration(repair));
+    await expect(
+      readFile(PIN_SEARCH_PATH_SQL_TEST_PATH, "utf8"),
+    ).resolves.toBe(buildPinSearchPathSqlTest(repair));
   });
 });

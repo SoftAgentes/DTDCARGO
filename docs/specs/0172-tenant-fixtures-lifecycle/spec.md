@@ -206,8 +206,9 @@ No crea funciones ni modifica otra FK.
 
 ## 12. Gates pendientes
 
-1. resolver mediante gate propio el payload no reproducible de
-   `0210_pin_search_path_triggers`;
+1. obtener autorización expresa y aplicar individualmente
+   `0275_restore_pin_search_path_history`, ya aprobado localmente en
+   [REV-AUD-028](../../governance/reviews/aud-sdd-0118-pin-search-path-history.md);
 2. crear un Supabase efímero nuevo que alcance `MIGRATIONS_PASSED`;
 3. ejecutar seed, recorrido E2E y verificación sin DML de cleanup;
 4. destruir ese entorno y volver a comprobar estado terminal.
