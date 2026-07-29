@@ -10,7 +10,7 @@
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-29 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-044 · primer componente CMP-01](BASELINE-2026-07-29-16.md) |
+| Línea base vigente | [LB-SGE-045 · destino repo/team PLG-01](BASELINE-2026-07-29-17.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -118,6 +118,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Plugin de gobernanza | [PLG-01 v1.0](policies/plg-01.md) |
 | Revisión normativa PLG-01 | [REV-SGE-007](reviews/plg-01.md) |
 | Diseño técnico PLG-01 | [SDD-0178 + REV-SGE-011](../specs/0178-plugin-gobernanza-erp-studio/spec.md) |
+| Destino repo/team PLG-01 | [REV-SGE-013](reviews/plg-01-destination.md) |
 | Auditoría SGE/BTN/VIS/AVS | [REV-SGE-008](reviews/adoption-sge-btn-vis-avs-2026-07-29.md) |
 | Plan de adopción por slices | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | Implementación VIS-02 | [SDD-0175 aprobado](../specs/0175-vis-02-tipografia-voz-idioma/spec.md) |
@@ -184,7 +185,7 @@ disfraza elevando el estado normativo.
 | A11Y-01 | Accesibilidad transversal | aprobada v1.0 | Buenas bases; sin matriz integral | Ejecutar auditoría transversal |
 | IA-01 | Interacciones asistidas por IA | aprobada v1.0 | Regla local “IA propone”; sin gate transversal | Auditar permisos, privacidad y evidencia |
 | CMP-01 | Ciclo de vida y madurez de componentes | aprobada v1.0 | `ConfirmDialog` recorrió proposed→canonical; agregado y tests verdes; falta caso deprecated | [REV-SGE-012](reviews/cmp-confirm-dialog-canonical.md) |
-| PLG-01 | Plugin ejecutable de gobernanza | aprobada v1.0 | SDD-0178 aprobado; plugin no creado ni instalado | CMP estable + decisión de destino antes de scaffold |
+| PLG-01 | Plugin ejecutable de gobernanza | aprobada v1.0 | SDD-0178 aprobado; destino repo/team decidido; plugin no creado ni instalado | Completar estabilidad CMP antes de solicitar scaffold |
 
 ## 5. Jerarquía y resolución de conflictos
 
@@ -258,7 +259,9 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-044 · primer componente CMP-01](BASELINE-2026-07-29-16.md).
+[LB-SGE-045 · destino repo/team PLG-01](BASELINE-2026-07-29-17.md).
+El primer componente CMP-01 permanece en
+[LB-SGE-044](BASELINE-2026-07-29-16.md).
 El intento efímero SDD-0172 permanece en
 [LB-SGE-043](BASELINE-2026-07-29-15.md).
 El SDD de PLG-01 aprobado permanece en
