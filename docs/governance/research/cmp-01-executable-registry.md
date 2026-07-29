@@ -5,7 +5,7 @@
 | Política | [CMP-01 v1.0](../policies/cmp-01.md) |
 | Revisión | [REV-SGE-010](../reviews/cmp-01-registry-design.md) |
 | Schema | [`component-registry.schema.json`](../templates/component-registry.schema.json) |
-| Estado | diseño aprobado; registro no poblado |
+| Estado | implementado con un componente; estabilidad PLG pendiente |
 
 ## 1. Decisión
 
@@ -139,9 +139,10 @@ Un script jamás cambia `status` como efecto lateral.
 4. `scripts/validate-component-registry.mjs`
 5. `scripts/__tests__/component-registry.test.ts`
 6. `package.json`
-7. `docs/governance/reviews/cmp-<component-id>-<gate>.md`
-8. `docs/governance/README.md`
-9. una nueva línea base
+7. `pnpm-lock.yaml`, solo si el validador declara dependencias directas
+8. `docs/governance/reviews/cmp-<component-id>-<gate>.md`
+9. `docs/governance/README.md`
+10. una nueva línea base
 
 El primer gate poblará **un solo componente** existente. No cataloga en masa ni
 modifica el componente. El basename concreto se define en su SDD después de
@@ -159,4 +160,6 @@ El registro se considera estable para implementar el plugin cuando:
 - el formato no necesita campos manuales fuera del schema;
 - el owner confirma alcance personal versus repo/team.
 
-Diseñar este registro no autoriza poblarlo ni crear el plugin.
+El primer gate quedó poblado con `ConfirmDialog` y revisado en
+[REV-SGE-012](../reviews/cmp-confirm-dialog-canonical.md). Diseñar o poblar este
+registro no autoriza crear el plugin.

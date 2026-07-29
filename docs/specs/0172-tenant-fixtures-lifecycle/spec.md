@@ -4,7 +4,7 @@ title: "Lifecycle de tenant y fixtures E2E efímeras"
 status: in-progress
 author: "Sam (founder) + Codex"
 created: 2026-07-28
-updated: 2026-07-28
+updated: 2026-07-29
 supersedes: null
 superseded_by: null
 related: ["0166", "0168"]
@@ -185,6 +185,20 @@ No crea funciones ni modifica otra FK.
 | PostgreSQL 17 | verde · rollback total |
 | Docker residual | cero contenedores de prueba |
 | Cloud | aplicado y verificado · [REV-AUD-018](../../governance/reviews/aud-tenant-lifecycle-aplicacion.md) |
+| Supabase efímero | intento fail-closed · replay detenido en `20260526213130 seed_team_invitation_template` |
+| Teardown remoto | terminal · branch eliminado y ausente del inventario posterior · [REV-AUD-019](../../governance/reviews/aud-tenant-fixtures-ephemeral-validation.md) |
+| Supabase efímero R2 | intento fail-closed · 63 migraciones · `0031_fix_studio_invite_gen_random_bytes` ambiguo |
+| Teardown remoto R2 | terminal · branch y project ref ausentes del inventario posterior |
+| Supabase efímero R3 | intento fail-closed · 83 migraciones · `platform_admins` viola FK hacia Auth |
+| Teardown remoto R3 | terminal · branch y project ref ausentes del inventario posterior |
+| Supabase efímero R4 | intento fail-closed · 120 migraciones · falta `calculator_settings` |
+| Teardown remoto R4 | terminal · branch y project ref ausentes del inventario posterior |
+| Supabase efímero R5 | intento fail-closed · 266 migraciones · `0262` detecta dos funciones comments sin `search_path=public` |
+| Teardown remoto R5 | terminal · branch y project ref ausentes; sólo `main` saludable |
+| Supabase efímero R6 | intento fail-closed · 268 migraciones · `0264` detecta EXECUTE de `anon` por payload 0209 ausente |
+| Teardown remoto R6 | terminal · branch y project ref ausentes; sólo `main` saludable |
+| Supabase efímero R7 | intento fail-closed · 215 migraciones · `0209` referencia `rls_auto_enable()` ausente |
+| Teardown remoto R7 | terminal · branch y project ref ausentes; sólo `main` saludable |
 
 ## 11. Rollback
 
@@ -196,9 +210,26 @@ No crea funciones ni modifica otra FK.
 
 ## 12. Gates pendientes
 
-1. validación real en un Supabase efímero;
-2. evidencia de teardown terminal del proyecto efímero.
+1. resolver mediante gate propio la ausencia histórica de
+   `rls_auto_enable()` y `ensure_rls`;
+2. crear un Supabase efímero completamente nuevo que alcance
+   `MIGRATIONS_PASSED`;
+3. ejecutar seed, recorrido E2E y verificación sin DML de cleanup;
+4. destruir ese entorno y volver a comprobar estado terminal.
 
 El gate Cloud de 0268 quedó cerrado en
 [REV-AUD-018](../../governance/reviews/aud-tenant-lifecycle-aplicacion.md).
-SDD-0172 permanece `in-progress` hasta cerrar un recorrido efímero completo.
+El gate Cloud de 0273 quedó cerrado en
+[REV-AUD-025](../../governance/reviews/aud-sdd-0118-platform-admin-bootstrap-application.md).
+El gate Cloud de 0274 quedó cerrado en
+[REV-AUD-027](../../governance/reviews/aud-sdd-0118-calculator-settings-history-application.md).
+El gate Cloud de 0275 quedó cerrado en
+[REV-AUD-029](../../governance/reviews/aud-sdd-0118-pin-search-path-history-application.md).
+Los siete intentos reales y sus teardowns quedaron registrados en
+[REV-AUD-019](../../governance/reviews/aud-tenant-fixtures-ephemeral-validation.md).
+El diseño local de `0276` quedó aprobado en
+[REV-AUD-030](../../governance/reviews/aud-sdd-0118-revoke-anon-history.md).
+El gate Cloud de `0276` quedó cerrado en
+[REV-AUD-031](../../governance/reviews/aud-sdd-0118-revoke-anon-history-application.md).
+SDD-0172 permanece `in-progress`: el teardown fue válido, pero el fixture no
+se ejecutó porque el replay histórico falló antes de construir el schema.

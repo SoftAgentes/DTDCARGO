@@ -2,7 +2,7 @@
 
 | Control | Valor |
 |---|---|
-| Estado | aprobada — no creado ni instalado |
+| Estado | aprobada — destino repo/team decidido; no creado ni instalado |
 | Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-007 |
 | Nombre técnico propuesto | `erp-studio-governance` |
 | Fuente normativa | `docs/governance/` dentro del repositorio |
@@ -92,3 +92,17 @@ como decisión separada. También incorpora `skill-creator`: descripciones como
 gatillo, progressive disclosure, scripts para validaciones repetibles y
 validación/forward-test antes de confiar en el resultado. Esta política no
 ejecutó scaffold ni escribió fuera del repo.
+
+## 7. Destino aprobado
+
+[REV-SGE-013](../reviews/plg-01-destination.md) decide **repo/team**:
+
+```text
+marketplace: .agents/plugins/marketplace.json
+plugin:      .agents/plugins/plugins/erp-studio-governance/
+```
+
+El destino personal queda descartado para este plugin porque sus reglas,
+versiones y evidencia son específicas de DTDCargo y deben viajar con el commit
+que las gobierna. Esta decisión no crea esas rutas ni autoriza scaffold,
+marketplace o instalación.

@@ -149,7 +149,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0115 | Financiero China Slice C — forex como revenue · claim offsets… | done | confidencial |
 | 0116 | Club DTD — membresía recurrente + compra grupal (consolidació… | done | interno |
 | 0117 | Recibo y finiquito en PDF server-side (@react-pdf/renderer) —… | done | interno |
-| 0118 | Seed migrations idempotentes — habilitar validación en branch… | draft | interno |
+| 0118 | Historial reproducible — habilitar validación en branch efíme… | in-progress | interno |
 | 0119 | Módulo de Marketing en el ERP — Dashboard de Marketing (salud… | done | interno |
 | 0120 | Datos de la empresa — primera sección real de Administración … | done | interno |
 | 0121 | Apariencia — preferencias de Studio (tema + densidad) + mater… | done | interno |

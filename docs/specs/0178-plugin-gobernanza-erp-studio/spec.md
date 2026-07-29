@@ -20,9 +20,10 @@ Se aprueba el diseño técnico del futuro plugin
 audita en modo read-only. No crea una fuente normativa paralela y no puede
 promover una regla, componente o hallazgo.
 
-Este SDD **no autoriza crear, instalar ni publicar el plugin**. El scaffold,
-la ubicación personal versus repo/team, cada instalación y cualquier
-marketplace conservan gates separados.
+Este SDD **no autoriza crear, instalar ni publicar el plugin**. El destino
+repo/team quedó decidido por REV-SGE-013, pero el scaffold, la creación del
+marketplace, cada instalación y cualquier publicación conservan gates
+separados.
 
 ## 2. Fuentes y precedencia
 
@@ -219,8 +220,16 @@ El generador:
 
 ## 10. Allowlist exacta del futuro scaffold
 
-La raíz `<plugin-root>/erp-studio-governance/` se resolverá solo después de que
-el founder elija destino personal o repo/team.
+El destino aprobado es repo/team:
+
+```text
+<repo-root>/.agents/plugins/marketplace.json
+<repo-root>/.agents/plugins/plugins/erp-studio-governance/
+```
+
+La doble carpeta `plugins/plugins` mantiene `source.path` como
+`./plugins/erp-studio-governance`, relativo al marketplace, según el contrato
+de `plugin-creator`. Ninguna de esas rutas existe todavía.
 
 1. `.codex-plugin/plugin.json`
 2. `skills/governance-check/SKILL.md`
@@ -244,7 +253,7 @@ La allowlist documental de ese gate será SDD-0178, su revisión de scaffold,
 |---|---|---|
 | P0 | SDD y REV-SGE-011 | diseño aprobado |
 | P1 | CMP registry estable según REV-SGE-010 §8 | habilitar solicitud de scaffold |
-| P2 | founder decide personal vs repo/team | fijar `<plugin-root>` |
+| P2 | destino repo/team aprobado por REV-SGE-013 | fijar `<plugin-root>` |
 | P3 | autorización explícita de scaffold | crear allowlist local, sin instalar |
 | P4 | manifest/skills/registry validados | forward-test read-only |
 | P5 | tres casos positivos y tres negativos verdes | solicitar instalación |
@@ -263,5 +272,9 @@ modifica las fuentes normativas.
 
 ## 13. Cierre
 
-P0 queda aprobado documentalmente. P1–P8 permanecen cerrados. No se creó ni
-instaló el plugin y no existe marketplace, MCP o app asociado.
+P0 y la decisión P2 quedan aprobados documentalmente. P1 permanece cerrado:
+REV-SGE-012 validó un componente `proposed → canonical`, pero todavía falta el
+caso `deprecated` y versionar limitaciones del schema. P3–P8 permanecen
+cerrados.
+
+No se creó ni instaló el plugin y no existe marketplace, MCP o app asociado.

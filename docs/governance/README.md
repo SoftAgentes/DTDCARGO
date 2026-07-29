@@ -10,7 +10,7 @@
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-29 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-042 · SDD PLG aprobado](BASELINE-2026-07-29-14.md) |
+| Línea base vigente | [LB-SGE-045 · destino repo/team PLG-01](BASELINE-2026-07-29-17.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -78,6 +78,9 @@ artefactos permanecen en sus fuentes correspondientes.
 | Implementación del ciclo tenant/fixtures | [SDD-0172](../specs/0172-tenant-fixtures-lifecycle/spec.md) |
 | Revisión técnica local de SDD-0172 | [REV-AUD-011](reviews/aud-tenant-fixtures-implementation.md) |
 | Recibo Cloud de 0268 | [REV-AUD-018](reviews/aud-tenant-lifecycle-aplicacion.md) |
+| Intento efímero y teardown terminal SDD-0172 | [REV-AUD-019](reviews/aud-tenant-fixtures-ephemeral-validation.md) |
+| Reparación local del payload 0210 | [REV-AUD-028](reviews/aud-sdd-0118-pin-search-path-history.md) |
+| Recibo Cloud de 0275 | [REV-AUD-029](reviews/aud-sdd-0118-pin-search-path-history-application.md) |
 | Inventario read-only del Corte C | [C0 · repo y Cloud](../specs/0166-auditoria-gobernada-aud-01-aud-02/inventario-corte-c-2026-07-28.md) |
 | Diseño correctivo del Corte C | [Consulta gobernada y RBAC v1.1](../specs/0166-auditoria-gobernada-aud-01-aud-02/diseno-correctivo-corte-c.md) |
 | Revisión del diseño Corte C | [REV-AUD-012](reviews/aud-corte-c.md) |
@@ -113,9 +116,11 @@ artefactos permanecen en sus fuentes correspondientes.
 | Ciclo de vida de componentes | [CMP-01 v1.0](policies/cmp-01.md) |
 | Revisión normativa CMP-01 | [REV-SGE-006](reviews/cmp-01.md) |
 | Diseño del registro CMP-01 | [REV-SGE-010](reviews/cmp-01-registry-design.md) |
+| Primer componente CMP-01 canónico | [REV-SGE-012 · ConfirmDialog](reviews/cmp-confirm-dialog-canonical.md) |
 | Plugin de gobernanza | [PLG-01 v1.0](policies/plg-01.md) |
 | Revisión normativa PLG-01 | [REV-SGE-007](reviews/plg-01.md) |
 | Diseño técnico PLG-01 | [SDD-0178 + REV-SGE-011](../specs/0178-plugin-gobernanza-erp-studio/spec.md) |
+| Destino repo/team PLG-01 | [REV-SGE-013](reviews/plg-01-destination.md) |
 | Auditoría SGE/BTN/VIS/AVS | [REV-SGE-008](reviews/adoption-sge-btn-vis-avs-2026-07-29.md) |
 | Plan de adopción por slices | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | Implementación VIS-02 | [SDD-0175 aprobado](../specs/0175-vis-02-tipografia-voz-idioma/spec.md) |
@@ -161,7 +166,7 @@ disfraza elevando el estado normativo.
 | HTD-01 | Confirmación por presión sostenida | aprobada | [Contrato v1.0](policies/htd-01.md) consolidado; no implementado | Crear SDD solo para una entidad R3 clasificada por MP-01 |
 | AVS-01 | Avisos y confirmaciones | verificada | Primitiva conforme; consumidores legacy se migran solo dentro de slices R2/R3 | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | AUD-01 | Evento auditable y vínculo con acciones | aprobada | Diseño D1 aprobado: 24 operaciones obligatorias y workflow Auth durable; implementación pendiente | [REV-AUD-017](reviews/aud-d1-access-config-design.md) |
-| AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B y guardrail tenant 0268 aplicados; consulta/RBAC pendientes | [REV-AUD-018](reviews/aud-tenant-lifecycle-aplicacion.md); `0270` conserva gate separado |
+| AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B y guardrail tenant 0268 aplicados; intento efímero detenido por SDD-0118 y teardown terminal verificado | [REV-AUD-019](reviews/aud-tenant-fixtures-ephemeral-validation.md); consulta/RBAC y `0270` conservan gates separados |
 | VIS-01 | Jerarquía visual y distribución 60-30-10 | aprobada | Adopción parcial; muestreo acotado a slices y clasificación de literales | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | SDD-0175 aprobado; BD-036 cierra V0 sin cargar la fuente | Ejecutar V1 tokens/fuente |
 | BUS-01 | Buscadores predictivos y contexto de resultados | aprobada v1.0 | Búsqueda global y `ClientCombobox` existen; adopción no auditada | Auditar scopes, ranking y desambiguación |
@@ -181,8 +186,8 @@ disfraza elevando el estado normativo.
 | TBL-01 | Tablas, densidad y configuración | aprobada v1.0 | `ColumnManager` tiene adopción limitada | Auditar listados y móvil |
 | A11Y-01 | Accesibilidad transversal | aprobada v1.0 | Buenas bases; sin matriz integral | Ejecutar auditoría transversal |
 | IA-01 | Interacciones asistidas por IA | aprobada v1.0 | Regla local “IA propone”; sin gate transversal | Auditar permisos, privacidad y evidencia |
-| CMP-01 | Ciclo de vida y madurez de componentes | aprobada v1.0 | Schema y diseño ejecutable aprobados; registro no poblado | [REV-SGE-010](reviews/cmp-01-registry-design.md) |
-| PLG-01 | Plugin ejecutable de gobernanza | aprobada v1.0 | SDD-0178 aprobado; plugin no creado ni instalado | CMP estable + decisión de destino antes de scaffold |
+| CMP-01 | Ciclo de vida y madurez de componentes | aprobada v1.0 | `ConfirmDialog` recorrió proposed→canonical; agregado y tests verdes; falta caso deprecated | [REV-SGE-012](reviews/cmp-confirm-dialog-canonical.md) |
+| PLG-01 | Plugin ejecutable de gobernanza | aprobada v1.0 | SDD-0178 aprobado; destino repo/team decidido; plugin no creado ni instalado | Completar estabilidad CMP antes de solicitar scaffold |
 
 ## 5. Jerarquía y resolución de conflictos
 
@@ -256,7 +261,47 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-042 · SDD de PLG-01 aprobado](BASELINE-2026-07-29-14.md).
+[LB-SGE-062 · replay R7 y teardown terminal](BASELINE-2026-07-29-34.md).
+La aplicación Cloud de 0276 permanece en
+[LB-SGE-061](BASELINE-2026-07-29-33.md).
+La reparación local del payload 0209 permanece en
+[LB-SGE-060](BASELINE-2026-07-29-32.md).
+El replay R6 y su teardown terminal permanecen en
+[LB-SGE-059](BASELINE-2026-07-29-31.md).
+La aplicación Cloud de 0275 permanece en
+[LB-SGE-058](BASELINE-2026-07-29-30.md).
+La reparación local del payload 0210 permanece en
+[LB-SGE-057](BASELINE-2026-07-29-29.md).
+El replay R5 y su teardown terminal permanecen en
+[LB-SGE-056](BASELINE-2026-07-29-28.md).
+La aplicación Cloud de 0274 permanece en
+[LB-SGE-055](BASELINE-2026-07-29-27.md).
+La reparación local de 0103_calculator_settings permanece en
+[LB-SGE-054](BASELINE-2026-07-29-26.md).
+El replay R4 y su teardown terminal permanecen en
+[LB-SGE-053](BASELINE-2026-07-29-25.md).
+La aplicación Cloud de 0273 permanece en
+[LB-SGE-052](BASELINE-2026-07-29-24.md).
+La reparación local de platform_admins permanece en
+[LB-SGE-051](BASELINE-2026-07-29-23.md).
+El replay R3 y su teardown terminal permanecen en
+[LB-SGE-050](BASELINE-2026-07-29-22.md).
+La aplicación Cloud de 0272 permanece en
+[LB-SGE-049](BASELINE-2026-07-29-21.md).
+El replay R2 y el diseño del follow-up permanecen en
+[LB-SGE-048](BASELINE-2026-07-29-20.md).
+La aplicación Cloud de la primera reparación permanece en
+[LB-SGE-047](BASELINE-2026-07-29-19.md).
+La reparación local del replay permanece en
+[LB-SGE-046](BASELINE-2026-07-29-18.md).
+El destino repo/team de PLG-01 permanece en
+[LB-SGE-045](BASELINE-2026-07-29-17.md).
+El primer componente CMP-01 permanece en
+[LB-SGE-044](BASELINE-2026-07-29-16.md).
+El intento efímero SDD-0172 permanece en
+[LB-SGE-043](BASELINE-2026-07-29-15.md).
+El SDD de PLG-01 aprobado permanece en
+[LB-SGE-042](BASELINE-2026-07-29-14.md).
 El registro CMP diseñado permanece en
 [LB-SGE-041](BASELINE-2026-07-29-13.md).
 El plan de adopción por slices permanece en
