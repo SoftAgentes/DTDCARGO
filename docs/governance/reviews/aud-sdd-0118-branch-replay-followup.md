@@ -6,7 +6,7 @@
 | SDD | [SDD-0118](../../specs/0118-seed-migrations-idempotentes/spec.md) |
 | Candidata | `0272_skip_superseded_invite_history` |
 | Fecha | 2026-07-29 |
-| Resultado | diseño y artefacto local aprobados; Cloud pendiente |
+| Resultado | aplicada y verificada; tercer branch pendiente |
 
 ## 1. Evidencia del replay
 
@@ -56,8 +56,10 @@ Postcondiciones:
 
 ## 4. Veredicto
 
-REV-AUD-022 aprueba técnicamente `0272` y rechaza aplicarla sin autorización
-expresa del basename. El tercer branch sólo se crea después de su postflight.
+REV-AUD-022 aprueba técnicamente `0272`. Su aplicación individual y
+postflight están registrados en
+[REV-AUD-023](aud-sdd-0118-branch-replay-followup-application.md). El tercer
+branch sólo se crea después de ese postflight.
 
 `0270`, CMP-01 v1.1, D1, slices de adopción, D2–D5, Vercel y PLG-P3
 permanecen fuera de alcance.

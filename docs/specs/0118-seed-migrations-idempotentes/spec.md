@@ -156,15 +156,14 @@ metadatos técnicos del ledger.
 | Cloud | `0271` aplicada individualmente · [REV-AUD-021](../../governance/reviews/aud-sdd-0118-branch-replay-application.md) |
 | Segundo branch | 63 migraciones; fallo preciso en `0031`; teardown terminal |
 | Follow-up local | `0272` verde en Vitest y PostgreSQL 15/17 · [REV-AUD-022](../../governance/reviews/aud-sdd-0118-branch-replay-followup.md) |
+| Follow-up Cloud | `0272` aplicada individualmente; recibo `20260729140214` · [REV-AUD-023](../../governance/reviews/aud-sdd-0118-branch-replay-followup-application.md) |
 | Diff | verde |
 
 ## 7. Gates restantes
 
-1. autorización expresa y aplicación individual de
-   `0272_skip_superseded_invite_history`;
-2. creación de un tercer branch efímero nuevo;
-3. replay completo hasta `MIGRATIONS_PASSED`;
-4. ejecución y teardown terminal de SDD-0172.
+1. creación de un tercer branch efímero nuevo;
+2. replay completo hasta `MIGRATIONS_PASSED`;
+3. ejecución y teardown terminal de SDD-0172.
 
 SDD-0118 permanece `in-progress` hasta que un entorno nuevo demuestre el
 replay completo. Un test local verde no sustituye esa evidencia.
