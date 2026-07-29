@@ -7,6 +7,7 @@
 | Modo | read-only |
 | Alcance | acciones server-side de usuarios y Administración |
 | Resultado | 47 acciones en 13 archivos |
+| Revalidación | 2026-07-29 · `origin/main` `e7be56c6245f23703703ff93026757c753e091f3` |
 
 ## 1. Clasificación
 
@@ -66,3 +67,69 @@ datos personales no necesarios, URL firmada, contenido de mensajes y blobs.
 D1 no está implementado. Antes de código se debe decidir la máquina
 intención/confirmación/compensación de Auth, cerrar el ledger por acción y
 publicar allowlist de migración, pruebas, adapters y documentación.
+
+## 7. Revalidación de las 47 acciones
+
+Se recontaron las funciones `export async function` de los mismos 13 archivos
+contra `origin/main`. El total continúa en 47 y no apareció otro archivo dentro
+del alcance D1. La clasificación distingue:
+
+- `D1 obligatoria`: acceso, credenciales o configuración sensible;
+- `D5 clasificar`: configuración operativa o personal que no se implementa en
+  D1, sin declarar por ello conformidad;
+- `no aplica D1`: la acción no cambia acceso/configuración sensible; conserva
+  revisión posterior cuando otra política la requiera.
+
+| # | Acción server-side | Tabla/RPC principal | Clasificación | Evento mínimo o ledger posterior |
+|---:|---|---|---|---|
+| 1 | `inviteUserAction` | `studio_invite_user` | D1 obligatoria | `membership.invited` |
+| 2 | `changeUserRoleAction` | `studio_change_user_role` | D1 obligatoria | `membership.role_changed` |
+| 3 | `changeWarehouseScopeAction` | `studio_set_user_warehouse_scope` | D1 obligatoria | `membership.scope_changed` |
+| 4 | `disableUserAction` | membresía + Supabase Auth | D1 obligatoria | `membership.disable_requested` → `membership.disabled` |
+| 5 | `enableUserAction` | Supabase Auth + membresía | D1 obligatoria | `membership.enable_requested` → `membership.enabled` |
+| 6 | `revokeInvitationAction` | `studio_revoke_invitation` | D1 obligatoria | `membership.invitation_revoked` |
+| 7 | `updateMyProfileAction` | `user_profiles` | no aplica D1 | perfil propio; revisar PII en D5 |
+| 8 | `updateMyPreferencesAction` | `user_profiles` + `user_notification_prefs` | no aplica D1 | preferencias propias; revisar operación compuesta en D5 |
+| 9 | `linkTelegramAccountAction` | `user_profiles` | D1 obligatoria | `notification_channel.link_requested` |
+| 10 | `unlinkTelegramAccountAction` | `user_profiles` | D1 obligatoria | `notification_channel.unlinked` |
+| 11 | `createApiKeyAction` | `api_keys` | D1 obligatoria | `api_key.created` |
+| 12 | `revokeApiKeyAction` | `api_keys` | D1 obligatoria | `api_key.revoked` |
+| 13 | `saveWebhookAction` | `webhooks` | D1 obligatoria | `webhook.created` o `webhook.updated` |
+| 14 | `deleteWebhookAction` | `webhooks` | D1 obligatoria | `webhook.deleted` |
+| 15 | `updateCompanyIdentityAction` | `tenants` | D1 obligatoria | `tenant.identity_updated` |
+| 16 | `saveOfficeAction` | `company_offices` | D1 obligatoria | `office.created` o `office.updated` |
+| 17 | `deleteOfficeAction` | `company_offices` | D1 obligatoria | `office.deleted` |
+| 18 | `saveBankAccountAction` | `company_bank_accounts` | D1 obligatoria | `bank_account.created` o `bank_account.updated` |
+| 19 | `deleteBankAccountAction` | `company_bank_accounts` | D1 obligatoria | `bank_account.deleted` |
+| 20 | `toggleFeatureFlagAction` | `feature_flags` | D1 obligatoria | `feature_flag.changed` |
+| 21 | `updateLegalLegendsAction` | `tenants` | D1 obligatoria | `numbering.legal_legend_changed` |
+| 22 | `upsertRuleAction` | reglas de notificación | D1 obligatoria | `notification_rule.created` o `notification_rule.updated` |
+| 23 | `deleteRuleAction` | reglas de notificación | D1 obligatoria | `notification_rule.deleted` |
+| 24 | `restoreDefaultsAction` | reglas de notificación | D1 obligatoria | `notification_rule.defaults_restored` |
+| 25 | `installSkillAction` | `agents` + `agent_tool_grants` | D1 obligatoria | `agent.installed` + `tool_grant.changed` |
+| 26 | `toggleAgentStatusAction` | `agents` | D1 obligatoria | `agent.status_changed` |
+| 27 | `saveCalculatorSettingsAction` | `calculator_settings` | D5 clasificar | `calculator.settings_changed` |
+| 28 | `createCityAction` (calculadora) | `calculator_cities` | D5 clasificar | `calculator_city.created` |
+| 29 | `updateCityAction` (calculadora) | `calculator_cities` | D5 clasificar | `calculator_city.updated` |
+| 30 | `deleteCityAction` (calculadora) | `calculator_cities` | D5 clasificar | `calculator_city.deleted` |
+| 31 | `saveCalendarEventAction` | `operational_calendar` | D5 clasificar | `calendar_event.created` o `calendar_event.updated` |
+| 32 | `deleteCalendarEventAction` | `operational_calendar` | D5 clasificar | `calendar_event.deleted` |
+| 33 | `recordExchangeRateAction` | `tenant_fx_history` | D5 clasificar | `exchange_rate.recorded` |
+| 34 | `updateClientContactAction` | `clients` | D5 clasificar | `client.contact_updated` |
+| 35 | `portalWhatsAppInviteAction` | portal/WhatsApp | D5 clasificar | `portal_invitation.sent` |
+| 36 | `bulkWhatsAppInviteAction` | portal/WhatsApp | D5 clasificar | `portal_invitation.bulk_sent` |
+| 37 | `bulkInvitePortalAction` | portal/Auth/correo | D5 clasificar | `portal_invitation.bulk_created` |
+| 38 | `bulkResendPortalInviteAction` | portal/correo | D5 clasificar | `portal_invitation.bulk_resent` |
+| 39 | `updatePrealertaAddonConfigAction` | `prealerta_addons` | D5 clasificar | `prealerta_addon.changed` |
+| 40 | `createRouteAction` | `dispatch_routes` | D5 clasificar | `dispatch_route.created` |
+| 41 | `updateRouteAction` | `dispatch_routes` | D5 clasificar | `dispatch_route.updated` |
+| 42 | `softDeleteRouteAction` | `dispatch_routes` | D5 clasificar | `dispatch_route.deleted` |
+| 43 | `toggleRouteActiveAction` | `dispatch_routes` | D5 clasificar | `dispatch_route.status_changed` |
+| 44 | `createCityAction` (rutas) | `dispatch_city_catalog` | D5 clasificar | `dispatch_city.created` |
+| 45 | `updateCityAction` (rutas) | `dispatch_city_catalog` | D5 clasificar | `dispatch_city.updated` |
+| 46 | `softDeleteCityAction` (rutas) | `dispatch_city_catalog` | D5 clasificar | `dispatch_city.deleted` |
+| 47 | `seedTenantCitiesFromVeCatalogAction` | RPC de catálogo | D5 clasificar | `dispatch_city.seeded` |
+
+Resultado: 24 acciones D1 obligatorias, 21 trasladadas al ledger D5 y 2
+acciones personales fuera de D1. Ninguna fila trasladada se considera conforme
+ni implementada por esta clasificación.

@@ -66,7 +66,8 @@ máquina antes de modificar suspensión/reactivación de usuarios.
 | D0 | aprobado | [REV-AUD-014](../../governance/reviews/aud-corte-d.md) |
 | Apertura SDD | aprobada | [REV-AUD-015](../../governance/reviews/aud-d1-access-config.md) |
 | D1 inventario | aprobado | [inventario D1](inventario-d1-acceso-configuracion-2026-07-29.md) |
-| D1 diseño/implementación | pendiente | no se creó migración |
+| D1 diseño | aprobado | [REV-AUD-017](../../governance/reviews/aud-d1-access-config-design.md) |
+| D1 implementación | pendiente | allowlist publicada; no se creó migración |
 | D2 | pendiente | no abierto |
 | D3 | pendiente | no abierto |
 | D4 | pendiente | no abierto |
@@ -96,5 +97,7 @@ máquina antes de modificar suspensión/reactivación de usuarios.
 
 ## 7. Próximo gate
 
-Diseñar D1 a partir del inventario aprobado y publicar una allowlist exacta de
-archivos antes de crear cualquier migración.
+El [diseño D1](diseno-d1-acceso-configuracion.md) quedó aprobado sin declarar
+atomicidad ACID entre PostgreSQL y Supabase Auth. El siguiente gate, todavía no
+abierto, es crear localmente la allowlist exacta de implementación después de
+revalidar el correlativo reservado. D2–D5 permanecen cerrados.
