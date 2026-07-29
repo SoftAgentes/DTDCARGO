@@ -3,14 +3,14 @@
 | Control | Valor |
 |---|---|
 | Documento | Índice maestro del Sistema de Gobernanza |
-| Versión | 4.4 |
+| Versión | 4.5 |
 | Dueño | Sam (founder) |
 | Custodia | Producto + Diseño + Ingeniería |
 | Estado | activo |
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-29 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-034 · registro normativo completo](BASELINE-2026-07-29-06.md) |
+| Línea base vigente | [LB-SGE-035 · auditoría de adopción transversal](BASELINE-2026-07-29-07.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -112,9 +112,10 @@ artefactos permanecen en sus fuentes correspondientes.
 | Revisión normativa CMP-01 | [REV-SGE-006](reviews/cmp-01.md) |
 | Plugin de gobernanza | [PLG-01 v1.0](policies/plg-01.md) |
 | Revisión normativa PLG-01 | [REV-SGE-007](reviews/plg-01.md) |
+| Auditoría SGE/BTN/VIS/AVS | [REV-SGE-008](reviews/adoption-sge-btn-vis-avs-2026-07-29.md) |
 | Investigación de skills | [Mapa de capacidades y límites](research/skills-map.md) |
 | Contrato implementado de avisos | [SDD-0165 · AVS-01](../specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md) |
-| Inventario y estado oficial vigente | [LB-SGE-034](BASELINE-2026-07-29-06.md) |
+| Inventario y estado oficial vigente | [LB-SGE-035](BASELINE-2026-07-29-07.md) |
 
 Regla de frontera: `BRAND.md` y el Norte gobiernan **cómo se ve**; este sistema
 gobierna **cómo se comporta**. Una implementación concreta se especifica en un
@@ -147,14 +148,14 @@ disfraza elevando el estado normativo.
 
 | Código | Política | Estado normativo | Estado del ERP | Documento o próximo gate |
 |---|---|---|---|---|
-| SGE-00 | Principios constitucionales de experiencia | aprobada | Constitución vigente para cambios nuevos/modificados; legado aún no auditado transversalmente | [REV-SGE-002 aprobada](reviews/sge-00-btn-01.md) |
+| SGE-00 | Principios constitucionales de experiencia | aprobada | Adopción parcial; falta matriz de las cuatro superficies | [REV-SGE-008](reviews/adoption-sge-btn-vis-avs-2026-07-29.md) |
 | MP-01 | Matriz de permanencia | aprobada v1.1 | [SDD-0168](../specs/0168-mp-01-comentarios-permanencia-restauracion/spec.md) cerrado: DB-1 y DB-2 en Cloud, APP integrada en `d93c56e4`, Vercel Producción y E2E autenticado aprobados, fixtures retirados | [REV-MP-005](reviews/mp-01-comments-preview-e2e.md); ACL históricos, purga y retención permanecen fuera de alcance |
-| BTN-01 | Semántica, jerarquía y contrato de botones | aprobada | [Vocabulario, orden, estados y contrato](policies/btn-01.md) vigentes; adopción del legado no auditada | Crear SDD por alcance antes de migrar consumidores |
+| BTN-01 | Semántica, jerarquía y contrato de botones | aprobada | Adopción parcial; 64 archivos usan `ActionButton`, botones nativos requieren clasificación | Crear SDD por alcance |
 | HTD-01 | Confirmación por presión sostenida | aprobada | [Contrato v1.0](policies/htd-01.md) consolidado; no implementado | Crear SDD solo para una entidad R3 clasificada por MP-01 |
-| AVS-01 | Avisos y confirmaciones | verificada | Primitiva compatible implementada; consumidores heredados pendientes | [SDD-0165](../specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md) |
+| AVS-01 | Avisos y confirmaciones | verificada | Primitiva conforme; 26 llamadas gobernadas y 261 legacy compatibles | Migrar consumidores por módulo |
 | AUD-01 | Evento auditable y vínculo con acciones | aprobada | Corte A y B1 aplicados; lifecycle implementado localmente; siete writers SQL preservados y ocho TS todavía directos | [REV-AUD-011](reviews/aud-tenant-fixtures-implementation.md); `0268` y recorrido efímero pendientes |
 | AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B aplicada; lifecycle local verificado; consulta/RBAC pendientes | Aplicar `0268` solo por gate exacto; Cortes C–E conservan gates separados |
-| VIS-01 | Jerarquía visual y distribución 60-30-10 | aprobada | [Documento canónico v1.0](policies/vis-01.md); tokens/Norte cubren parte, falta auditoría de adopción | Auditar superficies y excepciones |
+| VIS-01 | Jerarquía visual y distribución 60-30-10 | aprobada | Adopción parcial; tokens presentes y literales pendientes de clasificar | Muestreo visual y registro de excepciones |
 | VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | [Documento canónico v1.0](policies/vis-02.md); Noto Sans SC está cargada, Noto Serif SC no | Crear SDD de tokens y verificar correo/PDF |
 | BUS-01 | Buscadores predictivos y contexto de resultados | aprobada v1.0 | Búsqueda global y `ClientCombobox` existen; adopción no auditada | Auditar scopes, ranking y desambiguación |
 | CRT-01 | Creación rápida desde contexto | aprobada v1.0 | Patrones locales sin primitiva común | Auditar flujos de retorno |
@@ -248,7 +249,9 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-034 · registro normativo completo](BASELINE-2026-07-29-06.md).
+[LB-SGE-035 · auditoría de adopción transversal](BASELINE-2026-07-29-07.md).
+El registro normativo completo permanece en
+[LB-SGE-034](BASELINE-2026-07-29-06.md).
 La aprobación previa y separada de CMP-01 permanece en
 [LB-SGE-033](BASELINE-2026-07-29-05.md).
 La aprobación de las diecisiete políticas por bloques permanece en
