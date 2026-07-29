@@ -29,6 +29,14 @@ Aplicar en orden, con OK explícito del founder (regla dura: migraciones a prod 
 Prereq: la extensión **`vault`** de Supabase habilitada (para el KEK) y **`pgcrypto`** (para
 `gen_random_bytes`, normalmente en el schema `extensions`).
 
+> **Antes de aplicar, corré el contrato:** `node scripts/run-sql-tests.mjs` ejecuta
+> [`supabase/tests/0253_no_olvidar_authz_hardening.test.sql`](../../supabase/tests/0253_no_olvidar_authz_hardening.test.sql)
+> — aplica las tres migraciones sobre un Postgres desechable y verifica las propiedades que el
+> review adversarial encontró rotas (audit inmutable ante `service_role`, sin escalada por
+> `user_keys`, `rotate_kek` fuera del alcance del cliente, recovery no forjable, quórum M-of-N
+> con piso 2). Verde en PostgreSQL 15 y 17, con rollback total. También corre solo dentro de
+> `node scripts/verify.mjs` (paso `sql-tests`).
+
 Verificación mínima tras aplicar:
 
 ```sql
