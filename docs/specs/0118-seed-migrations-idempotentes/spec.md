@@ -260,8 +260,17 @@ metadatos técnicos del ledger.
 | Pin search_path DB test | `supabase/tests/0275_restore_pin_search_path_history.test.sql` |
 | Revoke anon migración | `supabase/migrations/0276_restore_revoke_anon_rpc_sweep_history.sql` |
 | Revoke anon DB test | `supabase/tests/0276_restore_revoke_anon_rpc_sweep_history.test.sql` |
+| RLS history generador | `scripts/build-sdd-0118-rls-history.mjs` |
+| RLS history unit | `scripts/__tests__/build-sdd-0118-rls-history.test.ts` |
+| RLS versionada | `supabase/migrations/0277_version_rls_auto_enable.sql` |
+| RLS history migración | `supabase/migrations/0278_restore_rls_auto_enable_history.sql` |
+| RLS history DB tests | `supabase/tests/0277_version_rls_auto_enable.test.sql` · `supabase/tests/0278_restore_rls_auto_enable_history.test.sql` |
+| Tenant ACL generador | `scripts/build-sdd-0172-tenant-acl-history.mjs` |
+| Tenant ACL unit | `scripts/__tests__/build-sdd-0172-tenant-acl-history.test.ts` |
+| Tenant ACL migración | `supabase/migrations/0279_restore_tenant_lifecycle_acl_history.sql` |
+| Tenant ACL DB test | `supabase/tests/0279_restore_tenant_lifecycle_acl_history.test.sql` |
 | Spec | `docs/specs/0118-seed-migrations-idempotentes/spec.md` |
-| Revisiones | `docs/governance/reviews/aud-sdd-0118-branch-replay.md` · `docs/governance/reviews/aud-sdd-0118-platform-admin-bootstrap.md` · `docs/governance/reviews/aud-sdd-0118-calculator-settings-history.md` · `docs/governance/reviews/aud-sdd-0118-pin-search-path-history.md` · `docs/governance/reviews/aud-sdd-0118-revoke-anon-history.md` |
+| Revisiones | `docs/governance/reviews/aud-sdd-0118-branch-replay.md` · `docs/governance/reviews/aud-sdd-0118-platform-admin-bootstrap.md` · `docs/governance/reviews/aud-sdd-0118-calculator-settings-history.md` · `docs/governance/reviews/aud-sdd-0118-pin-search-path-history.md` · `docs/governance/reviews/aud-sdd-0118-revoke-anon-history.md` · `docs/governance/reviews/aud-sdd-0118-rls-auto-enable-history.md` · `docs/governance/reviews/aud-sdd-0172-tenant-acl-history.md` |
 
 ## 6. Evidencia local
 
@@ -289,13 +298,19 @@ metadatos técnicos del ledger.
 | Revoke anon local | `0276` determinista · Vitest 12/12 · PostgreSQL 15/17 · 48 pares ACL · UPDATE 1/0 · rollback · [REV-AUD-030](../../governance/reviews/aud-sdd-0118-revoke-anon-history.md) |
 | Revoke anon Cloud | `0276` aplicada individualmente; recibo `20260729163005` · [REV-AUD-031](../../governance/reviews/aud-sdd-0118-revoke-anon-history-application.md) |
 | Séptimo branch | 215 migraciones; `0209` falla porque `rls_auto_enable()` no existe en el historial; teardown terminal · [REV-AUD-019](../../governance/reviews/aud-tenant-fixtures-ephemeral-validation.md) |
+| Versión canónica RLS | `0277` recuperada byte-idéntica; ya aplicada como `0277_version_rls_auto_enable` |
+| Octavo branch | fallo idéntico en `0209`; demuestra que 0277 llega demasiado tarde; teardown terminal · [REV-AUD-019](../../governance/reviews/aud-tenant-fixtures-ephemeral-validation.md) |
+| RLS history local | `0278` determinista · Vitest 3/3 · PostgreSQL 15/17 · UPDATE 1/0 · rollback · [REV-AUD-032](../../governance/reviews/aud-sdd-0118-rls-auto-enable-history.md) |
+| RLS history Cloud | `0278` aplicada individualmente; recibo `20260729223452`; postcondiciones y advisors verdes · [REV-AUD-033](../../governance/reviews/aud-sdd-0172-tenant-acl-history.md) |
+| Noveno branch | supera 0209; `0268` falla porque un rol cliente conserva DELETE; teardown terminal · [REV-AUD-019](../../governance/reviews/aud-tenant-fixtures-ephemeral-validation.md) |
+| Tenant ACL history local | `0279` determinista · Vitest 3/3 · PostgreSQL 15/17 · UPDATE 1/0 · replay + rollback · [REV-AUD-033](../../governance/reviews/aud-sdd-0172-tenant-acl-history.md) |
 | Diff | verde |
 
 ## 7. Gates restantes
 
-1. diseñar y validar localmente un gate forward-only para hacer reproducibles
-   `rls_auto_enable()` y el event trigger `ensure_rls`;
-2. obtener autorización expresa del basename nuevo antes de aplicarlo;
+1. obtener autorización expresa de
+   `0279_restore_tenant_lifecycle_acl_history` antes de aplicarla;
+2. aplicar 0279 individualmente con postcondiciones y advisors;
 3. crear otro entorno efímero y completar replay, seed, E2E, verificación y
    teardown terminal.
 
