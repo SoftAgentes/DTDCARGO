@@ -692,3 +692,84 @@ export async function requestPrealertaServiceAction(
   revalidatePath(`/portal/compras/${encodeURIComponent(code)}/etiquetas`);
   return { ok: true, requestedCount: 1 };
 }
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ Completar el detalle de una compra ya creada (SDD-0172)   ║
+// ╚═══════════════════════════════════════════════════════════╝
+// Paso 2 del asistente: el Norte registra la compra apenas hay proveedor y
+// deja descripción, cajas, valor, tracking y adjuntos para después. Esta
+// action es la que los adjunta.
+
+export async function updatePrealertaDetalleAction(
+  _prev: PrealertaActionState,
+  formData: FormData,
+): Promise<PrealertaActionState> {
+  const code = String(formData.get("prealertaCode") ?? "").trim();
+  if (!code) return { error: "Falta la compra." };
+
+  const supabase = await createClient();
+  const markbox = await portalMarkbox(supabase);
+  if (!markbox) return { error: "Tu sesión expiró. Vuelve a entrar." };
+
+  // Scopeado por markbox: una compra de otro cliente no existe para esta sesión.
+  const pre = await getPrealertaByCode(supabase, code, { markbox });
+  if (!pre) return { error: "Esa compra no es válida." };
+
+  // Sólo mientras nadie la haya tocado en bodega: una vez recibida, el detalle
+  // lo manda el operario con la carga delante, no el cliente desde el portal.
+  if (pre.status !== "anunciada") {
+    return {
+      error:
+        "Esta compra ya está en proceso. Escríbele a tu asesor para cambiar el detalle.",
+    };
+  }
+
+  const estValueRaw = String(formData.get("estValueUsd") ?? "").trim();
+  const boxesRaw = String(formData.get("boxes") ?? "").trim();
+  const { input, fieldErrors } = validatePrealertaInput(
+    {
+      supplierId: pre.supplier_id,
+      description: (formData.get("description") as string | null) ?? undefined,
+      trackingCn: (formData.get("trackingCn") as string | null) ?? undefined,
+      boxes: boxesRaw === "" ? undefined : Number(boxesRaw),
+      estValueUsd: estValueRaw === "" ? null : Number(estValueRaw),
+      status: pre.status,
+    },
+    { requireDetalle: false },
+  );
+  if (fieldErrors) return { fieldErrors };
+  if (!input) return { error: "Datos inválidos." };
+
+  const { data: tenantData } = await supabase.rpc("get_portal_client_tenant");
+  const tenantId = tenantData ? String(tenantData) : null;
+  if (!tenantId) return { error: "No pudimos resolver tu cuenta." };
+
+  const { error: updErr } = await supabase
+    .from("prealertas")
+    .update({
+      description: input.description,
+      tracking_cn: input.trackingCn,
+      boxes: input.boxes,
+      est_value_usd: input.estValueUsd,
+    })
+    .eq("id", pre.id)
+    .eq("client_markbox", markbox)
+    .is("deleted_at", null);
+
+  if (updErr) {
+    console.error("[updatePrealertaDetalleAction] update error:", updErr);
+    return { error: "No pudimos guardar el detalle. Prueba de nuevo." };
+  }
+
+  // Adjuntos del paso 2 (packing/factura/fotos) — mismo camino que el alta.
+  await uploadPrealertaDocsFromForm({
+    formData,
+    tenantId,
+    prealertaId: pre.id,
+    markbox,
+  });
+
+  revalidatePortal();
+  revalidatePath(`/portal/compras/${encodeURIComponent(code)}`);
+  return { ok: true, prealertaCode: code, shareToken: pre.share_token ?? undefined };
+}

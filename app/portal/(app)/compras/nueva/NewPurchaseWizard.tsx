@@ -18,7 +18,7 @@
  * `--color-on-accent`, jamás `text-white`.
  */
 
-import { useActionState, useId, useState } from "react";
+import { useActionState, useCallback, useId, useState } from "react";
 import Link from "next/link";
 import { ArrowIcon } from "@/components/Icon";
 import {
@@ -29,7 +29,9 @@ import { FieldLabel, FileField } from "../../../_components/PortalFormField";
 import { SupplierPicker } from "./SupplierPicker";
 import { PurchaseWizardSteps } from "./PurchaseWizardSteps";
 import { PurchaseOrderLive } from "./PurchaseOrderLive";
-import { PurchaseDone } from "./NewPurchaseForm";
+import { PurchaseStepDetalle } from "./PurchaseStepDetalle";
+import { PurchaseStepConfirm } from "./PurchaseStepConfirm";
+import type { ChecklistItem } from "./PurchaseSummaryPanel";
 import type {
   SupplierView,
   PrealertaActionState,
@@ -58,6 +60,10 @@ export function NewPurchaseWizard({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [holdCount, setHoldCount] = useState(HOLD_MIN);
   const [holdTie, setHoldTie] = useState(false);
+  // Post-registro: paso 2 (detalle) → paso 3 (handoff al proveedor).
+  const [phase, setPhase] = useState<"detalle" | "confirm">("detalle");
+  const [detalleChecklist, setDetalleChecklist] = useState<ChecklistItem[]>([]);
+  const goToConfirm = useCallback(() => setPhase("confirm"), []);
 
   const supplier = suppliers.find((s) => s.id === supplierId) ?? null;
   const done = !!state.ok && !!state.prealertaCode;
@@ -95,14 +101,24 @@ export function NewPurchaseWizard({
     }
   }
 
+  // Registrada → el asistente pasa a sus dos pasos post-registro.
   if (done) {
-    return (
-      <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-8">
-        <PurchaseDone
-          code={state.prealertaCode!}
-          shareToken={state.shareToken}
+    const code = state.prealertaCode!;
+    if (phase === "detalle") {
+      return (
+        <PurchaseStepDetalle
+          code={code}
+          onDone={goToConfirm}
+          onProgress={setDetalleChecklist}
         />
-      </div>
+      );
+    }
+    return (
+      <PurchaseStepConfirm
+        code={code}
+        shareToken={state.shareToken}
+        checklist={detalleChecklist}
+      />
     );
   }
 

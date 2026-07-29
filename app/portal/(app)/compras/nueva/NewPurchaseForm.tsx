@@ -221,11 +221,11 @@ export function NewPurchaseForm({
 }
 
 /**
- * Pantalla de éxito de la compra: código, link para el proveedor y etiquetas.
- * La comparte el asistente de 3 pasos mientras sus pasos 2 y 3 no existan
- * (SDD-0172) — así el registro nunca queda a mitad de camino.
+ * Pantalla de éxito del formulario largo: código, link para el proveedor y
+ * etiquetas. El asistente de 3 pasos (SDD-0172) no la usa — allá el cierre son
+ * los pasos 2 y 3, que hacen lo mismo con más contexto.
  */
-export function PurchaseDone({
+function PurchaseDone({
   code,
   shareToken,
 }: {

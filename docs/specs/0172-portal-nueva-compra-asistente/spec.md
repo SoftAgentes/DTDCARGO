@@ -156,3 +156,25 @@ sin tocar este código**.
 - **2026-07-28** — spec abierta. Decisiones 1 y 2 del founder tomadas antes de
   escribir código. Verificado contra prod: los 5 servicios activos calzan con el
   Norte y no hay videos cargados.
+- **2026-07-28** — los 3 pasos construidos detrás del flag. `verify.mjs` verde.
+  **Falta lo único que queda: prender `NEW_PURCHASE_WIZARD_LIVE`** cuando el
+  founder lo pruebe con una cuenta demo.
+
+  Lo que sólo apareció **midiendo en el navegador**, no en los 377 tests:
+  1. dos clics rápidos en "+" del HOLD sumaban uno solo (closure viejo);
+  2. con el acople puesto se podía destildar Re-Empaque y el panel lo seguía
+     pidiendo;
+  3. el re-empaque arrastrado podía no viajar en el form → la fila nunca le
+     habría llegado a DTD;
+  4. dos textos del preview de etiqueta a 4.24:1 (bajo AA).
+
+  **Desvíos deliberados del Norte**, los dos por contraste:
+  - la barra de pasos NO usa `opacity: .4` en los inactivos (ahí el texto no
+    llega a AA); usa jerarquía por token, 9.03:1 medido;
+  - el preview de la etiqueta **no dibuja un QR falso** (el Norte sí): un código
+    que no resuelve invita a escanearlo. Va un recuadro rotulado "QR" y el CTA
+    manda a la página de etiquetas reales.
+
+  **Hallazgo preexistente reportado, NO tocado:** el badge "Próximamente" del
+  envío aéreo (`ShippingModeNotice`, SDD-0098) mide **3.64:1**. Vive en 3
+  pantallas más; arreglarlo es su propio trabajo.
