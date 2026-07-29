@@ -37,8 +37,7 @@
 create type back_role as enum ('admin', 'disenador', 'editor');
 
 comment on type back_role is
-  'Roles del back de administración del sitio público dtdcargo.com. ' ||
-  'admin = CRUD full; disenador = solo campos visuales; editor = solo texto.';
+  'Roles del back de administración del sitio público dtdcargo.com. admin = CRUD full; disenador = solo campos visuales; editor = solo texto.';
 
 create table public.back_user_roles (
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -50,8 +49,7 @@ create table public.back_user_roles (
 );
 
 comment on table public.back_user_roles is
-  'Asignación de back roles. Un user puede tener varios roles (admin + editor) ' ||
-  'simultaneamente. PK compuesto evita duplicados.';
+  'Asignación de back roles. Un user puede tener varios roles (admin + editor) simultaneamente. PK compuesto evita duplicados.';
 
 create index back_user_roles_tenant_role_idx
   on public.back_user_roles (tenant_id, role);
@@ -107,8 +105,7 @@ create table public.back_assets (
 );
 
 comment on table public.back_assets is
-  'Biblioteca de imágenes y archivos que el back gestiona. storage_path apunta ' ||
-  'a un objeto en el bucket "back-assets" de Supabase Storage.';
+  'Biblioteca de imágenes y archivos que el back gestiona. storage_path apunta a un objeto en el bucket "back-assets" de Supabase Storage.';
 
 create index back_assets_tenant_uploaded_idx
   on public.back_assets (tenant_id, uploaded_at desc);
@@ -138,8 +135,7 @@ create table public.back_servicios (
 );
 
 comment on table public.back_servicios is
-  'Catálogo de servicios visible en /servicios. Mirror del tipo Service de ' ||
-  'lib/design-tokens.ts. Source of truth a partir de la migración del seed inicial.';
+  'Catálogo de servicios visible en /servicios. Mirror del tipo Service de lib/design-tokens.ts. Source of truth a partir de la migración del seed inicial.';
 
 create index back_servicios_tenant_location_sort_idx
   on public.back_servicios (tenant_id, location, sort_order);
@@ -168,8 +164,7 @@ create table public.back_noticias (
 );
 
 comment on table public.back_noticias is
-  'Posts del blog visible en /noticias. body=null significa "próximamente" ' ||
-  '(renderiza el ComingSoonBlock en el frontend).';
+  'Posts del blog visible en /noticias. body=null significa "próximamente" (renderiza el ComingSoonBlock en el frontend).';
 
 create index back_noticias_tenant_date_idx
   on public.back_noticias (tenant_id, date desc);
@@ -201,8 +196,7 @@ create table public.back_glosario (
 );
 
 comment on table public.back_glosario is
-  'Términos del glosario visible en /glosario. body y analogy mantienen el ' ||
-  'mismo formato que GLOSSARY_TERMS de lib/design-tokens.ts.';
+  'Términos del glosario visible en /glosario. body y analogy mantienen el mismo formato que GLOSSARY_TERMS de lib/design-tokens.ts.';
 
 create index back_glosario_tenant_category_sort_idx
   on public.back_glosario (tenant_id, category, sort_order);
@@ -227,8 +221,7 @@ create table public.back_revisions (
 );
 
 comment on table public.back_revisions is
-  'Audit log de ediciones en back_*. Usado para "actividad reciente" del ' ||
-  'dashboard y para trazabilidad ante errores ("quién publicó esto?").';
+  'Audit log de ediciones en back_*. Usado para "actividad reciente" del dashboard y para trazabilidad ante errores ("quién publicó esto?").';
 
 create index back_revisions_tenant_entity_idx
   on public.back_revisions (tenant_id, entity_type, entity_id, performed_at desc);
