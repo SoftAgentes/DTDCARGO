@@ -150,10 +150,13 @@ create table supabase_migrations.schema_migrations (
   name text
 );
 
--- ⚠️ HALLAZGO: 0209 y 0211 hacen grant/revoke sobre public.rls_auto_enable(),
--- pero NINGUNA migración del repo la crea. Existe sólo en prod (fuera de banda).
--- Stub para que la sonda avance; el original hay que recuperarlo de prod.
-create function public.rls_auto_enable() returns void language sql as $$ select null::void $$;
+-- `rls_auto_enable()` existe en prod desde ANTES de la 0209, creada fuera de
+-- banda. Su definición canónica ya vive en la migración 0277, pero 0209 y 0211
+-- le hacen revoke/grant antes de que 0277 corra → hace falta este placeholder
+-- para que la reconstrucción respete el orden real. La 0277 lo reemplaza con la
+-- definición verdadera (misma firma → CREATE OR REPLACE limpio).
+create function public.rls_auto_enable()
+returns event_trigger language plpgsql as $stub$ begin end $stub$;
 
 -- Usuarios que algunas migraciones siembran con UUID hardcoded (founder, etc.).
 insert into auth.users (id, email, raw_user_meta_data) values
