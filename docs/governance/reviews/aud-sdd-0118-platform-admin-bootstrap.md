@@ -6,7 +6,7 @@
 | SDD | [SDD-0118](../../specs/0118-seed-migrations-idempotentes/spec.md) |
 | Candidata | `0273_skip_platform_admin_bootstrap_history` |
 | Fecha | 2026-07-29 |
-| Resultado | diseño y artefacto local aprobados; Cloud pendiente |
+| Resultado | aplicada y verificada; nuevo branch pendiente |
 
 ## 1. Evidencia y causa
 
@@ -98,9 +98,9 @@ El replay contractual se ejecutó con `auth.users` vacío y comprobó:
 REV-AUD-024 aprueba técnicamente el diseño, el artefacto determinista y las
 pruebas locales de `0273_skip_platform_admin_bootstrap_history`.
 
-No autoriza aplicarla. El próximo gate exige que el founder nombre
-expresamente ese basename. Sólo después de aplicación y postflight verdes se
-puede crear otro entorno efímero para continuar SDD-0172.
+La aplicación individual y su postflight están registrados en
+[REV-AUD-025](aud-sdd-0118-platform-admin-bootstrap-application.md). El próximo
+gate es crear otro entorno efímero para continuar SDD-0172.
 
 CMP-01 v1.1, caso deprecated, D1, slices de adopción, D2–D5, Vercel y PLG-P3
 permanecen cerrados. No existe plugin ni marketplace.

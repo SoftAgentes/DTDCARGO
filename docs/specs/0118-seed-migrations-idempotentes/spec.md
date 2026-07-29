@@ -188,14 +188,12 @@ metadatos técnicos del ledger.
 | Follow-up Cloud | `0272` aplicada individualmente; recibo `20260729140214` · [REV-AUD-023](../../governance/reviews/aud-sdd-0118-branch-replay-followup-application.md) |
 | Tercer branch | 83 migraciones; fallo preciso en `platform_admins`; teardown terminal |
 | Platform admin local | `0273` determinista · Vitest 6/6 · PostgreSQL 15/17 · [REV-AUD-024](../../governance/reviews/aud-sdd-0118-platform-admin-bootstrap.md) |
+| Platform admin Cloud | `0273` aplicada individualmente; recibo `20260729141805` · [REV-AUD-025](../../governance/reviews/aud-sdd-0118-platform-admin-bootstrap-application.md) |
 | Diff | verde |
 
 ## 7. Gates restantes
 
-1. obtener autorización expresa para aplicar individualmente
-   `0273_skip_platform_admin_bootstrap_history`;
-2. aplicar y verificar esa reparación con el runbook de Producción;
-3. crear un entorno efímero nuevo y completar replay, seed, E2E, verificación
+1. crear un entorno efímero nuevo y completar replay, seed, E2E, verificación
    y teardown terminal.
 
 SDD-0118 permanece `in-progress` hasta que un entorno nuevo demuestre el
