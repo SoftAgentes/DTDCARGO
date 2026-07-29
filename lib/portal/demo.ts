@@ -99,6 +99,18 @@ export function showNewPurchaseWizard(
   return NEW_PURCHASE_WIZARD_LIVE || isDemoMarkbox(markbox);
 }
 
+/**
+ * 🔴 TEMPORAL · ¿ya existe `prealertas.client_note`? (SDD-0172, migr **0268**).
+ *
+ * La migración NO está aplicada. Con esto en `false` el campo "Nota" del paso 1
+ * no se pinta y la server action no nombra la columna, así que el alta de compra
+ * funciona igual si el código llega a prod antes que la migración.
+ *
+ * **Esta const se BORRA al aplicar la 0268** — no es un interruptor de producto,
+ * es un andamio mientras la columna no existe. ORDEN: migración primero.
+ */
+export const PREALERTA_CLIENT_NOTE_LIVE = false;
+
 /*
  * La ficha extendida del proveedor (SDD-0172) NO tiene flag propio a propósito.
  *

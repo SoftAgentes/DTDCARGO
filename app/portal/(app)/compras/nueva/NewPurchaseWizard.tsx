@@ -36,9 +36,11 @@ import type {
   SupplierView,
   PrealertaActionState,
 } from "@/lib/studio/prealertas/types";
+import { PREALERTA_CLIENT_NOTE_MAX } from "@/lib/studio/prealertas/types";
 import type { PrealertaAddon } from "@/lib/studio/prealertas/addons";
 import { createPrealertaAction } from "../../proveedores/actions";
 import { HOLD_MIN, HOLD_MAX, clampHoldCount } from "@/lib/portal/purchase-order-lines";
+import { PREALERTA_CLIENT_NOTE_LIVE } from "@/lib/portal/demo";
 
 const prealertaInitial: PrealertaActionState = {};
 
@@ -154,6 +156,27 @@ export function NewPurchaseWizard({
               showProfile
             />
           </div>
+
+          {/* Nota del cliente sobre ESTA compra (Norte, paso 1). Sale sólo
+              cuando ya hay proveedor: antes de eso no hay compra de la que
+              hablar. Depende de la migr 0268 — ver PREALERTA_CLIENT_NOTE_LIVE. */}
+          {PREALERTA_CLIENT_NOTE_LIVE && supplierId && (
+            <div className="mt-4">
+              <FieldLabel htmlFor={`${uid}-client-note`}>
+                Nota{" "}
+                <span className="font-normal text-grey-700">· opcional</span>
+              </FieldLabel>
+              <textarea
+                id={`${uid}-client-note`}
+                name="clientNote"
+                rows={2}
+                maxLength={PREALERTA_CLIENT_NOTE_MAX}
+                disabled={pending}
+                placeholder="Ej.: me dio mejor precio esta vez, pedido urgente, incluye una muestra…"
+                className="mt-1.5 w-full px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-y disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+              />
+            </div>
+          )}
 
           <div className="mt-4">
             <FieldLabel htmlFor={`${uid}-supplier-wechat`}>

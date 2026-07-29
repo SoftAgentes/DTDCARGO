@@ -11,6 +11,8 @@ import {
   validateSupplierInput,
   validatePrealertaInput,
   PREALERTA_DESCRIPCION_PENDIENTE,
+  normalizeClientNote,
+  PREALERTA_CLIENT_NOTE_MAX,
   clientNoFromMarkbox,
   buildPrealertaCode,
   buildLabels,
@@ -655,5 +657,35 @@ describe("normalizeSupplierProfileInput", () => {
       "alibaba",
       "otro",
     ]);
+  });
+});
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ normalizeClientNote (SDD-0172 · migr 0268)                 ║
+// ╚═══════════════════════════════════════════════════════════╝
+
+describe("normalizeClientNote", () => {
+  it("recorta espacios y guarda lo escrito", () => {
+    expect(normalizeClientNote("  pedido urgente  ")).toBe("pedido urgente");
+  });
+
+  it("vacío o sólo espacios → null (no cadena vacía)", () => {
+    expect(normalizeClientNote("")).toBeNull();
+    expect(normalizeClientNote("   ")).toBeNull();
+    expect(normalizeClientNote(null)).toBeNull();
+    expect(normalizeClientNote(undefined)).toBeNull();
+  });
+
+  // Recorta en vez de rechazar: una nota larguísima es un pegado accidental,
+  // no un error que valga la pena mostrarle a quien sólo quería registrar.
+  it("una nota gigante se recorta al tope, no tumba el alta", () => {
+    const larga = "x".repeat(PREALERTA_CLIENT_NOTE_MAX + 500);
+    const out = normalizeClientNote(larga);
+    expect(out).toHaveLength(PREALERTA_CLIENT_NOTE_MAX);
+  });
+
+  it("justo en el tope pasa entera", () => {
+    const justa = "y".repeat(PREALERTA_CLIENT_NOTE_MAX);
+    expect(normalizeClientNote(justa)).toHaveLength(PREALERTA_CLIENT_NOTE_MAX);
   });
 });

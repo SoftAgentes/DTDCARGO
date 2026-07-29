@@ -594,6 +594,24 @@ export type PrealertaActionState = {
  */
 export const PREALERTA_DESCRIPCION_PENDIENTE = "Pendiente — el cliente la completa";
 
+/** Tope de la nota del cliente (== CHECK de la migr 0268). */
+export const PREALERTA_CLIENT_NOTE_MAX = 2000;
+
+/**
+ * Normaliza la nota del cliente sobre la compra (SDD-0172 · migr 0268).
+ *
+ * Recorta en vez de rechazar: una nota larguísima es un pegado accidental, no un
+ * error que valga la pena mostrarle a alguien que sólo quería registrar su
+ * compra. El CHECK de la DB es la red, no la puerta.
+ */
+export function normalizeClientNote(raw: unknown): string | null {
+  const s = String(raw ?? "").trim();
+  if (!s) return null;
+  return s.length > PREALERTA_CLIENT_NOTE_MAX
+    ? s.slice(0, PREALERTA_CLIENT_NOTE_MAX)
+    : s;
+}
+
 /**
  * Validación manual del input de prealerta/compra (sin zod).
  *  - description requerida (no vacía).
