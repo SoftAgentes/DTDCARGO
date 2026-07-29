@@ -40,7 +40,10 @@ confidencialidad: interno
 > [SDD-0174](../0174-audit-atomicidad-dominios/spec.md) está abierto y su
 > inventario D1 fue aprobado por
 > [REV-AUD-015](../../governance/reviews/aud-d1-access-config.md); diseño e
-> implementación D1 y D2–D5 permanecen pendientes. Corte E sigue pendiente.
+> implementación D1 y D2–D5 permanecen pendientes. El inventario y diseño E0
+> fueron aprobados por
+> [REV-AUD-016](../../governance/reviews/aud-corte-e.md); E1–E5 no están
+> abiertos.
 
 ## 1. Propósito
 
@@ -496,3 +499,9 @@ abrió [SDD-0174](../0174-audit-atomicidad-dominios/spec.md).
 inventario read-only de 47 acciones server-side de D1. No se creó migración ni
 se abrió implementación; el workflow durable de Auth y el ledger por acción
 son condiciones del próximo gate.
+
+El inventario E0 confirmó que no existen tablas, bucket o jobs del Corte E en
+repositorio ni Cloud. [REV-AUD-016](../../governance/reviews/aud-corte-e.md)
+aprueba el [diseño E1–E5](diseno-correctivo-corte-e.md) y mantiene el default
+sin purga ni exportación. Antes de implementar debe abrirse un SDD propio y E1
+debe registrar fuentes verificables; no se inventan plazos legales.
