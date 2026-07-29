@@ -13,6 +13,7 @@ Esta carpeta es la política de operación; el código vive en `lib/studio/no-ol
 | [admin-handbook.md](admin-handbook.md) | Política: admins actuales, admin que se va, sospecha de breach | Referencia de admins; ante incidentes |
 | [threat-model.md](threat-model.md) | Amenazas, mitigaciones V1, riesgos residuales aceptados | Review de seguridad; decisiones de scope |
 | [review-bundle/README.md](review-bundle/README.md) | Brief para el code review crypto externo (§7.6) | Antes de mergear a `main` |
+| [contratar-revisor.md](contratar-revisor.md) | Aviso listo para publicar, cómo filtrar candidatos, qué NO compartir | Para destrabar el gate: contratar al criptógrafo |
 
 ## Estado (2026-07-10)
 
