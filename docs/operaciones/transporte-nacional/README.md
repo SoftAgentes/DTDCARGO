@@ -1,5 +1,9 @@
 # Transporte nacional Venezuela — negociación de proveedores
 
+> ⏭️ **PENDIENTE 30-jul-2026 · después de las 11:00** →
+> **[PROMPT-SESION-2.md](PROMPT-SESION-2.md)** tiene el prompt listo para abrir la
+> ventana de continuación y qué datos hay que traer de las reuniones.
+
 Índice del último kilómetro: entrega desde Valencia / Puerto Cabello hacia el resto
 del país. Objetivo declarado por el founder (2026-07-29): **poder despachar a todo
 el país**, con 4-6 proveedores negociados en la semana del 29-jul.
