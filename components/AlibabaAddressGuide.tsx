@@ -27,11 +27,20 @@ type GuideField = {
 };
 
 const NOTO_SC = 'var(--font-noto-sc), "Noto Sans SC", sans-serif';
-// Tinte wine derivado del token (no es un hex inventado) para el bloque del mark.
-const MARK_BG = "color-mix(in srgb, var(--color-wine) 8%, #ffffff)";
+// Tinte wine derivado del token. `--color-white`, NO `#ffffff` literal: en el
+// tema oscuro del portal ese token vale navy, y con el blanco fijo el bloque
+// quedaba como un parche claro sobre la tarjeta oscura.
+const MARK_BG = "color-mix(in srgb, var(--color-wine) 8%, var(--color-white))";
 
-export function AlibabaAddressGuide() {
-  const [mark, setMark] = useState("");
+/**
+ * @param markbox Shipping Mark ya conocido (portal autenticado): precarga el
+ *   valor y oculta el input + la nota de "¿no tienes uno?". Sin la prop
+ *   (páginas públicas) mantiene el comportamiento original: input manual.
+ *   Mismo patrón que `ChinaSupplierClip`.
+ */
+export function AlibabaAddressGuide({ markbox }: { markbox?: string } = {}) {
+  const fixed = typeof markbox === "string" && markbox.trim() !== "";
+  const [mark, setMark] = useState(fixed ? markbox.trim().toUpperCase() : "");
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
 
@@ -136,21 +145,33 @@ export function AlibabaAddressGuide() {
           htmlFor="guide-shipping-mark"
           className="block text-[10px] font-bold uppercase tracking-[0.12em] text-grey-700"
         >
-          Tu Shipping Mark · 唛头{" "}
-          <span style={{ color: "var(--color-wine)" }}>· obligatorio</span>
+          Tu Shipping Mark · 唛头
+          {fixed ? null : (
+            <span style={{ color: "var(--color-wine-text)" }}> · obligatorio</span>
+          )}
         </label>
         <div className="mt-1.5 flex items-center gap-2.5">
-          <input
-            id="guide-shipping-mark"
-            type="text"
-            value={mark}
-            onChange={(e) => setMark(e.target.value.toUpperCase())}
-            placeholder="DTD-XXXX"
-            maxLength={50}
-            aria-label="Tu código Shipping Mark"
-            className="min-w-0 flex-1 bg-transparent text-[24px] font-extrabold tracking-[0.02em] text-wine outline-none placeholder:text-wine/35"
-            style={{ fontFamily: FONT_MONO }}
-          />
+          {fixed ? (
+            // En el portal el código ya se conoce: mostrarlo, no pedirlo.
+            <code
+              className="min-w-0 flex-1 text-[24px] font-extrabold tracking-[0.02em] text-wine-text"
+              style={{ fontFamily: FONT_MONO }}
+            >
+              {mark}
+            </code>
+          ) : (
+            <input
+              id="guide-shipping-mark"
+              type="text"
+              value={mark}
+              onChange={(e) => setMark(e.target.value.toUpperCase())}
+              placeholder="DTD-XXXX"
+              maxLength={50}
+              aria-label="Tu código Shipping Mark"
+              className="min-w-0 flex-1 bg-transparent text-[24px] font-extrabold tracking-[0.02em] text-wine outline-none placeholder:text-wine/35"
+              style={{ fontFamily: FONT_MONO }}
+            />
+          )}
           <button
             type="button"
             onClick={() => copyValue("mark", markOrPlaceholder)}
@@ -162,15 +183,21 @@ export function AlibabaAddressGuide() {
         </div>
       </div>
       <p className="mt-2 text-[12px] leading-[1.5] text-grey-700">
-        Escríbelo y el campo Destinatario se arma solo. Este dato lo obtienes
-        dentro de tu registro de clientes.{" "}
-        <a
-          href="/registro"
-          className="font-semibold underline underline-offset-2"
-          style={{ color: "var(--color-wine)" }}
-        >
-          ¿No tienes uno? Regístrate →
-        </a>
+        {fixed ? (
+          "Este código va en el campo Destinatario. Sin él, la caja llega a la bodega pero no sabemos de quién es."
+        ) : (
+          <>
+            Escríbelo y el campo Destinatario se arma solo. Este dato lo obtienes
+            dentro de tu registro de clientes.{" "}
+            <a
+              href="/registro"
+              className="font-semibold underline underline-offset-2"
+              style={{ color: "var(--color-wine-text)" }}
+            >
+              ¿No tienes uno? Regístrate →
+            </a>
+          </>
+        )}
       </p>
 
       {/* Acciones: Desplegar + Copiar todo */}
@@ -187,8 +214,14 @@ export function AlibabaAddressGuide() {
         <button
           type="button"
           onClick={copyAll}
-          className="inline-flex flex-1 min-w-[160px] items-center justify-center gap-2 h-11 px-4 rounded-[10px] text-[13.5px] font-bold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine-soft"
-          style={{ background: "var(--color-wine)" }}
+          className="inline-flex flex-1 min-w-[160px] items-center justify-center gap-2 h-11 px-4 rounded-[10px] text-[13.5px] font-bold transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine-soft"
+          // `--color-on-accent`, NO `text-white`: en el tema oscuro del portal
+          // `--color-white` vale navy, así que `text-white` sobre relleno wine
+          // se vuelve navy-sobre-wine (ilegible). Este token no voltea.
+          style={{
+            background: "var(--color-wine)",
+            color: "var(--color-on-accent)",
+          }}
         >
           {copiedField === "all" ? (
             <>

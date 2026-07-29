@@ -13,7 +13,7 @@ import {
   ShieldIcon,
   TruckIcon,
 } from "@/components/Icon";
-import { CONTACT } from "@/lib/design-tokens";
+import { AlibabaAddressGuide } from "@/components/AlibabaAddressGuide";
 import { NewPurchaseButton } from "../../_components/NewPurchaseButton";
 import { FieldLabel } from "../../_components/PortalFormField";
 import type { SupplierView } from "@/lib/studio/prealertas/types";
@@ -118,8 +118,13 @@ export function SuppliersClient({
         </p>
       </div>
 
-      {/* ── Dirección de nuestra bodega CN para tus proveedores (copy-paste) ── */}
-      <WarehouseAddressCard markbox={markbox} />
+      {/* ── Dirección de nuestra bodega CN, en el formato que piden
+          Alibaba/1688/Taobao: campo por campo, con copia individual y el
+          Shipping Mark ya puesto. Reemplaza a la card local que armaba el mismo
+          texto con menos campos y una sola copia a granel. ── */}
+      <div className="mt-5">
+        <AlibabaAddressGuide markbox={markbox} />
+      </div>
 
       {/* ── Lista de proveedores ── */}
       {suppliers.length === 0 ? (
@@ -170,58 +175,6 @@ export function SuppliersClient({
           Ver todas mis compras <ArrowIcon size={14} />
         </Link>
       </div>
-    </div>
-  );
-}
-
-// ── Dirección de la bodega en China (copy-paste, con el MARKBOX del cliente) ──
-function WarehouseAddressCard({ markbox }: { markbox: string }) {
-  const [copied, setCopied] = useState(false);
-  const cn = CONTACT.cn;
-  // El MARKBOX va en el nombre → así la bodega identifica de quién es la caja.
-  const text = [
-    `收货人 / Nombre: DTD Cargo - ${markbox}`,
-    `电话 / Teléfono: ${cn.phone}`,
-    `地址 / Dirección: 浙江省${cn.addressCjk}`,
-    `邮编 / Código postal: ${cn.postalCode}`,
-    `仓库联系人: ${cn.contactPersonCjk}`,
-  ].join("\n");
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Clipboard no disponible (contexto no seguro): el texto igual está visible
-      // para copiar a mano.
-    }
-  }
-
-  return (
-    <div className="mt-5 card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-7">
-      <div className="text-[15px] font-bold text-ink">
-        Dirección de nuestra bodega en China
-      </div>
-      <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.55] max-w-[70ch]">
-        Dásela a tu proveedor — o cárgala en Alibaba como dirección de recepción —
-        para que tu mercancía llegue a nuestra bodega en Yiwu. Tu Shipping Mark ya va en
-        el nombre: es lo que nos deja saber que la caja es tuya.
-      </p>
-      <pre
-        className="mt-4 rounded-[12px] bg-grey-100 px-4 py-3.5 text-[12.5px] text-ink leading-[1.7] whitespace-pre-wrap break-words"
-        style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
-      >
-        {text}
-      </pre>
-      <button
-        type="button"
-        onClick={copy}
-        className="btn btn-primary mt-3 inline-flex items-center gap-2"
-      >
-        {copied ? "¡Copiado!" : "Copiar dirección"}
-        {copied && <CheckIcon size={15} />}
-      </button>
     </div>
   );
 }
