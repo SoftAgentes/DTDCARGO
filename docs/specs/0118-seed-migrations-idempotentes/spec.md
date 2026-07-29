@@ -136,17 +136,14 @@ metadatos técnicos del ledger.
 | PostgreSQL 15 | verde · 11 cambios + segunda ejecución idempotente + rollback |
 | PostgreSQL 17 | verde · 11 cambios + segunda ejecución idempotente + rollback |
 | Residuo Docker propio | cero |
+| Cloud | `0271` aplicada individualmente · [REV-AUD-021](../../governance/reviews/aud-sdd-0118-branch-replay-application.md) |
 | Diff | verde |
 
 ## 7. Gates restantes
 
-1. autorización explícita del basename exacto
-   `0271_repair_branch_replay_history`;
-2. preflight metadata-only fresco y aplicación individual de `0271`;
-3. postflight de los once estados y advisors;
-4. creación de un branch efímero nuevo;
-5. replay completo hasta `MIGRATIONS_PASSED`;
-6. ejecución y teardown terminal de SDD-0172.
+1. creación de un branch efímero nuevo;
+2. replay completo hasta `MIGRATIONS_PASSED`;
+3. ejecución y teardown terminal de SDD-0172.
 
 SDD-0118 permanece `in-progress` hasta que un entorno nuevo demuestre el
 replay completo. Un test local verde no sustituye esa evidencia.

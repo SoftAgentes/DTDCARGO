@@ -259,7 +259,9 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-046 · reparación local del replay Supabase](BASELINE-2026-07-29-18.md).
+[LB-SGE-047 · aplicación Cloud de la reparación del replay](BASELINE-2026-07-29-19.md).
+La reparación local del replay permanece en
+[LB-SGE-046](BASELINE-2026-07-29-18.md).
 El destino repo/team de PLG-01 permanece en
 [LB-SGE-045](BASELINE-2026-07-29-17.md).
 El primer componente CMP-01 permanece en

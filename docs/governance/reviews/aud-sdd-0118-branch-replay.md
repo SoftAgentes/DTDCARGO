@@ -5,7 +5,7 @@
 | Revisión | REV-AUD-020 |
 | SDD | [SDD-0118](../../specs/0118-seed-migrations-idempotentes/spec.md) |
 | Fecha | 2026-07-29 |
-| Resultado | diseño y artefacto local aprobados; aplicación Cloud pendiente |
+| Resultado | diseño y artefacto local aprobados; aplicación cerrada en REV-AUD-021 |
 
 ## 1. Hallazgo
 
@@ -56,9 +56,10 @@ los digests y termina en `ROLLBACK`.
 ## 4. Veredicto
 
 REV-AUD-020 aprueba técnicamente el diseño, el generador, la migración y las
-pruebas locales. No aprueba todavía la aplicación Cloud ni declara resuelto el
-replay end-to-end.
+pruebas locales. La aplicación individual posterior quedó aprobada en
+[REV-AUD-021](aud-sdd-0118-branch-replay-application.md); el replay end-to-end
+permanece pendiente.
 
-El próximo gate requiere autorización expresa del founder nombrando
-`0271_repair_branch_replay_history`. `0270`, Auth, Vercel, D1, los slices de
-adopción, D2–D5 y PLG-P3 permanecen fuera de alcance.
+El próximo gate crea un branch efímero nuevo y repite SDD-0172. `0270`, Auth
+de Producción, Vercel, D1, los slices de adopción, D2–D5 y PLG-P3 permanecen
+fuera de alcance.
