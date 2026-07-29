@@ -1,251 +1,104 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { ArrowIcon, WhatsAppIcon } from "./Icon";
-import { CONTACT } from "@/lib/design-tokens";
+import type { FormEvent } from "react";
+import { WhatsAppIcon } from "./Icon";
+import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { trackLead } from "@/components/Analytics";
 
-type Status = "idle" | "submitting" | "success" | "error";
-
-const TOPICS = [
-  { v: "cotizar", l: "Cotizar un envío" },
-  { v: "agente", l: "Agente de compra" },
-  { v: "inspeccion", l: "Inspección de fábrica" },
-  { v: "marca", l: "Registro de marca" },
-  { v: "visa", l: "Visa de negocios" },
-  { v: "otro", l: "Otro" },
-];
-
-// Campo trampa anti-bot (honeypot): un humano nunca lo llena; el API route
-// descarta el envío si llega no-vacío. Mismo nombre que el del registro.
-const HONEYPOT_FIELD = "empresa_web";
-
-type LeadData = {
-  topic: string;
-  topicLabel: string;
-  nombre: string;
-  email: string;
-  whatsapp: string;
-  mensaje: string;
-};
-
 /**
- * Formulario de contacto general. La captación server-side es REAL: el submit
- * hace POST best-effort a `/api/contact` (Resend al equipo + confirmación al
- * cliente, honeypot + throttle por IP) y después muestra la pantalla de
- * "Enviar por WhatsApp" con el mensaje pre-armado — aunque el email falle,
- * el fallback a WhatsApp nunca pierde al lead.
+ * Formulario de /contacto — envío por WhatsApp, y SOLO por WhatsApp.
+ *
+ * Decisión del founder (2026-07-20, mockup Cloud Design "Contáctenos ·
+ * DTD-Cargo.html" variante C): la página ya NO postea a `/api/contact`. El
+ * botón arma el mensaje con lo que el visitante escribió y abre WhatsApp con
+ * el texto listo — un canal único, sin correo intermedio que se pierda.
+ *
+ * Consecuencias esperadas: sin backend desaparecen el honeypot y el límite
+ * por IP de esta página (no hay endpoint que proteger). `/api/contact` queda
+ * en el repo marcado como DEPRECADO por si se revierte la decisión.
+ *
+ * El número sale de `CONTACT` vía `buildWhatsAppLink` — nunca hardcodeado.
+ * Marcado y clases (`cx-form`, `cx-field`, `cx-submit`…) son los del CSS real
+ * del handoff; los estilos viven en `app/globals.css` bajo `.cx-surface`.
  */
+
+const MOTIVOS = [
+  "Cotizar un envío nuevo",
+  "Rastrear mi carga",
+  "Reclamo o siniestro",
+  "Otra consulta",
+] as const;
+
 export function ContactoForm() {
-  const [status, setStatus] = useState<Status>("idle");
-  const [leadId, setLeadId] = useState<string | null>(null);
-  const [leadData, setLeadData] = useState<LeadData | null>(null);
-
-  async function onSubmit(e: FormEvent<HTMLFormElement>) {
+  function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setStatus("submitting");
-
-    // Capturar datos del form ANTES del envío para usarlos en el WhatsApp prearmado
     const fd = new FormData(e.currentTarget);
-    const topic = String(fd.get("topic") ?? "");
-    const captured: LeadData = {
-      topic,
-      topicLabel: TOPICS.find((t) => t.v === topic)?.l ?? topic,
-      nombre: String(fd.get("nombre") ?? "").trim(),
-      email: String(fd.get("email") ?? "").trim(),
-      whatsapp: String(fd.get("whatsapp") ?? "").trim(),
-      mensaje: String(fd.get("mensaje") ?? "").trim(),
-    };
-    // Ref del lead para el CRM/WhatsApp. Prefijo WEB- (no DTD-): NO es un MARKBOX
-    // (el consecutivo DTD-NNNN del cliente) — es un folio desechable del contacto.
-    // Usar DTD- chocaba con el namespace del Shipping Mark y confundía al equipo.
-    const code = `WEB-${Date.now().toString(36).toUpperCase().slice(-6)}`;
-    const honeypot = String(fd.get(HONEYPOT_FIELD) ?? "");
+    const nombre = String(fd.get("nombre") ?? "").trim();
+    const mark = String(fd.get("mark") ?? "").trim();
+    const motivo = String(fd.get("motivo") ?? "");
+    const mensaje = String(fd.get("mensaje") ?? "").trim();
 
-    // Captación server-side (best-effort): el equipo recibe el lead por email +
-    // el cliente una confirmación. Aunque falle, igual mostramos la pantalla de
-    // WhatsApp — el fallback nunca pierde al lead que sí escribe.
-    try {
-      const res = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...captured, code, [HONEYPOT_FIELD]: honeypot }),
-      });
-      // GA4 `generate_lead`: solo si el servidor ACEPTÓ el envío — un rechazo
-      // (throttle, validación) no debe inflar el key event con bots/ruido.
-      if (res.ok) trackLead("contacto");
-    } catch {
-      // best-effort: seguimos al WhatsApp igual.
-    }
+    // Mismo armado que el mockup: una sola línea legible en el chat.
+    const texto =
+      `Hola, soy ${nombre}. Motivo: ${motivo}.` +
+      (mark ? ` Mi Shipping Mark: ${mark}.` : "") +
+      ` ${mensaje}`;
 
-    setLeadData(captured);
-    setLeadId(code);
-    setStatus("success");
-  }
-
-  if (status === "success" && leadData) {
-    // Mensaje WhatsApp estructurado para que tu CRM pueda parsearlo fácil.
-    // Formato: bullets con `• campo: valor` + un bloque de "Mensaje:" al final.
-    const lines = [
-      "Hola DTD Cargo, vengo del formulario web.",
-      "",
-      `• Código: ${leadId}`,
-      `• Tema: ${leadData.topicLabel}`,
-      `• Nombre: ${leadData.nombre}`,
-      `• Email: ${leadData.email}`,
-    ];
-    if (leadData.whatsapp) lines.push(`• WhatsApp: ${leadData.whatsapp}`);
-    lines.push("", "Mensaje:", leadData.mensaje);
-    const whatsappText = lines.join("\n");
-    const whatsappUrl = `https://wa.me/${CONTACT.ve.whatsappRaw}?text=${encodeURIComponent(whatsappText)}`;
-
-    return (
-      <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-8 lg:p-10">
-        <div className="eyebrow" style={{ color: "var(--color-wine)" }}>
-          Casi listo
-        </div>
-        <h3
-          className="mt-4 text-[32px] leading-[1.05] tracking-[-0.02em] text-ink"
-          style={{ fontFamily: "var(--font-archivo-black)" }}
-        >
-          Un toque más<br />y listo.
-        </h3>
-        <p className="mt-4 text-[14.5px] text-grey-700 leading-[1.55]">
-          Toca el botón de abajo para enviarnos tu consulta por WhatsApp — ya va
-          con todos tus datos cargados.
-        </p>
-
-        {/* CTA WhatsApp — único botón, prominente, mensaje pre-armado con todos los datos */}
-        <a
-          href={whatsappUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn mt-6 inline-flex items-center justify-center gap-2 w-full sm:w-auto bg-whatsapp text-white"
-        >
-          <WhatsAppIcon size={20} />
-          Enviar por WhatsApp
-        </a>
-        <p className="text-[12px] text-grey-500 mt-3 leading-[1.5]">
-          Te responde un asesor humano, no un bot — normalmente en menos de 24
-          horas.
-        </p>
-      </div>
-    );
+    // GA4 `generate_lead`: el visitante completó el formulario y salió al chat.
+    trackLead("contacto");
+    window.open(buildWhatsAppLink(texto), "_blank", "noopener");
   }
 
   return (
-    <form
-      onSubmit={onSubmit}
-      className="card-shadow bg-white border border-grey-200 rounded-[18px] p-7 lg:p-9 flex flex-col gap-5 self-start"
-    >
-      <h2
-        className="text-[26px] leading-[1.05] tracking-[-0.02em] text-ink"
-        style={{ fontFamily: "var(--font-archivo-black)" }}
-      >
-        Escríbenos
-      </h2>
+    <form className="cx-form" onSubmit={onSubmit}>
+      <div className="cx-form-row">
+        <div className="cx-field">
+          <label htmlFor="cxNombre">Nombre</label>
+          <input
+            id="cxNombre"
+            name="nombre"
+            type="text"
+            autoComplete="name"
+            placeholder="Tu nombre"
+            required
+          />
+        </div>
+        <div className="cx-field">
+          <label htmlFor="cxMark">
+            Shipping Mark <span className="opt">(si ya tienes)</span>
+          </label>
+          <input id="cxMark" name="mark" type="text" placeholder="DTD-XXXX" />
+        </div>
+      </div>
 
-      {/* Honeypot anti-bot: oculto para humanos; si llega lleno, el backend lo descarta. */}
-      <input
-        type="text"
-        name={HONEYPOT_FIELD}
-        tabIndex={-1}
-        autoComplete="off"
-        aria-hidden="true"
-        className="hidden"
-      />
-
-      <Field label="¿Sobre qué tema?">
-        <select
-          name="topic"
-          required
-          className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus:ring-2 focus:ring-wine/40"
-        >
-          {TOPICS.map((t) => (
-            <option key={t.v} value={t.v}>
-              {t.l}
+      <div className="cx-field">
+        <label htmlFor="cxMotivo">Motivo</label>
+        <select id="cxMotivo" name="motivo" defaultValue={MOTIVOS[0]}>
+          {MOTIVOS.map((m) => (
+            <option key={m} value={m}>
+              {m}
             </option>
           ))}
         </select>
-      </Field>
-
-      <Field label="Tu nombre">
-        <input
-          name="nombre"
-          required
-          autoComplete="name"
-          placeholder="Nombre y apellido"
-          className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus:ring-2 focus:ring-wine/40"
-        />
-      </Field>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Field label="Email">
-          <input
-            type="email"
-            name="email"
-            required
-            autoComplete="email"
-            placeholder="tu@email.com"
-            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus:ring-2 focus:ring-wine/40"
-          />
-        </Field>
-        <Field label="WhatsApp">
-          <input
-            type="tel"
-            name="whatsapp"
-            required
-            autoComplete="tel"
-            placeholder="+58 412 ..."
-            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus:ring-2 focus:ring-wine/40"
-          />
-        </Field>
       </div>
 
-      <Field label="Mensaje">
+      <div className="cx-field">
+        <label htmlFor="cxMensaje">Mensaje</label>
         <textarea
+          id="cxMensaje"
           name="mensaje"
+          placeholder="Cuéntanos qué necesitas…"
           required
-          rows={4}
-          onInput={(e) => {
-            const t = e.currentTarget;
-            t.style.height = "auto";
-            t.style.height = `${t.scrollHeight}px`;
-          }}
-          placeholder="Cuéntanos qué necesitas. Si es un envío, pega el link del producto o describe volumen y peso."
-          className="px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-none focus:ring-2 focus:ring-wine/40 overflow-hidden"
         />
-      </Field>
+      </div>
 
-      <button
-        type="submit"
-        disabled={status === "submitting"}
-        className="btn btn-primary h-14 mt-2 disabled:opacity-60 disabled:cursor-wait"
-      >
-        {status === "submitting" ? "Enviando…" : "Enviar mensaje"}{" "}
-        {status !== "submitting" && <ArrowIcon />}
+      <button type="submit" className="cx-submit">
+        <WhatsAppIcon size={19} />
+        Enviar por WhatsApp
       </button>
-
-      {status === "error" && (
-        <p className="text-[13.5px] text-wine">
-          Falló el envío. Intenta de nuevo o escríbenos por WhatsApp.
-        </p>
-      )}
-
-      <p className="text-[12.5px] text-grey-500 leading-[1.5]">
-        Al enviar aceptas que un asesor te contacte por email o WhatsApp.
+      <p className="cx-form-note">
+        Se abre WhatsApp con tu mensaje ya escrito — solo confirmas el envío.
       </p>
     </form>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="flex flex-col gap-2">
-      <span className="text-[11.5px] font-semibold tracking-[0.12em] uppercase text-grey-500">
-        {label}
-      </span>
-      {children}
-    </label>
   );
 }

@@ -269,7 +269,7 @@ export function DashboardClient({
                 marginBottom: hasLeft || hasRight ? 20 : 0,
               }}
             >
-              {visibleKpis.map((meta) => {
+              {visibleKpis.map((meta, i) => {
                 const v = kpiValues[meta.id];
                 const value = v?.value ?? "—";
                 const tone = v?.tone ?? meta.tone;
@@ -280,6 +280,8 @@ export function DashboardClient({
                     label={meta.label}
                     valueColor={value === "—" ? "var(--ink-mute)" : TONE_TO_VALUE_COLOR[tone]}
                     sub={meta.status === "wip" ? "Próximamente" : v?.sub}
+                    // KPI destacado (BD-034): el primero va en relleno vino + "D".
+                    feature={i === 0}
                   />
                 );
               })}

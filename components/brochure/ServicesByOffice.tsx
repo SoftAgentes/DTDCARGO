@@ -1,7 +1,7 @@
 import { SERVICES_CN, SERVICES_VE, type Service } from "@/lib/design-tokens";
 import { ServiceCard } from "@/components/ServicesGrid";
 
-/** Mapa slug → servicio (China + Venezuela: los 16). */
+/** Mapa slug → servicio (China + Venezuela: los 15). */
 const BY_SLUG: Record<string, Service> = Object.fromEntries(
   [...SERVICES_CN, ...SERVICES_VE].map((s) => [s.slug, s]),
 );
@@ -10,7 +10,7 @@ const BY_SLUG: Record<string, Service> = Object.fromEntries(
 const HERO = BY_SLUG["dtd-services-lcl"];
 
 /**
- * Los otros 15 servicios agrupados por función (jerarquía C de la design
+ * Los otros 14 servicios agrupados por función (jerarquía C de la design
  * review), en orden de viaje del cliente: compras → controlas → mueves → tramitas.
  */
 const GROUPS: { title: string; slugs: string[] }[] = [
@@ -40,7 +40,6 @@ const GROUPS: { title: string; slugs: string[] }[] = [
       "registro-marca-cn",
       "registro-marca-coord",
       "visado-chino",
-      "documentos-importacion",
     ],
   },
 ];
@@ -65,17 +64,17 @@ function ChevronDown({ className }: { className?: string }) {
 }
 
 /**
- * Grilla de los 16 servicios para /brochure.
+ * Grilla de los 15 servicios para /brochure.
  * - DDP consolidado = card héroe (featured, ancho completo).
  * - Resto en 4 grupos `<details>` colapsables (nativo → teclado/lector de
  *   pantalla gratis). En `@media print` se fuerzan todos abiertos
- *   (ver globals.css + DownloadPdfButton) para que el PDF muestre los 16.
+ *   (ver globals.css + DownloadPdfButton) para que el PDF muestre los 15.
  */
 export function ServicesByOffice() {
   return (
     <section className="py-16 lg:py-20 bg-paper" id="servicios">
       <div className="wrap">
-        <span className="eyebrow">16 servicios</span>
+        <span className="eyebrow">15 servicios</span>
         <h2 className="h-section mt-4">Todo lo que mueve tu carga.</h2>
         <p className="lead mt-3 max-w-[60ch]">
           Del sourcing en China a la entrega en tu puerta en Venezuela. Un solo
@@ -89,7 +88,7 @@ export function ServicesByOffice() {
           </div>
         )}
 
-        {/* Los otros 15, agrupados y colapsables */}
+        {/* Los otros 14, agrupados y colapsables */}
         <div className="mt-5 flex flex-col gap-4">
           {GROUPS.map((g) => {
             const items = g.slugs

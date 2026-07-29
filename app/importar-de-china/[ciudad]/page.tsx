@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
-import { HowWeWork } from "@/components/HowWeWork";
 import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import { GEO_ZONAS, getGeoZona } from "@/lib/geo-zonas";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
@@ -86,7 +85,7 @@ export default async function ImportarCiudadPage({
     },
     {
       q: `¿Cómo calculo el costo de mi envío a ${z.ciudad}?`,
-      a: `El costo se calcula por volumen (CBM) y destino. Saca tu estimado al instante en dtdcargo.com/calculadora, o escríbenos por WhatsApp para una cotización formal.`,
+      a: `El costo se calcula por volumen (CBM) y destino. Saca tu estimado al instante en dtdcargo.com/tarifas, o escríbenos por WhatsApp para una cotización formal.`,
     },
     {
       q: `¿Qué puedo importar a ${z.ciudad}?`,
@@ -122,24 +121,27 @@ export default async function ImportarCiudadPage({
         ]}
       />
 
-      <main>
-        {/* Hero */}
-        <section className="py-16 lg:py-24 bg-paper">
-          <div className="wrap max-w-[920px]">
-            <span className="eyebrow">China → {z.ciudad} · Puerta a puerta</span>
-            <h1 className="h-display mt-5" style={{ fontSize: "clamp(34px, 5.5vw, 68px)" }}>
-              {z.h1}
-            </h1>
-            <p className="lead mt-6 max-w-[60ch]">
+      {/* Revestido al Norte con la superficie de recursos (`.rp-surface`).
+          Landing SEO/GEO local: cambia SOLO el envoltorio visual del hero.
+          El `z.h1`, el copy por ciudad y todo el JSON-LD quedan idénticos. */}
+      <main className="rp-surface" style={{ ["--rp-w" as string]: "920px" }}>
+        <section className="rp-hero">
+          <div className="rp-hero-in">
+            <div className="rp-eyebrow">
+              <span className="rule" />
+              China → {z.ciudad} · Puerta a puerta
+            </div>
+            <h1>{z.h1}</h1>
+            <p>
               Carga consolidada puerta a puerta de China a {z.ciudad}: flete, aduana
               e impuestos incluidos, y pagas cuando tu mercancía llega a Venezuela.
               Operamos en Venezuela desde 2015 con equipo y bodega propios en Yiwu y Valencia.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="rp-hero-actions">
               <a href={wa} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
                 <WhatsAppIcon size={18} /> Cotizar por WhatsApp
               </a>
-              <Link href="/calculadora" className="btn btn-ghost">
+              <Link href="/tarifas" className="btn btn-ghost">
                 Calcular mi envío <ArrowIcon size={16} />
               </Link>
             </div>
@@ -234,8 +236,6 @@ export default async function ImportarCiudadPage({
             </p>
           </div>
         </section>
-
-        <HowWeWork />
       </main>
 
       <Footer />

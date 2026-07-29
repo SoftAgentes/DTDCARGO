@@ -58,7 +58,7 @@ function ship(over: Record<string, unknown>): Record<string, unknown> {
   return {
     id: "s",
     code: "DTD-2026-0001",
-    shipment_service: "consolidacion",
+    shipment_service: "consolidado_lcl",
     status: "in_transit",
     origin: "Yiwu",
     destination: "Valencia",
@@ -164,7 +164,7 @@ describe("getNextArrival — próximo arribo (degradado)", () => {
         id: "s1",
         code: "DTD-2026-0009",
         status: "in_transit",
-        service: "consolidacion",
+        service: "consolidado_lcl",
         created_at: "2026-05-01T00:00:00.000Z",
       }),
     ];

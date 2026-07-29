@@ -106,6 +106,10 @@
 
   /* ── Scrim (overlay para drawers/modals) ─────────────────── */
   --scrim: rgba(15,30,61,0.55);
+  /* Frost del scrim (BD-031 · superficie elevada): blur SUAVE del fondo al abrir
+     un modal/drawer → foco sin tocar la legibilidad (el panel sigue opaco encima).
+     Distinto del --glass-blur (18px, para paneles glass). Un solo valor, ambos temas. */
+  --scrim-blur: blur(4px);
 
   /* ── Operario · superficies sobre navy (app/m) ────────────────
      Extraídos de rgba() inline de las PWAs operario (feat/m-rgba-tokens).
@@ -147,13 +151,63 @@
   --f-sans: var(--font-archivo), 'Archivo', system-ui, -apple-system, sans-serif;
   --f-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   --f-display: var(--font-archivo-black), 'Archivo Black', 'Archivo', sans-serif;
-  --f-cn: var(--font-noto-sc), 'Noto Sans SC', 'Archivo', sans-serif;
+  --f-cn-ui:
+    var(--font-noto-sc), 'Noto Sans SC', var(--font-archivo), 'Archivo',
+    sans-serif;
+  --f-cn-document:
+    var(--font-noto-serif-sc), 'Noto Serif SC', var(--font-noto-sc),
+    'Noto Sans SC', var(--font-archivo), 'Archivo', sans-serif;
+  --f-cn: var(--f-cn-ui);
 
   /* ── Motion ────────────────────────────────────────────── */
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --dur-fast: 120ms;
   --dur: 180ms;
   --dur-slow: 260ms;
+
+  /* ── Glass (BD-031) · superficies ELEVADAS/FLOTANTES SOLAMENTE ─────
+     Vidrio esmerilado para overlays/popovers/paneles flotantes sobre navy o
+     imagen; NUNCA tablas, body, cards de contenido denso ni fondos de página
+     (eso vuelve a ser AI slop). Texto sobre vidrio = --glass-ink (AA contra el
+     peor caso: crema sobre glass navy, navy sobre glass blanco). Aplicar SIEMPRE
+     con -webkit-backdrop-filter de respaldo + relleno translúcido como fallback
+     si el navegador no soporta blur. Espejo 1:1 de erp/tokens.css del Norte. */
+  --glass-bg: linear-gradient(160deg, rgba(255,255,255,0.72), rgba(255,255,255,0.44));
+  --glass-border: rgba(255,255,255,0.9);
+  --glass-hi: inset 0 1px 0 rgba(255,255,255,0.9);
+  --glass-blur: blur(18px) saturate(150%);
+  --glass-ink: #0F1E3D;
+  --glass-shadow: 0 24px 60px rgba(15,30,61,0.16);
+  --glass-key: rgba(255,255,255,0.55);
+  --glass-inset: rgba(255,255,255,0.5);
+
+  /* ── Fondos de superficie (BD-034) · degradados TONALES misma-familia ─────
+     Las superficies vino/navy dejan de verse planas: difuminado dentro de la
+     misma familia de color + marca de agua del isotipo (wallpaper, opacidad
+     baja .03–.07) + halos de profundidad. NUNCA rainbow (BD-030/AI slop).
+     Hex explícito dentro del gradiente (BD-023). Espejo 1:1 de la fuente de
+     marca (ERP Degradados). La "D" watermark = public/brand/dtdcargo-isologo-mono-light.png. */
+  /* Intensidad +30% (founder 2026-07-19): tops más brillantes + ends más profundos
+     + mid pulled-in → el degradado se nota más sin salir de la familia tonal. */
+  --grad-wine:       linear-gradient(135deg,#AE1A28 0%,#7F0F1A 50%,#4A0710 100%);
+  --grad-wine-soft:  linear-gradient(135deg,rgba(158,21,34,.20),rgba(90,9,16,.14));
+  --grad-wine-panel: radial-gradient(135% 135% at 14% -12%,#AE1A28 0%,#7F0F1A 40%,#3C060B 100%);
+  --grad-navy:       radial-gradient(120% 125% at 18% -20%,#2B4A85 0%,#0F1E3D 48%,#050A16 100%);
+  --grad-page:       radial-gradient(90% 70% at 100% 0%,rgba(158,21,34,.09),transparent 55%),radial-gradient(80% 70% at 0% 100%,rgba(15,30,61,.07),transparent 55%),var(--bg-base);
+  --grad-card:       linear-gradient(160deg,#ffffff 0%,#FBFAF7 100%);
+}
+
+/* ── Migración de fuente del ERP → Nunito Sans + Sora (BD-035, founder 2026-07-19) ──
+   Los tokens --f-sans/--f-display se declaran ARRIBA en :root envolviendo
+   var(--font-archivo/-black). Declarados en :root el var() se resuelve EN :root
+   (= Archivo) y queda CONGELADO al heredar → por eso la migración de 2026-06-11
+   nunca surtió efecto y el ERP siguió en Archivo. Re-declarándolos acá, scopeados a
+   `.studio-sys` (el wrapper del Studio, donde globals.css ya redefine
+   --font-archivo → Nunito y --font-archivo-black → Sora), el var() resuelve en ese
+   scope y TODO el ERP (que consume --f-sans/--f-display) migra de verdad. */
+.studio-sys {
+  --f-sans: var(--font-archivo), system-ui, -apple-system, sans-serif;
+  --f-display: var(--font-archivo-black), var(--font-archivo), sans-serif;
 }
 
 [data-theme="dark"] {
@@ -162,6 +216,23 @@
   --wine-tint: rgba(168,50,62,0.14);
   --wine-text: #D89AA4;                 /* = --wine-soft dark: wine legible como texto en oscuro (~6-8:1) */
   --on-warning: #0F1E3D;                /* navy fijo: el fill del warning cambia, el texto no */
+
+  /* Glass (BD-031) · override oscuro: vidrio navy translúcido + texto crema. */
+  --glass-bg: linear-gradient(160deg, rgba(31,48,85,0.55), rgba(15,30,61,0.34));
+  --glass-border: rgba(255,255,255,0.22);
+  --glass-hi: inset 0 1px 0 rgba(255,255,255,0.30);
+  --glass-ink: #F2F0EC;
+  --glass-shadow: 0 24px 60px rgba(5,10,24,0.50);
+  --glass-key: rgba(255,255,255,0.10);
+  --glass-inset: rgba(11,20,40,0.32);
+
+  /* Fondos de superficie (BD-034) · override oscuro. --grad-wine-soft hereda de light. */
+  /* Intensidad +30% (founder 2026-07-19) · dark. --grad-wine-soft hereda de light. */
+  --grad-wine:       linear-gradient(135deg,#CE4552 0%,#A8323E 50%,#6E1420 100%);
+  --grad-wine-panel: radial-gradient(135% 135% at 14% -12%,#CE4552 0%,#A8323E 42%,#5A0F1A 100%);
+  --grad-navy:       radial-gradient(120% 125% at 18% -22%,#2E4A80 0%,#0B1428 54%,#03060F 100%);
+  --grad-page:       radial-gradient(62% 55% at 100% 0%,rgba(168,50,62,.28),transparent 56%),radial-gradient(70% 60% at 0% 100%,rgba(31,48,85,.6),transparent 55%),var(--bg-base);
+  --grad-card:       linear-gradient(160deg,#193056 0%,#16264A 100%);
 
   --bg-base: #0B1428;
   --bg-surface: #16264A;

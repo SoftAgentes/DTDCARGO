@@ -67,39 +67,43 @@ export default function PrivacidadPage() {
   return (
     <>
       <Nav />
-      <main className="bg-paper">
-        <section className="py-16 lg:py-24">
-          <div className="wrap max-w-[900px]">
-            <span className="eyebrow">Legal · DTD Cargo</span>
-            <h1
-              className="h-display mt-5"
-              style={{ fontSize: "clamp(36px, 5vw, 64px)" }}
-            >
-              Política de{" "}
-              <span style={{ color: "var(--color-wine)" }}>Privacidad.</span>
+      {/* Reskin mínimo al Norte: hero navy `rp-*`. El texto legal, la
+          estructura de secciones y el `noindex` del metadata no se tocan. */}
+      <main className="rp-surface" style={{ ["--rp-w" as string]: "900px" }}>
+        <section className="rp-hero">
+          <div className="rp-hero-in">
+            <div className="rp-eyebrow">
+              <span className="rule" />
+              Legal · DTD Cargo
+            </div>
+            <h1>
+              Política de <span className="accent">Privacidad.</span>
             </h1>
-            <p className="lead mt-6 max-w-[60ch]">
+            <p>
               En DTD Cargo cuidamos tu información. Aquí te explicamos qué datos
               recogemos, para qué los usamos, con quién los compartimos y qué
               derechos tienes. Es complementaria a nuestra{" "}
-              <Link
-                href="/cookies"
-                className="underline underline-offset-2"
-                style={{ color: "var(--color-wine)" }}
-              >
+              <Link href="/cookies" className="rp-plain underline underline-offset-2">
                 Política de Cookies
               </Link>
               .
             </p>
-            <p className="mt-4 text-[13px] text-grey-500">
-              Responsable: <strong>DTD Cargo</strong> · Última actualización:{" "}
-              {UPDATED}
+            <p className="rp-hero-meta">
+              <span>
+                Responsable: <strong>DTD Cargo</strong>
+              </span>
+              <span>Última actualización: {UPDATED}</span>
             </p>
           </div>
         </section>
 
-        <section className="pb-24">
-          <div className="wrap max-w-[900px] flex flex-col gap-9">
+        <section className="pb-24 pt-12 lg:pt-16">
+          {/* `max-w-[900px]` de Tailwind NO gana contra `.wrap{max-width:var(--maxw)}`
+              (las utilidades v4 van en @layer y pierden contra la regla sin capa):
+              el texto legal venía corriendo a 1280px, muy por encima del measure
+              de 45-75 caracteres de BRAND.md. Se fija por estilo inline, que sí
+              gana, y de paso alinea con el hero `rp-*`. */}
+          <div className="wrap flex flex-col gap-9" style={{ maxWidth: 900 }}>
             <article>
               <h2 className={H2}>1. Qué datos recogemos y cuándo</h2>
               <p className={P}>

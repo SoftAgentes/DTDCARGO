@@ -13,12 +13,10 @@ import {
   ShieldIcon,
   TruckIcon,
 } from "@/components/Icon";
-import { CONTACT } from "@/lib/design-tokens";
+import { AlibabaAddressGuide } from "@/components/AlibabaAddressGuide";
+import { ChinaSupplierClip } from "@/components/ChinaSupplierClip";
 import { NewPurchaseButton } from "../../_components/NewPurchaseButton";
-import {
-  NewPurchaseModal,
-  FieldLabel,
-} from "../../_components/NewPurchaseModal";
+import { FieldLabel } from "../../_components/PortalFormField";
 import type { SupplierView } from "@/lib/studio/prealertas/types";
 import {
   createSupplierAction,
@@ -53,10 +51,6 @@ export function SuppliersClient({
   markbox: string;
   addons: PrealertaAddon[];
 }) {
-  // Modal "Nueva compra" — null cerrado; objeto = proveedor preseleccionado (o vacío).
-  const [purchaseFor, setPurchaseFor] = useState<SupplierView | null | "new">(
-    null,
-  );
   const [adding, setAdding] = useState(false);
 
   return (
@@ -79,7 +73,7 @@ export function SuppliersClient({
             que ya tengas.
           </p>
         </div>
-        <NewPurchaseButton onClick={() => setPurchaseFor("new")} />
+        <NewPurchaseButton href="/portal/compras/nueva" />
       </div>
 
       {/* ── Por qué registrar importa ── */}
@@ -125,8 +119,18 @@ export function SuppliersClient({
         </p>
       </div>
 
-      {/* ── Dirección de nuestra bodega CN para tus proveedores (copy-paste) ── */}
-      <WarehouseAddressCard markbox={markbox} />
+      {/* ── Dirección de nuestra bodega CN, en el formato que piden
+          Alibaba/1688/Taobao: campo por campo, con copia individual y el
+          Shipping Mark ya puesto. Reemplaza a la card local que armaba el mismo
+          texto con menos campos y una sola copia a granel. ── */}
+      {/* El par del momento "estoy comprando en China": qué pongo en el
+          formulario de la web de compra, y qué le mando al proveedor por
+          WeChat. Van juntos a propósito — separados, el cliente encontraba uno
+          sin enterarse del otro (founder 2026-07-28). */}
+      <div className="mt-5 grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
+        <AlibabaAddressGuide markbox={markbox} />
+        <ChinaSupplierClip markbox={markbox} />
+      </div>
 
       {/* ── Lista de proveedores ── */}
       {suppliers.length === 0 ? (
@@ -142,11 +146,7 @@ export function SuppliersClient({
       ) : (
         <div className="mt-6 flex flex-col gap-3">
           {suppliers.map((s) => (
-            <SupplierCard
-              key={s.id}
-              supplier={s}
-              onRebuy={() => setPurchaseFor(s)}
-            />
+            <SupplierCard key={s.id} supplier={s} />
           ))}
         </div>
       )}
@@ -181,68 +181,6 @@ export function SuppliersClient({
           Ver todas mis compras <ArrowIcon size={14} />
         </Link>
       </div>
-
-      {/* ── Modal "Nueva compra" ── */}
-      {purchaseFor !== null && (
-        <NewPurchaseModal
-          suppliers={suppliers}
-          addons={addons}
-          preselected={purchaseFor === "new" ? null : purchaseFor}
-          onClose={() => setPurchaseFor(null)}
-        />
-      )}
-    </div>
-  );
-}
-
-// ── Dirección de la bodega en China (copy-paste, con el MARKBOX del cliente) ──
-function WarehouseAddressCard({ markbox }: { markbox: string }) {
-  const [copied, setCopied] = useState(false);
-  const cn = CONTACT.cn;
-  // El MARKBOX va en el nombre → así la bodega identifica de quién es la caja.
-  const text = [
-    `收货人 / Nombre: DTD Cargo - ${markbox}`,
-    `电话 / Teléfono: ${cn.phone}`,
-    `地址 / Dirección: 浙江省${cn.addressCjk}`,
-    `邮编 / Código postal: ${cn.postalCode}`,
-    `仓库联系人: ${cn.contactPersonCjk}`,
-  ].join("\n");
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Clipboard no disponible (contexto no seguro): el texto igual está visible
-      // para copiar a mano.
-    }
-  }
-
-  return (
-    <div className="mt-5 card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-7">
-      <div className="text-[15px] font-bold text-ink">
-        Dirección de nuestra bodega en China
-      </div>
-      <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.55] max-w-[70ch]">
-        Dásela a tu proveedor — o cárgala en Alibaba como dirección de recepción —
-        para que tu mercancía llegue a nuestra bodega en Yiwu. Tu Shipping Mark ya va en
-        el nombre: es lo que nos deja saber que la caja es tuya.
-      </p>
-      <pre
-        className="mt-4 rounded-[12px] bg-grey-100 px-4 py-3.5 text-[12.5px] text-ink leading-[1.7] whitespace-pre-wrap break-words"
-        style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
-      >
-        {text}
-      </pre>
-      <button
-        type="button"
-        onClick={copy}
-        className="btn btn-primary mt-3 inline-flex items-center gap-2"
-      >
-        {copied ? "¡Copiado!" : "Copiar dirección"}
-        {copied && <CheckIcon size={15} />}
-      </button>
     </div>
   );
 }
@@ -272,13 +210,7 @@ function WhyItem({
   );
 }
 
-function SupplierCard({
-  supplier,
-  onRebuy,
-}: {
-  supplier: SupplierView;
-  onRebuy: () => void;
-}) {
+function SupplierCard({ supplier }: { supplier: SupplierView }) {
   const [editing, setEditing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteState, deleteAction, deletePending] = useActionState(
@@ -385,13 +317,12 @@ function SupplierCard({
               Con compras
             </span>
           )}
-          <button
-            type="button"
-            onClick={onRebuy}
+          <Link
+            href={`/portal/compras/nueva?proveedor=${encodeURIComponent(supplier.id)}`}
             className="btn btn-ghost inline-flex items-center gap-1.5"
           >
             Re-comprar <ArrowIcon size={14} />
-          </button>
+          </Link>
         </div>
       )}
     </div>

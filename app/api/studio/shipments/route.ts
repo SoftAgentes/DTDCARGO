@@ -12,7 +12,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/db/server";
 import { apiError } from "@/lib/http/api-error";
 import { getUserTenantId } from "@/lib/auth/session";
-import type { ShipmentService, ShipmentStatus } from "@/lib/studio/shipment-types";
+import {
+  isShipmentService,
+  type ShipmentService,
+  type ShipmentStatus,
+} from "@/lib/studio/shipment-types";
 
 type ShipmentCreatePayload = {
   code: string;
@@ -28,13 +32,6 @@ type ShipmentCreatePayload = {
   vehicle_model?: string | null;
   notes?: string | null;
 };
-
-const VALID_SERVICES: ShipmentService[] = [
-  "consolidacion",
-  "puerta_a_puerta_DDP",
-  "reserva_FCL",
-  "transporte_terrestre",
-];
 
 export async function GET(_request: NextRequest) {
   const supabase = await createClient();
@@ -65,7 +62,7 @@ export async function POST(request: NextRequest) {
   if (!payload.code || payload.code.trim().length === 0) {
     return NextResponse.json({ error: "El código del envío es obligatorio." }, { status: 400 });
   }
-  if (!VALID_SERVICES.includes(payload.shipment_service)) {
+  if (!isShipmentService(payload.shipment_service)) {
     return NextResponse.json({ error: "Servicio inválido." }, { status: 400 });
   }
   if (

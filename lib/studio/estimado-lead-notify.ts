@@ -6,14 +6,13 @@
  *   - Email a la casilla general (info@) + a cada admin del tenant (dedup).
  *   - Telegram a cada admin que linkeó su chat.
  *
- * Por qué existe: el estimado web quedaba guardado en `quotes` (filtro "web" del
- * cotizador) SIN avisar a nadie — si el visitante no llegaba a mandar el
- * WhatsApp, el lead moría huérfano. Este aviso cierra esa fuga: el asesor se
- * entera al instante y puede escribirle ÉL al prospecto.
+ * Por qué existe: el visitante no registrado NO genera un EST- en el ERP (su
+ * cotización viaja por el WhatsApp que la calculadora abre sola); sin este aviso,
+ * si el cliente no llega a escribir, el lead se pierde. El asesor se entera al
+ * instante y puede escribirle ÉL al prospecto.
  *
- * Best-effort: devuelve { ok } = al menos un email salió. A diferencia de
- * /contacto, acá el caller NO debe fallar la respuesta al visitante si el aviso
- * falla — el estimado ya quedó persistido en el ERP.
+ * Best-effort: devuelve { ok } = al menos un email salió. Un fallo del aviso NO
+ * debe romper la respuesta al visitante (el WhatsApp ya se le abrió igual).
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -26,8 +25,6 @@ import {
 } from "@/lib/studio/new-client-notify";
 
 export interface EstimadoLeadPayload {
-  /** Código EST-YYYY-NNNN del estimado ya persistido. */
-  estimateCode: string;
   prospectName: string;
   prospectWhatsapp: string;
   prospectEmail: string | null;
@@ -58,7 +55,7 @@ export async function notifyEstimadoLeadToAdmin(
   tenantId: string,
   payload: EstimadoLeadPayload,
 ): Promise<{ ok: boolean }> {
-  const subject = `Nuevo estimado web · ${payload.estimateCode} — ${payload.prospectName} ($${payload.totalUsd})`;
+  const subject = `Nuevo estimado web — ${payload.prospectName} ($${payload.totalUsd})`;
   const html = buildHtml(payload);
   const telegramText = buildTelegram(payload);
 
@@ -74,7 +71,7 @@ export async function notifyEstimadoLeadToAdmin(
       html,
       to,
       to_name: "Equipo DTD",
-      metadata: { source: "estimado-lead", code: payload.estimateCode },
+      metadata: { source: "estimado-lead" },
     });
     if (res.ok) emailedOk = true;
     else console.error("[estimado-lead-notify] email falló:", res.error);
@@ -99,7 +96,6 @@ function buildHtml(p: EstimadoLeadPayload): string {
   const calcLabel = CALC_LABELS[p.calc] ?? p.calc;
   const carga = fmtCarga(p);
   const rows: Array<[string, string]> = [
-    ["Estimado", p.estimateCode],
     ["Nombre", p.prospectName],
     ["WhatsApp", p.prospectWhatsapp],
     ...(p.prospectEmail ? ([["Email", p.prospectEmail]] as Array<[string, string]>) : []),
@@ -124,7 +120,7 @@ function buildHtml(p: EstimadoLeadPayload): string {
     : "";
   return `<div style="font-family:Archivo,system-ui,sans-serif;color:#0F1E3D;max-width:560px;padding:24px;background:#FBFAF7">
 <p style="font-size:16px;margin:0 0 4px"><b>Nuevo estimado desde la web</b></p>
-<p style="margin:0 0 16px;color:#6B6B6B;font-size:13px">Quedó guardado en el Studio &rsaquo; Cotizador (filtro &ldquo;web&rdquo;). No esperes su WhatsApp: escríbele tú.</p>
+<p style="margin:0 0 16px;color:#6B6B6B;font-size:13px">Cotizó desde la web y probablemente te escriba por WhatsApp. Si no llega, escríbele tú — no queda registrado en el ERP.</p>
 <table style="border-collapse:collapse;margin:0 0 16px">${trs}</table>
 ${notaBlock}${cta}<hr style="border:0;border-top:1px solid #E8E6E2;margin:24px 0">
 <p style="color:#6B6B6B;font-size:12px;margin:0">DTD Cargo · aviso interno automático</p>
@@ -136,7 +132,7 @@ function buildTelegram(p: EstimadoLeadPayload): string {
   const carga = fmtCarga(p);
   const waLink = buildProspectWaLink(p.prospectWhatsapp);
   return [
-    `Nuevo estimado web · ${p.estimateCode} · $${p.totalUsd}`,
+    `Nuevo estimado web · $${p.totalUsd}`,
     ``,
     p.prospectName,
     `WhatsApp: ${p.prospectWhatsapp}`,

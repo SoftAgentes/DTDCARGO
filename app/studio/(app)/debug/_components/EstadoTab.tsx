@@ -31,6 +31,7 @@ import {
   type IntegrationHealth,
 } from "@/lib/studio/integration-health";
 import { Badge } from "../../../_components/ui/Badge";
+import { DeployButton } from "../../../_components/deploy/DeployWebBot";
 import { RecheckButton } from "./RecheckButton";
 
 const INTEGRATION_ORDER: IntegrationKey[] = [
@@ -173,7 +174,7 @@ export function EstadoTab({
       </div>
 
       {/* Deploy info */}
-      <Card title="Deploy actual">
+      <Card title="Deploy actual" action={isLocal ? <DeployButton /> : undefined}>
         <KV
           k="URL del deploy"
           v={

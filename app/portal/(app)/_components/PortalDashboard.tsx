@@ -224,7 +224,7 @@ function AnunciarCompraCTA() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5 flex-shrink-0">
-          <NewPurchaseButton href="/portal/proveedores" />
+          <NewPurchaseButton href="/portal/compras/nueva" />
           <Link
             href="/portal/proveedores"
             className="text-[13px] font-bold text-wine hover:underline inline-flex items-center gap-1.5"

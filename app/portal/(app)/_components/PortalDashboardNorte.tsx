@@ -9,7 +9,6 @@ import {
   PaymentIcon,
   WhatsAppIcon,
 } from "@/components/Icon";
-import { ChinaSupplierClip } from "@/components/ChinaSupplierClip";
 import {
   SERVICE_LABELS,
   SERVICE_SHORT_LABELS,
@@ -41,8 +40,12 @@ import { PortalNextSailingCard } from "./PortalNextSailingCard";
  * nueva, cero migración. Honesto donde la data no existe: el progreso del héroe se
  * deriva del status con `computeProgress` (mapa canónico del repo, no inventado);
  * no hay contenedor/buque (Tier 1 Naviera). La "Actividad reciente" se deriva de los
- * envíos por `updatedAt` (real). El bloque de "texto para WeChat" (ChinaSupplierClip)
- * se mantiene en la derecha (founder lo mudó acá desde el cierre del registro).
+ * envíos por `updatedAt` (real).
+ *
+ * El bloque de "texto para WeChat" (ChinaSupplierClip) vivió en la columna
+ * derecha hasta 2026-07-28; se mudó a `/portal/proveedores` para quedar junto a
+ * los datos de la web de compra. El Home es tablero de SEGUIMIENTO; las
+ * instrucciones para comprar viven donde el cliente gestiona la compra.
  */
 export function PortalDashboardNorte({
   client,
@@ -53,6 +56,7 @@ export function PortalDashboardNorte({
   activity = [],
   sailing = null,
   sailingDaysToCutoff = null,
+  advisorCard = null,
 }: {
   client: PortalClient;
   kpis: PortalDashboardKpis;
@@ -66,6 +70,8 @@ export function PortalDashboardNorte({
   sailing?: PortalSailing | null;
   /** Días al cut-off calculados en el server (fallback pre-hidratación de la card). */
   sailingDaysToCutoff?: number | null;
+  /** Card "Tu asesor" del Norte, ya resuelta en el server (datos reales). */
+  advisorCard?: ReactNode;
 }) {
   const firstName = client.name.trim().split(/\s+/)[0] || client.name;
   const today = formatToday();
@@ -198,8 +204,13 @@ export function PortalDashboardNorte({
             />
           ) : null}
           {kpis.outstandingBalance > 0 ? <SaldoCard kpis={kpis} /> : null}
-          {/* Texto listo para WeChat: dirección de bodega CN + código del cliente. */}
-          <ChinaSupplierClip markbox={client.markbox} />
+          {advisorCard}
+          {/* El "texto para WeChat" (ChinaSupplierClip) vivía acá; se movió a
+              `/portal/proveedores` para quedar junto a los datos de la web de
+              compra (AlibabaAddressGuide): son un par del MISMO momento —
+              cómo le hablo al proveedor y qué pongo en el formulario— y
+              separados el cliente encontraba uno sin saber del otro. El Home
+              queda como tablero de seguimiento (founder 2026-07-28). */}
           {recent.length > 0 ? <ActividadCard activity={recent} /> : null}
         </div>
       </div>

@@ -5,12 +5,17 @@ import {
   CONFIG,
   CIUDADES,
   DEFAULT_PARAMS,
+  CONSOLIDADO_CBM_RATE,
+  CONSOLIDADO_DESTINO,
+  CONSOLIDADO_CBM_MINIMO,
+  CONSOLIDADO_MIN_CBM_MENSAJE,
   calcularEnvioLCL,
   cbmFromDimensions,
   whatsappTextFromCotizacion,
   type EnvioInput,
   type EnvioCotizacion,
   type CalcParams,
+  type CalcModo,
   type Ciudad,
 } from "@/lib/calculadora";
 import Link from "next/link";
@@ -44,36 +49,81 @@ type ServerRate = {
  */
 type CalcWarning = { text: string; tone: "danger" | "warning" | "info" } | null;
 
+/**
+ * Modalidad que calcula el form (el tipo vive en `lib/calculadora`, que es
+ * donde se aplica la diferencia de reglas):
+ *  · `ddp`          = Puerta a Puerta (DDP): tarifa pública de la DB, ciudad de
+ *                     destino en Venezuela, todo incluido hasta la puerta.
+ *  · `consolidado`  = LCL Consolidado: tarifa fija `CONSOLIDADO_CBM_RATE`
+ *                     (dato del founder), SIN ciudad — llega hasta puerto y te
+ *                     entregamos tu propio BL; aduana e impuestos van por
+ *                     cuenta del cliente. Mismos recargos que el DDP, con UNA
+ *                     regla propia: por debajo de `CONSOLIDADO_CBM_MINIMO`
+ *                     (1 m³) no cotiza y deriva al asesor.
+ */
+export type { CalcModo };
+
 export function CalculadoraForm({
   serverRate,
   serverConfig,
   ciudades,
+  directWhatsApp = false,
+  modo = "ddp",
 }: {
   serverRate?: ServerRate;
   serverConfig?: CalcParams | null;
   ciudades?: Ciudad[];
+  /**
+   * CTA en modo WhatsApp DIRECTO (Fase 3 · /tarifas): el botón "Enviar por
+   * WhatsApp" es un `<a>` a wa.me con el texto del estimado, sin abrir el modal
+   * de captura ni pegarle a `/api/public/estimacion` (la calc NO guarda nada).
+   * En false (legacy) mantiene el flujo con EstimadoModal.
+   */
+  directWhatsApp?: boolean;
+  /** Modalidad calculada. Default `ddp` = comportamiento histórico intacto. */
+  modo?: CalcModo;
 }) {
+  const esConsolidado = modo === "consolidado";
+
   // Tarifa base real o default de CONFIG (cero regresión si no hay pública).
-  const baseRate =
+  const ddpRate =
     serverRate?.per_cbm && serverRate.per_cbm > 0
       ? serverRate.per_cbm
       : CONFIG.tarifaBaseCBM;
-  const minChargeOverride = serverRate?.min_charge ?? undefined;
-  const minCharge =
-    minChargeOverride && minChargeOverride > 0
-      ? minChargeOverride
+  const ddpMinCharge =
+    serverRate?.min_charge && serverRate.min_charge > 0
+      ? serverRate.min_charge
       : CONFIG.minimoFacturable;
+
+  // Consolidado: tarifa fija del founder y SIN piso en USD — su mínimo es de
+  // VOLUMEN (1 m³, `CONSOLIDADO_CBM_MINIMO`): por debajo no cotiza y deriva al
+  // asesor, así que 1 × 580 = $580 ya queda muy por encima de cualquier piso.
+  const baseRate = esConsolidado ? CONSOLIDADO_CBM_RATE : ddpRate;
+  const minCharge = esConsolidado ? 0 : ddpMinCharge;
+  const minChargeOverride = esConsolidado
+    ? undefined
+    : (serverRate?.min_charge ?? undefined);
   // Punto de cruce: CBM donde el cálculo iguala al mínimo. Derivado de la tarifa.
+  // En consolidado queda en 0 (no hay piso) → el aviso que aplica es el de 1 m³.
   const crossoverCbm = baseRate > 0 ? minCharge / baseRate : 0;
   const crossoverLabel = parseFloat(crossoverCbm.toFixed(4)).toString();
   const params = serverConfig ?? DEFAULT_PARAMS;
-  const cityList = ciudades && ciudades.length > 0 ? ciudades : CIUDADES;
+  // Consolidado: destino sintético (hasta puerto) → sin selector de ciudad y
+  // sin recargo por distancia. DDP: catálogo de la DB o el array por default.
+  const cityList = esConsolidado
+    ? [CONSOLIDADO_DESTINO]
+    : ciudades && ciudades.length > 0
+      ? ciudades
+      : CIUDADES;
   const defaultCiudadId =
     cityList.find((c) => c.id === "casco-central")?.id ??
     cityList[0]?.id ??
     "casco-central";
 
   const [form, setForm] = useState<EnvioInput>({
+    // El motor necesita la modalidad para aplicar la puerta de 1 m³ del
+    // consolidado (lib/calculadora · CONSOLIDADO_CBM_MINIMO).
+    modo,
     cbmTotal: 0,
     pesoKg: 0,
     embalaje: "estandar",
@@ -143,12 +193,16 @@ export function CalculadoraForm({
   const cbmWarning: CalcWarning =
     effectiveCbm > params.cbmMaxContenedor
       ? { text: "Eso es más que un contenedor. Consulta con tu asesor.", tone: "danger" }
-      : effectiveCbm > 0 && effectiveCbm < crossoverCbm
-        ? {
-            text: `Nuestro mínimo de carga es ${crossoverLabel} m³ — por debajo, el envío sale $${minCharge}.`,
-            tone: "info",
-          }
-        : null;
+      : // Consolidado: por debajo de 1 m³ no hay precio, hay asesor. Es bloqueo
+        // real (el BL propio es un fijo de hasta USD 300) → tono `danger`.
+        esConsolidado && effectiveCbm > 0 && effectiveCbm < CONSOLIDADO_CBM_MINIMO
+        ? { text: CONSOLIDADO_MIN_CBM_MENSAJE, tone: "danger" }
+        : effectiveCbm > 0 && effectiveCbm < crossoverCbm
+          ? {
+              text: `Nuestro mínimo de carga es ${crossoverLabel} m³ — por debajo, el envío sale $${minCharge}.`,
+              tone: "info",
+            }
+          : null;
 
   // Aviso del peso: tope absoluto de contenedor + recargo por densidad (peso por
   // CBM). Founder 2026-07-06: el exceso de densidad ya NO deriva al asesor — el
@@ -212,35 +266,69 @@ export function CalculadoraForm({
 
   return (
     <>
-    <div className="card-shadow bg-white border border-grey-200 rounded-[20px] overflow-hidden">
+    <div
+      className="card-shadow rounded-[20px] overflow-hidden"
+      style={{
+        background: "linear-gradient(180deg, #16233F 0%, #0B1428 100%)",
+        border: "1px solid rgba(255,255,255,0.1)",
+      }}
+    >
       <div className="grid grid-cols-1 lg:grid-cols-2">
-        {/* ── COLUMNA IZQUIERDA · ENTRADA ── */}
-        <div className="p-6 lg:p-9 lg:border-r border-grey-200 flex flex-col gap-5">
+        {/* ── COLUMNA IZQUIERDA · ENTRADA ──
+            En consolidado (LCL) el orden se invierte (`lg:order-2`, solo desde
+            el breakpoint de 2 columnas): el contenedor que se llena cambia de
+            lado para marcar visualmente que es otra lógica de precio que el
+            puerta a puerta — mismo criterio del mockup Cloud Design
+            "Tarifas · DTD-Cargo.html". */}
+        <div
+          className={`p-6 lg:p-9 flex flex-col gap-5 ${esConsolidado ? "lg:order-2" : "lg:order-1"}`}
+        >
           {/* Wordmark + eyebrow */}
           <div className="flex items-center justify-between gap-3">
             <span
               className="text-[19px] leading-none"
               style={{ fontFamily: "var(--font-brand-display)" }}
             >
-              <span className="text-wine">DTD</span>{" "}
-              <span className="text-ink">Cargo</span>
+              <span style={{ color: "var(--wine-on-dark, #E8748A)" }}>DTD</span>{" "}
+              <span className="text-white">Cargo</span>
             </span>
-            <span className="text-[11px] font-bold tracking-[0.14em] uppercase text-wine">
-              Calculadora puerta a puerta
+            <span
+              className="text-[11px] font-bold tracking-[0.14em] uppercase"
+              style={{ color: "var(--wine-on-dark, #E8748A)" }}
+            >
+              {esConsolidado
+                ? "Calculadora LCL consolidado"
+                : "Calculadora puerta a puerta"}
             </span>
           </div>
 
           {/* Título + subtítulo */}
           <div>
             <h2
-              className="text-[26px] lg:text-[30px] leading-[1.1] tracking-[-0.01em] text-ink"
+              className="text-[26px] lg:text-[30px] leading-[1.1] tracking-[-0.01em] text-white"
               style={{ fontFamily: "var(--font-archivo-black)" }}
             >
-              Cotiza tu carga China → Venezuela
+              {esConsolidado
+                ? "Cotiza tu carga consolidada hasta puerto"
+                : "Cotiza tu carga China → Venezuela"}
             </h2>
-            <p className="mt-2.5 text-[14px] text-grey-700 leading-[1.5]">
-              Puerta a puerta, pagas al llegar. Indica tu volumen y peso y te
-              damos un estimado al instante.
+            <p
+              className="mt-2.5 text-[14px] leading-[1.5]"
+              style={{ color: "rgba(255,255,255,0.65)" }}
+            >
+              {esConsolidado ? (
+                <>
+                  Tu carga viaja consolidada y te entregamos{" "}
+                  <strong className="text-white">tu propio Bill of Lading</strong>{" "}
+                  en Venezuela. Indica tu volumen y peso y te damos un estimado al
+                  instante.
+                </>
+              ) : (
+                <>
+                  Puerta a puerta, pagas al llegar. Indica tu volumen y peso y te
+                  damos un estimado al instante.
+                </>
+              )}
             </p>
           </div>
 
@@ -249,16 +337,26 @@ export function CalculadoraForm({
             <div className="flex items-center gap-2 mb-2">
               <label
                 htmlFor="tarifa-cbm"
-                className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500"
+                className="text-[11px] font-bold tracking-[0.12em] uppercase"
+                style={{ color: "rgba(255,255,255,0.5)" }}
               >
                 Tarifa de CBM
               </label>
-              <span className="text-[9.5px] font-bold tracking-[0.08em] uppercase text-wine bg-wine/10 rounded-[6px] px-2 py-[3px]">
+              <span
+                className="text-[9.5px] font-bold tracking-[0.08em] uppercase rounded-[6px] px-2 py-[3px]"
+                style={{
+                  color: "var(--wine-on-dark, #E8748A)",
+                  background: "rgba(255,255,255,0.08)",
+                }}
+              >
                 Auto · editable
               </span>
             </div>
-            <div className="flex items-center gap-2 rounded-[12px] border border-grey-200 px-3.5 h-[52px] bg-white focus-within:border-ink transition-colors">
-              <span className="text-grey-500 text-[16px] font-medium">$</span>
+            <div
+              className="flex items-center gap-2 rounded-[12px] px-3.5 h-[52px] border border-white/[0.14] focus-within:border-white/40 transition-colors"
+              style={{ background: "rgba(255,255,255,0.04)" }}
+            >
+              <span className="text-[16px] font-medium" style={{ color: "rgba(255,255,255,0.5)" }}>$</span>
               <DecimalInput
                 id="tarifa-cbm"
                 value={form.tarifaCBMOverride ?? 0}
@@ -266,14 +364,16 @@ export function CalculadoraForm({
                   update("tarifaCBMOverride", n > 0 ? n : baseRate)
                 }
                 placeholder={String(baseRate)}
-                className="num flex-1 min-w-0 bg-transparent text-[18px] font-semibold text-ink outline-none"
+                className="num flex-1 min-w-0 bg-transparent text-[18px] font-semibold text-white outline-none"
               />
-              <span className="text-[12px] text-grey-500 whitespace-nowrap">
+              <span className="text-[12px] whitespace-nowrap" style={{ color: "rgba(255,255,255,0.5)" }}>
                 USD/CBM
               </span>
             </div>
-            <p className="text-[11.5px] text-grey-500 mt-1.5 leading-[1.4]">
-              La genera el sistema. Ajústala si tu cotización es distinta.
+            <p className="text-[11.5px] mt-1.5 leading-[1.4]" style={{ color: "rgba(255,255,255,0.45)" }}>
+              {esConsolidado
+                ? "Tarifa base del consolidado. Ajústala si tu cotización es distinta."
+                : "La genera el sistema. Ajústala si tu cotización es distinta."}
             </p>
           </div>
 
@@ -341,31 +441,66 @@ export function CalculadoraForm({
             />
           </div>
 
-          {/* Destino */}
-          <div>
-            <label
-              htmlFor="ciudad"
-              className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500 mb-2 block"
-            >
-              Destino en Venezuela
-            </label>
-            <select
-              id="ciudad"
-              value={form.ciudadId}
-              onChange={(e) => update("ciudadId", e.target.value)}
-              className="w-full px-3.5 h-[52px] rounded-[12px] border border-grey-200 text-[15px] text-ink bg-white focus:outline-none focus:border-ink focus:ring-2 focus:ring-wine/40"
-            >
-              {cityList.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Destino · solo en puerta a puerta. El consolidado llega HASTA
+              PUERTO en Venezuela, así que no hay ciudad que elegir: en su lugar
+              se explica el alcance real del servicio (BL propio + aduana por
+              cuenta del cliente). Copy grounded en la ficha `lcl-consolidado`
+              de lib/servicios-detalle.ts. */}
+          {esConsolidado ? (
+            <div className="rounded-[14px] p-4" style={{ border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)" }}>
+              <span className="text-[11px] font-bold tracking-[0.12em] uppercase" style={{ color: "rgba(255,255,255,0.5)" }}>
+                Destino
+              </span>
+              <p className="mt-1.5 text-[14px] font-semibold text-white leading-[1.35]">
+                Hasta puerto en Venezuela · con tu propio BL
+              </p>
+              <p className="mt-1.5 text-[12px] leading-[1.5]" style={{ color: "rgba(255,255,255,0.65)" }}>
+                El consolidado llega <strong className="text-white">hasta puerto</strong>{" "}
+                y ahí te entregamos tu propio Bill of Lading, separado dentro del
+                Bill Master del contenedor. La{" "}
+                <strong className="text-white">aduana y los impuestos en Venezuela
+                corren por tu cuenta</strong> (o los sumas aparte como servicio de
+                aduana).
+              </p>
+            </div>
+          ) : (
+            <div>
+              <label
+                htmlFor="ciudad"
+                className="text-[11px] font-bold tracking-[0.12em] uppercase mb-2 block"
+                style={{ color: "rgba(255,255,255,0.5)" }}
+              >
+                Destino en Venezuela
+              </label>
+              <select
+                id="ciudad"
+                value={form.ciudadId}
+                onChange={(e) => update("ciudadId", e.target.value)}
+                className="w-full px-3.5 h-[52px] rounded-[12px] text-[15px] text-white focus:outline-none focus:ring-2 focus:ring-wine/40"
+                style={{ border: "1.5px solid rgba(255,255,255,0.14)", background: "rgba(255,255,255,0.04)" }}
+              >
+                {cityList.map((c) => (
+                  <option key={c.id} value={c.id} className="text-ink">
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
-        {/* ── COLUMNA DERECHA · RESULTADO ── */}
-        <div className="p-6 lg:p-9 bg-paper flex flex-col gap-4">
+        {/* ── COLUMNA DERECHA · RESULTADO ──
+            El divisor vive acá (no en la entrada) para que siempre quede del
+            lado que mira a la columna de entrada, sin importar en qué orden
+            caiga cada una. */}
+        <div
+          className={`p-6 lg:p-9 flex flex-col gap-4 ${esConsolidado ? "lg:order-1" : "lg:order-2"}`}
+          style={{
+            background: "rgba(0,0,0,0.15)",
+            borderLeft: esConsolidado ? "none" : "1px solid rgba(255,255,255,0.1)",
+            borderRight: esConsolidado ? "1px solid rgba(255,255,255,0.1)" : "none",
+          }}
+        >
           <ContainerFill cbm={effectiveForm.cbmTotal} max={params.cbmMaxContenedor} />
           <ResultPanel
             cotizacion={cotizacion}
@@ -373,26 +508,45 @@ export function CalculadoraForm({
             tieneCarga={tieneCarga}
             pesoIncluidoKg={params.pesoIncluidoKg}
             onEstimar={() => setModalOpen(true)}
+            directWhatsApp={directWhatsApp}
+            modo={modo}
           />
         </div>
       </div>
 
       {/* Nota al pie · ancho completo */}
-      <div className="border-t border-grey-200 px-6 lg:px-9 py-4">
-        <p className="text-[11.5px] text-grey-500 leading-[1.5]">
-          <strong className="text-grey-700">* Pagas al llegar:</strong> pagas
-          el flete cuando tu carga llega a Venezuela. <strong className="text-grey-700">Pueden
-          aplicar restricciones.</strong>{" "}
-          Este estimado es aproximado y refleja nuestra tarifa base DDP (puerta a
-          puerta).
-        </p>
+      <div className="px-6 lg:px-9 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+        {esConsolidado ? (
+          <p className="text-[11.5px] leading-[1.5]" style={{ color: "rgba(255,255,255,0.45)" }}>
+            <strong style={{ color: "rgba(255,255,255,0.65)" }}>* Hasta puerto:</strong> el servicio
+            llega hasta entregarte tu Bill of Lading en Venezuela; la aduana y los
+            impuestos corren por tu cuenta.{" "}
+            <strong style={{ color: "rgba(255,255,255,0.65)" }}>Pueden aplicar restricciones.</strong>{" "}
+            Este estimado es aproximado y refleja nuestra tarifa base de
+            consolidado.
+          </p>
+        ) : (
+          <p className="text-[11.5px] leading-[1.5]" style={{ color: "rgba(255,255,255,0.45)" }}>
+            <strong style={{ color: "rgba(255,255,255,0.65)" }}>* Pagas al llegar:</strong> pagas
+            el flete cuando tu carga llega a Venezuela. <strong style={{ color: "rgba(255,255,255,0.65)" }}>Pueden
+            aplicar restricciones.</strong>{" "}
+            Este estimado es aproximado y refleja nuestra tarifa base DDP (puerta a
+            puerta).
+          </p>
+        )}
         {/* Condiciones del cliente (sutil, sin números internos) — desplegable */}
         <details className="mt-2.5 group">
-          <summary className="text-[11.5px] font-semibold text-wine cursor-pointer list-none inline-flex items-center gap-1.5 min-h-[44px] hover:text-ink transition-colors rounded-[4px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+          <summary
+            className="text-[11.5px] font-semibold cursor-pointer list-none inline-flex items-center gap-1.5 min-h-[44px] transition-colors rounded-[4px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            style={{ color: "var(--wine-on-dark, #E8748A)" }}
+          >
             <span aria-hidden="true" className="text-[9px] leading-none transition-transform group-open:rotate-90">▶</span>
             ¿Qué incluye tu estimado?
           </summary>
-          <ul className="mt-2 pl-4 flex flex-col gap-1.5 text-[11.5px] text-grey-500 leading-[1.45] list-disc marker:text-grey-300">
+          <ul
+            className="mt-2 pl-4 flex flex-col gap-1.5 text-[11.5px] leading-[1.45] list-disc"
+            style={{ color: "rgba(255,255,255,0.5)" }}
+          >
             <li>Un buen margen de peso por cada m³ — la mayoría de las cargas entra sin recargo.</li>
             <li>Si tu carga es más densa, suma un pequeño ajuste por el peso extra; igual te da el precio al instante.</li>
             <li>Pesamos y medimos tu carga al recibirla; la tarifa final se ajusta a lo real.</li>
@@ -403,8 +557,8 @@ export function CalculadoraForm({
 
       {/* SDD-0061 Fase B2 — confirmación post-estimado + CTA opcional de registro
           (baja fricción). Solo si el ERP devolvió código (si falló, no hay qué
-          vincular). */}
-      {savedEstimateCode && (
+          vincular). En modo directWhatsApp NO hay captura → no se muestra. */}
+      {!directWhatsApp && savedEstimateCode && (
         <div className="mt-4 card-shadow bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex-1">
             <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine">
@@ -427,21 +581,25 @@ export function CalculadoraForm({
         </div>
       )}
 
-      <EstimadoModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onConfirm={handleConfirm}
-        buildPayload={() => ({
-          calc: "lcl",
-          origin: "China",
-          destination: cotizacion.ciudad?.label ?? "Venezuela",
-          cbm: effectiveForm.cbmTotal,
-          weightKg: effectiveForm.pesoKg,
-          packaging: effectiveForm.embalaje === "especial" ? "madera" : "carton",
-          totalUsd: cotizacion.total,
-          subtotalUsd: cotizacion.total,
-        })}
-      />
+      {/* Modal de captura del estimado — solo en el flujo legacy. En /tarifas
+          (directWhatsApp) la calc no guarda nada, así que no se monta. */}
+      {!directWhatsApp && (
+        <EstimadoModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          onConfirm={handleConfirm}
+          buildPayload={() => ({
+            calc: "lcl",
+            origin: "China",
+            destination: cotizacion.ciudad?.label ?? "Venezuela",
+            cbm: effectiveForm.cbmTotal,
+            weightKg: effectiveForm.pesoKg,
+            packaging: effectiveForm.embalaje === "especial" ? "madera" : "carton",
+            totalUsd: cotizacion.total,
+            subtotalUsd: cotizacion.total,
+          })}
+        />
+      )}
     </>
   );
 }
@@ -491,37 +649,37 @@ function BigInput({
   return (
     <label className="flex flex-col gap-1.5 min-w-0">
       <span className="flex items-center gap-2 min-w-0">
-        <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500">
+        <span className="text-[11px] font-bold tracking-[0.12em] uppercase" style={{ color: "rgba(255,255,255,0.5)" }}>
           {label}
         </span>
         {tag && (
-          <span className="text-[9px] font-bold tracking-[0.06em] uppercase text-wine bg-wine/10 rounded-[5px] px-1.5 py-[2px] whitespace-nowrap">
+          <span
+            className="text-[9px] font-bold tracking-[0.06em] uppercase rounded-[5px] px-1.5 py-[2px] whitespace-nowrap"
+            style={{ color: "var(--wine-on-dark, #E8748A)", background: "rgba(255,255,255,0.08)" }}
+          >
             {tag}
           </span>
         )}
       </span>
       <div
         className={`flex items-center gap-2 rounded-[12px] border px-3.5 h-[60px] transition-colors ${
-          warning
-            ? `${warnBorder} bg-white`
-            : readOnly
-              ? "border-grey-200 bg-paper"
-              : "border-grey-200 bg-white focus-within:border-ink"
+          warning ? warnBorder : "border-white/[0.14] focus-within:border-white/40"
         }`}
+        style={{ background: readOnly ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.04)" }}
       >
         {readOnly ? (
-          <span className="num flex-1 min-w-0 text-[24px] font-bold text-ink truncate">
-            {value > 0 ? value : <span className="text-grey-300">{placeholder}</span>}
+          <span className="num flex-1 min-w-0 text-[24px] font-bold text-white truncate">
+            {value > 0 ? value : <span style={{ color: "rgba(255,255,255,0.3)" }}>{placeholder}</span>}
           </span>
         ) : (
           <DecimalInput
             value={value}
             onValueChange={onChange}
             placeholder={placeholder}
-            className="num flex-1 min-w-0 bg-transparent text-[24px] font-bold text-ink outline-none"
+            className="num flex-1 min-w-0 bg-transparent text-[24px] font-bold text-white outline-none"
           />
         )}
-        <span className="text-[13px] text-grey-500 whitespace-nowrap">{suffix}</span>
+        <span className="text-[13px] whitespace-nowrap" style={{ color: "rgba(255,255,255,0.5)" }}>{suffix}</span>
       </div>
       {warning && (
         <span className={`text-[11px] leading-[1.35] font-medium ${warnText}`}>
@@ -566,7 +724,8 @@ function CbmPorMedidas({
         type="button"
         onClick={() => onToggle(!open)}
         aria-expanded={open}
-        className="self-start inline-flex items-center gap-2 text-[13px] font-bold text-wine hover:text-ink transition-colors rounded-[4px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        className="self-start inline-flex items-center gap-2 text-[13px] font-bold hover:text-white transition-colors rounded-[4px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        style={{ color: "var(--wine-on-dark, #E8748A)" }}
       >
         <span
           aria-hidden="true"
@@ -581,12 +740,15 @@ function CbmPorMedidas({
       </button>
 
       {open && (
-        <div className="rounded-[14px] border border-grey-200 bg-paper p-4 flex flex-col gap-3.5">
+        <div
+          className="rounded-[14px] p-4 flex flex-col gap-3.5"
+          style={{ border: "1px solid rgba(255,255,255,0.12)", background: "rgba(0,0,0,0.15)" }}
+        >
           <div className="flex items-center justify-between gap-3">
-            <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500">
+            <span className="text-[11px] font-bold tracking-[0.12em] uppercase" style={{ color: "rgba(255,255,255,0.5)" }}>
               Medidas de tu caja
             </span>
-            <span className="text-[11px] text-grey-500">en centímetros</span>
+            <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.5)" }}>en centímetros</span>
           </div>
 
           <div className="grid grid-cols-3 gap-2.5">
@@ -602,13 +764,13 @@ function CbmPorMedidas({
             placeholder="1"
           />
 
-          <p className="text-[11.5px] text-grey-500 leading-[1.45]">
+          <p className="text-[11.5px] leading-[1.45]" style={{ color: "rgba(255,255,255,0.5)" }}>
             {cbmTotal > 0 ? (
               <>
-                <span className="num font-semibold text-grey-700">{cbmCaja} m³</span> por
+                <span className="num font-semibold" style={{ color: "rgba(255,255,255,0.75)" }}>{cbmCaja} m³</span> por
                 caja ×{" "}
-                <span className="num font-semibold text-grey-700">{dims.cajas}</span> ={" "}
-                <span className="num font-semibold text-ink">{cbmTotal} m³</span> — ya
+                <span className="num font-semibold" style={{ color: "rgba(255,255,255,0.75)" }}>{dims.cajas}</span> ={" "}
+                <span className="num font-semibold text-white">{cbmTotal} m³</span> — ya
                 cargado arriba.
               </>
             ) : (
@@ -637,18 +799,18 @@ function DimInput({
 }) {
   return (
     <label className="flex flex-col gap-1.5 min-w-0">
-      <span className="text-[10.5px] font-bold tracking-[0.1em] uppercase text-grey-500">
+      <span className="text-[10.5px] font-bold tracking-[0.1em] uppercase" style={{ color: "rgba(255,255,255,0.5)" }}>
         {label}
       </span>
-      <div className="flex items-center gap-1.5 rounded-[10px] border border-grey-200 px-3 h-[46px] bg-white focus-within:border-ink transition-colors">
+      <div className="flex items-center gap-1.5 rounded-[10px] px-3 h-[46px] border border-white/[0.14] focus-within:border-white/40 transition-colors" style={{ background: "rgba(255,255,255,0.04)" }}>
         <DecimalInput
           value={value}
           onValueChange={onChange}
           placeholder={placeholder}
-          className="num flex-1 min-w-0 bg-transparent text-[16px] font-semibold text-ink outline-none"
+          className="num flex-1 min-w-0 bg-transparent text-[16px] font-semibold text-white outline-none"
         />
         {suffix && (
-          <span className="text-[12px] text-grey-500 whitespace-nowrap">{suffix}</span>
+          <span className="text-[12px] whitespace-nowrap" style={{ color: "rgba(255,255,255,0.5)" }}>{suffix}</span>
         )}
       </div>
     </label>
@@ -671,13 +833,13 @@ function SwitchField({
 }) {
   return (
     <label
-      className={`flex items-center gap-3 p-3.5 rounded-[12px] border cursor-pointer transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-ink focus-within:outline-offset-2 ${
-        checked ? "border-wine bg-wine/5" : "border-grey-200 hover:border-grey-500"
+      className={`flex items-center gap-3 p-3.5 rounded-[12px] border cursor-pointer transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-white focus-within:outline-offset-2 ${
+        checked ? "border-wine bg-wine/10" : "border-white/[0.14] hover:border-white/30"
       }`}
     >
       <span
         className={`relative inline-flex shrink-0 h-[26px] w-[46px] rounded-full transition-colors ${
-          checked ? "bg-wine" : "bg-grey-300"
+          checked ? "bg-wine" : "bg-white/20"
         }`}
       >
         <input
@@ -693,13 +855,13 @@ function SwitchField({
         />
       </span>
       <span className="flex flex-col flex-1 min-w-0">
-        <span className="text-[14px] font-semibold text-ink leading-[1.2]">
+        <span className="text-[14px] font-semibold text-white leading-[1.2]">
           {label}
         </span>
-        <span className="text-[11.5px] text-grey-500 leading-[1.35]">{hint}</span>
+        <span className="text-[11.5px] leading-[1.35]" style={{ color: "rgba(255,255,255,0.5)" }}>{hint}</span>
       </span>
       {badge && (
-        <span className="num text-[12px] font-semibold text-grey-500 whitespace-nowrap">
+        <span className="num text-[12px] font-semibold whitespace-nowrap" style={{ color: "rgba(255,255,255,0.5)" }}>
           {badge}
         </span>
       )}
@@ -719,22 +881,25 @@ function ContainerFill({ cbm, max }: { cbm: number; max: number }) {
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3 mb-2.5">
-        <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500">
+        <span className="text-[11px] font-bold tracking-[0.12em] uppercase" style={{ color: "rgba(255,255,255,0.5)" }}>
           En un contenedor 40&apos;HC
         </span>
-        <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500">
+        <span className="text-[11px] font-bold tracking-[0.12em] uppercase" style={{ color: "rgba(255,255,255,0.5)" }}>
           <span className="num">{max}</span> CBM
         </span>
       </div>
       <div className="flex gap-2 items-stretch h-[140px]">
         {/* Cuerpo del contenedor */}
-        <div className="relative flex-1 rounded-[12px] border-2 border-ink overflow-hidden bg-white">
+        <div
+          className="relative flex-1 rounded-[12px] overflow-hidden"
+          style={{ border: "2px solid rgba(255,255,255,0.16)", background: "rgba(255,255,255,0.03)" }}
+        >
           {/* Corrugado vertical */}
           <div
             className="absolute inset-0"
             style={{
               backgroundImage:
-                "repeating-linear-gradient(90deg, transparent 0, transparent 13px, rgba(15,30,61,0.10) 13px, rgba(15,30,61,0.10) 14px)",
+                "repeating-linear-gradient(90deg, transparent 0, transparent 13px, rgba(255,255,255,0.05) 13px, rgba(255,255,255,0.05) 14px)",
             }}
           />
           {/* Relleno wine (scaleX desde la izquierda) */}
@@ -749,20 +914,23 @@ function ContainerFill({ cbm, max }: { cbm: number; max: number }) {
           {/* % lleno centrado */}
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span
-              className="num text-[34px] leading-none text-ink"
+              className="num text-[34px] leading-none text-white"
               style={{ fontFamily: "var(--font-archivo-black)" }}
             >
               {over ? "100%+" : `${pct}%`}
             </span>
-            <span className="text-[10.5px] font-bold tracking-[0.16em] uppercase text-grey-500 mt-1">
+            <span className="text-[10.5px] font-bold tracking-[0.16em] uppercase mt-1" style={{ color: "rgba(255,255,255,0.55)" }}>
               Lleno
             </span>
           </div>
         </div>
         {/* Puerta del contenedor */}
-        <div className="w-[40px] rounded-[12px] border-2 border-ink flex items-center justify-center gap-1.5">
-          <span className="block w-[3px] h-[44px] rounded bg-ink/45" />
-          <span className="block w-[3px] h-[44px] rounded bg-ink/45" />
+        <div
+          className="w-[40px] rounded-[12px] flex items-center justify-center gap-1.5"
+          style={{ border: "2px solid rgba(255,255,255,0.16)" }}
+        >
+          <span className="block w-[3px] h-[44px] rounded bg-white/25" />
+          <span className="block w-[3px] h-[44px] rounded bg-white/25" />
         </div>
       </div>
     </div>
@@ -779,9 +947,14 @@ function ContainerFill({ cbm, max }: { cbm: number; max: number }) {
  * detrás de `cot.recargoExcedente > 0`, así que desaparecía cuando la carga no
  * era densa (bug "no me muestra el desglose en el 2do cálculo"). Ahora itemiza
  * Volumen base + Excedente de peso (si hay) + Embalaje/Baterías/Descuento/Ajuste
- * (los que apliquen) + Total. El recargo por distancia sigue plegado dentro de
- * "Volumen base" (interno, decisión founder previa); el subtexto "CBM × tarifa"
- * solo se muestra cuando NO hay recargo de ciudad para que la aritmética cuadre.
+ * (los que apliquen) + Total.
+ *
+ * Recargo por ciudad (founder 2026-07-21): línea PROPIA "Entrega a {ciudad}"
+ * cuando `recargoCiudad > 0` — antes venía plegado dentro de "Volumen base"
+ * sin mostrar el subtexto "CBM × tarifa", así que el total subía (p. ej. Isla
+ * Margarita) sin ninguna línea que lo explicara (bug "no me sale el desglose
+ * del flete"). "Volumen base" ahora es SIEMPRE solo `precioBase`, con subtexto
+ * siempre visible.
  */
 function ResultPanel({
   cotizacion: cot,
@@ -789,6 +962,8 @@ function ResultPanel({
   tieneCarga,
   pesoIncluidoKg,
   onEstimar,
+  directWhatsApp = false,
+  modo = "ddp",
 }: {
   cotizacion: EnvioCotizacion;
   input: EnvioInput;
@@ -797,7 +972,12 @@ function ResultPanel({
   pesoIncluidoKg: number;
   /** Abre el modal de captura del estimado web (caso con precio válido). */
   onEstimar: () => void;
+  /** CTA WhatsApp directo (sin modal ni POST) — Fase 3 /tarifas. */
+  directWhatsApp?: boolean;
+  /** Modalidad: cambia el sello del total, el "incluye" y el badge de pago. */
+  modo?: CalcModo;
 }) {
+  const esConsolidado = modo === "consolidado";
   const hasAlerta = !!cot.alerta && tieneCarga;
   const money = (n: number) =>
     `$${Math.round(Math.abs(n)).toLocaleString("en-US")}`;
@@ -808,8 +988,8 @@ function ResultPanel({
   const incluidoKg = Math.round(cot.cbm * pesoIncluidoKg);
   const excesoKg = Math.max(0, Math.round(input.pesoKg - incluidoKg));
 
-  // Filas del desglose. "Volumen base" pliega el recargo de ciudad (interno);
-  // el resto solo aparece si aplica. `kind` decide el signo/color del monto.
+  // Filas del desglose. Cada recargo que aplica tiene su propia línea.
+  // `kind` decide el signo/color del monto.
   const rows: {
     label: string;
     sub: string | null;
@@ -819,10 +999,18 @@ function ResultPanel({
   }[] = [
     {
       label: "Volumen base",
-      sub: cot.recargoCiudad === 0 ? `${cot.cbm} CBM × $${tarifaEff}` : null,
-      value: cot.precioBase + cot.recargoCiudad,
+      sub: `${cot.cbm} CBM × $${tarifaEff}`,
+      value: cot.precioBase,
       kind: "base",
     },
+    ...(cot.recargoCiudad > 0
+      ? [{
+          label: `Entrega a ${cot.ciudad?.label ?? "tu ciudad"}`,
+          sub: null,
+          value: cot.recargoCiudad,
+          kind: "add" as const,
+        }]
+      : []),
     ...(cot.recargoExcedente > 0
       ? [{
           label: "Excedente de peso",
@@ -895,9 +1083,19 @@ function ResultPanel({
               className="text-[12px] leading-[1.4] text-right"
               style={{ color: "rgba(255,255,255,0.55)" }}
             >
-              aprox · DDP
-              <br />
-              puerta a puerta
+              {esConsolidado ? (
+                <>
+                  aprox · LCL
+                  <br />
+                  hasta puerto
+                </>
+              ) : (
+                <>
+                  aprox · DDP
+                  <br />
+                  puerta a puerta
+                </>
+              )}
             </span>
           </div>
         )}
@@ -907,8 +1105,26 @@ function ResultPanel({
             style={{ color: "rgba(255,255,255,0.65)" }}
           >
             <span style={{ color: "rgba(255,255,255,0.6)" }}>Incluye:</span>{" "}
-            flete marítimo · aduana · impuestos · entrega en{" "}
-            {cot.ciudad?.label ?? "destino"}.
+            {esConsolidado ? (
+              <>
+                consolidación en nuestra bodega de Yiwu · flete marítimo
+                internacional · tu propio Bill of Lading.
+              </>
+            ) : (
+              <>
+                flete marítimo · aduana · impuestos · entrega en{" "}
+                {cot.ciudad?.label ?? "destino"}.
+              </>
+            )}
+          </p>
+        )}
+        {esConsolidado && tieneCarga && !hasAlerta && (
+          <p
+            className="mt-1.5 text-[12px] leading-[1.5]"
+            style={{ color: "rgba(255,255,255,0.55)" }}
+          >
+            No incluye: aduana e impuestos en Venezuela · servicios portuarios y
+            transporte interno.
           </p>
         )}
       </div>
@@ -920,44 +1136,56 @@ function ResultPanel({
           Excedente de peso (con "X kg sobre Y kg incl.", sin $/kg), Embalaje,
           etc. El recargo por distancia sigue plegado en "Volumen base". */}
       {tieneCarga && !hasAlerta && (
-        <div className="rounded-[12px] border border-grey-200 bg-white px-4 py-3.5 flex flex-col gap-2.5">
+        <div
+          className="rounded-[12px] px-4 py-3.5 flex flex-col gap-2.5"
+          style={{ border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)" }}
+        >
           {rows.map((r) => (
             <div key={r.label} className="flex items-start justify-between gap-3">
               <span className="flex flex-col min-w-0">
                 <span
-                  className={`text-[13px] leading-tight ${r.accent ? "font-semibold text-wine" : "text-grey-700"}`}
+                  className="text-[13px] leading-tight"
+                  style={r.accent ? { fontWeight: 600, color: "var(--wine-on-dark, #E8748A)" } : { color: "rgba(255,255,255,0.7)" }}
                 >
                   {r.label}
                 </span>
                 {r.sub && (
-                  <span className="num text-[11px] text-grey-500 leading-tight mt-0.5">
+                  <span className="num text-[11px] leading-tight mt-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>
                     {r.sub}
                   </span>
                 )}
               </span>
               <span
-                className={`num text-[13px] whitespace-nowrap ${r.accent ? "font-bold text-wine" : "font-semibold text-ink"}`}
+                className="num text-[13px] whitespace-nowrap"
+                style={r.accent ? { fontWeight: 700, color: "var(--wine-on-dark, #E8748A)" } : { fontWeight: 600, color: "#fff" }}
               >
                 {r.kind === "sub" ? "−" : r.kind === "add" ? "+" : ""}
                 {money(r.value)}
               </span>
             </div>
           ))}
-          <div className="mt-0.5 pt-2.5 border-t border-grey-200 flex items-center justify-between gap-3">
-            <span className="text-[13px] font-bold text-ink">Total estimado</span>
-            <span className="num text-[15px] font-bold text-ink">{money(cot.total)}</span>
+          <div
+            className="mt-0.5 pt-2.5 flex items-center justify-between gap-3"
+            style={{ borderTop: "1px solid rgba(255,255,255,0.12)" }}
+          >
+            <span className="text-[13px] font-bold text-white">Total estimado</span>
+            <span className="num text-[15px] font-bold text-white">{money(cot.total)}</span>
           </div>
         </div>
       )}
 
-      {/* Badge financiamiento (pill verde claro) */}
+      {/* Badge (pill verde claro) · DDP = financiamiento "pagas al llegar";
+          consolidado = tiempo real del servicio hasta entregarte el BL
+          (grounded: ficha `lcl-consolidado`, 60 a 90 días). */}
       {!hasAlerta && (
         <div
           className="inline-flex items-center gap-2.5 rounded-[10px] px-3.5 py-2.5 text-[13px] font-semibold text-ink"
-          style={{ background: "rgba(31,138,91,0.12)" }}
+          style={{ background: "#CFE9DC" }}
         >
           <span className="fin-badge-dot-green" aria-hidden="true" />
-          Pagas al llegar* · cuando tu carga llega a Venezuela
+          {esConsolidado
+            ? "60 a 90 días* · hasta entregarte tu Bill of Lading"
+            : "Pagas al llegar* · cuando tu carga llega a Venezuela"}
         </div>
       )}
 
@@ -994,6 +1222,18 @@ function ResultPanel({
               <WhatsAppIcon size={20} />
               Consultar con un asesor
             </a>
+          ) : directWhatsApp ? (
+            // Fase 3 · /tarifas: WhatsApp directo con el texto del estimado (la
+            // conversión la captura el listener global de <a> a wa.me).
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn bg-whatsapp text-white"
+            >
+              <WhatsAppIcon size={20} />
+              Enviar por WhatsApp
+            </a>
           ) : (
             <button
               type="button"
@@ -1006,7 +1246,7 @@ function ResultPanel({
           )}
 
           {/* Microcopy */}
-          <p className="text-[11.5px] text-grey-500 text-center leading-[1.45]">
+          <p className="text-[11.5px] text-center leading-[1.45]" style={{ color: "rgba(255,255,255,0.45)" }}>
             Tu mensaje se arma solo con estos datos. Con Confianza, de China a tu
             puerta.
           </p>

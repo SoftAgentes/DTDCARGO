@@ -1,29 +1,43 @@
 import type { Metadata } from "next";
-import { jetbrainsMono } from "@/lib/fonts";
+import Image from "next/image";
 import { socialMeta } from "@/lib/seo-og";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import { ContactoForm } from "@/components/ContactoForm";
-import { ChinaSupplierClip } from "@/components/ChinaSupplierClip";
-import { CONTACT, buildGoogleMapsLink } from "@/lib/design-tokens";
-import { WhatsAppIcon, MapPinIcon, PhoneIcon, MailIcon } from "@/components/Icon";
+import { CONTACT } from "@/lib/design-tokens";
+import { WhatsAppIcon, PhoneIcon, MailIcon } from "@/components/Icon";
 
-// JetBrains Mono (mono de marca) para el input del Shipping Mark del clip de
-// proveedor (ChinaSupplierClip la referencia vía FONT_MONO con fallback): la
-// página monta --font-mono con la instancia única de lib/fonts.ts, igual que
-// /calculadora y /faq. El resto sigue en Archivo.
+/**
+ * `/contacto` — "Contáctenos".
+ *
+ * Rebuild fiel al mockup Cloud Design "Contáctenos · DTD-Cargo.html"
+ * (2026-07-20), VARIANTE C: encabezado + bloque dual China/Venezuela a todo el
+ * ancho + fila de canales + panel vino con el formulario. El CSS del handoff
+ * (`web/contacto.css`) trae las 3 propuestas; solo la C llegó al marcado, y
+ * solo esa se portó — ver el bloque `.cx-surface` en `app/globals.css`.
+ *
+ * Dos decisiones del founder que se apartan del mockup:
+ *   · El formulario manda SOLO por WhatsApp (ya no postea a `/api/contact`,
+ *     que queda deprecado pero en su sitio).
+ *   · La micro-línea legal NO lleva RIF ni razón social: van únicamente en el
+ *     JSON-LD del layout raíz (`#organization`).
+ *
+ * Nav / Footer / WhatsAppFAB son los del sitio (el mockup trae los suyos, que
+ * no se copian). Los datos de contacto visibles salen de `CONTACT`.
+ */
+
+const DESC =
+  "Habla con DTD Cargo. Oficinas propias en Yiwu (China) y Valencia (Venezuela). WhatsApp directo, info@dtdcargo.com, respuesta en menos de 24 horas.";
 
 export const metadata: Metadata = {
-  title: "Contacto",
-  description:
-    "Habla con DTD Cargo. Oficinas propias en Yiwu (China) y Valencia (Venezuela). WhatsApp directo, info@dtdcargo.com, respuesta en menos de 24 horas.",
+  title: "Contáctenos",
+  description: DESC,
   alternates: { canonical: "/contacto" },
   ...socialMeta({
-    title: "Contacto · DTD Cargo",
-    description:
-      "Habla con DTD Cargo. Oficinas propias en Yiwu (China) y Valencia (Venezuela). WhatsApp directo, info@dtdcargo.com, respuesta en menos de 24 horas.",
+    title: "Contáctenos · DTD Cargo",
+    description: DESC,
     path: "/contacto",
   }),
 };
@@ -35,129 +49,88 @@ export default function ContactoPage() {
       <BreadcrumbJsonLd
         items={[
           { name: "Inicio", path: "/" },
-          { name: "Contacto", path: "/contacto" },
+          { name: "Contáctenos", path: "/contacto" },
         ]}
       />
-      <main className={`bg-paper ${jetbrainsMono.variable}`}>
-        <section className="py-16 lg:py-24">
-          <div className="wrap">
-            <span className="eyebrow">Contacto</span>
-            <h1
-              className="h-display mt-5"
-              style={{ fontSize: "clamp(40px, 6vw, 80px)" }}
-            >
-              Una persona
-              <br />
-              <span style={{ color: "var(--color-wine)" }}>te responde.</span>
-            </h1>
-            <p className="lead mt-6">
-              Sin call center, sin tickets, sin handoffs. Escríbenos por el
-              canal que prefieras y un asesor humano te responde en menos de
-              24 horas.
-            </p>
+      <main className="cx-surface">
+        {/* ── Encabezado ── */}
+        <section className="wrap cx-c-head">
+          <div className="eyebrow-h">
+            <span className="rule" />
+            Dos países, un solo equipo
           </div>
+          <h1 className="cx-h1">
+            Un equipo. Dos países. <span className="hl">Una sola conversación.</span>
+          </h1>
+          <p className="cx-sub">
+            De la bodega en Yiwu a tu puerta en Valencia, el mismo equipo coordina todo
+            el trayecto. Escríbenos y hablas con quien de verdad conoce tu carga.
+          </p>
         </section>
 
-        <section className="pb-16 lg:pb-24">
-          <div className="wrap grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-12">
-            {/* Tarjetas de oficinas */}
-            <div className="flex flex-col gap-5">
-              <OfficeCard
-                flag="🇻🇪"
-                country={CONTACT.ve.label}
-                tagline="Oficina comercial y operativa"
-                address={CONTACT.ve.address}
-                addressFull={CONTACT.ve.addressFull}
-                mapsUrl={CONTACT.ve.mapsUrl}
-                city={CONTACT.ve.city}
-                hours={CONTACT.ve.hours}
-                contacts={[
-                  {
-                    kind: "phone",
-                    label: CONTACT.ve.phone,
-                    href: `tel:${CONTACT.ve.phoneRaw}`,
-                  },
-                  {
-                    kind: "whatsapp",
-                    label: `${CONTACT.ve.whatsapp} · WhatsApp`,
-                    href: `https://wa.me/${CONTACT.ve.whatsappRaw}`,
-                  },
-                  // Email unificado: se muestra una sola vez en la tarjeta "Email general" (info@).
-                ]}
-              />
-              <OfficeCard
-                flag="🇨🇳"
-                country={CONTACT.cn.label}
-                tagline="Bodega propia y oficina operativa"
-                address={CONTACT.cn.address}
-                addressFull={CONTACT.cn.addressFull}
-                city={CONTACT.cn.city}
-                hours={CONTACT.cn.hours}
-                contacts={[
-                  {
-                    kind: "phone",
-                    label: `${CONTACT.cn.phone} · ${CONTACT.cn.contactPersonPinyin}`,
-                    href: `tel:${CONTACT.cn.phoneRaw}`,
-                  },
-                  {
-                    kind: "email",
-                    label: CONTACT.cn.email,
-                    href: `mailto:${CONTACT.cn.email}`,
-                  },
-                ]}
-                note="Atención en mandarín. Visitas a fábrica con cita previa."
-              />
+        {/* ── Puente CN ↔ VE ── */}
+        <section className="cx-dual">
+          <DualHalf
+            src="/fotos/bodega-yiwu-china-recepcion-consolidacion-dtd-cargo.jpg"
+            alt="Operación de DTD Cargo en Yiwu: un contenedor estibado de piso a techo con cajas de varios clientes, el equipo con camisa DTD Cargo revisando los listados junto al contenedor y sacos rotulados en chino listos para consolidar"
+            tag="Yiwu · China"
+            title="Recepción y consolidación"
+            text="Bodega propia: recibimos, revisamos y consolidamos cada compra antes de embarcarla."
+            priority
+          />
+          <DualHalf
+            src="/fotos/puerto-venezuela-aduana-entrega-final-dtd-cargo.jpg"
+            alt="Operación de DTD Cargo en Venezuela: la cuadrilla descargando el contenedor en el puerto con las grúas del patio al fondo, el equipo en la oficina de Valencia y un operario con la mercancía ya nacionalizada"
+            tag="Valencia · Venezuela"
+            title="Aduana y entrega final"
+            text="Nacionalización, impuestos y reparto puerta a puerta. Pagas al llegar."
+          />
+        </section>
 
-              <ChinaSupplierClip />
+        <section className="wrap" style={{ padding: "clamp(40px, 6vw, 56px) 0 0" }}>
+          {/* ── Canales directos (datos desde CONTACT) ── */}
+          <div className="cx-inline-channels">
+            <Channel
+              icon={<MailIcon size={21} />}
+              label="Email"
+              value={CONTACT.emailGeneral}
+              href={`mailto:${CONTACT.emailGeneral}`}
+            />
+            <Channel
+              icon={<PhoneIcon size={21} />}
+              label="Teléfono"
+              value={CONTACT.ve.phone}
+              href={`tel:${CONTACT.ve.phoneRaw}`}
+            />
+            <Channel
+              icon={<WhatsAppIcon size={21} />}
+              label="WhatsApp directo"
+              value={CONTACT.ve.whatsapp}
+              href={`https://wa.me/${CONTACT.ve.whatsappRaw}`}
+              external
+            />
+          </div>
 
-              <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-7 lg:p-8">
-                <div className="eyebrow mb-4">Email general</div>
-                <a
-                  href={`mailto:${CONTACT.emailGeneral}`}
-                  className="text-[22px] lg:text-[26px] tracking-[-0.01em] text-ink hover:text-wine block"
-                  style={{ fontFamily: "var(--font-archivo-black)" }}
-                >
-                  {CONTACT.emailGeneral}
-                </a>
-                <p className="text-[13.5px] text-grey-500 mt-2">
-                  Si no sabes a qué sede escribir, este buzón llega al equipo
-                  completo.
-                </p>
+          {/* ── Panel vino · formulario (envío por WhatsApp) ── */}
+          <div className="cx-wine-panel">
+            <div className="cx-panel-head">
+              <div className="cx-panel-eyebrow">
+                <span className="rule" />
+                Escríbenos
               </div>
-
-              <div className="card-shadow-dark bg-ink text-white rounded-[18px] p-7 lg:p-9 flex flex-col gap-3">
-                <div
-                  className="eyebrow"
-                  style={{ color: "rgba(255,255,255,0.5)" }}
-                >
-                  Atajo
-                </div>
-                <h3
-                  className="text-[26px] leading-[1.1] tracking-[-0.01em]"
-                  style={{ fontFamily: "var(--font-archivo-black)" }}
-                >
-                  ¿Necesitas respuesta ya?
-                </h3>
-                <p className="text-[14.5px] text-white/70 leading-[1.5]">
-                  Envíanos un WhatsApp y un asesor humano te contesta en
-                  minutos. Atendemos todos los días 8:00–20:00 (GMT-4).
-                </p>
-                <a
-                  href={`https://wa.me/${CONTACT.ve.whatsappRaw}?text=${encodeURIComponent(
-                    "Hola DTD Cargo, quería consultar por un envío."
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn mt-3 inline-flex items-center gap-2 self-start bg-whatsapp text-white"
-                >
-                  <WhatsAppIcon size={20} /> Abrir WhatsApp
-                </a>
-              </div>
+              <h2>Cuéntanos qué necesitas.</h2>
+              <p>
+                Lo enviamos directo por WhatsApp a un asesor — te responde alguien que
+                conoce la ruta CN → VE.
+              </p>
             </div>
-
-            {/* Formulario */}
             <ContactoForm />
           </div>
+
+          {/* Sin RIF ni razón social: van solo en el JSON-LD (regla de marca). */}
+          <p className="cx-legal">
+            DTD Cargo · © {new Date().getFullYear()} Todos los derechos reservados
+          </p>
         </section>
       </main>
       <Footer />
@@ -166,91 +139,60 @@ export default function ContactoPage() {
   );
 }
 
-type Contact = {
-  kind: "phone" | "whatsapp" | "email";
-  label: string;
-  href: string;
-};
-
-function OfficeCard({
-  flag,
-  country,
-  tagline,
-  address,
-  addressFull,
-  mapsUrl,
-  city,
-  hours,
-  contacts,
-  note,
+function DualHalf({
+  src,
+  alt,
+  tag,
+  title,
+  text,
+  priority,
 }: {
-  flag?: string;
-  country: string;
-  tagline: string;
-  address: string;
-  addressFull: string;
-  /** URL específica del pin de Google Maps; tiene prioridad sobre el query por dirección. */
-  mapsUrl?: string;
-  city: string;
-  hours: string;
-  contacts: Contact[];
-  note?: string;
+  src: string;
+  alt: string;
+  tag: string;
+  title: string;
+  text: string;
+  priority?: boolean;
 }) {
   return (
-    <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-7 lg:p-9">
-      <div className="eyebrow">
-        {flag && <span className="mr-1.5">{flag}</span>}
-        {country}
+    <div className="cx-dual-half">
+      <Image src={src} alt={alt} fill sizes="(max-width: 767px) 100vw, 50vw" priority={priority} />
+      <div className="cx-dual-in">
+        <span className="cx-dual-tag">{tag}</span>
+        <h3>{title}</h3>
+        <p>{text}</p>
       </div>
-      <div
-        className="mt-3 text-[24px] lg:text-[28px] leading-[1.1] tracking-[-0.01em] text-ink"
-        style={{ fontFamily: "var(--font-archivo-black)" }}
-      >
-        {tagline}
+    </div>
+  );
+}
+
+function Channel({
+  icon,
+  label,
+  value,
+  href,
+  external,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  href: string;
+  external?: boolean;
+}) {
+  return (
+    <div className="cx-inline-ch">
+      <span className="ic">{icon}</span>
+      <div>
+        <span className="tt">{label}</span>
+        <br />
+        <a
+          href={href}
+          target={external ? "_blank" : undefined}
+          rel={external ? "noopener noreferrer" : undefined}
+        >
+          {value}
+        </a>
       </div>
-
-      <a
-        href={mapsUrl ?? buildGoogleMapsLink(addressFull)}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-5 flex flex-col gap-1 text-[14.5px] group"
-      >
-        <div className="text-ink font-semibold inline-flex items-start gap-1.5 group-hover:text-wine transition-colors">
-          <MapPinIcon size={14} className="mt-1 flex-shrink-0 text-grey-500" />
-          {address}
-        </div>
-        <div className="text-grey-500 pl-[22px]">{city}</div>
-        <div className="text-grey-500 text-[13px] mt-1 pl-[22px]">{hours}</div>
-      </a>
-
-      <ul className="mt-5 pt-5 border-t border-grey-200 flex flex-col gap-3 list-none p-0">
-        {contacts.map((c) => (
-          <li key={c.label} className="text-[15px]">
-            <a
-              href={c.href}
-              target={c.kind === "whatsapp" ? "_blank" : undefined}
-              rel={c.kind === "whatsapp" ? "noopener noreferrer" : undefined}
-              className="group inline-flex items-center gap-2.5 text-ink font-semibold hover:text-wine transition-colors"
-            >
-              <span className="text-grey-500 flex-shrink-0">
-                {c.kind === "phone" ? (
-                  <PhoneIcon size={16} />
-                ) : c.kind === "whatsapp" ? (
-                  <WhatsAppIcon size={16} />
-                ) : (
-                  <MailIcon size={16} />
-                )}
-              </span>
-              <span>{c.label}</span>
-            </a>
-          </li>
-        ))}
-      </ul>
-      {note && (
-        <p className="mt-5 pt-5 border-t border-grey-200 text-[13.5px] text-grey-500 leading-[1.5]">
-          {note}
-        </p>
-      )}
     </div>
   );
 }

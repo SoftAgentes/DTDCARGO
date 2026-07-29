@@ -7,15 +7,11 @@ import {
   NUCLEO_SERVICES,
   serviceIdsForShipment,
 } from "../service-catalog";
+import { SHIPMENT_SERVICES } from "../shipment-public";
 import { SERVICIOS_DETALLE_BY_SLUG } from "../../servicios-detalle";
 
-// Valores del enum `ShipmentService` (type-only en shipment-public.ts → se replican acá).
-const SHIPMENT_SERVICES = [
-  "consolidacion",
-  "puerta_a_puerta_DDP",
-  "reserva_FCL",
-  "transporte_terrestre",
-] as const;
+// Los valores del enum salen de la fuente única — NO se replican acá (SDD-0164:
+// replicarlos fue justamente cómo se desincronizaron los nombres).
 
 const GROUP_IDS = new Set(SERVICE_GROUPS.map((g) => g.id));
 
@@ -72,21 +68,21 @@ describe("service-catalog · mapeo a ShipmentService (núcleo)", () => {
     }
   });
 
-  it("los 4 valores del enum están cubiertos por algún servicio", () => {
+  it("los 5 valores del enum están cubiertos por algún servicio", () => {
     for (const svc of SHIPMENT_SERVICES) {
       expect(serviceIdsForShipment(svc).length).toBeGreaterThanOrEqual(1);
     }
   });
 
-  it("reserva_FCL es N:1 — la comparten fcl-bodega y fcl-directo", () => {
-    expect(serviceIdsForShipment("reserva_FCL").sort()).toEqual([
-      "fcl-bodega",
-      "fcl-directo",
-    ]);
+  // SDD-0164: antes los dos FCL compartían `reserva_FCL` y no se les podía poner
+  // tarifa distinta ni medirlos aparte. Ahora cada uno tiene su valor de enum.
+  it("los dos FCL ya NO comparten valor de enum", () => {
+    expect(serviceIdsForShipment("fcl_directo")).toEqual(["fcl-directo"]);
+    expect(serviceIdsForShipment("fcl_bodega")).toEqual(["fcl-bodega"]);
   });
 });
 
-describe("service-catalog · reconciliación con lib/servicios-detalle (los 19)", () => {
+describe("service-catalog · reconciliación con lib/servicios-detalle (los 18)", () => {
   const legacySlugs = SERVICE_CATALOG.map((s) => s.legacySlug).filter(
     (x): x is string => x !== null,
   );
@@ -101,10 +97,10 @@ describe("service-catalog · reconciliación con lib/servicios-detalle (los 19)"
     }
   });
 
-  it("los 19 slugs de servicios-detalle quedan todos reconciliados en el catálogo", () => {
+  it("los 18 slugs de servicios-detalle quedan todos reconciliados en el catálogo", () => {
     const detalleSlugs = Object.keys(SERVICIOS_DETALLE_BY_SLUG);
     const catalogSet = new Set(legacySlugs);
-    expect(detalleSlugs).toHaveLength(19);
+    expect(detalleSlugs).toHaveLength(18);
     for (const slug of detalleSlugs) {
       expect(catalogSet.has(slug)).toBe(true);
     }
@@ -112,6 +108,10 @@ describe("service-catalog · reconciliación con lib/servicios-detalle (los 19)"
 
   it("cursos-importacion es nuevo (sin legacySlug)", () => {
     expect(SERVICE_CATALOG_BY_ID["cursos-importacion"].legacySlug).toBeNull();
+  });
+
+  it("documentos-importacion quedó sin ficha (fusionado dentro de aduana)", () => {
+    expect(SERVICE_CATALOG_BY_ID["documentos-importacion"].legacySlug).toBeNull();
   });
 });
 

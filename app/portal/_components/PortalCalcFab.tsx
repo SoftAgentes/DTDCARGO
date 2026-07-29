@@ -7,10 +7,13 @@ import { CalcIcon, CloseIcon, CheckIcon, DocIcon } from "@/components/Icon";
  * Calculadora flotante del portal (Norte · `PortalCalcFab` de
  * docs/design/studio/_norte/portal/app.jsx). FAB redondo, icon-only y
  * **arrastrable** que abre una ventana SIN sacar al cliente del portal. Dos modos:
- *   · "CBM": la Calculadora CBM completa embebida (iframe a `/calculadora/embed`,
- *     misma tarifa que la página pública, sin su chrome). Redimensionable para
- *     verla cómoda.
- *   · "Rápida": calculadora aritmética (saca cuentas al toque, copia el total).
+ *   · "Rápida" (default): calculadora aritmética (saca cuentas al toque, copia
+ *     el total) — la ayuda simple, sin tarifas.
+ *   · "FCL": cotizador de contenedor completo embebido (iframe a `/fcl/embed`,
+ *     mismo form que la página pública, sin su chrome). Redimensionable para
+ *     verlo cómodo.
+ * El CBM/LCL (`/tarifas/embed`) SALIÓ de acá (founder 2026-07-22): ya está
+ * accesible en otro lado del portal/sitio — no hace falta duplicarlo en el FAB.
  *
  * Interacción (port del prototipo Norte 2026-07-04):
  *   · FAB arrastrable; al soltar se **ancla al lado más cercano** (izq/der).
@@ -20,9 +23,11 @@ import { CalcIcon, CloseIcon, CheckIcon, DocIcon } from "@/components/Icon";
  *   · Barra de título en navy estable (tokens `--hero-*`) — `--color-ink` NO
  *     sirve: en oscuro vira a crema y el texto blanco queda invisible.
  *
- * Se puede abrir desde afuera con el evento `portal:open-calc` → abre en CBM.
+ * Se puede abrir desde afuera con `portal:open-calc`: el evento genérico
+ * conserva la pestaña activa (Rápida por defecto); un CTA con intención puede
+ * enviar `{ tab: "fcl" }` para abrir el cotizador directamente.
  */
-type Tab = "cbm" | "rapida";
+type Tab = "rapida" | "fcl";
 type Pos = { x: number; y: number };
 
 const W = () => (typeof window !== "undefined" ? window.innerWidth : 1200);
@@ -32,17 +37,23 @@ const clampN = (min: number, max: number, v: number) =>
 
 export function PortalCalcFab() {
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<Tab>("cbm");
+  const [tab, setTab] = useState<Tab>("rapida");
   const [theme, setTheme] = useState<"dark" | "light">("light");
   const [fpos, setFpos] = useState<Pos | null>(null); // posición del FAB
   const [ppos, setPpos] = useState<Pos | null>(null); // posición de la ventana
   const [size, setSize] = useState({ w: 372, h: 520 });
   const draggedRef = useRef(false);
 
-  // Apertura externa (evento del portal) → abre en CBM.
+  // Apertura externa: el evento plano conserva la pestaña; un CTA puede pedir
+  // una pestaña válida mediante CustomEvent sin permitir valores arbitrarios.
   useEffect(() => {
-    function onOpenCalc() {
-      setTab("cbm");
+    function onOpenCalc(event: Event) {
+      if (event instanceof CustomEvent) {
+        const requestedTab = event.detail?.tab;
+        if (requestedTab === "rapida" || requestedTab === "fcl") {
+          setTab(requestedTab);
+        }
+      }
       setOpen(true);
     }
     window.addEventListener("portal:open-calc", onOpenCalc);
@@ -187,7 +198,12 @@ export function PortalCalcFab() {
         <div
           role="dialog"
           aria-label="Calculadora"
-          className="fixed z-[251] card-shadow bg-white border border-grey-200 rounded-[16px] overflow-hidden flex flex-col"
+          // Glass (BD-031): panel flotante = vidrio esmerilado. Superficie elevada
+          // sobre el portal → aplica la excepción Glass. Siempre con
+          // -webkit-backdrop-filter de respaldo; --glass-bg es translúcido y sirve
+          // de fallback si el navegador no soporta blur. La barra de título sigue
+          // navy sólida (abajo) para que el texto blanco cumpla AA.
+          className="fixed z-[251] rounded-[16px] overflow-hidden flex flex-col"
           style={{
             left: px,
             top: py,
@@ -195,6 +211,12 @@ export function PortalCalcFab() {
             height: size.h,
             maxWidth: "calc(100vw - 16px)",
             maxHeight: "calc(100vh - 24px)",
+            background: "var(--glass-bg)",
+            border: "1px solid var(--glass-border)",
+            color: "var(--glass-ink)",
+            backdropFilter: "var(--glass-blur)",
+            WebkitBackdropFilter: "var(--glass-blur)",
+            boxShadow: "var(--glass-hi), var(--glass-shadow)",
           }}
         >
           {/* Barra navy arrastrable — navy en AMBOS temas (tokens --hero-*, con
@@ -237,12 +259,18 @@ export function PortalCalcFab() {
             </button>
           </div>
 
-          {/* Tabs */}
-          <div className="flex items-center gap-1 px-2.5 py-2 bg-paper border-b border-grey-200">
+          {/* Tabs — tira de vidrio translúcida (BD-031), no paper opaco */}
+          <div
+            className="flex items-center gap-1 px-2.5 py-2"
+            style={{
+              background: "var(--glass-key)",
+              borderBottom: "1px solid var(--glass-border)",
+            }}
+          >
             {(
               [
-                ["cbm", "CBM"],
                 ["rapida", "Rápida"],
+                ["fcl", "FCL"],
               ] as [Tab, string][]
             ).map(([v, label]) => {
               const on = tab === v;
@@ -268,10 +296,10 @@ export function PortalCalcFab() {
 
           {/* Contenido */}
           <div className="flex-1 min-h-0 overflow-hidden">
-            {tab === "cbm" ? (
+            {tab === "fcl" ? (
               <iframe
-                title="Calculadora CBM"
-                src={`/calculadora/embed?theme=${theme}`}
+                title="Cotizador FCL"
+                src={`/fcl/embed?theme=${theme}`}
                 className="w-full h-full block"
                 style={{ border: 0, background: "var(--color-white)" }}
               />

@@ -1,0 +1,8 @@
+# Los binarios de estas piezas NO van a git — ver ASSETS-EN-DRIVE.md.
+# Regla AGENTS.md: adjunto de documentación en git solo si pesa <1 MB.
+# Cada lámina pesa 1,6-2,2 MB; el paquete son 71 MB. Van a Drive con puntero.
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.mp4

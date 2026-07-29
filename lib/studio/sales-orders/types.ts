@@ -12,7 +12,11 @@
  * Helpers PUROS + validadores manuales (no Zod, patrón del repo).
  */
 
-import { SERVICE_OPTIONS, type ShipmentService } from "../shipment-types";
+import {
+  SERVICE_OPTIONS,
+  isShipmentService,
+  type ShipmentService,
+} from "../shipment-types";
 
 // ── Tonos de badge (set del sistema) ──────────────────────────
 export type BadgeTone =
@@ -177,16 +181,7 @@ export type SalesOrderActionState = {
   salesOrderCode?: string;
 };
 
-const SERVICES: readonly ShipmentService[] = [
-  "consolidacion",
-  "puerta_a_puerta_DDP",
-  "reserva_FCL",
-  "transporte_terrestre",
-];
-
-function isService(v: unknown): v is ShipmentService {
-  return typeof v === "string" && SERVICES.includes(v as ShipmentService);
-}
+const isService = isShipmentService;
 
 /**
  * Validación manual del input de la OV (sin zod, patrón del repo).

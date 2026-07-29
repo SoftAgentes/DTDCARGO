@@ -120,7 +120,7 @@ Cada bloque = un artículo. `Nombre` / `Descripción` / `Enlace` van tal cual.
 
 **④ FCL Directo Fábrica (cargado en origen)**
 - **Precio:** Consultar
-- **Descripción:** Tu contenedor completo se carga directo en la fábrica de tu proveedor, sin pasar por bodega. Reservamos contenedor y buque; el BL sale a nombre de nuestra empresa china como shipper (contigo como consignatario) → **el proveedor no puede desviar ni cambiar el destino**. ⏱️ 40–55 días.
+- **Descripción:** Tu contenedor completo se carga directo en la fábrica de tu proveedor, sin pasar por bodega. Reservamos contenedor y buque; **el BL lo emite nuestra empresa china (exportador/shipper), contigo como consignatario** → la fábrica no controla el BL: **el proveedor no puede desviar ni cambiar el destino**. ⏱️ 40–55 días.
 - **Enlace:** `www.dtdcargo.com/servicios`
 
 **⑤ Tránsito de aduana y desaduanaje** *(adicional)*
@@ -209,8 +209,16 @@ www.dtdcargo.com/calculadora
 
 ### 4.4 · Etiquetas para organizar los chats (recomendado en CRM/Ventas)
 
-**Pasos:** mantén presionado un chat → **Etiqueta** → crea/asigna. Sugeridas:
-`Nuevo lead` · `Cotizando` · `Esperando pago` · `En tránsito` · `Entregado` · `Postventa`.
+**Pasos:** mantén presionado un chat → **Etiqueta** → crea/asigna.
+
+> **Fuente única de las etiquetas = el pipeline mínimo del asesor de
+> [`adquisicion.md`](adquisicion.md) §5** (para no tener dos sistemas de etiquetas divergentes en
+> el mismo teléfono — unificado 2026-07-19): **`Nuevo`** · **`Calificado`** · **`Estimado
+> enviado`** · **`Seguimiento`** · **`Cliente`** · **`Nurture`**. Estas 6 son las que se crean;
+> mapean 1:1 con las etapas del embudo Kommo cuando el CRM esté configurado. *(La lista vieja
+> `Nuevo lead / Cotizando / Esperando pago / En tránsito / Entregado / Postventa` queda derogada:
+> mezclaba fases de venta con fases de operación — la operación se sigue en el ERP/tracking, no en
+> etiquetas de WhatsApp.)*
 
 ---
 

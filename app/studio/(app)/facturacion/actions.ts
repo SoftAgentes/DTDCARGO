@@ -219,7 +219,7 @@ function addDaysISO(baseISO: string, days: number): string {
  * columna `invoices.fund_class` al crear/emitir — no toca asientos ni estados.
  *  - sin shipment → local_revenue (servicio local de DTD Services).
  *  - con shipment → deriveFundClass(shipment_service): transporte_terrestre ⇒
- *    local_revenue; consolidacion/DDP/FCL ⇒ third_party (Operadora).
+ *    local_revenue; consolidado_lcl/DDP/FCL ⇒ third_party (Operadora).
  *  - shipment referenciado pero ilegible (RLS/borrado) → third_party
  *    (conservador: nunca inflar el ingreso propio).
  */

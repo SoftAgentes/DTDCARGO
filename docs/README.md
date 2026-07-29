@@ -19,6 +19,7 @@ No buscamos certificación — adoptamos la **disciplina**. Cada documento contr
 | Reporte de QA | `docs/qa/` |
 | Explicación "cómo funciona el sistema" | `docs/architecture/` |
 | Decisión "por qué elegimos X" (ADR) | `docs/architecture/decisions/` |
+| Gobernanza transversal de experiencia del ERP | `docs/governance/` (índice, políticas, líneas base, investigación y templates) |
 | Mockup / handoff / logo / asset visual | `docs/design/<producto>/<version>/` (ver su README) |
 | Marketing / SEO / Ads / analítica / contenido / captación | `docs/marketing/` (ver su README) |
 | Contrato / NDA firmado | `docs/legal/` (binario **fuera de git** → Drive + puntero) |
@@ -63,6 +64,7 @@ docs/
 ├── audits/            ← auditorías de seguridad/sistema
 ├── qa/                ← reportes de QA
 ├── agents/            ← definiciones de agentes/skills (SDD-0020)
+├── governance/        ← gobernanza transversal de experiencia del ERP
 ├── legal/             ← contratos/NDA (punteros; binarios en Drive)  [se crea en fase B]
 ├── operaciones/       ← costos/tarifas                                [se crea en fase B]
 ├── design/            ← material visual (ver docs/design/README.md)

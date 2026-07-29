@@ -2,31 +2,31 @@ import Link from "next/link";
 import { BrandMark } from "./BrandMark";
 import { CookiePreferencesLink } from "./CookiePreferencesLink";
 import { TERMINOS_LIVE } from "@/lib/legal-public";
+import { CONTACT, buildGoogleMapsLink } from "@/lib/design-tokens";
 import {
-  CONTACT,
-  SERVICES_CN,
-  SERVICES_VE,
-  buildGoogleMapsLink,
-} from "@/lib/design-tokens";
-import {
-  FlagCN,
-  FlagVE,
   InstagramIcon,
+  YoutubeIcon,
+  TiktokIcon,
   MapPinIcon,
   PhoneIcon,
   MailIcon,
   WhatsAppIcon,
 } from "./Icon";
 
+/**
+ * Footer — rebuild por IA (Explora / Ayuda / Enlaces rápidos / Contacto) en
+ * vez de la columna vieja "Servicios Yiwu / Servicios Venezuela" por sede
+ * (esa listaba 4 servicios por país + flags; se reemplaza por un único link
+ * a /servicios). Referencia: captura del founder 2026-07-21. Direcciones
+ * VE/CN se mueven a una franja propia sobre el copyright (antes vivían
+ * dentro de la columna Contacto) — la fuente de los datos sigue siendo
+ * `CONTACT` (NAP único, no se hardcodea texto nuevo).
+ */
 export function Footer() {
-  // Top-4 servicios por sede para el footer (los más representativos)
-  const topCN = SERVICES_CN.slice(0, 4);
-  const topVE = SERVICES_VE.slice(0, 4);
-
   return (
     <footer className="bg-ink text-white pt-20 pb-8">
       <div className="wrap">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1.2fr] gap-9 pb-15 border-b border-white/10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1.3fr_1fr_1fr_1fr_1.1fr] gap-9 pb-15 border-b border-white/10">
           {/* Brand */}
           <div>
             <BrandMark onDark size={48} />
@@ -35,81 +35,66 @@ export function Footer() {
               construyendo confianza cliente a cliente, contenedor a
               contenedor.
             </p>
-            <a
-              href={CONTACT.instagram.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={`Instagram ${CONTACT.instagram.handle}`}
-              className="mt-5 inline-flex items-center gap-2 text-[14px] font-semibold text-white/85 hover:text-white transition-colors"
-            >
-              <InstagramIcon size={18} className="text-white/55 flex-shrink-0" />
-              <span>{CONTACT.instagram.handle}</span>
-            </a>
+            <div className="mt-5 flex items-center gap-2.5">
+              <a
+                href={CONTACT.instagram.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Instagram ${CONTACT.instagram.handle}`}
+                className="text-white/55 hover:text-white transition-colors"
+              >
+                <InstagramIcon size={34} />
+              </a>
+              <a
+                href={CONTACT.youtube.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`YouTube ${CONTACT.youtube.handle}`}
+                className="text-white/55 hover:text-white transition-colors"
+              >
+                <YoutubeIcon size={34} />
+              </a>
+              <a
+                href={CONTACT.tiktok.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`TikTok ${CONTACT.tiktok.handle}`}
+                className="text-white/55 hover:text-white transition-colors"
+              >
+                <TiktokIcon size={34} />
+              </a>
+            </div>
           </div>
 
-          {/* Servicios CN */}
-          <div>
-            <h2 className="text-[12.5px] font-bold tracking-[0.12em] uppercase text-white/50 mb-[18px] inline-flex items-center gap-2">
-              <FlagCN size={18} className="flex-shrink-0" />
-              <span>Servicios Yiwu</span>
-            </h2>
-            <ul className="flex flex-col gap-3 list-none p-0">
-              {topCN.map((s) => (
-                <li key={s.slug}>
-                  <Link
-                    href={`/servicios#${s.slug}`}
-                    className="text-[14.5px] font-medium text-white/85 hover:text-white transition-colors"
-                  >
-                    {s.title}
-                  </Link>
-                </li>
-              ))}
-              <li>
-                <Link
-                  href="/servicios#detalle"
-                  className="text-[13px] text-white/55 hover:text-white transition-colors"
-                >
-                  + Ver todos →
-                </Link>
-              </li>
-            </ul>
-          </div>
+          {/* Explora */}
+          <FooterCol title="Explora">
+            <FooterLink href="/tarifas">Tarifas</FooterLink>
+            <FooterLink href="/servicios">Servicios</FooterLink>
+            <FooterLink href="/pre-alertas">Pre-alertas</FooterLink>
+            <FooterLink href="/nosotros">Nosotros</FooterLink>
+            <FooterLink href="/portal/login">Mi portal</FooterLink>
+            <FooterLink href="/registro">Regístrate</FooterLink>
+          </FooterCol>
 
-          {/* Servicios VE */}
-          <div>
-            <h2 className="text-[12.5px] font-bold tracking-[0.12em] uppercase text-white/50 mb-[18px] inline-flex items-center gap-2">
-              <FlagVE size={18} className="flex-shrink-0" />
-              <span>Servicios Venezuela</span>
-            </h2>
-            <ul className="flex flex-col gap-3 list-none p-0">
-              {topVE.map((s) => (
-                <li key={s.slug}>
-                  <Link
-                    href={`/servicios#${s.slug}`}
-                    className="text-[14.5px] font-medium text-white/85 hover:text-white transition-colors"
-                  >
-                    {s.title}
-                  </Link>
-                </li>
-              ))}
-              <li>
-                <Link
-                  href="/importar-de-china"
-                  className="text-[14.5px] font-medium text-white/85 hover:text-white transition-colors"
-                >
-                  Importar de China a tu ciudad
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/servicios#detalle"
-                  className="text-[13px] text-white/55 hover:text-white transition-colors"
-                >
-                  + Ver todos →
-                </Link>
-              </li>
-            </ul>
-          </div>
+          {/* Ayuda */}
+          <FooterCol title="Ayuda">
+            <FooterLink href="/faq">Preguntas frecuentes</FooterLink>
+            <FooterLink href="/glosario">Glosario</FooterLink>
+              <FooterLink href="/noticias">Actualidad</FooterLink>
+            <FooterLink href="/academia">Academia</FooterLink>
+            {/* Mismo destino que "Cómo trabajamos" del menú Ayuda (Nav.tsx) —
+                deliberado, dos nombres para la misma página (ver comentario ahí). */}
+            <FooterLink href="/shipping-mark">Cómo trabajamos</FooterLink>
+          </FooterCol>
+
+          {/* Enlaces rápidos */}
+          <FooterCol title="Enlaces rápidos">
+            {/* Rastreo: el /track público se eliminó (vive dentro del portal). */}
+            <FooterLink href="/portal/login">Rastrea tu envío</FooterLink>
+            <FooterLink href="/tarifas">Calculadora de envío</FooterLink>
+            <FooterLink href="/contacto">Contáctenos</FooterLink>
+            <FooterLink href="/enlaces">Enlaces</FooterLink>
+          </FooterCol>
 
           {/* Contacto */}
           <div>
@@ -146,105 +131,102 @@ export function Footer() {
                   <span>{CONTACT.ve.whatsapp} · WhatsApp</span>
                 </a>
               </li>
-              <li className="pt-3 mt-1 border-t border-white/10">
-                <div className="text-[12px] tracking-[0.08em] uppercase text-white/40 mb-1.5">
-                  Venezuela
-                </div>
-                <a
-                  href={CONTACT.ve.mapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[13px] text-white/70 leading-[1.45] hover:text-white transition-colors inline-flex items-start gap-1.5"
-                >
-                  <MapPinIcon size={12} className="mt-1 flex-shrink-0 text-white/55" />
-                  <span>
-                    {CONTACT.ve.address}
-                    <br />
-                    {CONTACT.ve.city}
-                  </span>
-                </a>
-              </li>
-              <li className="pt-3 border-t border-white/10">
-                <div className="text-[12px] tracking-[0.08em] uppercase text-white/40 mb-1.5">
-                  China
-                </div>
-                <a
-                  href={buildGoogleMapsLink(CONTACT.cn.addressFull)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[13px] text-white/70 leading-[1.45] hover:text-white transition-colors inline-flex items-start gap-1.5"
-                >
-                  <MapPinIcon size={12} className="mt-1 flex-shrink-0 text-white/55" />
-                  <span>
-                    {CONTACT.cn.address}
-                    <br />
-                    {CONTACT.cn.city}
-                  </span>
-                </a>
-              </li>
             </ul>
           </div>
         </div>
 
-        <div className="pt-7 flex flex-col md:flex-row md:justify-between md:items-center gap-3 text-[12.5px] font-medium tracking-[0.06em] text-white/45">
-          <span>
-            © {new Date().getFullYear()} {CONTACT.legalName}. Todos los
-            derechos reservados.
-          </span>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            <Link href="/portal/login" className="hover:text-white transition-colors">
-              Acceder al portal
-            </Link>
-            <Link href="/registro" className="hover:text-white transition-colors">
-              Registro de cliente
-            </Link>
-            {/* Reconexión SEO 2026-07-05: /estimacion y /nosotros estaban
-                huérfanas (0 links internos, sí en sitemap). */}
-            <Link href="/estimacion" className="hover:text-white transition-colors">
-              Estimación
-            </Link>
-            <Link href="/nosotros" className="hover:text-white transition-colors">
-              Nosotros
-            </Link>
-            <Link href="/brochure" className="hover:text-white transition-colors">
-              Brochure
-            </Link>
-            <Link href="/puerta-a-puerta" className="hover:text-white transition-colors">
-              Puerta a puerta
-            </Link>
-            <Link href="/markbox" className="hover:text-white transition-colors">
-              Shipping Mark
-            </Link>
-            <Link href="/faq" className="hover:text-white transition-colors">
-              Preguntas frecuentes
-            </Link>
-            <Link href="/glosario" className="hover:text-white transition-colors">
-              Glosario
-            </Link>
-            <Link href="/noticias" className="hover:text-white transition-colors">
-              Noticias
-            </Link>
-            {/* Términos: oculto hasta v3.1 (texto final del abogado, sin
-                placeholders). Flip TERMINOS_LIVE=true en lib/legal-public.ts. */}
-            {TERMINOS_LIVE && (
-              <Link
-                href="/terminos"
-                className="hover:text-white transition-colors"
-              >
-                Términos
-              </Link>
-            )}
-            <Link href="/privacidad" className="hover:text-white transition-colors">
-              Privacidad
-            </Link>
-            <Link href="/cookies" className="hover:text-white transition-colors">
-              Cookies
-            </Link>
-            <CookiePreferencesLink className="hover:text-white transition-colors" />
-            <span>{CONTACT.web} · Made in Yiwu &amp; Valencia</span>
+        {/* Direcciones VE/CN — franja propia sobre el copyright */}
+        <div className="pt-7 pb-7 grid grid-cols-1 sm:grid-cols-2 gap-4 border-b border-white/10">
+          <a
+            href={CONTACT.ve.mapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-start gap-2 text-white/70 hover:text-white transition-colors"
+          >
+            <MapPinIcon size={13} className="mt-0.5 flex-shrink-0 text-white/50" />
+            <span className="text-[13px] leading-[1.5]">
+              <span className="block text-[11px] tracking-[0.1em] uppercase text-white/40 mb-0.5">
+                Venezuela
+              </span>
+              {CONTACT.ve.address}, {CONTACT.ve.city}
+            </span>
+          </a>
+          <a
+            href={buildGoogleMapsLink(CONTACT.cn.addressFull)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-start gap-2 text-white/70 hover:text-white transition-colors"
+          >
+            <MapPinIcon size={13} className="mt-0.5 flex-shrink-0 text-white/50" />
+            <span className="text-[13px] leading-[1.5]">
+              <span className="block text-[11px] tracking-[0.1em] uppercase text-white/40 mb-0.5">
+                China
+              </span>
+              {CONTACT.cn.address}, {CONTACT.cn.city}
+            </span>
+          </a>
+        </div>
+
+        <div className="pt-7 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-5">
+            <span className="text-[12.5px] font-medium tracking-[0.06em] text-white/45">
+              © {new Date().getFullYear()} {CONTACT.legalName}. Todos los
+              derechos reservados.
+            </span>
+            {/* Franja legal compacta (patrón Términos/Privacidad/Cookies bajo
+                el copyright, referencia del founder 2026-07-21). Reemplaza los
+                links sueltos que antes vivían en "Enlaces rápidos". */}
+            <div className="flex items-center gap-x-5 gap-y-2 flex-wrap">
+              {TERMINOS_LIVE && (
+                <FooterLegalLink href="/terminos">Términos</FooterLegalLink>
+              )}
+              <FooterLegalLink href="/privacidad">Privacidad</FooterLegalLink>
+              <FooterLegalLink href="/cookies">Cookies</FooterLegalLink>
+              <CookiePreferencesLink className="text-[12.5px] font-medium text-white/45 hover:text-white/80 transition-colors w-fit" />
+            </div>
           </div>
+          <span className="text-[11px] font-bold tracking-[0.14em] uppercase text-white/35">
+            CN → VE · Puerta a puerta, todo pagado
+          </span>
         </div>
       </div>
     </footer>
+  );
+}
+
+function FooterCol({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <h2 className="text-[12.5px] font-bold tracking-[0.12em] uppercase text-white/50 mb-[18px]">
+        {title}
+      </h2>
+      <ul className="flex flex-col gap-3 list-none p-0">
+        {Array.isArray(children)
+          ? children.filter(Boolean).map((child, i) => <li key={i}>{child}</li>)
+          : children}
+      </ul>
+    </div>
+  );
+}
+
+function FooterLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="text-[14.5px] font-medium text-white/85 hover:text-white transition-colors"
+    >
+      {children}
+    </Link>
+  );
+}
+
+function FooterLegalLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="text-[12.5px] font-medium text-white/45 hover:text-white/80 transition-colors"
+    >
+      {children}
+    </Link>
   );
 }

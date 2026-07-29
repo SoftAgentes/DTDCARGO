@@ -49,41 +49,34 @@ export default function TerminosPage() {
   return (
     <>
       <Nav />
-      <main className="bg-paper">
-        {/* Hero */}
-        <section className="py-16 lg:py-24">
-          <div className="wrap max-w-[900px]">
-            <span className="eyebrow">Legal · DTD Cargo</span>
-            <h1
-              className="h-display mt-5"
-              style={{ fontSize: "clamp(36px, 5vw, 64px)" }}
-            >
-              Términos y{" "}
-              <span style={{ color: "var(--color-wine)" }}>Condiciones.</span>
+      {/* Reskin mínimo al Norte: hero navy `rp-*`. El clausulado, el gate
+          TERMINOS_LIVE y el `noindex` no se tocan. */}
+      <main className="rp-surface" style={{ ["--rp-w" as string]: "900px" }}>
+        <section className="rp-hero">
+          <div className="rp-hero-in">
+            <div className="rp-eyebrow">
+              <span className="rule" />
+              Legal · DTD Cargo
+            </div>
+            <h1>
+              Términos y <span className="accent">Condiciones.</span>
             </h1>
-            <p className="lead mt-6 max-w-[60ch]">
+            <p>
               El <strong>{doc.title}</strong> rige el servicio de carga
               consolidada puerta a puerta China–Venezuela de DTD Cargo. Al
               confirmar una cotización, el cliente acepta la versión vigente.
             </p>
-            <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-grey-700">
-              <span
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full font-semibold"
-                style={{
-                  background: "var(--color-wine-tint, rgba(127,15,26,0.08))",
-                  color: "var(--color-wine)",
-                }}
-              >
-                Versión {doc.version}
-              </span>
+            <p className="rp-hero-meta">
+              <span>Versión {doc.version}</span>
               <span>En vigor desde el {fmtFecha(doc.effectiveDate)}</span>
-            </div>
+            </p>
           </div>
         </section>
 
         {/* Cláusulas */}
-        <section className="pb-24">
-          <div className="wrap max-w-[900px]">
+        <section className="pb-24 pt-12 lg:pt-16">
+          {/* Ver nota en /privacidad: `max-w-[900px]` pierde contra `.wrap`. */}
+          <div className="wrap" style={{ maxWidth: 900 }}>
             <div className="flex flex-col gap-9">
               {doc.clauses.map((c, i) => (
                 <article key={i}>

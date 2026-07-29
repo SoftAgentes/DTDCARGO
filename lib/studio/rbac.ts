@@ -191,6 +191,22 @@ export const CAPABILITIES = {
    * gerentes agregando su rol acá, sin tocar los call sites.
    */
   escucha_activa: [],
+  /**
+   * Ver el Expediente de defensa de una operación (SDD-0070): evidencia con PII
+   * (IP/user_agent de la aceptación, cédula del receptor del POD). Era admin-only
+   * duro; el founder (2026-07-19) lo abre al asesor que atiende el reclamo —
+   * `commercial` + `support` (los mismos que abren Reclamos). El RESTO de la capa
+   * legal (T&C, aceptaciones, evidencia individual) sigue admin-only.
+   */
+  view_defense_file: ["commercial", "support"],
+  /** Moderar comentarios ajenos (SDD-0168): admin-only por defecto. */
+  moderate_comments: [],
+  /** Consultar eliminados y restaurarlos (SDD-0168): admin-only por defecto. */
+  restore_comments: [],
+  /** Consultar metadatos redacted del audit log (SDD-0166 Corte C). */
+  audit_view: [],
+  /** Revelar allowlist sensible con motivo + AAL2 (SDD-0166 Corte C). */
+  audit_view_sensitive: [],
 } as const satisfies Record<string, readonly StudioUserRole[]>;
 
 export type StudioCapability = keyof typeof CAPABILITIES;

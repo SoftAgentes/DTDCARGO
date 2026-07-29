@@ -24,6 +24,8 @@ import {
   reportByCarrier,
   commercialByClient,
   commercialByAgent,
+  commercialPipeline,
+  commercialRepurchase,
   incomeStatement,
   agingReport,
   cashflowReport,
@@ -69,9 +71,11 @@ export default async function ReportesPage({
   // Cargar SOLO lo que la categoría activa necesita (las otras categorías ni se
   // consultan → menos round-trips por vista).
   if (category === "com") {
-    const [byClient, byAgent] = await Promise.all([
+    const [byClient, byAgent, repurchase, pipeline] = await Promise.all([
       commercialByClient(supabase),
       commercialByAgent(supabase),
+      commercialRepurchase(supabase),
+      commercialPipeline(supabase, period),
     ]);
     return (
       <ReportesClient
@@ -80,6 +84,8 @@ export default async function ReportesPage({
         rep={rep}
         byClient={byClient}
         byAgent={byAgent}
+        repurchase={repurchase}
+        pipeline={pipeline}
       />
     );
   }

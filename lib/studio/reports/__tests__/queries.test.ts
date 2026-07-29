@@ -114,18 +114,18 @@ describe("operationalOverview", () => {
   const shipments = [
     {
       id: "1", code: "A1", origin: "Yiwu", destination: "Pto Cabello",
-      shipment_service: "consolidacion", status: "in_transit", volume_m3: 10,
+      shipment_service: "consolidado_lcl", status: "in_transit", volume_m3: 10,
       created_at: "2026-03-01T00:00:00Z", arrived_destination_at: null, delivered_at: null,
     },
     {
       id: "2", code: "A2", origin: "Yiwu", destination: "Pto Cabello",
-      shipment_service: "consolidacion", status: "delivered", volume_m3: 5,
+      shipment_service: "consolidado_lcl", status: "delivered", volume_m3: 5,
       created_at: "2026-04-01T00:00:00Z",
       arrived_destination_at: "2026-05-01T00:00:00Z", delivered_at: "2026-05-10T00:00:00Z",
     },
     {
       id: "3", code: "B1", origin: "Shenzhen", destination: "La Guaira",
-      shipment_service: "reserva_FCL", status: "draft", volume_m3: 50,
+      shipment_service: "fcl_directo", status: "draft", volume_m3: 50,
       created_at: "2026-04-15T00:00:00Z", arrived_destination_at: null, delivered_at: null,
     },
   ];
@@ -212,7 +212,7 @@ describe("operationalOverview", () => {
     const vesShipments = [
       {
         id: "v1", code: "V1", origin: "Yiwu", destination: "Pto Cabello",
-        shipment_service: "consolidacion", status: "in_transit", volume_m3: 5,
+        shipment_service: "consolidado_lcl", status: "in_transit", volume_m3: 5,
         created_at: "2026-05-01T00:00:00Z", arrived_destination_at: null, delivered_at: null,
       },
       {
@@ -253,21 +253,21 @@ describe("operationalOverview · indicadores sin asignar", () => {
       // Sin cliente (null) → cuenta.
       {
         id: "1", code: "U1", origin: "Yiwu", destination: "Pto Cabello",
-        shipment_service: "consolidacion", status: "in_transit", volume_m3: 10,
+        shipment_service: "consolidado_lcl", status: "in_transit", volume_m3: 10,
         client_name: null,
         created_at: "2026-03-01T00:00:00Z", arrived_destination_at: null, delivered_at: null,
       },
       // Sin cliente (string vacío tras trim) → cuenta.
       {
         id: "2", code: "U2", origin: "Yiwu", destination: "Pto Cabello",
-        shipment_service: "consolidacion", status: "in_transit", volume_m3: 2.5,
+        shipment_service: "consolidado_lcl", status: "in_transit", volume_m3: 2.5,
         client_name: "   ",
         created_at: "2026-03-02T00:00:00Z", arrived_destination_at: null, delivered_at: null,
       },
       // Con cliente → NO cuenta.
       {
         id: "3", code: "C1", origin: "Shenzhen", destination: "La Guaira",
-        shipment_service: "reserva_FCL", status: "shipped", volume_m3: 40,
+        shipment_service: "fcl_directo", status: "shipped", volume_m3: 40,
         client_name: "Acme SA",
         created_at: "2026-03-03T00:00:00Z", arrived_destination_at: null, delivered_at: null,
       },
@@ -282,13 +282,13 @@ describe("operationalOverview · indicadores sin asignar", () => {
     const shipments = [
       {
         id: "1", code: "A1", origin: "Yiwu", destination: "Pto Cabello",
-        shipment_service: "consolidacion", status: "in_transit", volume_m3: 10,
+        shipment_service: "consolidado_lcl", status: "in_transit", volume_m3: 10,
         client_name: "Acme",
         created_at: "2026-03-01T00:00:00Z", arrived_destination_at: null, delivered_at: null,
       },
       {
         id: "2", code: "B1", origin: "Shenzhen", destination: "La Guaira",
-        shipment_service: "reserva_FCL", status: "shipped", volume_m3: 40,
+        shipment_service: "fcl_directo", status: "shipped", volume_m3: 40,
         client_name: "Beta",
         created_at: "2026-03-02T00:00:00Z", arrived_destination_at: null, delivered_at: null,
       },
@@ -315,7 +315,7 @@ describe("operationalOverview · indicadores sin asignar", () => {
     const shipments = [
       {
         id: "1", code: "A1", origin: "Yiwu", destination: "Pto Cabello",
-        shipment_service: "consolidacion", status: "in_transit", volume_m3: 10,
+        shipment_service: "consolidado_lcl", status: "in_transit", volume_m3: 10,
         client_name: "Acme",
         created_at: "2026-03-01T00:00:00Z", arrived_destination_at: null, delivered_at: null,
       },
@@ -336,12 +336,12 @@ describe("reportByRoute / reportByService", () => {
   const shipments = [
     {
       id: "1", code: "A1", origin: "Yiwu", destination: "Pto Cabello",
-      shipment_service: "consolidacion", status: "in_transit", volume_m3: 10,
+      shipment_service: "consolidado_lcl", status: "in_transit", volume_m3: 10,
       created_at: "2026-03-01T00:00:00Z", arrived_destination_at: null, delivered_at: null,
     },
     {
       id: "2", code: "B1", origin: "Shenzhen", destination: "La Guaira",
-      shipment_service: "reserva_FCL", status: "shipped", volume_m3: 40,
+      shipment_service: "fcl_directo", status: "shipped", volume_m3: 40,
       created_at: "2026-03-02T00:00:00Z", arrived_destination_at: null, delivered_at: null,
     },
   ];
@@ -361,9 +361,9 @@ describe("reportByRoute / reportByService", () => {
   it("reportByService agrupa por servicio con su revenue", async () => {
     const { client } = stub({ shipments, invoices });
     const rows = await reportByService(client, "1A", TODAY);
-    expect(rows[0].service).toBe("reserva_FCL");
+    expect(rows[0].service).toBe("fcl_directo");
     expect(rows[0].revenue).toBe(9000);
-    expect(rows[1].service).toBe("consolidacion");
+    expect(rows[1].service).toBe("consolidado_lcl");
     expect(rows[1].revenue).toBe(3000);
   });
 });

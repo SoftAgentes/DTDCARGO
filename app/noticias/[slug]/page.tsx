@@ -1,50 +1,34 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
-import { Nav } from "@/components/Nav";
-import { Footer } from "@/components/Footer";
-import { WhatsAppFAB } from "@/components/WhatsAppFAB";
-import { NewsDisclaimer } from "@/components/NewsDisclaimer";
-import { buildWhatsAppLink } from "@/lib/design-tokens";
-import {
-  getCategoryInfo,
-  gradientToCss,
-} from "@/lib/news/categories";
-import {
-  getPostBySlug,
-  getRelatedPosts,
-  type NewsPostRow,
-} from "@/lib/news/queries";
-import { NewsMarkdown } from "@/lib/news/markdown";
-import { ArrowIcon } from "@/components/Icon";
-import { NewsArticleJsonLd } from "./_components/NewsArticleJsonLd";
-import { FaqPageJsonLd } from "./_components/FaqPageJsonLd";
+import { notFound } from "next/navigation";
 import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
+import { Footer } from "@/components/Footer";
+import { Nav } from "@/components/Nav";
+import { NewsDisclaimer } from "@/components/NewsDisclaimer";
+import { WhatsAppFAB } from "@/components/WhatsAppFAB";
+import { buildWhatsAppLink } from "@/lib/design-tokens";
+import { getCategoryInfo } from "@/lib/news/categories";
+import {
+  CONTENT_KIND_LABELS,
+  contentKindOf,
+  editorialImageOf,
+} from "@/lib/news/editorial";
+import { extractNewsHeadings, NewsMarkdown } from "@/lib/news/markdown";
+import type { NewsPostRow } from "@/lib/news/types";
+import { getPostBySlug, getRelatedPosts } from "@/lib/public/news-queries";
+import { EditorialIcon } from "../_components/EditorialIcon";
+import { NewsletterCard } from "../_components/NewsletterCard";
+import { NewsArticleJsonLd } from "./_components/NewsArticleJsonLd";
 
 type Props = { params: Promise<{ slug: string }> };
 
-// Sin generateStaticParams: las páginas se SSR-renderizan on-demand y se
-// cachean automáticamente. `publishPost` dispara `revalidatePath` para
-// invalidar tras nueva publicación. Pre-generación al build queda diferida
-// — `createClient()` lee cookies y no es válido en `generateStaticParams`.
-
-/**
- * SEO por post — title + description + canonical individuales.
- * meta_description de la DB tiene preferencia sobre excerpt si está set.
- */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const post = await getPostBySlug(slug);
-  if (!post) {
-    return {
-      title: "Artículo no encontrado",
-      robots: { index: false },
-    };
-  }
+  if (!post) return { title: "Contenido no encontrado", robots: { index: false } };
+
   const description = post.meta_description || post.excerpt;
-  // og:image / twitter:image: SIN `images` acá a propósito — las inyecta la
-  // file convention `opengraph-image.tsx` (OG dinámica por artículo,
-  // remate SEO 2026-07-05), que tiene prioridad sobre config-based metadata.
   return {
     title: { absolute: post.title },
     description,
@@ -55,13 +39,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       url: `/noticias/${slug}`,
       publishedTime: post.date,
+      modifiedTime: post.updated_at || undefined,
       authors: [post.author_name],
+      section: getCategoryInfo(post.categoria).label,
     },
-    twitter: {
-      card: "summary_large_image",
-      title: post.title,
-      description,
-    },
+    twitter: { card: "summary_large_image", title: post.title, description },
     keywords: [
       ...(post.focus_keyword ? [post.focus_keyword] : []),
       ...post.secondary_keywords,
@@ -74,114 +56,69 @@ export default async function NewsPostPage({ params }: Props) {
   const post = await getPostBySlug(slug);
   if (!post) notFound();
 
-  const cat = getCategoryInfo(post.categoria);
-  const date = new Date(post.date).toLocaleDateString("es-VE", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
-  const hasBody = post.body_markdown && post.body_markdown.trim().length > 0;
-  const related = await getRelatedPosts(slug, post.categoria, 2);
+  const category = getCategoryInfo(post.categoria);
+  const kind = contentKindOf(post);
+  const image = editorialImageOf(post);
+  const headings = extractNewsHeadings(post.body_markdown);
+  const related = await getRelatedPosts(slug, post.categoria, 3);
+  const hasBody = post.body_markdown.trim().length > 0;
 
   return (
     <>
-      {/* JSON-LD schema.org NewsArticle + FAQPage (Plan v5 · Fase D) */}
       <NewsArticleJsonLd post={post} />
-      <FaqPageJsonLd bodyMarkdown={post.body_markdown} />
-      {/* Migas en SERP para los artículos (long-tail) — 2026-07-05 */}
       <BreadcrumbJsonLd
         items={[
           { name: "Inicio", path: "/" },
-          { name: "Noticias", path: "/noticias" },
+          { name: "Actualidad", path: "/noticias" },
           { name: post.title, path: `/noticias/${slug}` },
         ]}
       />
       <Nav />
-      <main className="bg-paper">
-        <article className="py-16 lg:py-24">
-          <div className="wrap max-w-[760px]">
-            {/* Volver */}
-            <Link
-              href="/noticias"
-              className="inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-grey-500 hover:text-wine transition-colors"
-            >
-              <span className="rotate-180 inline-block">
-                <ArrowIcon size={14} />
-              </span>
-              Volver a noticias
-            </Link>
+      <main className="rp-surface actualidad-surface actual-article-surface">
+        <header className="actual-article-header">
+          <div className="actual-article-wrap">
+            <Link className="actual-back-link" href="/noticias">← Volver a Actualidad</Link>
+            <div className="actual-article-kickers">
+              <span>{CONTENT_KIND_LABELS[kind]}</span>
+              <span>{category.label}</span>
+            </div>
+            <h1>{post.title}</h1>
+            <p>{post.excerpt}</p>
+            <ArticleMeta post={post} />
+          </div>
+        </header>
 
-            {/* Header */}
-            <header className="mt-8">
-              <span
-                className="inline-flex px-3 py-1 rounded-full text-[10.5px] font-bold tracking-[0.12em] uppercase text-white"
-                style={{ background: gradientToCss(cat.gradient) }}
-              >
-                {cat.label}
-              </span>
-              <h1
-                className="h-display mt-5"
-                style={{ fontSize: "clamp(34px, 4.5vw, 56px)" }}
-              >
-                {post.title}
-              </h1>
-              <div className="mt-5 flex items-center gap-3 text-[13px] text-grey-500 flex-wrap">
-                <time dateTime={post.date}>{date}</time>
-                <span aria-hidden>·</span>
-                <span>{post.read_time_min} min lectura</span>
-                {post.author_name !== "DTD Cargo" && (
-                  <>
-                    <span aria-hidden>·</span>
-                    <span>
-                      Por{" "}
-                      <strong className="text-ink font-semibold">
-                        {post.author_name}
-                      </strong>
-                    </span>
-                  </>
-                )}
-              </div>
-            </header>
+        <div className="actual-article-wrap actual-cover">
+          <Image src={image.src} alt={image.alt} fill loading="eager" sizes="(max-width: 900px) 100vw, 980px" />
+        </div>
 
-            {/* Lead */}
-            <p
-              className="mt-8 text-[18px] lg:text-[19px] leading-[1.6] text-grey-700"
-              style={{ fontWeight: 500 }}
-            >
-              {post.excerpt}
-            </p>
+        <div className="actual-article-wrap actual-article-grid">
+          {headings.length > 1 && <ArticleToc headings={headings} />}
+          <article className="actual-article-body">
+            <section className="actual-answer" aria-labelledby="respuesta-directa">
+              <p className="actual-section-label">Respuesta directa</p>
+              <h2 id="respuesta-directa" className="sr-only">Respuesta directa</h2>
+              <p>{post.excerpt}</p>
+            </section>
 
-            {/* Body o Coming soon */}
-            {hasBody ? (
-              <div className="mt-10">
-                <NewsMarkdown source={post.body_markdown} />
-              </div>
-            ) : (
-              <ComingSoonBlock post={post} />
+            {headings.length > 1 && (
+              <details className="actual-mobile-toc">
+                <summary>En esta guía</summary>
+                <ol>{headings.map((heading) => <li key={heading.id} className={heading.level === 3 ? "is-child" : ""}><a href={`#${heading.id}`}>{heading.text}</a></li>)}</ol>
+              </details>
             )}
 
-            {/* Disclaimer del autor (si aplica) */}
-            <NewsDisclaimer
-              tipo={post.tipo}
-              authorName={post.author_name}
-              authorRole={post.author_role}
-            />
-          </div>
-        </article>
+            {hasBody ? <NewsMarkdown source={post.body_markdown} /> : <ComingSoonBlock post={post} />}
 
-        {/* Posts relacionados */}
+            <NewsDisclaimer tipo={post.tipo} authorName={post.author_name} authorRole={post.author_role} />
+            <NewsletterCard compact />
+          </article>
+        </div>
+
         {related.length > 0 && (
-          <section className="py-16 lg:py-20 border-t border-grey-200">
-            <div className="wrap max-w-[1100px]">
-              <h2 className="text-[14px] font-bold tracking-[0.14em] uppercase text-wine mb-8">
-                Sigue leyendo
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {related.map((p) => (
-                  <RelatedPostCard key={p.slug} post={p} />
-                ))}
-              </div>
-            </div>
+          <section className="actual-article-wrap actual-related" aria-labelledby="related-title">
+            <h2 id="related-title" className="actual-section-label">Sigue leyendo</h2>
+            <div>{related.map((item) => <RelatedCard key={item.id} post={item} />)}</div>
           </section>
         )}
       </main>
@@ -191,73 +128,53 @@ export default async function NewsPostPage({ params }: Props) {
   );
 }
 
+function ArticleMeta({ post }: { post: NewsPostRow }) {
+  const published = formatLongDate(post.date);
+  const updated = post.updated_at ? formatLongDate(post.updated_at) : null;
+  return (
+    <div className="actual-article-meta">
+      <span>Publicado el <time dateTime={post.date}>{published}</time></span>
+      {updated && updated !== published && <span>Actualizado el <time dateTime={post.updated_at ?? undefined}>{updated}</time></span>}
+      <span>{post.read_time_min} min de lectura</span>
+      <span>Por {post.author_name}{post.author_role ? ` · ${post.author_role}` : ""}</span>
+      {post.reviewer_name && <span>Revisado por {post.reviewer_name}{post.reviewer_role ? ` · ${post.reviewer_role}` : ""}</span>}
+    </div>
+  );
+}
+
+function ArticleToc({ headings }: { headings: ReturnType<typeof extractNewsHeadings> }) {
+  return (
+    <aside className="actual-desktop-toc" aria-labelledby="toc-title">
+      <h2 id="toc-title">En este contenido</h2>
+      <ol>{headings.map((heading) => <li key={heading.id} className={heading.level === 3 ? "is-child" : ""}><a href={`#${heading.id}`}>{heading.text}</a></li>)}</ol>
+    </aside>
+  );
+}
+
 function ComingSoonBlock({ post }: { post: NewsPostRow }) {
   return (
-    <div className="mt-10 card-shadow bg-white border border-grey-200 rounded-[18px] p-7 lg:p-10">
-      <span className="eyebrow inline-flex">Artículo en preparación</span>
-      <h2
-        className="mt-4 text-[22px] lg:text-[26px] leading-[1.15] tracking-[-0.01em] text-ink"
-        style={{ fontFamily: "var(--font-archivo-black)" }}
-      >
-        Pronto publicamos el artículo completo.
-      </h2>
-      <p className="mt-3 text-[14.5px] text-grey-700 leading-[1.55] max-w-[52ch]">
-        Mientras tanto, si necesitas información sobre este tema para tu
-        operación, escríbenos por WhatsApp y un asesor te explica los puntos
-        clave en minutos.
-      </p>
-      <a
-        href={buildWhatsAppLink(
-          `Hola DTD Cargo, vi el artículo "${post.title}" en su blog y quiero saber más al respecto antes de que lo publiquen.`,
-        )}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="btn btn-primary mt-6 inline-flex"
-      >
-        Preguntar por WhatsApp <ArrowIcon />
+    <div className="actual-coming-soon">
+      <p className="actual-section-label">Contenido en preparación</p>
+      <h2>Pronto publicaremos la guía completa.</h2>
+      <p>Si necesitas esta información para una operación activa, un asesor puede orientarte por WhatsApp.</p>
+      <a href={buildWhatsAppLink(`Hola DTD Cargo, quiero consultar sobre "${post.title}".`)} target="_blank" rel="noopener noreferrer">
+        Consultar por WhatsApp <EditorialIcon name="arrow" />
       </a>
     </div>
   );
 }
 
-function RelatedPostCard({ post }: { post: NewsPostRow }) {
-  const cat = getCategoryInfo(post.categoria);
-  const date = new Date(post.date).toLocaleDateString("es-VE", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+function RelatedCard({ post }: { post: NewsPostRow }) {
+  const image = editorialImageOf(post);
   return (
-    <Link
-      href={`/noticias/${post.slug}`}
-      className="card-shadow bg-white border border-grey-200 rounded-[18px] overflow-hidden flex flex-col group transition-transform hover:-translate-y-1"
-    >
-      <div
-        className="h-[100px] relative overflow-hidden"
-        style={{ background: gradientToCss(cat.gradient) }}
-      >
-        <span className="absolute top-3 left-3 inline-flex px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-sm text-[10px] font-bold tracking-[0.12em] uppercase text-white">
-          {cat.label}
-        </span>
-      </div>
-      <div className="p-6 flex flex-col flex-1">
-        <h3 className="text-[16px] font-extrabold leading-[1.25] tracking-[-0.01em] text-ink mb-2">
-          {post.title}
-        </h3>
-        <p className="text-[13.5px] leading-[1.55] text-grey-500 flex-1">
-          {post.excerpt}
-        </p>
-        <div className="mt-4 pt-3 border-t border-grey-200 flex items-center justify-between text-[11.5px] text-grey-500">
-          <time dateTime={post.date}>{date}</time>
-          <span className="inline-flex items-center gap-1 font-semibold text-wine group-hover:text-wine-deep">
-            Leer{" "}
-            <ArrowIcon
-              size={12}
-              className="transition-transform group-hover:translate-x-1"
-            />
-          </span>
-        </div>
-      </div>
+    <Link href={`/noticias/${post.slug}`} className="actual-related-card">
+      <span className="actual-related-image"><Image src={image.src} alt="" fill sizes="(max-width: 700px) 100vw, 33vw" /></span>
+      <span><em>{CONTENT_KIND_LABELS[contentKindOf(post)]}</em><strong>{post.title}</strong><small>{post.read_time_min} min de lectura</small></span>
     </Link>
   );
+}
+
+function formatLongDate(value: string) {
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00` : value;
+  return new Date(normalized).toLocaleDateString("es-VE", { day: "numeric", month: "long", year: "numeric", timeZone: "America/Caracas" });
 }

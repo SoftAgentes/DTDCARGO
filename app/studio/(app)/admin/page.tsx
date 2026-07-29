@@ -19,6 +19,7 @@
 import Link from "next/link";
 import { Icon, type IconName } from "@/app/studio/_components/icons";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
+import { canSpecial } from "@/lib/studio/rbac";
 import { createClient } from "@/lib/db/server";
 import { getCompanyData } from "@/lib/studio/company-queries";
 import { CompanySection } from "./_components/CompanySection";
@@ -48,7 +49,11 @@ import {
 } from "@/lib/studio/client-queries";
 import type { PrealertaAddon } from "@/lib/studio/prealertas/addons";
 import { getNumberingOverview } from "@/lib/studio/numbering-queries";
-import { getRecentAuditEvents } from "@/lib/studio/audit-queries";
+import {
+  listGovernedAuditEvents,
+  parseAuditFilters,
+  type AuditSearchParams,
+} from "@/lib/studio/audit-queries";
 import { getExchangeRatesOverview } from "@/lib/studio/exchange-rates-queries";
 import { getOperationalCalendar } from "@/lib/studio/op-calendar-queries";
 import { getApiIntegration } from "@/lib/studio/api-integration-queries";
@@ -67,7 +72,10 @@ import {
 } from "../legal/_components/LegalClient";
 import type { CompanyData } from "@/lib/studio/company-types";
 import type { NumberingOverview } from "@/lib/studio/numbering-types";
-import type { AuditEvent } from "@/lib/studio/audit-types";
+import type {
+  AuditListFilters,
+  AuditListResult,
+} from "@/lib/studio/audit-types";
 import type { ExchangeRatesOverview } from "@/lib/studio/exchange-rates-types";
 import type { CalendarEvent } from "@/lib/studio/op-calendar-types";
 import type { ApiIntegrationData } from "@/lib/studio/api-integration-types";
@@ -342,19 +350,22 @@ function isSection(s: string | undefined): s is string {
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ section?: string; tab?: string }>;
+  searchParams: Promise<AuditSearchParams>;
 }) {
-  await requireModuleView("admin");
+  const role = await requireModuleView("admin");
   const sp = await searchParams;
-  const activeId: string = isSection(sp.section) ? sp.section : "company";
+  const sectionParam = Array.isArray(sp.section) ? sp.section[0] : sp.section;
+  const tabParam = Array.isArray(sp.tab) ? sp.tab[0] : sp.tab;
+  const activeId: string = isSection(sectionParam) ? sectionParam : "company";
   const active = SECTIONS.find((s) => s.id === activeId) ?? SECTIONS[0];
-  const calcInitialTab = sp.tab === "ciudades" ? "ciudades" : "parametros";
+  const calcInitialTab = tabParam === "ciudades" ? "ciudades" : "parametros";
+  const auditFilters = parseAuditFilters(sp);
 
   // Solo la sección "company" tiene implementación real (SDD-0120): fetch acá
   // para no pegarle a la DB en las secciones que aún son placeholder.
   let companyData: CompanyData | null = null;
   let numberingData: NumberingOverview | null = null;
-  let auditEvents: AuditEvent[] | null = null;
+  let auditResult: AuditListResult | null = null;
   let ratesData: ExchangeRatesOverview | null = null;
   let calendarEvents: CalendarEvent[] | null = null;
   let apiData: ApiIntegrationData | null = null;
@@ -390,7 +401,9 @@ export default async function AdminPage({
     numberingData = await getNumberingOverview(supabase);
   } else if (active.id === "audit") {
     const supabase = await createClient();
-    auditEvents = await getRecentAuditEvents(supabase);
+    auditResult = canSpecial(role, "audit_view")
+      ? await listGovernedAuditEvents(supabase, auditFilters)
+      : { ok: false, events: [], code: "forbidden" };
   } else if (active.id === "rates") {
     const supabase = await createClient();
     ratesData = await getExchangeRatesOverview(supabase);
@@ -514,7 +527,8 @@ export default async function AdminPage({
           section={active}
           companyData={companyData}
           numberingData={numberingData}
-          auditEvents={auditEvents}
+          auditResult={auditResult}
+          auditFilters={auditFilters}
           ratesData={ratesData}
           calendarEvents={calendarEvents}
           apiData={apiData}
@@ -622,7 +636,8 @@ function Content({
   section,
   companyData,
   numberingData,
-  auditEvents,
+  auditResult,
+  auditFilters,
   ratesData,
   calendarEvents,
   apiData,
@@ -639,7 +654,8 @@ function Content({
   section: AdminSection;
   companyData: CompanyData | null;
   numberingData: NumberingOverview | null;
-  auditEvents: AuditEvent[] | null;
+  auditResult: AuditListResult | null;
+  auditFilters: AuditListFilters;
   ratesData: ExchangeRatesOverview | null;
   calendarEvents: CalendarEvent[] | null;
   apiData: ApiIntegrationData | null;
@@ -705,8 +721,12 @@ function Content({
         <AppearanceSection />
       ) : section.id === "numbering" && numberingData ? (
         <NumberingSection data={numberingData} />
-      ) : section.id === "audit" && auditEvents ? (
-        <AuditLogSection events={auditEvents} />
+      ) : section.id === "audit" && auditResult ? (
+        <AuditLogSection
+          result={auditResult}
+          filters={auditFilters}
+          governedViewerEnabled={process.env.AUDIT_GOVERNED_VIEWER !== "false"}
+        />
       ) : section.id === "permissions" ? (
         <PermissionsSection />
       ) : section.id === "masterdata" ? (

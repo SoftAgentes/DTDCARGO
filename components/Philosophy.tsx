@@ -6,8 +6,8 @@ import { ArrowIcon, QuoteIcon, WhatsAppIcon } from "./Icon";
  * Sección de filosofía / cierre — la confianza se construye envío a envío.
  * Fuente: brochure DTD Cargo § "Nuestra Filosofía" + cierre.
  *
- * Las 4 razones reusan el patrón de tarjeta de <HowWeWork /> (card-shadow +
- * border grey-200 + rounded-[18px] + h-card) para mantener un solo sistema.
+ * Las 4 razones usan el patrón de tarjeta del sistema (card-shadow + border
+ * grey-200 + rounded-[18px] + h-card) — el mismo de "Por qué DTD" del brochure.
  */
 export function Philosophy() {
   return (
@@ -59,7 +59,7 @@ export function Philosophy() {
           </blockquote>
         </figure>
 
-        {/* 4 razones — mismo patrón de tarjeta que "Cómo trabajamos" */}
+        {/* 4 razones — patrón de tarjeta del sistema */}
         <div className="mt-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           {PHILOSOPHY.cards.map((card) => (
             <div
@@ -92,7 +92,7 @@ export function Philosophy() {
             {PHILOSOPHY.cta}
           </p>
           <div className="flex flex-wrap gap-3 justify-center">
-            <Link href="/calculadora" className="btn btn-primary">
+            <Link href="/tarifas" className="btn btn-primary">
               Cotizar mi envío <ArrowIcon />
             </Link>
             <a

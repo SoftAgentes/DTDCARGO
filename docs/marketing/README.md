@@ -9,7 +9,10 @@
 - **Punto de entrada = este README** (índice + estado + reglas).
 - **Plan maestro de acción** (digital + Google Ads, con la auditoría de los 4 activos + las 5 prioridades y su estado): [`plan-accion-digital.md`](plan-accion-digital.md).
 - **Identidad y estrategia** (propósito · misión · visión · valores · objetivos + norte interno): [`estrategia.md`](estrategia.md) · identidad pública/legal + NAP + nombres: [`identidad.md`](identidad.md) · línea de ventas cliente-ancla: [`ventas.md`](ventas.md) · **embudo de ventas operativo + mapa de etapas Kommo (MARKBOX) + campos del Kanban**: [`embudo-ventas.md`](embudo-ventas.md) · **sistema de adquisición (oferta + canal + proceso de prospección, manual del asesor)**: [`adquisicion.md`](adquisicion.md).
-- **Logs detallados por área** en archivos hermanos a medida que crezca: [`seo.md`](seo.md) (activo), [`redes.md`](redes.md) (activo), `ads.md`, `analytics.md`, … (se crean al tocar cada área).
+- **Motor de Crecimiento DTD** — marco de los 6 sistemas (adquisición · ventas · entrega · manual de operaciones · contratación · control financiero) + dónde entra cada trabajo: [`sistemas-negocio.md`](sistemas-negocio.md) · **el programa de construcción (re-auditoría ultra 18-jul + brechas + hoja de ruta por dueño + decisiones + metodología de activación §M)**: [`motor-crecimiento.md`](motor-crecimiento.md) · **el ritual del viernes que lo mueve (agenda de 30 min lista para correr)**: [`revision-del-motor.md`](revision-del-motor.md) · base conceptual (transcripciones de 2 expertas): [`research/expertos-sistematizacion.md`](../../research/expertos-sistematizacion.md) · prompt histórico que generó la v1: [`prompt-sesion-5-sistemas.md`](prompt-sesion-5-sistemas.md).
+- **Infografías de servicios** (copy fuente por servicio, nuestro proceso China→VE; alimenta Cloud Design + web/PDF): [`servicios-infografias/`](servicios-infografias/README.md).
+- **Sistema Editorial Técnico DTD Cargo** (pauta aplicada en Canva Brand Hub; reglas de composición y 3 plantillas piloto para redes): [`sistema-editorial-tecnico-dtd/`](sistema-editorial-tecnico-dtd/README.md).
+- **Logs detallados por área** en archivos hermanos a medida que crezca: [`seo.md`](seo.md) (activo), **[20 preguntas SEO/AEO desde el CRM](seo-aeo-preguntas-crm.md)** (contenido fuente basado en 401 conversaciones), [`redes.md`](redes.md) (activo), `ads.md`, `analytics.md`, … (se crean al tocar cada área).
 - **Leer estos docs sin abrir el repo:** dentro del ERP en **Studio › Marketing › Documentos** (`/studio/marketing/docs`, SDD-0158, se actualiza solo) · **offline** (un HTML portable, doble clic sin internet) corriendo **`pnpm marketing:reader`** → genera `outputs/lector-marketing-dtd.html` (o `node scripts/build-marketing-reader.mjs "C:/ruta/Lector.html"` para otro destino). Ambos leen ESTOS `.md` — la fuente de verdad sigue siendo este tree.
 - La **memoria del agente** (cross-sesión) referencia este tree como fuente de verdad; este tree es lo versionado y compartido por git.
 - El **puntero en `AGENTS.md`** (sección Marketing) hace que todos los agentes lleguen acá automáticamente.
@@ -17,7 +20,7 @@
 ## Áreas
 
 ### 🎯 Identidad · Estrategia · Ventas — detalle en [`estrategia.md`](estrategia.md)
-**Estado (2026-06-08):** identidad pública **cerrada** (propósito · misión · visión · valores · objetivos) — reemplaza las versiones de 2020. Norte **interno** = **2 contenedores/mes** (umbral de equilibrio operativo, **no se publica**) vía 2 motores: mayoristas recurrentes + aliados white-label. Identidad legal + NAP + convención de nombres en [`identidad.md`](identidad.md); plan de ventas cliente-ancla en [`ventas.md`](ventas.md). La versión-máquina (schema) se cablea en `app/layout.tsx` (Fase 2, pendiente).
+**Estado (2026-06-08):** identidad pública **cerrada** (propósito · misión · visión · valores · objetivos) — reemplaza las versiones de 2020. Norte **interno** = **2 contenedores/mes** (umbral de equilibrio operativo, **no se publica**) vía 2 motores: mayoristas recurrentes + aliados white-label. Identidad legal + NAP + convención de nombres en [`identidad.md`](identidad.md); plan de ventas cliente-ancla en [`ventas.md`](ventas.md). La versión-máquina (schema `@graph`) ya está cableada en `app/layout.tsx` (hecho; `foundingDate: 2015`).
 
 ### 🧲 Adquisición de clientes — detalle en [`adquisicion.md`](adquisicion.md)
 **Estado (2026-07-17):** sistema definido (deep research 6 líneas + verificación adversarial + merge con lo
@@ -35,6 +38,12 @@ campaña de recuperación → `/studio/kommo` › Recuperación (SDD-0157). Pend
 
 ### 🔍 SEO — detalle en [`seo.md`](seo.md)
 **Estado (2026-06-07):** dominio migrado `doortudoor.com → dtdcargo.com` (301 path-preserving + "Cambio de dirección" de Search Console **activo**). Rename `/cotizar → /estimacion` (308). 18 geo-páginas "Importar de China a {ciudad}". Sitemap 35 URLs. 6 redirects de recuperación de páginas viejas huérfanas. → ver `seo.md` para la cronología completa y las reglas.
+
+**SEO/AEO desde el CRM (2026-07-22):** top 20 operativo, respuestas directas, cruce de palabras
+clave y tres ideas futuras revisados en [`seo-aeo-preguntas-crm.md`](seo-aeo-preguntas-crm.md).
+Estado: aprobado editorialmente con condiciones; todavía no autorizado para el sitio público. Fuente:
+análisis sin PII de 401 conversaciones de Kommo (SDD-0062); las posiciones 1–6 tienen señal explícita
+de alta frecuencia y 7–20 quedan marcadas como prioridad editorial hasta instrumentar conteo.
 
 ### 📣 Publicidad — Google Ads
 - Cuenta **"Dooortudoor services"** (ocid `579348138`).
@@ -62,10 +71,53 @@ Connector SDD-0043 (sync E2E en prod: leads/contactos/pipelines/webhooks). Fuent
 - **Diseño del embudo de ventas** (5 etapas), **mapa de etapas (MARKBOX)** para SDD-0084 y **campos del Kanban**: [`embudo-ventas.md`](embudo-ventas.md). Análisis triangulado (2 agentes + Codex) sobre el embudo real; recomendación lista para configurar en Kommo. Cómo ACTIVAR el write-back: [`../runbooks/activar-crm-kommo.md`](../runbooks/activar-crm-kommo.md).
 
 ### 📝 Contenido / Captación de leads
-- **Alta de cliente web = `/registro`** (form mock + handoff WhatsApp con código `DTD-REG`; un asesor asigna el MARKBOX). Ver `project_public_registro_lead`.
+- **Centro editorial = `/noticias`**, nombre público **Actualidad** y portada
+  **“Actualidad, guía y noticias”**. Conserva el motor existente de las SDD-0088/0089;
+  no existe un `/blog` paralelo. Rediseño y gates en [`../specs/0167-actualidad-centro-editorial/spec.md`](../specs/0167-actualidad-centro-editorial/spec.md).
+- **Newsletter de Actualidad = solo email**. El formulario vive en `/noticias` y
+  artículos; no usa WhatsApp como canal de suscripción. Backend local: tabla
+  privada `newsletter_subscribers`, endpoint `/api/newsletter/subscribe`,
+  honeypot, throttle, lista de exclusión e idempotencia. El alta y la baja ya
+  fueron verificadas con la migración 0259. El envío administrativo vive en
+  `/studio/marketing/newsletter`: borrador → revisión → aprobación admin →
+  prueba interna → lotes manuales de hasta 100. Migraciones privadas 0259 y 0260
+  aplicadas; RLS, grants y RPC verificados el 2026-07-22. Preview 0260 READY en
+  `dtdcargo-pkge69mpf-hailu-wey.vercel.app`; flujo autenticado de borrador,
+  prueba interna, revisión y aprobación verificado. La campaña de prueba quedó
+  cancelada con cero envíos reales. Lote controlado validado después: un correo
+  interno entregado, cero externos y cero fallos. La baja reveló un gate: el
+  correo del Preview apuntó a la ruta pública anterior de marketing y no actualizó
+  `newsletter_subscribers`; el registro interno se reparó tras el consentimiento.
+  El host y la confirmación visual quedaron corregidos en el Preview READY
+  `dtdcargo-jnag8kgv4-hailu-wey.vercel.app` (pantalla pública `/email/baja`,
+  `noindex`, token retirado de la URL, estados Actualidad/marketing/error y reflujo
+  1440/390 px en tema claro/oscuro). La repetición controlada creó y entregó un
+  solo correo a `vzla@dtdcargo.com`, con cero destinatarios externos; el enlace
+  llegó al endpoint del Preview, pero terminó en `estado=invalido` y el suscriptor
+  permaneció `subscribed`, sin reparación manual. El gate de baja firmada sigue
+  fallido. El diagnóstico desplegado en
+  `dtdcargo-j6tgb6pxy-hailu-wey.vercel.app` confirmó que la huella recibida por
+  correo coincidía con la emitida, pero Outlook retiró `?token=...` y la API
+  recibió el token ausente. La corrección transporta un token opaco cifrado en
+  `/api/email/unsubscribe/[token]`, conserva compatibilidad con enlaces HMAC
+  anteriores y no requiere migración. La baja firmada quedó validada de punta a
+  punta en `dtdcargo-3jtv0vceu-hailu-wey.vercel.app`: un correo interno
+  `delivered`, cero externos, ruta dinámica `303`, confirmación de Actualidad y
+  persistencia `unsubscribed` con `signed_link`, sin reparación manual. La
+  verificación detectó dos ajustes adicionales, también sin migración. Ambos
+  quedaron validados el 2026-07-22: el Preview
+  `dtdcargo-jscugtgxl-hailu-wey.vercel.app` resuscribió el correo interno y dejó
+  `unsubscribed_at`/`unsubscribe_reason` en `null`; después, el Preview temporal
+  `dtdcargo-mmsf7a59p-hailu-wey.vercel.app` reprodujo de forma firmada el evento
+  `email.delivered` ya existente y persistió `last_delivered_at =
+  2026-07-22T21:57:02.499Z`. No se envió otro correo, la ruta temporal se retiró
+  y las campañas reales permanecen deshabilitadas. Falta autorizar producción
+  por separado.
+  Publicar una noticia nunca envía una campaña.
+- **Alta de cliente web = `/registro`** (registro REAL: crea el cliente con Shipping Mark/MARKBOX vía `rpc('next_markbox')` + opt-in email + aviso a admins — `app/registro/actions.ts`; ya no es mock).
 - **Portal cliente = `/portal`** (passwordless). **Productos comerciales:** consolidación · puerta_a_puerta_DDP · reserva_FCL · transporte_terrestre.
 - **Canales públicos = solo** CRM WhatsApp (`+58 412 166 8021`, primario) + Fijo Valencia (`+58 241 414 7886`). Ver `feedback_single_point_of_contact`.
-- **WhatsApp Business — guía de configuración de perfiles corporativos** (logo, datos, web, catálogo de servicios por número): [`whatsapp-business.md`](whatsapp-business.md). 🟡 para llenar.
+- **WhatsApp Business — guía de configuración de perfiles corporativos** (logo, datos, web, catálogo de servicios por número): [`whatsapp-business.md`](whatsapp-business.md). 🟢 **lista para ejecutar** (checklist §7 en 0/10; faltan solo 3 fotos; ⚠️ sus etiquetas §4.4 ceden ante el pipeline de `adquisicion.md` — unificación pendiente en el Motor).
 - **Condiciones de cotización — copy web + correo** (el precio online es estimado/referencial; calza con "Pagas al llegar\*" y la integración de rates): [`condiciones-cotizacion.md`](condiciones-cotizacion.md). ✅ copy listo (pulido por redactor), pendiente cablear cuando exista el cotizador online. **Incluye la FAQ del cliente sobre peso/tamaño (sin números).**
 - **Manual de vendedores — cómo cotizar el peso** (INTERNO, con números + anti-trucos + negociación + 3 diálogos con precios reales): [`manual-vendedores-peso.md`](manual-vendedores-peso.md). Calibrado con 33 contenedores reales; límites vigentes: gracia **1.000 kg/m³** · recargo **$2/kg** · tope por envío **9.000 kg** (anti-abuso, density-aware ≈400 kg/m³) · tope contenedor **68 m³ / 27.000 kg**. La evidencia (densidades reales) vive en el informe confidencial (`docs/legal/casos/`) + brief legal v3.1.
 

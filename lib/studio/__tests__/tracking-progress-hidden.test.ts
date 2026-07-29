@@ -11,14 +11,14 @@ import {
 
 describe("buildTimeline hiddenStatuses", () => {
   it("sin hiddenStatuses → comportamiento intacto (todos los pasos)", () => {
-    const steps = buildTimeline("in_transit", "consolidacion");
+    const steps = buildTimeline("in_transit", "consolidado_lcl");
     expect(steps.some((s) => s.status === "in_customs")).toBe(true);
   });
 
   it("oculta el status pedido y conserva el resto con su estado", () => {
     const steps = buildTimeline(
       "in_transit",
-      "consolidacion",
+      "consolidado_lcl",
       new Set(["in_customs"] as const),
     );
     expect(steps.some((s) => s.status === "in_customs")).toBe(false);
@@ -32,7 +32,7 @@ describe("buildTimeline hiddenStatuses", () => {
     // (in_transit) pasa a 'active' para que el stepper no se vea estancado.
     const steps = buildTimeline(
       "in_customs",
-      "consolidacion",
+      "consolidado_lcl",
       new Set(["in_customs"] as const),
     );
     expect(steps.some((s) => s.status === "in_customs")).toBe(false);
@@ -48,7 +48,7 @@ describe("buildTimeline hiddenStatuses", () => {
     // in_customs oculto pero el envío está en in_transit (visible + active).
     const steps = buildTimeline(
       "in_transit",
-      "consolidacion",
+      "consolidado_lcl",
       new Set(["in_customs"] as const),
     );
     expect(steps.find((s) => s.status === "in_transit")?.state).toBe("active");
@@ -57,8 +57,8 @@ describe("buildTimeline hiddenStatuses", () => {
   });
 
   it("set vacío = mismo resultado que sin parámetro", () => {
-    const a = buildTimeline("shipped", "consolidacion");
-    const b = buildTimeline("shipped", "consolidacion", new Set());
+    const a = buildTimeline("shipped", "consolidado_lcl");
+    const b = buildTimeline("shipped", "consolidado_lcl", new Set());
     expect(b).toEqual(a);
   });
 });
@@ -66,14 +66,14 @@ describe("buildTimeline hiddenStatuses", () => {
 describe("effectiveVisibleStatus", () => {
   it("status visible → sin cambio", () => {
     expect(
-      effectiveVisibleStatus("in_transit", "consolidacion", new Set(["in_customs"] as const)),
+      effectiveVisibleStatus("in_transit", "consolidado_lcl", new Set(["in_customs"] as const)),
     ).toBe("in_transit");
   });
 
   it("status oculto → último visible anterior (aduana → tránsito)", () => {
     const eff = effectiveVisibleStatus(
       "in_customs",
-      "consolidacion",
+      "consolidado_lcl",
       new Set(["in_customs"] as const),
     );
     expect(eff).toBe("in_transit");
@@ -82,13 +82,13 @@ describe("effectiveVisibleStatus", () => {
   });
 
   it("sin ocultos → sin cambio", () => {
-    expect(effectiveVisibleStatus("in_customs", "consolidacion")).toBe("in_customs");
+    expect(effectiveVisibleStatus("in_customs", "consolidado_lcl")).toBe("in_customs");
   });
 
   it("salta varios ocultos consecutivos hasta el primer visible", () => {
     const eff = effectiveVisibleStatus(
       "in_customs",
-      "consolidacion",
+      "consolidado_lcl",
       new Set(["in_customs", "in_transit"] as const),
     );
     expect(eff).toBe("shipped");

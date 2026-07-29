@@ -19,7 +19,7 @@ export const STATE_MACHINE: Record<
     defaultInitial: ShipmentStatus;
   }
 > = {
-  consolidacion: {
+  consolidado_lcl: {
     applicableStatuses: [
       "draft",
       "in_warehouse",
@@ -53,10 +53,26 @@ export const STATE_MACHINE: Record<
     ],
     defaultInitial: "draft",
   },
-  reserva_FCL: {
+  fcl_directo: {
     applicableStatuses: [
       "draft",
       "in_warehouse",
+      "shipped",
+      "in_transit",
+      "in_customs",
+      "last_mile",
+      "delivered",
+      "exception",
+      "cancelled",
+    ],
+    defaultInitial: "draft",
+  },
+  // Igual que el directo + "consolidating": el contenedor de bodega se arma en Yiwu.
+  fcl_bodega: {
+    applicableStatuses: [
+      "draft",
+      "in_warehouse",
+      "consolidating",
       "shipped",
       "in_transit",
       "in_customs",

@@ -11,6 +11,7 @@
  */
 
 import { getAnonClient } from "./supabase-anon";
+import { isOceanRateExpired } from "@/lib/shared/ocean-rate";
 import type {
   OceanRouteInput,
   OceanRateStatus,
@@ -38,6 +39,16 @@ export async function getPublicOceanRate(
     const row = Array.isArray(data) ? data[0] : null;
     if (!row) return null;
 
+    // La RPC no filtra por vigencia (la caché la refresca el cron semanal). Si el
+    // cron dejó de correr, `valid_to` queda en el pasado: degradamos a `no_rate`
+    // para NO servir un precio viejo como firme. El API route ya trata
+    // status!=='ok' como "no disponible" → cae a "escríbenos y un asesor te lo
+    // cierra". El precio vencido nunca sale del servidor.
+    const expired = isOceanRateExpired(row.valid_to ?? null);
+    const status = (
+      expired ? "no_rate" : (row.status ?? "error")
+    ) as OceanRateStatus;
+
     return {
       rateUsd: row.rate_usd == null ? null : Number(row.rate_usd),
       currency: row.currency ?? null,
@@ -47,7 +58,7 @@ export async function getPublicOceanRate(
       validTo: row.valid_to ?? null,
       indicative: row.indicative ?? null,
       spot: row.spot ?? null,
-      status: (row.status ?? "error") as OceanRateStatus,
+      status,
       fetchedAt: row.fetched_at ?? null,
     };
   } catch (e) {

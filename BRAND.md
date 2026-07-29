@@ -129,7 +129,9 @@ Los valores canónicos viven en el Norte (`docs/design/studio/_norte/erp/tokens.
 - **NUNCA** uses verde fosforescente, lima, neón, fucsia eléctrico o ningún color saturado fuera de la paleta.
 - **NUNCA** uses `red`, `blue`, `green`, `orange`, `purple` como nombres CSS. Usá los tokens.
 - **NUNCA** inventes hex como `#FF5733`, `#00FFAA`, etc.
-- **NUNCA** uses gradientes coloridos / arcoíris / "AI slop". Único gradiente permitido: **navy → ink** (familia `#0B1428`→`#0F1E3D`→`#1F3055`), **nunca hacia blanco**. En heros con texto (left-aligned) va **horizontal, azul FUERTE a la izquierda → navy más claro a la derecha**: `linear-gradient(90deg, #0B1428 0%, #0F1E3D 44%, #1F3055 100%)` (BD-022). **Hex explícito siempre, nunca `var(--ink)`/`var(--ink2)` dentro del gradiente** (BD-023) — si el token no resuelve, el fondo cae a blanco con texto claro encima (invisible); en dark, `var(--ink)` además se invierte a cream y voltea la tarjeta. En cards/botones chicos el diagonal `135deg` del mismo par es aceptable.
+- **NUNCA** uses gradientes coloridos / arcoíris / "AI slop". Los **coloridos/arcoíris siguen prohibidos**; lo permitido es **tonal navy → ink** (familia `#0B1428`→`#0F1E3D`→`#1F3055`), **nunca hacia blanco**. En heros con texto (left-aligned) va **horizontal, azul FUERTE a la izquierda → navy más claro a la derecha**: `linear-gradient(90deg, #0B1428 0%, #0F1E3D 44%, #1F3055 100%)` (BD-022). **Hex explícito siempre, nunca `var(--ink)`/`var(--ink2)` dentro del gradiente** (BD-023) — si el token no resuelve, el fondo cae a blanco con texto claro encima (invisible); en dark, `var(--ink)` además se invierte a cream y voltea la tarjeta. En cards/botones chicos el diagonal `135deg` del mismo par es aceptable.
+  - **Glow de fondo (BD-030, 2026-07-12):** además del hero, se **permite —y se recomienda para no dejar fondos planos—** un **glow radial *tonal* navy→ink** como fondo: `radial-gradient(135% 100% at 50% -12%, #1F3055 0%, #0F1E3D 42%, #0B1428 100%)` en dark; en claro, el equivalente sutil en papel `#FBFAF7`→`#F2F0EC`. Token: **`var(--bg-glow)`** (`app/globals.css`). Sigue las reglas de BD-022/023 (hex explícito, nunca hacia blanco en la familia navy) y **no** sustituye el gradiente de hero horizontal. Es **tonal, no colorido** — el glow no es una puerta a gradientes de color.
+  - **Texto display editorial (autorizado por el founder, 2026-07-23):** en infografías, portadas sociales, cifras KPI y titulares grandes se permite aplicar el mismo **degradado tonal monocromático navy**, de izquierda a derecha, para evitar que el azul se vea plano: `linear-gradient(90deg, #0B1428 0%, #0F1E3D 55%, #1F3055 100%)`. El cambio debe ser sutil — navy profundo a navy ligeramente más claro, sin pasar a azul brillante, cian ni blanco. Se usa únicamente en texto display grande, con fallback sólido `#0F1E3D`; cuerpo, subtítulos pequeños y datos técnicos permanecen en color sólido para conservar legibilidad. **Nunca se aplica al isólogo, al wordmark ni a ninguna variante oficial del logo.**
 - **NUNCA** uses morados, púrpuras o azules brillantes para alertas. El warning es **dorado** (#B8893A), no naranja chillón.
 
 ---
@@ -159,6 +161,9 @@ Los hex de la paleta no dicen **qué par se lee**. Estas reglas cierran ese huec
 ### Rol de `--wine` en dark
 Como **texto** sobre fondos oscuros falla (`#A8323E` → 2.79:1). En dark, `--wine` es **relleno** (texto blanco encima, 6.58:1); el acento de **texto** en dark es `--wine-soft #D89AA4` (7.93:1). **Token canónico para wine-como-texto en ambos temas: `--wine-text`** (BD-026: `#7F0F1A` light · `#D89AA4` dark) — usalo en Shipping Mark por fila, saldos, tabs activas, KPI values, links y badge tono wine. Los tokens dark que falten (`--ink-mute`, `--border`, semánticos) se toman de `docs/design/studio/_norte/erp/tokens.css` — **no inventar**.
 
+### Wine sobre las bandas navy de la web pública
+El sitio público escribe wine sobre `--grad-navy-hero` (#16274B → **#26406F**). El peor caso es siempre el **extremo claro #26406F**: `--wine-soft #C2747F` mide ahí **2.98:1** y reprueba (los eyebrows son de 12px). Token canónico para ese uso: **`--color-wine-on-dark` (#D59FA7)** — mismo tono y saturación que `wine-soft`, solo más claro → **4.57:1** sobre #26406F · 6.55:1 sobre #16274B · 8.64:1 sobre el #060D1C del collage. Lo consumen los alias `--wine-on-dark` de `.home-surface`, `.sm-surface` y `.cx-surface`. Es token de **web pública**: el ERP no lo usa (su equivalente es `--wine-text` dark).
+
 ### Paridad light/dark
 Todo par texto/fondo debe pasar el umbral en **ambos** temas. No asumas que un token de texto en light hereda contraste en dark — verifica el equivalente.
 
@@ -168,13 +173,16 @@ Todo par texto/fondo debe pasar el umbral en **ambos** temas. No asumas que un t
 
 ---
 
-## 🏷 Terminología · Shipping Mark / MARKBOX (split por superficie)
+## 🏷 Terminología · Shipping Mark (unificado en todas las superficies)
 
-**BD-021 (2026-07-06, enmienda BD-004):** el término se divide por superficie — **web pública = "MARKBOX"** · **Studio (ERP) / Portal / apps de operario = "Shipping Mark"** (唛头). El **valor** del registro (`DTD-XXXX`) y la **clave de datos `markbox`** no cambian en ningún caso, solo la etiqueta visible.
+**BD-022 (2026-07-18, enmienda BD-021 — decisión founder):** el término visible es **"Shipping Mark"
+(唛头) en TODAS las superficies** — web pública, Studio (ERP), Portal y apps de operario. El split por
+superficie de BD-021 (web = "MARKBOX") queda **derogado**. El **valor** del registro (`DTD-XXXX`) y la
+**clave de datos `markbox`** no cambian en ningún caso — solo la etiqueta visible.
 
-- ❌ Nunca "MARKBOX" visible en `app/studio`, `app/portal` ni `app/m` (ahí siempre "Shipping Mark").
-- ✅ "MARKBOX" es intencional en el sitio público (`app/{page,faq,glosario,servicios,cotizar,track,calculadora,noticias,estimacion,contacto,registro}` + `components/` raíz) — no es drift.
-- Detalle completo en `AGENTS.md` §Patrones del Studio ERP y `docs/design/studio/_norte/BRAND-DECISIONS.md` (BD-004, BD-021).
+- ❌ Nunca "MARKBOX" visible en NINGUNA superficie nueva (fichas de servicios, infografías, portal, web).
+- ⚠️ Sweep pendiente del sitio público: las páginas que hoy dicen "MARKBOX" (`app/{faq,glosario,servicios,registro,...}` + `components/` raíz) migran a "Shipping Mark" — hasta entonces el texto viejo es deuda, no regla.
+- Historial: BD-004 → BD-021 (split, 2026-07-06) → **BD-022 (unificación, 2026-07-18)**. Detalle en `AGENTS.md` §Patrones del Studio ERP y `docs/design/studio/_norte/BRAND-DECISIONS.md`.
 
 ---
 
@@ -187,6 +195,7 @@ Tres familias, **ninguna otra**:
 --f-display: 'Archivo Black', 'Archivo', sans-serif
 --f-mono:    'JetBrains Mono', ui-monospace, monospace
 --f-cn:      'Noto Sans SC', 'Archivo', sans-serif   /* solo para chino mandarín */
+--f-cn-document: 'Noto Serif SC', 'Noto Sans SC', serif /* excepción BD-036: solo documento formal zh-CN */
 ```
 
 ### Reglas
@@ -194,10 +203,17 @@ Tres familias, **ninguna otra**:
 - **Archivo regular** para todo el body, labels, buttons.
 - **JetBrains Mono** para códigos: Shipping Mark (`DTD-XXXX` — nombre visible "Shipping Mark", SDD-0065; `markbox` solo como identificador interno), container IDs (`DTDU-XXXXXX`), factura IDs (`F-2026-XXXX`), HS codes, RIF, tarifas, fechas/horas en tablas.
 - **Noto Sans SC** SOLO para texto en chino mandarín (direcciones de almacén CN, nombres bilingües).
+- **Noto Serif SC** es una excepción documental estrecha (BD-036): solo para
+  bloques con `lang="zh-CN"` en cartas, contratos, transcripciones, correos
+  formales y PDF dirigidos a clientes/oficina en China. Nunca se usa en UI,
+  navegación, formularios, marketing, texto latino, títulos de marca o como
+  serif editorial general. Sin la fuente disponible, el fallback obligatorio
+  es Noto Sans SC y la estructura debe seguir siendo comprensible.
 
 ### ❌ Fuentes PROHIBIDAS
 - Inter, Roboto, Open Sans, Lato, Montserrat, Poppins, Helvetica, Arial — son AI slop.
-- Fuentes serif: Fraunces, Playfair, Georgia, Times — no van con el sistema.
+- Fuentes serif: Fraunces, Playfair, Georgia y Times no van con el sistema.
+  Noto Serif SC es la única excepción y únicamente bajo BD-036.
 - Cualquier fuente cursiva o decorativa.
 
 ---
@@ -287,12 +303,31 @@ Estos patrones gritan "generado por AI" y **destruyen** la credibilidad del prod
 - ❌ "Empty states" con ilustraciones genéricas tipo undraw.co
 - ❌ Bordes redondeados de 24px+ en todo
 - ❌ Drop shadows muy difusas estilo macOS Sequoia
-- ❌ Modo "glassmorphism" / acrylic blur en todos lados
+- ⚠️ Modo "glassmorphism" / acrylic blur **como default en todos lados** — permitido SOLO en superficies elevadas/flotantes (ver ✅ Excepción · Glass · BD-031, abajo)
 - ❌ Texto centrado por defecto · usar left-align
 - ❌ Frases como "Made with ❤️", "Powered by AI", "Designed in 2026"
 - ❌ Dashboards con barras chart de colores aleatorios
 
 Si el usuario pide algo así, **avisarle** y proponer alternativa que respete el sistema.
+
+### ✅ Excepción · Glass (BD-031, founder 2026-07-17)
+
+El glassmorphism dejó de estar prohibido en bloque: se **permite acotado** a superficies **elevadas/flotantes** — calculadora flotante (FAB + panel), botón "Calcular", modales/overlays y popovers que floten sobre navy o imagen. **Nunca** en tablas, body, cards de contenido denso ni fondos de página (ahí sigue siendo AI slop).
+
+**Reglas (para no recaer en slop):**
+1. Solo superficies elevadas/flotantes, nunca "en todos lados".
+2. **El texto sobre el vidrio cumple AA** contra el peor caso del fondo — crema sobre glass navy, navy sobre glass blanco (nunca gris tenue). Token de texto: `--glass-ink`.
+3. El vidrio **no** reemplaza `--bg-surface` / `--color-white` en cards de contenido.
+4. Sin blur difuso estilo macOS en botones chicos de contenido.
+5. **Siempre** con `-webkit-backdrop-filter` de respaldo + relleno translúcido como fallback si el navegador no soporta blur.
+
+**Tokens (nunca hex sueltos):** `--glass-bg` · `--glass-border` · `--glass-hi` (highlight interior) · `--glass-blur` (`blur(18px) saturate(150%)`) · `--glass-ink` · `--glass-shadow` · `--glass-key` · `--glass-inset`. Voltean por tema (claro = vidrio blanco translúcido + texto navy; oscuro = vidrio navy translúcido + texto crema). Definidos en `app/globals.css` (web/portal) y `app/studio/tokens.css` (ERP), espejo 1:1 del Norte. Acentos y "=" en wine (`--color-wine` / `--wine-text` según tema).
+
+**Dónde está aplicado (no expandir sin BD nueva):**
+- **Web/Portal:** calculadora flotante del portal (`PortalCalcFab`, panel de vidrio) · glow de fondo `--bg-glow` en el embed de la calculadora (BD-030).
+- **ERP Studio (BD-033):** *scrim frosteado* — `backdrop-filter: var(--scrim-blur)` (blur suave 4px) en el overlay de todos los modales/drawers (`DrawerShell`, `ConfirmDialog`, `GlobalSearchModal`) · *panel de vidrio* del buscador ⌘K (`GlobalSearchModal`). **No** en toasts, paneles de drawer, tablas, KPIs ni fondos. Token del scrim: `--scrim-blur` (`app/studio/tokens.css`), distinto del `--glass-blur` de paneles.
+- **ERP Studio · fondos (BD-034):** las superficies vino/navy llevan **degradado tonal `--grad-*`** (sidebar navy, hero vino, KPI destacado, fondo de página, cards) + **marca de agua del isotipo "D"** (`public/brand/dtdcargo-isologo-mono-light.png`, wallpaper, opacidad baja .05–.10). Extiende BD-030 (tonal, **nunca** rainbow ni textura).
+- **ERP Studio · tipografía (BD-035):** el ERP corre en **Nunito Sans** (cuerpo/nav) + **Sora** (títulos) vía `--f-sans`/`--f-display` scopeados a `.studio-sys` (`app/studio/tokens.css`) — alinea el ERP con su fuente de diseño del Norte (BD-001). El wordmark `<BrandMark>` no migra.
 
 ---
 
@@ -352,7 +387,7 @@ preferís la alternativa?
 
 1. **Solo usar tokens CSS** (`var(--*)`). Cero hex inventados.
 2. **Solo fuentes Archivo + JetBrains Mono + Noto Sans SC**. Nada más.
-3. **Cero AI slop**: sin gradientes coloridos, sin emojis decorativos, sin glassmorphism, sin shadcn-defaults visibles.
+3. **Cero AI slop**: sin gradientes **coloridos** (el glow tonal navy→ink de fondo sí, BD-030), sin emojis decorativos, sin glassmorphism **como default** (Glass permitido solo en superficies elevadas/flotantes · BD-031), sin shadcn-defaults visibles.
 4. **Componentes del sistema** primero. Inventar solo con `/* TODO: brand-review */`.
 5. **Avisar antes de violar**. Formato `BRAND-CHECK` explícito.
 6. **Todo texto se lee.** Contraste AA: normal ≥4.5:1, grande ≥3:1. Un color de marca que no alcanza el ratio sobre su fondo real no se usa como texto (ver ♿).

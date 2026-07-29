@@ -12,7 +12,12 @@ import type { ShipmentService, ShipmentStatus } from "@/lib/shared/shipment-publ
 
 export type { ShipmentService, ShipmentStatus };
 export {
+  SHIPMENT_SERVICES,
+  isShipmentService,
   SERVICE_LABELS,
+  SERVICE_SHORT_LABELS,
+  SERVICE_OPTIONS,
+  serviceLabel,
   STATUS_LABELS,
   STATUS_COLORS,
 } from "@/lib/shared/shipment-public";
@@ -49,13 +54,6 @@ export type Shipment = {
   created_at: string;
   updated_at: string;
 };
-
-export const SERVICE_OPTIONS: { value: ShipmentService; label: string }[] = [
-  { value: "consolidacion", label: "Consolidación (LCL)" },
-  { value: "puerta_a_puerta_DDP", label: "Puerta a Puerta DDP (prepago)" },
-  { value: "reserva_FCL", label: "Reserva FCL (container completo)" },
-  { value: "transporte_terrestre", label: "Transporte terrestre (VE interno)" },
-];
 
 export const VEHICLE_CATEGORY_OPTIONS: { value: VehicleCategory; label: string }[] = [
   { value: "contenedor_maritimo", label: "Contenedor marítimo" },

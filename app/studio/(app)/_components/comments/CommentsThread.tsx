@@ -21,9 +21,12 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/app/studio/_components/ui/Avatar";
 import { Icon } from "@/app/studio/_components/icons";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { MentionDropdown } from "./MentionDropdown";
 import { useIsMac } from "@/app/studio/_components/ui/usePlatformMod";
 import { CommentItem } from "./CommentItem";
+import { DeletedCommentsPanel } from "./DeletedCommentsPanel";
 import {
   type CommentEntityType,
   type CommentTenantUser,
@@ -35,6 +38,7 @@ import {
   toggleReaction,
   editComment,
   deleteComment,
+  restoreComment,
 } from "@/app/studio/(app)/_actions/comments";
 
 export function CommentsThread({
@@ -45,6 +49,9 @@ export function CommentsThread({
   users,
   currentUser,
   initialComments,
+  canEditComments = true,
+  canModerateComments = false,
+  canRestoreComments = false,
   onAfterChange,
 }: {
   entityType: CommentEntityType;
@@ -54,6 +61,9 @@ export function CommentsThread({
   users: CommentTenantUser[];
   currentUser: CommentTenantUser;
   initialComments: CommentWithMeta[];
+  canEditComments?: boolean;
+  canModerateComments?: boolean;
+  canRestoreComments?: boolean;
   /**
    * Opcional (SDD-0146): callback tras cada mutación. Cuando el hilo se embebe en
    * un contenedor que carga los comentarios en el cliente (ej. el drawer/detalle
@@ -64,12 +74,17 @@ export function CommentsThread({
   onAfterChange?: () => void;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const isMac = useIsMac();
   const [pending, startTransition] = useTransition();
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [mentionOpen, setMentionOpen] = useState(false);
   const [mentionQuery, setMentionQuery] = useState("");
+  const [lifecyclePendingId, setLifecyclePendingId] = useState<string | null>(null);
+  const [moderationTarget, setModerationTarget] =
+    useState<CommentWithMeta | null>(null);
+  const [moderationError, setModerationError] = useState<string | undefined>();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const comments = initialComments;
@@ -137,9 +152,81 @@ export function CommentsThread({
   }
 
   async function onDelete(commentId: string) {
-    const res = await deleteComment(commentId);
-    if (res.ok) refresh();
-    else setError(res.error ?? "No se pudo eliminar.");
+    if (lifecyclePendingId) return;
+    setLifecyclePendingId(commentId);
+    setError(null);
+    const res = await deleteComment(commentId, crypto.randomUUID());
+    setLifecyclePendingId(null);
+    if (!res.ok) {
+      setError(res.error ?? "No se pudo eliminar.");
+      return;
+    }
+    refresh();
+    const undoRemainingMs =
+      typeof res.undoRemainingMs === "number"
+        ? res.undoRemainingMs
+        : 0;
+    const undoAvailable =
+      Boolean(res.correlationId) &&
+      Number.isFinite(undoRemainingMs) &&
+      undoRemainingMs > 0;
+    toast.show({
+      eventKey: "comment:soft-deleted",
+      tone: "warning",
+      message: "Comentario eliminado.",
+      priority: "high",
+      scope: "module",
+      dedupeKey: `comment:soft-deleted:${commentId}`,
+      duration: undoAvailable ? "undo" : "default",
+      correlationId: res.correlationId ?? undefined,
+      actionDurationMs: undoAvailable ? undoRemainingMs : undefined,
+      actionExpiredMessage: "Terminó la ventana inmediata para deshacer.",
+      action: undoAvailable
+        ? {
+            label: "Deshacer",
+            failureMessage:
+              "No se pudo deshacer. Actualiza el hilo o revisa Comentarios eliminados.",
+            onSelect: async () => {
+              const restored = await restoreComment(
+                commentId,
+                crypto.randomUUID(),
+                res.correlationId ?? null,
+                "undo",
+              );
+              if (!restored.ok) throw new Error(restored.error);
+              refresh();
+            },
+          }
+        : undefined,
+    });
+  }
+
+  async function onModerate(reason: string) {
+    if (!moderationTarget || lifecyclePendingId) return;
+    setLifecyclePendingId(moderationTarget.id);
+    setModerationError(undefined);
+    const result = await deleteComment(
+      moderationTarget.id,
+      crypto.randomUUID(),
+      reason,
+    );
+    setLifecyclePendingId(null);
+    if (!result.ok) {
+      setModerationError(result.error ?? "No se pudo moderar el comentario.");
+      return;
+    }
+    const moderatedId = moderationTarget.id;
+    setModerationTarget(null);
+    refresh();
+    toast.show({
+      eventKey: "comment:moderated",
+      tone: "success",
+      message: "Comentario moderado y conservado en recuperación.",
+      priority: "normal",
+      scope: "module",
+      dedupeKey: `comment:moderated:${moderatedId}`,
+      correlationId: result.correlationId ?? undefined,
+    });
   }
 
   const authorIds = [...new Set(comments.map((c) => c.author_id).filter(Boolean))];
@@ -188,7 +275,7 @@ export function CommentsThread({
               color: "var(--ink-soft)",
             }}
           >
-            Sin comentarios aún. Comentá abajo y @mencioná a alguien del equipo.
+            Sin comentarios aún. Comenta abajo y @menciona a alguien del equipo.
           </div>
         ) : (
           comments.map((c) => (
@@ -200,6 +287,13 @@ export function CommentsThread({
               onReact={(emoji) => onReact(c.id, emoji)}
               onEdit={(body) => onEdit(c.id, body)}
               onDelete={() => onDelete(c.id)}
+              onModerate={() => {
+                setModerationError(undefined);
+                setModerationTarget(c);
+              }}
+              canDeleteOwn={canEditComments}
+              canModerate={canModerateComments}
+              lifecyclePending={lifecyclePendingId === c.id}
             />
           ))
         )}
@@ -221,6 +315,37 @@ export function CommentsThread({
           {error}
         </div>
       )}
+
+      {canRestoreComments && (
+        <DeletedCommentsPanel
+          entityType={entityType}
+          entityId={entityId}
+          onAfterChange={refresh}
+        />
+      )}
+
+      <ConfirmDialog
+        open={moderationTarget !== null}
+        title="Moderar comentario"
+        message={`El comentario de ${
+          moderationTarget?.author?.name ?? "este usuario"
+        } se ocultará para el equipo, pero permanecerá disponible para recuperación.`}
+        confirmLabel="Moderar"
+        danger
+        pending={lifecyclePendingId === moderationTarget?.id}
+        reason
+        reasonRequired
+        reasonLabel="Motivo de moderación"
+        reasonPlaceholder="Explica por qué debe ocultarse"
+        error={moderationError}
+        onCancel={() => {
+          if (!lifecyclePendingId) {
+            setModerationTarget(null);
+            setModerationError(undefined);
+          }
+        }}
+        onConfirm={(reasonValue) => void onModerate(reasonValue)}
+      />
 
       {/* Composer */}
       <div

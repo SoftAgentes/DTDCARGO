@@ -19,6 +19,9 @@
 | Módulo | SDD | Código (app) | Código (lib) |
 |---|---|---|---|
 | Shell + Auth | 0004, 0007 | `app/studio/(app)/` shell, `(auth)/login` | `lib/auth/session.ts`, `proxy.ts` |
+| Administración · Audit log | 0123, 0166, 0172, 0174 | `app/studio/(app)/admin/` | `lib/studio/audit-*` · `entity_audit_log` · `scripts/{seed-e2e,verify-e2e-teardown}.ts` · migraciones por corte |
+| Gobernanza ejecutable | 0178 | documentación; plugin todavía no creado | `docs/governance/` como fuente normativa · futuro `erp-studio-governance` read-only |
+| Tipografía transversal · VIS-02 | 0175 | `app/{layout,globals}.tsx` · `app/studio/` | `next/font` · tokens de voz · renderers email/PDF |
 | Tracking / Embarques | 0005, 0006, 0012, 0013 | `app/studio/(app)/{tracking,embarques}/` | `lib/studio/shipment-*`, `tracking-progress` |
 | Cambio de destino | 0009 | (dentro de tracking) | `lib/studio/destination-change.ts` |
 | Tarifas (+ config calculadora pública) | 0008, 0055 | `app/studio/(app)/tarifas/` | `lib/studio/rate-*`, `calculator-cities-*` · `supabase/migrations/{0103,0104}` |
@@ -40,12 +43,12 @@
 | Tesorería | 0044 | `app/studio/(app)/tesoreria/` | `lib/studio/treasury/` (types, supplier-queries, bill-queries, treasury-actions), `accounting/{bill-posting,supplier-payment-posting}` · `supabase/migrations/0088_tesoreria.sql` |
 | Despacho | 0029, 0030 | `app/studio/(app)/despacho/` + `app/m/ve/{bodeguero,camionero}/` | `lib/studio/dispatch-*`, `notify/` |
 | Naviera & Consolidación | 0047 | `app/studio/(app)/naviera/` | `lib/studio/naviera/` |
-| Proveedores CN & Prealertas (operador) | 0057 | `app/studio/(app)/proveedores/` + dropdown en `app/studio/(app)/etiquetas/` | `lib/studio/prealertas/` · `supabase/migrations/{0105,0118,0119}` |
+| Proveedores CN & Prealertas (operador) | 0057, 0098, 0163 | `app/studio/(app)/proveedores/` (+ `ServiceRequestsTab`) + dropdown en `app/studio/(app)/etiquetas/` | `lib/studio/prealertas/` · `supabase/migrations/{0105,0118,0119,0150}` · **0163 (`proposed`): orden al operario — eje de ejecución en `prealerta_service_requests` + modalidad en `prealertas`** |
 | Etiquetas suppliers CN | 0031 | `app/studio/(app)/etiquetas/` | (labels) |
 | QR print queue | 0033 | `app/studio/(app)/cola-qr/` | `lib/studio/qr-queue-*` |
 | Wiring modals globales | 0034 | `app/studio/_components/wiring/` | — |
 | Bug Reporter | 0036 | `app/studio/(app)/{bugs,mis-bugs}/` + `_components/bug-reporter/` | `lib/studio/bug-*` |
-| Comentarios + @menciones | 0045 | `app/studio/(app)/menciones/` + `_components/comments/` + `_actions/comments.ts` (embed en `tracking/[id]`) | `lib/studio/comments/` · `supabase/migrations/0090_comments.sql` |
+| Comentarios + @menciones | 0045, 0168 (`approved`) | `app/studio/(app)/menciones/` + `_components/comments/` + `_actions/comments.ts` (embed en `tracking/[id]`) | `lib/studio/comments/` · `supabase/migrations/0090_comments.sql` · 0168 aprueba permanencia/restauración sin implementación |
 | Dirección · Tablero ejecutivo | 0048 | app/studio/(app)/direccion/ | lib/studio/direccion/ |
 | Documentos · Hub (DMS) | 0049 | app/studio/(app)/documentos/ + _components/documents/DocsPanel | lib/studio/documents/ · supabase/migrations/0097 |
 | Inventario de Consolidación (WMS) | 0081 | `app/studio/(app)/inventario/` *(propuesto)* | `lib/studio/inventory/` *(propuesto)* — derivación sobre warehouse_receipts_* + consolidations (SDD-0047) |
@@ -56,7 +59,7 @@
 
 | App | SDD | Código |
 |---|---|---|
-| CN (recepción) | 0016, 0030 | `app/m/cn/` |
+| CN (recepción) | 0016, 0030, 0154, 0162, 0163 | `app/m/cn/` (`nueva`, `recibir`, `estibar`) — 0163 (`proposed`) suma el checklist de servicios de la llegada al recibir |
 | VE bodeguero | 0017, 0030 | `app/m/ve/bodeguero/` |
 | VE camionero | 0030 | `app/m/ve/camionero/` |
 | ERP móvil (staff) | varios | `app/m/erp/` |

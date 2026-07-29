@@ -129,6 +129,12 @@ export interface Comment {
   edited_at: string | null;
   created_at: string;
   deleted_at: string | null;
+  deleted_by?: string | null;
+  deletion_mode?: "self" | "moderation" | null;
+  deletion_reason?: string | null;
+  lifecycle_correlation_id?: string | null;
+  last_lifecycle_operation_id?: string | null;
+  lifecycle_contract_version?: number | null;
 }
 
 export interface CommentMention {

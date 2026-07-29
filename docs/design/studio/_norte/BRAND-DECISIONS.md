@@ -314,6 +314,108 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 - **Por qué:** la fuente de marca es un prototipo de un solo archivo; este repo de producción ya diverge en varias superficies (Portal con su propio sistema de tokens Tailwind). Documentar la divergencia evita reabrir el mismo ítem en cada sync.
 - **Regla viva en:** `app/studio/_components/ui/Badge.tsx` (ya conforme) · esta entrada (mapa de divergencia Portal↔ERP).
 
+### BD-029 · Terminología → "Shipping Mark" único en TODAS las superficies (revierte BD-021)
+- **Fecha:** 2026-07-12
+- **Tipo:** Terminología (cambio de estrategia · revierte BD-021, reafirma BD-004)
+- **Estado:** Vigente
+- **Autorizado por:** el usuario
+- **Aplica a:** etiquetas visibles del identificador de cliente en TODAS las superficies (web pública, marketing, Studio/ERP, Portal, apps de operario, trato con proveedor chino).
+- **Decisión:** se **elimina "MARKBOX"** del lenguaje visual y se unifica el término en **"Shipping Mark"** (唛头) en todas las superficies, incluida la web pública. **Revierte BD-021** (que había repuesto "MARKBOX" solo en web pública) y **reafirma BD-004** (término único). El **valor** del registro (`DTD-XXXX`) y la **clave de datos `markbox`** (props, `c.markbox`, clases CSS `.markbox*`, param `?mb=`) NO cambian — solo la etiqueta visible.
+- **Por qué:** cambio de estrategia de marca del usuario: "MARKBOX" ya no se muestra al público; todo pasa a "Shipping Mark". Un solo término reduce ambigüedad y alinea el habla de marca de punta a punta. En la web se acompaña del gesto pedagógico "casillero → Shipping Mark" (tachado) para el cliente ex-courier.
+- **Nota de aplicación en este repo (Norte, 2026-07-19):** el Studio/Portal ya muestran "Shipping Mark" (BD-021 nunca introdujo "MARKBOX" en producción — el término interno/clave sigue siendo `markbox`, sin cambios). El **barrido de "MARKBOX" → "Shipping Mark" en la web pública** (`app/markbox`, home, fichas) queda **pendiente** y entra con la reconstrucción de la web pública (ver `NORTE-SYNC-2026-07-19` §0), no en este sync.
+- **Regla viva en:** `CLAUDE.md` §Terminología · Shipping Mark (término único). Reemplaza la vigencia de BD-021.
+
+### BD-030 · Glow radial navy→ink permitido en fondos (extiende BD-022/023)
+- **Fecha:** 2026-07-12
+- **Tipo:** Cambio normativo (extensión de BD-022/023)
+- **Estado:** Vigente
+- **Autorizado por:** el usuario
+- **Aplica a:** fondos de cualquier diseño del sistema (microsites, calculadora, portal, piezas), light y dark.
+- **Decisión:** se permite —y se recomienda para evitar fondos planos— un **glow radial navy→ink** como fondo: `radial-gradient(135% 100% at 50% -12%, #1F3055 0%, #0F1E3D 42%, #0B1428 100%)` en dark; en light, el equivalente sutil en tonos papel `#F2F0EC → #FBFAF7`. Mantiene BD-022/023: **hex explícito** (nunca `var(--ink)` dentro del gradiente) y **nunca hacia blanco** en la familia navy. No sustituye el gradiente de hero (BD-022, horizontal 90°); es para superficies de fondo. **Sigue siendo tonal — los gradientes coloridos siguen prohibidos.**
+- **Por qué:** los fondos planos se ven pobres; un glow radial da profundidad moderna sin salir del sistema ni caer en "AI slop" (gradientes coloridos o hacia blanco).
+- **Nota de aplicación en este repo (Norte, 2026-07-19):** token **`--bg-glow`** agregado a `app/globals.css` (light `#FBFAF7→#F2F0EC` · dark `#1F3055→#0F1E3D→#0B1428`, hex explícito); documentado en `BRAND.md` §Colores/gradiente. Aplicado como fondo del embed de la calculadora.
+- **Regla viva en:** `CLAUDE.md` §AI Slop / gradiente · `app/globals.css` (`--bg-glow`) · `BRAND.md`. Extiende BD-022/BD-023.
+
+### BD-031 · Sistema "Glass" (glassmorphism) permitido para superficies elevadas
+- **Fecha:** 2026-07-17
+- **Tipo:** Cambio normativo (levanta una prohibición de AI-slop · autorizado por el Founder)
+- **Estado:** Vigente
+- **Autorizado por:** el Founder (el usuario)
+- **Aplica a:** superficies **elevadas/flotantes** del sistema — calculadora flotante, botón "Calcular", modales/overlays y popovers que floten sobre fondo navy o sobre imagen. Light y dark. **No** para superficies de dato denso, tablas, body ni fondos de página.
+- **Decisión:** se **permite** el esquema Glass (vidrio esmerilado: `backdrop-filter: blur(12–22px) saturate(~150%)` + superficie translúcida + borde `rgba(255,255,255,·)` + highlight `inset 0 1px 0`). Voltea por tema: **dark** = vidrio navy translúcido (`rgba(31,48,85,·)`→`rgba(15,30,61,·)`) con texto **cream** `#F2F0EC`; **light** = vidrio blanco translúcido (`rgba(255,255,255,.45–.72)`) con texto **navy** `--ink`. Acentos/operadores/"=" en wine (`--wine`/`--wine-soft`/`--wine-text` según tema). Revierte parcialmente la prohibición de "glassmorphism" que estaba en `CLAUDE.md` §AI Slop y en la 3.ª regla del resumen.
+- **Reglas de uso (para no volver a caer en slop):** (1) solo en superficies elevadas, nunca "en todos lados"; (2) **el texto sobre el vidrio debe cumplir AA** contra el peor caso del fondo — cream sobre glass navy, navy sobre glass blanco (nunca gris tenue); (3) el vidrio no reemplaza `--bg-surface` en cards de contenido; (4) sin blur difuso estilo macOS en botones pequeños de contenido; (5) siempre con `-webkit-backdrop-filter` de respaldo y un color de relleno translúcido (fallback si el navegador no soporta blur).
+- **Por qué:** el Founder validó el preview y considera que, acotado a superficies flotantes, se ve premium y **no rompe la marca** (se mantiene navy/wine/cream, sin gradiente colorido). Da una capa de profundidad moderna a overlays.
+- **Nota de aplicación en este repo (Norte, 2026-07-19):** tokens **`--glass-*`** (`bg`/`border`/`hi`/`blur`/`ink`/`shadow`/`key`/`inset`) agregados a `app/globals.css` (web/portal, light+dark) **y** a `app/studio/tokens.css` (ERP, light+dark), espejo 1:1 del Norte. Aplicado a la **calculadora flotante del portal** (`app/portal/_components/PortalCalcFab.tsx`) — el panel es vidrio; la barra de título sigue navy sólida (contraste AA del texto blanco). `BRAND.md` §AI Slop: excepción Glass documentada. No expandido a más superficies (regla: nueva superficie → nueva BD).
+- **Regla viva en:** `CLAUDE.md` §AI Slop (excepción Glass) + Resumen ejecutivo (3.ª regla) · `app/globals.css` + `app/studio/tokens.css` (`--glass-*`) · `app/portal/_components/PortalCalcFab.tsx` · `BRAND.md`.
+
+### BD-032 · Mockups del portal (Tanda 2) en tipografía de marca
+- **Fecha:** 2026-07-19 · **Autoriza:** founder (Gate 2 · P2 servicios)
+- **Tipo:** Excepción (alcance limitado a mockups de diseño)
+- **Estado:** Vigente
+- **Decisión:** las pantallas del flujo del portal en `Tanda 2 · Arte Final · DTD-Cargo.html` (pieza 12, A–E) van en **Archivo / Archivo Black** + JetBrains Mono (códigos) + Noto Sans SC (chino) — no en Nunito Sans + Sora.
+- **Por qué:** «el producto real corre en Archivo; estos mockups guían su build». Las 4 fichas de la tanda ya estaban en capa de marca; esto unifica el documento.
+- **Alcance:** solo los mockups de diseño de servicios (T2/web). **No** revierte BD-001 (sistema ERP/Portal en producción sigue según `erp/tokens.css`).
+- **Nota de aplicación en este repo (Norte, 2026-07-19):** N/A en producción — es una decisión sobre mockups de diseño de la fuente de marca. El Studio ya corre en Archivo (BRAND-EXCEPTION `studio-sys`) y la web pública en Archivo por default; nada que migrar en el repo.
+- **Regla viva en:** mockups de servicios de la fuente de marca (`Tanda 2 · Arte Final`, PDFs A4 de la llegada).
+
+### BD-033 · Glass en superficies flotantes del ERP Studio (extiende BD-031)
+- **Fecha:** 2026-07-19
+- **Tipo:** Cambio normativo (extensión de BD-031 a superficies concretas del ERP)
+- **Estado:** Vigente (aplicado + revisado en vivo por el founder el 2026-07-19)
+- **Autorizado por:** el Founder (el usuario) — tras análisis de superficies + revisión visual en `:3005`
+- **Origen:** este repo (Claude Code), no la fuente de marca — es una aplicación de producción de BD-031.
+- **Aplica a (SOLO estas superficies elevadas/flotantes del Studio):**
+  1. **Scrim frosteado** — `backdrop-filter: var(--scrim-blur)` (blur suave 4px) en el overlay de TODOS los modales/drawers: `DrawerShell` (scaffold de ~15 drawers), `ConfirmDialog`, `GlobalSearchModal`. El fondo se esmerila al abrir; el panel sigue opaco → cero riesgo de legibilidad.
+  2. **Panel de vidrio del buscador ⌘K** — `GlobalSearchModal` usa los tokens `--glass-*` (bg translúcido + `--glass-blur` 18px + border + shadow), con texto `--glass-ink` (AA en ambos temas). Es la superficie glass icónica (Spotlight/Raycast).
+- **NO aplica (excluido a propósito):** toasts (`ToastProvider` — llevan color semántico + auto-dismiss, decisión previa "cero glassmorphism"), el PANEL de los drawers (formularios densos), tablas, KPIs, cards de contenido y fondos de página (ahí sigue siendo AI slop · BD-031).
+- **Token nuevo:** `--scrim-blur: blur(4px)` en `app/studio/tokens.css` (frost del scrim, distinto del `--glass-blur` de paneles).
+- **Por qué:** en un ERP denso, Glass es polish, no necesidad; acotado a scrim + ⌘K da el aire premium sin tocar ninguna superficie de trabajo ni la legibilidad. Regla de expansión de BD-031 respetada (superficie nueva → BD nueva).
+- **Regla viva en:** `app/studio/_components/ui/drawer/DrawerShell.tsx` · `app/studio/_components/ui/ConfirmDialog.tsx` · `app/studio/_components/wiring/GlobalSearchModal.tsx` · `app/studio/tokens.css` (`--scrim-blur`) · `BRAND.md` §Excepción Glass.
+
+### BD-034 · Fondos de superficie del ERP: degradados tonales + marca de agua "D" (extiende BD-030)
+- **Fecha:** 2026-07-19
+- **Tipo:** Cambio normativo (sistema de fondos · extiende BD-030 con marca de agua)
+- **Estado:** Vigente (aplicado + revisado en vivo por el founder el 2026-07-19)
+- **Autorizado por:** el Founder (el usuario) — fuente de diseño: `ERP Degradados.html` + `Fondos ERP.html` (Cloud Design)
+- **Aplica a:** superficies vino y navy del ERP Studio (sidebar, hero del dashboard, KPI destacado, fondo de página, cards).
+- **Decisión:** las superficies vino/navy dejan de verse planas — llevan un **degradado tonal *dentro de la misma familia* de color** (`--grad-*`) + una **marca de agua del isotipo "D"** (`public/brand/dtdcargo-isologo-mono-light.png`, estilo wallpaper, opacidad baja) + halos radiales de profundidad. **Cero rainbow, cero textura** (sigue BD-030/AI slop). Hex explícito dentro del gradiente (BD-023).
+  - **Tokens (`app/studio/tokens.css`, light+dark, espejo de la fuente):** `--grad-wine` (relleno/botones/KPI destacado) · `--grad-wine-soft` (hover de fila) · `--grad-wine-panel` (hero) · `--grad-navy` (sidebar) · `--grad-page` (fondo de app, glow dual sutil) · `--grad-card` (cards, degradado sutil).
+  - **Marca de agua "D":** capa decorativa (`z-index:-1` en sidebar; child absoluto en hero/KPI), `pointer-events:none`, recortada por `overflow:hidden`. Opacidades (founder 2026-07-19, subidas para hacerla más notable): sidebar **.05**, hero **.08**, KPI destacado **.10**.
+  - **Intensidad +30% (founder 2026-07-19):** tops más brillantes + ends más profundos + mid pulled-in vs la fuente, para que el degradado se note más sin salir de la familia tonal.
+- **Aplicado en este repo (Norte, 2026-07-19):** `app/studio/(app)/layout.tsx` (fondo `--grad-page`) · `StudioSidebar.tsx` (grad-navy + glow wine + "D" .05) · dashboard `page.tsx` (hero banda `--grad-wine-panel` + "D" .08, texto `--ink-inv`) · `KpiCard.tsx` (prop `feature` → grad-wine + "D" .10; no-feature → `--grad-card`) · `DashboardWidgets.tsx` (`WCard` → `--grad-card`). **No** se jaló la tokenización `--grad-*` a más superficies del ERP sin decisión (propagación completa = futura).
+- **Por qué:** dar profundidad y presencia de marca a las superficies del ERP sin AI slop; la "D" refuerza identidad como watermark discreto.
+- **Regla viva en:** `app/studio/tokens.css` (`--grad-*`) · `StudioSidebar.tsx` · dashboard `page.tsx`/`KpiCard.tsx`/`DashboardWidgets.tsx` · `BRAND.md` §Excepción Glass/gradiente.
+
+### BD-035 · Tipografía del ERP → Nunito Sans + Sora (realiza la migración de 2026-06-11)
+- **Fecha:** 2026-07-19
+- **Tipo:** Cambio normativo (tipografía · fix + realización de la migración de 2026-06-11)
+- **Estado:** Vigente (verificado en vivo — fuente computada = Nunito/Sora)
+- **Autorizado por:** el Founder (el usuario)
+- **Aplica a:** toda la superficie del ERP Studio (cuerpo/nav = Nunito Sans; títulos/display = Sora). Wordmark `<BrandMark>` inmune (usa `--font-brand-display`). Mono (JetBrains) y CJK (Noto SC) sin cambio.
+- **Decisión:** el ERP usa **Nunito Sans** (cuerpo) + **Sora** (títulos) — la fuente del sistema de diseño (Norte, BD-001), igual que Portal/Calculadora. Alinea el ERP con sus mockups de Cloud Design (que se ven "limpios/suaves").
+- **Contexto — el bug que se arregló:** la decisión del **2026-06-11** de migrar el ERP a Nunito/Sora **nunca surtió efecto**: los tokens `--f-sans`/`--f-display` (`app/studio/tokens.css`) envolvían `var(--font-archivo)`/`var(--font-archivo-black)` declarados en `:root`, así que el `var()` se resolvía EN `:root` (= Archivo) y quedaba **congelado** al heredar — el `.studio-sys` de `globals.css` (que sí redefine `--font-archivo` → Nunito) llegaba tarde. El ERP renderizó **Archivo** desde 2026-06-11 hasta hoy (verificado con `getComputedStyle`). **Fix:** re-declarar `--f-sans`/`--f-display` scopeados a `.studio-sys` en `app/studio/tokens.css` (que se sirve tal cual, sin el lightningcss de Tailwind que descartaba la regla en `globals.css`), donde el `var()` resuelve en scope → todo el ERP migra de verdad.
+- **Nota:** Sora no tiene peso 900 en Google Fonts (máx 800); los títulos display (`--f-display` a 900) usan 800 — igual que el mockup.
+- **Regla viva en:** `app/studio/tokens.css` (`.studio-sys { --f-sans; --f-display }`) · `app/globals.css` (`.studio-sys` redefine `--font-archivo/-black`) · `app/studio/layout.tsx` (carga Sora + Nunito).
+
+### BD-036 · Noto Serif SC para documento formal en chino
+- **Fecha:** 2026-07-29
+- **Tipo:** Excepción tipográfica documental
+- **Estado:** Vigente; carga técnica pendiente de SDD-0175
+- **Autorizado por:** Sam (founder)
+- **Aplica a:** bloques `lang="zh-CN"` en cartas, contratos, transcripciones,
+  correos formales y PDF dirigidos a clientes u oficina en China.
+- **Decisión:** Noto Serif SC es la única serif autorizada y solo representa la
+  voz documental Song Ti. La interfaz, navegación, formularios y tablas en
+  chino continúan en Noto Sans SC. No aplica a marketing, contenido latino,
+  títulos de marca ni previews editoriales generales.
+- **Fallback:** Noto Sans SC. La estructura label/valor y el idioma deben
+  conservar significado sin depender de que la webfont cargue.
+- **Límites:** esta decisión no carga la fuente, no modifica documentos vivos y
+  no autoriza otras serif. Implementación, email, PDF y verificación visual
+  permanecen como gates V1–V4 de SDD-0175.
+- **Regla viva en:** `BRAND.md` §Tipografía · `docs/governance/policies/vis-02.md`
+  · SDD-0175.
+
 ---
 
 ## Índice rápido
@@ -323,7 +425,7 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 | BD-001 | Nunito Sans + Sora (sistema) | Excepción | Vigente |
 | BD-002 | Tagline "Con Confianza…" | Normativo | Vigente |
 | BD-003 | "Confianza" con mayúscula | Normativo | Vigente |
-| BD-004 | "Shipping Mark" único | Terminología | Enmendada por BD-021 |
+| BD-004 | "Shipping Mark" único | Terminología | Reafirmada por BD-029 |
 | BD-005 | Compra/Orden/Prealerta por audiencia | Terminología | Vigente |
 | BD-006 | Logo v1.0 · 4 variantes | Arquitectura | Vigente |
 | BD-007 | Eliminado `dtdcargo-icon-navy.png` | Arquitectura | Vigente |
@@ -340,7 +442,7 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 | BD-018 | Badge = texto --ink/--wine-text + dot | Normativo | Vigente |
 | BD-019 | --ink-mute nunca texto (solo disabled/deco) | Normativo | Vigente |
 | BD-020 | Split de --danger por superficie | Normativo | Vigente |
-| BD-021 | MARKBOX (web) / Shipping Mark (Studio·Portal·Móvil) | Terminología | Vigente (enmienda BD-004) |
+| BD-021 | MARKBOX (web) / Shipping Mark (Studio·Portal·Móvil) | Terminología | Superseded por BD-029 |
 | BD-022 | Hero gradient horizontal + hex explícito | Normativo | Vigente |
 | BD-023 | Hardening var(--ink)→#0F1E3D en gradientes | Normativo | Vigente (completa BD-022) |
 | BD-024 | Bump v4.5→v4.6 (tokens + book físico) | Versionado | Vigente |
@@ -348,7 +450,15 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 | BD-026 | Token `--wine-text` | Normativo (adición) | Vigente |
 | BD-027 | Token `--on-warning` | Normativo (adición) | Vigente |
 | BD-028 | Patch Badge/KPI/wine-text portal/tuteo | Normativo (patch) | Vigente — Badge✅, resto N/A en este repo |
+| BD-029 | "Shipping Mark" único en todas las superficies (revierte BD-021) | Terminología | Vigente — sweep web pública pendiente (§0) |
+| BD-030 | Glow radial navy→ink permitido en fondos (tonal, no colorido) | Normativo | Vigente — `--bg-glow` |
+| BD-031 | Sistema "Glass" permitido (superficies elevadas) | Normativo | Vigente — `--glass-*` + PortalCalcFab |
+| BD-032 | Mockups del portal (T2) en Archivo, no Nunito/Sora | Excepción | Vigente — N/A en este repo |
+| BD-033 | Glass en superficies flotantes del ERP (scrim frosteado + panel ⌘K) | Normativo (extiende BD-031) | Vigente — `--scrim-blur` + ⌘K glass |
+| BD-034 | Fondos ERP: degradados tonales `--grad-*` + marca de agua "D" | Normativo (extiende BD-030) | Vigente — sidebar/hero/KPI/página |
+| BD-035 | Tipografía ERP → Nunito Sans + Sora (realiza la migración de 2026-06-11) | Normativo | Vigente — fix congelamiento `--f-sans`/`--f-display` |
+| BD-036 | Noto Serif SC solo para documento formal `zh-CN` | Excepción tipográfica | Vigente — implementación pendiente de SDD-0175 |
 
 ---
 
-*Mantené este archivo en orden cronológico de ID. Última actualización: 2026-07-12 · DTD-Cargo v4.6 (tokens/componentes/gradientes sync + patch BD-028; Brand Book físico pendiente).*
+*Mantené este archivo en orden cronológico de ID. Última actualización: 2026-07-29 · DTD-Cargo v4.6 (patch documental · **BD-036 Noto Serif SC solo para documento formal `zh-CN`**; Brand Book físico no regenerado).*

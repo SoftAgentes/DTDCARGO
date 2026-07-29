@@ -209,10 +209,10 @@ describe("validateUnidentifiedPaymentInput", () => {
 
 // ── deriveFundClass (decisión #5) ─────────────────────────────
 describe("deriveFundClass", () => {
-  it("consolidacion / puerta_a_puerta_DDP / reserva_FCL ⇒ third_party", () => {
-    expect(deriveFundClass("consolidacion")).toBe("third_party");
+  it("consolidado_lcl / puerta_a_puerta_DDP / fcl_directo ⇒ third_party", () => {
+    expect(deriveFundClass("consolidado_lcl")).toBe("third_party");
     expect(deriveFundClass("puerta_a_puerta_DDP")).toBe("third_party");
-    expect(deriveFundClass("reserva_FCL")).toBe("third_party");
+    expect(deriveFundClass("fcl_directo")).toBe("third_party");
   });
 
   it("transporte_terrestre ⇒ local_revenue (servicio local)", () => {

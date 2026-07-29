@@ -3,7 +3,6 @@ import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
-import { HowWeWork } from "@/components/HowWeWork";
 import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import { GEO_ZONAS } from "@/lib/geo-zonas";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
@@ -70,18 +69,19 @@ export default function ImportarHubPage() {
         ]}
       />
 
-      <main>
-        {/* Hero */}
-        <section className="py-16 lg:py-24 bg-paper">
-          <div className="wrap max-w-[920px]">
-            <span className="eyebrow">Cobertura nacional · Puerta a puerta</span>
-            <h1
-              className="h-display mt-5"
-              style={{ fontSize: "clamp(34px, 5.5vw, 68px)" }}
-            >
-              Importar de China a Venezuela, ciudad por ciudad.
-            </h1>
-            <p className="lead mt-6 max-w-[60ch]">
+      {/* Revestido al Norte con la superficie de recursos (`.rp-surface`).
+          Landing SEO/GEO: se cambia SOLO el envoltorio visual del hero. El
+          copy, los encabezados, el grid de ciudades y todo el JSON-LD quedan
+          palabra por palabra como estaban. */}
+      <main className="rp-surface" style={{ ["--rp-w" as string]: "920px" }}>
+        <section className="rp-hero">
+          <div className="rp-hero-in">
+            <div className="rp-eyebrow">
+              <span className="rule" />
+              Cobertura nacional · Puerta a puerta
+            </div>
+            <h1>Importar de China a Venezuela, ciudad por ciudad.</h1>
+            <p>
               Traemos tu carga consolidada de China puerta a puerta a todo el
               país: flete, aduana e impuestos incluidos (DDP), pagas cuando
               llega —no por adelantado— y entrega coordinada
@@ -89,7 +89,7 @@ export default function ImportarHubPage() {
               Todo sale de nuestra bodega propia en Valencia, donde recibimos la
               mercancía desde Yiwu.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="rp-hero-actions">
               <a
                 href={wa}
                 target="_blank"
@@ -98,7 +98,7 @@ export default function ImportarHubPage() {
               >
                 <WhatsAppIcon size={18} /> Cotizar por WhatsApp
               </a>
-              <a href="/calculadora" className="btn btn-ghost">
+              <a href="/tarifas" className="btn btn-ghost">
                 Calcular mi envío <ArrowIcon size={16} />
               </a>
             </div>
@@ -145,8 +145,6 @@ export default function ImportarHubPage() {
             </div>
           </div>
         </section>
-
-        <HowWeWork />
       </main>
 
       <Footer />

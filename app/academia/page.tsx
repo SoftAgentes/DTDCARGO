@@ -29,23 +29,29 @@ export default function AcademiaPage() {
           { name: "Academia", path: "/academia" },
         ]}
       />
-      <main className="bg-paper">
-        {/* Hero */}
-        <section className="py-16 lg:py-24">
-          <div className="wrap">
-            <span className="eyebrow">Academia DTD</span>
-            <h1 className="h-display mt-5" style={{ fontSize: "clamp(40px, 6vw, 80px)" }}>
-              Aprende a importar
-              <br />
-              de China,{" "}
-              <span style={{ color: "var(--color-wine)" }}>con la operación real detrás.</span>
+      {/* Revestido al Norte con la superficie de recursos (`.rp-surface`).
+          Esta página NO tiene mockup propio de Cloud Design: se aplica el
+          mismo armazón `rp-*` de glosario/FAQ/noticias — banda navy en el
+          hero — sin inventar una dirección visual nueva. El resto de las
+          secciones queda como está. */}
+      <main className="rp-surface" style={{ ["--rp-w" as string]: "var(--maxw)" }}>
+        <section className="rp-hero">
+          <div className="rp-hero-in">
+            <div className="rp-eyebrow">
+              <span className="rule" />
+              Academia DTD
+            </div>
+            <h1>
+              Aprende a importar de China,{" "}
+              <span className="accent">con la operación real detrás.</span>
             </h1>
-            <p className="lead mt-6 max-w-[60ch]">
-              Te enseñamos a traer tu mercancía tú mismo, paso a paso. Y cuando quieras, la traemos
-              por ti — puerta a puerta, con 16 años de experiencia importando de China. Con
-              confianza, de China a tu puerta.
+            <p>
+              Te enseñamos a traer tu mercancía tú mismo, paso a paso. Y cuando
+              quieras, la traemos por ti — puerta a puerta, con 16 años de
+              experiencia importando de China. Con Confianza, de China a tu
+              puerta.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="rp-hero-actions">
               <a href="#anotate" className="btn btn-primary">
                 Reservar mi cupo
               </a>
@@ -57,7 +63,7 @@ export default function AcademiaPage() {
         </section>
 
         {/* Lo que vas a lograr */}
-        <section className="pb-4 lg:pb-8">
+        <section className="pt-16 lg:pt-20 pb-4 lg:pb-8">
           <div className="wrap">
             <span className="eyebrow">Lo que vas a lograr</span>
             <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -123,7 +129,7 @@ export default function AcademiaPage() {
                   Ver servicios
                 </Link>
                 <Link
-                  href="/calculadora"
+                  href="/tarifas"
                   className="btn inline-flex border border-white/25 bg-white/10 text-white hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
                 >
                   Calcular mi importación

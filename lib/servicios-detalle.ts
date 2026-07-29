@@ -12,8 +12,11 @@
  *   - PRINCIPAL: Puerta a puerta DDP (CBM) — el spine, todo incluido.
  *   - SECUNDARIOS (otras modalidades de transporte): LCL Consolidado · FCL
  *     Consolidado en Bodega · FCL Directo Fábrica · Transporte terrestre.
- *   - ADD-ON MODULAR: Tránsito de aduana (incluido en DDP, opcional en LCL/FCL);
- *     Documentos de importación va dentro de aduana (no se vende solo).
+ *   - ADD-ON MODULAR: Tránsito de aduana (incluido en DDP y en el FCL "todo
+ *     pagado"; opcional en LCL y en el FCL "hasta puerto" — founder 2026-07-19
+ *     v2, matriz FCL 2×2 carga×recepción, supera el dictado 06-09);
+ *     Documentos de importación va DENTRO de aduana (fusionado 2026-07-19,
+ *     decisión founder: sin ficha propia — vive como "incluye" de aduana).
  *   - TERCIARIOS: Inspección (umbrella de 4) · Compra asistida · Asesoría de
  *     pagos · Courier de muestras · Visado · Registro de marca.
  *   - MINI-SERVICIOS de recepción en bodega (con reporte de fotos).
@@ -141,7 +144,7 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
     precio:
       "Se calcula por volumen (CBM) y ciudad de destino. Sácalo al instante en la calculadora o pídele la cotización formal a un asesor.",
     comoSolicitar:
-      "Calcula tu estimado en dtdcargo.com/calculadora, regístrate en dtdcargo.com/registro para tu Shipping Mark, o escríbenos por WhatsApp.",
+      "Calcula tu estimado en dtdcargo.com/tarifas, regístrate en dtdcargo.com/registro para tu Shipping Mark, o escríbenos por WhatsApp.",
     // grounded: FAQ §3 Kommo + decisión founder (publicar 60-90 puerta a puerta)
     tiempos:
       "60 a 90 días puerta a puerta: flete interno en China + espera de la próxima salida (cada 15-21 días) + travesía marítima + aduana y entrega en Venezuela.",
@@ -181,17 +184,18 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
     sede: "cn",
     // grounded: dictado founder 2026-06-09 (es FCL, no LCL)
     resumen:
-      "Llenamos tu contenedor completo en nuestra bodega de Yiwu con la mercancía de varios de tus proveedores. Hacemos el despacho de exportación en China y la reserva del contenedor y el flete. En Venezuela, tú manejas la recepción (o sumas nuestro servicio de aduana).",
+      "Llenamos tu contenedor completo en nuestra bodega de Yiwu con la mercancía de varios de tus proveedores. Hacemos el despacho de exportación en China y la reserva del contenedor y el flete. En Venezuela eliges cómo recibir: todo pagado hasta tu puerta (aduana, impuestos y entrega incluidos; pagas antes de la entrega) o hasta puerto (tú desaduanizas).",
     incluye: [
       "Recepción de la mercancía de tus distintos proveedores en la bodega de Yiwu.",
       "Carga y consolidación del contenedor completo (FCL).",
       "Despacho de exportación en China.",
       "Reserva del contenedor y del flete.",
-      "Almacenaje gratis los primeros 7 días en la bodega de Yiwu.",
+      "En la modalidad todo pagado: aduana, impuestos y entrega hasta tu puerta (pagas antes de la entrega).",
+      "Almacenaje gratis los primeros 15 días en la bodega de Yiwu.",
     ],
     noIncluye: [
-      "Gestión en Venezuela (aduana, transporte): la manejas tú, o la sumas como servicio de aduana opcional.",
-      "Almacenaje después de los primeros 7 días gratis: tiene un costo adicional.",
+      "En la modalidad hasta puerto: la desaduanización corre por tu cuenta (o sumas nuestro Tránsito de aduana como servicio adicional).",
+      "Almacenaje después de los primeros 15 días gratis: tiene un costo adicional.",
     ],
     precio: "Se cotiza con un asesor por WhatsApp.",
     comoSolicitar:
@@ -199,6 +203,7 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
     tiempos:
       "40 a 55 días aproximados: al ser contenedor completo, no espera la próxima salida consolidada.",
     estado: "activo",
+    nota: "En la modalidad hasta puerto, el flete se paga durante el tránsito (el BL se entrega al completar el pago) o adelantado.",
   },
   {
     slug: "reserva-contenedores",
@@ -206,21 +211,22 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
     sede: "cn",
     // grounded: dictado founder 2026-06-09
     resumen:
-      "Tu contenedor completo se carga directamente en la fábrica de tu proveedor (uno o dos fabricantes), sin pasar por nuestra bodega. Hacemos la reserva del contenedor y del buque con la naviera; el Bill of Lading sale a nombre de nuestra empresa en China como shipper, contigo como consignatario — así tu proveedor no puede cambiar el destino ni desviar el contenedor.",
+      "Tu contenedor completo se carga directamente en la fábrica de tu proveedor (uno o dos fabricantes), sin pasar por nuestra bodega. Hacemos la reserva del contenedor y del buque con la naviera; el Bill of Lading lo emitimos nosotros — no la fábrica: nuestra empresa en China aparece como exportador (shipper) y tú como consignatario (quien recibe). La fábrica no tiene control sobre el BL, así que tu proveedor no puede cambiar el destino ni desviar el contenedor. En Venezuela eliges cómo recibir: todo pagado hasta tu puerta o hasta puerto (tú desaduanizas).",
     incluye: [
       "Reserva del contenedor y del buque con la naviera.",
-      "Bill of Lading a nombre de nuestra empresa china (shipper), contigo como consignatario.",
+      "Bill of Lading emitido por nosotros: DTD como exportador (shipper) y tú como consignatario (quien recibe).",
       "Coordinación de la carga en la fábrica de tu proveedor.",
+      "En la modalidad todo pagado: aduana, impuestos y entrega hasta tu puerta (pagas antes de la entrega).",
     ],
     noIncluye: [
-      "Gestión en Venezuela (aduana, transporte): la manejas tú, o la sumas como servicio de aduana opcional.",
+      "En la modalidad hasta puerto: la desaduanización corre por tu cuenta (o sumas nuestro Tránsito de aduana como servicio adicional).",
     ],
     precio: "Se cotiza con un asesor por WhatsApp.",
     comoSolicitar: "Se cotiza con un asesor. Escríbenos por WhatsApp.",
     tiempos:
       "40 a 55 días aproximados: al ser contenedor completo, no espera la próxima salida consolidada.",
     estado: "activo",
-    nota: "Seguridad: al salir el BL a nuestro nombre como shipper, el proveedor no puede desviar ni cambiar el destino del contenedor.",
+    nota: "Seguridad: el BL lo emitimos nosotros — la fábrica no aparece ni controla el BL, así que el proveedor no puede desviar ni cambiar el destino del contenedor. En la modalidad hasta puerto, el flete se paga durante el tránsito (el BL se entrega al completar el pago) o adelantado.",
   },
   {
     slug: "transporte-terrestre",
@@ -243,7 +249,7 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
     sede: "ve",
     // grounded: dictado founder 2026-06-09 + FAQ §23
     resumen:
-      "Gestionamos el paso de tu mercancía por la aduana venezolana y su nacionalización. Es un servicio adicional opcional para las cargas LCL y FCL (en el puerta a puerta DDP ya va incluido). Tú pagas tus planillas directamente a la aduana; nosotros te representamos como tu agente con tu carta poder.",
+      "Gestionamos el paso de tu mercancía por la aduana venezolana y su nacionalización. Es un servicio adicional opcional para las cargas LCL y el FCL hasta puerto (en el puerta a puerta DDP y en el FCL todo pagado ya va incluido). Tú pagas tus planillas directamente a la aduana; nosotros te representamos como tu agente con tu carta poder.",
     incluye: [
       "Gestión del paso por aduana y nacionalización de tu carga.",
       "Representación ante la aduana como tu agente (con tu carta poder).",
@@ -256,31 +262,11 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
     precio:
       "El costo se cotiza según el valor del contenedor (por valorización de la factura). Como intervienen muchos factores, un asesor te da el aproximado por WhatsApp.",
     comoSolicitar:
-      "Súmalo a tu carga LCL o FCL: escríbenos por WhatsApp con tu nombre o el de tu empresa para iniciar el trámite.",
+      "Súmalo a tu carga LCL o FCL hasta puerto: escríbenos por WhatsApp con tu nombre o el de tu empresa para iniciar el trámite.",
     tiempos: "Nacionalización de 5 a 6 días hábiles.",
     estado: "activo",
-    nota: "Incluido en el servicio puerta a puerta DDP; opcional (adicional) en LCL y FCL.",
+    nota: "Incluido en el puerta a puerta DDP y en el FCL todo pagado; opcional (adicional) en LCL y FCL hasta puerto.",
   },
-  {
-    slug: "documentos-importacion",
-    titulo: "Documentos de importación",
-    sede: "ve",
-    // grounded: copy actual. Dictado founder: va DENTRO del servicio de aduana.
-    resumen:
-      "Elaboramos, revisamos y tramitamos la documentación de tu importación: facturas de embarque, declaraciones, certificados y requerimientos normativos. Va de la mano del servicio de aduana.",
-    incluye: [
-      "Elaboración y revisión de facturas de embarque, declaraciones y certificados.",
-      "Gestión de los requerimientos normativos de importación.",
-    ],
-    noIncluye: [],
-    precio: "",
-    comoSolicitar: "Va dentro del servicio de aduana. Escríbenos por WhatsApp.",
-    tiempos: "",
-    estado: "activo",
-    nota: "Forma parte del servicio de aduana; no se contrata por separado.",
-    _pendiente: ["qué NO cubre", "tiempos"],
-  },
-
   // ── Grupo: bodega (mini-servicios de recepción) ──────────────────
   {
     slug: "revision-recepcion",
@@ -548,7 +534,6 @@ export const SERVICIOS_POR_GRUPO: Record<string, string[]> = {
     "reserva-contenedores",
     "transporte-terrestre",
     "transito-aduana",
-    "documentos-importacion",
   ],
   bodega: [
     "revision-recepcion",

@@ -3,11 +3,19 @@ import { cookies } from "next/headers";
 import { jetbrainsMonoUi } from "@/lib/fonts";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import {
+  getPortalClient,
+  getProfileCompleteness,
+} from "@/lib/portal/portal-queries";
 import { getPortalLastReplyAt } from "@/lib/portal/portal-conversation-queries";
 import { isPortalClubMember } from "@/lib/portal/portal-club-queries";
+import {
+  getNextOpenSailing,
+  daysUntil,
+  type PortalSailing,
+} from "@/lib/portal/next-sailing-queries";
 import { showNortePortal } from "@/lib/portal/demo";
-import { PortalHeader } from "../_components/PortalHeader";
+import { PortalShell } from "../_components/PortalShell";
 import { PortalCalcFab } from "../_components/PortalCalcFab";
 import { PortalPushRegister } from "../_components/PortalPushRegister";
 
@@ -52,25 +60,66 @@ export default async function PortalAppLayout({
     client.id,
   ).catch(() => null);
 
+  // Perfil incompleto → la topbar muestra la píldora "Falta completar datos"
+  // (Norte). Best-effort: si falla, no la mostramos (no bloquea el portal).
+  const profile = await getProfileCompleteness(supabase).catch(() => null);
+
+  // Próximo zarpe abierto (SDD-0133) → píldora "Próxima salida" de la topbar.
+  // Admin client scopeado por tenant (el cliente no tiene RLS sobre `sailings`).
+  const { sailing, sailingDaysToCutoff } = await loadSailing(client.id);
+
   return (
     <div
       id="portal-shell"
       data-portal-theme={norte ? theme : undefined}
-      className={`${jetbrainsMonoUi.variable} min-h-screen bg-paper flex flex-col`}
+      className={`${jetbrainsMonoUi.variable} min-h-screen bg-paper`}
     >
-      <PortalHeader
+      {/* Armazón del Norte: barra lateral navy + topbar + contenido + pie. */}
+      <PortalShell
         markbox={client.markbox}
         name={client.name}
         themed={norte}
         theme={theme}
         showClub={showClub}
         soporteLastReplyAt={soporteLastReplyAt}
-      />
-      <main className="flex-1 wrap w-full py-10 lg:py-14">{children}</main>
+        profileComplete={profile?.complete ?? true}
+        sailing={sailing}
+        sailingDaysToCutoff={sailingDaysToCutoff}
+      >
+        {children}
+      </PortalShell>
       {/* Calculadora flotante (Norte) — siempre a mano, sin salir del portal. */}
       {norte && <PortalCalcFab />}
       {/* Registra el SW para Web Push al cliente (SDD-0148 #3b). */}
       <PortalPushRegister />
     </div>
   );
+}
+
+/**
+ * Próximo zarpe abierto del tenant del cliente. Best-effort: cualquier fallo
+ * devuelve null → la píldora simplemente no aparece.
+ */
+async function loadSailing(clientId: string): Promise<{
+  sailing: PortalSailing | null;
+  sailingDaysToCutoff: number | null;
+}> {
+  const todayIso = new Date().toISOString().slice(0, 10);
+  try {
+    const admin = createAdminClient();
+    const { data: row } = await admin
+      .from("clients")
+      .select("tenant_id")
+      .eq("id", clientId)
+      .maybeSingle<{ tenant_id: string }>();
+    const tenantId = String(row?.tenant_id ?? "").trim();
+    if (!tenantId) return { sailing: null, sailingDaysToCutoff: null };
+    const sailing = await getNextOpenSailing(admin, tenantId, todayIso);
+    return {
+      sailing,
+      sailingDaysToCutoff: sailing ? daysUntil(sailing.cutoff, todayIso) : null,
+    };
+  } catch {
+    return { sailing: null, sailingDaysToCutoff: null };
+  }
 }

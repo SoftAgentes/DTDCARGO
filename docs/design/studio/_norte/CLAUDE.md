@@ -105,7 +105,7 @@ Los colores viven en `erp/tokens.css`. **Nunca** uses hex literales en HTML/JSX 
 - **NUNCA** uses verde fosforescente, lima, neón, fucsia eléctrico o ningún color saturado fuera de la paleta.
 - **NUNCA** uses `red`, `blue`, `green`, `orange`, `purple` como nombres CSS. Usá los tokens.
 - **NUNCA** inventes hex como `#FF5733`, `#00FFAA`, etc.
-- **NUNCA** uses gradientes coloridos / arcoíris / "AI slop". Único gradiente permitido: **navy → ink** (familia `#0B1428`→`#0F1E3D`→`#1F3055`), **nunca hacia blanco**. En heros con texto (left-aligned) va **horizontal, azul FUERTE a la izquierda → navy más claro a la derecha**: `linear-gradient(90deg, #0B1428 0%, #0F1E3D 44%, #1F3055 100%)` — el texto cae sobre la parte más fuerte. **Usá hex explícito, nunca `var(--ink)` dentro del gradiente**: si el token no resuelve, el fondo se cae a blanco y el texto claro desaparece (fondo blanco + letras blancas). En cards/botones chicos el diagonal `135deg` del mismo par es aceptable. **Logo sobre este navy = variante `reverse` (cream)**; si un fondo es claro va `primary` (nunca `reverse` sobre claro). Ver BD-022.
+- **NUNCA** uses gradientes coloridos / arcoíris / "AI slop". Único gradiente permitido: **navy → ink** (familia `#0B1428`→`#0F1E3D`→`#1F3055`), **nunca hacia blanco**. En heros con texto (left-aligned) va **horizontal, azul FUERTE a la izquierda → navy más claro a la derecha**: `linear-gradient(90deg, #0B1428 0%, #0F1E3D 44%, #1F3055 100%)` — el texto cae sobre la parte más fuerte. **Usá hex explícito, nunca `var(--ink)` dentro del gradiente**: si el token no resuelve, el fondo se cae a blanco y el texto claro desaparece (fondo blanco + letras blancas). En cards/botones chicos el diagonal `135deg` del mismo par es aceptable. **En fondos se puede (y conviene) usar un _glow radial_ tonal navy→ink** para dar profundidad y evitar fondos planos: `radial-gradient(135% 100% at 50% -12%, #1F3055 0%, #0F1E3D 42%, #0B1428 100%)` (dark); en claro, el equivalente sutil en papel `#F2F0EC → #FBFAF7`. Mantiene la regla: **hex explícito** y **nunca hacia blanco** en la familia navy (BD-030) — sigue siendo tonal, no colorido. **Logo sobre este navy = variante `reverse` (cream)**; si un fondo es claro va `primary` (nunca `reverse` sobre claro). Ver BD-022.
 - **NUNCA** uses morados, púrpuras o azules brillantes para alertas. El warning es **dorado** (#B8893A), no naranja chillón.
 
 ---
@@ -160,6 +160,7 @@ Los colores viven en `erp/tokens.css`. **Nunca** uses hex literales en HTML/JSX 
 --f-display: 'Sora', 'Nunito Sans', sans-serif          /* títulos, H1/H2, KPI values */
 --f-mono:    'JetBrains Mono', ui-monospace, monospace  /* códigos */
 --f-cn:      'Noto Sans SC', 'Nunito Sans', sans-serif  /* solo chino mandarín */
+--f-cn-document: 'Noto Serif SC', 'Noto Sans SC', serif /* solo documento formal zh-CN · BD-036 */
 
 /* BRANDING (constante · nunca afectado por el sistema) */
 --f-brand:         'Archivo', system-ui, sans-serif
@@ -171,15 +172,23 @@ Los colores viven en `erp/tokens.css`. **Nunca** uses hex literales en HTML/JSX 
 - **Nunito Sans** (`--f-sans`) para todo el body, labels, buttons del sistema.
   - ⚠ Nunito Sans no trae figuras tabulares; en columnas de montos la alineación no es perfecta (límite conocido y aceptado).
 - **Archivo / Archivo Black** (`--f-brand` / `--f-brand-display`) para el **logo corporativo, wordmark "DTD Cargo", plantillas de correo y firma**. El wordmark sigue en Archivo Black (ver `BRAND-MIGRATION`).
-- **JetBrains Mono** para códigos: Shipping Mark / MARKBOX (`DTD-XXXX`), container IDs (`DTDU-XXXXXX`), factura IDs (`F-2026-XXXX`), HS codes, RIF, tarifas, fechas/horas en tablas.
+- **JetBrains Mono** para códigos: Shipping Mark (`DTD-XXXX`), container IDs (`DTDU-XXXXXX`), factura IDs (`F-2026-XXXX`), HS codes, RIF, tarifas, fechas/horas en tablas.
 - **Noto Sans SC** SOLO para texto en chino mandarín (direcciones de almacén CN, nombres bilingües).
+- **Noto Serif SC** SOLO para bloques `lang="zh-CN"` de correspondencia,
+  contratos, transcripciones y PDF formales. Es la excepción BD-036; no aplica
+  a UI, marketing, texto latino ni títulos.
 - **Revertir** a la marca = igualar `--f-sans`/`--f-display` a `'Archivo'`/`'Archivo Black'` en `tokens.css` (una línea cada una).
 
 ### ❌ Fuentes PROHIBIDAS
 - Inter, Roboto, Open Sans, Lato, Montserrat, Poppins, Helvetica, Arial — son AI slop.
-- Fuentes serif: Fraunces, Playfair, Georgia, Times — no van con el sistema.
+- Fuentes serif: Fraunces, Playfair, Georgia y Times no van con el sistema.
+  Noto Serif SC es la única excepción documental bajo BD-036.
 - Cualquier fuente cursiva o decorativa.
-- **Excepción vigente:** Nunito Sans + Sora son las fuentes oficiales de la **capa de sistema** desde 2026-05-31 (autorizado por el usuario). No agregar NINGUNA otra fuera de: Nunito Sans, Sora, Archivo/Archivo Black (branding), JetBrains Mono, Noto Sans SC.
+- **Excepciones vigentes:** Nunito Sans + Sora son las fuentes oficiales de la
+  **capa de sistema** desde 2026-05-31. Noto Serif SC se admite solo para
+  documento formal `zh-CN` desde BD-036. No agregar ninguna otra fuera de:
+  Nunito Sans, Sora, Archivo/Archivo Black, JetBrains Mono, Noto Sans SC y la
+  excepción documental Noto Serif SC.
 
 ---
 
@@ -218,21 +227,20 @@ Los componentes viven en `erp/components.jsx` (ERP) y se reusan en `portal/app.j
 
 ---
 
-## 🏷 Terminología · Shipping Mark / MARKBOX (split por superficie)
+## 🏷 Terminología · Shipping Mark (término único · todas las superficies)
 
-> **Decisión 2026-07-06 (BD-021, autorizada por el usuario · enmienda BD-004):** el término se
-> divide por superficie (auditoría NORTE-SYNC · SDD-0065): **web pública = "MARKBOX"** ·
-> **Studio / Portal / Móvil = "Shipping Mark"** (唛头) como nombre visible. Ambos apuntan al
-> mismo registro de cliente (`DTD-XXXX`).
+> **Decisión 2026-07-12 (BD-029, autorizada por el usuario · revierte BD-021, reafirma BD-004):**
+> el identificador de cliente se llama **"Shipping Mark"** (唛头) en **TODAS** las superficies —
+> web pública, marketing, Studio (ERP), Portal, apps de operario y trato con proveedor chino.
+> **"MARKBOX" queda retirado del lenguaje visual; ya no se usa en ninguna parte.**
 
-- El **valor** del código no cambia (`DTD-5532`, `DTD-5532-1-1`); solo la etiqueta con que se nombra según superficie.
+- El **valor** del código no cambia (`DTD-5532`, `DTD-5532-1-1`); solo se unifica la etiqueta con que se nombra.
 - En texto de cara al proveedor chino puede acompañarse del chino: **Shipping Mark (唛头)**.
-- En **código** (props, claves de datos: `markbox:`, `c.markbox`) el identificador interno se
+- En **código** (props, claves de datos: `markbox:`, `c.markbox`, clases CSS `.markbox*`, param `?mb=`) el identificador interno se
   mantiene tal cual — NO renombrar claves; solo las etiquetas visibles.
-- **Studio (ERP) / Portal / apps de operario:** etiqueta visible = **Shipping Mark** (opcional 唛头 de cara al proveedor chino).
-- **Web pública / marketing:** etiqueta visible = **MARKBOX** (término que el mercado ya reconoce).
-- ❌ Nunca mostrar "MARKBOX" en Studio, Portal ni apps de operario (ahí siempre "Shipping Mark").
-- **Antecedente:** BD-004 (2026-06-10) fijaba "Shipping Mark único en todos los contextos"; BD-021 lo enmienda reponiendo "MARKBOX" solo en la capa de web pública. Registrado como excepción en `BRAND-DECISIONS.md`.
+- **Todas las superficies (web pública, marketing, Studio, Portal, apps de operario):** etiqueta visible = **Shipping Mark** (opcional 唛头 de cara al proveedor chino).
+- ❌ Nunca mostrar "MARKBOX" en ninguna superficie visible.
+- **Antecedente:** BD-004 (2026-06-10) fijó "Shipping Mark único"; BD-021 (2026-07-06) lo enmendó reponiendo "MARKBOX" en web pública; **BD-029 (2026-07-12) revierte el split y vuelve a Shipping Mark único en todo.** Registrado en `BRAND-DECISIONS.md`. **Nota (Norte, repo): el barrido de "MARKBOX" en la web pública queda pendiente con la reconstrucción de la web (ver `NORTE-SYNC-2026-07-19` §0).**
 
 ## 🏷 Terminología · Compra / Orden / Prealerta (regla de audiencia)
 
@@ -279,7 +287,7 @@ Estos patrones gritan "generado por AI" y **destruyen** la credibilidad del prod
 - ❌ "Empty states" con ilustraciones genéricas tipo undraw.co
 - ❌ Bordes redondeados de 24px+ en todo
 - ❌ Drop shadows muy difusas estilo macOS Sequoia
-- ❌ Modo "glassmorphism" / acrylic blur en todos lados
+- ⚠️ Modo "glassmorphism" / acrylic blur **como default en todos lados** (permitido SOLO en superficies elevadas/flotantes — ver excepción Glass · BD-031)
 - ❌ Texto centrado por defecto · usar left-align
 - ❌ Frases como "Made with ❤️", "Powered by AI", "Designed in 2026"
 - ❌ Dashboards con barras chart de colores aleatorios
@@ -299,7 +307,7 @@ Si el usuario pide algo así, **avisarle** y proponer alternativa que respete el
 - Estilos: **inline styles con tokens CSS** o classes del sistema. **No** Tailwind, **no** CSS-in-JS libs, **no** styled-components.
 - Archivos `.jsx` cargados via `<script type="text/babel" src=...>`.
 - Cada componente que se reutiliza globalmente se expone en `window.*` (ej: `window.ERPUI`, `window.Icon`, `window.ERPData`).
-- Mock data realista de DTD-Cargo: rutas CN→VE, Shipping Mark `DTD-XXXX` (clave de datos `markbox`; "MARKBOX" solo como etiqueta de web pública), containers `DTDU-XXXXXX`, RIF venezolano, nombres verosímiles.
+- Mock data realista de DTD-Cargo: rutas CN→VE, Shipping Mark `DTD-XXXX` (clave de datos `markbox` intacta; nunca mostrar "MARKBOX" como etiqueta), containers `DTDU-XXXXXX`, RIF venezolano, nombres verosímiles.
 
 ---
 
@@ -389,8 +397,8 @@ preferís la alternativa?
 ## 🔒 Resumen ejecutivo · 6 reglas que NO se rompen
 
 1. **Solo usar tokens CSS** (`var(--*)`). Cero hex inventados.
-2. **Fuentes:** sistema → **Nunito Sans + Sora**; branding → **Archivo / Archivo Black**; + **JetBrains Mono** y **Noto Sans SC**. Ninguna otra.
-3. **Cero AI slop**: sin gradientes coloridos, sin emojis decorativos, sin glassmorphism, sin shadcn-defaults visibles.
+2. **Fuentes:** sistema → **Nunito Sans + Sora**; branding → **Archivo / Archivo Black**; datos → **JetBrains Mono**; chino UI → **Noto Sans SC**; chino documental formal → **Noto Serif SC** bajo BD-036. Ninguna otra.
+3. **Cero AI slop**: sin gradientes coloridos, sin emojis decorativos, sin glassmorphism *como default* (Glass permitido solo en superficies elevadas/flotantes · BD-031), sin shadcn-defaults visibles.
 4. **Componentes del sistema** primero. Inventar solo con `/* TODO: brand-review */`.
 5. **Avisar antes de violar**. Formato `BRAND-CHECK` explícito. Toda excepción aprobada se registra en **`BRAND-DECISIONS.md`**.
 6. **Todo texto se lee.** Contraste AA: normal ≥ 4.5:1, grande ≥ 3:1 (grande = ≥ 24px o ≥ 18.66px negrita). Un color de marca que no alcanza el ratio sobre su fondo real no se usa como texto (ver ♿).

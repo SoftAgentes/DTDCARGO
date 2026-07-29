@@ -1,7 +1,7 @@
 /**
  * SDD-0061 Fase B1 — Lógica pura del estimado web.
  *
- * Convierte el payload que mandan las calculadoras públicas (`/calculadora` LCL
+ * Convierte el payload que mandan las calculadoras públicas (`/tarifas` LCL
  * y `/estimacion` marítimo/aéreo) en la fila de `public.quotes` que persiste el
  * route handler, valida el input (sin Zod, validador propio estilo `validate*Input`),
  * y arma el mensaje de WhatsApp con la nota + el código `EST-XXXX`.
@@ -17,9 +17,9 @@
 
 /** El servicio que se guarda en quotes.service (enum shipment_service). */
 export type EstimadoService =
-  | "consolidacion"
+  | "consolidado_lcl"
   | "puerta_a_puerta_DDP"
-  | "reserva_FCL"
+  | "fcl_directo"
   | "transporte_terrestre";
 
 /** Calculadora de origen del estimado. */

@@ -236,7 +236,7 @@ describe("listPendingAcceptanceInvoices", () => {
   it("excluye un borrador NON-DDP (consolidación)", async () => {
     const db = stub({
       invoices: [invoiceRow({ id: "i1", code: "F-2026-0001", status: "borrador", shipmentId: "s1" })],
-      shipments: [shipmentRow({ id: "s1", service: "consolidacion" })],
+      shipments: [shipmentRow({ id: "s1", service: "consolidado_lcl" })],
       legal_acceptances: [],
       legal_docs: docsTable(),
     });
@@ -290,7 +290,7 @@ describe("getPendingAcceptanceInvoice", () => {
   it("null si el shipment no es DDP", async () => {
     const db = stub({
       invoices: [invoiceRow({ id: "i1", code: "F-2026-0001", status: "borrador", shipmentId: "s1" })],
-      shipments: [shipmentRow({ id: "s1", service: "reserva_FCL" })],
+      shipments: [shipmentRow({ id: "s1", service: "fcl_directo" })],
       legal_acceptances: [],
       legal_docs: docsTable(),
     });
@@ -343,7 +343,7 @@ describe("getPendingAcceptanceForShipment", () => {
   it("null si el envío no es DDP (sólo DDP entra al flujo de aceptación)", async () => {
     const db = stub({
       invoices: [invoiceRow({ id: "i1", code: "F-2026-0001", status: "borrador", shipmentId: "s1" })],
-      shipments: [shipmentRow({ id: "s1", service: "consolidacion" })],
+      shipments: [shipmentRow({ id: "s1", service: "consolidado_lcl" })],
       legal_acceptances: [],
       legal_docs: docsTable(),
     });

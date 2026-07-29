@@ -566,7 +566,7 @@ type FormValues = {
 const EMPTY_FORM: FormValues = {
   clientMarkbox: "",
   clientName: "",
-  service: "consolidacion",
+  service: "consolidado_lcl",
   origin: "",
   destination: "",
   subtotalUsd: 0,

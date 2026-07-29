@@ -209,7 +209,7 @@ export function TemplateDrawer({
         {/* Costo total en vivo */}
         <div
           style={{
-            background: "var(--ink)",
+            background: "var(--bg-sidebar)",
             borderRadius: "var(--r-lg)",
             padding: "var(--s-4) var(--s-5)",
             display: "flex",
@@ -220,14 +220,14 @@ export function TemplateDrawer({
           <span
             style={{
               font: "700 10px/1 var(--f-sans)",
-              color: "var(--ink-inv-mute)",
+              color: "var(--ink-side-soft)",
               letterSpacing: "0.14em",
               textTransform: "uppercase",
             }}
           >
             Costo total del template
           </span>
-          <span style={{ font: "900 22px/1 var(--f-mono)", color: "var(--ink-inv)" }}>
+          <span style={{ font: "900 22px/1 var(--f-mono)", color: "var(--ink-side)" }}>
             {fmtUsd(total)}
           </span>
         </div>

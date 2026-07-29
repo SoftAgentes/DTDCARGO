@@ -4,7 +4,6 @@ import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 import { YiwuAdvantage } from "@/components/YiwuAdvantage";
-import { HowWeWork } from "@/components/HowWeWork";
 import { Philosophy } from "@/components/Philosophy";
 import { WorkBand } from "@/components/WorkBand";
 import { OperationGallery } from "@/components/OperationGallery";
@@ -29,12 +28,12 @@ import {
 export const metadata: Metadata = {
   title: "Brochure",
   description:
-    "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 16 servicios, equipo y bodega propios en Yiwu y Valencia, pagas al llegar. Operando desde 2015.",
+    "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 15 servicios, equipo y bodega propios en Yiwu y Valencia, pagas al llegar. Operando desde 2015.",
   alternates: { canonical: "/brochure" },
   ...socialMeta({
     title: "Brochure · DTD Cargo",
     description:
-      "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 16 servicios, equipo y bodega propios en Yiwu y Valencia, pagas al llegar. Operando desde 2015.",
+      "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 15 servicios, equipo y bodega propios en Yiwu y Valencia, pagas al llegar. Operando desde 2015.",
     path: "/brochure",
   }),
 };
@@ -147,11 +146,14 @@ export default function BrochurePage() {
         {/* 3c · El sello DoorTuDoor (fotos de marca en la operación) */}
         <OperationGallery />
 
-        {/* 4-5 · Los 16 servicios (héroe DDP + 4 grupos) */}
+        {/* 4-5 · Los 15 servicios (héroe DDP + 4 grupos) */}
         <ServicesByOffice />
 
-        {/* 6 · Mapa de servicios por sede */}
-        <section className="py-16 lg:py-20 bg-white">
+        {/* 6 · Mapa de servicios por sede. Va en grey-100 (superficie elevada)
+            para no quedar pegada a "Por qué DTD", que también es blanca: al
+            retirarse "Cómo trabajamos" desapareció la banda paper que las
+            separaba. Bonus: la tabla blanca ahora sí resalta sobre el fondo. */}
+        <section className="py-16 lg:py-20 bg-grey-100">
           <div className="wrap max-w-[1000px]">
             <span className="eyebrow">Mapa de servicios por sede</span>
             <h2 className="h-section mt-4">Yiwu ejecuta. Valencia coordina.</h2>
@@ -178,10 +180,7 @@ export default function BrochurePage() {
           </div>
         </section>
 
-        {/* 7 · Cómo trabajamos (reuso) */}
-        <HowWeWork />
-
-        {/* 8 · Por qué DTD */}
+        {/* 7 · Por qué DTD */}
         <section className="py-16 lg:py-20 bg-white">
           <div className="wrap max-w-[1000px]">
             <span className="eyebrow">Por qué DTD</span>
@@ -202,13 +201,13 @@ export default function BrochurePage() {
           </div>
         </section>
 
-        {/* 9 · Filosofía (reuso) */}
+        {/* 8 · Filosofía (reuso) */}
         <Philosophy />
 
-        {/* 9b · Testimonios (la sección se auto-oculta sin reseñas reales) */}
+        {/* 8b · Testimonios (la sección se auto-oculta sin reseñas reales) */}
         <Testimonials />
 
-        {/* 10 · Cierre / contacto */}
+        {/* 9 · Cierre / contacto */}
         <section className="py-20 bg-ink text-white">
           <div className="wrap max-w-[920px] text-center">
             <h2 className="h-display" style={{ color: "white", fontSize: "clamp(32px, 5vw, 56px)" }}>

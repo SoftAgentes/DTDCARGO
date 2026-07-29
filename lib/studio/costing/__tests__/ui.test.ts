@@ -37,7 +37,7 @@ function ship(id: string, over: Partial<Shipment> = {}): Shipment {
     client_markbox: null,
     origin: "YIW",
     destination: "PBL",
-    shipment_service: "consolidacion",
+    shipment_service: "consolidado_lcl",
     status: "in_transit",
     weight_kg: null,
     volume_m3: null,

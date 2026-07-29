@@ -69,19 +69,25 @@ export default function FaqPage() {
         ]}
       />
 
-      <main className={`bg-paper ${jetbrainsMono.variable}`}>
-        {/* Hero */}
-        <section className="py-16 lg:py-20">
-          <div className="wrap max-w-[820px]">
-            <span className="eyebrow">Preguntas frecuentes</span>
-            <h1 className="h-display mt-5" style={{ fontSize: "clamp(34px, 5vw, 60px)" }}>
-              Importar de China,
-              <br />
-              <span style={{ color: "var(--color-wine)" }}>sin dudas.</span>
+      {/* Revestido al Norte (`Preguntas Frecuentes · DTD-Cargo.html`): banda
+          navy `rp-hero`. El bloque de preguntas NO se reemplaza por el
+          `<details>` plano del mockup — producción tiene el explorador
+          (buscador + filtro por categoría + widget de la guía Alibaba), que ya
+          corre sobre los tokens de marca y es superior al mockup. */}
+      <main className={`rp-surface ${jetbrainsMono.variable}`}>
+        <section className="rp-hero">
+          <div className="rp-hero-in">
+            <div className="rp-eyebrow">
+              <span className="rule" />
+              Recursos
+            </div>
+            <h1>
+              Importar de China, <span className="accent">sin dudas.</span>
             </h1>
-            <p className="lead mt-6 max-w-[60ch]">
-              Las preguntas que más nos hacen los importadores, respondidas claro.
-              Si te queda alguna, escríbenos por WhatsApp y te la resolvemos.
+            <p>
+              Cómo funciona el servicio, de la cotización a la entrega. Si no
+              encuentras tu respuesta, escríbenos por WhatsApp y te la
+              resolvemos.
             </p>
           </div>
         </section>
@@ -94,7 +100,7 @@ export default function FaqPage() {
             acordeón en un solo flujo, con el CTA de WhatsApp fijo en el rail.
             El FAQPage schema de arriba sigue plano con TODAS las preguntas — no
             depende del filtrado de cliente de este módulo. */}
-        <section className="pb-20 lg:pb-24 scroll-mt-24" id="preguntas">
+        <section className="pt-12 lg:pt-16 pb-20 lg:pb-24 scroll-mt-24" id="preguntas">
           <FaqExplorer faqs={FAQS} waHref={WA} />
         </section>
       </main>

@@ -141,7 +141,7 @@ export function nextMilestone(
 /**
  * Estimación rough de días restantes hasta entrega. Heurística:
  * (100 - progress) * factor. Factor depende del servicio:
- *  - marítimo (consolidacion, FCL, DDP): 0.35 día/% (≈ 35 días para 100%)
+ *  - marítimo (consolidado_lcl, FCL, DDP): 0.35 día/% (≈ 35 días para 100%)
  *  - terrestre: 0.04 día/% (≈ 4 días)
  *
  * NO es real. Reemplazar cuando exista AIS / ETA confirmada.

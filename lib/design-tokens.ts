@@ -263,7 +263,7 @@ export const CONTACT = {
 
 // ──────────────────────────────────────────────────────────────────
 // SERVICIOS — fuente: Brochure DTD Cargo China-Venezuela
-// 16 servicios agrupados por sede + tabla cruzada
+// 15 servicios agrupados por sede + tabla cruzada
 // ──────────────────────────────────────────────────────────────────
 
 export type ServiceLocation = "cn" | "ve";
@@ -400,17 +400,11 @@ export const SERVICES_VE: Service[] = [
     location: "ve",
   },
   {
-    slug: "documentos-importacion",
-    title: "Documentos de importación",
-    copy: "Elaboramos, revisamos y tramitamos toda la documentación aduanera y logística: facturas de embarque, declaraciones, certificados y requerimientos normativos.",
-    benefit: "Tu carga entra sin contratiempos",
-    icon: "Doc",
-    location: "ve",
-  },
-  {
+    // Documentos de importación se FUSIONÓ acá (founder 2026-07-19): la gestión
+    // documental va dentro de aduana, sin tarjeta propia.
     slug: "transito-aduana",
     title: "Tránsito de aduana y desaduanaje",
-    copy: "Bajo DDP nos encargamos del paso de tu carga por la aduana venezolana y de la nacionalización: la aduana y los impuestos ya van incluidos en tu precio, sin cobros sorpresa. Equipo local que conoce la normativa vigente.",
+    copy: "Bajo DDP nos encargamos del paso de tu carga por la aduana venezolana y de la nacionalización, con toda la documentación de importación incluida: facturas de embarque, declaraciones, certificados y normativa. La aduana y los impuestos ya van en tu precio, sin cobros sorpresa.",
     benefit: "Nacionalización sin demoras",
     icon: "Shield",
     location: "ve",
@@ -433,7 +427,7 @@ export const SERVICES_FEATURED: Service[] = [
   SERVICES_VE[0], // DTD Services LCL (featured VE)
   SERVICES_CN[1], // Consolidación bodega Yiwu (featured CN)
   SERVICES_CN[0], // Reserva FCL (con BL propio)
-  SERVICES_VE[4], // Tránsito aduana
+  SERVICES_VE[3], // Tránsito aduana
   SERVICES_CN[5], // Compra asistida
 ];
 
@@ -450,8 +444,7 @@ export const SERVICES_MATRIX = [
   { service: "Envío de muestras y documentos", cn: "Ejecución completa", ve: "—" },
   { service: "Registro de marca en China", cn: "Ejecución legal", ve: "Coordinación y documentos" },
   { service: "Trámite de visado chino", cn: "—", ve: "Gestión completa" },
-  { service: "Documentos importación / aduana", cn: "—", ve: "Gestión completa" },
-  { service: "Tránsito aduana Venezuela", cn: "—", ve: "Gestión completa" },
+  { service: "Tránsito aduana y documentos de importación", cn: "—", ve: "Gestión completa" },
   { service: "Entrega puerta a puerta (last mile)", cn: "—", ve: "Gestión completa" },
 ] as const;
 
@@ -736,7 +729,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     acronym: "DTD Universal · formato propio",
     category: "tracking",
     body: [
-      "Código interno de DTD Cargo que identifica un envío de extremo a extremo. Formato: `DTDU-NNNNNN-XXXX`. Te lo damos al confirmar la cotización y lo usas en /track para ver el estado en tiempo real.",
+      "Código interno de DTD Cargo que identifica un envío de extremo a extremo. Formato: `DTDU-NNNNNN-XXXX`. Te lo damos al confirmar la cotización y lo ves entrando a tu portal del cliente (dtdcargo.com/portal), donde sigues el estado en tiempo real.",
       "El DTDU agrupa el BL marítimo, los documentos de aduana y el last mile bajo un solo identificador — más cómodo que recordar múltiples números.",
     ],
   },
@@ -858,7 +851,8 @@ export const HERO = {
   /**
    * Badge circular sobre el contenedor — ícono de bucle + "De China a tu puerta"
    * = el ciclo completo puerta a puerta. Reemplaza el "360°" abstracto que no
-   * comunicaba nada (2026-06-13). El ciclo de 4 pasos se explica en HowWeWork.
+   * comunicaba nada (2026-06-13). El proceso completo se explica en
+   * /shipping-mark (8 pasos).
    */
   badge: {
     line1: "Puerta a puerta",
@@ -910,34 +904,6 @@ export const STATS = [
     label: "Equipo propio en Yiwu & Valencia",
   },
 ] as const;
-
-// ──────────────────────────────────────────────────────────────────
-// CÓMO TRABAJAMOS — 4 pasos del flujo operativo
-// ──────────────────────────────────────────────────────────────────
-
-export const STEPS: { n: string; title: string; copy: string; tag?: string }[] = [
-  {
-    n: "01",
-    title: "Cotiza",
-    tag: "Puerta a puerta · DDP",
-    copy: "Calcula tu envío por CBM en segundos —modalidad DDP, todo incluido— o pídelo por WhatsApp. Estimación al instante.",
-  },
-  {
-    n: "02",
-    title: "Pre-alerta · Shipping Mark",
-    copy: "Te registras y recibes tu Shipping Mark — tu proveedor en China lo escribe en cada caja antes de despachar.",
-  },
-  {
-    n: "03",
-    title: "Recibimos",
-    copy: "Tu carga llega a nuestra bodega propia en Yiwu, identificada por tu Shipping Mark. La revisamos y la consolidamos.",
-  },
-  {
-    n: "04",
-    title: "Entregamos",
-    copy: "Aduana e impuestos a nuestro nombre. Te llega puerta a puerta en Venezuela, con factura final — y vuelves a pedir.",
-  },
-];
 
 // ──────────────────────────────────────────────────────────────────
 // HISTORIA — 5 hitos (2008 → 2016) — fuente: brochure "Nuestra Historia"
@@ -1071,8 +1037,8 @@ export const PHILOSOPHY = {
   ],
   pull: "La confianza no se promete. Se construye en cada envío.",
   /**
-   * 4 razones — se renderizan con el patrón de tarjeta de <HowWeWork />.
-   * `kicker` cumple el rol del índice "01 / 04" de HowWeWork (acento wine en
+   * 4 razones — se renderizan con el patrón de tarjeta del sistema.
+   * `kicker` cumple el rol de un índice "01 / 04" (acento wine en
    * Archivo Black); el de MARKBOX va en 唛头 (Noto Sans SC vía fallback de la pila).
    */
   cards: [

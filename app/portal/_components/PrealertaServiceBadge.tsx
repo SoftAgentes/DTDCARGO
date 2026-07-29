@@ -5,6 +5,9 @@ import type { BadgeTone } from "@/lib/studio/prealertas/types";
  * Badge de estado de una SOLICITUD de servicio (SDD-0098). Mismo lenguaje visual
  * que `PrealertaStatusBadge` (chip con punto + texto, tokens `var(--*)`). Estados:
  * Solicitada / En proceso / Atendida / Descartada / Inválida.
+ *
+ * ⚠️ El texto va en `--color-ink`, no en el color del tono — ver el porqué (con
+ * los ratios medidos) en `PrealertaStatusBadge`. SDD-0176.
  */
 const TONE_COLOR: Record<BadgeTone, string> = {
   success: "var(--color-status-success)",
@@ -22,7 +25,7 @@ export function PrealertaServiceBadge({ status }: { status: string }) {
     <span
       className="inline-flex items-center gap-1.5 text-[12px] font-semibold rounded-full px-2.5 py-1 whitespace-nowrap"
       style={{
-        color,
+        color: "var(--color-ink)",
         background: `color-mix(in srgb, ${color} 8%, transparent)`,
         border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
       }}

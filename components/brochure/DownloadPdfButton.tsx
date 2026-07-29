@@ -8,7 +8,7 @@ import { useEffect } from "react";
  * divergen).
  *
  * Antes de imprimir abre TODOS los `<details.brochure-group>` para que el PDF
- * salga con los 16 servicios visibles (no se puede clickear un PDF en papel).
+ * salga con los 15 servicios visibles (no se puede clickear un PDF en papel).
  * El listener `beforeprint` cubre tanto el click del botón como Ctrl+P.
  */
 export function DownloadPdfButton({ dark = false }: { dark?: boolean }) {

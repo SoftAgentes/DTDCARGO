@@ -6,9 +6,7 @@ import {
   listPrealertas,
   listSuppliers,
   listPrealertaDocuments,
-  listActivePrealertaAddons,
 } from "@/lib/studio/prealertas/queries";
-import { summarizeSuppliers } from "@/lib/studio/prealertas/types";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import {
   computeProgress,
@@ -24,6 +22,8 @@ import {
   type PortalSailing,
 } from "@/lib/portal/next-sailing-queries";
 import { buildAlertItems } from "@/lib/portal/alertas";
+import { getConsolidationsForShipments } from "@/lib/portal/consolidation-queries";
+import { groupTrackByContainer, type TrackItem } from "@/lib/portal/seguimiento";
 import { showNortePortal } from "@/lib/portal/demo";
 import { ArrowIcon } from "@/components/Icon";
 import { ShipmentRow } from "../../_components/ShipmentRow";
@@ -31,7 +31,6 @@ import { EnviosHubTabs } from "../../_components/PortalHubTabs";
 import {
   PortalAlertasHub,
   type DocPresence,
-  type TrackItem,
 } from "./_components/PortalAlertasHub";
 
 export const metadata: Metadata = { title: "Alertas · mis envíos" };
@@ -52,11 +51,10 @@ export default async function PortalShipmentsPage() {
     return <FallbackList />;
   }
 
-  const [rawShipments, prealertas, suppliers, addons] = await Promise.all([
+  const [rawShipments, prealertas, suppliers] = await Promise.all([
     listMyShipments(supabase),
     listPrealertas(supabase, { markbox: client.markbox }),
     listSuppliers(supabase, { markbox: client.markbox }),
-    listActivePrealertaAddons(supabase),
   ]);
 
   // SDD-0156 · Slice D: si la config del tenant oculta un hito (ej. "en aduana"),
@@ -75,29 +73,6 @@ export default async function PortalShipmentsPage() {
   for (const s of suppliers) supplierNameById[s.id] = s.name;
 
   const items = buildAlertItems(prealertas, shipments, supplierNameById);
-
-  // Vistas de proveedor para el modal "Nueva compra" (mismo dato que
-  // /proveedores): conteo de compras vivas → próximo código por proveedor.
-  const orderCountBySupplierId: Record<string, number> = {};
-  for (const p of prealertas) {
-    if (p.supplier_id) {
-      orderCountBySupplierId[p.supplier_id] =
-        (orderCountBySupplierId[p.supplier_id] ?? 0) + 1;
-    }
-  }
-  const supplierViews = summarizeSuppliers(
-    client.markbox,
-    suppliers.map((s) => ({
-      id: s.id,
-      supplier_seq: s.supplier_seq,
-      name: s.name,
-      wechat: s.wechat,
-      city: s.city,
-      contact: s.contact,
-      notes: s.notes,
-    })),
-    orderCountBySupplierId,
-  );
 
   // Slice B — presencia de documentos por compra (packing/factura/foto). Solo
   // las prealertas tienen `prealerta_documents`; los envíos derivan a su detalle.
@@ -134,6 +109,17 @@ export default async function PortalShipmentsPage() {
           : null,
     }));
 
+  // SDD-0170 — "Seguimiento total" agrupado por CONTENEDOR (decisión del Norte:
+  // varias compras consolidadas se muestran como UN solo seguimiento). Los ids
+  // que entran son los de `listMyShipments`, ya filtrada por `client_markbox`, así
+  // que el admin client queda scopeado a envíos propios. Best-effort: si falla,
+  // el mapa vacío degrada a la lista plana de antes.
+  const consolidations = await getConsolidationsForShipments(
+    createAdminClient(),
+    track.map((t) => t.id),
+  ).catch(() => ({}));
+  const trackGroups = groupTrackByContainer(track, consolidations);
+
   // Banner del próximo consolidado (cut-off). Admin client scopeado por tenant (el
   // cliente no tiene RLS sobre `sailings`); best-effort → null oculta el banner.
   const banner = await loadConsolidadoBanner(client.id);
@@ -142,11 +128,9 @@ export default async function PortalShipmentsPage() {
     <PortalAlertasHub
       items={items}
       docs={docs}
-      track={track}
+      trackGroups={trackGroups}
       banner={banner}
       markbox={client.markbox}
-      suppliers={supplierViews}
-      addons={addons}
     />
   );
 }

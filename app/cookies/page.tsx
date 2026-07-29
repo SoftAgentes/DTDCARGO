@@ -74,13 +74,13 @@ function CookieTable({ rows }: { rows: Row[] }) {
 const NECESARIAS: Row[] = [
   {
     cookie: "sb-…-auth-token",
-    quien: "DTD Cargo (Supabase)",
+    quien: "DTD Cargo (proveedor de infraestructura)",
     duracion: "Sesión",
     para: "Mantener tu sesión iniciada de forma segura en el Portal del Cliente.",
   },
   {
     cookie: "Verificación de login (PKCE)",
-    quien: "DTD Cargo (Supabase)",
+    quien: "DTD Cargo (proveedor de infraestructura)",
     duracion: "Minutos, durante el login",
     para: "Completar el inicio de sesión con enlace mágico de forma segura.",
   },
@@ -135,30 +135,34 @@ export default function CookiesPage() {
   return (
     <>
       <Nav />
-      <main className="bg-paper">
-        <section className="py-16 lg:py-24">
-          <div className="wrap max-w-[900px]">
-            <span className="eyebrow">Legal · DTD Cargo</span>
-            <h1
-              className="h-display mt-5"
-              style={{ fontSize: "clamp(36px, 5vw, 64px)" }}
-            >
-              Política de{" "}
-              <span style={{ color: "var(--color-wine)" }}>Cookies.</span>
+      {/* Reskin mínimo al Norte: hero navy `rp-*`. Texto legal, tablas de
+          cookies, banner de consentimiento y `noindex` sin tocar. */}
+      <main className="rp-surface" style={{ ["--rp-w" as string]: "900px" }}>
+        <section className="rp-hero">
+          <div className="rp-hero-in">
+            <div className="rp-eyebrow">
+              <span className="rule" />
+              Legal · DTD Cargo
+            </div>
+            <h1>
+              Política de <span className="accent">Cookies.</span>
             </h1>
-            <p className="lead mt-6 max-w-[60ch]">
+            <p>
               Cómo usamos las cookies en dtdcargo.com: cuáles son necesarias,
               cuáles son opcionales y cómo cambiar tu decisión cuando quieras.
             </p>
-            <p className="mt-4 text-[13px] text-grey-500">
-              Operador del sitio: <strong>DTD Cargo</strong> · Última
-              actualización: {UPDATED}
+            <p className="rp-hero-meta">
+              <span>
+                Operador del sitio: <strong>DTD Cargo</strong>
+              </span>
+              <span>Última actualización: {UPDATED}</span>
             </p>
           </div>
         </section>
 
-        <section className="pb-24">
-          <div className="wrap max-w-[900px] flex flex-col gap-9">
+        <section className="pb-24 pt-12 lg:pt-16">
+          {/* Ver nota en /privacidad: `max-w-[900px]` pierde contra `.wrap`. */}
+          <div className="wrap flex flex-col gap-9" style={{ maxWidth: 900 }}>
             <article>
               <h2 className={H2}>1. Qué es una cookie</h2>
               <p className={P}>

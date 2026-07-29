@@ -82,12 +82,7 @@ docs-legal/
 # Config local de Claude. El harness del proyecto (agentes + skills) SÍ se versiona;
 # settings/planes locales quedan fuera.
 # Forge (manifest + tooling) es toolbox LOCAL, no va al repo del equipo.
-# Excepción: el binding de Skill Plugin Kanban SÍ se versiona — es configuración
-# autorada (mapeo de clases de modelo + ticket_dir), no estado generado. Sin él,
-# cada ventana/clon cae a DEFAULT_CONFIG y pierde el mapeo.
-# `.forge/*` (no `.forge/`): git no re-incluye archivos si el directorio padre está excluido.
-.forge/*
-!.forge/forge-kanban.yml
+.forge/
 .claude/*
 # Solo el harness DTD se versiona; Forge (skills/agents/commands extra) queda LOCAL.
 !.claude/agents/
@@ -102,15 +97,17 @@ docs-legal/
 !.claude/commands/radar.md
 !.claude/commands/ui-check.md
 !.claude/commands/ui-pro.md
-# Wrappers finos de Claude sobre el núcleo canónico de Skill Plugin Kanban.
-!.claude/commands/forge-kanban.md
-!.claude/commands/cerrar.md
 !.claude/settings.json
 # Skill /ui-pro (auditoría de diseño profunda) — versionado para el equipo.
 !.claude/skills/
 .claude/skills/*
 !.claude/skills/ui-pro/
 !.claude/skills/ui-pro/**
+# Scaffolding genérico que `forge update` deja en la raíz — tooling LOCAL, no DTD.
+.husky/
+COMMAND_INDEX.md
+HOOKS.md
+example.mcp.json
 
 # ─── Design handoffs · binarios grandes (no van al repo) ──────
 # Los standalones HTML con base64 embebido (>5MB c/u) NO se versionan bajo
@@ -181,3 +178,9 @@ docs/legal/DTDcapalegalconsolidada/
 
 # Artefactos generados (lector offline de marketing, montajes, etc.) — regenerables
 outputs/
+
+# Skills de terceros instalados con `npx skills add` (higgsfield): contenido de
+# terceros, re-descargable. Viven en el repo a propósito (los leen los demás
+# agentes vía .agents/skills/), pero NO se versionan. El registro sí:
+# skills-lock.json queda en git para poder reinstalarlos con `npx skills install`.
+.agents/skills/higgsfield-*/

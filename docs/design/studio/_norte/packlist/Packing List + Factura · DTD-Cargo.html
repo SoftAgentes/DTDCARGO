@@ -42,7 +42,12 @@
 
   /* ── Document sheet ── */
   .doc { max-width: 1160px; margin: 0 auto; background: #fff; color: var(--ink); border-radius: var(--r-md);
-         box-shadow: var(--shadow-lg); padding: 30px 34px 34px; }
+         box-shadow: var(--shadow-lg); padding: 30px 34px 34px; position: relative; overflow: hidden; }
+  .doc::after { content: 'DEMO'; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%) rotate(-28deg); font: 900 170px/1 Arial, sans-serif; color: rgba(127,15,26,.06); pointer-events: none; white-space: nowrap; z-index: 5; letter-spacing: .04em; }
+  .demo-chip { display: inline-flex; align-items: center; gap: 5px; font: 800 10px/1 var(--f-mono, monospace); letter-spacing: .08em; text-transform: uppercase; color: #fff; background: var(--wine); border-radius: 999px; padding: 4px 9px; margin-left: 8px; vertical-align: middle; }
+  .precarga-banner { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; background: var(--wine-tint, #f5e9ea); border: 1px solid var(--wine); border-radius: var(--r-md); padding: 10px 14px; margin: 0 0 16px; font: 600 12px/1.4 var(--f-sans, sans-serif); color: var(--ink); position: relative; z-index: 6; }
+  .precarga-banner b { color: var(--wine); }
+  .precarga-banner .pk-k { font: 800 9.5px/1 var(--f-mono, monospace); letter-spacing: .08em; text-transform: uppercase; color: var(--wine); flex-basis: 100%; }
 
   .doc-head { text-align: center; border-bottom: 2px solid var(--ink); padding-bottom: 12px; position: relative; }
   .dh-phones { position: absolute; top: 0; right: 0; text-align: right; font: 600 10px/1.5 var(--f-mono); color: var(--ink-soft); display: flex; flex-direction: column; }
@@ -318,6 +323,8 @@
 </style>
 </head>
 <body>
+<style>@media print{.dtd-back-btn{display:none!important}}body.embed .dtd-back-btn{display:none!important}</style>
+<a class="dtd-back-btn" href="../Brand Book DTD v4.6.html" onclick="if(document.referrer&&history.length>1){history.back();return false;}" aria-label="Volver atrás" style="position:fixed;top:16px;left:16px;z-index:99999;display:inline-flex;align-items:center;gap:7px;background:#FFFFFF;border:1px solid #E8E6E2;border-radius:8px;padding:9px 14px 9px 10px;font:700 13px/1 'Archivo','Nunito Sans',system-ui,sans-serif;color:#0F1E3D;text-decoration:none;box-shadow:0 6px 18px rgba(15,30,61,.16)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#7F0F1A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg>Volver</a>
   <!-- Toolbar -->
   <div class="toolbar">
     <div class="ttl"><b>Packing List + Factura</b><span class="zh">装箱单 + 发票 · 2 合 1</span></div>
@@ -348,11 +355,14 @@
 
   <div class="wrap">
     <div class="doc" id="doc">
+      <div class="precarga-banner" id="precarga-banner" style="display:none">
+        <span class="pk-k">Precargado por tu cliente</span>
+      </div>
       <!-- header -->
-      <div class="doc-head">
+      <div class="doc-head" data-comment-anchor="20a303b93f-div">
         <div class="dh-phones"><span class="zh">电话</span><b>0579-8543 1781</b><b>0086 186 0689 1419</b><b class="dh-mail">info@dtdcargo.com</b></div>
         <div class="dh-company"><span class="zh">义乌市林冠进出口有限公司</span> · <span class="wm-inline"><span class="d">DTD</span> <span class="g">Cargo</span></span></div>
-        <div class="dh-title"><span class="zh">装箱单 + 商业发票 · 入仓单</span> <span class="i18n" data-en="Packing List + Invoice" data-es="Packing List + Factura">Packing List + Factura</span></div>
+        <div class="dh-title"><span class="zh">装箱单 + 商业发票 · 入仓单</span> <span class="i18n" data-en="Packing List + Invoice" data-es="Packing List + Factura">Packing List + Factura<span class="demo-chip">Demo</span></span></div>
         <div class="dh-meta"><span class="zh">仓库地址</span> 义乌市义乌港二期直通仓2栋2号货7--货11 <span class="dh-folio">· N.º / 编号 <input id="f-folio" value=""></span></div>
       </div>
 
@@ -363,7 +373,7 @@
           <div class="irow"><span class="il"><span class="zh">公司/个人名称</span> <span class="i18n" data-en="Company / Person name" data-es="Empresa / Persona">Company / Person name</span></span><input id="f-empresa" placeholder="公司名称 / Company / Person name"></div>
           <div class="irow"><span class="il"><span class="zh">邮箱</span> Email</span><input id="f-email" placeholder="email@..."></div>
           <div class="irow"><span class="il"><span class="zh">电话/微信</span> Tel/WeChat</span><input id="f-wechat" placeholder="+86 138... / WeChat"></div>
-          <div class="irow irow-addr"><span class="il"><span class="zh">地址</span> <span class="i18n" data-en="Address" data-es="Dirección">Address</span></span><input id="f-direccion" placeholder="供应商地址 / Dirección"><span class="il il-city"><span class="zh">城市</span> <span class="i18n" data-en="City" data-es="Ciudad">City</span></span><input id="f-ciudad" class="in-city" placeholder="城市 / Ciudad"></div>
+          <div class="irow irow-addr"><span class="il"><span class="zh">地址</span> <span class="i18n" data-en="Address" data-es="Dirección">Address</span></span><input id="f-direccion" placeholder="供应商地址 / Dirección"><span class="il il-city" data-comment-anchor="fb05d76837-span"><span class="zh">城市</span> <span class="i18n" data-en="City" data-es="Ciudad">City</span></span><input id="f-ciudad" class="in-city" placeholder="城市 / Ciudad"></div>
         </div>
         <div class="igroup">
           <div class="ig-head"><span class="zh">客户</span> <span class="i18n" data-en="Client" data-es="Cliente">Client</span></div>
@@ -427,7 +437,7 @@
         <div class="attach attach-hi" id="attach-sec">
         <button type="button" class="attach-drop" id="btn-attach" title="Adjuntá tu factura / packing list / Excel y fotos de los productos (para identificarlos y codificarlos en aduana). · 上传发票、装箱单、Excel及产品照片">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-          <span class="attach-t"><span class="zh">附件+产品照片</span> · <span class="i18n" data-en="Attach Documents & Product photos" data-es="Adjuntar documentos y fotos de producto">Attach Documents & Product photos</span></span>
+          <span class="attach-t"><span class="zh">附件+产品照片</span> · <span class="i18n" data-en="Attach Documents & Product photos" data-es="Adjuntar documentos y fotos de producto" data-comment-anchor="7fa284bff9-span">Attach Documents & Product photos</span></span>
         </button>
         <span class="attach-tip">上传发票、装箱单、Excel及产品照片，以便识别货物并进行报关归类。</span>
         <input type="file" id="f-files" multiple style="display:none">
@@ -527,6 +537,16 @@ window.addEventListener('load', function () {
     lock('f-mark', mb);
     if (cli) { var cn = document.getElementById('f-cliente'); if (cn && !cn.value) cn.placeholder = cli + ' (ejemplo · editable)'; }
     if (order) { var f = document.getElementById('f-folio'); if (f && !f.value) { f.value = order; f.dispatchEvent(new Event('input', { bubbles: true })); } }
+    if (q.get('embed')) document.body.classList.add('embed');
+    var cajas = q.get('cajas'), valor = q.get('valor'), desc = q.get('desc');
+    if (cajas || valor || desc) {
+      var bits = [];
+      if (desc) bits.push('<span>' + desc.replace(/</g,'&lt;') + '</span>');
+      if (cajas) bits.push('<span><b>' + cajas + '</b> cajas aprox.</span>');
+      if (valor) bits.push('<span>valor estimado <b>$' + valor + '</b></span>');
+      var bn = document.getElementById('precarga-banner');
+      if (bn) { bn.innerHTML = '<span class="pk-k">Precargado por tu cliente · ejemplo, confirma con lo real</span>' + bits.join('<span style="opacity:.4">·</span>'); bn.style.display = 'flex'; }
+    }
   } catch (e) {}
 });
 </script>

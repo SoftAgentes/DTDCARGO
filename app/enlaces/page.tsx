@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import {
   BRAND_ASSETS,
   CONTACT,
@@ -194,7 +195,7 @@ const LINKS: LinkRow[] = [
     wine: true,
     label: "Calcular tu envío (CBM)",
     sub: "Estima el costo en segundos",
-    href: webLink("/calculadora", "calcular-cbm"),
+    href: webLink("/tarifas", "calcular-cbm"),
   },
   {
     icon: "box",
@@ -206,7 +207,8 @@ const LINKS: LinkRow[] = [
     icon: "radar",
     label: "Rastrear mi embarque",
     sub: "Sigue tu carga en tiempo real",
-    href: webLink("/track", "rastreo"),
+    // Fase 6: el rastreo público se retiró → entra al portal.
+    href: webLink("/portal/login", "rastreo"),
   },
   {
     icon: "chat",
@@ -259,7 +261,7 @@ export default function EnlacesPage() {
             className="enlaces-hero-photo"
           />
           <div className="enlaces-hero-scrim" />
-          <div className="enlaces-hero-top">
+          <Link href="/" className="enlaces-hero-top" aria-label="DTD Cargo — Inicio">
             {/* Decorativo (alt=""): el wordmark de al lado ya aporta el nombre
                 accesible "DTD Cargo" — evita que el lector lo anuncie dos veces. */}
             <Image
@@ -282,7 +284,7 @@ export default function EnlacesPage() {
                 {CONTACT.instagram.handle} · dtdcargo.com
               </div>
             </div>
-          </div>
+          </Link>
           <p className="enlaces-tagline">
             Con <b>Confianza</b>, de China a tu puerta.
           </p>
@@ -358,9 +360,11 @@ export default function EnlacesPage() {
 
           <div className="enlaces-foot">
             <div className="web">dtdcargo.com</div>
+            {/* Sin RIF ni razón social: van solo en el JSON-LD (regla de
+                marca, ver app/contacto/page.tsx). El mockup de Cloud Design
+                los traía en texto visible; se retiran acá también. */}
             <div className="legal">
-              DTD Cargo · RIF{" "}
-              <span className="mono">{CONTACT.legalEntity.taxID}</span>
+              DTD Cargo
               <br />
               {CONTACT.ve.addressFull}
               <br />

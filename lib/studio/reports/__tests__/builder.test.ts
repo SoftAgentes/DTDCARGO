@@ -288,13 +288,13 @@ describe("builderRows · embarques", () => {
   const shipments = [
     {
       id: "1", code: "A1", origin: "Yiwu", destination: "Pto Cabello",
-      shipment_service: "consolidacion", status: "in_transit", volume_m3: 10,
+      shipment_service: "consolidado_lcl", status: "in_transit", volume_m3: 10,
       client_name: "Acme", created_at: "2026-03-01T00:00:00Z",
       arrived_destination_at: null, delivered_at: null,
     },
     {
       id: "2", code: "B1", origin: "Shenzhen", destination: "La Guaira",
-      shipment_service: "reserva_FCL", status: "shipped", volume_m3: 40,
+      shipment_service: "fcl_directo", status: "shipped", volume_m3: 40,
       client_name: null, created_at: "2026-03-02T00:00:00Z",
       arrived_destination_at: null, delivered_at: null,
     },
@@ -312,7 +312,7 @@ describe("builderRows · embarques", () => {
     expect(a1.dims.client).toBe("Acme");
     expect(a1.dims.route).toBe("Yiwu → Pto Cabello");
     expect(a1.dims.status).toBe("En tránsito"); // label, no el enum crudo
-    expect(a1.dims.service).toBe("Consolidación");
+    expect(a1.dims.service).toBe("Consolidado LCL");
     expect(a1.metrics.cbm).toBe(10);
     expect(a1.metrics.revenue).toBe(8000); // del join por shipment_code
 
@@ -323,7 +323,7 @@ describe("builderRows · embarques", () => {
 
     // Filtros usan el mismo label que la dim.
     expect(a1.filters.status).toBe("En tránsito");
-    expect(a1.filters.service).toBe("Consolidación");
+    expect(a1.filters.service).toBe("Consolidado LCL");
   });
 
   it("agregar sobre las filas crudas reproduce el revenue por cliente", async () => {

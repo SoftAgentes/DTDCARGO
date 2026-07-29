@@ -29,23 +29,30 @@ export default function CalculadoraTerrestrePage() {
           { name: "Calculadora terrestre", path: "/calculadora-terrestre" },
         ]}
       />
-      <main className="py-16 lg:py-24 bg-paper min-h-screen">
-        <div className="wrap max-w-[760px]">
-          <span className="eyebrow">Último km</span>
-          <h1
-            className="h-display mt-5"
-            style={{ fontSize: "clamp(32px, 4.5vw, 52px)" }}
-          >
-            Flete terrestre
-            <br />
-            <span style={{ color: "var(--color-wine)" }}>en Venezuela.</span>
-          </h1>
-          <p className="lead mt-6">
-            Estima el costo de entrega desde el puerto hasta tu ciudad. Es una
-            tarifa de referencia — la final te la cierra el asesor por WhatsApp.
-          </p>
+      {/* Revestido al Norte con la superficie de recursos (`.rp-surface`).
+          Sin mockup propio: armazón `rp-*`, sin dirección visual nueva. */}
+      <main
+        className="rp-surface min-h-screen"
+        style={{ ["--rp-w" as string]: "760px" }}
+      >
+        <section className="rp-hero">
+          <div className="rp-hero-in">
+            <div className="rp-eyebrow">
+              <span className="rule" />
+              Último km
+            </div>
+            <h1>
+              Flete terrestre <span className="accent">en Venezuela.</span>
+            </h1>
+            <p>
+              Estima el costo de entrega desde el puerto hasta tu ciudad. Es una
+              tarifa de referencia — la final te la cierra el asesor por WhatsApp.
+            </p>
+          </div>
+        </section>
 
-          <div className="mt-10 card-shadow bg-white border border-grey-200 rounded-[18px] p-7 lg:p-9">
+        <div className="rp-body">
+          <div className="rp-card">
             <UltimoKmCalculator />
           </div>
         </div>

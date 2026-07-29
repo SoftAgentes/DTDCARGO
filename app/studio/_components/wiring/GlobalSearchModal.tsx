@@ -228,6 +228,8 @@ export function GlobalSearchModal({ onClose }: { onClose: () => void }) {
         position: "fixed",
         inset: 0,
         background: "var(--scrim-soft)",
+        backdropFilter: "var(--scrim-blur)",
+        WebkitBackdropFilter: "var(--scrim-blur)",
         zIndex: 100,
         display: "grid",
         placeItems: "start center",
@@ -242,10 +244,16 @@ export function GlobalSearchModal({ onClose }: { onClose: () => void }) {
         onKeyDown={onKeyDown}
         style={{
           width: "min(600px, 92vw)",
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border)",
+          // Glass (BD-031): el ⌘K es la superficie glass icónica (Spotlight/Raycast).
+          // Panel de vidrio + blur; las filas usan --ink (= --glass-ink por tema) → AA.
+          // -webkit- de respaldo; --glass-bg translúcido como fallback sin blur.
+          background: "var(--glass-bg)",
+          border: "1px solid var(--glass-border)",
+          color: "var(--glass-ink)",
+          backdropFilter: "var(--glass-blur)",
+          WebkitBackdropFilter: "var(--glass-blur)",
           borderRadius: "var(--r-lg)",
-          boxShadow: "var(--shadow-pop)",
+          boxShadow: "var(--glass-hi), var(--glass-shadow)",
           overflow: "hidden",
           display: "flex",
           flexDirection: "column",

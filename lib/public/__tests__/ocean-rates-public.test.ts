@@ -21,6 +21,8 @@ afterEach(() => vi.restoreAllMocks());
 
 describe("getPublicOceanRate", () => {
   it("fila cacheada (numeric como string) → mapeada a número", async () => {
+    // valid_to lejano en el futuro → vigente (si estuviera vencida, el status se
+    // degradaría a 'no_rate'; ver el test de vigencia más abajo).
     const rpc = stubRpc(async () => ({
       data: [
         {
@@ -29,7 +31,7 @@ describe("getPublicOceanRate", () => {
           transit_days: 5,
           carrier: "ANL",
           offers_count: 2,
-          valid_to: "2026-07-01",
+          valid_to: "2099-12-31",
           indicative: true,
           spot: false,
           status: "ok",
@@ -55,6 +57,31 @@ describe("getPublicOceanRate", () => {
       p_type: "LCL",
       p_container: "",
     });
+  });
+
+  it("fila cacheada VENCIDA (valid_to en el pasado) → status degradado a no_rate", async () => {
+    // El cron dejó de refrescar y la caché quedó vieja: no servir el precio como
+    // firme. El API route trata status!=='ok' como "no disponible".
+    stubRpc(async () => ({
+      data: [
+        {
+          rate_usd: "1738.00",
+          currency: "USD",
+          transit_days: 5,
+          carrier: "ANL",
+          offers_count: 2,
+          valid_to: "2020-01-01",
+          indicative: true,
+          spot: false,
+          status: "ok",
+          fetched_at: "2019-12-01T00:00:00Z",
+        },
+      ],
+      error: null,
+    }));
+
+    const r = await getPublicOceanRate(INPUT);
+    expect(r?.status).toBe("no_rate");
   });
 
   it("sin fila cacheada → null", async () => {

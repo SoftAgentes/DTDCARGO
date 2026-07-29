@@ -13,8 +13,8 @@
  *   - Sin sampling agresivo · rrweb default ya inteligente (DOM mutations
  *     observa cambios, no estados)
  *   - SSR-safe: getSnapshot devuelve [] si window no existe
- *   - Privacy: rrweb capture bloquea inputs por default vía mask-text
- *     pero por seguridad agregamos blockClass/maskAllInputs explícitos
+ *   - Privacy: rrweb enmascara inputs y respeta sus clases estándar
+ *     `rr-mask` / `rr-block`
  *
  * Checkout periódico (checkoutEveryNms) cada 10s: fuerza un snapshot completo
  * dentro de la ventana rolling de 15s. Sin esto, el snapshot inicial se
@@ -23,8 +23,8 @@
  *
  * Privacy notes:
  *   - maskAllInputs: ON → todos los <input> se reemplazan por asteriscos
- *   - maskTextSelector: aplicado a clases marcadas con `data-bug-mask`
- *   - blockSelector: aplicado a `[data-bug-block]` (ej: secciones con PII)
+ *   - rr-mask: enmascara texto sensible
+ *   - rr-block: bloquea por completo una sección sensible
  */
 
 // rrweb event con timestamp · usamos un tipo local mínimo para no acoplar
@@ -57,8 +57,6 @@ class BugRrwebCapture {
         checkoutEveryNms: 10_000,
         // Privacy hardening
         maskAllInputs: true,
-        maskTextSelector: "[data-bug-mask]",
-        blockSelector: "[data-bug-block]",
         // Performance: no graba estilos inline que ya están en CSS
         inlineStylesheet: false,
         // Sampling razonable

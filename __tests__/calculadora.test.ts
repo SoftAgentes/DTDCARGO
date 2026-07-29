@@ -3,6 +3,11 @@ import {
   CONFIG,
   CIUDADES,
   DEFAULT_PARAMS,
+  CONSOLIDADO_CBM_RATE,
+  CONSOLIDADO_DESTINO,
+  CONSOLIDADO_CBM_MINIMO,
+  CONSOLIDADO_BL_COSTO_MAX,
+  CONSOLIDADO_MIN_CBM_MENSAJE,
   calcularEnvioLCL,
   cbmFromDimensions,
   whatsappTextFromCotizacion,
@@ -666,5 +671,161 @@ describe("cbmFromDimensions", () => {
     expect(cot.precioBase).toBe(576);
     expect(cot.recargoExcedente).toBe(4640); // (5000 − 0.72×500) × $1 = 4640
     expect(cot.total).toBe(5216); // 576 + 4640
+  });
+});
+
+/**
+ * LCL CONSOLIDADO (pestaña B de /tarifas · founder 2026-07-20).
+ *
+ * Mismo motor, mismos recargos que el puerta a puerta — cambia la tarifa base
+ * (580 USD/CBM), que no hay ciudad de destino (llega hasta puerto, con BL
+ * propio) y que tiene una PUERTA DE VOLUMEN propia: por debajo de 1 m³ no
+ * cotiza y deriva al asesor (el BL propio es un fijo de hasta USD 300 y la
+ * carga chica termina abandonada en el almacén fiscal).
+ */
+describe("LCL Consolidado · tarifa 580/CBM + mismos recargos", () => {
+  const base = {
+    modo: "consolidado" as const,
+    embalaje: "estandar" as const,
+    ciudadId: CONSOLIDADO_DESTINO.id,
+    tarifaCBMOverride: CONSOLIDADO_CBM_RATE,
+  };
+  const ciudades = [CONSOLIDADO_DESTINO];
+
+  it("la tarifa base del consolidado es 580 USD/CBM (dato del founder)", () => {
+    expect(CONSOLIDADO_CBM_RATE).toBe(580);
+  });
+
+  it("precio = CBM × 580, sin recargo de ciudad ni descuento de sede", () => {
+    const cot = calcularEnvioLCL(
+      { ...base, cbmTotal: 10, pesoKg: 3000 },
+      DEFAULT_PARAMS,
+      ciudades,
+    );
+    expect(cot.precioBase).toBe(5800); // 10 × 580
+    expect(cot.recargoCiudad).toBe(0); // hasta puerto: sin distancia
+    expect(cot.descuentoSede).toBe(0);
+    expect(cot.recargoExcedente).toBe(0); // 3000 kg ≤ 10 × 500 incl.
+    expect(cot.total).toBe(5800);
+  });
+
+  it("suma el embalaje especial (+$50), igual que el puerta a puerta", () => {
+    const cot = calcularEnvioLCL(
+      { ...base, cbmTotal: 10, pesoKg: 3000, embalaje: "especial" },
+      DEFAULT_PARAMS,
+      ciudades,
+    );
+    expect(cot.recargoEmbalaje).toBe(DEFAULT_PARAMS.recargoEmbalajeEspecial);
+    expect(cot.total).toBe(5850); // 5800 + 50
+  });
+
+  it("aplica el multiplicador de baterías sobre el flete (params del ERP)", () => {
+    // El multiplicador es configurable (default 1.5; en prod hoy 1.3). El test
+    // usa params explícitos para no depender del valor vigente en la DB.
+    const params: CalcParams = { ...DEFAULT_PARAMS, recargoBateriaMult: 1.3 };
+    const cot = calcularEnvioLCL(
+      { ...base, cbmTotal: 10, pesoKg: 3000, bateria: true },
+      params,
+      ciudades,
+    );
+    expect(cot.recargoBateria).toBe(1740); // 5800 × 0,3
+    expect(cot.total).toBe(7540); // 5800 × 1,3
+  });
+
+  it("cobra el excedente de densidad con la misma regla ($/kg sobre la gracia)", () => {
+    const cot = calcularEnvioLCL(
+      { ...base, cbmTotal: 2, pesoKg: 1500 },
+      DEFAULT_PARAMS,
+      ciudades,
+    );
+    expect(cot.precioBase).toBe(1160); // 2 × 580
+    expect(cot.recargoExcedente).toBe(500); // (1500 − 2×500) × $1
+    expect(cot.total).toBe(1660);
+  });
+
+  it("hereda los topes: > 68 CBM y > 27.000 kg derivan al asesor", () => {
+    const porVolumen = calcularEnvioLCL(
+      { ...base, cbmTotal: 80, pesoKg: 5000 },
+      DEFAULT_PARAMS,
+      ciudades,
+    );
+    expect(porVolumen.alerta?.tipo).toBe("contenedor_excedido");
+    const porPeso = calcularEnvioLCL(
+      { ...base, cbmTotal: 60, pesoKg: 28000 },
+      DEFAULT_PARAMS,
+      ciudades,
+    );
+    expect(porPeso.alerta?.tipo).toBe("peso_contenedor_excedido");
+  });
+
+  it("la puerta de volumen del consolidado es 1 m³ (regla del founder)", () => {
+    expect(CONSOLIDADO_CBM_MINIMO).toBe(1);
+    expect(CONSOLIDADO_BL_COSTO_MAX).toBe(300);
+  });
+
+  it("0,99 m³ NO cotiza: sin precio, con el mensaje que deriva al asesor", () => {
+    const cot = calcularEnvioLCL(
+      { ...base, cbmTotal: 0.99, pesoKg: 400 },
+      DEFAULT_PARAMS,
+      ciudades,
+    );
+    expect(cot.alerta?.tipo).toBe("volumen_minimo_consolidado");
+    expect(cot.alerta?.mensaje).toBe(CONSOLIDADO_MIN_CBM_MENSAJE);
+    // No hay precio que mostrar.
+    expect(cot.total).toBe(0);
+    expect(cot.precioBase).toBe(0);
+  });
+
+  it("el mensaje explica el porqué: BL propio, USD 300 y el corte en 1 m³", () => {
+    expect(CONSOLIDADO_MIN_CBM_MENSAJE).toContain("BL a tu nombre");
+    expect(CONSOLIDADO_MIN_CBM_MENSAJE).toContain("USD 300");
+    expect(CONSOLIDADO_MIN_CBM_MENSAJE).toContain("1 m³");
+    expect(CONSOLIDADO_MIN_CBM_MENSAJE).toContain("asesor");
+  });
+
+  it("1,0 m³ SÍ cotiza (justo en el corte) — 1 × 580 = $580", () => {
+    const cot = calcularEnvioLCL(
+      { ...base, cbmTotal: 1, pesoKg: 400 },
+      DEFAULT_PARAMS,
+      ciudades,
+    );
+    expect(cot.alerta).toBeUndefined();
+    expect(cot.precioBase).toBe(580);
+    expect(cot.total).toBe(580);
+    // Con el corte en 1 m³ el piso en USD nunca llega a activarse.
+    expect(cot.ajusteMinimo).toBe(0);
+  });
+
+  it("el corte NO aplica en puerta a puerta: 0,99 m³ en `ddp` sigue cotizando", () => {
+    const cot = calcularEnvioLCL(
+      {
+        modo: "ddp",
+        embalaje: "estandar",
+        ciudadId: "casco-central",
+        cbmTotal: 0.99,
+        pesoKg: 400,
+      },
+      DEFAULT_PARAMS,
+    );
+    expect(cot.alerta).toBeUndefined();
+    expect(cot.total).toBeGreaterThan(0);
+  });
+
+  it("sin `modo` explícito el motor NO corta (default histórico = ddp)", () => {
+    const cot = calcularEnvioLCL(
+      {
+        embalaje: "estandar",
+        ciudadId: "casco-central",
+        cbmTotal: 0.5,
+        pesoKg: 200,
+      },
+      DEFAULT_PARAMS,
+    );
+    expect(cot.alerta).toBeUndefined();
+  });
+
+  it("el destino sintético no tiene recargo por distancia (casco, km 0)", () => {
+    expect(CONSOLIDADO_DESTINO.km).toBe(0);
+    expect(CONSOLIDADO_DESTINO.casco).toBe(true);
   });
 });

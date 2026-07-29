@@ -90,7 +90,10 @@ Auditoría (3 frentes: integridad de schema · links internos/huérfanas/sitemap
 - ~~`/brochure` con `VideoObject` DUPLICADO~~ ✅ CERRADO 2026-07-05: prop `noVideoSchema` en `WorkBand` (el secundario) + `<WorkBand noVideoSchema />` en la página; el home intacto (queda el nodo de `OperationGallery`, el mismo del home).
 - **Ancla muerta** en Footer: `#registro-marca-coord` no existe en `/servicios` (el slug real es `registro-marca-cn`); el Footer deriva anclas de `SERVICES_VE` (design-tokens) y la página usa `servicios-detalle.ts` → dos namespaces de slugs.
 - **`/servicios/inspeccion`**: `provider` `LocalBusiness` suelto (igual patrón) + falta nodo `Service` rico + `HowTo`. NO tocado (territorio de la ventana `servicios-ux`).
-- **`llms.txt` dice "Fundada en 2008"** → contradice `foundingDate: 2010` del schema. Alinear framing (empresa 2010 · comercio China 2008 · VE 2015). Es copy de marca → decisión del founder.
+- ~~**`llms.txt` dice "Fundada en 2008"**~~ ✅ CERRADO 2026-07-18: alineado al canon del founder
+  (fundada **2015** · experiencia con China desde 2008 · 2010 solo hito). Queda 1 superficie por
+  barrer: el copy de `<RespuestaRapida>` del home dice "empresa 2010" → corregir a la narrativa
+  2015 (copy visible, con OK del founder — tarea en el Motor de Crecimiento).
 
 **GATED (input del founder):** `sameAs` a Google Business Profile / LinkedIn / Wikidata · `aggregateRating` (reseñas reales) · `Person` del founder · `GeoCoordinates` de las sedes.
 
@@ -129,6 +132,39 @@ El `connect-src`/`img-src` del CSP (`next.config.ts`) permitía `googleads.g.dou
 - En GA4: marcar `generate_lead` y `whatsapp_click` como **key events** cuando fluyan post-deploy; crear audiencia **"Todos los visitantes — 30 días"** YA (supera los 100 miembros de una y desbloquea remarketing/adquisición en Ads) y luego **"Intención de cotizar"** (`whatsapp_click` O `generate_lead`, retención 90 días). Si se crean audiencias por `page_path` de `/calculadora`, excluir `/calculadora/embed`.
 - En Google Ads: conversión "Click WhatsApp" → confirmar estado "Activa" y que enhanced conversions ya no reporte beacon bloqueado (fix CSP 2026-07-04) · **eliminar "Contactar"** (viene de UA, descontinuado) · **quitar "Vista de página" como conversión principal** (9k page views contaminan Smart Bidding) · las acciones de llamada sin conversiones recientes son normales con las campañas pausadas.
 
+### 2026-07-22 · SEO/AEO basado en preguntas reales del CRM
+
+- Fuente localizada: SDD-0062 analizó **401 conversaciones** del Inbox de Kommo sin PII. El corte
+  encontró 42% de cortesía/ruido, 10% de consultas de cotización y 6% de servicio específico.
+- La base de conocimiento conserva un bloque de **seis temas comerciales de alta frecuencia**:
+  inicio/registro, cotización/CBM, tiempos, envío a bodega, FOB/EXW y métodos de pago.
+- Se construyó un **top 20 operativo** con respuestas directas, intención y ruta canónica. Para los
+  puestos 7–20 no se inventaron porcentajes ni un ranking estadístico: quedan ordenados por valor
+  comercial y utilidad hasta instrumentar conteo de intenciones en Kommo.
+- Fuente canónica de trabajo: [`seo-aeo-preguntas-crm.md`](seo-aeo-preguntas-crm.md).
+- Revisión canónica 2026-07-22: **aprobado editorialmente con condiciones**; no aplicar al sitio
+  público hasta cerrar las validaciones de Operaciones, Comercial/Legal y la autorización del founder.
+- Decisión de arquitectura: enriquecer `/faq` y rutas existentes; **no** crear 20 páginas delgadas.
+- Actualización de criterio técnico: Google trata AEO/GEO como parte de SEO, no requiere schema
+  especial ni `llms.txt`, y desde el 7 de mayo de 2026 dejó de mostrar resultados enriquecidos FAQ.
+  El `FAQPage` existente no se considera una palanca de ranking ni una garantía de cita.
+
+### 2026-07-22 · `/noticias` pasa a “Actualidad”
+
+- La ruta canónica sigue siendo `/noticias`; no se crea `/blog` ni se dividen intenciones.
+- Nombre corto en el menú principal: **Actualidad**. Título visible aprobado:
+  **“Actualidad, guía y noticias”**.
+- La portada organiza el CMS existente por las seis categorías de negocio de
+  SDD-0088, oculta categorías vacías, muestra búsqueda desde ocho publicaciones
+  y pagina el archivo cada doce.
+- Cada artículo emite `BlogPosting`, `NewsArticle` o `Article` según su naturaleza.
+  Se retiró el `FAQPage` automático: las preguntas siguen dentro del contenido,
+  sin convertir cualquier encabezado interrogativo en datos estructurados.
+- La web pública consulta `news_posts` mediante `lib/public/news-queries.ts`.
+  El newsletter se muestra inactivo hasta aprobar la migración y verificar alta,
+  envío manual y baja firmada de punta a punta.
+- Spec y gates: [`../specs/0167-actualidad-centro-editorial/spec.md`](../specs/0167-actualidad-centro-editorial/spec.md).
+
 ## 🛡️ Reglas SEO que NO se rompen
 
 1. **Nunca quitar el 301** `doortudoor.com → dtdcargo.com`.
@@ -142,7 +178,9 @@ El `connect-src`/`img-src` del CSP (`next.config.ts`) permitía `googleads.g.dou
 Antes de tocar SEO o identidad, revisar:
 - [ ] **Una sola entidad:** todo nodo `Organization`/publisher referencia `#organization` por `@id` (no redeclarar "DTD Cargo" suelto). Fuente = `@graph` en `app/layout.tsx`.
 - [ ] **Nombre público = "DTD Cargo"**; razón social y RIF **solo** en `legalName`/`taxID`, nunca en texto visible.
-- [ ] **Año = 2010** (`foundingDate`) + narrativa "+15 años". No cambiar.
+- [ ] **Año de fundación = 2015** (`foundingDate`; decisión founder 2026-07-18 — resuelve la
+  contradicción 2010/2015) · experiencia "+15 años con China" se cuenta desde 2008 · 2010 = solo
+  hito histórico (formalización en China), nunca "empresa desde".
 - [ ] **301 `doortudoor.com`** intacto · dominio viejo sin expirar · sin contenido propio ahí.
 - [ ] **GA fuera de rutas privadas** (`/studio /portal /m /back /invitar /verificar /p /interno /marca /calculadora/embed` y `/track/<código>`) · query params: solo whitelist de atribución (`sanitizeSearch`). El código del cliente NUNCA llega a Google — ojo: gtag manda `dl` y título crudos en cada hit, redactar el page_view no basta, hay que EXCLUIR la ruta. Tests en `__tests__/analytics.test.ts`.
 - [ ] Rename de ruta con SEO → **301** del slug viejo en `next.config.ts`.

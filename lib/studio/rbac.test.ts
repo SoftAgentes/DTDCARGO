@@ -159,6 +159,42 @@ describe("RBAC: capabilities (SDD-0139)", () => {
     }
     expect(canSpecial(null, "escucha_activa")).toBe(false);
   });
+
+  it("view_defense_file (SDD-0070): commercial + support (asesor de reclamos) + admin", () => {
+    expect(canSpecial("admin", "view_defense_file")).toBe(true);
+    expect(canSpecial("commercial", "view_defense_file")).toBe(true);
+    expect(canSpecial("support", "view_defense_file")).toBe(true);
+    for (const r of NON_ADMIN.filter((x) => x !== "commercial" && x !== "support")) {
+      expect(canSpecial(r, "view_defense_file"), `${r} no debe ver el expediente`).toBe(
+        false,
+      );
+    }
+    expect(canSpecial(null, "view_defense_file")).toBe(false);
+  });
+
+  it("ciclo de comentarios (SDD-0168): moderar y restaurar son admin-only", () => {
+    for (const capability of ["moderate_comments", "restore_comments"] as const) {
+      expect(canSpecial("admin", capability)).toBe(true);
+      for (const role of NON_ADMIN) {
+        expect(canSpecial(role, capability), `${role} no debe usar ${capability}`).toBe(
+          false,
+        );
+      }
+      expect(canSpecial(null, capability)).toBe(false);
+    }
+  });
+
+  it("auditoría gobernada (SDD-0166 Corte C): lista y reveal son admin-only", () => {
+    for (const capability of ["audit_view", "audit_view_sensitive"] as const) {
+      expect(canSpecial("admin", capability)).toBe(true);
+      for (const role of NON_ADMIN) {
+        expect(canSpecial(role, capability), `${role} no debe usar ${capability}`).toBe(
+          false,
+        );
+      }
+      expect(canSpecial(null, capability)).toBe(false);
+    }
+  });
 });
 
 describe("RBAC: scope de almacén (SDD-0139)", () => {

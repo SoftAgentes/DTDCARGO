@@ -18,8 +18,8 @@
  * Datos sanitizados con bug-sanitizer.ts antes de entrar al buffer
  * (defense in depth contra leaks de tokens/passwords).
  *
- * rrweb capture respeta atributos data-bug-mask y data-bug-block para
- * ocultar inputs sensibles (passwords masked by default via maskAllInputs).
+ * rrweb capture respeta las clases rr-mask y rr-block para contenido
+ * sensible (los inputs se enmascaran siempre vía maskAllInputs).
  */
 
 import { useEffect } from "react";

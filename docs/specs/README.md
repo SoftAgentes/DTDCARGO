@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 156 specs)
+### Índice de specs (generado · 172 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -194,6 +194,22 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0160 | Modo consolidación del operario · pedir contenedor → oficina … | in-progress | interno |
 | 0161 | Registro self-service — entrega real del correo de bienvenida… | done | interno |
 | 0162 | Aviso de recepción al cliente — cablear la recepción del oper… | done | interno |
+| 0163 | Orden accionable al operario · el operario ve y ejecuta los s… | proposed | interno |
+| 0164 | Unificación de nombres de servicios: un servicio, un nombre, … | in-progress | interno |
+| 0165 | Sistema de Gobernanza de Experiencia ERP_Studio — AVS-01 | done | interno |
+| 0166 | Auditoría gobernada — corrección conjunta AUD-01 y AUD-02 | in-progress | interno |
+| 0167 | Actualidad — centro editorial público | in-progress | interno |
+| 0168 | MP-01 Slice 1 — Permanencia y restauración de comentarios int… | done | interno |
+| 0169 | Portal — gate de verificación de identidad | in-progress | interno |
+| 0170 | Portal — ciclo de 5 etapas y Seguimiento total por contenedor | in-progress | interno |
+| 0171 | Portal — datos de bodega CN, filtros de Documentos y armazón … | in-progress | interno |
+| 0172 | Lifecycle de tenant y fixtures E2E efímeras | in-progress | interno |
+| 0173 | Portal — Nueva compra como asistente de 3 pasos | done | interno |
+| 0174 | Auditoría — atomicidad por dominios | in-progress | interno |
+| 0175 | VIS-02 — tipografía por voz, destinatario e idioma | approved | interno |
+| 0176 | Portal — el ámbar deja de usarse como texto (barrido AA) | done | interno |
+| 0177 | Portal — Estado de cuenta (libro de movimientos) | done | interno |
+| 0178 | Plugin read-only de gobernanza ERP Studio | approved | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

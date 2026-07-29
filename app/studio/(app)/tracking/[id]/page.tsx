@@ -36,6 +36,8 @@ import {
 } from "@/lib/studio/comments/comments-queries";
 import { CommentsThread } from "@/app/studio/(app)/_components/comments/CommentsThread";
 import type { CommentTenantUser } from "@/lib/studio/comments/types";
+import { canEditModule, canSpecial } from "@/lib/studio/rbac";
+import type { StudioUserRole } from "@/lib/studio/user-types";
 
 export const metadata = {
   title: "Detalle envío",
@@ -76,7 +78,9 @@ export default async function ShipmentDetailPage({
   const { data: roleRow } = await supabase
     .from("user_tenants")
     .select("role")
-    .maybeSingle<{ role: string }>();
+    .is("disabled_at", null)
+    .limit(1)
+    .maybeSingle<{ role: StudioUserRole }>();
   const isAdmin = roleRow?.role === "admin";
   const comments = authUser
     ? await listComments(supabase, "shipment", id, tenantUsers, authUser.id)
@@ -339,6 +343,12 @@ export default async function ShipmentDetailPage({
             users={tenantUsers}
             currentUser={currentUser}
             initialComments={comments}
+            canEditComments={canEditModule(roleRow?.role, "tracking")}
+            canModerateComments={canSpecial(
+              roleRow?.role,
+              "moderate_comments",
+            )}
+            canRestoreComments={canSpecial(roleRow?.role, "restore_comments")}
           />
         </section>
       )}

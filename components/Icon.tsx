@@ -17,19 +17,6 @@ export function ArrowIcon({ className, size = 16 }: IconProps) {
   );
 }
 
-/** Bucle / ciclo continuo (dos flechas en círculo). Para el badge del hero y
- *  el cierre de "Cómo trabajamos" — "de China a tu puerta, una y otra vez". */
-export function LoopIcon({ className, size = 16 }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" width={size} height={size} {...base} strokeWidth={2} className={className} aria-hidden>
-      <path d="M4 12a8 8 0 0 1 13.7-5.6L20 8" />
-      <path d="M20 3.5v4.5h-4.5" />
-      <path d="M20 12a8 8 0 0 1-13.7 5.6L4 16" />
-      <path d="M4 20.5V16h4.5" />
-    </svg>
-  );
-}
-
 export function DownloadIcon({ className, size = 16 }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} {...base} strokeWidth={2} className={className}>
@@ -206,6 +193,17 @@ export function ShieldIcon({ className, size = 28 }: IconProps) {
   );
 }
 
+/** Candado cerrado — módulos del portal que esperan la verificación de
+ *  identidad (SDD-0169, `LOCKED_MODULES`). */
+export function LockIcon({ className, size = 28 }: IconProps) {
+  return (
+    <svg viewBox="0 0 32 32" width={size} height={size} {...base} strokeWidth={1.6} className={className}>
+      <rect x="6" y="14" width="20" height="13" rx="2.5" />
+      <path d="M11 14v-3a5 5 0 0 1 10 0v3" />
+    </svg>
+  );
+}
+
 /** Persona — cabeza + hombros. Para el selector persona natural / empresa del
  *  registro (par con ShieldIcon). */
 export function UserIcon({ className, size = 28 }: IconProps) {
@@ -310,6 +308,49 @@ export function InstagramIcon({ className, size = 22 }: IconProps) {
       <rect x="2" y="2" width="20" height="20" rx="5" />
       <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
       <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+    </svg>
+  );
+}
+
+/** Mismo frame cuadrado redondeado que InstagramIcon, para la fila de redes del Footer. */
+export function YoutubeIcon({ className, size = 22 }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <rect x="2" y="2" width="20" height="20" rx="5" />
+      <path d="M10 8.5v7l6-3.5z" />
+    </svg>
+  );
+}
+
+/** Mismo frame cuadrado redondeado que InstagramIcon, para la fila de redes del Footer. */
+export function TiktokIcon({ className, size = 22 }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <rect x="2" y="2" width="20" height="20" rx="5" />
+      <path d="M14.5 6.5v7.8a2.7 2.7 0 1 1-2.3-2.67" />
+      <path d="M14.5 6.5c.4 1.9 1.9 3.3 3.8 3.5" />
     </svg>
   );
 }

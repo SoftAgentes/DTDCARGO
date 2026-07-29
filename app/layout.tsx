@@ -1,11 +1,24 @@
 import type { Metadata } from "next";
-import { Archivo, Archivo_Black, Noto_Sans_SC } from "next/font/google";
+import {
+  Archivo,
+  Archivo_Black,
+  Noto_Sans_SC,
+  Noto_Serif_SC,
+} from "next/font/google";
 import { BRAND_ASSETS, CONTACT } from "@/lib/design-tokens";
 import { SERVICIOS_DETALLE } from "@/lib/servicios-detalle";
 import { buildOfferCatalog, isOfferable } from "@/lib/seo-offer-catalog";
 import { Analytics } from "@/components/Analytics";
 import { CookieConsentBanner } from "@/components/CookieConsentBanner";
+import { Agentation } from "agentation";
 import "./globals.css";
+// Superficie "recursos" (`.rp-surface`) de la web pública — glosario, FAQ,
+// noticias, academia, nosotros, puerta a puerta, landings SEO y legales.
+// Va en archivo aparte porque globals.css ya supera las 4.300 líneas.
+import "./recursos.css";
+import "./noticias/noticias.css";
+// Superficie de `/pre-alertas` (`.pa-surface`) — mismo criterio que recursos.css.
+import "./prealertas.css";
 
 const archivo = Archivo({
   subsets: ["latin"],
@@ -26,6 +39,15 @@ const notoSansSc = Noto_Sans_SC({
   weight: ["400", "500", "700", "900"],
   variable: "--font-noto-sc",
   display: "swap",
+});
+
+const notoSerifSc = Noto_Serif_SC({
+  subsets: ["latin"],
+  weight: ["400", "500", "700", "900"],
+  variable: "--font-noto-serif-sc",
+  display: "swap",
+  preload: false,
+  fallback: ["Noto Sans SC", "sans-serif"],
 });
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
@@ -287,7 +309,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${archivo.variable} ${archivoBlack.variable} ${notoSansSc.variable}`}
+      className={`${archivo.variable} ${archivoBlack.variable} ${notoSansSc.variable} ${notoSerifSc.variable}`}
       // Token de marca INMUNE: captura la familia real de Archivo Black (next/font)
       // como literal, sin pasar por --font-archivo-black (que el portal redefine a
       // Sora). Así el wordmark del logo sigue en Archivo Black en TODA la app,
@@ -313,6 +335,7 @@ export default function RootLayout({
         {children}
         <Analytics />
         <CookieConsentBanner />
+        {process.env.NODE_ENV === "development" && <Agentation />}
       </body>
     </html>
   );

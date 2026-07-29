@@ -13,8 +13,9 @@
  *   - Auto-generate del nombre si está vacío
  */
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useMemo, useState, useTransition } from "react";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { Icon } from "@/app/studio/_components/icons";
 import {
   createRouteAction,
@@ -63,6 +64,8 @@ export function RouteDrawer({ mode, route, cities, veCatalog, onClose }: Props) 
   const [slaHours, setSlaHours] = useState<number>(route?.sla_hours ?? 24);
   const [active, setActive] = useState(route?.active ?? true);
   const [notes, setNotes] = useState(route?.notes ?? "");
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [, startDeleteTransition] = useTransition();
 
   const action = mode === "create" ? createRouteAction : updateRouteAction;
   const [state, formAction, isPending] = useActionState(action, INITIAL_STATE);
@@ -563,26 +566,17 @@ export function RouteDrawer({ mode, route, cities, veCatalog, onClose }: Props) 
         }}
       >
         {mode === "edit" && route ? (
-          <form action={deleteAction}>
-            <input type="hidden" name="id" value={route.id} />
+          <div>
             <button
-              type="submit"
+              type="button"
               className="studio-btn studio-btn-ghost"
               disabled={isPending || deletePending}
               style={{ color: "var(--danger)" }}
-              onClick={(e) => {
-                if (
-                  !confirm(
-                    `¿Desactivar la ruta ${route.route_code}? Queda soft-deleted (deja de aparecer en cualquier lista).`,
-                  )
-                ) {
-                  e.preventDefault();
-                }
-              }}
+              onClick={() => setDeleteConfirmOpen(true)}
             >
               Eliminar ruta
             </button>
-          </form>
+          </div>
         ) : (
           <div />
         )}
@@ -609,6 +603,23 @@ export function RouteDrawer({ mode, route, cities, veCatalog, onClose }: Props) 
           </button>
         </div>
       </footer>
+      {mode === "edit" && route && (
+        <ConfirmDialog
+          open={deleteConfirmOpen}
+          danger
+          pending={deletePending}
+          title={`Eliminar ruta ${route.route_code}`}
+          message="La ruta quedará desactivada y dejará de aparecer en las listas. Su historial se conserva."
+          confirmLabel="Eliminar ruta"
+          error={deleteState?.error}
+          onCancel={() => setDeleteConfirmOpen(false)}
+          onConfirm={() => {
+            const data = new FormData();
+            data.set("id", route.id);
+            startDeleteTransition(() => deleteAction(data));
+          }}
+        />
+      )}
     </DrawerShell>
   );
 }

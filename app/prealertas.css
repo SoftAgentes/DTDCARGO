@@ -1,0 +1,709 @@
+/* ══════════════════════════════════════════════════════════════════
+   PRE-ALERTAS (`app/pre-alertas/page.tsx`) — superficie `.pa-surface`
+   ──────────────────────────────────────────────────────────────────
+   Port fiel del handoff Cloud Design ("Pre-alertas · DTD-Cargo.html" +
+   `web/prealertas.css`). Es la única página de primer nivel del nav que
+   Cloud Design diseñó y el repo todavía no tenía construida.
+
+   El CSS del handoff es una DELTA: asume que hereda `.btn`, `.wrap`,
+   `.eyebrow-h`, `.eyebrow-s`, `.h2`, `.sec-head`, `.sec-sub`, `.accent` de
+   `web/home.css` (que en este repo no existe como archivo — esas reglas
+   viven repetidas por superficie en `app/globals.css`: `.sm-surface`,
+   `.svc-surface`, etc.). Mismo criterio que `.sm-surface` (página única,
+   ver ese bloque en globals.css): acá se portan TAMBIÉN esas piezas
+   heredadas, scopeadas a `.pa-surface`, para que el archivo sea
+   autosuficiente y no se acople a otra página. `.wrap` sí es global
+   (definido una sola vez en globals.css) y no se repite acá.
+
+   ADAPTACIONES vs. el mockup (documentadas, no accidentales):
+   1. Hex → tokens: el degradado navy #16274B→#26406F ES `--grad-navy-hero`
+      (mismo valor que usa `.sm-hero`/`.sm-final`; BD-023: hex explícito
+      DENTRO del token, nunca en el componente). El crema #F2F0EC y sus
+      alfas se expresan como `--pa-on-navy*` — mismo criterio AA que
+      `.sm-surface` (comparte el MISMO degradado): piso en 66% = 4,9:1
+      sobre el peor caso #26406F, BRAND.md regla 6 (≥4,5:1). Los `#fff`
+      sueltos sobre wine pasan a `var(--color-on-accent)`. La sombra
+      `rgba(127,15,26,.35)` bajo el bigicon es literalmente `--wine` con
+      alfa (127,15,26 = #7F0F1A) → se expresa con `color-mix()` del token
+      en vez de repetir el hex.
+   2. `--nav-h` (usado por `.pa-cond-head` sticky): el mockup lo asume
+      heredado de `web/home.css`; acá solo lo declara `.home-surface`
+      (76px, altura real de `<Nav>`). Se redeclara con el MISMO valor
+      medido — si no, el `calc()` queda con una variable indefinida.
+   3. `:focus-visible` en botones (el mockup no lo trae).
+   4. `.btn-ghost` sobre las bandas navy (hero + CTA final) necesita
+      variante clara — mismo ajuste que `.sm-hero`/`.sm-final`.
+   5. Bloque "Modalidad de envío": el mockup presenta marítimo y aéreo
+      como dos opciones simétricas. Verdad comercial (founder
+      2026-07-20): el servicio aéreo está SUSPENDIDO hoy. Se agregan
+      `.pa-b-item-soon` + `.pa-soon` — mismo patrón visual que
+      `.svp-soon` de /servicios (globals.css, sección `.svp-it.dis`):
+      relleno `--warning` + texto `--on-warning`. El copy del ítem
+      cambia (ver `app/pre-alertas/page.tsx`); el resto del bloque es
+      igual al mockup.
+   6. El chip `.pa-chip` ("Pre-alertada") usa `rgba(91,207,160,X)` en el
+      mockup — un verde que NO es el token `--success` (#1F8A5B). Se
+      corrige a `color-mix(var(--success))` + texto crema, mismo patrón
+      que `.tf-badge` de `app/recursos.css`: el semántico manda en el
+      punto/relleno, el texto va en un tono siempre legible (`--success`
+      como texto chico sobre navy no pasa AA, BRAND.md ♿).
+   7. Se omiten del mockup (reglas muertas — el marcado no las usa): los
+      botones "Infografía" (→ `href="#"`, sin página destino) y la nota
+      corta `.pa-note` bajo "Modalidad de envío" (redundante con la nota
+      del hero y con toda la sección "Importante"; no está en el copy
+      que se transcribe a esta página).
+
+   Nav/Footer/WhatsAppFAB/RespuestaRapida/BreadcrumbJsonLd son componentes
+   del repo (no se portan del mockup).
+   ══════════════════════════════════════════════════════════════════ */
+
+.pa-surface {
+  /* No están en el puente compartido (app/globals.css `.svc-surface,
+     .home-surface, .sm-surface, .cx-surface, .rp-surface, .pa-surface`):
+     cada superficie con banda navy los redeclara (mismo patrón que
+     `.sm-surface` / `.home-surface`). */
+  --wine-on-dark: var(--color-wine-on-dark); /* wine legible sobre navy · 4,57:1 sobre #26406F (AA) */
+  --f-cn: var(--f-cn-ui); /* alias UI: Noto Sans SC para chino mandarín (唛头) */
+  --nav-h: 76px; /* altura real de <Nav> — ver adaptación 2 */
+  /* Tinta crema sobre `--grad-navy-hero` — MISMO degradado y mismos
+     ratios verificados que `.sm-surface` (peor caso #26406F). */
+  --pa-on-navy: var(--color-grey-100); /* 9.0:1 */
+  --pa-on-navy-soft: color-mix(in srgb, var(--color-grey-100) 85%, transparent); /* 7.0:1 */
+  --pa-on-navy-mute: color-mix(in srgb, var(--color-grey-100) 66%, transparent); /* 4.9:1 */
+  /* Rellenos / hairlines sobre navy (no llevan texto) */
+  --pa-navy-fill: color-mix(in srgb, var(--color-white) 6%, transparent);
+  --pa-navy-fill-strong: color-mix(in srgb, var(--color-white) 9%, transparent);
+  --pa-navy-border: color-mix(in srgb, var(--color-grey-100) 40%, transparent);
+}
+
+/* ── Botones (mismo sistema que `.sm-surface` / `.rp-surface`) ── */
+.pa-surface .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  font: 700 15px/1 var(--f-brand);
+  border-radius: var(--r-md);
+  padding: 13px 22px;
+  text-decoration: none;
+  cursor: pointer;
+  border: 0;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.pa-surface .btn:active {
+  transform: translateY(1px);
+}
+.pa-surface .btn:focus-visible {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 2px;
+}
+.pa-surface .btn-primary {
+  background: var(--wine);
+  color: var(--color-on-accent);
+  box-shadow: var(--shadow-sm);
+}
+.pa-surface .btn-primary:hover {
+  background: var(--wine-deep);
+}
+.pa-surface .btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--border-strong);
+}
+.pa-surface .btn-ghost:hover {
+  border-color: var(--ink);
+}
+.pa-surface .btn-onwine {
+  background: var(--color-grey-100);
+  color: var(--wine);
+}
+.pa-surface .btn-onwine:hover {
+  background: var(--color-white);
+}
+.pa-surface .btn-lg {
+  font-size: 17px;
+  padding: 17px 30px;
+  border-radius: var(--r-lg);
+}
+/* Sobre las bandas navy (hero + CTA final) el ghost claro no lee → variante crema. */
+.pa-hero .btn-ghost,
+.pa-final .btn-ghost {
+  color: var(--pa-on-navy);
+  border-color: var(--pa-navy-border);
+}
+.pa-hero .btn-ghost:hover,
+.pa-final .btn-ghost:hover {
+  border-color: var(--pa-on-navy);
+  background: var(--pa-navy-fill-strong);
+}
+.pa-hero .btn:focus-visible,
+.pa-final .btn:focus-visible {
+  outline-color: var(--pa-on-navy);
+}
+
+/* ── Encabezados de sección (mismo sistema que `.sm-surface`) ── */
+.pa-surface .sec-head {
+  max-width: 760px;
+  margin-bottom: var(--s-10);
+}
+.pa-surface .eyebrow-h,
+.pa-surface .eyebrow-s {
+  font: 700 12.5px/1 var(--f-brand);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--wine-text);
+  margin-bottom: var(--s-5);
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+.pa-surface .eyebrow-s {
+  font-size: 12px;
+  margin-bottom: var(--s-4);
+}
+.pa-surface .eyebrow-f {
+  font: 700 12px/1 var(--f-brand);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--wine-on-dark);
+  margin-bottom: var(--s-4);
+}
+.pa-surface .eyebrow-h .rule,
+.pa-surface .eyebrow-s .rule {
+  width: 34px;
+  height: 2px;
+  background: var(--wine);
+  flex: 0 0 auto;
+}
+.pa-hero .eyebrow-h {
+  color: var(--wine-on-dark);
+}
+.pa-hero .eyebrow-h .rule {
+  background: var(--wine-on-dark);
+}
+.pa-surface .h2 {
+  font-family: var(--f-brand-display);
+  font-weight: 900;
+  font-size: clamp(30px, 3.6vw, 48px);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.pa-surface .h2 .accent {
+  color: var(--wine-text);
+}
+.pa-surface .sec-sub {
+  font: 400 17px/1.6 var(--f-brand);
+  color: var(--ink-soft);
+  margin: var(--s-5) 0 0;
+  max-width: 60ch;
+  text-wrap: pretty;
+}
+
+/* ── Hero compacto ── */
+.pa-hero {
+  background: var(--grad-navy-hero);
+  border-bottom: 1px solid var(--border-side);
+}
+.pa-hero-in {
+  max-width: var(--home-max);
+  margin: 0 auto;
+  padding: var(--s-16) var(--s-8) var(--s-12);
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: var(--s-12);
+  align-items: center;
+}
+.pa-h1 {
+  font-family: var(--f-brand-display);
+  font-weight: 900;
+  font-size: clamp(34px, 4.4vw, 60px);
+  line-height: 1.03;
+  letter-spacing: -0.02em;
+  margin: 0 0 var(--s-5);
+  color: var(--pa-on-navy);
+  text-wrap: balance;
+}
+.pa-h1 .accent {
+  color: var(--wine-on-dark);
+}
+.pa-lead {
+  font: 400 clamp(16px, 1.3vw, 19px)/1.6 var(--f-brand);
+  color: var(--pa-on-navy-soft);
+  margin: 0 0 var(--s-8);
+  max-width: 52ch;
+  text-wrap: pretty;
+}
+.pa-hero-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-4);
+}
+.pa-hero-note {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font: 600 13px/1.3 var(--f-mono);
+  color: var(--pa-on-navy-mute);
+  margin-top: var(--s-5);
+}
+.pa-hero-note svg {
+  width: 15px;
+  height: 15px;
+  color: var(--wine-on-dark);
+  flex: 0 0 auto;
+}
+
+/* panel del hero: tarjeta "estado de pre-alerta" mock */
+.pa-hero-card {
+  background: var(--pa-navy-fill);
+  border: 1px solid var(--border-side);
+  border-radius: var(--r-xl);
+  padding: var(--s-6);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+.pa-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding-bottom: var(--s-4);
+  border-bottom: 1px solid var(--border-side);
+}
+.pa-card-mark {
+  font: 700 15px/1 var(--f-mono);
+  color: var(--pa-on-navy);
+}
+.pa-card-mark small {
+  display: block;
+  font: 600 10px/1.4 var(--f-brand);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pa-on-navy-mute);
+  margin-top: 5px;
+}
+.pa-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font: 700 10.5px/1 var(--f-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--success) 18%, transparent);
+  color: var(--pa-on-navy);
+  border: 1px solid color-mix(in srgb, var(--success) 38%, transparent);
+}
+.pa-chip::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+  flex: 0 0 auto;
+}
+.pa-card-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: var(--s-4);
+}
+.pa-cs {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) 0;
+  position: relative;
+}
+.pa-cs + .pa-cs {
+  border-top: 1px solid var(--pa-navy-fill);
+}
+.pa-cs-ic {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+.pa-cs-ic svg {
+  width: 17px;
+  height: 17px;
+}
+.pa-cs--done .pa-cs-ic {
+  background: color-mix(in srgb, var(--success) 18%, transparent);
+  color: var(--success);
+}
+.pa-cs--now .pa-cs-ic {
+  background: var(--wine);
+  color: var(--color-on-accent);
+}
+.pa-cs--wait .pa-cs-ic {
+  background: var(--pa-navy-fill);
+  color: var(--pa-on-navy-mute);
+}
+.pa-cs-txt {
+  font: 600 14px/1.2 var(--f-brand);
+  color: var(--pa-on-navy);
+}
+.pa-cs--wait .pa-cs-txt {
+  color: var(--pa-on-navy-mute);
+}
+.pa-cs-txt small {
+  display: block;
+  font: 500 11.5px/1.3 var(--f-brand);
+  color: var(--pa-on-navy-mute);
+  margin-top: 2px;
+}
+
+@media (max-width: 900px) {
+  .pa-hero-in {
+    grid-template-columns: 1fr;
+    gap: var(--s-8);
+    padding: var(--s-12) var(--s-5);
+  }
+}
+
+/* ── Cómo funciona · pasos ── */
+.pa-steps {
+  padding: var(--s-16) 0;
+}
+.pa-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--s-5);
+  margin-top: var(--s-10);
+  position: relative;
+}
+.pa-step {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--s-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  position: relative;
+}
+.pa-step-n {
+  font: 700 12px/1 var(--f-mono);
+  color: var(--wine);
+  background: var(--wine-tint);
+  border-radius: var(--r-pill);
+  padding: 6px 11px;
+  align-self: flex-start;
+}
+.pa-step-ic {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--r-md);
+  background: var(--bg-elevated);
+  color: var(--wine);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pa-step-ic svg {
+  width: 24px;
+  height: 24px;
+}
+.pa-step h3 {
+  font: 800 17px/1.25 var(--f-brand);
+  color: var(--ink);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.pa-step p {
+  font: 400 14px/1.55 var(--f-brand);
+  color: var(--ink-soft);
+  margin: 0;
+  text-wrap: pretty;
+}
+@media (max-width: 900px) {
+  .pa-steps-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 540px) {
+  .pa-steps-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Bloques infográficos (icono en vez de foto) ── */
+.pa-blocks {
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.pa-blocks-in {
+  max-width: var(--home-max);
+  margin: 0 auto;
+  padding: var(--s-16) var(--s-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-12);
+}
+.pa-block {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: var(--s-12);
+  align-items: center;
+}
+.pa-block:nth-child(even) .pa-block-visual {
+  order: 2;
+}
+.pa-block-visual {
+  aspect-ratio: 4 / 3;
+  border-radius: var(--r-xl);
+  background: linear-gradient(150deg, var(--bg-surface), var(--bg-base));
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+.pa-block-visual::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 25%, var(--wine-tint), transparent 55%);
+  pointer-events: none;
+}
+.pa-bigicon {
+  width: 128px;
+  height: 128px;
+  border-radius: var(--r-xl);
+  background: var(--wine);
+  color: var(--color-on-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Sombra tinte wine — el mockup trae rgba(127,15,26,.35), que es el hex de
+     --wine con alfa (#7F0F1A). Se expresa con el token en vez de repetir el hex. */
+  box-shadow: 0 20px 45px color-mix(in srgb, var(--wine) 35%, transparent);
+  position: relative;
+  z-index: 1;
+}
+.pa-bigicon svg {
+  width: 64px;
+  height: 64px;
+}
+.pa-block-txt .pa-b-eyebrow {
+  font: 700 12px/1 var(--f-brand);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--wine);
+  margin-bottom: var(--s-4);
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+.pa-block-txt .pa-b-eyebrow .rule {
+  width: 30px;
+  height: 2px;
+  background: var(--wine);
+}
+.pa-block-txt h2 {
+  font-family: var(--f-brand-display);
+  font-weight: 900;
+  font-size: clamp(26px, 2.9vw, 38px);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin: 0 0 var(--s-4);
+  color: var(--ink);
+  text-wrap: balance;
+}
+.pa-block-txt p {
+  font: 400 16px/1.65 var(--f-brand);
+  color: var(--ink-soft);
+  margin: 0 0 var(--s-5);
+  max-width: 52ch;
+  text-wrap: pretty;
+}
+.pa-b-list {
+  list-style: none;
+  margin: 0 0 var(--s-6);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.pa-b-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  font: 500 15px/1.45 var(--f-brand);
+  color: var(--ink);
+}
+.pa-b-list svg {
+  width: 20px;
+  height: 20px;
+  color: var(--success);
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+/* Aéreo: suspendido hoy (founder 2026-07-20) — el ítem NO lleva el check
+   verde de "disponible" (sería falso) y suma el badge `.pa-soon`, mismo
+   patrón visual que `.svp-soon` de /servicios (globals.css, ~L1609). */
+.pa-b-list li.pa-b-item-soon {
+  color: var(--ink-soft);
+  flex-wrap: wrap;
+}
+.pa-b-list li.pa-b-item-soon svg {
+  color: var(--ink-mute);
+}
+.pa-soon {
+  flex: none;
+  font: 800 9px/1 var(--f-mono);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  background: var(--warning);
+  color: var(--on-warning);
+  border-radius: var(--r-sm);
+  padding: 5px 7px;
+  margin-left: 8px;
+}
+.pa-b-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+}
+@media (max-width: 900px) {
+  .pa-block {
+    grid-template-columns: 1fr;
+    gap: var(--s-6);
+  }
+  .pa-block:nth-child(even) .pa-block-visual {
+    order: 0;
+  }
+  .pa-block-visual {
+    aspect-ratio: 16 / 9;
+  }
+  .pa-bigicon {
+    width: 96px;
+    height: 96px;
+  }
+  .pa-bigicon svg {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+/* ── Condiciones importantes ── */
+.pa-cond {
+  padding: var(--s-16) 0;
+}
+.pa-cond-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: var(--s-12);
+  align-items: start;
+}
+.pa-cond-head {
+  position: sticky;
+  top: calc(var(--nav-h) + var(--s-6));
+}
+.pa-cond-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.pa-cond-list li {
+  display: flex;
+  gap: var(--s-5);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--s-6);
+}
+.pa-cond-n {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--r-pill);
+  background: var(--wine);
+  color: var(--color-on-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 800 16px/1 var(--f-brand);
+}
+.pa-cond-list h3 {
+  font: 800 17px/1.25 var(--f-brand);
+  color: var(--ink);
+  margin: 0 0 var(--s-2);
+  letter-spacing: -0.01em;
+}
+.pa-cond-list p {
+  font: 400 14.5px/1.55 var(--f-brand);
+  color: var(--ink-soft);
+  margin: 0;
+  text-wrap: pretty;
+}
+@media (max-width: 900px) {
+  .pa-cond-grid {
+    grid-template-columns: 1fr;
+    gap: var(--s-8);
+  }
+  .pa-cond-head {
+    position: static;
+  }
+}
+
+/* ── CTA final ── */
+.pa-final {
+  background: var(--grad-navy-hero);
+}
+.pa-final-in {
+  max-width: var(--home-max);
+  margin: 0 auto;
+  padding: var(--s-16) var(--s-8);
+  text-align: left;
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr);
+  gap: var(--s-10);
+  align-items: center;
+}
+.pa-final h2 {
+  font-family: var(--f-brand-display);
+  font-weight: 900;
+  font-size: clamp(28px, 3.4vw, 46px);
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+  margin: 0 0 var(--s-4);
+  color: var(--pa-on-navy);
+  text-wrap: balance;
+}
+.pa-final p {
+  font: 400 17px/1.6 var(--f-brand);
+  color: var(--pa-on-navy-soft);
+  margin: 0;
+  max-width: 50ch;
+  text-wrap: pretty;
+}
+.pa-final-ctas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.pa-final-ctas .btn {
+  width: 100%;
+}
+@media (max-width: 780px) {
+  .pa-final-in {
+    grid-template-columns: 1fr;
+    gap: var(--s-8);
+    padding: var(--s-12) var(--s-5);
+  }
+}

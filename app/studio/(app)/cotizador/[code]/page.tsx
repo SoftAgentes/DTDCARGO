@@ -54,6 +54,22 @@ export default async function QuoteDetailPage({
       )
     : [];
 
+  // Teléfono para el botón de WhatsApp: el del prospecto (estimado web) o el del
+  // cliente vinculado (por Shipping Mark). RLS filtra por tenant.
+  const contactPhone =
+    quote.source === "web"
+      ? quote.prospect_whatsapp
+      : quote.client_markbox
+        ? (
+            await supabase
+              .from("clients")
+              .select("phone")
+              .eq("markbox", quote.client_markbox)
+              .is("deleted_at", null)
+              .maybeSingle<{ phone: string | null }>()
+          ).data?.phone ?? null
+        : null;
+
   return (
     <div style={{ maxWidth: 1100 }}>
       <Link
@@ -71,7 +87,7 @@ export default async function QuoteDetailPage({
         <span style={{ fontSize: 14 }}>←</span> Volver al listado
       </Link>
 
-      <QuoteDetailClient quote={quote} kommoMatches={kommoMatches} />
+      <QuoteDetailClient quote={quote} kommoMatches={kommoMatches} contactPhone={contactPhone} />
 
       {/* Header */}
       <div
@@ -142,8 +158,8 @@ export default async function QuoteDetailPage({
       {/* Total card navy */}
       <section
         style={{
-          background: "var(--ink)",
-          color: "var(--ink-inv)",
+          background: "var(--bg-sidebar)",
+          color: "var(--ink-side)",
           borderRadius: "var(--r-lg)",
           padding: "24px 26px",
           marginBottom: 24,

@@ -168,7 +168,7 @@ describe("aislamiento — listMyShipments endurecido", () => {
     const SROW = {
       id: "s-1",
       code: "DTD-2026-0401",
-      shipment_service: "consolidacion",
+      shipment_service: "consolidado_lcl",
       status: "in_transit",
       origin: "Yiwu",
       destination: "Valencia",

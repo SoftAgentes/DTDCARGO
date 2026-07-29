@@ -40,12 +40,18 @@ export default async function PortalClubPage() {
   const { isMember, membership, openGroupBuys, events, featuredSupplier } =
     await getPortalClub(supabase);
 
+  // Mismo armazón que el resto del portal (eyebrow + h-display + lead sobre el
+  // `wrap` del layout), no un contenedor propio.
   return (
-    <div className="px-4 py-6 sm:px-6 max-w-3xl mx-auto flex flex-col gap-6">
-      <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-widest text-wine">Club DTD</span>
-        <h1 className="text-2xl font-extrabold text-ink">La comunidad de importadores DTD</h1>
-        <p className="text-sm text-grey-500">Donde aprender se vuelve hacer, en grupo.</p>
+    <div className="flex flex-col gap-6">
+      <header>
+        <span className="eyebrow eyebrow-wine">Club DTD</span>
+        <h1 className="h-display mt-3" style={{ fontSize: "clamp(30px, 4.5vw, 48px)" }}>
+          La comunidad de importadores DTD.
+        </h1>
+        <p className="lead mt-3 max-w-[58ch]">
+          Donde aprender se vuelve hacer, en grupo.
+        </p>
       </header>
 
       {!isMember || !membership ? (

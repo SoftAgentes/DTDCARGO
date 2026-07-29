@@ -27,7 +27,6 @@ import { WiringProvider } from "../_components/wiring/WiringProvider";
 import { ToastProvider } from "../_components/ui/ToastProvider";
 import { BugFABButton } from "../_components/bug-reporter/BugFABButton";
 import { BugTechCaptureProvider } from "../_components/bug-reporter/BugTechCaptureProvider";
-import { EnvBanner } from "../_components/EnvBanner";
 import { Suspense } from "react";
 import { DeniedToast } from "./_components/DeniedToast";
 
@@ -164,7 +163,9 @@ export default async function StudioAppLayout({
             style={{
               display: "flex",
               minHeight: "100vh",
-              background: "var(--bg-base)",
+              // Fondo de página con glow tonal sutil (BD-034 · --grad-page) en vez
+              // de plano. Incluye --bg-base como capa base, así que no cambia el color.
+              background: "var(--grad-page)",
               color: "var(--ink)",
             }}
           >
@@ -183,7 +184,6 @@ export default async function StudioAppLayout({
                 minWidth: 0,
               }}
             >
-              <EnvBanner />
               <StudioTopbar
                 userEmail={user.email ?? ""}
                 userId={user.id}

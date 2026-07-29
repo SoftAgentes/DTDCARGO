@@ -348,7 +348,7 @@ export async function changeReceiptStatusAction(
   }
 
   // Modelo A (SDD-0039): al consolidar, find-or-create el contenedor
-  // (shipment service=consolidacion, status=consolidating) agrupado por
+  // (shipment service=consolidado_lcl, status=consolidating) agrupado por
   // destino y colgamos la recepción + la alerta de gastos de ahí. Es un
   // side-effect de sistema → admin client (el warehouse+cn no inserta
   // shipments por RLS). Best-effort: la consolidación NO debe fallar si

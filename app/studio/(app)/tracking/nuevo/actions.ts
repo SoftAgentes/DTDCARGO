@@ -18,19 +18,16 @@ import { createClient } from "@/lib/db/server";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { createAdminClient } from "@/lib/db/admin";
 import { getUserTenantId } from "@/lib/auth/session";
-import type { ShipmentService, ShipmentStatus } from "@/lib/studio/shipment-types";
+import {
+  isShipmentService,
+  type ShipmentService,
+  type ShipmentStatus,
+} from "@/lib/studio/shipment-types";
 import { getDefaultInitialStatus } from "@/lib/studio/shipment-state-machine";
 import { SERVICE_LABELS } from "@/lib/studio/shipment-types";
 import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
 import { fireWorkflowEvent } from "@/lib/studio/workflow/workflow-rule-engine";
 import { prefillShipmentCostsFromTemplate } from "@/lib/studio/costing/queries";
-
-const VALID_SERVICES: ShipmentService[] = [
-  "consolidacion",
-  "puerta_a_puerta_DDP",
-  "reserva_FCL",
-  "transporte_terrestre",
-];
 
 export type CreateShipmentState = {
   error?: string;
@@ -71,7 +68,7 @@ export async function createShipment(
   // Validaciones
   const fieldErrors: Record<string, string> = {};
   if (!code) fieldErrors.code = "Obligatorio.";
-  if (!VALID_SERVICES.includes(shipment_service))
+  if (!isShipmentService(shipment_service))
     fieldErrors.shipment_service = "Elige un servicio.";
   if (shipment_service === "transporte_terrestre" && !vehicle_category)
     fieldErrors.vehicle_category = "Para transporte terrestre es obligatorio.";

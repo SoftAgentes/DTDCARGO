@@ -27,10 +27,20 @@ import type {
 } from "@/lib/portal/portal-types";
 import { SERVICE_SHORT_LABELS, STATUS_LABELS } from "@/lib/portal/portal-types";
 
-export type AlertStage = "prealerta" | "alerta" | "envio";
+export type AlertStage =
+  | "prealerta"
+  | "alerta"
+  | "envio"
+  | "bodegave"
+  | "recibido";
 
 /** Tono de badge (subset del set del sistema) por etapa. */
-export type AlertStageTone = "wine" | "warning" | "info";
+export type AlertStageTone =
+  | "wine"
+  | "warning"
+  | "info"
+  | "neutral"
+  | "success";
 
 export const ALERT_STAGE_META: Record<
   AlertStage,
@@ -39,13 +49,21 @@ export const ALERT_STAGE_META: Record<
   prealerta: { label: "Pre-alerta", desc: "La creas tú", tone: "wine" },
   alerta: { label: "Alerta", desc: "Confirmada", tone: "warning" },
   envio: { label: "Envío", desc: "En camino a ti", tone: "info" },
+  // El Norte rotula esta etapa "En casa · En nuestra bodega". Acá la descripción
+  // se abre a "Ya en Venezuela" porque la etapa cubre TAMBIÉN el reparto y la
+  // última milla (ver `shipmentStage`): decir "en nuestra bodega" de una caja que
+  // ya salió a repartir sería mentira. El estado exacto sigue visible en la fila.
+  bodegave: { label: "En casa", desc: "Ya en Venezuela", tone: "neutral" },
+  recibido: { label: "Recibiste", desc: "Ya en tu puerta", tone: "success" },
 };
 
-/** Orden del pipeline para la leyenda de 3 pasos. */
+/** Orden del pipeline para la leyenda de 5 pasos (Norte `_ALERT_STAGE`). */
 export const ALERT_STAGES: readonly AlertStage[] = [
   "prealerta",
   "alerta",
   "envio",
+  "bodegave",
+  "recibido",
 ] as const;
 
 /**
@@ -62,6 +80,46 @@ export function prealertaStage(status: PrealertaStatus): AlertStage | null {
       return "alerta";
     case "cancelada":
       return null;
+  }
+}
+
+/**
+ * Etapa del hub para un ENVÍO según su `status`. `null` = no se muestra
+ * (cancelado). Se apoya en el flow canónico de `lib/studio/tracking-progress.ts`
+ * (`STATUS_FLOW_ORDER`):
+ *
+ *   in_warehouse → consolidating → shipped → in_transit → in_customs
+ *     → arrived_destination → out_for_delivery → last_mile → delivered
+ *
+ * El corte es geográfico, que es como lo piensa el cliente:
+ *  · hasta `in_customs` la carga viene en camino  → **envio**
+ *  · desde `arrived_destination` ya está en el país → **bodegave**
+ *    (incluye `delayed_warehouse`, que el flow canónico ubica "al mismo nivel
+ *    que arrived_destination", y el reparto / última milla)
+ *  · `delivered` → **recibido**
+ *
+ * `exception` no tiene lugar en el flow (es transversal): se queda en **envio**,
+ * que es donde el cliente espera ver algo que se trabó en camino.
+ */
+export function shipmentStage(status: ShipmentStatus): AlertStage | null {
+  switch (status) {
+    case "cancelled":
+      return null;
+    case "delivered":
+      return "recibido";
+    case "arrived_destination":
+    case "delayed_warehouse":
+    case "out_for_delivery":
+    case "last_mile":
+      return "bodegave";
+    case "draft":
+    case "in_warehouse":
+    case "consolidating":
+    case "shipped":
+    case "in_transit":
+    case "in_customs":
+    case "exception":
+      return "envio";
   }
 }
 
@@ -136,16 +194,21 @@ export function buildAlertItems(
   pedidos.sort((a, b) => b.sortAt.localeCompare(a.sortAt));
 
   const envios: AlertItem[] = shipments
-    .map((s) => ({
-      key: `s:${s.id}`,
-      code: s.code,
-      stage: "envio" as const,
-      title: cityOf(s.origin) ?? "Proveedor",
-      meta: shipmentMeta(s),
-      sortAt: s.updatedAt,
-      shipmentId: s.id,
-      prealertaId: null,
-    }))
+    .map((s): AlertItem | null => {
+      const stage = shipmentStage(s.status as ShipmentStatus);
+      if (!stage) return null; // cancelado → fuera del hub, igual que las prealertas
+      return {
+        key: `s:${s.id}`,
+        code: s.code,
+        stage,
+        title: cityOf(s.origin) ?? "Proveedor",
+        meta: shipmentMeta(s),
+        sortAt: s.updatedAt,
+        shipmentId: s.id,
+        prealertaId: null,
+      };
+    })
+    .filter((x): x is AlertItem => x !== null)
     .sort((a, b) => b.sortAt.localeCompare(a.sortAt));
 
   return [...pedidos, ...envios];
@@ -153,14 +216,13 @@ export function buildAlertItems(
 
 export type AlertCounts = Record<"todas" | AlertStage, number>;
 
-/** Conteos por etapa para las pestañas (Todas · Pre-alertas · Alertas · Envíos). */
+/** Conteos por etapa para las pestañas (Todas + una por etapa). */
 export function countByStage(items: AlertItem[]): AlertCounts {
-  return {
-    todas: items.length,
-    prealerta: items.filter((i) => i.stage === "prealerta").length,
-    alerta: items.filter((i) => i.stage === "alerta").length,
-    envio: items.filter((i) => i.stage === "envio").length,
-  };
+  const counts = { todas: items.length } as AlertCounts;
+  for (const s of ALERT_STAGES) {
+    counts[s] = items.filter((i) => i.stage === s).length;
+  }
+  return counts;
 }
 
 /** Filtra por etapa; `"todas"` devuelve todo. */

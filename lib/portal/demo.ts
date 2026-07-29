@@ -56,19 +56,14 @@ export function showNortePortal(markbox: string | null | undefined): boolean {
 
 /**
  * ¿El CTA de aceptación DENTRO del detalle del envío está PRENDIDO PARA TODOS?
- * (SDD-0075 §1 · Slice A).
- *
- * OJO: `NORTE_PORTAL_LIVE` ya está en `true`, así que el rediseño Norte —y con él
- * `PortalShipmentDetailNorte`— lo ve TODO cliente. Sin este segundo interruptor, el
- * CTA nuevo saldría vivo para todos en el próximo deploy. Por eso el rollout de
- * Slice A tiene su propio flip (founder 2026-07-16).
+ * (SDD-0075 §1 · Slice A — formalizado para todos los clientes, founder 2026-07-22).
  *
  * NO abre capacidad nueva: la aceptación ya es visible para todos vía el
  * `PendingAcceptanceCard` del dashboard; esto DUPLICA el acceso en el detalle del
  * envío (decisión de la spec: duplicar, no mover — `/portal/facturas/[code]/aceptar`
- * sigue intacta). Para prenderlo a todos: poné `true`. Para revertir: `false`.
+ * sigue intacta). Para revertir: poné `false`.
  */
-export const SHIPMENT_ACCEPTANCE_CTA_LIVE = false;
+export const SHIPMENT_ACCEPTANCE_CTA_LIVE = true;
 
 /**
  * ¿Mostrarle a este cliente el CTA de aceptación en el detalle del envío? `true`
@@ -80,3 +75,39 @@ export function showShipmentAcceptanceCta(
 ): boolean {
   return SHIPMENT_ACCEPTANCE_CTA_LIVE || isDemoMarkbox(markbox);
 }
+
+/**
+ * ¿"Nueva compra" es el asistente de 3 pasos del Norte? (SDD-0173 · brecha 3 de
+ * la Fase 7 del Revestido).
+ *
+ * Nació APAGADO a propósito: se entregó por partes (paso 1 → 2 → 3) mientras el
+ * formulario largo seguía atendiendo a los clientes reales. **PRENDIDO el
+ * 2026-07-29 con OK del founder**, ya con los 3 pasos verificados en el navegador
+ * y la migr 0269 aplicada. Para revertir: poné `false` (el formulario largo sigue
+ * en el árbol y vuelve solo).
+ */
+export const NEW_PURCHASE_WIZARD_LIVE = true;
+
+/**
+ * ¿Mostrarle a este cliente el asistente de 3 pasos de "Nueva compra"? `true`
+ * para todos cuando `NEW_PURCHASE_WIZARD_LIVE`; mientras tanto, sólo las cuentas
+ * demo.
+ */
+export function showNewPurchaseWizard(
+  markbox: string | null | undefined,
+): boolean {
+  return NEW_PURCHASE_WIZARD_LIVE || isDemoMarkbox(markbox);
+}
+
+/*
+ * La ficha extendida del proveedor (SDD-0173) NO tiene flag propio a propósito.
+ *
+ * Lo tuvo mientras su migración `0266_suppliers_cn_portal_profile` no estaba
+ * aplicada; ya lo está (2026-07-28, verificada contra el objeto). Un segundo
+ * interruptor sólo dejaba abierta la puerta a prenderlo antes que el asistente y
+ * cambiarle el alta de proveedor a TODO cliente en el formulario largo — que es
+ * justo el formulario que el asistente viene a reemplazar.
+ *
+ * Ahora es una prop: `<SupplierPicker showProfile />`, que sólo pasa el
+ * asistente. La ficha viaja con él y no puede quedar suelta.
+ */

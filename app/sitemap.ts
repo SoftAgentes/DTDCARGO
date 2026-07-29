@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { listPublishedPosts } from "@/lib/news/queries";
+import { listPublishedPosts } from "@/lib/public/news-queries";
 import { GEO_ZONAS } from "@/lib/geo-zonas";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -11,25 +11,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const routes: MetadataRoute.Sitemap = [
     { url: `${base}/`,          priority: 1.0, changeFrequency: "weekly" },
     { url: `${base}/puerta-a-puerta`, priority: 0.9, changeFrequency: "monthly" },
-    { url: `${base}/markbox`,     priority: 0.8, changeFrequency: "monthly" },
+    { url: `${base}/shipping-mark`, priority: 0.8, changeFrequency: "monthly" },
+    { url: `${base}/pre-alertas`, priority: 0.8, changeFrequency: "monthly" },
     { url: `${base}/servicios`,   priority: 0.9, changeFrequency: "monthly" },
     { url: `${base}/servicios/inspeccion`, priority: 0.7, changeFrequency: "monthly" },
     { url: `${base}/academia`,    priority: 0.8, changeFrequency: "monthly" },
     { url: `${base}/nosotros`,    priority: 0.7, changeFrequency: "monthly" },
     { url: `${base}/brochure`,    priority: 0.8, changeFrequency: "monthly" },
-    { url: `${base}/calculadora`, priority: 0.9, changeFrequency: "monthly" },
+    { url: `${base}/tarifas`, priority: 0.9, changeFrequency: "monthly" },
+    { url: `${base}/fcl`, priority: 0.9, changeFrequency: "monthly" },
     { url: `${base}/calculadora-terrestre`, priority: 0.8, changeFrequency: "monthly" },
-    { url: `${base}/calculadora-fcl`, priority: 0.8, changeFrequency: "monthly" },
-    { url: `${base}/cotizador-flete`, priority: 0.8, changeFrequency: "monthly" },
     { url: `${base}/enlaces`,     priority: 0.5, changeFrequency: "monthly" },
     { url: `${base}/glosario`,    priority: 0.8, changeFrequency: "monthly" },
     { url: `${base}/faq`,         priority: 0.8, changeFrequency: "monthly" },
     { url: `${base}/importar-de-china`, priority: 0.8, changeFrequency: "monthly" },
     { url: `${base}/noticias`,  priority: 0.8, changeFrequency: "weekly" },
-    { url: `${base}/estimacion`, priority: 0.9, changeFrequency: "monthly" },
     { url: `${base}/contacto`,  priority: 0.8, changeFrequency: "monthly" },
     { url: `${base}/registro`,  priority: 0.7, changeFrequency: "monthly" },
-    { url: `${base}/track`,     priority: 0.7, changeFrequency: "monthly" },
   ];
 
   // Páginas geo-locales "Importar de China a {zona}" (fuente: lib/geo-zonas)

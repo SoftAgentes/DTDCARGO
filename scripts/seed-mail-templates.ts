@@ -120,7 +120,7 @@ const MAIL_TEMPLATE_SEED: MailTemplateSeed[] = [
     body_html: htmlBlock(`
       <p>Hola {{customer_name}},</p>
       <p>Abrimos el embarque <strong>{{shipment_code}}</strong>. Puedes seguirlo en cualquier momento desde:</p>
-      <p style="margin:20px 0;"><a href="https://dtdcargo.com/track/{{shipment_code}}" style="display:inline-block;padding:10px 18px;background:#7F0F1A;color:#fff;text-decoration:none;font:600 14px Archivo,sans-serif;border-radius:6px;">Ver tracking → {{shipment_code}}</a></p>
+      <p style="margin:20px 0;"><a href="https://dtdcargo.com/portal/envios/{{shipment_code}}" style="display:inline-block;padding:10px 18px;background:#7F0F1A;color:#fff;text-decoration:none;font:600 14px Archivo,sans-serif;border-radius:6px;">Ver tracking → {{shipment_code}}</a></p>
       <table style="border-collapse:collapse;font:14px Archivo,sans-serif;margin:16px 0;">
         <tr><td style="padding:6px 12px;color:#6B6B6B;">Ruta</td><td style="padding:6px 12px;color:#0F1E3D;">{{origin}} → {{destination}}</td></tr>
         <tr><td style="padding:6px 12px;color:#6B6B6B;">Servicio</td><td style="padding:6px 12px;color:#0F1E3D;">{{service}}</td></tr>
@@ -158,8 +158,8 @@ const MAIL_TEMPLATE_SEED: MailTemplateSeed[] = [
       <p>Gracias por elegirnos para tu logística China → Venezuela. Tu cuenta quedó creada con Shipping Mark <strong>{{markbox}}</strong> — usa este código en cualquier comunicación con nosotros.</p>
       <p>Algunos atajos útiles:</p>
       <ul style="font:14px Archivo,sans-serif;color:#0F1E3D;">
-        <li><strong>Estimar:</strong> responde este correo o entra a dtdcargo.com/estimacion</li>
-        <li><strong>Tracking:</strong> dtdcargo.com/track + tu código de envío</li>
+        <li><strong>Estimar:</strong> responde este correo o entra a dtdcargo.com/tarifas</li>
+        <li><strong>Tracking:</strong> entra a tu portal en dtdcargo.com/portal</li>
         <li><strong>WhatsApp:</strong> {{whatsapp_number}}</li>
       </ul>
       <p>Tu agente comercial asignado es <strong>{{agent_name}}</strong>. Cualquier cosa, vas directo a él.</p>

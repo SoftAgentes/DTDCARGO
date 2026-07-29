@@ -206,7 +206,7 @@ function ResultadoEstimar() {
         Para tener una idea del costo, usa la calculadora: la estimas por volumen
         (CBM) y ciudad de destino, sin registrarte.
       </p>
-      <Link href="/calculadora" className="btn btn-primary mt-5">
+      <Link href="/tarifas" className="btn btn-primary mt-5">
         Ir a la calculadora
       </Link>
     </div>
@@ -263,7 +263,7 @@ function Resultado({
           </p>
           <div className="mt-4 flex flex-wrap gap-2.5">
             {esDDP ? (
-              <Link href="/calculadora" className="btn btn-primary">
+              <Link href="/tarifas" className="btn btn-primary">
                 Calcula tu estimado
               </Link>
             ) : (
