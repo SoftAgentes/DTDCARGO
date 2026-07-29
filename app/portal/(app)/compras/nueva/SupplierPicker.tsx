@@ -7,7 +7,7 @@
  * se abre la ficha mínima del proveedor nuevo, que se guarda con su propia
  * server action y queda seleccionado.
  *
- * Extraído de `NewPurchaseForm` (SDD-0172) para que el formulario largo y el
+ * Extraído de `NewPurchaseForm` (SDD-0173) para que el formulario largo y el
  * asistente de 3 pasos compartan exactamente el mismo selector — es la parte
  * con más estado de la pantalla y no admite dos copias divergentes.
  */
@@ -76,7 +76,7 @@ function Chip({
 }
 
 /**
- * Ficha extendida del proveedor nuevo (SDD-0172 · migr 0266).
+ * Ficha extendida del proveedor nuevo (SDD-0173 · migr 0266).
  *
  * Las 3 preguntas del Norte. El copy las encuadra como lo que son: datos DEL
  * CLIENTE para su propio control, no un trámite para DTD. Todas opcionales —
@@ -195,7 +195,7 @@ export function SupplierPicker({
   supplierId: string;
   onSelect: (id: string) => void;
   /**
-   * ¿Pedir la ficha extendida del Norte al crear un proveedor? (SDD-0172).
+   * ¿Pedir la ficha extendida del Norte al crear un proveedor? (SDD-0173).
    *
    * Es una PROP y no un flag global a propósito: la ficha se diseñó para el
    * paso 1 del asistente, y el formulario largo al que reemplaza tiene los días

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * SDD-0172 · Paso 2 del asistente — "Sigue tus compras".
+ * SDD-0173 · Paso 2 del asistente — "Sigue tus compras".
  *
  * La compra ya existe (el paso 1 la registró). Acá el cliente adelanta lo que
  * sepa: descripción, cajas, valor, tracking y adjuntos. TODO es opcional, y el

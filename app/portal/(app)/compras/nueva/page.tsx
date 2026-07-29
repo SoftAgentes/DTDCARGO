@@ -98,7 +98,7 @@ export default async function NuevaCompraPage({
         </>
       )}
 
-      {/* El asistente de 3 pasos (SDD-0172) necesita el ancho del panel lateral
+      {/* El asistente de 3 pasos (SDD-0173) necesita el ancho del panel lateral
           "tu orden en vivo"; el formulario largo sigue en su columna angosta. */}
       {showNewPurchaseWizard(client.markbox) ? (
         <div className="mt-8 max-w-[1000px]">

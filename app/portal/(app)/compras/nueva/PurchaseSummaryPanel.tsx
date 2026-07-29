@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * SDD-0172 · El panel lateral de los pasos 2 y 3, ya con la compra registrada.
+ * SDD-0173 · El panel lateral de los pasos 2 y 3, ya con la compra registrada.
  *
  * Es el mismo lugar donde vivía "tu orden en vivo" en el paso 1, pero ahora
  * arriba manda el hecho consumado: la compra tiene código. Debajo, un checklist

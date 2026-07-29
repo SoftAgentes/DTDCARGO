@@ -222,7 +222,7 @@ export function NewPurchaseForm({
 
 /**
  * Pantalla de éxito del formulario largo: código, link para el proveedor y
- * etiquetas. El asistente de 3 pasos (SDD-0172) no la usa — allá el cierre son
+ * etiquetas. El asistente de 3 pasos (SDD-0173) no la usa — allá el cierre son
  * los pasos 2 y 3, que hacen lo mismo con más contexto.
  */
 function PurchaseDone({

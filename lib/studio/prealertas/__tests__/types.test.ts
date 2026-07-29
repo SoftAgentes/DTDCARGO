@@ -178,7 +178,7 @@ describe("validatePrealertaInput", () => {
 });
 
 // ╔═══════════════════════════════════════════════════════════╗
-// ║ validatePrealertaInput · requireDetalle: false (SDD-0172)  ║
+// ║ validatePrealertaInput · requireDetalle: false (SDD-0173)  ║
 // ╚═══════════════════════════════════════════════════════════╝
 
 describe("validatePrealertaInput · sin detalle exigido (asistente 3 pasos)", () => {
@@ -560,7 +560,7 @@ describe("helpers de adjuntos de compra", () => {
 });
 
 // ╔═══════════════════════════════════════════════════════════╗
-// ║ Ficha extendida del proveedor (SDD-0172 · migr 0266)       ║
+// ║ Ficha extendida del proveedor (SDD-0173 · migr 0266)       ║
 // ╚═══════════════════════════════════════════════════════════╝
 
 describe("normalizeSupplierProfileInput", () => {
@@ -661,7 +661,7 @@ describe("normalizeSupplierProfileInput", () => {
 });
 
 // ╔═══════════════════════════════════════════════════════════╗
-// ║ normalizeClientNote (SDD-0172 · migr 0268)                 ║
+// ║ normalizeClientNote (SDD-0173 · migr 0269)                 ║
 // ╚═══════════════════════════════════════════════════════════╝
 
 describe("normalizeClientNote", () => {

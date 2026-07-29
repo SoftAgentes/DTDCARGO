@@ -413,7 +413,7 @@ export type SupplierInput = {
   notes: string | null;
 };
 
-// ── Ficha extendida del proveedor (SDD-0172 · migr 0266) ───────
+// ── Ficha extendida del proveedor (SDD-0173 · migr 0266) ───────
 //
 // Las 3 preguntas del Norte al dar de alta un proveedor. Son datos DEL CLIENTE
 // para su propio control ("te ayudan a reconocerlo cuando tengas varios"), no
@@ -586,7 +586,7 @@ export type PrealertaActionState = {
 
 /**
  * Marcador que ocupa `description` cuando la compra se registra sin detalle
- * (asistente de 3 pasos · SDD-0172: el cliente lo completa en el paso 2).
+ * (asistente de 3 pasos · SDD-0173: el cliente lo completa en el paso 2).
  *
  * La columna `prealertas.description` es NOT NULL, así que el hueco necesita un
  * texto — pero uno que el operario del ERP pueda LEER como "todavía no llegó",
@@ -594,11 +594,11 @@ export type PrealertaActionState = {
  */
 export const PREALERTA_DESCRIPCION_PENDIENTE = "Pendiente — el cliente la completa";
 
-/** Tope de la nota del cliente (== CHECK de la migr 0268). */
+/** Tope de la nota del cliente (== CHECK de la migr 0269). */
 export const PREALERTA_CLIENT_NOTE_MAX = 2000;
 
 /**
- * Normaliza la nota del cliente sobre la compra (SDD-0172 · migr 0268).
+ * Normaliza la nota del cliente sobre la compra (SDD-0173 · migr 0269).
  *
  * Recorta en vez de rechazar: una nota larguísima es un pegado accidental, no un
  * error que valga la pena mostrarle a alguien que sólo quería registrar su
@@ -622,7 +622,7 @@ export function normalizeClientNote(raw: unknown): string | null {
  *
  * `opts.requireDetalle` (default `true`) mantiene EXACTAMENTE el comportamiento
  * histórico para todos los callers de siempre (ERP y `/portal/proveedores`). En
- * `false` — sólo lo pide el asistente de 3 pasos (SDD-0172 §3.2), donde el Norte
+ * `false` — sólo lo pide el asistente de 3 pasos (SDD-0173 §3.2), donde el Norte
  * pone esos campos en el paso 2 y marcados "· opcional" — la compra puede nacer
  * con proveedor y nada más:
  *  - description ausente/vacía → `PREALERTA_DESCRIPCION_PENDIENTE`.

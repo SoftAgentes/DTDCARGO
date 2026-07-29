@@ -1,5 +1,5 @@
 /**
- * SDD-0172 · Las líneas de "Así queda tu orden a DTD — en vivo".
+ * SDD-0173 · Las líneas de "Así queda tu orden a DTD — en vivo".
  *
  * Traduce (servicios elegidos + cuántas compras retiene el HOLD + si ese HOLD
  * arrastra re-empaque) a las frases en castellano que el cliente ve armarse

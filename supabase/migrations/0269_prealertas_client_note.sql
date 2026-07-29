@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────
--- 0268 · SDD-0172 · nota del cliente sobre la compra
+-- 0269 · SDD-0173 · nota del cliente sobre la compra
 --
 -- El paso 1 del Norte (`_norte/portal/app.jsx` · `PortalNuevaCompra`) tiene un
 -- campo "NOTA · opcional" debajo del proveedor: "me dio mejor precio esta vez,
@@ -44,4 +44,4 @@ begin
 end $$;
 
 comment on column public.prealertas.client_note is
-  'SDD-0172 · nota del CLIENTE sobre esta compra (paso 1 del asistente). No confundir con suppliers_cn.notes (describe al proveedor) ni con las notas por servicio (instrucciones operativas).';
+  'SDD-0173 · nota del CLIENTE sobre esta compra (paso 1 del asistente). No confundir con suppliers_cn.notes (describe al proveedor) ni con las notas por servicio (instrucciones operativas).';

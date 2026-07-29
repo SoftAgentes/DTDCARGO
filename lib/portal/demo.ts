@@ -77,7 +77,7 @@ export function showShipmentAcceptanceCta(
 }
 
 /**
- * ¿"Nueva compra" es el asistente de 3 pasos del Norte? (SDD-0172 · brecha 3 de
+ * ¿"Nueva compra" es el asistente de 3 pasos del Norte? (SDD-0173 · brecha 3 de
  * la Fase 7 del Revestido).
  *
  * Nace APAGADO a propósito: se entrega por partes (paso 1 → 2 → 3), y mientras
@@ -100,7 +100,7 @@ export function showNewPurchaseWizard(
 }
 
 /**
- * 🔴 TEMPORAL · ¿ya existe `prealertas.client_note`? (SDD-0172, migr **0268**).
+ * 🔴 TEMPORAL · ¿ya existe `prealertas.client_note`? (SDD-0173, migr **0269**).
  *
  * La migración NO está aplicada. Con esto en `false` el campo "Nota" del paso 1
  * no se pinta y la server action no nombra la columna, así que el alta de compra
@@ -112,7 +112,7 @@ export function showNewPurchaseWizard(
 export const PREALERTA_CLIENT_NOTE_LIVE = false;
 
 /*
- * La ficha extendida del proveedor (SDD-0172) NO tiene flag propio a propósito.
+ * La ficha extendida del proveedor (SDD-0173) NO tiene flag propio a propósito.
  *
  * Lo tuvo mientras su migración `0266_suppliers_cn_portal_profile` no estaba
  * aplicada; ya lo está (2026-07-28, verificada contra el objeto). Un segundo

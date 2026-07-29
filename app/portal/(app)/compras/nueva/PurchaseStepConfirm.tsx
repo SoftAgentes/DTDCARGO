@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * SDD-0172 · Paso 3 del asistente — "Trazabilidad a tu logística".
+ * SDD-0173 · Paso 3 del asistente — "Trazabilidad a tu logística".
  *
  * El handoff al proveedor: un link que le lleva el formulario de Packing List +
  * Factura y las etiquetas con su código. La idea del Norte es que el cliente NO

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * SDD-0172 · "Así queda tu orden a DTD — en vivo".
+ * SDD-0173 · "Así queda tu orden a DTD — en vivo".
  *
  * El panel lateral sticky del Norte: mientras el cliente elige proveedor y
  * servicios, acá se va escribiendo —en castellano, en primera persona— el

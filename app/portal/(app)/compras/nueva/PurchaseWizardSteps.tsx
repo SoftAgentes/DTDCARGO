@@ -1,11 +1,11 @@
 /**
- * SDD-0172 · La barra de 3 pasos de "Nueva compra".
+ * SDD-0173 · La barra de 3 pasos de "Nueva compra".
  *
  * Los títulos son los del Norte (`portal/app.jsx`, `stepBar`) y están escritos
  * en beneficio, no en trámite: el cliente no lee "Proveedor / Detalle /
  * Confirmación" sino para qué le sirve cada paso.
  *
- * DESIGN-CHECK (SDD-0172): el Norte apaga los pasos inactivos con
+ * DESIGN-CHECK (SDD-0173): el Norte apaga los pasos inactivos con
  * `opacity: .4`, que deja su texto por debajo del contraste AA. Acá la
  * jerarquía se hace con tokens legibles (número en `--color-grey-500`, título
  * en `--color-grey-700`) + la barra inferior, que es la señal fuerte. Se ve

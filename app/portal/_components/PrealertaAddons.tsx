@@ -231,7 +231,7 @@ function AddonRow({
   /**
    * Controles propios de un servicio, dentro del bloque que se abre al marcarlo.
    * Hoy lo usa el HOLD del asistente (stepper 2-10 + acople con re-empaque ·
-   * SDD-0172); la fila sigue siendo genérica y no sabe de qué servicio se trata.
+   * SDD-0173); la fila sigue siendo genérica y no sabe de qué servicio se trata.
    */
   extra?: React.ReactNode;
 }) {
@@ -301,7 +301,7 @@ function AddonRow({
  * `/portal/proveedores`, que no necesitan enterarse de nada. Pasándole
  * `selected` + `onToggle` queda CONTROLADO, que es como lo usa el asistente de
  * 3 pasos: el panel "tu orden en vivo" tiene que leer la misma selección
- * mientras el cliente la arma (SDD-0172).
+ * mientras el cliente la arma (SDD-0173).
  */
 export function PrealertaAddonPicker({
   addons,

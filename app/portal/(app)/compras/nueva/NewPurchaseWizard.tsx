@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * SDD-0172 · "Nueva compra" como asistente de 3 pasos (Norte
+ * SDD-0173 · "Nueva compra" como asistente de 3 pasos (Norte
  * `PortalNuevaCompra`). Brecha 3 de la Fase 7 del Revestido.
  *
  * El paso 1 REGISTRA la compra: el Norte la crea apenas hay proveedor, y deja
@@ -180,7 +180,7 @@ export function NewPurchaseWizard({
 
           {/* Nota del cliente sobre ESTA compra (Norte, paso 1). Sale sólo
               cuando ya hay proveedor: antes de eso no hay compra de la que
-              hablar. Depende de la migr 0268 — ver PREALERTA_CLIENT_NOTE_LIVE. */}
+              hablar. Depende de la migr 0269 — ver PREALERTA_CLIENT_NOTE_LIVE. */}
           {PREALERTA_CLIENT_NOTE_LIVE && supplierId && (
             <div className="mt-4">
               <FieldLabel htmlFor={`${uid}-client-note`}>

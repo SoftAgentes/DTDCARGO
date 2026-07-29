@@ -269,7 +269,7 @@ async function insertPrealertaServiceRequestsFromForm(args: {
     const reqs = parseServiceRequestsFromForm(args.formData, activeCodes);
     if (reqs.length === 0) return;
 
-    // Asistente de 3 pasos (SDD-0172): lo que DTD recibe es LO MISMO que el
+    // Asistente de 3 pasos (SDD-0173): lo que DTD recibe es LO MISMO que el
     // cliente leyó en "Así queda tu orden a DTD — en vivo". La reconciliación
     // (línea encabeza las notas + reponer lo que el acople sumó) vive en
     // `reconcileServiceRequests`, que es puro y está testeado.
@@ -360,7 +360,7 @@ export async function createSupplierAction(
   const tenantId = tenantData ? String(tenantData) : null;
   if (!tenantId) return { error: "No pudimos resolver tu cuenta." };
 
-  // Ficha extendida del Norte (SDD-0172 · columnas de la migr 0266, aplicada).
+  // Ficha extendida del Norte (SDD-0173 · columnas de la migr 0266, aplicada).
   // Se lee siempre: la pinta sólo el asistente (`<SupplierPicker showProfile />`),
   // y cuando no viene, el normalizador devuelve nulls — que es exactamente lo que
   // guardaba el alta de antes.
@@ -506,7 +506,7 @@ export async function createPrealertaAction(
 ): Promise<PrealertaActionState> {
   const estValueRaw = String(formData.get("estValueUsd") ?? "").trim();
   const boxesRaw = String(formData.get("boxes") ?? "").trim();
-  // El asistente de 3 pasos (SDD-0172) registra la compra al terminar el paso 1:
+  // El asistente de 3 pasos (SDD-0173) registra la compra al terminar el paso 1:
   // descripción, cajas, valor y tracking llegan después, en el paso 2. El
   // formulario largo de siempre no manda `wizard` y sigue exigiéndolo todo.
   const fromWizard = isTruthy(formData.get("wizard"));
@@ -579,7 +579,7 @@ export async function createPrealertaAction(
         boxes: input.boxes,
         est_value_usd: input.estValueUsd,
         status: "anunciada",
-        // Nota del cliente sobre ESTA compra (paso 1 · migr 0268). Mientras la
+        // Nota del cliente sobre ESTA compra (paso 1 · migr 0269). Mientras la
         // columna no exista, ni se nombra.
         ...(PREALERTA_CLIENT_NOTE_LIVE
           ? { client_note: normalizeClientNote(formData.get("clientNote")) }
@@ -706,7 +706,7 @@ export async function requestPrealertaServiceAction(
 }
 
 // ╔═══════════════════════════════════════════════════════════╗
-// ║ Completar el detalle de una compra ya creada (SDD-0172)   ║
+// ║ Completar el detalle de una compra ya creada (SDD-0173)   ║
 // ╚═══════════════════════════════════════════════════════════╝
 // Paso 2 del asistente: el Norte registra la compra apenas hay proveedor y
 // deja descripción, cajas, valor, tracking y adjuntos para después. Esta

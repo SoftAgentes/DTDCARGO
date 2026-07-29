@@ -1,5 +1,5 @@
 ---
-sdd: "0172"
+sdd: "0173"
 title: "Portal — Nueva compra como asistente de 3 pasos"
 status: in-progress
 author: "Sam (founder) + Claude Code"
@@ -11,7 +11,7 @@ related: ["0057", "0096", "0098", "0169", "0170", "0171"]
 confidencialidad: interno
 ---
 
-# SDD-0172 — Portal · Nueva compra = asistente de 3 pasos
+# SDD-0173 — Portal · Nueva compra = asistente de 3 pasos
 
 ## 1. Decisión aprobada
 

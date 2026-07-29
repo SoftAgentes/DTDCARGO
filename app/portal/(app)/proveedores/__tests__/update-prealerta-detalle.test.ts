@@ -1,5 +1,5 @@
 /**
- * SDD-0172 · Tests de `updatePrealertaDetalleAction` (paso 2 del asistente).
+ * SDD-0173 · Tests de `updatePrealertaDetalleAction` (paso 2 del asistente).
  *
  * Lo que se protege acá no es el formulario, son las dos puertas:
  *  - la compra tiene que ser DEL cliente logueado (`getPrealertaByCode` va
