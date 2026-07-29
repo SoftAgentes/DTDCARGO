@@ -16,7 +16,7 @@ import { ArrowIcon } from "@/components/Icon";
 import { FieldLabel, FileField } from "../../../_components/PortalFormField";
 import { PurchaseWizardSteps } from "./PurchaseWizardSteps";
 import { PurchaseSummaryPanel } from "./PurchaseSummaryPanel";
-import type { ChecklistItem } from "./PurchaseSummaryPanel";
+import type { ChecklistItem, OrderRecap } from "./PurchaseSummaryPanel";
 import type { PrealertaActionState } from "@/lib/studio/prealertas/types";
 import { updatePrealertaDetalleAction } from "../../proveedores/actions";
 
@@ -34,10 +34,13 @@ const CAMPOS = [
 
 export function PurchaseStepDetalle({
   code,
+  order,
   onDone,
   onProgress,
 }: {
   code: string;
+  /** La orden armada en el paso 1, para no perderla de vista. */
+  order?: OrderRecap;
   /** El paso 2 terminó (con o sin datos) → seguimos al 3. */
   onDone: () => void;
   /** Lo llenado sube al padre para que el paso 3 muestre el mismo checklist. */
@@ -230,7 +233,7 @@ export function PurchaseStepDetalle({
         </div>
 
         <div className="lg:sticky lg:top-[88px]">
-          <PurchaseSummaryPanel code={code} checklist={checklist}>
+          <PurchaseSummaryPanel code={code} checklist={checklist} order={order}>
             <button
               type="submit"
               disabled={pending}

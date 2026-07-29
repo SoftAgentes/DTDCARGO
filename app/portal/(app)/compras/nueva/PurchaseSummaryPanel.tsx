@@ -12,20 +12,36 @@
  * `--color-on-accent`, nunca `text-white`.
  */
 
-import { CheckIcon } from "@/components/Icon";
+import { useState } from "react";
+import { CheckIcon, DocIcon } from "@/components/Icon";
+import type { PurchaseOrderLine } from "@/lib/portal/purchase-order-lines";
 
 export type ChecklistItem = { key: string; label: string; done: boolean };
+
+export type OrderRecap = {
+  supplierName: string | null;
+  lines: PurchaseOrderLine[];
+};
 
 export function PurchaseSummaryPanel({
   code,
   checklist,
+  order,
   children,
 }: {
   code: string;
   checklist: ChecklistItem[];
+  /**
+   * La orden que el cliente armó en el paso 1. Sin esto, al registrar
+   * desaparecía de la pantalla lo que acababa de pedir — y en el paso 3 ya no
+   * había forma de recordarlo. El Norte la conserva plegada en el panel.
+   */
+  order?: OrderRecap;
   /** CTA del paso (avanzar / terminar). */
   children?: React.ReactNode;
 }) {
+  const [orderOpen, setOrderOpen] = useState(false);
+
   return (
     <div className="flex flex-col gap-3">
       <div
@@ -62,6 +78,65 @@ export function PurchaseSummaryPanel({
           </div>
         </div>
       </div>
+
+      {order && (
+        <div>
+          <button
+            type="button"
+            onClick={() => setOrderOpen((v) => !v)}
+            aria-expanded={orderOpen}
+            className="w-full flex items-center justify-between gap-2 rounded-[14px] px-4 py-3 border text-left"
+            style={{
+              borderColor: "var(--color-wine)",
+              background: "var(--color-paper)",
+            }}
+          >
+            <span
+              className="inline-flex items-center gap-2 text-[10px] font-bold tracking-[0.1em] uppercase"
+              style={{ color: "var(--color-wine-text)" }}
+            >
+              <DocIcon size={13} /> Resumen de tu orden
+            </span>
+            <span
+              className="text-[11px] font-bold flex-shrink-0"
+              style={{ color: "var(--color-wine-text)" }}
+            >
+              {orderOpen ? "Ocultar" : "Revisa aquí"}
+            </span>
+          </button>
+
+          {orderOpen && (
+            <div
+              className="mt-2 rounded-[14px] p-4 border text-[13px] leading-[1.6] text-ink"
+              style={{
+                borderColor: "var(--color-wine)",
+                background: "var(--color-paper)",
+              }}
+            >
+              <p className="m-0">
+                Hola, DTD Cargo. Te aviso que viene mercancía de mi proveedor{" "}
+                <strong>{order.supplierName?.trim() || "mi proveedor"}</strong>{" "}
+                para ser enviada por barco.
+              </p>
+              {order.lines.length > 0 && (
+                <>
+                  <p className="mt-2 mb-1.5 font-bold">Aparte, pedí:</p>
+                  <ol className="m-0 pl-[18px] flex flex-col gap-1.5">
+                    {order.lines.map((l) => (
+                      <li key={l.code} className="text-[12.5px] leading-[1.5]">
+                        <strong>{l.desc}</strong>
+                        <span className="block mt-0.5 font-medium text-grey-700">
+                          {l.fee}
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="rounded-[14px] p-4 border border-grey-200">
         <div className="text-[10px] font-bold tracking-[0.1em] uppercase text-grey-500">

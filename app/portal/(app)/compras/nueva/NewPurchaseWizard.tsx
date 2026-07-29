@@ -39,7 +39,12 @@ import type {
 import { PREALERTA_CLIENT_NOTE_MAX } from "@/lib/studio/prealertas/types";
 import type { PrealertaAddon } from "@/lib/studio/prealertas/addons";
 import { createPrealertaAction } from "../../proveedores/actions";
-import { HOLD_MIN, HOLD_MAX, clampHoldCount } from "@/lib/portal/purchase-order-lines";
+import {
+  HOLD_MIN,
+  HOLD_MAX,
+  clampHoldCount,
+  buildPurchaseOrderLines,
+} from "@/lib/portal/purchase-order-lines";
 import { PREALERTA_CLIENT_NOTE_LIVE } from "@/lib/portal/demo";
 
 const prealertaInitial: PrealertaActionState = {};
@@ -103,13 +108,27 @@ export function NewPurchaseWizard({
     }
   }
 
-  // Registrada → el asistente pasa a sus dos pasos post-registro.
+  // Registrada → el asistente pasa a sus dos pasos post-registro. La orden que
+  // el cliente acaba de armar viaja con él: sin esto desaparecía de la pantalla
+  // justo después de pedirla, y en el paso 3 ya no había cómo recordarla.
   if (done) {
     const code = state.prealertaCode!;
+    const order = {
+      supplierName: supplier?.name ?? null,
+      lines: buildPurchaseOrderLines({
+        addons,
+        selected: [...selected] as Parameters<
+          typeof buildPurchaseOrderLines
+        >[0]["selected"],
+        holdCount,
+        holdTie,
+      }),
+    };
     if (phase === "detalle") {
       return (
         <PurchaseStepDetalle
           code={code}
+          order={order}
           onDone={goToConfirm}
           onProgress={setDetalleChecklist}
         />
@@ -120,6 +139,8 @@ export function NewPurchaseWizard({
         code={code}
         shareToken={state.shareToken}
         checklist={detalleChecklist}
+        order={order}
+        onBack={() => setPhase("detalle")}
       />
     );
   }

@@ -21,6 +21,7 @@ import { ArrowIcon, DocIcon } from "@/components/Icon";
 import { ShareProviderButton } from "../../../_components/ShareProviderButton";
 import { PurchaseWizardSteps } from "./PurchaseWizardSteps";
 import { PurchaseSummaryPanel } from "./PurchaseSummaryPanel";
+import type { OrderRecap } from "./PurchaseSummaryPanel";
 
 /** Un paso numerado de la lista de instrucciones. */
 function NumberedStep({
@@ -61,16 +62,30 @@ export function PurchaseStepConfirm({
   code,
   shareToken,
   checklist,
+  order,
+  onBack,
 }: {
   code: string;
   shareToken?: string;
   checklist: { key: string; label: string; done: boolean }[];
+  order?: OrderRecap;
+  /** Volver al paso 2 — el detalle es opcional, pero no irreversible. */
+  onBack?: () => void;
 }) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const etiquetasHref = `/portal/compras/${encodeURIComponent(code)}/etiquetas`;
 
   return (
     <div>
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 mb-3 text-[12.5px] font-semibold text-grey-500 hover:text-ink transition-colors"
+        >
+          <ArrowIcon size={13} className="rotate-180" /> Volver al paso 2
+        </button>
+      )}
       <PurchaseWizardSteps step={3} />
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
@@ -247,7 +262,7 @@ export function PurchaseStepConfirm({
         </div>
 
         <div className="lg:sticky lg:top-[88px]">
-          <PurchaseSummaryPanel code={code} checklist={checklist}>
+          <PurchaseSummaryPanel code={code} checklist={checklist} order={order}>
             <Link
               href="/portal/compras"
               className="btn btn-primary w-full inline-flex items-center justify-center gap-2"
