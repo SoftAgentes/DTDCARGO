@@ -10,7 +10,7 @@
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-29 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-042 · SDD PLG aprobado](BASELINE-2026-07-29-14.md) |
+| Línea base vigente | [LB-SGE-043 · intento efímero SDD-0172](BASELINE-2026-07-29-15.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -78,6 +78,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Implementación del ciclo tenant/fixtures | [SDD-0172](../specs/0172-tenant-fixtures-lifecycle/spec.md) |
 | Revisión técnica local de SDD-0172 | [REV-AUD-011](reviews/aud-tenant-fixtures-implementation.md) |
 | Recibo Cloud de 0268 | [REV-AUD-018](reviews/aud-tenant-lifecycle-aplicacion.md) |
+| Intento efímero y teardown terminal SDD-0172 | [REV-AUD-019](reviews/aud-tenant-fixtures-ephemeral-validation.md) |
 | Inventario read-only del Corte C | [C0 · repo y Cloud](../specs/0166-auditoria-gobernada-aud-01-aud-02/inventario-corte-c-2026-07-28.md) |
 | Diseño correctivo del Corte C | [Consulta gobernada y RBAC v1.1](../specs/0166-auditoria-gobernada-aud-01-aud-02/diseno-correctivo-corte-c.md) |
 | Revisión del diseño Corte C | [REV-AUD-012](reviews/aud-corte-c.md) |
@@ -161,7 +162,7 @@ disfraza elevando el estado normativo.
 | HTD-01 | Confirmación por presión sostenida | aprobada | [Contrato v1.0](policies/htd-01.md) consolidado; no implementado | Crear SDD solo para una entidad R3 clasificada por MP-01 |
 | AVS-01 | Avisos y confirmaciones | verificada | Primitiva conforme; consumidores legacy se migran solo dentro de slices R2/R3 | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | AUD-01 | Evento auditable y vínculo con acciones | aprobada | Diseño D1 aprobado: 24 operaciones obligatorias y workflow Auth durable; implementación pendiente | [REV-AUD-017](reviews/aud-d1-access-config-design.md) |
-| AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B y guardrail tenant 0268 aplicados; consulta/RBAC pendientes | [REV-AUD-018](reviews/aud-tenant-lifecycle-aplicacion.md); `0270` conserva gate separado |
+| AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B y guardrail tenant 0268 aplicados; intento efímero detenido por SDD-0118 y teardown terminal verificado | [REV-AUD-019](reviews/aud-tenant-fixtures-ephemeral-validation.md); consulta/RBAC y `0270` conservan gates separados |
 | VIS-01 | Jerarquía visual y distribución 60-30-10 | aprobada | Adopción parcial; muestreo acotado a slices y clasificación de literales | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | SDD-0175 aprobado; BD-036 cierra V0 sin cargar la fuente | Ejecutar V1 tokens/fuente |
 | BUS-01 | Buscadores predictivos y contexto de resultados | aprobada v1.0 | Búsqueda global y `ClientCombobox` existen; adopción no auditada | Auditar scopes, ranking y desambiguación |
@@ -256,7 +257,9 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-042 · SDD de PLG-01 aprobado](BASELINE-2026-07-29-14.md).
+[LB-SGE-043 · intento efímero SDD-0172](BASELINE-2026-07-29-15.md).
+El SDD de PLG-01 aprobado permanece en
+[LB-SGE-042](BASELINE-2026-07-29-14.md).
 El registro CMP diseñado permanece en
 [LB-SGE-041](BASELINE-2026-07-29-13.md).
 El plan de adopción por slices permanece en

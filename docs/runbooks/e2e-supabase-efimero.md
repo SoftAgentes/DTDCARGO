@@ -16,8 +16,8 @@ purga por filas.
 ## Secuencia
 
 1. crear un proyecto/branch Supabase desechable desde el control plane;
-2. esperar estado saludable;
-3. aplicar migraciones del repositorio en orden;
+2. esperar estado saludable y `MIGRATIONS_PASSED`;
+3. comprobar que el ledger llegó a la última migración esperada;
 4. cargar en el proceso:
    - `E2E_SUPABASE_PROJECT_REF`;
    - `E2E_SUPABASE_URL`;
@@ -33,6 +33,11 @@ purga por filas.
 10. registrar project ref, timestamps, resultado E2E y estado del teardown, sin
     registrar secretos.
 
+No se cargan secretos ni se ejecuta el seed mientras el control plane reporte
+`CREATING_PROJECT`, `MIGRATIONS_FAILED`, drift de ledger o cualquier estado no
+saludable. Un branch creado desde el proyecto principal reproduce el historial
+de migraciones automáticamente; no se corrige ese replay aplicando SQL ad hoc.
+
 ## Fallo
 
 Ante cualquier error después de crear Auth, tenant o datos:
@@ -41,6 +46,10 @@ Ante cualquier error después de crear Auth, tenant o datos:
 - no borrar filas para “limpiarlo”;
 - destruir el proyecto completo;
 - crear otro entorno para el siguiente intento.
+
+Ante un error de replay **antes** del seed se aplica el mismo teardown. Se
+registra la primera migración ausente o fallida, se enlaza la deuda que la
+resolverá y no se rebasea, resetea ni repara el branch fallido.
 
 ## Evidencia mínima
 
@@ -55,4 +64,13 @@ teardown=terminal
 ```
 
 La ausencia de una fila tenant no prueba teardown. El control plane debe
-confirmar que el proyecto completo dejó de estar disponible.
+confirmar que el proyecto completo dejó de estar disponible. Para branches, la
+evidencia terminal mínima es:
+
+1. `delete_branch` devuelve éxito para el `branch_id` exacto;
+2. `list_branches` posterior ya no devuelve ese `branch_id` ni su
+   `project_ref`;
+3. el inventario conserva intacta la rama `main`.
+
+Un teardown terminal no convierte en exitosa una validación cuyo replay, seed
+o E2E falló.
