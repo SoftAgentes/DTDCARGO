@@ -3,14 +3,14 @@
 | Control | Valor |
 |---|---|
 | Documento | Índice maestro del Sistema de Gobernanza |
-| Versión | 4.9 |
+| Versión | 5.0 |
 | Dueño | Sam (founder) |
 | Custodia | Producto + Diseño + Ingeniería |
 | Estado | activo |
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-29 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-039 · 0268 aplicada](BASELINE-2026-07-29-11.md) |
+| Línea base vigente | [LB-SGE-040 · Plan de adopción](BASELINE-2026-07-29-12.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -115,6 +115,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Plugin de gobernanza | [PLG-01 v1.0](policies/plg-01.md) |
 | Revisión normativa PLG-01 | [REV-SGE-007](reviews/plg-01.md) |
 | Auditoría SGE/BTN/VIS/AVS | [REV-SGE-008](reviews/adoption-sge-btn-vis-avs-2026-07-29.md) |
+| Plan de adopción por slices | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | Implementación VIS-02 | [SDD-0175 aprobado](../specs/0175-vis-02-tipografia-voz-idioma/spec.md) |
 | Decisión documental Noto Serif SC | [REV-VIS-002 · BD-036](reviews/vis-02-brand-gate.md) |
 | Investigación de skills | [Mapa de capacidades y límites](research/skills-map.md) |
@@ -152,14 +153,14 @@ disfraza elevando el estado normativo.
 
 | Código | Política | Estado normativo | Estado del ERP | Documento o próximo gate |
 |---|---|---|---|---|
-| SGE-00 | Principios constitucionales de experiencia | aprobada | Adopción parcial; falta matriz de las cuatro superficies | [REV-SGE-008](reviews/adoption-sge-btn-vis-avs-2026-07-29.md) |
+| SGE-00 | Principios constitucionales de experiencia | aprobada | Adopción parcial; plan por superficies y riesgo aprobado | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | MP-01 | Matriz de permanencia | aprobada v1.1 | [SDD-0168](../specs/0168-mp-01-comentarios-permanencia-restauracion/spec.md) cerrado: DB-1 y DB-2 en Cloud, APP integrada en `d93c56e4`, Vercel Producción y E2E autenticado aprobados, fixtures retirados | [REV-MP-005](reviews/mp-01-comments-preview-e2e.md); ACL históricos, purga y retención permanecen fuera de alcance |
-| BTN-01 | Semántica, jerarquía y contrato de botones | aprobada | Adopción parcial; 64 archivos usan `ActionButton`, botones nativos requieren clasificación | Crear SDD por alcance |
+| BTN-01 | Semántica, jerarquía y contrato de botones | aprobada | Adopción parcial; slices R2/R3 definidos sin barrido masivo | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | HTD-01 | Confirmación por presión sostenida | aprobada | [Contrato v1.0](policies/htd-01.md) consolidado; no implementado | Crear SDD solo para una entidad R3 clasificada por MP-01 |
-| AVS-01 | Avisos y confirmaciones | verificada | Primitiva conforme; 26 llamadas gobernadas y 261 legacy compatibles | Migrar consumidores por módulo |
+| AVS-01 | Avisos y confirmaciones | verificada | Primitiva conforme; consumidores legacy se migran solo dentro de slices R2/R3 | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | AUD-01 | Evento auditable y vínculo con acciones | aprobada | Diseño D1 aprobado: 24 operaciones obligatorias y workflow Auth durable; implementación pendiente | [REV-AUD-017](reviews/aud-d1-access-config-design.md) |
 | AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B y guardrail tenant 0268 aplicados; consulta/RBAC pendientes | [REV-AUD-018](reviews/aud-tenant-lifecycle-aplicacion.md); `0270` conserva gate separado |
-| VIS-01 | Jerarquía visual y distribución 60-30-10 | aprobada | Adopción parcial; tokens presentes y literales pendientes de clasificar | Muestreo visual y registro de excepciones |
+| VIS-01 | Jerarquía visual y distribución 60-30-10 | aprobada | Adopción parcial; muestreo acotado a slices y clasificación de literales | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | SDD-0175 aprobado; BD-036 cierra V0 sin cargar la fuente | Ejecutar V1 tokens/fuente |
 | BUS-01 | Buscadores predictivos y contexto de resultados | aprobada v1.0 | Búsqueda global y `ClientCombobox` existen; adopción no auditada | Auditar scopes, ranking y desambiguación |
 | CRT-01 | Creación rápida desde contexto | aprobada v1.0 | Patrones locales sin primitiva común | Auditar flujos de retorno |
@@ -253,7 +254,9 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-039 · 0268 aplicada y verificada](BASELINE-2026-07-29-11.md).
+[LB-SGE-040 · Plan de adopción por slices](BASELINE-2026-07-29-12.md).
+La aplicación de 0268 permanece en
+[LB-SGE-039](BASELINE-2026-07-29-11.md).
 El diseño D1 permanece en
 [LB-SGE-038](BASELINE-2026-07-29-10.md).
 El Gate V0 de VIS-02 permanece en
