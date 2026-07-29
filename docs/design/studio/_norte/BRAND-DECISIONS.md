@@ -397,6 +397,25 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 - **Nota:** Sora no tiene peso 900 en Google Fonts (máx 800); los títulos display (`--f-display` a 900) usan 800 — igual que el mockup.
 - **Regla viva en:** `app/studio/tokens.css` (`.studio-sys { --f-sans; --f-display }`) · `app/globals.css` (`.studio-sys` redefine `--font-archivo/-black`) · `app/studio/layout.tsx` (carga Sora + Nunito).
 
+### BD-036 · Noto Serif SC para documento formal en chino
+- **Fecha:** 2026-07-29
+- **Tipo:** Excepción tipográfica documental
+- **Estado:** Vigente; carga técnica pendiente de SDD-0175
+- **Autorizado por:** Sam (founder)
+- **Aplica a:** bloques `lang="zh-CN"` en cartas, contratos, transcripciones,
+  correos formales y PDF dirigidos a clientes u oficina en China.
+- **Decisión:** Noto Serif SC es la única serif autorizada y solo representa la
+  voz documental Song Ti. La interfaz, navegación, formularios y tablas en
+  chino continúan en Noto Sans SC. No aplica a marketing, contenido latino,
+  títulos de marca ni previews editoriales generales.
+- **Fallback:** Noto Sans SC. La estructura label/valor y el idioma deben
+  conservar significado sin depender de que la webfont cargue.
+- **Límites:** esta decisión no carga la fuente, no modifica documentos vivos y
+  no autoriza otras serif. Implementación, email, PDF y verificación visual
+  permanecen como gates V1–V4 de SDD-0175.
+- **Regla viva en:** `BRAND.md` §Tipografía · `docs/governance/policies/vis-02.md`
+  · SDD-0175.
+
 ---
 
 ## Índice rápido
@@ -438,7 +457,8 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 | BD-033 | Glass en superficies flotantes del ERP (scrim frosteado + panel ⌘K) | Normativo (extiende BD-031) | Vigente — `--scrim-blur` + ⌘K glass |
 | BD-034 | Fondos ERP: degradados tonales `--grad-*` + marca de agua "D" | Normativo (extiende BD-030) | Vigente — sidebar/hero/KPI/página |
 | BD-035 | Tipografía ERP → Nunito Sans + Sora (realiza la migración de 2026-06-11) | Normativo | Vigente — fix congelamiento `--f-sans`/`--f-display` |
+| BD-036 | Noto Serif SC solo para documento formal `zh-CN` | Excepción tipográfica | Vigente — implementación pendiente de SDD-0175 |
 
 ---
 
-*Mantené este archivo en orden cronológico de ID. Última actualización: 2026-07-19 · DTD-Cargo v4.6 (patch · Glass BD-031 + glow BD-030 · Shipping Mark BD-029 + mockups BD-032 · BD-033 Glass ERP · **BD-034 fondos ERP con marca de agua "D" + BD-035 fuente ERP → Nunito/Sora**; sin bump de versión; Brand Book físico no regenerado).*
+*Mantené este archivo en orden cronológico de ID. Última actualización: 2026-07-29 · DTD-Cargo v4.6 (patch documental · **BD-036 Noto Serif SC solo para documento formal `zh-CN`**; Brand Book físico no regenerado).*

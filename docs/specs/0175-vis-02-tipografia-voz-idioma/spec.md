@@ -1,7 +1,7 @@
 ---
 sdd: "0175"
 title: "VIS-02 — tipografía por voz, destinatario e idioma"
-status: proposed
+status: approved
 author: "Sam (founder) + Codex"
 created: 2026-07-29
 updated: 2026-07-29
@@ -18,7 +18,7 @@ confidencialidad: interno
 Implementar [VIS-02 v1.0](../../governance/policies/vis-02.md) sin crear una
 fuente paralela a BRAND/Norte y con pruebas separadas para UI, email y PDF.
 
-## 2. Gate 0 — contradicción normativa
+## 2. Gate V0 — resuelto
 
 VIS-02 exige `Noto Serif SC` para chino documental y seis tokens de voz.
 `BRAND.md`:
@@ -27,8 +27,11 @@ VIS-02 exige `Noto Serif SC` para chino documental y seis tokens de voz.
 - prohíbe fuentes serif;
 - no registra excepción Song Ti/Noto Serif SC.
 
-BD-035 solo gobierna Nunito Sans + Sora del ERP; no aprueba Noto Serif SC.
-Por tanto, cargar la fuente ahora violaría el BRAND-CHECK obligatorio.
+BD-035 solo gobierna Nunito Sans + Sora del ERP. La decisión posterior
+**BD-036**, autorizada por Sam el 2026-07-29, aprueba Noto Serif SC únicamente
+para documento formal `zh-CN` y mantiene Noto Sans SC para UI.
+
+V0 queda cerrado. Esta decisión no carga todavía la fuente.
 
 ## 3. Inventario
 
@@ -43,8 +46,8 @@ Por tanto, cargar la fuente ahora violaría el BRAND-CHECK obligatorio.
 
 ## 4. Plan por gates
 
-1. **V0 marca:** aprobar o rechazar la excepción Noto Serif SC y actualizar
-   simultáneamente BRAND/decisión/política.
+1. **V0 marca:** cerrado mediante BD-036 y sincronización
+   BRAND/Norte/VIS-02.
 2. **V1 tokens:** cargar fuente autorizada y añadir aliases compatibles.
 3. **V2 email:** inventariar/normalizar renderers con fallback seguro.
 4. **V3 PDF:** incrustación, glifos, selección/copy-paste y peso.
@@ -65,5 +68,5 @@ tipografía de pantallas existentes en V0.
 
 ## 6. Estado
 
-SDD propuesto; Gate V0 bloqueado por contradicción entre VIS-02 y BRAND. No se
-modificó código ni se cargó Noto Serif SC.
+SDD aprobado; Gate V0 cerrado. V1–V4 permanecen pendientes. No se modificó
+código ni se cargó Noto Serif SC.

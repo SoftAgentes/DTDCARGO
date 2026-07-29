@@ -195,6 +195,7 @@ Tres familias, **ninguna otra**:
 --f-display: 'Archivo Black', 'Archivo', sans-serif
 --f-mono:    'JetBrains Mono', ui-monospace, monospace
 --f-cn:      'Noto Sans SC', 'Archivo', sans-serif   /* solo para chino mandarín */
+--f-cn-document: 'Noto Serif SC', 'Noto Sans SC', serif /* excepción BD-036: solo documento formal zh-CN */
 ```
 
 ### Reglas
@@ -202,10 +203,17 @@ Tres familias, **ninguna otra**:
 - **Archivo regular** para todo el body, labels, buttons.
 - **JetBrains Mono** para códigos: Shipping Mark (`DTD-XXXX` — nombre visible "Shipping Mark", SDD-0065; `markbox` solo como identificador interno), container IDs (`DTDU-XXXXXX`), factura IDs (`F-2026-XXXX`), HS codes, RIF, tarifas, fechas/horas en tablas.
 - **Noto Sans SC** SOLO para texto en chino mandarín (direcciones de almacén CN, nombres bilingües).
+- **Noto Serif SC** es una excepción documental estrecha (BD-036): solo para
+  bloques con `lang="zh-CN"` en cartas, contratos, transcripciones, correos
+  formales y PDF dirigidos a clientes/oficina en China. Nunca se usa en UI,
+  navegación, formularios, marketing, texto latino, títulos de marca o como
+  serif editorial general. Sin la fuente disponible, el fallback obligatorio
+  es Noto Sans SC y la estructura debe seguir siendo comprensible.
 
 ### ❌ Fuentes PROHIBIDAS
 - Inter, Roboto, Open Sans, Lato, Montserrat, Poppins, Helvetica, Arial — son AI slop.
-- Fuentes serif: Fraunces, Playfair, Georgia, Times — no van con el sistema.
+- Fuentes serif: Fraunces, Playfair, Georgia y Times no van con el sistema.
+  Noto Serif SC es la única excepción y únicamente bajo BD-036.
 - Cualquier fuente cursiva o decorativa.
 
 ---

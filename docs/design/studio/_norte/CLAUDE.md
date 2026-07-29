@@ -160,6 +160,7 @@ Los colores viven en `erp/tokens.css`. **Nunca** uses hex literales en HTML/JSX 
 --f-display: 'Sora', 'Nunito Sans', sans-serif          /* títulos, H1/H2, KPI values */
 --f-mono:    'JetBrains Mono', ui-monospace, monospace  /* códigos */
 --f-cn:      'Noto Sans SC', 'Nunito Sans', sans-serif  /* solo chino mandarín */
+--f-cn-document: 'Noto Serif SC', 'Noto Sans SC', serif /* solo documento formal zh-CN · BD-036 */
 
 /* BRANDING (constante · nunca afectado por el sistema) */
 --f-brand:         'Archivo', system-ui, sans-serif
@@ -173,13 +174,21 @@ Los colores viven en `erp/tokens.css`. **Nunca** uses hex literales en HTML/JSX 
 - **Archivo / Archivo Black** (`--f-brand` / `--f-brand-display`) para el **logo corporativo, wordmark "DTD Cargo", plantillas de correo y firma**. El wordmark sigue en Archivo Black (ver `BRAND-MIGRATION`).
 - **JetBrains Mono** para códigos: Shipping Mark (`DTD-XXXX`), container IDs (`DTDU-XXXXXX`), factura IDs (`F-2026-XXXX`), HS codes, RIF, tarifas, fechas/horas en tablas.
 - **Noto Sans SC** SOLO para texto en chino mandarín (direcciones de almacén CN, nombres bilingües).
+- **Noto Serif SC** SOLO para bloques `lang="zh-CN"` de correspondencia,
+  contratos, transcripciones y PDF formales. Es la excepción BD-036; no aplica
+  a UI, marketing, texto latino ni títulos.
 - **Revertir** a la marca = igualar `--f-sans`/`--f-display` a `'Archivo'`/`'Archivo Black'` en `tokens.css` (una línea cada una).
 
 ### ❌ Fuentes PROHIBIDAS
 - Inter, Roboto, Open Sans, Lato, Montserrat, Poppins, Helvetica, Arial — son AI slop.
-- Fuentes serif: Fraunces, Playfair, Georgia, Times — no van con el sistema.
+- Fuentes serif: Fraunces, Playfair, Georgia y Times no van con el sistema.
+  Noto Serif SC es la única excepción documental bajo BD-036.
 - Cualquier fuente cursiva o decorativa.
-- **Excepción vigente:** Nunito Sans + Sora son las fuentes oficiales de la **capa de sistema** desde 2026-05-31 (autorizado por el usuario). No agregar NINGUNA otra fuera de: Nunito Sans, Sora, Archivo/Archivo Black (branding), JetBrains Mono, Noto Sans SC.
+- **Excepciones vigentes:** Nunito Sans + Sora son las fuentes oficiales de la
+  **capa de sistema** desde 2026-05-31. Noto Serif SC se admite solo para
+  documento formal `zh-CN` desde BD-036. No agregar ninguna otra fuera de:
+  Nunito Sans, Sora, Archivo/Archivo Black, JetBrains Mono, Noto Sans SC y la
+  excepción documental Noto Serif SC.
 
 ---
 
@@ -388,7 +397,7 @@ preferís la alternativa?
 ## 🔒 Resumen ejecutivo · 6 reglas que NO se rompen
 
 1. **Solo usar tokens CSS** (`var(--*)`). Cero hex inventados.
-2. **Fuentes:** sistema → **Nunito Sans + Sora**; branding → **Archivo / Archivo Black**; + **JetBrains Mono** y **Noto Sans SC**. Ninguna otra.
+2. **Fuentes:** sistema → **Nunito Sans + Sora**; branding → **Archivo / Archivo Black**; datos → **JetBrains Mono**; chino UI → **Noto Sans SC**; chino documental formal → **Noto Serif SC** bajo BD-036. Ninguna otra.
 3. **Cero AI slop**: sin gradientes coloridos, sin emojis decorativos, sin glassmorphism *como default* (Glass permitido solo en superficies elevadas/flotantes · BD-031), sin shadcn-defaults visibles.
 4. **Componentes del sistema** primero. Inventar solo con `/* TODO: brand-review */`.
 5. **Avisar antes de violar**. Formato `BRAND-CHECK` explícito. Toda excepción aprobada se registra en **`BRAND-DECISIONS.md`**.
