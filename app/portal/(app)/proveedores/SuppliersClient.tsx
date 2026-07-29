@@ -14,6 +14,7 @@ import {
   TruckIcon,
 } from "@/components/Icon";
 import { AlibabaAddressGuide } from "@/components/AlibabaAddressGuide";
+import { ChinaSupplierClip } from "@/components/ChinaSupplierClip";
 import { NewPurchaseButton } from "../../_components/NewPurchaseButton";
 import { FieldLabel } from "../../_components/PortalFormField";
 import type { SupplierView } from "@/lib/studio/prealertas/types";
@@ -122,8 +123,13 @@ export function SuppliersClient({
           Alibaba/1688/Taobao: campo por campo, con copia individual y el
           Shipping Mark ya puesto. Reemplaza a la card local que armaba el mismo
           texto con menos campos y una sola copia a granel. ── */}
-      <div className="mt-5">
+      {/* El par del momento "estoy comprando en China": qué pongo en el
+          formulario de la web de compra, y qué le mando al proveedor por
+          WeChat. Van juntos a propósito — separados, el cliente encontraba uno
+          sin enterarse del otro (founder 2026-07-28). */}
+      <div className="mt-5 grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
         <AlibabaAddressGuide markbox={markbox} />
+        <ChinaSupplierClip markbox={markbox} />
       </div>
 
       {/* ── Lista de proveedores ── */}

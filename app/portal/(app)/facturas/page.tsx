@@ -46,18 +46,36 @@ function formatDate(iso: string | null): string {
  * de los clientes factura en una sola); si hay varias, se avisa. En desktop es
  * una tabla; en mobile cae a las cards `InvoiceRow`. Cada fila linkea al detalle.
  */
-export default async function PortalInvoicesPage() {
+export default async function PortalInvoicesPage({
+  searchParams,
+}: {
+  // `?saldo=1` → solo facturas por pagar. Lo usa "Reportar un pago" del menú
+  // Crear: ese ítem prometía subir un comprobante y aterrizaba en la lista
+  // completa, dejando al cliente a tres saltos de la acción anunciada.
+  searchParams: Promise<{ saldo?: string }>;
+}) {
+  const { saldo } = await searchParams;
+  const soloConSaldo = saldo === "1";
   const supabase = await createClient();
   // Rediseño Norte (founder 2026-06-20) GATEADO al demo: la card "ciclo"
   // (Estimado→Aprobado→Facturado) necesita estimados + envíos; sólo se cargan para
   // el demo (clientes reales: misma página, sin queries extra).
   const client = await getPortalClient(supabase);
   const demo = showNortePortal(client?.markbox);
-  const [invoices, shipments, estimates] = await Promise.all([
+  const [todasLasFacturas, shipments, estimates] = await Promise.all([
     listMyInvoices(supabase),
     demo ? listMyShipments(supabase) : Promise.resolve<PortalShipmentRow[]>([]),
     demo ? listMyEstimates(supabase) : Promise.resolve<PortalEstimateRow[]>([]),
   ]);
+  // Los KPIs siguen midiendo TODO (el saldo total no cambia porque filtres la
+  // vista); solo la lista se recorta.
+  const invoices = soloConSaldo
+    ? todasLasFacturas.filter(
+        (inv) =>
+          invoiceBalance({ total_amount: inv.total, paid_amount: inv.paid }) > 0,
+      )
+    : todasLasFacturas;
+
   const approvedCount = shipments.filter((s) =>
     isActiveShipmentStatus(s.status),
   ).length;
@@ -70,7 +88,7 @@ export default async function PortalInvoicesPage() {
     InvoiceCurrency,
     { total: number; paid: number; balance: number }
   >();
-  for (const inv of invoices) {
+  for (const inv of todasLasFacturas) {
     const e = byCurrency.get(inv.currency) ?? { total: 0, paid: 0, balance: 0 };
     e.total += inv.total;
     e.paid += inv.paid;
@@ -93,10 +111,34 @@ export default async function PortalInvoicesPage() {
         Mis facturas.
       </h1>
       <p className="lead mt-3">
-        Tu estado de cuenta y comprobantes. Al pagar, entra a la factura y
-        <span className="whitespace-nowrap"> reporta tu pago</span> con el
-        comprobante — tu asesor lo confirma.
+        {soloConSaldo
+          ? "Estas son tus facturas por pagar. Entra a la que vas a reportar y sube el comprobante — tu asesor lo confirma."
+          : "Tu estado de cuenta y comprobantes. Al pagar, entra a la factura y reporta tu pago con el comprobante — tu asesor lo confirma."}
       </p>
+
+      {/* La vista filtrada avisa que está filtrada y ofrece la salida: si no,
+          un cliente con facturas pagadas creería que se le perdieron. */}
+      {soloConSaldo ? (
+        <div
+          className="mt-5 rounded-[12px] border border-grey-200 px-4 py-3 flex flex-wrap items-center justify-between gap-3"
+          style={{ background: "var(--color-paper)" }}
+        >
+          <span className="text-[13px] text-grey-700">
+            Mostrando solo las facturas <strong className="text-ink">por pagar</strong>
+            {todasLasFacturas.length > invoices.length
+              ? ` · ${todasLasFacturas.length - invoices.length} pagada${
+                  todasLasFacturas.length - invoices.length === 1 ? "" : "s"
+                } oculta${todasLasFacturas.length - invoices.length === 1 ? "" : "s"}`
+              : ""}
+          </span>
+          <Link
+            href="/portal/facturas"
+            className="text-[12.5px] font-bold text-wine-text hover:underline"
+          >
+            Ver todas →
+          </Link>
+        </div>
+      ) : null}
 
       {/* Card "ciclo" del Norte — GATEADA al demo (clientes reales no la ven). */}
       {demo ? (
