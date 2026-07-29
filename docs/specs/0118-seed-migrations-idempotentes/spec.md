@@ -184,6 +184,25 @@ Producción no ejecuta los 33 `ALTER FUNCTION`: sólo almacena el texto para
 futuros replays. La segunda ejecución reconoce el digest final y no vuelve a
 escribir.
 
+### Bloqueo posterior al sexto replay
+
+R6 confirmó la reparación de `0210`: el replay avanzó de 266 a 268
+migraciones y aplicó `0262` y `0263`. El preflight de
+`0264_harden_comment_mentions_validate_execute` abortó porque
+`comment_mentions_validate()` todavía concede EXECUTE a `anon`.
+
+El diagnóstico metadata-only confirmó que la función conserva el ACL por
+defecto de PUBLIC junto con `anon`, `authenticated` y `service_role`. La
+entrada que debía establecer el ACL previo esperado es:
+
+```text
+20260703234254 · 0209_revoke_anon_rpc_sweep · statements = NULL
+```
+
+El próximo gate debe restaurar forward-only el payload reproducible de
+`0209`; no debe ejecutar el sweep directamente sobre un branch fallido ni
+aplicar un basename nuevo sin autorización expresa.
+
 ## 3. Generación y control de drift
 
 El generador
@@ -253,11 +272,15 @@ metadatos técnicos del ledger.
 | Quinto branch | 266 migraciones; `0262` detecta `proconfig = NULL` porque `0210` tiene statements NULL; teardown terminal · [REV-AUD-019](../../governance/reviews/aud-tenant-fixtures-ephemeral-validation.md) |
 | Pin search_path local | `0275` determinista · PostgreSQL 15/17 · 33 firmas · UPDATE 1/0 · rollback · [REV-AUD-028](../../governance/reviews/aud-sdd-0118-pin-search-path-history.md) |
 | Pin search_path Cloud | `0275` aplicada individualmente; recibo `20260729152036` · [REV-AUD-029](../../governance/reviews/aud-sdd-0118-pin-search-path-history-application.md) |
+| Sexto branch | 268 migraciones; `0264` detecta EXECUTE de `anon` porque `0209` tiene statements NULL; teardown terminal · [REV-AUD-019](../../governance/reviews/aud-tenant-fixtures-ephemeral-validation.md) |
 | Diff | verde |
 
 ## 7. Gates restantes
 
-1. crear un entorno efímero nuevo y completar replay, seed, E2E, verificación
+1. diseñar y validar localmente la reparación forward-only del payload de
+   `0209_revoke_anon_rpc_sweep`;
+2. obtener autorización expresa del nuevo basename antes de aplicarlo;
+3. crear un entorno efímero nuevo y completar replay, seed, E2E, verificación
    y teardown terminal.
 
 SDD-0118 permanece `in-progress` hasta que un entorno nuevo demuestre el

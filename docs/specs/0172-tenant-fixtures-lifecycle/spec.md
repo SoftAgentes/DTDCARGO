@@ -195,6 +195,8 @@ No crea funciones ni modifica otra FK.
 | Teardown remoto R4 | terminal · branch y project ref ausentes del inventario posterior |
 | Supabase efímero R5 | intento fail-closed · 266 migraciones · `0262` detecta dos funciones comments sin `search_path=public` |
 | Teardown remoto R5 | terminal · branch y project ref ausentes; sólo `main` saludable |
+| Supabase efímero R6 | intento fail-closed · 268 migraciones · `0264` detecta EXECUTE de `anon` por payload 0209 ausente |
+| Teardown remoto R6 | terminal · branch y project ref ausentes; sólo `main` saludable |
 
 ## 11. Rollback
 
@@ -206,9 +208,11 @@ No crea funciones ni modifica otra FK.
 
 ## 12. Gates pendientes
 
-1. crear un Supabase efímero nuevo que alcance `MIGRATIONS_PASSED`;
-2. ejecutar seed, recorrido E2E y verificación sin DML de cleanup;
-3. destruir ese entorno y volver a comprobar estado terminal.
+1. resolver mediante gate propio el payload no reproducible de
+   `0209_revoke_anon_rpc_sweep`;
+2. crear un Supabase efímero nuevo que alcance `MIGRATIONS_PASSED`;
+3. ejecutar seed, recorrido E2E y verificación sin DML de cleanup;
+4. destruir ese entorno y volver a comprobar estado terminal.
 
 El gate Cloud de 0268 quedó cerrado en
 [REV-AUD-018](../../governance/reviews/aud-tenant-lifecycle-aplicacion.md).
@@ -218,7 +222,7 @@ El gate Cloud de 0274 quedó cerrado en
 [REV-AUD-027](../../governance/reviews/aud-sdd-0118-calculator-settings-history-application.md).
 El gate Cloud de 0275 quedó cerrado en
 [REV-AUD-029](../../governance/reviews/aud-sdd-0118-pin-search-path-history-application.md).
-Los cinco intentos reales y sus teardowns quedaron registrados en
+Los seis intentos reales y sus teardowns quedaron registrados en
 [REV-AUD-019](../../governance/reviews/aud-tenant-fixtures-ephemeral-validation.md).
 SDD-0172 permanece `in-progress`: el teardown fue válido, pero el fixture no
 se ejecutó porque el replay histórico falló antes de construir el schema.

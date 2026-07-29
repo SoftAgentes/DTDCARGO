@@ -300,3 +300,65 @@ comportamiento fail-closed y el teardown terminal del quinto intento. No
 aprueba SDD-0172: el payload reproducible de
 `0210_pin_search_path_triggers` requiere un gate forward-only propio y
 autorización expresa de su nuevo basename antes de cualquier aplicación.
+
+## 15. Sexto intento después de `0275`
+
+Después del postflight verde de
+`0275_restore_pin_search_path_history`, se creó otro entorno completamente
+nuevo y sin datos de Producción:
+
+| Campo | Valor |
+|---|---|
+| Nombre | `sdd-0172-ephemeral-20260729-r6` |
+| `branch_id` | `4e44e488-8951-4def-9bd5-8cc4444ea93e` |
+| `project_ref` | `xxgeviqtsyyewgapdeay` |
+| Creado | 2026-07-29T15:36:46.638778Z |
+| Costo | USD 0,01344 por hora |
+| Datos de Producción | no |
+
+El replay avanzó de 266 a 268 entradas. La última migración confirmada fue:
+
+```text
+20260723141742 · 0263_harden_postgres_public_default_table_acl
+```
+
+La siguiente entrada de Producción es:
+
+```text
+20260723141803 · 0264_harden_comment_mentions_validate_execute
+```
+
+PostgreSQL abortó su preflight con:
+
+```text
+0264 detectó un ACL previo inesperado en comment_mentions_validate()
+```
+
+El diagnóstico metadata-only comprobó que
+`public.comment_mentions_validate()` conserva EXECUTE para PUBLIC, `anon`,
+`authenticated` y `service_role`. La entrada histórica que debía retirar
+PUBLIC/anon y conceder sólo los roles previstos está registrada como:
+
+```text
+20260703234254 · 0209_revoke_anon_rpc_sweep · statements = NULL
+```
+
+R6 no recibió ese payload y llegó a `0264` con el ACL por defecto. No se
+ejecutaron seed E2E, Auth, fixtures, Playwright, verificación de teardown por
+script, reset, rebase, merge ni SQL correctivo. Tampoco se leyeron filas de
+negocio o PII.
+
+## 16. Teardown terminal R6
+
+`delete_branch` devolvió `success=true` para el `branch_id` exacto. El
+inventario posterior volvió a mostrar únicamente:
+
+```text
+main · xpfuzqombmjmxvprjgmi · ACTIVE_HEALTHY
+```
+
+El `branch_id` y `project_ref` R6 quedaron ausentes. REV-AUD-019 aprueba el
+comportamiento fail-closed y el teardown terminal del sexto intento. No
+aprueba SDD-0172: el payload reproducible de
+`0209_revoke_anon_rpc_sweep` requiere un gate forward-only propio antes de
+crear otro entorno.
