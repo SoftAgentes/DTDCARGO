@@ -58,18 +58,22 @@ describe("ciclo de permanencia de comentarios", () => {
 
   it("normaliza la respuesta de la RPC sin filtrar detalles internos", () => {
     expect(
-      parseCommentLifecycleResult({
-        ok: true,
-        code: "deleted",
-        comment_id: "c1",
-        correlation_id: "corr",
-        undo_expires_at: "2026-07-23T12:00:10Z",
-      }),
+      parseCommentLifecycleResult(
+        {
+          ok: true,
+          code: "deleted",
+          comment_id: "c1",
+          correlation_id: "corr",
+          undo_expires_at: "2026-07-23T12:00:10Z",
+        },
+        NOW,
+      ),
     ).toMatchObject({
       ok: true,
       code: "deleted",
       commentId: "c1",
       correlationId: "corr",
+      undoRemainingMs: COMMENT_UNDO_WINDOW_MS,
     });
     expect(
       parseCommentLifecycleResult({ ok: false, code: "not_allowed" }),
@@ -77,5 +81,38 @@ describe("ciclo de permanencia de comentarios", () => {
       ok: false,
       error: "No tienes permiso para realizar esta acción.",
     });
+  });
+
+  it("calcula la ventana restante en servidor y la acota al contrato", () => {
+    expect(
+      parseCommentLifecycleResult(
+        {
+          ok: true,
+          code: "deleted",
+          undo_expires_at: "2026-07-23T12:00:04Z",
+        },
+        NOW,
+      ).undoRemainingMs,
+    ).toBe(4_000);
+    expect(
+      parseCommentLifecycleResult(
+        {
+          ok: true,
+          code: "deleted",
+          undo_expires_at: "2026-07-23T12:01:00Z",
+        },
+        NOW,
+      ).undoRemainingMs,
+    ).toBe(COMMENT_UNDO_WINDOW_MS);
+    expect(
+      parseCommentLifecycleResult(
+        {
+          ok: true,
+          code: "deleted",
+          undo_expires_at: "2026-07-23T11:59:59Z",
+        },
+        NOW,
+      ).undoRemainingMs,
+    ).toBe(0);
   });
 });

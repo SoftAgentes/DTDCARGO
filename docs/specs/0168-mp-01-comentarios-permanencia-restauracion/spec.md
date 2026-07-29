@@ -19,9 +19,13 @@ confidencialidad: interno
 > aplicado en Cloud y APP fue validada en un Preview aislado el 2026-07-23,
 > según [REV-MP-003](../../governance/reviews/mp-01-comments-implementation.md).
 > DB-2 fue implementado, aplicado en Cloud y verificado el 2026-07-28 según
-> [REV-MP-004](../../governance/reviews/mp-01-comments-db2.md). Push,
-> integración, `main`, Producción APP y los ACL históricos conservan gates
-> propios.
+> [REV-MP-004](../../governance/reviews/mp-01-comments-db2.md). La APP fue
+> revalidada después de DB-2 en un Preview aislado según
+> [REV-MP-005](../../governance/reviews/mp-01-comments-preview-e2e.md). Otra
+> ventana integró hasta `b92116d4` en `main` mediante `67b1a46b` y activó el
+> despliegue automático de Producción. El correctivo final fue publicado en su
+> rama y pasó CI; integración, validación funcional de Producción y los ACL
+> históricos conservan gates propios.
 
 ## 1. Propósito
 
@@ -336,15 +340,21 @@ parte del gate UI. El orden y jerarquía de acciones deben cumplir BTN-01.
       badge coherente y deadline absoluto; sin tocar ACL históricos.
 - [x] DB-1 (`0262_comments_lifecycle_contract`) fue autorizado por basename,
       aplicado en Cloud y verificado por ledger y postcondiciones metadata-only.
-- [x] APP fue validada en Preview aislado con seed controlado y recorrido
-      autenticado crear/eliminar/deshacer/eliminar/restaurar.
+- [x] APP fue revalidada después de DB-2 en Preview aislado con seed controlado
+      y recorrido autenticado crear/eliminar/deshacer/eliminar/restaurar según
+      REV-MP-005.
 - [x] DB-2 (`0265_comments_lifecycle_hardening`) fue implementado, revisado y
       validado localmente según REV-MP-004.
 - [x] DB-2 fue autorizado por basename exacto, aplicado de a una en Cloud como
       versión `20260728220034` y verificado con preflight, postcondiciones y
       advisors.
-- [ ] Push, integración, `main` y Producción APP reciben autorización
-      individual; ninguna se infiere de DB-1 ni del Preview.
+- [x] El historial hasta `b92116d4` fue integrado por otra ventana mediante
+      `67b1a46b` y Vercel lo desplegó automáticamente a Producción.
+- [x] El correctivo final `592226e9` y la evidencia `1f831b63` fueron
+      publicados en `codex/sdd-0168-db1-local`; Vercel y GitHub reportaron
+      `success`.
+- [ ] Integración del correctivo final y validación funcional de Producción
+      reciben gates individuales.
 
 ## 12. Fuera de alcance
 

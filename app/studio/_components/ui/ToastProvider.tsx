@@ -68,6 +68,11 @@ export interface GovernedToastInput {
    * oculta.
    */
   actionExpiresAt?: string;
+  /**
+   * Duración restante calculada por el servidor. Evita que un reloj local
+   * desajustado invalide de inmediato una acción todavía vigente.
+   */
+  actionDurationMs?: number;
   actionExpiredMessage?: string;
   /** Solo para errores que impiden continuar la tarea actual. */
   urgent?: boolean;
@@ -133,6 +138,31 @@ const UNDO_DURATION_MS = 10_000;
 const DESKTOP_MAX_VISIBLE = 3;
 const MOBILE_MAX_VISIBLE = 1;
 const MOBILE_QUERY = "(max-width: 767px)";
+
+function resolveActionDeadline(input: GovernedToastInput): {
+  expiresAtMs?: number;
+  invalid: boolean;
+} {
+  if (input.actionDurationMs !== undefined) {
+    const valid =
+      Number.isFinite(input.actionDurationMs) &&
+      input.actionDurationMs > 0;
+    return {
+      expiresAtMs: valid ? Date.now() + input.actionDurationMs : undefined,
+      invalid: !valid,
+    };
+  }
+
+  if (input.actionExpiresAt === undefined) {
+    return { invalid: false };
+  }
+
+  const parsed = Date.parse(input.actionExpiresAt);
+  return {
+    expiresAtMs: Number.isFinite(parsed) ? parsed : undefined,
+    invalid: !Number.isFinite(parsed),
+  };
+}
 
 const PRIORITY_WEIGHT: Record<ToastPriority, number> = {
   low: 0,
@@ -316,12 +346,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           if (existing.actionState === "acting") return previous;
           const isVisible = index < maxVisibleRef.current;
           const durationMs = durationToMs(input.duration, Boolean(input.action));
-          const actionExpiresAtMs = input.actionExpiresAt
-            ? Date.parse(input.actionExpiresAt)
-            : undefined;
-          const hasInvalidActionDeadline =
-            input.actionExpiresAt !== undefined &&
-            !Number.isFinite(actionExpiresAtMs);
+          const {
+            expiresAtMs: actionExpiresAtMs,
+            invalid: hasInvalidActionDeadline,
+          } = resolveActionDeadline(input);
           const updated: ToastRecord = {
             ...existing,
             eventKey: input.eventKey,
@@ -365,16 +393,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
       const id = `toast-${Date.now()}-${++sequenceRef.current}`;
       const durationMs = durationToMs(input.duration, Boolean(input.action));
-      const parsedActionExpiry = input.actionExpiresAt
-        ? Date.parse(input.actionExpiresAt)
-        : undefined;
-      const actionExpiresAtMs =
-        parsedActionExpiry !== undefined && Number.isFinite(parsedActionExpiry)
-          ? parsedActionExpiry
-          : undefined;
-      const hasInvalidActionDeadline =
-        input.actionExpiresAt !== undefined &&
-        !Number.isFinite(parsedActionExpiry);
+      const {
+        expiresAtMs: actionExpiresAtMs,
+        invalid: hasInvalidActionDeadline,
+      } = resolveActionDeadline(input);
       const record: ToastRecord = {
         id,
         eventKey: input.eventKey,
