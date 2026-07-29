@@ -10,7 +10,7 @@
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-29 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-043 · intento efímero SDD-0172](BASELINE-2026-07-29-15.md) |
+| Línea base vigente | [LB-SGE-044 · primer componente CMP-01](BASELINE-2026-07-29-16.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -114,6 +114,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Ciclo de vida de componentes | [CMP-01 v1.0](policies/cmp-01.md) |
 | Revisión normativa CMP-01 | [REV-SGE-006](reviews/cmp-01.md) |
 | Diseño del registro CMP-01 | [REV-SGE-010](reviews/cmp-01-registry-design.md) |
+| Primer componente CMP-01 canónico | [REV-SGE-012 · ConfirmDialog](reviews/cmp-confirm-dialog-canonical.md) |
 | Plugin de gobernanza | [PLG-01 v1.0](policies/plg-01.md) |
 | Revisión normativa PLG-01 | [REV-SGE-007](reviews/plg-01.md) |
 | Diseño técnico PLG-01 | [SDD-0178 + REV-SGE-011](../specs/0178-plugin-gobernanza-erp-studio/spec.md) |
@@ -182,7 +183,7 @@ disfraza elevando el estado normativo.
 | TBL-01 | Tablas, densidad y configuración | aprobada v1.0 | `ColumnManager` tiene adopción limitada | Auditar listados y móvil |
 | A11Y-01 | Accesibilidad transversal | aprobada v1.0 | Buenas bases; sin matriz integral | Ejecutar auditoría transversal |
 | IA-01 | Interacciones asistidas por IA | aprobada v1.0 | Regla local “IA propone”; sin gate transversal | Auditar permisos, privacidad y evidencia |
-| CMP-01 | Ciclo de vida y madurez de componentes | aprobada v1.0 | Schema y diseño ejecutable aprobados; registro no poblado | [REV-SGE-010](reviews/cmp-01-registry-design.md) |
+| CMP-01 | Ciclo de vida y madurez de componentes | aprobada v1.0 | `ConfirmDialog` recorrió proposed→canonical; agregado y tests verdes; falta caso deprecated | [REV-SGE-012](reviews/cmp-confirm-dialog-canonical.md) |
 | PLG-01 | Plugin ejecutable de gobernanza | aprobada v1.0 | SDD-0178 aprobado; plugin no creado ni instalado | CMP estable + decisión de destino antes de scaffold |
 
 ## 5. Jerarquía y resolución de conflictos
@@ -257,7 +258,9 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-043 · intento efímero SDD-0172](BASELINE-2026-07-29-15.md).
+[LB-SGE-044 · primer componente CMP-01](BASELINE-2026-07-29-16.md).
+El intento efímero SDD-0172 permanece en
+[LB-SGE-043](BASELINE-2026-07-29-15.md).
 El SDD de PLG-01 aprobado permanece en
 [LB-SGE-042](BASELINE-2026-07-29-14.md).
 El registro CMP diseñado permanece en

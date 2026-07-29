@@ -99,6 +99,12 @@ importers:
       agentation-mcp:
         specifier: ^1.2.0
         version: 1.2.0
+      ajv:
+        specifier: 8.20.0
+        version: 8.20.0
+      ajv-formats:
+        specifier: 3.0.1
+        version: 3.0.1(ajv@8.20.0)
       eslint:
         specifier: ^9
         version: 9.39.4(jiti@2.7.0)

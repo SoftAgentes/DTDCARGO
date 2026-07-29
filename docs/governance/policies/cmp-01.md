@@ -2,7 +2,7 @@
 
 | Control | Valor |
 |---|---|
-| Estado | aprobada — registro ejecutable pendiente |
+| Estado | aprobada — primer componente canónico registrado |
 | Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-006 |
 | Depende de | SGE-00 y políticas de patrón |
 
@@ -31,3 +31,14 @@ búsqueda cero consumidores.
 
 El catálogo del futuro plugin lee este registro. Crear un componente no lo hace
 canónico automáticamente.
+
+## Estado de implementación
+
+`ConfirmDialog` recorrió `proposed → canonical` mediante
+[REV-SGE-012](../reviews/cmp-confirm-dialog-canonical.md). El agregado CMP-01
+contiene un solo componente real y pasa schema, rutas, export, políticas,
+tokens, tests y consumidores.
+
+El registro todavía no se considera estable para PLG-01: falta validar un caso
+`deprecated` con reemplazo y plan, además de versionar dos limitaciones del
+schema v1 documentadas por REV-SGE-012.
