@@ -461,3 +461,37 @@ posterior contiene únicamente `main` con `ACTIVE_HEALTHY`; el `branch_id` y
 REV-AUD-019 aprueba el fail-closed y teardown de R8. La reparación local
 resultante se documenta en
 [REV-AUD-032](aud-sdd-0118-rls-auto-enable-history.md).
+
+## 21. Noveno intento después de `0278`
+
+Después de aplicar y verificar individualmente
+`0278_restore_rls_auto_enable_history`, se creó otro entorno sin datos de
+Producción:
+
+| Campo | Valor |
+|---|---|
+| Nombre | `sdd-0172-ephemeral-20260729-r9` |
+| `branch_id` | `6746b74f-6fe4-4485-b0ef-d06cae5b259a` |
+| `project_ref` | `csekuuxlrtmtubnjxaep` |
+| Costo | USD 0,01344 por hora |
+| Estado final | `MIGRATIONS_FAILED` |
+
+R9 superó el payload restaurado de 0209 y avanzó hasta
+`0268_tenant_lifecycle_guardrails`. El preflight abortó con:
+
+```text
+0268 abortado: un rol cliente puede borrar tenants
+```
+
+No se ejecutaron seed, Auth, fixtures, Playwright o SQL correctivo. Tampoco se
+leyeron filas de negocio o PII.
+
+## 22. Teardown terminal R9
+
+`delete_branch` devolvió `success=true` para
+`6746b74f-6fe4-4485-b0ef-d06cae5b259a`. El inventario posterior devolvió
+únicamente `main` `ACTIVE_HEALTHY`; el `branch_id` y `project_ref` R9 quedaron
+ausentes.
+
+El análisis y la reparación forward-only local resultante están en
+[REV-AUD-033](aud-sdd-0172-tenant-acl-history.md).

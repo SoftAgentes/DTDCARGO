@@ -23,13 +23,22 @@ export const SQL_TEST_PATH = resolve(
   "supabase/tests/0278_restore_rls_auto_enable_history.test.sql",
 );
 
-export const BOOTSTRAP_MD5 = "171643b4a504a765e5183d0e80cd461f";
+export const BOOTSTRAP_FILE_MD5 = "171643b4a504a765e5183d0e80cd461f";
+export const BOOTSTRAP_MD5 = "3be131a05cb2d712fc92996004ae8b33";
 export const SWEEP_MD5 = "c6c722efdb7ff79ef037e0d826739205";
 export const TARGET_VERSION = "20260703234254";
 export const TARGET_NAME = "0209_revoke_anon_rpc_sweep";
 
 function normalizeSql(value) {
   return value.replace(/\r\n/g, "\n");
+}
+
+function executableStatement(value) {
+  return value
+    .split("\n")
+    .filter((line) => !line.trimStart().startsWith("--"))
+    .join("\n")
+    .trim();
 }
 
 function md5(value) {
@@ -44,11 +53,15 @@ function sqlLiteral(value, tag) {
 }
 
 export async function loadInputs() {
-  const bootstrapSql = normalizeSql(await readFile(BOOTSTRAP_PATH, "utf8"));
+  const bootstrapFile = normalizeSql(await readFile(BOOTSTRAP_PATH, "utf8"));
   const sweepSql = normalizeSql(await readFile(SWEEP_PATH, "utf8"));
 
+  if (md5(bootstrapFile) !== BOOTSTRAP_FILE_MD5) {
+    throw new Error("0277 cambió respecto del archivo recuperado y publicado");
+  }
+  const bootstrapSql = executableStatement(bootstrapFile);
   if (md5(bootstrapSql) !== BOOTSTRAP_MD5) {
-    throw new Error("0277 cambió respecto de la definición recuperada de Producción");
+    throw new Error("0277 cambió respecto del statement exacto del ledger de Producción");
   }
   if (md5(sweepSql) !== SWEEP_MD5) {
     throw new Error("0209 cambió respecto del payload ya restaurado en el ledger");

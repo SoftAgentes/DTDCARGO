@@ -6,7 +6,7 @@
 | Fecha | 2026-07-29 |
 | SDD | [SDD-0118](../../specs/0118-seed-migrations-idempotentes/spec.md) |
 | Basenames | `0277_version_rls_auto_enable` y `0278_restore_rls_auto_enable_history` |
-| Resultado | 0277 recuperada; 0278 aprobada localmente, aplicación pendiente |
+| Resultado | 0277 recuperada; 0278 aplicada y verificada |
 
 ## 1. Evidencia metadata-only
 
@@ -22,10 +22,13 @@ Producción contiene `public.rls_auto_enable()` con:
 El event trigger `ensure_rls` está activo en `ddl_command_end` para `CREATE
 TABLE`, `CREATE TABLE AS` y `SELECT INTO`.
 
-La definición fue recuperada byte-idéntica desde el commit preservado que aplicó
+La definición fue recuperada desde el commit preservado que aplicó
 `0277_version_rls_auto_enable`. Producción registra ese basename con versión
-`20260729213453`. La copia canónica normalizada tiene MD5
-`171643b4a504a765e5183d0e80cd461f`.
+`20260729213453`. El archivo documental normalizado tiene MD5
+`171643b4a504a765e5183d0e80cd461f`; al retirar exclusivamente sus líneas de
+comentario `--`, el payload ejecutable mide 1.878 caracteres y queda
+byte-idéntico al statement del ledger, MD5
+`3be131a05cb2d712fc92996004ae8b33`.
 
 ## 2. R8 demuestra que 0277 no resuelve el orden histórico
 
@@ -72,8 +75,8 @@ sólo almacena el payload en el ledger. El preflight acepta exclusivamente:
 
 - estado actual: cardinalidad 1 y MD5 de 0209
   `c6c722efdb7ff79ef037e0d826739205`;
-- estado objetivo: cardinalidad 2 con MD5 0277
-  `171643b4a504a765e5183d0e80cd461f` seguido del MD5 de 0209.
+- estado objetivo: cardinalidad 2 con MD5 del statement 0277
+  `3be131a05cb2d712fc92996004ae8b33` seguido del MD5 de 0209.
 
 Cualquier otro estado aborta.
 
@@ -88,11 +91,22 @@ Cualquier otro estado aborta.
 - Docker residual: cero contenedores del gate;
 - `git diff --check`: verde.
 
-## 5. Límite operativo
+## 5. Aplicación individual y postcondiciones
 
-REV-AUD-032 aprueba el diseño y las pruebas locales. El runbook de Producción
-continúa exigiendo autorización que nombre exactamente
-`0278_restore_rls_auto_enable_history` antes de aplicar. Después se requiere un
-branch completamente nuevo para replay, seed, E2E, verificación y teardown.
+La autorización nominal fue recibida y `0278_restore_rls_auto_enable_history`
+se aplicó individualmente. Recibo:
+
+```text
+20260729223452 · 0278_restore_rls_auto_enable_history
+```
+
+`0209` quedó con cardinalidad 2 y los MD5 esperados en orden. La función,
+trigger y ACL vivos no cambiaron. El delta de advisors antes/después fue cero.
+
+## 6. Continuación
+
+R9 superó 0209 y falló cerrado después, en el preflight ACL de 0268. Su
+diagnóstico, teardown y reparación local están en
+[REV-AUD-033](aud-sdd-0172-tenant-acl-history.md).
 
 No modifica producto, Auth, Vercel, CMP-01, D1, D2–D5, slices o PLG-P3.

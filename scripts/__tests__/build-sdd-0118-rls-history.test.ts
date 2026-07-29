@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import {
+  BOOTSTRAP_FILE_MD5,
   BOOTSTRAP_MD5,
   MIGRATION_PATH,
   SQL_TEST_PATH,
@@ -24,7 +25,9 @@ describe("SDD-0118 · historial reproducible de rls_auto_enable", () => {
     expect(inputs.sweepSql).toContain(
       "revoke execute on function public.rls_auto_enable()",
     );
-    expect(BOOTSTRAP_MD5).toBe("171643b4a504a765e5183d0e80cd461f");
+    expect(BOOTSTRAP_FILE_MD5).toBe("171643b4a504a765e5183d0e80cd461f");
+    expect(BOOTSTRAP_MD5).toBe("3be131a05cb2d712fc92996004ae8b33");
+    expect(inputs.bootstrapSql).not.toContain("-- Versionar");
     expect(SWEEP_MD5).toBe("c6c722efdb7ff79ef037e0d826739205");
   });
 

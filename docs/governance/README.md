@@ -10,7 +10,7 @@
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-29 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-070 · historial RLS listo para aplicación individual](BASELINE-2026-07-29-42.md) |
+| Línea base vigente | [LB-SGE-071 · ACL histórico tenant listo para aplicación individual](BASELINE-2026-07-29-43.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -82,6 +82,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Reparación local del payload 0210 | [REV-AUD-028](reviews/aud-sdd-0118-pin-search-path-history.md) |
 | Recibo Cloud de 0275 | [REV-AUD-029](reviews/aud-sdd-0118-pin-search-path-history-application.md) |
 | Reparación histórica de `rls_auto_enable` | [REV-AUD-032](reviews/aud-sdd-0118-rls-auto-enable-history.md) |
+| Reparación histórica del ACL tenant antes de 0268 | [REV-AUD-033](reviews/aud-sdd-0172-tenant-acl-history.md) |
 | Inventario read-only del Corte C | [C0 · repo y Cloud](../specs/0166-auditoria-gobernada-aud-01-aud-02/inventario-corte-c-2026-07-28.md) |
 | Diseño correctivo del Corte C | [Consulta gobernada y RBAC v1.1](../specs/0166-auditoria-gobernada-aud-01-aud-02/diseno-correctivo-corte-c.md) |
 | Revisión del diseño Corte C | [REV-AUD-012](reviews/aud-corte-c.md) |

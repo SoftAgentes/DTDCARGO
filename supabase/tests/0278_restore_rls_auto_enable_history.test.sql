@@ -160,7 +160,7 @@ begin
     where version = '20260703234254'
       and name = '0209_revoke_anon_rpc_sweep'
       and cardinality(statements) = 2
-      and md5(statements[1]) = '171643b4a504a765e5183d0e80cd461f'
+      and md5(statements[1]) = '3be131a05cb2d712fc92996004ae8b33'
       and md5(statements[2]) = 'c6c722efdb7ff79ef037e0d826739205'
   ) then
     raise exception 'TEST 0278: ledger no quedó ordenado e idempotente';

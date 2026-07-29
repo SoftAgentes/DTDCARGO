@@ -16,7 +16,7 @@ begin
         )
         or (
           cardinality(statements) = 2
-          and md5(statements[1]) = '171643b4a504a765e5183d0e80cd461f'
+          and md5(statements[1]) = '3be131a05cb2d712fc92996004ae8b33'
           and md5(statements[2]) = 'c6c722efdb7ff79ef037e0d826739205'
         )
       )
@@ -28,30 +28,7 @@ $sdd0118_rls_history_preflight$;
 
 update supabase_migrations.schema_migrations
 set statements = array[
-  $sdd0118_rls_bootstrap$-- ─────────────────────────────────────────────────────────────
--- Versionar `rls_auto_enable()` + el event trigger `ensure_rls`
---
--- POR QUÉ: esta función vive en producción desde hace meses, creada FUERA DE
--- BANDA — ninguna migración la creaba. Las 0209 y 0211 le hacen revoke/grant
--- dando por sentado que existe. Consecuencias de eso:
---   · su código no estaba versionado → nadie lo podía revisar ni auditar;
---   · una reconstrucción de la base (o un branch de Supabase) la perdía, y con
---     ella la garantía de que toda tabla nueva nace con RLS;
---   · el gate `schema-rebuild` la reportaba como la única función huérfana del
---     repo (referenciada por grant/revoke, creada por nadie).
---
--- Esta migración NO cambia el comportamiento: es la definición EXACTA que hoy
--- corre en prod (recuperada con pg_get_functiondef el 2026-07-29), escrita de
--- forma idempotente. Aplicarla a prod sólo deja el ledger y el repo alineados.
---
--- QUÉ HACE la función: es un event trigger `ddl_command_end` que, ante
--- CREATE TABLE / CREATE TABLE AS / SELECT INTO en el schema `public`, ejecuta
--- `alter table ... enable row level security`. Es el cinturón que garantiza que
--- ninguna tabla nueva quede sin RLS por olvido. No sustituye a las policies:
--- una tabla con RLS y sin policy no la lee nadie (salvo BYPASSRLS).
--- ─────────────────────────────────────────────────────────────
-
-create or replace function public.rls_auto_enable()
+  $sdd0118_rls_bootstrap$create or replace function public.rls_auto_enable()
 returns event_trigger
 language plpgsql
 security definer
@@ -84,7 +61,6 @@ $function$;
 comment on function public.rls_auto_enable is
   'Event trigger (ddl_command_end): habilita RLS automáticamente en toda tabla nueva de public. Creada fuera de banda en prod; versionada acá en 0277 para que sea auditable y sobreviva a una reconstrucción. La usa el event trigger ensure_rls.';
 
--- El event trigger no admite IF NOT EXISTS.
 do $ensure_rls$
 begin
   if not exists (select 1 from pg_event_trigger where evtname = 'ensure_rls') then
@@ -96,11 +72,8 @@ begin
 end
 $ensure_rls$;
 
--- Las ACL que 0209 y 0211 ya fijaron (idempotente, por si esto corre sobre una
--- base reconstruida donde aquellas se aplicaron antes de que la función existiera).
 revoke execute on function public.rls_auto_enable() from public, anon, authenticated;
-grant  execute on function public.rls_auto_enable() to service_role;
-$sdd0118_rls_bootstrap$
+grant  execute on function public.rls_auto_enable() to service_role;$sdd0118_rls_bootstrap$
 ] || statements
 where version = '20260703234254'
   and name = '0209_revoke_anon_rpc_sweep'
@@ -115,7 +88,7 @@ begin
     where version = '20260703234254'
       and name = '0209_revoke_anon_rpc_sweep'
       and cardinality(statements) = 2
-      and md5(statements[1]) = '171643b4a504a765e5183d0e80cd461f'
+      and md5(statements[1]) = '3be131a05cb2d712fc92996004ae8b33'
       and md5(statements[2]) = 'c6c722efdb7ff79ef037e0d826739205'
   ) then
     raise exception 'SDD-0118 rls history: postcondición falló en 20260703234254 0209_revoke_anon_rpc_sweep';
