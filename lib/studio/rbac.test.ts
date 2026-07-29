@@ -183,6 +183,18 @@ describe("RBAC: capabilities (SDD-0139)", () => {
       expect(canSpecial(null, capability)).toBe(false);
     }
   });
+
+  it("auditoría gobernada (SDD-0166 Corte C): lista y reveal son admin-only", () => {
+    for (const capability of ["audit_view", "audit_view_sensitive"] as const) {
+      expect(canSpecial("admin", capability)).toBe(true);
+      for (const role of NON_ADMIN) {
+        expect(canSpecial(role, capability), `${role} no debe usar ${capability}`).toBe(
+          false,
+        );
+      }
+      expect(canSpecial(null, capability)).toBe(false);
+    }
+  });
 });
 
 describe("RBAC: scope de almacén (SDD-0139)", () => {

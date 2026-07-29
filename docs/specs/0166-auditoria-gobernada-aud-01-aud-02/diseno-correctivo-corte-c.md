@@ -3,10 +3,11 @@
 | Control | Valor |
 |---|---|
 | SDD | [SDD-0166](spec.md) |
-| Diseño | Corte C · C0 v1.0 |
+| Diseño | Corte C · v1.1 |
 | Base | [Inventario read-only](inventario-corte-c-2026-07-28.md) |
-| Revisión | [REV-AUD-012](../../governance/reviews/aud-corte-c.md) |
-| Estado | aprobado técnicamente; C1 local no abierto |
+| Revisión de diseño | [REV-AUD-012](../../governance/reviews/aud-corte-c.md) |
+| Revisión de implementación | [REV-AUD-013](../../governance/reviews/aud-corte-c1.md) |
+| Estado | C1 implementado y verificado localmente; Cloud no aplicado |
 
 ## 1. Decisión
 
@@ -166,11 +167,13 @@ excepción SGE con responsable y vencimiento.
 
 ## 10. Allowlist exacta de C1 local
 
-Antes de crear archivos se revalidan `origin/main`, worktrees y el número
-`0269`. Si continúa libre:
+Antes de crear archivos se revalidan `origin/main`, worktrees y el número de
+migración. C0 reservó inicialmente `0269`, pero otra ventana publicó
+`0269_prealertas_client_note.sql` durante C1. La revalidación previa a integrar
+movió este contrato al siguiente número libre:
 
-1. `supabase/migrations/0269_audit_governed_query_rbac.sql`;
-2. `supabase/tests/0269_audit_governed_query_rbac.test.sql`;
+1. `supabase/migrations/0270_audit_governed_query_rbac.sql`;
+2. `supabase/tests/0270_audit_governed_query_rbac.test.sql`;
 3. `lib/studio/rbac.ts`;
 4. `lib/studio/rbac.test.ts`;
 5. `lib/studio/audit-types.ts`;
@@ -191,4 +194,22 @@ Ningún otro archivo está autorizado para C1 sin registrar la ampliación.
 
 C0 aprueba diseño. C1 local, commit, integración, Cloud, receipt Cloud y
 verificación visual son gates separados. Aplicar Cloud exige nombrar
-exactamente `0269_audit_governed_query_rbac`.
+exactamente `0270_audit_governed_query_rbac`.
+
+## 12. Resultado local C1
+
+La implementación conserva la allowlist exacta de §10 y deja:
+
+- `audit_list_events` con filtros allowlist, cursor estable y actor resuelto
+  dentro del tenant;
+- `audit_get_event_detail` fail-closed con admin, AAL2, motivo y allowlist v1
+  vacía;
+- tabla sin lectura directa para roles de aplicación en el contrato resultante;
+- Realtime sin `entity_audit_log`;
+- viewer server-side sin `payload`, `before_data`, `after_data` ni `reason`;
+- fallback visual compatible sobre la misma RPC redacted, nunca sobre la tabla.
+
+La prueba contractual cerró con rollback total en PostgreSQL 15 y 17. Las
+pruebas de queries/RBAC sumaron 29 casos y typecheck quedó verde. Cloud no fue
+modificado y la revisión visual autenticada requiere primero que la migración
+exista en el entorno objetivo.

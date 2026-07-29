@@ -30,7 +30,10 @@ confidencialidad: interno
 > pendiente de Cloud y recorrido efímero antes del cierre global. El
 > [inventario C0](inventario-corte-c-2026-07-28.md) y
 > [REV-AUD-012](../../governance/reviews/aud-corte-c.md) aprobaron técnicamente
-> el diseño del Corte C; C1 local todavía no está abierto.
+> el diseño del Corte C. C1 fue implementado y verificado localmente mediante
+> `0270`; [REV-AUD-013](../../governance/reviews/aud-corte-c1.md) lo aprueba
+> técnicamente. Su aplicación Cloud y verificación autenticada conservan gates
+> separados.
 
 ## 1. Propósito
 
@@ -464,6 +467,11 @@ efímero permanecen pendientes.
 
 El mismo día se completó el inventario metadata-only C0.
 [REV-AUD-012](../../governance/reviews/aud-corte-c.md) aprobó la versión 1.0
-del [diseño correctivo del Corte C](diseno-correctivo-corte-c.md). No se creó
-la migración candidata `0269`, no se cambió el viewer y no se aplicó DDL.
-C1 y los Cortes D–E conservan gates separados.
+del [diseño correctivo del Corte C](diseno-correctivo-corte-c.md). Después de
+revalidar que el número continuaba libre, C1 creó
+`0270_audit_governed_query_rbac.sql`, retiró la lectura cruda del contrato
+local, añadió RPCs admin-only y migró el viewer a consulta server-side
+redacted. [REV-AUD-013](../../governance/reviews/aud-corte-c1.md) registra
+PostgreSQL 15/17, 31 pruebas de aplicación, typecheck y revisión estática del
+viewer en verde. `0270` no fue aplicada en Cloud; la verificación visual
+autenticada y los Cortes D–E conservan gates separados.

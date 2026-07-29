@@ -203,6 +203,10 @@ export const CAPABILITIES = {
   moderate_comments: [],
   /** Consultar eliminados y restaurarlos (SDD-0168): admin-only por defecto. */
   restore_comments: [],
+  /** Consultar metadatos redacted del audit log (SDD-0166 Corte C). */
+  audit_view: [],
+  /** Revelar allowlist sensible con motivo + AAL2 (SDD-0166 Corte C). */
+  audit_view_sensitive: [],
 } as const satisfies Record<string, readonly StudioUserRole[]>;
 
 export type StudioCapability = keyof typeof CAPABILITIES;
