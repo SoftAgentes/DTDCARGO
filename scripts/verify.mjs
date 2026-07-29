@@ -134,6 +134,13 @@ const STEPS = [
   // futuro para reabrir una escalada ya cerrada). DEGRADA CON GRACIA: sin Docker
   // → SKIP, nunca rojo. `VERIFY_SKIP_SQL=1` para omitirlo a pedido.
   { name: "sql-tests", argv: ["scripts/run-sql-tests.mjs"] },
+  // ¿El schema se reconstruye desde cero con lo que hay en el repo? Aplica las
+  // 267 migraciones en orden sobre un Postgres limpio. Caza lo que
+  // `migrations-applied` no puede (ese compara NOMBRES contra el ledger): un
+  // archivo que nunca se podría aplicar (la 0030 llevaba meses con un error de
+  // sintaxis) y objetos que viven SOLO en prod, creados fuera de banda.
+  // DEGRADA CON GRACIA: sin Docker → SKIP. ~18s.
+  { name: "schema-rebuild", argv: ["scripts/check-schema-rebuild.mjs"] },
   // E2E (Playwright) — captura bugs de interacción cliente que vitest NO ve
   // (ej. el estimado de la calculadora que desaparecía al tocar el panel de
   // medidas). Va ÚLTIMO: los checks rápidos fallan primero. Reusa el dev server
