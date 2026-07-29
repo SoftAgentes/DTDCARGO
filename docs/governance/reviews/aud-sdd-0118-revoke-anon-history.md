@@ -6,7 +6,7 @@
 | SDD | [SDD-0118](../../specs/0118-seed-migrations-idempotentes/spec.md) |
 | Candidata | `0276_restore_revoke_anon_rpc_sweep_history` |
 | Fecha | 2026-07-29 |
-| Resultado | diseño y artefacto local aprobados; Cloud cerrado |
+| Resultado | aplicada y verificada; replay posterior pendiente |
 
 ## 1. Evidencia y causa
 
@@ -119,9 +119,10 @@ fallido, aplicar otra migración, alterar Auth, leer PII o abrir Vercel.
 REV-AUD-030 aprueba el diseño, el artefacto determinista y las pruebas locales
 de `0276_restore_revoke_anon_rpc_sweep_history`.
 
-Cloud permanece cerrado hasta recibir la autorización expresa del basename.
-La atomicidad se limita a una transacción PostgreSQL sobre una fila del ledger
-técnico; no se declara atomicidad con Auth ni con el control plane.
+La aplicación individual y su postflight quedaron cerrados en
+[REV-AUD-031](aud-sdd-0118-revoke-anon-history-application.md). La atomicidad
+se limita a una transacción PostgreSQL sobre una fila del ledger técnico; no
+se declara atomicidad con Auth ni con el control plane.
 
 La aplicación de `0276` no sustituye la evidencia posterior de replay, seed,
 E2E, verificación y teardown de SDD-0172. CMP-01 v1.1, caso deprecated, D1,

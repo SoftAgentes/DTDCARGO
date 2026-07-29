@@ -208,12 +208,10 @@ No crea funciones ni modifica otra FK.
 
 ## 12. Gates pendientes
 
-1. autorizar y aplicar individualmente
-   `0276_restore_revoke_anon_rpc_sweep_history`;
-2. crear un Supabase efímero completamente nuevo que alcance
+1. crear un Supabase efímero completamente nuevo que alcance
    `MIGRATIONS_PASSED`;
-3. ejecutar seed, recorrido E2E y verificación sin DML de cleanup;
-4. destruir ese entorno y volver a comprobar estado terminal.
+2. ejecutar seed, recorrido E2E y verificación sin DML de cleanup;
+3. destruir ese entorno y volver a comprobar estado terminal.
 
 El gate Cloud de 0268 quedó cerrado en
 [REV-AUD-018](../../governance/reviews/aud-tenant-lifecycle-aplicacion.md).
@@ -227,5 +225,7 @@ Los seis intentos reales y sus teardowns quedaron registrados en
 [REV-AUD-019](../../governance/reviews/aud-tenant-fixtures-ephemeral-validation.md).
 El diseño local de `0276` quedó aprobado en
 [REV-AUD-030](../../governance/reviews/aud-sdd-0118-revoke-anon-history.md).
+El gate Cloud de `0276` quedó cerrado en
+[REV-AUD-031](../../governance/reviews/aud-sdd-0118-revoke-anon-history-application.md).
 SDD-0172 permanece `in-progress`: el teardown fue válido, pero el fixture no
 se ejecutó porque el replay histórico falló antes de construir el schema.
