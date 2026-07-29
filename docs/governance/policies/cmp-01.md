@@ -1,8 +1,9 @@
-# CMP-01 v0.1 — Ciclo de vida de componentes
+# CMP-01 v1.0 — Ciclo de vida de componentes
 
 | Control | Valor |
 |---|---|
-| Estado | redactada — pendiente de aprobación |
+| Estado | aprobada — registro ejecutable pendiente |
+| Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-006 |
 | Depende de | SGE-00 y políticas de patrón |
 
 ## Estados
