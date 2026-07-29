@@ -216,7 +216,13 @@ function SailingPill({
         <span className="text-[11px] font-semibold tracking-[0.03em] text-grey-700">
           Próxima salida
         </span>
-        <span className="text-[12.5px] font-extrabold" style={{ color: accent }}>
+        {/* Los días van en ink, no en el acento: sobre el tinte 12% el dorado
+            de urgencia medía 2.91:1 en claro. La urgencia la llevan el ícono,
+            el borde y el fondo — que sí cambian a dorado. SDD-0176. */}
+        <span
+          className="text-[12.5px] font-extrabold"
+          style={{ color: "var(--color-ink)" }}
+        >
           {days}
         </span>
       </button>

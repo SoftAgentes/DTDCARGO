@@ -34,7 +34,10 @@ export function PendingAcceptanceCard({
       className="card-shadow bg-white border border-grey-200 rounded-[18px] border-l-[3px] p-6 sm:p-7"
       style={{ borderLeftColor: warn }}
     >
-      <div className="text-[11px] font-bold tracking-[0.16em] uppercase" style={{ color: warn }}>
+      {/* Eyebrow en grey-700 (AA): el ámbar a 11px sobre card mide 3.14:1 — la
+          urgencia la llevan el borde izquierdo dorado y el titular. Mismo
+          criterio que ProfilePendingBanner y CedulaPhotoRow. SDD-0176. */}
+      <div className="text-[11px] font-bold tracking-[0.16em] uppercase text-grey-700">
         Pendiente de tu aceptación
       </div>
       <div className="mt-2.5 text-[16px] font-bold text-ink">
