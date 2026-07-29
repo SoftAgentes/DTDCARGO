@@ -1,8 +1,9 @@
-# TBL-01 v0.1 — Tablas, densidad y acciones de colección
+# TBL-01 v1.0 — Tablas, densidad y acciones de colección
 
 | Control | Valor |
 |---|---|
-| Estado | redactada — pendiente de aprobación |
+| Estado | aprobada — adopción pendiente |
+| Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-004 |
 | Base actual | `DataTable`, `useColumnConfig` y `ColumnManager` |
 
 ## Contrato

@@ -1,8 +1,9 @@
-# WIZ-01 v0.1 — Procesos y formularios por pasos
+# WIZ-01 v1.0 — Procesos y formularios por pasos
 
 | Control | Valor |
 |---|---|
-| Estado | redactada — pendiente de aprobación |
+| Estado | aprobada — adopción pendiente |
+| Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-005 |
 | Depende de | FRM-01, PRG-01 y SGE-00 |
 
 ## Cuándo usar

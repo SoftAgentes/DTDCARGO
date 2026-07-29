@@ -3,14 +3,14 @@
 | Control | Valor |
 |---|---|
 | Documento | Índice maestro del Sistema de Gobernanza |
-| Versión | 4.1 |
+| Versión | 4.2 |
 | Dueño | Sam (founder) |
 | Custodia | Producto + Diseño + Ingeniería |
 | Estado | activo |
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-29 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-031 · diseño del Corte E aprobado](BASELINE-2026-07-29-03.md) |
+| Línea base vigente | [LB-SGE-032 · diecisiete políticas aprobadas](BASELINE-2026-07-29-04.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -90,28 +90,29 @@ artefactos permanecen en sus fuentes correspondientes.
 | Diseño y revisión del Corte E | [REV-AUD-016](reviews/aud-corte-e.md) |
 | Jerarquía visual | [VIS-01 v1.0](policies/vis-01.md) |
 | Tipografía por voz e idioma | [VIS-02 v1.0](policies/vis-02.md) |
-| Accesibilidad transversal | [A11Y-01 v0.1](policies/a11y-01.md) |
-| Movimiento y tiempos | [MOT-01 v0.1](policies/mot-01.md) |
-| Carga y espera | [LOD-01 v0.1](policies/lod-01.md) |
-| Errores y recuperación | [ERR-01 v0.1](policies/err-01.md) |
-| Búsqueda | [BUS-01 v0.1](policies/bus-01.md) |
-| Creación rápida | [CRT-01 v0.1](policies/crt-01.md) |
-| Campos numéricos | [NUM-01 v0.1](policies/num-01.md) |
-| Formularios | [FRM-01 v0.1](policies/frm-01.md) |
-| Tablas | [TBL-01 v0.1](policies/tbl-01.md) |
-| Iconografía | [ICO-01 v0.1](policies/ico-01.md) |
-| Carga de archivos | [UPL-01 v0.1](policies/upl-01.md) |
-| Drag and drop / Kanban | [DND-01 v0.1](policies/dnd-01.md) |
-| Calendario operativo | [CAL-01 v0.1](policies/cal-01.md) |
-| Selector de fecha/rango | [DAT-01 v0.1](policies/dat-01.md) |
-| Progreso | [PRG-01 v0.1](policies/prg-01.md) |
-| Flujos por pasos | [WIZ-01 v0.1](policies/wiz-01.md) |
-| Interacciones con IA | [IA-01 v0.1](policies/ia-01.md) |
+| Accesibilidad transversal | [A11Y-01 v1.0](policies/a11y-01.md) |
+| Movimiento y tiempos | [MOT-01 v1.0](policies/mot-01.md) |
+| Carga y espera | [LOD-01 v1.0](policies/lod-01.md) |
+| Errores y recuperación | [ERR-01 v1.0](policies/err-01.md) |
+| Búsqueda | [BUS-01 v1.0](policies/bus-01.md) |
+| Creación rápida | [CRT-01 v1.0](policies/crt-01.md) |
+| Campos numéricos | [NUM-01 v1.0](policies/num-01.md) |
+| Formularios | [FRM-01 v1.0](policies/frm-01.md) |
+| Tablas | [TBL-01 v1.0](policies/tbl-01.md) |
+| Iconografía | [ICO-01 v1.0](policies/ico-01.md) |
+| Carga de archivos | [UPL-01 v1.0](policies/upl-01.md) |
+| Drag and drop / Kanban | [DND-01 v1.0](policies/dnd-01.md) |
+| Calendario operativo | [CAL-01 v1.0](policies/cal-01.md) |
+| Selector de fecha/rango | [DAT-01 v1.0](policies/dat-01.md) |
+| Progreso | [PRG-01 v1.0](policies/prg-01.md) |
+| Flujos por pasos | [WIZ-01 v1.0](policies/wiz-01.md) |
+| Interacciones con IA | [IA-01 v1.0](policies/ia-01.md) |
+| Aprobación normativa de 17 políticas | [REV-SGE-003 a REV-SGE-005](reviews/sge-policy-blocks-01-04.md) |
 | Ciclo de vida de componentes | [CMP-01 v0.1](policies/cmp-01.md) |
 | Plugin de gobernanza | [PLG-01 v0.1](policies/plg-01.md) |
 | Investigación de skills | [Mapa de capacidades y límites](research/skills-map.md) |
 | Contrato implementado de avisos | [SDD-0165 · AVS-01](../specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md) |
-| Inventario y estado oficial vigente | [LB-SGE-031](BASELINE-2026-07-29-03.md) |
+| Inventario y estado oficial vigente | [LB-SGE-032](BASELINE-2026-07-29-04.md) |
 
 Regla de frontera: `BRAND.md` y el Norte gobiernan **cómo se ve**; este sistema
 gobierna **cómo se comporta**. Una implementación concreta se especifica en un
@@ -153,23 +154,23 @@ disfraza elevando el estado normativo.
 | AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B aplicada; lifecycle local verificado; consulta/RBAC pendientes | Aplicar `0268` solo por gate exacto; Cortes C–E conservan gates separados |
 | VIS-01 | Jerarquía visual y distribución 60-30-10 | aprobada | [Documento canónico v1.0](policies/vis-01.md); tokens/Norte cubren parte, falta auditoría de adopción | Auditar superficies y excepciones |
 | VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | [Documento canónico v1.0](policies/vis-02.md); Noto Sans SC está cargada, Noto Serif SC no | Crear SDD de tokens y verificar correo/PDF |
-| BUS-01 | Buscadores predictivos y contexto de resultados | redactada | [Contrato v0.1](policies/bus-01.md); búsqueda global y `ClientCombobox` existen | Auditar scopes, ranking y desambiguación |
-| CRT-01 | Creación rápida desde contexto | redactada | [Contrato v0.1](policies/crt-01.md); patrones locales sin primitiva común | Revisar y auditar flujos de retorno |
-| NUM-01 | Campos numéricos y financieros | redactada | [Contrato v0.1](policies/num-01.md); `NumericInput` existe, adopción no auditada | Revisar precisión por dominio |
-| MOT-01 | Movimiento, tiempos y reducción de movimiento | redactada | [Contrato v0.1](policies/mot-01.md); tokens 120/180/260 ms existen, quedan duraciones locales | Revisar y auditar excepciones |
-| DND-01 | Drag and drop y Kanban | redactada | [Contrato v0.1](policies/dnd-01.md); Bitácora tiene DnD desktop y avance táctil limitado | Auditar teclado, destinos y rollback |
-| CAL-01 | Calendario, densidad y manipulación temporal | redactada | [Contrato v0.1](policies/cal-01.md); vistas mes/semana/agenda, reprogramación incompleta | Resolver timezone y Slice 2 de [SDD-0141](../specs/0141-calendario-norte/spec.md) |
-| DAT-01 | Selector de fecha y rango | redactada | [Contrato v0.1](policies/dat-01.md); no existe primitiva transversal verificada | Auditar inputs/calendarios existentes |
-| PRG-01 | Progreso de procesos | redactada | [Contrato v0.1](policies/prg-01.md); porcentajes/estados dispersos | Auditar progreso real versus derivado |
-| WIZ-01 | Formularios y procesos por pasos | redactada | [Contrato v0.1](policies/wiz-01.md); steppers locales | Auditar conservación y navegación |
-| LOD-01 | Carga, skeleton, spinner y feedback optimista | redactada | [Contrato v0.1](policies/lod-01.md); patrones dispersos | Auditar esperas y componentes |
-| ERR-01 | Taxonomía y presentación de errores | redactada | [Contrato v0.1](policies/err-01.md); `ErrorAlert`, campos y toasts coexisten | Revisar y auditar adopción |
-| UPL-01 | Carga de archivos e imágenes | redactada | [Contrato v0.1](policies/upl-01.md); implementaciones dispersas | Auditar límites y almacenamiento por módulo |
-| ICO-01 | Iconografía semántica | redactada | [Contrato v0.1](policies/ico-01.md); catálogo central parcial | Auditar metáforas y accesibilidad |
-| FRM-01 | Formularios y validación | redactada | [Contrato v0.1](policies/frm-01.md); patrones compartidos parciales | Auditar por riesgo y conservación |
-| TBL-01 | Tablas, densidad y configuración | redactada | [Contrato v0.1](policies/tbl-01.md); `ColumnManager` tiene adopción limitada | Auditar listados y móvil |
-| A11Y-01 | Accesibilidad transversal | redactada | [Contrato v0.1](policies/a11y-01.md); buenas bases, sin matriz integral de producto | Revisar y ejecutar auditoría transversal |
-| IA-01 | Interacciones asistidas por IA | redactada | [Contrato v0.1](policies/ia-01.md); regla local “IA propone” sin gate transversal | Revisar permisos, privacidad y evidencia |
+| BUS-01 | Buscadores predictivos y contexto de resultados | aprobada v1.0 | Búsqueda global y `ClientCombobox` existen; adopción no auditada | Auditar scopes, ranking y desambiguación |
+| CRT-01 | Creación rápida desde contexto | aprobada v1.0 | Patrones locales sin primitiva común | Auditar flujos de retorno |
+| NUM-01 | Campos numéricos y financieros | aprobada v1.0 | `NumericInput` existe; adopción no auditada | Auditar precisión por dominio |
+| MOT-01 | Movimiento, tiempos y reducción de movimiento | aprobada v1.0 | Tokens 120/180/260 ms existen; quedan duraciones locales | Auditar excepciones |
+| DND-01 | Drag and drop y Kanban | aprobada v1.0 | Adopción no conforme: Bitácora mantiene fallback limitado | Crear SDD correctivo por flujo |
+| CAL-01 | Calendario, densidad y manipulación temporal | aprobada v1.0 | Adopción parcial; reprogramación incompleta | Resolver timezone y Slice 2 de [SDD-0141](../specs/0141-calendario-norte/spec.md) |
+| DAT-01 | Selector de fecha y rango | aprobada v1.0 | No existe primitiva transversal verificada | Auditar inputs/calendarios |
+| PRG-01 | Progreso de procesos | aprobada v1.0 | Porcentajes/estados dispersos | Auditar progreso real versus derivado |
+| WIZ-01 | Formularios y procesos por pasos | aprobada v1.0 | Steppers locales | Auditar conservación y navegación |
+| LOD-01 | Carga, skeleton, spinner y feedback optimista | aprobada v1.0 | Patrones dispersos | Auditar esperas y componentes |
+| ERR-01 | Taxonomía y presentación de errores | aprobada v1.0 | `ErrorAlert`, campos y toasts coexisten | Auditar adopción |
+| UPL-01 | Carga de archivos e imágenes | aprobada v1.0 | Implementaciones dispersas | Auditar límites y Storage por módulo |
+| ICO-01 | Iconografía semántica | aprobada v1.0 | Catálogo central parcial | Auditar metáforas y accesibilidad |
+| FRM-01 | Formularios y validación | aprobada v1.0 | Patrones compartidos parciales | Auditar por riesgo y conservación |
+| TBL-01 | Tablas, densidad y configuración | aprobada v1.0 | `ColumnManager` tiene adopción limitada | Auditar listados y móvil |
+| A11Y-01 | Accesibilidad transversal | aprobada v1.0 | Buenas bases; sin matriz integral | Ejecutar auditoría transversal |
+| IA-01 | Interacciones asistidas por IA | aprobada v1.0 | Regla local “IA propone”; sin gate transversal | Auditar permisos, privacidad y evidencia |
 | CMP-01 | Ciclo de vida y madurez de componentes | redactada | [Contrato v0.1](policies/cmp-01.md); no existe catálogo ejecutable | Crear registro de componentes |
 | PLG-01 | Plugin ejecutable de gobernanza | redactada | [Arquitectura v0.1](policies/plg-01.md); no creado ni instalado | Aprobar fuentes/alcance antes de scaffold |
 
@@ -245,7 +246,9 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-031 · diseño del Corte E aprobado](BASELINE-2026-07-29-03.md).
+[LB-SGE-032 · diecisiete políticas aprobadas](BASELINE-2026-07-29-04.md).
+El diseño del Corte E permanece en
+[LB-SGE-031](BASELINE-2026-07-29-03.md).
 La apertura de SDD-0174 y D1 permanece en
 [LB-SGE-030](BASELINE-2026-07-29-02.md).
 El diseño D0 aprobado permanece en

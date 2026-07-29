@@ -1,8 +1,9 @@
-# DAT-01 v0.1 — Selector de fecha y rango
+# DAT-01 v1.0 — Selector de fecha y rango
 
 | Control | Valor |
 |---|---|
-| Estado | redactada — pendiente de aprobación |
+| Estado | aprobada — adopción pendiente |
+| Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-005 |
 | Depende de | CAL-01, A11Y-01 y FRM-01 |
 
 ## Contrato

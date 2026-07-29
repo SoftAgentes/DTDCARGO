@@ -1,8 +1,9 @@
-# BUS-01 v0.1 — Búsqueda predictiva y contexto de resultados
+# BUS-01 v1.0 — Búsqueda predictiva y contexto de resultados
 
 | Control | Valor |
 |---|---|
-| Estado | redactada — pendiente de aprobación |
+| Estado | aprobada — adopción pendiente |
+| Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-004 |
 | Base actual | `GlobalSearchModal`, `ClientCombobox` y búsquedas por módulo |
 
 ## Contrato

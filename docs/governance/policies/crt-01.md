@@ -1,8 +1,9 @@
-# CRT-01 v0.1 — Creación rápida desde contexto
+# CRT-01 v1.0 — Creación rápida desde contexto
 
 | Control | Valor |
 |---|---|
-| Estado | redactada — pendiente de aprobación |
+| Estado | aprobada — adopción pendiente |
+| Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-004 |
 | Depende de | BUS-01, FRM-01, BTN-01 y AUD-01 |
 
 ## Contrato

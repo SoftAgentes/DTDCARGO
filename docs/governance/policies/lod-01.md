@@ -1,9 +1,10 @@
-# LOD-01 v0.1 — Carga, espera y feedback optimista
+# LOD-01 v1.0 — Carga, espera y feedback optimista
 
 | Control | Valor |
 |---|---|
 | Código | LOD-01 |
-| Estado | redactada — pendiente de aprobación |
+| Estado | aprobada — adopción pendiente |
+| Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-003 |
 | Creado | 2026-07-21 |
 | Depende de | SGE-00, MOT-01 y AVS-01 |
 

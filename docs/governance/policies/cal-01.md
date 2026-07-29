@@ -1,8 +1,9 @@
-# CAL-01 v0.1 — Calendario operativo
+# CAL-01 v1.0 — Calendario operativo
 
 | Control | Valor |
 |---|---|
-| Estado | redactada — pendiente de aprobación |
+| Estado | aprobada — adopción parcial |
+| Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-005 |
 | Base actual | [SDD-0141](../../specs/0141-calendario-norte/spec.md) |
 
 ## Contrato

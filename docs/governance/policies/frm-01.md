@@ -1,8 +1,9 @@
-# FRM-01 v0.1 — Formularios, validación y conservación
+# FRM-01 v1.0 — Formularios, validación y conservación
 
 | Control | Valor |
 |---|---|
-| Estado | redactada — pendiente de aprobación |
+| Estado | aprobada — adopción pendiente |
+| Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-004 |
 | Depende de | SGE-00, BTN-01, ERR-01 y NUM-01 |
 
 ## Contrato
