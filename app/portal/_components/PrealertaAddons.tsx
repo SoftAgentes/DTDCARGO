@@ -93,14 +93,27 @@ export function ShippingModeNotice() {
           <span className="min-w-0">
             <span className="flex items-center gap-1.5 flex-wrap">
               <span className="text-[13px] font-bold text-ink">Aéreo</span>
+              {/* El ámbar como TEXTO no se lee a este tamaño (medido: 3.64:1
+                  en oscuro, bajo el 4.5 de AA). Patrón de BRAND ♿ para badges
+                  warning: la tinta es --color-ink y el color lo lleva un PUNTO
+                  —que además cumple "no sólo color" (WCAG 1.4.1)—. */}
               <span
-                className="text-[8.5px] font-extrabold tracking-[0.06em] uppercase px-[7px] py-[3px] rounded-full"
+                className="inline-flex items-center gap-[5px] text-[8.5px] font-extrabold tracking-[0.06em] uppercase px-[7px] py-[3px] rounded-full"
                 style={{
-                  color: "var(--color-status-warning)",
+                  color: "var(--color-ink)",
                   background:
                     "color-mix(in srgb, var(--color-status-warning) 12%, transparent)",
                 }}
               >
+                <span
+                  aria-hidden="true"
+                  className="block rounded-full flex-shrink-0"
+                  style={{
+                    width: 5,
+                    height: 5,
+                    background: "var(--color-status-warning)",
+                  }}
+                />
                 Próximamente
               </span>
             </span>
