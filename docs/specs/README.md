@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 171 specs)
+### Índice de specs (generado · 172 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -209,6 +209,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0175 | VIS-02 — tipografía por voz, destinatario e idioma | approved | interno |
 | 0176 | Portal — el ámbar deja de usarse como texto (barrido AA) | done | interno |
 | 0177 | Portal — Estado de cuenta (libro de movimientos) | done | interno |
+| 0178 | Plugin read-only de gobernanza ERP Studio | approved | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

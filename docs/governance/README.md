@@ -3,14 +3,14 @@
 | Control | Valor |
 |---|---|
 | Documento | Índice maestro del Sistema de Gobernanza |
-| Versión | 5.1 |
+| Versión | 5.2 |
 | Dueño | Sam (founder) |
 | Custodia | Producto + Diseño + Ingeniería |
 | Estado | activo |
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-29 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-041 · Registro CMP diseñado](BASELINE-2026-07-29-13.md) |
+| Línea base vigente | [LB-SGE-042 · SDD PLG aprobado](BASELINE-2026-07-29-14.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -115,6 +115,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Diseño del registro CMP-01 | [REV-SGE-010](reviews/cmp-01-registry-design.md) |
 | Plugin de gobernanza | [PLG-01 v1.0](policies/plg-01.md) |
 | Revisión normativa PLG-01 | [REV-SGE-007](reviews/plg-01.md) |
+| Diseño técnico PLG-01 | [SDD-0178 + REV-SGE-011](../specs/0178-plugin-gobernanza-erp-studio/spec.md) |
 | Auditoría SGE/BTN/VIS/AVS | [REV-SGE-008](reviews/adoption-sge-btn-vis-avs-2026-07-29.md) |
 | Plan de adopción por slices | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | Implementación VIS-02 | [SDD-0175 aprobado](../specs/0175-vis-02-tipografia-voz-idioma/spec.md) |
@@ -181,7 +182,7 @@ disfraza elevando el estado normativo.
 | A11Y-01 | Accesibilidad transversal | aprobada v1.0 | Buenas bases; sin matriz integral | Ejecutar auditoría transversal |
 | IA-01 | Interacciones asistidas por IA | aprobada v1.0 | Regla local “IA propone”; sin gate transversal | Auditar permisos, privacidad y evidencia |
 | CMP-01 | Ciclo de vida y madurez de componentes | aprobada v1.0 | Schema y diseño ejecutable aprobados; registro no poblado | [REV-SGE-010](reviews/cmp-01-registry-design.md) |
-| PLG-01 | Plugin ejecutable de gobernanza | aprobada v1.0 | No creado ni instalado | Crear SDD propio antes de scaffold |
+| PLG-01 | Plugin ejecutable de gobernanza | aprobada v1.0 | SDD-0178 aprobado; plugin no creado ni instalado | CMP estable + decisión de destino antes de scaffold |
 
 ## 5. Jerarquía y resolución de conflictos
 
@@ -255,7 +256,9 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-041 · Registro ejecutable CMP-01 diseñado](BASELINE-2026-07-29-13.md).
+[LB-SGE-042 · SDD de PLG-01 aprobado](BASELINE-2026-07-29-14.md).
+El registro CMP diseñado permanece en
+[LB-SGE-041](BASELINE-2026-07-29-13.md).
 El plan de adopción por slices permanece en
 [LB-SGE-040](BASELINE-2026-07-29-12.md).
 La aplicación de 0268 permanece en
