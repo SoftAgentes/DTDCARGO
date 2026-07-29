@@ -4,7 +4,7 @@ title: "Auditoría gobernada — corrección conjunta AUD-01 y AUD-02"
 status: in-progress
 author: "Sam (founder) + Codex"
 created: 2026-07-21
-updated: 2026-07-28
+updated: 2026-07-29
 supersedes: null
 superseded_by: null
 related: ["0085", "0123", "0139", "0165"]
@@ -23,7 +23,7 @@ confidencialidad: interno
 > verificado localmente mediante `0267`; [REV-AUD-008](../../governance/reviews/aud-corte-b1.md)
 > lo aprobó técnicamente y
 > [REV-AUD-009](../../governance/reviews/aud-corte-b1-aplicacion.md) registra su
-> aplicación y verificación en Cloud. Los Cortes C–E siguen sin implementar y
+> aplicación y verificación en Cloud.
 > [REV-AUD-010](../../governance/reviews/aud-tenant-fixtures.md) aprueba el
 > diseño obligatorio del ciclo de vida tenant/fixtures. Su implementación
 > local vive en [SDD-0172](../0172-tenant-fixtures-lifecycle/spec.md), todavía
@@ -33,7 +33,11 @@ confidencialidad: interno
 > el diseño del Corte C. C1 fue implementado y verificado localmente mediante
 > `0270`; [REV-AUD-013](../../governance/reviews/aud-corte-c1.md) lo aprueba
 > técnicamente. Su aplicación Cloud y verificación autenticada conservan gates
-> separados.
+> separados. El [inventario D0](inventario-corte-d-2026-07-29.md) encontró 30
+> escrituras best-effort y cobertura obligatoria incompleta.
+> [REV-AUD-014](../../governance/reviews/aud-corte-d.md) aprueba el
+> [diseño por dominios](diseno-correctivo-corte-d.md); D1–D5 no están abiertos
+> y el Corte E permanece pendiente.
 
 ## 1. Propósito
 
@@ -475,3 +479,10 @@ redacted. [REV-AUD-013](../../governance/reviews/aud-corte-c1.md) registra
 PostgreSQL 15/17, 31 pruebas de aplicación, typecheck y revisión estática del
 viewer en verde. `0270` no fue aplicada en Cloud; la verificación visual
 autenticada y los Cortes D–E conservan gates separados.
+
+El 2026-07-29 se completó el inventario read-only D0. Se confirmaron ocho
+helpers TypeScript con 30 escrituras best-effort, cobertura obligatoria
+incompleta y dos eventos de cuenta que usan un identificador incompatible con
+UUID. [REV-AUD-014](../../governance/reviews/aud-corte-d.md) aprueba separar la
+ejecución en D1–D5 mediante un SDD hijo. No se creó migración, RPC ni cambio de
+aplicación.

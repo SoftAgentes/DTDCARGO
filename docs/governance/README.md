@@ -3,14 +3,14 @@
 | Control | Valor |
 |---|---|
 | Documento | Índice maestro del Sistema de Gobernanza |
-| Versión | 3.8 |
+| Versión | 3.9 |
 | Dueño | Sam (founder) |
 | Custodia | Producto + Diseño + Ingeniería |
 | Estado | activo |
 | Creado | 2026-07-21 |
-| Última revisión | 2026-07-28 |
+| Última revisión | 2026-07-29 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-028 · Corte C1 local aprobado](BASELINE-2026-07-28-08.md) |
+| Línea base vigente | [LB-SGE-029 · diseño del Corte D aprobado](BASELINE-2026-07-29.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -81,6 +81,9 @@ artefactos permanecen en sus fuentes correspondientes.
 | Diseño correctivo del Corte C | [Consulta gobernada y RBAC v1.1](../specs/0166-auditoria-gobernada-aud-01-aud-02/diseno-correctivo-corte-c.md) |
 | Revisión del diseño Corte C | [REV-AUD-012](reviews/aud-corte-c.md) |
 | Revisión técnica local Corte C1 | [REV-AUD-013](reviews/aud-corte-c1.md) |
+| Inventario read-only del Corte D | [D0 · repo y Cloud](../specs/0166-auditoria-gobernada-aud-01-aud-02/inventario-corte-d-2026-07-29.md) |
+| Diseño correctivo del Corte D | [Atomicidad por dominio v1.0](../specs/0166-auditoria-gobernada-aud-01-aud-02/diseno-correctivo-corte-d.md) |
+| Revisión del diseño Corte D | [REV-AUD-014](reviews/aud-corte-d.md) |
 | Jerarquía visual | [VIS-01 v1.0](policies/vis-01.md) |
 | Tipografía por voz e idioma | [VIS-02 v1.0](policies/vis-02.md) |
 | Accesibilidad transversal | [A11Y-01 v0.1](policies/a11y-01.md) |
@@ -104,7 +107,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Plugin de gobernanza | [PLG-01 v0.1](policies/plg-01.md) |
 | Investigación de skills | [Mapa de capacidades y límites](research/skills-map.md) |
 | Contrato implementado de avisos | [SDD-0165 · AVS-01](../specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md) |
-| Inventario y estado oficial vigente | [LB-SGE-028](BASELINE-2026-07-28-08.md) |
+| Inventario y estado oficial vigente | [LB-SGE-029](BASELINE-2026-07-29.md) |
 
 Regla de frontera: `BRAND.md` y el Norte gobiernan **cómo se ve**; este sistema
 gobierna **cómo se comporta**. Una implementación concreta se especifica en un
@@ -238,7 +241,9 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-028 · Corte C1 implementado y verificado localmente](BASELINE-2026-07-28-08.md).
+[LB-SGE-029 · diseño del Corte D aprobado](BASELINE-2026-07-29.md).
+La implementación local de C1 permanece registrada en
+[LB-SGE-028](BASELINE-2026-07-28-08.md).
 El diseño C0 aprobado permanece en
 [LB-SGE-027](BASELINE-2026-07-28-07.md).
 La implementación local de SDD-0172 vive en
