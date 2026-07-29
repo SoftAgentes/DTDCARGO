@@ -22,6 +22,9 @@
 | Administración · Audit log | 0123, 0166, 0172, 0174 | `app/studio/(app)/admin/` | `lib/studio/audit-*` · `entity_audit_log` · `scripts/{seed-e2e,verify-e2e-teardown}.ts` · migraciones por corte |
 | Gobernanza ejecutable | 0178 | documentación; plugin todavía no creado | `docs/governance/` como fuente normativa · futuro repo/team `.agents/plugins/plugins/erp-studio-governance/` read-only |
 | Tipografía transversal · VIS-02 | 0175 | `app/{layout,globals}.tsx` · `app/studio/` | `next/font` · tokens de voz · renderers email/PDF |
+| Fiscal/SENIAT · tabs accesibles | 0073, 0104, 0180 | `app/studio/(app)/fiscal/` | `lib/studio/fiscal/` |
+| Selectores canónicos accesibles | 0108, 0181 | `app/studio/_components/ui/{ClientCombobox,SplitActionButton}.tsx` | `lib/studio/client-search-action.ts` |
+| Club DTD · validación de identidad | 0106, 0116, 0182 | `app/studio/(app)/club/` | `lib/studio/club/` |
 | Tracking / Embarques | 0005, 0006, 0012, 0013 | `app/studio/(app)/{tracking,embarques}/` | `lib/studio/shipment-*`, `tracking-progress` |
 | Cambio de destino | 0009 | (dentro de tracking) | `lib/studio/destination-change.ts` |
 | Tarifas (+ config calculadora pública) | 0008, 0055 | `app/studio/(app)/tarifas/` | `lib/studio/rate-*`, `calculator-cities-*` · `supabase/migrations/{0103,0104}` |
