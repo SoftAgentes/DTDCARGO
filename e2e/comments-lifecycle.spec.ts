@@ -139,17 +139,22 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
       }
     });
 
-    const { data: usersData, error: usersError } =
-      await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
-    if (usersError) throw usersError;
-    const adminUser = usersData.users.find(
-      (user) => user.email === fixture.adminEmail,
-    );
-    const mentionedUser = usersData.users.find(
-      (user) => user.email === fixture.mentionedEmail,
-    );
-    expect(adminUser, "El seed debe crear el administrador E2E").toBeTruthy();
-    expect(mentionedUser, "El seed debe crear el usuario mencionado E2E").toBeTruthy();
+    const { data: membershipsData, error: membershipsError } = await admin
+      .from("user_tenants")
+      .select("user_id,role")
+      .eq("tenant_id", fixture.tenantId);
+    if (membershipsError) throw membershipsError;
+    const adminUserId = membershipsData?.find(
+      (membership) => membership.role === "admin",
+    )?.user_id as string | undefined;
+    const mentionedUserId = membershipsData?.find(
+      (membership) => membership.role === "operations",
+    )?.user_id as string | undefined;
+    expect(adminUserId, "El seed debe crear el administrador E2E").toBeTruthy();
+    expect(
+      mentionedUserId,
+      "El seed debe crear el usuario mencionado E2E",
+    ).toBeTruthy();
 
     await login(page, fixture.adminEmail, environment.password);
 
@@ -193,7 +198,7 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
       entity_type: "shipment",
       entity_id: fixture.shipmentId,
       entity_code: fixture.shipmentCode,
-      author_id: adminUser!.id,
+      author_id: adminUserId,
       body: fixture.commentBody,
       deleted_at: null,
     });
@@ -206,7 +211,7 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
             "id,comment_id,tenant_id,mentioned_user_id,read_at,created_at",
           )
           .eq("comment_id", comment.id)
-          .eq("mentioned_user_id", mentionedUser!.id)
+          .eq("mentioned_user_id", mentionedUserId!)
           .maybeSingle();
         if (error) throw error;
         return data as MentionSnapshot | null;
@@ -217,7 +222,7 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
       .from("comment_mentions")
       .select("id,comment_id,tenant_id,mentioned_user_id,read_at,created_at")
       .eq("comment_id", comment.id)
-      .eq("mentioned_user_id", mentionedUser!.id)
+      .eq("mentioned_user_id", mentionedUserId!)
       .single();
     const mention = requireData(
       mentionData as MentionSnapshot | null,
@@ -227,7 +232,7 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
     expect(mention).toMatchObject({
       comment_id: comment.id,
       tenant_id: fixture.tenantId,
-      mentioned_user_id: mentionedUser!.id,
+      mentioned_user_id: mentionedUserId,
       read_at: null,
     });
 
@@ -243,7 +248,7 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
           .from("comment_reactions")
           .select("id,comment_id,tenant_id,user_id,emoji,created_at")
           .eq("comment_id", comment.id)
-          .eq("user_id", adminUser!.id)
+          .eq("user_id", adminUserId!)
           .eq("emoji", "👍")
           .maybeSingle();
         if (error) throw error;
@@ -255,7 +260,7 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
       .from("comment_reactions")
       .select("id,comment_id,tenant_id,user_id,emoji,created_at")
       .eq("comment_id", comment.id)
-      .eq("user_id", adminUser!.id)
+      .eq("user_id", adminUserId!)
       .eq("emoji", "👍")
       .single();
     const reaction = requireData(
@@ -381,22 +386,22 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
     ).toEqual([
       {
         eventType: "comment_soft_deleted",
-        actorId: adminUser!.id,
+        actorId: adminUserId,
         action: "self_delete",
       },
       {
         eventType: "comment_restored",
-        actorId: adminUser!.id,
+        actorId: adminUserId,
         action: "undo",
       },
       {
         eventType: "comment_soft_deleted",
-        actorId: adminUser!.id,
+        actorId: adminUserId,
         action: "self_delete",
       },
       {
         eventType: "comment_restored",
-        actorId: adminUser!.id,
+        actorId: adminUserId,
         action: "ordinary_restore",
       },
     ]);

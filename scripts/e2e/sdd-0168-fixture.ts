@@ -11,12 +11,15 @@ export const SDD_0168_FIXTURE = {
 } as const;
 
 const PRODUCTION_PROJECT_REF = "xpfuzqombmjmxvprjgmi";
+const PRODUCTION_CONFIRMATION_ENV =
+  "E2E_PRODUCTION_CONFIRM_PROJECT_REF";
 
 export type E2EEnvironment = {
   projectRef: string;
   supabaseUrl: string;
   serviceRoleKey: string;
   password: string;
+  isProduction: boolean;
 };
 
 function required(name: string): string {
@@ -31,8 +34,15 @@ export function loadE2EEnvironment(): E2EEnvironment {
   const serviceRoleKey = required("E2E_SUPABASE_SERVICE_ROLE_KEY");
   const password = required("STUDIO_E2E_PASSWORD");
 
-  if (projectRef === PRODUCTION_PROJECT_REF) {
-    throw new Error("El seed E2E se niega a ejecutar contra Supabase Producción.");
+  const isProduction = projectRef === PRODUCTION_PROJECT_REF;
+  if (
+    isProduction &&
+    process.env[PRODUCTION_CONFIRMATION_ENV]?.trim() !==
+      PRODUCTION_PROJECT_REF
+  ) {
+    throw new Error(
+      `Supabase Producción requiere ${PRODUCTION_CONFIRMATION_ENV}=${PRODUCTION_PROJECT_REF}.`,
+    );
   }
 
   const url = new URL(supabaseUrl);
@@ -46,7 +56,13 @@ export function loadE2EEnvironment(): E2EEnvironment {
     throw new Error("STUDIO_E2E_PASSWORD debe tener al menos 12 caracteres.");
   }
 
-  return { projectRef, supabaseUrl, serviceRoleKey, password };
+  return {
+    projectRef,
+    supabaseUrl,
+    serviceRoleKey,
+    password,
+    isProduction,
+  };
 }
 
 export function createE2EAdminClient(

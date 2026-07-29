@@ -1,7 +1,7 @@
 ---
 sdd: "0168"
 title: "MP-01 Slice 1 — Permanencia y restauración de comentarios internos"
-status: approved
+status: done
 author: "Codex"
 created: 2026-07-22
 updated: 2026-07-28
@@ -22,10 +22,11 @@ confidencialidad: interno
 > [REV-MP-004](../../governance/reviews/mp-01-comments-db2.md). La APP fue
 > revalidada después de DB-2 en un Preview aislado según
 > [REV-MP-005](../../governance/reviews/mp-01-comments-preview-e2e.md). Otra
-> ventana integró hasta `b92116d4` en `main` mediante `67b1a46b` y activó el
-> despliegue automático de Producción. El correctivo final fue publicado en su
-> rama y pasó CI; integración, validación funcional de Producción y los ACL
-> históricos conservan gates propios.
+> ventana integró hasta `b92116d4` en `main` mediante `67b1a46b`. El correctivo
+> final `592226e9`, su evidencia y su recibo fueron integrados mediante
+> `d93c56e4`. Vercel Producción, el smoke público y el E2E autenticado
+> controlado aprobaron; la limpieza confirmó residuo cero. Los ACL históricos,
+> purga y retención conservan gates y alcances propios.
 
 ## 1. Propósito
 
@@ -283,49 +284,49 @@ parte del gate UI. El orden y jerarquía de acciones deben cumplir BTN-01.
 
 ### Permanencia y relaciones
 
-- [ ] Eliminar propio cambia únicamente el estado de permanencia y ofrece
+- [x] Eliminar propio cambia únicamente el estado de permanencia y ofrece
       **Deshacer** durante 10 segundos sin diálogo previo.
-- [ ] Cero rutas visibles o server-side de hard-delete/purga de comentarios.
-- [ ] Una prueba elimina y restaura el mismo comentario y demuestra igualdad de
+- [x] Cero rutas visibles o server-side de hard-delete/purga de comentarios.
+- [x] Una prueba elimina y restaura el mismo comentario y demuestra igualdad de
       identidad, body, autor, padre, entidad, fechas, menciones, `read_at`,
       reacciones y orden.
-- [ ] Eliminar oculta la mención del inbox y del badge; restaurar recupera su
+- [x] Eliminar oculta la mención del inbox y del badge; restaurar recupera su
       estado anterior sin duplicar ni reenviar notificaciones.
-- [ ] El vencimiento de 30/90 días no borra ni vuelve elegible para purga.
+- [x] El vencimiento de 30/90 días no borra ni vuelve elegible para purga.
 
 ### Permisos y aislamiento
 
-- [ ] Autor, admin, rol sin capability, usuario deshabilitado y tenant ajeno se
+- [x] Autor, admin, rol sin capability, usuario deshabilitado y tenant ajeno se
       prueban por separado.
-- [ ] **Deshacer** solo funciona para el actor de la eliminación dentro de la
+- [x] **Deshacer** solo funciona para el actor de la eliminación dentro de la
       ventana y con permiso vigente.
-- [ ] `moderate_comments` y `restore_comments` son admin-only por default y el
+- [x] `moderate_comments` y `restore_comments` son admin-only por default y el
       backend revalida el permiso sobre la entidad padre.
-- [ ] Un contexto padre con hold/protección conocida falla cerrado y los
+- [x] Un contexto padre con hold/protección conocida falla cerrado y los
       consumidores actuales no dependen del comentario como evidencia P4.
-- [ ] Un update directo no puede saltarse las transiciones gobernadas.
+- [x] Un update directo no puede saltarse las transiciones gobernadas.
 
 ### Auditoría y carreras
 
-- [ ] `comment_soft_deleted` y `comment_restored` usan `entity_type=comment`,
+- [x] `comment_soft_deleted` y `comment_restored` usan `entity_type=comment`,
       actor real, tenant, before/after mínimo, ventana y correlación.
-- [ ] El payload no contiene body, menciones, nombres, emails ni secretos.
-- [ ] Una prueba fuerza el fallo del evento y demuestra rollback completo de la
+- [x] El payload no contiene body, menciones, nombres, emails ni secretos.
+- [x] Una prueba fuerza el fallo del evento y demuestra rollback completo de la
       mutación.
-- [ ] Doble click, reintento, pestañas concurrentes y restauración simultánea
+- [x] Doble click, reintento, pestañas concurrentes y restauración simultánea
       producen un solo estado y eventos no duplicados.
-- [ ] Filas legacy nunca reciben actor ni evento histórico inventado.
+- [x] Filas legacy nunca reciben actor ni evento histórico inventado.
 
 ### UI y accesibilidad
 
-- [ ] R1, R2 y R3 presentan la fricción definida, sin anunciar éxito temprano.
-- [ ] El aviso de **Deshacer** es operable por teclado y lector de pantalla y no
+- [x] R1, R2 y R3 presentan la fricción definida, sin anunciar éxito temprano.
+- [x] El aviso de **Deshacer** es operable por teclado y lector de pantalla y no
       desplaza el foco de forma destructiva.
-- [ ] La recuperación funciona en desktop y móvil y conserva foco al cerrar
+- [x] La recuperación funciona en desktop y móvil y conserva foco al cerrar
       diálogos.
-- [ ] Estados idle, hover/focus, disabled, pending, error, success y expirado
+- [x] Estados idle, hover/focus, disabled, pending, error, success y expirado
       están cubiertos.
-- [ ] El cambio visual pasa `/ui-check` antes de commit.
+- [x] El cambio visual pasa `/ui-check` antes del commit de cierre.
 
 ### Gates técnicos
 
@@ -353,8 +354,9 @@ parte del gate UI. El orden y jerarquía de acciones deben cumplir BTN-01.
 - [x] El correctivo final `592226e9` y la evidencia `1f831b63` fueron
       publicados en `codex/sdd-0168-db1-local`; Vercel y GitHub reportaron
       `success`.
-- [ ] Integración del correctivo final y validación funcional de Producción
-      reciben gates individuales.
+- [x] Integración del correctivo final y validación funcional de Producción
+      recibieron gates individuales; `d93c56e4`, Vercel `success`, smoke
+      público 14/14 y E2E autenticado 1/1 con residuo cero.
 
 ## 12. Fuera de alcance
 
@@ -369,7 +371,8 @@ parte del gate UI. El orden y jerarquía de acciones deben cumplir BTN-01.
 - promoción/hold de comentarios P4 y procedimiento de recuperación después de
   90 días;
 - cambios generales de AUD-02, grants o viewer fuera de los gates reservados;
-- aplicación a Supabase Cloud o producción.
+- aplicaciones Cloud adicionales, corrección global de ACL históricos o
+  cambios de Producción fuera de los basenames y fixtures autorizados.
 
 ## 13. Riesgos y mitigaciones
 
@@ -394,9 +397,10 @@ parte del gate UI. El orden y jerarquía de acciones deben cumplir BTN-01.
    REV-MP-002, sin autorizar ejecución.
 4. **Implementación local cerrada:** DB-1, APP y DB-2 tienen pruebas de DB,
    actions, UI, accesibilidad y fallo seguro.
-5. **Revisar el gate SGE/MP/AUD/BTN/AVS** con evidencia.
-6. **Autorizar por nombre** cada migración Cloud; después verificar producción.
-7. **Autorizar commit y push** de forma separada.
+5. **Gate SGE/MP/AUD/BTN/AVS cerrado** con REV-MP-003/004/005.
+6. **Cloud cerrado:** cada migración fue autorizada por nombre y verificada.
+7. **Publicación cerrada:** commits integrados en `d93c56e4`, Producción y E2E
+   autenticado aprobados, fixtures eliminados.
 
 Ningún gate de esta secuencia habilita purga. Una futura disposición de datos
 requiere otro SDD y el calendario de retención aplicable.
@@ -404,9 +408,10 @@ requiere otro SDD y el calendario de retención aplicable.
 ## 15. Decisión registrada
 
 La revisión documental del 2026-07-22 concluyó **aprobado**, sin excepciones.
-El ajuste de revisión fijó una frontera determinista: `public.comments` es
-colaboración interna P2 y no puede ser la fuente autoritativa de evidencia o
-decisiones P4.
+El cierre técnico del 2026-07-28 concluyó **done** después de Cloud, integración,
+Vercel Producción, smoke público, E2E autenticado y limpieza controlada. La
+frontera determinista se conserva: `public.comments` es colaboración interna
+P2 y no puede ser la fuente autoritativa de evidencia o decisiones P4.
 
 La autorización posterior permitió completar
 [DT-SDD-0168 v1.0](diseno-tecnico.md). REV-MP-002 lo aprueba técnicamente para

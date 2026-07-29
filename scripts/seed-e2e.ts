@@ -30,21 +30,25 @@ async function ensureUser(
   admin: AdminClient,
   email: string,
   password: string,
+  allowExisting: boolean,
 ): Promise<User> {
-  const existing = await findUserByEmail(admin, email);
-  if (existing) {
-    const { data, error } = await admin.auth.admin.updateUserById(existing.id, {
-      password,
-      email_confirm: true,
-    });
-    if (error) throw error;
-    return data.user;
+  if (allowExisting) {
+    const existing = await findUserByEmail(admin, email);
+    if (existing) {
+      const { data, error } = await admin.auth.admin.updateUserById(existing.id, {
+        password,
+        email_confirm: true,
+      });
+      if (error) throw error;
+      return data.user;
+    }
   }
 
   const { data, error } = await admin.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
+    app_metadata: { e2e_fixture: "sdd-0168" },
   });
   if (error) throw error;
   return data.user;
@@ -70,8 +74,18 @@ async function main() {
   await check(tenantError, "No se pudo preparar el tenant");
 
   const [adminUser, mentionedUser] = await Promise.all([
-    ensureUser(admin, fixture.adminEmail, environment.password),
-    ensureUser(admin, fixture.mentionedEmail, environment.password),
+    ensureUser(
+      admin,
+      fixture.adminEmail,
+      environment.password,
+      !environment.isProduction,
+    ),
+    ensureUser(
+      admin,
+      fixture.mentionedEmail,
+      environment.password,
+      !environment.isProduction,
+    ),
   ]);
 
   const { error: profilesError } = await admin.from("user_profiles").upsert(
