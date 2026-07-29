@@ -24,6 +24,8 @@ import { createAdminClient } from "@/lib/db/admin";
 import {
   validateSupplierInput,
   validatePrealertaInput,
+  normalizeSupplierProfileInput,
+  supplierProfileRow,
   buildPrealertaCode,
   buildPrealertaDocPath,
   isAllowedPrealertaDocMime,
@@ -41,6 +43,7 @@ import {
   type ServiceRequestActionState,
 } from "@/lib/studio/prealertas/addons";
 import { buildPurchaseOrderLines } from "@/lib/portal/purchase-order-lines";
+import { SUPPLIER_PROFILE_EXTENDED_LIVE } from "@/lib/portal/demo";
 import {
   listActivePrealertaAddons,
   getPrealertaByCode,
@@ -369,6 +372,23 @@ export async function createSupplierAction(
   const tenantId = tenantData ? String(tenantData) : null;
   if (!tenantId) return { error: "No pudimos resolver tu cuenta." };
 
+  // Ficha extendida del Norte (SDD-0172). Las columnas viven en la migración
+  // 0266, que NO está aplicada: mientras el flag esté apagado ni siquiera se
+  // nombran en el insert, así que este código puede llegar a prod antes que la
+  // migración sin romper el alta. Prender el flag ANTES de aplicarla la rompe.
+  const profileRow = SUPPLIER_PROFILE_EXTENDED_LIVE
+    ? supplierProfileRow(
+        normalizeSupplierProfileInput({
+          industry: formData.get("industry"),
+          contactPhone: formData.get("contactPhone"),
+          sourceOrigin: formData.get("sourceOrigin"),
+          sourceOriginNote: formData.get("sourceOriginNote"),
+          purchaseHistory: formData.get("purchaseHistory"),
+          commMethod: formData.get("commMethod"),
+        }),
+      )
+    : {};
+
   const { data: row, error: insErr } = await supabase
     .from("suppliers_cn")
     .insert({
@@ -380,6 +400,7 @@ export async function createSupplierAction(
       wechat: input.wechat,
       contact: input.contact,
       notes: input.notes,
+      ...profileRow,
     })
     .select("id")
     .single<{ id: string }>();

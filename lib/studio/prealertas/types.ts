@@ -413,6 +413,118 @@ export type SupplierInput = {
   notes: string | null;
 };
 
+// ── Ficha extendida del proveedor (SDD-0172 · migr 0266) ───────
+//
+// Las 3 preguntas del Norte al dar de alta un proveedor. Son datos DEL CLIENTE
+// para su propio control ("te ayudan a reconocerlo cuando tengas varios"), no
+// de operación. Se guardan SLUGS —el vocabulario lo cierra un CHECK en la DB—
+// y las etiquetas visibles viven acá al lado.
+
+export const SUPPLIER_SOURCE_ORIGINS = [
+  "alibaba",
+  "1688",
+  "feria_canton",
+  "recomendado",
+  "otro",
+] as const;
+export type SupplierSourceOrigin = (typeof SUPPLIER_SOURCE_ORIGINS)[number];
+
+export const SUPPLIER_SOURCE_ORIGIN_LABEL: Record<SupplierSourceOrigin, string> =
+  {
+    alibaba: "Alibaba",
+    "1688": "1688",
+    feria_canton: "Feria (Cantón)",
+    recomendado: "Me lo recomendaron",
+    otro: "Otro",
+  };
+
+/** Los dos que piden explicar de dónde salió (Norte: `needNote`). */
+export const SUPPLIER_ORIGINS_NEEDING_NOTE: readonly SupplierSourceOrigin[] = [
+  "recomendado",
+  "otro",
+];
+
+export const SUPPLIER_PURCHASE_HISTORIES = ["nuevo", "previo"] as const;
+export type SupplierPurchaseHistory =
+  (typeof SUPPLIER_PURCHASE_HISTORIES)[number];
+
+export const SUPPLIER_PURCHASE_HISTORY_LABEL: Record<
+  SupplierPurchaseHistory,
+  string
+> = { nuevo: "Primera vez", previo: "Ya le compraba" };
+
+export const SUPPLIER_COMM_METHODS = [
+  "whatsapp",
+  "wechat",
+  "alibaba",
+  "otro",
+] as const;
+export type SupplierCommMethod = (typeof SUPPLIER_COMM_METHODS)[number];
+
+export const SUPPLIER_COMM_METHOD_LABEL: Record<SupplierCommMethod, string> = {
+  whatsapp: "WhatsApp",
+  wechat: "WeChat",
+  alibaba: "Alibaba",
+  otro: "Otro",
+};
+
+export type SupplierProfileInput = {
+  /** "¿Qué vende?" — columna `industry`, que YA existía en prod. */
+  industry: string | null;
+  /** Teléfono — columna `contact_phone`, que YA existía en prod. */
+  contactPhone: string | null;
+  sourceOrigin: SupplierSourceOrigin | null;
+  sourceOriginNote: string | null;
+  purchaseHistory: SupplierPurchaseHistory | null;
+  commMethod: SupplierCommMethod | null;
+};
+
+function pickFrom<T extends string>(
+  allowed: readonly T[],
+  raw: unknown,
+): T | null {
+  const v = String(raw ?? "").trim();
+  return (allowed as readonly string[]).includes(v) ? (v as T) : null;
+}
+
+/**
+ * Normaliza la ficha extendida. Es TODA opcional: un valor que no esté en su
+ * vocabulario se descarta en silencio (cae a `null`) en vez de romper el alta —
+ * el CHECK de la DB es la última línea, no la primera. La nota sólo sobrevive
+ * si el origen la pide; si no, sería un texto huérfano que nadie vuelve a leer.
+ */
+export function normalizeSupplierProfileInput(
+  raw: Partial<Record<keyof SupplierProfileInput, unknown>>,
+): SupplierProfileInput {
+  const sourceOrigin = pickFrom(SUPPLIER_SOURCE_ORIGINS, raw.sourceOrigin);
+  const needsNote =
+    sourceOrigin !== null && SUPPLIER_ORIGINS_NEEDING_NOTE.includes(sourceOrigin);
+  return {
+    industry: String(raw.industry ?? "").trim() || null,
+    contactPhone: String(raw.contactPhone ?? "").trim() || null,
+    sourceOrigin,
+    sourceOriginNote: needsNote
+      ? String(raw.sourceOriginNote ?? "").trim() || null
+      : null,
+    purchaseHistory: pickFrom(SUPPLIER_PURCHASE_HISTORIES, raw.purchaseHistory),
+    commMethod: pickFrom(SUPPLIER_COMM_METHODS, raw.commMethod),
+  };
+}
+
+/** Fila lista para el insert (claves = columnas de la migr 0266). */
+export function supplierProfileRow(
+  p: SupplierProfileInput,
+): Record<string, string | null> {
+  return {
+    industry: p.industry,
+    contact_phone: p.contactPhone,
+    source_origin: p.sourceOrigin,
+    source_origin_note: p.sourceOriginNote,
+    purchase_history: p.purchaseHistory,
+    comm_method: p.commMethod,
+  };
+}
+
 export type SupplierActionState = {
   ok?: boolean;
   error?: string;

@@ -98,3 +98,18 @@ export function showNewPurchaseWizard(
 ): boolean {
   return NEW_PURCHASE_WIZARD_LIVE || isDemoMarkbox(markbox);
 }
+
+/**
+ * ¿El alta de proveedor pide la ficha extendida del Norte? (SDD-0172 · de dónde
+ * salió · si ya le había comprado · canal de comunicación).
+ *
+ * 🔴 **Depende de la migración `0266_suppliers_cn_portal_profile`, que NO está
+ * aplicada.** Con el flag en `false` la ficha no se pinta y la server action no
+ * manda esos campos — el alta funciona igual aunque este código llegue a prod
+ * antes que la migración. ORDEN OBLIGATORIO: primero aplicar la migración,
+ * DESPUÉS prender esto. Al revés el insert revienta.
+ *
+ * Por eso NO cuelga de `isDemoMarkbox`: ni siquiera las cuentas demo pueden
+ * verlo antes de tiempo, porque el que rompería es el INSERT, no la vista.
+ */
+export const SUPPLIER_PROFILE_EXTENDED_LIVE = false;

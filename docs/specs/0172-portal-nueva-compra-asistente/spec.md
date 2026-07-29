@@ -131,10 +131,28 @@ sin tocar este código**.
 - **El catálogo de servicios** (`prealerta_addons`): se consume, no se edita.
 - **Grabar los videos** de los 5 servicios (§3.6).
 - **Brecha 4 de la Fase 7** (`StatementLedger` / estado de cuenta).
-- **La ficha extendida del proveedor nuevo del Norte** (¿qué vende? · ¿de dónde lo
-  sacaste? · ¿ya le habías comprado? · método de comunicación). El Norte la pide en
-  el paso 1 pero producción hoy sólo guarda nombre y WeChat; ampliar el modelo de
-  proveedor es su propio trabajo. **Se deja anotado como deuda de la Fase 7.**
+
+## 3.7 Ficha extendida del proveedor (migr 0266) — ⚠️ requiere aplicar la migración
+
+Las 3 preguntas del Norte al dar de alta un proveedor. Se dio por fuera de alcance
+al abrir la spec ("producción sólo guarda nombre y WeChat"); **verificado contra
+prod eso era falso**: `suppliers_cn` ya tiene `industry` (= "¿qué vende?") y
+`contact_phone`. Sólo faltaban **4 columnas** (3 respuestas + la nota condicional
+del origen) → `0266_suppliers_cn_portal_profile.sql`.
+
+- **La migración NO está aplicada.** Registrada en `migrations-baseline.json`; se
+  aplica sólo con OK del founder **nombrando el archivo** (runbook).
+- **El código es inerte** con `SUPPLIER_PROFILE_EXTENDED_LIVE = false`: la ficha no
+  se pinta y la action no nombra esas columnas, así que puede llegar a prod antes
+  que la migración. `SUPPLIER_COLUMNS` tampoco las lee.
+- 🔴 **ORDEN OBLIGATORIO: primero la migración, después el flag.** Al revés el
+  insert revienta.
+- Divergencia deliberada del Norte: allá las 3 preguntas son **obligatorias**; acá
+  son opcionales. Bloquear el alta de un proveedor por "¿de dónde lo sacaste?"
+  cuesta compras; la respuesta se pide, no se exige.
+- El vocabulario vive en un CHECK de la DB **y** en constantes del código, con un
+  test que compara las dos listas — si alguien agrega una opción y olvida la
+  migración, falla acá y no en prod.
 
 ## 5. Verificación
 

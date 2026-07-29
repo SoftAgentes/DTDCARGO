@@ -12,16 +12,177 @@
  * con más estado de la pantalla y no admite dos copias divergentes.
  */
 
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { useActionState, useEffect, useId, useMemo, useRef, useState } from "react";
 import { CheckIcon } from "@/components/Icon";
 import { FieldLabel } from "../../../_components/PortalFormField";
-import type {
-  SupplierView,
-  SupplierActionState,
+import {
+  SUPPLIER_SOURCE_ORIGINS,
+  SUPPLIER_SOURCE_ORIGIN_LABEL,
+  SUPPLIER_ORIGINS_NEEDING_NOTE,
+  SUPPLIER_PURCHASE_HISTORIES,
+  SUPPLIER_PURCHASE_HISTORY_LABEL,
+  SUPPLIER_COMM_METHODS,
+  SUPPLIER_COMM_METHOD_LABEL,
+  type SupplierSourceOrigin,
+  type SupplierPurchaseHistory,
+  type SupplierCommMethod,
+  type SupplierView,
+  type SupplierActionState,
 } from "@/lib/studio/prealertas/types";
+import { SUPPLIER_PROFILE_EXTENDED_LIVE } from "@/lib/portal/demo";
 import { createSupplierAction } from "../../proveedores/actions";
 
 const supplierInitial: SupplierActionState = {};
+
+/** Píldora seleccionable — el "chip" del Norte, como radio accesible. */
+function Chip({
+  name,
+  value,
+  label,
+  checked,
+  onSelect,
+  disabled,
+}: {
+  name: string;
+  value: string;
+  label: string;
+  checked: boolean;
+  onSelect: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <label
+      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border cursor-pointer text-[12.5px] font-bold transition-colors"
+      style={{
+        borderColor: checked ? "var(--color-wine)" : "var(--color-grey-200)",
+        background: checked ? "var(--color-paper)" : "transparent",
+        color: checked ? "var(--color-wine-text)" : "var(--color-grey-700)",
+      }}
+    >
+      <input
+        type="radio"
+        name={name}
+        value={value}
+        checked={checked}
+        onChange={onSelect}
+        disabled={disabled}
+        className="sr-only"
+      />
+      {/* El tilde no es decoración: sin él, "elegido" se distinguiría SÓLO por
+          color, que es lo que prohíbe WCAG 1.4.1. */}
+      {checked && <CheckIcon size={11} />}
+      {label}
+    </label>
+  );
+}
+
+/**
+ * Ficha extendida del proveedor nuevo (SDD-0172 · migr 0266).
+ *
+ * Las 3 preguntas del Norte. El copy las encuadra como lo que son: datos DEL
+ * CLIENTE para su propio control, no un trámite para DTD. Todas opcionales —
+ * en el Norte eran obligatorias, pero acá bloquear el alta por "¿de dónde lo
+ * sacaste?" costaría compras; la respuesta se pide, no se exige.
+ */
+function SupplierProfileFields({ disabled }: { disabled?: boolean }) {
+  const uid = useId();
+  const [origin, setOrigin] = useState<SupplierSourceOrigin | "">("");
+  const [history, setHistory] = useState<SupplierPurchaseHistory | "">("");
+  const [comm, setComm] = useState<SupplierCommMethod | "">("");
+  const needsNote =
+    origin !== "" && SUPPLIER_ORIGINS_NEEDING_NOTE.includes(origin);
+
+  return (
+    <div className="mt-4 flex flex-col gap-4">
+      <p className="text-[11.5px] text-grey-700 leading-[1.5] m-0">
+        Lo de abajo es para <strong className="text-ink">tu control</strong>: te
+        ayuda a reconocer a este proveedor cuando tengas varios. Todo opcional.
+      </p>
+
+      <div>
+        <FieldLabel htmlFor={`${uid}-industry`}>¿Qué vende?</FieldLabel>
+        <input
+          id={`${uid}-industry`}
+          type="text"
+          name="industry"
+          disabled={disabled}
+          placeholder="Ej. calzado deportivo, iluminación LED…"
+          className="mt-1.5 w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+        />
+      </div>
+
+      <div>
+        <FieldLabel>¿De dónde lo sacaste?</FieldLabel>
+        <div className="mt-1.5 flex flex-wrap gap-2">
+          {SUPPLIER_SOURCE_ORIGINS.map((o) => (
+            <Chip
+              key={o}
+              name="sourceOrigin"
+              value={o}
+              label={SUPPLIER_SOURCE_ORIGIN_LABEL[o]}
+              checked={origin === o}
+              onSelect={() => setOrigin(o)}
+              disabled={disabled}
+            />
+          ))}
+        </div>
+        {needsNote && (
+          <input
+            type="text"
+            name="sourceOriginNote"
+            disabled={disabled}
+            placeholder={
+              origin === "recomendado"
+                ? "¿Quién te lo recomendó?"
+                : "¿Dónde lo encontraste?"
+            }
+            className="mt-2 w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+          />
+        )}
+      </div>
+
+      <div>
+        <FieldLabel>¿Ya le habías comprado?</FieldLabel>
+        <div className="mt-1.5 flex flex-wrap gap-2">
+          {SUPPLIER_PURCHASE_HISTORIES.map((h) => (
+            <Chip
+              key={h}
+              name="purchaseHistory"
+              value={h}
+              label={SUPPLIER_PURCHASE_HISTORY_LABEL[h]}
+              checked={history === h}
+              onSelect={() => setHistory(h)}
+              disabled={disabled}
+            />
+          ))}
+        </div>
+      </div>
+
+      {history !== "" && (
+        <div>
+          <FieldLabel>¿Por dónde hablas con él hoy?</FieldLabel>
+          <p className="mt-1 text-[11px] text-grey-700 leading-[1.45]">
+            Ayuda a tu proveedor a entender con qué cliente y por qué canal está
+            hablando.
+          </p>
+          <div className="mt-1.5 flex flex-wrap gap-2">
+            {SUPPLIER_COMM_METHODS.map((c) => (
+              <Chip
+                key={c}
+                name="commMethod"
+                value={c}
+                label={SUPPLIER_COMM_METHOD_LABEL[c]}
+                checked={comm === c}
+                onSelect={() => setComm(c)}
+                disabled={disabled}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function SupplierPicker({
   suppliers,
@@ -162,7 +323,12 @@ export function SupplierPicker({
           }}
         >
           <input type="hidden" name="name" value={newSupplierName} />
-          <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-wine">
+          {/* `text-wine` crudo mide 3.70:1 en el portal oscuro (medido): el wine
+              como TEXTO va por --color-wine-text, que sí alcanza en ambos temas. */}
+          <p
+            className="text-[10px] font-bold tracking-[0.08em] uppercase"
+            style={{ color: "var(--color-wine-text)" }}
+          >
             Datos del proveedor nuevo
           </p>
           <p className="mt-1.5 text-[13px] font-semibold text-ink">
@@ -173,6 +339,11 @@ export function SupplierPicker({
               {newSupplierState.fieldErrors.name}
             </p>
           )}
+
+          {SUPPLIER_PROFILE_EXTENDED_LIVE && (
+            <SupplierProfileFields disabled={newSupplierPending} />
+          )}
+
           <div className="mt-3 flex gap-2">
             <button
               type="submit"

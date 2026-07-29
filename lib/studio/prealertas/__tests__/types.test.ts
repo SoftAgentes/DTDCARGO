@@ -29,6 +29,11 @@ import {
   isPrealertaDocType,
   PREALERTA_DOC_TYPE_LABEL,
   PREALERTA_DOC_MAX_BYTES,
+  normalizeSupplierProfileInput,
+  supplierProfileRow,
+  SUPPLIER_SOURCE_ORIGINS,
+  SUPPLIER_PURCHASE_HISTORIES,
+  SUPPLIER_COMM_METHODS,
 } from "../types";
 
 // ╔═══════════════════════════════════════════════════════════╗
@@ -549,5 +554,106 @@ describe("helpers de adjuntos de compra", () => {
 
   it("el límite de archivo es 15 MB (SDD-0096: subido de 10 a 15 para fotos de móvil)", () => {
     expect(PREALERTA_DOC_MAX_BYTES).toBe(15 * 1024 * 1024);
+  });
+});
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ Ficha extendida del proveedor (SDD-0172 · migr 0266)       ║
+// ╚═══════════════════════════════════════════════════════════╝
+
+describe("normalizeSupplierProfileInput", () => {
+  it("acepta la ficha completa y devuelve slugs, no etiquetas", () => {
+    const p = normalizeSupplierProfileInput({
+      industry: "  calzado deportivo  ",
+      contactPhone: " +86 138 0000 0000 ",
+      sourceOrigin: "feria_canton",
+      purchaseHistory: "previo",
+      commMethod: "wechat",
+    });
+    expect(p.industry).toBe("calzado deportivo");
+    expect(p.contactPhone).toBe("+86 138 0000 0000");
+    expect(p.sourceOrigin).toBe("feria_canton");
+    expect(p.purchaseHistory).toBe("previo");
+    expect(p.commMethod).toBe("wechat");
+  });
+
+  it("todo vacío → todo null (la ficha es opcional)", () => {
+    const p = normalizeSupplierProfileInput({});
+    expect(Object.values(p).every((v) => v === null)).toBe(true);
+  });
+
+  // El CHECK de la DB es la última línea, no la primera: un valor fuera del
+  // vocabulario NO debe tumbar el alta del proveedor.
+  it("un valor fuera del vocabulario cae a null, no revienta", () => {
+    const p = normalizeSupplierProfileInput({
+      sourceOrigin: "mercadolibre",
+      purchaseHistory: "quizás",
+      commMethod: "telepatía",
+    });
+    expect(p.sourceOrigin).toBeNull();
+    expect(p.purchaseHistory).toBeNull();
+    expect(p.commMethod).toBeNull();
+  });
+
+  it("la nota sobrevive sólo si el origen la pide", () => {
+    const conNota = normalizeSupplierProfileInput({
+      sourceOrigin: "recomendado",
+      sourceOriginNote: "  me lo pasó Juan  ",
+    });
+    expect(conNota.sourceOriginNote).toBe("me lo pasó Juan");
+
+    // Alibaba no pregunta nada → la nota sería un texto huérfano.
+    const sinNota = normalizeSupplierProfileInput({
+      sourceOrigin: "alibaba",
+      sourceOriginNote: "algo que quedó de antes",
+    });
+    expect(sinNota.sourceOriginNote).toBeNull();
+  });
+
+  it("'otro' también pide nota", () => {
+    const p = normalizeSupplierProfileInput({
+      sourceOrigin: "otro",
+      sourceOriginNote: "un contacto de la feria de Yiwu",
+    });
+    expect(p.sourceOriginNote).toBe("un contacto de la feria de Yiwu");
+  });
+
+  it("supplierProfileRow mapea a los nombres de columna de la migr 0266", () => {
+    const row = supplierProfileRow(
+      normalizeSupplierProfileInput({
+        industry: "LED",
+        contactPhone: "+8613800000000",
+        sourceOrigin: "1688",
+        purchaseHistory: "nuevo",
+        commMethod: "alibaba",
+      }),
+    );
+    expect(row).toEqual({
+      industry: "LED",
+      contact_phone: "+8613800000000",
+      source_origin: "1688",
+      source_origin_note: null,
+      purchase_history: "nuevo",
+      comm_method: "alibaba",
+    });
+  });
+
+  it("los vocabularios del código son los MISMOS que los CHECK de la migración", () => {
+    // Si alguien agrega una opción en el código y olvida la migración, el
+    // insert falla en prod con un CHECK violation. Este test lo caza acá.
+    expect([...SUPPLIER_SOURCE_ORIGINS]).toEqual([
+      "alibaba",
+      "1688",
+      "feria_canton",
+      "recomendado",
+      "otro",
+    ]);
+    expect([...SUPPLIER_PURCHASE_HISTORIES]).toEqual(["nuevo", "previo"]);
+    expect([...SUPPLIER_COMM_METHODS]).toEqual([
+      "whatsapp",
+      "wechat",
+      "alibaba",
+      "otro",
+    ]);
   });
 });
