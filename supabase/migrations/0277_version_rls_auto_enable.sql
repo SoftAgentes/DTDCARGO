@@ -1,4 +1,14 @@
 -- ─────────────────────────────────────────────────────────────
+-- ⚠️ NÚMERO 0277 DUPLICADO, A PROPÓSITO. Otra ventana publicó
+-- `0277_calculator_cities_destinos_faltantes.sql` a main mientras esta migración
+-- se aplicaba a prod. NO se renumera: el ledger de producción ya tiene la fila
+-- con `name = '0277_version_rls_auto_enable'`, y el gate `migrations-applied`
+-- cruza el basename EXACTO del archivo contra ese name. Renombrar el archivo a
+-- 0278 lo desalinearía del registro real y el gate lo marcaría como no aplicado.
+-- El orden entre las dos es determinista y ninguna depende de la otra
+-- (`0277_calculator…` < `0277_version…` en orden de bytes).
+-- Precedente en el repo: 0261 + 0261b.
+-- ─────────────────────────────────────────────────────────────
 -- Versionar `rls_auto_enable()` + el event trigger `ensure_rls`
 --
 -- POR QUÉ: esta función vive en producción desde hace meses, creada FUERA DE
