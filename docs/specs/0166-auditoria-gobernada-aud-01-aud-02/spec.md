@@ -4,7 +4,7 @@ title: "Auditoría gobernada — corrección conjunta AUD-01 y AUD-02"
 status: in-progress
 author: "Sam (founder) + Codex"
 created: 2026-07-21
-updated: 2026-07-22
+updated: 2026-07-28
 supersedes: null
 superseded_by: null
 related: ["0085", "0123", "0139", "0165"]
@@ -18,8 +18,19 @@ confidencialidad: interno
 > aprobados [AUD-01](../../governance/policies/aud-01.md) y
 > [AUD-02](../../governance/policies/aud-02.md). A1 y A2 fueron aplicados y
 > verificados individualmente; con ellos queda completo el Corte A de catálogo.
-> Los Cortes B–E siguen sin implementar. A1/A2 no cambiaron grants, filas de
-> negocio, viewer ni writers.
+> El diseño B0 fue aprobado por
+> [REV-AUD-007](../../governance/reviews/aud-corte-b.md). B1 fue implementado y
+> verificado localmente mediante `0267`; [REV-AUD-008](../../governance/reviews/aud-corte-b1.md)
+> lo aprobó técnicamente y
+> [REV-AUD-009](../../governance/reviews/aud-corte-b1-aplicacion.md) registra su
+> aplicación y verificación en Cloud. Los Cortes C–E siguen sin implementar y
+> [REV-AUD-010](../../governance/reviews/aud-tenant-fixtures.md) aprueba el
+> diseño obligatorio del ciclo de vida tenant/fixtures. Su implementación
+> local vive en [SDD-0172](../0172-tenant-fixtures-lifecycle/spec.md), todavía
+> pendiente de Cloud y recorrido efímero antes del cierre global. El
+> [inventario C0](inventario-corte-c-2026-07-28.md) y
+> [REV-AUD-012](../../governance/reviews/aud-corte-c.md) aprobaron técnicamente
+> el diseño del Corte C; C1 local todavía no está abierto.
 
 ## 1. Propósito
 
@@ -431,3 +442,28 @@ forma local. [REV-AUD-005](../../governance/reviews/aud-corte-a2.md) aprobó
 [REV-AUD-006](../../governance/reviews/aud-corte-a2-aplicacion.md) registra su
 aplicación y verificación en Cloud. Cada futuro corte, aplicación y archivo
 conserva un gate independiente por basename exacto.
+
+El 2026-07-28 se completó el inventario metadata-only de B0.
+[REV-AUD-007](../../governance/reviews/aud-corte-b.md) aprobó la versión 1.0
+del [diseño correctivo del Corte B](diseno-correctivo-corte-b.md), con una
+excepción transitoria explícita para el `ON DELETE CASCADE` de la FK de tenant.
+Una autorización posterior abrió únicamente B1 local.
+[REV-AUD-008](../../governance/reviews/aud-corte-b1.md) registra
+`0267_audit_contract_append_only.sql`, su prueba contractual verde en
+PostgreSQL 15/17 y su aprobación técnica para una futura aplicación
+individual. La migración fue integrada en
+`dcbc259354d83c895fff96615e9f14eedf5a9f59` y
+[REV-AUD-009](../../governance/reviews/aud-corte-b1-aplicacion.md) registra su
+aplicación y verificación en Cloud bajo el basename exacto. La FK de tenant
+conserva `ON DELETE CASCADE` como excepción transitoria: el ciclo de vida
+tenant/fixtures fue diseñado y aprobado en
+[REV-AUD-010](../../governance/reviews/aud-tenant-fixtures.md), pero su
+implementación local se separó en
+[SDD-0172](../0172-tenant-fixtures-lifecycle/spec.md). `0268` y el recorrido
+efímero permanecen pendientes.
+
+El mismo día se completó el inventario metadata-only C0.
+[REV-AUD-012](../../governance/reviews/aud-corte-c.md) aprobó la versión 1.0
+del [diseño correctivo del Corte C](diseno-correctivo-corte-c.md). No se creó
+la migración candidata `0269`, no se cambió el viewer y no se aplicó DDL.
+C1 y los Cortes D–E conservan gates separados.

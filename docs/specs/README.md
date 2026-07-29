@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 166 specs)
+### Índice de specs (generado · 167 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -199,11 +199,12 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0165 | Sistema de Gobernanza de Experiencia ERP_Studio — AVS-01 | done | interno |
 | 0166 | Auditoría gobernada — corrección conjunta AUD-01 y AUD-02 | in-progress | interno |
 | 0167 | Actualidad — centro editorial público | in-progress | interno |
-| 0168 | MP-01 Slice 1 — Permanencia y restauración de comentarios int… | approved | interno |
+| 0168 | MP-01 Slice 1 — Permanencia y restauración de comentarios int… | done | interno |
 | 0169 | Portal — gate de verificación de identidad | in-progress | interno |
 | 0170 | Portal — ciclo de 5 etapas y Seguimiento total por contenedor | in-progress | interno |
 | 0171 | Portal — datos de bodega CN, filtros de Documentos y armazón … | in-progress | interno |
 | 0172 | Portal — Nueva compra como asistente de 3 pasos | in-progress | interno |
+| 0172 | Lifecycle de tenant y fixtures E2E efímeras | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

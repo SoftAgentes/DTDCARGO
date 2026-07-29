@@ -6,8 +6,8 @@
 | SDD | [SDD-0168](../../specs/0168-mp-01-comentarios-permanencia-restauracion/spec.md) |
 | Diseño | [DT-SDD-0168 v1.0](../../specs/0168-mp-01-comentarios-permanencia-restauracion/diseno-tecnico.md) |
 | Fecha | 2026-07-23 |
-| Resultado técnico | DB-1 y APP verificados; DB-2 validado localmente en REV-MP-004 |
-| Estado de publicación | correctivo final publicado y CI verde; integración pendiente |
+| Resultado técnico | DB-1, APP y DB-2 verificados en Preview y Producción |
+| Estado de publicación | integrado en `main`, Vercel Producción y E2E autenticado aprobados |
 
 ## 1. Veredicto
 
@@ -16,12 +16,10 @@ vida fue aplicado en Supabase Cloud y el recorrido autenticado de aplicación se
 validó en un Preview aislado. DB-2 fue implementado, aplicado y verificado en
 Cloud el 2026-07-28 en [REV-MP-004](mp-01-comments-db2.md), y la APP fue
 revalidada después de DB-2 en
-[REV-MP-005](mp-01-comments-preview-e2e.md). La entrega todavía no cumple el
-cierre completo de SDD-0168: otra ventana integró el historial hasta
-`b92116d4` en `main` mediante `67b1a46b` y disparó el despliegue automático de
-Producción. El correctivo final `592226e9` y su evidencia `1f831b63` ya están
-publicados en `codex/sdd-0168-db1-local` con CI verde, pero no han sido
-integrados en `main`.
+[REV-MP-005](mp-01-comments-preview-e2e.md). El correctivo final `592226e9`, su
+evidencia `1f831b63` y el recibo `21b86297` fueron integrados en `main` mediante
+`d93c56e4`, desplegados automáticamente a Producción y validados con smoke
+público y recorrido E2E autenticado controlado.
 
 ## 2. Recibos de Supabase Cloud
 
@@ -60,8 +58,7 @@ No se consultaron cuerpos, menciones, identidades ni filas de negocio.
   `crear → eliminar → deshacer → eliminar → restaurar`, conservando identidad,
   mención, reacción y los cuatro eventos de auditoría esperados.
 - La rama efímera de Supabase y sus variables exclusivas de Preview se
-  eliminaron al terminar. `main` y Producción contienen la base hasta
-  `b92116d4`, pero no el correctivo final.
+  eliminaron al terminar.
 - `c429a09a` corrige el panel de recuperación que podía quedar obsoleto después
   de abrirse vacío.
 - `c1a1c0e6` devuelve el foco a **Comentarios eliminados** cuando la restauración
@@ -74,6 +71,11 @@ No se consultaron cuerpos, menciones, identidades ni filas de negocio.
   entorno efímero.
 - El push hasta `1f831b63` fue fast-forward; Vercel terminó `READY`, GitHub
   reportó `success` y no se observaron errores runtime ni respuestas 5xx.
+- El merge final `d93c56e4` fue publicado en `main`; Vercel Producción y GitHub
+  reportaron `success`.
+- El smoke público de Producción aprobó 14 de 14 casos.
+- El E2E autenticado de Producción aprobó `1 passed` y la limpieza confirmó
+  residuo cero en las tablas, Auth y auditoría del fixture.
 
 Verificaciones locales posteriores:
 
@@ -83,11 +85,14 @@ Verificaciones locales posteriores:
 - lint completo previamente aprobado con cero errores;
 - el worktree quedó limpio.
 
-## 4. Gates que permanecen cerrados
+## 4. Cierre y límites
 
-1. autorizar la integración del correctivo final y su recibo en `main`;
-2. validar funcionalmente Producción después de integrar;
-3. definir otro alcance para ACL históricos; 0263 solo corrige defaults futuros
+La integración, el despliegue y la validación funcional de Producción están
+cerrados. Permanecen fuera de este SDD:
+
+1. definir otro alcance para ACL históricos; 0263 solo corrige defaults futuros
    del rol `postgres`.
+2. cualquier purga/hard-delete o retención automática;
+3. ampliación de restauración a roles no administradores.
 
-Ninguno de estos gates habilita purga o hard-delete.
+Ninguna evidencia de SDD-0168 habilita esos alcances.

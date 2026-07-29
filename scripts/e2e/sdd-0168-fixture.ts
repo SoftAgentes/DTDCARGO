@@ -11,12 +11,14 @@ export const SDD_0168_FIXTURE = {
 } as const;
 
 const PRODUCTION_PROJECT_REF = "xpfuzqombmjmxvprjgmi";
+const EPHEMERAL_ENVIRONMENT_KIND = "ephemeral";
 
 export type E2EEnvironment = {
   projectRef: string;
   supabaseUrl: string;
   serviceRoleKey: string;
   password: string;
+  environmentKind: typeof EPHEMERAL_ENVIRONMENT_KIND;
 };
 
 function required(name: string): string {
@@ -30,9 +32,23 @@ export function loadE2EEnvironment(): E2EEnvironment {
   const supabaseUrl = required("E2E_SUPABASE_URL");
   const serviceRoleKey = required("E2E_SUPABASE_SERVICE_ROLE_KEY");
   const password = required("STUDIO_E2E_PASSWORD");
+  const environmentKind = required("E2E_ENVIRONMENT_KIND");
+  const confirmedProjectRef = required("E2E_EPHEMERAL_PROJECT_REF");
 
   if (projectRef === PRODUCTION_PROJECT_REF) {
-    throw new Error("El seed E2E se niega a ejecutar contra Supabase Producción.");
+    throw new Error(
+      "Las fixtures E2E están prohibidas en Supabase Producción.",
+    );
+  }
+  if (environmentKind !== EPHEMERAL_ENVIRONMENT_KIND) {
+    throw new Error(
+      `E2E_ENVIRONMENT_KIND debe ser ${EPHEMERAL_ENVIRONMENT_KIND}.`,
+    );
+  }
+  if (confirmedProjectRef !== projectRef) {
+    throw new Error(
+      "E2E_EPHEMERAL_PROJECT_REF no coincide con E2E_SUPABASE_PROJECT_REF.",
+    );
   }
 
   const url = new URL(supabaseUrl);
@@ -46,7 +62,13 @@ export function loadE2EEnvironment(): E2EEnvironment {
     throw new Error("STUDIO_E2E_PASSWORD debe tener al menos 12 caracteres.");
   }
 
-  return { projectRef, supabaseUrl, serviceRoleKey, password };
+  return {
+    projectRef,
+    supabaseUrl,
+    serviceRoleKey,
+    password,
+    environmentKind,
+  };
 }
 
 export function createE2EAdminClient(

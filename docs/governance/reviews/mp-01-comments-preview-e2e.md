@@ -5,9 +5,9 @@
 | Revisión | REV-MP-005 |
 | SDD | [SDD-0168](../../specs/0168-mp-01-comentarios-permanencia-restauracion/spec.md) |
 | Fecha | 2026-07-28 |
-| Resultado técnico | Preview aislado y recorrido E2E aprobados después de DB-2 |
+| Resultado técnico | Preview aislado y Producción aprobados después de DB-2 |
 | Commit correctivo local | `592226e9` |
-| Estado operativo | entorno efímero retirado; push y CI aprobados; integración pendiente |
+| Estado operativo | integración, despliegue y E2E de Producción cerrados; fixtures retirados |
 
 ## 1. Veredicto
 
@@ -26,8 +26,10 @@ Sam autorizó después el push exacto de `592226e9` y `1f831b63`. La rama remota
 `codex/sdd-0168-db1-local` avanzó por fast-forward hasta `1f831b63` y su check
 Vercel terminó en `success`.
 
-REV-MP-005 no autoriza la integración del correctivo final, validación
-funcional de Producción ni corrección global de ACL históricos.
+Sam autorizó después la integración exacta de `592226e9`, `1f831b63` y
+`21b86297` mediante merge de `origin/main` y push a `main`, aceptando el
+despliegue automático de Producción. El merge final `d93c56e4` fue publicado
+por fast-forward y Vercel terminó en `success`.
 
 ## 2. Entorno aislado
 
@@ -137,10 +139,53 @@ advisors del dominio conforme.
 
 Producción no fue modificada durante estas reparaciones.
 
-## 6. Gates que permanecen cerrados
+## 6. Cierre de integración y Producción
 
-1. integración del correctivo final y este recibo en `main`;
-2. validación funcional de Producción ya con el correctivo integrado;
-3. cualquier corrección global de ACL históricos.
+Antes del push final se ejecutó `node scripts/verify.mjs` sobre el merge con la
+última versión de `origin/main`:
 
-Ninguno de estos gates habilita purga o hard-delete.
+- lint aprobado con cero errores y 172 warnings preexistentes;
+- frontera RSC aprobada sobre 1.412 módulos;
+- TypeScript y documentación aprobados;
+- 291 archivos y 3.971 pruebas Vitest aprobados;
+- ledger conforme, sin migraciones nuevas sin aplicar;
+- 19 E2E aprobados y 3 omitidos por requerir seed.
+
+El commit `d93c56e4` quedó simultáneamente en el worktree y en `origin/main`.
+GitHub registró el deployment `5649697855` con ambiente `Production`, Vercel
+reportó `success` y el artefacto quedó disponible en
+`dtdcargo-lgvo7lbrs-hailu-wey.vercel.app`. Inicio, Studio, `robots.txt` y
+`sitemap.xml` respondieron HTTP 200; el smoke público contra
+`https://dtdcargo.com` aprobó 14 de 14 casos.
+
+Con autorización individual posterior, el 2026-07-28 se ejecutó en el proyecto
+Supabase Producción `xpfuzqombmjmxvprjgmi` el fixture determinístico
+`e2e-sdd-0168`. El recorrido autenticado aprobó en 17,8 segundos:
+
+1. crear comentario con mención y reacción;
+2. eliminar y deshacer;
+3. eliminar y restaurar desde recuperación;
+4. comprobar la misma identidad, mención y reacción;
+5. comprobar los cuatro eventos AUD-01 esperados;
+6. comprobar ausencia de errores de consola, requests fallidos y respuestas
+   HTTP de error de la aplicación.
+
+La limpieza corrió en `finally`, eliminó exactamente un tenant y dos usuarios
+fixture y fue revalidada por IDs. El conteo final fue cero para tenant,
+embarque, membresías, comentarios, menciones, reacciones y auditoría; ambos
+usuarios Auth quedaron ausentes. La contraseña aleatoria existió únicamente
+durante el proceso y no fue escrita a disco.
+
+El conector de Vercel no permitió consultar logs runtime internos de la
+organización (`403`). Por eso la evidencia de Producción se limita al estado
+oficial `success`, respuestas HTTP, smoke público y listener estricto del E2E
+autenticado; no se afirma una consulta de logs que no pudo ejecutarse.
+
+## 7. Límites que permanecen separados
+
+1. cualquier corrección global de ACL históricos;
+2. cualquier purga, hard-delete o política de retención futura;
+3. ampliación de restauración a roles no administradores.
+
+La integración y la validación de Producción no habilitan ninguno de esos
+alcances.
