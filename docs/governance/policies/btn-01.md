@@ -1,12 +1,12 @@
-# BTN-01 v1.0 — Semántica, jerarquía y contrato de botones
+# BTN-01 v1.1 — Semántica, jerarquía y contrato de botones
 
 | Control | Valor |
 |---|---|
 | Código | BTN-01 |
-| Versión | 1.0 |
+| Versión | 1.1 |
 | Dueño | Sam (founder) |
 | Estado | aprobada |
-| Aprobación | 2026-07-21 · Sam (founder) · conjunta con SGE-00 v1.0 |
+| Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-014 |
 | Creado | 2026-07-21 |
 | Depende de | [SGE-00](sge-00.md), [MP-01](mp-01.md), AVS-01 y AUD-01 |
 | Fuente técnica actual | [`app/studio/CLAUDE.md`](../../../app/studio/CLAUDE.md) · `ActionButton` · `SplitActionButton` |
@@ -134,8 +134,12 @@ o “Procesando…”. El éxito usa resultado: “Guardado”, “Factura emiti
   buscar o abrir menú; exige `aria-label` y tooltip.
 - Objetivo mínimo: 32 × 32 px en escritorio y 44 × 44 px en touch.
 - El icono conserva la misma metáfora en todos los módulos.
-- Un menú soporta Tab, flechas cuando use patrón menu, Enter/Space, Escape,
-  cierre por click externo y restauración de foco.
+- Un menú con `role="menu"` implementa roving focus: ArrowDown/ArrowUp recorren
+  opciones, Home/End saltan a extremos, Enter/Space activan y Escape cierra.
+- ArrowDown en el trigger abre y enfoca la primera opción; ArrowUp abre y
+  enfoca la última. Tab cierra sin secuestrar el recorrido natural.
+- Escape restaura foco al trigger. Click externo cierra sin ejecutar opciones.
+- El popup evita clipping eligiendo arriba/abajo según el espacio disponible.
 - El menú no ejecuta al seleccionar con hover y no recuerda una opción
   destructiva como default sin aprobación específica.
 
