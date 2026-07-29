@@ -45,9 +45,26 @@ const C = {
  * Que algo esté acá NO lo bendice; lo hace visible.
  */
 const ORPHAN_ALLOWLIST = {
-  rls_auto_enable:
-    "Referenciada por 0209 y 0211 (revoke/grant) pero nunca creada en el repo — existe sólo en prod, creada fuera de banda. Recuperar su código (pg_get_functiondef) y versionarla en una migración nueva. Sin eso, una reconstrucción de la base la pierde y nadie puede revisar qué hace algo que, por el nombre, toca RLS.",
+  // (vacía) — `rls_auto_enable` estuvo acá hasta que la 0277 la versionó.
 };
+
+/**
+ * Migraciones que NO construyen schema: reparan el ledger de prod
+ * (`supabase_migrations.schema_migrations`). Sus preflights exigen filas con md5
+ * exactos de producción, así que sobre una base limpia no tienen nada que
+ * reparar — por definición quedan fuera de una reconstrucción.
+ *
+ * No es un permiso para saltarse el gate: más abajo se verifica EMPÍRICAMENTE
+ * que ninguna cambie el schema del producto.
+ */
+const LEDGER_ONLY = new Set([
+  "0271_repair_branch_replay_history.sql",
+  "0272_skip_superseded_invite_history.sql",
+  "0273_skip_platform_admin_bootstrap_history.sql",
+  "0274_restore_calculator_settings_history.sql",
+  "0275_restore_pin_search_path_history.sql",
+  "0276_restore_revoke_anon_rpc_sweep_history.sql",
+]);
 
 const MIGRATIONS_DIR = resolve(process.cwd(), "supabase/migrations");
 const STUBS = resolve(process.cwd(), "supabase/tests/_supabase-platform-stubs.sql");
@@ -178,7 +195,9 @@ try {
   // 0124_, que es justo el orden inverso al real.
   const run = docker([
     "exec", container, "sh", "-c",
+    `SKIP="${[...LEDGER_ONLY].join(" ")}"; ` +
     'ok=0; for f in $(ls /sb/migrations/*.sql | LC_ALL=C sort); do ' +
+      'b=$(basename $f); case " $SKIP " in *" $b "*) continue;; esac; ' +
       'if psql -U postgres -q --single-transaction -v ON_ERROR_STOP=1 -f "$f" >/tmp/o.txt 2>&1; then ok=$((ok+1)); ' +
       'else echo "FALLA_EN|$(basename $f)|$ok"; grep -m1 "ERROR:" /tmp/o.txt; exit 1; fi; done; echo "OK|$ok"',
   ]);
@@ -197,6 +216,44 @@ try {
   const okLine = out.split("\n").find((l) => l.startsWith("OK|"));
   const n = okLine ? okLine.split("|")[1] : "?";
   console.log(`${C.dim}   ${n} migraciones aplicadas desde cero · schema reconstruible${C.nc}`);
+
+  // ── Las LEDGER_ONLY no pueden esconder DDL de negocio ──
+  // Verificación EMPÍRICA, no por texto: esos archivos guardan SQL histórico
+  // dentro de literales, así que buscar "create table" en el fuente da falsos
+  // positivos. Se corren sobre el schema ya construido (su preflight las aborta,
+  // que es lo esperado) y se compara la huella del schema antes y después. Si
+  // alguna lograra ejecutar DDL del producto, la huella cambia.
+  const HUELLA = `select md5(string_agg(x, '|' order by x)) from (
+      select 'T:'||c.relname||':'||c.relrowsecurity::text as x
+        from pg_class c join pg_namespace n on n.oid=c.relnamespace
+       where n.nspname='public' and c.relkind in ('r','v')
+      union all
+      select 'F:'||p.proname||':'||pg_get_function_identity_arguments(p.oid)
+        from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public'
+      union all
+      select 'P:'||pol.polname||':'||pol.polrelid::regclass::text from pg_policy pol
+    ) s`;
+  const huella = () =>
+    (docker(["exec", container, "psql", "-U", "postgres", "-q", "-t", "-A", "-c", HUELLA]).stdout || "").trim();
+
+  const antes = huella();
+  for (const f of LEDGER_ONLY) {
+    docker([
+      "exec", container, "psql", "-U", "postgres", "-q",
+      "--single-transaction", "-v", "ON_ERROR_STOP=1",
+      "-f", `/sb/migrations/${f}`,
+    ]); // se espera que aborte por preflight; el status no importa acá
+  }
+  if (!antes || antes !== huella()) {
+    console.log(`${C.red}[FAIL]${C.nc} una migración de LEDGER_ONLY cambió el schema del producto.`);
+    console.log(
+      `${C.dim}   Están exentas de la reconstrucción porque sólo reparan supabase_migrations.\n   Si tocan tablas, funciones o policies, no merecen la exención.${C.nc}`,
+    );
+    process.exit(1);
+  }
+  console.log(
+    `${C.dim}   ${LEDGER_ONLY.size} migraciones sólo-ledger verificadas: no tocan el schema${C.nc}`,
+  );
 
   // Sobre ese schema completo (219 tablas reales, no un fixture recortado)
   // corremos el contrato de aislamiento multi-tenant. Reusa la base ya
