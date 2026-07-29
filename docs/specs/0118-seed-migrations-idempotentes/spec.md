@@ -143,16 +143,27 @@ El prerequisito remoto `20260604131310 0103_calculator_settings` tiene
 `0103_calculator_settings.sql`. La reparación exige otro gate forward-only;
 no se debe ejecutar el archivo manualmente sobre el branch fallido.
 
+La reparación aprobada localmente es:
+
+```text
+0274_restore_calculator_settings_history
+```
+
+`0274` convierte únicamente el `NULL` técnico de esa entrada en un array con
+el payload canónico de `0103_calculator_settings.sql`. Producción no ejecuta
+ese payload: sólo lo almacena para futuros replays. La segunda ejecución
+reconoce el digest final y no vuelve a escribir.
+
 ## 3. Generación y control de drift
 
 El generador
 `scripts/build-sdd-0118-repair.mjs`:
 
 1. valida los digests del estado remoto observado;
-2. lee los trece archivos fuente del repositorio;
+2. lee los catorce archivos fuente del repositorio;
 3. normaliza únicamente finales de línea;
 4. calcula y publica el digest de cada payload;
-5. genera `0271`, `0272`, `0273` y sus pruebas transaccionales;
+5. genera `0271`, `0272`, `0273`, `0274` y sus pruebas transaccionales;
 6. ofrece `--check` para impedir drift entre fuentes y artefactos.
 
 No descarga ni guarda secretos. Los únicos datos Cloud incorporados son
@@ -182,8 +193,10 @@ metadatos técnicos del ledger.
 | Follow-up DB test | `supabase/tests/0272_skip_superseded_invite_history.test.sql` |
 | Platform admin migración | `supabase/migrations/0273_skip_platform_admin_bootstrap_history.sql` |
 | Platform admin DB test | `supabase/tests/0273_skip_platform_admin_bootstrap_history.test.sql` |
+| Calculator migración | `supabase/migrations/0274_restore_calculator_settings_history.sql` |
+| Calculator DB test | `supabase/tests/0274_restore_calculator_settings_history.test.sql` |
 | Spec | `docs/specs/0118-seed-migrations-idempotentes/spec.md` |
-| Revisiones | `docs/governance/reviews/aud-sdd-0118-branch-replay.md` · `docs/governance/reviews/aud-sdd-0118-platform-admin-bootstrap.md` |
+| Revisiones | `docs/governance/reviews/aud-sdd-0118-branch-replay.md` · `docs/governance/reviews/aud-sdd-0118-platform-admin-bootstrap.md` · `docs/governance/reviews/aud-sdd-0118-calculator-settings-history.md` |
 
 ## 6. Evidencia local
 
@@ -202,13 +215,14 @@ metadatos técnicos del ledger.
 | Platform admin local | `0273` determinista · Vitest 6/6 · PostgreSQL 15/17 · [REV-AUD-024](../../governance/reviews/aud-sdd-0118-platform-admin-bootstrap.md) |
 | Platform admin Cloud | `0273` aplicada individualmente; recibo `20260729141805` · [REV-AUD-025](../../governance/reviews/aud-sdd-0118-platform-admin-bootstrap-application.md) |
 | Cuarto branch | 120 migraciones; falta `calculator_settings` por `0103` con statements NULL; teardown terminal |
+| Calculator local | `0274` determinista · Vitest 8/8 · PostgreSQL 15/17 · [REV-AUD-026](../../governance/reviews/aud-sdd-0118-calculator-settings-history.md) |
 | Diff | verde |
 
 ## 7. Gates restantes
 
-1. diseñar y aprobar una reparación forward-only de
-   `20260604131310 0103_calculator_settings`;
-2. aplicar esa reparación sólo con autorización expresa del nuevo basename;
+1. obtener autorización expresa para aplicar individualmente
+   `0274_restore_calculator_settings_history`;
+2. aplicar y verificar esa reparación con el runbook de Producción;
 3. crear un entorno efímero nuevo y completar replay, seed, E2E, verificación
    y teardown terminal.
 

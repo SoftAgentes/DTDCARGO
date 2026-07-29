@@ -10,8 +10,13 @@ const {
   buildSqlTest,
   buildPlatformAdminMigration,
   buildPlatformAdminSqlTest,
+  buildCalculatorSettingsMigration,
+  buildCalculatorSettingsSqlTest,
+  CALCULATOR_SETTINGS_MIGRATION_PATH,
+  CALCULATOR_SETTINGS_SQL_TEST_PATH,
   FOLLOWUP_MIGRATION_PATH,
   FOLLOWUP_SQL_TEST_PATH,
+  loadCalculatorSettingsRepair,
   loadFollowups,
   loadPlatformAdminRepair,
   loadRepairs,
@@ -113,5 +118,47 @@ describe("SDD-0118 branch replay repair", () => {
     await expect(
       readFile(PLATFORM_ADMIN_SQL_TEST_PATH, "utf8"),
     ).resolves.toBe(buildPlatformAdminSqlTest(repair));
+  });
+
+  it("restaura el payload canónico de calculator_settings", async () => {
+    const repair = await loadCalculatorSettingsRepair();
+
+    expect(repair.version).toBe("20260604131310");
+    expect(repair.name).toBe("0103_calculator_settings");
+    expect(repair.targetMd5).toBe("0f7deee22e3a978c52159b6fc211ee2c");
+    expect(repair.targetSql).toContain(
+      "create table if not exists public.calculator_settings",
+    );
+    expect(repair.targetSql).toContain(
+      "create or replace function public.public_calculator_config()",
+    );
+    expect(repair.targetSql).toContain(
+      "revoke all on function public.public_calculator_config() from public",
+    );
+  });
+
+  it("mantiene sincronizado y fail-closed el gate 0274", async () => {
+    const repair = await loadCalculatorSettingsRepair();
+    const migration = buildCalculatorSettingsMigration(repair);
+    const executableSql = migration.replace(
+      /\$sdd0118_calculator_settings_target\$[\s\S]*?\$sdd0118_calculator_settings_target\$/g,
+      "<calculator-settings-sql-as-text>",
+    );
+
+    expect(migration).toContain("statements is null");
+    expect(migration).toContain("SDD-0118 calculator_settings: drift");
+    expect(migration).toContain(repair.targetMd5);
+    expect(executableSql).not.toContain(
+      "create table if not exists public.calculator_settings",
+    );
+    expect(executableSql).not.toContain(
+      "insert into public.calculator_settings",
+    );
+    await expect(
+      readFile(CALCULATOR_SETTINGS_MIGRATION_PATH, "utf8"),
+    ).resolves.toBe(buildCalculatorSettingsMigration(repair));
+    await expect(
+      readFile(CALCULATOR_SETTINGS_SQL_TEST_PATH, "utf8"),
+    ).resolves.toBe(buildCalculatorSettingsSqlTest(repair));
   });
 });

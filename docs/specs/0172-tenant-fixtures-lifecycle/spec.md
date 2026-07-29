@@ -204,9 +204,10 @@ No crea funciones ni modifica otra FK.
 
 ## 12. Gates pendientes
 
-1. reparar mediante gate propio `0103_calculator_settings`, cuyo ledger remoto
-   tiene `statements = NULL`;
-2. aplicar esa reparación sólo con autorización expresa del nuevo basename;
+1. obtener autorización expresa para aplicar individualmente
+   `0274_restore_calculator_settings_history`, aprobado localmente en
+   [SDD-0118](../0118-seed-migrations-idempotentes/spec.md);
+2. aplicar y verificar `0274` mediante su gate Cloud propio;
 3. crear un Supabase efímero nuevo que alcance `MIGRATIONS_PASSED`;
 4. ejecutar seed, recorrido E2E y verificación sin DML de cleanup;
 5. destruir ese entorno y volver a comprobar estado terminal.

@@ -30,6 +30,14 @@ export const PLATFORM_ADMIN_SQL_TEST_PATH = resolve(
   ROOT,
   "supabase/tests/0273_skip_platform_admin_bootstrap_history.test.sql",
 );
+export const CALCULATOR_SETTINGS_MIGRATION_PATH = resolve(
+  ROOT,
+  "supabase/migrations/0274_restore_calculator_settings_history.sql",
+);
+export const CALCULATOR_SETTINGS_SQL_TEST_PATH = resolve(
+  ROOT,
+  "supabase/tests/0274_restore_calculator_settings_history.test.sql",
+);
 
 const PLATFORM_ADMIN_SOURCE_PATH = resolve(
   ROOT,
@@ -43,6 +51,11 @@ const PLATFORM_ADMIN_REPLAY_NOTE = `-- Replay-safe: el bootstrap de datos se omi
 const PLATFORM_ADMIN_SOURCE_MD5 = "bb99b54106d671457836daa0dc53b839";
 const PLATFORM_ADMIN_REMOTE_MD5 = "6c31b8ac8841b24815e3fb2463eabdd2";
 const PLATFORM_ADMIN_TARGET_MD5 = "cb374d4ad4c3b2bb62915e80a5a13793";
+const CALCULATOR_SETTINGS_SOURCE_PATH = resolve(
+  ROOT,
+  "supabase/migrations/0103_calculator_settings.sql",
+);
+const CALCULATOR_SETTINGS_TARGET_MD5 = "0f7deee22e3a978c52159b6fc211ee2c";
 
 const SEED_TEAM_INVITATION = String.raw`-- Seed template "team_invitation" por cada tenant existente.
 -- Idempotente · on conflict do nothing.
@@ -714,6 +727,296 @@ select to_regnamespace('supabase_migrations') is null
 `;
 }
 
+export async function loadCalculatorSettingsRepair() {
+  const targetSql = normalizeSql(
+    await readFile(CALCULATOR_SETTINGS_SOURCE_PATH, "utf8"),
+  );
+  if (md5(targetSql) !== CALCULATOR_SETTINGS_TARGET_MD5) {
+    throw new Error(
+      "0103_calculator_settings.sql no coincide con el digest canónico esperado",
+    );
+  }
+
+  return {
+    version: "20260604131310",
+    name: "0103_calculator_settings",
+    targetSql,
+    targetMd5: CALCULATOR_SETTINGS_TARGET_MD5,
+  };
+}
+
+export function buildCalculatorSettingsMigration(repair) {
+  return `-- SDD-0118 · restaurar el payload reproducible de calculator_settings.
+-- Sólo reemplaza statements NULL del ledger; no ejecuta el DDL almacenado.
+
+do $sdd0118_calculator_settings_preflight$
+begin
+  if not exists (
+    select 1
+    from supabase_migrations.schema_migrations
+    where version = '${repair.version}'
+      and name = '${repair.name}'
+      and (
+        statements is null
+        or (
+          cardinality(statements) = 1
+          and md5(statements[1]) = '${repair.targetMd5}'
+        )
+      )
+  ) then
+    raise exception 'SDD-0118 calculator_settings: drift en ${repair.version} ${repair.name}';
+  end if;
+end
+$sdd0118_calculator_settings_preflight$;
+
+update supabase_migrations.schema_migrations
+set statements = array[
+  ${sqlLiteral(repair.targetSql, "sdd0118_calculator_settings_target")}
+]
+where version = '${repair.version}'
+  and name = '${repair.name}'
+  and statements is null;
+
+do $sdd0118_calculator_settings_postflight$
+begin
+  if not exists (
+    select 1
+    from supabase_migrations.schema_migrations
+    where version = '${repair.version}'
+      and name = '${repair.name}'
+      and cardinality(statements) = 1
+      and md5(statements[1]) = '${repair.targetMd5}'
+  ) then
+    raise exception 'SDD-0118 calculator_settings: postcondición falló en ${repair.version} ${repair.name}';
+  end if;
+end
+$sdd0118_calculator_settings_postflight$;
+`;
+}
+
+export function buildCalculatorSettingsSqlTest(repair) {
+  return `\\set ON_ERROR_STOP on
+
+begin;
+
+do $roles$
+begin
+  if not exists (select 1 from pg_roles where rolname = 'anon') then
+    create role anon nologin;
+  end if;
+  if not exists (select 1 from pg_roles where rolname = 'authenticated') then
+    create role authenticated nologin;
+  end if;
+end
+$roles$;
+
+create schema auth;
+create table auth.users (id uuid primary key);
+
+create table public.tenants (
+  id uuid primary key,
+  slug text not null unique
+);
+
+create function public.get_user_tenant_id()
+returns uuid
+language sql
+stable
+as $$
+  select null::uuid
+$$;
+
+create function public.touch_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at := now();
+  return new;
+end
+$$;
+
+insert into public.tenants (id, slug)
+values ('10000000-0000-4000-8000-000000000103', 'dtd');
+
+create schema supabase_migrations;
+create table supabase_migrations.schema_migrations (
+  version text primary key,
+  name text not null,
+  statements text[]
+);
+
+insert into supabase_migrations.schema_migrations (version, name, statements)
+values ('${repair.version}', '${repair.name}', null);
+
+\\ir ../migrations/0274_restore_calculator_settings_history.sql
+\\ir ../migrations/0274_restore_calculator_settings_history.sql
+
+do $ledger_contract$
+begin
+  if not exists (
+    select 1
+    from supabase_migrations.schema_migrations
+    where version = '${repair.version}'
+      and name = '${repair.name}'
+      and cardinality(statements) = 1
+      and md5(statements[1]) = '${repair.targetMd5}'
+  ) then
+    raise exception 'TEST 0274: estado final incorrecto en ${repair.version}';
+  end if;
+end
+$ledger_contract$;
+
+${repair.targetSql}
+
+do $replay_contract$
+declare
+  v_config record;
+begin
+  if to_regclass('public.calculator_settings') is null then
+    raise exception 'TEST 0274: falta public.calculator_settings';
+  end if;
+  if (
+    select count(*)
+    from public.calculator_settings cs
+    join public.tenants t on t.id = cs.tenant_id
+    where t.slug = 'dtd'
+      and cs.peso_incluido_kg = 500
+      and cs.peso_max_kg = 600
+      and cs.recargo_excedente_kg = 1
+      and cs.descuento_valencia = 50
+      and cs.recargo_embalaje_especial = 50
+      and cs.recargo_bateria_mult = 1.5
+      and cs.threshold_casco_km = 200
+      and cs.tarifa_km_fuera_casco = 1
+  ) <> 1 then
+    raise exception 'TEST 0274: seed default incorrecto';
+  end if;
+  if not exists (
+    select 1
+    from pg_constraint c
+    join pg_class source_table on source_table.oid = c.conrelid
+    join pg_class target_table on target_table.oid = c.confrelid
+    join pg_namespace target_schema on target_schema.oid = target_table.relnamespace
+    where c.contype = 'f'
+      and source_table.relname = 'calculator_settings'
+      and target_schema.nspname = 'public'
+      and target_table.relname = 'tenants'
+      and c.confdeltype = 'c'
+  ) then
+    raise exception 'TEST 0274: FK tenant no conserva CASCADE';
+  end if;
+  if not exists (
+    select 1
+    from pg_constraint c
+    join pg_class source_table on source_table.oid = c.conrelid
+    join pg_class target_table on target_table.oid = c.confrelid
+    join pg_namespace target_schema on target_schema.oid = target_table.relnamespace
+    where c.contype = 'f'
+      and source_table.relname = 'calculator_settings'
+      and target_schema.nspname = 'auth'
+      and target_table.relname = 'users'
+  ) then
+    raise exception 'TEST 0274: FK updated_by hacia auth.users ausente';
+  end if;
+  if not coalesce((
+    select relrowsecurity
+    from pg_class
+    where oid = 'public.calculator_settings'::regclass
+  ), false) then
+    raise exception 'TEST 0274: RLS no está habilitado';
+  end if;
+  if (
+    select count(*)
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'calculator_settings'
+      and policyname = 'calculator_settings by tenant'
+      and cmd = 'ALL'
+  ) <> 1 then
+    raise exception 'TEST 0274: policy tenant incompleta';
+  end if;
+  if not has_table_privilege(
+    'authenticated',
+    'public.calculator_settings',
+    'SELECT, INSERT, UPDATE'
+  ) or has_table_privilege(
+    'authenticated',
+    'public.calculator_settings',
+    'DELETE'
+  ) then
+    raise exception 'TEST 0274: grants de tabla incorrectos';
+  end if;
+  if not exists (
+    select 1
+    from pg_trigger
+    where tgrelid = 'public.calculator_settings'::regclass
+      and tgname = 'calculator_settings_touch'
+      and tgenabled = 'O'
+      and not tgisinternal
+  ) then
+    raise exception 'TEST 0274: trigger updated_at ausente';
+  end if;
+  if not exists (
+    select 1
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname = 'public_calculator_config'
+      and p.prosecdef
+      and p.provolatile = 's'
+      and p.proconfig @> array['search_path=public']
+  ) then
+    raise exception 'TEST 0274: RPC no conserva hardening';
+  end if;
+  if not has_function_privilege(
+    'anon',
+    'public.public_calculator_config()',
+    'EXECUTE'
+  ) or not has_function_privilege(
+    'authenticated',
+    'public.public_calculator_config()',
+    'EXECUTE'
+  ) then
+    raise exception 'TEST 0274: grants de RPC incompletos';
+  end if;
+  if exists (
+    select 1
+    from pg_proc p
+    cross join lateral aclexplode(
+      coalesce(p.proacl, acldefault('f', p.proowner))
+    ) acl
+    where p.oid = 'public.public_calculator_config()'::regprocedure
+      and acl.grantee = 0
+      and acl.privilege_type = 'EXECUTE'
+  ) then
+    raise exception 'TEST 0274: PUBLIC conserva EXECUTE';
+  end if;
+
+  select * into v_config from public.public_calculator_config();
+  if v_config.peso_incluido_kg <> 500
+    or v_config.peso_max_kg <> 600
+    or v_config.recargo_excedente_kg <> 1
+    or v_config.descuento_valencia <> 50
+    or v_config.recargo_embalaje_especial <> 50
+    or v_config.recargo_bateria_mult <> 1.5
+    or v_config.threshold_casco_km <> 200
+    or v_config.tarifa_km_fuera_casco <> 1
+  then
+    raise exception 'TEST 0274: retorno RPC incorrecto';
+  end if;
+end
+$replay_contract$;
+
+rollback;
+
+select to_regnamespace('supabase_migrations') is null
+  and to_regnamespace('auth') is null
+  and to_regclass('public.calculator_settings') is null
+  as sdd_0118_calculator_settings_fixture_rolled_back;
+`;
+}
+
 async function run() {
   const repairs = await loadRepairs();
   const migration = buildMigration(repairs);
@@ -726,6 +1029,13 @@ async function run() {
     platformAdminRepair,
   );
   const platformAdminSqlTest = buildPlatformAdminSqlTest(platformAdminRepair);
+  const calculatorSettingsRepair = await loadCalculatorSettingsRepair();
+  const calculatorSettingsMigration = buildCalculatorSettingsMigration(
+    calculatorSettingsRepair,
+  );
+  const calculatorSettingsSqlTest = buildCalculatorSettingsSqlTest(
+    calculatorSettingsRepair,
+  );
   const checkOnly = process.argv.includes("--check");
 
   if (checkOnly) {
@@ -736,6 +1046,8 @@ async function run() {
       currentFollowupTest,
       currentPlatformAdminMigration,
       currentPlatformAdminTest,
+      currentCalculatorSettingsMigration,
+      currentCalculatorSettingsTest,
     ] = await Promise.all([
       readFile(MIGRATION_PATH, "utf8"),
       readFile(SQL_TEST_PATH, "utf8"),
@@ -743,6 +1055,8 @@ async function run() {
       readFile(FOLLOWUP_SQL_TEST_PATH, "utf8"),
       readFile(PLATFORM_ADMIN_MIGRATION_PATH, "utf8"),
       readFile(PLATFORM_ADMIN_SQL_TEST_PATH, "utf8"),
+      readFile(CALCULATOR_SETTINGS_MIGRATION_PATH, "utf8"),
+      readFile(CALCULATOR_SETTINGS_SQL_TEST_PATH, "utf8"),
     ]);
     if (
       normalizeSql(currentMigration) !== migration ||
@@ -751,7 +1065,11 @@ async function run() {
       normalizeSql(currentFollowupTest) !== followupSqlTest ||
       normalizeSql(currentPlatformAdminMigration) !==
         platformAdminMigration ||
-      normalizeSql(currentPlatformAdminTest) !== platformAdminSqlTest
+      normalizeSql(currentPlatformAdminTest) !== platformAdminSqlTest ||
+      normalizeSql(currentCalculatorSettingsMigration) !==
+        calculatorSettingsMigration ||
+      normalizeSql(currentCalculatorSettingsTest) !==
+        calculatorSettingsSqlTest
     ) {
       throw new Error("Los artefactos generados de SDD-0118 están desactualizados");
     }
@@ -769,6 +1087,16 @@ async function run() {
       "utf8",
     ),
     writeFile(PLATFORM_ADMIN_SQL_TEST_PATH, platformAdminSqlTest, "utf8"),
+    writeFile(
+      CALCULATOR_SETTINGS_MIGRATION_PATH,
+      calculatorSettingsMigration,
+      "utf8",
+    ),
+    writeFile(
+      CALCULATOR_SETTINGS_SQL_TEST_PATH,
+      calculatorSettingsSqlTest,
+      "utf8",
+    ),
   ]);
 }
 
