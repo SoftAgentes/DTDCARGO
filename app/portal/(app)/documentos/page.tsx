@@ -12,8 +12,10 @@ import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ArrowIcon } from "@/components/Icon";
 import { getProfileCompleteness } from "@/lib/portal/portal-queries";
 import { isModuleLocked } from "@/lib/portal/verify-gate";
+import type { PortalDocView } from "@/lib/portal/documentos-filter";
 import { EnviosHubTabs } from "../../_components/PortalHubTabs";
 import { PortalVerifyGate } from "../_components/PortalVerifyGate";
+import { DocumentsClient } from "./DocumentsClient";
 
 export const metadata: Metadata = { title: "Documentos" };
 
@@ -58,6 +60,21 @@ export default async function PortalDocumentsPage() {
     "Hola DTD Cargo, soy cliente y necesito un documento de mis envíos.",
   );
 
+  // Se aplanan acá (etiquetas, meta y signed URL ya resueltas) para que el
+  // componente cliente no arrastre tipos de `lib/studio` ni vuelva a derivar
+  // nada: solo filtra y pinta.
+  const rows: PortalDocView[] = docs.map((doc) => ({
+    id: doc.id,
+    docType: doc.docType,
+    typeLabel: shipmentDocTypeLabel(doc.docType),
+    typeShort: shipmentDocTypeShort(doc.docType),
+    shipmentCode: doc.shipmentCode ?? null,
+    meta: [formatDocSize(doc.sizeBytes), formatDate(doc.createdAt)]
+      .filter(Boolean)
+      .join(" · "),
+    url: urls[doc.storagePath] ?? null,
+  }));
+
   return (
     <div>
       <EnviosHubTabs />
@@ -89,71 +106,7 @@ export default async function PortalDocumentsPage() {
           </a>
         </div>
       ) : (
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {docs.map((doc) => {
-            const url = urls[doc.storagePath];
-            const meta = [formatDocSize(doc.sizeBytes), formatDate(doc.createdAt)]
-              .filter(Boolean)
-              .join(" · ");
-
-            const body = (
-              <>
-                <div className="flex items-center gap-3">
-                  <span
-                    className="text-[10px] font-bold tracking-wide text-wine bg-paper border border-grey-200 rounded-md px-2 py-1 flex-shrink-0"
-                    style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
-                  >
-                    {shipmentDocTypeShort(doc.docType)}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[14px] font-semibold text-ink truncate">
-                      {shipmentDocTypeLabel(doc.docType)}
-                    </div>
-                    {doc.shipmentCode && (
-                      <div
-                        className="text-[12px] text-grey-500 truncate"
-                        style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
-                      >
-                        Envío {doc.shipmentCode}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="mt-4 pt-3 border-t border-grey-200 flex items-center justify-between gap-2">
-                  <span className="text-[11.5px] text-grey-500">{meta}</span>
-                  {url ? (
-                    <span className="text-[12.5px] font-semibold text-wine-text inline-flex items-center gap-1">
-                      Descargar{" "}
-                      <ArrowIcon size={13} className="group-hover:translate-x-0.5 transition-transform" />
-                    </span>
-                  ) : (
-                    <span className="text-[12px] text-grey-500">No se pudo abrir</span>
-                  )}
-                </div>
-              </>
-            );
-
-            return (
-              <div key={doc.id}>
-                {url ? (
-                  <a
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="card-link group block bg-white border border-grey-200 rounded-[16px] p-5 transition-colors hover:border-ink focus-visible:border-ink"
-                    aria-label={`Descargar ${shipmentDocTypeLabel(doc.docType)} del envío ${doc.shipmentCode ?? ""}`}
-                  >
-                    {body}
-                  </a>
-                ) : (
-                  <div className="bg-white border border-grey-200 rounded-[16px] p-5 opacity-70">
-                    {body}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        <DocumentsClient docs={rows} />
       )}
     </div>
   );
