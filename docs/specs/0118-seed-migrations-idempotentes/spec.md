@@ -119,16 +119,28 @@ El gate no debe fabricar ese usuario ni corregir el branch manualmente. La
 reparación requiere diseño, prueba y migración forward-only propios antes de
 repetir el recorrido en otro entorno nuevo.
 
+La reparación aprobada localmente es:
+
+```text
+0273_skip_platform_admin_bootstrap_history
+```
+
+`0273` reemplaza únicamente el statement técnico de
+`20260529071707 platform_admins`. Conserva tabla, FK hacia `auth.users`, RLS,
+policies, grants y `is_platform_admin()`, pero omite el INSERT del UUID fijo.
+La fila real de Producción no se borra: el payload queda almacenado como texto
+para futuros replays y no se ejecuta sobre el proyecto padre.
+
 ## 3. Generación y control de drift
 
 El generador
 `scripts/build-sdd-0118-repair.mjs`:
 
 1. valida los digests del estado remoto observado;
-2. lee los doce archivos fuente del repositorio;
+2. lee los trece archivos fuente del repositorio;
 3. normaliza únicamente finales de línea;
 4. calcula y publica el digest de cada payload;
-5. genera `0271` y su prueba transaccional;
+5. genera `0271`, `0272`, `0273` y sus pruebas transaccionales;
 6. ofrece `--check` para impedir drift entre fuentes y artefactos.
 
 No descarga ni guarda secretos. Los únicos datos Cloud incorporados son
@@ -154,8 +166,12 @@ metadatos técnicos del ledger.
 | Unit | `scripts/__tests__/build-sdd-0118-repair.test.ts` |
 | Migración | `supabase/migrations/0271_repair_branch_replay_history.sql` |
 | DB test | `supabase/tests/0271_repair_branch_replay_history.test.sql` |
+| Follow-up migración | `supabase/migrations/0272_skip_superseded_invite_history.sql` |
+| Follow-up DB test | `supabase/tests/0272_skip_superseded_invite_history.test.sql` |
+| Platform admin migración | `supabase/migrations/0273_skip_platform_admin_bootstrap_history.sql` |
+| Platform admin DB test | `supabase/tests/0273_skip_platform_admin_bootstrap_history.test.sql` |
 | Spec | `docs/specs/0118-seed-migrations-idempotentes/spec.md` |
-| Revisión | `docs/governance/reviews/aud-sdd-0118-branch-replay.md` |
+| Revisiones | `docs/governance/reviews/aud-sdd-0118-branch-replay.md` · `docs/governance/reviews/aud-sdd-0118-platform-admin-bootstrap.md` |
 
 ## 6. Evidencia local
 
@@ -171,13 +187,14 @@ metadatos técnicos del ledger.
 | Follow-up local | `0272` verde en Vitest y PostgreSQL 15/17 · [REV-AUD-022](../../governance/reviews/aud-sdd-0118-branch-replay-followup.md) |
 | Follow-up Cloud | `0272` aplicada individualmente; recibo `20260729140214` · [REV-AUD-023](../../governance/reviews/aud-sdd-0118-branch-replay-followup-application.md) |
 | Tercer branch | 83 migraciones; fallo preciso en `platform_admins`; teardown terminal |
+| Platform admin local | `0273` determinista · Vitest 6/6 · PostgreSQL 15/17 · [REV-AUD-024](../../governance/reviews/aud-sdd-0118-platform-admin-bootstrap.md) |
 | Diff | verde |
 
 ## 7. Gates restantes
 
-1. diseñar y aprobar una reparación forward-only del seed histórico de
-   `platform_admins`;
-2. aplicar esa reparación sólo con autorización expresa del basename;
+1. obtener autorización expresa para aplicar individualmente
+   `0273_skip_platform_admin_bootstrap_history`;
+2. aplicar y verificar esa reparación con el runbook de Producción;
 3. crear un entorno efímero nuevo y completar replay, seed, E2E, verificación
    y teardown terminal.
 

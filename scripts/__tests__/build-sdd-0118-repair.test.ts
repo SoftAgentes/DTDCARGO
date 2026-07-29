@@ -8,11 +8,16 @@ const {
   buildFollowupMigration,
   buildFollowupSqlTest,
   buildSqlTest,
+  buildPlatformAdminMigration,
+  buildPlatformAdminSqlTest,
   FOLLOWUP_MIGRATION_PATH,
   FOLLOWUP_SQL_TEST_PATH,
   loadFollowups,
+  loadPlatformAdminRepair,
   loadRepairs,
   MIGRATION_PATH,
+  PLATFORM_ADMIN_MIGRATION_PATH,
+  PLATFORM_ADMIN_SQL_TEST_PATH,
   REPAIRS,
   SQL_TEST_PATH,
 } = repairModule;
@@ -65,5 +70,48 @@ describe("SDD-0118 branch replay repair", () => {
     await expect(readFile(FOLLOWUP_SQL_TEST_PATH, "utf8")).resolves.toBe(
       buildFollowupSqlTest(followups),
     );
+  });
+
+  it("retira sólo el bootstrap fijo del payload platform_admins", async () => {
+    const repair = await loadPlatformAdminRepair();
+
+    expect(repair.version).toBe("20260529071707");
+    expect(repair.name).toBe("platform_admins");
+    expect(repair.remoteMd5).toBe("6c31b8ac8841b24815e3fb2463eabdd2");
+    expect(repair.targetMd5).toBe("cb374d4ad4c3b2bb62915e80a5a13793");
+    expect(repair.targetSql).toContain(
+      "create table if not exists public.platform_admins",
+    );
+    expect(repair.targetSql).toContain(
+      "create or replace function public.is_platform_admin()",
+    );
+    expect(repair.targetSql).not.toContain(
+      "insert into public.platform_admins",
+    );
+    expect(repair.targetSql).not.toContain(
+      "83c98d22-ea54-4d7a-b10f-a23098a2edbe",
+    );
+  });
+
+  it("mantiene sincronizado y fail-closed el gate 0273", async () => {
+    const repair = await loadPlatformAdminRepair();
+    const migration = buildPlatformAdminMigration(repair);
+    const executableSql = migration.replace(
+      /\$sdd0118_platform_admin_target\$[\s\S]*?\$sdd0118_platform_admin_target\$/g,
+      "<replay-safe-sql-as-text>",
+    );
+
+    expect(migration).toContain("SDD-0118 platform_admins: drift");
+    expect(migration).toContain(repair.remoteMd5);
+    expect(migration).toContain(repair.targetMd5);
+    expect(executableSql).not.toContain(
+      "insert into public.platform_admins",
+    );
+    await expect(
+      readFile(PLATFORM_ADMIN_MIGRATION_PATH, "utf8"),
+    ).resolves.toBe(buildPlatformAdminMigration(repair));
+    await expect(
+      readFile(PLATFORM_ADMIN_SQL_TEST_PATH, "utf8"),
+    ).resolves.toBe(buildPlatformAdminSqlTest(repair));
   });
 });

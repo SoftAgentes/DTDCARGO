@@ -202,10 +202,10 @@ No crea funciones ni modifica otra FK.
 
 ## 12. Gates pendientes
 
-1. resolver mediante gate propio el seed histórico no reproducible de
-   `platform_admins`, descrito en
+1. obtener autorización expresa para aplicar individualmente
+   `0273_skip_platform_admin_bootstrap_history`, aprobado localmente en
    [SDD-0118](../0118-seed-migrations-idempotentes/spec.md);
-2. aplicar su reparación sólo con autorización expresa del basename;
+2. aplicar y verificar `0273` mediante su gate Cloud propio;
 3. crear un Supabase efímero nuevo que alcance `MIGRATIONS_PASSED`;
 4. ejecutar seed, recorrido E2E y verificación sin DML de cleanup;
 5. destruir ese entorno y volver a comprobar estado terminal.

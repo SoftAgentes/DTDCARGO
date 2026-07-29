@@ -22,6 +22,27 @@ export const FOLLOWUP_SQL_TEST_PATH = resolve(
   ROOT,
   "supabase/tests/0272_skip_superseded_invite_history.test.sql",
 );
+export const PLATFORM_ADMIN_MIGRATION_PATH = resolve(
+  ROOT,
+  "supabase/migrations/0273_skip_platform_admin_bootstrap_history.sql",
+);
+export const PLATFORM_ADMIN_SQL_TEST_PATH = resolve(
+  ROOT,
+  "supabase/tests/0273_skip_platform_admin_bootstrap_history.test.sql",
+);
+
+const PLATFORM_ADMIN_SOURCE_PATH = resolve(
+  ROOT,
+  "supabase/migrations/0058_platform_admins.sql",
+);
+const PLATFORM_ADMIN_SEED_MARKER =
+  "-- ─── Seed: primer platform_admin ─────────────────────────────";
+const PLATFORM_ADMIN_REPLAY_NOTE = `-- Replay-safe: el bootstrap de datos se omite intencionalmente.
+-- La membresía platform_admin se provisiona fuera del replay del schema.
+`;
+const PLATFORM_ADMIN_SOURCE_MD5 = "bb99b54106d671457836daa0dc53b839";
+const PLATFORM_ADMIN_REMOTE_MD5 = "6c31b8ac8841b24815e3fb2463eabdd2";
+const PLATFORM_ADMIN_TARGET_MD5 = "cb374d4ad4c3b2bb62915e80a5a13793";
 
 const SEED_TEAM_INVITATION = String.raw`-- Seed template "team_invitation" por cada tenant existente.
 -- Idempotente · on conflict do nothing.
@@ -462,6 +483,237 @@ select to_regnamespace('supabase_migrations') is null
 `;
 }
 
+export async function loadPlatformAdminRepair() {
+  const sourceSql = normalizeSql(
+    await readFile(PLATFORM_ADMIN_SOURCE_PATH, "utf8"),
+  );
+  const markerMatches = sourceSql.split(PLATFORM_ADMIN_SEED_MARKER).length - 1;
+  if (markerMatches !== 1) {
+    throw new Error(
+      `0058_platform_admins.sql debe contener un solo marcador de bootstrap; encontrados ${markerMatches}`,
+    );
+  }
+  if (md5(sourceSql) !== PLATFORM_ADMIN_SOURCE_MD5) {
+    throw new Error(
+      "0058_platform_admins.sql no coincide con el digest canónico esperado",
+    );
+  }
+
+  const targetSql = `${sourceSql
+    .slice(0, sourceSql.indexOf(PLATFORM_ADMIN_SEED_MARKER))
+    .trimEnd()}\n\n${PLATFORM_ADMIN_REPLAY_NOTE}`;
+  if (md5(targetSql) !== PLATFORM_ADMIN_TARGET_MD5) {
+    throw new Error(
+      "El payload replay-safe de platform_admins cambió sin actualizar su contrato",
+    );
+  }
+
+  return {
+    version: "20260529071707",
+    name: "platform_admins",
+    sourceSql,
+    sourceMd5: PLATFORM_ADMIN_SOURCE_MD5,
+    remoteMd5: PLATFORM_ADMIN_REMOTE_MD5,
+    targetSql,
+    targetMd5: PLATFORM_ADMIN_TARGET_MD5,
+  };
+}
+
+export function buildPlatformAdminMigration(repair) {
+  return `-- SDD-0118 · omitir del replay el bootstrap fijo de platform_admins.
+-- Conserva el DDL canónico y sólo modifica el statement técnico del ledger.
+
+do $sdd0118_platform_admin_preflight$
+begin
+  if not exists (
+    select 1
+    from supabase_migrations.schema_migrations
+    where version = '${repair.version}'
+      and name = '${repair.name}'
+      and cardinality(statements) = 1
+      and md5(statements[1]) in (
+        '${repair.remoteMd5}',
+        '${repair.sourceMd5}',
+        '${repair.targetMd5}'
+      )
+  ) then
+    raise exception 'SDD-0118 platform_admins: drift en ${repair.version} ${repair.name}';
+  end if;
+end
+$sdd0118_platform_admin_preflight$;
+
+update supabase_migrations.schema_migrations
+set statements = array[
+  ${sqlLiteral(repair.targetSql, "sdd0118_platform_admin_target")}
+]
+where version = '${repair.version}'
+  and name = '${repair.name}'
+  and cardinality(statements) = 1
+  and md5(statements[1]) in ('${repair.remoteMd5}', '${repair.sourceMd5}');
+
+do $sdd0118_platform_admin_postflight$
+begin
+  if not exists (
+    select 1
+    from supabase_migrations.schema_migrations
+    where version = '${repair.version}'
+      and name = '${repair.name}'
+      and cardinality(statements) = 1
+      and md5(statements[1]) = '${repair.targetMd5}'
+  ) then
+    raise exception 'SDD-0118 platform_admins: postcondición falló en ${repair.version} ${repair.name}';
+  end if;
+end
+$sdd0118_platform_admin_postflight$;
+`;
+}
+
+export function buildPlatformAdminSqlTest(repair) {
+  return `\\set ON_ERROR_STOP on
+
+begin;
+
+do $roles$
+begin
+  if not exists (select 1 from pg_roles where rolname = 'authenticated') then
+    create role authenticated nologin;
+  end if;
+  if not exists (select 1 from pg_roles where rolname = 'service_role') then
+    create role service_role nologin bypassrls;
+  end if;
+end
+$roles$;
+
+create schema auth;
+create table auth.users (id uuid primary key);
+create function auth.uid()
+returns uuid
+language sql
+stable
+as $$
+  select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
+$$;
+
+create schema supabase_migrations;
+create table supabase_migrations.schema_migrations (
+  version text primary key,
+  name text not null,
+  statements text[] not null
+);
+
+insert into supabase_migrations.schema_migrations (version, name, statements)
+values (
+  '${repair.version}',
+  '${repair.name}',
+  array[${sqlLiteral(repair.sourceSql, "sdd0118_platform_admin_source")}]
+);
+
+\\ir ../migrations/0273_skip_platform_admin_bootstrap_history.sql
+\\ir ../migrations/0273_skip_platform_admin_bootstrap_history.sql
+
+do $ledger_contract$
+begin
+  if not exists (
+    select 1
+    from supabase_migrations.schema_migrations
+    where version = '${repair.version}'
+      and name = '${repair.name}'
+      and cardinality(statements) = 1
+      and md5(statements[1]) = '${repair.targetMd5}'
+  ) then
+    raise exception 'TEST 0273: estado final incorrecto en ${repair.version}';
+  end if;
+end
+$ledger_contract$;
+
+${repair.targetSql}
+
+do $replay_contract$
+begin
+  if to_regclass('public.platform_admins') is null then
+    raise exception 'TEST 0273: falta public.platform_admins';
+  end if;
+  if exists (select 1 from public.platform_admins) then
+    raise exception 'TEST 0273: el replay creó un platform_admin';
+  end if;
+  if not exists (
+    select 1
+    from pg_constraint c
+    join pg_class source_table on source_table.oid = c.conrelid
+    join pg_class target_table on target_table.oid = c.confrelid
+    join pg_namespace target_schema on target_schema.oid = target_table.relnamespace
+    where c.contype = 'f'
+      and source_table.relname = 'platform_admins'
+      and c.conname = 'platform_admins_user_id_fkey'
+      and target_schema.nspname = 'auth'
+      and target_table.relname = 'users'
+      and c.confdeltype = 'c'
+  ) then
+    raise exception 'TEST 0273: FK platform_admins_user_id_fkey incorrecta';
+  end if;
+  if not coalesce((
+    select relrowsecurity
+    from pg_class
+    where oid = 'public.platform_admins'::regclass
+  ), false) then
+    raise exception 'TEST 0273: RLS no está habilitado';
+  end if;
+  if (
+    select count(*)
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'platform_admins'
+      and policyname in (
+        'platform_admins_self_select',
+        'service_role_all_platform_admins'
+      )
+  ) <> 2 then
+    raise exception 'TEST 0273: policies incompletas';
+  end if;
+  if not has_table_privilege(
+    'authenticated',
+    'public.platform_admins',
+    'SELECT'
+  ) then
+    raise exception 'TEST 0273: falta SELECT de authenticated';
+  end if;
+  if not has_table_privilege(
+    'service_role',
+    'public.platform_admins',
+    'SELECT, INSERT, UPDATE, DELETE'
+  ) then
+    raise exception 'TEST 0273: grants de service_role incompletos';
+  end if;
+  if not has_function_privilege(
+    'authenticated',
+    'public.is_platform_admin()',
+    'EXECUTE'
+  ) then
+    raise exception 'TEST 0273: falta EXECUTE de authenticated';
+  end if;
+  if not exists (
+    select 1
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname = 'is_platform_admin'
+      and p.prosecdef
+      and p.proconfig @> array['search_path=public']
+  ) then
+    raise exception 'TEST 0273: is_platform_admin no conserva hardening';
+  end if;
+end
+$replay_contract$;
+
+rollback;
+
+select to_regnamespace('supabase_migrations') is null
+  and to_regnamespace('auth') is null
+  and to_regclass('public.platform_admins') is null
+  as sdd_0118_platform_admin_fixture_rolled_back;
+`;
+}
+
 async function run() {
   const repairs = await loadRepairs();
   const migration = buildMigration(repairs);
@@ -469,6 +721,11 @@ async function run() {
   const followups = loadFollowups(repairs);
   const followupMigration = buildFollowupMigration(followups);
   const followupSqlTest = buildFollowupSqlTest(followups);
+  const platformAdminRepair = await loadPlatformAdminRepair();
+  const platformAdminMigration = buildPlatformAdminMigration(
+    platformAdminRepair,
+  );
+  const platformAdminSqlTest = buildPlatformAdminSqlTest(platformAdminRepair);
   const checkOnly = process.argv.includes("--check");
 
   if (checkOnly) {
@@ -477,17 +734,24 @@ async function run() {
       currentTest,
       currentFollowupMigration,
       currentFollowupTest,
+      currentPlatformAdminMigration,
+      currentPlatformAdminTest,
     ] = await Promise.all([
       readFile(MIGRATION_PATH, "utf8"),
       readFile(SQL_TEST_PATH, "utf8"),
       readFile(FOLLOWUP_MIGRATION_PATH, "utf8"),
       readFile(FOLLOWUP_SQL_TEST_PATH, "utf8"),
+      readFile(PLATFORM_ADMIN_MIGRATION_PATH, "utf8"),
+      readFile(PLATFORM_ADMIN_SQL_TEST_PATH, "utf8"),
     ]);
     if (
       normalizeSql(currentMigration) !== migration ||
       normalizeSql(currentTest) !== sqlTest ||
       normalizeSql(currentFollowupMigration) !== followupMigration ||
-      normalizeSql(currentFollowupTest) !== followupSqlTest
+      normalizeSql(currentFollowupTest) !== followupSqlTest ||
+      normalizeSql(currentPlatformAdminMigration) !==
+        platformAdminMigration ||
+      normalizeSql(currentPlatformAdminTest) !== platformAdminSqlTest
     ) {
       throw new Error("Los artefactos generados de SDD-0118 están desactualizados");
     }
@@ -499,6 +763,12 @@ async function run() {
     writeFile(SQL_TEST_PATH, sqlTest, "utf8"),
     writeFile(FOLLOWUP_MIGRATION_PATH, followupMigration, "utf8"),
     writeFile(FOLLOWUP_SQL_TEST_PATH, followupSqlTest, "utf8"),
+    writeFile(
+      PLATFORM_ADMIN_MIGRATION_PATH,
+      platformAdminMigration,
+      "utf8",
+    ),
+    writeFile(PLATFORM_ADMIN_SQL_TEST_PATH, platformAdminSqlTest, "utf8"),
   ]);
 }
 
