@@ -131,6 +131,18 @@ policies, grants y `is_platform_admin()`, pero omite el INSERT del UUID fijo.
 La fila real de Producción no se borra: el payload queda almacenado como texto
 para futuros replays y no se ejecuta sobre el proyecto padre.
 
+### Bloqueo posterior al cuarto replay
+
+R4 confirmó que `0273` resolvió el bloqueo anterior y avanzó a 120
+migraciones. La entrada siguiente,
+`20260607034503 calculator_settings_container_limits`, requiere
+`public.calculator_settings`, pero el branch no contiene esa tabla.
+
+El prerequisito remoto `20260604131310 0103_calculator_settings` tiene
+`statements = NULL`, por lo que un branch fresco no recibe el DDL canónico de
+`0103_calculator_settings.sql`. La reparación exige otro gate forward-only;
+no se debe ejecutar el archivo manualmente sobre el branch fallido.
+
 ## 3. Generación y control de drift
 
 El generador
@@ -189,11 +201,15 @@ metadatos técnicos del ledger.
 | Tercer branch | 83 migraciones; fallo preciso en `platform_admins`; teardown terminal |
 | Platform admin local | `0273` determinista · Vitest 6/6 · PostgreSQL 15/17 · [REV-AUD-024](../../governance/reviews/aud-sdd-0118-platform-admin-bootstrap.md) |
 | Platform admin Cloud | `0273` aplicada individualmente; recibo `20260729141805` · [REV-AUD-025](../../governance/reviews/aud-sdd-0118-platform-admin-bootstrap-application.md) |
+| Cuarto branch | 120 migraciones; falta `calculator_settings` por `0103` con statements NULL; teardown terminal |
 | Diff | verde |
 
 ## 7. Gates restantes
 
-1. crear un entorno efímero nuevo y completar replay, seed, E2E, verificación
+1. diseñar y aprobar una reparación forward-only de
+   `20260604131310 0103_calculator_settings`;
+2. aplicar esa reparación sólo con autorización expresa del nuevo basename;
+3. crear un entorno efímero nuevo y completar replay, seed, E2E, verificación
    y teardown terminal.
 
 SDD-0118 permanece `in-progress` hasta que un entorno nuevo demuestre el

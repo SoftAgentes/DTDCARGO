@@ -104,3 +104,14 @@ gate es crear otro entorno efímero para continuar SDD-0172.
 
 CMP-01 v1.1, caso deprecated, D1, slices de adopción, D2–D5, Vercel y PLG-P3
 permanecen cerrados. No existe plugin ni marketplace.
+
+## 7. Resultado del cuarto replay
+
+R4 confirmó que `0273` resolvió el bloqueo de `platform_admins`: el replay
+avanzó de 83 a 120 migraciones. El siguiente bloqueo es independiente y quedó
+aislado en `calculator_settings_container_limits`, porque su prerequisito
+remoto `0103_calculator_settings` tiene `statements = NULL`.
+
+El branch fue eliminado terminalmente sin seed, Auth, fixtures o SQL
+correctivo. La evidencia completa vive en
+[REV-AUD-019](aud-tenant-fixtures-ephemeral-validation.md).

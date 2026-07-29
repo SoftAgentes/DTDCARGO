@@ -183,3 +183,56 @@ El `branch_id` y `project_ref` R3 quedaron ausentes. REV-AUD-019 aprueba el
 comportamiento fail-closed y el teardown terminal del tercer intento, pero no
 aprueba SDD-0172: hace falta un nuevo gate de reparación del historial y un
 entorno nuevo para completar seed, E2E y verificación.
+
+## 11. Cuarto intento después de `0273`
+
+Después del postflight verde de
+`0273_skip_platform_admin_bootstrap_history`, se creó otro entorno sin datos
+de Producción:
+
+| Campo | Valor |
+|---|---|
+| Nombre | `sdd-0172-ephemeral-20260729-r4` |
+| `branch_id` | `64a6045c-77aa-4833-bd01-979677fe476f` |
+| `project_ref` | `uatrwwydcvsheojkbjfi` |
+| Creado | 2026-07-29T14:19:41.896265Z |
+| Costo | USD 0,01344 por hora |
+| Datos de Producción | no |
+
+El replay avanzó de 83 a 120 entradas. La última migración confirmada fue:
+
+```text
+20260605120742
+```
+
+La siguiente entrada de Producción es:
+
+```text
+20260607034503 · calculator_settings_container_limits
+```
+
+El diagnóstico metadata-only comprobó que el branch no contenía
+`public.calculator_settings`. Su prerequisito histórico está registrado como:
+
+```text
+20260604131310 · 0103_calculator_settings · statements = NULL
+```
+
+Al no existir un payload reproducible para `0103`, el replay omitió la
+creación de la tabla y falló al llegar a `0110`. No se ejecutaron seed E2E,
+Auth, fixtures, reset, rebase, merge ni SQL correctivo. Tampoco se leyeron
+filas de negocio o PII.
+
+## 12. Teardown terminal R4
+
+`delete_branch` devolvió `success=true` para el `branch_id` exacto. El
+inventario posterior volvió a mostrar únicamente:
+
+```text
+main · xpfuzqombmjmxvprjgmi
+```
+
+El `branch_id` y `project_ref` R4 quedaron ausentes. REV-AUD-019 aprueba el
+comportamiento fail-closed y el teardown terminal del cuarto intento. No
+aprueba SDD-0172: `0103_calculator_settings` requiere otro gate forward-only
+antes de crear un entorno nuevo.
