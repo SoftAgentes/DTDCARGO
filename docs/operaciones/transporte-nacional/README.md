@@ -63,4 +63,12 @@ Zoom · Liberty Express · Aeroexpresos. Ninguno publica tarifario — hay que p
 2. La tabla de GAG **vence en agosto 2026** — hay que renovarla igual.
 3. **Cumaná** y **San Fernando de Apure** no tienen zona asignada en
    `VALENCIA_ZONAS`, aunque sí tienen landing SEO y fila en la calculadora.
+   → **Resuelto provisional (founder 2026-07-29):** ambas **derivan al asesor** en
+   vez de dar un precio automático. El gate es la lista
+   `CIUDADES_DERIVAN_A_ASESOR` en [lib/calculadora.ts](../../../lib/calculadora.ts);
+   la calculadora devuelve la alerta `ciudad_sin_tarifa` y la UI reemplaza el
+   estimado por el CTA a WhatsApp. **Al confirmar la tarifa con un proveedor, sacar
+   el slug de esa lista** (y agregar la zona en `VALENCIA_ZONAS` si se adopta el
+   modelo por zonas). Pesa en la decisión que Benítez cobra Cumaná al **8%** contra
+   el 5% del centro: el recargo por km la subestima.
 4. Nuestro mapa cotiza ~80 destinos; la web solo ofrece 17.

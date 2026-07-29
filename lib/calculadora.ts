@@ -301,6 +301,26 @@ export const CIUDADES: Ciudad[] = [
   { id: "margarita",    label: "Isla Margarita",   km: 540, casco: false },
 ];
 
+/**
+ * Destinos que NO cotizan automático y derivan al asesor.
+ *
+ * Cumaná y San Fernando de Apure no tienen zona asignada en `VALENCIA_ZONAS`
+ * (lib/data/tarifas-terrestres-vzla.ts): entraron por su landing SEO y su km,
+ * pero ninguna tabla de proveedor confirmada les pone precio todavía. El primer
+ * tarifario que apareció (Benítez / R&M) cobra Cumaná al 8% contra el 5% del
+ * centro, así que el recargo por km las subestima.
+ *
+ * Decisión del founder (2026-07-29): mostrar "cotiza con un asesor" en vez de un
+ * número que no podemos honrar, hasta cerrar las reuniones con los 4-6
+ * proveedores de esta semana. Ver docs/operaciones/transporte-nacional/.
+ *
+ * TEMPORAL — al confirmar la tarifa, sacar el slug de acá y listo.
+ */
+export const CIUDADES_DERIVAN_A_ASESOR: readonly string[] = [
+  "cumana",
+  "san-fernando",
+];
+
 // ────────────────────────────────────────────────────────────────────
 // 3) EMBALAJES — RECARGOS POR TIPO
 // ────────────────────────────────────────────────────────────────────
@@ -375,7 +395,8 @@ export type EnvioCotizacion = {
       | "contenedor_excedido"
       | "peso_contenedor_excedido"
       | "peso_envio_excedido"
-      | "volumen_minimo_consolidado";
+      | "volumen_minimo_consolidado"
+      | "ciudad_sin_tarifa";
     mensaje: string;
   };
 
@@ -423,6 +444,22 @@ export function calcularEnvioLCL(
     return cotizacionVacia({
       tipo: "ciudad_invalida",
       mensaje: "Selecciona una ciudad válida de destino en Venezuela.",
+    }, input);
+  }
+
+  // 5.2b — Destino sin tarifa de proveedor confirmada → deriva al asesor en vez
+  // de dar un número que no podemos honrar (founder 2026-07-29). Va DESPUÉS de
+  // validar la ciudad porque el mensaje usa su label.
+  // Nota: la UI solo pinta la alerta con carga válida (`hasAlerta = !!cot.alerta
+  // && tieneCarga` en CalculadoraForm), así que el cliente ve el estado vacío
+  // hasta que llene CBM y peso — igual que las demás alertas. Chequear acá igual
+  // mantiene la función pura y testeable sin depender del orden de validaciones.
+  if (CIUDADES_DERIVAN_A_ASESOR.includes(ciudad.id)) {
+    return cotizacionVacia({
+      tipo: "ciudad_sin_tarifa",
+      mensaje:
+        `Para ${ciudad.label} cotizamos a medida: escríbele a un asesor y te ` +
+        `damos el precio exacto de tu envío.`,
     }, input);
   }
 
