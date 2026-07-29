@@ -8,6 +8,7 @@ export const SWEEP_PATH: string;
 export const MIGRATION_PATH: string;
 export const SQL_TEST_PATH: string;
 
+export const BOOTSTRAP_FILE_MD5: string;
 export const BOOTSTRAP_MD5: string;
 export const SWEEP_MD5: string;
 export const TARGET_VERSION: string;

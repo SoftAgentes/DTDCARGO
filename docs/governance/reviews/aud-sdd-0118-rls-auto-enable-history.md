@@ -22,10 +22,13 @@ Producción contiene `public.rls_auto_enable()` con:
 El event trigger `ensure_rls` está activo en `ddl_command_end` para `CREATE
 TABLE`, `CREATE TABLE AS` y `SELECT INTO`.
 
-La definición fue recuperada byte-idéntica desde el commit preservado que aplicó
+La definición fue recuperada desde el commit preservado que aplicó
 `0277_version_rls_auto_enable`. Producción registra ese basename con versión
-`20260729213453`. La copia canónica normalizada tiene MD5
-`171643b4a504a765e5183d0e80cd461f`.
+`20260729213453`. El archivo documental normalizado tiene MD5
+`171643b4a504a765e5183d0e80cd461f`; al retirar exclusivamente sus líneas de
+comentario `--`, el payload ejecutable mide 1.878 caracteres y queda
+byte-idéntico al statement del ledger, MD5
+`3be131a05cb2d712fc92996004ae8b33`.
 
 ## 2. R8 demuestra que 0277 no resuelve el orden histórico
 
@@ -72,8 +75,8 @@ sólo almacena el payload en el ledger. El preflight acepta exclusivamente:
 
 - estado actual: cardinalidad 1 y MD5 de 0209
   `c6c722efdb7ff79ef037e0d826739205`;
-- estado objetivo: cardinalidad 2 con MD5 0277
-  `171643b4a504a765e5183d0e80cd461f` seguido del MD5 de 0209.
+- estado objetivo: cardinalidad 2 con MD5 del statement 0277
+  `3be131a05cb2d712fc92996004ae8b33` seguido del MD5 de 0209.
 
 Cualquier otro estado aborta.
 
