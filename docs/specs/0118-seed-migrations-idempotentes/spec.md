@@ -214,6 +214,36 @@ el payload canónico completo de `0209_revoke_anon_rpc_sweep.sql`. Producción
 no ejecuta los 48 pares `REVOKE/GRANT`: sólo almacena el texto para futuros
 replays. La segunda ejecución reconoce el digest final y no vuelve a escribir.
 
+### Bloqueo posterior al décimo replay
+
+Después de aplicar individualmente `0279`, R10 volvió a fallar en el preflight
+de `0271`. El ledger de Producción era exacto y no existía CRLF: el problema
+era que el motor de replay fragmenta cada archivo histórico en sentencias
+individuales antes de registrar la fila del branch.
+
+R11, creado sólo para diagnóstico metadata-only, comprobó los once estados
+materializados. Entre ellos:
+
+- `seed_team_invitation_template`: 63 statements, digest conjunto
+  `b9da059306c4a80875e54947b9338252`;
+- `realtime_dispatch`: 110 statements, digest conjunto
+  `ffa4e66b1ca875226edc55a86b37d780`;
+- los otros nueve estados quedan anclados por cardinalidad y digest en el
+  generador de `0280`.
+
+La reparación local:
+
+```text
+0280_repair_sdd0118_split_history
+```
+
+sustituye únicamente el payload histórico de
+`20260729135053 · 0271_repair_branch_replay_history`. El payload reparado
+conserva todas las precondiciones anteriores y añade como alternativas los
+once fingerprints exactos observados en R11 tanto al preflight como al
+postflight. No usa comodines, no reejecuta `0271` en Producción y no modifica
+las entradas de negocio.
+
 ## 3. Generación y control de drift
 
 El generador
@@ -226,6 +256,11 @@ El generador
 5. genera `0271`, `0272`, `0273`, `0274`, `0275`, `0276` y sus pruebas
    transaccionales;
 6. ofrece `--check` para impedir drift entre fuentes y artefactos.
+
+El generador complementario
+`scripts/build-sdd-0118-split-history.mjs` ancla el MD5 original de `0271`,
+verifica su generación canónica, incorpora los once fingerprints de R11 y
+genera `0280` con su prueba transaccional.
 
 No descarga ni guarda secretos. Los únicos datos Cloud incorporados son
 metadatos técnicos del ledger.
@@ -269,8 +304,13 @@ metadatos técnicos del ledger.
 | Tenant ACL unit | `scripts/__tests__/build-sdd-0172-tenant-acl-history.test.ts` |
 | Tenant ACL migración | `supabase/migrations/0279_restore_tenant_lifecycle_acl_history.sql` |
 | Tenant ACL DB test | `supabase/tests/0279_restore_tenant_lifecycle_acl_history.test.sql` |
+| Split history generador | `scripts/build-sdd-0118-split-history.mjs` |
+| Split history types | `scripts/build-sdd-0118-split-history.d.mts` |
+| Split history unit | `scripts/__tests__/build-sdd-0118-split-history.test.ts` |
+| Split history migración | `supabase/migrations/0280_repair_sdd0118_split_history.sql` |
+| Split history DB test | `supabase/tests/0280_repair_sdd0118_split_history.test.sql` |
 | Spec | `docs/specs/0118-seed-migrations-idempotentes/spec.md` |
-| Revisiones | `docs/governance/reviews/aud-sdd-0118-branch-replay.md` · `docs/governance/reviews/aud-sdd-0118-platform-admin-bootstrap.md` · `docs/governance/reviews/aud-sdd-0118-calculator-settings-history.md` · `docs/governance/reviews/aud-sdd-0118-pin-search-path-history.md` · `docs/governance/reviews/aud-sdd-0118-revoke-anon-history.md` · `docs/governance/reviews/aud-sdd-0118-rls-auto-enable-history.md` · `docs/governance/reviews/aud-sdd-0172-tenant-acl-history.md` |
+| Revisiones | `docs/governance/reviews/aud-sdd-0118-branch-replay.md` · `docs/governance/reviews/aud-sdd-0118-platform-admin-bootstrap.md` · `docs/governance/reviews/aud-sdd-0118-calculator-settings-history.md` · `docs/governance/reviews/aud-sdd-0118-pin-search-path-history.md` · `docs/governance/reviews/aud-sdd-0118-revoke-anon-history.md` · `docs/governance/reviews/aud-sdd-0118-rls-auto-enable-history.md` · `docs/governance/reviews/aud-sdd-0172-tenant-acl-history.md` · `docs/governance/reviews/aud-sdd-0118-split-replay-history.md` |
 
 ## 6. Evidencia local
 
@@ -304,13 +344,17 @@ metadatos técnicos del ledger.
 | RLS history Cloud | `0278` aplicada individualmente; recibo `20260729223452`; postcondiciones y advisors verdes · [REV-AUD-033](../../governance/reviews/aud-sdd-0172-tenant-acl-history.md) |
 | Noveno branch | supera 0209; `0268` falla porque un rol cliente conserva DELETE; teardown terminal · [REV-AUD-019](../../governance/reviews/aud-tenant-fixtures-ephemeral-validation.md) |
 | Tenant ACL history local | `0279` determinista · Vitest 3/3 · PostgreSQL 15/17 · UPDATE 1/0 · replay + rollback · [REV-AUD-033](../../governance/reviews/aud-sdd-0172-tenant-acl-history.md) |
+| Tenant ACL history Cloud | `0279` aplicada individualmente; recibo `20260729224850`; postcondiciones y advisors verdes · [REV-AUD-034](../../governance/reviews/aud-sdd-0118-split-replay-history.md) |
+| Décimo branch | R10 falla en `0271` por representación fragmentada del ledger; sin seed/Auth/E2E; teardown terminal |
+| Diagnóstico R11 | once fingerprints metadata-only capturados; sin filas de negocio; teardown terminal |
+| Split history local | `0280` determinista · Vitest 4/4 · PostgreSQL 15/17 · UPDATE 1/0 · rollback · [REV-AUD-034](../../governance/reviews/aud-sdd-0118-split-replay-history.md) |
 | Diff | verde |
 
 ## 7. Gates restantes
 
 1. obtener autorización expresa de
-   `0279_restore_tenant_lifecycle_acl_history` antes de aplicarla;
-2. aplicar 0279 individualmente con postcondiciones y advisors;
+   `0280_repair_sdd0118_split_history` antes de aplicarla;
+2. aplicar 0280 individualmente con postcondiciones y advisors;
 3. crear otro entorno efímero y completar replay, seed, E2E, verificación y
    teardown terminal.
 
