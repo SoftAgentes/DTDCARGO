@@ -10,7 +10,7 @@
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-29 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-066 · validación progresiva](BASELINE-2026-07-29-38.md) |
+| Línea base vigente | [LB-SGE-068 · dependencias CMP reproducibles](BASELINE-2026-07-29-40.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -124,6 +124,8 @@ artefactos permanecen en sus fuentes correspondientes.
 | Auditoría SGE/BTN/VIS/AVS | [REV-SGE-008](reviews/adoption-sge-btn-vis-avs-2026-07-29.md) |
 | Plan de adopción por slices | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | Revisión de patrones UX en videos | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
+| Portabilidad EOL de SDD-0118 | [REV-AUD-030](reviews/aud-sdd-0118-eol-portability.md) |
+| Dependencias ejecutables CMP-01 | [REV-SGE-015](reviews/cmp-01-dependency-validation.md) |
 | Tabs accesibles en Fiscal | [SDD-0180](../specs/0180-tabs-accesibles-fiscal/spec.md) |
 | Selectores accesibles y colisión | [SDD-0181](../specs/0181-selectores-accesibles-colision/spec.md) |
 | Validación progresiva en Club | [SDD-0182](../specs/0182-validacion-progresiva-identidad-club/spec.md) |
@@ -265,7 +267,11 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-066 · validación progresiva](BASELINE-2026-07-29-38.md).
+[LB-SGE-068 · dependencias CMP reproducibles](BASELINE-2026-07-29-40.md).
+La portabilidad EOL de SDD-0118 permanece en
+[LB-SGE-067](BASELINE-2026-07-29-39.md).
+La validación progresiva permanece en
+[LB-SGE-066](BASELINE-2026-07-29-38.md).
 Los selectores accesibles permanecen en
 [LB-SGE-065](BASELINE-2026-07-29-37.md).
 Los tabs accesibles en Fiscal permanecen en
