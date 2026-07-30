@@ -180,6 +180,16 @@ Hero · Search bar (origen+destino+CTA) · Marquee trust bar · Stats (4 KPI) ·
 | Horarios | Lun a Vie · 8:00 – 17:00 GMT-4 | Lun a Sáb · 9:00 – 18:00 GMT+8 |
 
 **Web canónica:** `www.dtdcargo.com` (brochure decía `doortudoor.com`, founder confirmó mantener `dtdcargo.com`).
+
+> ⚠️ **Estos datos de contacto son un registro de mayo 2026 — NO los copies.**
+> La tabla documenta lo que traía el brochure cuando se levantó esta spec y se
+> deja tal cual por trazabilidad. Varios ya cambiaron: la dirección de Venezuela
+> es `Edificio Kokuy, Calle 151 (entre Av. Bolívar Norte y Av. Paseo Cabriales)`
+> (founder 2026-07-11, reconfirmada 2026-07-30) y el correo de la sede se
+> unificó en `info@dtdcargo.com`. **Fuente viva:** `CONTACT` en
+> [`lib/design-tokens.ts`](../../../lib/design-tokens.ts); referencia canónica en
+> [`docs/marketing/identidad.md`](../../marketing/identidad.md) § "Dirección VE —
+> una sola".
 **Código tracking ejemplo:** `DTDU-472816-22G1` (prefijo `DTDU`, formato `DTDU-XXXXXX-XX##`)
 
 ## 8. Criterios de aceptación
