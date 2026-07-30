@@ -495,3 +495,27 @@ ausentes.
 
 El análisis y la reparación forward-only local resultante están en
 [REV-AUD-033](aud-sdd-0172-tenant-acl-history.md).
+## 23. Decimotercer intento después de `0281`
+
+La aplicación individual de `0281_repair_invite_skip_split_history` quedó
+registrada con recibo `20260730011643`. Después se creó R13 sin datos:
+
+| Campo | Valor |
+|---|---|
+| Nombre | `sdd-0172-r13-20260729` |
+| Branch | `361cf50e-3fe0-47e9-b73c-7b54b05c8489` |
+| Project ref | `tieiplsepiezyqkqfywe` |
+| Resultado | `MIGRATIONS_FAILED` en `0273` |
+
+R13 superó `0271` y `0272`. El target replay-safe de
+`20260529071707 · platform_admins` apareció fragmentado en diez statements con
+MD5 combinado `4912baa3058c9f1a4f2281b843499fcd`; `0273` sólo reconocía estados
+de cardinalidad 1. No se ejecutaron seed, Auth ni E2E sobre el schema
+incompleto.
+
+La inspección fue exclusivamente de metadata del ledger. El branch fue
+eliminado y el inventario terminal volvió a mostrar únicamente `main`.
+
+La reparación forward-only local
+`0282_repair_platform_admin_skip_split_history` quedó aprobada en
+[REV-AUD-036](aud-sdd-0118-platform-admin-split-history.md).

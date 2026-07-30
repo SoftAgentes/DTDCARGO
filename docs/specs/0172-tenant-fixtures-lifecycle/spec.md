@@ -167,6 +167,9 @@ No crea funciones ni modifica otra FK.
 | Reparación invite split generador | `scripts/build-sdd-0118-invite-skip-split-history.mjs` |
 | Reparación invite split DB | `supabase/migrations/0281_repair_invite_skip_split_history.sql` |
 | Reparación invite split DB test | `supabase/tests/0281_repair_invite_skip_split_history.test.sql` |
+| Reparación platform admin split generador | `scripts/build-sdd-0118-platform-admin-split-history.mjs` |
+| Reparación platform admin split DB | `supabase/migrations/0282_repair_platform_admin_skip_split_history.sql` |
+| Reparación platform admin split DB test | `supabase/tests/0282_repair_platform_admin_skip_split_history.test.sql` |
 | Operación | `docs/runbooks/e2e-supabase-efimero.md` |
 
 ## 9. Aceptación
@@ -226,6 +229,10 @@ No crea funciones ni modifica otra FK.
 | Supabase efímero R12 | supera 0271; falla cerrado en 0272 por estados fragmentados de 0031/0032 |
 | Teardown remoto R12 | terminal · branch y project ref ausentes; sólo `main` saludable |
 | Reparación invite split local | 0281 determinista; Vitest 4/4; contratos SQL 20/20 + rollback · [REV-AUD-035](../../governance/reviews/aud-sdd-0118-invite-skip-split-history.md) |
+| Reparación invite split Cloud | 0281 aplicada; recibo `20260730011643`; postcondiciones y advisors sin drift |
+| Supabase efímero R13 | supera 0272; falla cerrado en 0273 por target `platform_admins` fragmentado en diez statements |
+| Teardown remoto R13 | terminal · branch `361cf50e-3fe0-47e9-b73c-7b54b05c8489` y project ref `tieiplsepiezyqkqfywe` ausentes; sólo `main` saludable |
+| Reparación platform admin split local | 0282 determinista; Vitest 4/4; contratos SQL 21/21 + replay y rollback · [REV-AUD-036](../../governance/reviews/aud-sdd-0118-platform-admin-split-history.md) |
 
 ## 11. Rollback
 
@@ -237,7 +244,7 @@ No crea funciones ni modifica otra FK.
 
 ## 12. Gates pendientes
 
-1. aplicar individualmente `0281_repair_invite_skip_split_history` después de
+1. aplicar individualmente `0282_repair_platform_admin_skip_split_history` después de
    autorización nominal y verificar postcondiciones/advisors;
 2. crear un Supabase efímero completamente nuevo que alcance
    `MIGRATIONS_PASSED`;
@@ -264,6 +271,9 @@ El gate Cloud de 0279 y el gate local de 0280 quedaron aprobados en
 [REV-AUD-034](../../governance/reviews/aud-sdd-0118-split-replay-history.md).
 El gate Cloud de 0280 y el gate local de 0281 quedaron aprobados en
 [REV-AUD-035](../../governance/reviews/aud-sdd-0118-invite-skip-split-history.md).
+El gate Cloud de 0281, el teardown terminal de R13 y el gate local de 0282
+quedaron aprobados en
+[REV-AUD-036](../../governance/reviews/aud-sdd-0118-platform-admin-split-history.md).
 El gate local de 0277/0278 quedó documentado en
 [REV-AUD-032](../../governance/reviews/aud-sdd-0118-rls-auto-enable-history.md).
 SDD-0172 permanece `in-progress`: el teardown fue válido, pero el fixture no
