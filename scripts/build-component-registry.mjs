@@ -83,6 +83,7 @@ export async function validateSourceRecords(sources) {
   const validateSchema = ajv.compile(schema);
   const errors = [];
   const ids = new Set();
+  const recordsById = new Map(sources.map(({ record }) => [record.id, record]));
   const tokenFiles = [
     await fs.readFile(path.join(repoRoot, "app", "studio", "tokens.css"), "utf8"),
     await fs.readFile(path.join(repoRoot, "app", "globals.css"), "utf8"),
@@ -178,6 +179,26 @@ export async function validateSourceRecords(sources) {
       errors.push(`${label}: canonical requiere evidencia accesible completa`);
     }
 
+    if (record.status === "deprecated") {
+      const replacement = recordsById.get(record.replacement?.componentId);
+      if (!replacement) {
+        errors.push(
+          `${label}: replacement.componentId no existe en el registro`,
+        );
+      } else if (replacement.status !== "canonical") {
+        errors.push(
+          `${label}: el reemplazo ${replacement.id} debe ser canonical`,
+        );
+      }
+      if (record.consumers.length === 0) {
+        errors.push(`${label}: deprecated requiere consumidores inventariados`);
+      }
+    }
+
+    if (record.status === "retired" && record.consumers.length > 0) {
+      errors.push(`${label}: retired no puede conservar consumidores`);
+    }
+
     const serialized = JSON.stringify(record);
     const prohibited = [
       /\bsbp_[A-Za-z0-9_-]+\b/i,
@@ -203,7 +224,7 @@ export function buildRegistry(sources, sourceCommit) {
     .at(-1)}T00:00:00.000Z`;
 
   return {
-    schemaVersion: "1.0",
+    schemaVersion: "1.1",
     generatedAt,
     sourceCommit,
     components,

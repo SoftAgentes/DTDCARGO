@@ -2,10 +2,10 @@
 
 | Control | Valor |
 |---|---|
-| Política | [CMP-01 v1.0](../policies/cmp-01.md) |
+| Política | [CMP-01 v1.1](../policies/cmp-01.md) |
 | Revisión | [REV-SGE-010](../reviews/cmp-01-registry-design.md) |
 | Schema | [`component-registry.schema.json`](../templates/component-registry.schema.json) |
-| Estado | implementado con un componente; estabilidad PLG pendiente |
+| Estado | estable para PLG-P3 |
 
 ## 1. Decisión
 
@@ -161,5 +161,8 @@ El registro se considera estable para implementar el plugin cuando:
 - el owner confirma alcance personal versus repo/team.
 
 El primer gate quedó poblado con `ConfirmDialog` y revisado en
-[REV-SGE-012](../reviews/cmp-confirm-dialog-canonical.md). Diseñar o poblar este
-registro no autoriza crear el plugin.
+[REV-SGE-012](../reviews/cmp-confirm-dialog-canonical.md). Schema v1.1,
+`SegmentedControl` canónico y el caso `LLMModeToggle` deprecated quedaron
+aprobados en [REV-SGE-017](../reviews/cmp-01-v1-1-deprecated.md). El criterio
+P1 está demostrado; instalar el plugin o crear marketplace sigue requiriendo
+gates posteriores.

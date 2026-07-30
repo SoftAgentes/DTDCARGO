@@ -1,9 +1,9 @@
-# CMP-01 v1.0 — Ciclo de vida de componentes
+# CMP-01 v1.1 — Ciclo de vida de componentes
 
 | Control | Valor |
 |---|---|
-| Estado | aprobada — primer componente canónico registrado |
-| Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-006 |
+| Estado | aprobada — ciclo canonical/deprecated verificado |
+| Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-017 |
 | Depende de | SGE-00 y políticas de patrón |
 
 ## Estados
@@ -35,10 +35,12 @@ canónico automáticamente.
 ## Estado de implementación
 
 `ConfirmDialog` recorrió `proposed → canonical` mediante
-[REV-SGE-012](../reviews/cmp-confirm-dialog-canonical.md). El agregado CMP-01
-contiene un solo componente real y pasa schema, rutas, export, políticas,
-tokens, tests y consumidores.
+[REV-SGE-012](../reviews/cmp-confirm-dialog-canonical.md).
+[REV-SGE-017](../reviews/cmp-01-v1-1-deprecated.md) corrige las dos
+limitaciones del schema v1.0, registra `SegmentedControl` como `canonical` y
+`LLMModeToggle` como `deprecated` con reemplazo y plan acotado.
 
-El registro todavía no se considera estable para PLG-01: falta validar un caso
-`deprecated` con reemplazo y plan, además de versionar dos limitaciones del
-schema v1 documentadas por REV-SGE-012.
+El registro se considera estable para abrir el scaffold read-only de PLG-01:
+schema positivo/negativo, agregado reproducible, referencias `A11Y-01`,
+promoción canónica y deprecación real quedan verificadas. La instalación,
+marketplace y capacidades de escritura conservan gates separados.

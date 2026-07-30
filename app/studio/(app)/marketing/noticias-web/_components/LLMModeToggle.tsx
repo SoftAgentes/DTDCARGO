@@ -50,6 +50,10 @@ interface Props {
   disabled?: boolean;
 }
 
+/**
+ * @deprecated Usa `SegmentedControl` directamente en consumidores nuevos.
+ * El único consumidor existente migra mediante el plan CMP-01 v1.1.
+ */
 export function LLMModeToggle({ mode, onChange, disabled }: Props) {
   return (
     <div className="flex flex-col gap-1 items-end">

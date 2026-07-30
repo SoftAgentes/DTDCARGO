@@ -1,10 +1,10 @@
 {
-  "schemaVersion": "1.0",
+  "schemaVersion": "1.1",
   "generatedAt": "2026-07-29T00:00:00.000Z",
-  "sourceCommit": "3c9d6a9682dd74feaff73b810e86667c5732a37f",
+  "sourceCommit": "bdfb6e77205b799312a7a479c55ca8d1317e02dd",
   "components": [
     {
-      "schemaVersion": "1.0",
+      "schemaVersion": "1.1",
       "id": "confirm-dialog",
       "name": "ConfirmDialog",
       "purpose": "Confirmar decisiones sensibles con foco seguro, contexto visible y bloqueo de doble ejecución.",
@@ -29,6 +29,11 @@
           "code": "VIS-01",
           "version": "1.0",
           "path": "docs/governance/policies/vis-01.md"
+        },
+        {
+          "code": "A11Y-01",
+          "version": "1.1",
+          "path": "docs/governance/policies/a11y-01.md"
         }
       ],
       "api": {
@@ -104,6 +109,180 @@
       ],
       "review": {
         "reviewPath": "docs/governance/reviews/cmp-confirm-dialog-canonical.md",
+        "reviewer": "Codex",
+        "approvedBy": "Sam (founder)",
+        "lastReviewedAt": "2026-07-29",
+        "nextReviewAt": "2027-01-29"
+      }
+    },
+    {
+      "schemaVersion": "1.1",
+      "id": "llm-mode-toggle",
+      "name": "LLMModeToggle",
+      "purpose": "Conservar temporalmente el wrapper Auto/Manual del generador mientras su único consumidor migra al control segmentado canónico.",
+      "owner": "Studio Marketing",
+      "status": "deprecated",
+      "implementation": {
+        "path": "app/studio/(app)/marketing/noticias-web/_components/LLMModeToggle.tsx",
+        "exportName": "LLMModeToggle"
+      },
+      "policyRefs": [
+        {
+          "code": "SGE-00",
+          "version": "1.0",
+          "path": "docs/governance/policies/sge-00.md"
+        },
+        {
+          "code": "A11Y-01",
+          "version": "1.1",
+          "path": "docs/governance/policies/a11y-01.md"
+        }
+      ],
+      "api": {
+        "contractPath": "docs/specs/0183-governance-control-plane/spec.md",
+        "summary": "Wrapper compatible de mode, onChange y disabled; no se permite en consumidores nuevos."
+      },
+      "tokens": [],
+      "accessibility": {
+        "keyboard": "verified",
+        "focus": "verified",
+        "screenReader": "verified",
+        "contrast": "verified",
+        "reducedMotion": "not-applicable",
+        "evidence": [
+          "app/studio/_components/ui/SegmentedControl.test.tsx",
+          "docs/governance/reviews/cmp-01-v1-1-deprecated.md"
+        ]
+      },
+      "breakpoints": [
+        "mobile",
+        "desktop"
+      ],
+      "examples": {
+        "correct": [
+          "app/studio/(app)/admin/_components/AppearanceSection.tsx"
+        ],
+        "incorrect": [
+          "app/studio/(app)/marketing/noticias-web/_components/LLMModeToggle.tsx"
+        ]
+      },
+      "tests": [
+        {
+          "type": "accessibility",
+          "path": "app/studio/_components/ui/SegmentedControl.test.tsx",
+          "case": "El wrapper conserva la semántica y el teclado del reemplazo canónico."
+        }
+      ],
+      "consumers": [
+        {
+          "path": "app/studio/(app)/marketing/noticias-web/_components/NoticiasWebClient.tsx",
+          "verifiedAt": "2026-07-29"
+        }
+      ],
+      "replacement": {
+        "componentId": "segmented-control",
+        "planPath": "docs/governance/reviews/cmp-01-v1-1-deprecated.md"
+      },
+      "review": {
+        "reviewPath": "docs/governance/reviews/cmp-01-v1-1-deprecated.md",
+        "reviewer": "Codex",
+        "approvedBy": "Sam (founder)",
+        "lastReviewedAt": "2026-07-29",
+        "nextReviewAt": "2026-10-29"
+      }
+    },
+    {
+      "schemaVersion": "1.1",
+      "id": "segmented-control",
+      "name": "SegmentedControl",
+      "purpose": "Seleccionar una opción mutuamente excluyente con semántica de radio, foco roving y teclado predecible.",
+      "owner": "Studio UI",
+      "status": "canonical",
+      "implementation": {
+        "path": "app/studio/_components/ui/SegmentedControl.tsx",
+        "exportName": "SegmentedControl"
+      },
+      "policyRefs": [
+        {
+          "code": "SGE-00",
+          "version": "1.0",
+          "path": "docs/governance/policies/sge-00.md"
+        },
+        {
+          "code": "BTN-01",
+          "version": "1.1",
+          "path": "docs/governance/policies/btn-01.md"
+        },
+        {
+          "code": "A11Y-01",
+          "version": "1.1",
+          "path": "docs/governance/policies/a11y-01.md"
+        }
+      ],
+      "api": {
+        "contractPath": "docs/specs/0183-governance-control-plane/spec.md",
+        "summary": "Control genérico cards o pills con opciones, valor controlado, deshabilitado y nombre accesible."
+      },
+      "tokens": [
+        "--bg-elevated",
+        "--r-pill",
+        "--border",
+        "--bg-surface",
+        "--wine",
+        "--ink-soft",
+        "--shadow-xs",
+        "--r-md",
+        "--wine-tint",
+        "--ink"
+      ],
+      "accessibility": {
+        "keyboard": "verified",
+        "focus": "verified",
+        "screenReader": "verified",
+        "contrast": "verified",
+        "reducedMotion": "not-applicable",
+        "evidence": [
+          "app/studio/_components/ui/SegmentedControl.test.tsx",
+          "docs/governance/reviews/cmp-01-v1-1-deprecated.md"
+        ]
+      },
+      "breakpoints": [
+        "mobile",
+        "tablet",
+        "desktop"
+      ],
+      "examples": {
+        "correct": [
+          "app/studio/(app)/admin/_components/AppearanceSection.tsx",
+          "app/studio/(app)/costing/_components/CostingClient.tsx"
+        ],
+        "incorrect": [
+          "app/studio/(app)/marketing/noticias-web/_components/LLMModeToggle.tsx"
+        ]
+      },
+      "tests": [
+        {
+          "type": "accessibility",
+          "path": "app/studio/_components/ui/SegmentedControl.test.tsx",
+          "case": "Radiogroup, tab stop único, flechas, Home/End y opciones deshabilitadas."
+        }
+      ],
+      "consumers": [
+        {
+          "path": "app/studio/(app)/admin/_components/AppearanceSection.tsx",
+          "verifiedAt": "2026-07-29"
+        },
+        {
+          "path": "app/studio/(app)/costing/_components/CostingClient.tsx",
+          "verifiedAt": "2026-07-29"
+        },
+        {
+          "path": "app/studio/(app)/marketing/noticias-web/_components/LLMModeToggle.tsx",
+          "verifiedAt": "2026-07-29"
+        }
+      ],
+      "review": {
+        "reviewPath": "docs/governance/reviews/cmp-01-v1-1-deprecated.md",
         "reviewer": "Codex",
         "approvedBy": "Sam (founder)",
         "lastReviewedAt": "2026-07-29",

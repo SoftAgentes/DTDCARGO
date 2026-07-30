@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0",
+  "schemaVersion": "1.1",
   "id": "confirm-dialog",
   "name": "ConfirmDialog",
   "purpose": "Confirmar decisiones sensibles con foco seguro, contexto visible y bloqueo de doble ejecución.",
@@ -24,6 +24,11 @@
       "code": "VIS-01",
       "version": "1.0",
       "path": "docs/governance/policies/vis-01.md"
+    },
+    {
+      "code": "A11Y-01",
+      "version": "1.1",
+      "path": "docs/governance/policies/a11y-01.md"
     }
   ],
   "api": {

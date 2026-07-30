@@ -30,6 +30,23 @@ Specs en `docs/specs/NNNN-slug/spec.md`, correlativo propio desde 0001 (no compa
 
 **Commits:** `feat(studio): SDD-NNNN — título` (Studio) · `feat(DTD-NNNN): …` (público).
 
+## Gobernanza ejecutable de experiencia
+
+Antes de cambiar comportamiento, componentes o patrones del Studio, lee
+[`docs/governance/AGENT-BRIEF.md`](docs/governance/AGENT-BRIEF.md) y abre desde
+allí las políticas aplicables. El registro maestro
+[`docs/governance/README.md`](docs/governance/README.md) es la fuente normativa;
+la cápsula generada y cualquier plugin son derivados read-only.
+
+- Un cambio de comportamiento usa SDD y allowlist exacta.
+- Clasifica evidencia como `cumplimiento`, `no aplica`, `excepción` o
+  `no conformidad`.
+- Usa componentes `canonical`; no agregues consumidores de un `deprecated`.
+- Ejecuta `pnpm governance:check` y `pnpm components:check`; `pnpm verify` los
+  incluye en el cierre canónico.
+- Sólo reglas aprobadas pueden bloquear. Investigación o recomendaciones no se
+  elevan automáticamente.
+
 ## Ventanas autónomas + Modo Forja
 
 **Ventanas autónomas (default).** No hay coordinador central. Cada ventana/sesión es **su propia coordinadora**: trabaja en su `git worktree` + rama, hace commits **atómicos y selectivos** (nunca `git add -A`), integra y publica **su propio** trabajo (`git push origin HEAD:main`) y limpia su worktree al cerrar. El "OK del founder" para publicar es que el usuario diga **"cerrar"** (ciclo completo en el skill `/avivar`: contexto → tarea → worktree → ¿avanzar/cerrar? → cierre autónomo). Los pushes no se cruzan porque cada rama lleva solo su trabajo; un choque *non-fast-forward* al pushear se resuelve con `git merge origin/main` y reintento. Runbooks obligatorios: `docs/runbooks/git-worktrees-multiventana.md` · `docs/runbooks/multi-ventanas-buena-practica.md`.

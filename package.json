@@ -20,6 +20,8 @@
     "verify:e2e-teardown": "tsx scripts/verify-e2e-teardown.ts",
     "components:index": "node scripts/build-component-registry.mjs",
     "components:check": "node scripts/validate-component-registry.mjs",
+    "governance:index": "node scripts/build-governance-capsule.mjs",
+    "governance:check": "node scripts/build-governance-capsule.mjs --check",
     "docs:index": "node scripts/build-docs-index.mjs",
     "docs:check": "node scripts/build-docs-index.mjs --check",
     "build:packlist-template": "node scripts/build-packlist-template.mjs",
