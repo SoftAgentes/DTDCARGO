@@ -192,6 +192,7 @@ export default async function PortalComprobantePage({ params }: Props) {
           >
             <Party label="Emisor">
               <PartyName>DTD Cargo</PartyName>
+              <PartyLine>{CONTACT.ve.address}</PartyLine>
               <PartyLine>{CONTACT.ve.city}</PartyLine>
               <PartyLine mono>{CONTACT.emailGeneral}</PartyLine>
               <PartyLine mono>{CONTACT.web}</PartyLine>

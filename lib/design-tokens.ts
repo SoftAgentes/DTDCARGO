@@ -188,9 +188,20 @@ export const CONTACT = {
   ve: {
     label: "Venezuela",
     city: "Valencia, Carabobo",
-    address: "Edificio Kokuy, Calle 151",
+    /**
+     * NAP canónico — dirección EXACTA, idéntica en toda superficie (founder
+     * 2026-07-11, reconfirmada 2026-07-30). La referencia "entre Av. Bolívar
+     * Norte y Av. Paseo Cabriales" es PARTE de la dirección, no un adorno: en
+     * Venezuela la referencia cruzada es cómo se ubica un edificio. NO acortar.
+     *
+     * ⚠️ La entrada da únicamente a Calle 151. Av. Bolívar Norte NO lleva número
+     * de puerta — si ves "Av. Bolívar Norte 14" en algún lado, es la variante
+     * muerta del Norte (ver docs/marketing/identidad.md § "Dirección VE").
+     */
+    address:
+      "Edificio Kokuy, Calle 151 (entre Av. Bolívar Norte y Av. Paseo Cabriales)",
     addressFull:
-      "Edificio Kokuy, Calle 151, entre Av. Bolívar Norte y Av. Paseo Cabriales. Valencia, Carabobo, Venezuela",
+      "Edificio Kokuy, Calle 151 (entre Av. Bolívar Norte y Av. Paseo Cabriales), Valencia, Carabobo, Venezuela",
     postalCode: "2001", // Valencia, Carabobo — para schema.org PostalAddress
 
     /**

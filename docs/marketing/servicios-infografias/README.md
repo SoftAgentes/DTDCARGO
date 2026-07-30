@@ -61,7 +61,7 @@ Estructura tomada del *patrón* de OneWay (NO su copy ni sus imágenes — es co
 - **WhatsApp:** +58 412 166 8021 · **Fijo:** +58 241 414 7886
 - **Web:** dtdcargo.com · **Instagram:** @doortudoor_ · **Correo:** info@dtdcargo.com
 - **Atención WhatsApp:** todos los días 8:00–20:00 (GMT-4)
-- **Sede Venezuela:** Edificio Kokuy, Calle 151, Valencia, Carabobo.
+- **Sede Venezuela:** Edificio Kokuy, Calle 151 (entre Av. Bolívar Norte y Av. Paseo Cabriales), Valencia, Carabobo. *(NAP exacto — no acortar; ver [identidad.md](../identidad.md))*
 
 ## Inventario de piezas (alineado 1:1 con [CATALOGO-MAESTRO.md](CATALOGO-MAESTRO.md))
 

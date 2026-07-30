@@ -53,6 +53,28 @@
 *(Los datos vivos están en `CONTACT` de `lib/design-tokens.ts` — esa es la fuente que consume el
 schema. Esta tabla es la referencia canónica para mantener la consistencia entre superficies.)*
 
+### Dirección VE — una sola, y las variantes muertas
+
+**Canónica (founder 2026-07-11, reconfirmada 2026-07-30):**
+`Edificio Kokuy, Calle 151 (entre Av. Bolívar Norte y Av. Paseo Cabriales) — Valencia,
+Carabobo, VE`. **La entrada da únicamente a Calle 151**; Av. Bolívar Norte es referencia
+cruzada, **no la dirección, y no lleva número de puerta**. CP **2001** (Valencia; el 5001 es
+San Cristóbal/Táchira). Pin verificado: `https://maps.app.goo.gl/76T5MAeeTyynwV1M6`.
+
+Estas dos variantes circularon y son **incorrectas — reemplazar donde aparezcan**:
+
+| Variante muerta | Por qué está mal | Dónde sobrevive |
+|---|---|---|
+| `Edificio Kokuy, Av. Bolívar Norte — Valencia, Carabobo` | le falta la calle real (Calle 151) | Brand Book v4.6 (`_norte/` + `private/marca/`), `docs/specs/0001-mvp-public-web/spec.md` |
+| `Av. Bolívar Norte 14, Valencia` | el **"14" no existe** — confirmado por el founder 2026-07-30; además pierde "Edificio Kokuy" y la calle | piezas del Norte: `Aplicaciones de Marca.html`, `Ficha 3D · Aviso de Fachada`, `_norte/CLAUDE.md`, `design_handoff_mobile_app/CLAUDE.md`, `handoff-enlaces/HANDOFF.md`, `SYNC-NORTE-2026-06-14.md` |
+
+⚠️ La variante del "14" está en **colateral que se imprime** (membrete A4, credencial CR-80,
+vinilo de camión, roll-up) y en el **aviso de fachada**. Antes de mandar a imprenta, verificar
+contra esta sección.
+
+El material del Norte es **read-only** (se reemplaza en el próximo NORTE-SYNC): la corrección se
+sube a Cloud Design, no se parcha acá.
+
 ## Versión-máquina (schema.org)
 
 La identidad legible por Google / motores de IA vive en el **`@graph` de `app/layout.tsx`**
