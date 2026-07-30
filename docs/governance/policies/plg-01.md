@@ -2,7 +2,7 @@
 
 | Control | Valor |
 |---|---|
-| Estado | aprobada — destino repo/team decidido; no creado ni instalado |
+| Estado | aprobada — scaffold repo/team P3–P5 validado; no instalado |
 | Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-007 |
 | Nombre técnico propuesto | `erp-studio-governance` |
 | Fuente normativa | `docs/governance/` dentro del repositorio |
