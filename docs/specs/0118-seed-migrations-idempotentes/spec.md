@@ -359,6 +359,54 @@ evidencia integral está en
 No descarga ni guarda secretos. Los únicos datos Cloud incorporados son
 metadatos técnicos del ledger.
 
+### Los CRLF del ledger no son cosméticos: `.gitattributes` los borraba
+
+Detectado el 2026-07-30, después del cierre. Nueve tests unitarios estaban en
+rojo en `main` y el error raíz era siempre el mismo:
+
+```text
+0281_repair_invite_skip_split_history: el payload local no coincide con Producción
+```
+
+**No hubo drift de Producción ni cambio de la migración.** El archivo `0281`
+nunca existió correcto en git: nació mutilado en `47867a9c`. La regla
+`* text=auto eol=lf` de [`.gitattributes`](../../../.gitattributes) —añadida
+tres horas antes, en `64fab62a`— convierte CRLF a LF al hacer `git add`, y los
+generadores de esta spec **emiten CRLF a propósito**: son el CRLF terminal que
+Supabase guardó en `schema_migrations.statements` y forman parte del
+fingerprint MD5 anclado contra Producción.
+
+El CR desaparecido estaba dentro del literal `$…$` de `0281`, en el offset
+3823: un byte. Bastó para tumbar la cadena entera, porque `0287` incrusta el
+payload de `0281` y `0288` incrusta el de `0287`.
+
+La prueba de que Producción tenía razón y el repo estaba mal es aritmética: al
+regenerar `0281` byte-exacto, `0287` reproduce **exactamente** su anclaje
+remoto —`SOURCE_LENGTH = 191741` y
+`SOURCE_MD5 = edc792b37b75361e1a095a7f71eaff34`—. Con el archivo mutilado no
+había forma de llegar a esos valores. Re-anclar los MD5 (la salida tentadora)
+habría hecho que el repo mintiera sobre Producción y habría reescrito `0287` y
+`0288`, que ya estaban aplicadas.
+
+| Artefacto | CR |
+|---|---|
+| `supabase/migrations/0281_repair_invite_skip_split_history.sql` | 1 |
+| `supabase/tests/0281_repair_invite_skip_split_history.test.sql` | 2 |
+| `supabase/migrations/0287_repair_replay_gate_split_history.sql` | 8 |
+| `supabase/tests/0287_repair_replay_gate_split_history.test.sql` | 8 |
+| `supabase/migrations/0288_finalize_replay_gate_split_history.sql` | 9 |
+| `supabase/tests/0288_finalize_replay_gate_split_history.test.sql` | 27 |
+
+El arreglo son dos piezas, y la segunda es la que importa: regenerar los seis
+artefactos **y** marcar `supabase/migrations/*.sql` y `supabase/tests/*.sql`
+como `-text` en `.gitattributes`. Sin lo segundo el arreglo se evapora en el
+siguiente `git add`. Con `-text` git no convierte en ningún sentido; si un
+editor de Windows reescribe un `.sql` con CRLF, el generador lo detecta y el
+test se pone rojo — **un fallo ruidoso en vez de una corrupción silenciosa**.
+
+Regla hacia adelante: **ninguna migración cuyo payload esté anclado byte a byte
+contra el ledger puede depender de la normalización de finales de línea.**
+
 ## 4. Seguridad
 
 - una versión, nombre o digest inesperado aborta antes de escribir;
@@ -431,6 +479,7 @@ metadatos técnicos del ledger.
 | Gates replay migración | `supabase/migrations/0287_repair_replay_gate_split_history.sql` |
 | Finalizador generador | `scripts/build-sdd-0118-replay-gate-finalizer.mjs` |
 | Finalizador migración | `supabase/migrations/0288_finalize_replay_gate_split_history.sql` |
+| Preservación byte-exacta | `.gitattributes` (`supabase/{migrations,tests}/*.sql -text`) |
 | Spec | `docs/specs/0118-seed-migrations-idempotentes/spec.md` |
 | Cierre | `docs/governance/reviews/aud-sdd-0118-0172-final-closure.md` |
 
@@ -486,6 +535,7 @@ metadatos técnicos del ledger.
 | Replay final R29 | 293 entradas hasta `0288`; seed, E2E y verificación verdes |
 | Teardown R29 | terminal; branch y project ref ausentes; sólo `main` saludable · [REV-AUD-039](../../governance/reviews/aud-sdd-0118-0172-final-closure.md) |
 | Diff | verde |
+| CRLF del ledger (30-jul) | 6 artefactos regenerados byte-exactos + `-text` en `.gitattributes`; `0287` reproduce el anclaje remoto `191741 · edc792b3…`; 11 generadores `--check` verdes; Vitest **4148/4148** |
 
 ## 7. Cierre
 
