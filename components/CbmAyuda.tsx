@@ -23,6 +23,23 @@ import { FONT_MONO } from "@/lib/design-tokens";
  * en teléfono. Si el navegador no soporta la API, el botón degrada a enlace
  * directo a la FAQ.
  */
+/**
+ * Estilos del mini-diagrama. Van por `style` (CSS real) y NO como atributos de
+ * presentación: `fill="var(--x)"` no resuelve en Safari y el dibujo saldría
+ * negro sobre el navy. El wine sobre fondo oscuro es `--wine-on-dark`; el wine
+ * crudo reprueba AA ahí.
+ */
+const WINE_OSCURO = "var(--wine-on-dark, #E8748A)";
+const PUNTA = { fill: WINE_OSCURO } as const;
+const CARA = { fill: WINE_OSCURO, stroke: "rgba(255,255,255,0.8)" } as const;
+const COTA = { stroke: WINE_OSCURO, fill: "none" } as const;
+const COTA_TXT = {
+  fill: WINE_OSCURO,
+  fontFamily: FONT_MONO,
+  fontSize: 12,
+  fontWeight: 700,
+} as const;
+
 export function CbmAyuda() {
   const id = useId().replace(/:/g, "");
   const popId = `cbm-ayuda-${id}`;
@@ -174,18 +191,18 @@ export function CbmAyuda() {
                 markerHeight="4.5"
                 orient="auto-start-reverse"
               >
-                <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--wine-on-dark, #E8748A)" />
+                <path d="M 0 1 L 10 5 L 0 9 z" style={PUNTA} />
               </marker>
             </defs>
-            <path d="M 60 62 L 96 34 L 196 34 L 160 62 Z" fill="var(--wine-on-dark, #E8748A)" fillOpacity="0.16" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" strokeLinejoin="round" />
-            <path d="M 160 62 L 196 34 L 196 92 L 160 120 Z" fill="var(--wine-on-dark, #E8748A)" fillOpacity="0.26" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" strokeLinejoin="round" />
-            <path d="M 60 62 L 160 62 L 160 120 L 60 120 Z" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" strokeLinejoin="round" />
-            <path d="M 48 62 L 48 120" stroke="var(--wine-on-dark, #E8748A)" strokeWidth="1.3" fill="none" markerStart={`url(#p-${id})`} markerEnd={`url(#p-${id})`} />
-            <text x="42" y="95" textAnchor="end" fill="var(--wine-on-dark, #E8748A)" style={{ fontFamily: FONT_MONO, fontSize: 12, fontWeight: 700 }}>Alto</text>
-            <path d="M 60 133 L 160 133" stroke="var(--wine-on-dark, #E8748A)" strokeWidth="1.3" fill="none" markerStart={`url(#p-${id})`} markerEnd={`url(#p-${id})`} />
-            <text x="110" y="148" textAnchor="middle" fill="var(--wine-on-dark, #E8748A)" style={{ fontFamily: FONT_MONO, fontSize: 12, fontWeight: 700 }}>Largo</text>
-            <path d="M 172 127 L 208 99" stroke="var(--wine-on-dark, #E8748A)" strokeWidth="1.3" fill="none" markerStart={`url(#p-${id})`} markerEnd={`url(#p-${id})`} />
-            <text x="216" y="118" textAnchor="start" fill="var(--wine-on-dark, #E8748A)" style={{ fontFamily: FONT_MONO, fontSize: 12, fontWeight: 700 }}>Ancho</text>
+            <path d="M 60 62 L 96 34 L 196 34 L 160 62 Z" style={{ ...CARA, fillOpacity: 0.16 }} strokeWidth="1.5" strokeLinejoin="round" />
+            <path d="M 160 62 L 196 34 L 196 92 L 160 120 Z" style={{ ...CARA, fillOpacity: 0.26 }} strokeWidth="1.5" strokeLinejoin="round" />
+            <path d="M 60 62 L 160 62 L 160 120 L 60 120 Z" style={{ fill: "rgba(255,255,255,0.06)", stroke: "rgba(255,255,255,0.8)" }} strokeWidth="1.5" strokeLinejoin="round" />
+            <path d="M 48 62 L 48 120" style={COTA} strokeWidth="1.3" markerStart={`url(#p-${id})`} markerEnd={`url(#p-${id})`} />
+            <text x="42" y="95" textAnchor="end" style={COTA_TXT}>Alto</text>
+            <path d="M 60 133 L 160 133" style={COTA} strokeWidth="1.3" markerStart={`url(#p-${id})`} markerEnd={`url(#p-${id})`} />
+            <text x="110" y="148" textAnchor="middle" style={COTA_TXT}>Largo</text>
+            <path d="M 172 127 L 208 99" style={COTA} strokeWidth="1.3" markerStart={`url(#p-${id})`} markerEnd={`url(#p-${id})`} />
+            <text x="216" y="118" textAnchor="start" style={COTA_TXT}>Ancho</text>
           </svg>
         </div>
 

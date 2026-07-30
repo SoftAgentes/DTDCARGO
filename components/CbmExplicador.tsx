@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import {
-  cbmFromDimensions,
+  cbmFromDimensionsEnUnidad,
+  FT3_POR_CBM,
   parseDecimalInput,
   sanitizeDecimalText,
+  type UnidadMedida,
 } from "@/lib/calculadora";
 import { FONT_MONO } from "@/lib/design-tokens";
 
@@ -26,26 +28,21 @@ import { FONT_MONO } from "@/lib/design-tokens";
  * tokens `var(--*)`.
  */
 
-type Unidad = "cm" | "m" | "in";
-
-/** Cuánto mide 1 unidad en centímetros — el puente hacia `cbmFromDimensions`. */
-const A_CM: Record<Unidad, number> = { cm: 1, m: 100, in: 2.54 };
-
-const UNIDADES: { id: Unidad; label: string }[] = [
+const UNIDADES: { id: UnidadMedida; label: string }[] = [
   { id: "cm", label: "cm" },
   { id: "m", label: "m" },
   { id: "in", label: "pulgadas" },
 ];
 
 /** Medidas de ejemplo por unidad — la misma caja expresada de tres formas. */
-const EJEMPLO: Record<Unidad, { largo: string; ancho: string; alto: string }> = {
+const EJEMPLO: Record<
+  UnidadMedida,
+  { largo: string; ancho: string; alto: string }
+> = {
   cm: { largo: "60", ancho: "40", alto: "50" },
   m: { largo: "0,6", ancho: "0,4", alto: "0,5" },
   in: { largo: "24", ancho: "16", alto: "20" },
 };
-
-/** 1 m³ en pies cúbicos — para el importador que trabaja en medidas gringas. */
-const FT3_POR_CBM = 35.3147;
 
 /**
  * Formato venezolano (punto de miles, coma decimal) hecho a mano en vez de
@@ -72,28 +69,29 @@ function medida(valor: string): number {
 }
 
 export function CbmExplicador() {
-  const [unidad, setUnidad] = useState<Unidad>("cm");
+  // Arranca en centímetros a propósito: es como la gente mide sus cajas.
+  const [unidad, setUnidad] = useState<UnidadMedida>("cm");
   const [largo, setLargo] = useState(EJEMPLO.cm.largo);
   const [ancho, setAncho] = useState(EJEMPLO.cm.ancho);
   const [alto, setAlto] = useState(EJEMPLO.cm.alto);
   const [bultos, setBultos] = useState("1");
 
-  function cambiarUnidad(u: Unidad) {
+  function cambiarUnidad(u: UnidadMedida) {
     setUnidad(u);
     setLargo(EJEMPLO[u].largo);
     setAncho(EJEMPLO[u].ancho);
     setAlto(EJEMPLO[u].alto);
   }
 
-  const factor = A_CM[unidad];
   const cajas = Math.max(1, Math.floor(medida(bultos)) || 1);
 
-  // Todo pasa por la función de la calculadora: una sola fuente del número.
-  const altoCm = medida(alto) * factor;
-  const anchoCm = medida(ancho) * factor;
-  const largoCm = medida(largo) * factor;
-  const cbmPorBulto = cbmFromDimensions(altoCm, anchoCm, largoCm, 1);
-  const cbmTotal = cbmFromDimensions(altoCm, anchoCm, largoCm, cajas);
+  // La conversión y la cuenta viven en lib/calculadora.ts: una sola fuente del
+  // número para la FAQ y para la calculadora.
+  const a = medida(alto);
+  const an = medida(ancho);
+  const l = medida(largo);
+  const cbmPorBulto = cbmFromDimensionsEnUnidad(a, an, l, 1, unidad);
+  const cbmTotal = cbmFromDimensionsEnUnidad(a, an, l, cajas, unidad);
 
   return (
     <div className="-mt-1 flex flex-col gap-5 pb-5">
@@ -127,28 +125,28 @@ export function CbmExplicador() {
             </marker>
           </defs>
 
-          {/* Caras: superior, lateral y frontal */}
+          {/* Caras: superior, lateral y frontal.
+              Los colores van por `style` (CSS real) y NO como atributo de
+              presentación: `fill="var(--x)"` no resuelve en Safari y la caja
+              saldría negra. */}
           <path
             className="cara"
             d="M 70 128 L 140 74 L 340 74 L 270 128 Z"
-            fill="var(--color-wine)"
-            fillOpacity="0.10"
+            style={{ fill: "var(--color-wine)", fillOpacity: 0.1 }}
             strokeWidth="1.6"
             strokeLinejoin="round"
           />
           <path
             className="cara"
             d="M 270 128 L 340 74 L 340 194 L 270 248 Z"
-            fill="var(--color-wine)"
-            fillOpacity="0.18"
+            style={{ fill: "var(--color-wine)", fillOpacity: 0.18 }}
             strokeWidth="1.6"
             strokeLinejoin="round"
           />
           <path
             className="cara"
             d="M 70 128 L 270 128 L 270 248 L 70 248 Z"
-            fill="var(--color-white)"
-            fillOpacity="0.6"
+            style={{ fill: "var(--color-white)", fillOpacity: 0.6 }}
             strokeWidth="1.8"
             strokeLinejoin="round"
           />
@@ -269,6 +267,17 @@ export function CbmExplicador() {
         bulto. Y si algo sobresale, mide hasta el punto más ancho.
       </p>
 
+      <p className="text-[14.5px] leading-[1.65] text-grey-700">
+        Lo más práctico es{" "}
+        <strong className="text-ink">medir en centímetros</strong>: así se miden
+        las cajas y así llegan casi siempre del proveedor. Por eso la cuenta se
+        hace en centímetros y las demás unidades se convierten a esa base. Si
+        cambias de unidad, cambia también lo que significan los números:{" "}
+        <span style={{ fontFamily: FONT_MONO }}>60</span> en centímetros es la
+        misma caja que <span style={{ fontFamily: FONT_MONO }}>0,6</span> en
+        metros.
+      </p>
+
       {/* ── Las tres unidades ──────────────────────────────────────────── */}
       <div className="grid gap-2.5 sm:grid-cols-3">
         {[
@@ -310,8 +319,12 @@ export function CbmExplicador() {
       {/* ── Calculadora ────────────────────────────────────────────────── */}
       <div className="overflow-hidden rounded-[12px] border border-grey-300 bg-paper">
         <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-grey-200 px-4 py-3">
-          <span className="text-[13.5px] font-bold text-ink">
+          <span className="flex flex-col text-[13.5px] font-bold text-ink">
             Calcúlalo con tus medidas
+            <span className="text-[11.5px] font-normal text-grey-500">
+              Da igual si escribes 0,6 o 0.6 — con coma o con punto es el mismo
+              número.
+            </span>
           </span>
           <div
             className="inline-flex overflow-hidden rounded-[6px] border border-grey-300"

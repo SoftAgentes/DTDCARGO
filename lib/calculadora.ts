@@ -730,6 +730,44 @@ export function cbmFromDimensions(
   return roundCBM(cbmPorCaja * cajas);
 }
 
+/**
+ * Unidades en las que un cliente puede traer sus medidas. El centímetro es la
+ * base del sistema —es como se miden las cajas y como las entrega la ficha del
+ * proveedor chino—; las otras dos existen porque la medida llega así de la
+ * fuente: metros en algunas fichas, y pulgadas cuando el proveedor factura
+ * para Estados Unidos.
+ */
+export type UnidadMedida = "cm" | "m" | "in";
+
+/** Cuánto mide 1 unidad en centímetros. La conversión SIEMPRE cae a cm. */
+export const CM_POR_UNIDAD: Record<UnidadMedida, number> = {
+  cm: 1,
+  m: 100,
+  in: 2.54,
+};
+
+/**
+ * CBM a partir de medidas en cualquiera de las unidades soportadas: convierte a
+ * centímetros y delega en `cbmFromDimensions`. La cuenta vive en un solo lugar,
+ * así que la FAQ y la calculadora no pueden dar números distintos por la misma
+ * caja.
+ *
+ * Ej: 60 × 40 × 50 cm · 0,6 × 0,4 × 0,5 m → los dos dan 0,12 CBM.
+ */
+export function cbmFromDimensionsEnUnidad(
+  alto: number,
+  ancho: number,
+  largo: number,
+  cajas: number,
+  unidad: UnidadMedida,
+): number {
+  const factor = CM_POR_UNIDAD[unidad];
+  return cbmFromDimensions(alto * factor, ancho * factor, largo * factor, cajas);
+}
+
+/** 1 m³ en pies cúbicos — para el importador que trabaja en medidas gringas. */
+export const FT3_POR_CBM = 35.3147;
+
 export function whatsappTextFromCotizacion(
   cot: EnvioCotizacion,
   input: EnvioInput,
