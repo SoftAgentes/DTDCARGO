@@ -92,10 +92,8 @@ Un **lote** = una compra de un cliente = N cajas + CBM total. Es la unidad que e
 mueve (escanea una caja y monta el lote entero, SDD-0155).
 
 ```
-cbmPorZona = capacidadUtil / (nx · ny · nz)
-40'HC → 68 / 18 = 3,78 CBM por zona
-
-zonasNecesarias(lote) = max(1, ceil(lote.cbm / cbmPorZona))
+cbmPorArea = capacidadUtil / (nx · ny · nz)
+40'HC → 68 / 18 = 3,78 CBM por área
 ```
 
 Reparto, determinista y sin aleatoriedad:
@@ -103,14 +101,50 @@ Reparto, determinista y sin aleatoriedad:
 1. Ordenar los lotes por `ordenDescarga` **descendente** — el que se descarga último se
    carga primero y queda al fondo. Desempate por Shipping Mark y luego por id, para que dos
    corridas con la misma entrada den el mismo plan (requisito para versionar y comparar).
-2. Asignar zonas **en el orden real de carga**: tramo por tramo desde el fondo hacia la
-   puerta y, dentro de cada tramo, el piso completo a lo ancho antes de subir. No es el
-   orden de `allZones()` de `zones.ts`: al cargar de verdad no se puede volver al fondo
-   después de haber llenado el frente.
-3. Lo que no entra desborda al siguiente contenedor.
-4. Un lote que entra a medias se **parte** (espeja `p_count < lote` de SDD-0155). **Una caja
-   sola no se parte.**
-5. Avisar —sin bloquear, mismo criterio que `evaluateCapacity`— al pasar el techo real.
+2. Recorrer las áreas **en el orden real de carga**: tramo por tramo desde el fondo hacia la
+   puerta y, dentro de cada tramo, a lo ancho. No es el orden de `allZones()` de `zones.ts`:
+   al cargar de verdad no se puede volver al fondo después de haber llenado el frente.
+3. **Las áreas se COMPARTEN** (§4.2). Cada lote consume CBM del área en curso y sigue en la
+   siguiente cuando se llena.
+4. Lo que no entra desborda al siguiente contenedor.
+5. Un lote que entra a medias se **parte** (espeja `p_count < lote` de SDD-0155). **Una caja
+   sola no se parte**, y al rechazarla se devuelve el espacio que alcanzó a recorrer para que
+   el cliente siguiente lo pueda usar.
+6. Avisar —sin bloquear, mismo criterio que `evaluateCapacity`— al pasar el techo real.
+
+### 4.2 Las áreas se comparten (decisión del founder, 2026-07-30)
+
+Varios clientes conviven en la misma área: dos lotes chicos van los dos al "Fondo a la
+izquierda", uno al lado del otro. **No se entra en el tecnicismo de arriba/abajo/en medio.**
+
+Es la decisión que hace que el modelo funcione. Si cada lote se quedara con áreas enteras,
+un consolidado de diez clientes agotaría las áreas con el contenedor a media carga: 44 CBM
+reales llegaron a consumir 8 de 9 áreas en la prueba. Compartiendo, el contenedor se llena
+**por CBM y no por casillas**.
+
+Por eso cada área que toca un lote lleva su propio CBM (`ZonaOcupada = ZoneCoord & { cbm }`):
+el volumen no se reparte en partes iguales, se llena un área y se pasa a la siguiente. Ese
+dato es además lo que el visor necesita para pintar un área a medio llenar.
+
+**El invariante que no se puede violar:** ningún área recibe más CBM del que aguanta.
+
+### 4.3 El operario no elige la profundidad
+
+Solo elige **izquierda, centro o derecha**. El tramo se lo asigna la lógica por orden de
+escaneo: el primer lote va al fondo y cada uno siguiente avanza hacia la puerta. Es el mismo
+comportamiento que ya tiene SDD-0155 (`load_order`), y por eso el plan encaja sin pedirle
+nada nuevo al operario.
+
+### 4.4 Cómo se lee la posición
+
+**Una frase, no tres ejes sueltos.** `"Fondo a la izquierda"`, no `"Fondo · Izquierda · Piso"`.
+Es lo que se lee de un vistazo en el teléfono y lo que hace falta para decidir si se abre un
+pasillo por un lado en vez de bajar el contenedor entero.
+
+La altura **no aparece**: el modelo real no tiene niveles. Si algún contenedor se configura
+con más de uno, recién ahí se agrega al final. Y el centro se dice `"al centro"` y no
+`"en el medio"`, porque el tramo del medio ya se llama Medio y `"Medio en el medio"` no se
+entiende.
 
 ### 4.0 Las dos consultas que justifican todo
 
@@ -220,19 +254,30 @@ rompería la frontera).
 node scripts/verify.mjs
 ```
 
-- **Fase 1** — `pnpm test lib/shared/__tests__/estiba-plan.test.ts` (34 tests).
-  **Validado con mutación: se rompieron a propósito 16 invariantes y las 16 pusieron la
-  suite en rojo.** Del motor: las zonas se pisan · orden de descarga invertido · sin el piso
-  de 1 zona · sin redondeo previo al `ceil` · porcentaje sobre el volumen geométrico · una
-  caja sola sí se parte · no marca el lote como parcial · la cadena no reinyecta lo que quedó
-  sin ubicar · llena de arriba hacia el piso · carga desde la puerta hacia el fondo · no
-  avisa al pasar el techo. De las consultas: la descarga no invierte el orden de carga · no
-  arrastra el manejo especial · el tramo no se expresa como rango · los lados no deduplican ·
-  la ubicación no agrega los lotes del mismo cliente.
+- **Fase 1** — `pnpm test lib/shared/__tests__/estiba-plan.test.ts` (42 tests).
+  **Validado con mutación: se rompieron a propósito 24 invariantes y las 24 pusieron la
+  suite en rojo.**
+  - *Reparto:* las áreas no se comparten · no descuenta capacidad del área · no cuenta el CBM
+    por área · abre un área que no existe · orden de descarga invertido · sin el piso de 1
+    área · sin redondeo previo al `ceil` · porcentaje sobre el volumen geométrico · llena de
+    arriba hacia el piso · carga desde la puerta hacia el fondo · no avisa al pasar el techo.
+  - *Lotes que no entran:* una caja sola sí se parte · acepta lotes donde no entró nada · no
+    marca el lote como parcial · no restaura el cursor al rechazar · no restaura el espacio
+    libre del área en curso · la cadena no reinyecta lo que quedó sin ubicar.
+  - *Consultas:* la descarga no invierte el orden de carga · no arrastra el manejo especial ·
+    el tramo no se expresa como rango · los lados no deduplican · la ubicación no agrega los
+    lotes del mismo cliente · un lote sin CBM infla el área que comparte.
 
-  En la primera ronda **dos mutaciones sobrevivieron** y destaparon un caso sin cubrir: un
-  lote con **CBM en cero** (prealerta sin volumen declarado, que pasa de verdad) habría
-  reventado al leer `zonas[0]` para armar el destino.
+  **Cuatro mutaciones sobrevivieron a la primera ronda y cada una destapó un hueco real:**
+  1. Un lote con **CBM en cero** (prealerta sin volumen declarado) reventaba al leer
+     `zonas[0]` para armar el destino.
+  2. El test de "una caja sola no se parte" no ejercitaba la guarda: el lote anterior se
+     llevaba todas las áreas y el caso caía por otra rama.
+  3. Al rechazar una pieza indivisible **no se devolvía el espacio recorrido**, así que un
+     cliente chico que sí cabía en el hueco quedaba afuera.
+  4. El bucle reseteaba `libreEnArea` aun al pasarse del último área, y ese valor obsoleto
+     **sobrecargaba un área ya llena** si el cursor volvía atrás (7,11 CBM en un área de
+     3,78). Se corrigió la raíz, no el síntoma.
 - **Fase 2** — comparar la utilización que reporta el Studio antes y después del cambio de
   76 a 68.
 - **Fase 3** — `pnpm build` (Turbopack) + `/ui-pro` para el contraste del visor.

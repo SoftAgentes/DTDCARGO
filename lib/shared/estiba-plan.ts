@@ -44,6 +44,13 @@ export type ZoneLayout = { nx: number; ny: number; nz: number };
 export type ZoneCoord = { zx: number; zy: number; zz: number };
 
 /**
+ * Un área con cuánto CBM de un lote cae en ella. Las áreas se COMPARTEN entre
+ * clientes, así que un área puede aparecer en los `zonas` de varios pasos, cada
+ * uno con su porción.
+ */
+export type ZonaOcupada = ZoneCoord & { cbm: number };
+
+/**
  * Un LOTE = una compra de un cliente. Es la unidad que el operario mueve: escanea
  * una caja y monta el lote entero (SDD-0155).
  */
@@ -91,8 +98,8 @@ export type PasoCarga = {
   cajasUbicadas: number;
   /** CBM que SÍ entra. */
   cbmUbicado: number;
-  /** Zonas que ocupa, en orden de llenado. Nunca vacío. */
-  zonas: ZoneCoord[];
+  /** Áreas que ocupa, en orden de llenado, con cuánto CBM cae en cada una. Nunca vacío. */
+  zonas: ZonaOcupada[];
   /** Etiqueta legible de la primera zona: "Fondo · Izquierda · Piso". */
   destino: string;
   /** `true` si el lote no entró completo y quedó un remanente en `sinUbicar`. */
@@ -158,12 +165,38 @@ export function etiquetasAlto(ny: number): string[] {
   return Array.from({ length: ny }, (_, i) => `Nivel ${i + 1}`);
 }
 
-/** "Fondo · Izquierda · Piso" — para el operario, la leyenda y el reporte. */
+/**
+ * El lado como complemento, para poder pegarlo al tramo: "a la izquierda".
+ * Se usa "al centro" y no "en el medio" porque el tramo del medio ya se llama
+ * "Medio" y "Medio en el medio" no se entiende.
+ */
+export function fraseLado(nz: number, zz: number): string {
+  if (nz === 3) {
+    return ["a la izquierda", "al centro", "a la derecha"][zz] ?? `en la fila ${zz + 1}`;
+  }
+  if (nz === 2) {
+    return ["a la izquierda", "a la derecha"][zz] ?? `en la fila ${zz + 1}`;
+  }
+  return `en la fila ${zz + 1}`;
+}
+
+/**
+ * "Fondo a la izquierda" · "Medio al centro" · "Puerta a la derecha".
+ *
+ * UNA frase, no tres ejes sueltos: es lo que se lee de un vistazo en el teléfono
+ * y lo que hace falta para decidir si se puede abrir un pasillo por un lado en
+ * vez de bajar el contenedor entero.
+ *
+ * **La altura no aparece.** El modelo real (SDD-0155) no tiene niveles: el
+ * operario solo elige izquierda, centro o derecha. Si algún contenedor se
+ * configura con más de un nivel, recién ahí se agrega al final.
+ */
 export function etiquetaZona(layout: ZoneLayout, z: ZoneCoord): string {
-  const l = etiquetasLargo(layout.nx)[z.zx] ?? `Tramo ${z.zx + 1}`;
-  const w = etiquetasAncho(layout.nz)[z.zz] ?? `Fila ${z.zz + 1}`;
-  const h = etiquetasAlto(layout.ny)[z.zy] ?? `Nivel ${z.zy + 1}`;
-  return `${l} · ${w} · ${h}`;
+  const tramo = etiquetasLargo(layout.nx)[z.zx] ?? `Tramo ${z.zx + 1}`;
+  const base = `${tramo} ${fraseLado(layout.nz, z.zz)}`;
+  if (layout.ny <= 1) return base;
+  const nivel = etiquetasAlto(layout.ny)[z.zy] ?? `Nivel ${z.zy + 1}`;
+  return `${base} · ${nivel}`;
 }
 
 // ╔═══════════════════════════════════════════════════════════╗
@@ -284,50 +317,109 @@ export function planificarCarga(
     };
   }
 
-  let cursor = 0; // próxima zona libre en el orden de carga
+  // ── Reparto con áreas COMPARTIDAS (founder, 2026-07-30) ────────────────
+  // Varios clientes conviven en la misma área: dos lotes chicos van los dos al
+  // "Fondo a la izquierda", uno al lado del otro. Si cada lote se quedara con
+  // áreas enteras, un consolidado de 10 clientes agotaría las 9 áreas con el
+  // contenedor a media carga. Por eso se lleva el CBM libre de cada área y se va
+  // repartiendo, en vez de contar casillas.
+  let zi = 0; // área en curso, en el orden de carga
+  let libreEnArea = porZona;
   let paso = 0;
   let cbmUbicado = 0;
   let cajasUbicadas = 0;
+  const areasTocadas = new Set<string>();
+
+  /**
+   * Avanza consumiendo `cbm` desde el área en curso, anotando cuánto cae en cada
+   * una. Devuelve lo que NO se pudo ubicar.
+   *
+   * El CBM NO se reparte en partes iguales: se llena un área y se pasa a la
+   * siguiente. Por eso cada `ZonaOcupada` lleva su propio `cbm` — es lo que el
+   * visor necesita para pintar un área a medio llenar.
+   */
+  const consumir = (cbm: number, tocadas: ZonaOcupada[]): number => {
+    let restante = cbm;
+    while (restante > EPS) {
+      if (libreEnArea <= EPS) {
+        // Solo se abre un área nueva si de verdad existe. Antes se reseteaba
+        // `libreEnArea` aun al pasarse del final, y ese valor obsoleto podía
+        // sobrecargar un área ya llena si el cursor volvía atrás.
+        if (zi + 1 >= orden.length) break;
+        zi += 1;
+        libreEnArea = porZona;
+      }
+      const usa = Math.min(restante, libreEnArea);
+      const z = orden[zi];
+      const ultima = tocadas[tocadas.length - 1];
+      if (ultima && mismaZona(ultima, z)) {
+        ultima.cbm = redondear(ultima.cbm + usa, 4);
+      } else {
+        tocadas.push({ ...z, cbm: redondear(usa, 4) });
+      }
+      restante -= usa;
+      libreEnArea -= usa;
+    }
+    return restante;
+  };
+  // `areasTocadas` se completa recién cuando el lote se ACEPTA: si se rechaza,
+  // se restaura el cursor y sus áreas no deben quedar contadas.
+
+  const rechazar = (lote: Lote) => {
+    sinUbicar.push({
+      loteId: lote.id,
+      markbox: lote.markbox,
+      clientName: lote.clientName,
+      cajas: lote.cajas,
+      cbm: lote.cbm,
+    });
+  };
 
   for (const lote of ordenarLotes(lotes)) {
-    const libres = orden.length - cursor;
-    if (libres <= 0) {
-      sinUbicar.push({
-        loteId: lote.id,
-        markbox: lote.markbox,
-        clientName: lote.clientName,
-        cajas: lote.cajas,
-        cbm: lote.cbm,
-      });
+    // Sin área en curso ni áreas por delante: no entra nada más.
+    if (zi >= orden.length) {
+      rechazar(lote);
       continue;
     }
 
-    const pedidas = zonasNecesarias(lote.cbm, porZona);
-    const dadas = Math.min(pedidas, libres);
-    const parcial = dadas < pedidas;
+    // Se consume sobre el estado real y se restaura si hay que rechazar el lote.
+    const zGuardado = zi;
+    const libreGuardado = libreEnArea;
+    const zonas: ZonaOcupada[] = [];
+    let sobra: number;
 
-    // Una caja sola no se parte: o entra completa o viaja en el próximo contenedor.
-    if (parcial && lote.cajas <= 1) {
-      sinUbicar.push({
-        loteId: lote.id,
-        markbox: lote.markbox,
-        clientName: lote.clientName,
-        cajas: lote.cajas,
-        cbm: lote.cbm,
-      });
+    if (lote.cbm <= EPS) {
+      // Sin CBM declarado (prealerta incompleta): igual hay mercancía y hay que
+      // decirle al operario dónde ponerla. Se le señala el área en curso y no
+      // descuenta capacidad, porque no se sabe cuánta ocupa.
+      zonas.push({ ...orden[zi], cbm: 0 });
+      sobra = 0;
+    } else {
+      sobra = consumir(lote.cbm, zonas);
+    }
+
+    const parcial = sobra > EPS;
+    const nadaEntro = zonas.length === 0;
+
+    // Se rechaza entero si no entró NADA, o si entró a medias siendo indivisible
+    // (una caja sola no se corta por la mitad).
+    if (nadaEntro || (parcial && lote.cajas <= 1)) {
+      zi = zGuardado;
+      libreEnArea = libreGuardado;
+      rechazar(lote);
       continue;
     }
 
-    // Lote partido: entra la fracción que cubren las zonas disponibles. El resto
-    // viaja en el próximo contenedor. Espeja `p_count < lote` de SDD-0155.
-    const fraccion = parcial ? dadas / pedidas : 1;
-    const cbmEntra = parcial ? redondear(lote.cbm * fraccion, 3) : lote.cbm;
+    for (const z of zonas) areasTocadas.add(zoneKey(z));
+
+    // Lote partido: entra lo que cupo, el resto viaja en el próximo contenedor.
+    // Espeja `p_count < lote` de SDD-0155.
+    const cbmEntra = redondear(lote.cbm - sobra, 3);
+    const fraccion = lote.cbm > 0 ? cbmEntra / lote.cbm : 1;
     const cajasEntran = parcial
       ? Math.max(1, Math.floor(lote.cajas * fraccion))
       : lote.cajas;
 
-    const zonas = orden.slice(cursor, cursor + dadas);
-    cursor += dadas;
     paso += 1;
 
     pasos.push({
@@ -393,10 +485,10 @@ export function planificarCarga(
     stats: {
       cbmUbicado,
       cajasUbicadas,
-      zonasUsadas: cursor,
+      zonasUsadas: areasTocadas.size,
       zonasTotales,
       pctVolumen: pct(cbmUbicado, espacio.cbmCapacity),
-      pctZonas: pct(cursor, zonasTotales),
+      pctZonas: pct(areasTocadas.size, zonasTotales),
     },
     avisos,
   };
@@ -477,6 +569,23 @@ export function ladosDe(layout: ZoneLayout, zonas: readonly ZoneCoord[]): string
   return `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
 }
 
+/**
+ * Describe un conjunto de zonas en UNA frase.
+ *
+ * Cuando la carga está en un solo tramo y un solo lado —el caso normal— sale la
+ * frase natural: "Fondo a la izquierda". Cuando se desparrama, cae a la forma
+ * larga: "Fondo a Medio · Izquierda y Centro".
+ */
+export function frasePosicion(layout: ZoneLayout, zonas: readonly ZoneCoord[]): string {
+  if (zonas.length === 0) return "—";
+  const tramosUsados = new Set(zonas.map((z) => z.zx));
+  const ladosUsados = new Set(zonas.map((z) => z.zz));
+  if (tramosUsados.size === 1 && ladosUsados.size === 1) {
+    return etiquetaZona(layout, zonas[0]);
+  }
+  return `${tramoDe(layout, zonas)} · ${ladosDe(layout, zonas)}`;
+}
+
 export type PasoDescarga = {
   /** 1 = lo primero que sale del contenedor. */
   orden: number;
@@ -486,9 +595,11 @@ export type PasoDescarga = {
   cajas: number;
   cbm: number;
   zonas: ZoneCoord[];
-  /** "Puerta" o "Medio a Puerta". Lo que necesita saber quien descarga. */
+  /** La frase que se lee en el teléfono: "Fondo a la izquierda". */
+  ubicacion: string;
+  /** "Puerta" o "Medio a Puerta". Para columnas de tabla. */
   tramo: string;
-  /** "Derecha" o "Izquierda y Centro". */
+  /** "Derecha" o "Izquierda y Centro". Para columnas de tabla. */
   lados: string;
   manejoEspecial: string | null;
 };
@@ -513,6 +624,7 @@ export function ordenDeDescarga(plan: PlanCarga): PasoDescarga[] {
       cajas: p.cajasUbicadas,
       cbm: p.cbmUbicado,
       zonas: p.zonas,
+      ubicacion: frasePosicion(layout, p.zonas),
       tramo: tramoDe(layout, p.zonas),
       lados: ladosDe(layout, p.zonas),
       manejoEspecial: p.manejoEspecial,
@@ -525,13 +637,15 @@ export type UbicacionCliente = {
   cajas: number;
   cbm: number;
   zonas: ZoneCoord[];
-  /** "Medio a Puerta". */
+  /** La frase que se lee en el teléfono: "Medio a la derecha". */
+  ubicacion: string;
+  /** "Medio a Puerta". Para columnas de tabla. */
   tramo: string;
-  /** "Derecha". */
+  /** "Derecha". Para columnas de tabla. */
   lados: string;
   /** Puesto en la fila de descarga: 1 = sale primero. */
   ordenDescarga: number;
-  /** Frase lista para leer en el teléfono: "Medio · Derecha · sale 2º de 5". */
+  /** Todo junto: "Medio a la derecha · sale 2º de 5". */
   resumen: string;
 };
 
@@ -553,8 +667,7 @@ export function ubicacionDeCliente(
   const fila = ordenDeDescarga(plan);
   const puesto = fila.find((d) => d.markbox === markbox)?.orden ?? fila.length;
 
-  const tramo = tramoDe(layout, zonas);
-  const lados = ladosDe(layout, zonas);
+  const ubicacion = frasePosicion(layout, zonas);
 
   return {
     markbox,
@@ -565,10 +678,11 @@ export function ubicacionDeCliente(
       3,
     ),
     zonas,
-    tramo,
-    lados,
+    ubicacion,
+    tramo: tramoDe(layout, zonas),
+    lados: ladosDe(layout, zonas),
     ordenDescarga: puesto,
-    resumen: `${tramo} · ${lados} · sale ${puesto}º de ${fila.length}`,
+    resumen: `${ubicacion} · sale ${puesto}º de ${fila.length}`,
   };
 }
 
@@ -589,6 +703,21 @@ export function zonasDelPlan(
 // ╔═══════════════════════════════════════════════════════════╗
 // ║ Helpers                                                   ║
 // ╚═══════════════════════════════════════════════════════════╝
+
+/**
+ * Tolerancia para comparar CBM. Los volúmenes vienen con 2-3 decimales; sin este
+ * margen, un residuo de 1e-15 haría que un lote se declare "partido" o que el
+ * bucle de reparto no termine.
+ */
+const EPS = 1e-6;
+
+function zoneKey(z: ZoneCoord): string {
+  return `${z.zx}-${z.zy}-${z.zz}`;
+}
+
+function mismaZona(a: ZoneCoord, b: ZoneCoord): boolean {
+  return a.zx === b.zx && a.zy === b.zy && a.zz === b.zz;
+}
 
 function etiquetaLote(l: Lote): string {
   return l.markbox ?? l.clientName ?? `Lote ${l.id}`;

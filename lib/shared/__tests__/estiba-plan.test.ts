@@ -14,6 +14,7 @@ import {
   ubicacionDeCliente,
   tramoDe,
   ladosDe,
+  frasePosicion,
   type EspacioCarga,
   type Lote,
 } from "../estiba-plan";
@@ -45,6 +46,22 @@ function lote(id: string, cajas: number, cbm: number, extra: Partial<Lote> = {})
     ordenDescarga: extra.ordenDescarga ?? null,
     manejoEspecial: extra.manejoEspecial ?? null,
   };
+}
+
+/**
+ * El CBM que quedó cargado en el área más llena. Como las áreas se COMPARTEN,
+ * esto es el invariante que no se puede violar nunca: ningún área puede recibir
+ * más volumen del que aguanta.
+ */
+function maxCbmPorArea(plan: ReturnType<typeof planificarCarga>): number {
+  const porArea = new Map<string, number>();
+  for (const p of plan.pasos) {
+    for (const z of p.zonas) {
+      const k = `${z.zx}-${z.zy}-${z.zz}`;
+      porArea.set(k, (porArea.get(k) ?? 0) + z.cbm);
+    }
+  }
+  return porArea.size === 0 ? 0 : Math.max(...porArea.values());
 }
 
 describe("capacidad", () => {
@@ -117,7 +134,7 @@ describe("orden de los lotes", () => {
     const plan = planificarCarga(lotes, HC40);
     expect(plan.pasos.map((p) => p.loteId)).toEqual(["b", "c", "a"]);
     expect(plan.pasos[0].zonas[0].zx).toBe(0); // "b" al fondo
-    expect(plan.pasos[0].destino).toBe("Fondo · Izquierda · Piso");
+    expect(plan.pasos[0].destino).toBe("Fondo a la izquierda · Piso");
   });
 
   it("sin orden de descarga agrupa por cliente de forma estable", () => {
@@ -143,7 +160,7 @@ describe("reparto", () => {
     const plan = planificarCarga([lote("a", 50, 3)], HC40);
     expect(plan.pasos).toHaveLength(1);
     expect(plan.pasos[0].zonas).toHaveLength(1);
-    expect(plan.pasos[0].zonas[0]).toEqual({ zx: 0, zy: 0, zz: 0 });
+    expect(plan.pasos[0].zonas[0]).toEqual({ zx: 0, zy: 0, zz: 0, cbm: 3 });
     expect(plan.pasos[0].cajasUbicadas).toBe(50);
     expect(plan.pasos[0].parcial).toBe(false);
     expect(plan.sinUbicar).toHaveLength(0);
@@ -156,13 +173,40 @@ describe("reparto", () => {
     expect(plan.stats.zonasUsadas).toBe(4);
   });
 
-  it("las zonas no se pisan entre lotes", () => {
+  it("varios clientes COMPARTEN un área, uno al lado del otro", () => {
+    // Cada área aguanta 3,77 CBM; tres lotes de 2 CBM tienen que convivir en el
+    // fondo izquierdo en vez de quedarse cada uno con un área entera.
     const plan = planificarCarga(
-      [lote("a", 30, 9), lote("b", 30, 9), lote("c", 30, 9)],
+      [lote("a", 5, 2), lote("b", 5, 2), lote("c", 5, 2)],
       HC40,
     );
-    const claves = zonasDelPlan(plan).map((z) => `${z.zx}-${z.zy}-${z.zz}`);
-    expect(new Set(claves).size).toBe(claves.length);
+    const enFondoIzq = zonasDelPlan(plan).filter(
+      (z) => z.zx === 0 && z.zy === 0 && z.zz === 0,
+    );
+    expect(enFondoIzq.length).toBeGreaterThan(1);
+    // 6 CBM en total no pueden ocupar más de 2 áreas de 3,77.
+    expect(plan.stats.zonasUsadas).toBeLessThanOrEqual(2);
+  });
+
+  it("ningún área recibe más CBM del que aguanta", () => {
+    const plan = planificarCarga(
+      [lote("a", 30, 9), lote("b", 30, 9), lote("c", 30, 9), lote("d", 12, 4.5)],
+      HC40,
+    );
+    // Cada área trae su propio CBM: el volumen NO se reparte en partes iguales,
+    // se llena un área y se pasa a la siguiente.
+    expect(maxCbmPorArea(plan)).toBeLessThanOrEqual(plan.cbmPorZona + 0.001);
+  });
+
+  it("compartir áreas hace que el contenedor se llene por CBM, no por casillas", () => {
+    // 9 lotes de 3 CBM = 27 CBM. Sin compartir se comerían 9 áreas (de 18);
+    // compartiendo caben en 8, que es lo que 27 CBM ocupa de verdad.
+    const lotes = Array.from({ length: 9 }, (_, i) => lote(`l${i}`, 10, 3));
+    const plan = planificarCarga(lotes, HC40);
+    expect(plan.pasos).toHaveLength(9);
+    expect(plan.sinUbicar).toHaveLength(0);
+    expect(plan.stats.cbmUbicado).toBe(27);
+    expect(plan.stats.zonasUsadas).toBeLessThanOrEqual(8);
   });
 
   it("calcula el % sobre la capacidad ÚTIL (68), no sobre el geométrico", () => {
@@ -173,8 +217,9 @@ describe("reparto", () => {
 });
 
 describe("desborde", () => {
-  it("lo que no entra queda sin ubicar y avisa que hace falta otro contenedor", () => {
-    // 18 zonas; cada lote de 20 CBM pide 6 zonas ⇒ entran 3, el cuarto no.
+  it("el contenedor se corta en su capacidad ÚTIL, no antes", () => {
+    // 4 lotes × 20 CBM = 80, contra 68 de capacidad. Entran 68: los tres primeros
+    // completos y el cuarto partido. Ni un CBM más, ni uno menos.
     const lotes = [
       lote("a", 10, 20, { ordenDescarga: 4 }),
       lote("b", 10, 20, { ordenDescarga: 3 }),
@@ -182,8 +227,67 @@ describe("desborde", () => {
       lote("d", 10, 20, { ordenDescarga: 1 }),
     ];
     const plan = planificarCarga(lotes, HC40);
-    expect(plan.pasos).toHaveLength(3);
+    expect(plan.stats.cbmUbicado).toBe(68);
+    expect(plan.pasos.map((p) => p.loteId)).toEqual(["a", "b", "c", "d"]);
+    expect(plan.pasos[3].parcial).toBe(true);
     expect(plan.sinUbicar.map((s) => s.loteId)).toEqual(["d"]);
+    expect(plan.sinUbicar[0].cbm).toBe(12); // 20 − 8
+    expect(plan.avisos.some((a) => a.tipo === "lote_partido")).toBe(true);
+  });
+
+  it("rechazar una pieza indivisible DEVUELVE el espacio al siguiente cliente", () => {
+    // 'a' deja 8 CBM libres exactos (68 − 60). 'b' es una máquina de 20 CBM en
+    // una sola pieza: no entra y no se parte. 'c' mide justo esos 8, así que solo
+    // entra completa si al rechazar a 'b' se devolvió TODO el espacio que alcanzó
+    // a recorrer — incluida la fracción del área que estaba a medio llenar.
+    const plan = planificarCarga(
+      [
+        lote("a", 100, 60, { ordenDescarga: 3 }),
+        lote("b", 1, 20, { ordenDescarga: 2 }),
+        lote("c", 10, 8, { ordenDescarga: 1 }),
+      ],
+      HC40,
+    );
+    expect(plan.pasos.map((p) => p.loteId)).toEqual(["a", "c"]);
+    expect(plan.pasos[1].cbmUbicado).toBe(8);
+    expect(plan.pasos[1].parcial).toBe(false);
+    expect(plan.stats.cbmUbicado).toBe(68);
+    expect(plan.sinUbicar.map((s) => s.loteId)).toEqual(["b"]);
+    // Y el espacio devuelto no puede reaparecer como capacidad de más: el área
+    // que 'a' dejó a medio llenar recibe solo lo que le faltaba.
+    expect(maxCbmPorArea(plan)).toBeLessThanOrEqual(plan.cbmPorZona + 0.001);
+  });
+
+  it("un lote sin CBM no infla la ocupación del área que comparte", () => {
+    const plan = planificarCarga(
+      [
+        lote("sinCbm", 12, 0, { ordenDescarga: 2 }),
+        lote("otro", 30, 3, { ordenDescarga: 1 }),
+      ],
+      HC40,
+    );
+    const sin = plan.pasos.find((p) => p.loteId === "sinCbm");
+    expect(sin?.zonas).toHaveLength(1);
+    expect(sin?.zonas[0].cbm).toBe(0);
+    // El área compartida solo carga el CBM del que sí lo declaró.
+    const k = (z: { zx: number; zy: number; zz: number }) => `${z.zx}-${z.zy}-${z.zz}`;
+    const enEsaArea = plan.pasos
+      .flatMap((p) => p.zonas)
+      .filter((z) => k(z) === k(sin!.zonas[0]))
+      .reduce((a, z) => a + z.cbm, 0);
+    expect(enEsaArea).toBe(3);
+  });
+
+  it("un lote que llega con el contenedor lleno queda entero sin ubicar", () => {
+    const plan = planificarCarga(
+      [
+        lote("lleno", 100, 68, { ordenDescarga: 2 }),
+        lote("tarde", 10, 5, { ordenDescarga: 1 }),
+      ],
+      HC40,
+    );
+    expect(plan.pasos.map((p) => p.loteId)).toEqual(["lleno"]);
+    expect(plan.sinUbicar.map((s) => s.loteId)).toEqual(["tarde"]);
     expect(plan.avisos.some((a) => a.tipo === "sin_espacio")).toBe(true);
   });
 
@@ -407,7 +511,7 @@ describe("bordes", () => {
     );
     const a = plan.pasos.find((p) => p.loteId === "sinCbm");
     expect(a?.zonas).toHaveLength(1);
-    expect(a?.destino).toBe("Fondo · Izquierda · Piso");
+    expect(a?.destino).toBe("Fondo a la izquierda · Piso");
     expect(a?.cajasUbicadas).toBe(12);
     // Y no se come el espacio del que sí declaró volumen.
     expect(plan.pasos.find((p) => p.loteId === "b")?.zonas.length).toBe(3);
@@ -422,9 +526,42 @@ describe("bordes", () => {
     expect(plan.avisos[0].tipo).toBe("sin_espacio");
   });
 
-  it("etiqueta las zonas en español venezolano", () => {
-    expect(etiquetaZona(HC40.layout, { zx: 0, zy: 0, zz: 0 })).toBe("Fondo · Izquierda · Piso");
-    expect(etiquetaZona(HC40.layout, { zx: 2, zy: 1, zz: 2 })).toBe("Puerta · Derecha · Arriba");
-    expect(etiquetaZona(GP20.layout, { zx: 1, zy: 0, zz: 1 })).toBe("Puerta · Centro · Piso");
+  it("etiqueta cada zona con UNA frase natural, sin altura", () => {
+    // El modelo real (SDD-0155) no tiene niveles: el operario solo elige lado.
+    const plano = { nx: 3, ny: 1, nz: 3 };
+    expect(etiquetaZona(plano, { zx: 0, zy: 0, zz: 0 })).toBe("Fondo a la izquierda");
+    expect(etiquetaZona(plano, { zx: 0, zy: 0, zz: 1 })).toBe("Fondo al centro");
+    expect(etiquetaZona(plano, { zx: 0, zy: 0, zz: 2 })).toBe("Fondo a la derecha");
+    expect(etiquetaZona(plano, { zx: 1, zy: 0, zz: 1 })).toBe("Medio al centro");
+    expect(etiquetaZona(plano, { zx: 2, zy: 0, zz: 2 })).toBe("Puerta a la derecha");
+  });
+
+  it("nunca dice 'Medio en el medio'", () => {
+    // Por eso el centro es "al centro" y no "en el medio": el tramo del medio ya
+    // se llama Medio y la frase se volvía ilegible.
+    expect(etiquetaZona({ nx: 3, ny: 1, nz: 3 }, { zx: 1, zy: 0, zz: 1 })).not.toContain(
+      "en el medio",
+    );
+  });
+
+  it("solo agrega el nivel si el contenedor está configurado con más de uno", () => {
+    expect(etiquetaZona(HC40.layout, { zx: 0, zy: 0, zz: 0 })).toBe(
+      "Fondo a la izquierda · Piso",
+    );
+    expect(etiquetaZona(HC40.layout, { zx: 2, zy: 1, zz: 2 })).toBe(
+      "Puerta a la derecha · Arriba",
+    );
+  });
+
+  it("frasePosicion usa la forma corta en un tramo y la larga si se desparrama", () => {
+    const plano = { nx: 3, ny: 1, nz: 3 };
+    expect(frasePosicion(plano, [{ zx: 0, zy: 0, zz: 2 }])).toBe("Fondo a la derecha");
+    expect(
+      frasePosicion(plano, [
+        { zx: 0, zy: 0, zz: 2 },
+        { zx: 1, zy: 0, zz: 2 },
+      ]),
+    ).toBe("Fondo a Medio · Derecha");
+    expect(frasePosicion(plano, [])).toBe("—");
   });
 });
