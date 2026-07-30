@@ -20,7 +20,7 @@
 |---|---|---|---|
 | Shell + Auth | 0004, 0007 | `app/studio/(app)/` shell, `(auth)/login` | `lib/auth/session.ts`, `proxy.ts` |
 | Administración · Audit log | 0123, 0166, 0172, 0174 | `app/studio/(app)/admin/` | `lib/studio/audit-*` · `entity_audit_log` · `scripts/{seed-e2e,verify-e2e-teardown}.ts` · migraciones por corte |
-| Gobernanza ejecutable | 0178 | documentación; plugin todavía no creado | `docs/governance/` como fuente normativa · futuro repo/team `.agents/plugins/plugins/erp-studio-governance/` read-only |
+| Gobernanza ejecutable | 0178, 0183 | entrypoints de agentes + scaffold local read-only sin instalación | `docs/governance/` como fuente normativa · `.agents/plugins/plugins/erp-studio-governance/` como derivado validado |
 | Tipografía transversal · VIS-02 | 0175 | `app/{layout,globals}.tsx` · `app/studio/` | `next/font` · tokens de voz · renderers email/PDF |
 | Fiscal/SENIAT · tabs accesibles | 0073, 0104, 0180 | `app/studio/(app)/fiscal/` | `lib/studio/fiscal/` |
 | Selectores canónicos accesibles | 0108, 0181 | `app/studio/_components/ui/{ClientCombobox,SplitActionButton}.tsx` | `lib/studio/client-search-action.ts` |

@@ -8,6 +8,13 @@
 | Fuente normativa | `docs/governance/` dentro del repositorio |
 | Depende de | SGE-00, CMP-01 y políticas aprobadas |
 
+## Estado de implementación
+
+El scaffold repo/team read-only alcanza P5 local mediante
+[REV-SGE-019](../reviews/plg-01-scaffold.md). Sus dos skills consultan el
+registro derivado, clasifican evidencia y no escriben producto ni fuentes
+normativas. No está instalado y no existe marketplace, MCP, app o hook.
+
 ## 1. Principio arquitectónico
 
 El plugin interpreta, verifica y ayuda a corregir. No se convierte en una

@@ -3,14 +3,14 @@
 | Control | Valor |
 |---|---|
 | Documento | Índice maestro del Sistema de Gobernanza |
-| Versión | 5.3 |
+| Versión | 5.4 |
 | Dueño | Sam (founder) |
 | Custodia | Producto + Diseño + Ingeniería |
 | Estado | activo |
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-29 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-072 · Preflight histórico `0271` listo para aplicación individual](BASELINE-2026-07-29-44.md) |
+| Línea base vigente | [LB-SGE-073 · Control plane ejecutable y scaffold read-only](BASELINE-2026-07-29-45.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -116,7 +116,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Flujos por pasos | [WIZ-01 v1.0](policies/wiz-01.md) |
 | Interacciones con IA | [IA-01 v1.0](policies/ia-01.md) |
 | Aprobación normativa de 17 políticas | [REV-SGE-003 a REV-SGE-005](reviews/sge-policy-blocks-01-04.md) |
-| Ciclo de vida de componentes | [CMP-01 v1.0](policies/cmp-01.md) |
+| Ciclo de vida de componentes | [CMP-01 v1.1](policies/cmp-01.md) |
 | Revisión normativa CMP-01 | [REV-SGE-006](reviews/cmp-01.md) |
 | Diseño del registro CMP-01 | [REV-SGE-010](reviews/cmp-01-registry-design.md) |
 | Primer componente CMP-01 canónico | [REV-SGE-012 · ConfirmDialog](reviews/cmp-confirm-dialog-canonical.md) |
@@ -130,6 +130,9 @@ artefactos permanecen en sus fuentes correspondientes.
 | Portabilidad EOL de SDD-0118 | [REV-AUD-030](reviews/aud-sdd-0118-eol-portability.md) |
 | Dependencias ejecutables CMP-01 | [REV-SGE-015](reviews/cmp-01-dependency-validation.md) |
 | Estabilidad bajo carga del guardia SDD-0164 | [REV-SGE-016](reviews/shipment-public-test-load-hardening.md) |
+| CMP-01 v1.1 y primer deprecated | [REV-SGE-017](reviews/cmp-01-v1-1-deprecated.md) |
+| Control plane ejecutable | [REV-SGE-018](reviews/governance-control-plane.md) |
+| Scaffold read-only PLG-01 | [REV-SGE-019](reviews/plg-01-scaffold.md) |
 | Tabs accesibles en Fiscal | [SDD-0180](../specs/0180-tabs-accesibles-fiscal/spec.md) |
 | Selectores accesibles y colisión | [SDD-0181](../specs/0181-selectores-accesibles-colision/spec.md) |
 | Validación progresiva en Club | [SDD-0182](../specs/0182-validacion-progresiva-identidad-club/spec.md) |
@@ -178,7 +181,7 @@ disfraza elevando el estado normativo.
 | AUD-01 | Evento auditable y vínculo con acciones | aprobada | Diseño D1 aprobado: 24 operaciones obligatorias y workflow Auth durable; implementación pendiente | [REV-AUD-017](reviews/aud-d1-access-config-design.md) |
 | AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B y guardrail tenant 0268 aplicados; intento efímero detenido por SDD-0118 y teardown terminal verificado | [REV-AUD-019](reviews/aud-tenant-fixtures-ephemeral-validation.md); consulta/RBAC y `0270` conservan gates separados |
 | VIS-01 | Jerarquía visual y distribución 60-30-10 | aprobada | Adopción parcial; muestreo acotado a slices y clasificación de literales | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
-| VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | SDD-0175 aprobado; BD-036 cierra V0 sin cargar la fuente | Ejecutar V1 tokens/fuente |
+| VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | V1 integrado: Noto Serif SC sólo en documento formal `zh-CN`; UI china conserva Noto Sans SC | V2 correo, V3 PDF y V4 visual conservan gates propios |
 | BUS-01 | Buscadores predictivos y contexto de resultados | aprobada v1.1 | Teclado y colisión formalizados; adopción no auditada | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | CRT-01 | Creación rápida desde contexto | aprobada v1.0 | Patrones locales sin primitiva común | Auditar flujos de retorno |
 | NUM-01 | Campos numéricos y financieros | aprobada v1.0 | `NumericInput` existe; adopción no auditada | Auditar precisión por dominio |
@@ -196,8 +199,8 @@ disfraza elevando el estado normativo.
 | TBL-01 | Tablas, densidad y configuración | aprobada v1.0 | `ColumnManager` tiene adopción limitada | Auditar listados y móvil |
 | A11Y-01 | Accesibilidad transversal | aprobada v1.1 | Contratos tabs/menu/listbox explícitos; sin matriz integral | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | IA-01 | Interacciones asistidas por IA | aprobada v1.0 | Regla local “IA propone”; sin gate transversal | Auditar permisos, privacidad y evidencia |
-| CMP-01 | Ciclo de vida y madurez de componentes | aprobada v1.0 | `ConfirmDialog` recorrió proposed→canonical; agregado y tests verdes; falta caso deprecated | [REV-SGE-012](reviews/cmp-confirm-dialog-canonical.md) |
-| PLG-01 | Plugin ejecutable de gobernanza | aprobada v1.0 | SDD-0178 aprobado; destino repo/team decidido; plugin no creado ni instalado | Completar estabilidad CMP antes de solicitar scaffold |
+| CMP-01 | Ciclo de vida y madurez de componentes | aprobada v1.1 | Schema A11Y corregido; `ConfirmDialog` y `SegmentedControl` canonical; `LLMModeToggle` deprecated con plan | [REV-SGE-017](reviews/cmp-01-v1-1-deprecated.md) |
+| PLG-01 | Plugin ejecutable de gobernanza | aprobada v1.0 | P3–P5 verdes en scaffold repo/team read-only; no instalado y sin marketplace | [REV-SGE-019](reviews/plg-01-scaffold.md); P6–P8 cerrados |
 
 ## 5. Jerarquía y resolución de conflictos
 
@@ -241,15 +244,15 @@ aprobaron en LB-SGE-004. El orden que gobierna la siguiente fase es:
    está cerrada; cualquier ACL histórico, purga o retención conserva gate y
    alcance propios;
 2. conservar A1, A2 y sus recibos en Git; el Corte A está aplicado y verificado;
-   B1 está aplicado y verificado en Cloud por REV-AUD-009; SDD-0172 implementa
-   localmente el lifecycle tenant/fixtures, pero `0268` y el recorrido efímero
-   conservan gates propios; C0 está aprobado por REV-AUD-012 y C1 no está
-   abierto; mantener D–E cerrados;
+   B1 y `0268` están aplicados. SDD-0172 llega hasta `0279` en Cloud y `0280`
+   verde localmente; la aplicación individual de 0280 y el efímero posterior
+   conservan el runbook exacto. C0 está aprobado por REV-AUD-012; D1 tiene
+   diseño aprobado y D2–D5 continúan como roadmap por gates;
 3. revisar las políticas v0.1 por bloques coherentes, no como aprobación masiva;
-4. implementar VIS-02 (Noto Serif SC/tokens/salidas) y auditar VIS-01;
-5. convertir componentes existentes a estados CMP-01 con evidencia;
-6. crear PLG-01 read-only únicamente cuando el registro aprobado sea estable;
-7. promover a CI solo reglas verificadas y con excepción documentable.
+4. conservar VIS-02 V1 integrado y abrir V2–V4 sólo por salida;
+5. adoptar componentes CMP-01 por slices, sin nuevos usos de deprecated;
+6. usar la cápsula repo-first; PLG-01 continúa sin instalación;
+7. promover a CI sólo reglas verificadas y con excepción documentable.
 
 ## 8. Protocolo de cambio
 
@@ -271,7 +274,7 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-070 · historial RLS listo para aplicación individual](BASELINE-2026-07-29-42.md).
+[LB-SGE-073 · control plane ejecutable y scaffold read-only](BASELINE-2026-07-29-45.md).
 La estabilidad bajo carga del guardia SDD-0164 permanece en
 [LB-SGE-069](BASELINE-2026-07-29-41.md).
 La validación de dependencias CMP-01 permanece en
@@ -415,3 +418,6 @@ esta gobernanza.
 | [Gate SGE](templates/sge-gate.md) | Revisar una implementación o flujo antes de aprobarlo. |
 | [Contrato de acción gobernada](templates/governed-action.md) | Unir BTN, MP, permisos, estados y auditoría. |
 | [Mapa de skills](research/skills-map.md) | Decidir qué capacidades reutilizar y qué límites imponer al plugin. |
+| [Cápsula operativa para agentes](AGENT-BRIEF.md) | Enrutar Codex, Claude Code, Studio y Cloud Design a la misma fuente normativa. |
+| [`governance:check`](generated/governance-capsule.json) | Verificar el agregado reproducible de políticas aprobadas. |
+| [`components:check`](generated/component-registry.json) | Verificar ciclo, evidencia, consumidores y reemplazos CMP-01. |

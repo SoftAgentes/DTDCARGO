@@ -1,0 +1,283 @@
+{
+  "schemaVersion": "1.0",
+  "sourceCommit": "bdfb6e77205b799312a7a479c55ca8d1317e02dd",
+  "normativeSource": "docs/governance/README.md",
+  "readOnly": true,
+  "policies": [
+    {
+      "code": "A11Y-01",
+      "version": "1.1",
+      "state": "aprobada — adopción transversal pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/a11y-01.md"
+    },
+    {
+      "code": "AUD-01",
+      "version": "1.0",
+      "state": "aprobada — implementación parcial/no conforme",
+      "approvedAt": "2026-07-21",
+      "path": "docs/governance/policies/aud-01.md"
+    },
+    {
+      "code": "AUD-02",
+      "version": "1.0",
+      "state": "aprobada — implementación pendiente/no conforme",
+      "approvedAt": "2026-07-21",
+      "path": "docs/governance/policies/aud-02.md"
+    },
+    {
+      "code": "BTN-01",
+      "version": "1.1",
+      "state": "aprobada",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/btn-01.md"
+    },
+    {
+      "code": "BUS-01",
+      "version": "1.1",
+      "state": "aprobada — adopción pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/bus-01.md"
+    },
+    {
+      "code": "CAL-01",
+      "version": "1.0",
+      "state": "aprobada — adopción parcial",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/cal-01.md"
+    },
+    {
+      "code": "CMP-01",
+      "version": "1.1",
+      "state": "aprobada — ciclo canonical/deprecated verificado",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/cmp-01.md"
+    },
+    {
+      "code": "CRT-01",
+      "version": "1.0",
+      "state": "aprobada — adopción pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/crt-01.md"
+    },
+    {
+      "code": "DAT-01",
+      "version": "1.0",
+      "state": "aprobada — adopción pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/dat-01.md"
+    },
+    {
+      "code": "DND-01",
+      "version": "1.0",
+      "state": "aprobada — adopción no conforme",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/dnd-01.md"
+    },
+    {
+      "code": "ERR-01",
+      "version": "1.0",
+      "state": "aprobada — adopción pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/err-01.md"
+    },
+    {
+      "code": "FRM-01",
+      "version": "1.1",
+      "state": "aprobada — adopción pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/frm-01.md"
+    },
+    {
+      "code": "HTD-01",
+      "version": "1.0",
+      "state": "aprobada — no implementada",
+      "approvedAt": "2026-07-21",
+      "path": "docs/governance/policies/htd-01.md"
+    },
+    {
+      "code": "IA-01",
+      "version": "1.0",
+      "state": "aprobada — adopción pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/ia-01.md"
+    },
+    {
+      "code": "ICO-01",
+      "version": "1.0",
+      "state": "aprobada — adopción pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/ico-01.md"
+    },
+    {
+      "code": "LOD-01",
+      "version": "1.0",
+      "state": "aprobada — adopción pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/lod-01.md"
+    },
+    {
+      "code": "MOT-01",
+      "version": "1.0",
+      "state": "aprobada — adopción pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/mot-01.md"
+    },
+    {
+      "code": "MP-01",
+      "version": "1.1",
+      "state": "aprobada — defaults MP-D1 a MP-D7 vigentes; adopción pendiente",
+      "approvedAt": "2026-07-21",
+      "path": "docs/governance/policies/mp-01.md"
+    },
+    {
+      "code": "NUM-01",
+      "version": "1.0",
+      "state": "aprobada — adopción pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/num-01.md"
+    },
+    {
+      "code": "PLG-01",
+      "version": "1.0",
+      "state": "aprobada — destino repo/team decidido; no creado ni instalado",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/plg-01.md"
+    },
+    {
+      "code": "PRG-01",
+      "version": "1.0",
+      "state": "aprobada — adopción pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/prg-01.md"
+    },
+    {
+      "code": "SGE-00",
+      "version": "1.0",
+      "state": "aprobada",
+      "approvedAt": "2026-07-21",
+      "path": "docs/governance/policies/sge-00.md"
+    },
+    {
+      "code": "TBL-01",
+      "version": "1.0",
+      "state": "aprobada — adopción pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/tbl-01.md"
+    },
+    {
+      "code": "UPL-01",
+      "version": "1.0",
+      "state": "aprobada — adopción pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/upl-01.md"
+    },
+    {
+      "code": "VIS-01",
+      "version": "1.0",
+      "state": "aprobada",
+      "approvedAt": "2026-07-21",
+      "path": "docs/governance/policies/vis-01.md"
+    },
+    {
+      "code": "VIS-02",
+      "version": "1.0",
+      "state": "aprobada — implementación parcial",
+      "approvedAt": "2026-07-21",
+      "path": "docs/governance/policies/vis-02.md"
+    },
+    {
+      "code": "WIZ-01",
+      "version": "1.0",
+      "state": "aprobada — adopción pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/wiz-01.md"
+    }
+  ],
+  "components": [
+    {
+      "id": "confirm-dialog",
+      "name": "ConfirmDialog",
+      "status": "canonical",
+      "implementation": {
+        "path": "app/studio/_components/ui/ConfirmDialog.tsx",
+        "exportName": "ConfirmDialog"
+      },
+      "policyRefs": [
+        {
+          "code": "SGE-00",
+          "version": "1.0",
+          "path": "docs/governance/policies/sge-00.md"
+        },
+        {
+          "code": "BTN-01",
+          "version": "1.1",
+          "path": "docs/governance/policies/btn-01.md"
+        },
+        {
+          "code": "VIS-01",
+          "version": "1.0",
+          "path": "docs/governance/policies/vis-01.md"
+        },
+        {
+          "code": "A11Y-01",
+          "version": "1.1",
+          "path": "docs/governance/policies/a11y-01.md"
+        }
+      ],
+      "replacement": null
+    },
+    {
+      "id": "llm-mode-toggle",
+      "name": "LLMModeToggle",
+      "status": "deprecated",
+      "implementation": {
+        "path": "app/studio/(app)/marketing/noticias-web/_components/LLMModeToggle.tsx",
+        "exportName": "LLMModeToggle"
+      },
+      "policyRefs": [
+        {
+          "code": "SGE-00",
+          "version": "1.0",
+          "path": "docs/governance/policies/sge-00.md"
+        },
+        {
+          "code": "A11Y-01",
+          "version": "1.1",
+          "path": "docs/governance/policies/a11y-01.md"
+        }
+      ],
+      "replacement": {
+        "componentId": "segmented-control",
+        "planPath": "docs/governance/reviews/cmp-01-v1-1-deprecated.md"
+      }
+    },
+    {
+      "id": "segmented-control",
+      "name": "SegmentedControl",
+      "status": "canonical",
+      "implementation": {
+        "path": "app/studio/_components/ui/SegmentedControl.tsx",
+        "exportName": "SegmentedControl"
+      },
+      "policyRefs": [
+        {
+          "code": "SGE-00",
+          "version": "1.0",
+          "path": "docs/governance/policies/sge-00.md"
+        },
+        {
+          "code": "BTN-01",
+          "version": "1.1",
+          "path": "docs/governance/policies/btn-01.md"
+        },
+        {
+          "code": "A11Y-01",
+          "version": "1.1",
+          "path": "docs/governance/policies/a11y-01.md"
+        }
+      ],
+      "replacement": null
+    }
+  ]
+}

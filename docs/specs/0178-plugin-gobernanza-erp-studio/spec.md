@@ -1,7 +1,7 @@
 ---
 sdd: "0178"
 title: "Plugin read-only de gobernanza ERP Studio"
-status: approved
+status: in-progress
 author: "Sam (founder) + Codex"
 created: 2026-07-29
 updated: 2026-07-29
@@ -218,18 +218,16 @@ El generador:
 - cero tool calls externas no autorizadas;
 - recomendaciones no presentadas como políticas.
 
-## 10. Allowlist exacta del futuro scaffold
+## 10. Allowlist exacta del scaffold
 
-El destino aprobado es repo/team:
+El destino aprobado es repo/team. El gate P3 creó únicamente:
 
 ```text
-<repo-root>/.agents/plugins/marketplace.json
 <repo-root>/.agents/plugins/plugins/erp-studio-governance/
 ```
 
-La doble carpeta `plugins/plugins` mantiene `source.path` como
-`./plugins/erp-studio-governance`, relativo al marketplace, según el contrato
-de `plugin-creator`. Ninguna de esas rutas existe todavía.
+La ruta `.agents/plugins/marketplace.json` quedó deliberadamente fuera: P6–P8
+continúan cerrados y el scaffold no está instalado ni publicado.
 
 1. `.codex-plugin/plugin.json`
 2. `skills/governance-check/SKILL.md`
@@ -272,9 +270,10 @@ modifica las fuentes normativas.
 
 ## 13. Cierre
 
-P0 y la decisión P2 quedan aprobados documentalmente. P1 permanece cerrado:
-REV-SGE-012 validó un componente `proposed → canonical`, pero todavía falta el
-caso `deprecated` y versionar limitaciones del schema. P3–P8 permanecen
-cerrados.
+P0–P2 quedan aprobados. REV-SGE-017 demuestra P1 con schema v1.1,
+`proposed → canonical` y un caso `deprecated` con reemplazo. REV-SGE-019 cierra
+P3–P5: scaffold repo/team, validadores oficiales y tres casos positivos/tres
+negativos.
 
-No se creó ni instaló el plugin y no existe marketplace, MCP o app asociado.
+P6–P8 permanecen cerrados. El plugin no está instalado y no existe
+marketplace, MCP, app, hook o capacidad de escritura.

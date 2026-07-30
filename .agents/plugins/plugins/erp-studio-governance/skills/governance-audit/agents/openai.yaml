@@ -1,0 +1,4 @@
+interface:
+  display_name: "Governance Audit"
+  short_description: "Audita adopción sin modificar el producto"
+  default_prompt: "Usa $governance-audit para clasificar la adopción de gobernanza de este alcance."
