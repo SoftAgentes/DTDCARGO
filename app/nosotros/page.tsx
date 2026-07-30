@@ -118,10 +118,10 @@ export default function NosotrosPage() {
               <span className="accent">a la logística integral.</span>
             </h1>
             <p>
-              Desde 2008 importamos de China; desde 2010 operamos logística
-              integral puerta a puerta. Hoy somos un puente de confianza entre
-              las fábricas asiáticas y los comercios de Venezuela — con equipo
-              propio en Yiwu y Valencia.
+              Desde 2008 trabajamos con China; en 2010 abrimos nuestra primera
+              oficina allá y en 2015 fundamos la operación en Venezuela. Hoy
+              somos un puente de confianza entre las fábricas asiáticas y los
+              comercios de Venezuela — con equipo propio en Yiwu y Valencia.
             </p>
           </div>
         </section>

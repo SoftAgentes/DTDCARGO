@@ -161,8 +161,8 @@ const jsonLd = {
       // priceRange es opcional; en freight no hay tier fijo → texto honesto (no "$$").
       priceRange: "Cotización a medida según volumen y ruta",
       // 2015 = fundación e inauguración en Venezuela = año de fundación (founder
-      // 2026-07-17). 2008-2010 = etapa de inicios en China: es experiencia, NO la
-      // fundación (vive en Stats como "En el comercio con China desde 2008").
+      // 2026-07-20). 2008 = inicio del comercio con China y sustenta experiencia;
+      // 2010 = primera oficina propia en China. Ninguno de esos hitos es fundación.
       foundingDate: "2015",
       email: CONTACT.emailGeneral,
       telephone: CONTACT.ve.phone,

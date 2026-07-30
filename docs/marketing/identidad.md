@@ -16,7 +16,9 @@
 | Razón social | **INVERSIONES DTD SERVICES, C.A** |
 | RIF / taxID | **J-50648869-8** |
 | Representante legal | **José Méndez** |
-| Fundada | **2010** (narrativa "+15 años") |
+| Fundada | **2015** (fundación e inauguración en Venezuela = `foundingDate`) |
+| Experiencia con China | **desde 2008** (total autocalculado, nunca fijo) |
+| Oficina propia en China | **desde 2010** (hito, no es "empresa desde") |
 | Handle social | **@doortudoor_** (Instagram) |
 
 ## Convención de nombres (regla del founder)
@@ -62,7 +64,8 @@ existen ahí, no en texto visible. *(Pendiente de la Fase 2 del plan de identida
 ```
 EMPRESA: DTD Cargo (público) · sello "DoorTuDoor" · IG @doortudoor_
 RAZÓN SOCIAL: INVERSIONES DTD SERVICES, C.A — RIF J-50648869-8 — rep. legal José Méndez
-RUBRO: logística end-to-end China→Venezuela desde 2010 (+15 años); DDP puerta a puerta,
+RUBRO: logística end-to-end China→Venezuela. Fundada en Venezuela en 2015; en el comercio
+  con China desde 2008 y con oficina propia en China desde 2010. DDP puerta a puerta,
   agente de compra, inspección de fábrica; equipo propio en Yiwu y Valencia.
 WEB: dtdcargo.com (Next.js 16 App Router / React 19 / Tailwind v4 / pnpm). doortudoor.com
   redirige 301 (no dejar expirar, no servir contenido propio ahí).
