@@ -10,7 +10,7 @@
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-30 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-078 · SDD-0118 y SDD-0172 cerradas](BASELINE-2026-07-30-03.md) |
+| Línea base vigente | [LB-SGE-079 · VIS-02 V1 reconciliado](BASELINE-2026-07-30-04.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -141,8 +141,9 @@ artefactos permanecen en sus fuentes correspondientes.
 | Tabs accesibles en Fiscal | [SDD-0180](../specs/0180-tabs-accesibles-fiscal/spec.md) |
 | Selectores accesibles y colisión | [SDD-0181](../specs/0181-selectores-accesibles-colision/spec.md) |
 | Validación progresiva en Club | [SDD-0182](../specs/0182-validacion-progresiva-identidad-club/spec.md) |
-| Implementación VIS-02 | [SDD-0175 aprobado](../specs/0175-vis-02-tipografia-voz-idioma/spec.md) |
+| Implementación VIS-02 | [SDD-0175 in-progress · V0/V1 cerrados](../specs/0175-vis-02-tipografia-voz-idioma/spec.md) |
 | Decisión documental Noto Serif SC | [REV-VIS-002 · BD-036](reviews/vis-02-brand-gate.md) |
+| Cierre documental de VIS-02 V1 | [REV-VIS-003](reviews/vis-02-v1-closure.md) |
 | Investigación de skills | [Mapa de capacidades y límites](research/skills-map.md) |
 | Contrato implementado de avisos | [SDD-0165 · AVS-01](../specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md) |
 | Inventario y estado oficial vigente | [LB-SGE-037](BASELINE-2026-07-29-09.md) |
@@ -279,9 +280,9 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-078 · SDD-0118 y SDD-0172 cerradas](BASELINE-2026-07-30-03.md).
+[LB-SGE-079 · VIS-02 V1 reconciliado](BASELINE-2026-07-30-04.md).
 El corte anterior permanece en
-[LB-SGE-077](BASELINE-2026-07-30-02.md).
+[LB-SGE-078](BASELINE-2026-07-30-03.md).
 El cierre del control plane permanece en
 [LB-SGE-074](BASELINE-2026-07-29-46.md).
 La estabilidad bajo carga del guardia SDD-0164 permanece en
