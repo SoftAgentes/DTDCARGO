@@ -59,7 +59,14 @@ export type Faq = {
    * Widget interactivo que reemplaza la prosa en la UI cuando se abre la FAQ.
    * El string `respuesta` se mantiene igual para el FAQPage schema (SEO/GEO).
    */
-  widget?: "alibaba-guide";
+  widget?: "alibaba-guide" | "cbm-explicador";
+  /**
+   * Ancla estable para enlazar la pregunta desde otra superficie
+   * (`/faq#<ancla>`). Solo la llevan las FAQ que se enlazan desde afuera: el
+   * resto no necesita URL propia. `FaqExplorer` la usa como `id` del <details>
+   * y la abre sola cuando el hash coincide.
+   */
+  ancla?: string;
 };
 
 export const FAQS: Faq[] = [
@@ -69,6 +76,17 @@ export const FAQS: Faq[] = [
     respuesta:
       "DDP puerta a puerta significa que nos encargamos de todo el proceso: el precio ya incluye el flete desde China, la aduana y los impuestos, y te entregamos la mercancía en tu propia dirección en Venezuela, sin que hagas trámites ni trates con la aduana. En esta modalidad la importación no queda a tu nombre: recibes tu mercancía, no documentos de importación propios. Si prefieres importar a tu nombre y tener tus documentos, existe la modalidad con tu propia aduana (la explicamos más abajo). El monto se calcula por volumen (CBM) y destino en nuestra calculadora o al cotizarte por WhatsApp.",
     categoria: "precio-y-pago",
+  },
+  {
+    // Ancla `cbm`: la enlaza el botón de ayuda del campo "CBM total" en las dos
+    // calculadoras de /tarifas. Si cambia el slug, se rompe ese enlace.
+    ancla: "cbm",
+    pregunta:
+      "¿Qué es el CBM y cómo calculo el volumen de mi carga?",
+    respuesta:
+      "CBM quiere decir cubic meter: metro cúbico. Es el espacio que ocupa tu mercancía dentro del contenedor, y es la unidad con la que se cobra el consolidado marítimo — no pagas por lo que pesa tu carga, sino por el espacio que ocupa. La fórmula es largo × ancho × alto, con las tres medidas en metros. Si mides en centímetros, que es como suele venir la ficha del proveedor chino, multiplica las tres y divide entre 1.000.000. Si mides en metros, el resultado ya es tu CBM. Si mides en pulgadas, multiplica las tres y divide entre 61.023,7; y si te lo dan en pies cúbicos (ft³), divide entre 35,3147 para pasarlo a CBM. Mide siempre por fuera de la caja, con el embalaje puesto, y hasta el punto más ancho si algo sobresale. Cuando tienes varios bultos iguales, calcula el CBM de uno y multiplícalo por la cantidad. Abre esta pregunta para calcularlo con tus propias medidas en centímetros, metros o pulgadas.",
+    categoria: "precio-y-pago",
+    widget: "cbm-explicador",
   },
   {
     pregunta:

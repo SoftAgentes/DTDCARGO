@@ -20,6 +20,7 @@ import {
 } from "@/lib/calculadora";
 import Link from "next/link";
 import { DecimalInput } from "@/components/DecimalInput";
+import { CbmAyuda } from "@/components/CbmAyuda";
 import { CONTACT } from "@/lib/design-tokens";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
 import { EstimadoModal, type EstimadoContact } from "@/components/EstimadoModal";
@@ -387,6 +388,9 @@ export function CalculadoraForm({
               placeholder="12"
               warning={cbmWarning}
               readOnly={cbmPanelOpen}
+              // "¿Qué es un CBM?" se responde acá mismo; el "cómo lo saco" lo
+              // resuelve el panel de medidas de más abajo.
+              help={<CbmAyuda />}
               // El tag "auto · medidas" solo cuando el valor DE VERDAD viene de
               // las medidas (cbmDesdeMedidas > 0). Con el panel abierto pero aún
               // sin medir, el campo muestra el CBM manual conservado → poner el
@@ -622,6 +626,7 @@ function BigInput({
   warning,
   readOnly,
   tag,
+  help,
 }: {
   label: string;
   suffix: string;
@@ -631,6 +636,8 @@ function BigInput({
   warning?: CalcWarning;
   readOnly?: boolean;
   tag?: string;
+  /** Control de ayuda opcional junto al label (ej. el "?" del CBM). */
+  help?: React.ReactNode;
 }) {
   // Severidad → tono (alineado al Norte): danger = rojo (bloqueo), info = wine
   // (dato de precio), warning = ámbar (fallback).
@@ -652,6 +659,7 @@ function BigInput({
         <span className="text-[11px] font-bold tracking-[0.12em] uppercase" style={{ color: "rgba(255,255,255,0.5)" }}>
           {label}
         </span>
+        {help}
         {tag && (
           <span
             className="text-[9px] font-bold tracking-[0.06em] uppercase rounded-[5px] px-1.5 py-[2px] whitespace-nowrap"
