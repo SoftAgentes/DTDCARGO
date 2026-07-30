@@ -75,6 +75,7 @@ async function login(page: Page, email: string, password: string) {
   await expect(page).toHaveURL(
     new RegExp(`/studio/tracking/${SDD_0168_FIXTURE.shipmentId}`),
   );
+  await page.waitForLoadState("networkidle");
 }
 
 test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
@@ -161,11 +162,15 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
     const composer = page.getByPlaceholder(
       "Comenta en este embarque… usa @ para mencionar",
     );
-    await expect(composer).toBeVisible();
+    await expect(composer).toBeEditable();
     await composer.fill(fixture.commentBody);
-    await page
-      .getByRole("button", { name: "Comentar", exact: true })
-      .click();
+    await expect(composer).toHaveValue(fixture.commentBody);
+    const submitComment = page.getByRole("button", {
+      name: "Comentar",
+      exact: true,
+    });
+    await expect(submitComment).toBeEnabled();
+    await submitComment.click();
 
     const body = page.getByText(fixture.commentBody, { exact: true });
     await expect(body).toBeVisible();
