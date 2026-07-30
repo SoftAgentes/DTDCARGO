@@ -244,6 +244,32 @@ once fingerprints exactos observados en R11 tanto al preflight como al
 postflight. No usa comodines, no reejecuta `0271` en Producción y no modifica
 las entradas de negocio.
 
+### Bloqueo posterior al duodécimo replay
+
+`0280` se aplicó individualmente y R12 superó `0271`. El siguiente preflight,
+`0272_skip_superseded_invite_history`, abortó porque los payloads de `0031` y
+`0032` también fueron materializados en su representación fragmentada:
+
+```text
+0031 · e7f1e2878e508b2338f4f014f8e9578f
+0032 · 45a1d8ecf3de592e7c2106bb704e709f
+```
+
+Esos estados exactos ya estaban anclados por `0280`, pero el payload histórico
+de `0272` sólo reconocía los hashes compactos previos o sus no-op finales.
+
+La reparación local:
+
+```text
+0281_repair_invite_skip_split_history
+```
+
+sustituye únicamente el payload histórico de
+`20260729140214 · 0272_skip_superseded_invite_history`. Conserva sus
+precondiciones, añade los dos fingerprints exactos y los transforma a los
+no-op finales ya aprobados. No ejecuta funciones históricas ni modifica datos
+de negocio.
+
 ## 3. Generación y control de drift
 
 El generador
@@ -261,6 +287,11 @@ El generador complementario
 `scripts/build-sdd-0118-split-history.mjs` ancla el MD5 original de `0271`,
 verifica su generación canónica, incorpora los once fingerprints de R11 y
 genera `0280` con su prueba transaccional.
+
+El generador
+`scripts/build-sdd-0118-invite-skip-split-history.mjs` ancla byte a byte el
+payload remoto de `0272`, incluido su CRLF terminal, incorpora los dos estados
+fragmentados de R12 y genera `0281` con `--check` y prueba transaccional.
 
 No descarga ni guarda secretos. Los únicos datos Cloud incorporados son
 metadatos técnicos del ledger.
@@ -309,8 +340,13 @@ metadatos técnicos del ledger.
 | Split history unit | `scripts/__tests__/build-sdd-0118-split-history.test.ts` |
 | Split history migración | `supabase/migrations/0280_repair_sdd0118_split_history.sql` |
 | Split history DB test | `supabase/tests/0280_repair_sdd0118_split_history.test.sql` |
+| Invite skip split generador | `scripts/build-sdd-0118-invite-skip-split-history.mjs` |
+| Invite skip split types | `scripts/build-sdd-0118-invite-skip-split-history.d.mts` |
+| Invite skip split unit | `scripts/__tests__/build-sdd-0118-invite-skip-split-history.test.ts` |
+| Invite skip split migración | `supabase/migrations/0281_repair_invite_skip_split_history.sql` |
+| Invite skip split DB test | `supabase/tests/0281_repair_invite_skip_split_history.test.sql` |
 | Spec | `docs/specs/0118-seed-migrations-idempotentes/spec.md` |
-| Revisiones | `docs/governance/reviews/aud-sdd-0118-branch-replay.md` · `docs/governance/reviews/aud-sdd-0118-platform-admin-bootstrap.md` · `docs/governance/reviews/aud-sdd-0118-calculator-settings-history.md` · `docs/governance/reviews/aud-sdd-0118-pin-search-path-history.md` · `docs/governance/reviews/aud-sdd-0118-revoke-anon-history.md` · `docs/governance/reviews/aud-sdd-0118-rls-auto-enable-history.md` · `docs/governance/reviews/aud-sdd-0172-tenant-acl-history.md` · `docs/governance/reviews/aud-sdd-0118-split-replay-history.md` |
+| Revisiones | `docs/governance/reviews/aud-sdd-0118-branch-replay.md` · `docs/governance/reviews/aud-sdd-0118-platform-admin-bootstrap.md` · `docs/governance/reviews/aud-sdd-0118-calculator-settings-history.md` · `docs/governance/reviews/aud-sdd-0118-pin-search-path-history.md` · `docs/governance/reviews/aud-sdd-0118-revoke-anon-history.md` · `docs/governance/reviews/aud-sdd-0118-rls-auto-enable-history.md` · `docs/governance/reviews/aud-sdd-0172-tenant-acl-history.md` · `docs/governance/reviews/aud-sdd-0118-split-replay-history.md` · `docs/governance/reviews/aud-sdd-0118-invite-skip-split-history.md` |
 
 ## 6. Evidencia local
 
@@ -348,13 +384,16 @@ metadatos técnicos del ledger.
 | Décimo branch | R10 falla en `0271` por representación fragmentada del ledger; sin seed/Auth/E2E; teardown terminal |
 | Diagnóstico R11 | once fingerprints metadata-only capturados; sin filas de negocio; teardown terminal |
 | Split history local | `0280` determinista · Vitest 4/4 · PostgreSQL 15/17 · UPDATE 1/0 · rollback · [REV-AUD-034](../../governance/reviews/aud-sdd-0118-split-replay-history.md) |
+| Split history Cloud | `0280` aplicada individualmente; recibo `20260730002206`; digest objetivo y advisors verificados · [REV-AUD-035](../../governance/reviews/aud-sdd-0118-invite-skip-split-history.md) |
+| Duodécimo branch | R12 supera `0271`; `0272` no reconoce los estados fragmentados de `0031/0032`; teardown terminal |
+| Invite skip split local | `0281` determinista · Vitest 4/4 · contratos SQL 20/20 · UPDATE 1/0 + rollback · [REV-AUD-035](../../governance/reviews/aud-sdd-0118-invite-skip-split-history.md) |
 | Diff | verde |
 
 ## 7. Gates restantes
 
 1. obtener autorización expresa de
-   `0280_repair_sdd0118_split_history` antes de aplicarla;
-2. aplicar 0280 individualmente con postcondiciones y advisors;
+   `0281_repair_invite_skip_split_history` antes de aplicarla;
+2. aplicar 0281 individualmente con postcondiciones y advisors;
 3. crear otro entorno efímero y completar replay, seed, E2E, verificación y
    teardown terminal.
 
