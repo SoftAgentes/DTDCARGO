@@ -20,16 +20,40 @@ Antes de estibar, el sistema **reparte los lotes en las zonas del contenedor** u
 operario **"Lote 3 de 7 · DTD-0042 · 50 cajas · 3,0 CBM → Fondo · Izquierda · Piso"**.
 El operario escanea, confirma con un toque, o corrige y el desvío queda registrado.
 
-## 2. Por qué
+## 2. Por qué · el objetivo NO es optimizar el llenado
 
-SDD-0152 → 0155 dejó construida la captura de la realidad: quién, qué caja, en qué zona.
-**Pero SDD-0163 diagnosticó el problema de adopción: al operario el escaneo no le devuelve
-nada.** Es más trabajo que tipear, y por eso al 17-jul-2026 había 2 prealertas y 0 packing
-lists en toda la base.
+El plan existe para poder **responder dos preguntas**, las dos desde el teléfono y las dos
+del lado de Venezuela (founder, 2026-07-30):
 
-El plan de carga es la contrapartida que faltaba: **el escaneo pasa a ser útil para quien
-escanea**. Y de paso el módulo Naviera deja de saber solo *cuánto* va en el contenedor
-(SDD-0047, `containerStats`) para saber también *dónde* va a ir.
+**1. Aduana quiere revisar a un cliente: ¿dónde está su mercancía?**
+Si el sistema dice *"DTD-0042 · Medio · Derecha"*, sacan solo esas cajas en vez de **bajar
+el contenedor entero**. Es el ahorro más grande y más concreto de todo el módulo.
+
+**2. ¿Qué sale primero, y cuándo aparece lo pesado?**
+- Antes de abrir las puertas ya se sabe qué lote sale primero, así que se le **asigna piso
+  en el galpón** por adelantado.
+- Si el equipo que necesita **montacargas** está al fondo, se llama a la empresa **al final**
+  de la descarga y no desde el principio teniéndola esperando.
+
+Además cierra el problema de adopción que diagnosticó SDD-0163: **al operario el escaneo no
+le devolvía nada**, era más trabajo que tipear, y por eso al 17-jul-2026 había 2 prealertas y
+0 packing lists en toda la base. Ahora el escaneo le dice qué hacer.
+
+De paso, el módulo Naviera deja de saber solo *cuánto* va en el contenedor (SDD-0047,
+`containerStats`) para saber también *dónde*.
+
+### 2.1 Quién lo usa, y en qué pantalla
+
+**El teléfono es el dispositivo principal, no el escritorio.** El operario que escanea en
+Yiwu decide ahí dónde va el lote; quien descarga en Valencia lo consulta ahí mismo. Por eso:
+
+- **2D, no 3D.** Una planta se lee mejor que un isométrico en una pantalla de teléfono.
+- **Sin motor gráfico, sin canvas, sin WebGL.** No puede comer RAM ni poner lento el sistema.
+- **Muy responsive y muy simple.** Si hace falta scroll horizontal o pellizcar para leerlo,
+  está mal resuelto.
+
+Referencia de lo que NO hay que hacer: el visor de SeaRates **congeló la pestaña** con 190
+bultos, y EasyCargo exige 2 GB de RAM porque es Unity compilado a WebGL (§6).
 
 ## 3. Por qué NO hay bin-packing 3D
 
@@ -88,6 +112,22 @@ Reparto, determinista y sin aleatoriedad:
    sola no se parte.**
 5. Avisar —sin bloquear, mismo criterio que `evaluateCapacity`— al pasar el techo real.
 
+### 4.0 Las dos consultas que justifican todo
+
+El reparto es el medio; esto es el fin. Ambas salen del mismo plan, sin cálculo extra:
+
+- **`ubicacionDeCliente(plan, markbox)`** → `"Medio · Derecha · sale 3º de 4"`, más las
+  zonas, las cajas y el CBM. Agrega todos los lotes del cliente si tiene más de uno.
+- **`ordenDeDescarga(plan)`** → la fila invertida (se descarga por la puerta, así que lo
+  último que entró es lo primero que se alcanza), y cada puesto trae su tramo, su lado y su
+  `manejoEspecial`.
+
+El campo **`manejoEspecial`** del lote (`"montacargas"`, `"grúa"`…) viaja hasta la fila de
+descarga: ahí se ve en qué puesto aparece y se llama al equipo a la hora justa.
+
+Las dos son aproximadas a propósito: dentro de un mismo tramo el orden real lo decide quien
+descarga. Sirven para decidir, no para cronometrar.
+
 ### 4.1 Las tres capacidades del 40' HC
 
 Confundirlas infla la ocupación, y el mercado las confunde:
@@ -144,11 +184,18 @@ motor en servidor no es "mejor código": es algo que ellos estructuralmente no p
 
 | Fase | Qué | Estado |
 |---|---|---|
-| 1 | Repartidor puro en `lib/shared/estiba-plan.ts` + tests | **hecho** |
+| 1 | Repartidor + las dos consultas en `lib/shared/estiba-plan.ts` + tests | **hecho** |
 | 2 | Catálogo de contenedores (migr. 0289) — solo 20' y 40'HC | pendiente |
-| 3 | Plan y visor en el Studio (migr. 0290) | pendiente |
-| 4 | Lazo plan ↔ realidad en `/m/cn/estibar` (migr. 0291) + reporte imprimible | pendiente |
+| 3 | Plan y planta 2D en el Studio (migr. 0290) | pendiente |
+| 4 | Lazo plan ↔ realidad en `/m/cn/estibar` (migr. 0291) + vista de descarga móvil | pendiente |
 | 5 | Calculadora pública de llenado | pendiente |
+
+**Nota de render para las fases 3-5.** El visor isométrico que ya existe
+(`ContainerIsoView`) sirve para el escritorio, pero la vista que importa es la del teléfono:
+una **planta 2D** de `nz` columnas × `nx` tramos, coloreada por cliente, que cabe entera sin
+scroll. Para una rejilla rectangular eso es CSS grid o un SVG mínimo — nada de canvas y nada
+de librerías. La altura (`zy`) no se dibuja: se anota como texto (`Piso` / `Arriba`), porque
+en un teléfono una tercera dimensión estorba más de lo que informa.
 
 El motor vive en `lib/shared/` —no en `lib/studio/`— porque la calculadora pública lo va a
 importar y ESLint bloquea como **error** cualquier import de `@/lib/studio` desde el sitio
@@ -173,12 +220,19 @@ rompería la frontera).
 node scripts/verify.mjs
 ```
 
-- **Fase 1** — `pnpm test lib/shared/__tests__/estiba-plan.test.ts`. **Validado con mutación:**
-  se rompieron a propósito 11 invariantes (las zonas se pisan, orden de descarga invertido,
-  sin el piso de 1 zona, sin redondeo previo al `ceil`, porcentaje sobre el volumen
-  geométrico, una caja sola sí se parte, no marca el lote como parcial, la cadena no
-  reinyecta lo que quedó sin ubicar, llena de arriba hacia el piso, carga desde la puerta
-  hacia el fondo, no avisa al pasar el techo) y **las 11 pusieron la suite en rojo**.
+- **Fase 1** — `pnpm test lib/shared/__tests__/estiba-plan.test.ts` (34 tests).
+  **Validado con mutación: se rompieron a propósito 16 invariantes y las 16 pusieron la
+  suite en rojo.** Del motor: las zonas se pisan · orden de descarga invertido · sin el piso
+  de 1 zona · sin redondeo previo al `ceil` · porcentaje sobre el volumen geométrico · una
+  caja sola sí se parte · no marca el lote como parcial · la cadena no reinyecta lo que quedó
+  sin ubicar · llena de arriba hacia el piso · carga desde la puerta hacia el fondo · no
+  avisa al pasar el techo. De las consultas: la descarga no invierte el orden de carga · no
+  arrastra el manejo especial · el tramo no se expresa como rango · los lados no deduplican ·
+  la ubicación no agrega los lotes del mismo cliente.
+
+  En la primera ronda **dos mutaciones sobrevivieron** y destaparon un caso sin cubrir: un
+  lote con **CBM en cero** (prealerta sin volumen declarado, que pasa de verdad) habría
+  reventado al leer `zonas[0]` para armar el destino.
 - **Fase 2** — comparar la utilización que reporta el Studio antes y después del cambio de
   76 a 68.
 - **Fase 3** — `pnpm build` (Turbopack) + `/ui-pro` para el contraste del visor.

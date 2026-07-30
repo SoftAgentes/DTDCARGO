@@ -61,6 +61,12 @@ export type Lote = {
    * todos valen igual y el reparto solo agrupa por cliente.
    */
   ordenDescarga?: number | null;
+  /**
+   * Manejo especial al descargar: "montacargas", "grúa", "entre varios"… Se
+   * arrastra hasta la lista de descarga para poder llamar al equipo a la hora
+   * justa y no tenerlo esperando desde el principio.
+   */
+  manejoEspecial?: string | null;
 };
 
 /** Espejo de una fila de `container_types` con lo que este módulo necesita. */
@@ -91,6 +97,8 @@ export type PasoCarga = {
   destino: string;
   /** `true` si el lote no entró completo y quedó un remanente en `sinUbicar`. */
   parcial: boolean;
+  /** Manejo especial declarado en el lote. Se arrastra a la lista de descarga. */
+  manejoEspecial: string | null;
 };
 
 /** Lo que no entró: se va al siguiente contenedor. */
@@ -332,6 +340,7 @@ export function planificarCarga(
       zonas,
       destino: etiquetaZona(espacio.layout, zonas[0]),
       parcial,
+      manejoEspecial: lote.manejoEspecial ?? null,
     });
 
     cbmUbicado = redondear(cbmUbicado + cbmEntra, 3);
@@ -429,6 +438,138 @@ export function planificarEnCadena(
   }
 
   return planes;
+}
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ Las dos preguntas reales                                  ║
+// ╚═══════════════════════════════════════════════════════════╝
+// El plan no se hace para optimizar el llenado: se hace para poder RESPONDER
+// dos cosas, las dos en el teléfono y las dos en Venezuela.
+//   1. "Aduana quiere revisar a DTD-0042: ¿dónde está?" → no bajar el contenedor
+//      entero, sacar solo esas cajas.  → ubicacionDeCliente()
+//   2. "¿Qué sale primero?" → asignarle piso en el galpón antes de abrir, y saber
+//      CUÁNDO aparece lo que necesita montacargas para llamarlo a la hora justa.
+//      → ordenDeDescarga()
+
+/** Tramo o rango de tramos que abarca un conjunto de zonas: "Medio" o "Medio a Puerta". */
+export function tramoDe(layout: ZoneLayout, zonas: readonly ZoneCoord[]): string {
+  if (zonas.length === 0) return "—";
+  const etiquetas = etiquetasLargo(layout.nx);
+  let min = Infinity;
+  let max = -Infinity;
+  for (const z of zonas) {
+    if (z.zx < min) min = z.zx;
+    if (z.zx > max) max = z.zx;
+  }
+  const a = etiquetas[min] ?? `Tramo ${min + 1}`;
+  const b = etiquetas[max] ?? `Tramo ${max + 1}`;
+  return a === b ? a : `${a} a ${b}`;
+}
+
+/** Los lados a lo ancho que ocupa un conjunto de zonas: "Izquierda y Centro". */
+export function ladosDe(layout: ZoneLayout, zonas: readonly ZoneCoord[]): string {
+  if (zonas.length === 0) return "—";
+  const etiquetas = etiquetasAncho(layout.nz);
+  const usados = [...new Set(zonas.map((z) => z.zz))].sort((a, b) => a - b);
+  const nombres = usados.map((i) => etiquetas[i] ?? `Fila ${i + 1}`);
+  if (nombres.length === 1) return nombres[0];
+  if (nombres.length === etiquetas.length) return "Todo el ancho";
+  return `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
+}
+
+export type PasoDescarga = {
+  /** 1 = lo primero que sale del contenedor. */
+  orden: number;
+  loteId: string;
+  markbox: string | null;
+  clientName: string | null;
+  cajas: number;
+  cbm: number;
+  zonas: ZoneCoord[];
+  /** "Puerta" o "Medio a Puerta". Lo que necesita saber quien descarga. */
+  tramo: string;
+  /** "Derecha" o "Izquierda y Centro". */
+  lados: string;
+  manejoEspecial: string | null;
+};
+
+/**
+ * El orden en que la carga va a SALIR: el revés del orden de carga, porque se
+ * descarga por la puerta y lo último que entró es lo primero que se alcanza.
+ *
+ * Es aproximado a propósito, como todo el módulo: dentro de un mismo tramo el
+ * orden real lo decide quien descarga. Sirve para decidir a qué lote asignarle
+ * piso en el galpón y cuándo pedir el montacargas, no para cronometrar.
+ */
+export function ordenDeDescarga(plan: PlanCarga): PasoDescarga[] {
+  const layout = plan.espacio.layout;
+  return [...plan.pasos]
+    .sort((a, b) => b.paso - a.paso)
+    .map((p, i) => ({
+      orden: i + 1,
+      loteId: p.loteId,
+      markbox: p.markbox,
+      clientName: p.clientName,
+      cajas: p.cajasUbicadas,
+      cbm: p.cbmUbicado,
+      zonas: p.zonas,
+      tramo: tramoDe(layout, p.zonas),
+      lados: ladosDe(layout, p.zonas),
+      manejoEspecial: p.manejoEspecial,
+    }));
+}
+
+export type UbicacionCliente = {
+  markbox: string;
+  clientName: string | null;
+  cajas: number;
+  cbm: number;
+  zonas: ZoneCoord[];
+  /** "Medio a Puerta". */
+  tramo: string;
+  /** "Derecha". */
+  lados: string;
+  /** Puesto en la fila de descarga: 1 = sale primero. */
+  ordenDescarga: number;
+  /** Frase lista para leer en el teléfono: "Medio · Derecha · sale 2º de 5". */
+  resumen: string;
+};
+
+/**
+ * Dónde está la carga de un cliente. La pregunta de aduana: si quieren revisar a
+ * DTD-0042, esto evita bajar el contenedor entero.
+ *
+ * Un cliente puede tener más de un lote en el mismo contenedor; se agregan todos.
+ */
+export function ubicacionDeCliente(
+  plan: PlanCarga,
+  markbox: string,
+): UbicacionCliente | null {
+  const suyos = plan.pasos.filter((p) => p.markbox === markbox);
+  if (suyos.length === 0) return null;
+
+  const layout = plan.espacio.layout;
+  const zonas = suyos.flatMap((p) => p.zonas);
+  const fila = ordenDeDescarga(plan);
+  const puesto = fila.find((d) => d.markbox === markbox)?.orden ?? fila.length;
+
+  const tramo = tramoDe(layout, zonas);
+  const lados = ladosDe(layout, zonas);
+
+  return {
+    markbox,
+    clientName: suyos[0].clientName,
+    cajas: suyos.reduce((a, p) => a + p.cajasUbicadas, 0),
+    cbm: redondear(
+      suyos.reduce((a, p) => a + p.cbmUbicado, 0),
+      3,
+    ),
+    zonas,
+    tramo,
+    lados,
+    ordenDescarga: puesto,
+    resumen: `${tramo} · ${lados} · sale ${puesto}º de ${fila.length}`,
+  };
 }
 
 /** Todas las zonas ocupadas del plan, aplanadas — lo que consume el visor. */

@@ -10,6 +10,10 @@ import {
   cantidadZonas,
   etiquetaZona,
   zonasDelPlan,
+  ordenDeDescarga,
+  ubicacionDeCliente,
+  tramoDe,
+  ladosDe,
   type EspacioCarga,
   type Lote,
 } from "../estiba-plan";
@@ -39,6 +43,7 @@ function lote(id: string, cajas: number, cbm: number, extra: Partial<Lote> = {})
     cajas,
     cbm,
     ordenDescarga: extra.ordenDescarga ?? null,
+    manejoEspecial: extra.manejoEspecial ?? null,
   };
 }
 
@@ -256,6 +261,127 @@ describe("avisos de techo", () => {
   it("sin techo configurado no avisa nunca por techo", () => {
     const plan = planificarCarga([lote("a", 100, 30)], GP20);
     expect(plan.avisos.some((a) => a.tipo === "techo_real")).toBe(false);
+  });
+});
+
+describe("aduana · ¿dónde está la carga de este cliente?", () => {
+  // 4 lotes de 9 CBM ⇒ 3 zonas cada uno ⇒ 12 de las 18 zonas.
+  const lotes = [
+    lote("a", 30, 9, { markbox: "DTD-0001", ordenDescarga: 4 }),
+    lote("b", 30, 9, { markbox: "DTD-0042", ordenDescarga: 3 }),
+    lote("c", 30, 9, { markbox: "DTD-0003", ordenDescarga: 2 }),
+    lote("d", 30, 9, { markbox: "DTD-0004", ordenDescarga: 1 }),
+  ];
+
+  it("dice tramo, lado y puesto en la fila de descarga", () => {
+    const plan = planificarCarga(lotes, HC40);
+    const u = ubicacionDeCliente(plan, "DTD-0042");
+    expect(u).not.toBeNull();
+    expect(u?.cajas).toBe(30);
+    expect(u?.cbm).toBe(9);
+    // 'b' carga 2º ⇒ de 4 lotes, sale 3º.
+    expect(u?.ordenDescarga).toBe(3);
+    expect(u?.resumen).toContain("sale 3º de 4");
+  });
+
+  it("devuelve null si el cliente no viaja en ese contenedor", () => {
+    const plan = planificarCarga(lotes, HC40);
+    expect(ubicacionDeCliente(plan, "DTD-9999")).toBeNull();
+  });
+
+  it("agrega los lotes cuando un cliente tiene más de uno", () => {
+    const plan = planificarCarga(
+      [
+        lote("x1", 10, 4, { markbox: "DTD-0042", ordenDescarga: 3 }),
+        lote("otro", 10, 4, { markbox: "DTD-0001", ordenDescarga: 2 }),
+        lote("x2", 5, 4, { markbox: "DTD-0042", ordenDescarga: 1 }),
+      ],
+      HC40,
+    );
+    const u = ubicacionDeCliente(plan, "DTD-0042");
+    expect(u?.cajas).toBe(15); // 10 + 5
+    expect(u?.cbm).toBe(8);
+    expect(u?.zonas.length).toBe(4); // 2 lotes × 2 zonas
+  });
+
+  it("describe el tramo como rango cuando la carga abarca varios", () => {
+    expect(tramoDe(HC40.layout, [{ zx: 1, zy: 0, zz: 0 }])).toBe("Medio");
+    expect(
+      tramoDe(HC40.layout, [
+        { zx: 1, zy: 0, zz: 0 },
+        { zx: 2, zy: 0, zz: 1 },
+      ]),
+    ).toBe("Medio a Puerta");
+  });
+
+  it("describe los lados sin repetir y colapsa cuando ocupa todo el ancho", () => {
+    expect(ladosDe(HC40.layout, [{ zx: 0, zy: 0, zz: 2 }])).toBe("Derecha");
+    expect(
+      ladosDe(HC40.layout, [
+        { zx: 0, zy: 0, zz: 0 },
+        { zx: 0, zy: 1, zz: 0 },
+        { zx: 0, zy: 0, zz: 1 },
+      ]),
+    ).toBe("Izquierda y Centro");
+    expect(
+      ladosDe(HC40.layout, [
+        { zx: 0, zy: 0, zz: 0 },
+        { zx: 0, zy: 0, zz: 1 },
+        { zx: 0, zy: 0, zz: 2 },
+      ]),
+    ).toBe("Todo el ancho");
+  });
+});
+
+describe("despacho · ¿qué sale primero?", () => {
+  it("invierte el orden de carga: lo último que entró es lo primero que sale", () => {
+    const plan = planificarCarga(
+      [
+        lote("fondo", 10, 5, { ordenDescarga: 3 }),
+        lote("medio", 10, 5, { ordenDescarga: 2 }),
+        lote("puerta", 10, 5, { ordenDescarga: 1 }),
+      ],
+      HC40,
+    );
+    expect(plan.pasos.map((p) => p.loteId)).toEqual(["fondo", "medio", "puerta"]);
+    expect(ordenDeDescarga(plan).map((d) => d.loteId)).toEqual([
+      "puerta",
+      "medio",
+      "fondo",
+    ]);
+    expect(ordenDeDescarga(plan)[0].orden).toBe(1);
+  });
+
+  it("dice CUÁNDO aparece lo que necesita montacargas", () => {
+    // El equipo pesado va al fondo ⇒ sale de último ⇒ el montacargas se pide al final.
+    const plan = planificarCarga(
+      [
+        lote("pesado", 4, 12, { ordenDescarga: 3, manejoEspecial: "montacargas" }),
+        lote("liviano1", 40, 6, { ordenDescarga: 2 }),
+        lote("liviano2", 40, 6, { ordenDescarga: 1 }),
+      ],
+      HC40,
+    );
+    const fila = ordenDeDescarga(plan);
+    const pesado = fila.find((d) => d.manejoEspecial === "montacargas");
+    expect(pesado?.orden).toBe(3);
+    // 12 CBM = 4 zonas, y el tramo del fondo tiene 6 (2 alturas × 3 anchos):
+    // el lote entero cabe en el fondo sin invadir el medio.
+    expect(pesado?.tramo).toBe("Fondo");
+    // Los demás no arrastran manejo especial.
+    expect(fila.filter((d) => d.manejoEspecial != null)).toHaveLength(1);
+  });
+
+  it("cada lote de la fila trae tramo y lado, que es lo que se lee en el teléfono", () => {
+    const plan = planificarCarga([lote("a", 30, 9), lote("b", 30, 9)], HC40);
+    for (const d of ordenDeDescarga(plan)) {
+      expect(d.tramo).not.toBe("—");
+      expect(d.lados).not.toBe("—");
+    }
+  });
+
+  it("contenedor vacío no revienta la fila de descarga", () => {
+    expect(ordenDeDescarga(planificarCarga([], HC40))).toEqual([]);
   });
 });
 
