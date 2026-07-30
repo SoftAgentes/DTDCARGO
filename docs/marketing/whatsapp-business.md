@@ -42,7 +42,7 @@ final**, aunque su número no se publique (el catálogo solo ayuda a quien ya ti
 | 3 | `+58 414 887 0000` Contabilidad | **Alejandro** | 🟦 básico | ❌ No | ✅ Sí (operativa) |
 | 5 | `+58 424 950 8848` Transporte ⚠️ | Javier | 🟦 básico | ❌ No | ✅ Sí (operativa) |
 | 6 | `+58 414 884 0000` CEO + Dir. Compras | Sam | 🟦 básico | ❌ No | ⚪ opcional |
-| 7 | `+58 412 160 5202` Redes sociales | — | 🟦 básico | ❌ No | ⚪ opcional |
+| 7 | `+58 412 160 5202` Redes sociales | **Fátima** (gestión) · **Fiorella** (cámara) | 🟦 básico | ❌ No | ⚪ opcional |
 
 - **✅ completo** = todos los campos de la sección 2 + catálogo + respuestas auto.
 - **🟦 básico** = logo + nombre + categoría + descripción + dirección + horario (sin catálogo, sin
