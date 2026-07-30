@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
-  "generatedAt": "2026-07-29T00:00:00.000Z",
-  "sourceCommit": "d1acd9490ab5999329c33ea813f2e43471e78a8f",
+  "generatedAt": "2026-07-30T00:00:00.000Z",
+  "sourceCommit": "0bdc23bdade5324b2e22f039f60a5a6ec3d8657a",
   "normativeSource": "docs/governance/README.md",
   "agentBrief": "docs/governance/AGENT-BRIEF.md",
   "commands": {
@@ -139,9 +139,9 @@
     },
     {
       "code": "NUM-01",
-      "version": "1.0",
-      "state": "aprobada — adopción pendiente",
-      "approvedAt": "2026-07-29",
+      "version": "1.1",
+      "state": "aprobada — componente canónico; adopción gradual",
+      "approvedAt": "2026-07-30",
       "path": "docs/governance/policies/num-01.md"
     },
     {

@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { parseNumericExpression } from "@/lib/studio/util/parse-numeric-expression";
+import {
+  parseNumericExpression,
+  parseNumericExpressionDetailed,
+} from "@/lib/studio/util/parse-numeric-expression";
 
 /**
  * Tests del parser seguro de expresiones aritméticas para inputs
@@ -81,6 +84,34 @@ describe("parseNumericExpression", () => {
       expect(parseNumericExpression("(10 + 2) / 4 * 3")).toEqual({
         value: 9,
         error: null,
+      });
+    });
+
+    it("conserva precisión decimal contable: 0.1 + 0.2 → 0.3", () => {
+      const result = parseNumericExpressionDetailed("0.1 + 0.2");
+      expect(result).toEqual({
+        value: 0.3,
+        canonical: "0.3",
+        error: null,
+        status: "valid",
+      });
+    });
+
+    it("redondea división a 30 decimales con estrategia half-up", () => {
+      const result = parseNumericExpressionDetailed("2 / 3");
+      expect(result.canonical).toBe("0.666666666666666666666666666667");
+    });
+
+    it("clasifica un operador final como edición incompleta", () => {
+      expect(parseNumericExpressionDetailed("10+")).toEqual({
+        value: null,
+        canonical: null,
+        error: "Completa la operación.",
+        status: "incomplete",
+      });
+      expect(parseNumericExpression("10+")).toEqual({
+        value: null,
+        error: "Expresión inválida.",
       });
     });
   });
@@ -188,10 +219,21 @@ describe("parseNumericExpression", () => {
       expect(parseNumericExpression("1,5")).toEqual({ value: 1.5, error: null });
     });
 
-    it("múltiples comas sin punto se interpretan como separadores de miles", () => {
-      expect(parseNumericExpression("1,2,3,4")).toEqual({
-        value: 1234,
+    it("normaliza cada operando europeo por separado", () => {
+      expect(parseNumericExpression("1,5 + 2,5")).toEqual({
+        value: 4,
         error: null,
+      });
+      expect(parseNumericExpression("1.200,50 + 2.300,50")).toEqual({
+        value: 3501,
+        error: null,
+      });
+    });
+
+    it("rechaza agrupaciones de miles ambiguas", () => {
+      expect(parseNumericExpression("1,2,3,4")).toEqual({
+        value: null,
+        error: "Expresión inválida.",
       });
     });
   });

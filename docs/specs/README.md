@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 176 specs)
+### Índice de specs (generado · 177 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -214,6 +214,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0181 | Selectores accesibles y colisión segura | done | interno |
 | 0182 | Validación progresiva de identidad en Club | done | interno |
 | 0183 | Control plane ejecutable de gobernanza | done | interno |
+| 0185 | NUM-01 v1.1 y expresiones decimales | done | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0179 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0179, 0184 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

@@ -3,14 +3,14 @@
 | Control | Valor |
 |---|---|
 | Documento | Índice maestro del Sistema de Gobernanza |
-| Versión | 5.5 |
+| Versión | 5.6 |
 | Dueño | Sam (founder) |
 | Custodia | Producto + Diseño + Ingeniería |
 | Estado | activo |
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-30 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-079 · VIS-02 V1 reconciliado](BASELINE-2026-07-30-04.md) |
+| Línea base vigente | [LB-SGE-080 · NUM-01 v1.1 operativo](BASELINE-2026-07-30-05.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -109,7 +109,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Errores y recuperación | [ERR-01 v1.0](policies/err-01.md) |
 | Búsqueda | [BUS-01 v1.1](policies/bus-01.md) |
 | Creación rápida | [CRT-01 v1.0](policies/crt-01.md) |
-| Campos numéricos | [NUM-01 v1.0](policies/num-01.md) |
+| Campos numéricos | [NUM-01 v1.1](policies/num-01.md) |
 | Formularios | [FRM-01 v1.1](policies/frm-01.md) |
 | Tablas | [TBL-01 v1.0](policies/tbl-01.md) |
 | Iconografía | [ICO-01 v1.0](policies/ico-01.md) |
@@ -138,9 +138,11 @@ artefactos permanecen en sus fuentes correspondientes.
 | CMP-01 v1.1 y primer deprecated | [REV-SGE-017](reviews/cmp-01-v1-1-deprecated.md) |
 | Control plane ejecutable | [REV-SGE-018](reviews/governance-control-plane.md) |
 | Scaffold read-only PLG-01 | [REV-SGE-019](reviews/plg-01-scaffold.md) |
+| Precisión decimal y NumericInput canónico | [REV-SGE-020](reviews/num-01-v1-1-numeric-input.md) |
 | Tabs accesibles en Fiscal | [SDD-0180](../specs/0180-tabs-accesibles-fiscal/spec.md) |
 | Selectores accesibles y colisión | [SDD-0181](../specs/0181-selectores-accesibles-colision/spec.md) |
 | Validación progresiva en Club | [SDD-0182](../specs/0182-validacion-progresiva-identidad-club/spec.md) |
+| Expresiones decimales y retención fiscal | [SDD-0185](../specs/0185-num-01-expresiones-decimales/spec.md) |
 | Implementación VIS-02 | [SDD-0175 in-progress · V0/V1 cerrados](../specs/0175-vis-02-tipografia-voz-idioma/spec.md) |
 | Decisión documental Noto Serif SC | [REV-VIS-002 · BD-036](reviews/vis-02-brand-gate.md) |
 | Cierre documental de VIS-02 V1 | [REV-VIS-003](reviews/vis-02-v1-closure.md) |
@@ -190,7 +192,7 @@ disfraza elevando el estado normativo.
 | VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | V1 integrado: Noto Serif SC sólo en documento formal `zh-CN`; UI china conserva Noto Sans SC | V2 correo, V3 PDF y V4 visual conservan gates propios |
 | BUS-01 | Buscadores predictivos y contexto de resultados | aprobada v1.1 | Teclado y colisión formalizados; adopción no auditada | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | CRT-01 | Creación rápida desde contexto | aprobada v1.0 | Patrones locales sin primitiva común | Auditar flujos de retorno |
-| NUM-01 | Campos numéricos y financieros | aprobada v1.0 | `NumericInput` existe; adopción no auditada | Auditar precisión por dominio |
+| NUM-01 | Campos numéricos y financieros | aprobada v1.1 | `NumericInput` canonical; precisión decimal y un consumidor fiscal R3 verificados | [SDD-0185](../specs/0185-num-01-expresiones-decimales/spec.md) y [REV-SGE-020](reviews/num-01-v1-1-numeric-input.md); adopción restante por slices |
 | MOT-01 | Movimiento, tiempos y reducción de movimiento | aprobada v1.0 | Tokens 120/180/260 ms existen; quedan duraciones locales | Auditar excepciones |
 | DND-01 | Drag and drop y Kanban | aprobada v1.0 | Adopción no conforme: Bitácora mantiene fallback limitado | Crear SDD correctivo por flujo |
 | CAL-01 | Calendario, densidad y manipulación temporal | aprobada v1.0 | Adopción parcial; reprogramación incompleta | Resolver timezone y Slice 2 de [SDD-0141](../specs/0141-calendario-norte/spec.md) |
@@ -205,7 +207,7 @@ disfraza elevando el estado normativo.
 | TBL-01 | Tablas, densidad y configuración | aprobada v1.0 | `ColumnManager` tiene adopción limitada | Auditar listados y móvil |
 | A11Y-01 | Accesibilidad transversal | aprobada v1.1 | Contratos tabs/menu/listbox explícitos; sin matriz integral | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | IA-01 | Interacciones asistidas por IA | aprobada v1.0 | Regla local “IA propone”; sin gate transversal | Auditar permisos, privacidad y evidencia |
-| CMP-01 | Ciclo de vida y madurez de componentes | aprobada v1.1 | Schema A11Y corregido; `ConfirmDialog` y `SegmentedControl` canonical; `LLMModeToggle` deprecated con plan | [REV-SGE-017](reviews/cmp-01-v1-1-deprecated.md) |
+| CMP-01 | Ciclo de vida y madurez de componentes | aprobada v1.1 | `ConfirmDialog`, `SegmentedControl` y `NumericInput` canonical; `LLMModeToggle` deprecated con plan | [REV-SGE-017](reviews/cmp-01-v1-1-deprecated.md) y [REV-SGE-020](reviews/num-01-v1-1-numeric-input.md) |
 | PLG-01 | Plugin ejecutable de gobernanza | aprobada v1.0 | P3–P5 verdes en scaffold repo/team read-only; no instalado y sin marketplace | [REV-SGE-019](reviews/plg-01-scaffold.md); P6–P8 cerrados |
 
 ## 5. Jerarquía y resolución de conflictos

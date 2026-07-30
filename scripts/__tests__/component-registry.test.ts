@@ -15,15 +15,21 @@ type SourceRecord = {
 describe("CMP-01 component registry", () => {
   it("valida las fuentes reales y representa A11Y-01", async () => {
     const sources = (await loadSourceRecords()) as SourceRecord[];
-    expect(sources).toHaveLength(3);
+    expect(sources).toHaveLength(4);
     expect(sources.map(({ record }) => record.id)).toEqual([
       "confirm-dialog",
       "llm-mode-toggle",
+      "numeric-input",
       "segmented-control",
     ]);
     expect(
       sources
         .find(({ record }) => record.id === "confirm-dialog")
+        ?.record.policyRefs.some(({ code }) => code === "A11Y-01"),
+    ).toBe(true);
+    expect(
+      sources
+        .find(({ record }) => record.id === "numeric-input")
         ?.record.policyRefs.some(({ code }) => code === "A11Y-01"),
     ).toBe(true);
     await expect(validateSourceRecords(sources)).resolves.toEqual([]);
