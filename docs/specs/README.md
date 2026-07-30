@@ -149,7 +149,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0115 | Financiero China Slice C — forex como revenue · claim offsets… | done | confidencial |
 | 0116 | Club DTD — membresía recurrente + compra grupal (consolidació… | done | interno |
 | 0117 | Recibo y finiquito en PDF server-side (@react-pdf/renderer) —… | done | interno |
-| 0118 | Historial reproducible — habilitar validación en branch efíme… | in-progress | interno |
+| 0118 | Historial reproducible — habilitar validación en branch efíme… | done | interno |
 | 0119 | Módulo de Marketing en el ERP — Dashboard de Marketing (salud… | done | interno |
 | 0120 | Datos de la empresa — primera sección real de Administración … | done | interno |
 | 0121 | Apariencia — preferencias de Studio (tema + densidad) + mater… | done | interno |
@@ -203,7 +203,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0169 | Portal — gate de verificación de identidad | in-progress | interno |
 | 0170 | Portal — ciclo de 5 etapas y Seguimiento total por contenedor | in-progress | interno |
 | 0171 | Portal — datos de bodega CN, filtros de Documentos y armazón … | in-progress | interno |
-| 0172 | Lifecycle de tenant y fixtures E2E efímeras | in-progress | interno |
+| 0172 | Lifecycle de tenant y fixtures E2E efímeras | done | interno |
 | 0173 | Portal — Nueva compra como asistente de 3 pasos | done | interno |
 | 0174 | Auditoría — atomicidad por dominios | in-progress | interno |
 | 0175 | VIS-02 — tipografía por voz, destinatario e idioma | approved | interno |

@@ -21,12 +21,16 @@ purga por filas.
 4. cargar en el proceso:
    - `E2E_SUPABASE_PROJECT_REF`;
    - `E2E_SUPABASE_URL`;
+   - `E2E_SUPABASE_ANON_KEY`;
    - `E2E_SUPABASE_SERVICE_ROLE_KEY`;
+   - `SUPABASE_SERVICE_ROLE_KEY` con el mismo valor, sólo en el proceso que
+     levanta Next, para adapters server-side;
    - `STUDIO_E2E_PASSWORD`;
    - `E2E_ENVIRONMENT_KIND=ephemeral`;
    - `E2E_EPHEMERAL_PROJECT_REF` igual al project ref;
 5. ejecutar `pnpm.cmd seed:e2e`;
-6. ejecutar el recorrido E2E autorizado;
+6. ejecutar el recorrido E2E autorizado; la evidencia append-only se lee con
+   un cliente `authenticated`, nunca ampliando `SELECT` de `service_role`;
 7. ejecutar `pnpm.cmd verify:e2e-teardown`;
 8. destruir el proyecto desde el control plane;
 9. esperar estado terminal/no disponible;

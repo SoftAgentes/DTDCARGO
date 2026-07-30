@@ -1,7 +1,7 @@
 ---
 sdd: "0118"
 title: "Historial reproducible — habilitar validación en branch efímero de Supabase"
-status: in-progress
+status: done
 author: "Claude Code (Director) + founder"
 created: 2026-06-29
 updated: 2026-07-30
@@ -336,6 +336,26 @@ representación observada desde `0210`, ancla byte a byte el payload remoto de
 sólo amplía el preflight/update de `0275` para colapsar ese split al target de
 un statement con MD5 `c3131d8ea3756049d6455bc98b4d0ecc`.
 
+### Cierre de la recursión de splits
+
+Las aplicaciones individuales posteriores repararon, en orden, la
+representación fragmentada de `0276`, `0279` y de los propios gates
+forward-only:
+
+```text
+0284_repair_pin_search_path_split_history
+0285_repair_revoke_anon_split_history
+0286_repair_tenant_acl_split_history
+0287_repair_replay_gate_split_history
+0288_finalize_replay_gate_split_history
+```
+
+Producción registró los cinco basenames exactos entre
+`20260730160209` y `20260730165010`. R29 reprodujo 293 entradas hasta `0288`,
+completó seed, E2E y verificación, y terminó con teardown terminal. La
+evidencia integral está en
+[REV-AUD-039](../../governance/reviews/aud-sdd-0118-0172-final-closure.md).
+
 No descarga ni guarda secretos. Los únicos datos Cloud incorporados son
 metadatos técnicos del ledger.
 
@@ -403,8 +423,16 @@ metadatos técnicos del ledger.
 | Pin split unit | `scripts/__tests__/build-sdd-0118-pin-split-history.test.ts` |
 | Pin split migración | `supabase/migrations/0284_repair_pin_search_path_split_history.sql` |
 | Pin split DB test | `supabase/tests/0284_repair_pin_search_path_split_history.test.sql` |
+| Revoke split generador | `scripts/build-sdd-0118-revoke-split-history.mjs` |
+| Revoke split migración | `supabase/migrations/0285_repair_revoke_anon_split_history.sql` |
+| Tenant ACL split generador | `scripts/build-sdd-0172-tenant-acl-split-history.mjs` |
+| Tenant ACL split migración | `supabase/migrations/0286_repair_tenant_acl_split_history.sql` |
+| Gates replay generador | `scripts/build-sdd-0118-replay-gates-split-history.mjs` |
+| Gates replay migración | `supabase/migrations/0287_repair_replay_gate_split_history.sql` |
+| Finalizador generador | `scripts/build-sdd-0118-replay-gate-finalizer.mjs` |
+| Finalizador migración | `supabase/migrations/0288_finalize_replay_gate_split_history.sql` |
 | Spec | `docs/specs/0118-seed-migrations-idempotentes/spec.md` |
-| Revisiones | `docs/governance/reviews/aud-sdd-0118-branch-replay.md` · `docs/governance/reviews/aud-sdd-0118-platform-admin-bootstrap.md` · `docs/governance/reviews/aud-sdd-0118-calculator-settings-history.md` · `docs/governance/reviews/aud-sdd-0118-pin-search-path-history.md` · `docs/governance/reviews/aud-sdd-0118-revoke-anon-history.md` · `docs/governance/reviews/aud-sdd-0118-rls-auto-enable-history.md` · `docs/governance/reviews/aud-sdd-0172-tenant-acl-history.md` · `docs/governance/reviews/aud-sdd-0118-split-replay-history.md` · `docs/governance/reviews/aud-sdd-0118-invite-skip-split-history.md` · `docs/governance/reviews/aud-sdd-0118-platform-admin-split-history.md` · `docs/governance/reviews/aud-sdd-0118-calculator-split-history.md` · `docs/governance/reviews/aud-sdd-0118-pin-split-history.md` |
+| Cierre | `docs/governance/reviews/aud-sdd-0118-0172-final-closure.md` |
 
 ## 6. Evidencia local
 
@@ -454,18 +482,16 @@ metadatos técnicos del ledger.
 | Calculator split Cloud | `0283` aplicada individualmente; recibo `20260730132651`; postcondiciones y advisors verificados · [REV-AUD-038](../../governance/reviews/aud-sdd-0118-pin-split-history.md) |
 | Decimoquinto branch | R15 supera `0274`; `0275` no reconoce el target de `pin_search_path` fragmentado en 33 statements; teardown terminal |
 | Pin split local | `0284` determinista · Vitest 4/4 · contratos SQL 23/23 en PostgreSQL 15/17 · replay del fixture + rollback · [REV-AUD-038](../../governance/reviews/aud-sdd-0118-pin-split-history.md) |
+| Reparaciones finales Cloud | `0284`–`0288` aplicadas individualmente; recibos exactos y advisors sin drift atribuible |
+| Replay final R29 | 293 entradas hasta `0288`; seed, E2E y verificación verdes |
+| Teardown R29 | terminal; branch y project ref ausentes; sólo `main` saludable · [REV-AUD-039](../../governance/reviews/aud-sdd-0118-0172-final-closure.md) |
 | Diff | verde |
 
-## 7. Gates restantes
+## 7. Cierre
 
-1. obtener autorización expresa de
-   `0284_repair_pin_search_path_split_history` antes de aplicarla;
-2. aplicar 0284 individualmente con postcondiciones y advisors;
-3. crear otro entorno efímero y completar replay, seed, E2E, verificación y
-   teardown terminal.
-
-SDD-0118 permanece `in-progress` hasta que un entorno nuevo demuestre el
-replay completo. Un test local verde no sustituye esa evidencia.
+Los gates restantes fueron completados. SDD-0118 pasa a `done`: R29 demostró
+el replay completo desde cero y SDD-0172 validó el consumidor E2E sobre ese
+schema.
 
 ## 8. Rollback
 

@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import {
   SDD_0168_FIXTURE,
   createE2EAdminClient,
+  createE2EAuthenticatedClient,
   loadE2EEnvironment,
 } from "../scripts/e2e/sdd-0168-fixture";
 
@@ -9,6 +10,7 @@ const REQUIRED_ENV = [
   "BASE_URL",
   "E2E_SUPABASE_PROJECT_REF",
   "E2E_SUPABASE_URL",
+  "E2E_SUPABASE_ANON_KEY",
   "E2E_SUPABASE_SERVICE_ROLE_KEY",
   "STUDIO_E2E_PASSWORD",
 ] as const;
@@ -91,6 +93,7 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
   }) => {
     const environment = loadE2EEnvironment();
     const admin = createE2EAdminClient(environment);
+    const auditReader = await createE2EAuthenticatedClient(environment);
     const fixture = SDD_0168_FIXTURE;
     const browserErrors: string[] = [];
     const monitoredOrigins = new Set([
@@ -379,7 +382,7 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
     let auditData: AuditSnapshot[] = [];
     await expect
       .poll(async () => {
-        const { data, error } = await admin
+        const { data, error } = await auditReader
           .from("entity_audit_log")
           .select("event_type,actor_id,payload,occurred_at")
           .eq("tenant_id", fixture.tenantId)

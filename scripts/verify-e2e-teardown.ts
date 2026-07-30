@@ -1,6 +1,7 @@
 import {
   SDD_0168_FIXTURE,
   createE2EAdminClient,
+  createE2EAuthenticatedClient,
   loadE2EEnvironment,
 } from "./e2e/sdd-0168-fixture";
 
@@ -14,6 +15,7 @@ async function check(
 async function main() {
   const environment = loadE2EEnvironment();
   const admin = createE2EAdminClient(environment);
+  const auditReader = await createE2EAuthenticatedClient(environment);
   const fixture = SDD_0168_FIXTURE;
 
   const [
@@ -29,7 +31,7 @@ async function main() {
       .from("user_tenants")
       .select("user_id", { count: "exact", head: true })
       .eq("tenant_id", fixture.tenantId),
-    admin
+    auditReader
       .from("entity_audit_log")
       .select("id", { count: "exact", head: true })
       .eq("tenant_id", fixture.tenantId),

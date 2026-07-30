@@ -10,7 +10,7 @@
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-30 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-077 · Replay R15 cerrado y 0284 listo localmente](BASELINE-2026-07-30-02.md) |
+| Línea base vigente | [LB-SGE-078 · SDD-0118 y SDD-0172 cerradas](BASELINE-2026-07-30-03.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -88,6 +88,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Aplicación de 0281, replay R13 y reparación del split de platform_admins | [REV-AUD-036](reviews/aud-sdd-0118-platform-admin-split-history.md) |
 | Aplicación de 0282, replay R14 y reparación del split de calculator_settings | [REV-AUD-037](reviews/aud-sdd-0118-calculator-split-history.md) |
 | Aplicación de 0283, replay R15 y reparación del split de pin_search_path | [REV-AUD-038](reviews/aud-sdd-0118-pin-split-history.md) |
+| Cierre de SDD-0118/0172, replay R29 y teardown terminal | [REV-AUD-039](reviews/aud-sdd-0118-0172-final-closure.md) |
 | Inventario read-only del Corte C | [C0 · repo y Cloud](../specs/0166-auditoria-gobernada-aud-01-aud-02/inventario-corte-c-2026-07-28.md) |
 | Diseño correctivo del Corte C | [Consulta gobernada y RBAC v1.1](../specs/0166-auditoria-gobernada-aud-01-aud-02/diseno-correctivo-corte-c.md) |
 | Revisión del diseño Corte C | [REV-AUD-012](reviews/aud-corte-c.md) |
@@ -183,7 +184,7 @@ disfraza elevando el estado normativo.
 | HTD-01 | Confirmación por presión sostenida | aprobada | [Contrato v1.0](policies/htd-01.md) consolidado; no implementado | Crear SDD solo para una entidad R3 clasificada por MP-01 |
 | AVS-01 | Avisos y confirmaciones | verificada | Primitiva conforme; consumidores legacy se migran solo dentro de slices R2/R3 | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | AUD-01 | Evento auditable y vínculo con acciones | aprobada | Diseño D1 aprobado: 24 operaciones obligatorias y workflow Auth durable; implementación pendiente | [REV-AUD-017](reviews/aud-d1-access-config-design.md) |
-| AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B y guardrail tenant 0268 aplicados; intento efímero detenido por SDD-0118 y teardown terminal verificado | [REV-AUD-019](reviews/aud-tenant-fixtures-ephemeral-validation.md); consulta/RBAC y `0270` conservan gates separados |
+| AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B y guardrail tenant 0268 aplicados; SDD-0118/0172 cerradas con replay, E2E y teardown terminal | [REV-AUD-039](reviews/aud-sdd-0118-0172-final-closure.md); consulta/RBAC y `0270` conservan gates separados |
 | VIS-01 | Jerarquía visual y distribución 60-30-10 | aprobada | Adopción parcial; muestreo acotado a slices y clasificación de literales | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | V1 integrado: Noto Serif SC sólo en documento formal `zh-CN`; UI china conserva Noto Sans SC | V2 correo, V3 PDF y V4 visual conservan gates propios |
 | BUS-01 | Buscadores predictivos y contexto de resultados | aprobada v1.1 | Teclado y colisión formalizados; adopción no auditada | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
@@ -248,10 +249,10 @@ aprobaron en LB-SGE-004. El orden que gobierna la siguiente fase es:
    está cerrada; cualquier ACL histórico, purga o retención conserva gate y
    alcance propios;
 2. conservar A1, A2 y sus recibos en Git; el Corte A está aplicado y verificado;
-   B1 y `0268` están aplicados. SDD-0172 llega hasta `0283` en Cloud y `0284`
-   verde localmente; la aplicación individual de 0284 y el efímero posterior
-   conservan el runbook exacto. C0 está aprobado por REV-AUD-012; D1 tiene
-   diseño aprobado y D2–D5 continúan como roadmap por gates;
+   B1 y `0268` están aplicados. SDD-0118/0172 están cerradas: `0284`–`0288`
+   tienen recibos individuales y R29 aprobó replay, seed, E2E, verificación y
+   teardown terminal. C0 está aprobado por REV-AUD-012; D1 tiene diseño
+   aprobado y D2–D5 continúan como roadmap por gates;
 3. revisar las políticas v0.1 por bloques coherentes, no como aprobación masiva;
 4. conservar VIS-02 V1 integrado y abrir V2–V4 sólo por salida;
 5. adoptar componentes CMP-01 por slices, sin nuevos usos de deprecated;
@@ -278,9 +279,9 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-077 · replay R15 cerrado y 0284 listo localmente](BASELINE-2026-07-30-02.md).
+[LB-SGE-078 · SDD-0118 y SDD-0172 cerradas](BASELINE-2026-07-30-03.md).
 El corte anterior permanece en
-[LB-SGE-076](BASELINE-2026-07-30.md).
+[LB-SGE-077](BASELINE-2026-07-30-02.md).
 El cierre del control plane permanece en
 [LB-SGE-074](BASELINE-2026-07-29-46.md).
 La estabilidad bajo carga del guardia SDD-0164 permanece en

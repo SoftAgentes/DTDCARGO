@@ -16,6 +16,7 @@ const EPHEMERAL_ENVIRONMENT_KIND = "ephemeral";
 export type E2EEnvironment = {
   projectRef: string;
   supabaseUrl: string;
+  anonKey: string;
   serviceRoleKey: string;
   password: string;
   environmentKind: typeof EPHEMERAL_ENVIRONMENT_KIND;
@@ -30,6 +31,7 @@ function required(name: string): string {
 export function loadE2EEnvironment(): E2EEnvironment {
   const projectRef = required("E2E_SUPABASE_PROJECT_REF");
   const supabaseUrl = required("E2E_SUPABASE_URL");
+  const anonKey = required("E2E_SUPABASE_ANON_KEY");
   const serviceRoleKey = required("E2E_SUPABASE_SERVICE_ROLE_KEY");
   const password = required("STUDIO_E2E_PASSWORD");
   const environmentKind = required("E2E_ENVIRONMENT_KIND");
@@ -65,6 +67,7 @@ export function loadE2EEnvironment(): E2EEnvironment {
   return {
     projectRef,
     supabaseUrl,
+    anonKey,
     serviceRoleKey,
     password,
     environmentKind,
@@ -80,4 +83,24 @@ export function createE2EAdminClient(
       persistSession: false,
     },
   });
+}
+
+export async function createE2EAuthenticatedClient(
+  environment = loadE2EEnvironment(),
+  email = SDD_0168_FIXTURE.adminEmail,
+): Promise<SupabaseClient> {
+  const client = createClient(environment.supabaseUrl, environment.anonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+  const { error } = await client.auth.signInWithPassword({
+    email,
+    password: environment.password,
+  });
+  if (error) {
+    throw new Error(`No se pudo autenticar el lector E2E: ${error.message}`);
+  }
+  return client;
 }

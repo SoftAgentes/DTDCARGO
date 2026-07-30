@@ -5,8 +5,8 @@
 | Revisión | REV-AUD-019 |
 | SDD | [SDD-0172](../../specs/0172-tenant-fixtures-lifecycle/spec.md) |
 | Runbook | [E2E con Supabase efímero](../../runbooks/e2e-supabase-efimero.md) |
-| Fecha | 2026-07-29 |
-| Resultado | bloqueado fail-closed; teardown terminal verificado |
+| Fecha | 2026-07-29 · cierre 2026-07-30 |
+| Resultado | aprobado en R29; teardown terminal verificado |
 
 ## 1. Preflight
 
@@ -642,3 +642,58 @@ inventario terminal mostró únicamente `main`.
 La reparación forward-only local
 `0284_repair_pin_search_path_split_history` quedó aprobada en
 [REV-AUD-038](aud-sdd-0118-pin-split-history.md).
+
+## 26. Reparaciones R16–R20
+
+Los replays posteriores revelaron de forma secuencial las representaciones
+fragmentadas de `0276`, `0279` y de los propios gates forward-only. Se
+aplicaron individualmente:
+
+```text
+20260730160209 · 0284_repair_pin_search_path_split_history
+20260730160939 · 0285_repair_revoke_anon_split_history
+20260730161446 · 0286_repair_tenant_acl_split_history
+20260730162532 · 0287_repair_replay_gate_split_history
+20260730165010 · 0288_finalize_replay_gate_split_history
+```
+
+R19 falló durante el aprovisionamiento antes de obtener ledger. R20 comprobó
+que `0280`–`0286` también se materializaban como arrays fragmentados y produjo
+el finalizador `0288`. Todos los entornos se destruyeron completos; ninguno
+recibió SQL correctivo, cleanup por filas o datos de Producción.
+
+## 27. Recorridos R21–R29
+
+Desde R21, el replay alcanzó 293 entradas y la última migración
+`20260730165010`. Los intentos intermedios mantuvieron el comportamiento
+fail-closed mientras se corrigieron supuestos del harness:
+
+- estabilidad del composer tras App Router;
+- uso del picker real de menciones;
+- preservación de la contraseña sintética en un solo proceso;
+- binding IPv4 explícito en Windows;
+- carga de `SUPABASE_SERVICE_ROLE_KEY` sólo para adapters server-side;
+- cierre del árbol Next completo;
+- lectura de auditoría como `authenticated`, respetando que
+  `service_role` no tiene `SELECT`.
+
+R29, branch `d4df25d3-951e-47ca-af61-fe508b15e76a` y project ref
+`inxjipnsdccxdllfuudm`, completó:
+
+```text
+replay=293
+seed=success
+e2e=1/1
+tenants=1
+memberships=2
+audit_events=4
+database_cleanup_performed=false
+```
+
+`delete_branch` devolvió éxito para el ID exacto. El inventario posterior no
+contiene el branch ni el project ref y conserva únicamente `main`
+`ACTIVE_HEALTHY`.
+
+REV-AUD-019 aprueba finalmente el recorrido efímero. La revisión de cierre y
+los recibos están consolidados en
+[REV-AUD-039](aud-sdd-0118-0172-final-closure.md).
