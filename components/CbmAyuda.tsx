@@ -74,8 +74,13 @@ export function CbmAyuda() {
         Math.max(margen, r.left - 8),
         window.innerWidth - ancho - margen,
       );
-      // Si abajo no cabe, se voltea hacia arriba.
-      const cabeAbajo = window.innerHeight - r.bottom > 340;
+      // Si abajo no cabe, se voltea hacia arriba. La altura se MIDE cuando el
+      // panel ya está abierto (`offsetHeight`); el fallback es para la primera
+      // colocación, cuando todavía no renderizó. Con un estimado fijo bajo, el
+      // panel se ponía abajo creyendo que cabía y se salía por el borde: mide
+      // ~430px, no 340.
+      const altoPanel = pop.offsetHeight || 440;
+      const cabeAbajo = window.innerHeight - r.bottom > altoPanel + 16;
       pop.style.left = `${left}px`;
       pop.style.right = "auto";
       pop.style.width = `${ancho}px`;
@@ -94,10 +99,26 @@ export function CbmAyuda() {
       setAbierto(abre);
     }
 
+    // Ya abierto: se puede MEDIR el panel, así que se recoloca con la altura
+    // real (el `beforetoggle` corre con el panel aún sin renderizar).
+    // Y al cerrar se devuelve el foco al botón: la Popover API solo lo hace
+    // sola cuando la abre un `popovertarget`, y acá se abre a mano.
+    function trasAlternar(e: Event) {
+      if ((e as ToggleEvent).newState === "open") {
+        colocar();
+        return;
+      }
+      // Solo si nadie más tomó el foco — si el visitante cerró haciendo clic
+      // en otro control, robárselo sería peor.
+      if (document.activeElement === document.body) btn?.focus();
+    }
+
     pop.addEventListener("beforetoggle", alAlternar);
+    pop.addEventListener("toggle", trasAlternar);
     window.addEventListener("resize", colocar);
     return () => {
       pop.removeEventListener("beforetoggle", alAlternar);
+      pop.removeEventListener("toggle", trasAlternar);
       window.removeEventListener("resize", colocar);
     };
   }, []);
