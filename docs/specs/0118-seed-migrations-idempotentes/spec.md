@@ -4,7 +4,7 @@ title: "Historial reproducible — habilitar validación en branch efímero de S
 status: in-progress
 author: "Claude Code (Director) + founder"
 created: 2026-06-29
-updated: 2026-07-29
+updated: 2026-07-30
 supersedes: null
 superseded_by: null
 related: ["0116", "0172"]
@@ -309,6 +309,20 @@ ancla byte a byte el payload remoto de `0273` y genera
 preflight/update de `0273` para colapsar esa variante al target de un statement
 con MD5 `cb374d4ad4c3b2bb62915e80a5a13793`.
 
+`0282` se aplicó individualmente con recibo `20260730130403`. R14 superó
+`0273` y falló cerrado en `0274` porque el target de
+`0103_calculator_settings` apareció fragmentado en doce statements. La
+inspección metadata-only confirmó MD5 combinado
+`f7102aeb22551a4628923dfba5d11793` y doce fingerprints individuales. R14 fue
+destruido y el inventario terminal volvió a mostrar únicamente `main`.
+
+El generador
+`scripts/build-sdd-0118-calculator-split-history.mjs` reconstruye esa
+representación desde `0103`, ancla byte a byte el payload remoto de `0274` y
+genera `0283_repair_calculator_settings_split_history`. La reparación sólo
+amplía el preflight/update de `0274` para colapsar ese split al target de un
+statement con MD5 `0f7deee22e3a978c52159b6fc211ee2c`.
+
 No descarga ni guarda secretos. Los únicos datos Cloud incorporados son
 metadatos técnicos del ledger.
 
@@ -366,8 +380,13 @@ metadatos técnicos del ledger.
 | Platform admin split unit | `scripts/__tests__/build-sdd-0118-platform-admin-split-history.test.ts` |
 | Platform admin split migración | `supabase/migrations/0282_repair_platform_admin_skip_split_history.sql` |
 | Platform admin split DB test | `supabase/tests/0282_repair_platform_admin_skip_split_history.test.sql` |
+| Calculator split generador | `scripts/build-sdd-0118-calculator-split-history.mjs` |
+| Calculator split types | `scripts/build-sdd-0118-calculator-split-history.d.mts` |
+| Calculator split unit | `scripts/__tests__/build-sdd-0118-calculator-split-history.test.ts` |
+| Calculator split migración | `supabase/migrations/0283_repair_calculator_settings_split_history.sql` |
+| Calculator split DB test | `supabase/tests/0283_repair_calculator_settings_split_history.test.sql` |
 | Spec | `docs/specs/0118-seed-migrations-idempotentes/spec.md` |
-| Revisiones | `docs/governance/reviews/aud-sdd-0118-branch-replay.md` · `docs/governance/reviews/aud-sdd-0118-platform-admin-bootstrap.md` · `docs/governance/reviews/aud-sdd-0118-calculator-settings-history.md` · `docs/governance/reviews/aud-sdd-0118-pin-search-path-history.md` · `docs/governance/reviews/aud-sdd-0118-revoke-anon-history.md` · `docs/governance/reviews/aud-sdd-0118-rls-auto-enable-history.md` · `docs/governance/reviews/aud-sdd-0172-tenant-acl-history.md` · `docs/governance/reviews/aud-sdd-0118-split-replay-history.md` · `docs/governance/reviews/aud-sdd-0118-invite-skip-split-history.md` · `docs/governance/reviews/aud-sdd-0118-platform-admin-split-history.md` |
+| Revisiones | `docs/governance/reviews/aud-sdd-0118-branch-replay.md` · `docs/governance/reviews/aud-sdd-0118-platform-admin-bootstrap.md` · `docs/governance/reviews/aud-sdd-0118-calculator-settings-history.md` · `docs/governance/reviews/aud-sdd-0118-pin-search-path-history.md` · `docs/governance/reviews/aud-sdd-0118-revoke-anon-history.md` · `docs/governance/reviews/aud-sdd-0118-rls-auto-enable-history.md` · `docs/governance/reviews/aud-sdd-0172-tenant-acl-history.md` · `docs/governance/reviews/aud-sdd-0118-split-replay-history.md` · `docs/governance/reviews/aud-sdd-0118-invite-skip-split-history.md` · `docs/governance/reviews/aud-sdd-0118-platform-admin-split-history.md` · `docs/governance/reviews/aud-sdd-0118-calculator-split-history.md` |
 
 ## 6. Evidencia local
 
@@ -411,13 +430,16 @@ metadatos técnicos del ledger.
 | Invite skip split Cloud | `0281` aplicada individualmente; recibo `20260730011643`; digest objetivo y advisors verificados · [REV-AUD-036](../../governance/reviews/aud-sdd-0118-platform-admin-split-history.md) |
 | Decimotercer branch | R13 supera `0272`; `0273` no reconoce el target fragmentado de `platform_admins`; teardown terminal |
 | Platform admin split local | `0282` determinista · Vitest 4/4 · contratos SQL 21/21 · replay del fixture + rollback · [REV-AUD-036](../../governance/reviews/aud-sdd-0118-platform-admin-split-history.md) |
+| Platform admin split Cloud | `0282` aplicada individualmente; recibo `20260730130403`; postcondiciones verificadas |
+| Decimocuarto branch | R14 supera `0273`; `0274` no reconoce el target de `calculator_settings` fragmentado en doce statements; teardown terminal |
+| Calculator split local | `0283` determinista · Vitest 4/4 · contratos SQL 22/22 · replay del fixture + rollback · [REV-AUD-037](../../governance/reviews/aud-sdd-0118-calculator-split-history.md) |
 | Diff | verde |
 
 ## 7. Gates restantes
 
 1. obtener autorización expresa de
-   `0282_repair_platform_admin_skip_split_history` antes de aplicarla;
-2. aplicar 0282 individualmente con postcondiciones y advisors;
+   `0283_repair_calculator_settings_split_history` antes de aplicarla;
+2. aplicar 0283 individualmente con postcondiciones y advisors;
 3. crear otro entorno efímero y completar replay, seed, E2E, verificación y
    teardown terminal.
 

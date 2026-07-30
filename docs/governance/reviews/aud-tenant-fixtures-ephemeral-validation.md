@@ -519,3 +519,54 @@ eliminado y el inventario terminal volvió a mostrar únicamente `main`.
 La reparación forward-only local
 `0282_repair_platform_admin_skip_split_history` quedó aprobada en
 [REV-AUD-036](aud-sdd-0118-platform-admin-split-history.md).
+
+## 24. Decimocuarto intento después de `0282`
+
+La aplicación individual de
+`0282_repair_platform_admin_skip_split_history` quedó registrada con recibo
+`20260730130403`. Las postcondiciones confirmaron el payload objetivo de
+`0273`, y los advisors conservaron el inventario previo: security 125
+(`INFO` 5, `WARN` 120) y performance 546 (`INFO` 430, `WARN` 116).
+
+Después se creó R14 sin datos de Producción:
+
+| Campo | Valor |
+|---|---|
+| Nombre | `sdd-0172-r14-20260730` |
+| Branch | `ab5435b9-ec23-4d45-b475-9a32a4c945a4` |
+| Project ref | `stgnxiuofbxzzsndcqlw` |
+| Costo | USD 0,01344 por hora |
+| Resultado | `MIGRATIONS_FAILED` en `0274` |
+
+R14 superó `0273`. El preflight siguiente abortó exactamente con:
+
+```text
+SDD-0118 calculator_settings: drift en 20260604131310 0103_calculator_settings
+```
+
+La inspección fue exclusivamente metadata-only. El target de
+`0103_calculator_settings` apareció fragmentado en doce statements con MD5
+combinado `f7102aeb22551a4628923dfba5d11793`:
+
+| Ordinal | Longitud | MD5 |
+|---:|---:|---|
+| 1 | 3614 | `62307ab8c52471c4a07efc14d48417b8` |
+| 2 | 306 | `f42e11b7e85267542456c38c47b4ce98` |
+| 3 | 151 | `3a89ebc313211e1bcee3c6872dabbcdb` |
+| 4 | 217 | `db433f4d92f7bd7741670660d67506ef` |
+| 5 | 209 | `6e66fd2bd2616aeea5b222dc8cc8d19b` |
+| 6 | 218 | `2065b24a0b96e70a683d5d904b9c1927` |
+| 7 | 343 | `ffdb26231d26ff81b8caea2bd2ee424c` |
+| 8 | 249 | `a4947fa5a62c7f29b76e9c9f0c17914a` |
+| 9 | 777 | `977a827bc590173bc3df1f97fc47a98c` |
+| 10 | 323 | `afc02ba3eea09eb599cc9aadedd0b3d0` |
+| 11 | 126 | `3f3ece1b4bc4d4f60353d51154e6bc80` |
+| 12 | 82 | `4d1e18a14ce0aede9602e54ef650c3a2` |
+
+No se ejecutaron seed, Auth ni E2E sobre el schema incompleto. No se leyeron
+filas de negocio ni PII. `delete_branch` devolvió `success=true` y el
+inventario terminal mostró únicamente `main`.
+
+La reparación forward-only local
+`0283_repair_calculator_settings_split_history` quedó aprobada en
+[REV-AUD-037](aud-sdd-0118-calculator-split-history.md).

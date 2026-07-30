@@ -4,7 +4,7 @@ title: "Lifecycle de tenant y fixtures E2E efímeras"
 status: in-progress
 author: "Sam (founder) + Codex"
 created: 2026-07-28
-updated: 2026-07-29
+updated: 2026-07-30
 supersedes: null
 superseded_by: null
 related: ["0166", "0168"]
@@ -170,6 +170,9 @@ No crea funciones ni modifica otra FK.
 | Reparación platform admin split generador | `scripts/build-sdd-0118-platform-admin-split-history.mjs` |
 | Reparación platform admin split DB | `supabase/migrations/0282_repair_platform_admin_skip_split_history.sql` |
 | Reparación platform admin split DB test | `supabase/tests/0282_repair_platform_admin_skip_split_history.test.sql` |
+| Reparación calculator split generador | `scripts/build-sdd-0118-calculator-split-history.mjs` |
+| Reparación calculator split DB | `supabase/migrations/0283_repair_calculator_settings_split_history.sql` |
+| Reparación calculator split DB test | `supabase/tests/0283_repair_calculator_settings_split_history.test.sql` |
 | Operación | `docs/runbooks/e2e-supabase-efimero.md` |
 
 ## 9. Aceptación
@@ -233,6 +236,10 @@ No crea funciones ni modifica otra FK.
 | Supabase efímero R13 | supera 0272; falla cerrado en 0273 por target `platform_admins` fragmentado en diez statements |
 | Teardown remoto R13 | terminal · branch `361cf50e-3fe0-47e9-b73c-7b54b05c8489` y project ref `tieiplsepiezyqkqfywe` ausentes; sólo `main` saludable |
 | Reparación platform admin split local | 0282 determinista; Vitest 4/4; contratos SQL 21/21 + replay y rollback · [REV-AUD-036](../../governance/reviews/aud-sdd-0118-platform-admin-split-history.md) |
+| Reparación platform admin split Cloud | 0282 aplicada; recibo `20260730130403`; postcondiciones verificadas |
+| Supabase efímero R14 | supera 0273; falla cerrado en 0274 por target `calculator_settings` fragmentado en doce statements |
+| Teardown remoto R14 | terminal · branch `ab5435b9-ec23-4d45-b475-9a32a4c945a4` y project ref `stgnxiuofbxzzsndcqlw` ausentes; sólo `main` saludable |
+| Reparación calculator split local | 0283 determinista; Vitest 4/4; contratos SQL 22/22 + replay y rollback · [REV-AUD-037](../../governance/reviews/aud-sdd-0118-calculator-split-history.md) |
 
 ## 11. Rollback
 
@@ -244,7 +251,7 @@ No crea funciones ni modifica otra FK.
 
 ## 12. Gates pendientes
 
-1. aplicar individualmente `0282_repair_platform_admin_skip_split_history` después de
+1. aplicar individualmente `0283_repair_calculator_settings_split_history` después de
    autorización nominal y verificar postcondiciones/advisors;
 2. crear un Supabase efímero completamente nuevo que alcance
    `MIGRATIONS_PASSED`;
@@ -274,6 +281,9 @@ El gate Cloud de 0280 y el gate local de 0281 quedaron aprobados en
 El gate Cloud de 0281, el teardown terminal de R13 y el gate local de 0282
 quedaron aprobados en
 [REV-AUD-036](../../governance/reviews/aud-sdd-0118-platform-admin-split-history.md).
+El gate Cloud de 0282, el teardown terminal de R14 y el gate local de 0283
+quedaron aprobados en
+[REV-AUD-037](../../governance/reviews/aud-sdd-0118-calculator-split-history.md).
 El gate local de 0277/0278 quedó documentado en
 [REV-AUD-032](../../governance/reviews/aud-sdd-0118-rls-auto-enable-history.md).
 SDD-0172 permanece `in-progress`: el teardown fue válido, pero el fixture no
