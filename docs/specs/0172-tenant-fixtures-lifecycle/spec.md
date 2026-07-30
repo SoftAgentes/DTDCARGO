@@ -173,6 +173,9 @@ No crea funciones ni modifica otra FK.
 | Reparación calculator split generador | `scripts/build-sdd-0118-calculator-split-history.mjs` |
 | Reparación calculator split DB | `supabase/migrations/0283_repair_calculator_settings_split_history.sql` |
 | Reparación calculator split DB test | `supabase/tests/0283_repair_calculator_settings_split_history.test.sql` |
+| Reparación pin split generador | `scripts/build-sdd-0118-pin-split-history.mjs` |
+| Reparación pin split DB | `supabase/migrations/0284_repair_pin_search_path_split_history.sql` |
+| Reparación pin split DB test | `supabase/tests/0284_repair_pin_search_path_split_history.test.sql` |
 | Operación | `docs/runbooks/e2e-supabase-efimero.md` |
 
 ## 9. Aceptación
@@ -240,6 +243,10 @@ No crea funciones ni modifica otra FK.
 | Supabase efímero R14 | supera 0273; falla cerrado en 0274 por target `calculator_settings` fragmentado en doce statements |
 | Teardown remoto R14 | terminal · branch `ab5435b9-ec23-4d45-b475-9a32a4c945a4` y project ref `stgnxiuofbxzzsndcqlw` ausentes; sólo `main` saludable |
 | Reparación calculator split local | 0283 determinista; Vitest 4/4; contratos SQL 22/22 + replay y rollback · [REV-AUD-037](../../governance/reviews/aud-sdd-0118-calculator-split-history.md) |
+| Reparación calculator split Cloud | 0283 aplicada; recibo `20260730132651`; postcondiciones y advisors verificados |
+| Supabase efímero R15 | supera 0274; falla cerrado en 0275 por target `pin_search_path` fragmentado en 33 statements |
+| Teardown remoto R15 | terminal · branch `d97e81ba-94aa-4fd7-b4c6-bc4a9d8919df` y project ref `dmzhnfmiolvjsuzehcbq` ausentes; sólo `main` saludable |
+| Reparación pin split local | 0284 determinista; Vitest 4/4; contratos SQL 23/23 en PostgreSQL 15/17 + replay y rollback · [REV-AUD-038](../../governance/reviews/aud-sdd-0118-pin-split-history.md) |
 
 ## 11. Rollback
 
@@ -251,7 +258,7 @@ No crea funciones ni modifica otra FK.
 
 ## 12. Gates pendientes
 
-1. aplicar individualmente `0283_repair_calculator_settings_split_history` después de
+1. aplicar individualmente `0284_repair_pin_search_path_split_history` después de
    autorización nominal y verificar postcondiciones/advisors;
 2. crear un Supabase efímero completamente nuevo que alcance
    `MIGRATIONS_PASSED`;
@@ -266,7 +273,7 @@ El gate Cloud de 0274 quedó cerrado en
 [REV-AUD-027](../../governance/reviews/aud-sdd-0118-calculator-settings-history-application.md).
 El gate Cloud de 0275 quedó cerrado en
 [REV-AUD-029](../../governance/reviews/aud-sdd-0118-pin-search-path-history-application.md).
-Los nueve intentos reales y sus teardowns terminales quedaron registrados en
+Los quince intentos reales y sus teardowns terminales quedaron registrados en
 [REV-AUD-019](../../governance/reviews/aud-tenant-fixtures-ephemeral-validation.md).
 El diseño local de `0276` quedó aprobado en
 [REV-AUD-030](../../governance/reviews/aud-sdd-0118-revoke-anon-history.md).
@@ -284,6 +291,9 @@ quedaron aprobados en
 El gate Cloud de 0282, el teardown terminal de R14 y el gate local de 0283
 quedaron aprobados en
 [REV-AUD-037](../../governance/reviews/aud-sdd-0118-calculator-split-history.md).
+El gate Cloud de 0283, el teardown terminal de R15 y el gate local de 0284
+quedaron aprobados en
+[REV-AUD-038](../../governance/reviews/aud-sdd-0118-pin-split-history.md).
 El gate local de 0277/0278 quedó documentado en
 [REV-AUD-032](../../governance/reviews/aud-sdd-0118-rls-auto-enable-history.md).
 SDD-0172 permanece `in-progress`: el teardown fue válido, pero el fixture no

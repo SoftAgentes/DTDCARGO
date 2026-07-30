@@ -570,3 +570,75 @@ inventario terminal mostró únicamente `main`.
 La reparación forward-only local
 `0283_repair_calculator_settings_split_history` quedó aprobada en
 [REV-AUD-037](aud-sdd-0118-calculator-split-history.md).
+
+## 25. Decimoquinto intento después de `0283`
+
+La aplicación individual de
+`0283_repair_calculator_settings_split_history` quedó registrada con recibo
+`20260730132651`. Las postcondiciones confirmaron el payload objetivo de
+`0274`, y los advisors conservaron el inventario previo: security 125
+(`INFO` 5, `WARN` 120) y performance 546 (`INFO` 430, `WARN` 116).
+
+Después se creó R15 sin datos de Producción:
+
+| Campo | Valor |
+|---|---|
+| Nombre | `sdd-0172-r15-20260730` |
+| Branch | `d97e81ba-94aa-4fd7-b4c6-bc4a9d8919df` |
+| Project ref | `dmzhnfmiolvjsuzehcbq` |
+| Costo | USD 0,01344 por hora |
+| Resultado | `MIGRATIONS_FAILED` en `0275` |
+
+R15 superó `0283`. El replay abortó exactamente con:
+
+```text
+SDD-0118 pin_search_path: drift en 20260703235255 0210_pin_search_path_triggers
+```
+
+La inspección fue exclusivamente metadata-only. El target de
+`0210_pin_search_path_triggers` apareció fragmentado en 33 statements con MD5
+combinado `442a34163980f1fc26bf6f930347b8a1`:
+
+| Ordinal | Longitud | MD5 |
+|---:|---:|---|
+| 1 | 1102 | `4aec76173fe77cc54722dab274ace2b5` |
+| 2 | 84 | `ab61c1d455599424528a582dd86041c4` |
+| 3 | 75 | `51d8f913f75e329d9466642a63eb5523` |
+| 4 | 82 | `7c1b6fbbda34ff110553349b53ccbfb8` |
+| 5 | 74 | `42761756f2f44a46ce3e3b4567876e00` |
+| 6 | 73 | `2563c1daaa0e36b74ad80644447d5080` |
+| 7 | 88 | `fe85c07ffacef0994f104ab29f7a1d33` |
+| 8 | 74 | `b948705b8fe07c440d2bdb7b11dd52f9` |
+| 9 | 78 | `eecaa4b9021bafe3ec69bfaaa608a61a` |
+| 10 | 67 | `bb97013b0f7776c43ab583b2af224161` |
+| 11 | 88 | `bf993074c063e38318e4539e5f165884` |
+| 12 | 81 | `34fa549de3b31da01ad725020761884b` |
+| 13 | 79 | `7543ef5be1f22a77c8e2fcc882cff270` |
+| 14 | 75 | `45680909caefce5545d61974f3f231d1` |
+| 15 | 76 | `58e8551dcc70c99ebc5d3f55fb2ee3e7` |
+| 16 | 82 | `10472888b24e316e4569a70d3dd0f5cb` |
+| 17 | 76 | `b95cf72852e1c5b72208d4499d4ce6ba` |
+| 18 | 78 | `060467c11e8f99c5a2be1bcbadcc63b3` |
+| 19 | 85 | `de760ab1d066d4f324b04122876ca1ec` |
+| 20 | 80 | `0f2c8dd05b95ac18d33075e7ae80966d` |
+| 21 | 80 | `805cca12026d19e95d6442501b0e845c` |
+| 22 | 80 | `c635ecad307f74055eff03b7555885a1` |
+| 23 | 77 | `9e0d12b1963ae0549b717a9064d5a386` |
+| 24 | 77 | `2ef7fa90329099f525330cbbf288257f` |
+| 25 | 75 | `401d18e45b05341f762417f151abd513` |
+| 26 | 76 | `c9c368e38db9081cfcf44b344c1b767d` |
+| 27 | 69 | `ceb167f93ad235ba32edb4450e77185f` |
+| 28 | 71 | `e04707233161408d92ea9868e0b5b079` |
+| 29 | 76 | `7b84ce45e569be2c1eae1e5c47df7608` |
+| 30 | 81 | `9e3ba25ab5319876d8068f30995de658` |
+| 31 | 83 | `03ef41e7c9ac837ed11c37b07b348a1f` |
+| 32 | 71 | `8dec68319f1e0ec01d7db9c863715445` |
+| 33 | 87 | `007def051c605511fd7ec271eb6a6a67` |
+
+No se ejecutaron seed, Auth ni E2E sobre el schema incompleto. No se leyeron
+filas de negocio ni PII. `delete_branch` devolvió `success=true` y el
+inventario terminal mostró únicamente `main`.
+
+La reparación forward-only local
+`0284_repair_pin_search_path_split_history` quedó aprobada en
+[REV-AUD-038](aud-sdd-0118-pin-split-history.md).

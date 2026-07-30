@@ -10,7 +10,7 @@
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-30 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-076 · Replay R14 cerrado y 0283 listo localmente](BASELINE-2026-07-30.md) |
+| Línea base vigente | [LB-SGE-077 · Replay R15 cerrado y 0284 listo localmente](BASELINE-2026-07-30-02.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -87,6 +87,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Aplicación de 0280 y reparación del skip de invitaciones fragmentado | [REV-AUD-035](reviews/aud-sdd-0118-invite-skip-split-history.md) |
 | Aplicación de 0281, replay R13 y reparación del split de platform_admins | [REV-AUD-036](reviews/aud-sdd-0118-platform-admin-split-history.md) |
 | Aplicación de 0282, replay R14 y reparación del split de calculator_settings | [REV-AUD-037](reviews/aud-sdd-0118-calculator-split-history.md) |
+| Aplicación de 0283, replay R15 y reparación del split de pin_search_path | [REV-AUD-038](reviews/aud-sdd-0118-pin-split-history.md) |
 | Inventario read-only del Corte C | [C0 · repo y Cloud](../specs/0166-auditoria-gobernada-aud-01-aud-02/inventario-corte-c-2026-07-28.md) |
 | Diseño correctivo del Corte C | [Consulta gobernada y RBAC v1.1](../specs/0166-auditoria-gobernada-aud-01-aud-02/diseno-correctivo-corte-c.md) |
 | Revisión del diseño Corte C | [REV-AUD-012](reviews/aud-corte-c.md) |
@@ -247,8 +248,8 @@ aprobaron en LB-SGE-004. El orden que gobierna la siguiente fase es:
    está cerrada; cualquier ACL histórico, purga o retención conserva gate y
    alcance propios;
 2. conservar A1, A2 y sus recibos en Git; el Corte A está aplicado y verificado;
-   B1 y `0268` están aplicados. SDD-0172 llega hasta `0282` en Cloud y `0283`
-   verde localmente; la aplicación individual de 0283 y el efímero posterior
+   B1 y `0268` están aplicados. SDD-0172 llega hasta `0283` en Cloud y `0284`
+   verde localmente; la aplicación individual de 0284 y el efímero posterior
    conservan el runbook exacto. C0 está aprobado por REV-AUD-012; D1 tiene
    diseño aprobado y D2–D5 continúan como roadmap por gates;
 3. revisar las políticas v0.1 por bloques coherentes, no como aprobación masiva;
@@ -277,9 +278,9 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-076 · replay R14 cerrado y 0283 listo localmente](BASELINE-2026-07-30.md).
+[LB-SGE-077 · replay R15 cerrado y 0284 listo localmente](BASELINE-2026-07-30-02.md).
 El corte anterior permanece en
-[LB-SGE-075](BASELINE-2026-07-29-47.md).
+[LB-SGE-076](BASELINE-2026-07-30.md).
 El cierre del control plane permanece en
 [LB-SGE-074](BASELINE-2026-07-29-46.md).
 La estabilidad bajo carga del guardia SDD-0164 permanece en

@@ -323,6 +323,19 @@ genera `0283_repair_calculator_settings_split_history`. La reparación sólo
 amplía el preflight/update de `0274` para colapsar ese split al target de un
 statement con MD5 `0f7deee22e3a978c52159b6fc211ee2c`.
 
+`0283` se aplicó individualmente con recibo `20260730132651`. R15 superó
+`0274` y falló cerrado en `0275` porque el target de
+`0210_pin_search_path_triggers` apareció fragmentado en 33 statements. La
+inspección metadata-only confirmó MD5 combinado
+`442a34163980f1fc26bf6f930347b8a1` y los 33 fingerprints individuales. R15
+fue destruido y el inventario terminal volvió a mostrar únicamente `main`.
+
+El generador `scripts/build-sdd-0118-pin-split-history.mjs` reconstruye la
+representación observada desde `0210`, ancla byte a byte el payload remoto de
+`0275` y genera `0284_repair_pin_search_path_split_history`. La reparación
+sólo amplía el preflight/update de `0275` para colapsar ese split al target de
+un statement con MD5 `c3131d8ea3756049d6455bc98b4d0ecc`.
+
 No descarga ni guarda secretos. Los únicos datos Cloud incorporados son
 metadatos técnicos del ledger.
 
@@ -385,8 +398,13 @@ metadatos técnicos del ledger.
 | Calculator split unit | `scripts/__tests__/build-sdd-0118-calculator-split-history.test.ts` |
 | Calculator split migración | `supabase/migrations/0283_repair_calculator_settings_split_history.sql` |
 | Calculator split DB test | `supabase/tests/0283_repair_calculator_settings_split_history.test.sql` |
+| Pin split generador | `scripts/build-sdd-0118-pin-split-history.mjs` |
+| Pin split types | `scripts/build-sdd-0118-pin-split-history.d.mts` |
+| Pin split unit | `scripts/__tests__/build-sdd-0118-pin-split-history.test.ts` |
+| Pin split migración | `supabase/migrations/0284_repair_pin_search_path_split_history.sql` |
+| Pin split DB test | `supabase/tests/0284_repair_pin_search_path_split_history.test.sql` |
 | Spec | `docs/specs/0118-seed-migrations-idempotentes/spec.md` |
-| Revisiones | `docs/governance/reviews/aud-sdd-0118-branch-replay.md` · `docs/governance/reviews/aud-sdd-0118-platform-admin-bootstrap.md` · `docs/governance/reviews/aud-sdd-0118-calculator-settings-history.md` · `docs/governance/reviews/aud-sdd-0118-pin-search-path-history.md` · `docs/governance/reviews/aud-sdd-0118-revoke-anon-history.md` · `docs/governance/reviews/aud-sdd-0118-rls-auto-enable-history.md` · `docs/governance/reviews/aud-sdd-0172-tenant-acl-history.md` · `docs/governance/reviews/aud-sdd-0118-split-replay-history.md` · `docs/governance/reviews/aud-sdd-0118-invite-skip-split-history.md` · `docs/governance/reviews/aud-sdd-0118-platform-admin-split-history.md` · `docs/governance/reviews/aud-sdd-0118-calculator-split-history.md` |
+| Revisiones | `docs/governance/reviews/aud-sdd-0118-branch-replay.md` · `docs/governance/reviews/aud-sdd-0118-platform-admin-bootstrap.md` · `docs/governance/reviews/aud-sdd-0118-calculator-settings-history.md` · `docs/governance/reviews/aud-sdd-0118-pin-search-path-history.md` · `docs/governance/reviews/aud-sdd-0118-revoke-anon-history.md` · `docs/governance/reviews/aud-sdd-0118-rls-auto-enable-history.md` · `docs/governance/reviews/aud-sdd-0172-tenant-acl-history.md` · `docs/governance/reviews/aud-sdd-0118-split-replay-history.md` · `docs/governance/reviews/aud-sdd-0118-invite-skip-split-history.md` · `docs/governance/reviews/aud-sdd-0118-platform-admin-split-history.md` · `docs/governance/reviews/aud-sdd-0118-calculator-split-history.md` · `docs/governance/reviews/aud-sdd-0118-pin-split-history.md` |
 
 ## 6. Evidencia local
 
@@ -433,13 +451,16 @@ metadatos técnicos del ledger.
 | Platform admin split Cloud | `0282` aplicada individualmente; recibo `20260730130403`; postcondiciones verificadas |
 | Decimocuarto branch | R14 supera `0273`; `0274` no reconoce el target de `calculator_settings` fragmentado en doce statements; teardown terminal |
 | Calculator split local | `0283` determinista · Vitest 4/4 · contratos SQL 22/22 · replay del fixture + rollback · [REV-AUD-037](../../governance/reviews/aud-sdd-0118-calculator-split-history.md) |
+| Calculator split Cloud | `0283` aplicada individualmente; recibo `20260730132651`; postcondiciones y advisors verificados · [REV-AUD-038](../../governance/reviews/aud-sdd-0118-pin-split-history.md) |
+| Decimoquinto branch | R15 supera `0274`; `0275` no reconoce el target de `pin_search_path` fragmentado en 33 statements; teardown terminal |
+| Pin split local | `0284` determinista · Vitest 4/4 · contratos SQL 23/23 en PostgreSQL 15/17 · replay del fixture + rollback · [REV-AUD-038](../../governance/reviews/aud-sdd-0118-pin-split-history.md) |
 | Diff | verde |
 
 ## 7. Gates restantes
 
 1. obtener autorización expresa de
-   `0283_repair_calculator_settings_split_history` antes de aplicarla;
-2. aplicar 0283 individualmente con postcondiciones y advisors;
+   `0284_repair_pin_search_path_split_history` antes de aplicarla;
+2. aplicar 0284 individualmente con postcondiciones y advisors;
 3. crear otro entorno efímero y completar replay, seed, E2E, verificación y
    teardown terminal.
 
