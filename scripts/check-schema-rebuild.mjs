@@ -69,6 +69,7 @@ const LEDGER_ONLY = new Set([
   "0280_repair_sdd0118_split_history.sql",
   "0281_repair_invite_skip_split_history.sql",
   "0282_repair_platform_admin_skip_split_history.sql",
+  "0283_repair_calculator_settings_split_history.sql",
 ]);
 // ⚠️ MANTENIMIENTO: SDD-0118 sigue publicando migraciones de este tipo. Cuando el
 // gate muera en una `*_history.sql` con un error "drift en <version> <name>", es
