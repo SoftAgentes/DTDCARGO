@@ -163,8 +163,17 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
       "Comenta en este embarque… usa @ para mencionar",
     );
     await expect(composer).toBeEditable();
-    await composer.fill(fixture.commentBody);
-    await expect(composer).toHaveValue(fixture.commentBody);
+    const mentionToken = "@Mention E.";
+    const commentPrefix = fixture.commentBody.replace(mentionToken, "");
+    await composer.fill(commentPrefix);
+    await page.getByRole("button", { name: "Mencionar" }).click();
+    const mentionPicker = page.getByRole("listbox", { name: "Mencionar a" });
+    await expect(mentionPicker).toBeVisible();
+    await mentionPicker
+      .getByRole("option")
+      .filter({ hasText: "Mention E2E" })
+      .click();
+    await expect(composer).toHaveValue(`${fixture.commentBody} `);
     const submitComment = page.getByRole("button", {
       name: "Comentar",
       exact: true,
