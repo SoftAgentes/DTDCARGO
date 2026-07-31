@@ -10,7 +10,7 @@
  * Solo tokens var(--*). es-VE, tuteo, cero anglicismos.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 type Status =
   | "hidden"
@@ -33,46 +33,43 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return output;
 }
 
+function detectPushStatus(): Status {
+  if (localStorage.getItem(DISMISS_KEY) === "1") return "hidden";
+  const supported =
+    "serviceWorker" in navigator &&
+    "PushManager" in window &&
+    "Notification" in window;
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const standalone =
+    window.matchMedia?.("(display-mode: standalone)")?.matches ||
+    (navigator as unknown as { standalone?: boolean }).standalone === true;
+  if (isIOS && !standalone) return "ios-install";
+  if (!supported) return "unsupported";
+  if (Notification.permission === "denied") return "blocked";
+  return "prompt";
+}
+
+const subscribeEnvironment = () => () => undefined;
+
 export function PushOptInBanner() {
-  const [status, setStatus] = useState<Status>("hidden");
+  const environmentStatus = useSyncExternalStore(
+    subscribeEnvironment,
+    detectPushStatus,
+    () => "hidden" as Status,
+  );
+  const [statusOverride, setStatus] = useState<Status | null>(null);
+  const status = statusOverride ?? environmentStatus;
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Estado inicial (client-only para no romper hidratación).
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (localStorage.getItem(DISMISS_KEY) === "1") return;
-
-    const supported =
-      "serviceWorker" in navigator &&
-      "PushManager" in window &&
-      "Notification" in window;
-
-    // iOS: el push solo existe con la PWA instalada (display-mode standalone).
-    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const standalone =
-      window.matchMedia?.("(display-mode: standalone)")?.matches ||
-      (navigator as unknown as { standalone?: boolean }).standalone === true;
-
-    if (isIOS && !standalone) {
-      setStatus("ios-install");
-      return;
-    }
-    if (!supported) {
-      setStatus("unsupported");
-      return;
-    }
-    if (Notification.permission === "denied") {
-      setStatus("blocked");
-      return;
-    }
-
-    // ¿Ya está suscrito en esta PWA? Entonces no molestamos.
+    if (environmentStatus !== "prompt") return;
     navigator.serviceWorker
       .getRegistration("/m/sw.js")
       .then((reg) => reg?.pushManager.getSubscription() ?? null)
       .then((sub) => setStatus(sub ? "hidden" : "prompt"))
       .catch(() => setStatus("prompt"));
-  }, []);
+  }, [environmentStatus]);
 
   const dismiss = () => {
     try {

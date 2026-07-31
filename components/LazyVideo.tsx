@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+} from "react";
 
 type Props = {
   /** Ruta base del clip sin extensión, ej "/videos/equipo-...". */
@@ -26,14 +32,16 @@ type Props = {
 export function LazyVideo({ base, title, frameClassName }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [show, setShow] = useState(false);
+  const observerSupported = useSyncExternalStore(
+    () => () => undefined,
+    () => typeof IntersectionObserver !== "undefined",
+    () => true,
+  );
+  const visible = show || !observerSupported;
 
   useEffect(() => {
     const el = ref.current;
-    if (!el || show) return;
-    if (typeof IntersectionObserver === "undefined") {
-      setShow(true);
-      return;
-    }
+    if (!el || visible || !observerSupported) return;
     const io = new IntersectionObserver(
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) {
@@ -45,7 +53,7 @@ export function LazyVideo({ base, title, frameClassName }: Props) {
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [show]);
+  }, [observerSupported, visible]);
 
   const poster = `${base}-poster.webp`;
 
@@ -55,9 +63,9 @@ export function LazyVideo({ base, title, frameClassName }: Props) {
       className={frameClassName}
       // El bg (var --wb-poster) solo lo usa el CSS en prefers-reduced-motion.
       // Lo seteamos recién cuando montamos, para no cargar el poster antes.
-      style={show ? ({ "--wb-poster": `url('${poster}')` } as CSSProperties) : undefined}
+      style={visible ? ({ "--wb-poster": `url('${poster}')` } as CSSProperties) : undefined}
     >
-      {show && (
+      {visible && (
         <video
           className="work-band-video absolute inset-0 h-full w-full object-cover"
           autoPlay

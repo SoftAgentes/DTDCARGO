@@ -24,17 +24,20 @@ export default function OperarioVeLoginPage() {
   );
   const [pin, setPin] = useState("");
   const [shake, setShake] = useState(false);
+  const [handledState, setHandledState] = useState(state);
+  if (handledState !== state) {
+    setHandledState(state);
+    if (state.error && pin.length === 4) setShake(true);
+  }
 
   useEffect(() => {
-    if (state.error && pin.length === 4) {
-      setShake(true);
-      const timer = setTimeout(() => {
-        setShake(false);
-        setPin("");
-      }, 350);
-      return () => clearTimeout(timer);
-    }
-  }, [state.error, pin.length]);
+    if (!shake) return;
+    const timer = setTimeout(() => {
+      setShake(false);
+      setPin("");
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [shake]);
 
   const submitPin = (full: string) => {
     const fd = new FormData();
