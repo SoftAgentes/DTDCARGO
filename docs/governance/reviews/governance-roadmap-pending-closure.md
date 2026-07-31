@@ -36,7 +36,7 @@ permanecen intactos.
 | D5 | idempotencia, lease, reintento, reconciliación y retiro del writer | `0293` aplicado individualmente |
 | Corte E1 | ausencia de fuente registrada de forma fail-closed | E2–E5 bloqueados |
 | VIS-02 | V2 email, V3 PDF y V4 visual local; UI china en Noto Sans SC | Gmail, Outlook y Apple Mail sin evidencia controlada |
-| PLG-01 | P6–P8 repo/team read-only y forward-tests positivos/negativos | escritura, MCP, app, hooks, credenciales y marketplace remoto prohibidos |
+| PLG-01 | fuente repo con 27 políticas, cuatro componentes y forward-tests positivos/negativos | caché cargada desactualizada; escritura, MCP, app, hooks, credenciales y marketplace remoto prohibidos |
 | Adopción | slices R2/R3 acotados con SDD y allowlist | sin barrido legacy ni slice artificial |
 
 La consulta metadata-only final del ledger de Producción termina en
@@ -63,7 +63,7 @@ requieren autorización nominal individual y no fueron aplicadas.
 
 ## 4. Gates que no se falsearon
 
-- no se publicó ni hizo push; la rama queda 13 commits adelante y cero detrás
+- no se publicó ni hizo push; la rama queda 14 commits adelante y cero detrás
   de `origin/main`;
 - no se aplicaron `0294`–`0296`;
 - no se modificó Vercel ni se desplegó;
@@ -72,6 +72,8 @@ requieren autorización nominal individual y no fueron aplicadas.
   aprobada para E2–E5;
 - Gmail y Outlook no tienen conectores instalados en esta ventana, Chrome no
   tiene la extensión requerida y Apple Mail necesita un cliente Apple real;
+- el plugin cargado desde caché reporta `policy-registry.json` desactualizado;
+  el repositorio sigue siendo la fuente normativa y no se alteró la caché;
 - el retiro opcional de `gov6-vis-local` quedó bloqueado por política local y
   no se forzó una vía alternativa.
 
