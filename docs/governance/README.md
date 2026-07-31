@@ -10,7 +10,7 @@
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-30 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-094 · PLG-01 operativo](BASELINE-2026-07-30-19.md) |
+| Línea base vigente | [LB-SGE-095 · roadmap local reconciliado](BASELINE-2026-07-30-20.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -147,6 +147,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Scaffold read-only PLG-01 | [REV-SGE-019](reviews/plg-01-scaffold.md) |
 | Precisión decimal y NumericInput canónico | [REV-SGE-020](reviews/num-01-v1-1-numeric-input.md) |
 | Instalación y forward-test PLG-01 | [REV-SGE-021](reviews/plg-01-install-forward-test.md) |
+| Integración local del roadmap de gobernanza | [REV-SGE-022](reviews/governance-roadmap-batch-close.md) |
 | Tabs accesibles en Fiscal | [SDD-0180](../specs/0180-tabs-accesibles-fiscal/spec.md) |
 | Selectores accesibles y colisión | [SDD-0181](../specs/0181-selectores-accesibles-colision/spec.md) |
 | Validación progresiva en Club | [SDD-0182](../specs/0182-validacion-progresiva-identidad-club/spec.md) |
@@ -268,12 +269,16 @@ aprobaron en LB-SGE-004. El orden que gobierna la siguiente fase es:
 2. conservar A1, A2 y sus recibos en Git; el Corte A está aplicado y verificado;
    B1 y `0268` están aplicados. SDD-0118/0172 están cerradas: `0284`–`0288`
    tienen recibos individuales y R29 aprobó replay, seed, E2E, verificación y
-   teardown terminal. C0 está aprobado por REV-AUD-012; D1 está verificado
-   localmente y D2–D5 continúan por gates;
+   teardown terminal. C0 está aprobado por REV-AUD-012; D1 y D5 están
+   verificados localmente, mientras D2/D3 conservan la no conformidad de motivo
+   legacy y D4 la de `search_path`; `0270` y `0289`–`0293` conservan gates
+   individuales de Producción;
 3. revisar las políticas v0.1 por bloques coherentes, no como aprobación masiva;
-4. conservar VIS-02 V1 integrado y abrir V2–V4 sólo por salida;
+4. conservar VIS-02 V1–V4 integrados localmente; Gmail, Outlook y Apple Mail
+   requieren evidencia controlada propia;
 5. adoptar componentes CMP-01 por slices, sin nuevos usos de deprecated;
-6. usar la cápsula repo-first; PLG-01 continúa sin instalación;
+6. usar la cápsula repo-first; PLG-01 permanece instalado sólo en el
+   marketplace local repo/team, read-only;
 7. promover a CI sólo reglas verificadas y con excepción documentable.
 
 ## 8. Protocolo de cambio
@@ -289,7 +294,7 @@ Para crear o modificar una política:
 7. verificar con pruebas, revisión visual y evidencia de adopción;
 8. actualizar este registro y la línea base, sin borrar la trazabilidad.
 
-El futuro plugin podrá advertir o bloquear únicamente reglas **aprobadas**. Las
+El plugin podrá advertir o bloquear únicamente reglas **aprobadas**. Las
 reglas investigadas o redactadas se presentan como recomendaciones, nunca como
 errores obligatorios.
 

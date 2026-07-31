@@ -4,7 +4,7 @@ title: "Control plane ejecutable de gobernanza"
 status: done
 author: "Sam (founder) + Codex"
 created: 2026-07-29
-updated: 2026-07-29
+updated: 2026-07-30
 supersedes: null
 superseded_by: null
 related: ["0165", "0174", "0175", "0178", "0180", "0181", "0182"]
@@ -72,14 +72,16 @@ de comportamiento.
 Gate local aprobado:
 
 - cápsula reproducible con 27 políticas aprobadas;
-- CMP-01 v1.1 con 3 componentes, incluido un caso real `deprecated`;
-- PLG-P3–P5 validado en modo read-only, sin instalación ni marketplace;
-- 309 archivos y 4.115 pruebas Vitest verdes;
-- 19 contratos SQL verdes y replay local de 276 migraciones reproducible;
+- CMP-01 v1.1 con cuatro componentes, incluido `NumericInput` como canonical y
+  un caso real `deprecated`;
+- PLG-P3–P8 validado en modo read-only e instalado sólo en el marketplace local
+  repo/team;
+- 327 archivos y 4.233 pruebas Vitest verdes;
+- 32 contratos SQL verdes y replay local de 289 migraciones reproducible;
 - 19 E2E verdes y 3 omitidos por requerir seed autenticado;
 - lint sin errores, typecheck, build de 152 rutas y validadores documentales
   verdes.
 
-La ausencia de credenciales en el worktree impidió consultar
-`migrations-applied`; no se copió `.env`, no se leyó PII y no se ejecutó
-ninguna operación Cloud.
+La ausencia deliberada de `SUPABASE_SERVICE_ROLE_KEY` en el worktree mantuvo
+`migrations-applied` como gate externo; no se copió `.env`, no se leyó PII y no
+se ejecutó ninguna operación Cloud.
