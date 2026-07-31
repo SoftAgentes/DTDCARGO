@@ -82,9 +82,10 @@ Las colas móviles de fotos y POD guardan base64 en `localStorage`. La cola POD
 incluye nombre, documento, firma, fotografía y GPS. Hoy no existe separación por
 tenant/usuario, cifrado local ni garantía contra descarte por cuota.
 
-Estado: **ENCONTRADO** en `app/m/_lib/{photo-queue,pod-queue}.ts`. La sustitución
-por una cola IndexedDB sin pérdida forma parte de SDD-0224 y todavía no está
-implementada.
+Estado: **ENCONTRADO** en `app/m/_lib/{photo-queue,pod-queue}.ts`. SDD-0224 ya
+implementa una cola IndexedDB separada por tenant/usuario únicamente para el
+piloto web de Gastos. Las colas móviles descritas aquí siguen sin migrarse y
+quedan fuera de ese piloto.
 
 ## 5 · Titulares que no son usuarios
 

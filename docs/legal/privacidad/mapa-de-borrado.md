@@ -253,10 +253,12 @@ sobrevive.
 
 ## 7 · Norte documental para adjuntos
 
-[SDD-0224](../../specs/0224-adjuntos-seguros-reanudables/spec.md) propone unificar
-versionado, borrado lógico, restore, retención, legal hold y purga fail-closed.
-Su estado es `proposed`: no hay código, bucket, migración ni respaldo externo
-autorizados o implementados por esa documentación.
+[SDD-0224](../../specs/0224-adjuntos-seguros-reanudables/spec.md) está `approved`
+y ya implementa el plano común de versionado, borrado lógico, restore, retención,
+legal hold y purga fail-closed, junto con el bucket privado `erp-attachments` y
+las migrations `0306`–`0314`. El piloto de Gastos permanece apagado en
+Producción: no hay proveedor externo, antivirus ni restore drill reales
+verificados, por lo que ningún adjunto puede declarar estado `protegido`.
 
 ---
 
