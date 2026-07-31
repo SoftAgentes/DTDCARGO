@@ -166,6 +166,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Reconciliación VIS-02 | [REV-VIS-007](reviews/vis-02-state-reconciliation.md) |
 | Gates siguientes VIS-02 | [REV-VIS-008](reviews/vis-02-future-gates-reconciliation.md) |
 | Inventario VIS-02 | [REV-VIS-009](reviews/vis-02-inventory-reconciliation.md) |
+| Evidencia externa VIS-02 | [REV-VIS-010](reviews/vis-02-external-mail-client-evidence.md) |
 | Investigación de skills | [Mapa de capacidades y límites](research/skills-map.md) |
 | Contrato implementado de avisos | [SDD-0165 · AVS-01](../specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md) |
 | Inventario y estado oficial vigente | [LB-SGE-037](BASELINE-2026-07-29-09.md) |
@@ -209,7 +210,7 @@ disfraza elevando el estado normativo.
 | AUD-01 | Evento auditable y vínculo con acciones | aprobada | D1–D5 aplicados en Producción; D2–D4 corregidos localmente mediante 0294–0296 pendientes de Producción | [REV-AUD-045](reviews/aud-d4-empty-search-path-r3.md) · [REV-AUD-044](reviews/aud-d3-human-reasons-r3.md) · [REV-AUD-043](reviews/aud-d2-human-reasons-r3.md) · [REV-AUD-042](reviews/aud-roadmap-prod-application.md) |
 | AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B, guardrail tenant 0268 y consulta gobernada 0270 aplicados; E1 cerrado sin fuente para retención ejecutable | [REV-AUD-042](reviews/aud-roadmap-prod-application.md); [REV-AUD-041](reviews/aud-corte-e1-foundation.md) bloquea E2–E5 por fuente |
 | VIS-01 | Jerarquía visual y distribución 60-30-10 | aprobada | Adopción parcial; muestreo acotado a slices y clasificación de literales | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
-| VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | V1 tokens; V2 firmas; V3 PDF; V4 local; UI china conserva Noto Sans SC | [REV-VIS-004](reviews/vis-02-v2-email.md) · [REV-VIS-005](reviews/vis-02-v3-pdf.md) · [REV-VIS-006](reviews/vis-02-v4-visual.md); clientes externos pendientes |
+| VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | V1 tokens; V2 firmas; V3 PDF; V4 local; entrega y MIME Gmail/Outlook verificados; UI china conserva Noto Sans SC | [REV-VIS-010](reviews/vis-02-external-mail-client-evidence.md); capturas visuales Gmail/Outlook/Apple Mail pendientes |
 | BUS-01 | Buscadores predictivos y contexto de resultados | aprobada v1.1 | Teclado y colisión formalizados; adopción no auditada | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | CRT-01 | Creación rápida desde contexto | aprobada v1.0 | Patrones locales sin primitiva común | Auditar flujos de retorno |
 | NUM-01 | Campos numéricos y financieros | aprobada v1.1 | `NumericInput` canonical; precisión decimal y un consumidor fiscal R3 verificados | [SDD-0185](../specs/0185-num-01-expresiones-decimales/spec.md) y [REV-SGE-020](reviews/num-01-v1-1-numeric-input.md); adopción restante por slices |
@@ -279,8 +280,9 @@ aprobaron en LB-SGE-004. El orden que gobierna la siguiente fase es:
    `0294`–`0296`, pendientes de Producción; `0270` y `0289`–`0293` ya fueron
    aplicados individualmente;
 3. revisar las políticas v0.1 por bloques coherentes, no como aprobación masiva;
-4. conservar VIS-02 V1–V4 integrados localmente; Gmail, Outlook y Apple Mail
-   requieren evidencia controlada propia;
+4. conservar VIS-02 V1–V4 integrados localmente; Gmail y Outlook tienen entrega
+   y estructura controladas, pero Gmail, Outlook y Apple Mail requieren
+   capturas visuales propias;
 5. adoptar componentes CMP-01 por slices, sin nuevos usos de deprecated;
 6. usar la cápsula repo-first; PLG-01 permanece instalado sólo en el
    marketplace local repo/team, read-only;

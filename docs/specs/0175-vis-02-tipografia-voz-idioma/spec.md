@@ -58,8 +58,9 @@ V0 queda cerrado. Esta decisión no carga todavía la fuente.
    renderers se migran por slices.
 4. **V3 PDF:** cerrado en el packing list imprimible; los demás documentos se
    migran sólo cuando exista contenido chino real.
-5. **V4 visual:** validación local e impresión cerradas; Gmail, Outlook y Apple
-   Mail requieren un smoke real con buzones controlados.
+5. **V4 visual:** validación local e impresión cerradas; entrega y estructura
+   de una muestra `zh-CN` verificadas en Gmail y Outlook; faltan capturas
+   visuales reales en Gmail, Outlook y Apple Mail.
 
 Cada gate conserva commit, integración y publicación separados. No se cambia
 tipografía de pantallas existentes en V0.
@@ -92,6 +93,8 @@ inmediato/programado. [REV-VIS-005](../../governance/reviews/vis-02-v3-pdf.md)
 cierra V3 en el packing list formal imprimible, con separación comprobada entre
 UI y documento. El resto de los correos y documentos conserva migración
 gradual. [REV-VIS-006](../../governance/reviews/vis-02-v4-visual.md) aprueba
-firma española, firma `zh-CN`, UI china e impresión en local. Gmail, Outlook y
-Apple Mail permanecen como evidencia externa pendiente; por eso el SDD no se
-eleva artificialmente a `done`.
+firma española, firma `zh-CN`, UI china e impresión en local.
+[REV-VIS-010](../../governance/reviews/vis-02-external-mail-client-evidence.md)
+verifica entrega y estructura MIME/HTML de una muestra sintética en Gmail y
+Outlook. Las capturas visuales de Gmail, Outlook y Apple Mail permanecen
+pendientes; por eso el SDD no se eleva artificialmente a `done`.

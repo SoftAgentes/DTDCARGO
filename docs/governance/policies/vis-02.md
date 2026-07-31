@@ -102,8 +102,9 @@ salida corporativa se selecciona explícitamente la voz de marca.
 - el packing list mantiene Noto Sans SC en pantalla y aplica Noto Serif SC sólo
   a sus bloques `zh-CN` durante impresión;
 - otros correos y documentos continúan en adopción gradual por consumidor;
-- existe evidencia local de PDF, impresión, extracción y firmas; faltan pruebas
-  reales en Gmail, Outlook y Apple Mail.
+- existe evidencia local de PDF, impresión, extracción y firmas;
+- una muestra controlada verificó entrega y estructura MIME/HTML en Gmail y
+  Outlook; faltan capturas visuales reales en Gmail, Outlook y Apple Mail.
 
 ## 8. Gates cerrados y siguientes
 
@@ -117,8 +118,8 @@ Cerrado por SDD-0175:
 Siguiente por consumidor:
 
 - inventariar y migrar sólo un correo/PDF/documento que contenga chino real;
-- verificar español y `zh-CN` en Gmail, Outlook y Apple Mail con buzones
-  controlados;
+- cerrar la evidencia visual de `zh-CN` en Gmail, Outlook y Apple Mail con
+  buzones controlados;
 - validar que label/valor siga distinguiéndose sin webfonts;
 - conservar BD-036 y `BRAND.md` sincronizados con la excepción documental.
 
