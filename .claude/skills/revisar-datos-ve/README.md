@@ -1,4 +1,4 @@
-# revisar-datos-personales · fork Venezuela + China
+# revisar-datos-ve · fork Venezuela + China de `revisar-datos-personales`
 
 Auditoría de datos personales sobre un repositorio real, con evidencia
 `archivo:línea`. **No es asesoría legal**: produce un inventario técnico y una

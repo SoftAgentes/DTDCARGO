@@ -103,10 +103,10 @@ docs-legal/
 .claude/skills/*
 !.claude/skills/ui-pro/
 !.claude/skills/ui-pro/**
-# Skill /revisar-datos-personales (auditoría de datos personales VE + China) —
+# Skill /revisar-datos-ve (auditoría de datos personales VE + China) —
 # fork MIT de Carlos Domínguez, versionado para el equipo.
-!.claude/skills/revisar-datos-personales/
-!.claude/skills/revisar-datos-personales/**
+!.claude/skills/revisar-datos-ve/
+!.claude/skills/revisar-datos-ve/**
 # Scaffolding genérico que `forge update` deja en la raíz — tooling LOCAL, no DTD.
 .husky/
 COMMAND_INDEX.md

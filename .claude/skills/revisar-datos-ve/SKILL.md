@@ -1,5 +1,5 @@
 ---
-name: revisar-datos-personales
+name: revisar-datos-ve
 description: Audita un proyecto de software frente al marco de proteccion de datos personales de Venezuela (CRBV art. 28 y 60, jurisprudencia vinculante de la Sala Constitucional del TSJ, Ley Especial contra los Delitos Informaticos y Ley sobre Mensajes de Datos y Firmas Electronicas) y de China (PIPL) cuando hay tratamiento en territorio chino. Levanta el inventario de datos personales que trata el sistema, revisa doce puntos de cumplimiento con evidencia de archivo y linea, y entrega un reporte que separa lo verificado de lo que no se pudo comprobar. Usar cuando alguien pida revisar cumplimiento, privacidad, proteccion de datos, datos personales, habeas data, derecho al olvido, minimizacion, consentimiento, derecho de supresion, portabilidad, firma electronica, valor probatorio, SUSCERTE, PSC, PIPL, RGPD o 21.719 en un repositorio.
 ---
 

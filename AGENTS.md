@@ -138,7 +138,7 @@ Toda pantalla nueva o cambio visual sustancial **pasa por `/ui-check`** antes de
 
 ## Datos personales y privacidad
 
-Todo cambio que **capture, mueva o borre datos personales** —campo nuevo en un formulario, columna nueva, bucket, integración con un tercero, captura en campo— pasa por **`/revisar-datos-personales`** ([`.claude/skills/revisar-datos-personales/`](.claude/skills/revisar-datos-personales/)). Es **advisory**: entrega hallazgos con `archivo:línea` y **nunca** afirma que el proyecto cumple (solo `ENCONTRADO` / `CORRECTO` / `NO VERIFICABLE`).
+Todo cambio que **capture, mueva o borre datos personales** —campo nuevo en un formulario, columna nueva, bucket, integración con un tercero, captura en campo— pasa por **`/revisar-datos-ve`** ([`.claude/skills/revisar-datos-ve/`](.claude/skills/revisar-datos-ve/)). Es **advisory**: entrega hallazgos con `archivo:línea` y **nunca** afirma que el proyecto cumple (solo `ENCONTRADO` / `CORRECTO` / `NO VERIFICABLE`).
 
 Marco: **Venezuela no tiene ley especial de datos personales.** Las anclas son CRBV arts. 28 y 60, la jurisprudencia vinculante de la Sala Constitucional del TSJ (332/2001 y 759/2025), la Ley Especial contra los Delitos Informáticos (arts. 20-22, **penal**) y la Ley sobre Mensajes de Datos y Firmas Electrónicas. **PIPL de China** aplica al tratamiento del equipo en Yiwu. RGPD y Chile 21.719 son **referencia, no obligación**. Detalle en `references/marco-legal-ve.md` y `references/marco-legal-cn-pipl.md` — **citá desde ahí, nunca de memoria**.
 
