@@ -128,21 +128,46 @@ Los que más pesan: `client-docs` (documentos de identidad) · `client-facades`
 (foto de la vivienda) · `payment-proofs` (datos bancarios) · `bitacora`
 (audio y video de reuniones) · `receipt-photos` (fotos y firmas de entrega).
 
-### D · El espejo de Kommo — 🔴 el mayor volumen del sistema
+### D · El espejo de Kommo — 🔴 el hallazgo más serio del mapa
 
 | Tabla | Filas |
 |---|---|
 | `kommo_contacts` | **2 942** |
 | `kommo_leads` | **2 874** |
 
-**Hay casi siete veces más personas en el espejo del CRM que en la tabla de
-clientes** (428). Son contactos que preguntaron y nunca contrataron: gente sobre
-la que no hay relación comercial, ni contrato, ni base evidente para conservar.
+Hay casi **siete veces más personas en el espejo del CRM que en la tabla de
+clientes** (428). Y **1 547 contactos llevan teléfono o correo dentro de
+`custom_fields`**, no solo un nombre.
 
-Y es un **espejo**: borrar la fila local no borra nada en Kommo. El borrado real
-exige llamar a su API — y `kommo_writeback_outbox` existe pero está dormido.
+> **Corrección a la primera versión de este documento (2026-07-31).** Acá se
+> había escrito que el espejo era peso muerto —"leads que nunca contrataron, sin
+> base para conservar"— y se sugería purgarlo. **Eso estaba mal y borrar habría
+> roto cosas.** El espejo se usa: alimenta los KPIs del dashboard
+> (`dashboard-kpi-queries.ts:213`), la analítica comercial (`kommo-analytics.ts`),
+> la conversión de contacto a cliente (`kommo-convert.ts`) y las campañas de
+> recuperación (`kommo-recovery.ts`). Además, Kommo es el sistema de origen: lo
+> que se borrara localmente **volvería en el siguiente sync**.
 
-**Este es el hallazgo más grande del mapa** y no estaba en la auditoría original.
+**El problema real es otro, y es peor.**
+
+🔴 **El sync nunca borra.** `supabase/functions/kommo-sync/sync.ts` sólo hace
+`upsert` (línea 42, `ignoreDuplicates: false`): no hay ni un `delete` ni una
+reconciliación de lo que desapareció del origen. Es un trinquete de una sola
+dirección.
+
+**Consecuencia:** si una persona pide a DTD que la borren y se la elimina en
+Kommo, **la copia local sobrevive para siempre**. El espejo le gana en duración
+al sistema del que es espejo — que es exactamente lo contrario de lo que un
+espejo debería hacer. Hoy no hay ningún camino por el que un borrado en Kommo
+llegue a esta base.
+
+**Y la antigüedad no ayuda:** el contacto más viejo es del **23-08-2023**;
+**2 322 de 2 942 (79 %) tienen más de un año** y 282 más de dos.
+
+⚠️ **Además, operativo, no legal:** el último sync fue el **2026-07-17**. El
+`pg_cron` diario dejó de correr hace dos semanas, así que los KPIs comerciales
+del dashboard están congelados en esa fecha. Eso no es un problema de datos
+personales, pero se encontró acá y conviene mirarlo.
 
 ### E · Colas, logs y auditoría
 
@@ -185,9 +210,12 @@ Sin esa lista no se puede pasar ninguna fila de 🔴 a 🔵, y **no se inventa**
 
 Cuatro cosas no dependen de la abogada y conviene resolverlas ya:
 
-1. ⭐ **Kommo.** 2 942 personas que nunca fueron clientes, en un espejo de un
-   sistema externo. No hay obligación fiscal que cubra a un lead que no compró.
-   Es, con diferencia, el mayor volumen de datos personales sin fundamento.
+1. ⭐ **Que el sync de Kommo reconcilie borrados.** Hoy sólo hace `upsert`, así
+   que un contacto eliminado en Kommo sobrevive acá indefinidamente. **No es
+   purgar el espejo** —se usa, y volvería en el siguiente sync—: es que el
+   espejo deje de sobrevivirle al original. Sin esto, ningún borrado que DTD
+   ejecute en su CRM llega a esta base, y la promesa de `/privacidad` no se puede
+   cumplir aunque todo lo demás esté resuelto.
 2. **El borrado tiene que alcanzar Storage.** Hoy ninguna ruta lo hace. Y como
    la ruta lleva el markbox, hay que borrar el objeto, no solo desreferenciarlo.
 3. **`SET NULL` + markbox en texto es el peor patrón** de los que hay: deja a la
