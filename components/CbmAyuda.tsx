@@ -8,37 +8,48 @@ import { FONT_MONO } from "@/lib/design-tokens";
  *
  * Responde la duda de entrada ("¿qué es un CBM?") SIN sacar al visitante del
  * formulario: la calculadora es superficie de conversión y mandarlo a /faq en
- * la misma pestaña le bota lo que llevaba escrito. Quien quiere más detalle
- * (las tres unidades, pulgadas, pies cúbicos) sale por el enlace del final, y
- * ese sí abre en pestaña nueva.
+ * la misma pestaña le bota lo que llevaba escrito. Quien quiere el detalle
+ * completo (las tres unidades, el diagrama, pulgadas) sale por el enlace del
+ * final, y ese sí abre en pestaña nueva.
  *
  * **Por qué la Popover API nativa y no un div posicionado:** la tarjeta de la
  * calculadora es `overflow-hidden`, así que un popover normal se recortaría
  * contra su borde. `popover="auto"` renderiza en el *top layer* — ignora
- * `overflow` y `z-index` — y además trae gratis el cierre con `Esc`, el cierre
- * al hacer clic afuera y la devolución del foco al botón.
+ * `overflow` y `z-index` — y además trae gratis el cierre con `Esc` y el cierre
+ * al hacer clic afuera.
  *
- * La posición sí se calcula a mano (CSS Anchor Positioning todavía no tiene
- * soporte parejo): junto al campo en escritorio, pegado abajo a todo lo ancho
- * en teléfono. Si el navegador no soporta la API, el botón degrada a enlace
- * directo a la FAQ.
+ * **Lo que se rompió acá una vez (2026-07-31) y por qué el panel usa
+ * `.glass-pop`:** el panel llevaba la clase `flex` de Tailwind. Un popover
+ * cerrado se oculta con el `display:none` del user-agent, y cualquier clase de
+ * display de autor le gana por especificidad — así que el panel quedaba visible
+ * SIEMPRE: se veía apenas cargaba la página, la × cambiaba el estado interno
+ * pero no lo ocultaba, y Esc y el clic afuera tampoco. La cura no es quitar esa
+ * clase y confiar: es que los dos estados (`display:none` cerrado /
+ * `display:flex` abierto) vivan juntos en una sola clase del sistema
+ * (`.glass-pop`, en `app/globals.css`) donde no se puedan desincronizar.
+ *
+ * **Por qué vidrio y por qué del denso:** BD-031 permite glass justo acá
+ * (superficie flotante sobre navy). Pero este panel flota sobre fondo MIXTO —
+ * papel a un lado, la tarjeta navy de la calculadora al otro — y con el
+ * `--glass-bg` normal la tinta cae a 4.22:1 sobre navy. Por eso usa
+ * `--glass-bg-strong`: medido sobre los tres fondos reales da 12.4–16.5:1 en
+ * texto y 7.9–10.5:1 en el acento wine.
+ *
+ * La posición se calcula a mano (CSS Anchor Positioning todavía no tiene
+ * soporte parejo): **arriba** del botón en escritorio, para no taparle al
+ * visitante el campo que vino a llenar; hoja inferior en teléfono. Si el
+ * navegador no soporta la API, el botón degrada a enlace directo a la FAQ.
  */
-/**
- * Estilos del mini-diagrama. Van por `style` (CSS real) y NO como atributos de
- * presentación: `fill="var(--x)"` no resuelve en Safari y el dibujo saldría
- * negro sobre el navy. El wine sobre fondo oscuro es `--wine-on-dark`; el wine
- * crudo reprueba AA ahí.
- */
-const WINE_OSCURO = "var(--wine-on-dark, #E8748A)";
-const PUNTA = { fill: WINE_OSCURO } as const;
-const CARA = { fill: WINE_OSCURO, stroke: "rgba(255,255,255,0.8)" } as const;
-const COTA = { stroke: WINE_OSCURO, fill: "none" } as const;
-const COTA_TXT = {
-  fill: WINE_OSCURO,
-  fontFamily: FONT_MONO,
-  fontSize: 12,
-  fontWeight: 700,
-} as const;
+const ANCHO = 320;
+const MARGEN = 12;
+/** Alto de respaldo para la PRIMERA colocación: con el panel cerrado
+ *  `offsetHeight` es 0 y no hay nada que medir. Apenas abre se recoloca con la
+ *  altura real (evento `toggle`). Va MEDIDO (266px), no estimado a ojo: con un
+ *  número bajo el panel elige mal el lado y se abre hacia donde no cabe. */
+const ALTO_ESTIMADO = 266;
+
+const clamp = (v: number, min: number, max: number) =>
+  Math.min(Math.max(v, min), Math.max(min, max));
 
 export function CbmAyuda() {
   const id = useId().replace(/:/g, "");
@@ -49,8 +60,6 @@ export function CbmAyuda() {
    *  venir del propio navegador (Esc o clic afuera), no solo del botón. */
   const [abierto, setAbierto] = useState(false);
 
-  // Coloca el panel: en teléfono como hoja inferior, en escritorio junto al
-  // campo, y siempre dentro de la ventana (nunca cortado contra un borde).
   useEffect(() => {
     const pop = popRef.current;
     const btn = btnRef.current;
@@ -58,39 +67,50 @@ export function CbmAyuda() {
 
     function colocar() {
       if (!pop || !btn) return;
-      const movil = window.matchMedia("(max-width: 640px)").matches;
-      if (movil) {
+
+      if (window.matchMedia("(max-width: 640px)").matches) {
+        // Teléfono: hoja inferior, al alcance del pulgar.
+        pop.style.cssText = "";
         pop.style.left = "8px";
         pop.style.right = "8px";
         pop.style.bottom = "8px";
         pop.style.top = "auto";
         pop.style.width = "auto";
+        pop.removeAttribute("data-lado");
         return;
       }
+
       const r = btn.getBoundingClientRect();
-      const ancho = 330;
-      const margen = 12;
-      const left = Math.min(
-        Math.max(margen, r.left - 8),
-        window.innerWidth - ancho - margen,
+      const alto = pop.offsetHeight || ALTO_ESTIMADO;
+      const left = clamp(
+        r.left - 20,
+        MARGEN,
+        window.innerWidth - ANCHO - MARGEN,
       );
-      // Si abajo no cabe, se voltea hacia arriba. La altura se MIDE cuando el
-      // panel ya está abierto (`offsetHeight`); el fallback es para la primera
-      // colocación, cuando todavía no renderizó. Con un estimado fijo bajo, el
-      // panel se ponía abajo creyendo que cabía y se salía por el borde: mide
-      // ~430px, no 340.
-      const altoPanel = pop.offsetHeight || 440;
-      const cabeAbajo = window.innerHeight - r.bottom > altoPanel + 16;
+
       pop.style.left = `${left}px`;
       pop.style.right = "auto";
-      pop.style.width = `${ancho}px`;
-      if (cabeAbajo) {
+      pop.style.width = `${ANCHO}px`;
+
+      // Se prefiere ARRIBA: el campo de CBM está JUSTO debajo del botón, así
+      // que abrir hacia abajo le tapa al visitante exactamente lo que vino a
+      // llenar. Solo baja si arriba no cabe.
+      if (r.top > alto + 16) {
+        pop.style.bottom = `${window.innerHeight - r.top + 10}px`;
+        pop.style.top = "auto";
+        pop.dataset.lado = "arriba";
+      } else {
         pop.style.top = `${r.bottom + 10}px`;
         pop.style.bottom = "auto";
-      } else {
-        pop.style.top = "auto";
-        pop.style.bottom = `${window.innerHeight - r.top + 10}px`;
+        pop.dataset.lado = "abajo";
       }
+
+      // El caret apunta al botón que abrió el panel; sin eso el panel se lee
+      // como algo que apareció suelto en la pantalla.
+      pop.style.setProperty(
+        "--caret-x",
+        `${clamp(r.left + r.width / 2 - left - 6, 14, ANCHO - 26)}px`,
+      );
     }
 
     function alAlternar(e: Event) {
@@ -99,8 +119,8 @@ export function CbmAyuda() {
       setAbierto(abre);
     }
 
-    // Ya abierto: se puede MEDIR el panel, así que se recoloca con la altura
-    // real (el `beforetoggle` corre con el panel aún sin renderizar).
+    // Ya abierto: recién acá se puede MEDIR el panel, así que se recoloca con
+    // la altura real (el `beforetoggle` corre con el panel aún sin renderizar).
     // Y al cerrar se devuelve el foco al botón: la Popover API solo lo hace
     // sola cuando la abre un `popovertarget`, y acá se abre a mano.
     function trasAlternar(e: Event) {
@@ -116,10 +136,31 @@ export function CbmAyuda() {
     pop.addEventListener("beforetoggle", alAlternar);
     pop.addEventListener("toggle", trasAlternar);
     window.addEventListener("resize", colocar);
+
+    // La posición es `fixed`: si la página se mueve, el panel se queda quieto y
+    // deja de apuntar al botón. Lo SIGUE en vez de cerrarse — cerrar ante
+    // cualquier scroll se siente como que el panel se cierra solo, y el
+    // navegador scrollea por su cuenta (al enfocar, al hacer clic). Solo se
+    // cierra si el botón se fue de la pantalla: ahí ya no hay a qué apuntar.
+    let pendiente = false;
+    const alScroll = () => {
+      if (pendiente || !pop.matches(":popover-open")) return;
+      pendiente = true;
+      requestAnimationFrame(() => {
+        pendiente = false;
+        if (!pop.matches(":popover-open") || !btn) return;
+        const r = btn.getBoundingClientRect();
+        if (r.bottom < 0 || r.top > window.innerHeight) pop.hidePopover();
+        else colocar();
+      });
+    };
+    window.addEventListener("scroll", alScroll, { passive: true });
+
     return () => {
       pop.removeEventListener("beforetoggle", alAlternar);
       pop.removeEventListener("toggle", trasAlternar);
       window.removeEventListener("resize", colocar);
+      window.removeEventListener("scroll", alScroll);
     };
   }, []);
 
@@ -150,11 +191,16 @@ export function CbmAyuda() {
         aria-expanded={abierto}
         aria-controls={popId}
         aria-label="¿Qué es el CBM?"
-        className="relative inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full border text-[11px] font-bold leading-none transition-colors before:absolute before:left-1/2 before:top-1/2 before:h-[44px] before:w-[44px] before:-translate-x-1/2 before:-translate-y-1/2 before:content-[''] hover:bg-[var(--wine-on-dark,#E8748A)] hover:text-[#10203c] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        title="¿Qué es el CBM?"
+        // El fallback es #D59FA7 (= --color-wine-on-dark, el token canónico de
+        // wine sobre las bandas navy de la web pública). Antes era #E8748A: un
+        // rosa que no existe en la paleta y que solo se veía si el token no
+        // resolvía.
+        className="relative inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full border text-[11px] font-bold leading-none transition-colors before:absolute before:left-1/2 before:top-1/2 before:h-[44px] before:w-[44px] before:-translate-x-1/2 before:-translate-y-1/2 before:content-[''] hover:bg-[var(--wine-on-dark,#D59FA7)] hover:text-[var(--color-ink,#0F1E3D)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
         style={{
           fontFamily: FONT_MONO,
-          borderColor: "var(--wine-on-dark, #E8748A)",
-          color: "var(--wine-on-dark, #E8748A)",
+          borderColor: "var(--wine-on-dark, #D59FA7)",
+          color: "var(--wine-on-dark, #D59FA7)",
         }}
       >
         ?
@@ -166,74 +212,53 @@ export function CbmAyuda() {
         popover="auto"
         role="dialog"
         aria-label="¿Qué es el CBM?"
-        className="fixed m-0 flex flex-col gap-3 rounded-[14px] p-4 backdrop:bg-transparent"
+        // `glass-pop` trae el par display:none / display:flex, la animación de
+        // entrada y el caret. NUNCA agregar acá una clase de display suelta.
+        className="glass-pop fixed m-0 flex-col gap-3 rounded-[14px] p-4 backdrop:bg-transparent"
         style={{
-          background: "#1d2c4b",
-          border: "1px solid rgba(255,255,255,0.16)",
-          boxShadow: "0 18px 44px rgba(0,0,0,0.45)",
           maxWidth: "calc(100vw - 16px)",
+          background: "var(--glass-bg-strong)",
+          border: "1px solid var(--glass-border)",
+          color: "var(--glass-ink)",
+          backdropFilter: "var(--glass-blur)",
+          // Respaldo obligatorio de BD-031: sin esto Safari no esmerila.
+          WebkitBackdropFilter: "var(--glass-blur)",
+          boxShadow: "var(--glass-hi), var(--glass-shadow)",
         }}
       >
-        <div className="flex items-start justify-between gap-2.5">
-          <h3 className="m-0 text-[15px] font-bold text-white">
-            ¿Qué es el CBM?
-          </h3>
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="m-0 text-[15px] font-bold">¿Qué es el CBM?</h3>
+          {/* 44×44 reales de área táctil (el ícono es chico, el blanco no).
+              La × anterior medía 19×18 al 60% de opacidad: se perdía. */}
           <button
             type="button"
             popoverTarget={popId}
             popoverTargetAction="hide"
             aria-label="Cerrar"
-            className="rounded-[4px] px-1 text-[18px] leading-none text-white/60 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
+            className="-m-3 flex h-[44px] w-[44px] flex-shrink-0 items-center justify-center rounded-full text-[20px] leading-none opacity-70 transition hover:bg-black/5 hover:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-4px]"
+            style={{ color: "var(--glass-ink)" }}
           >
             ×
           </button>
         </div>
 
-        <p className="m-0 text-[13.5px] leading-[1.55] text-white/85">
-          Es el <strong className="text-white">metro cúbico</strong>: el espacio
-          que ocupa tu carga en el contenedor. Se cobra por el espacio que ocupa,
-          no por lo que pesa.
+        <p className="m-0 text-[13.5px] leading-[1.55]">
+          Es el <strong>metro cúbico</strong>: el espacio que ocupa tu carga en
+          el contenedor. Se cobra por el espacio que ocupa, no por lo que pesa.
         </p>
 
-        <div className="rounded-[10px] bg-black/20 p-1.5">
-          <svg
-            viewBox="0 0 300 150"
-            className="block h-auto w-full"
-            role="img"
-            aria-label="Caja con sus tres medidas: largo, ancho y alto."
-          >
-            <defs>
-              <marker
-                id={`p-${id}`}
-                viewBox="0 0 10 10"
-                refX="5"
-                refY="5"
-                markerWidth="4.5"
-                markerHeight="4.5"
-                orient="auto-start-reverse"
-              >
-                <path d="M 0 1 L 10 5 L 0 9 z" style={PUNTA} />
-              </marker>
-            </defs>
-            <path d="M 60 62 L 96 34 L 196 34 L 160 62 Z" style={{ ...CARA, fillOpacity: 0.16 }} strokeWidth="1.5" strokeLinejoin="round" />
-            <path d="M 160 62 L 196 34 L 196 92 L 160 120 Z" style={{ ...CARA, fillOpacity: 0.26 }} strokeWidth="1.5" strokeLinejoin="round" />
-            <path d="M 60 62 L 160 62 L 160 120 L 60 120 Z" style={{ fill: "rgba(255,255,255,0.06)", stroke: "rgba(255,255,255,0.8)" }} strokeWidth="1.5" strokeLinejoin="round" />
-            <path d="M 48 62 L 48 120" style={COTA} strokeWidth="1.3" markerStart={`url(#p-${id})`} markerEnd={`url(#p-${id})`} />
-            <text x="42" y="95" textAnchor="end" style={COTA_TXT}>Alto</text>
-            <path d="M 60 133 L 160 133" style={COTA} strokeWidth="1.3" markerStart={`url(#p-${id})`} markerEnd={`url(#p-${id})`} />
-            <text x="110" y="148" textAnchor="middle" style={COTA_TXT}>Largo</text>
-            <path d="M 172 127 L 208 99" style={COTA} strokeWidth="1.3" markerStart={`url(#p-${id})`} markerEnd={`url(#p-${id})`} />
-            <text x="216" y="118" textAnchor="start" style={COTA_TXT}>Ancho</text>
-          </svg>
-        </div>
-
         <div
-          className="rounded-[8px] bg-black/20 px-2 py-2.5 text-center text-[12.5px] font-bold tabular-nums"
-          style={{ fontFamily: FONT_MONO, color: "var(--wine-on-dark, #E8748A)" }}
+          className="rounded-[10px] px-3 py-2.5 text-center text-[13px] font-bold tabular-nums"
+          style={{
+            fontFamily: FONT_MONO,
+            background: "var(--glass-inset)",
+            color: "var(--color-wine)",
+          }}
         >
           Largo × Ancho × Alto ÷ 1.000.000
         </div>
-        <p className="m-0 text-[12.5px] leading-[1.5] text-white/60">
+
+        <p className="m-0 text-[12.5px] leading-[1.5] opacity-75">
           Con las medidas en centímetros, que es como vienen del proveedor.
         </p>
 
@@ -241,8 +266,8 @@ export function CbmAyuda() {
           href="/faq#cbm"
           target="_blank"
           rel="noopener noreferrer"
-          className="self-start border-b pb-px text-[13px] font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-white"
-          style={{ color: "var(--wine-on-dark, #E8748A)" }}
+          className="self-start border-b pb-px text-[13px] font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[3px]"
+          style={{ color: "var(--color-wine)" }}
         >
           Ver la explicación completa →
         </a>

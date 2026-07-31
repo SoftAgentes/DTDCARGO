@@ -35,13 +35,19 @@ export function Footer() {
               construyendo confianza cliente a cliente, contenedor a
               contenedor.
             </p>
+            {/* Al interactuar, cada icono toma el color de SU red (founder
+                2026-07-31). Los hex viven en tokens --social-* de globals.css,
+                nunca sueltos acá. Los tres estados van juntos a propósito:
+                hover = mouse · focus-visible = teclado · active = pantalla
+                táctil, donde el hover en muchos navegadores no llega o se queda
+                pegado. Los enlaces no se tocaron. */}
             <div className="mt-5 flex items-center gap-2.5">
               <a
                 href={CONTACT.instagram.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`Instagram ${CONTACT.instagram.handle}`}
-                className="text-white/55 hover:text-white transition-colors"
+                className="text-white/55 transition-colors duration-200 hover:text-[var(--social-instagram)] focus-visible:text-[var(--social-instagram)] active:text-[var(--social-instagram)]"
               >
                 <InstagramIcon size={34} />
               </a>
@@ -50,7 +56,7 @@ export function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`YouTube ${CONTACT.youtube.handle}`}
-                className="text-white/55 hover:text-white transition-colors"
+                className="text-white/55 transition-colors duration-200 hover:text-[var(--social-youtube)] focus-visible:text-[var(--social-youtube)] active:text-[var(--social-youtube)]"
               >
                 <YoutubeIcon size={34} />
               </a>
@@ -59,7 +65,7 @@ export function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`TikTok ${CONTACT.tiktok.handle}`}
-                className="text-white/55 hover:text-white transition-colors"
+                className="text-white/55 transition-colors duration-200 hover:text-[var(--social-tiktok)] focus-visible:text-[var(--social-tiktok)] active:text-[var(--social-tiktok)]"
               >
                 <TiktokIcon size={34} />
               </a>
@@ -121,13 +127,18 @@ export function Footer() {
                 </a>
               </li>
               <li className="text-[14.5px]">
+                {/* El icono verdea con el enlace (no por sí solo): acá el
+                    objetivo de clic es la fila entera, no el glifo. */}
                 <a
                   href={`https://wa.me/${CONTACT.ve.whatsappRaw}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-white/85 hover:text-white transition-colors"
+                  className="group inline-flex items-center gap-2 text-white/85 hover:text-white transition-colors"
                 >
-                  <WhatsAppIcon size={15} className="text-white/55 flex-shrink-0" />
+                  <WhatsAppIcon
+                    size={15}
+                    className="text-white/55 flex-shrink-0 transition-colors duration-200 group-hover:text-[var(--social-whatsapp)] group-focus-visible:text-[var(--social-whatsapp)] group-active:text-[var(--social-whatsapp)]"
+                  />
                   <span>{CONTACT.ve.whatsapp} · WhatsApp</span>
                 </a>
               </li>
