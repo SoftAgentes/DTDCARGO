@@ -1,10 +1,10 @@
 ---
 sdd: "0175"
 title: "VIS-02 — tipografía por voz, destinatario e idioma"
-status: in-progress
+status: done
 author: "Sam (founder) + Codex"
 created: 2026-07-29
-updated: 2026-07-30
+updated: 2026-07-31
 supersedes: null
 superseded_by: null
 related: ["0165"]
@@ -58,8 +58,11 @@ V0 queda cerrado. Esta decisión no carga todavía la fuente.
    renderers se migran por slices.
 4. **V3 PDF:** cerrado en el packing list imprimible; los demás documentos se
    migran sólo cuando exista contenido chino real.
-5. **V4 visual:** validación local e impresión cerradas; Gmail, Outlook y Apple
-   Mail requieren un smoke real con buzones controlados.
+5. **V4 visual:** validación local e impresión cerradas; entrega y estructura
+   de una muestra `zh-CN` verificadas en Gmail y Outlook; Outlook visual
+   cerrado en modo oscuro; Gmail cerrado por confirmación explícita del founder
+   sin exigir una segunda captura; Apple Mail se clasifica `no aplica` por
+   decisión explícita del founder.
 
 Cada gate conserva commit, integración y publicación separados. No se cambia
 tipografía de pantallas existentes en V0.
@@ -76,7 +79,7 @@ tipografía de pantallas existentes en V0.
 
 ## 6. Estado
 
-SDD `in-progress`; V0 y V1 están cerrados. El commit `e7be56c6`:
+SDD `done`; V0–V4 están cerrados. El commit `e7be56c6`:
 
 - cargó Noto Serif SC mediante `next/font` sin bloquear render ni precargarla;
 - creó `--f-cn-ui` y `--f-cn-document`;
@@ -92,6 +95,13 @@ inmediato/programado. [REV-VIS-005](../../governance/reviews/vis-02-v3-pdf.md)
 cierra V3 en el packing list formal imprimible, con separación comprobada entre
 UI y documento. El resto de los correos y documentos conserva migración
 gradual. [REV-VIS-006](../../governance/reviews/vis-02-v4-visual.md) aprueba
-firma española, firma `zh-CN`, UI china e impresión en local. Gmail, Outlook y
-Apple Mail permanecen como evidencia externa pendiente; por eso el SDD no se
-eleva artificialmente a `done`.
+firma española, firma `zh-CN`, UI china e impresión en local.
+[REV-VIS-010](../../governance/reviews/vis-02-external-mail-client-evidence.md)
+verifica entrega y estructura MIME/HTML de una muestra sintética en Gmail y
+Outlook. La misma revisión cierra Outlook visual en modo oscuro. La captura de
+Gmail muestra la traducción al español, pero el founder confirmó explícitamente
+el render original y aceptó cerrar ese cliente sin una segunda captura. El
+founder determinó que Apple Mail no requiere verificación y se clasifica
+`no aplica`, sin declarar ese cliente verificado. Con esa decisión queda
+cerrado el gate externo y el SDD pasa a `done`; los consumidores futuros se
+adoptan mediante slices separados con alcance y evidencia propios.
