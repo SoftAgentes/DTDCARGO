@@ -109,6 +109,13 @@ $$;
 comment on function public.legal_docs_guard() is
   'SDD-0191 Slice A: sella body_sha256 server-side y hace inmutable el documento publicado (solo cambian status vigente→archivada y change_note). DELETE prohibido.';
 
+-- SECURITY INVOKER a propósito (no DEFINER): un trigger corre igual y no hace
+-- falta escalar privilegios. Aun así se revoca el EXECUTE que Postgres le da a
+-- PUBLIC por defecto — convención de 0292 y deuda que no se vuelve a abrir.
+revoke all on function public.legal_docs_guard() from public;
+revoke all on function public.legal_docs_guard() from anon;
+revoke all on function public.legal_docs_guard() from authenticated;
+
 drop trigger if exists legal_docs_guard_trg on public.legal_docs;
 create trigger legal_docs_guard_trg
   before insert or update or delete on public.legal_docs
