@@ -38,9 +38,9 @@ confidencialidad: interno
 > escrituras best-effort y cobertura obligatoria incompleta.
 > [REV-AUD-014](../../governance/reviews/aud-corte-d.md) aprueba el
 > [diseño por dominios](diseno-correctivo-corte-d.md).
-> [SDD-0174](../0174-audit-atomicidad-dominios/spec.md) está abierto:
-> `0289`–`0293` fueron aplicadas individualmente por REV-AUD-042, mientras las
-> no conformidades D2/D3/D4 permanecen. El inventario y diseño E0
+> [SDD-0174](../0174-audit-atomicidad-dominios/spec.md) está cerrado:
+> `0289`–`0293` fueron aplicadas individualmente por REV-AUD-042 y
+> `0294`–`0296` cerraron D2/D3/D4 en Producción por REV-AUD-046. El inventario y diseño E0
 > fueron aprobados por
 > [REV-AUD-016](../../governance/reviews/aud-corte-e.md); E1–E5 no están
 > abiertos.

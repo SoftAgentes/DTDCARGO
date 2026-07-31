@@ -66,9 +66,10 @@ otros dominios, Cloud, Vercel ni Producción.
 - pruebas SQL terminan en rollback;
 - typecheck, Vitest, lint proporcional y gates documentales pasan.
 
-## 5. Resultado y gate externo
+## 5. Resultado y aplicación
 
 El slice local retira la no conformidad D2 descrita por REV-AUD-019. La
-migración `0294_audit_d2_human_reasons` no está autorizada ni aplicada en
-Producción; hasta una autorización nominal individual, Producción conserva el
-comportamiento legacy.
+migración `0294_audit_d2_human_reasons` fue autorizada nominalmente, aplicada
+individualmente y verificada en Producción el 2026-07-31. El ledger, las cinco
+RPC security-invoker, las ACL y el wrapper del writer quedaron conformes según
+[REV-AUD-046](../../governance/reviews/aud-sdd-0174-prod-close.md).

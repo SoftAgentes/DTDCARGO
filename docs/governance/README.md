@@ -10,7 +10,7 @@
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-31 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-100 · Gobernanza 6 reconciliada](BASELINE-2026-07-31-05.md) |
+| Línea base vigente | [LB-SGE-101 · SDD-0174 cerrado en Producción](BASELINE-2026-07-31-06.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -109,6 +109,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Motivos humanos D2 R3 | [SDD-0187 + REV-AUD-043](../specs/0187-audit-d2-human-reasons/spec.md) |
 | Motivos humanos D3 R3 | [SDD-0188 + REV-AUD-044](../specs/0188-audit-d3-human-reasons/spec.md) |
 | Path vacío D4 R3 | [SDD-0189 + REV-AUD-045](../specs/0189-audit-d4-empty-search-path/spec.md) |
+| Cierre productivo D2–D4 y SDD-0174 | [REV-AUD-046](reviews/aud-sdd-0174-prod-close.md) |
 | Inventario read-only del Corte E | [E0 · repo y Cloud](../specs/0166-auditoria-gobernada-aud-01-aud-02/inventario-corte-e-2026-07-29.md) |
 | Diseño y revisión del Corte E | [REV-AUD-016](reviews/aud-corte-e.md) |
 | Fundamento verificable del Corte E | [SDD-0186 + REV-AUD-041](../specs/0186-audit-retention-foundation/spec.md) |
@@ -207,7 +208,7 @@ disfraza elevando el estado normativo.
 | BTN-01 | Semántica, jerarquía y contrato de botones | aprobada v1.1 | Contrato menu button precisado; adopción parcial | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | HTD-01 | Confirmación por presión sostenida | aprobada | [Contrato v1.0](policies/htd-01.md) consolidado; no implementado | Crear SDD solo para una entidad R3 clasificada por MP-01 |
 | AVS-01 | Avisos y confirmaciones | verificada | Primitiva conforme; consumidores legacy se migran solo dentro de slices R2/R3 | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
-| AUD-01 | Evento auditable y vínculo con acciones | aprobada | D1–D5 aplicados en Producción; D2–D4 corregidos localmente mediante 0294–0296 pendientes de Producción | [REV-AUD-045](reviews/aud-d4-empty-search-path-r3.md) · [REV-AUD-044](reviews/aud-d3-human-reasons-r3.md) · [REV-AUD-043](reviews/aud-d2-human-reasons-r3.md) · [REV-AUD-042](reviews/aud-roadmap-prod-application.md) |
+| AUD-01 | Evento auditable y vínculo con acciones | aprobada | D1–D5 y correctivos D2–D4 aplicados y verificados individualmente en Producción; SDD-0174 cerrado | [REV-AUD-046](reviews/aud-sdd-0174-prod-close.md) · [REV-AUD-045](reviews/aud-d4-empty-search-path-r3.md) · [REV-AUD-044](reviews/aud-d3-human-reasons-r3.md) · [REV-AUD-043](reviews/aud-d2-human-reasons-r3.md) · [REV-AUD-042](reviews/aud-roadmap-prod-application.md) |
 | AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B, guardrail tenant 0268 y consulta gobernada 0270 aplicados; E1 cerrado sin fuente para retención ejecutable | [REV-AUD-042](reviews/aud-roadmap-prod-application.md); [REV-AUD-041](reviews/aud-corte-e1-foundation.md) bloquea E2–E5 por fuente |
 | VIS-01 | Jerarquía visual y distribución 60-30-10 | aprobada | Adopción parcial; muestreo acotado a slices y clasificación de literales | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | V1 tokens; V2 firmas; V3 PDF; V4 local; entrega y MIME Gmail/Outlook verificados; Outlook visual conforme; Gmail cerrado por confirmación founder; Apple Mail `no aplica`; UI china conserva Noto Sans SC | [REV-VIS-010](reviews/vis-02-external-mail-client-evidence.md); gate externo cerrado |
@@ -277,8 +278,9 @@ aprobaron en LB-SGE-004. El orden que gobierna la siguiente fase es:
    tienen recibos individuales y R29 aprobó replay, seed, E2E, verificación y
    teardown terminal. C0 está aprobado por REV-AUD-012; D1 y D5 están
    verificados localmente y D2–D4 corrigen sus no conformidades mediante
-   `0294`–`0296`, pendientes de Producción; `0270` y `0289`–`0293` ya fueron
-   aplicados individualmente;
+   `0294`–`0296`, aplicados y verificados individualmente en Producción por
+   REV-AUD-046; `0270` y `0289`–`0293` también fueron aplicados
+   individualmente;
 3. revisar las políticas v0.1 por bloques coherentes, no como aprobación masiva;
 4. conservar VIS-02 V1–V4 integrados localmente; Gmail y Outlook tienen entrega
    y estructura controladas, Outlook tiene evidencia visual y Gmail se cerró
@@ -309,9 +311,9 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-100 · Gobernanza 6 reconciliada](BASELINE-2026-07-31-05.md).
+[LB-SGE-101 · SDD-0174 cerrado en Producción](BASELINE-2026-07-31-06.md).
 El corte anterior permanece en
-[LB-SGE-099](BASELINE-2026-07-31-04.md).
+[LB-SGE-100](BASELINE-2026-07-31-05.md).
 El cierre del control plane permanece en
 [LB-SGE-074](BASELINE-2026-07-29-46.md).
 La estabilidad bajo carga del guardia SDD-0164 permanece en

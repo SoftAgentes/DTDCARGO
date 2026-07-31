@@ -1,7 +1,7 @@
 ---
 sdd: "0174"
 title: "Auditoría — atomicidad por dominios"
-status: in-progress
+status: done
 author: "Sam (founder) + Codex"
 created: 2026-07-29
 updated: 2026-07-31
@@ -68,9 +68,9 @@ máquina antes de modificar suspensión/reactivación de usuarios.
 | D1 inventario | aprobado | [inventario D1](inventario-d1-acceso-configuracion-2026-07-29.md) |
 | D1 diseño | aprobado | [REV-AUD-017](../../governance/reviews/aud-d1-access-config-design.md) |
 | D1 implementación | aplicada en Producción | [REV-AUD-018](../../governance/reviews/aud-d1-access-config-implementation.md) |
-| D2 | motivo humano conforme localmente; Producción pendiente 0294 | [REV-AUD-043](../../governance/reviews/aud-d2-human-reasons-r3.md) |
-| D3 | motivo humano conforme localmente; Producción pendiente 0295 | [REV-AUD-044](../../governance/reviews/aud-d3-human-reasons-r3.md) |
-| D4 | path vacío conforme localmente; Producción pendiente 0296 | [REV-AUD-045](../../governance/reviews/aud-d4-empty-search-path-r3.md) |
+| D2 | motivo humano aplicado y verificado en Producción | [REV-AUD-043](../../governance/reviews/aud-d2-human-reasons-r3.md) · [REV-AUD-046](../../governance/reviews/aud-sdd-0174-prod-close.md) |
+| D3 | motivo humano aplicado y verificado en Producción | [REV-AUD-044](../../governance/reviews/aud-d3-human-reasons-r3.md) · [REV-AUD-046](../../governance/reviews/aud-sdd-0174-prod-close.md) |
+| D4 | path vacío aplicado y verificado en Producción | [REV-AUD-045](../../governance/reviews/aud-d4-empty-search-path-r3.md) · [REV-AUD-046](../../governance/reviews/aud-sdd-0174-prod-close.md) |
 | D5 | aplicada en Producción | [REV-AUD-022](../../governance/reviews/aud-d5-residual.md) |
 | Aplicación D1–D5 | verificada individualmente | [REV-AUD-042](../../governance/reviews/aud-roadmap-prod-application.md) |
 
@@ -104,8 +104,10 @@ workflow durable intención → Auth → confirmación/compensación. No declara
 atomicidad ACID entre PostgreSQL y Supabase Auth.
 
 D1–D5 están aplicados individualmente en Producción por REV-AUD-042. SDD-0187
-y SDD-0188 retiran localmente las no conformidades de motivo D2/D3, y SDD-0189
-retira localmente el path legacy D4. `0294`–`0296` conservan gates nominales
-separados de Producción. D5 incorpora idempotencia, lease y reconciliación
-durable. La spec permanece `in-progress` por las aplicaciones externas
-pendientes; ningún estado local se presenta como cumplimiento de Producción.
+y SDD-0188 retiran las no conformidades de motivo D2/D3, y SDD-0189 retira el
+path legacy D4. El 2026-07-31 se aplicaron, una por una y con autorización
+nominal, `0294_audit_d2_human_reasons`,
+`0295_audit_d3_human_reasons` y
+`0296_audit_d4_empty_search_path`. REV-AUD-046 registra ledger,
+postcondiciones, ACL y advisors posteriores. D5 conserva idempotencia, lease y
+reconciliación durable. SDD-0174 queda `done`.

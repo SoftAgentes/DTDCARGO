@@ -56,8 +56,11 @@ No abre callers, UI, lógica de estiba, payloads, Cloud, Vercel ni Producción.
 - la prueba SQL termina en rollback;
 - gates documentales y `diff --check` pasan.
 
-## 5. Resultado y gate externo
+## 5. Resultado y aplicación
 
 El slice local retira la no conformidad D4 descrita por REV-AUD-021. La
-migración `0296_audit_d4_empty_search_path` no está autorizada ni aplicada en
-Producción; requiere autorización nominal individual separada.
+migración `0296_audit_d4_empty_search_path` fue autorizada nominalmente,
+aplicada individualmente y verificada en Producción el 2026-07-31. Las cinco
+RPC conservan owner `postgres`, `SECURITY DEFINER` y ejecución exclusiva de
+`service_role`; quedaron con `search_path=''` y casts de enum cualificados
+según [REV-AUD-046](../../governance/reviews/aud-sdd-0174-prod-close.md).
