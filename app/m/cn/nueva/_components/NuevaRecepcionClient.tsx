@@ -41,9 +41,13 @@ import type {
 // Tipos del cliente picker (server pasa via prop)
 // ─────────────────────────────────────────────────────────────────────────
 
+/**
+ * PRIVACIDAD (auditoría 2026-07, hallazgo H-7): el equipo CN identifica al
+ * importador SOLO por Shipping Mark. El nombre real NO viaja a este
+ * dispositivo — el server ni lo selecciona (`app/m/cn/nueva/page.tsx`).
+ */
 export type PickerClient = {
   markbox: string;
-  name: string;
 };
 
 export type PickerCity = {
@@ -271,15 +275,13 @@ export function NuevaRecepcionClient({
   }, [state.ok, state.receiptCode, state.receiptId]);
 
   const submit = () => {
-    const clientObj = reception.client
-      ? clients.find((c) => c.markbox === reception.client)
-      : null;
-
     const payload: CreateReceiptInput = {
       warehouse_id: defaultWarehouseId,
       is_orphan: reception.orphan,
       client_markbox: reception.orphan ? null : reception.client || null,
-      client_name: reception.orphan ? null : clientObj?.name ?? null,
+      // Privacidad: el dispositivo CN no conoce el nombre del importador. Lo
+      // resuelve el server desde el Shipping Mark (RPC create_receipt_as_operario).
+      client_name: null,
       orphan_marks: reception.orphan ? reception.marks || null : null,
       orphan_brought_by: reception.orphan ? reception.broughtBy || null : null,
       supplier_name: reception.supplier || null,
@@ -292,7 +294,7 @@ export function NuevaRecepcionClient({
       items: reception.hs
         ? [
             {
-              description: clientObj?.name ?? reception.supplier ?? "Caja",
+              description: reception.supplier ?? "Caja",
               hs_code: reception.hs,
               quantity: null,
               unit_value_usd: null,
@@ -747,12 +749,10 @@ function Step2Identify({
   const [search, setSearch] = useState("");
   const { orphan, client, marks } = reception;
 
+  // Búsqueda SOLO por Shipping Mark: el nombre del importador no existe en
+  // este dispositivo (privacidad · hallazgo H-7).
   const filtered = clients
-    .filter(
-      (c) =>
-        c.markbox.toLowerCase().includes(search.toLowerCase()) ||
-        c.name.toLowerCase().includes(search.toLowerCase()),
-    )
+    .filter((c) => c.markbox.toLowerCase().includes(search.toLowerCase()))
     .slice(0, 8);
 
   const canNext = orphan ? marks.length > 0 : client.length > 0;
@@ -838,17 +838,6 @@ function Step2Identify({
                     >
                       {c.markbox}
                     </code>
-                    <span
-                      style={{
-                        font: "600 13px/1.2 var(--f-sans)",
-                        color: "var(--ink)",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {c.name}
-                    </span>
                     {selected && <span style={{ color: "var(--wine)" }}>{Icon.check(14)}</span>}
                   </button>
                 );
@@ -1214,10 +1203,6 @@ function Step4Confirm({
   isPending: boolean;
   serverError?: string;
 }) {
-  const clientObj = reception.client
-    ? clients.find((c) => c.markbox === reception.client)
-    : null;
-
   return (
     <div>
       <MobileHeader
@@ -1255,7 +1240,7 @@ function Step4Confirm({
             value={
               reception.orphan
                 ? t(lang, "pwa.receipt.orphan_summary", { marks: reception.marks })
-                : clientObj?.name ?? reception.client
+                : reception.client
             }
             highlight={reception.orphan ? "warning" : undefined}
           />

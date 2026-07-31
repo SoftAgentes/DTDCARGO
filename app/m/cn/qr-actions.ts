@@ -33,7 +33,10 @@ export async function pushQrPrintForReceiptAction(
   // Leer la recepción para sacar markbox + cliente + bultos
   const { data: r, error: rErr } = await admin
     .from("warehouse_receipts_cn")
-    .select("id, warehouse_id, client_markbox, client_name, supplier_name, boxes, is_orphan")
+    // PRIVACIDAD (hallazgo H-7): sin `client_name`. La etiqueta QR se imprime y
+    // se pega a la caja EN EL ALMACÉN DE YIWU — poner ahí el nombre del
+    // importador es la fuga más difícil de recoger, porque queda en papel.
+    .select("id, warehouse_id, client_markbox, supplier_name, boxes, is_orphan")
     .eq("id", receiptId)
     .eq("tenant_id", operario.tenant_id)
     .is("deleted_at", null)
@@ -41,7 +44,6 @@ export async function pushQrPrintForReceiptAction(
       id: string;
       warehouse_id: string | null;
       client_markbox: string | null;
-      client_name: string | null;
       supplier_name: string | null;
       boxes: number;
       is_orphan: boolean;
@@ -65,7 +67,8 @@ export async function pushQrPrintForReceiptAction(
     p_operario_id: operario.operario_id,
     p_warehouse_id: r.warehouse_id,
     p_markbox: markbox,
-    p_client_name: r.client_name ?? "—",
+    // La etiqueta lleva el Shipping Mark, que es lo que identifica la carga.
+    p_client_name: markbox,
     p_supplier_name: r.supplier_name,
     p_bultos: r.boxes,
     p_priority: "normal",

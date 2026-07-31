@@ -16,8 +16,14 @@
 
 export type ZoneLayout = { nx: number; ny: number; nz: number };
 
-/** 3 × 2 × 3 = 18 zonas. Espejo del default de la columna en 0241. */
-export const DEFAULT_ZONE_LAYOUT: ZoneLayout = { nx: 3, ny: 2, nz: 3 };
+/**
+ * 3 × 1 × 3 = 9 áreas. Espejo de lo que deja la migración 0297 para los 40'.
+ *
+ * SDD-0184: la altura NO se usa. 0241 había sembrado ny=2, pero el modelo por
+ * lotes de SDD-0155 solo deja elegir izquierda/centro/derecha y la interfaz nunca
+ * muestra niveles. Planificar sobre una dimensión que nadie ve es ruido.
+ */
+export const DEFAULT_ZONE_LAYOUT: ZoneLayout = { nx: 3, ny: 1, nz: 3 };
 
 export type ZoneCoord = { zx: number; zy: number; zz: number };
 

@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 182 specs)
+### Índice de specs (generado · 185 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -220,6 +220,9 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0187 | Auditoría D2 — motivos humanos en anulaciones financieras | done | interno |
 | 0188 | Auditoría D3 — motivos humanos en cancelaciones comerciales | done | interno |
 | 0189 | Auditoría D4 — search_path vacío en RPC logísticas R3 | done | interno |
+| 0191 | Integridad documental y derechos del titular | proposed | interno |
+| 0192 | POD sellado y aviso al receptor | proposed | interno |
+| 0193 | Firma electrónica certificada (PSC · SUSCERTE) | draft | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0179 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0179, 0190 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

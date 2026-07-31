@@ -32,7 +32,9 @@ export default async function EditarRecepcionPage({
   const { data: receipt, error: rErr } = await admin
     .from("warehouse_receipts_cn")
     .select(
-      `id, tenant_id, receipt_code, warehouse_id, client_markbox, client_name,
+      // PRIVACIDAD (hallazgo H-7): sin `client_name` — el equipo CN edita la
+      // recepción identificando al importador por Shipping Mark.
+      `id, tenant_id, receipt_code, warehouse_id, client_markbox,
        is_orphan, orphan_marks, orphan_brought_by,
        supplier_name, supplier_name_translated,
        boxes, total_cbm, total_weight_kg,
@@ -48,7 +50,6 @@ export default async function EditarRecepcionPage({
       receipt_code: string;
       warehouse_id: string;
       client_markbox: string | null;
-      client_name: string | null;
       is_orphan: boolean;
       orphan_marks: string | null;
       orphan_brought_by: string | null;
@@ -86,7 +87,6 @@ export default async function EditarRecepcionPage({
         warehouseId: receipt.warehouse_id,
         isOrphan: receipt.is_orphan,
         clientMarkbox: receipt.client_markbox ?? "",
-        clientName: receipt.client_name ?? "",
         orphanMarks: receipt.orphan_marks ?? "",
         orphanBroughtBy: receipt.orphan_brought_by ?? "",
         supplierName: receipt.supplier_name ?? "",

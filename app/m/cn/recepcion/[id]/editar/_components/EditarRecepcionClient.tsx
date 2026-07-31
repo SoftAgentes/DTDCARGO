@@ -26,7 +26,6 @@ interface ReceiptPreload {
   warehouseId: string;
   isOrphan: boolean;
   clientMarkbox: string;
-  clientName: string;
   orphanMarks: string;
   orphanBroughtBy: string;
   supplierName: string;
@@ -57,7 +56,6 @@ export function EditarRecepcionClient({
 
   // Campos editables (solo los relevantes V1)
   const [clientMarkbox, setClientMarkbox] = useState(receipt.clientMarkbox);
-  const [clientName, setClientName] = useState(receipt.clientName);
   const [orphanMarks, setOrphanMarks] = useState(receipt.orphanMarks);
   const [orphanBroughtBy, setOrphanBroughtBy] = useState(receipt.orphanBroughtBy);
   const [supplierName, setSupplierName] = useState(receipt.supplierName);
@@ -97,7 +95,8 @@ export function EditarRecepcionClient({
       warehouse_id: receipt.warehouseId,
       is_orphan: receipt.isOrphan,
       client_markbox: receipt.isOrphan ? null : clientMarkbox.trim() || null,
-      client_name: receipt.isOrphan ? null : clientName.trim() || null,
+      // Privacidad (H-7): lo resuelve el server desde el markbox.
+      client_name: null,
       orphan_marks: receipt.isOrphan ? orphanMarks.trim() || null : null,
       orphan_brought_by: receipt.isOrphan ? orphanBroughtBy.trim() || null : null,
       supplier_name: supplierName.trim() || null,
@@ -206,18 +205,10 @@ export function EditarRecepcionClient({
                 placeholder="DTD-1042"
               />
             </div>
-            <div>
-              <label className="studio-label" htmlFor="ed-clientname">
-                Nombre del cliente
-              </label>
-              <input
-                id="ed-clientname"
-                className="studio-input"
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                placeholder="Ferretería Maracay"
-              />
-            </div>
+            {/* PRIVACIDAD (hallazgo H-7): el campo "Nombre del cliente" se
+                eliminó de esta pantalla. El equipo CN identifica al importador
+                por Shipping Mark; el nombre real ni se muestra ni se edita
+                desde aquí — lo resuelve el server desde el markbox. */}
           </section>
         )}
 

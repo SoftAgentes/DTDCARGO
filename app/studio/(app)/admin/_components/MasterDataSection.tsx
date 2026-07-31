@@ -12,6 +12,8 @@
 import Link from "next/link";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { CLIENT_TIER_OPTIONS, tierBadgeTone } from "@/lib/studio/client-types";
+import { ContainerTypesCatalog } from "./ContainerTypesCatalog";
+import type { ContainerType } from "@/lib/studio/naviera/types";
 
 const MANAGED_ELSEWHERE = [
   {
@@ -34,9 +36,21 @@ const NOT_YET = [
   "AES · arancel VE",
 ];
 
-export function MasterDataSection() {
+export function MasterDataSection({
+  containerTypes,
+}: {
+  containerTypes?: ContainerType[] | null;
+}) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {/* Tipos de contenedor (SDD-0184) — editable: activar/apagar */}
+      {containerTypes && containerTypes.length > 0 && (
+        <Card>
+          <CardEyebrow>Tipos de contenedor</CardEyebrow>
+          <ContainerTypesCatalog types={containerTypes} />
+        </Card>
+      )}
+
       {/* Tiers de cliente (enum de código) */}
       <Card>
         <CardEyebrow>Tiers de cliente</CardEyebrow>

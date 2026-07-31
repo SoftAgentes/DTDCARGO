@@ -39,6 +39,8 @@ import {
 } from "@/lib/studio/naviera/types";
 import { buildSeaRatesTrackingUrl } from "@/lib/studio/naviera-tracking/searates-deeplink";
 import { ContainerIsoView } from "./ContainerIsoView";
+import { PlanCargaCard } from "./PlanCargaCard";
+import type { ConsolidationPlan } from "@/lib/studio/naviera/plan-queries";
 import { type StuffedBox } from "@/lib/studio/naviera/zones";
 import type {
   ConsolidationDetail,
@@ -85,6 +87,7 @@ export function NavieraClient({
   kpis,
   trackingByConsolidation,
   stuffingByConsolidation,
+  plansByConsolidation,
 }: {
   sailings: Sailing[];
   bookings: Booking[];
@@ -98,6 +101,7 @@ export function NavieraClient({
   trackingByConsolidation?: Record<string, TrackingSnapshotRow>;
   /** Dónde quedó cada caja dentro de cada contenedor (SDD-0152 → 0155). */
   stuffingByConsolidation?: Record<string, StuffedBox[]>;
+  plansByConsolidation?: Record<string, ConsolidationPlan>;
 }) {
   const [tab, setTab] = useState<Tab>("consolidation");
   const [showNewSailing, setShowNewSailing] = useState(false);
@@ -251,6 +255,7 @@ export function NavieraClient({
           sailings={sailings}
           trackingByConsolidation={trackingByConsolidation}
           stuffingByConsolidation={stuffingByConsolidation}
+          plansByConsolidation={plansByConsolidation}
           onNew={() => setShowNewConsolidation(true)}
           onAssign={(d) => setAssignTo(d)}
         />
@@ -474,6 +479,7 @@ function ConsolidationTab({
   sailings,
   trackingByConsolidation,
   stuffingByConsolidation,
+  plansByConsolidation,
   onNew,
   onAssign,
 }: {
@@ -482,6 +488,7 @@ function ConsolidationTab({
   sailings: Sailing[];
   trackingByConsolidation?: Record<string, TrackingSnapshotRow>;
   stuffingByConsolidation?: Record<string, StuffedBox[]>;
+  plansByConsolidation?: Record<string, ConsolidationPlan>;
   onNew: () => void;
   onAssign: (d: ConsolidationDetail) => void;
 }) {
@@ -623,6 +630,7 @@ function ConsolidationTab({
           sailings={sailings}
           snapshot={trackingByConsolidation?.[selected.consolidation.id] ?? null}
           stuffing={stuffingByConsolidation?.[selected.consolidation.id] ?? []}
+          plan={plansByConsolidation?.[selected.consolidation.id] ?? null}
           onAssign={() => onAssign(selected)}
         />
       )}
@@ -820,6 +828,7 @@ function ContainerDetail({
   sailings,
   snapshot,
   stuffing,
+  plan,
   onAssign,
 }: {
   detail: ConsolidationDetail;
@@ -827,6 +836,7 @@ function ContainerDetail({
   sailings: Sailing[];
   snapshot: TrackingSnapshotRow | null;
   stuffing: StuffedBox[];
+  plan: ConsolidationPlan | null;
   onAssign: () => void;
 }) {
   const c = detail.consolidation;
@@ -1082,6 +1092,13 @@ function ContainerDetail({
           </div>
           <ContainerIsoView boxes={stuffing} idSuffix={c.id} />
         </div>
+
+        {/* Plan de carga (SDD-0184 · Fase 3) · la HIPOTESIS, debajo de la realidad. */}
+        <PlanCargaCard
+          consolidationId={c.id}
+          plan={plan}
+          puedeCalcular={c.status === "consolidando" || c.status === "solicitada"}
+        />
 
         {st.cap && st.freeCbm > 3 && c.status === "consolidando" && (
           <div
