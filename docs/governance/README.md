@@ -10,7 +10,7 @@
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-30 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-080 · NUM-01 v1.1 operativo](BASELINE-2026-07-30-05.md) |
+| Línea base vigente | [LB-SGE-087 · Corte E1 fail-closed](BASELINE-2026-07-30-12.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -93,6 +93,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Diseño correctivo del Corte C | [Consulta gobernada y RBAC v1.1](../specs/0166-auditoria-gobernada-aud-01-aud-02/diseno-correctivo-corte-c.md) |
 | Revisión del diseño Corte C | [REV-AUD-012](reviews/aud-corte-c.md) |
 | Revisión técnica local Corte C1 | [REV-AUD-013](reviews/aud-corte-c1.md) |
+| Preflight fresco Corte C1 | [REV-AUD-040](reviews/aud-corte-c1-preflight-2026-07-30.md) |
 | Inventario read-only del Corte D | [D0 · repo y Cloud](../specs/0166-auditoria-gobernada-aud-01-aud-02/inventario-corte-d-2026-07-29.md) |
 | Diseño correctivo del Corte D | [Atomicidad por dominio v1.0](../specs/0166-auditoria-gobernada-aud-01-aud-02/diseno-correctivo-corte-d.md) |
 | Revisión del diseño Corte D | [REV-AUD-014](reviews/aud-corte-d.md) |
@@ -106,6 +107,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Implementación local D5 | [REV-AUD-022](reviews/aud-d5-residual.md) |
 | Inventario read-only del Corte E | [E0 · repo y Cloud](../specs/0166-auditoria-gobernada-aud-01-aud-02/inventario-corte-e-2026-07-29.md) |
 | Diseño y revisión del Corte E | [REV-AUD-016](reviews/aud-corte-e.md) |
+| Fundamento verificable del Corte E | [SDD-0186 + REV-AUD-041](../specs/0186-audit-retention-foundation/spec.md) |
 | Jerarquía visual | [VIS-01 v1.0](policies/vis-01.md) |
 | Tipografía por voz e idioma | [VIS-02 v1.0](policies/vis-02.md) |
 | Accesibilidad transversal | [A11Y-01 v1.1](policies/a11y-01.md) |
@@ -192,7 +194,7 @@ disfraza elevando el estado normativo.
 | HTD-01 | Confirmación por presión sostenida | aprobada | [Contrato v1.0](policies/htd-01.md) consolidado; no implementado | Crear SDD solo para una entidad R3 clasificada por MP-01 |
 | AVS-01 | Avisos y confirmaciones | verificada | Primitiva conforme; consumidores legacy se migran solo dentro de slices R2/R3 | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | AUD-01 | Evento auditable y vínculo con acciones | aprobada | D1/D5 integrados; D2/D3 con no conformidad de motivo legacy; D4 con no conformidad de `search_path` en cinco RPC legacy; Producción pendiente por migración individual | [REV-AUD-018](reviews/aud-d1-access-config-implementation.md) · [REV-AUD-019](reviews/aud-d2-financial-domain.md) · [REV-AUD-020](reviews/aud-d3-commercial-cycle.md) · [REV-AUD-021](reviews/aud-d4-logistics-r3.md) · [REV-AUD-022](reviews/aud-d5-residual.md) |
-| AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B y guardrail tenant 0268 aplicados; SDD-0118/0172 cerradas con replay, E2E y teardown terminal | [REV-AUD-039](reviews/aud-sdd-0118-0172-final-closure.md); consulta/RBAC y `0270` conservan gates separados |
+| AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B y guardrail tenant 0268 aplicados; E1 cerrado sin fuente para retención ejecutable | [REV-AUD-040](reviews/aud-corte-c1-preflight-2026-07-30.md) mantiene `0270` fail-closed; [REV-AUD-041](reviews/aud-corte-e1-foundation.md) bloquea E2–E5 por fuente |
 | VIS-01 | Jerarquía visual y distribución 60-30-10 | aprobada | Adopción parcial; muestreo acotado a slices y clasificación de literales | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | V1 integrado: Noto Serif SC sólo en documento formal `zh-CN`; UI china conserva Noto Sans SC | V2 correo, V3 PDF y V4 visual conservan gates propios |
 | BUS-01 | Buscadores predictivos y contexto de resultados | aprobada v1.1 | Teclado y colisión formalizados; adopción no auditada | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |

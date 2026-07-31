@@ -508,3 +508,9 @@ repositorio ni Cloud. [REV-AUD-016](../../governance/reviews/aud-corte-e.md)
 aprueba el [diseño E1–E5](diseno-correctivo-corte-e.md) y mantiene el default
 sin purga ni exportación. Antes de implementar debe abrirse un SDD propio y E1
 debe registrar fuentes verificables; no se inventan plazos legales.
+
+[SDD-0186](../0186-audit-retention-foundation/spec.md) cerró E1 con un registro
+controlado y resultado `blocked-by-source`: no existe fundamento material para
+plazos de eventos, backups o holds. REV-AUD-041 confirma que E2–E5 permanecen
+sin implementación y que el default operativo continúa sin purga,
+exportación, bucket ni jobs.

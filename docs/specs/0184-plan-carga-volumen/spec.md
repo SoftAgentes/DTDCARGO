@@ -178,14 +178,14 @@ unifica en la Fase 2.
 
 ## 5. Datos
 
-- **Migración 0289** — `container_types` gana `active boolean default false` (se activan
+- **Migración 0294** — `container_types` gana `active boolean default false` (se activan
   solo `20GP` y `40HC`) y `cbm_alert_ceiling numeric`; se corrige `cbm_capacity` del `40HC`
   de 76 a **68**.
-- **Migración 0290** — `consolidation_plans`: `consolidation_id`, `version_no`, `is_current`,
+- **Migración 0295** — `consolidation_plans`: `consolidation_id`, `version_no`, `is_current`,
   `input jsonb` (los lotes), `result jsonb` (los pasos y zonas), `created_by`, `deleted_at`.
   Versionado inmutable, mismo patrón que `packing_list_submissions`: recalcular crea versión
   nueva, nunca pisa.
-- **Migración 0291** — `consolidation_box_positions` gana `plan_id` y `siguio_plan boolean`,
+- **Migración 0296** — `consolidation_box_positions` gana `plan_id` y `siguio_plan boolean`,
   para el diferencial plan ↔ realidad.
 
 ## 6. Qué se toma del mercado, y qué no
@@ -219,9 +219,9 @@ motor en servidor no es "mejor código": es algo que ellos estructuralmente no p
 | Fase | Qué | Estado |
 |---|---|---|
 | 1 | Repartidor + las dos consultas en `lib/shared/estiba-plan.ts` + tests | **hecho** |
-| 2 | Catálogo de contenedores (migr. 0289) — solo 20' y 40'HC | pendiente |
-| 3 | Plan y planta 2D en el Studio (migr. 0290) | pendiente |
-| 4 | Lazo plan ↔ realidad en `/m/cn/estibar` (migr. 0291) + vista de descarga móvil | pendiente |
+| 2 | Catálogo de contenedores (migr. 0294) — solo 20' y 40'HC | pendiente |
+| 3 | Plan y planta 2D en el Studio (migr. 0295) | pendiente |
+| 4 | Lazo plan ↔ realidad en `/m/cn/estibar` (migr. 0296) + vista de descarga móvil | pendiente |
 | 5 | Calculadora pública de llenado | pendiente |
 
 **Nota de render para las fases 3-5.** El visor isométrico que ya existe
