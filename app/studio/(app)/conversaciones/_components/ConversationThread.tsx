@@ -106,7 +106,6 @@ export function ConversationThread({ conv, agents, realtimeTick = 0 }: Props) {
   // disparador la respuesta recién enviada queda invisible hasta cambiar de hilo.
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
     fetch(`/api/studio/conversaciones/${conv.id}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then(
@@ -149,19 +148,24 @@ export function ConversationThread({ conv, agents, realtimeTick = 0 }: Props) {
   const [, doStatus] = useActionState(setStatusAction, EMPTY_STATE);
   const [, doAssign] = useActionState(assignAction, EMPTY_STATE);
   const [, doCase] = useActionState(markCaseAction, EMPTY_STATE);
-
-  useEffect(() => {
+  const [handledReplyState, setHandledReplyState] = useState(replyState);
+  if (handledReplyState !== replyState) {
+    setHandledReplyState(replyState);
     if (replyState.ok) {
       setDraft("");
       setShowQuick(false);
+      setRefreshToken((current) => current + 1);
+    }
+  }
+
+  useEffect(() => {
+    if (replyState.ok) {
       toast.success("Respuesta enviada");
-      setRefreshToken((t) => t + 1);
       router.refresh();
     } else if (replyState.error) {
       toast.error(replyState.error);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [replyState]);
+  }, [replyState, router, toast]);
 
   const submitReply = (formData: FormData) => {
     const body = String(formData.get("body") ?? "").trim();

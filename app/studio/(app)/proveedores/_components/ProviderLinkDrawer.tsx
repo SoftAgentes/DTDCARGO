@@ -10,7 +10,7 @@
  * un error legible y el link se muestra como activo (defensivo).
  */
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState, useSyncExternalStore } from "react";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Icon } from "@/app/studio/_components/icons";
@@ -45,7 +45,11 @@ export function ProviderLinkDrawer({
   initialActive: boolean;
   onClose: () => void;
 }) {
-  const [origin, setOrigin] = useState("");
+  const origin = useSyncExternalStore(
+    () => () => undefined,
+    () => window.location.origin,
+    () => "",
+  );
   const [copied, setCopied] = useState(false);
   const [active, setActive] = useState(initialActive);
   const [state, formAction, pending] = useActionState<ShareLinkState, FormData>(
@@ -53,15 +57,11 @@ export function ProviderLinkDrawer({
     {},
   );
 
-  useEffect(() => {
-    setOrigin(window.location.origin);
-  }, []);
-
-  // Refleja el nuevo estado que devolvió la action (revalidatePath refresca el
-  // server; acá actualizamos la vista del drawer sin cerrarlo).
-  useEffect(() => {
+  const [handledState, setHandledState] = useState(state);
+  if (handledState !== state) {
+    setHandledState(state);
     if (state.ok && typeof state.active === "boolean") setActive(state.active);
-  }, [state.ok, state.active]);
+  }
 
   const url = origin && shareToken ? `${origin}/p/${shareToken}` : "";
   const waText = `我的货物标签和收货地址 / Etiquetas y dirección de mi pedido: ${url}`;

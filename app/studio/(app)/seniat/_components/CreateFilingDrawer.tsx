@@ -70,21 +70,14 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
     [shipments, shipmentId],
   );
 
-  // Auto-suggest port code when shipment selected
-  useEffect(() => {
-    if (selectedShipment && !portCode) {
-      const suggested = detectPortFromDestination(selectedShipment.destination);
-      if (suggested) setPortCode(suggested);
-    }
-  }, [selectedShipment, portCode]);
-
-  // Auto-suggest agent based on port
-  useEffect(() => {
-    if (portCode && !agentId) {
-      const match = agents.find((a) => a.port_code === portCode);
-      if (match) setAgentId(match.id);
-    }
-  }, [portCode, agentId, agents]);
+  if (selectedShipment && !portCode) {
+    const suggested = detectPortFromDestination(selectedShipment.destination);
+    if (suggested) setPortCode(suggested);
+  }
+  if (portCode && !agentId) {
+    const match = agents.find((agent) => agent.port_code === portCode);
+    if (match) setAgentId(match.id);
+  }
 
   useEffect(() => {
     if (state.ok) onClose();
