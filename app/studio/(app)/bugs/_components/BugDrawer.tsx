@@ -9,8 +9,7 @@
  * que el padre haga router.refresh().
  */
 
-import { useActionState, useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useState } from "react";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import {
   BUG_CATEGORY_LABELS,
@@ -75,13 +74,34 @@ const TONE_FG: Record<string, string> = {
   neutral: "var(--ink-soft, #6B6B6B)",
 };
 
+async function fetchBugDetail(bugId: string): Promise<DetailData> {
+  const empty: DetailData = {
+    attachments: [],
+    tech_data: null,
+    messages: [],
+    timeline: [],
+  };
+  try {
+    const res = await fetch(`/api/studio/bugs/${bugId}`, { cache: "no-store" });
+    if (!res.ok) return empty;
+    const data = (await res.json()) as DetailData;
+    return {
+      attachments: data.attachments,
+      tech_data: data.tech_data,
+      messages: data.messages,
+      timeline: data.timeline,
+    };
+  } catch {
+    return empty;
+  }
+}
+
 export function BugDrawer({
   bug,
   reporter,
   onClose,
   onMutated,
 }: Props) {
-  const router = useRouter();
   const [tab, setTab] = useState<Tab>("conv");
   const [detail, setDetail] = useState<DetailData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -107,43 +127,20 @@ export function BugDrawer({
 
   const anyPending = replyPending || statePending || takePending || updPending;
 
-  const reloadDetail = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/studio/bugs/${bug.id}`, {
-        cache: "no-store",
-      });
-      if (!res.ok) throw new Error(`${res.status}`);
-      const data = (await res.json()) as {
-        attachments: BugAttachment[];
-        tech_data: BugTechData | null;
-        messages: BugMessage[];
-        timeline: BugTimelineEvent[];
-      };
-      setDetail({
-        attachments: data.attachments,
-        tech_data: data.tech_data,
-        messages: data.messages,
-        timeline: data.timeline,
-      });
-    } catch {
-      setDetail({ attachments: [], tech_data: null, messages: [], timeline: [] });
-    } finally {
+  // Carga inicial y recarga posterior a mutaciones, con cancelación al cambiar bug.
+  useEffect(() => {
+    let cancelled = false;
+    void fetchBugDetail(bug.id).then((nextDetail) => {
+      if (cancelled) return;
+      setDetail(nextDetail);
       setLoading(false);
-    }
-  }, [bug.id]);
-
-  useEffect(() => {
-    reloadDetail();
-  }, [reloadDetail]);
-
-  // Reload + parent refresh after mutations
-  useEffect(() => {
-    if (replyState.ok || stateState.ok || takeState.ok || updState.ok) {
-      reloadDetail();
-      onMutated();
-    }
-  }, [replyState.ok, stateState.ok, takeState.ok, updState.ok, reloadDetail, onMutated]);
+    });
+    const mutated = replyState.ok || stateState.ok || takeState.ok || updState.ok;
+    if (mutated) onMutated();
+    return () => {
+      cancelled = true;
+    };
+  }, [bug.id, replyState.ok, stateState.ok, takeState.ok, updState.ok, onMutated]);
 
   const copyPrompt = async () => {
     setCopyStatus("copying");

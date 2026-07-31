@@ -31,7 +31,6 @@ import {
   claimTypeTone,
   computeClaimKpis,
   isClaimFilter,
-  faultPartyLabel,
   FAULT_PARTY_OPTIONS,
   CLAIM_PAYMENT_METHOD_OPTIONS,
   type ClaimActionState,
@@ -868,13 +867,17 @@ function ClaimFinancials({
     {} as ClaimActionState,
   );
   const [justSaved, setJustSaved] = useState(false);
+  const [handledState, setHandledState] = useState(state);
+  if (handledState !== state) {
+    setHandledState(state);
+    if (state.ok) setJustSaved(true);
+  }
 
   useEffect(() => {
-    if (!state.ok) return;
-    setJustSaved(true);
+    if (!justSaved) return;
     const t = setTimeout(() => setJustSaved(false), 2500);
     return () => clearTimeout(t);
-  }, [state.ok]);
+  }, [justSaved]);
 
   const noOffsets = offsets.length === 0;
 

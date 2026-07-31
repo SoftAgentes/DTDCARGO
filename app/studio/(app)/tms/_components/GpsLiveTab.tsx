@@ -1,5 +1,4 @@
 import { Icon } from "@/app/studio/_components/icons";
-import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import type { TmsRouteRow, TmsTruckRow } from "@/lib/studio/tms-types";
 import { RouteStatusBadge } from "./RouteStatusBadge";
 

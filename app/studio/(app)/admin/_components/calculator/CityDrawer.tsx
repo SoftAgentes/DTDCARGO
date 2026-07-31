@@ -22,7 +22,6 @@ import {
   deleteCityAction,
   updateCityAction,
 } from "../../calculator-actions";
-import { Icon } from "@/app/studio/_components/icons";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";

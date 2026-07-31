@@ -10,7 +10,7 @@
  * - Empty state si no hay shipments en estados VE
  */
 
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import type { VeFilters } from "@/lib/studio/warehouse-ve-queries";
@@ -24,7 +24,12 @@ interface Props {
   filters: VeFilters;
 }
 
-export function AlmacenVeClient({ rows, filters: _filters }: Props) {
+export function AlmacenVeClient(props: Props) {
+  const params = useSearchParams();
+  return <AlmacenVeView key={params.toString()} {...props} />;
+}
+
+function AlmacenVeView({ rows }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -34,31 +39,7 @@ export function AlmacenVeClient({ rows, filters: _filters }: Props) {
   const [port, setPort] = useState(params.get("port") ?? "");
   const [status, setStatus] = useState(params.get("status") ?? "");
 
-  useEffect(() => {
-    setQ(params.get("q") ?? "");
-    setPort(params.get("port") ?? "");
-    setStatus(params.get("status") ?? "");
-  }, [params]);
-
-  // Debounce search → URL
-  useEffect(() => {
-    const currentQ = params.get("q") ?? "";
-    if (q === currentQ) return;
-    const t = setTimeout(() => pushFilters({ q, port, status }), 300);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
-
-  // Debounce port input similar a q
-  useEffect(() => {
-    const currentPort = params.get("port") ?? "";
-    if (port === currentPort) return;
-    const t = setTimeout(() => pushFilters({ q, port, status }), 300);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [port]);
-
-  const pushFilters = (next: {
+  const pushFilters = useCallback((next: {
     q?: string;
     port?: string;
     status?: string;
@@ -74,7 +55,16 @@ export function AlmacenVeClient({ rows, filters: _filters }: Props) {
     startTransition(() => {
       router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     });
-  };
+  }, [params, pathname, router]);
+
+  // Debounce conjunto de búsqueda y puerto → URL.
+  useEffect(() => {
+    const currentQ = params.get("q") ?? "";
+    const currentPort = params.get("port") ?? "";
+    if (q === currentQ && port === currentPort) return;
+    const t = setTimeout(() => pushFilters({ q, port, status }), 300);
+    return () => clearTimeout(t);
+  }, [params, port, pushFilters, q, status]);
 
   const hasActiveFilters = Boolean(q || port || status);
 

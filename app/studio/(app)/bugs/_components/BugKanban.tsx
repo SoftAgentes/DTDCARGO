@@ -11,7 +11,6 @@ import {
   BUG_CATEGORY_TONES,
   BUG_KANBAN_STATES,
   BUG_STATE_LABELS,
-  BUG_STATE_PROGRESS_PCT,
   BUG_STATE_TONES,
   type BugReport,
 } from "@/lib/studio/bug-types";

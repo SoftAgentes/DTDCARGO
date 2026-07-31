@@ -12,7 +12,6 @@
  * recién va a crear su cuenta acá).
  */
 
-import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/db/admin";
 import type { UserInvitation } from "@/lib/studio/user-types";
 import { invitationStatus } from "@/lib/studio/user-types";

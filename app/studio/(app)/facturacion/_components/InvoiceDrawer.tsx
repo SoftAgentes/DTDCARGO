@@ -126,7 +126,6 @@ export function InvoiceDrawer({
   );
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, startDelete] = useTransition();
-  const [createError, setCreateError] = useState<string | null>(null);
 
   // IVA efectivo: con el módulo fiscal ON lo decide el iva_mode de la factura
   // (con_iva grava a la alícuota general); con OFF, el toggle de tenant (ivaOn).
@@ -158,27 +157,20 @@ export function InvoiceDrawer({
   // Lookup blando del embarque al cambiar el código.
   useEffect(() => {
     const code = shipmentCode.trim();
-    if (!code) {
-      setShipmentId("");
-      setShipmentLookupMsg(null);
-      return;
-    }
+    if (!code) return;
     const t = setTimeout(async () => {
       const { shipment } = await lookupShipmentForInvoice(code);
       if (shipment) {
         setShipmentId(shipment.id);
         setShipmentLookupMsg(`Embarque encontrado · ${shipment.code}`);
-        if (!clientMarkbox && shipment.client_markbox)
-          setClientMarkbox(shipment.client_markbox);
-        if (!clientName && shipment.client_name)
-          setClientName(shipment.client_name);
+        setClientMarkbox((current) => current || shipment.client_markbox || "");
+        setClientName((current) => current || shipment.client_name || "");
       } else {
         setShipmentId("");
         setShipmentLookupMsg("Sin embarque con ese código (se guarda igual).");
       }
     }, 450);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shipmentCode]);
 
   const addLine = () =>
@@ -358,7 +350,14 @@ export function InvoiceDrawer({
               type="text"
               className="studio-input studio-input-mono"
               value={shipmentCode}
-              onChange={(e) => setShipmentCode(e.target.value)}
+              onChange={(e) => {
+                const next = e.target.value;
+                setShipmentCode(next);
+                if (!next.trim()) {
+                  setShipmentId("");
+                  setShipmentLookupMsg(null);
+                }
+              }}
               placeholder="DTDU-0001"
             />
             {shipmentLookupMsg && (
@@ -615,7 +614,7 @@ export function InvoiceDrawer({
             </label>
           )}
 
-          {(state.error || createError) && (
+          {state.error && (
             <p
               role="alert"
               style={{
@@ -628,7 +627,7 @@ export function InvoiceDrawer({
                 borderRadius: "var(--r-sm)",
               }}
             >
-              {state.error ?? createError}
+              {state.error}
             </p>
           )}
 

@@ -133,7 +133,6 @@ interface ActionableRowConfig {
 export function useActionableRow({
   onSelect,
   label,
-  active,
   disabled,
 }: ActionableRowConfig) {
   const fromInteractiveChild = (target: EventTarget | null): boolean => {

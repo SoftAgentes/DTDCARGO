@@ -11,7 +11,6 @@ import type { Employee } from "@/lib/studio/nomina/employee-types";
 import {
   commTypeLabel,
   commTypeTone,
-  commNeedsAck,
   type EmployeeComm,
 } from "@/lib/studio/nomina/comms-types";
 import { Badge } from "@/app/studio/_components/ui/Badge";

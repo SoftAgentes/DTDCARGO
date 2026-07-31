@@ -327,7 +327,7 @@ function CategoryBar({
       <div
         style={{
           height: 8,
-          background: "var(--neutral-bg, #F2F0EC)",
+          background: bg,
           borderRadius: 999,
           overflow: "hidden",
         }}
