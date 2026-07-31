@@ -3,10 +3,12 @@
 ## Estado
 
 - Fecha: 2026-07-31
-- Rol: worker aislado
-- Rama: `codex/lint-warning-audit`
-- Worktree: `C:\Users\Trabajo\Desktop\Developer\software\DTD-worktrees\lint-warning-audit`
-- Resultado: listo para publicar e integrar por autorización literal `cerrar`
+- Rol: worker aislado + integrador exclusivo
+- Rama worker: `codex/lint-warning-audit`
+- Rama integradora: `codex/sdd-0194-receipt-row-actions-integrate`
+- Worktree worker: `C:\Users\Trabajo\Desktop\Developer\software\DTD-worktrees\lint-warning-audit`
+- Worktree integrador: `C:\Users\Trabajo\Desktop\Developer\software\DTD-worktrees\sdd-0194-receipt-row-actions-integrate`
+- Resultado: publicado en `origin/main`
 
 ## Alcance integrado
 
@@ -52,7 +54,18 @@ políticas aprobadas, cápsula vigente y cuatro fuentes CMP-01.
 ## Commits
 
 - `4c72d2fe06a20d7a414e005a8095b577ae72ac2e` — implementación y SDD.
-- Este handoff se registra en un commit documental selectivo.
+- `f028ca1e` — handoff en la rama worker.
+- `a14863bb` — implementación y SDD integrados sobre el `origin/main` vigente.
+- `cd7a6bae9450580d8b4e472204de1d93dac78b47` — handoff integrado y
+  publicado en `origin/main`.
+
+## Publicación
+
+- `origin/codex/lint-warning-audit`: publicado y sincronizado.
+- `origin/codex/sdd-0194-receipt-row-actions-integrate`: publicado.
+- `origin/main`: avanzó de `2ba6f25b` a `cd7a6bae`.
+- Después del push, `HEAD...origin/main` quedó `0 0`.
+- No se ejecutó una acción manual en Vercel o Producción.
 
 ## Gates externos preservados
 
@@ -68,5 +81,6 @@ políticas aprobadas, cápsula vigente y cuatro fuentes CMP-01.
 
 ## Siguiente responsable
 
-Integrador exclusivo en un worktree nuevo basado en el `origin/main` vigente:
-consumir estos dos commits, repetir el gate proporcional y publicar `main`.
+Gobernanza 6 conserva como siguiente carril técnico SDD-0174. Sus únicos tres
+gates técnicos son las aplicaciones individuales en Producción de `0294`,
+`0295` y `0296`, cada una sujeta a autorización nominal individual.
