@@ -14,7 +14,14 @@
  * Llama changeReceiptStatusAction y refresca la ruta.
  */
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { useRouter } from "next/navigation";
 import {
   changeReceiptPaymentStatusAction,
@@ -47,6 +54,21 @@ interface Props {
 }
 
 type View = "menu" | "consolidate-form";
+type InitialMenuFocus = "first" | "last";
+type MenuDirection = "up" | "down";
+
+const ESTIMATED_MENU_HEIGHT = 420;
+
+function enabledMenuItems(menu: HTMLDivElement | null): HTMLElement[] {
+  if (!menu) return [];
+  return Array.from(
+    menu.querySelectorAll<HTMLElement>('[role="menuitem"]'),
+  ).filter(
+    (item) =>
+      item.getAttribute("aria-disabled") !== "true" &&
+      (!(item instanceof HTMLButtonElement) || !item.disabled),
+  );
+}
 
 export function ReceiptRowActions({
   receiptId,
@@ -60,12 +82,16 @@ export function ReceiptRowActions({
   const t = useT();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>("menu");
+  const [menuDirection, setMenuDirection] = useState<MenuDirection>("down");
   const [destinationCity, setDestinationCity] = useState(
     currentDestinationCity ?? "",
   );
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const initialMenuFocusRef = useRef<InitialMenuFocus | null>(null);
 
   const sortedCities = useMemo(() => {
     return cities
@@ -75,8 +101,26 @@ export function ReceiptRowActions({
 
   const isVerified = invoiceVerifiedAt != null;
 
+  const closeMenu = useCallback((restoreFocus = false) => {
+    setOpen(false);
+    setView("menu");
+    setError(null);
+    initialMenuFocusRef.current = null;
+    if (restoreFocus) {
+      requestAnimationFrame(() => triggerRef.current?.focus());
+    }
+  }, []);
+
   useEffect(() => {
     if (!open) return;
+    if (view === "menu" && initialMenuFocusRef.current) {
+      const items = enabledMenuItems(menuRef.current);
+      const nextIndex =
+        initialMenuFocusRef.current === "last" ? items.length - 1 : 0;
+      initialMenuFocusRef.current = null;
+      items[nextIndex]?.focus();
+    }
+
     const onDocClick = (e: MouseEvent) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
         closeMenu();
@@ -91,13 +135,54 @@ export function ReceiptRowActions({
       document.removeEventListener("mousedown", onDocClick);
       document.removeEventListener("keydown", onEsc);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [closeMenu, open, view]);
 
-  const closeMenu = () => {
-    setOpen(false);
+  const openMenu = (initialFocus: InitialMenuFocus) => {
+    initialMenuFocusRef.current = initialFocus;
+    const rect = wrapRef.current?.getBoundingClientRect();
+    if (rect) {
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      setMenuDirection(
+        spaceBelow < ESTIMATED_MENU_HEIGHT && spaceAbove > spaceBelow
+          ? "up"
+          : "down",
+      );
+    }
     setView("menu");
     setError(null);
+    setOpen(true);
+  };
+
+  const handleMenuKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (view !== "menu") return;
+    const items = enabledMenuItems(menuRef.current);
+    if (items.length === 0) return;
+    const currentIndex = items.indexOf(document.activeElement as HTMLElement);
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      items[(currentIndex + 1 + items.length) % items.length]?.focus();
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      const previousIndex =
+        currentIndex < 0
+          ? items.length - 1
+          : (currentIndex - 1 + items.length) % items.length;
+      items[previousIndex]?.focus();
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      items[0]?.focus();
+    } else if (event.key === "End") {
+      event.preventDefault();
+      items[items.length - 1]?.focus();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      closeMenu(true);
+    } else if (event.key === "Tab") {
+      requestAnimationFrame(() => closeMenu(false));
+    }
   };
 
   const submit = (
@@ -168,19 +253,34 @@ export function ReceiptRowActions({
   return (
     <div ref={wrapRef} style={{ position: "relative", display: "inline-block" }}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          setOpen((o) => !o);
+          if (open) {
+            closeMenu();
+          } else {
+            openMenu("first");
+          }
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown") {
+            event.preventDefault();
+            openMenu("first");
+          } else if (event.key === "ArrowUp") {
+            event.preventDefault();
+            openMenu("last");
+          }
         }}
         disabled={pending}
         aria-label={t("warehouse_cn.row.aria_actions")}
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-controls={open ? `receipt-actions-${receiptId}` : undefined}
         style={{
-          width: 28,
-          height: 28,
+          width: 32,
+          height: 32,
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
@@ -206,11 +306,19 @@ export function ReceiptRowActions({
 
       {open && (
         <div
-          role="menu"
+          ref={menuRef}
+          id={`receipt-actions-${receiptId}`}
+          role={view === "menu" ? "menu" : undefined}
+          aria-label={
+            view === "menu" ? t("warehouse_cn.row.aria_actions") : undefined
+          }
           onClick={(e) => e.stopPropagation()}
+          onKeyDown={handleMenuKeyDown}
           style={{
             position: "absolute",
-            top: "calc(100% + 4px)",
+            ...(menuDirection === "up"
+              ? { bottom: "calc(100% + 4px)" }
+              : { top: "calc(100% + 4px)" }),
             right: 0,
             minWidth: view === "menu" ? 220 : 280,
             background: "var(--bg-surface)",
@@ -243,12 +351,14 @@ export function ReceiptRowActions({
                   <button
                     key={opt.value}
                     role="menuitem"
+                    tabIndex={-1}
                     type="button"
                     onClick={() => handleMenuPick(opt.value)}
                     disabled={isCurrent || pending}
                     style={{
                       textAlign: "left",
                       padding: "8px 10px",
+                      minHeight: 32,
                       border: 0,
                       background: isCurrent ? "var(--bg-elevated)" : "transparent",
                       color: isCurrent ? "var(--ink-mute)" : "var(--ink)",
@@ -282,6 +392,7 @@ export function ReceiptRowActions({
 
               {/* Separador + sección Cambiar pago */}
               <div
+                role="separator"
                 style={{
                   height: 1,
                   background: "var(--border)",
@@ -305,12 +416,14 @@ export function ReceiptRowActions({
                   <button
                     key={p}
                     role="menuitem"
+                    tabIndex={-1}
                     type="button"
                     onClick={() => handlePaymentPick(p)}
                     disabled={isCurrent || pending}
                     style={{
                       textAlign: "left",
                       padding: "8px 10px",
+                      minHeight: 32,
                       border: 0,
                       background: isCurrent ? "var(--bg-elevated)" : "transparent",
                       color: isCurrent ? "var(--ink-mute)" : "var(--ink)",
@@ -344,6 +457,7 @@ export function ReceiptRowActions({
 
               {/* Separador + sección Facturación (SDD-0072 Fase 3 · flag humano) */}
               <div
+                role="separator"
                 style={{ height: 1, background: "var(--border)", margin: "6px 0" }}
               />
               <div
@@ -387,13 +501,14 @@ export function ReceiptRowActions({
               {/* Acción — verbo neutro, mismo estilo/hover que los demás menuitem. */}
               <button
                 role="menuitem"
+                tabIndex={-1}
                 type="button"
-                aria-pressed={isVerified}
                 onClick={() => handleVerifyToggle(!isVerified)}
                 disabled={pending}
                 style={{
                   textAlign: "left",
                   padding: "8px 10px",
+                  minHeight: 32,
                   border: 0,
                   background: "transparent",
                   color: "var(--ink)",
