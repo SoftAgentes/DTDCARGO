@@ -6,7 +6,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useEffectEvent, useState, useTransition } from "react";
 import {
   QUOTE_STATUS_OPTIONS,
   isExpired,
@@ -41,20 +41,14 @@ export function CotizadorClient({
 
   const [q, setQ] = useState(params.get("q") ?? "");
   const [status, setStatus] = useState(params.get("status") ?? "");
-  const source = params.get("source") ?? "";
-
-  useEffect(() => {
+  const paramsKey = params.toString();
+  const [filtersKey, setFiltersKey] = useState(paramsKey);
+  if (filtersKey !== paramsKey) {
+    setFiltersKey(paramsKey);
     setQ(params.get("q") ?? "");
     setStatus(params.get("status") ?? "");
-  }, [params]);
-
-  useEffect(() => {
-    const currentQ = params.get("q") ?? "";
-    if (q === currentQ) return;
-    const t = setTimeout(() => pushFilters({ q, status, source }), 350);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
+  }
+  const source = params.get("source") ?? "";
 
   const pushFilters = (next: { q?: string; status?: string; source?: string }) => {
     const s = new URLSearchParams();
@@ -66,6 +60,12 @@ export function CotizadorClient({
       router.push(qs ? `/studio/cotizador?${qs}` : "/studio/cotizador");
     });
   };
+  const pushFiltersEvent = useEffectEvent(pushFilters);
+  useEffect(() => {
+    if (q === (params.get("q") ?? "")) return;
+    const t = setTimeout(() => pushFiltersEvent({ q, status, source }), 350);
+    return () => clearTimeout(t);
+  }, [params, q, source, status]);
 
   return (
     <div style={{ maxWidth: 1280 }}>

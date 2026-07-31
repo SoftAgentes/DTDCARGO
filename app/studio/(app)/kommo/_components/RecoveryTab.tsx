@@ -9,7 +9,7 @@
  */
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useEffectEvent, useMemo, useState, useTransition } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
@@ -65,16 +65,11 @@ export function RecoveryTab({
 
   // ── Filtros → URL (rseg/raged/rq/rsort, siempre con tab=recuperacion) ──
   const [q, setQ] = useState(filters.q ?? "");
-  useEffect(() => {
+  const [querySource, setQuerySource] = useState(filters.q);
+  if (querySource !== filters.q) {
+    setQuerySource(filters.q);
     setQ(filters.q ?? "");
-  }, [filters.q]);
-  useEffect(() => {
-    const current = params.get("rq") ?? "";
-    if (q === current) return;
-    const t = setTimeout(() => pushFilters({ rq: q }), 350);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
+  }
 
   const pushFilters = (next: Partial<Record<"rseg" | "raged" | "rq" | "rsort", string>>) => {
     const cur = {
@@ -92,6 +87,12 @@ export function RecoveryTab({
     if (cur.rsort) s.set("rsort", cur.rsort);
     startTransition(() => router.push(`/studio/kommo?${s.toString()}`));
   };
+  const pushFiltersEvent = useEffectEvent(pushFilters);
+  useEffect(() => {
+    if (q === (params.get("rq") ?? "")) return;
+    const t = setTimeout(() => pushFiltersEvent({ rq: q }), 350);
+    return () => clearTimeout(t);
+  }, [params, q]);
 
   const hasFilters =
     Boolean(filters.segment) || Boolean(filters.agedDays) || Boolean(filters.q);

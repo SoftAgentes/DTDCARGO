@@ -11,7 +11,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useEffectEvent, useState, useTransition } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { Badge, type BadgeTone } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
@@ -121,9 +121,11 @@ export function KommoClient({
   // Estado local de convertidos: parte del prop del server y se actualiza
   // optimista al convertir (monotónico: una vez convertido, sigue convertido).
   const [converted, setConverted] = useState(convertedLeads);
-  useEffect(() => {
+  const [convertedSource, setConvertedSource] = useState(convertedLeads);
+  if (convertedSource !== convertedLeads) {
+    setConvertedSource(convertedLeads);
     setConverted((prev) => ({ ...convertedLeads, ...prev }));
-  }, [convertedLeads]);
+  }
 
   const [convertingLead, setConvertingLead] = useState<{
     id: number;
@@ -146,18 +148,12 @@ export function KommoClient({
 
   // ── Filtros del worklist (solo pestaña Asesor) ──
   const [q, setQ] = useState(params.get("q") ?? "");
-
-  useEffect(() => {
+  const paramsKey = params.toString();
+  const [filtersKey, setFiltersKey] = useState(paramsKey);
+  if (filtersKey !== paramsKey) {
+    setFiltersKey(paramsKey);
     setQ(params.get("q") ?? "");
-  }, [params]);
-
-  useEffect(() => {
-    const currentQ = params.get("q") ?? "";
-    if (q === currentQ) return;
-    const t = setTimeout(() => pushFilters({ q }), 350);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
+  }
 
   const pushFilters = (next: {
     q?: string;
@@ -185,6 +181,12 @@ export function KommoClient({
       router.push(`/studio/kommo?${s.toString()}`);
     });
   };
+  const pushFiltersEvent = useEffectEvent(pushFilters);
+  useEffect(() => {
+    if (q === (params.get("q") ?? "")) return;
+    const t = setTimeout(() => pushFiltersEvent({ q }), 350);
+    return () => clearTimeout(t);
+  }, [params, q]);
 
   const goTab = (key: KommoTabKey) => {
     if (key === tab) return;
