@@ -70,7 +70,7 @@ máquina antes de modificar suspensión/reactivación de usuarios.
 | D1 implementación | verificada localmente | [REV-AUD-018](../../governance/reviews/aud-d1-access-config-implementation.md) |
 | D2 | cumplimiento parcial; motivo legacy no conforme | [REV-AUD-019](../../governance/reviews/aud-d2-financial-domain.md) |
 | D3 | cumplimiento parcial; motivo legacy no conforme | [REV-AUD-020](../../governance/reviews/aud-d3-commercial-cycle.md) |
-| D4 | pendiente | no abierto |
+| D4 | cumplimiento parcial; `search_path` legacy no conforme | [REV-AUD-021](../../governance/reviews/aud-d4-logistics-r3.md) |
 | D5 | pendiente | no abierto |
 
 ## 5. Criterios de aceptación por operación
