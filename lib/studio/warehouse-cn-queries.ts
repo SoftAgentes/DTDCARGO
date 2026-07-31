@@ -345,3 +345,39 @@ export function parseReceiptFiltersFromSearchParams(
     status,
   };
 }
+
+/**
+ * Resuelve el nombre real del importador a partir de su Shipping Mark.
+ *
+ * PRIVACIDAD (auditoría 2026-07 · hallazgo H-7). El equipo CN identifica al
+ * importador SOLO por Shipping Mark: su nombre nunca viaja al dispositivo en
+ * Yiwu. Pero `warehouse_receipts_cn.client_name` es un snapshot denormalizado
+ * que el Studio (VE) sí muestra — así que alguien tiene que llenarlo.
+ *
+ * Ese alguien es el SERVER, acá, desde el markbox. Nunca el cliente: si el
+ * valor viniera del dispositivo, el nombre tendría que haber viajado hasta allá
+ * primero, que es justo lo que se quiere evitar. Mismo principio que la
+ * redacción de `listReceipts` ("no se confía en hide-en-cliente", SDD-0039 B.9),
+ * aplicado al camino de escritura.
+ *
+ * Devuelve `null` si no hay markbox (caja huérfana) o si ningún cliente del
+ * tenant lo tiene — el snapshot queda vacío antes que equivocado.
+ */
+export async function resolveClientNameByMarkbox(
+  supabase: SupabaseClient,
+  tenantId: string,
+  markbox: string | null | undefined,
+): Promise<string | null> {
+  const mark = markbox?.trim();
+  if (!mark) return null;
+
+  const { data } = await supabase
+    .from("clients")
+    .select("name")
+    .eq("tenant_id", tenantId)
+    .eq("markbox", mark)
+    .is("deleted_at", null)
+    .maybeSingle<{ name: string | null }>();
+
+  return data?.name?.trim() || null;
+}

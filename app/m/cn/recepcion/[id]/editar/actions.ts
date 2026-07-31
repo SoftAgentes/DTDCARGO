@@ -13,6 +13,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/db/admin";
 import { getCurrentOperario } from "@/lib/auth/operario-session";
+import { resolveClientNameByMarkbox } from "@/lib/studio/warehouse-cn-queries";
 import {
   validateCreateReceiptInput,
   type CreateReceiptInput,
@@ -70,7 +71,15 @@ export async function editReceiptAction(
     p_payload: {
       receipt_id: receiptId,
       client_markbox: input.client_markbox,
-      client_name: input.client_name,
+      // PRIVACIDAD (hallazgo H-7): el dispositivo CN no conoce ni edita el
+      // nombre del importador. Se resuelve acá, en el server, desde el
+      // Shipping Mark — así sigue correcto para el Studio (VE) aunque el
+      // operario corrija el markbox.
+      client_name: await resolveClientNameByMarkbox(
+        admin,
+        operario.tenant_id,
+        input.client_markbox,
+      ),
       orphan_marks: input.orphan_marks,
       orphan_brought_by: input.orphan_brought_by,
       supplier_name: input.supplier_name,

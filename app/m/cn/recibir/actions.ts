@@ -144,7 +144,8 @@ export async function lookupForReceptionAction(
     boxCode: box.code,
     prealertaCode: pre.code,
     clientMarkbox: pre.client_markbox,
-    clientName: client?.name ?? null,
+    // PRIVACIDAD (hallazgo H-7): solo Shipping Mark, nunca el nombre real.
+    clientName: null,
     supplierName: supplier?.name ?? null,
     expected: expected ?? 0,
   };
@@ -223,7 +224,7 @@ export async function receivePrealertaAction(
     ok: true,
     receiptCode: res.receipt_code,
     prealertaCode: res.prealerta_code,
-    clientName: res.client_name ?? null,
+    clientName: null, // privacidad · hallazgo H-7
     clientMarkbox: res.client_markbox,
     received: res.received,
     remaining: res.remaining,
