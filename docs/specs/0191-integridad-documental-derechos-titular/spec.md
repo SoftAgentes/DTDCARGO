@@ -54,7 +54,35 @@ fuente verificable registrada, o es una **decisión comercial declarada como tal
 
 ## 4. Slices
 
-### Slice A · Sellar el contenido (⭐ primero)
+### Slice A · Sellar el contenido (⭐ primero) — ✅ **implementado 2026-07-30**
+
+> **Estado:** código en la rama; **migración NO aplicada a prod** (la aplica el
+> founder · [`docs/runbooks/aplicar-migraciones-prod.md`](../../runbooks/aplicar-migraciones-prod.md)).
+>
+> - `supabase/migrations/0297_legal_docs_body_hash.sql` — columna `body_sha256`,
+>   función `public.legal_docs_guard()` y trigger `legal_docs_guard_trg`.
+> - `supabase/tests/0297_legal_docs_body_hash.test.sql` — 7 casos, **verificado
+>   por mutación**: sin el trigger, el test cae con *"el server no selló
+>   body_sha256"*.
+> - Evidencia sube a **v3**: `DocRef` gana `body_sha256` y entra al payload
+>   canónico. Corte limpio (0 aceptaciones en prod, verificado), igual que el
+>   v1→v2 de SDD-0067.
+>
+> **Un bug real que apareció al implementar:** `sealAcceptance()` construía la
+> fila a insertar mapeando `docs` a `{key, version}` — descartaba el
+> `body_sha256`. El hash se habría calculado **con** el sello del cuerpo y la
+> fila habría guardado solo la referencia, así que el recompute del gate nunca
+> habría matcheado y **toda** aceptación se habría descartado como forjada. Lo
+> atrapó el typecheck al volver `body_sha256` obligatorio en `DocRef`.
+>
+> **Decisión de diseño:** un solo trigger para INSERT/UPDATE/DELETE en vez de dos
+> (sellado + inmutabilidad). Con dos, el orden entre ellos sería alfabético y el
+> invariante quedaría atado al nombre que alguien les ponga.
+>
+> **Qué queda mutable, a propósito:** `status` solo en la transición
+> vigente→archivada (sin eso no se puede publicar la versión siguiente) y
+> `change_note`. Todo lo demás —incluido `body`— queda congelado. `DELETE` se
+> rechaza siempre: la salida de un documento publicado es archivarlo.
 
 **Qué.** Que el hash de una aceptación cubra el texto exacto que el cliente vio, y
 que un documento publicado sea inmutable **en la base**, no solo por norma escrita.

@@ -54,8 +54,8 @@ function stub(
 const TENANT = "tn";
 const MARKBOX = "DTD-5452";
 const VIGENTES: DocRef[] = [
-  { key: "tyc", version: "v2.1" },
-  { key: "operador", version: "v1.4" },
+  { key: "tyc", version: "v2.1", body_sha256: "sha-tyc-v2.1" },
+  { key: "operador", version: "v1.4", body_sha256: "sha-operador-v1.4" },
 ];
 
 function docsTable(versions: DocRef[] = VIGENTES): Record<string, unknown>[] {
@@ -235,7 +235,7 @@ describe("round-trip Slice C → gate Slice B", () => {
       cbm: 7,
       weightKg: 2800,
       baseAmount: 5600,
-      docs: [{ key: "tyc", version: "v2.1" }], // falta 'operador'
+      docs: [{ key: "tyc", version: "v2.1", body_sha256: "sha-tyc-v2.1" }], // falta 'operador'
       quoteRef: "S-2026-0042",
     });
     const db = stub({ legal_acceptances: [row], legal_docs: docsTable() });

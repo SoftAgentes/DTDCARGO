@@ -23,8 +23,8 @@ import {
 } from "../types";
 
 const docsA: DocRef[] = [
-  { key: "tyc", version: "v2.1" },
-  { key: "operador", version: "v1.4" },
+  { key: "tyc", version: "v2.1", body_sha256: "sha-tyc-v2.1" },
+  { key: "operador", version: "v1.4", body_sha256: "sha-operador-v1.4" },
 ];
 
 const UA =
@@ -54,8 +54,8 @@ describe("LEGAL_DOC_KEYS", () => {
 describe("acceptanceHashPayload", () => {
   it("es determinístico: docs en otro orden → MISMO payload", () => {
     const docsReversed: DocRef[] = [
-      { key: "operador", version: "v1.4" },
-      { key: "tyc", version: "v2.1" },
+      { key: "operador", version: "v1.4", body_sha256: "sha-operador-v1.4" },
+      { key: "tyc", version: "v2.1", body_sha256: "sha-tyc-v2.1" },
     ];
     const p1 = acceptanceHashPayload(baseEvidence);
     const p2 = acceptanceHashPayload({ ...baseEvidence, docs: docsReversed });
@@ -64,9 +64,9 @@ describe("acceptanceHashPayload", () => {
 
   it("dedup de docs: mismo set con duplicados → MISMO payload (no se infla)", () => {
     const withDup: DocRef[] = [
-      { key: "tyc", version: "v2.1" },
-      { key: "operador", version: "v1.4" },
-      { key: "tyc", version: "v2.1" }, // duplicado
+      { key: "tyc", version: "v2.1", body_sha256: "sha-tyc-v2.1" },
+      { key: "operador", version: "v1.4", body_sha256: "sha-operador-v1.4" },
+      { key: "tyc", version: "v2.1", body_sha256: "sha-tyc-v2.1" }, // duplicado
     ];
     const p1 = acceptanceHashPayload(baseEvidence);
     const p2 = acceptanceHashPayload({ ...baseEvidence, docs: withDup });
@@ -93,8 +93,8 @@ describe("acceptanceHashPayload", () => {
     const p2 = acceptanceHashPayload({
       ...baseEvidence,
       docs: [
-        { key: "tyc", version: "v2.0" },
-        { key: "operador", version: "v1.4" },
+        { key: "tyc", version: "v2.0", body_sha256: "sha-tyc-v2.0" },
+        { key: "operador", version: "v1.4", body_sha256: "sha-operador-v1.4" },
       ],
     });
     expect(p1).not.toBe(p2);
@@ -193,8 +193,8 @@ describe("acceptanceHashPayload", () => {
 
   it("no muta el array de docs que recibe", () => {
     const docs: DocRef[] = [
-      { key: "operador", version: "v1.4" },
-      { key: "tyc", version: "v2.1" },
+      { key: "operador", version: "v1.4", body_sha256: "sha-operador-v1.4" },
+      { key: "tyc", version: "v2.1", body_sha256: "sha-tyc-v2.1" },
     ];
     const snapshot = JSON.stringify(docs);
     acceptanceHashPayload({ ...baseEvidence, docs });
