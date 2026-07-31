@@ -4,9 +4,9 @@
 |---|---|
 | Revisión | REV-VIS-010 |
 | SDD | [SDD-0175](../../specs/0175-vis-02-tipografia-voz-idioma/spec.md) |
-| Fecha | 2026-07-30 |
-| Alcance | Gmail y Outlook · entrega, estructura y render |
-| Resultado | Gmail y Outlook cerrados; Apple Mail abierto |
+| Fecha | 2026-07-31 |
+| Alcance | Gmail y Outlook · entrega, estructura y render; decisión de alcance para Apple Mail |
+| Resultado | Gmail y Outlook cerrados; Apple Mail `no aplica`; gate externo cerrado |
 
 ## Muestra controlada
 
@@ -33,7 +33,7 @@ un template alterno para la prueba.
 | Outlook | Mensaje recibido el `2026-07-31T03:48:23Z` desde `hailuway.com@gmail.com`; recepción confirmada por el founder; caracteres chinos y cuerpo HTML preservados; sin adjuntos | cumplimiento de entrega y contenido |
 | Gmail visual | [Captura controlada](assets/vis-02/gmail-zh-cn-redacted.png): conserva jerarquía, barra lateral, firma y enlaces, pero la vista está traducida al español; el founder confirmó el render original y aceptó cerrar sin una segunda captura | excepción de evidencia aprobada; gate cerrado |
 | Outlook visual | [Captura controlada](assets/vis-02/outlook-zh-cn-redacted.png): chino legible en modo oscuro, jerarquía y fallback preservados, barra lateral y enlace distinguibles | cumplimiento visual |
-| Apple Mail visual | Falta abrir la misma muestra en un cliente Apple Mail real y capturarla | no conformidad de evidencia |
+| Apple Mail visual | El founder determinó explícitamente que no se requiere verificar este cliente | no aplica |
 
 El identificador RFC 5322 de la muestra es
 `<CADxWAOieLdwrKQa86m9TuLKUgJDp5XgkQSjrjGzYGsaOqVUsig@mail.gmail.com>`.
@@ -68,6 +68,8 @@ explícitamente el render original y autorizó continuar sin exigir una segunda
 captura; Gmail se cierra como excepción de evidencia, no como evidencia visual
 fotográfica equivalente a Outlook.
 
-El gate externo permanece abierto únicamente para Apple Mail. La UI china
-sigue fuera de este alcance y debe conservar Noto Sans SC; BD-036 continúa
-limitada a documentos formales `lang="zh-CN"`.
+El founder determinó explícitamente que Apple Mail no requiere verificación,
+por lo que se clasifica `no aplica`; esta decisión no equivale a declarar ese
+cliente verificado. El gate externo queda cerrado. La UI china sigue fuera de
+este alcance y debe conservar Noto Sans SC; BD-036 continúa limitada a
+documentos formales `lang="zh-CN"`.

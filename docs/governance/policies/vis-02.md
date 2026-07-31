@@ -107,7 +107,9 @@ salida corporativa se selecciona explícitamente la voz de marca.
   Outlook;
 - Outlook conserva el original `zh-CN` legible en modo oscuro;
 - Gmail conserva el layout y el founder confirmó el render original, aceptando
-  cerrar el cliente sin una segunda captura; falta Apple Mail.
+  cerrar el cliente sin una segunda captura;
+- Apple Mail se clasifica `no aplica` por decisión explícita del founder, sin
+  declarar ese cliente verificado; el gate externo queda cerrado.
 
 ## 8. Gates cerrados y siguientes
 
@@ -121,8 +123,6 @@ Cerrado por SDD-0175:
 Siguiente por consumidor:
 
 - inventariar y migrar sólo un correo/PDF/documento que contenga chino real;
-- cerrar la evidencia visual del original `zh-CN` en Apple Mail con un buzón
-  controlado;
 - validar que label/valor siga distinguiéndose sin webfonts;
 - conservar BD-036 y `BRAND.md` sincronizados con la excepción documental.
 
