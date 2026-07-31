@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 178 specs)
+### Índice de specs (generado · 181 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -216,6 +216,9 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0183 | Control plane ejecutable de gobernanza | done | interno |
 | 0184 | Plan de carga por volumen · el sistema le dice al operario dó… | in-progress | interno |
 | 0185 | NUM-01 v1.1 y expresiones decimales | done | interno |
+| 0188 | Integridad documental y derechos del titular | proposed | interno |
+| 0189 | POD sellado y aviso al receptor | proposed | interno |
+| 0190 | Firma electrónica certificada (PSC · SUSCERTE) | draft | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0179 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0179, 0186, 0187 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
