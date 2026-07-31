@@ -56,8 +56,19 @@ fuente verificable registrada, o es una **decisión comercial declarada como tal
 
 ### Slice A · Sellar el contenido (⭐ primero) — ✅ **implementado 2026-07-30**
 
-> **Estado:** código en la rama; **migración NO aplicada a prod** (la aplica el
-> founder · [`docs/runbooks/aplicar-migraciones-prod.md`](../../runbooks/aplicar-migraciones-prod.md)).
+> **Estado: ✅ APLICADO A PROD el 2026-07-30**, con OK del founder, de a una y
+> por el runbook. Verificado contra el objeto, no contra el nombre:
+> `body_sha256` NOT NULL · trigger `legal_docs_guard_trg` vivo · función
+> `SECURITY INVOKER` con `search_path=""` · policy `"legal_docs delete by admin"`
+> retirada · **7/7 documentos sellados, 0 sellos incorrectos** · 0 aceptaciones ·
+> ledger con el basename exacto (lo ve el gate `migrations-applied`).
+>
+> **Y probado contra prod, no contra el esquema:** se intentaron las tres
+> adulteraciones —reescribir el cuerpo, renumerar la versión, borrar el
+> documento— y las tres rebotaron. Nada persistió (0 filas adulteradas).
+>
+> **Advisors: 136 → 136, delta 0**, ninguno menciona `legal_docs`. El revoke de
+> `EXECUTE` evitó sumar a la deuda de funciones abiertas.
 >
 > - `supabase/migrations/0297_legal_docs_body_hash.sql` — columna `body_sha256`,
 >   función `public.legal_docs_guard()` y trigger `legal_docs_guard_trg`.
