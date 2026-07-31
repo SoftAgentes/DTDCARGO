@@ -18,7 +18,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Lote, PlanCarga } from "@/lib/shared/estiba-plan";
 
-/** Fila persistida de `consolidation_plans` (migración 0295). */
+/** Fila persistida de `consolidation_plans` (migración 0298). */
 export type ConsolidationPlan = {
   id: string;
   tenant_id: string;
