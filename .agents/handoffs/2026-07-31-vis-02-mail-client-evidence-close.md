@@ -6,7 +6,8 @@
 | Rol | worker documental en worktree aislado |
 | Rama | `codex/vis-02-mail-client-evidence` |
 | Worktree | `C:\Users\Trabajo\Desktop\Developer\software\DTD-worktrees\vis-02-mail-client-evidence` |
-| Estado | listo para integración autorizada |
+| Estado | publicado en `origin/main` |
+| Integración | `605433a3` |
 
 ## Alcance cerrado
 
@@ -63,11 +64,17 @@ actualizaciones previas de `origin/main` sin reescribir historia.
 - La publicación a `origin/main` fue autorizada por el founder mediante
   `cerrar`.
 
+## Recibo de publicación
+
+El carril `codex/vis-02-mail-client-integrate`, creado desde `34df6bc8` de
+`origin/main`, integró la rama worker mediante `605433a3`. El commit concurrente
+sólo añadía el handoff de SDD-0184 y no solapaba las rutas VIS-02. Después del
+gate proporcional, `605433a3` se publicó por fast-forward en `origin/main`.
+
 ## Siguiente responsable
 
-Un carril integrador separado debe reconciliar el commit nuevo
-`34df6bc8` de `origin/main`, ejecutar el gate proporcional y publicar VIS-02
-sin modificar el checkout local de `main`.
+Ninguno para VIS-02. La auditoría de advertencias de lint continúa como slice
+independiente en otro worktree.
 
 ## Limpieza
 
