@@ -99,6 +99,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Atomicidad por dominios | [SDD-0174](../specs/0174-audit-atomicidad-dominios/spec.md) |
 | Inventario y revisión D1 | [REV-AUD-015](reviews/aud-d1-access-config.md) |
 | Diseño técnico D1 | [REV-AUD-017](reviews/aud-d1-access-config-design.md) |
+| Implementación local D1 | [REV-AUD-018](reviews/aud-d1-access-config-implementation.md) |
 | Inventario read-only del Corte E | [E0 · repo y Cloud](../specs/0166-auditoria-gobernada-aud-01-aud-02/inventario-corte-e-2026-07-29.md) |
 | Diseño y revisión del Corte E | [REV-AUD-016](reviews/aud-corte-e.md) |
 | Jerarquía visual | [VIS-01 v1.0](policies/vis-01.md) |
@@ -186,7 +187,7 @@ disfraza elevando el estado normativo.
 | BTN-01 | Semántica, jerarquía y contrato de botones | aprobada v1.1 | Contrato menu button precisado; adopción parcial | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | HTD-01 | Confirmación por presión sostenida | aprobada | [Contrato v1.0](policies/htd-01.md) consolidado; no implementado | Crear SDD solo para una entidad R3 clasificada por MP-01 |
 | AVS-01 | Avisos y confirmaciones | verificada | Primitiva conforme; consumidores legacy se migran solo dentro de slices R2/R3 | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
-| AUD-01 | Evento auditable y vínculo con acciones | aprobada | Diseño D1 aprobado: 24 operaciones obligatorias y workflow Auth durable; implementación pendiente | [REV-AUD-017](reviews/aud-d1-access-config-design.md) |
+| AUD-01 | Evento auditable y vínculo con acciones | aprobada | D1 verificado localmente: 24 operaciones y workflow Auth durable; Cloud pendiente | [REV-AUD-018](reviews/aud-d1-access-config-implementation.md) |
 | AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B y guardrail tenant 0268 aplicados; SDD-0118/0172 cerradas con replay, E2E y teardown terminal | [REV-AUD-039](reviews/aud-sdd-0118-0172-final-closure.md); consulta/RBAC y `0270` conservan gates separados |
 | VIS-01 | Jerarquía visual y distribución 60-30-10 | aprobada | Adopción parcial; muestreo acotado a slices y clasificación de literales | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | V1 integrado: Noto Serif SC sólo en documento formal `zh-CN`; UI china conserva Noto Sans SC | V2 correo, V3 PDF y V4 visual conservan gates propios |
@@ -254,8 +255,8 @@ aprobaron en LB-SGE-004. El orden que gobierna la siguiente fase es:
 2. conservar A1, A2 y sus recibos en Git; el Corte A está aplicado y verificado;
    B1 y `0268` están aplicados. SDD-0118/0172 están cerradas: `0284`–`0288`
    tienen recibos individuales y R29 aprobó replay, seed, E2E, verificación y
-   teardown terminal. C0 está aprobado por REV-AUD-012; D1 tiene diseño
-   aprobado y D2–D5 continúan como roadmap por gates;
+   teardown terminal. C0 está aprobado por REV-AUD-012; D1 está verificado
+   localmente y D2–D5 continúan por gates;
 3. revisar las políticas v0.1 por bloques coherentes, no como aprobación masiva;
 4. conservar VIS-02 V1 integrado y abrir V2–V4 sólo por salida;
 5. adoptar componentes CMP-01 por slices, sin nuevos usos de deprecated;
@@ -349,7 +350,8 @@ El plan de adopción por slices permanece en
 [LB-SGE-040](BASELINE-2026-07-29-12.md).
 La aplicación de 0268 permanece en
 [LB-SGE-039](BASELINE-2026-07-29-11.md).
-El diseño D1 permanece en
+La implementación local D1 permanece en
+[LB-SGE-080](BASELINE-2026-07-30-05.md); su diseño vive en
 [LB-SGE-038](BASELINE-2026-07-29-10.md).
 El Gate V0 de VIS-02 permanece en
 [LB-SGE-037](BASELINE-2026-07-29-09.md).

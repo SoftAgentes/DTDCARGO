@@ -4,7 +4,7 @@ title: "Auditoría — atomicidad por dominios"
 status: in-progress
 author: "Sam (founder) + Codex"
 created: 2026-07-29
-updated: 2026-07-29
+updated: 2026-07-30
 supersedes: null
 superseded_by: null
 related: ["0021", "0024", "0040", "0041", "0044", "0123", "0166"]
@@ -67,7 +67,7 @@ máquina antes de modificar suspensión/reactivación de usuarios.
 | Apertura SDD | aprobada | [REV-AUD-015](../../governance/reviews/aud-d1-access-config.md) |
 | D1 inventario | aprobado | [inventario D1](inventario-d1-acceso-configuracion-2026-07-29.md) |
 | D1 diseño | aprobado | [REV-AUD-017](../../governance/reviews/aud-d1-access-config-design.md) |
-| D1 implementación | pendiente | allowlist publicada; no se creó migración |
+| D1 implementación | verificada localmente | [REV-AUD-018](../../governance/reviews/aud-d1-access-config-implementation.md) |
 | D2 | pendiente | no abierto |
 | D3 | pendiente | no abierto |
 | D4 | pendiente | no abierto |
@@ -95,9 +95,12 @@ máquina antes de modificar suspensión/reactivación de usuarios.
 - aplicar `0268` o `0270` en Cloud;
 - definir plazos legales sin fuente aprobada.
 
-## 7. Próximo gate
+## 7. Resultado D1 y próximo gate
 
-El [diseño D1](diseno-d1-acceso-configuracion.md) quedó aprobado sin declarar
-atomicidad ACID entre PostgreSQL y Supabase Auth. El siguiente gate, todavía no
-abierto, es crear localmente la allowlist exacta de implementación después de
-revalidar el correlativo reservado. D2–D5 permanecen cerrados.
+La implementación local usa `0289_audit_d1_access_configuration`, reemplaza
+las 24 acciones obligatorias por fronteras transaccionales e incorpora un
+workflow durable intención → Auth → confirmación/compensación. No declara
+atomicidad ACID entre PostgreSQL y Supabase Auth.
+
+D1 está verificado localmente y pendiente de su gate Cloud individual. D2–D5
+conservan migración, pruebas, revisión y publicación separadas.

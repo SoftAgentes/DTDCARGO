@@ -7,13 +7,12 @@
  */
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { createAdminClient } from "@/lib/db/admin";
-import { getUserTenantId } from "@/lib/auth/session";
+import {
+  d1Reason,
+  executeD1Operation,
+} from "@/lib/studio/audit/d1-access-config-adapters";
 import {
   validateRuleInput,
-  upsertRule,
-  deleteRule,
-  seedDefaultRulesForTenant,
 } from "@/lib/studio/notifications/client-notification-rules-queries";
 
 export interface RuleActionState {
@@ -64,8 +63,15 @@ export async function upsertRuleAction(
   });
   if ("error" in validated) return { error: validated.error };
 
-  const res = await upsertRule(guard.supabase, guard.tenantId, validated.value);
-  if ("error" in res) return { error: res.error };
+  try {
+    await executeD1Operation(guard.supabase, {
+      operationType: "notification_rule.upsert",
+      targetId: str(formData.get("id")),
+      input: { ...validated.value },
+    });
+  } catch {
+    return { error: "No pudimos guardar la regla." };
+  }
 
   revalidatePath("/studio/admin/notificaciones");
   return { ok: true };
@@ -81,8 +87,21 @@ export async function deleteRuleAction(
   const ruleId = str(formData.get("id"));
   if (!ruleId) return { error: "Falta el id de la regla." };
 
-  const res = await deleteRule(guard.supabase, guard.tenantId, ruleId);
-  if ("error" in res) return { error: res.error };
+  try {
+    await executeD1Operation(guard.supabase, {
+      operationType: "notification_rule.delete",
+      targetId: ruleId,
+      reason: d1Reason(
+        formData.get("reason"),
+        "Eliminación solicitada desde Notificaciones",
+      ),
+    });
+  } catch {
+    return {
+      error:
+        "No pudimos borrar la regla. Si tiene avisos asociados, desactívala.",
+    };
+  }
 
   revalidatePath("/studio/admin/notificaciones");
   return { ok: true };
@@ -95,9 +114,13 @@ export async function restoreDefaultsAction(
   const guard = await requireAdmin();
   if ("error" in guard) return { error: guard.error };
 
-  const tenantId = (await getUserTenantId()) ?? guard.tenantId;
-  const admin = createAdminClient();
-  await seedDefaultRulesForTenant(admin, tenantId);
+  try {
+    await executeD1Operation(guard.supabase, {
+      operationType: "notification_rule.restore_defaults",
+    });
+  } catch {
+    return { error: "No pudimos restaurar las reglas predeterminadas." };
+  }
 
   revalidatePath("/studio/admin/notificaciones");
   return { ok: true };
