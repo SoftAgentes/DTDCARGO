@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 215 specs)
+### Índice de specs (generado · 216 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -253,6 +253,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0221 | Expiración segura de artefactos de auditoría | done | interno |
 | 0222 | Retención de auditoría por lotes controlados | done | interno |
 | 0223 | Fechas planificadas de embarques | done | interno |
+| 0226 | Anulación gobernada de finiquito de Nómina | done | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0179, 0190 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0179, 0190, 0224, 0225 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
