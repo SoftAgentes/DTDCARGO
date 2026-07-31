@@ -246,15 +246,22 @@ export function Donut({
   const cy = 90;
   const R = 80;
   const r = 50;
-  let acc = 0;
+  const slices = data.map((datum, index) => {
+    const before = data
+      .slice(0, index)
+      .reduce((sum, item) => sum + item.value, 0);
+    return {
+      datum,
+      index,
+      a0: (before / total) * 2 * Math.PI - Math.PI / 2,
+      a1: ((before + datum.value) / total) * 2 * Math.PI - Math.PI / 2,
+    };
+  });
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
       <svg viewBox="0 0 180 180" style={{ width: 180, height: 180 }} role="img" aria-label="Mix de servicios">
-        {data.map((d, i) => {
-          const a0 = (acc / total) * 2 * Math.PI - Math.PI / 2;
-          acc += d.value;
-          const a1 = (acc / total) * 2 * Math.PI - Math.PI / 2;
+        {slices.map(({ datum: d, index: i, a0, a1 }) => {
           const large = a1 - a0 > Math.PI ? 1 : 0;
           // Slice completo (un solo dato) → anillo entero.
           if (data.length === 1) {

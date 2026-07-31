@@ -111,11 +111,15 @@ export function CalculadoraForm({
   const params = serverConfig ?? DEFAULT_PARAMS;
   // Consolidado: destino sintético (hasta puerto) → sin selector de ciudad y
   // sin recargo por distancia. DDP: catálogo de la DB o el array por default.
-  const cityList = esConsolidado
-    ? [CONSOLIDADO_DESTINO]
-    : ciudades && ciudades.length > 0
-      ? ciudades
-      : CIUDADES;
+  const cityList = useMemo(
+    () =>
+      esConsolidado
+        ? [CONSOLIDADO_DESTINO]
+        : ciudades && ciudades.length > 0
+          ? ciudades
+          : CIUDADES,
+    [esConsolidado, ciudades],
+  );
   const defaultCiudadId =
     cityList.find((c) => c.id === "casco-central")?.id ??
     cityList[0]?.id ??
@@ -167,10 +171,13 @@ export function CalculadoraForm({
   // así abrir el panel por curiosidad no borra ni oculta un valor ya escrito
   // (bug "a veces no muestra el cálculo": abrir/cerrar el panel sin medir dejaba
   // el CBM en 0 y el estimado desaparecía).
-  const effectiveForm: EnvioInput =
-    cbmPanelOpen && cbmDesdeMedidas > 0
-      ? { ...form, cbmTotal: cbmDesdeMedidas }
-      : form;
+  const effectiveForm = useMemo<EnvioInput>(
+    () =>
+      cbmPanelOpen && cbmDesdeMedidas > 0
+        ? { ...form, cbmTotal: cbmDesdeMedidas }
+        : form,
+    [cbmPanelOpen, cbmDesdeMedidas, form],
+  );
 
   // Cerrar el panel: congela el CBM calculado SOLO si hubo medidas (> 0); si no,
   // deja intacto el valor manual previo. Abrir: solo despliega; el CBM lo deriva
