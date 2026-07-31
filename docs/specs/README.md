@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 206 specs)
+### Índice de specs (generado · 207 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -244,6 +244,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0212 | Preferencias — hidratación cancelable del navegador | done | interno |
 | 0213 | Estado — reconciliación cancelable por frontera | done | interno |
 | 0214 | Efectos externos — fronteras cancelables | done | interno |
+| 0215 | HTD-01 en anulación de factura R3 | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0179, 0190 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

@@ -1,8 +1,8 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { useState } from "react";
-import { ConfirmDialog } from "./ConfirmDialog";
+import { ConfirmDialog, HTD_HOLD_DURATION_MS } from "./ConfirmDialog";
 import { DrawerShell } from "./drawer/DrawerShell";
 
 const originalOffsetParent = Object.getOwnPropertyDescriptor(
@@ -207,5 +207,92 @@ describe("ConfirmDialog · AVS-01", () => {
       expect(document.getElementById(dialog.getAttribute("aria-labelledby")!)).not.toBeNull();
       expect(document.getElementById(dialog.getAttribute("aria-describedby")!)).not.toBeNull();
     }
+  });
+
+  it("HTD-01 solo confirma después de mantener 1,5 segundos", () => {
+    vi.useFakeTimers();
+    const onConfirm = vi.fn();
+    render(
+      <ConfirmDialog
+        open
+        danger
+        reason
+        reasonRequired
+        holdToConfirm
+        title="Anular factura"
+        message="La factura quedará anulada."
+        confirmLabel="Anular factura"
+        holdLabel="Mantén presionado para anular"
+        onCancel={() => {}}
+        onConfirm={onConfirm}
+      />,
+    );
+    fireEvent.change(screen.getByRole("textbox", { name: /motivo/i }), {
+      target: { value: "Factura duplicada" },
+    });
+    const hold = screen.getByRole("button", {
+      name: "Mantén presionado para anular",
+    });
+    fireEvent.pointerDown(hold, { button: 0 });
+    act(() => vi.advanceTimersByTime(HTD_HOLD_DURATION_MS - 1));
+    expect(onConfirm).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(1));
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onConfirm).toHaveBeenCalledWith("Factura duplicada");
+    act(() => vi.advanceTimersByTime(HTD_HOLD_DURATION_MS));
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
+  it("HTD-01 cancela al soltar antes del umbral", () => {
+    vi.useFakeTimers();
+    const onConfirm = vi.fn();
+    render(
+      <ConfirmDialog
+        open
+        danger
+        holdToConfirm
+        title="Anular factura"
+        message="La factura quedará anulada."
+        onCancel={() => {}}
+        onConfirm={onConfirm}
+      />,
+    );
+    const hold = screen.getByRole("button", {
+      name: "Mantén presionado para confirmar",
+    });
+    fireEvent.pointerDown(hold, { button: 0 });
+    act(() => vi.advanceTimersByTime(700));
+    fireEvent.pointerUp(hold);
+    act(() => vi.advanceTimersByTime(HTD_HOLD_DURATION_MS));
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(screen.getByRole("status")).toHaveTextContent("Confirmación cancelada");
+    vi.useRealTimers();
+  });
+
+  it("HTD-01 ofrece alternativa accesible de checkbox y click", async () => {
+    const user = userEvent.setup();
+    const onConfirm = vi.fn();
+    render(
+      <ConfirmDialog
+        open
+        danger
+        reason
+        reasonRequired
+        holdToConfirm
+        title="Anular factura"
+        message="La factura quedará anulada."
+        confirmLabel="Anular factura"
+        onCancel={() => {}}
+        onConfirm={onConfirm}
+      />,
+    );
+    await user.type(screen.getByRole("textbox", { name: /motivo/i }), "Error de emisión");
+    await user.click(
+      screen.getByRole("checkbox", { name: /entiendo la consecuencia/i }),
+    );
+    await user.click(screen.getByRole("button", { name: "Anular factura" }));
+    expect(onConfirm).toHaveBeenCalledOnce();
+    expect(onConfirm).toHaveBeenCalledWith("Error de emisión");
   });
 });

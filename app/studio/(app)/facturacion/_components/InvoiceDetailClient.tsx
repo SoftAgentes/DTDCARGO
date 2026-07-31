@@ -293,10 +293,13 @@ export function InvoiceDetailClient({
         danger
         reason
         reasonRequired
+        holdToConfirm
         initialFocus="reason"
         title="Anular factura"
         message={`La factura ${invoice.invoice_code} quedará anulada en el historial. Indica el motivo.`}
         confirmLabel="Anular factura"
+        holdLabel="Mantén presionado para anular"
+        holdAlternativeLabel="Entiendo que la factura quedará anulada y prefiero confirmar con un clic"
         pending={voidPending}
         error={error ?? undefined}
         onCancel={() => {

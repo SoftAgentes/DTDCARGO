@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
   "generatedAt": "2026-07-30T00:00:00.000Z",
-  "sourceCommit": "427072359aac8d54df5dc44a599b63bf2ae34fcd",
+  "sourceCommit": "b3e908acb6f5530076a070015674a381e58b4a62",
   "normativeSource": "docs/governance/README.md",
   "agentBrief": "docs/governance/AGENT-BRIEF.md",
   "commands": {
@@ -98,7 +98,7 @@
     {
       "code": "HTD-01",
       "version": "1.0",
-      "state": "aprobada — no implementada",
+      "state": "aprobada — primer consumidor R3 verificado",
       "approvedAt": "2026-07-21",
       "path": "docs/governance/policies/htd-01.md"
     },
