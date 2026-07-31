@@ -33,7 +33,7 @@
 | Cotizador | 0011 | `app/studio/(app)/cotizador/` | `lib/studio/quote-*` |
 | Dashboard | 0014 | `app/studio/(app)/resumen/` | `lib/studio/dashboard-queries.ts` |
 | Calendario | 0015 | `app/studio/(app)/calendario/` | `lib/studio/calendar-*` |
-| Almacén CN | 0016, 0194, 0196 | `app/studio/(app)/cn/` + `app/m/cn/` | `lib/studio/warehouse-cn-*` |
+| Almacén CN | 0016, 0194, 0196, 0197 | `app/studio/(app)/cn/` + `app/m/cn/` | `lib/studio/warehouse-cn-*` |
 | Almacén VE | 0017 | `app/studio/(app)/ve/` + `app/m/ve/` | `lib/studio/warehouse-ve-*`, `warehouse-receipt-ve-*` |
 | Aduana SENIAT | 0018 | `app/studio/(app)/seniat/` | `lib/studio/customs-*` |
 | TMS · transporte VE | 0019 | `app/studio/(app)/tms/` | `lib/studio/tms-*` |
@@ -63,7 +63,7 @@
 
 | App | SDD | Código |
 |---|---|---|
-| CN (recepción) | 0016, 0030, 0154, 0162, 0163 | `app/m/cn/` (`nueva`, `recibir`, `estibar`) — 0163 (`proposed`) suma el checklist de servicios de la llegada al recibir |
+| CN (recepción) | 0016, 0030, 0154, 0162, 0163, 0197 | `app/m/cn/` (`nueva`, `recibir`, `estibar`) — 0163 (`proposed`) suma el checklist de servicios de la llegada al recibir |
 | VE bodeguero | 0017, 0030 | `app/m/ve/bodeguero/` |
 | VE camionero | 0030 | `app/m/ve/camionero/` |
 | ERP móvil (staff) | varios | `app/m/erp/` |

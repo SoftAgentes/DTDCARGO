@@ -16,7 +16,15 @@
  * Iconografía: Icon set Studio. Cero emojis decorativos.
  */
 
-import { startTransition, useActionState, useEffect, useReducer, useRef, useState } from "react";
+import {
+  startTransition,
+  useActionState,
+  useEffect,
+  useId,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/studio/_components/icons";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
@@ -187,8 +195,6 @@ export function NuevaRecepcionClient({
   // Fotos que fallaron por red y quedaron encoladas para retry offline.
   const [photosQueued, setPhotosQueued] = useState(0);
   const photosRef = useRef<Photo[]>([]);
-  // Keep latest snapshot para useEffect
-  photosRef.current = reception.photos;
 
   // Cuando server crea receipt → arrancar upload de fotos en paralelo
   // y luego pasar a Done.
@@ -275,6 +281,9 @@ export function NuevaRecepcionClient({
   }, [state.ok, state.receiptCode, state.receiptId]);
 
   const submit = () => {
+    // Captura la selección exacta asociada a este submit. El upload posterior
+    // no debe leer una ref mutada durante render ni una edición más reciente.
+    photosRef.current = reception.photos;
     const payload: CreateReceiptInput = {
       warehouse_id: defaultWarehouseId,
       is_orphan: reception.orphan,
@@ -346,7 +355,6 @@ export function NuevaRecepcionClient({
       {view === "step4" && (
         <Step4Confirm
           lang={lang}
-          clients={clients}
           reception={reception}
           dispatch={dispatch}
           onBack={() => setView("step3")}
@@ -560,7 +568,7 @@ function PhotoAddTile({
   lang: Lang;
   onPicked: (file: File) => void;
 }) {
-  const inputId = `photo-input-${Math.random().toString(36).slice(2, 8)}`;
+  const inputId = useId();
   return (
     <label
       htmlFor={inputId}
@@ -1186,7 +1194,6 @@ function MobileInput({
 
 function Step4Confirm({
   lang,
-  clients,
   reception,
   dispatch,
   onBack,
@@ -1195,7 +1202,6 @@ function Step4Confirm({
   serverError,
 }: {
   lang: Lang;
-  clients: PickerClient[];
   reception: Reception;
   dispatch: React.Dispatch<Action>;
   onBack: () => void;
