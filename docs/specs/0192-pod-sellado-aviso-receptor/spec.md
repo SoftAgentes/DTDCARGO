@@ -85,8 +85,24 @@ documento que regule la relación.** Ver §7.
 
 ### Slice A · Sellar el POD (⭐ primero) — ✅ **implementado 2026-07-31**
 
-> **Estado:** código en la rama; **migración `0300_pod_seal.sql` NO aplicada a
-> prod** (la aplica el founder · runbook).
+> **Estado: ✅ APLICADO A PROD** — ledger `20260731043908`, con OK del founder
+> nombrando la migración, de a una y por el runbook. Verificado contra el objeto:
+> `hash` y `evidence_version` NOT NULL · trigger `dispatch_pods_guard_trg` vivo ·
+> 4 funciones · **exactamente 1 `SECURITY DEFINER`** (la del sello, por diseño) ·
+> **0 ejecutables por `authenticated`**. Advisors **136 → 136, delta 0**.
+>
+> **Probado contra prod:** `dispatch_pod_object_seal()` devolvió la huella real
+> del archivo (`"7af7827f4ecf…":253239`) y `objeto-ausente` para una ruta
+> inexistente — o sea, el hash cubre el **contenido**, no la ruta. Esa era la
+> propiedad que había que demostrar.
+>
+> ⚠️ **Lo que NO se pudo probar contra prod:** el camino insert → sellado →
+> inmutabilidad. `dispatch_orders` está en **0 filas**, así que no hay orden a la
+> que colgarle un POD, y fabricar una orden falsa para probarlo habría metido
+> datos de negocio inventados en producción. Esa ruta queda cubierta por el test
+> de contrato `0300_pod_seal.test.sql` (5 casos + mutación), que es su lugar.
+> Cuando entre la primera entrega real, conviene correr
+> `dispatch_pod_hash_valid()` sobre ella y confirmarlo en vivo.
 >
 > ⭐ **Se sella el CONTENIDO de los archivos, no su ruta.** Hashear `photo_path`
 > habría repetido el error que 0297 corrigió en `legal_docs`: si alguien
