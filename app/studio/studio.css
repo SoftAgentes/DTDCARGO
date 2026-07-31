@@ -145,6 +145,13 @@
   border-color: var(--studio-wine);
   box-shadow: 0 0 0 3px rgba(127, 15, 26, 0.18);
 }
+.studio-input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+.studio-input[aria-invalid="true"]:focus-visible {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px var(--danger-bg);
+}
 .studio-input:disabled {
   background: var(--studio-paper-2);
   color: var(--studio-text-muted);

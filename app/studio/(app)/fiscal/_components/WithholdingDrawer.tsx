@@ -15,6 +15,7 @@ import {
   DrawerShell,
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import {
   WITHHOLDING_TYPES,
   computeWithholdingAmount,
@@ -64,15 +65,13 @@ export function WithholdingDrawer({
   );
 
   const [type, setType] = useState<WithholdingType>("iva");
-  const [base, setBase] = useState<string>("");
-  const [pct, setPct] = useState<string>(type === "iva" ? "75" : "");
+  const [base, setBase] = useState<number | null>(null);
+  const [pct, setPct] = useState<number | null>(type === "iva" ? 75 : null);
 
   // Monto retenido en vivo (solo ayuda visual; el server recalcula).
   const previewAmount = useMemo(() => {
-    const b = Number(base);
-    const p = Number(pct);
-    if (!Number.isFinite(b) || !Number.isFinite(p)) return null;
-    return computeWithholdingAmount(b, p);
+    if (base == null || pct == null) return null;
+    return computeWithholdingAmount(base, pct);
   }, [base, pct]);
 
   useEffect(() => {
@@ -133,7 +132,7 @@ export function WithholdingDrawer({
             onChange={(e) => {
               const v = e.target.value as WithholdingType;
               setType(v);
-              if (v === "iva" && pct === "") setPct("75");
+              if (v === "iva" && pct == null) setPct(75);
             }}
             style={fieldStyle}
           >
@@ -223,17 +222,21 @@ export function WithholdingDrawer({
                 ? "Base (IVA de la compra)"
                 : "Base (monto / honorario)"}
             </label>
-            <input
+            <NumericInput
               id="wh-base"
               name="base"
-              type="number"
-              step="0.01"
-              min="0"
-              inputMode="decimal"
-              className="studio-input studio-input-mono"
+              type="decimal"
+              precision={2}
+              min={0}
               value={base}
-              onChange={(e) => setBase(e.target.value)}
-              style={fieldStyle}
+              onChange={setBase}
+              required
+              aria-invalid={!!fe.base}
+              aria-label={
+                type === "iva"
+                  ? "Base de IVA de la compra"
+                  : "Base del monto u honorario"
+              }
             />
             {fe.base && <div style={errStyle}>{fe.base}</div>}
           </div>
@@ -241,18 +244,19 @@ export function WithholdingDrawer({
             <label style={labelStyle} htmlFor="wh-pct">
               % de retención
             </label>
-            <input
+            <NumericInput
               id="wh-pct"
               name="pct"
-              type="number"
-              step="0.001"
-              min="0"
-              max="100"
-              inputMode="decimal"
-              className="studio-input studio-input-mono"
+              type="decimal"
+              unit="%"
+              precision={3}
+              min={0}
+              max={100}
               value={pct}
-              onChange={(e) => setPct(e.target.value)}
-              style={fieldStyle}
+              onChange={setPct}
+              required
+              aria-invalid={!!fe.pct}
+              aria-label="Porcentaje de retención"
             />
             {fe.pct && <div style={errStyle}>{fe.pct}</div>}
           </div>

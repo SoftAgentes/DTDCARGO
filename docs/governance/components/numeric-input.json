@@ -1,0 +1,99 @@
+{
+  "schemaVersion": "1.1",
+  "id": "numeric-input",
+  "name": "NumericInput",
+  "purpose": "Capturar totales o expresiones aritméticas con decimal canónico, validación progresiva y conservación del último valor válido.",
+  "owner": "Studio UI",
+  "status": "canonical",
+  "implementation": {
+    "path": "app/studio/_components/ui/NumericInput.tsx",
+    "exportName": "NumericInput"
+  },
+  "policyRefs": [
+    {
+      "code": "SGE-00",
+      "version": "1.0",
+      "path": "docs/governance/policies/sge-00.md"
+    },
+    {
+      "code": "NUM-01",
+      "version": "1.1",
+      "path": "docs/governance/policies/num-01.md"
+    },
+    {
+      "code": "FRM-01",
+      "version": "1.1",
+      "path": "docs/governance/policies/frm-01.md"
+    },
+    {
+      "code": "A11Y-01",
+      "version": "1.1",
+      "path": "docs/governance/policies/a11y-01.md"
+    }
+  ],
+  "api": {
+    "contractPath": "docs/specs/0185-num-01-expresiones-decimales/spec.md",
+    "summary": "Campo controlado o no controlado con total directo, expresiones básicas, decimal canónico, límites, unidad y moneda."
+  },
+  "tokens": [
+    "--danger",
+    "--f-mono",
+    "--f-sans",
+    "--ink-mute",
+    "--ink-soft"
+  ],
+  "accessibility": {
+    "keyboard": "verified",
+    "focus": "verified",
+    "screenReader": "verified",
+    "contrast": "verified",
+    "reducedMotion": "not-applicable",
+    "evidence": [
+      "app/studio/_components/ui/NumericInput.test.tsx",
+      "docs/governance/reviews/num-01-v1-1-numeric-input.md"
+    ]
+  },
+  "breakpoints": [
+    "mobile",
+    "tablet",
+    "desktop"
+  ],
+  "examples": {
+    "correct": [
+      "app/studio/(app)/fiscal/_components/WithholdingDrawer.tsx"
+    ],
+    "incorrect": [
+      "app/studio/(app)/financiero-china/_components/ImportStatementDrawer.tsx"
+    ]
+  },
+  "tests": [
+    {
+      "type": "unit",
+      "path": "__tests__/parse-numeric-expression.test.ts",
+      "case": "Precisión decimal, locale por operando, gramática y errores."
+    },
+    {
+      "type": "accessibility",
+      "path": "app/studio/_components/ui/NumericInput.test.tsx",
+      "case": "Confirmación por teclado, Constraint Validation, error anunciado y corrección en vivo."
+    },
+    {
+      "type": "integration",
+      "path": "app/studio/(app)/fiscal/_components/WithholdingDrawer.test.tsx",
+      "case": "Base y porcentaje fiscales conservan y envían el decimal canónico."
+    }
+  ],
+  "consumers": [
+    {
+      "path": "app/studio/(app)/fiscal/_components/WithholdingDrawer.tsx",
+      "verifiedAt": "2026-07-30"
+    }
+  ],
+  "review": {
+    "reviewPath": "docs/governance/reviews/num-01-v1-1-numeric-input.md",
+    "reviewer": "Codex",
+    "approvedBy": "Sam (founder)",
+    "lastReviewedAt": "2026-07-30",
+    "nextReviewAt": "2027-01-30"
+  }
+}

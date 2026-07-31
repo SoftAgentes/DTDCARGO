@@ -23,6 +23,7 @@
 | Gobernanza ejecutable | 0178, 0183 | entrypoints de agentes + scaffold local read-only sin instalación | `docs/governance/` como fuente normativa · `.agents/plugins/plugins/erp-studio-governance/` como derivado validado |
 | Tipografía transversal · VIS-02 | 0175 | `app/{layout,globals}.tsx` · `app/studio/` | `next/font` · tokens de voz · renderers email/PDF |
 | Fiscal/SENIAT · tabs accesibles | 0073, 0104, 0180 | `app/studio/(app)/fiscal/` | `lib/studio/fiscal/` |
+| Fiscal/SENIAT · entradas numéricas | 0104, 0166, 0185 | `app/studio/(app)/fiscal/` | `lib/studio/fiscal/` |
 | Selectores canónicos accesibles | 0108, 0181 | `app/studio/_components/ui/{ClientCombobox,SplitActionButton}.tsx` | `lib/studio/client-search-action.ts` |
 | Club DTD · validación de identidad | 0106, 0116, 0182 | `app/studio/(app)/club/` | `lib/studio/club/` |
 | Tracking / Embarques | 0005, 0006, 0012, 0013 | `app/studio/(app)/{tracking,embarques}/` | `lib/studio/shipment-*`, `tracking-progress` |
