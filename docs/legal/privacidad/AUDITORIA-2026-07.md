@@ -25,7 +25,7 @@
 | 6 | Trazabilidad de las solicitudes | 🟡 MIXTO — base parcial |
 | 7 | La política pública de tratamiento | 🔴 ENCONTRADO |
 | 8 | Inventario de terceros | 🔴 ENCONTRADO |
-| 9 | Transferencia internacional | 🔴 ENCONTRADO |
+| 9 | Transferencia internacional | 🟡 MITIGADO — ver H-7 |
 | 10 | Decisiones automatizadas trazables | 🟡 MIXTO — 1 `CORRECTO`, 2 `ENCONTRADO` |
 | 11 | Valor probatorio de la aceptación electrónica | 🔴 ENCONTRADO |
 | 12 | Titulares que no son tus usuarios | 🔴 ENCONTRADO |
@@ -227,7 +227,30 @@ sube el riesgo en vez de bajarlo.
 
 ---
 
-### 🔴 H-7 · Transferencia a China sin el consentimiento separado que exige la PIPL
+### ✅ H-7 · Transferencia a China — **resuelto el 2026-07-30**
+
+> **Estado:** cerrado por `cf62256e` (código) y `56ec4ff8` (política).
+>
+> Al auditar el alcance real apareció que la fuga era mayor de lo descrito abajo:
+> no eran las 6 recepciones con nombre, era el **picker de cliente**, que mandaba
+> la tabla `clients` completa —428 filas con nombre— al dispositivo en Yiwu. Y la
+> regla *"China ve códigos, no nombres"* **ya estaba implementada en el Studio**
+> (`listReceipts({ redactClientNames })`, SDD-0039 B.9): la PWA `/m/cn` se
+> construyó después y no la heredó. Drift, no descuido.
+>
+> Hoy el nombre no llega a China por ningún camino: ni lista, ni búsqueda, ni
+> picker, ni estiba, ni etiqueta QR, ni formulario de edición. El snapshot
+> `warehouse_receipts_cn.client_name` —que el Studio VE sí usa— lo resuelve el
+> **server** desde el Shipping Mark (`resolveClientNameByMarkbox()`), para que el
+> nombre no tenga que viajar al dispositivo ni siquiera de ida.
+>
+> ⚠️ **PIPL no desaparece, se reduce.** El equipo de Yiwu sigue tratando el
+> Shipping Mark en territorio chino, y un identificador seudónimo **sigue siendo
+> dato personal** (es reversible: DTD puede vincularlo). Lo que cambia es la
+> gravedad: ya no hay nombre, documento, dirección ni teléfono. La decisión sobre
+> el mecanismo del art. 38 sigue abierta para la abogada.
+
+*Hallazgo original:*
 
 **Punto 9.** `/privacidad` §5 despacha la transferencia en un párrafo genérico
 (*"Operamos entre China y Venezuela…"*,
