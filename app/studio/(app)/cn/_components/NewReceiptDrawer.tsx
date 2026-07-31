@@ -15,7 +15,7 @@
  * Items se serializan como JSON en hidden field `items_json`.
  */
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/studio/_components/icons";
 import { createReceiptAction } from "../actions";
@@ -45,6 +45,7 @@ interface ItemRow extends WarehouseReceiptItemInput {
 
 const initialState: WarehouseReceiptActionState = {};
 const MAX_ITEMS = 10;
+const FIELD_ERROR_SUMMARY = "Revisa los campos indicados.";
 
 function newItem(): ItemRow {
   return {
@@ -58,12 +59,22 @@ function newItem(): ItemRow {
   };
 }
 
+function receiptItemPayload(item: ItemRow): WarehouseReceiptItemInput {
+  return {
+    description: item.description,
+    description_translated: item.description_translated,
+    hs_code: item.hs_code,
+    quantity: item.quantity,
+    unit_value_usd: item.unit_value_usd,
+    notes: item.notes,
+  };
+}
+
 export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
   const t = useT();
-  const [state, formAction, isPending] = useActionState(
-    createReceiptAction,
-    initialState,
-  );
+  const [state, setState] =
+    useState<WarehouseReceiptActionState>(initialState);
+  const [isPending, setIsPending] = useState(false);
 
   // Form state
   const [warehouseId, setWarehouseId] = useState<string>("");
@@ -89,11 +100,14 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
 
   const router = useRouter();
   const toast = useToast();
-  const [createError, setCreateError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (state.ok) onClose();
-  }, [state.ok, onClose]);
+  const setPersistentError = (message: string) => {
+    setState((previous) => ({
+      ...previous,
+      ok: false,
+      error: message,
+    }));
+  };
 
   /** Reset de campos para "Crear y empezar otra". */
   const resetFormFields = () => {
@@ -125,7 +139,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
   const createWithPostAction = async (
     postAction: "close" | "open" | "reset",
   ): Promise<void | { error?: string }> => {
-    setCreateError(null);
+    setState(initialState);
     const formEl = document.getElementById(
       "receipt-drawer-form",
     ) as HTMLFormElement | null;
@@ -135,42 +149,63 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
       return { error: "Hay campos requeridos sin completar." };
     }
     const formData = new FormData(formEl);
-    const result = await createReceiptAction(
-      {} as WarehouseReceiptActionState,
-      formData,
-    );
-    if (result.error) {
-      setCreateError(result.error);
-      return { error: result.error };
+    setIsPending(true);
+    try {
+      const result = await createReceiptAction(initialState, formData);
+      setState(result);
+
+      const hasFieldErrors =
+        result.fieldErrors != null &&
+        Object.keys(result.fieldErrors).length > 0;
+      if (result.error || result.errorCode || hasFieldErrors) {
+        return {
+          error:
+            result.error ??
+            (hasFieldErrors
+              ? FIELD_ERROR_SUMMARY
+              : "No se pudo registrar la recepción."),
+        };
+      }
+      if (!result.ok || !result.createdReceiptCode) {
+        const message = "No se pudo registrar la recepción.";
+        setState({ error: message });
+        return { error: message };
+      }
+
+      const code = result.createdReceiptCode;
+      if (postAction === "close") {
+        toast.success(`Recepción ${code} registrada`, {
+          link: { href: `/studio/cn/${code}`, label: "Abrir recibo" },
+        });
+        router.push(
+          `/studio/cn?highlight=${encodeURIComponent(code)}&hl-tone=warm`,
+        );
+        onClose();
+      } else if (postAction === "open") {
+        toast.success(`Recepción ${code} · abriendo recibo`);
+        router.push(`/studio/cn/${code}`);
+        onClose();
+      } else if (postAction === "reset") {
+        toast.success(`Recepción ${code} registrada · siguiente paquete`, {
+          link: {
+            href: `/studio/cn?highlight=${encodeURIComponent(code)}&hl-tone=warm`,
+            label: "Ver en listado",
+          },
+        });
+        resetFormFields();
+        setState(initialState);
+      }
+      return undefined;
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "No se pudo registrar la recepción.";
+      setState({ error: message });
+      return { error: message };
+    } finally {
+      setIsPending(false);
     }
-    if (!result.ok || !result.createdReceiptCode) {
-      const m = "No se pudo registrar la recepción.";
-      setCreateError(m);
-      return { error: m };
-    }
-    const code = result.createdReceiptCode;
-    if (postAction === "close") {
-      toast.success(`Recepción ${code} registrada`, {
-        link: { href: `/studio/cn/${code}`, label: "Abrir recibo" },
-      });
-      router.push(
-        `/studio/cn?highlight=${encodeURIComponent(code)}&hl-tone=warm`,
-      );
-      onClose();
-    } else if (postAction === "open") {
-      toast.success(`Recepción ${code} · abriendo recibo`);
-      router.push(`/studio/cn/${code}`);
-      onClose();
-    } else if (postAction === "reset") {
-      toast.success(`Recepción ${code} registrada · siguiente paquete`, {
-        link: {
-          href: `/studio/cn?highlight=${encodeURIComponent(code)}&hl-tone=warm`,
-          label: "Ver en listado",
-        },
-      });
-      resetFormFields();
-    }
-    return undefined;
   };
 
   const addItem = () => {
@@ -191,9 +226,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
   };
 
   // Serialized items (sin _key) para hidden field
-  const itemsJson = JSON.stringify(
-    items.map(({ _key: _, ...it }) => it),
-  );
+  const itemsJson = JSON.stringify(items.map(receiptItemPayload));
 
   // Validación cliente para habilitar el submit antes de tocar el server.
   // El server valida igual como red de seguridad (validateReceiptInput).
@@ -668,7 +701,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
             variant="primary"
             size="default"
             disabled={isPending || !canSubmit}
-            onError={setCreateError}
+            onError={setPersistentError}
             actions={[
               {
                 key: "create-and-close",
