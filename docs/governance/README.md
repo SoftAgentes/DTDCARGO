@@ -146,6 +146,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Baseline de cobertura de los 57 módulos | [REV-SGE-029](reviews/governance-coverage-baseline-v1-2026-07-31.md) |
 | Auditoría R3 de anulación de finiquito de Nómina | [REV-SGE-030](reviews/payroll-r3-settlement-void-audit-2026-07-31.md) |
 | Cierre del warning NFT en assets privados de marca | [REV-SGE-032](reviews/nft-brand-asset-trace-close-2026-07-31.md) |
+| Preflight operativo E5 con elegibilidad cero | [REV-AUD-051](reviews/aud-e5-operational-preflight-2026-07-31.md) |
 | Revisión de patrones UX en videos | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | Portabilidad EOL de SDD-0118 | [REV-AUD-030](reviews/aud-sdd-0118-eol-portability.md) |
 | Dependencias ejecutables CMP-01 | [REV-SGE-015](reviews/cmp-01-dependency-validation.md) |
