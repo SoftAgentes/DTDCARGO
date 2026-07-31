@@ -31,10 +31,18 @@ const FOCUSABLE_SEL =
 /**
  * Top navigation — sticky, blur, drawer mobile completo con focus trap.
  *
- * Desktop (lg+): logo + enlaces principales + dropdown "Ayuda" + Mi portal + CTA.
- * Mobile (<lg):  logo + [≡ hamburguesa] + [Contacto btn]
+ * Desktop (lg+): logo + enlaces principales + dropdown "Ayuda" + Contáctenos +
+ *                Mi portal + [Regístrate].
+ * Mobile (<lg):  logo + [≡ hamburguesa] + [Regístrate]
  *                El hamburger abre un drawer con los enlaces + acordeón "Ayuda"
- *                + cuenta + CTA.
+ *                + cuenta + Contáctenos, y "Regístrate" como botón del pie.
+ *
+ * JERARQUÍA (founder 2026-07-31): el único botón de color, en las tres
+ * superficies, es "Regístrate" — es la acción que queremos que el visitante
+ * haga. "Contáctenos" es enlace de texto y va a la izquierda: casi todo el
+ * contacto entra por WhatsApp, que ya tiene su propio botón flotante.
+ * Ojo: esto NO viene del Norte, que no norma el nav público (verificado
+ * 2026-07-31) — es una decisión de producto tomada acá.
  *
  * Accesibilidad (WCAG 2.2):
  * - Drawer y dropdown "Recursos" cierran con tecla Escape
@@ -197,7 +205,11 @@ export function Nav() {
 
           {/* Desktop nav: full horizontal desde lg (1024px). Actualidad es
               enlace principal; Academia, proceso, FAQ y Glosario viven en Ayuda. */}
-          <div className="hidden lg:flex items-center gap-x-3">
+          {/* gap apretado entre lg y xl: sumar "Contáctenos" como enlace de
+              texto empujó la fila 30px más allá del ancho de la ventana a
+              1024px (medido: 1039 de contenido en 1024 de viewport) y aparecía
+              scroll horizontal. Desde xl vuelve al aire de siempre. */}
+          <div className="hidden lg:flex items-center gap-x-1.5 xl:gap-x-3">
             {links.map((l) => {
               const active = isLinkActive(pathname, l.href);
               return (
@@ -205,7 +217,7 @@ export function Nav() {
                   key={l.href}
                   href={l.href}
                   aria-current={active ? "page" : undefined}
-                  className={`text-[14.5px] px-2.5 py-2 rounded-md transition-colors whitespace-nowrap ${
+                  className={`text-[13.5px] xl:text-[14.5px] px-2 xl:px-2.5 py-2 rounded-md transition-colors whitespace-nowrap ${
                     active
                       ? "text-wine font-bold bg-wine/30"
                       : "text-ink font-medium hover:text-wine hover:bg-wine/15"
@@ -220,7 +232,7 @@ export function Nav() {
                 nativo da aria-expanded + teclado; Escape/click-fuera se manejan
                 en el useEffect de arriba. */}
             <details ref={recursosRef} className="group relative">
-              <summary className="list-none cursor-pointer select-none text-[14.5px] px-2.5 py-2 rounded-md text-ink font-medium hover:text-wine hover:bg-wine/15 transition-colors whitespace-nowrap flex items-center gap-1.5 [&::-webkit-details-marker]:hidden">
+              <summary className="list-none cursor-pointer select-none text-[13.5px] xl:text-[14.5px] px-2 xl:px-2.5 py-2 rounded-md text-ink font-medium hover:text-wine hover:bg-wine/15 transition-colors whitespace-nowrap flex items-center gap-1.5 [&::-webkit-details-marker]:hidden">
                 Ayuda
                 <span
                   aria-hidden
@@ -253,18 +265,30 @@ export function Nav() {
               </div>
             </details>
 
+            {/* Jerarquía de la derecha (founder 2026-07-31): el único botón de
+                color es "Regístrate", porque el registro es lo que queremos que
+                el visitante haga. "Contáctenos" baja a enlace de texto y se
+                corre a la izquierda: casi todo el contacto entra por WhatsApp
+                —que ya tiene su botón flotante— así que ocupar el CTA del nav
+                con él competía contra la conversión que sí importa. */}
+            <Link
+              href="/contacto"
+              className="text-[13.5px] xl:text-[14.5px] px-2 xl:px-2.5 py-2 rounded-md text-ink font-semibold hover:text-wine hover:bg-wine/15 transition-colors whitespace-nowrap"
+            >
+              Contáctenos
+            </Link>
             <Link
               href="/portal/login"
-              className="text-[14.5px] px-2.5 py-2 rounded-md text-ink font-semibold hover:text-wine hover:bg-wine/15 transition-colors whitespace-nowrap"
+              className="text-[13.5px] xl:text-[14.5px] px-2 xl:px-2.5 py-2 rounded-md text-ink font-semibold hover:text-wine hover:bg-wine/15 transition-colors whitespace-nowrap"
             >
               Mi portal
             </Link>
-            <Link href="/contacto" className="btn btn-ghost whitespace-nowrap">
-              Contáctenos
+            <Link href="/registro" className="btn btn-primary whitespace-nowrap">
+              Regístrate
             </Link>
           </div>
 
-          {/* Mobile + tablet: hamburger + Contacto (<lg = <1024px) */}
+          {/* Mobile + tablet: hamburger + Regístrate (<lg = <1024px) */}
           <div className="lg:hidden flex items-center gap-2">
             <button
               ref={hamburgerRef}
@@ -288,12 +312,14 @@ export function Nav() {
                 <path d="M1 1h18M1 7h18M1 13h18" />
               </svg>
             </button>
+            {/* En la barra angosta solo cabe UN botón: va el de conversión.
+                Contáctenos sigue a un toque de distancia, dentro del menú. */}
             <Link
-              href="/contacto"
+              href="/registro"
               className="btn btn-primary"
               style={{ height: 40, padding: "0 16px", fontSize: 13 }}
             >
-              Contáctenos
+              Regístrate
             </Link>
           </div>
         </div>
@@ -399,7 +425,9 @@ export function Nav() {
             })}
           </details>
 
-          {/* Cuenta · Mi portal + Regístrate */}
+          {/* Cuenta · Mi portal + Contáctenos. "Regístrate" NO va acá: es el
+              botón del pie, para que el menú tenga la misma jerarquía que la
+              barra de escritorio y no aparezca dos veces. */}
           <Link
             href="/portal/login"
             onClick={close}
@@ -408,21 +436,21 @@ export function Nav() {
             Mi portal
           </Link>
           <Link
-            href="/registro"
+            href="/contacto"
             onClick={close}
-            className="text-[18px] py-4 px-3 -mx-3 rounded-md border-b border-grey-200 text-wine font-bold hover:bg-wine/15 transition-colors"
+            className="text-[18px] py-4 px-3 -mx-3 rounded-md border-b border-grey-200 text-ink font-semibold hover:text-wine hover:bg-wine/15 transition-colors"
           >
-            Regístrate como cliente
+            Contáctenos
           </Link>
         </nav>
 
         <div className="p-6 border-t border-grey-200">
           <Link
-            href="/contacto"
+            href="/registro"
             onClick={close}
             className="btn btn-primary w-full"
           >
-            Contáctenos
+            Regístrate
           </Link>
         </div>
       </aside>
