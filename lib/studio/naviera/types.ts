@@ -35,27 +35,63 @@ export type ContainerTypeCode = "20GP" | "40GP" | "40HC";
 
 export type ContainerTypeSpec = {
   label: string;
+  /** Capacidad ÚTIL en CBM — lo que de verdad se carga, NO el volumen geométrico. */
   cbm: number;
   kg: number;
+  /** Techo REAL medido en un contenedor propio. Pasarlo avisa, no bloquea. */
+  alertCeiling: number | null;
+  /** Si el tipo se ofrece al operar (SDD-0184). Espejo de `container_types.active`. */
+  active: boolean;
 };
 
 /**
- * Capacidad útil de cada tipo. Espejo en TS del seed de `container_types`
- * y del `CONTAINER_TYPES` del Norte. Fuente de verdad para `containerStats`
- * cuando no hay fila de catálogo a mano (tests / cálculo puro).
+ * Capacidad ÚTIL de cada tipo. Espejo en TS del seed de `container_types`.
+ * Fuente de verdad para `containerStats`, que NO consulta la base.
+ *
+ * ── SDD-0184: útil, no geométrica ──────────────────────────────────────────
+ * El seed original de 0096 sembró el volumen GEOMÉTRICO interno (de pared a
+ * pared). Nadie llena un contenedor hasta el techo y las esquinas:
+ *
+ *   tipo    geométrico   útil
+ *   20GP        33,2 m³    30
+ *   40GP        67,7 m³    60
+ *   40HC        76,2 m³    68
+ *
+ * El 68 del 40'HC lo fijó el founder (2026-07-30) y es el mismo que usa a mano
+ * en `build_consolidado.py`. De ahí sale el factor práctico 68/76,2 = 0,8923,
+ * que aplicado a los otros dos da 30 y 60.
+ *
+ * ⚠️ Esta constante y la migración 0294 son UN SOLO CAMBIO. `containerStats` lee
+ * de acá y el WMS (`containerCapacityCbm`) lee de la base: si se tocan por
+ * separado, las dos pantallas se contradicen en la misma sesión.
  */
 export const CONTAINER_TYPES: Record<ContainerTypeCode, ContainerTypeSpec> = {
-  "20GP": { label: "20' GP", cbm: 33, kg: 28000 },
-  "40GP": { label: "40' GP", cbm: 67, kg: 26500 },
-  "40HC": { label: "40' HC", cbm: 76, kg: 26500 },
+  "20GP": { label: "20' GP", cbm: 30, kg: 28000, alertCeiling: null, active: true },
+  "40GP": { label: "40' GP", cbm: 60, kg: 26500, alertCeiling: null, active: false },
+  "40HC": { label: "40' HC", cbm: 68, kg: 26500, alertCeiling: 66.4, active: true },
 };
 
+/**
+ * Tipos que se ofrecen al operar. Solo 20' y 40'HC (founder 2026-07-30) — el
+ * resto queda en el catálogo pero apagado, para no perder historia ni romper
+ * consolidaciones viejas que lo referencien.
+ */
 export const CONTAINER_TYPE_OPTIONS: {
   value: ContainerTypeCode;
   label: string;
+}[] = (Object.keys(CONTAINER_TYPES) as ContainerTypeCode[])
+  .filter((code) => CONTAINER_TYPES[code].active)
+  .map((code) => ({ value: code, label: CONTAINER_TYPES[code].label }));
+
+/** Todos los tipos, activos o no — para pantallas de administración del catálogo. */
+export const CONTAINER_TYPE_OPTIONS_ALL: {
+  value: ContainerTypeCode;
+  label: string;
+  active: boolean;
 }[] = (Object.keys(CONTAINER_TYPES) as ContainerTypeCode[]).map((code) => ({
   value: code,
   label: CONTAINER_TYPES[code].label,
+  active: CONTAINER_TYPES[code].active,
 }));
 
 export function isContainerTypeCode(v: unknown): v is ContainerTypeCode {
@@ -68,8 +104,15 @@ export type ContainerType = {
   tenant_id: string;
   code: string;
   label: string;
+  /** Capacidad ÚTIL en CBM (no el volumen geométrico). */
   cbm_capacity: number;
   kg_capacity: number;
+  /** Techo real medido; null = sin medición propia (SDD-0184). */
+  cbm_alert_ceiling: number | null;
+  /** Si el tipo se ofrece al operar (SDD-0184). */
+  active: boolean;
+  /** Grilla de áreas {nx,ny,nz} — jsonb crudo, parsear con `parseZoneLayout`. */
+  zone_layout: unknown;
   display_order: number;
   created_at: string;
 };

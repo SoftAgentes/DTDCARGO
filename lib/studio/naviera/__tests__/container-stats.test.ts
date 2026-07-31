@@ -6,13 +6,15 @@
  *
  * Los números de referencia salen de naviera-data.jsx (CONTAINERS):
  *  - cont-502 (40HC) → items con cbm 8.2+4.6+6.8+5.4 = 25.0, kg 9900, pieces 51.
- *  - 40HC cap = cbm 76 / kg 26500.
+ *  - 40HC cap = cbm 68 (ÚTIL, SDD-0184) / kg 26500.
  */
 
 import { describe, it, expect } from "vitest";
 import {
   containerStats,
   CONTAINER_TYPES,
+  CONTAINER_TYPE_OPTIONS,
+  CONTAINER_TYPE_OPTIONS_ALL,
   type StatItem,
 } from "../types";
 
@@ -89,10 +91,38 @@ describe("containerStats — calca el helper del Norte", () => {
   });
 });
 
-describe("CONTAINER_TYPES — espejo del catálogo del Norte", () => {
-  it("20GP / 40GP / 40HC con cbm/kg correctos", () => {
-    expect(CONTAINER_TYPES["20GP"]).toEqual({ label: "20' GP", cbm: 33, kg: 28000 });
-    expect(CONTAINER_TYPES["40GP"]).toEqual({ label: "40' GP", cbm: 67, kg: 26500 });
-    expect(CONTAINER_TYPES["40HC"]).toEqual({ label: "40' HC", cbm: 76, kg: 26500 });
+describe("CONTAINER_TYPES — capacidad ÚTIL, no geométrica (SDD-0184)", () => {
+  it("los tres tipos con su capacidad útil, su techo y su estado", () => {
+    // ⚠️ Estos números NO son el volumen geométrico interno del contenedor.
+    // El geométrico (33,2 / 67,7 / 76,2) es de pared a pared y nadie carga
+    // hasta el techo y las esquinas. El 68 del 40'HC lo fijó el founder; el
+    // factor 68/76,2 = 0,8923 da los otros dos. Espejo de la migración 0294:
+    // si alguien cambia uno sin el otro, el WMS y Naviera se contradicen.
+    expect(CONTAINER_TYPES["20GP"]).toEqual({
+      label: "20' GP", cbm: 30, kg: 28000, alertCeiling: null, active: true,
+    });
+    expect(CONTAINER_TYPES["40GP"]).toEqual({
+      label: "40' GP", cbm: 60, kg: 26500, alertCeiling: null, active: false,
+    });
+    expect(CONTAINER_TYPES["40HC"]).toEqual({
+      label: "40' HC", cbm: 68, kg: 26500, alertCeiling: 66.4, active: true,
+    });
+  });
+
+  it("ningún tipo declara un techo por encima de su capacidad", () => {
+    // Un techo de aviso mayor que la capacidad no avisaría nunca.
+    for (const [code, spec] of Object.entries(CONTAINER_TYPES)) {
+      if (spec.alertCeiling != null) {
+        expect(spec.alertCeiling, code).toBeLessThanOrEqual(spec.cbm);
+        expect(spec.alertCeiling, code).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("solo se ofrecen al operar el 20' y el 40'HC", () => {
+    expect(CONTAINER_TYPE_OPTIONS.map((o) => o.value)).toEqual(["20GP", "40HC"]);
+    // El catálogo completo sigue teniendo los tres: apagar no es borrar.
+    expect(CONTAINER_TYPE_OPTIONS_ALL).toHaveLength(3);
+    expect(CONTAINER_TYPE_OPTIONS_ALL.find((o) => o.value === "40GP")?.active).toBe(false);
   });
 });

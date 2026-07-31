@@ -40,10 +40,14 @@ const box = (
 });
 
 describe("layout", () => {
-  it("el default es 3×2×3 = 18 zonas", () => {
-    expect(DEFAULT_ZONE_LAYOUT).toEqual({ nx: 3, ny: 2, nz: 3 });
-    expect(zoneCount(DEFAULT_ZONE_LAYOUT)).toBe(18);
-    expect(allZones(DEFAULT_ZONE_LAYOUT)).toHaveLength(18);
+  it("el default es 3×1×3 = 9 áreas, SIN altura", () => {
+    // SDD-0184: la altura no se usa. El operario solo elige izquierda/centro/
+    // derecha (SDD-0155) y la interfaz nunca muestra niveles. Espejo de lo que
+    // la migración 0294 deja en `container_types.zone_layout` para los 40'.
+    expect(DEFAULT_ZONE_LAYOUT).toEqual({ nx: 3, ny: 1, nz: 3 });
+    expect(DEFAULT_ZONE_LAYOUT.ny).toBe(1);
+    expect(zoneCount(DEFAULT_ZONE_LAYOUT)).toBe(9);
+    expect(allZones(DEFAULT_ZONE_LAYOUT)).toHaveLength(9);
   });
 
   it("parseZoneLayout tolera jsonb basura y cae al default", () => {
@@ -55,12 +59,19 @@ describe("layout", () => {
   });
 
   it("isZoneInLayout ataja lo que el RPC rechazaría", () => {
-    const l = DEFAULT_ZONE_LAYOUT;
+    // Grilla explícita con DOS niveles: acá lo que se prueba son los límites,
+    // no el default (que desde SDD-0184 tiene ny=1).
+    const l = { nx: 3, ny: 2, nz: 3 };
     expect(isZoneInLayout(l, { zx: 0, zy: 0, zz: 0 })).toBe(true);
     expect(isZoneInLayout(l, { zx: 2, zy: 1, zz: 2 })).toBe(true);
     expect(isZoneInLayout(l, { zx: 3, zy: 0, zz: 0 })).toBe(false); // nx = 3 → max 2
     expect(isZoneInLayout(l, { zx: 0, zy: 2, zz: 0 })).toBe(false); // ny = 2 → max 1
     expect(isZoneInLayout(l, { zx: 0, zy: 0, zz: -1 })).toBe(false);
+  });
+
+  it("con el default (sin altura) cualquier nivel > 0 queda fuera", () => {
+    expect(isZoneInLayout(DEFAULT_ZONE_LAYOUT, { zx: 2, zy: 0, zz: 2 })).toBe(true);
+    expect(isZoneInLayout(DEFAULT_ZONE_LAYOUT, { zx: 0, zy: 1, zz: 0 })).toBe(false);
   });
 });
 
@@ -74,7 +85,8 @@ describe("zoneCodeOf", () => {
 
 describe("zoneLabel", () => {
   it("nombra las zonas en español VE", () => {
-    const l = DEFAULT_ZONE_LAYOUT;
+    // Con DOS niveles el nombre del nivel es Piso/Arriba.
+    const l = { nx: 3, ny: 2, nz: 3 };
     expect(zoneLabel(l, { zx: 0, zy: 0, zz: 0 })).toBe("Fondo · Izquierda · Piso");
     expect(zoneLabel(l, { zx: 2, zy: 1, zz: 2 })).toBe("Puerta · Derecha · Arriba");
   });
@@ -179,8 +191,8 @@ describe("zoneOccupancy", () => {
       box(1, 0, 0, "DTD-1012", 3),
     ]);
     expect(occ.filled).toBe(2);
-    expect(occ.total).toBe(18);
-    expect(occ.pct).toBeCloseTo((2 / 18) * 100, 6);
+    expect(occ.total).toBe(9); // SDD-0184: 3×1×3, sin altura
+    expect(occ.pct).toBeCloseTo((2 / 9) * 100, 6);
   });
 
   it("agrupa por cliente, de mayor a menor", () => {
