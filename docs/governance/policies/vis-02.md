@@ -5,7 +5,7 @@
 | Código | VIS-02 |
 | Versión | 1.0 |
 | Dueño | Sam (founder) |
-| Estado | aprobada — implementación parcial |
+| Estado | aprobada — implementación V1–V4 y gate externo cerrados |
 | Creado | 2026-07-21 |
 | Depende de | [VIS-01](vis-01.md) y A11Y-01 |
 | Fuente visual | [`BRAND.md`](../../../BRAND.md), BD-035, BD-036 y Norte vigente |
@@ -111,7 +111,7 @@ salida corporativa se selecciona explícitamente la voz de marca.
 - Apple Mail se clasifica `no aplica` por decisión explícita del founder, sin
   declarar ese cliente verificado; el gate externo queda cerrado.
 
-## 8. Gates cerrados y siguientes
+## 8. Gates cerrados y adopción siguiente
 
 Cerrado por SDD-0175:
 
@@ -120,7 +120,8 @@ Cerrado por SDD-0175:
 - packing list imprimible, glifos, peso y extracción de texto;
 - revisión visual local de firma española, `zh-CN`, UI e impresión.
 
-Siguiente por consumidor:
+La política queda cerrada en el alcance V1–V4. La adopción futura continúa por
+consumidor, sin reabrir esos gates:
 
 - inventariar y migrar sólo un correo/PDF/documento que contenga chino real;
 - validar que label/valor siga distinguiéndose sin webfonts;

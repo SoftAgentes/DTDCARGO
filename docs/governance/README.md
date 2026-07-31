@@ -168,6 +168,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Gates siguientes VIS-02 | [REV-VIS-008](reviews/vis-02-future-gates-reconciliation.md) |
 | Inventario VIS-02 | [REV-VIS-009](reviews/vis-02-inventory-reconciliation.md) |
 | Evidencia externa VIS-02 | [REV-VIS-010](reviews/vis-02-external-mail-client-evidence.md) |
+| Auditoría integral Gobernanza 8 | [REV-SGE-024](reviews/governance-8-adoption-audit-2026-07-31.md) |
 | Investigación de skills | [Mapa de capacidades y límites](research/skills-map.md) |
 | Contrato implementado de avisos | [SDD-0165 · AVS-01](../specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md) |
 | Inventario y estado oficial vigente | [LB-SGE-037](BASELINE-2026-07-29-09.md) |
@@ -203,17 +204,17 @@ disfraza elevando el estado normativo.
 
 | Código | Política | Estado normativo | Estado del ERP | Documento o próximo gate |
 |---|---|---|---|---|
-| SGE-00 | Principios constitucionales de experiencia | aprobada | Adopción parcial; plan por superficies y riesgo aprobado | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
+| SGE-00 | Principios constitucionales de experiencia | aprobada | Adopción parcial; plan por superficies y riesgo aprobado | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) · [REV-SGE-024](reviews/governance-8-adoption-audit-2026-07-31.md) |
 | MP-01 | Matriz de permanencia | aprobada v1.1 | [SDD-0168](../specs/0168-mp-01-comentarios-permanencia-restauracion/spec.md) cerrado: DB-1 y DB-2 en Cloud, APP integrada en `d93c56e4`, Vercel Producción y E2E autenticado aprobados, fixtures retirados | [REV-MP-005](reviews/mp-01-comments-preview-e2e.md); ACL históricos, purga y retención permanecen fuera de alcance |
 | BTN-01 | Semántica, jerarquía y contrato de botones | aprobada v1.1 | Contrato menu button precisado; adopción parcial | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | HTD-01 | Confirmación por presión sostenida | aprobada | [Contrato v1.0](policies/htd-01.md) consolidado; no implementado | Crear SDD solo para una entidad R3 clasificada por MP-01 |
 | AVS-01 | Avisos y confirmaciones | verificada | Primitiva conforme; consumidores legacy se migran solo dentro de slices R2/R3 | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
-| AUD-01 | Evento auditable y vínculo con acciones | aprobada | D1–D5 y correctivos D2–D4 aplicados y verificados individualmente en Producción; SDD-0174 cerrado | [REV-AUD-046](reviews/aud-sdd-0174-prod-close.md) · [REV-AUD-045](reviews/aud-d4-empty-search-path-r3.md) · [REV-AUD-044](reviews/aud-d3-human-reasons-r3.md) · [REV-AUD-043](reviews/aud-d2-human-reasons-r3.md) · [REV-AUD-042](reviews/aud-roadmap-prod-application.md) |
+| AUD-01 | Evento auditable y vínculo con acciones | aprobada | D1–D5 y correctivos D2–D4 aplicados y verificados individualmente en Producción; SDD-0174 cerrado; header normativo reconciliado | [REV-AUD-046](reviews/aud-sdd-0174-prod-close.md) · [REV-SGE-024](reviews/governance-8-adoption-audit-2026-07-31.md) |
 | AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B, guardrail tenant 0268 y consulta gobernada 0270 aplicados; E1 cerrado sin fuente para retención ejecutable | [REV-AUD-042](reviews/aud-roadmap-prod-application.md); [REV-AUD-041](reviews/aud-corte-e1-foundation.md) bloquea E2–E5 por fuente |
 | VIS-01 | Jerarquía visual y distribución 60-30-10 | aprobada | Adopción parcial; muestreo acotado a slices y clasificación de literales | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
-| VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | V1 tokens; V2 firmas; V3 PDF; V4 local; entrega y MIME Gmail/Outlook verificados; Outlook visual conforme; Gmail cerrado por confirmación founder; Apple Mail `no aplica`; UI china conserva Noto Sans SC | [REV-VIS-010](reviews/vis-02-external-mail-client-evidence.md); gate externo cerrado |
-| BUS-01 | Buscadores predictivos y contexto de resultados | aprobada v1.1 | Teclado y colisión formalizados; adopción no auditada | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
-| CRT-01 | Creación rápida desde contexto | aprobada v1.0 | Patrones locales sin primitiva común | Auditar flujos de retorno |
+| VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | V1–V4 y gate externo cerrados; la adopción futura continúa solo por consumidor; UI china conserva Noto Sans SC | [REV-VIS-010](reviews/vis-02-external-mail-client-evidence.md) · [REV-SGE-024](reviews/governance-8-adoption-audit-2026-07-31.md) |
+| BUS-01 | Buscadores predictivos y contexto de resultados | aprobada v1.1 | `GlobalSearchModal` y `ClientCombobox` muestreados: scope, permisos server-side, debounce/race y teclado conformes; adopción restante por flujo | [REV-SGE-024](reviews/governance-8-adoption-audit-2026-07-31.md) |
+| CRT-01 | Creación rápida desde contexto | aprobada v1.0 | `no aplica` en los dos buscadores muestreados: no exponen creación contextual | [REV-SGE-024](reviews/governance-8-adoption-audit-2026-07-31.md); auditar sólo al tocar un flujo que sí cree |
 | NUM-01 | Campos numéricos y financieros | aprobada v1.1 | `NumericInput` canonical; precisión decimal y un consumidor fiscal R3 verificados | [SDD-0185](../specs/0185-num-01-expresiones-decimales/spec.md) y [REV-SGE-020](reviews/num-01-v1-1-numeric-input.md); adopción restante por slices |
 | MOT-01 | Movimiento, tiempos y reducción de movimiento | aprobada v1.0 | Tokens 120/180/260 ms existen; quedan duraciones locales | Auditar excepciones |
 | DND-01 | Drag and drop y Kanban | aprobada v1.0 | Adopción no conforme: Bitácora mantiene fallback limitado | Crear SDD correctivo por flujo |

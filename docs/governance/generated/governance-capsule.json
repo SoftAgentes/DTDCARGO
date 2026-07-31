@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
   "generatedAt": "2026-07-30T00:00:00.000Z",
-  "sourceCommit": "0d4485c9389e752d997df3cc566bacafbbcdb6d0",
+  "sourceCommit": "427072359aac8d54df5dc44a599b63bf2ae34fcd",
   "normativeSource": "docs/governance/README.md",
   "agentBrief": "docs/governance/AGENT-BRIEF.md",
   "commands": {
@@ -21,7 +21,7 @@
     {
       "code": "AUD-01",
       "version": "1.0",
-      "state": "aprobada — implementación parcial/no conforme",
+      "state": "aprobada — implementación D1–D5 verificada",
       "approvedAt": "2026-07-21",
       "path": "docs/governance/policies/aud-01.md"
     },
@@ -189,7 +189,7 @@
     {
       "code": "VIS-02",
       "version": "1.0",
-      "state": "aprobada — implementación parcial",
+      "state": "aprobada — implementación V1–V4 y gate externo cerrados",
       "approvedAt": "2026-07-21",
       "path": "docs/governance/policies/vis-02.md"
     },
