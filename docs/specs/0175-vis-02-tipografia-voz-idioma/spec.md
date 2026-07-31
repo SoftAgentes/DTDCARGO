@@ -60,8 +60,8 @@ V0 queda cerrado. Esta decisión no carga todavía la fuente.
    migran sólo cuando exista contenido chino real.
 5. **V4 visual:** validación local e impresión cerradas; entrega y estructura
    de una muestra `zh-CN` verificadas en Gmail y Outlook; Outlook visual
-   cerrado en modo oscuro; faltan Gmail con el original sin traducir y Apple
-   Mail.
+   cerrado en modo oscuro; Gmail cerrado por confirmación explícita del founder
+   sin exigir una segunda captura; falta Apple Mail.
 
 Cada gate conserva commit, integración y publicación separados. No se cambia
 tipografía de pantallas existentes en V0.
@@ -97,7 +97,7 @@ gradual. [REV-VIS-006](../../governance/reviews/vis-02-v4-visual.md) aprueba
 firma española, firma `zh-CN`, UI china e impresión en local.
 [REV-VIS-010](../../governance/reviews/vis-02-external-mail-client-evidence.md)
 verifica entrega y estructura MIME/HTML de una muestra sintética en Gmail y
-Outlook. La misma revisión cierra Outlook visual en modo oscuro y conserva
-Gmail abierto porque la captura muestra la traducción al español. Gmail con el
-original `zh-CN` y Apple Mail permanecen pendientes; por eso el SDD no se eleva
-artificialmente a `done`.
+Outlook. La misma revisión cierra Outlook visual en modo oscuro. La captura de
+Gmail muestra la traducción al español, pero el founder confirmó explícitamente
+el render original y aceptó cerrar ese cliente sin una segunda captura. Apple
+Mail permanece pendiente; por eso el SDD no se eleva artificialmente a `done`.

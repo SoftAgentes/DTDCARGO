@@ -6,7 +6,7 @@
 | SDD | [SDD-0175](../../specs/0175-vis-02-tipografia-voz-idioma/spec.md) |
 | Fecha | 2026-07-30 |
 | Alcance | Gmail y Outlook · entrega, estructura y render |
-| Resultado | Outlook visual conforme; Gmail `zh-CN` y Apple Mail abiertos |
+| Resultado | Gmail y Outlook cerrados; Apple Mail abierto |
 
 ## Muestra controlada
 
@@ -31,7 +31,7 @@ un template alterno para la prueba.
 | Gmail | Mensaje `19fb649872624409` presente en enviados y recibido en el destinatario Gmail; recepción confirmada por el founder; sin adjuntos | cumplimiento de entrega |
 | Gmail · MIME | `multipart/alternative`, UTF-8, partes `text/plain` y `text/html`; el HTML conserva `lang="zh-CN"` y la pila `Noto Serif SC`, `Noto Sans SC`, `sans-serif` | cumplimiento estructural |
 | Outlook | Mensaje recibido el `2026-07-31T03:48:23Z` desde `hailuway.com@gmail.com`; recepción confirmada por el founder; caracteres chinos y cuerpo HTML preservados; sin adjuntos | cumplimiento de entrega y contenido |
-| Gmail visual | [Captura controlada](assets/vis-02/gmail-zh-cn-redacted.png): conserva jerarquía, barra lateral, firma y enlaces, pero la vista está traducida al español | cumplimiento de layout; no conformidad de evidencia `zh-CN` |
+| Gmail visual | [Captura controlada](assets/vis-02/gmail-zh-cn-redacted.png): conserva jerarquía, barra lateral, firma y enlaces, pero la vista está traducida al español; el founder confirmó el render original y aceptó cerrar sin una segunda captura | excepción de evidencia aprobada; gate cerrado |
 | Outlook visual | [Captura controlada](assets/vis-02/outlook-zh-cn-redacted.png): chino legible en modo oscuro, jerarquía y fallback preservados, barra lateral y enlace distinguibles | cumplimiento visual |
 | Apple Mail visual | Falta abrir la misma muestra en un cliente Apple Mail real y capturarla | no conformidad de evidencia |
 
@@ -63,7 +63,11 @@ nombre exacto de la fuente resuelta por el motor, pero sí el criterio de
 aceptación que exige legibilidad sin depender de una descarga remota.
 
 Gmail conserva el layout, pero su captura muestra la traducción al español y no
-prueba los glifos chinos del original. El gate externo permanece abierto para
-una captura de Gmail con la traducción desactivada y para Apple Mail. La UI
-china sigue fuera de este alcance y debe conservar Noto Sans SC; BD-036
-continúa limitada a documentos formales `lang="zh-CN"`.
+prueba por sí sola los glifos chinos del original. El founder confirmó
+explícitamente el render original y autorizó continuar sin exigir una segunda
+captura; Gmail se cierra como excepción de evidencia, no como evidencia visual
+fotográfica equivalente a Outlook.
+
+El gate externo permanece abierto únicamente para Apple Mail. La UI china
+sigue fuera de este alcance y debe conservar Noto Sans SC; BD-036 continúa
+limitada a documentos formales `lang="zh-CN"`.
