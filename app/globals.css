@@ -667,6 +667,30 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
+   COLORES DE MARCA DE TERCEROS (redes sociales).
+
+   BRAND-EXCEPTION: no son colores de DTD y no salen de la paleta — autorizado
+   por el founder (2026-07-31) para que los iconos sociales tomen el color de su
+   red al interactuar. Viven acá como tokens, y NO como hex sueltos en el JSX,
+   para que se cambien en un solo lugar y para que quede explícito que son
+   prestados. Es el ÚNICO lugar del repo donde se permiten estos hex: no se
+   copian a un componente ni se usan para nada que no sea la marca de esa red.
+
+   Contraste medido sobre --color-ink #0F1E3D (fondo del pie de página), umbral
+   WCAG 1.4.11 para gráficos = 3:1 — Instagram 3.8 · YouTube 4.12 · TikTok
+   11.98 · WhatsApp 8.31. Los cuatro pasan.
+
+   El cian es el color de TikTok que se lee sobre navy; su negro corporativo
+   desaparecería contra el fondo del pie de página.
+   ────────────────────────────────────────────────────────────────── */
+:root {
+  --social-instagram: #e1306c;
+  --social-youtube: #ff0000;
+  --social-tiktok: #25f4ee;
+  --social-whatsapp: #25d366;
+}
+
+/* ──────────────────────────────────────────────────────────────────
    WhatsApp FAB — botón flotante 3D con breathe + dot + scroll attenuation
    Specs: mockup original del FAB (handoff inicial, fuera del repo; vigente = este CSS)
    ────────────────────────────────────────────────────────────────── */
@@ -948,6 +972,119 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
+   FABs YouTube y TikTok — mismo patrón que .fab-ig (founder 2026-07-31).
+
+   NACER DEL MISMO PUNTO: `.fab-ig` lleva `translate(5px, 7px)` porque colapsado
+   (scale 0, origen abajo-derecha) eso lo deja justo sobre la dot wine del
+   WhatsApp. YouTube y TikTok están 1 y 2 puestos más arriba, así que además hay
+   que BAJARLOS un paso completo por cada puesto o nacerían de su propio sitio en
+   vez de la dot. Un paso = alto del botón + gap.
+
+   DESPLIEGUE ORDENADO: el delay va en el estado expandido, no en la transición
+   base — así abren escalonados (el de más abajo primero, leyéndose como que la
+   pila crece) y cierran los tres de golpe, que es lo que uno espera al sacar el
+   mouse.
+   ────────────────────────────────────────────────────────────────── */
+
+.fab-yt,
+.fab-tt {
+  --fab-paso: 72px; /* 60px de botón + 12px de gap */
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--color-white);
+  transform-origin: 100% 100%;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 380ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 240ms ease-out,
+    box-shadow 240ms ease-out;
+}
+
+@media (min-width: 768px) {
+  .fab-yt,
+  .fab-tt {
+    --fab-paso: 76px; /* 64px de botón + 12px de gap */
+    width: 64px;
+    height: 64px;
+  }
+}
+
+/* El brillo va en #ff5a4e y no más claro: el glifo blanco encima mide 3.08:1
+   contra él y ahí ya pasa el umbral de gráficos. Con #ff6a60 caía a 2.81. */
+.fab-yt {
+  background: radial-gradient(
+    circle at 60% 35%,
+    #ff5a4e 0%,
+    var(--social-youtube) 45%,
+    #b00000 100%
+  );
+  box-shadow:
+    0 6px 14px rgba(15, 30, 61, 0.18),
+    0 18px 44px rgba(15, 30, 61, 0.28),
+    0 10px 28px rgba(255, 0, 0, 0.45);
+  transform: translate(5px, calc(7px + var(--fab-paso))) scale(0);
+}
+
+/* El negro es el color de TikTok; el cian queda para el glow, que es donde se
+   lee sin pelearse con el fondo claro de la página. */
+.fab-tt {
+  background: radial-gradient(circle at 60% 35%, #3a3a3a 0%, #121212 45%, #000 100%);
+  box-shadow:
+    0 6px 14px rgba(15, 30, 61, 0.18),
+    0 18px 44px rgba(15, 30, 61, 0.28),
+    0 10px 28px rgba(37, 244, 238, 0.4);
+  transform: translate(5px, calc(7px + 2 * var(--fab-paso))) scale(0);
+}
+
+.fab-stack[data-expanded="true"] .fab-yt,
+.fab-stack[data-expanded="true"] .fab-tt {
+  transform: translate(0, 0) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.fab-stack[data-expanded="true"] .fab-yt {
+  transition-delay: 45ms;
+}
+
+.fab-stack[data-expanded="true"] .fab-tt {
+  transition-delay: 90ms;
+}
+
+.fab-yt:hover {
+  transform: translate(0, 0) scale(1.06);
+  box-shadow:
+    0 8px 18px rgba(15, 30, 61, 0.22),
+    0 22px 52px rgba(15, 30, 61, 0.32),
+    0 14px 36px rgba(255, 0, 0, 0.6);
+}
+
+.fab-tt:hover {
+  transform: translate(0, 0) scale(1.06);
+  box-shadow:
+    0 8px 18px rgba(15, 30, 61, 0.22),
+    0 22px 52px rgba(15, 30, 61, 0.32),
+    0 14px 36px rgba(37, 244, 238, 0.55);
+}
+
+.fab-yt:active,
+.fab-tt:active {
+  transform: translate(0, 0) scale(0.96);
+  transition-duration: 80ms;
+}
+
+.fab-yt:focus-visible,
+.fab-tt:focus-visible {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 3px;
+}
+
+/* ──────────────────────────────────────────────────────────────────
    Reduced motion — respeta la preferencia del SO del usuario.
    Desactiva transiciones y micro-animaciones (drawer slide, hover lifts,
    sombras animadas) para usuarios con sensibilidad vestibular.
@@ -982,14 +1119,25 @@
   .fab-wa:active,
   .fab-ig,
   .fab-ig:hover,
-  .fab-ig:active {
+  .fab-ig:active,
+  .fab-yt,
+  .fab-yt:hover,
+  .fab-yt:active,
+  .fab-tt,
+  .fab-tt:hover,
+  .fab-tt:active {
     animation: none !important;
     transform: none !important;
   }
-  /* En reduced-motion, el IG aparece/desaparece instantáneamente vía opacity. */
-  .fab-stack[data-expanded="true"] .fab-ig {
+  /* En reduced-motion las redes aparecen/desaparecen instantáneamente vía
+     opacity, y sin escalonar: el stagger es justamente el movimiento que esta
+     preferencia pide no hacer. */
+  .fab-stack[data-expanded="true"] .fab-ig,
+  .fab-stack[data-expanded="true"] .fab-yt,
+  .fab-stack[data-expanded="true"] .fab-tt {
     opacity: 1;
     pointer-events: auto;
+    transition-delay: 0ms;
   }
 }
 
