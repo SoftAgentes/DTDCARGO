@@ -53,7 +53,7 @@ parte de las 27 entradas actuales de la cápsula.
 | lint completo / RSC / typecheck | verde |
 | Vitest focalizado | 11/11 HTD, 7/7 DND, 12/12 CAL y 7/7 PLG |
 | Vitest completo | 348 archivos, 4.355 pruebas, todo verde |
-| E2E aplicable | 19 aprobadas; tres Tier 3 omitidas por falta de seed/credenciales |
+| E2E aplicable | 21 aprobadas; tres Tier 3 omitidas por falta de seed/credenciales |
 | build | verde, Next.js 16.2.6 |
 | docs / components / governance | verde; 4 componentes y 27 políticas |
 | SQL efímero | 39 contratos verdes en PostgreSQL 17 |
@@ -66,6 +66,12 @@ La primera ejecución E2E sin variables falló exclusivamente al renderizar
 cuatro rutas que requieren URL/clave anónima de Supabase. Se reejecutó el gate
 completo cargando la `.env.local` existente solo como entorno de proceso, sin
 copiar ni imprimir secretos: 19/19 pruebas aplicables pasaron.
+
+Después de integrar sin conflictos siete commits nuevos de `origin/main`, se
+repitieron build y `verify.mjs`: 21/21 E2E aplicables pasaron, incluidos los dos
+escenarios nuevos de CBM. El build emitió una advertencia NFT no bloqueante en
+la traza `next.config.ts` → `app/marca/asset/[name]/route.ts`; no se modificó
+porque está fuera de las allowlists y el build terminó correctamente.
 
 ## 5. Git, Cloud y publicación
 
