@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 181 specs)
+### Índice de specs (generado · 182 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -219,6 +219,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0186 | Fundamento verificable de retención de auditoría | done | interno |
 | 0187 | Auditoría D2 — motivos humanos en anulaciones financieras | done | interno |
 | 0188 | Auditoría D3 — motivos humanos en cancelaciones comerciales | done | interno |
+| 0189 | Auditoría D4 — search_path vacío en RPC logísticas R3 | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0179 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

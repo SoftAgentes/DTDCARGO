@@ -70,7 +70,7 @@ máquina antes de modificar suspensión/reactivación de usuarios.
 | D1 implementación | aplicada en Producción | [REV-AUD-018](../../governance/reviews/aud-d1-access-config-implementation.md) |
 | D2 | motivo humano conforme localmente; Producción pendiente 0294 | [REV-AUD-043](../../governance/reviews/aud-d2-human-reasons-r3.md) |
 | D3 | motivo humano conforme localmente; Producción pendiente 0295 | [REV-AUD-044](../../governance/reviews/aud-d3-human-reasons-r3.md) |
-| D4 | aplicada; `search_path` legacy no conforme | [REV-AUD-021](../../governance/reviews/aud-d4-logistics-r3.md) |
+| D4 | path vacío conforme localmente; Producción pendiente 0296 | [REV-AUD-045](../../governance/reviews/aud-d4-empty-search-path-r3.md) |
 | D5 | aplicada en Producción | [REV-AUD-022](../../governance/reviews/aud-d5-residual.md) |
 | Aplicación D1–D5 | verificada individualmente | [REV-AUD-042](../../governance/reviews/aud-roadmap-prod-application.md) |
 
@@ -104,9 +104,8 @@ workflow durable intención → Auth → confirmación/compensación. No declara
 atomicidad ACID entre PostgreSQL y Supabase Auth.
 
 D1–D5 están aplicados individualmente en Producción por REV-AUD-042. SDD-0187
-y SDD-0188 retiran localmente las no conformidades de motivo D2/D3, pero
-`0294` y `0295` conservan gates nominales separados de Producción. D4 mantiene
-la no conformidad de `search_path` legacy hasta su propio slice. D5 incorpora
-idempotencia, lease y reconciliación durable. La spec permanece `in-progress`
-por D4 y por las aplicaciones externas pendientes; ningún estado local se
-presenta como cumplimiento de Producción.
+y SDD-0188 retiran localmente las no conformidades de motivo D2/D3, y SDD-0189
+retira localmente el path legacy D4. `0294`–`0296` conservan gates nominales
+separados de Producción. D5 incorpora idempotencia, lease y reconciliación
+durable. La spec permanece `in-progress` por las aplicaciones externas
+pendientes; ningún estado local se presenta como cumplimiento de Producción.
