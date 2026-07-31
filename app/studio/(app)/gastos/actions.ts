@@ -47,6 +47,7 @@ import {
 } from "@/lib/studio/expense-types";
 import { resolveLocale } from "@/lib/i18n/resolve-server";
 import { t } from "@/lib/i18n";
+import { attachmentsPilotState } from "@/lib/studio/attachments/pilot-gate";
 
 const RECEIPT_BUCKET = "expense-receipts";
 const RECEIPT_MAX_BYTES = 5 * 1024 * 1024;
@@ -122,7 +123,7 @@ export async function createExpenseAction(
   }
 
   // Validar recibo ANTES de gastar correlativo
-  const receiptRaw = formData.get("receipt");
+  const receiptRaw = attachmentsPilotState().enabled ? null : formData.get("receipt");
   let receiptFile: File | null = null;
   if (receiptRaw && receiptRaw instanceof File && receiptRaw.size > 0) {
     if (!RECEIPT_ALLOWED_MIME.has(receiptRaw.type)) {

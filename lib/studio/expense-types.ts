@@ -56,6 +56,8 @@ export type Expense = {
   billable: boolean;
   /** Path en bucket expense-receipts · NULL si no se cargó. */
   receipt_path: string | null;
+  /** Documento canónico SDD-0224; el path legado se conserva durante el piloto. */
+  receipt_document_id: string | null;
   /** Cuenta del plan a la que se imputa (calculada de la categoría). Nullable. */
   account_id: string | null;
   occurred_at: string;

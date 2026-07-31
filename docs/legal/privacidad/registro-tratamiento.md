@@ -12,7 +12,7 @@
 **Marca pública:** DTD Cargo
 **Contacto para titulares:** info@dtdcargo.com (asunto "Privacidad")
 **Representante en China (PIPL art. 53):** ⬜ pendiente de decidir
-**Versión:** 1.0 · **Última actualización:** 2026-07-30
+**Versión:** 1.1 · **Última actualización:** 2026-07-31
 
 ---
 
@@ -53,18 +53,39 @@
 | `tms_drivers.rating` | Calificación 0.0–5.0 | no | ⬜ no evidente | ⬜ | ⬜ |
 | `tms_truck_locations.lat/lng` | **Rastreo del chofer** | 🔴 geolocalización | Seguimiento de flota | ⬜ | 🔴 **ninguna** |
 
-## 4 · Los 11 buckets
+## 4 · Los 12 buckets
 
-| Bucket | Qué guarda | Sensible | Conservación | ¿Se borra al borrar la fila? |
+| Bucket | Qué guarda | Sensible | Conservación | Comportamiento observado |
 |---|---|:-:|---|:-:|
-| `client-docs` | Documento de identidad del cliente | 🔴 | ⬜ | ❌ no |
-| `client-facades` | Foto de la vivienda | 🟠 | ⬜ | ❌ no |
-| `receipt-photos` | Recepción CN + **POD y firmas** | 🔴 | ⬜ | ❌ no |
-| `payment-proofs` | Comprobantes con datos bancarios | 🟠 | ⬜ | ❌ no |
-| `bitacora` | **Audio y video de reuniones** | 🔴 voz | ⬜ | ❌ no |
-| `inspections`, `claim-evidence`, `shipment-docs`, `prealerta-docs`, `documents`, `expense-receipts` | Documentación operativa | — | ⬜ | ❌ no |
+| `client-docs` | Documento de identidad del cliente | 🔴 | ⬜ | reemplazos físicos; borrado integral NO VERIFICABLE |
+| `client-facades` | Foto de la vivienda | 🟠 | ⬜ | reemplazos físicos; borrado integral NO VERIFICABLE |
+| `receipt-photos` | Recepción CN + **POD y firmas** | 🔴 | ⬜ | Gastos móvil elimina objetos; otros flujos difieren |
+| `payment-proofs` | Comprobantes con datos bancarios | 🟠 | ⬜ | borrado integral NO VERIFICABLE |
+| `bitacora` | **Audio y video de reuniones** | 🔴 voz | ⬜ | soft-delete seguido de eliminación física |
+| `documents` | Documentación operativa y financiera | 🟠 | ⬜ | soft-delete seguido de eliminación física |
+| `inspections`, `claim-evidence`, `shipment-docs` | Evidencia operativa | 🟠 | ⬜ | varios flujos eliminan físicamente después de soft-delete |
+| `prealerta-docs` | Facturas, packing, fotos y capturas de proveedor | 🟠 | ⬜ | borrado integral NO VERIFICABLE |
+| `expense-receipts` | Recibos de Gastos | 🟠 | ⬜ | Studio conserva; móvil elimina: comportamiento contradictorio |
+| `bug-replays` | Replays técnicos comprimidos | ⚠️ puede contener datos | ⬜ | creación/policies no trazadas en migraciones; NO VERIFICABLE |
 
-✅ Los 11 son `public = false`.
+✅ Los 12 observados en Producción son `public = false`.
+
+El borrado de una fila PostgreSQL no elimina automáticamente el objeto de
+Storage. Sin embargo, varias acciones de aplicación sí llaman
+`Storage.remove()` después de marcar la fila, por lo que hoy no existe una
+semántica uniforme ni una restauración garantizada. SDD-0224 propone separar
+borrado lógico, restauración y purga física gobernada.
+
+## 4.1 · Cola local de adjuntos
+
+Las colas móviles de fotos y POD guardan base64 en `localStorage`. La cola POD
+incluye nombre, documento, firma, fotografía y GPS. Hoy no existe separación por
+tenant/usuario, cifrado local ni garantía contra descarte por cuota.
+
+Estado: **ENCONTRADO** en `app/m/_lib/{photo-queue,pod-queue}.ts`. SDD-0224 ya
+implementa una cola IndexedDB separada por tenant/usuario únicamente para el
+piloto web de Gastos. Las colas móviles descritas aquí siguen sin migrarse y
+quedan fuera de ese piloto.
 
 ## 5 · Titulares que no son usuarios
 
@@ -82,7 +103,9 @@ Detalle completo en [`inventario-terceros.md`](inventario-terceros.md).
 
 Los que faltan resolver: **Nominatim** (dirección del cliente, sin contrato) ·
 **Cloudflare Workers AI** (audio de reuniones) · **Supabase** (región
-`NO VERIFICABLE`) · **equipo de Yiwu** (PIPL, sin consentimiento separado).
+`NO VERIFICABLE`) · **equipo de Yiwu** (PIPL, sin consentimiento separado) ·
+**respaldo externo de adjuntos** (proveedor, región, contrato, retención y
+transferencia `NO VERIFICABLE`; no está conectado).
 
 ## 7 · Decisiones automatizadas
 

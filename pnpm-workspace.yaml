@@ -4,3 +4,9 @@ allowBuilds:
   esbuild: true
   sharp: true
   unrs-resolver: true
+
+# Cierre de advisories heredados por Next 16.2.11. pnpm 11 resuelve overrides
+# desde el workspace root, no desde el manifest del paquete.
+overrides:
+  postcss: 8.5.18
+  sharp: 0.35.3

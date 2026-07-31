@@ -74,6 +74,17 @@ export const expenses: ExpensesDict = {
   "expenses.field.occurred_at": "费用日期",
   "expenses.field.receipt": "附上凭证 / 照片",
   "expenses.field.receipt_hint": "运输发票、仓库收据照片等。",
+  "expenses.field.receipt_secure": "受保护的凭证",
+  "expenses.field.receipt_secure_hint": "保存费用后重新打开，即可使用断点续传。",
+  "expenses.attachment.limits": "JPG、PNG 或 WebP 最大 8 MB；PDF 最大 25 MB。网络中断后，本地副本会保留以便重试。",
+  "expenses.attachment.status.queued": "等待中",
+  "expenses.attachment.status.uploading": "上传中",
+  "expenses.attachment.status.uploading_progress": "上传中 {progress}%",
+  "expenses.attachment.status.finalizing": "验证中",
+  "expenses.attachment.status.completed": "已保存",
+  "expenses.attachment.status.failed": "需要重试",
+  "expenses.attachment.retry": "重试",
+  "expenses.attachment.close": "关闭",
   "expenses.field.billable": "可向客户收取",
 
   // ── fx CNY/USD ───────────────────────────────────────────

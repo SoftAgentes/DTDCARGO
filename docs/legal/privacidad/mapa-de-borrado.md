@@ -116,9 +116,18 @@ en ninguna migración. *(Corregido acá.)*
 `client-facades` · `documents` · `expense-receipts` · `inspections` ·
 `payment-proofs` · `prealerta-docs` · `receipt-photos` · `shipment-docs`
 
-🔴 **Ningún borrado de fila toca un archivo.** El único barrido existente
-(`purge-receipt-orphans`) borra objetos **sin fila** y está escrito
-explícitamente para **no** borrar los referenciados.
+🔴 **Una eliminación de fila en PostgreSQL no borra por sí sola un objeto de
+Storage.** Sin embargo, la aplicación no tiene una conducta uniforme:
+
+- Hub Documentos, Tracking, Inspecciones, Reclamos y Bitácora marcan la fila y
+  después llaman `Storage.remove()`;
+- Gastos Studio conserva el recibo al hacer soft-delete;
+- Gastos móvil marca la fila y elimina el objeto;
+- los jobs de huérfanos borran objetos sin referencia bajo gates propios.
+
+Por tanto, hoy existen simultáneamente archivos que sobreviven a su fila y filas
+que parecen recuperables pero perdieron el binario. Ninguno de los dos extremos
+demuestra un ciclo de borrado y restauración gobernado.
 
 ⚠️ **Y la ruta misma es un dato personal:** **25 de 38 objetos** llevan el
 markbox en el nombre del archivo. Listar un bucket revela quién tiene documentos,
@@ -216,8 +225,12 @@ Cuatro cosas no dependen de la abogada y conviene resolverlas ya:
    espejo deje de sobrevivirle al original. Sin esto, ningún borrado que DTD
    ejecute en su CRM llega a esta base, y la promesa de `/privacidad` no se puede
    cumplir aunque todo lo demás esté resuelto.
-2. **El borrado tiene que alcanzar Storage.** Hoy ninguna ruta lo hace. Y como
-   la ruta lleva el markbox, hay que borrar el objeto, no solo desreferenciarlo.
+2. **La disposición decidida tiene que alcanzar Storage sin destruir evidencia
+   antes de tiempo.** Cuando la categoría sea 🟢 BORRA y no exista retención,
+   referencia, respaldo pendiente ni legal hold, una purga gobernada debe
+   eliminar todas sus versiones y copias aplicables. Un soft-delete interactivo
+   no debe borrar físicamente el objeto. Para 🔵 CONSERVA, el objeto permanece
+   protegido y fuera de la vista normal hasta vencer la obligación.
 3. **`SET NULL` + markbox en texto es el peor patrón** de los que hay: deja a la
    persona identificada y sin forma de encontrarla. Donde se conserve por
    obligación, conviene 🟣 **ANONIMIZAR** de verdad — vaciar `client_name` y
@@ -237,6 +250,15 @@ base y autorización nombrada del founder.
 
 Hasta que se corra, este documento dice **dónde habría que buscar**, no qué
 sobrevive.
+
+## 7 · Norte documental para adjuntos
+
+[SDD-0224](../../specs/0224-adjuntos-seguros-reanudables/spec.md) está `approved`
+y ya implementa el plano común de versionado, borrado lógico, restore, retención,
+legal hold y purga fail-closed, junto con el bucket privado `erp-attachments` y
+las migrations `0306`–`0314`. El piloto de Gastos permanece apagado en
+Producción: no hay proveedor externo, antivirus ni restore drill reales
+verificados, por lo que ningún adjunto puede declarar estado `protegido`.
 
 ---
 
