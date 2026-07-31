@@ -217,7 +217,7 @@ disfraza elevando el estado normativo.
 | CRT-01 | Creación rápida desde contexto | aprobada v1.0 | `no aplica` en los dos buscadores muestreados: no exponen creación contextual | [REV-SGE-024](reviews/governance-8-adoption-audit-2026-07-31.md); auditar sólo al tocar un flujo que sí cree |
 | NUM-01 | Campos numéricos y financieros | aprobada v1.1 | `NumericInput` canonical; precisión decimal y un consumidor fiscal R3 verificados | [SDD-0185](../specs/0185-num-01-expresiones-decimales/spec.md) y [REV-SGE-020](reviews/num-01-v1-1-numeric-input.md); adopción restante por slices |
 | MOT-01 | Movimiento, tiempos y reducción de movimiento | aprobada v1.0 | Tokens 120/180/260 ms existen; quedan duraciones locales | Auditar excepciones |
-| DND-01 | Drag and drop y Kanban | aprobada v1.0 | Adopción no conforme: Bitácora mantiene fallback limitado | Crear SDD correctivo por flujo |
+| DND-01 | Drag and drop y Kanban | aprobada v1.0 | Bitácora verificada: selector accesible, pickup/placeholder, rollback, conflicto durable y Deshacer; adopción restante por flujo | [SDD-0216](../specs/0216-dnd-bitacora-accessible/spec.md) |
 | CAL-01 | Calendario, densidad y manipulación temporal | aprobada v1.0 | Adopción parcial; reprogramación incompleta | Resolver timezone y Slice 2 de [SDD-0141](../specs/0141-calendario-norte/spec.md) |
 | DAT-01 | Selector de fecha y rango | aprobada v1.0 | No existe primitiva transversal verificada | Auditar inputs/calendarios |
 | PRG-01 | Progreso de procesos | aprobada v1.0 | Porcentajes/estados dispersos | Auditar progreso real versus derivado |

@@ -182,26 +182,64 @@ export function BitacoraClient({
     [openTasks],
   );
 
-  const handleMove = (taskId: string, estado: BitacoraTaskEstado) => {
+  const handleMove = (
+    taskId: string,
+    estado: BitacoraTaskEstado,
+    expectedEstado?: BitacoraTaskEstado,
+  ) => {
     if (!canEdit) {
       toast.info("Tu rol es de solo lectura en Bitácora.");
       return;
     }
-    const prev = localTasks;
+    const previousEstado =
+      expectedEstado ?? localTasks.find((task) => task.id === taskId)?.estado;
+    if (!previousEstado || previousEstado === estado) return;
+    const previousTask = localTasks.find((task) => task.id === taskId);
     setLocalTasks((ts) =>
       ts.map((t) => (t.id === taskId ? { ...t, estado } : t)),
     );
     startTransition(async () => {
-      const res = await moveTaskAction(taskId, estado);
+      const res = await moveTaskAction(taskId, estado, previousEstado);
       if (res?.error) {
-        setLocalTasks(prev);
+        setLocalTasks((tasks) =>
+          tasks.map((task) =>
+            task.id === taskId ? { ...task, estado: previousEstado } : task,
+          ),
+        );
         toast.error(res.error);
+        startRefresh(() => router.refresh());
         return;
       }
-      if (estado === "hecho") {
-        const t = prev.find((x) => x.id === taskId);
-        toast.success(`"${t?.titulo ?? "Tarea"}" marcada como hecha`);
-      }
+      const taskTitle = previousTask?.titulo ?? "Tarea";
+      toast.show({
+        eventKey: "bitacora:task-moved",
+        tone: "success",
+        message:
+          estado === "hecho"
+            ? `"${taskTitle}" marcada como hecha`
+            : `"${taskTitle}" cambió de estado`,
+        priority: "normal",
+        scope: "module",
+        dedupeKey: `bitacora:task-moved:${taskId}`,
+        duration: "undo",
+        action: {
+          label: "Deshacer",
+          failureMessage:
+            "No se pudo deshacer porque la tarea cambió nuevamente. Actualiza el tablero.",
+          onSelect: async () => {
+            const undo = await moveTaskAction(taskId, previousEstado, estado);
+            if (undo.error) throw new Error(undo.error);
+            setLocalTasks((tasks) =>
+              tasks.map((task) =>
+                task.id === taskId
+                  ? { ...task, estado: previousEstado }
+                  : task,
+              ),
+            );
+            startRefresh(() => router.refresh());
+          },
+        },
+      });
       startRefresh(() => router.refresh());
     });
   };
