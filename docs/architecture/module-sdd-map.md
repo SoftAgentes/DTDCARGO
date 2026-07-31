@@ -79,7 +79,7 @@
 
 | Módulo | SDD | Código (app) | Código (lib) |
 |---|---|---|---|
-| Portal cliente (login magic-link + mis envíos) | 0042 | `app/portal/` (auth/callback/mis-envíos) + admin "Acceso al portal" en `app/studio/(app)/clientes/` (PortalAccessCard) + link "Acceder" en `components/{Nav,Footer}` | `lib/portal/` · `supabase/migrations/0080_portal_cliente.sql` + `0081` |
+| Portal cliente (login magic-link + mis envíos) | 0042, 0201 | `app/portal/` (auth/callback/mis-envíos) + admin "Acceso al portal" en `app/studio/(app)/clientes/` (PortalAccessCard) + link "Acceder" en `components/{Nav,Footer}` | `lib/portal/` · `supabase/migrations/0080_portal_cliente.sql` + `0081` |
 | Compras/prealertas + proveedores del cliente + link al proveedor | 0057 | `app/portal/(app)/{proveedores,compras}` + `app/p/[token]/` (pública) + CTA del dashboard | `lib/studio/prealertas/` (types/queries/packlist) · `public/templates/dtd-packing-list-invoice.xlsx` |
 
 > Huecos del correlativo (0022-0023, 0027-0028): ver `docs/specs/README.md` — código sin spec o renumerado, auditar. (0021 = Facturación ✅ y 0040 = Contabilidad ✅, ambos construidos.)
