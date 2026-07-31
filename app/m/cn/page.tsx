@@ -95,8 +95,11 @@ export default async function OperarioHomePage({
 
   let recentQuery = admin
     .from("warehouse_receipts_cn")
+    // PRIVACIDAD (hallazgo H-7): `client_name` NO se selecciona. El equipo CN
+    // identifica al importador solo por Shipping Mark. Redacción server-side,
+    // igual que `listReceipts({ redactClientNames })` en el Studio (SDD-0039 B.9).
     .select(
-      "id, receipt_code, client_markbox, client_name, supplier_name, boxes, total_cbm, status, created_at, created_by_operario_id",
+      "id, receipt_code, client_markbox, supplier_name, boxes, total_cbm, status, created_at, created_by_operario_id",
     )
     .eq("tenant_id", operario.tenant_id)
     .eq("warehouse_id", operario.warehouse_id)
@@ -109,7 +112,7 @@ export default async function OperarioHomePage({
       [
         `receipt_code.ilike.%${safe}%`,
         `client_markbox.ilike.%${safe}%`,
-        `client_name.ilike.%${safe}%`,
+        // Sin `client_name`: buscar por nombre lo expondría igual que mostrarlo.
         `supplier_name.ilike.%${safe}%`,
       ].join(","),
     );
@@ -124,7 +127,6 @@ export default async function OperarioHomePage({
       id: string;
       receipt_code: string;
       client_markbox: string | null;
-      client_name: string | null;
       supplier_name: string | null;
       boxes: number | null;
       total_cbm: string | number | null;
@@ -135,7 +137,7 @@ export default async function OperarioHomePage({
     return {
       id: row.id,
       code: row.receipt_code,
-      client: row.client_name ?? row.client_markbox ?? "—",
+      client: row.client_markbox ?? "—",
       clientMarkbox: row.client_markbox,
       supplier: row.supplier_name,
       boxes: row.boxes ?? 0,

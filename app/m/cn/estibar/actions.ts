@@ -140,7 +140,8 @@ export async function stuffBoxAction(
     ok: true,
     code: result.code,
     markbox: result.markbox ?? null,
-    clientName: result.client_name ?? null,
+    clientName: null, // privacidad · hallazgo H-7
+
     zoneCode: result.zone_code,
     stuffedCount: result.stuffed_count,
     expectedCount: result.expected_count,
@@ -262,7 +263,9 @@ export async function lookupLotAction(code: string): Promise<LotLookupState> {
     boxCode: box.code,
     prealertaCode: pre?.code ?? "—",
     clientMarkbox: pre?.client_markbox ?? null,
-    clientName: client?.name ?? null,
+    // PRIVACIDAD (hallazgo H-7): el equipo CN identifica al importador solo por
+    // Shipping Mark. Redacción server-side: nunca se envía el nombre real.
+    clientName: null,
     lotSize: Math.max(lotSize, 0),
   };
 }
@@ -363,7 +366,7 @@ export async function stuffLotAction(
     loadOrder: r.load_order,
     width: r.width,
     prealertaCode: r.prealerta_code,
-    clientName: r.client_name ?? null,
+    clientName: null, // privacidad · hallazgo H-7
     clientMarkbox: r.client_markbox ?? null,
   };
 }

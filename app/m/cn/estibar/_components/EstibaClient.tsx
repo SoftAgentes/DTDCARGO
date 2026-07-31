@@ -351,7 +351,7 @@ function LotCard({
         Lote de {lot.lotSize} {lot.lotSize === 1 ? "caja" : "cajas"}
       </div>
       <div style={{ font: "800 18px/1.2 var(--f-sans)", color: "var(--ink-side-strong)" }}>
-        {lot.clientName ?? "Cliente sin nombre"}
+        {lot.clientMarkbox ?? "—"}
       </div>
       <div style={{ font: "700 12px/1.3 var(--f-mono)", color: "var(--wine)", marginTop: 3 }}>
         {lot.clientMarkbox ?? "—"} · {lot.prealertaCode}

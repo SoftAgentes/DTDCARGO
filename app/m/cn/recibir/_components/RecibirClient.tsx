@@ -225,7 +225,7 @@ function ConfirmCard({
       <div style={cardStyle}>
         <Eyebrow>{t(lang, "Ya recibida", "已接收")}</Eyebrow>
         <div style={{ font: "700 15px/1.3 var(--f-sans)", color: "var(--ink-side-strong)" }}>
-          {lookup.clientName ?? lookup.clientMarkbox}
+          {lookup.clientMarkbox ?? "—"}
         </div>
         <Mono>{lookup.boxCode}</Mono>
         <p style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-side-soft)", margin: "8px 0 0" }}>
@@ -246,10 +246,11 @@ function ConfirmCard({
     <div style={cardStyle}>
       <Eyebrow>{t(lang, "¿Recibir esta compra?", "接收此采购?")}</Eyebrow>
 
+      {/* PRIVACIDAD (hallazgo H-7): el Shipping Mark es la identidad de la carga
+          para el equipo CN. El nombre del importador no llega a este dispositivo. */}
       <div style={{ font: "800 18px/1.2 var(--f-sans)", color: "var(--ink-side-strong)" }}>
-        {lookup.clientName ?? t(lang, "Cliente sin nombre", "未命名客户")}
+        {lookup.clientMarkbox ?? t(lang, "Sin Shipping Mark", "无唛头")}
       </div>
-      <Mono>{lookup.clientMarkbox}</Mono>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 12 }}>
         <Row label={t(lang, "Compra", "采购")} value={lookup.prealertaCode} mono />
@@ -363,7 +364,7 @@ function DoneCard({
       <Mono center>{result.receiptCode}</Mono>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 14 }}>
-        <Row label={t(lang, "Cliente", "客户")} value={result.clientName ?? result.clientMarkbox ?? "—"} />
+        <Row label={t(lang, "Cliente", "客户")} value={result.clientMarkbox ?? "—"} />
         <Row label={t(lang, "Compra", "采购")} value={result.prealertaCode ?? "—"} mono />
         <Row
           label={t(lang, "Recibidas", "已接收")}

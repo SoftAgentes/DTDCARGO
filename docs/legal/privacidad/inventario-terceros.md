@@ -1,0 +1,96 @@
+# Inventario de terceros — DTD Cargo
+
+> Punto 8 de [`AUDITORIA-2026-07.md`](AUDITORIA-2026-07.md). Levantado desde el
+> código, julio 2026. **Documento vivo:** se actualiza cada vez que se conecta un
+> proveedor nuevo.
+>
+> Antes de conectar uno más, llenar
+> [`evaluacion-proveedores.md`](../../../.claude/skills/revisar-datos-ve/references/plantillas/evaluacion-proveedores.md).
+
+**Por qué importa acá y no en Chile o Europa.** Venezuela no tiene la figura legal
+del "encargado del tratamiento": no hay un régimen administrativo que reparta
+responsabilidades. Lo que hay es la **Ley Especial contra los Delitos
+Informáticos**, cuyos arts. 20 a 22 tipifican la obtención y la revelación
+indebida de data personal con **prisión de dos a seis años**, aumentada de ⅓ a ½
+con fin de lucro. Es responsabilidad **penal de personas**. El contrato con cada
+tercero no es papeleo: es lo único que delimita quién responde.
+
+---
+
+## 1 · Los que reciben datos personales
+
+| Proveedor | Qué recibe | País | Contrato | Evidencia |
+|---|---|---|---|---|
+| **Supabase** | **Todo**: las 101 tablas con campos de persona y los 11 buckets (documentos de identidad, comprobantes, POD, audio) | ⚠️ NO VERIFICABLE — la región del proyecto no está en el código | ❓ | `lib/db/server.ts` |
+| **Vercel** | Hosting y logs de request: IP, user-agent, rutas | EE.UU. | ❓ | `next.config.ts` |
+| **Resend** | Nombre y correo del destinatario + cuerpo del mensaje (bienvenida, estimados, facturas) | EE.UU. | ❓ | `lib/studio/mail/resend-api.ts` |
+| **Cloudflare Workers AI** | 🔴 **El audio completo de las reuniones**, en base64, para transcribir con Whisper | EE.UU. / red global | ❓ | [`lib/studio/bitacora/transcribe.ts:61`](../../../lib/studio/bitacora/transcribe.ts) |
+| **Anthropic** | Contenido de reuniones y de conversaciones con clientes, para extraer actas y resúmenes | EE.UU. | ❓ | `lib/studio/bitacora/extract.ts` · `lib/studio/agents/runtime/llm-client-anthropic.ts` |
+| **OpenRouter** | Ídem, como ruta alternativa de modelo | EE.UU. | ❓ | `lib/studio/agents/runtime/llm-client-factory.ts` |
+| **Kommo** | Espejo de contactos y leads: nombre, correo, teléfono | ❓ | ❓ | `kommo_contacts`, `kommo_leads`, `kommo_users` (`0082`, `0139`) |
+| **Nominatim / OpenStreetMap** | 🔴 **La dirección del cliente**, en texto, para geocodificar | Alemania (Fundación OSM) | ❌ **ninguno** | [`lib/studio/geocoding.ts:10`](../../../lib/studio/geocoding.ts) |
+| **Telegram** | Notificaciones al equipo; el cuerpo puede llevar nombre de cliente y código de envío | ❓ | ❓ | `lib/studio/telegram/send-message.ts` · `lib/studio/notify/send-user-telegram.ts` |
+| **Equipo propio en Yiwu (China)** | Nombres, direcciones y teléfonos de clientes para coordinar carga | 🇨🇳 China | Relación laboral | 🔴 **PIPL aplica** — ver H-7 |
+
+## 2 · Los que NO reciben datos personales (verificado)
+
+| Proveedor | Por qué no |
+|---|---|
+| **Google Analytics 4 / Google Ads** | Excluido de toda ruta con datos de cliente: `PRIVATE_PREFIXES` + `isPrivatePath()` + `sanitizePath()` + whitelist de query params + kill-switch `ga-disable-*`. Verificado en [`components/Analytics.tsx:49-110`](../../../components/Analytics.tsx) |
+| **SeaRates** | Códigos de contenedor y BL, tarifas. No lleva datos de persona. `lib/shared/ocean-rate.ts` · `lib/studio/naviera-tracking/` |
+| **WhatsApp (wa.me)** | Solo son enlaces `wa.me` que abren la app del usuario. DTD no envía nada por API |
+
+---
+
+## 3 · Los tres que hay que resolver primero
+
+### 🔴 Nominatim — dirección de cliente a un tercero sin contrato
+
+Es el caso de libro del "proveedor que nadie contó": un servicio **gratuito** al
+que se le manda un dato personal —**el domicilio de una persona**— sin acuerdo,
+sin evaluación y sin figurar en la política de privacidad.
+
+Opciones, por costo creciente: (a) dejar de geocodificar automático y hacerlo a
+mano cuando haga falta; (b) seudonimizar antes —mandar solo calle y ciudad, sin
+número ni referencia—; (c) contratar un geocodificador con acuerdo de datos.
+
+### 🔴 Cloudflare Workers AI — audio de reuniones
+
+El audio de una reunión es de las cosas más sensibles que se pueden mandar: lleva
+**voz** (biométrico bajo PIPL art. 28) y todo lo que se dijo, incluidos datos de
+clientes y del equipo que nadie revisó antes de subir.
+
+Hay que responder tres cosas: quién queda grabado y si lo sabe · qué dice la
+política de Cloudflare sobre uso y retención del audio que procesa · cuánto tiempo
+vive el archivo en el bucket `bitacora` (hoy: **para siempre**, ver H-4).
+
+### 🟠 Supabase — falta saber dónde vive todo
+
+Toda la PII del negocio está ahí. La región del proyecto **no está en el código**,
+así que es `NO VERIFICABLE` desde el repositorio y hay que mirarla en el panel. De
+esa respuesta depende si hay transferencia internacional que declarar y a dónde.
+
+---
+
+## 4 · Lo que falta para cerrar el punto 8
+
+Por cada proveedor de la tabla 1, conseguir y archivar:
+
+- [ ] Contrato o acuerdo de datos firmado, con fecha.
+- [ ] Cita textual de su política sobre **uso propio de los datos** y
+      **compartición con terceros** (con fecha y enlace — las políticas cambian).
+- [ ] Si permite **subcontratar** y bajo qué condiciones.
+- [ ] Qué pasa **al terminar** el servicio: ¿suprime o devuelve?
+- [ ] País de procesamiento y si se puede elegir región.
+- [ ] Cómo y en cuánto tiempo **nos avisa a nosotros** de una brecha.
+
+**Y una casilla aparte, que no es un proveedor de software:**
+
+- [ ] **Transportistas terceros con credenciales del ERP.** Un camionero externo
+      con PIN en `operario_pins` fotografía cédulas y rostros de clientes de DTD.
+      Es la relación de mayor exposición penal del inventario y **no tiene ningún
+      documento que la regule**.
+
+---
+
+*Documento interno. No es asesoría legal — los contratos los revisa un abogado.*
