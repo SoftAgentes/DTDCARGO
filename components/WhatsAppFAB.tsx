@@ -7,19 +7,32 @@ const SCROLL_DOWN_THRESHOLD = 400;
 const SCROLL_RESET_THRESHOLD = 200;
 
 /**
- * Speed dial flotante: WhatsApp (FAB principal) + Instagram (FAB secundario).
+ * Speed dial flotante: WhatsApp (FAB principal) + Instagram, YouTube y TikTok
+ * (FABs secundarios).
  *
  * El nombre del export se mantiene `WhatsAppFAB` por compatibilidad — se importa
- * desde 7 páginas. Internamente ahora renderiza un menú expandible.
+ * desde 28 páginas. Internamente renderiza un menú expandible.
  *
  * Comportamiento:
  * - Estado idle: solo el FAB de WhatsApp + dot wine pulsando cada 3s.
- * - Desktop hover: la dot wine se desvanece y el FAB de Instagram "nace" desde
+ * - Desktop hover: la dot wine se desvanece y los FABs secundarios "nacen" desde
  *   la posición de la dot, aterrizando arriba con un spring (cubic-bezier-back).
- * - Mobile: 1er tap expande el menú (dot → IG). 2do tap en WA abre WhatsApp.
- *   Tap fuera o en IG cierra/navega.
+ * - Mobile: 1er tap expande el menú. 2do tap en WA abre WhatsApp.
+ *   Tap fuera o en una red cierra/navega.
  * - Scroll abajo > 400px atenúa el stack entero (intent-to-leave).
  * - Respeta prefers-reduced-motion.
+ *
+ * **Orden del stack (de abajo hacia arriba): WA · Instagram · YouTube · TikTok.**
+ * Como `.fab-stack` es `flex-direction: column`, en el DOM van al revés: el
+ * primero es el de más arriba. Instagram queda pegado al WhatsApp porque es el
+ * que ya estaba ahí — mover una red que el visitante ya tiene ubicada es peor
+ * que el orden "perfecto".
+ *
+ * YouTube y TikTok (founder 2026-07-31) repiten el patrón de Instagram en vez de
+ * refactorizar los tres a un `.map()`: el pedido fue explícito en que WhatsApp e
+ * Instagram sirven de referencia pero su implementación no se toca. El precio es
+ * duplicación; la ganancia es que un cambio acá no puede romper lo que ya
+ * funciona en producción.
  */
 export function WhatsAppFAB() {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -89,6 +102,50 @@ export function WhatsAppFAB() {
       onMouseEnter={() => setIsExpanded(true)}
       onMouseLeave={() => setIsExpanded(false)}
     >
+      <a
+        href={CONTACT.tiktok.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Seguir a DTD Cargo en TikTok"
+        className="fab-tt"
+        tabIndex={isExpanded ? 0 : -1}
+        aria-hidden={!isExpanded}
+      >
+        {/* Nota musical: el glifo con el que se reconoce TikTok. Sólido, como
+            el de WhatsApp — dentro de un círculo de 60px un contorno se pierde. */}
+        <svg
+          viewBox="0 0 24 24"
+          width="30"
+          height="30"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path d="M14 4c.4 2.4 1.9 3.9 4.2 4.1v3c-1.5 0-2.9-.4-4.2-1.2v5.4a5.4 5.4 0 1 1-5.4-5.4c.3 0 .6 0 .9.1v3.1a2.4 2.4 0 1 0 1.7 2.3V4z" />
+        </svg>
+      </a>
+
+      <a
+        href={CONTACT.youtube.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Ver el canal de DTD Cargo en YouTube"
+        className="fab-yt"
+        tabIndex={isExpanded ? 0 : -1}
+        aria-hidden={!isExpanded}
+      >
+        {/* Solo el play: el pill rojo del logo desaparecería contra el círculo,
+            que ya es rojo YouTube. */}
+        <svg
+          viewBox="0 0 24 24"
+          width="30"
+          height="30"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path d="M9.5 7.4 17 12l-7.5 4.6z" />
+        </svg>
+      </a>
+
       <a
         href={CONTACT.instagram.url}
         target="_blank"
