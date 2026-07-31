@@ -525,3 +525,7 @@ nominal independiente para `0301_audit_legal_holds.sql`.
 segundo aprobador, RPC redacted, bucket privado, hash externo al objeto y URL de
 15 minutos. Cloud conserva el gate nominal de
 `0302_audit_export_governed.sql`.
+
+[SDD-0221](../0221-audit-export-expiry/spec.md) abrió E4 con claim idempotente,
+precedencia de hold, borrado exclusivo del objeto temporal y recibo append-only.
+Cloud conserva el gate nominal de `0303_audit_export_expiry.sql`.

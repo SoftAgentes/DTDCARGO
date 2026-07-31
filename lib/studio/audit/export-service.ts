@@ -89,3 +89,25 @@ export async function runNextAuditExport(admin: SupabaseClient) {
   }
 }
 
+export async function expireAuditExports(admin: SupabaseClient) {
+  const claimed = await admin.rpc("audit_claim_expired_exports", { p_limit: 25 });
+  if (claimed.error) throw claimed.error;
+  const jobs = Array.isArray(claimed.data) ? claimed.data : [];
+  let expired = 0;
+  for (const job of jobs) {
+    const removed = await admin.storage.from("audit-exports").remove([String(job.object_path)]);
+    if (removed.error) {
+      await admin.rpc("audit_fail_export_expiry", {
+        p_request_id: job.request_id,
+        p_reason: removed.error.message,
+      });
+      continue;
+    }
+    const confirmed = await admin.rpc("audit_confirm_export_expired", {
+      p_request_id: job.request_id,
+    });
+    if (confirmed.error) throw confirmed.error;
+    expired += 1;
+  }
+  return { claimed: jobs.length, expired };
+}

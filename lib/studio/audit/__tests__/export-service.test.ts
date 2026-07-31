@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { auditExportManifest, neutralizeCsvCell, serializeAuditExport } from "../export-service";
+import { auditExportManifest, expireAuditExports, neutralizeCsvCell, serializeAuditExport } from "../export-service";
 
 describe("audit export E3", () => {
   it.each(["=1+1", "+cmd", "-2", "@SUM(A1)"])("neutraliza fórmula %s", (value) => {
@@ -24,5 +24,18 @@ describe("audit export E3", () => {
     expect(a.sha256).toMatch(/^[a-f0-9]{64}$/);
     expect(a.row_count).toBe(0);
   });
-});
 
+  it("confirma expiración solo después de borrar Storage", async () => {
+    const calls: string[] = [];
+    const admin = {
+      rpc: async (name: string) => {
+        calls.push(name);
+        if (name === "audit_claim_expired_exports") return { data: [{ request_id: "r1", object_path: "t/r1/audit.json" }], error: null };
+        return { data: true, error: null };
+      },
+      storage: { from: () => ({ remove: async () => { calls.push("storage.remove"); return { error: null }; } }) },
+    };
+    await expect(expireAuditExports(admin as never)).resolves.toEqual({ claimed: 1, expired: 1 });
+    expect(calls).toEqual(["audit_claim_expired_exports", "storage.remove", "audit_confirm_export_expired"]);
+  });
+});

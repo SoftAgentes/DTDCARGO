@@ -2,7 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
-import { AUDIT_EXPORT_FIELDS, runNextAuditExport } from "@/lib/studio/audit/export-service";
+import { AUDIT_EXPORT_FIELDS, expireAuditExports, runNextAuditExport } from "@/lib/studio/audit/export-service";
 
 function sameSecret(actual: string | null, expected: string | undefined): boolean {
   if (!actual || !expected) return false;
@@ -18,7 +18,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
     try {
-      return NextResponse.json(await runNextAuditExport(createAdminClient()));
+      const admin = createAdminClient();
+      return NextResponse.json(
+        request.nextUrl.searchParams.get("job") === "expire"
+          ? await expireAuditExports(admin)
+          : await runNextAuditExport(admin),
+      );
     } catch {
       return NextResponse.json({ error: "Falló el job de exportación" }, { status: 500 });
     }
@@ -58,4 +63,3 @@ export async function GET(request: NextRequest) {
   if (signed.error) return NextResponse.json({ error: "No se pudo firmar la descarga" }, { status: 500 });
   return NextResponse.redirect(signed.data.signedUrl, 303);
 }
-
