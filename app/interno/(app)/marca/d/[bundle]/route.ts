@@ -18,35 +18,47 @@ import { getUser } from "@/lib/auth/session";
 
 export const runtime = "nodejs";
 
-const ROOT = process.cwd();
-const abs = (rel: string) => path.join(ROOT, rel);
+type AssetRoot = "brand" | "marca" | "marketing";
+type BundleFile = readonly [name: string, root: AssetRoot, relativePath: string];
 
-// [nombre en el zip, ruta relativa al root del repo]
-const LOGOS: ReadonlyArray<readonly [string, string]> = [
-  ["dtdcargo-isologo-primary.png", "public/brand/dtdcargo-isologo-primary.png"],
-  ["dtdcargo-isologo-reverse.png", "public/brand/dtdcargo-isologo-reverse.png"],
-  ["dtdcargo-isologo-mono-light.png", "public/brand/dtdcargo-isologo-mono-light.png"],
-  ["dtdcargo-isologo-mono-dark.png", "public/brand/dtdcargo-isologo-mono-dark.png"],
-  ["og-image.png", "public/brand/og-image.png"],
-  ["favicon-32.png", "public/brand/favicon-32.png"],
+function assetPath(root: AssetRoot, relativePath: string): string {
+  switch (root) {
+    case "brand":
+      return path.join(process.cwd(), "public", "brand", relativePath);
+    case "marca":
+      return path.join(process.cwd(), "private", "marca", relativePath);
+    case "marketing":
+      return path.join(process.cwd(), "docs", "marketing", relativePath);
+  }
+}
+
+// [nombre en el zip, raíz estática, ruta relativa dentro de esa raíz]
+const LOGOS: ReadonlyArray<BundleFile> = [
+  ["dtdcargo-isologo-primary.png", "brand", "dtdcargo-isologo-primary.png"],
+  ["dtdcargo-isologo-reverse.png", "brand", "dtdcargo-isologo-reverse.png"],
+  ["dtdcargo-isologo-mono-light.png", "brand", "dtdcargo-isologo-mono-light.png"],
+  ["dtdcargo-isologo-mono-dark.png", "brand", "dtdcargo-isologo-mono-dark.png"],
+  ["og-image.png", "brand", "og-image.png"],
+  ["favicon-32.png", "brand", "favicon-32.png"],
 ];
 
-const WHATSAPP: ReadonlyArray<readonly [string, string]> = [
-  ["whatsapp-catalogo-plantillas.html", "private/marca/herramientas/whatsapp-catalogo-plantillas.html"],
-  ["whatsapp-business-guia.html", "private/marca/herramientas/whatsapp-business-guia.html"],
-  ["whatsapp-business.md", "docs/marketing/whatsapp-business.md"],
-  ["logo-primary.png", "public/brand/dtdcargo-isologo-primary.png"],
-  ["logo-reverse.png", "public/brand/dtdcargo-isologo-reverse.png"],
+const WHATSAPP: ReadonlyArray<BundleFile> = [
+  ["whatsapp-catalogo-plantillas.html", "marca", "herramientas/whatsapp-catalogo-plantillas.html"],
+  ["whatsapp-business-guia.html", "marca", "herramientas/whatsapp-business-guia.html"],
+  ["whatsapp-business.md", "marketing", "whatsapp-business.md"],
+  ["logo-primary.png", "brand", "dtdcargo-isologo-primary.png"],
+  ["logo-reverse.png", "brand", "dtdcargo-isologo-reverse.png"],
 ];
 
-const BRAND_BOOK: readonly [string, string] = [
+const BRAND_BOOK: BundleFile = [
   "brand-book-v4.6.html",
-  "private/marca/brand-book-v4.6.html",
+  "marca",
+  "brand-book-v4.6.html",
 ];
 
 const BUNDLES: Record<
   string,
-  { filename: string; files: ReadonlyArray<readonly [string, string]> }
+  { filename: string; files: ReadonlyArray<BundleFile> }
 > = {
   logos: { filename: "dtd-logos", files: LOGOS },
   whatsapp: { filename: "dtd-whatsapp-business-services", files: WHATSAPP },
@@ -66,9 +78,9 @@ export async function GET(
 
   const entries: Record<string, Uint8Array> = {};
   // Deduplicar por nombre (el bundle "todo" puede repetir logos): el último gana.
-  for (const [name, rel] of def.files) {
+  for (const [name, root, relativePath] of def.files) {
     try {
-      entries[name] = new Uint8Array(await readFile(abs(rel)));
+      entries[name] = new Uint8Array(await readFile(assetPath(root, relativePath)));
     } catch {
       // Si falta un archivo no rompemos toda la descarga; se omite.
     }
