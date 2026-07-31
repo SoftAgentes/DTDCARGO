@@ -122,8 +122,15 @@ export function GlobalSearchModal({ onClose }: { onClose: () => void }) {
   );
 
   useEffect(() => {
-    setRecents(readRecents());
-    inputRef.current?.focus();
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setRecents(readRecents());
+      inputRef.current?.focus();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const runSearch = useCallback(

@@ -936,28 +936,36 @@ function PushSubscriptionSection() {
 
   // Check estado inicial al mount
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (
-      !("serviceWorker" in navigator) ||
-      !("PushManager" in window) ||
-      !("Notification" in window)
-    ) {
-      setStatus("unsupported");
-      return;
-    }
-    if (Notification.permission === "denied") {
-      setStatus("blocked");
-      return;
-    }
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled || typeof window === "undefined") return;
+      if (
+        !("serviceWorker" in navigator) ||
+        !("PushManager" in window) ||
+        !("Notification" in window)
+      ) {
+        setStatus("unsupported");
+        return;
+      }
+      if (Notification.permission === "denied") {
+        setStatus("blocked");
+        return;
+      }
 
-    // Estado real: hay subscription registrada?
-    navigator.serviceWorker
-      .getRegistration("/sw.js")
-      .then((reg) => reg?.pushManager.getSubscription() ?? null)
-      .then((sub) => {
-        setStatus(sub ? "on" : "off");
-      })
-      .catch(() => setStatus("off"));
+      // Estado real: hay subscription registrada?
+      navigator.serviceWorker
+        .getRegistration("/sw.js")
+        .then((reg) => reg?.pushManager.getSubscription() ?? null)
+        .then((sub) => {
+          if (!cancelled) setStatus(sub ? "on" : "off");
+        })
+        .catch(() => {
+          if (!cancelled) setStatus("off");
+        });
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleEnable = async () => {

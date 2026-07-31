@@ -41,21 +41,24 @@ export function FaqExplorer({ faqs, waHref }: { faqs: Faq[]; waHref: string }) {
 
   // Deep-link: /faq#bodega-china-shipping-mark preselecciona esa categoría.
   useEffect(() => {
-    const hash = window.location.hash.replace("#", "");
-    if (!hash) return;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      const hash = window.location.hash.replace("#", "");
+      if (!hash) return;
 
-    // El hash puede ser una CATEGORÍA (filtra el listado)…
-    if (FAQ_CATEGORIAS.some((c) => c.id === hash)) {
-      setFiltro(hash as FaqCategoria);
-      return;
-    }
+      // El hash puede ser una CATEGORÍA (filtra el listado)…
+      if (FAQ_CATEGORIAS.some((c) => c.id === hash)) {
+        setFiltro(hash as FaqCategoria);
+        return;
+      }
 
-    // …o el ANCLA de una pregunta concreta (`/faq#cbm`, que es como entra
-    // quien viene del botón de ayuda de la calculadora). Se resuelve por
-    // ESTADO y no tocando `el.open` desde el efecto: con StrictMode el efecto
-    // monta dos veces y cualquier callback diferido (rAF/timeout) se cancela
-    // en el cleanup intermedio, así que la apertura se perdía.
-    if (faqs.some((f) => f.ancla === hash)) setAnclaAbierta(hash);
+      // …o el ANCLA de una pregunta concreta (`/faq#cbm`).
+      if (faqs.some((f) => f.ancla === hash)) setAnclaAbierta(hash);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [faqs]);
 
   // Una vez abierta la pregunta del ancla, llevarla a la vista: el navegador

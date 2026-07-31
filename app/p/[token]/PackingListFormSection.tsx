@@ -287,15 +287,22 @@ export function PackingListFormSection({
 
   // ── Montaje: restaurar el borrador de ESTE token (precede al prefill) ──
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(packlistDraftKey(token));
-      if (raw) applyDraft(JSON.parse(raw) as Partial<Draft>);
-      const h = localStorage.getItem(packlistHistoryKey(token));
-      if (h) setHistory(JSON.parse(h) as HistEntry[]);
-    } catch {
-      /* localStorage no disponible / corrupto → seguimos con el prefill */
-    }
-    hydrated.current = true;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      try {
+        const raw = localStorage.getItem(packlistDraftKey(token));
+        if (raw) applyDraft(JSON.parse(raw) as Partial<Draft>);
+        const h = localStorage.getItem(packlistHistoryKey(token));
+        if (h) setHistory(JSON.parse(h) as HistEntry[]);
+      } catch {
+        /* localStorage no disponible / corrupto → seguimos con el prefill */
+      }
+      hydrated.current = true;
+    });
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
