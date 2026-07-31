@@ -4,7 +4,7 @@ title: "Auditoría gobernada — corrección conjunta AUD-01 y AUD-02"
 status: in-progress
 author: "Sam (founder) + Codex"
 created: 2026-07-21
-updated: 2026-07-29
+updated: 2026-07-31
 supersedes: null
 superseded_by: null
 related: ["0085", "0123", "0139", "0165"]
@@ -32,15 +32,15 @@ confidencialidad: interno
 > [REV-AUD-012](../../governance/reviews/aud-corte-c.md) aprobaron técnicamente
 > el diseño del Corte C. C1 fue implementado y verificado localmente mediante
 > `0270`; [REV-AUD-013](../../governance/reviews/aud-corte-c1.md) lo aprueba
-> técnicamente. Su aplicación Cloud y verificación autenticada conservan gates
-> separados. El [inventario D0](inventario-corte-d-2026-07-29.md) encontró 30
+> técnicamente y [REV-AUD-042](../../governance/reviews/aud-roadmap-prod-application.md)
+> registra su aplicación individual. La verificación visual autenticada
+> conserva gate separado. El [inventario D0](inventario-corte-d-2026-07-29.md) encontró 30
 > escrituras best-effort y cobertura obligatoria incompleta.
 > [REV-AUD-014](../../governance/reviews/aud-corte-d.md) aprueba el
 > [diseño por dominios](diseno-correctivo-corte-d.md).
-> [SDD-0174](../0174-audit-atomicidad-dominios/spec.md) está abierto y su
-> inventario D1 fue aprobado por
-> [REV-AUD-015](../../governance/reviews/aud-d1-access-config.md); diseño e
-> implementación D1 y D2–D5 permanecen pendientes. El inventario y diseño E0
+> [SDD-0174](../0174-audit-atomicidad-dominios/spec.md) está abierto:
+> `0289`–`0293` fueron aplicadas individualmente por REV-AUD-042, mientras las
+> no conformidades D2/D3/D4 permanecen. El inventario y diseño E0
 > fueron aprobados por
 > [REV-AUD-016](../../governance/reviews/aud-corte-e.md); E1–E5 no están
 > abiertos.
@@ -486,8 +486,9 @@ revalidar que el número continuaba libre, C1 creó
 local, añadió RPCs admin-only y migró el viewer a consulta server-side
 redacted. [REV-AUD-013](../../governance/reviews/aud-corte-c1.md) registra
 PostgreSQL 15/17, 31 pruebas de aplicación, typecheck y revisión estática del
-viewer en verde. `0270` no fue aplicada en Cloud; la verificación visual
-autenticada y los Cortes D–E conservan gates separados.
+viewer en verde. REV-AUD-042 registra la aplicación y postcondiciones de
+`0270`; la verificación visual autenticada y el Corte E conservan gates
+separados.
 
 El 2026-07-29 se completó el inventario read-only D0. Se confirmaron ocho
 helpers TypeScript con 30 escrituras best-effort, cobertura obligatoria

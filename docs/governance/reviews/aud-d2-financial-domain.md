@@ -33,5 +33,6 @@ trigger conserva una razón controlada, pero eso no satisface por sí solo el
 motivo contextual exigido por AUD-01 para toda operación R3. Su adopción queda
 en un slice R2/R3 con SDD y allowlist propios; no se abre un barrido masivo.
 
-Producción requiere gate individual de `0290`. D3–D5 no se presuponen aprobados
-por esta revisión.
+REV-AUD-042 registra la aplicación individual de `0290` y verifica función
+sellada, siete triggers habilitados y ledger exacto. La aplicación no resuelve
+la no conformidad de motivo ni presume aprobación de un slice R2/R3.

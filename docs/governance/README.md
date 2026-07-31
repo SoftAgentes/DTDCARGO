@@ -3,14 +3,14 @@
 | Control | Valor |
 |---|---|
 | Documento | Índice maestro del Sistema de Gobernanza |
-| Versión | 5.6 |
+| Versión | 5.7 |
 | Dueño | Sam (founder) |
 | Custodia | Producto + Diseño + Ingeniería |
 | Estado | activo |
 | Creado | 2026-07-21 |
-| Última revisión | 2026-07-30 |
+| Última revisión | 2026-07-31 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-095 · roadmap local reconciliado](BASELINE-2026-07-30-20.md) |
+| Línea base vigente | [LB-SGE-096 · C1 y D1–D5 aplicados](BASELINE-2026-07-31.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -105,6 +105,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Implementación local D3 | [REV-AUD-020](reviews/aud-d3-commercial-cycle.md) |
 | Implementación local D4 | [REV-AUD-021](reviews/aud-d4-logistics-r3.md) |
 | Implementación local D5 | [REV-AUD-022](reviews/aud-d5-residual.md) |
+| Aplicación individual de C1 y D1–D5 | [REV-AUD-042](reviews/aud-roadmap-prod-application.md) |
 | Inventario read-only del Corte E | [E0 · repo y Cloud](../specs/0166-auditoria-gobernada-aud-01-aud-02/inventario-corte-e-2026-07-29.md) |
 | Diseño y revisión del Corte E | [REV-AUD-016](reviews/aud-corte-e.md) |
 | Fundamento verificable del Corte E | [SDD-0186 + REV-AUD-041](../specs/0186-audit-retention-foundation/spec.md) |
@@ -201,8 +202,8 @@ disfraza elevando el estado normativo.
 | BTN-01 | Semántica, jerarquía y contrato de botones | aprobada v1.1 | Contrato menu button precisado; adopción parcial | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | HTD-01 | Confirmación por presión sostenida | aprobada | [Contrato v1.0](policies/htd-01.md) consolidado; no implementado | Crear SDD solo para una entidad R3 clasificada por MP-01 |
 | AVS-01 | Avisos y confirmaciones | verificada | Primitiva conforme; consumidores legacy se migran solo dentro de slices R2/R3 | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
-| AUD-01 | Evento auditable y vínculo con acciones | aprobada | D1/D5 integrados; D2/D3 con no conformidad de motivo legacy; D4 con no conformidad de `search_path` en cinco RPC legacy; Producción pendiente por migración individual | [REV-AUD-018](reviews/aud-d1-access-config-implementation.md) · [REV-AUD-019](reviews/aud-d2-financial-domain.md) · [REV-AUD-020](reviews/aud-d3-commercial-cycle.md) · [REV-AUD-021](reviews/aud-d4-logistics-r3.md) · [REV-AUD-022](reviews/aud-d5-residual.md) |
-| AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B y guardrail tenant 0268 aplicados; E1 cerrado sin fuente para retención ejecutable | [REV-AUD-040](reviews/aud-corte-c1-preflight-2026-07-30.md) mantiene `0270` fail-closed; [REV-AUD-041](reviews/aud-corte-e1-foundation.md) bloquea E2–E5 por fuente |
+| AUD-01 | Evento auditable y vínculo con acciones | aprobada | D1–D5 aplicados en Producción; D2/D3 conservan no conformidad de motivo legacy y D4 de `search_path` en cinco RPC | [REV-AUD-042](reviews/aud-roadmap-prod-application.md) · [REV-AUD-019](reviews/aud-d2-financial-domain.md) · [REV-AUD-020](reviews/aud-d3-commercial-cycle.md) · [REV-AUD-021](reviews/aud-d4-logistics-r3.md) |
+| AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B, guardrail tenant 0268 y consulta gobernada 0270 aplicados; E1 cerrado sin fuente para retención ejecutable | [REV-AUD-042](reviews/aud-roadmap-prod-application.md); [REV-AUD-041](reviews/aud-corte-e1-foundation.md) bloquea E2–E5 por fuente |
 | VIS-01 | Jerarquía visual y distribución 60-30-10 | aprobada | Adopción parcial; muestreo acotado a slices y clasificación de literales | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | V1 tokens; V2 firmas; V3 PDF; V4 local; UI china conserva Noto Sans SC | [REV-VIS-004](reviews/vis-02-v2-email.md) · [REV-VIS-005](reviews/vis-02-v3-pdf.md) · [REV-VIS-006](reviews/vis-02-v4-visual.md); clientes externos pendientes |
 | BUS-01 | Buscadores predictivos y contexto de resultados | aprobada v1.1 | Teclado y colisión formalizados; adopción no auditada | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |

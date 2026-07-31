@@ -18,4 +18,6 @@ estricto de path vacío. La prueba usa fixtures equivalentes y no demuestra por
 sí sola el rollback de cada cuerpo productivo completo; ambos límites quedan
 como no conformidades visibles, no como excepciones aprobadas.
 
-No se modificó la semántica logística, el contrato de comentarios ni Cloud.
+REV-AUD-042 registra la aplicación individual de `0292`: bridge sellado,
+trigger activo y cinco RPC con path fijo. La aplicación no convierte
+`pg_catalog, public` en path vacío ni cierra esa no conformidad.

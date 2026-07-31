@@ -4,7 +4,7 @@ title: "Auditoría — atomicidad por dominios"
 status: in-progress
 author: "Sam (founder) + Codex"
 created: 2026-07-29
-updated: 2026-07-30
+updated: 2026-07-31
 supersedes: null
 superseded_by: null
 related: ["0021", "0024", "0040", "0041", "0044", "0123", "0166"]
@@ -67,11 +67,12 @@ máquina antes de modificar suspensión/reactivación de usuarios.
 | Apertura SDD | aprobada | [REV-AUD-015](../../governance/reviews/aud-d1-access-config.md) |
 | D1 inventario | aprobado | [inventario D1](inventario-d1-acceso-configuracion-2026-07-29.md) |
 | D1 diseño | aprobado | [REV-AUD-017](../../governance/reviews/aud-d1-access-config-design.md) |
-| D1 implementación | verificada localmente | [REV-AUD-018](../../governance/reviews/aud-d1-access-config-implementation.md) |
-| D2 | cumplimiento parcial; motivo legacy no conforme | [REV-AUD-019](../../governance/reviews/aud-d2-financial-domain.md) |
-| D3 | cumplimiento parcial; motivo legacy no conforme | [REV-AUD-020](../../governance/reviews/aud-d3-commercial-cycle.md) |
-| D4 | cumplimiento parcial; `search_path` legacy no conforme | [REV-AUD-021](../../governance/reviews/aud-d4-logistics-r3.md) |
-| D5 | verificado localmente | [REV-AUD-022](../../governance/reviews/aud-d5-residual.md) |
+| D1 implementación | aplicada en Producción | [REV-AUD-018](../../governance/reviews/aud-d1-access-config-implementation.md) |
+| D2 | aplicada; motivo legacy no conforme | [REV-AUD-019](../../governance/reviews/aud-d2-financial-domain.md) |
+| D3 | aplicada; motivo legacy no conforme | [REV-AUD-020](../../governance/reviews/aud-d3-commercial-cycle.md) |
+| D4 | aplicada; `search_path` legacy no conforme | [REV-AUD-021](../../governance/reviews/aud-d4-logistics-r3.md) |
+| D5 | aplicada en Producción | [REV-AUD-022](../../governance/reviews/aud-d5-residual.md) |
+| Aplicación D1–D5 | verificada individualmente | [REV-AUD-042](../../governance/reviews/aud-roadmap-prod-application.md) |
 
 ## 5. Criterios de aceptación por operación
 
@@ -84,7 +85,7 @@ máquina antes de modificar suspensión/reactivación de usuarios.
 - motivo es obligatorio cuando corresponde;
 - ACL, owner y `search_path` están probados;
 - PostgreSQL 15 y 17 terminan en rollback;
-- aplicación, Cloud y Producción conservan gates separados.
+- aplicación individual y postcondiciones quedan registradas sin bundle.
 
 ## 6. Fuera de alcance
 
@@ -92,7 +93,7 @@ máquina antes de modificar suspensión/reactivación de usuarios.
 - ciclo tenant/fixtures de SDD-0172;
 - consulta gobernada de Corte C;
 - exportación, hold, purga y retención de Corte E;
-- aplicar `0268` o `0270` en Cloud;
+- nuevas aplicaciones Cloud fuera de los basenames autorizados;
 - definir plazos legales sin fuente aprobada.
 
 ## 7. Resultado D1–D5 y próximo gate
@@ -102,9 +103,9 @@ las 24 acciones obligatorias por fronteras transaccionales e incorpora un
 workflow durable intención → Auth → confirmación/compensación. No declara
 atomicidad ACID entre PostgreSQL y Supabase Auth.
 
-D1 está integrado localmente y pendiente de su gate de Producción individual.
-D2 y D3 están integrados con una no conformidad acotada de motivo en callers
-legacy. Su adopción restante exige slices R2/R3 separados. D4 conserva una no
-conformidad de `search_path` legacy. D5 incorpora idempotencia, lease y
-reconciliación durable. La spec permanece `in-progress` y `0289`–`0293`
-requieren autorización literal e individual para Producción.
+D1–D5 están aplicados individualmente en Producción por REV-AUD-042. D2 y D3
+conservan una no conformidad acotada de motivo en callers legacy y su adopción
+restante exige slices R2/R3 separados. D4 conserva la no conformidad de
+`search_path` legacy. D5 incorpora idempotencia, lease y reconciliación
+durable. La spec permanece `in-progress` únicamente por esas no conformidades;
+la aplicación no las presenta como cumplimiento.

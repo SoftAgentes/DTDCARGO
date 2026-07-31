@@ -14,4 +14,6 @@ Los callers legacy de cancelación no siempre capturan un motivo humano. La
 razón controlada del trigger no sustituye ese contexto obligatorio; su adopción
 queda en un slice R2/R3 con SDD y allowlist propios.
 
-La revisión no aplica `0291` en Cloud ni abre D4/D5 por implicación.
+REV-AUD-042 registra la aplicación individual de `0291` y verifica función
+sellada, cuatro triggers habilitados y ledger exacto. La no conformidad de
+motivo continúa abierta.

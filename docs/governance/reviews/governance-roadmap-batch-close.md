@@ -35,12 +35,12 @@
 
 | Bloque | Resultado comprobado | Estado externo |
 |---|---|---|
-| AUD D1 | 24 acciones de acceso/configuración usan intención durable, claim, efecto Auth y confirmación/compensación | `0289_audit_d1_access_configuration` no aplicado |
-| AUD D2 | siete mutaciones financieras comparten transacción con su evento; motivo humano legacy no conforme | `0290_audit_d2_financial_domain` no aplicado |
-| AUD D3 | cuatro mutaciones comerciales comparten transacción con su evento; motivo humano legacy no conforme | `0291_audit_d3_commercial_cycle` no aplicado |
-| AUD D4 | bridge R3 normalizado; cinco RPC legacy conservan `pg_catalog, public` como no conformidad | `0292_audit_d4_logistics_r3` no aplicado |
-| AUD D5 | efectos externos con clave reutilizable, lease, reintento y reconciliación; writer directo retirado | `0293_audit_d5_residual_and_writer_retirement` no aplicado |
-| Corte C1 | migración y contrato SQL revalidados; snapshot de Producción conservado sólo como evidencia histórica | `0270_audit_governed_query_rbac` no aplicado |
+| AUD D1 | 24 acciones de acceso/configuración usan intención durable, claim, efecto Auth y confirmación/compensación | `0289` aplicado por REV-AUD-042 |
+| AUD D2 | siete mutaciones financieras comparten transacción con su evento; motivo humano legacy no conforme | `0290` aplicado; no conformidad permanece |
+| AUD D3 | cuatro mutaciones comerciales comparten transacción con su evento; motivo humano legacy no conforme | `0291` aplicado; no conformidad permanece |
+| AUD D4 | bridge R3 normalizado; cinco RPC legacy conservan `pg_catalog, public` como no conformidad | `0292` aplicado; no conformidad permanece |
+| AUD D5 | efectos externos con clave reutilizable, lease, reintento y reconciliación; writer directo retirado | `0293` aplicado por REV-AUD-042 |
+| Corte C1 | migración, ACL y RPC gobernadas verificadas | `0270` aplicado por REV-AUD-042 |
 | Corte E1 | ausencia de fuente legal/contractual registrada por SDD-0186 de forma fail-closed | E2–E5 no se abren sin fuente aprobada |
 | Adopción R2/R3 | se conservaron los slices existentes; no se abrió ni ejecutó un barrido transversal | migración legacy continúa incremental con SDD y allowlist propios |
 | VIS-02 | V2 email, V3 documento formal y V4 visual local cerrados; UI china conserva Noto Sans SC | falta evidencia controlada en Gmail, Outlook y Apple Mail |
@@ -70,6 +70,11 @@ con idempotencia, compensación y reconciliación.
 - cápsula: 27 políticas aprobadas y vigente;
 - VIS-02: PDF chino extraíble y PNG local sin tofu, recortes ni superposición;
 - `git diff --check`: verde.
+
+El 2026-07-31, REV-AUD-042 registró la aplicación individual y postcondiciones
+de `0270` y `0289`–`0293`. Esta evidencia posterior reemplaza únicamente el
+estado externo de la tabla anterior; conserva intacta la auditoría local de
+esta revisión.
 
 La primera corrida E2E sin variables públicas falló sólo al construir el
 cliente Supabase en cuatro casos. La repetición con valores locales sintéticos

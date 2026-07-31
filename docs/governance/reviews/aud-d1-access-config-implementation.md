@@ -6,7 +6,7 @@
 | SDD | [SDD-0174](../../specs/0174-audit-atomicidad-dominios/spec.md) |
 | Migración | `0289_audit_d1_access_configuration` |
 | Fecha | 2026-07-30 |
-| Resultado | aprobado localmente |
+| Resultado | aplicado y verificado en Producción por REV-AUD-042 |
 
 ## Veredicto
 
@@ -27,8 +27,13 @@ reconciliable; no se declara atomicidad ACID distribuida.
 - siete pruebas Vitest de adapters y workflow pasaron;
 - TypeScript y `git diff --check` pasaron.
 
+## Aplicación en Producción
+
+REV-AUD-042 registra `0289_audit_d1_access_configuration` con basename exacto,
+RLS, ACL, tres funciones selladas y ledger verificados. El primer transporte
+truncado hizo rollback total antes del reintento íntegro.
+
 ## Límites
 
-La revisión no afirma aplicación en Producción. `0289` requiere preflight
-metadata-only fresco, autorización nominal y aplicación individual. D2–D5,
-`0270`, Corte E, correos, PDF, Vercel y plugin no forman parte de D1.
+La aplicación no declara atomicidad ACID entre PostgreSQL y Supabase Auth.
+Corte E, correos, PDF, Vercel y plugin no forman parte de D1.
