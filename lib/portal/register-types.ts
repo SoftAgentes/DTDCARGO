@@ -135,6 +135,20 @@ export type ProfileActionState = {
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
+ * ¿El correo tiene forma de correo? Único juez del formato en todo el registro.
+ *
+ * ⚠️ El formulario TIENE que usar esta función, no una copia de la regex. Antes
+ * el cliente sólo miraba que el campo no estuviera vacío (`!email.trim()`) y el
+ * servidor sí validaba formato: un correo como `adggs` cruzaba los cuatro pasos
+ * con las palomitas en verde y sólo reventaba al final, en una pantalla donde el
+ * mensaje del campo ni siquiera se veía. Si esto se vuelve a duplicar, el bug
+ * vuelve. Ver SDD-0225 (adopción de FRM-01 y ERR-01 en el registro público).
+ */
+export function isValidEmail(raw: string): boolean {
+  return EMAIL_REGEX.test(raw.trim().toLowerCase());
+}
+
+/**
  * Validación manual del alta self-service EXPRESS. Devuelve `input` canónico o
  * `fieldErrors`. Pide SOLO tipo/nombre/documento/email/WhatsApp (la dirección y la
  * foto se difieren al perfil). NO chequea dedup (eso es una query, va en la server
