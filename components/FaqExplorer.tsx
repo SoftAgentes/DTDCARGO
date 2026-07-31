@@ -20,6 +20,7 @@ import type { Faq, FaqCategoria } from "@/lib/faqs";
 import { FAQ_CATEGORIAS } from "@/lib/faqs";
 import { WhatsAppIcon, ArrowIcon } from "@/components/Icon";
 import { AlibabaAddressGuide } from "@/components/AlibabaAddressGuide";
+import { CbmExplicador } from "@/components/CbmExplicador";
 
 type Filtro = "todas" | FaqCategoria;
 
@@ -30,13 +31,42 @@ const catLabel: Record<FaqCategoria, string> = FAQ_CATEGORIAS.reduce(
 
 export function FaqExplorer({ faqs, waHref }: { faqs: Faq[]; waHref: string }) {
   const [filtro, setFiltro] = useState<Filtro>("todas");
+  /**
+   * Ancla que llegó por el hash (`/faq#cbm`) — mantiene esa pregunta abierta.
+   * Se limpia cuando el visitante la cierra a mano, para no re-abrirla en el
+   * siguiente render.
+   */
+  const [anclaAbierta, setAnclaAbierta] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
   // Deep-link: /faq#bodega-china-shipping-mark preselecciona esa categoría.
   useEffect(() => {
-    const hash = window.location.hash.replace("#", "") as FaqCategoria;
-    if (FAQ_CATEGORIAS.some((c) => c.id === hash)) setFiltro(hash);
-  }, []);
+    const hash = window.location.hash.replace("#", "");
+    if (!hash) return;
+
+    // El hash puede ser una CATEGORÍA (filtra el listado)…
+    if (FAQ_CATEGORIAS.some((c) => c.id === hash)) {
+      setFiltro(hash as FaqCategoria);
+      return;
+    }
+
+    // …o el ANCLA de una pregunta concreta (`/faq#cbm`, que es como entra
+    // quien viene del botón de ayuda de la calculadora). Se resuelve por
+    // ESTADO y no tocando `el.open` desde el efecto: con StrictMode el efecto
+    // monta dos veces y cualquier callback diferido (rAF/timeout) se cancela
+    // en el cleanup intermedio, así que la apertura se perdía.
+    if (faqs.some((f) => f.ancla === hash)) setAnclaAbierta(hash);
+  }, [faqs]);
+
+  // Una vez abierta la pregunta del ancla, llevarla a la vista: el navegador
+  // ya saltó al #hash con el acordeón cerrado, cuando el destino estaba en
+  // otra posición de la página.
+  useEffect(() => {
+    if (!anclaAbierta) return;
+    document
+      .getElementById(anclaAbierta)
+      ?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [anclaAbierta]);
 
   const counts = useMemo(() => {
     const m = new Map<Filtro, number>([["todas", faqs.length]]);
@@ -169,7 +199,21 @@ export function FaqExplorer({ faqs, waHref }: { faqs: Faq[]; waHref: string }) {
               {visibles.map((f) => (
                 <details
                   key={f.pregunta}
-                  className="group rounded-[14px] border border-grey-200 bg-white px-5 card-shadow"
+                  id={f.ancla}
+                  open={f.ancla && f.ancla === anclaAbierta ? true : undefined}
+                  onToggle={(e) => {
+                    // Sin esto el <details> quedaría clavado abierto: `open`
+                    // está controlado mientras dure el ancla, así que cerrarlo
+                    // a mano tiene que soltar el estado.
+                    if (
+                      f.ancla &&
+                      f.ancla === anclaAbierta &&
+                      !e.currentTarget.open
+                    ) {
+                      setAnclaAbierta(null);
+                    }
+                  }}
+                  className="group rounded-[14px] border border-grey-200 bg-white px-5 card-shadow scroll-mt-24"
                 >
                   <summary className="flex items-start justify-between gap-4 cursor-pointer list-none py-5 rounded-[14px] [&::-webkit-details-marker]:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine-soft">
                     <span className="min-w-0">
@@ -188,6 +232,8 @@ export function FaqExplorer({ faqs, waHref }: { faqs: Faq[]; waHref: string }) {
                     <div className="-mt-1 pb-5">
                       <AlibabaAddressGuide />
                     </div>
+                  ) : f.widget === "cbm-explicador" ? (
+                    <CbmExplicador />
                   ) : f.bloques ? (
                     <div className="-mt-1 flex flex-col gap-3 pb-5 text-[14.5px] leading-[1.65] text-grey-700">
                       {f.bloques.map((b, bi) =>
