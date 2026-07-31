@@ -68,8 +68,8 @@ máquina antes de modificar suspensión/reactivación de usuarios.
 | D1 inventario | aprobado | [inventario D1](inventario-d1-acceso-configuracion-2026-07-29.md) |
 | D1 diseño | aprobado | [REV-AUD-017](../../governance/reviews/aud-d1-access-config-design.md) |
 | D1 implementación | verificada localmente | [REV-AUD-018](../../governance/reviews/aud-d1-access-config-implementation.md) |
-| D2 | pendiente | no abierto |
-| D3 | pendiente | no abierto |
+| D2 | cumplimiento parcial; motivo legacy no conforme | [REV-AUD-019](../../governance/reviews/aud-d2-financial-domain.md) |
+| D3 | cumplimiento parcial; motivo legacy no conforme | [REV-AUD-020](../../governance/reviews/aud-d3-commercial-cycle.md) |
 | D4 | pendiente | no abierto |
 | D5 | pendiente | no abierto |
 
@@ -102,5 +102,7 @@ las 24 acciones obligatorias por fronteras transaccionales e incorpora un
 workflow durable intención → Auth → confirmación/compensación. No declara
 atomicidad ACID entre PostgreSQL y Supabase Auth.
 
-D1 está verificado localmente y pendiente de su gate Cloud individual. D2–D5
-conservan migración, pruebas, revisión y publicación separadas.
+D1 está integrado localmente y pendiente de su gate de Producción individual.
+D2 y D3 están integrados con una no conformidad acotada de motivo en callers
+legacy. Su adopción restante exige slices R2/R3 separados. D4 y D5 conservan
+migración, pruebas, revisión y publicación separadas.

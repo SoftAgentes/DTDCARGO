@@ -14,9 +14,8 @@
  * - softDeleteInvoice: deleted_at = now()
  * - lookupShipmentForInvoice: prefill del drawer desde un código de embarque
  *
- * Las acciones sensibles (emit, pago, anular) escriben en entity_audit_log
- * con actor_type='user' via el admin client (service_role) — entity_type
- * 'invoice' habilitado en la migración 0077.
+ * Las mutaciones de factura se auditan dentro de su transacción PostgreSQL
+ * mediante el trigger de dominio D2 (SDD-0174).
  *
  * GANCHO CONTABLE: emitInvoice (y createInvoice con emit_on_create) crean el
  * asiento automático de venta vía SDD-0040 Contabilidad
@@ -28,7 +27,6 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { createAdminClient } from "@/lib/db/admin";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { postInvoiceJournalEntry } from "@/lib/studio/accounting/invoice-posting";
 import { revertReferralCreditsForInvoice } from "@/lib/studio/accounting/referral-credit-posting";
@@ -154,30 +152,6 @@ async function tenantIvaOn(
   return data?.iva_enabled ?? false;
 }
 
-/** Best-effort audit log con actor_type='user'. No bloquea la mutación. */
-async function auditInvoice(
-  tenantId: string,
-  invoiceId: string,
-  actorId: string | null,
-  eventType: string,
-  payload: Record<string, unknown>,
-): Promise<void> {
-  try {
-    const admin = createAdminClient();
-    await admin.from("entity_audit_log").insert({
-      tenant_id: tenantId,
-      entity_type: "invoice",
-      entity_id: invoiceId,
-      actor_type: "user",
-      actor_id: actorId,
-      event_type: eventType,
-      payload,
-    });
-  } catch (e) {
-    console.error("[auditInvoice] no se pudo registrar audit:", e);
-  }
-}
-
 /**
  * Dispara el asiento automático de venta (SDD-0040). Best-effort: nunca rompe
  * la emisión (la factura ya se persistió). Logea el resultado para diagnóstico.
@@ -199,13 +173,6 @@ async function postInvoiceJournalEntryForInvoice(
       e,
     );
   }
-}
-
-async function currentUserId(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-): Promise<string | null> {
-  const { data } = await supabase.auth.getUser();
-  return data.user?.id ?? null;
 }
 
 function addDaysISO(baseISO: string, days: number): string {
@@ -389,12 +356,6 @@ export async function createInvoice(
   }
 
   if (emitNow) {
-    const legalAck = !gate.required
-      ? "n/a"
-      : gate.hasAcceptance
-        ? "valid"
-        : "override";
-
     // SDD-0040: asiento automático de venta al emitir (también al crear-y-emitir).
     await postInvoiceJournalEntryForInvoice({
       tenantId,
@@ -405,18 +366,6 @@ export async function createInvoice(
       totalAmount: totals.total,
       entryDate: today,
     });
-    await auditInvoice(
-      tenantId,
-      inserted.id,
-      await currentUserId(supabase),
-      "issued",
-      {
-        invoice_code,
-        total_amount: totals.total,
-        on_create: true,
-        ...(gate.required ? { legal_ack: legalAck } : {}),
-      },
-    );
   }
 
   revalidatePath("/studio/facturacion");
@@ -574,21 +523,6 @@ export async function emitInvoice(
     entryDate: today,
   });
 
-  // legal_ack: "valid" (había aceptación), "override" (DDP sin aceptación,
-  // emitido igual), o se omite si no es DDP (gate no aplica).
-  const legalAck = gate.hasAcceptance ? "valid" : "override";
-  await auditInvoice(
-    current.tenant_id,
-    current.id,
-    await currentUserId(supabase),
-    "issued",
-    {
-      invoice_code: current.invoice_code,
-      total_amount: current.total_amount,
-      ...(gate.required ? { legal_ack: legalAck } : {}),
-    },
-  );
-
   revalidatePath("/studio/facturacion");
   revalidatePath(`/studio/facturacion/${current.invoice_code}`);
   return { ok: true };
@@ -684,14 +618,6 @@ export async function voidInvoice(
     .eq("id", id);
 
   if (error) return { error: error.message };
-
-  await auditInvoice(
-    current.tenant_id,
-    current.id,
-    await currentUserId(supabase),
-    "voided",
-    { invoice_code: current.invoice_code },
-  );
 
   // SDD-0137 §3.6: si esta factura tenía créditos de referido aplicados, se
   // revierten (crédito vuelve a 'acreditado' + asiento anulado) — el crédito no

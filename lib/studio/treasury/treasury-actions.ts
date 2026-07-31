@@ -3,8 +3,8 @@
  * `collections-actions.ts`.
  *
  * NO es un módulo `"use server"`: son helpers puros-de-IO que reciben el
- * SupabaseClient autenticado del caller (RLS) + usan el admin client solo para
- * los asientos y el audit (igual que el resto del Studio).
+ * SupabaseClient autenticado del caller (RLS). La auditoría D2 vive en
+ * PostgreSQL y comparte transacción con cada mutación financiera.
  *
  * `createBillFor`:
  *   1. valida (total>0, proveedor + cuenta de gasto + vencimiento)
@@ -28,7 +28,6 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createAdminClient } from "@/lib/db/admin";
 import {
   postBillJournalEntry,
   voidBillJournalEntry,
@@ -48,36 +47,6 @@ import {
 
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
-}
-
-/** Best-effort audit con actor_type='user'. No bloquea la mutación. */
-async function audit(
-  tenantId: string,
-  entityType: "supplier_bill" | "supplier_payment",
-  entityId: string,
-  actorId: string | null,
-  eventType: string,
-  payload: Record<string, unknown>,
-): Promise<void> {
-  try {
-    const admin = createAdminClient();
-    await admin.from("entity_audit_log").insert({
-      tenant_id: tenantId,
-      entity_type: entityType,
-      entity_id: entityId,
-      actor_type: "user",
-      actor_id: actorId,
-      event_type: eventType,
-      payload,
-    });
-  } catch (e) {
-    console.error("[treasury audit] no se pudo registrar audit:", e);
-  }
-}
-
-async function currentUserId(supabase: SupabaseClient): Promise<string | null> {
-  const { data } = await supabase.auth.getUser();
-  return data.user?.id ?? null;
 }
 
 async function resolveTenantId(supabase: SupabaseClient): Promise<string | null> {
@@ -185,21 +154,6 @@ export async function createBillFor(
     );
   }
 
-  await audit(
-    tenantId,
-    "supplier_bill",
-    insertedBill.id,
-    await currentUserId(supabase),
-    "bill_created",
-    {
-      bill_code: billCode,
-      supplier_name: supplier.name,
-      total_amount: input!.totalAmount,
-      currency: input!.currency,
-      due_date: input!.dueDate,
-    },
-  );
-
   return { ok: true, billCode };
 }
 
@@ -248,15 +202,6 @@ export async function voidBillFor(
       );
     }
   }
-
-  await audit(
-    bill.tenant_id,
-    "supplier_bill",
-    bill.id,
-    await currentUserId(supabase),
-    "voided",
-    { bill_code: bill.bill_code },
-  );
 
   return { ok: true };
 }
@@ -405,23 +350,6 @@ export async function registerPaymentFor(
     );
   }
 
-  await audit(
-    bill.tenant_id,
-    "supplier_payment",
-    insertedPayment.id,
-    await currentUserId(supabase),
-    "payment_registered",
-    {
-      payment_code: paymentCode,
-      bill_code: bill.bill_code,
-      amount: input!.amount,
-      currency,
-      method: input!.method,
-      paid_total: newPaid,
-      new_status: newStatus,
-    },
-  );
-
   return { ok: true, paymentCode, fullyPaid };
 }
 
@@ -487,15 +415,6 @@ export async function voidPaymentFor(
       );
     }
   }
-
-  await audit(
-    payment.tenant_id,
-    "supplier_payment",
-    payment.id,
-    await currentUserId(supabase),
-    "voided",
-    { payment_code: payment.payment_code, amount: payment.amount },
-  );
 
   return { ok: true };
 }

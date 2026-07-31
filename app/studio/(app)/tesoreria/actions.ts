@@ -8,15 +8,13 @@
  * - voidPayment: anula una orden de pago (revierte saldo + anula su asiento).
  * - getBillHistory: lee los pagos de una CxP (para el historial del drawer).
  *
- * Sin Zod: validación con `validate*Input()` propio. Las acciones sensibles
- * (CxP, pago, anulaciones) escriben en entity_audit_log via treasury-actions
- * (entity_type 'supplier'/'supplier_bill'/'supplier_payment', migración 0088).
+ * Sin Zod: validación con `validate*Input()` propio. Las mutaciones financieras
+ * se auditan atómicamente mediante los triggers de dominio D2 (SDD-0174).
  */
 
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
@@ -35,30 +33,6 @@ import {
 import type { SupplierPayment } from "@/lib/studio/treasury/types";
 
 // ── Proveedores ────────────────────────────────────────────────
-
-/** Audit best-effort de alta/edición de proveedor (no bloquea). */
-async function auditSupplier(
-  tenantId: string,
-  supplierId: string,
-  actorId: string | null,
-  eventType: string,
-  payload: Record<string, unknown>,
-): Promise<void> {
-  try {
-    const admin = createAdminClient();
-    await admin.from("entity_audit_log").insert({
-      tenant_id: tenantId,
-      entity_type: "supplier",
-      entity_id: supplierId,
-      actor_type: "user",
-      actor_id: actorId,
-      event_type: eventType,
-      payload,
-    });
-  } catch (e) {
-    console.error("[auditSupplier] no se pudo registrar audit:", e);
-  }
-}
 
 /**
  * Defensa: la cuenta de gasto por defecto debe ser de costo/gasto y postable.
@@ -147,15 +121,6 @@ export async function createSupplier(
   if (error || !inserted) {
     return { error: `No se pudo crear el proveedor: ${error?.message}` };
   }
-
-  const { data: user } = await supabase.auth.getUser();
-  await auditSupplier(
-    link.tenant_id,
-    inserted.id,
-    user.user?.id ?? null,
-    "supplier_created",
-    { supplier_code: supplierCode, name: input!.name, type: input!.type },
-  );
 
   revalidatePath("/studio/tesoreria");
   return { ok: true, supplierCode };

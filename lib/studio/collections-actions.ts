@@ -6,8 +6,8 @@
  * (`cobranzas/actions.ts`). Misma operación, un solo camino server-side.
  *
  * NO es un módulo `"use server"`: son helpers puros-de-IO que reciben el
- * SupabaseClient autenticado del caller (RLS) + usan el admin client solo para
- * el asiento y el audit (igual que el resto del Studio).
+ * SupabaseClient autenticado del caller (RLS). La auditoría D2 vive en
+ * PostgreSQL y comparte transacción con cada mutación financiera.
  *
  * `registerCollectionFor`:
  *   1. valida (amount>0, ≤saldo, cuenta requerida, pagador — tercero exige
@@ -39,7 +39,6 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createAdminClient } from "@/lib/db/admin";
 import {
   postReceiptJournalEntry,
   postReceiptReclassEntry,
@@ -80,35 +79,6 @@ const INVOICE_PAY_COLUMNS =
 /** Coerce defensivo de la clase de fondos (default conservador del mandato). */
 function coerceFundClass(v: unknown): FundClass {
   return v === "local_revenue" ? "local_revenue" : "third_party";
-}
-
-/** Best-effort audit con actor_type='user'. No bloquea la mutación. */
-async function auditReceipt(
-  tenantId: string,
-  receiptId: string,
-  actorId: string | null,
-  eventType: string,
-  payload: Record<string, unknown>,
-): Promise<void> {
-  try {
-    const admin = createAdminClient();
-    await admin.from("entity_audit_log").insert({
-      tenant_id: tenantId,
-      entity_type: "payment_receipt",
-      entity_id: receiptId,
-      actor_type: "user",
-      actor_id: actorId,
-      event_type: eventType,
-      payload,
-    });
-  } catch (e) {
-    console.error("[auditReceipt] no se pudo registrar audit:", e);
-  }
-}
-
-async function currentUserId(supabase: SupabaseClient): Promise<string | null> {
-  const { data } = await supabase.auth.getUser();
-  return data.user?.id ?? null;
 }
 
 export type RegisterCollectionResult = {
@@ -248,31 +218,6 @@ export async function registerCollectionFor(
     );
   }
 
-  await auditReceipt(
-    inv.tenant_id,
-    insertedReceipt.id,
-    await currentUserId(supabase),
-    "payment_registered",
-    {
-      receipt_code: receiptCode,
-      invoice_code: inv.invoice_code,
-      amount: input!.amount,
-      currency: inv.currency,
-      method: input!.method,
-      paid_total: newPaid,
-      new_status: newStatus,
-      payer_kind: input!.payerKind,
-      ...(input!.payerKind === "tercero"
-        ? {
-            payer_name: input!.payerName,
-            payer_relation: input!.payerRelation,
-            licit_declared: input!.licitDeclared,
-          }
-        : {}),
-      fund_class: coerceFundClass(inv.fund_class),
-    },
-  );
-
   return { ok: true, receiptCode, fullyPaid };
 }
 
@@ -371,21 +316,6 @@ export async function registerUnidentifiedPaymentFor(
       e,
     );
   }
-
-  await auditReceipt(
-    tenantId,
-    insertedReceipt.id,
-    await currentUserId(supabase),
-    "unidentified_payment_registered",
-    {
-      receipt_code: receiptCode,
-      amount: input!.amount,
-      currency: input!.currency,
-      method: input!.method,
-      received_at: input!.receivedAt,
-      reference: input!.reference,
-    },
-  );
 
   return { ok: true, receiptCode };
 }
@@ -536,23 +466,6 @@ export async function identifyPaymentFor(
     );
   }
 
-  await auditReceipt(
-    receipt.tenant_id,
-    receipt.id,
-    await currentUserId(supabase),
-    "payment_identified",
-    {
-      receipt_code: receipt.receipt_code,
-      invoice_code: inv.invoice_code,
-      amount,
-      currency: receipt.currency,
-      received_at: receipt.received_at, // fecha de imputación (retroactiva)
-      paid_total: newPaid,
-      new_status: newStatus,
-      fund_class: fundClass,
-    },
-  );
-
   return {
     ok: true,
     receiptCode: receipt.receipt_code,
@@ -631,14 +544,6 @@ export async function voidReceiptFor(
       );
     }
   }
-
-  await auditReceipt(
-    receipt.tenant_id,
-    receipt.id,
-    await currentUserId(supabase),
-    "voided",
-    { receipt_code: receipt.receipt_code, amount: receipt.amount },
-  );
 
   return { ok: true };
 }
