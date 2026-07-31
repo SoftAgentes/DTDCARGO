@@ -5,24 +5,42 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BrandMark } from "./BrandMark";
 
+/** Orden del Norte (founder 2026-07-31): **Tarifas primero** — es la pregunta
+ *  con la que llega el visitante, y la calculadora es la superficie de
+ *  conversión. Después el qué (Servicios), el cómo (Pre-alertas) y el contenido
+ *  (Actualidad). */
 const links = [
+  { href: "/tarifas", label: "Tarifas" },
   { href: "/servicios", label: "Servicios" },
   { href: "/pre-alertas", label: "Pre-alertas" },
-  { href: "/tarifas", label: "Tarifas" },
   { href: "/noticias", label: "Actualidad" },
 ];
 
-/** Contenido de apoyo agrupado en el dropdown "Ayuda" (antes "Recursos").
- *  Orden por intención del visitante: formación → proceso → soporte → contenido.
- *  ("Cómo trabajamos" vuelve como ENLACE — la sección homónima se retiró y el
- *  proceso se cuenta en un solo lugar, los 8 pasos de /shipping-mark. El
- *  rastreo público vive en el footer.) */
+/** Contenido de apoyo del desplegable "Ayuda", en DOS grupos con título
+ *  (founder 2026-07-31, opción C): de un vistazo se entiende qué hay adentro,
+ *  que era el problema — "Ayuda" no se leía como algo que se despliega.
+ *  ("Cómo trabajamos" es un ENLACE: la sección homónima se retiró y el proceso
+ *  se cuenta en un solo lugar, los 8 pasos de /shipping-mark. El rastreo
+ *  público vive en el footer.) */
 const recursos = [
-  { href: "/academia", label: "Academia" },
-  { href: "/shipping-mark", label: "Cómo trabajamos" },
-  { href: "/faq", label: "Preguntas frecuentes" },
-  { href: "/glosario", label: "Glosario" },
+  {
+    titulo: "Aprender",
+    items: [
+      { href: "/academia", label: "Academia" },
+      { href: "/shipping-mark", label: "Cómo trabajamos" },
+    ],
+  },
+  {
+    titulo: "Soporte",
+    items: [
+      { href: "/faq", label: "Preguntas frecuentes" },
+      { href: "/glosario", label: "Glosario" },
+    ],
+  },
 ];
+
+/** Plano, para el acordeón del menú móvil y para el focus trap. */
+const recursosPlano = recursos.flatMap((g) => g.items);
 
 /** Selector de elementos enfocables para focus trap (WCAG 2.4.3) */
 const FOCUSABLE_SEL =
@@ -31,8 +49,8 @@ const FOCUSABLE_SEL =
 /**
  * Top navigation — sticky, blur, drawer mobile completo con focus trap.
  *
- * Desktop (lg+): logo + enlaces principales + dropdown "Ayuda" + Contáctenos +
- *                Mi portal + [Regístrate].
+ * Desktop (lg+): logo + enlaces principales + Acceder + Contáctenos +
+ *                dropdown "Ayuda" (al final) + [Regístrate].
  * Mobile (<lg):  logo + [≡ hamburguesa] + [Regístrate]
  *                El hamburger abre un drawer con los enlaces + acordeón "Ayuda"
  *                + cuenta + Contáctenos, y "Regístrate" como botón del pie.
@@ -228,43 +246,6 @@ export function Nav() {
               );
             })}
 
-            {/* Recursos — dropdown por click (contenido de apoyo). <details>
-                nativo da aria-expanded + teclado; Escape/click-fuera se manejan
-                en el useEffect de arriba. */}
-            <details ref={recursosRef} className="group relative">
-              <summary className="list-none cursor-pointer select-none text-[13.5px] xl:text-[14.5px] px-2 xl:px-2.5 py-2 rounded-md text-ink font-medium hover:text-wine hover:bg-wine/15 transition-colors whitespace-nowrap flex items-center gap-1.5 [&::-webkit-details-marker]:hidden">
-                Ayuda
-                <span
-                  aria-hidden
-                  className="text-[9px] text-grey-500 transition-transform group-[[open]]:rotate-180"
-                >
-                  ▾
-                </span>
-              </summary>
-              <div className="absolute right-0 top-full mt-1.5 w-[230px] bg-paper border border-grey-200 rounded-lg card-shadow p-1.5 z-[60]">
-                {recursos.map((r) => {
-                  const active = isLinkActive(pathname, r.href);
-                  return (
-                    <Link
-                      key={r.href}
-                      href={r.href}
-                      onClick={() => {
-                        if (recursosRef.current) recursosRef.current.open = false;
-                      }}
-                      aria-current={active ? "page" : undefined}
-                      className={`block text-[14px] px-3 py-2.5 rounded-md transition-colors ${
-                        active
-                          ? "text-wine font-bold bg-wine/30"
-                          : "text-ink hover:text-wine hover:bg-wine/15"
-                      }`}
-                    >
-                      {r.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            </details>
-
             {/* Jerarquía de la derecha (founder 2026-07-31): el único botón de
                 color es "Regístrate", porque el registro es lo que queremos que
                 el visitante haga. "Contáctenos" baja a enlace de texto y se
@@ -272,17 +253,76 @@ export function Nav() {
                 —que ya tiene su botón flotante— así que ocupar el CTA del nav
                 con él competía contra la conversión que sí importa. */}
             <Link
+              href="/portal/login"
+              className="text-[13.5px] xl:text-[14.5px] px-2 xl:px-2.5 py-2 rounded-md text-ink font-semibold hover:text-wine hover:bg-wine/15 transition-colors whitespace-nowrap"
+            >
+              Acceder
+            </Link>
+            <Link
               href="/contacto"
               className="text-[13.5px] xl:text-[14.5px] px-2 xl:px-2.5 py-2 rounded-md text-ink font-semibold hover:text-wine hover:bg-wine/15 transition-colors whitespace-nowrap"
             >
               Contáctenos
             </Link>
-            <Link
-              href="/portal/login"
-              className="text-[13.5px] xl:text-[14.5px] px-2 xl:px-2.5 py-2 rounded-md text-ink font-semibold hover:text-wine hover:bg-wine/15 transition-colors whitespace-nowrap"
-            >
-              Mi portal
-            </Link>
+
+            {/* "Ayuda" va AL FINAL de los enlaces, pegada al botón (founder
+                2026-07-31). El indicador era un "▾" gris de 9px que no se leía
+                como "esto se despliega": ahora es un chevron **wine** de 11px
+                que gira 180° al abrir. <details> nativo da aria-expanded y
+                teclado gratis; Escape y click-fuera se manejan en el useEffect
+                de arriba. */}
+            <details ref={recursosRef} className="group relative">
+              <summary className="list-none cursor-pointer select-none text-[13.5px] xl:text-[14.5px] px-2 xl:px-2.5 py-2 rounded-md text-ink font-medium hover:text-wine hover:bg-wine/15 transition-colors whitespace-nowrap flex items-center gap-1.5 group-[[open]]:text-wine [&::-webkit-details-marker]:hidden">
+                Ayuda
+                <svg
+                  aria-hidden
+                  width="11"
+                  height="11"
+                  viewBox="0 0 12 12"
+                  fill="none"
+                  stroke="var(--color-wine)"
+                  strokeWidth="2.1"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="flex-shrink-0 transition-transform duration-200 group-[[open]]:rotate-180"
+                >
+                  <path d="M2.5 4.5 6 8l3.5-3.5" />
+                </svg>
+              </summary>
+              {/* Panel en DOS columnas con título de grupo: el visitante entiende
+                  de un vistazo qué hay adentro sin tener que leer los 4 enlaces. */}
+              <div className="absolute right-0 top-full mt-1.5 grid w-[390px] grid-cols-2 gap-x-2.5 bg-paper border border-grey-200 rounded-lg card-shadow p-3 z-[60]">
+                {recursos.map((grupo) => (
+                  <div key={grupo.titulo}>
+                    <p className="m-0 px-3 pb-1.5 pt-1 text-[10.5px] font-bold uppercase tracking-[0.13em] text-grey-500">
+                      {grupo.titulo}
+                    </p>
+                    {grupo.items.map((r) => {
+                      const active = isLinkActive(pathname, r.href);
+                      return (
+                        <Link
+                          key={r.href}
+                          href={r.href}
+                          onClick={() => {
+                            if (recursosRef.current)
+                              recursosRef.current.open = false;
+                          }}
+                          aria-current={active ? "page" : undefined}
+                          className={`block text-[14px] px-3 py-2.5 rounded-md transition-colors ${
+                            active
+                              ? "text-wine font-bold bg-wine/30"
+                              : "text-ink hover:text-wine hover:bg-wine/15"
+                          }`}
+                        >
+                          {r.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </details>
+
             <Link href="/registro" className="btn btn-primary whitespace-nowrap">
               Regístrate
             </Link>
@@ -398,14 +438,24 @@ export function Nav() {
           <details className="group">
             <summary className="list-none cursor-pointer select-none text-[18px] py-4 px-3 -mx-3 rounded-md border-b border-grey-200 text-ink font-semibold hover:text-wine hover:bg-wine/15 transition-colors flex items-center justify-between [&::-webkit-details-marker]:hidden">
               <span>Ayuda</span>
-              <span
+              {/* Mismo chevron wine que en escritorio: el gris no se leía como
+                  "esto se despliega". */}
+              <svg
                 aria-hidden
-                className="text-[13px] text-grey-500 transition-transform group-[[open]]:rotate-180"
+                width="14"
+                height="14"
+                viewBox="0 0 12 12"
+                fill="none"
+                stroke="var(--color-wine)"
+                strokeWidth="2.1"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="flex-shrink-0 transition-transform duration-200 group-[[open]]:rotate-180"
               >
-                ▾
-              </span>
+                <path d="M2.5 4.5 6 8l3.5-3.5" />
+              </svg>
             </summary>
-            {recursos.map((r) => {
+            {recursosPlano.map((r) => {
               const active = isLinkActive(pathname, r.href);
               return (
                 <Link
@@ -425,7 +475,7 @@ export function Nav() {
             })}
           </details>
 
-          {/* Cuenta · Mi portal + Contáctenos. "Regístrate" NO va acá: es el
+          {/* Cuenta · Acceder + Contáctenos. "Regístrate" NO va acá: es el
               botón del pie, para que el menú tenga la misma jerarquía que la
               barra de escritorio y no aparezca dos veces. */}
           <Link
@@ -433,7 +483,7 @@ export function Nav() {
             onClick={close}
             className="text-[18px] py-4 px-3 -mx-3 rounded-md border-b border-grey-200 text-ink font-semibold hover:text-wine hover:bg-wine/15 transition-colors"
           >
-            Mi portal
+            Acceder
           </Link>
           <Link
             href="/contacto"
