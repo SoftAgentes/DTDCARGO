@@ -8,8 +8,8 @@ Fecha de corte: 2026-07-31
 | eventos operativos | organizacional | [Calendario v1.0](../../legal/retention-schedule-v1.md) | 5 años | `occurred_at` | lote controlado con manifiesto | operaciones + founder | approved · 2026-07-31 |
 | eventos de seguridad | organizacional | [Calendario v1.0](../../legal/retention-schedule-v1.md) | 2 años | `occurred_at` | lote controlado con manifiesto | seguridad + founder | approved · 2026-07-31 |
 | eventos sin clasificar | todas | [Calendario v1.0](../../legal/retention-schedule-v1.md) | no ejecutable | clasificación | preservar | owner del dominio | fail-closed |
-| artefactos temporales de exportación | técnica | AUD-02 v1.0 | máximo 24 horas | generación | expirar artefacto, nunca evento fuente | ingeniería | diseño aprobado; capacidad inexistente |
-| URL firmada de descarga | técnica | AUD-02 v1.0 | máximo 15 minutos | emisión | invalidar acceso | ingeniería | diseño aprobado; capacidad inexistente |
+| artefactos temporales de exportación | técnica | AUD-02 v1.0 | máximo 24 horas | generación | expirar artefacto, nunca evento fuente | ingeniería | E3/E4 implementados localmente; Cloud nominal pendiente |
+| URL firmada de descarga | técnica | AUD-02 v1.0 | máximo 15 minutos | emisión | invalidar acceso | ingeniería | E3 implementado localmente; Cloud nominal pendiente |
 | legal hold | todas | AUD-02 v1.0 + [Calendario v1.0](../../legal/retention-schedule-v1.md) | hasta liberación válida | activación | preservar; liberar con doble decisión | founder + asesoría legal | approved · precedencia total |
 | backups y réplicas | infraestructura | [Calendario v1.0](../../legal/retention-schedule-v1.md) + ciclo contratado | ciclo del proveedor | creación de copia | envejecimiento; no reactivar vencidos | infraestructura | approved con verificación de proveedor pendiente por ejecución |
 

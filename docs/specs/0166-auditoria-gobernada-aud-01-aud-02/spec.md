@@ -529,3 +529,9 @@ segundo aprobador, RPC redacted, bucket privado, hash externo al objeto y URL de
 [SDD-0221](../0221-audit-export-expiry/spec.md) abrió E4 con claim idempotente,
 precedencia de hold, borrado exclusivo del objeto temporal y recibo append-only.
 Cloud conserva el gate nominal de `0303_audit_export_expiry.sql`.
+
+[SDD-0222](../0222-audit-retention-batches/spec.md) abrió E5 con dry-run,
+hash/conteo, segundo aprobador, revalidación de hold y DELETE exclusivamente
+por lote service-role. `fiscal` y `legacy_unknown` no son ejecutables. Cloud
+conserva el gate nominal de `0304_audit_retention_batches.sql`; ningún lote
+destructivo fue creado ni ejecutado durante la implementación.
