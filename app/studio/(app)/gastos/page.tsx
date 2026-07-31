@@ -23,6 +23,7 @@ import { resolveLocale } from "@/lib/i18n/resolve-server";
 import { t } from "@/lib/i18n";
 import { GastosClient } from "./_components/GastosClient";
 import { GastosKpis } from "./_components/GastosKpis";
+import { attachmentsPilotState } from "@/lib/studio/attachments/pilot-gate";
 
 export const metadata = { title: "Gastos" };
 
@@ -59,9 +60,9 @@ export default async function GastosPage({
     userId
       ? supabase
           .from("user_tenants")
-          .select("region")
+          .select("region, tenant_id")
           .eq("user_id", userId)
-          .maybeSingle<{ region: string | null }>()
+          .maybeSingle<{ region: string | null; tenant_id: string }>()
       : Promise.resolve({ data: null }),
   ]);
   const { locale } = await resolveLocale({
@@ -119,6 +120,8 @@ export default async function GastosPage({
         fxPrefill={fxPrefill}
         activeAlerts={activeAlerts}
         openShipmentId={openShipmentId}
+        attachmentsPilotEnabled={attachmentsPilotState().enabled}
+        attachmentOwnerKey={userId && ut?.tenant_id ? `${ut.tenant_id}:${userId}` : undefined}
       />
     </div>
   );

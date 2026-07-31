@@ -44,6 +44,7 @@ import {
 } from "@/lib/studio/expense-types";
 import type { ShipmentPick } from "@/lib/studio/expense-queries";
 import { createExpenseAction, updateExpenseAction } from "../actions";
+import { AttachmentUploader } from "@/app/studio/_components/attachments/AttachmentUploader";
 
 const METHODS: ExpenseMethod[] = ["cash", "card", "transfer", "usdt"];
 const initialState: ExpenseActionState = {};
@@ -62,6 +63,8 @@ interface Props {
   defaultShipmentId?: string;
   /** Si viene, el drawer está en modo edición. */
   expense?: Expense;
+  attachmentsPilotEnabled: boolean;
+  attachmentOwnerKey?: string;
 }
 
 export function ExpenseDrawer({
@@ -73,6 +76,8 @@ export function ExpenseDrawer({
   forceScope,
   defaultShipmentId,
   expense,
+  attachmentsPilotEnabled,
+  attachmentOwnerKey,
 }: Props) {
   const t = useT();
   const locale = useLocale();
@@ -222,7 +227,7 @@ export function ExpenseDrawer({
             )}
 
             {/* Cambiar tipo de gasto (solo alta) */}
-            {!isEdit && (
+            {!attachmentsPilotEnabled && !isEdit && (
               <button
                 type="button"
                 onClick={() => setView("scope")}
@@ -241,6 +246,16 @@ export function ExpenseDrawer({
               >
                 {Icon.arrowL(12)} {scopeLabel}
               </button>
+            )}
+
+            {attachmentsPilotEnabled && isEdit && attachmentOwnerKey && (
+              <AttachmentUploader ownerKey={attachmentOwnerKey} entityId={expense.id} />
+            )}
+
+            {attachmentsPilotEnabled && !isEdit && (
+              <p style={{ margin: 0, color: "var(--ink-soft)", font: "500 11px/1.4 var(--f-sans)" }}>
+                Guarda el gasto y vuelve a abrirlo para adjuntar el comprobante con subida reanudable.
+              </p>
             )}
 
             {/* Contenedor (solo shipment) */}

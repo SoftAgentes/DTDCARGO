@@ -79,6 +79,19 @@ export const expenses = {
   "expenses.field.receipt": "Adjuntar recibo / foto",
   "expenses.field.receipt_hint":
     "Factura del transporte, foto del recibo del almacén, etc.",
+  "expenses.field.receipt_secure": "Comprobante protegido",
+  "expenses.field.receipt_secure_hint":
+    "Guarda el gasto y vuelve a abrirlo para usar la subida reanudable.",
+  "expenses.attachment.limits":
+    "JPG, PNG o WebP hasta 8 MB; PDF hasta 25 MB. Si se corta la conexión, la copia local queda pendiente para reintentar.",
+  "expenses.attachment.status.queued": "Pendiente",
+  "expenses.attachment.status.uploading": "Subiendo",
+  "expenses.attachment.status.uploading_progress": "Subiendo {progress}%",
+  "expenses.attachment.status.finalizing": "Verificando",
+  "expenses.attachment.status.completed": "Guardado",
+  "expenses.attachment.status.failed": "Requiere reintento",
+  "expenses.attachment.retry": "Reintentar",
+  "expenses.attachment.close": "Cerrar",
   "expenses.field.billable": "Cobrable al cliente",
 
   // ── fx CNY/USD ───────────────────────────────────────────

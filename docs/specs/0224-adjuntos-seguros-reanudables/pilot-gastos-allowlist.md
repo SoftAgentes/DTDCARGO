@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | preparada · no autorizada para implementación |
+| Estado | aprobada por el founder · 2026-07-31 |
 | Riesgo | R3 · evidencia financiera, tenant y permanencia |
 | Superficie | Studio ERP · `/studio/gastos` |
 | Entidad piloto | `expenses` · recibo/foto del gasto |
@@ -54,6 +54,7 @@ independiente, Object Lock, checksum y restore drill autorizados por separado.
 - `.env.example`
 - `package.json`
 - `pnpm-lock.yaml`
+- `pnpm-workspace.yaml` (overrides de seguridad requeridos por el audit)
 - `playwright.config.ts`
 
 Dependencias candidatas limitadas a:
@@ -126,10 +127,14 @@ versionado, legal hold, restore, auditoría y purga fail-closed.
 ## Allowlist del plano de control
 
 - `app/api/studio/attachments/reserve/route.ts`
-- `app/api/studio/attachments/[intentId]/reauthorize/route.ts`
-- `app/api/studio/attachments/[intentId]/finalize/route.ts`
-- `app/api/studio/attachments/[documentId]/download/route.ts`
-- `app/api/studio/attachments/[documentId]/restore/route.ts`
+- `app/api/studio/attachments/[id]/reauthorize/route.ts`
+- `app/api/studio/attachments/[id]/finalize/route.ts`
+- `app/api/studio/attachments/[id]/download/route.ts`
+- `app/api/studio/attachments/[id]/restore/route.ts`
+
+El segmento dinámico se llama `[id]` en los cuatro routes porque Next.js no
+permite nombres de slug distintos en rutas hermanas. Cada handler conserva la
+semántica estricta de `intent_id` o `document_id` según la operación.
 
 Los routes son finos. Autorización, tenant, estado e idempotencia viven en el
 dominio/RPC; ningún route recibe el binario.
@@ -256,8 +261,10 @@ Obligatorios antes de presentar el piloto:
 - no restaurar la policy cross-tenant vulnerable;
 - dejar objetos no finalizados en cuarentena para reconciliación.
 
-## Gate siguiente
+## Registro de autorización
 
-Para empezar a implementar, el founder debe aprobar explícitamente esta
-allowlist. Esa aprobación no autoriza Cloud, un proveedor externo, commit ni
-push; cada uno conserva su propio gate.
+- El founder aprobó explícitamente esta allowlist cerrada el 2026-07-31.
+- La implementación debe ocurrir en el worktree limpio dedicado y mantener el
+  feature gate apagado por defecto.
+- Los permisos posteriores para commit, push, Cloud y Producción se registran
+  y verifican como gates separados; no se infieren de esta aprobación.

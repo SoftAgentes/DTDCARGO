@@ -47,6 +47,8 @@ interface Props {
   activeAlerts: ActiveAlertRow[];
   /** Si viene (desde el vínculo de Almacén CN), abre el drawer prefilled. */
   openShipmentId?: string;
+  attachmentsPilotEnabled: boolean;
+  attachmentOwnerKey?: string;
 }
 
 type DrawerState =
@@ -63,6 +65,8 @@ export function GastosClient({
   fxPrefill,
   activeAlerts,
   openShipmentId,
+  attachmentsPilotEnabled,
+  attachmentOwnerKey,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
@@ -309,6 +313,8 @@ export function GastosClient({
           forceScope={drawer.mode === "create" ? drawer.forceScope : undefined}
           defaultShipmentId={drawer.mode === "create" ? drawer.shipmentId : undefined}
           expense={drawer.mode === "edit" ? drawer.expense : undefined}
+          attachmentsPilotEnabled={attachmentsPilotEnabled}
+          attachmentOwnerKey={attachmentOwnerKey}
         />
       )}
     </>
@@ -665,8 +671,8 @@ function ExpenseRow({
       </span>
 
       {/* Recibo (indicador · link diferido a task export) */}
-      <span style={{ textAlign: "center", color: row.receipt_path ? "var(--ink-soft)" : "var(--ink-mute)" }}>
-        {row.receipt_path ? Icon.camera(14) : "—"}
+      <span style={{ textAlign: "center", color: row.receipt_path || row.receipt_document_id ? "var(--ink-soft)" : "var(--ink-mute)" }}>
+        {row.receipt_path || row.receipt_document_id ? Icon.camera(14) : "—"}
       </span>
 
       {/* Acciones */}

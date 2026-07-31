@@ -33,10 +33,8 @@ export default defineConfig({
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
-    // Mobile/webkit deshabilitados — para activar:
-    //   npx playwright install webkit
-    //   y descomentar:
-    // { name: "mobile-safari", use: { ...devices["iPhone 14"] } },
+    { name: "mobile-chrome", use: { ...devices["Pixel 7"] } },
+    { name: "mobile-safari", use: { ...devices["iPhone 14"] } },
   ],
   // Solo levantamos dev server si NO se pasó BASE_URL custom.
   webServer: process.env.BASE_URL
