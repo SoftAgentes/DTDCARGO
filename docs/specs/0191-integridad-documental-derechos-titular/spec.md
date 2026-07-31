@@ -56,8 +56,8 @@ fuente verificable registrada, o es una **decisión comercial declarada como tal
 
 ### Slice A · Sellar el contenido (⭐ primero) — ✅ **implementado 2026-07-30**
 
-> **Estado: ✅ APLICADO A PROD el 2026-07-30**, con OK del founder, de a una y
-> por el runbook. Verificado contra el objeto, no contra el nombre:
+> **Estado: ✅ APLICADO A PROD** — ledger `20260731034447`, con OK del founder,
+> de a una y por el runbook. Verificado contra el objeto, no contra el nombre:
 > `body_sha256` NOT NULL · trigger `legal_docs_guard_trg` vivo · función
 > `SECURITY INVOKER` con `search_path=""` · policy `"legal_docs delete by admin"`
 > retirada · **7/7 documentos sellados, 0 sellos incorrectos** · 0 aceptaciones ·
@@ -69,6 +69,16 @@ fuente verificable registrada, o es una **decisión comercial declarada como tal
 >
 > **Advisors: 136 → 136, delta 0**, ninguno menciona `legal_docs`. El revoke de
 > `EXECUTE` evitó sumar a la deuda de funciones abiertas.
+>
+> ⚠️ **Hay DOS migraciones 0297 en el repo, y es correcto.** SDD-0184 renumeró
+> las suyas a 0297-0299 y aplicó `0297_container_types_activos_y_capacidad_util`
+> **62 segundos después** de esta (ledger `20260731034549` vs `20260731034447`).
+> **Ninguna se renumera:** el gate `migrations-applied` cruza el **basename
+> exacto** contra el `name` del ledger, así que renombrar la ya aplicada la
+> dejaría "sin aplicar" y el gate se pondría rojo en falso. Dos archivos con el
+> mismo prefijo no rompen nada —el orden de replay es determinista por bytes y
+> hay precedente (`0261` + `0261b`)— y estas dos no se tocan entre sí: una toca
+> `legal_docs`, la otra `container_types`.
 >
 > - `supabase/migrations/0297_legal_docs_body_hash.sql` — columna `body_sha256`,
 >   función `public.legal_docs_guard()` y trigger `legal_docs_guard_trg`.
