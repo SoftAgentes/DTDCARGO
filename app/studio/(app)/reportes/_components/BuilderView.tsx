@@ -139,7 +139,13 @@ export function BuilderView({
   // React, este es el caso legítimo de sincronizar con un sistema externo).
   const [saved, setSaved] = useState<SavedReport[]>([]);
   useEffect(() => {
-    setSaved(readSaved());
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setSaved(readSaved());
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
   const persist = (next: SavedReport[]) => {
     setSaved(next);

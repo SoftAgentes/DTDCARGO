@@ -453,12 +453,19 @@ function IncomingTab({
   // operativo). Persistido por navegador, igual que las columnas.
   const [sortBy, setSortBy] = useState<SortBy>("client-asc");
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(PREALERTA_SORT_KEY);
-      if (saved && SORT_VALUES.has(saved)) setSortBy(saved as SortBy);
-    } catch {
-      /* default */
-    }
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      try {
+        const saved = localStorage.getItem(PREALERTA_SORT_KEY);
+        if (saved && SORT_VALUES.has(saved)) setSortBy(saved as SortBy);
+      } catch {
+        /* default */
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
   const changeSort = (v: SortBy) => {
     setSortBy(v);

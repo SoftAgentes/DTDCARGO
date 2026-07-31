@@ -125,7 +125,13 @@ export function BugFABButton() {
   const movedRef = useRef(false);
 
   useEffect(() => {
-    setCorner(readStoredCorner());
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setCorner(readStoredCorner());
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Cerrar el menu con click afuera o Escape.

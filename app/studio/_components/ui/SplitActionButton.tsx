@@ -158,10 +158,17 @@ export function SplitActionButton({
 
   // Cargar la última opción guardada (solo client-side · evita hydration mismatch).
   useEffect(() => {
-    const stored = readStoredKey(memoryKey);
-    if (stored && actions.some((a) => a.key === stored)) {
-      setActiveKey(stored);
-    }
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      const stored = readStoredKey(memoryKey);
+      if (stored && actions.some((a) => a.key === stored)) {
+        setActiveKey(stored);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [memoryKey, actions]);
 
   /**
