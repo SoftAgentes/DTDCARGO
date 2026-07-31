@@ -104,7 +104,10 @@ salida corporativa se selecciona explícitamente la voz de marca.
 - otros correos y documentos continúan en adopción gradual por consumidor;
 - existe evidencia local de PDF, impresión, extracción y firmas;
 - una muestra controlada verificó entrega y estructura MIME/HTML en Gmail y
-  Outlook; faltan capturas visuales reales en Gmail, Outlook y Apple Mail.
+  Outlook;
+- Outlook conserva el original `zh-CN` legible en modo oscuro; Gmail conserva
+  el layout, pero su captura traducida no verifica los glifos chinos; falta
+  Apple Mail.
 
 ## 8. Gates cerrados y siguientes
 
@@ -118,7 +121,7 @@ Cerrado por SDD-0175:
 Siguiente por consumidor:
 
 - inventariar y migrar sólo un correo/PDF/documento que contenga chino real;
-- cerrar la evidencia visual de `zh-CN` en Gmail, Outlook y Apple Mail con
+- cerrar la evidencia visual del original `zh-CN` en Gmail y Apple Mail con
   buzones controlados;
 - validar que label/valor siga distinguiéndose sin webfonts;
 - conservar BD-036 y `BRAND.md` sincronizados con la excepción documental.
