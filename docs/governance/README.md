@@ -3,14 +3,14 @@
 | Control | Valor |
 |---|---|
 | Documento | Índice maestro del Sistema de Gobernanza |
-| Versión | 6.1 |
+| Versión | 6.2 |
 | Dueño | Sam (founder) |
 | Custodia | Producto + Diseño + Ingeniería |
 | Estado | activo |
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-31 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-101 · SDD-0174 cerrado en Producción](BASELINE-2026-07-31-06.md) |
+| Línea base vigente | [LB-SGE-102 · Gobernanza 8 cerrada técnicamente](BASELINE-2026-07-31-07.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -170,6 +170,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Inventario VIS-02 | [REV-VIS-009](reviews/vis-02-inventory-reconciliation.md) |
 | Evidencia externa VIS-02 | [REV-VIS-010](reviews/vis-02-external-mail-client-evidence.md) |
 | Auditoría integral Gobernanza 8 | [REV-SGE-024](reviews/governance-8-adoption-audit-2026-07-31.md) |
+| Cierre técnico integral Gobernanza 8 | [REV-SGE-026](reviews/governance-8-final-close-2026-07-31.md) |
 | Investigación de skills | [Mapa de capacidades y límites](research/skills-map.md) |
 | Contrato implementado de avisos | [SDD-0165 · AVS-01](../specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md) |
 | Inventario y estado oficial vigente | [LB-SGE-037](BASELINE-2026-07-29-09.md) |
@@ -313,8 +314,10 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-101 · SDD-0174 cerrado en Producción](BASELINE-2026-07-31-06.md).
+[LB-SGE-102 · Gobernanza 8 cerrada técnicamente](BASELINE-2026-07-31-07.md).
 El corte anterior permanece en
+[LB-SGE-101](BASELINE-2026-07-31-06.md).
+La aplicación productiva anterior permanece en
 [LB-SGE-100](BASELINE-2026-07-31-05.md).
 El cierre del control plane permanece en
 [LB-SGE-074](BASELINE-2026-07-29-46.md).
