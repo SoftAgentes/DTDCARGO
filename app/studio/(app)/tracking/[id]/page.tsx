@@ -102,14 +102,11 @@ export default async function ShipmentDetailPage({
       : null;
 
   function formatRelative(iso: string): string {
-    const diffMs = Date.now() - new Date(iso).getTime();
-    const min = Math.round(diffMs / 60_000);
-    if (min < 1) return "ahora";
-    if (min < 60) return `hace ${min} min`;
-    const hr = Math.round(min / 60);
-    if (hr < 24) return `hace ${hr} h`;
-    const days = Math.round(hr / 24);
-    return `hace ${days} ${days === 1 ? "día" : "días"}`;
+    return new Intl.DateTimeFormat("es-VE", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "America/Caracas",
+    }).format(new Date(iso));
   }
 
   return (

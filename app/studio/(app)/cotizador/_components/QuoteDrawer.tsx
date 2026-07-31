@@ -49,6 +49,9 @@ interface Props {
 }
 
 const initialState: QuoteActionState = {};
+const DEFAULT_VALID_UNTIL = new Date(Date.now() + 30 * 24 * 3600 * 1000)
+  .toISOString()
+  .slice(0, 10);
 
 const SERVICE_CARDS: { value: ShipmentService; label: string; hint: string }[] = [
   { value: "consolidado_lcl", label: "Consolidación LCL", hint: "$/CBM" },
@@ -85,8 +88,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
   );
   const [rateUsedId, setRateUsedId] = useState<string>(quote?.rate_used_id ?? "");
   const [validUntil, setValidUntil] = useState(
-    quote?.valid_until ??
-      new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString().slice(0, 10),
+    quote?.valid_until ?? DEFAULT_VALID_UNTIL,
   );
   const [notes, setNotes] = useState(quote?.notes ?? "");
 
@@ -220,10 +222,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
 
   // Lookup automático de rate al cambiar destino
   useEffect(() => {
-    if (!destination.trim()) {
-      setSuggestedRate(null);
-      return;
-    }
+    if (!destination.trim()) return;
     const t = setTimeout(async () => {
       setLookupPending(true);
       try {
@@ -494,7 +493,11 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
                 type="text"
                 className="studio-input"
                 value={destination}
-                onChange={(e) => setDestination(e.target.value)}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setDestination(next);
+                  if (!next.trim()) setSuggestedRate(null);
+                }}
                 placeholder="Valencia, La Guaira…"
                 required
               />

@@ -424,10 +424,11 @@ function StatusBadge({ status }: { status: MailLogStatus }) {
   );
 }
 
+const MAILING_REFERENCE_MS = Date.now();
+
 function RelTime({ iso }: { iso: string }) {
   const d = new Date(iso);
-  const now = Date.now();
-  const diffMs = now - d.getTime();
+  const diffMs = MAILING_REFERENCE_MS - d.getTime();
   const diffMin = Math.floor(diffMs / 60000);
   const label =
     diffMin < 1
