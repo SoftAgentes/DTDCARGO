@@ -101,6 +101,19 @@ export function WhatsAppFAB() {
       data-scrolled={isScrolled}
       onMouseEnter={() => setIsExpanded(true)}
       onMouseLeave={() => setIsExpanded(false)}
+      // Teclado: el stack también abre al RECIBIR FOCO. Sin esto, las redes
+      // secundarias eran inalcanzables por Tab — están en `tabIndex={-1}`
+      // mientras el menú está cerrado, y el menú solo abría con mouse o toque.
+      // React normaliza onFocus/onBlur a focusin/focusout, así que burbujean
+      // desde los hijos y basta ponerlos en el contenedor.
+      onFocus={() => setIsExpanded(true)}
+      // Solo cierra cuando el foco sale del stack ENTERO; moverse de WhatsApp a
+      // Instagram no debe colapsarlo bajo los pies del visitante.
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+          setIsExpanded(false);
+        }
+      }}
     >
       <a
         href={CONTACT.tiktok.url}
