@@ -28,7 +28,7 @@
 | Fiscal/SENIAT · entradas numéricas | 0104, 0166, 0185 | `app/studio/(app)/fiscal/` | `lib/studio/fiscal/` |
 | Selectores canónicos accesibles | 0108, 0181 | `app/studio/_components/ui/{ClientCombobox,SplitActionButton}.tsx` | `lib/studio/client-search-action.ts` |
 | Club DTD · validación de identidad | 0106, 0116, 0182 | `app/studio/(app)/club/` | `lib/studio/club/` |
-| Tracking / Embarques | 0005, 0006, 0012, 0013 | `app/studio/(app)/{tracking,embarques}/` | `lib/studio/shipment-*`, `tracking-progress` |
+| Tracking / Embarques | 0005, 0006, 0012, 0013, 0223 | `app/studio/(app)/{tracking,embarques}/` | `lib/studio/shipment-*`, `tracking-progress`, planificación temporal |
 | Cambio de destino | 0009 | (dentro de tracking) | `lib/studio/destination-change.ts` |
 | Tarifas (+ config calculadora pública) | 0008, 0055 | `app/studio/(app)/tarifas/` | `lib/studio/rate-*`, `calculator-cities-*` · `supabase/migrations/{0103,0104}` |
 | Clientes + MARKBOX | 0010 | `app/studio/(app)/clientes/` | `lib/studio/client-*` |

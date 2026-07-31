@@ -11,7 +11,14 @@
  * Todo lectura. La query vive en `calendar-events-queries.ts`.
  */
 
-export type CalendarEventType = "zarpe" | "arribo" | "entrega" | "tarea";
+export type CalendarEventType =
+  | "zarpe"
+  | "arribo"
+  | "entrega"
+  | "zarpe_planificado"
+  | "arribo_planificado"
+  | "entrega_planificada"
+  | "tarea";
 
 export type CalendarEventTone = "info" | "wine" | "success" | "neutral";
 
@@ -92,6 +99,9 @@ export const EVENT_TYPE_META: Record<
   zarpe: { label: "Zarpe", short: "ETD", tone: "info" },
   arribo: { label: "Arribo", short: "ETA", tone: "wine" },
   entrega: { label: "Entrega", short: "POD", tone: "success" },
+  zarpe_planificado: { label: "Salida planificada", short: "ETD plan", tone: "info" },
+  arribo_planificado: { label: "Llegada planificada", short: "ETA plan", tone: "wine" },
+  entrega_planificada: { label: "Entrega planificada", short: "POD plan", tone: "success" },
   tarea: { label: "Tarea", short: "TAREA", tone: "neutral" },
 };
 

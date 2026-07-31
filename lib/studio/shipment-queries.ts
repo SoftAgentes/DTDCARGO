@@ -42,7 +42,7 @@ const INACTIVE_STATUSES = ["delivered", "cancelled", "draft"];
 
 /** Campos completos para la vista detalle. */
 const DETAIL_COLUMNS =
-  "id, tenant_id, code, client_name, client_markbox, origin, destination, destination_gps, shipment_service, status, weight_kg, volume_m3, vehicle_category, vehicle_model, arrived_destination_at, cancellation_reason, notes, deleted_at, created_at, updated_at";
+  "id, tenant_id, code, client_name, client_markbox, origin, destination, destination_gps, shipment_service, status, weight_kg, volume_m3, vehicle_category, vehicle_model, arrived_destination_at, planned_departure_at, planned_arrival_at, planned_delivery_at, planning_timezone, planning_version, planning_updated_at, planning_updated_by, cancellation_reason, notes, deleted_at, created_at, updated_at";
 
 /**
  * Lista de envios con filtros opcionales. RLS filtra por tenant.

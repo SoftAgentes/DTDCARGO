@@ -2,7 +2,7 @@
 
 | Control | Valor |
 |---|---|
-| Estado | aprobada — adopción pendiente |
+| Estado | aprobada — adoptada en planificación de embarques |
 | Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-005 |
 | Depende de | CAL-01, A11Y-01 y FRM-01 |
 
@@ -25,3 +25,11 @@ día bloqueado, presets, teclado, móvil y 200 % zoom. Referencia:
 
 DAT-01 conserva el código histórico para selección de fechas; CAL-01 gobierna
 el calendario operativo completo.
+
+## Adopción verificada
+
+SDD-0223 usa `datetime-local`: acepta escritura y selector nativo, funciona con
+teclado y selector móvil, permite borrar explícitamente y mantiene la zona IANA
+visible. Antes de persistir, el servidor valida zona, orden cronológico,
+permiso y versión. El control no corrige fechas inválidas ni las reemplaza por
+“hoy”. Los rangos y presets no aplican a esta tarea de tres hitos discretos.

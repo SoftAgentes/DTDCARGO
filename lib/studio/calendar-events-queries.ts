@@ -37,6 +37,10 @@ type ShipmentDateRow = {
   destination: string | null;
   arrived_destination_at: string | null;
   delivered_at: string | null;
+  planned_departure_at: string | null;
+  planned_arrival_at: string | null;
+  planned_delivery_at: string | null;
+  planning_timezone: string;
 };
 
 type ShippedEventRow = {
@@ -101,16 +105,41 @@ export async function listCalendarEvents(
   const { data: shipmentsData, error: shipErr } = await supabase
     .from("shipments")
     .select(
-      "id, code, client_name, destination, arrived_destination_at, delivered_at",
+      "id, code, client_name, destination, arrived_destination_at, delivered_at, planned_departure_at, planned_arrival_at, planned_delivery_at, planning_timezone",
     )
     .or(
-      `and(arrived_destination_at.gte.${fromTs},arrived_destination_at.lte.${toTs}),` +
-        `and(delivered_at.gte.${fromTs},delivered_at.lte.${toTs})`,
+        `and(arrived_destination_at.gte.${fromTs},arrived_destination_at.lte.${toTs}),` +
+        `and(delivered_at.gte.${fromTs},delivered_at.lte.${toTs}),` +
+        `and(planned_departure_at.gte.${fromTs},planned_departure_at.lte.${toTs}),` +
+        `and(planned_arrival_at.gte.${fromTs},planned_arrival_at.lte.${toTs}),` +
+        `and(planned_delivery_at.gte.${fromTs},planned_delivery_at.lte.${toTs})`,
     )
     .limit(500);
   if (shipErr) throw shipErr;
 
   for (const s of (shipmentsData ?? []) as ShipmentDateRow[]) {
+    const planningTimeZone = normalizeCalendarTimeZone(s.planning_timezone);
+    const planned = [
+      [s.planned_departure_at, "zarpe_planificado", "info"],
+      [s.planned_arrival_at, "arribo_planificado", "wine"],
+      [s.planned_delivery_at, "entrega_planificada", "success"],
+    ] as const;
+    for (const [timestamp, type, tone] of planned) {
+      if (!timestamp || !dayInRange(timestamp, from, to, planningTimeZone)) continue;
+      events.push({
+        id: `${s.id}-${type}`,
+        date: timestampToCalendarDay(timestamp, planningTimeZone),
+        temporalKind: "instant",
+        timeZone: planningTimeZone,
+        type,
+        shipmentId: s.id,
+        shipmentCode: s.code,
+        title: s.code,
+        clientName: s.client_name ?? undefined,
+        destination: s.destination ?? undefined,
+        tone,
+      });
+    }
     if (
       s.arrived_destination_at &&
       dayInRange(s.arrived_destination_at, from, to, timeZone)

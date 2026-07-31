@@ -2,7 +2,7 @@
 
 | Control | Valor |
 |---|---|
-| Estado | aprobada — adopción parcial |
+| Estado | aprobada — adoptada |
 | Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-005 |
 | Base actual | [SDD-0141](../../specs/0141-calendario-norte/spec.md) |
 
@@ -26,12 +26,11 @@ Existen Mes/Semana/Agenda, filtros y drawer. SDD-0217 cerró el riesgo off-by-on
 los `timestamptz` se convierten al día civil de la zona IANA del perfil, la zona
 se muestra en pantalla y el query amplía límites antes del filtro local.
 
-La adopción continúa parcial porque Semana/Agenda reutilizan el set mensual y
-Slice 2 de SDD-0141 difirió reprogramación, exportar ICS y detectar impactos.
-Zarpe, arribo y entrega actuales son hechos derivados, no fechas planificadas
-editables: reprogramarlos sería falsear la fuente. DAT-01 permanece `no aplica`
-en este flujo hasta que un SDD defina la entidad/fecha planificada, permisos,
-dependencias y conflictos.
+SDD-0223 incorporó una fuente planificada separada de los hechos: salida,
+llegada y entrega previstas con zona IANA, versión optimista, permisos,
+cronología y auditoría. El detalle permite reprogramar mediante formulario y
+el calendario diferencia semánticamente plan de realidad. La exportación ICS
+continúa fuera del contrato obligatorio de CAL-01.
 
 ## Gate
 

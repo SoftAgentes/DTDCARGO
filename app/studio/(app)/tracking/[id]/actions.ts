@@ -36,6 +36,57 @@ export type ActionState = {
   fieldErrors?: Record<string, string>;
 };
 
+function parseIsoInstant(value: FormDataEntryValue | null): string | null {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+/** Reprograma el plan sin alterar los hitos reales del embarque (SDD-0223). */
+export async function updateShipmentPlan(
+  id: string,
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "tracking");
+  if (denial) return { error: denial };
+
+  const version = Number(formData.get("planning_version"));
+  const reason = String(formData.get("planning_reason") ?? "").trim();
+  const timezone = String(formData.get("planning_timezone") ?? "").trim();
+  if (!Number.isInteger(version) || version < 0) {
+    return { error: "La versión del plan es inválida. Recarga la página." };
+  }
+  if (reason.length < 4) {
+    return { error: "Indica un motivo de al menos 4 caracteres." };
+  }
+
+  const { error } = await supabase.rpc("update_shipment_plan", {
+    p_shipment_id: id,
+    p_expected_version: version,
+    p_departure_at: parseIsoInstant(formData.get("planned_departure_at")),
+    p_arrival_at: parseIsoInstant(formData.get("planned_arrival_at")),
+    p_delivery_at: parseIsoInstant(formData.get("planned_delivery_at")),
+    p_timezone: timezone,
+    p_reason: reason,
+  });
+  if (error) {
+    const conflict = error.code === "40001";
+    return {
+      error: conflict
+        ? "El plan cambió en otra sesión. Recarga antes de guardar."
+        : error.message.includes("cronológica")
+          ? "La salida, llegada y entrega deben conservar el orden cronológico."
+          : "No pudimos guardar la planificación.",
+    };
+  }
+  revalidatePath(`/studio/tracking/${id}`);
+  revalidatePath("/studio/calendario");
+  return { ok: true };
+}
+
 function parseNumber(value: FormDataEntryValue | null): number | null {
   if (!value) return null;
   const trimmed = String(value).trim();

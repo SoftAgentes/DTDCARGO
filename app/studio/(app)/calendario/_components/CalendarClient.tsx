@@ -22,7 +22,10 @@ import {
   prevMonth,
 } from "@/lib/studio/calendar-helpers";
 import type { Fair, Holiday } from "@/lib/studio/calendar-data";
-import type { CalendarEvent } from "@/lib/studio/calendar-events-types";
+import type {
+  CalendarEvent,
+  CalendarEventType,
+} from "@/lib/studio/calendar-events-types";
 import { Icon } from "@/app/studio/_components/icons";
 import { MonthView } from "./MonthView";
 import { WeekView } from "./WeekView";
@@ -42,6 +45,16 @@ type Filters = {
   tarea: boolean;
   feriado: boolean;
   feria: boolean;
+};
+
+const EVENT_FILTER_KEY: Record<CalendarEventType, keyof Pick<Filters, "zarpe" | "arribo" | "entrega" | "tarea">> = {
+  zarpe: "zarpe",
+  zarpe_planificado: "zarpe",
+  arribo: "arribo",
+  arribo_planificado: "arribo",
+  entrega: "entrega",
+  entrega_planificada: "entrega",
+  tarea: "tarea",
 };
 
 type Props = {
@@ -95,7 +108,7 @@ export function CalendarClient({
 
   // Data filtrada que va a las vistas y al drawer.
   const visibleEvents = useMemo(
-    () => events.filter((e) => filters[e.type]),
+    () => events.filter((e) => filters[EVENT_FILTER_KEY[e.type]]),
     [events, filters],
   );
   const visibleHolidays = filters.feriado ? holidays : [];

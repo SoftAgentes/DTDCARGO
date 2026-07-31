@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
   "generatedAt": "2026-07-30T00:00:00.000Z",
-  "sourceCommit": "d3b602fac24347785bb2ff1ec895b97b3ba0e8f6",
+  "sourceCommit": "f35db51060795882045781480e1c13272b15137a",
   "normativeSource": "docs/governance/README.md",
   "agentBrief": "docs/governance/AGENT-BRIEF.md",
   "commands": {
@@ -49,7 +49,7 @@
     {
       "code": "CAL-01",
       "version": "1.0",
-      "state": "aprobada — adopción parcial",
+      "state": "aprobada — adoptada",
       "approvedAt": "2026-07-29",
       "path": "docs/governance/policies/cal-01.md"
     },
@@ -70,7 +70,7 @@
     {
       "code": "DAT-01",
       "version": "1.0",
-      "state": "aprobada — adopción pendiente",
+      "state": "aprobada — adoptada en planificación de embarques",
       "approvedAt": "2026-07-29",
       "path": "docs/governance/policies/dat-01.md"
     },
