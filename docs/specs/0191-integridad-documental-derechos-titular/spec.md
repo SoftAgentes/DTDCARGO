@@ -127,7 +127,31 @@ cambio de payload exige subir `EVIDENCE_VERSION` a 3 en
 `body_sha256` ausente) y v3 (nuevo). **No se re-sella nada:** una aceptación
 pasada vale por lo que era.
 
-### Slice B · Mapa de borrado
+### Slice B · Mapa de borrado — ✅ **levantado 2026-07-31**
+
+> **Estado:** [`docs/legal/privacidad/mapa-de-borrado.md`](../../legal/privacidad/mapa-de-borrado.md),
+> derivado del esquema **real de producción** (grafo de FK, `information_schema`,
+> `storage.objects`), no de leer código.
+>
+> **Lo que cambió respecto de lo que suponíamos:**
+> - La cascada alcanza **15 tablas**; hay **40 más** que llevan el identificador
+>   del cliente **sin clave foránea** y que ninguna cascada toca. Once de ellas
+>   guardan el `client_name` real, no solo el código.
+> - 🔴 **`kommo_contacts` tiene 2 942 filas** contra 428 en `clients`: **siete
+>   veces más personas en el espejo del CRM que clientes**, casi todas leads que
+>   nunca contrataron. Es el mayor volumen de datos personales sin fundamento del
+>   sistema y **no estaba en la auditoría**.
+> - `deleted_at` está en **90 de 217 tablas** (el "753" del informe eran
+>   ocurrencias en archivos de migración, no tablas).
+> - Prod tiene **12 buckets**, no 11: `bug-replays` no figura en ninguna
+>   migración. Y **25 de 38 objetos llevan el markbox en la ruta**, así que
+>   listar un bucket ya revela quién tiene documentos.
+> - `SET NULL` + markbox en texto es el peor patrón encontrado: deja a la persona
+>   identificada y sin forma de encontrarla por FK.
+>
+> **Queda bloqueado** en lo que depende de la abogada (plazos de conservación por
+> obligación fiscal, mercantil, laboral y aduanera) — decisión 6 del brief. Lo que
+> **no** depende de ella está aislado en §5 del mapa.
 
 **Qué.** Documento —no código— que enumere todos los destinos de un dato personal
 y qué pasa con cada uno: las tablas con `deleted_at`, `entity_audit_log`, los 11

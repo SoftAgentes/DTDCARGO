@@ -10,6 +10,7 @@
 |---|---|---|
 | [`AUDITORIA-2026-07.md`](AUDITORIA-2026-07.md) | El informe: 12 puntos, 13 hallazgos con `archivo:línea`, lo `NO VERIFICABLE` y lo que va a la abogada | Se regenera con `/revisar-datos-ve` |
 | [`registro-tratamiento.md`](registro-tratamiento.md) | Qué datos trata el sistema, campo por campo. **El activo que más dura** | Humano — las columnas `⬜` son decisiones, no las puede inventar la auditoría |
+| [`mapa-de-borrado.md`](mapa-de-borrado.md) | **Todos los destinos de un dato personal** y qué pasa con cada uno. Prerrequisito del botón "eliminar mi cuenta" (SDD-0191 Slice B) | Humano — se destraba con la respuesta de la abogada sobre retención |
 | [`inventario-terceros.md`](inventario-terceros.md) | Los 10 proveedores que reciben datos personales y los 3 que no | Humano, con cada proveedor nuevo |
 | [`runbook-brecha.md`](runbook-brecha.md) | Qué hacer las primeras horas. **Se llena antes de necesitarlo** | Humano |
 
