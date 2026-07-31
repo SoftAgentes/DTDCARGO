@@ -58,8 +58,10 @@ de la allowlist.
 - 329 archivos y 4.246 pruebas Vitest;
 - `docs:check`, `components:check` y `governance:check`;
 - 39 contratos SQL en PostgreSQL 17 efímero con rollback total;
-- reconstrucción desde cero de 297 migraciones;
-- build.
+- reconstrucción desde cero de 297 migraciones.
+
+`pnpm build` también terminó verde y se ejecutó por separado del gate
+`pnpm verify`.
 
 El E2E se omitió mediante `VERIFY_SKIP_E2E=1` porque el worktree separado no
 contiene `NEXT_PUBLIC_SUPABASE_URL` ni `NEXT_PUBLIC_SUPABASE_ANON_KEY`. El paso
