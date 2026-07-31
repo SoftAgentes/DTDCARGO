@@ -24,13 +24,18 @@ describe("PLG-01 policy registry", () => {
     ).toBe(true);
   });
 
-  it("representa A11Y-01 y el ciclo deprecated", async () => {
+  it("representa A11Y-01, NumericInput y el ciclo deprecated", async () => {
     const registry = await buildPolicyRegistry();
     expect(
       registry.policies.some(
         ({ code, version }) => code === "A11Y-01" && version === "1.1",
       ),
     ).toBe(true);
+    expect(registry.components).toHaveLength(4);
+    const numericInput = registry.components.find(
+      ({ id }) => id === "numeric-input",
+    );
+    expect(numericInput.status).toBe("canonical");
     const deprecated = registry.components.find(
       ({ id }) => id === "llm-mode-toggle",
     );

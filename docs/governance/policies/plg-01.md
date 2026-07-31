@@ -2,7 +2,7 @@
 
 | Control | Valor |
 |---|---|
-| Estado | aprobada — plugin repo/team read-only 0.1.2 instalado |
+| Estado | aprobada — plugin repo/team read-only 0.1.2 reproducible |
 | Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-007 |
 | Nombre técnico propuesto | `erp-studio-governance` |
 | Fuente normativa | `docs/governance/` dentro del repositorio |
@@ -16,6 +16,12 @@ El plugin repo/team read-only cerró P3–P8 mediante
 consultan el registro derivado, clasifican evidencia y no escriben producto ni
 fuentes normativas. Está instalado desde el marketplace local del repo; no
 existe marketplace remoto, MCP, app, hook o capacidad de escritura.
+
+[SDD-0218](../../specs/0218-governance-plugin-reproducible/spec.md) añadió un
+runner directo de siete forward-tests con Node incorporado y una orden de
+reinstalación que resuelve el worktree activo, regenera el derivado desde el
+repo, sincroniza la cache exacta de la versión y valida allí. El plugin no
+depende de un `node_modules` transitorio dentro de la cache.
 
 ## 1. Principio arquitectónico
 
@@ -41,8 +47,10 @@ erp-studio-governance/
 ├── references/
 │   └── policy-registry.json
 ├── scripts/
-│   ├── build-policy-registry.*
-│   └── validate-governance.*
+│   ├── build-policy-registry.mjs
+│   ├── validate-governance.mjs
+│   ├── run-forward-tests.mjs
+│   └── reinstall-plugin.mjs
 ├── assets/
 │   └── templates/
 └── README.md

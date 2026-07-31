@@ -152,6 +152,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Scaffold read-only PLG-01 | [REV-SGE-019](reviews/plg-01-scaffold.md) |
 | Precisión decimal y NumericInput canónico | [REV-SGE-020](reviews/num-01-v1-1-numeric-input.md) |
 | Instalación y forward-test PLG-01 | [REV-SGE-021](reviews/plg-01-install-forward-test.md) |
+| Runner y reinstalación durable PLG-01 | [REV-SGE-025](reviews/plg-01-durable-runner-2026-07-31.md) |
 | Integración local del roadmap de gobernanza | [REV-SGE-022](reviews/governance-roadmap-batch-close.md) |
 | Cierre local de Gobernanza 6 | [REV-SGE-023](reviews/governance-roadmap-pending-closure.md) |
 | Tabs accesibles en Fiscal | [SDD-0180](../specs/0180-tabs-accesibles-fiscal/spec.md) |
@@ -231,7 +232,7 @@ disfraza elevando el estado normativo.
 | A11Y-01 | Accesibilidad transversal | aprobada v1.1 | Contratos tabs/menu/listbox explícitos; sin matriz integral | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | IA-01 | Interacciones asistidas por IA | aprobada v1.0 | Regla local “IA propone”; sin gate transversal | Auditar permisos, privacidad y evidencia |
 | CMP-01 | Ciclo de vida y madurez de componentes | aprobada v1.1 | `ConfirmDialog`, `SegmentedControl` y `NumericInput` canonical; `LLMModeToggle` deprecated con plan | [REV-SGE-017](reviews/cmp-01-v1-1-deprecated.md) y [REV-SGE-020](reviews/num-01-v1-1-numeric-input.md) |
-| PLG-01 | Plugin ejecutable de gobernanza | aprobada v1.0 | P3–P8 cerrados; 0.1.2 instalado repo/team, read-only y sin capacidades remotas | [REV-SGE-019](reviews/plg-01-scaffold.md) · [REV-SGE-021](reviews/plg-01-install-forward-test.md) |
+| PLG-01 | Plugin ejecutable de gobernanza | aprobada v1.0 | 0.1.2 repo/team reproducible: cache sincronizable, runner Node 7/7, read-only y sin capacidades remotas | [REV-SGE-025](reviews/plg-01-durable-runner-2026-07-31.md) · [REV-SGE-021](reviews/plg-01-install-forward-test.md) |
 
 ## 5. Jerarquía y resolución de conflictos
 

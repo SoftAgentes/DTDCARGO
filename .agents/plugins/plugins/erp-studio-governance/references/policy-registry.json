@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0",
-  "sourceCommit": "69e86b27bd833b8333a1bb6e6866b2f328cdd75c",
+  "sourceCommit": "d3b602fac24347785bb2ff1ec895b97b3ba0e8f6",
   "normativeSource": "docs/governance/README.md",
   "readOnly": true,
   "policies": [
@@ -14,7 +14,7 @@
     {
       "code": "AUD-01",
       "version": "1.0",
-      "state": "aprobada — implementación parcial/no conforme",
+      "state": "aprobada — implementación D1–D5 verificada",
       "approvedAt": "2026-07-21",
       "path": "docs/governance/policies/aud-01.md"
     },
@@ -70,7 +70,7 @@
     {
       "code": "DND-01",
       "version": "1.0",
-      "state": "aprobada — adopción no conforme",
+      "state": "aprobada — Bitácora verificada; adopción por flujo",
       "approvedAt": "2026-07-29",
       "path": "docs/governance/policies/dnd-01.md"
     },
@@ -91,7 +91,7 @@
     {
       "code": "HTD-01",
       "version": "1.0",
-      "state": "aprobada — no implementada",
+      "state": "aprobada — primer consumidor R3 verificado",
       "approvedAt": "2026-07-21",
       "path": "docs/governance/policies/htd-01.md"
     },
@@ -140,7 +140,7 @@
     {
       "code": "PLG-01",
       "version": "1.0",
-      "state": "aprobada — plugin repo/team read-only 0.1.2 instalado",
+      "state": "aprobada — plugin repo/team read-only 0.1.2 reproducible",
       "approvedAt": "2026-07-29",
       "path": "docs/governance/policies/plg-01.md"
     },
@@ -182,7 +182,7 @@
     {
       "code": "VIS-02",
       "version": "1.0",
-      "state": "aprobada — implementación parcial",
+      "state": "aprobada — implementación V1–V4 y gate externo cerrados",
       "approvedAt": "2026-07-21",
       "path": "docs/governance/policies/vis-02.md"
     },
@@ -223,6 +223,11 @@
           "code": "A11Y-01",
           "version": "1.1",
           "path": "docs/governance/policies/a11y-01.md"
+        },
+        {
+          "code": "HTD-01",
+          "version": "1.0",
+          "path": "docs/governance/policies/htd-01.md"
         }
       ],
       "replacement": null
