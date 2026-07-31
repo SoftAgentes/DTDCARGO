@@ -45,7 +45,9 @@ describe("isRadarReport", () => {
 
   it("rechaza si faltan campos clave (generatedAt / norteVersion)", () => {
     expect(isRadarReport({ ...VALID, generatedAt: 123 })).toBe(false);
-    const { norteVersion: _omit, ...sinVersion } = VALID;
+    const sinVersion = Object.fromEntries(
+      Object.entries(VALID).filter(([key]) => key !== "norteVersion"),
+    );
     expect(isRadarReport(sinVersion)).toBe(false);
   });
 

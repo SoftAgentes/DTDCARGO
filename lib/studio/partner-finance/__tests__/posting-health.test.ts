@@ -52,7 +52,7 @@ function stub(tables: Record<string, Row[]>): SupabaseClient {
           filters.push({ kind: "gt", col, val });
           return chain;
         },
-        not(col: string, _op: string, _val: unknown) {
+        not(col: string) {
           // sólo usamos `.not(col, "is", null)` → col no nulo.
           filters.push({ kind: "notNull", col });
           return chain;

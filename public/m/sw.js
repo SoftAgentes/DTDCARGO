@@ -13,7 +13,7 @@
 
 const SW_VERSION = "dtd-operario-v2-push";
 
-self.addEventListener("install", (event) => {
+self.addEventListener("install", () => {
   console.log("[SW]", SW_VERSION, "install");
   self.skipWaiting();
 });
@@ -23,7 +23,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-self.addEventListener("fetch", (event) => {
+self.addEventListener("fetch", () => {
   // No-op: passthrough sin cache (V2).
 });
 
@@ -35,7 +35,7 @@ self.addEventListener("push", (event) => {
   let payload = {};
   try {
     payload = event.data ? event.data.json() : {};
-  } catch (e) {
+  } catch {
     // Si no es JSON, usar el texto crudo como body
     payload = { title: "DTD", body: event.data ? event.data.text() : "" };
   }

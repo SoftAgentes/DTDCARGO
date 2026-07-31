@@ -31,8 +31,14 @@ type GenResult = {
 /** Mock del admin de Auth: generateLink devuelve `results` en orden; createUser resuelve. */
 function makeAdmin(results: GenResult[]) {
   let i = 0;
-  const generateLink = vi.fn(async (_args: unknown) => results[Math.min(i++, results.length - 1)]);
-  const createUser = vi.fn(async (_args: unknown) => ({ data: { user: {} }, error: null }));
+  const generateLink = vi.fn(async (args: unknown) => {
+    void args;
+    return results[Math.min(i++, results.length - 1)];
+  });
+  const createUser = vi.fn(async (args: unknown) => {
+    void args;
+    return { data: { user: {} }, error: null };
+  });
   const admin = { auth: { admin: { generateLink, createUser } } } as unknown as never;
   return { admin, generateLink, createUser };
 }

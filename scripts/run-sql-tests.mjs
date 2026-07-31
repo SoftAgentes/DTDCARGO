@@ -21,7 +21,7 @@
 
 import { spawnSync } from "node:child_process";
 import { readdirSync, existsSync } from "node:fs";
-import { join, resolve, basename } from "node:path";
+import { resolve } from "node:path";
 import crypto from "node:crypto";
 
 const C = {

@@ -6,7 +6,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const sendEmail = vi.fn();
 const enqueueUserPush = vi.fn();
-const drainOperarioPushOutbox = vi.fn((..._a: unknown[]) => Promise.resolve({ processed: 0, delivered: 0, failed: 0 }));
+const drainOperarioPushOutbox = vi.fn((...args: unknown[]) => {
+  void args;
+  return Promise.resolve({ processed: 0, delivered: 0, failed: 0 });
+});
 
 vi.mock("@/lib/studio/mail/send-email", () => ({
   sendEmail: (...a: unknown[]) => sendEmail(...a),

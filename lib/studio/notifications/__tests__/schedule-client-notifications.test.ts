@@ -6,7 +6,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // El drain inline se mockea para no ejecutarlo.
-const drainMock = vi.fn((..._a: unknown[]) => Promise.resolve({ processed: 0, delivered: 0, skipped: 0, failed: 0 }));
+const drainMock = vi.fn((...args: unknown[]) => {
+  void args;
+  return Promise.resolve({ processed: 0, delivered: 0, skipped: 0, failed: 0 });
+});
 vi.mock("../drain-client-notifications", () => ({
   drainClientNotifications: (...a: unknown[]) => drainMock(...a),
 }));

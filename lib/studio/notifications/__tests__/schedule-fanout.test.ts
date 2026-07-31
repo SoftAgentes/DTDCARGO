@@ -4,9 +4,10 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const scheduleMock = vi.fn((..._a: unknown[]) =>
-  Promise.resolve({ scheduled: 1, skipped: 0 }),
-);
+const scheduleMock = vi.fn((...args: unknown[]) => {
+  void args;
+  return Promise.resolve({ scheduled: 1, skipped: 0 });
+});
 vi.mock("../schedule-client-notifications", () => ({
   scheduleClientNotifications: (...a: unknown[]) => scheduleMock(...a),
 }));

@@ -21,6 +21,7 @@
 | Shell + Auth | 0004, 0007 | `app/studio/(app)/` shell, `(auth)/login` | `lib/auth/session.ts`, `proxy.ts` |
 | Administración · Audit log | 0123, 0166, 0172, 0174, 0186, 0187, 0188, 0189, 0200 | `app/studio/(app)/admin/` | `lib/studio/audit-*` · `entity_audit_log` · `scripts/{seed-e2e,verify-e2e-teardown}.ts` · migraciones por corte |
 | Gobernanza ejecutable | 0178, 0183 | entrypoints de agentes + plugin repo/team read-only 0.1.2 instalado | `docs/governance/` como fuente normativa · `.agents/plugins/plugins/erp-studio-governance/` como derivado validado |
+| Verificación transversal | 0202 | pruebas de API/Studio + service worker móvil | `scripts/run-sql-tests.mjs` · suites Vitest focalizadas |
 | Realtime transversal | 0198 | Studio, Portal y móviles operativos | `lib/studio/hooks/use-realtime-{refresh,table}.ts` |
 | Tipografía transversal · VIS-02 | 0175 | `app/{layout,globals}.tsx` · `app/studio/` | `next/font` · tokens de voz · renderers email/PDF |
 | Fiscal/SENIAT · tabs accesibles | 0073, 0104, 0180 | `app/studio/(app)/fiscal/` | `lib/studio/fiscal/` |

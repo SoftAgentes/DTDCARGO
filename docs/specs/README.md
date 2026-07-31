@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 193 specs)
+### Índice de specs (generado · 194 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -231,6 +231,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0199 | Almacén CN — filtros URL y selección coherentes | done | interno |
 | 0200 | Portal backfill — estado de operación coherente | done | interno |
 | 0201 | Portal shell — ruta y preferencias como fuentes de verdad | done | interno |
+| 0202 | Verificación transversal — contratos sin bindings muertos | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0179, 0190 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
