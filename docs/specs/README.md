@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 186 specs)
+### Índice de specs (generado · 187 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -224,6 +224,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0192 | POD sellado y aviso al receptor | proposed | interno |
 | 0193 | Firma electrónica certificada (PSC · SUSCERTE) | draft | interno |
 | 0194 | Almacén CN — menú de acciones de recepción accesible | done | interno |
+| 0195 | Resiliencia del sync de Kommo — un hipo de red no apaga la in… | proposed | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0179, 0190 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
