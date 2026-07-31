@@ -113,10 +113,10 @@ export function LlenadoCalculator() {
                 border:
                   tipo === code
                     ? "2px solid var(--color-wine)"
-                    : "1px solid var(--color-border, rgba(0,0,0,.14))",
+                    : "1px solid var(--border)",
                 background: tipo === code ? "var(--color-wine)" : "transparent",
-                color: tipo === code ? "var(--color-on-accent, #fff)" : "inherit",
-                font: "700 14px/1.2 var(--font-sans, inherit)",
+                color: tipo === code ? "var(--color-on-accent)" : "inherit",
+                font: "700 14px/1.2 inherit",
               }}
             >
               {e.label}
@@ -189,7 +189,7 @@ export function LlenadoCalculator() {
             marginTop: 10,
             padding: "8px 14px",
             borderRadius: 8,
-            border: "1px dashed var(--color-border, rgba(0,0,0,.24))",
+            border: "1px dashed var(--border)",
             background: "transparent",
             cursor: "pointer",
             font: "600 13px/1 inherit",
@@ -254,7 +254,7 @@ function Resultado({
           gap: 3,
           padding: 8,
           borderRadius: 10,
-          border: "1px solid var(--color-border, rgba(0,0,0,.14))",
+          border: "1px solid var(--border)",
         }}
       >
         <span aria-hidden="true" />
@@ -301,7 +301,7 @@ function Resultado({
             margin: 0,
             padding: "10px 12px",
             borderRadius: 8,
-            background: "var(--color-warning-bg, rgba(200,150,0,.10))",
+            background: "var(--color-grey-100)",
             font: "500 13px/1.5 inherit",
           }}
         >
@@ -350,8 +350,8 @@ function FilaPlanta({
               overflow: "hidden",
               border:
                 bandas.length === 0
-                  ? "1px dashed var(--color-border, rgba(0,0,0,.18))"
-                  : "1px solid var(--color-border, rgba(0,0,0,.18))",
+                  ? "1px dashed var(--border)"
+                  : "1px solid var(--border)",
             }}
           >
             {bandas.map((b, i) => (
@@ -374,7 +374,7 @@ function FilaPlanta({
 const inputStyle: React.CSSProperties = {
   padding: "10px 12px",
   borderRadius: 8,
-  border: "1px solid var(--color-border, rgba(0,0,0,.18))",
+  border: "1px solid var(--border)",
   background: "transparent",
   font: "500 14px/1.2 inherit",
   color: "inherit",

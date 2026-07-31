@@ -21,6 +21,7 @@
  */
 
 import { Fragment } from "react";
+import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import {
   assignClientColors,
@@ -203,9 +204,9 @@ export function ContainerPlanView({ plan, variant = "full" }: Props) {
                 {p.cbmUbicado} CBM
               </span>
               {p.parcial && (
-                <span style={{ font: "600 10px/1.3 var(--f-sans)", color: "var(--warning)" }}>
+                <Badge tone="warning" size="xs">
                   parcial
-                </span>
+                </Badge>
               )}
             </li>
           ))}
