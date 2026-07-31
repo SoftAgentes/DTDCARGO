@@ -28,9 +28,9 @@ un template alterno para la prueba.
 
 | Cliente | Evidencia | Clasificación |
 |---|---|---|
-| Gmail | Mensaje `19fb649872624409` presente en enviados y recibido en el destinatario Gmail; sin adjuntos | cumplimiento de entrega |
+| Gmail | Mensaje `19fb649872624409` presente en enviados y recibido en el destinatario Gmail; recepción confirmada por el founder; sin adjuntos | cumplimiento de entrega |
 | Gmail · MIME | `multipart/alternative`, UTF-8, partes `text/plain` y `text/html`; el HTML conserva `lang="zh-CN"` y la pila `Noto Serif SC`, `Noto Sans SC`, `sans-serif` | cumplimiento estructural |
-| Outlook | Mensaje recibido el `2026-07-31T03:48:23Z` desde `hailuway.com@gmail.com`; caracteres chinos y cuerpo HTML preservados; sin adjuntos | cumplimiento de entrega y contenido |
+| Outlook | Mensaje recibido el `2026-07-31T03:48:23Z` desde `hailuway.com@gmail.com`; recepción confirmada por el founder; caracteres chinos y cuerpo HTML preservados; sin adjuntos | cumplimiento de entrega y contenido |
 | Gmail visual | Falta captura controlada del mensaje abierto en el cliente real | no conformidad de evidencia |
 | Outlook visual | Falta captura controlada del mensaje abierto en el cliente real | no conformidad de evidencia |
 | Apple Mail visual | Falta abrir la misma muestra en un cliente Apple Mail real y capturarla | no conformidad de evidencia |
