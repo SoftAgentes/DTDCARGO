@@ -6,7 +6,7 @@
 | Fecha | 2026-07-31 |
 | Rama | `codex/governance-roadmap-integration` |
 | Worktree | separado del checkout de `main` |
-| Resultado | integración y pendientes locales cerrados; publicación y gates externos separados |
+| Resultado | integración y pendientes locales cerrados; publicación en `origin/main` ejecutada; gates externos separados |
 
 ## 1. Auditoría candidata
 
@@ -61,10 +61,10 @@ requieren autorización nominal individual y no fueron aplicadas.
   `git diff --check`: verdes;
 - CMP-01: cuatro fuentes; cápsula: 27 políticas aprobadas.
 
-## 4. Gates que no se falsearon
+## 4. Publicación y gates que no se falsearon
 
-- no se publicó ni hizo push; la rama queda 14 commits adelante y cero detrás
-  de `origin/main`;
+- la publicación se ejecutó por fast-forward únicamente después del literal
+  `cerrar`; la verificación posterior confirmó `HEAD == origin/main`;
 - no se aplicaron `0294`–`0296`;
 - no se modificó Vercel ni se desplegó;
 - no se limpiaron ramas o worktrees;
@@ -77,4 +77,5 @@ requieren autorización nominal individual y no fueron aplicadas.
 - el retiro opcional de `gov6-vis-local` quedó bloqueado por política local y
   no se forzó una vía alternativa.
 
-La publicación permanece condicionada al literal `cerrar`.
+La publicación quedó completada; los gates externos anteriores permanecen
+separados.
