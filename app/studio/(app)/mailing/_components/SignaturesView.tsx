@@ -264,6 +264,7 @@ function SignatureEditor({
     phone,
     photo_url: photoUrl,
     company_name: companyName,
+    lang,
   });
 
   return (

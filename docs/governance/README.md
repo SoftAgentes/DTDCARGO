@@ -10,7 +10,7 @@
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-30 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-087 · Corte E1 fail-closed](BASELINE-2026-07-30-12.md) |
+| Línea base vigente | [LB-SGE-093 · inventario VIS-02 reconciliado](BASELINE-2026-07-30-18.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -153,6 +153,12 @@ artefactos permanecen en sus fuentes correspondientes.
 | Implementación VIS-02 | [SDD-0175 in-progress · V0/V1 cerrados](../specs/0175-vis-02-tipografia-voz-idioma/spec.md) |
 | Decisión documental Noto Serif SC | [REV-VIS-002 · BD-036](reviews/vis-02-brand-gate.md) |
 | Cierre documental de VIS-02 V1 | [REV-VIS-003](reviews/vis-02-v1-closure.md) |
+| VIS-02 V2 email | [REV-VIS-004](reviews/vis-02-v2-email.md) |
+| VIS-02 V3 PDF | [REV-VIS-005](reviews/vis-02-v3-pdf.md) |
+| VIS-02 V4 local | [REV-VIS-006](reviews/vis-02-v4-visual.md) |
+| Reconciliación VIS-02 | [REV-VIS-007](reviews/vis-02-state-reconciliation.md) |
+| Gates siguientes VIS-02 | [REV-VIS-008](reviews/vis-02-future-gates-reconciliation.md) |
+| Inventario VIS-02 | [REV-VIS-009](reviews/vis-02-inventory-reconciliation.md) |
 | Investigación de skills | [Mapa de capacidades y límites](research/skills-map.md) |
 | Contrato implementado de avisos | [SDD-0165 · AVS-01](../specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md) |
 | Inventario y estado oficial vigente | [LB-SGE-037](BASELINE-2026-07-29-09.md) |
@@ -196,7 +202,7 @@ disfraza elevando el estado normativo.
 | AUD-01 | Evento auditable y vínculo con acciones | aprobada | D1/D5 integrados; D2/D3 con no conformidad de motivo legacy; D4 con no conformidad de `search_path` en cinco RPC legacy; Producción pendiente por migración individual | [REV-AUD-018](reviews/aud-d1-access-config-implementation.md) · [REV-AUD-019](reviews/aud-d2-financial-domain.md) · [REV-AUD-020](reviews/aud-d3-commercial-cycle.md) · [REV-AUD-021](reviews/aud-d4-logistics-r3.md) · [REV-AUD-022](reviews/aud-d5-residual.md) |
 | AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B y guardrail tenant 0268 aplicados; E1 cerrado sin fuente para retención ejecutable | [REV-AUD-040](reviews/aud-corte-c1-preflight-2026-07-30.md) mantiene `0270` fail-closed; [REV-AUD-041](reviews/aud-corte-e1-foundation.md) bloquea E2–E5 por fuente |
 | VIS-01 | Jerarquía visual y distribución 60-30-10 | aprobada | Adopción parcial; muestreo acotado a slices y clasificación de literales | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
-| VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | V1 integrado: Noto Serif SC sólo en documento formal `zh-CN`; UI china conserva Noto Sans SC | V2 correo, V3 PDF y V4 visual conservan gates propios |
+| VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | V1 tokens; V2 firmas; V3 PDF; V4 local; UI china conserva Noto Sans SC | [REV-VIS-004](reviews/vis-02-v2-email.md) · [REV-VIS-005](reviews/vis-02-v3-pdf.md) · [REV-VIS-006](reviews/vis-02-v4-visual.md); clientes externos pendientes |
 | BUS-01 | Buscadores predictivos y contexto de resultados | aprobada v1.1 | Teclado y colisión formalizados; adopción no auditada | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | CRT-01 | Creación rápida desde contexto | aprobada v1.0 | Patrones locales sin primitiva común | Auditar flujos de retorno |
 | NUM-01 | Campos numéricos y financieros | aprobada v1.1 | `NumericInput` canonical; precisión decimal y un consumidor fiscal R3 verificados | [SDD-0185](../specs/0185-num-01-expresiones-decimales/spec.md) y [REV-SGE-020](reviews/num-01-v1-1-numeric-input.md); adopción restante por slices |
