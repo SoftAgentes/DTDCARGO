@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0",
-  "sourceCommit": "d3b602fac24347785bb2ff1ec895b97b3ba0e8f6",
+  "sourceCommit": "eafec42e45a2f9369e2a92e580cb99c6af079043",
   "normativeSource": "docs/governance/README.md",
   "readOnly": true,
   "policies": [
@@ -21,7 +21,7 @@
     {
       "code": "AUD-02",
       "version": "1.0",
-      "state": "aprobada — implementación pendiente/no conforme",
+      "state": "aprobada — adoptada en Producción",
       "approvedAt": "2026-07-21",
       "path": "docs/governance/policies/aud-02.md"
     },
@@ -42,7 +42,7 @@
     {
       "code": "CAL-01",
       "version": "1.0",
-      "state": "aprobada — adopción parcial",
+      "state": "aprobada — adoptada",
       "approvedAt": "2026-07-29",
       "path": "docs/governance/policies/cal-01.md"
     },
@@ -63,7 +63,7 @@
     {
       "code": "DAT-01",
       "version": "1.0",
-      "state": "aprobada — adopción pendiente",
+      "state": "aprobada — adoptada en planificación de embarques",
       "approvedAt": "2026-07-29",
       "path": "docs/governance/policies/dat-01.md"
     },

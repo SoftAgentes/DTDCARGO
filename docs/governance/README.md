@@ -175,7 +175,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Cierre productivo Gobernanza 8 | [REV-SGE-028](reviews/governance-8-production-close-2026-07-31.md) |
 | Investigación de skills | [Mapa de capacidades y límites](research/skills-map.md) |
 | Contrato implementado de avisos | [SDD-0165 · AVS-01](../specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md) |
-| Inventario y estado oficial vigente | [LB-SGE-037](BASELINE-2026-07-29-09.md) |
+| Gate V0 histórico de VIS-02 | [LB-SGE-037](BASELINE-2026-07-29-09.md) |
 
 Regla de frontera: `BRAND.md` y el Norte gobiernan **cómo se ve**; este sistema
 gobierna **cómo se comporta**. Una implementación concreta se especifica en un
