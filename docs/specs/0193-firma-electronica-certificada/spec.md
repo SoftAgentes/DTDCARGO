@@ -1,5 +1,5 @@
 ---
-sdd: "0190"
+sdd: "0193"
 title: "Firma electrónica certificada (PSC · SUSCERTE)"
 status: draft
 author: "Sam (founder) + Claude"
@@ -7,11 +7,11 @@ created: 2026-07-30
 updated: 2026-07-30
 supersedes: null
 superseded_by: null
-related: ["0054", "0067", "0188", "0189"]
+related: ["0054", "0067", "0191", "0192"]
 confidencialidad: interno
 ---
 
-# SDD-0190 — Firma electrónica certificada (PSC · SUSCERTE)
+# SDD-0193 — Firma electrónica certificada (PSC · SUSCERTE)
 
 > **`draft` a propósito.** Esta spec **no se implementa** hasta que la abogada
 > defina el mecanismo. Existe para que la decisión llegue con los datos ya
@@ -43,7 +43,7 @@ El hash actual **no es inútil** — es de las mejores evidencias no certificada
 se pueden armar (append-only por trigger, sellado server-side, IP y user-agent).
 Simplemente **no invierte la carga de la prueba**.
 
-⚠️ **Prerrequisito:** sin el Slice A de [SDD-0188](../0188-integridad-documental-derechos-titular/spec.md)
+⚠️ **Prerrequisito:** sin el Slice A de [SDD-0191](../0191-integridad-documental-derechos-titular/spec.md)
 —sellar el contenido y hacer inmutable el documento— un certificado de PSC no
 arregla nada, porque el **art. 16.3** exige *no alterar la integridad del Mensaje
 de Datos*. Primero se sella; después, si hace falta, se certifica.
@@ -73,7 +73,7 @@ No meter a todos los clientes en un certificado. Tres niveles:
 
 | Nivel | Quién firma | Escalón | Costo y fricción |
 |---|---|---|---|
-| **Flujo masivo** — aceptar T&C en el Portal | Nadie certifica | Art. 17, **reforzado** por SDD-0188 Slice A | Cero |
+| **Flujo masivo** — aceptar T&C en el Portal | Nadie certifica | Art. 17, **reforzado** por SDD-0191 Slice A | Cero |
 | ⭐ **DTD firma el documento publicado** | DTD, como persona jurídica | El documento publicado queda con autoría e integridad certificadas | Un certificado, una vez |
 | **Actos de alto valor** | El cliente, con certificado | Arts. 16 y 18 | Alto — solo donde se justifica |
 
@@ -97,7 +97,7 @@ Esto **no** está bloqueado y se puede sacar en cualquier momento:
   interfaz y documento donde el respaldo sea el art. 17. Decir "aceptado" o
   "aceptación registrada". Publicar que algo está "firmado" cuando no lo está es
   una afirmación falsa sobre el propio sistema.
-- **Guardar el texto exacto mostrado** en la aceptación (cubierto por SDD-0188
+- **Guardar el texto exacto mostrado** en la aceptación (cubierto por SDD-0191
   Slice A).
 - **Cotizar** a Apacuana, FirmeDigital y Authenology el certificado de **persona
   jurídica** para DTD. Es información, no compromiso.

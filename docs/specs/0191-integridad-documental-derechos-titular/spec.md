@@ -1,5 +1,5 @@
 ---
-sdd: "0188"
+sdd: "0191"
 title: "Integridad documental y derechos del titular"
 status: proposed
 author: "Sam (founder) + Claude"
@@ -11,7 +11,7 @@ related: ["0054", "0067", "0082", "0151", "0186"]
 confidencialidad: interno
 ---
 
-# SDD-0188 — Integridad documental y derechos del titular
+# SDD-0191 — Integridad documental y derechos del titular
 
 ## 1. Objetivo
 
@@ -167,9 +167,9 @@ es el algoritmo, es que el veredicto se guarda sin poder explicar cómo salió.
 
 ## 5. Allowlist
 
-- `docs/specs/0188-integridad-documental-derechos-titular/spec.md`
-- `supabase/migrations/0295_legal_docs_body_hash.sql` *(número a confirmar contra `origin/main` al crear)*
-- `supabase/tests/0295_legal_docs_body_hash.test.sql`
+- `docs/specs/0191-integridad-documental-derechos-titular/spec.md`
+- `supabase/migrations/0297_legal_docs_body_hash.sql` *(número a confirmar contra `origin/main` al crear)*
+- `supabase/tests/0297_legal_docs_body_hash.test.sql`
 - `lib/studio/legal/{types,seal,queries}.ts`
 - `lib/portal/change-request-{queries,types}.ts`
 - `lib/cookie-consent.ts`

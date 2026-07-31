@@ -1,5 +1,5 @@
 ---
-sdd: "0189"
+sdd: "0192"
 title: "POD sellado y aviso al receptor"
 status: proposed
 author: "Sam (founder) + Claude"
@@ -7,11 +7,11 @@ created: 2026-07-30
 updated: 2026-07-30
 supersedes: null
 superseded_by: null
-related: ["0029", "0030", "0054", "0067", "0070", "0186", "0188"]
+related: ["0029", "0030", "0054", "0067", "0070", "0186", "0191"]
 confidencialidad: interno
 ---
 
-# SDD-0189 — POD sellado y aviso al receptor
+# SDD-0192 — POD sellado y aviso al receptor
 
 ## 1. Objetivo
 
@@ -172,9 +172,9 @@ se deja correr como estado estable.
 
 ## 8. Allowlist
 
-- `docs/specs/0189-pod-sellado-aviso-receptor/spec.md`
-- `supabase/migrations/0296_pod_seal.sql` *(número a confirmar contra `origin/main`)*
-- `supabase/tests/0296_pod_seal.test.sql`
+- `docs/specs/0192-pod-sellado-aviso-receptor/spec.md`
+- `supabase/migrations/0298_pod_seal.sql` *(número a confirmar contra `origin/main`)*
+- `supabase/tests/0298_pod_seal.test.sql`
 - `lib/studio/dispatch/pod-seal.ts`
 - `lib/studio/dispatch-mobile-types.ts`
 - `app/m/ve/**`
