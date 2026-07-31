@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 210 specs)
+### Índice de specs (generado · 211 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -248,6 +248,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0216 | DND-01 accesible y durable en Bitácora | done | interno |
 | 0217 | Timezone explícito en eventos del calendario | done | interno |
 | 0218 | Runner y reinstalación reproducible de PLG-01 | done | interno |
+| 0219 | Legal holds append-only de auditoría | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0179, 0190 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

@@ -515,3 +515,8 @@ controlado y resultado `blocked-by-source`: no existe fundamento material para
 plazos de eventos, backups o holds. REV-AUD-041 confirma que E2–E5 permanecen
 sin implementación y que el default operativo continúa sin purga,
 exportación, bucket ni jobs.
+
+El 2026-07-31 la fuente E1 fue promovida y
+[SDD-0219](../0219-audit-legal-holds/spec.md) abrió E2 con holds append-only,
+liberación de dos decisiones y precedencia fail-closed. Cloud conserva un gate
+nominal independiente para `0301_audit_legal_holds.sql`.
