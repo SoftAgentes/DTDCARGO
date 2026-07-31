@@ -7,6 +7,23 @@
 # Los objetos en git ya estan en LF: esto solo fija como se hace el checkout.
 * text=auto eol=lf
 
+# Artefactos byte-exactos del ledger: git NO convierte finales de linea, en ningun
+# sentido (ni checkin ni checkout).
+#
+# POR QUE: los payloads que Supabase guardo en `supabase_migrations.schema_migrations`
+# conservan CRLF terminales, y los generadores SDD-0118/SDD-0172 los reconstruyen
+# byte a byte porque esos bytes son parte del fingerprint md5 anclado contra
+# Produccion. La regla `* text=auto eol=lf` de arriba convertia esos CRLF a LF al
+# hacer `git add`, y el archivo llegaba a main con un byte menos que lo aplicado en
+# Produccion: `0281` nacio asi (nunca existio correcto en git) y arrastro a `0287`
+# y `0288`, dejando 9 tests en rojo en main para toda ventana del repo.
+#
+# Con `-text` git guarda los bytes tal cual. Si un editor de Windows reescribe un
+# .sql con CRLF, el generador lo detecta y el test se pone rojo — un fallo ruidoso
+# es preferible a la corrupcion silenciosa que causaba la normalizacion.
+supabase/migrations/*.sql -text
+supabase/tests/*.sql -text
+
 # Binarios: git no los toca.
 *.png binary
 *.jpg binary

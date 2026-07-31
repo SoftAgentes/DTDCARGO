@@ -20,7 +20,9 @@
  *     unidad "kg" / "m³" a la derecha en weight/volume/count).
  *   - Preview formateado debajo en tiempo real (con separador de miles
  *     · convención US: punto decimal + coma para miles).
- *   - Hidden input con el value canónico (number) para form submission.
+ *   - Hidden input con el decimal canónico para form submission.
+ *   - Una expresión incompleta conserva el último valor válido y solo se
+ *     presenta como error al confirmar (blur, Tab, Enter o submit).
  *
  * NO reformatea el input en vivo (evita cursor jumping) · el formato
  * visible vive en el preview de abajo.
@@ -30,8 +32,19 @@
  * rápida del operador.
  */
 
-import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
-import { parseNumericExpression } from "@/lib/studio/util/parse-numeric-expression";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
+import {
+  parseNumericExpressionDetailed,
+  type DetailedParseResult,
+} from "@/lib/studio/util/parse-numeric-expression";
 
 type NumericType =
   | "currency"
@@ -67,7 +80,10 @@ interface NumericInputProps {
   /** Valor controlado (number) o uncontrolled (defaultValue). */
   value?: number | null;
   defaultValue?: number | null;
-  /** Callback con el number parseado (o null si está vacío/inválido). */
+  /**
+   * Callback con el number parseado. Una edición incompleta o inválida no
+   * emite `null`: conserva el último valor válido. Vaciar sí emite `null`.
+   */
   onChange?: (value: number | null) => void;
   /** Standard input props. */
   placeholder?: string;
@@ -134,21 +150,37 @@ export function NumericInput({
       ? String((isControlled ? value : defaultValue) as number)
       : "";
   const [rawText, setRawText] = useState<string>(initial);
+  const [hasValidated, setHasValidated] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [lastValid, setLastValid] = useState<{
+    value: number;
+    canonical: string;
+  } | null>(
+    initial === ""
+      ? null
+      : {
+          value: Number(initial),
+          canonical: initial,
+        },
+  );
 
   // Si el value controlado cambia desde el padre, sincronizamos.
   useEffect(() => {
     if (!isControlled) return;
     const incoming = value != null ? String(value) : "";
+    // Sincronización deliberada del texto de edición con una fuente controlada.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRawText((prev) => {
-      // Solo sobrescribimos si el number del padre difiere del current parseado.
-      const current = parseNumericExpression(prev).value;
-      if (current === value) return prev;
+      const current = parseNumericExpressionDetailed(prev);
+      if (current.value === value || lastValid?.value === value) return prev;
       return incoming;
     });
-  }, [isControlled, value]);
+  }, [isControlled, lastValid?.value, value]);
 
-  // Parse en cada keystroke · barato (regex + opcionalmente Function eval).
-  const parsed = useMemo(() => parseNumericExpression(rawText), [rawText]);
+  const parsed = useMemo(
+    () => parseNumericExpressionDetailed(rawText),
+    [rawText],
+  );
 
   // Validación contra min/max · solo soft (visual) · el form submit
   // valida con HTML5 nativo via hidden input.
@@ -156,6 +188,25 @@ export function NumericInput({
     parsed.value != null &&
     ((min != null && parsed.value < min) ||
       (max != null && parsed.value > max));
+  const localInvalid =
+    parsed.status === "invalid" ||
+    parsed.status === "incomplete" ||
+    outOfRange;
+  const showLocalError = hasValidated && localInvalid;
+
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    if (parsed.status === "invalid" || parsed.status === "incomplete") {
+      input.setCustomValidity(parsed.error ?? "Expresión inválida.");
+      return;
+    }
+    if (outOfRange) {
+      input.setCustomValidity(buildRangeError(parsed.value, min, max));
+      return;
+    }
+    input.setCustomValidity("");
+  }, [max, min, outOfRange, parsed.error, parsed.status, parsed.value]);
 
   const previewText = buildPreview({
     parsed,
@@ -164,18 +215,17 @@ export function NumericInput({
     currency,
     unit: suffixUnit,
     precision: resolvedPrecision,
-    outOfRange,
+    outOfRange: showLocalError && outOfRange,
+    showError: showLocalError,
     min,
     max,
   });
 
-  const previewTone: "neutral" | "muted" | "error" = parsed.error
+  const previewTone: "neutral" | "muted" | "error" = showLocalError
     ? "error"
-    : outOfRange
-      ? "error"
-      : parsed.value != null
-        ? "neutral"
-        : "muted";
+    : parsed.value != null
+      ? "neutral"
+      : "muted";
 
   const previewColor =
     previewTone === "error"
@@ -187,19 +237,66 @@ export function NumericInput({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const next = e.target.value;
     setRawText(next);
-    if (onChange) {
-      const r = parseNumericExpression(next);
-      onChange(r.value);
+    const result = parseNumericExpressionDetailed(next);
+    const nextOutOfRange =
+      result.value != null &&
+      ((min != null && result.value < min) ||
+        (max != null && result.value > max));
+
+    if (result.status === "empty") {
+      setLastValid(null);
+      onChange?.(null);
+      return;
     }
+    if (
+      result.status === "valid" &&
+      result.value != null &&
+      result.canonical != null &&
+      !nextOutOfRange
+    ) {
+      setLastValid({
+        value: result.value,
+        canonical: result.canonical,
+      });
+      onChange?.(result.value);
+    }
+  };
+
+  const commit = () => {
+    setHasValidated(true);
+    if (
+      parsed.status !== "valid" ||
+      parsed.value == null ||
+      parsed.canonical == null ||
+      outOfRange
+    ) {
+      return;
+    }
+    setLastValid({
+      value: parsed.value,
+      canonical: parsed.canonical,
+    });
+    setRawText(parsed.canonical);
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    commit();
   };
 
   // Padding del input según los adornments visibles.
   const paddingLeft = prefixSymbol ? 30 : 12;
   const paddingRight = suffixUnit ? 44 : 12;
 
-  // Hidden input con el value canónico (number) · este es el que va al
-  // form submit, no el rawText con la expresión.
-  const hiddenValue = parsed.value != null ? String(parsed.value) : "";
+  // En edición inválida se conserva el valor anterior; la validez HTML del
+  // input visible bloquea el submit hasta resolver la expresión.
+  const hiddenValue =
+    parsed.status === "valid" && !outOfRange
+      ? (parsed.canonical ?? "")
+      : isControlled && value != null
+        ? String(value)
+        : (lastValid?.canonical ?? "");
 
   return (
     <div style={{ position: "relative" }}>
@@ -221,6 +318,7 @@ export function NumericInput({
           </span>
         )}
         <input
+          ref={inputRef}
           id={inputId}
           // type="text" porque "number" no acepta expresiones · validamos
           // numéricamente en parseNumericExpression.
@@ -237,12 +335,16 @@ export function NumericInput({
           }}
           value={rawText}
           onChange={handleChange}
+          onBlur={commit}
+          onKeyDown={handleKeyDown}
+          onInvalid={() => setHasValidated(true)}
           placeholder={placeholder}
           disabled={disabled}
           required={required}
-          aria-invalid={ariaInvalid || !!parsed.error || outOfRange}
+          aria-invalid={ariaInvalid || showLocalError}
           aria-describedby={previewId}
           aria-label={ariaLabel}
+          data-numeric-status={parsed.status}
         />
         {suffixUnit && (
           <span
@@ -265,7 +367,7 @@ export function NumericInput({
       </div>
       <div
         id={previewId}
-        role={parsed.error || outOfRange ? "alert" : undefined}
+        role={showLocalError ? "alert" : undefined}
         aria-live="polite"
         style={{
           minHeight: 18,
@@ -283,21 +385,33 @@ export function NumericInput({
 }
 
 interface BuildPreviewArgs {
-  parsed: ReturnType<typeof parseNumericExpression>;
+  parsed: DetailedParseResult;
   rawText: string;
   type: NumericType;
   currency: Currency;
   unit: string;
   precision: number;
   outOfRange: boolean;
+  showError: boolean;
   min?: number;
   max?: number;
 }
 
 function buildPreview(args: BuildPreviewArgs): ReactNode {
-  const { parsed, rawText, type, currency, unit, precision, outOfRange, min, max } = args;
+  const {
+    parsed,
+    rawText,
+    type,
+    currency,
+    unit,
+    precision,
+    outOfRange,
+    showError,
+    min,
+    max,
+  } = args;
 
-  if (parsed.error) return parsed.error;
+  if (parsed.error) return showError ? parsed.error : " ";
 
   if (parsed.value == null) {
     // Vacío o solo decoración.
@@ -323,6 +437,16 @@ function buildPreview(args: BuildPreviewArgs): ReactNode {
     return `= ${formatted} ${unit}`;
   }
   return `= ${formatted}`;
+}
+
+function buildRangeError(
+  value: number | null,
+  min?: number,
+  max?: number,
+): string {
+  if (value != null && min != null && value < min) return `Mínimo ${min}.`;
+  if (value != null && max != null && value > max) return `Máximo ${max}.`;
+  return "Valor fuera de rango.";
 }
 
 function formatNumber(n: number, precision: number): string {

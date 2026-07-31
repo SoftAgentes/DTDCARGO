@@ -1,10 +1,10 @@
 ---
 sdd: "0175"
 title: "VIS-02 — tipografía por voz, destinatario e idioma"
-status: approved
+status: in-progress
 author: "Sam (founder) + Codex"
 created: 2026-07-29
-updated: 2026-07-29
+updated: 2026-07-30
 supersedes: null
 superseded_by: null
 related: ["0165"]
@@ -35,10 +35,13 @@ V0 queda cerrado. Esta decisión no carga todavía la fuente.
 
 ## 3. Inventario
 
-- `app/layout.tsx` carga Archivo, Archivo Black y Noto Sans SC;
+- `app/layout.tsx` carga Archivo, Archivo Black, Noto Sans SC y Noto Serif SC;
+- Noto Serif SC usa `display: "swap"`, `preload: false` y fallback CJK seguro;
 - `.studio-sys` usa Nunito Sans + Sora;
-- `app/studio/tokens.css` expone `--f-cn` para UI;
-- no existen `--f-cn-ui` ni `--f-cn-document`;
+- `app/globals.css` y `app/studio/tokens.css` separan `--f-cn-ui` de
+  `--f-cn-document`;
+- el alias compatible `--f-cn` continúa resolviendo exclusivamente a
+  `--f-cn-ui`;
 - correos usan fallbacks locales Archivo/Arial/system-ui;
 - no hay renderer transversal ni evidencia de incrustación CJK en PDF;
 - existen usos editoriales Georgia/Times en Marketing que requieren un alcance
@@ -48,7 +51,7 @@ V0 queda cerrado. Esta decisión no carga todavía la fuente.
 
 1. **V0 marca:** cerrado mediante BD-036 y sincronización
    BRAND/Norte/VIS-02.
-2. **V1 tokens:** cargar fuente autorizada y añadir aliases compatibles.
+2. **V1 tokens:** cerrado; fuente autorizada cargada y aliases compatibles.
 3. **V2 email:** inventariar/normalizar renderers con fallback seguro.
 4. **V3 PDF:** incrustación, glifos, selección/copy-paste y peso.
 5. **V4 visual:** español/zh-CN, Studio, Gmail, Outlook, Apple Mail e impresión.
@@ -68,5 +71,16 @@ tipografía de pantallas existentes en V0.
 
 ## 6. Estado
 
-SDD aprobado; Gate V0 cerrado. V1–V4 permanecen pendientes. No se modificó
-código ni se cargó Noto Serif SC.
+SDD `in-progress`; V0 y V1 están cerrados. El commit `e7be56c6`:
+
+- cargó Noto Serif SC mediante `next/font` sin bloquear render ni precargarla;
+- creó `--f-cn-ui` y `--f-cn-document`;
+- conservó `--f-cn` como alias exclusivo de UI;
+- mantuvo toda la UI china en Noto Sans SC;
+- añadió la prueba contractual
+  `__tests__/vis-02-font-tokens.test.ts`.
+
+La revisión [REV-VIS-003](../../governance/reviews/vis-02-v1-closure.md)
+consolida la evidencia. V2 correo, V3 PDF y V4 visual permanecen cerrados y
+requieren gates independientes. Esta reconciliación no modifica correos, PDF,
+documentos vivos ni código.
