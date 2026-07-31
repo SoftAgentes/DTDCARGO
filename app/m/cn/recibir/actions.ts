@@ -112,22 +112,14 @@ export async function lookupForReceptionAction(
     };
   }
 
-  // Nombre del cliente + proveedor (para la tarjeta de confirmación).
-  const [{ data: client }, { data: supplier }] = await Promise.all([
-    admin
-      .from("clients")
-      .select("name")
-      .eq("tenant_id", auth.session.tenant_id)
-      .eq("markbox", pre.client_markbox)
-      .maybeSingle<{ name: string }>(),
-    pre.supplier_id
-      ? admin
-          .from("suppliers_cn")
-          .select("name")
-          .eq("id", pre.supplier_id)
-          .maybeSingle<{ name: string }>()
-      : Promise.resolve({ data: null }),
-  ]);
+  // El nombre real del cliente no se consulta: China opera sólo con Shipping Mark.
+  const { data: supplier } = pre.supplier_id
+    ? await admin
+        .from("suppliers_cn")
+        .select("name")
+        .eq("id", pre.supplier_id)
+        .maybeSingle<{ name: string }>()
+    : { data: null };
 
   // Cuántas esperadas siguen sin recibir en esa compra.
   const { count: expected } = await admin

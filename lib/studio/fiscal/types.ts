@@ -418,8 +418,9 @@ export interface RawBill {
  */
 export function toPurchaseRow(
   bill: RawBill,
-  _settings: FiscalSettings,
+  settings: FiscalSettings,
 ): PurchaseBookRow {
+  void settings;
   return {
     date: bill.issue_date ?? bill.created_at.slice(0, 10),
     documentNumber: bill.reference ?? bill.bill_code,

@@ -98,9 +98,11 @@ export async function saveDashboardConfigAction(
 }
 
 export async function resetDashboardConfigAction(
-  _prev: SaveDashboardState,
-  _formData: FormData,
+  prev: SaveDashboardState,
+  formData: FormData,
 ): Promise<SaveDashboardState> {
+  void prev;
+  void formData;
   const resolved = await resolveOwner();
   if ("error" in resolved) return { error: resolved.error };
   const { ctx, supabase } = resolved;

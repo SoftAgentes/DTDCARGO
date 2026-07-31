@@ -272,8 +272,9 @@ export async function submitDataChangeRequestAction(
  * 'pending')` no matchea nada y queda no-op (la UI mostrará el resultado real).
  */
 export async function cancelDataChangeRequestAction(
-  _prev: ChangeRequestActionState,
+  prev: ChangeRequestActionState,
 ): Promise<ChangeRequestActionState> {
+  void prev;
   const supabase = await createClient();
   const { data: portalClientId, error: idErr } =
     await supabase.rpc("get_portal_client_id");

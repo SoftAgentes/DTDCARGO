@@ -28,15 +28,12 @@ export function isPackingListCurrency(v: unknown): v is PackingListCurrency {
   );
 }
 
-/** Campos de texto editables de cada fila. */
-const ROW_TEXT_FIELDS = ["brand", "code", "zh", "es", "hs", "carton"] as const;
-/** Campos numéricos editables de cada fila. */
-const ROW_NUM_FIELDS = ["ctns", "perctn", "unit", "wkg", "cbm"] as const;
+type RowTextField = "brand" | "code" | "zh" | "es" | "hs" | "carton";
+type RowNumberField = "ctns" | "perctn" | "unit" | "wkg" | "cbm";
 
 /** Fila tal cual la manda el cliente (todo opcional / string|number). */
 export type PackingListRowInput = Partial<
-  Record<(typeof ROW_TEXT_FIELDS)[number], string> &
-    Record<(typeof ROW_NUM_FIELDS)[number], string | number>
+  Record<RowTextField, string> & Record<RowNumberField, string | number>
 > & {
   /** Caja Padre (SDD-0097): la fila comparte caja con la LÍDER anterior. */
   same?: boolean;

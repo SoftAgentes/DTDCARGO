@@ -108,9 +108,11 @@ export async function deleteRuleAction(
 }
 
 export async function restoreDefaultsAction(
-  _prev: RuleActionState,
-  _formData: FormData,
+  prev: RuleActionState,
+  formData: FormData,
 ): Promise<RuleActionState> {
+  void prev;
+  void formData;
   const guard = await requireAdmin();
   if ("error" in guard) return { error: guard.error };
 

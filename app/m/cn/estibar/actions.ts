@@ -228,15 +228,6 @@ export async function lookupLotAction(code: string): Promise<LotLookupState> {
     .eq("id", box.prealerta_id)
     .maybeSingle<{ code: string; client_markbox: string }>();
 
-  const { data: client } = pre?.client_markbox
-    ? await admin
-        .from("clients")
-        .select("name")
-        .eq("tenant_id", auth.session.tenant_id)
-        .eq("markbox", pre.client_markbox)
-        .maybeSingle<{ name: string }>()
-    : { data: null };
-
   // El lote = cajas recibidas de esa compra que todavía no están montadas.
   const { data: lotRows } = await admin
     .from("warehouse_boxes")

@@ -20,7 +20,6 @@ import type {
   UserKpis,
   UserMembershipWithProfile,
   UserProfile,
-  UserTenantMembership,
 } from "./user-types";
 
 const EMPTY_KPIS: UserKpis = {

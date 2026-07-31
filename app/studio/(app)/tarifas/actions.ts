@@ -21,7 +21,6 @@ import {
 } from "@/lib/studio/rate-types";
 import {
   isShipmentService,
-  type ShipmentService,
 } from "@/lib/studio/shipment-types";
 import {
   parseRatesCsv,

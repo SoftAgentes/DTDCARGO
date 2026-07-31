@@ -33,7 +33,7 @@ type ShipmentCreatePayload = {
   notes?: string | null;
 };
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("shipments")

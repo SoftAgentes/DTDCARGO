@@ -340,9 +340,11 @@ export async function softDeleteCityAction(
 // ─────────────────────────────────────────────────────────────
 
 export async function seedTenantCitiesFromVeCatalogAction(
-  _prev: RoutesActionState,
-  _formData: FormData,
+  prev: RoutesActionState,
+  formData: FormData,
 ): Promise<RoutesActionState> {
+  void prev;
+  void formData;
   const supabase = await createClient();
   const tenantId = await resolveTenantId();
   if (!tenantId) return { error: "No se pudo resolver el tenant." };
