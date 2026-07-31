@@ -193,11 +193,12 @@ export async function createBill(
 
 export async function voidBill(
   billId: string,
+  reason: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "treasury");
   if (denial) return { error: denial };
-  const r = await voidBillFor(supabase, billId);
+  const r = await voidBillFor(supabase, billId, reason);
   if (!r.ok) return { error: r.error };
   revalidatePath("/studio/tesoreria");
   revalidatePath("/studio/contabilidad");
@@ -238,11 +239,12 @@ export async function registerPayment(
 
 export async function voidPayment(
   paymentId: string,
+  reason: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "treasury");
   if (denial) return { error: denial };
-  const r = await voidPaymentFor(supabase, paymentId);
+  const r = await voidPaymentFor(supabase, paymentId, reason);
   if (!r.ok) return { error: r.error };
   revalidatePath("/studio/tesoreria");
   revalidatePath("/studio/contabilidad");

@@ -39,6 +39,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { validateAuditReason } from "@/lib/studio/audit/reason";
 import {
   postReceiptJournalEntry,
   postReceiptReclassEntry,
@@ -483,7 +484,11 @@ export async function identifyPaymentFor(
 export async function voidReceiptFor(
   supabase: SupabaseClient,
   receiptId: string,
+  reasonRaw: string,
 ): Promise<{ ok?: boolean; error?: string }> {
+  const reasonResult = validateAuditReason(reasonRaw);
+  if (!reasonResult.ok) return { error: reasonResult.error };
+
   const { data: receipt, error: readErr } = await supabase
     .from("payment_receipts")
     .select(
@@ -503,11 +508,15 @@ export async function voidReceiptFor(
   if (receipt.deleted_at) return { error: "Este recibo ya está anulado." };
 
   // 1. Marcar el recibo como anulado.
-  const { error: voidErr } = await supabase
-    .from("payment_receipts")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", receipt.id);
+  const { data: changed, error: voidErr } = await supabase.rpc(
+    "void_payment_receipt_with_audit_reason",
+    {
+      p_id: receipt.id,
+      p_reason: reasonResult.reason,
+    },
+  );
   if (voidErr) return { error: voidErr.message };
+  if (!changed) return { error: "El recibo ya no admite anulación." };
 
   // 2. Bajar paid_amount + recalcular status de la factura (solo si el recibo
   // apunta a una — los sin-ref no tocan ningún saldo).

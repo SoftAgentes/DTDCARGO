@@ -3,14 +3,14 @@
 | Control | Valor |
 |---|---|
 | Documento | Índice maestro del Sistema de Gobernanza |
-| Versión | 5.7 |
+| Versión | 5.8 |
 | Dueño | Sam (founder) |
 | Custodia | Producto + Diseño + Ingeniería |
 | Estado | activo |
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-31 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-096 · C1 y D1–D5 aplicados](BASELINE-2026-07-31.md) |
+| Línea base vigente | [LB-SGE-097 · D2 con motivos humanos](BASELINE-2026-07-31-02.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -106,6 +106,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Implementación local D4 | [REV-AUD-021](reviews/aud-d4-logistics-r3.md) |
 | Implementación local D5 | [REV-AUD-022](reviews/aud-d5-residual.md) |
 | Aplicación individual de C1 y D1–D5 | [REV-AUD-042](reviews/aud-roadmap-prod-application.md) |
+| Motivos humanos D2 R3 | [SDD-0187 + REV-AUD-043](../specs/0187-audit-d2-human-reasons/spec.md) |
 | Inventario read-only del Corte E | [E0 · repo y Cloud](../specs/0166-auditoria-gobernada-aud-01-aud-02/inventario-corte-e-2026-07-29.md) |
 | Diseño y revisión del Corte E | [REV-AUD-016](reviews/aud-corte-e.md) |
 | Fundamento verificable del Corte E | [SDD-0186 + REV-AUD-041](../specs/0186-audit-retention-foundation/spec.md) |
@@ -202,7 +203,7 @@ disfraza elevando el estado normativo.
 | BTN-01 | Semántica, jerarquía y contrato de botones | aprobada v1.1 | Contrato menu button precisado; adopción parcial | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | HTD-01 | Confirmación por presión sostenida | aprobada | [Contrato v1.0](policies/htd-01.md) consolidado; no implementado | Crear SDD solo para una entidad R3 clasificada por MP-01 |
 | AVS-01 | Avisos y confirmaciones | verificada | Primitiva conforme; consumidores legacy se migran solo dentro de slices R2/R3 | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
-| AUD-01 | Evento auditable y vínculo con acciones | aprobada | D1–D5 aplicados en Producción; D2/D3 conservan no conformidad de motivo legacy y D4 de `search_path` en cinco RPC | [REV-AUD-042](reviews/aud-roadmap-prod-application.md) · [REV-AUD-019](reviews/aud-d2-financial-domain.md) · [REV-AUD-020](reviews/aud-d3-commercial-cycle.md) · [REV-AUD-021](reviews/aud-d4-logistics-r3.md) |
+| AUD-01 | Evento auditable y vínculo con acciones | aprobada | D1–D5 aplicados en Producción; D2 corrige localmente el motivo humano con 0294 pendiente; D3 conserva motivo legacy y D4 `search_path` en cinco RPC | [REV-AUD-043](reviews/aud-d2-human-reasons-r3.md) · [REV-AUD-042](reviews/aud-roadmap-prod-application.md) · [REV-AUD-020](reviews/aud-d3-commercial-cycle.md) · [REV-AUD-021](reviews/aud-d4-logistics-r3.md) |
 | AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B, guardrail tenant 0268 y consulta gobernada 0270 aplicados; E1 cerrado sin fuente para retención ejecutable | [REV-AUD-042](reviews/aud-roadmap-prod-application.md); [REV-AUD-041](reviews/aud-corte-e1-foundation.md) bloquea E2–E5 por fuente |
 | VIS-01 | Jerarquía visual y distribución 60-30-10 | aprobada | Adopción parcial; muestreo acotado a slices y clasificación de literales | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | V1 tokens; V2 firmas; V3 PDF; V4 local; UI china conserva Noto Sans SC | [REV-VIS-004](reviews/vis-02-v2-email.md) · [REV-VIS-005](reviews/vis-02-v3-pdf.md) · [REV-VIS-006](reviews/vis-02-v4-visual.md); clientes externos pendientes |
@@ -302,9 +303,9 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-079 · VIS-02 V1 reconciliado](BASELINE-2026-07-30-04.md).
+[LB-SGE-097 · D2 con motivos humanos](BASELINE-2026-07-31-02.md).
 El corte anterior permanece en
-[LB-SGE-078](BASELINE-2026-07-30-03.md).
+[LB-SGE-096](BASELINE-2026-07-31.md).
 El cierre del control plane permanece en
 [LB-SGE-074](BASELINE-2026-07-29-46.md).
 La estabilidad bajo carga del guardia SDD-0164 permanece en

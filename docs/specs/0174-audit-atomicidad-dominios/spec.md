@@ -68,7 +68,7 @@ máquina antes de modificar suspensión/reactivación de usuarios.
 | D1 inventario | aprobado | [inventario D1](inventario-d1-acceso-configuracion-2026-07-29.md) |
 | D1 diseño | aprobado | [REV-AUD-017](../../governance/reviews/aud-d1-access-config-design.md) |
 | D1 implementación | aplicada en Producción | [REV-AUD-018](../../governance/reviews/aud-d1-access-config-implementation.md) |
-| D2 | aplicada; motivo legacy no conforme | [REV-AUD-019](../../governance/reviews/aud-d2-financial-domain.md) |
+| D2 | motivo humano conforme localmente; Producción pendiente 0294 | [REV-AUD-043](../../governance/reviews/aud-d2-human-reasons-r3.md) |
 | D3 | aplicada; motivo legacy no conforme | [REV-AUD-020](../../governance/reviews/aud-d3-commercial-cycle.md) |
 | D4 | aplicada; `search_path` legacy no conforme | [REV-AUD-021](../../governance/reviews/aud-d4-logistics-r3.md) |
 | D5 | aplicada en Producción | [REV-AUD-022](../../governance/reviews/aud-d5-residual.md) |
@@ -103,9 +103,10 @@ las 24 acciones obligatorias por fronteras transaccionales e incorpora un
 workflow durable intención → Auth → confirmación/compensación. No declara
 atomicidad ACID entre PostgreSQL y Supabase Auth.
 
-D1–D5 están aplicados individualmente en Producción por REV-AUD-042. D2 y D3
-conservan una no conformidad acotada de motivo en callers legacy y su adopción
-restante exige slices R2/R3 separados. D4 conserva la no conformidad de
-`search_path` legacy. D5 incorpora idempotencia, lease y reconciliación
-durable. La spec permanece `in-progress` únicamente por esas no conformidades;
-la aplicación no las presenta como cumplimiento.
+D1–D5 están aplicados individualmente en Producción por REV-AUD-042. SDD-0187
+retira localmente la no conformidad D2 de motivo, pero `0294` conserva un gate
+nominal separado de Producción. D3 mantiene su no conformidad de motivo y D4 la
+de `search_path` legacy hasta sus propios slices. D5 incorpora idempotencia,
+lease y reconciliación durable. La spec permanece `in-progress` por D3/D4 y
+por las aplicaciones externas pendientes; ningún estado local se presenta como
+cumplimiento de Producción.

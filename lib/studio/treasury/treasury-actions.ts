@@ -28,6 +28,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { validateAuditReason } from "@/lib/studio/audit/reason";
 import {
   postBillJournalEntry,
   voidBillJournalEntry,
@@ -162,7 +163,11 @@ export async function createBillFor(
 export async function voidBillFor(
   supabase: SupabaseClient,
   billId: string,
+  reasonRaw: string,
 ): Promise<{ ok?: boolean; error?: string }> {
+  const reasonResult = validateAuditReason(reasonRaw);
+  if (!reasonResult.ok) return { error: reasonResult.error };
+
   const { data: bill, error: readErr } = await supabase
     .from("supplier_bills")
     .select(
@@ -186,11 +191,15 @@ export async function voidBillFor(
     };
   }
 
-  const { error: voidErr } = await supabase
-    .from("supplier_bills")
-    .update({ status: "anulada" })
-    .eq("id", bill.id);
+  const { data: changed, error: voidErr } = await supabase.rpc(
+    "void_supplier_bill_with_audit_reason",
+    {
+      p_id: bill.id,
+      p_reason: reasonResult.reason,
+    },
+  );
   if (voidErr) return { error: voidErr.message };
+  if (!changed) return { error: "La CxP ya no admite anulación." };
 
   // Anular el asiento de causación (si lo tiene). Best-effort.
   if (bill.journal_entry_id) {
@@ -358,7 +367,11 @@ export async function registerPaymentFor(
 export async function voidPaymentFor(
   supabase: SupabaseClient,
   paymentId: string,
+  reasonRaw: string,
 ): Promise<{ ok?: boolean; error?: string }> {
+  const reasonResult = validateAuditReason(reasonRaw);
+  if (!reasonResult.ok) return { error: reasonResult.error };
+
   const { data: payment, error: readErr } = await supabase
     .from("supplier_payments")
     .select("id, tenant_id, payment_code, bill_id, amount, journal_entry_id, deleted_at")
@@ -376,11 +389,15 @@ export async function voidPaymentFor(
   if (payment.deleted_at) return { error: "Esta orden ya está anulada." };
 
   // 1. Marcar la orden como anulada.
-  const { error: voidErr } = await supabase
-    .from("supplier_payments")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", payment.id);
+  const { data: changed, error: voidErr } = await supabase.rpc(
+    "void_supplier_payment_with_audit_reason",
+    {
+      p_id: payment.id,
+      p_reason: reasonResult.reason,
+    },
+  );
   if (voidErr) return { error: voidErr.message };
+  if (!changed) return { error: "La orden de pago ya no admite anulación." };
 
   // 2. Bajar paid_amount + recalcular status de la CxP.
   const { data: bill } = await supabase

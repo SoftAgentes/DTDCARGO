@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
@@ -69,6 +70,11 @@ export function CobranzaDrawer({
   const [error, setError] = useState<string | null>(null);
   const [showCobro, setShowCobro] = useState(false);
   const [showPromise, setShowPromise] = useState(false);
+  const [voidTarget, setVoidTarget] = useState<{
+    id: string;
+    code: string;
+  } | null>(null);
+  const [voidPending, setVoidPending] = useState(false);
   const [history, setHistory] = useState<{
     receipts: PaymentReceipt[];
     activities: CollectionActivity[];
@@ -98,6 +104,7 @@ export function CobranzaDrawer({
   );
 
   return (
+    <>
     <DrawerShell
       title={inv.invoice_code}
       subtitle={`${inv.client_name} · saldo $${fmt(receivable.balance)}`}
@@ -368,18 +375,45 @@ export function CobranzaDrawer({
         {/* Historial */}
         <HistorySection
           history={history}
-          onVoidReceipt={async (receiptId, code) => {
+          onRequestVoid={(receiptId, code) => {
             setError(null);
-            const r = await voidReceipt(receiptId);
-            if (r.error) return { error: r.error };
-            toast.info(`Recibo ${code} anulado · se revirtió el saldo`);
-            refresh();
-            getReceivableHistory(inv.id).then(setHistory).catch(() => {});
-            return undefined;
+            setVoidTarget({ id: receiptId, code });
           }}
         />
       </div>
     </DrawerShell>
+    <ConfirmDialog
+      open={voidTarget !== null}
+      danger
+      reason
+      reasonRequired
+      initialFocus="reason"
+      title="Anular recibo"
+      message={`El recibo ${voidTarget?.code ?? ""} se anulará y se revertirá su saldo. Indica el motivo.`}
+      confirmLabel="Anular recibo"
+      pending={voidPending}
+      error={error ?? undefined}
+      onCancel={() => {
+        if (!voidPending) setVoidTarget(null);
+      }}
+      onConfirm={async (reason) => {
+        if (!voidTarget) return;
+        setVoidPending(true);
+        setError(null);
+        const result = await voidReceipt(voidTarget.id, reason);
+        if (result.error) {
+          setError(result.error);
+          setVoidPending(false);
+          return;
+        }
+        toast.info(`Recibo ${voidTarget.code} anulado · se revirtió el saldo`);
+        setVoidTarget(null);
+        setVoidPending(false);
+        refresh();
+        getReceivableHistory(inv.id).then(setHistory).catch(() => {});
+      }}
+    />
+    </>
   );
 }
 
@@ -803,16 +837,13 @@ function PromiseForm({
 
 function HistorySection({
   history,
-  onVoidReceipt,
+  onRequestVoid,
 }: {
   history: {
     receipts: PaymentReceipt[];
     activities: CollectionActivity[];
   } | null;
-  onVoidReceipt: (
-    receiptId: string,
-    code: string,
-  ) => Promise<{ error?: string } | undefined>;
+  onRequestVoid: (receiptId: string, code: string) => void;
 }) {
   if (!history) {
     return (
@@ -905,14 +936,14 @@ function HistorySection({
                 >
                   Ver recibo
                 </Link>
-                <ActionButton
-                  variant="ghost"
-                  size="xs"
-                  idleLabel="Anular"
-                  loadingLabel="Anulando…"
-                  successLabel={null}
-                  onAction={async () => onVoidReceipt(r.id, r.receipt_code)}
-                />
+                <button
+                  type="button"
+                  className="studio-btn studio-btn-ghost studio-btn-xs"
+                  style={{ color: "var(--danger)" }}
+                  onClick={() => onRequestVoid(r.id, r.receipt_code)}
+                >
+                  Anular
+                </button>
               </div>
             ))}
           </div>

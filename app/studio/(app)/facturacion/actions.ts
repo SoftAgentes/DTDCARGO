@@ -27,6 +27,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { validateAuditReason } from "@/lib/studio/audit/reason";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { postInvoiceJournalEntry } from "@/lib/studio/accounting/invoice-posting";
 import { revertReferralCreditsForInvoice } from "@/lib/studio/accounting/referral-credit-posting";
@@ -587,7 +588,11 @@ export async function registerPayment(
 
 export async function voidInvoice(
   id: string,
+  reasonRaw: string,
 ): Promise<{ ok?: boolean; error?: string }> {
+  const reasonResult = validateAuditReason(reasonRaw);
+  if (!reasonResult.ok) return { error: reasonResult.error };
+
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "invoices");
   if (denial) return { error: denial };
@@ -612,12 +617,16 @@ export async function voidInvoice(
     return { error: "Esta factura ya está anulada." };
   }
 
-  const { error } = await supabase
-    .from("invoices")
-    .update({ status: "anulada" })
-    .eq("id", id);
+  const { data: changed, error } = await supabase.rpc(
+    "void_invoice_with_audit_reason",
+    {
+      p_id: id,
+      p_reason: reasonResult.reason,
+    },
+  );
 
   if (error) return { error: error.message };
+  if (!changed) return { error: "La factura ya no admite anulación." };
 
   // SDD-0137 §3.6: si esta factura tenía créditos de referido aplicados, se
   // revierten (crédito vuelve a 'acreditado' + asiento anulado) — el crédito no

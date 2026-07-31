@@ -21,6 +21,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { validateAuditReason } from "@/lib/studio/audit/reason";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
   validateAccountInput,
@@ -224,7 +225,11 @@ export async function postEntry(
 
 export async function voidEntry(
   id: string,
+  reasonRaw: string,
 ): Promise<{ ok?: boolean; error?: string }> {
+  const reasonResult = validateAuditReason(reasonRaw);
+  if (!reasonResult.ok) return { error: reasonResult.error };
+
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "accounting");
   if (denial) return { error: denial };
@@ -254,11 +259,15 @@ export async function voidEntry(
     };
   }
 
-  const { error } = await supabase
-    .from("journal_entries")
-    .update({ status: "anulado" })
-    .eq("id", id);
+  const { data: changed, error } = await supabase.rpc(
+    "void_journal_entry_with_audit_reason",
+    {
+      p_id: id,
+      p_reason: reasonResult.reason,
+    },
+  );
   if (error) return { error: error.message };
+  if (!changed) return { error: "El asiento ya no admite anulación." };
 
   revalidatePath("/studio/contabilidad");
   return { ok: true };

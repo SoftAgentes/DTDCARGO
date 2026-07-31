@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 179 specs)
+### Índice de specs (generado · 180 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -217,6 +217,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0184 | Plan de carga por volumen · el sistema le dice al operario dó… | in-progress | interno |
 | 0185 | NUM-01 v1.1 y expresiones decimales | done | interno |
 | 0186 | Fundamento verificable de retención de auditoría | done | interno |
+| 0187 | Auditoría D2 — motivos humanos en anulaciones financieras | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0179 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
