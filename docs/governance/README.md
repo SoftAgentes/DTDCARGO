@@ -3,14 +3,14 @@
 | Control | Valor |
 |---|---|
 | Documento | Índice maestro del Sistema de Gobernanza |
-| Versión | 6.3 |
+| Versión | 6.4 |
 | Dueño | Sam (founder) |
 | Custodia | Producto + Diseño + Ingeniería |
 | Estado | activo |
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-31 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-103 · Gobernanza 8 cerrada en Producción](BASELINE-2026-07-31-08.md) |
+| Línea base vigente | [LB-SGE-104 · Baseline de cobertura de gobernanza v1](BASELINE-2026-07-31-09.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -143,6 +143,8 @@ artefactos permanecen en sus fuentes correspondientes.
 | Destino repo/team PLG-01 | [REV-SGE-013](reviews/plg-01-destination.md) |
 | Auditoría SGE/BTN/VIS/AVS | [REV-SGE-008](reviews/adoption-sge-btn-vis-avs-2026-07-29.md) |
 | Plan de adopción por slices | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
+| Baseline de cobertura de los 57 módulos | [REV-SGE-029](reviews/governance-coverage-baseline-v1-2026-07-31.md) |
+| Auditoría R3 de anulación de finiquito de Nómina | [REV-SGE-030](reviews/payroll-r3-settlement-void-audit-2026-07-31.md) |
 | Revisión de patrones UX en videos | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | Portabilidad EOL de SDD-0118 | [REV-AUD-030](reviews/aud-sdd-0118-eol-portability.md) |
 | Dependencias ejecutables CMP-01 | [REV-SGE-015](reviews/cmp-01-dependency-validation.md) |
@@ -315,10 +317,11 @@ errores obligatorios.
 
 ## 9. Línea base oficial
 
-La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-103 · Gobernanza 8 cerrada en Producción](BASELINE-2026-07-31-08.md).
-El corte anterior permanece en
-[LB-SGE-101](BASELINE-2026-07-31-06.md).
+La fotografía vigente de cobertura por módulo y pendientes es
+[LB-SGE-104 · Baseline de cobertura de gobernanza v1](BASELINE-2026-07-31-09.md).
+El cierre productivo de Gobernanza 8 permanece en
+[LB-SGE-103](BASELINE-2026-07-31-08.md).
+El corte anterior permanece en [LB-SGE-101](BASELINE-2026-07-31-06.md).
 La aplicación productiva anterior permanece en
 [LB-SGE-100](BASELINE-2026-07-31-05.md).
 El cierre del control plane permanece en
