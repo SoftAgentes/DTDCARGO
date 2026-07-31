@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { CheckIcon, WhatsAppIcon } from "@/components/Icon";
 
 /**
@@ -11,12 +11,12 @@ import { CheckIcon, WhatsAppIcon } from "@/components/Icon";
  * (evita mismatch de hidratación).
  */
 export function ShareProviderButton({ token }: { token: string }) {
-  const [origin, setOrigin] = useState("");
+  const origin = useSyncExternalStore(
+    () => () => undefined,
+    () => window.location.origin,
+    () => "",
+  );
   const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    setOrigin(window.location.origin);
-  }, []);
 
   const url = origin ? `${origin}/p/${token}` : "";
   const waText = `我的货物标签和收货地址 / Etiquetas y dirección de mi pedido: ${url}`;

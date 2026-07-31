@@ -16,18 +16,24 @@
  * los modificadores `[data-density]`, faltaba dónde elegirla.
  */
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Icon } from "@/app/studio/_components/icons";
 import { SegmentedControl } from "@/app/studio/_components/ui/SegmentedControl";
 import {
   applyDensity,
   applyTheme,
+  APPEARANCE_EVENT,
   readDensity,
   readTheme,
   type StudioDensity,
   type StudioTheme,
 } from "@/app/studio/_components/appearance-prefs";
+
+function subscribeAppearance(onChange: () => void): () => void {
+  window.addEventListener(APPEARANCE_EVENT, onChange);
+  return () => window.removeEventListener(APPEARANCE_EVENT, onChange);
+}
 
 const BRAND_COLORS = [
   { name: "Wine", token: "--wine", hex: "#7F0F1A" },
@@ -42,22 +48,21 @@ const BRAND_RESOURCES = [
 ];
 
 export function AppearanceSection() {
-  const [theme, setTheme] = useState<StudioTheme>("light");
-  const [density, setDensity] = useState<StudioDensity>("normal");
-
-  // Hidratar desde localStorage tras el mount (evita mismatch de hidratación:
-  // el server siempre renderiza los defaults).
-  useEffect(() => {
-    setTheme(readTheme());
-    setDensity(readDensity());
-  }, []);
+  const theme = useSyncExternalStore<StudioTheme>(
+    subscribeAppearance,
+    readTheme,
+    () => "light",
+  );
+  const density = useSyncExternalStore<StudioDensity>(
+    subscribeAppearance,
+    readDensity,
+    () => "normal",
+  );
 
   const onTheme = (next: StudioTheme) => {
-    setTheme(next);
     applyTheme(next);
   };
   const onDensity = (next: StudioDensity) => {
-    setDensity(next);
     applyDensity(next);
   };
 

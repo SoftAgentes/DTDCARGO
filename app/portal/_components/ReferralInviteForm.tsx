@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { CheckIcon } from "@/components/Icon";
 import {
   inviteReferralAction,
@@ -23,14 +23,14 @@ export function ReferralInviteForm() {
   const [state, action, pending] = useActionState(inviteReferralAction, initial);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-
-  // Al enviar OK, limpiar los campos para invitar a otro sin arrastrar el anterior.
-  useEffect(() => {
+  const [handledState, setHandledState] = useState(state);
+  if (handledState !== state) {
+    setHandledState(state);
     if (state.ok) {
       setEmail("");
       setName("");
     }
-  }, [state.ok]);
+  }
 
   return (
     <div className="mt-5 card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-7">

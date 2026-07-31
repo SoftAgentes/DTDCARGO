@@ -54,14 +54,13 @@ export function AmonestacionDrawer({
   useEffect(() => {
     if (state.ok) onClose();
   }, [state.ok, onClose]);
-
-  // Si el validador devuelve un error de campo, saltar al paso que lo contiene.
-  useEffect(() => {
+  const [handledFieldErrors, setHandledFieldErrors] = useState(state.fieldErrors);
+  if (handledFieldErrors !== state.fieldErrors) {
+    setHandledFieldErrors(state.fieldErrors);
     const fe = state.fieldErrors;
-    if (!fe) return;
-    if (fe.employee_id || fe.cause || fe.severity || fe.issued_on) setStep(0);
-    else if (fe.narrative) setStep(1);
-  }, [state.fieldErrors]);
+    if (fe?.employee_id || fe?.cause || fe?.severity || fe?.issued_on) setStep(0);
+    else if (fe?.narrative) setStep(1);
+  }
 
   const emp = employees.find((e) => e.id === employeeId);
 

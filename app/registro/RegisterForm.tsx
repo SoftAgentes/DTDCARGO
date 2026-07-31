@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
   ArrowIcon,
@@ -727,10 +727,11 @@ function StepDone({
   email: string;
   warning?: string;
 }) {
-  const [shown, setShown] = useState(false);
-  useEffect(() => {
-    setShown(true);
-  }, []);
+  const shown = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  );
 
   return (
     <div className="flex flex-col items-center text-center gap-5">

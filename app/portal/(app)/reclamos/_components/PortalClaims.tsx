@@ -61,10 +61,14 @@ export function PortalClaims({
   const [justSent, setJustSent] = useState<string | null>(null);
   // En embedded el form arranca colapsado (se abre con "Nuevo caso"); suelto, visible.
   const [showForm, setShowForm] = useState(!embedded);
+  const [handledState, setHandledState] = useState(state);
+  if (handledState !== state) {
+    setHandledState(state);
+    if (state.ok && state.createdCode) setJustSent(state.createdCode);
+  }
 
   useEffect(() => {
     if (state.ok && state.createdCode) {
-      setJustSent(state.createdCode);
       formRef.current?.reset();
       router.refresh();
     }
