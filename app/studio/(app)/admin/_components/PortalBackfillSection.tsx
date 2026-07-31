@@ -15,7 +15,6 @@
 
 import {
   useActionState,
-  useEffect,
   useMemo,
   useState,
   type MouseEvent,
@@ -43,6 +42,13 @@ import {
 const WA_BATCH_MAX = 10;
 
 const MAX_PER_BATCH = 20;
+
+export function actionStateChangedSuccessfully<T extends { ok?: boolean }>(
+  baseline: T,
+  current: T,
+): boolean {
+  return baseline !== current && current.ok === true;
+}
 
 function pct(n: number, total: number): string {
   if (total <= 0) return "—";
@@ -500,14 +506,15 @@ function CandidateRow({
     ContactCaptureState,
     FormData
   >(updateClientContactAction, {});
-  useEffect(() => {
-    if (editState.ok) setEditing(false);
-  }, [editState.ok]);
+  const [editBaseline, setEditBaseline] = useState(editState);
+  const isEditing =
+    editing && !actionStateChangedSuccessfully(editBaseline, editState);
 
   function openEdit(e: MouseEvent) {
     stop(e);
     setEditEmail(c.email);
     setEditPhone(c.phone);
+    setEditBaseline(editState);
     setEditing((v) => !v);
   }
 
@@ -615,7 +622,7 @@ function CandidateRow({
               appearance: "none",
               cursor: "pointer",
               border: "1px solid var(--border)",
-              background: editing ? "var(--wine-tint)" : "var(--bg-elevated)",
+              background: isEditing ? "var(--wine-tint)" : "var(--bg-elevated)",
               borderRadius: "var(--r-sm)",
               color: "var(--ink-soft)",
               font: "600 11px/1 var(--f-sans)",
@@ -657,7 +664,7 @@ function CandidateRow({
           )}
         </span>
       </div>
-      {editing && (
+      {isEditing && (
         <form
           action={editAction}
           onClick={stop}
@@ -894,10 +901,11 @@ function InviteCandidatesPanel({
     bulkInvitePortalAction,
     {},
   );
-
-  useEffect(() => {
+  const [handledState, setHandledState] = useState(state);
+  if (handledState !== state) {
+    setHandledState(state);
     if (state.ok) setSelected(new Set());
-  }, [state.ok]);
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -1135,13 +1143,14 @@ function ColdRow({
     ContactCaptureState,
     FormData
   >(updateClientContactAction, {});
-  useEffect(() => {
-    if (editState.ok) setEditing(false);
-  }, [editState.ok]);
+  const [editBaseline, setEditBaseline] = useState(editState);
+  const isEditing =
+    editing && !actionStateChangedSuccessfully(editBaseline, editState);
   function openEdit(e: MouseEvent) {
     stop(e);
     setEditEmail(c.email);
     setEditPhone(c.phone);
+    setEditBaseline(editState);
     setEditing((v) => !v);
   }
 
@@ -1244,7 +1253,7 @@ function ColdRow({
               appearance: "none",
               cursor: "pointer",
               border: "1px solid var(--border)",
-              background: editing ? "var(--wine-tint)" : "var(--bg-elevated)",
+              background: isEditing ? "var(--wine-tint)" : "var(--bg-elevated)",
               borderRadius: "var(--r-sm)",
               color: "var(--ink-soft)",
               font: "600 11px/1 var(--f-sans)",
@@ -1320,7 +1329,7 @@ function ColdRow({
           )}
         </span>
       </div>
-      {editing && (
+      {isEditing && (
         <form
           action={editAction}
           onClick={stop}
@@ -1422,10 +1431,11 @@ function ColdInviteesPanel({ cold }: { cold: PortalColdInvitee[] }) {
     "all" | "phone" | "noWa" | "saturated"
   >("all");
   const [coldSort, setColdSort] = useState<"oldest" | "least" | "most">("oldest");
-
-  useEffect(() => {
+  const [handledState, setHandledState] = useState(state);
+  if (handledState !== state) {
+    setHandledState(state);
     if (state.ok) setSelected(new Set());
-  }, [state.ok]);
+  }
 
   const searched = useMemo(() => {
     const q = search.trim().toLowerCase();
