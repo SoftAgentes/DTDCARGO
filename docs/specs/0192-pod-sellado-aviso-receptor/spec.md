@@ -83,7 +83,41 @@ documento que regule la relación.** Ver §7.
 
 ## 6. Slices
 
-### Slice A · Sellar el POD (⭐ primero)
+### Slice A · Sellar el POD (⭐ primero) — ✅ **implementado 2026-07-31**
+
+> **Estado:** código en la rama; **migración `0300_pod_seal.sql` NO aplicada a
+> prod** (la aplica el founder · runbook).
+>
+> ⭐ **Se sella el CONTENIDO de los archivos, no su ruta.** Hashear `photo_path`
+> habría repetido el error que 0297 corrigió en `legal_docs`: si alguien
+> reemplaza el archivo dejando la misma ruta, un hash de la ruta no cambia.
+> Storage guarda en `storage.objects.metadata` el **`eTag`** (MD5 del contenido
+> en uploads simples) y el `size`; el sello los incorpora vía
+> `dispatch_pod_object_seal()`.
+>
+> **Límite honesto:** MD5 no resiste una colisión deliberada — quien tuviera
+> escritura en el bucket podría, en teoría, fabricar otra imagen con el mismo
+> eTag *y* el mismo tamaño. Es muchísimo más de lo que exige detectar el caso
+> real ("esa foto salió mal, súbela de nuevo"). Cuando Storage exponga SHA-256,
+> se sube `evidence_version` y listo.
+>
+> **`dispatch_pod_hash_valid(pod_id)`** es la pieza que un abogado mira:
+> recomputa contra el estado **actual** de los archivos, así que distingue "el
+> sello existe" de "el sello sigue siendo cierto".
+>
+> **Append-only estricto**, sin la excepción de estado que sí tiene `legal_docs`:
+> un POD no tiene ciclo de vida. Si la entrega se corrigió, se registra otro POD;
+> el primero queda como lo que fue.
+>
+> **Desvío del plan original:** el punto 4 decía que `camionero_pod` sellara y
+> devolviera el hash. Sella el **trigger**, no el RPC — así ningún camino de
+> escritura puede saltárselo, y no hay que cambiar la firma del RPC ni sus
+> llamadores. El hash se consulta de la fila.
+>
+> **Verificado:** test `0300_pod_seal.test.sql` con 5 casos, incluido el que
+> importa —**sustituir la foto dejando la misma ruta**— y **prueba de mutación**:
+> sin el trigger la tabla ni siquiera acepta el insert (falla `NOT NULL`), o sea
+> fail-closed.
 
 **Qué.** Hash server-sellado + inmutabilidad, con el mismo patrón que
 `legal_acceptances`.
