@@ -816,13 +816,19 @@
   display: grid;
   place-items: center;
   color: var(--color-white);
-  /* sphere matte — gradiente radial marcado para efecto esfera (no glossy) */
+  /* sphere matte — gradiente radial marcado para efecto esfera (no glossy).
+     Los tres stops se oscurecieron un paso (2026-07-31): con el verde oficial
+     #25D366 en el centro, el glifo blanco medía 1.98:1 y el brillo #4DEC85 daba
+     1.54:1 — bajo el 3:1 que WCAG 1.4.11 pide para gráficos. El glifo está
+     centrado, así que lo que manda es el stop del 42%: ahora #1FA350 → 3.27:1.
+     El brillo claro queda arriba a la derecha, FUERA del glifo, así que la
+     esfera sigue leyéndose como el verde de WhatsApp. */
   background:
     radial-gradient(
       circle at 60% 35%,
-      #4dec85 0%,
-      #25d366 42%,
-      #15a04a 100%
+      #3fd977 0%,
+      #1fa350 42%,
+      #12803f 100%
     );
   box-shadow:
     0 6px 14px rgba(15, 30, 61, 0.18),
@@ -865,6 +871,16 @@
 .fab-wa:focus-visible {
   outline: 3px solid var(--color-ink);
   outline-offset: 3px;
+}
+
+/* Sombra bajo los glifos de las esferas: les da un borde propio contra el
+   relleno, que es lo que WCAG 1.4.11 valora en un gráfico. Sutil a propósito —
+   no es un contorno dibujado, solo despega el ícono del fondo. */
+.fab-wa svg,
+.fab-ig svg,
+.fab-yt svg,
+.fab-tt svg {
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.32));
 }
 
 .fab-wa-dot {
