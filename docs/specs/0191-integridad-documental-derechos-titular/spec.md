@@ -54,7 +54,56 @@ fuente verificable registrada, o es una **decisión comercial declarada como tal
 
 ## 4. Slices
 
-### Slice A · Sellar el contenido (⭐ primero)
+### Slice A · Sellar el contenido (⭐ primero) — ✅ **implementado 2026-07-30**
+
+> **Estado: ✅ APLICADO A PROD** — ledger `20260731034447`, con OK del founder,
+> de a una y por el runbook. Verificado contra el objeto, no contra el nombre:
+> `body_sha256` NOT NULL · trigger `legal_docs_guard_trg` vivo · función
+> `SECURITY INVOKER` con `search_path=""` · policy `"legal_docs delete by admin"`
+> retirada · **7/7 documentos sellados, 0 sellos incorrectos** · 0 aceptaciones ·
+> ledger con el basename exacto (lo ve el gate `migrations-applied`).
+>
+> **Y probado contra prod, no contra el esquema:** se intentaron las tres
+> adulteraciones —reescribir el cuerpo, renumerar la versión, borrar el
+> documento— y las tres rebotaron. Nada persistió (0 filas adulteradas).
+>
+> **Advisors: 136 → 136, delta 0**, ninguno menciona `legal_docs`. El revoke de
+> `EXECUTE` evitó sumar a la deuda de funciones abiertas.
+>
+> ⚠️ **Hay DOS migraciones 0297 en el repo, y es correcto.** SDD-0184 renumeró
+> las suyas a 0297-0299 y aplicó `0297_container_types_activos_y_capacidad_util`
+> **62 segundos después** de esta (ledger `20260731034549` vs `20260731034447`).
+> **Ninguna se renumera:** el gate `migrations-applied` cruza el **basename
+> exacto** contra el `name` del ledger, así que renombrar la ya aplicada la
+> dejaría "sin aplicar" y el gate se pondría rojo en falso. Dos archivos con el
+> mismo prefijo no rompen nada —el orden de replay es determinista por bytes y
+> hay precedente (`0261` + `0261b`)— y estas dos no se tocan entre sí: una toca
+> `legal_docs`, la otra `container_types`.
+>
+> - `supabase/migrations/0297_legal_docs_body_hash.sql` — columna `body_sha256`,
+>   función `public.legal_docs_guard()` y trigger `legal_docs_guard_trg`.
+> - `supabase/tests/0297_legal_docs_body_hash.test.sql` — 7 casos, **verificado
+>   por mutación**: sin el trigger, el test cae con *"el server no selló
+>   body_sha256"*.
+> - Evidencia sube a **v3**: `DocRef` gana `body_sha256` y entra al payload
+>   canónico. Corte limpio (0 aceptaciones en prod, verificado), igual que el
+>   v1→v2 de SDD-0067.
+>
+> **Un bug real que apareció al implementar:** `sealAcceptance()` construía la
+> fila a insertar mapeando `docs` a `{key, version}` — descartaba el
+> `body_sha256`. El hash se habría calculado **con** el sello del cuerpo y la
+> fila habría guardado solo la referencia, así que el recompute del gate nunca
+> habría matcheado y **toda** aceptación se habría descartado como forjada. Lo
+> atrapó el typecheck al volver `body_sha256` obligatorio en `DocRef`.
+>
+> **Decisión de diseño:** un solo trigger para INSERT/UPDATE/DELETE en vez de dos
+> (sellado + inmutabilidad). Con dos, el orden entre ellos sería alfabético y el
+> invariante quedaría atado al nombre que alguien les ponga.
+>
+> **Qué queda mutable, a propósito:** `status` solo en la transición
+> vigente→archivada (sin eso no se puede publicar la versión siguiente) y
+> `change_note`. Todo lo demás —incluido `body`— queda congelado. `DELETE` se
+> rechaza siempre: la salida de un documento publicado es archivarlo.
 
 **Qué.** Que el hash de una aceptación cubra el texto exacto que el cliente vio, y
 que un documento publicado sea inmutable **en la base**, no solo por norma escrita.

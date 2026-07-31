@@ -42,13 +42,29 @@ export type LegalDoc = {
    *  Opcional: la columna es nueva (nullable) y no está en filas pre-0212. */
   change_note?: string | null;
   body: LegalSection[];
+  /** SHA-256 hex del cuerpo publicado. Lo sella la DB (migr 0297). */
+  body_sha256: string;
   created_at: string;
 };
 
 /** Referencia a una versión de doc aceptada. */
+/**
+ * Referencia a un documento legal dentro de una aceptación.
+ *
+ * `body_sha256` (SDD-0191 Slice A · evidencia v3) es lo que convierte esto de
+ * una REFERENCIA en un SELLO. Antes se hasheaba `{key, version}`: si alguien
+ * editaba el cuerpo de un documento vigente sin cambiar la versión, todas las
+ * aceptaciones previas seguían validando contra un texto que nadie aceptó
+ * (hallazgo H-1 de la auditoría 2026-07). Ahora el hash de la aceptación
+ * incorpora el hash del CONTENIDO, así que esa adulteración se detecta.
+ *
+ * Lo sella la DB en `public.legal_docs_guard()` (migración 0297) — el cliente
+ * no puede ponerlo.
+ */
 export type DocRef = {
   key: string;
   version: string;
+  body_sha256: string;
 };
 
 /** Fila de `legal_acceptances` (migraciones 0102 + 0121 · evidencia v2). */
@@ -255,7 +271,9 @@ function canonicalDocs(docs: DocRef[]): DocRef[] {
   for (const d of docs ?? []) {
     const key = String(d.key);
     const version = String(d.version);
-    seen.set(JSON.stringify([key, version]), { key, version });
+    // v3: el sello del contenido entra a la identidad canónica del doc.
+    const bodySha = String(d.body_sha256 ?? "");
+    seen.set(JSON.stringify([key, version]), { key, version, body_sha256: bodySha });
   }
   return [...seen.values()].sort((a, b) =>
     a.key === b.key
@@ -343,6 +361,8 @@ export function acceptanceHashPayload(ev: AcceptanceEvidence): string {
     docs: canonicalDocs(ev.docs).map((d) => ({
       key: d.key,
       version: d.version,
+      // v3 (SDD-0191 Slice A): el sello del CONTENIDO, no solo la referencia.
+      body_sha256: d.body_sha256,
     })),
     ip: ev.ip ?? null,
     user_agent: ev.user_agent ?? null,

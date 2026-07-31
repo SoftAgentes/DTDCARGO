@@ -147,8 +147,8 @@ describe("listAcceptances", () => {
       client_markbox: "DTD-1",
       quote_code: "Q-1",
       docs: [
-        { key: "tyc", version: "v2.1" },
-        { key: "operador", version: "v1.4" },
+        { key: "tyc", version: "v2.1", body_sha256: "sha-tyc-v2.1" },
+        { key: "operador", version: "v1.4", body_sha256: "sha-operador-v1.4" },
       ],
       cbm: "7",
       weight_kg: "2800",
@@ -169,7 +169,7 @@ describe("listAcceptances", () => {
       client_id: "c2",
       client_markbox: "DTD-2",
       quote_code: "Q-2",
-      docs: [{ key: "tyc", version: "v2.0" }],
+      docs: [{ key: "tyc", version: "v2.0", body_sha256: "sha-tyc-v2.0" }],
       cbm: 3,
       weight_kg: 1000,
       total_usd: 2000,
@@ -225,8 +225,8 @@ describe("listAcceptances", () => {
 describe("hasValidAcceptance", () => {
   const TENANT = "tn";
   const VIGENTES: DocRef[] = [
-    { key: "tyc", version: "v2.1" },
-    { key: "operador", version: "v1.4" },
+    { key: "tyc", version: "v2.1", body_sha256: "sha-tyc-v2.1" },
+    { key: "operador", version: "v1.4", body_sha256: "sha-operador-v1.4" },
   ];
 
   // legal_docs vigentes (de cara al cliente) que la aceptación DEBE cubrir.
@@ -429,8 +429,8 @@ describe("hasValidAcceptance", () => {
       client_id: "c1",
       quote_code: "Q-1",
       docs: [
-        { key: "tyc", version: "v2.0" },
-        { key: "operador", version: "v1.4" },
+        { key: "tyc", version: "v2.0", body_sha256: "sha-tyc-v2.0" },
+        { key: "operador", version: "v1.4", body_sha256: "sha-operador-v1.4" },
       ],
       cbm: 7,
       weight_kg: 2800,
@@ -445,7 +445,7 @@ describe("hasValidAcceptance", () => {
       id: "a1",
       client_id: "c1",
       quote_code: "Q-1",
-      docs: [{ key: "tyc", version: "v2.1" }],
+      docs: [{ key: "tyc", version: "v2.1", body_sha256: "sha-tyc-v2.1" }],
       cbm: 7,
       weight_kg: 2800,
       total_usd: 5600,

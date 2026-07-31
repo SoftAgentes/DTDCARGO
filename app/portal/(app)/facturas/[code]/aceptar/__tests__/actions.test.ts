@@ -21,8 +21,8 @@ const TENANT = "tn";
 const MARKBOX = "DTD-5452";
 const HEADER_UA = "Mozilla/5.0 (TestRunner) Chrome/126.0";
 const VIGENTES: DocRef[] = [
-  { key: "tyc", version: "v2.1" },
-  { key: "operador", version: "v1.4" },
+  { key: "tyc", version: "v2.1", body_sha256: "sha-tyc-v2.1" },
+  { key: "operador", version: "v1.4", body_sha256: "sha-operador-v1.4" },
 ];
 
 // ── Mocks (antes de importar el SUT) ──────────────────────────
