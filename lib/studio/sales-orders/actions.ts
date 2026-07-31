@@ -22,6 +22,7 @@
 import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/db/server";
+import { validateAuditReason } from "@/lib/studio/audit/reason";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { postInvoiceJournalEntry } from "@/lib/studio/accounting/invoice-posting";
 import {
@@ -263,6 +264,7 @@ export async function updateSalesOrder(
 export async function setSalesOrderStatus(
   salesOrderId: string,
   to: SalesOrderStatus,
+  reasonRaw?: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "sales-orders");
@@ -285,6 +287,25 @@ export async function setSalesOrderStatus(
     return { error: `No se puede pasar la OV de "${so.status}" a "${to}".` };
   }
 
+  if (to === "cancelada") {
+    const reasonResult = validateAuditReason(reasonRaw);
+    if (!reasonResult.ok) return { error: reasonResult.error };
+
+    const { data: cancelled, error: cancelErr } = await supabase.rpc(
+      "cancel_sales_order_with_audit_reason",
+      { p_id: so.id, p_reason: reasonResult.reason },
+    );
+    if (cancelErr) {
+      return { error: `No se pudo cancelar la OV: ${cancelErr.message}` };
+    }
+    if (!cancelled) {
+      return { error: "La OV cambió de estado y ya no puede cancelarse." };
+    }
+
+    revalidatePath(SO_PATH);
+    return { ok: true };
+  }
+
   const { error: updErr } = await supabase
     .from("sales_orders")
     .update({ status: to })
@@ -297,8 +318,9 @@ export async function setSalesOrderStatus(
 
 export async function cancelSalesOrder(
   salesOrderId: string,
+  reasonRaw: string,
 ): Promise<{ ok?: boolean; error?: string }> {
-  return setSalesOrderStatus(salesOrderId, "cancelada");
+  return setSalesOrderStatus(salesOrderId, "cancelada", reasonRaw);
 }
 
 // ── OV ↔ prealerta (caja física) ───────────────────────────────

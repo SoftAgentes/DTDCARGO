@@ -19,6 +19,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { validateAuditReason } from "@/lib/studio/audit/reason";
 import { capabilityDenial, moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { createBillFor } from "@/lib/studio/treasury/treasury-actions";
 import {
@@ -209,6 +210,7 @@ export async function updatePurchaseOrder(
 export async function setPurchaseOrderStatus(
   purchaseOrderId: string,
   to: PurchaseOrderStatus,
+  reasonRaw?: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "purchase-orders");
@@ -233,6 +235,25 @@ export async function setPurchaseOrderStatus(
     };
   }
 
+  if (to === "cancelada") {
+    const reasonResult = validateAuditReason(reasonRaw);
+    if (!reasonResult.ok) return { error: reasonResult.error };
+
+    const { data: cancelled, error: cancelErr } = await supabase.rpc(
+      "cancel_purchase_order_with_audit_reason",
+      { p_id: po.id, p_reason: reasonResult.reason },
+    );
+    if (cancelErr) {
+      return { error: `No se pudo cancelar la compra: ${cancelErr.message}` };
+    }
+    if (!cancelled) {
+      return { error: "La compra cambió de estado y ya no puede cancelarse." };
+    }
+
+    revalidatePath(PO_PATH);
+    return { ok: true };
+  }
+
   const { error: updErr } = await supabase
     .from("purchase_orders")
     .update({ status: to })
@@ -245,8 +266,9 @@ export async function setPurchaseOrderStatus(
 
 export async function cancelPurchaseOrder(
   purchaseOrderId: string,
+  reasonRaw: string,
 ): Promise<{ ok?: boolean; error?: string }> {
-  return setPurchaseOrderStatus(purchaseOrderId, "cancelada");
+  return setPurchaseOrderStatus(purchaseOrderId, "cancelada", reasonRaw);
 }
 
 // ── Puente OC → Bill (recepción) ───────────────────────────────
