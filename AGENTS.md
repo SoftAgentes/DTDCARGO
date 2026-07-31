@@ -136,6 +136,16 @@ Los mocks originales **ya no existen** (`mockSubmit` desapareció del código). 
 
 Toda pantalla nueva o cambio visual sustancial **pasa por `/ui-check`** antes del commit (regla del founder; check liviano, no bloqueo — spacing, jerarquía, AI slop, hover states). Para auditoría **profunda** (10 dimensiones, contraste WCAG medido, score 0–10) usar **`/ui-pro`**. Lente de "design director" opcional: agente `design-critic`. *(El agente `ui-ux-designer` de la plantilla Forge NO existe — no lo invoques.)*
 
+## Datos personales y privacidad
+
+Todo cambio que **capture, mueva o borre datos personales** —campo nuevo en un formulario, columna nueva, bucket, integración con un tercero, captura en campo— pasa por **`/revisar-datos-personales`** ([`.claude/skills/revisar-datos-personales/`](.claude/skills/revisar-datos-personales/)). Es **advisory**: entrega hallazgos con `archivo:línea` y **nunca** afirma que el proyecto cumple (solo `ENCONTRADO` / `CORRECTO` / `NO VERIFICABLE`).
+
+Marco: **Venezuela no tiene ley especial de datos personales.** Las anclas son CRBV arts. 28 y 60, la jurisprudencia vinculante de la Sala Constitucional del TSJ (332/2001 y 759/2025), la Ley Especial contra los Delitos Informáticos (arts. 20-22, **penal**) y la Ley sobre Mensajes de Datos y Firmas Electrónicas. **PIPL de China** aplica al tratamiento del equipo en Yiwu. RGPD y Chile 21.719 son **referencia, no obligación**. Detalle en `references/marco-legal-ve.md` y `references/marco-legal-cn-pipl.md` — **citá desde ahí, nunca de memoria**.
+
+Tres reglas que no se rompen: (1) **no importar derecho ajeno** — "derechos ARCO" es México, el binomio responsable/encargado es RGPD; (2) la política **no puede prometer lo que el sistema no hace**; (3) la aceptación electrónica sin certificado de un PSC acreditado por SUSCERTE es **art. 17** (sana crítica), **no** firma autógrafa — no escribir "firmado" en la UI si el respaldo es ese.
+
+Fork MIT de [Carlos Domínguez](https://github.com/Carlos-Dominguez-faber/revisar-datos-personales), re-anclado a VE + China; qué cambió y por qué está en el `README.md` de la skill.
+
 ## Brand y diseño → punteros (no duplicar acá)
 
 - **Reglas de marca** → [`BRAND.md`](BRAND.md). **Leé siempre antes de tocar visuales.** Las 6 que no se rompen: (1) solo tokens CSS `var(--*)`, cero hex inventados · (2) solo Archivo + JetBrains Mono + Noto Sans SC · (3) cero AI slop (gradientes coloridos, glassmorphism, emojis decorativos) · (4) componentes del sistema primero · (5) avisar con formato `BRAND-CHECK` antes de violar · (6) todo texto se lee: contraste AA ≥4.5:1 / grande ≥3:1.
