@@ -240,7 +240,7 @@ llegado a `origin/main`, así que `git ls-tree origin/main` no las veía. El bar
 correcto es sobre `git for-each-ref refs/heads refs/remotes`, no sobre una sola rama.
 
 Las tres quedan declaradas en `supabase/migrations-baseline.json` hasta el OK del
-founder nombrando cada archivo. **Se aplican en orden: 0294 → 0295 → 0296.**
+founder nombrando cada archivo. **Se aplican en orden: 0297 → 0298 → 0296.**
 
 **Nota de render para las fases 3-5.** El visor isométrico que ya existe
 (`ContainerIsoView`) sirve para el escritorio, pero la vista que importa es la del teléfono:

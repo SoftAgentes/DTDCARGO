@@ -16,8 +16,8 @@ import {
   type PacklistHistEntry,
 } from "@/lib/studio/prealertas/packlist-draft";
 
-// Latin → Archivo (marca); CJK → Noto Sans SC (Archivo no trae hanzi). El
-// proveedor lee chino → es crítico que el CJK caiga en Noto SC.
+// Pantalla/UI: Latin → Archivo (marca); CJK → Noto Sans SC. La versión
+// imprimible cambia únicamente sus nodos zh-CN a --f-cn-document en @media print.
 const BRAND_CJK = "var(--font-archivo), var(--font-noto-sc)";
 // Mono + CJK: dígitos/códigos en mono tabular, hanzi en Noto SC.
 const MONO_CJK =
@@ -560,7 +560,7 @@ export function PackingListFormSection({
       {/* ── Barra de herramientas (no imprime) ── */}
       <div className="no-print flex flex-wrap items-center gap-2">
         <div className="mr-auto">
-          <div className="text-[15px] font-bold text-ink" lang="zh">
+          <div className="text-[15px] font-bold text-ink" lang="zh-CN">
             装箱单 + 发票{" "}
             <span lang="es" className="text-grey-500 font-semibold">
               · {tr(lang, "Packing List + Factura", "Packing List + Invoice")}
@@ -682,7 +682,7 @@ export function PackingListFormSection({
         >
           <div className="flex items-center gap-2 text-[14px] font-bold text-ink">
             <CheckIcon size={16} />
-            <span lang="zh">
+            <span lang="zh-CN">
               已提交 ·{" "}
               <span lang="es" className="font-semibold">
                 {tr(lang, "Enviado", "Sent")}
@@ -698,7 +698,7 @@ export function PackingListFormSection({
               {submit.versionNo > 1 ? ` · v${submit.versionNo}` : ""}
             </div>
           )}
-          <p className="mt-2 text-[12.5px] text-grey-700 leading-[1.55]" lang="zh">
+          <p className="mt-2 text-[12.5px] text-grey-700 leading-[1.55]" lang="zh-CN">
             可多次修改并重新提交
             <span lang="es" className="block text-grey-500 mt-1">
               {tr(
@@ -721,7 +721,7 @@ export function PackingListFormSection({
           {/* ── Encabezado del documento: identidad CN + teléfonos + folio ── */}
           <header className="pl-head mt-5">
             <div className="pl-phones" style={{ fontFamily: MONO_CJK }}>
-              <span lang="zh" className="text-wine font-bold">
+              <span lang="zh-CN" className="text-wine font-bold">
                 电话
               </span>
               <b>{cn.phoneLandline}</b>
@@ -729,23 +729,23 @@ export function PackingListFormSection({
               <b className="text-wine">{cn.warehouseEmail}</b>
             </div>
             <div className="pl-company">
-              <span lang="zh">{cn.companyCjk}</span>
+              <span lang="zh-CN">{cn.companyCjk}</span>
               {" · "}
               <span className="pl-wm">
                 <span className="d">DTD</span> <span className="g">Cargo</span>
               </span>
             </div>
             <div className="pl-doctitle">
-              <span lang="zh">装箱单 + 商业发票 · 入仓单</span>{" "}
+              <span lang="zh-CN">装箱单 + 商业发票 · 入仓单</span>{" "}
               <span lang="es">
                 {tr(lang, "Packing List + Factura", "Packing List + Invoice")}
               </span>
             </div>
             <div className="pl-headmeta">
-              <span lang="zh">仓库地址</span> {cn.addressCjk.replace(/\s+/g, "")}
+              <span lang="zh-CN">仓库地址</span> {cn.addressCjk.replace(/\s+/g, "")}
               <span className="pl-folio">
                 {" · "}
-                <span lang="zh">编号</span> N.º{" "}
+                <span lang="zh-CN">编号</span> N.º{" "}
                 <input
                   value={folio}
                   onChange={(e) => setFolio(e.target.value)}
@@ -761,7 +761,7 @@ export function PackingListFormSection({
             {/* Proveedor */}
             <div className="pl-igroup">
               <div className="pl-ighead">
-                <span lang="zh">供应商</span>{" "}
+                <span lang="zh-CN">供应商</span>{" "}
                 <span lang="es">{tr(lang, "Proveedor", "Supplier")}</span>
               </div>
               <InfoRow
@@ -791,7 +791,7 @@ export function PackingListFormSection({
               />
               <div className="pl-irow pl-irow-addr">
                 <span className="pl-il">
-                  <span lang="zh">地址</span>{" "}
+                  <span lang="zh-CN">地址</span>{" "}
                   <span lang="es">{tr(lang, "Dirección", "Address")}</span>
                 </span>
                 <input
@@ -802,7 +802,7 @@ export function PackingListFormSection({
                   autoComplete="street-address"
                 />
                 <span className="pl-il pl-il-city">
-                  <span lang="zh">城市</span>{" "}
+                  <span lang="zh-CN">城市</span>{" "}
                   <span lang="es">{tr(lang, "Ciudad", "City")}</span>
                 </span>
                 <input
@@ -818,7 +818,7 @@ export function PackingListFormSection({
             {/* Cliente */}
             <div className="pl-igroup">
               <div className="pl-ighead">
-                <span lang="zh">客户</span>{" "}
+                <span lang="zh-CN">客户</span>{" "}
                 <span lang="es">{tr(lang, "Cliente", "Client")}</span>
               </div>
               <InfoRow
@@ -840,7 +840,7 @@ export function PackingListFormSection({
               />
               <div className="pl-irow pl-irow-addr">
                 <span className="pl-il">
-                  <span lang="zh">客户电话</span>{" "}
+                  <span lang="zh-CN">客户电话</span>{" "}
                   <span lang="es">{tr(lang, "Tel.", "Phone")}</span>
                 </span>
                 <input
@@ -853,7 +853,7 @@ export function PackingListFormSection({
                   style={{ fontFamily: MONO_CJK }}
                 />
                 <span className="pl-il pl-il-city">
-                  <span lang="zh">邮箱</span> Email
+                  <span lang="zh-CN">邮箱</span> Email
                 </span>
                 <input
                   className="pl-in-city"
@@ -866,11 +866,11 @@ export function PackingListFormSection({
               </div>
               <div className="pl-irow">
                 <span className="pl-il">
-                  <span lang="zh">日期</span>{" "}
+                  <span lang="zh-CN">日期</span>{" "}
                   <span lang="es">{tr(lang, "Fecha", "Date")}</span>
                 </span>
                 <div className="pl-date-row">
-                  <span className="pl-date-cn" lang="zh">
+                  <span className="pl-date-cn" lang="zh-CN">
                     {renderDateCN(docDate)}
                   </span>
                   <button
@@ -904,7 +904,7 @@ export function PackingListFormSection({
 
           {/* ── Detalle de mercancía ── */}
           <div className="pl-sect-t mt-4">
-            <span lang="zh">货物明细</span>{" "}
+            <span lang="zh-CN">货物明细</span>{" "}
             <span lang="es">{tr(lang, "Detalle de mercancía", "Goods detail")}</span>
           </div>
           <div className="mt-1.5 overflow-x-auto rounded-[12px] border border-grey-200">
@@ -1143,7 +1143,7 @@ export function PackingListFormSection({
               <tfoot>
                 <tr>
                   <td colSpan={7} className="tfoot-lab">
-                    <span lang="zh">总计</span> · {tr(lang, "Totales", "Totals")}
+                    <span lang="zh-CN">总计</span> · {tr(lang, "Totales", "Totals")}
                   </td>
                   <td className="tfoot-v">{fmtInt(totals.ctns)}</td>
                   <td />
@@ -1168,20 +1168,20 @@ export function PackingListFormSection({
             <div>
               <div className="pl-sign-line" />
               <div className="pl-sign-lab">
-                <span lang="zh">供应商签字</span> ·{" "}
+                <span lang="zh-CN">供应商签字</span> ·{" "}
                 {tr(lang, "Firma del proveedor", "Supplier signature")}
               </div>
             </div>
             <div>
               <div className="pl-sign-line" />
               <div className="pl-sign-lab">
-                <span lang="zh">盖章</span> · {tr(lang, "Sello de la empresa", "Company stamp")}
+                <span lang="zh-CN">盖章</span> · {tr(lang, "Sello de la empresa", "Company stamp")}
               </div>
             </div>
             <div>
               <div className="pl-sign-line" />
               <div className="pl-sign-lab">
-                <span lang="zh">日期</span> · {tr(lang, "Fecha", "Date")}
+                <span lang="zh-CN">日期</span> · {tr(lang, "Fecha", "Date")}
               </div>
             </div>
           </div>
@@ -1195,7 +1195,7 @@ export function PackingListFormSection({
             aria-label="Totales en vivo / 实时总计"
           >
             <div className="flex items-center justify-between gap-2 text-[11px] text-grey-700">
-              <span lang="zh" className="font-semibold text-ink">
+              <span lang="zh-CN" className="font-semibold text-ink">
                 总计 · {tr(lang, "Totales", "Totals")}
               </span>
               <div
@@ -1225,7 +1225,7 @@ export function PackingListFormSection({
           {/* Nota opcional */}
           <div className="no-print mt-5 flex flex-col gap-1.5">
             <label className="text-[11px] font-semibold tracking-[0.04em] text-grey-500">
-              <span lang="zh">备注 (可选)</span>
+              <span lang="zh-CN">备注 (可选)</span>
               <span lang="es"> · {tr(lang, "Nota (opcional)", "Note (optional)")}</span>
             </label>
             <textarea
@@ -1273,7 +1273,7 @@ export function PackingListFormSection({
           {/* ── Reglas de ingreso a bodega (trilingüe, parte del documento) ── */}
           <section className="pl-rules mt-6">
             <div className="pl-rules-head">
-              <span lang="zh">入仓注意事项</span>{" "}
+              <span lang="zh-CN">入仓注意事项</span>{" "}
               <span lang="es">
                 · {tr(lang, "Reglas de ingreso a bodega", "Warehouse intake rules")}
               </span>
@@ -1283,7 +1283,7 @@ export function PackingListFormSection({
                 <li key={i} className="pl-rule">
                   <span className="pl-rule-n">{i + 1}</span>
                   <span className="pl-rule-body">
-                    <span lang="zh" className="pl-rule-zh">
+                    <span lang="zh-CN" className="pl-rule-zh">
                       {rule.zh}
                     </span>{" "}
                     <span lang="es" className="pl-rule-lat">
@@ -1320,7 +1320,7 @@ export function PackingListFormSection({
                 )}
               </button>
               <span>
-                <span lang="zh">收货信息</span> ·{" "}
+                <span lang="zh-CN">收货信息</span> ·{" "}
                 <span lang="es">{tr(lang, "Dirección de recepción", "Warehouse address")}</span>
               </span>
             </div>
@@ -1394,13 +1394,13 @@ export function PackingListFormSection({
           font: 700 14px/1.2 var(--font-archivo), system-ui, sans-serif;
           color: var(--color-grey-700); margin-top: 4px;
         }
-        .pl-doctitle [lang="zh"] { color: var(--color-wine); font-size: 13px; margin-right: 6px; }
+        .pl-doctitle [lang="zh-CN"] { color: var(--color-wine); font-size: 13px; margin-right: 6px; }
         .pl-headmeta {
           font: 600 10px/1.4 var(--font-archivo), system-ui, sans-serif;
           letter-spacing: 0.06em; text-transform: uppercase;
           color: var(--color-grey-500); margin-top: 5px;
         }
-        .pl-headmeta [lang="zh"] { text-transform: none; letter-spacing: 0; }
+        .pl-headmeta [lang="zh-CN"] { text-transform: none; letter-spacing: 0; }
         .pl-folio { color: var(--color-wine); }
         .pl-folio input {
           border: 0; outline: 0; background: transparent;
@@ -1422,7 +1422,7 @@ export function PackingListFormSection({
           color: var(--color-wine); background: var(--color-grey-100);
           padding: 7px 11px; border-bottom: 1px solid var(--color-grey-200);
         }
-        .pl-ighead [lang="zh"] { letter-spacing: 0; }
+        .pl-ighead [lang="zh-CN"] { letter-spacing: 0; }
         .pl-irow {
           display: flex; align-items: center;
           border-bottom: 1px solid var(--color-grey-200); min-height: 32px;
@@ -1433,7 +1433,7 @@ export function PackingListFormSection({
           font: 600 9.5px/1.25 var(--font-archivo), system-ui, sans-serif;
           color: var(--color-grey-500); padding: 4px 9px;
         }
-        .pl-il [lang="zh"] { color: var(--color-grey-700); font-weight: 700; }
+        .pl-il [lang="zh-CN"] { color: var(--color-grey-700); font-weight: 700; }
         .pl-irow input {
           flex: 1; border: 0; outline: 0; background: transparent;
           font: 500 12px var(--font-archivo), system-ui, sans-serif;
@@ -1466,7 +1466,7 @@ export function PackingListFormSection({
           color: var(--color-wine); letter-spacing: 0.04em;
           display: flex; align-items: baseline; justify-content: center; gap: 8px;
         }
-        .pl-sect-t [lang="zh"] { color: var(--color-ink); font-size: 13px; letter-spacing: 0; }
+        .pl-sect-t [lang="zh-CN"] { color: var(--color-ink); font-size: 13px; letter-spacing: 0; }
         .pl-doc .row td { border-top: 1px solid var(--color-grey-200); }
         .pl-doc thead th {
           background: var(--color-grey-100);
@@ -1567,7 +1567,7 @@ export function PackingListFormSection({
         /* ── Reglas de ingreso a bodega (número único de color, sin el gris del <ol>) ── */
         .pl-rules { border: 1px solid var(--color-grey-200); border-radius: 8px; padding: 13px 15px; }
         .pl-rules-head { font: 700 11px/1.2 var(--font-archivo); color: var(--color-wine); margin-bottom: 9px; }
-        .pl-rules-head [lang="zh"] { color: var(--color-ink); }
+        .pl-rules-head [lang="zh-CN"] { color: var(--color-ink); }
         .pl-rules-list { list-style: none; margin: 0; padding: 0; }
         .pl-rule { display: flex; gap: 7px; margin-bottom: 5px; font: 400 10.5px/1.5 var(--font-archivo); color: var(--color-grey-700); }
         .pl-rule:last-child { margin-bottom: 0; }
@@ -1584,7 +1584,7 @@ export function PackingListFormSection({
           font: 700 9.5px/1.3 var(--font-archivo), system-ui, sans-serif;
           letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-wine);
         }
-        .pl-wh-head [lang="zh"] { letter-spacing: 0; }
+        .pl-wh-head [lang="zh-CN"] { letter-spacing: 0; }
         .pl-wh-copy {
           appearance: none; cursor: pointer;
           display: inline-flex; align-items: center; gap: 5px;
@@ -1652,6 +1652,10 @@ export function PackingListFormSection({
         /* ── Impresión: 1 página A4 horizontal, sin chrome ni columna borrar. ── */
         @media print {
           .no-print { display: none !important; }
+          /* VIS-02 V3: documento formal chino. La UI conserva Noto Sans SC. */
+          .pl-doc [lang="zh-CN"] {
+            font-family: var(--f-cn-document) !important;
+          }
           .pl-doc .pl-sign {
             display: grid !important;
             grid-template-columns: repeat(3, 1fr);
@@ -1849,7 +1853,7 @@ function InfoRow({
   return (
     <div className="pl-irow">
       <span className="pl-il">
-        <span lang="zh">{labelZh}</span> <span lang="es">{labelLat}</span>
+        <span lang="zh-CN">{labelZh}</span> <span lang="es">{labelLat}</span>
       </span>
       <input
         type={type}
@@ -1881,7 +1885,7 @@ function Th({
   return (
     <th className={className}>
       {zh && (
-        <span className="th-zh" lang="zh">
+        <span className="th-zh" lang="zh-CN">
           {zh}
         </span>
       )}
@@ -1973,7 +1977,7 @@ function CellInput({
       onChange={(e) => onChange(e.target.value)}
       aria-label={ariaLabel}
       inputMode={num ? "decimal" : undefined}
-      lang={zh ? "zh" : undefined}
+      lang={zh ? "zh-CN" : undefined}
     />
   );
 }

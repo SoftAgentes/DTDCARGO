@@ -16,6 +16,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { executeD1Operation } from "@/lib/studio/audit/d1-access-config-adapters";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
   AGENT_STATUSES,
@@ -52,19 +53,6 @@ export async function installSkillAction(
   const { input, fieldErrors } = validateInstallSkillInput(partial);
   if (fieldErrors || !input) return { fieldErrors };
 
-  // Resolver tenant del usuario logueado
-  const { data: link } = await supabase
-    .from("user_tenants")
-    .select("tenant_id")
-    .maybeSingle<{ tenant_id: string }>();
-  if (!link?.tenant_id) {
-    return { error: "No se pudo resolver el tenant del usuario." };
-  }
-
-  // Resolver el usuario (created_by)
-  const { data: userResp } = await supabase.auth.getUser();
-  const createdBy = userResp.user?.id ?? null;
-
   // Fetch skill para conocer tools_required (auto-grant) y default_trigger
   const { data: skill, error: skillErr } = await supabase
     .from("skills")
@@ -82,63 +70,27 @@ export async function installSkillAction(
     return { error: "La skill no existe o está desactivada." };
   }
 
-  // Generar slug AGT-NNNN via RPC
-  const { data: slugResp, error: slugErr } = await supabase.rpc(
-    "next_agent_slug",
-    { p_tenant_id: link.tenant_id },
-  );
-  if (slugErr || !slugResp) {
-    return { error: `No se pudo generar el slug: ${slugErr?.message ?? "RPC vacío"}` };
-  }
-  const agentSlug = slugResp as string;
-
-  // Insertar agent
-  const { data: agentRow, error: insertErr } = await supabase
-    .from("agents")
-    .insert({
-      tenant_id: link.tenant_id,
-      skill_id: input.skill_id,
-      slug: agentSlug,
-      name: input.name,
-      model: input.model,
-      status: "off",
-      budget_usd_monthly: input.budget_usd_monthly,
-      trigger_config: input.trigger_config ?? {},
-      created_by: createdBy,
-    })
-    .select("id")
-    .single<{ id: string }>();
-
-  if (insertErr || !agentRow) {
-    return { error: `No se pudo instalar la skill: ${insertErr?.message ?? "insert vacío"}` };
-  }
-
-  // Auto-grant de tools_required (cada una en su fila)
-  if (skill.tools_required.length > 0) {
-    const grants = skill.tools_required.map((toolKey) => ({
-      agent_id: agentRow.id,
-      tool_key: toolKey,
-      scope: {},
-      granted_by: createdBy,
-    }));
-    const { error: grantErr } = await supabase
-      .from("agent_tool_grants")
-      .insert(grants);
-    if (grantErr) {
-      // No revertimos el agent — V1 acepta agent sin grants y los re-otorga
-      // desde el detalle. Reportamos para que el operador sepa.
-      revalidatePath("/studio/admin/agentes");
-      return {
-        ok: true,
-        agentId: agentRow.id,
-        error: `Agent instalado pero falló el grant de tools: ${grantErr.message}. Reotorgalas desde el detalle.`,
-      };
-    }
+  let agentId: string;
+  try {
+    const result = await executeD1Operation(supabase, {
+      operationType: "agent.install",
+      input: {
+        skill_id: input.skill_id,
+        name: input.name,
+        model: input.model,
+        budget_usd_monthly: input.budget_usd_monthly,
+        trigger_config: input.trigger_config ?? {},
+        tools_required: skill.tools_required,
+      },
+    });
+    agentId = result.entity_id;
+  } catch {
+    return { error: "No se pudo instalar la skill y sus grants." };
   }
 
   revalidatePath("/studio/admin/agentes");
   revalidatePath("/studio/dashboard");
-  return { ok: true, agentId: agentRow.id };
+  return { ok: true, agentId };
 }
 
 /**
@@ -159,13 +111,14 @@ export async function toggleAgentStatusAction(
   const denial = await moduleEditDenial(supabase, "admin");
   if (denial) return { error: denial };
 
-  const { error } = await supabase
-    .from("agents")
-    .update({ status: nextStatus })
-    .eq("id", agentId)
-    .is("deleted_at", null);
-  if (error) {
-    return { error: `No se pudo cambiar el estado: ${error.message}` };
+  try {
+    await executeD1Operation(supabase, {
+      operationType: "agent.status_change",
+      targetId: agentId,
+      input: { status: nextStatus },
+    });
+  } catch {
+    return { error: "No se pudo cambiar el estado." };
   }
 
   revalidatePath("/studio/admin/agentes");

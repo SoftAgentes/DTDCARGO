@@ -62,10 +62,10 @@ insert into public.container_types (tenant_id, code, label, cbm_capacity, kg_cap
 values
   ('11111111-1111-1111-1111-111111111111', '45HC', '45'' HC', 84.5, 26500, 40);
 
-\ir ../migrations/0294_container_types_activos_y_capacidad_util.sql
+\ir ../migrations/0297_container_types_activos_y_capacidad_util.sql
 
 -- Segunda pasada: la migración tiene que ser IDEMPOTENTE.
-\ir ../migrations/0294_container_types_activos_y_capacidad_util.sql
+\ir ../migrations/0297_container_types_activos_y_capacidad_util.sql
 
 -- ── Aserciones ───────────────────────────────────────────────
 

@@ -13,7 +13,7 @@
  *
  * El flip y el insert no van en una transacción SQL (el cliente de Supabase no
  * las expone). La red de seguridad real es el índice único parcial
- * `consolidation_plans_one_current` de la migración 0295: si dos pedidos corren a
+ * `consolidation_plans_one_current` de la migración 0298: si dos pedidos corren a
  * la vez, el segundo insert falla con 23505 en vez de dejar dos vigentes.
  */
 

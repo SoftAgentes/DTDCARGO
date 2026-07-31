@@ -152,4 +152,4 @@ revoke execute on function public.consolidation_plan_same_tenant() from anon;
 revoke execute on function public.consolidation_plan_same_tenant() from authenticated;
 
 -- ─────────────────────────────────────────────────────────────
--- Fin migración 0295_consolidation_plans.sql
+-- Fin migración 0298_consolidation_plans.sql

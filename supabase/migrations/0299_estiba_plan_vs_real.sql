@@ -46,4 +46,4 @@ create index if not exists consolidation_box_positions_plan_idx
   where unstuffed_at is null;
 
 -- ─────────────────────────────────────────────────────────────
--- Fin migración 0296_estiba_plan_vs_real.sql
+-- Fin migración 0299_estiba_plan_vs_real.sql

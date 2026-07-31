@@ -64,7 +64,7 @@ insert into public.consolidations (id, tenant_id) values
   ('aaaaaaaa-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111'),
   ('bbbbbbbb-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222');
 
-\ir ../migrations/0295_consolidation_plans.sql
+\ir ../migrations/0298_consolidation_plans.sql
 
 -- ── Aserciones ───────────────────────────────────────────────
 

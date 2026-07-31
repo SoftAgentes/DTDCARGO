@@ -96,7 +96,7 @@ describe("CONTAINER_TYPES — capacidad ÚTIL, no geométrica (SDD-0184)", () =>
     // ⚠️ Estos números NO son el volumen geométrico interno del contenedor.
     // El geométrico (33,2 / 67,7 / 76,2) es de pared a pared y nadie carga
     // hasta el techo y las esquinas. El 68 del 40'HC lo fijó el founder; el
-    // factor 68/76,2 = 0,8923 da los otros dos. Espejo de la migración 0294:
+    // factor 68/76,2 = 0,8923 da los otros dos. Espejo de la migración 0297:
     // si alguien cambia uno sin el otro, el WMS y Naviera se contradicen.
     expect(CONTAINER_TYPES["20GP"]).toEqual({
       label: "20' GP", cbm: 30, kg: 28000, alertCeiling: null, active: true,

@@ -8,12 +8,15 @@ description: Audita de forma read-only la adopción de gobernanza en una superfi
 ## Flujo
 
 1. Define superficie, módulo, flujo y muestra acotada.
-2. Lee `docs/governance/AGENT-BRIEF.md` y el registro derivado.
-3. Abre únicamente las políticas relacionadas.
-4. Reúne evidencia estática y runtime disponible sin leer PII.
-5. Ejecuta `node scripts/validate-governance.mjs`.
-6. Clasifica cada hallazgo y separa deuda legacy del cambio actual.
-7. Prioriza R2/R3 y propone slices pequeños con SDD y allowlist propios.
+2. Resuelve el root con `git rev-parse --show-toplevel` desde el directorio de
+   trabajo y falla cerrado si no es DTDCargo.
+3. Lee `docs/governance/AGENT-BRIEF.md` y el registro derivado.
+4. Abre únicamente las políticas relacionadas.
+5. Reúne evidencia estática y runtime disponible sin leer PII.
+6. Ejecuta `node <plugin-root>/scripts/validate-governance.mjs` con el root del
+   repositorio como directorio de trabajo.
+7. Clasifica cada hallazgo y separa deuda legacy del cambio actual.
+8. Prioriza R2/R3 y propone slices pequeños con SDD y allowlist propios.
 
 ## Salida
 

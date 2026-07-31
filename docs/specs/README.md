@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 178 specs)
+### Índice de specs (generado · 182 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -209,13 +209,17 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0175 | VIS-02 — tipografía por voz, destinatario e idioma | in-progress | interno |
 | 0176 | Portal — el ámbar deja de usarse como texto (barrido AA) | done | interno |
 | 0177 | Portal — Estado de cuenta (libro de movimientos) | done | interno |
-| 0178 | Plugin read-only de gobernanza ERP Studio | in-progress | interno |
+| 0178 | Plugin read-only de gobernanza ERP Studio | done | interno |
 | 0180 | Tabs accesibles en Fiscal | done | interno |
 | 0181 | Selectores accesibles y colisión segura | done | interno |
 | 0182 | Validación progresiva de identidad en Club | done | interno |
 | 0183 | Control plane ejecutable de gobernanza | done | interno |
 | 0184 | Plan de carga por volumen · el sistema le dice al operario dó… | in-progress | interno |
 | 0185 | NUM-01 v1.1 y expresiones decimales | done | interno |
+| 0186 | Fundamento verificable de retención de auditoría | done | interno |
+| 0187 | Auditoría D2 — motivos humanos en anulaciones financieras | done | interno |
+| 0188 | Auditoría D3 — motivos humanos en cancelaciones comerciales | done | interno |
+| 0189 | Auditoría D4 — search_path vacío en RPC logísticas R3 | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0179 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

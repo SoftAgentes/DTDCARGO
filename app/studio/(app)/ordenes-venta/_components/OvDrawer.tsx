@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/app/studio/_components/icons";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
@@ -102,6 +103,9 @@ export function OvDrawer({
   const toast = useToast();
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelPending, setCancelPending] = useState(false);
+  const [cancelError, setCancelError] = useState<string | undefined>();
 
   const refresh = () => router.refresh();
 
@@ -465,30 +469,74 @@ export function OvDrawer({
             }}
           >
             {transitions.map((to) => (
-              <ActionButton
-                key={to}
-                variant={to === "cancelada" ? "danger" : "dark"}
-                size="sm"
-                idleLabel={to === "cerrada" ? "Cerrar" : "Cancelar"}
-                loadingLabel="Cambiando…"
-                successLabel={null}
-                onAction={async () => {
-                  setError(null);
-                  const r = await setSalesOrderStatus(so.id, to);
-                  if (r.error) return { error: r.error };
-                  toast.info(
-                    `OV ${so.sales_order_code} → ${salesOrderStatusLabel(to)}`,
-                  );
-                  refresh();
-                  onClose();
-                  return undefined;
-                }}
-                onError={setError}
-              />
+              to === "cancelada" ? (
+                <button
+                  key={to}
+                  type="button"
+                  className="studio-btn studio-btn-danger studio-btn-sm"
+                  onClick={() => {
+                    setCancelError(undefined);
+                    setCancelOpen(true);
+                  }}
+                >
+                  Cancelar
+                </button>
+              ) : (
+                <ActionButton
+                  key={to}
+                  variant="dark"
+                  size="sm"
+                  idleLabel="Cerrar"
+                  loadingLabel="Cambiando…"
+                  successLabel={null}
+                  onAction={async () => {
+                    setError(null);
+                    const r = await setSalesOrderStatus(so.id, to);
+                    if (r.error) return { error: r.error };
+                    toast.info(
+                      `OV ${so.sales_order_code} → ${salesOrderStatusLabel(to)}`,
+                    );
+                    refresh();
+                    onClose();
+                    return undefined;
+                  }}
+                  onError={setError}
+                />
+              )
             ))}
           </div>
         )}
       </div>
+      <ConfirmDialog
+        open={cancelOpen}
+        danger
+        reason
+        reasonRequired
+        title={`Cancelar ${so.sales_order_code}`}
+        message="La cancelación queda registrada en el historial de auditoría y no puede deshacerse desde este flujo."
+        confirmLabel="Cancelar orden"
+        reasonLabel="Motivo de la cancelación"
+        reasonPlaceholder="Explica por qué se cancela esta orden"
+        pending={cancelPending}
+        error={cancelError}
+        onCancel={() => {
+          if (!cancelPending) setCancelOpen(false);
+        }}
+        onConfirm={async (reason) => {
+          setCancelPending(true);
+          setCancelError(undefined);
+          const result = await setSalesOrderStatus(so.id, "cancelada", reason);
+          setCancelPending(false);
+          if (result.error) {
+            setCancelError(result.error);
+            return;
+          }
+          setCancelOpen(false);
+          toast.info(`OV ${so.sales_order_code} → Cancelada`);
+          refresh();
+          onClose();
+        }}
+      />
     </DrawerShell>
   );
 }

@@ -16,7 +16,11 @@
  *   foto     → image_only
  */
 
-import type { MailSignatureLayout } from "./mail-types";
+import type { MailSignatureLang, MailSignatureLayout } from "./mail-types";
+import {
+  EMAIL_FONT_STACK,
+  emailTypographyForSignature,
+} from "./mail/email-typography";
 
 export interface SignatureRenderData {
   layout: MailSignatureLayout;
@@ -26,6 +30,7 @@ export interface SignatureRenderData {
   phone?: string | null;
   photo_url?: string | null;
   company_name?: string | null;
+  lang?: MailSignatureLang;
 }
 
 // ── Hex de marca (literal a propósito, ver header) ───────────
@@ -35,9 +40,9 @@ const INK = "#0F1E3D";
 const MUTE = "#6B6B6B";
 const RULE = "#E8E6E2";
 
-const FONT_SANS = "Archivo, Helvetica, Arial, sans-serif";
-const FONT_DISPLAY = "'Archivo Black', Archivo, Helvetica, Arial, sans-serif";
-const FONT_MONO = "'JetBrains Mono', 'Courier New', monospace";
+const FONT_SANS = EMAIL_FONT_STACK.brand;
+const FONT_DISPLAY = EMAIL_FONT_STACK.brandDisplay;
+const FONT_MONO = EMAIL_FONT_STACK.data;
 
 function escapeHtml(value: string): string {
   return value
@@ -66,6 +71,10 @@ const isUrl = (v: string): boolean => /^https?:\/\//i.test(v.trim());
  * omiten (no renderiza líneas en blanco). Escapa el texto del usuario.
  */
 export function renderSignatureHtml(sig: SignatureRenderData): string {
+  const typography = emailTypographyForSignature(sig.lang ?? "es");
+  const bodyFont = typography.bodyFont;
+  const nameFont = typography.formalChinese ? bodyFont : FONT_DISPLAY;
+  const rootLang = `lang="${typography.htmlLang}"`;
   const name = escapeHtml(sig.full_name || "");
   const role = sig.role_label ? escapeHtml(sig.role_label) : "";
   const email = sig.email ? escapeHtml(sig.email) : "";
@@ -73,10 +82,10 @@ export function renderSignatureHtml(sig: SignatureRenderData): string {
   const rawPhoto = sig.photo_url?.trim() || "";
 
   const nameHtml = name
-    ? `<div style="font:900 16px/1.1 ${FONT_DISPLAY};color:${INK};letter-spacing:-0.01em;">${name}</div>`
+    ? `<div style="font:${typography.formalChinese ? "700" : "900"} 16px/1.1 ${nameFont};color:${INK};letter-spacing:-0.01em;">${name}</div>`
     : "";
   const roleHtml = role
-    ? `<div style="font:500 12px/1.4 ${FONT_SANS};color:${MUTE};margin-top:3px;">${role}</div>`
+    ? `<div style="font:500 12px/1.4 ${bodyFont};color:${MUTE};margin-top:3px;">${role}</div>`
     : "";
   const emailHtml = email
     ? `<a href="mailto:${email}" style="color:${MUTE};text-decoration:none;">${email}</a>`
@@ -90,12 +99,12 @@ export function renderSignatureHtml(sig: SignatureRenderData): string {
   if (sig.layout === "corporate") {
     const contact = [emailHtml, phoneHtml].filter(Boolean).join("<br/>");
     return (
-      `<table cellpadding="0" cellspacing="0" style="border-collapse:collapse;"><tbody><tr>` +
-      `<td style="border-left:3px solid ${WINE};padding-left:14px;font:500 13px/1.5 ${FONT_SANS};color:${INK};">` +
+      `<table ${rootLang} cellpadding="0" cellspacing="0" style="border-collapse:collapse;"><tbody><tr>` +
+      `<td style="border-left:3px solid ${WINE};padding-left:14px;font:500 13px/1.5 ${bodyFont};color:${INK};">` +
       nameHtml +
       roleHtml +
       (contact
-        ? `<div style="margin-top:8px;font:500 11.5px/1.5 ${FONT_SANS};color:${MUTE};">${contact}</div>`
+          ? `<div style="margin-top:8px;font:500 11.5px/1.5 ${bodyFont};color:${MUTE};">${contact}</div>`
         : "") +
       brandHtml +
       `</td></tr></tbody></table>`
@@ -118,7 +127,7 @@ export function renderSignatureHtml(sig: SignatureRenderData): string {
       .filter(Boolean)
       .join(" · ");
     return (
-      `<div style="font:500 12.5px/1.5 ${FONT_SANS};color:${INK};">` +
+      `<div ${rootLang} style="font:500 12.5px/1.5 ${bodyFont};color:${INK};">` +
       (line1 ? `<div>${line1}</div>` : "") +
       `<div style="margin-top:4px;color:${MUTE};font-size:11.5px;">${line2}</div>` +
       `</div>`
@@ -128,14 +137,14 @@ export function renderSignatureHtml(sig: SignatureRenderData): string {
   // ── card (vertical): tarjeta con borde ──────────────────────
   if (sig.layout === "card") {
     return (
-      `<div style="display:inline-block;padding:14px 18px;border:1.5px solid ${INK};border-radius:4px;font-family:${FONT_SANS};color:${INK};text-align:left;">` +
+      `<div ${rootLang} style="display:inline-block;padding:14px 18px;border:1.5px solid ${INK};border-radius:4px;font-family:${bodyFont};color:${INK};text-align:left;">` +
       (name
-        ? `<div style="font:900 14px/1 ${FONT_DISPLAY};letter-spacing:-0.01em;">${name}</div>`
+        ? `<div style="font:${typography.formalChinese ? "700" : "900"} 14px/1 ${nameFont};letter-spacing:-0.01em;">${name}</div>`
         : "") +
       roleHtml +
       `<div style="height:1px;background:${RULE};margin:10px 0;"></div>` +
       (email
-        ? `<div style="font:500 11px/1.5 ${FONT_SANS};color:${MUTE};">${emailHtml}</div>`
+        ? `<div style="font:500 11px/1.5 ${bodyFont};color:${MUTE};">${emailHtml}</div>`
         : "") +
       (phone
         ? `<div style="font:600 11px/1.5 ${FONT_MONO};color:${MUTE};">${phoneHtml}</div>`
@@ -148,9 +157,9 @@ export function renderSignatureHtml(sig: SignatureRenderData): string {
   // ── minimal (mínimo): nombre + email ────────────────────────
   if (sig.layout === "minimal") {
     return (
-      `<div style="font:500 13px/1.5 ${FONT_SANS};color:${INK};">` +
+      `<div ${rootLang} style="font:500 13px/1.5 ${bodyFont};color:${INK};">` +
       (name
-        ? `<div style="font:800 14px/1.2 ${FONT_SANS};color:${INK};letter-spacing:-0.01em;">${name}</div>`
+        ? `<div style="font:800 14px/1.2 ${bodyFont};color:${INK};letter-spacing:-0.01em;">${name}</div>`
         : "") +
       (email
         ? `<div style="margin-top:4px;color:${MUTE};font-size:12px;">${emailHtml}</div>`
@@ -171,13 +180,13 @@ export function renderSignatureHtml(sig: SignatureRenderData): string {
           }</div>`;
     const contact = [emailHtml, phoneHtml].filter(Boolean).join(" · ");
     return (
-      `<table cellpadding="0" cellspacing="0" style="border-collapse:collapse;"><tbody><tr>` +
+      `<table ${rootLang} cellpadding="0" cellspacing="0" style="border-collapse:collapse;"><tbody><tr>` +
       `<td style="padding-right:14px;vertical-align:top;">${avatar}</td>` +
-      `<td style="border-left:3px solid ${WINE};padding-left:14px;font:500 13px/1.5 ${FONT_SANS};color:${INK};">` +
+      `<td style="border-left:3px solid ${WINE};padding-left:14px;font:500 13px/1.5 ${bodyFont};color:${INK};">` +
       nameHtml +
       roleHtml +
       (contact
-        ? `<div style="margin-top:8px;font:500 11.5px/1.5 ${FONT_SANS};color:${MUTE};">${contact}</div>`
+          ? `<div style="margin-top:8px;font:500 11.5px/1.5 ${bodyFont};color:${MUTE};">${contact}</div>`
         : "") +
       brandHtml +
       `</td></tr></tbody></table>`

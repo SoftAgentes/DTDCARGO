@@ -119,4 +119,4 @@ create index if not exists container_types_tenant_active_idx
   on public.container_types (tenant_id, active, display_order);
 
 -- ─────────────────────────────────────────────────────────────
--- Fin migración 0294_container_types_activos_y_capacidad_util.sql
+-- Fin migración 0297_container_types_activos_y_capacidad_util.sql

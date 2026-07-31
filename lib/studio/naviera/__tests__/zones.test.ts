@@ -43,7 +43,7 @@ describe("layout", () => {
   it("el default es 3×1×3 = 9 áreas, SIN altura", () => {
     // SDD-0184: la altura no se usa. El operario solo elige izquierda/centro/
     // derecha (SDD-0155) y la interfaz nunca muestra niveles. Espejo de lo que
-    // la migración 0294 deja en `container_types.zone_layout` para los 40'.
+    // la migración 0297 deja en `container_types.zone_layout` para los 40'.
     expect(DEFAULT_ZONE_LAYOUT).toEqual({ nx: 3, ny: 1, nz: 3 });
     expect(DEFAULT_ZONE_LAYOUT.ny).toBe(1);
     expect(zoneCount(DEFAULT_ZONE_LAYOUT)).toBe(9);

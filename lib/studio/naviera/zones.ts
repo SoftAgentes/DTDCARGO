@@ -17,7 +17,7 @@
 export type ZoneLayout = { nx: number; ny: number; nz: number };
 
 /**
- * 3 × 1 × 3 = 9 áreas. Espejo de lo que deja la migración 0294 para los 40'.
+ * 3 × 1 × 3 = 9 áreas. Espejo de lo que deja la migración 0297 para los 40'.
  *
  * SDD-0184: la altura NO se usa. 0241 había sembrado ny=2, pero el modelo por
  * lotes de SDD-0155 solo deja elegir izquierda/centro/derecha y la interfaz nunca

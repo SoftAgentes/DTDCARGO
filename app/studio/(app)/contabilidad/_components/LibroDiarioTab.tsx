@@ -20,6 +20,7 @@ import type { Account } from "@/lib/studio/account-types";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { useRowHighlight } from "@/app/studio/_components/ui/useRowHighlight";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { Icon } from "@/app/studio/_components/icons";
@@ -47,6 +48,8 @@ export function LibroDiarioTab({
   const toast = useToast();
   const flashClassFor = useRowHighlight();
   const [error, setError] = useState<string | null>(null);
+  const [voidTarget, setVoidTarget] = useState<JournalEntry | null>(null);
+  const [voidPending, setVoidPending] = useState(false);
 
   const noAccounts = accountsCount === 0 || postableAccounts.length === 0;
 
@@ -256,22 +259,17 @@ export function LibroDiarioTab({
                   </>
                 )}
                 {entry.status === "asentado" && (
-                  <ActionButton
-                    variant="ghost"
-                    size="xs"
-                    idleLabel="Anular"
-                    loadingLabel="Anulando…"
-                    successLabel="Anulado"
-                    onAction={async () => {
+                  <button
+                    type="button"
+                    className="studio-btn studio-btn-ghost studio-btn-xs"
+                    style={{ color: "var(--danger)" }}
+                    onClick={() => {
                       setError(null);
-                      const r = await voidEntry(entry.id);
-                      if (r.error) throw new Error(r.error);
+                      setVoidTarget(entry);
                     }}
-                    onSuccess={() =>
-                      toast.success(`Asiento ${entry.entry_code} anulado`)
-                    }
-                    onError={setError}
-                  />
+                  >
+                    Anular
+                  </button>
                 )}
                 {entry.status === "anulado" && (
                   <span
@@ -292,6 +290,35 @@ export function LibroDiarioTab({
       {showCreate && (
         <EntryDrawer postableAccounts={postableAccounts} onClose={onCloseCreate} />
       )}
+      <ConfirmDialog
+        open={voidTarget !== null}
+        danger
+        reason
+        reasonRequired
+        initialFocus="reason"
+        title="Anular asiento"
+        message={`El asiento ${voidTarget?.entry_code ?? ""} quedará anulado en el historial. Indica el motivo contable.`}
+        confirmLabel="Anular asiento"
+        pending={voidPending}
+        error={error ?? undefined}
+        onCancel={() => {
+          if (!voidPending) setVoidTarget(null);
+        }}
+        onConfirm={async (reason) => {
+          if (!voidTarget) return;
+          setVoidPending(true);
+          setError(null);
+          const result = await voidEntry(voidTarget.id, reason);
+          if (result.error) {
+            setError(result.error);
+            setVoidPending(false);
+            return;
+          }
+          toast.success(`Asiento ${voidTarget.entry_code} anulado`);
+          setVoidTarget(null);
+          setVoidPending(false);
+        }}
+      />
     </>
   );
 }

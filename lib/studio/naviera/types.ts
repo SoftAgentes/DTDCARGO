@@ -61,7 +61,7 @@ export type ContainerTypeSpec = {
  * en `build_consolidado.py`. De ahí sale el factor práctico 68/76,2 = 0,8923,
  * que aplicado a los otros dos da 30 y 60.
  *
- * ⚠️ Esta constante y la migración 0294 son UN SOLO CAMBIO. `containerStats` lee
+ * ⚠️ Esta constante y la migración 0297 son UN SOLO CAMBIO. `containerStats` lee
  * de acá y el WMS (`containerCapacityCbm`) lee de la base: si se tocan por
  * separado, las dos pantallas se contradicen en la misma sesión.
  */

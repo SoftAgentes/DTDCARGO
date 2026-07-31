@@ -7,7 +7,15 @@ export const pluginRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
 );
-export const repoRoot = path.resolve(pluginRoot, "..", "..", "..", "..");
+export function resolveRepoRoot(cwd = process.cwd()) {
+  return path.resolve(
+    execFileSync("git", ["rev-parse", "--show-toplevel"], {
+      cwd,
+      encoding: "utf8",
+    }).trim(),
+  );
+}
+export const repoRoot = resolveRepoRoot();
 const targetPath = path.join(pluginRoot, "references", "policy-registry.json");
 
 export async function buildPolicyRegistry() {

@@ -1,7 +1,7 @@
 ---
 sdd: "0178"
 title: "Plugin read-only de gobernanza ERP Studio"
-status: in-progress
+status: done
 author: "Sam (founder) + Codex"
 created: 2026-07-29
 updated: 2026-07-29
@@ -20,10 +20,8 @@ Se aprueba el diseño técnico del futuro plugin
 audita en modo read-only. No crea una fuente normativa paralela y no puede
 promover una regla, componente o hallazgo.
 
-Este SDD **no autoriza crear, instalar ni publicar el plugin**. El destino
-repo/team quedó decidido por REV-SGE-013, pero el scaffold, la creación del
-marketplace, cada instalación y cualquier publicación conservan gates
-separados.
+La autorización posterior del lote cerró por separado scaffold, marketplace
+repo/team e instalación local. La publicación remota continúa fuera de alcance.
 
 ## 2. Fuentes y precedencia
 
@@ -58,8 +56,8 @@ incompleto o no valida, el plugin falla cerrado y enlaza la fuente.
 - recetas que editen código;
 - hooks, CI, autocorrección o bloqueo automático;
 - MCP, app, `.mcp.json`, `.app.json` o credenciales;
-- marketplace personal/equipo y políticas de instalación;
-- instalación local, cachebuster o reinstalación;
+- marketplace personal;
+- publicación remota;
 - Cloud, Supabase, Vercel o acceso a datos;
 - assets, iconos o screenshots inexistentes.
 
@@ -226,8 +224,8 @@ El destino aprobado es repo/team. El gate P3 creó únicamente:
 <repo-root>/.agents/plugins/plugins/erp-studio-governance/
 ```
 
-La ruta `.agents/plugins/marketplace.json` quedó deliberadamente fuera: P6–P8
-continúan cerrados y el scaffold no está instalado ni publicado.
+La ruta `.agents/plugins/marketplace.json` quedó fuera del scaffold P3 y entró
+únicamente en P6. El plugin instalado sigue sin publicación remota.
 
 1. `.codex-plugin/plugin.json`
 2. `skills/governance-check/SKILL.md`
@@ -255,9 +253,9 @@ La allowlist documental de ese gate será SDD-0178, su revisión de scaffold,
 | P3 | autorización explícita de scaffold | crear allowlist local, sin instalar |
 | P4 | manifest/skills/registry validados | forward-test read-only |
 | P5 | tres casos positivos y tres negativos verdes | solicitar instalación |
-| P6 | autorización explícita de instalación | instalar en destino aprobado |
-| P7 | uso real sin falsos bloqueos | evaluar `governance-author` separado |
-| P8 | capacidad real y necesidad probada | evaluar MCP/app/marketplace separados |
+| P6 | autorización explícita de instalación | cerrado: marketplace repo/team + instalación 0.1.2 |
+| P7 | uso real sin falsos bloqueos | cerrado: tres forward-tests read-only |
+| P8 | capacidad real y necesidad probada | cerrado: no promover escritura/MCP/app/remoto |
 
 Ningún gate agrupa scaffold, instalación, marketplace o CI.
 
@@ -275,5 +273,8 @@ P0–P2 quedan aprobados. REV-SGE-017 demuestra P1 con schema v1.1,
 P3–P5: scaffold repo/team, validadores oficiales y tres casos positivos/tres
 negativos.
 
-P6–P8 permanecen cerrados. El plugin no está instalado y no existe
-marketplace, MCP, app, hook o capacidad de escritura.
+REV-SGE-021 cierra P6–P8. El plugin 0.1.2 está instalado y habilitado desde el
+marketplace local repo/team. Tres forward-tests reales detectaron dos drifts
+documentales legítimos y terminaron verdes tras corregirlos. P8 no promueve
+`governance-author`, MCP, app, hook, CI ni marketplace remoto porque no existe
+necesidad/capacidad probada.
