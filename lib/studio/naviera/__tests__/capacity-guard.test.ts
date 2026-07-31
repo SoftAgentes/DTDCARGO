@@ -17,14 +17,14 @@ describe("evaluateCapacity — guard advisory (§4.4)", () => {
     const existing: StatItem[] = [{ cbm: 20, weight_kg: 5000, pieces: 10 }];
     const incoming: StatItem = { cbm: 10, weight_kg: 2000, pieces: 4 };
     const g = evaluateCapacity(existing, incoming, "40HC");
-    // 30 / 76 cbm = ~39% → sano.
+    // 30 / 68 cbm = ~44% → sano.
     expect(g.over).toBe(false);
     expect(g.message).toBeNull();
     expect(g.cbmPct).toBeCloseTo((30 / CONTAINER_TYPES["40HC"].cbm) * 100, 6);
   });
 
   it("AVISA (no bloquea) al superar el CBM del tipo (20GP)", () => {
-    // 20GP cap = 33 CBM. existentes 30 + incoming 10 = 40 → sobre-capacidad.
+    // 20GP cap = 30 CBM (útil). existentes 30 + incoming 10 = 40 → sobre-capacidad.
     const existing: StatItem[] = [{ cbm: 30, weight_kg: 1000, pieces: 5 }];
     const incoming: StatItem = { cbm: 10, weight_kg: 500, pieces: 2 };
     const g = evaluateCapacity(existing, incoming, "20GP");
@@ -36,7 +36,7 @@ describe("evaluateCapacity — guard advisory (§4.4)", () => {
   });
 
   it("avisa al superar el PESO del tipo aunque el CBM entre (40GP)", () => {
-    // 40GP cap = 67 CBM / 26500 kg. CBM chico, peso enorme.
+    // 40GP cap = 60 CBM (útil) / 26500 kg. CBM chico, peso enorme.
     const existing: StatItem[] = [{ cbm: 5, weight_kg: 25000, pieces: 2 }];
     const incoming: StatItem = { cbm: 2, weight_kg: 3000, pieces: 1 };
     const g = evaluateCapacity(existing, incoming, "40GP");

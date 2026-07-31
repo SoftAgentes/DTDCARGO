@@ -46,7 +46,7 @@ const PORT_COLUMNS =
   "id, tenant_id, code, name, name_cn, country, created_at";
 
 const CONTAINER_TYPE_COLUMNS =
-  "id, tenant_id, code, label, cbm_capacity, kg_capacity, display_order, created_at";
+  "id, tenant_id, code, label, cbm_capacity, kg_capacity, cbm_alert_ceiling, active, zone_layout, display_order, created_at";
 
 const SAILING_COLUMNS =
   "id, tenant_id, carrier_id, vessel, voyage, pol, pod, etd, eta, cutoff, transit_days, status, space, notes, created_at, updated_at, deleted_at";
@@ -96,6 +96,9 @@ function coerceContainerType(r: Record<string, unknown>): ContainerType {
     label: String(r.label ?? ""),
     cbm_capacity: num(r.cbm_capacity),
     kg_capacity: num(r.kg_capacity),
+    cbm_alert_ceiling: r.cbm_alert_ceiling == null ? null : num(r.cbm_alert_ceiling),
+    active: r.active === true,
+    zone_layout: r.zone_layout ?? null,
     display_order: Math.round(num(r.display_order)),
     created_at: String(r.created_at),
   };

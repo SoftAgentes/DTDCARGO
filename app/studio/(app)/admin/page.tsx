@@ -21,6 +21,8 @@ import { Icon, type IconName } from "@/app/studio/_components/icons";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 import { canSpecial } from "@/lib/studio/rbac";
 import { createClient } from "@/lib/db/server";
+import { listContainerTypes } from "@/lib/studio/naviera/queries";
+import type { ContainerType } from "@/lib/studio/naviera/types";
 import { getCompanyData } from "@/lib/studio/company-queries";
 import { CompanySection } from "./_components/CompanySection";
 import { AppearanceSection } from "./_components/AppearanceSection";
@@ -373,6 +375,7 @@ export default async function AdminPage({
   let legalData: LegalSectionData | null = null;
   let calcData: { settings: CalculatorSettings | null; cities: CalculatorCity[] } | null = null;
   let addonsData: PrealertaAddon[] | null = null;
+  let containerTypes: ContainerType[] | null = null;
   let inviteCandidates: PortalInviteCandidate[] | null = null;
   let adoptionStats: PortalAdoptionStats | null = null;
   let coldInvitees: PortalColdInvitee[] | null = null;
@@ -427,6 +430,9 @@ export default async function AdminPage({
       listCalculatorCities(supabase),
     ]);
     calcData = { settings, cities };
+  } else if (active.id === "masterdata") {
+    const supabase = await createClient();
+    containerTypes = await listContainerTypes(supabase);
   } else if (active.id === "recepcion-addons") {
     const supabase = await createClient();
     addonsData = await listPrealertaAddonsConfig(supabase);
@@ -537,6 +543,7 @@ export default async function AdminPage({
           calcData={calcData}
           calcInitialTab={calcInitialTab}
           addonsData={addonsData}
+          containerTypes={containerTypes}
           inviteCandidates={inviteCandidates}
           adoptionStats={adoptionStats}
           coldInvitees={coldInvitees}
@@ -646,6 +653,7 @@ function Content({
   calcData,
   calcInitialTab,
   addonsData,
+  containerTypes,
   inviteCandidates,
   adoptionStats,
   coldInvitees,
@@ -664,6 +672,7 @@ function Content({
   calcData: { settings: CalculatorSettings | null; cities: CalculatorCity[] } | null;
   calcInitialTab: "parametros" | "ciudades";
   addonsData: PrealertaAddon[] | null;
+  containerTypes: ContainerType[] | null;
   inviteCandidates: PortalInviteCandidate[] | null;
   adoptionStats: PortalAdoptionStats | null;
   coldInvitees: PortalColdInvitee[] | null;
@@ -730,7 +739,7 @@ function Content({
       ) : section.id === "permissions" ? (
         <PermissionsSection />
       ) : section.id === "masterdata" ? (
-        <MasterDataSection />
+        <MasterDataSection containerTypes={containerTypes} />
       ) : section.id === "rates" && ratesData ? (
         <ExchangeRatesSection data={ratesData} />
       ) : section.id === "holidays" && calendarEvents ? (

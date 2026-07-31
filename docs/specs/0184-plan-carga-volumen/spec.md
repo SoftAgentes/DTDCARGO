@@ -17,7 +17,7 @@ confidencialidad: interno
 
 Antes de estibar, el sistema **reparte los lotes en las zonas del contenedor** usando lo
 único que el proveedor sí da —**cantidad de cajas y CBM**— y en `/m/cn/estibar` le dice al
-operario **"Lote 3 de 7 · DTD-0042 · 50 cajas · 3,0 CBM → Fondo · Izquierda · Piso"**.
+operario **"DTD-0042 · 50 cajas · 3,0 CBM → Fondo a la izquierda"**.
 El operario escanea, confirma con un toque, o corrige y el desvío queda registrado.
 
 ## 2. Por qué · el objetivo NO es optimizar el llenado
@@ -26,7 +26,7 @@ El plan existe para poder **responder dos preguntas**, las dos desde el teléfon
 del lado de Venezuela (founder, 2026-07-30):
 
 **1. Aduana quiere revisar a un cliente: ¿dónde está su mercancía?**
-Si el sistema dice *"DTD-0042 · Medio · Derecha"*, sacan solo esas cajas en vez de **bajar
+Si el sistema dice *"DTD-0042 · Medio a la derecha"*, sacan solo esas cajas en vez de **bajar
 el contenedor entero**. Es el ahorro más grande y más concreto de todo el módulo.
 
 **2. ¿Qué sale primero, y cuándo aparece lo pesado?**
@@ -41,6 +41,15 @@ le devolvía nada**, era más trabajo que tipear, y por eso al 17-jul-2026 habí
 
 De paso, el módulo Naviera deja de saber solo *cuánto* va en el contenedor (SDD-0047,
 `containerStats`) para saber también *dónde*.
+
+### 2.0 Alcance absorbido de gobernanza
+
+Decisión del founder (2026-07-30): **SDD-0184 absorbe el Slice C1 ("Operación
+logística: estibar/desestibar") y el E1 ("Móvil: una mutación crítica, una ruta
+`app/m/`") de REV-SGE-009** (`docs/governance/reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md`).
+La Fase 4 aterriza exactamente ahí. Hay que avisarle a la ventana de gobernanza
+para que no los vuelva a tomar: si dos SDD tocan `/m/cn/estibar` a la vez, el
+choque es real.
 
 ### 2.1 Quién lo usa, y en qué pantalla
 
@@ -93,7 +102,8 @@ mueve (escanea una caja y monta el lote entero, SDD-0155).
 
 ```
 cbmPorArea = capacidadUtil / (nx · ny · nz)
-40'HC → 68 / 18 = 3,78 CBM por área
+40'HC → 68 / 9 = 7,56 CBM por área   (3 tramos × 1 nivel × 3 lados)
+20'   → 30 / 6 = 5,00 CBM por área   (2 tramos × 1 nivel × 3 lados)
 ```
 
 Reparto, determinista y sin aleatoriedad:
@@ -178,14 +188,14 @@ unifica en la Fase 2.
 
 ## 5. Datos
 
-- **Migración 0294** — `container_types` gana `active boolean default false` (se activan
+- **Migración 0289** — `container_types` gana `active boolean default false` (se activan
   solo `20GP` y `40HC`) y `cbm_alert_ceiling numeric`; se corrige `cbm_capacity` del `40HC`
   de 76 a **68**.
-- **Migración 0295** — `consolidation_plans`: `consolidation_id`, `version_no`, `is_current`,
+- **Migración 0290** — `consolidation_plans`: `consolidation_id`, `version_no`, `is_current`,
   `input jsonb` (los lotes), `result jsonb` (los pasos y zonas), `created_by`, `deleted_at`.
   Versionado inmutable, mismo patrón que `packing_list_submissions`: recalcular crea versión
   nueva, nunca pisa.
-- **Migración 0296** — `consolidation_box_positions` gana `plan_id` y `siguio_plan boolean`,
+- **Migración 0291** — `consolidation_box_positions` gana `plan_id` y `siguio_plan boolean`,
   para el diferencial plan ↔ realidad.
 
 ## 6. Qué se toma del mercado, y qué no
@@ -216,13 +226,21 @@ motor en servidor no es "mejor código": es algo que ellos estructuralmente no p
 
 ## 7. Alcance por fases
 
-| Fase | Qué | Estado |
-|---|---|---|
-| 1 | Repartidor + las dos consultas en `lib/shared/estiba-plan.ts` + tests | **hecho** |
-| 2 | Catálogo de contenedores (migr. 0294) — solo 20' y 40'HC | pendiente |
-| 3 | Plan y planta 2D en el Studio (migr. 0295) | pendiente |
-| 4 | Lazo plan ↔ realidad en `/m/cn/estibar` (migr. 0296) + vista de descarga móvil | pendiente |
-| 5 | Calculadora pública de llenado | pendiente |
+| Fase | Qué | Migración | Estado |
+|---|---|---|---|
+| 1 | Repartidor + las dos consultas en `lib/shared/estiba-plan.ts` | — | **hecho** |
+| 2 | Catálogo: capacidad útil, `active`, techo real, áreas sin altura + pantalla de administración | **0294** | **hecho** |
+| 3 | Plan versionado + planta 2D en Naviera | **0295** | **hecho** |
+| 4 | El lazo plan ↔ realidad en `/m/cn/estibar` | **0296** | **hecho** |
+| 5 | Calculadora pública `/llenado` | — | **hecho** |
+
+⚠️ **Las migraciones se renumeraron de 0289-0291 a 0294-0296.** Las 0289 a 0293
+estaban tomadas por ramas locales de gobernanza (Codex) que todavía no habían
+llegado a `origin/main`, así que `git ls-tree origin/main` no las veía. El barrido
+correcto es sobre `git for-each-ref refs/heads refs/remotes`, no sobre una sola rama.
+
+Las tres quedan declaradas en `supabase/migrations-baseline.json` hasta el OK del
+founder nombrando cada archivo. **Se aplican en orden: 0297 → 0298 → 0296.**
 
 **Nota de render para las fases 3-5.** El visor isométrico que ya existe
 (`ContainerIsoView`) sirve para el escritorio, pero la vista que importa es la del teléfono:

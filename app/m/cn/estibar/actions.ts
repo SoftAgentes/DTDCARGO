@@ -289,6 +289,13 @@ export async function stuffLotAction(
   code: string,
   width: number,
   count: number | null,
+  /**
+   * SDD-0184 · Fase 4 — el lazo plan ↔ realidad. Contra qué plan se estibó y si
+   * el operario confirmó la posición que proponía. Opcionales: si no hay plan
+   * calculado, la estiba funciona exactamente igual que antes.
+   */
+  planId?: string | null,
+  siguioPlan?: boolean | null,
 ): Promise<StuffLotState> {
   const auth = await requireCnOperario();
   if ("error" in auth) return { error: auth.error };
@@ -327,6 +334,28 @@ export async function stuffLotAction(
     client_name?: string | null;
     client_markbox?: string | null;
   };
+  // SDD-0184 · Fase 4: marcar el lote recién montado contra el plan.
+  //
+  // Se hace con un UPDATE posterior y NO agregándole parámetros al RPC: con
+  // `CREATE OR REPLACE` quedarían DOS aridades vivas en pg_proc, cada una con sus
+  // propios grants, y la nueva nacería sin los `revoke` de public/anon — la deuda
+  // que el repo ya cerró una vez.
+  //
+  // Best-effort a propósito: si esto falla, la estiba ya quedó registrada y solo
+  // se pierde la traza del plan. Fallar del otro lado (abortar la estiba porque
+  // no se pudo anotar el plan) sería peor para el operario que está en el galpón.
+  if (planId && r.load_order != null) {
+    const { error: markError } = await admin
+      .from("consolidation_box_positions")
+      .update({ plan_id: planId, siguio_plan: siguioPlan ?? null })
+      .eq("consolidation_id", consolidationId)
+      .eq("load_order", r.load_order)
+      .is("unstuffed_at", null);
+    if (markError) {
+      console.error("[estibar] no se pudo marcar el plan del lote", markError);
+    }
+  }
+
   revalidatePath(`/m/cn/estibar/${consolidationId}`);
 
   return {
