@@ -1,8 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { buildPolicyRegistry } from "../build-policy-registry.mjs";
+import {
+  buildPolicyRegistry,
+  repoRoot,
+  resolveRepoRoot,
+} from "../build-policy-registry.mjs";
 import { validateRegistryContract } from "../validate-governance.mjs";
 
 describe("PLG-01 policy registry", () => {
+  it("resuelve el worktree activo aunque el plugin esté instalado en cache", () => {
+    expect(repoRoot).toBe(resolveRepoRoot(process.cwd()));
+    expect(repoRoot).toBe(process.cwd());
+    expect(repoRoot).not.toMatch(/[\\/]\.codex[\\/]plugins[\\/]cache[\\/]/);
+  });
+
   it("sólo contiene fuentes aprobadas y es read-only", async () => {
     const registry = await buildPolicyRegistry();
     expect(registry.readOnly).toBe(true);

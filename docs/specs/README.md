@@ -209,7 +209,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0175 | VIS-02 — tipografía por voz, destinatario e idioma | in-progress | interno |
 | 0176 | Portal — el ámbar deja de usarse como texto (barrido AA) | done | interno |
 | 0177 | Portal — Estado de cuenta (libro de movimientos) | done | interno |
-| 0178 | Plugin read-only de gobernanza ERP Studio | in-progress | interno |
+| 0178 | Plugin read-only de gobernanza ERP Studio | done | interno |
 | 0180 | Tabs accesibles en Fiscal | done | interno |
 | 0181 | Selectores accesibles y colisión segura | done | interno |
 | 0182 | Validación progresiva de identidad en Club | done | interno |

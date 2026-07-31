@@ -10,7 +10,7 @@
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-30 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-093 · inventario VIS-02 reconciliado](BASELINE-2026-07-30-18.md) |
+| Línea base vigente | [LB-SGE-094 · PLG-01 operativo](BASELINE-2026-07-30-19.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -146,6 +146,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Control plane ejecutable | [REV-SGE-018](reviews/governance-control-plane.md) |
 | Scaffold read-only PLG-01 | [REV-SGE-019](reviews/plg-01-scaffold.md) |
 | Precisión decimal y NumericInput canónico | [REV-SGE-020](reviews/num-01-v1-1-numeric-input.md) |
+| Instalación y forward-test PLG-01 | [REV-SGE-021](reviews/plg-01-install-forward-test.md) |
 | Tabs accesibles en Fiscal | [SDD-0180](../specs/0180-tabs-accesibles-fiscal/spec.md) |
 | Selectores accesibles y colisión | [SDD-0181](../specs/0181-selectores-accesibles-colision/spec.md) |
 | Validación progresiva en Club | [SDD-0182](../specs/0182-validacion-progresiva-identidad-club/spec.md) |
@@ -221,7 +222,7 @@ disfraza elevando el estado normativo.
 | A11Y-01 | Accesibilidad transversal | aprobada v1.1 | Contratos tabs/menu/listbox explícitos; sin matriz integral | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | IA-01 | Interacciones asistidas por IA | aprobada v1.0 | Regla local “IA propone”; sin gate transversal | Auditar permisos, privacidad y evidencia |
 | CMP-01 | Ciclo de vida y madurez de componentes | aprobada v1.1 | `ConfirmDialog`, `SegmentedControl` y `NumericInput` canonical; `LLMModeToggle` deprecated con plan | [REV-SGE-017](reviews/cmp-01-v1-1-deprecated.md) y [REV-SGE-020](reviews/num-01-v1-1-numeric-input.md) |
-| PLG-01 | Plugin ejecutable de gobernanza | aprobada v1.0 | P3–P5 verdes en scaffold repo/team read-only; no instalado y sin marketplace | [REV-SGE-019](reviews/plg-01-scaffold.md); P6–P8 cerrados |
+| PLG-01 | Plugin ejecutable de gobernanza | aprobada v1.0 | P3–P8 cerrados; 0.1.2 instalado repo/team, read-only y sin capacidades remotas | [REV-SGE-019](reviews/plg-01-scaffold.md) · [REV-SGE-021](reviews/plg-01-install-forward-test.md) |
 
 ## 5. Jerarquía y resolución de conflictos
 

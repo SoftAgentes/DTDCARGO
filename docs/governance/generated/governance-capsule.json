@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
   "generatedAt": "2026-07-30T00:00:00.000Z",
-  "sourceCommit": "b035418b3aaec3628008209b2d61665c65fb1b40",
+  "sourceCommit": "74732f21d731b6af7e92a4053bdc724b9137c8ce",
   "normativeSource": "docs/governance/README.md",
   "agentBrief": "docs/governance/AGENT-BRIEF.md",
   "commands": {
@@ -147,7 +147,7 @@
     {
       "code": "PLG-01",
       "version": "1.0",
-      "state": "aprobada — scaffold repo/team P3–P5 validado; no instalado",
+      "state": "aprobada — plugin repo/team read-only 0.1.2 instalado",
       "approvedAt": "2026-07-29",
       "path": "docs/governance/policies/plg-01.md"
     },
