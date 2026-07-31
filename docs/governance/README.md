@@ -3,14 +3,14 @@
 | Control | Valor |
 |---|---|
 | Documento | Índice maestro del Sistema de Gobernanza |
-| Versión | 6.0 |
+| Versión | 6.1 |
 | Dueño | Sam (founder) |
 | Custodia | Producto + Diseño + Ingeniería |
 | Estado | activo |
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-31 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-099 · D4 con path vacío](BASELINE-2026-07-31-04.md) |
+| Línea base vigente | [LB-SGE-100 · Gobernanza 6 reconciliada](BASELINE-2026-07-31-05.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -152,6 +152,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Precisión decimal y NumericInput canónico | [REV-SGE-020](reviews/num-01-v1-1-numeric-input.md) |
 | Instalación y forward-test PLG-01 | [REV-SGE-021](reviews/plg-01-install-forward-test.md) |
 | Integración local del roadmap de gobernanza | [REV-SGE-022](reviews/governance-roadmap-batch-close.md) |
+| Cierre local de Gobernanza 6 | [REV-SGE-023](reviews/governance-roadmap-pending-closure.md) |
 | Tabs accesibles en Fiscal | [SDD-0180](../specs/0180-tabs-accesibles-fiscal/spec.md) |
 | Selectores accesibles y colisión | [SDD-0181](../specs/0181-selectores-accesibles-colision/spec.md) |
 | Validación progresiva en Club | [SDD-0182](../specs/0182-validacion-progresiva-identidad-club/spec.md) |
@@ -305,9 +306,9 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-099 · D4 con path vacío](BASELINE-2026-07-31-04.md).
+[LB-SGE-100 · Gobernanza 6 reconciliada](BASELINE-2026-07-31-05.md).
 El corte anterior permanece en
-[LB-SGE-098](BASELINE-2026-07-31-03.md).
+[LB-SGE-099](BASELINE-2026-07-31-04.md).
 El cierre del control plane permanece en
 [LB-SGE-074](BASELINE-2026-07-29-46.md).
 La estabilidad bajo carga del guardia SDD-0164 permanece en
