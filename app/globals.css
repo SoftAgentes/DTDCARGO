@@ -153,6 +153,14 @@
   --glass-key: rgba(255, 255, 255, 0.55);
   --glass-inset: rgba(255, 255, 255, 0.5);
   --bg-glow: radial-gradient(135% 100% at 50% -12%, #fbfaf7 0%, #f2f0ec 100%);
+  /* Vidrio para popovers que flotan sobre fondo MIXTO (papel Y navy a la vez):
+     el `--glass-bg` normal se apoya en que el fondo sea claro, y con su extremo
+     al 0.44 la tinta cae a 4.22:1 sobre navy — reprueba la regla 2 de BD-031
+     (AA contra el PEOR caso del fondo). Medido sobre los 3 fondos reales
+     (#FBFAF7 · #0F1E3D · #1F3055) con este par: tinta 12.4–16.5:1 y acento wine
+     7.9–10.5:1. Sigue siendo vidrio (blur + saturate + translúcido), solo que
+     legible flote donde flote. */
+  --glass-bg-strong: linear-gradient(160deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.86));
 }
 [data-portal-theme="dark"] {
   --glass-bg: linear-gradient(160deg, rgba(31, 48, 85, 0.55), rgba(15, 30, 61, 0.34));
@@ -163,6 +171,82 @@
   --glass-key: rgba(255, 255, 255, 0.1);
   --glass-inset: rgba(11, 20, 40, 0.32);
   --bg-glow: radial-gradient(135% 100% at 50% -12%, #1f3055 0%, #0f1e3d 42%, #0b1428 100%);
+  --glass-bg-strong: linear-gradient(160deg, rgba(31, 48, 85, 0.92), rgba(15, 30, 61, 0.86));
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   .glass-pop — panel de ayuda contextual sobre la Popover API (BD-031).
+
+   POR QUÉ ESTA CLASE EXISTE Y NO SE ARMA CON UTILIDADES: un popover cerrado
+   se oculta con el `display:none` que le pone el user-agent, y CUALQUIER clase
+   de display de autor le gana por especificidad. Un `flex` de Tailwind en el
+   panel lo dejaba visible para SIEMPRE: se veía apenas cargaba la página, la ×
+   cambiaba el estado interno pero no lo ocultaba, y Esc y el clic afuera
+   tampoco. Acá los dos estados se declaran juntos, en el mismo lugar, para que
+   no se puedan desincronizar otra vez.
+   ────────────────────────────────────────────────────────────────── */
+.glass-pop {
+  display: none;
+  /* El user-agent le pone `overflow:auto` a `[popover]`, y el caret sobresale
+     del box (bottom/top -7px) → aparecía una barra de scroll dentro del panel
+     y el caret quedaba recortado. El panel nunca desborda: su alto lo da el
+     contenido. */
+  overflow: visible;
+  opacity: 0;
+  transform: translateY(-4px) scale(0.98);
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease,
+    overlay 0.15s allow-discrete,
+    display 0.15s allow-discrete;
+}
+.glass-pop:popover-open {
+  display: flex;
+  opacity: 1;
+  transform: none;
+}
+/* Estado de partida de la animación de entrada (si no, aparece de golpe). */
+@starting-style {
+  .glass-pop:popover-open {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .glass-pop {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* El caret ancla el panel a su botón: sin él, el panel se lee como algo que
+   apareció suelto en la pantalla. `--caret-x` la calcula el componente (el
+   botón no siempre queda en el mismo punto del panel). */
+.glass-pop::after {
+  content: "";
+  position: absolute;
+  left: var(--caret-x, 24px);
+  width: 12px;
+  height: 12px;
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+  transform: rotate(45deg);
+}
+.glass-pop[data-lado="abajo"]::after {
+  top: -7px;
+  border-right: 0;
+  border-bottom: 0;
+}
+.glass-pop[data-lado="arriba"]::after {
+  bottom: -7px;
+  border-left: 0;
+  border-top: 0;
+}
+/* En teléfono es hoja inferior a todo el ancho: no hay a qué apuntar. */
+@media (max-width: 640px) {
+  .glass-pop::after {
+    display: none;
+  }
 }
 
 /* ──────────────────────────────────────────────────────────────────
