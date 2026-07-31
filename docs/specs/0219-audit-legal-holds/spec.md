@@ -1,7 +1,7 @@
 ---
 sdd: "0219"
 title: "Legal holds append-only de auditoría"
-status: in-progress
+status: done
 author: "Sam (founder) + Codex"
 created: 2026-07-31
 updated: 2026-07-31
@@ -57,3 +57,7 @@ tablas con historia requiere migración y revisión propias.
 - hold activo y `release_requested` bloquean; `released` deja de bloquear;
 - SQL efímero, schema rebuild, advisors y postcondiciones Cloud en verde.
 
+## 6. Producción
+
+Aplicada como `0301_audit_legal_holds` (`20260731192238`). Postcondiciones de
+tablas, funciones y ACL aprobadas.

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
   "generatedAt": "2026-07-30T00:00:00.000Z",
-  "sourceCommit": "24acc39b3979f83c4e761311162bcf3ae63c4af0",
+  "sourceCommit": "60391612402aa1a500d81e44a57c5edb67c023f6",
   "normativeSource": "docs/governance/README.md",
   "agentBrief": "docs/governance/AGENT-BRIEF.md",
   "commands": {
@@ -28,7 +28,7 @@
     {
       "code": "AUD-02",
       "version": "1.0",
-      "state": "aprobada — implementación pendiente/no conforme",
+      "state": "aprobada — adoptada en Producción",
       "approvedAt": "2026-07-21",
       "path": "docs/governance/policies/aud-02.md"
     },

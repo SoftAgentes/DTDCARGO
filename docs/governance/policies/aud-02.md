@@ -5,7 +5,7 @@
 | Código | AUD-02 |
 | Versión | 1.0 |
 | Dueño | Sam (founder) |
-| Estado | aprobada — implementación pendiente/no conforme |
+| Estado | aprobada — adoptada en Producción |
 | Aprobación | 2026-07-21 · Sam (founder) · defaults de REV-AUD-001 |
 | Creado | 2026-07-21 |
 | Depende de | [SGE-00](sge-00.md), [AUD-01](aud-01.md), [MP-01](mp-01.md) y [A11Y-01](a11y-01.md) |
@@ -144,23 +144,22 @@ Los eventos de hold, liberación, exportación y purga son clase A/P4.
 - El borrado de una persona no borra evidencia fiscal obligatoria; anonimiza lo
   permitido según MP-01 y la decisión legal correspondiente.
 
-## 8. Estado actual y brechas
+## 8. Estado productivo
 
 | Capacidad | Estado actual |
 |---|---|
-| Consulta | Últimos 100; filtros client-side solo por entidad y actor. |
-| Paginación/rango | No implementados. |
-| Actor legible | UUID corto; sin resolución fiable a nombre/email. |
-| Correlación | No consultable como campo de primer nivel. |
-| RBAC fino | RLS por tenant; no se comprobó permiso por rol/payload sensible. |
-| Inmutabilidad | Authenticated solo lee, pero `service_role all` puede modificar/borrar. |
-| Retención/hold | Sin política implementada. |
-| Exportación | Sin contrato ni implementación. |
-| Redacción | Payload JSON sin esquema transversal de minimización. |
+| Consulta | RPC server-side con filtros, cursor estable, zona IANA y correlación. |
+| RBAC fino | Admin-only dentro de funciones; tenant derivado de sesión. |
+| Inmutabilidad | Writer append-only y función de retención separada; sin CRUD crudo de aplicación. |
+| Retención/hold | Calendario v1.0, holds append-only y liberación con segundo actor. |
+| Exportación | Solicitud y doble aprobación, salida redacted, bucket privado y TTL. |
+| Expiración | Claim → borrado Storage → recibo; hold prevalece. |
+| Purga | Solo lote sellado por dry-run/hash, segundo actor y revalidación; fiscal/legacy bloqueados. |
+| Redacción | Allowlist cerrada; claves desconocidas y payload sensible no salen en exportación. |
 
-La documentación de Supabase confirma que `service_role` puede omitir RLS; por
-eso una policy de tenant no compensa grants amplios. La protección exige grants,
-funciones estrechas y RLS como capas complementarias.
+La aplicación productiva de `0301`–`0304` verificó RLS en las ocho tablas,
+cero CRUD crudo para `anon`/`authenticated`, funciones estrechas y revokes
+explícitos. No se creó ni ejecutó ningún lote durante el cierre.
 
 ## 9. Decisiones normativas aprobadas para v1.0
 

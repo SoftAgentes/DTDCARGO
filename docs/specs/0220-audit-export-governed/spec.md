@@ -1,7 +1,7 @@
 ---
 sdd: "0220"
 title: "Exportación gobernada de auditoría"
-status: in-progress
+status: done
 author: "Sam (founder) + Codex"
 created: 2026-07-31
 updated: 2026-07-31
@@ -43,3 +43,7 @@ conteo, tamaño y manifiesto fuera del objeto.
 - hash/conteo/ruta/TTL validados antes de `ready`;
 - descarga reautoriza sesión, tenant, estado y expiración.
 
+## Producción
+
+Aplicada como `0302_audit_export_governed` (`20260731192253`). Tablas, RPCs y
+bucket privado aprobados.

@@ -1,7 +1,7 @@
 ---
 sdd: "0221"
 title: "Expiración segura de artefactos de auditoría"
-status: in-progress
+status: done
 author: "Sam (founder) + Codex"
 created: 2026-07-31
 updated: 2026-07-31
@@ -34,3 +34,7 @@ borrado antes de registrar `expired`. Fallo deja recibo y permite reintento.
 - confirmación registra hash/ruta/conteo sin payload;
 - nunca ejecuta DELETE sobre `entity_audit_log`.
 
+## Producción
+
+Aplicada como `0303_audit_export_expiry` (`20260731192311`). Recibos y RPCs
+service-only aprobados.

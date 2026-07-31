@@ -12,3 +12,8 @@ hold sobre `audit_export/{request_id}` impide reclamar el artefacto.
 La reconstrucción aplicó 283 migrations y verificó aislamiento en 219 tablas.
 La prueba del worker confirma el orden claim → Storage delete → recibo; el
 camino de error nunca ejecuta la confirmación.
+
+## Producción
+
+`0303_audit_export_expiry` fue aplicada como versión `20260731192311`.
+Recibos y ACL service-only quedaron verdes.

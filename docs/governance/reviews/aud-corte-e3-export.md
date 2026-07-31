@@ -18,3 +18,8 @@ service role después de que la sesión admin fue autorizada por la base.
 - CSV injection, field projection y SHA-256: 6/6;
 - TypeScript y ESLint focalizado: verde;
 - bucket `audit-exports` privado, sin grants crudos de aplicación.
+
+## Producción
+
+`0302_audit_export_governed` fue aplicada como versión `20260731192253`.
+Tablas, RPCs y bucket privado con límites quedaron verdes.

@@ -1,7 +1,7 @@
 ---
 sdd: "0223"
 title: "Fechas planificadas de embarques"
-status: in-progress
+status: done
 author: "Sam (founder) + Codex"
 created: 2026-07-31
 updated: 2026-07-31
@@ -50,3 +50,8 @@ muestra plan y realidad como tipos distintos y enlaza a la fuente.
 - el calendario distingue “planificado” del hecho real;
 - borrar una fecha es explícito y no equivale a hoy;
 - toda reprogramación guarda motivo y evento de auditoría.
+
+## Producción
+
+Aplicada como `0305_shipment_planning_dates` (`20260731192339`). Se verificaron
+siete columnas, guard trigger, check cronológico, RPC y bloqueo de `anon`.

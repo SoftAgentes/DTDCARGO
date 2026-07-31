@@ -1,7 +1,7 @@
 ---
 sdd: "0222"
 title: "Retención de auditoría por lotes controlados"
-status: in-progress
+status: done
 author: "Sam (founder) + Codex"
 created: 2026-07-31
 updated: 2026-07-31
@@ -35,3 +35,7 @@ clasificación posterior.
 - ejecución requiere service role, lote aprobado y deja recibo sin payload;
 - no existe DELETE individual ni job por fecha sin lote.
 
+## Producción
+
+Aplicada como `0304_audit_retention_batches` (`20260731192327`). La tabla de
+lotes quedó vacía; no hubo dry-run ni DELETE productivo.

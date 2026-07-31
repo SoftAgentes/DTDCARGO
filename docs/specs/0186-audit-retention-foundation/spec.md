@@ -35,7 +35,8 @@ Desde la aprobación del calendario v1.0:
 - la conservación continúa sin purga automatizada ni lote implícito;
 - exportación, bucket, expiración y retención sólo se abren en E2–E5;
 - ningún hold puede usarse como permiso de eliminación;
-- E2–E5 permanecen sin implementación en este SDD y conservan gates nominales.
+- E2–E5 se implementaron después en SDD-0219–0222 y quedaron aplicados en
+  Producción; este SDD conserva únicamente la decisión E1 y su fuente.
 
 La directiva organizacional no se presenta como dictamen legal ni publica el
 Acuerdo v3.0. Una obligación de plazo mayor y todo hold prevalecen.

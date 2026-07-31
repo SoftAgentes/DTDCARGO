@@ -3,14 +3,14 @@
 | Control | Valor |
 |---|---|
 | Documento | Índice maestro del Sistema de Gobernanza |
-| Versión | 6.2 |
+| Versión | 6.3 |
 | Dueño | Sam (founder) |
 | Custodia | Producto + Diseño + Ingeniería |
 | Estado | activo |
 | Creado | 2026-07-21 |
 | Última revisión | 2026-07-31 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-102 · Gobernanza 8 cerrada técnicamente](BASELINE-2026-07-31-07.md) |
+| Línea base vigente | [LB-SGE-103 · Gobernanza 8 cerrada en Producción](BASELINE-2026-07-31-08.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -172,6 +172,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Auditoría integral Gobernanza 8 | [REV-SGE-024](reviews/governance-8-adoption-audit-2026-07-31.md) |
 | Cierre técnico integral Gobernanza 8 | [REV-SGE-026](reviews/governance-8-final-close-2026-07-31.md) |
 | Preflight productivo Gobernanza 8 | [REV-SGE-027](reviews/governance-8-production-preflight-2026-07-31.md) |
+| Cierre productivo Gobernanza 8 | [REV-SGE-028](reviews/governance-8-production-close-2026-07-31.md) |
 | Investigación de skills | [Mapa de capacidades y límites](research/skills-map.md) |
 | Contrato implementado de avisos | [SDD-0165 · AVS-01](../specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md) |
 | Inventario y estado oficial vigente | [LB-SGE-037](BASELINE-2026-07-29-09.md) |
@@ -213,7 +214,7 @@ disfraza elevando el estado normativo.
 | HTD-01 | Confirmación por presión sostenida | aprobada | Primer consumidor R3 verificado en anulación de factura; adopción no transversal | [SDD-0215](../specs/0215-htd-invoice-void/spec.md); conservar permiso, motivo y auditoría backend |
 | AVS-01 | Avisos y confirmaciones | verificada | Primitiva conforme; consumidores legacy se migran solo dentro de slices R2/R3 | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | AUD-01 | Evento auditable y vínculo con acciones | aprobada | D1–D5 y correctivos D2–D4 aplicados y verificados individualmente en Producción; SDD-0174 cerrado; header normativo reconciliado | [REV-AUD-046](reviews/aud-sdd-0174-prod-close.md) · [REV-SGE-024](reviews/governance-8-adoption-audit-2026-07-31.md) |
-| AUD-02 | Consulta, conservación, exportación y acceso | aprobada | E1 promovido; E2–E5 implementados localmente con holds, export privado, expiración y lotes controlados | [REV-AUD-047](reviews/aud-corte-e2-holds.md) a [REV-AUD-050](reviews/aud-corte-e5-retention.md); Cloud conserva cuatro gates nominales |
+| AUD-02 | Consulta, conservación, exportación y acceso | aprobada | adoptada en Producción: E1 trazable, holds, export privado, expiración y lotes controlados; cero lote ejecutado | [REV-AUD-047](reviews/aud-corte-e2-holds.md) a [REV-AUD-050](reviews/aud-corte-e5-retention.md) · [REV-SGE-028](reviews/governance-8-production-close-2026-07-31.md) |
 | VIS-01 | Jerarquía visual y distribución 60-30-10 | aprobada | Adopción parcial; muestreo acotado a slices y clasificación de literales | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | V1–V4 y gate externo cerrados; la adopción futura continúa solo por consumidor; UI china conserva Noto Sans SC | [REV-VIS-010](reviews/vis-02-external-mail-client-evidence.md) · [REV-SGE-024](reviews/governance-8-adoption-audit-2026-07-31.md) |
 | BUS-01 | Buscadores predictivos y contexto de resultados | aprobada v1.1 | `GlobalSearchModal` y `ClientCombobox` muestreados: scope, permisos server-side, debounce/race y teclado conformes; adopción restante por flujo | [REV-SGE-024](reviews/governance-8-adoption-audit-2026-07-31.md) |
@@ -315,7 +316,7 @@ errores obligatorios.
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-102 · Gobernanza 8 cerrada técnicamente](BASELINE-2026-07-31-07.md).
+[LB-SGE-103 · Gobernanza 8 cerrada en Producción](BASELINE-2026-07-31-08.md).
 El corte anterior permanece en
 [LB-SGE-101](BASELINE-2026-07-31-06.md).
 La aplicación productiva anterior permanece en

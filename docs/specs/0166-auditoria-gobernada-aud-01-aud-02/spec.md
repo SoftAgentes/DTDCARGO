@@ -1,7 +1,7 @@
 ---
 sdd: "0166"
 title: "Auditoría gobernada — corrección conjunta AUD-01 y AUD-02"
-status: in-progress
+status: done
 author: "Sam (founder) + Codex"
 created: 2026-07-21
 updated: 2026-07-31
@@ -13,7 +13,7 @@ confidencialidad: interno
 
 # DTD-0166 — Auditoría gobernada · AUD-01 + AUD-02
 
-> **Spec correctiva en progreso.** Define cómo llevar
+> **Spec correctiva cerrada en Producción.** Llevó
 > `entity_audit_log` desde su viewer básico actual hasta los contratos
 > aprobados [AUD-01](../../governance/policies/aud-01.md) y
 > [AUD-02](../../governance/policies/aud-02.md). A1 y A2 fueron aplicados y
@@ -27,7 +27,7 @@ confidencialidad: interno
 > [REV-AUD-010](../../governance/reviews/aud-tenant-fixtures.md) aprueba el
 > diseño obligatorio del ciclo de vida tenant/fixtures. Su implementación
 > local vive en [SDD-0172](../0172-tenant-fixtures-lifecycle/spec.md), todavía
-> pendiente de Cloud y recorrido efímero antes del cierre global. El
+> cerrado en Cloud y mediante recorrido efímero. El
 > [inventario C0](inventario-corte-c-2026-07-28.md) y
 > [REV-AUD-012](../../governance/reviews/aud-corte-c.md) aprobaron técnicamente
 > el diseño del Corte C. C1 fue implementado y verificado localmente mediante
@@ -42,8 +42,9 @@ confidencialidad: interno
 > `0289`–`0293` fueron aplicadas individualmente por REV-AUD-042 y
 > `0294`–`0296` cerraron D2/D3/D4 en Producción por REV-AUD-046. El inventario y diseño E0
 > fueron aprobados por
-> [REV-AUD-016](../../governance/reviews/aud-corte-e.md); E1–E5 no están
-> abiertos.
+> [REV-AUD-016](../../governance/reviews/aud-corte-e.md). E1–E5 quedaron
+> cerrados en Producción mediante `0301`–`0304`; ningún lote E5 fue creado ni
+> ejecutado durante el cierre.
 
 ## 1. Propósito
 
@@ -517,21 +518,23 @@ sin implementación y que el default operativo continúa sin purga,
 exportación, bucket ni jobs.
 
 El 2026-07-31 la fuente E1 fue promovida y
-[SDD-0219](../0219-audit-legal-holds/spec.md) abrió E2 con holds append-only,
-liberación de dos decisiones y precedencia fail-closed. Cloud conserva un gate
-nominal independiente para `0301_audit_legal_holds.sql`.
+[SDD-0219](../0219-audit-legal-holds/spec.md) cerró E2 con holds append-only,
+liberación de dos decisiones y precedencia fail-closed.
+`0301_audit_legal_holds.sql` fue aplicada y verificada individualmente en
+Producción.
 
-[SDD-0220](../0220-audit-export-governed/spec.md) abrió E3: solicitud durable,
+[SDD-0220](../0220-audit-export-governed/spec.md) cerró E3: solicitud durable,
 segundo aprobador, RPC redacted, bucket privado, hash externo al objeto y URL de
-15 minutos. Cloud conserva el gate nominal de
-`0302_audit_export_governed.sql`.
+15 minutos. `0302_audit_export_governed.sql` fue aplicada y verificada
+individualmente en Producción.
 
-[SDD-0221](../0221-audit-export-expiry/spec.md) abrió E4 con claim idempotente,
+[SDD-0221](../0221-audit-export-expiry/spec.md) cerró E4 con claim idempotente,
 precedencia de hold, borrado exclusivo del objeto temporal y recibo append-only.
-Cloud conserva el gate nominal de `0303_audit_export_expiry.sql`.
+`0303_audit_export_expiry.sql` fue aplicada y verificada individualmente en
+Producción.
 
-[SDD-0222](../0222-audit-retention-batches/spec.md) abrió E5 con dry-run,
+[SDD-0222](../0222-audit-retention-batches/spec.md) cerró E5 con dry-run,
 hash/conteo, segundo aprobador, revalidación de hold y DELETE exclusivamente
-por lote service-role. `fiscal` y `legacy_unknown` no son ejecutables. Cloud
-conserva el gate nominal de `0304_audit_retention_batches.sql`; ningún lote
-destructivo fue creado ni ejecutado durante la implementación.
+por lote service-role. `fiscal` y `legacy_unknown` no son ejecutables.
+`0304_audit_retention_batches.sql` fue aplicada y verificada individualmente;
+ningún lote destructivo fue creado ni ejecutado durante la implementación.

@@ -197,7 +197,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0163 | Orden accionable al operario · el operario ve y ejecuta los s… | proposed | interno |
 | 0164 | Unificación de nombres de servicios: un servicio, un nombre, … | in-progress | interno |
 | 0165 | Sistema de Gobernanza de Experiencia ERP_Studio — AVS-01 | done | interno |
-| 0166 | Auditoría gobernada — corrección conjunta AUD-01 y AUD-02 | in-progress | interno |
+| 0166 | Auditoría gobernada — corrección conjunta AUD-01 y AUD-02 | done | interno |
 | 0167 | Actualidad — centro editorial público | in-progress | interno |
 | 0168 | MP-01 Slice 1 — Permanencia y restauración de comentarios int… | done | interno |
 | 0169 | Portal — gate de verificación de identidad | in-progress | interno |
@@ -248,11 +248,11 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0216 | DND-01 accesible y durable en Bitácora | done | interno |
 | 0217 | Timezone explícito en eventos del calendario | done | interno |
 | 0218 | Runner y reinstalación reproducible de PLG-01 | done | interno |
-| 0219 | Legal holds append-only de auditoría | in-progress | interno |
-| 0220 | Exportación gobernada de auditoría | in-progress | interno |
-| 0221 | Expiración segura de artefactos de auditoría | in-progress | interno |
-| 0222 | Retención de auditoría por lotes controlados | in-progress | interno |
-| 0223 | Fechas planificadas de embarques | in-progress | interno |
+| 0219 | Legal holds append-only de auditoría | done | interno |
+| 0220 | Exportación gobernada de auditoría | done | interno |
+| 0221 | Expiración segura de artefactos de auditoría | done | interno |
+| 0222 | Retención de auditoría por lotes controlados | done | interno |
+| 0223 | Fechas planificadas de embarques | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0179, 0190 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

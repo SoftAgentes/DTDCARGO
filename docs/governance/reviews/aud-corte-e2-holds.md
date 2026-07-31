@@ -16,6 +16,11 @@ es una transición en dos pasos con actores distintos. El estado `active` y
 La migration no crea exportación, expiración ni purga. Su aplicación en Cloud
 requiere autorización nominal del basename y postcondiciones/advisors propios.
 
+## Producción
+
+`0301_audit_legal_holds` fue aplicada como versión `20260731192238`. Tablas,
+gate admin, hold check y ACL quedaron verdes.
+
 ## Evidencia local
 
 - creación por admin y scope `entity_type`: verde;
