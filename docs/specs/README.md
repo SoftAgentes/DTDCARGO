@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 190 specs)
+### Índice de specs (generado · 191 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -228,6 +228,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0196 | Almacén CN — feedback y pending de nueva recepción | done | interno |
 | 0197 | Recepción móvil CN — snapshot de fotos y render puro | done | interno |
 | 0198 | Realtime transversal — estado de conexión y datos verdaderos | done | interno |
+| 0199 | Almacén CN — filtros URL y selección coherentes | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0179, 0190 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
