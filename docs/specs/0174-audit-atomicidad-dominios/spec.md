@@ -71,7 +71,7 @@ máquina antes de modificar suspensión/reactivación de usuarios.
 | D2 | cumplimiento parcial; motivo legacy no conforme | [REV-AUD-019](../../governance/reviews/aud-d2-financial-domain.md) |
 | D3 | cumplimiento parcial; motivo legacy no conforme | [REV-AUD-020](../../governance/reviews/aud-d3-commercial-cycle.md) |
 | D4 | cumplimiento parcial; `search_path` legacy no conforme | [REV-AUD-021](../../governance/reviews/aud-d4-logistics-r3.md) |
-| D5 | pendiente | no abierto |
+| D5 | verificado localmente | [REV-AUD-022](../../governance/reviews/aud-d5-residual.md) |
 
 ## 5. Criterios de aceptación por operación
 
@@ -95,7 +95,7 @@ máquina antes de modificar suspensión/reactivación de usuarios.
 - aplicar `0268` o `0270` en Cloud;
 - definir plazos legales sin fuente aprobada.
 
-## 7. Resultado D1 y próximo gate
+## 7. Resultado D1–D5 y próximo gate
 
 La implementación local usa `0289_audit_d1_access_configuration`, reemplaza
 las 24 acciones obligatorias por fronteras transaccionales e incorpora un
@@ -104,5 +104,7 @@ atomicidad ACID entre PostgreSQL y Supabase Auth.
 
 D1 está integrado localmente y pendiente de su gate de Producción individual.
 D2 y D3 están integrados con una no conformidad acotada de motivo en callers
-legacy. Su adopción restante exige slices R2/R3 separados. D4 y D5 conservan
-migración, pruebas, revisión y publicación separadas.
+legacy. Su adopción restante exige slices R2/R3 separados. D4 conserva una no
+conformidad de `search_path` legacy. D5 incorpora idempotencia, lease y
+reconciliación durable. La spec permanece `in-progress` y `0289`–`0293`
+requieren autorización literal e individual para Producción.

@@ -103,6 +103,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Implementación local D2 | [REV-AUD-019](reviews/aud-d2-financial-domain.md) |
 | Implementación local D3 | [REV-AUD-020](reviews/aud-d3-commercial-cycle.md) |
 | Implementación local D4 | [REV-AUD-021](reviews/aud-d4-logistics-r3.md) |
+| Implementación local D5 | [REV-AUD-022](reviews/aud-d5-residual.md) |
 | Inventario read-only del Corte E | [E0 · repo y Cloud](../specs/0166-auditoria-gobernada-aud-01-aud-02/inventario-corte-e-2026-07-29.md) |
 | Diseño y revisión del Corte E | [REV-AUD-016](reviews/aud-corte-e.md) |
 | Jerarquía visual | [VIS-01 v1.0](policies/vis-01.md) |
@@ -190,7 +191,7 @@ disfraza elevando el estado normativo.
 | BTN-01 | Semántica, jerarquía y contrato de botones | aprobada v1.1 | Contrato menu button precisado; adopción parcial | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | HTD-01 | Confirmación por presión sostenida | aprobada | [Contrato v1.0](policies/htd-01.md) consolidado; no implementado | Crear SDD solo para una entidad R3 clasificada por MP-01 |
 | AVS-01 | Avisos y confirmaciones | verificada | Primitiva conforme; consumidores legacy se migran solo dentro de slices R2/R3 | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
-| AUD-01 | Evento auditable y vínculo con acciones | aprobada | D1 integrado; D2/D3 con no conformidad de motivo legacy; D4 con no conformidad de `search_path` en cinco RPC legacy; Producción pendiente por migración individual | [REV-AUD-018](reviews/aud-d1-access-config-implementation.md) · [REV-AUD-019](reviews/aud-d2-financial-domain.md) · [REV-AUD-020](reviews/aud-d3-commercial-cycle.md) · [REV-AUD-021](reviews/aud-d4-logistics-r3.md) |
+| AUD-01 | Evento auditable y vínculo con acciones | aprobada | D1/D5 integrados; D2/D3 con no conformidad de motivo legacy; D4 con no conformidad de `search_path` en cinco RPC legacy; Producción pendiente por migración individual | [REV-AUD-018](reviews/aud-d1-access-config-implementation.md) · [REV-AUD-019](reviews/aud-d2-financial-domain.md) · [REV-AUD-020](reviews/aud-d3-commercial-cycle.md) · [REV-AUD-021](reviews/aud-d4-logistics-r3.md) · [REV-AUD-022](reviews/aud-d5-residual.md) |
 | AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B y guardrail tenant 0268 aplicados; SDD-0118/0172 cerradas con replay, E2E y teardown terminal | [REV-AUD-039](reviews/aud-sdd-0118-0172-final-closure.md); consulta/RBAC y `0270` conservan gates separados |
 | VIS-01 | Jerarquía visual y distribución 60-30-10 | aprobada | Adopción parcial; muestreo acotado a slices y clasificación de literales | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | V1 integrado: Noto Serif SC sólo en documento formal `zh-CN`; UI china conserva Noto Sans SC | V2 correo, V3 PDF y V4 visual conservan gates propios |
