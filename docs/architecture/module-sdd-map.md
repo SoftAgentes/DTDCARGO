@@ -56,7 +56,7 @@
 | Bug Reporter | 0036 | `app/studio/(app)/{bugs,mis-bugs}/` + `_components/bug-reporter/` | `lib/studio/bug-*` |
 | Comentarios + @menciones | 0045, 0168 (`approved`) | `app/studio/(app)/menciones/` + `_components/comments/` + `_actions/comments.ts` (embed en `tracking/[id]`) | `lib/studio/comments/` · `supabase/migrations/0090_comments.sql` · 0168 aprueba permanencia/restauración sin implementación |
 | Dirección · Tablero ejecutivo | 0048 | app/studio/(app)/direccion/ | lib/studio/direccion/ |
-| Documentos · Hub (DMS) | 0049 | app/studio/(app)/documentos/ + _components/documents/DocsPanel | lib/studio/documents/ · supabase/migrations/0097 |
+| Documentos · Hub y adjuntos transversales | 0049, 0224 (`approved`) | `app/studio/(app)/documentos/` + `_components/documents/DocsPanel`; piloto Gastos con allowlist preparada, no implementado | `lib/studio/documents/` · `supabase/migrations/{0097,0116}`; plano común de adjuntos v2 aprobado, no implementado |
 | Inventario de Consolidación (WMS) | 0081 | `app/studio/(app)/inventario/` *(propuesto)* | `lib/studio/inventory/` *(propuesto)* — derivación sobre warehouse_receipts_* + consolidations (SDD-0047) |
 | Nómina / RRHH (empleados + prestadores) | 0103, 0109, 0226 | `app/studio/(app)/nomina/` | `lib/studio/nomina/` · `supabase/migrations/{0160,0161,0179,0316}` (anulación R3 de finiquito gobernada) |
 | Bitácora (actas IA + tareas del equipo) | 0146, 0210 | `app/studio/(app)/bitacora/` + `app/m/erp/bitacora/` | `lib/studio/bitacora/` · `supabase/migrations/{0214,0215,0216}` |
