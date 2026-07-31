@@ -520,3 +520,8 @@ El 2026-07-31 la fuente E1 fue promovida y
 [SDD-0219](../0219-audit-legal-holds/spec.md) abrió E2 con holds append-only,
 liberación de dos decisiones y precedencia fail-closed. Cloud conserva un gate
 nominal independiente para `0301_audit_legal_holds.sql`.
+
+[SDD-0220](../0220-audit-export-governed/spec.md) abrió E3: solicitud durable,
+segundo aprobador, RPC redacted, bucket privado, hash externo al objeto y URL de
+15 minutos. Cloud conserva el gate nominal de
+`0302_audit_export_governed.sql`.

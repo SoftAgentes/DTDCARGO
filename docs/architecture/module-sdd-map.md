@@ -19,7 +19,7 @@
 | Módulo | SDD | Código (app) | Código (lib) |
 |---|---|---|---|
 | Shell + Auth | 0004, 0007 | `app/studio/(app)/` shell, `(auth)/login` | `lib/auth/session.ts`, `proxy.ts` |
-| Administración · Audit log | 0123, 0166, 0172, 0174, 0186, 0187, 0188, 0189, 0200, 0219 | `app/studio/(app)/admin/` | `lib/studio/audit-*` · `entity_audit_log` · `audit_legal_holds` · `scripts/{seed-e2e,verify-e2e-teardown}.ts` · migraciones por corte |
+| Administración · Audit log | 0123, 0166, 0172, 0174, 0186, 0187, 0188, 0189, 0200, 0219, 0220 | `app/studio/(app)/admin/` + `app/api/studio/audit/` | `lib/studio/audit-*` · `entity_audit_log` · holds/export · `scripts/{seed-e2e,verify-e2e-teardown}.ts` · migraciones por corte |
 | Gobernanza ejecutable | 0178, 0183 | entrypoints de agentes + plugin repo/team read-only 0.1.2 instalado | `docs/governance/` como fuente normativa · `.agents/plugins/plugins/erp-studio-governance/` como derivado validado |
 | Verificación transversal | 0202, 0203, 0204, 0205, 0206, 0207, 0208, 0209, 0210, 0211, 0212, 0213, 0214 | pruebas de API/Studio + contratos backend/frontend/navegador/actions/filtros/pureza/drawers/Bitácora/render/preferencias/reconciliación/efectos externos + service worker móvil | `scripts/run-sql-tests.mjs` · suites Vitest focalizadas |
 | Realtime transversal | 0198 | Studio, Portal y móviles operativos | `lib/studio/hooks/use-realtime-{refresh,table}.ts` |
