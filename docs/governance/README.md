@@ -149,6 +149,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Preflight operativo E5 con elegibilidad cero | [REV-AUD-051](reviews/aud-e5-operational-preflight-2026-07-31.md) |
 | Auditoría y retiro seguro de worktrees históricos | [REV-SGE-033](reviews/governance-worktree-retirement-2026-07-31.md) |
 | Muestreo read-only de Sistema y Legal | [REV-SGE-034](reviews/governance-system-legal-sample-2026-07-31.md) |
+| Auditoría R3 de pago de cruce en Financiero China | [REV-SGE-035](reviews/partner-finance-r3-claim-payment-audit-2026-07-31.md) |
 | Revisión de patrones UX en videos | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | Portabilidad EOL de SDD-0118 | [REV-AUD-030](reviews/aud-sdd-0118-eol-portability.md) |
 | Dependencias ejecutables CMP-01 | [REV-SGE-015](reviews/cmp-01-dependency-validation.md) |
