@@ -61,7 +61,7 @@ function parseJson<T>(v: unknown, fallback: T): T {
 }
 
 const DOC_COLUMNS =
-  "id, tenant_id, key, name, audience, version, effective_date, status, sections, change_note, body, created_at";
+  "id, tenant_id, key, name, audience, version, effective_date, status, sections, change_note, body, body_sha256, created_at";
 
 function coerceDoc(row: Record<string, unknown>): LegalDoc {
   return {
@@ -202,14 +202,26 @@ export function legalOverview(
   kpis: { total: number; thisMonth: number; onCurrent: number };
 } {
   const currentVersions: Record<string, string> = {};
+  /** key → sello del cuerpo vigente (v3): la versión sola ya no alcanza. */
+  const currentBodyHash: Record<string, string> = {};
   for (const d of docs) {
     if (d.status === "vigente" && d.audience === "cliente") {
       currentVersions[d.key] = d.version;
+      currentBodyHash[d.key] = d.body_sha256;
     }
   }
 
+  // v3 (SDD-0191 Slice A): "está en la versión vigente" ahora exige que el
+  // CUERPO también coincida. Con la migración 0297 el texto de un documento
+  // publicado ya no puede cambiar, así que esto es defensa en profundidad — pero
+  // si alguna vez se colara un cambio, este KPI deja de mentir.
   const onCurrent = (refs: DocRef[]): boolean =>
-    refs.length > 0 && refs.every((r) => currentVersions[r.key] === r.version);
+    refs.length > 0 &&
+    refs.every(
+      (r) =>
+        currentVersions[r.key] === r.version &&
+        currentBodyHash[r.key] === r.body_sha256,
+    );
 
   const now = new Date();
   const thisMonthPrefix = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;

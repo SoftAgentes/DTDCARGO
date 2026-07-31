@@ -63,8 +63,8 @@ function stub(
 const TENANT = "tn";
 const MARKBOX = "DTD-5452";
 const VIGENTES: DocRef[] = [
-  { key: "tyc", version: "v2.1" },
-  { key: "operador", version: "v1.4" },
+  { key: "tyc", version: "v2.1", body_sha256: "sha-tyc-v2.1" },
+  { key: "operador", version: "v1.4", body_sha256: "sha-operador-v1.4" },
 ];
 
 function docsTable(
@@ -218,8 +218,8 @@ describe("hasValidAcceptanceForMarkbox", () => {
     const old = row({
       id: "a1",
       docs: [
-        { key: "tyc", version: "v2.0" },
-        { key: "operador", version: "v1.4" },
+        { key: "tyc", version: "v2.0", body_sha256: "sha-tyc-v2.0" },
+        { key: "operador", version: "v1.4", body_sha256: "sha-operador-v1.4" },
       ],
       cbm: 7,
       weight_kg: 2800,

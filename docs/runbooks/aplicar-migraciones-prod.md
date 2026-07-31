@@ -67,6 +67,15 @@ Tres salidas posibles, en este orden:
 `apply_migration` devuelve `Cannot apply migration in read-only mode`. Sirve para
 leer y verificar, no para escribir.
 
+> ⚠️ **Observado el 2026-07-30 (SDD-0191 Slice A):** el MCP de Supabase
+> disponible en esa sesión **sí escribió** — `apply_migration` con
+> `project_id: xpfuzqombmjmxvprjgmi` devolvió `{"success": true}` y la 0297
+> quedó en el ledger. O la config de `read_only` cambió, o esa sesión estaba
+> hablando con el conector de claude.ai y no con el local. **No asumas cuál
+> tenés**: probá el sondeo del objeto primero (paso 1) y, si `apply_migration`
+> funciona, ya sabés que no es read-only. Lo que NO cambia es la barrera de
+> arriba: el OK del founder nombrando la migración.
+
 **El conector `claude.ai Supabase` NO es read-only**: `apply_migration` con
 `project_id: xpfuzqombmjmxvprjgmi` funciona. Requiere OK explícito del founder
 nombrando la migración (un "ok" suelto no pasa el clasificador de permisos, y
