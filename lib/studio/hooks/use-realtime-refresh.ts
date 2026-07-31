@@ -16,7 +16,7 @@
  * `useRealtimeTable` que mantiene state local sin server roundtrip.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/db/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
@@ -42,21 +42,36 @@ export function useRealtimeRefresh({
   onChange,
 }: UseRealtimeRefreshOptions): { status: RealtimeStatus } {
   const router = useRouter();
-  const [status, setStatus] = useState<RealtimeStatus>("idle");
+  const subscriptionKey = disabled ? null : `${table}-${filter ?? "all"}`;
+  const [connection, setConnection] = useState<{
+    key: string | null;
+    status: RealtimeStatus;
+  }>(() => ({
+    key: subscriptionKey,
+    status: subscriptionKey ? "connecting" : "idle",
+  }));
+  if (connection.key !== subscriptionKey) {
+    setConnection({
+      key: subscriptionKey,
+      status: subscriptionKey ? "connecting" : "idle",
+    });
+  }
+  const status =
+    connection.key === subscriptionKey
+      ? connection.status
+      : subscriptionKey
+        ? "connecting"
+        : "idle";
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const onChangeRef = useRef(onChange);
-  useEffect(() => {
-    onChangeRef.current = onChange;
-  });
+  const notifyChange = useEffectEvent(() => onChange?.());
 
   useEffect(() => {
-    if (disabled) return;
+    if (!subscriptionKey) return;
 
     const supabase = createClient();
-    setStatus("connecting");
 
     const channel: RealtimeChannel = supabase
-      .channel(`refresh-${table}-${filter ?? "all"}`)
+      .channel(`refresh-${subscriptionKey}`)
       .on(
         "postgres_changes",
         {
@@ -70,22 +85,24 @@ export function useRealtimeRefresh({
           if (timeoutRef.current) clearTimeout(timeoutRef.current);
           timeoutRef.current = setTimeout(() => {
             router.refresh();
-            onChangeRef.current?.();
+            notifyChange();
           }, debounceMs);
         },
       )
       .subscribe((subStatus) => {
-        if (subStatus === "SUBSCRIBED") setStatus("connected");
+        if (subStatus === "SUBSCRIBED")
+          setConnection({ key: subscriptionKey, status: "connected" });
         else if (subStatus === "CHANNEL_ERROR" || subStatus === "TIMED_OUT")
-          setStatus("error");
-        else if (subStatus === "CLOSED") setStatus("closed");
+          setConnection({ key: subscriptionKey, status: "error" });
+        else if (subStatus === "CLOSED")
+          setConnection({ key: subscriptionKey, status: "closed" });
       });
 
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       void channel.unsubscribe();
     };
-  }, [table, filter, debounceMs, disabled, router]);
+  }, [table, filter, debounceMs, subscriptionKey, router]);
 
   return { status };
 }

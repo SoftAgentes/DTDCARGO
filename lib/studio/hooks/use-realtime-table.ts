@@ -28,9 +28,8 @@
  * que las policies permiten leer.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { createClient } from "@/lib/db/client";
-import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export type RealtimeStatus =
   | "idle"
@@ -72,25 +71,51 @@ export function useRealtimeTable<T extends { id: string }>({
   initial,
   disabled = false,
 }: UseRealtimeTableOptions<T>): UseRealtimeTableResult<T> {
-  const [data, setData] = useState<T[]>(initial);
-  const [status, setStatus] = useState<RealtimeStatus>("idle");
-  const channelRef = useRef<RealtimeChannel | null>(null);
+  const subscriptionKey = disabled ? null : `${table}-${filter ?? "all"}`;
+  const [snapshot, setSnapshot] = useState<{ source: T[]; data: T[] }>(() => ({
+    source: initial,
+    data: initial,
+  }));
+  if (snapshot.source !== initial) {
+    setSnapshot({ source: initial, data: initial });
+  }
+  const data = snapshot.source === initial ? snapshot.data : initial;
+  const [connection, setConnection] = useState<{
+    key: string | null;
+    status: RealtimeStatus;
+  }>(() => ({
+    key: subscriptionKey,
+    status: subscriptionKey ? "connecting" : "idle",
+  }));
+  if (connection.key !== subscriptionKey) {
+    setConnection({
+      key: subscriptionKey,
+      status: subscriptionKey ? "connecting" : "idle",
+    });
+  }
+  const status =
+    connection.key === subscriptionKey
+      ? connection.status
+      : subscriptionKey
+        ? "connecting"
+        : "idle";
+  const applyChange = useEffectEvent((payload: PgChangePayload<T>) => {
+    setSnapshot((current) => {
+      const currentData = current.source === initial ? current.data : initial;
+      return {
+        source: initial,
+        data: applyPayload(currentData, payload),
+      };
+    });
+  });
 
-  // Cuando el server refresca y pasa nuevo `initial`, lo absorbemos.
-  // (Comparación por reference: el server siempre devuelve array nuevo).
   useEffect(() => {
-    setData(initial);
-  }, [initial]);
-
-  useEffect(() => {
-    if (disabled) return;
+    if (!subscriptionKey) return;
 
     const supabase = createClient();
-    setStatus("connecting");
 
-    const channelName = `${table}-${filter ?? "all"}`;
     const channel = supabase
-      .channel(channelName)
+      .channel(subscriptionKey)
       .on(
         "postgres_changes",
         {
@@ -100,25 +125,22 @@ export function useRealtimeTable<T extends { id: string }>({
           ...(filter ? { filter } : {}),
         },
         (payload) => {
-          setData((current) =>
-            applyPayload<T>(current, payload as unknown as PgChangePayload<T>),
-          );
+          applyChange(payload as unknown as PgChangePayload<T>);
         },
       )
       .subscribe((subStatus) => {
-        if (subStatus === "SUBSCRIBED") setStatus("connected");
+        if (subStatus === "SUBSCRIBED")
+          setConnection({ key: subscriptionKey, status: "connected" });
         else if (subStatus === "CHANNEL_ERROR" || subStatus === "TIMED_OUT")
-          setStatus("error");
-        else if (subStatus === "CLOSED") setStatus("closed");
+          setConnection({ key: subscriptionKey, status: "error" });
+        else if (subStatus === "CLOSED")
+          setConnection({ key: subscriptionKey, status: "closed" });
       });
-
-    channelRef.current = channel;
 
     return () => {
       void channel.unsubscribe();
-      channelRef.current = null;
     };
-  }, [table, filter, disabled]);
+  }, [table, filter, subscriptionKey]);
 
   return { data, status };
 }
