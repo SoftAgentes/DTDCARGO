@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 201 specs)
+### Índice de specs (generado · 202 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -239,6 +239,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0207 | Listados Studio — query como fuente de verdad | done | interno |
 | 0208 | Render — referencias temporales estables | done | interno |
 | 0209 | Drawers — sugerencias y resultados derivados | done | interno |
+| 0210 | Bitácora — estado externo y cargas coherentes | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0179, 0190 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

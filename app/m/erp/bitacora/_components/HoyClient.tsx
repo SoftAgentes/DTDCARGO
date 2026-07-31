@@ -9,7 +9,7 @@
  * del pulgar); al pasar a "hecho" la tarea desaparece con toast.
  */
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BrandMark } from "@/components/BrandMark";
@@ -59,11 +59,15 @@ export function HoyClient({
   const [, startRefresh] = useTransition();
 
   // Realtime: un avance en desktop se refleja en el teléfono en <2s sin reload
-  // (el server re-pull trae las relaciones; el useEffect([tasks]) re-syncea).
+  // (el server re-pull trae las relaciones; las props re-sincronizan el estado).
   useBitacoraTasksRealtime(tenantId);
 
   const [localTasks, setLocalTasks] = useState<BitacoraTask[]>(tasks);
-  useEffect(() => setLocalTasks(tasks), [tasks]);
+  const [tasksSource, setTasksSource] = useState(tasks);
+  if (tasksSource !== tasks) {
+    setTasksSource(tasks);
+    setLocalTasks(tasks);
+  }
 
   const [soloMias, setSoloMias] = useState(true);
 

@@ -13,7 +13,7 @@
  *     significado: el progreso usa UN token (--success), no arcoíris.
  */
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Icon } from "@/app/studio/_components/icons";
 import {
@@ -48,6 +48,25 @@ interface Props {
 
 type Mode = "lista" | "persona";
 const MODE_KEY = "bitacora:lista-mode";
+const MODE_EVENT = "bitacora:lista-mode-change";
+
+function readStoredMode(): Mode {
+  try {
+    const saved = localStorage.getItem(MODE_KEY);
+    return saved === "persona" ? "persona" : "lista";
+  } catch {
+    return "lista";
+  }
+}
+
+function subscribeStoredMode(onStoreChange: () => void) {
+  window.addEventListener("storage", onStoreChange);
+  window.addEventListener(MODE_EVENT, onStoreChange);
+  return () => {
+    window.removeEventListener("storage", onStoreChange);
+    window.removeEventListener(MODE_EVENT, onStoreChange);
+  };
+}
 
 // ── Columnas configurables (regla Studio · handoff Norte) ──────────────
 const COLS_KEY = "bitacora-lista-cols-v1";
@@ -245,19 +264,15 @@ export function BoardList({
   onMove,
   onOpen,
 }: Props) {
-  const [mode, setMode] = useState<Mode>("lista");
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(MODE_KEY);
-      if (saved === "lista" || saved === "persona") setMode(saved);
-    } catch {
-      /* default */
-    }
-  }, []);
+  const mode = useSyncExternalStore(
+    subscribeStoredMode,
+    readStoredMode,
+    () => "lista",
+  );
   const changeMode = (m: Mode) => {
-    setMode(m);
     try {
       localStorage.setItem(MODE_KEY, m);
+      window.dispatchEvent(new Event(MODE_EVENT));
     } catch {
       /* en memoria */
     }

@@ -21,7 +21,7 @@
 | Shell + Auth | 0004, 0007 | `app/studio/(app)/` shell, `(auth)/login` | `lib/auth/session.ts`, `proxy.ts` |
 | Administración · Audit log | 0123, 0166, 0172, 0174, 0186, 0187, 0188, 0189, 0200 | `app/studio/(app)/admin/` | `lib/studio/audit-*` · `entity_audit_log` · `scripts/{seed-e2e,verify-e2e-teardown}.ts` · migraciones por corte |
 | Gobernanza ejecutable | 0178, 0183 | entrypoints de agentes + plugin repo/team read-only 0.1.2 instalado | `docs/governance/` como fuente normativa · `.agents/plugins/plugins/erp-studio-governance/` como derivado validado |
-| Verificación transversal | 0202, 0203, 0204, 0205, 0206, 0207, 0208, 0209 | pruebas de API/Studio + contratos backend/frontend/navegador/actions/filtros/pureza/drawers + service worker móvil | `scripts/run-sql-tests.mjs` · suites Vitest focalizadas |
+| Verificación transversal | 0202, 0203, 0204, 0205, 0206, 0207, 0208, 0209, 0210 | pruebas de API/Studio + contratos backend/frontend/navegador/actions/filtros/pureza/drawers/Bitácora + service worker móvil | `scripts/run-sql-tests.mjs` · suites Vitest focalizadas |
 | Realtime transversal | 0198 | Studio, Portal y móviles operativos | `lib/studio/hooks/use-realtime-{refresh,table}.ts` |
 | Tipografía transversal · VIS-02 | 0175 | `app/{layout,globals}.tsx` · `app/studio/` | `next/font` · tokens de voz · renderers email/PDF |
 | Fiscal/SENIAT · tabs accesibles | 0073, 0104, 0180 | `app/studio/(app)/fiscal/` | `lib/studio/fiscal/` |
@@ -59,7 +59,7 @@
 | Documentos · Hub (DMS) | 0049 | app/studio/(app)/documentos/ + _components/documents/DocsPanel | lib/studio/documents/ · supabase/migrations/0097 |
 | Inventario de Consolidación (WMS) | 0081 | `app/studio/(app)/inventario/` *(propuesto)* | `lib/studio/inventory/` *(propuesto)* — derivación sobre warehouse_receipts_* + consolidations (SDD-0047) |
 | Nómina / RRHH (empleados + prestadores) | 0103 | `app/studio/(app)/nomina/` | `lib/studio/nomina/` · `supabase/migrations/{0160,0161}` (Slice A; cálculo LOTTT → Slice B) |
-| Bitácora (actas IA + tareas del equipo) | 0146 | `app/studio/(app)/bitacora/` + `app/m/erp/bitacora/` *(propuesto)* | `lib/studio/bitacora/` · `supabase/migrations/{0214,0215,0216}` *(propuesto)* |
+| Bitácora (actas IA + tareas del equipo) | 0146, 0210 | `app/studio/(app)/bitacora/` + `app/m/erp/bitacora/` | `lib/studio/bitacora/` · `supabase/migrations/{0214,0215,0216}` |
 
 ## Móvil PWA (operario)
 
