@@ -64,10 +64,17 @@ export function CategoryDetector({
 
   // Reset cuando cambia tipo
   useEffect(() => {
-    setSuggestion(null);
-    setError(null);
-    setDismissed(false);
-    lastAnalyzedRef.current = "";
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setSuggestion(null);
+      setError(null);
+      setDismissed(false);
+      lastAnalyzedRef.current = "";
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [tipo]);
 
   // Detección con debounce
@@ -76,13 +83,19 @@ export function CategoryDetector({
 
     const trimmed = topic.trim();
     if (trimmed.length < MIN_TOPIC_LENGTH) {
-      setSuggestion(null);
-      setError(null);
-      return;
+      let cancelled = false;
+      queueMicrotask(() => {
+        if (cancelled) return;
+        setSuggestion(null);
+        setError(null);
+      });
+      return () => {
+        cancelled = true;
+      };
     }
     if (trimmed === lastAnalyzedRef.current) return;
 
-    setDismissed(false);
+    queueMicrotask(() => setDismissed(false));
 
     if (timerRef.current) window.clearTimeout(timerRef.current);
     timerRef.current = window.setTimeout(() => {

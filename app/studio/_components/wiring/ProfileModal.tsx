@@ -1212,10 +1212,16 @@ function TelegramSection({
 
   // Si en algún refresh el chat_id apareció (vía webhook), salimos del waiting
   useEffect(() => {
-    if (linked && waitingConfirm) {
-      setWaitingConfirm(false);
-      setLinkCode(null);
-    }
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled && linked && waitingConfirm) {
+        setWaitingConfirm(false);
+        setLinkCode(null);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [linked, waitingConfirm]);
 
   return (

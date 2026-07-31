@@ -91,7 +91,13 @@ export function ParametrosPanel({
   // Cada resultado nuevo de la action (ok o error) revalida los valores
   // actuales → limpiamos dirty para volver a mostrar errores si los hubo.
   useEffect(() => {
-    setDirty(false);
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setDirty(false);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [state]);
 
   // Feedback de guardado (sin row → solo toast, Regla 4 de trazabilidad).

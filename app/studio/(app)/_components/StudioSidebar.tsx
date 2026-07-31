@@ -147,7 +147,13 @@ export function StudioSidebar({
 
   // Al navegar a otro módulo, abrir su grupo y colapsar los demás (acordeón).
   useEffect(() => {
-    if (activeGroup) setOpenGroup(activeGroup);
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled && activeGroup) setOpenGroup(activeGroup);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [activeGroup]);
 
   const toggleCollapsed = () => {

@@ -249,10 +249,16 @@ export function SupplierPicker({
   // Si el alta inline del proveedor nuevo termina OK, lo dejamos elegido — la
   // página revalidó, pero el id nuevo lo conocemos por el state.
   useEffect(() => {
-    if (newSupplierState.ok && newSupplierState.supplierId) {
-      onSelect(newSupplierState.supplierId);
-      setNewSupplierName(null);
-    }
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled && newSupplierState.ok && newSupplierState.supplierId) {
+        onSelect(newSupplierState.supplierId);
+        setNewSupplierName(null);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
     // `onSelect` es estable en los dos callers (setState / setter propio).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newSupplierState.ok, newSupplierState.supplierId]);

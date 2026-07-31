@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 204 specs)
+### Índice de specs (generado · 205 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -242,6 +242,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0210 | Bitácora — estado externo y cargas coherentes | done | interno |
 | 0211 | Render — entradas estables y acumuladores puros | done | interno |
 | 0212 | Preferencias — hidratación cancelable del navegador | done | interno |
+| 0213 | Estado — reconciliación cancelable por frontera | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0179, 0190 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

@@ -59,7 +59,9 @@ export function RouteDrawer({
   );
 
   useEffect(() => {
-    if (selectedShipment) {
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled || !selectedShipment) return;
       setStops((prev) => {
         const next = [...prev];
         if (!next[0]?.trim() && selectedShipment.destination) {
@@ -73,7 +75,10 @@ export function RouteDrawer({
         }
         return next;
       });
-    }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [selectedShipment]);
 
   useEffect(() => {
