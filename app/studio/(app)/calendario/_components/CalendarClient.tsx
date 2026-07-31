@@ -50,6 +50,7 @@ type Props = {
   holidays: Holiday[];
   fairs: Fair[];
   todayIso: string;
+  timeZone: string;
 };
 
 const VIEW_OPTS: { v: View; label: string; icon: () => ReactNode }[] = [
@@ -64,6 +65,7 @@ export function CalendarClient({
   holidays,
   fairs,
   todayIso,
+  timeZone,
 }: Props) {
   const router = useRouter();
   const sp = useSearchParams();
@@ -208,6 +210,20 @@ export function CalendarClient({
               >
                 {formatMonthLabel(cursor)}
               </h2>
+              <span
+                title="Los instantes de zarpes, arribos y entregas se muestran en esta zona horaria."
+                style={{
+                  padding: "var(--s-1) var(--s-2)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--r-sm)",
+                  color: "var(--ink-soft)",
+                  background: "var(--bg-elevated)",
+                  font: "600 10.5px/1.2 var(--f-mono)",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Zona horaria · {timeZone}
+              </span>
               <button
                 type="button"
                 onClick={goToday}

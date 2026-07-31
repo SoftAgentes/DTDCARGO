@@ -22,9 +22,16 @@
 
 ## Estado actual
 
-Existen Mes/Semana/Agenda, filtros y drawer. La spec reconoce riesgo off-by-one
-UTC, reutilización del set mensual en Semana/Agenda y Slice 2 pendiente para
-reprogramar, exportar ICS y detectar impactos.
+Existen Mes/Semana/Agenda, filtros y drawer. SDD-0217 cerró el riesgo off-by-one:
+los `timestamptz` se convierten al día civil de la zona IANA del perfil, la zona
+se muestra en pantalla y el query amplía límites antes del filtro local.
+
+La adopción continúa parcial porque Semana/Agenda reutilizan el set mensual y
+Slice 2 de SDD-0141 difirió reprogramación, exportar ICS y detectar impactos.
+Zarpe, arribo y entrega actuales son hechos derivados, no fechas planificadas
+editables: reprogramarlos sería falsear la fuente. DAT-01 permanece `no aplica`
+en este flujo hasta que un SDD defina la entidad/fecha planificada, permisos,
+dependencias y conflictos.
 
 ## Gate
 

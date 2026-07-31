@@ -11,16 +11,21 @@
  */
 
 import { createClient } from "@/lib/db/server";
+import { getUser } from "@/lib/auth/session";
 import {
   buildMonthGrid,
   parseMonthParam,
-  toIso,
 } from "@/lib/studio/calendar-helpers";
 import { ALL_FAIRS_2026, ALL_HOLIDAYS_2026 } from "@/lib/studio/calendar-data";
 import {
   listCalendarEvents,
 } from "@/lib/studio/calendar-events-queries";
 import type { CalendarEvent } from "@/lib/studio/calendar-events-types";
+import {
+  DEFAULT_CALENDAR_TIME_ZONE,
+  normalizeCalendarTimeZone,
+  timestampToCalendarDay,
+} from "@/lib/studio/calendar-events-types";
 import { CalendarClient } from "./_components/CalendarClient";
 
 export const metadata = { title: "Calendario" };
@@ -38,17 +43,27 @@ export default async function CalendarioPage({
   const cells = buildMonthGrid(cursor);
   const from = cells[0].isoDate;
   const to = cells[cells.length - 1].isoDate;
-  const todayIso = toIso(new Date());
+  let timeZone = DEFAULT_CALENDAR_TIME_ZONE;
 
   let events: CalendarEvent[] = [];
   try {
     const supabase = await createClient();
-    events = await listCalendarEvents(supabase, { from, to });
+    const user = await getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("timezone")
+        .eq("user_id", user.id)
+        .maybeSingle<{ timezone: string | null }>();
+      timeZone = normalizeCalendarTimeZone(profile?.timezone);
+    }
+    events = await listCalendarEvents(supabase, { from, to }, { timeZone });
   } catch {
     // Calendario advisory: si la query falla (sesión/tenant), degradá a
     // solo feriados + ferias en vez de tumbar la página.
     events = [];
   }
+  const todayIso = timestampToCalendarDay(new Date().toISOString(), timeZone);
 
   return (
     <div style={{ maxWidth: 1280 }}>
@@ -59,6 +74,7 @@ export default async function CalendarioPage({
         holidays={ALL_HOLIDAYS_2026}
         fairs={ALL_FAIRS_2026}
         todayIso={todayIso}
+        timeZone={timeZone}
       />
     </div>
   );
