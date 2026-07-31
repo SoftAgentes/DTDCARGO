@@ -9,7 +9,7 @@
 | Prueba SQL | [`0270_audit_governed_query_rbac.test.sql`](../../../supabase/tests/0270_audit_governed_query_rbac.test.sql) |
 | Fecha | 2026-07-28 |
 | Resultado técnico | aprobado para aplicación individual futura |
-| Estado operativo | implementado y verificado localmente; no aplicado en Cloud |
+| Estado operativo | aplicado y verificado en Producción por REV-AUD-042 |
 | Decisión | Gate C1 local autorizado por Sam (founder) + revisión técnica Codex |
 
 ## 1. Veredicto
@@ -74,7 +74,7 @@ verificarse antes de ofrecer esa interacción.
 | ESLint completo | 0 errores; 172 warnings preexistentes |
 | Build Next.js | verde; 152 páginas estáticas generadas |
 | Datos persistidos | cero |
-| Cloud | no modificado |
+| Producción | aplicada por REV-AUD-042; postcondiciones metadata-only verdes |
 
 El warning de `wal_level` en los contenedores estándar no afecta la prueba de
 membresía de publicación. Ambos ensayos terminaron en
@@ -92,12 +92,11 @@ código `0`. Ninguno corresponde a los archivos de C1.
   tenga las RPCs.
 - Los writers y su atomicidad pertenecen al Corte D.
 - Exportación, hold y retención pertenecen al Corte E.
-- `0268` y `0270` continúan sin aplicar en Cloud.
+- `0268` y `0270` están aplicados en Producción con recibos individuales.
 
-## 6. Gate siguiente
+## 6. Aplicación y gate siguiente
 
-El siguiente gate de C1 es aplicar individualmente
-`0270_audit_governed_query_rbac` mediante el runbook, con autorización que
-nombre exactamente el basename, preflight fresco, postcondiciones, advisors y
-recorrido visual autenticado. Esa condición no impide abrir el inventario
-read-only del Corte D como gate separado.
+REV-AUD-042 registra la aplicación individual de
+`0270_audit_governed_query_rbac`, el basename exacto, las postcondiciones de
+RPC/ACL/Realtime y los advisors. El recorrido visual autenticado conserva su
+gate de evidencia propio; no autoriza acceso a payload ni PII.

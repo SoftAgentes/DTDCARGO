@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/app/studio/_components/icons";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
@@ -49,6 +50,10 @@ import {
 /** Cuenta (subset para los selects). */
 export type AccountOption = { id: string; code: string; name: string };
 
+type VoidIntent =
+  | { kind: "bill" }
+  | { kind: "payment"; id: string; code: string };
+
 function fmt(n: number): string {
   return n.toLocaleString("en-US", {
     minimumFractionDigits: 2,
@@ -75,6 +80,8 @@ export function BillDrawer({
 
   const [error, setError] = useState<string | null>(null);
   const [showPay, setShowPay] = useState(false);
+  const [voidIntent, setVoidIntent] = useState<VoidIntent | null>(null);
+  const [voidPending, setVoidPending] = useState(false);
   const [history, setHistory] = useState<{ payments: SupplierPayment[] } | null>(
     null,
   );
@@ -98,6 +105,7 @@ export function BillDrawer({
     getBillHistory(bill.id).then(setHistory).catch(() => {});
 
   return (
+    <>
     <DrawerShell
       title={bill.bill_code}
       subtitle={`${bill.supplier_name} · saldo $${fmt(payable.balance)}`}
@@ -273,14 +281,9 @@ export function BillDrawer({
         {/* Historial de pagos */}
         <PaymentHistory
           history={history}
-          onVoidPayment={async (paymentId, code) => {
+          onRequestVoid={(paymentId, code) => {
             setError(null);
-            const r = await voidPayment(paymentId);
-            if (r.error) return { error: r.error };
-            toast.info(`Orden ${code} anulada · se revirtió el saldo`);
-            refresh();
-            reloadHistory();
-            return undefined;
+            setVoidIntent({ kind: "payment", id: paymentId, code });
           }}
         />
 
@@ -294,27 +297,73 @@ export function BillDrawer({
               justifyContent: "flex-end",
             }}
           >
-            <ActionButton
-              variant="danger"
-              size="sm"
-              idleLabel="Anular CxP"
-              loadingLabel="Anulando…"
-              successLabel={null}
-              onAction={async () => {
+            <button
+              type="button"
+              className="studio-btn studio-btn-danger studio-btn-sm"
+              onClick={() => {
                 setError(null);
-                const r = await voidBill(bill.id);
-                if (r.error) return { error: r.error };
-                toast.info(`CxP ${bill.bill_code} anulada`);
-                onClose();
-                refresh();
-                return undefined;
+                setVoidIntent({ kind: "bill" });
               }}
-              onError={setError}
-            />
+            >
+              Anular CxP
+            </button>
           </div>
         )}
       </div>
     </DrawerShell>
+    <ConfirmDialog
+      open={voidIntent !== null}
+      danger
+      reason
+      reasonRequired
+      initialFocus="reason"
+      title={
+        voidIntent?.kind === "payment"
+          ? "Anular orden de pago"
+          : "Anular cuenta por pagar"
+      }
+      message={
+        voidIntent?.kind === "payment"
+          ? `La orden ${voidIntent.code} se anulará y se revertirá su saldo. Indica el motivo.`
+          : `La CxP ${bill.bill_code} quedará anulada en el historial. Indica el motivo.`
+      }
+      confirmLabel="Confirmar anulación"
+      pending={voidPending}
+      error={error ?? undefined}
+      onCancel={() => {
+        if (!voidPending) setVoidIntent(null);
+      }}
+      onConfirm={async (reason) => {
+        if (!voidIntent) return;
+        setVoidPending(true);
+        setError(null);
+
+        if (voidIntent.kind === "payment") {
+          const result = await voidPayment(voidIntent.id, reason);
+          if (result.error) {
+            setError(result.error);
+            setVoidPending(false);
+            return;
+          }
+          toast.info(`Orden ${voidIntent.code} anulada · se revirtió el saldo`);
+          reloadHistory();
+        } else {
+          const result = await voidBill(bill.id, reason);
+          if (result.error) {
+            setError(result.error);
+            setVoidPending(false);
+            return;
+          }
+          toast.info(`CxP ${bill.bill_code} anulada`);
+          onClose();
+        }
+
+        setVoidIntent(null);
+        setVoidPending(false);
+        refresh();
+      }}
+    />
+    </>
   );
 }
 
@@ -505,13 +554,10 @@ function PayForm({
 
 function PaymentHistory({
   history,
-  onVoidPayment,
+  onRequestVoid,
 }: {
   history: { payments: SupplierPayment[] } | null;
-  onVoidPayment: (
-    paymentId: string,
-    code: string,
-  ) => Promise<{ error?: string } | undefined>;
+  onRequestVoid: (paymentId: string, code: string) => void;
 }) {
   if (!history) {
     return (
@@ -581,14 +627,14 @@ function PaymentHistory({
               <div style={{ font: "700 12.5px/1 var(--f-mono)", color: "var(--ink)" }}>
                 ${fmt(p.amount)}
               </div>
-              <ActionButton
-                variant="ghost"
-                size="xs"
-                idleLabel="Anular"
-                loadingLabel="Anulando…"
-                successLabel={null}
-                onAction={async () => onVoidPayment(p.id, p.payment_code)}
-              />
+              <button
+                type="button"
+                className="studio-btn studio-btn-ghost studio-btn-xs"
+                style={{ color: "var(--danger)" }}
+                onClick={() => onRequestVoid(p.id, p.payment_code)}
+              >
+                Anular
+              </button>
             </div>
           ))}
         </div>

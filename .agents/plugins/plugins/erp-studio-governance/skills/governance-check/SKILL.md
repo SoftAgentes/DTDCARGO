@@ -7,12 +7,14 @@ description: Revisa de forma read-only un cambio, diff, SDD o componente de DTDC
 
 ## Flujo
 
-1. Resuelve el root del repositorio cuatro niveles sobre el plugin.
+1. Resuelve el root del repositorio con `git rev-parse --show-toplevel` desde
+   el directorio de trabajo. Falla cerrado si no es DTDCargo.
 2. Lee `docs/governance/AGENT-BRIEF.md` y
    `references/policy-registry.json`.
 3. Selecciona sólo las políticas aplicables y abre sus rutas normativas.
 4. Inspecciona el diff o allowlist solicitado. No amplíes el alcance.
-5. Ejecuta `node scripts/validate-governance.mjs` desde el plugin.
+5. Ejecuta `node <plugin-root>/scripts/validate-governance.mjs` con el root del
+   repositorio como directorio de trabajo.
 6. Clasifica cada evidencia como `cumplimiento`, `no aplica`, `excepción` o
    `no conformidad`.
 

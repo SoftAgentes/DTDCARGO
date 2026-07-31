@@ -19,8 +19,8 @@
 | Módulo | SDD | Código (app) | Código (lib) |
 |---|---|---|---|
 | Shell + Auth | 0004, 0007 | `app/studio/(app)/` shell, `(auth)/login` | `lib/auth/session.ts`, `proxy.ts` |
-| Administración · Audit log | 0123, 0166, 0172, 0174 | `app/studio/(app)/admin/` | `lib/studio/audit-*` · `entity_audit_log` · `scripts/{seed-e2e,verify-e2e-teardown}.ts` · migraciones por corte |
-| Gobernanza ejecutable | 0178, 0183 | entrypoints de agentes + scaffold local read-only sin instalación | `docs/governance/` como fuente normativa · `.agents/plugins/plugins/erp-studio-governance/` como derivado validado |
+| Administración · Audit log | 0123, 0166, 0172, 0174, 0186, 0187, 0188, 0189 | `app/studio/(app)/admin/` | `lib/studio/audit-*` · `entity_audit_log` · `scripts/{seed-e2e,verify-e2e-teardown}.ts` · migraciones por corte |
+| Gobernanza ejecutable | 0178, 0183 | entrypoints de agentes + plugin repo/team read-only 0.1.2 instalado | `docs/governance/` como fuente normativa · `.agents/plugins/plugins/erp-studio-governance/` como derivado validado |
 | Tipografía transversal · VIS-02 | 0175 | `app/{layout,globals}.tsx` · `app/studio/` | `next/font` · tokens de voz · renderers email/PDF |
 | Fiscal/SENIAT · tabs accesibles | 0073, 0104, 0180 | `app/studio/(app)/fiscal/` | `lib/studio/fiscal/` |
 | Fiscal/SENIAT · entradas numéricas | 0104, 0166, 0185 | `app/studio/(app)/fiscal/` | `lib/studio/fiscal/` |

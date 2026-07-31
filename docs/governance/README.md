@@ -3,14 +3,14 @@
 | Control | Valor |
 |---|---|
 | Documento | Índice maestro del Sistema de Gobernanza |
-| Versión | 5.6 |
+| Versión | 6.1 |
 | Dueño | Sam (founder) |
 | Custodia | Producto + Diseño + Ingeniería |
 | Estado | activo |
 | Creado | 2026-07-21 |
-| Última revisión | 2026-07-30 |
+| Última revisión | 2026-07-31 |
 | Confidencialidad | interno |
-| Línea base vigente | [LB-SGE-080 · NUM-01 v1.1 operativo](BASELINE-2026-07-30-05.md) |
+| Línea base vigente | [LB-SGE-100 · Gobernanza 6 reconciliada](BASELINE-2026-07-31-05.md) |
 
 Este es el punto de entrada canónico para decidir **cómo debe comportarse** el
 ERP. No reemplaza la identidad visual ni las especificaciones de
@@ -93,14 +93,25 @@ artefactos permanecen en sus fuentes correspondientes.
 | Diseño correctivo del Corte C | [Consulta gobernada y RBAC v1.1](../specs/0166-auditoria-gobernada-aud-01-aud-02/diseno-correctivo-corte-c.md) |
 | Revisión del diseño Corte C | [REV-AUD-012](reviews/aud-corte-c.md) |
 | Revisión técnica local Corte C1 | [REV-AUD-013](reviews/aud-corte-c1.md) |
+| Preflight fresco Corte C1 | [REV-AUD-040](reviews/aud-corte-c1-preflight-2026-07-30.md) |
 | Inventario read-only del Corte D | [D0 · repo y Cloud](../specs/0166-auditoria-gobernada-aud-01-aud-02/inventario-corte-d-2026-07-29.md) |
 | Diseño correctivo del Corte D | [Atomicidad por dominio v1.0](../specs/0166-auditoria-gobernada-aud-01-aud-02/diseno-correctivo-corte-d.md) |
 | Revisión del diseño Corte D | [REV-AUD-014](reviews/aud-corte-d.md) |
 | Atomicidad por dominios | [SDD-0174](../specs/0174-audit-atomicidad-dominios/spec.md) |
 | Inventario y revisión D1 | [REV-AUD-015](reviews/aud-d1-access-config.md) |
 | Diseño técnico D1 | [REV-AUD-017](reviews/aud-d1-access-config-design.md) |
+| Implementación local D1 | [REV-AUD-018](reviews/aud-d1-access-config-implementation.md) |
+| Implementación local D2 | [REV-AUD-019](reviews/aud-d2-financial-domain.md) |
+| Implementación local D3 | [REV-AUD-020](reviews/aud-d3-commercial-cycle.md) |
+| Implementación local D4 | [REV-AUD-021](reviews/aud-d4-logistics-r3.md) |
+| Implementación local D5 | [REV-AUD-022](reviews/aud-d5-residual.md) |
+| Aplicación individual de C1 y D1–D5 | [REV-AUD-042](reviews/aud-roadmap-prod-application.md) |
+| Motivos humanos D2 R3 | [SDD-0187 + REV-AUD-043](../specs/0187-audit-d2-human-reasons/spec.md) |
+| Motivos humanos D3 R3 | [SDD-0188 + REV-AUD-044](../specs/0188-audit-d3-human-reasons/spec.md) |
+| Path vacío D4 R3 | [SDD-0189 + REV-AUD-045](../specs/0189-audit-d4-empty-search-path/spec.md) |
 | Inventario read-only del Corte E | [E0 · repo y Cloud](../specs/0166-auditoria-gobernada-aud-01-aud-02/inventario-corte-e-2026-07-29.md) |
 | Diseño y revisión del Corte E | [REV-AUD-016](reviews/aud-corte-e.md) |
+| Fundamento verificable del Corte E | [SDD-0186 + REV-AUD-041](../specs/0186-audit-retention-foundation/spec.md) |
 | Jerarquía visual | [VIS-01 v1.0](policies/vis-01.md) |
 | Tipografía por voz e idioma | [VIS-02 v1.0](policies/vis-02.md) |
 | Accesibilidad transversal | [A11Y-01 v1.1](policies/a11y-01.md) |
@@ -139,6 +150,9 @@ artefactos permanecen en sus fuentes correspondientes.
 | Control plane ejecutable | [REV-SGE-018](reviews/governance-control-plane.md) |
 | Scaffold read-only PLG-01 | [REV-SGE-019](reviews/plg-01-scaffold.md) |
 | Precisión decimal y NumericInput canónico | [REV-SGE-020](reviews/num-01-v1-1-numeric-input.md) |
+| Instalación y forward-test PLG-01 | [REV-SGE-021](reviews/plg-01-install-forward-test.md) |
+| Integración local del roadmap de gobernanza | [REV-SGE-022](reviews/governance-roadmap-batch-close.md) |
+| Cierre local de Gobernanza 6 | [REV-SGE-023](reviews/governance-roadmap-pending-closure.md) |
 | Tabs accesibles en Fiscal | [SDD-0180](../specs/0180-tabs-accesibles-fiscal/spec.md) |
 | Selectores accesibles y colisión | [SDD-0181](../specs/0181-selectores-accesibles-colision/spec.md) |
 | Validación progresiva en Club | [SDD-0182](../specs/0182-validacion-progresiva-identidad-club/spec.md) |
@@ -146,6 +160,12 @@ artefactos permanecen en sus fuentes correspondientes.
 | Implementación VIS-02 | [SDD-0175 in-progress · V0/V1 cerrados](../specs/0175-vis-02-tipografia-voz-idioma/spec.md) |
 | Decisión documental Noto Serif SC | [REV-VIS-002 · BD-036](reviews/vis-02-brand-gate.md) |
 | Cierre documental de VIS-02 V1 | [REV-VIS-003](reviews/vis-02-v1-closure.md) |
+| VIS-02 V2 email | [REV-VIS-004](reviews/vis-02-v2-email.md) |
+| VIS-02 V3 PDF | [REV-VIS-005](reviews/vis-02-v3-pdf.md) |
+| VIS-02 V4 local | [REV-VIS-006](reviews/vis-02-v4-visual.md) |
+| Reconciliación VIS-02 | [REV-VIS-007](reviews/vis-02-state-reconciliation.md) |
+| Gates siguientes VIS-02 | [REV-VIS-008](reviews/vis-02-future-gates-reconciliation.md) |
+| Inventario VIS-02 | [REV-VIS-009](reviews/vis-02-inventory-reconciliation.md) |
 | Investigación de skills | [Mapa de capacidades y límites](research/skills-map.md) |
 | Contrato implementado de avisos | [SDD-0165 · AVS-01](../specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md) |
 | Inventario y estado oficial vigente | [LB-SGE-037](BASELINE-2026-07-29-09.md) |
@@ -186,10 +206,10 @@ disfraza elevando el estado normativo.
 | BTN-01 | Semántica, jerarquía y contrato de botones | aprobada v1.1 | Contrato menu button precisado; adopción parcial | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | HTD-01 | Confirmación por presión sostenida | aprobada | [Contrato v1.0](policies/htd-01.md) consolidado; no implementado | Crear SDD solo para una entidad R3 clasificada por MP-01 |
 | AVS-01 | Avisos y confirmaciones | verificada | Primitiva conforme; consumidores legacy se migran solo dentro de slices R2/R3 | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
-| AUD-01 | Evento auditable y vínculo con acciones | aprobada | Diseño D1 aprobado: 24 operaciones obligatorias y workflow Auth durable; implementación pendiente | [REV-AUD-017](reviews/aud-d1-access-config-design.md) |
-| AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B y guardrail tenant 0268 aplicados; SDD-0118/0172 cerradas con replay, E2E y teardown terminal | [REV-AUD-039](reviews/aud-sdd-0118-0172-final-closure.md); consulta/RBAC y `0270` conservan gates separados |
+| AUD-01 | Evento auditable y vínculo con acciones | aprobada | D1–D5 aplicados en Producción; D2–D4 corregidos localmente mediante 0294–0296 pendientes de Producción | [REV-AUD-045](reviews/aud-d4-empty-search-path-r3.md) · [REV-AUD-044](reviews/aud-d3-human-reasons-r3.md) · [REV-AUD-043](reviews/aud-d2-human-reasons-r3.md) · [REV-AUD-042](reviews/aud-roadmap-prod-application.md) |
+| AUD-02 | Consulta, conservación, exportación y acceso | aprobada | Matriz ACL B, guardrail tenant 0268 y consulta gobernada 0270 aplicados; E1 cerrado sin fuente para retención ejecutable | [REV-AUD-042](reviews/aud-roadmap-prod-application.md); [REV-AUD-041](reviews/aud-corte-e1-foundation.md) bloquea E2–E5 por fuente |
 | VIS-01 | Jerarquía visual y distribución 60-30-10 | aprobada | Adopción parcial; muestreo acotado a slices y clasificación de literales | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
-| VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | V1 integrado: Noto Serif SC sólo en documento formal `zh-CN`; UI china conserva Noto Sans SC | V2 correo, V3 PDF y V4 visual conservan gates propios |
+| VIS-02 | Tipografía por voz, destinatario e idioma | aprobada | V1 tokens; V2 firmas; V3 PDF; V4 local; UI china conserva Noto Sans SC | [REV-VIS-004](reviews/vis-02-v2-email.md) · [REV-VIS-005](reviews/vis-02-v3-pdf.md) · [REV-VIS-006](reviews/vis-02-v4-visual.md); clientes externos pendientes |
 | BUS-01 | Buscadores predictivos y contexto de resultados | aprobada v1.1 | Teclado y colisión formalizados; adopción no auditada | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | CRT-01 | Creación rápida desde contexto | aprobada v1.0 | Patrones locales sin primitiva común | Auditar flujos de retorno |
 | NUM-01 | Campos numéricos y financieros | aprobada v1.1 | `NumericInput` canonical; precisión decimal y un consumidor fiscal R3 verificados | [SDD-0185](../specs/0185-num-01-expresiones-decimales/spec.md) y [REV-SGE-020](reviews/num-01-v1-1-numeric-input.md); adopción restante por slices |
@@ -208,7 +228,7 @@ disfraza elevando el estado normativo.
 | A11Y-01 | Accesibilidad transversal | aprobada v1.1 | Contratos tabs/menu/listbox explícitos; sin matriz integral | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | IA-01 | Interacciones asistidas por IA | aprobada v1.0 | Regla local “IA propone”; sin gate transversal | Auditar permisos, privacidad y evidencia |
 | CMP-01 | Ciclo de vida y madurez de componentes | aprobada v1.1 | `ConfirmDialog`, `SegmentedControl` y `NumericInput` canonical; `LLMModeToggle` deprecated con plan | [REV-SGE-017](reviews/cmp-01-v1-1-deprecated.md) y [REV-SGE-020](reviews/num-01-v1-1-numeric-input.md) |
-| PLG-01 | Plugin ejecutable de gobernanza | aprobada v1.0 | P3–P5 verdes en scaffold repo/team read-only; no instalado y sin marketplace | [REV-SGE-019](reviews/plg-01-scaffold.md); P6–P8 cerrados |
+| PLG-01 | Plugin ejecutable de gobernanza | aprobada v1.0 | P3–P8 cerrados; 0.1.2 instalado repo/team, read-only y sin capacidades remotas | [REV-SGE-019](reviews/plg-01-scaffold.md) · [REV-SGE-021](reviews/plg-01-install-forward-test.md) |
 
 ## 5. Jerarquía y resolución de conflictos
 
@@ -254,12 +274,16 @@ aprobaron en LB-SGE-004. El orden que gobierna la siguiente fase es:
 2. conservar A1, A2 y sus recibos en Git; el Corte A está aplicado y verificado;
    B1 y `0268` están aplicados. SDD-0118/0172 están cerradas: `0284`–`0288`
    tienen recibos individuales y R29 aprobó replay, seed, E2E, verificación y
-   teardown terminal. C0 está aprobado por REV-AUD-012; D1 tiene diseño
-   aprobado y D2–D5 continúan como roadmap por gates;
+   teardown terminal. C0 está aprobado por REV-AUD-012; D1 y D5 están
+   verificados localmente y D2–D4 corrigen sus no conformidades mediante
+   `0294`–`0296`, pendientes de Producción; `0270` y `0289`–`0293` ya fueron
+   aplicados individualmente;
 3. revisar las políticas v0.1 por bloques coherentes, no como aprobación masiva;
-4. conservar VIS-02 V1 integrado y abrir V2–V4 sólo por salida;
+4. conservar VIS-02 V1–V4 integrados localmente; Gmail, Outlook y Apple Mail
+   requieren evidencia controlada propia;
 5. adoptar componentes CMP-01 por slices, sin nuevos usos de deprecated;
-6. usar la cápsula repo-first; PLG-01 continúa sin instalación;
+6. usar la cápsula repo-first; PLG-01 permanece instalado sólo en el
+   marketplace local repo/team, read-only;
 7. promover a CI sólo reglas verificadas y con excepción documentable.
 
 ## 8. Protocolo de cambio
@@ -275,16 +299,16 @@ Para crear o modificar una política:
 7. verificar con pruebas, revisión visual y evidencia de adopción;
 8. actualizar este registro y la línea base, sin borrar la trazabilidad.
 
-El futuro plugin podrá advertir o bloquear únicamente reglas **aprobadas**. Las
+El plugin podrá advertir o bloquear únicamente reglas **aprobadas**. Las
 reglas investigadas o redactadas se presentan como recomendaciones, nunca como
 errores obligatorios.
 
 ## 9. Línea base oficial
 
 La fotografía vigente de investigación, implementación y pendientes es
-[LB-SGE-079 · VIS-02 V1 reconciliado](BASELINE-2026-07-30-04.md).
+[LB-SGE-100 · Gobernanza 6 reconciliada](BASELINE-2026-07-31-05.md).
 El corte anterior permanece en
-[LB-SGE-078](BASELINE-2026-07-30-03.md).
+[LB-SGE-099](BASELINE-2026-07-31-04.md).
 El cierre del control plane permanece en
 [LB-SGE-074](BASELINE-2026-07-29-46.md).
 La estabilidad bajo carga del guardia SDD-0164 permanece en
@@ -349,7 +373,8 @@ El plan de adopción por slices permanece en
 [LB-SGE-040](BASELINE-2026-07-29-12.md).
 La aplicación de 0268 permanece en
 [LB-SGE-039](BASELINE-2026-07-29-11.md).
-El diseño D1 permanece en
+La implementación local D1 permanece en
+[LB-SGE-080](BASELINE-2026-07-30-05.md); su diseño vive en
 [LB-SGE-038](BASELINE-2026-07-29-10.md).
 El Gate V0 de VIS-02 permanece en
 [LB-SGE-037](BASELINE-2026-07-29-09.md).

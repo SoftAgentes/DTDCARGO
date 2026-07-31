@@ -16,16 +16,14 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
+import {
+  d1Reason,
+  executeD1Operation,
+} from "@/lib/studio/audit/d1-access-config-adapters";
+import { executeAuthLifecycle } from "@/lib/studio/audit/auth-lifecycle-adapter";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { generateTelegramLinkCode } from "@/lib/studio/telegram/link-code";
-import {
-  changeUserRoleRPC,
-  inviteUserRPC,
-  revokeInvitationRPC,
-  setUserDisabledRPC,
-  setUserWarehouseScopeRPC,
-} from "@/lib/studio/user-queries";
 import {
   ROLE_LABELS,
   invitationAcceptPath,
@@ -101,12 +99,19 @@ export async function inviteUserAction(
   }
 
   try {
-    const { invitationId, token } = await inviteUserRPC(
-      supabase,
-      input.email,
-      input.role,
-      region,
-    );
+    const operation = await executeD1Operation(supabase, {
+      operationType: "membership.invite",
+      input: {
+        email: input.email,
+        role: input.role,
+        region,
+      },
+    });
+    if (!operation.invitation_id || !operation.token) {
+      return { error: "La invitación no devolvió su comprobante." };
+    }
+    const invitationId = operation.invitation_id;
+    const token = operation.token;
     const link = `${SITE_URL}${invitationAcceptPath(token)}`;
 
     // SDD-0026 F2: intentar mandar email automáticamente. Si no hay
@@ -190,7 +195,11 @@ export async function changeUserRoleAction(
   const denial = await moduleEditDenial(supabase, "users");
   if (denial) return { error: denial };
   try {
-    await changeUserRoleRPC(supabase, targetUserId, newRole);
+    await executeD1Operation(supabase, {
+      operationType: "membership.role_change",
+      targetId: targetUserId,
+      input: { role: newRole },
+    });
     revalidatePath("/studio/usuarios");
     return { ok: true, userId: targetUserId };
   } catch (err) {
@@ -225,7 +234,11 @@ export async function changeWarehouseScopeAction(
   if (denial) return { error: denial };
 
   try {
-    await setUserWarehouseScopeRPC(supabase, targetUserId, scopeRaw);
+    await executeD1Operation(supabase, {
+      operationType: "membership.scope_change",
+      targetId: targetUserId,
+      input: { scope: scopeRaw },
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return { error: msg };
@@ -246,27 +259,6 @@ export async function changeWarehouseScopeAction(
 // se sigue — el ban es cinturón, la RLS es el freno.
 // ─────────────────────────────────────────────────────────────
 
-/** Duración de ban ≈ permanente (GoTrue parsea Go durations; 100 años). */
-const BAN_FOREVER = "876000h";
-
-/** true si el ban/unban quedó aplicado en Auth. Nunca lanza. */
-async function setAuthBan(targetUserId: string, banned: boolean): Promise<boolean> {
-  try {
-    const admin = createAdminClient();
-    const { error } = await admin.auth.admin.updateUserById(targetUserId, {
-      ban_duration: banned ? BAN_FOREVER : "none",
-    });
-    if (error) {
-      console.error("[setAuthBan] updateUserById failed:", error.message);
-      return false;
-    }
-    return true;
-  } catch (err) {
-    console.error("[setAuthBan] admin client unavailable:", err);
-    return false;
-  }
-}
-
 export async function disableUserAction(
   _prev: UserActionState,
   formData: FormData,
@@ -281,15 +273,30 @@ export async function disableUserAction(
   const denial = await moduleEditDenial(supabase, "users");
   if (denial) return { error: denial };
 
-  try {
-    await setUserDisabledRPC(supabase, targetUserId, true);
-  } catch (err) {
-    // Errores del RPC (anti-lockout, permisos) vienen formateados de Postgres.
-    const msg = err instanceof Error ? err.message : String(err);
-    return { error: msg };
+  const result = await executeAuthLifecycle(
+    supabase,
+    createAdminClient().auth.admin,
+    {
+      targetUserId,
+      disabled: true,
+      reason: d1Reason(
+        formData.get("reason"),
+        "Suspensión solicitada desde Usuarios",
+      ),
+    },
+  );
+  if (!result.ok) {
+    return {
+      error:
+        result.code === "auth_retryable"
+          ? "Auth no respondió. La intención quedó registrada para reintento."
+          : result.code === "compensated"
+            ? "Auth cambió, pero la confirmación falló y el cambio fue compensado."
+            : result.code === "reconciliation_required"
+              ? "El estado quedó incierto y requiere reconciliación administrativa."
+              : "No se pudo completar la suspensión.",
+    };
   }
-
-  await setAuthBan(targetUserId, true);
 
   revalidatePath("/studio/usuarios");
   return { ok: true, userId: targetUserId };
@@ -306,24 +313,29 @@ export async function enableUserAction(
   const denial = await moduleEditDenial(supabase, "users");
   if (denial) return { error: denial };
 
-  // Al REACTIVAR el orden se invierte respecto a disable: el unban es REQUISITO
-  // (sin él, el usuario queda "Activo" en DB pero baneado 100 años en Auth y la
-  // UI mentiría con "ok" — hallazgo review 2026-07-02). Unban primero: si falla,
-  // no tocamos la DB y el admin reintenta desde un estado consistente. Si el
-  // unban pasa y el RPC falla, el user sigue disabled en DB → RLS lo frena.
-  const unbanned = await setAuthBan(targetUserId, false);
-  if (!unbanned) {
+  const result = await executeAuthLifecycle(
+    supabase,
+    createAdminClient().auth.admin,
+    {
+      targetUserId,
+      disabled: false,
+      reason: d1Reason(
+        formData.get("reason"),
+        "Reactivación solicitada desde Usuarios",
+      ),
+    },
+  );
+  if (!result.ok) {
     return {
       error:
-        "No se pudo quitar el bloqueo de inicio de sesión (Auth). No se reactivó nada — reintenta.",
+        result.code === "auth_retryable"
+          ? "Auth no respondió. La intención quedó registrada para reintento."
+          : result.code === "compensated"
+            ? "Auth cambió, pero la confirmación falló y el cambio fue compensado."
+            : result.code === "reconciliation_required"
+              ? "El estado quedó incierto y requiere reconciliación administrativa."
+              : "No se pudo completar la reactivación.",
     };
-  }
-
-  try {
-    await setUserDisabledRPC(supabase, targetUserId, false);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return { error: msg };
   }
 
   revalidatePath("/studio/usuarios");
@@ -351,7 +363,14 @@ export async function revokeInvitationAction(
   if (denial) return { error: denial };
 
   try {
-    await revokeInvitationRPC(supabase, invitationId);
+    await executeD1Operation(supabase, {
+      operationType: "membership.invitation_revoke",
+      targetId: invitationId,
+      reason: d1Reason(
+        formData.get("reason"),
+        "Revocación solicitada desde Usuarios",
+      ),
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return { error: msg };
@@ -555,22 +574,18 @@ export async function linkTelegramAccountAction(): Promise<{
   let linkCode: string | null = null;
   for (let attempt = 0; attempt < 5; attempt++) {
     const candidate = generateTelegramLinkCode();
-    const { error } = await supabase
-      .from("user_profiles")
-      .update({
-        telegram_link_code: candidate,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", userResp.user.id);
-    if (!error) {
+    try {
+      await executeD1Operation(supabase, {
+        operationType: "notification_channel.link",
+        targetId: userResp.user.id,
+        input: { link_code: candidate },
+      });
       linkCode = candidate;
       break;
+    } catch {
+      // Una colisión del código o fallo transitorio revierte toda la operación.
+      // Reintentamos con un valor nuevo sin persistir el código en auditoría.
     }
-    if (!error || !String(error.message).includes("duplicate")) {
-      // Otro tipo de error · no es colisión de code
-      return { error: `No se pudo generar el código: ${error.message}` };
-    }
-    // Colisión · reintentar
   }
 
   if (!linkCode) {
@@ -592,18 +607,13 @@ export async function unlinkTelegramAccountAction(): Promise<{
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { error: "Inicia sesión primero." };
 
-  const { error } = await supabase
-    .from("user_profiles")
-    .update({
-      telegram_chat_id: null,
-      telegram_username: null,
-      telegram_link_code: null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("user_id", userResp.user.id);
-
-  if (error) {
-    return { error: `No se pudo desconectar: ${error.message}` };
+  try {
+    await executeD1Operation(supabase, {
+      operationType: "notification_channel.unlink",
+      targetId: userResp.user.id,
+    });
+  } catch {
+    return { error: "No se pudo desconectar Telegram." };
   }
 
   revalidatePath("/studio");

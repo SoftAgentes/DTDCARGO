@@ -1,6 +1,6 @@
 {
   "name": "erp-studio-governance",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Validación read-only de políticas y adopción de gobernanza del ERP Studio.",
   "author": {
     "name": "DTD Cargo"

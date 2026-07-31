@@ -69,18 +69,24 @@ describe("SDD-0175 Gate V1 · fuentes chinas", () => {
     expect(aliases).toEqual(aliases.map(() => "var(--f-cn-ui)"));
   });
 
-  it("mantiene la UI china en Noto Sans SC y no activa la fuente documental", () => {
+  it("mantiene la UI china en Noto Sans SC fuera de consumidores formales", () => {
     const allowedDefinitions = new Set([
       "app/globals.css",
       "app/layout.tsx",
       "app/studio/tokens.css",
+    ]);
+    const formalDocumentConsumers = new Set([
+      "app/p/[token]/PackingListFormSection.tsx",
     ]);
     const uiSources = appSourceFiles()
       .map((path) => ({
         path: relative(ROOT, path).replaceAll("\\", "/"),
         source: readFileSync(path, "utf8"),
       }))
-      .filter(({ path }) => !allowedDefinitions.has(path));
+      .filter(
+        ({ path }) =>
+          !allowedDefinitions.has(path) && !formalDocumentConsumers.has(path),
+      );
     const combinedUi = uiSources.map(({ source }) => source).join("\n");
 
     expect(combinedUi).toContain("var(--f-cn)");

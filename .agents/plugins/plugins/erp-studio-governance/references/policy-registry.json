@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0",
-  "sourceCommit": "bdfb6e77205b799312a7a479c55ca8d1317e02dd",
+  "sourceCommit": "69e86b27bd833b8333a1bb6e6866b2f328cdd75c",
   "normativeSource": "docs/governance/README.md",
   "readOnly": true,
   "policies": [
@@ -132,15 +132,15 @@
     },
     {
       "code": "NUM-01",
-      "version": "1.0",
-      "state": "aprobada — adopción pendiente",
-      "approvedAt": "2026-07-29",
+      "version": "1.1",
+      "state": "aprobada — componente canónico; adopción gradual",
+      "approvedAt": "2026-07-30",
       "path": "docs/governance/policies/num-01.md"
     },
     {
       "code": "PLG-01",
       "version": "1.0",
-      "state": "aprobada — destino repo/team decidido; no creado ni instalado",
+      "state": "aprobada — plugin repo/team read-only 0.1.2 instalado",
       "approvedAt": "2026-07-29",
       "path": "docs/governance/policies/plg-01.md"
     },
@@ -251,6 +251,38 @@
         "componentId": "segmented-control",
         "planPath": "docs/governance/reviews/cmp-01-v1-1-deprecated.md"
       }
+    },
+    {
+      "id": "numeric-input",
+      "name": "NumericInput",
+      "status": "canonical",
+      "implementation": {
+        "path": "app/studio/_components/ui/NumericInput.tsx",
+        "exportName": "NumericInput"
+      },
+      "policyRefs": [
+        {
+          "code": "SGE-00",
+          "version": "1.0",
+          "path": "docs/governance/policies/sge-00.md"
+        },
+        {
+          "code": "NUM-01",
+          "version": "1.1",
+          "path": "docs/governance/policies/num-01.md"
+        },
+        {
+          "code": "FRM-01",
+          "version": "1.1",
+          "path": "docs/governance/policies/frm-01.md"
+        },
+        {
+          "code": "A11Y-01",
+          "version": "1.1",
+          "path": "docs/governance/policies/a11y-01.md"
+        }
+      ],
+      "replacement": null
     },
     {
       "id": "segmented-control",

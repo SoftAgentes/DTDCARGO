@@ -578,6 +578,7 @@ async function buildOutgoingHtml(
         phone: sig.phone,
         photo_url: sig.photo_url,
         company_name: sig.company_name,
+        lang: sig.lang,
       });
       if (sigHtml) html = `${html}<br><br>${sigHtml}`;
     }
@@ -881,4 +882,3 @@ export async function cancelScheduledAction(
   revalidatePath("/studio/mailing");
   return { ok: true, message: "Programado cancelado." };
 }
-

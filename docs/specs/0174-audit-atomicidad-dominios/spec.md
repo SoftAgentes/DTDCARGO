@@ -4,7 +4,7 @@ title: "Auditoría — atomicidad por dominios"
 status: in-progress
 author: "Sam (founder) + Codex"
 created: 2026-07-29
-updated: 2026-07-29
+updated: 2026-07-31
 supersedes: null
 superseded_by: null
 related: ["0021", "0024", "0040", "0041", "0044", "0123", "0166"]
@@ -67,11 +67,12 @@ máquina antes de modificar suspensión/reactivación de usuarios.
 | Apertura SDD | aprobada | [REV-AUD-015](../../governance/reviews/aud-d1-access-config.md) |
 | D1 inventario | aprobado | [inventario D1](inventario-d1-acceso-configuracion-2026-07-29.md) |
 | D1 diseño | aprobado | [REV-AUD-017](../../governance/reviews/aud-d1-access-config-design.md) |
-| D1 implementación | pendiente | allowlist publicada; no se creó migración |
-| D2 | pendiente | no abierto |
-| D3 | pendiente | no abierto |
-| D4 | pendiente | no abierto |
-| D5 | pendiente | no abierto |
+| D1 implementación | aplicada en Producción | [REV-AUD-018](../../governance/reviews/aud-d1-access-config-implementation.md) |
+| D2 | motivo humano conforme localmente; Producción pendiente 0294 | [REV-AUD-043](../../governance/reviews/aud-d2-human-reasons-r3.md) |
+| D3 | motivo humano conforme localmente; Producción pendiente 0295 | [REV-AUD-044](../../governance/reviews/aud-d3-human-reasons-r3.md) |
+| D4 | path vacío conforme localmente; Producción pendiente 0296 | [REV-AUD-045](../../governance/reviews/aud-d4-empty-search-path-r3.md) |
+| D5 | aplicada en Producción | [REV-AUD-022](../../governance/reviews/aud-d5-residual.md) |
+| Aplicación D1–D5 | verificada individualmente | [REV-AUD-042](../../governance/reviews/aud-roadmap-prod-application.md) |
 
 ## 5. Criterios de aceptación por operación
 
@@ -84,7 +85,7 @@ máquina antes de modificar suspensión/reactivación de usuarios.
 - motivo es obligatorio cuando corresponde;
 - ACL, owner y `search_path` están probados;
 - PostgreSQL 15 y 17 terminan en rollback;
-- aplicación, Cloud y Producción conservan gates separados.
+- aplicación individual y postcondiciones quedan registradas sin bundle.
 
 ## 6. Fuera de alcance
 
@@ -92,12 +93,19 @@ máquina antes de modificar suspensión/reactivación de usuarios.
 - ciclo tenant/fixtures de SDD-0172;
 - consulta gobernada de Corte C;
 - exportación, hold, purga y retención de Corte E;
-- aplicar `0268` o `0270` en Cloud;
+- nuevas aplicaciones Cloud fuera de los basenames autorizados;
 - definir plazos legales sin fuente aprobada.
 
-## 7. Próximo gate
+## 7. Resultado D1–D5 y próximo gate
 
-El [diseño D1](diseno-d1-acceso-configuracion.md) quedó aprobado sin declarar
-atomicidad ACID entre PostgreSQL y Supabase Auth. El siguiente gate, todavía no
-abierto, es crear localmente la allowlist exacta de implementación después de
-revalidar el correlativo reservado. D2–D5 permanecen cerrados.
+La implementación local usa `0289_audit_d1_access_configuration`, reemplaza
+las 24 acciones obligatorias por fronteras transaccionales e incorpora un
+workflow durable intención → Auth → confirmación/compensación. No declara
+atomicidad ACID entre PostgreSQL y Supabase Auth.
+
+D1–D5 están aplicados individualmente en Producción por REV-AUD-042. SDD-0187
+y SDD-0188 retiran localmente las no conformidades de motivo D2/D3, y SDD-0189
+retira localmente el path legacy D4. `0294`–`0296` conservan gates nominales
+separados de Producción. D5 incorpora idempotencia, lease y reconciliación
+durable. La spec permanece `in-progress` por las aplicaciones externas
+pendientes; ningún estado local se presenta como cumplimiento de Producción.

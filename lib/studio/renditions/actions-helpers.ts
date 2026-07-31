@@ -42,30 +42,6 @@ import {
 
 const MAX_CODE_RETRIES = 5;
 
-/** Best-effort audit con actor_type='user'. No bloquea la mutación. */
-async function auditRendition(
-  tenantId: string,
-  renditionId: string,
-  actorId: string | null,
-  eventType: string,
-  payload: Record<string, unknown>,
-): Promise<void> {
-  try {
-    const admin = createAdminClient();
-    await admin.from("entity_audit_log").insert({
-      tenant_id: tenantId,
-      entity_type: "rendition",
-      entity_id: renditionId,
-      actor_type: "user",
-      actor_id: actorId,
-      event_type: eventType,
-      payload,
-    });
-  } catch (e) {
-    console.error("[auditRendition] no se pudo registrar audit:", e);
-  }
-}
-
 /**
  * Resuelve el tenant del usuario logueado + verifica que sea admin. Devuelve
  * `{ tenantId, userId }` o `{ error }`. La emisión/anulación son admin-only
@@ -225,16 +201,6 @@ export async function emitRenditionFor(
       );
     }
 
-    await auditRendition(tenantId, renditionId, userId ?? null, "emitted", {
-      rendition_code: renditionCode,
-      period_from: input.from,
-      period_to: input.to,
-      third_party_usd: preview.thirdPartyUsd,
-      local_revenue_usd: preview.localRevenueInvoicedUsd,
-      net_to_operadora_usd: preview.netToOperadoraUsd,
-      receipt_count: preview.receiptCount,
-    });
-
     return {
       ok: true,
       renditionCode,
@@ -267,9 +233,7 @@ export async function voidRenditionFor(
     return { error: "Indica el motivo de la anulación." };
   }
 
-  const { tenantId, userId, error: authError } = await resolveAdminTenant(
-    supabase,
-  );
+  const { tenantId, error: authError } = await resolveAdminTenant(supabase);
   if (authError || !tenantId) return { error: authError };
 
   // Leer la rendición (RLS la acota al tenant).
@@ -317,12 +281,6 @@ export async function voidRenditionFor(
       );
     }
   }
-
-  await auditRendition(tenantId, rend.id, userId ?? null, "voided", {
-    rendition_code: rend.rendition_code,
-    void_reason: reason,
-    receipt_count: receiptIds.length,
-  });
 
   return { ok: true, renditionCode: rend.rendition_code };
 }

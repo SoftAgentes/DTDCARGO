@@ -2,7 +2,7 @@
 
 | Control | Valor |
 |---|---|
-| Estado | aprobada — scaffold repo/team P3–P5 validado; no instalado |
+| Estado | aprobada — plugin repo/team read-only 0.1.2 instalado |
 | Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-007 |
 | Nombre técnico propuesto | `erp-studio-governance` |
 | Fuente normativa | `docs/governance/` dentro del repositorio |
@@ -10,10 +10,12 @@
 
 ## Estado de implementación
 
-El scaffold repo/team read-only alcanza P5 local mediante
-[REV-SGE-019](../reviews/plg-01-scaffold.md). Sus dos skills consultan el
-registro derivado, clasifican evidencia y no escriben producto ni fuentes
-normativas. No está instalado y no existe marketplace, MCP, app o hook.
+El plugin repo/team read-only cerró P3–P8 mediante
+[REV-SGE-019](../reviews/plg-01-scaffold.md) y
+[REV-SGE-021](../reviews/plg-01-install-forward-test.md). Sus dos skills
+consultan el registro derivado, clasifican evidencia y no escriben producto ni
+fuentes normativas. Está instalado desde el marketplace local del repo; no
+existe marketplace remoto, MCP, app, hook o capacidad de escritura.
 
 ## 1. Principio arquitectónico
 
@@ -21,7 +23,7 @@ El plugin interpreta, verifica y ayuda a corregir. No se convierte en una
 fuente paralela ni puede elevar un borrador a obligación. El repositorio
 conserva versiones, aprobaciones, excepciones y evidencia.
 
-## 2. Estructura futura
+## 2. Estructura y promoción futura
 
 ```text
 erp-studio-governance/
@@ -111,5 +113,12 @@ plugin:      .agents/plugins/plugins/erp-studio-governance/
 
 El destino personal queda descartado para este plugin porque sus reglas,
 versiones y evidencia son específicas de DTDCargo y deben viajar con el commit
-que las gobierna. Esta decisión no crea esas rutas ni autoriza scaffold,
-marketplace o instalación.
+que las gobierna. El CLI resuelve `source.path` desde el root agregado del
+marketplace, por lo que el manifest usa:
+
+```text
+./.agents/plugins/plugins/erp-studio-governance
+```
+
+La instalación local no convierte el plugin en fuente normativa ni autoriza
+publicación remota.

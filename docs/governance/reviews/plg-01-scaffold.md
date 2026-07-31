@@ -36,7 +36,9 @@ el script sólo escribe su propio agregado cuando se ejecuta el build explícito
 
 - plugin validator oficial: verde;
 - quick validator oficial: 2/2 skills;
-- registry validator: 27 políticas y 3 componentes;
+- registry validator del scaffold inicial: 27 políticas y tres componentes;
+  REV-SGE-020/021 amplió después el agregado vigente a cuatro, incluido
+  `NumericInput`;
 - Vitest: 3 casos positivos y 3 negativos;
 - negativos: escritura, política no aprobada e integración externa;
 - cero `[TODO]`, secreto, PII, MCP, app, hook o capacidad de escritura.

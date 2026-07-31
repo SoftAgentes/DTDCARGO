@@ -42,8 +42,10 @@ V0 queda cerrado. Esta decisión no carga todavía la fuente.
   `--f-cn-document`;
 - el alias compatible `--f-cn` continúa resolviendo exclusivamente a
   `--f-cn-ui`;
-- correos usan fallbacks locales Archivo/Arial/system-ui;
-- no hay renderer transversal ni evidencia de incrustación CJK en PDF;
+- las firmas de Mailing usan un renderer con voz/fallback por idioma; los demás
+  correos conservan adopción gradual;
+- el packing list imprimible tiene evidencia CJK de fuente, peso, render y
+  extracción; otros PDFs sin consumidor chino no se migran;
 - existen usos editoriales Georgia/Times en Marketing que requieren un alcance
   separado, no se corrigen de forma oportunista.
 
@@ -52,9 +54,12 @@ V0 queda cerrado. Esta decisión no carga todavía la fuente.
 1. **V0 marca:** cerrado mediante BD-036 y sincronización
    BRAND/Norte/VIS-02.
 2. **V1 tokens:** cerrado; fuente autorizada cargada y aliases compatibles.
-3. **V2 email:** inventariar/normalizar renderers con fallback seguro.
-4. **V3 PDF:** incrustación, glifos, selección/copy-paste y peso.
-5. **V4 visual:** español/zh-CN, Studio, Gmail, Outlook, Apple Mail e impresión.
+3. **V2 email:** cerrado en firmas de Mailing con fallback seguro; los demás
+   renderers se migran por slices.
+4. **V3 PDF:** cerrado en el packing list imprimible; los demás documentos se
+   migran sólo cuando exista contenido chino real.
+5. **V4 visual:** validación local e impresión cerradas; Gmail, Outlook y Apple
+   Mail requieren un smoke real con buzones controlados.
 
 Cada gate conserva commit, integración y publicación separados. No se cambia
 tipografía de pantallas existentes en V0.
@@ -81,6 +86,12 @@ SDD `in-progress`; V0 y V1 están cerrados. El commit `e7be56c6`:
   `__tests__/vis-02-font-tokens.test.ts`.
 
 La revisión [REV-VIS-003](../../governance/reviews/vis-02-v1-closure.md)
-consolida la evidencia. V2 correo, V3 PDF y V4 visual permanecen cerrados y
-requieren gates independientes. Esta reconciliación no modifica correos, PDF,
-documentos vivos ni código.
+consolida V1. [REV-VIS-004](../../governance/reviews/vis-02-v2-email.md)
+cierra V2 en las firmas formales de Mailing, incluido preview y los envíos
+inmediato/programado. [REV-VIS-005](../../governance/reviews/vis-02-v3-pdf.md)
+cierra V3 en el packing list formal imprimible, con separación comprobada entre
+UI y documento. El resto de los correos y documentos conserva migración
+gradual. [REV-VIS-006](../../governance/reviews/vis-02-v4-visual.md) aprueba
+firma española, firma `zh-CN`, UI china e impresión en local. Gmail, Outlook y
+Apple Mail permanecen como evidencia externa pendiente; por eso el SDD no se
+eleva artificialmente a `done`.

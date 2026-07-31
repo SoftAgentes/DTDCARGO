@@ -19,9 +19,10 @@ Rutas futuras:
 <repo-root>/.agents/plugins/plugins/erp-studio-governance/
 ```
 
-El `source.path` futuro será `./plugins/erp-studio-governance`, relativo al
-directorio del marketplace. La ruta exacta sigue el contrato validado de
-`plugin-creator`; no se sustituye por una ruta absoluta o una copia personal.
+El CLI registra el root del repositorio como marketplace y resuelve
+`source.path` desde ese root. La ruta validada es
+`./.agents/plugins/plugins/erp-studio-governance`; no se sustituye por una ruta
+absoluta en el manifest ni por una copia personal.
 
 ## Razones
 
