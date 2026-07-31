@@ -25,14 +25,14 @@ CMP-01 registra cuatro componentes y `NumericInput` continúa canonical.
 | Bitácora no conforme | DND-01 | cumplimiento en flujo auditado | R2 | Selector teclado/touch, anuncios, rollback, conflicto y Deshacer | 0216 | Board, action, toast, tests, spec | `59109986` | 7/7 focalizadas + suite | verde / commit local / sin cambio / pendiente de publicación | adopción futura por flujo |
 | Timezone implícito | CAL-01 / DAT-01 | parcial / no aplica | R2 | Timezone IANA del usuario y límites coherentes | 0217 | calendario, query, tipos, tests, spec | `d3b602fa` | 12/12 focalizadas + suite | verde / commit local / sin cambio / pendiente de publicación | fecha planificada editable antes de reprogramar |
 | Caché y runner frágiles | PLG-01 | cumplimiento reproducible | R2 | Sync seguro, hashes, validador y runner Node | 0218 | plugin, policy, registry, scripts, tests, spec | `c8a0ae76` | 7/7 fuente + 7/7 caché | verde / commit local / no aplica / no aplica | infraestructura remota no requerida |
-| Corte E2–E5 | AUD-02 | bloqueado por fuente | R3 | No crear holds/export/expiry/retention | 0166 | sin cambios técnicos | no aplica | metadata-only + búsqueda documental | limpio / no aplica / sin objetos inferidos / no aplica | fuente aprobada con ocho campos obligatorios |
+| Corte E2–E5 | AUD-02 | fuente promovida; implementación abierta por slices | R3 | Calendario v1.0 aprobado; E2–E5 conservan SDD y gates propios | 0166 / 0186 | fuente y registro E1 | este ciclo | revisión legal/privacidad documental | verde local / commit pendiente / sin cambio Cloud | basenames nominales al crear migrations |
 
 ## 3. Estado de adopción de las 27 políticas
 
 | Grupo | Políticas | Estado final |
 |---|---|---|
 | Núcleo y acciones | SGE-00, BTN-01, HTD-01, MP-01 | adopción gradual; HTD tiene primer consumidor R3 y MP conserva sus gates propios |
-| Auditoría | AUD-01, AUD-02 | AUD-01 cerrado; AUD-02 implementado hasta E1 y E2–E5 bloqueados por fuente externa |
+| Auditoría | AUD-01, AUD-02 | AUD-01 cerrado; AUD-02 tiene E1 promovido y E2–E5 abiertos únicamente por slices separados |
 | Visual y accesibilidad | VIS-01, VIS-02, A11Y-01, ICO-01 | VIS-02 cerrado; el resto continúa por consumidor; Bitácora amplía evidencia accesible sin declarar cobertura transversal |
 | Búsqueda y creación | BUS-01, CRT-01 | dos buscadores reales conformes; CRT no aplica en esa muestra porque no crean entidades |
 | Formularios y datos | FRM-01, NUM-01, TBL-01 | adopción parcial/gradual; NumericInput canonical; sin barrido masivo |
@@ -93,11 +93,10 @@ se retira sin demostrar simultáneamente ownership, status limpio, recuperabilid
 y equivalencia/integración con `origin/main`. Trabajo activo de redes sociales y
 cualquier ruta con ownership dudoso se conservan como `LIMPIEZA BLOQUEADA`.
 
-## 7. Gate externo restante
+## 7. Promoción del gate E1
 
-SDD-0166 continúa `in-progress` únicamente por E2–E5. Para abrir los SDD
-separados de holds, exportación, expiración y retención hace falta una fuente
-legal o contractual aprobada que contenga:
+El 2026-07-31 el founder autorizó identificar y aprobar la fuente. El
+[Calendario de retención v1.0](../../legal/retention-schedule-v1.md) registra:
 
 1. jurisdicción;
 2. clase de evento;
@@ -108,4 +107,6 @@ legal o contractual aprobada que contenga:
 7. fundamento;
 8. evidencia de aprobación.
 
-No hay basenames pendientes porque no se fabricaron migrations sin esa fuente.
+La promoción habilita preparar E2–E5. No aplica migrations ni autoriza un lote
+destructivo: cada basename mantiene autorización nominal y E5 exige aprobación
+del lote después del dry-run.

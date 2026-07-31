@@ -4,7 +4,7 @@ title: "Fundamento verificable de retención de auditoría"
 status: done
 author: "Sam (founder) + Codex"
 created: 2026-07-30
-updated: 2026-07-30
+updated: 2026-07-31
 supersedes: null
 superseded_by: null
 related: ["0166", "0174"]
@@ -17,32 +17,35 @@ confidencialidad: interno
 
 Cerrar el gate E1 del Corte E sin inventar plazos legales: registrar fuentes,
 jurisdicción, responsables y decisiones disponibles, y establecer el
-comportamiento fail-closed mientras el fundamento material no exista.
+comportamiento fail-closed mientras el fundamento material no exista. El
+2026-07-31 la aprobación explícita del founder promovió el registro con el
+[Calendario de retención v1.0](../../legal/retention-schedule-v1.md).
 
 ## 2. Decisión
 
-El inventario no encontró una ley, contrato, consentimiento ni instrucción
-formal aprobada que determine cuánto conservar o cuándo destruir eventos de
-auditoría de DTDCargo.
+El inventario original no encontró una ley, contrato, consentimiento ni
+instrucción formal aprobada que determinara cuánto conservar o cuándo destruir
+eventos de auditoría de DTDCargo. Esa ausencia quedó registrada sin fabricar
+una fuente.
 
-Por tanto:
+Desde la aprobación del calendario v1.0:
 
-- la conservación continúa sin purga automatizada;
-- no se crea calendario ejecutable de borrado;
-- no se habilita exportación ni bucket;
-- no se crea job de expiración o purga;
+- existe calendario ejecutable por clase, con `fiscal` y `legacy_unknown`
+  fail-closed;
+- la conservación continúa sin purga automatizada ni lote implícito;
+- exportación, bucket, expiración y retención sólo se abren en E2–E5;
 - ningún hold puede usarse como permiso de eliminación;
-- E2–E5 permanecen sin implementación.
+- E2–E5 permanecen sin implementación en este SDD y conservan gates nominales.
 
-Ausencia de fundamento no equivale a retención infinita aprobada. Es un estado
-preventivo reversible que sólo evita destrucción no autorizada.
+La directiva organizacional no se presenta como dictamen legal ni publica el
+Acuerdo v3.0. Una obligación de plazo mayor y todo hold prevalecen.
 
 ## 3. Registro de fuentes
 
-[`sources.md`](sources.md) es el registro controlado. Una fuente futura debe
-identificar jurisdicción, clase de evento, plazo, inicio del cómputo,
-tratamiento al vencer, responsable y evidencia verificable. Notas de chat,
-suposiciones o defaults técnicos no califican.
+[`sources.md`](sources.md) es el registro controlado. La fuente aprobada
+identifica jurisdicción, clase, plazo, inicio, tratamiento al vencer,
+excepciones, responsable, revisión y aprobación humana. Una versión futura debe
+preservar esos campos. Suposiciones o defaults técnicos no califican.
 
 ## 4. Allowlist
 
@@ -59,14 +62,15 @@ No incluye migración, Storage, job, UI, Cloud, Auth, filas o PII.
 
 ## 5. Aceptación
 
-- fuente ausente declarada sin plazo fabricado;
-- destrucción y exportación permanecen deshabilitadas;
-- campos obligatorios para una futura fuente definidos;
+- ausencia original y promoción posterior declaradas sin fingir dictamen;
+- destrucción y exportación permanecen sujetas a E2–E5;
+- campos obligatorios para toda versión futura definidos;
 - relación E1→E2–E5 explícita;
 - documentación, enlaces y diff validados.
 
 ## 6. Resultado
 
-E1 queda cerrado documentalmente con resultado `blocked-by-source` para
-retención ejecutable. Este resultado no bloquea el núcleo repo-first ni D1–D5;
-sí bloquea cualquier purga o exportación del Corte E.
+E1 quedó cerrado inicialmente como `blocked-by-source`. Desde el 2026-07-31
+queda `approved-source`: habilita abrir E2–E5, pero no autoriza por sí mismo una
+migration en Producción ni un lote destructivo. Eventos `fiscal` y
+`legacy_unknown` conservan confirmación humana fail-closed.

@@ -6,20 +6,25 @@
 | SDD | [SDD-0186](../../specs/0186-audit-retention-foundation/spec.md) |
 | Registro | [Fuentes E1](../../specs/0186-audit-retention-foundation/sources.md) |
 | Fecha | 2026-07-30 |
-| Resultado | E1 aprobado; E2–E5 bloqueados por fuente |
+| Resultado | E1 promovido; fuente aprobada y E2–E5 habilitados para implementación separada |
 
 ## Veredicto
 
-El gate cumple AUD-02 y REV-AUD-016: registra la ausencia material de fuente,
-no inventa plazos y mantiene el sistema sin purga, exportación, bucket o jobs.
+La revisión original cumplió AUD-02 y REV-AUD-016 al registrar la ausencia
+material de fuente. El 2026-07-31 el founder aprobó el
+[Calendario de retención v1.0](../../legal/retention-schedule-v1.md), que separa
+obligación fiscal, finalidad organizacional, minimización PIPL y límites
+técnicos de artefactos.
 
 El límite técnico de 24 horas para un futuro artefacto temporal y 15 minutos
 para una futura URL firmada no se confunde con retención legal del evento
 fuente. Tampoco se presenta la conservación preventiva actual como una política
 legal de retención infinita.
 
-## Promoción futura
+## Promoción autorizada
 
-E2–E5 sólo podrán abrirse después de incorporar al registro una fuente
-verificable con todos los campos obligatorios y una aprobación humana. Cada
-capacidad conservará SDD, allowlist, migración y gate de Producción propios.
+La fuente incorpora jurisdicción, clase, plazo, inicio, disposición,
+excepciones, responsable, revisión y aprobación humana. E2–E5 pueden abrirse en
+SDD separados. Cada capacidad conserva allowlist, migración, dry-run y gate
+nominal de Producción propios; esta promoción no aplica migrations ni autoriza
+un lote destructivo.
