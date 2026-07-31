@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
   "generatedAt": "2026-07-30T00:00:00.000Z",
-  "sourceCommit": "f35db51060795882045781480e1c13272b15137a",
+  "sourceCommit": "24acc39b3979f83c4e761311162bcf3ae63c4af0",
   "normativeSource": "docs/governance/README.md",
   "agentBrief": "docs/governance/AGENT-BRIEF.md",
   "commands": {

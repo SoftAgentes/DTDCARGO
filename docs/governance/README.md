@@ -171,6 +171,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Evidencia externa VIS-02 | [REV-VIS-010](reviews/vis-02-external-mail-client-evidence.md) |
 | Auditoría integral Gobernanza 8 | [REV-SGE-024](reviews/governance-8-adoption-audit-2026-07-31.md) |
 | Cierre técnico integral Gobernanza 8 | [REV-SGE-026](reviews/governance-8-final-close-2026-07-31.md) |
+| Preflight productivo Gobernanza 8 | [REV-SGE-027](reviews/governance-8-production-preflight-2026-07-31.md) |
 | Investigación de skills | [Mapa de capacidades y límites](research/skills-map.md) |
 | Contrato implementado de avisos | [SDD-0165 · AVS-01](../specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md) |
 | Inventario y estado oficial vigente | [LB-SGE-037](BASELINE-2026-07-29-09.md) |
