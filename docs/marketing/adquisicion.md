@@ -108,12 +108,26 @@ rubro de alta rotación. Formalidad NO es criterio.
 | **Yiwu (punto de compra)** ⭐ | El mayorista venezolano que viaja a Yiwu/Cantón es el lead más caliente del año y está físicamente al lado de nuestro equipo | Acompañamiento en mercado + contenido "estamos en Yiwu hoy". **Ningún competidor sin oficina puede copiarlo** |
 | **Grupos online** | Grupos de WhatsApp/Telegram de importadores venezolanos | Presencia selectiva, cero spam |
 
-**El campo competitivo (fichas completas en el [dump](../../research/INVESTIGACION-adquisicion-clientes.md), línea C):**
-el líder visible es **Asiaven Cargo** (~118K seguidores IG, oficina en Valencia + almacén en Foshan, precio
-oculto tras registro — CONFIRMADO); le siguen marcas personales como @elchinoimport (~56K) y una cola larga.
-**Nadie comunica "pagas al llegar" como promesa central, nadie publica cadencia de recompra, y casi nadie
-publica precio.** Contra 118K seguidores no se compite en volumen: se compite en promesa (precio visible +
+**El campo competitivo (posicionamiento en el [dump](../../research/INVESTIGACION-adquisicion-clientes.md) línea C;
+precios verificados en [`competencia-precios.md`](competencia-precios.md)):**
+el líder visible es **Asiaven Cargo** (~118K seguidores IG, oficina en Valencia + almacén en Foshan);
+le siguen marcas personales como @elchinoimport (~56K) y una cola larga.
+**Nadie comunica "pagas al llegar" como promesa central y nadie publica cadencia de recompra.**
+Contra 118K seguidores no se compite en volumen: se compite en promesa (precio más bajo +
 pagas al llegar + reabastecimiento programado).
+
+> ⚠️ **Actualizado 2026-08-01 — "solo VPL publica un número" ya no es cierto.** Hoy publican precio
+> al menos cinco: Asiaven (su calculadora expone el motor completo, sin registro), Import2Ven,
+> Instacaja, Envíos hacia Venezuela y One Way Cargo. **"Somos los únicos que publicamos precio" dejó
+> de ser un diferenciador** — y de esa premisa colgaba la recomendación de la calculadora pública como
+> arma #1. Lo que sí se sostiene y está verificado: estamos **13 % por debajo del líder** en tarifa
+> base ($800/m³ contra 920), damos más gracia de peso y cobramos menos por baterías — y esas ventajas
+> **crecen con el volumen**, o sea pegan en el cliente que queremos.
+> *No es que la investigación de julio fallara:* la página de Asiaven llamada `/tarifa/` sigue sin
+> traer números — los tiene `/calculadora/`, y no sabemos desde cuándo.
+> **Nuestro piso de $50 castiga al cliente chico y eso es deliberado** (decisión founder 2026-08-01):
+> el objetivo comercial son mayoristas, no envíos de una caja. Detalle en
+> [`competencia-precios.md`](competencia-precios.md).
 
 ## 4. El canal primario (decisión y por qué)
 
