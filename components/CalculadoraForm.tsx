@@ -212,6 +212,16 @@ export function CalculadoraForm({
     () => cityList.find((c) => c.id === form.ciudadId) ?? null,
     [cityList, form.ciudadId],
   );
+
+  // Ciudades donde el cliente NO paga el tramo nacional. Se DERIVAN del mismo
+  // catálogo que alimenta el selector — nunca se escriben a mano. Si el founder
+  // suma o quita una ciudad de la zona sin costo desde el Admin, esta lista se
+  // mueve sola, sin deploy. Escribirla a mano garantizaba que un día dijera algo
+  // distinto de lo que cobra el motor.
+  const ciudadesIncluidas = useMemo(
+    () => cityList.filter((c) => c.casco),
+    [cityList],
+  );
   const tieneCarga = effectiveForm.cbmTotal > 0 && effectiveForm.pesoKg > 0;
 
   // Aviso del CBM: mínimo (punto de cruce) o máximo (contenedor). Usa el CBM
@@ -579,6 +589,15 @@ export function CalculadoraForm({
       </div>
     </div>
 
+      {/* Ciudades con la entrega incluida — SDD-0237.
+          Ocupa el lugar de lo que "casco central" trataba de comunicar, pero
+          sin la palabra: el cliente no tiene por qué saber qué es un casco, y
+          la frase escondía que en 8 ciudades el tramo sale gratis. No va en el
+          consolidado: ahí no hay ciudad, la carga llega hasta puerto. */}
+      {!esConsolidado && ciudadesIncluidas.length > 0 && (
+        <EntregaIncluida ciudades={ciudadesIncluidas} />
+      )}
+
       {/* SDD-0061 Fase B2 — confirmación post-estimado + CTA opcional de registro
           (baja fricción). Solo si el ERP devolvió código (si falló, no hay qué
           vincular). En modo directWhatsApp NO hay captura → no se muestra. */}
@@ -631,6 +650,57 @@ export function CalculadoraForm({
 // ─────────────────────────────────────────────
 // Subcomponentes
 // ─────────────────────────────────────────────
+
+/**
+ * Las ciudades donde la entrega nacional va INCLUIDA ($0 para el cliente).
+ *
+ * DTD sí le paga ese tramo al transportista: no es un descuento, es adquisición
+ * de clientes (founder, 1-ago-2026). Por eso se anuncia — regalar el tramo y no
+ * decirlo no compra nada.
+ *
+ * La lista llega DERIVADA del catálogo, no escrita a mano: es la promesa que
+ * más fácil se desincroniza del motor, y una ciudad de más acá es una promesa
+ * que el precio no cumple.
+ *
+ * Estilo claro a propósito: cuelga por debajo de la card navy de la calculadora,
+ * sobre el fondo de la página, hermano de la card "¿Tu carga llena un
+ * contenedor?" que va justo después en /tarifas.
+ */
+function EntregaIncluida({ ciudades }: { ciudades: Ciudad[] }) {
+  return (
+    <section
+      aria-labelledby="entrega-incluida-titulo"
+      className="mt-4 card-shadow rounded-[16px] border border-grey-200 bg-white px-5 py-4 lg:px-6 lg:py-5"
+    >
+      <h3
+        id="entrega-incluida-titulo"
+        className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine-text m-0"
+      >
+        Entrega incluida
+      </h3>
+      <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.55] m-0">
+        En estas ciudades{" "}
+        <strong className="text-ink">no te cobramos el tramo nacional</strong> —
+        la entrega hasta tu puerta ya viene en el flete.
+      </p>
+      <ul className="mt-3 flex flex-wrap gap-2 list-none p-0 m-0">
+        {ciudades.map((c) => (
+          <li
+            key={c.id}
+            className="text-[13px] font-semibold text-ink rounded-[8px] border border-grey-200 bg-paper px-2.5 py-1.5"
+          >
+            {c.label}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 text-[12.5px] text-grey-500 leading-[1.5] m-0">
+        En el resto del país la entrega se cobra por metro cúbico, según el
+        volumen de tu carga y no según la distancia. Escoge tu ciudad arriba y el
+        estimado ya la incluye.
+      </p>
+    </section>
+  );
+}
 
 /**
  * Nota bajo el selector de destino cuando el destino elegido NO cotiza solo.
