@@ -3,7 +3,7 @@
 | Control | Valor |
 |---|---|
 | Documento | Índice maestro del Sistema de Gobernanza |
-| Versión | 6.6 |
+| Versión | 6.7 |
 | Dueño | Sam (founder) |
 | Custodia | Producto + Diseño + Ingeniería |
 | Estado | activo |
@@ -169,6 +169,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Reconciliación local de Nómina 0316 | [REV-SGE-051](reviews/payroll-r3-settlement-void-reconciliation-2026-08-01.md) |
 | Revalidación operativa E5 con elegibilidad cero | [REV-AUD-052](reviews/aud-e5-operational-preflight-2026-08-01.md) |
 | Cierre local consolidado de Gobernanza 9 | [REV-SGE-052](reviews/governance-9-consolidated-local-close-2026-08-01.md) |
+| Cierre productivo nominal de Nómina 0316 | [REV-SGE-053](reviews/payroll-r3-0316-production-close-2026-08-01.md) |
 | Revisión de patrones UX en videos | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | Portabilidad EOL de SDD-0118 | [REV-AUD-030](reviews/aud-sdd-0118-eol-portability.md) |
 | Dependencias ejecutables CMP-01 | [REV-SGE-015](reviews/cmp-01-dependency-validation.md) |
