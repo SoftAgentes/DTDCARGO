@@ -269,16 +269,21 @@ end;
 $audit_atomicity$;
 
 select set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);
-do $support_success$
+do $support_read_only$
 begin
-  if public.complete_ve_delivery_governed(
-    '30000000-0000-0000-0000-000000000002','Luis Gómez',
-    'Soporte verificó la entrega','ve-delivery-support'
-  ) <> 'transitioned' then
-    raise exception 'TEST 0321: Support no pudo completar el fallback permitido';
+  begin
+    perform public.complete_ve_delivery_governed(
+      '30000000-0000-0000-0000-000000000002','Luis Gómez',
+      'Soporte intentó confirmar','ve-delivery-support'
+    );
+    raise exception 'TEST 0321: support read-only completó la entrega';
+  exception when no_data_found then null;
+  end;
+  if (select status from public.shipments where id='30000000-0000-0000-0000-000000000002') <> 'out_for_delivery' then
+    raise exception 'TEST 0321: support read-only mutó el embarque';
   end if;
 end;
-$support_success$;
+$support_read_only$;
 
 reset role;
 do $privileges$

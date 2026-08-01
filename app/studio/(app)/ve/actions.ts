@@ -36,6 +36,8 @@ async function transitionStatus(
   if (!shipmentId) return { error: "shipment_id requerido" };
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "ve");
+  if (denial) return { error: denial };
 
   const { data: link } = await supabase
     .from("user_tenants")
