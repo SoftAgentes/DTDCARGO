@@ -12,7 +12,15 @@
  * aplicó, y la ronda siguiente construyó el scorecard encima. Reventó sola, tarde
  * y con un error que no explicaba nada (`column s.industry does not exist`). El
  * ledger de prod saltaba de 0227 a 0229 y nadie lo miraba. Este check lo mira.
- * (La 0169 sigue perdida hoy por lo mismo — ver el baseline.)
+ * (La 0169 cayó en la misma trampa y estuvo una ronda perdida; se aplicó el
+ * 2026-07-16. Ambas están cerradas.)
+ *
+ * PUNTO CIEGO CONOCIDO — SE MIDE EL CHECKOUT, NO `origin/main`: la lista de
+ * archivos sale de `supabase/migrations/` del árbol donde corre. En un checkout
+ * atrasado los archivos nuevos no existen en disco, así que no se comparan contra
+ * nada y el paso sale VERDE por omisión. Así pasaron las 0317-0324: estaban en
+ * `main` (y su código desplegado en prod) pero no en la DB, y acá se veía verde.
+ * Sincronizá con `origin/main` antes de creerle al verde.
  *
  * QUÉ **NO** HACE: buscar huecos en la numeración. Faltan 0061-0065, 0089, 0099,
  * 0111, 0112 en disco y está bien — números que nunca se usaron. El hueco de la
@@ -25,7 +33,7 @@
  * histórico ya está en prod → se congela con un `cutoff`. El check solo exige lo
  * NUEVO (número > cutoff), donde rige la regla hacia adelante: una migración se
  * aplica con su basename EXACTO como `name`. `pendingBelowCutoff` cubre las
- * excepciones conocidas por debajo del corte (0017, 0169).
+ * excepciones conocidas por debajo del corte (hoy: 0017 y 0257).
  *
  * DEGRADA, NO ROMPE (mismo criterio que el paso e2e de verify.mjs): sin
  * credenciales, sin red, o sin la RPC 0239 aplicada → SKIP, nunca rojo. El gate no
