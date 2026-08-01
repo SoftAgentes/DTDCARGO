@@ -31,6 +31,7 @@ import {
 import { addConversion } from "@/lib/studio/partner-finance/conversions-queries";
 import {
   addClaimOffset,
+  markClaimOffsetPaidInChina,
   transitionClaimOffset,
   nextClaimOffsetStatus,
 } from "@/lib/studio/partner-finance/claim-offsets-queries";
@@ -68,6 +69,7 @@ import {
   validateClaimOffsetInput,
   validateConversionInput,
   validateCreditNoteInput,
+  validateClaimPaymentInput,
   validateStatementInput,
   validateStatementLineInput,
   type ChargeStatus,
@@ -78,7 +80,7 @@ import {
 
 const ROUTE = "/studio/financiero-china";
 
-type ActionResult = { ok?: boolean; error?: string };
+type ActionResult = { ok?: boolean; error?: string; replayed?: boolean };
 
 /** Resuelve el tenant del user logueado (RLS). null si no hay vínculo. */
 async function resolveTenant(
@@ -477,7 +479,13 @@ export async function addClaimOffsetAction(
  * tenant + gate de rol. El asiento ya se posteó al crear el cruce.
  */
 export async function transitionClaimOffsetAction(
-  raw: { claimId?: string; from?: string },
+  raw: {
+    claimId?: string;
+    from?: string;
+    effectiveDate?: string;
+    reason?: string;
+    requestRef?: string;
+  },
 ): Promise<ActionResult> {
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "financiero-china");
@@ -490,6 +498,40 @@ export async function transitionClaimOffsetAction(
   }
   const to = nextClaimOffsetStatus(from);
   if (!to) return { error: "El cruce ya está en su estado final." };
+
+  if (from === "reconocido_proveedor") {
+    const validation = validateClaimPaymentInput({
+      claim_id: claimId,
+      from,
+      effective_date: raw.effectiveDate,
+      reason: raw.reason,
+      request_ref: raw.requestRef,
+    });
+    if (!validation.ok) return { error: validation.error };
+
+    try {
+      const result = await markClaimOffsetPaidInChina(supabase, {
+        claimId: validation.input.claim_id,
+        effectiveDate: validation.input.effective_date,
+        reason: validation.input.reason,
+        requestRef: validation.input.request_ref,
+      });
+      revalidatePath(ROUTE);
+      return { ok: true, replayed: result === "replayed" };
+    } catch (error) {
+      const code =
+        typeof error === "object" && error !== null && "code" in error
+          ? String((error as { code?: unknown }).code ?? "")
+          : "";
+      if (code === "42501") return { error: "No tienes permiso para declarar este pago." };
+      if (code === "22023") return { error: "Revisa el motivo y la fecha efectiva." };
+      if (code === "40001") return { error: "El cruce cambió. Actualiza la página antes de reintentar." };
+      if (code === "P0002") return { error: "El cruce ya no está disponible." };
+      return {
+        error: `No se pudo declarar el pago. Referencia: ${validation.input.request_ref}`,
+      };
+    }
+  }
 
   try {
     await transitionClaimOffset(supabase, claimId, from, to);

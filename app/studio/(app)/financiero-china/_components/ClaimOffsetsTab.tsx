@@ -12,6 +12,7 @@ import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import type { SupplierClaimOffset } from "@/lib/studio/partner-finance/types";
 import {
@@ -35,6 +36,14 @@ export function ClaimOffsetsTab({
   suppliers: SupplierOption[];
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [paymentDecision, setPaymentDecision] = useState<{
+    claim: SupplierClaimOffset;
+    supplier: string;
+    effectiveDate: string;
+    requestRef: string;
+  } | null>(null);
+  const [paymentPending, setPaymentPending] = useState(false);
+  const [paymentError, setPaymentError] = useState<string>();
   const toast = useToast();
 
   const supplierName = (id: string | null) =>
@@ -43,6 +52,39 @@ export function ClaimOffsetsTab({
   // En vuelo = todo lo que no está cerrado.
   const enVuelo = claimOffsets.filter((c) => c.status !== "cerrado");
   const totalEnVuelo = enVuelo.reduce((acc, c) => acc + c.amount_usd, 0);
+
+  const openPaymentDecision = (claim: SupplierClaimOffset) => {
+    setPaymentError(undefined);
+    setPaymentDecision({
+      claim,
+      supplier: supplierName(claim.supplier_id),
+      effectiveDate: new Date().toISOString().slice(0, 10),
+      requestRef: `partner-claim-payment:${claim.id}:${crypto.randomUUID()}`,
+    });
+  };
+
+  const confirmPayment = async (reason: string) => {
+    if (!paymentDecision || paymentPending) return;
+    setPaymentPending(true);
+    setPaymentError(undefined);
+    try {
+      const result = await transitionClaimOffsetAction({
+        claimId: paymentDecision.claim.id,
+        from: paymentDecision.claim.status,
+        effectiveDate: paymentDecision.effectiveDate,
+        reason,
+        requestRef: paymentDecision.requestRef,
+      });
+      if (!result.ok) {
+        setPaymentError(result.error ?? "No se pudo declarar el pago.");
+        return;
+      }
+      toast.success(result.replayed ? "Pago ya registrado anteriormente" : "Pago en China registrado");
+      setPaymentDecision(null);
+    } finally {
+      setPaymentPending(false);
+    }
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -93,7 +135,15 @@ export function ClaimOffsetsTab({
                       </Badge>
                     </td>
                     <td style={{ padding: "8px 10px", textAlign: "right" }}>
-                      {next ? (
+                      {next === "pagado_en_china" ? (
+                        <button
+                          type="button"
+                          className="studio-btn studio-btn-ghost studio-btn-xs"
+                          onClick={() => openPaymentDecision(c)}
+                        >
+                          → {claimOffsetStatusLabel(next)}
+                        </button>
+                      ) : next ? (
                         <ActionButton
                           variant="ghost"
                           size="xs"
@@ -117,6 +167,32 @@ export function ClaimOffsetsTab({
       )}
 
       {drawerOpen && <ClaimOffsetDrawer suppliers={suppliers} onClose={() => setDrawerOpen(false)} />}
+      <ConfirmDialog
+        open={paymentDecision !== null}
+        danger
+        reason
+        reasonRequired
+        holdToConfirm
+        initialFocus="safe"
+        title="Declarar pago en China"
+        message={
+          paymentDecision
+            ? `${paymentDecision.supplier} · ${usd(paymentDecision.claim.amount_usd)} · fecha efectiva ${paymentDecision.effectiveDate}. Esta decisión afirma que el valor ya fue pagado en China y quedará en auditoría.`
+            : ""
+        }
+        confirmLabel="Declarar pagado"
+        holdLabel="Mantén para declarar pagado"
+        reasonLabel="Motivo o soporte de la decisión"
+        reasonPlaceholder="Ej. Confirmado contra comprobante del socio"
+        pending={paymentPending}
+        error={paymentError}
+        onCancel={() => {
+          if (paymentPending) return;
+          setPaymentDecision(null);
+          setPaymentError(undefined);
+        }}
+        onConfirm={confirmPayment}
+      />
     </div>
   );
 }
