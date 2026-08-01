@@ -120,10 +120,15 @@ export function CalculadoraForm({
           : CIUDADES,
     [esConsolidado, ciudades],
   );
+  // Preseleccionada: Valencia, la sede. Va EXPLÍCITA y no por posición.
+  //
+  // Antes esto buscaba `casco-central`, la opción agrupada que murió con
+  // SDD-0237, y caía a `cityList[0]`. Con los 178 destinos ordenados por
+  // sort_order, el primero pasó a ser **Acarigua** — no Valencia. Confiar en la
+  // posición dejaba la calculadora abriendo en una ciudad arbitraria que
+  // depende de cómo el admin ordene la lista.
   const defaultCiudadId =
-    cityList.find((c) => c.id === "casco-central")?.id ??
-    cityList[0]?.id ??
-    "casco-central";
+    cityList.find((c) => c.id === "valencia")?.id ?? cityList[0]?.id ?? "valencia";
 
   const [form, setForm] = useState<EnvioInput>({
     // El motor necesita la modalidad para aplicar la puerta de 1 m³ del
