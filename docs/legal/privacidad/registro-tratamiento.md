@@ -12,7 +12,7 @@
 **Marca pública:** DTD Cargo
 **Contacto para titulares:** info@dtdcargo.com (asunto "Privacidad")
 **Representante en China (PIPL art. 53):** ⬜ pendiente de decidir
-**Versión:** 1.1 · **Última actualización:** 2026-07-31
+**Versión:** 1.2 · **Última actualización:** 2026-08-01
 
 ---
 
@@ -87,6 +87,19 @@ implementa una cola IndexedDB separada por tenant/usuario únicamente para el
 piloto web de Gastos. Las colas móviles descritas aquí siguen sin migrarse y
 quedan fuera de ese piloto.
 
+## 4.2 · Telemetría y anti-abuso añadidos por SDD-0235
+
+| Destino | Dato | Minimización | Retención | Estado de rollout |
+|---|---|---|---|---|
+| `operario_pin_attempts` | huella SHA-256 de tenant + región + IP | no conserva IP cruda ni PIN | 48 h en cron | **ENCONTRADO en migration 0325; Cloud NO VERIFICABLE** |
+| `public_track_log.ip` | huella SHA-256 del origen | deja de guardar IP cruda | 48 h en cron | **ENCONTRADO en migration 0326; Cloud NO VERIFICABLE** |
+| `portal_registro_throttle.ip` (`portal-login:`) | huella SHA-256 de IP | separada por namespace; no email | 48 h en cron | **ENCONTRADO en código local; Producción NO VERIFICABLE** |
+| rrweb | DOM de últimos 15 s | inputs y texto enmascarados; flag off por defecto | ⬜ | **ENCONTRADO en código local; Producción NO VERIFICABLE** |
+
+Estas huellas siguen siendo identificadores técnicos y se conservan solo para
+anti-abuso. No se reutilizan para marketing, perfilado ni decisiones sobre la
+persona.
+
 ## 5 · Titulares que no son usuarios
 
 | Quién | Qué se le captura | ¿Se le avisa? | ¿Cómo ejerce sus derechos? |
@@ -134,6 +147,8 @@ transferencia `NO VERIFICABLE`; no está conectado).
 - **Seudonimización:** solo `consent_ip_hash` en `newsletter_subscribers`.
 - **Registro de accesos:** `entity_audit_log`, `no_olvidar_access_log`.
 - **Prueba de restauración de respaldos:** ⬜ ¿cuándo fue la última vez de verdad?
+- **Gate de adjuntos:** código local exige AV, Object Lock y restore verificados;
+  proveedor, ejecución y evidencia productiva siguen **NO VERIFICABLES**.
 
 ## 10 · Solicitudes recibidas
 
