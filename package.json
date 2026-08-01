@@ -20,6 +20,8 @@
     "verify:e2e-teardown": "tsx scripts/verify-e2e-teardown.ts",
     "docs:index": "node scripts/build-docs-index.mjs",
     "docs:check": "node scripts/build-docs-index.mjs --check",
+    "sdd:next": "node scripts/next-number.mjs",
+    "sdd:check": "node scripts/check-numbering.mjs",
     "build:packlist-template": "node scripts/build-packlist-template.mjs",
     "marketing:reader": "node scripts/build-marketing-reader.mjs",
     "verify": "node scripts/verify.mjs"

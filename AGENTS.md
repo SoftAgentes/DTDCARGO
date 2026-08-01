@@ -30,6 +30,16 @@ Specs en `docs/specs/NNNN-slug/spec.md`, correlativo propio desde 0001 (no compa
 
 **Commits:** `feat(studio): SDD-NNNN — título` (Studio) · `feat(DTD-NNNN): …` (público).
 
+### Numerar sin chocar (regla del founder · 2026-07-29)
+
+Con 15-20 worktrees en paralelo, **mirar el disco local para tomar "el siguiente número" es un bug**. El 29-jul hubo **cuatro colisiones en un día** — y una fue *después* de haber chequeado `origin/main`, porque entre numerar y pushear pasaron horas.
+
+1. **Pedí el número, no lo adivines:** `pnpm sdd:next` (hace `fetch` y mira **todas** las refs, locales y remotas — no sólo tu rama).
+2. **Reservalo si el trabajo va a durar:** `pnpm sdd:next --reserve <slug>` prepara un commit sobre `origin/main` con un `spec.md` stub y te imprime el `git push`. **No pushea solo.** La reserva **no es un commit vacío**: un commit sin archivos no reserva nada, porque el escaneo mira carpetas, no mensajes.
+3. **El gate te cubre igual:** el paso `numbering` de `verify.mjs` falla si hay dos specs o dos migraciones con el mismo número, o si el `sdd:` del front-matter no coincide con su carpeta (el residuo típico de una renumeración a medias). Salta al **mergear**, que es cuando todavía podés renumerar.
+
+**Al renumerar: la que se mueve es la que NO está en `main`.** Y ⚠️ **una migración ya aplicada NUNCA se renumera** — su cabecera debe seguir diciendo el número con el que corrió (ver `docs/runbooks/aplicar-migraciones-prod.md`).
+
 ## Ventanas autónomas + Modo Forja
 
 **Ventanas autónomas (default).** No hay coordinador central. Cada ventana/sesión es **su propia coordinadora**: trabaja en su `git worktree` + rama, hace commits **atómicos y selectivos** (nunca `git add -A`), integra y publica **su propio** trabajo (`git push origin HEAD:main`) y limpia su worktree al cerrar. El "OK del founder" para publicar es que el usuario diga **"cerrar"** (ciclo completo en el skill `/avivar`: contexto → tarea → worktree → ¿avanzar/cerrar? → cierre autónomo). Los pushes no se cruzan porque cada rama lleva solo su trabajo; un choque *non-fast-forward* al pushear se resuelve con `git merge origin/main` y reintento. Runbooks obligatorios: `docs/runbooks/git-worktrees-multiventana.md` · `docs/runbooks/multi-ventanas-buena-practica.md`.

@@ -95,7 +95,14 @@ git branch -d feat/<tema>
 
 - **Cada ventana, un área distinta del código.** Los conflictos solo ocurren si dos ramas editan las **mismas líneas del mismo archivo**.
 - **Archivos compartidos = una sola ventana los toca:** `AGENTS.md`, el sidebar, y sobre todo `docs/specs/README.md` (se autogenera con `pnpm docs:index`) → que los regenere solo la ventana de integración (`main`), después de mergear.
-- **Migraciones SQL:** cada rama toma el **siguiente número libre mirando TODAS las ramas** (no solo la suya). Dos ramas con el mismo número = choque al mergear.
+- **Numeración (specs y migraciones): NO la adivines.** Cada rama toma el siguiente libre mirando **todas** las ramas, y para eso hay herramienta:
+  ```
+  pnpm sdd:next                          # próximo libre de spec y de migración (hace fetch)
+  pnpm sdd:next --reserve <slug>          # prepara la reserva; te imprime el push
+  ```
+  El **29-jul-2026 hubo cuatro colisiones en un día**, y una fue *después* de chequear `origin/main`: entre numerar y pushear pasaron horas y otra ventana se llevó el número. Por eso, si el trabajo va a durar, **reservá**: la reserva publica en `main` un `spec.md` stub con ese número, que es lo que lo hace visible para las demás ventanas. **Un commit vacío no reserva nada** (el escaneo mira carpetas, no mensajes de commit).
+
+  Si igual chocan, el paso `numbering` de `verify.mjs` lo caza al mergear. **La que se mueve es la que NO está en `main`.** ⚠️ Una migración **ya aplicada** no se renumera nunca.
 - **Mergeá seguido y chico.** Una rama que vive días se aleja de `main` y acumula conflictos.
 - **El push/deploy sale SOLO de `main`**, desde `DTDCargo\`, con tu OK.
 - **Namespace de memoria:** abrir Claude en una carpeta-worktree usa una **memoria propia** (el `MEMORY.md` del proyecto se indexa por ruta y NO viaja; el `AGENTS.md`/`CLAUDE.md` sí, viven en el repo). El trabajo que se apoya fuerte en memoria conviene hacerlo desde `DTDCargo\` (integración).

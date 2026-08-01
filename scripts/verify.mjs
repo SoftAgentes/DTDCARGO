@@ -3,7 +3,7 @@
  * scripts/verify.mjs — Gate de verificación del harness DTD Cargo.
  *
  * Corre, en orden: lint → rsc-boundary → typecheck → test → docs:check →
- * migrations-applied → e2e.
+ * numbering → migrations-applied → e2e.
  * Es el "init.sh real" del proyecto, multiplataforma (Node, cero deps).
  *
  * El paso `e2e` (Playwright) va último y se OMITE con gracia si no hay
@@ -122,6 +122,13 @@ const STEPS = [
   // realmente roto falla las 2 veces y reporta rojo igual (~23s de costo solo si ya falló).
   { name: "test", argv: ["node_modules/vitest/vitest.mjs", "run"], retry: 1 },
   { name: "docs:check", argv: ["scripts/build-docs-index.mjs", "--check"] },
+  // ¿Dos cosas llevan el mismo número? El 29-jul hubo CUATRO colisiones entre
+  // ventanas paralelas (spec 0172, migr 0268, 0174 esquivada de casualidad, spec
+  // 0175 duplicada DESPUÉS de chequear origin/main). Ninguna la cazó el gate:
+  // docs:check junta los números en un Set que usa sólo para huecos, y nunca
+  // comparaba el `sdd:` contra la carpeta. Salta al MERGEAR, que es cuando
+  // todavía se puede renumerar. Puro filesystem → NUNCA hace skip.
+  { name: "numbering", argv: ["scripts/check-numbering.mjs"] },
   // ¿Hay migraciones en el repo que nunca llegaron a prod? La 0228 estuvo DOS
   // rondas perdida y se construyó encima; se descubrió tarde y con un error que
   // no explicaba nada. Este paso consulta el ledger de prod (RPC 0239) y grita si
