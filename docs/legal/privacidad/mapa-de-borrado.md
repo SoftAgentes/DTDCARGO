@@ -185,6 +185,7 @@ personales, pero se encontró acá y conviene mirarlo.
 | `entity_audit_log` | 3 | 🔵 CONSERVA — gobernado por SDD-0186; 0 filas con markbox hoy |
 | `mail_logs` | 215 | 🔴 lleva destinatarios |
 | `public_track_log` | — | 🔴 IP de quien consulta un envío |
+| `operario_pin_attempts` | — | 🟢 BORRA — huella anti-abuso; purga técnica a 48 h |
 | `outbox_push_events` | 0 | 🟢 BORRA — transitoria por diseño |
 | `kommo_writeback_outbox` | — | 🔴 payloads con datos del cliente |
 | `sync_logs` · `user_role_audit` | — | 🔴 sin revisar |
@@ -259,6 +260,22 @@ legal hold y purga fail-closed, junto con el bucket privado `erp-attachments` y
 las migrations `0306`–`0314`. El piloto de Gastos permanece apagado en
 Producción: no hay proveedor externo, antivirus ni restore drill reales
 verificados, por lo que ningún adjunto puede declarar estado `protegido`.
+
+## 8 · Rollout Cloud SDD-0235
+
+La migration `0325` está **CORRECTA en Cloud**: crea la huella anti-abuso del PIN
+sin IP cruda, limita el RPC por tenant/región y fue verificada contra objetos,
+ACL y ledger. El hotfix autorizado incorpora el código compatible y la purga
+técnica a 48 horas.
+
+Las migrations `0326`–`0329` y su código consumidor siguen fuera de Producción;
+requieren autorización nominal, aplicación y validación por separado.
+
+El respaldo inmutable conservará versiones aunque el origen sea elegible para
+borrado. Esto no es una excepción silenciosa: la disposición física debe esperar
+el vencimiento aplicable o legal hold y quedar registrada. Sin decisión de
+retención, contrato y procedimiento de terminación del proveedor, el borrado de
+la copia externa sigue **NO VERIFICABLE**.
 
 ---
 

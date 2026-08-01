@@ -18,8 +18,10 @@
  * V2 sumar HMAC + rotation cuando salga del piloto.
  */
 
+import { createHash } from "node:crypto";
 import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/db/admin";
+import { getRequestIp } from "@/lib/http/request-ip";
 import type { OperarioSession } from "@/lib/studio/operario-types";
 import {
   LANG_COOKIE_MAX_AGE_DAYS,
@@ -103,9 +105,31 @@ export async function clearOperarioMode(): Promise<void> {
 
 export async function signInWithPin(
   pin: string,
+  region: "cn" | "ve",
 ): Promise<OperarioSession | null> {
   const admin = createAdminClient();
-  const { data, error } = await admin.rpc("verify_operario_pin", { p_pin: pin });
+
+  // DTD opera con un tenant hoy. Resolverlo server-side evita que el cliente
+  // pueda escoger otro namespace. Si deja de ser mono-tenant, esto falla cerrado
+  // (maybeSingle) hasta que exista un selector gobernado.
+  const { data: tenant, error: tenantError } = await admin
+    .from("tenants")
+    .select("id")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle<{ id: string }>();
+  if (tenantError || !tenant?.id) return null;
+
+  const requestIp = await getRequestIp();
+  const attemptKey = createHash("sha256")
+    .update(`${tenant.id}:${region}:${requestIp}`)
+    .digest("hex");
+  const { data, error } = await admin.rpc("verify_operario_pin", {
+    p_pin: pin,
+    p_tenant_id: tenant.id,
+    p_region: region,
+    p_attempt_key: attemptKey,
+  });
   if (error) {
     console.error("[operario-session] verify_operario_pin error:", error);
     return null;

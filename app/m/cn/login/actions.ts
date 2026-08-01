@@ -19,7 +19,7 @@ export async function signInOperarioAction(
     return { error: "PIN inválido — son 4 dígitos numéricos." };
   }
 
-  const session = await signInWithPin(pin);
+  const session = await signInWithPin(pin, "cn");
   if (!session) {
     return { error: "PIN incorrecto o operario inactivo." };
   }
