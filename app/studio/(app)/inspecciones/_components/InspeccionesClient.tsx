@@ -8,7 +8,7 @@
  * imprimible (window.print con report.css portado) llegan en Fase 2/3.
  */
 
-import { useState, useTransition, type CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import {
   INSPECTION_TYPE_FILTERS,
   INSPECTION_STATUS_FILTERS,
@@ -30,6 +30,7 @@ import { softDeleteInspectionReportAction } from "../actions";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { InspeccionDrawer } from "./InspeccionDrawer";
 import { ReportEditor } from "./ReportEditor";
@@ -268,7 +269,7 @@ export function InspeccionesClient({
           canEdit={canEdit}
           onOpen={(report) => setEditing(report)}
           onEdit={(report) => setDrawer({ mode: "edit", report })}
-          onDeleted={(no) => toast.success(`Reporte ${no} eliminado`)}
+          onDeleted={(no) => toast.success(`Reporte ${no} retirado del Studio`)}
         />
       )}
 
@@ -467,6 +468,8 @@ function ReportsTable({
                         </button>
                         <DeleteReportButton
                           reportId={r.id}
+                          reportNo={r.report_no}
+                          status={r.status}
                           onDeleted={() => onDeleted(r.report_no)}
                         />
                       </>
@@ -485,60 +488,82 @@ function ReportsTable({
 // ── Botón eliminar con confirmación inline ──────────────────────
 function DeleteReportButton({
   reportId,
+  reportNo,
+  status,
   onDeleted,
 }: {
   reportId: string;
+  reportNo: string;
+  status: InspectionReport["status"];
   onDeleted: () => void;
 }) {
   const [confirm, setConfirm] = useState(false);
-  const [isDeleting, startDelete] = useTransition();
+  const [pending, setPending] = useState(false);
+  const [requestRef, setRequestRef] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  if (!confirm) {
-    return (
+  const openRetirement = () => {
+    setRequestRef(`inspection-report-retirement:${reportId}:${crypto.randomUUID()}`);
+    setError(null);
+    setConfirm(true);
+  };
+
+  const retireReport = async (reason: string) => {
+    if (pending) return;
+    setPending(true);
+    setError(null);
+    try {
+      const res = await softDeleteInspectionReportAction({
+        reportId,
+        from: status,
+        reason,
+        requestRef,
+      });
+      if (!res.ok) {
+        setError(res.error ?? "No se pudo retirar el reporte.");
+        return;
+      }
+      setConfirm(false);
+      onDeleted();
+    } catch {
+      setError("No se pudo retirar el reporte. Conservamos la referencia para reintentar.");
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <>
       <button
         type="button"
         className="studio-btn studio-btn-ghost studio-btn-sm"
         style={{ color: "var(--danger)" }}
-        onClick={() => setConfirm(true)}
+        onClick={openRetirement}
       >
-        Eliminar
+        Retirar
       </button>
-    );
-  }
-
-  return (
-    <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-      <button
-        type="button"
-        className="studio-btn studio-btn-danger studio-btn-sm"
-        disabled={isDeleting}
-        onClick={() =>
-          startDelete(async () => {
-            const res = await softDeleteInspectionReportAction(reportId);
-            if (res.error) setError(res.error);
-            else onDeleted();
-          })
-        }
-      >
-        {isDeleting ? "Eliminando…" : "Sí, eliminar"}
-      </button>
-      <button
-        type="button"
-        className="studio-btn studio-btn-ghost studio-btn-sm"
-        onClick={() => setConfirm(false)}
-        disabled={isDeleting}
-      >
-        No
-      </button>
-      {error && (
-        <span
-          role="alert"
-          style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--danger)" }}
-        >
-          {error}
-        </span>
-      )}
-    </span>
+      <ConfirmDialog
+        open={confirm}
+        danger
+        reason
+        reasonRequired
+        holdToConfirm
+        initialFocus="safe"
+        title="Retirar reporte del Studio"
+        message={`${reportNo} dejará de aparecer y la metadata activa de sus fotos quedará retirada. Los objetos privados de Storage se conservan; esta acción no equivale a borrado físico.`}
+        confirmLabel="Retirar reporte"
+        holdLabel="Mantén para retirar"
+        reasonLabel="Motivo del retiro"
+        reasonPlaceholder="Ej. Reporte duplicado o emitido para la orden incorrecta"
+        pending={pending}
+        error={error ?? undefined}
+        onCancel={() => {
+          if (pending) return;
+          setConfirm(false);
+          setError(null);
+        }}
+        onConfirm={retireReport}
+      />
+    </>
   );
 }

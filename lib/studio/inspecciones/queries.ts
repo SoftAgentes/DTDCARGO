@@ -90,6 +90,55 @@ export async function getInspectionReport(
   return data ? rowToReport(data as unknown as Record<string, unknown>) : null;
 }
 
+export type InspectionRetirementResult = {
+  outcome: "transitioned" | "replayed";
+  reportNo: string;
+  photoCount: number;
+  storageDisposition: "retained_private_objects";
+};
+
+/** Ejecuta el retiro R3 gobernado de SDD-0233. */
+export async function retireInspectionReportGoverned(
+  supabase: SupabaseClient,
+  input: {
+    reportId: string;
+    expectedStatus: InspectionStatus;
+    reason: string;
+    requestRef: string;
+  },
+): Promise<InspectionRetirementResult> {
+  const { data, error } = await supabase.rpc(
+    "retire_inspection_report_governed",
+    {
+      p_report_id: input.reportId,
+      p_expected_status: input.expectedStatus,
+      p_reason: input.reason,
+      p_request_ref: input.requestRef,
+    },
+  );
+  if (error) throw error;
+
+  const payload = data as Record<string, unknown> | null;
+  const outcome = payload?.outcome;
+  const reportNo = typeof payload?.report_no === "string" ? payload.report_no : "";
+  const photoCount = Number(payload?.photo_count);
+  if (
+    (outcome !== "transitioned" && outcome !== "replayed") ||
+    !reportNo ||
+    !Number.isInteger(photoCount) ||
+    photoCount < 0 ||
+    payload?.storage_disposition !== "retained_private_objects"
+  ) {
+    throw new Error("Respuesta inválida del retiro gobernado de inspección.");
+  }
+  return {
+    outcome,
+    reportNo,
+    photoCount,
+    storageDisposition: "retained_private_objects",
+  };
+}
+
 /** Clientes vivos del tenant para el selector del drawer (markbox + nombre). */
 export type InspectionClientOption = {
   id: string;
