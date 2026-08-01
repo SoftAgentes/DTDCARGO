@@ -1011,6 +1011,8 @@ function ResultPanel({
     value: number;
     kind: "base" | "add" | "sub";
     accent?: boolean;
+    /** Se muestra "Incluida" en verde en vez de "+$0" (zona sin costo). */
+    incluida?: boolean;
   }[] = [
     {
       label: "Volumen base",
@@ -1018,12 +1020,20 @@ function ResultPanel({
       value: cot.precioBase,
       kind: "base",
     },
-    ...(cot.recargoCiudad > 0
+    // Entrega nacional — SIEMPRE visible cuando hay ciudad (founder 1-ago-2026).
+    // Antes se ocultaba en $0, así que las 8 ciudades donde DTD regala el tramo
+    // no veían nada: el cliente no se enteraba de lo que le estamos absorbiendo.
+    // Ahora se muestra como "Incluida" y el regalo se ve.
+    ...(cot.ciudad && !esConsolidado
       ? [{
-          label: `Entrega a ${cot.ciudad?.label ?? "tu ciudad"}`,
-          sub: null,
+          label: `Entrega a ${cot.ciudad.label}`,
+          sub:
+            cot.recargoCiudad > 0 && cot.cbm > 0
+              ? `${cot.cbm} CBM × $${(cot.recargoCiudad / cot.cbm).toFixed(2)}`
+              : null,
           value: cot.recargoCiudad,
           kind: "add" as const,
+          incluida: cot.recargoCiudad === 0,
         }]
       : []),
     ...(cot.recargoExcedente > 0
@@ -1170,15 +1180,39 @@ function ResultPanel({
                   </span>
                 )}
               </span>
-              <span
-                className="num text-[13px] whitespace-nowrap"
-                style={r.accent ? { fontWeight: 700, color: "var(--wine-on-dark, #E8748A)" } : { fontWeight: 600, color: "#fff" }}
-              >
-                {r.kind === "sub" ? "−" : r.kind === "add" ? "+" : ""}
-                {money(r.value)}
-              </span>
+              {r.incluida ? (
+                <span
+                  className="text-[12px] font-bold whitespace-nowrap"
+                  style={{ color: "var(--success-on-dark)" }}
+                >
+                  Incluida
+                </span>
+              ) : (
+                <span
+                  className="num text-[13px] whitespace-nowrap"
+                  style={r.accent ? { fontWeight: 700, color: "var(--wine-on-dark, #E8748A)" } : { fontWeight: 600, color: "#fff" }}
+                >
+                  {r.kind === "sub" ? "−" : r.kind === "add" ? "+" : ""}
+                  {money(r.value)}
+                </span>
+              )}
             </div>
           ))}
+          {/* Aviso de destino quincenal. NO bloquea: el cliente ve su precio
+              igual, pero se entera ANTES de pagar de que ese camión no sale
+              todas las semanas. Enterarse después es un reclamo. */}
+          {cot.avisoEntrega && tieneCarga ? (
+            <div
+              className="rounded-[10px] px-3 py-2 text-[12px] leading-[1.45]"
+              style={{
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                color: "rgba(255,255,255,0.72)",
+              }}
+            >
+              {cot.avisoEntrega}
+            </div>
+          ) : null}
           <div
             className="mt-0.5 pt-2.5 flex items-center justify-between gap-3"
             style={{ borderTop: "1px solid rgba(255,255,255,0.12)" }}

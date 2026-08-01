@@ -23,6 +23,12 @@
      luminosidad 61% → 73%. Medido: 4,57:1 sobre #26406F · 6,55:1 sobre #16274b
      (extremo oscuro del degradado) · 8,64:1 sobre #060D1C (fondo del collage). */
   --color-wine-on-dark: #d59fa7;
+  /* Verde de éxito legible SOBRE NAVY. Hermano de --color-wine-on-dark y existe
+     por la misma razón: --color-status-success (#1f8a5b) mide 2,85:1 sobre el
+     panel navy del calculador (#203760) y falla AA de calle. Este mide 7,69:1
+     sobre ese mismo fondo. Úsalo para texto de estado sobre fondo oscuro; el
+     token normal es para fondo claro. */
+  --color-status-success-on-dark: #6ee7a8;
   --color-ink: #0f1e3d;
 
   /* Greys */
@@ -2835,6 +2841,7 @@ a.svp-it:hover .nm {
   /* Tokens propios de la home (del Norte · sin equivalente --color-*) */
   --crema: #e8dcc8; /* acento tan de marca (assets/container.svg) */
   --wine-on-dark: var(--color-wine-on-dark); /* wine legible sobre navy · 4,57:1 sobre #26406F (AA) */
+  --success-on-dark: var(--color-status-success-on-dark); /* éxito sobre navy · 7,69:1 sobre #203760 (AAA) */
   --f-cn: var(--f-cn-ui);
   --nav-h: 76px;
   --home-navy-band: var(--grad-navy-hero); /* banda navy (Norte) — alias del token compartido */
