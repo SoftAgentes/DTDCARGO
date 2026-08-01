@@ -38,7 +38,9 @@ No se incluyó Nómina 0316 ni trabajo de otros carriles.
 
 ## Publicación y gates externos
 
-- Push previsto por la orden literal `cerrar`: `origin/codex/audit-hardening-20260801`.
+- Push completado por la orden literal `cerrar`: `origin/codex/audit-hardening-20260801`.
+- La publicación inicial alcanzó `7f12627a`; el remoto de la rama quedó configurado como upstream.
+- Durante el cierre `origin/main` avanzó a `87217301` por un recibo documental de Gobernanza. No se fusionó durante este cierre.
 - Integración a `main`: pendiente de un integrador exclusivo; otra tarea activa usa el checkout principal.
 - Supabase Cloud: no tocado. `0325`–`0329` requieren autorización nominal, una por vez.
 - Vercel/Producción: no tocados.
