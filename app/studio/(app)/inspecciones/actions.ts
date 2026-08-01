@@ -30,8 +30,10 @@ import {
   validateInspectionInput,
   parsePsiPayload,
   parseFactoryPayload,
+  validateInspectionRetirementInput,
   type InspectionActionState,
 } from "@/lib/studio/inspecciones/validators";
+import { retireInspectionReportGoverned } from "@/lib/studio/inspecciones/queries";
 import {
   collectInspectionPhotos,
   uploadInspectionPhotoBatch,
@@ -218,23 +220,55 @@ export async function updateInspectionReportAction(
 }
 
 export async function softDeleteInspectionReportAction(
-  reportId: string,
-): Promise<{ ok?: boolean; error?: string }> {
+  raw: { reportId?: string; from?: string; reason?: string; requestRef?: string },
+): Promise<{
+  ok?: boolean;
+  error?: string;
+  replayed?: boolean;
+  reportNo?: string;
+  photoCount?: number;
+}> {
   const supabase = await createClient();
 
   const denial = await moduleEditDenial(supabase, MODULE_ID);
   if (denial) return { error: denial };
 
-  const { error } = await supabase
-    .from("inspection_reports")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", reportId);
+  const validation = validateInspectionRetirementInput({
+    report_id: raw.reportId,
+    from: raw.from,
+    reason: raw.reason,
+    request_ref: raw.requestRef,
+  });
+  if (!validation.ok) return { error: validation.error };
 
-  if (error)
-    return { error: `No se pudo eliminar el reporte: ${error.message}` };
-
-  revalidatePath("/studio/inspecciones");
-  return { ok: true };
+  try {
+    const result = await retireInspectionReportGoverned(supabase, {
+      reportId: validation.input.report_id,
+      expectedStatus: validation.input.from,
+      reason: validation.input.reason,
+      requestRef: validation.input.request_ref,
+    });
+    revalidatePath("/studio/inspecciones");
+    return {
+      ok: true,
+      replayed: result.outcome === "replayed",
+      reportNo: result.reportNo,
+      photoCount: result.photoCount,
+    };
+  } catch (error) {
+    const code =
+      typeof error === "object" && error !== null && "code" in error
+        ? String((error as { code?: unknown }).code ?? "")
+        : "";
+    if (code === "42501") return { error: "No tienes permiso para retirar este reporte." };
+    if (code === "40001") {
+      return { error: "El reporte cambió. Actualiza antes de reintentar." };
+    }
+    if (code === "P0002") return { error: "El reporte ya no está disponible." };
+    return {
+      error: `No se pudo retirar el reporte. Referencia: ${validation.input.request_ref}`,
+    };
+  }
 }
 
 /**
