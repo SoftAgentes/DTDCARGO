@@ -41,7 +41,6 @@ function SubTabs({ tabs, ariaLabel }: { tabs: SubTab[]; ariaLabel: string }) {
     </nav>
   );
 }
-
 /** Hub "Mis envíos": Envíos · Compras · Documentos (Norte: todo vive dentro de envíos). */
 export function EnviosHubTabs() {
   return (
@@ -64,27 +63,6 @@ export function EnviosHubTabs() {
           href: "/portal/documentos",
           label: "Documentos",
           match: (p) => p.startsWith("/portal/documentos"),
-        },
-      ]}
-    />
-  );
-}
-
-/** Hub "Soporte": Mensajes · Reclamos (Norte: soporte = chat + casos). */
-export function SoporteHubTabs() {
-  return (
-    <SubTabs
-      ariaLabel="Secciones de Soporte"
-      tabs={[
-        {
-          href: "/portal/mensajes",
-          label: "Mensajes",
-          match: (p) => p.startsWith("/portal/mensajes"),
-        },
-        {
-          href: "/portal/reclamos",
-          label: "Reclamos",
-          match: (p) => p.startsWith("/portal/reclamos"),
         },
       ]}
     />

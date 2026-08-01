@@ -7,7 +7,6 @@ import {
   listSuppliers,
   listPrealertaDocuments,
 } from "@/lib/studio/prealertas/queries";
-import { buildWhatsAppLink } from "@/lib/design-tokens";
 import {
   computeProgress,
   effectiveVisibleStatus,
@@ -24,10 +23,6 @@ import {
 import { buildAlertItems } from "@/lib/portal/alertas";
 import { getConsolidationsForShipments } from "@/lib/portal/consolidation-queries";
 import { groupTrackByContainer, type TrackItem } from "@/lib/portal/seguimiento";
-import { showNortePortal } from "@/lib/portal/demo";
-import { ArrowIcon } from "@/components/Icon";
-import { ShipmentRow } from "../../_components/ShipmentRow";
-import { EnviosHubTabs } from "../../_components/PortalHubTabs";
 import {
   PortalAlertasHub,
   type DocPresence,
@@ -46,10 +41,6 @@ export default async function PortalShipmentsPage() {
   const supabase = await createClient();
   const client = await getPortalClient(supabase);
   if (!client) return null;
-
-  if (!showNortePortal(client.markbox)) {
-    return <FallbackList />;
-  }
 
   const [rawShipments, prealertas, suppliers] = await Promise.all([
     listMyShipments(supabase),
@@ -199,56 +190,4 @@ async function loadConsolidadoBanner(
       : "Organiza tus compras para que lleguen a bodega CN antes del cierre del próximo consolidado.";
 
   return { route: `${sailing.pol} → ${sailing.pod}`, sentence };
-}
-
-/**
- * Fallback pre-Norte (por si `NORTE_PORTAL_LIVE` se apaga): la lista plana de
- * envíos previa. Se conserva intacta para no regresionar a clientes no-Norte.
- */
-async function FallbackList() {
-  const supabase = await createClient();
-  const shipments = await listMyShipments(supabase);
-  const waLink = buildWhatsAppLink(
-    "Hola DTD Cargo, soy cliente y tengo una consulta sobre mis envíos.",
-  );
-
-  return (
-    <div>
-      <EnviosHubTabs />
-      <span className="eyebrow">Tu cuenta</span>
-      <h1 className="h-display mt-3" style={{ fontSize: "clamp(30px, 4.5vw, 48px)" }}>
-        Mis envíos.
-      </h1>
-      <p className="lead mt-3">
-        Sigue el estado de tus cargas. Para cambios o dudas, escríbele a tu asesor
-        por WhatsApp.
-      </p>
-
-      {shipments.length === 0 ? (
-        <div className="mt-8 card-shadow bg-white border border-grey-200 rounded-[18px] p-10 text-center">
-          <div className="text-[16px] font-bold text-ink">
-            Todavía no tienes envíos.
-          </div>
-          <p className="mt-2 text-[14px] text-grey-700 max-w-[46ch] mx-auto leading-[1.55]">
-            Cuando confirmes tu primera carga con tu asesor, va a aparecer acá con
-            su estado.
-          </p>
-          <a
-            href={waLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn btn-primary mt-6 inline-flex"
-          >
-            Escribir a mi asesor <ArrowIcon />
-          </a>
-        </div>
-      ) : (
-        <div className="mt-8 flex flex-col gap-3">
-          {shipments.map((s) => (
-            <ShipmentRow key={s.id} shipment={s} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
 }

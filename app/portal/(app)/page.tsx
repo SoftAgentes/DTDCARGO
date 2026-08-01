@@ -21,9 +21,7 @@ import { getShipmentNaviera } from "@/lib/studio/naviera-tracking/queries";
 import type { NavieraSnapshot } from "@/lib/studio/naviera-tracking/types";
 import { effectiveVisibleStatus } from "@/lib/portal/portal-types";
 import { getHiddenPortalStatusesForClient } from "@/lib/studio/notifications/portal-visibility-queries";
-import { showNortePortal } from "@/lib/portal/demo";
 import { PortalPending } from "../_components/PortalPending";
-import { PortalDashboard } from "./_components/PortalDashboard";
 import { PortalDashboardNorte } from "./_components/PortalDashboardNorte";
 import { PendingAcceptanceCard } from "./_components/PendingAcceptanceCard";
 import { ProfileIncompleteCard } from "./_components/ProfileIncompleteCard";
@@ -36,8 +34,8 @@ export const metadata: Metadata = { title: "Inicio" };
  *
  * Gate de activación (5.1): si la cuenta NO está activada (ni aprobada por asesor
  * ni con ≥1 envío) → pantalla de espera `<PortalPending>`. Si está activada →
- * dashboard `<PortalDashboard>` (5.2). El layout `(app)` ya garantizó la sesión
- * del portal (redirect al login si null); acá `client` es defensa extra.
+ * dashboard `<PortalDashboardNorte>` (5.2). El layout `(app)` ya garantizó la
+ * sesión del portal (redirect al login si null); acá `client` es defensa extra.
  */
 export default async function PortalHomePage() {
   const supabase = await createClient();
@@ -136,27 +134,17 @@ export default async function PortalHomePage() {
           hasAddress={profile.hasAddress}
         />
       ) : null}
-      {/* Rediseño Norte (oscuro). `showNortePortal`: todos si NORTE_PORTAL_LIVE, si no el demo. */}
-      {showNortePortal(client.markbox) ? (
-        <PortalDashboardNorte
-          client={client}
-          kpis={kpis}
-          nextArrival={nextArrival}
-          nextArrivalNaviera={nextArrivalNaviera}
-          shipments={shipments}
-          activity={activity}
-          sailing={sailing}
-          sailingDaysToCutoff={sailingDaysToCutoff}
-          advisorCard={<PortalAdvisorCard client={client} advisor={advisor} />}
-        />
-      ) : (
-        <PortalDashboard
-          client={client}
-          kpis={kpis}
-          nextArrival={nextArrival}
-          shipments={shipments}
-        />
-      )}
+      <PortalDashboardNorte
+        client={client}
+        kpis={kpis}
+        nextArrival={nextArrival}
+        nextArrivalNaviera={nextArrivalNaviera}
+        shipments={shipments}
+        activity={activity}
+        sailing={sailing}
+        sailingDaysToCutoff={sailingDaysToCutoff}
+        advisorCard={<PortalAdvisorCard client={client} advisor={advisor} />}
+      />
     </div>
   );
 }
