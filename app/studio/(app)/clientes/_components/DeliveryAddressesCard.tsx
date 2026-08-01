@@ -10,9 +10,20 @@ import {
   type ClientDeliveryAddress,
 } from "@/lib/studio/client-address-types";
 
-/** Ciudad del catálogo del calculador + config del recargo (Slice C). */
-export type AddressCity = { id: string; label: string; km: number; casco: boolean };
-export type LastMileParams = { thresholdCascoKm: number; tarifaKmFueraCasco: number };
+/** Ciudad del catálogo del calculador, con su precio de entrega (Slice C). */
+export type AddressCity = {
+  id: string;
+  label: string;
+  km: number;
+  casco: boolean;
+  /**
+   * USD por m³ del tramo nacional (SDD-0237). Lo alimenta el llamador cruzando
+   * `calculator_cities` con `public_carrier_tariffs()` vía `combinarDestinos`.
+   * `null` = sin tarifa confirmada → la card dice que la cotiza un asesor, que
+   * es lo honesto: no hay número que podamos sostener.
+   */
+  ventaCbm?: number | null;
+};
 import {
   addClientAddressAction,
   setDefaultClientAddressAction,
@@ -35,12 +46,6 @@ export function DeliveryAddressesCard({
   markbox: string;
   addresses: ClientDeliveryAddress[];
   cities?: AddressCity[];
-  /**
-   * ⚠️ Ya no se usa (SDD-0237): el umbral de km y la tarifa por km quedaron
-   * legacy. Se acepta y se ignora para no romper a los llamadores que todavía
-   * lo pasan; el precio de entrega viaja ahora dentro de cada ciudad.
-   */
-  lastMileParams?: LastMileParams | null;
 }) {
   const router = useRouter();
   const toast = useToast();

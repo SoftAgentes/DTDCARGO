@@ -23,22 +23,14 @@ export type AddressCity = {
   km: number;
   casco: boolean;
   /**
-   * USD por m³ de la entrega (SDD-0237). Sin esto la fila muestra "la cotiza
-   * tu asesor" en vez del precio — que es lo correcto mientras el server no lo
-   * alimente, pero es peor UX de la que podemos dar.
+   * USD por m³ de la entrega (SDD-0237). Lo alimenta `app/portal/(app)/perfil/
+   * page.tsx` cruzando `calculator_cities` con `public_carrier_tariffs()` vía
+   * `combinarDestinos` — el mismo cruce que hace la calculadora pública, para
+   * que el cliente vea acá el precio que vería cotizando.
    *
-   * 🔶 PENDIENTE: la página que arma `cities` todavía pasa sólo
-   * `calculator_cities` (slug+label+km+casco). Falta cruzarla con
-   * `public_carrier_tariffs()` igual que hace `combinarDestinos` en
-   * `lib/public/rates-queries.ts`.
+   * `null` = sin tarifa confirmada → la fila dice que la cotiza el asesor.
    */
   ventaCbm?: number | null;
-};
-
-/** Config del recargo de entrega (de calculator_settings vía RPC pública). */
-export type LastMileParams = {
-  thresholdCascoKm: number;
-  tarifaKmFueraCasco: number;
 };
 
 /**
@@ -47,19 +39,17 @@ export type LastMileParams = {
  * gestiona LAS SUYAS (la RLS y las server actions garantizan la propiedad). El
  * mismo esquema lo edita el asesor desde el Studio.
  *
- * Slice C: si la ciudad es del catálogo del calculador, muestra el estimado del
- * recargo de entrega (misma config de /studio/tarifas). Sin catálogo/config →
- * ciudad libre y sin estimado (degrada honesto).
+ * Slice C: si la ciudad es del catálogo del calculador, muestra cómo se cobra
+ * la entrega ahí (mismo tarifario que la calculadora pública). Ciudad fuera del
+ * catálogo → texto libre y sin estimado (degrada honesto).
  */
 export function PortalAddresses({
   addresses,
   cities = [],
-  lastMileParams = null,
   framed = true,
 }: {
   addresses: ClientDeliveryAddress[];
   cities?: AddressCity[];
-  lastMileParams?: LastMileParams | null;
   /** true (default) = sección con divisor superior (embebida tras otro
       contenido); false = la card padre ya da el marco (SDD-0145, Mi perfil). */
   framed?: boolean;
@@ -97,12 +87,7 @@ export function PortalAddresses({
       ) : (
         <ul className="mt-4 flex flex-col gap-2.5 list-none p-0">
           {addresses.map((a) => (
-            <AddressRow
-              key={a.id}
-              address={a}
-              cities={cities}
-              lastMileParams={lastMileParams}
-            />
+            <AddressRow key={a.id} address={a} cities={cities} />
           ))}
         </ul>
       )}
@@ -115,21 +100,21 @@ export function PortalAddresses({
 function AddressRow({
   address,
   cities,
-  lastMileParams,
 }: {
   address: ClientDeliveryAddress;
   cities: AddressCity[];
-  lastMileParams: LastMileParams | null;
 }) {
   const parts = [address.city, address.state].filter(Boolean).join(", ");
-  // Slice C: estimado del recargo de entrega si la ciudad es del catálogo.
+  // Cómo se cobra la entrega, si la ciudad es del catálogo.
+  //
+  // Antes esto exigía además `lastMileParams` (el umbral de km + el $/km de
+  // `calculator_settings`). Desde SDD-0237 `lastMileEstimate` ya no los mira
+  // —cobra por m³— y ese requisito sobreviviente sólo servía para esconder el
+  // precio cuando la RPC de config no respondía.
   const catalogCity = address.citySlug
     ? (cities.find((c) => c.id === address.citySlug) ?? null)
     : null;
-  const estimate =
-    catalogCity && lastMileParams
-      ? lastMileEstimate(catalogCity)
-      : null;
+  const estimate = catalogCity ? lastMileEstimate(catalogCity) : null;
   return (
     <li
       className="rounded-[12px] border border-grey-200 bg-paper p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3"

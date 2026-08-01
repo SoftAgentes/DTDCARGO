@@ -9,7 +9,8 @@ import { listClientDeliveryAddresses } from "@/lib/studio/client-address-queries
 import type { ClientDeliveryAddress } from "@/lib/studio/client-address-types";
 import {
   getPublicCalculatorCities,
-  getPublicCalculatorConfig,
+  getPublicCarrierTariffs,
+  combinarDestinos,
 } from "@/lib/public/rates-queries";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { WhatsAppIcon } from "@/components/Icon";
@@ -57,17 +58,16 @@ export default async function PortalProfilePage() {
 
   // Catálogo de ciudades + config del calculador (Slice C · estimado last-mile).
   // Señal de pendientes (SDD-0151): misma fuente que el card del dashboard.
-  const [calcCities, calcConfig, completeness] = await Promise.all([
+  // El catálogo se cruza con el tarifario (`combinarDestinos`, el mismo de la
+  // calculadora pública): `calculator_cities` no trae precio, así que sin este
+  // cruce cada dirección del cliente decía "la cotiza tu asesor" aunque su
+  // ciudad tuviera tarifa confirmada. Cliente y asesor ven el mismo número.
+  const [calcCities, calcTariffs, completeness] = await Promise.all([
     getPublicCalculatorCities(),
-    getPublicCalculatorConfig(),
+    getPublicCarrierTariffs(),
     getProfileCompleteness(supabase),
   ]);
-  const lastMileParams = calcConfig
-    ? {
-        thresholdCascoKm: calcConfig.thresholdCascoKm,
-        tarifaKmFueraCasco: calcConfig.tarifaKmFueraCasco,
-      }
-    : null;
+  const calcDestinos = combinarDestinos(calcCities, calcTariffs);
 
   // Fotos del bucket privado (avatar cosmético + cédula de verificación):
   // signed URLs server-side con el ADMIN client, scopeado al cliente resuelto
@@ -315,13 +315,13 @@ export default async function PortalProfilePage() {
           >
             <PortalAddresses
               addresses={addresses}
-              cities={calcCities.map((c) => ({
+              cities={calcDestinos.map((c) => ({
                 id: c.id,
                 label: c.label,
                 km: c.km,
                 casco: c.casco,
+                ventaCbm: c.ventaCbm,
               }))}
-              lastMileParams={lastMileParams}
               framed={false}
             />
           </section>

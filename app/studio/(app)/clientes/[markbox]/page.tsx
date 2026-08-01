@@ -39,7 +39,8 @@ import { listClientDeliveryAddresses } from "@/lib/studio/client-address-queries
 import type { ClientDeliveryAddress } from "@/lib/studio/client-address-types";
 import {
   getPublicCalculatorCities,
-  getPublicCalculatorConfig,
+  getPublicCarrierTariffs,
+  combinarDestinos,
 } from "@/lib/public/rates-queries";
 import { DocsPanel } from "@/app/studio/_components/documents/DocsPanel";
 import { listDocumentsByEntity } from "@/lib/studio/documents/queries";
@@ -110,19 +111,21 @@ export default async function ClienteDetallePage({
   } catch {
     deliveryAddresses = [];
   }
-  // Slice C: catálogo de ciudades + config del calculador (fuente /studio/tarifas)
-  // para estimar el recargo de entrega por dirección. Nunca tiran; sin data → sin
-  // estimado.
-  const [calcCities, calcConfig] = await Promise.all([
+  // Slice C: catálogo de ciudades CON su precio de entrega, para mostrar cómo se
+  // cobra el tramo nacional de cada dirección.
+  //
+  // El cruce con el tarifario es lo que hace útil a la card: `calculator_cities`
+  // sola no trae precio, así que sin esto TODAS las direcciones decían "la
+  // cotiza un asesor" — incluidas las 169 que sí tienen tarifa. Se usa el mismo
+  // `combinarDestinos` que la calculadora pública para que el asesor y el
+  // cliente vean exactamente el mismo número (la DB manda en el precio, el
+  // código manda en la cobertura). Ninguna de las dos tira: sin data, la card
+  // simplemente no muestra estimado.
+  const [calcCities, calcTariffs] = await Promise.all([
     getPublicCalculatorCities(),
-    getPublicCalculatorConfig(),
+    getPublicCarrierTariffs(),
   ]);
-  const lastMileParams = calcConfig
-    ? {
-        thresholdCascoKm: calcConfig.thresholdCascoKm,
-        tarifaKmFueraCasco: calcConfig.tarifaKmFueraCasco,
-      }
-    : null;
+  const calcDestinos = combinarDestinos(calcCities, calcTariffs);
 
   // SDD-0046: la verificación de identidad aplica a clientes self-registrados
   // o con foto de documento. El badge es advisory — nunca bloquea al cliente.
@@ -475,13 +478,13 @@ export default async function ClienteDetallePage({
             clientId={client.id}
             markbox={client.markbox}
             addresses={deliveryAddresses}
-            cities={calcCities.map((c) => ({
+            cities={calcDestinos.map((c) => ({
               id: c.id,
               label: c.label,
               km: c.km,
               casco: c.casco,
+              ventaCbm: c.ventaCbm,
             }))}
-            lastMileParams={lastMileParams}
           />
 
           {showIdentityCard && (
