@@ -95,19 +95,52 @@ aislamiento multi-tenant sobre 219 tablas y dos tenants reales**),
 `governance:check` (27 políticas) y `components:check` (CMP-01) — todos verdes.
 El contrato SQL nuevo `0330_freight_carriers_tariffs.test.sql` pasa.
 
-## No conformidad abierta (pre-existente, ajena a este cambio)
+## Los siete contratos en rojo: RESUELTO — era el working tree, no el repo
 
-`node scripts/run-sql-tests.mjs` sobre **`main` limpio en `03aae813`** deja
-**siete contratos en rojo**: `0261_audit_entity_catalog_validate` y
-`0271`–`0276` (reparaciones de ledger de SDD-0118). Fallan con
-`SDD-0118 … drift` / `postcondición falló` sobre migraciones históricas.
+Durante este trabajo `node scripts/run-sql-tests.mjs` dejaba **siete contratos en
+rojo** (`0261_audit_entity_catalog_validate` y `0271`–`0276`, reparaciones de
+ledger de SDD-0118) con errores `SDD-0118 … drift` / `postcondición falló`. Se
+registró primero como no conformidad de `main`. **Ese registro era incorrecto y
+queda anulado por esta sección.**
 
-- Verificado que **no lo causa esta rama**: el diff contra `origin/main` sólo
-  **agrega** tres archivos (0330, 0331 y la prueba de 0330) y no modifica
-  ninguna migración existente. La rama deja seis en rojo, uno menos que `main`.
-- Descartado el diagnóstico de fin de línea: `git check-attr` confirma `text:
-  unset` y el blob coincide byte a byte con el disco en las migraciones que el
-  ledger hashea.
-- REV-SGE-046 declaró "58/58 contratos" verdes sobre un árbol SQL idéntico, así
-  que la discrepancia queda **abierta y sin explicar**. Requiere investigación
-  propia; no se silencia ni se da por buena.
+**El repo siempre estuvo bien. El working tree de la máquina estaba viejo.**
+
+Diagnóstico, medido:
+
+1. El fixture del test siembra `supabase_migrations.schema_migrations` con el
+   texto histórico embebido; la migración valida su `md5`. Un byte distinto y
+   hay drift.
+2. Con el archivo **en disco**, el fixture de `0271` producía
+   `0e781225e7f3a2201530f45d385bc74f`. La migración esperaba
+   `e087ed48b2838aca3d1ba061ed7a6ab6`.
+3. Con el **blob de git** del mismo archivo, el fixture produce
+   `e087ed48b2838aca3d1ba061ed7a6ab6` — **coincide**.
+4. Producción confirma que la migración es la correcta: la fila
+   `20260526213130 seed_team_invitation_template` tiene `statements[2]` con
+   `md5 = e087ed48b2838aca3d1ba061ed7a6ab6`, sin CR, 1854 bytes.
+5. Causa: el blob de `0271_repair_branch_replay_history.test.sql` tiene **0 CR**
+   y el archivo en disco tenía **258**. Sobrevivía de antes del `-text` que
+   introdujo `0bdc23bd` (30-jul), que además sólo restauró 0281, 0287 y 0288 —
+   los demás nunca se re-extrajeron. **190 archivos** de
+   `supabase/{migrations,tests}` estaban así.
+6. `git status` los daba **limpios** (caché de stat), de modo que nada delataba
+   la desincronización.
+
+Reparación — sin tocar código ni Producción:
+
+```bash
+rm -f supabase/migrations/*.sql supabase/tests/*.sql
+git checkout -- supabase/migrations/ supabase/tests/
+```
+
+Resultado: 0 archivos desincronizados y **59/59 contratos verdes, rollback
+total**.
+
+Esto también explica la supuesta discrepancia con REV-SGE-046: su "58/58 verde"
+era correcto — corrió sobre un checkout fresco. No hubo evidencia falsa.
+
+⭐ **Lección, hermana de la de REV-SGE-048.** Aquel gate se callaba porque medía
+un checkout atrasado; éste gritaba porque medía un working tree desincronizado.
+En los dos casos la herramienta no estaba mirando el repo. Ante un rojo de
+`sql-tests` en migraciones históricas que nadie tocó, **antes de dudar del
+contrato, comprobá que el disco coincide con el blob.**
