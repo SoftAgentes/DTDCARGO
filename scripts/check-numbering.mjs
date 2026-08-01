@@ -52,7 +52,7 @@ const MIGRATIONS_DIR = path.join(process.cwd(), "supabase", "migrations");
 /**
  * CHOQUES HISTÓRICOS CONGELADOS — no se arreglan, se declaran.
  *
- * Estos cuatro pares nacieron duplicados y **ya están aplicados en prod**
+ * Estos seis pares nacieron duplicados y **ya están aplicados en prod**
  * (verificado el 2026-07-29 contra `supabase_migrations.schema_migrations`; dos
  * viven bajo su nombre libre viejo: `platform_admins` y `seo_drafts_brief_fields`).
  * Una migración aplicada NO se renumera: su cabecera debe seguir diciendo el
@@ -68,6 +68,8 @@ const CHOQUES_HISTORICOS = {
   "0058": ["0058_platform_admins", "0058_user_invitations_region"],
   "0243": ["0243_clients_doc_kind_backfill", "0243_warehouse_boxes_seq_partial_unique"],
   "0247": ["0247_client_notifications", "0247_grant_next_consolidation_ref_authenticated"],
+  "0277": ["0277_calculator_cities_destinos_faltantes", "0277_version_rls_auto_enable"],
+  "0297": ["0297_container_types_activos_y_capacidad_util", "0297_legal_docs_body_hash"],
 };
 
 /** Prefijo numérico de 4 dígitos, o null si el nombre no arranca con uno. */

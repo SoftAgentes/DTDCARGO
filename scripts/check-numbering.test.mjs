@@ -7,7 +7,7 @@
  *
  * Las dos mitades importan igual: un check que no caza no sirve, y un check
  * ruidoso se ignora. Por eso hay tests de las dos formas de fallar — que grite
- * por lo nuevo, y que NO grite por los cuatro choques históricos que ya están
+ * por lo nuevo, y que NO grite por los seis choques históricos que ya están
  * aplicados en prod y no se pueden renumerar.
  */
 import { describe, expect, it } from "vitest";
@@ -110,6 +110,8 @@ describe("findClashes · choques históricos congelados", () => {
       "0247_client_notifications",
       "0247_grant_next_consolidation_ref_authenticated",
     ],
+    "0277": ["0277_calculator_cities_destinos_faltantes", "0277_version_rls_auto_enable"],
+    "0297": ["0297_container_types_activos_y_capacidad_util", "0297_legal_docs_body_hash"],
   };
 
   it("no grita por un choque declarado (ya aplicado en prod, no se renumera)", () => {
@@ -117,6 +119,21 @@ describe("findClashes · choques históricos congelados", () => {
       findClashes(
         [],
         ["0247_client_notifications", "0247_grant_next_consolidation_ref_authenticated"],
+        HIST,
+      ),
+    ).toEqual([]);
+  });
+
+  it("no grita por los pares históricos 0277 y 0297 verificados en el ledger", () => {
+    expect(
+      findClashes(
+        [],
+        [
+          "0277_calculator_cities_destinos_faltantes",
+          "0277_version_rls_auto_enable",
+          "0297_container_types_activos_y_capacidad_util",
+          "0297_legal_docs_body_hash",
+        ],
         HIST,
       ),
     ).toEqual([]);
