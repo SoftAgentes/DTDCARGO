@@ -57,6 +57,14 @@ describe("resolveNotifCopy · precedencia", () => {
     const copy = resolveNotifCopy({ event: "loquesea" });
     expect(copy.title).toBe("Actualización de tu envío");
   });
+
+  it("los eventos Slice D tienen copy propio (no genérico) — F0/Motor", () => {
+    for (const evt of ["consolidated", "eta_set", "received_ve"] as const) {
+      const copy = resolveNotifCopy({ event: evt });
+      expect(copy).toEqual(DEFAULT_EVENT_COPY[evt]);
+      expect(copy.title).not.toBe("Actualización de tu envío");
+    }
+  });
 });
 
 describe("formatOffset", () => {
@@ -74,12 +82,19 @@ describe("formatOffset", () => {
 });
 
 describe("catálogo de eventos", () => {
-  it("todos los eventos del seed default están en el catálogo (Slice A)", () => {
+  it("todos los eventos del seed default están en el catálogo", () => {
     for (const evt of DEFAULT_SEED_EVENTS) {
       expect(CLIENT_JOURNEY_EVENT_KEYS.has(evt)).toBe(true);
-      const def = CLIENT_JOURNEY_EVENTS.find((e) => e.key === evt);
-      expect(def?.slice).toBe("A");
     }
+  });
+
+  it("el seed = los 4 hitos de status (Slice A) + received_ve (Slice D canónico)", () => {
+    for (const evt of DEFAULT_SEED_EVENTS) {
+      const def = CLIENT_JOURNEY_EVENTS.find((e) => e.key === evt);
+      const expected = evt === "received_ve" ? "D" : "A";
+      expect(def?.slice).toBe(expected);
+    }
+    expect(DEFAULT_SEED_EVENTS).toContain("received_ve");
   });
   it("journeyEventLabel devuelve la etiqueta o la clave cruda", () => {
     expect(journeyEventLabel("status:in_customs")).toBe("En aduana");

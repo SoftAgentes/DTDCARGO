@@ -23,7 +23,6 @@ import { isValidStatusForService } from "@/lib/studio/shipment-state-machine";
 import { formatChangeNote, findRateForDestination } from "@/lib/studio/destination-change";
 import type { Rate } from "@/lib/studio/rate-types";
 import type { ShipmentService, ShipmentStatus } from "@/lib/studio/shipment-types";
-import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
 import { scheduleClientNotifications } from "@/lib/studio/notifications/schedule-client-notifications";
 import { statusEvent } from "@/lib/studio/notifications/client-notification-types";
 
@@ -308,34 +307,13 @@ export async function transitionShipment(
     return { error: "Cambio aplicado pero el evento falló al registrarse." };
   }
 
-  // Solo el arribo a destino dispara el evento de mail. Otros transitions
-  // (in_warehouse, in_transit, etc) son ruido si se notifica cada uno.
-  if (newStatus === "arrived_destination" && shipment.status !== newStatus) {
-    const admin = createAdminClient();
-    await fireMailEvent(admin, tenantId, {
-      event: "shipment_arrived",
-      vars: {
-        customer_name: shipment.client_name ?? "cliente",
-        shipment_code: shipment.code,
-        destination: shipment.destination ?? "—",
-        arrival_date: new Date().toLocaleDateString("es-VE", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        }),
-        customs_eta_days: "—",
-      },
-      clientMarkbox: shipment.client_markbox,
-      clientName: shipment.client_name,
-      sourceRef: { kind: "shipment", id },
-    });
-  }
-
-  // SDD-0156: motor configurable de avisos al cliente (reemplaza el aviso inline
-  // de SDD-0132). Programa según las reglas del tenant (canal · offset · texto ·
-  // visibilidad); el drain (inline + cron) despacha. arrived_destination NO entra
-  // acá: sigue por su template shipment_arrived (arriba) para no duplicar.
-  // Best-effort: nunca rompe el cambio de estado.
+  // SDD-0156: motor configurable de avisos al cliente. Programa según las reglas
+  // del tenant (canal · offset · texto · visibilidad); el drain (inline + cron)
+  // despacha. `arrived_destination` NO entra acá: el aviso de arribo es CANÓNICO
+  // por `received_ve` (se dispara al crear el recibo del contenedor en Venezuela
+  // — el hecho físico del operario), no por la transición de status. Antes esta
+  // transición mandaba el mail `shipment_arrived`; se quitó para no duplicar con
+  // received_ve (decisión founder 2026-07-19). Best-effort: nunca rompe el cambio.
   if (shipment.status !== newStatus && newStatus !== "arrived_destination") {
     const admin = createAdminClient();
     await scheduleClientNotifications(admin, tenantId, {
