@@ -123,10 +123,14 @@ lo que cuesta— y lo que pone el cobro en cero de cara al cliente es
 
 ## Huecos y pendientes con Benito
 
-- 🔴 **Los PDFs originales no están en el repo.** Falta `assets/` con el TABULADOR,
-  el CRONOGRAMA DE DESPACHO y el formulario confirmado. Todo lo de arriba es
-  rastreable al formulario del 31-jul, pero sin los PDFs guardados no hay
-  respaldo documental dentro del proyecto.
+- ✅ **Respaldo documental guardado** (1-ago-2026) en
+  [`assets/`](assets/README.md): el **formulario de confirmación firmado por
+  Mariotsy Mendoza** y la **tabla de 178 destinos** de la que salió la migración
+  `0332`. ⚠️ El xlsx lleva el COSTO ($70/$80 por CBM) — está en git porque el
+  repositorio es privado; las reglas que se derivan de eso están en el README de
+  `assets/`. Siguen sin guardarse el TABULADOR y el CRONOGRAMA DE DESPACHO
+  originales en PDF (ante discrepancia manda el formulario firmado, así que no
+  bloquean nada).
 - **El descuento por pagar en divisas.** En la reunión dijeron que existe; nunca
   lo cuantificaron y en el formulario no lo mencionaron. El founder lo quiere
   convertir en abono para el cliente.
