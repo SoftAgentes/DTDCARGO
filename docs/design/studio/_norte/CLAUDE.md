@@ -2,6 +2,12 @@
 
 > **Para Claude Code:** este archivo define las reglas de marca y sistema de diseño de DTD-Cargo. Antes de aplicar **cualquier** cambio visual (colores, tipografía, componentes, espaciado, copy), validá contra estas reglas. Si lo que te piden contradice una regla, **avisá al usuario antes de aplicar el cambio** con el formato definido al final.
 
+> **Comportamiento y componentes:** este Norte no sustituye la gobernanza del
+> producto. Para interacciones, estados, accesibilidad y madurez CMP, consulta
+> [`docs/governance/AGENT-BRIEF.md`](../../../governance/AGENT-BRIEF.md) y las
+> políticas aprobadas que esa cápsula enruta. Marca y gobernanza se unen en el
+> SDD del slice; ninguna copia dentro del Norte se vuelve norma por sí sola.
+
 ---
 
 ## 🚨 Comportamiento esperado

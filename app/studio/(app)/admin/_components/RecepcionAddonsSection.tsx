@@ -52,14 +52,17 @@ function AddonConfigRow({ addon }: { addon: PrealertaAddon }) {
   );
   const [active, setActive] = useState(addon.isActive);
   const [saved, setSaved] = useState(false);
+  const [handledState, setHandledState] = useState(state);
+  if (handledState !== state) {
+    setHandledState(state);
+    if (state.ok) setSaved(true);
+  }
 
   useEffect(() => {
-    if (state.ok) {
-      setSaved(true);
-      const t = setTimeout(() => setSaved(false), 2000);
-      return () => clearTimeout(t);
-    }
-  }, [state.ok]);
+    if (!saved) return;
+    const t = setTimeout(() => setSaved(false), 2000);
+    return () => clearTimeout(t);
+  }, [saved]);
 
   return (
     <form

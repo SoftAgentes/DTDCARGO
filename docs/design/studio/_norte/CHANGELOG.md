@@ -138,6 +138,15 @@ Formato:
 
 <!-- Las entradas nuevas se agregan acá arriba -->
 
+## 2026-07-29 · Conexión del Norte con la gobernanza ejecutable
+
+- `CLAUDE.md` enruta interacciones, estados, accesibilidad y madurez de
+  componentes a `docs/governance/AGENT-BRIEF.md`.
+- `HANDOFF.md` incorpora la cápsula al orden de lectura.
+- El Norte conserva autoridad visual; las políticas aprobadas conservan
+  autoridad de comportamiento. La unión ocurre en el SDD del slice.
+- No se modificó ningún mockup, token, componente visual ni versión de marca.
+
 ## 2026-06-08 · ☎️ Actualización de teléfonos de contacto
 
 Directorio de teléfonos cotejado contra el sistema. La mayoría ya coincidía
@@ -4228,4 +4237,3 @@ Dentro de cada pestaña de país, switch **`Ferias | Feriados`** que reusa el mo
   tardan unos segundos). Es una demo funcional del concepto, no el scraping de
   producción.
 - Persistencia local en `localStorage` clave `dtd-fair-store`.
-

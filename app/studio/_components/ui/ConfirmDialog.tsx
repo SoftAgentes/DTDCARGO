@@ -6,6 +6,8 @@
  * caller vía `open`. Soporta:
  *   - confirmación simple (mensaje + Cancelar/Confirmar)
  *   - confirmación con MOTIVO (reason input · reemplaza window.prompt)
+ *   - presión sostenida HTD-01 para una acción R3, siempre con alternativa
+ *     accesible de checkbox + click
  *
  * Patrón de uso:
  *   const [open, setOpen] = useState(false);
@@ -22,8 +24,11 @@
  * focus trap y restauración. En destructivos, el foco inicial es Cancelar.
  */
 
-import { useId, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useDialogA11y } from "./drawer/useDialogA11y";
+
+/** Debe permanecer sincronizado con `--dur-hold` en `app/studio/tokens.css`. */
+export const HTD_HOLD_DURATION_MS = 1_500;
 
 export function ConfirmDialog({
   open,
@@ -37,6 +42,9 @@ export function ConfirmDialog({
   reasonLabel = "Motivo (opcional)",
   reasonPlaceholder = "",
   reasonRequired = false,
+  holdToConfirm = false,
+  holdLabel = "Mantén presionado para confirmar",
+  holdAlternativeLabel = "Entiendo la consecuencia y prefiero confirmar con un clic",
   error,
   initialFocus,
   onCancel,
@@ -55,6 +63,10 @@ export function ConfirmDialog({
   reasonLabel?: string;
   reasonPlaceholder?: string;
   reasonRequired?: boolean;
+  /** HTD-01: solo para un consumidor R3 clasificado y documentado. */
+  holdToConfirm?: boolean;
+  holdLabel?: string;
+  holdAlternativeLabel?: string;
   /** Error devuelto por la acción; permanece visible dentro del diálogo. */
   error?: string;
   /** Default: Cancelar en destructivos; motivo/confirmar en el resto. */
@@ -76,6 +88,9 @@ export function ConfirmDialog({
       reasonLabel={reasonLabel}
       reasonPlaceholder={reasonPlaceholder}
       reasonRequired={reasonRequired}
+      holdToConfirm={holdToConfirm}
+      holdLabel={holdLabel}
+      holdAlternativeLabel={holdAlternativeLabel}
       error={error}
       initialFocus={initialFocus}
       onCancel={onCancel}
@@ -95,6 +110,9 @@ function OpenConfirmDialog({
   reasonLabel,
   reasonPlaceholder,
   reasonRequired,
+  holdToConfirm,
+  holdLabel,
+  holdAlternativeLabel,
   error,
   initialFocus,
   onCancel,
@@ -110,6 +128,9 @@ function OpenConfirmDialog({
   reasonLabel: string;
   reasonPlaceholder: string;
   reasonRequired: boolean;
+  holdToConfirm: boolean;
+  holdLabel: string;
+  holdAlternativeLabel: string;
   error?: string;
   initialFocus?: "safe" | "confirm" | "reason";
   onCancel: () => void;
@@ -123,6 +144,12 @@ function OpenConfirmDialog({
   const descriptionId = useId();
   const reasonId = useId();
   const errorId = useId();
+  const holdStatusId = useId();
+  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestSentRef = useRef(false);
+  const [holding, setHolding] = useState(false);
+  const [holdStatus, setHoldStatus] = useState("");
+  const [alternativeChecked, setAlternativeChecked] = useState(false);
 
   const resolvedInitialFocus =
     initialFocus === "safe" || (initialFocus === undefined && danger)
@@ -138,15 +165,80 @@ function OpenConfirmDialog({
     initialFocusRef: resolvedInitialFocus,
   });
 
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (pending) return;
+  function clearHold(status = "") {
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    setHolding(false);
+    if (!requestSentRef.current) setHoldStatus(status);
+  }
+
+  useEffect(() => {
+    function cancelForInterruption() {
+      clearHold("Confirmación cancelada.");
+    }
+    function cancelWhenHidden() {
+      if (document.visibilityState !== "visible") cancelForInterruption();
+    }
+    window.addEventListener("blur", cancelForInterruption);
+    document.addEventListener("visibilitychange", cancelWhenHidden);
+    return () => {
+      window.removeEventListener("blur", cancelForInterruption);
+      document.removeEventListener("visibilitychange", cancelWhenHidden);
+      if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (pending && holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+  }, [pending]);
+
+  useEffect(() => {
+    if (error) requestSentRef.current = false;
+  }, [error]);
+
+  function reasonValue(): string | null {
     const val = reasonRef.current?.value.trim() ?? "";
     if (reasonRequired && reason && val === "") {
       reasonRef.current?.focus();
+      return null;
+    }
+    return val;
+  }
+
+  function confirmOnce() {
+    if (pending || requestSentRef.current) return;
+    const val = reasonValue();
+    if (val === null) return;
+    requestSentRef.current = true;
+    clearHold();
+    onConfirm(val);
+  }
+
+  function beginHold() {
+    if (!holdToConfirm || alternativeChecked || pending || holding) return;
+    if (reasonValue() === null) return;
+    setHolding(true);
+    setHoldStatus("Presión iniciada. Mantén el control hasta completar.");
+    holdTimerRef.current = setTimeout(() => {
+      holdTimerRef.current = null;
+      confirmOnce();
+    }, HTD_HOLD_DURATION_MS);
+  }
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (pending) return;
+    if (holdToConfirm && !alternativeChecked) {
+      confirmRef.current?.focus();
+      setHoldStatus("Mantén presionado el botón o usa la alternativa accesible.");
       return;
     }
-    onConfirm(val);
+    confirmOnce();
   }
 
   return (
@@ -217,6 +309,30 @@ function OpenConfirmDialog({
           </label>
         )}
 
+        {holdToConfirm && (
+          <label
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "var(--s-2)",
+              color: "var(--ink)",
+              font: "500 12.5px/1.45 var(--f-sans)",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={alternativeChecked}
+              disabled={pending}
+              onChange={(event) => {
+                clearHold();
+                setAlternativeChecked(event.target.checked);
+              }}
+              style={{ accentColor: "var(--danger)", marginTop: 2 }}
+            />
+            <span>{holdAlternativeLabel}</span>
+          </label>
+        )}
+
         {error && (
           <div
             id={errorId}
@@ -246,13 +362,81 @@ function OpenConfirmDialog({
           </button>
           <button
             ref={confirmRef}
-            type="submit"
+            type={holdToConfirm && !alternativeChecked ? "button" : "submit"}
             className={`studio-btn studio-btn-sm ${danger ? "studio-btn-danger" : "studio-btn-primary"}`}
             disabled={pending}
+            aria-describedby={holdToConfirm ? holdStatusId : undefined}
+            onPointerDown={(event) => {
+              if (event.button !== 0) return;
+              event.preventDefault();
+              beginHold();
+            }}
+            onPointerUp={() => clearHold("Confirmación cancelada.")}
+            onPointerCancel={() => clearHold("Confirmación cancelada.")}
+            onPointerLeave={() => clearHold("Confirmación cancelada.")}
+            onKeyDown={(event) => {
+              if (event.key !== " " || event.repeat) return;
+              event.preventDefault();
+              beginHold();
+            }}
+            onKeyUp={(event) => {
+              if (event.key !== " ") return;
+              event.preventDefault();
+              clearHold("Confirmación cancelada.");
+            }}
+            onBlur={() => clearHold("Confirmación cancelada.")}
+            style={
+              holdToConfirm && !alternativeChecked
+                ? {
+                    position: "relative",
+                    overflow: "hidden",
+                    isolation: "isolate",
+                  }
+                : undefined
+            }
           >
-            {pending ? "Procesando…" : confirmLabel}
+            {holdToConfirm && !alternativeChecked && (
+              <span
+                aria-hidden="true"
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: holding ? "100%" : "0%",
+                  background: "var(--bg-sidebar)",
+                  transition: holding
+                    ? "width var(--dur-hold) linear"
+                    : "width var(--dur-fast) var(--ease)",
+                  zIndex: -1,
+                }}
+              />
+            )}
+            {pending
+              ? "Procesando…"
+              : holdToConfirm && !alternativeChecked
+                ? holdLabel
+                : confirmLabel}
           </button>
         </div>
+
+        {holdToConfirm && (
+          <p
+            id={holdStatusId}
+            role="status"
+            aria-live="polite"
+            style={{
+              minHeight: "1.45em",
+              margin: 0,
+              color: "var(--ink-soft)",
+              font: "500 11.5px/1.45 var(--f-sans)",
+              textAlign: "right",
+            }}
+          >
+            {holdStatus ||
+              (alternativeChecked
+                ? "La alternativa accesible está activa."
+                : "Mantén durante 1,5 segundos. Soltar cancela.")}
+          </p>
+        )}
       </form>
     </div>
   );

@@ -22,7 +22,10 @@ import {
   prevMonth,
 } from "@/lib/studio/calendar-helpers";
 import type { Fair, Holiday } from "@/lib/studio/calendar-data";
-import type { CalendarEvent } from "@/lib/studio/calendar-events-types";
+import type {
+  CalendarEvent,
+  CalendarEventType,
+} from "@/lib/studio/calendar-events-types";
 import { Icon } from "@/app/studio/_components/icons";
 import { MonthView } from "./MonthView";
 import { WeekView } from "./WeekView";
@@ -44,12 +47,23 @@ type Filters = {
   feria: boolean;
 };
 
+const EVENT_FILTER_KEY: Record<CalendarEventType, keyof Pick<Filters, "zarpe" | "arribo" | "entrega" | "tarea">> = {
+  zarpe: "zarpe",
+  zarpe_planificado: "zarpe",
+  arribo: "arribo",
+  arribo_planificado: "arribo",
+  entrega: "entrega",
+  entrega_planificada: "entrega",
+  tarea: "tarea",
+};
+
 type Props = {
   cursor: MonthCursor;
   events: CalendarEvent[];
   holidays: Holiday[];
   fairs: Fair[];
   todayIso: string;
+  timeZone: string;
 };
 
 const VIEW_OPTS: { v: View; label: string; icon: () => ReactNode }[] = [
@@ -64,6 +78,7 @@ export function CalendarClient({
   holidays,
   fairs,
   todayIso,
+  timeZone,
 }: Props) {
   const router = useRouter();
   const sp = useSearchParams();
@@ -93,7 +108,7 @@ export function CalendarClient({
 
   // Data filtrada que va a las vistas y al drawer.
   const visibleEvents = useMemo(
-    () => events.filter((e) => filters[e.type]),
+    () => events.filter((e) => filters[EVENT_FILTER_KEY[e.type]]),
     [events, filters],
   );
   const visibleHolidays = filters.feriado ? holidays : [];
@@ -208,6 +223,20 @@ export function CalendarClient({
               >
                 {formatMonthLabel(cursor)}
               </h2>
+              <span
+                title="Los instantes de zarpes, arribos y entregas se muestran en esta zona horaria."
+                style={{
+                  padding: "var(--s-1) var(--s-2)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--r-sm)",
+                  color: "var(--ink-soft)",
+                  background: "var(--bg-elevated)",
+                  font: "600 10.5px/1.2 var(--f-mono)",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Zona horaria · {timeZone}
+              </span>
               <button
                 type="button"
                 onClick={goToday}

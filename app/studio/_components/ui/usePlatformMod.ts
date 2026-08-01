@@ -11,7 +11,7 @@
  * (cero mismatch de hidratación + cero flash). Mac se detecta tras montar.
  */
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 /** Símbolo Mac → etiqueta Windows/Linux. */
 const WIN_LABEL: Record<string, string> = {
@@ -23,15 +23,11 @@ const WIN_LABEL: Record<string, string> = {
 
 /** Detecta si el usuario está en Mac (client-side, tras montar). */
 export function useIsMac(): boolean {
-  const [isMac, setIsMac] = useState(false);
-  useEffect(() => {
-    if (typeof navigator !== "undefined") {
-      // navigator.platform sigue siendo el método más confiable cross-browser
-      // (userAgentData.platform aún no es universal).
-      setIsMac(/Mac|iPod|iPhone|iPad/.test(navigator.platform));
-    }
-  }, []);
-  return isMac;
+  return useSyncExternalStore(
+    () => () => undefined,
+    () => /Mac|iPod|iPhone|iPad/.test(navigator.platform),
+    () => false,
+  );
 }
 
 /** Traduce una tecla de un combo al idioma de la plataforma. */

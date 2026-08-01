@@ -38,14 +38,20 @@ export function ApiIntegrationSection({ data }: { data: ApiIntegrationData }) {
   const [revokeState, revokeAction, revoking] = useActionState(revokeApiKeyAction, INITIAL);
 
   const [revealToken, setRevealToken] = useState<string | null>(null);
+  const [handledCreateState, setHandledCreateState] = useState(createState);
+  if (handledCreateState !== createState) {
+    setHandledCreateState(createState);
+    if (createState?.ok) {
+      if (createState.token) setRevealToken(createState.token);
+      setName("");
+    }
+  }
   const handledCreate = useRef<ApiIntegrationActionState | null>(null);
   const handledRevoke = useRef<ApiIntegrationActionState | null>(null);
 
   useEffect(() => {
     if (createState?.ok && handledCreate.current !== createState) {
       handledCreate.current = createState;
-      if (createState.token) setRevealToken(createState.token);
-      setName("");
       toast.success("API key creada");
     }
   }, [createState, toast]);

@@ -127,6 +127,85 @@ hay proceso ni documento que formalice la aceptación de ese riesgo.
 archivo (`acuerdo-servicios-v3.mdx`, `lib/legal-public.ts`, migración `legal_docs`) — y si se
 elige la opción (b) o (c) de arriba, hay trabajo de código pendiente aparte (no cubierto acá).
 
+### 6. Cláusula 11.3 — sacar la terminología mexicana y anclarla al marco venezolano (2026-07-30, decisión Sam)
+
+**El problema.** La 11.3 vigente dice **"Derechos ARCO"** (Acceso, Rectificación,
+Cancelación, Oposición). Eso es la nomenclatura de la **ley mexicana**: no existe en
+el derecho venezolano. Además empaqueta tres finalidades distintas en un solo
+consentimiento y mete la transferencia internacional dentro de la aceptación general.
+
+Detectado en la auditoría de datos personales:
+[`docs/legal/privacidad/AUDITORIA-2026-07.md`](privacidad/AUDITORIA-2026-07.md) §7.2.
+
+**Texto vigente (v3.0, NO editar — está congelado y hay aceptaciones vinculadas):**
+
+> *11.3. Datos personales: tratamiento exclusivo para fines logísticos, administrativos
+> y de comunicación comercial, con consentimiento expreso para almacenamiento y
+> transferencia internacional. Derechos ARCO: solicitud escrita a info@dtdcargo.com con
+> asunto "Privacidad".*
+
+**Propuesta de reemplazo para v3.1** (punto de partida para la abogada, no texto final):
+
+> **11.3. Datos personales.**
+>
+> **(a) Finalidad.** DTD Cargo trata los datos personales del Cliente y de las personas
+> que este designe únicamente para prestar el servicio contratado, cumplir sus
+> obligaciones administrativas, contables, fiscales y legales, y comunicarse con el
+> Cliente sobre su operación.
+>
+> **(b) Comunicaciones comerciales.** El envío de novedades, promociones u ofertas
+> requiere una manifestación de voluntad **separada y específica** del Cliente, que
+> este puede retirar en cualquier momento **sin que ello afecte la prestación del
+> servicio**.
+>
+> **(c) Derechos del Cliente.** Conforme al **artículo 28 de la Constitución de la
+> República Bolivariana de Venezuela**, el Cliente tiene derecho a acceder a la
+> información y a los datos que sobre su persona o sus bienes consten en los registros
+> de DTD Cargo, a **conocer el uso que se hace de ellos y su finalidad**, y a solicitar
+> su **actualización, rectificación o destrucción** cuando fueren erróneos o afectaren
+> ilegítimamente sus derechos. Conforme a la jurisprudencia vinculante de la **Sala
+> Constitucional del Tribunal Supremo de Justicia**, puede asimismo solicitar la
+> **supresión, la confidencialidad, la inclusión o el uso correcto** de sus datos.
+>
+> **(d) Cómo ejercerlos.** Por escrito a **info@dtdcargo.com** con el asunto
+> "Privacidad", o por el Portal del Cliente. DTD Cargo acusará recibo dentro de **[5]
+> días hábiles** y se pronunciará dentro de **[20] días hábiles** contados desde la
+> solicitud completa.
+>
+> **(e) Política de Privacidad.** El detalle de qué datos se recogen, con qué finalidad,
+> con quién se comparten y por cuánto tiempo se conservan consta en la Política de
+> Privacidad publicada en **dtdcargo.com/privacidad**, identificada por su versión y
+> fecha, que forma parte integrante de este Acuerdo.
+>
+> **(f) Procesamiento fuera de Venezuela.** *(redacción condicionada — ver abajo)*
+
+**Por qué cada cambio:**
+
+| Cambio | Razón |
+|---|---|
+| Fuera "ARCO" | Terminología **mexicana**. En Venezuela los derechos son los del art. 28 CRBV |
+| Se nombran los derechos uno por uno | El art. 28 da **cinco** (incluido "conocer el uso y la finalidad", que es autónomo) y la SC 759/2025 suma cuatro más |
+| **No** se ofrecen portabilidad ni oposición | **No son derechos reconocidos en Venezuela.** Prometerlos sería asumir una obligación que la ley no impone |
+| Marketing separado del servicio | SC 332/2001: el consentimiento debe ser **específico por finalidad**. Hoy van empaquetados |
+| Plazos con número | Venezuela **no fija plazo legal**; el que se publique se vuelve exigible por haberlo publicado. *"Plazo razonable"* no se puede auditar |
+| La Política de Privacidad se incorpora **por referencia** | Que se **lea**, no que se **firme**. Hacerla firmar sugiere que todo el tratamiento se apoya en consentimiento, y el día que lo retiren se queda sin base lo que hace falta para operar |
+
+**⬜ (f) queda condicionada a una decisión del founder aún abierta.** Hoy la PWA del
+operario en China muestra el nombre del cliente
+([`app/m/cn/estibar/actions.ts:131`](../../app/m/cn/estibar/actions.ts)) y la política
+publicada declara ese procesamiento (`/privacidad` §4 y §5). Dos redacciones posibles:
+
+- **Si el equipo en China sigue viendo datos de clientes:** declararlo de forma
+  específica —qué datos, para qué, a qué equipo— y no dentro de la aceptación general.
+- **Si se quita `client_name` de esa superficie** (el Shipping Mark `DTD-NNNN` basta
+  para estibar y es seudónimo): (f) se elimina, **y hay que corregir `/privacidad` §4
+  y §5**, que hoy declaran una transferencia que dejaría de ocurrir.
+
+**Al publicar v3.1, sincronizar los mismos 3 espejos del punto 1:**
+1. `docs/legal/acuerdo-servicios-v3.mdx` → cláusula 11.3
+2. `lib/legal-public.ts` (`ACUERDO_SERVICIOS`, bloque de la sección 11 — línea 73)
+3. `supabase/migrations/NNNN_*.sql` → INSERT de la fila `legal_docs` v3.1
+
 ## Pendientes del abogado ya conocidos (no duplicar aquí)
 
 Los ~11 placeholders `[…]` de v3.0 (RIF, no-competencia, DEG, días de reclamo, prima de

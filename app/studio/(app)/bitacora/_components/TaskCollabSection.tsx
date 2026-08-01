@@ -85,9 +85,19 @@ export function TaskCollabSection({
   }, [taskId]);
 
   useEffect(() => {
-    void refetchComments();
-    void refetchAttachments();
-  }, [refetchComments, refetchAttachments]);
+    let cancelled = false;
+    void Promise.all([
+      getTaskCommentsAction(taskId),
+      listTaskAttachmentsAction(taskId),
+    ]).then(([comments, taskAttachments]) => {
+      if (cancelled) return;
+      if (!("error" in comments)) setCollab(comments);
+      setAttachments(taskAttachments);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [taskId]);
 
   async function uploadOne(file: File): Promise<boolean> {
     const ext = attachmentExtFromFile(file);

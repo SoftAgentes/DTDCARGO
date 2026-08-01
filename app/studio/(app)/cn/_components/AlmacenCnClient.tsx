@@ -9,7 +9,7 @@
  * - Empty state cuando no hay rows
  */
 
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
@@ -32,8 +32,6 @@ import {
 } from "@/lib/studio/warehouse-cn-types";
 import {
   useT,
-  useLocale,
-  formatNumber,
   resolveErrorMessage,
   type I18nKey,
 } from "@/lib/i18n";
@@ -61,12 +59,38 @@ interface Props {
   canSeeClientNames?: boolean;
 }
 
-export function AlmacenCnClient({
+type FilterValues = {
+  q?: string;
+  hub?: string;
+  status?: string;
+};
+
+export function buildReceiptFiltersUrl(
+  pathname: string,
+  params: URLSearchParams,
+  next: FilterValues,
+): string {
+  const sp = new URLSearchParams(params.toString());
+  sp.delete("q");
+  sp.delete("hub");
+  sp.delete("status");
+  if (next.q?.trim()) sp.set("q", next.q.trim());
+  if (next.hub) sp.set("hub", next.hub);
+  if (next.status) sp.set("status", next.status);
+  const qs = sp.toString();
+  return qs ? `${pathname}?${qs}` : pathname;
+}
+
+export function AlmacenCnClient(props: Props) {
+  const params = useSearchParams();
+  return <AlmacenCnView key={params.toString()} {...props} />;
+}
+
+function AlmacenCnView({
   receipts,
   warehouses,
   clients,
   cities,
-  filters,
   alertShipmentIds = [],
   canSeeClientNames = true,
 }: Props) {
@@ -76,7 +100,6 @@ export function AlmacenCnClient({
   const params = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const t = useT();
-  const locale = useLocale();
 
   const lang: LangDisplay = parseLangFromParam(params.get("lang"));
   const [drawerOpen, setDrawerOpen] = useState(params.get("view") === "create");
@@ -108,18 +131,16 @@ export function AlmacenCnClient({
       return new Set(allIds);
     });
   const clearSelection = () => setSelected(new Set());
-  // Limpiar selección cuando cambian los filtros (rows visibles cambiaron)
-  useEffect(() => {
-    setSelected(new Set());
-  }, [params]);
 
-  // Re-sincronizar si la URL cambia desde afuera
-  useEffect(() => {
-    setQ(params.get("q") ?? "");
-    setHub(params.get("hub") ?? "");
-    setStatus(params.get("status") ?? "");
-    setDrawerOpen(params.get("view") === "create");
-  }, [params]);
+  const pushFilters = useCallback(
+    (next: FilterValues) => {
+      const url = buildReceiptFiltersUrl(pathname, params, next);
+      startTransition(() => {
+        router.replace(url, { scroll: false });
+      });
+    },
+    [params, pathname, router],
+  );
 
   // Debounce search → URL
   useEffect(() => {
@@ -127,27 +148,7 @@ export function AlmacenCnClient({
     if (q === currentQ) return;
     const t = setTimeout(() => pushFilters({ q, hub, status }), 300);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
-
-  const pushFilters = (next: {
-    q?: string;
-    hub?: string;
-    status?: string;
-  }) => {
-    // Clonar para preservar params no relacionados (lang, view, futuros).
-    const sp = new URLSearchParams(params.toString());
-    sp.delete("q");
-    sp.delete("hub");
-    sp.delete("status");
-    if (next.q?.trim()) sp.set("q", next.q.trim());
-    if (next.hub) sp.set("hub", next.hub);
-    if (next.status) sp.set("status", next.status);
-    const qs = sp.toString();
-    startTransition(() => {
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-    });
-  };
+  }, [hub, params, pushFilters, q, status]);
 
   const openDrawer = () => {
     setDrawerOpen(true);
@@ -322,7 +323,6 @@ export function AlmacenCnClient({
           rows={receipts}
           lang={lang}
           cities={cities}
-          onCreateClick={openDrawer}
           selected={selected}
           onToggleOne={toggleOne}
           onToggleAll={() => toggleAll(receipts.map((r) => r.id))}
@@ -374,7 +374,6 @@ function ReceiptsTable({
   rows,
   lang,
   cities,
-  onCreateClick: _onCreateClick,
   selected,
   onToggleOne,
   onToggleAll,
@@ -384,7 +383,6 @@ function ReceiptsTable({
   rows: WarehouseReceiptRow[];
   lang: LangDisplay;
   cities: DispatchCity[];
-  onCreateClick: () => void;
   selected: Set<string>;
   onToggleOne: (id: string) => void;
   onToggleAll: () => void;

@@ -21,6 +21,8 @@ import { Icon, type IconName } from "@/app/studio/_components/icons";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 import { canSpecial } from "@/lib/studio/rbac";
 import { createClient } from "@/lib/db/server";
+import { listContainerTypes } from "@/lib/studio/naviera/queries";
+import type { ContainerType } from "@/lib/studio/naviera/types";
 import { getCompanyData } from "@/lib/studio/company-queries";
 import { CompanySection } from "./_components/CompanySection";
 import { AppearanceSection } from "./_components/AppearanceSection";
@@ -60,6 +62,10 @@ import { getApiIntegration } from "@/lib/studio/api-integration-queries";
 import { getCalculatorSettings } from "@/lib/studio/calculator-settings-queries";
 import { listCalculatorCities } from "@/lib/studio/calculator-cities-queries";
 import {
+  listAllTariffs,
+  listFreightCarriers,
+} from "@/lib/studio/freight-carriers/queries";
+import {
   listLegalDocs,
   listAcceptances,
   legalOverview,
@@ -81,6 +87,10 @@ import type { CalendarEvent } from "@/lib/studio/op-calendar-types";
 import type { ApiIntegrationData } from "@/lib/studio/api-integration-types";
 import type { CalculatorSettings } from "@/lib/studio/calculator-settings-types";
 import type { CalculatorCity } from "@/lib/studio/calculator-cities-types";
+import type {
+  CarrierTariff,
+  FreightCarrier,
+} from "@/lib/studio/freight-carriers/types";
 
 export const metadata = { title: "Administración" };
 
@@ -371,8 +381,9 @@ export default async function AdminPage({
   let apiData: ApiIntegrationData | null = null;
   let importData: { calendar: CalendarEvent[]; company: CompanyData } | null = null;
   let legalData: LegalSectionData | null = null;
-  let calcData: { settings: CalculatorSettings | null; cities: CalculatorCity[] } | null = null;
+  let calcData: { settings: CalculatorSettings | null; cities: CalculatorCity[]; carriers: FreightCarrier[]; tariffs: CarrierTariff[] } | null = null;
   let addonsData: PrealertaAddon[] | null = null;
+  let containerTypes: ContainerType[] | null = null;
   let inviteCandidates: PortalInviteCandidate[] | null = null;
   let adoptionStats: PortalAdoptionStats | null = null;
   let coldInvitees: PortalColdInvitee[] | null = null;
@@ -422,11 +433,16 @@ export default async function AdminPage({
     importData = { calendar, company };
   } else if (active.id === "calculadora") {
     const supabase = await createClient();
-    const [settings, cities] = await Promise.all([
+    const [settings, cities, carriers, tariffs] = await Promise.all([
       getCalculatorSettings(supabase),
       listCalculatorCities(supabase),
+      listFreightCarriers(supabase),
+      listAllTariffs(supabase),
     ]);
-    calcData = { settings, cities };
+    calcData = { settings, cities, carriers, tariffs };
+  } else if (active.id === "masterdata") {
+    const supabase = await createClient();
+    containerTypes = await listContainerTypes(supabase);
   } else if (active.id === "recepcion-addons") {
     const supabase = await createClient();
     addonsData = await listPrealertaAddonsConfig(supabase);
@@ -537,6 +553,7 @@ export default async function AdminPage({
           calcData={calcData}
           calcInitialTab={calcInitialTab}
           addonsData={addonsData}
+          containerTypes={containerTypes}
           inviteCandidates={inviteCandidates}
           adoptionStats={adoptionStats}
           coldInvitees={coldInvitees}
@@ -646,6 +663,7 @@ function Content({
   calcData,
   calcInitialTab,
   addonsData,
+  containerTypes,
   inviteCandidates,
   adoptionStats,
   coldInvitees,
@@ -661,9 +679,10 @@ function Content({
   apiData: ApiIntegrationData | null;
   importData: { calendar: CalendarEvent[]; company: CompanyData } | null;
   legalData: LegalSectionData | null;
-  calcData: { settings: CalculatorSettings | null; cities: CalculatorCity[] } | null;
+  calcData: { settings: CalculatorSettings | null; cities: CalculatorCity[]; carriers: FreightCarrier[]; tariffs: CarrierTariff[] } | null;
   calcInitialTab: "parametros" | "ciudades";
   addonsData: PrealertaAddon[] | null;
+  containerTypes: ContainerType[] | null;
   inviteCandidates: PortalInviteCandidate[] | null;
   adoptionStats: PortalAdoptionStats | null;
   coldInvitees: PortalColdInvitee[] | null;
@@ -730,7 +749,7 @@ function Content({
       ) : section.id === "permissions" ? (
         <PermissionsSection />
       ) : section.id === "masterdata" ? (
-        <MasterDataSection />
+        <MasterDataSection containerTypes={containerTypes} />
       ) : section.id === "rates" && ratesData ? (
         <ExchangeRatesSection data={ratesData} />
       ) : section.id === "holidays" && calendarEvents ? (
@@ -743,6 +762,8 @@ function Content({
         <CalculatorSection
           settings={calcData.settings}
           cities={calcData.cities}
+          carriers={calcData.carriers}
+          tariffs={calcData.tariffs}
           isAdmin
           initialTab={calcInitialTab}
         />

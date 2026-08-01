@@ -31,13 +31,13 @@ const input: AcceptanceInput = {
 };
 
 const docs: DocRef[] = [
-  { key: "tyc", version: "v2.1" },
-  { key: "operador", version: "v1.4" },
+  { key: "tyc", version: "v2.1", body_sha256: "sha-tyc-v2.1" },
+  { key: "operador", version: "v1.4", body_sha256: "sha-operador-v1.4" },
 ];
 
 const docsReversed: DocRef[] = [
-  { key: "operador", version: "v1.4" },
-  { key: "tyc", version: "v2.1" },
+  { key: "operador", version: "v1.4", body_sha256: "sha-operador-v1.4" },
+  { key: "tyc", version: "v2.1", body_sha256: "sha-tyc-v2.1" },
 ];
 
 const NOW = new Date("2026-05-29T10:15:33.000Z");

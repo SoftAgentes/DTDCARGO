@@ -936,28 +936,36 @@ function PushSubscriptionSection() {
 
   // Check estado inicial al mount
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (
-      !("serviceWorker" in navigator) ||
-      !("PushManager" in window) ||
-      !("Notification" in window)
-    ) {
-      setStatus("unsupported");
-      return;
-    }
-    if (Notification.permission === "denied") {
-      setStatus("blocked");
-      return;
-    }
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled || typeof window === "undefined") return;
+      if (
+        !("serviceWorker" in navigator) ||
+        !("PushManager" in window) ||
+        !("Notification" in window)
+      ) {
+        setStatus("unsupported");
+        return;
+      }
+      if (Notification.permission === "denied") {
+        setStatus("blocked");
+        return;
+      }
 
-    // Estado real: hay subscription registrada?
-    navigator.serviceWorker
-      .getRegistration("/sw.js")
-      .then((reg) => reg?.pushManager.getSubscription() ?? null)
-      .then((sub) => {
-        setStatus(sub ? "on" : "off");
-      })
-      .catch(() => setStatus("off"));
+      // Estado real: hay subscription registrada?
+      navigator.serviceWorker
+        .getRegistration("/sw.js")
+        .then((reg) => reg?.pushManager.getSubscription() ?? null)
+        .then((sub) => {
+          if (!cancelled) setStatus(sub ? "on" : "off");
+        })
+        .catch(() => {
+          if (!cancelled) setStatus("off");
+        });
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleEnable = async () => {
@@ -1212,10 +1220,16 @@ function TelegramSection({
 
   // Si en algún refresh el chat_id apareció (vía webhook), salimos del waiting
   useEffect(() => {
-    if (linked && waitingConfirm) {
-      setWaitingConfirm(false);
-      setLinkCode(null);
-    }
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled && linked && waitingConfirm) {
+        setWaitingConfirm(false);
+        setLinkCode(null);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [linked, waitingConfirm]);
 
   return (

@@ -15,7 +15,10 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  DEFAULT_CALENDAR_TIME_ZONE,
   bitacoraTaskToCalendarEvent,
+  normalizeCalendarTimeZone,
+  timestampToCalendarDay,
   type BitacoraTaskCalRow,
   type CalendarEvent,
 } from "./calendar-events-types";
@@ -34,6 +37,10 @@ type ShipmentDateRow = {
   destination: string | null;
   arrived_destination_at: string | null;
   delivered_at: string | null;
+  planned_departure_at: string | null;
+  planned_arrival_at: string | null;
+  planned_delivery_at: string | null;
+  planning_timezone: string;
 };
 
 type ShippedEventRow = {
@@ -55,14 +62,20 @@ type ShippedEventRow = {
     | null;
 };
 
-/** timestamptz → día ISO `YYYY-MM-DD`. */
-function toDayIso(ts: string): string {
-  return ts.slice(0, 10);
+function shiftIsoDay(day: string, amount: number): string {
+  const date = new Date(`${day}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + amount);
+  return date.toISOString().slice(0, 10);
 }
 
 /** True si el día ISO del timestamp cae dentro de [from, to]. */
-function dayInRange(ts: string, from: string, to: string): boolean {
-  const day = toDayIso(ts);
+function dayInRange(
+  ts: string,
+  from: string,
+  to: string,
+  timeZone: string,
+): boolean {
+  const day = timestampToCalendarDay(ts, timeZone);
   return day >= from && day <= to;
 }
 
@@ -73,10 +86,16 @@ function dayInRange(ts: string, from: string, to: string): boolean {
 export async function listCalendarEvents(
   supabase: SupabaseClient,
   range: CalendarRange,
+  options: { timeZone?: string } = {},
 ): Promise<CalendarEvent[]> {
   const { from, to } = range;
-  const fromTs = `${from}T00:00:00`;
-  const toTs = `${to}T23:59:59`;
+  const timeZone = normalizeCalendarTimeZone(
+    options.timeZone ?? DEFAULT_CALENDAR_TIME_ZONE,
+  );
+  // Una zona IANA puede mover el día frente a UTC. El query se amplía un día
+  // en ambos extremos y el filtro final usa el día civil real.
+  const fromTs = `${shiftIsoDay(from, -1)}T00:00:00Z`;
+  const toTs = `${shiftIsoDay(to, 1)}T23:59:59Z`;
 
   const events: CalendarEvent[] = [];
 
@@ -86,20 +105,50 @@ export async function listCalendarEvents(
   const { data: shipmentsData, error: shipErr } = await supabase
     .from("shipments")
     .select(
-      "id, code, client_name, destination, arrived_destination_at, delivered_at",
+      "id, code, client_name, destination, arrived_destination_at, delivered_at, planned_departure_at, planned_arrival_at, planned_delivery_at, planning_timezone",
     )
     .or(
-      `and(arrived_destination_at.gte.${fromTs},arrived_destination_at.lte.${toTs}),` +
-        `and(delivered_at.gte.${fromTs},delivered_at.lte.${toTs})`,
+        `and(arrived_destination_at.gte.${fromTs},arrived_destination_at.lte.${toTs}),` +
+        `and(delivered_at.gte.${fromTs},delivered_at.lte.${toTs}),` +
+        `and(planned_departure_at.gte.${fromTs},planned_departure_at.lte.${toTs}),` +
+        `and(planned_arrival_at.gte.${fromTs},planned_arrival_at.lte.${toTs}),` +
+        `and(planned_delivery_at.gte.${fromTs},planned_delivery_at.lte.${toTs})`,
     )
     .limit(500);
   if (shipErr) throw shipErr;
 
   for (const s of (shipmentsData ?? []) as ShipmentDateRow[]) {
-    if (s.arrived_destination_at && dayInRange(s.arrived_destination_at, from, to)) {
+    const planningTimeZone = normalizeCalendarTimeZone(s.planning_timezone);
+    const planned = [
+      [s.planned_departure_at, "zarpe_planificado", "info"],
+      [s.planned_arrival_at, "arribo_planificado", "wine"],
+      [s.planned_delivery_at, "entrega_planificada", "success"],
+    ] as const;
+    for (const [timestamp, type, tone] of planned) {
+      if (!timestamp || !dayInRange(timestamp, from, to, planningTimeZone)) continue;
+      events.push({
+        id: `${s.id}-${type}`,
+        date: timestampToCalendarDay(timestamp, planningTimeZone),
+        temporalKind: "instant",
+        timeZone: planningTimeZone,
+        type,
+        shipmentId: s.id,
+        shipmentCode: s.code,
+        title: s.code,
+        clientName: s.client_name ?? undefined,
+        destination: s.destination ?? undefined,
+        tone,
+      });
+    }
+    if (
+      s.arrived_destination_at &&
+      dayInRange(s.arrived_destination_at, from, to, timeZone)
+    ) {
       events.push({
         id: `${s.id}-arribo`,
-        date: toDayIso(s.arrived_destination_at),
+        date: timestampToCalendarDay(s.arrived_destination_at, timeZone),
+        temporalKind: "instant",
+        timeZone,
         type: "arribo",
         shipmentId: s.id,
         shipmentCode: s.code,
@@ -109,10 +158,15 @@ export async function listCalendarEvents(
         tone: "wine",
       });
     }
-    if (s.delivered_at && dayInRange(s.delivered_at, from, to)) {
+    if (
+      s.delivered_at &&
+      dayInRange(s.delivered_at, from, to, timeZone)
+    ) {
       events.push({
         id: `${s.id}-entrega`,
-        date: toDayIso(s.delivered_at),
+        date: timestampToCalendarDay(s.delivered_at, timeZone),
+        temporalKind: "instant",
+        timeZone,
         type: "entrega",
         shipmentId: s.id,
         shipmentCode: s.code,
@@ -137,12 +191,15 @@ export async function listCalendarEvents(
   if (evErr) throw evErr;
 
   for (const ev of (shippedData ?? []) as ShippedEventRow[]) {
+    if (!dayInRange(ev.occurred_at, from, to, timeZone)) continue;
     // El embed to-one puede venir como objeto o (según PostgREST) array.
     const s = Array.isArray(ev.shipment) ? ev.shipment[0] : ev.shipment;
     if (!s) continue; // embarque soft-deleted → filtrado por RLS
     events.push({
       id: `${ev.id}-zarpe`,
-      date: toDayIso(ev.occurred_at),
+      date: timestampToCalendarDay(ev.occurred_at, timeZone),
+      temporalKind: "instant",
+      timeZone,
       type: "zarpe",
       shipmentId: s.id,
       shipmentCode: s.code,

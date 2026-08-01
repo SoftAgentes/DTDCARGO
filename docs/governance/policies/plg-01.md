@@ -2,11 +2,26 @@
 
 | Control | Valor |
 |---|---|
-| Estado | aprobada — no creado ni instalado |
+| Estado | aprobada — plugin repo/team read-only 0.1.2 reproducible |
 | Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-007 |
 | Nombre técnico propuesto | `erp-studio-governance` |
 | Fuente normativa | `docs/governance/` dentro del repositorio |
 | Depende de | SGE-00, CMP-01 y políticas aprobadas |
+
+## Estado de implementación
+
+El plugin repo/team read-only cerró P3–P8 mediante
+[REV-SGE-019](../reviews/plg-01-scaffold.md) y
+[REV-SGE-021](../reviews/plg-01-install-forward-test.md). Sus dos skills
+consultan el registro derivado, clasifican evidencia y no escriben producto ni
+fuentes normativas. Está instalado desde el marketplace local del repo; no
+existe marketplace remoto, MCP, app, hook o capacidad de escritura.
+
+[SDD-0218](../../specs/0218-governance-plugin-reproducible/spec.md) añadió un
+runner directo de siete forward-tests con Node incorporado y una orden de
+reinstalación que resuelve el worktree activo, regenera el derivado desde el
+repo, sincroniza la cache exacta de la versión y valida allí. El plugin no
+depende de un `node_modules` transitorio dentro de la cache.
 
 ## 1. Principio arquitectónico
 
@@ -14,7 +29,7 @@ El plugin interpreta, verifica y ayuda a corregir. No se convierte en una
 fuente paralela ni puede elevar un borrador a obligación. El repositorio
 conserva versiones, aprobaciones, excepciones y evidencia.
 
-## 2. Estructura futura
+## 2. Estructura y promoción futura
 
 ```text
 erp-studio-governance/
@@ -32,8 +47,10 @@ erp-studio-governance/
 ├── references/
 │   └── policy-registry.json
 ├── scripts/
-│   ├── build-policy-registry.*
-│   └── validate-governance.*
+│   ├── build-policy-registry.mjs
+│   ├── validate-governance.mjs
+│   ├── run-forward-tests.mjs
+│   └── reinstall-plugin.mjs
 ├── assets/
 │   └── templates/
 └── README.md
@@ -92,3 +109,24 @@ como decisión separada. También incorpora `skill-creator`: descripciones como
 gatillo, progressive disclosure, scripts para validaciones repetibles y
 validación/forward-test antes de confiar en el resultado. Esta política no
 ejecutó scaffold ni escribió fuera del repo.
+
+## 7. Destino aprobado
+
+[REV-SGE-013](../reviews/plg-01-destination.md) decide **repo/team**:
+
+```text
+marketplace: .agents/plugins/marketplace.json
+plugin:      .agents/plugins/plugins/erp-studio-governance/
+```
+
+El destino personal queda descartado para este plugin porque sus reglas,
+versiones y evidencia son específicas de DTDCargo y deben viajar con el commit
+que las gobierna. El CLI resuelve `source.path` desde el root agregado del
+marketplace, por lo que el manifest usa:
+
+```text
+./.agents/plugins/plugins/erp-studio-governance
+```
+
+La instalación local no convierte el plugin en fuente normativa ni autoriza
+publicación remota.

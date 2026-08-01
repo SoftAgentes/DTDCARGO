@@ -432,7 +432,7 @@ export function RateDrawer({ mode, rate, onClose }: Props) {
           </div>
 
           {/* Error general */}
-          {state.error && (
+          {(state.error || createError) && (
             <p
               role="alert"
               style={{
@@ -445,7 +445,7 @@ export function RateDrawer({ mode, rate, onClose }: Props) {
                 borderRadius: "var(--r-sm)",
               }}
             >
-              {state.error}
+              {state.error ?? createError}
             </p>
           )}
 

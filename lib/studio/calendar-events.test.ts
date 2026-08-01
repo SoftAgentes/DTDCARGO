@@ -2,10 +2,13 @@ import { describe, it, expect } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   EVENT_TYPE_META,
+  DEFAULT_CALENDAR_TIME_ZONE,
   bitacoraTaskToCalendarEvent,
   calendarEventHref,
   toneBgVar,
   toneVar,
+  normalizeCalendarTimeZone,
+  timestampToCalendarDay,
   type CalendarEvent,
 } from "./calendar-events-types";
 import { listCalendarEvents } from "./calendar-events-queries";
@@ -57,6 +60,7 @@ describe("calendarEventHref", () => {
     shipmentCode: "S-2026-0001",
     title: "S-2026-0001",
     tone: "info" as const,
+    temporalKind: "local-date" as const,
   };
 
   it("evento de tarea → detalle de la tarea (href propio)", () => {
@@ -72,6 +76,31 @@ describe("calendarEventHref", () => {
   it("evento de embarque (sin href) → tracking del embarque", () => {
     const e: CalendarEvent = { ...base, type: "arribo", shipmentId: "s1" };
     expect(calendarEventHref(e)).toBe("/studio/tracking/s1");
+  });
+});
+
+describe("timezone de eventos operativos · SDD-0217", () => {
+  it("no corta UTC: el mismo instante cae en días distintos en VE y China", () => {
+    const instant = "2026-07-01T02:30:00Z";
+    expect(timestampToCalendarDay(instant, "America/Caracas")).toBe(
+      "2026-06-30",
+    );
+    expect(timestampToCalendarDay(instant, "Asia/Shanghai")).toBe(
+      "2026-07-01",
+    );
+  });
+
+  it("cruza fin de mes en Asia/Shanghai sin perder el evento", () => {
+    expect(
+      timestampToCalendarDay("2026-07-31T18:30:00Z", "Asia/Shanghai"),
+    ).toBe("2026-08-01");
+  });
+
+  it("una zona inválida degrada de forma segura a Caracas", () => {
+    expect(normalizeCalendarTimeZone("No/Existe")).toBe(
+      DEFAULT_CALENDAR_TIME_ZONE,
+    );
+    expect(normalizeCalendarTimeZone(null)).toBe(DEFAULT_CALENDAR_TIME_ZONE);
   });
 });
 
@@ -139,12 +168,16 @@ describe("listCalendarEvents · tipo 'tarea' aditivo (SDD-0146)", () => {
       },
     });
 
-    const events = await listCalendarEvents(client, RANGE);
+    const events = await listCalendarEvents(client, RANGE, {
+      timeZone: "America/Caracas",
+    });
     const arribo = events.find((e) => e.type === "arribo");
     const tarea = events.find((e) => e.type === "tarea");
 
     expect(arribo).toBeDefined();
     expect(arribo!.shipmentId).toBe("s1");
+    expect(arribo!.temporalKind).toBe("instant");
+    expect(arribo!.timeZone).toBe("America/Caracas");
     expect(tarea).toBeDefined();
     expect(tarea!.date).toBe("2026-07-15");
     expect(tarea!.href).toBe(`/studio/bitacora?task=${TASK_ID}`);

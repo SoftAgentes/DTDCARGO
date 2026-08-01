@@ -4,6 +4,7 @@ import { loadE2EEnvironment } from "../e2e/sdd-0168-fixture";
 const KEYS = [
   "E2E_SUPABASE_PROJECT_REF",
   "E2E_SUPABASE_URL",
+  "E2E_SUPABASE_ANON_KEY",
   "E2E_SUPABASE_SERVICE_ROLE_KEY",
   "STUDIO_E2E_PASSWORD",
   "E2E_ENVIRONMENT_KIND",
@@ -16,6 +17,7 @@ const original = new Map<string, string | undefined>();
 function setValidEnvironment() {
   process.env.E2E_SUPABASE_PROJECT_REF = "ephemeralref";
   process.env.E2E_SUPABASE_URL = "https://ephemeralref.supabase.co";
+  process.env.E2E_SUPABASE_ANON_KEY = "synthetic-anon-key";
   process.env.E2E_SUPABASE_SERVICE_ROLE_KEY = "synthetic-service-role";
   process.env.STUDIO_E2E_PASSWORD = "synthetic-password";
   process.env.E2E_ENVIRONMENT_KIND = "ephemeral";
@@ -40,8 +42,17 @@ describe("loadE2EEnvironment", () => {
   it("acepta únicamente un project ref efímero confirmado", () => {
     expect(loadE2EEnvironment()).toMatchObject({
       projectRef: "ephemeralref",
+      anonKey: "synthetic-anon-key",
       environmentKind: "ephemeral",
     });
+  });
+
+  it("exige una llave anon separada para lecturas authenticated", () => {
+    delete process.env.E2E_SUPABASE_ANON_KEY;
+
+    expect(() => loadE2EEnvironment()).toThrow(
+      "Falta la variable obligatoria E2E_SUPABASE_ANON_KEY.",
+    );
   });
 
   it("rechaza Producción aunque exista el escape hatch histórico", () => {

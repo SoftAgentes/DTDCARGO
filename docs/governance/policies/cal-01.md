@@ -2,7 +2,7 @@
 
 | Control | Valor |
 |---|---|
-| Estado | aprobada — adopción parcial |
+| Estado | aprobada — adoptada |
 | Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-005 |
 | Base actual | [SDD-0141](../../specs/0141-calendario-norte/spec.md) |
 
@@ -22,9 +22,15 @@
 
 ## Estado actual
 
-Existen Mes/Semana/Agenda, filtros y drawer. La spec reconoce riesgo off-by-one
-UTC, reutilización del set mensual en Semana/Agenda y Slice 2 pendiente para
-reprogramar, exportar ICS y detectar impactos.
+Existen Mes/Semana/Agenda, filtros y drawer. SDD-0217 cerró el riesgo off-by-one:
+los `timestamptz` se convierten al día civil de la zona IANA del perfil, la zona
+se muestra en pantalla y el query amplía límites antes del filtro local.
+
+SDD-0223 incorporó una fuente planificada separada de los hechos: salida,
+llegada y entrega previstas con zona IANA, versión optimista, permisos,
+cronología y auditoría. El detalle permite reprogramar mediante formulario y
+el calendario diferencia semánticamente plan de realidad. La exportación ICS
+continúa fuera del contrato obligatorio de CAL-01.
 
 ## Gate
 

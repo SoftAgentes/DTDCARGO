@@ -44,6 +44,13 @@ export type Shipment = {
   vehicle_category: string | null;
   vehicle_model: string | null;
   arrived_destination_at: string | null;
+  planned_departure_at: string | null;
+  planned_arrival_at: string | null;
+  planned_delivery_at: string | null;
+  planning_timezone: string;
+  planning_version: number;
+  planning_updated_at: string | null;
+  planning_updated_by: string | null;
   delivered_at: string | null;
   pod_signed_by: string | null;
   delivery_address: string | null;

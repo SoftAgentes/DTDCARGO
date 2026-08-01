@@ -10,7 +10,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useEffectEvent, useState, useTransition } from "react";
 import {
   computeBalance,
   displayStatus,
@@ -77,19 +77,13 @@ export function FacturacionClient({
   const [showCreate, setShowCreate] = useState(false);
 
   const [q, setQ] = useState(params.get("q") ?? "");
-  const activeTab = (params.get("tab") as InvoiceTab) ?? "all";
-
-  useEffect(() => {
+  const paramsKey = params.toString();
+  const [filtersKey, setFiltersKey] = useState(paramsKey);
+  if (filtersKey !== paramsKey) {
+    setFiltersKey(paramsKey);
     setQ(params.get("q") ?? "");
-  }, [params]);
-
-  useEffect(() => {
-    const currentQ = params.get("q") ?? "";
-    if (q === currentQ) return;
-    const t = setTimeout(() => pushFilters({ q, tab: activeTab }), 350);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
+  }
+  const activeTab = (params.get("tab") as InvoiceTab) ?? "all";
 
   const pushFilters = (next: { q?: string; tab?: InvoiceTab }) => {
     const s = new URLSearchParams();
@@ -100,6 +94,12 @@ export function FacturacionClient({
       router.push(qs ? `/studio/facturacion?${qs}` : "/studio/facturacion");
     });
   };
+  const pushFiltersEvent = useEffectEvent(pushFilters);
+  useEffect(() => {
+    if (q === (params.get("q") ?? "")) return;
+    const t = setTimeout(() => pushFiltersEvent({ q, tab: activeTab }), 350);
+    return () => clearTimeout(t);
+  }, [activeTab, params, q]);
 
   const rows = filterRowsByTab(invoices, activeTab);
   const hasFiltersApplied = !!filters.q || activeTab !== "all";

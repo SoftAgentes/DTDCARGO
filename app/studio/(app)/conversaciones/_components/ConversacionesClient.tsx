@@ -81,7 +81,15 @@ export function ConversacionesClient({
   // Si el seleccionado dejó de existir (refresh/filtro), caer al primero visible.
   useEffect(() => {
     if (selectedId && conversations.some((c) => c.id === selectedId)) return;
-    setSelectedId(filtered[0]?.id ?? conversations[0]?.id ?? null);
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) {
+        setSelectedId(filtered[0]?.id ?? conversations[0]?.id ?? null);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [conversations, filtered, selectedId]);
 
   const selected = useMemo(

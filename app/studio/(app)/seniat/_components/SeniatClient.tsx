@@ -9,7 +9,7 @@
  * - "+ Nuevo trámite" abre CreateFilingDrawer (URL ?view=create)
  */
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useEffectEvent, useState, useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import {
   CUSTOMS_STATUS_OPTIONS,
@@ -76,21 +76,14 @@ export function SeniatClient({
   const [q, setQ] = useState(params.get("q") ?? "");
   const [port, setPort] = useState(params.get("port") ?? "");
   const [status, setStatus] = useState(params.get("status") ?? "");
-
-  useEffect(() => {
+  const paramsKey = params.toString();
+  const [filtersKey, setFiltersKey] = useState(paramsKey);
+  if (filtersKey !== paramsKey) {
+    setFiltersKey(paramsKey);
     setQ(params.get("q") ?? "");
     setPort(params.get("port") ?? "");
     setStatus(params.get("status") ?? "");
-  }, [params]);
-
-  // Debounce search
-  useEffect(() => {
-    const currentQ = params.get("q") ?? "";
-    if (q === currentQ) return;
-    const t = setTimeout(() => pushFilters({ q, port, status }), 300);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
+  }
 
   const pushFilters = (next: {
     q?: string;
@@ -109,6 +102,12 @@ export function SeniatClient({
       router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     });
   };
+  const pushFiltersEvent = useEffectEvent(pushFilters);
+  useEffect(() => {
+    if (q === (params.get("q") ?? "")) return;
+    const t = setTimeout(() => pushFiltersEvent({ q, port, status }), 300);
+    return () => clearTimeout(t);
+  }, [params, port, q, status]);
 
   const changeTab = (newTab: Tab) => {
     const sp = new URLSearchParams(params.toString());

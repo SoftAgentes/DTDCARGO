@@ -553,14 +553,6 @@ async function sendBugNotification(
   return result;
 }
 
-async function resolveAdminEmails(
-  supabaseAdmin: SupabaseClient,
-  tenantId: string,
-): Promise<string[]> {
-  const admins = await resolveAdminEntries(supabaseAdmin, tenantId);
-  return admins.map((a) => a.email);
-}
-
 /**
  * Resuelve admins activos del tenant con {user_id, email}. Útil cuando
  * el caller necesita disparar push notifications además del email.

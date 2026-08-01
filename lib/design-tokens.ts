@@ -188,9 +188,20 @@ export const CONTACT = {
   ve: {
     label: "Venezuela",
     city: "Valencia, Carabobo",
-    address: "Edificio Kokuy, Calle 151",
+    /**
+     * NAP canónico — dirección EXACTA, idéntica en toda superficie (founder
+     * 2026-07-11, reconfirmada 2026-07-30). La referencia "entre Av. Bolívar
+     * Norte y Av. Paseo Cabriales" es PARTE de la dirección, no un adorno: en
+     * Venezuela la referencia cruzada es cómo se ubica un edificio. NO acortar.
+     *
+     * ⚠️ La entrada da únicamente a Calle 151. Av. Bolívar Norte NO lleva número
+     * de puerta — si ves "Av. Bolívar Norte 14" en algún lado, es la variante
+     * muerta del Norte (ver docs/marketing/identidad.md § "Dirección VE").
+     */
+    address:
+      "Edificio Kokuy, Calle 151 (entre Av. Bolívar Norte y Av. Paseo Cabriales)",
     addressFull:
-      "Edificio Kokuy, Calle 151, entre Av. Bolívar Norte y Av. Paseo Cabriales. Valencia, Carabobo, Venezuela",
+      "Edificio Kokuy, Calle 151 (entre Av. Bolívar Norte y Av. Paseo Cabriales), Valencia, Carabobo, Venezuela",
     postalCode: "2001", // Valencia, Carabobo — para schema.org PostalAddress
 
     /**
@@ -793,9 +804,9 @@ export const HERO = {
    * 2015 = fundación e inauguración en Venezuela = el año de la empresa (founder
    * 2026-07-17), y coincide con el año del corredor. Alinea con la banda de Stats
    * ("Operando en Venezuela · 2015") y con `foundingDate` del schema.
-   * 2008 = inicios en China: es EXPERIENCIA, no fundación → vive en Stats ("En el
-   * comercio con China desde 2008"). 2010 = hito histórico (se formalizó la
-   * empresa de carga), nunca un claim de "operando/empresa desde".
+   * 2008 = empezamos a trabajar con China: es EXPERIENCIA, no fundación → vive
+   * en Stats ("En el comercio con China desde 2008"). 2010 = primera oficina
+   * propia en China, nunca un claim de "operando/empresa desde".
    */
   eyebrow: "Logística China → Venezuela · Desde 2015",
   /**
@@ -917,8 +928,8 @@ export const TIMELINE = [
   },
   {
     year: "2010",
-    title: "Fundación de la empresa de carga",
-    copy: "Formalizamos la operación logística. Primera alianza estratégica en Guangzhou.",
+    title: "Primera oficina propia en China",
+    copy: "Abrimos nuestra oficina en China: presencia propia en origen, no intermediarios. Primera alianza estratégica en Guangzhou.",
   },
   {
     year: "2011",

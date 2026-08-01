@@ -11,7 +11,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useEffectEvent, useState, useTransition } from "react";
 import {
   CLIENT_TIER_OPTIONS,
   docVerifyBadge,
@@ -40,22 +40,16 @@ export function ClientsClient({
 
   const [q, setQ] = useState(params.get("q") ?? "");
   const [tier, setTier] = useState(params.get("tier") ?? "");
+  const paramsKey = params.toString();
+  const [filtersKey, setFiltersKey] = useState(paramsKey);
+  if (filtersKey !== paramsKey) {
+    setFiltersKey(paramsKey);
+    setQ(params.get("q") ?? "");
+    setTier(params.get("tier") ?? "");
+  }
   const pending = params.get("pending") === "1";
   const hasActiveFilter =
     !!filters.q || filters.tier !== "all" || !!filters.pendingReview;
-
-  useEffect(() => {
-    setQ(params.get("q") ?? "");
-    setTier(params.get("tier") ?? "");
-  }, [params]);
-
-  useEffect(() => {
-    const currentQ = params.get("q") ?? "";
-    if (q === currentQ) return;
-    const t = setTimeout(() => pushFilters({ q, tier, pending }), 350);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
 
   const pushFilters = (next: {
     q?: string;
@@ -71,6 +65,12 @@ export function ClientsClient({
       router.push(qs ? `/studio/clientes?${qs}` : "/studio/clientes");
     });
   };
+  const pushFiltersEvent = useEffectEvent(pushFilters);
+  useEffect(() => {
+    if (q === (params.get("q") ?? "")) return;
+    const t = setTimeout(() => pushFiltersEvent({ q, tier, pending }), 350);
+    return () => clearTimeout(t);
+  }, [params, pending, q, tier]);
 
   return (
     <div style={{ maxWidth: 1280 }}>

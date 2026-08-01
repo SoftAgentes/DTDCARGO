@@ -57,13 +57,19 @@ export function EstimadoModal({
 
   // Re-sync del prefill cuando se abre (el form de /estimacion puede cambiar).
   useEffect(() => {
-    if (open) {
-      setNombre(initialNombre);
-      setTelefono(initialTelefono);
-      setNota("");
-      setErrors({});
-      setSubmitting(false);
-    }
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled && open) {
+        setNombre(initialNombre);
+        setTelefono(initialTelefono);
+        setNota("");
+        setErrors({});
+        setSubmitting(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [open, initialNombre, initialTelefono]);
 
   // Cerrar con Escape + foco inicial + focus trap (WCAG 2.4.3 / 2.1.2).

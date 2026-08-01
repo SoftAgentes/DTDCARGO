@@ -13,10 +13,12 @@
 import {
   isInspectionType,
   isInspectionConclusion,
+  isInspectionStatus,
   PSI_CATEGORY_KEYS,
   FACTORY_COMPANY_TYPES,
   type InspectionType,
   type InspectionConclusion,
+  type InspectionStatus,
   type PsiPayload,
   type FactoryPayload,
   type PsiCategory,
@@ -48,6 +50,44 @@ export type InspectionActionState = {
   /** report_no del reporte recién creado (para toast + highlight). */
   createdNo?: string;
 };
+
+export type InspectionRetirementInput = {
+  report_id: string;
+  from: InspectionStatus;
+  reason: string;
+  request_ref: string;
+};
+
+export type InspectionRetirementValidation =
+  | { ok: true; input: InspectionRetirementInput }
+  | { ok: false; error: string };
+
+/** Contrato público de la decisión R3 de retirar un reporte del Studio. */
+export function validateInspectionRetirementInput(
+  raw: Record<string, unknown>,
+): InspectionRetirementValidation {
+  const reportId = String(raw.report_id ?? "").trim();
+  const from = String(raw.from ?? "").trim();
+  const reason = String(raw.reason ?? "").trim();
+  const requestRef = String(raw.request_ref ?? "").trim();
+
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(reportId)) {
+    return { ok: false, error: "Reporte de inspección inválido." };
+  }
+  if (!isInspectionStatus(from)) {
+    return { ok: false, error: "El reporte cambió de estado. Actualiza la página." };
+  }
+  if (reason.length < 4 || reason.length > 1_000) {
+    return { ok: false, error: "El motivo debe tener entre 4 y 1000 caracteres." };
+  }
+  if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(requestRef)) {
+    return { ok: false, error: "La referencia de la operación es inválida." };
+  }
+  return {
+    ok: true,
+    input: { report_id: reportId, from, reason, request_ref: requestRef },
+  };
+}
 
 function strOrNull(v: unknown): string | null {
   if (v == null) return null;

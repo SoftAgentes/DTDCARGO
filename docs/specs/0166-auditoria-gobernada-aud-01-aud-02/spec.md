@@ -1,10 +1,10 @@
 ---
 sdd: "0166"
 title: "Auditoría gobernada — corrección conjunta AUD-01 y AUD-02"
-status: in-progress
+status: done
 author: "Sam (founder) + Codex"
 created: 2026-07-21
-updated: 2026-07-29
+updated: 2026-07-31
 supersedes: null
 superseded_by: null
 related: ["0085", "0123", "0139", "0165"]
@@ -13,7 +13,7 @@ confidencialidad: interno
 
 # DTD-0166 — Auditoría gobernada · AUD-01 + AUD-02
 
-> **Spec correctiva en progreso.** Define cómo llevar
+> **Spec correctiva cerrada en Producción.** Llevó
 > `entity_audit_log` desde su viewer básico actual hasta los contratos
 > aprobados [AUD-01](../../governance/policies/aud-01.md) y
 > [AUD-02](../../governance/policies/aud-02.md). A1 y A2 fueron aplicados y
@@ -27,23 +27,24 @@ confidencialidad: interno
 > [REV-AUD-010](../../governance/reviews/aud-tenant-fixtures.md) aprueba el
 > diseño obligatorio del ciclo de vida tenant/fixtures. Su implementación
 > local vive en [SDD-0172](../0172-tenant-fixtures-lifecycle/spec.md), todavía
-> pendiente de Cloud y recorrido efímero antes del cierre global. El
+> cerrado en Cloud y mediante recorrido efímero. El
 > [inventario C0](inventario-corte-c-2026-07-28.md) y
 > [REV-AUD-012](../../governance/reviews/aud-corte-c.md) aprobaron técnicamente
 > el diseño del Corte C. C1 fue implementado y verificado localmente mediante
 > `0270`; [REV-AUD-013](../../governance/reviews/aud-corte-c1.md) lo aprueba
-> técnicamente. Su aplicación Cloud y verificación autenticada conservan gates
-> separados. El [inventario D0](inventario-corte-d-2026-07-29.md) encontró 30
+> técnicamente y [REV-AUD-042](../../governance/reviews/aud-roadmap-prod-application.md)
+> registra su aplicación individual. La verificación visual autenticada
+> conserva gate separado. El [inventario D0](inventario-corte-d-2026-07-29.md) encontró 30
 > escrituras best-effort y cobertura obligatoria incompleta.
 > [REV-AUD-014](../../governance/reviews/aud-corte-d.md) aprueba el
 > [diseño por dominios](diseno-correctivo-corte-d.md).
-> [SDD-0174](../0174-audit-atomicidad-dominios/spec.md) está abierto y su
-> inventario D1 fue aprobado por
-> [REV-AUD-015](../../governance/reviews/aud-d1-access-config.md); diseño e
-> implementación D1 y D2–D5 permanecen pendientes. El inventario y diseño E0
+> [SDD-0174](../0174-audit-atomicidad-dominios/spec.md) está cerrado:
+> `0289`–`0293` fueron aplicadas individualmente por REV-AUD-042 y
+> `0294`–`0296` cerraron D2/D3/D4 en Producción por REV-AUD-046. El inventario y diseño E0
 > fueron aprobados por
-> [REV-AUD-016](../../governance/reviews/aud-corte-e.md); E1–E5 no están
-> abiertos.
+> [REV-AUD-016](../../governance/reviews/aud-corte-e.md). E1–E5 quedaron
+> cerrados en Producción mediante `0301`–`0304`; ningún lote E5 fue creado ni
+> ejecutado durante el cierre.
 
 ## 1. Propósito
 
@@ -486,8 +487,9 @@ revalidar que el número continuaba libre, C1 creó
 local, añadió RPCs admin-only y migró el viewer a consulta server-side
 redacted. [REV-AUD-013](../../governance/reviews/aud-corte-c1.md) registra
 PostgreSQL 15/17, 31 pruebas de aplicación, typecheck y revisión estática del
-viewer en verde. `0270` no fue aplicada en Cloud; la verificación visual
-autenticada y los Cortes D–E conservan gates separados.
+viewer en verde. REV-AUD-042 registra la aplicación y postcondiciones de
+`0270`; la verificación visual autenticada y el Corte E conservan gates
+separados.
 
 El 2026-07-29 se completó el inventario read-only D0. Se confirmaron ocho
 helpers TypeScript con 30 escrituras best-effort, cobertura obligatoria
@@ -508,3 +510,31 @@ repositorio ni Cloud. [REV-AUD-016](../../governance/reviews/aud-corte-e.md)
 aprueba el [diseño E1–E5](diseno-correctivo-corte-e.md) y mantiene el default
 sin purga ni exportación. Antes de implementar debe abrirse un SDD propio y E1
 debe registrar fuentes verificables; no se inventan plazos legales.
+
+[SDD-0186](../0186-audit-retention-foundation/spec.md) cerró E1 con un registro
+controlado y resultado `blocked-by-source`: no existe fundamento material para
+plazos de eventos, backups o holds. REV-AUD-041 confirma que E2–E5 permanecen
+sin implementación y que el default operativo continúa sin purga,
+exportación, bucket ni jobs.
+
+El 2026-07-31 la fuente E1 fue promovida y
+[SDD-0219](../0219-audit-legal-holds/spec.md) cerró E2 con holds append-only,
+liberación de dos decisiones y precedencia fail-closed.
+`0301_audit_legal_holds.sql` fue aplicada y verificada individualmente en
+Producción.
+
+[SDD-0220](../0220-audit-export-governed/spec.md) cerró E3: solicitud durable,
+segundo aprobador, RPC redacted, bucket privado, hash externo al objeto y URL de
+15 minutos. `0302_audit_export_governed.sql` fue aplicada y verificada
+individualmente en Producción.
+
+[SDD-0221](../0221-audit-export-expiry/spec.md) cerró E4 con claim idempotente,
+precedencia de hold, borrado exclusivo del objeto temporal y recibo append-only.
+`0303_audit_export_expiry.sql` fue aplicada y verificada individualmente en
+Producción.
+
+[SDD-0222](../0222-audit-retention-batches/spec.md) cerró E5 con dry-run,
+hash/conteo, segundo aprobador, revalidación de hold y DELETE exclusivamente
+por lote service-role. `fiscal` y `legacy_unknown` no son ejecutables.
+`0304_audit_retention_batches.sql` fue aplicada y verificada individualmente;
+ningún lote destructivo fue creado ni ejecutado durante la implementación.

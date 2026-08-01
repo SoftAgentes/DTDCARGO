@@ -22,8 +22,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useActionState } from "react";
 import { createBugAction } from "@/app/studio/(app)/mis-bugs/actions";
 import {
-  BUG_CATEGORY_LABELS,
-  BUG_SEVERITY_LABELS,
   type BugActionState,
   type BugCategory,
   type BugSeverity,
@@ -135,26 +133,31 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
   // sanitizados por bug-sanitizer. Captura al mount del modal. Si el user
   // abre modal y espera mucho antes de submit, el snapshot puede quedar
   // "viejo" — V2 podría re-snapshot on-submit. V1 acepta este trade-off.
-  const [browserInfo, setBrowserInfo] = useState<string>("{}");
-  const [environment, setEnvironment] = useState<string>("{}");
-  const [consoleLogs, setConsoleLogs] = useState<string>("[]");
-  const [networkRequests, setNetworkRequests] = useState<string>("[]");
-  const [currentUrl, setCurrentUrl] = useState<string>("");
-
-  useEffect(() => {
-    setCurrentUrl(window.location.href);
-    setBrowserInfo(
-      JSON.stringify({
+  const [captureSnapshot] = useState(() => {
+    if (typeof window === "undefined") {
+      return {
+        currentUrl: "",
+        browserInfo: "{}",
+        environment: "{}",
+        consoleLogs: "[]",
+        networkRequests: "[]",
+      };
+    }
+    const snapshot = getBugTechCapture().getSnapshot();
+    return {
+      currentUrl: window.location.href,
+      browserInfo: JSON.stringify({
         userAgent: navigator.userAgent,
         viewport: { w: window.innerWidth, h: window.innerHeight },
         pixelRatio: window.devicePixelRatio,
       }),
-    );
-    const snapshot = getBugTechCapture().getSnapshot();
-    setEnvironment(JSON.stringify(snapshot.environment));
-    setConsoleLogs(JSON.stringify(snapshot.console_logs));
-    setNetworkRequests(JSON.stringify(snapshot.network_requests));
-  }, []);
+      environment: JSON.stringify(snapshot.environment),
+      consoleLogs: JSON.stringify(snapshot.console_logs),
+      networkRequests: JSON.stringify(snapshot.network_requests),
+    };
+  });
+  const { browserInfo, environment, consoleLogs, networkRequests, currentUrl } =
+    captureSnapshot;
 
   return (
     <div

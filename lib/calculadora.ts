@@ -288,9 +288,37 @@ export const CIUDADES: Ciudad[] = [
   { id: "puerto-ordaz", label: "Puerto Ordaz",     km: 770, casco: false },
   { id: "punto-fijo",   label: "Punto Fijo",       km: 290, casco: false },
   { id: "coro",         label: "Coro",             km: 260, casco: false },
+  // Destinos con landing SEO en lib/geo-zonas.ts que faltaban acá (migración
+  // 0277). Acarigua queda bajo el threshold del casco (200 km) → su recargo
+  // por distancia calcula $0; sale de la fórmula, no de una excepción.
+  { id: "acarigua",     label: "Acarigua",         km: 175, casco: false },
+  { id: "valera",       label: "Valera",           km: 360, casco: false },
+  { id: "san-fernando", label: "San Fernando de Apure", km: 370, casco: false },
+  { id: "cumana",       label: "Cumaná",           km: 560, casco: false },
+  { id: "maturin",      label: "Maturín",          km: 650, casco: false },
   // Margarita (isla) — caso especial: mismo cálculo por km pero advertir
   // que cruza ferry. Edita el km si quieres que pague más por la travesía.
   { id: "margarita",    label: "Isla Margarita",   km: 540, casco: false },
+];
+
+/**
+ * Destinos que NO cotizan automático y derivan al asesor.
+ *
+ * Cumaná y San Fernando de Apure no tienen zona asignada en `VALENCIA_ZONAS`
+ * (lib/data/tarifas-terrestres-vzla.ts): entraron por su landing SEO y su km,
+ * pero ninguna tabla de proveedor confirmada les pone precio todavía. El primer
+ * tarifario que apareció (Benítez / R&M) cobra Cumaná al 8% contra el 5% del
+ * centro, así que el recargo por km las subestima.
+ *
+ * Decisión del founder (2026-07-29): mostrar "cotiza con un asesor" en vez de un
+ * número que no podemos honrar, hasta cerrar las reuniones con los 4-6
+ * proveedores de esta semana. Ver docs/operaciones/transporte-nacional/.
+ *
+ * TEMPORAL — al confirmar la tarifa, sacar el slug de acá y listo.
+ */
+export const CIUDADES_DERIVAN_A_ASESOR: readonly string[] = [
+  "cumana",
+  "san-fernando",
 ];
 
 // ────────────────────────────────────────────────────────────────────
@@ -367,7 +395,8 @@ export type EnvioCotizacion = {
       | "contenedor_excedido"
       | "peso_contenedor_excedido"
       | "peso_envio_excedido"
-      | "volumen_minimo_consolidado";
+      | "volumen_minimo_consolidado"
+      | "ciudad_sin_tarifa";
     mensaje: string;
   };
 
@@ -415,6 +444,22 @@ export function calcularEnvioLCL(
     return cotizacionVacia({
       tipo: "ciudad_invalida",
       mensaje: "Selecciona una ciudad válida de destino en Venezuela.",
+    }, input);
+  }
+
+  // 5.2b — Destino sin tarifa de proveedor confirmada → deriva al asesor en vez
+  // de dar un número que no podemos honrar (founder 2026-07-29). Va DESPUÉS de
+  // validar la ciudad porque el mensaje usa su label.
+  // Nota: la UI solo pinta la alerta con carga válida (`hasAlerta = !!cot.alerta
+  // && tieneCarga` en CalculadoraForm), así que el cliente ve el estado vacío
+  // hasta que llene CBM y peso — igual que las demás alertas. Chequear acá igual
+  // mantiene la función pura y testeable sin depender del orden de validaciones.
+  if (CIUDADES_DERIVAN_A_ASESOR.includes(ciudad.id)) {
+    return cotizacionVacia({
+      tipo: "ciudad_sin_tarifa",
+      mensaje:
+        `Para ${ciudad.label} cotizamos a medida: escríbele a un asesor y te ` +
+        `damos el precio exacto de tu envío.`,
     }, input);
   }
 
@@ -684,6 +729,44 @@ export function cbmFromDimensions(
   const cbmPorCaja = (altoCm * anchoCm * largoCm) / 1_000_000;
   return roundCBM(cbmPorCaja * cajas);
 }
+
+/**
+ * Unidades en las que un cliente puede traer sus medidas. El centímetro es la
+ * base del sistema —es como se miden las cajas y como las entrega la ficha del
+ * proveedor chino—; las otras dos existen porque la medida llega así de la
+ * fuente: metros en algunas fichas, y pulgadas cuando el proveedor factura
+ * para Estados Unidos.
+ */
+export type UnidadMedida = "cm" | "m" | "in";
+
+/** Cuánto mide 1 unidad en centímetros. La conversión SIEMPRE cae a cm. */
+export const CM_POR_UNIDAD: Record<UnidadMedida, number> = {
+  cm: 1,
+  m: 100,
+  in: 2.54,
+};
+
+/**
+ * CBM a partir de medidas en cualquiera de las unidades soportadas: convierte a
+ * centímetros y delega en `cbmFromDimensions`. La cuenta vive en un solo lugar,
+ * así que la FAQ y la calculadora no pueden dar números distintos por la misma
+ * caja.
+ *
+ * Ej: 60 × 40 × 50 cm · 0,6 × 0,4 × 0,5 m → los dos dan 0,12 CBM.
+ */
+export function cbmFromDimensionsEnUnidad(
+  alto: number,
+  ancho: number,
+  largo: number,
+  cajas: number,
+  unidad: UnidadMedida,
+): number {
+  const factor = CM_POR_UNIDAD[unidad];
+  return cbmFromDimensions(alto * factor, ancho * factor, largo * factor, cajas);
+}
+
+/** 1 m³ en pies cúbicos — para el importador que trabaja en medidas gringas. */
+export const FT3_POR_CBM = 35.3147;
 
 export function whatsappTextFromCotizacion(
   cot: EnvioCotizacion,

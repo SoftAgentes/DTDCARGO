@@ -112,11 +112,18 @@ export function WiringProvider({
   const close = useCallback(() => setActive(null), []);
 
   useEffect(() => {
-    try {
-      setBugFabVisible(window.sessionStorage.getItem(BUG_FAB_KEY) === "1");
-    } catch {
-      // sessionStorage bloqueado · queda oculto
-    }
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      try {
+        setBugFabVisible(window.sessionStorage.getItem(BUG_FAB_KEY) === "1");
+      } catch {
+        // sessionStorage bloqueado · queda oculto
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const toggleBugFab = useCallback(() => {

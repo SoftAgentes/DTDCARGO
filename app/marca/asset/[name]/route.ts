@@ -19,14 +19,12 @@ import { getUser } from "@/lib/auth/session";
 
 export const runtime = "nodejs";
 
-const ROOT = process.cwd();
-
-// Whitelist: nombre público → ruta relativa en private/marca/. Cerrada a propósito
+// Whitelist: nombre público → ruta relativa dentro de private/marca/. Cerrada a propósito
 // (evita path traversal: solo estos 3 archivos se pueden pedir).
 const ASSETS: Record<string, string> = {
-  "brand-book": "private/marca/brand-book-v4.6.html",
-  "wa-catalogo": "private/marca/herramientas/whatsapp-catalogo-plantillas.html",
-  "wa-guia": "private/marca/herramientas/whatsapp-business-guia.html",
+  "brand-book": "brand-book-v4.6.html",
+  "wa-catalogo": "herramientas/whatsapp-catalogo-plantillas.html",
+  "wa-guia": "herramientas/whatsapp-business-guia.html",
 };
 
 export async function GET(
@@ -42,7 +40,10 @@ export async function GET(
 
   let html: string;
   try {
-    html = await readFile(path.join(ROOT, rel), "utf8");
+    html = await readFile(
+      path.join(process.cwd(), "private", "marca", rel),
+      "utf8",
+    );
   } catch {
     return new Response("No encontrado.", { status: 404 });
   }

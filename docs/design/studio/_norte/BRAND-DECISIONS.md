@@ -400,7 +400,7 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 ### BD-036 · Noto Serif SC para documento formal en chino
 - **Fecha:** 2026-07-29
 - **Tipo:** Excepción tipográfica documental
-- **Estado:** Vigente; carga técnica pendiente de SDD-0175
+- **Estado:** Vigente; carga técnica V1 integrada por SDD-0175
 - **Autorizado por:** Sam (founder)
 - **Aplica a:** bloques `lang="zh-CN"` en cartas, contratos, transcripciones,
   correos formales y PDF dirigidos a clientes u oficina en China.
@@ -410,9 +410,9 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
   títulos de marca ni previews editoriales generales.
 - **Fallback:** Noto Sans SC. La estructura label/valor y el idioma deben
   conservar significado sin depender de que la webfont cargue.
-- **Límites:** esta decisión no carga la fuente, no modifica documentos vivos y
-  no autoriza otras serif. Implementación, email, PDF y verificación visual
-  permanecen como gates V1–V4 de SDD-0175.
+- **Límites:** V1 carga la fuente y separa tokens, pero no modifica documentos
+  vivos ni autoriza otras serif. Email, PDF y verificación visual permanecen
+  como gates V2–V4 de SDD-0175.
 - **Regla viva en:** `BRAND.md` §Tipografía · `docs/governance/policies/vis-02.md`
   · SDD-0175.
 
@@ -457,8 +457,8 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 | BD-033 | Glass en superficies flotantes del ERP (scrim frosteado + panel ⌘K) | Normativo (extiende BD-031) | Vigente — `--scrim-blur` + ⌘K glass |
 | BD-034 | Fondos ERP: degradados tonales `--grad-*` + marca de agua "D" | Normativo (extiende BD-030) | Vigente — sidebar/hero/KPI/página |
 | BD-035 | Tipografía ERP → Nunito Sans + Sora (realiza la migración de 2026-06-11) | Normativo | Vigente — fix congelamiento `--f-sans`/`--f-display` |
-| BD-036 | Noto Serif SC solo para documento formal `zh-CN` | Excepción tipográfica | Vigente — implementación pendiente de SDD-0175 |
+| BD-036 | Noto Serif SC solo para documento formal `zh-CN` | Excepción tipográfica | Vigente — V1 integrado; V2–V4 pendientes |
 
 ---
 
-*Mantené este archivo en orden cronológico de ID. Última actualización: 2026-07-29 · DTD-Cargo v4.6 (patch documental · **BD-036 Noto Serif SC solo para documento formal `zh-CN`**; Brand Book físico no regenerado).*
+*Mantén este archivo en orden cronológico de ID. Última actualización: 2026-07-30 · DTD-Cargo v4.6 (reconciliación documental · **BD-036 V1 integrado; V2–V4 pendientes**; Brand Book físico no regenerado).*

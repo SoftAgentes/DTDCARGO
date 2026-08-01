@@ -13,7 +13,7 @@
  * Diseño (Norte): docs/design/studio/_norte/erp/shell.jsx (Topbar)
  */
 
-import { useTransition, useEffect, useRef, useState } from "react";
+import { useTransition, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { Icon } from "../../_components/icons";
 import { Avatar } from "../../_components/ui/Avatar";
@@ -31,8 +31,12 @@ import {
   APPEARANCE_EVENT,
   applyTheme,
   readTheme,
-  type AppearanceDetail,
 } from "@/app/studio/_components/appearance-prefs";
+
+function subscribeTheme(onChange: () => void): () => void {
+  window.addEventListener(APPEARANCE_EVENT, onChange);
+  return () => window.removeEventListener(APPEARANCE_EVENT, onChange);
+}
 
 interface StudioTopbarProps {
   userEmail: string;
@@ -55,24 +59,12 @@ export function StudioTopbar({
   const locale = useLocale();
   const t = useT();
   const moduleLabel = pathToModuleLabel(pathname, locale);
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const theme = useSyncExternalStore(subscribeTheme, readTheme, () => "light");
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   // Modifier según OS: ⌘ en Mac, Ctrl en Windows/Linux (hook compartido).
   const modKey = useIsMac() ? "⌘" : "Ctrl";
   const userMenuRef = useRef<HTMLDivElement>(null);
-
-  // Hidratar theme desde localStorage + escuchar cambios de la sección
-  // Apariencia (admin) para no desincronizar el ícono sol/luna.
-  useEffect(() => {
-    setTheme(readTheme());
-    const onPrefs = (e: Event) => {
-      const detail = (e as CustomEvent<AppearanceDetail>).detail;
-      if (detail?.theme) setTheme(detail.theme);
-    };
-    window.addEventListener(APPEARANCE_EVENT, onPrefs);
-    return () => window.removeEventListener(APPEARANCE_EVENT, onPrefs);
-  }, []);
 
   // Atajo ⌘K / Ctrl+K
   useEffect(() => {
@@ -104,7 +96,6 @@ export function StudioTopbar({
 
   const toggleTheme = () => {
     const next = theme === "light" ? "dark" : "light";
-    setTheme(next);
     applyTheme(next);
   };
 
@@ -491,4 +482,3 @@ function MenuItem({ label, onClick }: { label: string; onClick: () => void }) {
     </button>
   );
 }
-

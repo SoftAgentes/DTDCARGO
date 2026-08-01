@@ -360,5 +360,8 @@ export async function latestOrderAcceptanceDocs(
   return parsed.map((d) => ({
     key: String((d as DocRef)?.key ?? ""),
     version: String((d as DocRef)?.version ?? ""),
+    // v3 (SDD-0191 Slice A). Vacío si la fila es de evidencia anterior a v3 —
+    // hoy no hay ninguna en prod, pero leer no debe romperse por eso.
+    body_sha256: String((d as DocRef)?.body_sha256 ?? ""),
   }));
 }

@@ -75,14 +75,15 @@ export function LedgerTab({
       if (da !== db) return da < db ? -1 : 1;
       return a.created_at < b.created_at ? -1 : 1;
     });
-    let runUsd = 0;
-    let runRmb = 0;
-    const withBalance = asc.map((e) => {
+    const withBalance = asc.reduce<
+      Array<{ entry: (typeof asc)[number]; runUsd: number; runRmb: number }>
+    >((result, e) => {
+      const previous = result.at(-1);
       const signUsd = e.direction === "haber" ? 1 : -1;
-      runUsd += signUsd * e.amount_usd;
-      runRmb += signUsd * e.amount_rmb;
-      return { entry: e, runUsd, runRmb };
-    });
+      const runUsd = (previous?.runUsd ?? 0) + signUsd * e.amount_usd;
+      const runRmb = (previous?.runRmb ?? 0) + signUsd * e.amount_rmb;
+      return [...result, { entry: e, runUsd, runRmb }];
+    }, []);
     return withBalance.reverse();
   }, [ledgerEntries]);
 

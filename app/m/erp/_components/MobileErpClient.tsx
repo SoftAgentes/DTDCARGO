@@ -995,16 +995,19 @@ function ClientsScreen({
   };
 
   // Posición efectiva: browser geo > HQ operativa fallback > null
-  const effectivePos: {
+  const effectivePos = useMemo<{
     lat: number;
     lng: number;
     source: "browser" | "hq";
-  } | null =
-    geo.status === "granted" && geo.lat != null && geo.lng != null
-      ? { lat: geo.lat, lng: geo.lng, source: "browser" }
-      : operatingLat != null && operatingLng != null
-        ? { lat: operatingLat, lng: operatingLng, source: "hq" }
-        : null;
+  } | null>(
+    () =>
+      geo.status === "granted" && geo.lat != null && geo.lng != null
+        ? { lat: geo.lat, lng: geo.lng, source: "browser" }
+        : operatingLat != null && operatingLng != null
+          ? { lat: operatingLat, lng: operatingLng, source: "hq" }
+          : null,
+    [geo.status, geo.lat, geo.lng, operatingLat, operatingLng],
+  );
 
   const enriched = useMemo<ClientWithDistance[]>(() => {
     if (mode !== "nearby" || !effectivePos) {

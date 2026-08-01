@@ -21,7 +21,6 @@ import {
 } from "../invoice-queries";
 import type { Invoice } from "../invoice-types";
 
-const TODAY = new Date().toISOString().slice(0, 10);
 const YEAR = new Date().getFullYear();
 const past = (() => {
   const d = new Date();

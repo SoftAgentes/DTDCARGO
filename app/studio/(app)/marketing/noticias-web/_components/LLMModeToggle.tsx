@@ -15,30 +15,31 @@
 
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useSyncExternalStore } from "react";
 import { SegmentedControl } from "@/app/studio/_components/ui/SegmentedControl";
 
 export type LLMMode = "auto" | "manual";
 
 const STORAGE_KEY = "dtd:noticias:mode";
+const STORAGE_EVENT = "dtd:noticias:mode-change";
+
+function readMode(): LLMMode {
+  const stored = window.localStorage.getItem(STORAGE_KEY);
+  return stored === "manual" ? "manual" : "auto";
+}
+
+function subscribeMode(onChange: () => void): () => void {
+  window.addEventListener(STORAGE_EVENT, onChange);
+  return () => window.removeEventListener(STORAGE_EVENT, onChange);
+}
 
 /** Hook que persiste el modo en localStorage. SSR-safe. */
 export function useLLMMode(): [LLMMode, (m: LLMMode) => void] {
-  const [mode, setModeState] = useState<LLMMode>("auto");
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored === "auto" || stored === "manual") {
-      setModeState(stored);
-    }
-  }, []);
+  const mode = useSyncExternalStore<LLMMode>(subscribeMode, readMode, () => "auto");
 
   const setMode = (m: LLMMode) => {
-    setModeState(m);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(STORAGE_KEY, m);
-    }
+    window.localStorage.setItem(STORAGE_KEY, m);
+    window.dispatchEvent(new Event(STORAGE_EVENT));
   };
 
   return [mode, setMode];
@@ -50,6 +51,10 @@ interface Props {
   disabled?: boolean;
 }
 
+/**
+ * @deprecated Usa `SegmentedControl` directamente en consumidores nuevos.
+ * El único consumidor existente migra mediante el plan CMP-01 v1.1.
+ */
 export function LLMModeToggle({ mode, onChange, disabled }: Props) {
   return (
     <div className="flex flex-col gap-1 items-end">

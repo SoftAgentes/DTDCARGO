@@ -14,7 +14,13 @@
  * tokens.css del Studio (regla CLAUDE.md raíz §tokens).
  */
 
-import { startTransition, useActionState, useEffect, useState } from "react";
+import {
+  startTransition,
+  useActionState,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import {
   LANG_COOKIE_NAME,
@@ -26,6 +32,7 @@ import type { SignInOperarioState } from "@/lib/studio/operario-types";
 
 const t = (lang: Lang, es: string, cn: string) => (lang === "cn" ? cn : es);
 const initialState: SignInOperarioState = {};
+const LANG_EVENT = "dtd-operario-lang";
 
 /** Lee la cookie de lang del client (no SSR). Fallback "es". */
 function readLangCookie(): Lang {
@@ -36,37 +43,43 @@ function readLangCookie(): Lang {
   return match?.[1] === "cn" ? "cn" : "es";
 }
 
+function subscribeLang(onChange: () => void): () => void {
+  window.addEventListener(LANG_EVENT, onChange);
+  return () => window.removeEventListener(LANG_EVENT, onChange);
+}
+
 export default function OperarioLoginPage() {
   const [state, formAction, isPending] = useActionState(
     signInOperarioAction,
     initialState,
   );
   const [pin, setPin] = useState("");
-  // Default "es" para que matchee el SSR (cookie no se lee desde client en SSR).
-  // useEffect al mount hidrata con la preferencia persistida.
-  const [lang, setLangState] = useState<Lang>("es");
+  const lang = useSyncExternalStore<Lang>(
+    subscribeLang,
+    readLangCookie,
+    () => "es",
+  );
   const [shake, setShake] = useState(false);
-
-  useEffect(() => {
-    setLangState(readLangCookie());
-  }, []);
+  const [handledState, setHandledState] = useState(state);
+  if (handledState !== state) {
+    setHandledState(state);
+    if (state.error && pin.length === 4) setShake(true);
+  }
 
   const setLang = (next: Lang) => {
-    setLangState(next);
     setOperarioLangClient(next);
+    window.dispatchEvent(new Event(LANG_EVENT));
   };
 
   // Cuando server retorna error, sacudir + limpiar PIN
   useEffect(() => {
-    if (state.error && pin.length === 4) {
-      setShake(true);
-      const timer = setTimeout(() => {
-        setShake(false);
-        setPin("");
-      }, 350);
-      return () => clearTimeout(timer);
-    }
-  }, [state.error, pin.length]);
+    if (!shake) return;
+    const timer = setTimeout(() => {
+      setShake(false);
+      setPin("");
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [shake]);
 
   const submitPin = (full: string) => {
     const fd = new FormData();

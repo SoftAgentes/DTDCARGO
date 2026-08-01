@@ -153,6 +153,14 @@
   --glass-key: rgba(255, 255, 255, 0.55);
   --glass-inset: rgba(255, 255, 255, 0.5);
   --bg-glow: radial-gradient(135% 100% at 50% -12%, #fbfaf7 0%, #f2f0ec 100%);
+  /* Vidrio para popovers que flotan sobre fondo MIXTO (papel Y navy a la vez):
+     el `--glass-bg` normal se apoya en que el fondo sea claro, y con su extremo
+     al 0.44 la tinta cae a 4.22:1 sobre navy — reprueba la regla 2 de BD-031
+     (AA contra el PEOR caso del fondo). Medido sobre los 3 fondos reales
+     (#FBFAF7 · #0F1E3D · #1F3055) con este par: tinta 12.4–16.5:1 y acento wine
+     7.9–10.5:1. Sigue siendo vidrio (blur + saturate + translúcido), solo que
+     legible flote donde flote. */
+  --glass-bg-strong: linear-gradient(160deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.86));
 }
 [data-portal-theme="dark"] {
   --glass-bg: linear-gradient(160deg, rgba(31, 48, 85, 0.55), rgba(15, 30, 61, 0.34));
@@ -163,6 +171,82 @@
   --glass-key: rgba(255, 255, 255, 0.1);
   --glass-inset: rgba(11, 20, 40, 0.32);
   --bg-glow: radial-gradient(135% 100% at 50% -12%, #1f3055 0%, #0f1e3d 42%, #0b1428 100%);
+  --glass-bg-strong: linear-gradient(160deg, rgba(31, 48, 85, 0.92), rgba(15, 30, 61, 0.86));
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   .glass-pop — panel de ayuda contextual sobre la Popover API (BD-031).
+
+   POR QUÉ ESTA CLASE EXISTE Y NO SE ARMA CON UTILIDADES: un popover cerrado
+   se oculta con el `display:none` que le pone el user-agent, y CUALQUIER clase
+   de display de autor le gana por especificidad. Un `flex` de Tailwind en el
+   panel lo dejaba visible para SIEMPRE: se veía apenas cargaba la página, la ×
+   cambiaba el estado interno pero no lo ocultaba, y Esc y el clic afuera
+   tampoco. Acá los dos estados se declaran juntos, en el mismo lugar, para que
+   no se puedan desincronizar otra vez.
+   ────────────────────────────────────────────────────────────────── */
+.glass-pop {
+  display: none;
+  /* El user-agent le pone `overflow:auto` a `[popover]`, y el caret sobresale
+     del box (bottom/top -7px) → aparecía una barra de scroll dentro del panel
+     y el caret quedaba recortado. El panel nunca desborda: su alto lo da el
+     contenido. */
+  overflow: visible;
+  opacity: 0;
+  transform: translateY(-4px) scale(0.98);
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease,
+    overlay 0.15s allow-discrete,
+    display 0.15s allow-discrete;
+}
+.glass-pop:popover-open {
+  display: flex;
+  opacity: 1;
+  transform: none;
+}
+/* Estado de partida de la animación de entrada (si no, aparece de golpe). */
+@starting-style {
+  .glass-pop:popover-open {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .glass-pop {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* El caret ancla el panel a su botón: sin él, el panel se lee como algo que
+   apareció suelto en la pantalla. `--caret-x` la calcula el componente (el
+   botón no siempre queda en el mismo punto del panel). */
+.glass-pop::after {
+  content: "";
+  position: absolute;
+  left: var(--caret-x, 24px);
+  width: 12px;
+  height: 12px;
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+  transform: rotate(45deg);
+}
+.glass-pop[data-lado="abajo"]::after {
+  top: -7px;
+  border-right: 0;
+  border-bottom: 0;
+}
+.glass-pop[data-lado="arriba"]::after {
+  bottom: -7px;
+  border-left: 0;
+  border-top: 0;
+}
+/* En teléfono es hoja inferior a todo el ancho: no hay a qué apuntar. */
+@media (max-width: 640px) {
+  .glass-pop::after {
+    display: none;
+  }
 }
 
 /* ──────────────────────────────────────────────────────────────────
@@ -667,6 +751,30 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
+   COLORES DE MARCA DE TERCEROS (redes sociales).
+
+   BRAND-EXCEPTION: no son colores de DTD y no salen de la paleta — autorizado
+   por el founder (2026-07-31) para que los iconos sociales tomen el color de su
+   red al interactuar. Viven acá como tokens, y NO como hex sueltos en el JSX,
+   para que se cambien en un solo lugar y para que quede explícito que son
+   prestados. Es el ÚNICO lugar del repo donde se permiten estos hex: no se
+   copian a un componente ni se usan para nada que no sea la marca de esa red.
+
+   Contraste medido sobre --color-ink #0F1E3D (fondo del pie de página), umbral
+   WCAG 1.4.11 para gráficos = 3:1 — Instagram 3.8 · YouTube 4.12 · TikTok
+   11.98 · WhatsApp 8.31. Los cuatro pasan.
+
+   El cian es el color de TikTok que se lee sobre navy; su negro corporativo
+   desaparecería contra el fondo del pie de página.
+   ────────────────────────────────────────────────────────────────── */
+:root {
+  --social-instagram: #e1306c;
+  --social-youtube: #ff0000;
+  --social-tiktok: #25f4ee;
+  --social-whatsapp: #25d366;
+}
+
+/* ──────────────────────────────────────────────────────────────────
    WhatsApp FAB — botón flotante 3D con breathe + dot + scroll attenuation
    Specs: mockup original del FAB (handoff inicial, fuera del repo; vigente = este CSS)
    ────────────────────────────────────────────────────────────────── */
@@ -708,13 +816,19 @@
   display: grid;
   place-items: center;
   color: var(--color-white);
-  /* sphere matte — gradiente radial marcado para efecto esfera (no glossy) */
+  /* sphere matte — gradiente radial marcado para efecto esfera (no glossy).
+     Los tres stops se oscurecieron un paso (2026-07-31): con el verde oficial
+     #25D366 en el centro, el glifo blanco medía 1.98:1 y el brillo #4DEC85 daba
+     1.54:1 — bajo el 3:1 que WCAG 1.4.11 pide para gráficos. El glifo está
+     centrado, así que lo que manda es el stop del 42%: ahora #1FA350 → 3.27:1.
+     El brillo claro queda arriba a la derecha, FUERA del glifo, así que la
+     esfera sigue leyéndose como el verde de WhatsApp. */
   background:
     radial-gradient(
       circle at 60% 35%,
-      #4dec85 0%,
-      #25d366 42%,
-      #15a04a 100%
+      #3fd977 0%,
+      #1fa350 42%,
+      #12803f 100%
     );
   box-shadow:
     0 6px 14px rgba(15, 30, 61, 0.18),
@@ -757,6 +871,16 @@
 .fab-wa:focus-visible {
   outline: 3px solid var(--color-ink);
   outline-offset: 3px;
+}
+
+/* Sombra bajo los glifos de las esferas: les da un borde propio contra el
+   relleno, que es lo que WCAG 1.4.11 valora en un gráfico. Sutil a propósito —
+   no es un contorno dibujado, solo despega el ícono del fondo. */
+.fab-wa svg,
+.fab-ig svg,
+.fab-yt svg,
+.fab-tt svg {
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.32));
 }
 
 .fab-wa-dot {
@@ -948,6 +1072,119 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
+   FABs YouTube y TikTok — mismo patrón que .fab-ig (founder 2026-07-31).
+
+   NACER DEL MISMO PUNTO: `.fab-ig` lleva `translate(5px, 7px)` porque colapsado
+   (scale 0, origen abajo-derecha) eso lo deja justo sobre la dot wine del
+   WhatsApp. YouTube y TikTok están 1 y 2 puestos más arriba, así que además hay
+   que BAJARLOS un paso completo por cada puesto o nacerían de su propio sitio en
+   vez de la dot. Un paso = alto del botón + gap.
+
+   DESPLIEGUE ORDENADO: el delay va en el estado expandido, no en la transición
+   base — así abren escalonados (el de más abajo primero, leyéndose como que la
+   pila crece) y cierran los tres de golpe, que es lo que uno espera al sacar el
+   mouse.
+   ────────────────────────────────────────────────────────────────── */
+
+.fab-yt,
+.fab-tt {
+  --fab-paso: 72px; /* 60px de botón + 12px de gap */
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--color-white);
+  transform-origin: 100% 100%;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 380ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 240ms ease-out,
+    box-shadow 240ms ease-out;
+}
+
+@media (min-width: 768px) {
+  .fab-yt,
+  .fab-tt {
+    --fab-paso: 76px; /* 64px de botón + 12px de gap */
+    width: 64px;
+    height: 64px;
+  }
+}
+
+/* El brillo va en #ff5a4e y no más claro: el glifo blanco encima mide 3.08:1
+   contra él y ahí ya pasa el umbral de gráficos. Con #ff6a60 caía a 2.81. */
+.fab-yt {
+  background: radial-gradient(
+    circle at 60% 35%,
+    #ff5a4e 0%,
+    var(--social-youtube) 45%,
+    #b00000 100%
+  );
+  box-shadow:
+    0 6px 14px rgba(15, 30, 61, 0.18),
+    0 18px 44px rgba(15, 30, 61, 0.28),
+    0 10px 28px rgba(255, 0, 0, 0.45);
+  transform: translate(5px, calc(7px + var(--fab-paso))) scale(0);
+}
+
+/* El negro es el color de TikTok; el cian queda para el glow, que es donde se
+   lee sin pelearse con el fondo claro de la página. */
+.fab-tt {
+  background: radial-gradient(circle at 60% 35%, #3a3a3a 0%, #121212 45%, #000 100%);
+  box-shadow:
+    0 6px 14px rgba(15, 30, 61, 0.18),
+    0 18px 44px rgba(15, 30, 61, 0.28),
+    0 10px 28px rgba(37, 244, 238, 0.4);
+  transform: translate(5px, calc(7px + 2 * var(--fab-paso))) scale(0);
+}
+
+.fab-stack[data-expanded="true"] .fab-yt,
+.fab-stack[data-expanded="true"] .fab-tt {
+  transform: translate(0, 0) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.fab-stack[data-expanded="true"] .fab-yt {
+  transition-delay: 45ms;
+}
+
+.fab-stack[data-expanded="true"] .fab-tt {
+  transition-delay: 90ms;
+}
+
+.fab-yt:hover {
+  transform: translate(0, 0) scale(1.06);
+  box-shadow:
+    0 8px 18px rgba(15, 30, 61, 0.22),
+    0 22px 52px rgba(15, 30, 61, 0.32),
+    0 14px 36px rgba(255, 0, 0, 0.6);
+}
+
+.fab-tt:hover {
+  transform: translate(0, 0) scale(1.06);
+  box-shadow:
+    0 8px 18px rgba(15, 30, 61, 0.22),
+    0 22px 52px rgba(15, 30, 61, 0.32),
+    0 14px 36px rgba(37, 244, 238, 0.55);
+}
+
+.fab-yt:active,
+.fab-tt:active {
+  transform: translate(0, 0) scale(0.96);
+  transition-duration: 80ms;
+}
+
+.fab-yt:focus-visible,
+.fab-tt:focus-visible {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 3px;
+}
+
+/* ──────────────────────────────────────────────────────────────────
    Reduced motion — respeta la preferencia del SO del usuario.
    Desactiva transiciones y micro-animaciones (drawer slide, hover lifts,
    sombras animadas) para usuarios con sensibilidad vestibular.
@@ -982,14 +1219,25 @@
   .fab-wa:active,
   .fab-ig,
   .fab-ig:hover,
-  .fab-ig:active {
+  .fab-ig:active,
+  .fab-yt,
+  .fab-yt:hover,
+  .fab-yt:active,
+  .fab-tt,
+  .fab-tt:hover,
+  .fab-tt:active {
     animation: none !important;
     transform: none !important;
   }
-  /* En reduced-motion, el IG aparece/desaparece instantáneamente vía opacity. */
-  .fab-stack[data-expanded="true"] .fab-ig {
+  /* En reduced-motion las redes aparecen/desaparecen instantáneamente vía
+     opacity, y sin escalonar: el stagger es justamente el movimiento que esta
+     preferencia pide no hacer. */
+  .fab-stack[data-expanded="true"] .fab-ig,
+  .fab-stack[data-expanded="true"] .fab-yt,
+  .fab-stack[data-expanded="true"] .fab-tt {
     opacity: 1;
     pointer-events: auto;
+    transition-delay: 0ms;
   }
 }
 

@@ -38,12 +38,14 @@ import {
   trackingPeriod,
 } from "@/lib/studio/naviera-tracking/tracking-quota";
 import { getTrackingUsage } from "@/lib/studio/naviera-tracking/snapshot-queries";
+import { authorizeConsolidationGoverned } from "@/lib/studio/naviera/queries";
 import {
   evaluateCapacity,
   normalizeContainerNo,
   validateBookingInput,
   validateConsolidationInput,
   validateConsolidationItemInput,
+  validateConsolidationAuthorizationInput,
   validateSailingInput,
   type BookingInput,
   type BookingStatus,
@@ -566,69 +568,62 @@ export async function closeConsolidation(
  * operario por push (best-effort). Solo transiciona desde 'solicitada'.
  */
 export async function authorizeConsolidation(
-  consolidationId: string,
-): Promise<Result> {
+  raw: {
+    consolidationId?: string;
+    from?: string;
+    reason?: string;
+    requestRef?: string;
+  },
+): Promise<Result & { replayed?: boolean; ref?: string }> {
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "naviera");
   if (denial) return { error: denial };
 
-  const tenantId = await resolveTenant(supabase);
-  if (!tenantId) return { error: "No se pudo resolver el tenant." };
+  const validation = validateConsolidationAuthorizationInput({
+    consolidation_id: raw.consolidationId,
+    from: raw.from,
+    reason: raw.reason,
+    request_ref: raw.requestRef,
+  });
+  if (!validation.ok) return { error: validation.error };
 
-  const { data: row, error: readErr } = await supabase
-    .from("consolidations")
-    .select("id, status, tenant_id, container_type, requested_by_operario_id")
-    .eq("id", consolidationId)
-    .maybeSingle<{
-      id: string;
-      status: string;
-      tenant_id: string;
-      container_type: string | null;
-      requested_by_operario_id: string | null;
-    }>();
-  if (readErr) return { error: `No se pudo leer la solicitud: ${readErr.message}` };
-  if (!row || row.tenant_id !== tenantId) {
-    return { error: "La solicitud no existe o no es accesible." };
+  try {
+    const result = await authorizeConsolidationGoverned(supabase, {
+      consolidationId: validation.input.consolidation_id,
+      reason: validation.input.reason,
+      requestRef: validation.input.request_ref,
+    });
+
+    if (result.requestedByOperarioId) {
+      await notifyConsolidationAuthorizedToOperario(
+        createAdminClient(),
+        result.requestedByOperarioId,
+        { ref: result.ref, containerType: result.containerType },
+      );
+    }
+
+    revalidate();
+    return {
+      ok: true,
+      replayed: result.outcome === "replayed",
+      ref: result.ref,
+    };
+  } catch (error) {
+    const code =
+      typeof error === "object" && error !== null && "code" in error
+        ? String((error as { code?: unknown }).code ?? "")
+        : "";
+    if (code === "42501") {
+      return { error: "No tienes permiso para autorizar esta consolidación." };
+    }
+    if (code === "40001") {
+      return { error: "La solicitud o su referencia cambiaron. Actualiza antes de reintentar." };
+    }
+    if (code === "P0002") return { error: "La solicitud ya no está disponible." };
+    return {
+      error: `No se pudo autorizar. Referencia: ${validation.input.request_ref}`,
+    };
   }
-  if (row.status !== "solicitada") {
-    return { error: "Esta solicitud ya no está pendiente." };
-  }
-
-  const { data: refData, error: refErr } = await supabase.rpc(
-    "next_consolidation_ref",
-    { p_tenant_id: tenantId },
-  );
-  if (refErr || !refData) {
-    return { error: "No se pudo generar la referencia del contenedor." };
-  }
-  const consolidationRef = String(refData);
-
-  const { data: userData } = await supabase.auth.getUser();
-  const userId = userData.user?.id ?? null;
-
-  const { error } = await supabase
-    .from("consolidations")
-    .update({
-      ref: consolidationRef,
-      status: "consolidando",
-      authorized_by: userId,
-      authorized_at: new Date().toISOString(),
-    })
-    .eq("id", consolidationId)
-    .eq("status", "solicitada");
-  if (error) return { error: `No se pudo autorizar: ${error.message}` };
-
-  // Aviso al operario que pidió (best-effort, no bloquea).
-  if (row.requested_by_operario_id) {
-    await notifyConsolidationAuthorizedToOperario(
-      createAdminClient(),
-      row.requested_by_operario_id,
-      { ref: consolidationRef, containerType: row.container_type },
-    );
-  }
-
-  revalidate();
-  return { ok: true };
 }
 
 /**

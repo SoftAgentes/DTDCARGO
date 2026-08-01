@@ -10,12 +10,16 @@
 
 Año canónico de fundación: **2015** — fundación e inauguración en Venezuela (decisión del
 founder, ratificada 2026-07-18; resuelve la contradicción 2010/2015 del 17-jul).
-Cronología completa (para evitar la confusión recurrente): **2008** orígenes comerciales con
-China (sustenta la EXPERIENCIA: "en el comercio con China desde 2008", no la edad de la
-empresa) · **2010** hito histórico — se formalizó la primera empresa de carga en China (nunca
-un claim de "empresa desde") · **2015** fundación en Venezuela = **EL año de fundación**.
-Narrativa pública: experiencia "+15 años" con China (desde 2008) · empresa "operando desde
-2015". El `foundingDate` del schema (`app/layout.tsx`) queda en **2015**.
+Cronología completa (para evitar la confusión recurrente; redacción del founder
+2026-07-20): **2008** empezamos a trabajar con China — sustenta la EXPERIENCIA ("en el comercio
+con China desde 2008"), no la edad de la empresa · **2010** abrimos nuestra **primera oficina en
+China** (hito de presencia propia en origen; nunca un claim de "empresa desde") · **2015**
+fundación e inauguración en Venezuela = **EL año de fundación**.
+Narrativa pública: experiencia con China desde 2008 · empresa "operando desde 2015". El total
+de años sólo se renderiza mediante `aniosComercioChina()`; nunca se escribe fijo. El
+`foundingDate` del schema (`app/layout.tsx`) queda en **2015**.
+Frase modelo: *"En el comercio con China desde 2008, con oficina propia en China desde 2010 y
+operando en Venezuela desde 2015."*
 
 **Propósito (por qué existimos)**
 Importar de China sigue siendo, para la mayoría, caro, lento y arriesgado. No tiene por qué
@@ -29,7 +33,7 @@ cliente, contenedor a contenedor.
 
 **Visión (a dónde vamos)**
 Ser el referente en logística entre China y Venezuela: la forma más confiable, económica y
-rápida de importar puerta a puerta. Con equipo propio en Yiwu y Valencia, +15 años de
+rápida de importar puerta a puerta. Con equipo propio en Yiwu y Valencia, trayectoria desde 2008,
 trayectoria y tecnología propia, hacemos que importar desde China sea simple, transparente y
 rentable.
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Governance Check"
+  short_description: "Verifica un cambio contra políticas aprobadas"
+  default_prompt: "Usa $governance-check para revisar este cambio contra la gobernanza aprobada."

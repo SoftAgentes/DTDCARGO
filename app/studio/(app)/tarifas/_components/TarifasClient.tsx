@@ -10,7 +10,7 @@
  */
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useEffectEvent, useState, useTransition } from "react";
 import {
   RATE_SERVICE_OPTIONS,
   formatRate,
@@ -49,21 +49,13 @@ export function TarifasClient({
   // Estado local de los filtros (controlled inputs + push a URL)
   const [q, setQ] = useState(params.get("q") ?? "");
   const [service, setService] = useState(params.get("service") ?? "");
-
-  // Sync cuando cambia params (back/forward del browser)
-  useEffect(() => {
+  const paramsKey = params.toString();
+  const [filtersKey, setFiltersKey] = useState(paramsKey);
+  if (filtersKey !== paramsKey) {
+    setFiltersKey(paramsKey);
     setQ(params.get("q") ?? "");
     setService(params.get("service") ?? "");
-  }, [params]);
-
-  // Debounce 350ms para el search
-  useEffect(() => {
-    const currentQ = params.get("q") ?? "";
-    if (q === currentQ) return;
-    const timer = setTimeout(() => pushFilters({ q, service }), 350);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
+  }
 
   const pushFilters = (next: { q?: string; service?: string }) => {
     const search = new URLSearchParams();
@@ -74,6 +66,12 @@ export function TarifasClient({
       router.push(qs ? `/studio/tarifas?${qs}` : "/studio/tarifas");
     });
   };
+  const pushFiltersEvent = useEffectEvent(pushFilters);
+  useEffect(() => {
+    if (q === (params.get("q") ?? "")) return;
+    const timer = setTimeout(() => pushFiltersEvent({ q, service }), 350);
+    return () => clearTimeout(timer);
+  }, [params, q, service]);
 
   // Cerrar drawer con Escape
   useEffect(() => {

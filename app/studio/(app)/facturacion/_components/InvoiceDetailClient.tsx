@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
@@ -67,6 +68,7 @@ export function InvoiceDetailClient({
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmVoid, setConfirmVoid] = useState(false);
+  const [voidPending, setVoidPending] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   // Gate legal AUT-04 (SDD-0054 · Slice B) — advisory. Cuando emitInvoice avisa
   // que el embarque DDP no tiene aceptación T&C vigente, guardamos el warning y
@@ -156,50 +158,19 @@ export function InvoiceDetailClient({
           </button>
         )}
 
-        {canVoid(invoice.status) &&
-          (confirmVoid ? (
-            <div style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-              <span
-                style={{
-                  font: "500 12px/1 var(--f-sans)",
-                  color: "var(--ink-soft)",
-                }}
-              >
-                ¿Anular?
-              </span>
-              <ActionButton
-                variant="danger"
-                size="sm"
-                idleLabel="Sí, anular"
-                loadingLabel="Anulando…"
-                successLabel={null}
-                onAction={async () => {
-                  setError(null);
-                  const r = await voidInvoice(invoice.id);
-                  if (r.error) return { error: r.error };
-                  toast.info(`Factura ${invoice.invoice_code} anulada`);
-                  return undefined;
-                }}
-                onError={setError}
-              />
-              <button
-                type="button"
-                className="studio-btn studio-btn-ghost studio-btn-sm"
-                onClick={() => setConfirmVoid(false)}
-              >
-                No
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="studio-btn studio-btn-ghost studio-btn-sm"
-              style={{ color: "var(--danger)" }}
-              onClick={() => setConfirmVoid(true)}
-            >
-              Anular
-            </button>
-          ))}
+        {canVoid(invoice.status) && (
+          <button
+            type="button"
+            className="studio-btn studio-btn-ghost studio-btn-sm"
+            style={{ color: "var(--danger)" }}
+            onClick={() => {
+              setError(null);
+              setConfirmVoid(true);
+            }}
+          >
+            Anular
+          </button>
+        )}
 
         <button
           type="button"
@@ -316,6 +287,39 @@ export function InvoiceDetailClient({
           onClose={() => setEditing(false)}
         />
       )}
+
+      <ConfirmDialog
+        open={confirmVoid}
+        danger
+        reason
+        reasonRequired
+        holdToConfirm
+        initialFocus="reason"
+        title="Anular factura"
+        message={`La factura ${invoice.invoice_code} quedará anulada en el historial. Indica el motivo.`}
+        confirmLabel="Anular factura"
+        holdLabel="Mantén presionado para anular"
+        holdAlternativeLabel="Entiendo que la factura quedará anulada y prefiero confirmar con un clic"
+        pending={voidPending}
+        error={error ?? undefined}
+        onCancel={() => {
+          if (!voidPending) setConfirmVoid(false);
+        }}
+        onConfirm={async (reason) => {
+          setVoidPending(true);
+          setError(null);
+          const result = await voidInvoice(invoice.id, reason);
+          if (result.error) {
+            setError(result.error);
+            setVoidPending(false);
+            return;
+          }
+          toast.info(`Factura ${invoice.invoice_code} anulada`);
+          setConfirmVoid(false);
+          setVoidPending(false);
+          router.refresh();
+        }}
+      />
 
       {showPayment && (
         <PaymentModal

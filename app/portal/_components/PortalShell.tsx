@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import type { PortalSailing } from "@/lib/portal/next-sailing-queries";
 import { PortalSidebar } from "./PortalSidebar";
@@ -22,6 +22,54 @@ import { PortalFooter } from "./PortalFooter";
  * `globals.css` leyendo `--portal-sb-now` (solo ≥1024px).
  */
 const COLLAPSE_KEY = "dtd-portal-sidebar-collapsed";
+const SUPPORT_SEEN_KEY = "dtd-portal-soporte-seen";
+const PORTAL_STORAGE_EVENT = "dtd-portal-storage";
+
+function readStorage(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function subscribeStorage(onStoreChange: () => void): () => void {
+  window.addEventListener("storage", onStoreChange);
+  window.addEventListener(PORTAL_STORAGE_EVENT, onStoreChange);
+  return () => {
+    window.removeEventListener("storage", onStoreChange);
+    window.removeEventListener(PORTAL_STORAGE_EVENT, onStoreChange);
+  };
+}
+
+function writeStorage(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+    window.dispatchEvent(new Event(PORTAL_STORAGE_EVENT));
+  } catch {
+    /* sin localStorage — la interfaz sigue siendo funcional */
+  }
+}
+
+function useStorageValue(key: string): string | null {
+  return useSyncExternalStore(
+    subscribeStorage,
+    () => readStorage(key),
+    () => null,
+  );
+}
+
+export function hasUnreadSupportReply(
+  lastReplyAt: string | null,
+  seenAt: string | null,
+  onSupportRoute: boolean,
+): boolean {
+  return (
+    !!lastReplyAt &&
+    !onSupportRoute &&
+    (!seenAt || new Date(lastReplyAt).getTime() > new Date(seenAt).getTime())
+  );
+}
 
 export function PortalShell({
   name,
@@ -47,70 +95,39 @@ export function PortalShell({
   sailingDaysToCutoff: number | null;
   children: ReactNode;
 }) {
-  const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
-
-  // Preferencia de barra colapsada (solo escritorio). Se lee tras montar para no
-  // desincronizar el HTML del servidor.
-  useEffect(() => {
-    try {
-      setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1");
-    } catch {
-      /* sin localStorage — la barra queda expandida */
-    }
-  }, []);
+  const path = pathname ?? "";
+  const collapsed = useStorageValue(COLLAPSE_KEY) === "1";
+  const [mobileState, setMobileState] = useState({ path, open: false });
+  const mobileOpen = mobileState.path === path && mobileState.open;
 
   const toggleCollapse = () =>
-    setCollapsed((c) => {
-      const next = !c;
-      try {
-        localStorage.setItem(COLLAPSE_KEY, next ? "1" : "0");
-      } catch {
-        /* sin localStorage — no se recuerda, no se rompe */
-      }
-      return next;
-    });
+    writeStorage(COLLAPSE_KEY, collapsed ? "0" : "1");
 
-  // El cajón se cierra al navegar y con Escape.
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
-
+  // El cajón se deriva de la ruta que lo abrió y también se cierra con Escape.
   useEffect(() => {
     if (!mobileOpen) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setMobileOpen(false);
+      if (e.key === "Escape") setMobileState({ path, open: false });
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [mobileOpen]);
+  }, [mobileOpen, path]);
 
   // Punto de "Soporte" (SDD-0148 #4): al entrar a /portal/soporte marcamos
   // "visto" en localStorage; en el resto de las rutas comparamos ese visto con
   // el último mensaje del equipo. Misma lógica que tenía el nav anterior.
-  const path = pathname ?? "";
   const onSoporte = path.startsWith("/portal/soporte");
-  const [seenAt, setSeenAt] = useState<string | null>(null);
+  const seenAt = useStorageValue(SUPPORT_SEEN_KEY);
   useEffect(() => {
-    try {
-      if (onSoporte) {
-        const now = new Date().toISOString();
-        localStorage.setItem("dtd-portal-soporte-seen", now);
-        setSeenAt(now);
-      } else {
-        setSeenAt(localStorage.getItem("dtd-portal-soporte-seen"));
-      }
-    } catch {
-      /* sin localStorage — sin punto, sin ruido */
-    }
+    if (onSoporte) writeStorage(SUPPORT_SEEN_KEY, new Date().toISOString());
   }, [onSoporte]);
 
-  const soporteDot =
-    !!soporteLastReplyAt &&
-    !onSoporte &&
-    (!seenAt ||
-      new Date(soporteLastReplyAt).getTime() > new Date(seenAt).getTime());
+  const soporteDot = hasUnreadSupportReply(
+    soporteLastReplyAt,
+    seenAt,
+    onSoporte,
+  );
 
   return (
     <>
@@ -119,7 +136,7 @@ export function PortalShell({
         collapsed={collapsed}
         onToggleCollapse={toggleCollapse}
         mobileOpen={mobileOpen}
-        onCloseMobile={() => setMobileOpen(false)}
+        onCloseMobile={() => setMobileState({ path, open: false })}
         showClub={showClub}
         soporteDot={soporteDot}
         profileComplete={profileComplete}
@@ -144,7 +161,7 @@ export function PortalShell({
           sailing={sailing}
           sailingDaysToCutoff={sailingDaysToCutoff}
           soporteDot={soporteDot}
-          onOpenMenu={() => setMobileOpen(true)}
+          onOpenMenu={() => setMobileState({ path, open: true })}
         />
 
         <main className="wrap w-full flex-1 py-8 lg:py-12">{children}</main>

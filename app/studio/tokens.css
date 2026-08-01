@@ -164,6 +164,7 @@
   --dur-fast: 120ms;
   --dur: 180ms;
   --dur-slow: 260ms;
+  --dur-hold: 1500ms;
 
   /* ── Glass (BD-031) · superficies ELEVADAS/FLOTANTES SOLAMENTE ─────
      Vidrio esmerilado para overlays/popovers/paneles flotantes sobre navy o

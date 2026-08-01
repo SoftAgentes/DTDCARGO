@@ -1,0 +1,21 @@
+{
+  "name": "erp-studio-governance",
+  "version": "0.1.2",
+  "description": "Validación read-only de políticas y adopción de gobernanza del ERP Studio.",
+  "author": {
+    "name": "DTD Cargo"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "ERP Studio Governance",
+    "shortDescription": "Revisa cambios contra políticas aprobadas.",
+    "longDescription": "Consulta la gobernanza versionada del repositorio y clasifica evidencia sin modificar producto, Cloud ni fuentes normativas.",
+    "developerName": "DTD Cargo",
+    "category": "Productivity",
+    "capabilities": ["Read-only"],
+    "defaultPrompt": [
+      "Revisa este cambio contra la gobernanza aprobada.",
+      "Audita esta superficie y clasifica su adopción."
+    ]
+  }
+}

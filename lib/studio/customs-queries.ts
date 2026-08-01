@@ -403,6 +403,32 @@ export async function computeTaxBreakdownYtd(
   };
 }
 
+/** Ejecuta la liberación R3 gobernada de SDD-0228. */
+export async function clearCustomsFilingGoverned(
+  supabase: SupabaseClient,
+  input: {
+    filingId: string;
+    effectiveDate: string;
+    reason: string;
+    requestRef: string;
+  },
+): Promise<"transitioned" | "replayed"> {
+  const { data, error } = await supabase.rpc(
+    "clear_customs_filing_governed",
+    {
+      p_filing_id: input.filingId,
+      p_effective_date: input.effectiveDate,
+      p_reason: input.reason,
+      p_request_ref: input.requestRef,
+    },
+  );
+  if (error) throw error;
+  if (data !== "transitioned" && data !== "replayed") {
+    throw new Error("Respuesta inválida de la liberación gobernada.");
+  }
+  return data;
+}
+
 // ─────────────────────────────────────────────────────────────
 // parseFiltersFromSearchParams
 // ─────────────────────────────────────────────────────────────

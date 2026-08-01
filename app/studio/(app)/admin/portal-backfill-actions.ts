@@ -18,6 +18,10 @@ import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
+  beginD5ExternalEffect,
+  finishD5ExternalEffect,
+} from "@/lib/studio/audit/external-effect-adapter";
+import {
   sendPortalInviteEmail,
   generatePortalAccessLink,
 } from "@/lib/studio/portal-invite-email";
@@ -142,10 +146,30 @@ export async function portalWhatsAppInviteAction(
     };
   }
 
+  let operationId: string;
+  try {
+    operationId = await beginD5ExternalEffect(
+      supabase,
+      "portal.whatsapp_link",
+      clientId,
+    );
+  } catch {
+    return { ok: false, error: "No se pudo registrar la intención del enlace." };
+  }
+
   const admin = createAdminClient();
   const link = await generatePortalAccessLink(admin, email);
   if (!link) {
+    await finishD5ExternalEffect(supabase, operationId, {
+      ok: false,
+      errorCode: "auth_link_failed",
+    }).catch(() => undefined);
     return { ok: false, error: "No se pudo generar el enlace. Intenta de nuevo." };
+  }
+  try {
+    await finishD5ExternalEffect(supabase, operationId, { ok: true });
+  } catch {
+    return { ok: false, error: "El enlace se generó, pero falta reconciliarlo." };
   }
 
   // Contador anti-spam del canal WhatsApp (best-effort).
@@ -250,8 +274,30 @@ export async function bulkWhatsAppInviteAction(
       continue;
     }
 
+    let operationId: string;
+    try {
+      operationId = await beginD5ExternalEffect(
+        supabase,
+        "portal.bulk_whatsapp_link",
+        clientId,
+      );
+    } catch {
+      skipped++;
+      continue;
+    }
+
     const link = await generatePortalAccessLink(admin, email);
     if (!link) {
+      await finishD5ExternalEffect(supabase, operationId, {
+        ok: false,
+        errorCode: "auth_link_failed",
+      }).catch(() => undefined);
+      skipped++;
+      continue;
+    }
+    try {
+      await finishD5ExternalEffect(supabase, operationId, { ok: true });
+    } catch {
       skipped++;
       continue;
     }
@@ -325,11 +371,31 @@ export async function bulkInvitePortalAction(
       .select("name")
       .eq("id", clientId)
       .maybeSingle<{ name: string }>();
+    let operationId: string;
+    try {
+      operationId = await beginD5ExternalEffect(
+        supabase,
+        "portal.email_invite",
+        clientId,
+      );
+    } catch {
+      failed++;
+      reasons.push("auditoría no disponible");
+      continue;
+    }
+
     const sent = await sendPortalInviteEmail(admin, tenantId, {
       email,
       name: c?.name ?? null,
     });
     if (sent.ok) {
+      try {
+        await finishD5ExternalEffect(supabase, operationId, { ok: true });
+      } catch {
+        emailFailed++;
+        reasons.push("correo enviado, reconciliación pendiente");
+        continue;
+      }
       invited++;
       // Contador anti-spam (best-effort: {error} se ignora, no tira).
       await supabase.rpc("portal_bump_invite_count", {
@@ -337,6 +403,10 @@ export async function bulkInvitePortalAction(
         p_channel: "email",
       });
     } else {
+      await finishD5ExternalEffect(supabase, operationId, {
+        ok: false,
+        errorCode: "email_send_failed",
+      }).catch(() => undefined);
       emailFailed++;
       reasons.push("correo no salió");
     }
@@ -422,17 +492,41 @@ export async function bulkResendPortalInviteAction(
       reasons.push("sin correo");
       continue;
     }
+    let operationId: string;
+    try {
+      operationId = await beginD5ExternalEffect(
+        supabase,
+        "portal.email_resend",
+        row.client_id,
+      );
+    } catch {
+      emailFailed++;
+      reasons.push("auditoría no disponible");
+      continue;
+    }
+
     const sent = await sendPortalInviteEmail(admin, tenantId, {
       email,
       name: nameById.get(String(row.client_id)) ?? null,
     });
     if (sent.ok) {
+      try {
+        await finishD5ExternalEffect(supabase, operationId, { ok: true });
+      } catch {
+        emailFailed++;
+        reasons.push("correo enviado, reconciliación pendiente");
+        continue;
+      }
       invited++;
       await supabase.rpc("portal_bump_invite_count", {
         p_client_id: row.client_id,
         p_channel: "email",
       });
     } else {
+      await finishD5ExternalEffect(supabase, operationId, {
+        ok: false,
+        errorCode: "email_send_failed",
+      }).catch(() => undefined);
       emailFailed++;
       reasons.push("correo no salió");
     }

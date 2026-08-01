@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
   ArrowIcon,
@@ -12,14 +12,50 @@ import {
   WarningIcon,
 } from "@/components/Icon";
 import {
+  isValidEmail,
   normalizeDocument,
   type ClientKind,
   type RegisterActionState,
+  type RegisterFieldKey,
 } from "@/lib/portal/register-types";
 import { trackLead } from "@/components/Analytics";
 import { registerClientAction } from "./actions";
 
 const initial: RegisterActionState = {};
+
+// ── Mapas de campo → dónde vive y cómo se llama para la persona ──
+// Los tres se usan sólo para el resumen de errores de Confirmar (ERR-01): sin
+// esto el mensaje del servidor se pinta en un paso que no está en pantalla.
+
+/** En qué paso del wizard se edita cada campo. */
+const FIELD_STEP: Record<RegisterFieldKey, number> = {
+  name: 0,
+  company: 0,
+  document: 0,
+  email: 0,
+  whatsapp: 1,
+  officePhone: 1,
+};
+
+/** Cómo lo llama la persona, no cómo lo llama la tabla. */
+const FIELD_LABEL: Record<RegisterFieldKey, string> = {
+  name: "Nombre",
+  company: "Empresa",
+  document: "Cédula o RIF",
+  email: "Correo",
+  whatsapp: "WhatsApp",
+  officePhone: "Teléfono de oficina",
+};
+
+/** `id` del input, para devolverle el foco al volver al paso. */
+const FIELD_DOM_ID: Record<RegisterFieldKey, string> = {
+  name: "reg-name",
+  company: "reg-company",
+  document: "reg-document",
+  email: "reg-email",
+  whatsapp: "reg-whatsapp",
+  officePhone: "reg-office-phone",
+};
 
 type FormData0 = {
   kind: ClientKind;
@@ -72,6 +108,11 @@ export function RegisterForm({
   const [state, action, pending] = useActionState(registerClientAction, initial);
   const [data, setData] = useState<FormData0>(EMPTY);
   const [step, setStep] = useState(0); // 0..3 (paso 5 = éxito, vía state.markbox)
+  // Campo a enfocar tras saltar de paso desde el resumen de errores. Va en un
+  // ref (no en estado) para que consumirlo no dispare otro render; el tick es
+  // lo que despierta al efecto, incluso si el paso destino es el mismo.
+  const focusPendiente = useRef<RegisterFieldKey | null>(null);
+  const [focusTick, setFocusTick] = useState(0);
   const [tried, setTried] = useState(false);
 
   const done = !!state.markbox;
@@ -117,10 +158,16 @@ export function RegisterForm({
   const alreadyExists = !!docNorm && existsDoc === docNorm;
 
   // Validez por campo (para los errores inline) y validez total (submit final).
+  // FRM-01: el formato se valida al intentar avanzar (`tried`), no mientras la
+  // persona escribe por primera vez.
+  const emailTrim = data.email.trim();
   const errName = tried && !data.name.trim();
   const errCompany = tried && isCompany && !data.company.trim();
   const errDoc = tried && (!data.document.trim() || !docNorm);
-  const errEmail = tried && !data.email.trim();
+  const errEmail = tried && !emailTrim;
+  // Vacío y mal escrito son errores DISTINTOS: "Campo obligatorio" no le sirve
+  // de nada a quien ya escribió algo.
+  const errEmailFormato = tried && !!emailTrim && !isValidEmail(emailTrim);
   const errPhone = tried && !data.whatsapp.trim();
 
   const step0Valid =
@@ -128,7 +175,7 @@ export function RegisterForm({
     (!isCompany || !!data.company.trim()) &&
     !!docNorm &&
     !alreadyExists &&
-    !!data.email.trim();
+    isValidEmail(data.email);
   const step1Valid = !!data.whatsapp.trim();
   const valid = step0Valid && step1Valid;
 
@@ -139,6 +186,38 @@ export function RegisterForm({
     { t: "Confirmar", d: "Revisa tus datos" },
     { t: "¡Listo!", d: "Tu Shipping Mark" },
   ];
+
+  // ── Resumen de errores del servidor (ERR-01 nivel formulario) ──
+  // El servidor responde con `fieldErrors`, pero esos campos viven en los pasos
+  // 1 y 2 y quien aprieta "Crear cuenta" está en el 4: el mensaje se pintaba
+  // donde nadie lo veía. Acá se listan en Confirmar, con el nombre del campo y
+  // un botón que devuelve al paso y enfoca el input.
+  const erroresServidor = (
+    Object.entries(state.fieldErrors ?? {}) as [RegisterFieldKey, string][]
+  ).filter(([, msg]) => !!msg);
+
+  function corregirCampo(campo: RegisterFieldKey) {
+    focusPendiente.current = campo;
+    setStep(FIELD_STEP[campo]);
+    setTried(true);
+    setFocusTick((t) => t + 1);
+  }
+
+  // El foco se pide después de que el paso nuevo ya se pintó (FRM-01: "el
+  // primer error bloqueante recibe foco"; A11Y-01 §9).
+  useEffect(() => {
+    const campo = focusPendiente.current;
+    if (!campo) return;
+    focusPendiente.current = null;
+    const el = document.getElementById(FIELD_DOM_ID[campo]);
+    el?.focus({ preventScroll: true });
+    // `scrollIntoView` no existe en jsdom ni en algunos webviews viejos, y si
+    // revienta acá se lleva el efecto por delante. El foco ya se dio, que es lo
+    // que manda la política; el scroll es cortesía. A11Y-01 §7: sin animación
+    // si la persona pidió movimiento reducido.
+    const suave = !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    el?.scrollIntoView?.({ block: "center", behavior: suave ? "smooth" : "auto" });
+  }, [focusTick]);
   // Índice activo del rail: paso actual, o el 5º (éxito) cuando ya hay MARKBOX.
   const railActive = done ? 4 : step;
 
@@ -317,6 +396,7 @@ export function RegisterForm({
                       errCompany={errCompany}
                       errDoc={errDoc}
                       errEmail={errEmail}
+                      errEmailFormato={errEmailFormato}
                       docFieldError={state.fieldErrors?.document}
                       emailFieldError={state.fieldErrors?.email}
                       alreadyExists={alreadyExists}
@@ -337,7 +417,14 @@ export function RegisterForm({
                     <StepPreferencias data={data} patch={patch} />
                   )}
                   {step === 3 && (
-                    <StepConfirmar data={data} docNorm={docNorm} isCompany={isCompany} error={state.error} />
+                    <StepConfirmar
+                      data={data}
+                      docNorm={docNorm}
+                      isCompany={isCompany}
+                      error={state.error}
+                      fieldErrors={erroresServidor}
+                      onFix={corregirCampo}
+                    />
                   )}
                 </div>
 
@@ -407,6 +494,7 @@ function StepIdentidad({
   errCompany,
   errDoc,
   errEmail,
+  errEmailFormato,
   docFieldError,
   emailFieldError,
   alreadyExists,
@@ -418,6 +506,8 @@ function StepIdentidad({
   errCompany: boolean;
   errDoc: boolean;
   errEmail: boolean;
+  /** Escribió algo pero no tiene forma de correo (distinto de vacío). */
+  errEmailFormato: boolean;
   docFieldError?: string;
   emailFieldError?: string;
   alreadyExists: boolean;
@@ -449,18 +539,22 @@ function StepIdentidad({
       </div>
 
       <Field
+        id={FIELD_DOM_ID.name}
         label={isCompany ? "Nombre de contacto" : "Nombre completo"}
         value={data.name}
         onChange={(v) => patch({ name: v })}
         placeholder="Carlos Pérez"
+        autoComplete="name"
         error={errName ? "Campo obligatorio" : undefined}
       />
       {isCompany && (
         <Field
+          id={FIELD_DOM_ID.company}
           label="Razón social"
           value={data.company}
           onChange={(v) => patch({ company: v })}
           placeholder="Importadora Pérez C.A."
+          autoComplete="organization"
           error={errCompany ? "Campo obligatorio" : undefined}
         />
       )}
@@ -468,6 +562,7 @@ function StepIdentidad({
       {isCompany ? (
         <Field
           key="rif"
+          id={FIELD_DOM_ID.document}
           label="RIF"
           value={data.document}
           onChange={(v) => patch({ document: v })}
@@ -479,6 +574,7 @@ function StepIdentidad({
       ) : (
         <CedulaInput
           key="cedula"
+          id={FIELD_DOM_ID.document}
           value={data.document}
           onChange={(v) => patch({ document: v })}
           hint="Lo usamos para identificarte y evitar cuentas duplicadas."
@@ -492,13 +588,23 @@ function StepIdentidad({
       {alreadyExists && <DupRecover isCompany={isCompany} />}
 
       <Field
+        id={FIELD_DOM_ID.email}
         label="Email"
         type="email"
+        inputMode="email"
+        autoComplete="email"
         value={data.email}
         onChange={(v) => patch({ email: v })}
         placeholder="cperez@empresa.com"
         hint="Sin contraseñas: te enviamos un enlace de acceso al portal a tu correo."
-        error={emailFieldError ?? (errEmail ? "Campo obligatorio" : undefined)}
+        error={
+          emailFieldError ??
+          (errEmail
+            ? "Campo obligatorio"
+            : errEmailFormato
+              ? "Ese correo no parece válido. Revisa que tenga @ y el dominio, como cperez@empresa.com."
+              : undefined)
+        }
       />
     </div>
   );
@@ -541,6 +647,7 @@ function StepContacto({
         }
       />
       <PhoneInput
+        id={FIELD_DOM_ID.whatsapp}
         label="Teléfono WhatsApp"
         onChange={onWhatsapp}
         placeholder="412 1668021"
@@ -548,6 +655,7 @@ function StepContacto({
         error={phoneFieldError ?? (errPhone ? "Campo obligatorio" : undefined)}
       />
       <PhoneInput
+        id={FIELD_DOM_ID.officePhone}
         label="Teléfono de oficina (opcional)"
         onChange={onOffice}
         placeholder="241 4147886"
@@ -615,11 +723,17 @@ function StepConfirmar({
   docNorm,
   isCompany,
   error,
+  fieldErrors,
+  onFix,
 }: {
   data: FormData0;
   docNorm: string | null;
   isCompany: boolean;
   error?: string;
+  /** Errores de campo que devolvió el servidor, con su clave. */
+  fieldErrors: [RegisterFieldKey, string][];
+  /** Vuelve al paso donde vive el campo y le da el foco. */
+  onFix: (campo: RegisterFieldKey) => void;
 }) {
   const rows: { k: string; v: string; mono?: boolean }[] = [
     { k: isCompany ? "RIF" : "Cédula", v: docNorm ?? "—", mono: true },
@@ -682,7 +796,57 @@ function StepConfirmar({
         </span>
       </div>
 
-      {error && <p className="text-[13.5px] text-wine leading-[1.45]">{error}</p>}
+      {/* ERR-01 nivel formulario: resumen en cabecera + camino de vuelta al
+          campo. Antes esto se pintaba en el paso 1, que desde acá no se ve. */}
+      {fieldErrors.length > 0 && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="rounded-[12px] border px-4 py-3.5"
+          style={{
+            borderColor: "var(--color-wine)",
+            background: "color-mix(in srgb, var(--color-wine) 7%, transparent)",
+          }}
+        >
+          <div className="flex items-start gap-2.5">
+            <span className="mt-0.5 flex-shrink-0 text-wine">
+              <WarningIcon size={16} />
+            </span>
+            <div className="flex-1">
+              <p className="text-[13.5px] font-bold text-ink leading-[1.4]">
+                {fieldErrors.length === 1
+                  ? "Falta corregir un dato antes de crear tu cuenta."
+                  : `Faltan corregir ${fieldErrors.length} datos antes de crear tu cuenta.`}
+              </p>
+              <p className="mt-0.5 text-[12px] text-grey-700 leading-[1.45]">
+                No perdiste nada de lo que escribiste.
+              </p>
+              <ul className="mt-2.5 flex flex-col gap-1.5">
+                {fieldErrors.map(([campo, msg]) => (
+                  <li key={campo} className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <span className="text-[13px] text-ink">
+                      <strong>{FIELD_LABEL[campo]}:</strong> {msg}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => onFix(campo)}
+                      className="text-[12.5px] font-bold text-wine underline underline-offset-2 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wine"
+                    >
+                      Corregir
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <p role="alert" className="text-[13.5px] text-wine leading-[1.45]">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -727,10 +891,11 @@ function StepDone({
   email: string;
   warning?: string;
 }) {
-  const [shown, setShown] = useState(false);
-  useEffect(() => {
-    setShown(true);
-  }, []);
+  const shown = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  );
 
   return (
     <div className="flex flex-col items-center text-center gap-5">
@@ -968,6 +1133,7 @@ function GuideStep({
 
 // ── Primitivas de form ──────────────────────────────────────────
 function Field({
+  id,
   label,
   value,
   onChange,
@@ -976,7 +1142,10 @@ function Field({
   mono = false,
   hint,
   error,
+  inputMode,
+  autoComplete,
 }: {
+  id?: string;
   label: string;
   value: string;
   onChange: (v: string) => void;
@@ -985,22 +1154,41 @@ function Field({
   mono?: boolean;
   hint?: string;
   error?: string;
+  inputMode?: "text" | "email" | "tel" | "numeric";
+  autoComplete?: string;
 }) {
+  // ERR-01: el mensaje va debajo del campo Y atado por `aria-describedby`, para
+  // que el lector de pantalla lo lea junto al input y no como texto suelto.
+  const errId = id ? `${id}-error` : undefined;
+  const hintId = id ? `${id}-hint` : undefined;
   return (
     <label className="flex flex-col gap-1.5">
       <span className="text-[11.5px] font-semibold tracking-[0.1em] uppercase text-grey-500">
         {label}
       </span>
       <input
+        id={id}
         type={type}
+        inputMode={inputMode}
+        autoComplete={autoComplete}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errId : hint ? hintId : undefined}
         className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
         style={mono ? { fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" } : undefined}
       />
-      {hint && !error && <span className="text-[11.5px] text-grey-500 leading-[1.4]">{hint}</span>}
-      {error && <span className="text-[12px] text-wine leading-[1.4]">{error}</span>}
+      {hint && !error && (
+        <span id={hintId} className="text-[11.5px] text-grey-500 leading-[1.4]">
+          {hint}
+        </span>
+      )}
+      {error && (
+        <span id={errId} className="text-[12px] text-wine leading-[1.4]">
+          {error}
+        </span>
+      )}
     </label>
   );
 }
@@ -1009,11 +1197,14 @@ const SELECT_ARROW =
   "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%237F0F1A' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>\")";
 
 function CedulaInput({
+  id,
   value,
   onChange,
   hint,
   error,
 }: {
+  /** Va en el input del número: es el que recibe el foco desde el resumen. */
+  id?: string;
   value: string;
   onChange: (v: string) => void;
   hint?: string;
@@ -1070,10 +1261,12 @@ function CedulaInput({
           <option value="P">P</option>
         </select>
         <input
+          id={id}
           value={digits}
           onChange={(e) => onDigits(e.target.value)}
           inputMode={letter === "P" ? "text" : "numeric"}
           placeholder={letter === "P" ? "A1234567" : "18456321"}
+          aria-invalid={error ? true : undefined}
           className="flex-1 min-w-0 px-3.5 bg-transparent border-0 outline-none text-[14.5px] text-ink"
           style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
         />
@@ -1104,12 +1297,15 @@ const COUNTRY_CODES: { c: string; dial: string }[] = [
 ];
 
 function PhoneInput({
+  id,
   label,
   onChange,
   placeholder,
   hint,
   error,
 }: {
+  /** Va en el input del número: es el que recibe el foco desde el resumen. */
+  id?: string;
   label: string;
   onChange: (v: string) => void;
   placeholder?: string;
@@ -1174,10 +1370,12 @@ function PhoneInput({
           ))}
         </select>
         <input
+          id={id}
           value={digits}
           onChange={(e) => onDigits(e.target.value)}
           inputMode="tel"
           placeholder={placeholder}
+          aria-invalid={error ? true : undefined}
           className="flex-1 min-w-0 px-3.5 bg-transparent border-0 outline-none text-[14.5px] text-ink"
           style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
         />

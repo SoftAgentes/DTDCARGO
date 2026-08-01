@@ -4,8 +4,10 @@
 > de sesiones previas (`HANDOFF` v1.x, `PROMPT-proxima-sesion`, `PROMPT-CLAUDE-CODE`,
 > `design_handoff_dtd_cargo/README`), que se consolidaron acá en **v2.4 (2026-06-01)**.
 >
-> **Leé en este orden:** `CLAUDE.md` (guardrails de marca · reglas absolutas) →
-> este archivo (estado + arquitectura) → `CHANGELOG.md` (bitácora detallada,
+> **Lee en este orden:** `CLAUDE.md` (guardrails de marca · reglas absolutas) →
+> [`docs/governance/AGENT-BRIEF.md`](../../../governance/AGENT-BRIEF.md)
+> (comportamiento y componentes) → este archivo (estado + arquitectura) →
+> `CHANGELOG.md` (bitácora detallada,
 > archivo+línea+razón de TODO lo construido) → `backend/README.md` (qué falta para
 > producto real).
 >

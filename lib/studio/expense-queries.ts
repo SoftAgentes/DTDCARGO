@@ -12,7 +12,7 @@ import type {
 } from "./expense-types";
 
 const EXPENSE_COLUMNS =
-  "id, tenant_id, user_id, expense_code, amount, currency, amount_usd, fx_rate, category, scope, method, shipment_id, note, location, billable, receipt_path, account_id, occurred_at, created_at, updated_at, deleted_at";
+  "id, tenant_id, user_id, expense_code, amount, currency, amount_usd, fx_rate, category, scope, method, shipment_id, note, location, billable, receipt_path, receipt_document_id, account_id, occurred_at, created_at, updated_at, deleted_at";
 
 /**
  * Resuelve la cuenta del plan a la que se imputa un gasto, según su categoría

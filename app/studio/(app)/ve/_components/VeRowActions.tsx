@@ -18,6 +18,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/studio/_components/icons";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 import {
   VE_ACTION_LABELS,
@@ -68,6 +69,11 @@ export function VeRowActions({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [prompt, setPrompt] = useState<PromptState>(null);
+  const [deliveryDecision, setDeliveryDecision] = useState<{
+    receivedBy: string;
+    requestRef: string;
+  } | null>(null);
+  const [deliveryError, setDeliveryError] = useState<string>();
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const actions = availableActions(status);
@@ -116,10 +122,10 @@ export function VeRowActions({
     if (action === "mark_delivered") {
       setPrompt({
         kind: "delivered",
-        title: "Marcar entregada",
-        label: "¿Quién firmó el POD?",
-        placeholder: "Nombre del receptor (opcional)",
-        required: false,
+        title: "Identificar receptor",
+        label: "¿Quién recibió la entrega?",
+        placeholder: "Nombre del receptor",
+        required: true,
         multiline: false,
       });
       return;
@@ -146,20 +152,46 @@ export function VeRowActions({
       setError("Este campo es obligatorio.");
       return;
     }
+    if (prompt.kind === "delivered") {
+      setPrompt(null);
+      setDeliveryError(undefined);
+      setDeliveryDecision({
+        receivedBy: trimmed,
+        requestRef: `warehouse-ve-delivery:${shipmentId}:${crypto.randomUUID()}`,
+      });
+      return;
+    }
     startTransition(async () => {
-      let result: { ok?: boolean; error?: string } | undefined;
-      if (prompt.kind === "delivered") {
-        result = await markDeliveredAction(shipmentId, {
-          podSignedBy: trimmed || undefined,
-        });
-      } else if (prompt.kind === "incident") {
-        result = await reportIncidentAction(shipmentId, {
-          reason: trimmed,
-        });
-      }
+      const result = await reportIncidentAction(shipmentId, { reason: trimmed });
       setPrompt(null);
       if (result?.error) setError(result.error);
       else if (result?.ok) router.refresh();
+    });
+  };
+
+  const confirmDelivery = (reason: string) => {
+    if (!deliveryDecision || pending) return;
+    startTransition(async () => {
+      setDeliveryError(undefined);
+      try {
+        const result = await markDeliveredAction({
+          shipmentId,
+          from: status,
+          receivedBy: deliveryDecision.receivedBy,
+          reason,
+          requestRef: deliveryDecision.requestRef,
+        });
+        if (result.error) {
+          setDeliveryError(result.error);
+          return;
+        }
+        setDeliveryDecision(null);
+        router.refresh();
+      } catch {
+        setDeliveryError(
+          "No se pudo confirmar la entrega. Conservamos la referencia para reintentar.",
+        );
+      }
     });
   };
 
@@ -326,6 +358,32 @@ export function VeRowActions({
           onConfirm={onPromptConfirm}
         />
       )}
+      <ConfirmDialog
+        open={deliveryDecision !== null}
+        danger
+        reason
+        reasonRequired
+        holdToConfirm
+        initialFocus="safe"
+        title="Confirmar entrega manual"
+        message={
+          deliveryDecision
+            ? `Receptor: ${deliveryDecision.receivedBy}. Esta decisión cerrará el embarque como entregado y quedará en auditoría. Es una constancia manual y no sustituye el POD sellado con foto y firma de la PWA de Despacho.`
+            : ""
+        }
+        confirmLabel="Confirmar entrega"
+        holdLabel="Mantén para confirmar"
+        reasonLabel="Evidencia o motivo de la confirmación"
+        reasonPlaceholder="Ej. Receptor identificado y entrega verificada por Operaciones"
+        pending={pending}
+        error={deliveryError}
+        onCancel={() => {
+          if (pending) return;
+          setDeliveryDecision(null);
+          setDeliveryError(undefined);
+        }}
+        onConfirm={confirmDelivery}
+      />
     </div>
   );
 }

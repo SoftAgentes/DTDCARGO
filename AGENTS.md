@@ -12,7 +12,7 @@ Un solo Next.js app con **4 superficies** y una **frontera dura** entre el sitio
 | Superficie | Rutas | Backend | Frontera |
 |---|---|---|---|
 | **Sitio público** | `app/{cotizar,track,contacto,calculadora,servicios,noticias,glosario}` + `components/` (raíz) | HTTP al ERP HailuWay externo (`NEXT_PUBLIC_HAILUWAY_API`; hoy mocks) | ❌ NUNCA importa `@/lib/studio`, `@/lib/db`, `@supabase/*` |
-| **Studio ERP** ("DTD Cargo") | `app/studio/(app)/<modulo>/` (55 módulos) + `app/api/studio/` | Supabase propio (`@/lib/db/server`) + Server Actions | — |
+| **Studio ERP** ("DTD Cargo") | `app/studio/(app)/<modulo>/` (57 módulos registrados) + `app/api/studio/` | Supabase propio (`@/lib/db/server`) + Server Actions | — |
 | **Móvil PWA** | `app/m/{cn,ve,erp}/` | Supabase (reusa `lib/studio`, permitido) | — |
 | **Back (CMS público)** | `app/back/(app)/` | Supabase (`lib/back/`) | no importa `@/lib/studio` ni `app/studio` |
 
@@ -39,6 +39,23 @@ Con 15-20 worktrees en paralelo, **mirar el disco local para tomar "el siguiente
 3. **El gate te cubre igual:** el paso `numbering` de `verify.mjs` falla si hay dos specs o dos migraciones con el mismo número, o si el `sdd:` del front-matter no coincide con su carpeta (el residuo típico de una renumeración a medias). Salta al **mergear**, que es cuando todavía podés renumerar.
 
 **Al renumerar: la que se mueve es la que NO está en `main`.** Y ⚠️ **una migración ya aplicada NUNCA se renumera** — su cabecera debe seguir diciendo el número con el que corrió (ver `docs/runbooks/aplicar-migraciones-prod.md`).
+
+## Gobernanza ejecutable de experiencia
+
+Antes de cambiar comportamiento, componentes o patrones del Studio, lee
+[`docs/governance/AGENT-BRIEF.md`](docs/governance/AGENT-BRIEF.md) y abre desde
+allí las políticas aplicables. El registro maestro
+[`docs/governance/README.md`](docs/governance/README.md) es la fuente normativa;
+la cápsula generada y cualquier plugin son derivados read-only.
+
+- Un cambio de comportamiento usa SDD y allowlist exacta.
+- Clasifica evidencia como `cumplimiento`, `no aplica`, `excepción` o
+  `no conformidad`.
+- Usa componentes `canonical`; no agregues consumidores de un `deprecated`.
+- Ejecuta `pnpm governance:check` y `pnpm components:check`; `pnpm verify` los
+  incluye en el cierre canónico.
+- Sólo reglas aprobadas pueden bloquear. Investigación o recomendaciones no se
+  elevan automáticamente.
 
 ## Ventanas autónomas + Modo Forja
 
@@ -68,6 +85,8 @@ pnpm test / test:watch   # Vitest
 pnpm test:e2e            # Playwright
 pnpm seed                # datos demo del Studio (tsx scripts/seed.ts)
 pnpm docs:index / docs:check   # índice + validación de specs SDD
+node scripts/run-sql-tests.mjs # contratos SQL (RLS/GRANT/triggers) en Postgres desechable
+node scripts/check-schema-rebuild.mjs  # ¿el schema se reconstruye desde cero? (267 migr.)
 ```
 Test puntual: `pnpm test path/to/file.test.ts` o `pnpm test -t "nombre"`. E2e puntual: `pnpm test:e2e path/to/spec.ts` o `pnpm test:e2e -g "nombre"` (modo interactivo: `pnpm test:e2e:ui`).
 
@@ -89,7 +108,7 @@ Test puntual: `pnpm test path/to/file.test.ts` o `pnpm test -t "nombre"`. E2e pu
 - **Acceso interactivo:** usa el MCP hospedado de Supabase con **OAuth**, `project_ref=xpfuzqombmjmxvprjgmi`, `read_only=true` y `features=database,docs`.
 - **Nunca guardes un PAT de Supabase** (`sbp_*` / `SUPABASE_ACCESS_TOKEN`) dentro del árbol del proyecto, aunque el archivo esté gitignored (`.env.local`, `.mcp.json`, `.codex/`, worktrees o archivos temporales).
 - **Producción:** este `project_ref` corresponde al proyecto real. El uso normal del MCP se limita a documentación y metadatos; leer filas de negocio o PII requiere autorización explícita del founder.
-- **Escrituras:** el MCP habitual no autoriza escrituras. Prepara migrations como archivos, valida localmente y usa una conexión temporal separada solo cuando el founder autorice aplicar el cambio concreto. **Aplicar a prod → runbook obligatorio: [`docs/runbooks/aplicar-migraciones-prod.md`](docs/runbooks/aplicar-migraciones-prod.md)** (OK del founder NOMBRANDO la migración · de a UNA, nunca en bundle · `name` = basename exacto del archivo). El gate lo vigila: el paso `migrations-applied` de `verify.mjs` grita si un archivo del repo no está en prod — así se dejaron de perder migraciones (la 0228 estuvo 2 rondas perdida; la 0169 sigue).
+- **Escrituras:** el MCP habitual no autoriza escrituras. Prepara migrations como archivos, valida localmente y usa una conexión temporal separada solo cuando el founder autorice aplicar el cambio concreto. **Aplicar a prod → runbook obligatorio: [`docs/runbooks/aplicar-migraciones-prod.md`](docs/runbooks/aplicar-migraciones-prod.md)** (OK del founder NOMBRANDO la migración · de a UNA, nunca en bundle · `name` = basename exacto del archivo). El gate lo vigila: el paso `migrations-applied` de `verify.mjs` grita si un archivo del repo no está en prod — así se dejaron de perder migraciones (la 0228 estuvo 2 rondas perdida y la 0169 una ronda entera; **ambas aplicadas y cerradas**). ⚠️ **El gate mide el checkout, no `origin/main`:** en un árbol atrasado los archivos nuevos no están en disco y sale verde por omisión. Antes de confiar en su verde, sincronizá con `origin/main` — así se detectaron las 0318–0324, que estaban en `main` y en el código desplegado pero no en la DB.
 - **CI/automatización:** si una tarea no admite OAuth, guarda el PAT únicamente en el secret manager del proveedor, con expiración y propósito identificable; nunca en archivos locales del repo.
 
 ## Integraciones del sitio público (estado · actualizado 2026-07-05)
@@ -127,6 +146,16 @@ Los mocks originales **ya no existen** (`mockSubmit` desapareció del código). 
 
 Toda pantalla nueva o cambio visual sustancial **pasa por `/ui-check`** antes del commit (regla del founder; check liviano, no bloqueo — spacing, jerarquía, AI slop, hover states). Para auditoría **profunda** (10 dimensiones, contraste WCAG medido, score 0–10) usar **`/ui-pro`**. Lente de "design director" opcional: agente `design-critic`. *(El agente `ui-ux-designer` de la plantilla Forge NO existe — no lo invoques.)*
 
+## Datos personales y privacidad
+
+Todo cambio que **capture, mueva o borre datos personales** —campo nuevo en un formulario, columna nueva, bucket, integración con un tercero, captura en campo— pasa por **`/revisar-datos-ve`** ([`.claude/skills/revisar-datos-ve/`](.claude/skills/revisar-datos-ve/)). Es **advisory**: entrega hallazgos con `archivo:línea` y **nunca** afirma que el proyecto cumple (solo `ENCONTRADO` / `CORRECTO` / `NO VERIFICABLE`).
+
+Marco: **Venezuela no tiene ley especial de datos personales.** Las anclas son CRBV arts. 28 y 60, la jurisprudencia vinculante de la Sala Constitucional del TSJ (332/2001 y 759/2025), la Ley Especial contra los Delitos Informáticos (arts. 20-22, **penal**) y la Ley sobre Mensajes de Datos y Firmas Electrónicas. **PIPL de China** aplica al tratamiento del equipo en Yiwu. RGPD y Chile 21.719 son **referencia, no obligación**. Detalle en `references/marco-legal-ve.md` y `references/marco-legal-cn-pipl.md` — **citá desde ahí, nunca de memoria**.
+
+Tres reglas que no se rompen: (1) **no importar derecho ajeno** — "derechos ARCO" es México, el binomio responsable/encargado es RGPD; (2) la política **no puede prometer lo que el sistema no hace**; (3) la aceptación electrónica sin certificado de un PSC acreditado por SUSCERTE es **art. 17** (sana crítica), **no** firma autógrafa — no escribir "firmado" en la UI si el respaldo es ese.
+
+Fork MIT de [Carlos Domínguez](https://github.com/Carlos-Dominguez-faber/revisar-datos-personales), re-anclado a VE + China; qué cambió y por qué está en el `README.md` de la skill.
+
 ## Brand y diseño → punteros (no duplicar acá)
 
 - **Reglas de marca** → [`BRAND.md`](BRAND.md). **Leé siempre antes de tocar visuales.** Las 6 que no se rompen: (1) solo tokens CSS `var(--*)`, cero hex inventados · (2) solo Archivo + JetBrains Mono + Noto Sans SC · (3) cero AI slop (gradientes coloridos, glassmorphism, emojis decorativos) · (4) componentes del sistema primero · (5) avisar con formato `BRAND-CHECK` antes de violar · (6) todo texto se lee: contraste AA ≥4.5:1 / grande ≥3:1.
@@ -142,7 +171,7 @@ Toda pantalla nueva o cambio visual sustancial **pasa por `/ui-check`** antes de
 
 - **Identidad / nombres / NAP** → fuente única [`docs/marketing/identidad.md`](docs/marketing/identidad.md). Marca pública = **DTD Cargo** · sello de herencia + nombre del ERP interno = **DoorTuDoor** · handle **@doortudoor_**. La **razón social (INVERSIONES DTD SERVICES, C.A) y el RIF (J-50648869-8) van SOLO en el schema** (`legalName`/`taxID`), **nunca en texto visible**. Versión-máquina = `@graph` en [`app/layout.tsx`](app/layout.tsx) (`#organization` + `#website`); datos desde `CONTACT` en `lib/design-tokens.ts`.
 - **Estrategia / misión-visión / valores / ventas** → [`docs/marketing/estrategia.md`](docs/marketing/estrategia.md) + [`docs/marketing/ventas.md`](docs/marketing/ventas.md). Misión/visión/valores son **canónicos** (reemplazan los de 2020). Norte **interno** = **2 contenedores/mes** (umbral de equilibrio, **no se publica**) vía mayoristas recurrentes + aliados white-label.
-- **Negocio:** logística + trading puerta a puerta China↔Venezuela; equipo propio en Yiwu y Valencia. **Cronología (founder 2026-07-17):** **2008-2010** = inicios en China — etapa histórica que sustenta la **experiencia** con China, **NO es la fundación** (vive en Stats: "En el comercio con China desde 2008", KPI autocalculado) · **2015** = **fundación e inauguración en Venezuela = EL año de fundación** (`foundingDate` del schema, y todo copy de "opera/operando desde") · **2010** = solo hito histórico (se formalizó la empresa de carga), nunca un claim de "empresa desde". El trading propio es **interno** (la web vende el servicio). El ERP (Studio "DoorTuDoor", 55 módulos en prod) apunta a **cerrar el loop comercial** (recompra día 30/45 + alertas de cadencia + KPI 2 cont./mes + white-label aliados); **no es greenfield**.
+- **Negocio:** logística + trading puerta a puerta China↔Venezuela; equipo propio en Yiwu y Valencia. **Cronología (founder 2026-07-20):** **2008** = empezamos a trabajar con China y sustenta la **experiencia**, no la fundación; **2010** = abrimos la primera oficina propia en China, tampoco es el año de fundación; **2015** = **fundación e inauguración en Venezuela = EL año de fundación** (`foundingDate` del schema y todo copy de "opera/operando desde"). Frase modelo: *"En el comercio con China desde 2008, con oficina propia en China desde 2010 y operando en Venezuela desde 2015."* Los años de experiencia se calculan con `aniosComercioChina()`: nunca escribir un total fijo. El trading propio es **interno** (la web vende el servicio). El ERP (Studio "DoorTuDoor", 57 módulos registrados) apunta a **cerrar el loop comercial** (recompra día 30/45 + alertas de cadencia + KPI 2 cont./mes + white-label aliados); **no es greenfield**.
 - **Trato con el founder (Sam):** español **venezolano neutro, TUTEO, CERO voseo** (regla dura, no negociable). Usar **"tú tienes / puedes / quieres / necesitas / mira"**; **NUNCA** "vos tenés / podés / querés / necesitás / mirá" ni imperativos voseo ("cotizá", "pagás", "escribinos", "dale"). El voseo es argentino, **no se habla en Venezuela** — si lo uso es un bug. Además: directo, sin relleno ni adulación; salidas listas para copiar con rutas explícitas; opciones por prioridad con **⭐ en la #1**; preguntas cortas; decir "Fase 5", no "F5". **Verificar la rama antes de commit; NO hacer push sin su OK; commits selectivos si hay varias ventanas.**
 
 ## Organización · ISO 9001 §7.5 → detalle en `docs/README.md`

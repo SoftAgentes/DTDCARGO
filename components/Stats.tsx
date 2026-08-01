@@ -2,8 +2,9 @@ import { STATS, aniosComercioChina } from "@/lib/design-tokens";
 
 /**
  * Banda de stats — fondo navy, 4 KPI hero + línea de hitos históricos FIJA
- * abajo (China 2008 → empresa 2010 → Venezuela 2015). La "historia que se movía"
- * queda acá quieta; el resto del sitio habla del corredor a Venezuela (2015).
+ * abajo (China 2008 → oficina en China 2010 → fundación Venezuela 2015). La
+ * "historia que se movía" queda acá quieta; el resto del sitio habla del
+ * corredor a Venezuela (2015 = año de fundación).
  * Valores de los KPI desde `lib/design-tokens.ts` constant `STATS`.
  */
 
@@ -11,7 +12,7 @@ import { STATS, aniosComercioChina } from "@/lib/design-tokens";
 // completo vive en /nosotros. Reemplaza el timeline que se movía en el home.
 const HISTORIA = [
   { year: "2008", label: "Comercio con China" },
-  { year: "2010", label: "Empresa de carga" },
+  { year: "2010", label: "Oficina propia en China" },
   { year: "2015", label: "Operación en Venezuela" },
 ];
 

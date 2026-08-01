@@ -1,10 +1,10 @@
 ---
 sdd: "0172"
 title: "Lifecycle de tenant y fixtures E2E efímeras"
-status: in-progress
+status: done
 author: "Sam (founder) + Codex"
 created: 2026-07-28
-updated: 2026-07-28
+updated: 2026-07-30
 supersedes: null
 superseded_by: null
 related: ["0166", "0168"]
@@ -76,9 +76,11 @@ fixture SDD-0168.
 |---|---|
 | `E2E_SUPABASE_PROJECT_REF` | nunca puede ser Producción |
 | `E2E_SUPABASE_URL` | HTTPS y hostname correspondiente al project ref |
+| `E2E_SUPABASE_ANON_KEY` | cliente `authenticated` para evidencia protegida por RLS |
 | `E2E_ENVIRONMENT_KIND` | valor exacto `ephemeral` |
 | `E2E_EPHEMERAL_PROJECT_REF` | coincidencia exacta con el project ref |
 | `E2E_SUPABASE_SERVICE_ROLE_KEY` | solo variable de proceso/secret manager |
+| `SUPABASE_SERVICE_ROLE_KEY` | mismo secreto, sólo en el proceso Next para adapters server-side |
 | `STUDIO_E2E_PASSWORD` | mínimo 12 caracteres y solo sintético |
 
 `E2E_PRODUCTION_CONFIRM_PROJECT_REF` deja de ser un escape válido. Definirlo no
@@ -155,8 +157,29 @@ No crea funciones ni modifica otra FK.
 | Script retirado | `scripts/cleanup-e2e.ts` |
 | Package | `package.json` |
 | Unit test | `scripts/__tests__/sdd-0168-fixture.test.ts` |
+| E2E lifecycle | `e2e/comments-lifecycle.spec.ts` |
 | DB | `supabase/migrations/0268_tenant_lifecycle_guardrails.sql` |
 | DB test | `supabase/tests/0268_tenant_lifecycle_guardrails.test.sql` |
+| Reparación ACL generador | `scripts/build-sdd-0172-tenant-acl-history.mjs` |
+| Reparación ACL unit | `scripts/__tests__/build-sdd-0172-tenant-acl-history.test.ts` |
+| Reparación ACL DB | `supabase/migrations/0279_restore_tenant_lifecycle_acl_history.sql` |
+| Reparación ACL DB test | `supabase/tests/0279_restore_tenant_lifecycle_acl_history.test.sql` |
+| Reparación split generador | `scripts/build-sdd-0118-split-history.mjs` |
+| Reparación split DB | `supabase/migrations/0280_repair_sdd0118_split_history.sql` |
+| Reparación split DB test | `supabase/tests/0280_repair_sdd0118_split_history.test.sql` |
+| Reparación invite split generador | `scripts/build-sdd-0118-invite-skip-split-history.mjs` |
+| Reparación invite split DB | `supabase/migrations/0281_repair_invite_skip_split_history.sql` |
+| Reparación invite split DB test | `supabase/tests/0281_repair_invite_skip_split_history.test.sql` |
+| Reparación platform admin split generador | `scripts/build-sdd-0118-platform-admin-split-history.mjs` |
+| Reparación platform admin split DB | `supabase/migrations/0282_repair_platform_admin_skip_split_history.sql` |
+| Reparación platform admin split DB test | `supabase/tests/0282_repair_platform_admin_skip_split_history.test.sql` |
+| Reparación calculator split generador | `scripts/build-sdd-0118-calculator-split-history.mjs` |
+| Reparación calculator split DB | `supabase/migrations/0283_repair_calculator_settings_split_history.sql` |
+| Reparación calculator split DB test | `supabase/tests/0283_repair_calculator_settings_split_history.test.sql` |
+| Reparación pin split generador | `scripts/build-sdd-0118-pin-split-history.mjs` |
+| Reparación pin split DB | `supabase/migrations/0284_repair_pin_search_path_split_history.sql` |
+| Reparación pin split DB test | `supabase/tests/0284_repair_pin_search_path_split_history.test.sql` |
+| Reparaciones finales | `supabase/migrations/0285_repair_revoke_anon_split_history.sql` · `0286_repair_tenant_acl_split_history.sql` · `0287_repair_replay_gate_split_history.sql` · `0288_finalize_replay_gate_split_history.sql` |
 | Operación | `docs/runbooks/e2e-supabase-efimero.md` |
 
 ## 9. Aceptación
@@ -164,6 +187,8 @@ No crea funciones ni modifica otra FK.
 - Producción falla aunque se defina el escape hatch histórico;
 - un entorno no efímero falla;
 - project ref, confirmación y URL deben coincidir;
+- la auditoría se lee como `authenticated`, sin ampliar `SELECT` de
+  `service_role`;
 - el seed falla ante fixture previo;
 - no existe DELETE en seed o verificación de teardown;
 - no existe comando `cleanup:e2e`;
@@ -179,12 +204,58 @@ No crea funciones ni modifica otra FK.
 
 | Gate | Resultado |
 |---|---|
-| Unit | 1 archivo · 5 pruebas |
+| Unit | 1 archivo · 6 pruebas |
 | TypeScript | verde |
 | PostgreSQL 15 | verde · rollback total |
 | PostgreSQL 17 | verde · rollback total |
 | Docker residual | cero contenedores de prueba |
 | Cloud | aplicado y verificado · [REV-AUD-018](../../governance/reviews/aud-tenant-lifecycle-aplicacion.md) |
+| Supabase efímero | intento fail-closed · replay detenido en `20260526213130 seed_team_invitation_template` |
+| Teardown remoto | terminal · branch eliminado y ausente del inventario posterior · [REV-AUD-019](../../governance/reviews/aud-tenant-fixtures-ephemeral-validation.md) |
+| Supabase efímero R2 | intento fail-closed · 63 migraciones · `0031_fix_studio_invite_gen_random_bytes` ambiguo |
+| Teardown remoto R2 | terminal · branch y project ref ausentes del inventario posterior |
+| Supabase efímero R3 | intento fail-closed · 83 migraciones · `platform_admins` viola FK hacia Auth |
+| Teardown remoto R3 | terminal · branch y project ref ausentes del inventario posterior |
+| Supabase efímero R4 | intento fail-closed · 120 migraciones · falta `calculator_settings` |
+| Teardown remoto R4 | terminal · branch y project ref ausentes del inventario posterior |
+| Supabase efímero R5 | intento fail-closed · 266 migraciones · `0262` detecta dos funciones comments sin `search_path=public` |
+| Teardown remoto R5 | terminal · branch y project ref ausentes; sólo `main` saludable |
+| Supabase efímero R6 | intento fail-closed · 268 migraciones · `0264` detecta EXECUTE de `anon` por payload 0209 ausente |
+| Teardown remoto R6 | terminal · branch y project ref ausentes; sólo `main` saludable |
+| Supabase efímero R7 | intento fail-closed · 215 migraciones · `0209` referencia `rls_auto_enable()` ausente |
+| Teardown remoto R7 | terminal · branch y project ref ausentes; sólo `main` saludable |
+| Supabase efímero R8 | intento fail-closed · `0209` vuelve a fallar porque 0277 llega después en el ledger |
+| Teardown remoto R8 | terminal · branch y project ref ausentes; sólo `main` saludable |
+| Reparación RLS local | 0277 recuperada; 0278 determinista y verde en PostgreSQL 15/17 · [REV-AUD-032](../../governance/reviews/aud-sdd-0118-rls-auto-enable-history.md) |
+| Reparación RLS Cloud | 0278 aplicada; cardinalidad/digests, invariantes y advisors verdes |
+| Supabase efímero R9 | intento fail-closed · supera 0209; 0268 detecta DELETE efectivo en rol cliente |
+| Teardown remoto R9 | terminal · branch y project ref ausentes; sólo `main` saludable |
+| Reparación ACL tenant local | 0279 determinista; PostgreSQL 15/17 reproducen R9, ejecutan 0268 y terminan en rollback · [REV-AUD-033](../../governance/reviews/aud-sdd-0172-tenant-acl-history.md) |
+| Reparación ACL tenant Cloud | 0279 aplicada individualmente; recibo `20260729224850`; ACL, FK y advisors sin drift |
+| Supabase efímero R10 | intento fail-closed · `0271` no reconoce el ledger fragmentado por el replay |
+| Teardown remoto R10 | terminal · branch y project ref ausentes; sólo `main` saludable |
+| Supabase efímero R11 | diagnóstico metadata-only · 11 fingerprints fragmentados confirmados |
+| Teardown remoto R11 | terminal · branch y project ref ausentes; sólo `main` saludable |
+| Reparación split local | 0280 determinista; Vitest 4/4; PostgreSQL 15/17 UPDATE 1/0 + rollback · [REV-AUD-034](../../governance/reviews/aud-sdd-0118-split-replay-history.md) |
+| Reparación split Cloud | 0280 aplicada individualmente; recibo `20260730002206`; digest objetivo y advisors verificados |
+| Supabase efímero R12 | supera 0271; falla cerrado en 0272 por estados fragmentados de 0031/0032 |
+| Teardown remoto R12 | terminal · branch y project ref ausentes; sólo `main` saludable |
+| Reparación invite split local | 0281 determinista; Vitest 4/4; contratos SQL 20/20 + rollback · [REV-AUD-035](../../governance/reviews/aud-sdd-0118-invite-skip-split-history.md) |
+| Reparación invite split Cloud | 0281 aplicada; recibo `20260730011643`; postcondiciones y advisors sin drift |
+| Supabase efímero R13 | supera 0272; falla cerrado en 0273 por target `platform_admins` fragmentado en diez statements |
+| Teardown remoto R13 | terminal · branch `361cf50e-3fe0-47e9-b73c-7b54b05c8489` y project ref `tieiplsepiezyqkqfywe` ausentes; sólo `main` saludable |
+| Reparación platform admin split local | 0282 determinista; Vitest 4/4; contratos SQL 21/21 + replay y rollback · [REV-AUD-036](../../governance/reviews/aud-sdd-0118-platform-admin-split-history.md) |
+| Reparación platform admin split Cloud | 0282 aplicada; recibo `20260730130403`; postcondiciones verificadas |
+| Supabase efímero R14 | supera 0273; falla cerrado en 0274 por target `calculator_settings` fragmentado en doce statements |
+| Teardown remoto R14 | terminal · branch `ab5435b9-ec23-4d45-b475-9a32a4c945a4` y project ref `stgnxiuofbxzzsndcqlw` ausentes; sólo `main` saludable |
+| Reparación calculator split local | 0283 determinista; Vitest 4/4; contratos SQL 22/22 + replay y rollback · [REV-AUD-037](../../governance/reviews/aud-sdd-0118-calculator-split-history.md) |
+| Reparación calculator split Cloud | 0283 aplicada; recibo `20260730132651`; postcondiciones y advisors verificados |
+| Supabase efímero R15 | supera 0274; falla cerrado en 0275 por target `pin_search_path` fragmentado en 33 statements |
+| Teardown remoto R15 | terminal · branch `d97e81ba-94aa-4fd7-b4c6-bc4a9d8919df` y project ref `dmzhnfmiolvjsuzehcbq` ausentes; sólo `main` saludable |
+| Reparación pin split local | 0284 determinista; Vitest 4/4; contratos SQL 23/23 en PostgreSQL 15/17 + replay y rollback · [REV-AUD-038](../../governance/reviews/aud-sdd-0118-pin-split-history.md) |
+| Reparaciones finales Cloud | 0284–0288 aplicadas individualmente; recibos exactos y advisors sin drift atribuible |
+| Supabase efímero R29 | 293 entradas hasta 0288 · seed aprobado · E2E 1/1 · 4 eventos append-only |
+| Teardown remoto R29 | terminal · branch `d4df25d3-951e-47ca-af61-fe508b15e76a` y project ref `inxjipnsdccxdllfuudm` ausentes; sólo `main` saludable · [REV-AUD-039](../../governance/reviews/aud-sdd-0118-0172-final-closure.md) |
 
 ## 11. Rollback
 
@@ -194,11 +265,43 @@ No crea funciones ni modifica otra FK.
   rollback ordinario;
 - entorno efímero fallido: destruir el proyecto, no reparar filas.
 
-## 12. Gates pendientes
+## 12. Cierre
 
-1. validación real en un Supabase efímero;
-2. evidencia de teardown terminal del proyecto efímero.
+Todos los gates de esta SDD quedaron completados. R29 alcanzó replay total,
+seed, E2E, verificación sin DML de cleanup y teardown terminal. SDD-0172 pasa
+a `done`.
 
 El gate Cloud de 0268 quedó cerrado en
 [REV-AUD-018](../../governance/reviews/aud-tenant-lifecycle-aplicacion.md).
-SDD-0172 permanece `in-progress` hasta cerrar un recorrido efímero completo.
+El gate Cloud de 0273 quedó cerrado en
+[REV-AUD-025](../../governance/reviews/aud-sdd-0118-platform-admin-bootstrap-application.md).
+El gate Cloud de 0274 quedó cerrado en
+[REV-AUD-027](../../governance/reviews/aud-sdd-0118-calculator-settings-history-application.md).
+El gate Cloud de 0275 quedó cerrado en
+[REV-AUD-029](../../governance/reviews/aud-sdd-0118-pin-search-path-history-application.md).
+Los intentos reales y sus teardowns terminales quedaron registrados en
+[REV-AUD-019](../../governance/reviews/aud-tenant-fixtures-ephemeral-validation.md).
+El diseño local de `0276` quedó aprobado en
+[REV-AUD-030](../../governance/reviews/aud-sdd-0118-revoke-anon-history.md).
+El gate Cloud de `0276` quedó cerrado en
+[REV-AUD-031](../../governance/reviews/aud-sdd-0118-revoke-anon-history-application.md).
+El gate Cloud de 0278 y el gate local de 0279 quedaron aprobados en
+[REV-AUD-033](../../governance/reviews/aud-sdd-0172-tenant-acl-history.md).
+El gate Cloud de 0279 y el gate local de 0280 quedaron aprobados en
+[REV-AUD-034](../../governance/reviews/aud-sdd-0118-split-replay-history.md).
+El gate Cloud de 0280 y el gate local de 0281 quedaron aprobados en
+[REV-AUD-035](../../governance/reviews/aud-sdd-0118-invite-skip-split-history.md).
+El gate Cloud de 0281, el teardown terminal de R13 y el gate local de 0282
+quedaron aprobados en
+[REV-AUD-036](../../governance/reviews/aud-sdd-0118-platform-admin-split-history.md).
+El gate Cloud de 0282, el teardown terminal de R14 y el gate local de 0283
+quedaron aprobados en
+[REV-AUD-037](../../governance/reviews/aud-sdd-0118-calculator-split-history.md).
+El gate Cloud de 0283, el teardown terminal de R15 y el gate local de 0284
+quedaron aprobados en
+[REV-AUD-038](../../governance/reviews/aud-sdd-0118-pin-split-history.md).
+El gate local de 0277/0278 quedó documentado en
+[REV-AUD-032](../../governance/reviews/aud-sdd-0118-rls-auto-enable-history.md).
+La aplicación de 0284–0288, el replay R29, el E2E y el teardown terminal
+quedaron aprobados en
+[REV-AUD-039](../../governance/reviews/aud-sdd-0118-0172-final-closure.md).

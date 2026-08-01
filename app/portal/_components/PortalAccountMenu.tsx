@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOutAction } from "../actions";
@@ -20,14 +20,19 @@ export function PortalAccountMenu({
   name: string;
   markbox: string;
 }) {
-  const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname() ?? "";
-
-  // Cierra al navegar (el pathname cambia tras seguir un link del menú).
-  useEffect(() => {
-    setOpen(false);
+  const [menuState, setMenuState] = useState({ path: pathname, open: false });
+  const open = menuState.path === pathname && menuState.open;
+  const setOpen = useCallback((next: boolean | ((current: boolean) => boolean)) => {
+    setMenuState((current) => ({
+      path: pathname,
+      open:
+        typeof next === "function"
+          ? next(current.path === pathname && current.open)
+          : next,
+    }));
   }, [pathname]);
 
   // Cierra por clic afuera o Escape.
@@ -48,7 +53,7 @@ export function PortalAccountMenu({
       document.removeEventListener("mousedown", onClick);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [open, setOpen]);
 
   const accountActive = pathname.startsWith("/portal/perfil");
 

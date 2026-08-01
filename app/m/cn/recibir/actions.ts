@@ -112,22 +112,14 @@ export async function lookupForReceptionAction(
     };
   }
 
-  // Nombre del cliente + proveedor (para la tarjeta de confirmación).
-  const [{ data: client }, { data: supplier }] = await Promise.all([
-    admin
-      .from("clients")
-      .select("name")
-      .eq("tenant_id", auth.session.tenant_id)
-      .eq("markbox", pre.client_markbox)
-      .maybeSingle<{ name: string }>(),
-    pre.supplier_id
-      ? admin
-          .from("suppliers_cn")
-          .select("name")
-          .eq("id", pre.supplier_id)
-          .maybeSingle<{ name: string }>()
-      : Promise.resolve({ data: null }),
-  ]);
+  // El nombre real del cliente no se consulta: China opera sólo con Shipping Mark.
+  const { data: supplier } = pre.supplier_id
+    ? await admin
+        .from("suppliers_cn")
+        .select("name")
+        .eq("id", pre.supplier_id)
+        .maybeSingle<{ name: string }>()
+    : { data: null };
 
   // Cuántas esperadas siguen sin recibir en esa compra.
   const { count: expected } = await admin
@@ -144,7 +136,8 @@ export async function lookupForReceptionAction(
     boxCode: box.code,
     prealertaCode: pre.code,
     clientMarkbox: pre.client_markbox,
-    clientName: client?.name ?? null,
+    // PRIVACIDAD (hallazgo H-7): solo Shipping Mark, nunca el nombre real.
+    clientName: null,
     supplierName: supplier?.name ?? null,
     expected: expected ?? 0,
   };
@@ -223,7 +216,7 @@ export async function receivePrealertaAction(
     ok: true,
     receiptCode: res.receipt_code,
     prealertaCode: res.prealerta_code,
-    clientName: res.client_name ?? null,
+    clientName: null, // privacidad · hallazgo H-7
     clientMarkbox: res.client_markbox,
     received: res.received,
     remaining: res.remaining,

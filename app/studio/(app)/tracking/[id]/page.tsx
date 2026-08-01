@@ -19,6 +19,7 @@ import {
 import { ShipmentHeader } from "./_components/ShipmentHeader";
 import { ShipmentDataPanel } from "./_components/ShipmentDataPanel";
 import { StateActionsPanel } from "./_components/StateActionsPanel";
+import { ShipmentPlanPanel } from "./_components/ShipmentPlanPanel";
 import { CustomerPreview } from "./_components/CustomerPreview";
 import { TimelinePanel } from "./_components/TimelinePanel";
 import { FooterActions } from "./_components/FooterActions";
@@ -82,6 +83,7 @@ export default async function ShipmentDetailPage({
     .limit(1)
     .maybeSingle<{ role: StudioUserRole }>();
   const isAdmin = roleRow?.role === "admin";
+  const canEditTracking = canEditModule(roleRow?.role, "tracking");
   const comments = authUser
     ? await listComments(supabase, "shipment", id, tenantUsers, authUser.id)
     : [];
@@ -102,14 +104,11 @@ export default async function ShipmentDetailPage({
       : null;
 
   function formatRelative(iso: string): string {
-    const diffMs = Date.now() - new Date(iso).getTime();
-    const min = Math.round(diffMs / 60_000);
-    if (min < 1) return "ahora";
-    if (min < 60) return `hace ${min} min`;
-    const hr = Math.round(min / 60);
-    if (hr < 24) return `hace ${hr} h`;
-    const days = Math.round(hr / 24);
-    return `hace ${days} ${days === 1 ? "día" : "días"}`;
+    return new Intl.DateTimeFormat("es-VE", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "America/Caracas",
+    }).format(new Date(iso));
   }
 
   return (
@@ -260,6 +259,17 @@ export default async function ShipmentDetailPage({
               service={shipment.shipment_service}
               status={shipment.status}
             />
+          </section>
+
+          <section
+            style={{
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border)",
+              borderRadius: 10,
+              padding: 20,
+            }}
+          >
+            <ShipmentPlanPanel shipment={shipment} canEdit={canEditTracking} />
           </section>
 
           {/* Expediente de defensa (SDD-0070) — admin-only. Abre la cadena de

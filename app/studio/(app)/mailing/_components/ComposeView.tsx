@@ -108,6 +108,7 @@ export function ComposeView({ templates, signatures }: Props) {
         phone: selectedSig.phone,
         photo_url: selectedSig.photo_url,
         company_name: selectedSig.company_name,
+        lang: selectedSig.lang,
       })
     : "";
 

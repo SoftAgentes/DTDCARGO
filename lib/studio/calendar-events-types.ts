@@ -11,15 +11,59 @@
  * Todo lectura. La query vive en `calendar-events-queries.ts`.
  */
 
-export type CalendarEventType = "zarpe" | "arribo" | "entrega" | "tarea";
+export type CalendarEventType =
+  | "zarpe"
+  | "arribo"
+  | "entrega"
+  | "zarpe_planificado"
+  | "arribo_planificado"
+  | "entrega_planificada"
+  | "tarea";
 
 export type CalendarEventTone = "info" | "wine" | "success" | "neutral";
+
+export const DEFAULT_CALENDAR_TIME_ZONE = "America/Caracas";
+
+/** Acepta solo zonas IANA reconocidas por el runtime; degrada a Caracas. */
+export function normalizeCalendarTimeZone(value: unknown): string {
+  if (typeof value !== "string" || value.trim() === "") {
+    return DEFAULT_CALENDAR_TIME_ZONE;
+  }
+  const candidate = value.trim();
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: candidate }).format();
+    return candidate;
+  } catch {
+    return DEFAULT_CALENDAR_TIME_ZONE;
+  }
+}
+
+/** Convierte un instante ISO al día civil de una zona IANA, sin cortar UTC. */
+export function timestampToCalendarDay(
+  timestamp: string,
+  timeZone: string,
+): string {
+  const formatter = new Intl.DateTimeFormat("en", {
+    timeZone: normalizeCalendarTimeZone(timeZone),
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const parts = formatter.formatToParts(new Date(timestamp));
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
 
 export type CalendarEvent = {
   /** Estable para keys de React. `<shipmentId>-<type>` o `<eventId>-zarpe`. */
   id: string;
   /** ISO `YYYY-MM-DD` (día del hito). */
   date: string;
+  /** `instant` se convierte con `timeZone`; `local-date` ya es día civil. */
+  temporalKind: "instant" | "local-date";
+  /** Zona IANA visible para eventos derivados de timestamptz. */
+  timeZone?: string;
   type: CalendarEventType;
   /**
    * UUID de la entidad · para linkear al detalle. Para embarques es el
@@ -55,6 +99,9 @@ export const EVENT_TYPE_META: Record<
   zarpe: { label: "Zarpe", short: "ETD", tone: "info" },
   arribo: { label: "Arribo", short: "ETA", tone: "wine" },
   entrega: { label: "Entrega", short: "POD", tone: "success" },
+  zarpe_planificado: { label: "Salida planificada", short: "ETD plan", tone: "info" },
+  arribo_planificado: { label: "Llegada planificada", short: "ETA plan", tone: "wine" },
+  entrega_planificada: { label: "Entrega planificada", short: "POD plan", tone: "success" },
   tarea: { label: "Tarea", short: "TAREA", tone: "neutral" },
 };
 
@@ -98,6 +145,7 @@ export function bitacoraTaskToCalendarEvent(
   return {
     id: `${row.id}-tarea`,
     date: day,
+    temporalKind: "local-date",
     type: "tarea",
     shipmentId: row.id,
     shipmentCode: "",

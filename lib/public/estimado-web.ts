@@ -161,8 +161,13 @@ export function validateEstimadoInput(
  * `puerta_a_puerta_DDP`. Se deja como función (no constante) para extender el
  * mapeo si la web suma otros productos sin tocar a los callers.
  */
-export function serviceForCalc(_calc: EstimadoCalcKind): EstimadoService {
-  return "puerta_a_puerta_DDP";
+export function serviceForCalc(calc: EstimadoCalcKind): EstimadoService {
+  const serviceByCalc: Record<EstimadoCalcKind, EstimadoService> = {
+    lcl: "puerta_a_puerta_DDP",
+    aereo: "puerta_a_puerta_DDP",
+    maritimo: "puerta_a_puerta_DDP",
+  };
+  return serviceByCalc[calc];
 }
 
 /**

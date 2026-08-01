@@ -15,7 +15,13 @@
  */
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import {
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+  type KeyboardEvent,
+} from "react";
 import { rowsToCsv, type CsvValue } from "@/lib/studio/reports/export-csv";
 import { downloadTextFile } from "@/app/studio/_components/ui/download";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
@@ -103,12 +109,34 @@ export function FiscalClient({
   const router = useRouter();
   const params = useSearchParams();
   const moduleOn = isFiscalModuleEnabled(settings);
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   const go = (next: Partial<{ tab: FiscalTab; period: FiscalPeriod }>) => {
     const sp = new URLSearchParams(params.toString());
     if (next.tab) sp.set("tab", next.tab);
     if (next.period) sp.set("period", next.period);
     router.push(`/studio/fiscal?${sp.toString()}`);
+  };
+
+  const handleTabKey = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    currentIndex: number,
+  ) => {
+    let nextIndex: number | null = null;
+    if (event.key === "ArrowRight") {
+      nextIndex = (currentIndex + 1) % TABS.length;
+    } else if (event.key === "ArrowLeft") {
+      nextIndex = (currentIndex - 1 + TABS.length) % TABS.length;
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = TABS.length - 1;
+    }
+
+    if (nextIndex == null) return;
+    event.preventDefault();
+    tabRefs.current[nextIndex]?.focus();
+    go({ tab: TABS[nextIndex].id });
   };
 
   return (
@@ -143,17 +171,33 @@ export function FiscalClient({
       <div
         role="tablist"
         aria-label="Secciones del módulo fiscal"
-        style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--border)", marginBottom: 24 }}
+        aria-orientation="horizontal"
+        style={{
+          display: "flex",
+          flexWrap: "nowrap",
+          gap: 4,
+          overflowX: "auto",
+          borderBottom: "1px solid var(--border)",
+          marginBottom: 24,
+        }}
       >
-        {TABS.map((t) => {
+        {TABS.map((t, index) => {
           const active = t.id === tab;
           return (
             <button
               key={t.id}
+              ref={(node) => {
+                tabRefs.current[index] = node;
+              }}
               type="button"
               role="tab"
+              id={`fiscal-tab-${t.id}`}
+              aria-controls={`fiscal-panel-${t.id}`}
               aria-selected={active}
+              tabIndex={active ? 0 : -1}
               onClick={() => go({ tab: t.id })}
+              onKeyDown={(event) => handleTabKey(event, index)}
+              className="studio-btn studio-btn-ghost"
               style={{
                 appearance: "none",
                 background: "transparent",
@@ -164,6 +208,8 @@ export function FiscalClient({
                 color: active ? "var(--wine)" : "var(--ink-soft)",
                 cursor: "pointer",
                 marginBottom: -1,
+                flexShrink: 0,
+                whiteSpace: "nowrap",
               }}
             >
               {t.label}
@@ -172,51 +218,58 @@ export function FiscalClient({
         })}
       </div>
 
-      {tab === "config" && <FiscalConfig settings={settings} canEdit={canEditConfig} />}
+      <div
+        role="tabpanel"
+        id={`fiscal-panel-${tab}`}
+        aria-labelledby={`fiscal-tab-${tab}`}
+        tabIndex={0}
+      >
+        {tab === "config" && <FiscalConfig settings={settings} canEdit={canEditConfig} />}
 
-      {/* Principio #1: con el módulo OFF los libros no aplican (módulo inerte).
-          Mostramos un estado claro con CTA a Configuración para activarlo. */}
-      {tab === "ventas" &&
-        (moduleOn ? (
-          <SalesBookView
-            period={period}
-            rows={sales ?? []}
-            settings={settings}
-            currencies={currencies}
-            postedBook={postedBook}
-            canPost={canPost}
-            onPeriod={(p) => go({ period: p })}
-          />
-        ) : (
-          <FiscalDisabled canEditConfig={canEditConfig} onGoConfig={() => go({ tab: "config" })} />
-        ))}
+        {/* Principio #1: con el módulo OFF los libros no aplican (módulo inerte).
+            Mostramos un estado claro con CTA a Configuración para activarlo. */}
+        {tab === "ventas" &&
+          (moduleOn ? (
+            <SalesBookView
+              period={period}
+              rows={sales ?? []}
+              settings={settings}
+              currencies={currencies}
+              postedBook={postedBook}
+              canPost={canPost}
+              onPeriod={(p) => go({ period: p })}
+            />
+          ) : (
+            <FiscalDisabled canEditConfig={canEditConfig} onGoConfig={() => go({ tab: "config" })} />
+          ))}
 
-      {tab === "compras" &&
-        (moduleOn ? (
-          <PurchaseBookView
-            period={period}
-            rows={purchases ?? []}
-            settings={settings}
-            currencies={currencies}
-            postedBook={postedBook}
-            canPost={canPost}
-            onPeriod={(p) => go({ period: p })}
-          />
-        ) : (
-          <FiscalDisabled canEditConfig={canEditConfig} onGoConfig={() => go({ tab: "config" })} />
-        ))}
+        {tab === "compras" &&
+          (moduleOn ? (
+            <PurchaseBookView
+              period={period}
+              rows={purchases ?? []}
+              settings={settings}
+              currencies={currencies}
+              postedBook={postedBook}
+              canPost={canPost}
+              onPeriod={(p) => go({ period: p })}
+            />
+          ) : (
+            <FiscalDisabled canEditConfig={canEditConfig} onGoConfig={() => go({ tab: "config" })} />
+          ))}
 
-      {tab === "retenciones" &&
-        (moduleOn ? (
-          <WithholdingsView
-            period={period}
-            rows={withholdings}
-            canPost={canPost}
-            onPeriod={(p) => go({ period: p })}
-          />
-        ) : (
-          <FiscalDisabled canEditConfig={canEditConfig} onGoConfig={() => go({ tab: "config" })} />
-        ))}
+        {tab === "retenciones" &&
+          (moduleOn ? (
+            <WithholdingsView
+              period={period}
+              rows={withholdings}
+              canPost={canPost}
+              onPeriod={(p) => go({ period: p })}
+            />
+          ) : (
+            <FiscalDisabled canEditConfig={canEditConfig} onGoConfig={() => go({ tab: "config" })} />
+          ))}
+      </div>
     </div>
   );
 }

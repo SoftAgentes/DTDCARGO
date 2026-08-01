@@ -316,6 +316,7 @@ async function applyOwner(
 export async function moveTaskAction(
   taskId: string,
   estado: string,
+  expectedEstado?: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
 
@@ -325,14 +326,33 @@ export async function moveTaskAction(
   if (!isBitacoraTaskEstado(estado)) {
     return { error: "Estado inválido." };
   }
+  if (expectedEstado !== undefined && !isBitacoraTaskEstado(expectedEstado)) {
+    return { error: "Estado de origen inválido." };
+  }
+  if (expectedEstado === estado) return { ok: true };
 
   // Sin máquina de estados server: los 4 estados son alcanzables entre sí.
-  // completed_at lo fija/limpia el trigger de la DB (nunca la app).
-  const { error } = await supabase
+  // completed_at lo fija/limpia el trigger de la DB (nunca la app). El estado
+  // esperado evita que un optimistic update pise un movimiento concurrente.
+  let update = supabase
     .from("bitacora_tasks")
     .update({ estado })
     .eq("id", taskId);
+  if (expectedEstado !== undefined) {
+    update = update.eq("estado", expectedEstado);
+  }
+  const { data: changed, error } = await update
+    .select("id")
+    .maybeSingle<{ id: string }>();
   if (error) return { error: `No se pudo mover: ${error.message}` };
+  if (!changed) {
+    return {
+      error:
+        expectedEstado === undefined
+          ? "La tarea ya no está disponible."
+          : "La tarea cambió en otra sesión. Actualizamos el tablero para mostrar su estado real.",
+    };
+  }
 
   revalidateBitacora();
   return { ok: true };

@@ -1,0 +1,127 @@
+{
+  "schemaVersion": "1.1",
+  "id": "confirm-dialog",
+  "name": "ConfirmDialog",
+  "purpose": "Confirmar decisiones sensibles con foco seguro, contexto visible y bloqueo de doble ejecución.",
+  "owner": "Studio UI",
+  "status": "canonical",
+  "implementation": {
+    "path": "app/studio/_components/ui/ConfirmDialog.tsx",
+    "exportName": "ConfirmDialog"
+  },
+  "policyRefs": [
+    {
+      "code": "SGE-00",
+      "version": "1.0",
+      "path": "docs/governance/policies/sge-00.md"
+    },
+    {
+      "code": "BTN-01",
+      "version": "1.1",
+      "path": "docs/governance/policies/btn-01.md"
+    },
+    {
+      "code": "VIS-01",
+      "version": "1.0",
+      "path": "docs/governance/policies/vis-01.md"
+    },
+    {
+      "code": "A11Y-01",
+      "version": "1.1",
+      "path": "docs/governance/policies/a11y-01.md"
+    },
+    {
+      "code": "HTD-01",
+      "version": "1.0",
+      "path": "docs/governance/policies/htd-01.md"
+    }
+  ],
+  "api": {
+    "contractPath": "docs/specs/0215-htd-invoice-void/spec.md",
+    "summary": "Diálogo controlado con modo destructivo, motivo, pending, foco seguro y presión sostenida HTD-01 opcional con alternativa accesible."
+  },
+  "tokens": [
+    "--scrim",
+    "--scrim-blur",
+    "--bg-surface",
+    "--ink",
+    "--r-lg",
+    "--border",
+    "--f-display",
+    "--ink-soft",
+    "--s-2",
+    "--s-3",
+    "--danger",
+    "--r-sm",
+    "--danger-bg",
+    "--f-sans",
+    "--bg-sidebar",
+    "--dur-fast",
+    "--dur-hold",
+    "--ease"
+  ],
+  "accessibility": {
+    "keyboard": "verified",
+    "focus": "verified",
+    "screenReader": "verified",
+    "contrast": "verified",
+    "reducedMotion": "not-applicable",
+    "evidence": [
+      "app/studio/_components/ui/ConfirmDialog.test.tsx",
+      "docs/specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md",
+      "docs/specs/0215-htd-invoice-void/spec.md",
+      "docs/specs/0165-sistema-gobernanza-experiencia-erp-studio/assets/avs-01-desktop-nested-confirm.png"
+    ]
+  },
+  "breakpoints": [
+    "mobile",
+    "desktop"
+  ],
+  "examples": {
+    "correct": [
+      "app/studio/(app)/admin/rutas/_components/RouteDrawer.tsx",
+      "app/studio/(app)/_components/comments/CommentsThread.tsx",
+      "app/studio/(app)/facturacion/_components/InvoiceDetailClient.tsx"
+    ],
+    "incorrect": [
+      "docs/specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md"
+    ]
+  },
+  "tests": [
+    {
+      "type": "accessibility",
+      "path": "app/studio/_components/ui/ConfirmDialog.test.tsx",
+      "case": "Foco seguro, trap, Escape, restauración, motivo requerido, HTD cancelable, solicitud única y alternativa accesible."
+    },
+    {
+      "type": "visual",
+      "path": "docs/specs/0165-sistema-gobernanza-experiencia-erp-studio/assets/avs-01-desktop-nested-confirm.png",
+      "case": "Confirmación destructiva anidada verificada en Studio autenticado."
+    }
+  ],
+  "consumers": [
+    {
+      "path": "app/studio/(app)/admin/rutas/_components/RouteDrawer.tsx",
+      "verifiedAt": "2026-07-29"
+    },
+    {
+      "path": "app/studio/(app)/_components/comments/CommentsThread.tsx",
+      "verifiedAt": "2026-07-29"
+    },
+    {
+      "path": "app/studio/(app)/mailing/_components/BlacklistView.tsx",
+      "verifiedAt": "2026-07-29"
+    },
+    {
+      "path": "app/studio/(app)/facturacion/_components/InvoiceDetailClient.tsx",
+      "verifiedAt": "2026-07-31"
+    }
+  ],
+  "review": {
+    "reviewPath": "docs/governance/reviews/cmp-confirm-dialog-canonical.md",
+    "reviewer": "Codex",
+    "approvedBy": "Sam (founder)",
+    "lastReviewedAt": "2026-07-31",
+    "nextReviewAt": "2027-01-29"
+  }
+}

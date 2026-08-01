@@ -109,6 +109,35 @@ export async function transitionClaimOffset(
   if (error) throw error;
 }
 
+/**
+ * Ejecuta el hito financiero R3 mediante el RPC gobernado de SDD-0227.
+ * La base valida actor, tenant, rol, estado, idempotencia y auditoría.
+ */
+export async function markClaimOffsetPaidInChina(
+  supabase: SupabaseClient,
+  input: {
+    claimId: string;
+    effectiveDate: string;
+    reason: string;
+    requestRef: string;
+  },
+): Promise<"transitioned" | "replayed"> {
+  const { data, error } = await supabase.rpc(
+    "mark_claim_offset_paid_in_china_governed",
+    {
+      p_claim_id: input.claimId,
+      p_effective_date: input.effectiveDate,
+      p_reason: input.reason,
+      p_request_ref: input.requestRef,
+    },
+  );
+  if (error) throw error;
+  if (data !== "transitioned" && data !== "replayed") {
+    throw new Error("Respuesta inválida del pago gobernado.");
+  }
+  return data;
+}
+
 /** El siguiente estado válido del cruce (o null si es terminal). PURO. */
 export function nextClaimOffsetStatus(
   status: ClaimOffsetStatus,

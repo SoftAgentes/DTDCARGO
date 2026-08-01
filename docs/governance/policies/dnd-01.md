@@ -2,7 +2,7 @@
 
 | Control | Valor |
 |---|---|
-| Estado | aprobada — adopción no conforme |
+| Estado | aprobada — Bitácora verificada; adopción por flujo |
 | Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-005 |
 | Depende de | MOT-01, A11Y-01, AVS-01 y AUD-01 |
 
@@ -21,10 +21,20 @@
 
 ## Estado actual
 
-Bitácora usa drag HTML5 en escritorio y un botón de avance como fallback touch;
-no permite elegir cualquier destino por teclado/touch. Bugs Kanban abre detalle
-y no arrastra. Falta feedback completo de pickup/inserción, optimistic rollback,
-undo y auditoría uniforme.
+Bitácora quedó verificada por
+[SDD-0216](../../specs/0216-dnd-bitacora-accessible/spec.md):
+
+- drag HTML5 conserva pickup visible, destinos válidos y placeholder;
+- cada tarjeta ofrece un selector de cualquiera de los cuatro estados mediante
+  teclado, click o touch;
+- un live region anuncia pickup y destino;
+- el cliente actualiza optimistamente y revierte ante error;
+- la Server Action condiciona la escritura al estado esperado y reporta el
+  conflicto concurrente antes de refrescar;
+- una transición exitosa ofrece Deshacer con la misma guarda de concurrencia.
+
+La evidencia cubre este tablero, no todos los Kanban del ERP. Bugs Kanban abre
+detalle y no arrastra, por lo que DND-01 no le aplica.
 
 ## Gate
 

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://dtdcargo.com/schemas/governance/component-registry-v1.json",
+  "$id": "https://dtdcargo.com/schemas/governance/component-registry-v1.1.json",
   "title": "CMP-01 component source record",
   "type": "object",
   "additionalProperties": false,
@@ -24,7 +24,7 @@
   ],
   "properties": {
     "schemaVersion": {
-      "const": "1.0"
+      "const": "1.1"
     },
     "id": {
       "type": "string",
@@ -279,7 +279,7 @@
       "properties": {
         "code": {
           "type": "string",
-          "pattern": "^[A-Z]{2,4}-[0-9]{2}$"
+          "pattern": "^[A-Z][A-Z0-9]{1,5}-[0-9]{2}$"
         },
         "version": {
           "type": "string",
@@ -322,6 +322,7 @@
       "then": {
         "properties": {
           "consumers": {
+            "type": "array",
             "maxItems": 0
           }
         }

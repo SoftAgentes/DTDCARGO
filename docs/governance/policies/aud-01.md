@@ -5,7 +5,7 @@
 | Código | AUD-01 |
 | Versión | 1.0 |
 | Dueño | Sam (founder) |
-| Estado | aprobada — implementación parcial/no conforme |
+| Estado | aprobada — implementación D1–D5 verificada |
 | Creado | 2026-07-21 |
 | Depende de | [SGE-00](sge-00.md) y [MP-01](mp-01.md) |
 | Base existente | [SDD-0123](../../specs/0123-audit-log/spec.md) · `entity_audit_log` |
@@ -96,30 +96,25 @@ evento conserva referencias lógicas y metadatos autorizados.
 
 ## 7. Evidencia actual del ERP
 
-La base existente aporta:
+El cierre de [SDD-0174](../../specs/0174-audit-atomicidad-dominios/spec.md)
+demostró la implementación D1–D5 y sus correctivos R3:
 
-- `entity_audit_log` con tenant, entidad, actor, evento, payload y fecha;
-- RLS de lectura por tenant y escritura mediante `service_role`/RPC;
-- índices por entidad y tenant/fecha;
-- viewer read-only de los últimos 100 eventos;
-- escritores para operación, facturación, contabilidad, cobranzas, tesorería,
-  compras, ventas y rendiciones.
+- D1 gobierna acceso y configuración sensible mediante adapters/RPC;
+- D2–D4 cubren dominios financieros, comerciales y operativos con mutación y
+  evento obligatorios en la misma frontera transaccional;
+- D5 conserva intención, transición y reconciliación durable para efectos
+  externos;
+- los motivos humanos obligatorios y el `search_path` vacío de las RPC R3 se
+  cerraron mediante `0294`–`0296`;
+- `0270` y `0289`–`0296` están aplicadas y verificadas individualmente en
+  Producción, sin replays en bloque;
+- [REV-AUD-046](../reviews/aud-sdd-0174-prod-close.md) conserva el recibo de
+  cierre y la separación explícita frente a AUD-02/E2–E5.
 
-Brechas comprobadas:
-
-1. múltiples helpers declaran “best-effort” y no bloquean la mutación;
-2. `before`, `after`, `reason`, `correlation_id`, `source` y `result` no tienen
-   contrato uniforme;
-3. la migración `0241_estiba_por_zonas.sql` redefine la whitelist sin
-   `rendition`, revirtiendo la ampliación de `0123_rendiciones.sql`;
-4. el viewer solo humaniza seis tipos de entidad y convierte actores no
-   reconocidos en `system`;
-5. `service_role all` permite update/delete y la tabla no es inmutable a nivel
-   de base de datos;
-6. la cobertura de auditoría es menor que el universo de mutaciones sensibles.
-
-Estos son hallazgos documentales. Corregirlos requiere un SDD y migraciones
-separadas; AUD-01 no autoriza modificar producción.
+Este cierre cubre las fronteras inventariadas por SDD-0174. No declara que toda
+mutación futura o legacy sea automáticamente conforme: cada flujo nuevo o
+modificado vuelve a pasar el contrato de esta política. AUD-01 tampoco autoriza
+por sí sola modificar Producción.
 
 ## 8. Criterios de conformidad
 

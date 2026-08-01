@@ -3,7 +3,7 @@
  * scripts/verify.mjs — Gate de verificación del harness DTD Cargo.
  *
  * Corre, en orden: lint → rsc-boundary → typecheck → test → docs:check →
- * numbering → migrations-applied → e2e.
+ * numbering → components:check → governance:check → migrations-applied → e2e.
  * Es el "init.sh real" del proyecto, multiplataforma (Node, cero deps).
  *
  * El paso `e2e` (Playwright) va último y se OMITE con gracia si no hay
@@ -129,12 +129,30 @@ const STEPS = [
   // comparaba el `sdd:` contra la carpeta. Salta al MERGEAR, que es cuando
   // todavía se puede renumerar. Puro filesystem → NUNCA hace skip.
   { name: "numbering", argv: ["scripts/check-numbering.mjs"] },
+  { name: "components:check", argv: ["scripts/validate-component-registry.mjs"] },
+  {
+    name: "governance:check",
+    argv: ["scripts/build-governance-capsule.mjs", "--check"],
+  },
   // ¿Hay migraciones en el repo que nunca llegaron a prod? La 0228 estuvo DOS
   // rondas perdida y se construyó encima; se descubrió tarde y con un error que
   // no explicaba nada. Este paso consulta el ledger de prod (RPC 0239) y grita si
   // un archivo del repo no está aplicado. DEGRADA CON GRACIA: sin creds/red/RPC
   // → SKIP (no rojo), igual que el e2e. `retry: 1` porque toca la red.
   { name: "migrations-applied", argv: ["scripts/check-migrations-applied.mjs"], retry: 1 },
+  // Contratos de SQL (supabase/tests/*.test.sql) contra un Postgres desechable en
+  // Docker: RLS, GRANTs, triggers de inmutabilidad. Existían pero no los corría
+  // nadie — un contrato que nadie verifica se degrada en silencio (basta un GRANT
+  // futuro para reabrir una escalada ya cerrada). DEGRADA CON GRACIA: sin Docker
+  // → SKIP, nunca rojo. `VERIFY_SKIP_SQL=1` para omitirlo a pedido.
+  { name: "sql-tests", argv: ["scripts/run-sql-tests.mjs"] },
+  // ¿El schema se reconstruye desde cero con lo que hay en el repo? Aplica las
+  // 267 migraciones en orden sobre un Postgres limpio. Caza lo que
+  // `migrations-applied` no puede (ese compara NOMBRES contra el ledger): un
+  // archivo que nunca se podría aplicar (la 0030 llevaba meses con un error de
+  // sintaxis) y objetos que viven SOLO en prod, creados fuera de banda.
+  // DEGRADA CON GRACIA: sin Docker → SKIP. ~18s.
+  { name: "schema-rebuild", argv: ["scripts/check-schema-rebuild.mjs"] },
   // E2E (Playwright) — captura bugs de interacción cliente que vitest NO ve
   // (ej. el estimado de la calculadora que desaparecía al tocar el panel de
   // medidas). Va ÚLTIMO: los checks rápidos fallan primero. Reusa el dev server

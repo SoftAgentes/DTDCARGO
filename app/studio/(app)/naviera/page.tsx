@@ -21,6 +21,7 @@ import {
   listStuffingByConsolidation,
   navieraKpis,
 } from "@/lib/studio/naviera/queries";
+import { listCurrentPlans } from "@/lib/studio/naviera/plan-queries";
 import {
   listTrackingSnapshots,
   type TrackingSnapshotRow,
@@ -60,6 +61,13 @@ export default async function NavieraPage() {
     consolidations.map((c) => c.consolidation.id),
   );
 
+  // Plan de carga vigente por contenedor (SDD-0184 · Fase 3): la HIPOTESIS de
+  // donde va cada lote. La realidad capturada es `stuffingByConsolidation`.
+  const plansByConsolidation = await listCurrentPlans(
+    supabase,
+    consolidations.map((c) => c.consolidation.id),
+  );
+
   // Snapshots de tracking cacheados (SDD-0101 · Slice B.2) mapeados por
   // consolidación, para que el detalle muestre el dato vivo sin re-query.
   const snapshots = await listTrackingSnapshots(supabase);
@@ -82,6 +90,7 @@ export default async function NavieraPage() {
       kpis={kpis}
       trackingByConsolidation={trackingByConsolidation}
       stuffingByConsolidation={stuffingByConsolidation}
+      plansByConsolidation={plansByConsolidation}
     />
   );
 }

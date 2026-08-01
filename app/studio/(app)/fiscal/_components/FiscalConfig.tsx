@@ -73,10 +73,11 @@ export function FiscalConfig({
     initialState,
   );
   const [dirty, setDirty] = useState(false);
-
-  useEffect(() => {
+  const [handledState, setHandledState] = useState(state);
+  if (handledState !== state) {
+    setHandledState(state);
     setDirty(false);
-  }, [state]);
+  }
 
   useEffect(() => {
     if (state.ok) {

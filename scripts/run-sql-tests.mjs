@@ -1,0 +1,138 @@
+#!/usr/bin/env node
+/**
+ * Corre las pruebas contractuales de SQL (`supabase/tests/*.test.sql`) contra un
+ * PostgreSQL desechable en Docker.
+ *
+ * POR QUÉ EXISTE: los tests SQL del repo estaban escritos pero no los corría
+ * nadie — se ejecutaban a mano, una vez, cuando se escribió la migración. Eso es
+ * exactamente lo que el runbook de migraciones llama "una nota en un handoff no
+ * es un mecanismo". Un contrato de seguridad que nadie verifica se degrada en
+ * silencio: basta un GRANT futuro para reabrir una escalada de privilegios que
+ * ya se había cerrado.
+ *
+ * Cada test es autocontenido: crea su propio fixture (roles, schema auth, stubs),
+ * aplica las migraciones reales con `\ir` y termina en ROLLBACK. Cero datos
+ * persistidos, y NUNCA toca prod — corre contra un contenedor local y efímero.
+ *
+ * DEGRADA CON GRACIA, igual que los pasos `e2e` y `migrations-applied`: sin
+ * Docker (o con `VERIFY_SKIP_SQL=1`) imprime SKIP y sale 0. No rompe el gate de
+ * una ventana que no tenga Docker levantado.
+ */
+
+import { spawnSync } from "node:child_process";
+import { readdirSync, existsSync } from "node:fs";
+import { resolve } from "node:path";
+import crypto from "node:crypto";
+
+const C = {
+  green: "\x1b[32m",
+  red: "\x1b[31m",
+  dim: "\x1b[2m",
+  yellow: "\x1b[33m",
+  nc: "\x1b[0m",
+};
+
+const TESTS_DIR = resolve(process.cwd(), "supabase/tests");
+const SUPABASE_DIR = resolve(process.cwd(), "supabase");
+const IMAGE = process.env.SQL_TEST_PG_IMAGE || "postgres:17";
+
+// Nombre de contenedor propio por worktree: dos ventanas corriendo el gate a la
+// vez no se pisan (mismo criterio que e2ePort en verify.mjs).
+const containerName = `dtd_sqltest_${crypto
+  .createHash("sha1")
+  .update(process.cwd())
+  .digest("hex")
+  .slice(0, 8)}`;
+
+function docker(args, opts = {}) {
+  return spawnSync("docker", args, { encoding: "utf8", ...opts });
+}
+
+function skip(reason) {
+  console.log(`${C.yellow}[SKIP]${C.nc} sql-tests: ${reason}`);
+  process.exit(0);
+}
+
+if (process.env.VERIFY_SKIP_SQL === "1") skip("VERIFY_SKIP_SQL=1 (omitido a pedido)");
+if (!existsSync(TESTS_DIR)) skip("no hay supabase/tests/");
+
+const files = readdirSync(TESTS_DIR)
+  .filter((f) => f.endsWith(".test.sql"))
+  .sort();
+if (files.length === 0) skip("no hay *.test.sql");
+
+// ¿Docker vivo? `docker info` falla rápido si el daemon no está corriendo.
+const info = docker(["info", "--format", "{{.ServerVersion}}"]);
+if (info.error || info.status !== 0) {
+  skip("Docker no disponible → las pruebas contractuales de SQL no corren (no bloquea el gate)");
+}
+
+console.log(`${C.dim}   ${files.length} prueba(s) · ${IMAGE} · contenedor efímero${C.nc}`);
+
+let failed = [];
+try {
+  docker(["rm", "-f", containerName], { stdio: "ignore" });
+
+  const up = docker([
+    "run", "--rm", "-d",
+    "--name", containerName,
+    "-e", "POSTGRES_PASSWORD=postgres",
+    // Más rápido y sin durabilidad: la base entera es descartable.
+    "-e", "POSTGRES_INITDB_ARGS=--nosync",
+    "-v", `${SUPABASE_DIR}:/sb:ro`,
+    IMAGE,
+    "-c", "fsync=off",
+    "-c", "full_page_writes=off",
+  ]);
+  if (up.status !== 0) {
+    skip(`no se pudo levantar ${IMAGE}: ${(up.stderr || "").trim().split("\n")[0]}`);
+  }
+
+  // Esperar a que acepte conexiones (el initdb tarda unos segundos).
+  let ready = false;
+  for (let i = 0; i < 60; i++) {
+    const r = docker(["exec", containerName, "pg_isready", "-U", "postgres"]);
+    if (r.status === 0) {
+      ready = true;
+      break;
+    }
+    spawnSync(process.execPath, ["-e", "setTimeout(()=>{},500)"]); // ~0.5s
+  }
+  if (!ready) skip("el contenedor de Postgres no aceptó conexiones a tiempo");
+
+  for (const f of files) {
+    const res = docker([
+      "exec", containerName,
+      "psql", "-U", "postgres", "-q",
+      "-v", "ON_ERROR_STOP=1",
+      "-f", `/sb/tests/${f}`,
+    ]);
+    if (res.status === 0) {
+      console.log(`${C.green}   ✓${C.nc} ${C.dim}${f}${C.nc}`);
+    } else {
+      failed.push(f);
+      const err = `${res.stdout || ""}${res.stderr || ""}`
+        .split("\n")
+        .filter((l) => l.includes("ERROR:"))
+        .slice(0, 2)
+        .join("\n      ");
+      console.log(`${C.red}   ✗ ${f}${C.nc}`);
+      if (err) console.log(`${C.dim}      ${err}${C.nc}`);
+    }
+  }
+} finally {
+  docker(["rm", "-f", containerName], { stdio: "ignore" });
+}
+
+if (failed.length > 0) {
+  console.log(
+    `${C.red}[FAIL]${C.nc} ${failed.length} contrato(s) de SQL roto(s): ${failed.join(", ")}`,
+  );
+  console.log(
+    `${C.dim}   Una prueba de estas en rojo = una propiedad de seguridad que dejó de valer.${C.nc}`,
+  );
+  process.exit(1);
+}
+
+console.log(`${C.dim}   ${files.length} contrato(s) de SQL verificado(s) · rollback total${C.nc}`);
+process.exit(0);

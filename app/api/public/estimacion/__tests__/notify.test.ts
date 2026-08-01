@@ -77,7 +77,10 @@ vi.mock("@/lib/db/admin", () => ({
   createAdminClient: () => makeAdmin(),
 }));
 
-const notifyMock = vi.fn(async (..._args: unknown[]) => ({ ok: true }));
+const notifyMock = vi.fn(async (...args: unknown[]) => {
+  void args;
+  return { ok: true };
+});
 vi.mock("@/lib/studio/estimado-lead-notify", () => ({
   notifyEstimadoLeadToAdmin: (...args: unknown[]) => notifyMock(...args),
 }));

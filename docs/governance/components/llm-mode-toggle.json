@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "1.1",
+  "id": "llm-mode-toggle",
+  "name": "LLMModeToggle",
+  "purpose": "Conservar temporalmente el wrapper Auto/Manual del generador mientras su único consumidor migra al control segmentado canónico.",
+  "owner": "Studio Marketing",
+  "status": "deprecated",
+  "implementation": {
+    "path": "app/studio/(app)/marketing/noticias-web/_components/LLMModeToggle.tsx",
+    "exportName": "LLMModeToggle"
+  },
+  "policyRefs": [
+    {
+      "code": "SGE-00",
+      "version": "1.0",
+      "path": "docs/governance/policies/sge-00.md"
+    },
+    {
+      "code": "A11Y-01",
+      "version": "1.1",
+      "path": "docs/governance/policies/a11y-01.md"
+    }
+  ],
+  "api": {
+    "contractPath": "docs/specs/0183-governance-control-plane/spec.md",
+    "summary": "Wrapper compatible de mode, onChange y disabled; no se permite en consumidores nuevos."
+  },
+  "tokens": [],
+  "accessibility": {
+    "keyboard": "verified",
+    "focus": "verified",
+    "screenReader": "verified",
+    "contrast": "verified",
+    "reducedMotion": "not-applicable",
+    "evidence": [
+      "app/studio/_components/ui/SegmentedControl.test.tsx",
+      "docs/governance/reviews/cmp-01-v1-1-deprecated.md"
+    ]
+  },
+  "breakpoints": [
+    "mobile",
+    "desktop"
+  ],
+  "examples": {
+    "correct": [
+      "app/studio/(app)/admin/_components/AppearanceSection.tsx"
+    ],
+    "incorrect": [
+      "app/studio/(app)/marketing/noticias-web/_components/LLMModeToggle.tsx"
+    ]
+  },
+  "tests": [
+    {
+      "type": "accessibility",
+      "path": "app/studio/_components/ui/SegmentedControl.test.tsx",
+      "case": "El wrapper conserva la semántica y el teclado del reemplazo canónico."
+    }
+  ],
+  "consumers": [
+    {
+      "path": "app/studio/(app)/marketing/noticias-web/_components/NoticiasWebClient.tsx",
+      "verifiedAt": "2026-07-29"
+    }
+  ],
+  "replacement": {
+    "componentId": "segmented-control",
+    "planPath": "docs/governance/reviews/cmp-01-v1-1-deprecated.md"
+  },
+  "review": {
+    "reviewPath": "docs/governance/reviews/cmp-01-v1-1-deprecated.md",
+    "reviewer": "Codex",
+    "approvedBy": "Sam (founder)",
+    "lastReviewedAt": "2026-07-29",
+    "nextReviewAt": "2026-10-29"
+  }
+}

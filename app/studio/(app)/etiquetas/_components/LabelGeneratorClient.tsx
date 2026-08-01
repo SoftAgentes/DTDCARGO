@@ -10,7 +10,7 @@
  * Print: @page CSS dinámico según formato + window.print().
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { FORMATS, Label, type LabelFormat, warehouseAddress } from "./Label";
 import { SupplierMessageModal } from "./SupplierMessageModal";
@@ -104,14 +104,12 @@ function LabelGeneratorInner({
 
   // Al cambiar de cliente, el supplier elegido deja de ser válido → volver a
   // "Otro / a mano" (no auto-borra lo tipeado a mano, solo el select).
-  useEffect(() => {
-    if (
-      supplierId !== SUPPLIER_FREEFORM &&
-      !clientSuppliers.some((s) => s.id === supplierId)
-    ) {
-      setSupplierId(SUPPLIER_FREEFORM);
-    }
-  }, [clientSuppliers, supplierId]);
+  if (
+    supplierId !== SUPPLIER_FREEFORM &&
+    !clientSuppliers.some((supplier) => supplier.id === supplierId)
+  ) {
+    setSupplierId(SUPPLIER_FREEFORM);
+  }
 
   // Al elegir un proveedor del dropdown, autocompletar los campos del mensaje.
   function selectSupplier(id: string) {
@@ -122,23 +120,17 @@ function LabelGeneratorInner({
     setSupplierContact(s.contact ?? s.name);
     setSupplierCity(s.city ?? "");
     setSupplierWechat(s.wechat ?? "");
+    const city = (s.city ?? "").toLowerCase();
+    const warehouseCode = city.includes("yiwu")
+      ? "YIW-A1"
+      : city.includes("guangzhou") || city.includes("shanghai")
+        ? "GZ-B2"
+        : city.includes("shenzhen")
+          ? "SZ-C1"
+          : null;
+    const warehouse = warehouses.find((item) => item.code === warehouseCode);
+    if (warehouse) setWarehouseId(warehouse.id);
   }
-
-  // Auto-sugerir warehouse según ciudad del supplier
-  useEffect(() => {
-    if (!supplierCity) return;
-    const c = supplierCity.toLowerCase();
-    if (c.includes("yiwu")) {
-      const w = warehouses.find((w) => w.code === "YIW-A1");
-      if (w) setWarehouseId(w.id);
-    } else if (c.includes("guangzhou") || c.includes("shanghai")) {
-      const w = warehouses.find((w) => w.code === "GZ-B2");
-      if (w) setWarehouseId(w.id);
-    } else if (c.includes("shenzhen")) {
-      const w = warehouses.find((w) => w.code === "SZ-C1");
-      if (w) setWarehouseId(w.id);
-    }
-  }, [supplierCity, warehouses]);
 
   const client = clients.find((c) => c.markbox === clientMarkbox) ?? clients[0];
   const warehouseRow = warehouses.find((w) => w.id === warehouseId) ?? warehouses[0];

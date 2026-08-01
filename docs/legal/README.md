@@ -10,6 +10,13 @@
 | `Acuerdo de Servicios - DTD SERVICES.pdf` | Acuerdo de servicios con cliente (plantilla/base) | Indefinida |
 | `Acuerdo de confidencialidad ... proveedores.pdf` | NDA + protección de precios para proveedores | Indefinida |
 
+## Subcarpetas (sí van en git)
+
+| Carpeta | Qué es | Clasificación |
+|---|---|---|
+| [`privacidad/`](privacidad/) | Auditoría de datos personales, registro de tratamiento, inventario de terceros y runbook de brecha. Se regenera con `/revisar-datos-ve` | interno — sin datos de clientes |
+| `borradores/` | Borradores de políticas públicas pendientes de abogado | interno |
+
 ## Para qué sirven
 
 Base para **recrear acuerdos con clientes/proveedores**. Los originales viven en disco local

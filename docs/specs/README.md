@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 172 specs)
+### Índice de specs (generado · 227 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -149,7 +149,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0115 | Financiero China Slice C — forex como revenue · claim offsets… | done | confidencial |
 | 0116 | Club DTD — membresía recurrente + compra grupal (consolidació… | done | interno |
 | 0117 | Recibo y finiquito en PDF server-side (@react-pdf/renderer) —… | done | interno |
-| 0118 | Seed migrations idempotentes — habilitar validación en branch… | draft | interno |
+| 0118 | Historial reproducible — habilitar validación en branch efíme… | done | interno |
 | 0119 | Módulo de Marketing en el ERP — Dashboard de Marketing (salud… | done | interno |
 | 0120 | Datos de la empresa — primera sección real de Administración … | done | interno |
 | 0121 | Apariencia — preferencias de Studio (tema + densidad) + mater… | done | interno |
@@ -197,19 +197,74 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0163 | Orden accionable al operario · el operario ve y ejecuta los s… | proposed | interno |
 | 0164 | Unificación de nombres de servicios: un servicio, un nombre, … | in-progress | interno |
 | 0165 | Sistema de Gobernanza de Experiencia ERP_Studio — AVS-01 | done | interno |
-| 0166 | Auditoría gobernada — corrección conjunta AUD-01 y AUD-02 | in-progress | interno |
+| 0166 | Auditoría gobernada — corrección conjunta AUD-01 y AUD-02 | done | interno |
 | 0167 | Actualidad — centro editorial público | in-progress | interno |
 | 0168 | MP-01 Slice 1 — Permanencia y restauración de comentarios int… | done | interno |
 | 0169 | Portal — gate de verificación de identidad | in-progress | interno |
 | 0170 | Portal — ciclo de 5 etapas y Seguimiento total por contenedor | in-progress | interno |
 | 0171 | Portal — datos de bodega CN, filtros de Documentos y armazón … | in-progress | interno |
-| 0172 | Lifecycle de tenant y fixtures E2E efímeras | in-progress | interno |
+| 0172 | Lifecycle de tenant y fixtures E2E efímeras | done | interno |
 | 0173 | Portal — Nueva compra como asistente de 3 pasos | done | interno |
-| 0174 | Auditoría — atomicidad por dominios | in-progress | interno |
-| 0175 | VIS-02 — tipografía por voz, destinatario e idioma | approved | interno |
+| 0174 | Auditoría — atomicidad por dominios | done | interno |
+| 0175 | VIS-02 — tipografía por voz, destinatario e idioma | done | interno |
 | 0176 | Portal — el ámbar deja de usarse como texto (barrido AA) | done | interno |
 | 0177 | Portal — Estado de cuenta (libro de movimientos) | done | interno |
-| 0178 | Plugin read-only de gobernanza ERP Studio | approved | interno |
+| 0178 | Plugin read-only de gobernanza ERP Studio | done | interno |
+| 0179 | Portal — podar el código pre-Norte inalcanzable | done | interno |
+| 0180 | Tabs accesibles en Fiscal | done | interno |
+| 0181 | Selectores accesibles y colisión segura | done | interno |
+| 0182 | Validación progresiva de identidad en Club | done | interno |
+| 0183 | Control plane ejecutable de gobernanza | done | interno |
+| 0184 | Plan de carga por volumen · el sistema le dice al operario dó… | in-progress | interno |
+| 0185 | NUM-01 v1.1 y expresiones decimales | done | interno |
+| 0186 | Fundamento verificable de retención de auditoría | done | interno |
+| 0187 | Auditoría D2 — motivos humanos en anulaciones financieras | done | interno |
+| 0188 | Auditoría D3 — motivos humanos en cancelaciones comerciales | done | interno |
+| 0189 | Auditoría D4 — search_path vacío en RPC logísticas R3 | done | interno |
+| 0191 | Integridad documental y derechos del titular | proposed | interno |
+| 0192 | POD sellado y aviso al receptor | proposed | interno |
+| 0193 | Firma electrónica certificada (PSC · SUSCERTE) | draft | interno |
+| 0194 | Almacén CN — menú de acciones de recepción accesible | done | interno |
+| 0195 | Resiliencia del sync de Kommo — un hipo de red no apaga la in… | proposed | interno |
+| 0196 | Almacén CN — feedback y pending de nueva recepción | done | interno |
+| 0197 | Recepción móvil CN — snapshot de fotos y render puro | done | interno |
+| 0198 | Realtime transversal — estado de conexión y datos verdaderos | done | interno |
+| 0199 | Almacén CN — filtros URL y selección coherentes | done | interno |
+| 0200 | Portal backfill — estado de operación coherente | done | interno |
+| 0201 | Portal shell — ruta y preferencias como fuentes de verdad | done | interno |
+| 0202 | Verificación transversal — contratos sin bindings muertos | done | interno |
+| 0203 | Backend — firmas explícitas y consultas mínimas | done | interno |
+| 0204 | Frontend — errores visibles y props consumidas | done | interno |
+| 0205 | Cliente web — entorno del navegador como fuente de verdad | done | interno |
+| 0206 | Formularios — resultados de action manejados una vez | done | interno |
+| 0207 | Listados Studio — query como fuente de verdad | done | interno |
+| 0208 | Render — referencias temporales estables | done | interno |
+| 0209 | Drawers — sugerencias y resultados derivados | done | interno |
+| 0210 | Bitácora — estado externo y cargas coherentes | done | interno |
+| 0211 | Render — entradas estables y acumuladores puros | done | interno |
+| 0212 | Preferencias — hidratación cancelable del navegador | done | interno |
+| 0213 | Estado — reconciliación cancelable por frontera | done | interno |
+| 0214 | Efectos externos — fronteras cancelables | done | interno |
+| 0215 | HTD-01 en anulación de factura R3 | done | interno |
+| 0216 | DND-01 accesible y durable en Bitácora | done | interno |
+| 0217 | Timezone explícito en eventos del calendario | done | interno |
+| 0218 | Runner y reinstalación reproducible de PLG-01 | done | interno |
+| 0219 | Legal holds append-only de auditoría | done | interno |
+| 0220 | Exportación gobernada de auditoría | done | interno |
+| 0221 | Expiración segura de artefactos de auditoría | done | interno |
+| 0222 | Retención de auditoría por lotes controlados | done | interno |
+| 0223 | Fechas planificadas de embarques | done | interno |
+| 0224 | Adjuntos seguros, reanudables y recuperables | approved | interno |
+| 0225 | Registro público: el correo se valida y los errores dicen dón… | done | interno |
+| 0227 | Pago gobernado de cruce en Financiero China | done | interno |
+| 0228 | Liberación gobernada de Aduana SENIAT | done | interno |
+| 0229 | Pago gobernado de indemnización de Reclamos | done | interno |
+| 0230 | Cierre gobernado de ruta TMS | done | interno |
+| 0231 | Entrega manual gobernada en Almacén VE | done | interno |
+| 0232 | Autorización gobernada de consolidación Naviera | done | interno |
+| 0233 | Retiro gobernado de reportes de Inspecciones | done | interno |
+| 0234 | Cancelación gobernada de órdenes de despacho | done | interno |
+| 0236 | Transportistas terrestres y su tarifario por CBM | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0226, 0235 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

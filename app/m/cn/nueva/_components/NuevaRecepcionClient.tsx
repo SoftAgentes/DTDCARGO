@@ -16,7 +16,15 @@
  * Iconografía: Icon set Studio. Cero emojis decorativos.
  */
 
-import { startTransition, useActionState, useEffect, useReducer, useRef, useState } from "react";
+import {
+  startTransition,
+  useActionState,
+  useEffect,
+  useId,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/studio/_components/icons";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
@@ -41,9 +49,13 @@ import type {
 // Tipos del cliente picker (server pasa via prop)
 // ─────────────────────────────────────────────────────────────────────────
 
+/**
+ * PRIVACIDAD (auditoría 2026-07, hallazgo H-7): el equipo CN identifica al
+ * importador SOLO por Shipping Mark. El nombre real NO viaja a este
+ * dispositivo — el server ni lo selecciona (`app/m/cn/nueva/page.tsx`).
+ */
 export type PickerClient = {
   markbox: string;
-  name: string;
 };
 
 export type PickerCity = {
@@ -183,8 +195,6 @@ export function NuevaRecepcionClient({
   // Fotos que fallaron por red y quedaron encoladas para retry offline.
   const [photosQueued, setPhotosQueued] = useState(0);
   const photosRef = useRef<Photo[]>([]);
-  // Keep latest snapshot para useEffect
-  photosRef.current = reception.photos;
 
   // Cuando server crea receipt → arrancar upload de fotos en paralelo
   // y luego pasar a Done.
@@ -271,15 +281,16 @@ export function NuevaRecepcionClient({
   }, [state.ok, state.receiptCode, state.receiptId]);
 
   const submit = () => {
-    const clientObj = reception.client
-      ? clients.find((c) => c.markbox === reception.client)
-      : null;
-
+    // Captura la selección exacta asociada a este submit. El upload posterior
+    // no debe leer una ref mutada durante render ni una edición más reciente.
+    photosRef.current = reception.photos;
     const payload: CreateReceiptInput = {
       warehouse_id: defaultWarehouseId,
       is_orphan: reception.orphan,
       client_markbox: reception.orphan ? null : reception.client || null,
-      client_name: reception.orphan ? null : clientObj?.name ?? null,
+      // Privacidad: el dispositivo CN no conoce el nombre del importador. Lo
+      // resuelve el server desde el Shipping Mark (RPC create_receipt_as_operario).
+      client_name: null,
       orphan_marks: reception.orphan ? reception.marks || null : null,
       orphan_brought_by: reception.orphan ? reception.broughtBy || null : null,
       supplier_name: reception.supplier || null,
@@ -292,7 +303,7 @@ export function NuevaRecepcionClient({
       items: reception.hs
         ? [
             {
-              description: clientObj?.name ?? reception.supplier ?? "Caja",
+              description: reception.supplier ?? "Caja",
               hs_code: reception.hs,
               quantity: null,
               unit_value_usd: null,
@@ -344,7 +355,6 @@ export function NuevaRecepcionClient({
       {view === "step4" && (
         <Step4Confirm
           lang={lang}
-          clients={clients}
           reception={reception}
           dispatch={dispatch}
           onBack={() => setView("step3")}
@@ -558,7 +568,7 @@ function PhotoAddTile({
   lang: Lang;
   onPicked: (file: File) => void;
 }) {
-  const inputId = `photo-input-${Math.random().toString(36).slice(2, 8)}`;
+  const inputId = useId();
   return (
     <label
       htmlFor={inputId}
@@ -747,12 +757,10 @@ function Step2Identify({
   const [search, setSearch] = useState("");
   const { orphan, client, marks } = reception;
 
+  // Búsqueda SOLO por Shipping Mark: el nombre del importador no existe en
+  // este dispositivo (privacidad · hallazgo H-7).
   const filtered = clients
-    .filter(
-      (c) =>
-        c.markbox.toLowerCase().includes(search.toLowerCase()) ||
-        c.name.toLowerCase().includes(search.toLowerCase()),
-    )
+    .filter((c) => c.markbox.toLowerCase().includes(search.toLowerCase()))
     .slice(0, 8);
 
   const canNext = orphan ? marks.length > 0 : client.length > 0;
@@ -838,17 +846,6 @@ function Step2Identify({
                     >
                       {c.markbox}
                     </code>
-                    <span
-                      style={{
-                        font: "600 13px/1.2 var(--f-sans)",
-                        color: "var(--ink)",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {c.name}
-                    </span>
                     {selected && <span style={{ color: "var(--wine)" }}>{Icon.check(14)}</span>}
                   </button>
                 );
@@ -1197,7 +1194,6 @@ function MobileInput({
 
 function Step4Confirm({
   lang,
-  clients,
   reception,
   dispatch,
   onBack,
@@ -1206,7 +1202,6 @@ function Step4Confirm({
   serverError,
 }: {
   lang: Lang;
-  clients: PickerClient[];
   reception: Reception;
   dispatch: React.Dispatch<Action>;
   onBack: () => void;
@@ -1214,10 +1209,6 @@ function Step4Confirm({
   isPending: boolean;
   serverError?: string;
 }) {
-  const clientObj = reception.client
-    ? clients.find((c) => c.markbox === reception.client)
-    : null;
-
   return (
     <div>
       <MobileHeader
@@ -1255,7 +1246,7 @@ function Step4Confirm({
             value={
               reception.orphan
                 ? t(lang, "pwa.receipt.orphan_summary", { marks: reception.marks })
-                : clientObj?.name ?? reception.client
+                : reception.client
             }
             highlight={reception.orphan ? "warning" : undefined}
           />

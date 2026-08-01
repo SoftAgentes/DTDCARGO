@@ -17,12 +17,19 @@ import {
   type ClientNotificationRule,
 } from "./client-notification-types";
 
-/** Eventos que se siembran como default = comportamiento de HOY (SDD-0132). */
+/**
+ * Eventos que se siembran como default. Los 4 hitos de status (SDD-0132) +
+ * `received_ve`, que el 2026-07-19 pasó a ser el disparador CANÓNICO del arribo a
+ * Venezuela (Slice D, cableado desde la creación del recibo VE). Reemplaza al mail
+ * `shipment_arrived` de la transición de status, que se quitó para no duplicar.
+ * La migración 0331 lo siembra para los tenants existentes.
+ */
 export const DEFAULT_SEED_EVENTS = [
   "status:in_warehouse",
   "status:shipped",
   "status:out_for_delivery",
   "status:delivered",
+  "received_ve",
 ] as const;
 
 /** Offset tope de seguridad: ±120 días en minutos. Evita fechas absurdas. */

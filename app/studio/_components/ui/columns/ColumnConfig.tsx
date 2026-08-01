@@ -69,12 +69,19 @@ export function useColumnConfig(
   const hydrated = useRef(false);
 
   useEffect(() => {
-    try {
-      setCfg(reconcileColumnCfg(localStorage.getItem(storageKey), defaults));
-    } catch {
-      /* default ya seteado */
-    }
-    hydrated.current = true;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      try {
+        setCfg(reconcileColumnCfg(localStorage.getItem(storageKey), defaults));
+      } catch {
+        /* default ya seteado */
+      }
+      hydrated.current = true;
+    });
+    return () => {
+      cancelled = true;
+    };
     // defaults es constante por módulo; storageKey identifica la config.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);

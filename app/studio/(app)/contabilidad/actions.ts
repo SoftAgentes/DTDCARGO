@@ -13,16 +13,15 @@
  *  - createAccount / updateAccount: gestión del CoA (no asentar a no-postable;
  *    no borrar cuenta con movimientos).
  *
- * Acciones sensibles (asentar/anular/cuenta) → entity_audit_log con
- * actor_type='user' via admin client (entity_type 'journal_entry'/'account'
- * habilitados en la migración 0078).
+ * Las mutaciones de cuentas y asientos se auditan atómicamente mediante los
+ * triggers de dominio D2 (SDD-0174).
  */
 
 "use server";
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { createAdminClient } from "@/lib/db/admin";
+import { validateAuditReason } from "@/lib/studio/audit/reason";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
   validateAccountInput,
@@ -59,36 +58,6 @@ async function resolveTenant(
     return { error: "No se pudo resolver el tenant del usuario." };
   }
   return { tenantId: link.tenant_id };
-}
-
-async function currentUserId(supabase: Supa): Promise<string | null> {
-  const { data } = await supabase.auth.getUser();
-  return data.user?.id ?? null;
-}
-
-/** Best-effort audit. No bloquea la mutación. */
-async function audit(
-  tenantId: string,
-  entityType: "journal_entry" | "account",
-  entityId: string,
-  actorId: string | null,
-  eventType: string,
-  payload: Record<string, unknown>,
-): Promise<void> {
-  try {
-    const admin = createAdminClient();
-    await admin.from("entity_audit_log").insert({
-      tenant_id: tenantId,
-      entity_type: entityType,
-      entity_id: entityId,
-      actor_type: "user",
-      actor_id: actorId,
-      event_type: eventType,
-      payload,
-    });
-  } catch (e) {
-    console.error("[contabilidad audit] no se pudo registrar:", e);
-  }
 }
 
 // ── Asientos ──────────────────────────────────────────────────
@@ -189,17 +158,6 @@ export async function createJournalEntry(
     return { error: `No se pudieron guardar las líneas: ${linesErr.message}` };
   }
 
-  if (postNow) {
-    await audit(
-      tenantId,
-      "journal_entry",
-      inserted.id,
-      await currentUserId(supabase),
-      "posted",
-      { entry_code, on_create: true },
-    );
-  }
-
   revalidatePath("/studio/contabilidad");
   return { ok: true, createdCode: entry_code };
 }
@@ -261,22 +219,17 @@ export async function postEntry(
     .eq("id", id);
   if (error) return { error: error.message };
 
-  await audit(
-    entry.tenant_id,
-    "journal_entry",
-    entry.id,
-    await currentUserId(supabase),
-    "posted",
-    { entry_code: entry.entry_code },
-  );
-
   revalidatePath("/studio/contabilidad");
   return { ok: true };
 }
 
 export async function voidEntry(
   id: string,
+  reasonRaw: string,
 ): Promise<{ ok?: boolean; error?: string }> {
+  const reasonResult = validateAuditReason(reasonRaw);
+  if (!reasonResult.ok) return { error: reasonResult.error };
+
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "accounting");
   if (denial) return { error: denial };
@@ -306,20 +259,15 @@ export async function voidEntry(
     };
   }
 
-  const { error } = await supabase
-    .from("journal_entries")
-    .update({ status: "anulado" })
-    .eq("id", id);
-  if (error) return { error: error.message };
-
-  await audit(
-    entry.tenant_id,
-    "journal_entry",
-    entry.id,
-    await currentUserId(supabase),
-    "voided",
-    { entry_code: entry.entry_code, source: entry.source },
+  const { data: changed, error } = await supabase.rpc(
+    "void_journal_entry_with_audit_reason",
+    {
+      p_id: id,
+      p_reason: reasonResult.reason,
+    },
   );
+  if (error) return { error: error.message };
+  if (!changed) return { error: "El asiento ya no admite anulación." };
 
   revalidatePath("/studio/contabilidad");
   return { ok: true };
@@ -463,15 +411,6 @@ export async function createAccount(
     return { error: `No se pudo crear la cuenta: ${error.message}` };
   }
 
-  await audit(
-    tenantId,
-    "account",
-    input!.code,
-    await currentUserId(supabase),
-    "created",
-    { code: input!.code, name: input!.name, type: input!.type },
-  );
-
   revalidatePath("/studio/contabilidad");
   return { ok: true, createdCode: input!.code };
 }
@@ -524,15 +463,6 @@ export async function updateAccount(
     .eq("id", id);
 
   if (error) return { error: `No se pudo guardar: ${error.message}` };
-
-  await audit(
-    current.tenant_id,
-    "account",
-    current.code,
-    await currentUserId(supabase),
-    "updated",
-    { code: current.code, name: input!.name },
-  );
 
   revalidatePath("/studio/contabilidad");
   return { ok: true };

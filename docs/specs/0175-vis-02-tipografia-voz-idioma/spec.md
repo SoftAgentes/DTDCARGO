@@ -1,10 +1,10 @@
 ---
 sdd: "0175"
 title: "VIS-02 — tipografía por voz, destinatario e idioma"
-status: approved
+status: done
 author: "Sam (founder) + Codex"
 created: 2026-07-29
-updated: 2026-07-29
+updated: 2026-07-31
 supersedes: null
 superseded_by: null
 related: ["0165"]
@@ -35,12 +35,17 @@ V0 queda cerrado. Esta decisión no carga todavía la fuente.
 
 ## 3. Inventario
 
-- `app/layout.tsx` carga Archivo, Archivo Black y Noto Sans SC;
+- `app/layout.tsx` carga Archivo, Archivo Black, Noto Sans SC y Noto Serif SC;
+- Noto Serif SC usa `display: "swap"`, `preload: false` y fallback CJK seguro;
 - `.studio-sys` usa Nunito Sans + Sora;
-- `app/studio/tokens.css` expone `--f-cn` para UI;
-- no existen `--f-cn-ui` ni `--f-cn-document`;
-- correos usan fallbacks locales Archivo/Arial/system-ui;
-- no hay renderer transversal ni evidencia de incrustación CJK en PDF;
+- `app/globals.css` y `app/studio/tokens.css` separan `--f-cn-ui` de
+  `--f-cn-document`;
+- el alias compatible `--f-cn` continúa resolviendo exclusivamente a
+  `--f-cn-ui`;
+- las firmas de Mailing usan un renderer con voz/fallback por idioma; los demás
+  correos conservan adopción gradual;
+- el packing list imprimible tiene evidencia CJK de fuente, peso, render y
+  extracción; otros PDFs sin consumidor chino no se migran;
 - existen usos editoriales Georgia/Times en Marketing que requieren un alcance
   separado, no se corrigen de forma oportunista.
 
@@ -48,10 +53,16 @@ V0 queda cerrado. Esta decisión no carga todavía la fuente.
 
 1. **V0 marca:** cerrado mediante BD-036 y sincronización
    BRAND/Norte/VIS-02.
-2. **V1 tokens:** cargar fuente autorizada y añadir aliases compatibles.
-3. **V2 email:** inventariar/normalizar renderers con fallback seguro.
-4. **V3 PDF:** incrustación, glifos, selección/copy-paste y peso.
-5. **V4 visual:** español/zh-CN, Studio, Gmail, Outlook, Apple Mail e impresión.
+2. **V1 tokens:** cerrado; fuente autorizada cargada y aliases compatibles.
+3. **V2 email:** cerrado en firmas de Mailing con fallback seguro; los demás
+   renderers se migran por slices.
+4. **V3 PDF:** cerrado en el packing list imprimible; los demás documentos se
+   migran sólo cuando exista contenido chino real.
+5. **V4 visual:** validación local e impresión cerradas; entrega y estructura
+   de una muestra `zh-CN` verificadas en Gmail y Outlook; Outlook visual
+   cerrado en modo oscuro; Gmail cerrado por confirmación explícita del founder
+   sin exigir una segunda captura; Apple Mail se clasifica `no aplica` por
+   decisión explícita del founder.
 
 Cada gate conserva commit, integración y publicación separados. No se cambia
 tipografía de pantallas existentes en V0.
@@ -68,5 +79,29 @@ tipografía de pantallas existentes en V0.
 
 ## 6. Estado
 
-SDD aprobado; Gate V0 cerrado. V1–V4 permanecen pendientes. No se modificó
-código ni se cargó Noto Serif SC.
+SDD `done`; V0–V4 están cerrados. El commit `e7be56c6`:
+
+- cargó Noto Serif SC mediante `next/font` sin bloquear render ni precargarla;
+- creó `--f-cn-ui` y `--f-cn-document`;
+- conservó `--f-cn` como alias exclusivo de UI;
+- mantuvo toda la UI china en Noto Sans SC;
+- añadió la prueba contractual
+  `__tests__/vis-02-font-tokens.test.ts`.
+
+La revisión [REV-VIS-003](../../governance/reviews/vis-02-v1-closure.md)
+consolida V1. [REV-VIS-004](../../governance/reviews/vis-02-v2-email.md)
+cierra V2 en las firmas formales de Mailing, incluido preview y los envíos
+inmediato/programado. [REV-VIS-005](../../governance/reviews/vis-02-v3-pdf.md)
+cierra V3 en el packing list formal imprimible, con separación comprobada entre
+UI y documento. El resto de los correos y documentos conserva migración
+gradual. [REV-VIS-006](../../governance/reviews/vis-02-v4-visual.md) aprueba
+firma española, firma `zh-CN`, UI china e impresión en local.
+[REV-VIS-010](../../governance/reviews/vis-02-external-mail-client-evidence.md)
+verifica entrega y estructura MIME/HTML de una muestra sintética en Gmail y
+Outlook. La misma revisión cierra Outlook visual en modo oscuro. La captura de
+Gmail muestra la traducción al español, pero el founder confirmó explícitamente
+el render original y aceptó cerrar ese cliente sin una segunda captura. El
+founder determinó que Apple Mail no requiere verificación y se clasifica
+`no aplica`, sin declarar ese cliente verificado. Con esa decisión queda
+cerrado el gate externo y el SDD pasa a `done`; los consumidores futuros se
+adoptan mediante slices separados con alcance y evidencia propios.

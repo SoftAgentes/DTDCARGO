@@ -13,7 +13,10 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import type { ShipmentStatus } from "@/lib/studio/shipment-types";
+import { validateVeDeliveryCompletionInput } from "@/lib/studio/warehouse-ve-types";
+import { completeVeDeliveryGoverned } from "@/lib/studio/warehouse-ve-queries";
 
 type ActionResult = { ok?: boolean; error?: string };
 
@@ -33,6 +36,8 @@ async function transitionStatus(
   if (!shipmentId) return { error: "shipment_id requerido" };
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "ve");
+  if (denial) return { error: denial };
 
   const { data: link } = await supabase
     .from("user_tenants")
@@ -122,28 +127,51 @@ export async function assignDeliveryAction(
 }
 
 export async function markDeliveredAction(
-  shipmentId: string,
-  params: { podSignedBy?: string } = {},
-): Promise<ActionResult> {
-  const extraFields: Record<string, unknown> = {};
-  if (params.podSignedBy?.trim()) {
-    extraFields.pod_signed_by = params.podSignedBy.trim();
+  raw: {
+    shipmentId?: string;
+    from?: string;
+    receivedBy?: string;
+    reason?: string;
+    requestRef?: string;
+  },
+): Promise<ActionResult & { replayed?: boolean }> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "ve");
+  if (denial) return { error: denial };
+
+  const validation = validateVeDeliveryCompletionInput({
+    shipment_id: raw.shipmentId,
+    from: raw.from,
+    received_by: raw.receivedBy,
+    reason: raw.reason,
+    request_ref: raw.requestRef,
+  });
+  if (!validation.ok) return { error: validation.error };
+
+  try {
+    const result = await completeVeDeliveryGoverned(supabase, {
+      shipmentId: validation.input.shipment_id,
+      receivedBy: validation.input.received_by,
+      reason: validation.input.reason,
+      requestRef: validation.input.request_ref,
+    });
+    revalidatePath("/studio/ve");
+    revalidatePath(`/studio/tracking/${validation.input.shipment_id}`);
+    return { ok: true, replayed: result === "replayed" };
+  } catch (error) {
+    const code =
+      typeof error === "object" && error !== null && "code" in error
+        ? String((error as { code?: unknown }).code ?? "")
+        : "";
+    if (code === "42501") return { error: "No tienes permiso para confirmar esta entrega." };
+    if (code === "40001") {
+      return { error: "El embarque cambió. Actualiza la página antes de reintentar." };
+    }
+    if (code === "P0002") return { error: "El embarque ya no está disponible." };
+    return {
+      error: `No se pudo confirmar la entrega. Referencia: ${validation.input.request_ref}`,
+    };
   }
-  // delivered_at se setea automáticamente por trigger set_delivered_at (0009)
-
-  const eventNote = params.podSignedBy?.trim()
-    ? `Entregado · POD firmado por ${params.podSignedBy.trim()}`
-    : "Entregado · POD firmado";
-
-  return transitionStatus(
-    shipmentId,
-    ["out_for_delivery", "last_mile"],
-    "delivered",
-    {
-      eventNote,
-      extraFields,
-    },
-  );
 }
 
 export async function reportIncidentAction(

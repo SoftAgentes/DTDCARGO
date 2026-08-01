@@ -21,8 +21,8 @@
 
 import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
+import { validateAuditReason } from "@/lib/studio/audit/reason";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { postInvoiceJournalEntry } from "@/lib/studio/accounting/invoice-posting";
 import {
@@ -49,39 +49,6 @@ async function resolveTenantId(
     .select("tenant_id")
     .maybeSingle<{ tenant_id: string }>();
   return data?.tenant_id ?? null;
-}
-
-async function currentUserId(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-): Promise<string | null> {
-  const { data } = await supabase.auth.getUser();
-  return data.user?.id ?? null;
-}
-
-/** Best-effort audit con actor_type='user'. No bloquea la mutación. */
-async function audit(
-  tenantId: string,
-  entityId: string,
-  actorId: string | null,
-  eventType: string,
-  payload: Record<string, unknown>,
-): Promise<void> {
-  try {
-    const admin = createAdminClient();
-    await admin.from("entity_audit_log").insert({
-      tenant_id: tenantId,
-      entity_type: "sales_order",
-      entity_id: entityId,
-      actor_type: "user",
-      actor_id: actorId,
-      event_type: eventType,
-      payload,
-    });
-  } catch (e) {
-    // entity_audit_log tiene CHECK de entity_type (0124); si 'sales_order' no
-    // está en el CHECK del env, el insert falla pero NO debe bloquear la OV.
-    console.error("[sales-orders audit] no se pudo registrar audit:", e);
-  }
 }
 
 // ── Insertar la OV (común a crear manual / convertir) ──────────
@@ -147,12 +114,6 @@ export async function createSalesOrder(
   if (res.error || !res.id) {
     return { error: res.error ?? "No se pudo crear la orden de venta." };
   }
-
-  await audit(tenantId, res.id, await currentUserId(supabase), "so_created", {
-    sales_order_code: res.salesOrderCode,
-    total_usd: input!.totalUsd,
-    manual: true,
-  });
 
   revalidatePath(SO_PATH);
   return { ok: true, salesOrderCode: res.salesOrderCode };
@@ -243,18 +204,6 @@ export async function convertEstimateToSalesOrder(
     );
   }
 
-  await audit(
-    quote.tenant_id,
-    res.id,
-    await currentUserId(supabase),
-    "so_converted_from_estimate",
-    {
-      sales_order_code: res.salesOrderCode,
-      quote_id: quote.id,
-      total_usd: input!.totalUsd,
-    },
-  );
-
   revalidatePath(SO_PATH);
   revalidatePath("/studio/cotizador");
   return { ok: true, salesOrderCode: res.salesOrderCode };
@@ -306,10 +255,6 @@ export async function updateSalesOrder(
     return { error: `No se pudo actualizar la OV: ${updErr.message}` };
   }
 
-  await audit(so.tenant_id, so.id, await currentUserId(supabase), "so_updated", {
-    total_usd: input!.totalUsd,
-  });
-
   revalidatePath(SO_PATH);
   return { ok: true };
 }
@@ -319,6 +264,7 @@ export async function updateSalesOrder(
 export async function setSalesOrderStatus(
   salesOrderId: string,
   to: SalesOrderStatus,
+  reasonRaw?: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "sales-orders");
@@ -341,19 +287,30 @@ export async function setSalesOrderStatus(
     return { error: `No se puede pasar la OV de "${so.status}" a "${to}".` };
   }
 
+  if (to === "cancelada") {
+    const reasonResult = validateAuditReason(reasonRaw);
+    if (!reasonResult.ok) return { error: reasonResult.error };
+
+    const { data: cancelled, error: cancelErr } = await supabase.rpc(
+      "cancel_sales_order_with_audit_reason",
+      { p_id: so.id, p_reason: reasonResult.reason },
+    );
+    if (cancelErr) {
+      return { error: `No se pudo cancelar la OV: ${cancelErr.message}` };
+    }
+    if (!cancelled) {
+      return { error: "La OV cambió de estado y ya no puede cancelarse." };
+    }
+
+    revalidatePath(SO_PATH);
+    return { ok: true };
+  }
+
   const { error: updErr } = await supabase
     .from("sales_orders")
     .update({ status: to })
     .eq("id", so.id);
   if (updErr) return { error: `No se pudo cambiar el estado: ${updErr.message}` };
-
-  await audit(
-    so.tenant_id,
-    so.id,
-    await currentUserId(supabase),
-    "so_status_changed",
-    { from: so.status, to, sales_order_code: so.sales_order_code },
-  );
 
   revalidatePath(SO_PATH);
   return { ok: true };
@@ -361,8 +318,9 @@ export async function setSalesOrderStatus(
 
 export async function cancelSalesOrder(
   salesOrderId: string,
+  reasonRaw: string,
 ): Promise<{ ok?: boolean; error?: string }> {
-  return setSalesOrderStatus(salesOrderId, "cancelada");
+  return setSalesOrderStatus(salesOrderId, "cancelada", reasonRaw);
 }
 
 // ── OV ↔ prealerta (caja física) ───────────────────────────────
@@ -417,14 +375,6 @@ export async function assignPrealertaToSalesOrder(
     return { error: `No se pudo asignar la prealerta: ${updErr.message}` };
   }
 
-  await audit(
-    so.tenant_id,
-    so.id,
-    await currentUserId(supabase),
-    "so_prealerta_assigned",
-    { sales_order_code: so.sales_order_code, prealerta_code: pre.code },
-  );
-
   revalidatePath(SO_PATH);
   return { ok: true };
 }
@@ -465,14 +415,6 @@ export async function unassignPrealertaFromSalesOrder(
   if (updErr) {
     return { error: `No se pudo quitar la prealerta: ${updErr.message}` };
   }
-
-  await audit(
-    so.tenant_id,
-    so.id,
-    await currentUserId(supabase),
-    "so_prealerta_unassigned",
-    { sales_order_code: so.sales_order_code, prealerta_id: prealertaId },
-  );
 
   revalidatePath(SO_PATH);
   return { ok: true };
@@ -706,21 +648,6 @@ export async function autoInvoiceForReceipt(args: {
         e,
       );
     }
-
-    // ── 5. Audit (best-effort) ──
-    await audit(
-      tenantId,
-      String(r.sales_order_id ?? ""),
-      null,
-      "so_auto_invoiced",
-      {
-        sales_order_code: r.sales_order_code,
-        invoice_code: invoiceCode,
-        receipt_code: receipt.receipt_code,
-        amount_usd: totalUsd,
-        status: r.sales_order_status,
-      },
-    );
 
     revalidatePath(SO_PATH);
     revalidatePath("/studio/facturacion");

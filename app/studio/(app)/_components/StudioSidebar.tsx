@@ -99,47 +99,61 @@ export function StudioSidebar({
   const [openGroup, setOpenGroup] = useState<Group | null>(
     activeGroup ?? GROUP_ORDER[0],
   );
+  const [openParents, setOpenParents] = useState<Record<string, boolean>>({});
 
   // Hidratar estado collapsed + restaurar la última sección abierta.
   useEffect(() => {
-    try {
-      const v = localStorage.getItem(STORAGE_KEY);
-      if (v === "1") setCollapsed(true);
-    } catch {
-      // ignore (SSR / disabled storage)
-    }
-    try {
-      const saved = localStorage.getItem(OPEN_GROUP_KEY);
-      if (saved && !activeGroup && GROUP_ORDER.includes(saved as Group)) {
-        setOpenGroup(saved as Group);
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      try {
+        const v = localStorage.getItem(STORAGE_KEY);
+        if (v === "1") setCollapsed(true);
+      } catch {
+        // ignore (SSR / disabled storage)
       }
-    } catch {
-      // ignore (disabled storage)
-    }
-    try {
-      const rawParents = localStorage.getItem(PARENTS_KEY);
-      if (rawParents) {
-        setOpenParents(JSON.parse(rawParents) as Record<string, boolean>);
+      try {
+        const saved = localStorage.getItem(OPEN_GROUP_KEY);
+        if (saved && !activeGroup && GROUP_ORDER.includes(saved as Group)) {
+          setOpenGroup(saved as Group);
+        }
+      } catch {
+        // ignore (disabled storage)
       }
-    } catch {
-      // ignore (parse error / disabled storage)
-    }
-    // Restaurar ancho del sidebar (slider) escribiendo la var CSS.
-    try {
-      const w = parseInt(localStorage.getItem(SB_WIDTH_KEY) || "", 10);
-      if (w >= SB_MIN && w <= SB_MAX) {
-        document.documentElement.style.setProperty("--sb-expanded", w + "px");
+      try {
+        const rawParents = localStorage.getItem(PARENTS_KEY);
+        if (rawParents) {
+          setOpenParents(JSON.parse(rawParents) as Record<string, boolean>);
+        }
+      } catch {
+        // ignore (parse error / disabled storage)
       }
-    } catch {
-      // ignore
-    }
-    setHydrated(true);
+      // Restaurar ancho del sidebar (slider) escribiendo la var CSS.
+      try {
+        const w = parseInt(localStorage.getItem(SB_WIDTH_KEY) || "", 10);
+        if (w >= SB_MIN && w <= SB_MAX) {
+          document.documentElement.style.setProperty("--sb-expanded", w + "px");
+        }
+      } catch {
+        // ignore
+      }
+      setHydrated(true);
+    });
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Al navegar a otro módulo, abrir su grupo y colapsar los demás (acordeón).
   useEffect(() => {
-    if (activeGroup) setOpenGroup(activeGroup);
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled && activeGroup) setOpenGroup(activeGroup);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [activeGroup]);
 
   const toggleCollapsed = () => {
@@ -166,7 +180,6 @@ export function StudioSidebar({
   };
 
   // ── Sub-grupos anidados (clusters): estado de expansión por parent ──
-  const [openParents, setOpenParents] = useState<Record<string, boolean>>({});
   const toggleParent = (pid: string) => {
     setOpenParents((prev) => {
       const next = { ...prev, [pid]: !prev[pid] };

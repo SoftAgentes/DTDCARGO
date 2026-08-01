@@ -23,7 +23,6 @@ import { isValidStatusForService } from "@/lib/studio/shipment-state-machine";
 import { formatChangeNote, findRateForDestination } from "@/lib/studio/destination-change";
 import type { Rate } from "@/lib/studio/rate-types";
 import type { ShipmentService, ShipmentStatus } from "@/lib/studio/shipment-types";
-import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
 import { scheduleClientNotifications } from "@/lib/studio/notifications/schedule-client-notifications";
 import { statusEvent } from "@/lib/studio/notifications/client-notification-types";
 
@@ -35,6 +34,57 @@ export type ActionState = {
   error?: string;
   fieldErrors?: Record<string, string>;
 };
+
+function parseIsoInstant(value: FormDataEntryValue | null): string | null {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+/** Reprograma el plan sin alterar los hitos reales del embarque (SDD-0223). */
+export async function updateShipmentPlan(
+  id: string,
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "tracking");
+  if (denial) return { error: denial };
+
+  const version = Number(formData.get("planning_version"));
+  const reason = String(formData.get("planning_reason") ?? "").trim();
+  const timezone = String(formData.get("planning_timezone") ?? "").trim();
+  if (!Number.isInteger(version) || version < 0) {
+    return { error: "La versión del plan es inválida. Recarga la página." };
+  }
+  if (reason.length < 4) {
+    return { error: "Indica un motivo de al menos 4 caracteres." };
+  }
+
+  const { error } = await supabase.rpc("update_shipment_plan", {
+    p_shipment_id: id,
+    p_expected_version: version,
+    p_departure_at: parseIsoInstant(formData.get("planned_departure_at")),
+    p_arrival_at: parseIsoInstant(formData.get("planned_arrival_at")),
+    p_delivery_at: parseIsoInstant(formData.get("planned_delivery_at")),
+    p_timezone: timezone,
+    p_reason: reason,
+  });
+  if (error) {
+    const conflict = error.code === "40001";
+    return {
+      error: conflict
+        ? "El plan cambió en otra sesión. Recarga antes de guardar."
+        : error.message.includes("cronológica")
+          ? "La salida, llegada y entrega deben conservar el orden cronológico."
+          : "No pudimos guardar la planificación.",
+    };
+  }
+  revalidatePath(`/studio/tracking/${id}`);
+  revalidatePath("/studio/calendario");
+  return { ok: true };
+}
 
 function parseNumber(value: FormDataEntryValue | null): number | null {
   if (!value) return null;
@@ -192,6 +242,11 @@ export async function transitionShipment(
   newStatus: ShipmentStatus,
   note?: string | null,
 ): Promise<ActionState> {
+  if (newStatus === "delivered") {
+    return {
+      error: "Confirma la entrega manual desde Almacén VE o usa el POD sellado de Despacho.",
+    };
+  }
   const tenantId = await getUserTenantId();
   if (!tenantId) return { error: "Sin tenant asignado." };
 
@@ -252,34 +307,13 @@ export async function transitionShipment(
     return { error: "Cambio aplicado pero el evento falló al registrarse." };
   }
 
-  // Solo el arribo a destino dispara el evento de mail. Otros transitions
-  // (in_warehouse, in_transit, etc) son ruido si se notifica cada uno.
-  if (newStatus === "arrived_destination" && shipment.status !== newStatus) {
-    const admin = createAdminClient();
-    await fireMailEvent(admin, tenantId, {
-      event: "shipment_arrived",
-      vars: {
-        customer_name: shipment.client_name ?? "cliente",
-        shipment_code: shipment.code,
-        destination: shipment.destination ?? "—",
-        arrival_date: new Date().toLocaleDateString("es-VE", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        }),
-        customs_eta_days: "—",
-      },
-      clientMarkbox: shipment.client_markbox,
-      clientName: shipment.client_name,
-      sourceRef: { kind: "shipment", id },
-    });
-  }
-
-  // SDD-0156: motor configurable de avisos al cliente (reemplaza el aviso inline
-  // de SDD-0132). Programa según las reglas del tenant (canal · offset · texto ·
-  // visibilidad); el drain (inline + cron) despacha. arrived_destination NO entra
-  // acá: sigue por su template shipment_arrived (arriba) para no duplicar.
-  // Best-effort: nunca rompe el cambio de estado.
+  // SDD-0156: motor configurable de avisos al cliente. Programa según las reglas
+  // del tenant (canal · offset · texto · visibilidad); el drain (inline + cron)
+  // despacha. `arrived_destination` NO entra acá: el aviso de arribo es CANÓNICO
+  // por `received_ve` (se dispara al crear el recibo del contenedor en Venezuela
+  // — el hecho físico del operario), no por la transición de status. Antes esta
+  // transición mandaba el mail `shipment_arrived`; se quitó para no duplicar con
+  // received_ve (decisión founder 2026-07-19). Best-effort: nunca rompe el cambio.
   if (shipment.status !== newStatus && newStatus !== "arrived_destination") {
     const admin = createAdminClient();
     await scheduleClientNotifications(admin, tenantId, {

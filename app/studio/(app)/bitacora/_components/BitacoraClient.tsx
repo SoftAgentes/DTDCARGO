@@ -10,9 +10,9 @@
 
 import {
   startTransition,
-  useEffect,
   useMemo,
   useState,
+  useSyncExternalStore,
   useTransition,
 } from "react";
 import Link from "next/link";
@@ -55,6 +55,26 @@ const VIEW_LABELS: Record<View, string> = {
 };
 
 const VIEW_STORAGE_KEY = "bitacora:view";
+const VIEW_STORAGE_EVENT = "bitacora:view-change";
+
+function readStoredView(): View {
+  const saved = window.localStorage.getItem(VIEW_STORAGE_KEY);
+  return saved === "lista" ||
+    saved === "tablero" ||
+    saved === "actas" ||
+    saved === "agente"
+    ? saved
+    : "tablero";
+}
+
+function subscribeStoredView(onStoreChange: () => void) {
+  window.addEventListener("storage", onStoreChange);
+  window.addEventListener(VIEW_STORAGE_EVENT, onStoreChange);
+  return () => {
+    window.removeEventListener("storage", onStoreChange);
+    window.removeEventListener(VIEW_STORAGE_EVENT, onStoreChange);
+  };
+}
 
 interface Props {
   tasks: BitacoraTask[];
@@ -84,30 +104,27 @@ export function BitacoraClient({
   const toast = useToast();
   const [, startRefresh] = useTransition();
 
-  // Realtime: un avance en otro dispositivo re-pull del server (<2s) → el
-  // useEffect([tasks]) re-syncea localTasks. Ver use-bitacora-realtime.ts.
+  // Realtime: un avance en otro dispositivo re-pull del server (<2s) y las
+  // props nuevas re-sincronizan localTasks. Ver use-bitacora-realtime.ts.
   useBitacoraTasksRealtime(tenantId);
 
-  const [view, setView] = useState<View>("tablero");
-  useEffect(() => {
-    const saved = window.localStorage.getItem(VIEW_STORAGE_KEY);
-    if (
-      saved === "lista" ||
-      saved === "tablero" ||
-      saved === "actas" ||
-      saved === "agente"
-    ) {
-      setView(saved);
-    }
-  }, []);
+  const view = useSyncExternalStore(
+    subscribeStoredView,
+    readStoredView,
+    () => "tablero",
+  );
   const changeView = (v: View) => {
-    setView(v);
     window.localStorage.setItem(VIEW_STORAGE_KEY, v);
+    window.dispatchEvent(new Event(VIEW_STORAGE_EVENT));
   };
 
   // Optimista con revert: el server refresca vía router.refresh().
   const [localTasks, setLocalTasks] = useState<BitacoraTask[]>(tasks);
-  useEffect(() => setLocalTasks(tasks), [tasks]);
+  const [tasksSource, setTasksSource] = useState(tasks);
+  if (tasksSource !== tasks) {
+    setTasksSource(tasks);
+    setLocalTasks(tasks);
+  }
 
   // Filtro "Esperando al cliente" (solo tareas tipo entregable_cliente).
   const [esperandoOnly, setEsperandoOnly] = useState(false);
@@ -116,17 +133,10 @@ export function BitacoraClient({
     | { mode: "create" }
     | { mode: "edit"; task: BitacoraTask }
     | null
-  >(null);
-
-  // Deep-link desde la bandeja de menciones: abrir el drawer de la tarea del
-  // ?task= UNA vez al montar (no re-dispara en router.refresh — el efecto corre
-  // solo en el mount inicial; el drawer sobrevive el refresh por estado cliente).
-  useEffect(() => {
-    if (!initialOpenTaskId) return;
-    const t = tasks.find((x) => x.id === initialOpenTaskId);
-    if (t) setDrawer({ mode: "edit", task: t });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  >(() => {
+    const task = tasks.find((item) => item.id === initialOpenTaskId);
+    return task ? { mode: "edit", task } : null;
+  });
 
   const nameByUserId = useMemo(() => {
     const m: Record<string, string> = {};
@@ -172,26 +182,64 @@ export function BitacoraClient({
     [openTasks],
   );
 
-  const handleMove = (taskId: string, estado: BitacoraTaskEstado) => {
+  const handleMove = (
+    taskId: string,
+    estado: BitacoraTaskEstado,
+    expectedEstado?: BitacoraTaskEstado,
+  ) => {
     if (!canEdit) {
       toast.info("Tu rol es de solo lectura en Bitácora.");
       return;
     }
-    const prev = localTasks;
+    const previousEstado =
+      expectedEstado ?? localTasks.find((task) => task.id === taskId)?.estado;
+    if (!previousEstado || previousEstado === estado) return;
+    const previousTask = localTasks.find((task) => task.id === taskId);
     setLocalTasks((ts) =>
       ts.map((t) => (t.id === taskId ? { ...t, estado } : t)),
     );
     startTransition(async () => {
-      const res = await moveTaskAction(taskId, estado);
+      const res = await moveTaskAction(taskId, estado, previousEstado);
       if (res?.error) {
-        setLocalTasks(prev);
+        setLocalTasks((tasks) =>
+          tasks.map((task) =>
+            task.id === taskId ? { ...task, estado: previousEstado } : task,
+          ),
+        );
         toast.error(res.error);
+        startRefresh(() => router.refresh());
         return;
       }
-      if (estado === "hecho") {
-        const t = prev.find((x) => x.id === taskId);
-        toast.success(`"${t?.titulo ?? "Tarea"}" marcada como hecha`);
-      }
+      const taskTitle = previousTask?.titulo ?? "Tarea";
+      toast.show({
+        eventKey: "bitacora:task-moved",
+        tone: "success",
+        message:
+          estado === "hecho"
+            ? `"${taskTitle}" marcada como hecha`
+            : `"${taskTitle}" cambió de estado`,
+        priority: "normal",
+        scope: "module",
+        dedupeKey: `bitacora:task-moved:${taskId}`,
+        duration: "undo",
+        action: {
+          label: "Deshacer",
+          failureMessage:
+            "No se pudo deshacer porque la tarea cambió nuevamente. Actualiza el tablero.",
+          onSelect: async () => {
+            const undo = await moveTaskAction(taskId, previousEstado, estado);
+            if (undo.error) throw new Error(undo.error);
+            setLocalTasks((tasks) =>
+              tasks.map((task) =>
+                task.id === taskId
+                  ? { ...task, estado: previousEstado }
+                  : task,
+              ),
+            );
+            startRefresh(() => router.refresh());
+          },
+        },
+      });
       startRefresh(() => router.refresh());
     });
   };

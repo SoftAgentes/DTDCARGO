@@ -14,7 +14,7 @@ import { CONTACT } from "@/lib/design-tokens";
 
 const DESC =
   "Política de Privacidad de DTD Cargo — qué datos recogemos, para qué los usamos, con quién los compartimos y qué derechos tienes.";
-const UPDATED = "12 de julio de 2026";
+const UPDATED = "30 de julio de 2026";
 
 export const metadata: Metadata = {
   title: "Política de Privacidad",
@@ -67,8 +67,11 @@ export default function PrivacidadPage() {
   return (
     <>
       <Nav />
-      {/* Reskin mínimo al Norte: hero navy `rp-*`. El texto legal, la
-          estructura de secciones y el `noindex` del metadata no se tocan. */}
+      {/* Reskin mínimo al Norte: hero navy `rp-*`. El texto legal y la
+          estructura de secciones no se tocan.
+          (Nota 2026-07-30: el comentario anterior hablaba de un `noindex` que
+          nunca existió en el metadata de esta página — y está bien que no exista:
+          una política de privacidad tiene que ser pública e indexable.) */}
       <main className="rp-surface" style={{ ["--rp-w" as string]: "900px" }}>
         <section className="rp-hero">
           <div className="rp-hero-in">
@@ -221,8 +224,14 @@ export default function PrivacidadPage() {
                   opcionales y de forma anonimizada.
                 </li>
                 <li>
-                  <strong>Nuestro equipo operativo</strong> en Venezuela y China,
-                  para coordinar tu carga.
+                  <strong>Nuestro equipo en Venezuela</strong>, para coordinar tu
+                  envío y la entrega.
+                </li>
+                <li>
+                  <strong>Nuestro equipo en China</strong>, que trabaja{" "}
+                  <strong>solo con tu Shipping Mark</strong> (tu código de
+                  cliente) y los datos de la mercancía. <strong>No ve tu nombre</strong>,
+                  ni tu documento, ni tu dirección, ni tu teléfono.
                 </li>
                 <li>
                   <strong>Autoridades</strong>, únicamente cuando la ley lo exija.
@@ -238,11 +247,18 @@ export default function PrivacidadPage() {
             <article>
               <h2 className={H2}>5. Transferencias internacionales</h2>
               <p className={P}>
-                Operamos entre <strong>China y Venezuela</strong>, así que para
-                coordinar tu envío parte de tus datos de contacto y de la carga se
-                procesan en ambos países por nuestro propio equipo. Lo hacemos solo
-                en la medida necesaria para cumplir con el servicio que
-                contrataste.
+                Operamos entre <strong>China y Venezuela</strong>. Tus datos
+                identificatorios —nombre, documento, dirección y teléfono— se
+                tratan <strong>en Venezuela</strong>.
+              </p>
+              <p className={P}>
+                Nuestro equipo en China trabaja con tu{" "}
+                <strong>Shipping Mark</strong> y con los datos de la mercancía
+                (proveedor, cajas, volumen, peso). Ese código identifica tu carga
+                sin revelar quién eres: por eso el almacén puede recibir, estibar y
+                etiquetar tus cajas <strong>sin conocer tu identidad</strong>. Es
+                una decisión de diseño, no una casualidad — y está implementada en
+                el sistema, no solo escrita acá.
               </p>
             </article>
 

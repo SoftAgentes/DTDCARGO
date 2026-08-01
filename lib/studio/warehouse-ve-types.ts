@@ -119,7 +119,56 @@ export function availableActions(status: ShipmentStatus): VeAction[] {
 export const VE_ACTION_LABELS: Record<VeAction, string> = {
   mark_customs_released: "Marcar liberado de aduana",
   assign_delivery: "Asignar reparto",
-  mark_delivered: "Marcar entregado",
+  mark_delivered: "Confirmar entrega manual",
   report_incident: "Reportar incidencia",
   view_detail: "Ver detalle completo",
 };
+
+export type VeDeliveryCompletionInput = {
+  shipment_id: string;
+  from: "out_for_delivery" | "last_mile";
+  received_by: string;
+  reason: string;
+  request_ref: string;
+};
+
+export type VeDeliveryCompletionValidation =
+  | { ok: true; input: VeDeliveryCompletionInput }
+  | { ok: false; error: string };
+
+/** Contrato público del fallback manual R3 de entrega VE. */
+export function validateVeDeliveryCompletionInput(
+  raw: Record<string, unknown>,
+): VeDeliveryCompletionValidation {
+  const shipmentId = String(raw.shipment_id ?? "").trim();
+  const from = String(raw.from ?? "").trim();
+  const receivedBy = String(raw.received_by ?? "").trim();
+  const reason = String(raw.reason ?? "").trim();
+  const requestRef = String(raw.request_ref ?? "").trim();
+
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(shipmentId)) {
+    return { ok: false, error: "Embarque inválido." };
+  }
+  if (from !== "out_for_delivery" && from !== "last_mile") {
+    return { ok: false, error: "El embarque cambió de estado. Actualiza la página." };
+  }
+  if (receivedBy.length < 2 || receivedBy.length > 200) {
+    return { ok: false, error: "Indica el receptor con 2 a 200 caracteres." };
+  }
+  if (reason.length < 4 || reason.length > 1_000) {
+    return { ok: false, error: "El motivo debe tener entre 4 y 1000 caracteres." };
+  }
+  if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(requestRef)) {
+    return { ok: false, error: "La referencia de la operación es inválida." };
+  }
+  return {
+    ok: true,
+    input: {
+      shipment_id: shipmentId,
+      from,
+      received_by: receivedBy,
+      reason,
+      request_ref: requestRef,
+    },
+  };
+}

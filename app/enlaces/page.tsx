@@ -230,11 +230,14 @@ const LINKS: LinkRow[] = [
 
 // Ubicación / "Cómo llegar" — abre la app de mapas nativa por plataforma
 // (Apple Maps en iPhone, Google Maps en el resto). El pin de Google es el
-// verificado de DTD (CONTACT.ve.mapsUrl); Apple Maps busca por nombre+dirección.
+// verificado de DTD (CONTACT.ve.mapsUrl); Apple Maps cae directo en las
+// coordenadas (`ll`) con `q` solo como etiqueta del pin — buscar por texto
+// degradaba el match ahora que la dirección lleva la referencia entre
+// paréntesis, y el GPS es exacto de todos modos.
 const MAPS = {
   google: CONTACT.ve.mapsUrl,
-  apple: `https://maps.apple.com/?q=${encodeURIComponent(
-    `DTD Cargo, ${CONTACT.ve.addressFull}`,
+  apple: `https://maps.apple.com/?ll=${CONTACT.ve.geo.lat},${CONTACT.ve.geo.lng}&q=${encodeURIComponent(
+    "DTD Cargo",
   )}`,
 };
 

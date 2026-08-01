@@ -10,6 +10,9 @@ import {
   CONSOLIDADO_MIN_CBM_MENSAJE,
   calcularEnvioLCL,
   cbmFromDimensions,
+  cbmFromDimensionsEnUnidad,
+  CM_POR_UNIDAD,
+  FT3_POR_CBM,
   whatsappTextFromCotizacion,
   sanitizeDecimalText,
   parseDecimalInput,
@@ -656,6 +659,58 @@ describe("cbmFromDimensions", () => {
     expect(cbmFromDimensions(-40, 30, 60, 10)).toBe(0); // negativo
     expect(cbmFromDimensions(NaN, 30, 60, 10)).toBe(0); // NaN
     expect(cbmFromDimensions(40, 30, 60, Number.POSITIVE_INFINITY)).toBe(0); // no finito
+  });
+
+  it("la misma caja da el mismo CBM en las tres unidades", () => {
+    // 60 × 40 × 50 cm es la MISMA caja que 0,6 × 0,4 × 0,5 m. Si estas dos
+    // divergen, la FAQ y la calculadora empiezan a contradecirse.
+    const enCm = cbmFromDimensionsEnUnidad(50, 40, 60, 1, "cm");
+    const enM = cbmFromDimensionsEnUnidad(0.5, 0.4, 0.6, 1, "m");
+    expect(enCm).toBe(0.12);
+    expect(enM).toBe(enCm);
+  });
+
+  it("convierte pulgadas a la base de centímetros", () => {
+    // 24 × 16 × 20 in = 60,96 × 40,64 × 50,8 cm → 0,12585 m³, que roundCBM
+    // sube a 0,126 (redondea hacia arriba, a favor del cobro).
+    expect(cbmFromDimensionsEnUnidad(20, 16, 24, 1, "in")).toBe(0.126);
+  });
+
+  it("centímetro es la base: su factor es 1 y no altera el número", () => {
+    expect(CM_POR_UNIDAD.cm).toBe(1);
+    expect(cbmFromDimensionsEnUnidad(40, 30, 60, 10, "cm")).toBe(
+      cbmFromDimensions(40, 30, 60, 10),
+    );
+  });
+
+  it("hereda el rechazo de medidas inválidas", () => {
+    expect(cbmFromDimensionsEnUnidad(0, 40, 60, 1, "m")).toBe(0);
+    expect(cbmFromDimensionsEnUnidad(50, 40, 60, 0, "in")).toBe(0);
+    expect(cbmFromDimensionsEnUnidad(NaN, 40, 60, 1, "cm")).toBe(0);
+  });
+
+  it("el separador decimal no cambia el resultado (coma o punto)", () => {
+    // El visitante puede escribir en español o en inglés; "0,6" y "0.6" tienen
+    // que ser el mismo número. Es el camino real del widget de la FAQ:
+    // texto → parseDecimalInput → cbmFromDimensionsEnUnidad.
+    const desdeTexto = (a: string, an: string, l: string) =>
+      cbmFromDimensionsEnUnidad(
+        parseDecimalInput(a),
+        parseDecimalInput(an),
+        parseDecimalInput(l),
+        1,
+        "m",
+      );
+    expect(desdeTexto("0,5", "0,4", "0,6")).toBe(0.12);
+    expect(desdeTexto("0.5", "0.4", "0.6")).toBe(0.12);
+    expect(desdeTexto("0.5", "0,4", "0.6")).toBe(0.12); // mezclados
+  });
+
+  it("FT3_POR_CBM convierte a pies cúbicos", () => {
+    expect(FT3_POR_CBM).toBe(35.3147);
+    // 1 m³ ≈ 35,31 ft³ — el dato que ve el importador que trabaja en medidas
+    // gringas.
+    expect(Number((1 * FT3_POR_CBM).toFixed(2))).toBe(35.31);
   });
 
   it("el CBM derivado alimenta el mismo motor (con recargo por densidad)", () => {

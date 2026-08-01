@@ -139,8 +139,8 @@ const TENANT = "tn";
 const MARKBOX = "DTD-5452";
 const SHIP_CODE = "S-2026-0042";
 const VIGENTES: DocRef[] = [
-  { key: "tyc", version: "v2.1" },
-  { key: "operador", version: "v1.4" },
+  { key: "tyc", version: "v2.1", body_sha256: "sha-tyc-v2.1" },
+  { key: "operador", version: "v1.4", body_sha256: "sha-operador-v1.4" },
 ];
 
 /** Fila v2 íntegra de legal_acceptances (hash recomputado de su evidencia). */

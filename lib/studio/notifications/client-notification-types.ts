@@ -112,6 +112,20 @@ export const DEFAULT_EVENT_COPY: Record<string, NotifCopy> = {
     title: "Tu carga fue entregada",
     body: "Tu envío se entregó. Gracias por confiar en DTD Cargo.",
   },
+  // Máquinas paralelas (Slice D). Sin estas entradas, el copy caía al genérico
+  // "Actualización de tu envío" — feo justo en los hitos del arribo del piloto.
+  consolidated: {
+    title: "Armamos tu contenedor",
+    body: "Tu mercancía ya quedó consolidada en el contenedor rumbo a Venezuela.",
+  },
+  eta_set: {
+    title: "Tu carga ya tiene fecha de llegada",
+    body: "La naviera confirmó la fecha estimada de arribo a Venezuela. Te avisamos cuando llegue.",
+  },
+  received_ve: {
+    title: "Tu carga llegó a Venezuela",
+    body: "Recibimos tu mercancía en nuestra bodega en Venezuela. Pronto coordinamos la entrega.",
+  },
 };
 
 /**

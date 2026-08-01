@@ -4,21 +4,19 @@
  * BoardKanban · tablero de 4 columnas con drag & drop HTML5 NATIVO
  * (draggable + onDragStart/onDragOver/onDrop — sin @dnd-kit, decisión SDD-0146).
  *
- * La acción táctil primaria es el botón de avance por tarjeta (fallback para
- * touch: el DnD nativo no existe en móvil). Click en la tarjeta abre el drawer.
+ * La alternativa accesible es un selector por tarjeta que alcanza cualquiera
+ * de los cuatro estados con teclado/touch. Click en la tarjeta abre el drawer.
  */
 
 import { useRef, useState, type DragEvent } from "react";
 import { Avatar } from "@/app/studio/_components/ui/Avatar";
 import { Badge } from "@/app/studio/_components/ui/Badge";
-import { Icon } from "@/app/studio/_components/icons";
 import type { BitacoraTask } from "@/lib/studio/bitacora/bitacora-queries";
 import {
   BITACORA_TASK_ESTADOS,
   ESTADO_META,
   PRIORIDAD_META,
   ROLE_QUEUE_LABELS,
-  nextEstado,
   type BitacoraTaskEstado,
 } from "@/lib/studio/bitacora/bitacora-types";
 import { dueDateLabel } from "@/lib/studio/bitacora/dates";
@@ -28,7 +26,11 @@ interface Props {
   nameByUserId: Record<string, string>;
   canEdit: boolean;
   hoyISO: string;
-  onMove: (taskId: string, estado: BitacoraTaskEstado) => void;
+  onMove: (
+    taskId: string,
+    estado: BitacoraTaskEstado,
+    expectedEstado: BitacoraTaskEstado,
+  ) => void;
   onOpen: (task: BitacoraTask) => void;
 }
 
@@ -41,6 +43,8 @@ export function BoardKanban({
   onOpen,
 }: Props) {
   const [overCol, setOverCol] = useState<BitacoraTaskEstado | null>(null);
+  const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
+  const [liveMessage, setLiveMessage] = useState("");
   // El drop nativo dispara un click fantasma en algunos browsers → guard.
   const draggingRef = useRef(false);
 
@@ -54,19 +58,39 @@ export function BoardKanban({
     if (!id) return;
     const task = tasks.find((t) => t.id === id);
     if (!task || task.estado === estado) return;
-    onMove(id, estado);
+    setDraggingTaskId(null);
+    setLiveMessage(`Moviendo ${task.titulo} a ${ESTADO_META[estado].label}.`);
+    onMove(id, estado, task.estado);
   };
 
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(4, minmax(220px, 1fr))",
-        gap: "var(--s-3)",
-        alignItems: "start",
-        overflowX: "auto",
-      }}
-    >
+    <>
+      <p
+        role="status"
+        aria-live="polite"
+        style={{
+          position: "absolute",
+          width: 1,
+          height: 1,
+          padding: 0,
+          margin: -1,
+          overflow: "hidden",
+          clip: "rect(0, 0, 0, 0)",
+          whiteSpace: "nowrap",
+          border: 0,
+        }}
+      >
+        {liveMessage}
+      </p>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, minmax(220px, 1fr))",
+          gap: "var(--s-3)",
+          alignItems: "start",
+          overflowX: "auto",
+        }}
+      >
       {BITACORA_TASK_ESTADOS.map((estado) => {
         const col = byEstado(estado);
         const meta = ESTADO_META[estado];
@@ -119,6 +143,23 @@ export function BoardKanban({
             </header>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
+              {draggingTaskId &&
+                tasks.find((task) => task.id === draggingTaskId)?.estado !== estado && (
+                  <div
+                    data-testid={`drop-placeholder-${estado}`}
+                    style={{
+                      padding: "10px",
+                      textAlign: "center",
+                      font: "600 11px/1.4 var(--f-sans)",
+                      color: "var(--wine-text)",
+                      border: "1px dashed var(--wine)",
+                      borderRadius: "var(--r-md)",
+                      background: "var(--wine-tint)",
+                    }}
+                  >
+                    Suelta para mover a {meta.label}
+                  </div>
+                )}
               {col.length === 0 && (
                 <div
                   style={{
@@ -141,6 +182,17 @@ export function BoardKanban({
                   canEdit={canEdit}
                   hoyISO={hoyISO}
                   draggingRef={draggingRef}
+                  dragging={draggingTaskId === t.id}
+                  onDragStart={() => {
+                    setDraggingTaskId(t.id);
+                    setLiveMessage(
+                      `Levantaste ${t.titulo}. Hay ${BITACORA_TASK_ESTADOS.length - 1} destinos disponibles.`,
+                    );
+                  }}
+                  onDragEnd={() => {
+                    setDraggingTaskId(null);
+                    setOverCol(null);
+                  }}
                   onMove={onMove}
                   onOpen={onOpen}
                 />
@@ -149,7 +201,8 @@ export function BoardKanban({
           </section>
         );
       })}
-    </div>
+      </div>
+    </>
   );
 }
 
@@ -159,6 +212,9 @@ function TaskCard({
   canEdit,
   hoyISO,
   draggingRef,
+  dragging,
+  onDragStart,
+  onDragEnd,
   onMove,
   onOpen,
 }: {
@@ -167,11 +223,17 @@ function TaskCard({
   canEdit: boolean;
   hoyISO: string;
   draggingRef: React.MutableRefObject<boolean>;
-  onMove: (taskId: string, estado: BitacoraTaskEstado) => void;
+  dragging: boolean;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  onMove: (
+    taskId: string,
+    estado: BitacoraTaskEstado,
+    expectedEstado: BitacoraTaskEstado,
+  ) => void;
   onOpen: (task: BitacoraTask) => void;
 }) {
   const prio = PRIORIDAD_META[task.prioridad];
-  const next = nextEstado(task.estado);
   const doneCount = task.checklist.filter((c) => c.done).length;
   const overdue =
     task.due_date != null && task.due_date < hoyISO && task.estado !== "hecho";
@@ -183,16 +245,16 @@ function TaskCard({
       : null;
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
+    <article
       draggable={canEdit}
       onDragStart={(e) => {
         draggingRef.current = true;
         e.dataTransfer.setData("text/plain", task.id);
         e.dataTransfer.effectAllowed = "move";
+        onDragStart();
       }}
       onDragEnd={() => {
+        onDragEnd();
         window.setTimeout(() => {
           draggingRef.current = false;
         }, 50);
@@ -200,12 +262,6 @@ function TaskCard({
       onClick={() => {
         if (draggingRef.current) return;
         onOpen(task);
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onOpen(task);
-        }
       }}
       style={{
         background: "var(--bg-surface)",
@@ -216,17 +272,31 @@ function TaskCard({
         display: "flex",
         flexDirection: "column",
         gap: "var(--s-2)",
-        opacity: task.estado === "hecho" ? 0.75 : 1,
+        opacity: dragging ? 0.55 : task.estado === "hecho" ? 0.75 : 1,
+        outline: dragging ? "2px solid var(--wine)" : "none",
+        outlineOffset: dragging ? 2 : 0,
       }}
     >
-      <div
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          onOpen(task);
+        }}
+        aria-label={`Abrir tarea ${task.titulo}`}
         style={{
+          appearance: "none",
+          padding: 0,
+          border: 0,
+          background: "transparent",
+          textAlign: "left",
+          cursor: "pointer",
           font: "700 12.5px/1.35 var(--f-sans)",
           color: "var(--ink)",
         }}
       >
         {task.titulo}
-      </div>
+      </button>
 
       <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
         <Badge tone={prio.tone} size="sm">
@@ -309,22 +379,49 @@ function TaskCard({
           )}
         </div>
 
-        {canEdit && next && (
-          <button
-            type="button"
-            className="studio-btn studio-btn-ghost studio-btn-xs"
-            onClick={(e) => {
-              e.stopPropagation();
-              onMove(task.id, next);
+        {canEdit && (
+          <label
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "var(--s-1)",
+              flexShrink: 0,
+              font: "600 10.5px/1 var(--f-sans)",
+              color: "var(--ink-soft)",
             }}
-            aria-label={`Pasar "${task.titulo}" a ${ESTADO_META[next].label}`}
-            style={{ flexShrink: 0 }}
           >
-            {ESTADO_META[next].label} {Icon.arrowR(11)}
-          </button>
+            <span>Mover a</span>
+            <select
+              value={task.estado}
+              aria-label={`Mover ${task.titulo} a otro estado`}
+              onClick={(event) => event.stopPropagation()}
+              onChange={(event) => {
+                event.stopPropagation();
+                const target = event.target.value as BitacoraTaskEstado;
+                if (target !== task.estado) onMove(task.id, target, task.estado);
+              }}
+              style={{
+                minHeight: 44,
+                maxWidth: 112,
+                border: "1px solid var(--border)",
+                borderRadius: "var(--r-sm)",
+                background: "var(--bg-surface)",
+                color: "var(--ink)",
+                font: "600 11px/1 var(--f-sans)",
+                padding: "0 var(--s-2)",
+              }}
+            >
+              {BITACORA_TASK_ESTADOS.map((estado) => (
+                <option key={estado} value={estado}>
+                  {ESTADO_META[estado].label}
+                </option>
+              ))}
+            </select>
+          </label>
         )}
       </div>
-    </div>
+    </article>
   );
 }
 

@@ -1,0 +1,204 @@
+{
+  "schemaVersion": "1.0",
+  "generatedAt": "2026-07-30T00:00:00.000Z",
+  "sourceCommit": "60391612402aa1a500d81e44a57c5edb67c023f6",
+  "normativeSource": "docs/governance/README.md",
+  "agentBrief": "docs/governance/AGENT-BRIEF.md",
+  "commands": {
+    "governance": "pnpm governance:check",
+    "components": "pnpm components:check",
+    "documentation": "pnpm docs:check",
+    "canonical": "pnpm verify"
+  },
+  "policies": [
+    {
+      "code": "A11Y-01",
+      "version": "1.1",
+      "state": "aprobada — adopción transversal pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/a11y-01.md"
+    },
+    {
+      "code": "AUD-01",
+      "version": "1.0",
+      "state": "aprobada — implementación D1–D5 verificada",
+      "approvedAt": "2026-07-21",
+      "path": "docs/governance/policies/aud-01.md"
+    },
+    {
+      "code": "AUD-02",
+      "version": "1.0",
+      "state": "aprobada — adoptada en Producción",
+      "approvedAt": "2026-07-21",
+      "path": "docs/governance/policies/aud-02.md"
+    },
+    {
+      "code": "BTN-01",
+      "version": "1.1",
+      "state": "aprobada",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/btn-01.md"
+    },
+    {
+      "code": "BUS-01",
+      "version": "1.1",
+      "state": "aprobada — adopción pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/bus-01.md"
+    },
+    {
+      "code": "CAL-01",
+      "version": "1.0",
+      "state": "aprobada — adoptada",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/cal-01.md"
+    },
+    {
+      "code": "CMP-01",
+      "version": "1.1",
+      "state": "aprobada — ciclo canonical/deprecated verificado",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/cmp-01.md"
+    },
+    {
+      "code": "CRT-01",
+      "version": "1.0",
+      "state": "aprobada — adopción pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/crt-01.md"
+    },
+    {
+      "code": "DAT-01",
+      "version": "1.0",
+      "state": "aprobada — adoptada en planificación de embarques",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/dat-01.md"
+    },
+    {
+      "code": "DND-01",
+      "version": "1.0",
+      "state": "aprobada — Bitácora verificada; adopción por flujo",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/dnd-01.md"
+    },
+    {
+      "code": "ERR-01",
+      "version": "1.0",
+      "state": "aprobada — adopción pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/err-01.md"
+    },
+    {
+      "code": "FRM-01",
+      "version": "1.1",
+      "state": "aprobada — adopción pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/frm-01.md"
+    },
+    {
+      "code": "HTD-01",
+      "version": "1.0",
+      "state": "aprobada — primer consumidor R3 verificado",
+      "approvedAt": "2026-07-21",
+      "path": "docs/governance/policies/htd-01.md"
+    },
+    {
+      "code": "IA-01",
+      "version": "1.0",
+      "state": "aprobada — adopción pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/ia-01.md"
+    },
+    {
+      "code": "ICO-01",
+      "version": "1.0",
+      "state": "aprobada — adopción pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/ico-01.md"
+    },
+    {
+      "code": "LOD-01",
+      "version": "1.0",
+      "state": "aprobada — adopción pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/lod-01.md"
+    },
+    {
+      "code": "MOT-01",
+      "version": "1.0",
+      "state": "aprobada — adopción pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/mot-01.md"
+    },
+    {
+      "code": "MP-01",
+      "version": "1.1",
+      "state": "aprobada — defaults MP-D1 a MP-D7 vigentes; adopción pendiente",
+      "approvedAt": "2026-07-21",
+      "path": "docs/governance/policies/mp-01.md"
+    },
+    {
+      "code": "NUM-01",
+      "version": "1.1",
+      "state": "aprobada — componente canónico; adopción gradual",
+      "approvedAt": "2026-07-30",
+      "path": "docs/governance/policies/num-01.md"
+    },
+    {
+      "code": "PLG-01",
+      "version": "1.0",
+      "state": "aprobada — plugin repo/team read-only 0.1.2 reproducible",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/plg-01.md"
+    },
+    {
+      "code": "PRG-01",
+      "version": "1.0",
+      "state": "aprobada — adopción pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/prg-01.md"
+    },
+    {
+      "code": "SGE-00",
+      "version": "1.0",
+      "state": "aprobada",
+      "approvedAt": "2026-07-21",
+      "path": "docs/governance/policies/sge-00.md"
+    },
+    {
+      "code": "TBL-01",
+      "version": "1.0",
+      "state": "aprobada — adopción pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/tbl-01.md"
+    },
+    {
+      "code": "UPL-01",
+      "version": "1.0",
+      "state": "aprobada — adopción pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/upl-01.md"
+    },
+    {
+      "code": "VIS-01",
+      "version": "1.0",
+      "state": "aprobada",
+      "approvedAt": "2026-07-21",
+      "path": "docs/governance/policies/vis-01.md"
+    },
+    {
+      "code": "VIS-02",
+      "version": "1.0",
+      "state": "aprobada — implementación V1–V4 y gate externo cerrados",
+      "approvedAt": "2026-07-21",
+      "path": "docs/governance/policies/vis-02.md"
+    },
+    {
+      "code": "WIZ-01",
+      "version": "1.0",
+      "state": "aprobada — adopción pendiente",
+      "approvedAt": "2026-07-29",
+      "path": "docs/governance/policies/wiz-01.md"
+    }
+  ]
+}

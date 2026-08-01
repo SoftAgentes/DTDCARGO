@@ -18,8 +18,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
+import { validateAuditReason } from "@/lib/studio/audit/reason";
 import { capabilityDenial, moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { createBillFor } from "@/lib/studio/treasury/treasury-actions";
 import {
@@ -42,39 +42,6 @@ async function resolveTenantId(
     .select("tenant_id")
     .maybeSingle<{ tenant_id: string }>();
   return data?.tenant_id ?? null;
-}
-
-async function currentUserId(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-): Promise<string | null> {
-  const { data } = await supabase.auth.getUser();
-  return data.user?.id ?? null;
-}
-
-/** Best-effort audit con actor_type='user'. No bloquea la mutación. */
-async function audit(
-  tenantId: string,
-  entityId: string,
-  actorId: string | null,
-  eventType: string,
-  payload: Record<string, unknown>,
-): Promise<void> {
-  try {
-    const admin = createAdminClient();
-    await admin.from("entity_audit_log").insert({
-      tenant_id: tenantId,
-      entity_type: "purchase_order",
-      entity_id: entityId,
-      actor_type: "user",
-      actor_id: actorId,
-      event_type: eventType,
-      payload,
-    });
-  } catch (e) {
-    // entity_audit_log tiene CHECK de entity_type (0088); si 'purchase_order'
-    // no está en el CHECK del env, el insert falla pero NO debe bloquear la OC.
-    console.error("[purchase-orders audit] no se pudo registrar audit:", e);
-  }
 }
 
 // ── Insertar/reemplazar ítems ──────────────────────────────────
@@ -159,12 +126,6 @@ export async function createPurchaseOrder(
     return { error: `Compra creada pero fallaron los ítems: ${itemsRes.error}` };
   }
 
-  await audit(tenantId, inserted.id, await currentUserId(supabase), "po_created", {
-    purchase_order_code: purchaseOrderCode,
-    total_cost_usd: total,
-    items: input!.items.length,
-  });
-
   revalidatePath(PO_PATH);
   return { ok: true, purchaseOrderCode };
 }
@@ -240,11 +201,6 @@ export async function updatePurchaseOrder(
     return { error: `Compra actualizada pero fallaron los ítems: ${itemsRes.error}` };
   }
 
-  await audit(po.tenant_id, po.id, await currentUserId(supabase), "po_updated", {
-    total_cost_usd: total,
-    items: input!.items.length,
-  });
-
   revalidatePath(PO_PATH);
   return { ok: true };
 }
@@ -254,6 +210,7 @@ export async function updatePurchaseOrder(
 export async function setPurchaseOrderStatus(
   purchaseOrderId: string,
   to: PurchaseOrderStatus,
+  reasonRaw?: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "purchase-orders");
@@ -278,19 +235,30 @@ export async function setPurchaseOrderStatus(
     };
   }
 
+  if (to === "cancelada") {
+    const reasonResult = validateAuditReason(reasonRaw);
+    if (!reasonResult.ok) return { error: reasonResult.error };
+
+    const { data: cancelled, error: cancelErr } = await supabase.rpc(
+      "cancel_purchase_order_with_audit_reason",
+      { p_id: po.id, p_reason: reasonResult.reason },
+    );
+    if (cancelErr) {
+      return { error: `No se pudo cancelar la compra: ${cancelErr.message}` };
+    }
+    if (!cancelled) {
+      return { error: "La compra cambió de estado y ya no puede cancelarse." };
+    }
+
+    revalidatePath(PO_PATH);
+    return { ok: true };
+  }
+
   const { error: updErr } = await supabase
     .from("purchase_orders")
     .update({ status: to })
     .eq("id", po.id);
   if (updErr) return { error: `No se pudo cambiar el estado: ${updErr.message}` };
-
-  await audit(
-    po.tenant_id,
-    po.id,
-    await currentUserId(supabase),
-    "po_status_changed",
-    { from: po.status, to, purchase_order_code: po.purchase_order_code },
-  );
 
   revalidatePath(PO_PATH);
   return { ok: true };
@@ -298,8 +266,9 @@ export async function setPurchaseOrderStatus(
 
 export async function cancelPurchaseOrder(
   purchaseOrderId: string,
+  reasonRaw: string,
 ): Promise<{ ok?: boolean; error?: string }> {
-  return setPurchaseOrderStatus(purchaseOrderId, "cancelada");
+  return setPurchaseOrderStatus(purchaseOrderId, "cancelada", reasonRaw);
 }
 
 // ── Puente OC → Bill (recepción) ───────────────────────────────
@@ -501,19 +470,6 @@ export async function receivePurchaseOrder(
       error: `Bill ${billRes.billCode} creado pero no se vinculó a la compra: ${linkErr.message}`,
     };
   }
-
-  await audit(
-    po.tenant_id,
-    po.id,
-    await currentUserId(supabase),
-    "po_received_bill_created",
-    {
-      purchase_order_code: po.purchase_order_code,
-      bill_code: billRes.billCode,
-      bill_id: bill?.id ?? null,
-      total_cost_usd: po.total_cost_usd,
-    },
-  );
 
   revalidatePath(PO_PATH);
   revalidatePath("/studio/tesoreria");

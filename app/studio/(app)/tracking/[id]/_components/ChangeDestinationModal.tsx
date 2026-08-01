@@ -58,9 +58,15 @@ export function ChangeDestinationModal({ shipment, onClose }: Props) {
   // Lookup al blur o cambio del destino (debounce 400ms via key trick)
   useEffect(() => {
     if (!newDest.trim()) {
-      setSuggestedRate(null);
-      setLookupDone(false);
-      return;
+      let cancelled = false;
+      queueMicrotask(() => {
+        if (cancelled) return;
+        setSuggestedRate(null);
+        setLookupDone(false);
+      });
+      return () => {
+        cancelled = true;
+      };
     }
     const t = setTimeout(async () => {
       setLookupPending(true);

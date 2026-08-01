@@ -18,7 +18,11 @@ const BASE_URL = process.env.BASE_URL ?? `http://localhost:${PORT}`;
 
 export default defineConfig({
   testDir: "./e2e",
-  timeout: 30_000,
+  // El primer acceso compila rutas distintas en paralelo. En worktrees que
+  // comparten node_modules, Webpack puede superar 30 s bajo carga fría aunque
+  // el mismo contrato pase inmediatamente después; el margen no relaja las
+  // aserciones ni sus timeouts particulares.
+  timeout: 60_000,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -29,10 +33,8 @@ export default defineConfig({
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
-    // Mobile/webkit deshabilitados — para activar:
-    //   npx playwright install webkit
-    //   y descomentar:
-    // { name: "mobile-safari", use: { ...devices["iPhone 14"] } },
+    { name: "mobile-chrome", use: { ...devices["Pixel 7"] } },
+    { name: "mobile-safari", use: { ...devices["iPhone 14"] } },
   ],
   // Solo levantamos dev server si NO se pasó BASE_URL custom.
   webServer: process.env.BASE_URL
@@ -42,7 +44,10 @@ export default defineConfig({
         // entorno pnpm no linkea los .bin (ERR_PNPM_IGNORED_BUILDS) y `next` no
         // queda en el PATH del shell del webServer → "next no se reconoce".
         // Mismo patrón que scripts/verify.mjs.
-        command: `node node_modules/next/dist/bin/next dev --port ${PORT}`,
+        // `node_modules` puede ser un junction compartido entre worktrees.
+        // Turbopack rechaza ese destino fuera de la raíz del checkout; Webpack
+        // conserva el aislamiento del servidor y permite ejecutar el gate.
+        command: `node node_modules/next/dist/bin/next dev --webpack --port ${PORT}`,
         url: BASE_URL,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,

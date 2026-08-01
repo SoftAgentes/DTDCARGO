@@ -4,10 +4,10 @@
 |---|---|
 | SDD | [SDD-0174](spec.md) |
 | Fecha | 2026-07-29 |
-| Modo | read-only |
+| Modo | inventario cerrado; implementación local verificada |
 | Alcance | acciones server-side de usuarios y Administración |
 | Resultado | 47 acciones en 13 archivos |
-| Revalidación | 2026-07-29 · `origin/main` `e7be56c6245f23703703ff93026757c753e091f3` |
+| Revalidación | 2026-07-30 · `origin/main` `76af3796b6ce6910655d949a1f059ea3ae633762` |
 
 ## 1. Clasificación
 
@@ -62,11 +62,13 @@
 `api_key`, token, secret, password, hash reutilizable, número de cuenta completo,
 datos personales no necesarios, URL firmada, contenido de mensajes y blobs.
 
-## 6. Gate siguiente
+## 6. Resultado del gate
 
-D1 no está implementado. Antes de código se debe decidir la máquina
-intención/confirmación/compensación de Auth, cerrar el ledger por acción y
-publicar allowlist de migración, pruebas, adapters y documentación.
+Las 24 filas obligatorias están implementadas localmente mediante `0289` y los
+adapters D1. La máquina Auth conserva intención, confirmación, compensación y
+reconciliación; las 21 filas D5 y las dos preferencias personales siguen fuera
+de este gate. Producción permanece pendiente de autorización nominal de
+`0289_audit_d1_access_configuration`.
 
 ## 7. Revalidación de las 47 acciones
 

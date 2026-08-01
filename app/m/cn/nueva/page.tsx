@@ -32,12 +32,21 @@ export default async function NuevaRecepcionPage() {
 
   const initialLang = await getOperarioLang();
 
-  // Query clientes del tenant del operario (para el cliente picker)
+  // Query clientes del tenant del operario (para el cliente picker).
+  //
+  // PRIVACIDAD (auditoría 2026-07, hallazgo H-7): el equipo CN identifica al
+  // importador SOLO por Shipping Mark, nunca por su nombre real. La regla ya
+  // existía en el Studio (`listReceipts({ redactClientNames })`, SDD-0039 B.9)
+  // pero esta PWA se construyó después y no la heredó: mandaba la tabla
+  // `clients` COMPLETA —con nombre— al dispositivo en Yiwu.
+  //
+  // Se redacta en el SERVER, no ocultando en el cliente: lo que no se
+  // selecciona no puede filtrarse.
   const admin = createAdminClient();
   const [{ data: clientsData }, citiesData] = await Promise.all([
     admin
       .from("clients")
-      .select("markbox, name")
+      .select("markbox")
       .eq("tenant_id", operario.tenant_id)
       .is("deleted_at", null)
       .order("markbox", { ascending: true }),
@@ -48,7 +57,6 @@ export default async function NuevaRecepcionPage() {
 
   const clients: PickerClient[] = (clientsData ?? []).map((c) => ({
     markbox: c.markbox as string,
-    name: c.name as string,
   }));
 
   const cities: PickerCity[] = citiesData

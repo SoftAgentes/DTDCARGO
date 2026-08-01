@@ -5,7 +5,7 @@
 | Código | VIS-02 |
 | Versión | 1.0 |
 | Dueño | Sam (founder) |
-| Estado | aprobada — implementación parcial |
+| Estado | aprobada — implementación V1–V4 y gate externo cerrados |
 | Creado | 2026-07-21 |
 | Depende de | [VIS-01](vis-01.md) y A11Y-01 |
 | Fuente visual | [`BRAND.md`](../../../BRAND.md), BD-035, BD-036 y Norte vigente |
@@ -93,25 +93,39 @@ salida corporativa se selecciona explícitamente la voz de marca.
 
 ## 7. Estado comprobado
 
-- `app/layout.tsx` carga Archivo, Archivo Black y Noto Sans SC.
+- `app/layout.tsx` carga Archivo, Archivo Black, Noto Sans SC y Noto Serif SC;
+  esta última usa `display: "swap"` y `preload: false`.
 - `app/studio/layout.tsx` carga Sora y Nunito Sans para `.studio-sys`.
-- `app/studio/tokens.css` expone `--f-cn`, pero no separa aún UI/documento.
-- Noto Serif SC no está cargada en código.
-- Varios correos y reportes HTML fijan Archivo/Arial de manera local; no existe
-  un renderer transversal que aplique la doble voz.
-- No hay evidencia completa de incrustación CJK en PDF ni pruebas Gmail,
-  Outlook, Apple Mail, impresión y copy/paste.
+- `app/globals.css` y `app/studio/tokens.css` separan `--f-cn-ui` y
+  `--f-cn-document`; `--f-cn` conserva compatibilidad y resuelve a UI.
+- las firmas de Mailing seleccionan voz y fallback por idioma;
+- el packing list mantiene Noto Sans SC en pantalla y aplica Noto Serif SC sólo
+  a sus bloques `zh-CN` durante impresión;
+- otros correos y documentos continúan en adopción gradual por consumidor;
+- existe evidencia local de PDF, impresión, extracción y firmas;
+- una muestra controlada verificó entrega y estructura MIME/HTML en Gmail y
+  Outlook;
+- Outlook conserva el original `zh-CN` legible en modo oscuro;
+- Gmail conserva el layout y el founder confirmó el render original, aceptando
+  cerrar el cliente sin una segunda captura;
+- Apple Mail se clasifica `no aplica` por decisión explícita del founder, sin
+  declarar ese cliente verificado; el gate externo queda cerrado.
 
-## 8. Gate de implementación futura
+## 8. Gates cerrados y adopción siguiente
 
-- cargar Noto Serif SC sin bloquear render y definir fallbacks;
-- crear tokens de voz y aliases compatibles;
-- inventariar renderers de correo/PDF/factura/estado de cuenta;
-- verificar español y `zh-CN` en Gmail, Outlook y Apple Mail;
-- comprobar PDF impreso, glifos, peso, copy/paste y tamaño del archivo;
-- validar que label/valor sigue distinguiéndose sin webfonts;
-- conservar BD-036 y `BRAND.md` sincronizados con la excepción documental;
-- ejecutar revisión visual antes de declarar implementación completa.
+Cerrado por SDD-0175:
+
+- carga no bloqueante de Noto Serif SC, fallbacks y aliases compatibles;
+- firma formal de Mailing;
+- packing list imprimible, glifos, peso y extracción de texto;
+- revisión visual local de firma española, `zh-CN`, UI e impresión.
+
+La política queda cerrada en el alcance V1–V4. La adopción futura continúa por
+consumidor, sin reabrir esos gates:
+
+- inventariar y migrar sólo un correo/PDF/documento que contenga chino real;
+- validar que label/valor siga distinguiéndose sin webfonts;
+- conservar BD-036 y `BRAND.md` sincronizados con la excepción documental.
 
 Esta política documenta la decisión aprobada. No autoriza por sí sola cargar
 fuentes ni cambiar documentos en producción; eso requiere SDD y pruebas.

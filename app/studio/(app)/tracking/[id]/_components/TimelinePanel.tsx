@@ -13,7 +13,6 @@ import { getApplicableStatuses } from "@/lib/studio/shipment-state-machine";
 import { STATUS_COLORS, STATUS_LABELS } from "@/lib/studio/shipment-types";
 import type {
   ShipmentService,
-  ShipmentStatus,
 } from "@/lib/studio/shipment-types";
 import type { ShipmentEventRow } from "@/lib/studio/shipment-queries";
 

@@ -294,8 +294,15 @@ function PageActionsHelper({
   const [target, setTarget] = useState<Element | null>(null);
 
   useEffect(() => {
-    const el = document.getElementById("users-page-actions");
-    if (el) setTarget(el);
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      const el = document.getElementById("users-page-actions");
+      if (el) setTarget(el);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (!target) return null;

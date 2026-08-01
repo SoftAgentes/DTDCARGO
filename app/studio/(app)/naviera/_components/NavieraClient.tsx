@@ -22,6 +22,7 @@ import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import {
   bookingStatusLabel,
   bookingStatusTone,
@@ -39,6 +40,8 @@ import {
 } from "@/lib/studio/naviera/types";
 import { buildSeaRatesTrackingUrl } from "@/lib/studio/naviera-tracking/searates-deeplink";
 import { ContainerIsoView } from "./ContainerIsoView";
+import { PlanCargaCard } from "./PlanCargaCard";
+import type { ConsolidationPlan } from "@/lib/studio/naviera/plan-queries";
 import { type StuffedBox } from "@/lib/studio/naviera/zones";
 import type {
   ConsolidationDetail,
@@ -85,6 +88,7 @@ export function NavieraClient({
   kpis,
   trackingByConsolidation,
   stuffingByConsolidation,
+  plansByConsolidation,
 }: {
   sailings: Sailing[];
   bookings: Booking[];
@@ -98,6 +102,7 @@ export function NavieraClient({
   trackingByConsolidation?: Record<string, TrackingSnapshotRow>;
   /** Dónde quedó cada caja dentro de cada contenedor (SDD-0152 → 0155). */
   stuffingByConsolidation?: Record<string, StuffedBox[]>;
+  plansByConsolidation?: Record<string, ConsolidationPlan>;
 }) {
   const [tab, setTab] = useState<Tab>("consolidation");
   const [showNewSailing, setShowNewSailing] = useState(false);
@@ -251,6 +256,7 @@ export function NavieraClient({
           sailings={sailings}
           trackingByConsolidation={trackingByConsolidation}
           stuffingByConsolidation={stuffingByConsolidation}
+          plansByConsolidation={plansByConsolidation}
           onNew={() => setShowNewConsolidation(true)}
           onAssign={(d) => setAssignTo(d)}
         />
@@ -474,6 +480,7 @@ function ConsolidationTab({
   sailings,
   trackingByConsolidation,
   stuffingByConsolidation,
+  plansByConsolidation,
   onNew,
   onAssign,
 }: {
@@ -482,6 +489,7 @@ function ConsolidationTab({
   sailings: Sailing[];
   trackingByConsolidation?: Record<string, TrackingSnapshotRow>;
   stuffingByConsolidation?: Record<string, StuffedBox[]>;
+  plansByConsolidation?: Record<string, ConsolidationPlan>;
   onNew: () => void;
   onAssign: (d: ConsolidationDetail) => void;
 }) {
@@ -623,6 +631,7 @@ function ConsolidationTab({
           sailings={sailings}
           snapshot={trackingByConsolidation?.[selected.consolidation.id] ?? null}
           stuffing={stuffingByConsolidation?.[selected.consolidation.id] ?? []}
+          plan={plansByConsolidation?.[selected.consolidation.id] ?? null}
           onAssign={() => onAssign(selected)}
         />
       )}
@@ -684,10 +693,50 @@ function RequestRow({
   const toast = useToast();
   const c = detail.consolidation;
   const [rejecting, setRejecting] = useState(false);
+  const [authorizing, setAuthorizing] = useState(false);
+  const [authorizationPending, setAuthorizationPending] = useState(false);
+  const [authorizationRequestRef, setAuthorizationRequestRef] = useState("");
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const tipo = c.container_type ?? "sin tipo";
+
+  const openAuthorization = () => {
+    setAuthorizing(true);
+    setAuthorizationRequestRef(
+      `naviera-consolidation-authorization:${c.id}:${crypto.randomUUID()}`,
+    );
+    setError(null);
+  };
+
+  const confirmAuthorization = async (authorizationReason: string) => {
+    if (authorizationPending) return;
+    setAuthorizationPending(true);
+    setError(null);
+    try {
+      const result = await authorizeConsolidation({
+        consolidationId: c.id,
+        from: c.status,
+        reason: authorizationReason,
+        requestRef: authorizationRequestRef,
+      });
+      if (!result.ok) {
+        setError(result.error ?? "No se pudo autorizar el contenedor.");
+        return;
+      }
+      setAuthorizing(false);
+      toast.success(
+        result.replayed
+          ? `Autorización recuperada · ${result.ref ?? "contenedor listo"}`
+          : `Contenedor autorizado · ${result.ref ?? "ya puede estibar"}`,
+      );
+      router.refresh();
+    } catch {
+      setError("No se pudo autorizar. Conservamos la referencia para reintentar.");
+    } finally {
+      setAuthorizationPending(false);
+    }
+  };
 
   return (
     <div
@@ -726,22 +775,13 @@ function RequestRow({
           </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <ActionButton
-            variant="dark"
-            size="sm"
-            idleLabel="Autorizar"
-            loadingLabel="Autorizando…"
-            successLabel="Autorizado"
-            onAction={() => {
-              setError(null);
-              return authorizeConsolidation(c.id);
-            }}
-            onSuccess={() => {
-              toast.success("Contenedor autorizado · ya puede estibar");
-              router.refresh();
-            }}
-            onError={setError}
-          />
+          <button
+            type="button"
+            className="studio-btn studio-btn-primary studio-btn-sm"
+            onClick={openAuthorization}
+          >
+            Autorizar
+          </button>
           <button
             type="button"
             className="studio-btn studio-btn-ghost studio-btn-sm"
@@ -800,7 +840,7 @@ function RequestRow({
         </div>
       )}
 
-      {error && (
+      {error && !authorizing && (
         <span
           style={{
             font: "500 12px/1.4 var(--f-sans)",
@@ -810,6 +850,27 @@ function RequestRow({
           {error}
         </span>
       )}
+      <ConfirmDialog
+        open={authorizing}
+        reason
+        reasonRequired
+        holdToConfirm
+        initialFocus="safe"
+        title="Autorizar apertura del contenedor"
+        message={`Solicitud ${tipo}. Al confirmar se reservará el correlativo definitivo y el hub podrá iniciar la estiba. La autorización queda permanente y auditada.`}
+        confirmLabel="Autorizar contenedor"
+        holdLabel="Mantén para autorizar"
+        reasonLabel="Fundamento de la autorización"
+        reasonPlaceholder="Ej. Capacidad y operación del consolidado verificadas"
+        pending={authorizationPending}
+        error={authorizing ? error ?? undefined : undefined}
+        onCancel={() => {
+          if (authorizationPending) return;
+          setAuthorizing(false);
+          setError(null);
+        }}
+        onConfirm={confirmAuthorization}
+      />
     </div>
   );
 }
@@ -820,6 +881,7 @@ function ContainerDetail({
   sailings,
   snapshot,
   stuffing,
+  plan,
   onAssign,
 }: {
   detail: ConsolidationDetail;
@@ -827,6 +889,7 @@ function ContainerDetail({
   sailings: Sailing[];
   snapshot: TrackingSnapshotRow | null;
   stuffing: StuffedBox[];
+  plan: ConsolidationPlan | null;
   onAssign: () => void;
 }) {
   const c = detail.consolidation;
@@ -1082,6 +1145,13 @@ function ContainerDetail({
           </div>
           <ContainerIsoView boxes={stuffing} idSuffix={c.id} />
         </div>
+
+        {/* Plan de carga (SDD-0184 · Fase 3) · la HIPOTESIS, debajo de la realidad. */}
+        <PlanCargaCard
+          consolidationId={c.id}
+          plan={plan}
+          puedeCalcular={c.status === "consolidando" || c.status === "solicitada"}
+        />
 
         {st.cap && st.freeCbm > 3 && c.status === "consolidando" && (
           <div

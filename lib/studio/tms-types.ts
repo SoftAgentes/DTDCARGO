@@ -306,6 +306,49 @@ export type TmsActionState = {
   createdCode?: string;
 };
 
+export type TmsRouteCompletionInput = {
+  route_id: string;
+  from: "en_ruta";
+  reason: string;
+  request_ref: string;
+};
+
+export type TmsRouteCompletionValidation =
+  | { ok: true; input: TmsRouteCompletionInput }
+  | { ok: false; error: string };
+
+/** Contrato público de la decisión R3 `en_ruta → completado`. */
+export function validateTmsRouteCompletionInput(
+  raw: Record<string, unknown>,
+): TmsRouteCompletionValidation {
+  const routeId = String(raw.route_id ?? "").trim();
+  const from = String(raw.from ?? "").trim();
+  const reason = String(raw.reason ?? "").trim();
+  const requestRef = String(raw.request_ref ?? "").trim();
+
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(routeId)) {
+    return { ok: false, error: "Ruta inválida." };
+  }
+  if (from !== "en_ruta") {
+    return { ok: false, error: "La ruta cambió de estado. Actualiza la página." };
+  }
+  if (reason.length < 4 || reason.length > 1_000) {
+    return { ok: false, error: "El motivo debe tener entre 4 y 1000 caracteres." };
+  }
+  if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(requestRef)) {
+    return { ok: false, error: "La referencia de la operación es inválida." };
+  }
+  return {
+    ok: true,
+    input: {
+      route_id: routeId,
+      from: "en_ruta",
+      reason,
+      request_ref: requestRef,
+    },
+  };
+}
+
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export function validateTruckInput(

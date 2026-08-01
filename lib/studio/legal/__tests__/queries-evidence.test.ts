@@ -26,8 +26,8 @@ const TENANT = "tn";
 const MARKBOX = "DTD-5452";
 const UA = "Mozilla/5.0 Chrome/126.0";
 const VIGENTES: DocRef[] = [
-  { key: "tyc", version: "v2.1" },
-  { key: "operador", version: "v1.4" },
+  { key: "tyc", version: "v2.1", body_sha256: "sha-tyc-v2.1" },
+  { key: "operador", version: "v1.4", body_sha256: "sha-operador-v1.4" },
 ];
 
 /** Stub chainable con .eq aplicado + maybeSingle (primera fila o null). */

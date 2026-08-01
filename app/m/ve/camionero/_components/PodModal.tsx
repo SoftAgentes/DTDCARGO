@@ -18,6 +18,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { advanceOdAction, podAction } from "../actions";
 import { useGpsLiveState } from "./GpsBlock";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
@@ -396,9 +397,12 @@ export function PodModal({
                 <label className="studio-label">Foto del cargamento</label>
                 {photoPreview ? (
                   <div style={{ marginTop: 6, position: "relative" }}>
-                    <img
+                    <Image
                       src={photoPreview}
                       alt="Foto del cargamento"
+                      width={1200}
+                      height={900}
+                      unoptimized
                       style={{
                         width: "100%",
                         aspectRatio: "4/3",

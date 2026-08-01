@@ -509,6 +509,65 @@ export function canTransitionClaimOffset(
   return CLAIM_OFFSET_NEXT[from] === to;
 }
 
+export type ClaimPaymentInput = {
+  claim_id: string;
+  from: "reconocido_proveedor";
+  effective_date: string;
+  reason: string;
+  request_ref: string;
+};
+
+export type ClaimPaymentValidation =
+  | { ok: true; input: ClaimPaymentInput }
+  | { ok: false; error: string };
+
+/** Contrato público de la decisión R3 `reconocido → pagado en China`. */
+export function validateClaimPaymentInput(
+  raw: Record<string, unknown>,
+  today = new Date().toISOString().slice(0, 10),
+): ClaimPaymentValidation {
+  const claimId = String(raw.claim_id ?? "").trim();
+  const from = String(raw.from ?? "").trim();
+  const effectiveDate = String(raw.effective_date ?? "").trim();
+  const reason = String(raw.reason ?? "").trim();
+  const requestRef = String(raw.request_ref ?? "").trim();
+
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(claimId)) {
+    return { ok: false, error: "Cruce inválido." };
+  }
+  if (from !== "reconocido_proveedor") {
+    return { ok: false, error: "El cruce cambió de estado. Actualiza la página." };
+  }
+  const parsedDate = /^\d{4}-\d{2}-\d{2}$/.test(effectiveDate)
+    ? new Date(`${effectiveDate}T00:00:00.000Z`)
+    : null;
+  if (
+    !parsedDate ||
+    Number.isNaN(parsedDate.getTime()) ||
+    parsedDate.toISOString().slice(0, 10) !== effectiveDate ||
+    effectiveDate > today
+  ) {
+    return { ok: false, error: "La fecha efectiva debe ser válida y no futura." };
+  }
+  if (reason.length < 4 || reason.length > 1_000) {
+    return { ok: false, error: "El motivo debe tener entre 4 y 1000 caracteres." };
+  }
+  if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(requestRef)) {
+    return { ok: false, error: "La referencia de la operación es inválida." };
+  }
+
+  return {
+    ok: true,
+    input: {
+      claim_id: claimId,
+      from: "reconocido_proveedor",
+      effective_date: effectiveDate,
+      reason,
+      request_ref: requestRef,
+    },
+  };
+}
+
 /** La fecha-hito que corresponde a cada transición de estado. */
 export const CLAIM_OFFSET_STAGE_DATE_FIELD: Partial<
   Record<ClaimOffsetStatus, keyof SupplierClaimOffset>

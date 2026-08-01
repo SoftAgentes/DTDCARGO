@@ -16,19 +16,26 @@
 import { useState } from "react";
 import type { CalculatorSettings } from "@/lib/studio/calculator-settings-types";
 import type { CalculatorCity } from "@/lib/studio/calculator-cities-types";
+import type { CarrierTariff, FreightCarrier } from "@/lib/studio/freight-carriers/types";
 import { ParametrosPanel } from "./ParametrosPanel";
 import { CiudadesPanel } from "./CiudadesPanel";
+import { TransportistasPanel } from "./TransportistasPanel";
 
-type Tab = "parametros" | "ciudades";
+type Tab = "parametros" | "ciudades" | "transportistas";
 
 export function CalculatorSection({
   settings,
   cities,
+  carriers,
+  tariffs,
   isAdmin,
   initialTab = "parametros",
 }: {
   settings: CalculatorSettings | null;
   cities: CalculatorCity[];
+  /** SDD-0231 — transportistas terrestres y su tarifario. */
+  carriers: FreightCarrier[];
+  tariffs: CarrierTariff[];
   isAdmin: boolean;
   initialTab?: Tab;
 }) {
@@ -61,6 +68,13 @@ export function CalculatorSection({
           onClick={() => setTab("ciudades")}
           label="Ciudades"
         />
+        <TabButton
+          id="tab-calc-transportistas"
+          controls="panel-calc-transportistas"
+          active={tab === "transportistas"}
+          onClick={() => setTab("transportistas")}
+          label="Transportistas"
+        />
       </div>
 
       {tab === "parametros" && (
@@ -80,6 +94,21 @@ export function CalculatorSection({
           aria-labelledby="tab-calc-ciudades"
         >
           <CiudadesPanel cities={cities} isAdmin={isAdmin} />
+        </div>
+      )}
+
+      {tab === "transportistas" && (
+        <div
+          role="tabpanel"
+          id="panel-calc-transportistas"
+          aria-labelledby="tab-calc-transportistas"
+        >
+          <TransportistasPanel
+            carriers={carriers}
+            tariffs={tariffs}
+            cityLabels={Object.fromEntries(cities.map((c) => [c.slug, c.label]))}
+            isAdmin={isAdmin}
+          />
         </div>
       )}
     </div>

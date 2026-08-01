@@ -177,7 +177,13 @@ export async function registerAcceptanceAction(
         "No hay términos vigentes para aceptar en este momento. Contacta a tu asesor.",
     };
   }
-  const docs: DocRef[] = vigentes.map((d) => ({ key: d.key, version: d.version }));
+  // v3 (SDD-0191 Slice A): se sella el CUERPO del documento, no solo su
+  // referencia. `body_sha256` viene de la DB (migr 0297) — el cliente no lo pone.
+  const docs: DocRef[] = vigentes.map((d) => ({
+    key: d.key,
+    version: d.version,
+    body_sha256: d.body_sha256,
+  }));
 
   // idempotency_key determinístico: invoice_id + versiones de docs (metadato; la
   // idempotencia REAL es el unique(tenant,hash), que sale del sello).

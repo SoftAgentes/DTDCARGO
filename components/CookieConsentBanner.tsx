@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import {
   OPEN_COOKIE_PREFS_EVENT,
   readCookieConsent,
@@ -28,15 +28,15 @@ const TRIGGER_PATHS = new Set(["/portal/login", "/registro"]);
 
 export function CookieConsentBanner() {
   const pathname = usePathname();
-  const [mounted, setMounted] = useState(false);
-  const [open, setOpen] = useState(false);
-
-  // Decisión inicial: mostrar solo si no hay elección previa y estamos en
-  // login/registro. En SSR no hay cookie → esperamos al montaje en cliente.
-  useEffect(() => {
-    setMounted(true);
-    if (!readCookieConsent() && TRIGGER_PATHS.has(pathname)) setOpen(true);
-  }, [pathname]);
+  const mounted = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  );
+  const [manualOpen, setOpen] = useState(false);
+  const autoOpen =
+    mounted && !readCookieConsent() && TRIGGER_PATHS.has(pathname);
+  const open = manualOpen || autoOpen;
 
   // Reapertura desde el footer ("Preferencias de cookies").
   useEffect(() => {
@@ -47,7 +47,7 @@ export function CookieConsentBanner() {
     return () => window.removeEventListener(OPEN_COOKIE_PREFS_EVENT, reopen);
   }, []);
 
-  if (!mounted || !open) return null;
+  if (!open) return null;
 
   function decide(granted: boolean) {
     writeCookieConsent(granted ? "granted" : "denied");

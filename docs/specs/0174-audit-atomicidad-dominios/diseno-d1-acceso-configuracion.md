@@ -179,37 +179,39 @@ grupo:
 | agentes/grants | 2 | RPC transaccional compuesta |
 | **Total D1** | **24** | **cero writer best-effort** |
 
-## 8. Allowlist exacta de implementación futura
+## 8. Allowlist exacta implementada
 
-Esta lista limita el futuro gate local; **no lo abre**. El correlativo fue libre
-en `origin/main` al diseñar y debe revalidarse antes de crear archivos.
+El correlativo original `0271` fue ocupado por una reparación histórica. El
+preflight de implementación revalidó todos los worktrees y asignó `0289`.
 
 ### Migración y pruebas
 
-1. `supabase/migrations/0271_audit_d1_access_configuration.sql`
-2. `supabase/tests/0271_audit_d1_access_configuration.test.sql`
+1. `supabase/migrations/0289_audit_d1_access_configuration.sql`
+2. `supabase/tests/0289_audit_d1_access_configuration.test.sql`
 3. `lib/studio/audit/__tests__/d1-access-config-adapters.test.ts`
 
 ### Adapters y callers
 
 4. `lib/studio/audit/d1-access-config-adapters.ts`
 5. `lib/studio/audit/auth-lifecycle-adapter.ts`
-6. `app/studio/(app)/usuarios/actions.ts`
-7. `app/studio/(app)/admin/api-integration-actions.ts`
-8. `app/studio/(app)/admin/company-actions.ts`
-9. `app/studio/(app)/admin/feature-flags/actions.ts`
-10. `app/studio/(app)/admin/notificaciones/actions.ts`
-11. `app/studio/(app)/admin/numbering-actions.ts`
-12. `app/studio/(app)/admin/agentes/actions.ts`
+6. `lib/studio/audit/auth-lifecycle-reconciler.ts`
+7. `lib/studio/audit/__tests__/auth-lifecycle-adapter.test.ts`
+8. `app/studio/(app)/usuarios/actions.ts`
+9. `app/studio/(app)/admin/api-integration-actions.ts`
+10. `app/studio/(app)/admin/company-actions.ts`
+11. `app/studio/(app)/admin/feature-flags/actions.ts`
+12. `app/studio/(app)/admin/notificaciones/actions.ts`
+13. `app/studio/(app)/admin/numbering-actions.ts`
+14. `app/studio/(app)/admin/agentes/actions.ts`
 
 ### Documentación de cierre local
 
-13. `docs/specs/0174-audit-atomicidad-dominios/spec.md`
-14. `docs/specs/0174-audit-atomicidad-dominios/diseno-d1-acceso-configuracion.md`
-15. `docs/specs/0174-audit-atomicidad-dominios/inventario-d1-acceso-configuracion-2026-07-29.md`
-16. `docs/governance/reviews/aud-d1-access-config-implementation.md`
-17. `docs/governance/README.md`
-18. una nueva `docs/governance/BASELINE-YYYY-MM-DD[-NN].md`
+15. `docs/specs/0174-audit-atomicidad-dominios/spec.md`
+16. `docs/specs/0174-audit-atomicidad-dominios/diseno-d1-acceso-configuracion.md`
+17. `docs/specs/0174-audit-atomicidad-dominios/inventario-d1-acceso-configuracion-2026-07-29.md`
+18. `docs/governance/reviews/aud-d1-access-config-implementation.md`
+19. `docs/governance/README.md`
+20. `docs/governance/BASELINE-2026-07-30-06.md`
 
 Quedan fuera: archivos de correo, PDFs, documentos vivos, D2–D5, `0270`,
 Vercel, Cloud y cualquier otro caller.
@@ -225,7 +227,8 @@ Vercel, Cloud y cualquier otro caller.
 - cero secreto/PII en fixtures o snapshots;
 - commit, Cloud y Producción conservan autorizaciones separadas.
 
-## 10. Veredicto
+## 10. Veredicto de implementación
 
-El diseño D1 está cerrado y aprobado técnicamente. No se creó migración, no se
-modificó producto/Auth y D2–D5 permanecen cerrados.
+D1 está implementado y aprobado localmente. La mutación PostgreSQL y el evento
+comparten transacción; Auth conserva intención durable, transición observable
+y reconciliación. Cloud sigue sin aplicar `0289`.

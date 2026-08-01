@@ -14,6 +14,7 @@
  */
 
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { transitionShipment } from "../actions";
 import {
@@ -191,7 +192,16 @@ export function StateActionsPanel({
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {actions.map((a) =>
-            a.status === "exception" ? (
+            a.status === "delivered" ? (
+              <Link
+                key={a.status}
+                href="/studio/ve"
+                className="studio-btn studio-btn-dark studio-btn-sm"
+                style={{ justifyContent: "flex-start" }}
+              >
+                Confirmar entrega en Almacén VE
+              </Link>
+            ) : a.status === "exception" ? (
               <button
                 key={a.status}
                 type="button"

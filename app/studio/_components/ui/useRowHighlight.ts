@@ -94,20 +94,30 @@ export function useRowHighlight(options: UseRowHighlightOptions = {}) {
   const [activeTone, setActiveTone] = useState<HighlightTone>(tone);
 
   useEffect(() => {
+    let cancelled = false;
     if (!highlightedId) {
-      setActiveId(null);
-      return;
+      queueMicrotask(() => {
+        if (!cancelled) setActiveId(null);
+      });
+      return () => {
+        cancelled = true;
+      };
     }
-    setActiveId(highlightedId);
-    setActiveTone(tone);
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setActiveId(highlightedId);
+      setActiveTone(tone);
+    });
 
+    let frame: number | null = null;
     if (scrollSelector) {
       const reducedMotion =
         typeof window !== "undefined" &&
         window.matchMedia &&
         window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-      requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => {
+        if (cancelled) return;
         const escapedId = CSS.escape(highlightedId);
         const el = document.querySelector(
           `${scrollSelector}[data-row-id="${escapedId}"]`,
@@ -141,7 +151,11 @@ export function useRowHighlight(options: UseRowHighlightOptions = {}) {
       setActiveId(null);
     }, clearAfterMs);
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      if (frame != null) cancelAnimationFrame(frame);
+      clearTimeout(timer);
+    };
   }, [
     highlightedId,
     tone,

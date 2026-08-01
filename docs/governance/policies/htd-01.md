@@ -3,7 +3,7 @@
 | Control | Valor |
 |---|---|
 | Código | HTD-01 |
-| Estado | aprobada — no implementada |
+| Estado | aprobada — primer consumidor R3 verificado |
 | Alcance | Acciones R3 críticas e irreversibles clasificadas por MP-01 |
 | Depende de | [MP-01](mp-01.md), [BTN-01](btn-01.md), [AUD-01](aud-01.md) y [A11Y-01](a11y-01.md) |
 | Creado | 2026-07-21 |
@@ -102,3 +102,10 @@ HTD-01 no entra a código hasta que la entidad esté clasificada en MP-01 y exis
 un SDD con amenaza, alternativa accesible, pruebas de interacción e integración
 atómica con AUD-01. El valor de 1.500 ms es un punto de partida verificable, no
 una licencia para aplicar el patrón en masa.
+
+El primer consumidor se cerró mediante
+[SDD-0215](../../specs/0215-htd-invoice-void/spec.md): anulación de factura R3,
+motivo obligatorio, permiso server-side, guardas de estado y RPC auditada se
+mantienen; `ConfirmDialog` añade presión sostenida cancelable y una alternativa
+de checkbox + click. Esta evidencia no autoriza adopción masiva ni cambia el
+tratamiento R1/R2.

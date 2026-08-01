@@ -10,6 +10,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { executeD1Operation } from "@/lib/studio/audit/d1-access-config-adapters";
 import { FEATURE_FLAG_KEYS, type FeatureFlagKey } from "@/lib/studio/feature-flags-types";
 
 export interface ToggleFlagState {
@@ -35,38 +36,13 @@ export async function toggleFeatureFlagAction(
   const enabled = enabledRaw === "on" || enabledRaw === "true" || enabledRaw === "1";
 
   const supabase = await createClient();
-  const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Inicia sesión primero." };
-
-  // Anti-locked-out check: si el flag a apagar es del módulo que el
-  // user está usando ahora mismo, igual lo permitimos — al recargar el
-  // sidebar él mismo verá que perdió acceso y puede re-encenderlo
-  // desde admin/feature-flags (que NO está flagged).
-
-  const { data: link } = await supabase
-    .from("user_tenants")
-    .select("tenant_id, role")
-    .maybeSingle<{ tenant_id: string; role: string }>();
-  if (!link?.tenant_id) return { error: "Sin tenant." };
-  if (link.role !== "admin") {
-    return { error: "Solo admins pueden cambiar feature flags." };
-  }
-
-  const { error } = await supabase
-    .from("feature_flags")
-    .update({
-      enabled,
-      updated_at: new Date().toISOString(),
-      updated_by: userResp.user.id,
-    })
-    .eq("tenant_id", link.tenant_id)
-    .eq("key", key);
-
-  if (error) {
-    if (error.code === "42501") {
-      return { error: "RLS bloqueó el cambio (no eres admin)." };
-    }
-    return { error: `No se pudo guardar: ${error.message}` };
+  try {
+    await executeD1Operation(supabase, {
+      operationType: "feature_flag.toggle",
+      input: { key, enabled },
+    });
+  } catch {
+    return { error: "No se pudo guardar el feature flag." };
   }
 
   // Revalidar el layout para que el sidebar tome los flags nuevos.

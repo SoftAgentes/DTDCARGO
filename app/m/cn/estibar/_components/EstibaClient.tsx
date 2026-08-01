@@ -27,6 +27,17 @@ import {
   type LotLookup,
 } from "../actions";
 
+/**
+ * SDD-0184 · Fase 4 — lo que el plan propone para un cliente. Se calcula en el
+ * servidor y llega ya masticado: la pantalla del operario no corre el motor.
+ */
+export type SugerenciaPlan = {
+  planId: string;
+  /** markbox → { lado, frase } */
+  porCliente: Record<string, { lado: number; frase: string }>;
+  totalLotes: number;
+};
+
 type Props = {
   consolidationId: string;
   consolidationRef: string;
@@ -35,6 +46,8 @@ type Props = {
   status: string;
   initialStuffedCount: number;
   lotsCount: number;
+  /** null = no hay plan calculado; la estiba funciona igual que antes. */
+  sugerencia: SugerenciaPlan | null;
 };
 
 export function EstibaClient({
@@ -45,6 +58,7 @@ export function EstibaClient({
   status,
   initialStuffedCount,
   lotsCount,
+  sugerencia,
 }: Props) {
   const router = useRouter();
   const toast = useToast();
@@ -239,11 +253,20 @@ export function EstibaClient({
             setCount={setCount}
             width={width}
             setWidth={setWidth}
+            propuesta={sugerencia?.porCliente[lot.clientMarkbox ?? ""] ?? null}
             onCancel={reset}
             onConfirm={async () => {
               if (width == null) return { error: "Elige izquierda, centro o derecha." };
               const cnt = count.trim() === "" ? null : Number(count);
-              const res = await stuffLotAction(consolidationId, lot.boxCode, width, cnt);
+              const propuesta = sugerencia?.porCliente[lot.clientMarkbox ?? ""] ?? null;
+              const res = await stuffLotAction(
+                consolidationId,
+                lot.boxCode,
+                width,
+                cnt,
+                sugerencia?.planId ?? null,
+                propuesta ? width === propuesta.lado : null,
+              );
               if (!res.ok) return { error: res.error ?? "Error" };
               setStuffedCount((n) => n + (res.stuffed ?? 0));
               setLots((n) => n + 1);
@@ -294,6 +317,7 @@ function LotCard({
   setWidth,
   onCancel,
   onConfirm,
+  propuesta,
 }: {
   lot: LotLookup;
   count: string;
@@ -302,6 +326,8 @@ function LotCard({
   setWidth: (w: number) => void;
   onCancel: () => void;
   onConfirm: () => Promise<{ error: string } | undefined>;
+  /** SDD-0184: lo que el plan propone para este cliente. null = sin plan. */
+  propuesta: { lado: number; frase: string } | null;
 }) {
   const partial = count.trim() !== "" && Number(count) < lot.lotSize;
   return (
@@ -325,7 +351,7 @@ function LotCard({
         Lote de {lot.lotSize} {lot.lotSize === 1 ? "caja" : "cajas"}
       </div>
       <div style={{ font: "800 18px/1.2 var(--f-sans)", color: "var(--ink-side-strong)" }}>
-        {lot.clientName ?? "Cliente sin nombre"}
+        {lot.clientMarkbox ?? "—"}
       </div>
       <div style={{ font: "700 12px/1.3 var(--f-mono)", color: "var(--wine)", marginTop: 3 }}>
         {lot.clientMarkbox ?? "—"} · {lot.prealertaCode}
@@ -383,6 +409,37 @@ function LotCard({
       >
         ¿A qué lado del contenedor?
       </div>
+
+      {propuesta && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "10px 12px",
+            marginBottom: 8,
+            borderRadius: "var(--r-md)",
+            background: "var(--surface-sel)",
+            border: "1px solid var(--wine)",
+          }}
+        >
+          <span
+            aria-hidden="true"
+            style={{
+              font: "800 10px/1 var(--f-sans)",
+              letterSpacing: "0.08em",
+              color: "var(--ink-side-soft)",
+              textTransform: "uppercase",
+              flexShrink: 0,
+            }}
+          >
+            El plan
+          </span>
+          <span style={{ font: "800 14px/1.2 var(--f-sans)", color: "var(--ink-side-strong)" }}>
+            {propuesta.frase}
+          </span>
+        </div>
+      )}
       <div style={{ display: "flex", gap: 6 }}>
         {LOT_WIDTH_LABELS.map((label, i) => {
           const active = width === i;
@@ -404,6 +461,20 @@ function LotCard({
               }}
             >
               {label}
+              {propuesta?.lado === i && (
+                <span
+                  style={{
+                    display: "block",
+                    font: "700 9px/1.2 var(--f-sans)",
+                    color: active ? "var(--ink-side-strong)" : "var(--ink-side-soft)",
+                    marginTop: 3,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  el plan
+                </span>
+              )}
             </button>
           );
         })}

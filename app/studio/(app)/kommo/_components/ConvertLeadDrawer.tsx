@@ -41,7 +41,10 @@ export function ConvertLeadDrawer({
   // inmediata. El reqId descarta respuestas viejas que llegan fuera de orden.
   useEffect(() => {
     const id = ++reqId.current;
-    setSearching(true);
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setSearching(true);
+    });
     const t = setTimeout(
       async () => {
         try {
@@ -55,7 +58,10 @@ export function ConvertLeadDrawer({
       },
       q ? 300 : 0,
     );
-    return () => clearTimeout(t);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
   }, [q]);
 
   const doConvert = async (withContact: boolean) => {

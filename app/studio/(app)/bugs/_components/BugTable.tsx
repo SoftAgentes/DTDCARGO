@@ -43,6 +43,7 @@ const TONE_FG: Record<string, string> = {
   wine: "var(--wine, #7F0F1A)",
   neutral: "var(--ink-soft, #6B6B6B)",
 };
+const BUG_TABLE_REFERENCE_MS = Date.now();
 
 export function BugTable({ bugs, reporterMap, onOpenBug }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("created");
@@ -70,8 +71,8 @@ export function BugTable({ bugs, reporterMap, onOpenBug }: Props) {
           break;
         case "days":
           cmp =
-            (Date.now() - new Date(a.created_at).getTime()) -
-            (Date.now() - new Date(b.created_at).getTime());
+            (BUG_TABLE_REFERENCE_MS - new Date(a.created_at).getTime()) -
+            (BUG_TABLE_REFERENCE_MS - new Date(b.created_at).getTime());
           break;
       }
       return sortDir === "asc" ? cmp : -cmp;
@@ -144,7 +145,7 @@ export function BugTable({ bugs, reporterMap, onOpenBug }: Props) {
             const days = Math.max(
               0,
               Math.floor(
-                (Date.now() - new Date(bug.created_at).getTime()) /
+                (BUG_TABLE_REFERENCE_MS - new Date(bug.created_at).getTime()) /
                   (24 * 60 * 60 * 1000),
               ),
             );

@@ -737,7 +737,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
               </div>
             </div>
           )}
-          {state.error && (
+          {(state.error || createError) && (
             <p
               role="alert"
               style={{
@@ -750,7 +750,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
                 borderRadius: "var(--r-sm)",
               }}
             >
-              {state.error}
+              {state.error ?? createError}
             </p>
           )}
 

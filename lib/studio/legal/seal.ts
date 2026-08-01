@@ -26,8 +26,19 @@ import {
  * v2 (SDD-0067): el payload canónico suma `user_agent` + `merchant_declaration`.
  * Breaking LIMPIO: verificado 2026-06-10 que `legal_acceptances` tiene 0 filas
  * en prod → no hay evidencia v1 que preservar (v1 nunca selló nada productivo).
+ *
+ * v3 (SDD-0191 Slice A): cada `DocRef` suma `body_sha256` — el hash del CUERPO
+ * del documento, no solo su `{key, version}`. Sin esto, editar el texto de un
+ * documento vigente sin cambiar la versión dejaba intactas todas las
+ * aceptaciones previas (hallazgo H-1 de la auditoría 2026-07): validaban contra
+ * un texto que nadie había aceptado. Ahora el hash de la aceptación cambia si el
+ * contenido cambia, así que la adulteración se detecta aunque la migración 0297
+ * ya la impida en la base.
+ * Breaking LIMPIO otra vez: verificado 2026-07-30 que `legal_acceptances` sigue
+ * en 0 filas en prod (el sistema no se lanzó a clientes). No se re-sella nada —
+ * una aceptación pasada valdría por lo que era; simplemente no hay ninguna.
  */
-const EVIDENCE_VERSION = 2;
+const EVIDENCE_VERSION = 3;
 
 /**
  * Hash SHA-256 (hex) de una evidencia COMPLETA y canónica. ÚNICA fuente de
@@ -144,7 +155,15 @@ export function sealAcceptance(
     client_id: input.client_id,
     client_markbox: input.client_markbox,
     quote_code: input.quote_code,
-    docs: docs.map((d) => ({ key: String(d.key), version: String(d.version) })),
+    // v3: `body_sha256` viaja a la fila. Si se cayera acá, el hash se habría
+    // calculado con el sello del cuerpo pero la fila guardaría solo la
+    // referencia → el recompute del gate nunca matchearía y TODA aceptación
+    // sería descartada como forjada.
+    docs: docs.map((d) => ({
+      key: String(d.key),
+      version: String(d.version),
+      body_sha256: String(d.body_sha256 ?? ""),
+    })),
     cbm: input.cbm,
     weight_kg: input.weight_kg,
     total_usd: input.total_usd,

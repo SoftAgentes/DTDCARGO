@@ -178,11 +178,12 @@ export async function logActivity(
 /** Anula un recibo: revierte saldo de la factura + anula su asiento. */
 export async function voidReceipt(
   receiptId: string,
+  reason: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "collections");
   if (denial) return { error: denial };
-  const r = await voidReceiptFor(supabase, receiptId);
+  const r = await voidReceiptFor(supabase, receiptId, reason);
   if (!r.ok) return { error: r.error };
 
   revalidatePath("/studio/cobranzas");

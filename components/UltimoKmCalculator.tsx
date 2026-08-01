@@ -5,7 +5,6 @@ import {
   ORIGENES_DISPONIBLES,
   getDestinosDisponibles,
   MULTIPLICADOR_DTD_DEFAULT,
-  destinoEsCasco,
   CASCO_CENTRAL_DTD,
   type Origen,
   type ModoCotizacionTerrestre,
@@ -69,8 +68,6 @@ export function UltimoKmCalculator() {
       }),
     [origen, destino, pesoKg, volumenM3, valorDeclaradoUsd, modoCotizacion],
   );
-
-  const destinoActualEsCasco = destinoEsCasco(destino);
 
   const hayError = !!resultado.error;
 

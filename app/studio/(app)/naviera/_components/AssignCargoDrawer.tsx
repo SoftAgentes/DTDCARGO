@@ -76,11 +76,14 @@ export function AssignCargoDrawer({
     [detail.items],
   );
 
-  const incoming: StatItem = {
-    cbm: cbm ?? 0,
-    weight_kg: weightKg ?? 0,
-    pieces: pieces ?? 0,
-  };
+  const incoming = useMemo<StatItem>(
+    () => ({
+      cbm: cbm ?? 0,
+      weight_kg: weightKg ?? 0,
+      pieces: pieces ?? 0,
+    }),
+    [cbm, weightKg, pieces],
+  );
 
   // Utilización proyectada (existentes + lo que se está por agregar).
   const projected = useMemo(

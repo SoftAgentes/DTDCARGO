@@ -4,6 +4,11 @@ Contexto focalizado del ERP interno. Cargá esto cuando trabajes dentro de
 `app/studio/`. El CLAUDE.md de raíz tiene el contexto general del repo
 (dualidad sitio público vs Studio, comandos, brand).
 
+Antes de cambiar comportamiento o componentes, sigue la cápsula operativa en
+[`docs/governance/AGENT-BRIEF.md`](../../docs/governance/AGENT-BRIEF.md).
+El Norte define apariencia; el registro de gobernanza define comportamiento y
+madurez CMP. Ambos se validan en el mismo SDD, sin copiar reglas localmente.
+
 ## Estructura de un módulo
 
 Cada módulo del Studio vive en `app/studio/(app)/<modulo>/` y sigue este shape:

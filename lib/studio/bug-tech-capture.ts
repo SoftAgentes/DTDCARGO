@@ -44,9 +44,6 @@ import type {
 const MAX_CONSOLE_LOGS = 3;
 const MAX_NETWORK_REQUESTS = 5;
 
-// Network requests con duración mayor a esto se loguean igual pero con flag
-const SLOW_REQUEST_MS = 3000;
-
 class BugTechCapture {
   private consoleBuffer: BugConsoleLogEntry[] = [];
   private networkBuffer: BugNetworkRequestEntry[] = [];

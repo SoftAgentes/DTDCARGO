@@ -22,13 +22,31 @@ conocimiento vivía en un handoff que nadie releyó.
 - **La 0169** (`public_verify_throttle`) cayó en la MISMA trampa, con la MISMA
   frase en la cabecera ("NO aplicar a prod, lo hace la coordinación / founder"), y
   siguió perdida aun después de que la ronda 3 declarara "pila de migraciones en
-  CERO". Consecuencia viva: `isVerifyThrottled`
-  ([lib/public/verify-throttle.ts](../../lib/public/verify-throttle.ts)) es
-  **fail-open** → sin la tabla, `/verificar` quedó sin throttle anti-enumeración,
-  con códigos secuenciales y `student_name` (PII) expuesto.
+  CERO". Mientras faltó, `isVerifyThrottled`
+  ([lib/public/verify-throttle.ts](../../lib/public/verify-throttle.ts)) —que es
+  **fail-open**— dejó `/verificar` sin throttle anti-enumeración, con códigos
+  secuenciales y `student_name` (PII) expuesto. **Aplicada el 2026-07-16**; la
+  consecuencia está cerrada.
 
 Moraleja: **una nota en un handoff no es un mecanismo.** Por eso ahora hay un
 paso del gate que lo verifica en cada corrida.
+
+### La tercera vez fue distinta: el gate midió el árbol equivocado
+
+El 2026-08-01 las **0317–0324** llegaron a `main` —y con ellas el código que
+llama sus RPCs— sin que ninguna estuviera en prod. Ocho Server Actions del Studio
+(Aduana, Reclamos, TMS, Almacén VE, Naviera, Inspecciones, Despacho, Financiero
+China) quedaron reventando con `PGRST202`.
+
+Acá el mecanismo **no** falló por silencio: nadie las metió en
+`pendingBelowCutoff`, y el acta del cierre dejó escrito que "0317–0324 todavía no
+existen en el ledger productivo". Falló por **dónde se mide**: el check lee
+`supabase/migrations/` **del checkout**, y un árbol atrasado respecto de
+`origin/main` no tiene esos archivos en disco → el gate sale verde **por
+omisión**.
+
+**Regla:** sincronizá con `origin/main` antes de leer el verde de
+`migrations-applied`. Un verde sobre un árbol viejo no dice nada.
 
 ## El gate lo vigila: paso `migrations-applied`
 
@@ -66,6 +84,15 @@ Tres salidas posibles, en este orden:
 **El MCP `supabase` local es read-only** — reconfirmado varias veces; intentar
 `apply_migration` devuelve `Cannot apply migration in read-only mode`. Sirve para
 leer y verificar, no para escribir.
+
+> ⚠️ **Observado el 2026-07-30 (SDD-0191 Slice A):** el MCP de Supabase
+> disponible en esa sesión **sí escribió** — `apply_migration` con
+> `project_id: xpfuzqombmjmxvprjgmi` devolvió `{"success": true}` y la 0297
+> quedó en el ledger. O la config de `read_only` cambió, o esa sesión estaba
+> hablando con el conector de claude.ai y no con el local. **No asumas cuál
+> tenés**: probá el sondeo del objeto primero (paso 1) y, si `apply_migration`
+> funciona, ya sabés que no es read-only. Lo que NO cambia es la barrera de
+> arriba: el OK del founder nombrando la migración.
 
 **El conector `claude.ai Supabase` NO es read-only**: `apply_migration` con
 `project_id: xpfuzqombmjmxvprjgmi` funciona. Requiere OK explícito del founder

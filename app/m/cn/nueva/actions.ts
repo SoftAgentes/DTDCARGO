@@ -17,6 +17,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/db/admin";
 import { getCurrentOperario } from "@/lib/auth/operario-session";
+import { resolveClientNameByMarkbox } from "@/lib/studio/warehouse-cn-queries";
 import {
   validateCreateReceiptInput,
   type CreateReceiptInput,
@@ -71,7 +72,14 @@ export async function createReceiptFromOperarioAction(
     p_warehouse_id: input.warehouse_id,
     p_is_orphan: input.is_orphan,
     p_client_markbox: input.client_markbox,
-    p_client_name: input.client_name,
+    // PRIVACIDAD (hallazgo H-7): el dispositivo CN manda `null`. El nombre lo
+    // resuelve el server desde el Shipping Mark, para que el Studio (VE) siga
+    // viendo el snapshot correcto sin que el nombre viaje nunca a Yiwu.
+    p_client_name: await resolveClientNameByMarkbox(
+      admin,
+      operario.tenant_id,
+      input.client_markbox,
+    ),
     p_orphan_marks: input.orphan_marks,
     p_orphan_brought_by: input.orphan_brought_by,
     p_supplier_name: input.supplier_name,

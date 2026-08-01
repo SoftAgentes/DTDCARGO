@@ -20,6 +20,7 @@ import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Avatar } from "@/app/studio/_components/ui/Avatar";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import {
   CUSTOMS_DOC_LABELS,
   CUSTOMS_DOC_ORDER,
@@ -85,6 +86,10 @@ export function FilingDetailDrawer({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [clearanceDecision, setClearanceDecision] = useState<{
+    effectiveDate: string;
+    requestRef: string;
+  } | null>(null);
 
   // Index docs por type para acceso rápido
   const docsByType = new Map(documents.map((d) => [d.doc_type, d]));
@@ -92,7 +97,8 @@ export function FilingDetailDrawer({
   const total = filingTotal(filing);
 
   const isCleared = filing.status === "liberado";
-  const canClear = progress.missingRequired.length === 0 && !isCleared;
+  const canClear =
+    progress.missingRequired.length === 0 && filing.status === "pagado";
 
   const handleToggleDoc = (documentId: string, currentUploaded: boolean) => {
     setError(null);
@@ -106,13 +112,28 @@ export function FilingDetailDrawer({
     });
   };
 
-  const handleMarkCleared = () => {
+  const openClearanceDecision = () => {
     setError(null);
+    setClearanceDecision({
+      effectiveDate: new Date().toISOString().slice(0, 10),
+      requestRef: `customs-clearance:${filing.id}:${crypto.randomUUID()}`,
+    });
+  };
+
+  const handleMarkCleared = (reason: string) => {
+    if (!clearanceDecision || pending) return;
     startTransition(async () => {
-      const res = await markFilingClearedAction(filing.id);
+      const res = await markFilingClearedAction({
+        filingId: filing.id,
+        from: filing.status,
+        effectiveDate: clearanceDecision.effectiveDate,
+        reason,
+        requestRef: clearanceDecision.requestRef,
+      });
       if (res.error) {
         setError(res.error);
       } else {
+        setClearanceDecision(null);
         router.refresh();
         onClose();
       }
@@ -174,7 +195,8 @@ export function FilingDetailDrawer({
   ];
 
   return (
-    <DrawerShell
+    <>
+      <DrawerShell
       title={shipment?.code ?? "—"}
       titleAccessory={<CustomsStatusBadge status={filing.status} size="md" />}
       subtitle={
@@ -660,12 +682,14 @@ export function FilingDetailDrawer({
             <button
               type="button"
               className="studio-btn studio-btn-primary"
-              onClick={handleMarkCleared}
+              onClick={openClearanceDecision}
               disabled={pending || !canClear}
               title={
-                !canClear && progress.missingRequired.length > 0
+                progress.missingRequired.length > 0
                   ? `Faltan: ${progress.missingRequired.map((t) => CUSTOMS_DOC_LABELS[t]).join(", ")}`
-                  : undefined
+                  : filing.status !== "pagado"
+                    ? "El trámite debe estar pagado antes de liberarlo."
+                    : undefined
               }
             >
               {pending ? "Procesando…" : "Marcar liberado"}
@@ -685,7 +709,34 @@ export function FilingDetailDrawer({
             </span>
           )}
         </footer>
-    </DrawerShell>
+      </DrawerShell>
+      <ConfirmDialog
+        open={clearanceDecision !== null}
+        danger
+        reason
+        reasonRequired
+        holdToConfirm
+        initialFocus="safe"
+        title="Declarar liberación SENIAT"
+        message={
+          clearanceDecision
+            ? `DUA ${filing.dua_code} · shipment ${shipment?.code ?? "sin código"} · agente ${agent?.name ?? "sin agente"} · fecha efectiva ${clearanceDecision.effectiveDate}. Esta decisión afirma que los seis documentos obligatorios están completos, moverá la carga a listo para retiro y quedará en auditoría.`
+            : ""
+        }
+        confirmLabel="Declarar liberado"
+        holdLabel="Mantén para declarar liberado"
+        reasonLabel="Motivo o soporte de la liberación"
+        reasonPlaceholder="Ej. Liberación confirmada contra DUA y pago"
+        pending={pending}
+        error={error ?? undefined}
+        onCancel={() => {
+          if (pending) return;
+          setClearanceDecision(null);
+          setError(null);
+        }}
+        onConfirm={handleMarkCleared}
+      />
+    </>
   );
 }
 

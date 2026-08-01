@@ -1,8 +1,20 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import type { TmsRouteRow } from "@/lib/studio/tms-types";
+import { markRouteCompletedAction } from "../actions";
 import { RouteStatusBadge } from "./RouteStatusBadge";
 
 export function RoutesTab({ rows }: { rows: TmsRouteRow[] }) {
+  const router = useRouter();
+  const [decision, setDecision] = useState<TmsRouteRow | null>(null);
+  const [requestRef, setRequestRef] = useState("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string>();
+
   if (rows.length === 0) {
     return (
       <EmptyState
@@ -12,6 +24,37 @@ export function RoutesTab({ rows }: { rows: TmsRouteRow[] }) {
       />
     );
   }
+
+  const openCompletion = (route: TmsRouteRow) => {
+    setDecision(route);
+    setRequestRef(`tms-route-completion:${route.id}:${crypto.randomUUID()}`);
+    setError(undefined);
+  };
+
+  const confirmCompletion = async (reason: string) => {
+    if (!decision || pending) return;
+    setPending(true);
+    setError(undefined);
+    try {
+      const result = await markRouteCompletedAction({
+        routeId: decision.id,
+        from: decision.status,
+        reason,
+        requestRef,
+      });
+      if (!result.ok) {
+        setError(result.error ?? "No se pudo completar la ruta.");
+        return;
+      }
+      setDecision(null);
+      router.refresh();
+    } catch {
+      setError("No se pudo completar la ruta. Conservamos la referencia para reintentar.");
+    } finally {
+      setPending(false);
+    }
+  };
+
   return (
     <div
       style={{
@@ -25,7 +68,7 @@ export function RoutesTab({ rows }: { rows: TmsRouteRow[] }) {
         style={{
           display: "grid",
           gridTemplateColumns:
-            "130px 130px minmax(220px, 1.5fr) 90px 110px 130px",
+            "130px 130px minmax(220px, 1.5fr) 90px 110px 130px 120px",
           gap: 14,
           padding: "12px 18px",
           background: "var(--bg-elevated)",
@@ -42,6 +85,7 @@ export function RoutesTab({ rows }: { rows: TmsRouteRow[] }) {
         <span style={{ textAlign: "right" }}>Distancia</span>
         <span>Progreso</span>
         <span>Estado</span>
+        <span>Acción</span>
       </div>
 
       {rows.map((r, i) => (
@@ -50,7 +94,7 @@ export function RoutesTab({ rows }: { rows: TmsRouteRow[] }) {
           style={{
             display: "grid",
             gridTemplateColumns:
-              "130px 130px minmax(220px, 1.5fr) 90px 110px 130px",
+              "130px 130px minmax(220px, 1.5fr) 90px 110px 130px 120px",
             gap: 14,
             padding: "14px 18px",
             alignItems: "center",
@@ -182,8 +226,51 @@ export function RoutesTab({ rows }: { rows: TmsRouteRow[] }) {
           <span>
             <RouteStatusBadge status={r.status} />
           </span>
+
+          <div>
+            {r.status === "en_ruta" ? (
+              <button
+                type="button"
+                className="studio-btn studio-btn-dark studio-btn-sm"
+                onClick={() => openCompletion(r)}
+                aria-label={`Completar ruta ${r.route_code}`}
+              >
+                Completar
+              </button>
+            ) : (
+              <span aria-hidden="true" style={{ color: "var(--ink-mute)" }}>
+                —
+              </span>
+            )}
+          </div>
         </div>
       ))}
+      <ConfirmDialog
+        open={decision !== null}
+        danger
+        reason
+        reasonRequired
+        holdToConfirm
+        initialFocus="safe"
+        title="Completar ruta de última milla"
+        message={
+          decision
+            ? `${decision.route_code} · embarque ${decision.shipment?.code ?? "sin código"} · camión ${decision.truck?.plate ?? "sin asignar"} · chofer ${decision.driver?.name ?? "sin asignar"}. Esta decisión cerrará la ruta, liberará sus recursos y moverá el embarque a Última milla para esperar el POD.`
+            : ""
+        }
+        confirmLabel="Completar ruta"
+        holdLabel="Mantén para completar"
+        reasonLabel="Evidencia o motivo del cierre"
+        reasonPlaceholder="Ej. Ruta finalizada y entrega enviada a validación de POD"
+        pending={pending}
+        error={error}
+        onCancel={() => {
+          if (pending) return;
+          setDecision(null);
+          setError(undefined);
+        }}
+        onConfirm={confirmCompletion}
+      />
     </div>
   );
 }
