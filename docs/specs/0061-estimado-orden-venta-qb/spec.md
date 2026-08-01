@@ -4,7 +4,7 @@ title: "Estimado → Orden de venta (modelo QuickBooks): retira 'cotización', c
 status: done
 author: "Claude Code (carril comercial · sesión con founder 2026-06-07)"
 created: 2026-06-07
-updated: 2026-06-28
+updated: 2026-08-01
 supersedes: null
 superseded_by: null
 related: ["0001", "0002", "0011", "0021", "0040", "0041", "0044", "0042", "0046", "0057", "0058", "0010", "0055"]
@@ -303,6 +303,25 @@ Sin mockup del Norte aprobado para estas pantallas todavía. UI reusa primitivas
 **Decisiones (founder):** mostrar **todos** sus estimados (web + studio); **read-only + CTA al asesor**. **Sync Norte pendiente:** el Norte (`_norte/portal/app.jsx`) aún no tiene pantalla "Estimados" en el portal → Cloud Design la espeja luego.
 
 **Review:** `ui-ux-designer` "ship it" (aplicado: focus ring del CTA compacto, a11y). **Gate `node scripts/verify.mjs` VERDE**. Migración `0117` **NO** aplicada a prod. Sin push.
+
+### Mantenimiento UI — ayuda CBM sin solape móvil (2026-08-01)
+
+**Problema confirmado:** el popover "¿Qué es el CBM?" se fijaba al borde
+inferior en pantallas de hasta 640 px. En el viewport Mobile Safari de iPhone
+14 la hoja cubría el campo CBM que el visitante debía completar.
+
+**Contrato:** el popover mide el campo completo y el espacio disponible arriba
+y abajo. Prefiere el lado con espacio suficiente y, si ninguno alcanza, usa el
+lado más amplio con altura máxima y scroll interno. Conserva cierre por botón,
+Escape y clic exterior, foco restaurado y el sistema visual `glass-pop`.
+
+**Gobernanza:** cumplimiento de A11Y-01.2, A11Y-01.6 y A11Y-01.13; VIS-01 y
+MOT-01 no cambian semántica, tokens ni movimiento. No aplica CMP-01 porque no se
+crea ni sustituye un componente. Allowlist exacta en `allowlist.md`.
+
+**Gate:** `e2e/cbm-ayuda.spec.ts` en Chromium, Mobile Chrome y Mobile Safari;
+revisión visual del estado abierto; `pnpm verify` contra un servidor local
+preconstruido estable.
 
 ---
 <!-- Validar con: node scripts/build-docs-index.mjs --check · regenerar índice: node scripts/build-docs-index.mjs -->
