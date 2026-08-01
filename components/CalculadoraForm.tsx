@@ -12,6 +12,10 @@ import {
   calcularEnvioLCL,
   cbmFromDimensions,
   whatsappTextFromCotizacion,
+  coberturaDestino,
+  mensajeDestinoSinTarifa,
+  mensajeDestinoSinCobertura,
+  vecinaDeDestino,
   type EnvioInput,
   type EnvioCotizacion,
   type CalcParams,
@@ -24,6 +28,7 @@ import { CbmAyuda } from "@/components/CbmAyuda";
 import { CONTACT } from "@/lib/design-tokens";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
 import { EstimadoModal, type EstimadoContact } from "@/components/EstimadoModal";
+import { DestinoCombobox } from "@/components/DestinoCombobox";
 import { trackWhatsAppConversion } from "@/components/Analytics";
 import { buildEstimadoWhatsAppMessage } from "@/lib/public/estimado-web";
 
@@ -197,6 +202,15 @@ export function CalculadoraForm({
   const cotizacion = useMemo(
     () => calcularEnvioLCL(effectiveForm, params, cityList),
     [effectiveForm, params, cityList],
+  );
+
+  // Destino elegido, para la nota de cobertura bajo el selector. NO sale de
+  // `cotizacion.ciudad`: el motor devuelve `ciudad: null` en cuanto hay una
+  // alerta, y justo los dos casos que la nota tiene que explicar (sin cobertura
+  // y sin tarifa) son alertas. Con el form vacío tampoco habría ciudad.
+  const ciudadElegida = useMemo(
+    () => cityList.find((c) => c.id === form.ciudadId) ?? null,
+    [cityList, form.ciudadId],
   );
   const tieneCarga = effectiveForm.cbmTotal > 0 && effectiveForm.pesoKg > 0;
 
@@ -488,19 +502,13 @@ export function CalculadoraForm({
               >
                 Destino en Venezuela
               </label>
-              <select
+              <DestinoCombobox
                 id="ciudad"
+                ciudades={cityList}
                 value={form.ciudadId}
-                onChange={(e) => update("ciudadId", e.target.value)}
-                className="w-full px-3.5 h-[52px] rounded-[12px] text-[15px] text-white focus:outline-none focus:ring-2 focus:ring-wine/40"
-                style={{ border: "1.5px solid rgba(255,255,255,0.14)", background: "rgba(255,255,255,0.04)" }}
-              >
-                {cityList.map((c) => (
-                  <option key={c.id} value={c.id} className="text-ink">
-                    {c.label}
-                  </option>
-                ))}
-              </select>
+                onChange={(id) => update("ciudadId", id)}
+              />
+              <NotaCobertura ciudad={ciudadElegida} ciudades={cityList} />
             </div>
           )}
         </div>
@@ -623,6 +631,52 @@ export function CalculadoraForm({
 // ─────────────────────────────────────────────
 // Subcomponentes
 // ─────────────────────────────────────────────
+
+/**
+ * Nota bajo el selector de destino cuando el destino elegido NO cotiza solo.
+ *
+ * Aparece APENAS eliges la ciudad, sin esperar a que llenes CBM y peso: para
+ * los dos casos que explica ("no llegamos" y "sin tarifa confirmada"), el
+ * precio no va a existir nunca, y enterarse después de medir la carga es peor.
+ * Por eso clasifica con `coberturaDestino()` en vez de leer `cot.alerta` — el
+ * motor exige carga válida antes de llegar a la rama de la tarifa.
+ *
+ * El copy NO se escribe acá: sale de los mismos constructores que usa el motor
+ * (`lib/calculadora.ts`), así el aviso del selector y el del panel de resultado
+ * no pueden decir cosas distintas.
+ */
+function NotaCobertura({
+  ciudad,
+  ciudades,
+}: {
+  ciudad: Ciudad | null;
+  ciudades: Ciudad[];
+}) {
+  if (!ciudad) return null;
+  const cobertura = coberturaDestino(ciudad);
+  if (cobertura === "cubierta") return null;
+
+  const mensaje =
+    cobertura === "sin_cobertura"
+      ? mensajeDestinoSinCobertura(ciudad.label, vecinaDeDestino(ciudad, ciudades))
+      : mensajeDestinoSinTarifa(ciudad.label);
+
+  return (
+    // `role="status"` — el aviso aparece y desaparece al cambiar el destino sin
+    // que nada lo anuncie; un lector de pantalla se perdía el cambio entero.
+    <p
+      role="status"
+      className="mt-2 rounded-[12px] px-3 py-2.5 text-[12px] leading-[1.45]"
+      style={{
+        background: "rgba(255,255,255,0.06)",
+        border: "1px solid rgba(255,255,255,0.12)",
+        color: "rgba(255,255,255,0.72)",
+      }}
+    >
+      {mensaje}
+    </p>
+  );
+}
 
 /**
  * Input grande con sufijo (m³/kg) y aviso inline ámbar. Número en mono.
@@ -1188,7 +1242,15 @@ function ResultPanel({
               {r.incluida ? (
                 <span
                   className="text-[12px] font-bold whitespace-nowrap"
-                  style={{ color: "var(--success-on-dark)" }}
+                  // El alias `--success-on-dark` sólo existe dentro de
+                  // `.home-surface`; la calculadora vive en /calculadora y
+                  // /tarifas, que NO tienen esa clase — sin fallback el color
+                  // quedaba sin resolver y "Incluida" heredaba tinta oscura
+                  // sobre navy. El token global sí está en @theme.
+                  style={{
+                    color:
+                      "var(--success-on-dark, var(--color-status-success-on-dark))",
+                  }}
                 >
                   Incluida
                 </span>
@@ -1207,8 +1269,12 @@ function ResultPanel({
               igual, pero se entera ANTES de pagar de que ese camión no sale
               todas las semanas. Enterarse después es un reclamo. */}
           {cot.avisoEntrega && tieneCarga ? (
+            // `role="status"` — el aviso entra y sale solo al cambiar de
+            // destino o de carga, sin anunciarse (A11Y-01). El radio sube a
+            // 12px para igualar al resto de las cajas del panel.
             <div
-              className="rounded-[10px] px-3 py-2 text-[12px] leading-[1.45]"
+              role="status"
+              className="rounded-[12px] px-3 py-2 text-[12px] leading-[1.45]"
               style={{
                 background: "rgba(255,255,255,0.06)",
                 border: "1px solid rgba(255,255,255,0.12)",

@@ -42,8 +42,13 @@ test.describe("rutas públicas críticas", () => {
     await expect(tabs.nth(1)).toContainText(/Consolidado/i);
 
     // Pestaña A (por default) = puerta a puerta: pide CBM/peso y ciudad destino.
+    // Desde SDD-0237 el destino es un COMBOBOX con búsqueda, no un <select>:
+    // con 178 opciones el select nativo era inusable. Se afirma el rol ARIA
+    // (no el tag) para que el test hable de la capacidad, no de la etiqueta.
     await expect(page.locator("body")).toContainText(/CBM total/i);
-    await expect(page.locator("#ciudad")).toBeVisible();
+    const destino = page.locator("#ciudad");
+    await expect(destino).toBeVisible();
+    await expect(destino).toHaveRole("combobox");
 
     // Pestaña B = consolidado: sin ciudad, hasta puerto y con BL propio.
     await tabs.nth(1).click();
@@ -51,7 +56,10 @@ test.describe("rutas públicas críticas", () => {
     await expect(panelB).toBeVisible();
     await expect(panelB).toContainText(/hasta puerto/i);
     await expect(panelB).toContainText(/Bill of Lading/i);
-    await expect(panelB.locator("select#ciudad")).toHaveCount(0);
+    // Sin selector de destino: el consolidado llega hasta puerto, no hay ciudad
+    // que elegir. Se cuenta `#ciudad` a secas — buscar `select#ciudad` dejó de
+    // probar nada el día que el select se volvió un input.
+    await expect(panelB.locator("#ciudad")).toHaveCount(0);
   });
 
   test("/fcl muestra el cotizador FCL (contenedor completo)", async ({ page }) => {
