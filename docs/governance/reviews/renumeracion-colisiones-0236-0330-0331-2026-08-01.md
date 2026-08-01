@@ -144,3 +144,26 @@ un checkout atrasado; éste gritaba porque medía un working tree desincronizado
 En los dos casos la herramienta no estaba mirando el repo. Ante un rojo de
 `sql-tests` en migraciones históricas que nadie tocó, **antes de dudar del
 contrato, comprobá que el disco coincide con el blob.**
+
+## Retiro de las ramas fuente
+
+Con el trabajo ya integrado y renumerado en `main`, las dos ramas de origen sólo
+aportaban ruido: cualquier barrido futuro de colisiones volvería a reportar
+SDD-0231 y la migración 0254, con riesgo de que otra sesión intentara mergearlas
+de nuevo. Se retiran con autorización del founder, tras verificar archivo por
+archivo que su contenido está en `main` bajo la numeración nueva.
+
+**SHA de reconstrucción — con esto se recuperan enteras si hiciera falta:**
+
+| Rama retirada | SHA del commit | Dónde vive ahora su contenido |
+|---|---|---|
+| `feat/sdd-0231-transportistas` | `167c6eee2c56d89f3333f69457680ae6764f4c7d` | SDD-0236 · migración `0330` |
+| `feat/motor-f0-arribo` | `eea0947bff2556f2f13158e8d548aa8c26749e1b` | migración `0331` |
+
+Reconstrucción: `git branch <nombre> <sha>`. Los objetos siguen en el repositorio
+mientras no corra un `gc` agresivo; el contenido equivalente está en `main` en
+todo caso.
+
+El worktree `DTD-worktrees/sdd-0225-registro`, que tenía tomada
+`feat/sdd-0231-transportistas`, se dejó en su sitio con `HEAD` desacoplado — no
+se eliminó ninguna carpeta de trabajo del founder.
