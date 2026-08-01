@@ -161,6 +161,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Implementación R3 de retiro gobernado en Inspecciones | [REV-SGE-044](reviews/inspections-r3-report-retirement-implementation-2026-08-01.md) |
 | Implementación R3 de cancelación gobernada en Despacho | [REV-SGE-045](reviews/dispatch-r3-order-cancellation-implementation-2026-08-01.md) |
 | Cierre global y reconciliación R3 sin Nómina 0316 | [REV-SGE-046](reviews/governance-r3-final-reconciliation-2026-08-01.md) |
+| Cierre productivo de 0317 en Financiero China | [REV-SGE-047](reviews/partner-finance-r3-claim-payment-production-close-2026-08-01.md) |
 | Revisión de patrones UX en videos | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | Portabilidad EOL de SDD-0118 | [REV-AUD-030](reviews/aud-sdd-0118-eol-portability.md) |
 | Dependencias ejecutables CMP-01 | [REV-SGE-015](reviews/cmp-01-dependency-validation.md) |
