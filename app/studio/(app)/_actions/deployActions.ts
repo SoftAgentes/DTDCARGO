@@ -23,6 +23,8 @@ import {
   makePreviewBranchName,
 } from "@/lib/studio/deploy/git-runner";
 import type { DeployType, GitPushResult } from "@/lib/studio/deploy/types";
+import { createClient } from "@/lib/db/server";
+import { getStudioRole } from "@/lib/studio/rbac-guard";
 
 const REPO_PATH = process.cwd();
 
@@ -40,12 +42,24 @@ function assertLocal(): { ok: false; error: string } | null {
   return null;
 }
 
+async function assertAuthorizedLocal(): Promise<{ ok: false; error: string } | null> {
+  const localGate = assertLocal();
+  if (localGate) return localGate;
+
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { ok: false, error: "No autorizado." };
+  const role = await getStudioRole(supabase);
+  if (role !== "admin") return { ok: false, error: "No autorizado." };
+  return null;
+}
+
 /**
  * Devuelve un snapshot del git status actual para que la UI pueda mostrar
  * qué se va a subir antes de confirmar. Safe para mostrar al cliente.
  */
 export async function getDeployStatusAction() {
-  const gate = assertLocal();
+  const gate = await assertAuthorizedLocal();
   if (gate) return gate;
   const snapshot = await getGitStatus(REPO_PATH);
   return { ok: true as const, snapshot };
@@ -83,7 +97,7 @@ function defaultCommitMessage(scopeTag: string): string {
 export async function gitPushAction(
   input: GitPushInput,
 ): Promise<GitPushResult> {
-  const gate = assertLocal();
+  const gate = await assertAuthorizedLocal();
   if (gate) return { ok: false, step: "validate", error: gate.error };
 
   // 1. Validate

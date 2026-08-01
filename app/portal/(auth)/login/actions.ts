@@ -1,9 +1,15 @@
 "use server";
 
+import { createHash } from "node:crypto";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { getRequestIp } from "@/lib/http/request-ip";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
+const THROTTLE_TABLE = "portal_registro_throttle";
+const THROTTLE_PREFIX = "portal-login:";
+const THROTTLE_LIMIT = 8;
+const THROTTLE_WINDOW_MINUTES = 60;
 
 export type PortalLoginState = {
   error?: string;
@@ -12,15 +18,16 @@ export type PortalLoginState = {
   email?: string;
 };
 
+function genericSuccess(email: string): PortalLoginState {
+  return { sent: true, email };
+}
+
 /**
  * Pide un magic-link de Supabase Auth para entrar al portal. Método ÚNICO de
  * acceso (SDD-0094): el cliente entra con su email, no con su Shipping Mark.
  *
- * Pre-check (best-effort, con service_role): solo mandamos el enlace a emails
- * que ya tienen el portal habilitado (`client_users` invited/active). Así NO
- * creamos auth.users de cualquiera y damos un mensaje claro a quien no está
- * habilitado. Si el service_role no está disponible, seguimos igual — el
- * callback (`portal_bind_session`) valida el vínculo de todos modos.
+ * Solo envía a emails habilitados, pero responde de forma indistinguible para
+ * impedir enumeración. El login nunca crea auth.users.
  */
 export async function requestMagicLink(
   _prev: PortalLoginState,
@@ -31,37 +38,48 @@ export async function requestMagicLink(
     return { error: "Ingresa un email válido." };
   }
 
+  let admin;
   try {
-    const admin = createAdminClient();
-    const { data } = await admin
-      .from("client_users")
-      .select("id")
-      .ilike("email", email)
-      .in("status", ["invited", "active"])
-      .limit(1)
-      .maybeSingle();
-    if (!data) {
-      return {
-        error:
-          "Ese email todavía no tiene el portal habilitado. Pídele a tu asesor que te invite — o regístrate si eres nuevo.",
-      };
-    }
+    admin = createAdminClient();
   } catch {
-    // sin SUPABASE_SERVICE_ROLE_KEY → saltamos el pre-check (degradación elegante)
+    return genericSuccess(email);
   }
+
+  const ipHash = createHash("sha256").update(await getRequestIp()).digest("hex");
+  const ip = `${THROTTLE_PREFIX}${ipHash}`;
+  const windowStart = new Date(
+    Date.now() - THROTTLE_WINDOW_MINUTES * 60 * 1000,
+  ).toISOString();
+  const { count, error: throttleError } = await admin
+    .from(THROTTLE_TABLE)
+    .select("id", { count: "exact", head: true })
+    .eq("ip", ip)
+    .gte("created_at", windowStart);
+  if (throttleError || (count ?? 0) >= THROTTLE_LIMIT) {
+    return genericSuccess(email);
+  }
+  const { error: throttleInsertError } = await admin.from(THROTTLE_TABLE).insert({ ip });
+  if (throttleInsertError) return genericSuccess(email);
+
+  const { data: clientUser, error: clientUserError } = await admin
+    .from("client_users")
+    .select("id")
+    .ilike("email", email)
+    .in("status", ["invited", "active"])
+    .limit(1)
+    .maybeSingle();
+  if (clientUserError || !clientUser) return genericSuccess(email);
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
       emailRedirectTo: `${SITE_URL}/portal/callback`,
-      shouldCreateUser: true,
+      shouldCreateUser: false,
     },
   });
 
-  if (error) {
-    return { error: "No pudimos enviar el enlace ahora. Prueba de nuevo en un rato." };
-  }
-
-  return { sent: true, email };
+  // Una falla del proveedor tampoco debe convertirse en oráculo de existencia.
+  if (error) return genericSuccess(email);
+  return genericSuccess(email);
 }

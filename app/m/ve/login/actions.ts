@@ -9,7 +9,7 @@
  */
 
 import { redirect } from "next/navigation";
-import { signInWithPin, signOutOperario } from "@/lib/auth/operario-session";
+import { signInWithPin } from "@/lib/auth/operario-session";
 import { isValidPin, type SignInOperarioState } from "@/lib/studio/operario-types";
 
 export async function signInOperarioVeAction(
@@ -22,15 +22,9 @@ export async function signInOperarioVeAction(
     return { error: "PIN inválido — son 4 dígitos numéricos." };
   }
 
-  const session = await signInWithPin(pin);
+  const session = await signInWithPin(pin, "ve");
   if (!session) {
     return { error: "PIN incorrecto o operario inactivo." };
-  }
-
-  // Defensive: solo operarios VE entran a /m/ve
-  if (session.region !== "ve") {
-    await signOutOperario();
-    return { error: "Esta app es para operarios VE. Tu cuenta es de almacén CN." };
   }
 
   // Sprint D (multi-rol "Modos"): si tiene más de 1 rol y NO eligió modo
