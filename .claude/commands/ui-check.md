@@ -21,6 +21,16 @@ Corré el **check liviano de UI/UX** que exige la regla del founder ANTES de com
    - **Spacing & jerarquía:** escala de 4px (`var(--s-*)`), sin px arbitrarios; jerarquía tipográfica clara; left-align.
    - **Estados:** hover/focus/disabled/empty/loading presentes y consistentes.
    - **Accesibilidad:** contraste, target táctil, `<label>` clicable, foco visible.
+   - **Anchos fijos → MEDIDOS, no estimados.** Si el cambio fija un ancho de columna, chip o celda (`grid-cols-[…px]`, `w-[…px]`, `min-w-`), el ancho tiene que salir de medir el **string más largo posible** con la tipografía real, no de calcularlo a ojo:
+     ```js
+     const el = document.createElement('span');
+     el.style.cssText = "position:fixed;left:-9999px;white-space:nowrap;" +
+       "font:700 12.5px var(--font-jetbrains-mono), ui-monospace, monospace";
+     document.body.appendChild(el);
+     el.textContent = '−USDT 1,284,500.00';        // el peor caso REAL, no el típico
+     el.getBoundingClientRect().width;              // → 116px
+     ```
+     Y agregá `whitespace-nowrap`: así un string más largo **desborda a la vista** en vez de re-maquetar la fila en silencio. *(SDD-0177: las columnas de monto salieron a 100px estimados; `−USD 128,450.00` mide 105 → el monto se partía en dos renglones y la fila crecía de 46px a 72px. Ningún test lo vio.)*
    - **Tono/copy:** tuteo venezolano (cero voseo), sin "responsabilidad", CTAs con verbo directo.
 
 4. **Reportá** como checklist priorizado (alta/media/baja), cada hallazgo con **archivo:línea** y la corrección concreta dentro del sistema. Marcá con ⭐ el #1.
