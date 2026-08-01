@@ -163,6 +163,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Cierre global y reconciliación R3 sin Nómina 0316 | [REV-SGE-046](reviews/governance-r3-final-reconciliation-2026-08-01.md) |
 | Cierre productivo de 0317 en Financiero China | [REV-SGE-047](reviews/partner-finance-r3-claim-payment-production-close-2026-08-01.md) |
 | Cierre productivo de 0318–0324 (residuos R3) | [REV-SGE-048](reviews/governance-r3-0318-0324-production-close-2026-08-01.md) |
+| Renumeración de colisiones e integración de 0330 y 0331 | [REV-SGE-049](reviews/renumeracion-colisiones-0236-0330-0331-2026-08-01.md) |
 | Revisión de patrones UX en videos | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | Portabilidad EOL de SDD-0118 | [REV-AUD-030](reviews/aud-sdd-0118-eol-portability.md) |
 | Dependencias ejecutables CMP-01 | [REV-SGE-015](reviews/cmp-01-dependency-validation.md) |
