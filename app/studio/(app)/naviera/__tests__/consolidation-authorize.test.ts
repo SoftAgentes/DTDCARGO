@@ -4,8 +4,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  * Tests de authorizeConsolidation / rejectConsolidation (SDD-0157, Slice B).
  *
  * Cubre la acceptance:
- *  - authorize solo transiciona desde 'solicitada'; asigna ref vía
- *    next_consolidation_ref; pasa a 'consolidando' con authorized_by/at.
+ *  - authorize valida estado, motivo y request ref antes del RPC gobernado.
+ *  - replay devuelve la misma referencia y conserva la notificación best-effort.
  *  - reject exige motivo y solo transiciona desde 'solicitada'.
  *  - ambos respetan moduleEditDenial('naviera').
  *
@@ -38,12 +38,14 @@ import { authorizeConsolidation, rejectConsolidation } from "../actions";
 
 const TENANT = "tenant-1";
 const USER = "user-1";
+const CONSOLIDATION_ID = "10000000-0000-4000-8000-000000000001";
+const REQUEST_REF = `naviera-consolidation-authorization:${CONSOLIDATION_ID}:test-1`;
 
 type Cfg = {
   tenant?: string | null;
   row?: Record<string, unknown> | null;
-  ref?: string;
-  refError?: { message: string } | null;
+  authorizationResponse?: Record<string, unknown>;
+  authorizationError?: { message: string; code: string } | null;
   updateError?: { message: string } | null;
 };
 
@@ -57,8 +59,17 @@ function makeSupabase(cfg: Cfg) {
     },
     rpc: async (name: string, args?: unknown) => {
       rpcCalls.push({ name, args });
-      if (name === "next_consolidation_ref") {
-        return { data: cfg.ref ?? "DTD-CONSOL-0007", error: cfg.refError ?? null };
+      if (name === "authorize_consolidation_governed") {
+        return {
+          data:
+            cfg.authorizationResponse ?? {
+              outcome: "transitioned",
+              ref: "DTD-CONSOL-0007",
+              requested_by_operario_id: "op-1",
+              container_type: "40HC",
+            },
+          error: cfg.authorizationError ?? null,
+        };
       }
       return { data: null, error: null };
     },
@@ -110,44 +121,78 @@ beforeEach(() => {
 });
 
 describe("authorizeConsolidation", () => {
-  it("desde 'solicitada' asigna ref y pasa a 'consolidando'", async () => {
-    const { supabase, updates, rpcCalls } = makeSupabase({});
+  it("envía la decisión validada al RPC gobernado", async () => {
+    const { supabase, rpcCalls } = makeSupabase({});
     mockCreateClient.mockReturnValue(supabase);
 
-    const res = await authorizeConsolidation("cons-1");
+    const res = await authorizeConsolidation({
+      consolidationId: CONSOLIDATION_ID,
+      from: "solicitada",
+      reason: "  capacidad verificada  ",
+      requestRef: REQUEST_REF,
+    });
     expect(res.ok).toBe(true);
-
-    expect(rpcCalls.some((c) => c.name === "next_consolidation_ref")).toBe(true);
-    const upd = updates.find((u) => u.table === "consolidations");
-    expect(upd?.payload.ref).toBe("DTD-CONSOL-0007");
-    expect(upd?.payload.status).toBe("consolidando");
-    expect(upd?.payload.authorized_by).toBe(USER);
-    expect(upd?.payload.authorized_at).toBeDefined();
+    expect(res.ref).toBe("DTD-CONSOL-0007");
+    expect(rpcCalls).toContainEqual({
+      name: "authorize_consolidation_governed",
+      args: {
+        p_consolidation_id: CONSOLIDATION_ID,
+        p_reason: "capacidad verificada",
+        p_request_ref: REQUEST_REF,
+      },
+    });
     expect(mockNotify).toHaveBeenCalledOnce();
     expect(mockRevalidate).toHaveBeenCalled();
   });
 
-  it("rechaza si la solicitud NO está 'solicitada'", async () => {
-    const { supabase, updates } = makeSupabase({
-      row: { ...defaultRow(), status: "consolidando" },
+  it("reconoce replay y devuelve la misma referencia", async () => {
+    const { supabase } = makeSupabase({
+      authorizationResponse: {
+        outcome: "replayed",
+        ref: "DTD-CONSOL-0007",
+        requested_by_operario_id: "op-1",
+        container_type: "40HC",
+      },
     });
     mockCreateClient.mockReturnValue(supabase);
 
-    const res = await authorizeConsolidation("cons-1");
-    expect(res.error).toBeDefined();
-    expect(res.ok).toBeUndefined();
-    expect(updates).toHaveLength(0);
+    const res = await authorizeConsolidation({
+      consolidationId: CONSOLIDATION_ID,
+      from: "solicitada",
+      reason: "capacidad verificada",
+      requestRef: REQUEST_REF,
+    });
+    expect(res).toMatchObject({ ok: true, replayed: true, ref: "DTD-CONSOL-0007" });
   });
 
-  it("rechaza si la fila es de otro tenant", async () => {
-    const { supabase, updates } = makeSupabase({
-      row: { ...defaultRow(), tenant_id: "otro-tenant" },
+  it("rechaza estado, motivo o referencia inválidos antes del RPC", async () => {
+    const { supabase, rpcCalls } = makeSupabase({});
+    mockCreateClient.mockReturnValue(supabase);
+
+    const res = await authorizeConsolidation({
+      consolidationId: CONSOLIDATION_ID,
+      from: "consolidando",
+      reason: "x",
+      requestRef: "ref con espacios",
+    });
+    expect(res.error).toBeDefined();
+    expect(rpcCalls).toHaveLength(0);
+  });
+
+  it("mapea una carrera de estado sin exponer el error de DB", async () => {
+    const { supabase } = makeSupabase({
+      authorizationError: { message: "raw database error", code: "40001" },
     });
     mockCreateClient.mockReturnValue(supabase);
 
-    const res = await authorizeConsolidation("cons-1");
-    expect(res.error).toBeDefined();
-    expect(updates).toHaveLength(0);
+    const res = await authorizeConsolidation({
+      consolidationId: CONSOLIDATION_ID,
+      from: "solicitada",
+      reason: "capacidad verificada",
+      requestRef: REQUEST_REF,
+    });
+    expect(res.error).toContain("cambiaron");
+    expect(res.error).not.toContain("raw database error");
   });
 
   it("respeta moduleEditDenial", async () => {
@@ -155,7 +200,12 @@ describe("authorizeConsolidation", () => {
     const { supabase } = makeSupabase({});
     mockCreateClient.mockReturnValue(supabase);
 
-    const res = await authorizeConsolidation("cons-1");
+    const res = await authorizeConsolidation({
+      consolidationId: CONSOLIDATION_ID,
+      from: "solicitada",
+      reason: "capacidad verificada",
+      requestRef: REQUEST_REF,
+    });
     expect(res.error).toBe("No tienes permiso para realizar esta acción.");
   });
 });

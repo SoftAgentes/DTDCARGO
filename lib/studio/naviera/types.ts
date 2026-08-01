@@ -478,6 +478,50 @@ const VALID_BOOKING_STATUS = new Set<string>(BOOKING_STATUSES);
 const VALID_BOOKING_MODE = new Set<string>(BOOKING_MODES);
 const VALID_CONTAINER_STATUS = new Set<string>(CONTAINER_STATUSES);
 
+export type ConsolidationAuthorizationInput = {
+  consolidation_id: string;
+  from: "solicitada";
+  reason: string;
+  request_ref: string;
+};
+
+export type ConsolidationAuthorizationValidation =
+  | { ok: true; input: ConsolidationAuthorizationInput }
+  | { ok: false; error: string };
+
+/** Contrato público de la decisión R3 `solicitada → consolidando`. */
+export function validateConsolidationAuthorizationInput(
+  raw: Record<string, unknown>,
+): ConsolidationAuthorizationValidation {
+  const consolidationId = String(raw.consolidation_id ?? "").trim();
+  const from = String(raw.from ?? "").trim();
+  const reason = String(raw.reason ?? "").trim();
+  const requestRef = String(raw.request_ref ?? "").trim();
+
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(consolidationId)) {
+    return { ok: false, error: "Solicitud de consolidación inválida." };
+  }
+  if (from !== "solicitada") {
+    return { ok: false, error: "La solicitud cambió de estado. Actualiza la página." };
+  }
+  if (reason.length < 4 || reason.length > 1_000) {
+    return { ok: false, error: "El motivo debe tener entre 4 y 1000 caracteres." };
+  }
+  if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(requestRef)) {
+    return { ok: false, error: "La referencia de la operación es inválida." };
+  }
+
+  return {
+    ok: true,
+    input: {
+      consolidation_id: consolidationId,
+      from: "solicitada",
+      reason,
+      request_ref: requestRef,
+    },
+  };
+}
+
 function dateOk(s: string | null | undefined): boolean {
   return !s || /^\d{4}-\d{2}-\d{2}$/.test(s);
 }
