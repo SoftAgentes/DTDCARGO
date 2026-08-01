@@ -22,12 +22,26 @@ function genericSuccess(email: string): PortalLoginState {
   return { sent: true, email };
 }
 
+async function sendMagicLink(email: string): Promise<PortalLoginState> {
+  const supabase = await createClient();
+  await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      emailRedirectTo: `${SITE_URL}/portal/callback`,
+      shouldCreateUser: false,
+    },
+  });
+  return genericSuccess(email);
+}
+
 /**
  * Pide un magic-link de Supabase Auth para entrar al portal. Método ÚNICO de
  * acceso (SDD-0094): el cliente entra con su email, no con su Shipping Mark.
  *
  * Solo envía a emails habilitados, pero responde de forma indistinguible para
- * impedir enumeración. El login nunca crea auth.users.
+ * impedir enumeración. El login nunca crea auth.users. Si el cliente admin no
+ * está disponible, Supabase Auth conserva el envío a usuarios ya existentes
+ * con `shouldCreateUser: false`; el callback sigue validando el vínculo.
  */
 export async function requestMagicLink(
   _prev: PortalLoginState,
@@ -42,24 +56,28 @@ export async function requestMagicLink(
   try {
     admin = createAdminClient();
   } catch {
-    return genericSuccess(email);
+    return sendMagicLink(email);
   }
 
-  const ipHash = createHash("sha256").update(await getRequestIp()).digest("hex");
-  const ip = `${THROTTLE_PREFIX}${ipHash}`;
+  const originHash = createHash("sha256")
+    .update(await getRequestIp())
+    .digest("hex");
+  const originKey = `${THROTTLE_PREFIX}${originHash}`;
   const windowStart = new Date(
     Date.now() - THROTTLE_WINDOW_MINUTES * 60 * 1000,
   ).toISOString();
   const { count, error: throttleError } = await admin
     .from(THROTTLE_TABLE)
     .select("id", { count: "exact", head: true })
-    .eq("ip", ip)
+    .eq("ip", originKey)
     .gte("created_at", windowStart);
   if (throttleError || (count ?? 0) >= THROTTLE_LIMIT) {
     return genericSuccess(email);
   }
-  const { error: throttleInsertError } = await admin.from(THROTTLE_TABLE).insert({ ip });
-  if (throttleInsertError) return genericSuccess(email);
+  const { error: insertError } = await admin
+    .from(THROTTLE_TABLE)
+    .insert({ ip: originKey });
+  if (insertError) return genericSuccess(email);
 
   const { data: clientUser, error: clientUserError } = await admin
     .from("client_users")
@@ -70,16 +88,5 @@ export async function requestMagicLink(
     .maybeSingle();
   if (clientUserError || !clientUser) return genericSuccess(email);
 
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: {
-      emailRedirectTo: `${SITE_URL}/portal/callback`,
-      shouldCreateUser: false,
-    },
-  });
-
-  // Una falla del proveedor tampoco debe convertirse en oráculo de existencia.
-  if (error) return genericSuccess(email);
-  return genericSuccess(email);
+  return sendMagicLink(email);
 }

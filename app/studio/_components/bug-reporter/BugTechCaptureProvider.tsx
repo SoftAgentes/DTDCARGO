@@ -24,7 +24,10 @@
 
 import { useEffect } from "react";
 import { getBugTechCapture } from "@/lib/studio/bug-tech-capture";
-import { getBugRrwebCapture } from "@/lib/studio/bug-rrweb-capture";
+import {
+  bugReplayEnabled,
+  getBugRrwebCapture,
+} from "@/lib/studio/bug-rrweb-capture";
 
 export function BugTechCaptureProvider() {
   useEffect(() => {
@@ -32,7 +35,7 @@ export function BugTechCaptureProvider() {
     capture.install();
 
     const rrwebCapture = getBugRrwebCapture();
-    if (process.env.NEXT_PUBLIC_BUG_REPLAY_ENABLED === "1") {
+    if (bugReplayEnabled()) {
       rrwebCapture.install().catch((err) => {
         console.error("[BugTechCaptureProvider] rrweb install failed:", err);
       });

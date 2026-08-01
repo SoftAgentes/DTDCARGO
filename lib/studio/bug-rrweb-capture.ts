@@ -38,6 +38,17 @@ interface RrwebEvent {
 const WINDOW_MS = 15_000; // 15 segundos de buffer rolling
 const MAX_EVENTS = 300; // Cap absoluto · evita memory leak en sesiones largas
 
+export function bugReplayEnabled(
+  value: string | undefined = process.env.NEXT_PUBLIC_BUG_REPLAY_ENABLED,
+): boolean {
+  return value === "1";
+}
+
+export function maskReplayText(text: string): string {
+  void text;
+  return "***";
+}
+
 class BugRrwebCapture {
   private buffer: RrwebEvent[] = [];
   private stopFn: (() => void) | null = null;
@@ -57,9 +68,9 @@ class BugRrwebCapture {
         checkoutEveryNms: 10_000,
         // Privacy hardening
         maskAllInputs: true,
-        // No capturar texto visible: puede contener nombres, documentos,
+        // El texto visible también puede contener nombres, documentos,
         // direcciones o notas operativas aunque no esté dentro de un input.
-        maskTextFn: () => "***",
+        maskTextFn: maskReplayText,
         // Performance: no graba estilos inline que ya están en CSS
         inlineStylesheet: false,
         // Sampling razonable
