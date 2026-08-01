@@ -266,7 +266,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0234 | Cancelación gobernada de órdenes de despacho | done | interno |
 | 0235 | Cierre de auditoría de seguridad, datos y adjuntos | approved | interno |
 | 0236 | Transportistas terrestres y su tarifario por CBM | done | interno |
-| 0237 | La calculadora pública cobra la entrega nacional por CBM | in-progress | interno |
+| 0237 | La calculadora pública cobra la entrega nacional por CBM | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0226 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

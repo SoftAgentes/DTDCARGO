@@ -1,7 +1,7 @@
 ---
 sdd: "0237"
 title: "La calculadora pública cobra la entrega nacional por CBM"
-status: in-progress
+status: done
 author: "Sam (founder) + Claude Code"
 created: 2026-08-01
 updated: 2026-08-01
@@ -128,25 +128,54 @@ decisión posterior del founder lo metió en la zona sin costo.
 
 ## Estado y qué falta
 
-- ✅ Migración `0332_seed_tarifario_benito.sql` escrita, con prueba contractual
-  validada por mutación. **NO aplicada a producción** — exige el OK del founder
-  nombrando el archivo, por `docs/runbooks/aplicar-migraciones-prod.md`.
+- ✅ Migración `0332_seed_tarifario_benito.sql` **aplicada a producción**
+  (ledger `20260801203558`), con prueba contractual validada por mutación.
+  Verificado contra el objeto: 1 transportista · 169 tarifas · 178 ciudades ·
+  `public_carrier_tariffs()` devuelve 169 filas · 8 ciudades en zona sin costo ·
+  0 precios fuera del acuerdo · 0 tarifas bajo costo. Gate `migrations-applied`
+  en verde.
 - ✅ `lib/data/destinos-nacionales.ts` — respaldo de 178 destinos, sin costo.
 - ✅ `lib/calculadora.ts` — cobra por CBM, tres estados de cobertura, aviso
   quincenal.
 - ✅ `getPublicCarrierTariffs()` + `combinarDestinos()` en
   `lib/public/rates-queries.ts`, consumidos por `/tarifas`.
 - ✅ `lastMileEstimate` deduplicada: devuelve tarifa por m³, no monto.
-- ⏳ **El selector sigue siendo un `<select>` nativo con 178 opciones.** Hace
-  falta el combobox con búsqueda (patrón SDD-0108) y pintar los tres estados de
-  cobertura en la UI.
-- ⏳ La línea *"Entrega — Incluida"* del desglose todavía se oculta cuando es $0.
-- ⏳ El copy que habla de kilómetros sigue vivo en `lib/geo-zonas.ts`,
-  `/servicios/puerta-a-puerta` y `/importar-de-china`. Son landings indexadas →
-  anotar en `docs/marketing/seo.md`.
-- ⏳ `AddressCity` acepta `ventaCbm` pero la página que arma `cities` para el ERP
-  y el portal todavía no lo alimenta: esas tarjetas muestran *"la cotiza tu
-  asesor"* en vez del precio.
-- ⏳ Ficha del proveedor `benito-transporte-express.md` y retiro de
+- ✅ **Combobox con búsqueda** (`components/DestinoCombobox.tsx`, patrón ARIA de
+  SDD-0108 pero propio del sitio público — aquel importa `@/lib/studio` y
+  cruzarlo rompería la frontera). Filtra en memoria, ignora acentos
+  ("carupano" → Carúpano) y busca **sólo por nombre de ciudad**: el estado se
+  muestra para desambiguar homónimos (La Villa está dos veces) pero no matchea
+  (decisión del founder). 10 tests de DOM.
+- ✅ **Los tres estados de cobertura, en la UI.** Badge en la opción
+  ("No llegamos" / "A medida") + nota bajo el selector que aparece **apenas
+  eliges la ciudad**, sin esperar a que llenes CBM y peso. Las 8 de zona sin
+  costo van sin marca: el "Incluida" ya se ve en el desglose.
+- ✅ `coberturaDestino()` + los constructores de copy
+  (`mensajeDestinoSinTarifa` / `mensajeDestinoSinCobertura` /
+  `vecinaDeDestino`) viven en `lib/calculadora.ts` y los usan **el motor y la
+  UI**. El motor exige carga válida antes de llegar a la rama de la tarifa, así
+  que la UI no podía preguntarle con el formulario vacío. Que no se separen lo
+  garantiza `__tests__/calculadora-cobertura.test.ts`, que recorre los 178
+  destinos reales — validado por mutación (3 tests la cazan).
+- ✅ La línea *"Entrega — Incluida"* siempre visible. 🐛 Además se arregló que
+  `--success-on-dark` sólo existe dentro de `.home-surface`: en `/calculadora` y
+  `/tarifas` el color no resolvía y "Incluida" heredaba tinta oscura sobre navy.
+  Ahora cae al token global de `@theme`.
+- ✅ **Barrido de copy.** "casco central" → "entrega incluida" y fuera los
+  kilómetros en `lib/geo-zonas.ts` (18 `notaEntrega` + `anguloLocal` + 3
+  `metaDescription`), `/servicios/puerta-a-puerta` y `/importar-de-china`.
+  Anotado en `docs/marketing/seo.md`. 🐛 De paso: `barquisimeto` y `acarigua`
+  seguían en `casco: false`, así que sus landings indexadas mandaban al cliente
+  a preguntarle al asesor por un tramo que ahora va en $0.
+- ✅ `ventaCbm` alimentado en el ERP y el portal: ambas páginas cruzan
+  `calculator_cities` con `public_carrier_tariffs()` vía `combinarDestinos` —
+  el mismo cruce de la calculadora, para que asesor y cliente vean el mismo
+  número. Se retiró el prop muerto `lastMileParams` (y con él el gate que
+  escondía el precio cuando la RPC de config no respondía).
+- ✅ Ficha del proveedor `benito-transporte-express.md` y retiro de
   `benitez-rm.md`.
-- ⏳ Retirar los dos parámetros legacy de la UI del Admin.
+- ✅ Los dos parámetros legacy salieron de la UI del Admin. Las columnas siguen
+  en `calculator_settings` (quitarlas es una migración destructiva) y viajan
+  como hidden con su valor guardado, porque `validateCalculatorSettingsInput`
+  exige las 10 claves. También se corrigió el copy del Admin que todavía decía
+  que el km "alimenta el recargo por distancia" — hace días que no.
