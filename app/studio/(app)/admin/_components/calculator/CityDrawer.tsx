@@ -211,7 +211,7 @@ export function CityDrawer({ mode, city, onClose }: Props) {
               <span
                 style={{ font: "600 13px/1.3 var(--f-sans)", color: "var(--ink)" }}
               >
-                Casco central
+                Zona sin costo
               </span>
               <span
                 style={{
@@ -219,8 +219,9 @@ export function CityDrawer({ mode, city, onClose }: Props) {
                   color: "var(--ink-soft)",
                 }}
               >
-                Entrega flat sin recargo por distancia (Valencia, Maracay,
-                Caracas).
+                El cliente NO paga la entrega ahí — DTD le paga igual ese tramo
+                al transportista. Son 8: Valencia, Naguanagua, San Diego,
+                Guacara, Maracay, Caracas, Barquisimeto y Acarigua.
               </span>
             </span>
           </label>

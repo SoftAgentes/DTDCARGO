@@ -5,8 +5,11 @@
  * (Administración · grupo PRO). Movido desde el módulo Tarifas.
  *
  * Edita las REGLAS escalares del calculador público LCL DDP (peso incluido,
- * $/kg excedente, descuento Valencia, ×baterías, km del casco, $/km, embalaje
- * especial). La tarifa base ($/CBM) y el piso NO se editan acá — son la tarifa
+ * $/kg excedente, descuento Valencia, ×baterías, embalaje especial y los topes
+ * de cotización automática). El precio de la ENTREGA NACIONAL no se toca acá:
+ * vive en el tarifario del transportista (sub-pestaña Transportistas), porque
+ * desde SDD-0237 se cobra por m³ y no por kilómetro.
+ * La tarifa base ($/CBM) y el piso NO se editan acá — son la tarifa
  * pública del calculador, en el módulo Tarifas (marca una tarifa como
  * "Pública · calc"). Publicación instantánea: al guardar, revalidatePath
  * refresca el calculador del sitio.
@@ -50,14 +53,25 @@ const GROUPS: { title: string; keys: FieldKey[] }[] = [
     keys: ["descuentoValencia", "recargoEmbalajeEspecial", "recargoBateriaMult"],
   },
   {
-    title: "Distancia · casco central",
-    keys: ["thresholdCascoKm", "tarifaKmFueraCasco"],
-  },
-  {
     title: "Límites de cotización automática",
     keys: ["pesoMaxEnvioKg", "cbmMaxContenedor", "pesoMaxContenedorKg"],
   },
 ];
+
+/**
+ * Parámetros que YA NO MUEVEN UN CENTAVO (SDD-0237) y por eso salieron del form.
+ *
+ * El "radio del casco central" y el "$/km fuera del casco" fijaban la entrega
+ * nacional con `max(0, km − 200) × $1`. Esa fórmula murió: hoy se cobra
+ * `CBM × precio del tramo`. Dejarlos editables era peor que inútil — invitaba
+ * al operador a "arreglar" un precio moviendo un número que el motor ignora.
+ *
+ * Las columnas SIGUEN en `calculator_settings` (quitarlas es una migración
+ * destructiva que no vale la pena), y `validateCalculatorSettingsInput` exige
+ * las 10 claves. Por eso viajan como hidden con su valor guardado: el form
+ * guarda sin tocarlas. Si algún día se borran de la DB, esto se va con ellas.
+ */
+const LEGACY_KEYS: FieldKey[] = ["thresholdCascoKm", "tarifaKmFueraCasco"];
 
 const FIELD_BY_KEY = Object.fromEntries(
   CALC_FIELDS.map((f) => [f.key, f]),
@@ -229,6 +243,17 @@ export function ParametrosPanel({
             </fieldset>
           ))}
         </div>
+
+        {/* Legacy sin UI: se repostean tal cual para que el guardado no los
+            pise ni falle la validación. Ver LEGACY_KEYS arriba. */}
+        {LEGACY_KEYS.map((key) => (
+          <input
+            key={key}
+            type="hidden"
+            name={key}
+            value={values[key] ?? DEFAULT_CALCULATOR_SETTINGS[key]}
+          />
+        ))}
 
         {/* Error global de la action */}
         {!dirty && state.error && (

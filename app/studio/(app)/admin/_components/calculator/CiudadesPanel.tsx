@@ -67,9 +67,11 @@ export function CiudadesPanel({
           }}
         >
           Estas son las <strong style={{ color: "var(--ink)" }}>ciudades de
-          destino</strong> del calculador público. <em>Km desde Valencia</em>
-          alimenta el recargo por distancia; <em>casco central</em> = entrega
-          flat sin recargo por km.{" "}
+          destino</strong> del calculador público. El <strong style={{ color: "var(--ink)" }}>precio
+          de la entrega</strong> sale del tarifario del transportista, por m³;
+          acá se define <em>zona sin costo</em> = el cliente no paga ese tramo
+          (lo absorbe DTD). <em>Km desde Valencia</em> ya no fija precio: queda
+          como referencia y para ordenar.{" "}
           {isAdmin
             ? "Al guardar, el calculador del sitio las toma de inmediato."
             : "Solo un administrador puede editarlas."}
@@ -213,7 +215,7 @@ function CitiesTable({
           <span>
             {c.casco ? (
               <Badge tone="success" size="sm">
-                Casco
+                Sin costo
               </Badge>
             ) : (
               <Badge tone="neutral" size="sm">
