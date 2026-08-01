@@ -37,7 +37,7 @@
 | Calendario | 0015 | `app/studio/(app)/calendario/` | `lib/studio/calendar-*` |
 | Almacén CN | 0016, 0194, 0196, 0197, 0199 | `app/studio/(app)/cn/` + `app/m/cn/` | `lib/studio/warehouse-cn-*` |
 | Almacén VE | 0017 | `app/studio/(app)/ve/` + `app/m/ve/` | `lib/studio/warehouse-ve-*`, `warehouse-receipt-ve-*` |
-| Aduana SENIAT | 0018 | `app/studio/(app)/seniat/` | `lib/studio/customs-*` |
+| Aduana SENIAT | 0018, 0228 | `app/studio/(app)/seniat/` | `lib/studio/customs-*` · `supabase/migrations/{0010,0318}` (liberación R3 gobernada) |
 | TMS · transporte VE | 0019 | `app/studio/(app)/tms/` | `lib/studio/tms-*` |
 | Agentes y Skills | 0020 | `app/studio/(app)/admin/agentes/` + `app/api/studio/agents/` | `lib/studio/agents/`, `agent-*` |
 | Usuarios & Roles | 0024 | `app/studio/(app)/usuarios/` + `app/invitar/[token]/` | `lib/studio/user-*` |

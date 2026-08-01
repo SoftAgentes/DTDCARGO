@@ -5,8 +5,8 @@
  *   + sync shipment.status si no estaba en in_customs
  * - updateFilingAction: edit campos del filing (no incluye docs)
  * - markDocumentUploadedAction: toggle del checklist (sin upload real V1)
- * - markFilingClearedAction: cambia status a liberado + cleared_at + sync shipment
- * - changeFilingStatusAction: cambio genérico de status
+ * - markFilingClearedAction: RPC R3 atómico filing + shipment + auditoría
+ * - changeFilingStatusAction: cambio genérico, excepto la liberación gobernada
  */
 
 "use server";
@@ -14,8 +14,9 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { clearCustomsFilingGoverned } from "@/lib/studio/customs-queries";
 import {
-  CUSTOMS_DOC_REQUIRED,
+  validateCustomsClearanceInput,
   validateFilingInput,
   type CustomsFilingActionState,
   type CustomsFilingInput,
@@ -237,75 +238,50 @@ export async function markDocumentUploadedAction(
 // ─────────────────────────────────────────────────────────────
 
 export async function markFilingClearedAction(
-  filingId: string,
-): Promise<{ ok?: boolean; error?: string; missingDocs?: string[] }> {
+  raw: {
+    filingId?: string;
+    from?: string;
+    effectiveDate?: string;
+    reason?: string;
+    requestRef?: string;
+  },
+): Promise<{ ok?: boolean; error?: string; replayed?: boolean }> {
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "seniat");
   if (denial) return { error: denial };
 
+  const validation = validateCustomsClearanceInput({
+    filing_id: raw.filingId,
+    from: raw.from,
+    effective_date: raw.effectiveDate,
+    reason: raw.reason,
+    request_ref: raw.requestRef,
+  });
+  if (!validation.ok) return { error: validation.error };
 
-  const { data: link } = await supabase
-    .from("user_tenants")
-    .select("tenant_id")
-    .maybeSingle<{ tenant_id: string }>();
-  if (!link?.tenant_id) return { error: "No se pudo resolver el tenant." };
-
-  // Validar required docs OK
-  const { data: docs, error: docsErr } = await supabase
-    .from("customs_documents")
-    .select("doc_type, uploaded")
-    .eq("filing_id", filingId);
-
-  if (docsErr) return { error: docsErr.message };
-
-  const missing = ((docs as { doc_type: keyof typeof CUSTOMS_DOC_REQUIRED; uploaded: boolean }[] | null) ?? [])
-    .filter((d) => CUSTOMS_DOC_REQUIRED[d.doc_type] && !d.uploaded)
-    .map((d) => d.doc_type);
-
-  if (missing.length > 0) {
+  try {
+    const result = await clearCustomsFilingGoverned(supabase, {
+      filingId: validation.input.filing_id,
+      effectiveDate: validation.input.effective_date,
+      reason: validation.input.reason,
+      requestRef: validation.input.request_ref,
+    });
+    revalidatePath("/studio/seniat");
+    revalidatePath("/studio/ve");
+    return { ok: true, replayed: result === "replayed" };
+  } catch (error) {
+    const code =
+      typeof error === "object" && error !== null && "code" in error
+        ? String((error as { code?: unknown }).code ?? "")
+        : "";
+    if (code === "42501") return { error: "No tienes permiso para declarar esta liberación." };
+    if (code === "22023") return { error: "Revisa los documentos, el motivo y la fecha efectiva." };
+    if (code === "40001") return { error: "El trámite cambió. Actualiza la página antes de reintentar." };
+    if (code === "P0002") return { error: "El trámite aduanal ya no está disponible." };
     return {
-      error: `Faltan documentos obligatorios: ${missing.join(", ")}`,
-      missingDocs: missing,
+      error: `No se pudo declarar la liberación. Referencia: ${validation.input.request_ref}`,
     };
   }
-
-  // Obtener shipment_id del filing
-  const { data: filing, error: filingErr } = await supabase
-    .from("customs_filings")
-    .select("shipment_id, dua_code")
-    .eq("id", filingId)
-    .maybeSingle<{ shipment_id: string; dua_code: string }>();
-
-  if (filingErr || !filing) return { error: "Filing no encontrado." };
-
-  const today = new Date().toISOString().slice(0, 10);
-
-  // Update filing
-  const { error: updErr } = await supabase
-    .from("customs_filings")
-    .update({ status: "liberado", cleared_at: today, alert: null })
-    .eq("id", filingId);
-
-  if (updErr) return { error: updErr.message };
-
-  // Sync shipment.status -> arrived_destination (listo retiro)
-  await supabase
-    .from("shipments")
-    .update({ status: "arrived_destination" })
-    .eq("id", filing.shipment_id)
-    .eq("status", "in_customs");
-
-  await supabase.from("shipment_events").insert({
-    tenant_id: link.tenant_id,
-    shipment_id: filing.shipment_id,
-    status: "arrived_destination",
-    note: `SENIAT liberó el container · DUA ${filing.dua_code}`,
-  });
-
-  revalidatePath("/studio/seniat");
-  revalidatePath("/studio/ve");
-  revalidatePath(`/studio/tracking/${filing.shipment_id}`);
-  return { ok: true };
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -317,7 +293,6 @@ const VALID_STATUSES: CustomsStatus[] = [
   "observacion",
   "liberacion",
   "pagado",
-  "liberado",
 ];
 
 export async function changeFilingStatusAction(
@@ -325,6 +300,9 @@ export async function changeFilingStatusAction(
   newStatus: CustomsStatus,
   alertText?: string | null,
 ): Promise<{ ok?: boolean; error?: string }> {
+  if (newStatus === "liberado") {
+    return { error: "Usa la liberación gobernada del trámite." };
+  }
   if (!VALID_STATUSES.includes(newStatus)) {
     return { error: "Estado inválido." };
   }

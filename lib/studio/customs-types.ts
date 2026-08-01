@@ -247,6 +247,65 @@ export type CustomsFilingActionState = {
   createdDuaCode?: string;
 };
 
+export type CustomsClearanceInput = {
+  filing_id: string;
+  from: "pagado";
+  effective_date: string;
+  reason: string;
+  request_ref: string;
+};
+
+export type CustomsClearanceValidation =
+  | { ok: true; input: CustomsClearanceInput }
+  | { ok: false; error: string };
+
+/** Contrato público de la decisión R3 `pagado → liberado`. */
+export function validateCustomsClearanceInput(
+  raw: Record<string, unknown>,
+  today = new Date().toISOString().slice(0, 10),
+): CustomsClearanceValidation {
+  const filingId = String(raw.filing_id ?? "").trim();
+  const from = String(raw.from ?? "").trim();
+  const effectiveDate = String(raw.effective_date ?? "").trim();
+  const reason = String(raw.reason ?? "").trim();
+  const requestRef = String(raw.request_ref ?? "").trim();
+
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(filingId)) {
+    return { ok: false, error: "Trámite aduanal inválido." };
+  }
+  if (from !== "pagado") {
+    return { ok: false, error: "El trámite cambió de estado. Actualiza la página." };
+  }
+  const parsedDate = /^\d{4}-\d{2}-\d{2}$/.test(effectiveDate)
+    ? new Date(`${effectiveDate}T00:00:00.000Z`)
+    : null;
+  if (
+    !parsedDate ||
+    Number.isNaN(parsedDate.getTime()) ||
+    parsedDate.toISOString().slice(0, 10) !== effectiveDate ||
+    effectiveDate > today
+  ) {
+    return { ok: false, error: "La fecha efectiva debe ser válida y no futura." };
+  }
+  if (reason.length < 4 || reason.length > 1_000) {
+    return { ok: false, error: "El motivo debe tener entre 4 y 1000 caracteres." };
+  }
+  if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(requestRef)) {
+    return { ok: false, error: "La referencia de la operación es inválida." };
+  }
+
+  return {
+    ok: true,
+    input: {
+      filing_id: filingId,
+      from: "pagado",
+      effective_date: effectiveDate,
+      reason,
+      request_ref: requestRef,
+    },
+  };
+}
+
 const HS_RE = /^\d{4}\.\d{2}(\.\d{2})?$/;
 
 export function validateFilingInput(
