@@ -36,9 +36,10 @@ import { FONT_MONO } from "@/lib/design-tokens";
  * texto y 7.9–10.5:1 en el acento wine.
  *
  * La posición se calcula a mano (CSS Anchor Positioning todavía no tiene
- * soporte parejo): **arriba** del botón en escritorio, para no taparle al
- * visitante el campo que vino a llenar; hoja inferior en teléfono. Si el
- * navegador no soporta la API, el botón degrada a enlace directo a la FAQ.
+ * soporte parejo): **arriba** del botón cuando cabe, para no taparle al
+ * visitante el campo que vino a llenar; abajo solo cuando allí hay más
+ * espacio. Si el navegador no soporta la API, el botón degrada a enlace
+ * directo a la FAQ.
  */
 const ANCHO = 320;
 const MARGEN = 12;
@@ -69,14 +70,41 @@ export function CbmAyuda() {
       if (!pop || !btn) return;
 
       if (window.matchMedia("(max-width: 640px)").matches) {
-        // Teléfono: hoja inferior, al alcance del pulgar.
-        pop.style.cssText = "";
+        // En teléfono no puede ser una hoja inferior fija: si el campo queda
+        // cerca del borde inferior, la hoja lo tapa. Se mide el campo completo
+        // y se usa el lado que tenga más espacio, limitando la altura al
+        // viewport cuando ninguno de los dos lados alcanza.
+        const boton = btn.getBoundingClientRect();
+        const input = btn.closest("label")?.querySelector("input");
+        const campo = input?.getBoundingClientRect();
+        const bordeArriba = campo?.top ?? boton.top;
+        const bordeAbajo = campo?.bottom ?? boton.bottom;
+        const alto = pop.offsetHeight || ALTO_ESTIMADO;
+        const espacioArriba = Math.max(0, bordeArriba - 16);
+        const espacioAbajo = Math.max(
+          0,
+          window.innerHeight - bordeAbajo - 16,
+        );
+        const usarArriba =
+          espacioArriba >= alto || espacioArriba >= espacioAbajo;
+        const espacioDisponible = usarArriba ? espacioArriba : espacioAbajo;
+
         pop.style.left = "8px";
         pop.style.right = "8px";
-        pop.style.bottom = "8px";
-        pop.style.top = "auto";
         pop.style.width = "auto";
-        pop.removeAttribute("data-lado");
+        pop.style.maxHeight = `${espacioDisponible}px`;
+        pop.style.overflowY = "auto";
+        pop.style.removeProperty("--caret-x");
+
+        if (usarArriba) {
+          pop.style.bottom = `${window.innerHeight - bordeArriba + 8}px`;
+          pop.style.top = "auto";
+          pop.dataset.lado = "arriba";
+        } else {
+          pop.style.top = `${bordeAbajo + 8}px`;
+          pop.style.bottom = "auto";
+          pop.dataset.lado = "abajo";
+        }
         return;
       }
 
@@ -91,6 +119,8 @@ export function CbmAyuda() {
       pop.style.left = `${left}px`;
       pop.style.right = "auto";
       pop.style.width = `${ANCHO}px`;
+      pop.style.maxHeight = "";
+      pop.style.overflowY = "";
 
       // Se prefiere ARRIBA: el campo de CBM está JUSTO debajo del botón, así
       // que abrir hacia abajo le tapa al visitante exactamente lo que vino a
