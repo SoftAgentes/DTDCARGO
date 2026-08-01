@@ -235,6 +235,71 @@ export function isClaimPaymentMethod(v: unknown): v is ClaimPaymentMethod {
   return typeof v === "string" && (CLAIM_PAYMENT_METHODS as string[]).includes(v);
 }
 
+export type ClaimIndemnityPaymentInput = {
+  claim_id: string;
+  from: "aprobado";
+  payment_method: ClaimPaymentMethod;
+  effective_date: string;
+  reason: string;
+  request_ref: string;
+};
+
+export type ClaimIndemnityPaymentValidation =
+  | { ok: true; input: ClaimIndemnityPaymentInput }
+  | { ok: false; error: string };
+
+/** Contrato público de la decisión R3 `aprobado → pagado`. */
+export function validateClaimIndemnityPaymentInput(
+  raw: Record<string, unknown>,
+  today = new Date().toISOString().slice(0, 10),
+): ClaimIndemnityPaymentValidation {
+  const claimId = String(raw.claim_id ?? "").trim();
+  const from = String(raw.from ?? "").trim();
+  const method = String(raw.payment_method ?? "").trim();
+  const effectiveDate = String(raw.effective_date ?? "").trim();
+  const reason = String(raw.reason ?? "").trim();
+  const requestRef = String(raw.request_ref ?? "").trim();
+
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(claimId)) {
+    return { ok: false, error: "Reclamo inválido." };
+  }
+  if (from !== "aprobado") {
+    return { ok: false, error: "El reclamo cambió de estado. Actualiza la página." };
+  }
+  if (!isClaimPaymentMethod(method)) {
+    return { ok: false, error: "El medio de pago es inválido." };
+  }
+  const parsedDate = /^\d{4}-\d{2}-\d{2}$/.test(effectiveDate)
+    ? new Date(`${effectiveDate}T00:00:00.000Z`)
+    : null;
+  if (
+    !parsedDate ||
+    Number.isNaN(parsedDate.getTime()) ||
+    parsedDate.toISOString().slice(0, 10) !== effectiveDate ||
+    effectiveDate > today
+  ) {
+    return { ok: false, error: "La fecha efectiva debe ser válida y no futura." };
+  }
+  if (reason.length < 4 || reason.length > 1_000) {
+    return { ok: false, error: "El motivo debe tener entre 4 y 1000 caracteres." };
+  }
+  if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(requestRef)) {
+    return { ok: false, error: "La referencia de la operación es inválida." };
+  }
+
+  return {
+    ok: true,
+    input: {
+      claim_id: claimId,
+      from: "aprobado",
+      payment_method: method,
+      effective_date: effectiveDate,
+      reason,
+      request_ref: requestRef,
+    },
+  };
+}
+
 // ╔═══════════════════════════════════════════════════════════╗
 // ║ Fila persistida + KPIs derivados                           ║
 // ╚═══════════════════════════════════════════════════════════╝

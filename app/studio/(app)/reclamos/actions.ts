@@ -19,22 +19,18 @@ import { moduleEditDenial, getStudioRole } from "@/lib/studio/rbac-guard";
 import {
   validateClaimInput,
   validateClaimFinancialsInput,
+  validateClaimIndemnityPaymentInput,
   canTransitionClaim,
   isClaimStatus,
   type ClaimActionState,
   type ClaimStatus,
-  type ClaimPaymentMethod,
 } from "@/lib/studio/reclamos/claims-types";
+import { payClaimIndemnityGoverned } from "@/lib/studio/reclamos/claims-queries";
 import {
   collectEvidenceFiles,
   uploadClaimEvidenceBatch,
   CLAIM_EVIDENCE_BUCKET,
 } from "@/lib/studio/reclamos/claim-evidence";
-import { syncClaimIndemnityEntry } from "@/lib/studio/accounting/claim-posting";
-import {
-  getAccountingSettings,
-  isPeriodClosed,
-} from "@/lib/studio/accounting/period-queries";
 
 const MODULE_ID = "reclamos";
 
@@ -222,6 +218,9 @@ export async function advanceClaimStatusAction(
   note?: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   if (!isClaimStatus(to)) return { error: "Estado destino inválido." };
+  if (to === "pagado") {
+    return { error: "Usa el pago gobernado de la indemnización." };
+  }
 
   const supabase = await createClient();
 
@@ -247,28 +246,6 @@ export async function advanceClaimStatusAction(
     return { error: `Transición inválida: ${current.status} → ${to}.` };
   }
 
-  // Una sola lectura de reloj para validar el período Y sellar el asiento (C2-2:
-  // evita la ventana de medianoche entre la validación y el posteo).
-  const payDate = new Date().toISOString().slice(0, 10);
-
-  // Separación de poderes (Slice C): solo Contabilidad (o admin) marca la
-  // indemnización como PAGADA — toca dinero real.
-  if (to === "pagado") {
-    const role = await getStudioRole(supabase);
-    if (role !== "accounting" && role !== "admin") {
-      return {
-        error: "Solo Contabilidad puede marcar una indemnización como pagada.",
-      };
-    }
-    // C2: no pagar en período contable cerrado (el asiento no se podría asentar).
-    const settings = await getAccountingSettings(supabase);
-    if (isPeriodClosed(settings.closing_date, payDate)) {
-      return {
-        error: "El período contable está cerrado; no se puede pagar con esta fecha.",
-      };
-    }
-  }
-
   const patch: { status: ClaimStatus; resolution_note?: string } = { status: to };
   const trimmed = note?.trim();
   if (trimmed) patch.resolution_note = trimmed;
@@ -280,26 +257,65 @@ export async function advanceClaimStatusAction(
 
   if (error) return { error: `No se pudo actualizar el estado: ${error.message}` };
 
-  // C2: al pagar, asentar la indemnización (best-effort — no rompe el pago si el
-  // asiento falla; el caller lo logea). DR 6.20 siniestros / CR caja-banco.
-  if (to === "pagado") {
-    const { data: fin } = await supabase
-      .from("client_claim_financials")
-      .select("payment_method")
-      .eq("claim_id", claimId)
-      .maybeSingle<{ payment_method: ClaimPaymentMethod | null }>();
-    await syncClaimIndemnityEntry({
-      tenantId: current.tenant_id,
-      claimId: current.id,
-      claimCode: current.claim_code,
-      amountUsd: Number(current.amount_usd) || 0,
-      method: fin?.payment_method ?? "transfer",
-      entryDate: payDate,
-    });
-  }
-
   revalidatePath("/studio/reclamos");
   return { ok: true };
+}
+
+export async function payClaimIndemnityAction(raw: {
+  claimId?: string;
+  from?: string;
+  paymentMethod?: string;
+  effectiveDate?: string;
+  reason?: string;
+  requestRef?: string;
+}): Promise<{ ok?: boolean; error?: string; replayed?: boolean }> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+
+  const validation = validateClaimIndemnityPaymentInput({
+    claim_id: raw.claimId,
+    from: raw.from,
+    payment_method: raw.paymentMethod,
+    effective_date: raw.effectiveDate,
+    reason: raw.reason,
+    request_ref: raw.requestRef,
+  });
+  if (!validation.ok) return { error: validation.error };
+
+  try {
+    const result = await payClaimIndemnityGoverned(supabase, {
+      claimId: validation.input.claim_id,
+      paymentMethod: validation.input.payment_method,
+      effectiveDate: validation.input.effective_date,
+      reason: validation.input.reason,
+      requestRef: validation.input.request_ref,
+    });
+    revalidatePath("/studio/reclamos");
+    return { ok: true, replayed: result === "replayed" };
+  } catch (error) {
+    const code =
+      typeof error === "object" && error !== null && "code" in error
+        ? String((error as { code?: unknown }).code ?? "")
+        : "";
+    if (code === "42501") {
+      return { error: "Solo Contabilidad puede declarar este pago." };
+    }
+    if (code === "22023" || code === "23514") {
+      return { error: "Revisa el monto, el medio, el motivo y la fecha efectiva." };
+    }
+    if (code === "40001") {
+      return {
+        error: "El reclamo cambió. Actualiza la página antes de reintentar.",
+      };
+    }
+    if (code === "P0002" || code === "55000") {
+      return { error: "Falta el reclamo o su configuración contable." };
+    }
+    return {
+      error: `No se pudo declarar el pago. Referencia: ${validation.input.request_ref}`,
+    };
+  }
 }
 
 export async function softDeleteClaimAction(

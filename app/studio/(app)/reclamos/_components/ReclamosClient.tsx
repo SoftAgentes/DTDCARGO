@@ -33,6 +33,7 @@ import {
   isClaimFilter,
   FAULT_PARTY_OPTIONS,
   CLAIM_PAYMENT_METHOD_OPTIONS,
+  claimPaymentMethodLabel,
   type ClaimActionState,
   type ClaimFilter,
   type ClaimStatus,
@@ -49,6 +50,7 @@ import type { ClaimEvidenceItem } from "@/lib/studio/reclamos/claim-evidence";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import {
   advanceClaimStatusAction,
+  payClaimIndemnityAction,
   softDeleteClaimAction,
   uploadStudioClaimEvidenceAction,
   deleteClaimEvidenceAction,
@@ -58,6 +60,7 @@ import { Badge } from "@/app/studio/_components/ui/Badge";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { useRowHighlight } from "@/app/studio/_components/ui/useRowHighlight";
 import { TableFrame, ActionableRow } from "@/app/studio/_components/ui/DataTable";
@@ -74,6 +77,13 @@ function fmtDate(iso: string): string {
     month: "short",
     year: "numeric",
   });
+}
+
+function localDateInput(now = new Date()): string {
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 /** Oculto visualmente, accesible a lectores de pantalla (no hay clase .sr-only). */
@@ -489,6 +499,48 @@ function ClaimDetail({
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, startDelete] = useTransition();
+  const [paymentDecision, setPaymentDecision] = useState<{
+    effectiveDate: string;
+    requestRef: string;
+  } | null>(null);
+  const [paymentPending, setPaymentPending] = useState(false);
+  const [paymentError, setPaymentError] = useState<string>();
+
+  const openPaymentDecision = () => {
+    setPaymentError(undefined);
+    setPaymentDecision({
+      effectiveDate: localDateInput(),
+      requestRef: `claim-indemnity-payment:${claim.id}:${crypto.randomUUID()}`,
+    });
+  };
+
+  const confirmPayment = async (reason: string) => {
+    if (!paymentDecision || paymentPending) return;
+    setPaymentPending(true);
+    setPaymentError(undefined);
+    try {
+      const result = await payClaimIndemnityAction({
+        claimId: claim.id,
+        from: claim.status,
+        paymentMethod: financials?.payment_method ?? "transfer",
+        effectiveDate: paymentDecision.effectiveDate,
+        reason,
+        requestRef: paymentDecision.requestRef,
+      });
+      if (!result.ok) {
+        setPaymentError(result.error ?? "No se pudo declarar el pago.");
+        return;
+      }
+      setPaymentDecision(null);
+      onAdvanced("pagado");
+    } catch {
+      setPaymentError(
+        "No se pudo declarar el pago. Conservamos la referencia para reintentar.",
+      );
+    } finally {
+      setPaymentPending(false);
+    }
+  };
 
   return (
     <div
@@ -720,30 +772,43 @@ function ClaimDetail({
                   alignItems: "center",
                 }}
               >
-                {nextStatuses.map((to) => (
-                  <ActionButton
-                    key={to}
-                    variant={to === "rechazado" ? "danger" : "dark"}
-                    size="sm"
-                    idleLabel={CLAIM_TRANSITION_LABEL[to]}
-                    loadingLabel="Actualizando…"
-                    successLabel={claimStatusLabel(to)}
-                    onAction={async () => {
-                      setError(null);
-                      const r = await advanceClaimStatusAction(
-                        claim.id,
-                        to,
-                        note.trim() || undefined,
-                      );
-                      if (r.error) throw new Error(r.error);
-                    }}
-                    onSuccess={() => {
-                      setNote("");
-                      onAdvanced(to);
-                    }}
-                    onError={setError}
-                  />
-                ))}
+                {nextStatuses.map((to) =>
+                  to === "pagado" ? (
+                    canFinance ? (
+                      <button
+                        key={to}
+                        type="button"
+                        className="studio-btn studio-btn-dark studio-btn-sm"
+                        onClick={openPaymentDecision}
+                      >
+                        {CLAIM_TRANSITION_LABEL[to]}
+                      </button>
+                    ) : null
+                  ) : (
+                    <ActionButton
+                      key={to}
+                      variant={to === "rechazado" ? "danger" : "dark"}
+                      size="sm"
+                      idleLabel={CLAIM_TRANSITION_LABEL[to]}
+                      loadingLabel="Actualizando…"
+                      successLabel={claimStatusLabel(to)}
+                      onAction={async () => {
+                        setError(null);
+                        const r = await advanceClaimStatusAction(
+                          claim.id,
+                          to,
+                          note.trim() || undefined,
+                        );
+                        if (r.error) throw new Error(r.error);
+                      }}
+                      onSuccess={() => {
+                        setNote("");
+                        onAdvanced(to);
+                      }}
+                      onError={setError}
+                    />
+                  ),
+                )}
               </div>
             </>
           ) : (
@@ -846,6 +911,32 @@ function ClaimDetail({
           entryCode={entryCode}
         />
       )}
+      <ConfirmDialog
+        open={paymentDecision !== null}
+        danger
+        reason
+        reasonRequired
+        holdToConfirm
+        initialFocus="safe"
+        title="Declarar indemnización pagada"
+        message={
+          paymentDecision
+            ? `${claim.claim_code} · ${claim.client_name ?? "Cliente"} · ${USD(claim.amount_usd)} · ${claimPaymentMethodLabel(financials?.payment_method ?? "transfer")} · fecha efectiva ${paymentDecision.effectiveDate}. Esta decisión pagará el reclamo, creará el asiento DR siniestros / CR caja-banco y quedará en auditoría.`
+            : ""
+        }
+        confirmLabel="Declarar pagada"
+        holdLabel="Mantén para declarar pagada"
+        reasonLabel="Motivo o soporte del pago"
+        reasonPlaceholder="Ej. Transferencia confirmada contra comprobante"
+        pending={paymentPending}
+        error={paymentError}
+        onCancel={() => {
+          if (paymentPending) return;
+          setPaymentDecision(null);
+          setPaymentError(undefined);
+        }}
+        onConfirm={confirmPayment}
+      />
     </div>
   );
 }
@@ -880,6 +971,7 @@ function ClaimFinancials({
   }, [justSaved]);
 
   const noOffsets = offsets.length === 0;
+  const isPaid = claim.status === "pagado";
 
   return (
     <div
@@ -924,10 +1016,15 @@ function ClaimFinancials({
           maxWidth: "62ch",
         }}
       >
-        Solo Contabilidad. Al marcar la indemnización como pagada se asienta el
-        desembolso (DR siniestros / CR caja-banco) por el medio de pago elegido.
+        {isPaid
+          ? "Resolución sellada por el pago. Los datos financieros ya no se pueden modificar."
+          : "Solo Contabilidad. Al marcar la indemnización como pagada se asienta el desembolso (DR siniestros / CR caja-banco) por el medio de pago elegido."}
       </p>
       <form action={action} style={{ display: "grid", gap: 12 }}>
+        <fieldset
+          disabled={pending || isPaid}
+          style={{ border: 0, padding: 0, margin: 0, display: "grid", gap: 12 }}
+        >
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div>
             <label className="studio-label" htmlFor={`fin-fault-${claim.id}`}>
@@ -1041,9 +1138,9 @@ function ClaimFinancials({
           <button
             type="submit"
             className="studio-btn studio-btn-dark studio-btn-sm"
-            disabled={pending}
+            disabled={pending || isPaid}
           >
-            {pending ? "Guardando…" : "Guardar resolución"}
+            {pending ? "Guardando…" : isPaid ? "Resolución sellada" : "Guardar resolución"}
           </button>
           {justSaved && (
             <span
@@ -1063,6 +1160,7 @@ function ClaimFinancials({
             </span>
           )}
         </div>
+        </fieldset>
       </form>
     </div>
   );
