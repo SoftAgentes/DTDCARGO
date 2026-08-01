@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 225 specs)
+### Índice de specs (generado · 226 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -263,6 +263,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0232 | Autorización gobernada de consolidación Naviera | done | interno |
 | 0233 | Retiro gobernado de reportes de Inspecciones | done | interno |
 | 0234 | Cancelación gobernada de órdenes de despacho | done | interno |
+| 0236 | Transportistas terrestres y su tarifario por CBM | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0179, 0190, 0226 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0179, 0190, 0226, 0235 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
