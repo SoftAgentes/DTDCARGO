@@ -141,7 +141,7 @@ describe("API Studio · sesión y RBAC obligatorios", () => {
     mocks.getClientContext.mockResolvedValue({ markbox: "DTD-0001" });
     mocks.listClientConversationDigests.mockResolvedValue([]);
 
-    const response = await getConversation({}, {
+    const response = await getConversation({} as Request, {
       params: Promise.resolve({ id: "conversation-1" }),
     });
 

@@ -44,7 +44,8 @@ export function bugReplayEnabled(
   return value === "1";
 }
 
-export function maskReplayText(_text: string): string {
+export function maskReplayText(text: string): string {
+  void text;
   return "***";
 }
 
