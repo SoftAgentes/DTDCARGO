@@ -482,6 +482,96 @@ export function entregaTardaMas(frecuenciaDias: number | null | undefined): bool
   return frecuenciaDias != null && frecuenciaDias > 8;
 }
 
+/**
+ * Los tres estados en que puede estar un destino:
+ *
+ *  · `cubierta`      — llegamos y hay precio. Cotiza sola.
+ *  · `sin_cobertura` — el transportista confirmó que NO llega hasta ahí. Es lo
+ *                      que se le muestra al cliente junto con la ciudad vecina.
+ *  · `sin_tarifa`    — llegamos (o no lo sabemos), pero nadie confirmó un
+ *                      precio. Deriva al asesor en vez de inventar un número.
+ */
+export type CoberturaDestino = "cubierta" | "sin_cobertura" | "sin_tarifa";
+
+/**
+ * Clasifica un destino en uno de los tres estados de arriba.
+ *
+ * ⚠️ Espeja las reglas que aplica `calcularEnvioLCL` (pasos 5.2b, 5.2c y 5.7),
+ * EN EL MISMO ORDEN — existe para que la UI pueda pintar el estado de cada
+ * destino sin re-derivar la regla y sin necesitar una carga válida (el motor
+ * exige CBM y peso antes de llegar al paso 5.7, así que preguntarle a él
+ * mientras el formulario está vacío devuelve `carga_invalida`, no el estado del
+ * destino).
+ *
+ * Que las dos no se separen NO depende de la buena voluntad: el test
+ * `__tests__/calculadora-cobertura.test.ts` recorre los 178 destinos reales y
+ * falla si esta función y el motor dicen cosas distintas.
+ */
+/**
+ * Copy del destino que no tiene precio confirmado. Vive acá —y no suelto en la
+ * UI— porque el motor lo usa en dos ramas (5.2b y 5.7) y el formulario lo
+ * necesita ANTES de que haya carga válida, para avisar apenas eliges la ciudad.
+ */
+export function mensajeDestinoSinTarifa(label: string): string {
+  return (
+    `Para ${label} cotizamos a medida: escríbele a un asesor y te damos el ` +
+    `precio exacto de tu envío.`
+  );
+}
+
+/**
+ * Copy del destino al que el transportista NO llega.
+ *
+ * No dice "no disponible" a secas: dice hasta dónde SÍ llegamos y cuánto cuesta
+ * ese tramo, porque ese mensaje es lo que convierte un "no" en una venta. El
+ * último trecho lo resuelve el cliente o lo conversa con un asesor.
+ */
+export function mensajeDestinoSinCobertura(
+  label: string,
+  vecina: { label: string; ventaCbm: number } | null,
+): string {
+  if (!vecina) {
+    return (
+      `Todavía no llegamos hasta ${label}. Escríbele a un asesor y buscamos ` +
+      `cómo hacerte llegar la carga.`
+    );
+  }
+  return (
+    `Todavía no llegamos hasta ${label}. Lo más cerca que entregamos es ` +
+    `${vecina.label}, y ese tramo sale en $${vecina.ventaCbm.toFixed(2)} por ` +
+    `m³ — es un estimado, el último trecho hasta ${label} no está incluido. ` +
+    `Un asesor te ayuda a resolverlo.`
+  );
+}
+
+/**
+ * La ciudad cubierta más cercana a un destino sin cobertura, con su precio.
+ * `null` si el destino no declara vecina o si la vecina no tiene tarifa (no
+ * sirve de nada mostrar un "lo más cerca es X" sin poder decir cuánto sale).
+ */
+export function vecinaDeDestino(
+  ciudad: Ciudad,
+  ciudades: Ciudad[],
+): { label: string; ventaCbm: number } | null {
+  const vecina = ciudad.cercana
+    ? (ciudades.find((c) => c.id === ciudad.cercana) ?? null)
+    : null;
+  if (!vecina || vecina.ventaCbm == null || vecina.ventaCbm <= 0) return null;
+  return { label: vecina.label, ventaCbm: vecina.ventaCbm };
+}
+
+export function coberturaDestino(ciudad: Ciudad): CoberturaDestino {
+  // Palanca manual: sacar un destino de la cotización automática sin borrarle
+  // la tarifa. Va primero porque en el motor también va primero (5.2b).
+  if (CIUDADES_DERIVAN_A_ASESOR.includes(ciudad.id)) return "sin_tarifa";
+  if (ciudad.cubierta === false) return "sin_cobertura";
+  // Zona sin costo: el cliente paga $0, así que no necesita tarifa para cotizar.
+  if (ciudad.casco) return "cubierta";
+  const venta = ciudad.ventaCbm;
+  if (venta == null || venta <= 0) return "sin_tarifa";
+  return "cubierta";
+}
+
 // ────────────────────────────────────────────────────────────────────
 // 5) FUNCIÓN PRINCIPAL DEL CÁLCULO (pura, sin side effects)
 // ────────────────────────────────────────────────────────────────────
@@ -534,9 +624,7 @@ export function calcularEnvioLCL(
   if (CIUDADES_DERIVAN_A_ASESOR.includes(ciudad.id)) {
     return cotizacionVacia({
       tipo: "ciudad_sin_tarifa",
-      mensaje:
-        `Para ${ciudad.label} cotizamos a medida: escríbele a un asesor y te ` +
-        `damos el precio exacto de tu envío.`,
+      mensaje: mensajeDestinoSinTarifa(ciudad.label),
     }, input);
   }
 
@@ -546,30 +634,16 @@ export function calcularEnvioLCL(
   // convierte un "no" en una venta. El último trecho lo resuelve el cliente o
   // lo conversa con un asesor.
   if (ciudad.cubierta === false) {
-    const vecina = ciudad.cercana
-      ? (ciudades.find((c) => c.id === ciudad.cercana) ?? null)
-      : null;
-    const precioVecina =
-      vecina && vecina.ventaCbm != null && vecina.ventaCbm > 0
-        ? vecina.ventaCbm
-        : null;
-
-    const mensaje =
-      vecina && precioVecina != null
-        ? `Todavía no llegamos hasta ${ciudad.label}. Lo más cerca que ` +
-          `entregamos es ${vecina.label}, y ese tramo sale en ` +
-          `$${precioVecina.toFixed(2)} por m³ — es un estimado, el último ` +
-          `trecho hasta ${ciudad.label} no está incluido. Un asesor te ayuda ` +
-          `a resolverlo.`
-        : `Todavía no llegamos hasta ${ciudad.label}. Escríbele a un asesor y ` +
-          `buscamos cómo hacerte llegar la carga.`;
-
+    const vecina = vecinaDeDestino(ciudad, ciudades);
     return {
-      ...cotizacionVacia({ tipo: "ciudad_sin_cobertura", mensaje }, input),
-      cercana:
-        vecina && precioVecina != null
-          ? { label: vecina.label, ventaCbm: precioVecina }
-          : null,
+      ...cotizacionVacia(
+        {
+          tipo: "ciudad_sin_cobertura",
+          mensaje: mensajeDestinoSinCobertura(ciudad.label, vecina),
+        },
+        input,
+      ),
+      cercana: vecina,
     };
   }
 
@@ -682,9 +756,7 @@ export function calcularEnvioLCL(
     if (precioCbm == null || precioCbm <= 0) {
       return cotizacionVacia({
         tipo: "ciudad_sin_tarifa",
-        mensaje:
-          `Para ${ciudad.label} cotizamos a medida: escríbele a un asesor y te ` +
-          `damos el precio exacto de tu envío.`,
+        mensaje: mensajeDestinoSinTarifa(ciudad.label),
       }, input);
     }
     const piso = ciudad.minCharge != null && ciudad.minCharge > 0 ? ciudad.minCharge : 0;
