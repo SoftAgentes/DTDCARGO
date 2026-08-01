@@ -205,6 +205,23 @@ export async function listActiveRoutes(
   return listRoutes(supabase, { status: "en_ruta" });
 }
 
+/** Ejecuta el cierre R3 gobernado de SDD-0230. */
+export async function completeTmsRouteGoverned(
+  supabase: SupabaseClient,
+  input: { routeId: string; reason: string; requestRef: string },
+): Promise<"transitioned" | "replayed"> {
+  const { data, error } = await supabase.rpc("complete_tms_route_governed", {
+    p_route_id: input.routeId,
+    p_reason: input.reason,
+    p_request_ref: input.requestRef,
+  });
+  if (error) throw error;
+  if (data !== "transitioned" && data !== "replayed") {
+    throw new Error("Respuesta inválida del cierre gobernado de ruta.");
+  }
+  return data;
+}
+
 // ─────────────────────────────────────────────────────────────
 // Shipments elegibles para nueva ruta (liberados aduana sin ruta)
 // ─────────────────────────────────────────────────────────────

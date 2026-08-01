@@ -22,6 +22,7 @@ import {
   validateDriverInput,
   validateIncidentInput,
   validateRouteInput,
+  validateTmsRouteCompletionInput,
   validateTruckInput,
   type TmsActionState,
   type TmsDriverInput,
@@ -31,6 +32,7 @@ import {
   type TmsTruckInput,
   type TruckStatus,
 } from "@/lib/studio/tms-types";
+import { completeTmsRouteGoverned } from "@/lib/studio/tms-queries";
 
 // ─────────────────────────────────────────────────────────────
 // FormData helpers
@@ -296,70 +298,44 @@ export async function markRouteStartedAction(
 }
 
 export async function markRouteCompletedAction(
-  routeId: string,
-): Promise<{ ok?: boolean; error?: string }> {
+  raw: { routeId?: string; from?: string; reason?: string; requestRef?: string },
+): Promise<{ ok?: boolean; error?: string; replayed?: boolean }> {
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "tms");
   if (denial) return { error: denial };
 
-
-  const { data: link } = await supabase
-    .from("user_tenants")
-    .select("tenant_id")
-    .maybeSingle<{ tenant_id: string }>();
-  if (!link?.tenant_id) return { error: "No se pudo resolver el tenant." };
-
-  // Leer ruta para obtener shipment/truck/driver
-  const { data: route, error: readErr } = await supabase
-    .from("tms_routes")
-    .select("shipment_id, truck_id, driver_id, route_code")
-    .eq("id", routeId)
-    .maybeSingle<{
-      shipment_id: string;
-      truck_id: string | null;
-      driver_id: string | null;
-      route_code: string;
-    }>();
-  if (readErr || !route) return { error: "Ruta no encontrada." };
-
-  const { error: updateErr } = await supabase
-    .from("tms_routes")
-    .update({ status: "completado", progress_pct: 100 })
-    .eq("id", routeId);
-  if (updateErr) return { error: updateErr.message };
-
-  // Liberar truck/driver
-  if (route.truck_id) {
-    await supabase
-      .from("tms_trucks")
-      .update({ status: "disponible" })
-      .eq("id", route.truck_id);
-  }
-  if (route.driver_id) {
-    await supabase
-      .from("tms_drivers")
-      .update({ status: "disponible" })
-      .eq("id", route.driver_id);
-  }
-
-  // Sync shipment a last_mile (sigue siendo trabajo de Tracking confirmar delivered)
-  await supabase
-    .from("shipments")
-    .update({ status: "last_mile" })
-    .eq("id", route.shipment_id)
-    .in("status", ["out_for_delivery"]);
-
-  await supabase.from("shipment_events").insert({
-    tenant_id: link.tenant_id,
-    shipment_id: route.shipment_id,
-    status: "last_mile",
-    note: `Ruta ${route.route_code} completada · próximo paso: POD del cliente`,
+  const validation = validateTmsRouteCompletionInput({
+    route_id: raw.routeId,
+    from: raw.from,
+    reason: raw.reason,
+    request_ref: raw.requestRef,
   });
+  if (!validation.ok) return { error: validation.error };
 
-  revalidatePath("/studio/tms");
-  revalidatePath("/studio/ve");
-  revalidatePath(`/studio/tracking/${route.shipment_id}`);
-  return { ok: true };
+  try {
+    const result = await completeTmsRouteGoverned(supabase, {
+      routeId: validation.input.route_id,
+      reason: validation.input.reason,
+      requestRef: validation.input.request_ref,
+    });
+    revalidatePath("/studio/tms");
+    revalidatePath("/studio/ve");
+    revalidatePath("/studio/tracking");
+    return { ok: true, replayed: result === "replayed" };
+  } catch (error) {
+    const code =
+      typeof error === "object" && error !== null && "code" in error
+        ? String((error as { code?: unknown }).code ?? "")
+        : "";
+    if (code === "42501") return { error: "No tienes permiso para completar esta ruta." };
+    if (code === "40001") {
+      return { error: "La ruta o sus recursos cambiaron. Actualiza antes de reintentar." };
+    }
+    if (code === "P0002") return { error: "La ruta ya no está disponible." };
+    return {
+      error: `No se pudo completar la ruta. Referencia: ${validation.input.request_ref}`,
+    };
+  }
 }
 
 export async function cancelRouteAction(

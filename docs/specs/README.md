@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 221 specs)
+### Índice de specs (generado · 222 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -259,6 +259,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0227 | Pago gobernado de cruce en Financiero China | done | interno |
 | 0228 | Liberación gobernada de Aduana SENIAT | done | interno |
 | 0229 | Pago gobernado de indemnización de Reclamos | done | interno |
+| 0230 | Cierre gobernado de ruta TMS | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0179, 0190 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
