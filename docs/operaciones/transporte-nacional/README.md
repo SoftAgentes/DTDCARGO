@@ -1,17 +1,31 @@
 # Transporte nacional Venezuela — negociación de proveedores
 
-> ⏭️ **PENDIENTE 30-jul-2026 · después de las 11:00** →
-> **[PROMPT-SESION-2.md](PROMPT-SESION-2.md)** tiene el prompt listo para abrir la
-> ventana de continuación y qué datos hay que traer de las reuniones.
+> ✅ **CERRADO 1-ago-2026.** El proveedor n.º 1 quedó elegido, su tarifario
+> sembrado y la calculadora pública cobrando por CBM.
+> → Ficha vigente: **[benito-transporte-express.md](benito-transporte-express.md)**
+> → Specs: **SDD-0236** (modelo de datos) y **SDD-0237** (la calculadora).
 
 Índice del último kilómetro: entrega desde Valencia / Puerto Cabello hacia el resto
-del país. Objetivo declarado por el founder (2026-07-29): **poder despachar a todo
-el país**, con 4-6 proveedores negociados en la semana del 29-jul.
+del país.
 
-> ⚠️ **Nada de esto está decidido.** No se toca la calculadora, ni
-> `lib/data/tarifas-terrestres-vzla.ts`, ni `calculator_cities`, hasta que el
-> founder elija el modelo y el proveedor. Este tree es material de negociación,
-> no fuente de verdad de precios.
+## El proveedor predeterminado
+
+**BENITO TRANSPORTE EXPRESS, C.A** · RIF J-50266334-7 · confirmado por escrito
+por Mariotsy Mendoza (Gerente General) el 31-jul-2026.
+
+**Cobra por metro cúbico y nada más.** Costo $70 Centro / $80 Foráneo / $80
+Remota; venta $105,94 / $123,60 / $176,57. 166 destinos cubiertos, 9 sin
+cobertura. Sin mínimo por despacho y sin cargos aparte.
+
+⚠️ La venta **no** se deriva del costo por un porcentaje — es un seguro, no un
+margen. El detalle y el porqué están en la ficha y en SDD-0236.
+
+**Dónde se edita el precio sin deploy:** `/studio/admin` › Calculadora pública ›
+Transportistas.
+
+> El material de negociación de abajo queda como **historial**: sirve para
+> entender por qué se descartaron los otros modelos de cobro, no como fuente de
+> precios. La fuente de precios es la DB.
 
 ## Cómo pedir (siempre lo mismo a todos)
 
@@ -39,9 +53,13 @@ sin que la tarifa por kg se mueva un centavo. Preguntarlo SIEMPRE.
 
 | Proveedor | Estado | Modelo ofrecido | Próximo paso |
 |---|---|---|---|
-| [Benítez / R&M](benitez-rm.md) | 🟡 en negociación | % ad valorem **+** kg volumétrico | reunión 30-jul (mañana) |
-| Fletes GAG | 🟡 en negociación | USD/kg por zona | llamada 30-jul tarde |
+| [**Benito Transporte Express**](benito-transporte-express.md) | 🟢 **cerrado · predeterminado** | **USD/CBM plano** | ninguno — sembrado 1-ago |
+| Fletes GAG | 🟡 en negociación | USD/kg por zona | sin tarifario desde Valencia |
 | _(por definir 3-4 más)_ | ⚪ sin contactar | — | mensaje de contacto inicial |
+
+> La ficha vieja `benitez-rm.md` **se eliminó** el 1-ago-2026: mezclaba tres
+> razones sociales y su modelo de % ad valorem quedó descartado. Con quien se
+> factura es **BENITO TRANSPORTE EXPRESS, C.A**. La historia vive en git.
 
 **Candidatos sin contactar** (de la investigación de mayo): MRW · Tealca · Domesa ·
 Zoom · Liberty Express · Aeroexpresos. Ninguno publica tarifario — hay que pedirlo.

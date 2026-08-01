@@ -1,6 +1,12 @@
 # Sesión 3 — Reestructurar la calculadora al cobro por CBM
 
-> **Estado: 🟡 LISTO PARA ARRANCAR.** La negociación con Benito está cerrada y confirmada
+> **Estado: ✅ EJECUTADO el 1-ago-2026 (SDD-0237).** La calculadora ya cobra por
+> CBM, el tarifario está sembrado y la ficha del proveedor existe. Lo que quedó
+> pendiente está listado en `docs/specs/0237-calculadora-entrega-por-cbm/spec.md`
+> § "Estado y qué falta" — **ese es el pendiente vigente, no este archivo**.
+> Se conserva como bitácora de la negociación.
+>
+> ~~**LISTO PARA ARRANCAR.**~~ La negociación con Benito está cerrada y confirmada
 > por escrito. Falta construir. Este archivo es el traspaso completo: se puede abrir una
 > ventana nueva y trabajar solo con esto.
 >
