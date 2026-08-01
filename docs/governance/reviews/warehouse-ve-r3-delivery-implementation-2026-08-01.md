@@ -20,6 +20,11 @@ genérico y enlaza a Almacén VE. La UI denomina el acto “Confirmar entrega
 manual”, identifica primero al receptor y ejecuta la decisión sólo después de
 una confirmación canonical con motivo, presión sostenida y request ref estable.
 
+El gate global posterior retiró la excepción RBAC obsoleta de `ve/actions.ts`,
+aplicó `moduleEditDenial("ve")` a sus transiciones restantes y alineó el RPC con
+la matriz: `admin`, `operations` y `warehouse` pueden editar; `support` permanece
+read-only tanto en Server Actions como en SQL.
+
 ## Frontera honesta con el POD sellado
 
 `dispatch_pods` pertenece a ODs de Despacho y no existe una relación 1:1
@@ -35,7 +40,8 @@ sustituye la foto y firma selladas de la PWA.
 - UI check liviano: ConfirmDialog canonical, receptor y consecuencia visibles,
   estados pending/error, foco seguro y cero tokens o patrones nuevos.
 - 56/56 contratos SQL en PostgreSQL 17 efímero, incluido 0321.
-- El contrato 0321 demuestra anti-bypass, roles, membresía, tenant, estado,
+- El contrato 0321 demuestra anti-bypass, roles —incluido support read-only—,
+  membresía, tenant, estado,
   receptor, atomicidad, replay, referencia reutilizada, timeline con actor,
   hito terminal y rollback total ante falla de AUD-01.
 - Reconstrucción verde: 317 archivos evaluados, 300 migraciones aplicadas desde

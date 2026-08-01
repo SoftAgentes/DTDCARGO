@@ -21,7 +21,6 @@ const ALLOWLIST: Record<string, string> = {
   "actions.ts": "signOut: cierra la sesión del propio usuario, sin privilegio de módulo.",
   "bugs/actions.ts": "Bug Reporter: cualquier miembro del staff reporta bugs (abierto por diseño).",
   "mis-bugs/actions.ts": "Bugs propios del usuario (abierto por diseño).",
-  "ve/actions.ts": "App de operario VE: auth por PIN (operario-session), no por rol de Studio.",
   "debug/actions.ts": "recheckAll: re-corre health checks, no muta datos de negocio.",
   "admin/feature-flags/actions.ts": "toggleFeatureFlag valida role==='admin' inline.",
   "admin/notificaciones/actions.ts":

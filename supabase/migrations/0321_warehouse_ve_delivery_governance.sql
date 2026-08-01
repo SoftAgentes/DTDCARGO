@@ -143,7 +143,7 @@ begin
   join public.user_tenants ut
     on ut.tenant_id = s.tenant_id
    and ut.user_id = v_actor
-   and ut.role in ('admin', 'operations', 'warehouse', 'support')
+   and ut.role in ('admin', 'operations', 'warehouse')
    and ut.disabled_at is null
   where s.id = p_shipment_id
     and s.deleted_at is null

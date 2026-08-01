@@ -27,8 +27,8 @@ entre shipments y ODs.
 
 ## 2. Decisiones
 
-- La capability admite membresías activas `admin`, `operations`, `warehouse` y
-  `support`, coherente con el gate vigente de Almacén VE.
+- La capability admite membresías activas `admin`, `operations` y `warehouse`.
+  `support` conserva su contrato global read-only.
 - Las únicas precondiciones son shipment activo `out_for_delivery` o
   `last_mile`, receptor obligatorio y motivo humano.
 - La UI cambia el nombre a “Confirmar entrega manual” y declara expresamente que
@@ -63,6 +63,7 @@ entre shipments y ODs.
 
 - `.agents/plugins/plugins/erp-studio-governance/references/policy-registry.json`
 - `app/studio/(app)/ve/actions.ts`
+- `lib/studio/rbac-actions-guard.test.ts`
 - `app/studio/(app)/ve/_components/VeRowActions.tsx`
 - `app/studio/(app)/tracking/[id]/actions.ts`
 - `app/studio/(app)/tracking/[id]/_components/StateActionsPanel.tsx`
