@@ -45,6 +45,7 @@
 | Mailing & Notif | 0026 | `app/studio/(app)/mailing/` | `lib/studio/mail/`, `mail-*` |
 | Facturación | 0021 | `app/studio/(app)/facturacion/` | `lib/studio/invoice-*` |
 | Contabilidad | 0040 | `app/studio/(app)/contabilidad/` | `lib/studio/account-*`, `journal-*`, `accounting/` |
+| Reclamos | 0102, 0147, 0229 | `app/studio/(app)/reclamos/` | `lib/studio/reclamos/` · `supabase/migrations/{0156,0157,0319}` (pago R3 de indemnización gobernado) |
 | Cobranzas | 0041 | `app/studio/(app)/cobranzas/` | `lib/studio/payment-*`, `collections-actions`, `accounting/receipt-posting` |
 | Tesorería | 0044 | `app/studio/(app)/tesoreria/` | `lib/studio/treasury/` (types, supplier-queries, bill-queries, treasury-actions), `accounting/{bill-posting,supplier-payment-posting}` · `supabase/migrations/0088_tesoreria.sql` |
 | Financiero China | 0059, 0110, 0115, 0227 | `app/studio/(app)/financiero-china/` | `lib/studio/partner-finance/` · `supabase/migrations/{0114,0115,0178,0317}` (pago R3 de cruce gobernado) |
