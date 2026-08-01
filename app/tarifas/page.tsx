@@ -8,7 +8,6 @@ import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import { WebPageJsonLd } from "@/components/WebPageJsonLd";
 import { RespuestaRapida } from "@/components/RespuestaRapida";
 import { TarifasTabs } from "@/components/TarifasTabs";
-import { CIUDADES } from "@/lib/calculadora";
 import { ArrowIcon } from "@/components/Icon";
 // Nombre visible de los servicios: fuente ÚNICA desde SDD-0164 — nunca se
 // escribe la etiqueta a mano en la página.
@@ -17,6 +16,8 @@ import {
   getPublicCbmRate,
   getPublicCalculatorConfig,
   getPublicCalculatorCities,
+  getPublicCarrierTariffs,
+  combinarDestinos,
 } from "@/lib/public/rates-queries";
 
 // ISR 300s como red de seguridad; las actions de /studio/tarifas hacen
@@ -47,12 +48,16 @@ export const metadata: Metadata = {
 export default async function TarifasPage() {
   // Tarifa pública real (base + piso) + reglas escalares + ciudades, vía RPCs
   // anon de retorno mínimo. Sin config → defaults de CONFIG/DEFAULT_PARAMS.
-  const [serverRate, serverConfig, serverCities] = await Promise.all([
+  const [serverRate, serverConfig, serverCities, serverTariffs] = await Promise.all([
     getPublicCbmRate(),
     getPublicCalculatorConfig(),
     getPublicCalculatorCities(),
+    getPublicCarrierTariffs(),
   ]);
-  const ciudades = serverCities.length > 0 ? serverCities : CIUDADES;
+  // El precio de la entrega nacional lo manda la DB; si la RPC no devuelve
+  // nada, combinarDestinos cae al respaldo de lib/data/destinos-nacionales
+  // (SDD-0237) y la calculadora sigue cobrando bien.
+  const ciudades = combinarDestinos(serverCities, serverTariffs);
 
   return (
     <>

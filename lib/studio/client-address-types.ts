@@ -98,21 +98,35 @@ export function validateClientAddressInput(
 }
 
 /**
- * Estimado del recargo de entrega (last-mile) de una ciudad del catálogo —
- * MISMA fórmula del calculador público (lib/calculadora.ts §5.7): dentro del
- * casco la entrega va incluida en el DDP; fuera, se recarga por km sobre el
- * umbral. La config (umbral + tarifa/km) viene de calculator_settings, que el
- * founder edita en /studio/tarifas — acá NO se inventan tarifas.
+ * Cómo se cobra la entrega (last-mile) a una ciudad del catálogo — MISMA regla
+ * del calculador público (lib/calculadora.ts §5.7).
+ *
+ * ⚠️ DEVUELVE UNA TARIFA POR m³, NO UN MONTO. Es la diferencia importante con
+ * la versión vieja, y no es un capricho: desde SDD-0237 la entrega se cobra
+ * `CBM × precio del tramo`, y una tarjeta de direcciones **no sabe cuántos m³**
+ * va a traer el cliente. Mostrar un monto fijo acá sería inventarlo. Se muestra
+ * el precio unitario y el total lo hace la calculadora, que sí conoce el
+ * volumen.
+ *
+ * Tres respuestas posibles, y cada una se pinta distinto:
+ *  · `included`  — zona sin costo: el cliente no paga entrega ahí.
+ *  · `usdPorCbm` — se cobra a ese precio por metro cúbico.
+ *  · `sinTarifa` — no hay precio confirmado → el ERP no debe mostrar número.
  */
-export function lastMileEstimate(
-  city: { km: number; casco: boolean },
-  params: { thresholdCascoKm: number; tarifaKmFueraCasco: number },
-): { included: true } | { included: false; surchargeUsd: number } {
+export type LastMileEstimate =
+  | { included: true }
+  | { included: false; usdPorCbm: number }
+  | { included: false; sinTarifa: true };
+
+export function lastMileEstimate(city: {
+  casco: boolean;
+  ventaCbm?: number | null;
+}): LastMileEstimate {
   if (city.casco) return { included: true };
-  const kmFueraCasco = Math.max(0, city.km - params.thresholdCascoKm);
-  const surchargeUsd = Math.round(kmFueraCasco * params.tarifaKmFueraCasco);
-  if (surchargeUsd <= 0) return { included: true };
-  return { included: false, surchargeUsd };
+  if (city.ventaCbm == null || city.ventaCbm <= 0) {
+    return { included: false, sinTarifa: true };
+  }
+  return { included: false, usdPorCbm: city.ventaCbm };
 }
 
 /** Texto de una línea para mostrar la dirección compacta (lista, resumen). */

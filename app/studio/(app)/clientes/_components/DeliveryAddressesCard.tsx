@@ -30,12 +30,16 @@ export function DeliveryAddressesCard({
   markbox,
   addresses,
   cities = [],
-  lastMileParams = null,
 }: {
   clientId: string;
   markbox: string;
   addresses: ClientDeliveryAddress[];
   cities?: AddressCity[];
+  /**
+   * ⚠️ Ya no se usa (SDD-0237): el umbral de km y la tarifa por km quedaron
+   * legacy. Se acepta y se ignora para no romper a los llamadores que todavía
+   * lo pasan; el precio de entrega viaja ahora dentro de cada ciudad.
+   */
   lastMileParams?: LastMileParams | null;
 }) {
   const router = useRouter();
@@ -185,11 +189,7 @@ export function DeliveryAddressesCard({
                     Ref: {a.reference}
                   </div>
                 )}
-                <AddressEstimate
-                  address={a}
-                  cities={cities}
-                  lastMileParams={lastMileParams}
-                />
+                <AddressEstimate address={a} cities={cities} />
               </div>
 
               <div style={{ display: "flex", gap: 10, flexShrink: 0, alignItems: "center" }}>
@@ -428,34 +428,39 @@ export function DeliveryAddressesCard({
 }
 
 /**
- * Estimado del recargo de entrega de una dirección (Slice C). Solo si la ciudad
- * es del catálogo Y hay config publicada; si no, no muestra nada (degrada honesto).
+ * Cómo se cobra la entrega de una dirección. Solo si la ciudad es del catálogo;
+ * si no, no muestra nada (degrada honesto).
+ *
+ * Desde SDD-0237 ya NO usa `lastMileParams` (el umbral de km y la tarifa por km
+ * quedaron legacy): el precio viene con la ciudad, como USD por m³.
  */
 function AddressEstimate({
   address,
   cities,
-  lastMileParams,
 }: {
   address: ClientDeliveryAddress;
   cities: AddressCity[];
-  lastMileParams: LastMileParams | null;
 }) {
   const catalogCity = address.citySlug
     ? (cities.find((c) => c.id === address.citySlug) ?? null)
     : null;
-  if (!catalogCity || !lastMileParams) return null;
-  const est = lastMileEstimate(catalogCity, lastMileParams);
+  if (!catalogCity) return null;
+  const est = lastMileEstimate(catalogCity);
   return (
     <div style={{ font: "500 11.5px/1.4 var(--f-sans)", marginTop: 3 }}>
       {est.included ? (
-        <span style={{ color: "var(--success)" }}>Entrega incluida (casco central)</span>
+        <span style={{ color: "var(--success)" }}>Entrega incluida</span>
+      ) : "sinTarifa" in est ? (
+        <span style={{ color: "var(--ink-soft)" }}>
+          Entrega sin tarifa confirmada — la cotiza un asesor
+        </span>
       ) : (
         <span style={{ color: "var(--ink-soft)" }}>
-          Recargo de entrega aprox.{" "}
+          Entrega{" "}
           <b style={{ color: "var(--ink)", fontFamily: "var(--f-mono)" }}>
-            ${est.surchargeUsd}
+            ${est.usdPorCbm.toFixed(2)}
           </b>{" "}
-          (config de /studio/tarifas)
+          por m³ (tarifario de /studio/admin)
         </span>
       )}
     </div>

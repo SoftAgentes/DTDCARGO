@@ -12,8 +12,9 @@
  */
 
 import { getAnonClient } from "./supabase-anon";
-import { DEFAULT_PARAMS } from "@/lib/calculadora";
+import { CIUDADES, DEFAULT_PARAMS } from "@/lib/calculadora";
 import type { CalcParams, Ciudad } from "@/lib/calculadora";
+import { DESTINO_POR_SLUG } from "@/lib/data/destinos-nacionales";
 
 /** Una ruta FCL pública (contenedor completo) para la calculadora FCL del sitio. */
 export type PublicFclRoute = {
@@ -177,6 +178,114 @@ export async function getPublicCalculatorCities(): Promise<Ciudad[]> {
     );
     return [];
   }
+}
+
+/** Una tarifa de entrega nacional, tal como la suelta la RPC pública. */
+export type PublicCarrierTariff = {
+  citySlug: string;
+  /** USD por m³ que paga el cliente. La RPC NUNCA devuelve el costo. */
+  priceUsdCbm: number;
+  minChargeUsd: number | null;
+  dispatchFrequencyDays: number | null;
+  transitDays: string | null;
+};
+
+/**
+ * Resuelve el TARIFARIO TERRESTRE del transportista predeterminado (SDD-0237).
+ *
+ * Llama a la RPC `public_carrier_tariffs` (anon, security definer) de
+ * `supabase/migrations/0330_freight_carriers_tariffs.sql`. Devuelve sólo
+ * `city_slug + precio de VENTA + mínimo + frecuencia + tránsito`: el sitio
+ * nunca sabe quién es el transportista, cuánto nos cuesta, ni qué ofrecieron
+ * los demás proveedores.
+ *
+ * Sin filas (tabla vacía, migración sin aplicar, Supabase caído) devuelve `[]`
+ * y el caller cae al respaldo de `lib/data/destinos-nacionales.ts` — cero
+ * regresión, la calculadora sigue cobrando bien.
+ */
+export async function getPublicCarrierTariffs(): Promise<PublicCarrierTariff[]> {
+  // Nunca debe tirar: página pública de marketing. Cualquier falla → [].
+  try {
+    const supabase = getAnonClient();
+    const { data, error } = await supabase.rpc("public_carrier_tariffs");
+
+    if (error) {
+      console.error("[getPublicCarrierTariffs] RPC error:", error.message);
+      return [];
+    }
+
+    const rows = Array.isArray(data) ? data : [];
+    const tarifas: PublicCarrierTariff[] = [];
+    for (const row of rows) {
+      const citySlug = typeof row?.city_slug === "string" ? row.city_slug.trim() : "";
+      const priceUsdCbm = Number(row?.price_usd_cbm);
+      // Defensa: una fila sin ciudad o sin precio válido no debe cobrar $0 por
+      // omisión — se descarta y esa ciudad cae al respaldo o deriva al asesor.
+      if (!citySlug || !Number.isFinite(priceUsdCbm) || priceUsdCbm <= 0) continue;
+      tarifas.push({
+        citySlug,
+        priceUsdCbm,
+        minChargeUsd: row?.min_charge_usd == null ? null : Number(row.min_charge_usd),
+        dispatchFrequencyDays:
+          row?.dispatch_frequency_days == null ? null : Number(row.dispatch_frequency_days),
+        transitDays: row?.transit_days ?? null,
+      });
+    }
+    return tarifas;
+  } catch (e) {
+    console.error(
+      "[getPublicCarrierTariffs] error inesperado:",
+      e instanceof Error ? e.message : String(e),
+    );
+    return [];
+  }
+}
+
+/**
+ * Arma la lista de destinos que consume el calculador, cruzando tres fuentes.
+ *
+ * QUIÉN MANDA EN QUÉ, y por qué:
+ *
+ *  · **La DB manda en el precio.** Si `carrier_tariffs` tiene una fila para esa
+ *    ciudad, ese es el precio. Es lo que permite que el founder suba una tarifa
+ *    desde el ERP y la web la cobre sin deploy.
+ *  · **El código manda en la semántica de cobertura.** `calculator_cities` no
+ *    tiene columna de "no llegamos hasta ahí": esa distinción vive en
+ *    `DESTINOS_NACIONALES`. Sin ella no podríamos diferenciar "no hay tarifa
+ *    todavía" de "el transportista confirmó que no llega", que le dicen cosas
+ *    MUY distintas al cliente.
+ *  · **La DB manda en la lista.** Si el admin agrega o borra una ciudad, eso se
+ *    respeta; sólo si la RPC no devuelve nada se usa la lista del código.
+ *
+ * Una ciudad de la DB que el código no conoce entra igual: se asume cubierta y
+ * cobra lo que diga su tarifa. Si no tiene tarifa, deriva al asesor.
+ */
+export function combinarDestinos(
+  ciudadesDb: Ciudad[],
+  tarifas: PublicCarrierTariff[],
+): Ciudad[] {
+  const base = ciudadesDb.length > 0 ? ciudadesDb : CIUDADES;
+  const porSlug = new Map(tarifas.map((t) => [t.citySlug, t]));
+
+  return base.map((ciudad) => {
+    const estatico = DESTINO_POR_SLUG.get(ciudad.id);
+    const tarifa = porSlug.get(ciudad.id);
+
+    // Cobertura: manda el catálogo del código. Si no lo conoce, se asume que sí
+    // llegamos (una ciudad que el admin agregó a mano no debería desaparecer).
+    const cubierta = estatico ? estatico.cubierta : true;
+
+    return {
+      ...ciudad,
+      cubierta,
+      cercana: estatico?.cercana ?? null,
+      estado: estatico?.estado ?? ciudad.estado,
+      // El precio: DB primero, respaldo después. `null` → deriva al asesor.
+      ventaCbm: cubierta ? (tarifa?.priceUsdCbm ?? estatico?.ventaCbm ?? null) : null,
+      minCharge: tarifa?.minChargeUsd ?? null,
+      frecuenciaDias: tarifa?.dispatchFrequencyDays ?? estatico?.frecuenciaDias ?? null,
+    };
+  });
 }
 
 /**

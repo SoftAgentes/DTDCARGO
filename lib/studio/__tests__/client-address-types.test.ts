@@ -67,33 +67,45 @@ describe("formatDeliveryAddress", () => {
   });
 });
 
-describe("lastMileEstimate — misma fórmula del calculador (§5.7)", () => {
-  const params = { thresholdCascoKm: 200, tarifaKmFueraCasco: 1 };
-
-  it("casco central → entrega incluida (sin recargo)", () => {
-    expect(lastMileEstimate({ km: 150, casco: true }, params)).toEqual({
+describe("lastMileEstimate — misma regla del calculador (§5.7, SDD-0237)", () => {
+  it("zona sin costo → entrega incluida", () => {
+    expect(lastMileEstimate({ casco: true, ventaCbm: 105.94 })).toEqual({
       included: true,
     });
   });
 
-  it("fuera del casco → recargo = (km − umbral) × tarifa", () => {
-    // Maracaibo 410 km → 210 km fuera × $1 = $210
-    expect(lastMileEstimate({ km: 410, casco: false }, params)).toEqual({
+  it("devuelve una TARIFA por m³, no un monto fijo", () => {
+    // Es el punto del cambio: la tarjeta de direcciones no sabe cuántos m³
+    // trae el cliente, así que un monto sería inventado.
+    expect(lastMileEstimate({ casco: false, ventaCbm: 123.6 })).toEqual({
       included: false,
-      surchargeUsd: 210,
+      usdPorCbm: 123.6,
     });
   });
 
-  it("no-casco pero bajo el umbral → incluida (recargo 0 no se muestra)", () => {
-    expect(lastMileEstimate({ km: 180, casco: false }, params)).toEqual({
-      included: true,
+  it("sin tarifa confirmada → lo dice, no cobra $0 por omisión", () => {
+    expect(lastMileEstimate({ casco: false, ventaCbm: null })).toEqual({
+      included: false,
+      sinTarifa: true,
+    });
+    expect(lastMileEstimate({ casco: false })).toEqual({
+      included: false,
+      sinTarifa: true,
     });
   });
 
-  it("respeta la tarifa por km de la config (no hardcodea $1)", () => {
-    expect(
-      lastMileEstimate({ km: 300, casco: false }, { thresholdCascoKm: 200, tarifaKmFueraCasco: 1.5 }),
-    ).toEqual({ included: false, surchargeUsd: 150 });
+  it("un precio en 0 o negativo se trata como sin tarifa", () => {
+    expect(lastMileEstimate({ casco: false, ventaCbm: 0 })).toEqual({
+      included: false,
+      sinTarifa: true,
+    });
+  });
+
+  it("el km ya NO entra en la cuenta", () => {
+    // Dos ciudades a distancias opuestas con el mismo tramo cobran igual.
+    const cerca = lastMileEstimate({ casco: false, ventaCbm: 123.6 });
+    const lejos = lastMileEstimate({ casco: false, ventaCbm: 123.6 });
+    expect(cerca).toEqual(lejos);
   });
 
   it("acepta citySlug opcional en el validador", () => {

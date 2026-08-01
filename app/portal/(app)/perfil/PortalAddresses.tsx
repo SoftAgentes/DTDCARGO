@@ -22,6 +22,17 @@ export type AddressCity = {
   label: string;
   km: number;
   casco: boolean;
+  /**
+   * USD por m³ de la entrega (SDD-0237). Sin esto la fila muestra "la cotiza
+   * tu asesor" en vez del precio — que es lo correcto mientras el server no lo
+   * alimente, pero es peor UX de la que podemos dar.
+   *
+   * 🔶 PENDIENTE: la página que arma `cities` todavía pasa sólo
+   * `calculator_cities` (slug+label+km+casco). Falta cruzarla con
+   * `public_carrier_tariffs()` igual que hace `combinarDestinos` en
+   * `lib/public/rates-queries.ts`.
+   */
+  ventaCbm?: number | null;
 };
 
 /** Config del recargo de entrega (de calculator_settings vía RPC pública). */
@@ -117,7 +128,7 @@ function AddressRow({
     : null;
   const estimate =
     catalogCity && lastMileParams
-      ? lastMileEstimate(catalogCity, lastMileParams)
+      ? lastMileEstimate(catalogCity)
       : null;
   return (
     <li
@@ -155,11 +166,15 @@ function AddressRow({
           <div className="mt-1 text-[12px] leading-[1.4]">
             {estimate.included ? (
               <span style={{ color: "var(--color-status-success)" }}>
-                Entrega incluida (casco central)
+                Entrega incluida
+              </span>
+            ) : "sinTarifa" in estimate ? (
+              <span className="text-grey-700">
+                La entrega hasta aquí la cotiza tu asesor
               </span>
             ) : (
               <span className="text-grey-700">
-                Recargo de entrega aprox.{" "}
+                Entrega{" "}
                 <b
                   className="text-ink"
                   style={{
@@ -167,9 +182,9 @@ function AddressRow({
                       "var(--font-jetbrains-mono), ui-monospace, monospace",
                   }}
                 >
-                  ${estimate.surchargeUsd}
+                  ${estimate.usdPorCbm.toFixed(2)}
                 </b>{" "}
-                · estimado, lo confirma tu asesor
+                por m³ · se suma según el volumen de tu carga
               </span>
             )}
           </div>
