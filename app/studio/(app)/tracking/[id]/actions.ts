@@ -243,6 +243,11 @@ export async function transitionShipment(
   newStatus: ShipmentStatus,
   note?: string | null,
 ): Promise<ActionState> {
+  if (newStatus === "delivered") {
+    return {
+      error: "Confirma la entrega manual desde Almacén VE o usa el POD sellado de Despacho.",
+    };
+  }
   const tenantId = await getUserTenantId();
   if (!tenantId) return { error: "Sin tenant asignado." };
 
