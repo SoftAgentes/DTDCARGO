@@ -1,5 +1,5 @@
 /**
- * /api/cron/purge-throttle — purga las filas viejas de portal_registro_throttle.
+ * /api/cron/purge-throttle — purga throttles públicos y del PIN móvil.
  *
  * La tabla acumula una fila por intento de anti-abuso por IP de TODOS los buckets
  * públicos (registro self-service, contacto, estimación, ocean-rate y
@@ -50,7 +50,23 @@ export async function GET(req: NextRequest) {
     return apiError("No se pudo purgar el throttle.", error, 500, "purge-throttle");
   }
 
-  return NextResponse.json({ ok: true, deleted: count ?? 0, cutoff });
+  const { error: pinError, count: pinCount } = await admin
+    .from("operario_pin_attempts")
+    .delete({ count: "exact" })
+    .lt("created_at", cutoff);
+  if (pinError) {
+    return apiError("No se pudo purgar el throttle de PIN.", pinError, 500, "purge-pin-throttle");
+  }
+
+  return NextResponse.json({
+    ok: true,
+    deleted: (count ?? 0) + (pinCount ?? 0),
+    deletedByTable: {
+      portal_registro_throttle: count ?? 0,
+      operario_pin_attempts: pinCount ?? 0,
+    },
+    cutoff,
+  });
 }
 
 export async function POST(req: NextRequest) {

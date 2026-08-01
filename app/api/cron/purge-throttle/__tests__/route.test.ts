@@ -11,21 +11,24 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 const ops = {
   deleteCalled: false,
   ltColumn: "",
+  tables: [] as string[],
   reset() {
     this.deleteCalled = false;
     this.ltColumn = "";
+    this.tables = [];
   },
 };
 
 function makeAdmin() {
   return {
-    from: () => ({
+    from: (table: string) => ({
       delete: () => {
         ops.deleteCalled = true;
+        ops.tables.push(table);
         return {
           lt: (col: string) => {
             ops.ltColumn = col;
-            return Promise.resolve({ error: null, count: 7 });
+            return Promise.resolve({ error: null, count: table === "portal_registro_throttle" ? 7 : 3 });
           },
         };
       },
@@ -77,8 +80,9 @@ describe("GET /api/cron/purge-throttle", () => {
     expect(res.status).toBe(200);
     const json = (await res.json()) as { ok: boolean; deleted: number };
     expect(json.ok).toBe(true);
-    expect(json.deleted).toBe(7);
+    expect(json.deleted).toBe(10);
     expect(ops.deleteCalled).toBe(true);
     expect(ops.ltColumn).toBe("created_at");
+    expect(ops.tables).toEqual(["portal_registro_throttle", "operario_pin_attempts"]);
   });
 });
