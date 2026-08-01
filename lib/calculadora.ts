@@ -1,3 +1,12 @@
+import {
+  DESTINOS_NACIONALES,
+  PRECIO_TRAMO,
+  type TramoTerrestre,
+} from "@/lib/data/destinos-nacionales";
+
+export { PRECIO_TRAMO };
+export type { TramoTerrestre };
+
 /**
  * Calculadora LCL DDP — China → Venezuela
  *
@@ -81,14 +90,22 @@ export const CONFIG = {
   recargoBateriaMult: 1.5,
 
   /**
-   * Distancia (km) hasta donde se considera "casco central" — entrega
-   * flat sin recargo extra por km. Sobre esto se cobra por km.
+   * ⚠️ LEGACY — ya no fija ningún precio (SDD-0237, founder 1-ago-2026).
+   *
+   * Era el umbral en km del viejo "casco central". El cobro de la entrega
+   * nacional pasó a ser `CBM × precio del tramo`: no hay kilómetros en la
+   * cuenta. Sobrevive en `CalcParams` sólo porque la columna sigue viva en
+   * `calculator_settings` y quitarla exigiría una migración destructiva; se
+   * retiró de la UI del Admin para que nadie edite un número que no hace nada.
    */
   thresholdCascoKm: 200,
 
   /**
-   * Tarifa por km cuando el destino está fuera del casco central.
-   * Ej: ciudad a 350 km → 150 km fuera del casco → recargo 150 × $1 = $150.
+   * ⚠️ LEGACY — ya no fija ningún precio. Ver `thresholdCascoKm` arriba.
+   *
+   * La fórmula que reemplaza (`max(0, km − 200) × $1`) no correspondía a
+   * ningún modelo real: sobrecobraba +706% en Puerto Ordaz a 0,5 m³ y
+   * subcobraba −80% en Barquisimeto a 5 m³.
    */
   tarifaKmFueraCasco: 1,
 
@@ -265,61 +282,95 @@ export type Ciudad = {
   id: string;
   /** Nombre visible en el form. */
   label: string;
-  /** Km desde Valencia centro (referencia para recargo por distancia). */
+  /**
+   * Km desde Valencia centro.
+   *
+   * ⚠️ Ya NO fija precio (SDD-0237). Sigue vivo porque alimenta el copy de
+   * `lib/geo-zonas.ts` ("a 410 km de nuestra bodega") y porque la columna
+   * existe en `calculator_cities`.
+   */
   km: number;
-  /** Si es true, entra en el flat del casco central sin recargo extra. */
+  /**
+   * Zona sin costo: el cliente paga **$0** de entrega.
+   *
+   * Son 8 ciudades (founder, 1-ago-2026). DTD sí le paga ese tramo al fletero;
+   * es adquisición de clientes, no un descuento — por eso la tarifa real vive
+   * igual en `carrier_tariffs` y sólo esta bandera la pone en cero de cara al
+   * cliente.
+   */
   casco: boolean;
+  /**
+   * USD por m³ que paga el cliente por la entrega nacional. `null`/ausente =
+   * no hay tarifa confirmada → la calculadora deriva al asesor en vez de
+   * inventar un número que no podemos honrar.
+   */
+  ventaCbm?: number | null;
+  /** Piso por despacho, si el transportista lo exige. Benito no tiene. */
+  minCharge?: number | null;
+  /** Cada cuántos días sale el camión. >8 → se le avisa al cliente. */
+  frecuenciaDias?: number | null;
+  /** `false` = el transportista confirmó que NO llega hasta ahí. */
+  cubierta?: boolean;
+  /** Sólo para las sin cobertura: slug de la cubierta más cercana. */
+  cercana?: string | null;
+  /** Estado de Venezuela — resuelve la ciudad que el cliente no encontró. */
+  estado?: string;
 };
 
-export const CIUDADES: Ciudad[] = [
-  // Opción agrupada por default — cualquier punto del casco central, sin recargo
-  { id: "casco-central", label: "Casco central (Valencia · Maracay · Caracas)", km: 0, casco: true },
-  // Casco central — flat tarifa base
-  { id: "valencia",     label: "Valencia (sede)",  km: 0,   casco: true },
-  { id: "maracay",      label: "Maracay",          km: 70,  casco: true },
-  { id: "caracas",      label: "Caracas",          km: 150, casco: true },
-  // Fuera del casco — recargo por km
-  { id: "barquisimeto", label: "Barquisimeto",     km: 220, casco: false },
-  { id: "maracaibo",    label: "Maracaibo",        km: 410, casco: false },
-  { id: "puerto-la-cruz", label: "Puerto La Cruz", km: 430, casco: false },
-  { id: "san-cristobal", label: "San Cristóbal",   km: 580, casco: false },
-  { id: "merida",       label: "Mérida",           km: 520, casco: false },
-  { id: "ciudad-bolivar", label: "Ciudad Bolívar", km: 700, casco: false },
-  { id: "puerto-ordaz", label: "Puerto Ordaz",     km: 770, casco: false },
-  { id: "punto-fijo",   label: "Punto Fijo",       km: 290, casco: false },
-  { id: "coro",         label: "Coro",             km: 260, casco: false },
-  // Destinos con landing SEO en lib/geo-zonas.ts que faltaban acá (migración
-  // 0277). Acarigua queda bajo el threshold del casco (200 km) → su recargo
-  // por distancia calcula $0; sale de la fórmula, no de una excepción.
-  { id: "acarigua",     label: "Acarigua",         km: 175, casco: false },
-  { id: "valera",       label: "Valera",           km: 360, casco: false },
-  { id: "san-fernando", label: "San Fernando de Apure", km: 370, casco: false },
-  { id: "cumana",       label: "Cumaná",           km: 560, casco: false },
-  { id: "maturin",      label: "Maturín",          km: 650, casco: false },
-  // Margarita (isla) — caso especial: mismo cálculo por km pero advertir
-  // que cruza ferry. Edita el km si quieres que pague más por la travesía.
-  { id: "margarita",    label: "Isla Margarita",   km: 540, casco: false },
-];
+/**
+ * Km desde Valencia de los destinos que ya estaban en producción.
+ *
+ * El km dejó de fijar precio (SDD-0237), pero se conserva porque el copy de
+ * `lib/geo-zonas.ts` lo cita ("a 410 km de nuestra bodega") y porque la
+ * columna sigue viva en `calculator_cities`. Los destinos nuevos entran con 0:
+ * nadie midió su distancia y ya no hace falta.
+ */
+const KM_CONOCIDOS: Record<string, number> = {
+  valencia: 0, maracay: 70, caracas: 150, barquisimeto: 220, maracaibo: 410,
+  "puerto-la-cruz": 430, "san-cristobal": 580, merida: 520,
+  "ciudad-bolivar": 700, "puerto-ordaz": 770, "punto-fijo": 290, coro: 260,
+  acarigua: 175, valera: 360, "san-fernando": 370, cumana: 560, maturin: 650,
+  margarita: 540,
+};
 
 /**
- * Destinos que NO cotizan automático y derivan al asesor.
+ * Los destinos que ofrece la calculadora — **fallback**, no fuente de verdad.
  *
- * Cumaná y San Fernando de Apure no tienen zona asignada en `VALENCIA_ZONAS`
- * (lib/data/tarifas-terrestres-vzla.ts): entraron por su landing SEO y su km,
- * pero ninguna tabla de proveedor confirmada les pone precio todavía. El primer
- * tarifario que apareció (Benítez / R&M) cobra Cumaná al 8% contra el 5% del
- * centro, así que el recargo por km las subestima.
+ * La fuente real es `calculator_cities` + `carrier_tariffs` en la DB, que el
+ * sitio lee por RPC anon. Este array se usa cuando la RPC no devuelve nada
+ * (Supabase caído, tablas vacías, migración sin aplicar): mismo patrón que ya
+ * tenía la lista de ciudades, ahora con el precio de entrega adentro.
  *
- * Decisión del founder (2026-07-29): mostrar "cotiza con un asesor" en vez de un
- * número que no podemos honrar, hasta cerrar las reuniones con los 4-6
- * proveedores de esta semana. Ver docs/operaciones/transporte-nacional/.
- *
- * TEMPORAL — al confirmar la tarifa, sacar el slug de acá y listo.
+ * ⚠️ La opción agrupada "Casco central (Valencia · Maracay · Caracas)" **murió**
+ * (founder, 1-ago-2026): el cliente escoge SU ciudad y el sistema decide si le
+ * cobra o no. Al no estar, la preseleccionada cae sola a la primera de la lista.
  */
-export const CIUDADES_DERIVAN_A_ASESOR: readonly string[] = [
-  "cumana",
-  "san-fernando",
-];
+export const CIUDADES: Ciudad[] = DESTINOS_NACIONALES.map((d) => ({
+  id: d.slug,
+  label: d.label,
+  km: KM_CONOCIDOS[d.slug] ?? 0,
+  casco: d.casco,
+  ventaCbm: d.ventaCbm,
+  minCharge: null,
+  frecuenciaDias: d.frecuenciaDias,
+  cubierta: d.cubierta,
+  cercana: d.cercana,
+  estado: d.estado,
+}));
+
+/**
+ * Destinos que NO cotizan automático y derivan al asesor, además de los que ya
+ * derivan por no tener tarifa.
+ *
+ * **Vacío desde el 1-ago-2026 (SDD-0237).** Tenía `cumana` y `san-fernando`
+ * porque ningún proveedor confirmado les ponía precio; ahora las dos cobran
+ * $123,60/m³ como cualquier destino foráneo, así que salieron.
+ *
+ * La lista se queda como palanca manual: si mañana hay que sacar un destino de
+ * la cotización automática sin borrarle la tarifa, se mete el slug acá. El
+ * mecanismo general de "sin precio → deriva" ya no depende de esta lista.
+ */
+export const CIUDADES_DERIVAN_A_ASESOR: readonly string[] = [];
 
 // ────────────────────────────────────────────────────────────────────
 // 3) EMBALAJES — RECARGOS POR TIPO
@@ -378,7 +429,7 @@ export type EnvioCotizacion = {
   /** Cargos individuales (todos en USD, para mostrar desglose). */
   precioBase: number;       // CBM × tarifaBase
   recargoExcedente: number; // recargo por densidad: kg que exceden pesoIncluidoKg/CBM × recargoExcedenteKg (founder 2026-06-20).
-  recargoCiudad: number;    // km fuera del casco × tarifaKm
+  recargoCiudad: number;    // entrega nacional: CBM × precio del tramo. 0 en la zona sin costo.
   recargoEmbalaje: number;  // 0 o recargoEmbalajeEspecial
   recargoBateria: number;   // extra por el multiplicador de baterías (0 si no)
   descuentoSede: number;    // siempre negativo o 0
@@ -396,14 +447,40 @@ export type EnvioCotizacion = {
       | "peso_contenedor_excedido"
       | "peso_envio_excedido"
       | "volumen_minimo_consolidado"
-      | "ciudad_sin_tarifa";
+      | "ciudad_sin_tarifa"
+      | "ciudad_sin_cobertura";
     mensaje: string;
   };
+
+  /**
+   * Aviso que NO bloquea la cotización: hay precio y el cliente lo ve, pero
+   * tiene que enterarse de algo antes de pagar. Hoy sólo lo usa el destino
+   * quincenal ("el camión no sale todas las semanas").
+   */
+  avisoEntrega?: string | null;
+
+  /**
+   * La ciudad cubierta más cercana, cuando el destino escogido no tiene
+   * cobertura. Es lo que convierte un "no llegamos" en una venta: el cliente
+   * ve hasta dónde sí llegamos y cuánto cuesta ese tramo.
+   */
+  cercana?: { label: string; ventaCbm: number } | null;
 
   /** Datos derivados para mostrar al usuario. */
   ciudad: Ciudad | null;
   embalaje: TipoEmbalaje;
 };
+
+/**
+ * ¿Este destino tarda notablemente más que el resto?
+ *
+ * El umbral es 8 días y no 15 a propósito: cualquier cosa que salga menos de
+ * una vez por semana ya merece el aviso. Espeja `tardaMasDeLoNormal` de
+ * `lib/studio/freight-carriers/types.ts` — el ERP y la web dicen lo mismo.
+ */
+export function entregaTardaMas(frecuenciaDias: number | null | undefined): boolean {
+  return frecuenciaDias != null && frecuenciaDias > 8;
+}
 
 // ────────────────────────────────────────────────────────────────────
 // 5) FUNCIÓN PRINCIPAL DEL CÁLCULO (pura, sin side effects)
@@ -461,6 +538,39 @@ export function calcularEnvioLCL(
         `Para ${ciudad.label} cotizamos a medida: escríbele a un asesor y te ` +
         `damos el precio exacto de tu envío.`,
     }, input);
+  }
+
+  // 5.2c — Destino SIN COBERTURA (SDD-0237). El transportista confirmó que no
+  // llega hasta ahí. El copy no dice "no disponible" a secas: dice hasta dónde
+  // SÍ llegamos y cuánto cuesta ese tramo, porque ese mensaje es lo que
+  // convierte un "no" en una venta. El último trecho lo resuelve el cliente o
+  // lo conversa con un asesor.
+  if (ciudad.cubierta === false) {
+    const vecina = ciudad.cercana
+      ? (ciudades.find((c) => c.id === ciudad.cercana) ?? null)
+      : null;
+    const precioVecina =
+      vecina && vecina.ventaCbm != null && vecina.ventaCbm > 0
+        ? vecina.ventaCbm
+        : null;
+
+    const mensaje =
+      vecina && precioVecina != null
+        ? `Todavía no llegamos hasta ${ciudad.label}. Lo más cerca que ` +
+          `entregamos es ${vecina.label}, y ese tramo sale en ` +
+          `$${precioVecina.toFixed(2)} por m³ — es un estimado, el último ` +
+          `trecho hasta ${ciudad.label} no está incluido. Un asesor te ayuda ` +
+          `a resolverlo.`
+        : `Todavía no llegamos hasta ${ciudad.label}. Escríbele a un asesor y ` +
+          `buscamos cómo hacerte llegar la carga.`;
+
+    return {
+      ...cotizacionVacia({ tipo: "ciudad_sin_cobertura", mensaje }, input),
+      cercana:
+        vecina && precioVecina != null
+          ? { label: vecina.label, ventaCbm: precioVecina }
+          : null,
+    };
   }
 
   // 5.3 — Validar carga
@@ -552,12 +662,43 @@ export function calcularEnvioLCL(
   }
   const alerta: EnvioCotizacion["alerta"] | undefined = undefined;
 
-  // 5.7 — Recargo por ciudad fuera del casco central
+  // 5.7 — ENTREGA NACIONAL: CBM × precio del tramo (SDD-0237).
+  //
+  // Reemplaza `max(0, km − 200) × $1`, que no correspondía a ningún modelo real
+  // (sobrecobraba +706% en Puerto Ordaz a 0,5 m³ y subcobraba en Barquisimeto).
+  // El transportista cobra por metro cúbico y punto: sin kilómetros, sin peso,
+  // sin valor declarado.
+  //
+  // Las 8 ciudades de la ZONA SIN COSTO salen en $0 por el flag `casco`. No es
+  // un descuento: DTD le paga ese tramo al fletero aparte y lo asume como
+  // adquisición de clientes. La tarifa real de esas ciudades sigue viva en
+  // `carrier_tariffs` para que el ERP no pierda de vista lo que cuesta.
+  //
+  // Sin tarifa → NO se inventa un número: deriva al asesor. Es el fallback que
+  // protege el caso "la RPC no devolvió filas".
   let recargoCiudad = 0;
   if (!ciudad.casco) {
-    const kmFueraCasco = Math.max(0, ciudad.km - params.thresholdCascoKm);
-    recargoCiudad = roundUSD(kmFueraCasco * params.tarifaKmFueraCasco);
+    const precioCbm = ciudad.ventaCbm;
+    if (precioCbm == null || precioCbm <= 0) {
+      return cotizacionVacia({
+        tipo: "ciudad_sin_tarifa",
+        mensaje:
+          `Para ${ciudad.label} cotizamos a medida: escríbele a un asesor y te ` +
+          `damos el precio exacto de tu envío.`,
+      }, input);
+    }
+    const piso = ciudad.minCharge != null && ciudad.minCharge > 0 ? ciudad.minCharge : 0;
+    recargoCiudad = roundUSD(Math.max(cbm * precioCbm, piso));
   }
+
+  // 5.7b — Aviso de demora. No bloquea: el cliente ve su precio igual, pero se
+  // entera ANTES de pagar de que ese camión no sale todas las semanas.
+  const avisoEntrega = entregaTardaMas(ciudad.frecuenciaDias)
+    ? `El camión a ${ciudad.label} no sale todas las semanas. Según el día en ` +
+      `que tu carga llegue a nuestro galpón, la entrega puede tardar hasta una ` +
+      `semana más que a otros destinos. Te avisamos la fecha exacta de ` +
+      `despacho apenas se confirme.`
+    : null;
 
   // 5.8 — Recargo por embalaje (especial = madera/paleta). Se computa desde
   // params (configurable), no desde EMBALAJES (que solo aporta labels al form).
@@ -608,6 +749,8 @@ export function calcularEnvioLCL(
     ajusteMinimo,
     total: roundUSD(total),
     alerta,
+    avisoEntrega,
+    cercana: null,
     ciudad,
     embalaje: input.embalaje,
   };
@@ -649,6 +792,8 @@ function cotizacionVacia(
     ajusteMinimo: 0,
     total: 0,
     alerta,
+    avisoEntrega: null,
+    cercana: null,
     ciudad: null,
     embalaje: input.embalaje,
   };

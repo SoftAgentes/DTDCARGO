@@ -110,17 +110,65 @@ describe("calcularEnvioLCL", () => {
     expect(cot.total).toBe(1100); // 800 + 300
   });
 
-  // Recargo por ciudad fuera del casco: Barquisimeto 220 km → 20 km × $1 = $20
-  it("aplica recargo por km cuando la ciudad está fuera del casco central", () => {
+  // Entrega nacional = CBM × precio del tramo (SDD-0237). Ya no hay km en la
+  // cuenta: Maracaibo es Foráneo, así que 1 m³ paga $123,60 exactos.
+  it("cobra la entrega como CBM × precio del tramo, no por kilómetros", () => {
     const cot = calcularEnvioLCL({
       cbmTotal: 1,
       pesoKg: 400,
       embalaje: "estandar",
-      ciudadId: "barquisimeto", // 220 km, fuera del casco (threshold 200)
+      ciudadId: "maracaibo", // Foráneo
     });
 
-    expect(cot.recargoCiudad).toBe(20); // 220 - 200 = 20 km × $1
-    expect(cot.total).toBe(820); // 800 + 20
+    expect(cot.recargoCiudad).toBe(123.6);
+    expect(cot.total).toBe(923.6); // 800 + 123,60
+  });
+
+  // El caso que motivó todo el cambio: la fórmula por km sobrecobraba +706%.
+  it("REGRESIÓN — Puerto Ordaz 0,5 m³ pasó de $570 a $61,80", () => {
+    const cot = calcularEnvioLCL({
+      cbmTotal: 0.5,
+      pesoKg: 100,
+      embalaje: "estandar",
+      ciudadId: "puerto-ordaz",
+      minChargeOverride: 0,
+    });
+
+    // Con la fórmula vieja: (770 − 200) × $1 = $570, sin importar el volumen.
+    expect(cot.recargoCiudad).toBe(61.8); // 0,5 × $123,60
+  });
+
+  // El precio escala con el volumen — que es justo lo que la fórmula por km
+  // no hacía (cobraba lo mismo por 0,5 m³ que por 20).
+  it("la entrega escala con el CBM", () => {
+    const entrega = (cbm: number) =>
+      calcularEnvioLCL({
+        cbmTotal: cbm,
+        pesoKg: 100,
+        embalaje: "estandar",
+        ciudadId: "maracaibo",
+        minChargeOverride: 0,
+      }).recargoCiudad;
+
+    expect(entrega(1)).toBe(123.6);
+    expect(entrega(2)).toBe(247.2);
+    expect(entrega(10)).toBe(1236);
+  });
+
+  // Los tres tramos del acuerdo con el transportista.
+  it("aplica los tres tramos: Centro, Foráneo y Remota", () => {
+    const entrega = (ciudadId: string) =>
+      calcularEnvioLCL({
+        cbmTotal: 1,
+        pesoKg: 100,
+        embalaje: "estandar",
+        ciudadId,
+        minChargeOverride: 0,
+      }).recargoCiudad;
+
+    expect(entrega("puerto-cabello")).toBe(105.94); // Centro
+    expect(entrega("maracaibo")).toBe(123.6); // Foráneo
+    expect(entrega("margarita")).toBe(176.57); // Remota
   });
 
   // Recargo por embalaje especial (+$50)
@@ -149,18 +197,31 @@ describe("calcularEnvioLCL", () => {
     expect(cot.precioBase).toBe(400); // 0.5 × 800
   });
 
-  // Destino "Casco central" (agrupado): sin recargo y SIN descuento Valencia
-  it("casco-central no tiene recargo por km ni descuento de sede", () => {
-    const cot = calcularEnvioLCL({
-      cbmTotal: 1,
-      pesoKg: 400,
-      embalaje: "estandar",
-      ciudadId: "casco-central",
-    });
+  // La opción agrupada "Casco central (Valencia · Maracay · Caracas)" MURIÓ
+  // (founder, 1-ago-2026): el cliente escoge SU ciudad y el sistema decide.
+  it("la opción agrupada casco-central ya no existe en la lista", () => {
+    expect(CIUDADES.find((c) => c.id === "casco-central")).toBeUndefined();
+  });
 
-    expect(cot.recargoCiudad).toBe(0);
-    expect(cot.descuentoSede).toBe(0); // no es "valencia" explícita
-    expect(cot.total).toBe(800);
+  // Las 8 de la zona sin costo pagan $0 de entrega. No es un descuento: DTD le
+  // paga ese tramo al fletero aparte y lo asume como adquisición de clientes.
+  it("la zona sin costo son 8 ciudades y todas entregan en $0", () => {
+    const sinCosto = CIUDADES.filter((c) => c.casco);
+    expect(sinCosto.map((c) => c.id).sort()).toEqual([
+      "acarigua", "barquisimeto", "caracas", "guacara",
+      "maracay", "naguanagua", "san-diego", "valencia",
+    ]);
+
+    for (const ciudad of sinCosto) {
+      const cot = calcularEnvioLCL({
+        cbmTotal: 5,
+        pesoKg: 500,
+        embalaje: "estandar",
+        ciudadId: ciudad.id,
+        minChargeOverride: 0,
+      });
+      expect(cot.recargoCiudad, `${ciudad.label} debería entregar en $0`).toBe(0);
+    }
   });
 
   // Baterías: multiplican el flete ×1.5
@@ -539,14 +600,25 @@ describe("calcularEnvioLCL con params configurables", () => {
     expect(cot.total).toBe(1600);
   });
 
-  it("usa params.thresholdCascoKm y tarifaKmFueraCasco", () => {
-    // Casco a 100 km, $2/km → Barquisimeto (220) paga (220 − 100) × 2.
-    const cot = calcularEnvioLCL(
-      { cbmTotal: 1, pesoKg: 400, embalaje: "estandar", ciudadId: "barquisimeto" },
-      withParams({ thresholdCascoKm: 100, tarifaKmFueraCasco: 2 }),
+  // thresholdCascoKm y tarifaKmFueraCasco quedaron LEGACY (SDD-0237): siguen en
+  // CalcParams porque la columna vive en calculator_settings, pero ya no mueven
+  // ni un centavo. Este test lo congela — si alguien los vuelve a conectar al
+  // precio, se pone rojo.
+  it("thresholdCascoKm y tarifaKmFueraCasco ya NO afectan el precio", () => {
+    const input = {
+      cbmTotal: 1,
+      pesoKg: 400,
+      embalaje: "estandar" as const,
+      ciudadId: "maracaibo",
+    };
+    const normal = calcularEnvioLCL(input);
+    const conParamsAbsurdos = calcularEnvioLCL(
+      input,
+      withParams({ thresholdCascoKm: 0, tarifaKmFueraCasco: 99 }),
     );
-    expect(cot.recargoCiudad).toBe(240); // 120 km × $2
-    expect(cot.total).toBe(1040);
+
+    expect(conParamsAbsurdos.recargoCiudad).toBe(normal.recargoCiudad);
+    expect(conParamsAbsurdos.recargoCiudad).toBe(123.6);
   });
 });
 
@@ -856,7 +928,7 @@ describe("LCL Consolidado · tarifa 580/CBM + mismos recargos", () => {
       {
         modo: "ddp",
         embalaje: "estandar",
-        ciudadId: "casco-central",
+        ciudadId: "valencia",
         cbmTotal: 0.99,
         pesoKg: 400,
       },
@@ -870,7 +942,7 @@ describe("LCL Consolidado · tarifa 580/CBM + mismos recargos", () => {
     const cot = calcularEnvioLCL(
       {
         embalaje: "estandar",
-        ciudadId: "casco-central",
+        ciudadId: "valencia",
         cbmTotal: 0.5,
         pesoKg: 200,
       },

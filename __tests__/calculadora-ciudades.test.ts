@@ -14,22 +14,37 @@ import {
  *  - ciudad ausente en la lista inyectada → alerta ciudad_invalida
  */
 describe("calcularEnvioLCL con ciudades inyectadas", () => {
-  // "DB" simulada: una sola ciudad fuera del casco, con km distinto al default.
+  // "DB" simulada: la de la DB trae un precio DISTINTO al del respaldo, para
+  // probar que manda la DB. En el fallback Valera cobra $123,60 (Foráneo).
   const dbCities: Ciudad[] = [
-    { id: "valencia", label: "Valencia (sede)", km: 0, casco: true },
-    { id: "valera", label: "Valera", km: 300, casco: false },
+    { id: "valencia", label: "Valencia (sede)", km: 0, casco: true, ventaCbm: null, cubierta: true },
+    { id: "valera", label: "Valera", km: 300, casco: false, ventaCbm: 200, cubierta: true },
   ];
 
-  it("resuelve la ciudad desde la lista inyectada (no del array global)", () => {
+  it("resuelve la ciudad y el PRECIO desde la lista inyectada, no del respaldo", () => {
     const cot = calcularEnvioLCL(
       { cbmTotal: 1, pesoKg: 400, embalaje: "estandar", ciudadId: "valera" },
       undefined,
       dbCities,
     );
     expect(cot.ciudad?.id).toBe("valera");
-    // 300 km − 200 (threshold default) = 100 km × $1 = $100
-    expect(cot.recargoCiudad).toBe(100);
-    expect(cot.total).toBe(900);
+    // La DB dice $200/m³; el respaldo diría $123,60. Manda la DB — que es lo
+    // que permite editar precios desde el ERP sin deploy.
+    expect(cot.recargoCiudad).toBe(200);
+    expect(cot.total).toBe(1000);
+  });
+
+  it("ciudad inyectada SIN precio → deriva al asesor, no inventa un número", () => {
+    const cot = calcularEnvioLCL(
+      { cbmTotal: 1, pesoKg: 400, embalaje: "estandar", ciudadId: "sin-precio" },
+      undefined,
+      [
+        ...dbCities,
+        { id: "sin-precio", label: "Pueblo sin tarifa", km: 500, casco: false, ventaCbm: null, cubierta: true },
+      ],
+    );
+    expect(cot.alerta?.tipo).toBe("ciudad_sin_tarifa");
+    expect(cot.total).toBe(0);
   });
 
   it("una ciudad del casco inyectada no cobra recargo por km", () => {
@@ -66,7 +81,8 @@ describe("calcularEnvioLCL con ciudades inyectadas", () => {
       CIUDADES,
     );
     expect(conDefault).toEqual(conCiudadesExplicitas);
-    expect(conDefault.recargoCiudad).toBe(20); // 220 − 200 = 20 km × $1
+    // Barquisimeto está en la zona sin costo → el cliente no paga entrega.
+    expect(conDefault.recargoCiudad).toBe(0);
   });
 
   it("una lista vacía inyectada hace fallar TODA ciudad (caller debe pasar fallback)", () => {
