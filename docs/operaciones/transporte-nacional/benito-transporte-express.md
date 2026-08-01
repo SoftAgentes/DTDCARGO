@@ -131,9 +131,12 @@ lo que cuesta— y lo que pone el cobro en cero de cara al cliente es
   `assets/`. Siguen sin guardarse el TABULADOR y el CRONOGRAMA DE DESPACHO
   originales en PDF (ante discrepancia manda el formulario firmado, así que no
   bloquean nada).
-- **El descuento por pagar en divisas.** En la reunión dijeron que existe; nunca
-  lo cuantificaron y en el formulario no lo mencionaron. El founder lo quiere
-  convertir en abono para el cliente.
+- ⚪ **Descuento por pagar en divisas — RETIRADO de los pendientes**
+  (founder, 1-ago-2026). Se mencionó de palabra en la reunión, nunca se
+  cuantificó y no entró al formulario firmado: **es materia de negociación sin
+  aclarar, no un pendiente de ejecución.** No se planifica, no se documenta como
+  compromiso y no se asume en ningún cálculo. Si algún día se negocia en firme,
+  entra por escrito como cualquier otra condición.
 - **El Excel del contenedor** que el founder prometió: un contenedor real
   separado por cliente, con totales de cajas, peso y CBM, y una columna libre
   para que ellos pongan el precio.
