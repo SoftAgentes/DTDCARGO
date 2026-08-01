@@ -1,10 +1,10 @@
 ---
 sdd: "0236"
 title: "Transportistas terrestres y su tarifario por CBM"
-status: in-progress
+status: done
 author: "Sam (founder) + Claude Code"
 created: 2026-07-31
-updated: 2026-07-31
+updated: 2026-08-01
 supersedes: null
 superseded_by: null
 related: ["0047", "0055", "0104"]
@@ -143,12 +143,27 @@ tablas + 2 tenants reales) pasa con las tablas nuevas dentro.
 
 ## Estado y qué falta
 
-- ✅ Migración 0330 escrita · prueba contractual validada por mutación.
-- ⏳ **NO aplicada a producción.** Exige el OK del founder **nombrando el
-  archivo**, de a UNA, por `docs/runbooks/aplicar-migraciones-prod.md`.
-- ⏳ Queries/types en `lib/studio/freight-carriers/`.
-- ⏳ UI en `/studio/admin` › Calculadora pública.
-- ⏳ Que `lib/calculadora.ts` consuma la RPC (fase aparte, SDD propio).
+**Cerrada el 1-ago-2026.** Todo lo que esta spec prometía está en producción:
+
+- ✅ Migración `0330_freight_carriers_tariffs.sql` **aplicada a producción**
+  (ledger `supabase_migrations.schema_migrations`, versión `20260801141056`).
+- ✅ Prueba contractual `supabase/tests/0330_freight_carriers_tariffs.test.sql`,
+  validada por mutación (3/3 cazadas).
+- ✅ Queries y tipos en `lib/studio/freight-carriers/{queries,types}.ts`, con sus
+  tests en `lib/studio/__tests__/freight-carriers-types.test.ts`.
+- ✅ Server actions en `app/studio/(app)/admin/carrier-actions.ts` y UI en
+  `/studio/admin` › Calculadora pública › **Transportistas**
+  (`_components/calculator/TransportistasPanel.tsx`).
+
+⚠️ **Las dos tablas están VACÍAS en producción** (0 transportistas, 0 tarifas),
+así que `public_carrier_tariffs()` devuelve 0 filas. La capacidad existe; los
+datos todavía no. Sembrar a Benito con sus 166 destinos **no es alcance de esta
+spec**.
+
+**Lo que sigue, en su propia spec (SDD-0237):** sembrar el tarifario y que
+`lib/calculadora.ts` consuma la RPC para reemplazar la fórmula por kilómetro.
+Mientras eso no ocurra, la calculadora pública **sigue cobrando
+`max(0, km − 200) × $1`** — el problema n.º 2 de la sección "Por qué" sigue vivo.
 
 ## Deuda que se documenta, no se resuelve acá
 
