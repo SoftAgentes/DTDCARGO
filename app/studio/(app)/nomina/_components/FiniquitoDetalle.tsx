@@ -11,6 +11,7 @@
 import { useState, useTransition, useEffect } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import {
   settlementStatusLabel,
   settlementStatusTone,
@@ -55,6 +56,8 @@ export function FiniquitoDetalle({
   const [lines, setLines] = useState<SettlementLineRow[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [voidDialogOpen, setVoidDialogOpen] = useState(false);
+  const [voidRequestRef, setVoidRequestRef] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -81,6 +84,27 @@ export function FiniquitoDetalle({
   const isDraft = settlement.status === "borrador";
   const canConfirm = canTransitionSettlement(settlement.status, "confirmado");
   const canAnular = canTransitionSettlement(settlement.status, "anulado");
+
+  const openVoidDialog = () => {
+    setActionError(null);
+    setVoidRequestRef(crypto.randomUUID());
+    setVoidDialogOpen(true);
+  };
+
+  const confirmVoid = (reason: string) => {
+    if (!voidRequestRef) return;
+    setActionError(null);
+    startTransition(async () => {
+      const res = await anularFiniquitoAction(settlement.id, reason, voidRequestRef);
+      if (res.error) {
+        setActionError(res.error);
+        return;
+      }
+      setVoidDialogOpen(false);
+      setVoidRequestRef(null);
+      onBack();
+    });
+  };
 
   return (
     <div>
@@ -156,7 +180,7 @@ export function FiniquitoDetalle({
           {canAnular && (
             <button
               type="button"
-              onClick={() => run(() => anularFiniquitoAction(settlement.id))}
+              onClick={openVoidDialog}
               disabled={isPending}
               className="studio-btn studio-btn-danger studio-btn-sm"
             >
@@ -176,7 +200,32 @@ export function FiniquitoDetalle({
         </div>
       </div>
 
-      {actionError && (
+      <ConfirmDialog
+        open={voidDialogOpen}
+        title={`Anular finiquito ${settlement.settlement_code}`}
+        message={`Se anulará el finiquito de ${settlement.employee_name} por ${fmtUsd(settlement.total_net_usd)}${settlement.journal_entry_id ? " y su asiento contable asociado" : ""}. El historial y el vínculo contable se conservarán; después podrás generar un nuevo finiquito.`}
+        confirmLabel="Anular finiquito"
+        danger
+        pending={isPending}
+        reason
+        reasonRequired
+        reasonLabel="Motivo de la anulación"
+        reasonPlaceholder="Explica la causa y la evidencia revisada"
+        holdToConfirm
+        holdLabel="Mantén presionado para anular"
+        holdAlternativeLabel="Entiendo la consecuencia y prefiero anular con un clic"
+        error={voidDialogOpen ? actionError ?? undefined : undefined}
+        initialFocus="safe"
+        onCancel={() => {
+          if (isPending) return;
+          setVoidDialogOpen(false);
+          setVoidRequestRef(null);
+          setActionError(null);
+        }}
+        onConfirm={confirmVoid}
+      />
+
+      {actionError && !voidDialogOpen && (
         <p
           role="alert"
           style={{

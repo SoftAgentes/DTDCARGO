@@ -145,6 +145,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Plan de adopción por slices | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | Baseline de cobertura de los 57 módulos | [REV-SGE-029](reviews/governance-coverage-baseline-v1-2026-07-31.md) |
 | Auditoría R3 de anulación de finiquito de Nómina | [REV-SGE-030](reviews/payroll-r3-settlement-void-audit-2026-07-31.md) |
+| Implementación R3 de anulación gobernada de finiquito | [REV-SGE-031](reviews/payroll-r3-settlement-void-implementation-2026-07-31.md) |
 | Cierre del warning NFT en assets privados de marca | [REV-SGE-032](reviews/nft-brand-asset-trace-close-2026-07-31.md) |
 | Preflight operativo E5 con elegibilidad cero | [REV-AUD-051](reviews/aud-e5-operational-preflight-2026-07-31.md) |
 | Auditoría y retiro seguro de worktrees históricos | [REV-SGE-033](reviews/governance-worktree-retirement-2026-07-31.md) |
@@ -165,6 +166,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Cierre productivo de 0318–0324 (residuos R3) | [REV-SGE-048](reviews/governance-r3-0318-0324-production-close-2026-08-01.md) |
 | Renumeración de colisiones e integración de 0330 y 0331 | [REV-SGE-049](reviews/renumeracion-colisiones-0236-0330-0331-2026-08-01.md) |
 | Baseline de cobertura posterior al cluster R3 | [REV-SGE-050](reviews/governance-coverage-baseline-v2-2026-08-01.md) |
+| Reconciliación local de Nómina 0316 | [REV-SGE-051](reviews/payroll-r3-settlement-void-reconciliation-2026-08-01.md) |
 | Revisión de patrones UX en videos | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | Portabilidad EOL de SDD-0118 | [REV-AUD-030](reviews/aud-sdd-0118-eol-portability.md) |
 | Dependencias ejecutables CMP-01 | [REV-SGE-015](reviews/cmp-01-dependency-validation.md) |
