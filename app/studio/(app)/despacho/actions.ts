@@ -15,7 +15,10 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
-import { getTruckCapacity } from "@/lib/studio/dispatch-queries";
+import {
+  cancelDispatchOrderGoverned,
+  getTruckCapacity,
+} from "@/lib/studio/dispatch-queries";
 import {
   validateAssignTruckDriverInput,
   validateCancelDispatchOrderInput,
@@ -250,36 +253,51 @@ export async function createDispatchOrderAction(
 // ─────────────────────────────────────────────────────────────
 
 export async function cancelDispatchOrderAction(
-  _prev: DispatchActionState,
-  formData: FormData,
-): Promise<DispatchActionState> {
+  raw: {
+    orderId?: string;
+    from?: CancelDispatchOrderInput["from"];
+    reason?: string;
+    requestRef?: string;
+  },
+): Promise<DispatchActionState & { replayed?: boolean }> {
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "despacho");
   if (denial) return { error: denial };
 
-
   const partial: Partial<CancelDispatchOrderInput> = {
-    od_id: parseStringOrNull(formData.get("od_id")) ?? undefined,
-    reason: parseStringOrNull(formData.get("reason")) ?? undefined,
+    od_id: raw.orderId,
+    from: raw.from,
+    reason: raw.reason,
+    request_ref: raw.requestRef,
   };
 
   const { input, fieldErrors } = validateCancelDispatchOrderInput(partial);
   if (fieldErrors) return { fieldErrors };
 
-  const { error } = await supabase
-    .from("dispatch_orders")
-    .update({
-      status: "cancelada",
-      cancel_reason: input!.reason,
-    })
-    .eq("id", input!.od_id);
-
-  if (error) {
-    return { error: `No se pudo cancelar: ${error.message}` };
+  try {
+    const result = await cancelDispatchOrderGoverned(supabase, {
+      orderId: input!.od_id,
+      expectedStatus: input!.from,
+      reason: input!.reason,
+      requestRef: input!.request_ref,
+    });
+    revalidatePath("/studio/despacho");
+    revalidatePath("/studio/despacho/dashboard");
+    return { ok: true, replayed: result === "replayed" };
+  } catch (error) {
+    const code =
+      typeof error === "object" && error !== null && "code" in error
+        ? String((error as { code?: unknown }).code ?? "")
+        : "";
+    if (code === "42501") return { error: "No tienes permiso para cancelar esta OD." };
+    if (code === "40001") {
+      return { error: "La OD cambió de estado. Actualiza antes de reintentar." };
+    }
+    if (code === "P0002") return { error: "La OD ya no está disponible." };
+    return {
+      error: `No se pudo cancelar la OD. Referencia: ${input!.request_ref}`,
+    };
   }
-
-  revalidatePath("/studio/despacho");
-  return { ok: true };
 }
 
 // ─────────────────────────────────────────────────────────────

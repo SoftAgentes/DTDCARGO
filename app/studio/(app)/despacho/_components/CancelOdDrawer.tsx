@@ -1,17 +1,14 @@
 "use client";
 
 /**
- * CancelOdDrawer — confirmación de cancelación con motivo (SDD-0029).
- * Motivo obligatorio (mín 4 chars).
+ * CancelOdDrawer — motivo + confirmación R3 gobernada (SDD-0234).
  */
 
-import { useActionState } from "react";
+import { useState } from "react";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { cancelDispatchOrderAction } from "../actions";
-import type { DispatchActionState, DispatchOrderRow } from "@/lib/studio/dispatch-types";
-
-const FORM_ID = "cancel-od-form";
-const INITIAL_STATE: DispatchActionState = {};
+import type { DispatchOrderRow } from "@/lib/studio/dispatch-types";
 
 export function CancelOdDrawer({
   od,
@@ -20,26 +17,60 @@ export function CancelOdDrawer({
   od: DispatchOrderRow;
   onClose: () => void;
 }) {
-  const [state, formAction, isPending] = useActionState(
-    cancelDispatchOrderAction,
-    INITIAL_STATE,
-  );
+  const [reason, setReason] = useState("");
+  const [confirming, setConfirming] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [requestRef, setRequestRef] = useState("");
+  const [error, setError] = useState<string>();
 
-  if (state?.ok) {
-    setTimeout(onClose, 100);
-  }
+  const openConfirmation = () => {
+    const normalized = reason.trim();
+    if (normalized.length < 4 || normalized.length > 500) {
+      setError("El motivo debe tener entre 4 y 500 caracteres.");
+      return;
+    }
+    setRequestRef(`dispatch-order-cancellation:${od.id}:${crypto.randomUUID()}`);
+    setError(undefined);
+    setConfirming(true);
+  };
+
+  const cancelOrder = async () => {
+    if (pending) return;
+    setPending(true);
+    setError(undefined);
+    try {
+      const result = await cancelDispatchOrderAction({
+        orderId: od.id,
+        from: od.status as "creada" | "cargando" | "lista" | "en_ruta",
+        reason,
+        requestRef,
+      });
+      if (!result.ok) {
+        setError(
+          result.error ??
+            Object.values(result.fieldErrors ?? {})[0] ??
+            "No se pudo cancelar la OD.",
+        );
+        return;
+      }
+      setConfirming(false);
+      onClose();
+    } catch {
+      setError("No se pudo cancelar la OD. Conservamos la referencia para reintentar.");
+    } finally {
+      setPending(false);
+    }
+  };
 
   return (
     <DrawerShell
       title="Cancelar orden de despacho"
       subtitle={`${od.order_code} · ${od.route?.name ?? "Sin ruta"}`}
       onClose={onClose}
-      pending={isPending}
+      pending={pending}
       width={520}
     >
-      <form
-        id={FORM_ID}
-        action={formAction}
+      <div
         style={{
           flex: 1,
           overflow: "auto",
@@ -49,8 +80,6 @@ export function CancelOdDrawer({
           gap: 16,
         }}
       >
-        <input type="hidden" name="od_id" value={od.id} />
-
         <div
           style={{
             padding: 14,
@@ -72,12 +101,16 @@ export function CancelOdDrawer({
           </label>
           <textarea
             id="reason-input"
-            name="reason"
             className="studio-input"
             required
             minLength={4}
             maxLength={500}
             rows={4}
+            value={reason}
+            onChange={(event) => {
+              setReason(event.target.value);
+              setError(undefined);
+            }}
             placeholder="Ej: cliente pidió postergar entrega 48h por permisos sanitarios pendientes."
             style={{ marginTop: 6, resize: "vertical" }}
           />
@@ -88,23 +121,13 @@ export function CancelOdDrawer({
               marginTop: 6,
             }}
           >
-            Mínimo 4 caracteres. Queda registrado en el audit log para reportes.
+            Entre 4 y 500 caracteres. Queda registrado con actor y estado en AUD-01.
           </p>
-          {state?.fieldErrors?.reason && (
-            <p
-              style={{
-                font: "600 11.5px/1.3 var(--f-sans)",
-                color: "var(--danger)",
-                marginTop: 6,
-              }}
-            >
-              {state.fieldErrors.reason}
-            </p>
-          )}
         </div>
 
-        {state?.error && (
+        {error && !confirming && (
           <div
+            role="alert"
             style={{
               padding: 12,
               background: "var(--danger-bg)",
@@ -113,10 +136,10 @@ export function CancelOdDrawer({
               font: "600 13px/1.3 var(--f-sans)",
             }}
           >
-            {state.error}
+            {error}
           </div>
         )}
-      </form>
+      </div>
 
       <footer
         style={{
@@ -133,19 +156,38 @@ export function CancelOdDrawer({
           type="button"
           className="studio-btn studio-btn-ghost"
           onClick={onClose}
-          disabled={isPending}
+          disabled={pending}
         >
           Volver
         </button>
         <button
-          type="submit"
-          form={FORM_ID}
+          type="button"
           className="studio-btn studio-btn-danger"
-          disabled={isPending}
+          disabled={pending || reason.trim().length < 4}
+          onClick={openConfirmation}
         >
-          {isPending ? "Cancelando…" : "Cancelar OD"}
+          Revisar cancelación
         </button>
       </footer>
+
+      <ConfirmDialog
+        open={confirming}
+        danger
+        holdToConfirm
+        initialFocus="safe"
+        title="Confirmar cancelación terminal"
+        message={`${od.order_code} está ${od.status}. Al cancelar, la OD queda terminal y sus paquetes vuelven a estar disponibles para una OD nueva. Motivo: ${reason.trim()}`}
+        confirmLabel="Cancelar OD"
+        holdLabel="Mantén para cancelar"
+        pending={pending}
+        error={confirming ? error : undefined}
+        onCancel={() => {
+          if (pending) return;
+          setConfirming(false);
+          setError(undefined);
+        }}
+        onConfirm={cancelOrder}
+      />
     </DrawerShell>
   );
 }
