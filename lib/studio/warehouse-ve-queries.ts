@@ -124,6 +124,29 @@ export async function computeVeKpis(
   };
 }
 
+/** Ejecuta el cierre manual R3 gobernado de SDD-0231. */
+export async function completeVeDeliveryGoverned(
+  supabase: SupabaseClient,
+  input: {
+    shipmentId: string;
+    receivedBy: string;
+    reason: string;
+    requestRef: string;
+  },
+): Promise<"transitioned" | "replayed"> {
+  const { data, error } = await supabase.rpc("complete_ve_delivery_governed", {
+    p_shipment_id: input.shipmentId,
+    p_received_by: input.receivedBy,
+    p_reason: input.reason,
+    p_request_ref: input.requestRef,
+  });
+  if (error) throw error;
+  if (data !== "transitioned" && data !== "replayed") {
+    throw new Error("Respuesta inválida del cierre gobernado de entrega.");
+  }
+  return data;
+}
+
 // ─────────────────────────────────────────────────────────────
 // parseFiltersFromSearchParams
 // ─────────────────────────────────────────────────────────────
