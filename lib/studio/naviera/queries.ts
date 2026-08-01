@@ -293,6 +293,48 @@ export async function listConsolidations(
   );
 }
 
+export type ConsolidationAuthorizationResult = {
+  outcome: "transitioned" | "replayed";
+  ref: string;
+  requestedByOperarioId: string | null;
+  containerType: string | null;
+};
+
+/** Ejecuta la autorización R3 gobernada de SDD-0232. */
+export async function authorizeConsolidationGoverned(
+  supabase: SupabaseClient,
+  input: { consolidationId: string; reason: string; requestRef: string },
+): Promise<ConsolidationAuthorizationResult> {
+  const { data, error } = await supabase.rpc(
+    "authorize_consolidation_governed",
+    {
+      p_consolidation_id: input.consolidationId,
+      p_reason: input.reason,
+      p_request_ref: input.requestRef,
+    },
+  );
+  if (error) throw error;
+
+  const payload = data as Record<string, unknown> | null;
+  const outcome = payload?.outcome;
+  const ref = typeof payload?.ref === "string" ? payload.ref : "";
+  if ((outcome !== "transitioned" && outcome !== "replayed") || !ref) {
+    throw new Error("Respuesta inválida de la autorización gobernada.");
+  }
+  return {
+    outcome,
+    ref,
+    requestedByOperarioId:
+      payload && typeof payload.requested_by_operario_id === "string"
+        ? payload.requested_by_operario_id
+        : null,
+    containerType:
+      payload && typeof payload.container_type === "string"
+        ? payload.container_type
+        : null,
+  };
+}
+
 /** Un contenedor con sus items + la utilización ya calculada. null si no existe. */
 export type ConsolidationDetail = {
   consolidation: Consolidation;

@@ -22,6 +22,7 @@ import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import {
   bookingStatusLabel,
   bookingStatusTone,
@@ -692,10 +693,50 @@ function RequestRow({
   const toast = useToast();
   const c = detail.consolidation;
   const [rejecting, setRejecting] = useState(false);
+  const [authorizing, setAuthorizing] = useState(false);
+  const [authorizationPending, setAuthorizationPending] = useState(false);
+  const [authorizationRequestRef, setAuthorizationRequestRef] = useState("");
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const tipo = c.container_type ?? "sin tipo";
+
+  const openAuthorization = () => {
+    setAuthorizing(true);
+    setAuthorizationRequestRef(
+      `naviera-consolidation-authorization:${c.id}:${crypto.randomUUID()}`,
+    );
+    setError(null);
+  };
+
+  const confirmAuthorization = async (authorizationReason: string) => {
+    if (authorizationPending) return;
+    setAuthorizationPending(true);
+    setError(null);
+    try {
+      const result = await authorizeConsolidation({
+        consolidationId: c.id,
+        from: c.status,
+        reason: authorizationReason,
+        requestRef: authorizationRequestRef,
+      });
+      if (!result.ok) {
+        setError(result.error ?? "No se pudo autorizar el contenedor.");
+        return;
+      }
+      setAuthorizing(false);
+      toast.success(
+        result.replayed
+          ? `Autorización recuperada · ${result.ref ?? "contenedor listo"}`
+          : `Contenedor autorizado · ${result.ref ?? "ya puede estibar"}`,
+      );
+      router.refresh();
+    } catch {
+      setError("No se pudo autorizar. Conservamos la referencia para reintentar.");
+    } finally {
+      setAuthorizationPending(false);
+    }
+  };
 
   return (
     <div
@@ -734,22 +775,13 @@ function RequestRow({
           </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <ActionButton
-            variant="dark"
-            size="sm"
-            idleLabel="Autorizar"
-            loadingLabel="Autorizando…"
-            successLabel="Autorizado"
-            onAction={() => {
-              setError(null);
-              return authorizeConsolidation(c.id);
-            }}
-            onSuccess={() => {
-              toast.success("Contenedor autorizado · ya puede estibar");
-              router.refresh();
-            }}
-            onError={setError}
-          />
+          <button
+            type="button"
+            className="studio-btn studio-btn-primary studio-btn-sm"
+            onClick={openAuthorization}
+          >
+            Autorizar
+          </button>
           <button
             type="button"
             className="studio-btn studio-btn-ghost studio-btn-sm"
@@ -808,7 +840,7 @@ function RequestRow({
         </div>
       )}
 
-      {error && (
+      {error && !authorizing && (
         <span
           style={{
             font: "500 12px/1.4 var(--f-sans)",
@@ -818,6 +850,27 @@ function RequestRow({
           {error}
         </span>
       )}
+      <ConfirmDialog
+        open={authorizing}
+        reason
+        reasonRequired
+        holdToConfirm
+        initialFocus="safe"
+        title="Autorizar apertura del contenedor"
+        message={`Solicitud ${tipo}. Al confirmar se reservará el correlativo definitivo y el hub podrá iniciar la estiba. La autorización queda permanente y auditada.`}
+        confirmLabel="Autorizar contenedor"
+        holdLabel="Mantén para autorizar"
+        reasonLabel="Fundamento de la autorización"
+        reasonPlaceholder="Ej. Capacidad y operación del consolidado verificadas"
+        pending={authorizationPending}
+        error={authorizing ? error ?? undefined : undefined}
+        onCancel={() => {
+          if (authorizationPending) return;
+          setAuthorizing(false);
+          setError(null);
+        }}
+        onConfirm={confirmAuthorization}
+      />
     </div>
   );
 }

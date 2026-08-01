@@ -50,7 +50,7 @@
 | Tesorería | 0044 | `app/studio/(app)/tesoreria/` | `lib/studio/treasury/` (types, supplier-queries, bill-queries, treasury-actions), `accounting/{bill-posting,supplier-payment-posting}` · `supabase/migrations/0088_tesoreria.sql` |
 | Financiero China | 0059, 0110, 0115, 0227 | `app/studio/(app)/financiero-china/` | `lib/studio/partner-finance/` · `supabase/migrations/{0114,0115,0178,0317}` (pago R3 de cruce gobernado) |
 | Despacho | 0029, 0030 | `app/studio/(app)/despacho/` + `app/m/ve/{bodeguero,camionero}/` | `lib/studio/dispatch-*`, `notify/` |
-| Naviera & Consolidación | 0047 | `app/studio/(app)/naviera/` | `lib/studio/naviera/` |
+| Naviera & Consolidación | 0047, 0232 | `app/studio/(app)/naviera/` | `lib/studio/naviera/` · `supabase/migrations/{0096,0249,0322}` (autorización R3 gobernada) |
 | Proveedores CN & Prealertas (operador) | 0057, 0098, 0163 | `app/studio/(app)/proveedores/` (+ `ServiceRequestsTab`) + dropdown en `app/studio/(app)/etiquetas/` | `lib/studio/prealertas/` · `supabase/migrations/{0105,0118,0119,0150}` · **0163 (`proposed`): orden al operario — eje de ejecución en `prealerta_service_requests` + modalidad en `prealertas`** |
 | Etiquetas suppliers CN | 0031 | `app/studio/(app)/etiquetas/` | (labels) |
 | QR print queue | 0033 | `app/studio/(app)/cola-qr/` | `lib/studio/qr-queue-*` |
