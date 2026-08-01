@@ -1,24 +1,5 @@
 {
-  "$comment-ignoreCommand": [
-    "Salta el build de producción cuando el commit NO toca nada que se despliegue.",
-    "Vercel invierte el código de salida: exit 0 = SALTAR · exit 1 = CONSTRUIR.",
-    "",
-    "POR QUÉ: reservar un número de spec (scripts/next-number.mjs --reserve) publica un",
-    "archivo en docs/specs y, sin esto, cada reserva dispararía un deploy completo por un",
-    ".md. Lo mismo con las specs y runbooks que las ventanas pushean todo el día.",
-    "",
-    "⚠️ docs/marketing NO se excluye — SÍ SE DESPLIEGA. Lo sirven dos superficies vivas:",
-    "  · app/studio/(app)/marketing/docs  → lector que lee los .md del deploy",
-    "  · app/interno/(app)/marca/d/[bundle] → sirve docs/marketing/whatsapp-business.md",
-    "Excluir docs/** a secas (el plan original) habría hecho que editar un doc de",
-    "marketing nunca llegara a la página que lo muestra. De ahí el segundo `git diff`.",
-    "",
-    "`:(exclude,glob)*.md` con magia `glob` sólo agarra los .md de la RAÍZ (AGENTS.md,",
-    "BRAND.md, README.md): sin `glob`, `*` matchea `/` y se comería docs/marketing/*.md.",
-    "",
-    "Si HEAD^ no existe (primer build, clon shallow) el comando falla → exit ≠ 0 → CONSTRUYE.",
-    "El default seguro es siempre construir."
-  ],
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ':(exclude)docs/**' ':(exclude,glob)*.md' && git diff --quiet HEAD^ HEAD -- docs/marketing",
   "crons": [
     {
