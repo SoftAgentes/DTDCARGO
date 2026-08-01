@@ -290,7 +290,9 @@ export function validateCreateDispatchOrderInput(
 
 export type CancelDispatchOrderInput = {
   od_id: string;
+  from: "creada" | "cargando" | "lista" | "en_ruta";
   reason: string;
+  request_ref: string;
 };
 
 export function validateCancelDispatchOrderInput(
@@ -298,14 +300,31 @@ export function validateCancelDispatchOrderInput(
 ): { input?: CancelDispatchOrderInput; fieldErrors?: Record<string, string> } {
   const errors: Record<string, string> = {};
   const od_id = input.od_id?.trim();
-  if (!od_id) errors.od_id = "Falta el ID de la OD.";
+  if (!od_id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(od_id)) {
+    errors.od_id = "OD inválida.";
+  }
+  const from = input.from;
+  if (!from || !["creada", "cargando", "lista", "en_ruta"].includes(from)) {
+    errors.from = "La OD cambió de estado. Actualiza la página.";
+  }
   const reason = input.reason?.trim();
   if (!reason) errors.reason = "El motivo es obligatorio para cancelar.";
   if (reason && reason.length < 4) errors.reason = "El motivo es muy corto.";
   if (reason && reason.length > 500) errors.reason = "El motivo es muy largo (máx 500).";
+  const requestRef = input.request_ref?.trim();
+  if (!requestRef || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(requestRef)) {
+    errors.request_ref = "La referencia de la operación es inválida.";
+  }
 
   if (Object.keys(errors).length > 0) return { fieldErrors: errors };
-  return { input: { od_id: od_id!, reason: reason! } };
+  return {
+    input: {
+      od_id: od_id!,
+      from: from!,
+      reason: reason!,
+      request_ref: requestRef!,
+    },
+  };
 }
 
 export type AssignTruckDriverInput = {

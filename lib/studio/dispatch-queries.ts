@@ -108,6 +108,29 @@ export async function getDispatchOrderByCode(
   return normalizeOdRow(data);
 }
 
+/** Ejecuta la cancelación R3 gobernada de SDD-0234. */
+export async function cancelDispatchOrderGoverned(
+  supabase: SupabaseClient,
+  input: {
+    orderId: string;
+    expectedStatus: "creada" | "cargando" | "lista" | "en_ruta";
+    reason: string;
+    requestRef: string;
+  },
+): Promise<"transitioned" | "replayed"> {
+  const { data, error } = await supabase.rpc("cancel_dispatch_order_governed", {
+    p_order_id: input.orderId,
+    p_expected_status: input.expectedStatus,
+    p_reason: input.reason,
+    p_request_ref: input.requestRef,
+  });
+  if (error) throw error;
+  if (data !== "transitioned" && data !== "replayed") {
+    throw new Error("Respuesta inválida de la cancelación gobernada de OD.");
+  }
+  return data;
+}
+
 // ─────────────────────────────────────────────────────────────
 // listEligiblePackages — proyección de warehouse_receipts_cn
 // ─────────────────────────────────────────────────────────────
