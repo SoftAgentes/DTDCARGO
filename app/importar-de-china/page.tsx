@@ -130,8 +130,8 @@ export default function ImportarHubPage() {
                   </span>
                   <span className="mt-4 text-[13px] leading-[1.5] text-grey-700 flex-1">
                     {z.casco
-                      ? "Entrega en el casco central, sin recargo por distancia."
-                      : "Last-mile coordinado hasta tu puerta."}
+                      ? "Entrega incluida: no cobramos el tramo nacional."
+                      : "Entrega hasta tu puerta, cobrada por metro cúbico."}
                   </span>
                   <span className="mt-4 inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-wine group-hover:text-wine-deep transition-colors">
                     Ver detalle{" "}

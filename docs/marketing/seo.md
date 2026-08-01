@@ -25,9 +25,19 @@ Historial y estado del SEO del **sitio público `dtdcargo.com`**. Parte del tree
 
 ## Cronología
 
+### 2026-08-01 · Barrido de copy en landings indexadas (SDD-0237)
+
+**Qué cambió y por qué importa para SEO:** el modelo de precio de la entrega nacional pasó a **CBM × tramo** y murió el `max(0, km − 200) × $1`. Eso dejó desactualizado el copy de **18 geo-páginas indexadas** (`/importar-de-china/*`) más `/servicios/puerta-a-puerta`, que seguían prometiendo un cobro por distancia que ya no existe.
+
+- **Término retirado de cara al cliente:** "casco central" → **"entrega incluida"** (decisión del founder). Barrido en `lib/geo-zonas.ts` (18 `notaEntrega` + `anguloLocal` + 3 `metaDescription`), `app/importar-de-china/page.tsx`, `app/servicios/puerta-a-puerta/page.tsx`.
+- **Los kilómetros salieron del copy.** Ya no se escribe "a 410 km de nuestra bodega": el precio no depende de la distancia. El campo `km` **sigue en `lib/geo-zonas.ts`** porque ordena el índice de `/importar-de-china`, pero no se cita en prosa.
+- **Corrección de fondo:** `barquisimeto` y `acarigua` estaban en `casco: false`, así que sus landings mandaban al cliente a preguntarle el precio al asesor por un tramo que **ahora va en $0**. Corregido a `true`. Acarigua sí, Araure no — el copy lo dice explícito.
+- **Sin cambios de URL, sin redirects, sin tocar el sitemap.** Es reescritura de contenido dentro de las mismas 18 rutas: no hay riesgo de pérdida de ranking, pero sí conviene **revisar Search Console a las ~2 semanas** por si alguna long-tail dependía de "casco central".
+- **Reglas que no se tocaron:** el 301 `doortudoor.com → dtdcargo.com` sigue vivo y GA se mantiene fuera de rutas privadas.
+
 ### 2026-06-06 · Contenido SEO + geo-páginas
 (memoria: `project_session_2026_06_06_seo_contenido`)
-- **18 geo-ciudades** "Importar de China a {ciudad}" con contenido genuino por zona (ciudad+estado, km desde Valencia, casco vs recargo) + hub `/importar-de-china` con silo de links internos.
+- **18 geo-ciudades** "Importar de China a {ciudad}" con contenido genuino por zona (ciudad+estado, km desde Valencia, casco vs recargo) + hub `/importar-de-china` con silo de links internos. *(El copy de km/casco se reescribió el 2026-08-01 — ver arriba.)*
 - `og:image` + twitter cards en las 30 páginas · titles ≤60 + meta-descriptions ≤160.
 - **Performance:** lazy-load de 3 videos + posters WebP → móvil 69→96 (LCP 6.6s→2.7s).
 - **VideoObject** (`components/WorkBand.tsx`): `uploadDate` ISO-8601 válido con zona horaria (`2026-06-05T12:00:00-04:00`).

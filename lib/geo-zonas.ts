@@ -2,10 +2,18 @@
 // GEO-ZONAS — páginas locales "Importar de China a {zona}"
 // ──────────────────────────────────────────────────────────────────
 // Contenido GENUINO por zona (no doorway pages): cada una consolida ciudad +
-// estado y describe la entrega con datos reales (km desde la bodega de Valencia,
-// casco central, municipios reales). Generado y verificado adversarialmente
-// (sin datos inventados, sin texto duplicable). Fuente única para el template
+// estado y describe la entrega con datos reales (municipios reales, cómo se
+// cobra el tramo nacional). Generado y verificado adversarialmente (sin datos
+// inventados, sin texto duplicable). Fuente única para el template
 // app/importar-de-china/[ciudad]/page.tsx, el sitemap y los links internos.
+//
+// ⚠️ EL COPY YA NO HABLA DE KILÓMETROS (SDD-0237, founder 1-ago-2026).
+//    La entrega nacional se cobra por METRO CÚBICO: murió `max(0, km−200) × $1`
+//    y con ella el "casco central" de cara al cliente. Seguir escribiendo "a 410
+//    km de nuestra bodega, fuera del casco central" insinúa un cobro por
+//    distancia que ya no existe. El término que se usa ahora es
+//    **"entrega incluida"** para la zona sin costo, y "se cobra por metro
+//    cúbico" para el resto.
 //
 // Para sumar una zona: agrega un objeto acá (con su contenido verificado) — la
 // ruta, el sitemap y los cross-links se generan solos.
@@ -17,16 +25,26 @@ export type GeoZona = {
   ciudad: string;
   /** Estado que también cubre (para capturar ambas keywords). */
   estado: string;
-  /** Km desde la bodega de Valencia (de lib/calculadora). */
+  /**
+   * Km desde la bodega de Valencia.
+   *
+   * ⚠️ Ya NO fija precio y NO se cita en el copy (SDD-0237). Sobrevive porque
+   * ordena el índice de `/importar-de-china` (de la más cercana hacia afuera),
+   * que es un criterio de navegación, no de precio.
+   */
   km: number;
-  /** Si entra en el flat del casco central (sin recargo por distancia). */
+  /**
+   * Zona sin costo: la entrega nacional va **incluida** ($0 para el cliente).
+   * Espeja el flag `casco` de `lib/data/destinos-nacionales.ts` — son las 8
+   * ciudades que decidió el founder, y DTD sí le paga ese tramo al fletero.
+   */
   casco: boolean;
   metaTitle: string;
   metaDescription: string;
   h1: string;
   /** 1-2 frases específicas de la zona (municipios reales, no plantilla). */
   anguloLocal: string;
-  /** 1 frase sobre la entrega según km/casco. */
+  /** 1 frase sobre cómo se cobra la entrega en esa zona. */
   notaEntrega: string;
 };
 
@@ -39,12 +57,12 @@ export const GEO_ZONAS: GeoZona[] = [
     casco: true,
     metaTitle: "Importar de China a Valencia, Carabobo | DTD Cargo",
     metaDescription:
-      "Importar de China a Valencia, estado Carabobo: carga consolidada DDP puerta a puerta. Bodega propia en la ciudad, entrega sin recargo y pagas cuando llega.",
+      "Importar de China a Valencia, estado Carabobo: carga consolidada DDP puerta a puerta. Bodega propia en la ciudad, entrega incluida y pagas cuando llega.",
     h1: "Importar de China a Valencia (Carabobo)",
     anguloLocal:
-      "Valencia es nuestra casa: la bodega propia está aquí mismo, a 0 km de tu puerta. Recibimos tu carga de China y la entregamos en el casco central de Valencia, Naguanagua o San Diego sin recargo por distancia, y movemos también para Guacara, Los Guayos y Puerto Cabello.",
+      "Valencia es nuestra casa: la bodega propia está aquí mismo. Recibimos tu carga de China y la entregamos en Valencia, Naguanagua o San Diego con la entrega incluida, y movemos también para Guacara, Los Guayos y Puerto Cabello.",
     notaEntrega:
-      "Al estar nuestra bodega en la propia Valencia, entregamos en el casco central a 0 km, sin recargo por distancia.",
+      "Como nuestra bodega está en la propia Valencia, la entrega va incluida: no pagas nada por el tramo nacional, ni en la ciudad ni en Naguanagua, San Diego o Guacara.",
   },
   {
     slug: "maracay",
@@ -54,12 +72,12 @@ export const GEO_ZONAS: GeoZona[] = [
     casco: true,
     metaTitle: "Importar de China a Maracay, Aragua | DTD Cargo",
     metaDescription:
-      "Importar de China a Maracay, estado Aragua: carga consolidada DDP puerta a puerta, pagas al llegar e inspección en fábrica. Pagas cuando llega.",
+      "Importar de China a Maracay, estado Aragua: carga consolidada DDP puerta a puerta con entrega incluida. Pagas cuando llega.",
     h1: "Importar de China a Maracay (Aragua)",
     anguloLocal:
-      "Maracay y todo el eje de Aragua mueven mercancía china a diario: el comercio del centro, los repuestos de Turmero y la distribución que sube por Cagua y La Victoria. Desde nuestra bodega en Valencia, a 70 km, la zona nos queda al lado, así que tu carga consolidada llega rápido y con un solo equipo responsable de punta a punta.",
+      "Maracay y todo el eje de Aragua mueven mercancía china a diario: el comercio del centro, los repuestos de Turmero y la distribución que sube por Cagua y La Victoria. Desde nuestra bodega en Valencia la zona nos queda al lado, así que tu carga consolidada llega rápido y con un solo equipo responsable de punta a punta.",
     notaEntrega:
-      "Maracay entra en nuestro casco central de entrega: a 70 km de la bodega de Valencia, dejamos tu carga en el casco central sin recargo por distancia.",
+      "Maracay es una de las ciudades donde la entrega va incluida: recibes tu carga en tu puerta sin pagar nada por el tramo nacional.",
   },
   {
     slug: "maracaibo",
@@ -74,7 +92,7 @@ export const GEO_ZONAS: GeoZona[] = [
     anguloLocal:
       "El Zulia mueve comercio fuerte: desde los mayoristas de Maracaibo y San Francisco hasta los proveedores de la zona petrolera de Cabimas y Ciudad Ojeda, traer mercancía de China consolidada te baja el costo por kilo frente a comprar suelto. Nosotros movemos tu carga desde Yiwu hasta el lago, con el last-mile coordinado al municipio que sea.",
     notaEntrega:
-      "Maracaibo está a 410 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta y puedes estimar ese tramo terrestre en nuestra calculadora; el costo exacto te lo confirma tu asesor por WhatsApp.",
+      "En Maracaibo la entrega nacional se cobra por metro cúbico —según el volumen de tu carga, no según la distancia—, así que la calculadora te da el estimado al instante y tu asesor te confirma el número final por WhatsApp.",
   },
   {
     slug: "caracas",
@@ -84,27 +102,30 @@ export const GEO_ZONAS: GeoZona[] = [
     casco: true,
     metaTitle: "Importar de China a Caracas y Miranda | DTD Cargo",
     metaDescription:
-      "Importar de China a Caracas, Distrito Capital y Miranda: carga consolidada DDP puerta a puerta, pagas al llegar y entrega en el casco central.",
+      "Importar de China a Caracas, Distrito Capital y Miranda: carga consolidada DDP puerta a puerta, pagas al llegar y entrega incluida.",
     h1: "Importar de China a Caracas (Distrito Capital y Miranda)",
     anguloLocal:
       "Caracas no es una sola jurisdicción: tu carga puede ir al casco de Libertador en el Distrito Capital o cruzar a Miranda hacia Chacao, Baruta o Petare, y nosotros coordinamos el last-mile a cualquiera de esos municipios sin que tengas que mover un dedo. También llegamos al eje Guarenas-Guatire y a Los Teques cuando tu proveedor en China despacha hacia la Gran Caracas.",
     notaEntrega:
-      "Caracas entra en nuestro casco central de entrega: a 150 km de nuestra bodega de Valencia, llevamos tu carga hasta tu puerta sin recargo por distancia.",
+      "Caracas es una de las ciudades donde la entrega va incluida: llevamos tu carga hasta tu puerta sin cobrarte el tramo nacional.",
   },
   {
     slug: "barquisimeto",
     ciudad: "Barquisimeto",
     estado: "Lara",
     km: 220,
-    casco: false,
+    // Zona sin costo desde el 1-ago-2026 (SDD-0237). Antes decía `false` y esta
+    // landing seguía mandando al cliente a preguntarle el precio al asesor por
+    // un tramo que ya no le cobramos.
+    casco: true,
     metaTitle: "Importar de China a Barquisimeto (Lara) | DTD Cargo",
     metaDescription:
-      "Importar de China a Barquisimeto, Lara: carga consolidada DDP puerta a puerta, pagas al llegar e inspección en fábrica.",
+      "Importar de China a Barquisimeto, Lara: carga consolidada DDP puerta a puerta con entrega incluida, pagas al llegar e inspección en fábrica.",
     h1: "Importar de China a Barquisimeto, estado Lara",
     anguloLocal:
       "Barquisimeto es el punto de distribución del centro-occidente, así que mucha de la carga que traemos de China termina surtiendo comercios y talleres de Cabudare, Quíbor y El Tocuyo. Consolidamos tu mercancía en Yiwu y la movemos en LCL hasta la zona, sin que tengas que armar contenedor completo.",
     notaEntrega:
-      "Barquisimeto queda a 220 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta y puedes estimar ese tramo terrestre en nuestra calculadora; el costo exacto te lo confirma tu asesor por WhatsApp.",
+      "Barquisimeto es una de las ciudades donde la entrega va incluida: no te cobramos el tramo nacional hasta la ciudad. Para Cabudare, Quíbor o El Tocuyo el tramo se cobra por metro cúbico y lo estimas en la calculadora.",
   },
   {
     slug: "puerto-la-cruz",
@@ -119,7 +140,7 @@ export const GEO_ZONAS: GeoZona[] = [
     anguloLocal:
       "Puerto La Cruz no se mueve sola: forma un solo eje urbano con Barcelona, Lechería y Guanta, y entre las cuatro concentran el comercio costero de Anzoátegui. Buena parte de la carga que traemos de China surte las tiendas de la zona y baja también hacia El Tigre y Anaco, en el sur del estado. Nosotros consolidamos tu mercancía en Yiwu y la movemos en LCL hasta la costa oriental, con un solo equipo responsable de tu carga de punta a punta.",
     notaEntrega:
-      "Puerto La Cruz está a 430 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta y puedes estimar ese tramo terrestre en nuestra calculadora; el costo exacto te lo confirma tu asesor por WhatsApp.",
+      "En Puerto La Cruz la entrega nacional se cobra por metro cúbico: pagas por el volumen que ocupa tu carga, y el mismo precio aplica en Barcelona, Lechería o Guanta. Lo estimas en la calculadora y tu asesor te confirma el final.",
   },
   {
     slug: "maturin",
@@ -134,7 +155,7 @@ export const GEO_ZONAS: GeoZona[] = [
     anguloLocal:
       "Maturín es el motor comercial del oriente: la capital de Monagas surte los comercios del centro, los repuestos de la zona petrolera de Punta de Mata y Caripito, y la distribución que sube hacia Caripe y Temblador. Consolidamos tu carga en Yiwu y la traemos en LCL hasta el oriente, sin que tengas que armar un contenedor completo y con un solo equipo respondiendo por tu carga de punta a punta.",
     notaEntrega:
-      "Maturín queda a unos 650 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta y puedes estimar ese tramo terrestre en nuestra calculadora; el costo exacto te lo confirma tu asesor por WhatsApp.",
+      "En Maturín la entrega nacional se cobra por metro cúbico, así que el precio depende del volumen de tu carga y no de lo lejos que quede el oriente. La calculadora te lo estima al instante.",
   },
   {
     slug: "puerto-ordaz",
@@ -149,7 +170,7 @@ export const GEO_ZONAS: GeoZona[] = [
     anguloLocal:
       "Puerto Ordaz y San Félix forman Ciudad Guayana, el polo industrial pesado del sur: siderúrgica, aluminio y minería mueven una demanda constante de insumos, maquinaria y repuestos que muchas veces salen de China. Traemos tu carga consolidada desde Yiwu hasta Guayana y coordinamos también la entrega hacia Ciudad Bolívar y Upata cuando tu proveedor despacha hacia el estado.",
     notaEntrega:
-      "Puerto Ordaz es uno de los destinos más lejanos que cubrimos, a 770 km de nuestra bodega en Valencia y fuera del casco central, así que coordinamos el last-mile hasta tu puerta y puedes estimar ese tramo terrestre en nuestra calculadora; el costo exacto te lo confirma tu asesor por WhatsApp.",
+      "Puerto Ordaz es de los destinos más lejanos que cubrimos, pero la entrega nacional se cobra por metro cúbico igual que en el resto del país: paga el volumen de tu carga, no la distancia. Lo estimas en la calculadora.",
   },
   {
     slug: "san-cristobal",
@@ -164,7 +185,7 @@ export const GEO_ZONAS: GeoZona[] = [
     anguloLocal:
       "San Cristóbal es el corazón comercial de los Andes y la puerta de la frontera: la capital de Táchira surte tiendas y talleres de Táriba, La Concordia y todo el eje que baja hacia San Antonio y Ureña. Traer tu mercancía de China consolidada te conviene frente a comprar suelto del otro lado de la frontera, y nosotros movemos tu carga desde Yiwu hasta el Táchira con el last-mile coordinado al municipio que sea.",
     notaEntrega:
-      "San Cristóbal queda a 580 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta y puedes estimar ese tramo terrestre en nuestra calculadora; el costo exacto te lo confirma tu asesor por WhatsApp.",
+      "En San Cristóbal la entrega nacional se cobra por metro cúbico, y el mismo precio aplica bajando hacia Táriba o San Antonio. La calculadora te da el estimado antes de que hables con nadie.",
   },
   {
     slug: "merida",
@@ -179,7 +200,7 @@ export const GEO_ZONAS: GeoZona[] = [
     anguloLocal:
       "Mérida mezcla la ciudad universitaria de los Andes con el comercio agrícola que baja por El Vigía y Ejido: desde insumos y herramientas hasta lo que surte las tiendas del casco merideño, mucho de eso sale de China. Consolidamos tu mercancía en Yiwu y la traemos en LCL hasta la cordillera, sin que tengas que armar un contenedor completo y con un solo equipo respondiendo por tu carga de punta a punta.",
     notaEntrega:
-      "Mérida queda a 520 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta y puedes estimar ese tramo terrestre en nuestra calculadora; el costo exacto te lo confirma tu asesor por WhatsApp.",
+      "En Mérida la entrega nacional se cobra por metro cúbico: subir a la cordillera no encarece el tramo, lo que cuenta es el volumen de tu carga. Lo estimas en la calculadora.",
   },
   {
     slug: "punto-fijo",
@@ -194,7 +215,7 @@ export const GEO_ZONAS: GeoZona[] = [
     anguloLocal:
       "Punto Fijo es el polo comercial de la península de Paraguaná, y junto con Punta Cardón y Los Taques concentra buena parte del movimiento del estado; más al sur, Coro suma el comercio de la capital falconiana. Mucha de la carga que traemos de China surte esas tiendas, y nosotros consolidamos tu mercancía en Yiwu y la movemos en LCL hasta Falcón.",
     notaEntrega:
-      "Punto Fijo está a 290 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta y puedes estimar ese tramo terrestre en nuestra calculadora; el costo exacto te lo confirma tu asesor por WhatsApp.",
+      "En Punto Fijo la entrega nacional se cobra por metro cúbico, así que subir a la península no cambia la cuenta: lo que pagas depende del volumen de tu carga. La calculadora te lo estima al instante.",
   },
   {
     slug: "coro",
@@ -209,7 +230,7 @@ export const GEO_ZONAS: GeoZona[] = [
     anguloLocal:
       "Coro, la capital de Falcón, mueve el comercio del norte del estado: desde el casco histórico de Santa Ana de Coro hasta La Vela y el eje que conecta con la península, las tiendas se surten de mercancía que muchas veces llega de China. Consolidamos tu carga en Yiwu y la traemos en LCL hasta Falcón, sin que tengas que armar un contenedor completo y con un solo equipo respondiendo por tu carga de punta a punta.",
     notaEntrega:
-      "Coro queda a 260 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta y puedes estimar ese tramo terrestre en nuestra calculadora; el costo exacto te lo confirma tu asesor por WhatsApp.",
+      "En Coro la entrega nacional se cobra por metro cúbico —el volumen de tu carga es lo único que mueve el precio— y lo estimas en la calculadora antes de comprometerte con nada.",
   },
   {
     slug: "margarita",
@@ -224,7 +245,7 @@ export const GEO_ZONAS: GeoZona[] = [
     anguloLocal:
       "Margarita vive del comercio: Porlamar, Pampatar y La Asunción concentran tiendas que se surten todo el año, y mucho de eso llega de China. Como es una isla, el last-mile incluye el cruce en ferry desde tierra firme, y nosotros lo coordinamos para que tu mercancía consolidada en Yiwu termine en tu puerta en Nueva Esparta sin que tengas que mover un dedo.",
     notaEntrega:
-      "Isla Margarita está a unos 540 km de nuestra bodega en Valencia contando el cruce a la isla, fuera del casco central, así que coordinamos el last-mile —ferry incluido— y puedes estimar ese tramo terrestre en nuestra calculadora; el costo exacto te lo confirma tu asesor por WhatsApp.",
+      "En Isla Margarita la entrega nacional se cobra por metro cúbico y el cruce en ferry lo coordinamos nosotros. La calculadora te estima ese tramo y tu asesor te confirma el número final por WhatsApp.",
   },
   {
     slug: "ciudad-bolivar",
@@ -239,14 +260,15 @@ export const GEO_ZONAS: GeoZona[] = [
     anguloLocal:
       "Ciudad Bolívar, capital del estado, es el paso histórico del Orinoco y centro de servicios del sur: su comercio surte tanto a la ciudad como a las poblaciones que dependen de ella a lo largo del río. Traemos tu carga consolidada desde Yiwu hasta el estado Bolívar y coordinamos también la entrega hacia Ciudad Guayana cuando tu proveedor despacha hacia la región.",
     notaEntrega:
-      "Ciudad Bolívar queda a 700 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta y puedes estimar ese tramo terrestre en nuestra calculadora; el costo exacto te lo confirma tu asesor por WhatsApp.",
+      "En Ciudad Bolívar la entrega nacional se cobra por metro cúbico, el mismo criterio que aplicamos en todo el país: paga el volumen, no el viaje. Lo estimas en la calculadora.",
   },
   {
     slug: "acarigua",
     ciudad: "Acarigua",
     estado: "Portuguesa",
     km: 175,
-    casco: false,
+    // Zona sin costo desde el 1-ago-2026 (SDD-0237) — Acarigua sí, Araure no.
+    casco: true,
     metaTitle: "Importar de China a Acarigua-Araure, Portuguesa | DTD Cargo",
     metaDescription:
       "Importar de China a Acarigua y Araure, Portuguesa: carga consolidada DDP puerta a puerta, pagas al llegar y last-mile a tu puerta.",
@@ -254,7 +276,7 @@ export const GEO_ZONAS: GeoZona[] = [
     anguloLocal:
       "Acarigua y Araure forman el eje comercial de Portuguesa, el granero de Venezuela: entre la agroindustria del arroz y el maíz y el comercio que surte a Guanare y Turén, mucha de la maquinaria, los repuestos y la mercancía llegan de China. Consolidamos tu carga en Yiwu y la movemos en LCL hasta los llanos, sin que tengas que armar un contenedor completo.",
     notaEntrega:
-      "Acarigua y Araure están a unos 175 km de nuestra bodega en Valencia, sobre el eje de los llanos; coordinamos el last-mile hasta tu puerta y puedes estimar ese tramo terrestre en nuestra calculadora, y el costo exacto te lo confirma tu asesor por WhatsApp.",
+      "En Acarigua la entrega va incluida: no te cobramos el tramo nacional. En Araure y el resto de Portuguesa se cobra por metro cúbico, y lo estimas en la calculadora.",
   },
   {
     slug: "valera",
@@ -269,7 +291,7 @@ export const GEO_ZONAS: GeoZona[] = [
     anguloLocal:
       "Valera es el corazón comercial de Trujillo —más movida que la propia capital del estado— y el paso del comercio andino que sube hacia Boconó, La Puerta y la ciudad de Trujillo. Buena parte de lo que surte esas tiendas llega de China, y nosotros consolidamos tu mercancía en Yiwu y la traemos en LCL hasta los Andes, con un solo equipo responsable de tu carga de punta a punta.",
     notaEntrega:
-      "Valera queda a unos 360 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta y puedes estimar ese tramo terrestre en nuestra calculadora; el costo exacto te lo confirma tu asesor por WhatsApp.",
+      "En Valera la entrega nacional se cobra por metro cúbico, y el mismo precio aplica subiendo hacia Boconó o Trujillo. La calculadora te da el estimado al instante.",
   },
   {
     slug: "cumana",
@@ -284,7 +306,7 @@ export const GEO_ZONAS: GeoZona[] = [
     anguloLocal:
       "Cumaná, la capital de Sucre y una de las ciudades más antiguas del continente, vive del comercio costero y la pesca; su mercado y sus tiendas se surten de mercancía que muchas veces llega de China, y más al este Carúpano suma el movimiento de la península de Paria. Consolidamos tu carga en Yiwu y la traemos en LCL hasta el oriente, sin que tengas que armar un contenedor completo.",
     notaEntrega:
-      "Cumaná queda a unos 560 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta y puedes estimar ese tramo terrestre en nuestra calculadora; el costo exacto te lo confirma tu asesor por WhatsApp.",
+      "En Cumaná la entrega nacional se cobra por metro cúbico y lo estimas en la calculadora. Cumaná es además el punto más cercano al que llegamos para varias poblaciones de Sucre que todavía no cubrimos.",
   },
   {
     slug: "san-fernando",
@@ -299,7 +321,7 @@ export const GEO_ZONAS: GeoZona[] = [
     anguloLocal:
       "San Fernando de Apure, capital del estado y puerto sobre el río Apure, es el centro comercial del llano profundo: surte el comercio ganadero y a las poblaciones que dependen de la ciudad río abajo. Traer mercancía de China consolidada te conviene frente a comprar suelto, y nosotros movemos tu carga desde Yiwu hasta el llano con el last-mile coordinado hasta tu puerta.",
     notaEntrega:
-      "San Fernando de Apure queda a unos 370 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta y puedes estimar ese tramo terrestre en nuestra calculadora; el costo exacto te lo confirma tu asesor por WhatsApp.",
+      "En San Fernando de Apure la entrega nacional se cobra por metro cúbico: bajar al llano no encarece el tramo, lo que cuenta es el volumen de tu carga. Lo estimas en la calculadora.",
   },
 ];
 

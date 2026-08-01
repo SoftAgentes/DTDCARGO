@@ -190,9 +190,11 @@ export default function PuertaAPuertaPage() {
                       <b>desde 10 CBM</b> (con asesor).
                     </>,
                     <>
-                      La <b>entrega final está incluida hasta el casco central</b>{" "}
-                      de tu ciudad; fuera del casco central aplica un{" "}
-                      <b>adicional por zona</b>.
+                      En un grupo de ciudades la{" "}
+                      <b>entrega final va incluida</b>; en el resto del país el
+                      tramo nacional se cobra <b>por metro cúbico</b>, según el
+                      volumen de tu carga y no según la distancia. Lo estimas en
+                      la <b>calculadora</b> antes de comprometerte.
                     </>,
                     <>
                       <b>Carga especial</b> (peligrosa / sobredimensionada) tiene
