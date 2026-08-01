@@ -275,12 +275,25 @@ export function combinarDestinos(
     // llegamos (una ciudad que el admin agregó a mano no debería desaparecer).
     const cubierta = estatico ? estatico.cubierta : true;
 
+    // La ZONA SIN COSTO es una decisión del founder, no un dato editable: si el
+    // catálogo del código dice que ahí el cliente no paga entrega, manda el
+    // código aunque la fila de la DB todavía diga que sí.
+    //
+    // ⚠️ Esto NO es defensa teórica. Entre que se despliega el código y que se
+    // aplica la migración que voltea el flag, `calculator_cities` sigue con
+    // `casco = false` en Barquisimeto y Acarigua — y sin este OR el cliente
+    // pagaba $529,70 y $618 por 5 m³ donde el founder decidió cobrar $0.
+    const casco = ciudad.casco || estatico?.casco === true;
+
     return {
       ...ciudad,
+      casco,
       cubierta,
       cercana: estatico?.cercana ?? null,
       estado: estatico?.estado ?? ciudad.estado,
       // El precio: DB primero, respaldo después. `null` → deriva al asesor.
+      // En la zona sin costo el precio viaja igual (el ERP lo necesita), pero
+      // el motor lo ignora por el flag `casco`.
       ventaCbm: cubierta ? (tarifa?.priceUsdCbm ?? estatico?.ventaCbm ?? null) : null,
       minCharge: tarifa?.minChargeUsd ?? null,
       frecuenciaDias: tarifa?.dispatchFrequencyDays ?? estatico?.frecuenciaDias ?? null,
