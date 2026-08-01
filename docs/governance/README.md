@@ -153,6 +153,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Auditoría R3 de pago de cruce en Financiero China | [REV-SGE-035](reviews/partner-finance-r3-claim-payment-audit-2026-07-31.md) |
 | Implementación R3 de pago gobernado en Financiero China | [REV-SGE-036](reviews/partner-finance-r3-claim-payment-implementation-2026-07-31.md) |
 | Auditoría R3 de liberación en Aduana SENIAT | [REV-SGE-037](reviews/customs-seniat-r3-clearance-audit-2026-07-31.md) |
+| Implementación R3 de liberación gobernada en Aduana SENIAT | [REV-SGE-038](reviews/customs-seniat-r3-clearance-implementation-2026-07-31.md) |
 | Revisión de patrones UX en videos | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | Portabilidad EOL de SDD-0118 | [REV-AUD-030](reviews/aud-sdd-0118-eol-portability.md) |
 | Dependencias ejecutables CMP-01 | [REV-SGE-015](reviews/cmp-01-dependency-validation.md) |
