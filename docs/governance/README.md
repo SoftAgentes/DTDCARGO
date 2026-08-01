@@ -167,6 +167,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Renumeración de colisiones e integración de 0330 y 0331 | [REV-SGE-049](reviews/renumeracion-colisiones-0236-0330-0331-2026-08-01.md) |
 | Baseline de cobertura posterior al cluster R3 | [REV-SGE-050](reviews/governance-coverage-baseline-v2-2026-08-01.md) |
 | Reconciliación local de Nómina 0316 | [REV-SGE-051](reviews/payroll-r3-settlement-void-reconciliation-2026-08-01.md) |
+| Revalidación operativa E5 con elegibilidad cero | [REV-AUD-052](reviews/aud-e5-operational-preflight-2026-08-01.md) |
 | Revisión de patrones UX en videos | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | Portabilidad EOL de SDD-0118 | [REV-AUD-030](reviews/aud-sdd-0118-eol-portability.md) |
 | Dependencias ejecutables CMP-01 | [REV-SGE-015](reviews/cmp-01-dependency-validation.md) |
