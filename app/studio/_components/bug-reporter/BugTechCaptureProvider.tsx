@@ -7,8 +7,8 @@
  * Component sin UI · dispara install() en mount y uninstall() en unmount.
  * Se monta una sola vez en el layout del Studio.
  *
- * D3: el reporter NO sabe que se está capturando. No hay UI, no hay
- * banner, no hay toggle.
+ * El replay permanece apagado por defecto. Solo se instala con el flag público
+ * explícito después de aprobar aviso y retención.
  *
  * Capture cubre:
  *   - 3 últimos errores de consola (sync + promise rejection)
@@ -31,11 +31,12 @@ export function BugTechCaptureProvider() {
     const capture = getBugTechCapture();
     capture.install();
 
-    // rrweb arranca async (import dinámico para no bloquear hydration)
     const rrwebCapture = getBugRrwebCapture();
-    rrwebCapture.install().catch((err) => {
-      console.error("[BugTechCaptureProvider] rrweb install failed:", err);
-    });
+    if (process.env.NEXT_PUBLIC_BUG_REPLAY_ENABLED === "1") {
+      rrwebCapture.install().catch((err) => {
+        console.error("[BugTechCaptureProvider] rrweb install failed:", err);
+      });
+    }
 
     return () => {
       capture.uninstall();

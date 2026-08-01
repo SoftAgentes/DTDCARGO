@@ -16,6 +16,13 @@ import {
   getShipmentById,
   getShipmentEvents,
 } from "@/lib/studio/shipment-queries";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+
+async function requireStudioSession() {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  return { supabase, user: data.user };
+}
 
 /**
  * Campos editables via PATCH. Excluye:
@@ -53,7 +60,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const supabase = await createClient();
+  const { supabase, user } = await requireStudioSession();
+  if (!user) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
 
   try {
     const shipment = await getShipmentById(supabase, id);
@@ -72,6 +80,10 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  const { supabase, user } = await requireStudioSession();
+  if (!user) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  const denial = await moduleEditDenial(supabase, "tracking");
+  if (denial) return NextResponse.json({ error: denial }, { status: 403 });
 
   let raw: Partial<ShipmentEditablePayload>;
   try {
@@ -105,7 +117,6 @@ export async function PATCH(
     update.volume_m3 = n;
   }
 
-  const supabase = await createClient();
   const { data, error } = await supabase
     .from("shipments")
     .update(update)
@@ -127,7 +138,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const supabase = await createClient();
+  const { supabase, user } = await requireStudioSession();
+  if (!user) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  const denial = await moduleEditDenial(supabase, "tracking");
+  if (denial) return NextResponse.json({ error: denial }, { status: 403 });
 
   // Soft delete — el trigger cascade_soft_delete_events propaga a shipment_events
   const { error } = await supabase

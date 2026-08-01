@@ -13,6 +13,8 @@
  * Validar con: https://search.google.com/test/rich-results
  */
 
+import { serializeJsonLd } from "@/lib/public/json-ld";
+
 interface Props {
   bodyMarkdown: string;
 }
@@ -110,7 +112,7 @@ export function FaqPageJsonLd({ bodyMarkdown }: Props) {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: serializeJsonLd(data) }}
     />
   );
 }

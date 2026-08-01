@@ -57,6 +57,9 @@ class BugRrwebCapture {
         checkoutEveryNms: 10_000,
         // Privacy hardening
         maskAllInputs: true,
+        // No capturar texto visible: puede contener nombres, documentos,
+        // direcciones o notas operativas aunque no esté dentro de un input.
+        maskTextFn: () => "***",
         // Performance: no graba estilos inline que ya están en CSS
         inlineStylesheet: false,
         // Sampling razonable
