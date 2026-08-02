@@ -54,7 +54,12 @@ pequeña ("todo pagado"), nunca como título.
 **Nota interna (no maquetar):** tránsito 60–90 días, carga especial, sin seguro y tarifa
 desde 10 CBM **RATIFICADOS por el founder 2026-07-18**. ⚠️ El punto de la entrega se
 REESCRIBIÓ el 1-ago-2026: el cobro pasó a ser por m³ y el término "casco central" murió
-de cara al cliente. Si esta pieza ya se maquetó con el texto viejo, hay que rehacerla.
+de cara al cliente. **Verificado el 1-ago-2026: la pieza NO está maquetada** — no hay
+ningún arte en `servicios-infografias/` (se buscó png/jpg/pdf/svg en todo el árbol), así
+que no hay nada que rehacer. 🔴 **Lo que sí hay que hacer: avisarle a Cloud Design.** Esta
+ficha es una de las 5 anclas que se les entregó con el handoff v3.1 (19-jul), o sea que
+tienen en mano la versión que dice "casco central" y promete cobro por distancia. Mientras
+no maqueten, corregirlo cuesta un párrafo; después, cuesta la pieza insignia completa.
 Regla de copy (founder 19-jul, pareja con la del 06-09): la palabra **"responsabilidad" JAMÁS de cara
 al cliente** — ni para el alcance DTD ni para deberes del cliente; se reformula ("corre por cuenta
 del cliente", "hasta dónde llega el servicio").
