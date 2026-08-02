@@ -48,15 +48,48 @@ Lo que sí duele:
 El crítico de completitud trazó los dos caminos completos en el código. Esto es lo
 que ninguna dimensión aislada vio.
 
-### 2.1 Flujo operativo — se corta en el último metro 🔴
+### 2.1 Flujo operativo — el último metro no está cableado ⚠️ *(corregido con datos de prod)*
 
 **`camionero_pod` sólo inserta en `dispatch_pods` y ahí termina.** No toca
-`shipments.status`, no inserta en `shipment_events`, no programa aviso. O sea: **la
-entrega física con foto y firma no cierra el embarque, no genera evento de rastreo y
-no le avisa a nadie.**
+`shipments.status`, no inserta en `shipment_events`, no programa aviso. Y
+`camionero_advance_od` —que según el comentario del propio RPC "cambia el status"—
+sólo actualiza `dispatch_orders`, nunca `shipments`. El módulo Tracking bloquea
+`delivered` a mano y le dice al operador *"usa el POD sellado de Despacho"*: **una
+promesa que el código no cumple.**
 
-Peor: el módulo Tracking bloquea el estado `delivered` a mano y le dice al operador
-*"usa el POD sellado de Despacho"* — **una promesa que el código no cumple.**
+**Pero medido contra producción, esto NO está sangrando hoy:**
+
+| Tabla | Filas en prod |
+|---|---|
+| `dispatch_orders` | **0** |
+| `dispatch_order_packages` | **0** |
+| `dispatch_pods` | **0** |
+| `warehouse_receipts_cn` con `shipment_id` | **0 de 6** |
+| `shipments` entregados | 4 (cerrados por `/studio/ve`, que sí funciona) |
+
+El flujo del camionero **nunca se ha usado**. No se están perdiendo entregas: no ha
+pasado ninguna por ahí. Es una bomba con la espoleta puesta, no un incendio.
+
+**Y eso condiciona cómo se arregla.** El único camino legal para marcar `delivered`
+es `complete_ve_delivery_governed` (migración 0321): el trigger
+`guard_ve_delivery_completion` exige dos variables de sesión, restringe las columnas
+que se pueden tocar y hace el hito **terminal e inmutable**. O sea que marcar el
+embarque equivocado no se deshace.
+
+Y el vínculo POD → embarque va por una cadena que hoy está vacía:
+`dispatch_pods.od_id` → `dispatch_order_packages` (FK **polimórfico**) →
+`warehouse_receipts_cn.shipment_id` → `shipments`. Ese último campo está **poblado al
+0%**. Implementar el cierre siguiendo esa cadena, tal cual está, resolvería a `NULL`
+siempre: un no-op silencioso que parece arreglado.
+
+> El comentario de `dispatch_order_packages` dice *"FK polimórfico (FK explícito en
+> SDD-0030)"*. **SDD-0030 está marcada `done`** y esa parte nunca se construyó — es el
+> mismo `done` falso que detectó el crítico de completitud. **La deuda del POD y el
+> `done` falso de 0030 son el mismo problema.**
+
+**Decisión de diseño para el arreglo:** cuando el POD no pueda resolver el embarque,
+**falla con error explícito, no sigue de largo**. Un cierre que se salta en silencio
+reproduce exactamente el pecado que se está corrigiendo.
 
 Y antes de eso hay otro corte: **Despacho arma las órdenes leyendo
 `warehouse_receipts_cn`** (China) con status `consolidado`. "Consolidado" significa
