@@ -1,5 +1,20 @@
 # 🗂 DTD-Cargo · Registro de Decisiones de Marca (BRAND-DECISIONS)
 
+> ## ⚠️ ESTE ARCHIVO LLEGA HASTA **BD-036**. NO ES EL SET COMPLETO.
+>
+> Las decisiones **BD-037 → BD-068** viven en
+> [`BRAND-DECISIONS-BD037-BD068.md`](BRAND-DECISIONS-BD037-BD068.md) (recibidas de Cloud Design el
+> 2026-08-02). **Leé las dos o vas a aplicar reglas viejas.**
+>
+> Este aviso existe porque pasó: el 1-ago se auditó marca contra este archivo creyéndolo completo
+> mientras Cloud Design ya iba por BD-052, y treinta decisiones estaban vigentes sin que nadie de
+> este lado las conociera. El archivo no avisaba de su propio corte.
+>
+> **Ojo con lo que este archivo NO refleja todavía:** BD-050 saca "DDP" de toda superficie visible ·
+> BD-055 y BD-068 corrigen **tres** variantes incorrectas del RIF (el único bueno es
+> `J-50648869-8`) · BD-052 fija la dirección de Valencia · BD-067 codifica que la entrega final se
+> cobra por volumen y no por distancia.
+
 > **Qué es esto:** el log único de toda decisión, excepción y cambio normativo de marca. Antes vivían dispersas — en comentarios `/* BRAND-EXCEPTION */` del código, en `CLAUDE.md`, en `BRAND-MIGRATION` y en changelogs. Acá quedan centralizadas para que en 6 meses nadie tenga que arqueologizar por qué algo es como es.
 >
 > **Para Claude Code / Claude:** este archivo es complementario a `CLAUDE.md`. `CLAUDE.md` dice *la regla vigente*; este archivo dice *por qué, desde cuándo y quién la autorizó*. Si vas a romper una regla, primero buscá acá si ya hay una decisión; si no la hay, abrís un `BRAND-CHECK` y, si se aprueba, **registrás la decisión nueva acá** con el formato de abajo.
