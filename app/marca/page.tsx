@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import { jetbrainsMonoUi } from "@/lib/fonts";
 import { BrandMark } from "@/components/BrandMark";
 import { ArrowIcon, DownloadIcon } from "@/components/Icon";
-import { hasBrandAccess, resolveBrandTenantId } from "@/lib/marca/access";
+import {
+  brandAccessSource,
+  hasBrandAccess,
+  resolveBrandTenantId,
+} from "@/lib/marca/access";
 import { loadBrandCatalog } from "@/lib/marca/catalog-queries";
 import {
   BRAND_BOOK_DOWNLOAD_NAME,
@@ -59,6 +63,9 @@ export default async function MarcaPage() {
   // único que se renderiza es el formulario — el catálogo ni se consulta.
   if (!(await hasBrandAccess())) return <BrandGate />;
 
+  // CUÁL llave abrió: define qué ofrece la cabecera. Ver el bloque de la derecha.
+  const acceso = await brandAccessSource();
+
   const tenantId = await resolveBrandTenantId();
   const catalog = tenantId ? await loadBrandCatalog(tenantId) : [];
 
@@ -101,14 +108,37 @@ export default async function MarcaPage() {
                 <span className="sm:hidden">Todo</span>
               </ZipButton>
             )}
-            <form action={lockBrandAction}>
-              <button
-                type="submit"
+            {/*
+              "Salir" SOLO cuando se entró con el código.
+
+              Antes se mostraba siempre, y para el equipo no hacía nada visible:
+              borra la cookie del código (que quizá ni existe) y vuelve a
+              `/marca`, donde la sesión del ERP abre el gate otra vez. Clickeabas
+              y te quedabas exactamente donde estabas — parecía roto.
+
+              Con sesión del ERP se ofrece lo que de verdad sirve: el atajo al
+              HUB, que es donde se administra el código. El código NO se puede
+              mostrar en ningún lado: se guarda hasheado con bcrypt y nunca en
+              claro (migr 0334). Si se olvidó, se pone uno nuevo — no se recupera.
+            */}
+            {acceso === "code" ? (
+              <form action={lockBrandAction}>
+                <button
+                  type="submit"
+                  className="text-[12.5px] font-semibold text-grey-500 hover:text-ink px-2 py-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+                >
+                  Salir
+                </button>
+              </form>
+            ) : (
+              <a
+                href="/studio/marketing/hub"
                 className="text-[12.5px] font-semibold text-grey-500 hover:text-ink px-2 py-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+                title="Entraste con tu sesión del ERP. El código de acceso se administra en el HUB de marca."
               >
-                Salir
-              </button>
-            </form>
+                Administrar acceso
+              </a>
+            )}
           </div>
         </div>
       </header>

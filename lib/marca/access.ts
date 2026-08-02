@@ -179,6 +179,20 @@ export async function hasBrandAccess(): Promise<boolean> {
   return (await getUser()) !== null;
 }
 
+/**
+ * CUÁL de las dos llaves abrió la puerta. `null` = no está abierta.
+ *
+ * Existe porque "Salir" sólo tiene sentido para una de las dos. Quien entró con
+ * el código tiene una cookie que se puede borrar; quien entró con la sesión del
+ * ERP no — se le borra la cookie (que quizá ni tiene), se le manda a `/marca`, y
+ * la sesión lo deja pasar otra vez. Desde afuera parece que el botón está roto.
+ * Con esto la cabecera puede ofrecer la acción que de verdad aplica.
+ */
+export async function brandAccessSource(): Promise<"code" | "session" | null> {
+  if (await hasValidCookie()) return "code";
+  return (await getUser()) !== null ? "session" : null;
+}
+
 /** ¿Hay un código puesto? Para que el ERP muestre el estado del acceso. */
 export async function brandAccessIsOpen(): Promise<boolean> {
   try {

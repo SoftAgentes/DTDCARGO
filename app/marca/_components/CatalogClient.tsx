@@ -148,7 +148,7 @@ function LogoDoctrine() {
         <div className="flex items-center gap-2 mb-4">
           <span
             className="grid place-items-center w-7 h-7 rounded-full"
-            style={{ background: "var(--color-status-success)", color: "#fff" }}
+            style={{ background: "var(--color-status-success)", color: "var(--color-on-accent)" }}
           >
             <CheckIcon size={16} />
           </span>
@@ -169,7 +169,7 @@ function LogoDoctrine() {
         <div className="flex items-center gap-2 mb-4">
           <span
             className="grid place-items-center w-7 h-7 rounded-full"
-            style={{ background: "var(--color-status-danger)", color: "#fff" }}
+            style={{ background: "var(--color-status-danger)", color: "var(--color-on-accent)" }}
           >
             <CloseIcon size={15} />
           </span>
@@ -285,7 +285,10 @@ export function CatalogClient({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Buscar…"
-              className="h-9 w-[130px] sm:w-[210px] rounded-full border border-grey-300 bg-white pl-3.5 pr-3 text-[13px] text-ink placeholder:text-grey-500 focus:outline-none focus:border-ink focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-1"
+              /* `grey-500` y no `grey-300` en el borde: es lo único que
+                 identifica al campo, y WCAG 1.4.11 pide 3:1 para eso.
+                 Medido: grey-300 sobre blanco = 1.45 · grey-500 = 5.11. */
+              className="h-9 w-[130px] sm:w-[210px] rounded-full border border-grey-500 bg-white pl-3.5 pr-3 text-[13px] text-ink placeholder:text-grey-500 focus:outline-none focus:border-ink focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-1"
             />
           </label>
         </div>
