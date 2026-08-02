@@ -1,10 +1,10 @@
 ---
 sdd: "0238"
 title: "El brand book se comparte con un link y un código"
-status: in-progress
+status: done
 author: "Sam (founder) + Claude Code"
 created: 2026-08-01
-updated: 2026-08-01
+updated: 2026-08-02
 supersedes: null
 superseded_by: null
 related: ["0119", "0121", "0158"]
@@ -174,3 +174,33 @@ para las filas viejas, así que nada cambia de golpe.
   si no, las 9 sembradas antes de 0335 se quedaban para siempre en `tile='auto'`
   y sin dimensiones — habría saltado en silencio y el logo claro habría seguido
   invisible sobre papel blanco.
+- **2026-08-02** — el Brand Book **sale de git a Storage** (founder). El v4.6
+  pesaba 13,5 MB versionados y el v5 son tres documentos que suman 51 MB: en git
+  eso se acumula versión tras versión y encima `outputFileTracingIncludes` lo
+  arrastraba a dos bundles de función. El visor pasa a leer del bucket y
+  **transmite** el cuerpo en vez de redirigir a la URL firmada — un redirect
+  mandaría el `<iframe>` a `*.supabase.co` y la CSP del visor no declara
+  `frame-src`, así que caería a `default-src 'self'` y abriría en blanco.
+- **2026-08-02** — el **Manual de Producción** llegó sin build autocontenido (60
+  referencias a archivos vecinos) y Cloud Design no podía generarlo: chocaban
+  contra un tope de 30 MB. Se armó acá. Los 45,67 MB de PNG eran fotografías
+  guardadas en formato de gráficos planos; recodificadas a **WebP a la misma
+  resolución** quedaron en 2,3 MB, sin reescalar un píxel. Su plan alternativo
+  (JPEG q88) habría **destruido el canal alfa de 29 de las 32 imágenes**. PSNR
+  peor caso 34,0 dB compuesto sobre los dos fondos reales del documento.
+- **2026-08-02** — el secundario "Descargar" de la tarjeta del book era **navy
+  sobre navy: contraste 1.00**, medido en navegador. La causa no estaba en el
+  JSX: `app/globals.css` va SIN `@layer`, y una regla sin capa le gana a
+  cualquier utilidad de Tailwind, así que el `bg-white` **nunca se aplicó**. Se
+  agregaron `.btn-ghost-inv` (16,49:1) y `.btn-ghost-solid` al sistema. Ningún
+  gate lo veía: typecheck, lint, tests y build pasan con el botón invisible.
+- **2026-08-02** — "Salir" no hacía nada **para el equipo**. `hasBrandAccess()`
+  abre con dos llaves (cookie del código **o** sesión del ERP) y el botón sólo
+  borra la cookie: quien entra con su sesión del Studio volvía a pasar el gate al
+  instante. Ahora la cabecera consulta `brandAccessSource()` y ofrece "Salir"
+  sólo a quien entró con el código; al resto, el atajo al HUB. El código **no se
+  puede mostrar en ningún lado** — se guarda hasheado y nunca en claro.
+- **2026-08-02** — catálogo cargado con el material del v5: **de 11 a 99
+  archivos · 127 MB** (tope del paquete "todo": 180 MB). Quedan vacías **Color**
+  (correcto: la paleta se dibuja en vivo desde los tokens) y **Fondos** (depende
+  de las portadas por red). **SDD cerrada.**
