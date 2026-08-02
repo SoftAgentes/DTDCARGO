@@ -63,7 +63,7 @@ export function ReportesTab({
           style={{
             marginTop: 14,
             paddingTop: 14,
-            borderTop: "1px solid var(--ink-inv-mute)",
+            borderTop: "1px solid var(--ink-side-soft)",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
@@ -74,7 +74,7 @@ export function ReportesTab({
               font: "600 10.5px/1 var(--f-sans)",
               letterSpacing: "0.12em",
               textTransform: "uppercase",
-              color: "var(--ink-inv-mute)",
+              color: "var(--ink-side-soft)",
             }}
           >
             {balanceSheet.ok ? "Balance cuadra" : "Descuadre"}
@@ -124,7 +124,7 @@ function ReportCard({
       <div
         style={{
           font: "900 16px/1.1 var(--f-display)",
-          color: "var(--ink-inv)",
+          color: "var(--ink-side-strong)",
           letterSpacing: "-0.01em",
         }}
       >
@@ -133,7 +133,7 @@ function ReportCard({
       <div
         style={{
           font: "500 11px/1.3 var(--f-sans)",
-          color: "var(--ink-inv-mute)",
+          color: "var(--ink-side-soft)",
           marginTop: 4,
           marginBottom: 18,
         }}
@@ -172,7 +172,7 @@ function Row({
       <span
         style={{
           font: `${strong || highlight ? "700" : "500"} ${highlight ? 14 : 13}px/1.2 var(--f-sans)`,
-          color: highlight ? "var(--ink-inv)" : "var(--ink-inv-soft)",
+          color: highlight ? "var(--ink-side-strong)" : "var(--ink-side)",
         }}
       >
         {label}
@@ -180,7 +180,7 @@ function Row({
       <span
         style={{
           font: `${strong || highlight ? "800" : "600"} ${highlight ? 18 : 13}px/1 var(--f-mono)`,
-          color: highlight ? "var(--ink-inv)" : "var(--ink-inv-soft)",
+          color: highlight ? "var(--ink-side-strong)" : "var(--ink-side)",
           whiteSpace: "nowrap",
         }}
       >
@@ -191,5 +191,5 @@ function Row({
 }
 
 function Divider() {
-  return <div style={{ height: 1, background: "var(--ink-inv-mute)" }} />;
+  return <div style={{ height: 1, background: "var(--ink-side-soft)" }} />;
 }

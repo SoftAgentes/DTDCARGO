@@ -505,7 +505,7 @@ export function ConversationThread({ conv, agents, realtimeTick = 0 }: Props) {
               cursor: !draft.trim() || replyPending ? "not-allowed" : "pointer",
               opacity: !draft.trim() || replyPending ? 0.55 : 1,
               background: "var(--wine)",
-              color: "var(--ink-inv)",
+              color: "var(--ink-side-strong)",
               font: "700 13px/1 var(--f-sans)",
             }}
           >

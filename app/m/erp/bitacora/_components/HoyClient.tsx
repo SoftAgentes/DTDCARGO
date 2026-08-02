@@ -157,7 +157,7 @@ export function HoyClient({
           <div
             style={{
               font: "700 10px/1 var(--f-sans)",
-              color: "var(--ink-inv-mute)",
+              color: "var(--ink-side-soft)",
               letterSpacing: "0.14em",
               textTransform: "uppercase",
             }}
@@ -167,7 +167,7 @@ export function HoyClient({
           <div
             style={{
               font: "500 12px/1 var(--f-sans)",
-              color: "var(--ink-inv-soft)",
+              color: "var(--ink-side)",
               marginTop: 4,
             }}
           >

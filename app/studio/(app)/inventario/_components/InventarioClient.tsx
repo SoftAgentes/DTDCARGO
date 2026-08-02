@@ -250,8 +250,8 @@ export function InventarioClient({ cn, ve }: Props) {
                   font: "600 9px/1 var(--f-sans)",
                   letterSpacing: "0.04em",
                   textTransform: "uppercase",
-                  color: "var(--ink-inv-mute)",
-                  border: "1px solid var(--ink-inv-mute)",
+                  color: "var(--ink-side-soft)",
+                  border: "1px solid var(--ink-side-soft)",
                   borderRadius: "var(--r-pill)",
                   padding: "3px 7px",
                 }}
@@ -262,7 +262,7 @@ export function InventarioClient({ cn, ve }: Props) {
             <div style={{ font: "900 30px/1 var(--f-display)", marginTop: "var(--s-2)" }}>
               {stock.readyQueue.rows}{" "}
               <span
-                style={{ font: "500 14px var(--f-sans)", color: "var(--ink-inv-mute)" }}
+                style={{ font: "500 14px var(--f-sans)", color: "var(--ink-side-soft)" }}
               >
                 partidas · {fmt2(stock.readyQueue.cbm)} m³
               </span>
@@ -270,7 +270,7 @@ export function InventarioClient({ cn, ve }: Props) {
             <div
               style={{
                 font: "500 11.5px/1.4 var(--f-sans)",
-                color: "var(--ink-inv-mute)",
+                color: "var(--ink-side-soft)",
                 marginTop: "var(--s-2)",
               }}
             >

@@ -154,7 +154,7 @@ export function AppearanceSection() {
                   flexShrink: 0,
                   borderRadius: "var(--r-sm)",
                   background: "var(--bg-sidebar)",
-                  color: "var(--ink-inv)",
+                  color: "var(--ink-side-strong)",
                   display: "grid",
                   placeItems: "center",
                   font: "900 13px/1 var(--f-brand-display)",

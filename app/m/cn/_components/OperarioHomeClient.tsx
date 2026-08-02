@@ -792,7 +792,7 @@ function ReceiptDetailModal({
               marginTop: "var(--s-4)",
               padding: "12px 16px",
               background: "var(--wine)",
-              color: "var(--ink-inv)",
+              color: "var(--ink-side-strong)",
               borderRadius: "var(--r-md)",
               font: "700 13px/1 var(--f-sans)",
               textDecoration: "none",

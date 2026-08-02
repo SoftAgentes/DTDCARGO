@@ -324,7 +324,7 @@ export function AssetDrawer({ assetAccounts, onClose }: Props) {
             <div
               style={{
                 font: "600 10.5px/1 var(--f-sans)",
-                color: "var(--ink-inv-mute)",
+                color: "var(--ink-side-soft)",
                 letterSpacing: "0.14em",
                 textTransform: "uppercase",
               }}
@@ -339,7 +339,7 @@ export function AssetDrawer({ assetAccounts, onClose }: Props) {
                   value={preview.accumulated}
                   color="var(--wine-soft)"
                 />
-                <div style={{ height: 1, background: "var(--ink-inv-mute)" }} />
+                <div style={{ height: 1, background: "var(--ink-side-soft)" }} />
                 <PreviewRow
                   label="Valor neto en libros"
                   value={preview.netBookValue}
@@ -351,7 +351,7 @@ export function AssetDrawer({ assetAccounts, onClose }: Props) {
               <p
                 style={{
                   font: "500 12px/1.4 var(--f-sans)",
-                  color: "var(--ink-inv-soft)",
+                  color: "var(--ink-side)",
                   margin: 0,
                 }}
               >
@@ -411,7 +411,7 @@ export function AssetDrawer({ assetAccounts, onClose }: Props) {
 function PreviewRow({
   label,
   value,
-  color = "var(--ink-inv)",
+  color = "var(--ink-side-strong)",
   big = false,
 }: {
   label: string;
@@ -426,7 +426,7 @@ function PreviewRow({
         justifyContent: "space-between",
         alignItems: "center",
         font: "500 13px/1 var(--f-sans)",
-        color: "var(--ink-inv-soft)",
+        color: "var(--ink-side)",
       }}
     >
       <span>{label}</span>

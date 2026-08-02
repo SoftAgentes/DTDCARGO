@@ -202,7 +202,7 @@ function MobileTopBar({ user }: { user: UserInfo }) {
         <div
           style={{
             font: "700 10px/1 var(--f-sans)",
-            color: "var(--ink-inv-mute, rgba(255,255,255,0.55))",
+            color: "var(--ink-side-soft, rgba(255,255,255,0.55))",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
           }}
@@ -212,7 +212,7 @@ function MobileTopBar({ user }: { user: UserInfo }) {
         <div
           style={{
             font: "500 12px/1 var(--f-sans)",
-            color: "var(--ink-inv-soft, rgba(255,255,255,0.85))",
+            color: "var(--ink-side, rgba(255,255,255,0.85))",
             marginTop: 4,
             whiteSpace: "nowrap",
             overflow: "hidden",

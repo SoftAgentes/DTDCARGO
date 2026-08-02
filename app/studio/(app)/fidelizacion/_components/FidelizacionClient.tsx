@@ -580,7 +580,7 @@ function DashboardTab({
                     height: 28,
                     borderRadius: "50%",
                     background: "var(--wine)",
-                    color: "var(--ink-inv)",
+                    color: "var(--ink-side-strong)",
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",

@@ -272,7 +272,9 @@ export default async function DashboardPage() {
   return (
     <div style={{ maxWidth: 1280 }}>
       {/* Header · banda de bienvenida con degradado vino + marca de agua "D" (BD-034).
-          Texto en --ink-inv (cream) sobre el vino oscuro → AA. La "D" (isotipo
+          Texto en --ink-side* (blanco en AMBOS temas) sobre el vino oscuro → AA.
+          NO usar --ink-inv* acá: ese token voltea a navy en tema Oscuro y sobre el
+          vino daba 2,51:1. La "D" (isotipo
           mono-light, .055) es decorativa y va detrás del texto (el contenido va en
           un wrapper relative/zIndex:1). */}
       <div
@@ -301,15 +303,15 @@ export default async function DashboardPage() {
           }}
         />
         <div style={{ position: "relative", zIndex: 1 }}>
-          <div className="studio-eyebrow" style={{ marginBottom: 10, color: "var(--ink-inv-soft)" }}>
+          <div className="studio-eyebrow" style={{ marginBottom: 10, color: "var(--ink-side)" }}>
             {`OPERACIÓN · ${eyebrowDateVE(now)}`}
           </div>
-          <h1 className="studio-display" style={{ fontSize: 30, margin: "0 0 var(--s-2)", color: "var(--ink-inv)" }}>
+          <h1 className="studio-display" style={{ fontSize: 30, margin: "0 0 var(--s-2)", color: "var(--ink-side-strong)" }}>
             {greeting}, {subject}.
           </h1>
-          <p style={{ font: "400 14px/1.5 var(--f-sans)", color: "var(--ink-inv-soft)", margin: 0 }}>
-            Operando como <strong style={{ color: "var(--ink-inv)" }}>{tenant?.display_name ?? "DTD Cargo"}</strong>
-            {" · "}Moneda base: <strong style={{ color: "var(--ink-inv)" }}>{tenant?.base_currency ?? "USD"}</strong>.
+          <p style={{ font: "400 14px/1.5 var(--f-sans)", color: "var(--ink-side)", margin: 0 }}>
+            Operando como <strong style={{ color: "var(--ink-side-strong)" }}>{tenant?.display_name ?? "DTD Cargo"}</strong>
+            {" · "}Moneda base: <strong style={{ color: "var(--ink-side-strong)" }}>{tenant?.base_currency ?? "USD"}</strong>.
           </p>
         </div>
       </div>

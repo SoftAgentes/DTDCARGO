@@ -457,7 +457,7 @@ function BalanceCell({
   label,
   value,
   sign,
-  color = "var(--ink-inv)",
+  color = "var(--ink-side-strong)",
 }: {
   label: string;
   value: number;
@@ -469,7 +469,7 @@ function BalanceCell({
       <div
         style={{
           font: "700 10px/1 var(--f-sans)",
-          color: "var(--ink-inv-mute)",
+          color: "var(--ink-side-soft)",
           letterSpacing: "0.1em",
           textTransform: "uppercase",
           marginBottom: 8,

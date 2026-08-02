@@ -255,7 +255,7 @@ export function CreateOdDrawer({
             style={{
               padding: 14,
               background: "var(--bg-sidebar)",
-              color: "var(--ink-inv)",
+              color: "var(--ink-side-strong)",
               borderRadius: "var(--r-md)",
             }}
           >
@@ -276,7 +276,7 @@ export function CreateOdDrawer({
               <span
                 style={{
                   font: "800 14px/1 var(--f-mono)",
-                  color: usage.overflow ? "var(--danger)" : "var(--ink-inv)",
+                  color: usage.overflow ? "var(--danger)" : "var(--ink-side-strong)",
                 }}
               >
                 {usage.kg_pct.toFixed(0)}% kg · {usage.cbm_pct.toFixed(0)}% cbm
@@ -419,7 +419,7 @@ function CapBar({
           justifyContent: "space-between",
           marginBottom: 4,
           font: "600 10.5px/1 var(--f-mono)",
-          color: "var(--ink-inv-soft)",
+          color: "var(--ink-side)",
         }}
       >
         <span>{label}</span>
@@ -430,7 +430,7 @@ function CapBar({
       <div
         style={{
           height: 6,
-          background: "var(--ink-inv-mute)",
+          background: "var(--ink-side-soft)",
           borderRadius: 999,
           overflow: "hidden",
         }}

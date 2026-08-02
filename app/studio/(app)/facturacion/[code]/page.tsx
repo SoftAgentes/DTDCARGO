@@ -184,7 +184,7 @@ export default async function InvoiceDetailPage({
             <div
               style={{
                 font: "600 10.5px/1 var(--f-sans)",
-                color: "var(--ink-inv-mute)",
+                color: "var(--ink-side-soft)",
                 letterSpacing: "0.14em",
                 textTransform: "uppercase",
               }}
@@ -194,7 +194,7 @@ export default async function InvoiceDetailPage({
             <div
               style={{
                 font: "900 42px/1 var(--f-display)",
-                color: "var(--ink-inv)",
+                color: "var(--ink-side-strong)",
                 letterSpacing: "-0.02em",
                 marginTop: 8,
               }}
@@ -206,7 +206,7 @@ export default async function InvoiceDetailPage({
             <div
               style={{
                 font: "600 10.5px/1 var(--f-sans)",
-                color: "var(--ink-inv-mute)",
+                color: "var(--ink-side-soft)",
                 letterSpacing: "0.14em",
                 textTransform: "uppercase",
               }}
@@ -231,12 +231,12 @@ export default async function InvoiceDetailPage({
             style={{
               marginTop: 18,
               paddingTop: 16,
-              borderTop: "1px solid var(--ink-inv-mute)",
+              borderTop: "1px solid var(--ink-side-soft)",
               display: "flex",
               gap: 28,
               flexWrap: "wrap",
               font: "500 12.5px/1.4 var(--f-sans)",
-              color: "var(--ink-inv-soft)",
+              color: "var(--ink-side)",
             }}
           >
             <span>
@@ -258,7 +258,7 @@ export default async function InvoiceDetailPage({
           style={{
             marginTop: hasIvaBreakdown ? 12 : 16,
             font: "500 12px/1.4 var(--f-sans)",
-            color: "var(--ink-inv-soft)",
+            color: "var(--ink-side)",
             display: "flex",
             gap: 18,
             flexWrap: "wrap",
@@ -276,7 +276,7 @@ export default async function InvoiceDetailPage({
               <strong
                 style={{
                   font: "700 12px/1 var(--f-mono)",
-                  color: overdue ? "var(--wine-soft)" : "var(--ink-inv)",
+                  color: overdue ? "var(--wine-soft)" : "var(--ink-side-strong)",
                 }}
               >
                 {invoice.due_date}
