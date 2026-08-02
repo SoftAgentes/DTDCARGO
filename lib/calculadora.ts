@@ -115,7 +115,21 @@ export const CONFIG = {
   /**
    * CBM total máximo cotizable por la calculadora (LCL). Sobre esto, la carga
    * ya no entra en un contenedor estándar → deriva al asesor (FCL).
-   * (~68 m³ ≈ capacidad de un 40' HC).
+   *
+   * ⚠️ SON 68 Y SE QUEDAN EN 68 — decisión del founder, 1-ago-2026.
+   *
+   * No lo "corrijas" a 66,4. Ese otro número existe y es real: es
+   * `container_types.cbm_alert_ceiling` (migración 0297), el techo MEDIDO en un
+   * contenedor propio de DTD, y es el que usa el módulo de naviera para
+   * planificar la estiba. Son dos cosas distintas a propósito:
+   *
+   *  · 66,4 = lo que de verdad entró una vez. Sirve para planificar un
+   *    consolidado real, donde meter de más significa dejar carga en el muelle.
+   *  · 68   = hasta dónde la calculadora auto-cotiza. Es un tope COMERCIAL, no
+   *    una medida: bajarlo manda al asesor cargas grandes que hoy cotizan
+   *    solas, y el cliente grande es justo el que interesa.
+   *
+   * Configurable desde Admin › Calculadora pública si algún día cambia.
    */
   cbmMaxContenedor: 68,
 

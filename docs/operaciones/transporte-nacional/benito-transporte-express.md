@@ -123,6 +123,23 @@ lo que cuesta— y lo que pone el cobro en cero de cara al cliente es
 
 ## Huecos y pendientes con Benito
 
+- 🔴 **DECISIÓN ABIERTA — ¿qué cuenta como tramo "Remota"?** Hoy el precio de
+  $176,57/m³ se aplica sólo a la zona Especiales (Margarita, Carúpano,
+  Tucupita). Pero en la reunión el founder también nombró **Guasipati** a $5 por
+  pie cúbico, y Guasipati quedó sembrada en Oriente Llano pagando $123,60.
+
+  Mirando la tabla confirmada, hay **15 destinos que salen cada 15 días**
+  repartidos entre todas las zonas: Camatagua · Guasdualito · Libertad ·
+  Sabaneta · El Nula · El Venado · Machiques · La Villa · Dabajuro · Pariaguán ·
+  Temblador · Caripito · Caripe · Guasipati · Tucupita. Ese patrón quincenal
+  define "remoto" mejor que la zona geográfica.
+
+  **Falta preguntarle al founder si esos 15 pasan a $176,57.** Mientras no se
+  decida, cobran lo que dice su zona y la calculadora avisa de la demora
+  quincenal — o sea, no hay nada roto, pero sí plata sobre la mesa.
+
+  *(Venía de `PROMPT-SESION-3.md`, retirado el 1-ago-2026. Era el único
+  pendiente vivo de ese archivo y se rescató acá para que no se fuera con él.)*
 - ✅ **Respaldo documental guardado** (1-ago-2026) en
   [`assets/`](assets/README.md): el **formulario de confirmación firmado por
   Mariotsy Mendoza** y la **tabla de 178 destinos** de la que salió la migración

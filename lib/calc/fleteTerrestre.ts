@@ -177,11 +177,16 @@ export function calcularFleteTerrestre(
   if (modoCotizacion === "cbm-casco" && !esCasco) {
     // Cliente dice "incluido en casco" pero destino NO es casco. Fallback a cbm-lejos.
     modoAplicado = "cbm-lejos";
-    warning = `"${destino}" no está en el casco central. Aplicamos cotización CBM + lejos (con descuento parcial).`;
+    // SDD-0237: "casco central" murió de cara al cliente. Acá se describe la
+    // cobertura sin ese término y SIN llamarla "entrega incluida": esa etiqueta
+    // es de las 8 ciudades del puerta a puerta, y esta calculadora es otro
+    // motor (corredor Valencia–Pto Cabello). Igualarlas confundiría dos
+    // coberturas distintas.
+    warning = `"${destino}" queda fuera de la zona que tu CBM ya cubre. Aplicamos cotización CBM + lejos (con descuento parcial).`;
   } else if (modoCotizacion === "cbm-lejos" && esCasco) {
     // Cliente dice "lejos" pero destino SÍ es casco. Fallback a cbm-casco.
     modoAplicado = "cbm-casco";
-    warning = `"${destino}" está en el casco central. Aplicamos cotización CBM + casco (sin costo).`;
+    warning = `"${destino}" está dentro de la zona que tu CBM ya cubre. Aplicamos cotización sin costo adicional.`;
   }
 
   // 4. Caso especial: CBM + destino en casco → todo gratis
@@ -290,7 +295,7 @@ export function calcularFleteTerrestre(
     modoAplicado,
     notaCasco:
       modoAplicado === "cbm-lejos"
-        ? `Descuento aplicado: el casco central (Valencia → Pto Cabello) ya está cubierto por tu CBM. Solo pagas el diferencial.`
+        ? `Descuento aplicado: el tramo Valencia → Pto Cabello ya está cubierto por tu CBM. Solo pagas el diferencial.`
         : undefined,
     warning,
   };

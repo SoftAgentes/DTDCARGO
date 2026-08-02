@@ -131,14 +131,21 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
     incluye: [
       "Flete marítimo internacional desde China hasta Venezuela.",
       "Aduana e impuestos a nuestro nombre (DDP): sin cobros sorpresa.",
-      "Entrega puerta a puerta — incluida hasta el casco central de la ciudad.",
+      // SDD-0237: decía "incluida hasta el casco central de la ciudad", que hoy
+      // es doblemente falso — el término murió de cara al cliente y la entrega
+      // ya no se cobra por distancia sino por metro cúbico. Esta línea alimenta
+      // /servicios, /tarifas y el `hasOfferCatalog` del JSON-LD, así que
+      // prometía en tres sitios algo que el motor no cumple.
+      "Entrega puerta a puerta — incluida en un grupo de ciudades; en el resto se cobra por metro cúbico.",
       "Pagas al llegar: pagas cuando la carga llega a Venezuela, no por adelantado (pueden aplicar restricciones).",
       "Consolidación en nuestra bodega de Yiwu de la mercancía de tus proveedores.",
     ],
     noIncluye: [
       // grounded: dictado founder 2026-06-09
       "El seguro de carga: se contrata aparte.",
-      "Entregas fuera del casco central de la ciudad: tienen un costo adicional.",
+      // SDD-0237: el "costo adicional" ya no depende de dónde quede la
+      // dirección dentro de la ciudad, sino del volumen de la carga.
+      "La entrega en las ciudades que no están en la zona sin costo: se cobra por metro cúbico.",
     ],
     // grounded: precio por CBM vía calculadora (FAQ §2/§22). NO publicar el monto.
     precio:

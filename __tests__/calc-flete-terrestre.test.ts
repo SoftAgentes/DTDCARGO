@@ -188,7 +188,11 @@ describe("calcularFleteTerrestre", () => {
     });
     expect(r.modoAplicado).toBe("cbm-lejos");
     expect(r.warning).toContain("Barquisimeto");
-    expect(r.warning).toContain("casco central");
+    // SDD-0237: "casco central" murió de cara al cliente. Se afirma lo que
+    // el aviso tiene que seguir diciendo — de qué zona habla — sin pinear
+    // la frase completa, que es copy y puede afinarse.
+    expect(r.warning).toMatch(/zona que tu CBM ya cubre/i);
+    expect(r.warning).not.toMatch(/casco central/i);
     expect(r.totalUsd).toBeGreaterThan(0); // Cobra (con descuento)
   });
 
@@ -201,7 +205,8 @@ describe("calcularFleteTerrestre", () => {
     });
     expect(r.modoAplicado).toBe("cbm-lejos");
     expect(r.descuentoCascoUsd).toBeGreaterThan(0);
-    expect(r.notaCasco).toContain("casco central");
+    expect(r.notaCasco).toMatch(/Valencia → Pto Cabello/);
+    expect(r.notaCasco).not.toMatch(/casco central/i);
 
     // Comparar con solo-terrestre: el descuento debe hacerlo más barato
     const sinCbm = calcularFleteTerrestre({
@@ -222,7 +227,11 @@ describe("calcularFleteTerrestre", () => {
     });
     expect(r.modoAplicado).toBe("cbm-casco");
     expect(r.totalUsd).toBe(0);
-    expect(r.warning).toContain("casco central");
+    // SDD-0237: "casco central" murió de cara al cliente. Se afirma lo que
+    // el aviso tiene que seguir diciendo — de qué zona habla — sin pinear
+    // la frase completa, que es copy y puede afinarse.
+    expect(r.warning).toMatch(/zona que tu CBM ya cubre/i);
+    expect(r.warning).not.toMatch(/casco central/i);
   });
 
   it("modo solo-terrestre (default) ignora la lógica de casco", () => {
