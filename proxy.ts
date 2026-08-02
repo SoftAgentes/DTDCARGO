@@ -100,8 +100,21 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Solo correr en rutas /studio/** y /back/**.
-  // El sitio publico (/, /calculadora, /calculadora-terrestre, /estimacion,
-  // /servicios, /contacto, /track, etc.) queda intocado y con cero overhead.
-  matcher: ["/studio/:path*", "/back/:path*"],
+  // Correr en las rutas que autentican con Supabase.
+  //
+  // /portal/** y /m/erp/** entraron después: los dos usan el MISMO Supabase
+  // (createClient() server-side + auth.getUser() en su layout) pero estaban
+  // fuera del matcher, así que nadie les refrescaba el access token. Al vencer
+  // (1 h por defecto) la navegación server-side veía la sesión muerta y echaba
+  // al cliente aunque su refresh token siguiera vivo. Acá NO se les aplica
+  // ninguna redirección —los bloques de arriba son startsWith("/studio") y
+  // startsWith("/back")—; sólo reciben el refresco de cookies, que es
+  // justamente lo que les faltaba.
+  //
+  // /m/cn y /m/ve quedan FUERA a propósito: el operario entra con PIN, no con
+  // sesión de Supabase, y meterlos sólo agregaría un getUser() por request.
+  //
+  // El sitio publico (/, /tarifas, /fcl, /servicios, /contacto, /track, etc.)
+  // queda intocado y con cero overhead.
+  matcher: ["/studio/:path*", "/back/:path*", "/portal/:path*", "/m/erp/:path*"],
 };
