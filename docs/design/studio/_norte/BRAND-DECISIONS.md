@@ -2,9 +2,16 @@
 
 > ## ⚠️ ESTE ARCHIVO LLEGA HASTA **BD-036**. NO ES EL SET COMPLETO.
 >
-> Las decisiones **BD-037 → BD-068** viven en
-> [`BRAND-DECISIONS-BD037-BD068.md`](BRAND-DECISIONS-BD037-BD068.md) (recibidas de Cloud Design el
-> 2026-08-02). **Leé las dos o vas a aplicar reglas viejas.**
+> Las decisiones **BD-037 → BD-069** viven en
+> [`BRAND-DECISIONS-BD037-BD069.md`](BRAND-DECISIONS-BD037-BD069.md) (rev. 2 de Cloud Design,
+> 2026-08-02, con los punteros de sección corregidos y su tabla de equivalencia vieja→nueva).
+> **Leé las dos o vas a aplicar reglas viejas.**
+>
+> 🔴 **Trampa viva dentro del set nuevo:** **BD-053** (catálogo de WhatsApp) sigue marcada
+> `Vigente` y en su "Vocabulario que fijó la web" dice *"entrega hasta el **casco central**
+> (fuera, adicional por zona)"* — el modelo de precio que **BD-067 mató**. BD-067 no la anotó como
+> enmendada, así que quien cargue el catálogo siguiendo BD-053 reintroduce el término muerto y una
+> promesa de precio falsa en una superficie de cliente. **Manda BD-067.**
 >
 > Este aviso existe porque pasó: el 1-ago se auditó marca contra este archivo creyéndolo completo
 > mientras Cloud Design ya iba por BD-052, y treinta decisiones estaban vigentes sin que nadie de

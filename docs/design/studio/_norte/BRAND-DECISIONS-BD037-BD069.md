@@ -1,35 +1,87 @@
-# BRAND-DECISIONS · BD-037 → BD-068
+# BRAND-DECISIONS · BD-037 → BD-069
 
-> **Extracto para el equipo de producto · 2026-08-02.** Son las 32 decisiones posteriores a
-> BD-036, que es donde quedó su copia. **Llega hasta la última vigente al día de hoy: BD-068.**
-> El registro completo (BD-001 → BD-068) vive en `BRAND-DECISIONS.md` del proyecto de marca.
+> **Extracto para Cloud Design · 2026-08-02 (rev. 2).** Las decisiones posteriores a BD-036, que es
+> donde quedó su copia. El registro completo (BD-001 → BD-069) vive en `BRAND-DECISIONS.md` del
+> proyecto de marca.
 
-## Cómo leerlo
+## ⚠ Rev. 2 · punteros de sección corregidos
 
-Cada entrada trae **qué se decidió**, **por qué**, **dónde vive la regla** y —cuando aplica—
-qué decisión anterior enmienda. Las que dicen **Excepción autorizada** rompen una regla previa
-a propósito y con autorización; las de **corrección** arreglan algo mal aplicado.
+La revisión anterior citaba secciones contra **tres numeraciones distintas** que el book fue
+teniendo. Todos los punteros de este archivo ya apuntan a la numeración **final**. La tabla de
+equivalencia está abajo.
+
+## Equivalencia vieja → nueva
+
+Dos secciones salieron del book: **§01 Changelog** (retirada) y **§14 Capa de producto** (se
+convirtió en el *ERP Studio Brand Book*). Por eso el corrimiento **no es parejo**: −1 hasta CRM,
+−2 después.
+
+| Antes | Ahora | Sección |
+|---|---|---|
+| §01 | — | Changelog · **retirada** |
+| §02 | **§01** | Fundamento de marca |
+| §02· | **§01·** | Propósito · Misión · Visión |
+| — | **§01··** | Arquitectura de marca · **nueva** |
+| §03 | **§02** | Heritage |
+| §04 | **§03** | Sistema de logo · incluye la medida X |
+| §05 | **§04** | Tipografía |
+| §06 | **§05** | Paleta · incluye valores de imprenta |
+| §06· | **§05·** | Accesibilidad |
+| §06C | **§05C** | Fondos oficiales · marcas de agua |
+| §06D | **§05D** | Retícula y espaciado |
+| §07 | **§06** | Iconografía |
+| §07· | **§06·** | Recursos gráficos |
+| §08 | **§07** | Aplicaciones · láminas de deck |
+| §09 | **§08** | Mensajería · WhatsApp + WeChat |
+| §10 | **§09** | Sistema fotográfico · banco |
+| §10· | **§09·** | Infografía técnica |
+| §10B | **§09B** | Sistema editorial · redes |
+| §11 | **§10** | Voice & tone |
+| §12 | **§11** | Brand in motion |
+| §12· | **§11·** | Aplicación web |
+| §13 | **§12** | CRM & contactos |
+| §14 | — | Capa de producto → **ERP Studio Brand Book** |
+| §15 | **§13** | Gobernanza |
+| §15· | **§13·** | Usos prohibidos |
+| §16 | **§14** | Apéndices |
+| — | **§15** | Hub & descargas |
+
+La **tabla consultable de tokens** (BD-044) se fue con la capa de producto: hoy es
+**ERP Studio Brand Book §01**, no una sección del book de marca.
+
+## Cuál es «el» Brand Book
+
+**`Brand Book DTD v5.0.html` ocupa la constante.** Es el que sirve el centro de marca y el que
+se reemplaza al llegar uno nuevo. Los otros dos son **derivados con público propio**, van al
+catálogo con su descarga y **no compiten por ese lugar**:
+
+| Documento | Para quién | Dónde |
+|---|---|---|
+| **Brand Book DTD v5.0** | Todos · la identidad | La constante |
+| **ERP Studio Brand Book** | Devs y diseño de producto | Catálogo · descarga propia |
+| **Manual de Producción** | Imprenta, uniformes, promocionales | Catálogo · descarga propia |
+
+**Versionan juntos en v5.0** (BD-048): la versión visible del proyecto es una sola. Si el book de
+marca sube a v5.1, los tres suben — aunque el contenido de uno no haya cambiado. Un número por
+documento haría imposible saber qué versión de marca refleja cada uno.
 
 ## Las que tocan copy de cara al cliente
 
-Si solo van a leer unas pocas antes de barrer, son estas:
-
 | BD | Qué cambia |
 |---|---|
-| **BD-050** | **"DDP" fuera de todo lo visible** — no solo de títulos. Ver la nota de abajo. |
-| **BD-052** | Dirección oficial de Valencia, con la referencia entre calles |
-| **BD-053** | Catálogo en orden de viaje · prealertas fusionadas en un artículo |
-| **BD-054** | Números de teléfono de relleno retirados |
-| **BD-055** | Bloque de contacto canónico · **RIF único `J-50648869-8`** |
-| **BD-056** | Rol "Sub-CEO" retirado del lenguaje y del set de íconos |
-| **BD-064** | El dragón es **mascota publicitaria**, con dónde sí y dónde no |
-| **BD-067** | **Entrega por m³, no por distancia** · "casco central" retirado |
-| **BD-068** | Tercera variante incorrecta del RIF |
+| **BD-050** | **"DDP" fuera de todo lo visible** — no solo de títulos |
+| **BD-052** | Dirección oficial de Valencia |
+| **BD-053** | Catálogo en orden de viaje · prealertas fusionadas |
+| **BD-054** | Números de relleno retirados |
+| **BD-055** | Bloque de contacto canónico · **RIF `J-50648869-8`** |
+| **BD-057** | Catálogo a 15 artículos |
+| **BD-064** | El dragón es mascota publicitaria |
+| **BD-067** | **Entrega por m³** · "casco central" retirado · sin mapas de anillos |
 
 ### Sobre BD-050 · el alcance sí se amplió
 
-La regla que ustedes tienen —"DDP jamás como título"— **quedó corta**. BD-050 dice
-*"no se muestra en ninguna superficie visible"*, con los reemplazos canónicos:
+La regla que ustedes tienen —"DDP jamás como título"— **quedó corta**. BD-050 dice *"no se muestra
+en ninguna superficie visible"*, con reemplazos canónicos:
 
 - `"Cotizar DDP"` → **`"Cotizar"`**
 - `"Puerta a puerta DDP"` → **`"Puerta a puerta"`**
@@ -37,10 +89,8 @@ La regla que ustedes tienen —"DDP jamás como título"— **quedó corta**. BD
 - `"Tarifa DDP cerrada"` → **`"Tarifa cerrada"`**
 - atajo `/ddp` → **`/puertaapuerta`**
 
-**Sí se conserva** donde es término técnico y no lenguaje de marca: el Incoterm en documentos
-legales, el renglón contable `IMPUESTO DDP` y las series `LCL DDP` de reportes. Son datos.
-
-Eso cubre las 33 apariciones de `/tarifas`, meta descripción y pie del estimado incluidos.
+**Sí se conserva** donde es término técnico: el Incoterm en documentos legales, el renglón contable
+`IMPUESTO DDP` y las series `LCL DDP` de reportes.
 
 ---
 
@@ -53,7 +103,7 @@ Eso cubre las 33 apariciones de `/tarifas`, meta descripción y pie del estimado
 - **Decisión:** la infografía técnica de DTD es **fotografía de estudio técnico con una capa de datos encima**, nunca ilustración ni render. Anatomía fija de 8 puntos: fondo marfil (`--grad-paper-warm`) · cifra protagonista en Archivo Black navy · sub-dato en vino `#7F0F1A` a tamaño grande · un filete vino de separación · persona como escala humana · cotas navy con remates vino y medidas en JetBrains Mono · isólogo troquelado sobre el cartón al 6–8% · lockup **DTD Cargo** abajo a la derecha. Familia base: 1 CBM → 10 CBM → 20GP/40HQ → 40HQ real. Formatos: 4:5 (1080×1350) maestro social, 1:1 catálogo, 16:9 web/deck — el texto se re-compone por formato, no se escala la pieza.
 - **Honestidad del dato:** se publica capacidad **operativa** con `~` y nota al pie; el nominal va etiquetado aparte. Decimales con coma, miles con punto (convención VE).
 - **Corrección aplicada (2026-07-29):** la pieza 20GP · 40HQ traía el lockup como `DTD CARGO` (una caja, mayúsculas espaciadas, monocromo). Se rehizo el lockup completo sobre el original — isólogo primary + wordmark `DTD Cargo` en Archivo Black, `DTD` en `#7F0F1A` y `Cargo` en `#0F1E3D`, tracking `-0.02em`, gap `0.15em`. Las 4 piezas de la familia quedan homogéneas.
-- **Regla viva en:** Brand Book §10· (Infografía técnica) · `assets/photo-editorial/info-0*.png`.
+- **Regla viva en:** Brand Book §09· (Infografía técnica) · `assets/photo-editorial/info-0*.png`.
 
 ### BD-038 · Sistema editorial de redes · 6 plantillas de carrusel + bloque de 9
 - **Fecha:** 2026-07-28
@@ -66,7 +116,7 @@ Eso cubre las 33 apariciones de `/tarifas`, meta descripción y pie del estimado
 - **Bloque de 9 publicaciones:** el perfil se planifica en bloques de nueve — **1 ancla navy + 3 piezas de dato marfil + 5 fotografías** repartidas entre las tres familias (BD-036). Ninguna fila con dos piezas del mismo tipo; ninguna columna con tres fotos; el bloque se planifica completo antes de publicar la primera pieza.
 - **Caption:** tres líneas — dato/promesa · explicación corta en tuteo venezolano · CTA con verbo directo.
 - **Prohibido:** emoji decorativo, flechas «desliza →» dibujadas, capturas del ERP con datos reales de clientes, precios cerrados sin fecha ni condición.
-- **Regla viva en:** Brand Book §10B (Sistema editorial · redes).
+- **Regla viva en:** Brand Book §09B (Sistema editorial · redes).
 
 ### BD-039 · Norma de aplicación web + 3 deudas de accesibilidad
 - **Fecha:** 2026-07-29
@@ -74,7 +124,7 @@ Eso cubre las 33 apariciones de `/tarifas`, meta descripción y pie del estimado
 - **Estado:** Vigente
 - **Autorizado por:** el usuario (entregable «18 páginas mínimas» del prompt maestro v5.0)
 - **Aplica a:** sitio público `dtdcargo.com` — `web/home.css`, `web/contacto.css` y hermanos.
-- **Decisión:** la sección §12· del Brand Book **documenta el sistema que ya corre**, no propone uno nuevo. Hero a pantalla completa (`100dvh − var(--nav-h)`), foto de operación real + scrim navy, texto a la izquierda; ancho `--home-max: 1280px`. **El acento sobre navy es `--wine-on-dark` (#A8323E) o `--wine-soft`, nunca `--wine`.**
+- **Decisión:** la sección §11· del Brand Book **documenta el sistema que ya corre**, no propone uno nuevo. Hero a pantalla completa (`100dvh − var(--nav-h)`), foto de operación real + scrim navy, texto a la izquierda; ancho `--home-max: 1280px`. **El acento sobre navy es `--wine-on-dark` (#A8323E) o `--wine-soft`, nunca `--wine`.**
 - **Set de botones de la web (6, propio y distinto del ERP):** `primary` · `ghost` · `dark` · `soft` · **`cream`** (`--crema` #E8DCC8 + `--ink`, único botón para bandas navy) · **`onwine`** (#F2F0EC + `--wine`, para paneles de fondo vino). Coincide con el ERP en primary/ghost/dark/soft; cambia `secondary`/`danger` por `cream`/`onwine`.
 - **Ritmo de sección:** papel → papel con cards → banda navy → papel → cierre navy → footer navy. Nunca dos bandas navy seguidas; el navy entra a ancho completo, nunca como card aislada.
 - **Formulario:** cinco campos, label arriba siempre visible (nunca label flotante ni placeholder como única etiqueta), input con fondo propio `--bg-base` para que el borde no sea la única frontera, error con ícono + texto además del color, submit con verbo directo.
@@ -82,7 +132,7 @@ Eso cubre las 33 apariciones de `/tarifas`, meta descripción y pie del estimado
   1. `contacto.css:75` — placeholder en `--ink-mute` (2,78:1) → debe ser `--ink-soft` (5,33 ✅). Falla 1.4.3.
   2. `contacto.css:74` — `outline:none` con solo cambio de color de borde → falta ring `:focus-visible` de 3 px. Falla 2.4.7 + 1.4.11.
   3. `home.css` — `#16274B → #26406F` en `.hero-stats` y `.final` quedan fuera de la familia navy (`#0B1428/#0F1E3D/#1F3055`) y no salen de un token → migrar a `--grad-navy`. Igual `--crema` (#E8DCC8), que hoy vive solo en `home.css` y debe subir a `tokens.css`.
-- **Regla viva en:** Brand Book §12· (Aplicación web).
+- **Regla viva en:** Brand Book §11· (Aplicación web).
 
 ### BD-040 · Retícula y espaciado · escala base 4 px + radios, sombras y densidad
 - **Fecha:** 2026-07-29
@@ -90,9 +140,9 @@ Eso cubre las 33 apariciones de `/tarifas`, meta descripción y pie del estimado
 - **Estado:** Vigente
 - **Autorizado por:** el usuario (página 6 de las 18 mínimas del prompt maestro v5.0)
 - **Aplica a:** toda superficie del sistema — ERP, Portal, apps de operario, web pública y colateral.
-- **Decisión:** §06D del Brand Book documenta las medidas que ya viven en `erp/tokens.css` y las hace consultables con su **uso**. Escala de espaciado **base 4 px**, diez pasos, el nombre del token es el multiplicador (`--s-6` = 6×4 = 24 px). Los saltos son deliberados: **no existen** `--s-7`, `--s-9`, `--s-11` ni `--s-13`–`15` — si falta uno de esos, el problema es la jerarquía, no la escala. Seis radios (`--r-xs` 3px → `--r-xl` 14px + `--r-pill`), techo en 14 px: **nada de 24 px+**. Cinco sombras (`--shadow-xs` → `--shadow-pop`) en navy translapado, nunca negro puro en light. Retícula del ERP: sidebar `--sb-expanded 248px` / `--sb-collapsed 64px` (nunca intermedio), `--topbar-h 60px`, `--content-max 1440px`, 12 columnas con gap `--s-2`; las tablas van a ancho completo e ignoran la retícula.
+- **Decisión:** §05D del Brand Book documenta las medidas que ya viven en `erp/tokens.css` y las hace consultables con su **uso**. Escala de espaciado **base 4 px**, diez pasos, el nombre del token es el multiplicador (`--s-6` = 6×4 = 24 px). Los saltos son deliberados: **no existen** `--s-7`, `--s-9`, `--s-11` ni `--s-13`–`15` — si falta uno de esos, el problema es la jerarquía, no la escala. Seis radios (`--r-xs` 3px → `--r-xl` 14px + `--r-pill`), techo en 14 px: **nada de 24 px+**. Cinco sombras (`--shadow-xs` → `--shadow-pop`) en navy translapado, nunca negro puro en light. Retícula del ERP: sidebar `--sb-expanded 248px` / `--sb-collapsed 64px` (nunca intermedio), `--topbar-h 60px`, `--content-max 1440px`, 12 columnas con gap `--s-2`; las tablas van a ancho completo e ignoran la retícula.
 - **Densidad:** `[data-density]` **remapea los tokens del medio** (`--s-3` a `--s-8`) y `--topbar-h` sin tocar los extremos. Por eso se usa el token y no el valor: `var(--s-4)` se adapta, `16px` no.
-- **Regla viva en:** Brand Book §06D (Retícula y espaciado) · `erp/tokens.css`.
+- **Regla viva en:** Brand Book §05D (Retícula y espaciado) · `erp/tokens.css`.
 
 ---
 
@@ -102,9 +152,9 @@ Eso cubre las 33 apariciones de `/tarifas`, meta descripción y pie del estimado
 - **Estado:** Vigente
 - **Autorizado por:** el usuario (página 16 de las 18 mínimas del prompt maestro v5.0)
 - **Aplica a:** cualquier persona o proveedor externo que produzca pieza para DTD-Cargo — diseñador, imprenta, agencia.
-- **Decisión:** §15··· del Brand Book consolida en UNA lámina lo que hasta v4.6 estaba repartido en el Sí/No de cada sección. Diez casos con el error **a la vista** (no descrito), por qué rompe y la alternativa que respeta el sistema, cada uno con su referencia de sección y BD. Cierra con una **tabla rápida de 13 categorías** (Logo, Wordmark, Color, Gradiente, Tipografía, Medidas, Contraste, Estado, Foco, Fotografía, Copy, Terminología, Superficie) en formato Nunca / Siempre, pensada para pegar en un correo sin que el destinatario lea 17 secciones.
+- **Decisión:** §13· del Brand Book consolida en UNA lámina lo que hasta v4.6 estaba repartido en el Sí/No de cada sección. Diez casos con el error **a la vista** (no descrito), por qué rompe y la alternativa que respeta el sistema, cada uno con su referencia de sección y BD. Cierra con una **tabla rápida de 13 categorías** (Logo, Wordmark, Color, Gradiente, Tipografía, Medidas, Contraste, Estado, Foco, Fotografía, Copy, Terminología, Superficie) en formato Nunca / Siempre, pensada para pegar en un correo sin que el destinatario lea 17 secciones.
 - **Uso:** es la pieza que se manda a un externo antes de que produzca. No reemplaza el Sí/No de cada sección — lo resume.
-- **Regla viva en:** Brand Book §15··· (Usos prohibidos) · `CLAUDE.md` (formato BRAND-CHECK).
+- **Regla viva en:** Brand Book §13· (Usos prohibidos) · `CLAUDE.md` (formato BRAND-CHECK).
 
 ---
 
@@ -114,21 +164,21 @@ Eso cubre las 33 apariciones de `/tarifas`, meta descripción y pie del estimado
 - **Estado:** Vigente
 - **Autorizado por:** el usuario (entregable 11 del prompt maestro v5.0)
 - **Aplica a:** el handoff de marca a Claude Code → repo de producción ("Norte").
-- **Decisión:** §15···· del Brand Book es la tabla canónica de migración: **15 piezas se conservan, 11 cambian, 5 se eliminan**. "Conservar" = no tocar. "Cambiar" = adición o corrección, ninguna rompe API (los tokens viejos siguen resolviendo). "Eliminar" = borrar el archivo o la referencia, **no** archivarla "por si acaso".
-- **Orden de aplicación en Norte:** (1) las 5 eliminaciones primero — son bugs de accesibilidad y limpieza, no dependen de nada; (2) los tokens nuevos (`--paper-warm`, `--paper-warm-border`, `--grad-paper-warm`, `--crema`), que no cambian nada visualmente hasta consumirse; (3) el plan de 4 pasos del ERP (§14·): chrome → paneles de contexto → overlays; (4) los sistemas de lenguaje (fotografía, infografía, redes) como norma para piezas **nuevas** — lo ya publicado no se re-hace, salvo la infografía 20GP·40HQ (wordmark mal).
+- **Decisión:** §13· del Brand Book es la tabla canónica de migración: **15 piezas se conservan, 11 cambian, 5 se eliminan**. "Conservar" = no tocar. "Cambiar" = adición o corrección, ninguna rompe API (los tokens viejos siguen resolviendo). "Eliminar" = borrar el archivo o la referencia, **no** archivarla "por si acaso".
+- **Orden de aplicación en Norte:** (1) las 5 eliminaciones primero — son bugs de accesibilidad y limpieza, no dependen de nada; (2) los tokens nuevos (`--paper-warm`, `--paper-warm-border`, `--grad-paper-warm`, `--crema`), que no cambian nada visualmente hasta consumirse; (3) el plan de 4 pasos del ERP (`ERP Studio Brand Book.html`): chrome → paneles de contexto → overlays; (4) los sistemas de lenguaje (fotografía, infografía, redes) como norma para piezas **nuevas** — lo ya publicado no se re-hace, salvo la infografía 20GP·40HQ (wordmark mal).
 - **Regla de conflicto:** si algo en Norte contradice esta tabla, **gana este proyecto** — es la fuente de verdad de la marca.
-- **Hallazgo resuelto por BD-045:** `[data-density="compact"]` definía `--s-5:14px` y `--s-6:18px`, fuera de la retícula declarada en §06D. **Normalizado a 12/16** en `erp/tokens.css` y `web/tokens-brand.css`. En Norte hay que aplicar el mismo cambio en los dos archivos.
-- **Regla viva en:** Brand Book §15···· (Inventario de migración).
+- **Hallazgo resuelto por BD-045:** `[data-density="compact"]` definía `--s-5:14px` y `--s-6:18px`, fuera de la retícula declarada en §05D. **Normalizado a 12/16** en `erp/tokens.css` y `web/tokens-brand.css`. En Norte hay que aplicar el mismo cambio en los dos archivos.
+- **Regla viva en:** Brand Book §13 (Gobernanza) — el inventario de migración salió del book al publicarse v5.0: vive en `NORTE-SYNC-2026-07-29.md`.
 ### BD-043 · Valores de imprenta + medida X del área de protección
 - **Fecha:** 2026-07-29
 - **Tipo:** Normativo (adición)
 - **Estado:** Vigente
 - **Autorizado por:** el usuario (páginas 2 y 3 de las 18 mínimas del prompt maestro v5.0)
 - **Aplica a:** todo colateral impreso — tarjeta, membrete, credencial, vinilo, roll-up, uniformes — y cualquier proveedor externo de imprenta.
-- **Decisión · valores de imprenta (§06):** los 14 colores del sistema quedan documentados con **HEX · RGB · CMYK aproximado · Pantone más cercano**. Son conversiones matemáticas sRGB→CMYK, **no** medidas sobre papel; el Pantone es "el más cercano", no un equivalente. Reglas: vino y navy exigen prueba de color antes de tirada grande (el vino vira a marrón si el negro sube) · en una o dos tintas se usa vino + negro · marfil y crema **no se imprimen** si el papel ya es cálido, se deja el papel a la vista · sobre fondo impreso oscuro va la variante `reverse`, nunca primary con sobreimpresión.
+- **Decisión · valores de imprenta (§05):** los 14 colores del sistema quedan documentados con **HEX · RGB · CMYK aproximado · Pantone más cercano**. Son conversiones matemáticas sRGB→CMYK, **no** medidas sobre papel; el Pantone es "el más cercano", no un equivalente. Reglas: vino y navy exigen prueba de color antes de tirada grande (el vino vira a marrón si el negro sube) · en una o dos tintas se usa vino + negro · marfil y crema **no se imprimen** si el papel ya es cálido, se deja el papel a la vista · sobre fondo impreso oscuro va la variante `reverse`, nunca primary con sobreimpresión.
 - **Decisión · medida X (§04):** **X = altura total del isólogo.** Zona de exclusión = X en los cuatro lados. Mínimo tolerable 0,5·X, solo en app-icon. Gap isólogo–wordmark = 0,35·X. Es una medida **relativa**: escala con el logo, no es un valor fijo en px. Tamaños mínimos (ya vigentes): lockup 120 px / 24 mm · isólogo solo 32 px / 10 mm · bajo 32 px se usa favicon/app-icon.
 - **Obligación de retorno:** antes de la primera tirada de cada pieza nueva se pide prueba física y se anota el ajuste real de la imprenta. Ese valor medido vuelve al book y reemplaza la aproximación.
-- **Regla viva en:** Brand Book §06 (Valores de imprenta) y §04 (La medida X, definida).
+- **Regla viva en:** Brand Book §05 (Valores de imprenta) y §03 (La medida X, definida · Sistema de logo).
 
 ### BD-044 · Marcas de agua, láminas de deck y tabla consultable de tokens
 - **Fecha:** 2026-07-29
@@ -137,13 +187,13 @@ Eso cubre las 33 apariciones de `/tarifas`, meta descripción y pie del estimado
 - **Autorizado por:** el usuario (últimos 3 parciales del prompt maestro v5.0 — cierra el encargo en 30/30)
 - **Aplica a:** toda superficie que lleve marca de agua · presentaciones comerciales e internas · consulta de tokens por parte de diseño y desarrollo.
 
-**1 · Marca de agua · las 4 superficies (§06C)**
+**1 · Marca de agua · las 4 superficies (§05C)**
 - Cuatro usos aprobados, **no hay un quinto**: sidebar del ERP (`reverse` · 0.07 · arriba-derecha sangrando) · hero/portada/cierre (`reverse` · 0.06 · esquina opuesta al texto) · estado vacío y panel de contexto (`primary` · 0.06 · abajo-derecha, único caso sobre marfil) · KPI destacado (`mono-light` · 0.07 · arriba-derecha, sobre relleno vino).
 - Rango 0.05–0.10; en el sistema real 0.06–0.07. La variante la decide el **fondo**: navy→reverse · marfil/papel→primary · vino→mono-light.
 - Una sola por superficie · siempre sangrando por un borde con `overflow:hidden` · detrás del contenido, nunca sobre texto ni sobre una cifra.
 - Prohibido: sobre 0.10 · `filter`/`brightness`/`invert` para forzar color · rotada, deformada o recortada en forma no rectangular · repetida en mosaico · en tabla, celda o superficie de dato denso.
 
-**2 · Las 4 láminas de deck (§08)**
+**2 · Las 4 láminas de deck (§07)**
 - Un deck se arma con cuatro tipos y nada más: **L1 Portada** (glow tonal navy, marca de agua reverse, lockup cream abajo-derecha) · **L2 Separador de sección** (marfil, numerada, sin marca de agua) · **L3 Lámina de dato** (una cifra en Archivo Black navy, rótulo vino, explicación al lado tras filete vertical) · **L4 Cierre/CTA** (vuelve al navy, tagline completo, una sola acción en botón `cream`).
 - 16:9 · 1920×1080 · zona segura 96 px · **cuerpo mínimo 24 px**. Ritmo: portada navy → secciones y datos en marfil → cierre navy; nunca dos navy seguidas en el medio.
 - Numerador `04 / 12` abajo-derecha en láminas de contenido, no en portada ni cierre. Lockup solo en L1 y L4.
@@ -152,7 +202,7 @@ Eso cubre las 33 apariciones de `/tarifas`, meta descripción y pie del estimado
 **3 · Tabla consultable de tokens (§13)**
 - Tabla única **token → valor light → valor dark → uso**, agrupada en seis bloques (acento de marca, superficies, texto, bordes y estado, gradientes, forma). Los swatches muestran el color; la tabla dice cuándo se usa. Incorpora las advertencias de accesibilidad en la propia fila (`--ink-mute` solo disabled, `--warning` no como texto chico, `--wine` en dark es relleno).
 
-- **Regla viva en:** Brand Book §06C (marcas de agua) · §08 (láminas de deck) · §13 (tabla de tokens).
+- **Regla viva en:** Brand Book §05C (marcas de agua) · §07 (láminas de deck) · la tabla consultable de tokens pasó al **ERP Studio Brand Book §01**.
 
 ### BD-045 · Densidad compacta normalizada a la retícula de 4 px + `--crema` a tokens
 - **Fecha:** 2026-07-29
@@ -160,9 +210,9 @@ Eso cubre las 33 apariciones de `/tarifas`, meta descripción y pie del estimado
 - **Estado:** Vigente
 - **Autorizado por:** el usuario
 - **Aplica a:** `erp/tokens.css` — ERP, Portal, apps de operario, web.
-- **Decisión 1 · densidad:** `[data-density="compact"]` definía `--s-5: 14px` y `--s-6: 18px`, los dos únicos valores del sistema fuera de la escala de 4 px (detectado al escribir §06D). Se normalizan a **`--s-5: 12px`** y **`--s-6: 16px`** en **`erp/tokens.css` y `web/tokens-brand.css`** — el segundo se corrigió el 2026-07-30, al auditar la clase completa: el barrido original solo había tocado el del ERP. En compacta `--s-4` y `--s-5` quedan ambos en 12 px: los pasos se fusionan a propósito, que es lo esperable de una densidad compacta.
+- **Decisión 1 · densidad:** `[data-density="compact"]` definía `--s-5: 14px` y `--s-6: 18px`, los dos únicos valores del sistema fuera de la escala de 4 px (detectado al escribir §05D). Se normalizan a **`--s-5: 12px`** y **`--s-6: 16px`** en **`erp/tokens.css` y `web/tokens-brand.css`** — el segundo se corrigió el 2026-07-30, al auditar la clase completa: el barrido original solo había tocado el del ERP. En compacta `--s-4` y `--s-5` quedan ambos en 12 px: los pasos se fusionan a propósito, que es lo esperable de una densidad compacta.
 - **Decisión 2 · `--crema`:** `#E8DCC8` vivía solo en `web/home.css`, así que `var(--crema)` no resolvía en el ERP ni en el Portal (el navegador no encontraba el token y no pintaba nada). Es color de marca — el único botón legible sobre navy — y sube a **`erp/tokens.css`**, fijo en ambos temas.
-- **Regla viva en:** `erp/tokens.css` · `web/tokens-brand.css` · Brand Book §06D y §13.
+- **Regla viva en:** `erp/tokens.css` · `web/tokens-brand.css` · Brand Book §05D (Retícula) · tabla de tokens en el **ERP Studio Brand Book §01**.
 
 ---
 
@@ -180,7 +230,7 @@ Eso cubre las 33 apariciones de `/tarifas`, meta descripción y pie del estimado
 - **Deuda que abría — cerrada el 2026-07-29:** los módulos que escribían `var(--border)` / `var(--shadow-xs)` inline en sus cards (`despacho.jsx`, `flujo-guia.jsx`, `flujo-mapa.jsx`, `flujo-trabajo.jsx`, `despacho-rules.jsx`, `qr-queue.jsx`, `naviera.jsx`, `nomina.jsx`, `calendar.jsx`, `fiscal.jsx`, `conversaciones.jsx`, `documentos-hub.jsx`, `comprobacion-pagos.jsx`, `conciliacion.jsx`, `admin-routes.jsx`, `mailing-templates.jsx`) migraron a los tokens de card, junto con `Table` y `LoadingRows` de `components.jsx` y 14 cards del Portal. Alcance real: 16 módulos del ERP, `Table` y `LoadingRows` de `components.jsx` (compartidos, llegan a todas las vistas) y 14 cards del Portal.
 - **Criterio de card (fijado 2026-07-29):** lleva `--card-border`/`--card-shadow` **la frontera exterior de un panel que se apoya en el campo**, con **cualquier** radio — lo que decide es contra qué fondo compite, no la forma. Se quedan en `--border`: divisores internos (`borderTop/Bottom/Right` sueltos), superficies **anidadas dentro de una card** (grillas de opciones, chips, celdas de calendario, kanban dentro de su columna — compiten contra blanco, no contra marfil), controles de formulario, y lo que flota (popover, menú, modal, toast — `position:absolute/fixed` o `shadow-lg/pop`, que se separan por sombra). **Un marco, un token:** si un lado se sobreescribe (`borderLeft` de acento), la rama neutra de ese lado también va en `--card-border` — un borde mitad fuerte y mitad débil se ve peor que cualquiera de los dos.
 - **Nota de proceso:** la primera pasada filtró por radio `--r-lg` y dejó afuera paneles construidos en `--r-md`/`--r-sm` (Tracking, Etiquetas CN, TMS, leyenda del Calendario) y un marco mitad migrado en Cola de QR. Las pasadas siguientes fallaron por la misma razón de fondo: **buscar sobre el texto fuente** (literal con `background: 'var(--bg-surface)'`, o un patrón que exigía backtick antes de `1px`) en vez de medir el DOM. **Método de auditoría a partir de ahora:** recorrer las vistas en el navegador y listar los elementos cuyo **fondo del ancestro efectivo es el campo** y cuyo borde resuelve al token débil; el grep sirve para aplicar el cambio, no para encontrarlo. El criterio de arriba reemplaza el de radio.
-- **Regla viva en:** `erp/tokens.css` · `erp/components.jsx` (`Card`) · Brand Book §14· · comparador `erp-mockups-v5/00-fondo-marfil.html`.
+- **Regla viva en:** `erp/tokens.css` · `erp/components.jsx` (`Card`) · `ERP Studio Brand Book.html` §02 (Superficies) · comparador `erp-mockups-v5/00-fondo-marfil.html`.
 
 ---
 
@@ -253,7 +303,7 @@ Eso cubre las 33 apariciones de `/tarifas`, meta descripción y pie del estimado
 - **Decisión:** la sigla **DDP** no se muestra en ninguna superficie visible. **"Puerta a puerta"** ya explica el servicio; "DDP" es jerga de Incoterms que el cliente venezolano no reconoce y obliga a explicar dos veces. Reemplazos canónicos: `"Cotizar DDP"` → **`"Cotizar"`** · `"Puerta a puerta DDP"` → **`"Puerta a puerta"`** · `"todo incluido (DDP)"` → **`"todo incluido"`** · `"Tarifa DDP cerrada"` → **`"Tarifa cerrada"`** · atajo `/ddp` → **`/puertaapuerta`**.
 - **Dónde SÍ se conserva** (es dato técnico, no lenguaje de marca): el **Incoterm** en `legal/Terminos-Condiciones-DTD-v2.1.md`, el renglón contable `IMPUESTO DDP` en `contabilidad-data.jsx`, y las etiquetas de serie `LCL DDP` en `reports.jsx`. **Pendiente de confirmar con el usuario** si esas tres también se cambian.
 - **El valor del servicio no cambia:** es el mismo puerta a puerta con todo incluido.
-- **Barrido aplicado (2026-07-30):** Brand Book (catálogo, perfil de empresa, respuestas rápidas, nav, deck, §08), `plantilla-deck`, `Generador Redes`, `Comprobante WhatsApp`, `factura-template`, `Hero Web · Ciclo DTD`, `portal/mobile.jsx`, `erp/modules/fidelizacion.jsx`. **No** se tocaron changelogs ni registros históricos.
+- **Barrido aplicado (2026-07-30):** Brand Book (catálogo, perfil de empresa, respuestas rápidas, nav, deck, §07), `plantilla-deck`, `Generador Redes`, `Comprobante WhatsApp`, `factura-template`, `Hero Web · Ciclo DTD`, `portal/mobile.jsx`, `erp/modules/fidelizacion.jsx`. **No** se tocaron changelogs ni registros históricos.
 - **Regla viva en:** `CLAUDE.md` §Terminología · DDP retirado.
 
 ---
@@ -287,7 +337,7 @@ Eso cubre las 33 apariciones de `/tarifas`, meta descripción y pie del estimado
 - **Barrido aplicado (16 piezas):** `CLAUDE.md` · Brand Book (§sede, perfil de empresa, respuesta rápida `/ubicacion`) · `Colateral Impreso` · `Aplicaciones de Marca` · `Ficha 3D · Aviso de Fachada` · `plantilla-deck` · `Kit de Bienvenida` · `cotizacion` · `firmas/firma.js` · `handoff-enlaces/Enlaces` · `factura-template` · `Contáctenos · B` · `para-enviar` · `erp/data-bridge.jsx` · `erp/modules/admin.jsx`.
 - **⚠ Reimpresión pendiente:** tarjetas de presentación, membrete A4, credenciales CR-80, vinilo del camión, roll-up y el **aviso de fachada** llevan la dirección vieja. El aviso de fachada es el más caro de rehacer.
 - **Bodega de Yiwu:** la web publica la dirección completa y el Brand Book ya la tiene igual — `Yiwu Port Phase II, Warehouse 2, No. 2 (Cargo 7-11), Yiwu City, Zhejiang`.
-- **Regla viva en:** `CLAUDE.md` §Stack y arquitectura · Brand Book §12.
+- **Regla viva en:** `CLAUDE.md` §Stack y arquitectura · Brand Book §12 (CRM & contactos).
 
 ---
 
@@ -296,13 +346,13 @@ Eso cubre las 33 apariciones de `/tarifas`, meta descripción y pie del estimado
 - **Tipo:** Datos de marca (corrección)
 - **Estado:** Vigente
 - **Autorizado por:** el usuario ("aquí hay unos números que no son reales")
-- **Aplica a:** la tabla «Grupos · 7 canales» del Brand Book §12 y el set de íconos de perfil.
+- **Aplica a:** la tabla «Grupos · 7 canales» del Brand Book §08 y el set de íconos de perfil.
 - **Problema:** cinco de los siete canales grupales mostraban números **inventados** con patrón `+58 412 100 100X`, y `compras` tenía `+58 412 100 0006`. Se veían plausibles —mismo formato que los reales— así que cualquiera los podía publicar en una pieza o marcarlos.
 - **Decisión:** los canales sin línea asignada dicen **«por asignar»**, no un número de relleno. Solo dos grupos tienen línea real: **CRM · Atención** (`+58 412 166 8021`) y **Redes Sociales** (`+58 412 160 5202`).
 - **Regla general:** un dato de contacto inventado es peor que un hueco visible. Los mock de `ERPData` (rutas, Shipping Mark, RIF) siguen siendo verosímiles a propósito porque son datos de demo; los **canales de contacto de la propia empresa** no admiten relleno.
-- **Regla viva en:** Brand Book §12 (Grupos · 7 canales · y Roles individuales) · `Iconos de Perfil.html` (ROLES/GROUPS).
+- **Regla viva en:** Brand Book §08 (Grupos · 7 canales · y Roles individuales) · `Iconos de Perfil.html` (ROLES/GROUPS).
 - **Ajuste del usuario (mismo día):** el fijo de **Administración** (`+58 241 414 7886`) se anota como **fijo de oficina que además tiene WhatsApp** — es la línea que va en la fachada y el colateral. Y el canal grupal **Despachos** deja de estar «por asignar»: **lo atiende el número de Transportista** (`+58 424 950 8848`), la misma persona que Almacenista. Quedan 4 canales grupales sin línea.
-- **Corrección de la corrección (mismo día):** la primera pasada solo limpió `Iconos de Perfil.html` y dejó `Compras · +58 412 100 0006` vivo en la tabla del Brand Book. Ya dice «por asignar». En el mismo paso se alineó `#crm` con BD-051: la fila **Sub-CEO** pasa a **Comercial** (es el mismo número, `+58 412 454 5325`, y §09 ya lo llamaba así), **CEO** pasa a **Dirección · CEO**, y el encabezado dice **«7 líneas»** en vez de «8» — son 7 líneas para 9 roles, porque Almacenista/Transportista comparten número y Compras no tiene.
+- **Corrección de la corrección (mismo día):** la primera pasada solo limpió `Iconos de Perfil.html` y dejó `Compras · +58 412 100 0006` vivo en la tabla del Brand Book. Ya dice «por asignar». En el mismo paso se alineó `#crm` con BD-051: la fila **Sub-CEO** pasa a **Comercial** (es el mismo número, `+58 412 454 5325`, y §08 ya lo llamaba así), **CEO** pasa a **Dirección · CEO**, y el encabezado dice **«7 líneas»** en vez de «8» — son 7 líneas para 9 roles, porque Almacenista/Transportista comparten número y Compras no tiene.
 
 ---
 
@@ -311,7 +361,7 @@ Eso cubre las 33 apariciones de `/tarifas`, meta descripción y pie del estimado
 - **Tipo:** Normativo
 - **Estado:** Vigente
 - **Autorizado por:** el usuario
-- **Aplica a:** el catálogo de WhatsApp Business (Brand Book §09) y cualquier pieza que liste servicios.
+- **Aplica a:** el catálogo de WhatsApp Business (Brand Book §08) y cualquier pieza que liste servicios.
 - **Contexto:** la web pasó de una lista de servicios a un **viaje de 4 etapas** (Origen → Recepción en bodega → Transporte + Aduana → Transversales) y el catálogo seguía siendo una lista plana de 8 artículos con enlaces genéricos a `/servicios`.
 - **Decisión 1 · orden:** el catálogo se carga en **orden de viaje**, igual que la web: los 3 principales (puerta a puerta · LCL · FCL) → aduana → servicios de bodega → origen → transversales → próximamente. **El orden es la jerarquía**: WhatsApp lo muestra como lista plana.
 - **Decisión 2 · los servicios de bodega van en UN artículo.** Pre-alerta, validación, inspección al recibir, etiquetado, HOLD y re-empaque son **subservicios de la pre-alerta y solo existen para el Puerta a puerta**. Van como un artículo con badge `SOLO PUERTA A PUERTA`, no como seis: separarlos hace creer que se contratan aparte.
@@ -321,7 +371,7 @@ Eso cubre las 33 apariciones de `/tarifas`, meta descripción y pie del estimado
 - **Vocabulario que fijó la web:** «un solo precio, hasta tu puerta» · «**todo incluido**» · «pagas al llegar» · «sin lidiar con puertos, aduanas ni intermediarios». Datos nuevos incorporados: cotiza por **CBM y peso**, tarifa especial **desde 10 CBM**, entrega hasta el **casco central** (fuera, adicional por zona), **no incluye seguro de carga**.
 - **Total: 11 artículos** (10 activos + 1 de próximamente).
 - **Pendiente · foto de transporte terrestre:** al agrupar los cuatro «próximamente» en un artículo, terrestre dejó de tener tarjeta propia, así que **una foto específica de terrestre ya no tiene dónde ir**. El artículo agrupado usa franja navy a propósito (comunica «todavía no»). Si terrestre debe recuperar su tarjeta —y con ella su foto— es una decisión del usuario, pendiente de confirmar.
-- **Regla viva en:** Brand Book §09 (Catálogo) · `Analisis · Web vs Catalogo WhatsApp.md`.
+- **Regla viva en:** Brand Book §08 (Catálogo) · `Analisis · Web vs Catalogo WhatsApp.md`.
 
 ---
 
@@ -340,7 +390,7 @@ Eso cubre las 33 apariciones de `/tarifas`, meta descripción y pie del estimado
 - **⚠ Corrección de RIF — cierra un pendiente viejo.** Seis lugares llevaban **`J-40558712-0`**, que **no es el RIF de la empresa**: factura (4×), comprobante de WhatsApp, etiqueta ZPL de bodega (incluido el código ZPL que se imprime) y el generador de nota de entrega de `Aplicaciones de Marca`. El `CHANGELOG` lo tenía anotado como *"decisión de unificación de RIF aún pendiente"* desde antes. **Todos pasan a `J-50648869-8`.**
 - **Gravedad:** era el dato más caro de los tres errores de contacto encontrados hoy — un RIF equivocado en una factura la invalida como documento fiscal y en la etiqueta ZPL se imprime en cada caja.
 - **Nuevos en el bloque:** **CP 2001** (no estaba en ninguna pieza salvo `Contáctenos · B`) y el **WhatsApp** como parte del bloque, no como dato aparte.
-- **Regla viva en:** `CLAUDE.md` §Stack y arquitectura · Brand Book §12.
+- **Regla viva en:** `CLAUDE.md` §Stack y arquitectura · Brand Book §12 (CRM & contactos).
 
 ---
 
@@ -350,9 +400,9 @@ Eso cubre las 33 apariciones de `/tarifas`, meta descripción y pie del estimado
 - **Estado:** Vigente
 - **Autorizado por:** el usuario ("ya no existe el término Sub-CEO. Nada de Sub-CEO")
 - **Decisión:** el rol **"Sub-CEO" / "Sub-Gerente · VP Ops" no existe** en la estructura y no aparece en ninguna superficie. **Comercial lo reemplaza** y hereda su número (`+58 412 454 5325`). El set de íconos baja de 16 a **15 (8 individuales + 7 grupales)**.
-- **Alcance:** `Iconos de Perfil.html` (tema, `GlyphSubCEO`, entrada de ROLES, export, CSS `.sc-*` y los cuatro contadores) · Brand Book §12 (tabla y tira de íconos) · `erp/modules/admin-brand.jsx` (fila y el texto de doble aprobación, que pedía "CEO + Sub-CEO"). Enmienda BD-051.
-- **Deuda de assets — cerrada el 2026-07-30.** La primera versión de esta entrada decía que era solo un nombre de archivo viejo. **Era peor:** `subceo.png` y `bigboss.png` contenían el **arte retirado** (el portafolios y la corona), así que "Comercial" y "CEO" se estaban ilustrando con los íconos que la marca acababa de sacar. Se exportaron **`brandbook-icons/comercial.png`** y **`brandbook-icons/ceo.png`** (360×360, a sangre) desde los glifos vivos de `Iconos de Perfil.html`, y se repuntaron la tira de íconos de §12, sus enlaces de descarga y el mock de `Portada WhatsApp`. Los dos archivos viejos quedan huérfanos: se borran al reexportar el set completo.
-- **Regla viva en:** `Iconos de Perfil.html` · Brand Book §09 y §12.
+- **Alcance:** `Iconos de Perfil.html` (tema, `GlyphSubCEO`, entrada de ROLES, export, CSS `.sc-*` y los cuatro contadores) · Brand Book §08 (tabla y tira de íconos) · `erp/modules/admin-brand.jsx` (fila y el texto de doble aprobación, que pedía "CEO + Sub-CEO"). Enmienda BD-051.
+- **Deuda de assets — cerrada el 2026-07-30.** La primera versión de esta entrada decía que era solo un nombre de archivo viejo. **Era peor:** `subceo.png` y `bigboss.png` contenían el **arte retirado** (el portafolios y la corona), así que "Comercial" y "CEO" se estaban ilustrando con los íconos que la marca acababa de sacar. Se exportaron **`brandbook-icons/comercial.png`** y **`brandbook-icons/ceo.png`** (360×360, a sangre) desde los glifos vivos de `Iconos de Perfil.html`, y se repuntaron la tira de íconos de §11, sus enlaces de descarga y el mock de `Portada WhatsApp`. Los dos archivos viejos quedan huérfanos: se borran al reexportar el set completo.
+- **Regla viva en:** `Iconos de Perfil.html` · Brand Book §06 (Iconografía) y §08 (Mensajería).
 
 ---
 
@@ -362,11 +412,11 @@ Eso cubre las 33 apariciones de `/tarifas`, meta descripción y pie del estimado
 - **Estado:** Vigente
 - **Autorizado por:** el usuario
 - **Decisión 1 · tres servicios que la web vende y el catálogo no tenía:** **Auditoría y control de calidad** (control por lote, no por muestra), **Lab testing y permisología** (ensayos y permisos, resueltos en origen) y **Courier de muestras y documentos** (aéreo urgente). Entran en orden de viaje: los dos primeros en la etapa de origen, junto a inspección; el courier con los transversales. El catálogo pasa de 12 a **15 artículos**.
-- **Decisión 2 · el banco documental tiene uso escrito.** Las 3 familias fotográficas son **encargo dirigido** (con hueco para texto, para vender un servicio); el banco documental es **prueba** (que la empresa existe, opera y tiene gente). Queda una tabla de destino por foto en §10: «Nosotros» → oficina y uniformes · prueba de operación → puerto y consolidado · origen → equipo CN · ferias → stand · prueba social → entrega en la puerta · última milla → camión.
+- **Decisión 2 · el banco documental tiene uso escrito.** Las 3 familias fotográficas son **encargo dirigido** (con hueco para texto, para vender un servicio); el banco documental es **prueba** (que la empresa existe, opera y tiene gente). Queda una tabla de destino por foto en §09: «Nosotros» → oficina y uniformes · prueba de operación → puerto y consolidado · origen → equipo CN · ferias → stand · prueba social → entrega en la puerta · última milla → camión.
 - **Decisión 3 · la historia se cuenta con años calculados:** 2008 orígenes comerciales en China · 2010 empresa de carga formalizada · 2015 corredor CN→VE. El KPI dice «En el comercio con China desde 2008», **nunca** «+18 años» — así la pieza no envejece.
-- **Pendiente de producción registrado en §10:** refotografiar oficina, equipo en bodega, camión y stand cuando se renueve uniforme y rotulación — **7 de las 11** fotos del banco muestran el logo anterior a v5.0.
+- **Pendiente de producción registrado en §09:** refotografiar oficina, equipo en bodega, camión y stand cuando se renueve uniforme y rotulación — **7 de las 11** fotos del banco muestran el logo anterior a v5.0.
 - **Hallazgo 2026-07-30 · la cinta de embalaje lleva el wordmark mal escrito.** La foto `operacion-09-cajas-cinta-marca` muestra en primer plano la cinta impresa con **`DTDCargo` en una palabra** (la regla es `DTD Cargo`, dos palabras · BD-002 / `CLAUDE.md` §Logo) y con el **tagline retirado `DE CHINA A TU PUERTA`** (el vigente es «Con Confianza, de China a tu puerta.»). Es el pendiente **más urgente y más barato** de la lista: la cinta es consumible, así que al reponer stock entra el arte v5.0 y todas las cajas futuras quedan corregidas — a diferencia del vinilo del camión o el aviso de fachada. Mientras tanto, la foto solo se usa **bajo velo navy ≥74%**, donde la cinta lee como textura y no como wordmark.
-- **Regla viva en:** Brand Book §09 (Catálogo) y §10 (Banco documental · historia y prueba).
+- **Regla viva en:** Brand Book §08 (Catálogo) y §09 (Banco documental · historia y prueba).
 
 ---
 
@@ -396,7 +446,7 @@ Eso cubre las 33 apariciones de `/tarifas`, meta descripción y pie del estimado
 - **Decisión 3 · isólogo reverse.** Es fondo navy — `primary` da 1,1:1 y desaparece (BD-022).
 - **Las 3 propuestas:** **A · Promesa** (glow navy + tagline completo · *recomendada*: no depende de una foto que envejezca y el tagline es el activo verbal más fuerte) · **B · La ruta** (cuatro paradas Yiwu → barco → puerto → tu puerta; más informativa, menos memorable) · **C · Operación real** (foto del puerto con velo navy; para ferias y B2B, pero los chalecos llevan el logo anterior a v5.0 → reemplazar al refotografiar).
 - **Las 3 alternativas evaluadas** (A · Promesa, B · La ruta, C · Operación) se **descartaron y se eliminaron** el 31-07-2026: una vez elegida la portada, mantener el comparador de 4 opciones era una página de decisión abierta para algo ya cerrado, y hacía dudar de cuál archivo subir. Su descripción queda en esta entrada como historial.
-- **Regla viva en:** Brand Book §09 · bloque **Portada del perfil** — el arte se dibuja dentro del book y se descarga desde ahí, un solo lugar donde vive el archivo.
+- **Regla viva en:** Brand Book §08 · bloque **Portada del perfil** — el arte se dibuja dentro del book y se descarga desde ahí, un solo lugar donde vive el archivo.
 
 ---
 
@@ -413,9 +463,9 @@ Eso cubre las 33 apariciones de `/tarifas`, meta descripción y pie del estimado
 - **Corregido:** `.tape-wm .sp{display:inline-block;width:0.15em}` y el tagline completo, en los tres acabados (navy, wine, cream).
 - **Spec de repetición ahora se MIDE del arte**, no se escribe a mano: el tagline más largo cambió el paso del patrón, y una spec fija habría quedado contradiciendo la pieza (era `≈ 180 mm`). Se calcula del DOM al cargar.
 - **Estado del stock:** la cinta es **consumible** — no hay que retirar nada. El rollo en uso se agota y el próximo pedido sale con el arte corregido. Anotado en la propia pieza.
-- **Uso de la foto mientras tanto:** `operacion-09` va **nítida solo en el banco** (§10) como prueba documental de consolidación. En cualquier pieza de cara al cliente va desenfocada — de ahí `assets/photo-editorial/textura-cajas-navy.jpg` (900×900, blur 11 px + velo navy, 20 KB), que es la que usa el login del Portal.
+- **Uso de la foto mientras tanto:** `operacion-09` va **nítida solo en el banco** (§09) como prueba documental de consolidación. En cualquier pieza de cara al cliente va desenfocada — de ahí `assets/photo-editorial/textura-cajas-navy.jpg` (900×900, blur 11 px + velo navy, 20 KB), que es la que usa el login del Portal.
 - ⚠️ **Superada parcialmente por BD-062 (2026-07-30):** la corrección del arte era correcta pero la **premisa no** — la cinta no debe llevar marca en absoluto (discreción en aduana). El wordmark y el tagline salieron de la cinta; lo que sigue vigente de esta entrada es el **hallazgo de método**: el error impreso lo producía este proyecto, no un arte viejo suelto, y una spec de imprenta escrita a mano se desincroniza del arte.
-- **Regla viva en:** `packaging/Packaging Logístico · DTD-Cargo.html` · Brand Book §10 (nota de la foto).
+- **Regla viva en:** `packaging/Packaging Logístico · DTD-Cargo.html` · Brand Book §09 (nota de la foto).
 
 ---
 
@@ -480,7 +530,7 @@ Eso cubre las 33 apariciones de `/tarifas`, meta descripción y pie del estimado
 - **No:** factura, papelería, documento legal, etiqueta de envío y **caja de cartón**. Nunca al lado del logo en la misma cara.
 - **La distinción que manda — uniforme ≠ franela de regalo:** el **uniforme** (camisa, chaleco y gorra del personal de DTD) lleva isólogo y **sin dragón**, porque la prenda identifica a la empresa y el dragón le competiría al logo. La **franela de regalo** del descargador contratado es pieza **promocional**: no identifica personal, circula por la ciudad, y ahí el dragón cumple su función.
 - **La caja:** el dragón se retiró del cartón por la misma razón que el logo no va en la cinta (BD-062) — carga marcada llama la atención de aduana. Una caja impresa con el motivo anula la regla de la cinta: misma señal, otra superficie.
-- **Regla viva en:** `Manual de Producción · DTD-Cargo.html` §07 (Motivos y dragón).
+- **Regla viva en:** `Manual de Producción · DTD-Cargo.html` §06 (Motivos y dragón).
 
 ---
 
@@ -510,7 +560,7 @@ Eso cubre las 33 apariciones de `/tarifas`, meta descripción y pie del estimado
 - **Crema:** lado A dragón alargado en vino + isólogo primary; lado B lockup primary con la web.
   Vino **7,79:1** y navy **12,05:1** sobre el barril — los dos pasan holgado.
 - **Navy:** lado A lockup **entero en cream**; lado B dragón, también en cream. **Una sola tinta.**
-- **Excepción documentada:** §06 de la Guía manda "una sola tinta" en promocionales; el lapicero
+- **Excepción documentada:** §05 de la Guía manda "una sola tinta" en promocionales; el lapicero
   crema va a **dos** (dos pasadas, dos clisés). Se aceptó a cambio de mostrar la marca completa.
 - **Corrección de contraste aplicada:** el navy traía el "DTD" en vino sobre el barril — medido
   **1,54:1**, prácticamente invisible, el mismo caso que "nunca el isólogo primary sobre navy".
@@ -521,7 +571,7 @@ Eso cubre las 33 apariciones de `/tarifas`, meta descripción y pie del estimado
 - **Pendiente antes de producir:** ① quitar los rectángulos blancos de anotación del modelo navy
   (lado A alrededor del isólogo, lado B sobre la cola del dragón) — un proveedor puede leerlos como
   zona a no imprimir; ② el crema imprime `www.dtdcargo.com` y la marca ya no usa ese prefijo.
-- **Regla viva en:** `Manual de Producción · DTD-Cargo.html` §05 (credencial y lanyard) y §06
+- **Regla viva en:** `Manual de Producción · DTD-Cargo.html` §05 (credencial y lanyard) y §05
   (lapicero) · artes en `recursos-graficos/`.
 
 ---
@@ -558,7 +608,7 @@ La herramienta usaba `<image-slot>`: casillas donde se arrastraba una foto y que
 - Ahora **muestra los archivos reales** desde `assets/photo-editorial/`, agrupados por familia, con el nombre de archivo visible para referenciarlos.
 - El contador se **deriva de las tarjetas**; antes estaba escrito a mano y decía «2 aprobadas» con 21 fotos adentro.
 - La lista de pendientes quedó solo con lo que **de verdad falta**, con prioridad: prendas nuevas puestas, precinto con la marca nueva, camión con el vinilo nuevo, inspección en origen, plano general de Yiwu, acompañamiento en feria.
-- **Regla viva en:** `Banco de Fotos · DTD-Cargo.html` · Brand Book §09.
+- **Regla viva en:** `Banco de Fotos · DTD-Cargo.html` · Brand Book §09 (Sistema fotográfico).
 
 ---
 
@@ -588,7 +638,7 @@ El selector de destino tiene **178 ciudades** en tres estados, y el prototipo so
 - **No clavar cifras.** Las tarifas viven en la base de datos y se editan desde el ERP sin pasar por diseño. Un `PRECIO_M3 = 123.60` es el mismo error que el `LM_USD_PER_KM = 1` que reemplaza. El prototipo muestra el **mecanismo** — destino → tarifa por m³ → total — y cualquier número visible va marcado **como ejemplo**.
 - **Las 8 ciudades incluidas no se imprimen en pieza** sin consultar: es dato operativo que cambia. Por eso la ficha dice "un grupo de ciudades" en vez de enumerarlas.
 - **Aplicado en:** `pdf/Puerta a Puerta · A4.html` · `Servicios · DTD-Cargo.html` · `Tanda 1 · Arte Final` · `Gate 1 · Servicios · Cloud Design` · catálogo de WhatsApp del Brand Book · `Analisis · Web vs Catalogo WhatsApp.md`.
-- **Deuda abierta:** `calc/cbm-variants.jsx` sigue con el modelo por kilómetro (`LM_USD_PER_KM`, tabla de distancias, "descuento por cercanía"). Es **material de diseño desactualizado**, no producción — la calculadora real de `dtdcargo.com/tarifas` ya cobra por m³. Se reescribe espejando producción, no a ojo. En el ERP, `admin-routes.jsx` conserva `defaultRadiusKm` por ciudad: es el mismo modelo viejo sobreviviendo en producto.
+- **Deuda cerrada (2026-08-02):** `calc/cbm-variants.jsx` se migró al modelo por m³. Se borraron `LM_USD_PER_KM`, la tabla de distancias, `sedeDiscount` y las listas `CENTRAL`/`RESTO` del modelo por región. La tabla de 178 destinos vive en `calc/destinos.js` como **espejo, no como fuente**: los montos son ejemplo y en producción llegan por API. Los tres estados son ramas propias de la interfaz — incluida ($0, verde), con tarifa (m³ × tarifa desglosado) y sin tarifa («la cotiza tu asesor», ámbar).
 - **Regla viva en:** las 6 piezas listadas · esta entrada.
 
 ---
@@ -603,5 +653,30 @@ El selector de destino tiene **178 ciudades** en tres estados, y el prototipo so
 - **Por qué se repite:** el RIF se escribía a mano en cada pieza. Mientras siga siendo un literal duplicado, va a volver a divergir — el destino correcto es un solo dato en `ERPData` que todas las piezas lean.
 - **Las menciones al RIF viejo en `BRAND-DECISIONS.md`, `CHANGELOG.md` y el inventario de rebranding NO se borran:** describen el error corregido y son el registro de por qué las facturas anteriores a julio están mal.
 - **Regla viva en:** `CLAUDE.md` §Stack · BD-055 · esta entrada.
+
+---
+
+### BD-069 · Tipografías embebidas en los documentos de handoff · el generador de cotización pierde "DDP" del nombre
+- **Fecha:** 2026-08-02
+- **Tipo:** Normativo (adición) + corrección
+- **Estado:** Vigente
+- **Autorizado por:** el usuario
+- **Aplica a:** `Handoff v5.0/` · `cotizacion/Cotización · DTD-Cargo.html`.
+
+#### Las 5 tipografías viajan dentro del documento
+El paquete de handoff prometía «funcionan sin internet» y era **falso en dos de los tres documentos**: Brand Book y Manual pedían las tipografías a Google Fonts. Sin red, el navegador las reemplazaba por Arial o Helvetica — justo lo que el Manual prohíbe, y con 16% de desalineación en las láminas de tipografía.
+
+- **Solución:** `@font-face` con las fuentes en base64, dentro de cada HTML del handoff. **40 reglas, 1,29 MB.**
+- **Criterio de subset:** solo los rangos que el proyecto usa — **latin, latin-ext y CJK**. Se descartan cirílico, griego y vietnamita, que en el bundle completo (365 reglas) pesaban sin servir a nada.
+- **Dónde se obtuvieron:** el bundle de `ERP Studio Brand Book.html` ya las traía, pero referenciadas por **UUID contra un manifiesto interno**, no como data URI — por eso un grep de `data:font` daba cero. Hay que resolver los UUID contra el manifiesto para extraerlas.
+- **Alcance:** solo las copias de `Handoff v5.0/`. Los archivos de trabajo del proyecto siguen con Google Fonts, que es lo correcto para editar.
+
+#### "DDP" fuera del nombre de archivo (completa BD-050)
+BD-050 retiró la sigla del copy visible, pero `cotizacion/Cotización DDP · DTD-Cargo.html` la llevaba **en el nombre**, visible en la barra del navegador y en la tarjeta del Brand Hub. Renombrado a `Cotización · DTD-Cargo.html`, con los 3 punteros vivos actualizados (Brand Book, su copia de handoff, Brand Hub). Adentro también salieron el `<title>`, el rótulo del toolbar, «LCL DDP» del cotizador interno y «Total DDP» del bloque de totales.
+
+#### Nota de proceso · no se pudo convertir el banco a JPEG
+El objetivo era bajar el peso para lograr un archivo único bajo 30 MB. **No es posible con las herramientas del entorno:** `canvas.toBlob` y `canvas.toDataURL` no existen, y `saveFile(canvas)` escribe **PNG siempre**, ignorando la extensión — un `.jpg` así queda siendo un PNG más pesado que el original.
+Lo que sí se hizo: **reducir las 3 fotos más pesadas** (`humana-08`, `operacion-10`, `operacion-11`) de 1744×2336 a 896×1200. **De 15,8 a 6,3 MB — 9,5 MB menos**, el 36% del banco. Aun así el archivo único no entra: PNG sobre fotografía es el límite, y para superarlo hace falta convertir fuera del entorno.
+- **Regla viva en:** `Handoff v5.0/LÉEME.txt` · esta entrada.
 
 ---
