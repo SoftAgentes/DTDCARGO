@@ -39,6 +39,55 @@ delicado, son de hecho lo mejor del lote: 53–54 dB.
 **Para la próxima entrega: manden las fotos como WebP o JPEG de origen, no como
 PNG.** Es lo que hacía que el archivo no cerrara.
 
+### 1-bis · SEGUIMIENTO — enviar aparte
+
+> ⚠️ **Este bloque NO iba en el envío del 2026-08-02.** Se escribió después, al
+> encontrar por qué el book abría sin colores. Va como mensaje de seguimiento:
+> se puede copiar solo, desde acá hasta el final de esta sección.
+
+Encontramos por qué el book abría mal. Van con detalle porque son de su lado y
+se repiten entrega tras entrega.
+
+**a) El `· OFFLINE.html` no es autocontenido, y llegó idéntico tres veces.**
+Trae **70 marcadores** que su exportador debía sustituir:
+
+```html
+<img src="748fa065-2e49-…" data-bb-src="assets/photo-editorial/foo.jpg">
+```
+
+El `src` es un UUID de relleno; la ruta real está en `data-bb-src`. Sin
+sustituir, el navegador pide el UUID como ruta relativa y da 404 — el documento
+abre sin fotos, y las piezas cuyo texto claro va sobre una foto de fondo quedan
+ilegibles. **Fue lo que se veía como "problema de colores".**
+
+Comparamos por md5 los tres paquetes que nos mandaron: el archivo es **byte
+idéntico en los tres**. Sí actualizaron el Brand Book normal y el Manual, pero
+no el que se sirve. Vale la pena revisar por qué el build del OFFLINE no está
+tomando los cambios.
+
+**b) La hoja de tokens sale como `<link href="data:text/css;base64,…">`.**
+Cualquier CSP seria bloquea `data:` en `style-src` — la nuestra la bloqueó, y
+como esa hoja es el sistema de tokens, el documento perdió TODOS los colores de
+fondo. Carga bien en local y falla en producción, que es la peor combinación.
+**Emítanla como `<style>` inline.** Nosotros lo resolvemos decodificándola al
+empaquetar, pero en origen es una línea.
+
+**c) Los íconos de perfil se arman concatenando en JS**
+(`'brandbook-icons/' + id + '.png'`). Como la ruta no existe como cadena
+completa en ningún lado, ningún empaquetador la puede resolver — quedaban 15
+imágenes rotas. Si el `<img>` llevara la ruta literal en el HTML, se embeberían
+solas.
+
+**d) Dos fotos del banco son el mismo archivo.**
+`humana-03-feria-china.png` y `humana-07-feria-canton.png` tienen **el mismo
+md5**. BD-066 da de alta la de Cantón como la pieza que resolvía la categoría
+"Feria", que estaba vacía — pero es la misma imagen. El banco cree tener dos
+fotos de feria y tiene una.
+
+Y las dos son **WebP con extensión `.png`**. No rompe el navegador, que olfatea
+igual, pero sí la descarga: al diseñador le llega un `.png` que Photoshop o
+Illustrator se niegan a abrir.
+
 ### 2 · jszip · **falta la mitad**
 
 Dicen que el Brand Book nunca lo tuvo y que era solo el ERP Studio. En el
