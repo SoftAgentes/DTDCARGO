@@ -38,6 +38,19 @@
 --
 -- IDEMPOTENTE. `deleted_at is null` en el WHERE: correrla dos veces no cambia
 -- nada la segunda vez, y tampoco pisa la fecha de borrado original.
+--
+-- ⚠️ LA NOTA VA CON `like`, NO CON `=`, Y NO ES UN DESCUIDO. En el repo la
+-- migración 0005 siembra 'Camión chico…' con tilde, pero en PRODUCCIÓN la fila
+-- quedó como 'Camion chico…' SIN tilde — verificado contra el objeto el
+-- 1-ago-2026 antes de aplicar esto. Alguna aplicación histórica perdió el
+-- acento por el camino (misma familia que el lío de encoding que obligó al
+-- `-text` de .gitattributes en los .sql).
+--
+-- Con `=` esta migración habría matcheado CERO filas en prod y no habría hecho
+-- nada, en silencio: el gate la habría dado por aplicada y la tarifa de $650
+-- seguiría sugiriéndose. El `Cami%n` cubre las dos escrituras y hace que el
+-- archivo funcione igual en un schema reconstruido desde cero (con tilde) que
+-- en la base real (sin tilde).
 -- ============================================================================
 
 update public.rates r
@@ -49,5 +62,5 @@ update public.rates r
    and r.origin = 'Valencia'
    and r.destination = 'Maracaibo'
    and r.flat_rate = 650.00
-   and r.notes = 'Camión chico Valencia-Maracaibo'
+   and r.notes like 'Cami%n chico Valencia-Maracaibo'
    and r.deleted_at is null;

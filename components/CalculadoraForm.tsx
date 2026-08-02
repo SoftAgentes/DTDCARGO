@@ -13,6 +13,7 @@ import {
   cbmFromDimensions,
   whatsappTextFromCotizacion,
   coberturaDestino,
+  describirVolumenEnCajas,
   mensajeDestinoSinTarifa,
   mensajeDestinoSinCobertura,
   vecinaDeDestino,
@@ -112,7 +113,6 @@ export function CalculadoraForm({
   // Punto de cruce: CBM donde el cálculo iguala al mínimo. Derivado de la tarifa.
   // En consolidado queda en 0 (no hay piso) → el aviso que aplica es el de 1 m³.
   const crossoverCbm = baseRate > 0 ? minCharge / baseRate : 0;
-  const crossoverLabel = parseFloat(crossoverCbm.toFixed(4)).toString();
   const params = serverConfig ?? DEFAULT_PARAMS;
   // Consolidado: destino sintético (hasta puerto) → sin selector de ciudad y
   // sin recargo por distancia. DDP: catálogo de la DB o el array por default.
@@ -236,7 +236,10 @@ export function CalculadoraForm({
         ? { text: CONSOLIDADO_MIN_CBM_MENSAJE, tone: "danger" }
         : effectiveCbm > 0 && effectiveCbm < crossoverCbm
           ? {
-              text: `Nuestro mínimo de carga es ${crossoverLabel} m³ — por debajo, el envío sale $${minCharge}.`,
+              // El punto de cruce se sigue calculando igual (piso ÷ tarifa),
+              // pero se DICE en cajas. "0.0625 m³" no le dice nada a nadie: el
+              // cliente no sabe si es mucho o poco ni qué hacer con el dato.
+              text: `Nuestro mínimo son ${describirVolumenEnCajas(crossoverCbm)} — por debajo, el envío sale $${minCharge}.`,
               tone: "info",
             }
           : null;

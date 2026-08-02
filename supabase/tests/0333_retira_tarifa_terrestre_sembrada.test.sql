@@ -14,6 +14,7 @@
 --   S3 · Sólo se borra UNA fila: ninguna vecina cae de arrastre.
 --   S4 · La misma fila en OTRO tenant no se toca — el WHERE clava slug 'dtd'.
 --   S5 · Idempotente: correrla dos veces no repisa el `deleted_at` original.
+--   S6 · Funciona con la nota SIN TILDE — como está de verdad en producción.
 --
 -- Se hace `\ir` de la 0005 REAL en vez de copiar el seed: si alguien cambia esa
 -- fila sembrada, este test tiene que enterarse.
@@ -306,5 +307,35 @@ begin
   end if;
 end
 $s5$;
+
+-- ═════════════════════════════════════════════════════════════
+-- S6 · funciona con la nota SIN TILDE, que es como está en producción
+--
+-- ⚠️ Esto no es teórico: se sondeó la base real el 1-ago-2026 antes de aplicar
+-- la migración y la fila decía 'Camion chico Valencia-Maracaibo' — sin tilde —
+-- mientras que 0005 la siembra CON tilde. Con un `=` la migración habría
+-- matcheado cero filas en prod y no habría hecho nada, en silencio.
+--
+-- Se revive la fila con la escritura de producción y se vuelve a correr: si
+-- alguien cambia el `like` por un `=`, este escenario se pone rojo.
+-- ═════════════════════════════════════════════════════════════
+update public.rates
+   set deleted_at = null,
+       notes = 'Camion chico Valencia-Maracaibo'
+ where deleted_at is not null;
+
+\ir ../migrations/0333_retira_tarifa_terrestre_sembrada.sql
+
+do $s6$
+declare v_borradas int;
+begin
+  select count(*) into v_borradas from public.rates where deleted_at is not null;
+  if v_borradas <> 1 then
+    raise exception
+      'S6: con la nota SIN TILDE (la de producción) se borraron % filas, se esperaba 1 — el filtro de la nota no tolera el encoding real',
+      v_borradas;
+  end if;
+end
+$s6$;
 
 rollback;
