@@ -41,6 +41,14 @@ type SeedAsset = {
   subtitle: string;
   kind: string;
   mime: string;
+  /**
+   * Fondo de la miniatura (migr 0335). Se declara acá porque el sembrador SÍ
+   * sabe cuál es cada variante — dejarlo en `auto` haría que las versiones
+   * claras del isólogo se pintaran sobre papel blanco y se vieran vacías.
+   */
+  tile: "auto" | "light" | "dark" | "checker";
+  width?: number;
+  height?: number;
 };
 
 const ASSETS: SeedAsset[] = [
@@ -52,6 +60,9 @@ const ASSETS: SeedAsset[] = [
     subtitle: "Fondos claros · paper, blanco",
     kind: "logo",
     mime: "image/png",
+    tile: "light",
+    width: 741,
+    height: 764,
   },
   {
     section: "logos",
@@ -61,6 +72,9 @@ const ASSETS: SeedAsset[] = [
     subtitle: "Fondos oscuros · navy, sidebar",
     kind: "logo",
     mime: "image/png",
+    tile: "dark",
+    width: 741,
+    height: 764,
   },
   {
     section: "logos",
@@ -70,6 +84,9 @@ const ASSETS: SeedAsset[] = [
     subtitle: "Sobre wine · CTAs, alertas",
     kind: "logo",
     mime: "image/png",
+    tile: "dark",
+    width: 741,
+    height: 764,
   },
   {
     section: "logos",
@@ -79,42 +96,53 @@ const ASSETS: SeedAsset[] = [
     subtitle: "B&N · sello, imprenta",
     kind: "logo",
     mime: "image/png",
+    tile: "light",
+    width: 741,
+    height: 764,
   },
   {
     section: "logos",
     source: "public/brand/og-image.png",
     filename: "og-image.png",
     title: "OG image",
-    subtitle: "1200×630 · redes y previews de link",
+    subtitle: "Redes y previews de link",
     kind: "fondo",
     mime: "image/png",
+    tile: "light",
+    width: 1200,
+    height: 630,
   },
   {
     section: "logos",
     source: "public/brand/favicon-32.png",
     filename: "favicon-32.png",
     title: "Favicon",
-    subtitle: "32×32 · pestaña del navegador",
+    subtitle: "Pestaña del navegador",
     kind: "icono",
     mime: "image/png",
+    tile: "light",
+    width: 32,
+    height: 32,
   },
   {
     section: "iconos",
     source: "public/brand/container.svg",
     filename: "container.svg",
     title: "Contenedor",
-    subtitle: "SVG · ilustración de contenedor",
+    subtitle: "Ilustración de contenedor",
     kind: "icono",
     mime: "image/svg+xml",
+    tile: "light",
   },
   {
     section: "iconos",
     source: "public/brand/dtdcargo-dimensions-box.svg",
     filename: "dtdcargo-dimensions-box.svg",
     title: "Caja con dimensiones",
-    subtitle: "SVG · usado por la calculadora de CBM",
+    subtitle: "Usado por la calculadora de CBM",
     kind: "icono",
     mime: "image/svg+xml",
+    tile: "light",
   },
   {
     section: "brand-book",
@@ -124,6 +152,7 @@ const ASSETS: SeedAsset[] = [
     subtitle: "Documento maestro · HTML autocontenido",
     kind: "documento",
     mime: "text/html",
+    tile: "light",
   },
 ];
 
@@ -180,7 +209,7 @@ async function main() {
   const sectionBySlug = new Map(sections.map((s) => [s.slug, s.id]));
 
   let subidos = 0;
-  let saltados = 0;
+  let actualizados = 0;
   const faltantes: string[] = [];
 
   for (const asset of ASSETS) {
@@ -206,8 +235,27 @@ async function main() {
       .eq("storage_path", storagePath)
       .is("deleted_at", null)
       .maybeSingle<{ id: string }>();
+
     if (existing) {
-      saltados++;
+      // Ya está: no se re-sube el binario, pero SÍ se refrescan los metadatos de
+      // los que este archivo es la fuente de verdad. Sin esto, las filas
+      // sembradas antes de la migr 0335 se quedarían para siempre en
+      // `tile = 'auto'` y sin dimensiones — el sembrador saltaría en silencio y
+      // el logo claro seguiría invisible sobre papel blanco.
+      const { error: updateError } = await db
+        .from("brand_assets")
+        .update({
+          tile: asset.tile,
+          width: asset.width ?? null,
+          height: asset.height ?? null,
+          subtitle: asset.subtitle,
+        })
+        .eq("id", existing.id);
+      if (updateError) {
+        faltantes.push(`${asset.filename} (DB update: ${updateError.message})`);
+        continue;
+      }
+      actualizados++;
       continue;
     }
 
@@ -229,6 +277,9 @@ async function main() {
       storage_path: storagePath,
       mime: asset.mime,
       bytes: bytes.byteLength,
+      tile: asset.tile,
+      width: asset.width ?? null,
+      height: asset.height ?? null,
     });
     if (insertError) {
       // Se limpia el objeto para no dejar un binario huérfano en el bucket.
@@ -242,7 +293,7 @@ async function main() {
   }
 
   console.log(
-    `\nCatálogo de marca: ${subidos} subido(s), ${saltados} ya estaba(n).`,
+    `\nCatálogo de marca: ${subidos} subido(s), ${actualizados} actualizado(s).`,
   );
   if (faltantes.length > 0) {
     // Se reporta y se sale en error: un seed "verde" al que le faltó la mitad

@@ -58,6 +58,12 @@ export const SHADOWS = {
   cardHover: "0 4px 8px rgba(15,30,61,0.10), 0 12px 24px rgba(15,30,61,0.14), 0 32px 60px -18px rgba(15,30,61,0.32)",
   /** Sombra para cards sobre fondo navy */
   cardOnDark: "inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 20px rgba(0,0,0,0.32), 0 24px 60px -20px rgba(0,0,0,0.5)",
+  /**
+   * Barra fija al pie (SDD-0238: la de selección del centro de marca). Proyecta
+   * hacia ARRIBA — `card` apunta al revés y deja la barra pegada visualmente al
+   * contenido que tapa.
+   */
+  barUp: "0 -8px 24px -12px rgba(15,30,61,0.28)",
 } as const;
 
 /**

@@ -28,9 +28,16 @@ export function SectionNav({
   items,
   /** Alto del header bajo el que se pega. Cada superficie tiene el suyo. */
   stickyTop = "63px",
+  /**
+   * `true` cuando el llamador ya provee la barra fija y el contenedor `.wrap`
+   * (es el caso de `/marca`, que comparte esa barra con el buscador). Sin esto
+   * habría dos fondos, dos bordes y dos `sticky` peleándose.
+   */
+  embedded = false,
 }: {
   items: NavItem[];
   stickyTop?: string;
+  embedded?: boolean;
 }) {
   const [active, setActive] = useState<string>("");
   const navRef = useRef<HTMLElement>(null);
@@ -87,10 +94,16 @@ export function SectionNav({
     <nav
       ref={navRef}
       aria-label="Secciones del centro de marca"
-      className="sticky z-20 bg-paper border-b border-grey-200"
-      style={{ top: stickyTop }}
+      className={embedded ? "" : "sticky z-20 bg-paper border-b border-grey-200"}
+      style={embedded ? undefined : { top: stickyTop }}
     >
-      <div className="wrap flex gap-1 overflow-x-auto py-2.5">
+      <div
+        className={
+          embedded
+            ? "flex gap-1 overflow-x-auto"
+            : "wrap flex gap-1 overflow-x-auto py-2.5"
+        }
+      >
         {items.map((it) => {
           const isActive = active === it.id;
           return (

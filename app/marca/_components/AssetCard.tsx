@@ -1,63 +1,97 @@
+"use client";
+
 /**
  * Ficha de un archivo descargable del catálogo (SDD-0238).
  *
- * Server component: no tiene estado. La miniatura sale de
- * `/api/marca/download/<id>?preview=1`, que sólo sirve inline los rasters
- * (PNG/JPG/WEBP/GIF); todo lo demás cae al bloque de extensión, que además es lo
- * que un diseñador quiere ver de un .AI o un .OTF.
+ * TRES COSAS QUE UN DISEÑADOR MIRA ANTES DE BAJAR: qué es (miniatura), en qué
+ * formato y a qué tamaño (`SVG · 741 × 764 · 38 KB`), y si le sirve. Por eso la
+ * línea técnica va en mono y completa — la versión anterior sólo decía formato y
+ * peso, y las dimensiones había que averiguarlas descargando.
+ *
+ * La miniatura sale de `/api/marca/download/<id>?preview=1`, que sólo sirve
+ * inline los rasters; todo lo demás cae al bloque de extensión, que para un .AI
+ * o un .OTF es justamente lo informativo.
+ *
+ * El fondo lo decide `tile` (migr 0335), no el nombre del archivo.
  */
 
 import { DownloadIcon } from "@/components/Icon";
 import {
   extensionOf,
   formatBytes,
+  formatDimensions,
   kindLabel,
+  tileBackground,
   type BrandAsset,
 } from "@/lib/marca/catalog-types";
 
 const RASTER = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
 
-/**
- * Fondo de la miniatura. Un logo en versión clara sobre papel blanco es un
- * cuadro vacío — los que dicen ser inversos/mono-light se muestran sobre navy.
- */
-function tileBackground(asset: BrandAsset): string {
-  const name = `${asset.title} ${asset.storagePath}`.toLowerCase();
-  const onDark = /revers|mono-light|mono light|inverso|blanco|light/.test(name);
-  return onDark ? "var(--color-ink)" : "var(--color-paper)";
-}
-
-export function AssetCard({ asset }: { asset: BrandAsset }) {
+export function AssetCard({
+  asset,
+  selected,
+  onToggle,
+}: {
+  asset: BrandAsset;
+  selected: boolean;
+  onToggle: (id: string) => void;
+}) {
   const ext = extensionOf(asset.storagePath);
-  const size = formatBytes(asset.bytes);
-  const meta = [ext, size].filter(Boolean).join(" · ");
+  const meta = [ext, formatDimensions(asset.width, asset.height), formatBytes(asset.bytes)]
+    .filter(Boolean)
+    .join(" · ");
   const isRaster = asset.mime != null && RASTER.has(asset.mime);
+  const checkboxId = `sel-${asset.id}`;
 
   return (
-    <div className="rounded-[16px] border border-grey-200 bg-white overflow-hidden flex flex-col">
-      <div
-        className="h-[132px] grid place-items-center border-b border-grey-200 p-5"
-        style={{ background: tileBackground(asset) }}
-      >
-        {isRaster ? (
-          /* La fuente es una URL firmada que caduca en 60 s: el optimizador de
-             next/image la cachearía por más tiempo del que vive, y `remotePatterns`
-             sólo habilita los objetos PÚBLICOS de Storage, no los firmados. */
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={`/api/marca/download/${asset.id}?preview=1`}
-            alt={asset.title}
-            loading="lazy"
-            className="max-h-full max-w-full object-contain"
+    <div
+      className="rounded-[16px] border bg-white overflow-hidden flex flex-col transition-colors"
+      style={{
+        borderColor: selected ? "var(--color-wine)" : "var(--color-grey-200)",
+        boxShadow: selected ? "0 0 0 1px var(--color-wine)" : undefined,
+      }}
+    >
+      <div className="relative">
+        <div
+          className="h-[132px] grid place-items-center border-b border-grey-200 p-5"
+          style={{ background: tileBackground(asset) }}
+        >
+          {isRaster ? (
+            /* URL firmada que caduca en 60 s: el optimizador de next/image la
+               cachearía más de lo que vive, y `remotePatterns` sólo habilita los
+               objetos PÚBLICOS de Storage, no los firmados. */
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={`/api/marca/download/${asset.id}?preview=1`}
+              alt={asset.title}
+              loading="lazy"
+              className="max-h-full max-w-full object-contain"
+            />
+          ) : (
+            <span
+              className="text-[26px] font-bold text-grey-500"
+              style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
+            >
+              {ext ?? "?"}
+            </span>
+          )}
+        </div>
+
+        {/* La casilla va SOBRE la miniatura: el objetivo de toque es toda la
+            esquina, no un cuadrito de 14px perdido en el pie de la ficha. */}
+        <label
+          htmlFor={checkboxId}
+          className="absolute top-2.5 left-2.5 flex items-center gap-2 cursor-pointer rounded-[10px] bg-white/95 border border-grey-200 px-2.5 py-1.5 text-[12px] font-semibold text-ink select-none hover:border-ink"
+        >
+          <input
+            id={checkboxId}
+            type="checkbox"
+            checked={selected}
+            onChange={() => onToggle(asset.id)}
+            className="w-4 h-4 accent-[var(--color-wine)] cursor-pointer"
           />
-        ) : (
-          <span
-            className="text-[26px] font-bold text-grey-500"
-            style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
-          >
-            {ext ?? "?"}
-          </span>
-        )}
+          <span className="sr-only sm:not-sr-only">{selected ? "Elegido" : "Elegir"}</span>
+        </label>
       </div>
 
       <div className="flex items-center justify-between gap-3 p-4 flex-1">

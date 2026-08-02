@@ -61,14 +61,18 @@ Las secciones son **datos**: agregar "Iconografía" no es un deploy.
   **es** el control de acceso.
 - **Dos llaves, una puerta**: la sesión del ERP también entra, sin código.
 
-### 3. Descargas por sección
+### 3. Descargas — tres caminos
 
 - `/api/marca/download/[assetId]` — URL firmada de 60 s, `Content-Disposition:
   attachment` siempre (un `.svg` inline sería XSS almacenado en nuestro origen).
   `?preview=1` sólo para rasters, para la miniatura.
-- `/api/marca/bundle/[section]` — zip al vuelo de una sección o de `todo`.
-  Si algún archivo no se pudo leer, el zip trae un `_FALTANTES.txt` que los
-  nombra: el zip viejo (`/interno/marca/d/[bundle]`) **se los comía en silencio**.
+- `/api/marca/bundle/[section]` — zip de una sección o de `todo`.
+- `/api/marca/seleccion?ids=…` — **zip de lo que el visitante marcó**. Es el
+  "escoge qué quiere bajar" del encargo.
+
+Los tres comparten el armado (`lib/marca/zip.ts`). Si algún archivo no se pudo
+leer, el zip trae un `_FALTANTES.txt` que los nombra: el zip viejo
+(`/interno/marca/d/[bundle]`) **se los comía en silencio**.
 
 ### 4. Administración en el ERP
 
@@ -130,6 +134,32 @@ founder pone el suyo desde Studio › Marketing › HUB de marca.
 - `lib/shared/__tests__/signed-token.test.ts` — round-trip, token opaco, y que un
   token sellado para un propósito no abre con otro AAD.
 
+## Rediseño de la experiencia (2026-08-01, misma jornada)
+
+Revisado el resultado con el founder, la primera versión **no cumplía la parte
+central del encargo**: "el usuario lo puede leer, **escoge qué quiere bajar** y
+lo descarga". Había descarga de a uno y de sección completa, y nada en el medio.
+Ocho cambios, todos aprobados:
+
+| # | Cambio | Cómo estaba | Por qué |
+|---|---|---|---|
+| 1 | **Selección múltiple** + barra flotante con conteo y peso | sólo de a uno o sección entera | quien quería 3 cosas de 3 secciones bajaba 3 paquetes |
+| 2 | El zip de sección sube al **encabezado** | al final de la grilla | con 30 archivos hay que recorrer todo para descubrir que existe |
+| 3 | El vacío se lee como **promesa** | "Todavía no hay archivos cargados" | 3 de 8 secciones están vacías; el founder pidió **mostrarlas** (mapa completo), no esconderlas |
+| 4 | **Buscador** en vivo, insensible a acentos | no había | a 60 archivos, sin filtro vuelven a pedir por WhatsApp |
+| 5 | Ficha con **dimensiones** y fondo real (migr **0335**) | `PNG · 38 KB` | ver abajo — arregla un bug |
+| 6 | Brand Book como **tarjeta**, no iframe | `<iframe>` de 13,5 MB en la primera sección | en el teléfono el scroll se peleaba entre iframe y página |
+| 7 | **"Preparando…"** en los zip | click y silencio | el zip se arma al vuelo; sin señal la gente clickea dos veces |
+| 8 | Encabezado **compacto** con el dato útil | titular a pantalla casi completa | quien abre el link ya sabe qué es: se lo dijeron con el código |
+
+**El bug que arregla el 5.** El fondo de la miniatura lo decidía una **expresión
+regular sobre el nombre del archivo** (`/revers|mono-light|inverso/`). Un archivo
+llamado "Marca en negativo.png" no matchea → el logo blanco se pinta sobre papel
+blanco y el diseñador ve un recuadro vacío. Adivinar por el nombre no es un
+mecanismo. La migración 0335 agrega `tile` (`auto | light | dark | checker`),
+elegible al subir, y `width`/`height`. `tile = 'auto'` conserva la heurística
+para las filas viejas, así que nada cambia de golpe.
+
 ## Bitácora
 
 - **2026-08-01** — spec + migración 0334 + gate + `/marca` + administración en el
@@ -137,3 +167,10 @@ founder pone el suyo desde Studio › Marketing › HUB de marca.
   condición ingenua `fallos >= 3`, del tercer fallo en adelante **cada** intento
   volvía a bloquear 5 minutos y el visitante quedaba con un intento por ventana.
   El bloqueo se dispara sólo cuando el fallo cierra un tramo de 3.
+- **2026-08-01** — 0334 aplicada a prod (OK del founder nombrándola), verificada
+  contra el objeto; catálogo sembrado con 9 archivos; publicado en `main`.
+- **2026-08-01** — rediseño de los 8 puntos de arriba + migración **0335**.
+  El sembrador pasó a **actualizar** las filas que ya existen y no sólo saltarlas:
+  si no, las 9 sembradas antes de 0335 se quedaban para siempre en `tile='auto'`
+  y sin dimensiones — habría saltado en silencio y el logo claro habría seguido
+  invisible sobre papel blanco.

@@ -1005,6 +1005,14 @@
   97% { transform: translateX(-1px); }
 }
 
+/* Spinner del centro de marca (SDD-0238): el .zip se arma al vuelo en el
+   servidor y tarda; sin señal el usuario clickea dos veces. El reset global de
+   prefers-reduced-motion (más abajo) lo detiene — el texto "Preparando…" queda
+   igual, que es lo que de verdad informa. */
+@keyframes marca-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ──────────────────────────────────────────────────────────────────
    FAB Instagram — secundario, aparece arriba del WA al expandir el menú.
    Anim "born from dot": transform-origin bottom-right + translate(5,7) lo posiciona

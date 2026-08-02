@@ -18,7 +18,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
-import { isBrandAssetKind } from "@/lib/marca/catalog-types";
+import { isBrandAssetKind, isBrandTile } from "@/lib/marca/catalog-types";
 
 const BUCKET = "brand-assets";
 
@@ -77,6 +77,9 @@ export async function uploadBrandAssetAction(
   const titleRaw = formData.get("title");
   const subtitleRaw = formData.get("subtitle");
   const kindRaw = formData.get("kind");
+  const tileRaw = formData.get("tile");
+  const widthRaw = formData.get("width");
+  const heightRaw = formData.get("height");
 
   if (!(file instanceof File) || file.size === 0) {
     return { error: "Elige un archivo." };
@@ -96,6 +99,22 @@ export async function uploadBrandAssetAction(
     typeof subtitleRaw === "string" && subtitleRaw.trim().length > 0
       ? subtitleRaw.trim()
       : null;
+  const tile = typeof tileRaw === "string" && isBrandTile(tileRaw) ? tileRaw : "auto";
+
+  /**
+   * Las dimensiones las lee el NAVEGADOR (naturalWidth/naturalHeight) y llegan
+   * como campos del formulario — leerlas en el servidor exigiría una
+   * dependencia de decodificación de imágenes para un dato cosmético. Al venir
+   * del cliente son manipulables, así que se sanean acá; el CHECK de la migr
+   * 0335 es el backstop. Si no son válidas → null y la ficha no las muestra.
+   */
+  const dimension = (raw: FormDataEntryValue | null): number | null => {
+    if (typeof raw !== "string" || raw.trim() === "") return null;
+    const n = Number.parseInt(raw, 10);
+    return Number.isFinite(n) && n > 0 && n <= 100_000 ? n : null;
+  };
+  const width = dimension(widthRaw);
+  const height = dimension(heightRaw);
 
   // La sección tiene que ser del MISMO tenant. Sin esto, un formulario
   // manipulado colgaría el archivo de la sección de otro — el FK compuesto de la
@@ -138,6 +157,9 @@ export async function uploadBrandAssetAction(
     storage_path: storagePath,
     mime: file.type || null,
     bytes: file.size,
+    width,
+    height,
+    tile,
   });
   if (insertError) {
     await admin.storage.from(BUCKET).remove([storagePath]);

@@ -17,9 +17,12 @@ import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import {
   BRAND_ASSET_KINDS,
+  BRAND_TILES,
   extensionOf,
   formatBytes,
+  formatDimensions,
   kindLabel,
+  tileLabel,
   type BrandSection,
 } from "@/lib/marca/catalog-types";
 import {
@@ -47,6 +50,35 @@ export function BrandCatalogManager({ sections }: { sections: BrandSection[] }) 
   const [openSection, setOpenSection] = useState<string | null>(
     sections.find((s) => s.assets.length > 0)?.slug ?? sections[0]?.slug ?? null,
   );
+
+  /**
+   * Dimensiones del archivo elegido, leídas EN EL NAVEGADOR (migr 0335).
+   *
+   * Se leen acá y no en el servidor porque decodificar imágenes del lado del
+   * server exigiría una dependencia nueva para un dato cosmético. Viajan en dos
+   * campos ocultos; la action las sanea y el CHECK de la migración es el
+   * backstop. Si el archivo no es una imagen que el navegador sepa medir (un
+   * .AI, una fuente, un SVG sin dimensiones), quedan nulas y la ficha
+   * simplemente no las muestra.
+   */
+  const [dims, setDims] = useState<{ w: number; h: number } | null>(null);
+
+  function readDimensions(file: File | undefined) {
+    setDims(null);
+    if (!file || !file.type.startsWith("image/")) return;
+    const url = URL.createObjectURL(file);
+    const img = new window.Image();
+    img.onload = () => {
+      if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+        setDims({ w: img.naturalWidth, h: img.naturalHeight });
+      }
+      URL.revokeObjectURL(url);
+    };
+    // Un SVG sin width/height intrínsecos no carga acá — es el caso esperado
+    // de "no se pudo medir", no un error que valga la pena mostrar.
+    img.onerror = () => URL.revokeObjectURL(url);
+    img.src = url;
+  }
 
   const total = sections.reduce((n, s) => n + s.assets.length, 0);
 
@@ -82,7 +114,21 @@ export function BrandCatalogManager({ sections }: { sections: BrandSection[] }) 
               required
               className="studio-input"
               style={{ padding: "8px 10px" }}
+              onChange={(e) => readDimensions(e.target.files?.[0])}
             />
+            {dims && (
+              <p
+                style={{
+                  font: "400 11.5px/1.4 var(--f-mono)",
+                  color: "var(--ink-soft)",
+                  margin: "4px 0 0",
+                }}
+              >
+                {dims.w} × {dims.h} px
+              </p>
+            )}
+            <input type="hidden" name="width" value={dims?.w ?? ""} />
+            <input type="hidden" name="height" value={dims?.h ?? ""} />
           </div>
 
           <div style={{ flex: "0 1 190px" }}>
@@ -132,9 +178,25 @@ export function BrandCatalogManager({ sections }: { sections: BrandSection[] }) 
               id="ba-subtitle"
               name="subtitle"
               className="studio-input"
-              placeholder="Ej: 1080×1080 · Instagram"
+              placeholder="Ej: para Instagram"
               maxLength={120}
             />
+          </div>
+
+          {/* Fondo de la miniatura (migr 0335). Antes se adivinaba por el NOMBRE
+              del archivo: un "logo para fondo oscuro.png" no matcheaba y el logo
+              blanco se pintaba sobre papel blanco — un recuadro vacío. */}
+          <div style={{ flex: "0 1 170px" }}>
+            <label className="studio-label" htmlFor="ba-tile">
+              Se ve sobre
+            </label>
+            <select id="ba-tile" name="tile" className="studio-input" defaultValue="auto">
+              {BRAND_TILES.map((t) => (
+                <option key={t} value={t}>
+                  {tileLabel(t)}
+                </option>
+              ))}
+            </select>
           </div>
 
           <button
@@ -260,6 +322,7 @@ export function BrandCatalogManager({ sections }: { sections: BrandSection[] }) 
                       section.assets.map((asset) => {
                         const meta = [
                           extensionOf(asset.storagePath),
+                          formatDimensions(asset.width, asset.height),
                           formatBytes(asset.bytes),
                           kindLabel(asset.kind),
                         ]

@@ -27,6 +27,7 @@ import { Icon } from "@/app/studio/_components/icons";
 import { BRAND_BOOK_VERSION } from "@/lib/marca/brand-book";
 import {
   isBrandAssetKind,
+  isBrandTile,
   type BrandSection,
 } from "@/lib/marca/catalog-types";
 import { BrandAccessPanel } from "./_components/BrandAccessPanel";
@@ -44,6 +45,9 @@ type AssetRow = {
   kind: string;
   mime: string | null;
   bytes: number | null;
+  width: number | null;
+  height: number | null;
+  tile: string | null;
   storage_path: string;
 };
 
@@ -61,7 +65,9 @@ export default async function MarketingHubPage() {
         .returns<SectionRow[]>(),
       supabase
         .from("brand_assets")
-        .select("id, section_id, title, subtitle, kind, mime, bytes, storage_path")
+        .select(
+          "id, section_id, title, subtitle, kind, mime, bytes, width, height, tile, storage_path",
+        )
         .eq("is_active", true)
         .is("deleted_at", null)
         .order("sort_order", { ascending: true })
@@ -86,6 +92,9 @@ export default async function MarketingHubPage() {
       kind: isBrandAssetKind(row.kind) ? row.kind : "documento",
       mime: row.mime,
       bytes: row.bytes,
+      width: row.width,
+      height: row.height,
+      tile: isBrandTile(row.tile) ? row.tile : "auto",
       storagePath: row.storage_path,
     });
     bySection.set(row.section_id, list);

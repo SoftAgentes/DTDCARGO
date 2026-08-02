@@ -14,9 +14,14 @@ import "server-only";
 import { createAdminClient } from "@/lib/db/admin";
 import {
   isBrandAssetKind,
+  isBrandTile,
   type BrandAsset,
   type BrandSection,
 } from "./catalog-types";
+
+/** Columnas del catálogo. Una sola lista: las tres consultas leen lo mismo. */
+const ASSET_COLUMNS =
+  "id, section_id, title, subtitle, kind, mime, bytes, width, height, tile, storage_path, sort_order";
 
 type SectionRow = {
   id: string;
@@ -34,6 +39,9 @@ type AssetRow = {
   kind: string;
   mime: string | null;
   bytes: number | null;
+  width: number | null;
+  height: number | null;
+  tile: string | null;
   storage_path: string;
   sort_order: number;
 };
@@ -43,11 +51,14 @@ function toAsset(row: AssetRow): BrandAsset {
     id: row.id,
     title: row.title,
     subtitle: row.subtitle,
-    // Un `kind` fuera del enum sólo puede venir de un CHECK relajado a mano;
-    // degradamos a "documento" en vez de romper la página entera.
+    // Un `kind`/`tile` fuera del enum sólo puede venir de un CHECK relajado a
+    // mano; degradamos en vez de romper la página entera.
     kind: isBrandAssetKind(row.kind) ? row.kind : "documento",
     mime: row.mime,
     bytes: row.bytes,
+    width: row.width,
+    height: row.height,
+    tile: isBrandTile(row.tile) ? row.tile : "auto",
     storagePath: row.storage_path,
   };
 }
@@ -72,7 +83,7 @@ export async function loadBrandCatalog(tenantId: string): Promise<BrandSection[]
       .returns<SectionRow[]>(),
     admin
       .from("brand_assets")
-      .select("id, section_id, title, subtitle, kind, mime, bytes, storage_path, sort_order")
+      .select(ASSET_COLUMNS)
       .eq("tenant_id", tenantId)
       .eq("is_active", true)
       .is("deleted_at", null)
@@ -110,7 +121,7 @@ export async function findBrandAsset(
   const admin = createAdminClient();
   const { data } = await admin
     .from("brand_assets")
-    .select("id, section_id, title, subtitle, kind, mime, bytes, storage_path, sort_order")
+    .select(ASSET_COLUMNS)
     .eq("tenant_id", tenantId)
     .eq("id", assetId)
     .eq("is_active", true)
@@ -141,4 +152,31 @@ export async function assetsForBundle(
   const section = catalog.find((s) => s.slug === slug);
   if (!section) return null;
   return { label: section.slug, assets: section.assets };
+}
+
+/**
+ * Los assets de una selección explícita, para el zip que arma el visitante.
+ *
+ * Filtra por `tenant_id` además de por id: los ids llegan del navegador, y sin
+ * eso un id de otro tenant entraría al paquete. También descarta los que no
+ * existan o estén de baja en vez de fallar — la página pudo quedar abierta
+ * mientras Marketing quitaba un archivo.
+ */
+export async function assetsByIds(
+  tenantId: string,
+  ids: string[],
+): Promise<BrandAsset[]> {
+  if (ids.length === 0) return [];
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("brand_assets")
+    .select(ASSET_COLUMNS)
+    .eq("tenant_id", tenantId)
+    .in("id", ids)
+    .eq("is_active", true)
+    .is("deleted_at", null)
+    .order("sort_order", { ascending: true })
+    .returns<AssetRow[]>();
+
+  return (data ?? []).map(toAsset);
 }
