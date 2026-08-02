@@ -1,0 +1,25 @@
+{
+  "date": "2026-07-31",
+  "composite": 70,
+  "layers": {
+    "acceso": 70,
+    "datos_rls": 79,
+    "codigo": 77,
+    "plataforma": 84,
+    "privacidad": 30,
+    "continuidad": 79
+  },
+  "findings": { "critical": 0, "high": 7, "medium": 15, "low": 19 },
+  "coverage": {
+    "threatdb_run": "16/16",
+    "rls_tables": "230/231",
+    "api_routes_auth": "51/51",
+    "crons_secret": "14/14",
+    "buckets_private": "12/12",
+    "pnpm_audit": "7 high / 6 moderate / 1 low",
+    "supabase_advisors": "run (security+performance)"
+  },
+  "deep_layer": { "ran": false, "resilience_score": null },
+  "deploy_blocker": false,
+  "vps_blockers": ["M1 deployActions sin auth", "H7 backups no cubren Storage"]
+}
