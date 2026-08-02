@@ -5,7 +5,8 @@
  * NO pasan por el layout-guard, así que verifica `getUser()` acá mismo.
  *
  * Bundles: `logos` (4 isologos + OG + favicon) · `whatsapp` (las 2 herramientas +
- * el doc canónico + logos) · `todo` (todo lo anterior + el Brand Book).
+ * el doc canónico + logos) · `todo` (todo lo anterior). El Brand Book se bajó de
+ * acá cuando salió de git a Storage — se descarga desde `/marca`.
  *
  * Lee de disco (process.cwd()); para prod, `outputFileTracingIncludes` en
  * next.config incluye estos archivos en el bundle de la función.
@@ -50,19 +51,26 @@ const WHATSAPP: ReadonlyArray<BundleFile> = [
   ["logo-reverse.png", "brand", "dtdcargo-isologo-reverse.png"],
 ];
 
-const BRAND_BOOK: BundleFile = [
-  "brand-book-v4.6.html",
-  "marca",
-  "brand-book-v4.6.html",
-];
-
+/**
+ * El Brand Book YA NO VIAJA EN ESTOS PAQUETES (founder, 2026-08-02).
+ *
+ * Salió de git a Supabase Storage por peso (cada versión son 15-27 MB
+ * permanentes), así que acá no hay disco de dónde leerlo. Su descarga vive
+ * ahora en `/marca`, que lo baja del bucket — y de paso es la superficie que
+ * de verdad se comparte con diseño.
+ *
+ * Importa que esto quede explícito: el bucle de abajo se come en silencio los
+ * archivos que no encuentra, así que dejar la entrada apuntando a un archivo
+ * borrado no habría fallado — habría producido un "kit de marca" sin el Brand
+ * Book adentro, y nadie se entera hasta que el diseñador lo abre.
+ */
 const BUNDLES: Record<
   string,
   { filename: string; files: ReadonlyArray<BundleFile> }
 > = {
   logos: { filename: "dtd-logos", files: LOGOS },
   whatsapp: { filename: "dtd-whatsapp-business-services", files: WHATSAPP },
-  todo: { filename: "dtd-kit-de-marca", files: [...LOGOS, BRAND_BOOK, ...WHATSAPP] },
+  todo: { filename: "dtd-kit-de-marca", files: [...LOGOS, ...WHATSAPP] },
 };
 
 export async function GET(

@@ -12,6 +12,7 @@
 
 import "server-only";
 import { createAdminClient } from "@/lib/db/admin";
+import { BRAND_BOOK_STORAGE_NAME } from "./brand-book";
 import {
   isBrandAssetKind,
   isBrandTile,
@@ -126,6 +127,49 @@ export async function findBrandAsset(
     .eq("id", assetId)
     .eq("is_active", true)
     .is("deleted_at", null)
+    .maybeSingle<AssetRow>();
+
+  return data ? toAsset(data) : null;
+}
+
+/**
+ * El asset del Brand Book MAESTRO — el que abre a pantalla completa el visor.
+ *
+ * Busca dentro de la sección `brand-book` la fila cuya clave de Storage TERMINA
+ * en `BRAND_BOOK_STORAGE_NAME`. El sufijo, y no la igualdad, porque el HUB le
+ * antepone un timestamp a lo que sube; con igualdad, un book subido por la UI
+ * quedaría invisible para el visor aunque estuviera bien cargado.
+ *
+ * Devuelve `null` si no está cargado todavía — el visor lo traduce a un mensaje
+ * que dice qué hacer, en vez de un iframe en blanco.
+ */
+export async function findBrandBookAsset(
+  tenantId: string,
+): Promise<BrandAsset | null> {
+  const admin = createAdminClient();
+
+  const { data: section } = await admin
+    .from("brand_sections")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("slug", "brand-book")
+    .maybeSingle<{ id: string }>();
+  if (!section) return null;
+
+  const { data } = await admin
+    .from("brand_assets")
+    .select(ASSET_COLUMNS)
+    .eq("tenant_id", tenantId)
+    .eq("section_id", section.id)
+    .eq("is_active", true)
+    .is("deleted_at", null)
+    // `%` escapado: el nombre sale de una constante nuestra, pero un `_` o un `%`
+    // en un nombre de archivo convertiría el filtro en un comodín silencioso.
+    .like("storage_path", `%${BRAND_BOOK_STORAGE_NAME.replace(/[%_]/g, "\\$&")}`)
+    // Si hubiera dos (una subida vieja y una nueva con el mismo nombre), gana la
+    // más reciente: es la que Marketing acaba de publicar.
+    .order("created_at", { ascending: false })
+    .limit(1)
     .maybeSingle<AssetRow>();
 
   return data ? toAsset(data) : null;

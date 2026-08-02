@@ -18,13 +18,14 @@ import {
  * formulario del código (mandarlo al login del ERP le decía a un externo que
  * pidiera una cuenta que nadie le va a dar).
  *
- * El standalone ya NO vive en `public/` (era servible estático a cualquiera por
- * URL): está en `private/marca/` y lo sirve la ruta autenticada
- * `/marca/asset/brand-book`. Acá solo lo enmarcamos; el `<iframe>` viaja con las
+ * El standalone ya NO vive en git (pesa 15-27 MB por versión, y en git eso es
+ * permanente): está en el bucket privado `brand-assets` y lo sirve la ruta
+ * autenticada `/marca/asset/brand-book`, que lo lee de Storage y lo transmite
+ * desde nuestro origen. Acá solo lo enmarcamos; el `<iframe>` viaja con las
  * cookies del visitante.
  *
- * Versión y nombre de archivo salen de `lib/marca/brand-book.ts` — punto único
- * para el NORTE-SYNC.
+ * Versión y nombre del archivo maestro salen de `lib/marca/brand-book.ts` —
+ * punto único para el NORTE-SYNC.
  *
  * La CSP de `/marca/*` (next.config) está relajada SOLO para el standalone
  * (data:/blob: + inline/eval + Google Fonts).

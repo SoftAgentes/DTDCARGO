@@ -2,24 +2,36 @@
  * El Brand Book standalone vigente (SDD-0238).
  *
  * PUNTO ÚNICO DE ACTUALIZACIÓN. Cuando llega un book nuevo desde el Norte
- * (NORTE-SYNC):
- *   1. reemplazar el HTML en `private/marca/brand-book-vX.Y.html` y BORRAR el
- *      anterior — el vigente es UNO solo (gobernanza de marca v4.2);
- *   2. cambiar las dos constantes de acá.
+ * (NORTE-SYNC) se sube por **Studio › Marketing › HUB de marca** a la sección
+ * "Brand Book" y se cambian las dos constantes de acá. No hay que desplegar
+ * para publicarlo — el deploy sólo hace falta si cambia el NOMBRE del archivo
+ * maestro.
  *
- * Antes había que tocar además `app/marca/brand-book/page.tsx`, el mapa `ASSETS`
- * de `app/marca/asset/[name]/route.ts` y el hub de `/interno/marca` — cuatro
- * sitios que se desincronizaban entre sí. Ahora los tres leen de acá.
+ * EL BOOK YA NO VIVE EN GIT (founder, 2026-08-02). Vivía en
+ * `private/marca/brand-book-vX.Y.html`, y cada versión sumaba ~14-27 MB
+ * PERMANENTES al repo: git no olvida, así que el peso se acumulaba versión
+ * tras versión sobre un `.git` que ya iba en 172 MB. Ahora vive en el bucket
+ * privado `brand-assets`, igual que el resto del catálogo, y lo sirve
+ * `/marca/asset/brand-book` leyéndolo de Storage.
  *
- * ⚠️ Al 01-ago-2026 el vigente es **v4.6**. El **v5 está en Cloud Design y
- * todavía no bajó al repo**: cuando llegue, este archivo y el HTML son lo único
- * que cambia — el catálogo, el gate y las descargas son agnósticos de versión.
+ * POR QUÉ EL MAESTRO SE NOMBRA POR ARCHIVO Y NO POR ORDEN: el v5 son TRES
+ * documentos (Brand Book, ERP Studio Brand Book, Manual de Producción) y los
+ * tres conviven descargables en la misma sección. Sólo uno se abre a pantalla
+ * completa. Elegirlo por "el primero de la sección" lo dejaría a merced del
+ * orden de subida; nombrarlo acá lo hace explícito y revisable en el diff.
  */
 
-export const BRAND_BOOK_VERSION = "v4.6";
+export const BRAND_BOOK_VERSION = "v5.0";
 
-/** Nombre del archivo dentro de `private/marca/`. */
-export const BRAND_BOOK_FILE = "brand-book-v4.6.html";
+/**
+ * Nombre del archivo MAESTRO dentro de la sección `brand-book` del bucket.
+ *
+ * La búsqueda es por SUFIJO de la clave de Storage, no por igualdad: el HUB le
+ * antepone un timestamp a lo que sube (`…/brand-book/1754130000000-nombre.html`)
+ * para no pisar el archivo anterior. Sin el sufijo, un book subido por la UI
+ * sería invisible para el visor aunque estuviera perfectamente cargado.
+ */
+export const BRAND_BOOK_STORAGE_NAME = "brand-book-dtd-v5.0.html";
 
 /** Ruta autenticada que lo sirve (valida el gate de `/marca`). */
 export const BRAND_BOOK_URL = "/marca/asset/brand-book";

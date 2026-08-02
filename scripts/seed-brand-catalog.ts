@@ -2,10 +2,13 @@
  * Siembra el catálogo de marca (SDD-0238) con lo que YA existe en el repo.
  *
  * POR QUÉ EXISTE: la migración 0334 crea las secciones pero no puede crear
- * assets — los archivos actuales (los 4 isólogos, el OG, el favicon y el Brand
- * Book standalone) viven en `public/brand/` y `private/marca/`, o sea en git, y
- * una migración SQL no sube binarios a Storage. Sin este paso, `/marca` abre con
- * las secciones vacías el primer día, que es peor que lo que había.
+ * assets — los archivos actuales (los 4 isólogos, el OG, el favicon y los dos
+ * íconos) viven en `public/brand/`, o sea en git, y una migración SQL no sube
+ * binarios a Storage. Sin este paso, `/marca` abre con las secciones vacías el
+ * primer día, que es peor que lo que había.
+ *
+ * NO incluye el Brand Book: salió de git a Storage por peso. Ver
+ * `scripts/upload-brand-books.ts`.
  *
  * De acá en adelante los archivos se suben por la UI (Studio › Marketing › HUB).
  * Esto es sólo el arranque.
@@ -26,7 +29,6 @@ import { readFile } from "node:fs/promises";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
-import { BRAND_BOOK_FILE, BRAND_BOOK_VERSION } from "../lib/marca/brand-book";
 
 const BUCKET = "brand-assets";
 
@@ -144,16 +146,10 @@ const ASSETS: SeedAsset[] = [
     mime: "image/svg+xml",
     tile: "light",
   },
-  {
-    section: "brand-book",
-    source: `private/marca/${BRAND_BOOK_FILE}`,
-    filename: BRAND_BOOK_FILE,
-    title: `Brand Book DTD ${BRAND_BOOK_VERSION}`,
-    subtitle: "Documento maestro · HTML autocontenido",
-    kind: "documento",
-    mime: "text/html",
-    tile: "light",
-  },
+  // El Brand Book NO se siembra desde acá: salió de git a Storage por peso
+  // (founder 2026-08-02) y este script sólo sabe subir lo que está en el repo.
+  // Los books se cargan una vez con `scripts/upload-brand-books.ts` y de ahí en
+  // adelante por Studio › Marketing › HUB de marca.
 ];
 
 /** Carga `.env.local` si las variables no vienen ya del shell. */

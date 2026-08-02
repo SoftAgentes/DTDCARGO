@@ -151,13 +151,17 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/interno/marca/d/[bundle]": [
       "./public/brand/**",
-      "./private/marca/**",
+      "./private/marca/herramientas/**",
       "./docs/marketing/whatsapp-business.md",
     ],
-    // Visor autenticado del Brand Book + herramientas: los HTML se movieron a
-    // `private/marca/` (fuera de `public/`) y se sirven por fs.read en esta ruta;
-    // hay que trazarlos para que viajen en el bundle de la función en prod.
-    "/marca/asset/[name]": ["./private/marca/**"],
+    // Herramientas de WhatsApp: se sirven por fs.read desde
+    // `private/marca/herramientas/`, así que hay que trazarlas para que viajen
+    // en el bundle de la función en prod.
+    //
+    // Antes esto decía `./private/marca/**`, que arrastraba los 14 MB del Brand
+    // Book a DOS bundles de función. El book salió de git a Storage
+    // (founder 2026-08-02) y esta ruta lo lee del bucket, no del disco.
+    "/marca/asset/[name]": ["./private/marca/herramientas/**"],
     // Reportes de Bitácora (SDD-0146 · Fase 7): el acta/tareas embeben el isólogo
     // como data-URI leído de `public/brand/` por fs → trazarlo para prod (si el
     // fs falla, el reporte degrada al wordmark de texto, sin romper).
