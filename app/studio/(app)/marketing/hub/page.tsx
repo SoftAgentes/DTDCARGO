@@ -1,100 +1,111 @@
 /**
- * Marketing · HUB de marca (SDD-0119) — estructura + secciones V1.
+ * Marketing · HUB de marca — administración del centro de marca (SDD-0238).
  *
- * Repositorio de recursos de marca para el equipo de marketing:
- *   1. Logos          — los 4 isólogos oficiales, descargables (V1 real).
- *   2. Fondos/portadas — por red social (placeholder; assets pendientes).
- *   3. Plantillas      — de marca, incl. historias de TikTok (placeholder).
- *   4. Herramientas    — framework + utilidades (placeholder).
+ * QUÉ CAMBIÓ. Esta página listaba 4 PNG hardcodeados en el propio .tsx y tres
+ * tarjetas "Próximamente" (fondos, plantillas, herramientas) que llevaban dos
+ * meses sin contenido, porque agregar un archivo exigía un commit y un deploy.
+ * Ahora es la ADMINISTRACIÓN del catálogo real: se sube un archivo y aparece al
+ * instante en `/marca`, que es el link que se le pasa a diseño.
  *
- * Las muestras de logo se pintan sobre su fondo previsto (claro/oscuro). Los
- * tokens de marca `--color-paper/--color-ink` se invierten con el tema del
- * Studio (dark por default), así que acá se fijan los 2 colores CANÓNICOS de
- * BRAND.md (paper #FBFAF7 · navy #0F1E3D) SOLO en el tile — es el uso correcto
- * para una galería de assets, no un color inventado. El resto es token-puro.
+ * Las dos cosas que se hacen acá:
+ *   1. Poner el código de acceso de `/marca` (lo que pidió el founder) y copiar
+ *      el link para mandarlo.
+ *   2. Subir, ver y quitar los archivos del catálogo, por sección.
+ *
+ * Guard: `requireModuleView("marketing")` (RBAC SDD-0085) + `moduleEditDenial`
+ * dentro de cada action.
+ *
+ * Se lee con el cliente del USUARIO (no admin) a propósito: acá sí hay sesión,
+ * y así la RLS de `brand_sections`/`brand_assets` es la que decide. El admin
+ * client queda reservado para `/marca`, que es anónima.
  */
 
 import Link from "next/link";
-import Image from "next/image";
+import { createClient } from "@/lib/db/server";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 import { Icon } from "@/app/studio/_components/icons";
+import { BRAND_BOOK_VERSION } from "@/lib/marca/brand-book";
+import {
+  isBrandAssetKind,
+  type BrandSection,
+} from "@/lib/marca/catalog-types";
+import { BrandAccessPanel } from "./_components/BrandAccessPanel";
+import { BrandCatalogManager } from "./_components/BrandCatalogManager";
 
 export const metadata = { title: "HUB de marca · Marketing · DTD Studio" };
 export const dynamic = "force-dynamic";
 
-// Colores de marca canónicos (BRAND.md) para el fondo de cada muestra.
-const BRAND_PAPER = "#FBFAF7";
-const BRAND_NAVY = "#0F1E3D";
-
-type Logo = {
-  file: string;
-  label: string;
-  caption: string;
-  tile: string;
-  onDark: boolean;
-};
-
-const LOGOS: Logo[] = [
-  {
-    file: "/brand/dtdcargo-isologo-primary.png",
-    label: "Principal",
-    caption: "Color · sobre fondo claro",
-    tile: BRAND_PAPER,
-    onDark: false,
-  },
-  {
-    file: "/brand/dtdcargo-isologo-reverse.png",
-    label: "Inverso",
-    caption: "Color · sobre fondo oscuro o foto",
-    tile: BRAND_NAVY,
-    onDark: true,
-  },
-  {
-    file: "/brand/dtdcargo-isologo-mono-dark.png",
-    label: "Mono oscuro",
-    caption: "Monocromo · sobre fondo claro",
-    tile: BRAND_PAPER,
-    onDark: false,
-  },
-  {
-    file: "/brand/dtdcargo-isologo-mono-light.png",
-    label: "Mono claro",
-    caption: "Monocromo · sobre fondo oscuro",
-    tile: BRAND_NAVY,
-    onDark: true,
-  },
-];
-
-type Placeholder = {
-  eyebrow: string;
+type SectionRow = { id: string; slug: string; title: string; intro: string | null };
+type AssetRow = {
+  id: string;
+  section_id: string;
   title: string;
-  desc: string;
+  subtitle: string | null;
+  kind: string;
+  mime: string | null;
+  bytes: number | null;
+  storage_path: string;
 };
-
-const PLACEHOLDERS: Placeholder[] = [
-  {
-    eyebrow: "Fondos y portadas",
-    title: "Fondos y portadas por red",
-    desc: "Fondos de Facebook, portadas y formatos por red social. Se cargan acá para que descargues el que necesites al instante.",
-  },
-  {
-    eyebrow: "Plantillas",
-    title: "Plantillas de marca",
-    desc: "Plantillas listas para usar, incluidas las historias de TikTok. Te dan el cómo diseñar rápido sin ser diseñadora.",
-  },
-  {
-    eyebrow: "Herramientas",
-    title: "Framework y herramientas",
-    desc: "El framework de marca y las utilidades que se van sumando (motores de contenido, guías, checklists).",
-  },
-];
 
 export default async function MarketingHubPage() {
   await requireModuleView("marketing");
+  const supabase = await createClient();
+
+  const [{ data: sectionRows }, { data: assetRows }, { data: access }] =
+    await Promise.all([
+      supabase
+        .from("brand_sections")
+        .select("id, slug, title, intro")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .returns<SectionRow[]>(),
+      supabase
+        .from("brand_assets")
+        .select("id, section_id, title, subtitle, kind, mime, bytes, storage_path")
+        .eq("is_active", true)
+        .is("deleted_at", null)
+        .order("sort_order", { ascending: true })
+        .returns<AssetRow[]>(),
+      supabase
+        .from("brand_access")
+        .select("code_hash, session_days, updated_at")
+        .maybeSingle<{
+          code_hash: string | null;
+          session_days: number;
+          updated_at: string | null;
+        }>(),
+    ]);
+
+  const bySection = new Map<string, BrandSection["assets"]>();
+  for (const row of assetRows ?? []) {
+    const list = bySection.get(row.section_id) ?? [];
+    list.push({
+      id: row.id,
+      title: row.title,
+      subtitle: row.subtitle,
+      kind: isBrandAssetKind(row.kind) ? row.kind : "documento",
+      mime: row.mime,
+      bytes: row.bytes,
+      storagePath: row.storage_path,
+    });
+    bySection.set(row.section_id, list);
+  }
+
+  const sections: BrandSection[] = (sectionRows ?? []).map((s) => ({
+    id: s.id,
+    slug: s.slug,
+    title: s.title,
+    intro: s.intro,
+    assets: bySection.get(s.id) ?? [],
+  }));
+
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com").replace(
+    /\/$/,
+    "",
+  );
 
   return (
-    <div style={{ maxWidth: 1280 }}>
-      {/* Back link */}
+    <div style={{ maxWidth: 1100 }}>
       <div style={{ marginBottom: 20 }}>
         <Link
           href="/studio/marketing"
@@ -108,8 +119,7 @@ export default async function MarketingHubPage() {
         </Link>
       </div>
 
-      {/* Header */}
-      <div style={{ marginBottom: 28 }}>
+      <div style={{ marginBottom: 24 }}>
         <div
           className="studio-eyebrow"
           style={{ marginBottom: 10, color: "var(--wine-text)" }}
@@ -127,184 +137,62 @@ export default async function MarketingHubPage() {
             font: "400 14px/1.5 var(--f-sans)",
             color: "var(--ink-soft)",
             margin: 0,
-            maxWidth: "64ch",
+            maxWidth: "68ch",
           }}
         >
-          Todo lo de marca en un solo lugar: logos, fondos, plantillas y
-          herramientas. Descarga lo que necesites sin pedirlo.
+          Lo que cargues acá es lo que ve quien abra el centro de marca. Brand
+          Book {BRAND_BOOK_VERSION}.{" "}
+          <a
+            href="/marca"
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              color: "var(--wine-text)",
+              fontWeight: 600,
+              display: "inline-flex",
+              gap: 4,
+              alignItems: "center",
+            }}
+          >
+            Ver /marca {Icon.external(13)}
+          </a>
         </p>
       </div>
 
-      {/* Logos */}
-      <section style={{ marginBottom: 32 }}>
-        <h2 className="studio-eyebrow" style={{ margin: "0 0 var(--s-3)" }}>
-          Logos
-        </h2>
+      <BrandAccessPanel
+        isOpen={Boolean(access?.code_hash)}
+        updatedAt={access?.updated_at ?? null}
+        sessionDays={access?.session_days ?? 30}
+        shareUrl={`${siteUrl}/marca`}
+      />
+
+      {sections.length === 0 ? (
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-            gap: 14,
-          }}
-        >
-          {LOGOS.map((logo) => (
-            <div
-              key={logo.file}
-              style={{
-                border: "1px solid var(--border)",
-                borderRadius: 14,
-                background: "var(--bg-surface)",
-                overflow: "hidden",
-              }}
-            >
-              {/* Muestra sobre su fondo previsto */}
-              <div
-                style={{
-                  position: "relative",
-                  height: 132,
-                  background: logo.tile,
-                  borderBottom: "1px solid var(--border)",
-                }}
-              >
-                <Image
-                  src={logo.file}
-                  alt={`Isólogo DTD Cargo — ${logo.label}`}
-                  fill
-                  sizes="240px"
-                  style={{ objectFit: "contain", padding: 26 }}
-                />
-              </div>
-              {/* Meta + descarga */}
-              <div style={{ padding: "12px 14px 14px" }}>
-                <h3
-                  style={{
-                    font: "700 14px/1.3 var(--f-sans)",
-                    color: "var(--ink)",
-                    margin: "0 0 2px",
-                  }}
-                >
-                  {logo.label}
-                </h3>
-                <p
-                  style={{
-                    font: "400 12px/1.4 var(--f-sans)",
-                    color: "var(--ink-soft)",
-                    margin: "0 0 var(--s-3)",
-                  }}
-                >
-                  {logo.caption}
-                </p>
-                <a
-                  href={logo.file}
-                  download
-                  aria-label={`Descargar isólogo ${logo.label} en PNG`}
-                  className="studio-btn studio-btn-ghost studio-btn-sm"
-                  style={{ display: "inline-flex", gap: 6, alignItems: "center" }}
-                >
-                  {Icon.download(14)}
-                  Descargar PNG
-                </a>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Documentación de marketing (SDD-0158): acceso al lector de docs/marketing */}
-      <section style={{ marginBottom: 32 }}>
-        <h2 className="studio-eyebrow" style={{ margin: "0 0 var(--s-3)" }}>
-          Documentación
-        </h2>
-        <Link
-          href="/studio/marketing/docs"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 16,
-            border: "1px solid var(--border)",
+            border: "1px dashed var(--border)",
             borderRadius: 14,
-            padding: "20px 24px",
+            padding: "28px 24px",
             background: "var(--bg-surface)",
-            textDecoration: "none",
           }}
         >
-          <div>
-            <p
-              style={{
-                font: "700 15px/1.3 var(--f-sans)",
-                color: "var(--ink)",
-                margin: "0 0 var(--s-1)",
-              }}
-            >
-              Documentos de marketing
-            </p>
-            <p
-              style={{
-                font: "400 13px/1.5 var(--f-sans)",
-                color: "var(--ink-soft)",
-                margin: 0,
-                maxWidth: "64ch",
-              }}
-            >
-              Toda la estrategia en un solo lugar: sistema de adquisición, oferta, prospectos,
-              embudo, SEO y canales. Se lee acá mismo y se actualiza solo desde el repo.
-            </p>
-          </div>
-          <span style={{ color: "var(--wine-text)", flexShrink: 0, display: "inline-flex" }}>
-            {Icon.chevR(18)}
-          </span>
-        </Link>
-      </section>
-
-      {/* Secciones pendientes */}
-      {PLACEHOLDERS.map((p) => (
-        <section key={p.eyebrow} style={{ marginBottom: 24 }}>
-          <h2 className="studio-eyebrow" style={{ margin: "0 0 var(--s-3)" }}>
-            {p.eyebrow}
-          </h2>
-          <div
+          <p style={{ font: "600 14px/1.4 var(--f-sans)", color: "var(--ink)", margin: 0 }}>
+            No hay secciones todavía
+          </p>
+          <p
             style={{
-              border: "1px dashed var(--border)",
-              borderRadius: 14,
-              padding: "22px 24px",
-              background: "var(--bg-surface)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 16,
+              font: "400 13px/1.5 var(--f-sans)",
+              color: "var(--ink-soft)",
+              margin: "var(--s-1) 0 0",
+              maxWidth: "64ch",
             }}
           >
-            <div>
-              <p
-                style={{
-                  font: "600 14px/1.4 var(--f-sans)",
-                  color: "var(--ink)",
-                  margin: "0 0 var(--s-1)",
-                }}
-              >
-                {p.title}
-              </p>
-              <p
-                style={{
-                  font: "400 13px/1.5 var(--f-sans)",
-                  color: "var(--ink-soft)",
-                  margin: 0,
-                  maxWidth: "64ch",
-                }}
-              >
-                {p.desc}
-              </p>
-            </div>
-            <span
-              className="studio-eyebrow"
-              style={{ fontSize: 10, color: "var(--ink-soft)", flexShrink: 0 }}
-            >
-              Próximamente
-            </span>
-          </div>
-        </section>
-      ))}
+            Las siembra la migración 0334. Si esta lista está vacía, esa migración
+            no se aplicó en este entorno.
+          </p>
+        </div>
+      ) : (
+        <BrandCatalogManager sections={sections} />
+      )}
     </div>
   );
 }

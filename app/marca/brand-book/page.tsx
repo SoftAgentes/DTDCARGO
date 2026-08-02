@@ -1,31 +1,38 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { DownloadIcon } from "@/components/Icon";
-import { getUser } from "@/lib/auth/session";
+import { ArrowIcon, DownloadIcon } from "@/components/Icon";
+import { hasBrandAccess } from "@/lib/marca/access";
+import {
+  BRAND_BOOK_DOWNLOAD_NAME,
+  BRAND_BOOK_URL,
+  BRAND_BOOK_VERSION,
+} from "@/lib/marca/brand-book";
 
 /**
- * Visor del Brand Book DTD v4.6 — material de marca INTERNO, SOLO con login.
+ * Visor del Brand Book a pantalla completa.
  *
- * Acceso: gateado con `getUser()` (decisión founder 2026-06-14). El standalone ya
- * NO vive en `public/` (era servible estático a cualquiera por URL): se movió a
- * `private/marca/brand-book-v4.6.html` y se sirve por la ruta autenticada
- * `/marca/asset/brand-book` (valida sesión). Acá solo lo enmarcamos a pantalla
- * completa; el `<iframe>` lo carga con la cookie de sesión del visitante logueado.
+ * Acceso: el gate de `/marca` (SDD-0238) — sesión del ERP **o** el código de
+ * acceso. Antes exigía `getUser()`, o sea que un diseñador externo con el código
+ * veía el book embebido en `/marca` pero rebotaba acá; era la misma pieza con dos
+ * puertas distintas. Sin autorización, se cae a `/marca`, que es donde está el
+ * formulario del código (mandarlo al login del ERP le decía a un externo que
+ * pidiera una cuenta que nadie le va a dar).
  *
- * Al llegar un book nuevo desde el Norte: reemplazar el standalone en
- * `private/marca/brand-book-vX.Y.html`, borrar el anterior y actualizar el mapa
- * `ASSETS` de `app/marca/asset/[name]/route.ts` (+ la const `BRAND_BOOK` del hub
- * en `app/interno/(app)/marca/page.tsx`).
+ * El standalone ya NO vive en `public/` (era servible estático a cualquiera por
+ * URL): está en `private/marca/` y lo sirve la ruta autenticada
+ * `/marca/asset/brand-book`. Acá solo lo enmarcamos; el `<iframe>` viaja con las
+ * cookies del visitante.
  *
- * La CSP de `/marca/*` (next.config.ts) está relajada SOLO para ese prefijo
- * (data:/blob: + inline/eval + Google Fonts) y cubre la ruta autenticada.
+ * Versión y nombre de archivo salen de `lib/marca/brand-book.ts` — punto único
+ * para el NORTE-SYNC.
+ *
+ * La CSP de `/marca/*` (next.config) está relajada SOLO para el standalone
+ * (data:/blob: + inline/eval + Google Fonts).
  */
 
-const FILE = "/marca/asset/brand-book";
-
 export const metadata: Metadata = {
-  title: "Brand Book DTD v4.6",
-  description: "Material de marca interno de DTD Cargo.",
+  title: `Brand Book DTD ${BRAND_BOOK_VERSION}`,
+  description: "Material de marca de DTD Cargo.",
   // Triple noindex: este meta + X-Robots-Tag (next.config) + Disallow (robots.ts).
   robots: {
     index: false,
@@ -35,16 +42,16 @@ export const metadata: Metadata = {
   },
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function BrandBookPage() {
-  // Brand Book = solo equipo logueado. Sin sesión → al login del Studio.
-  const user = await getUser();
-  if (!user) redirect("/studio/login?next=/marca/brand-book");
+  if (!(await hasBrandAccess())) redirect("/marca");
 
   return (
     <div className="bg-paper" style={{ position: "fixed", inset: 0 }}>
       <iframe
-        src={FILE}
-        title="Brand Book DTD v4.6"
+        src={BRAND_BOOK_URL}
+        title={`Brand Book DTD ${BRAND_BOOK_VERSION}`}
         style={{
           position: "absolute",
           inset: 0,
@@ -53,10 +60,9 @@ export default async function BrandBookPage() {
           border: 0,
         }}
       />
-      <a
-        href={FILE}
-        download="Brand Book DTD v4.6.html"
-        className="btn btn-primary"
+
+      <div
+        className="flex flex-wrap gap-2"
         style={{
           position: "fixed",
           right: "clamp(16px, 3vw, 28px)",
@@ -64,8 +70,19 @@ export default async function BrandBookPage() {
           zIndex: 10,
         }}
       >
-        <DownloadIcon size={16} /> Descargar Brand Book
-      </a>
+        {/* Sin esto se entra al visor y no hay forma de volver al catálogo salvo
+            el botón atrás del navegador — el book ocupa el viewport entero. */}
+        <a href="/marca" className="btn btn-ghost bg-white">
+          <ArrowIcon /> Volver al centro de marca
+        </a>
+        <a
+          href={BRAND_BOOK_URL}
+          download={BRAND_BOOK_DOWNLOAD_NAME}
+          className="btn btn-primary"
+        >
+          <DownloadIcon size={16} /> Descargar Brand Book
+        </a>
+      </div>
     </div>
   );
 }

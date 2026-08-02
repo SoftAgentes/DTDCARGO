@@ -42,7 +42,17 @@ const eslintConfig = defineConfig([
   // permitido entre el sitio público y el ERP es @/lib/shared/*.
   {
     // Marketing + tracking público + componentes raíz: cero código del ERP, cero @supabase.
-    // (app/invitar/ NO está acá: es onboarding del Studio y usa DB por diseño.)
+    //
+    // NO están acá, y por qué (todas son públicas PERO respaldadas por la DB, así
+    // que la regla no aplica; su control de acceso es propio y explícito):
+    //   · app/invitar/  — onboarding del Studio; usa DB por diseño.
+    //   · app/verificar/, app/registro/, app/p/[token]/ — usan el admin client
+    //     con el visitante anónimo (throttle + tokens como control).
+    //   · app/marca/ — SDD-0238. El centro de marca dejó de ser sólo una vitrina
+    //     estática: valida un código contra `brand_access` y lee el catálogo de
+    //     `brand_assets`. Se sacó de la lista de forma explícita en vez de dejar
+    //     la violación TRANSITIVA que ya existía (importaba `@/lib/auth/session`,
+    //     que importa `@/lib/db/server`, y el lint sólo mira imports directos).
     files: [
       "app/tarifas/**",
       "app/fcl/**",
@@ -59,7 +69,6 @@ const eslintConfig = defineConfig([
       "app/brochure/**",
       "app/nosotros/**",
       "app/faq/**",
-      "app/marca/**",
       "app/enlaces/**",
       "components/**",
     ],

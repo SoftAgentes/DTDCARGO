@@ -6,7 +6,10 @@ export default function robots(): MetadataRoute.Robots {
   // bloquea acá — /track/[code] lleva meta `noindex` y bloquear el path
   // impediría que Google lo lea (las URLs quedarían indexadas "URL-only").
   // El noindex per-page es la señal correcta. Decisión 2026-07-05.
-  const disallow = ["/marca/", "/interno/"];
+  // `/marca` SIN barra final: en robots.txt el match es por prefijo, así que
+  // `/marca/` dejaba fuera la raíz `/marca` — que desde SDD-0238 es justamente la
+  // página del centro de marca, la que se comparte por link.
+  const disallow = ["/marca", "/interno/"];
   return {
     rules: [
       // Crawlers de IA: permitidos explícitamente (señal deliberada de opt-in).
