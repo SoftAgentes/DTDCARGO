@@ -25,7 +25,7 @@
 - [ ] **Artículos de blog SEO** — el gran movimiento de contenido que falta (pasa por el CMS del Studio, `news_posts`)
 - [ ] **Limpiar el lío de Google**: elegir UNA propiedad GA4 oficial (sugerencia: `G-25CD7BZH98`) + borrar los 2 contenedores GTM que no se usan (`GTM-KWRDZS4`, `GTM-PD3JF2GW`)
 - [ ] **Accesibilidad** — fix del heading-order del footer (h4 saltado; invisible, sube el score). *Contraste = decidido mantener el tono sutil.*
-- [ ] **Consistencia geo ↔ calculadora**: los geo de ciudades lejanas dicen *"el recargo por km que ves en la calculadora"*, pero el dropdown de la calc ahora es **solo casco-central** (decisión founder, per-km en revisión). → o reactivar esas ciudades en la calc, o suavizar el texto de esos geo.
+- [x] ~~**Consistencia geo ↔ calculadora**~~ — **RESUELTO el 1-ago-2026 (SDD-0237)**. Se resolvió por el otro lado: la calculadora pasó a ofrecer **178 destinos** con buscador (ya no un dropdown corto) y el copy de los 18 geo dejó de hablar de kilómetros, porque la entrega se cobra por m³. Ni se reactivaron ciudades ni se suavizó el texto: cambió el modelo de precio.
 
 ---
 

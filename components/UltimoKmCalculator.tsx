@@ -5,7 +5,7 @@ import {
   ORIGENES_DISPONIBLES,
   getDestinosDisponibles,
   MULTIPLICADOR_DTD_DEFAULT,
-  CASCO_CENTRAL_DTD,
+  ZONA_CUBIERTA_POR_CBM,
   type Origen,
   type ModoCotizacionTerrestre,
 } from "@/lib/data/tarifas-terrestres-vzla";
@@ -111,13 +111,13 @@ export function UltimoKmCalculator() {
             current={modoCotizacion}
             onChange={setModoCotizacion}
             title="CBM + destino lejos"
-            subtitle="Tengo CBM · destino fuera del casco"
+            subtitle="Tengo CBM · destino fuera de esa zona"
           />
         </div>
         {modoCotizacion !== "solo-terrestre" && (
           <p className="mt-3 text-[12px] text-grey-500 leading-[1.5]">
-            <strong className="text-ink">Casco central DTD:</strong>{" "}
-            {CASCO_CENTRAL_DTD.join(", ")}.
+            <strong className="text-ink">Ya incluido en tu CBM:</strong>{" "}
+            {ZONA_CUBIERTA_POR_CBM.join(", ")}.
           </p>
         )}
       </fieldset>

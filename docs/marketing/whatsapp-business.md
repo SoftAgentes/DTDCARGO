@@ -119,7 +119,13 @@ Cada bloque = un artículo. `Nombre` / `Descripción` / `Enlace` van tal cual.
 
 **① Puerta a puerta DDP — Pagas al llegar** ⭐ *(principal)*
 - **Precio:** Consultar (por CBM y ciudad)
-- **Descripción:** Traemos tu mercancía de China hasta tu puerta en Venezuela, todo incluido (DDP): consolidamos en Yiwu, embarcamos, nacionalizamos a nuestro nombre y entregamos. **Pagas cuando la carga llega**, no por adelantado.* Incluye flete, aduana e impuestos y entrega hasta el casco central. No incluye el seguro de carga. ⏱️ 60–90 días puerta a puerta. *(*pueden aplicar restricciones)
+- **Descripción:** Traemos tu mercancía de China hasta tu puerta en Venezuela, todo incluido (DDP): consolidamos en Yiwu, embarcamos, nacionalizamos a nuestro nombre y entregamos. **Pagas cuando la carga llega**, no por adelantado.* Incluye flete, aduana e impuestos y la entrega hasta tu dirección. No incluye el seguro de carga. ⏱️ 60–90 días puerta a puerta. *(*pueden aplicar restricciones)
+  > 🔴 **PENDIENTE MANUAL — este texto ya está publicado y hay que editarlo en la app.**
+  > Decía *"entrega hasta el casco central"*. Ese término murió de cara al cliente el
+  > 1-ago-2026 (SDD-0237) y además describía un cobro por distancia que ya no existe:
+  > hoy la entrega va incluida en un grupo de ciudades y en el resto se cobra por m³.
+  > **Un deploy no arregla esto** — el catálogo de WhatsApp Business se edita a mano
+  > desde el teléfono. Acá arriba queda el texto corregido, listo para copiar.
 - **Enlace:** `www.dtdcargo.com/calculadora`
 
 **② LCL Consolidado (carga compartida, con BL propio)**

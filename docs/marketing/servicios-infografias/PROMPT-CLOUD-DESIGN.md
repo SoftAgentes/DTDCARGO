@@ -57,3 +57,63 @@ La entrega final será un handoff para el repo (NORTE-SYNC a docs/design/studio/
 
 **Después del Gate 1:** cuando Cloud Design entregue los wireframes, tráelos a esta sesión (o a una
 nueva con `/avivar`) para revisarlos contra el brief antes de aprobar arte final.
+
+---
+
+## Errata P1 · 1-ago-2026 — el cobro de la entrega nacional cambió (SDD-0237)
+
+**Por qué existe esta errata.** El consolidado que Cloud Design recibió el 19-jul
+(`DTD-brief-cloud-design-P1.md`) trae el modelo de precio viejo en la ficha de Puerta a Puerta:
+decía *"incluida hasta el casco central… fuera del casco aplica un adicional por zona"*, y encima
+lo marcaba **"✅ Puede pasar a arte final"**. Con SDD-0237 la entrega se cobra **por metro cúbico**
+y el término *"casco central"* **murió de cara al cliente**.
+
+**La urgencia es real, no burocrática:** el punto (c) del Gate 1 es aplicar la plantilla maestra a
+UNA ficha, y esa ficha es **Puerta a Puerta**. Es literalmente lo primero que van a maquetar.
+
+**Adjunto corregido:** `C:\Users\Trabajo\Downloads\DTD-brief-cloud-design-P1-corregido-2026-08-01.md`
+(generado parcheando el P1 original en sus dos pasajes; verificado: 0 menciones del término fuera de
+la propia nota de corrección). **P2 y P3 están limpios** — no hace falta reenviarlos.
+
+Pega esto como mensaje en el hilo de Cloud Design:
+
+```
+Corrección al material de P1 — una sola ficha, un solo punto.
+
+Cambió cómo cobramos la entrega final en Venezuela, así que el consolidado de P1 que
+tienen quedó desactualizado. Les adjunto el corregido:
+DTD-brief-cloud-design-P1-corregido-2026-08-01.md — usen ese y descarten el anterior.
+
+QUÉ CAMBIÓ — ficha "Envío marítimo puerta a puerta", sección "Reglas / condiciones":
+
+  Decía:  "La entrega final está incluida hasta el casco central de tu ciudad;
+           fuera del casco central aplica un adicional por zona."
+
+  Ahora:  "La entrega final está incluida en un grupo de ciudades; en el resto del
+           país se cobra por metro cúbico, según el volumen de tu carga y no según
+           la distancia."
+
+DOS REGLAS DE COPY QUE APLICAN A TODAS LAS PIEZAS, no solo a ésta:
+
+1. "Casco central" no se usa más de cara al cliente. En ninguna pieza, ningún tamaño
+   de letra, ningún pie de página.
+
+2. Nada de cobro por distancia ni por kilómetros: la entrega se cobra por VOLUMEN.
+   Esto tiene consecuencia de DISEÑO, no solo de texto — si una pieza ilustra el costo
+   de la entrega, el eje es el m³. Nada de mapas con anillos o radios alrededor de una
+   ciudad, que es la metáfora natural y justo la equivocada.
+
+POR QUÉ LES AVISO AHORA: el punto (c) del Gate 1 es aplicar la plantilla maestra a una
+ficha, y esa ficha es Puerta a Puerta. Es la primera que van a maquetar.
+
+LO QUE NO CAMBIA: el resto de P1 sigue igual — tránsito 60-90 días, tarifa desde 10 CBM,
+carga especial, sin seguro. Las otras cuatro fichas ancla (Pre-alerta, Validación, HOLD,
+Consolidado LCL) están intactas, y el brief maestro HANDOFF-CLOUD-DESIGN.md tampoco cambia.
+
+SI LO NECESITAN PARA EL DISEÑO: hoy las ciudades con entrega incluida son ocho —
+Valencia, Naguanagua, San Diego, Guacara, Maracay, Caracas, Barquisimeto y Acarigua.
+Consúltennos antes de imprimir esa lista en una pieza: es un dato operativo que puede
+cambiar, y por eso la ficha dice "un grupo de ciudades" en vez de enumerarlas.
+
+Si ya maquetaron algo de Puerta a Puerta con el texto viejo, avísenme antes de seguir.
+```
