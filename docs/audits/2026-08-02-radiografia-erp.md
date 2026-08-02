@@ -149,6 +149,24 @@ era ciega: un divisor de 1px tapaba el contenedor navy y la ventana de 30 línea
 alcanzaba a uno que estaba 62 líneas arriba. Al ampliarla aparecieron **8
 violaciones más** que el barrido original no vio.
 
+**`/ui-check` (2026-08-02).** Los tests prueban que ningún `--ink-inv*` quedó sobre
+navy; no prueban que se vea bien. Se cerró ese hueco renderizando los tokens reales
+con Playwright: [evidencia](assets/2026-08-02-lote2-contraste-antes-despues.png),
+reproducible con `node scripts/proof-contraste-lote2.mjs`.
+
+- En **oscuro** el antes está prácticamente borrado y el después es legible.
+- En **claro** es un no-op. La preocupación de que la jerarquía se aplanara (el nivel
+  intermedio pasa de `0.75` a `0.85` de opacidad) **no se materializa**.
+- El Norte confirma las dos decisiones: *"sobre sidebar navy → cream/`--ink-side`"* y
+  *"en dark, texto sobre relleno semántico = `--ink-inv`, nunca blanco"* — por eso
+  `--danger` y `--success` se dejaron como estaban.
+- ⚠️ **Deuda con el Norte:** `--ink-side-strong` **no existe** en el `tokens.css`
+  canónico (que sólo tiene `--ink-side` y `--ink-side-soft`). Es vocabulario
+  repo-local, con consumidores previos en `app/m/cn/`, así que no lo introdujo este
+  lote — pero le suma 28 usos. Si un NORTE-SYNC reemplaza `tokens.css` completo, el
+  token se evapora y `var()` sin fallback hereda en silencio. **Pedirle a Cloud Design
+  que lo incorpore, o declararlo como extensión local.**
+
 ### ✅ Lote 3a — XSS de JSON-LD · `696ccf18`
 
 15 bloques inyectaban `JSON.stringify` pelado con `dangerouslySetInnerHTML`,
