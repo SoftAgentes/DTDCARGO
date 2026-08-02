@@ -52,8 +52,25 @@ export function AssetCard({
       }}
     >
       <div className="relative">
+        {/*
+          FLEX, no grid. Esto antes era `grid place-items-center` con
+          `max-h-full` en el <img> y NO contenía nada: en un grid con las filas
+          dimensionadas por contenido, `max-height: 100%` no tiene contra qué
+          resolverse y el navegador lo ignora. Medido: recuadro de 132px (92
+          útiles) y el isólogo de 741×764 renderizando a 288×297 — 185px de
+          desborde que tapaban el título, el detalle y el botón de cada ficha.
+          En flex el porcentaje SÍ resuelve contra el content box del contenedor,
+          que es definido (132 − 40 de padding = 92).
+
+          `w-auto h-auto` con `max-*` en vez de `w-full h-full object-contain`:
+          esto último también contiene, pero AGRANDA lo chico — el favicon de
+          32×32 se estiraba a 328×131 y salía borroso. Medido con las tres
+          proporciones reales del catálogo (741×764, 1200×630, 32×32).
+
+          `overflow-hidden` es el cinturón por si alguien vuelve a tocar esto.
+        */}
         <div
-          className="h-[132px] grid place-items-center border-b border-grey-200 p-5"
+          className="relative h-[132px] overflow-hidden flex items-center justify-center p-5 border-b border-grey-200"
           style={{ background: tileBackground(asset) }}
         >
           {isRaster ? (
@@ -65,7 +82,7 @@ export function AssetCard({
               src={`/api/marca/download/${asset.id}?preview=1`}
               alt={asset.title}
               loading="lazy"
-              className="max-h-full max-w-full object-contain"
+              className="max-w-full max-h-full w-auto h-auto object-contain"
             />
           ) : (
             <span
@@ -81,7 +98,7 @@ export function AssetCard({
             esquina, no un cuadrito de 14px perdido en el pie de la ficha. */}
         <label
           htmlFor={checkboxId}
-          className="absolute top-2.5 left-2.5 flex items-center gap-2 cursor-pointer rounded-[10px] bg-white/95 border border-grey-200 px-2.5 py-1.5 text-[12px] font-semibold text-ink select-none hover:border-ink"
+          className="absolute top-2.5 left-2.5 z-10 flex items-center gap-2 cursor-pointer rounded-[10px] bg-white/95 border border-grey-200 px-2.5 py-1.5 text-[12px] font-semibold text-ink select-none hover:border-ink"
         >
           <input
             id={checkboxId}

@@ -317,7 +317,9 @@ export function CatalogClient({
           <section
             key={section.id}
             id={section.slug}
-            className="scroll-mt-[120px] py-12 lg:py-16 border-t border-grey-200"
+            /* 132 = header (64) + barra fija (~56) + 12 de aire. Con 120 el
+               título aterrizaba al ras del borde inferior de la barra. */
+            className="scroll-mt-[132px] py-12 lg:py-16 border-t border-grey-200"
           >
             <div className="wrap">
               {/* Encabezado: título + acciones. Las acciones se ven al LLEGAR

@@ -18,11 +18,14 @@ export type NavItem = { id: string; label: string };
 
 /**
  * Umbral del scroll-spy: una sección es "actual" cuando su tope cruza esta línea.
- * Va un poco POR DEBAJO del landing del click (`scroll-mt-[116px]`) para que la
- * sección recién aterrizada (top≈116) quede activa sin fallar por fracciones de px.
- * El stack sticky real (header 64 + menú ~46) es ~110px.
+ *
+ * TIENE QUE QUEDAR POR DEBAJO del landing del click. En `/marca` las secciones
+ * usan `scroll-mt-[132px]`: si el umbral fuera 130, la sección recién aterrizada
+ * (top ≈ 132) NO pasaría `top <= STACK` y la pestaña no se resaltaría justo
+ * después de clickearla — que es el único momento en que el usuario la mira.
+ * Con 148 hay margen para el aterrizaje y para fracciones de píxel.
  */
-const STACK = 130;
+const STACK = 148;
 
 export function SectionNav({
   items,
