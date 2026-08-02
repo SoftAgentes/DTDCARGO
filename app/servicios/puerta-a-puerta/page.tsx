@@ -66,7 +66,7 @@ export default function PuertaAPuertaPage() {
       <Nav />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(servicioJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(servicioJsonLd).replace(/</g, "\\u003c") }}
       />
       <BreadcrumbJsonLd
         items={[

@@ -65,7 +65,7 @@ export default function InspeccionPage() {
       <Nav />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(servicioJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(servicioJsonLd).replace(/</g, "\\u003c") }}
       />
       <BreadcrumbJsonLd
         items={[

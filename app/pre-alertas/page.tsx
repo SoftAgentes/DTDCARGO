@@ -85,7 +85,7 @@ export default function PreAlertasPage() {
       <Nav />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceJsonLd).replace(/</g, "\\u003c") }}
       />
       <BreadcrumbJsonLd
         items={[

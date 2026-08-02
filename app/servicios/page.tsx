@@ -154,7 +154,7 @@ export default async function ServiciosPage() {
       <Nav />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(serviciosJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(serviciosJsonLd).replace(/</g, "\\u003c") }}
       />
       <BreadcrumbJsonLd
         items={[
