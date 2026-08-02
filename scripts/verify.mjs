@@ -29,6 +29,17 @@ const ok = (m) => console.log(`${C.green}[OK]${C.nc}   ${m}`);
 const fail = (m) => console.log(`${C.red}[FAIL]${C.nc} ${m}`);
 const skip = (m) => console.log(`${C.yellow}[SKIP]${C.nc} ${m}`);
 
+// Un paso omitido NO es un paso verde. Cuatro de los doce (e2e, migrations-applied,
+// sql-tests, schema-rebuild) degradan con gracia si falta el entorno (Docker, red,
+// credenciales, navegadores) y salían 0 — indistinguibles de un check que corrió.
+// El gate cantaba "TODO VERDE ✓" habiendo verificado ocho cosas de doce, y nadie
+// se enteraba. Ahora el gate le pasa VERIFY_CHILD=1 a cada hijo y el hijo devuelve
+// 78 (EX_CONFIG) al omitirse; corridos a mano siguen saliendo 0 (uso documentado
+// en AGENTS.md). El resumen final nombra lo omitido; VERIFY_STRICT=1 lo vuelve rojo
+// (para un cierre de release, donde "no lo pude verificar" no alcanza).
+const SKIP_EXIT = 78;
+const STRICT = process.env.VERIFY_STRICT === "1";
+
 // ¿Hay navegadores de Playwright instalados? El e2e necesita al menos chromium.
 // Sin ellos, el paso e2e se OMITE (no rojo) para no romper el gate por algo
 // ajeno al cambio (ej. clone fresco sin `playwright install`).
@@ -169,6 +180,7 @@ const STEPS = [
 ];
 
 const failures = [];
+const skipped = [];
 for (const step of STEPS) {
   console.log(`\n${C.dim}── ${step.name} ──────────────────────────────────${C.nc}`);
   let preflightEnv = null;
@@ -176,25 +188,28 @@ for (const step of STEPS) {
     const pf = step.preflight();
     if (pf?.skip) {
       skip(`${step.name}: ${pf.reason}`);
+      skipped.push({ name: step.name, reason: pf.reason });
       continue;
     }
     if (pf?.note) console.log(`${C.dim}   ${pf.note}${C.nc}`);
     preflightEnv = pf?.env ?? null;
   }
-  const env =
-    step.env || preflightEnv
-      ? { ...process.env, ...step.env, ...preflightEnv }
-      : process.env;
+  // VERIFY_CHILD=1 → los hijos que degradan con gracia salen 78 en vez de 0.
+  const env = { ...process.env, VERIFY_CHILD: "1", ...step.env, ...preflightEnv };
   const attempts = (step.retry ?? 0) + 1;
   let r;
   for (let i = 1; i <= attempts; i++) {
     r = spawnSync(process.execPath, step.argv, { stdio: "inherit", cwd: process.cwd(), env });
-    if (r.status === 0) break;
+    // Un skip no se reintenta: falta el entorno, reintentar no lo va a traer.
+    if (r.status === 0 || r.status === SKIP_EXIT) break;
     if (i < attempts) {
       console.log(`${C.dim}   ${step.name} falló (exit ${r.status ?? "señal " + r.signal}) → reintento ${i}/${attempts - 1} (flaky conocido)${C.nc}`);
     }
   }
-  if (r.status === 0) ok(step.name);
+  if (r.status === SKIP_EXIT) {
+    // El hijo ya imprimió su propia línea [SKIP] con el motivo.
+    skipped.push({ name: step.name, reason: "el paso se omitió por entorno (ver su línea [SKIP] arriba)" });
+  } else if (r.status === 0) ok(step.name);
   else {
     fail(`${step.name} (exit ${r.status ?? "señal " + r.signal})`);
     failures.push(step.name);
@@ -202,9 +217,32 @@ for (const step of STEPS) {
 }
 
 console.log(`\n${C.dim}── resumen ───────────────────────────────────${C.nc}`);
-if (failures.length === 0) {
-  ok("verify: TODO VERDE ✓");
+const corridos = STEPS.length - skipped.length;
+
+if (skipped.length > 0) {
+  skip(`${skipped.length} de ${STEPS.length} paso(s) NO se verificaron:`);
+  for (const s of skipped) console.log(`       · ${s.name} — ${s.reason}`);
+}
+
+if (failures.length > 0) {
+  fail(`verify: ${failures.length} fallo(s) → ${failures.join(", ")}`);
+  process.exit(1);
+}
+
+if (skipped.length === 0) {
+  ok(`verify: TODO VERDE ✓ (${corridos}/${STEPS.length} pasos)`);
   process.exit(0);
 }
-fail(`verify: ${failures.length} fallo(s) → ${failures.join(", ")}`);
-process.exit(1);
+
+// Verde parcial: nada falló, pero el gate NO vio todo. Decirlo con todas las letras
+// en vez de cantar victoria — un "TODO VERDE" que omitió schema-rebuild o
+// migrations-applied es exactamente cómo se pierde una migración.
+if (STRICT) {
+  fail(`verify: ${skipped.length} paso(s) omitido(s) y VERIFY_STRICT=1 → rojo`);
+  process.exit(1);
+}
+console.log(
+  `${C.yellow}[PARCIAL]${C.nc} verify: ${corridos}/${STEPS.length} pasos verdes, ${skipped.length} sin verificar ` +
+    `${C.dim}(VERIFY_STRICT=1 para exigirlos)${C.nc}`,
+);
+process.exit(0);

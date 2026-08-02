@@ -50,7 +50,10 @@ function docker(args, opts = {}) {
 
 function skip(reason) {
   console.log(`${C.yellow}[SKIP]${C.nc} sql-tests: ${reason}`);
-  process.exit(0);
+  // Corrido POR el gate (VERIFY_CHILD=1) sale 78 (EX_CONFIG) para que verify.mjs
+  // distinga "pasó" de "se omitió" — sin esto el gate cantaba TODO VERDE habiendo
+  // omitido este paso. A mano sigue saliendo 0 (uso documentado en AGENTS.md).
+  process.exit(process.env.VERIFY_CHILD === "1" ? 78 : 0);
 }
 
 if (process.env.VERIFY_SKIP_SQL === "1") skip("VERIFY_SKIP_SQL=1 (omitido a pedido)");

@@ -97,7 +97,8 @@ const docker = (args, opts = {}) =>
 
 function skip(reason) {
   console.log(`${C.yellow}[SKIP]${C.nc} schema-rebuild: ${reason}`);
-  process.exit(0);
+  // Ver run-sql-tests.mjs: 78 (EX_CONFIG) sólo cuando lo corre el gate.
+  process.exit(process.env.VERIFY_CHILD === "1" ? 78 : 0);
 }
 
 if (process.env.VERIFY_SKIP_SQL === "1") skip("VERIFY_SKIP_SQL=1 (omitido a pedido)");

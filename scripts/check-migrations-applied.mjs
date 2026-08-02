@@ -68,7 +68,9 @@ class Exit {
 /** Salida limpia con SKIP: algo del entorno falta, no es culpa del cambio. */
 function skip(reason) {
   console.log(`${C.yellow}[SKIP]${C.nc} migrations-applied: ${reason}`);
-  throw new Exit(0);
+  // Corrido POR el gate (VERIFY_CHILD=1) sale 78 (EX_CONFIG) para que verify.mjs
+  // distinga "pasó" de "se omitió". A mano sigue saliendo 0 (uso documentado).
+  throw new Exit(process.env.VERIFY_CHILD === "1" ? 78 : 0);
 }
 
 /**
