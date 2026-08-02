@@ -73,7 +73,11 @@ export default async function BrandBookPage() {
       >
         {/* Sin esto se entra al visor y no hay forma de volver al catálogo salvo
             el botón atrás del navegador — el book ocupa el viewport entero. */}
-        <a href="/marca" className="btn btn-ghost bg-white">
+        {/* `btn-ghost-solid` y no `bg-white`: este archivo de CSS va sin
+            `@layer`, así que `.btn-ghost { background: transparent }` le ganaba
+            a la utilidad de Tailwind y el botón quedaba transparente sobre el
+            book. */}
+        <a href="/marca" className="btn btn-ghost btn-ghost-solid">
           <ArrowIcon /> Volver al centro de marca
         </a>
         <a

@@ -167,7 +167,7 @@ export default async function MarcaPage() {
               <a
                 href={BRAND_BOOK_URL}
                 download={BRAND_BOOK_DOWNLOAD_NAME}
-                className="btn btn-ghost bg-white"
+                className="btn btn-ghost-inv"
               >
                 Descargar <DownloadIcon size={16} />
               </a>

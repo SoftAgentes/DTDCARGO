@@ -574,6 +574,37 @@
 .btn-ghost:hover {
   border-color: var(--color-ink);
 }
+
+/* ── Ghost sobre superficie OSCURA (tarjetas navy) ───────────────────────
+   POR QUÉ EXISTE ESTA CLASE Y NO UN `bg-white` SUELTO EN EL JSX:
+   `.btn-ghost` fija `background: transparent` + `color: var(--color-ink)`, y
+   TODO este archivo va SIN `@layer`. Una regla sin capa le gana a cualquier
+   utilidad de Tailwind (que sí va en `@layer utilities`), sin importar el
+   orden ni la especificidad. O sea: `className="btn btn-ghost bg-white"`
+   NUNCA aplicó el fondo blanco — el botón quedaba transparente con texto navy
+   sobre una tarjeta navy. Invisible, no "poco contrastado".
+
+   `--color-on-accent` y no `--color-white`: el segundo se remapea a navy bajo
+   `[data-portal-theme="dark"]`, que es cómo ya se rompió el CTA primario del
+   portal antes. `--color-on-accent` es #ffffff en `:root` y no se remapea nunca.
+   Medido: #ffffff sobre `--color-ink` (#0F1E3D) = 16,5:1. */
+.btn-ghost-inv {
+  background: transparent;
+  color: var(--color-on-accent);
+  border: 1.5px solid color-mix(in srgb, var(--color-on-accent) 55%, transparent);
+}
+.btn-ghost-inv:hover {
+  background: color-mix(in srgb, var(--color-on-accent) 14%, transparent);
+  border-color: var(--color-on-accent);
+}
+
+/* Ghost con relleno SÓLIDO: para el botón que flota sobre contenido que no
+   controlamos (el visor del Brand Book enmarca un HTML de Cloud Design). Ahí
+   `transparent` deja el texto sobre lo que haya debajo. Se combina con
+   `.btn-ghost`, del que hereda el texto navy y el borde. */
+.btn-ghost-solid {
+  background: var(--color-on-accent);
+}
 .btn-dark {
   background: var(--color-ink);
   color: var(--color-white);
