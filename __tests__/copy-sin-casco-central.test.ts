@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { SERVICIOS_DETALLE, SERVICIOS_GRUPOS } from "@/lib/servicios-detalle";
 import { FAQS } from "@/lib/faqs";
 import { GEO_ZONAS } from "@/lib/geo-zonas";
@@ -56,6 +58,60 @@ describe("el copy público no dice 'casco central'", () => {
       ).toEqual([]);
     });
   }
+
+  /**
+   * Segunda red, y la que de verdad hacía falta.
+   *
+   * La primera versión de este archivo sólo miraba las estructuras de datos, y
+   * por ahí no pasaban dos textos que el cliente SÍ veía: el label
+   * "Casco central DTD:" de `UltimoKmCalculator` y el valor
+   * `tramoAplicado: "Casco central CBM"` de `fleteTerrestre`. Los dos vivían
+   * como literales dentro del código, no como datos.
+   *
+   * Esto barre los literales de todo el código público. Se quitan comentarios
+   * primero: explicar por qué el término murió es legítimo y no puede poner el
+   * test en rojo.
+   */
+  it("ningún literal del código público lo dice", () => {
+    const RAIZ = join(__dirname, "..");
+    const CARPETAS = ["components", "lib", "app"];
+    // `venezuela-catalog.ts` queda fuera y NO es una excepción de conveniencia:
+    // ahí "Casco Central" es el nombre real de un barrio de San Juan de los
+    // Morros (Guárico), junto a Pariata y La Toscana. Es toponimia, no nuestro
+    // término de precio. Un test que obligue a corromper datos geográficos
+    // reales para ponerse verde es un test que hay que arreglar, no obedecer.
+    const IGNORAR =
+      /node_modules|__tests__|\.test\.|\.spec\.|[\\/]studio[\\/]|[\\/]back[\\/]|venezuela-catalog\.ts/;
+
+    function archivos(dir: string): string[] {
+      let out: string[] = [];
+      for (const e of readdirSync(dir)) {
+        const p = join(dir, e);
+        if (IGNORAR.test(p)) continue;
+        if (statSync(p).isDirectory()) out = out.concat(archivos(p));
+        else if (/\.tsx?$/.test(p)) out.push(p);
+      }
+      return out;
+    }
+
+    const ofensores: string[] = [];
+    for (const carpeta of CARPETAS) {
+      for (const f of archivos(join(RAIZ, carpeta))) {
+        const sinComentarios = readFileSync(f, "utf8")
+          .replace(/\/\*[\s\S]*?\*\//g, "")
+          .replace(/^\s*\/\/.*$/gm, "")
+          .replace(/\/\/.*$/gm, "");
+        if (/casco\s+central/i.test(sinComentarios)) {
+          ofensores.push(f.slice(RAIZ.length + 1).replace(/\\/g, "/"));
+        }
+      }
+    }
+
+    expect(
+      ofensores,
+      `Literales con el término muerto (fuera de comentarios):\n${ofensores.join("\n")}`,
+    ).toEqual([]);
+  });
 
   it("tampoco promete un cobro por distancia", () => {
     // El otro lado de la misma moneda: la entrega se cobra por VOLUMEN. Un

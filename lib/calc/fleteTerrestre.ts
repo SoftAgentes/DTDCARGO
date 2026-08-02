@@ -21,7 +21,7 @@ import {
   type Origen,
   type ModoCotizacionTerrestre,
   getMapaZonasParaOrigen,
-  destinoEsCasco,
+  destinoCubiertoPorCbm,
   TARIFA_USD_KG,
   FACTOR_VOLUMETRICO_KG_M3,
   MULTIPLICADOR_DTD_DEFAULT,
@@ -44,7 +44,7 @@ export interface FleteTerrestreInput {
   /**
    * Modo de cotización según situación del cliente:
    * - `solo-terrestre` (default): sin envío CBM, cobra todo
-   * - `cbm-casco`: tiene CBM + destino dentro del casco central → $0
+   * - `cbm-casco`: tiene CBM + destino dentro de la zona que el CBM cubre → $0
    * - `cbm-lejos`: tiene CBM + destino fuera del casco → descuento parcial
    */
   modoCotizacion?: ModoCotizacionTerrestre;
@@ -68,7 +68,7 @@ export interface FleteTerrestreOutput {
   /** Flete base USD = peso facturable × tarifa DTD (o $6 si sobre). */
   fleteBaseUsd: number;
   /**
-   * Descuento aplicado por casco central CBM (modo `cbm-lejos`).
+   * Descuento aplicado por la zona que el CBM ya cubre (modo `cbm-lejos`).
    * USD que el cliente NO paga porque el casco ya está cubierto por su CBM.
    * 0 en modos `solo-terrestre` y `cbm-casco`.
    */
@@ -171,7 +171,7 @@ export function calcularFleteTerrestre(
   }
 
   // 3. Validar coherencia modo ↔ destino
-  const esCasco = destinoEsCasco(destino);
+  const esCasco = destinoCubiertoPorCbm(destino);
   let modoAplicado: ModoCotizacionTerrestre = modoCotizacion;
   let warning: string | undefined;
   if (modoCotizacion === "cbm-casco" && !esCasco) {
@@ -196,7 +196,7 @@ export function calcularFleteTerrestre(
       pesoVolumetricoKg,
       pesoFacturableKg,
       esSobre,
-      tramoAplicado: "Casco central CBM",
+      tramoAplicado: "Cubierto por tu CBM",
       tarifaBaseUsdKg: 0,
       tarifaDtdUsdKg: 0,
       fleteBaseUsd: 0,

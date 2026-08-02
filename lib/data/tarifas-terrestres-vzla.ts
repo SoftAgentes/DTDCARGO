@@ -218,7 +218,7 @@ export const SEGURO_PORCENTAJE = 0.03;
 /** % IVA Venezuela. */
 export const IVA_PORCENTAJE = 0.16;
 
-// ─── Casco central DTD (cubierto por flete CBM China-VZLA) ──────────
+// ─── Zona cubierta por el flete CBM China-VZLA ──────────────────────
 /**
  * Lista de destinos cubiertos automáticamente por el flete internacional CBM.
  * Si el cliente envió mercancía de China a Venezuela con DTD (modo CBM),
@@ -227,8 +227,13 @@ export const IVA_PORCENTAJE = 0.16;
  *
  * Para destinos FUERA de esta lista, aunque el cliente tenga CBM activo,
  * se cotiza el flete terrestre completo (modo "cbm-lejos" con descuento parcial).
+ *
+ * ⚠️ NO es la "zona sin costo" de las 8 ciudades del puerta a puerta. Son dos
+ * coberturas distintas, de dos motores distintos: aquélla la decide
+ * `calculator_cities.casco` y ésta es el corredor que el flete internacional ya
+ * absorbe. Nombrarlas igual sería mentirle al cliente en una de las dos.
  */
-export const CASCO_CENTRAL_DTD: readonly string[] = [
+export const ZONA_CUBIERTA_POR_CBM: readonly string[] = [
   "Valencia",         // sede DTD
   "Puerto Cabello",   // puerto de llegada
   "Maracay",          // corredor diario (80km)
@@ -240,9 +245,9 @@ export const CASCO_CENTRAL_DTD: readonly string[] = [
   "Caracas",          // parte central — incluido por pedido DTD
 ];
 
-/** Verifica si un destino está dentro del casco central cubierto por CBM. */
-export function destinoEsCasco(destino: string): boolean {
-  return CASCO_CENTRAL_DTD.includes(destino);
+/** Verifica si un destino está dentro de la zona que el flete CBM ya cubre. */
+export function destinoCubiertoPorCbm(destino: string): boolean {
+  return ZONA_CUBIERTA_POR_CBM.includes(destino);
 }
 
 /**
@@ -252,7 +257,7 @@ export function destinoEsCasco(destino: string): boolean {
  *   completo según peso × tarifa(zona) × multiplicador.
  *
  * - `cbm-casco`: Cliente tiene CBM China-VZLA activo Y su destino está en el
- *   casco central. Total = $0 (incluido en el flete internacional).
+ *   zona cubierta por el CBM. Total = $0 (incluido en el flete internacional).
  *
  * - `cbm-lejos`: Cliente tiene CBM activo pero su destino está FUERA del
  *   casco. Se cobra el flete completo MENOS el "tramo casco" (equivalente
