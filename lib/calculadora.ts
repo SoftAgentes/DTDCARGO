@@ -985,6 +985,73 @@ export function cbmFromDimensionsEnUnidad(
 /** 1 m³ en pies cúbicos — para el importador que trabaja en medidas gringas. */
 export const FT3_POR_CBM = 35.3147;
 
+// ────────────────────────────────────────────────────────────────────
+// 8c) LA CARGA CHICA, EN UNIDADES QUE EL CLIENTE ENTIENDE
+// ────────────────────────────────────────────────────────────────────
+
+/**
+ * La caja de reempaque estándar de la bodega de Yiwu.
+ *
+ * ⚠️ ES UNA REGLA DE OPERACIÓN, NO UN PARÁMETRO DE PRICING. No entra en ningún
+ * cálculo: sirve SOLO para traducir metros cúbicos a algo que el cliente pueda
+ * imaginar. El precio lo siguen fijando la tarifa y el piso, y si esta caja
+ * cambiara, ningún estimado se movería un centavo.
+ *
+ * Si la bodega cambia el estándar de reempaque, se cambia acá y el copy se
+ * ajusta solo. Ese es el único motivo por el que vive en una constante y no
+ * escrita dentro de una frase.
+ */
+export const CAJA_MINIMA = {
+  largoCm: 40,
+  anchoCm: 30,
+  altoCm: 25,
+  /** 40 × 30 × 25 = 30.000 cm³ = 0,03 m³ exactos. */
+  cbm: 0.03,
+  label: "40×30×25 cm",
+} as const;
+
+/**
+ * Cuántas cajas estándar hacen falta para llegar a un volumen.
+ *
+ * Redondea HACIA ARRIBA a propósito: con 2,08 cajas todavía no llegaste al
+ * volumen, así que decir "2" sería mentir por defecto — el cliente pagaría el
+ * piso creyendo que no le toca.
+ */
+export function cajasParaCbm(cbm: number): number {
+  if (!Number.isFinite(cbm) || cbm <= 0) return 0;
+  return Math.ceil(cbm / CAJA_MINIMA.cbm);
+}
+
+/**
+ * Traduce un volumen a la frase que el cliente sí entiende.
+ *
+ * "0,0625 m³" no le dice nada a nadie: no sabe si es mucho o poco ni qué hacer
+ * con el dato. En cajas, sí.
+ *
+ * `conPiesCubicos` agrega la referencia en pies cúbicos —la unidad que el
+ * comerciante venezolano ya trae puesta del tráfico con Estados Unidos— pero
+ * viene APAGADA por default, y no por gusto: el aviso del mínimo vive en media
+ * columna del formulario, y medido en el navegador la coletilla lo empujaba de
+ * 3 a 4 líneas en 390px, dentro de una caja de 141px de ancho. Enciéndela solo
+ * donde haya renglón de sobra.
+ *
+ * Ej: 0,0625 → "3 cajas de 40×30×25 cm"
+ *     0,0625 con pies cúbicos → "3 cajas de 40×30×25 cm (unos 2 pies cúbicos)"
+ */
+export function describirVolumenEnCajas(
+  cbm: number,
+  { conPiesCubicos = false }: { conPiesCubicos?: boolean } = {},
+): string {
+  const cajas = cajasParaCbm(cbm);
+  const cajasTxt = `${cajas} ${cajas === 1 ? "caja" : "cajas"} de ${CAJA_MINIMA.label}`;
+  if (!conPiesCubicos) return cajasTxt;
+  const ft3 = Math.round(cbm * FT3_POR_CBM);
+  // Por debajo de un pie cúbico el redondeo da 0 y "unos 0 pies cúbicos" es
+  // absurdo: ahí la referencia no aporta y se omite.
+  if (ft3 < 1) return cajasTxt;
+  return `${cajasTxt} (${ft3 === 1 ? "un pie cúbico" : `unos ${ft3} pies cúbicos`})`;
+}
+
 export function whatsappTextFromCotizacion(
   cot: EnvioCotizacion,
   input: EnvioInput,
