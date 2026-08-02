@@ -1,7 +1,7 @@
 ---
 sdd: "0239"
 title: "El POD del camionero cierra el embarque"
-status: proposed
+status: in-progress
 author: "Sam (founder) + Claude"
 created: 2026-08-02
 updated: 2026-08-02
@@ -83,13 +83,17 @@ Esto deja dos caminos, y **elegir es una decisión de autorización, no de códi
 | **A** | Extender 0321 para aceptar a un operario como actor | Le da a un PIN de 4 dígitos el poder de producir un hito **irreversible**. Debilita a propósito un contrato que la gobernanza endureció. Necesita su propia entrada de auditoría con la identidad del operario. |
 | **B** | El POD deja el embarque *listo para cerrar*; el cierre lo confirma escritorio | Mantiene al humano con rol en el lazo. El camionero no espera: su POD queda grabado y sellado. Cuesta un paso más y un aviso a la oficina. |
 
-**Recomendación: B.** El costo de A es que un teléfono perdido con el PIN puede cerrar
-entregas que no se deshacen; el costo de B es un clic de oficina. En un ERP donde la
-entrega dispara avisos al cliente y cierra el ciclo de cobro, el clic es más barato
-que lo irreversible.
+Se recomendó **B**. **El founder eligió A** (2026-08-02), con el riesgo planteado por
+escrito antes de decidir. Queda asentado acá y en la cabecera de la migración para que
+dentro de seis meses conste que fue deliberado y no un descuido.
 
-**Esta spec queda bloqueada en esta decisión.** El §4 describe el camino A porque era
-el diseño supuesto antes de encontrar el muro; se reescribe según lo que se decida.
+**Cómo se implementa A sin romper la gobernanza.** El guard de 0321 **no se toca**: el
+chequeo de `auth.uid()` vive dentro del RPC, no en el trigger, y el trigger sólo exige
+las variables de sesión y su allowlist de columnas. Así que se agrega un **segundo
+camino autorizado** —`camionero_pod_v2`— con su propia verificación de identidad
+(`operario_pins`, región VE, rol camionero/supervisor, activo) y su propia entrada de
+auditoría con `actor_type='operario'`, un tipo de actor que el contrato de auditoría
+**ya soporta** (45 usos en el repo). El guard sigue siendo el punto de control.
 
 ### 2.3 La cadena POD → embarque existe pero está vacía
 
@@ -126,14 +130,30 @@ un flag (§5) y el poblado del vínculo es requisito de activación, no trabajo 
 
 ### 4.1 Entra
 
-- RPC nuevo `camionero_pod_v2` que, además de grabar el POD:
-  1. resuelve los embarques de la OD por la cadena de §2.2;
-  2. si algún paquete no resuelve → **excepción**, transacción abortada, sin POD;
-  3. por cada embarque cuyos paquetes en esa OD quedaron todos entregados, llama a
-     `complete_ve_delivery_governed` con el `request_ref` del POD;
-  4. el aviso al cliente sale por el motor de SDD-0156, que ese RPC ya dispara.
-- `camionero_pod` (v1) queda, marcado como deprecado, para no romper una PWA vieja
-  en campo. No se borra en esta spec.
+- RPC nuevo `camionero_pod_v2` (migración `0336`) que, además de grabar el POD:
+  1. valida la identidad del operario igual que v1;
+  2. **aborta entera** si algún paquete de la OD no resuelve a un embarque — ni
+     siquiera queda el POD (§3);
+  3. cierra cada embarque **cuyos paquetes en esa OD estén TODOS en `entregado`**,
+     seteando las variables de sesión que exige el guard de 0321;
+  4. deja evento en `shipment_events` (con `created_by` NULL: esa columna referencia
+     `auth.users` y el camionero entra con PIN) y audita con `actor_type='operario'`,
+     `sealed_dispatch_pod: true`;
+  5. conserva el GPS del POD.
+- `camionero_pod` (v1) queda, marcado como deprecado **condicionalmente**, para no
+  romper una PWA vieja en campo. No se borra en esta spec.
+
+**Dos correcciones que sólo aparecieron al implementar:**
+
+1. **La firma viva de `camionero_pod` tiene 12 argumentos, no 8.** La de 0025 fue
+   *dropeada* por `0068_pod_partial_and_gps_addons.sql:69`, que la recreó con GPS
+   (`pod_lat`, `pod_lng`, `pod_accuracy_m`, `pod_gps_status`). La v2 espeja la viva.
+2. **Existe POD parcial por paquete.** 0068 agregó
+   `dispatch_order_packages.delivery_status` (`pendiente|entregado|rechazado|retornado`).
+   Por eso el criterio de cierre no es "hay POD" sino "todos los paquetes de ese
+   embarque quedaron `entregado`": un paquete retornado significa que esa entrega no
+   se completó. Eso **no** es error —es una entrega parcial legítima— a diferencia del
+   vínculo faltante, que sí aborta.
 - Contrato SQL que prueba: (a) POD que resuelve → embarque `delivered` + evento;
   (b) POD que no resuelve → excepción y **cero** filas en `dispatch_pods`;
   (c) segundo POD sobre embarque ya entregado → rechazado por el guard.
@@ -157,8 +177,15 @@ sigue llamando a `camionero_pod` v1 y nada cambia. Requisitos para encenderlo:
 
 ## 6. Migración
 
-`0336_pod_closes_shipment.sql` — **escrita, no aplicada**. Aplicarla a producción
-requiere el OK del founder nombrándola (`docs/runbooks/aplicar-migraciones-prod.md`).
+`0336_pod_closes_shipment.sql` — **escrita y verificada localmente, NO aplicada a
+producción**. Aplicarla requiere el OK del founder nombrándola
+(`docs/runbooks/aplicar-migraciones-prod.md`).
+
+Verificación local: `check-schema-rebuild` la aplica desde cero sobre un Postgres
+limpio (311 migraciones) y el contrato `supabase/tests/0336_pod_closes_shipment.test.sql`
+cubre los tres caminos —fallo fuerte, cierre gobernado con auditoría de operario, y
+entrega parcial que NO cierra— más los grants. Validado con mutación: al desactivar el
+fallo fuerte el contrato se pone rojo.
 
 ## 7. Criterios de aceptación
 
