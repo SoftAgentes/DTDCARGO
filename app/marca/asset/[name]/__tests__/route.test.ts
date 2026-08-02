@@ -1,9 +1,10 @@
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { readFileMock, getUserMock } = vi.hoisted(() => ({
+const { readFileMock, getUserMock, hasBrandAccessMock } = vi.hoisted(() => ({
   readFileMock: vi.fn(),
   getUserMock: vi.fn(),
+  hasBrandAccessMock: vi.fn(),
 }));
 
 vi.mock("node:fs/promises", () => ({
@@ -11,6 +12,7 @@ vi.mock("node:fs/promises", () => ({
   default: { readFile: readFileMock },
 }));
 vi.mock("@/lib/auth/session", () => ({ getUser: getUserMock }));
+vi.mock("@/lib/marca/access", () => ({ hasBrandAccess: hasBrandAccessMock }));
 
 import { GET } from "../route";
 
@@ -24,10 +26,12 @@ describe("GET /marca/asset/[name]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getUserMock.mockResolvedValue({ id: "user-1" });
+    hasBrandAccessMock.mockResolvedValue(true);
     readFileMock.mockResolvedValue("<html>brand</html>");
   });
 
-  it("exige sesión antes de leer el filesystem", async () => {
+  it("exige autorización antes de leer el filesystem", async () => {
+    hasBrandAccessMock.mockResolvedValue(false);
     getUserMock.mockResolvedValue(null);
 
     const response = await request("brand-book");
@@ -68,5 +72,29 @@ describe("GET /marca/asset/[name]", () => {
 
     expect(response.status).toBe(404);
     expect(await response.text()).toBe("No encontrado.");
+  });
+
+  // ── SDD-0238: dos niveles de acceso ───────────────────────────
+
+  it("el brand book se abre con el código de /marca, sin sesión del ERP", async () => {
+    getUserMock.mockResolvedValue(null);
+    hasBrandAccessMock.mockResolvedValue(true);
+
+    const response = await request("brand-book");
+
+    expect(response.status).toBe(200);
+  });
+
+  it("las herramientas de WhatsApp NO se abren con el código: son del equipo", async () => {
+    // Un diseñador externo pasó el gate de /marca (cookie válida) pero no tiene
+    // cuenta del ERP. El catálogo de WhatsApp Business no es material de marca.
+    getUserMock.mockResolvedValue(null);
+    hasBrandAccessMock.mockResolvedValue(true);
+
+    for (const name of ["wa-catalogo", "wa-guia"]) {
+      const response = await request(name);
+      expect(response.status).toBe(401);
+    }
+    expect(readFileMock).not.toHaveBeenCalled();
   });
 });

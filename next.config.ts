@@ -192,10 +192,15 @@ const nextConfig: NextConfig = {
     const baseNoPP = securityHeaders.filter(
       (h) => h.key !== "Permissions-Policy",
     );
-    // `/marca/*` sirve el Brand Book vigente (HTML autocontenido, material de
-    // marca interno): CSP permisiva + framing same-origin (lo enmarca el visor) +
-    // noindex, TODO acotado a este prefijo. El catch-all de abajo lo excluye
-    // (negative lookahead) para que no le pise estos headers con los estrictos.
+    // `/marca/asset/*` sirve el Brand Book standalone (HTML autocontenido con
+    // todo en base64 + Google Fonts): CSP permisiva + framing same-origin (lo
+    // enmarcan el catálogo y el visor) + noindex.
+    //
+    // SDD-0238: esto ANTES cubría todo `/marca/*`. Cuando `/marca` pasó a ser
+    // una página nuestra (el catálogo con código de acceso), dejarla bajo la CSP
+    // permisiva le habría regalado `unsafe-eval` y `unsafe-inline` sin
+    // necesitarlos. La permisiva quedó acotada al standalone, que es el único que
+    // no controlamos; el catálogo y el visor van con la CSP estricta del sitio.
     const marcaHeaders = [
       { key: "Content-Security-Policy", value: brandBookCspHeader },
       { key: "X-Frame-Options", value: "SAMEORIGIN" },
@@ -210,6 +215,14 @@ const nextConfig: NextConfig = {
         key: "Strict-Transport-Security",
         value: "max-age=63072000; includeSubDomains; preload",
       },
+      { key: "X-Robots-Tag", value: "noindex, nofollow" },
+    ];
+    // El resto de `/marca/*` (el catálogo y el visor) es código nuestro: CSP
+    // ESTRICTA del sitio + noindex. La miniatura de cada archivo carga desde
+    // `*.supabase.co` (URL firmada tras el redirect de /api/marca/download), que
+    // el `img-src` estricto ya permite.
+    const marcaStrictHeaders = [
+      ...securityHeaders,
       { key: "X-Robots-Tag", value: "noindex, nofollow" },
     ];
     // `/norte.html` sirve el Norte visual horneado en el build (SDD-0050 Slice B):
@@ -259,9 +272,20 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: ppStudioBitacora },
         ],
       },
+      // Las tres reglas de `/marca` son MUTUAMENTE EXCLUYENTES a propósito: si dos
+      // matchearan, Next emite dos `Content-Security-Policy` y el navegador aplica
+      // la intersección — el standalone quedaría bloqueado por la estricta.
       {
-        source: "/marca/:path*",
+        source: "/marca/asset/:path*",
         headers: marcaHeaders,
+      },
+      {
+        source: "/marca/:path((?!asset).*)",
+        headers: marcaStrictHeaders,
+      },
+      {
+        source: "/marca",
+        headers: marcaStrictHeaders,
       },
       {
         source: "/norte.html",
@@ -288,8 +312,10 @@ const nextConfig: NextConfig = {
         headers: calcEmbedHeaders,
       },
       {
+        // `marca` sin barra: cubre tanto `/marca` (el catálogo) como `/marca/…`.
+        // Con `marca/` la raíz caía acá Y en su regla propia → CSP duplicada.
         source:
-          "/:path((?!m/|marca/|norte\\.html|studio/bitacora|tarifas/embed|fcl/embed).*)",
+          "/:path((?!m/|marca|norte\\.html|studio/bitacora|tarifas/embed|fcl/embed).*)",
         headers: securityHeaders,
       },
     ];

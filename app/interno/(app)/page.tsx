@@ -1,18 +1,38 @@
 /**
  * Índice de la zona interna del equipo (`/interno`).
  *
- * Grid de herramientas internas. Hoy: Marca. Cada herramienta nueva = una
- * subcarpeta en `app/interno/(app)/` + una tarjeta acá.
+ * Grid de herramientas internas. Cada herramienta nueva = una subcarpeta en
+ * `app/interno/(app)/` + una tarjeta acá.
+ *
+ * SDD-0238: el hub de marca se mudó a `/marca` (con código de acceso, para poder
+ * compartirlo con diseño externo) y `/interno/marca` quedó como redirect. Las
+ * herramientas de WhatsApp y del link-in-bio colgaban de ese hub, así que
+ * subieron acá — si no, quedaban sin ninguna puerta de entrada.
  */
 
 import { ToolCard, ToolCardPlaceholder } from "../_components/ToolCard";
 
 const TOOLS = [
   {
-    href: "/interno/marca",
+    // El centro de marca se mudó a /marca (SDD-0238): misma experiencia, pero
+    // abierta con código para poder compartirla con diseño externo. Se apunta
+    // directo al destino en vez de al redirect.
+    href: "/marca",
     title: "Marca",
-    desc: "Brand Book, logos, paleta, tipografía y las herramientas de WhatsApp Business. Todo descargable.",
+    desc: "Brand Book, logos, paleta, tipografía y plantillas. Todo descargable, y con un link que le puedes pasar a diseño.",
     meta: "Brand Book · descargables",
+  },
+  {
+    href: "/interno/marca/whatsapp",
+    title: "WhatsApp Business",
+    desc: "Genera las imágenes del catálogo y configura el perfil de cada número con la guía paso a paso.",
+    meta: "Generador + guía",
+  },
+  {
+    href: "/interno/marca/enlaces",
+    title: "Link-in-bio · Instagram",
+    desc: "La página dtdcargo.com/enlaces que va en la bio: cómo ponerla y cómo editar los enlaces.",
+    meta: "Guía + preview",
   },
 ];
 

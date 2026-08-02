@@ -9,16 +9,16 @@
  * `sign`/`verify` son PUROS (reciben el secreto) → testeables sin env. El secreto
  * real lo resuelve el route handler (`unsubscribeSecret()`), con fallback al
  * service-role key para NO introducir un gate nuevo. El secreto nunca se expone.
+ *
+ * SDD-0238: el sellado AES-GCM se mudó a `lib/shared/signed-token.ts` porque el
+ * gate de `/marca` necesitaba el mismo mecanismo y el sitio público no puede
+ * importar `lib/studio/*` (frontera ESLint). Acá quedó SOLO lo propio del
+ * dominio: la forma del payload y el fallback HMAC histórico. El formato del
+ * token no cambió ni un byte — los links ya enviados siguen abriendo.
  */
 
-import {
-  createCipheriv,
-  createDecipheriv,
-  createHash,
-  createHmac,
-  randomBytes,
-  timingSafeEqual,
-} from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { openToken, sealToken, type SealOptions } from "@/lib/shared/signed-token";
 
 export type UnsubscribeAudience = "marketing" | "newsletter";
 
@@ -38,37 +38,34 @@ function hmac(data: string, secret: string): Buffer {
 }
 
 const TOKEN_VERSION = "v2";
-const TOKEN_AAD = Buffer.from("dtd-unsubscribe-v2", "utf8");
 
-function tokenKey(secret: string): Buffer {
-  return createHash("sha256").update(secret).digest();
+/**
+ * Contrato criptográfico del token de baja. Los valores NO se pueden cambiar:
+ * cualquier correo ya enviado trae un token sellado con estos, y un link de
+ * unsubscribe no expira nunca.
+ */
+const SEAL: SealOptions = { version: TOKEN_VERSION, aad: "dtd-unsubscribe-v2" };
+
+/** Forma compacta que viaja dentro del token (claves de una letra: el token va en la URL). */
+type WirePayload = { e: string; t: string; a: string };
+
+function toWire(payload: UnsubscribePayload): WirePayload {
+  return {
+    e: payload.email.trim().toLowerCase(),
+    t: payload.tenantId,
+    a: payload.audience ?? "marketing",
+  };
 }
 
-function encodePayload(payload: UnsubscribePayload): Buffer {
-  return Buffer.from(
-    JSON.stringify({
-      e: payload.email.trim().toLowerCase(),
-      t: payload.tenantId,
-      a: payload.audience ?? "marketing",
-    }),
-    "utf8",
-  );
-}
-
-function decodePayload(value: Buffer): UnsubscribePayload | null {
-  try {
-    const parsed = JSON.parse(value.toString("utf8"));
-    const email = typeof parsed?.e === "string" ? parsed.e : "";
-    const tenantId = typeof parsed?.t === "string" ? parsed.t : "";
-    const audience =
-      parsed?.a === "newsletter" || parsed?.a === "marketing"
-        ? parsed.a
-        : "marketing";
-    if (!email || !tenantId) return null;
-    return { email, tenantId, audience };
-  } catch {
-    return null;
-  }
+function fromWire(parsed: unknown): UnsubscribePayload | null {
+  if (parsed == null || typeof parsed !== "object") return null;
+  const raw = parsed as Partial<WirePayload>;
+  const email = typeof raw.e === "string" ? raw.e : "";
+  const tenantId = typeof raw.t === "string" ? raw.t : "";
+  const audience: UnsubscribeAudience =
+    raw.a === "newsletter" || raw.a === "marketing" ? raw.a : "marketing";
+  if (!email || !tenantId) return null;
+  return { email, tenantId, audience };
 }
 
 /**
@@ -89,15 +86,7 @@ export function signUnsubscribeToken(
   payload: UnsubscribePayload,
   secret: string,
 ): string {
-  const iv = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", tokenKey(secret), iv);
-  cipher.setAAD(TOKEN_AAD);
-  const ciphertext = Buffer.concat([
-    cipher.update(encodePayload(payload)),
-    cipher.final(),
-  ]);
-  const tag = cipher.getAuthTag();
-  return [TOKEN_VERSION, b64url(iv), b64url(ciphertext), b64url(tag)].join(".");
+  return sealToken(toWire(payload), secret, SEAL);
 }
 
 /**
@@ -112,22 +101,7 @@ export function verifyUnsubscribeToken(
   const parts = token.split(".");
 
   if (parts.length === 4 && parts[0] === TOKEN_VERSION) {
-    try {
-      const decipher = createDecipheriv(
-        "aes-256-gcm",
-        tokenKey(secret),
-        Buffer.from(parts[1], "base64url"),
-      );
-      decipher.setAAD(TOKEN_AAD);
-      decipher.setAuthTag(Buffer.from(parts[3], "base64url"));
-      const plaintext = Buffer.concat([
-        decipher.update(Buffer.from(parts[2], "base64url")),
-        decipher.final(),
-      ]);
-      return decodePayload(plaintext);
-    } catch {
-      return null;
-    }
+    return fromWire(openToken<WirePayload>(token, secret, SEAL));
   }
 
   // Compatibilidad con correos ya enviados: `<payload-b64url>.<hmac-b64url>`.
@@ -141,7 +115,11 @@ export function verifyUnsubscribeToken(
   const b = Buffer.from(expected);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
 
-  return decodePayload(Buffer.from(body, "base64url"));
+  try {
+    return fromWire(JSON.parse(Buffer.from(body, "base64url").toString("utf8")));
+  } catch {
+    return null;
+  }
 }
 
 /** URL de baja con token opaco en la ruta, resistente a clientes que quitan queries. */

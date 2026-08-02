@@ -1,9 +1,13 @@
 /**
- * Menú de secciones STICKY del hub de marca. Fijo bajo el header (siempre visible
- * → "sé dónde estoy") y resalta la sección activa con scroll-spy. El click hace
- * scroll SUAVE en JS (scoped al hub, respetando `prefers-reduced-motion`); el
- * offset bajo el header+menú lo da `STACK` (mismo número que el `scroll-mt` de
- * cada sección, para que el pill activo y el contenido coincidan).
+ * Menú de secciones STICKY del centro de marca. Fijo bajo el header (siempre
+ * visible → "sé dónde estoy") y resalta la sección activa con scroll-spy. El
+ * click hace scroll SUAVE en JS (respetando `prefers-reduced-motion`); el offset
+ * bajo el header+menú lo da `STACK` (mismo número que el `scroll-mt` de cada
+ * sección, para que el pill activo y el contenido coincidan).
+ *
+ * Vivía en `app/interno/_components/`; se movió acá (SDD-0238) cuando el centro
+ * de marca pasó a ser la página pública `/marca` con código de acceso. Su único
+ * consumidor anterior (`/interno/marca`) quedó como redirect.
  */
 
 "use client";
@@ -20,7 +24,14 @@ export type NavItem = { id: string; label: string };
  */
 const STACK = 130;
 
-export function SectionNav({ items }: { items: NavItem[] }) {
+export function SectionNav({
+  items,
+  /** Alto del header bajo el que se pega. Cada superficie tiene el suyo. */
+  stickyTop = "63px",
+}: {
+  items: NavItem[];
+  stickyTop?: string;
+}) {
   const [active, setActive] = useState<string>("");
   const navRef = useRef<HTMLElement>(null);
 
@@ -76,7 +87,8 @@ export function SectionNav({ items }: { items: NavItem[] }) {
     <nav
       ref={navRef}
       aria-label="Secciones del centro de marca"
-      className="sticky top-[63px] z-20 bg-paper border-b border-grey-200"
+      className="sticky z-20 bg-paper border-b border-grey-200"
+      style={{ top: stickyTop }}
     >
       <div className="wrap flex gap-1 overflow-x-auto py-2.5">
         {items.map((it) => {
