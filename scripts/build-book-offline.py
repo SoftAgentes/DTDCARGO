@@ -131,24 +131,66 @@ def inline_ref(ref: str) -> str | None:
 
 
 # --- 1. <link rel=stylesheet href="erp/tokens.css"> → <style> --------------
-def replace_stylesheet(m: re.Match) -> str:
-    href = m.group("href")
+#
+# ⚠️ EL ORDEN DE LOS ATRIBUTOS NO SE PUEDE ASUMIR. La primera versión de este
+# regex exigía `rel` ANTES que `href`. El Manual los trae en ese orden y pasó; el
+# Brand Book los trae al revés, así que la hoja NO se convirtió a <style> y cayó
+# al paso 2, que la dejó como `<link href="data:text/css;base64,…">`.
+#
+# Eso rompe en producción y NO en local: `style-src` de la CSP del visor permite
+# `'unsafe-inline'` pero NO `data:`, así que el navegador BLOQUEA la hoja. Como
+# esa hoja son los tokens de diseño, el book abre sin un solo color de fondo —
+# el bug que el founder reportó como "problemas de colores" el 2026-08-02.
+#
+# Por eso la verificación tiene que correr BAJO LA CSP REAL: sin ella, el
+# `<link data:>` carga perfecto y el archivo parece sano.
+# Se captura CUALQUIER <link> y se decide adentro, en vez de exigir un orden de
+# atributos en el patrón.
+def maybe_stylesheet(m: re.Match) -> str:
+    tag = m.group(0)
+    if not re.search(r'\brel\s*=\s*["\'][^"\']*\bstylesheet\b', tag, re.I):
+        return tag
+    href = re.search(r'\bhref\s*=\s*["\']([^"\']+)["\']', tag, re.I)
+    if not href:
+        return tag
+    return replace_stylesheet_href(href.group(1), tag)
+
+
+def replace_stylesheet_href(href: str, tag: str) -> str:
+    # ⭐ EL CASO QUE ROMPÍA LOS COLORES EN PRODUCCIÓN.
+    # Cloud Design entrega la hoja de tokens como `<link href="data:text/css;
+    # base64,…">`. Eso carga sin problema en local, pero la CSP del visor declara
+    # `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com` — SIN
+    # `data:`. El navegador BLOQUEA la hoja, y como esa hoja son los tokens de
+    # diseño, el book abre sin un solo color de fondo. Es el bug que el founder
+    # reportó el 2026-08-02 como "sigue sin el color de fondo".
+    # Decodificado a `<style>` inline entra por 'unsafe-inline', sin tener que
+    # aflojar la CSP (que era la otra salida, y la mala).
+    if href.startswith("data:") and "text/css" in href.split(",", 1)[0]:
+        cabecera, _, carga = href.partition(",")
+        try:
+            css = (
+                base64.b64decode(carga).decode("utf-8", "replace")
+                if ";base64" in cabecera
+                else urllib.parse.unquote(carga)
+            )
+        except Exception:  # noqa: BLE001 — si no se puede decodificar, se deja igual
+            report.append(("FALTA", "data:text/css", "no se pudo decodificar"))
+            return tag
+        report.append(("css", "data:text/css", "decodificado a <style> (%d B)" % len(css)))
+        return "<style>\n/* era un <link data:text/css>, que la CSP bloquea */\n%s\n</style>" % css
+
     if href.startswith(("data:", "http", "//")):
-        return m.group(0)
+        return tag
     if not os.path.exists(href):
         report.append(("FALTA", href, "stylesheet ausente"))
-        return m.group(0)
+        return tag
     css = open(href, encoding="utf-8").read()
     report.append(("css", href, "inline como <style> (%d B)" % len(css)))
     return "<style>\n/* inline: %s */\n%s\n</style>" % (href, css)
 
 
-html = re.sub(
-    r'<link\b[^>]*\brel\s*=\s*["\']stylesheet["\'][^>]*\bhref\s*=\s*["\'](?P<href>[^"\']+)["\'][^>]*>',
-    replace_stylesheet,
-    html,
-    flags=re.I,
-)
+html = re.sub(r"<link\b[^>]*>", maybe_stylesheet, html, flags=re.I)
 
 # --- 2. src= / href= relativos → data: URI ---------------------------------
 cache: dict[str, str] = {}
