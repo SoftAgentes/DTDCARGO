@@ -4,7 +4,7 @@ title: "Adjuntos seguros, reanudables y recuperables"
 status: approved
 author: "Sam (founder) + Codex"
 created: 2026-07-31
-updated: 2026-07-31
+updated: 2026-08-02
 supersedes: null
 superseded_by: null
 related: ["0049", "0186", "0191"]
@@ -211,6 +211,34 @@ Reglas:
 
 MP-D6 hace elegible un upload incompleto o no vinculado para P0 después de 30
 días; no ordena una purga automática.
+
+### 8.1. Mandato de protección para los limpiadores heredados
+
+`PURGE_RECEIPT_ORPHANS_ENABLED` y `BITACORA_PURGE_ORPHANS_ENABLED` deben
+permanecer ausentes o con un valor distinto de `"true"` en Producción. El
+founder prohíbe activar los limpiadores heredados de fotos/POD y audios mientras
+su modelo sea borrar físicamente objetos candidatos a los siete días.
+
+La auditoría read-only del 2026-08-02 confirmó ambas variables ausentes y las
+dos últimas ejecuciones en `dry-run`: fotos no encontró huérfanos; Bitácora
+identificó un candidato, pero eliminó cero objetos. Ese hallazgo no autoriza
+activar ni reducir la protección.
+
+El reemplazo del umbral de siete días exige todos estos criterios antes de
+proponer una activación en Cloud:
+
+1. cuarentena privada y recuperable durante al menos 30 días;
+2. restauración real de fila, vínculo y binario, con auditoría y checksum;
+3. copia externa independiente e inmutable verificada mediante restore drill;
+4. bloqueo fail-closed por retención, legal hold, referencia activa, respaldo
+   incompleto o clasificación dudosa;
+5. purga física separada, no interactiva, con autorización, auditoría y gates
+   de MP-01; el vencimiento de 30 días no ejecuta un `DELETE` automático.
+
+Hasta que exista evidencia ejecutada de esos cinco puntos, el default operativo
+es conservar el objeto y reportar el candidato para investigación. Este mandato
+es no negociable para el piloto de Gastos y para toda migración posterior de
+adjuntos.
 
 ### 9. Auditoría
 
