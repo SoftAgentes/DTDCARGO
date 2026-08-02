@@ -122,15 +122,21 @@ violaciones más** que el barrido original no vio.
 incluidos los de `/noticias` que serializan **contenido del CMS**. Contrato validado
 con mutación.
 
-### ⬜ Lote 3b — Sesión y permisos · alto · ~1,5 h
+### ✅ Lote 3b — Sesión del portal y del ERP móvil · `44b4f052`
 
-- [ ] `proxy.ts` no refresca la sesión en `/portal` ni `/m/erp` (matcher sólo cubre
-      `/studio` y `/back`) → al vencer el token la navegación server-side ve sesión
-      muerta
+`proxy.ts` existe para refrescar el access token en cookies, pero su matcher era
+sólo `/studio` y `/back`. `/portal` y `/m/erp` autentican con el **mismo** Supabase
+y estaban fuera: al vencer el token (1 h) la navegación server-side veía la sesión
+muerta y echaba al cliente **aunque su refresh token siguiera vivo**. Es el bug que
+se reporta como *"me saca solo"* y que nadie reproduce porque hay que esperar una
+hora. `/m/cn` y `/m/ve` quedan fuera a propósito: el operario entra con PIN.
+
+### ⬜ Lote 3c — Permisos y route handlers · alto · ~1,5 h
+
 - [ ] 3 sub-rutas del Studio sin gate de vista RBAC
 - [ ] `/studio/debug` fuera del registro y de la matriz RBAC
 - [ ] 3 route handlers de `app/api/studio` sin verificación de sesión
-- [ ] `apiError()` en los 36 handlers que devuelven `error.message` crudo de Postgres
+- [ ] `apiError()` en los handlers que devuelven `error.message` crudo de Postgres
 
 ### ⬜ Lote 4 — Feature flags que mienten · crítico · ~1,5 h
 
@@ -141,16 +147,20 @@ con mutación.
       (aliados white-label) el panel entero está roto
 - [ ] `dispatch.show_warehouse_location` es un flag vivo que no aparece en el panel
 
-### ⬜ Lote 5 — Poda y documentación de entrada · medio · ~1 h
+### ✅/⬜ Lote 5 — Poda y documentación de entrada
 
+- [x] **`AGENTS.md`** · `7a807805` — la tabla de integraciones públicas tenía **3 de
+      4 filas falsas** y hasta la nota al pie. El RPC `public_track_shipment` figuraba
+      usado por `/track`, que hoy es 301 a `/portal/login` y dejó al RPC **sin un solo
+      consumidor**; `/api/contact` figuraba usado por `/contacto`, cuando en realidad
+      `/contacto` manda sólo por WhatsApp y quien lo usa es `/academia`.
+- [x] **`.env.example`** · `08cac148` — no eran 6 variables sino **18**, entre ellas
+      `MARCA_ACCESS_SECRET` (sin valor cae a un default de desarrollo) y las tres de
+      SeaRates que protegen la cuota mensual del plan.
 - [ ] Código muerto **verificado uno por uno** (ver §5: la lista del auditor tenía un
       falso positivo que habría roto la calculadora)
-- [ ] Basura de raíz: informe stub, directorio vacío, `.md` de 0 bytes
-- [ ] 6 variables de entorno ausentes de `.env.example`
-- [ ] **`AGENTS.md`: la tabla de integraciones públicas es falsa** — cita `/estimacion`
-      y `/calculadora`, que hoy son 301 a `/tarifas`, y afirma que el endpoint crea
-      `EST-XXXX` cuando el propio código dice que ya no. Es lo primero que lee todo
-      agente que entra al repo.
+- [ ] Basura de raíz: el informe stub está **sin trackear en el checkout principal**,
+      no en git — hay que borrarlo desde allá, no desde esta rama
 - [ ] Sitemap: faltan 6 páginas indexables; 21+ URLs huérfanas sin enlace interno
 
 ### ⬜ Lote 6 — Alinear specs con la realidad · medio · ~1,5 h
