@@ -40,3 +40,34 @@ escribir (ver Motor de Crecimiento F1-T02/T03).
 **Regla de oro:** nunca borrar un embudo con leads dentro; el write-back en dry-run hace que
 reestructurar Kommo no dispare nada — la ventana ideal para los pasos 7-9 es ANTES del paso 6 o
 en cualquier momento con dry-run puesto.
+
+---
+
+## 🔑 Llave de deduplicación — DECIDIDA (2026-08-02)
+
+**El founder decidió: la llave es el TELÉFONO.**
+
+Cierra la pregunta que este checklist dejaba abierta arriba (*"sin llave, el write-back
+no encuentra a quién escribir"*) y también la que levantó la auditoría del 2026-08-02:
+la web no alimenta a Kommo, así que un visitante que llena un formulario llega como
+correo al equipo y alguien lo teclea a mano, o se pierde.
+
+**Alcance de la decisión.** Aplica a los dos frentes, que necesitan la misma llave:
+
+1. **Vínculo de los ~428 clientes del ERP** (`kommo_lead_id` = 0 hoy) → paso 6.
+2. **Alta de leads desde la web** hacia Kommo: antes de crear, buscar por teléfono; si
+   existe, actualizar en vez de duplicar.
+
+**Lo que hay que cuidar al implementarlo** (no es parte de la decisión, es su
+consecuencia técnica):
+
+- **Normalizar antes de comparar.** El mismo número vive escrito de varias formas
+  (`0412-1668021`, `+58 412 166 8021`, `584121668021`). Sin normalizar a E.164 la llave
+  no deduplica nada — crea duplicados con cara de únicos.
+- **El teléfono no es único por persona.** Una empresa con varios contactos puede
+  compartir el fijo. Si el match trae más de uno, **no elegir uno al azar**: dejarlo
+  para revisión humana. Un merge equivocado mezcla dos clientes y no se deshace fácil.
+- **Hay clientes sin teléfono.** Ese caso cae a alta nueva, no a error.
+
+Estado: **decidida, sin construir.** El write-back sigue en `dry_run=true` y el orden
+seguro de los pasos 1→6 de arriba no cambia.

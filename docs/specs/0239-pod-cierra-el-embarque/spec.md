@@ -177,9 +177,17 @@ sigue llamando a `camionero_pod` v1 y nada cambia. Requisitos para encenderlo:
 
 ## 6. Migración
 
-`0336_pod_closes_shipment.sql` — **escrita y verificada localmente, NO aplicada a
-producción**. Aplicarla requiere el OK del founder nombrándola
-(`docs/runbooks/aplicar-migraciones-prod.md`).
+`0336_pod_closes_shipment.sql` — ✅ **APLICADA a producción el 2026-08-02**, con OK
+del founder nombrándola y de a una (`docs/runbooks/aplicar-migraciones-prod.md`).
+
+Verificado **contra el objeto**, no contra el nombre: firma de 13 argumentos exacta,
+`security definer`, `anon`/`authenticated` sin permiso de ejecución, `service_role` sí,
+ledger con el basename exacto `0336_pod_closes_shipment`, y `camionero_pod` v1 marcada
+`DEPRECADO`. El paso `migrations-applied` del gate volvió a verde.
+
+**Nada cambió de comportamiento todavía:** la migración sólo CREA una función nueva.
+Nadie la llama —la PWA sigue en v1— porque el flag `DTD_POD_CLOSES_SHIPMENT` está
+apagado y los requisitos de §5 siguen sin cumplirse (`shipment_id` al 0%).
 
 Verificación local: `check-schema-rebuild` la aplica desde cero sobre un Postgres
 limpio (311 migraciones) y el contrato `supabase/tests/0336_pod_closes_shipment.test.sql`
