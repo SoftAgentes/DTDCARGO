@@ -111,18 +111,20 @@ Test puntual: `pnpm test path/to/file.test.ts` o `pnpm test -t "nombre"`. E2e pu
 - **Escrituras:** el MCP habitual no autoriza escrituras. Prepara migrations como archivos, valida localmente y usa una conexión temporal separada solo cuando el founder autorice aplicar el cambio concreto. **Aplicar a prod → runbook obligatorio: [`docs/runbooks/aplicar-migraciones-prod.md`](docs/runbooks/aplicar-migraciones-prod.md)** (OK del founder NOMBRANDO la migración · de a UNA, nunca en bundle · `name` = basename exacto del archivo). El gate lo vigila: el paso `migrations-applied` de `verify.mjs` grita si un archivo del repo no está en prod — así se dejaron de perder migraciones (la 0228 estuvo 2 rondas perdida y la 0169 una ronda entera; **ambas aplicadas y cerradas**). ⚠️ **El gate mide el checkout, no `origin/main`:** en un árbol atrasado los archivos nuevos no están en disco y sale verde por omisión. Antes de confiar en su verde, sincronizá con `origin/main` — así se detectaron las 0318–0324, que estaban en `main` y en el código desplegado pero no en la DB.
 - **CI/automatización:** si una tarea no admite OAuth, guarda el PAT únicamente en el secret manager del proveedor, con expiración y propósito identificable; nunca en archivos locales del repo.
 
-## Integraciones del sitio público (estado · actualizado 2026-07-05)
+## Integraciones del sitio público (estado · verificado 2026-08-02)
 
-Los mocks originales **ya no existen** (`mockSubmit` desapareció del código). La captación es real:
+Los mocks originales **ya no existen** (`mockSubmit` desapareció del código). Ojo: varias rutas de captación se renombraron y **el consumidor de cada endpoint cambió** — verificá contra el código antes de asumir, esta tabla ya estuvo desactualizada una vez.
 
-| Endpoint | Estado | Usado por |
+| Endpoint | Estado | Usado hoy por |
 |---|---|---|
-| RPC pública `public_track_shipment` (consulta server-side) | ✅ real | `/track/[code]` |
-| `POST /api/public/estimacion` | ✅ real — crea `EST-XXXX` en el ERP | `/estimacion` y `/calculadora` (EstimadoModal) |
-| `POST /api/contact` | ✅ real — Resend equipo + cliente, honeypot + throttle IP | `/contacto` |
+| RPC pública `public_track_shipment` | ⚠️ **sin consumidor** — `lib/public/tracking-queries.ts` no lo importa nadie desde que `/track` pasó a 301 | — (el rastreo vive en el portal) |
+| `POST /api/public/estimacion` | ✅ real — avisa al equipo del lead; **ya NO crea `EST-XXXX`** | `EstimadoModal`, la vía legacy de `CalculadoraForm` en `/tarifas` |
+| `POST /api/contact` | ✅ real — Resend equipo + cliente, honeypot + throttle IP | **`/academia`** (`AcademiaLeadForm`). **`/contacto` ya NO lo usa** |
 | Server Action de registro + `POST /api/registro/check` | ✅ real — alta cliente + MARKBOX | `/registro` |
 
-`/cotizar` fue renombrada a `/estimacion` (301 en `next.config.ts`, SDD-0061).
+**`/contacto` manda SOLO por WhatsApp** desde el 2026-07-20 (decisión del founder, mockup Cloud Design variante C): no postea a ningún endpoint, y por eso no tiene honeypot ni throttle — no hay backend que proteger. `/api/contact` queda marcado como deprecado por si se revierte.
+
+Redirects vigentes (`next.config.ts`): `/cotizar`, `/estimacion` y `/calculadora` → **`/tarifas`** · `/calculadora-fcl` → `/fcl` · `/track` y `/track/*` → `/portal/login` · `/markbox` → `/shipping-mark`.
 
 ## Convenciones
 
