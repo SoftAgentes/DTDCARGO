@@ -1,19 +1,19 @@
 # DTD Cargo · Brand Guardrails
 
-> **Para Claude Code:** este archivo define las reglas de marca y sistema de diseño de DTD Cargo. Antes de aplicar **cualquier** cambio visual (colores, tipografía, componentes, espaciado, copy), validá contra estas reglas. Si lo que te piden contradice una regla, **avisá al usuario antes de aplicar el cambio** con el formato definido al final.
+> **Para Claude Code:** este archivo define las reglas de marca y sistema de diseño de DTD Cargo. Antes de aplicar **cualquier** cambio visual (colores, tipografía, componentes, espaciado, copy), valida contra estas reglas. Si lo que te piden contradice una regla, **avisa al usuario antes de aplicar el cambio** con el formato definido al final.
 
 ---
 
 ## 🚨 Comportamiento esperado
 
-1. **Leé este archivo completo al inicio de cada sesión.** No lo resumas, no lo skipees.
-2. **Antes de aplicar cualquier cambio visual**, comparalo contra las reglas de abajo.
-3. **Si detectás una violación**, NO apliques el cambio en silencio. Mostrá el aviso con el formato `BRAND-CHECK` (definido al final) y esperá confirmación explícita del usuario.
-4. **Si el usuario insiste**, anotá que es una excepción documentada (con su responsabilidad), aplicalo, y registrá la decisión como comentario en el código:
+1. **Lee este archivo completo al inicio de cada sesión.** No lo resumas, no lo saltes.
+2. **Antes de aplicar cualquier cambio visual**, compáralo contra las reglas de abajo.
+3. **Si detectás una violación**, NO apliques el cambio en silencio. Muestra el aviso con el formato `BRAND-CHECK` (definido al final) y espera confirmación explícita del usuario.
+4. **Si el usuario insiste**, anota que es una excepción documentada (con su responsabilidad), aplícalo, y registra la decisión como comentario en el código:
    ```
    /* BRAND-EXCEPTION: <descripción> — autorizado por <usuario> el <fecha> */
    ```
-5. **Nunca inventes valores nuevos** de color, fuente, radius, sombra o spacing. Usá **siempre** las variables CSS del sistema (`var(--*)`). Si necesitás algo que no existe, preguntá primero.
+5. **Nunca inventes valores nuevos** de color, fuente, radius, sombra o spacing. Usa **siempre** las variables CSS del sistema (`var(--*)`). Si necesitas algo que no existe, pregunta primero.
 
 ---
 
@@ -127,7 +127,7 @@ Los valores canónicos viven en el Norte (`docs/design/studio/_norte/erp/tokens.
 
 ### ❌ Colores PROHIBIDOS
 - **NUNCA** uses verde fosforescente, lima, neón, fucsia eléctrico o ningún color saturado fuera de la paleta.
-- **NUNCA** uses `red`, `blue`, `green`, `orange`, `purple` como nombres CSS. Usá los tokens.
+- **NUNCA** uses `red`, `blue`, `green`, `orange`, `purple` como nombres CSS. Usa los tokens.
 - **NUNCA** inventes hex como `#FF5733`, `#00FFAA`, etc.
 - **NUNCA** uses gradientes coloridos / arcoíris / "AI slop". Los **coloridos/arcoíris siguen prohibidos**; lo permitido es **tonal navy → ink** (familia `#0B1428`→`#0F1E3D`→`#1F3055`), **nunca hacia blanco**. En heros con texto (left-aligned) va **horizontal, azul FUERTE a la izquierda → navy más claro a la derecha**: `linear-gradient(90deg, #0B1428 0%, #0F1E3D 44%, #1F3055 100%)` (BD-022). **Hex explícito siempre, nunca `var(--ink)`/`var(--ink2)` dentro del gradiente** (BD-023) — si el token no resuelve, el fondo cae a blanco con texto claro encima (invisible); en dark, `var(--ink)` además se invierte a cream y voltea la tarjeta. En cards/botones chicos el diagonal `135deg` del mismo par es aceptable.
   - **Glow de fondo (BD-030, 2026-07-12):** además del hero, se **permite —y se recomienda para no dejar fondos planos—** un **glow radial *tonal* navy→ink** como fondo: `radial-gradient(135% 100% at 50% -12%, #1F3055 0%, #0F1E3D 42%, #0B1428 100%)` en dark; en claro, el equivalente sutil en papel `#FBFAF7`→`#F2F0EC`. Token: **`var(--bg-glow)`** (`app/globals.css`). Sigue las reglas de BD-022/023 (hex explícito, nunca hacia blanco en la familia navy) y **no** sustituye el gradiente de hero horizontal. Es **tonal, no colorido** — el glow no es una puerta a gradientes de color.
@@ -229,7 +229,7 @@ Complementa la tipografía (no la cambia): reglas de lectura cómoda.
 
 ## 📐 Spacing & Layout
 
-Escala de 4px (todo múltiplo). Usá las variables:
+Escala de 4px (todo múltiplo). Usa las variables:
 ```
 --s-1: 4px   --s-2: 8px    --s-3: 12px   --s-4: 16px
 --s-5: 20px  --s-6: 24px   --s-8: 32px   --s-10: 40px
@@ -263,8 +263,8 @@ Los componentes viven en `erp/components.jsx` (ERP) y se reusan en `portal/app.j
 
 ### Reglas de uso
 
-- **Siempre** usá los componentes existentes antes de crear uno nuevo: `<Btn>`, `<Input>`, `<Select>`, `<Badge>`, `<Card>`, `<Table>`, `<KPI>`, `<Drawer>`, `<Modal>`, `<Tabs>`, `<Avatar>`, `<Progress>`, `<EmptyState>`.
-- Si te falta un componente, **construilo siguiendo el estilo de los existentes** (mismas variables, mismo radius, mismas sombras) y dejá un comentario `/* TODO: brand-review */` para que el equipo de diseño lo apruebe.
+- **Siempre** usa los componentes existentes antes de crear uno nuevo: `<Btn>`, `<Input>`, `<Select>`, `<Badge>`, `<Card>`, `<Table>`, `<KPI>`, `<Drawer>`, `<Modal>`, `<Tabs>`, `<Avatar>`, `<Progress>`, `<EmptyState>`.
+- Si te falta un componente, **constrúyelo siguiendo el estilo de los existentes** (mismas variables, mismo radius, mismas sombras) y deja un comentario `/* TODO: brand-review */` para que el equipo de diseño lo apruebe.
 - **Botones**: usar las 6 variantes oficiales — `primary`, `secondary`, `ghost`, `danger`, `dark`, `soft`. No inventes.
 - **Badges**: usar tonos `success`, `warning`, `danger`, `info`, `wine`, `neutral`. No inventes tonos.
 
@@ -283,12 +283,12 @@ Cada pantalla los cubre con el mismo cuidado que el "happy path".
 
 - **Castellano venezolano neutro, tuteo** — usar "tú" (recibes, rastrea, cotiza, confirma). **Sin voseo** (nada de vos / sos / arrancá / mirá). *(Regla del founder 2026-06-08: en Venezuela no se usa voseo. Aplica a copy de marca y a la comunicación de los agentes.)*
 - **Verbos directos** en CTAs: "Cotizar DDP", "Crear embarque", "Enviar correo". **NUNCA** "Click acá", "Enviar formulario", "Submit".
-- Sin emoji en UI de producto **a menos que la marca lo apruebe**. Si necesitás un símbolo, usá un icono del set `window.Icon`.
+- Sin emoji en UI de producto **a menos que la marca lo apruebe**. Si necesitas un símbolo, usa un icono del set `window.Icon`.
 - Sin signos de exclamación múltiples. Sin mayúsculas sostenidas (excepto en eyebrows que ya lo hacen vía `text-transform: uppercase`).
 
 ### ❌ Copy PROHIBIDO
 - "¡Genial!", "¡Increíble!", "🎉", "✨" en mensajes de éxito → usar texto simple ("Embarque creado").
-- "Lorem ipsum" en producción. Si necesitás placeholder, escribí algo verosímil de DTD Cargo.
+- "Lorem ipsum" en producción. Si necesitas placeholder, escribe algo verosímil de DTD Cargo.
 - Anglicismos innecesarios: "Login" sí (común), "Sign in" no. "Onboarding" sí, "Welcome flow" no.
 
 ---
@@ -343,7 +343,7 @@ El glassmorphism dejó de estar prohibido en bloque: se **permite acotado** a su
 
 ## ⚠️ Formato del aviso BRAND-CHECK
 
-Cuando detectes una violación, antes de aplicar el cambio, mostrá esto en tu respuesta:
+Cuando detectes una violación, antes de aplicar el cambio, muestra esto en tu respuesta:
 
 ```
 🛑 BRAND-CHECK
@@ -354,22 +354,22 @@ Por qué no va:           <2 líneas de razón>
 Alternativa que respeta: <propuesta dentro del sistema>
 
 ¿Lo aplicamos igual (queda como excepción documentada) o
-preferís la alternativa?
+prefieres la alternativa?
 ```
 
 **Ejemplos de cosas que disparan BRAND-CHECK:**
-- "Cambiá los botones a verde fosforescente" → ❌ rompe paleta
-- "Usá Inter como fuente" → ❌ rompe tipografía
-- "Agregá un gradiente arcoíris en el header" → ❌ AI slop prohibido
+- "Cambia los botones a verde fosforescente" → ❌ rompe paleta
+- "Usa Inter como fuente" → ❌ rompe tipografía
+- "Agrega un gradiente arcoíris en el header" → ❌ AI slop prohibido
 - "Pone emojis en los buttons de éxito" → ❌ rompe tono
-- "Hacé el border-radius de 40px" → ❌ rompe escala
-- "Usá `#FF00FF` para el badge" → ❌ rompe sistema de color
+- "Haz el border-radius de 40px" → ❌ rompe escala
+- "Usa `#FF00FF` para el badge" → ❌ rompe sistema de color
 - Texto que no alcanza el contraste AA sobre su fondo real (ej. `--ink-mute` como body, `--warning` como texto chico) → ❌ rompe legibilidad
 
 **Cosas que NO disparan BRAND-CHECK** (son válidas dentro del sistema):
-- "Cambiá este botón de secondary a primary" → ✅ ambas variantes existen
-- "Pasá el texto a Archivo Black" → ✅ es del sistema
-- "Subí el padding a `var(--s-6)`" → ✅ token válido
+- "Cambia este botón de secondary a primary" → ✅ ambas variantes existen
+- "Pasa el texto a Archivo Black" → ✅ es del sistema
+- "Sube el padding a `var(--s-6)`" → ✅ token válido
 - "Pone esa badge en tono `warning`" → ✅ tono permitido
 
 ---

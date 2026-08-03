@@ -718,7 +718,7 @@ export async function generateHeadlines(
         focusKeyword,
         secondaryKeywords,
       )
-    : `Sos editor SEO senior. Generá EXACTAMENTE 5 titulares alternativos para este tema, optimizados para SEO en castellano (Venezuela/Latam):
+    : `Eres editor SEO senior. Genera EXACTAMENTE 5 titulares alternativos para este tema, optimizados para SEO en castellano (Venezuela/Latam):
 
 TEMA: ${cleanTopic}
 
@@ -778,7 +778,7 @@ export async function generateBullets(
   // Sin categoria: fallback al prompt legacy.
   const prompt = categoria
     ? buildGenerateBulletsPrompt(cleanHeadline, categoria, secondaryKeywords)
-    : `Sos editor SEO senior. Generá la estructura de un artículo para este titular:
+    : `Eres editor SEO senior. Genera la estructura de un artículo para este titular:
 
 TITULAR: ${cleanHeadline}
 

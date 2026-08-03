@@ -1,6 +1,6 @@
 # CLAUDE.md — app/studio (DTD Studio ERP)
 
-Contexto focalizado del ERP interno. Cargá esto cuando trabajes dentro de
+Contexto focalizado del ERP interno. Carga esto cuando trabajes dentro de
 `app/studio/`. El CLAUDE.md de raíz tiene el contexto general del repo
 (dualidad sitio público vs Studio, comandos, brand).
 
@@ -130,7 +130,7 @@ Viven en `app/studio/_components/ui/`:
 
 Icons en `app/studio/_components/icons.tsx` (objeto `Icon` con métodos por nombre).
 
-## Anti-double-submit · usá `<ActionButton>`
+## Anti-double-submit · usa `<ActionButton>`
 
 `app/studio/_components/ui/ActionButton.tsx` es la convención del Studio para
 **cualquier acción que no debe ejecutarse dos veces**. Resuelve 3 problemas en
@@ -215,7 +215,7 @@ const [justSent, setJustSent] = useState(false);
 
 El componente ya incluye `aria-busy={isPending}` + `<span role="status"
 aria-live="polite">` oculto para anunciar transiciones de estado a screen
-readers. No necesitás agregar nada en el caller.
+readers. No necesitas agregar nada en el caller.
 
 ### Estilos
 
@@ -455,7 +455,7 @@ Si vas a usar `<button>` HTML crudo en lugar de estos componentes, debés
 justificar por qué en el PR description y validar las 8 reglas a mano
 en el UI/UX review.
 
-## Columnas configurables · usá `useColumnConfig` + `<ColumnManager>`
+## Columnas configurables · usa `useColumnConfig` + `<ColumnManager>`
 
 **Regla del founder (2026-07-03):** toda tabla de listado de módulo debe ofrecer
 **columnas configurables por usuario** (mostrar/ocultar + reordenar) — cada
@@ -495,7 +495,7 @@ Primer módulo consumidor: PreAlertas de servicios (`proveedores/`).
 - Kanbans, calendarios, timelines — no son tablas de columnas.
 - Tablas de configuración chicas (< 4 columnas) donde no hay nada que ocultar.
 
-## Inputs numéricos · usá `<NumericInput>`
+## Inputs numéricos · usa `<NumericInput>`
 
 Todos los inputs numéricos del Studio (kg, CBM, USD, cajas, montos) deben
 usar `app/studio/_components/ui/NumericInput.tsx` en vez de `<input

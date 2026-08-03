@@ -234,3 +234,31 @@ para las filas viejas, así que nada cambia de golpe.
 - **2026-08-02** — **SDD cerrada.** Catálogo final: **104 archivos · 115,5 MB**
   (los builds propios pesan menos que el roto). Verificado bajo CSP: Brand Book
   128 imágenes / 0 rotas · Manual 44 / 0 · ERP Studio 25 / 0.
+- **2026-08-02** — ⭐ **el book no era un documento: era el índice de un sistema**
+  y estaba servido como archivo suelto. El founder lo reportó así: «si le doy a
+  abrir los logos oficiales, debería poder descargar los logos, pero no abre el
+  link». Dos causas encadenadas:
+  **(1)** `build-book-offline.py` mandaba **todo** enlace a otro documento a
+  `https://dtdcargo.com/marca`. Fue una decisión mía: embeber ~30 documentos de
+  100 KB a 8 MB multiplicaba el archivo por diez. Evitó el archivo gigante y
+  mató la navegación.
+  **(2)** Y aunque no los hubiera desconectado, no estaban: el Brand Book tiene
+  **78 enlaces internos** y el `Handoff v5.0/` trae **7 de los 54 documentos**
+  que enlaza. **62 de 78 apuntaban a algo que no viaja en el ZIP.**
+  **La salida no fue embeber más, sino servirlo como SITIO:**
+  `app/marca/doc/[...ruta]` publica el proyecto con su estructura de carpetas
+  bajo un prefijo de Storage, así `<a href="Logo Oficial.html">` resuelve solo.
+  **No se reescribe un solo href** — que es lo que hace que esto sobreviva al
+  próximo NORTE-SYNC: no queda parche que mantener cuando llegue la v5.1.
+  Se sube con `scripts/upload-brand-proyecto.ts`, que calcula el **cierre
+  transitivo** desde el book (185 archivos · 91,5 MB) en vez del proyecto
+  entero de Cloud Design (1 GB con la v4.6 vieja y archivos de trabajo).
+  **Alcance: sólo marca** (founder). Las 22 piezas de producto —el ERP por
+  dentro, la app del operario, los formularios de inspección— no se publican:
+  `/marca` es el enlace que se le pasa a diseño externo y a la imprenta. Sus
+  enlaces no quedan muertos, caen en una página de aviso que explica y devuelve
+  al catálogo. La lista vive en `lib/marca/proyecto.ts` y es **explícita, no un
+  patrón**: el primer intento clasificaba por subcadenas y `"0"` matcheó
+  `Brand Book DTD v5.0.html`, dejando el documento principal fuera.
+  El standalone autocontenido **se queda** como descarga para trabajar sin
+  internet: se navega el sistema, se descarga el archivo.

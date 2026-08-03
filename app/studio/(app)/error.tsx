@@ -64,7 +64,7 @@ export default function StudioModuleError({
         }}
       >
         El módulo falló al leer sus datos. El resto del Studio sigue funcionando —
-        podés volver a intentar o irte al dashboard. Si se repite, avisá al equipo
+        puedes volver a intentar o irte al dashboard. Si se repite, avisa al equipo
         técnico con el código de abajo.
       </p>
 
