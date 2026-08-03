@@ -3,9 +3,9 @@
 | Campo | Valor |
 |---|---|
 | Estado | **NO VERIFICABLE · integración bloqueada** |
-| Candidatos | Backblaze B2 o servicio equivalente |
+| Candidatos | AWS S3 · Cloudflare R2 · Backblaze B2 · Azure Blob |
 | Finalidad | Recuperación independiente de adjuntos del ERP |
-| Fecha | 2026-07-31 |
+| Fecha | 2026-08-01 |
 | Evaluador técnico | Codex, con aprobación documental de Sam |
 | SDD | [SDD-0224](../../specs/0224-adjuntos-seguros-reanudables/spec.md) |
 
@@ -172,3 +172,21 @@ Motivos:
 
 El gate se reabre únicamente con evidencia contractual, técnica, de privacidad y
 de restauración. La revisión legal corresponde a un abogado.
+
+## 10 · Comparativo técnico actualizado
+
+| Opción | Inmutabilidad | Antivirus | Nivel gratuito útil | Ajuste al worker actual | Veredicto |
+|---|---|---|---|---|---|
+| AWS S3 + GuardDuty | Object Lock WORM por versión | administrado; 1.000 objetos y 1 GB/mes de scanning en free tier | limitado; storage/requests aparte | alto | ⭐ preferida con control de costos |
+| Cloudflare R2 + ClamAV | bucket locks | autogestionado | 10 GB-mes Standard + operaciones/egress incluidos | requiere adaptar lock + operar AV | económica con trabajo adicional |
+| Backblaze B2 + ClamAV | Object Lock sin recargo específico | autogestionado | primeros 10 GB | API S3 compatible, pero lock máximo 3.000 días | no cubre diez años por sí sola |
+| Azure Blob + Defender | WORM/immutability | administrado por GB | no asumido | requiere adaptador nuevo | alternativa empresarial |
+
+**Recomendación técnica:** AWS S3 Object Lock en modo Compliance más GuardDuty
+Malware Protection for S3. Coincide con el contrato del worker, evita operar
+firmas AV y puede cubrir diez años. Antes de contratar: presupuesto, región,
+contrato, transferencia VE/China y restore drill.
+
+La alternativa de menor costo es R2 + ClamAV, pero no se debe confundir
+“software gratis” con servicio administrado: DTD asumiría VPS, actualizaciones,
+colas, disponibilidad, alertas y respuesta a incidentes.

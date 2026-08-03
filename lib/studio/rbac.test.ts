@@ -195,6 +195,17 @@ describe("RBAC: capabilities (SDD-0139)", () => {
       expect(canSpecial(null, capability)).toBe(false);
     }
   });
+
+  it("anulación de finiquito (SDD-0226): solo admin", () => {
+    expect(canSpecial("admin", "void_payroll_settlement")).toBe(true);
+    for (const role of NON_ADMIN) {
+      expect(
+        canSpecial(role, "void_payroll_settlement"),
+        `${role} no debe anular finiquitos`,
+      ).toBe(false);
+    }
+    expect(canSpecial(null, "void_payroll_settlement")).toBe(false);
+  });
 });
 
 describe("RBAC: scope de almacén (SDD-0139)", () => {

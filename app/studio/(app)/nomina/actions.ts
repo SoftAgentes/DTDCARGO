@@ -30,7 +30,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { capabilityDenial, moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { validateAuditReason } from "@/lib/studio/audit/reason";
 import {
   validateEmployeeInput,
   isEmployeeStatus,
@@ -1578,36 +1579,47 @@ export async function confirmarFiniquitoAction(
 /**
  * Anula un finiquito (borrador|confirmado → anulado). Si tenía asiento, lo anula
  * (contra-asiento lógico: status='anulado', los saldos lo ignoran). Conserva la
- * fila (rastro). Libera el índice único parcial para re-generar. Solo admin/accounting.
+ * fila (rastro). Libera el índice único parcial para re-generar. Solo admin mediante
+ * la capability específica de anulación de finiquitos.
  */
 export async function anularFiniquitoAction(
   settlementId: string,
+  reasonRaw: string,
+  requestRef: string,
 ): Promise<{ ok?: boolean; error?: string }> {
+  const reasonResult = validateAuditReason(reasonRaw);
+  if (!reasonResult.ok) return { error: reasonResult.error };
+  if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(requestRef)) {
+    return { error: "La referencia de la solicitud no es válida. Vuelve a abrir el diálogo." };
+  }
+
   const supabase = await createClient();
 
-  const denial = await moduleEditDenial(supabase, MODULE_ID);
+  const denial = await capabilityDenial(supabase, "void_payroll_settlement");
   if (denial) return { error: denial };
 
-  const s = await getSettlement(supabase, settlementId);
-  if (!s) return { error: "El finiquito no existe o no es de tu tenant." };
-  if (!canTransitionSettlement(s.status, "anulado")) {
-    return { error: `No se puede anular un finiquito ${s.status}.` };
-  }
+  const { data, error } = await supabase.rpc("void_payroll_settlement_governed", {
+    p_settlement_id: settlementId,
+    p_reason: reasonResult.reason,
+    p_request_ref: requestRef,
+  });
 
-  if (s.journal_entry_id) {
-    const voided = await voidSettlementJournalEntry(s.journal_entry_id);
-    if (!voided.ok) {
-      return { error: `No se pudo anular el asiento: ${voided.error ?? "desconocido"}` };
+  if (error) {
+    if (error.code === "42501") return { error: "No tienes permiso para anular este finiquito." };
+    if (error.code === "P0002") return { error: "El finiquito no está disponible en tu tenant." };
+    if (error.code === "40001") {
+      return { error: "El finiquito cambió o ya fue anulado. Actualiza la vista antes de reintentar." };
     }
+    if (error.code === "22023") {
+      return { error: "El estado, el motivo o la referencia ya no son válidos." };
+    }
+    return {
+      error: `No se pudo anular el finiquito. Intenta de nuevo. Referencia: ${requestRef}`,
+    };
   }
-
-  const { error } = await supabase
-    .from("nomina_settlements")
-    .update({ status: "anulado", journal_entry_id: null })
-    .eq("id", s.id)
-    .eq("status", s.status);
-
-  if (error) return { error: `No se pudo anular el finiquito: ${error.message}` };
+  if (data !== "voided" && data !== "replayed") {
+    return { error: `La anulación no confirmó un resultado durable. Referencia: ${requestRef}` };
+  }
 
   revalidatePath(PATH);
   return { ok: true };
