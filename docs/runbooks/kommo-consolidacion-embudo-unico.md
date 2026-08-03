@@ -24,9 +24,10 @@
 
 ### Los 4 hallazgos que justifican el cambio
 
-1. **Los leads nuevos no entran al embudo principal.** 290 de los últimos 291 leads (90 días) cayeron
-   en `Embudo de ventas → Atencion al cliente`. El principal ("Prueba") está vacío. **Arreglar el
-   embudo sin arreglar la captación no resuelve nada.**
+1. **Los leads no llegan al ERP.** De los que aceptaron, 290 de 291 (90 días) cayeron en
+   `Embudo de ventas → Atencion al cliente`; el principal ("Prueba") está vacío. Pero el problema mayor
+   es que **la mayoría ni se acepta**: quedan en la bandeja de chat, invisibles para el ERP (ver Fase 0).
+   **Arreglar el embudo sin arreglar por dónde entran no resuelve nada.**
 2. **El embudo único ya se construyó dos veces y ninguna se usó:** "Atencion a leeds" (29-jun) y
    "Prueba". Ambos vacíos. No hay que crear nada.
 3. **Cementerio:** 2.562 leads fríos (>90 d) = 89%. 2.239 muertos (>1 año) = 78%. Solo 16 tocados en
@@ -84,17 +85,35 @@ mercancía · Validación de proveedores · Visa China · Otro` — reemplaza lo
 
 > **Regla de oro:** nunca borrar un embudo con leads adentro (Kommo los orfana). Vaciar → verificar 0 → borrar.
 
-### Fase 0 · Investigar la captación — 🔴 BLOQUEANTE
+### Fase 0 · ✅ RESUELTA (2026-08-03) — la captación NO se detuvo: el ERP está ciego
 
-No tiene sentido ordenar el embudo si la entrada está rota. **Los leads por semana pasaron de 84
-(8-jun) a 0 durante tres semanas de julio.**
+> ⚠️ **Corrección.** Una versión anterior de este runbook afirmaba que *"la captación se detuvo"*.
+> **Era falso.** Los leads entran todo el día; lo que pasa es que **no llegan al ERP**.
 
-- [ ] **0.** Abrir Kommo → **Leads entrantes** y anotar el contador.
-      - **Si hay leads apilados** → son invisibles para el ERP (el sync no lee `/api/v4/leads/unsorted`).
-        Se aceptan al embudo nuevo y se evalúa desactivar la bandeja para que entren directo.
-      - **Si está vacía** → la captación se rompió de verdad. Revisar formularios y fuentes que apunten
-        al subdominio viejo `doortudoor.kommo.com` (hoy es `dtdcargo`).
-- [ ] Reportar el hallazgo **antes de seguir**. Puede cambiar las fases siguientes.
+**Prueba (captura del Inbox de chat, 2026-08-03):** de 11 leads visibles con actividad de hoy,
+**8 no existen en el espejo**. Los 3 que sí están (23276339, 23275787, 23271529) fueron creados el
+29-30 jul y viven en *Embudo de ventas* — alguien los aceptó. Los otros 8 nunca se aceptaron.
+
+**Confirmación por el otro lado:** `sync_logs` reporta `ok` todos los días con **exactamente 2.877
+leads**, congelado desde el 30-jul, mientras `contacts` sí crece (3.034 → 3.041). El sync funciona;
+lo que no ve es la bandeja.
+
+**Causa:** los leads de WhatsApp/formularios caen en la bandeja de entrada y **`/api/v4/leads` no los
+devuelve** hasta que alguien los acepta. El sync sólo consulta ese endpoint (`unsorted` no aparece en
+ningún archivo del repo).
+
+**🔴 Estado operativo al momento de medir: 626 conversaciones sin leer · 3.304 chats abiertos**
+contra 2.877 leads en el espejo. El bot responde el saludo automático, pero nadie retoma.
+
+**Consecuencias para este plan:**
+
+1. La **Fase 2 (redirigir la captación) sube a máxima prioridad**: no es cosmética, es lo que hace que
+   los leads existan para el ERP. Es exactamente lo que pidió el founder desde el inicio — *"que no
+   entren a la sección general de leads, sino directo al embudo"*.
+2. **Sumar `/api/v4/leads/unsorted` al sync deja de ser "punto ciego" y pasa a ser deuda crítica**:
+   mientras no esté, el ERP mide sobre una fracción del embudo. Spec aparte.
+3. Antes de confiar en cualquier conteo de este runbook, recordar que **el espejo subestima**: los
+   2.877 son sólo los leads aceptados.
 
 ### Fase 1 · Preparar (sin riesgo, embudos vacíos)
 
