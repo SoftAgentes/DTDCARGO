@@ -24,6 +24,8 @@ import { t } from "@/lib/i18n";
 import { GastosClient } from "./_components/GastosClient";
 import { GastosKpis } from "./_components/GastosKpis";
 import { attachmentsPilotState } from "@/lib/studio/attachments/pilot-gate";
+import { canSpecial } from "@/lib/studio/rbac";
+import type { StudioUserRole } from "@/lib/studio/user-types";
 
 export const metadata = { title: "Gastos" };
 
@@ -60,9 +62,13 @@ export default async function GastosPage({
     userId
       ? supabase
           .from("user_tenants")
-          .select("region, tenant_id")
+          .select("region, tenant_id, role")
           .eq("user_id", userId)
-          .maybeSingle<{ region: string | null; tenant_id: string }>()
+          .maybeSingle<{
+            region: string | null;
+            tenant_id: string;
+            role: StudioUserRole;
+          }>()
       : Promise.resolve({ data: null }),
   ]);
   const { locale } = await resolveLocale({
@@ -122,6 +128,7 @@ export default async function GastosPage({
         openShipmentId={openShipmentId}
         attachmentsPilotEnabled={attachmentsPilotState().enabled}
         attachmentOwnerKey={userId && ut?.tenant_id ? `${ut.tenant_id}:${userId}` : undefined}
+        canVoidExpense={canSpecial(ut?.role, "void_expense")}
       />
     </div>
   );

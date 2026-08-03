@@ -110,9 +110,18 @@ export const expenses = {
 
   // ── Row actions ──────────────────────────────────────────
   "expenses.row.edit": "Editar",
-  "expenses.row.delete": "Eliminar",
-  "expenses.row.delete_confirm": "¿Eliminar este gasto?",
-  "expenses.row.deleted": "Gasto {code} eliminado",
+  "expenses.row.void": "Anular gasto",
+  "expenses.row.void_title": "Anular gasto {code}",
+  "expenses.row.void_message":
+    "El registro y su recibo se conservarán. El asiento contable asociado quedará anulado y dejará de afectar los saldos.",
+  "expenses.row.void_confirm": "Anular gasto",
+  "expenses.row.void_reason": "Motivo de la anulación",
+  "expenses.row.void_reason_placeholder": "Ej: gasto duplicado después de conciliación",
+  "expenses.row.void_hold": "Mantén presionado para anular",
+  "expenses.row.void_alternative":
+    "Entiendo que el registro se conservará y prefiero anular con un clic",
+  "expenses.row.voided": "Gasto {code} anulado",
+  "expenses.row.void_replayed": "La anulación de {code} ya estaba confirmada",
 
   // ── Toasts ───────────────────────────────────────────────
   "expenses.toast.created": "Gasto {code} guardado",

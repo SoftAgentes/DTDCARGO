@@ -173,6 +173,8 @@ artefactos permanecen en sus fuentes correspondientes.
 | Cierre productivo nominal de privacidad y hardening 0326–0329 | [REV-SGE-054](reviews/governance-0326-0329-production-close-2026-08-03.md) |
 | Cierre final de Gobernanza 9 y Nómina Tier-3 | [REV-SGE-055](reviews/governance-9-final-close-2026-08-03.md) |
 | Integración y publicación de Gobernanza 9 | [REV-SGE-056](reviews/governance-9-main-production-publish-2026-08-03.md) |
+| Auditoría R3 de anulación de Gastos | [REV-SGE-057](reviews/post-governance-10-gastos-r3-audit-2026-08-03.md) |
+| Implementación local R3 de anulación de Gastos | [REV-SGE-058](reviews/gastos-r3-expense-void-implementation-2026-08-03.md) |
 | Revisión de patrones UX en videos | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | Portabilidad EOL de SDD-0118 | [REV-AUD-030](reviews/aud-sdd-0118-eol-portability.md) |
 | Dependencias ejecutables CMP-01 | [REV-SGE-015](reviews/cmp-01-dependency-validation.md) |
