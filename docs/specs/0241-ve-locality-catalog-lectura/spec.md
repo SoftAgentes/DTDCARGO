@@ -1,7 +1,7 @@
 ---
 sdd: "0241"
 title: "El catálogo de localidades VE quedó ilegible: RLS encendida sin política"
-status: in-progress
+status: done
 author: "Sam (founder) + Claude"
 created: 2026-08-03
 updated: 2026-08-03
@@ -108,11 +108,22 @@ lo "arregla" con `for all using (true)`, se pone rojo).
 Mutación: quitar la política → *"authenticated ve 0 fila(s), esperaba 2 · el
 cascade Estado→Municipio→Ciudad→CP de /studio/admin/rutas queda vacío"*.
 
-## 7. Aplicación a producción
+## 7. Aplicación a producción · ✅ 2026-08-03
 
-**Pendiente.** La migración queda como archivo. Aplicarla exige OK del founder
-nombrándola, de a una, por
+Aplicada con OK del founder, de a una, por
 [`docs/runbooks/aplicar-migraciones-prod.md`](../../runbooks/aplicar-migraciones-prod.md).
+`name` en el ledger = `0338_ve_locality_catalog_read_policy` (basename exacto).
 
-Al aplicarla, `/studio/admin/rutas` vuelve a funcionar de inmediato: son 98
-filas que ya están en la tabla y hoy nadie puede ver.
+Verificado **contra el objeto**, y lo primero es lo único que prueba la cura:
+
+| Comprobación | Antes | Después |
+|---|---|---|
+| **Filas que ve `authenticated`** (`set role`) | **0** de 98 | **98** de 98 |
+| RLS activa | sí | **sí** (la cura no fue apagarla) |
+| Políticas | 0 | 1 |
+| Comandos que cubre la política | — | `SELECT` únicamente |
+| GRANTs de escritura a `authenticated` | 0 | **0** (sigue inmutable) |
+| Paso `migrations-applied` del gate | 🔴 | verde |
+
+`/studio/admin/rutas` vuelve a ofrecer el cascade Estado → Municipio → Ciudad →
+CP: son las mismas 98 filas que ya estaban en la tabla y que nadie podía ver.

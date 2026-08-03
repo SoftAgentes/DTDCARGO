@@ -270,7 +270,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0238 | El brand book se comparte con un link y un código | done | interno |
 | 0239 | El POD del camionero cierra el embarque | in-progress | interna |
 | 0240 | Feature flags: siembra por tenant y panel que no miente | in-progress | interna |
-| 0241 | El catálogo de localidades VE quedó ilegible: RLS encendida s… | in-progress | interna |
+| 0241 | El catálogo de localidades VE quedó ilegible: RLS encendida s… | done | interna |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0226 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
