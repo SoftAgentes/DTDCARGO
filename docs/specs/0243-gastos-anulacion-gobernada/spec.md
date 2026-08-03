@@ -1,7 +1,7 @@
 ---
 sdd: "0243"
 title: "Anulación gobernada de gastos"
-status: proposed
+status: in-progress
 author: "Sam (founder) + Codex"
 created: 2026-08-03
 updated: 2026-08-03
@@ -40,7 +40,7 @@ REV-SGE-057 comprobó que el flujo actual:
 Estas son brechas comprobadas del flujo. La clasificación histórica `BE` no se
 usa como sustituto de esa evidencia.
 
-## 3. Decisión propuesta
+## 3. Decisión aprobada
 
 - La acción visible se llama `Anular gasto`; no promete eliminación.
 - La permanencia es P3/R3: el gasto, su código y sus referencias se conservan.
@@ -109,10 +109,11 @@ No se propone excepción ni una política nueva.
 - `supabase/tests/0340_expense_void_governance.test.sql`
 - `e2e/gastos-expense-void.spec.ts`
 
-`0340` era el correlativo libre al ejecutar `pnpm sdd:next` el 2026-08-03. No
-está reservado mediante un archivo ni autorizado para Producción: se debe
-revalidar contra todas las refs justo antes de implementarlo y renumerar el
-trabajo no integrado si aparece una colisión.
+`0340` continuó libre al revalidar 102 refs con `pnpm sdd:next` el 2026-08-03.
+El archivo local `0340_expense_void_governance.sql` materializa el correlativo
+en este carril, pero no está integrado ni autorizado para Producción. Si otra
+rama alcanza `main` con el mismo número antes de la integración, se renumera
+este trabajo no aplicado.
 
 ## 6. Pruebas de aceptación
 

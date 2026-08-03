@@ -48,7 +48,7 @@
 | Reclamos | 0102, 0147, 0229 | `app/studio/(app)/reclamos/` | `lib/studio/reclamos/` · `supabase/migrations/{0156,0157,0319}` (pago R3 de indemnización gobernado) |
 | Inspecciones | 0066, 0233 | `app/studio/(app)/inspecciones/` | `lib/studio/inspecciones/` · `supabase/migrations/{0176,0323}` (retiro R3 gobernado; Storage retenido) |
 | Cobranzas | 0041 | `app/studio/(app)/cobranzas/` | `lib/studio/payment-*`, `collections-actions`, `accounting/receipt-posting` |
-| Gastos | 0039, 0077, 0079, 0080, 0243 (`proposed`) | `app/studio/(app)/gastos/` + `app/m/erp/` | `lib/studio/expense-*`, `accounting/expense-posting` · anulación R3 propuesta, sin migración creada |
+| Gastos | 0039, 0077, 0079, 0080, 0243 (`in-progress`) | `app/studio/(app)/gastos/` + `app/m/erp/` | `lib/studio/expense-*`, `accounting/expense-posting` · `supabase/migrations/0340_expense_void_governance.sql` local, no aplicada |
 | Tesorería | 0044 | `app/studio/(app)/tesoreria/` | `lib/studio/treasury/` (types, supplier-queries, bill-queries, treasury-actions), `accounting/{bill-posting,supplier-payment-posting}` · `supabase/migrations/0088_tesoreria.sql` |
 | Financiero China | 0059, 0110, 0115, 0227 | `app/studio/(app)/financiero-china/` | `lib/studio/partner-finance/` · `supabase/migrations/{0114,0115,0178,0317}` (pago R3 de cruce gobernado) |
 | Despacho | 0029, 0030, 0234 | `app/studio/(app)/despacho/` + `app/m/ve/{bodeguero,camionero}/` | `lib/studio/dispatch-*`, `notify/` · `supabase/migrations/{0024,0324}` (cancelación R3 gobernada) |
