@@ -10,8 +10,8 @@
  */
 
 import { NextResponse, type NextRequest } from "next/server";
-import { createClient } from "@/lib/db/server";
 import { apiError } from "@/lib/http/api-error";
+import { requireStudioSession } from "@/lib/http/studio-session";
 import {
   getShipmentById,
   getShipmentEvents,
@@ -53,7 +53,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const supabase = await createClient();
+  const sesion = await requireStudioSession();
+  if (sesion instanceof NextResponse) return sesion;
+  const { supabase } = sesion;
 
   try {
     const shipment = await getShipmentById(supabase, id);
@@ -72,6 +74,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  const sesion = await requireStudioSession();
+  if (sesion instanceof NextResponse) return sesion;
+  const { supabase } = sesion;
 
   let raw: Partial<ShipmentEditablePayload>;
   try {
@@ -105,7 +110,6 @@ export async function PATCH(
     update.volume_m3 = n;
   }
 
-  const supabase = await createClient();
   const { data, error } = await supabase
     .from("shipments")
     .update(update)
@@ -127,7 +131,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const supabase = await createClient();
+  const sesion = await requireStudioSession();
+  if (sesion instanceof NextResponse) return sesion;
+  const { supabase } = sesion;
 
   // Soft delete — el trigger cascade_soft_delete_events propaga a shipment_events
   const { error } = await supabase

@@ -11,8 +11,8 @@
  */
 
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/db/server";
 import { apiError } from "@/lib/http/api-error";
+import { requireStudioSession } from "@/lib/http/studio-session";
 import type { ShipmentStatus } from "@/lib/studio/shipment-types";
 
 export type DashboardKPIs = {
@@ -31,7 +31,10 @@ const IN_TRANSIT_STATES: ShipmentStatus[] = [
 ];
 
 export async function GET() {
-  const supabase = await createClient();
+  const sesion = await requireStudioSession();
+  if (sesion instanceof NextResponse) return sesion;
+  const { supabase } = sesion;
+
   const { data, error } = await supabase
     .from("shipments")
     .select("status");
