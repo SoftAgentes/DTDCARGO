@@ -194,7 +194,7 @@ function cmdStart({ slug, from, dryRun }) {
   info("");
   ok(`Lane "${slug}" listo.`);
   info(`  → Abrí una ventana de Claude/terminal en:  ${wt}`);
-  info(`  → Y corré:  /feature ${slug}`);
+  info(`  → Y corre:  /feature ${slug}`);
   info(`  (recordá: NO implementes features en main; este es tu escritorio aislado)`);
 }
 
@@ -276,7 +276,7 @@ function cmdFinish({ slug, deleteBranch, dryRun }) {
     info(`  rama ${branch} conservada (no se pierde el trabajo). Borrala con --delete-branch tras mergear.`);
   }
   info("");
-  warn("finish NO mergea ni pushea. El merge a main + push los hacés vos con tu OK.");
+  warn("finish NO mergea ni pushea. El merge a main + push los haces tú con tu OK.");
 }
 
 function cmdList() {

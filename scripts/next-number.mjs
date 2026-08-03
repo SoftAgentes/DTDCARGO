@@ -28,7 +28,7 @@
  *   node scripts/next-number.mjs                    → próximo libre de spec y de migración
  *   node scripts/next-number.mjs --reserve <slug>   → prepara la reserva (no pushea)
  *   node scripts/next-number.mjs --reserve <slug> --push   → reserva y publica
- *   node scripts/next-number.mjs --no-fetch         → sin red (usa lo que ya tenés)
+ *   node scripts/next-number.mjs --no-fetch         → sin red (usa lo que ya tienes)
  *
  * Exit: 0 = ok · 1 = error de uso o de git
  */
@@ -206,7 +206,7 @@ function main(argv) {
 
   if (!slug) {
     console.log(
-      `${C.dim}\n   Para que nadie te lo pise mientras trabajás:\n` +
+      `${C.dim}\n   Para que nadie te lo pise mientras trabajas:\n` +
         `     node scripts/next-number.mjs --reserve <slug>${C.nc}`,
     );
     return 0;

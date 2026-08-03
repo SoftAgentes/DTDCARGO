@@ -32,7 +32,7 @@ try {
 }
 if (!changed.trim()) process.exit(0); // no tocaste código → cierre instantáneo
 
-// 3. Tocaste código → corré el gate.
+// 3. Tocaste código → corre el gate.
 const r = spawnSync(process.execPath, ["scripts/verify.mjs"], { encoding: "utf8" });
 if (r.status === 0) process.exit(0); // verde → dejar cerrar
 

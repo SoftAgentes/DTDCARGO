@@ -499,7 +499,7 @@ const DATA_GROUPS = [
 
 let dataView;
 if (!recon.found) {
-  dataView = `  <div class="empty-data">No se encontró <code>docs/architecture/schema-reconciliation.md</code>. Generá la reconciliación (corré <code>/radar</code> o el reconciliador de esquema) y regenerá el Norte con <code>node scripts/norte.mjs</code>.</div>`;
+  dataView = `  <div class="empty-data">No se encontró <code>docs/architecture/schema-reconciliation.md</code>. Genera la reconciliación (corre <code>/radar</code> o el reconciliador de esquema) y regenera el Norte con <code>node scripts/norte.mjs</code>.</div>`;
 } else {
   const dc = recon.counts;
   const dB = pctOf(dc.built, dc.total), dP = pctOf(dc.partial, dc.total);
