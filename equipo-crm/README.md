@@ -4,6 +4,10 @@
 > (`doortudoorservices@gmail.com`) para responder rápido en el CRM y apoyar marketing.
 >
 > **Proyecto en Claude:** `DTD Cargo · CRM y Marketing`
+>
+> **Para dar de alta a una persona** (mensajes listos para mandar + cómo verificar que
+> quedó bien + qué hacer cuando alguien se va) →
+> [`docs/runbooks/setup-asistente-equipo-crm.md`](../docs/runbooks/setup-asistente-equipo-crm.md)
 
 ## Cómo está armado
 
