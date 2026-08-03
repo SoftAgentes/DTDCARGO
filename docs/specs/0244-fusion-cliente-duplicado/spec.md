@@ -1,0 +1,149 @@
+---
+sdd: "0244"
+title: "Fusión de cliente duplicado y prevención del Shipping Mark repetido"
+status: in-progress
+author: "Sam (founder) + Claude"
+created: 2026-08-03
+updated: 2026-08-03
+supersedes: null
+superseded_by: null
+related: ["0010", "0042", "0046", "0059", "0106", "0131", "0225"]
+confidencialidad: interno
+---
+
+# SDD-0244 — Fusión de cliente duplicado y prevención del Shipping Mark repetido
+
+## 1. El problema
+
+Un cliente que **ya existe** entra a `/registro`, se registra como si fuera nuevo,
+y el sistema le emite un **Shipping Mark nuevo**. Queda con dos identidades y dos
+códigos: el viejo, que carga su historial, y el nuevo, que es el que acaba de
+anotar y el que le va a pasar a su proveedor en Yiwu.
+
+## 2. Diagnóstico medido en producción (2026-08-03)
+
+Conteos agregados sobre `public.clients` (429 filas vivas):
+
+| Familia de código | Cuántos | Origen |
+|---|---|---|
+| `DTD-A###` (letra + 3 dígitos) | 360 | Legado importado. Cero self-service |
+| `DTD-####` (4 dígitos) | 58 | Los emite `next_markbox`. **51 del registro público** |
+| Otros (`ITS-##`, `AD-###`, sueltos) | 11 | Residuos de migración |
+
+### 2.1 El generador es ciego al legado
+
+`next_markbox` y `next_markbox_service` calculan el correlativo con
+`max((regexp_match(markbox, '^DTD-(\d+)$'))[1]::int) + 1`
+(`0012_rls_perf_and_rpc_guards.sql:78`, `0109_next_markbox_service.sql:34`).
+
+Ese regex **no matchea `DTD-A123`**, así que los 360 legados son invisibles para
+el correlativo. Los dos mundos numéricos son independientes.
+
+**Consecuencia buena:** hoy **no hay riesgo de reemitir un número ocupado**.
+**Consecuencia a preservar:** ninguna de las dos funciones filtra `deleted_at`, así
+que **un código soft-deleted queda quemado y no se reemite**. Esta spec depende de
+esa propiedad y **no la toca**.
+
+### 2.2 Por qué el dedup actual no los atrapa
+
+El dedup de `app/registro/actions.ts:157` compara **sólo el documento** (`rif`).
+
+- **144 legados no tienen documento cargado.** De esos, 27 tienen correo, 27
+  tienen teléfono y **98 no tienen ninguna de las tres cosas**.
+- Y cuando el documento sí está, **suele estar corrupto por la exportación de
+  Excel**. Casos reales: `2108108.0` (Excel lo leyó como número y le añadió `.0`)
+  y `123456/822326660` (dos valores concatenados). Ninguna normalización razonable
+  hace match entre `2108108.0` y `V-20108108`.
+
+**El correo y el teléfono son mejores llaves que el documento para el legado.**
+
+### 2.3 Daño real hoy: 3 duplicados
+
+| Viejo | Nuevo | Coincide por |
+|---|---|---|
+| `DTD-Y009` | `DTD-9009` | correo + teléfono + nombre |
+| `DTD-A098` | `DTD-9017` | correo + teléfono |
+| `DTD-J000` | `DTD-9001` | **sólo nombre** |
+
+El tercero es débil: el viejo no tiene correo, teléfono ni documento, y el nombre
+es común. **No se fusiona sin confirmación humana.**
+
+Además, todos los legados tienen `created_at = 2026-06-12` — es la fecha de la
+importación, no del alta. En el caso de `DTD-J000` el registro "nuevo" es del
+**08-jun**, *anterior*: ese duplicado **lo creó la importación, no el registro**.
+Por eso **la antigüedad de la fila no sirve para elegir superviviente**.
+
+## 3. Decisión de diseño
+
+### 3.1 No se renumera. Se fusiona.
+
+`clients.markbox` **no es una referencia, es un valor copiado**. Se snapshotea
+dentro de facturas (`lib/studio/invoice-types.ts:348`), expedientes sellados
+(`lib/studio/legal/seal.ts:103`), prealertas, despachos, aduana, pagos y cobranzas.
+
+Por eso **queda prohibido** `update clients set markbox = …` sobre una fila con
+historial: las facturas y los expedientes quedarían apuntando a un texto que ya no
+existe, y **un expediente sellado no se reescribe** — para eso está el sello.
+
+### 3.2 Superviviente = el viejo. Datos ganadores = los del nuevo.
+
+Gana el registro viejo **por su código**, porque carga el historial y porque es el
+código que el cliente ya le pasó a su proveedor. Pero **los datos limpios los trae
+el registro nuevo** (documento bien formado, correo, teléfono normalizado), así
+que la fusión **los copia al superviviente donde éste los tenga vacíos**.
+
+Esto es lo que convierte la fusión en una mejora de la base y no sólo en una
+limpieza: cada fusión rellena uno de los 144 sin documento.
+
+### 3.3 El código nuevo no se borra: se retira como alias
+
+Entre que el cliente se registra y que alguien fusiona, **pudo darle ese código a
+su proveedor en Yiwu y ya venir un bulto rotulado así**. Si el código deja de
+existir, esa caja llega huérfana.
+
+Por eso el markbox retirado se guarda en `client_markbox_alias` apuntando al
+superviviente, y **la recepción de almacén resuelve por alias**.
+
+### 3.4 La fusión nunca es automática
+
+El sistema **propone** candidatos con su razón de coincidencia; un humano
+**confirma**. El caso `DTD-J000` es la prueba de por qué.
+
+## 4. Alcance
+
+### Parte A — Prevención (que no se emita el código)
+
+1. Bifurcación al entrar a `/registro`: *"¿Ya eres cliente de DTD Cargo?"* → Sí
+   lleva a recuperar acceso; No sigue al registro.
+2. Dedup ampliado en `app/registro/actions.ts`: además del documento, **correo
+   normalizado** y **teléfono normalizado** (últimos 7 dígitos).
+3. Mismo dedup en `app/api/registro/check/route.ts`, **manteniendo el contrato
+   `{ exists: boolean }`** — nunca PII (regla de privacidad ya vigente en el route).
+
+### Parte B — Fusión (arreglar lo que ya pasó)
+
+4. Migración `0341`: `clients.merged_into_client_id`, tabla
+   `client_markbox_alias`, índices funcionales de dedup, RPC `merge_clients`
+   atómica y RPC `resolve_markbox`.
+5. Query de candidatos a duplicado con razón de coincidencia.
+6. UI en Studio › Clientes: revisar y fusionar con confirmación humana.
+7. Resolución por alias en la recepción de almacén (Yiwu y VE).
+
+### Fuera de alcance
+
+- **Los 98 sin documento, correo ni teléfono.** No hay dedup posible por software;
+  se resuelve completando la base. Es trabajo de datos, no de código.
+- Renumerar el legado a `DTD-####`. No aporta y rompe códigos ya rotulados.
+- Fusión automática sin humano.
+
+## 5. Criterios de aceptación
+
+- [ ] Un legado con correo o teléfono conocido que intenta registrarse **no recibe
+      código nuevo**: se le ofrece recuperar acceso.
+- [ ] `/api/registro/check` sigue devolviendo **sólo** `{ exists: boolean }`.
+- [ ] La fusión mueve el acceso, rellena los huecos del superviviente, retira el
+      código nuevo como alias y deja el nuevo con `merged_into_client_id`.
+- [ ] Un markbox retirado **sigue resolviendo** al superviviente en recepción.
+- [ ] Un markbox retirado **nunca se reemite** por `next_markbox`.
+- [ ] La fusión es atómica: o pasa entera o no pasa.
+- [ ] Ninguna factura ni expediente sellado se reescribe.
