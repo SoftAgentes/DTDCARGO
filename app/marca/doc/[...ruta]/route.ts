@@ -61,6 +61,22 @@ export const runtime = "nodejs";
  *
  * Va con 200 y no con 404: no es un error del visitante ni un enlace roto, es
  * una pieza que existe y no se comparte. Un 404 le diría "te equivocaste".
+ *
+ * ⚠️ SALIR DE ACÁ TIENE DOS TRAMPAS, y las dos se vieron en producción.
+ *
+ * 1. **`<a href="/marca">` a secas deja la pantalla gris del documento roto.**
+ *    Este aviso se pinta DENTRO del `<iframe>` del visor, así que un enlace sin
+ *    `target` carga `/marca` dentro del iframe — y `/marca` declara
+ *    `frame-ancestors 'none'`, con lo que el navegador lo BLOQUEA. El visitante
+ *    ve el ícono de archivo roto sobre fondo gris y se queda encerrado.
+ *    Por eso va `target="_top"`: navega la ventana entera, no el marco.
+ *
+ * 2. **Al centro de marca no es a donde quiere ir.** Venía leyendo el Brand
+ *    Book y tocó un enlace; lo que espera es volver AL BOOK, no al catálogo.
+ *    Por eso la acción primaria es `history.back()` —dentro del iframe, que
+ *    tiene su propio historial— y el catálogo queda como salida secundaria.
+ *    Si no hay historial (alguien entró directo por URL) el botón se esconde y
+ *    la única salida pasa a ser la primaria.
  */
 function avisoNoPublicado(nombre: string): Response {
   const seguro = nombre.replace(/[<>&"]/g, "");
@@ -69,20 +85,68 @@ function avisoNoPublicado(nombre: string): Response {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Pieza no publicada — DTD Cargo</title>
 <style>
-  body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;
-       background:#0F1E3D;color:#fff;font-family:Archivo,system-ui,sans-serif}
-  .c{max-width:460px;text-align:center}
-  h1{font-size:22px;letter-spacing:-.02em;margin:0 0 14px}
-  p{font-size:15px;line-height:1.6;color:rgba(255,255,255,.75);margin:0 0 10px}
-  code{background:rgba(255,255,255,.1);padding:2px 7px;border-radius:4px;font-size:13px}
-  a{display:inline-block;margin-top:22px;color:#0F1E3D;background:#fff;
-    padding:11px 20px;border-radius:8px;text-decoration:none;font-weight:700}
-</style></head><body><div class="c">
-<h1>Esta pieza no está en el centro de marca</h1>
-<p><code>${seguro}</code> no forma parte del material publicado acá.</p>
-<p>Si la necesitas para un trabajo concreto, pídela al equipo de DTD.</p>
-<a href="/marca">Volver al centro de marca</a>
-</div></body></html>`,
+  /* Valores de marca, no inventados: navy y wine del sistema. Van literales
+     porque esta página se sirve suelta desde el route handler y no carga
+     globals.css, así que no hay var() del sistema que resolver.
+     (Sin acentos graves en este comentario: está dentro de un template
+     literal y cerrarían la cadena.) */
+  :root{
+    --navy:#0F1E3D; --navy-hondo:#0B1428; --navy-claro:#1F3055;
+    --wine:#7F0F1A;
+    --tinta:#FFFFFF;        /* 15,3:1 sobre navy */
+    --tinta-suave:#C3C7CE;  /*  9,7:1 sobre navy — sólido, no rgba */
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;padding:32px 24px;
+       background:linear-gradient(90deg,var(--navy-hondo) 0%,var(--navy) 44%,var(--navy-claro) 100%);
+       color:var(--tinta);
+       font-family:Archivo,'Archivo',system-ui,-apple-system,Segoe UI,sans-serif}
+  .c{max-width:480px}
+  .eyebrow{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+           color:var(--tinta-suave);margin:0 0 14px}
+  h1{font-size:clamp(21px,4vw,26px);line-height:1.25;letter-spacing:-.02em;margin:0 0 16px;font-weight:800}
+  p{font-size:15px;line-height:1.65;color:var(--tinta-suave);margin:0 0 12px}
+  code{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+       font-size:13px;background:var(--navy-hondo);color:var(--tinta);
+       padding:3px 8px;border-radius:5px;word-break:break-word}
+  .acciones{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+  .btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;
+       padding:12px 20px;border-radius:8px;font-size:14.5px;font-weight:700;
+       text-decoration:none;cursor:pointer;border:1.5px solid transparent;
+       font-family:inherit;transition:background .15s ease,border-color .15s ease}
+  .btn-primario{background:var(--tinta);color:var(--navy)}
+  .btn-primario:hover{background:var(--tinta-suave)}
+  .btn-secundario{background:transparent;color:var(--tinta);border-color:var(--tinta-suave)}
+  .btn-secundario:hover{background:var(--navy-hondo);border-color:var(--tinta)}
+  .btn:focus-visible{outline:3px solid var(--tinta);outline-offset:3px}
+  .nota{margin-top:22px;padding-top:18px;border-top:1px solid var(--navy-claro);
+        font-size:13.5px;color:var(--tinta-suave)}
+  .nota b{color:var(--tinta)}
+</style></head><body><main class="c">
+<p class="eyebrow">DTD Cargo · Centro de marca</p>
+<h1>Esta pieza no está publicada aquí</h1>
+<p><code>${seguro}</code></p>
+<p>No forma parte del material que se comparte en el centro de marca.</p>
+<div class="acciones">
+  <button type="button" class="btn btn-primario" id="volver" hidden>← Volver al Brand Book</button>
+  <a class="btn btn-secundario" href="/marca" target="_top">Ir al centro de marca</a>
+</div>
+<p class="nota">Si la necesitas para un trabajo concreto, <b>pídela al equipo de DTD</b>.</p>
+</main>
+<script>
+  // El iframe tiene su propio historial: si el visitante llegó navegando desde
+  // el book, back() lo devuelve al documento exacto donde estaba. Si entró
+  // directo por URL no hay a dónde volver, y un botón que no hace nada es peor
+  // que no tenerlo, así que sólo se muestra cuando de verdad hay historial.
+  (function () {
+    var b = document.getElementById('volver');
+    if (history.length > 1) {
+      b.hidden = false;
+      b.addEventListener('click', function () { history.back(); });
+    }
+  })();
+</script>
+</body></html>`,
     {
       status: 200,
       headers: {

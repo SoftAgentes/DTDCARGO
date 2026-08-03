@@ -92,8 +92,42 @@ describe("GET /marca/doc/[...ruta]", () => {
     const cuerpo = await res.text();
 
     expect(res.status).toBe(200);
-    expect(cuerpo).toContain("no está en el centro de marca");
-    expect(cuerpo).toContain("/marca");
+    expect(cuerpo).toContain("no está publicada aquí");
+    expect(cuerpo).toContain("DTD Studio · ERP.html");
+  });
+
+  it("el enlace al catálogo sale del iframe con target=_top", async () => {
+    // EL FALLO QUE ESTO PREVIENE (visto en producción): el aviso se pinta
+    // dentro del <iframe> del visor. Sin `target`, el navegador carga /marca
+    // DENTRO del marco, y /marca declara `frame-ancestors 'none'` → lo bloquea
+    // y el visitante queda encerrado mirando el ícono de archivo roto.
+    downloadMock.mockResolvedValue(NO_ENCONTRADO);
+
+    const cuerpo = await (await pedir("Operario · App.html")).text();
+
+    expect(cuerpo).toMatch(/href="\/marca"[^>]*target="_top"/);
+  });
+
+  it("ofrece volver al documento anterior, no sólo al catálogo", async () => {
+    // Quien llega acá venía leyendo el Brand Book: lo que espera es volver AL
+    // BOOK. El iframe tiene su propio historial, así que `back()` lo devuelve
+    // al documento exacto — y el botón se esconde si no hay a dónde volver,
+    // porque un botón que no hace nada es peor que no tenerlo.
+    downloadMock.mockResolvedValue(NO_ENCONTRADO);
+
+    const cuerpo = await (await pedir("Operario · App.html")).text();
+
+    expect(cuerpo).toContain("Volver al Brand Book");
+    expect(cuerpo).toContain("history.back()");
+    expect(cuerpo).toContain("history.length > 1");
+  });
+
+  it("el nombre del documento va escapado", async () => {
+    downloadMock.mockResolvedValue(NO_ENCONTRADO);
+
+    const cuerpo = await (await pedir('<img src=x onerror=alert(1)>.html')).text();
+
+    expect(cuerpo).not.toContain("<img src=x");
   });
 
   it("un asset ausente sí es 404 — es una imagen rota, no una decisión", async () => {
