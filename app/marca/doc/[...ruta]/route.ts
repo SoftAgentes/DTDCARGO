@@ -36,16 +36,44 @@
  *    `/api/marca/download/[assetId]`.
  */
 
-import { hasBrandAccess, resolveBrandTenantId } from "@/lib/marca/access";
+import {
+  hasBrandAccess,
+  hasBrandInternalAccess,
+  resolveBrandTenantId,
+  submitBrandInternalCode,
+} from "@/lib/marca/access";
 import { createAdminClient } from "@/lib/db/admin";
 import {
   claveProyecto,
   PROYECTO_INDICE,
   PROYECTO_PREFIJO,
+  PROYECTO_PREFIJO_INTERNO,
   tipoDeContenido,
 } from "@/lib/marca/proyecto";
 
 export const runtime = "nodejs";
+
+const BUCKET = "brand-assets";
+
+/**
+ * ¿Existe la pieza en la carpeta interna? Sólo existencia, sin traer el cuerpo.
+ *
+ * Sirve para que el aviso sepa QUÉ decir: "esto se abre con el código de
+ * producto" no es lo mismo que "esto no está acá", y antes la página no podía
+ * distinguirlo, así que afirmaba un motivo que no le constaba.
+ *
+ * Que revele la existencia a quien tiene el código de marca no agrega nada: el
+ * Brand Book ya enlaza estas piezas por nombre, así que quien llegó hasta el
+ * aviso llegó siguiendo un enlace que las nombra.
+ */
+async function existeEnInterno(tenantId: string, relativa: string): Promise<boolean> {
+  const clave = `${tenantId}/${PROYECTO_PREFIJO_INTERNO}/${claveProyecto(relativa)}`;
+  const corte = clave.lastIndexOf("/");
+  const { data } = await createAdminClient()
+    .storage.from(BUCKET)
+    .list(clave.slice(0, corte), { search: clave.slice(corte + 1), limit: 1 });
+  return (data?.length ?? 0) > 0;
+}
 
 /**
  * Página para una pieza que no está publicada — sea porque es de producto y se
@@ -78,12 +106,45 @@ export const runtime = "nodejs";
  *    Si no hay historial (alguien entró directo por URL) el botón se esconde y
  *    la única salida pasa a ser la primaria.
  */
-function avisoNoPublicado(nombre: string): Response {
+function avisoNoPublicado(
+  nombre: string,
+  opts: { bloqueada?: boolean; error?: string } = {},
+): Response {
   const seguro = nombre.replace(/[<>&"]/g, "");
+  const bloqueada = Boolean(opts.bloqueada);
+  const errorSeguro = (opts.error ?? "").replace(/[<>&"]/g, "");
+
+  const titulo = bloqueada
+    ? "Esta pieza pide el código de producto"
+    : "Esta pieza no está publicada aquí";
+  const bajada = bloqueada
+    ? "Es material del sistema interno — el ERP, la app del operario, los formularios. No se comparte con el código de marca."
+    : "No forma parte del material que se comparte en el centro de marca.";
+
+  // El formulario sólo aparece cuando la pieza EXISTE detrás del segundo código.
+  // Ofrecerlo siempre convertiría el aviso en un oráculo: se probaría un código
+  // cualquiera contra rutas inventadas para averiguar cuáles existen.
+  const desbloqueo = bloqueada
+    ? `<form class="desbloqueo" method="post" action="">
+  <label class="lbl" for="codigo">Código de producto</label>
+  <div class="fila">
+    <input class="campo" id="codigo" name="codigo" inputmode="numeric" autocomplete="one-time-code"
+           pattern="[0-9]{6}" maxlength="6" required placeholder="6 dígitos"
+           aria-describedby="${errorSeguro ? "err" : "ayuda"}">
+    <button class="btn btn-primario" type="submit">Abrir</button>
+  </div>
+  ${
+    errorSeguro
+      ? `<p class="err" id="err" role="alert">${errorSeguro}</p>`
+      : `<p class="ayuda" id="ayuda">Lo pone un administrador en Studio › Marketing › HUB de marca.</p>`
+  }
+</form>`
+    : "";
+
   return new Response(
     `<!doctype html><html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Pieza no publicada — DTD Cargo</title>
+<title>${bloqueada ? "Pieza de producto" : "Pieza no publicada"} — DTD Cargo</title>
 <style>
   /* Valores de marca, no inventados: navy y wine del sistema. Van literales
      porque esta página se sirve suelta desde el route handler y no carga
@@ -95,6 +156,10 @@ function avisoNoPublicado(nombre: string): Response {
     --wine:#7F0F1A;
     --tinta:#FFFFFF;        /* 15,3:1 sobre navy */
     --tinta-suave:#C3C7CE;  /*  9,7:1 sobre navy — sólido, no rgba */
+    /* El wine del sistema (#7F0F1A) sobre navy da 1,6:1 — ilegible. Sobre fondo
+       oscuro el rojo tiene que subir de luminosidad, no de saturación. Este es
+       el wine aclarado: 9,1:1 sobre --navy-hondo, medido. */
+    --alerta:#FF9AA5;
   }
   *{box-sizing:border-box}
   body{margin:0;min-height:100vh;display:grid;place-items:center;padding:32px 24px;
@@ -122,13 +187,29 @@ function avisoNoPublicado(nombre: string): Response {
   .nota{margin-top:22px;padding-top:18px;border-top:1px solid var(--navy-claro);
         font-size:13.5px;color:var(--tinta-suave)}
   .nota b{color:var(--tinta)}
+  .desbloqueo{margin-top:24px;padding:18px;border-radius:10px;
+              background:var(--navy-hondo);border:1px solid var(--navy-claro)}
+  .lbl{display:block;font-size:12px;font-weight:700;letter-spacing:.08em;
+       text-transform:uppercase;color:var(--tinta-suave);margin-bottom:9px}
+  .fila{display:flex;flex-wrap:wrap;gap:9px}
+  .campo{flex:1 1 150px;min-width:0;min-height:44px;padding:11px 14px;border-radius:8px;
+         border:1.5px solid var(--tinta-suave);background:var(--navy);color:var(--tinta);
+         font-family:'JetBrains Mono',ui-monospace,monospace;font-size:17px;letter-spacing:.22em}
+  .campo::placeholder{color:var(--tinta-suave);letter-spacing:normal;font-size:14px}
+  .campo:focus-visible{outline:3px solid var(--tinta);outline-offset:2px;border-color:var(--tinta)}
+  .ayuda{font-size:12.5px;color:var(--tinta-suave);margin:11px 0 0}
+  .err{font-size:13px;color:var(--alerta);font-weight:700;margin:11px 0 0}
 </style></head><body><main class="c">
 <p class="eyebrow">DTD Cargo · Centro de marca</p>
-<h1>Esta pieza no está publicada aquí</h1>
+<h1>${titulo}</h1>
 <p><code>${seguro}</code></p>
-<p>No forma parte del material que se comparte en el centro de marca.</p>
+<p>${bajada}</p>
+${desbloqueo}
 <div class="acciones">
-  <button type="button" class="btn btn-primario" id="volver" hidden>← Volver al Brand Book</button>
+  <!-- Con el formulario en pantalla la acción primaria es Abrir, y sólo esa: dos
+       botones rellenos compitiendo dejan al visitante sin saber cuál es la
+       salida esperada. Sin formulario, volver SÍ es lo primario. -->
+  <button type="button" class="btn ${bloqueada ? "btn-secundario" : "btn-primario"}" id="volver" hidden>← Volver al Brand Book</button>
   <a class="btn btn-secundario" href="/marca" target="_top">Ir al centro de marca</a>
 </div>
 <p class="nota">Si la necesitas para un trabajo concreto, <b>pídela al equipo de DTD</b>.</p>
@@ -158,7 +239,7 @@ function avisoNoPublicado(nombre: string): Response {
 }
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ ruta: string[] }> },
 ) {
   if (!(await hasBrandAccess())) {
@@ -179,9 +260,23 @@ export async function GET(
   const tenantId = await resolveBrandTenantId();
   if (!tenantId) return new Response("No disponible.", { status: 503 });
 
-  const { data, error } = await createAdminClient()
-    .storage.from("brand-assets")
-    .download(`${tenantId}/${PROYECTO_PREFIJO}/${claveProyecto(relativa)}`);
+  const admin = createAdminClient();
+  const clave = claveProyecto(relativa);
+
+  // Primero la carpeta pública. Si está acá, se sirve y no hay más que decidir.
+  let { data, error } = await admin
+    .storage.from(BUCKET)
+    .download(`${tenantId}/${PROYECTO_PREFIJO}/${clave}`);
+
+  // Y SÓLO si el visitante trae el segundo código, además la interna. Nótese
+  // que no hay un `if (esInterna)` en ningún lado: la pieza de producto no está
+  // "prohibida", está en una clave que sin ese código no se consulta nunca.
+  // Ver el porqué en PROYECTO_PREFIJO_INTERNO.
+  if ((error || !data) && (await hasBrandInternalAccess())) {
+    ({ data, error } = await admin
+      .storage.from(BUCKET)
+      .download(`${tenantId}/${PROYECTO_PREFIJO_INTERNO}/${clave}`));
+  }
 
   if (error || !data) {
     // Si falta EL ÍNDICE, no es que la pieza no se comparta: es que nadie corrió
@@ -196,9 +291,16 @@ export async function GET(
     }
     // Un documento ausente es una pieza no publicada; un asset ausente es un
     // 404 de verdad (una imagen rota dentro de una página que sí existe).
-    return nombre.toLowerCase().endsWith(".html")
-      ? avisoNoPublicado(nombre)
-      : new Response("No encontrado.", { status: 404 });
+    if (!nombre.toLowerCase().endsWith(".html")) {
+      return new Response("No encontrado.", { status: 404 });
+    }
+    // Ahora el aviso SÍ puede saber por qué no la tiene: si la pieza está en la
+    // carpeta interna, ofrece el código; si no está en ninguna, no inventa un
+    // motivo. Distinguirlo era lo que le faltaba a la versión anterior.
+    return avisoNoPublicado(nombre, {
+      bloqueada: await existeEnInterno(tenantId, relativa),
+      error: new URL(req.url).searchParams.get("e") ?? undefined,
+    });
   }
 
   const esSvg = tipo === "image/svg+xml";
@@ -217,4 +319,70 @@ export async function GET(
       "X-Robots-Tag": "noindex, nofollow",
     },
   });
+}
+
+/**
+ * Recibe el código de producto (SDD-0242) desde el formulario del aviso.
+ *
+ * VIVE ACÁ Y NO EN `/api/marca/...` POR LA CSP. El aviso se pinta dentro del
+ * `<iframe>` del visor, así que el formulario postea desde adentro del marco.
+ * Un endpoint bajo `/api/` cae en la CSP estricta del sitio (`frame-ancestors
+ * 'none'`) en vez de la permisiva que `next.config.ts` le da a `/marca/doc/*`, y
+ * bastaría que el navegador evaluara la política sobre la respuesta intermedia
+ * para dejar al visitante otra vez frente a la pantalla gris. Posteando a su
+ * propia URL no hay frontera que cruzar.
+ *
+ * Responde con 303 —no 302— para que la recarga no reenvíe el código: tras el
+ * redirect el navegador hace GET, y refrescar no vuelve a gastar un intento del
+ * contador de bloqueo.
+ */
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ ruta: string[] }> },
+) {
+  if (!(await hasBrandAccess())) {
+    return new Response("No autorizado.", { status: 401 });
+  }
+
+  const { ruta } = await params;
+  const limpio = (ruta ?? []).filter((s) => s !== "." && s !== "..");
+  if (limpio.length === 0) return new Response("No encontrado.", { status: 404 });
+
+  const destino = `/marca/doc/${limpio.map(encodeURIComponent).join("/")}`;
+  const volver = (motivo?: string) =>
+    new Response(null, {
+      status: 303,
+      headers: {
+        Location: motivo ? `${destino}?e=${encodeURIComponent(motivo)}` : destino,
+        "Cache-Control": "private, no-store",
+      },
+    });
+
+  const form = await req.formData().catch(() => null);
+  const bruto = form?.get("codigo");
+  const codigo = typeof bruto === "string" ? bruto.trim() : "";
+
+  // La forma se valida acá para no gastar un intento del contador por un dedazo:
+  // un campo vacío o con letras no es un intento de adivinar.
+  if (!/^\d{6}$/.test(codigo)) return volver("El código son 6 dígitos.");
+
+  const veredicto = await submitBrandInternalCode(codigo);
+  switch (veredicto.status) {
+    case "ok":
+      return volver();
+    case "wrong":
+      return volver(
+        veredicto.attemptsLeft === 1
+          ? "Código incorrecto. Te queda 1 intento."
+          : `Código incorrecto. Te quedan ${veredicto.attemptsLeft} intentos.`,
+      );
+    case "locked": {
+      const min = Math.max(1, Math.ceil((veredicto.until.getTime() - Date.now()) / 60000));
+      return volver(`Demasiados intentos. Prueba de nuevo en ${min} min.`);
+    }
+    case "closed":
+      return volver("Nadie ha puesto el código de producto todavía.");
+    case "unavailable":
+      return volver("No pudimos verificar el código. Prueba de nuevo en un rato.");
+  }
 }

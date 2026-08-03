@@ -16,6 +16,26 @@
 export const PROYECTO_PREFIJO = "proyecto";
 
 /**
+ * Carpeta de las piezas de PRODUCTO (SDD-0242) — las que pide el segundo código.
+ *
+ * ⚠️ LA SEPARACIÓN DE CARPETAS **ES** EL CONTROL DE ACCESO, y por eso vale la
+ * pena entenderla antes de tocarla.
+ *
+ * La alternativa era subir todo junto y que la ruta preguntara `sePublica()`
+ * antes de servir. Eso deja el permiso en un `if` — y un `if` que se olvida en
+ * un refactor sirve el ERP por dentro a cualquiera que tenga el código de marca.
+ *
+ * Con dos carpetas la ruta no decide nada: busca en la pública y, SÓLO si el
+ * visitante trae el código interno, mira además en esta. Sin ese código la
+ * pieza no es que esté prohibida — es que no existe en ninguna clave que la
+ * ruta vaya a consultar. No hay condición que olvidar.
+ *
+ * El fallo posible queda del lado seguro: si una pieza de marca cayera acá por
+ * error, se vería gateada de más (bug visible), no expuesta de menos.
+ */
+export const PROYECTO_PREFIJO_INTERNO = "proyecto-interno";
+
+/**
  * Convierte una ruta relativa del proyecto en su clave de Storage.
  *
  * POR QUÉ NO SE USA LA RUTA TAL CUAL: Supabase Storage rechaza con «Invalid

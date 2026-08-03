@@ -31,7 +31,31 @@ import { openToken, sealToken, type SealOptions } from "@/lib/shared/signed-toke
 
 export const MARCA_COOKIE = "dtd_marca";
 
+/** Cookie de la SEGUNDA capa — las piezas de producto (SDD-0242). */
+export const MARCA_COOKIE_INTERNA = "dtd_marca_int";
+
 const SEAL: SealOptions = { version: "m1", aad: "dtd-marca-access-v1" };
+
+/**
+ * AAD distinto para la cookie interna. No es cosmético: con el mismo AAD, una
+ * cookie de marca válida se podría pegar en el campo de la interna y abriría —
+ * el sello sólo prueba que lo firmamos nosotros, no PARA QUÉ. El AAD ata cada
+ * token a su puerta.
+ */
+const SEAL_INTERNO: SealOptions = { version: "i1", aad: "dtd-marca-interno-v1" };
+
+/**
+ * Cuánto dura la sesión interna. **12 horas, y no los 30 días de la de marca.**
+ *
+ * La de marca dura un mes porque es para un diseñador externo que va a volver
+ * durante un encargo. Esta es la capa profunda: da al ERP por dentro, a la app
+ * del operario y a los formularios de inspección. Una jornada de trabajo es el
+ * horizonte razonable — al día siguiente se vuelve a teclear.
+ *
+ * Va acá y no en la DB a propósito: una columna sin control en el ERP es una
+ * perilla que nadie encuentra. Si hace falta cambiarla, es esta línea.
+ */
+const HORAS_SESION_INTERNA = 12;
 
 type MarcaSession = {
   /** Tenant al que se le acertó el código. */
@@ -95,6 +119,23 @@ export async function resolveBrandTenantId(
  * cuando falla no es un control de acceso.
  */
 export async function submitBrandCode(code: string): Promise<CodeVerdict> {
+  return verificar(code, "public");
+}
+
+/**
+ * La segunda capa (SDD-0242): el código que abre las piezas de producto.
+ *
+ * Misma RPC, otro `scope`. Los contadores de bloqueo son independientes —
+ * fallar éste no deja al visitante fuera del book, y al revés tampoco.
+ */
+export async function submitBrandInternalCode(code: string): Promise<CodeVerdict> {
+  return verificar(code, "internal");
+}
+
+async function verificar(
+  code: string,
+  scope: "public" | "internal",
+): Promise<CodeVerdict> {
   const secret = marcaSecret();
   if (!secret) return { status: "unavailable" };
 
@@ -114,6 +155,7 @@ export async function submitBrandCode(code: string): Promise<CodeVerdict> {
       p_tenant_id: tenantId,
       p_code: code,
       p_attempt_key: attemptKeyFor(ip, secret),
+      p_scope: scope,
     })
     .maybeSingle<{
       ok: boolean;
@@ -126,6 +168,10 @@ export async function submitBrandCode(code: string): Promise<CodeVerdict> {
 
   if (data.locked_until) return { status: "locked", until: new Date(data.locked_until) };
   if (data.ok) {
+    if (scope === "internal") {
+      await setInternalCookie(tenantId, secret);
+      return { status: "ok", sessionDays: HORAS_SESION_INTERNA / 24 };
+    }
     await setBrandCookie(tenantId, data.session_days, secret);
     return { status: "ok", sessionDays: data.session_days };
   }
@@ -153,9 +199,71 @@ async function setBrandCookie(tenantId: string, days: number, secret: string) {
   });
 }
 
+async function setInternalCookie(tenantId: string, secret: string) {
+  const maxAge = HORAS_SESION_INTERNA * 60 * 60;
+  const token = sealToken(
+    { t: tenantId, exp: Math.floor(Date.now() / 1000) + maxAge } satisfies MarcaSession,
+    secret,
+    SEAL_INTERNO,
+  );
+  (await cookies()).set(MARCA_COOKIE_INTERNA, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge,
+  });
+}
+
 /** Cierra la sesión del visitante externo (no toca la del ERP). */
 export async function clearBrandCookie() {
-  (await cookies()).delete(MARCA_COOKIE);
+  const c = await cookies();
+  c.delete(MARCA_COOKIE);
+  // La interna se va con la de marca: dejarla viva sería que "Salir" mintiera —
+  // el visitante creería que cerró y la capa profunda seguiría abierta.
+  c.delete(MARCA_COOKIE_INTERNA);
+}
+
+/** Cierra SÓLO la capa interna, sin echar al visitante del brand book. */
+export async function clearBrandInternalCookie() {
+  (await cookies()).delete(MARCA_COOKIE_INTERNA);
+}
+
+/**
+ * ¿Puede ver las piezas de producto?
+ *
+ * ⚠️ EXIGE LAS DOS PUERTAS: la de marca (cookie o sesión del ERP) **y** el
+ * código interno. Es lo que hace que sea una segunda capa y no una alternativa
+ * — sin esto, alguien con sólo el código interno entraría directo, y la capa
+ * "extra" habría terminado siendo un atajo.
+ *
+ * La sesión del ERP NO alcanza por sí sola: la tienen los 57 módulos, y estas
+ * piezas son de producto. Ése fue el punto del pedido.
+ */
+export async function hasBrandInternalAccess(): Promise<boolean> {
+  const secret = marcaSecret();
+  if (!secret) return false;
+  const raw = (await cookies()).get(MARCA_COOKIE_INTERNA)?.value;
+  const payload = openToken<MarcaSession>(raw, secret, SEAL_INTERNO);
+  if (!payload?.exp || payload.exp * 1000 <= Date.now()) return false;
+  return hasBrandAccess();
+}
+
+/** ¿Hay código interno puesto? Para que el ERP muestre el estado de la capa. */
+export async function brandInternalIsOpen(): Promise<boolean> {
+  try {
+    const admin = createAdminClient();
+    const tenantId = await resolveBrandTenantId(admin);
+    if (!tenantId) return false;
+    const { data } = await admin
+      .from("brand_access")
+      .select("internal_code_hash")
+      .eq("tenant_id", tenantId)
+      .maybeSingle<{ internal_code_hash: string | null }>();
+    return Boolean(data?.internal_code_hash);
+  } catch {
+    return false;
+  }
 }
 
 /** `true` si la cookie está bien sellada y no venció. */

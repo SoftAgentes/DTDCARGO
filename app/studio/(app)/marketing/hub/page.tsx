@@ -31,6 +31,7 @@ import {
   type BrandSection,
 } from "@/lib/marca/catalog-types";
 import { BrandAccessPanel } from "./_components/BrandAccessPanel";
+import { BrandInternalPanel } from "./_components/BrandInternalPanel";
 import { BrandCatalogManager } from "./_components/BrandCatalogManager";
 
 export const metadata = { title: "HUB de marca · Marketing · DTD Studio" };
@@ -74,9 +75,10 @@ export default async function MarketingHubPage() {
         .returns<AssetRow[]>(),
       supabase
         .from("brand_access")
-        .select("code_hash, session_days, updated_at")
+        .select("code_hash, internal_code_hash, session_days, updated_at")
         .maybeSingle<{
           code_hash: string | null;
+          internal_code_hash: string | null;
           session_days: number;
           updated_at: string | null;
         }>(),
@@ -174,6 +176,8 @@ export default async function MarketingHubPage() {
         sessionDays={access?.session_days ?? 30}
         shareUrl={`${siteUrl}/marca`}
       />
+
+      <BrandInternalPanel isOpen={Boolean(access?.internal_code_hash)} />
 
       {sections.length === 0 ? (
         <div

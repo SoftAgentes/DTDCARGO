@@ -262,3 +262,50 @@ export async function setBrandCodeAction(
       : "Código actualizado. El anterior dejó de servir.",
   };
 }
+
+// ── Segunda capa: el código de las piezas de producto (SDD-0242) ──
+
+/**
+ * Pone (o quita) el código que abre el ERP por dentro, la app del operario y
+ * los formularios de inspección dentro de `/marca`.
+ *
+ * Son SEIS dígitos, no de 4 a 6 como el de marca. Es la capa más profunda y
+ * dejar el mínimo bajo justo acá sería al revés de lo que se pidió: por el mismo
+ * esfuerzo de tecleo son 100 veces más combinaciones. La regla también vive en
+ * la RPC — acá se valida para dar un mensaje decente, no para confiar.
+ */
+export async function setBrandInternalCodeAction(
+  _prev: BrandAdminState,
+  formData: FormData,
+): Promise<BrandAdminState> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "marketing");
+  if (denial) return { error: denial };
+
+  const raw = formData.get("code");
+  const code = typeof raw === "string" ? raw.trim() : "";
+
+  const closing = code.length === 0;
+  if (!closing && !/^\d{6}$/.test(code)) {
+    return { error: "El código de producto son 6 dígitos exactos." };
+  }
+
+  const { error } = await supabase.rpc("set_brand_internal_code", {
+    p_code: closing ? null : code,
+  });
+  if (error) {
+    if (error.message.includes("solo admin")) {
+      return { error: "Solo un admin puede cambiar el código de producto." };
+    }
+    return { error: "No se pudo guardar el código de producto." };
+  }
+
+  revalidatePath("/studio/marketing/hub");
+  revalidatePath("/marca");
+  return {
+    ok: true,
+    message: closing
+      ? "Piezas de producto cerradas. Ya no las abre nadie."
+      : "Código de producto actualizado. El anterior dejó de servir.",
+  };
+}
