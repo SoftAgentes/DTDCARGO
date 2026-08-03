@@ -5,16 +5,9 @@ import { hostname } from "node:os";
 import { fileTypeFromBuffer } from "file-type";
 import { createClient } from "@supabase/supabase-js";
 import { GetObjectRetentionCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { assertAttachmentsWorkerStartup } from "./attachments-pilot-preflight.mjs";
 
-const required = [
-  "NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY",
-  "DTD_ATTACHMENTS_AV_URL", "DTD_ATTACHMENTS_AV_TOKEN",
-  "DTD_ATTACHMENTS_BACKUP_ENDPOINT", "DTD_ATTACHMENTS_BACKUP_REGION",
-  "DTD_ATTACHMENTS_BACKUP_BUCKET", "DTD_ATTACHMENTS_BACKUP_ACCESS_KEY_ID",
-  "DTD_ATTACHMENTS_BACKUP_SECRET_ACCESS_KEY",
-];
-const missing = required.filter((key) => !process.env[key]);
-if (missing.length) throw new Error(`Worker fail-closed: faltan ${missing.join(", ")}`);
+assertAttachmentsWorkerStartup();
 
 const workerId = `${hostname()}:${process.pid}`;
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
