@@ -71,8 +71,10 @@ a 3.000 días. Solo puede usarse si se aprueba otra estrategia demostrable
    fecha; el token vive solo en el secret manager.
 4. Subir EICAR y confirmar `cuarentena`; subir PDF/JPEG/PNG/WebP benignos y
    confirmar `clean`. Nunca usar malware real.
-5. Ejecutar `scripts/attachments-pilot-worker.mjs` con secretos efímeros. La
-   salida no debe incluir tokens, URLs firmadas, object keys completos ni PII.
+5. Definir `DTD_ATTACHMENTS_WORKER_ALLOW=1`, ejecutar primero
+   `pnpm attachments:preflight` y luego `scripts/attachments-pilot-worker.mjs`
+   con secretos efímeros. La salida no debe incluir tokens, URLs firmadas,
+   object keys completos ni PII. Volver el flag a `0` al terminar.
 6. Confirmar en el proveedor `VersionId`, SHA-256, modo `COMPLIANCE` y
    `RetainUntilDate`. Un PUT sin cualquiera de esos datos falla cerrado.
 7. Ejecutar el simulacro con `NODE_ENV` distinto de `production`,
@@ -126,6 +128,9 @@ Producción solo avanza después de: migrations Cloud autorizadas por basename,
 proveedor/contrato aprobados, scanner y scheduler reales, restore drill verde,
 RPO/RTO demostrados, revisión de datos personales y orden `cerrar` para
 publicación. Si falta uno, `DTD_ATTACHMENTS_GASTOS_PILOT` permanece en `0`.
+El worker además exige `DTD_ATTACHMENTS_WORKER_ALLOW=1`; no puede arrancar en
+Producción con evidencia antivirus mayor a 24 horas o con Object Lock/restore
+sin una comprobación dentro de los últimos 93 días.
 
 ## Fuentes técnicas consultadas
 

@@ -177,11 +177,15 @@ Reglas del adapter:
 ## Allowlist de worker y simulacro
 
 - `scripts/attachments-pilot-worker.mjs`
+- `scripts/attachments-pilot-preflight.mjs`
 - `scripts/attachments-pilot-restore-drill.mjs`
+- `scripts/__tests__/attachments-pilot-preflight.test.mjs`
 
 El worker se ejecuta fuera del request de Next.js y solo en entorno desechable.
 Debe fallar cerrado si faltan scanner, target de backup o credenciales. El
-restore drill compara SHA-256 byte a byte y no escribe en Producción.
+preflight exige habilitación operacional explícita; en Producción también exige
+el piloto, la confirmación y evidencia vigente. El restore drill compara SHA-256
+byte a byte y no escribe en Producción.
 
 No se incluye Docker Compose, cuenta externa ni infraestructura alojada. Si se
 necesita uno de esos recursos, se solicita autorización y ampliación antes de
