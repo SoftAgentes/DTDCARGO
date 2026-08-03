@@ -13,6 +13,39 @@ confidencialidad: interna
 
 # SDD-0240 · Feature flags: siembra por tenant y panel que no miente
 
+> ## ⚠️ Corrección con datos de producción · 2026-08-02
+>
+> Escribí §1.1 y §1.2 leyendo **sólo el repo**. Al aplicar la migración pude
+> consultar producción y **una parte del diagnóstico era falsa**. Queda acá
+> arriba porque el error importa más que la conclusión.
+>
+> **Lo que estaba MAL:**
+>
+> - **`marketing_news` SÍ está en producción, y en `true` desde 2026-05-28.**
+>   Su fila tiene `updated_by = NULL`: la sembró alguien por SQL, fuera de las
+>   migraciones del repo. O sea que **Noticias Web nunca estuvo inalcanzable**
+>   en prod. Mi frase "el toggle siempre falla y el módulo es inalcanzable" vale
+>   para un entorno reconstruido desde las migraciones (el `schema-rebuild`, una
+>   branch de Supabase, un tenant nuevo), **no para producción**.
+> - Los 22 flags existen. La parte de **siembra** de 0337 fue un **no-op** para
+>   el único tenant que hay. Confirmado: 22 filas antes, 22 después, y
+>   `marketing_news`/`cn_translation` conservaron su valor.
+>
+> **Lo que estaba BIEN, y era lo importante:**
+>
+> - **El trigger NO existía** (`pg_trigger` → 0 antes de aplicar). Un tenant
+>   nuevo seguía naciendo con cero filas. Hoy hay **un solo tenant**, así que la
+>   rotura del panel para aliados white-label era **latente, no activa**.
+> - **Ninguna migración del repo siembra `marketing_news`.** Eso es drift real
+>   en la dirección que el gate no mira: producción tiene una fila que ningún
+>   archivo crea. Cualquier entorno reconstruido desde el repo nace sin ella.
+> - El error silencioso del UI (§1.2) es código, no dato: era real igual.
+> - Los 17 flags sin consumidor (§1.4) son reales igual.
+>
+> **La lección:** para un bug de DATOS, el repo dice qué *debería* haber, no qué
+> *hay*. Las dos preguntas se responden en fuentes distintas y yo contesté la
+> segunda con la primera.
+
 ## 1. El problema
 
 El panel `/studio/admin/feature-flags` pinta 21 interruptores idénticos. Tres
@@ -168,23 +201,54 @@ Detalles que importan:
   `EmptyState` "Próximamente" que no toca la base: cerrarlo por ruta no
   protegería nada que no esté ya vacío.
 
-> ⚠️ **Al desplegar, esto cambia comportamiento.** Si `customs_seniat` o
-> `mobile_operator` están en `false` en producción, esos módulos dejan de abrir
-> por URL y muestran el aviso. Es exactamente el punto del cambio — pero conviene
-> mirar los valores reales antes del deploy, sobre todo `mobile_operator`, con la
-> PWA de operarios en producción.
+> 🔴 **BLOQUEANTE antes de desplegar · medido en producción 2026-08-02**
+>
+> | Flag | Valor en prod | Efecto del gate al desplegar |
+> |---|---|---|
+> | `mobile_operator` | **`true`** | ninguno · `cola-qr` y `operarios` siguen abiertos |
+> | `customs_seniat` | **`false`** | **cierra `/studio/seniat`** |
+>
+> Y el módulo SENIAT **tiene datos reales**: `customs_agents` = 4,
+> `customs_documents` = 7, `customs_filings` = 1. O sea que se usa —por URL,
+> porque el sidebar lo esconde desde que el flag se apagó el 2026-07-05.
+>
+> **Desplegar el gate tal cual deja al equipo afuera de un módulo con datos.**
+> Eso no es el cambio que se pidió; es una regresión.
+>
+> La lectura honesta es que **el flag está mal, no el módulo**: si hay 4 agentes
+> y una declaración cargados, Aduana SENIAT se usa. Lo natural es poner
+> `customs_seniat = true` —que además le devuelve el link al sidebar— y ahí el
+> gate queda inofensivo y correcto.
+>
+> Pero eso es tocar un valor que alguien apagó a mano en producción, así que
+> **queda esperando decisión del founder**. Mientras tanto la rama no está
+> pusheada: no hay riesgo vivo.
+>
+> *(De paso: esto corrige la memoria `mobile_operator = false oculta Cola de QR`
+> — hoy está en `true` y los dos módulos se ven.)*
 
 ### 6.2 ⬜ Las 17 keys sin consumidor
 
 Sin decisión todavía. Cablearlas es trabajo real por flag; podarlas pierde la
 intención registrada. Hoy: ninguna de las dos, sólo etiquetadas honestamente.
 
-## 7. Aplicación a producción
+## 7. Aplicación a producción · ✅ 2026-08-02
 
-La migración **no se aplica** en este trabajo. Queda como archivo en la rama.
-Aplicarla exige OK del founder nombrándola, de a una, por
+Aplicada con OK del founder nombrándola ("aplicar 0337"), de a una, por
 [`docs/runbooks/aplicar-migraciones-prod.md`](../../runbooks/aplicar-migraciones-prod.md).
+`name` en el ledger = `0337_feature_flags_seed_and_trigger` (basename exacto).
 
-Al aplicarla, el efecto visible inmediato es que **el interruptor de Noticias
-Web empieza a funcionar** (queda en OFF; encenderlo es otra decisión, y §1 del
-default advierte que depende de que las migraciones de noticias estén en prod).
+Verificado **contra el objeto**, no contra el ledger:
+
+| Comprobación | Resultado |
+|---|---|
+| `feature_flag_catalog()` devuelve el catálogo | 22 llaves |
+| `trg_seed_feature_flags_for_tenant` sobre `public.tenants` | existe · habilitado (`tgenabled='O'`) |
+| `seed_feature_flags_for_tenant` es `security definer` | sí |
+| Filas de `feature_flags` antes → después | 22 → 22 (**la siembra fue no-op**) |
+| Valores elegidos a mano | intactos: `marketing_news=true`, `cn_translation=false` |
+| Paso `migrations-applied` del gate | verde |
+
+El valor real de esta migración **no fue sembrar** —los 22 flags ya estaban—
+sino el **trigger**, que no existía: hasta hoy un tenant nuevo nacía con cero
+filas y el panel de admin le llegaba muerto. Ver la corrección al tope.
