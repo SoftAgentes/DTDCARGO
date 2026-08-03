@@ -14,7 +14,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { capabilityDenial, moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { createAdminClient } from "@/lib/db/admin";
 import {
   autoResolveAlertForShipment,
@@ -48,6 +48,12 @@ import {
 import { resolveLocale } from "@/lib/i18n/resolve-server";
 import { t } from "@/lib/i18n";
 import { attachmentsPilotState } from "@/lib/studio/attachments/pilot-gate";
+import {
+  expenseVoidErrorMessage,
+  validateExpenseVoidInput,
+  voidExpenseGoverned,
+  type ExpenseVoidOutcome,
+} from "@/lib/studio/expense-void";
 
 const RECEIPT_BUCKET = "expense-receipts";
 const RECEIPT_MAX_BYTES = 5 * 1024 * 1024;
@@ -318,39 +324,26 @@ export async function updateExpenseAction(
   return { ok: true };
 }
 
-export async function softDeleteExpenseAction(
+export async function voidExpenseAction(
   id: string,
-): Promise<ExpenseActionState> {
+  reason: string,
+  requestRef: string,
+): Promise<{ ok?: boolean; outcome?: ExpenseVoidOutcome; error?: string }> {
+  const parsed = validateExpenseVoidInput({ expenseId: id, reason, requestRef });
+  if ("error" in parsed) return { error: parsed.error };
+
   const supabase = await createClient();
-  const denial = await moduleEditDenial(supabase, "expenses");
+  const denial = await capabilityDenial(supabase, "void_expense");
   if (denial) return { error: denial };
 
-  // Tenant + fecha del gasto (para anular su asiento y guardar el período · SDD-0079/0080).
-  const { data: exp } = await supabase
-    .from("expenses")
-    .select("tenant_id, occurred_at")
-    .eq("id", id)
-    .maybeSingle<{ tenant_id: string; occurred_at: string }>();
-
-  // Guard de período cerrado (SDD-0080): no borrar un gasto de período cerrado.
-  if (exp?.occurred_at) {
-    const accSettings = await getAccountingSettings(supabase);
-    if (isPeriodClosed(accSettings.closing_date, exp.occurred_at)) {
-      return {
-        error: `Período contable cerrado al ${accSettings.closing_date}: no puedes borrar un gasto de período cerrado.`,
-      };
-    }
+  try {
+    const outcome = await voidExpenseGoverned(supabase, parsed.input);
+    revalidatePath("/studio/gastos");
+    revalidatePath("/m/erp");
+    return { ok: true, outcome };
+  } catch (error) {
+    return { error: expenseVoidErrorMessage(error, parsed.input.requestRef) };
   }
-
-  const { error } = await supabase
-    .from("expenses")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id);
-  if (error) return { errorCode: "internal_error", error: error.message };
-  // Anular el asiento del gasto (best-effort).
-  if (exp?.tenant_id) await voidExpenseEntriesForExpense(exp.tenant_id, id);
-  revalidatePath("/studio/gastos");
-  return { ok: true };
 }
 
 /**

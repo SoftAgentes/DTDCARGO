@@ -209,6 +209,8 @@ export const CAPABILITIES = {
   audit_view_sensitive: [],
   /** Anular un finiquito confirmado y su asiento (SDD-0226): admin-only. */
   void_payroll_settlement: [],
+  /** Anular un gasto y su asiento (SDD-0243): accounting + admin implícito. */
+  void_expense: ["accounting"],
 } as const satisfies Record<string, readonly StudioUserRole[]>;
 
 export type StudioCapability = keyof typeof CAPABILITIES;

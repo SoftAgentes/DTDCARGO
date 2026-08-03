@@ -103,9 +103,16 @@ export const expenses: ExpensesDict = {
 
   // ── 行操作 ───────────────────────────────────────────────
   "expenses.row.edit": "编辑",
-  "expenses.row.delete": "删除",
-  "expenses.row.delete_confirm": "删除此费用？",
-  "expenses.row.deleted": "费用 {code} 已删除",
+  "expenses.row.void": "作废费用",
+  "expenses.row.void_title": "作废费用 {code}",
+  "expenses.row.void_message": "费用记录和凭证将保留；关联会计分录将被作废，不再影响余额。",
+  "expenses.row.void_confirm": "作废费用",
+  "expenses.row.void_reason": "作废原因",
+  "expenses.row.void_reason_placeholder": "例如：对账后确认重复录入",
+  "expenses.row.void_hold": "长按以作废",
+  "expenses.row.void_alternative": "我了解记录将被保留，并选择单击作废",
+  "expenses.row.voided": "费用 {code} 已作废",
+  "expenses.row.void_replayed": "费用 {code} 的作废已确认",
 
   // ── 提示 ─────────────────────────────────────────────────
   "expenses.toast.created": "费用 {code} 已保存",
