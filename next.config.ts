@@ -276,15 +276,24 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: ppStudioBitacora },
         ],
       },
-      // Las tres reglas de `/marca` son MUTUAMENTE EXCLUYENTES a propósito: si dos
-      // matchearan, Next emite dos `Content-Security-Policy` y el navegador aplica
-      // la intersección — el standalone quedaría bloqueado por la estricta.
+      // Las CUATRO reglas de `/marca` son MUTUAMENTE EXCLUYENTES a propósito: si
+      // dos matchearan, Next emite dos `Content-Security-Policy` y el navegador
+      // aplica la intersección — el standalone quedaría bloqueado por la estricta.
       {
         source: "/marca/asset/:path*",
         headers: marcaHeaders,
       },
+      // `/marca/doc/*` sirve el SISTEMA navegable: los mismos documentos de Cloud
+      // Design que el standalone, sólo que sueltos en vez de embebidos en uno. Va
+      // con la permisiva por la misma razón — scripts inline, `data:` y Google
+      // Fonts que no controlamos. Bajo la estricta el visor abre en blanco, que es
+      // exactamente el fallo que costó tres verdes falsos en esta misma spec.
       {
-        source: "/marca/:path((?!asset).*)",
+        source: "/marca/doc/:path*",
+        headers: marcaHeaders,
+      },
+      {
+        source: "/marca/:path((?!asset|doc).*)",
         headers: marcaStrictHeaders,
       },
       {
