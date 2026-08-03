@@ -138,10 +138,6 @@ export function getFieldValue(
 }
 
 /**
- * M2 — paginación de DOS PASADAS: order[updated_at]=desc y order[created_at]=desc,
- * deduplicando por id. Corta cuando la página viene incompleta (< limit) o 204.
- */
-/**
  * SDD-0245 — paginación de UNA sola pasada para la bandeja (`/leads/unsorted`).
  *
  * A diferencia de leads/contactos no hay dos órdenes que reconciliar: la cola se
@@ -170,6 +166,10 @@ export async function paginateUnsorted<T>(
   return { items, truncated };
 }
 
+/**
+ * M2 — paginación de DOS PASADAS: order[updated_at]=desc y order[created_at]=desc,
+ * deduplicando por id. Corta cuando la página viene incompleta (< limit) o 204.
+ */
 export async function paginateTwoPass<T extends { id: number }>(
   baseUrl: string,
   token: string,

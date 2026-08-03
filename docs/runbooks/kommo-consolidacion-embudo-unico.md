@@ -105,6 +105,25 @@ ningún archivo del repo).
 **🔴 Estado operativo al momento de medir: 626 conversaciones sin leer · 3.304 chats abiertos**
 contra 2.877 leads en el espejo. El bot responde el saludo automático, pero nadie retoma.
 
+### ✅ Medido de verdad (2026-08-03, tras aplicar SDD-0245)
+
+Con la migración 0343 aplicada y `kommo-sync` v7 desplegada, la bandeja ya se espeja. Primera corrida:
+**7/7 entidades ok · 148 entradas en `kommo_unsorted`**, y la reconciliación da **148 de 148
+genuinamente ausentes** de `kommo_leads` (cero falsos positivos).
+
+| Fuente | Leads sin aceptar | Desde | Hasta |
+|---|---|---|---|
+| **WhatsApp `waba:974617042407664`** | **118** | **2026-07-01** | hoy |
+| Instagram Business | 21 | **2025-06-23** | 2026-08-01 |
+| WhatsApp `waba:253896374482910` | 5 | 2026-01-23 | 2026-01-26 |
+| Comentarios de Instagram | 4 | 2026-07-26 | 2026-07-29 |
+
+**Los 118 de WhatsApp desde el 1-jul son exactamente el hueco** que hacía ver el embudo congelado.
+17 llevan más de 30 días esperando; el más viejo es de **junio de 2025**.
+
+⚠️ Hay **dos números de WhatsApp** conectados: el segundo (`…482910`) dejó de recibir en enero.
+Vale confirmar si sigue publicado en algún lado.
+
 **Consecuencias para este plan:**
 
 1. La **Fase 2 (redirigir la captación) sube a máxima prioridad**: no es cosmética, es lo que hace que
