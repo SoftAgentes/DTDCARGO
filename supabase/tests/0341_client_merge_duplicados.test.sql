@@ -184,11 +184,16 @@ insert into public.client_change_requests (tenant_id, client_id, status) values
   ('11111111-1111-1111-1111-111111111111', 'c0000000-0000-0000-0000-00000000000b', 'pending');
 
 -- ── El detector propone el par ───────────────────────────────
+-- Corre como usuario autenticado: el detector saca el tenant de la SESIÓN, no de
+-- un parámetro. Si lo recibiera por parámetro, al ser security definer cualquiera
+-- podría pedir los duplicados —con nombres y códigos— de otro tenant.
+set local role authenticated;
+set local request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000000000001';
+
 do $candidatos$
 declare v_row record;
 begin
-  select * into v_row
-    from public.client_duplicate_candidates('11111111-1111-1111-1111-111111111111');
+  select * into v_row from public.client_duplicate_candidates();
   if v_row.legacy_markbox is distinct from 'DTD-Y009'
      or v_row.new_markbox is distinct from 'DTD-9009' then
     raise exception 'TEST 0341: no propuso el par legado↔nuevo (%, %)',
@@ -204,6 +209,8 @@ begin
   end if;
 end;
 $candidatos$;
+
+reset role;
 
 -- ── El dedup del registro mira las TRES llaves ───────────────
 -- Éste es el agujero real: el legado no tiene documento (o lo tiene corrompido
@@ -344,13 +351,34 @@ begin
     raise exception 'TEST 0341: el código vigente se marcó como redirigido';
   end if;
 
-  -- 8. Ya fusionado, el par desaparece de los candidatos.
-  if exists (select 1 from public.client_duplicate_candidates(
-               '11111111-1111-1111-1111-111111111111')) then
+end;
+$verificacion$;
+
+-- 8. Ya fusionado, el par desaparece de los candidatos (si no, el operador
+--    volvería a ver el mismo caso para siempre).
+set local role authenticated;
+set local request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000000000001';
+do $sin_candidatos$
+begin
+  if exists (select 1 from public.client_duplicate_candidates()) then
     raise exception 'TEST 0341: el par fusionado sigue apareciendo como candidato';
   end if;
 end;
-$verificacion$;
+$sin_candidatos$;
+reset role;
+
+-- 8b. Un usuario de OTRO tenant no ve NINGÚN candidato de este. El detector es
+--     security definer: sin el filtro por sesión, vería los de todos.
+set local role authenticated;
+set local request.jwt.claim.sub = 'bbbbbbbb-0000-0000-0000-000000000002';
+do $candidatos_ajenos$
+begin
+  if exists (select 1 from public.client_duplicate_candidates()) then
+    raise exception 'TEST 0341: el detector cruzó la frontera de tenant';
+  end if;
+end;
+$candidatos_ajenos$;
+reset role;
 
 -- ── Guardas ──────────────────────────────────────────────────
 do $guardas$
@@ -403,7 +431,7 @@ do $acl$
 begin
   if pg_catalog.has_function_privilege('anon', 'public.merge_clients(uuid,uuid)', 'EXECUTE')
      or pg_catalog.has_function_privilege('anon', 'public.resolve_markbox(uuid,text)', 'EXECUTE')
-     or pg_catalog.has_function_privilege('anon', 'public.client_duplicate_candidates(uuid)', 'EXECUTE')
+     or pg_catalog.has_function_privilege('anon', 'public.client_duplicate_candidates()', 'EXECUTE')
      or not pg_catalog.has_function_privilege(
           'authenticated', 'public.merge_clients(uuid,uuid)', 'EXECUTE') then
     raise exception 'TEST 0341: ACL inválida';

@@ -95,14 +95,22 @@ que la fusión **los copia al superviviente donde éste los tenga vacíos**.
 Esto es lo que convierte la fusión en una mejora de la base y no sólo en una
 limpieza: cada fusión rellena uno de los 144 sin documento.
 
-### 3.3 El código nuevo no se borra: se retira como alias
+### 3.3 El código nuevo no se borra: se retira, y la propia fila es el alias
 
 Entre que el cliente se registra y que alguien fusiona, **pudo darle ese código a
 su proveedor en Yiwu y ya venir un bulto rotulado así**. Si el código deja de
 existir, esa caja llega huérfana.
 
-Por eso el markbox retirado se guarda en `client_markbox_alias` apuntando al
-superviviente, y **la recepción de almacén resuelve por alias**.
+**No hace falta una tabla de alias.** `clients_tenant_id_markbox_key` es
+`UNIQUE (tenant_id, markbox)` **sin** filtro de `deleted_at`, así que la ficha
+fusionada **retiene su markbox** aunque quede soft-deleted. La propia fila es el
+alias y `merged_into_client_id` es el redirect: una columna en vez de una tabla
+nueva, sin superficie de RLS extra y sin riesgo de desincronización.
+
+Y como `next_markbox` hace `max()+1` **sin** filtrar `deleted_at`, el código
+retirado queda **quemado**: doble protección contra reemitirlo.
+
+La recepción de almacén resuelve el redirect con `resolve_markbox`.
 
 ### 3.4 La fusión nunca es automática
 
@@ -135,6 +143,22 @@ El sistema **propone** candidatos con su razón de coincidencia; un humano
   se resuelve completando la base. Es trabajo de datos, no de código.
 - Renumerar el legado a `DTD-####`. No aporta y rompe códigos ya rotulados.
 - Fusión automática sin humano.
+
+### Brechas conocidas (decididas, no olvidadas)
+
+- **`app/m/ve/camionero/actions.ts`** actualiza `clients.facade_photo_url`
+  filtrando por markbox y `deleted_at is null`. Contra un código retirado eso
+  afecta **0 filas en silencio** (no da error): la foto de fachada quedaría
+  subida pero sin asociar. No se resolvió acá porque el markbox de ese flujo sale
+  de una fila interna, no de una etiqueta física, y meterle un `resolve_markbox`
+  previo le cobra un viaje extra a la DB en el camino caliente de una PWA con
+  mala conexión. Se arregla cuando se toque ese módulo.
+- **La bifurcación del registro es una banda, no una pantalla que obligue a
+  elegir.** Es deliberado: el registro es EXPRESS por decisión de producto
+  (founder 2026-06-07) y una interstitial le cobra un clic al 100% de los
+  visitantes para atajar a una minoría. Si el founder prefiere el portón duro, es
+  un cambio de una pantalla — la capa que de verdad no se puede saltar (el dedup
+  del servidor) ya está.
 
 ## 5. Criterios de aceptación
 

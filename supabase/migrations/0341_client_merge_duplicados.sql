@@ -134,7 +134,11 @@ grant execute on function public.resolve_markbox(uuid, text) to authenticated, s
 -- 08-jun, ANTERIOR. Por eso el candidato no se ordena por antigüedad de fila:
 -- se marca cuál tiene formato de código legado, que es la señal real.
 
-create or replace function public.client_duplicate_candidates(p_tenant_id uuid)
+-- SIN parámetro de tenant a propósito. Es security definer (tiene que ver las dos
+-- fichas para compararlas), así que RLS no la limita: si recibiera el tenant por
+-- parámetro, cualquier usuario autenticado podría pedir los duplicados —con
+-- nombres y códigos— de OTRO tenant. El tenant sale de la sesión y punto.
+create or replace function public.client_duplicate_candidates()
 returns table (
   legacy_id uuid,
   legacy_markbox text,
@@ -164,7 +168,7 @@ as $$
       -- justamente la razón por la que el correlativo nunca los vio.
       (c.markbox !~ '^DTD-\d+$')                                   as es_legado
     from public.clients c
-    where c.tenant_id = p_tenant_id
+    where c.tenant_id = public.get_user_tenant_id()
       and c.deleted_at is null
       and c.merged_into_client_id is null
   )
@@ -194,8 +198,8 @@ $$;
 comment on function public.client_duplicate_candidates is
   'SDD-0244: pares (ficha legado ↔ ficha del registro público) que parecen el mismo cliente, con la razón de la coincidencia y un score. PROPONE — la fusión la confirma un humano.';
 
-revoke all on function public.client_duplicate_candidates(uuid) from public, anon;
-grant execute on function public.client_duplicate_candidates(uuid) to authenticated;
+revoke all on function public.client_duplicate_candidates() from public, anon;
+grant execute on function public.client_duplicate_candidates() to authenticated;
 
 -- ── 4b. Dedup del registro público por las TRES llaves ───────
 --

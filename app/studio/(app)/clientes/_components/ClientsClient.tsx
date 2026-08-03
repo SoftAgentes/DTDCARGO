@@ -106,13 +106,20 @@ export function ClientsClient({
             envíos.
           </p>
         </div>
-        <button
-          type="button"
-          className="studio-btn studio-btn-primary"
-          onClick={() => setDrawer({ mode: "create" })}
-        >
-          + Nuevo cliente
-        </button>
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          {/* SDD-0244: clientes que ya existían y se registraron otra vez por la
+              web, así que tienen dos Shipping Mark. Se revisan y fusionan a mano. */}
+          <Link href="/studio/clientes/duplicados" className="studio-btn studio-btn-ghost">
+            Posibles duplicados
+          </Link>
+          <button
+            type="button"
+            className="studio-btn studio-btn-primary"
+            onClick={() => setDrawer({ mode: "create" })}
+          >
+            + Nuevo cliente
+          </button>
+        </div>
       </div>
 
       {/* Toolbar */}
