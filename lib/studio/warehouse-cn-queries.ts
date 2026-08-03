@@ -379,5 +379,36 @@ export async function resolveClientNameByMarkbox(
     .is("deleted_at", null)
     .maybeSingle<{ name: string | null }>();
 
-  return data?.name?.trim() || null;
+  const nombre = data?.name?.trim();
+  if (nombre) return nombre;
+
+  // Camino raro pero caro si falla (SDD-0244): el bulto viene rotulado con un
+  // Shipping Mark RETIRADO. Pasa cuando el cliente ya existía, se registró de
+  // nuevo por la web, le dieron un código nuevo, se lo pasó a su proveedor —y
+  // recién después alguien fusionó las dos fichas. La caja ya salió de Yiwu con
+  // el código anulado impreso.
+  //
+  // La ficha retirada queda soft-deleted, así que la consulta de arriba (que
+  // filtra deleted_at) no la ve y el bulto entraría como huérfano. resolve_markbox
+  // sigue el redirect hasta el cliente vigente.
+  //
+  // Va DESPUÉS y no antes a propósito: el 99,99% de los bultos traen un código
+  // vigente y no deben pagar un viaje extra a la DB.
+  const { data: redirect } = await supabase.rpc("resolve_markbox", {
+    p_tenant_id: tenantId,
+    p_markbox: mark,
+  });
+  const fila = (Array.isArray(redirect) ? redirect[0] : redirect) as
+    | { client_id: string; canonical_markbox: string | null; was_redirected: boolean }
+    | null
+    | undefined;
+  if (!fila?.client_id || !fila.was_redirected) return null;
+
+  const { data: vigente } = await supabase
+    .from("clients")
+    .select("name")
+    .eq("id", fila.client_id)
+    .maybeSingle<{ name: string | null }>();
+
+  return vigente?.name?.trim() || null;
 }
