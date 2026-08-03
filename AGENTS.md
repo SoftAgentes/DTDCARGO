@@ -139,7 +139,7 @@ Los mocks originales **ya no existen** (`mockSubmit` desapareció del código). 
 
 | Endpoint | Estado | Usado hoy por |
 |---|---|---|
-| RPC pública `public_track_shipment` | ⚠️ **sin consumidor** — `lib/public/tracking-queries.ts` no lo importa nadie desde que `/track` pasó a 301 | — (el rastreo vive en el portal) |
+| RPC pública `public_track_shipment` | ⚠️ **sin consumidor** — su único cliente (`lib/public/tracking-queries.ts`) se borró el 2026-08-03 al podar código muerto, porque `/track` pasó a 301. La RPC sigue viva en la base | — (el rastreo vive en el portal) |
 | `POST /api/public/estimacion` | ✅ real — avisa al equipo del lead; **ya NO crea `EST-XXXX`** | `EstimadoModal`, la vía legacy de `CalculadoraForm` en `/tarifas` |
 | `POST /api/contact` | ✅ real — Resend equipo + cliente, honeypot + throttle IP | **`/academia`** (`AcademiaLeadForm`). **`/contacto` ya NO lo usa** |
 | Server Action de registro + `POST /api/registro/check` | ✅ real — alta cliente + MARKBOX | `/registro` |
