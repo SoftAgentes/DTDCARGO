@@ -53,6 +53,12 @@ export const runtime = "nodejs";
  * el motivo a propósito: mantener acá la lista de lo excluido significaría
  * mantenerla en dos lugares, y para quien la abre el resultado es el mismo.
  *
+ * ⚠️ Por eso el texto NO afirma un motivo. Decía «es parte del sistema interno
+ * de producto», que es cierto para las 22 piezas excluidas y MENTIRA para un
+ * documento que simplemente no llegó en el handoff o que cambió de nombre — y
+ * ese segundo caso es el que va a pasar solo, cada vez que llegue una versión
+ * nueva del Norte.
+ *
  * Va con 200 y no con 404: no es un error del visitante ni un enlace roto, es
  * una pieza que existe y no se comparte. Un 404 le diría "te equivocaste".
  */
@@ -73,8 +79,7 @@ function avisoNoPublicado(nombre: string): Response {
     padding:11px 20px;border-radius:8px;text-decoration:none;font-weight:700}
 </style></head><body><div class="c">
 <h1>Esta pieza no está en el centro de marca</h1>
-<p><code>${seguro}</code> es parte del sistema interno de producto y no se
-publica junto al material de marca.</p>
+<p><code>${seguro}</code> no forma parte del material publicado acá.</p>
 <p>Si la necesitas para un trabajo concreto, pídela al equipo de DTD.</p>
 <a href="/marca">Volver al centro de marca</a>
 </div></body></html>`,

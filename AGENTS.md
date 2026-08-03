@@ -57,6 +57,28 @@ la cápsula generada y cualquier plugin son derivados read-only.
 - Sólo reglas aprobadas pueden bloquear. Investigación o recomendaciones no se
   elevan automáticamente.
 
+### ⚠️ El último commit del push decide si hay deploy
+
+`vercel.json` trae un `ignoreCommand` que **cancela el build cuando el commit
+no toca nada fuera de `docs/**` y `*.md`**. Está bien pensado —evita
+desplegar por un cambio de documentación—, pero mira **sólo `HEAD^ HEAD`**, o
+sea el último commit, no el push completo.
+
+**Consecuencia:** si empujas código y documentación juntos y el último commit
+es doc-only, **el deploy se cancela en silencio** y el código se queda en
+`main` sin publicar. Pasó el 2026-08-02 con SDD-0238: el sistema navegable de
+`/marca` viajó en un commit y el último del push era una respuesta a Cloud
+Design en `.md`.
+
+**Cómo evitarlo:** que el ÚLTIMO commit del push toque código, o redesplegar a
+mano desde Vercel. **Cómo detectarlo sin adivinar** — se ejecuta el mismo
+comando que corre Vercel; si sale `0`, no va a desplegar:
+
+```bash
+git diff --quiet HEAD^ HEAD -- . ':(exclude)docs/**' ':(exclude,glob)*.md' \
+  && git diff --quiet HEAD^ HEAD -- docs/marketing && echo "NO despliega"
+```
+
 ## Ventanas autónomas + Modo Forja
 
 **Ventanas autónomas (default).** No hay coordinador central. Cada ventana/sesión es **su propia coordinadora**: trabaja en su `git worktree` + rama, hace commits **atómicos y selectivos** (nunca `git add -A`), integra y publica **su propio** trabajo (`git push origin HEAD:main`) y limpia su worktree al cerrar. El "OK del founder" para publicar es que el usuario diga **"cerrar"** (ciclo completo en el skill `/avivar`: contexto → tarea → worktree → ¿avanzar/cerrar? → cierre autónomo). Los pushes no se cruzan porque cada rama lleva solo su trabajo; un choque *non-fast-forward* al pushear se resuelve con `git merge origin/main` y reintento. Runbooks obligatorios: `docs/runbooks/git-worktrees-multiventana.md` · `docs/runbooks/multi-ventanas-buena-practica.md`.
