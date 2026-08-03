@@ -19,9 +19,10 @@ interface Props {
   expenseId: string;
   expenseCode: string;
   onEdit: () => void;
+  canVoid: boolean;
 }
 
-export function ExpenseRowActions({ expenseId, expenseCode, onEdit }: Props) {
+export function ExpenseRowActions({ expenseId, expenseCode, onEdit, canVoid }: Props) {
   const t = useT();
   const router = useRouter();
   const toast = useToast();
@@ -179,12 +180,14 @@ export function ExpenseRowActions({ expenseId, expenseCode, onEdit }: Props) {
                 onEdit();
               }}
             />
-            <MenuItem
-              icon={Icon.trash(14)}
-              label={t("expenses.row.void")}
-              danger
-              onClick={openVoidDialog}
-            />
+            {canVoid && (
+              <MenuItem
+                icon={Icon.trash(14)}
+                label={t("expenses.row.void")}
+                danger
+                onClick={openVoidDialog}
+              />
+            )}
           </div>
         )}
       </div>

@@ -16,7 +16,7 @@
 
 | Capa | Evidencia durable del carril | Resultado |
 |---|---|---|
-| UI Studio | `ExpenseRowActions.tsx:15,191-210` | `ConfirmDialog` canonical, motivo, consecuencia, hold y alternativa accesible |
+| UI Studio | `page.tsx`; `GastosClient.tsx`; `ExpenseRowActions.tsx` | capability resuelta en servidor; `operations`/`warehouse` no ven la acción; `ConfirmDialog` canonical |
 | Action Studio | `actions.ts:326-349` | validación, capability y respuesta durable del RPC |
 | UI Móvil | `MobileErpClient.tsx:3178-3197` | mismo diálogo; acción visible sólo para `accounting`/`admin` |
 | Action Móvil | `app/m/erp/actions.ts:362-385` | mismo validador y RPC; sin cleanup de Storage en la anulación |
@@ -25,7 +25,7 @@
 | PostgreSQL | `0340_expense_void_governance.sql:63-280` | guard exclusivo, locks, período, tenant/rol y transacción única |
 | Auditoría | `0340_expense_void_governance.sql:180-249` | asiento y gasto se anulan con motivo y correlación dentro de la transacción |
 | Pruebas SQL | `0340_expense_void_governance.test.sql:190-381` | éxito, replay, roles, tenant, período, rollback, ACL y `search_path` |
-| Pruebas UI | `ExpenseRowActions.test.tsx:54-113`; `MobileErpClient.expense-void.test.tsx:80-105` | foco, no mutación al abrir, motivo, error recuperable y capability |
+| Pruebas UI | `ExpenseRowActions.test.tsx`; `MobileErpClient.expense-void.test.tsx` | ocultamiento por capability, foco, no mutación al abrir, motivo y error recuperable |
 | E2E | `e2e/gastos-expense-void.spec.ts:7-59` | smoke autenticado preparado; 6 casos omitidos por ausencia de fixture |
 
 La anulación no borra `receipt_path`, `receipt_document_id` ni objetos de
@@ -59,7 +59,7 @@ se eleva a regla bloqueante para otros módulos.
 | Gate | Resultado |
 |---|---|
 | Suite SQL desechable | 70/70 verde, incluido `0340` |
-| Vitest focalizado | 46/46 verde en cuatro archivos |
+| Vitest focalizado | 47/47 verde en cuatro archivos |
 | TypeScript | verde |
 | ESLint focalizado | cero errores; E2E conserva el ignore esperado |
 | Playwright focalizado | 6 omitidos por falta de fixture autenticado ficticio |
@@ -68,7 +68,7 @@ se eleva a regla bloqueante para otros módulos.
 | PLG-01 | read-only; 27 políticas; 4 componentes; 7/7 |
 | `docs:check` | verde con índice de 233 specs regenerado |
 | `pnpm verify` | TODO VERDE; configuración pública Supabase inyectada sólo al proceso |
-| Suite completa Vitest dentro de `verify` | 396 archivos y 4683 pruebas verdes |
+| Suite completa Vitest dentro de `verify` | 396 archivos y 4684 pruebas verdes |
 | Schema rebuild | 333 migraciones; 316 aplicadas, 17 sólo-ledger; aislamiento multi-tenant verde |
 | E2E general | 72 verdes y 18 omitidos; un retry recuperó el caso preexistente CBM móvil |
 | Build | verde; 155 páginas generadas |
@@ -83,6 +83,12 @@ en tres navegadores— se deben a que no existe un fixture autenticado ficticio
 con rol y gasto elegible; no se convierten en evidencia durable ni en defecto
 funcional. La primera pasada encontró una intermitencia preexistente en el
 panel CBM móvil y el retry canónico terminó verde.
+
+La revisión previa al cierre detectó que Studio todavía mostraba la acción a
+`operations` y `warehouse`, aunque Action y RPC la rechazaban. El carril se
+corrigió para resolver `void_expense` en el Server Component, propagar sólo el
+booleano de capability y ocultar el menú a roles no autorizados. La prueba UI
+incluye ahora esa denegación; Móvil ya cumplía el mismo comportamiento.
 
 ## 4. Preflight Cloud metadata-only
 

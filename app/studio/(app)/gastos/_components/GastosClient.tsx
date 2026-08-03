@@ -49,6 +49,7 @@ interface Props {
   openShipmentId?: string;
   attachmentsPilotEnabled: boolean;
   attachmentOwnerKey?: string;
+  canVoidExpense: boolean;
 }
 
 type DrawerState =
@@ -67,6 +68,7 @@ export function GastosClient({
   openShipmentId,
   attachmentsPilotEnabled,
   attachmentOwnerKey,
+  canVoidExpense,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
@@ -300,6 +302,7 @@ export function GastosClient({
           shipmentCodeById={shipmentCodeById}
           flashClassFor={flashClassFor}
           onEdit={(expense) => setDrawer({ mode: "edit", expense })}
+          canVoidExpense={canVoidExpense}
         />
       )}
 
@@ -481,6 +484,7 @@ function ExpensesTable({
   shipmentCodeById,
   flashClassFor,
   onEdit,
+  canVoidExpense,
 }: {
   rows: Expense[];
   scope: ExpenseScope;
@@ -488,6 +492,7 @@ function ExpensesTable({
   shipmentCodeById: Map<string, string>;
   flashClassFor: (id: string) => string;
   onEdit: (expense: Expense) => void;
+  canVoidExpense: boolean;
 }) {
   const t = useT();
   const isShipment = scope === "shipment";
@@ -543,6 +548,7 @@ function ExpensesTable({
           hasBorderTop={i > 0}
           flashClass={flashClassFor(r.expense_code)}
           onEdit={() => onEdit(r)}
+          canVoidExpense={canVoidExpense}
         />
       ))}
     </div>
@@ -558,6 +564,7 @@ function ExpenseRow({
   hasBorderTop,
   flashClass,
   onEdit,
+  canVoidExpense,
 }: {
   row: Expense;
   isShipment: boolean;
@@ -567,6 +574,7 @@ function ExpenseRow({
   hasBorderTop: boolean;
   flashClass: string;
   onEdit: () => void;
+  canVoidExpense: boolean;
 }) {
   const t = useT();
   const amountDisplay = `${CURRENCY_SYMBOL[row.currency]} ${formatNumber(Number(row.amount), locale, { maximumFractionDigits: 2 })}`;
@@ -681,6 +689,7 @@ function ExpenseRow({
           expenseId={row.id}
           expenseCode={row.expense_code}
           onEdit={onEdit}
+          canVoid={canVoidExpense}
         />
       </span>
     </div>

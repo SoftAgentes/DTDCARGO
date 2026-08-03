@@ -34,12 +34,13 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-function renderActions() {
+function renderActions(canVoid = true) {
   return render(
     <ExpenseRowActions
       expenseId="30000000-0000-4000-8000-000000000001"
       expenseCode="EXP-2026-0001"
       onEdit={vi.fn()}
+      canVoid={canVoid}
     />,
   );
 }
@@ -52,6 +53,13 @@ async function openVoidDialog() {
 }
 
 describe("ExpenseRowActions · SDD-0243", () => {
+  it("oculta la acción cuando el rol no tiene la capability", async () => {
+    const user = userEvent.setup();
+    renderActions(false);
+    await user.click(screen.getByRole("button", { name: "expenses.table.col_actions" }));
+    expect(screen.queryByRole("menuitem", { name: "expenses.row.void" })).not.toBeInTheDocument();
+  });
+
   it("implementa menú con roving focus y restaura foco con Escape", async () => {
     const user = userEvent.setup();
     renderActions();

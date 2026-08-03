@@ -92,8 +92,12 @@ No se propone excepción ni una política nueva.
 - `docs/specs/README.md`
 - `docs/architecture/module-sdd-map.md`
 - `docs/governance/README.md`
+- `docs/governance/reviews/post-governance-10-gastos-r3-audit-2026-08-03.md`
 - `docs/governance/reviews/gastos-r3-expense-void-implementation-2026-08-03.md`
+- `.agents/handoffs/2026-08-03-post-governance-10-sdd-0243-close.md`
+- `app/studio/(app)/gastos/page.tsx`
 - `app/studio/(app)/gastos/actions.ts`
+- `app/studio/(app)/gastos/_components/GastosClient.tsx`
 - `app/studio/(app)/gastos/_components/ExpenseRowActions.tsx`
 - `app/studio/(app)/gastos/_components/ExpenseRowActions.test.tsx`
 - `app/m/erp/actions.ts`
