@@ -175,7 +175,10 @@ async function main() {
     termination_date: "2026-07-31",
     base_salary_usd: 1200,
     rules_snapshot: { fixture: "SDD-0226", advisory: true },
-    status: "confirmado",
+    // El guard de 0316 sólo permite crear renglones mientras el finiquito
+    // sigue abierto. El fixture reproduce el orden real: borrador, desglose y
+    // recién entonces confirmación.
+    status: "borrador",
     total_prestaciones_usd: 800,
     total_fracciones_usd: 250,
     total_indemnizacion_usd: 0,
@@ -184,7 +187,7 @@ async function main() {
     total_net_usd: 1000,
     salario_integral_usd: 1300,
     journal_entry_id: fixture.payrollJournalEntryId,
-    confirmed_at: "2026-07-31T12:00:00.000Z",
+    confirmed_at: null,
     notes: "Fixture desechable SDD-0226; no corresponde a una liquidación real.",
     created_by: adminUser.id,
   });
@@ -205,6 +208,18 @@ async function main() {
   await check(
     settlementLineError,
     "No se pudo preparar el desglose ficticio del finiquito",
+  );
+
+  const { error: confirmSettlementError } = await admin
+    .from("nomina_settlements")
+    .update({
+      status: "confirmado",
+      confirmed_at: "2026-07-31T12:00:00.000Z",
+    })
+    .eq("id", fixture.payrollSettlementId);
+  await check(
+    confirmSettlementError,
+    "No se pudo confirmar el finiquito ficticio",
   );
 
   console.log(

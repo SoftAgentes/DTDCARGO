@@ -11,12 +11,24 @@ test.describe("Tier 3 · anulación gobernada de finiquito", () => {
   );
 
   test("abre confirmación R3 y preserva la decisión antes de mutar", async ({ page }) => {
-    await page.goto("/login");
-    await page.getByLabel(/correo/i).fill(EMAIL!);
-    await page.getByLabel(/contraseña/i).fill(PASSWORD!);
-    await page.getByRole("button", { name: /entrar|iniciar/i }).click();
-    await page.goto("/studio/nomina");
-    await page.getByRole("tab", { name: "Liquidaciones" }).click();
+    // El Studio conserva el estado del sidebar por usuario. Arrancarlo
+    // colapsado evita que el rail de escritorio intercepte los controles al
+    // ejecutar el mismo journey en los perfiles móviles de Playwright.
+    await page.addInitScript(() => {
+      localStorage.setItem("studio_sidebar_collapsed", "1");
+    });
+    await page.goto("/studio/login?next=/studio/nomina");
+    await page.locator('input[name="email"]').fill(EMAIL!);
+    await page.locator('input[name="password"]').fill(PASSWORD!);
+    await page.locator('button[type="submit"]').click();
+    await expect(page).toHaveURL(/\/studio\/nomina/, { timeout: 20_000 });
+    const settlementsTab = page.getByRole("button", {
+      name: "Liquidaciones",
+      exact: true,
+    });
+    await settlementsTab.focus();
+    await expect(settlementsTab).toBeFocused();
+    await settlementsTab.press("Enter");
     const row = page
       .getByText(SETTLEMENT_CODE!, { exact: false })
       .locator("xpath=ancestor::div[.//button[normalize-space()='Ver']][1]");
@@ -31,7 +43,7 @@ test.describe("Tier 3 · anulación gobernada de finiquito", () => {
     await expect(dialog).toContainText("vínculo contable se conservarán");
     await expect(dialog.getByRole("button", { name: "Cancelar" })).toBeFocused();
 
-    await dialog.getByRole("button", { name: "Cancelar" }).click();
+    await dialog.getByRole("button", { name: "Cancelar" }).press("Enter");
     await expect(dialog).toBeHidden();
     await expect(voidButton).toBeVisible();
   });
