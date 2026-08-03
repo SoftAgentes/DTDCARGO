@@ -23,6 +23,7 @@ import {
 import { buildAlertItems } from "@/lib/portal/alertas";
 import { getConsolidationsForShipments } from "@/lib/portal/consolidation-queries";
 import { groupTrackByContainer, type TrackItem } from "@/lib/portal/seguimiento";
+import { EnviosHubTabs } from "../../_components/PortalHubTabs";
 import {
   PortalAlertasHub,
   type DocPresence,
@@ -115,14 +116,22 @@ export default async function PortalShipmentsPage() {
   // cliente no tiene RLS sobre `sailings`); best-effort → null oculta el banner.
   const banner = await loadConsolidadoBanner(client.id);
 
+  // Los tabs del hub (Envíos · Compras · Documentos) vivían sólo dentro de
+  // `FallbackList`, o sea del código muerto que podó SDD-0179. Al podarlo
+  // quedaron en tres de las cuatro páginas del hub y en ésta no: el cliente
+  // entraba a "Mis envíos" y perdía la navegación entre hermanas. Abierto
+  // desde el 20-jun; mismo patrón que compras/documentos/proveedores.
   return (
-    <PortalAlertasHub
-      items={items}
-      docs={docs}
-      trackGroups={trackGroups}
-      banner={banner}
-      markbox={client.markbox}
-    />
+    <div>
+      <EnviosHubTabs />
+      <PortalAlertasHub
+        items={items}
+        docs={docs}
+        trackGroups={trackGroups}
+        banner={banner}
+        markbox={client.markbox}
+      />
+    </div>
   );
 }
 
