@@ -394,6 +394,15 @@ validadas con mutación.
 | 18 | **17 de 22 feature flags no tienen consumidor.** Hoy están etiquetados honestamente. | ¿Se podan (perdés la intención registrada) o se van cableando de a uno? |
 | 19 | **El número de SDD en los commits no es confiable** tras una renumeración por colisión: `SDD-0160` está en producción y `git log --grep` devuelve cero. `pnpm sdd:next` evita la colisión *futura*, pero no repara la trazabilidad de lo ya renumerado. | ¿Vale un barrido de residuos, o alcanza con anotarlo caso por caso? |
 
+### Salidas de la ronda del 3-ago
+
+| # | Qué es | La pregunta |
+|---|---|---|
+| 20 | ⭐ **Aplicar `0338`** — `ve_locality_catalog` tiene RLS con **cero políticas**: 98 localidades invisibles y `/studio/admin/rutas` no deja dar de alta una ciudad. Roto hoy en producción. | ¿Autorizas, nombrándola? |
+| 21 | 🔴 **`/puerta-a-puerta` y `/servicios/puerta-a-puerta` son dos páginas del mismo servicio**, cada una con su canonical, las dos en el sitemap. Contenido duplicado compitiendo consigo mismo. Detalle en `docs/marketing/seo.md`. | ¿Cuál es la canónica? La otra lleva **301**. |
+| 22 | **`RecentQuotesCard`** no la renderiza nadie, pero un test de SDD-0061 la lee por ruta para guardar el rename "Cotizaciones"→"Estimados". Borrarla es quitar cobertura, no podar. | ¿Se va (y con ella esa aserción), o se cablea? |
+| 23 | **`0326`–`0329`** (cuatro migraciones de seguridad) viven **sólo** en `origin/codex/audit-hardening-20260801`. Ni en el repo ni en prod. | Es workstream de Codex — ¿lo dejo ahí o lo rescato? |
+
 ---
 
 ## 5. Los 5 falsos positivos (no los persigas)

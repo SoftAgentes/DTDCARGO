@@ -207,6 +207,33 @@ Antes de tocar SEO o identidad, revisar:
 - [ ] Validar el schema en Rich Results Test antes de cerrar.
 - [ ] `SearchAction` solo si existe un buscador real (hoy no hay).
 
+## 🔴 2026-08-03 · dos páginas compiten por "Puerta a Puerta"
+
+Al barrer rutas públicas sin enlace interno aparecieron **dos páginas completas
+del mismo servicio**, cada una con su propio `canonical`:
+
+| Ruta | Nació | Prioridad en sitemap | Enlaces internos |
+|---|---|---|---|
+| `/puerta-a-puerta` | 2026-07-14 · SDD-0064 (landings SEO) | **0.9** | **cero** |
+| `/servicios/puerta-a-puerta` | 2026-07-19 · revestido de `/servicios` al Norte | 0.8 | desde `/servicios` |
+
+Ninguna enlaza a la otra. Es contenido duplicado compitiendo consigo mismo: el
+enlace y la autoridad se reparten entre dos URLs en vez de sumar en una.
+
+⚠️ **Transparencia:** hasta el 2026-08-02 sólo `/puerta-a-puerta` estaba
+declarada en el sitemap. Al cerrar el hueco de las fichas de servicio metí
+`/servicios/puerta-a-puerta` — o sea que **hice más visible una duplicación que
+ya existía**. Google igual llegaba a las dos por enlaces internos, pero ahora
+las dos están declaradas.
+
+**No lo resuelvo solo**: elegir la canónica y 301 la otra es una decisión de
+contenido, y la regla de la casa es que toda ruta pública con SEO que se
+elimina o renombra lleva **301** (`next.config.ts`). Queda para el founder.
+
+Las otras dos huérfanas **están bien así**: `/email/baja` se alcanza desde el
+enlace del correo (no se enlaza desde el sitio) y `/brochure` es del tipo
+"te paso el link", como `/marca`.
+
 ## 2026-08-02 · cuatro páginas de venta invisibles para Google
 
 Barrido del sitemap contra las rutas públicas en disco. **Cuatro páginas existían,
