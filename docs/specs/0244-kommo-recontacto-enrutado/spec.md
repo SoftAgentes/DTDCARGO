@@ -72,7 +72,7 @@ email, y desde `persons` (vía `legacy_client_id`) son **0**. Ese teléfono no e
 
 ## 3. Diseño
 
-### 3.1 · Migración 0341 — el vínculo con la persona
+### 3.1 · Migración 0342 — el vínculo con la persona
 
 Hoy `clients` sólo tiene `kommo_lead_id`: **apunta a la venta, no a la persona.** El lead se cierra y
 se lleva la marca. Se agrega el vínculo estable:
@@ -163,7 +163,7 @@ antes de dejarlo escribir.
 
 ## 6. Verificación
 
-1. **Contrato SQL** (`supabase/tests/0341_*.test.sql`): la columna y los dos índices existen; el
+1. **Contrato SQL** (`supabase/tests/0342_*.test.sql`): la columna y los dos índices existen; el
    `CHECK` de `op` admite `patch_contact`; RLS intacta sobre `clients`.
 2. **Unit** (Vitest): el resolvedor devuelve `CLIENTE` por id, `CLIENTE` + auto-sanado por teléfono, y
    `desconocido` cuando no hay match. Idempotencia: dos `leads[add]` del mismo lead encolan una sola vez.
