@@ -105,6 +105,9 @@ Lo que **no** se hace, a propósito:
 | `app/studio/(app)/admin/feature-flags/page.tsx` | copy que no promete de más |
 | `supabase/migrations/0337_feature_flags_seed_and_trigger.sql` | catálogo SQL + seed idempotente + trigger `after insert on tenants` |
 | `lib/studio/__tests__/feature-flags-catalog.test.ts` | contrato: TS ↔ SQL ↔ código |
+| `lib/studio/feature-flag-guard.ts` | **(§6.1)** `requireFeatureEnabled()` — el guard de ruta |
+| `app/studio/(app)/{seniat,cola-qr,operarios}/layout.tsx` | **(§6.1)** los tres gates |
+| `app/studio/(app)/_components/DeniedToast.tsx` | **(§6.1)** aviso propio para `?off=` |
 
 ## 4. La migración 0337
 
@@ -137,13 +140,44 @@ deliberada y **verificada**: el contrato de §5 los compara.
 
 Además: `pnpm test`, `pnpm typecheck`, `pnpm lint`, `node scripts/verify.mjs`.
 
-## 6. Pendiente de decisión del founder
+## 6. Decisiones del founder · 2026-08-02
 
-1. **¿`customs_seniat` y `mobile_operator` deben bloquear la ruta?** Hoy sólo
-   esconden el link. Convertirlos en guard real es un cambio de comportamiento.
-2. **¿Se podan las 18 keys sin consumidor, o se cablean?** Cablearlas es trabajo
-   real por flag; podarlas pierde la intención registrada. Hoy: ninguna de las
-   dos, sólo etiquetadas.
+### 6.1 ✅ `customs_seniat` y `mobile_operator` ahora **bloquean la ruta**
+
+Aprobado. `lib/studio/feature-flag-guard.ts` → `requireFeatureEnabled(moduleId)`,
+llamado en los layouts de `seniat`, `cola-qr` y `operarios`, **después** del gate
+RBAC. Los dos conviven porque responden preguntas distintas:
+
+```ts
+await requireModuleView("qrqueue");     // ¿tu ROL puede verlo?
+await requireFeatureEnabled("qrqueue"); // ¿esta EMPRESA lo usa?
+```
+
+Detalles que importan:
+
+- **Redirect con `?off=`, no `?denied=`.** El motivo es distinto y el aviso
+  también: "no tienes acceso" manda a pedirle permiso a un admin; "está
+  desactivado" le dice al admin que puede prenderlo él mismo. `DeniedToast`
+  distingue los dos.
+- **Fail-open a propósito.** Si la consulta de flags falla, `listFeatureFlags`
+  cae a los defaults. Un problema de base no puede dejar al equipo sin módulos —
+  cerrar el acceso es trabajo de RBAC, que sí es fail-closed.
+- **`seniat` no tenía `layout.tsx`**: su gate de rol vivía en `page.tsx`, que no
+  envuelve a los hijos. Ahora tiene layout y cubre el subtree.
+- **`vault` queda en `sidebar`.** Su módulo (`no-olvidar`, SDD-0025) es un
+  `EmptyState` "Próximamente" que no toca la base: cerrarlo por ruta no
+  protegería nada que no esté ya vacío.
+
+> ⚠️ **Al desplegar, esto cambia comportamiento.** Si `customs_seniat` o
+> `mobile_operator` están en `false` en producción, esos módulos dejan de abrir
+> por URL y muestran el aviso. Es exactamente el punto del cambio — pero conviene
+> mirar los valores reales antes del deploy, sobre todo `mobile_operator`, con la
+> PWA de operarios en producción.
+
+### 6.2 ⬜ Las 17 keys sin consumidor
+
+Sin decisión todavía. Cablearlas es trabajo real por flag; podarlas pierde la
+intención registrada. Hoy: ninguna de las dos, sólo etiquetadas honestamente.
 
 ## 7. Aplicación a producción
 

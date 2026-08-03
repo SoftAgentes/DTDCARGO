@@ -105,6 +105,23 @@ describe("Catálogo de feature flags · el efecto declarado es verdad", () => {
   // Sin esto FEATURE_FLAG_EFFECT es un comentario con sintaxis de TypeScript:
   // alguien cablea un flag, no actualiza el mapa, y el panel sigue diciendo
   // "sin efecto" sobre un interruptor que ahora apaga algo de verdad.
+  /**
+   * Quita comentarios antes de buscar. Sin esto el detector matchea el
+   * DOCBLOCK: el layout de `seniat` documenta el guard citando la llamada
+   * literal, así que el contrato se daba por satisfecho con la explicación en
+   * vez del código. Lo cazó una mutación —borré la llamada real y siguió
+   * verde— igual que en `studio-api-auth-guard.test.ts`. Un contrato que lee
+   * comentarios no verifica comportamiento: verifica prosa.
+   */
+  const sinComentarios = (src: string) =>
+    src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+
+  // Dos formas legítimas de gatear una ruta por flag:
+  //   a) la page lee `flags.<key>` directo (patrón de noticias-web);
+  //   b) el layout llama `requireFeatureEnabled("<moduleId>")`, que resuelve la
+  //      key vía MODULE_FLAG_MAP (patrón de seniat / cola-qr / operarios).
+  // El detector tiene que ver las DOS: si sólo mirara (a), promover un flag a
+  // `ruta` con el guard nuevo daría rojo por un falso hueco.
   const guardsDeRuta = (() => {
     const out = new Set<string>();
     const raiz = join(RAIZ, "app", "studio", "(app)");
@@ -113,7 +130,16 @@ describe("Catálogo de feature flags · el efecto declarado es verdad", () => {
         const p = join(dir, e.name);
         if (e.isDirectory()) caminar(p);
         else if (e.name === "page.tsx" || e.name === "layout.tsx") {
-          const src = readFileSync(p, "utf8");
+          const src = sinComentarios(readFileSync(p, "utf8"));
+
+          // (b) guard por módulo. Se busca la LLAMADA con su argumento, no el
+          // nombre suelto: un archivo que sólo importe el guard no gatea nada.
+          for (const m of src.matchAll(/requireFeatureEnabled\(\s*"([a-z0-9-]+)"/g)) {
+            const key = MODULE_FLAG_MAP[m[1]];
+            if (key) out.add(key);
+          }
+
+          // (a) lectura directa del flag en la propia página.
           if (!src.includes("listFeatureFlags")) continue;
           for (const k of FEATURE_FLAG_KEYS) {
             // `if (!flags.marketing_news)` / `flags["…"]`

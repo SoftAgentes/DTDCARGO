@@ -4,6 +4,7 @@
  * validan tenant, NO rol → este gate (+ el de acción) es el control real.
  */
 import { requireModuleView } from "@/lib/studio/rbac-guard";
+import { requireFeatureEnabled } from "@/lib/studio/feature-flag-guard";
 
 export default async function ModuleGateLayout({
   children,
@@ -11,5 +12,8 @@ export default async function ModuleGateLayout({
   children: React.ReactNode;
 }) {
   await requireModuleView("operarios");
+  // Feature flag `mobile_operator` (SDD-0240): hasta hoy sólo escondía el
+  // link del sidebar y la URL seguía abriendo.
+  await requireFeatureEnabled("operarios");
   return <>{children}</>;
 }

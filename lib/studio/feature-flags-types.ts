@@ -132,6 +132,11 @@ export const FEATURE_FLAG_LABELS: Record<FeatureFlagKey, string> = {
  *  - `ninguno`  → no tiene un solo consumidor en el código. El toggle
  *                 guarda en la base y no pasa nada más.
  *
+ * ⚠️ Que un flag sea `ruta` NO lo convierte en un permiso. Cierra la feature
+ * para toda la empresa, no para un rol. Los dos guards conviven y responden
+ * preguntas distintas: `requireModuleView` = "¿tu rol puede?",
+ * `requireFeatureEnabled` = "¿esta empresa lo usa?".
+ *
  * Este mapa NO es documentación decorativa: `feature-flags-effect.test.ts`
  * lo verifica contra el código y se pone rojo si alguien conecta (o
  * desconecta) un flag sin actualizarlo acá.
@@ -143,10 +148,15 @@ export const FEATURE_FLAG_EFFECT: Record<FeatureFlagKey, FeatureFlagEffect> = {
   marketing_news: "ruta",
   // Leído por app/m/ve/bodeguero/page.tsx para mostrar u ocultar la ubicación.
   "dispatch.show_warehouse_location": "lectura",
-  // Sólo MODULE_FLAG_MAP → sidebar. /studio/seniat sigue abriendo por URL.
-  customs_seniat: "sidebar",
-  mobile_operator: "sidebar",
-  vault: "sidebar", // esconde `no-olvidar` (SDD-0025, dormante)
+  // Promovidos de `sidebar` a `ruta` el 2026-08-02 (decisión del founder):
+  // `requireFeatureEnabled` en los layouts de seniat / cola-qr / operarios.
+  // Antes apagarlos sólo escondía el link y /studio/seniat seguía abriendo.
+  customs_seniat: "ruta",
+  mobile_operator: "ruta",
+  // Sigue siendo sólo-sidebar: esconde `no-olvidar` (SDD-0025, dormante). No se
+  // le pone guard de ruta porque el módulo ya es un EmptyState "Próximamente"
+  // que no toca la base — cerrarlo no protegería nada que no esté ya vacío.
+  vault: "sidebar",
   // Sin consumidor. Nombran features del handoff que no se construyeron,
   // o que se construyeron sin cablear el flag.
   cargo_insurance: "ninguno",
