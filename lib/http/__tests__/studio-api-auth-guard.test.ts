@@ -53,6 +53,19 @@ const AUTORIZA_LA_BASE = new Map<string, string>([
   ],
 ]);
 
+/**
+ * Quita comentarios antes de buscar.
+ *
+ * Sin esto el contrato se satisface con la PROSA: justo estas cuatro rutas
+ * traían en su docblock "Auth: sesión Supabase válida obligatoria" sin
+ * verificar nada, y un docblock que citara la llamada literal —como hace el
+ * layout de `seniat`— daría verde sobre código sin guard. Mismo tropiezo que
+ * en `feature-flags-catalog.test.ts`: un contrato que lee comentarios verifica
+ * intenciones, no comportamiento.
+ */
+const sinComentarios = (src: string) =>
+  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+
 /** Cuerpo de cada handler exportado, sin imports ni helpers de módulo. */
 function handlers(src: string): { metodo: string; cuerpo: string }[] {
   const out: { metodo: string; cuerpo: string }[] = [];
@@ -86,7 +99,7 @@ describe("Toda ruta de /api/studio verifica la sesión", () => {
 
   for (const r of todas) {
     it(`/api/studio/${r.rel} tiene guard en cada método`, () => {
-      const src = readFileSync(r.abs, "utf8");
+      const src = sinComentarios(readFileSync(r.abs, "utf8"));
       const hs = handlers(src);
       if (hs.length === 0) return; // sin handlers exportados: nada que proteger
 
@@ -124,11 +137,11 @@ describe("El guard corta antes de tocar la base", () => {
 
   for (const r of todas) {
     const src = readFileSync(r.abs, "utf8");
-    if (!src.includes("requireStudioSession")) continue;
+    if (!sinComentarios(src).includes("requireStudioSession(")) continue;
 
     it(`/api/studio/${r.rel} llama al guard antes de consultar`, () => {
       // Por handler: la posición del guard vs. la del primer `.from(`/`rpc(`.
-      const cuerpos = src.split(/export async function (?=GET|POST|PUT|PATCH|DELETE)/);
+      const cuerpos = sinComentarios(src).split(/export async function (?=GET|POST|PUT|PATCH|DELETE)/);
       for (const cuerpo of cuerpos) {
         const guard = cuerpo.indexOf("requireStudioSession(");
         if (guard < 0) continue;
