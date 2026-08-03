@@ -10,7 +10,10 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { executeD1Operation } from "@/lib/studio/audit/d1-access-config-adapters";
+import {
+  D1OperationError,
+  executeD1Operation,
+} from "@/lib/studio/audit/d1-access-config-adapters";
 import { FEATURE_FLAG_KEYS, type FeatureFlagKey } from "@/lib/studio/feature-flags-types";
 
 export interface ToggleFlagState {
@@ -41,8 +44,23 @@ export async function toggleFeatureFlagAction(
       operationType: "feature_flag.toggle",
       input: { key, enabled },
     });
-  } catch {
-    return { error: "No se pudo guardar el feature flag." };
+  } catch (e) {
+    // La RPC hace UPDATE sobre una fila que TIENE que existir; si el flag
+    // nunca se sembró para este tenant devuelve invalid_state (P0002) y el
+    // toggle no hace nada para siempre. Pasó con `marketing_news`, que se
+    // agregó al catálogo del código sin migración que lo sembrara: el
+    // módulo Noticias Web quedó inalcanzable sin un solo mensaje de error.
+    // Distinguir el caso importa — "no se pudo guardar" manda a buscar un
+    // permiso, y el problema es que falta la fila.
+    const falta = e instanceof D1OperationError && e.code === "invalid_state";
+    return {
+      // Sin flagKey el UI descarta el mensaje (lo filtra por flag) y el
+      // toggle falla en silencio. Ese era el bug de fondo.
+      flagKey: key,
+      error: falta
+        ? "Este flag no está inicializado para tu empresa. Falta sembrarlo en la base (migración de seed)."
+        : "No se pudo guardar el feature flag.",
+    };
   }
 
   // Revalidar el layout para que el sidebar tome los flags nuevos.

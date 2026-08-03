@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 231 specs)
+### Índice de specs (generado · 232 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -269,6 +269,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0237 | La calculadora pública cobra la entrega nacional por CBM | done | interno |
 | 0238 | El brand book se comparte con un link y un código | done | interno |
 | 0239 | El POD del camionero cierra el embarque | in-progress | interna |
+| 0240 | Feature flags: siembra por tenant y panel que no miente | in-progress | interna |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0226 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

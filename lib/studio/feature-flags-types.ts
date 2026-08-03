@@ -4,8 +4,12 @@
  * Portado de Claude Design v1.7:
  * docs/design/studio/_norte/erp/feature-flags.jsx
  *
- * 20 flags · perfilados de FEATURE_FLAG_DEFAULTS del handoff. Cada flag
- * decide si una feature/módulo está activa para el tenant.
+ * El catálogo salió del handoff con 20 keys "aspiracionales": nombraban
+ * features que el Norte pensaba construir, no features construidas. Casi
+ * todas siguen sin consumidor — apagarlas no apaga nada. Ver
+ * FEATURE_FLAG_EFFECT: es la clasificación honesta, medida contra el
+ * código, y el panel de admin la muestra para que nadie crea que apagó
+ * algo que sigue encendido.
  *
  * MODULE_FLAG_MAP mapea id de módulo del sidebar → flag key. Los módulos
  * sin entry en el map se consideran "core" (siempre visibles).
@@ -32,7 +36,11 @@ export type FeatureFlagKey =
   | "sustainability"
   | "backup_auto"
   | "sso"
-  | "marketing_news";
+  | "marketing_news"
+  // Sembrado por 0066 y LEÍDO de verdad por la PWA del bodeguero
+  // (app/m/ve/bodeguero/page.tsx), pero nunca estuvo en este catálogo:
+  // el panel de admin no lo mostraba y sólo se podía tocar por SQL.
+  | "dispatch.show_warehouse_location";
 
 export type FeatureFlags = Record<FeatureFlagKey, boolean>;
 
@@ -75,6 +83,8 @@ export const FEATURE_FLAG_DEFAULTS: FeatureFlags = {
   // Default off · habilitar manualmente cuando migrations 0053-0056
   // (seo_drafts, news_writers, news_posts, seed) estén aplicadas a prod.
   marketing_news: false,
+  // Default off: la bodega no está zoneada por default (0066).
+  "dispatch.show_warehouse_location": false,
 };
 
 export const FEATURE_FLAG_KEYS: FeatureFlagKey[] = Object.keys(
@@ -106,6 +116,63 @@ export const FEATURE_FLAG_LABELS: Record<FeatureFlagKey, string> = {
   backup_auto: "Backup automático",
   sso: "Single Sign-On",
   marketing_news: "Marketing · Generador de Noticias Web",
+  "dispatch.show_warehouse_location": "Ubicación en bodega (pasillo/zona/estante)",
+};
+
+/**
+ * Qué hace REALMENTE cada flag, medido contra el código (no contra la
+ * intención del handoff).
+ *
+ *  - `ruta`     → además de esconder el módulo, bloquea la URL. Apagarlo
+ *                 apaga la feature de verdad.
+ *  - `lectura`  → algún componente lee el flag y cambia lo que muestra.
+ *  - `sidebar`  → sólo esconde el link del sidebar. **La URL sigue
+ *                 abriendo**: es cosmético, no es un permiso. Para negar
+ *                 acceso está RBAC (SDD-0085), no esto.
+ *  - `ninguno`  → no tiene un solo consumidor en el código. El toggle
+ *                 guarda en la base y no pasa nada más.
+ *
+ * Este mapa NO es documentación decorativa: `feature-flags-effect.test.ts`
+ * lo verifica contra el código y se pone rojo si alguien conecta (o
+ * desconecta) un flag sin actualizarlo acá.
+ */
+export type FeatureFlagEffect = "ruta" | "lectura" | "sidebar" | "ninguno";
+
+export const FEATURE_FLAG_EFFECT: Record<FeatureFlagKey, FeatureFlagEffect> = {
+  // Guard de ruta en app/studio/(app)/marketing/noticias-web/page.tsx.
+  marketing_news: "ruta",
+  // Leído por app/m/ve/bodeguero/page.tsx para mostrar u ocultar la ubicación.
+  "dispatch.show_warehouse_location": "lectura",
+  // Sólo MODULE_FLAG_MAP → sidebar. /studio/seniat sigue abriendo por URL.
+  customs_seniat: "sidebar",
+  mobile_operator: "sidebar",
+  vault: "sidebar", // esconde `no-olvidar` (SDD-0025, dormante)
+  // Sin consumidor. Nombran features del handoff que no se construyeron,
+  // o que se construyeron sin cablear el flag.
+  cargo_insurance: "ninguno",
+  hs_autodetect: "ninguno",
+  cn_translation: "ninguno",
+  ai_copilot: "ninguno",
+  whatsapp: "ninguno",
+  email_sequences: "ninguno",
+  branding_xcliente: "ninguno",
+  multi_currency: "ninguno",
+  audit_log: "ninguno",
+  api_public: "ninguno",
+  webhooks: "ninguno",
+  comments: "ninguno",
+  consolidation_partial: "ninguno",
+  portal_cliente: "ninguno",
+  sustainability: "ninguno",
+  backup_auto: "ninguno",
+  sso: "ninguno",
+};
+
+export const FEATURE_FLAG_EFFECT_LABELS: Record<FeatureFlagEffect, string> = {
+  ruta: "Bloquea la ruta",
+  lectura: "Cambia lo que se muestra",
+  sidebar: "Sólo esconde del sidebar",
+  ninguno: "Sin efecto",
 };
 
 /**
