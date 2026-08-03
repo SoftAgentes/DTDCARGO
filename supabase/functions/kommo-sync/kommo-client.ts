@@ -141,6 +141,35 @@ export function getFieldValue(
  * M2 — paginación de DOS PASADAS: order[updated_at]=desc y order[created_at]=desc,
  * deduplicando por id. Corta cuando la página viene incompleta (< limit) o 204.
  */
+/**
+ * SDD-0245 — paginación de UNA sola pasada para la bandeja (`/leads/unsorted`).
+ *
+ * A diferencia de leads/contactos no hay dos órdenes que reconciliar: la cola se
+ * lee entera. Devuelve también si se alcanzó el tope de páginas, porque un
+ * truncamiento silencioso acá haría que el conteo de pendientes sea un piso
+ * disfrazado de total — el mismo defecto que este SDD viene a corregir.
+ */
+export async function paginateUnsorted<T>(
+  baseUrl: string,
+  token: string,
+): Promise<{ items: T[]; truncated: boolean }> {
+  const items: T[] = [];
+  let truncated = false;
+
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const path = `/api/v4/leads/unsorted?limit=${LIMIT}&page=${page}`;
+    const data = await kommoFetch<HalList<T>>(baseUrl, token, path);
+    if (!data) break; // 204 → cola vacía o fin
+    const batch = (data._embedded?.unsorted ?? []) as T[];
+    items.push(...batch);
+    if (batch.length < LIMIT) break; // página incompleta → fin
+    if (page === MAX_PAGES) truncated = true; // llegamos al tope con la página llena
+    await sleep(RATE_LIMIT_DELAY_MS);
+  }
+
+  return { items, truncated };
+}
+
 export async function paginateTwoPass<T extends { id: number }>(
   baseUrl: string,
   token: string,

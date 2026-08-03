@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 234 specs)
+### Índice de specs (generado · 235 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -272,6 +272,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0242 | Las piezas de producto se abren con un segundo código | in-progress | interno |
 | 0243 | Anulación gobernada de gastos | done | interno |
 | 0244 | Enrutado a Recontacto — el ERP reconoce al cliente que vuelve… | proposed | interno |
+| 0245 | Espejo de la bandeja de entrada de Kommo — el ERP deja de med… | proposed | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0239, 0240, 0241 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

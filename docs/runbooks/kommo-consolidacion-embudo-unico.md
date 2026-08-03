@@ -110,8 +110,9 @@ contra 2.877 leads en el espejo. El bot responde el saludo automático, pero nad
 1. La **Fase 2 (redirigir la captación) sube a máxima prioridad**: no es cosmética, es lo que hace que
    los leads existan para el ERP. Es exactamente lo que pidió el founder desde el inicio — *"que no
    entren a la sección general de leads, sino directo al embudo"*.
-2. **Sumar `/api/v4/leads/unsorted` al sync deja de ser "punto ciego" y pasa a ser deuda crítica**:
-   mientras no esté, el ERP mide sobre una fracción del embudo. Spec aparte.
+2. **Sumar `/api/v4/leads/unsorted` al sync** → especificado en
+   [SDD-0245](../specs/0245-kommo-espejo-unsorted/spec.md) (migración 0343 + entidad `unsorted` en el
+   sync). Mientras no esté aplicado, el ERP mide sobre una fracción del embudo.
 3. Antes de confiar en cualquier conteo de este runbook, recordar que **el espejo subestima**: los
    2.877 son sólo los leads aceptados.
 
