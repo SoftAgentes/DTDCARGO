@@ -113,8 +113,11 @@ No tiene sentido ordenar el embudo si la entrada está rota. **Los leads por sem
 
 > Requiere SDD propio. Sin esto el enrutador falla en silencio.
 
-- [ ] **7.** Rellenar `clients.phone` en los **186 clientes sin teléfono** desde el espejo de Kommo
-      (hoy sólo **242 de 428 son ruteables**).
+- [ ] **7.** ~~Rellenar `clients.phone` en los 186 clientes sin teléfono~~ → ❌ **DESCARTADO, medido
+      2026-08-03.** De los 186 sólo 77 tienen email y **apenas 8** son recuperables desde Kommo;
+      desde `persons` (vía `legacy_client_id`) son **0**. Ese teléfono no existe en el ERP.
+      **En su lugar: auto-sanado al contacto** — cuando escriba alguien no reconocido y el asesor lo
+      vincule a su cliente, el ERP guarda el teléfono y el `kommo_contact_id` en ese momento.
 - [ ] **8.** Migración: columna **`kommo_contact_id` en `clients`** (+ índice).
 - [ ] **9.** Cruzar los 428 clientes contra los 3.041 contactos de Kommo por teléfono **una sola vez**
       y guardar el `kommo_contact_id`. Reusar `phonesMatch` de `lib/studio/estimado-linking.ts`.
@@ -193,10 +196,23 @@ Cuando un cliente vuelve a escribir, su trato debe caer en **Recontacto** con su
 **Flujo:** cliente escribe → Kommo crea el trato → webhook avisa al ERP → el ERP resuelve el contacto
 contra `clients` → encola *mover a Recontacto + estampar Shipping Mark + marcar Recompra*.
 
-⚠️ **Dos límites medidos:** (1) sólo **242 de 428 clientes** tienen teléfono en el ERP; (2)
-`findKommoContactsByPhone` sólo revisa los **500 contactos más recientes** de 3.041 y el propio código
-advierte *"es una ayuda, no una garantía"* → **no sirve como enrutador**. Por eso la Fase 1b guarda
-`kommo_contact_id` una vez y después se busca por id indexado.
+### Cobertura real del enrutador (medido 2026-08-03)
+
+| Grupo | Clientes | Altas | Con portal | ¿Ruteable? |
+|---|---|---|---|---|
+| **Con teléfono** | **243** | 24-may → **hoy** | **51** | ✅ sí |
+| Sin teléfono (base heredada) | 186 | 24-may → **12-jun**, y paró | **0** | ❌ no |
+
+**El 57% de cobertura no es el problema que parece:** los 186 sin teléfono son el bloque de la base
+heredada que se importó — se cortan en seco el 12-jun y **ninguno tiene portal**. Los 243 ruteables
+son los clientes vivos: llegan hasta hoy e incluyen los 51 con portal activo.
+
+**Para los 186 no se hace backfill** (no hay de dónde sacar el teléfono). Se **auto-sanan al contacto**:
+la primera vez que uno escriba y el asesor lo vincule, el ERP guarda su teléfono y `kommo_contact_id`.
+
+⚠️ **Límite técnico:** `findKommoContactsByPhone` sólo revisa los **500 contactos más recientes** de
+3.041 y el propio código advierte *"es una ayuda, no una garantía"* → **no sirve como enrutador**.
+Por eso la Fase 1b guarda `kommo_contact_id` una vez y después se busca por id indexado.
 
 ⚠️ **Duda sin verificar** (sin acceso a Kommo): si una *condición* de Salesbot puede leer un campo del
 **contacto**. Las documentadas son a nivel lead. Por eso el enrutado va por el ERP y Salesbot queda
