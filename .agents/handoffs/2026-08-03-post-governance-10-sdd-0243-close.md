@@ -8,7 +8,7 @@
 | Worktree | `C:\Users\Trabajo\Desktop\Developer\software\DTD-worktrees\post-governance-10-slices` |
 | Base | `origin/main@b78a686336aedadc24cd7a508ae54d788f8c2243` |
 | Integración funcional | `fd948577` publicada por fast-forward atómico a `origin/main` y a la rama propia |
-| Estado | cerrado en Git y Producción; evidencia de rollout pendiente de publicar |
+| Estado | cerrado en Git y Producción; recibo documental en cierre autorizado |
 
 ## Alcance y rutas propias
 
@@ -89,6 +89,6 @@ El rollout productivo se completó desde el worktree aislado
   datos productivos, luego eliminada;
 - SDD-0243 quedó `done` y Gastos pasó de `BE` a `VA` únicamente por este flujo.
 
-El recibo completo es REV-SGE-059. Queda como gate independiente publicar el
-commit documental de cierre con el literal `cerrar`; no queda DDL ni deploy
-manual pendiente para SDD-0243.
+El recibo completo es REV-SGE-059. La publicación del commit documental se
+ejecuta únicamente mediante el cierre autorizado por el literal `cerrar`; no
+queda DDL ni deploy manual pendiente para SDD-0243.
