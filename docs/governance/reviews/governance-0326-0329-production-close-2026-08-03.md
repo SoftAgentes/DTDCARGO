@@ -34,7 +34,7 @@ para otra.
   conserva el contrato server-only.
 - 0329 dejó una sola policy SELECT de `user_profiles`, exclusiva de
   `authenticated`, con perfil propio o membresía activa en tenant compartido.
-- El gate del ledger terminó verde con 327 archivos y 344 entradas productivas;
+- El gate del ledger terminó verde con 332 archivos y 344 entradas productivas;
   sólo conserva las excepciones históricas explícitas `0017_no_olvidar` y
   `0257_rates_expiry_alert`.
 
