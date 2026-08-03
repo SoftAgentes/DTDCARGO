@@ -4,6 +4,44 @@
 > El detalle técnico vive en `git log` / tags `norte-vX.Y`. El mockup vigente está en `_norte/`.
 > Regenerar índice: `node scripts/norte.mjs` · servir: `npx serve docs/design/studio/_norte -l 3010` → http://localhost:3010/_norte
 
+## v5.0 · carga 2026-08-02 — **el book de marca y el del ERP se separan**
+
+> Carga **parcial y deliberada**: entra el material del v5 al centro de marca
+> (`/marca`, SDD-0238). **`_norte/` NO se tocó** — sigue en v4.6 y es read-only
+> por norma (viene de Cloud Design vía NORTE-SYNC). Esto es la bitácora de
+> nuestro lado, no un sync del prototipo.
+
+**El cambio estructural: ya no hay UN book, hay TRES**, y la separación viene del
+propio diseño. La portada del v5 lo dice textual: *"El producto (ERP · Portal)
+tiene su propio book"*.
+
+| Documento | Qué cubre | Tipografía |
+|---|---|---|
+| **Brand Book DTD v5.0** | La marca: logo, color, foto, voz, aplicaciones | Archivo · Archivo Black |
+| **ERP Studio Brand Book** | La capa de producto: ERP y Portal | **Nunito Sans · Sora** (BD-035) |
+| **Manual de Producción** | Imprenta y proveedores: qué archivo, qué técnica, qué tamaño | — |
+
+Consecuencia práctica: **al auditar una pantalla hay que preguntar de qué capa
+es antes de elegir el book.** Un mockup del Studio no se juzga con el book de
+marca — su tipografía es otra a propósito.
+
+**Los tres se sirven desde Supabase Storage, no desde git** (51 MB por versión;
+en git eso se acumula para siempre). El visor los lee del bucket y transmite el
+cuerpo.
+
+⚠️ **Los `· OFFLINE` de Cloud Design no se pueden usar tal como llegan.** Los del
+v5 traían 70 marcadores `src="<uuid>"` sin sustituir y la hoja de tokens como
+`<link href="data:text/css">`, que la CSP del visor bloquea. Se construyen acá
+con `scripts/build-book-offline.py` + `build-book-iconos-perfil.py`, y **la
+verificación corre bajo la CSP real de producción** — sin ella el fallo no
+aparece. Detalle en la bitácora de [SDD-0238](../../specs/0238-marca-brand-book-publico/spec.md)
+y en [la respuesta a Cloud Design](respuesta-cloud-design-2026-08-02-cierre-v5.md).
+
+**Pendiente de NORTE-SYNC:** subir `_norte/` de v4.6 a v5.0. No se hizo en esta
+carga porque el prototipo navegable no vino en el paquete.
+
+---
+
 ## v4.5 · carga 2026-06-20 — **marca sincronizada a Brand Book v4.5 · sync 2026-06-20**
 
 > *Hecho en ventana secundaria (worktree `feat/norte-v45`). NO mergeado ni pusheado — queda para la

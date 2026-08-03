@@ -203,4 +203,34 @@ para las filas viejas, así que nada cambia de golpe.
 - **2026-08-02** — catálogo cargado con el material del v5: **de 11 a 99
   archivos · 127 MB** (tope del paquete "todo": 180 MB). Quedan vacías **Color**
   (correcto: la paleta se dibuja en vivo desde los tokens) y **Fondos** (depende
-  de las portadas por red). **SDD cerrada.**
+  de las portadas por red).
+- **2026-08-02** — portadas de Instagram y TikTok a **Fondos**, la última sección
+  que faltaba. Al medirlas apareció que el cargador **nunca guardaba `width`/
+  `height`**, y la ficha las muestra: backfill de 65/65. Y que dos fotos del
+  banco son **WebP con extensión `.png`** — no rompe el navegador, que olfatea,
+  pero sí la descarga: al diseñador le llega un `.png` que Photoshop no abre. El
+  MIME pasa a salir de la cabecera. ⚠️ Esas dos (`humana-03-feria-china` y
+  `humana-07-feria-canton`) son además **el mismo archivo**: BD-066 cuenta dos
+  fotos de feria y hay una.
+- **2026-08-02** — ⭐ **el book abría roto, en dos capas.**
+  **(1)** El `· OFFLINE.html` de Cloud Design **no es autocontenido**: 70
+  marcadores `src="<uuid>"` que su exportador nunca sustituyó (la ruta real vive
+  en `data-bb-src`). Llegó **byte-idéntico en tres entregas seguidas**. El hero
+  se quedaba sin su foto de fondo y el texto claro caía sobre papel marfil.
+  **(2)** Corregido eso, seguía sin colores: la hoja de tokens viene como
+  `<link href="data:text/css;base64,…">` y el `style-src` del visor **no permite
+  `data:`**, así que el navegador la bloquea entera.
+  Se construyen acá con `scripts/build-book-offline.py` (+
+  `build-book-iconos-perfil.py`, paso aparte porque los 15 íconos de perfil se
+  arman concatenando en JS y no existen como cadena completa en ningún lado).
+  **La corrección va del lado del archivo, no de la política:** agregar `data:`
+  al `style-src` se descartó — es un vector conocido de inyección y sería pagar
+  seguridad por comodidad.
+  ⚠️ **LECCIÓN: verificar sin la CSP de producción es verificar otra cosa.** Di
+  tres verdes seguidos sobre este book porque lo servía con un `http.server`
+  pelado, donde el `<link data:>` carga perfecto. El flujo ahora usa
+  `servir_con_csp.py` con el `brandBookCspHeader` exacto. Prueba de que la hoja
+  ya no está bloqueada: los tokens resuelven (`--ink=#0F1E3D`, `--wine=#7F0F1A`).
+- **2026-08-02** — **SDD cerrada.** Catálogo final: **104 archivos · 115,5 MB**
+  (los builds propios pesan menos que el roto). Verificado bajo CSP: Brand Book
+  128 imágenes / 0 rotas · Manual 44 / 0 · ERP Studio 25 / 0.
