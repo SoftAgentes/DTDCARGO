@@ -10,6 +10,38 @@
 
 ---
 
+## 0. Cierre de la jornada · qué quedó hecho
+
+**Cubeta 1 completa.** 20 commits, cero push. `origin/main` mergeado (sin un solo
+archivo en común, cero conflictos).
+
+| Lote | Commit | Qué era |
+|---|---|---|
+| 1 | `2ee8c6fd` | el gate cantaba "TODO VERDE" con pasos omitidos en silencio |
+| 2 | `681dd359` · `c15e41d3` | texto invisible (1,18:1) en 8 módulos del tema Oscuro |
+| 3a | `696ccf18` | 15 bloques JSON-LD inyectaban sin escapar |
+| 3b | `44b4f052` | el portal y el ERP móvil no refrescaban la sesión |
+| 3c | `a0a67754` | 5 sub-rutas del Studio se abrían tipeando la URL |
+| — | `93bbe6a3` | 6 rutas de `/api/studio` decían exigir sesión y no la verificaban |
+| 4 | `5aba01d1` | el panel de feature flags no podía encender nada (SDD-0240) |
+| 5 | `7a807805` · `08cac148` | `AGENTS.md` con 3 de 4 filas falsas · `.env.example` con 6 de 18 variables |
+| — | `babeef38` | 4 páginas de venta fuera del sitemap |
+| 6 | `04eee0f2` | 8 specs `in-progress` con el trabajo en producción |
+| DB | `988cfa2c` · `0258052b` | `0316` recuperada · `0336` aplicada y verificada contra el objeto |
+
+**Ocho contratos nuevos**, todos validados con **mutación** — si no los vi ponerse
+rojos, no cuentan. Tres de ellos me corrigieron a mí en el acto: `vault` mal
+clasificado, `0059` que yo daba por pendiente, y un guard de API que buscaba el
+`import` en vez de la llamada (y tapaba dos rutas más).
+
+**Lo que NO hice, y por qué:** no toqué `--ink-side-strong` (lo trabaja otra
+ventana), ni las ramas de Codex (`0224`/`0235`), ni apliqué `0337` a producción
+(requiere tu OK nombrándola). La poda de código muerto quedó pendiente: la lista del
+auditor tenía un falso positivo que habría roto la calculadora, así que va archivo
+por archivo, no por lista.
+
+---
+
 ## 1. Dónde estamos
 
 **El ERP no está roto: está desalineado.** Esa distinción define todo el plan.
@@ -182,21 +214,87 @@ muerta y echaba al cliente **aunque su refresh token siguiera vivo**. Es el bug 
 se reporta como *"me saca solo"* y que nadie reproduce porque hay que esperar una
 hora. `/m/cn` y `/m/ve` quedan fuera a propósito: el operario entra con PIN.
 
-### ⬜ Lote 3c — Permisos y route handlers · alto · ~1,5 h
+### ✅ Lote 3c — Gates RBAC de sub-rutas · `a0a67754`
 
-- [ ] 3 sub-rutas del Studio sin gate de vista RBAC
-- [ ] `/studio/debug` fuera del registro y de la matriz RBAC
-- [ ] 3 route handlers de `app/api/studio` sin verificación de sesión
-- [ ] `apiError()` en los handlers que devuelven `error.message` crudo de Postgres
+Mi primer intento fue **mal**: grepeé sólo `page.tsx` y concluí que faltaban 48
+gates. Parcheé 46 de una y el test anti-drift `rbac-view-guard.test.ts` —que yo
+no había visto— se puso rojo con un mensaje que no esperaba: *"el módulo X ya
+tiene gate"*. Dos cosas que el repo sabía y yo no:
 
-### ⬜ Lote 4 — Feature flags que mienten · crítico · ~1,5 h
+1. **Un `layout.tsx` cubre todo el subtree.** 35 de mis 46 cambios eran
+   redundantes: ya estaban protegidos por un layout ancestro.
+2. **`dashboard`, `bugs`, `mis-bugs` y `menciones` están sin gate a propósito**,
+   con la razón escrita. El dashboard es el destino del redirect `?denied=`:
+   gatearlo crea un **bucle infinito** para cualquier rol denegado.
 
-- [ ] 16 de 21 toggles del admin escriben en la DB y **no gatean nada**
-- [ ] `marketing_news` no lo siembra ninguna migración y la RPC exige fila existente
-      → el toggle **siempre falla** y Noticias Web es inalcanzable
-- [ ] No hay trigger que siembre flags al crear un tenant → en un tenant nuevo
-      (aliados white-label) el panel entero está roto
-- [ ] `dispatch.show_warehouse_location` es un flag vivo que no aparece en el panel
+Reverti las 46. El hueco real eran **5 sub-rutas** cuyo padre gatea en `page.tsx`,
+que no envuelve a sus hijos: `clientes/[markbox]` (PII), `tracking/nuevo` (alta de
+embarques), `tracking/[id]`, `cotizador/[code]`, `cola-qr/[id]/imprimir` y
+`/studio/debug` (entorno, deploys de Vercel). RLS no cubría nada de esto: filtra
+por **tenant**, no por rol.
+
+- [x] 5 `layout.tsx` nuevos con el patrón documentado de `cobranzas/layout.tsx`
+- [x] `lib/studio/rbac-subroute-guard.test.ts` audita **la clase** de hueco, no los
+      5 casos. Mutación: borrar `clientes/layout.tsx` lo pone rojo nombrando
+      `clientes/[markbox]/page.tsx`
+
+### ✅ Route handlers sin sesión · `93bbe6a3`
+
+Cuatro rutas de `/api/studio` traen en su docblock *"Auth: sesión Supabase válida
+obligatoria"* y **no había una sola llamada a `getUser()`**. La única defensa era
+RLS, que no filtraba datos —un anónimo veía cero filas— pero dejaba dos agujeros:
+
+- Un `update … .eq("id", …)` que RLS bloquea **afecta 0 filas y no devuelve
+  error**: el DELETE de un envío respondía `{ok: true}` a un llamador sin sesión.
+- Cero defensa en profundidad. Si una policy regresa, no queda nada detrás.
+
+Y ninguna estaba cubierta por el proxy: refresca la sesión en `/studio/*`, no
+autoriza, y su matcher ni siquiera incluye `/api/studio`.
+
+> ⚠️ **`kpis` y `shipments` no tienen un solo consumidor en el repo.** Es API
+> muerta que exponía GET/POST/PATCH/DELETE de envíos. Las dejé **gateadas, no
+> borradas**: borrar una superficie HTTP puede romper un integrador que no veo
+> desde acá. Decisión tuya (Cubeta 2).
+
+**El contrato nació decorado y la mutación lo delató.** La primera versión buscaba
+el nombre del guard en todo el archivo, así que la línea del `import` ya lo
+satisfacía: le saqué la llamada a `kpis`, dejé el import, y siguió verde. Al
+apretarlo a la **llamada** aparecieron dos rutas más que la versión floja tapaba —
+`bugs/[id]` PATCH (hueco real, arreglado) y `audit/export` GET (falso positivo:
+autoriza en la **base**, vía la RPC `audit_authorize_export_download`, que es un
+patrón más fuerte; queda declarado con su motivo en vez de aflojar la regla).
+
+### ✅ Lote 4 — Feature flags que mienten · `5aba01d1` · SDD-0240
+
+Eran tres bugs que se tapaban entre sí:
+
+- [x] **`marketing_news` nunca pudo encenderse.** Se agregó al catálogo del
+      *código* sin migración que lo sembrara; la RPC de toggle hace `UPDATE` sobre
+      una fila que tiene que existir → `invalid_state`. Y como `noticias-web` exige
+      el flag para dejar entrar, **el módulo quedó inalcanzable**: no había forma de
+      encender lo único que lo abre.
+- [x] **El error era invisible.** El UI filtra el mensaje por flag
+      (`state.flagKey === flagKey`) y el `catch` devolvía `{ error }` **sin
+      `flagKey`**. La condición nunca se cumplía. Por eso el bug de arriba sobrevivió
+      sin que nadie lo reportara: no había nada que reportar, sólo un botón muerto.
+- [x] **Ningún trigger siembra los flags de un tenant nuevo.** `0042` y `0066` usan
+      un `DO` de una sola pasada sobre los tenants de ese día. Un tenant creado
+      después nace con **cero filas** y todos sus toggles levantan `invalid_state`:
+      el panel llega roto de fábrica a los **aliados white-label**.
+- [x] **17 de 22 flags no tienen un solo consumidor** (no 16 de 21: `vault` sí
+      esconde `no-olvidar`, y el contrato me lo corrigió). Cada tarjeta ahora dice
+      qué hace la suya y la grilla ordena por efecto real.
+- [x] `dispatch.show_warehouse_location` expuesto en el panel: se lee de verdad en
+      la PWA del bodeguero y sólo se podía tocar por SQL.
+
+> **`sidebar` no es un permiso.** Apagar `customs_seniat` esconde el link, pero
+> `/studio/seniat` sigue abriendo por URL — la misma clase de hueco que cerró
+> SDD-0085. La tarjeta lo dice con todas las letras. Convertirlos en guard real es
+> cambio de comportamiento → Cubeta 2.
+
+Migración **0337 no aplicada**: queda como archivo. Mutaciones: quitar
+`marketing_news` del catálogo SQL → rojo nombrando la cura; desconectar el trigger
+→ *"tenant NUEVO nació con 0 filas, esperaba 22"*.
 
 ### ✅/⬜ Lote 5 — Poda y documentación de entrada
 
@@ -208,18 +306,61 @@ hora. `/m/cn` y `/m/ve` quedan fuera a propósito: el operario entra con PIN.
 - [x] **`.env.example`** · `08cac148` — no eran 6 variables sino **18**, entre ellas
       `MARCA_ACCESS_SECRET` (sin valor cae a un default de desarrollo) y las tres de
       SeaRates que protegen la cuota mensual del plan.
+- [x] **Sitemap** · `babeef38` — no eran 6 páginas sino **4**, y son las que más
+      duelen: `/servicios/{puerta-a-puerta,fcl,lcl}` y `/llenado`. Existen, tienen
+      metadata y OpenGraph propios, ningún `noindex`… y no estaban.
+      `/servicios/inspeccion` **sí** estaba desde siempre: tener una de las cuatro
+      adentro es lo que hizo que el hueco no saltara a la vista. Contrato nuevo en
+      las dos direcciones (pública sin `noindex` → tiene que estar; con `noindex` →
+      no puede estar), registrado en `docs/marketing/seo.md`.
 - [ ] Código muerto **verificado uno por uno** (ver §5: la lista del auditor tenía un
       falso positivo que habría roto la calculadora)
 - [ ] Basura de raíz: el informe stub está **sin trackear en el checkout principal**,
       no en git — hay que borrarlo desde allá, no desde esta rama
-- [ ] Sitemap: faltan 6 páginas indexables; 21+ URLs huérfanas sin enlace interno
+- [ ] 21+ URLs huérfanas sin enlace interno (distinto del sitemap: es navegación)
 
-### ⬜ Lote 6 — Alinear specs con la realidad · medio · ~1,5 h
+### ✅ Lote 6 — Alinear specs con la realidad · `04eee0f2`
 
-- [ ] Voltear `status:` de las 13 verificadas como construidas
-- [ ] **Auditar las 199 specs `done`** — hay al menos un `done` falso probado (0030)
-- [ ] `0152` con metadata contradictoria · `0184` §7 cita migraciones renumeradas ·
-      `0224` dice `approved` con 9 migraciones en producción
+- [x] **8 volteadas**, verificadas contra código y commits en `origin/main`, no
+      contra el front-matter: `0059, 0149, 0157, 0159, 0169, 0170, 0171, 0184` → `done`.
+- [x] **`0152` → `superseded`.** `0155` ya declaraba `supersedes: 0152`, pero `0152`
+      tenía `superseded_by: null`: el enlace era de **una sola vía**, así que quien
+      abriera `0152` primero no se enteraba de que estaba reemplazada.
+- [x] `0184` §7 daba `0294-0296` y mandaba aplicar una `0296` de **otro
+      workstream**. Las reales son `0297/0298/0299`, las tres en producción.
+- [x] `0075` decía `SHIPMENT_ACCEPTANCE_CTA_LIVE = false` describiendo un gate que
+      ya no existe (se prendió en `a08373a6`). Sigue `in-progress`, pero por el
+      Slice B, no por el rollout.
+
+**Tres hallazgos que explican por qué driftea** — y dos de ellos me corrigieron a mí:
+
+1. **`0059` no estaba a medias: su Slice C se construyó bajo otro número.**
+   `SDD-0115` dice en su línea 16 *"Cierre del Slice C de SDD-0059"* y está `done`
+   desde junio. Incluso el "Pendiente: parser CSV" de `0059` §6 se resolvió ahí
+   (`57e09236`). Yo mismo lo había dado por pendiente leyendo sólo `0059`.
+2. **`0160` aparecía con CERO commits y sin embargo está en producción.** La spec se
+   escribió como `0157` —número ya tomado por Kommo— y se renumeró en `cdc8d1a7`,
+   pero el código, la migración `0249` y todos los mensajes de commit se quedaron
+   con el número viejo. Buscar `SDD-0160` no devuelve nada. Anotado en la spec y en
+   la cabecera de `0249` (el **número** de la migración no se toca: ya corrió así).
+3. **Siete specs `done` citaban migraciones inexistentes**, todas por renumeración
+   que no se propagó al cuerpo: `0020` (0012→**0015**`_agents`), `0044`
+   (0087→**0088**`_tesoreria`), `0095` (0145→**0146**`_ocean_rates`), `0109`
+   (0178→**0179**`_nomina_settlements`), `0113` (0178→**0180** y 0179→**0181**).
+   `docs:check` no lo veía: valida el front-matter, **no el cuerpo**.
+
+Contrato nuevo `scripts/__tests__/spec-migration-refs.test.ts`: toda migración
+citada por una spec `done`/`in-progress` existe (las `proposed`/`draft` quedan
+fuera a propósito — nombrar la migración que vas a crear es legítimo), y
+`supersedes`/`superseded_by` tienen que ser recíprocos. Ambas dimensiones
+validadas con mutación.
+
+> **No tocadas a propósito:** `0224` y `0235` (`approved` con migraciones en el
+> repo) son del workstream de **Codex**, con ramas activas en `origin`. Tu regla:
+> no toco ramas de otras ventanas.
+
+`in-progress`: 21 → 12 · `done`: 199 → 207
+
 - [ ] `/portal/envios` sin sus tabs — hallazgo abierto de SDD-0179 §5 desde el 20-jun
 
 ---
@@ -242,6 +383,16 @@ hora. `/m/cn` y `/m/ve` quedan fuera a propósito: el operario entra con PIN.
 | 12 | **`/servicios` promete un recargo que DTD no cobra.** El copy vive en una **fila de producción**. | ¿Corrijo el texto en la base? |
 | 13 | **Google Ads**: Final URL y 2 de 3 sitelinks apuntan a URLs que hacen 301. | ¿Actualizo la campaña? |
 | 14 | **53 de 70 ramas locales y 26 worktrees sin un commit propio.** | ¿Podo? |
+
+### Nuevas · salieron del trabajo de esta ronda
+
+| # | Qué es | La pregunta |
+|---|---|---|
+| 15 | **Aplicar `0337` a prod** (siembra de feature flags + trigger por tenant). Sin ella, el interruptor de Noticias Web sigue sin poder encenderse y el panel de admin nace roto para cada aliado white-label. No pisa ningún valor ya elegido (`ON CONFLICT DO NOTHING`). | ¿Autorizas, nombrándola? |
+| 16 | **`/api/studio/kpis` y `/api/studio/shipments` son API muerta**: cero consumidores en el repo, y exponían GET/POST/PATCH/DELETE de envíos. Las dejé gateadas, no borradas. | ¿Las borro? Sólo tú sabés si hay un integrador externo llamándolas. |
+| 17 | **`customs_seniat` y `mobile_operator` sólo esconden del sidebar.** `/studio/seniat` sigue abriendo por URL. Convertirlos en guard real es cambio de comportamiento. | ¿Los convierto en gate de verdad, o quedan como preferencia de producto? |
+| 18 | **17 de 22 feature flags no tienen consumidor.** Hoy están etiquetados honestamente. | ¿Se podan (perdés la intención registrada) o se van cableando de a uno? |
+| 19 | **El número de SDD en los commits no es confiable** tras una renumeración por colisión: `SDD-0160` está en producción y `git log --grep` devuelve cero. `pnpm sdd:next` evita la colisión *futura*, pero no repara la trazabilidad de lo ya renumerado. | ¿Vale un barrido de residuos, o alcanza con anotarlo caso por caso? |
 
 ---
 
