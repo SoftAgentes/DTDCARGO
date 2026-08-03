@@ -246,7 +246,7 @@ function BatchResult({
     >
       <strong>{state.invited ?? 0}</strong> {okNoun}.
       {state.emailFailed
-        ? ` ${state.emailFailed} con el correo fallido (reintentá).`
+        ? ` ${state.emailFailed} con el correo fallido (reinténtalo).`
         : ""}
       {state.failed ? ` ${state.failed} no se pudieron habilitar.` : ""}
       {state.remaining

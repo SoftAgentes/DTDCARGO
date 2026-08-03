@@ -44,7 +44,7 @@ export type NewsDialecto = "neutro-latam" | "ve";
 const DIALECT_INSTRUCTIONS: Record<NewsDialecto, string> = {
   "neutro-latam":
     "Castellano neutro Latam — no voseo argentino, no españolismos peninsulares. Vocabulario común a México, Colombia, Venezuela, Perú, Argentina.",
-  ve: "Castellano venezolano natural — el lector objetivo es importador VE. Usá venezolanismos cuando encajen orgánicamente ('real' como dinero, 'chévere', 'pana', 'echarle pichón', 'arrochar'). Evitá voseo argentino, evitá españolismos peninsulares.",
+  ve: "Castellano venezolano natural — el lector objetivo es importador VE. Usa venezolanismos cuando encajen orgánicamente ('real' como dinero, 'chévere', 'pana', 'echarle pichón', 'arrochar'). Evita el voseo argentino, evita los españolismos peninsulares.",
 };
 
 /**
@@ -62,7 +62,7 @@ const LENGTH_TARGET_BY_TIPO: Record<NewsTipo, { mid: number; band: number }> =
 
 /** Instrucción universal anti-fabricación de datos · Plan v5. */
 const VERIFY_INSTRUCTION = `IMPORTANTE — Marcadores [VERIFICAR]:
-- Marcá con [VERIFICAR: <dato>] CUALQUIER dato numérico, fecha específica, cita textual atribuida, estadística o porcentaje que no podés confirmar como hecho público.
+- Marca con [VERIFICAR: <dato>] CUALQUIER dato numérico, fecha específica, cita textual atribuida, estadística o porcentaje que no puedes confirmar como hecho público.
 - Ejemplos de qué marcar: "el flete subió [VERIFICAR: 30%] el último trimestre", "según [VERIFICAR: cita de directivo de Maersk] el corredor...", "en [VERIFICAR: 2024] entró en vigencia...".
 - Es preferible MARCAR de más a inventar de menos: el editor humano resolverá cada marcador antes de publicar.
 - NO marques afirmaciones generales o conocimiento común (ej: "el yuan es la moneda china" NO necesita marca).`;
@@ -133,39 +133,39 @@ export function buildRouteIdeaPrompt(
   const angulosList = ALL_ANGULOS.map((a) => `"${a}"`).join(", ");
 
   const anguloBlock = angulo
-    ? `\n\nEl operador ya pidió un ÁNGULO preferido: "${angulo}". Usalo salvo que sea claramente incompatible con la idea (en ese caso elegí el mejor y explicá por qué en "reason").`
+    ? `\n\nEl operador ya pidió un ÁNGULO preferido: "${angulo}". Úsalo salvo que sea claramente incompatible con la idea (en ese caso elige el mejor y explica por qué en "reason").`
     : "";
 
-  return `Sos el editor de comunicación de DTD Cargo (logística y trading puerta a puerta China-Venezuela, enfocada en pymes y emprendedores). Te doy una IDEA de contenido (nombre + título). NO la escribas todavía: rutéala con este sistema y devolveme una recomendación estructurada.
+  return `Eres el editor de comunicación de DTD Cargo (logística y trading puerta a puerta China-Venezuela, enfocada en pymes y emprendedores). Te doy una IDEA de contenido (nombre + título). NO la escribas todavía: rutéala con este sistema y devuélveme una recomendación estructurada.
 
 IDEA:
 - Nombre / tema: ${nombre.trim()}
 - Título propuesto: ${titulo.trim()}${anguloBlock}
 
-PASOS QUE SEGUÍS:
-1. Clasificá la idea por TIPO (elegí UNO):
+PASOS QUE SIGUES:
+1. Clasifica la idea por TIPO (elige UNO):
 ${tiposList}
-2. Corré el TEST DE NOTICIA — 5 preguntas sí/no a la idea:
+2. Corre el TEST DE NOTICIA — 5 preguntas sí/no a la idea:
    a) busca_google: ¿Alguien lo buscaría en Google?
    b) ia_responde: ¿Una IA lo daría como respuesta a alguien?
    c) sirve_6_meses: ¿Sirve igual dentro de 6 meses (no caduca)?
    d) ensena_resuelve: ¿Enseña o resuelve algo de verdad?
    e) parece_experto: ¿Te hace ver como el que sabe?
-   Respondé cada una con true o false honestamente — no infles el score.
+   Responde cada una con true o false honestamente — no infles el score.
    Regla: 3 o más SÍ = Flujo A (Noticia + atomizar). 2 o menos = Flujo B (directo al canal).
-3. Decidí FLUJO "A" o "B" según el test y explicá la razón en 1 línea.
+3. Decide FLUJO "A" o "B" según el test y explica la razón en 1 línea.
    - Promo/Oferta, Pregunta/Conversación y Detrás de cámara van SIEMPRE a Flujo B (nunca al blog), aunque el test dé alto.
    - Actualidad va a blog SOLO si el ángulo perdura y afecta decisiones; si caduca, Flujo B.
-4. Recomendá los CANALES (subset de: ${canalesList}). Si es Flujo B, NO incluyas "noticias". Si es Flujo A, incluí "noticias" + los altavoces que apliquen.
-5. Si es Flujo A, asigná la CATEGORÍA del blog (una de):
+4. Recomienda los CANALES (subset de: ${canalesList}). Si es Flujo B, NO incluyas "noticias". Si es Flujo A, incluye "noticias" + los altavoces que apliquen.
+5. Si es Flujo A, asigna la CATEGORÍA del blog (una de):
 ${catsList}
    Si es Flujo B, categoria = null.
-6. Elegí el ÁNGULO del gancho (uno de: ${angulosList}).
-7. Proponé 2-3 TÍTULOS afilados para el canal principal, con el lenguaje de calle de DTD.
+6. Elige el ÁNGULO del gancho (uno de: ${angulosList}).
+7. Propón 2-3 TÍTULOS afilados para el canal principal, con el lenguaje de calle de DTD.
 
 ${LINEAS_ROJAS}
 
-Devolvé SOLO JSON válido sin prosa ni bloques de código, con este shape EXACTO:
+Devuelve SOLO JSON válido sin prosa ni bloques de código, con este shape EXACTO:
 {
   "tipo": "<slug del tipo del cerebro>",
   "test_noticia": {
@@ -229,7 +229,7 @@ export function buildDetectBriefIntentPrompt(brief: NewsBrief): string {
     ? `\n\nÁNGULO EDITORIAL (qué se debe llevar el lector):\n"${brief.angle.trim()}"`
     : "";
 
-  return `Sos editor jefe de DTD Cargo (logística China-Venezuela). El operador escribió un brief para una nueva pieza editorial del sitio público /noticias. Tu tarea: leer el brief y proponer la clasificación editorial más apropiada — tipo + categoría + tono sugerido.
+  return `Eres editor jefe de DTD Cargo (logística China-Venezuela). El operador escribió un brief para una nueva pieza editorial del sitio público /noticias. Tu tarea: leer el brief y proponer la clasificación editorial más apropiada — tipo + categoría + tono sugerido.
 
 TEMA: ${brief.topic.trim()}${refsBlock}${angleBlock}
 
@@ -245,12 +245,12 @@ Tonos disponibles:
 - "polemico" → provocador, genera debate honesto
 
 Reglas:
-- Elegí UN tipo, UNA categoría (debe pertenecer al tipo elegido), UN tono.
-- Si el brief tiene ángulo polémico declarado, priorizá tipo="polemica".
-- Si el brief no tiene ángulo, asumí tipo="informativo".
+- Elige UN tipo, UNA categoría (debe pertenecer al tipo elegido), UN tono.
+- Si el brief tiene ángulo polémico declarado, prioriza tipo="polemica".
+- Si el brief no tiene ángulo, asume tipo="informativo".
 - "novedades-dtd" (tipo="especial") SOLO si el brief habla de la empresa misma.
 
-Devolvé SOLO JSON válido sin prosa ni bloques de código:
+Devuelve SOLO JSON válido sin prosa ni bloques de código:
 {
   "tipo": "<slug del tipo>",
   "categoria": "<slug de la categoría>",
@@ -273,14 +273,14 @@ export function buildDetectCategoryPrompt(
     .map(([slug, info]) => `- "${slug}" → ${info.label}: ${info.description}`)
     .join("\n");
 
-  return `Sos editor SEO senior de DTD Cargo (logística China-Venezuela). El usuario eligió tipo "${NEWS_TIPOS[tipo].label}" y ahora propone este tema:
+  return `Eres editor SEO senior de DTD Cargo (logística China-Venezuela). El usuario eligió tipo "${NEWS_TIPOS[tipo].label}" y ahora propone este tema:
 
 TEMA: ${topic}
 
 Categorías disponibles del tipo "${tipo}":
 ${cats}
 
-Devolvé SOLO JSON válido con la categoría más apropiada para este tema, sin prosa adicional ni bloques de código:
+Devuelve SOLO JSON válido con la categoría más apropiada para este tema, sin prosa adicional ni bloques de código:
 {"categoria": "<slug>", "reason": "<1 oración explicando por qué>", "confidence": <0-100>}`;
 }
 
@@ -295,7 +295,7 @@ export function buildSuggestKeywordsPrompt(
   const catInfo = NEWS_CATEGORIES_V4[categoria];
   const pains = painPointsFor(categoria).map((p) => `- "${p}"`).join("\n");
 
-  return `Sos editor SEO senior de DTD Cargo. Sugerí keywords SEO para este post:
+  return `Eres editor SEO senior de DTD Cargo. Sugiere keywords SEO para este post:
 
 TEMA: ${topic}
 CATEGORÍA: ${catInfo.label} (${catInfo.description})
@@ -306,7 +306,7 @@ ${keywordsForPrompt(14)}
 PAIN POINTS DEL CLIENTE en esta categoría:
 ${pains || "- (no aplica para esta categoría)"}
 
-Devolvé SOLO JSON válido sin prosa adicional ni bloques de código:
+Devuelve SOLO JSON válido sin prosa adicional ni bloques de código:
 {
   "focus_keyword": "<1 keyword principal, idealmente del listado priorizado o variante natural>",
   "secondary_keywords": ["<3 keywords secundarias relacionadas>"],
@@ -328,10 +328,10 @@ export function buildGenerateHeadlinesPrompt(
 ): string {
   const catInfo = NEWS_CATEGORIES_V4[categoria];
   const keywordsBlock = focusKeyword
-    ? `\n\nKEYWORD PRINCIPAL: "${focusKeyword}"${secondaryKeywords?.length ? `\nKEYWORDS SECUNDARIAS: ${secondaryKeywords.map((k) => `"${k}"`).join(", ")}` : ""}\n\nIncorporá la keyword principal en al menos 2 de los 5 titulares, de forma natural (no keyword stuffing). Las secundarias pueden aparecer en otros.`
+    ? `\n\nKEYWORD PRINCIPAL: "${focusKeyword}"${secondaryKeywords?.length ? `\nKEYWORDS SECUNDARIAS: ${secondaryKeywords.map((k) => `"${k}"`).join(", ")}` : ""}\n\nIncorpora la keyword principal en al menos 2 de los 5 titulares, de forma natural (no keyword stuffing). Las secundarias pueden aparecer en otros.`
     : "";
 
-  return `Sos editor SEO senior de DTD Cargo (logística China-Venezuela). Generá EXACTAMENTE 5 titulares alternativos optimizados para SEO en castellano neutro Latam.
+  return `Eres editor SEO senior de DTD Cargo (logística China-Venezuela). Genera EXACTAMENTE 5 titulares alternativos optimizados para SEO en castellano neutro Latam.
 
 TEMA: ${topic}
 CATEGORÍA: ${catInfo.label} (${catInfo.description})
@@ -344,7 +344,7 @@ Restricciones IMPORTANTES:
 - Castellano neutro Latam (no voseo argentino, no españolismos)
 - Optimizado para clicks orgánicos (intent del lector)
 
-Devolvé SOLO JSON válido sin prosa adicional ni bloques de código:
+Devuelve SOLO JSON válido sin prosa adicional ni bloques de código:
 {"headlines": ["${catInfo.titlePrefix}...", "${catInfo.titlePrefix}...", "${catInfo.titlePrefix}...", "${catInfo.titlePrefix}...", "${catInfo.titlePrefix}..."]}`;
 }
 
@@ -366,16 +366,16 @@ export function buildGenerateBulletsPrompt(
     ? `\n\nKEYWORDS SECUNDARIAS a incorporar en titles de bullets de forma orgánica: ${secondaryKeywords.map((k) => `"${k}"`).join(", ")}`
     : "";
 
-  return `Sos editor SEO senior de DTD Cargo. Generá la estructura de un artículo para este titular:
+  return `Eres editor SEO senior de DTD Cargo. Genera la estructura de un artículo para este titular:
 
 TITULAR: ${headline}
 CATEGORÍA: ${catInfo.label}${painsBlock}${kwBlock}
 
-Devolvé entre 8 y 10 secciones (bullets) en orden lógico de lectura. Cada bullet:
+Devuelve entre 8 y 10 secciones (bullets) en orden lógico de lectura. Cada bullet:
 - title: subtema concreto, corto (máx 60 chars), optimizado para SEO + intención de búsqueda
 - desc: 1 línea (máx 120 chars) explicando qué cubrirá la sección
 
-Devolvé SOLO JSON válido sin prosa adicional ni bloques de código:
+Devuelve SOLO JSON válido sin prosa adicional ni bloques de código:
 {"bullets": [{"title": "...", "desc": "..."}, ...]}`;
 }
 
@@ -406,7 +406,7 @@ export function buildGenerateOutlinesPrompt(
     ? `\n\nKEYWORDS SECUNDARIAS a incorporar de forma orgánica en titles de secciones: ${secondaryKeywords.map((k) => `"${k}"`).join(", ")}`
     : "";
 
-  return `Sos editor jefe de DTD Cargo. Generá 3 OUTLINES ALTERNATIVOS para este titular. Cada outline debe ser una arquitectura narrativa distinta — NO variaciones cosméticas del mismo enfoque.
+  return `Eres editor jefe de DTD Cargo. Genera 3 OUTLINES ALTERNATIVOS para este titular. Cada outline debe ser una arquitectura narrativa distinta — NO variaciones cosméticas del mismo enfoque.
 
 TITULAR: ${headline}
 CATEGORÍA: ${catInfo.label}${painsBlock}${kwBlock}
@@ -424,7 +424,7 @@ Los 3 outlines deben TENER ENFOQUES DISTINTOS:
 - Outline 2 (contextual): "por qué importa / historia detrás". Foco narrativo.
 - Outline 3 (analítico): "desafío al supuesto / posición editorial". Foco crítico.
 
-Devolvé SOLO JSON válido sin prosa adicional ni bloques de código:
+Devuelve SOLO JSON válido sin prosa adicional ni bloques de código:
 {"outlines": [{"thesis": "...", "sections": [{"title": "...", "desc": "..."}, ...], "closing_type": "conclusion-analitica"}, {...}, {...}]}`;
 }
 
@@ -451,7 +451,7 @@ export function buildGenerateArticlePrompt(
   const len = LENGTH_TARGET_BY_TIPO[tipo];
   const dialectoInstr = DIALECT_INSTRUCTIONS[dialecto];
 
-  return `Sos redactor editorial senior de DTD Cargo (logística China-Venezuela). Escribí un artículo completo siguiendo estas reglas estrictamente.
+  return `Eres redactor editorial senior de DTD Cargo (logística China-Venezuela). Escribe un artículo completo siguiendo estas reglas estrictamente.
 
 TITULAR: ${headline}
 TIPO EDITORIAL: ${tipo} · target ${len.mid} palabras (±${len.band})
@@ -465,7 +465,7 @@ ESTRUCTURA EDITORIAL OBLIGATORIA:
 3. Cada sección con un H2 en Markdown (## Título). Title exacto = el del outline elegido.
 4. Transiciones naturales entre secciones (no inicies cada sección con "En esta sección…").
 5. Conclusión al final con H2 "## Conclusión" (o equivalente apropiado).
-6. SI Y SOLO SI hay pain points declarados (ver bloque KEYWORD PRINCIPAL abajo): después de la conclusión, agregá una sección "## Preguntas frecuentes" con 2-4 Q+A derivadas de los pain points. Formato EXACTO obligatorio para que el sitio genere FAQPage schema.org automáticamente:
+6. SI Y SOLO SI hay pain points declarados (ver bloque KEYWORD PRINCIPAL abajo): después de la conclusión, agrega una sección "## Preguntas frecuentes" con 2-4 Q+A derivadas de los pain points. Formato EXACTO obligatorio para que el sitio genere FAQPage schema.org automáticamente:
 
 ## Preguntas frecuentes
 
@@ -477,7 +477,7 @@ Respuesta…
 
 REGLAS DE LENGUA:
 - ${dialectoInstr}
-- Voz "tú" neutro. Evitá voseo argentino siempre.
+- Voz "tú" neutro. Evita el voseo argentino siempre.
 - Pain points del cliente como subtexto — el contenido debe RESOLVER, no solo informar.
 - Sin AI slop ("en conclusión", "es importante destacar", "no podemos olvidar que…").
 
@@ -485,5 +485,5 @@ ${VERIFY_INSTRUCTION}
 
 OUTPUT:
 - SOLO Markdown puro. NO uses bloques de código \`\`\`. NO agregues preámbulo ni notas.
-- Empezá directamente con el párrafo de introducción.`;
+- Empieza directamente con el párrafo de introducción.`;
 }

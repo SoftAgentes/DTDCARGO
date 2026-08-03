@@ -251,7 +251,7 @@ export function DashboardClient({
             Tu dashboard está vacío
           </div>
           <p style={{ font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-soft)", maxWidth: "44ch", margin: 0 }}>
-            Activá los KPIs y widgets que quieras ver desde el configurador.
+            Activa los KPIs y widgets que quieras ver desde el configurador.
           </p>
           <button type="button" className="studio-btn studio-btn-primary studio-btn-sm" onClick={() => setEditorOpen(true)}>
             {Icon.cog(14)} Configurar dashboard

@@ -57,7 +57,7 @@ export default function BackLoginPage() {
           margin: "12px 0 32px",
         }}
       >
-        Entrá al <span style={{ color: "#C2747F" }}>back</span>.
+        Entra al <span style={{ color: "#C2747F" }}>back</span>.
       </h1>
 
       <form
@@ -210,7 +210,7 @@ export default function BackLoginPage() {
           href="mailto:info@dtdcargo.com"
           style={{ color: "#C2747F", textDecoration: "none" }}
         >
-          Escribile a Sam
+          Escríbele a Sam
         </a>
         .
       </div>

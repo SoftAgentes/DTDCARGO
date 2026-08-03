@@ -120,7 +120,7 @@ export function PurchaseSummaryPanel({
               </p>
               {order.lines.length > 0 && (
                 <>
-                  <p className="mt-2 mb-1.5 font-bold">Aparte, pedí:</p>
+                  <p className="mt-2 mb-1.5 font-bold">Aparte, pide:</p>
                   <ol className="m-0 pl-[18px] flex flex-col gap-1.5">
                     {order.lines.map((l) => (
                       <li key={l.code} className="text-[12.5px] leading-[1.5]">

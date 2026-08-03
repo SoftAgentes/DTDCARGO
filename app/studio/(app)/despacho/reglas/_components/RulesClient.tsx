@@ -225,7 +225,7 @@ export function RulesClient({
               style={{ resize: "vertical", marginTop: 6 }}
             />
             <p style={{ ...hintStyle, marginTop: 6 }}>
-              Separá por coma o nueva línea. Formato esperado: <code>DTD-XXXX</code>.
+              Separa por coma o nueva línea. Formato esperado: <code>DTD-XXXX</code>.
             </p>
           </div>
         )}

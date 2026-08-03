@@ -65,7 +65,7 @@ export default function PortalError({
       >
         Tuvimos un problema al mostrar esta sección. Tu información está a salvo y
         no se perdió nada. Volvé a intentar en un momento; si sigue igual,
-        escribinos y lo resolvemos.
+        escríbenos y lo resolvemos.
       </p>
 
       <div style={{ display: "flex", gap: "12px", marginTop: "4px" }}>

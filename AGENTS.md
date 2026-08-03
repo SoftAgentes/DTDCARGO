@@ -2,8 +2,8 @@
 
 Guía para agentes de IA (Claude Code, etc.) que trabajan en este repositorio.
 
-> **Carga:** Claude Code lee `CLAUDE.md`, que importa este archivo vía `@AGENTS.md`. **Este es el archivo fuente — editá acá, no en CLAUDE.md.**
-> **Antes de tocar visuales** → leé [`BRAND.md`](BRAND.md). **Diseño / handoffs / mockups** → [`docs/design/README.md`](docs/design/README.md). **Arquitectura** → [`docs/architecture/`](docs/architecture/).
+> **Carga:** Claude Code lee `CLAUDE.md`, que importa este archivo vía `@AGENTS.md`. **Este es el archivo fuente — edita acá, no en CLAUDE.md.**
+> **Antes de tocar visuales** → lee [`BRAND.md`](BRAND.md). **Diseño / handoffs / mockups** → [`docs/design/README.md`](docs/design/README.md). **Arquitectura** → [`docs/architecture/`](docs/architecture/).
 
 ## Las 4 superficies del repo (leer primero)
 
@@ -34,9 +34,9 @@ Specs en `docs/specs/NNNN-slug/spec.md`, correlativo propio desde 0001 (no compa
 
 Con 15-20 worktrees en paralelo, **mirar el disco local para tomar "el siguiente número" es un bug**. El 29-jul hubo **cuatro colisiones en un día** — y una fue *después* de haber chequeado `origin/main`, porque entre numerar y pushear pasaron horas.
 
-1. **Pedí el número, no lo adivines:** `pnpm sdd:next` (hace `fetch` y mira **todas** las refs, locales y remotas — no sólo tu rama).
-2. **Reservalo si el trabajo va a durar:** `pnpm sdd:next --reserve <slug>` prepara un commit sobre `origin/main` con un `spec.md` stub y te imprime el `git push`. **No pushea solo.** La reserva **no es un commit vacío**: un commit sin archivos no reserva nada, porque el escaneo mira carpetas, no mensajes.
-3. **El gate te cubre igual:** el paso `numbering` de `verify.mjs` falla si hay dos specs o dos migraciones con el mismo número, o si el `sdd:` del front-matter no coincide con su carpeta (el residuo típico de una renumeración a medias). Salta al **mergear**, que es cuando todavía podés renumerar.
+1. **Pide el número, no lo adivines:** `pnpm sdd:next` (hace `fetch` y mira **todas** las refs, locales y remotas — no sólo tu rama).
+2. **Resérvalo si el trabajo va a durar:** `pnpm sdd:next --reserve <slug>` prepara un commit sobre `origin/main` con un `spec.md` stub y te imprime el `git push`. **No pushea solo.** La reserva **no es un commit vacío**: un commit sin archivos no reserva nada, porque el escaneo mira carpetas, no mensajes.
+3. **El gate te cubre igual:** el paso `numbering` de `verify.mjs` falla si hay dos specs o dos migraciones con el mismo número, o si el `sdd:` del front-matter no coincide con su carpeta (el residuo típico de una renumeración a medias). Salta al **mergear**, que es cuando todavía puedes renumerar.
 
 **Al renumerar: la que se mueve es la que NO está en `main`.** Y ⚠️ **una migración ya aplicada NUNCA se renumera** — su cabecera debe seguir diciendo el número con el que corrió (ver `docs/runbooks/aplicar-migraciones-prod.md`).
 
@@ -158,7 +158,7 @@ Fork MIT de [Carlos Domínguez](https://github.com/Carlos-Dominguez-faber/revisa
 
 ## Brand y diseño → punteros (no duplicar acá)
 
-- **Reglas de marca** → [`BRAND.md`](BRAND.md). **Leé siempre antes de tocar visuales.** Las 6 que no se rompen: (1) solo tokens CSS `var(--*)`, cero hex inventados · (2) solo Archivo + JetBrains Mono + Noto Sans SC · (3) cero AI slop (gradientes coloridos, glassmorphism, emojis decorativos) · (4) componentes del sistema primero · (5) avisar con formato `BRAND-CHECK` antes de violar · (6) todo texto se lee: contraste AA ≥4.5:1 / grande ≥3:1.
+- **Reglas de marca** → [`BRAND.md`](BRAND.md). **Lee siempre antes de tocar visuales.** Las 6 que no se rompen: (1) solo tokens CSS `var(--*)`, cero hex inventados · (2) solo Archivo + JetBrains Mono + Noto Sans SC · (3) cero AI slop (gradientes coloridos, glassmorphism, emojis decorativos) · (4) componentes del sistema primero · (5) avisar con formato `BRAND-CHECK` antes de violar · (6) todo texto se lee: contraste AA ≥4.5:1 / grande ≥3:1.
 - **Materiales visuales / handoffs / mockups / assets** → [`docs/design/README.md`](docs/design/README.md) (índice maestro). Lo vigente vive en `docs/design/studio/_norte/` (NORTE-SYNC); material nuevo fuera del Norte va a `docs/design/<producto>/<vM.m.p-origen>/`.
 - **Logo / Brand Book** → el book vigente es **UNO solo**: el de mayor versión en `docs/design/studio/_norte/` (cuál es la vigente vive al tope de `_norte/HANDOFF.md` — no se hardcodea acá para no desfasarse). Al llegar un book nuevo desde el Norte: reemplazar, **borrar el anterior** (en `_norte/` y en `private/marca/`) y actualizar las **dos constantes de [`lib/marca/brand-book.ts`](lib/marca/brand-book.ts)** — ese es el punto único (antes había que tocar cuatro archivos que se desincronizaban). Único punto de entrada del logo: el componente `<BrandMark variant={…} />` en [`components/BrandMark.tsx`](components/BrandMark.tsx); 4 variantes PNG en `public/brand/dtdcargo-isologo-{primary|reverse|mono-light|mono-dark}.png`.
 - **Centro de marca → `/marca`** (SDD-0238). **Es el link que se le manda a diseño externo**: una sola URL con código de 4-6 dígitos (3 fallos → 5 min · 3 más → 1 h). El equipo entra con su sesión del ERP, sin código. Cada sección trae su propia descarga (.zip). Se administra en **Studio › Marketing › HUB de marca**: ahí se suben los archivos (van a Supabase Storage, **no a git**) y se pone el código. `/interno/marca` es un redirect 308 a `/marca`. Arranque del catálogo: `pnpm seed:marca`.
@@ -166,7 +166,7 @@ Fork MIT de [Carlos Domínguez](https://github.com/Carlos-Dominguez-faber/revisa
 
 ## Marketing / SEO / Ads → tree único `docs/marketing/`
 
-**Regla del founder (2026-06-07):** TODO lo externo para captar clientes — **SEO, publicidad (Google Ads), analítica (GA4/GTM), CRM, contenido, captación de leads, marca→web** — vive en **[`docs/marketing/`](docs/marketing/README.md)**. Siempre que trabajes un tema de marketing, **leé y actualizá ese tree** (no lo disperses en memoria suelta ni en specs). Entrada = `docs/marketing/README.md` (índice + estado + reglas); bitácora SEO = `docs/marketing/seo.md`. Lo que ya existe en otras carpetas (brand-books en `docs/design/`, `docs/pendientes-seo-ads-*.md`, memoria) **NO se mueve — se indexa** desde ese README. **Reglas SEO que no se rompen:** nunca quitar el 301 `doortudoor.com → dtdcargo.com` · no dejar expirar el dominio viejo · GA fuera de rutas privadas (PII).
+**Regla del founder (2026-06-07):** TODO lo externo para captar clientes — **SEO, publicidad (Google Ads), analítica (GA4/GTM), CRM, contenido, captación de leads, marca→web** — vive en **[`docs/marketing/`](docs/marketing/README.md)**. Siempre que trabajes un tema de marketing, **lee y actualiza ese tree** (no lo disperses en memoria suelta ni en specs). Entrada = `docs/marketing/README.md` (índice + estado + reglas); bitácora SEO = `docs/marketing/seo.md`. Lo que ya existe en otras carpetas (brand-books en `docs/design/`, `docs/pendientes-seo-ads-*.md`, memoria) **NO se mueve — se indexa** desde ese README. **Reglas SEO que no se rompen:** nunca quitar el 301 `doortudoor.com → dtdcargo.com` · no dejar expirar el dominio viejo · GA fuera de rutas privadas (PII).
 
 ## Identidad pública, founder y trato
 

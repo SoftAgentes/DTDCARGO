@@ -208,7 +208,7 @@ export function NewOperarioDrawer({
               margin: "4px 0 0",
             }}
           >
-            Mostrá el PIN al operario apenas se cree. No se puede recuperar
+            Muestra el PIN al operario apenas se cree. No se puede recuperar
             después (solo resetear).
           </p>
         </div>

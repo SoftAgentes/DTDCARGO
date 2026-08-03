@@ -193,7 +193,7 @@ export async function generateBriefText(
 }
 
 function buildBriefPrompt(kpis: CeoBriefKpis): string {
-  return `Sos un analista ejecutivo. Generá un brief de 3-5 líneas para el CEO de DTD·CARGO sobre operación del día ${kpis.date_iso}.
+  return `Eres un analista ejecutivo. Genera un brief de 3-5 líneas para el CEO de DTD·CARGO sobre operación del día ${kpis.date_iso}.
 
 Tono: directo, español venezolano (tú / acá, cero voseo), sin felicitaciones, sin metáforas.
 Formato: bullets cortos con cifras concretas. Cero emojis decorativos.
@@ -205,7 +205,7 @@ KPIs del día ${kpis.date_iso}:
 - Gastos del día: $${kpis.expenses_total_usd.toFixed(0)} USD (${kpis.expenses_count} cargados)
 - Incidencias warehouse acumuladas no resueltas: ${kpis.incidents_open}
 
-Generá el brief ahora. Sin preámbulo. Empezá directo con el primer bullet.`;
+Genera el brief ahora. Sin preámbulo. Empieza directo con el primer bullet.`;
 }
 
 function buildFallbackBrief(kpis: CeoBriefKpis): string {
