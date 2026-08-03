@@ -201,28 +201,29 @@ Detalles que importan:
   `EmptyState` "Próximamente" que no toca la base: cerrarlo por ruta no
   protegería nada que no esté ya vacío.
 
-> 🔴 **BLOQUEANTE antes de desplegar · medido en producción 2026-08-02**
+> ✅ **Bloqueante resuelto · 2026-08-03**
+>
+> Al medir producción apareció el riesgo: el gate de ruta **cerraría**
+> `/studio/seniat`, que estaba en `customs_seniat = false` desde el 2026-07-05
+> **pero con datos reales cargados** (`customs_agents` = 4, `customs_documents`
+> = 7, `customs_filings` = 1). Se llegaba por URL, porque el sidebar lo escondía.
+> Desplegar así no era el cambio pedido: era una regresión.
+>
+> **Decisión del founder: encender `customs_seniat`.** Aplicado en producción
+> (`update … set enabled = true`). El módulo vuelve al sidebar y el gate queda
+> correcto e inofensivo.
+>
+> Estado de los cuatro flags con efecto, después de la decisión:
 >
 > | Flag | Valor en prod | Efecto del gate al desplegar |
 > |---|---|---|
+> | `customs_seniat` | **`true`** | ninguno · `/studio/seniat` abre y vuelve al sidebar |
 > | `mobile_operator` | **`true`** | ninguno · `cola-qr` y `operarios` siguen abiertos |
-> | `customs_seniat` | **`false`** | **cierra `/studio/seniat`** |
+> | `marketing_news` | **`true`** | ninguno · Noticias Web sigue abierto |
+> | `vault` | `true` | sólo sidebar (sin guard de ruta, ver arriba) |
 >
-> Y el módulo SENIAT **tiene datos reales**: `customs_agents` = 4,
-> `customs_documents` = 7, `customs_filings` = 1. O sea que se usa —por URL,
-> porque el sidebar lo esconde desde que el flag se apagó el 2026-07-05.
->
-> **Desplegar el gate tal cual deja al equipo afuera de un módulo con datos.**
-> Eso no es el cambio que se pidió; es una regresión.
->
-> La lectura honesta es que **el flag está mal, no el módulo**: si hay 4 agentes
-> y una declaración cargados, Aduana SENIAT se usa. Lo natural es poner
-> `customs_seniat = true` —que además le devuelve el link al sidebar— y ahí el
-> gate queda inofensivo y correcto.
->
-> Pero eso es tocar un valor que alguien apagó a mano en producción, así que
-> **queda esperando decisión del founder**. Mientras tanto la rama no está
-> pusheada: no hay riesgo vivo.
+> **Ningún módulo se cierra al desplegar.** El gate queda armado para cuando
+> alguien apague un flag a conciencia — que era el punto.
 >
 > *(De paso: esto corrige la memoria `mobile_operator = false oculta Cola de QR`
 > — hoy está en `true` y los dos módulos se ven.)*

@@ -71,21 +71,54 @@ test.describe("rutas públicas críticas", () => {
     await expect(page.locator("body")).toContainText(/FCL|contenedor/i);
   });
 
-  test("las rutas viejas de calc/estimación redirigen (301) a la calc que toca", async ({
+  /**
+   * Los 5 redirects se verifican por HTTP, sin renderizar.
+   *
+   * Antes esto hacía cinco `page.goto()` completos —cinco cargas de las
+   * calculadoras, con hidratación y fuentes— multiplicado por los 5 proyectos
+   * de navegador: 25 páginas pesadas para comprobar cinco cabeceras. Era el
+   * test más flaky del gate: fallaba en un navegador y una línea distintos
+   * cada corrida, y con `retries: 0` en local tumbaba el paso entero.
+   *
+   * Y pese a llamarse "(301)" nunca miró el código de estado: sólo la URL
+   * final. `permanent: true` de Next emite **308**, no 301. Ahora se afirma el
+   * estado y el `location` de verdad, que es lo que protege el SEO, más UNA
+   * navegación real por familia para confirmar que el destino renderiza.
+   */
+  test("las rutas viejas de calc/estimación redirigen (308) a la calc que toca", async ({
     page,
+    request,
   }) => {
-    // CBM/LCL: /cotizar, /estimacion y /calculadora → /tarifas.
-    for (const old of ["/cotizar", "/estimacion", "/calculadora"]) {
-      await page.goto(old);
-      await expect(page).toHaveURL(/\/tarifas$/);
+    const REDIRECTS: [string, string][] = [
+      // CBM/LCL → /tarifas
+      ["/cotizar", "/tarifas"],
+      ["/estimacion", "/tarifas"],
+      ["/calculadora", "/tarifas"],
+      // FCL → /fcl
+      ["/calculadora-fcl", "/fcl"],
+      ["/cotizador-flete", "/fcl"],
+    ];
+
+    for (const [viejo, destino] of REDIRECTS) {
+      const r = await request.get(viejo, { maxRedirects: 0 });
+      expect(r.status(), `${viejo} debería redirigir permanente`).toBe(308);
+      expect(r.headers()["location"], `destino de ${viejo}`).toContain(destino);
     }
+
+    // Una carga real por familia: que el destino exista y sea el que dice ser.
+    //
+    // ⚠️ `waitForLoadState` entre las dos NO es adorno. En webkit `page.goto`
+    // resuelve antes de que el router de Next termine su transición cliente, y
+    // el `goto` siguiente moría con "Navigation to /fcl is interrupted by
+    // another navigation to /tarifas". Ese era el flake real del gate —nunca
+    // fue un timeout— y por eso caía en un navegador y una línea distintos
+    // cada corrida, según dónde pillara la carrera.
+    await page.goto("/tarifas");
+    await page.waitForLoadState("networkidle");
     await expect(page).toHaveTitle(/Tarifas|calculadora/i);
 
-    // FCL: /calculadora-fcl y /cotizador-flete → /fcl (sin cambios).
-    for (const old of ["/calculadora-fcl", "/cotizador-flete"]) {
-      await page.goto(old);
-      await expect(page).toHaveURL(/\/fcl$/);
-    }
+    await page.goto("/fcl");
+    await page.waitForLoadState("networkidle");
     await expect(page).toHaveTitle(/FCL|flete/i);
   });
 
