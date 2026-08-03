@@ -149,6 +149,46 @@ export function isValidEmail(raw: string): boolean {
 }
 
 /**
+ * Por cuál llave reconocimos que la cuenta ya existe (SDD-0244). Lo decide la
+ * función `find_duplicate_client_service` en la DB.
+ */
+export type DuplicateMatch = "documento" | "correo" | "telefono";
+
+/**
+ * Arma el aviso de "esta cuenta ya existe" EN EL CAMPO QUE CORRESPONDE.
+ *
+ * Por qué importa el campo: hasta SDD-0244 el dedup sólo miraba el documento, así
+ * que el aviso siempre caía ahí. Ahora también reconocemos por correo y por
+ * teléfono, y un mensaje sobre el correo colgado del campo de la cédula es un
+ * mensaje que el visitante no entiende (misma familia de bug que SDD-0225: el
+ * error dibujado donde nadie lo ve).
+ *
+ * PRIVACIDAD: nunca decimos de QUIÉN es la cuenta — sólo que existe y por dónde
+ * la reconocimos. El visitante ya conoce el dato que acaba de escribir.
+ */
+export function duplicateFieldError(
+  kind: ClientKind,
+  matchedBy: DuplicateMatch | string,
+): NonNullable<RegisterActionState["fieldErrors"]> {
+  const recupera =
+    "Si eres tú, entra con tu Shipping Mark o pide recuperar tu contraseña.";
+  if (matchedBy === "correo") {
+    return { email: `Este correo ya tiene una cuenta en DTD Cargo. ${recupera}` };
+  }
+  if (matchedBy === "telefono") {
+    return {
+      whatsapp: `Este WhatsApp ya está registrado en una cuenta de DTD Cargo. ${recupera}`,
+    };
+  }
+  return {
+    document:
+      kind === "empresa"
+        ? `Este RIF ya tiene una cuenta en DTD Cargo. ${recupera}`
+        : `Esta cédula ya tiene una cuenta en DTD Cargo. ${recupera}`,
+  };
+}
+
+/**
  * Validación manual del alta self-service EXPRESS. Devuelve `input` canónico o
  * `fieldErrors`. Pide SOLO tipo/nombre/documento/email/WhatsApp (la dirección y la
  * foto se difieren al perfil). NO chequea dedup (eso es una query, va en la server

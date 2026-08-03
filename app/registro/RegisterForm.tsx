@@ -521,6 +521,8 @@ function StepIdentidad({
         sub="Elige cómo importas y déjanos tus datos de acceso. Con esto creamos tu cuenta."
       />
 
+      <YaEresCliente />
+
       <div className="grid grid-cols-2 gap-2.5">
         <TypeCard
           active={!isCompany}
@@ -852,6 +854,42 @@ function StepConfirmar({
 }
 
 // ── "¿Ya tienes cuenta?" · recuperar acceso (chequeo en vivo) ─────
+/**
+ * Bifurcación "¿ya eres cliente?" al tope del primer paso (SDD-0244).
+ *
+ * El problema que ataja: un cliente que YA tiene Shipping Mark llega acá, se
+ * registra creyendo que es lo que toca, y sale con un código NUEVO. A partir de
+ * ese momento tiene dos, y el que va a anotar —y a pasarle a su proveedor en
+ * Yiwu— es el equivocado.
+ *
+ * Por qué una banda y no una pantalla previa que obligue a elegir: el registro
+ * es EXPRESS por decisión de producto (founder 2026-06-07). Una interstitial le
+ * cobra un clic al 100% de los visitantes para atajar a una minoría. Esta banda
+ * no le cuesta nada a quien viene por primera vez y es imposible de no ver para
+ * quien ya es cliente.
+ *
+ * Ojo: esto es la capa BLANDA. La que de verdad no se puede saltar es el dedup
+ * del servidor por documento, correo y teléfono (registro/actions.ts).
+ */
+function YaEresCliente() {
+  return (
+    <div
+      className="rounded-[12px] border px-4 py-3"
+      style={{ borderColor: "var(--color-grey-200)", background: "var(--color-paper)" }}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <p className="text-[13px] text-grey-700 leading-[1.5]">
+          <span className="font-bold text-ink">¿Ya eres cliente de DTD Cargo?</span>{" "}
+          No crees otra cuenta: seguirías usando tu Shipping Mark de siempre.
+        </p>
+        <Link href="/portal/login" className="btn btn-ghost h-9 text-[13px] whitespace-nowrap">
+          Entrar a mi cuenta <ArrowIcon size={15} />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 function DupRecover({ isCompany }: { isCompany: boolean }) {
   return (
     <div
@@ -864,7 +902,7 @@ function DupRecover({ isCompany }: { isCompany: boolean }) {
         </span>
         <div className="flex-1">
           <div className="text-[13px] font-bold text-wine leading-[1.3]">
-            Este {isCompany ? "RIF" : "cédula"} ya tiene una cuenta en DTD Cargo
+            {isCompany ? "Este RIF" : "Esta cédula"} ya tiene una cuenta en DTD Cargo
           </div>
           <p className="mt-1 text-[12.5px] text-grey-700 leading-[1.5]">
             Si eres tú, no hace falta crear otra. Entra al portal y pide tu enlace de

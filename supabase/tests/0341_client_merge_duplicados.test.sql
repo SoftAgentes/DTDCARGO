@@ -205,6 +205,54 @@ begin
 end;
 $candidatos$;
 
+-- ── El dedup del registro mira las TRES llaves ───────────────
+-- Éste es el agujero real: el legado no tiene documento (o lo tiene corrompido
+-- por Excel), así que un dedup que sólo mire el documento lo deja pasar.
+do $dedup$
+declare v_row record;
+begin
+  -- Por documento.
+  select * into v_row from public.find_duplicate_client_service(
+    '11111111-1111-1111-1111-111111111111', 'V-20108108', null, null);
+  if v_row.matched_by is distinct from 'documento' then
+    raise exception 'TEST 0341: no encontró por documento (%)', v_row.matched_by;
+  end if;
+
+  -- Por correo, con otra caja de mayúsculas (el legado guarda 'X@Gmail.com').
+  select * into v_row from public.find_duplicate_client_service(
+    '11111111-1111-1111-1111-111111111111', null, 'ELIASMOES@hotmail.com', null);
+  if v_row.matched_by is distinct from 'correo' then
+    raise exception 'TEST 0341: no encontró por correo (%)', v_row.matched_by;
+  end if;
+
+  -- Por teléfono escrito distinto: '04140538566' (legado) vs '+58 4140538566'
+  -- (registro). Los últimos 7 dígitos son los mismos.
+  select * into v_row from public.find_duplicate_client_service(
+    '11111111-1111-1111-1111-111111111111', null, null, '0414-0538566');
+  if v_row.matched_by is distinct from 'telefono' then
+    raise exception 'TEST 0341: no encontró por teléfono (%)', v_row.matched_by;
+  end if;
+
+  -- Un teléfono de menos de 7 dígitos NO puede hacer match de nadie.
+  if exists (select 1 from public.find_duplicate_client_service(
+      '11111111-1111-1111-1111-111111111111', null, null, '414')) then
+    raise exception 'TEST 0341: hizo match con un teléfono demasiado corto';
+  end if;
+
+  -- Sin ninguna llave, no devuelve nada (no puede ser un listado de clientes).
+  if exists (select 1 from public.find_duplicate_client_service(
+      '11111111-1111-1111-1111-111111111111', null, null, null)) then
+    raise exception 'TEST 0341: devolvió filas sin ninguna llave de búsqueda';
+  end if;
+
+  -- Un cliente de otro tenant no aparece.
+  if exists (select 1 from public.find_duplicate_client_service(
+      '22222222-2222-2222-2222-222222222222', 'V-20108108', null, null)) then
+    raise exception 'TEST 0341: cruzó la frontera de tenant';
+  end if;
+end;
+$dedup$;
+
 -- ── La fusión ────────────────────────────────────────────────
 set local role authenticated;
 set local request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000000000001';
@@ -359,6 +407,18 @@ begin
      or not pg_catalog.has_function_privilege(
           'authenticated', 'public.merge_clients(uuid,uuid)', 'EXECUTE') then
     raise exception 'TEST 0341: ACL inválida';
+  end if;
+
+  -- El dedup del registro corre con service_role (el registrante es anónimo).
+  -- Si 'authenticated' o 'anon' pudieran ejecutarlo, se volvería un oráculo de
+  -- "¿este correo tiene cuenta en DTD?" consultable desde el navegador.
+  if pg_catalog.has_function_privilege(
+       'anon', 'public.find_duplicate_client_service(uuid,text,text,text)', 'EXECUTE')
+     or pg_catalog.has_function_privilege(
+       'authenticated', 'public.find_duplicate_client_service(uuid,text,text,text)', 'EXECUTE')
+     or not pg_catalog.has_function_privilege(
+       'service_role', 'public.find_duplicate_client_service(uuid,text,text,text)', 'EXECUTE') then
+    raise exception 'TEST 0341: el dedup del registro no está restringido a service_role';
   end if;
 end;
 $acl$;

@@ -197,6 +197,80 @@ comment on function public.client_duplicate_candidates is
 revoke all on function public.client_duplicate_candidates(uuid) from public, anon;
 grant execute on function public.client_duplicate_candidates(uuid) to authenticated;
 
+-- ── 4b. Dedup del registro público por las TRES llaves ───────
+--
+-- El dedup vigente (registro/actions.ts) compara sólo el documento y por eso deja
+-- pasar al legado. Esta función mira documento, correo y teléfono, y dice CUÁL
+-- coincidió para que el formulario ponga el aviso en el campo correcto.
+--
+-- Es *_service (sin assert_tenant_match, EXECUTE sólo para service_role) por el
+-- mismo motivo que next_markbox_service (0109): el registrante es ANÓNIMO, la
+-- action corre con el admin client y no hay tenant autenticado. No es forjable
+-- desde el navegador.
+--
+-- Devuelve el id, pero la capa web NUNCA se lo enseña al visitante: sólo usa el
+-- hecho de que existe y por qué. Esa es la regla de privacidad del registro.
+
+create or replace function public.find_duplicate_client_service(
+  p_tenant_id uuid,
+  p_document text default null,
+  p_email text default null,
+  p_phone text default null
+)
+returns table (client_id uuid, matched_by text)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  with q as (
+    select
+      nullif(upper(regexp_replace(coalesce(p_document, ''), '[^A-Za-z0-9]', '', 'g')), '') as doc,
+      nullif(lower(btrim(coalesce(p_email, ''))), '') as em,
+      case
+        when length(regexp_replace(coalesce(p_phone, ''), '[^0-9]', '', 'g')) >= 7
+          then right(regexp_replace(p_phone, '[^0-9]', '', 'g'), 7)
+      end as tel
+  )
+  select
+    c.id,
+    case
+      when q.doc is not null
+        and upper(regexp_replace(coalesce(c.rif, ''), '[^A-Za-z0-9]', '', 'g')) = q.doc
+        then 'documento'
+      when q.em is not null and lower(btrim(coalesce(c.email, ''))) = q.em
+        then 'correo'
+      else 'telefono'
+    end
+  from public.clients c, q
+  where c.tenant_id = p_tenant_id
+    and c.deleted_at is null
+    and (
+         (q.doc is not null
+           and upper(regexp_replace(coalesce(c.rif, ''), '[^A-Za-z0-9]', '', 'g')) = q.doc)
+      or (q.em is not null and lower(btrim(coalesce(c.email, ''))) = q.em)
+      or (q.tel is not null
+           and length(regexp_replace(coalesce(c.phone, ''), '[^0-9]', '', 'g')) >= 7
+           and right(regexp_replace(c.phone, '[^0-9]', '', 'g'), 7) = q.tel)
+    )
+  -- El documento es la señal más fuerte; el teléfono la más débil (una familia
+  -- puede compartir número). Si hay varias, gana la más fuerte.
+  order by case
+    when q.doc is not null
+      and upper(regexp_replace(coalesce(c.rif, ''), '[^A-Za-z0-9]', '', 'g')) = q.doc then 0
+    when q.em is not null and lower(btrim(coalesce(c.email, ''))) = q.em then 1
+    else 2 end
+  limit 1;
+$$;
+
+comment on function public.find_duplicate_client_service is
+  'SDD-0244: ¿ya existe una ficha con este documento, correo o teléfono? Devuelve la primera y por cuál llave coincidió. Path-servidor-de-confianza (el registrante es anónimo): EXECUTE sólo para service_role.';
+
+revoke all on function public.find_duplicate_client_service(uuid, text, text, text)
+  from public, anon, authenticated;
+grant execute on function public.find_duplicate_client_service(uuid, text, text, text)
+  to service_role;
+
 -- ── 5. La fusión ─────────────────────────────────────────────
 --
 -- Superviviente = el VIEJO, por su código: carga el historial y es el que el
