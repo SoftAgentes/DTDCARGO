@@ -7,7 +7,8 @@
 - Supabase Producción: 0316 y 0326–0329 aplicadas individualmente.
 - Nómina Tier-3: 3/3 verde en rama efímera eliminada.
 - Baseline vigente: LB-SGE-106.
-- Recibo final: REV-SGE-055.
+- Recibos finales: REV-SGE-055 y REV-SGE-056.
+- Integración: `origin/main@f7a5f478`; Vercel Producción `5724733320` verde.
 
 ## Qué queda canónico
 
