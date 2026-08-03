@@ -200,8 +200,31 @@ Antes de tocar SEO o identidad, revisar:
 - [ ] **301 `doortudoor.com`** intacto · dominio viejo sin expirar · sin contenido propio ahí.
 - [ ] **GA fuera de rutas privadas** (`/studio /portal /m /back /invitar /verificar /p /interno /marca /calculadora/embed` y `/track/<código>`) · query params: solo whitelist de atribución (`sanitizeSearch`). El código del cliente NUNCA llega a Google — ojo: gtag manda `dl` y título crudos en cada hit, redactar el page_view no basta, hay que EXCLUIR la ruta. Tests en `__tests__/analytics.test.ts`.
 - [ ] Rename de ruta con SEO → **301** del slug viejo en `next.config.ts`.
+- [ ] **Página pública nueva → al `sitemap.ts`, o `robots: { index: false }`.** Quedar afuera
+  de las dos listas es el estado que nadie elige y nadie ve. Lo vigila
+  `app/__tests__/sitemap-cobertura-contract.test.ts` (también al revés: nada con
+  `noindex` puede estar en el sitemap).
 - [ ] Validar el schema en Rich Results Test antes de cerrar.
 - [ ] `SearchAction` solo si existe un buscador real (hoy no hay).
+
+## 2026-08-02 · cuatro páginas de venta invisibles para Google
+
+Barrido del sitemap contra las rutas públicas en disco. **Cuatro páginas existían,
+con metadata y OpenGraph propios y sin `noindex`, pero no estaban en `sitemap.ts`:**
+
+| Ruta | Qué es |
+|---|---|
+| `/servicios/puerta-a-puerta` | ficha del servicio principal |
+| `/servicios/fcl` | ficha de contenedor completo |
+| `/servicios/lcl` | ficha de consolidado |
+| `/llenado` | calculadora de llenado (SDD-0184 Fase 5) |
+
+`/servicios/inspeccion` sí estaba desde siempre — tener una de las cuatro adentro
+es lo que hizo que el hueco no saltara a la vista. Google puede llegar por enlaces
+internos, pero el descubrimiento queda librado al azar y sin prioridad declarada.
+
+Las cuatro agregadas. El contrato de arriba impide que vuelva a pasar: se valida
+con mutación (sacar `/servicios/lcl` del sitemap lo pone rojo nombrándola).
 
 ## Pendiente / monitoreo
 

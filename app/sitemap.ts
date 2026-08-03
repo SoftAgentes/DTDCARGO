@@ -14,6 +14,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/shipping-mark`, priority: 0.8, changeFrequency: "monthly" },
     { url: `${base}/pre-alertas`, priority: 0.8, changeFrequency: "monthly" },
     { url: `${base}/servicios`,   priority: 0.9, changeFrequency: "monthly" },
+    // Las cuatro fichas de servicio. `inspeccion` estaba sola desde siempre:
+    // las otras tres existen, tienen metadata + OpenGraph y ningún `noindex`,
+    // pero nunca entraron acá — o sea, páginas de venta invisibles para Google.
+    { url: `${base}/servicios/puerta-a-puerta`, priority: 0.8, changeFrequency: "monthly" },
+    { url: `${base}/servicios/fcl`, priority: 0.8, changeFrequency: "monthly" },
+    { url: `${base}/servicios/lcl`, priority: 0.8, changeFrequency: "monthly" },
     { url: `${base}/servicios/inspeccion`, priority: 0.7, changeFrequency: "monthly" },
     { url: `${base}/academia`,    priority: 0.8, changeFrequency: "monthly" },
     { url: `${base}/nosotros`,    priority: 0.7, changeFrequency: "monthly" },
@@ -21,6 +27,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/tarifas`, priority: 0.9, changeFrequency: "monthly" },
     { url: `${base}/fcl`, priority: 0.9, changeFrequency: "monthly" },
     { url: `${base}/calculadora-terrestre`, priority: 0.8, changeFrequency: "monthly" },
+    // Calculadora de llenado de contenedor (SDD-0184 Fase 5).
+    { url: `${base}/llenado`, priority: 0.8, changeFrequency: "monthly" },
     { url: `${base}/enlaces`,     priority: 0.5, changeFrequency: "monthly" },
     { url: `${base}/glosario`,    priority: 0.8, changeFrequency: "monthly" },
     { url: `${base}/faq`,         priority: 0.8, changeFrequency: "monthly" },
