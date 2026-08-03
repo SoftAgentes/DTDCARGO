@@ -1,10 +1,10 @@
 ---
 sdd: "0184"
 title: "Plan de carga por volumen · el sistema le dice al operario dónde va el próximo lote"
-status: in-progress
+status: done
 author: "Claude Code (ventana container-loading) + founder"
 created: 2026-07-30
-updated: 2026-07-30
+updated: 2026-08-02
 supersedes: null
 superseded_by: null
 related: ["0152", "0153", "0154", "0155", "0160", "0163", "0047", "0081"]
@@ -229,18 +229,22 @@ motor en servidor no es "mejor código": es algo que ellos estructuralmente no p
 | Fase | Qué | Migración | Estado |
 |---|---|---|---|
 | 1 | Repartidor + las dos consultas en `lib/shared/estiba-plan.ts` | — | **hecho** |
-| 2 | Catálogo: capacidad útil, `active`, techo real, áreas sin altura + pantalla de administración | **0294** | **hecho** |
-| 3 | Plan versionado + planta 2D en Naviera | **0295** | **hecho** |
-| 4 | El lazo plan ↔ realidad en `/m/cn/estibar` | **0296** | **hecho** |
+| 2 | Catálogo: capacidad útil, `active`, techo real, áreas sin altura + pantalla de administración | **0297** | **hecho · en prod** |
+| 3 | Plan versionado + planta 2D en Naviera | **0298** | **hecho · en prod** |
+| 4 | El lazo plan ↔ realidad en `/m/cn/estibar` | **0299** | **hecho · en prod** |
 | 5 | Calculadora pública `/llenado` | — | **hecho** |
 
-⚠️ **Las migraciones se renumeraron de 0289-0291 a 0294-0296.** Las 0289 a 0293
-estaban tomadas por ramas locales de gobernanza (Codex) que todavía no habían
-llegado a `origin/main`, así que `git ls-tree origin/main` no las veía. El barrido
-correcto es sobre `git for-each-ref refs/heads refs/remotes`, no sobre una sola rama.
+⚠️ **Las migraciones se renumeraron dos veces**: primero de 0289-0291 a 0294-0296,
+y de ahí a las definitivas **0297, 0298 y 0299**. Las 0289-0296 estaban tomadas por
+ramas locales de gobernanza (Codex) que todavía no habían llegado a `origin/main`,
+así que `git ls-tree origin/main` no las veía. El barrido correcto es sobre
+`git for-each-ref refs/heads refs/remotes`, no sobre una sola rama — hoy eso lo hace
+`pnpm sdd:next`.
 
-Las tres quedan declaradas en `supabase/migrations-baseline.json` hasta el OK del
-founder nombrando cada archivo. **Se aplican en orden: 0297 → 0298 → 0296.**
+**Las tres están aplicadas a producción** (commits `8589c3b3`, `ed4742b8`,
+`7b7cce9f`) y fuera de `supabase/migrations-baseline.json`. La tabla de arriba
+decía 0294-0296 y el orden de aplicación nombraba una `0296` que pertenece a otro
+workstream: residuo de la segunda renumeración, corregido el 2026-08-02.
 
 **Nota de render para las fases 3-5.** El visor isométrico que ya existe
 (`ContainerIsoView`) sirve para el escritorio, pero la vista que importa es la del teléfono:

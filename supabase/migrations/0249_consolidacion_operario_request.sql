@@ -1,4 +1,11 @@
--- 0249 · SDD-0157 Slice A — el operario CN solicita abrir contenedor; oficina autoriza
+-- 0249 · SDD-0160 Slice A — el operario CN solicita abrir contenedor; oficina autoriza
+--
+-- ⚠️ Esta cabecera decía "SDD-0157" hasta el 2026-08-02. La spec se escribió con el
+-- número 0157, que ya estaba tomado por "Campaña de recuperación Kommo", y se renumeró
+-- a 0160 en `cdc8d1a7` — pero el archivo de migración y los mensajes de commit se
+-- quedaron con el número viejo. Consecuencia: buscar "SDD-0160" en el historial
+-- devuelve CERO commits y el trabajo parece no construido, cuando está en producción.
+-- El número de la migración (0249) NO se toca: ya corrió con ese nombre.
 --
 -- El operario del hub no puede abrir un contenedor (solo la oficina, en Studio). Esto
 -- agrega el lado "solicitud": el operario pide, queda 'solicitada' SIN correlativo, y la

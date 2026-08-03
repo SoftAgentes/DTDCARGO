@@ -1,10 +1,10 @@
 ---
 sdd: "0171"
 title: "Portal — datos de bodega CN, filtros de Documentos y armazón unificado"
-status: in-progress
+status: done
 author: "Sam (founder) + Claude Code"
 created: 2026-07-28
-updated: 2026-07-28
+updated: 2026-08-02
 supersedes: null
 superseded_by: null
 related: ["0042", "0057", "0093", "0116", "0169", "0170"]

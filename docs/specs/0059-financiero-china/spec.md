@@ -1,10 +1,10 @@
 ---
 sdd: "0059"
 title: "Financiero con el Socio Logístico China — libro mayor bilateral + reconciliación + cargos/notas de crédito (Bloque 2.3)"
-status: in-progress
+status: done
 author: "founder"
 created: 2026-06-05
-updated: 2026-06-05
+updated: 2026-08-02
 supersedes: null
 superseded_by: null
 related: ["0044", "0041", "0040", "0021", "0053", "0047", "0010"]
@@ -255,6 +255,13 @@ un estado externo, y el modelo de **corrección** (charges/credit_notes) que 004
   mayor ROI (reconciliación).*
 - **Slice C — Avanzado.** Conversiones/forex como revenue (UI + KPI de spread), tablero de claim offsets,
   alertas PP/CA (`due_date` vencido), export de asiento para QuickBooks.
+  ✅ **cerrado por [SDD-0115](../0115-financiero-china-slice-c/spec.md)** (4 sub-slices LIVE,
+  sin migración: forex · cruces · alertas PP/CA · parser CSV). Ese parser es el mismo
+  "Pendiente" que quedó anotado arriba en Slice B2 — se resolvió en `57e09236` (C4).
+
+> **Cierre (2026-08-02).** Los tres slices están completos: A y B1/B2 acá, C en SDD-0115.
+> Esta spec quedó `in-progress` un mes de más porque su continuación se numeró aparte y
+> nadie volvió a tocar este archivo.
 
 ---
 

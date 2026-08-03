@@ -52,7 +52,7 @@ sitio público ──fetch──▶ /api/public/ocean-rate ──RPC anon──�
 
 | Capa | Archivo |
 |---|---|
-| Migración | `supabase/migrations/0145_ocean_rates_cache.sql` (tabla + RLS + RPC `public_ocean_rate`) |
+| Migración | `supabase/migrations/0146_ocean_rates_cache.sql` (tabla + RLS + RPC `public_ocean_rate`) |
 | Compartido | `lib/shared/ocean-rate.ts` (catálogo + candado + `validateOceanRouteInput` + `PublicOceanRate` + disclaimer) |
 | ERP (cron) | `lib/studio/searates/ocean-rates-matrix.ts` · `ocean-rates-queries.ts` (`refreshOceanRates`) |
 | Público | `lib/public/ocean-rates-public.ts` (`getPublicOceanRate`, anon) |

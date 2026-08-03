@@ -27,7 +27,11 @@ confidencialidad: interno
 > - **B** (re-aceptación por medida real) — **PENDIENTE**: es la única parte con
 >   migración y toca dinero (la factura no se emite hasta aceptar la diferencia).
 >
-> ⚠️ **Rollout gateado:** `SHIPMENT_ACCEPTANCE_CTA_LIVE = false` (`lib/portal/demo.ts`).
+> ✅ **Rollout abierto (corregido 2026-08-02):** `SHIPMENT_ACCEPTANCE_CTA_LIVE = true`
+> (`lib/portal/demo.ts`). El CTA se encendió para todos en `a08373a6`; esta nota
+> seguía diciendo `false` y describía un gate que ya no existe.
+>
+> **Esta spec sigue `in-progress` por el Slice B**, no por el rollout.
 > `NORTE_PORTAL_LIVE` ya está en `true` → sin ese segundo flip el CTA saldría vivo para
 > todos los clientes. Mientras está en `false` sólo lo ve la cuenta demo `DTD-1004`.
 > **Lo prende el founder.** Al prenderlo, la spec pasa a `done` si B queda fuera de alcance.

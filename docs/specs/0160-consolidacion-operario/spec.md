@@ -125,6 +125,13 @@ patrón de avisos ya existente (Telegram/push de operario).
 
 ## 11. Estado de implementación (2026-07-17)
 
+> ⚠️ **Buscar "SDD-0160" en el historial devuelve cero commits — y sin embargo esto
+> está en producción.** La spec se escribió como 0157, número ya tomado por la
+> campaña Kommo, y se renumeró a 0160 en `cdc8d1a7`; el código, la migración `0249`
+> y todos los mensajes de commit se quedaron con el número viejo. El trabajo vive
+> bajo `git log --grep="SDD-0157"` (commit `9b6881af`). Anotado el 2026-08-02
+> después de que esta spec apareciera como "sin construir" en la radiografía del ERP.
+
 Construido Slice A **+ la autorización de Slice B** (el par pedir↔autorizar quedó
 completo de una pasada). Decisiones tomadas de §8:
 

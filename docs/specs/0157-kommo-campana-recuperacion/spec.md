@@ -1,10 +1,10 @@
 ---
 sdd: "0157"
 title: "Campaña de recuperación Kommo — contactos con WhatsApp por tandas + export SMS"
-status: in-progress
+status: done
 author: "Sam (founder) + agente adquisición"
 created: 2026-07-17
-updated: 2026-07-17
+updated: 2026-08-02
 supersedes: null
 superseded_by: null
 related: ["0043", "0058", "0078", "0061"]

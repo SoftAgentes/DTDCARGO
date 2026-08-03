@@ -1,10 +1,10 @@
 ---
 sdd: "0159"
 title: "Configurar referidos — montos del programa editables desde el ERP"
-status: in-progress
+status: done
 author: "Sam (founder) + agente adquisición"
 created: 2026-07-17
-updated: 2026-07-17
+updated: 2026-08-02
 supersedes: null
 superseded_by: null
 related: ["0051", "0137", "0085"]

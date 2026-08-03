@@ -1,10 +1,10 @@
 ---
 sdd: "0169"
 title: "Portal — gate de verificación de identidad"
-status: in-progress
+status: done
 author: "Sam (founder) + Claude Code"
 created: 2026-07-28
-updated: 2026-07-28
+updated: 2026-08-02
 supersedes: null
 superseded_by: null
 related: ["0042", "0138", "0145", "0151"]

@@ -1,10 +1,10 @@
 ---
 sdd: "0170"
 title: "Portal — ciclo de 5 etapas y Seguimiento total por contenedor"
-status: in-progress
+status: done
 author: "Sam (founder) + Claude Code"
 created: 2026-07-28
-updated: 2026-07-28
+updated: 2026-08-02
 supersedes: null
 superseded_by: null
 related: ["0042", "0047", "0101", "0133", "0169"]

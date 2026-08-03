@@ -91,7 +91,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0056 | Conversaciones · bandeja unificada (WhatsApp + email + portal) | done | interno |
 | 0057 | Portal — Compras/Prealertas + Proveedores del cliente (cierra… | done | interno |
 | 0058 | Kommo lead → cliente — puente CRM↔ERP (convertir un lead del … | done | interno |
-| 0059 | Financiero con el Socio Logístico China — libro mayor bilater… | in-progress | confidencial |
+| 0059 | Financiero con el Socio Logístico China — libro mayor bilater… | done | confidencial |
 | 0060 | Documentos · Versionado — revisiones append-only sobre el Hub… | done | interno |
 | 0061 | Estimado → Orden de venta (modelo QuickBooks): retira 'cotiza… | done | interno |
 | 0062 | Reestructuración CRM (Kommo) para cierres automáticos + integ… | proposed | interno |
@@ -180,17 +180,17 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0146 | Bitácora — actas de reunión con IA + gestor de tareas del equ… | done | interno |
 | 0147 | Soporte del portal a Norte — fusión de Reclamos + chat con el… | done | interno |
 | 0148 | Aviso al equipo de mensajes entrantes del portal — activar el… | done | interno |
-| 0149 | Resumen mensual de conversaciones con IA — histórico navegabl… | in-progress | interno |
+| 0149 | Resumen mensual de conversaciones con IA — histórico navegabl… | done | interno |
 | 0150 | Secretarias de reunión v2 — default rica + Escucha Activa + t… | in-progress | interno |
 | 0151 | Perfil cliente — aviso de pendientes in-page + solicitud de c… | done | interno |
-| 0152 | Estiba por zonas — identidad por bulto, captura al cargar y v… | in-progress | interno |
+| 0152 | Estiba por zonas — identidad por bulto, captura al cargar y v… | superseded | interno |
 | 0153 | Etiqueta pre-declarada · la caja nace con el aviso, no con la… | in-progress | interno |
 | 0154 | Recibir por escaneo · la etiqueta pre-declarada materializa l… | in-progress | interno |
 | 0155 | Estiba por lotes · escanear una caja monta el lote; posición … | in-progress | interno |
 | 0156 | Notificaciones al cliente configurables — journey China→Venez… | done | interno |
-| 0157 | Campaña de recuperación Kommo — contactos con WhatsApp por ta… | in-progress | interno |
+| 0157 | Campaña de recuperación Kommo — contactos con WhatsApp por ta… | done | interno |
 | 0158 | Documentos de Marketing en el Studio — lector read-only de do… | done | interno |
-| 0159 | Configurar referidos — montos del programa editables desde el… | in-progress | interno |
+| 0159 | Configurar referidos — montos del programa editables desde el… | done | interno |
 | 0160 | Modo consolidación del operario · pedir contenedor → oficina … | in-progress | interno |
 | 0161 | Registro self-service — entrega real del correo de bienvenida… | done | interno |
 | 0162 | Aviso de recepción al cliente — cablear la recepción del oper… | done | interno |
@@ -200,9 +200,9 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0166 | Auditoría gobernada — corrección conjunta AUD-01 y AUD-02 | done | interno |
 | 0167 | Actualidad — centro editorial público | in-progress | interno |
 | 0168 | MP-01 Slice 1 — Permanencia y restauración de comentarios int… | done | interno |
-| 0169 | Portal — gate de verificación de identidad | in-progress | interno |
-| 0170 | Portal — ciclo de 5 etapas y Seguimiento total por contenedor | in-progress | interno |
-| 0171 | Portal — datos de bodega CN, filtros de Documentos y armazón … | in-progress | interno |
+| 0169 | Portal — gate de verificación de identidad | done | interno |
+| 0170 | Portal — ciclo de 5 etapas y Seguimiento total por contenedor | done | interno |
+| 0171 | Portal — datos de bodega CN, filtros de Documentos y armazón … | done | interno |
 | 0172 | Lifecycle de tenant y fixtures E2E efímeras | done | interno |
 | 0173 | Portal — Nueva compra como asistente de 3 pasos | done | interno |
 | 0174 | Auditoría — atomicidad por dominios | done | interno |
@@ -215,7 +215,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0181 | Selectores accesibles y colisión segura | done | interno |
 | 0182 | Validación progresiva de identidad en Club | done | interno |
 | 0183 | Control plane ejecutable de gobernanza | done | interno |
-| 0184 | Plan de carga por volumen · el sistema le dice al operario dó… | in-progress | interno |
+| 0184 | Plan de carga por volumen · el sistema le dice al operario dó… | done | interno |
 | 0185 | NUM-01 v1.1 y expresiones decimales | done | interno |
 | 0186 | Fundamento verificable de retención de auditoría | done | interno |
 | 0187 | Auditoría D2 — motivos humanos en anulaciones financieras | done | interno |

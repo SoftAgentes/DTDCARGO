@@ -1,12 +1,12 @@
 ---
 sdd: "0152"
 title: "Estiba por zonas — identidad por bulto, captura al cargar y visor isométrico del contenedor"
-status: in-progress
+status: superseded
 author: "Claude Code (worktree estiba-por-zonas) + founder"
 created: 2026-07-16
-updated: 2026-07-16
+updated: 2026-08-02
 supersedes: null
-superseded_by: null
+superseded_by: "0155"
 related: ["0047", "0081", "0096", "0098"]
 confidencialidad: interno
 ---

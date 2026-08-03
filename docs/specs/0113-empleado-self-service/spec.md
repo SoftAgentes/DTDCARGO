@@ -319,8 +319,8 @@ scripts/verify.mjs` 🟢) y **auditoría adversarial** (patrón del repo para m�
 ## 10. Archivos (propuesta)
 
 ```
-supabase/migrations/0178_employee_invites_registrations.sql   (nuevo)
-supabase/migrations/0179_employee_comms.sql                   (nuevo)
+supabase/migrations/0180_employee_invites_registrations.sql   (nuevo)
+supabase/migrations/0181_employee_comms.sql                   (nuevo)
 lib/studio/nomina/invite-{types,queries}.ts                   (nuevo)
 lib/studio/nomina/registration-{types,queries}.ts             (nuevo)
 lib/studio/nomina/comms-{types,queries}.ts                    (nuevo)
