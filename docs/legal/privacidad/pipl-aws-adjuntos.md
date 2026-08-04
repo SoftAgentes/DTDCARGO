@@ -87,6 +87,12 @@ No existe todavía ese registro específico ni consentimientos obtenidos:
 certificada; en Venezuela sería evidencia valorable conforme al art. 17 de la
 Ley sobre Mensajes de Datos y Firmas Electrónicas.
 
+El postflight exige hashes externos de `mechanism-decision`,
+`impact-assessment`, `separate-consent-template` y `consent-register-export`.
+También exige alcance `china-personal-data`, mecanismo identificado, evaluación
+completada y consentimiento separado verificado; datos sintéticos no se pueden
+usar para fabricar este cierre jurídico.
+
 ## 5 · Evaluación de impacto previa
 
 | Prueba PIPL arts. 55–56 | Evaluación |

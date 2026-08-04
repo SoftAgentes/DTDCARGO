@@ -83,6 +83,12 @@ cuenta. El receipt sigue **NO VERIFICABLE** hasta el alta real.
 - [ ] revisión PIPL firmada;
 - [ ] puntero y hashes del expediente externo registrados aquí.
 
+El postflight automatizado exige seis artifacts externos con `kind`:
+`customer-agreement`, `service-terms`, `dpa`, `subprocessors`,
+`account-acceptance` y `billing-identity`. Compara sus SHA-256 con los archivos
+reales y la cuenta STS antes de emitir el receipt de activación. La evidencia no
+se mueve a Git.
+
 Este documento es evidencia técnica y no asesoría legal.
 
 ## Fuentes oficiales

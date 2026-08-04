@@ -110,6 +110,25 @@ archivo limpio, EICAR y una versión WORM JSON. El receipt se escribe fuera del
 repo con creación exclusiva; falla si ya existe, si EICAR no es detectado, si la
 versión puede borrarse o si el checksum restaurado cambia.
 
+El despliegue reproducible se ejecuta con `pnpm attachments:aws:deploy` y exige
+un allow explícito, identidad STS de la cuenta esperada y receipt externo. El
+postflight `pnpm attachments:aws:postflight` no emite evidencia de activación
+hasta cruzar, en la misma cuenta y región:
+
+- stack CloudFormation completo y plan GuardDuty `ACTIVE`;
+- versionado/SSE-KMS de ambos buckets y Object Lock `COMPLIANCE` por diez años;
+- SQS cifrada, DLQ y ocho reintentos;
+- receipt sintético vigente con EICAR, borrado denegado, restore y RPO/RTO;
+- expediente contractual con hashes de Agreement, Service Terms, DPA,
+  subprocesadores, aceptación e identidad de facturación;
+- decisión PIPL, evaluación de impacto, texto de consentimiento separado y
+  export del registro de consentimientos, todos fuera de Git y con SHA-256.
+
+Los manifests contractual y PIPL son JSON `schemaVersion: 1`. Cada documento
+externo se registra como `{ "kind", "path", "sha256" }`; el postflight vuelve a
+leerlo y rechaza cualquier hash cambiado. Solo su receipt final proporciona los
+valores `*_VERIFIED_AT`; no se copian desde una captura ni se completan a mano.
+
 ## 5 · Evidencia mínima
 
 | Evidencia | Criterio |
