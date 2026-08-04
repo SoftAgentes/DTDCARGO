@@ -242,13 +242,25 @@ pero **nunca funcionó ni una vez**. Medido el 2026-08-03 al desplegar el enruta
 (07:00 UTC), no en vivo. Y el enrutador de este SDD, que vive dentro del webhook,
 es código correcto pero **inerte**: nadie lo llama.
 
-**Para encenderlo** (dos extremos, ambos pendientes):
-1. `supabase secrets set KOMMO_WEBHOOK_SECRET=<valor> --project-ref xpfuzqombmjmxvprjgmi`
-2. En Kommo → Ajustes → Centro de integraciones → **Web hooks** → agregar
-   `https://xpfuzqombmjmxvprjgmi.supabase.co/functions/v1/kommo-webhook?secret=<el mismo valor>`
-   con los eventos de lead (add/update/status/delete) y contacto.
+**Encendido el 2026-08-03** (autorizado por el founder), los dos extremos:
 
-Recién ahí el espejado pasa a ser en vivo y el enrutado empieza a ocurrir.
+1. ✅ `KOMMO_WEBHOOK_SECRET` generado (random 24 bytes hex) y guardado con
+   `supabase secrets set --project-ref xpfuzqombmjmxvprjgmi`. **No vive en el repo.**
+2. ✅ Webhook dado de alta en Kommo → Ajustes → Centro de integraciones →
+   **Web hooks**, apuntando a la función con `?secret=`, con **todos los eventos**
+   marcados (el parser filtra a lead/contact; lo demás devuelve `events: 0`).
+
+Verificado por respuesta HTTP de la función desplegada:
+
+| Prueba | Esperado | Resultado |
+|---|---|---|
+| POST con el secret correcto | `200 {"ok":true,"events":0}` | ✅ |
+| POST con secret inválido | `403 {"error":"Forbidden"}` | ✅ |
+
+⚠️ **Falta el último eslabón:** que Kommo de verdad dispare. Al cerrar la sesión
+no había ocurrido ningún evento orgánico (01:15 UTC) y no se inventó uno para no
+mutar datos de producción. **Se confirma con una fila `webhook_*` en `sync_logs`**
+la primera vez que alguien escriba o se toque un lead.
 
 ### Verificación hecha
 
