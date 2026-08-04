@@ -15,6 +15,12 @@
  * Studio vía `fetchRemoteHealth`) o `?key=<s>` (fallback para chequeo manual desde
  * el navegador; el query puede quedar en logs, preferí el header).
  *
+ * MODO BARATO (SDD-0244): `?cheap=1` salta las integraciones que consumen cuota o
+ * tokens por ping (SeaRates, Anthropic, OpenRouter) y las marca `skipped` con el
+ * motivo. Es para el vigía externo, que sondea cada 15 min: el chequeo completo
+ * a esa cadencia son ~96 llamadas/día contra la cuota de SeaRates, que es de 100
+ * al MES y la comparte con el cotizador FCL. Sin el param no cambia nada.
+ *
  * Privacidad: solo devuelve booleans + estados + latencias. NUNCA expone valores de
  * env vars ni secrets.
  */
@@ -52,8 +58,15 @@ export async function GET(request: Request) {
     );
   }
 
+  // `?cheap=1` salta las integraciones que cobran por ping (SeaRates, Anthropic,
+  // OpenRouter) y las devuelve como `skipped` con el motivo en `detail`. Existe
+  // para el vigía externo: sondear el chequeo completo cada 15 min son ~96
+  // llamadas/día contra la cuota de SeaRates, que es de 100 al MES y la comparte
+  // con el cotizador FCL. Sin el param, el comportamiento es el de siempre.
+  const cheap = new URL(request.url).searchParams.get("cheap") === "1";
+
   const env = getEnvStatus();
-  const health = await checkAllIntegrations();
+  const health = await checkAllIntegrations({ skipMetered: cheap });
 
   return NextResponse.json(
     {
@@ -62,6 +75,7 @@ export async function GET(request: Request) {
       branch: env.branch,
       commitShaShort: env.commitShaShort,
       integrations: env.integrations,
+      cheap,
       health,
       at: Date.now(),
     },
