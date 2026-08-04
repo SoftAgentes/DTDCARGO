@@ -8,7 +8,7 @@
 | Worktree | `C:\Users\Trabajo\Desktop\Developer\software\DTD-worktrees\post-governance-10-slices` |
 | Base | `origin/main@b78a686336aedadc24cd7a508ae54d788f8c2243` |
 | Integración funcional | `fd948577` publicada por fast-forward atómico a `origin/main` y a la rama propia |
-| Estado | cerrado en Git; migración y smoke runtime pendientes |
+| Estado | cerrado en Git y Producción; recibo documental en cierre autorizado |
 
 ## Alcance y rutas propias
 
@@ -57,10 +57,10 @@ el preflight Cloud metadata-only documentado en REV-SGE-058.
 
 - Push funcional: fast-forward atómico exitoso
   `b78a6863..fd948577` a `origin/main` y creación de la rama remota propia.
-- El último commit funcional tocó código y es elegible para el build automático
-  de Vercel; no se ejecutó deploy manual ni se afirmó estado runtime.
-- `0340_expense_void_governance` permanece sólo como artefacto Git. No fue
-  aplicada a Cloud/Producción y requiere autorización individual por basename.
+- El último commit funcional tocó código; el deployment automático productivo
+  de Vercel quedó confirmado en `success`. No se ejecutó deploy manual.
+- `0340_expense_void_governance` fue autorizada por basename y aplicada
+  individualmente en Producción; el ledger la registra como `20260803181231`.
 - E5 permaneció cerrado: cero tenants y cero eventos elegibles.
 
 ## Concurrencia y limpieza
@@ -76,7 +76,19 @@ La limpieza física de este worktree queda bloqueada mientras esta tarea usa el
 
 ## Siguiente responsable
 
-Una nueva ventana debe revalidar `origin/main`, autorizar nominalmente y aplicar
-`0340_expense_void_governance` mediante el runbook productivo, confirmar el
-deploy compatible y ejecutar smoke autenticado por rol antes de evaluar Gastos
-como `VA`.
+El rollout productivo se completó desde el worktree aislado
+`post-governance-10-sdd-0243-rollout`, sobre
+`origin/main@279bb1f1ce6d30f451e4d1ef7cb79ffd1568d0c6`:
+
+- `0340_expense_void_governance` fue autorizada nominalmente y aplicada de
+  forma individual; el ledger la registró como `20260803181231`;
+- el postflight confirmó RPC, guard, trigger, ACL mínimos, `search_path` vacío,
+  catálogo AUD-01 y advisors;
+- el despliegue productivo compatible contiene `fd948577` y terminó exitoso;
+- el smoke autenticado por rol y por superficie pasó sobre una rama efímera sin
+  datos productivos, luego eliminada;
+- SDD-0243 quedó `done` y Gastos pasó de `BE` a `VA` únicamente por este flujo.
+
+El recibo completo es REV-SGE-059. La publicación del commit documental se
+ejecuta únicamente mediante el cierre autorizado por el literal `cerrar`; no
+queda DDL ni deploy manual pendiente para SDD-0243.

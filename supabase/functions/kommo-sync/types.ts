@@ -67,6 +67,23 @@ export interface KommoCustomField {
   enums?: Array<{ id: number; value: string; sort?: number }> | null;
 }
 
+/**
+ * SDD-0245 — entrada de la bandeja (`/api/v4/leads/unsorted`). NO es un lead:
+ * mientras viva acá, su `lead_id` **no existe** en `/api/v4/leads` ni en el
+ * espejo `kommo_leads`. Desaparece cuando alguien la acepta o la rechaza.
+ */
+export interface KommoUnsorted {
+  uid: string;
+  category?: string | null;
+  source_name?: string | null;
+  pipeline_id?: number | null;
+  created_at?: number | null; // epoch segundos, como el resto de la API v4
+  _embedded?: {
+    leads?: { id: number }[];
+    contacts?: { id: number }[];
+  } | null;
+}
+
 export interface KommoUser {
   id: number;
   name?: string;
