@@ -180,30 +180,36 @@ Esa te la confirmo con el equipo para no darte información a medias. Te escribo
 Cumple tres cosas a la vez: no inventa, deja abierta la conversación con una pregunta, y en
 WhatsApp mantiene viva la ventana de 24 horas.
 
-### ⚠️ Decisión pendiente del founder — decir que es un bot
+### Decir que es un bot — decisión del founder: NO es obligatorio (2026-08-03)
 
-**Esto no lo activo por mi cuenta; lo dejo redactado y marcado.**
+**Decidido: no se anuncia como bot por defecto.** Operamos en Venezuela, que no tiene normativa
+sobre divulgación de bots, y no vamos a atarnos a la ley de California ni al Reglamento de IA de
+la UE. Queda a criterio, no como requisito.
 
-El AI Agent responde **directo al cliente en Instagram**, sin humano en el medio. Es un bot
-hablándole a una persona con fines comerciales, y eso tiene reglas:
+Lo que sí se mantiene, porque es buena atención y no cuesta nada:
 
-- **California (SB 1001), vigente:** es ilegal usar un bot para incentivar una venta sin divulgar
-  que es un bot. La divulgación debe estar **en la conversación**, no en una política enlazada.
-- **Reglamento de IA de la UE, artículo 50:** exigible **desde el 2026-08-02**. La notificación
-  debe darse **al inicio de la conversación**. Tiene alcance extraterritorial.
-- **Meta:** se reporta que exige una ruta clara de escalamiento a humano y que sanciona la
-  suplantación. ⚠️ **Verificar en https://whatsappbusiness.com/policy/ antes de decidir**, porque
-  las fuentes son blogs de vendors, no la política.
-- **Venezuela:** no encontré normativa específica sobre divulgación de bots.
+1. **Si el cliente pregunta si es una persona, el agente lo dice** — no evade ni finge. Está en
+   las Guidelines.
+2. **La salida a humano siempre disponible** (Action 1: "asesor", "humano", "persona").
 
-El estándar mínimo que cumple los cuatro marcos, como primer mensaje del agente:
+**Apertura por defecto** — sin anunciarse, abriendo con la pregunta de credibilidad:
+
+```
+¡Hola! Gracias por escribirnos. Cuéntame, ¿qué mercancía estás buscando traer de China?
+```
+
+**Apertura alternativa**, si algún día se decide anunciarlo (queda redactada para no tener que
+volver a pensarla):
 
 ```
 ¡Hola! Soy el asistente virtual de DTD Cargo. Te ayudo con cotizaciones y dudas al instante, y cuando quieras hablar con alguien del equipo solo escribe "asesor" y te paso. Cuéntame, ¿qué estás buscando traer de China?
 ```
 
-Divulga que es un asistente virtual, lo hace al inicio y dentro del hilo, ofrece salida a humano,
-y aun así abre la conversación con una pregunta.
+> **Para el registro, sin que esto reabra la decisión:** el marco que existe es California
+> SB 1001 y el artículo 50 del Reglamento de IA de la UE (exigible desde 2026-08-02), ambos con
+> alcance extraterritorial en el papel. **Venezuela no tiene norma equivalente**, y el riesgo
+> práctico para una operación local es remoto. Se documenta para que la decisión sea informada,
+> no para reabrirla. Si algún día se atiende clientes en la UE o se pauta allá, se revisa.
 
 ### Contactos oficiales
 

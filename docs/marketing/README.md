@@ -177,10 +177,10 @@ Brand Book vigente = el de mayor versión en `docs/design/studio/_norte/` (hoy *
   de junio y **le sigue diciendo "Financiamiento 100%" al cliente** — el término retirado por
   riesgo legal. Commitear el `.md` no cambia nada en el CRM. Proceso en
   [`../runbooks/kommo-reconfig.md`](../runbooks/kommo-reconfig.md).
-- [ ] 🔴 **Decisión del founder: ¿el agente dice que es un bot?** Responde directo al cliente en
-  Instagram sin humano en el medio. California SB 1001 ya lo exige y el artículo 50 del Reglamento
-  de IA de la UE es exigible desde el 2026-08-02. El texto que cumple los cuatro marcos está
-  redactado en el runbook, sin activar.
+- [x] ~~¿El agente dice que es un bot?~~ **RESUELTO (founder, 2026-08-03): no es obligatorio.**
+  Operamos en Venezuela, que no tiene normativa sobre divulgación de bots, y no nos atamos a la
+  ley de California ni al Reglamento de IA de la UE. Lo que sí se mantiene: si el cliente
+  **pregunta** si es una persona, el agente lo dice; y la salida a humano siempre disponible.
 - [ ] **Aplicar la config v2 del AI Agent en Kommo** (Persona + Guidelines + Actions, con el
   Action de fallback que cubre el silencio). Es trabajo manual vía Chrome: Kommo no tiene conector.
 - [ ] **Auditar los 3 textos sueltos de Kommo** (Datos clave · Productos y servicios · Descripción
