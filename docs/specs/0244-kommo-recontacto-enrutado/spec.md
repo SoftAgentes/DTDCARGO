@@ -200,14 +200,37 @@ todavía no existe en Kommo.
 existe y está configurado, así que el asesor ve el código **hoy**. La marca
 permanente en el contacto (§3.2) es una mejora, no un requisito para reconocerlo.
 
-### ⏸️ Rebanada B — pendiente
+### ✅ Rebanada B — código construido (migración SIN aplicar)
 
-`patch_contact` (marca permanente en el contacto). Requiere, en este orden:
-1. Campo **"Shipping Mark" en CONTACTOS** + etiqueta `Cliente` en Kommo (config).
-2. Migración: `kommo_writeback_outbox.kommo_contact_id` (hoy `kommo_lead_id` es
-   `not null` y el drain pega fijo a `/api/v4/leads/{id}`) + `markbox_contact_field_id`.
-3. Endpoint por `op` en `kommo-writeback`.
-4. UI en `Dirección → MARKBOX en Kommo` para el campo de contactos.
+`patch_contact`: la marca permanente en el contacto. El campo del lead se lo lleva
+el trato al cerrarse; éste sobrevive, así que a partir de la primera vez el
+enrutado ya no depende del cruce por teléfono.
+
+| Pieza | Dónde | Estado |
+|---|---|---|
+| Migración `0344_kommo_writeback_contact_target.sql` | `supabase/migrations/` | ⏸️ **escrita, NO aplicada** |
+| Contrato SQL (10 invariantes, por mutación) | `supabase/tests/0344_*.test.sql` | ✅ verde |
+| Drain por `op` → `/api/v4/contacts/{id}` | `kommo-writeback/index.ts` | ✅ |
+| Encolado del `patch_contact` | `routeNewLeads` | ✅ (inerte sin el campo) |
+
+Lo que agrega la migración:
+- `kommo_connections.markbox_contact_field_id` (hermano del de leads)
+- `kommo_writeback_outbox.kommo_contact_id` + `kommo_lead_id` deja de ser `not null`
+- **`target_check`**: cada fila apunta a EXACTAMENTE un destino, y al que le toca
+  a su `op`. Sin esto un `patch_contact` sin contacto se drenaría contra
+  `/api/v4/leads/null`
+- RPC `enqueue_kommo_contact_writeback`, con clave de idempotencia namespaced `c:`
+
+#### Falta para encenderla
+
+1. **Aplicar la 0344** a producción (runbook: OK del founder nombrando el archivo).
+2. **Crear el campo "Shipping Mark" en CONTACTOS** en Kommo y guardar su id en
+   `markbox_contact_field_id`. Hoy sólo se puede por SQL: **falta la UI** en
+   `Dirección → MARKBOX en Kommo`.
+3. La etiqueta `Cliente` de §3.2 **queda fuera a propósito**: `PATCH /contacts`
+   con `_embedded.tags` **reemplaza** el conjunto de etiquetas, así que escribirla
+   sin resolver la semántica de merge borraría las que el contacto ya tenga.
+   Se hace cuando se verifique `tags_to_add`.
 
 ### 🔴 Bug encontrado y corregido de paso
 

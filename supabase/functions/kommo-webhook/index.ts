@@ -61,6 +61,8 @@ interface ConnRow {
   stage_map: unknown;
   /** SDD-0086 — custom field de lead donde va el Shipping Mark. */
   markbox_field_id: number | null;
+  /** SDD-0244 rebanada B — custom field de CONTACTO (la marca permanente). */
+  markbox_contact_field_id: number | null;
 }
 
 /** Lead de Kommo pedido con `?with=contacts` (el enrutador necesita el contacto). */
@@ -191,6 +193,19 @@ async function routeNewLeads(
         });
       }
 
+      // Y la marca PERMANENTE en el contacto (SDD-0244 rebanada B). El campo del
+      // lead de arriba se lo lleva el trato al cerrarse; éste sobrevive, así que
+      // la próxima vez el enrutado ya no depende del cruce por teléfono.
+      // Inerte mientras no exista el campo de contacto en Kommo.
+      if (conn.markbox_contact_field_id && markbox) {
+        await supabase.rpc("enqueue_kommo_contact_writeback", {
+          p_tenant_id: conn.tenant_id,
+          p_kommo_contact_id: contactId,
+          p_op: "patch_contact",
+          p_payload: buildMarkboxPayload(conn.markbox_contact_field_id, markbox),
+        });
+      }
+
       routed++;
     } catch (e) {
       // Un lead que falla no debe frenar a los demás ni al espejado.
@@ -297,7 +312,9 @@ Deno.serve(async (req: Request) => {
   }
   const { data: conn, error: connErr } = await supabase
     .from("kommo_connections")
-    .select("id, tenant_id, subdomain, domain, status, stage_map, markbox_field_id")
+    .select(
+      "id, tenant_id, subdomain, domain, status, stage_map, markbox_field_id, markbox_contact_field_id",
+    )
     .eq("subdomain", parsed.subdomain)
     .maybeSingle<ConnRow>();
   if (connErr) return json({ error: `kommo_connections: ${connErr.message}` }, 500);
