@@ -1,7 +1,7 @@
 # Runbook · antivirus, respaldo inmutable y restauración de adjuntos
 
 **SDD:** 0224 + 0235
-**Estado:** preparado; ningún proveedor ni ambiente productivo configurado
+**Estado:** AWS seleccionado con condiciones; ninguna cuenta ni ambiente configurado
 **RPO objetivo:** ≤ 1 hora
 **RTO de evidencia crítica:** ≤ 4 horas
 
@@ -16,20 +16,27 @@ No se declara `protegido` por tener variables de entorno. Se exige evidencia de
 scanner actualizado, EICAR detectado, SHA-256 coincidente, versión inmutable y
 restore byte-idéntico.
 
-## 2 · Recomendación para DTD Cargo
+## 2 · Decisión para DTD Cargo
 
-### Opción prioritaria · AWS S3 + GuardDuty Malware Protection for S3
+### Seleccionada · AWS S3 + GuardDuty Malware Protection for S3
 
-Es la ruta con menor trabajo operativo para el contrato actual:
+Región: `us-east-1`, alineada con el proyecto Supabase productivo. Arquitectura:
 
-- S3 Object Lock ofrece WORM, retención y legal hold;
-- GuardDuty analiza uploads de S3 y puede usarse de forma independiente;
-- el worker existente ya usa AWS SDK, `VersionId`, checksum,
-  `ObjectLockMode=COMPLIANCE` y `GetObjectRetention`;
-- permite fijar diez años sin la brecha de 3.000 días de Backblaze B2.
+- `scan-inbox`: bucket temporal SSE-KMS protegido por GuardDuty;
+- EventBridge → SQS + DLQ: resultados idempotentes y fail-closed;
+- `worm-backup`: bucket separado con versionado, checksum y Object Lock
+  `COMPLIANCE` por diez años + un día para Gastos;
+- S3 Standard por 30 días y Glacier Instant Retrieval después;
+- dos claves KMS y roles separados para scan, backup, restore y legal hold.
 
-El costo es mayor que un stack autogestionado, pero reduce adaptadores,
-mantenimiento de firmas y riesgo de que el scanner quede caído silenciosamente.
+GuardDuty **no ofrece** el endpoint HTTP `DTD_ATTACHMENTS_AV_URL`: escanea objetos
+después de subirlos y publica EventBridge/tags. El adapter EventBridge/SQS es un
+gate previo; no se ejecuta el worker actual con una URL ficticia.
+
+Presupuesto: USD 10/mes para laboratorio y USD 75/mes para Producción, con
+alertas 50/75/90 %. La estimación base es USD 2,54 para laboratorio, USD 33,35
+para 100 GB totales y USD 50,20 para 1 TB, bajo los supuestos documentados en la
+evaluación de privacidad. Producción incluye Business Support+ desde USD 29/mes.
 
 ### Opción económica · Cloudflare R2 + ClamAV administrado por DTD
 
@@ -55,8 +62,8 @@ a 3.000 días. Solo puede usarse si se aprueba otra estrategia demostrable
 - credencial de backup sin permiso de borrar/acortar retención;
 - credencial de restore separada y fuera del runtime normal;
 - región, contrato, subprocesadores y transferencia VE/China revisados;
-- endpoint AV privado que reciba bytes y responda únicamente
-  `{ "clean": boolean, "signature": string | null }`;
+- adapter GuardDuty EventBridge/SQS implementado y probado; el endpoint HTTP
+  legado no califica como evidencia del proveedor seleccionado;
 - firmas actualizadas, health check y prueba EICAR;
 - worker programado con frecuencia suficiente para RPO ≤ 1 hora;
 - alerta por jobs fallidos, backlog, firma vieja, checksum y lock inválido;
@@ -67,14 +74,16 @@ a 3.000 días. Solo puede usarse si se aprueba otra estrategia demostrable
 1. Crear una cuenta/proyecto de prueba sin PII real.
 2. Crear bucket privado con Object Lock/retención y versionado. Probar que una
    credencial de backup no puede borrar ni reducir el lock.
-3. Desplegar el scanner en red privada. Actualizar firmas y registrar versión y
-   fecha; el token vive solo en el secret manager.
-4. Subir EICAR y confirmar `cuarentena`; subir PDF/JPEG/PNG/WebP benignos y
-   confirmar `clean`. Nunca usar malware real.
-5. Definir `DTD_ATTACHMENTS_WORKER_ALLOW=1`, ejecutar primero
-   `pnpm attachments:preflight` y luego `scripts/attachments-pilot-worker.mjs`
-   con secretos efímeros. La salida no debe incluir tokens, URLs firmadas,
-   object keys completos ni PII. Volver el flag a `0` al terminar.
+3. Habilitar GuardDuty tagging antes del primer upload y conectar EventBridge a
+   SQS con DLQ. `FAILED`, `UNSUPPORTED`, `ACCESS_DENIED` y timeout nunca son
+   `clean`.
+4. Subir EICAR al bucket temporal y confirmar `THREATS_FOUND`/cuarentena; subir
+   PDF/JPEG/PNG/WebP benignos y confirmar `NO_THREATS_FOUND`. Nunca usar malware
+   real ni PII en el laboratorio.
+5. Con el adapter ya implementado, definir `DTD_ATTACHMENTS_WORKER_ALLOW=1`,
+   ejecutar `pnpm attachments:preflight` y el worker con secretos efímeros. La
+   salida no debe incluir tokens, URLs firmadas, object keys completos ni PII.
+   Volver el flag a `0` al terminar.
 6. Confirmar en el proveedor `VersionId`, SHA-256, modo `COMPLIANCE` y
    `RetainUntilDate`. Un PUT sin cualquiera de esos datos falla cerrado.
 7. Ejecutar el simulacro con `NODE_ENV` distinto de `production`,
@@ -140,3 +149,6 @@ sin una comprobación dentro de los últimos 93 días.
 - [Cloudflare R2 bucket locks](https://developers.cloudflare.com/r2/buckets/bucket-locks/)
 - [Backblaze B2 Object Lock](https://www.backblaze.com/docs/cloud-storage-object-lock)
 - [ClamAV](https://docs.clamav.net/)
+- [GuardDuty y EventBridge](https://docs.aws.amazon.com/guardduty/latest/ug/monitor-with-eventbridge-s3-malware-protection.html)
+- [Glacier Instant Retrieval](https://docs.aws.amazon.com/AmazonS3/latest/userguide/glacier-storage-classes.html)
+- [AWS Support pricing](https://aws.amazon.com/premiumsupport/pricing/)

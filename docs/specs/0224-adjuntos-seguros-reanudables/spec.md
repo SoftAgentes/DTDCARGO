@@ -4,7 +4,7 @@ title: "Adjuntos seguros, reanudables y recuperables"
 status: approved
 author: "Sam (founder) + Codex"
 created: 2026-07-31
-updated: 2026-08-02
+updated: 2026-08-03
 supersedes: null
 superseded_by: null
 related: ["0049", "0186", "0191"]
@@ -264,9 +264,12 @@ independientes de Supabase y Vercel. Debe soportar:
 - exportación completa al terminar el contrato;
 - logs de subida, cambio de retención, intento de borrado y restore.
 
-Backblaze B2 es candidato, no decisión. Su retención Object Lock de hasta 3.000
-días no cubre por sí sola el default de diez años de MP-D1; se requiere una
-estrategia adicional demostrable o un proveedor equivalente.
+La infraestructura seleccionada el 2026-08-03 es AWS en `us-east-1`: un bucket
+temporal protegido por GuardDuty Malware Protection for S3 y un bucket separado
+de respaldo con S3 Object Lock `COMPLIANCE`. La selección no autoriza conectar,
+contratar ni activar. GuardDuty entrega resultados asíncronos por EventBridge y
+tags; no implementa el endpoint HTTP del worker actual, por lo que el adaptador
+EventBridge/SQS es un gate previo obligatorio.
 
 Objetivos operativos aprobados para el diseño:
 
@@ -312,7 +315,7 @@ asesoría legal ni declara cumplimiento.
 
 - SDD y ADR aprobados el 2026-07-31;
 - RPO y RTO fijados como objetivos de diseño;
-- evaluar el proveedor externo;
+- evaluar y seleccionar el proveedor externo;
 - preparar allowlist exacta del piloto.
 
 ### Fase 1 · piloto no productivo de Gastos
@@ -457,7 +460,7 @@ su implementación.
 
 1. aprobación separada de la allowlist del piloto no productivo;
 2. implementación y pruebas locales en worktree limpio;
-3. evaluación del proveedor y transferencia VE/China;
+3. cierre contractual y de transferencia VE/China del proveedor seleccionado;
 4. autorización separada por cada migration Cloud;
 5. autorización separada de cuenta/proveedor externo;
 6. `cerrar` para commit y push.

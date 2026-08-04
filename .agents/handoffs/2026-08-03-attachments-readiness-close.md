@@ -14,7 +14,10 @@
 ## Commits
 
 - `78777843` — implementación fail-closed y 8 pruebas unitarias.
-- El commit operativo que contiene este handoff, el comando y la documentación se registra como el commit siguiente de esta rama.
+- `b825a270` — comando operativo, documentación y este handoff.
+- Rama publicada y sincronizada en `origin/codex/attachments-readiness-close-20260803`.
+- Integración a `main` autorizada el 2026-08-03; la selección de proveedor y el
+  gate específico de GuardDuty viajan en el commit final de este carril.
 
 ## Validación
 
@@ -23,10 +26,14 @@
 - SQL: 72 contratos verdes.
 - Schema rebuild: 335 migraciones reconstruidas; 219 tablas y 2 tenants verificados.
 - E2E contra servidor preconstruido con variables Supabase cargadas solo en proceso: 72 verdes, 18 omitidas por requerir seed; Mobile Safari y CBM verdes.
-- `pnpm verify`: todos los pasos propios verdes; único rojo externo en `migrations-applied` por `0342_kommo_contact_link` y `0343_kommo_unsorted_mirror`, pertenecientes a otro carril y no aplicadas en esta sesión.
+- El primer `pnpm verify` dejó como único rojo externo las migraciones Kommo
+  `0342`/`0343`; `main` avanzó después y el gate se repite antes de integrar.
 
 ## Pendientes externos
 
-- No activar el worker ni el piloto hasta contratar/configurar el proveedor AV y el almacenamiento inmutable, ejecutar EICAR y restore drill reales y registrar evidencia vigente.
-- Las migraciones `0342_kommo_contact_link` y `0343_kommo_unsorted_mirror` requieren autorización nominal y aplicación individual por su carril; este trabajo no depende de ellas.
-- La rama queda local, sin push, integración ni deploy. No se tomó ningún número SDD o de migración.
+- Infraestructura seleccionada: AWS S3 + GuardDuty en `us-east-1`, con
+  contratación y conexión todavía bloqueadas por contrato/PIPL y evidencia real.
+- Implementar el adapter GuardDuty EventBridge/SQS; el preflight bloquea el
+  provider id `aws-guardduty-s3` hasta que exista.
+- Ejecutar EICAR, Object Lock, restore drill y RPO/RTO reales antes del piloto.
+- No se tomó ningún número SDD o de migración.

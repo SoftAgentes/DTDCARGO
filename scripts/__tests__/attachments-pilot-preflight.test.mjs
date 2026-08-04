@@ -77,6 +77,15 @@ describe("attachments worker preflight", () => {
     expect(inspectAttachmentsWorkerEnv(env, { now }).issues).toEqual([]);
   });
 
+  it("bloquea GuardDuty mientras el worker no tenga adapter EventBridge/SQS", () => {
+    const env = baseEnv();
+    env.DTD_ATTACHMENTS_AV_PROVIDER = "aws-guardduty-s3";
+
+    expect(inspectAttachmentsWorkerEnv(env, { now }).issues).toContain(
+      "DTD_ATTACHMENTS_AV_PROVIDER=aws-guardduty-s3 requiere el adaptador EventBridge/SQS",
+    );
+  });
+
   it("exige flags y evidencias en Producción", () => {
     const env = baseEnv();
     env.NODE_ENV = "production";

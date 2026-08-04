@@ -92,6 +92,12 @@ export function inspectAttachmentsWorkerEnv(env = process.env, options = {}) {
   validateEndpoint(env, "DTD_ATTACHMENTS_AV_URL", production, issues);
   validateEndpoint(env, "DTD_ATTACHMENTS_BACKUP_ENDPOINT", production, issues);
 
+  if (env.DTD_ATTACHMENTS_AV_PROVIDER?.trim().toLowerCase() === "aws-guardduty-s3") {
+    issues.push(
+      "DTD_ATTACHMENTS_AV_PROVIDER=aws-guardduty-s3 requiere el adaptador EventBridge/SQS",
+    );
+  }
+
   if (production) {
     if (env.DTD_ATTACHMENTS_GASTOS_PILOT !== "1") {
       issues.push("DTD_ATTACHMENTS_GASTOS_PILOT debe ser 1 en Producción");
