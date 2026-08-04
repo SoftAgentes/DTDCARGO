@@ -272,3 +272,36 @@ Obligatorios antes de presentar el piloto:
   feature gate apagado por defecto.
 - Los permisos posteriores para commit, push, Cloud y Producción se registran
   y verifican como gates separados; no se infieren de esta aprobación.
+
+## Ampliación AWS · 2026-08-03
+
+El founder autorizó explícitamente implementar/probar EventBridge/SQS, preparar
+la cuenta AWS, cerrar el expediente contractual/PIPL, ejecutar EICAR/Object
+Lock/restore/RPO/RTO y activar únicamente después de evidencias verdes. Esta
+ampliación no permite inventar credenciales, aceptar contratos en nombre de la
+sociedad ni presentar pruebas locales como alojadas.
+
+Archivos adicionales permitidos:
+
+- `infra/attachments-aws/cloudformation.json`;
+- `scripts/attachments-guardduty-adapter.mjs`;
+- `scripts/attachments-aws-live-validation.mjs`;
+- `scripts/attachments-aws-deploy.mjs`;
+- `scripts/attachments-aws-postflight.mjs`;
+- `scripts/attachments-aws-evidence.mjs`;
+- `scripts/__tests__/attachments-guardduty-adapter.test.mjs`;
+- `scripts/__tests__/attachments-aws-infra.test.mjs`;
+- `scripts/__tests__/attachments-aws-evidence.test.mjs`;
+- `docs/legal/privacidad/aws-adjuntos-expediente-contractual.md`;
+- `docs/legal/privacidad/pipl-aws-adjuntos.md`;
+- documentación, configuración segura y lockfile ya enumerados en esta
+  allowlist.
+
+La dependencia AWS puede ampliarse únicamente con
+`@aws-sdk/client-cloudformation` y `@aws-sdk/client-sts` para desplegar y
+verificar identidad/stack mediante la cadena de credenciales del runtime. No se
+guardan access keys en archivos.
+
+La activación permanece fail-closed mientras falte una cuenta autenticada,
+receipt contractual, decisión PIPL, consentimiento cuando corresponda y receipt
+del simulacro alojado.

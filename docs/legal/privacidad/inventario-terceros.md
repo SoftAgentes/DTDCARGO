@@ -30,7 +30,7 @@ tercero no es papeleo: es lo único que delimita quién responde.
 | **Kommo** | Espejo de contactos y leads: nombre, correo, teléfono | ❓ | ❓ | `kommo_contacts`, `kommo_leads`, `kommo_users` (`0082`, `0139`) |
 | **Nominatim / OpenStreetMap** | 🔴 **La dirección del cliente**, en texto, para geocodificar | Alemania (Fundación OSM) | ❌ **ninguno** | [`lib/studio/geocoding.ts:10`](../../../lib/studio/geocoding.ts) |
 | **Telegram** | Notificaciones al equipo; el cuerpo puede llevar nombre de cliente y código de envío | ❓ | ❓ | `lib/studio/telegram/send-message.ts` · `lib/studio/notify/send-user-telegram.ts` |
-| **AWS — seleccionado, no conectado** | Todavía no recibe datos; recibiría bytes de adjuntos, UUID y metadata técnica mínima para scan y respaldo | EE.UU. · `us-east-1` | ⚠️ NO VERIFICABLE | [`evaluacion-proveedor-respaldo-externo.md`](evaluacion-proveedor-respaldo-externo.md) |
+| **AWS — seleccionado, no conectado** | Todavía no recibe datos; recibiría bytes de adjuntos, UUID y metadata técnica mínima para scan y respaldo | EE.UU. · `us-east-1` | DPA publicado; cuenta/aceptación **NO VERIFICABLES** | [`evaluacion-proveedor-respaldo-externo.md`](evaluacion-proveedor-respaldo-externo.md) · [`aws-adjuntos-expediente-contractual.md`](aws-adjuntos-expediente-contractual.md) |
 | **Equipo propio en Yiwu (China)** | Nombres, direcciones y teléfonos de clientes para coordinar carga | 🇨🇳 China | Relación laboral | 🔴 **PIPL aplica** — ver H-7 |
 
 ## 2 · Los que NO reciben datos personales (verificado)
