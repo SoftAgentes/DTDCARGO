@@ -1,7 +1,7 @@
 # Runbook · antivirus, respaldo inmutable y restauración de adjuntos
 
 **SDD:** 0224 + 0235
-**Estado:** R2 configurado; adaptadores listos; antivirus y piloto apagados
+**Estado:** R2 configurado; 0346 y código desplegados; antivirus y piloto apagados
 **RPO objetivo:** ≤ 1 hora
 **RTO de evidencia crítica:** ≤ 4 horas
 
@@ -32,6 +32,18 @@ R2 no implementa S3 Object Lock ni `VersionId`; por eso la migración `0346`
 amplía el recibo sin etiquetarlo falsamente como AWS `COMPLIANCE`. El gate
 alojado `pnpm attachments:r2:validate` crea un único objeto sintético, exige
 borrado S3 denegado, restaura bytes y compara SHA-256.
+
+### Checkpoint productivo · 2026-08-04
+
+- `0346_r2_bucket_lock_backup_receipts` aplicada individualmente y presente una
+  sola vez en el ledger productivo;
+- función `complete_document_backup` propiedad de `postgres`, `security definer`,
+  `search_path` vacío y `EXECUTE` exclusivo de `service_role`;
+- `pnpm verify`: todo verde, incluidos 4.764 tests Vitest, 75 contratos SQL,
+  reconstrucción del schema y 72 E2E aprobados;
+- commit `6e75ae50` integrado a `main` y despliegue Vercel completado;
+- activación bloqueada: faltan credenciales en el host real, borrado API 403,
+  restore/RPO/RTO, ClamAV/EICAR, aceptación contractual y resolución PIPL.
 
 R2 Standard incluye 10 GB-mes, 1 millón de Clase A y 10 millones de Clase B al
 mes. El excedente publicado es USD 0,015/GB-mes, USD 4,50/millón A y

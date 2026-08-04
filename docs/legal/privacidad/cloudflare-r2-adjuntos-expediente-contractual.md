@@ -1,8 +1,8 @@
 # Expediente contractual · Cloudflare R2 para adjuntos
 
 **Fecha:** 2026-08-04
-**Estado:** cuenta y facturación activas; identidad contractual, DPA aceptado y
-archivo de subprocesadores **NO VERIFICABLES**
+**Estado:** cuenta y facturación activas; copias públicas de términos, DPA y
+subprocesadores archivadas; identidad y aceptación contractual **NO VERIFICABLES**
 **Servicio:** Cloudflare R2 Standard
 **Ubicación configurada:** ENAM, ubicación sugerida y no garantía jurisdiccional
 
@@ -44,7 +44,19 @@ un límite duro ni suspenden el servicio; requieren respuesta humana.
 | Self-Serve Subscription Agreement aceptado y versión | **NO VERIFICABLE** |
 | Service-Specific Terms aplicables a R2 | fuente pública encontrada; aceptación **NO VERIFICABLE** |
 | DPA Cloudflare v6.4, vigente 2026-04-03 | fuente pública encontrada; incorporación a la cuenta **NO VERIFICABLE** |
-| lista de subprocesadores y suscripción a cambios | fuente pública encontrada; archivo/suscripción **NO VERIFICABLE** |
+| lista de subprocesadores | copia pública archivada; suscripción a cambios **NO VERIFICABLE** |
+
+### Archivo externo de fuentes públicas
+
+Ruta externa: `C:\Users\Trabajo\Documents\DTD Cargo Legal\Cloudflare R2\2026-08-04`.
+No contiene credenciales, facturas ni PII.
+
+| Archivo | SHA-256 |
+|---|---|
+| `cloudflare-dpa-v6.4-2026-04-03.pdf` | `7c778ab8510c5db073768b105805d88024e82ea4feb8ad19b559f236d51d0be3` |
+| `cloudflare-self-serve-agreement-snapshot-2026-08-04.html` | `5e50c01e512a62e0b1374097909fcb50991198a321720906b236356d3203ac49` |
+| `cloudflare-service-specific-developer-platform-snapshot-2026-08-04.html` | `c14cc329ed7e03093ff23cf0667faf3263afba6c4afacc8422c132051f48000f` |
+| `cloudflare-subprocessors-snapshot-2026-08-04.html` | `ee3e4b63469c29697e010258513a271450734215dd568037164e5b9109a2c0a3` |
 
 Antes de datos personales deben archivarse fuera de Git: factura o perfil
 fiscal, receipt de aceptación, Self-Serve Agreement, términos específicos, DPA,
@@ -63,7 +75,7 @@ el país exacto, acceso de soporte y subprocesadores siguen **NO VERIFICABLES**.
 
 - [ ] identidad fiscal y primera factura archivadas;
 - [ ] recibo de aceptación y autoridad corporativa archivados;
-- [ ] Agreement, términos específicos, DPA y subprocesadores hasheados;
+- [x] copias públicas de Agreement, términos específicos, DPA y subprocesadores hasheadas;
 - [ ] mecanismo de aviso ante cambios de subprocesadores;
 - [ ] salida/exportación y cierre de cuenta ensayados;
 - [ ] evaluación PIPL firmada para el destino efectivamente confirmado.

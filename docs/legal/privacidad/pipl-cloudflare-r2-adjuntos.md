@@ -84,7 +84,8 @@ Resumen: `CORRECTO` 3 · `ENCONTRADO` 1 · `NO VERIFICABLE` 4.
 - `ENCONTRADO`: ENAM no permite informar el país efectivo exigido por PIPL
   art. 39; debe resolverse antes de solicitar consentimiento.
 - `NO VERIFICABLE`: mecanismo CAC y umbrales aplicables.
-- `NO VERIFICABLE`: DPA/Agreement aceptados y subprocesadores archivados.
+- `NO VERIFICABLE`: DPA/Agreement aceptados e identidad de quien vincula a la empresa;
+  las copias públicas y sus hashes sí quedaron archivados fuera de Git.
 - `NO VERIFICABLE`: consentimientos separados reales y revocación.
 - `NO VERIFICABLE`: EICAR, borrado API denegado, restore y RPO/RTO alojados.
 
