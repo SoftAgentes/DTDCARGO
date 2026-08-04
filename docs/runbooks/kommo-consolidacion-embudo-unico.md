@@ -165,12 +165,59 @@ Vale confirmar si sigue publicado en algún lado.
 - [ ] **11.** Escribir en el **contacto** de Kommo: etiqueta `Cliente` + Shipping Mark.
 - [ ] **12.** Invitar al portal a los **292 clientes con email** (sólo 50 de 428 lo tienen hoy).
 
-### Fase 2 · 🔧 Redirigir la captación — *el paso que resuelve el dolor*
+### Fase 2 · ✅ CASI COMPLETA (2026-08-04) — la captación ya entra en Ventas DTD
 
-- [ ] **13.** Revisar cada fuente y apuntarla a **DTD — Ventas → Leads entrantes**: WhatsApp, formularios
-      web, chat del sitio, Facebook/Instagram, y cualquier integración que cree leads.
-      `Ajustes → Comunicaciones / Fuentes` + `Leads entrantes`.
-- [ ] **14.** Verificar con un lead de prueba real que cae en DTD — Ventas y no en Embudo de ventas.
+- [x] **13.** Fuentes apuntadas a **Ventas DTD → Leads entrantes**.
+      **WhatsApp ✅ · Instagram ✅** (reconectado el 2026-08-03; Instagram no tiene selector de
+      embudo — hay que desconectar y volver a agregar desde el embudo destino).
+- [x] **14.** Verificado con leads reales, no de prueba: el 2026-08-04 cayeron **2 por WhatsApp**
+      (`23287603`) y **1 por Instagram** (`23287637`) en **Ventas DTD → Leads Entrantes**.
+      Antes de eso, el último lead nuevo del embudo viejo es del 2026-07-30.
+- [ ] **13b.** **Facebook Messenger + Comentarios** — siguen en el embudo viejo. Mismo patrón que
+      Instagram: desconectar la página y volver a agregarla desde Ventas DTD (requiere clic en Meta).
+      **Bloquea la Fase 4:** no se puede borrar un embudo que todavía tiene fuentes atadas.
+- [ ] **13c.** Verificar los **comentarios de Instagram** (`instagram_business_comments`): los mensajes
+      directos ya migraron, pero el último comentario (2026-08-03) cayó al embudo viejo.
+- [ ] **13d.** Decidir el **segundo WhatsApp** `waba:253896374482910`: sus únicos 5 mensajes son de
+      enero 2026 y ninguno fue respondido. O se conecta a Ventas DTD, o se retira.
+
+### Fase 2b · 🔴 Vaciar la bandeja de "sin clasificar" — *el paso que faltaba*
+
+**Por qué existe esta fase.** La bandeja Unsorted no es una etapa: es una **cola previa**, y cada
+entrada nace **atada al embudo que tenía la fuente cuando entró el mensaje**. Redirigir la fuente
+(Fase 2) **no re-apunta lo que ya está en la cola**.
+
+Medido el 2026-08-04: de **152** entradas, **149 apuntan al embudo viejo**. Aceptar cualquiera de
+ellas crea el trato en `Embudo de ventas`, no en Ventas DTD — y vuelve a llenar justo el embudo que
+la Fase 4 quiere borrar. **Ya pasó**: el lead `23235815` se aceptó el 2026-08-04 12:52 UTC y quedó
+en el embudo viejo.
+
+⚠️ **Esta fase va ANTES de la Fase 3.** Si se vacía el embudo viejo primero, las aceptaciones
+posteriores lo vuelven a poblar.
+
+Clasificación de las 149 (cruce por teléfono contra `clients`):
+
+| Grupo | Leads | Edad | Destino |
+|---|---:|---|---|
+| Cliente registrado | **14** | 6–26 d | Aceptar → **Ventas DTD · Recontacto** |
+| Desconocido reciente | **118** | 1–30 d | Aceptar → **Ventas DTD · Leads entrantes** |
+| Desconocido | **9** | 31–34 d | Aceptar → **Ventas DTD · Leads entrantes** |
+| Desconocido viejo | **8** | 188–407 d | **Rechazar** |
+
+⭐ **El corte NO son 90 días: son 34.** Los datos saltan de 34 a 188 sin nada en el medio. Ese hueco
+es la línea natural — y explica por qué "rechazar el resto en bloque" habría sido un error: los 118
+recientes son **118 personas distintas** (cero duplicados), **96 de ellas con teléfono**. Es la
+demanda de un mes sin responder, no cola muerta.
+
+- [ ] **14a.** Rechazar los **8** de +188 días. 5 de ellos vienen del segundo WhatsApp (ver 13d).
+- [ ] **14b.** Aceptar los **14 clientes** y moverlos a **Recontacto**. Lista con nombres y Shipping
+      Mark: worklist local, **no va a git** (lleva PII).
+- [ ] **14c.** Aceptar los **127 desconocidos** restantes → **Leads entrantes**.
+- [ ] **14d.** Verificar que la bandeja quede **solo** con entradas atadas a Ventas DTD.
+
+> ⚠️ **Instagram no se puede enrutar automáticamente.** Sus contactos entran **sin teléfono**
+> (verificado en `23287637`), y el enrutador cruza por teléfono. Solo WhatsApp cae solo en
+> Recontacto; a los de Instagram hay que reconocerlos a mano.
 
 ### Fase 3 · Vaciar embudos, uno a la vez (de menor a mayor)
 
@@ -188,7 +235,8 @@ Para cada uno: abrir → seleccionar todos → editar en lote → setear **Tipo 
 - [ ] **19.** Compra asistida (232) → `Compra asistida` → **PERDIDO**
 - [ ] **20.** Embudo Carga (240) → `Carga` → **GANADO** *(compraron: son cierres, no pérdidas. El
        detalle logístico lo lleva el ERP)*
-- [ ] **21.** Embudo de ventas (2.277), en **tres tandas** — filtrar por **fecha de creación**:
+- [ ] **21.** Embudo de ventas (**2.281** al 2026-08-04 — sube con cada aceptación de la bandeja
+       vieja, por eso la Fase 2b va primero), en **tres tandas** — filtrar por **fecha de creación**:
        - creados hace **+90 días** (1.987) → **PERDIDO**, motivo `limpieza 2026-08`
        - de los 290 restantes: **169 con movimiento → Contacto inicial** · **121 sin tocar → Leads entrantes**
        - ⚠️ el criterio "modificado después de creado" **no es un filtro nativo de Kommo**. Si no se
@@ -204,21 +252,36 @@ Para cada uno: abrir → seleccionar todos → editar en lote → setear **Tipo 
 - [ ] **23.** Borrar los que ya están vacíos hoy: Sam (10079836), Carga China VZLA Ofidoc (11074572),
        Investigación productos (11337468), **Atencion a leeds (13967120)**.
 
-### Fase 5 · Re-mapear el ERP — ⚠️ OBLIGATORIO
+### Fase 5 · ✅ COMPLETA (2026-08-03/04) — el ERP ya apunta a Ventas DTD
 
-**Hoy el `stage_map` apunta al embudo equivocado** (`Atencion a leeds`, 13967120), que va a ser borrado:
+Antes apuntaba al embudo equivocado (`Atencion a leeds`, 13967120), que va a ser borrado. Estado
+verificado el 2026-08-04:
 
 ```json
-{"sent":     {"pipeline_id": 13967120, "status_id": 107792068},
- "accepted": {"pipeline_id": 13967120, "status_id": 142},
- "rejected": {"pipeline_id": 13967120, "status_id": 143}}
+{"sent":       {"pipeline_id": 14036567, "status_id": 108343839},
+ "accepted":   {"pipeline_id": 14036567, "status_id": 142},
+ "rejected":   {"pipeline_id": 14036567, "status_id": 143},
+ "recontacto": {"pipeline_id": 14036567, "status_id": 108343835}}
 ```
 
-- [ ] **24.** Forzar sync en `/studio/kommo` (o esperar el cron 07:00 UTC) para que el espejo traiga
-       los nombres/IDs nuevos.
-- [ ] **25.** `/studio/kommo → Dirección → Mapa de etapas`: re-mapear a **DTD — Ventas (14036567)** —
-       `enviado → Estimado enviado` · `aceptado → GANADO (142)` · `rechazado → PERDIDO (143)`.
-- [ ] **26.** Confirmar el campo **Shipping Mark** (id 1570535) en `Dirección → MARKBOX en Kommo`.
+- [x] **24.** Sync corriendo: cron 07:00 UTC **+ webhook en vivo** (9 disparos el 2026-08-04, todos
+       `ok`). Antes del 2026-08-04 el webhook **nunca había funcionado**: no tenía secreto ni estaba
+       registrado en Kommo, así que el espejo dependía solo del cron.
+- [x] **25.** Mapa re-mapeado a **Ventas DTD (14036567)**, con la clave `recontacto` del enrutador.
+- [x] **26.** Campo Shipping Mark del **lead** confirmado (`1570535`) y del **contacto** (`1570723`,
+       SDD-0244 rebanada B — el del lead se lo lleva el trato al cerrarse; el del contacto es el
+       permanente).
+
+**Falta para cerrar el circuito:**
+
+- [ ] **27.** Probar el enrutador en ensayo con un cliente registrado que escriba por WhatsApp, y
+       verificar las 3 filas `skipped` en la outbox: `patch_stage` · `patch_lead` · `patch_contact`.
+- [ ] **28.** 🔴 **Antes de apagar `writeback_dry_run`**: borrar la ficha `DTD-1007`, que guarda el
+       teléfono de China y el correo corporativo de DTD en vez de los de la clienta. Es un match
+       **único** (no ambiguo), así que el enrutador **sí actuaría** y estamparía ese Shipping Mark a
+       cualquier mensaje que entre desde ese número. Ya entró uno (lead `23286997`, 2026-08-03).
+       Borrado **suave** (`deleted_at`), nunca destructivo: SDD-0246 usa esas filas como alias.
+- [ ] **29.** Apagar `writeback_dry_run`.
 
 ## Enrutado automático a Recontacto — lo hace el ERP, no Salesbot
 
