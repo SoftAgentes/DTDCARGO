@@ -12,8 +12,8 @@
 ## Las 3 reglas que no se rompen
 
 **1. Responde rápido.** Menos de 5 minutos en horario laboral. Responder dentro de la primera
-hora hace unas 7 veces más probable que el lead avance; esperar 24 horas lo hace 60 veces menos
-probable.
+hora hace unas **7 veces** más probable **calificar** el lead que hacerlo una hora después, y más
+de **60 veces** más probable que esperar 24 horas o más.
 
 **2. Una pregunta por mensaje.** Ni cero ni tres. En un chat, dos preguntas producen **una sola
 respuesta**: el cliente contesta la última y olvida la primera. Si necesitas tres datos, son tres
@@ -326,9 +326,11 @@ fuente**, y varios se han rastreado hasta blogs que se citan entre sí:
 - *"La calidad del lead cae 80% después de 5 minutos"* — se atribuye a Harvard Business Review y
   **no está en el artículo**.
 
-Lo que sí puedes decir, con la fuente: responder en la **primera hora** hace 7 veces más probable
-calificar el lead, y esperar 24 horas lo hace 60 veces menos probable (Harvard Business Review,
-2011, auditoría sobre 2.241 empresas).
+Lo que sí puedes decir, con la fuente: responder en la **primera hora** hace unas **7 veces** más
+probable calificar el lead que hacerlo una hora después, y más de **60 veces** más probable que
+esperar 24 horas o más (Harvard Business Review, 2011, sobre 1,25 millones de leads). De ese
+mismo estudio sale otro dato que sí vale contar: auditaron 2.241 empresas mandándoles un lead de
+prueba, y **el 23% no respondió nunca**.
 
 ---
 

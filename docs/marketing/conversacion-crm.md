@@ -39,8 +39,9 @@ Y con una advertencia que va contra lo que se enseña en todos lados:
 ## Las 3 reglas que no se rompen
 
 1. **Responde rápido.** Menos de 5 minutos en horario laboral. Responder dentro de la primera
-   hora hace ~7 veces más probable que el lead avance; esperar 24 horas lo hace 60 veces menos
-   probable *(HBR, 2011, auditoría sobre 2.241 empresas)*.
+   hora hace ~**7 veces** más probable **calificar** el lead que hacerlo una hora después, y
+   **más de 60 veces** más probable que esperar 24 horas o más *(HBR, 2011, sobre 1,25 millones
+   de leads de 42 empresas)*.
 2. **Una pregunta por mensaje.** Ni cero ni tres. En un chat, dos preguntas producen **una sola
    respuesta**: el cliente contesta la última y olvida la primera. En correo, 1 a 3 preguntas
    suben la tasa de respuesta ~50%; pasando de 3, **cae** *(Boomerang)*.
@@ -377,8 +378,10 @@ Todos se repiten en blogs de marketing y **ninguno tiene fuente primaria**:
 | *"80% de las ventas requieren 5 seguimientos"* | Sin fuente primaria localizable. |
 | *"La calidad del lead cae 80% después de 5 minutos"* | Se atribuye a Harvard Business Review. **No está en el artículo.** |
 
-**Lo que sí puedes decir**, con la fuente: 7× en la primera hora y 60× vs. 24 horas (HBR 2011,
-2.241 empresas auditadas) · 21× entre 5 y 30 minutos (Oldroyd/InsideSales 2007) · tener el
+**Lo que sí puedes decir**, con la fuente: 7× calificar en la primera hora y 60× frente a esperar
+24 horas (HBR 2011, sobre 1,25 millones de leads; la auditoría de 2.241 empresas del mismo
+estudio es la que midió que el 23% **nunca responde**) · 21× entre 5 y 30 minutos
+(Oldroyd/InsideSales 2007) · tener el
 compromiso de respuesta **por escrito** sube el cumplimiento de 29,5% a 54,9% (Blazeo 2026).
 
 ---

@@ -1118,7 +1118,7 @@ https://whatsappbusiness.com/policy/ antes de decidir producto.**
 
 | Dato | Estado | Fuente real |
 |---|---|---|
-| 7× calificar en la 1ª hora / 60× vs. 24 h | 🟢 | HBR, marzo 2011, 2.241 empresas auditadas |
+| 7× calificar en la 1ª hora / 60× vs. 24 h | 🟢 | HBR, marzo 2011 — **del análisis de 1,25 M de leads**, no de la auditoría |
 | 42 h de respuesta promedio; 23% nunca responde | 🟢 | HBR 2011 |
 | 21× calificación / 100× contacto (5 vs. 30 min) | 🟡 | Oldroyd/InsideSales 2007 |
 | **Pasadas 20 h, insistir empeora el contacto** | 🟡 | Oldroyd/InsideSales 2007 |
