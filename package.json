@@ -30,6 +30,7 @@
     "docs:check": "node scripts/build-docs-index.mjs --check",
     "sdd:next": "node scripts/next-number.mjs",
     "sdd:check": "node scripts/check-numbering.mjs",
+    "attachments:preflight": "node scripts/attachments-pilot-preflight.mjs",
     "build:packlist-template": "node scripts/build-packlist-template.mjs",
     "marketing:reader": "node scripts/build-marketing-reader.mjs",
     "verify": "node scripts/verify.mjs"
