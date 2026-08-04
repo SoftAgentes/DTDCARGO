@@ -153,6 +153,9 @@ create table public.legal_acceptances (
 grant select, insert, update, delete on public.clients to authenticated;
 
 \ir ../migrations/0341_client_merge_duplicados.sql
+-- 0342 es la corrección de los teléfonos de relleno. Va acá y no en un archivo
+-- aparte porque comparte fixture y son un solo contrato: el dedup de SDD-0244.
+\ir ../migrations/0342_phone_match_key_relleno.sql
 
 -- ── Fixture ──────────────────────────────────────────────────
 -- Calca el caso real DTD-Y009 / DTD-9009: el legado tiene el documento
@@ -244,6 +247,30 @@ begin
   if exists (select 1 from public.find_duplicate_client_service(
       '11111111-1111-1111-1111-111111111111', null, null, '414')) then
     raise exception 'TEST 0341: hizo match con un teléfono demasiado corto';
+  end if;
+
+  -- 🔴 Teléfonos de RELLENO (0342). En prod hay fichas con '0000000',
+  -- '8888888', '9999999' y '1234567'. No identifican a nadie: usarlos como
+  -- llave le bloquea el registro a un cliente nuevo real, que es el error más
+  -- caro de los dos (el duplicado se fusiona; el bloqueado se va).
+  -- Este caso salió en una prueba funcional contra prod, NO en los tests.
+  if exists (select 1 from public.find_duplicate_client_service(
+      '11111111-1111-1111-1111-111111111111', null, null, '+58 4120000000')) then
+    raise exception 'TEST 0341: un teléfono de relleno (0000000) bloqueó a un cliente nuevo';
+  end if;
+  if exists (select 1 from public.find_duplicate_client_service(
+      '11111111-1111-1111-1111-111111111111', null, null, '+58 4121234567')) then
+    raise exception 'TEST 0341: la secuencia 1234567 bloqueó a un cliente nuevo';
+  end if;
+
+  -- Y la llave saneada sigue devolviendo los teléfonos de verdad.
+  if public.phone_match_key('0414-0538566') is distinct from '0538566'
+     or public.phone_match_key('+58 4140538566') is distinct from '0538566' then
+    raise exception 'TEST 0341: la llave de teléfono dejó de reconocer un número real';
+  end if;
+  if public.phone_match_key('04120000000') is not null
+     or public.phone_match_key('414') is not null then
+    raise exception 'TEST 0341: la llave de teléfono aceptó relleno o número corto';
   end if;
 
   -- Sin ninguna llave, no devuelve nada (no puede ser un listado de clientes).
