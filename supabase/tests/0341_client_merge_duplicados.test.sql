@@ -74,6 +74,9 @@ create table public.clients (
   doc_verify_status text, doc_verify_source text, doc_registry_name text,
   doc_verified_at timestamptz, doc_verified_by uuid,
   kommo_lead_id bigint,
+  -- 0345: el vínculo con la PERSONA en Kommo. Nació en la 0342 (SDD-0244), o sea
+  -- DESPUÉS de merge_clients, y por eso la fusión no lo heredaba.
+  kommo_contact_id bigint,
   email_marketing_optin_at timestamptz, email_optin_source text,
   whatsapp_marketing_optin_at timestamptz,
   advisor_id uuid, person_id uuid, contact_name text, avatar_path text
@@ -156,6 +159,8 @@ grant select, insert, update, delete on public.clients to authenticated;
 -- 0342 es la corrección de los teléfonos de relleno. Va acá y no en un archivo
 -- aparte porque comparte fixture y son un solo contrato: el dedup de SDD-0246.
 \ir ../migrations/0342_phone_match_key_relleno.sql
+-- 0345 reemplaza merge_clients para que herede también kommo_contact_id.
+\ir ../migrations/0345_merge_clients_conserva_kommo_contact.sql
 
 -- ── Fixture ──────────────────────────────────────────────────
 -- Calca el caso real DTD-Y009 / DTD-9009: el legado tiene el documento
@@ -291,6 +296,23 @@ $dedup$;
 set local role authenticated;
 set local request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000000000001';
 
+-- 0345 · El vínculo con el CONTACTO de Kommo lo tiene la ficha que se RETIRA.
+-- Es el caso realista: la ficha nueva nace del registro web y el enrutador le
+-- estampa el contacto la primera vez que esa persona escribe por WhatsApp.
+-- Si la fusión no lo hereda, el superviviente queda sin camino rápido y ese
+-- cliente vuelve al cruce por teléfono PARA SIEMPRE, sin ningún error visible.
+update public.clients set kommo_contact_id = 55507788
+ where id = 'c0000000-0000-0000-0000-00000000000b';
+
+do $pre_contacto$
+begin
+  if (select kommo_contact_id from public.clients
+       where id = 'c0000000-0000-0000-0000-00000000000a') is not null then
+    raise exception 'TEST 0345: el superviviente ya tenía vínculo; el caso no prueba nada';
+  end if;
+end;
+$pre_contacto$;
+
 do $fusion$
 declare v_res jsonb;
 begin
@@ -318,6 +340,26 @@ begin
   end if;
 end;
 $fusion$;
+
+-- 0345 · El superviviente HEREDÓ el vínculo con el contacto de Kommo.
+-- Ésta es la línea que valida por mutación: si se quita
+-- `kommo_contact_id = coalesce(...)` de la 0345, este bloque falla.
+do $post_contacto$
+begin
+  if (select kommo_contact_id from public.clients
+       where id = 'c0000000-0000-0000-0000-00000000000a') is distinct from 55507788 then
+    raise exception 'TEST 0345: la fusión PERDIÓ el vínculo con el contacto de Kommo — '
+      'el enrutador de Recontacto vuelve al cruce por teléfono para este cliente';
+  end if;
+
+  -- Y la ficha retirada lo conserva: no se mueve, se copia. Borrarlo de la
+  -- absorbida dejaría sin rastro de dónde vino el vínculo.
+  if (select kommo_contact_id from public.clients
+       where id = 'c0000000-0000-0000-0000-00000000000b') is distinct from 55507788 then
+    raise exception 'TEST 0345: la ficha retirada perdió su vínculo original';
+  end if;
+end;
+$post_contacto$;
 
 reset role;
 
