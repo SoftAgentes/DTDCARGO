@@ -1,7 +1,7 @@
 ---
 sdd: "0244"
 title: "Enrutado a Recontacto — el ERP reconoce al cliente que vuelve y le estampa su Shipping Mark"
-status: proposed
+status: in-progress
 author: "Sam (founder) + Claude"
 created: 2026-08-03
 updated: 2026-08-03
@@ -179,6 +179,61 @@ select count(*) filter (where kommo_contact_id is not null) as vinculados, count
 from clients;
 ```
 Esperado: arranca en ~243 y **sube solo** con cada cliente heredado que escribe.
+
+## 6.1 · Estado de implementación (2026-08-03)
+
+Se partió en dos rebanadas para poder desplegar hoy sin depender de config que
+todavía no existe en Kommo.
+
+### ✅ Rebanada A — construida (sin migración nueva)
+
+| Pieza | Dónde |
+|---|---|
+| Núcleo puro del enrutador | `supabase/functions/_shared/kommo-router.ts` |
+| Enrutado en `leads[add]` | `routeNewLeads` en `supabase/functions/kommo-webhook/index.ts` |
+| `patch_stage` → Recontacto | encolado desde el webhook (RPC `enqueue_kommo_writeback`) |
+| `patch_lead` → Shipping Mark **en el trato nuevo** | reusa `markbox_field_id` (1570535), ya configurado |
+| Auto-sanado de `kommo_contact_id` | mismo `routeNewLeads` |
+| Tests | `_shared/__tests__/kommo-router.test.ts` — 20 casos, incluidos contratos anti-drift |
+
+**Por qué el Shipping Mark va al LEAD en esta rebanada:** el campo de leads ya
+existe y está configurado, así que el asesor ve el código **hoy**. La marca
+permanente en el contacto (§3.2) es una mejora, no un requisito para reconocerlo.
+
+### ⏸️ Rebanada B — pendiente
+
+`patch_contact` (marca permanente en el contacto). Requiere, en este orden:
+1. Campo **"Shipping Mark" en CONTACTOS** + etiqueta `Cliente` en Kommo (config).
+2. Migración: `kommo_writeback_outbox.kommo_contact_id` (hoy `kommo_lead_id` es
+   `not null` y el drain pega fijo a `/api/v4/leads/{id}`) + `markbox_contact_field_id`.
+3. Endpoint por `op` en `kommo-writeback`.
+4. UI en `Dirección → MARKBOX en Kommo` para el campo de contactos.
+
+### 🔴 Bug encontrado y corregido de paso
+
+`normalizeStageMap` sólo conservaba `sent|accepted|rejected`, y
+`saveKommoStageMapAction` hacía `update({ stage_map: clean })`. **Guardar el mapa
+de etapas desde el Studio borraba `recontacto`** y dejaba el enrutador inerte sin
+un solo error. Corregido en `lib/studio/kommo-types.ts` (`STAGE_MAP_KEYS`),
+`kommo-writeback.ts` y la action, que ahora preserva las claves del enrutador.
+
+### Decisiones de implementación no previstas en §3
+
+| Decisión | Por qué |
+|---|---|
+| Teléfono ambiguo (2+ clientes con el mismo) → **no enruta** | Estampar el Shipping Mark del que no es es peor que no enrutar |
+| El cruce por teléfono se hace en memoria sobre `clients` | 243 filas medidas. `clients_phone_last10_idx` queda para una RPC cuando el volumen lo pida |
+| El enrutador NO pega a la API si falta `stage_map.recontacto` | Inerte de verdad: cero llamadas, cero costo |
+
+### Verificación hecha
+
+- `pnpm typecheck` · `pnpm lint` · `pnpm test` (397 archivos / 4.704 tests) ✅
+- Typecheck **scoped de `supabase/functions`** con los tipos reales de Supabase ✅
+  (el `tsconfig.json` del repo excluye esa carpeta, así que no lo cubre el gate)
+- Los contratos anti-drift se validaron **por mutación**: romper `phoneKey` tumba
+  5 tests. No son decorado.
+- ⚠️ **Falta la prueba de humo en prod**: desplegar `kommo-webhook` y escribir
+  desde un número de cliente conocido con `writeback_dry_run=true`.
 
 ## 7. Dependencias
 

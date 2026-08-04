@@ -27,6 +27,7 @@ import {
 import {
   ESTIMATE_STAGE_KEYS,
   ESTIMATE_STAGE_LABELS,
+  ROUTER_STAGE_KEYS,
   type KommoStageMap,
 } from "@/lib/studio/kommo-types";
 import {
@@ -147,9 +148,31 @@ export async function saveKommoStageMapAction(
   // `.select("id")` confirma que se tocó la fila: si el tenant no tiene conexión de
   // Kommo, el update afectaría 0 filas y guardaría en silencio (reviewer P3).
   const admin = createAdminClient();
+
+  // ⚠️ Esta pantalla SOLO edita las claves del estimado, pero `stage_map` es un
+  // jsonb compartido: también guarda los destinos del enrutador (SDD-0244 ·
+  // `recontacto`). Escribir `clean` pelado los BORRABA, y el enrutador quedaba
+  // inerte sin un solo error — se preservan explícitamente.
+  const { data: current } = await admin
+    .from("kommo_connections")
+    .select("stage_map")
+    .eq("tenant_id", link.tenant_id)
+    .maybeSingle<{ stage_map: unknown }>();
+  const stored = normalizeStageMap(current?.stage_map ?? null);
+
+  const next: KommoStageMap = {};
+  for (const key of ROUTER_STAGE_KEYS) {
+    const kept = stored[key];
+    if (kept) next[key] = kept;
+  }
+  for (const key of ESTIMATE_STAGE_KEYS) {
+    const t = clean[key];
+    if (t) next[key] = t;
+  }
+
   const { data: updated, error } = await admin
     .from("kommo_connections")
-    .update({ stage_map: clean })
+    .update({ stage_map: next })
     .eq("tenant_id", link.tenant_id)
     .select("id");
   if (error) return { error: `No se pudo guardar: ${error.message}` };

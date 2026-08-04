@@ -76,8 +76,30 @@ export const ESTIMATE_STAGE_LABELS: Record<EstimateStageKey, string> = {
   rejected: "Estimado rechazado",
 };
 
+// ── Destinos del ENRUTADOR (SDD-0244 · cliente que vuelve) ──────
+/**
+ * Destinos que NO nacen de una transición del estimado: los usa el enrutador del
+ * webhook `leads[add]` para mandar a Recontacto al cliente que vuelve a escribir.
+ *
+ * Viven en el MISMO `kommo_connections.stage_map`, pero la pantalla del mapa de
+ * etapas no los edita. Por eso `saveKommoStageMapAction` los preserva
+ * explícitamente: sin eso, guardar el mapa desde el Studio los borraba en
+ * silencio y el enrutador quedaba inerte sin un solo error.
+ */
+export type RouterStageKey = "recontacto";
+
+export const ROUTER_STAGE_KEYS: readonly RouterStageKey[] = ["recontacto"] as const;
+
+/** Todas las claves que pueden vivir en `stage_map`. */
+export type StageMapKey = EstimateStageKey | RouterStageKey;
+
+export const STAGE_MAP_KEYS: readonly StageMapKey[] = [
+  ...ESTIMATE_STAGE_KEYS,
+  ...ROUTER_STAGE_KEYS,
+] as const;
+
 /** Destino en Kommo: embudo (pipeline) + etapa (status). */
 export type KommoStageTarget = { pipeline_id: number; status_id: number };
 
-/** Mapa parcial estado→destino (solo los estados que el founder configuró). */
-export type KommoStageMap = Partial<Record<EstimateStageKey, KommoStageTarget>>;
+/** Mapa parcial clave→destino (solo las claves que el founder configuró). */
+export type KommoStageMap = Partial<Record<StageMapKey, KommoStageTarget>>;

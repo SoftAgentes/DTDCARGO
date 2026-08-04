@@ -26,6 +26,14 @@ import {
   parseKommoWebhookPayload,
   type KommoWebhookEvent,
 } from "../_shared/kommo-webhook-parse.ts";
+import {
+  buildMarkboxPayload,
+  buildStagePayload,
+  contactPhoneKeys,
+  decideRoute,
+  readRecontactoTarget,
+  type RouterClientRow,
+} from "../_shared/kommo-router.ts";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -49,6 +57,148 @@ interface ConnRow {
   subdomain: string;
   domain: string;
   status: string;
+  /** SDD-0244 — destinos del enrutador (clave `recontacto`). */
+  stage_map: unknown;
+  /** SDD-0086 — custom field de lead donde va el Shipping Mark. */
+  markbox_field_id: number | null;
+}
+
+/** Lead de Kommo pedido con `?with=contacts` (el enrutador necesita el contacto). */
+interface LeadWithContacts {
+  id: number;
+  _embedded?: { contacts?: { id: number }[] } | null;
+}
+
+/**
+ * SDD-0244 — enruta los tratos recién creados. Si quien escribe ya es cliente,
+ * encola: mover el trato a **Recontacto** + estampar su **Shipping Mark**, para
+ * que el asesor lo reconozca en vez de tratarlo como un desconocido.
+ *
+ * Inerte por diseño: sin `stage_map.recontacto` no hace NADA (ni siquiera pega a
+ * la API). Best-effort: nunca tira — un fallo del enrutado no puede romper el
+ * espejado, que es la función principal de este webhook.
+ *
+ * El gate de escritura sigue siendo el de la outbox (`writeback_dry_run`): acá
+ * solo se ENCOLA. Con dry-run encendido se puede observar sin que Kommo cambie.
+ */
+async function routeNewLeads(
+  supabase: SupabaseClient,
+  baseUrl: string,
+  token: string,
+  conn: ConnRow,
+  leadIds: number[],
+): Promise<Record<string, unknown>> {
+  const target = readRecontactoTarget(conn.stage_map);
+  if (!target) return { skipped: "sin stage_map.recontacto (enrutador inerte)" };
+  if (leadIds.length === 0) return { checked: 0 };
+
+  // Universo de clientes con teléfono, una sola vez por request. Son cientos de
+  // filas (medido 2026-08-03: 243), así que el cruce en memoria es barato y
+  // exacto. Cuando esto crezca, la evolución es una RPC que use el índice
+  // `clients_phone_last10_idx` (migración 0342) en vez de traer las filas.
+  let phoneUniverse: RouterClientRow[] | null = null;
+  const loadPhoneUniverse = async (): Promise<RouterClientRow[]> => {
+    if (phoneUniverse) return phoneUniverse;
+    const { data } = await supabase
+      .from("clients")
+      .select("id, markbox, kommo_contact_id, phone")
+      .eq("tenant_id", conn.tenant_id)
+      .is("deleted_at", null)
+      .not("phone", "is", null)
+      .neq("phone", "")
+      .limit(10000);
+    phoneUniverse = ((data as RouterClientRow[] | null) ?? []);
+    return phoneUniverse;
+  };
+
+  let routed = 0;
+  let healed = 0;
+  let unknown = 0;
+
+  for (const leadId of leadIds) {
+    try {
+      const lead = await kommoFetch<LeadWithContacts>(
+        baseUrl,
+        token,
+        `/api/v4/leads/${leadId}?with=contacts`,
+      );
+      const contactId = lead?._embedded?.contacts?.[0]?.id ?? null;
+      if (!contactId) {
+        unknown++;
+        continue;
+      }
+
+      // 1) Vínculo directo (exacto e indexado).
+      const { data: linked } = await supabase
+        .from("clients")
+        .select("id, markbox, kommo_contact_id, phone")
+        .eq("tenant_id", conn.tenant_id)
+        .eq("kommo_contact_id", contactId)
+        .is("deleted_at", null)
+        .maybeSingle<RouterClientRow>();
+
+      // 2) Si no hay vínculo, cruce por teléfono del contacto de Kommo.
+      let phones: string[] = [];
+      let universe: RouterClientRow[] = [];
+      if (!linked) {
+        const contact = await kommoFetch<{ id: number; custom_fields_values?: unknown[] | null }>(
+          baseUrl,
+          token,
+          `/api/v4/contacts/${contactId}`,
+        );
+        phones = contactPhoneKeys(contact);
+        if (phones.length > 0) universe = await loadPhoneUniverse();
+      }
+
+      const decision = decideRoute(contactId, phones, linked, universe);
+      if (decision.kind !== "cliente") {
+        unknown++;
+        continue;
+      }
+
+      // AUTO-SANADO: el cliente heredado que escribe una vez queda vinculado para
+      // siempre. `is("kommo_contact_id", null)` evita pisar un vínculo existente.
+      if (decision.needsHeal) {
+        const { error } = await supabase
+          .from("clients")
+          .update({ kommo_contact_id: contactId })
+          .eq("id", decision.client.id)
+          .eq("tenant_id", conn.tenant_id)
+          .is("kommo_contact_id", null);
+        if (!error) healed++;
+      }
+
+      // Encolar el movimiento a Recontacto. La clave de idempotencia de la RPC es
+      // `<leadId>:<op>`, así que un segundo leads[add] del mismo trato refresca la
+      // fila pendiente en vez de duplicarla.
+      await supabase.rpc("enqueue_kommo_writeback", {
+        p_tenant_id: conn.tenant_id,
+        p_kommo_lead_id: leadId,
+        p_op: "patch_stage",
+        p_payload: buildStagePayload(target),
+        p_kommo_updated_at: null,
+      });
+
+      // Y el Shipping Mark en el trato nuevo, si el campo está configurado.
+      const markbox = (decision.client.markbox ?? "").trim();
+      if (conn.markbox_field_id && markbox) {
+        await supabase.rpc("enqueue_kommo_writeback", {
+          p_tenant_id: conn.tenant_id,
+          p_kommo_lead_id: leadId,
+          p_op: "patch_lead",
+          p_payload: buildMarkboxPayload(conn.markbox_field_id, markbox),
+          p_kommo_updated_at: null,
+        });
+      }
+
+      routed++;
+    } catch (e) {
+      // Un lead que falla no debe frenar a los demás ni al espejado.
+      console.error("[kommo-webhook][router] lead", leadId, errMsg(e));
+    }
+  }
+
+  return { checked: leadIds.length, routed, healed, unknown };
 }
 
 /** Aplica un lote de eventos de una entidad. Devuelve {fetched, upserted, deleted}. */
@@ -147,7 +297,7 @@ Deno.serve(async (req: Request) => {
   }
   const { data: conn, error: connErr } = await supabase
     .from("kommo_connections")
-    .select("id, tenant_id, subdomain, domain, status")
+    .select("id, tenant_id, subdomain, domain, status, stage_map, markbox_field_id")
     .eq("subdomain", parsed.subdomain)
     .maybeSingle<ConnRow>();
   if (connErr) return json({ error: `kommo_connections: ${connErr.message}` }, 500);
@@ -196,6 +346,19 @@ Deno.serve(async (req: Request) => {
         records_upserted: res.upserted,
         status: "ok",
       });
+    }
+
+    // SDD-0244 — enrutado del cliente que vuelve. Va DESPUÉS del espejado (que es
+    // lo crítico) y nunca lo rompe: routeNewLeads no tira.
+    const newLeadIds = leadEvents.filter((e) => e.action === "add").map((e) => e.id);
+    if (newLeadIds.length > 0) {
+      summary.router = await routeNewLeads(
+        supabase,
+        baseUrl,
+        token as string,
+        conn,
+        newLeadIds,
+      );
     }
 
     // Éxito → resetea el estado de la conexión (arregla deuda #1 parcial).
