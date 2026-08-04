@@ -83,6 +83,10 @@ Este índice no las mencionaba y era un hueco: cambiar una sin la otra las desin
   cadena de profundización · las objeciones · los datos falsos que circulan):
   [`conversacion-crm.md`](conversacion-crm.md). Evidencia y fuentes en
   [`research/INVESTIGACION-conversacion-ventas-crm.md`](../../research/INVESTIGACION-conversacion-ventas-crm.md).
+- 🎓 **Manual del asesor** — el programa de entrenamiento de la **persona**, no de la IA: 4 módulos
+  y **30 ejercicios con solución**, para hacer solo y sin formador al lado →
+  [`manual-asesor/`](manual-asesor/README.md). Se hace un módulo por semana, en orden, y el
+  Módulo 1 se repite al mes. **No se carga en el asistente de IA** (es pedagogía, le agregaría ruido).
 - ⚠️ **Regla de coherencia (SDD-0063/0064):** lo que diga la KB de Kommo debe coincidir con
   `lib/faqs.ts` y con la web pública. Cambiar uno sin el otro rompe un gate declarado.
 - ⚠️ **Un hueco en la KB de Kommo produce SILENCIO, no un "no sé":** el AI Agent solo responde
@@ -185,8 +189,9 @@ Brand Book vigente = el de mayor versión en `docs/design/studio/_norte/` (hoy *
   Action de fallback que cubre el silencio). Es trabajo manual vía Chrome: Kommo no tiene conector.
 - [ ] **Auditar los 3 textos sueltos de Kommo** (Datos clave · Productos y servicios · Descripción
   del negocio): pueden seguir diciendo "opera desde 2008". La fundación es **2015**.
-- [ ] **Manual de entrenamiento del asesor** (persona, no IA) a partir de
-  [`conversacion-crm.md`](conversacion-crm.md) — segunda entrega acordada con el founder.
+- [x] ~~Manual de entrenamiento del asesor (persona, no IA)~~ ✅ **HECHO 2026-08-03** →
+  [`manual-asesor/`](manual-asesor/README.md). **Falta lo humano:** decidir quién lo corre, cuándo
+  arranca la primera semana y quién revisa los ejercicios del Módulo 1.
 - [ ] ⚠️ **`manual-vendedores-peso.md` contradice al código.** Dice gracia 1.000 kg/m³, recargo
   $2/kg y mínimo $380; `lib/calculadora.ts` dice **500 kg/m³, $1/kg y $50**. Manda el código. Es
   interno y no va al equipo, pero un asesor que lo lea va a cotizar mal.
