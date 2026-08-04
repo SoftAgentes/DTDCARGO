@@ -1,7 +1,7 @@
 ---
 sdd: "0244"
 title: "Fusión de cliente duplicado y prevención del Shipping Mark repetido"
-status: in-progress
+status: done
 author: "Sam (founder) + Claude"
 created: 2026-08-03
 updated: 2026-08-03
@@ -130,9 +130,13 @@ El sistema **propone** candidatos con su razón de coincidencia; un humano
 
 ### Parte B — Fusión (arreglar lo que ya pasó)
 
-4. Migración `0341`: `clients.merged_into_client_id`, tabla
-   `client_markbox_alias`, índices funcionales de dedup, RPC `merge_clients`
-   atómica y RPC `resolve_markbox`.
+4. Migración `0341`: `clients.merged_into_client_id`, índices funcionales de
+   dedup, y las RPC `merge_clients` (atómica), `resolve_markbox`,
+   `client_duplicate_candidates` y `find_duplicate_client_service`.
+   **Sin tabla de alias** — ver §3.3.
+   Migración `0342`: `phone_match_key()`, porque los teléfonos de relleno del
+   legado (`0000000`, `1234567`…) no identifican a nadie y como llave le
+   bloqueaban el registro a un cliente nuevo real.
 5. Query de candidatos a duplicado con razón de coincidencia.
 6. UI en Studio › Clientes: revisar y fusionar con confirmación humana.
 7. Resolución por alias en la recepción de almacén (Yiwu y VE).
@@ -162,12 +166,24 @@ El sistema **propone** candidatos con su razón de coincidencia; un humano
 
 ## 5. Criterios de aceptación
 
-- [ ] Un legado con correo o teléfono conocido que intenta registrarse **no recibe
+- [x] Un legado con correo o teléfono conocido que intenta registrarse **no recibe
       código nuevo**: se le ofrece recuperar acceso.
-- [ ] `/api/registro/check` sigue devolviendo **sólo** `{ exists: boolean }`.
-- [ ] La fusión mueve el acceso, rellena los huecos del superviviente, retira el
-      código nuevo como alias y deja el nuevo con `merged_into_client_id`.
-- [ ] Un markbox retirado **sigue resolviendo** al superviviente en recepción.
-- [ ] Un markbox retirado **nunca se reemite** por `next_markbox`.
-- [ ] La fusión es atómica: o pasa entera o no pasa.
-- [ ] Ninguna factura ni expediente sellado se reescribe.
+      *(`register-dedup-tres-llaves.test.ts`; verificado contra prod.)*
+- [x] `/api/registro/check` sigue devolviendo **sólo** `{ exists: boolean }`.
+      *(No se tocó: se dejó document-only a propósito para no crear un oráculo de
+      "¿este correo tiene cuenta?" consultable desde el navegador.)*
+- [x] La fusión mueve el acceso, rellena los huecos del superviviente, retira el
+      código nuevo y deja el nuevo con `merged_into_client_id`.
+- [x] Un markbox retirado **sigue resolviendo** al superviviente en recepción.
+      *(`warehouse-cn-markbox-retirado.test.ts`, validado con mutación.)*
+- [x] Un markbox retirado **nunca se reemite** por `next_markbox`: la fila lo
+      retiene y ni el unique ni el correlativo filtran `deleted_at`.
+- [x] La fusión es atómica: o pasa entera o no pasa.
+- [x] Ninguna factura ni expediente sellado se reescribe.
+      *(`merge_clients` no toca `markbox` ni `legal_acceptances`.)*
+- [x] Un teléfono de relleno **no bloquea** a un cliente nuevo real *(0342)*.
+
+**Verificación en prod (2026-08-03):** 0341 y 0342 aplicadas con OK del founder
+nombrándolas, verificadas objeto por objeto. 429 clientes, cero filas
+modificadas. `find_duplicate_client_service` reconoce documento, correo y
+teléfono reales, e ignora `0000000` / `1234567`.

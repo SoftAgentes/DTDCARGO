@@ -16,6 +16,10 @@
 -- va sin poder registrarse.
 --
 -- Esta migración es ADITIVA sobre 0341 (que ya está aplicada y NO se toca).
+--
+-- ✅ APLICADA A PROD el 2026-08-03 con OK del founder nombrándola. Verificada
+-- contra prod: '+58 4120000000' y '+58 4121234567' ya NO hacen match, mientras
+-- documento, correo y un teléfono real siguen reconociéndose.
 -- ─────────────────────────────────────────────────────────────
 
 -- ── La llave de teléfono, en un solo lugar ───────────────────

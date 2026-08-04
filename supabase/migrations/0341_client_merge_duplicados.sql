@@ -22,7 +22,11 @@
 -- arriba tampoco lo libera. Doble protección. Esta migración depende de esas dos
 -- propiedades y NO las toca.
 --
--- NO aplicar a prod (lo hace la coordinación / founder).
+-- ✅ APLICADA A PROD el 2026-08-03 con OK del founder nombrándola. Verificada
+-- contra los objetos: columna + 4 índices + constraint + 4 funciones, todas
+-- security definer con search_path sellado, anon sin EXECUTE en ninguna y
+-- find_duplicate_client_service SOLO para service_role. Cero filas modificadas.
+-- ⚠️ Corregida por la 0342 (teléfonos de relleno). No editar este archivo.
 -- ─────────────────────────────────────────────────────────────
 
 -- ── 1. El redirect ───────────────────────────────────────────
