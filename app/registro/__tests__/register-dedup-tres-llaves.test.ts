@@ -35,11 +35,18 @@ const THROTTLE = "portal_registro_throttle";
 
 /** Qué devuelve el dedup de la DB en cada test. null = no hay duplicado. */
 let dedupResult: { client_id: string; matched_by: string } | null = null;
+/** Simula que la migración 0341 todavía no está aplicada (PGRST202). */
+let dedupRpcFalla = false;
+/** ¿La consulta vieja por documento encuentra a alguien? */
+let dupPorDocumento = false;
 
 function makeAdmin() {
   function resolveFor(table: string, op: string) {
     if (table === THROTTLE && op === "select") return { count: 0, error: null };
     if (table === "tenants" && op === "select") return { data: { id: "tenant-1" }, error: null };
+    if (table === "clients" && op === "select") {
+      return { data: dupPorDocumento ? { id: "viejo-1" } : null, error: null };
+    }
     if (table === "clients" && op === "insert") {
       ops.insertedClients = true;
       return { data: { id: "client-1" }, error: null };
@@ -89,6 +96,12 @@ function makeAdmin() {
     rpc: async (name: string) => {
       ops.rpcNames.push(name);
       if (name === "find_duplicate_client_service") {
+        if (dedupRpcFalla) {
+          return {
+            data: null,
+            error: { code: "PGRST202", message: "function not found" },
+          };
+        }
         return { data: dedupResult ? [dedupResult] : [], error: null };
       }
       if (name === "next_markbox_service") {
@@ -137,6 +150,8 @@ function validForm(overrides: Record<string, string> = {}): FormData {
 beforeEach(() => {
   ops.reset();
   dedupResult = null;
+  dedupRpcFalla = false;
+  dupPorDocumento = false;
 });
 
 describe("registerClientAction · dedup por documento, correo y teléfono", () => {
@@ -193,6 +208,35 @@ describe("registerClientAction · dedup por documento, correo y teléfono", () =
     // Si esto se rompe, cada intento de un cliente viejo consume un número del
     // correlativo que nadie va a usar y que no se puede recuperar.
     expect(ops.rpcNames).not.toContain("next_markbox_service");
+  });
+
+  // ── Orden de despliegue ──
+  // Si el código sale a producción ANTES que la migración 0341, la función no
+  // existe (PGRST202). Ignorar ese error dejaría el alta SIN dedup — peor que
+  // antes de SDD-0244, porque este cambio reemplazó la consulta por documento.
+  describe("cuando la migración 0341 todavía no está aplicada", () => {
+    it("🔴 NO se queda sin dedup: cae al de documento y bloquea igual", async () => {
+      dedupRpcFalla = true;
+      dupPorDocumento = true;
+
+      const res = await registerClientAction({}, validForm());
+
+      expect(res.fieldErrors?.document).toMatch(/cédula ya tiene una cuenta/i);
+      expect(res.markbox).toBeUndefined();
+      expect(ops.insertedClients).toBe(false);
+      // Y sin quemar un número del correlativo.
+      expect(ops.rpcNames).not.toContain("next_markbox_service");
+    });
+
+    it("si tampoco hay duplicado por documento, el alta sigue normal", async () => {
+      dedupRpcFalla = true;
+      dupPorDocumento = false;
+
+      const res = await registerClientAction({}, validForm());
+
+      expect(res.markbox).toBe("DTD-9044");
+      expect(ops.insertedClients).toBe(true);
+    });
   });
 
   it("sin duplicado sigue de largo y emite el Shipping Mark", async () => {

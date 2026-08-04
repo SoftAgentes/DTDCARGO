@@ -164,18 +164,45 @@ export async function registerClientAction(
   //    los índices normalizados y para que sea la MISMA regla que la del detector
   //    de duplicados del Studio. Al visitante nunca se le dice de quién es la
   //    cuenta: sólo que ya existe y por dónde la reconocimos.
-  const { data: dupRows } = await admin.rpc("find_duplicate_client_service", {
-    p_tenant_id: tenantId,
-    p_document: input.document,
-    p_email: input.email,
-    p_phone: input.whatsapp,
-  });
-  const dup = (Array.isArray(dupRows) ? dupRows[0] : dupRows) as
-    | { client_id: string; matched_by: string }
-    | null
-    | undefined;
-  if (dup?.matched_by) {
-    return { fieldErrors: duplicateFieldError(input.kind, dup.matched_by) };
+  const { data: dupRows, error: dupErr } = await admin.rpc(
+    "find_duplicate_client_service",
+    {
+      p_tenant_id: tenantId,
+      p_document: input.document,
+      p_email: input.email,
+      p_phone: input.whatsapp,
+    },
+  );
+
+  if (dupErr) {
+    // ⚠️ ORDEN DE DESPLIEGUE. Si este código llega a producción ANTES que la
+    //    migración 0341, la función no existe todavía (PGRST202). Ignorar el
+    //    error dejaría el alta SIN dedup explícito — peor que antes, porque este
+    //    commit reemplazó la consulta por documento que había.
+    //
+    //    Así que caemos al dedup viejo por documento: mismo comportamiento que
+    //    antes de SDD-0244 mientras la migración no esté aplicada, y dedup
+    //    completo apenas lo esté. Nunca "sin dedup".
+    console.error("[registerClientAction] dedup RPC falló, uso el de documento:", dupErr);
+    const { data: dupDoc } = await admin
+      .from("clients")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .is("deleted_at", null)
+      .ilike("rif", input.document.toLowerCase())
+      .limit(1)
+      .maybeSingle<{ id: string }>();
+    if (dupDoc) {
+      return { fieldErrors: duplicateFieldError(input.kind, "documento") };
+    }
+  } else {
+    const dup = (Array.isArray(dupRows) ? dupRows[0] : dupRows) as
+      | { client_id: string; matched_by: string }
+      | null
+      | undefined;
+    if (dup?.matched_by) {
+      return { fieldErrors: duplicateFieldError(input.kind, dup.matched_by) };
+    }
   }
 
   // 4. MARKBOX atómico. Usamos la variante *_service (migr 0109): el registro
