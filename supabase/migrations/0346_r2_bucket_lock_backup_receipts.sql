@@ -1,0 +1,2 @@
+-- RESERVADO 2026-08-04: compatibilidad de recibos de respaldo con Cloudflare R2 Bucket Lock.
+-- El cuerpo se escribirá únicamente después de publicar esta reserva.
