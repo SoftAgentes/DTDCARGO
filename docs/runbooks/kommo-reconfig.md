@@ -229,7 +229,12 @@ WhatsApp CRM **+58 412 166 8021** (primario) · Fijo Valencia **+58 241 414 7886
 4. **El porqué** de la sugerida.
 → El founder **aprueba o ajusta**, y se pasa a la siguiente.
 
-**Estado: ✅ FAQ 28/28 COMPLETO · SUBIDO A KOMMO** (2026-06-08) — 21 base + **7 de cobertura ampliada** (#22 DDP/Financiamiento · #23 Aduana · #24 Cobertura entrega · #25 Qué importar · #26 Consolidado LCL · #27 Aéreo suspendido · **#28 Dirección de recepción bodega CN para Alibaba/1688**, ZH/ES con MARKBOX en el destinatario). ✅ La tarea pública del aéreo ya está hecha (commit `f85fb56`: SEO + catálogo + calculadora).
+> ⚠️ **Lo de abajo es el registro de junio, ya superado.** Estado actual: **FAQ 33/33** — se
+> agregaron 5 secciones de escalamiento y se corrigió la terminología retirada (ver la config v2
+> más arriba y la cabecera de `faq-knowledge-base.md`). **El DOCX que hay hoy en Kommo es el de
+> junio, con "DDP/Financiamiento 100%" adentro → hay que regenerarlo y volver a subirlo.**
+
+**Estado (histórico 2026-06-08): ✅ FAQ 28/28 COMPLETO · SUBIDO A KOMMO** — 21 base + **7 de cobertura ampliada** (#22 DDP/Financiamiento · #23 Aduana · #24 Cobertura entrega · #25 Qué importar · #26 Consolidado LCL · #27 Aéreo suspendido · **#28 Dirección de recepción bodega CN para Alibaba/1688**, ZH/ES con MARKBOX en el destinatario). ✅ La tarea pública del aéreo ya está hecha (commit `f85fb56`: SEO + catálogo + calculadora).
 - **#7/#8 Validación/Verificación:** patrón captura-email + **link** de servicios de inspección con precios (página **stand by** → lo envía el asesor). Plantillas de reporte listas: **"Inspección de Producto (PSI)"** + **"Inspección de Fábrica (auditoría /100)"** (samples branded HTML en Downloads del founder).
 - **#9 Compra asistida:** **el proveedor lo pone DTD (red propia)** → el bot no revela contacto. Modelo comercial (margen/comisión/cobro) **pendiente de definir**.
 - **#10 Cursos:** "por ahora no hay, déjame tu correo" (lista de espera) → actualizar al lanzar.
