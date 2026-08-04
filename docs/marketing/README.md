@@ -70,6 +70,25 @@ de alta frecuencia y 7–20 quedan marcadas como prioridad editorial hasta instr
 Connector SDD-0043 (sync E2E en prod: leads/contactos/pipelines/webhooks). Fuente externa, no el CRM de prod. Ver memoria `project_sdd0043_kommo_connector`.
 - **Diseño del embudo de ventas** (5 etapas), **mapa de etapas (MARKBOX)** para SDD-0084 y **campos del Kanban**: [`embudo-ventas.md`](embudo-ventas.md). Análisis triangulado (2 agentes + Codex) sobre el embudo real; recomendación lista para configurar en Kommo. Cómo ACTIVAR el write-back: [`../runbooks/activar-crm-kommo.md`](../runbooks/activar-crm-kommo.md).
 
+#### 🧠 El conocimiento que consume la IA — **hay DOS bases, y no son la misma**
+
+Este índice no las mencionaba y era un hueco: cambiar una sin la otra las desincroniza.
+
+| Base | Ruta | Quién la consume | Cómo se actualiza |
+|---|---|---|---|
+| **KB del AI Agent de Kommo** | [`../specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md`](../specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md) | El bot de Kommo (#326244) — hoy **solo en Instagram** | Editar el `.md` → convertir a DOCX → **subir a Kommo reemplazando el anterior**. No basta con commitear. Proceso en [`../runbooks/kommo-reconfig.md`](../runbooks/kommo-reconfig.md). |
+| **Paquete del equipo** | [`../../equipo-crm/README.md`](../../equipo-crm/README.md) | La cuenta Claude del equipo (`doortudoorservices@gmail.com`) | Editar el `.md` → borrar el archivo viejo del Proyecto y subir el nuevo. |
+
+- ⭐ **Cómo llevar la conversación** (leer el mensaje entrante · una pregunta por mensaje · la
+  cadena de profundización · las objeciones · los datos falsos que circulan):
+  [`conversacion-crm.md`](conversacion-crm.md). Evidencia y fuentes en
+  [`research/INVESTIGACION-conversacion-ventas-crm.md`](../../research/INVESTIGACION-conversacion-ventas-crm.md).
+- ⚠️ **Regla de coherencia (SDD-0063/0064):** lo que diga la KB de Kommo debe coincidir con
+  `lib/faqs.ts` y con la web pública. Cambiar uno sin el otro rompe un gate declarado.
+- ⚠️ **Un hueco en la KB de Kommo produce SILENCIO, no un "no sé":** el AI Agent solo responde
+  cuando encuentra información relevante en sus Sources. Por eso los temas sin redactar se marcan
+  explícitamente como escalamiento.
+
 ### 📝 Contenido / Captación de leads
 - **Centro editorial = `/noticias`**, nombre público **Actualidad** y portada
   **“Actualidad, guía y noticias”**. Conserva el motor existente de las SDD-0088/0089;
