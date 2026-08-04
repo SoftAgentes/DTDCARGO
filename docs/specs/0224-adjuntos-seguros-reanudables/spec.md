@@ -266,10 +266,11 @@ independientes de Supabase y Vercel. Debe soportar:
 
 La infraestructura seleccionada el 2026-08-03 es AWS en `us-east-1`: un bucket
 temporal protegido por GuardDuty Malware Protection for S3 y un bucket separado
-de respaldo con S3 Object Lock `COMPLIANCE`. La selección no autoriza conectar,
-contratar ni activar. GuardDuty entrega resultados asíncronos por EventBridge y
-tags; no implementa el endpoint HTTP del worker actual, por lo que el adaptador
-EventBridge/SQS es un gate previo obligatorio.
+de respaldo con S3 Object Lock `COMPLIANCE`. GuardDuty entrega resultados
+asíncronos por EventBridge y tags; no implementa el endpoint HTTP heredado. El
+adaptador EventBridge/SQS y la plantilla de infraestructura quedaron
+implementados localmente el 2026-08-03. Contratación, cuenta, evidencia alojada
+y activación siguen siendo gates separados y fail-closed.
 
 Objetivos operativos aprobados para el diseño:
 

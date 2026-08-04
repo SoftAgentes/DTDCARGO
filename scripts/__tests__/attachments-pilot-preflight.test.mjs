@@ -13,8 +13,10 @@ function baseEnv() {
     DTD_ATTACHMENTS_WORKER_ALLOW: "1",
     NEXT_PUBLIC_SUPABASE_URL: "https://project.supabase.co",
     SUPABASE_SERVICE_ROLE_KEY: "service-role-value",
+    DTD_ATTACHMENTS_AV_PROVIDER: "scanner-managed",
     DTD_ATTACHMENTS_AV_URL: "https://scanner.example.test/scan",
     DTD_ATTACHMENTS_AV_TOKEN: "av-secret-value",
+    DTD_ATTACHMENTS_AWS_AUTH_MODE: "static",
     DTD_ATTACHMENTS_BACKUP_ENDPOINT: "https://s3.example.test",
     DTD_ATTACHMENTS_BACKUP_REGION: "test-1",
     DTD_ATTACHMENTS_BACKUP_BUCKET: "immutable",
@@ -29,11 +31,18 @@ function productionEnv() {
     NODE_ENV: "production",
     DTD_ATTACHMENTS_GASTOS_PILOT: "1",
     DTD_ATTACHMENTS_PRODUCTION_CONFIRMED: "1",
-    DTD_ATTACHMENTS_AV_PROVIDER: "scanner-managed",
-    DTD_ATTACHMENTS_AV_SIGNATURE_UPDATED_AT: "2026-08-03T11:30:00.000Z",
+    DTD_ATTACHMENTS_AV_PROVIDER: "aws-guardduty-s3",
+    DTD_ATTACHMENTS_AWS_ACCOUNT_ID: "111122223333",
+    DTD_ATTACHMENTS_SCAN_REGION: "test-1",
+    DTD_ATTACHMENTS_SCAN_BUCKET: "scan-bucket",
+    DTD_ATTACHMENTS_SCAN_QUEUE_URL: "https://sqs.test-1.amazonaws.com/111122223333/scan",
+    DTD_ATTACHMENTS_SCAN_KMS_KEY_ID: "arn:aws:kms:test-1:111122223333:key/test",
+    DTD_ATTACHMENTS_GUARDDUTY_PLAN_VERIFIED_AT: "2026-08-03T11:30:00.000Z",
     DTD_ATTACHMENTS_AV_EICAR_VERIFIED_AT: "2026-08-03T11:15:00.000Z",
     DTD_ATTACHMENTS_OBJECT_LOCK_VERIFIED_AT: "2026-08-02T12:00:00.000Z",
     DTD_ATTACHMENTS_RESTORE_DRILL_VERIFIED_AT: "2026-08-01T12:00:00.000Z",
+    DTD_ATTACHMENTS_AWS_CONTRACT_VERIFIED_AT: "2026-08-03T10:00:00.000Z",
+    DTD_ATTACHMENTS_PIPL_TRANSFER_VERIFIED_AT: "2026-08-03T10:00:00.000Z",
   };
 }
 
@@ -55,6 +64,7 @@ describe("attachments worker preflight", () => {
       checks: {
         explicitWorkerAllow: true,
         coreConfiguration: true,
+        adapterConfiguration: true,
         productionEvidence: true,
       },
     });
@@ -77,13 +87,19 @@ describe("attachments worker preflight", () => {
     expect(inspectAttachmentsWorkerEnv(env, { now }).issues).toEqual([]);
   });
 
-  it("bloquea GuardDuty mientras el worker no tenga adapter EventBridge/SQS", () => {
+  it("bloquea GuardDuty cuando falta la configuración EventBridge/SQS", () => {
     const env = baseEnv();
     env.DTD_ATTACHMENTS_AV_PROVIDER = "aws-guardduty-s3";
 
-    expect(inspectAttachmentsWorkerEnv(env, { now }).issues).toContain(
-      "DTD_ATTACHMENTS_AV_PROVIDER=aws-guardduty-s3 requiere el adaptador EventBridge/SQS",
-    );
+    expect(inspectAttachmentsWorkerEnv(env, { now }).issues.join("\n")).toContain("faltan GuardDuty");
+  });
+
+  it("acepta GuardDuty completo sin exigir el scanner HTTP heredado", () => {
+    const env = productionEnv();
+    delete env.DTD_ATTACHMENTS_AV_URL;
+    delete env.DTD_ATTACHMENTS_AV_TOKEN;
+
+    expect(inspectAttachmentsWorkerEnv(env, { now }).issues).toEqual([]);
   });
 
   it("exige flags y evidencias en Producción", () => {
@@ -98,11 +114,11 @@ describe("attachments worker preflight", () => {
 
   it("bloquea evidencia antivirus vencida y restore drill fuera de vigencia", () => {
     const env = productionEnv();
-    env.DTD_ATTACHMENTS_AV_SIGNATURE_UPDATED_AT = "2026-08-01T11:00:00.000Z";
+    env.DTD_ATTACHMENTS_GUARDDUTY_PLAN_VERIFIED_AT = "2026-08-01T11:00:00.000Z";
     env.DTD_ATTACHMENTS_RESTORE_DRILL_VERIFIED_AT = "2026-04-01T12:00:00.000Z";
 
     const issues = inspectAttachmentsWorkerEnv(env, { now }).issues;
-    expect(issues).toContain("DTD_ATTACHMENTS_AV_SIGNATURE_UPDATED_AT está vencida");
+    expect(issues).toContain("DTD_ATTACHMENTS_GUARDDUTY_PLAN_VERIFIED_AT está vencida");
     expect(issues).toContain("DTD_ATTACHMENTS_RESTORE_DRILL_VERIFIED_AT está vencida");
   });
 

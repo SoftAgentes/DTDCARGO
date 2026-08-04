@@ -31,6 +31,7 @@
     "sdd:next": "node scripts/next-number.mjs",
     "sdd:check": "node scripts/check-numbering.mjs",
     "attachments:preflight": "node scripts/attachments-pilot-preflight.mjs",
+    "attachments:aws:validate": "node scripts/attachments-aws-live-validation.mjs",
     "build:packlist-template": "node scripts/build-packlist-template.mjs",
     "marketing:reader": "node scripts/build-marketing-reader.mjs",
     "verify": "node scripts/verify.mjs"
@@ -38,6 +39,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
     "@aws-sdk/client-s3": "^3.1099.0",
+    "@aws-sdk/client-sqs": "^3.1099.0",
     "@react-pdf/renderer": "^4.5.1",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.106.1",
