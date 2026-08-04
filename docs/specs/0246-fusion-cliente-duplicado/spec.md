@@ -183,6 +183,25 @@ El sistema **propone** candidatos con su razón de coincidencia; un humano
       *(`merge_clients` no toca `markbox` ni `legal_acceptances`.)*
 - [x] Un teléfono de relleno **no bloquea** a un cliente nuevo real *(0342)*.
 
+## 6. Trazabilidad — esta spec nació como SDD-0244
+
+⚠️ **Buscá en `git log` por `SDD-0244`, no por `SDD-0246`.** Se numeró 0244 con
+`pnpm sdd:next`, pero mientras se construía otra ventana publicó
+`0244-kommo-recontacto-enrutado` en `main`. La regla es que se mueve la que NO
+está en main → ésta pasó a 0246. Los **mensajes de commit anteriores al
+renumerado dicen SDD-0244** y ya no se pueden cambiar.
+
+⚠️ **Los `comment on` que las migraciones dejaron en producción también dicen
+SDD-0244**, porque se aplicaron antes del renumerado. Corregirlos es cosmético y
+exigiría otra migración con OK del founder; queda anotado, no olvidado.
+
+⚠️ **Hay dos migraciones `0342` y así se quedan.** `0342_kommo_contact_link`
+(otra ventana) y `0342_phone_match_key_relleno` (ésta) están **ambas aplicadas**
+en el ledger de prod. Ninguna se renumera: `check-migrations-applied.mjs` cruza
+el basename exacto, así que renombrar cualquiera la dejaría "sin aplicar". El par
+está en la lista blanca `CHOQUES_HISTORICOS` de `scripts/check-numbering.mjs`.
+La migración `0341` no cambió: nadie más la tomó.
+
 **Verificación en prod (2026-08-03):** 0341 y 0342 aplicadas con OK del founder
 nombrándolas, verificadas objeto por objeto. 429 clientes, cero filas
 modificadas. `find_duplicate_client_service` reconoce documento, correo y

@@ -21,11 +21,14 @@
 -- contra prod: '+58 4120000000' y '+58 4121234567' ya NO hacen match, mientras
 -- documento, correo y un teléfono real siguen reconociéndose.
 --
--- ⚠️ ESTE ARCHIVO SE RENUMERÓ DESPUÉS DE APLICARSE. Corrió como
--- **`0342_phone_match_key_relleno`** y con ese nombre figura en el ledger de
--- prod — no lo busques como 0344. Se movió a 0344 porque otra ventana publicó
--- `0342_kommo_contact_link` en `main` primero, y la regla es que se mueve la que
--- NO está en main. El contenido SQL no se tocó: es exactamente lo que se aplicó.
+-- ⚠️ HAY DOS 0342 Y ASÍ SE QUEDA. Otra ventana aplicó
+-- `0342_kommo_contact_link` a prod (20260803202130) y ésta se aplicó poco
+-- después (20260804011156). **Las dos están en el ledger**, así que ninguna se
+-- renumera: `check-migrations-applied.mjs` cruza el basename EXACTO contra el
+-- `name` del ledger, y renombrar cualquiera de las dos la dejaría "sin aplicar"
+-- a ojos del gate. Va a la lista blanca `CHOQUES_HISTORICOS` de
+-- `scripts/check-numbering.mjs`, junto con 0058, 0243, 0247, 0277 y 0297.
+-- Dos archivos con el mismo prefijo no rompen nada: el orden es determinista.
 --
 -- ⚠️ Los `comment on function` que esta migración dejó en prod dicen
 -- **SDD-0244**, porque ese era el número de la spec cuando se aplicó. La spec se

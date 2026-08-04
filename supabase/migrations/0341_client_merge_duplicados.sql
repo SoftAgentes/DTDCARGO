@@ -26,7 +26,7 @@
 -- contra los objetos: columna + 4 índices + constraint + 4 funciones, todas
 -- security definer con search_path sellado, anon sin EXECUTE en ninguna y
 -- find_duplicate_client_service SOLO para service_role. Cero filas modificadas.
--- ⚠️ Corregida por la 0344 (teléfonos de relleno). No editar este archivo.
+-- ⚠️ Corregida por la 0342 (teléfonos de relleno). No editar este archivo.
 --
 -- ⚠️ Los `comment on` que esta migración dejó en prod dicen **SDD-0244**, que era
 -- el número de la spec cuando se aplicó. La spec se renumeró a **SDD-0246**

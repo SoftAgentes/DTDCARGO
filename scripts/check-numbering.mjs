@@ -70,6 +70,10 @@ const CHOQUES_HISTORICOS = {
   "0247": ["0247_client_notifications", "0247_grant_next_consolidation_ref_authenticated"],
   "0277": ["0277_calculator_cities_destinos_faltantes", "0277_version_rls_auto_enable"],
   "0297": ["0297_container_types_activos_y_capacidad_util", "0297_legal_docs_body_hash"],
+  // 2026-08-03: dos ventanas aplicaron su 0342 con ~4 h de diferencia
+  // (kommo_contact_link 20260803202130 · phone_match_key_relleno 20260804011156).
+  // Ambas en el ledger → ninguna se renumera.
+  "0342": ["0342_kommo_contact_link", "0342_phone_match_key_relleno"],
 };
 
 /** Prefijo numérico de 4 dígitos, o null si el nombre no arranca con uno. */
