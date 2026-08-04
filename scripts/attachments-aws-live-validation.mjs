@@ -116,8 +116,16 @@ const evidence = {
 
 const cleanVersionId = await putScanObject(cleanKey, cleanBytes);
 const eicarVersionId = await putScanObject(eicarKey, eicarBytes);
-evidence.cleanScan = await waitForGuardDutyTag(cleanKey, cleanVersionId, "NO_THREATS_FOUND");
-evidence.eicarScan = await waitForGuardDutyTag(eicarKey, eicarVersionId, "THREATS_FOUND");
+evidence.cleanScan = {
+  ...(await waitForGuardDutyTag(cleanKey, cleanVersionId, "NO_THREATS_FOUND")),
+  key: cleanKey,
+  versionId: cleanVersionId,
+};
+evidence.eicarScan = {
+  ...(await waitForGuardDutyTag(eicarKey, eicarVersionId, "THREATS_FOUND")),
+  key: eicarKey,
+  versionId: eicarVersionId,
+};
 
 const retainUntil = new Date();
 retainUntil.setUTCFullYear(retainUntil.getUTCFullYear() + 10);
@@ -143,6 +151,7 @@ if (retention.Retention?.Mode !== "COMPLIANCE" || !retention.Retention.RetainUnt
 }
 evidence.rpoMs = Math.round(performance.now() - rpoStarted);
 evidence.objectLock = {
+  key: backupKey,
   mode: retention.Retention.Mode,
   retainUntil: retention.Retention.RetainUntilDate.toISOString(),
   versionId: backupPut.VersionId,

@@ -286,12 +286,21 @@ Archivos adicionales permitidos:
 - `infra/attachments-aws/cloudformation.json`;
 - `scripts/attachments-guardduty-adapter.mjs`;
 - `scripts/attachments-aws-live-validation.mjs`;
+- `scripts/attachments-aws-deploy.mjs`;
+- `scripts/attachments-aws-postflight.mjs`;
+- `scripts/attachments-aws-evidence.mjs`;
 - `scripts/__tests__/attachments-guardduty-adapter.test.mjs`;
 - `scripts/__tests__/attachments-aws-infra.test.mjs`;
+- `scripts/__tests__/attachments-aws-evidence.test.mjs`;
 - `docs/legal/privacidad/aws-adjuntos-expediente-contractual.md`;
 - `docs/legal/privacidad/pipl-aws-adjuntos.md`;
 - documentación, configuración segura y lockfile ya enumerados en esta
   allowlist.
+
+La dependencia AWS puede ampliarse únicamente con
+`@aws-sdk/client-cloudformation` y `@aws-sdk/client-sts` para desplegar y
+verificar identidad/stack mediante la cadena de credenciales del runtime. No se
+guardan access keys en archivos.
 
 La activación permanece fail-closed mientras falte una cuenta autenticada,
 receipt contractual, decisión PIPL, consentimiento cuando corresponda y receipt
