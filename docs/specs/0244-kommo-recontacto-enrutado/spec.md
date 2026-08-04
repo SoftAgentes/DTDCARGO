@@ -225,6 +225,31 @@ un solo error. Corregido en `lib/studio/kommo-types.ts` (`STAGE_MAP_KEYS`),
 | El cruce por teléfono se hace en memoria sobre `clients` | 243 filas medidas. `clients_phone_last10_idx` queda para una RPC cuando el volumen lo pida |
 | El enrutador NO pega a la API si falta `stage_map.recontacto` | Inerte de verdad: cero llamadas, cero costo |
 
+### 🔴 Descubrimiento al desplegar: el webhook nunca estuvo vivo
+
+§1.1 da el webhook por "✅ desplegado (SDD-0043 Fase B)". Está desplegado, sí —
+pero **nunca funcionó ni una vez**. Medido el 2026-08-03 al desplegar el enrutador:
+
+| Comprobación | Resultado |
+|---|---|
+| `kommo-webhook` arranca y responde | ✅ (devuelve su propio JSON de error) |
+| Secret `KOMMO_WEBHOOK_SECRET` en el proyecto | ❌ **no existe** (`supabase secrets list`) |
+| Webhooks configurados en Kommo | ❌ **ninguno** (Ajustes → Centro de integraciones → Web hooks, vacío) |
+| Filas `webhook*` en `sync_logs` | ❌ **0**, desde siempre |
+| Llamadas a la función en 24 h de logs | ❌ 0 (salvo la prueba manual) |
+
+**Consecuencia:** el espejo se mantiene **sólo** con el cron diario de `kommo-sync`
+(07:00 UTC), no en vivo. Y el enrutador de este SDD, que vive dentro del webhook,
+es código correcto pero **inerte**: nadie lo llama.
+
+**Para encenderlo** (dos extremos, ambos pendientes):
+1. `supabase secrets set KOMMO_WEBHOOK_SECRET=<valor> --project-ref xpfuzqombmjmxvprjgmi`
+2. En Kommo → Ajustes → Centro de integraciones → **Web hooks** → agregar
+   `https://xpfuzqombmjmxvprjgmi.supabase.co/functions/v1/kommo-webhook?secret=<el mismo valor>`
+   con los eventos de lead (add/update/status/delete) y contacto.
+
+Recién ahí el espejado pasa a ser en vivo y el enrutado empieza a ocurrir.
+
 ### Verificación hecha
 
 - `pnpm typecheck` · `pnpm lint` · `pnpm test` (397 archivos / 4.704 tests) ✅
