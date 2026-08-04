@@ -170,3 +170,23 @@ Brand Book vigente = el de mayor versión en `docs/design/studio/_norte/` (hoy *
 - [ ] **Google Ads:** migrar Final URL de la Search probada → `dtdcargo.com/estimacion`; decidir reactivación (des-pausar = gasta).
 - [ ] **GA4/GTM:** re-apuntar el stream `doortudoor.com → dtdcargo.com` + borrar 2 contenedores GTM sin uso.
 - [ ] **SEO:** monitorear el traspaso del "Cambio de dirección" (~180 días) en Search Console.
+
+### 🤖 CRM · IA — abierto tras la revisión del 2026-08-03
+
+- [ ] 🔴 **Regenerar el DOCX de la KB y volver a subirlo a Kommo.** El que está cargado hoy es el
+  de junio y **le sigue diciendo "Financiamiento 100%" al cliente** — el término retirado por
+  riesgo legal. Commitear el `.md` no cambia nada en el CRM. Proceso en
+  [`../runbooks/kommo-reconfig.md`](../runbooks/kommo-reconfig.md).
+- [ ] 🔴 **Decisión del founder: ¿el agente dice que es un bot?** Responde directo al cliente en
+  Instagram sin humano en el medio. California SB 1001 ya lo exige y el artículo 50 del Reglamento
+  de IA de la UE es exigible desde el 2026-08-02. El texto que cumple los cuatro marcos está
+  redactado en el runbook, sin activar.
+- [ ] **Aplicar la config v2 del AI Agent en Kommo** (Persona + Guidelines + Actions, con el
+  Action de fallback que cubre el silencio). Es trabajo manual vía Chrome: Kommo no tiene conector.
+- [ ] **Auditar los 3 textos sueltos de Kommo** (Datos clave · Productos y servicios · Descripción
+  del negocio): pueden seguir diciendo "opera desde 2008". La fundación es **2015**.
+- [ ] **Manual de entrenamiento del asesor** (persona, no IA) a partir de
+  [`conversacion-crm.md`](conversacion-crm.md) — segunda entrega acordada con el founder.
+- [ ] ⚠️ **`manual-vendedores-peso.md` contradice al código.** Dice gracia 1.000 kg/m³, recargo
+  $2/kg y mínimo $380; `lib/calculadora.ts` dice **500 kg/m³, $1/kg y $50**. Manda el código. Es
+  interno y no va al equipo, pero un asesor que lo lea va a cotizar mal.
