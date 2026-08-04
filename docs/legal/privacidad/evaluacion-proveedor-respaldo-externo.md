@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | **SELECCIONADO CON CONDICIONES · conexión bloqueada** |
+| Estado | **IMPLEMENTACIÓN LOCAL LISTA · contratación y conexión bloqueadas** |
 | Proveedor seleccionado | AWS S3 + GuardDuty Malware Protection for S3 |
 | Región | `us-east-1` · EE.UU. |
 | Finalidad | Recuperación independiente de adjuntos del ERP |
@@ -10,9 +10,10 @@
 | Evaluador técnico | Codex, con aprobación documental de Sam |
 | SDD | [SDD-0224](../../specs/0224-adjuntos-seguros-reanudables/spec.md) |
 
-Este documento es una evaluación técnica preliminar. No autoriza crear una
-cuenta, compartir datos, configurar credenciales ni contratar un proveedor. No
-es asesoría legal.
+El founder autorizó preparar y configurar la integración el 2026-08-03. La
+ausencia de una cuenta/identidad AWS autenticada impide ejecutar la contratación
+y las pruebas externas; no se comparten datos ni se declara activado. No es
+asesoría legal.
 
 ## 1 · Datos que recibiría
 
@@ -42,13 +43,16 @@ perfiles completos de clientes ni payloads de entidades.
 
 ## 3 · Rol y contrato
 
-Estado: **NO VERIFICABLE** para contratación.
+Estado: fuentes públicas **ENCONTRADAS**; cuenta y contratación
+**NO VERIFICABLES**.
 
 AWS está seleccionado técnicamente. El AWS Data Processing Addendum se publica
 como parte de los términos del servicio y AWS mantiene una lista de
-subprocesadores por región/servicio. Todavía no se verificó ni archivó la entidad
-contractual que facturará a DTD Cargo, la aceptación aplicable, el contacto ni
-las condiciones de terminación. No se conecta hasta que eso quede revisado.
+subprocesadores por región/servicio. El expediente de URLs y huellas está en
+[`aws-adjuntos-expediente-contractual.md`](aws-adjuntos-expediente-contractual.md).
+Para una cuenta venezolana, la tabla pública apunta a Amazon Web Services, Inc.;
+la aceptación, facturación y titularidad reales siguen sin verificarse. No se
+conecta hasta confirmarlas dentro de la cuenta.
 
 Antes de conectar deben verificarse y documentarse:
 
@@ -122,11 +126,15 @@ Arquitectura seleccionada, todavía **NO VERIFICABLE** en una cuenta real:
 3. EventBridge → SQS con DLQ para resultados idempotentes y fail-closed;
 4. bucket `worm-backup` separado, versionado y Object Lock `COMPLIANCE`;
 5. roles distintos para scan, escritura de backup, restore y legal hold;
-6. CloudTrail, Inventory, CloudWatch y AWS Budgets habilitados.
+6. AWS Budgets y alarmas CloudWatch de cola/DLQ desde la plantilla; CloudTrail
+   organizacional e Inventory deben habilitarse y verificarse al configurar la
+   cuenta real.
 
-GuardDuty no expone el HTTP `DTD_ATTACHMENTS_AV_URL`. El worker actual debe
-recibir un adaptador asíncrono EventBridge/SQS antes de ejecutar EICAR real; no se
-debe simular el endpoint ni llenar evidencia manualmente.
+GuardDuty no expone el HTTP `DTD_ATTACHMENTS_AV_URL`. El adaptador asíncrono
+EventBridge/SQS ya está implementado y probado localmente en
+`scripts/attachments-guardduty-adapter.mjs`; el preflight exige cuenta, región,
+bucket, cola, KMS y evidencia vigente. EICAR real continúa bloqueado hasta
+provisionar la cuenta.
 
 ## 6 · Integridad, retención y restore
 
@@ -229,9 +237,12 @@ costo real; la factura piloto manda sobre esta proyección.
 Motivos:
 
 1. proveedor, región, arquitectura, retención y presupuesto ya están definidos;
-2. falta archivar contrato/DPA, entidad de facturación y subprocesadores;
-3. no se resolvió transferencia desde China;
-4. falta implementar el adaptador EventBridge/SQS del worker;
+2. fuentes contractuales, DPA y subprocesadores tienen URL + huella; falta la
+   aceptación/factura de la cuenta real;
+3. PIPL tiene evaluación, mecanismo condicional y texto de consentimiento, pero
+   la decisión legal y los consentimientos reales no son verificables;
+4. el adaptador EventBridge/SQS y la infraestructura declarativa están probados
+   localmente;
 5. no existen EICAR, Object Lock, restore drill ni RPO/RTO en cuenta real.
 
 El gate se reabre únicamente con evidencia contractual, técnica, de privacidad y
@@ -241,7 +252,7 @@ de restauración. La revisión legal corresponde a un abogado.
 
 | Opción | Inmutabilidad | Antivirus | Nivel gratuito útil | Ajuste al worker actual | Veredicto |
 |---|---|---|---|---|---|
-| AWS S3 + GuardDuty | Object Lock WORM por versión | administrado; free tier sujeto a condiciones vigentes | storage/requests aparte | backup alto; antivirus requiere adapter asíncrono | ⭐ seleccionada |
+| AWS S3 + GuardDuty | Object Lock WORM por versión | administrado; free tier sujeto a condiciones vigentes | storage/requests aparte | adapter asíncrono implementado; falta prueba alojada | ⭐ seleccionada |
 | Cloudflare R2 + ClamAV | bucket locks | autogestionado | 10 GB-mes Standard + operaciones/egress incluidos | requiere adaptar lock + operar AV | económica con trabajo adicional |
 | Backblaze B2 + ClamAV | Object Lock sin recargo específico | autogestionado | primeros 10 GB | API S3 compatible, pero lock máximo 3.000 días | no cubre diez años por sí sola |
 | Azure Blob + Defender | WORM/immutability | administrado por GB | no asumido | requiere adaptador nuevo | alternativa empresarial |

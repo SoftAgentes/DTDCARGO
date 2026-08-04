@@ -1,7 +1,7 @@
 # Runbook · antivirus, respaldo inmutable y restauración de adjuntos
 
 **SDD:** 0224 + 0235
-**Estado:** AWS seleccionado con condiciones; ninguna cuenta ni ambiente configurado
+**Estado:** adaptador e IaC listos; ninguna cuenta ni ambiente AWS autenticado
 **RPO objetivo:** ≤ 1 hora
 **RTO de evidencia crítica:** ≤ 4 horas
 
@@ -30,8 +30,11 @@ Región: `us-east-1`, alineada con el proyecto Supabase productivo. Arquitectura
 - dos claves KMS y roles separados para scan, backup, restore y legal hold.
 
 GuardDuty **no ofrece** el endpoint HTTP `DTD_ATTACHMENTS_AV_URL`: escanea objetos
-después de subirlos y publica EventBridge/tags. El adapter EventBridge/SQS es un
-gate previo; no se ejecuta el worker actual con una URL ficticia.
+después de subirlos y publica EventBridge/tags. El adaptador en
+`scripts/attachments-guardduty-adapter.mjs` valida cuenta, región, bucket,
+VersionId, key y metadata antes de ejecutar las RPC. La plantilla reproducible
+vive en `infra/attachments-aws/cloudformation.json`. El worker sigue bloqueado
+hasta que la cuenta real entregue outputs y evidencia.
 
 Presupuesto: USD 10/mes para laboratorio y USD 75/mes para Producción, con
 alertas 50/75/90 %. La estimación base es USD 2,54 para laboratorio, USD 33,35
@@ -63,11 +66,16 @@ a 3.000 días. Solo puede usarse si se aprueba otra estrategia demostrable
 - credencial de restore separada y fuera del runtime normal;
 - región, contrato, subprocesadores y transferencia VE/China revisados;
 - adapter GuardDuty EventBridge/SQS implementado y probado; el endpoint HTTP
-  legado no califica como evidencia del proveedor seleccionado;
+  heredado no se usa con este proveedor;
 - firmas actualizadas, health check y prueba EICAR;
 - worker programado con frecuencia suficiente para RPO ≤ 1 hora;
 - alerta por jobs fallidos, backlog, firma vieja, checksum y lock inválido;
 - presupuesto y límites para evitar que el proveedor detenga el scanning.
+
+La plantilla crea alarmas para backlog SQS de 30 minutos y cualquier mensaje en
+la DLQ. El correo debe confirmar manualmente la suscripción SNS. CloudTrail
+organizacional e Inventory se verifican como configuración de la cuenta, no se
+presumen por desplegar el stack.
 
 ## 4 · Secuencia no productiva
 
@@ -95,6 +103,12 @@ a 3.000 días. Solo puede usarse si se aprueba otra estrategia demostrable
    proveedor como evidencia.
 10. Solo entonces registrar las fechas verificadas del gate y probar el piloto
     no productivo de Gastos.
+
+El gate alojado se ejecuta con `pnpm attachments:aws:validate` y
+`DTD_ATTACHMENTS_AWS_VALIDATION_ALLOW=1`. Crea únicamente objetos sintéticos:
+archivo limpio, EICAR y una versión WORM JSON. El receipt se escribe fuera del
+repo con creación exclusiva; falla si ya existe, si EICAR no es detectado, si la
+versión puede borrarse o si el checksum restaurado cambia.
 
 ## 5 · Evidencia mínima
 
