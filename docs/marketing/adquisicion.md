@@ -29,7 +29,7 @@ cada 30–45 días. No necesitamos mil leads: necesitamos **1–2 cuentas ancla 
 | **El avatar** | Mayorista que repone cada 30–45 días (ferretería, repuestos, hogar, electrónica) + aliado revendedor. **Se le dice NO al comprador de una vez** | Ya definido en [`ventas.md`](ventas.md); "one avatar · one channel · one offer" (línea A) |
 | **El canal primario** ⭐ | **Calor propio: base de clientes existente + referidos pedidos activamente** | Referido convierte **10–25% end-to-end vs 0,5–2% del frío** (3–5x, CONFIRMADO) y cierra ~38% más rápido (BNI, CONFIRMADO). Con 1 vendedor, la matemática solo da con calor (línea E) |
 | **Canal de soporte** | Instagram (5.003 seguidores) → DM → WhatsApp | El funnel real de IG es: feed descubre → Story activa → DM califica → WhatsApp cierra. Convertir seguidores existentes vale más que crecer la cuenta (línea A) |
-| **El proceso** | Rutina diaria fija: responder en <5 min → calificar con 5 preguntas → cotizar → cadencia de 6 toques → nurture mensual | Responder en 5 min vs 30 min = **21x más probabilidad de calificar** el lead (MIT, CONFIRMADO). La mayoría del mercado responde en horas o nunca (línea D) |
+| **El proceso** | Rutina diaria fija: responder en <5 min → calificar con 5 preguntas → cotizar → cadencia de 6 toques → nurture mensual | Responder en 5 min vs 30 min = **21x más probabilidad de calificar** el lead (Oldroyd/InsideSales 2007, 15.000+ leads). La mayoría del mercado responde en horas o nunca (línea D) |
 | **El CRM** | Kommo, embudo único de 5 etapas + regla "ninguna tarjeta sin tarea" | Ya diseñado en [`embudo-ventas.md`](embudo-ventas.md); falta configurarlo (§10) |
 
 **La ventaja injusta que ya tenemos y no explotamos:** una base de ~400 clientes históricos en el ERP
@@ -161,8 +161,10 @@ personas; revisar solo al pasar 256 contactos de difusión o 3 agentes — CONFI
 
 **Paso 1 — Responder lo que llegó (primera hora de la mañana + durante el día). SLA: <5 minutos en horario laboral.**
 Todo lo que entre por WhatsApp, DM de Instagram, estimado web (llega aviso por email/Telegram) o formulario de
-contacto se responde en minutos, no horas. Un lead respondido en 5 minutos vale 21 veces más que uno respondido
-en 30 (MIT, CONFIRMADO). La primera respuesta NUNCA es un menú frío — siempre incluye la pregunta 1 de calificación:
+contacto se responde en minutos, no horas. Responder en 5 minutos en vez de en 30 hace **21 veces más probable calificar** el lead
+(Oldroyd/InsideSales 2007, sobre 15.000+ leads — **no es un paper del MIT**, aunque así se cite en
+todos lados: fue un análisis sobre datos de InsideSales.com coordinado por un investigador con
+afiliación a MIT Sloan). La primera respuesta NUNCA es un menú frío — siempre incluye la pregunta 1 de calificación:
 
 > *"¡Hola [nombre]! Gracias por escribirnos 🙌 Cuéntame: ¿qué producto manejas y a qué se dedica tu negocio?
 > Así te oriento de una vez con números."*
@@ -171,13 +173,16 @@ en 30 (MIT, CONFIRMADO). La primera respuesta NUNCA es un menú frío — siempr
 > [`guiones-asesor.md`](guiones-asesor.md).
 
 **Paso 2 — Calificar con las 5 preguntas (en la conversación, no como interrogatorio).**
-Se hacen conversando, 1 o 2 por mensaje. Guardarlas como respuestas rápidas de WhatsApp Business:
+Se hacen conversando, **UNA por mensaje**. Dos preguntas juntas producen una sola respuesta: el
+cliente contesta la última y olvida la primera. Guárdalas como respuestas rápidas de WhatsApp
+Business:
 
 1. *"¿Qué producto manejas y a qué se dedica tu negocio?"* → fit de rubro; descarta al comprador ocasional.
 2. *"¿Ya importas directo desde China o le compras a distribuidores aquí?"* → madurez; contra quién compites.
 3. *"¿Cuánto volumen mueves por pedido (cajas, m³ o kilos, aproximado) y cada cuánto repones?"* → **LA pregunta**:
    separa al mayorista recurrente del one-shot. Mapea directo a los criterios de ancla de [`ventas.md`](ventas.md).
-4. *"¿Tú decides la compra? ¿Para cuándo necesitas tu próxima reposición?"* → autoridad + urgencia.
+4. *"¿Para cuándo necesitas tu próxima reposición?"* → urgencia. La autoridad (**¿tú decides la
+   compra?**) va en un turno aparte, o se infiere sola de cómo habla — **son dos preguntas, no una**.
 5. *"¿Qué es lo que más te cuesta hoy al traer mercancía?"* → el dolor elige el argumento: aduana/confianza →
    "pagas al llegar"; mínimos → consolidación; proveedor → compra asistida.
 

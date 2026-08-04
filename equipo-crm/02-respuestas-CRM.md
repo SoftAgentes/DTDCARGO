@@ -290,14 +290,16 @@ Cuéntame: ¿qué producto manejas y a qué se dedica tu negocio? Así te orient
 
 ## Las 5 preguntas de calificación · `/q1` … `/q5`
 
-Se hacen **conversando**, 1 o 2 por mensaje. No es un interrogatorio.
+Se hacen **conversando**, **UNA por mensaje**. No es un interrogatorio — y dos preguntas juntas
+producen una sola respuesta.
 
 | Atajo | Pregunta | Para qué sirve |
 |---|---|---|
 | `/q1` | ¿Qué producto manejas y a qué se dedica tu negocio? | Ver si es del rubro (ferretería, repuestos, hogar, electrónica…) |
 | `/q2` | ¿Ya importas directo desde China o le compras a distribuidores aquí? | Qué tan avanzado está y contra quién compites |
 | `/q3` | ¿Cuánto volumen mueves por pedido y cada cuánto repones? | **La clave** — separa al mayorista que repone del que compra una sola vez |
-| `/q4` | ¿Tú decides la compra? ¿Para cuándo necesitas tu próxima reposición? | Si habla la persona correcta y con qué urgencia |
+| `/q4` | ¿Para cuándo necesitas tu próxima reposición? | Urgencia |
+| `/q4b` | ¿La compra la decides tú o la aprueba alguien más? | Autoridad. **Turno aparte** — junta con la de arriba, el cliente contesta una sola |
 | `/q5` | ¿Qué es lo que más te cuesta hoy al traer mercancía? | El dolor te dice qué argumento usar |
 
 > **Después de calificar:** si es **mayorista que repone cada 30-45 días** → sigue con él, arma
