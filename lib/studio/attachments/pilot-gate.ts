@@ -46,12 +46,21 @@ export function attachmentsPilotState(
     "DTD_ATTACHMENTS_BACKUP_REGION",
     "DTD_ATTACHMENTS_BACKUP_BUCKET",
   ].every((key) => hasValue(env, key));
+  const backupProvider = env.DTD_ATTACHMENTS_BACKUP_PROVIDER?.trim().toLowerCase()
+    || (env.DTD_ATTACHMENTS_BACKUP_ENDPOINT?.includes(".r2.cloudflarestorage.com")
+      ? "cloudflare-r2" : "aws-s3-object-lock");
   const authMode = env.DTD_ATTACHMENTS_AWS_AUTH_MODE ?? "static";
-  const awsAuthReady = authMode === "default-chain" || (authMode === "static" && [
+  const credentialReady = authMode === "default-chain" || (authMode === "static" && [
     "DTD_ATTACHMENTS_BACKUP_ACCESS_KEY_ID",
     "DTD_ATTACHMENTS_BACKUP_SECRET_ACCESS_KEY",
   ].every((key) => hasValue(env, key)));
-  if (env.NODE_ENV === "production" && (!backupReady || !awsAuthReady)) {
+  const r2Ready = backupProvider !== "cloudflare-r2" || (
+    authMode === "static"
+    && env.DTD_ATTACHMENTS_BACKUP_REGION === "auto"
+    && hasValue(env, "DTD_ATTACHMENTS_R2_LOCK_RULE_NAME")
+    && Number(env.DTD_ATTACHMENTS_R2_LOCK_DAYS) >= 3654
+  );
+  if (env.NODE_ENV === "production" && (!backupReady || !credentialReady || !r2Ready)) {
     return { enabled: false, reason: "backup_not_configured" };
   }
   if (env.NODE_ENV === "production") {
@@ -79,7 +88,10 @@ export function attachmentsPilotState(
     if (!hasRecentTimestamp(env, "DTD_ATTACHMENTS_RESTORE_DRILL_VERIFIED_AT", now, 93 * 24 * 60 * 60 * 1_000)) {
       return { enabled: false, reason: "restore_not_verified" };
     }
-    if (!hasRecentTimestamp(env, "DTD_ATTACHMENTS_AWS_CONTRACT_VERIFIED_AT", now, 366 * 24 * 60 * 60 * 1_000)) {
+    const contractEvidence = backupProvider === "cloudflare-r2"
+      ? "DTD_ATTACHMENTS_CLOUDFLARE_CONTRACT_VERIFIED_AT"
+      : "DTD_ATTACHMENTS_AWS_CONTRACT_VERIFIED_AT";
+    if (!hasRecentTimestamp(env, contractEvidence, now, 366 * 24 * 60 * 60 * 1_000)) {
       return { enabled: false, reason: "contract_not_verified" };
     }
     if (!hasRecentTimestamp(env, "DTD_ATTACHMENTS_PIPL_TRANSFER_VERIFIED_AT", now, 366 * 24 * 60 * 60 * 1_000)) {

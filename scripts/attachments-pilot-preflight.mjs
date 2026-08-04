@@ -23,7 +23,6 @@ const PRODUCTION_EVIDENCE = [
   "DTD_ATTACHMENTS_AV_EICAR_VERIFIED_AT",
   "DTD_ATTACHMENTS_OBJECT_LOCK_VERIFIED_AT",
   "DTD_ATTACHMENTS_RESTORE_DRILL_VERIFIED_AT",
-  "DTD_ATTACHMENTS_AWS_CONTRACT_VERIFIED_AT",
   "DTD_ATTACHMENTS_PIPL_TRANSFER_VERIFIED_AT",
 ];
 
@@ -85,10 +84,16 @@ export function inspectAttachmentsWorkerEnv(env = process.env, options = {}) {
   const issues = [];
   const production = env.NODE_ENV === "production";
   const provider = env.DTD_ATTACHMENTS_AV_PROVIDER?.trim().toLowerCase() || "scanner-managed";
+  const backupProvider = env.DTD_ATTACHMENTS_BACKUP_PROVIDER?.trim().toLowerCase()
+    || (env.DTD_ATTACHMENTS_BACKUP_ENDPOINT?.includes(".r2.cloudflarestorage.com")
+      ? "cloudflare-r2" : "aws-s3-object-lock");
+  const contractEvidence = backupProvider === "cloudflare-r2"
+    ? "DTD_ATTACHMENTS_CLOUDFLARE_CONTRACT_VERIFIED_AT"
+    : "DTD_ATTACHMENTS_AWS_CONTRACT_VERIFIED_AT";
   const providerEvidence = provider === "aws-guardduty-s3"
     ? ["DTD_ATTACHMENTS_GUARDDUTY_PLAN_VERIFIED_AT"]
     : ["DTD_ATTACHMENTS_AV_SIGNATURE_UPDATED_AT"];
-  const requiredEvidence = [...PRODUCTION_EVIDENCE, ...providerEvidence];
+  const requiredEvidence = [...PRODUCTION_EVIDENCE, contractEvidence, ...providerEvidence];
 
   if (env.DTD_ATTACHMENTS_WORKER_ALLOW !== "1") {
     issues.push("DTD_ATTACHMENTS_WORKER_ALLOW debe ser 1");
@@ -124,7 +129,23 @@ export function inspectAttachmentsWorkerEnv(env = process.env, options = {}) {
       "DTD_ATTACHMENTS_BACKUP_ACCESS_KEY_ID",
       "DTD_ATTACHMENTS_BACKUP_SECRET_ACCESS_KEY",
     ].filter((key) => !isPresent(env, key));
-    if (missingCredentials.length) issues.push(`faltan credenciales AWS ${missingCredentials.join(", ")}`);
+    if (missingCredentials.length) issues.push(`faltan credenciales de respaldo ${missingCredentials.join(", ")}`);
+  }
+  if (!new Set(["aws-s3-object-lock", "cloudflare-r2"]).has(backupProvider)) {
+    issues.push("DTD_ATTACHMENTS_BACKUP_PROVIDER no está soportado");
+  }
+  if (backupProvider === "cloudflare-r2") {
+    if (authMode !== "static") issues.push("Cloudflare R2 exige credenciales S3 estáticas de alcance mínimo");
+    if (env.DTD_ATTACHMENTS_BACKUP_REGION !== "auto") issues.push("Cloudflare R2 exige región S3 auto");
+    if (!isPresent(env, "DTD_ATTACHMENTS_R2_LOCK_RULE_NAME")) issues.push("falta DTD_ATTACHMENTS_R2_LOCK_RULE_NAME");
+    const lockDays = Number(env.DTD_ATTACHMENTS_R2_LOCK_DAYS);
+    if (!Number.isInteger(lockDays) || lockDays < 3654) issues.push("DTD_ATTACHMENTS_R2_LOCK_DAYS debe ser al menos 3654");
+    if (isPresent(env, "DTD_ATTACHMENTS_BACKUP_ENDPOINT")) {
+      try {
+        const host = new URL(env.DTD_ATTACHMENTS_BACKUP_ENDPOINT).hostname.toLowerCase();
+        if (!host.endsWith(".r2.cloudflarestorage.com")) issues.push("endpoint de Cloudflare R2 no reconocido");
+      } catch { /* validateEndpoint reporta la URL inválida */ }
+    }
   }
 
   validateEndpoint(env, "NEXT_PUBLIC_SUPABASE_URL", production, issues);
@@ -150,7 +171,7 @@ export function inspectAttachmentsWorkerEnv(env = process.env, options = {}) {
     validateTimestamp(env, "DTD_ATTACHMENTS_AV_EICAR_VERIFIED_AT", nowMs, DAY_MS, issues);
     validateTimestamp(env, "DTD_ATTACHMENTS_OBJECT_LOCK_VERIFIED_AT", nowMs, RESTORE_EVIDENCE_MAX_AGE_MS, issues);
     validateTimestamp(env, "DTD_ATTACHMENTS_RESTORE_DRILL_VERIFIED_AT", nowMs, RESTORE_EVIDENCE_MAX_AGE_MS, issues);
-    validateTimestamp(env, "DTD_ATTACHMENTS_AWS_CONTRACT_VERIFIED_AT", nowMs, 366 * DAY_MS, issues);
+    validateTimestamp(env, contractEvidence, nowMs, 366 * DAY_MS, issues);
     validateTimestamp(env, "DTD_ATTACHMENTS_PIPL_TRANSFER_VERIFIED_AT", nowMs, 366 * DAY_MS, issues);
   }
 

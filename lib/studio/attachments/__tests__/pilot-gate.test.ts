@@ -91,4 +91,25 @@ describe("gate del piloto", () => {
       ...externalEvidence,
     })).toEqual({ enabled: true, reason: "enabled" });
   });
+
+  it("habilita R2 solo con lock, contrato Cloudflare y credenciales estáticas", () => {
+    expect(state({
+      ...production,
+      ...backup,
+      ...externalEvidence,
+      DTD_ATTACHMENTS_BACKUP_PROVIDER: "cloudflare-r2",
+      DTD_ATTACHMENTS_BACKUP_ENDPOINT: "https://account.r2.cloudflarestorage.com",
+      DTD_ATTACHMENTS_BACKUP_REGION: "auto",
+      DTD_ATTACHMENTS_AWS_AUTH_MODE: "static",
+      DTD_ATTACHMENTS_BACKUP_ACCESS_KEY_ID: "id",
+      DTD_ATTACHMENTS_BACKUP_SECRET_ACCESS_KEY: "secret",
+      DTD_ATTACHMENTS_R2_LOCK_RULE_NAME: "dtdcargo-gastos-10y1d",
+      DTD_ATTACHMENTS_R2_LOCK_DAYS: "3654",
+      DTD_ATTACHMENTS_AV_PROVIDER: "scanner-managed",
+      DTD_ATTACHMENTS_AV_URL: "https://scanner.example.test/scan",
+      DTD_ATTACHMENTS_AV_TOKEN: "token",
+      DTD_ATTACHMENTS_AV_SIGNATURE_UPDATED_AT: "2026-08-01T12:00:00Z",
+      DTD_ATTACHMENTS_CLOUDFLARE_CONTRACT_VERIFIED_AT: "2026-08-01T12:20:00Z",
+    })).toEqual({ enabled: true, reason: "enabled" });
+  });
 });

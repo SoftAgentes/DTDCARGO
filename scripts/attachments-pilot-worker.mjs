@@ -22,8 +22,11 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.
   auth: { persistSession: false, autoRefreshToken: false },
 });
 const provider = process.env.DTD_ATTACHMENTS_AV_PROVIDER?.trim().toLowerCase() || "scanner-managed";
+const backupProvider = process.env.DTD_ATTACHMENTS_BACKUP_PROVIDER?.trim().toLowerCase()
+  || (process.env.DTD_ATTACHMENTS_BACKUP_ENDPOINT?.includes(".r2.cloudflarestorage.com")
+    ? "cloudflare-r2" : "aws-s3-object-lock");
 
-function awsCredentials() {
+function backupCredentials() {
   if ((process.env.DTD_ATTACHMENTS_AWS_AUTH_MODE ?? "static") === "default-chain") return undefined;
   return {
     accessKeyId: process.env.DTD_ATTACHMENTS_BACKUP_ACCESS_KEY_ID,
@@ -33,22 +36,24 @@ function awsCredentials() {
 
 function forcePathStyle(endpoint) {
   const hostname = new URL(endpoint).hostname.toLowerCase();
-  return !(hostname === "s3.amazonaws.com" || /^s3[.-][a-z0-9-]+\.amazonaws\.com$/.test(hostname));
+  return !(hostname === "s3.amazonaws.com"
+    || /^s3[.-][a-z0-9-]+\.amazonaws\.com$/.test(hostname)
+    || hostname.endsWith(".r2.cloudflarestorage.com"));
 }
 
 const backup = new S3Client({
   endpoint: process.env.DTD_ATTACHMENTS_BACKUP_ENDPOINT,
   region: process.env.DTD_ATTACHMENTS_BACKUP_REGION,
   forcePathStyle: forcePathStyle(process.env.DTD_ATTACHMENTS_BACKUP_ENDPOINT),
-  credentials: awsCredentials(),
+  credentials: backupCredentials(),
 });
 const scan = provider === "aws-guardduty-s3" ? new S3Client({
   region: process.env.DTD_ATTACHMENTS_SCAN_REGION,
-  credentials: awsCredentials(),
+  credentials: backupCredentials(),
 }) : null;
 const scanQueue = provider === "aws-guardduty-s3" ? new SQSClient({
   region: process.env.DTD_ATTACHMENTS_SCAN_REGION,
-  credentials: awsCredentials(),
+  credentials: backupCredentials(),
 }) : null;
 const allowedMime = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
 
@@ -188,29 +193,48 @@ async function processBackup(job) {
     const retainUntil = new Date();
     retainUntil.setUTCFullYear(retainUntil.getUTCFullYear() + 10);
     retainUntil.setUTCDate(retainUntil.getUTCDate() + 1);
-    const put = await backup.send(new PutObjectCommand({
+    const putInput = {
       Bucket: process.env.DTD_ATTACHMENTS_BACKUP_BUCKET, Key: key, Body: bytes,
-      ContentType: document.canonical_mime, ChecksumSHA256: Buffer.from(sha256, "hex").toString("base64"),
+      ContentType: document.canonical_mime,
       Metadata: { sha256 },
-      ObjectLockMode: "COMPLIANCE", ObjectLockRetainUntilDate: retainUntil,
-    }));
-    if (!put.VersionId) throw new Error("Proveedor sin VersionId; Object Lock/versionado no verificable.");
+    };
+    if (backupProvider === "aws-s3-object-lock") {
+      putInput.ChecksumSHA256 = Buffer.from(sha256, "hex").toString("base64");
+      putInput.ObjectLockMode = "COMPLIANCE";
+      putInput.ObjectLockRetainUntilDate = retainUntil;
+    }
+    const put = await backup.send(new PutObjectCommand(putInput));
+    const r2Etag = put.ETag?.replaceAll('"', "");
+    const receiptId = backupProvider === "cloudflare-r2" ? `etag:${r2Etag ?? ""}` : put.VersionId;
+    if (!receiptId || receiptId === "etag:") {
+      throw new Error("Proveedor sin recibo inmutable verificable.");
+    }
     const head = await backup.send(new HeadObjectCommand({
-      Bucket: process.env.DTD_ATTACHMENTS_BACKUP_BUCKET, Key: key, VersionId: put.VersionId,
+      Bucket: process.env.DTD_ATTACHMENTS_BACKUP_BUCKET, Key: key,
+      ...(put.VersionId ? { VersionId: put.VersionId } : {}),
     }));
     if (head.Metadata?.sha256 !== sha256) throw new Error("Checksum de respaldo no verificable.");
-    const retention = await backup.send(new GetObjectRetentionCommand({
-      Bucket: process.env.DTD_ATTACHMENTS_BACKUP_BUCKET, Key: key, VersionId: put.VersionId,
-    }));
-    if (!retention.Retention?.Mode || !retention.Retention.RetainUntilDate
-        || retention.Retention.RetainUntilDate < retainUntil) {
-      throw new Error("Object Lock por 10 años no verificable.");
+    let lockMode = "R2_BUCKET_LOCK";
+    let verifiedRetainUntil = retainUntil;
+    if (backupProvider === "cloudflare-r2") {
+      const headEtag = head.ETag?.replaceAll('"', "");
+      if (!headEtag || headEtag !== r2Etag) throw new Error("ETag de R2 cambió después del respaldo.");
+    } else {
+      const retention = await backup.send(new GetObjectRetentionCommand({
+        Bucket: process.env.DTD_ATTACHMENTS_BACKUP_BUCKET, Key: key, VersionId: put.VersionId,
+      }));
+      if (!retention.Retention?.Mode || !retention.Retention.RetainUntilDate
+          || retention.Retention.RetainUntilDate < retainUntil) {
+        throw new Error("Object Lock por 10 años no verificable.");
+      }
+      lockMode = retention.Retention.Mode;
+      verifiedRetainUntil = retention.Retention.RetainUntilDate;
     }
     const result = await supabase.rpc("complete_document_backup", {
-      p_job_id: job.id, p_provider: new URL(process.env.DTD_ATTACHMENTS_BACKUP_ENDPOINT).hostname,
-      p_object_key: key, p_version_id: put.VersionId, p_backup_sha256: sha256,
-      p_lock_mode: retention.Retention.Mode,
-      p_retain_until: retention.Retention.RetainUntilDate.toISOString(),
+      p_job_id: job.id, p_provider: backupProvider,
+      p_object_key: key, p_version_id: receiptId, p_backup_sha256: sha256,
+      p_lock_mode: lockMode,
+      p_retain_until: verifiedRetainUntil.toISOString(),
     });
     if (result.error) throw result.error;
   } catch (error) {

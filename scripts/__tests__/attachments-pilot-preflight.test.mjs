@@ -102,6 +102,30 @@ describe("attachments worker preflight", () => {
     expect(inspectAttachmentsWorkerEnv(env, { now }).issues).toEqual([]);
   });
 
+  it("acepta R2 con región auto, lock explícito y scanner administrado", () => {
+    const env = baseEnv();
+    env.DTD_ATTACHMENTS_BACKUP_PROVIDER = "cloudflare-r2";
+    env.DTD_ATTACHMENTS_BACKUP_ENDPOINT = "https://account.r2.cloudflarestorage.com";
+    env.DTD_ATTACHMENTS_BACKUP_REGION = "auto";
+    env.DTD_ATTACHMENTS_R2_LOCK_RULE_NAME = "dtdcargo-gastos-10y1d";
+    env.DTD_ATTACHMENTS_R2_LOCK_DAYS = "3654";
+
+    expect(inspectAttachmentsWorkerEnv(env, { now }).issues).toEqual([]);
+  });
+
+  it("bloquea R2 sin región auto o sin retención mínima", () => {
+    const env = baseEnv();
+    env.DTD_ATTACHMENTS_BACKUP_PROVIDER = "cloudflare-r2";
+    env.DTD_ATTACHMENTS_BACKUP_ENDPOINT = "https://account.r2.cloudflarestorage.com";
+    env.DTD_ATTACHMENTS_BACKUP_REGION = "us-east-1";
+    env.DTD_ATTACHMENTS_R2_LOCK_RULE_NAME = "short-lock";
+    env.DTD_ATTACHMENTS_R2_LOCK_DAYS = "90";
+
+    const issues = inspectAttachmentsWorkerEnv(env, { now }).issues;
+    expect(issues).toContain("Cloudflare R2 exige región S3 auto");
+    expect(issues).toContain("DTD_ATTACHMENTS_R2_LOCK_DAYS debe ser al menos 3654");
+  });
+
   it("exige flags y evidencias en Producción", () => {
     const env = baseEnv();
     env.NODE_ENV = "production";
