@@ -7,6 +7,13 @@
 > **Reglas de oro:** responde en **menos de 5 minutos** en horario laboral · nunca mandes un
 > menú frío, siempre una pregunta concreta · rellena SIEMPRE los `[corchetes]` · di
 > **"Puerta a Puerta"** y **"pagas al llegar"**, nunca "DDP".
+>
+> ⭐ **Y la que las sostiene a todas:** cada respuesta de acá sale con **UNA pregunta detrás**.
+> Una sola, y fácil de contestar. En un chat, dos preguntas en el mismo mensaje producen **una
+> respuesta**: el cliente contesta la última y olvida la primera.
+>
+> **Cómo conversar** (leer el mensaje entrante, la escalera de preguntas, qué mata un hilo) →
+> [`07-como-conversar.md`](07-como-conversar.md).
 
 ---
 
@@ -314,28 +321,6 @@ retomamos enseguida. El consolidado de [mes] cierra el [fecha] por si llegas a t
 tarifa, o "ya viene el Año Nuevo chino, conviene adelantar el pedido".
 **Al que calificó nunca lo borras**: baja a ese ritmo mensual.
 
-## Objeciones
-
-**"Está caro / la competencia me dio menos"** · `/precio`:
-```
-Te entiendo. Fíjate que nuestro precio ya incluye TODO hasta tu puerta —flete, aduana, impuestos y
-entrega— sin cobros sorpresa después. Y no adelantas nada: pagas cuando tu carga llega. Si sueles
-traer seguido, te trabajo una tarifa preferencial por mantener la frecuencia. ¿La revisamos?
-```
-
-**"¿Cuánto tarda?"** · `/tiempo`:
-```
-El puerta a puerta desde Yiwu toma entre [X] días. Vas viendo tu carga en cada paso por el portal, y
-te aviso en cada hito. La fecha exacta te la confirmo al armar tu embarque.
-```
-
-**"No los conozco / ¿son seguros?"** · `/confianza`:
-```
-Con gusto. Tenemos equipo propio en Yiwu y en Valencia, sigues tu carga en tiempo real por el portal,
-y pagas recién cuando llega a tu puerta —así el riesgo no lo cargas tú. Si quieres, empieza con un
-embarque chico para que nos pruebes.
-```
-
 ## Pedir referido · `/referido`
 
 **El mejor momento:** cuando el cliente **recibe su carga** o **acepta su recompra**.
@@ -347,6 +332,156 @@ en tu próximo flete. Solo pásame el contacto y yo me encargo.
 
 ---
 
-*DTD Cargo · uso interno. Fuentes: `docs/marketing/guiones-asesor.md` y
-`docs/marketing/seo-aeo-preguntas-crm.md`. Las respuestas marcadas ⚠️ tienen validación
-pendiente de Operaciones o Comercial/Legal — úsalas como base, no como promesa.*
+# PARTE 3 · Objeciones
+
+> **Antes de usar cualquiera de estas: pausa y pregunta.** Los mejores vendedores responden a una
+> objeción **con una pregunta** el 54% de las veces; el promedio solo el 31%. La pregunta casi
+> siempre es **"¿comparado con qué?"**.
+>
+> Y la regla de fondo: **la objeción de precio casi nunca es sobre el precio.** Es la señal de que
+> no alcanzaste a mostrar por qué vale.
+
+## 1. "Está caro / la competencia me dio menos" · `/precio`
+
+**Primero pregunta:**
+```
+¿Y ese precio que te dieron incluye la aduana y la entrega en tu depósito, o es hasta almacén fiscal?
+```
+
+**Después, según lo que conteste:**
+```
+Te entiendo. Fíjate que nuestro precio ya incluye TODO hasta tu puerta —flete, aduana, impuestos y
+entrega— sin cobros sorpresa después. Y no adelantas nada: pagas cuando tu carga llega. Si sueles
+traer seguido, te trabajo una tarifa preferencial por mantener la frecuencia. ¿Cada cuánto repones?
+```
+
+⚠️ **No bajes el precio de una.** Ceder rápido cierra menos a la larga y sienta precedente para el
+próximo pedido. Descuentos y tarifas especiales → **Administración**.
+
+## 2. "Otro me cobra mucho menos, solo el flete" · `/comparar`
+
+**Es el error de comparación #1 del rubro, y es nuestro mejor terreno.**
+```
+Ahí está la clave: esa tarifa suele ser hasta almacén fiscal, y desde ahí te toca a ti la
+nacionalización —impuestos, permisos y el gasto del almacén. La nuestra ya lleva todo eso adentro y
+te la dejamos en tu dirección. ¿Quieres que te arme el comparativo con tu volumen para que veas los
+dos números completos?
+```
+
+## 3. "¿Cuánto tarda?" · `/tiempo`
+
+```
+El puerta a puerta desde Yiwu toma entre 60 y 90 días. Eso suma tres tramos: el flete interno en
+China hasta nuestra bodega, la espera de la próxima salida —cada 15 a 21 días— y la travesía
+marítima. Vas viendo tu carga en cada paso por el portal. ¿Para cuándo la necesitas tener acá?
+```
+
+⚠️ **Nunca prometas una fecha garantizada.** Los tiempos **los define la naviera**.
+⚠️ **Nunca uses la palabra "responsabilidad".**
+
+## 4. "60 a 90 días es muchísimo" · `/tiempo-largo`
+
+```
+Te entiendo, es lo que más pregunta la gente. Va en barco, y esa es justo la razón de que el flete
+cueste lo que cuesta —por avión llegaría rapidísimo y a otro precio. Lo que sí hacemos es que sepas
+en qué punto está en cada momento, para que puedas planificar tu reposición. ¿Cada cuánto sueles
+reponer?
+```
+
+💡 **Movimiento clave:** el cliente que repone cada 30-45 días no necesita que la carga llegue
+rápido — necesita que **llegue predecible**. Cambia la conversación de velocidad a cadencia.
+
+## 5. "No los conozco / ¿son seguros?" · `/confianza`
+
+```
+Con gusto. Tenemos equipo propio en Yiwu y en Valencia, sigues tu carga paso a paso por el portal, y
+pagas recién cuando llega a tu puerta —así el riesgo no lo cargas tú por adelantado. Si quieres,
+empieza con un embarque chico para que nos pruebes. ¿Te parece?
+```
+
+## 6. "¿Y si se pierde o se daña mi mercancía?" · `/seguro`
+
+⚠️ **Confirmar con Comercial/Legal antes de comprometer nada.**
+```
+Te cuento cómo funciona: el flete no incluye seguro, pero puedes contratar un seguro de carga
+opcional a través de nosotros. Hay un detalle de tiempo importante: se solicita antes de que la
+mercancía llegue a la bodega en China, declarando su valor real. ¿Ya tienes claro el valor de lo que
+vas a traer?
+```
+
+🔴 **NUNCA digas "nuestra responsabilidad" ni afirmes que algo "está cubierto".** Si el cliente
+pregunta por una carga **que ya se dañó o se perdió**, no improvises: escala.
+
+## 7. "Quiero que la importación quede a mi nombre" · `/aduana-propia`
+
+```
+Se puede, y conviene definirlo antes de embarcar. Con Puerta a Puerta tú recibes la mercancía pero la
+importación no queda a tu nombre. Si necesitas los documentos a nombre de tu empresa, va la modalidad
+con tu propia aduana: llevamos la carga hasta el almacén fiscal y tú asumes impuestos, permisos y
+gastos de nacionalización. ¿Los necesitas para tu contabilidad o para un trámite puntual?
+```
+
+⚠️ **Confirmar con Comercial/Legal.** Y avisa siempre: **cambiarlo con la carga en tránsito puede
+no ser viable.**
+
+## 8. "Solo tengo media caja / es muy poquito" · `/minimo`
+
+```
+No hay problema, se puede. Ten en cuenta que hay un mínimo por envío, así que en cargas muy chicas el
+costo por metro te sale menos conveniente. Justo por eso mucha gente arranca juntando lo de varios
+proveedores en un mismo envío. ¿Le estás comprando a un proveedor o a varios?
+```
+
+💡 Es la puerta de entrada perfecta para **"Pruébanos con un Metro"**.
+
+## 9. "Ya tengo quien me trae" · `/tengo-agente`
+
+**No ataques al agente actual. Pregunta.**
+```
+Me parece bien, es importante tener con quién. Solo por curiosidad: ¿qué es lo que más te cuesta hoy
+del proceso con ellos?
+```
+
+💡 **Esta es la mejor pregunta de todo el documento.** Si contesta algo, ya tienes la venta
+encaminada. Si dice "nada, todo bien", agradece y déjalo en la cadena mensual — el día que le
+falle, te escribe.
+
+## 10. "¿Puedo pagar por adelantado? / ¿me financian?" · `/pago`
+
+```
+No hace falta que adelantes nada: con nosotros pagas cuando tu carga llega. Esa es justamente la
+idea, que no tengas plata comprometida mientras la mercancía está en camino. Los datos y la forma de
+pago te los pasa un asesor de forma segura con tu Shipping Mark. ¿Te conecto?
+```
+
+🔴 **Nunca uses las palabras "prepago" ni "financiamiento".** Se retiraron por riesgo legal. La
+verdad comercial es **"pagas al llegar"**.
+
+## 11. "¿Me das descuento?" · `/descuento`
+
+```
+Lo vemos. Nosotros premiamos el volumen y sobre todo la frecuencia: la tarifa preferencial se
+sostiene manteniendo la cadencia, no es un descuento de una sola vez. ¿Cada cuánto estarías
+reponiendo?
+```
+
+⚠️ **El asesor no concede descuentos.** Se escalan a **Administración**. Lo que sí haces es
+**mover la conversación del precio a la cadencia**, que es donde ganamos.
+
+## 12. "Déjame pensarlo" / se quedó callado · `/silencio`
+
+**No mandes "¿sigues interesado?".** Obliga a comprometerse y por eso no se contesta. Manda una
+pregunta que se conteste con **"no"**:
+```
+[nombre], ¿ya descartaste traer esa mercancía? Si es así no te escribo más, y si sigue en pie te
+aviso cuándo cierra el próximo consolidado.
+```
+
+💡 Da seguridad y control, y por eso tiene mucha mejor respuesta que la pregunta directa.
+
+---
+
+*DTD Cargo · uso interno. Fuentes: `docs/marketing/guiones-asesor.md`,
+`docs/marketing/seo-aeo-preguntas-crm.md` y `docs/marketing/conversacion-crm.md`. Las respuestas
+marcadas ⚠️ tienen validación pendiente de Operaciones o Comercial/Legal — úsalas como base, no
+como promesa.*
