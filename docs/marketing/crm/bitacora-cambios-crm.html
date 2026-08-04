@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bitácora de cambios · CRM Kommo · DTD Cargo</title>
+<style>
+  :root{
+    --wine:#7f0f1a; --ink:#0f1e3d; --paper:#fbfaf7;
+    --ink-soft:#5a6478; --line:#e3e0d9; --card:#fff;
+    --ok:#1d6b45; --warn:#9a6400; --bad:#a01722; --info:#1f4e8c;
+    --mono:ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font:400 16px/1.65 var(--sans)}
+  .wrap{max-width:1100px;margin:0 auto;padding:40px 24px 80px}
+  header.top{border-bottom:3px solid var(--wine);padding-bottom:22px;margin-bottom:30px}
+  .eyebrow{font:600 12px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--wine);margin:0 0 10px}
+  h1{font:800 34px/1.15 var(--sans);margin:0 0 10px;letter-spacing:-.02em}
+  .sub{color:var(--ink-soft);margin:0;font-size:15px}
+  h2{font:700 24px/1.25 var(--sans);margin:52px 0 8px;letter-spacing:-.01em;padding-top:18px;border-top:1px solid var(--line)}
+  h3{font:700 18px/1.3 var(--sans);margin:34px 0 8px}
+  h4{font:700 13px/1.3 var(--sans);margin:22px 0 6px;color:var(--wine);text-transform:uppercase;letter-spacing:.07em}
+  p{margin:0 0 14px}
+  .lead{font-size:17px;color:var(--ink-soft);margin-bottom:24px}
+  table{width:100%;border-collapse:collapse;margin:16px 0 24px;font-size:14.5px;background:var(--card)}
+  caption{text-align:left;font:600 13px/1.4 var(--sans);color:var(--ink-soft);padding:0 0 8px}
+  th,td{text-align:left;padding:11px 13px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:var(--ink);color:#fff;font:600 12.5px/1.3 var(--sans);text-transform:uppercase;letter-spacing:.05em}
+  tbody tr:nth-child(even){background:#faf8f5}
+  td.num{text-align:right;font-family:var(--mono);white-space:nowrap}
+  .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  code{font-family:var(--mono);font-size:.88em;background:#f0ede8;padding:1px 5px;border-radius:3px}
+  .tag{display:inline-block;font:700 10.5px/1 var(--sans);letter-spacing:.06em;text-transform:uppercase;
+       padding:5px 8px;border-radius:3px;white-space:nowrap}
+  .t-ok{background:#e3f2e9;color:var(--ok)} .t-warn{background:#fdf0d8;color:var(--warn)}
+  .t-bad{background:#fbe4e6;color:var(--bad)} .t-info{background:#e4edf9;color:var(--info)}
+  .t-todo{background:#eeece8;color:var(--ink-soft)}
+  .box{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--wine);
+       padding:16px 20px;margin:18px 0;border-radius:0 4px 4px 0}
+  .box.find{border-left-color:var(--bad)} .box.good{border-left-color:var(--ok)}
+  .box.note{border-left-color:var(--info)} .box.warn{border-left-color:var(--warn)}
+  .box p:last-child,.box ul:last-child{margin-bottom:0}
+  .box .h{font:700 14px/1.3 var(--sans);margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em}
+  blockquote{margin:12px 0;padding:10px 16px;border-left:3px solid var(--line);
+             color:var(--ink-soft);font-style:italic;background:#faf8f5}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:22px 0}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:5px;padding:15px}
+  .kpi .n{font:800 27px/1 var(--sans);color:var(--wine);letter-spacing:-.02em}
+  .kpi .l{font:600 11px/1.35 var(--sans);color:var(--ink-soft);text-transform:uppercase;
+          letter-spacing:.06em;margin-top:7px}
+  .tl{list-style:none;margin:18px 0;padding:0 0 0 24px;border-left:2px solid var(--line)}
+  .tl li{position:relative;padding:0 0 22px 18px}
+  .tl li::before{content:"";position:absolute;left:-31px;top:5px;width:11px;height:11px;
+                 border-radius:50%;background:var(--wine);border:3px solid var(--paper)}
+  .tl li.hit::before{background:var(--bad);width:15px;height:15px;left:-33px}
+  .tl .when{font:700 11.5px/1 var(--mono);color:var(--wine);letter-spacing:.04em}
+  .tl .what{font:700 15px/1.35 var(--sans);margin:5px 0 4px}
+  .tl .why{color:var(--ink-soft);font-size:14.5px;margin:0}
+  .tl .ev{font:400 11.5px/1.4 var(--mono);color:#8a92a3;margin-top:5px;word-break:break-word}
+  svg{max-width:100%;height:auto;display:block}
+  .fig{background:var(--card);border:1px solid var(--line);border-radius:5px;padding:22px;margin:22px 0}
+  .fig figcaption{font:600 13px/1.45 var(--sans);color:var(--ink-soft);margin-top:14px;text-align:center}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:5px;padding:18px 24px;margin-bottom:34px}
+  .toc ol{margin:0;padding-left:20px;columns:2;column-gap:34px}
+  .toc li{margin:5px 0;font-size:15px;break-inside:avoid}
+  .toc a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line)}
+  .toc a:hover{color:var(--wine)}
+  footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--line);color:var(--ink-soft);font-size:13.5px}
+  @media (max-width:680px){.wrap{padding:26px 16px 60px}h1{font-size:26px}h2{font-size:20px}.toc ol{columns:1}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <p class="eyebrow">Documento interno · DTD Cargo</p>
+  <h1>Bitácora de cambios del CRM</h1>
+  <p class="sub">Historial del trabajo sobre Kommo y su integración con el ERP DoorTuDoor.<br>
+  Preparado para el asesor que implementó el sistema. <strong>Documento vivo</strong> — cubre del
+  <strong>24 de mayo</strong> al <strong>4 de agosto de 2026</strong>.</p>
+</header>
+
+<nav class="toc">
+  <strong style="display:block;margin-bottom:10px">Contenido</strong>
+  <ol>
+    <li><a href="#s1">Cómo se levantó este historial</a></li>
+    <li><a href="#s2">Resumen para leer en dos minutos</a></li>
+    <li><a href="#s3">Antecedentes: mayo y junio</a></li>
+    <li><a href="#s4">Julio: la caída silenciosa</a></li>
+    <li><a href="#s5">Los códigos de cliente duplicados</a></li>
+    <li><a href="#s6">La base de conocimiento de la IA</a></li>
+    <li><a href="#s7">Agosto: la reorganización de Kommo</a></li>
+    <li><a href="#s8">El diseño acordado</a></li>
+    <li><a href="#s9">Contradicciones y hallazgos abiertos</a></li>
+    <li><a href="#s10">Métricas y pendientes</a></li>
+  </ol>
+</nav>
+
+<h2 id="s1">1 · Cómo se levantó este historial</h2>
+
+<p class="lead">Este documento no se escribió de memoria. Se reconstruyó barriendo en paralelo cinco fuentes
+del repositorio —historial de commits, especificaciones, migraciones de base de datos, el trabajo de
+códigos duplicados y la base de conocimiento de la IA— y fusionando <strong>137 eventos</strong> en una
+sola línea de tiempo verificada.</p>
+
+<div class="box note">
+  <p class="h">Tres reglas que se aplicaron al redactarlo</p>
+  <ul>
+    <li><strong>No se inventan justificaciones.</strong> Donde la fuente no dice por qué, se escribe
+        <em>"no consta en las fuentes"</em>.</li>
+    <li><strong>Cero datos personales.</strong> Ningún nombre, teléfono ni correo de cliente.
+        Los casos individuales van en agregado.</li>
+    <li><strong>Las contradicciones se marcan, no se resuelven a dedo.</strong> La sección 9 las lista.</li>
+  </ul>
+</div>
+
+<h2 id="s2">2 · Resumen para leer en dos minutos</h2>
+
+<p>El trabajo tiene <strong>tres frentes que avanzaron en paralelo</strong> y que conviene no mezclar:</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th style="width:22%">Frente</th><th>Qué persigue</th><th>Dónde está hoy</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Integración ERP ↔ Kommo</strong></td>
+        <td>Que el ERP vea lo que pasa en Kommo y pueda escribirle de vuelta.</td>
+        <td>Lectura ✅ completa y en vivo. Escritura construida desde junio pero <strong>todavía en modo ensayo</strong>.</td></tr>
+    <tr><td><strong>Reorganización de Kommo</strong></td>
+        <td>Pasar de 12 embudos a uno solo, con una etapa para el cliente que vuelve.</td>
+        <td>Estructura y fuentes ✅. Falta vaciar la bandeja y limpiar 2.879 tratos históricos.</td></tr>
+    <tr><td><strong>Conocimiento de la IA</strong></td>
+        <td>Que el agente que atiende responda bien y no diga cosas retiradas.</td>
+        <td>Material reescrito en el repositorio. <strong>Lo que el bot lee en Kommo sigue siendo la versión de junio.</strong></td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="box find">
+  <p class="h">La lección que atraviesa los tres frentes</p>
+  <p>Varias piezas correctas estuvieron <strong>construidas y desplegadas pero inertes durante semanas</strong>, sin
+  que nada avisara: el webhook se desplegó el 4 de junio y no corrió ni una vez hasta el 3 de agosto; la
+  sincronización estuvo <strong>13 días muerta</strong> mientras el registro de tareas reportaba éxito; y el
+  documento que lee el bot sigue siendo el de junio aunque el del repositorio se corrigió.</p>
+  <p><strong>Terminado no es igual a encendido.</strong> Es el criterio con el que conviene leer todo lo que sigue.</p>
+</div>
+
+<h2 id="s3">3 · Antecedentes: mayo y junio</h2>
+
+<h3>Mayo — la base sobre la que se apoya todo</h3>
+<ul class="tl">
+  <li><span class="when">24 MAY</span>
+    <p class="what">Nace la tabla de clientes con el Shipping Mark autogenerado</p>
+    <p class="why">Formato <code>DTD-NNNN</code>, único por cliente, con borrado suave. El número sale del
+    propio dato: toma el máximo existente y suma uno. Se eligió así para tolerar códigos históricos no
+    secuenciales. <strong>Es la pieza de la que depende todo lo demás.</strong></p>
+    <p class="ev">supabase/migrations/0006_clients.sql · SDD-0010</p></li>
+</ul>
+
+<h3>Junio — se cablea Kommo con el ERP</h3>
+<ul class="tl">
+  <li><span class="when">2 JUN</span>
+    <p class="what">SDD-0043 · Espejo de solo lectura de Kommo</p>
+    <p class="why">Siete tablas espejo con aislamiento por cliente y una función de sincronización con
+    reintentos. El token de Kommo vive cifrado en la bóveda y nunca entra al runtime de la aplicación.
+    Probado contra producción: 10 embudos, 62 etapas, 2.683 contactos, 2.658 tratos, sin duplicar al
+    reejecutar. Quedó <strong>explícitamente fuera de alcance</strong> escribir en Kommo.</p>
+    <p class="ev">migraciones 0082, 0083 · supabase/functions/kommo-sync/</p></li>
+
+  <li><span class="when">2 JUN</span>
+    <p class="what">El espejo se actualiza solo, una vez al día a las 07:00 UTC</p>
+    <p class="why">Restricción escrita: solo lectura, jamás escribe ni borra en Kommo. El intervalo diario
+    se eligió a propósito como algo liviano, para subirlo después.</p></li>
+
+  <li><span class="when">4 JUN</span>
+    <p class="what">SDD-0043 Alcance B · Webhooks para actualizar en vivo</p>
+    <p class="why">Kommo no garantiza el orden de los avisos y el pull diario puede cruzarse con ellos, así
+    que un disparador en la base descarta cualquier actualización más vieja que la ya guardada.
+    <strong>Quedó pendiente del founder poner el secreto y dar de alta el webhook en Kommo</strong> — ese
+    pendiente tardó dos meses en cerrarse.</p>
+    <p class="ev">supabase/functions/kommo-webhook/ · migración 0107</p></li>
+
+  <li><span class="when">5 JUN</span>
+    <p class="what">SDD-0058 · Puente del trato de Kommo al cliente del ERP</p>
+    <p class="why">Hasta aquí el espejo y los clientes estaban desconectados: un lead nunca se volvía
+    cliente. El buscador de contactos existe porque en Kommo el correo y el teléfono viven en el
+    <em>contacto</em>, no en el trato, y el espejo no guarda el vínculo entre ambos.</p></li>
+
+  <li class="hit"><span class="when">7 JUN</span>
+    <p class="what">SDD-0062 · Diagnóstico del CRM — la spec madre de todo el frente</p>
+    <p class="why">Con datos reales: <strong>2.675 tratos, 2.029 atascados</strong> con mediana de 349 días
+    sin moverse, <strong>3 tratos cerrados en total</strong>, valor monetario en cero en el 100 %, 99,9 % de
+    los tratos en un solo asesor y solo 5,5 % con correo.<br>
+    Conclusión: <em>DTD capta mucho pero no cierra; el problema no es la captación sino el avance</em>.
+    Decisión de arquitectura: <strong>Kommo sigue siendo el CRM y el ERP es el cerebro.</strong></p>
+    <p class="ev">docs/specs/0062-crm-erp-cierres-automaticos/spec.md</p></li>
+
+  <li><span class="when">9 JUN</span>
+    <p class="what">Se retira un término comercial por riesgo legal</p>
+    <p class="why">Deja de usarse en el código y en las reglas de marca; se reemplaza por *el cliente paga
+    al llegar la mercancía*. <strong>Esta decisión es la que dos meses después obliga a corregir la base de
+    conocimiento del bot</strong>, que seguía ofreciéndolo.</p></li>
+
+  <li class="hit"><span class="when">12 JUN</span>
+    <p class="what">La importación del legado crea una segunda familia de códigos</p>
+    <p class="why">Se importan unas 360 fichas con códigos tipo letra + tres dígitos. Todas quedan con la
+    fecha de la importación, no la del alta real. Desde aquí conviven <strong>dos familias de códigos</strong>
+    y la fecha de la fila deja de servir para saber quién es más antiguo. La consecuencia no se decidió:
+    se descubrió dos meses después, al diagnosticar los duplicados.</p></li>
+
+  <li><span class="when">13 JUN</span>
+    <p class="what">SDD-0074 · El alta del registro público empuja contacto y trato a Kommo</p>
+    <p class="why">Cerraba el único hueco del registro: la integración era solo de entrada. Nace apagada
+    con motivo explícito: que la primera prueba no toque los 2.683 contactos reales.</p></li>
+
+  <li><span class="when">14 JUN</span>
+    <p class="what">SDD-0083, 0084 y 0086 · Las tres escrituras del ERP hacia Kommo</p>
+    <p class="why">Se crea la <strong>cola de escrituras</strong> y las tres operaciones: el valor del trato,
+    el movimiento de etapa y el Shipping Mark. La cola existe porque el token vive en la bóveda y solo lo
+    lee la función de servidor: el ERP nada más encola.<br>
+    <strong>Las tres nacieron apagadas y en modo ensayo, por diseño.</strong> Al 4 de agosto siguen así.</p>
+    <p class="ev">migraciones 0136, 0137, 0138 · supabase/functions/kommo-writeback/</p></li>
+
+  <li><span class="when">15 JUN</span>
+    <p class="what">Se define el embudo único y se documenta que reestructurar Kommo es configuración</p>
+    <p class="why">Queda escrito que reestructurar Kommo <strong>es trabajo de navegador, no de código</strong>,
+    porque el mecanismo de escritura ya existe y está dormido. Y que el indicador es el volumen hacia dos
+    contenedores al mes, no el porcentaje de conversión.</p></li>
+
+  <li><span class="when">29 JUN</span>
+    <p class="what">Primer plan para colapsar los 11 embudos en uno</p>
+    <p class="why">Diagnóstico: el embudo único <strong>ya se había construido dos veces sin usarse</strong>.
+    Sobre 2.877 tratos: 89 % fríos de más de 90 días, 78 % de más de un año, 5 cerrados, ninguno con monto.</p></li>
+</ul>
+
+<h2 id="s4">4 · Julio: la caída silenciosa</h2>
+
+<ul class="tl">
+  <li><span class="when">17 JUL</span>
+    <p class="what">SDD-0157 · Campaña de recuperación con tandas de WhatsApp manual</p>
+    <p class="why">El espejo tenía ~2.700 contactos con teléfono real ya contactados, sin ninguna herramienta
+    para trabajarlos. No se automatiza el envío para no arriesgar el bloqueo del número. Se arma sobre
+    contactos y no sobre tratos porque el espejo no guarda el vínculo entre ambos.</p></li>
+
+  <li><span class="when">19 JUL</span>
+    <p class="what">Se registra que el envío del alta hacia Kommo quedó en error</p>
+    <p class="why">Error 400, código 205. <strong>No consta diagnóstico posterior en las fuentes.</strong></p></li>
+
+  <li class="hit"><span class="when">31 JUL</span>
+    <p class="what">🔴 SDD-0195 · La sincronización estuvo 13 días muerta y nadie se enteró</p>
+    <p class="why">El 18 de julio una corrida falló por un error de red pasajero y quedó muerta desde ese
+    día. Tres defectos que se potencian:<br>
+    ① el estado de la conexión mezcla <em>está habilitada</em> con <em>funcionó la última corrida</em>, así
+    que un tropiezo de red apaga la configuración;<br>
+    ② la guarda que exige estado activo <strong>se auto-traba</strong>: lo único que repone ese estado es
+    una corrida exitosa que la propia guarda impide;<br>
+    ③ la llamada del cron no espera respuesta, así que el registro de tareas <strong>marcó éxito doce días
+    seguidos sobre una integración muerta</strong>.<br>
+    Se desbloqueó a mano. La fecha del último sincronizado se dejó como estaba a propósito: no se falsifica
+    una sincronización que no ocurrió.</p>
+    <p class="ev">docs/specs/0195-kommo-sync-resiliencia/spec.md</p></li>
+
+  <li class="hit"><span class="when">31 JUL</span>
+    <p class="what">SDD-0191 · El espejo resulta ser el mayor volumen de datos personales sin fundamento</p>
+    <p class="why"><strong>2.942 contactos espejados contra 428 clientes reales</strong>: siete veces más
+    personas en la copia que clientes. La recomendación inicial de purgar se corrigió en el mismo documento:
+    purgar habría roto indicadores, analítica y campañas, y como Kommo es el sistema de origen, lo borrado
+    volvería en la siguiente sincronización. El problema real es peor: si una persona pide que la borren y
+    se elimina en Kommo, <strong>la copia local sobrevive para siempre</strong>, porque la sincronización solo
+    inserta y actualiza, sin reconciliar borrados.</p></li>
+</ul>
+
+<h2 id="s5">5 · Los códigos de cliente duplicados</h2>
+
+<p>Este frente corrió en paralelo al de Kommo y termina tocándolo, porque el enrutador depende de reconocer
+correctamente a cada persona.</p>
+
+<h4>El diagnóstico (3 de agosto)</h4>
+<div class="scroll">
+<table>
+  <thead><tr><th>Medición</th><th class="num">Valor</th><th>Lectura</th></tr></thead>
+  <tbody>
+    <tr><td>Fichas vivas</td><td class="num">429</td><td>360 del legado · 58 nuevas · 11 residuos</td></tr>
+    <tr><td>Nacidas del registro público</td><td class="num">51</td><td>De las 58 nuevas</td></tr>
+    <tr><td>Pares duplicados reales</td><td class="num">3</td><td>Uno de ellos coincide solo por un nombre común</td></tr>
+    <tr><td>Fichas sin documento cargado</td><td class="num">144</td><td>Por eso comparar solo el documento no funcionaba</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p><strong>Causa raíz:</strong> el registro público comparaba únicamente el documento de identidad. Contra el
+legado eso no funciona porque 144 fichas no lo tienen cargado, y cuando está suele venir dañado por la
+exportación de Excel. Además se verificó contra el código que <strong>el correlativo solo reconoce el formato
+nuevo</strong>, así que las 360 heredadas son invisibles para él: los dos espacios de numeración no se tocan y
+no hay riesgo de reemitir un número ocupado.</p>
+
+<h4>La decisión: no se renumera, se fusiona</h4>
+
+<div class="box">
+  <p class="h">Por qué no se renumera</p>
+  <p>El código de cliente <strong>no es una referencia, es un valor copiado</strong>: queda impreso dentro de
+  facturas, expedientes sellados, prealertas, despachos, aduana, pagos y cobranzas. Renumerar dejaría esos
+  documentos apuntando a un texto que ya no existe, y <em>un expediente sellado no se reescribe</em>.</p>
+</div>
+
+<p>La fusión conserva la ficha vieja (por su código, que carga el historial y que el cliente ya le pasó a su
+proveedor); los datos buenos de la ficha nueva se copian <strong>solo donde el sobreviviente esté vacío</strong>,
+y la ficha nueva se retira conservando su código.</p>
+
+<p>⭐ <strong>No hizo falta una tabla de alias:</strong> el índice único no filtra las fichas retiradas, así que
+la propia fila retirada <em>es</em> el alias. Y como el correlativo tampoco las filtra, el código retirado
+queda quemado y nunca se reemite.</p>
+
+<p>Lo que <strong>no</strong> se hereda, con motivo: las aceptaciones legales (una aceptación está atada a quién
+la firmó) ni las verificaciones de identidad (heredarlas afirmaría una comprobación que no se corrió).</p>
+
+<div class="box note">
+  <p class="h">La fusión nunca se automatiza</p>
+  <p>Uno de los tres pares coincidía solo por un nombre común. Unir a dos personas distintas es un daño
+  mucho peor que el duplicado, así que <strong>el sistema propone y una persona confirma</strong>.</p>
+</div>
+
+<h4>Prevención y una lección de campo</h4>
+<p>El registro público pasó a deduplicar por <strong>documento, correo y teléfono</strong>. La verificación
+pública sigue mirando solo el documento, a propósito: comparar correos desde el navegador crearía un oráculo
+que revela si un correo tiene cuenta.</p>
+
+<p>Y un ajuste que salió de la prueba contra producción, no de las pruebas automáticas: un cliente
+genuinamente nuevo con un <strong>teléfono de relleno</strong> dio coincidencia falsa. Se agregó una función que
+descarta números demasiado cortos, con todos los dígitos iguales o de secuencias obvias.</p>
+
+<blockquote>Un duplicado se arregla fusionando; un bloqueo se traduce en un cliente que se va.
+Por eso el error caro es bloquear a un cliente nuevo real, no dejar pasar un duplicado.</blockquote>
+
+<h2 id="s6">6 · La base de conocimiento de la IA</h2>
+
+<p>El agente que atiende en Kommo <strong>no usa ningún proceso propio</strong>: lo dispara Kommo cuando entra
+un mensaje y su conocimiento son las fuentes cargadas en la cuenta. Todo el trabajo consiste en qué dicen
+esas fuentes.</p>
+
+<div class="box warn">
+  <p class="h">⭐ Lo que hay que entender antes de tocar nada</p>
+  <p><strong>Son dos bases distintas, y se desincronizan.</strong></p>
+  <ul>
+    <li><strong>La del agente de Kommo</strong> — un documento que se edita en el repositorio, se convierte
+        a Word y <em>se sube a mano a Kommo</em> reemplazando el anterior.</li>
+    <li><strong>El paquete del equipo</strong> — ocho documentos que consulta el asistente de la oficina,
+        en dos capas: instrucciones cortas (ocupan contexto en cada mensaje) y documentos temáticos que se
+        recuperan cuando hacen falta.</li>
+  </ul>
+  <p>Cambiar una sin la otra las desincroniza, y hasta agosto el índice no mencionaba ninguna de las dos.</p>
+</div>
+
+<h4>El hallazgo que cambia cómo se escriben estos documentos</h4>
+
+<div class="box find">
+  <p class="h">Un hueco no produce un "no sé": produce silencio</p>
+  <p>Está documentado como límite de la plataforma: <strong>si el agente no encuentra información relevante
+  en sus fuentes, no responde.</strong> No dice que no sabe — se queda mudo, y el cliente queda en visto.</p>
+  <p>Por eso los cinco temas sin política se cerraron redactados como escalamiento explícito, y se agregó
+  una acción de respaldo para cuando no encuentra respuesta.</p>
+</div>
+
+<h4>Qué se corrigió</h4>
+<ul>
+  <li><strong>Tres desincronizaciones acumuladas desde el 10 de julio:</strong> tres secciones seguían
+      ofreciendo el término retirado por riesgo legal, una decía que la empresa opera desde 2008 y otra
+      enlazaba a una página que hoy redirige.</li>
+  <li><strong>El año contradecía la cronología oficial:</strong> 2008 es experiencia, 2010 la primera
+      oficina en China, y <strong>2015 la fundación en Venezuela</strong>.</li>
+  <li><strong>Contrato de conversación:</strong> una respuesta y una sola pregunta por mensaje, porque el
+      cliente contesta la última y olvida la primera.</li>
+  <li><strong>Las 53 secciones de las dos bases cierran con una pregunta que califica.</strong> Se redactaron
+      en paralelo y pasaron por un revisor con instrucción de refutar, que <strong>rechazó 21 de 42</strong>
+      por preguntas encadenadas, preguntas que solo piden permiso, saltos de tema y falsas dicotomías.</li>
+  <li><strong>El paquete del equipo pasó de 3 a 12 objeciones.</strong> Con solo tres, el asesor se quedaba
+      sin libreto justo en las que más llegan.</li>
+</ul>
+
+<h4>Configuración v2 del agente, escrita contra los límites reales</h4>
+<p>Se documentaron por primera vez los topes de la plataforma: personalidad hasta 1.500 caracteres, pautas
+50 líneas de 300 caracteres, máximo 20 acciones. Y se separó en tres capas con ciclos de vida distintos:
+los <strong>hechos</strong> van en las fuentes, el <strong>guion</strong> en la personalidad y las pautas, y la
+<strong>lógica</strong> en las acciones — porque Kommo advierte que las instrucciones con lógica de sistema no
+se interpretan bien.</p>
+
+<blockquote>Meter precios en el prompt está marcado como el error más común: ahí no tienen fecha de vigencia
+ni fuente citable.</blockquote>
+
+<div class="box find">
+  <p class="h">🔴 Estado real al cierre de este historial</p>
+  <p>Todo lo anterior está en el repositorio. <strong>Lo que el bot realmente lee en Kommo sigue siendo el
+  documento de junio</strong>, con el término retirado por riesgo legal adentro. Tampoco está aplicada la
+  configuración v2, y el agente sigue viviendo solo en Instagram, no en el WhatsApp que concentra el grueso
+  de los leads — palanca declarada como número uno desde junio.</p>
+  <p><strong>Arreglar el repositorio no arregla el CRM.</strong> Hay que convertir el documento y subirlo.</p>
+</div>
+
+<h2 id="s7">7 · Agosto: la reorganización de Kommo</h2>
+
+<h3>Lunes 3 de agosto</h3>
+<ul class="tl">
+  <li><span class="when">— Plan</span>
+    <p class="what">Se rehace el plan de consolidación contra el estado medido</p>
+    <p class="why">12 embudos y 2.877 tratos. Diseño nuevo: cinco columnas más dos cierres, con
+    <strong>Recontacto</strong> en tercera posición como puerta de entrada que se vacía. Cuatro hallazgos lo
+    cambiaron, entre ellos que <strong>el espejo era ciego a la bandeja de entrada</strong> y que el mapa de
+    etapas apuntaba a un embudo que se iba a borrar.</p></li>
+
+  <li><span class="when">— Espejo</span>
+    <p class="what">SDD-0245 · Se espeja la bandeja y aparecen 148 leads que el ERP no veía</p>
+    <p class="why">Reconciliación sin falsos positivos: 148 entradas, 148 genuinamente ausentes del espejo de
+    tratos. <strong>Toda métrica del ERP sobre el embudo lo subestimaba.</strong> Dos decisiones no obvias: la
+    bandeja es una cola, así que se reemplaza completa en cada corrida (acumular filas fantasma haría mentir
+    el conteo al alza); y si la lectura se trunca no se vacía, porque lo que no se vio no está aceptado.</p></li>
+
+  <li><span class="when">— Enrutado</span>
+    <p class="what">SDD-0244 · El ERP reconoce al cliente que vuelve</p>
+    <p class="why">Medición de arranque: <strong>428 clientes en el ERP, ninguno marcado en Kommo</strong> y
+    ninguno de los 2.877 tratos con Shipping Mark escrito. No es un fallo de Kommo: crear un trato nuevo es
+    su comportamiento correcto — lo que falta es la marca. El relleno masivo de teléfonos se descartó por
+    medición: de 186 clientes sin teléfono, solo 8 eran recuperables.</p></li>
+
+  <li class="hit"><span class="when">— Hallazgo</span>
+    <p class="what">🔴 El webhook llevaba desde junio desplegado pero nunca estuvo vivo</p>
+    <p class="why">No existía el secreto, Kommo no tenía ningún webhook dado de alta y la bitácora no tenía
+    ni una sola entrada suya. <strong>Dos meses de código correcto pero inerte.</strong> Se generó el secreto,
+    se guardó en el gestor de secretos (no en el repositorio) y se dio de alta el webhook.</p></li>
+
+  <li><span class="when">— Fix</span>
+    <p class="what">Se corrige un error latente en el mapa de etapas</p>
+    <p class="why">Al guardar el mapa desde el ERP <strong>se borraba la clave de Recontacto</strong> y el
+    enrutador quedaba inerte sin dar ningún error.</p></li>
+</ul>
+
+<h3>Martes 4 de agosto</h3>
+<ul class="tl">
+  <li><span class="when">02:08 UTC</span>
+    <p class="what">Primer disparo real del webhook</p>
+    <p class="why">Nueve disparos en el día, todos correctos, con latencia medida de <strong>~1 segundo</strong>
+    entre el cambio en Kommo y su reflejo en el ERP.</p></li>
+
+  <li><span class="when">05:07 / 05:35</span>
+    <p class="what">✅ La captación empieza a caer en el embudo nuevo</p>
+    <p class="why">Dos leads por WhatsApp y uno por Instagram, con tráfico real. El último lead del embudo
+    viejo es del 30 de julio.</p></li>
+
+  <li class="hit"><span class="when">— Hallazgo</span>
+    <p class="what">🔴 La bandeja no sigue a la fuente</p>
+    <p class="why">De 152 entradas, <strong>149 seguían atadas al embudo viejo</strong>: cada entrada conserva
+    el embudo que la fuente tenía cuando llegó el mensaje. Consecuencia de orden: hay que vaciar la bandeja
+    <em>antes</em> que los embudos, o cada aceptación repuebla lo que se acaba de limpiar.</p></li>
+
+  <li><span class="when">— Análisis</span>
+    <p class="what">Se desarma el supuesto de "rechazar el resto en bloque"</p>
+    <p class="why"><strong>118 de las 149 tenían entre 1 y 30 días</strong> y eran 118 personas distintas, 96
+    con teléfono. El corte real no son 90 días sino <strong>34</strong>: los datos saltan de 34 a 188 sin nada
+    en el medio. A rechazar quedaban 8, no 135.</p></li>
+
+  <li><span class="when">— Ejecución</span>
+    <p class="what">Se aceptan los 14 clientes registrados que estaban en cola</p>
+    <p class="why">Verificado uno por uno contra la base. <span class="tag t-warn">Nota operativa</span>
+    Seis de los primeros catorce clics <strong>no se guardaron pese a reportarse como exitosos</strong>: al
+    navegar inmediatamente después de aceptar, la petición se cancela a medias. Sin verificar contra la base
+    habrían quedado seis clientes fuera.</p></li>
+</ul>
+
+<h3>Dos límites de la interfaz que costaron encontrar</h3>
+
+<div class="box note">
+  <p class="h">Para quien tenga que repetir este trabajo</p>
+  <ul>
+    <li><strong>La ficha del lead tiene el selector de etapa deshabilitado</strong> (clase <code>prevent-open</code>).
+        En esta cuenta solo se puede cambiar etapa desde la lista o el tablero.</li>
+    <li><strong>El desplegable del modal de cambio de etapa es contraintuitivo:</strong> hay que hacer clic en
+        el campo de <em>etapa</em> —no en el de embudo— para que despliegue la lista completa de embudos.
+        Las opciones colapsadas miden <code>0×0</code> en la posición <code>(0,0)</code>, así que cualquier clic
+        automatizado aterriza fuera del modal y lo cierra <strong>en silencio</strong>.</li>
+  </ul>
+  <p>Secuencia que funciona: <code>casillas → cambiar etapa → clic en campo ETAPA → embudo destino → etapa → Guardar</code></p>
+</div>
+
+<h2 id="s8">8 · El diseño acordado</h2>
+
+<figure class="fig">
+<svg viewBox="0 0 860 250" role="img" aria-label="Embudo Ventas DTD con dos puertas de entrada">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5a6478"/></marker>
+    <style>
+      .b{fill:#fff;stroke:#0f1e3d;stroke-width:1.5}.bw{fill:#7f0f1a;stroke:#7f0f1a}
+      .t{font:600 12px system-ui;fill:#0f1e3d}.tw{font:700 12px system-ui;fill:#fff}
+      .s{font:400 10.5px system-ui;fill:#5a6478}
+      .ln{stroke:#5a6478;stroke-width:1.5;fill:none;marker-end:url(#a)}
+    </style>
+  </defs>
+  <rect class="b" x="8" y="18" width="150" height="46" rx="5"/>
+  <text class="t" x="20" y="40">1 · Leads entrantes</text><text class="s" x="20" y="56">Desconocido</text>
+  <rect class="b" x="8" y="80" width="150" height="46" rx="5"/>
+  <text class="t" x="20" y="102">2 · Contacto inicial</text><text class="s" x="20" y="118">Ya le respondiste</text>
+  <rect class="b bw" x="8" y="150" width="150" height="46" rx="5"/>
+  <text class="tw" x="20" y="172">3 · RECONTACTO</text><text class="s" x="20" y="188" fill="#f3d9dc">Cliente con Shipping Mark</text>
+  <path class="ln" d="M158 41 H210 V107 H236"/><path class="ln" d="M158 103 H236"/>
+  <path class="ln" d="M158 173 H210 V107 H236"/>
+  <rect class="b" x="238" y="80" width="150" height="46" rx="5"/>
+  <text class="t" x="250" y="102">4 · Estimado enviado</text><text class="s" x="250" y="118">Ya tiene números</text>
+  <path class="ln" d="M388 103 H428"/>
+  <rect class="b" x="430" y="80" width="140" height="46" rx="5"/>
+  <text class="t" x="442" y="102">5 · Negociación</text><text class="s" x="442" y="118">Discute precio</text>
+  <path class="ln" d="M570 95 H612 V56 H648"/><path class="ln" d="M570 111 H612 V150 H648"/>
+  <rect class="b" x="650" y="32" width="140" height="46" rx="5" fill="#e3f2e9" stroke="#1d6b45"/>
+  <text class="t" x="662" y="54" fill="#1d6b45">GANADO</text><text class="s" x="662" y="70">= registrado</text>
+  <rect class="b" x="650" y="128" width="140" height="46" rx="5" fill="#fbe4e6" stroke="#a01722"/>
+  <text class="t" x="662" y="150" fill="#a01722">PERDIDO</text><text class="s" x="662" y="166">con motivo</text>
+  <text class="s" x="8" y="228">Recontacto es un pasillo, no un cuarto: se vacía en 1–2 días.</text>
+  <text class="s" x="8" y="246">Si empieza a acumular tratos, se convirtió en un cuarto y hay que corregirlo.</text>
+</svg>
+<figcaption>Figura 1 · Las etapas 1 y 3 son dos puertas de entrada distintas.</figcaption>
+</figure>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Concepto</th><th>Definición acordada</th><th>Por qué</th></tr></thead>
+  <tbody>
+    <tr><td><strong>GANADO</strong></td><td>Quedó registrado y se emitió su Shipping Mark.</td>
+        <td>Kommo mide conversión; el ERP mide el dinero. Mezclarlos hacía ilegibles ambos.</td></tr>
+    <tr><td><strong>Contacto</strong></td><td>La persona. Permanente.</td>
+        <td>Es donde vive el Shipping Mark, para que se vea al lado del chat sin automatización.</td></tr>
+    <tr><td><strong>Trato</strong></td><td>Una venta. Se cierra y <strong>no se reabre</strong>.</td>
+        <td>Verificado: Kommo nunca reabrió un trato cerrado en 2.877 leads desde feb-2024.</td></tr>
+    <tr><td><strong>Recompra</strong></td><td>Trato nuevo en el mismo embudo.</td>
+        <td>El trato ganado viejo queda intacto: es el histórico y la base del KPI de recompra a 30/45 días.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="box note">
+  <p class="h">Restricción de la plataforma que conviene tener escrita</p>
+  <p>En Kommo base <strong>no existe un objeto "ticket de atención"</strong>: toda conversación cuelga de un
+  trato. Por eso la atención al cliente tiene que ser una etapa del mismo embudo — un embudo de soporte
+  recrearía el problema que este trabajo elimina.</p>
+</div>
+
+<h2 id="s9">9 · Contradicciones y hallazgos abiertos</h2>
+
+<p>Estos salieron del cruce entre fuentes. Se listan sin resolver, para que se verifiquen.</p>
+
+<div class="box find">
+  <p class="h">🔴 A · La fusión de clientes pierde el vínculo con el contacto de Kommo</p>
+  <p><strong>Verificado en el código.</strong> La función de fusión copia al sobreviviente el vínculo con el
+  <em>trato</em> pero no el vínculo con el <em>contacto</em>, porque esa columna la agregó en paralelo la
+  otra línea de trabajo unas horas después.</p>
+  <p>Efecto práctico: si la ficha retirada era la que tenía el contacto vinculado, <strong>la fusión pierde
+  ese vínculo</strong> y ese cliente vuelve al cruce por teléfono. Es justo el mecanismo del que depende que
+  la cobertura del enrutador crezca sola.</p>
+  <p style="font:400 12px var(--mono);color:#8a92a3">supabase/migrations/0341_client_merge_duplicados.sql:503</p>
+</div>
+
+<div class="box find">
+  <p class="h">🟠 B · Dos normalizaciones de teléfono distintas sobre la misma columna</p>
+  <p>Escritas el mismo día por dos líneas de trabajo. El enrutador de Kommo usa los <strong>últimos diez
+  dígitos</strong>; el deduplicador del registro usa los <strong>últimos siete</strong> más una lista de números
+  de relleno. La protección contra rellenos vive solo en la llave de siete. No consta que la asimetría se
+  haya decidido de forma explícita.</p>
+</div>
+
+<div class="box find">
+  <p class="h">🟠 C · El código retirado solo se resuelve en el almacén de China</p>
+  <p>La especificación lo enuncia para China y Venezuela, pero está implementado solo en la recepción de
+  Yiwu. Un bulto rotulado con un código retirado se resuelve al recibirlo en China y no al recibirlo en
+  Venezuela.</p>
+</div>
+
+<div class="box warn">
+  <p class="h">⚠️ D · El estado declarado de las especificaciones no refleja el estado real</p>
+  <p>Hay specs con tres estados a la vez: encabezado <em>en curso</em>, índice <em>propuesta</em>, y código
+  en producción. El repositorio registró dos saneamientos masivos que movieron 35 specs a
+  <em>terminada</em> en bloque.</p>
+  <p><strong>Regla práctica para leer este informe: en este frente, "terminada" no significa "encendida".</strong></p>
+</div>
+
+<div class="box warn">
+  <p class="h">⚠️ E · El arreglo de resiliencia del sincronizador es solo una especificación</p>
+  <p>Se verificó en el código que la guarda que se auto-traba y la mezcla de configuración con resultado
+  <strong>siguen igual</strong>. Si la sincronización vuelve a fallar por red, se repite la caída silenciosa
+  de 13 días.</p>
+</div>
+
+<div class="box note">
+  <p class="h">📌 F · Trampa al buscar en el historial</p>
+  <p>Dos trabajos distintos se llamaron <strong>SDD-0244 el mismo día</strong>: el enrutado a Recontacto (que
+  se quedó con el número) y la fusión de clientes duplicados (renumerada a SDD-0246). Los mensajes de commit
+  anteriores al cambio dicen SDD-0244 en ambos casos. <strong>Hay que distinguirlos por archivo tocado, no
+  por el mensaje.</strong></p>
+</div>
+
+<h4>Huecos que no se pudieron cerrar con las fuentes</h4>
+<ul>
+  <li>No hay ningún registro de la investigación sobre <strong>por qué la captación cayó a cero durante tres
+      semanas de julio</strong>. Quedó declarada como fase bloqueante y ahí quedó.</li>
+  <li>No existe artefacto que registre que la base de conocimiento se haya subido a Kommo después de junio;
+      el único registro es una bitácora escrita a mano.</li>
+  <li>El análisis de 401 conversaciones que sostiene el top 20 de preguntas <strong>no se conservó como
+      conjunto de datos</strong>.</li>
+  <li>Un manual interno de peso declara tarifas y mínimos <strong>distintos a los de la calculadora del
+      código</strong>. El repositorio declara que manda el código. Es interno, pero quien lo lea cotiza mal.</li>
+</ul>
+
+<h2 id="s10">10 · Métricas y pendientes</h2>
+
+<div class="kpis">
+  <div class="kpi"><div class="n">142</div><div class="l">Mensajes entrantes / mes</div></div>
+  <div class="kpi"><div class="n">633</div><div class="l">Diálogos sin réplica</div></div>
+  <div class="kpi"><div class="n">430</div><div class="l">Clientes en el ERP</div></div>
+  <div class="kpi"><div class="n">12,8%</div><div class="l">Con portal activo</div></div>
+</div>
+
+<div class="scroll">
+<table>
+  <caption>Estado medido · 2026-08-04</caption>
+  <thead><tr><th>Métrica</th><th class="num">Valor</th><th>Comentario</th></tr></thead>
+  <tbody>
+    <tr><td>Mensajes entrantes por mes</td><td class="num">142</td><td>131 WhatsApp · 11 Instagram · 0 Messenger</td></tr>
+    <tr><td>Lapso medio de réplica</td><td class="num">44 min</td><td>Solo cuenta los que sí recibieron respuesta</td></tr>
+    <tr><td>Entradas en bandeja</td><td class="num">152</td><td>149 atadas al embudo viejo</td></tr>
+    <tr><td>Clientes con teléfono utilizable</td><td class="num">244</td><td>De 430 vivos</td></tr>
+    <tr><td>Vínculo contacto Kommo ↔ cliente</td><td class="num">33</td><td>El resto se resuelve por teléfono, más frágil</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h4>Pendientes</h4>
+<ol>
+  <li><strong>Terminar de mover los 14 clientes</strong> aceptados a Recontacto.</li>
+  <li><strong>Aceptar los 127 desconocidos recientes</strong> y llevarlos al embudo nuevo.</li>
+  <li><strong>Rechazar únicamente las 8 entradas</strong> de más de 90 días, revisadas una por una.</li>
+  <li><strong>Reconectar Facebook Messenger y Comentarios</strong> — bloquea el borrado del embudo viejo.</li>
+  <li><strong>Reclasificar los 2.879 tratos históricos</strong> y borrar los 11 embudos vacíos.</li>
+  <li><strong>Regenerar y subir a Kommo la base de conocimiento</strong> — la cargada sigue siendo la de junio.</li>
+  <li><strong>Aplicar la configuración v2 del agente</strong> y llevarlo a WhatsApp.</li>
+  <li><strong>Salir del modo ensayo</strong> del enrutado, una vez terminada la limpieza.</li>
+  <li><strong>Corregir el hallazgo A</strong> — que la fusión copie también el vínculo con el contacto.</li>
+</ol>
+
+<footer>
+  <p><strong>Bitácora de cambios del CRM · DTD Cargo</strong><br>
+  Historial reconstruido desde el repositorio el 2026-08-04. Documento vivo.<br>
+  Ubicación: <code>docs/marketing/crm/bitacora-cambios-crm.html</code></p>
+</footer>
+
+</div>
+</body>
+</html>
