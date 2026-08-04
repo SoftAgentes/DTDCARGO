@@ -41,6 +41,8 @@ dirección de la bodega, tu Shipping Mark y las etiquetas que debe pegar en cada
 
 **Siguiente paso:** regístrate antes de pedirle al proveedor que despache.
 
+**Pregunta de continuación:** *"¿Esta sería tu primera importación desde China o ya has traído antes?"*
+
 ## 2. ✅ ¿Cuánto cuesta traer mercancía de China a Venezuela?
 
 Depende sobre todo del **volumen de la carga en metros cúbicos (CBM)**, la modalidad del envío
@@ -52,6 +54,8 @@ Un contenedor completo o una operación con aduana propia lleva cotización indi
 
 **Siguiente paso:** calcula el estimado y pide confirmación si tu carga tiene baterías,
 líquidos, densidad alta o requisitos especiales.
+
+**Pregunta de continuación:** *"¿Más o menos qué cantidad estás pensando traer: unas cajas, como un metro cúbico, o más que eso?"*
 
 ## 3. ⚠️ **Confirmar con Operaciones** · ¿Cuánto tarda un envío marítimo?
 
@@ -65,6 +69,8 @@ logístico. La fecha de tu embarque se confirma al cotizar y se actualiza en el 
 **Siguiente paso:** si ya embarcaste, mira `dtdcargo.com/portal`; si estás cotizando, confirma
 la próxima salida con el equipo.
 
+**Pregunta de continuación:** *"¿Para qué fecha necesitas tener la mercancía en tu depósito?"*
+
 ## 4. ✅ ¿Cómo envío mis compras a la bodega de DTD en China?
 
 A la bodega de **Yiwu, Zhejiang**, usando la dirección vigente en chino y **tu Shipping Mark en
@@ -74,6 +80,8 @@ el nombre del destinatario**. El código también debe ir en cada caja.
 Alibaba, 1688 o Taobao campo por campo.
 
 Si la caja llega sin el código, la recibimos pero no sabemos de quién es.
+
+**Pregunta de continuación:** *"¿Tu proveedor ya tiene la mercancía lista para despachar o todavía la está produciendo?"*
 
 ## 5. ✅ ¿Qué significan FOB y EXW?
 
@@ -90,6 +98,8 @@ bodega en Yiwu. Eso es el **costo total**, no el precio de fábrica.
 
 **Siguiente paso:** que te mande la cotización del proveedor antes de aprobar la compra.
 
+**Pregunta de continuación:** *"¿De cuántos proveedores distintos vas a comprar para esta carga?"*
+
 ## 6. ⚠️ **Confirmar con Comercial/Legal** · ¿Cómo y en qué moneda pago?
 
 El servicio se cotiza en **dólares**, porque la mayor parte de sus costos —flete, aduana y
@@ -99,6 +109,8 @@ entrega **un asesor de manera segura**, vinculados a tu Shipping Mark.
 🔴 **Nunca publiques datos bancarios ni comprobantes en grupos.** Si el cliente ya tiene
 factura, que reporte el pago desde el portal.
 
+**Pregunta de continuación:** *"¿Ya cerraste la compra con tu proveedor o todavía la estás negociando?"*
+
 ## 7. ⚠️ **Confirmar con Comercial/Legal** · ¿Qué incluye el Puerta a Puerta?
 
 DTD Cargo coordina **el flete desde China, la aduana, los impuestos y la entrega en tu
@@ -106,6 +118,8 @@ dirección en Venezuela**. Recibes un precio integral y no gestionas la nacional
 
 ⚠️ **La importación no queda a tu nombre.** Si necesitas documentos propios, tienes que elegir
 la opción con tu propia aduana.
+
+**Pregunta de continuación:** *"¿Y lo que traes hoy te lo dejan en tu puerta o tienes que sacarlo tú de la aduana?"*
 
 ## 8. ✅ ¿Cómo se calcula el CBM?
 
@@ -115,6 +129,8 @@ se suman.
 > Ejemplo: una caja de 0,50 × 0,40 × 0,30 m ocupa **0,06 CBM**. Diez cajas iguales = **0,60 CBM**.
 
 Se usan las **medidas reales de la caja empacada**, no las del producto sin empaque.
+
+**Pregunta de continuación:** *"¿Ya tienes las medidas de las cajas que te va a mandar el proveedor?"*
 
 ## 9. ✅ ¿Qué diferencia hay entre LCL y FCL?
 
@@ -127,6 +143,8 @@ Depende del volumen, la frecuencia, el tipo de carga y cuánto control operativo
 💡 **Dato de venta:** podemos reunir en Yiwu mercancía de varios proveedores bajo el mismo
 Shipping Mark. **Tener varios proveedores no obliga a contratar un contenedor completo.**
 
+**Pregunta de continuación:** *"¿Cuántos metros cúbicos sueles traer por pedido?"*
+
 ## 10. ⚠️ **Confirmar con Comercial/Legal** · ¿Quién paga la aduana y los impuestos?
 
 En **Puerta a Puerta**, aduana e impuestos están **incluidos** en el precio acordado.
@@ -135,6 +153,8 @@ permisos y gastos de nacionalización.
 
 ⚠️ **No compares una tarifa Puerta a Puerta con una tarifa hasta almacén fiscal** como si
 incluyeran lo mismo. Es el error de comparación más común.
+
+**Pregunta de continuación:** *"Si ya te pasaron otro precio, ¿ese incluye aduana e impuestos o lo pagas aparte?"*
 
 ## 11. ⚠️ **Confirmar con Comercial/Legal** · ¿La importación queda a mi nombre?
 
@@ -147,6 +167,8 @@ Depende de la modalidad.
 
 ⚠️ **Se decide antes de embarcar.** Cambiarlo con la carga en tránsito puede no ser viable.
 
+**Pregunta de continuación:** *"¿Necesitas los documentos de nacionalización a nombre de tu empresa o con recibir la mercancía te basta?"*
+
 ## 12. ✅ ¿Qué es el Shipping Mark?
 
 Es el **código único de cada cliente**, con formato `DTD-XXXX`. Identifica tus cajas en la
@@ -158,6 +180,8 @@ En China también se conoce como **唛头**.
 ⚠️ **No es un número de rastreo de courier.** Es la identidad logística de tu mercancía dentro
 de DTD. Se obtiene gratis en `dtdcargo.com/registro`.
 
+**Pregunta de continuación:** *"Ese código lo usas en cada envío que hagas. ¿Cada cuánto traes de China normalmente?"*
+
 ## 13. ✅ ¿Qué hago después de que mi proveedor envía la mercancía?
 
 Registra una **pre-alerta** en el portal con tu Shipping Mark, el número de guía del proveedor
@@ -166,6 +190,8 @@ con tu compra cuando llega a Yiwu.
 
 Hazla **antes de que llegue la primera caja**, sobre todo si vas a usar validación, reempaque,
 etiquetado o consolidación de varios trackings — esos servicios se coordinan antes de recibir.
+
+**Pregunta de continuación:** *"¿Cuántos envíos distintos te van a llegar a la bodega para esta compra?"*
 
 ## 14. ✅ ¿Cómo rastreo mi envío?
 
@@ -178,6 +204,8 @@ número de contenedor, esos datos permiten consultar la etapa naviera.
 🔴 **No prometas seguimiento satelital ni "tiempo real" para todos los embarques.** No todos
 los embarques tienen esa información asociada.
 
+**Pregunta de continuación:** *"¿Me pasas tu Shipping Mark y te reviso en qué etapa va tu carga?"*
+
 ## 15. ⚠️ **Confirmar con Operaciones** · ¿Entregan en toda Venezuela?
 
 Sí. Coordinamos entregas desde Valencia hacia ciudades de toda Venezuela. El costo depende del
@@ -185,6 +213,8 @@ destino y de si la dirección está dentro de la ruta base o necesita un tramo t
 
 ⚠️ "Puerta a puerta" significa que no tienes que retirar la carga en un puerto — pero una
 ubicación fuera del casco o de la ruta habitual **puede cambiar el precio de la última milla**.
+
+**Pregunta de continuación:** *"¿A qué ciudad y sector necesitas que te llegue la carga?"*
 
 ## 16. ⚠️ **Confirmar con Operaciones** · ¿Qué productos están prohibidos o restringidos?
 
@@ -199,6 +229,8 @@ consolidado** — o sea, para todos los clientes que van ahí.
 **Siguiente paso:** que mande la ficha técnica y la lista de productos **antes de pagarle al
 proveedor**.
 
+**Pregunta de continuación:** *"Cuéntame, ¿qué producto es el que quieres traer?"*
+
 ## 17. ⚠️ **Confirmar con Operaciones** · ¿Puedo enviar baterías?
 
 Sí, **pero declaradas y con papeles**. → **Ver el documento completo de baterías**, que tiene
@@ -208,12 +240,16 @@ Resumen: hasta **100 Wh** (powerbanks, teléfonos, laptops) van por trámite sim
 **UN38.3 + MSDS**. Más grandes o de scooter/e-bike = mercancía peligrosa, canal especial y
 recargo.
 
+**Pregunta de continuación:** *"¿De qué equipo es la batería: un powerbank, un teléfono o algo más grande como una moto eléctrica?"*
+
 ## 18. ✅ ¿DTD valida proveedores en China?
 
 Sí. Comprobamos que la empresa existe y evaluamos su registro, capacidad e instalaciones. Es
 útil antes de pagarle a un proveedor nuevo o comprometer una producción importante.
 
 ⚠️ **Validar la empresa no sustituye inspeccionar el producto.** Son controles distintos.
+
+**Pregunta de continuación:** *"¿Es un proveedor nuevo o ya le has comprado antes?"*
 
 ## 19. ⚠️ **Confirmar con Operaciones** · ¿Inspeccionan la mercancía antes de embarcar?
 
@@ -225,6 +261,8 @@ contrata una **inspección de producto** con muestreo y evidencia fotográfica.
 funcionamiento, empaque o tolerancia de defectos, esos criterios se definen **por escrito antes
 de producir**.
 
+**Pregunta de continuación:** *"¿Qué cantidad de piezas le estás comprando a ese proveedor?"*
+
 ## 20. ✅ ¿Pueden ayudarme a comprar y consolidar varios proveedores?
 
 Sí. Con **compra asistida** podemos ubicar y gestionar proveedores, negociar y coordinar el pago
@@ -232,6 +270,8 @@ cuando aplique. Y la bodega de Yiwu puede recibir compras de distintos proveedor
 mismo Shipping Mark** y consolidarlas en un solo envío.
 
 Para cotizar bien hace falta: lista de productos, cantidades, especificaciones y presupuesto.
+
+**Pregunta de continuación:** *"¿Ya tienes armada la lista de productos con cantidades?"*
 
 ---
 
