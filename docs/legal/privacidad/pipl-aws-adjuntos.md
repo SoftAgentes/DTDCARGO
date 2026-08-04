@@ -1,8 +1,8 @@
 # Evaluación PIPL · adjuntos enviados a AWS
 
 **Versión:** 1.0 · 2026-08-03
-**Estado:** evaluación técnica preparada; decisión/consentimientos humanos
-**NO VERIFICABLES**
+**Estado:** evaluación histórica supersedida el 2026-08-04 por la evaluación
+Cloudflare R2; decisión/consentimientos humanos **NO VERIFICABLES**
 **Conservación:** expediente y registro mínimo durante 3 años
 **Receptor previsto:** Amazon Web Services, Inc. · `us-east-1` · EE.UU.
 

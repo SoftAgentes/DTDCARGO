@@ -1,280 +1,149 @@
-# Evaluación previa · proveedor de respaldo externo para adjuntos
+# Evaluación previa · proveedor externo de adjuntos
 
 | Campo | Valor |
 |---|---|
-| Estado | **IMPLEMENTACIÓN LOCAL LISTA · contratación y conexión bloqueadas** |
-| Proveedor seleccionado | AWS S3 + GuardDuty Malware Protection for S3 |
-| Región | `us-east-1` · EE.UU. |
-| Finalidad | Recuperación independiente de adjuntos del ERP |
-| Fecha | 2026-08-03 |
-| Evaluador técnico | Codex, con aprobación documental de Sam |
+| Estado | **R2 CONFIGURADO · activación bloqueada por gates externos** |
+| Proveedor seleccionado | Cloudflare R2 + ClamAV administrado por DTD |
+| Bucket | `dtdcargo-attachments-archive-prod` · privado · Standard |
+| Ubicación | ENAM · sugerencia de ubicación, no jurisdicción garantizada |
+| Retención | Bucket Lock `dtdcargo-gastos-10y1d` · 3654 días |
+| Fecha | 2026-08-04 |
 | SDD | [SDD-0224](../../specs/0224-adjuntos-seguros-reanudables/spec.md) |
 
-El founder autorizó preparar y configurar la integración el 2026-08-03. La
-ausencia de una cuenta/identidad AWS autenticada impide ejecutar la contratación
-y las pruebas externas; no se comparten datos ni se declara activado. No es
-asesoría legal.
+AWS S3 + GuardDuty fue la primera selección y su código permanece como
+contingencia, pero el alta quedó bloqueada por SMS desde Venezuela. El founder
+autorizó avanzar con Cloudflare. No es asesoría legal.
 
-## 1 · Datos que recibiría
+## Datos y finalidad
 
-| Categoría | ¿Es necesaria para restaurar? | Minimización propuesta |
-|---|:-:|---|
-| Binario del adjunto | sí | cifrado; object key seudónimo; sin nombre original en el path |
-| Tenant, entidad y versión | sí | UUID; no marca comercial, nombre, cédula ni Shipping Mark |
-| SHA-256, tamaño y MIME canónico | sí | metadata técnica mínima |
-| Nombre original | no para restaurar bytes | conservar solo en Postgres; no copiar como object key |
-| Actor/uploader | no | conservar solo en auditoría del ERP |
-| Tokens y URLs firmadas | no | prohibido enviarlos o persistirlos |
+La copia contiene el binario del adjunto y metadata técnica mínima: key
+seudónima, SHA-256, MIME canónico y recibo `etag:<ETag>`. El nombre original,
+actor, correo, teléfono, Shipping Mark, URL firmada y token no se copian.
 
 El binario puede contener identidad, firma, rostro, voz, geolocalización,
-información financiera, contratos, documentos aduaneros y datos de terceros no
-usuarios. Cifrar o seudonimizar el path no elimina el carácter personal del
-contenido.
+cuentas financieras, contratos y datos de terceros no usuarios. Cifrar o usar
+UUID no elimina el carácter personal del contenido.
 
-## 2 · Necesidad y alcance
+La única finalidad aprobada es análisis antimalware, recuperación independiente
+e integridad. No se autoriza analítica, entrenamiento, publicidad ni mejora de
+producto del proveedor.
 
-La finalidad propuesta es restaurar evidencia cuando Supabase, una cuenta o una
-operación administrativa no pueda recuperarla. La copia no se usa para
-analítica, entrenamiento, publicidad ni mejora del producto del proveedor.
+## Arquitectura seleccionada
 
-El servicio debe recibir únicamente bytes cifrados, object key seudónimo y
-metadata técnica indispensable. La aplicación de negocio no debe entregar
-perfiles completos de clientes ni payloads de entidades.
+1. Supabase conserva el origen y sus outboxes durables de scan/backup/restore.
+2. `scripts/attachments-clamav-http.mjs` traduce HTTP local al protocolo
+   `INSTREAM` de `clamd`; queda ligado a loopback y falla cerrado.
+3. Solo un resultado limpio permite copiar a R2.
+4. R2 recibe `dtdcargo/{object_key}`, SHA-256 en metadata y devuelve ETag.
+5. El estado `protegido` exige `R2_BUCKET_LOCK`, recibo, checksum y retención.
+6. El restore drill descarga el objeto y compara SHA-256 byte a byte.
 
-## 3 · Rol y contrato
+Cloudflare Queues no es requisito: el outbox Postgres ya aporta reclamo,
+reintentos e idempotencia. Evitar Queues elimina un plan Workers pago sin
+debilitar el flujo aprobado.
 
-Estado: fuentes públicas **ENCONTRADAS**; cuenta y contratación
-**NO VERIFICABLES**.
+R2 Bucket Lock no es S3 Object Lock y R2 no devuelve `VersionId`. La migración
+`0346_r2_bucket_lock_backup_receipts.sql` amplía el contrato de base de datos
+para registrar `R2_BUCKET_LOCK` y `etag:<ETag>` con semántica explícita.
 
-AWS está seleccionado técnicamente. El AWS Data Processing Addendum se publica
-como parte de los términos del servicio y AWS mantiene una lista de
-subprocesadores por región/servicio. El expediente de URLs y huellas está en
-[`aws-adjuntos-expediente-contractual.md`](aws-adjuntos-expediente-contractual.md).
-Para una cuenta venezolana, la tabla pública apunta a Amazon Web Services, Inc.;
-la aceptación, facturación y titularidad reales siguen sin verificarse. No se
-conecta hasta confirmarlas dentro de la cuenta.
+## Evidencia real al 2026-08-04
 
-Antes de conectar deben verificarse y documentarse:
+`CORRECTO` en consola:
 
-- identidad legal y contacto del proveedor;
-- contrato o anexo con finalidad, plazo, método, categorías y medidas;
-- prohibición de uso propio de los datos;
-- subcontratistas, países y mecanismo de notificación de cambios;
-- devolución/exportación y eliminación al terminar;
-- tiempos y evidencia de notificación de incidentes;
-- acceso humano, soporte y logs administrativos;
-- responsabilidad por mala configuración y exclusiones del SLA.
+- facturación R2 activada;
+- bucket privado Standard creado;
+- token restringido al bucket y operaciones de objetos, guardado fuera de Git;
+- regla de 3654 días habilitada para todos los objetos;
+- alertas de gasto en USD 37,50, 56,25 y 67,50;
+- objeto sintético sin PII cargado; el panel deshabilita `Eliminar`.
 
-Para Venezuela el contrato es el mecanismo práctico para delimitar obligaciones
-y responsabilidades. Para tratamiento sujeto a PIPL, el art. 21 exige pactar y
-supervisar finalidad, plazo, método, categorías y medidas.
+`NO VERIFICABLE` todavía:
 
-## 4 · Ubicación y transferencia
+- identidad fiscal, factura, aceptación, DPA y subprocesadores archivados;
+- intento S3 de borrado con `403/AccessDenied` y receipt externo;
+- restore alojado y medición real RPO/RTO;
+- instalación/health de `clamd`, firmas y prueba EICAR;
+- mecanismo PIPL, país efectivo y consentimiento separado.
 
-Estado: **CORRECTO para la selección regional; NO VERIFICABLE para la
-transferencia jurídica**.
+Por eso `DTD_ATTACHMENTS_GASTOS_PILOT=0` y
+`DTD_ATTACHMENTS_WORKER_ALLOW=0` permanecen como defaults.
 
-- El proyecto Supabase productivo reportó `us-east-1` en una consulta de
-  metadatos de solo lectura del 2026-08-03. Ese dato no está fijado en el repo.
-- Se selecciona AWS `us-east-1` para evitar una segunda región operativa y
-  reducir latencia/RPO entre el origen y el respaldo.
-- GuardDuty procesa el objeto en un entorno aislado de la misma región, cifrado
-  temporalmente, y elimina su copia de trabajo al terminar el scan.
-- AWS declara que el contenido permanece en la región elegida salvo instrucción
-  del cliente o exigencia legal; la lista de subprocesadores depende de región y
-  servicios y debe archivarse al contratar.
+## Retención e integridad
 
-Se debe registrar:
+Para Gastos se configuró 10 años + 1 día como 3654 días. La regla sin prefijo
+aplica a objetos existentes y nuevos. Cloudflare documenta que un lock evita
+borrado y sobrescritura mientras está vigente y prevalece sobre lifecycle.
 
-- país y región primaria;
-- réplicas, soporte y subcontratistas por país;
-- capacidad de fijar residencia;
-- nombre y contacto del receptor extranjero;
-- mecanismo aplicable para salida desde China;
-- forma de ejercicio de derechos frente al receptor.
+La credencial del worker no administra la configuración del bucket. Aun así,
+Bucket Lock puede ser administrado por una identidad con permisos de cuenta;
+la separación de administradores, MFA y auditoría de cambios debe comprobarse
+operativamente. No se presenta Bucket Lock como equivalente regulatorio a AWS
+Object Lock Compliance.
 
-Como DTD Cargo tiene operación y equipo propio en China, un adjunto tratado allí
-puede quedar bajo PIPL. Cuando exista transferencia fuera de China se deben
-resolver los mecanismos del art. 38 y la información/consentimiento separado del
-art. 39. La evaluación de impacto previa de los arts. 55–56 también debe cubrir
-datos sensibles, tercero y transferencia.
+Objetivos aprobados:
 
-La región está definida, pero la salida de datos tratados en China hacia EE.UU.
-sigue bloqueada hasta resolver PIPL arts. 38–39 y conservar la evaluación de
-impacto de los arts. 55–56. El piloto externo solo puede usar archivos sintéticos
-sin PII mientras falte ese gate.
+- RPO ≤ 1 hora;
+- RTO de evidencia crítica ≤ 4 horas;
+- muestra de restore mensual y simulacro trimestral;
+- sin borrado físico automático al vencer: revisión de hold y obligación.
 
-## 5 · Independencia operativa
+## Región y transferencia
 
-El proveedor solo califica como respaldo independiente si cumple todo lo
-siguiente:
+El bucket muestra ENAM. Cloudflare documenta que un *location hint* es mejor
+esfuerzo y no garantía de residencia. Las restricciones jurisdiccionales R2
+disponibles son UE y FedRAMP; no se configuraron y no pueden añadirse después
+al mismo bucket.
 
-- cuenta, organización, facturación y MFA separados de Supabase y Vercel;
-- credenciales write-only para backup y credenciales de restore separadas;
-- ninguna credencial de borrado disponible en el runtime normal de la app;
-- no sincronizar deletes del origen como eliminación de la copia protegida;
-- Object Lock o inmutabilidad aplicada desde el primer PUT;
-- legal hold por objeto/versión;
-- logs de cambios de retención e intentos de borrado;
-- restore a infraestructura nueva sin depender de Supabase.
+Esto bloquea datos tratados en China: PIPL art. 39 exige informar el receptor
+extranjero y el ejercicio de derechos; la evaluación necesita un país o alcance
+territorial real. Véase
+[pipl-cloudflare-r2-adjuntos.md](pipl-cloudflare-r2-adjuntos.md).
 
-Arquitectura seleccionada, todavía **NO VERIFICABLE** en una cuenta real:
+## Contrato y subprocesadores
 
-1. cuenta AWS exclusiva, MFA y recuperación con dos responsables;
-2. bucket `scan-inbox` privado con SSE-KMS, GuardDuty, tagging y acceso negado
-   salvo resultado `NO_THREATS_FOUND`;
-3. EventBridge → SQS con DLQ para resultados idempotentes y fail-closed;
-4. bucket `worm-backup` separado, versionado y Object Lock `COMPLIANCE`;
-5. roles distintos para scan, escritura de backup, restore y legal hold;
-6. AWS Budgets y alarmas CloudWatch de cola/DLQ desde la plantilla; CloudTrail
-   organizacional e Inventory deben habilitarse y verificarse al configurar la
-   cuenta real.
+El DPA público de Cloudflare v6.4 declara incorporación al acuerdo principal y
+aviso de nuevos subprocesadores con al menos 30 días. Esa fuente no prueba que
+la cuenta DTD tenga titular fiscal correcto, que una persona autorizada aceptó
+el acuerdo ni que se archivó la lista aplicable. Véase
+[cloudflare-r2-adjuntos-expediente-contractual.md](cloudflare-r2-adjuntos-expediente-contractual.md).
 
-GuardDuty no expone el HTTP `DTD_ATTACHMENTS_AV_URL`. El adaptador asíncrono
-EventBridge/SQS ya está implementado y probado localmente en
-`scripts/attachments-guardduty-adapter.mjs`; el preflight exige cuenta, región,
-bucket, cola, KMS y evidencia vigente. EICAR real continúa bloqueado hasta
-provisionar la cuenta.
+## Costos
 
-## 6 · Integridad, retención y restore
+Precios públicos R2 Standard consultados el 2026-08-04:
 
-Requisitos técnicos:
+| Concepto | Incluido al mes | Excedente |
+|---|---:|---:|
+| almacenamiento | 10 GB-mes | USD 0,015/GB-mes |
+| Clase A | 1 millón | USD 4,50/millón |
+| Clase B | 10 millones | USD 0,36/millón |
+| egress directo | gratuito | gratuito |
 
-- SHA-256 end-to-end calculado nuevamente desde el objeto de origen;
-- comparación de hash, tamaño y versión después de copiar;
-- inventory API o manifiesto reconciliable;
-- versiones anteriores preservadas;
-- multipart incompleto identificado y no declarado protegido;
-- simulacro de un archivo, una entidad, un tenant y pérdida total del origen;
-- restore byte a byte con checksum idéntico;
-- evidencia mensual de integridad y trimestral de restauración.
+No incluye impuestos, VPS, monitoreo ni operación ClamAV. El presupuesto
+aprobado es USD 75/mes. Las alertas no constituyen un límite duro.
 
-Objetivos de diseño aprobados por SDD-0224:
+## Veredicto
 
-- RPO menor o igual a 1 hora;
-- RTO de evidencia crítica menor o igual a 4 horas.
+- [ ] activar Producción
+- [x] **continuar con evidencia sintética y preparación alojada**
+- [ ] descartar proveedor
 
-Retención seleccionada para el piloto de Gastos:
+Cloudflare R2 es la selección operativa por disponibilidad desde Venezuela,
+costo y API S3 compatible. La activación permanece bloqueada hasta:
 
-| Plano | Condición |
-|---|---|
-| `scan-inbox` limpio | borrar dentro de 24 h después de scan limpio + copia WORM confirmada |
-| amenaza, scan fallido o no soportado | cuarentena sin acceso de negocio, máximo 30 días para incidente |
-| `worm-backup` · Gastos | 10 años + 1 día por versión, modo `COMPLIANCE` |
-| almacenamiento | S3 Standard durante 30 días; luego Glacier Instant Retrieval |
-| vencimiento WORM | sin borrado automático; revisión humana de hold/fiscal antes de purgar |
+1. aplicar `0346` por gate nominal separado;
+2. archivar contrato/DPA/subprocesadores/identidad;
+3. resolver PIPL y el país efectivo;
+4. instalar ClamAV y superar health + EICAR;
+5. ejecutar borrado API denegado, restore y RPO/RTO;
+6. confirmar scheduler/alertas y recién entonces cambiar flags.
 
-Glacier Instant Retrieval conserva acceso en milisegundos y Object Lock se
-mantiene durante transiciones de clase. Las futuras categorías de adjuntos no
-heredan diez años automáticamente: deben usar el calendario de retención y su
-base documental.
+## Fuentes oficiales
 
-### Brecha específica de Backblaze B2
-
-La documentación oficial de Object Lock indica una retención entre 1 y 3.000
-días. MP-D1 usa diez años como default conservador para ciertas evidencias.
-Por tanto, una configuración única de B2 Object Lock no demuestra por sí sola el
-plazo completo.
-
-Antes de elegir B2 debe probarse una de estas opciones:
-
-1. renovación inmutable sin crear una ventana borrable;
-2. legal hold gobernado con separación de privilegios;
-3. una combinación contractual/técnica equivalente;
-4. otro proveedor que cubra el plazo completo.
-
-Referencia consultada el 2026-07-31:
-[Backblaze Object Lock](https://www.backblaze.com/docs/cloud-storage-object-lock).
-
-## 7 · Cifrado y claves
-
-Configuración seleccionada, todavía **NO VERIFICABLE** en cuenta real:
-
-- TLS en tránsito y SSE-KMS en reposo;
-- dos claves administradas separadas: scan temporal y backup WORM;
-- S3 Bucket Keys habilitadas para reducir llamadas KMS;
-- runtime sin `kms:ScheduleKeyDeletion`, borrado ni reducción de retención;
-- espera de borrado KMS de 30 días, alertada por CloudTrail;
-- restore y recuperación de cuenta fuera de Supabase/Vercel.
-
-Object Lock no protege contra perder o borrar una clave KMS. Por eso el restore
-drill debe incluir la clave y la recuperación de cuenta, no solo el objeto.
-
-## 8 · Costos y salida
-
-Precios de referencia AWS `us-east-1`, consultados el 2026-08-03, sin impuestos:
-
-- S3 Standard: USD 0,023/GB-mes; Glacier Instant Retrieval:
-  USD 0,004/GB-mes y USD 0,03/GB recuperado;
-- GuardDuty S3: USD 0,09/GB escaneado + USD 0,215 por 1.000 objetos;
-- KMS: USD 1/mes por clave; se seleccionan dos claves;
-- salida a Internet: primeros 100 GB/mes agregados en AWS sin cargo; luego la
-  tarifa regional vigente;
-- Business Support+: mínimo USD 29/mes para Producción; no se contrata en el
-  laboratorio.
-
-Estimación conservadora sin descontar free tiers, requests, logs, impuestos ni
-soporte salvo donde se indica:
-
-| Escenario | Supuesto | Base mensual aproximada |
-|---|---|---:|
-| laboratorio | 10 GB recientes · 1 GB/1.000 objetos nuevos · sin soporte pago | USD 2,54 |
-| Producción pequeña | 100 GB totales, 90 GB en Glacier · 10 GB/4.000 objetos nuevos · Support+ | USD 33,35 |
-| crecimiento | 1 TB total, 900 GB en Glacier · 100 GB/20.000 objetos nuevos · Support+ | USD 50,20 |
-
-Condición de costo: presupuesto AWS inicial de USD 10/mes en laboratorio y USD
-75/mes en Producción, con alertas al 50 %, 75 % y 90 %. Forecast mayor al 90 %,
-más de 1 TB retenido o más de 100 GB nuevos/mes bloquean expansión hasta nueva
-aprobación. Los objetos menores a 128 KB y múltiples versiones pueden elevar el
-costo real; la factura piloto manda sobre esta proyección.
-
-## 9 · Veredicto
-
-- [ ] Adelante
-- [x] **Adelante con condiciones para contratar; no conectar todavía**
-- [ ] No
-
-Motivos:
-
-1. proveedor, región, arquitectura, retención y presupuesto ya están definidos;
-2. fuentes contractuales, DPA y subprocesadores tienen URL + huella; falta la
-   aceptación/factura de la cuenta real;
-3. PIPL tiene evaluación, mecanismo condicional y texto de consentimiento, pero
-   la decisión legal y los consentimientos reales no son verificables;
-4. el adaptador EventBridge/SQS y la infraestructura declarativa están probados
-   localmente;
-5. no existen EICAR, Object Lock, restore drill ni RPO/RTO en cuenta real.
-
-El gate se reabre únicamente con evidencia contractual, técnica, de privacidad y
-de restauración. La revisión legal corresponde a un abogado.
-
-## 10 · Comparativo técnico actualizado
-
-| Opción | Inmutabilidad | Antivirus | Nivel gratuito útil | Ajuste al worker actual | Veredicto |
-|---|---|---|---|---|---|
-| AWS S3 + GuardDuty | Object Lock WORM por versión | administrado; free tier sujeto a condiciones vigentes | storage/requests aparte | adapter asíncrono implementado; falta prueba alojada | ⭐ seleccionada |
-| Cloudflare R2 + ClamAV | bucket locks | autogestionado | 10 GB-mes Standard + operaciones/egress incluidos | requiere adaptar lock + operar AV | económica con trabajo adicional |
-| Backblaze B2 + ClamAV | Object Lock sin recargo específico | autogestionado | primeros 10 GB | API S3 compatible, pero lock máximo 3.000 días | no cubre diez años por sí sola |
-| Azure Blob + Defender | WORM/immutability | administrado por GB | no asumido | requiere adaptador nuevo | alternativa empresarial |
-
-**Decisión técnica:** AWS S3 Object Lock `COMPLIANCE` más GuardDuty Malware
-Protection for S3, región `us-east-1`. Coincide con el SDK de backup y evita
-operar firmas AV, pero **no** coincide con el contrato HTTP del antivirus actual:
-la integración será EventBridge/SQS y deberá validarse antes de activar.
-
-La alternativa de menor costo es R2 + ClamAV, pero no se debe confundir
-“software gratis” con servicio administrado: DTD asumiría VPS, actualizaciones,
-colas, disponibilidad, alertas y respuesta a incidentes.
-
-## 11 · Fuentes del proveedor
-
-- [AWS GuardDuty pricing](https://aws.amazon.com/guardduty/pricing/)
-- [GuardDuty data handling](https://docs.aws.amazon.com/guardduty/latest/ug/how-malware-protection-for-s3-gdu-works.html)
-- [GuardDuty EventBridge results](https://docs.aws.amazon.com/guardduty/latest/ug/monitor-with-eventbridge-s3-malware-protection.html)
-- [S3 Object Lock](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock.html)
-- [Object Lock y Lifecycle](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock-managing.html)
-- [Glacier Instant Retrieval](https://docs.aws.amazon.com/AmazonS3/latest/userguide/glacier-storage-classes.html)
-- [AWS KMS pricing](https://aws.amazon.com/kms/pricing/)
-- [AWS Support pricing](https://aws.amazon.com/premiumsupport/pricing/)
-- [AWS DPA](https://docs.aws.amazon.com/whitepapers/latest/navigating-gdpr-compliance/aws-data-processing-addendum-dpa.html)
-- [AWS subprocessors](https://aws.amazon.com/compliance/sub-processors/)
+- [R2 pricing](https://developers.cloudflare.com/r2/pricing/)
+- [R2 bucket locks](https://developers.cloudflare.com/r2/buckets/bucket-locks/)
+- [R2 S3 compatibility](https://developers.cloudflare.com/r2/api/s3/api/)
+- [R2 data location](https://developers.cloudflare.com/r2/reference/data-location/)
+- [R2 data security](https://developers.cloudflare.com/r2/reference/data-security/)
+- [Cloudflare DPA](https://www.cloudflare.com/cloudflare-customer-dpa/)
+- [Cloudflare subprocesadores](https://www.cloudflare.com/gdpr/subprocessors/)
+- [ClamAV](https://docs.clamav.net/)

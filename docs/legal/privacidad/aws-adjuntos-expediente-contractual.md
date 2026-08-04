@@ -1,8 +1,8 @@
 # Expediente contractual · AWS para adjuntos
 
 **Fecha de captura:** 2026-08-03
-**Estado:** fuentes oficiales archivadas por URL + huella; cuenta y aceptación
-**NO VERIFICABLES**
+**Estado:** alternativa técnica supersedida el 2026-08-04 por Cloudflare R2;
+fuentes archivadas, sin cuenta ni aceptación AWS
 **Servicios previstos:** S3, GuardDuty Malware Protection for S3, KMS,
 EventBridge, SQS, CloudWatch y Budgets
 **Región:** `us-east-1`

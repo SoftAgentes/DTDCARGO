@@ -271,7 +271,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0238 | El brand book se comparte con un link y un código | done | interno |
 | 0242 | Las piezas de producto se abren con un segundo código | in-progress | interno |
 | 0243 | Anulación gobernada de gastos | done | interno |
-| 0244 | Enrutado a Recontacto — el ERP reconoce al cliente que vuelve… | proposed | interno |
+| 0244 | Enrutado a Recontacto — el ERP reconoce al cliente que vuelve… | in-progress | interno |
 | 0245 | Espejo de la bandeja de entrada de Kommo — el ERP deja de med… | proposed | interno |
 | 0246 | Fusión de cliente duplicado y prevención del Shipping Mark re… | done | interno |
 
