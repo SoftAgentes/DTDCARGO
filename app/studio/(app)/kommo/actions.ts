@@ -239,3 +239,61 @@ export async function saveKommoMarkboxFieldAction(
   revalidatePath("/studio/kommo");
   return { ok: true };
 }
+
+/**
+ * SDD-0244 rebanada B — Guarda el custom field de CONTACTO donde va el Shipping
+ * Mark (admin-only). Hermano del de arriba, con una diferencia que importa: el
+ * campo del lead se lo lleva el trato al cerrarse; éste es permanente, y es el
+ * que hace que el cliente se reconozca la próxima vez sin cruzar teléfonos.
+ *
+ * Valida contra los campos de CONTACTOS del espejo (no los de leads: los ids
+ * viven en espacios distintos y elegir uno de leads acá escribiría en la nada).
+ * `null` = limpiar (inerte). authenticated NO tiene UPDATE sobre
+ * kommo_connections → no forjable vía PostgREST.
+ */
+export async function saveKommoMarkboxContactFieldAction(
+  fieldId: number | null,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "kommo");
+  if (denial) return { error: denial };
+
+  const { data: userResp } = await supabase.auth.getUser();
+  if (!userResp.user) return { error: "Sesión no válida." };
+  const { data: link } = await supabase
+    .from("user_tenants")
+    .select("tenant_id, role")
+    .maybeSingle<{ tenant_id: string; role: string }>();
+  if (!link?.tenant_id) return { error: "No se pudo resolver el tenant." };
+  if (link.role !== "admin") {
+    return { error: "Solo un administrador puede configurar el campo de Shipping Mark." };
+  }
+
+  let clean: number | null = null;
+  if (fieldId != null) {
+    const fid = Math.trunc(Number(fieldId));
+    if (!Number.isFinite(fid) || fid <= 0) return { error: "Campo inválido." };
+    const { data: field } = await supabase
+      .from("kommo_custom_fields")
+      .select("id")
+      .eq("entity_type", "contacts")
+      .eq("id", fid)
+      .maybeSingle<{ id: number }>();
+    if (!field) return { error: "El campo elegido no existe en Kommo (contactos)." };
+    clean = fid;
+  }
+
+  const admin = createAdminClient();
+  const { data: updated, error } = await admin
+    .from("kommo_connections")
+    .update({ markbox_contact_field_id: clean })
+    .eq("tenant_id", link.tenant_id)
+    .select("id");
+  if (error) return { error: `No se pudo guardar: ${error.message}` };
+  if (!updated || updated.length === 0) {
+    return { error: "No hay una conexión de Kommo configurada para tu cuenta." };
+  }
+
+  revalidatePath("/studio/kommo");
+  return { ok: true };
+}

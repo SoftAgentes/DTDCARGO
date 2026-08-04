@@ -289,6 +289,20 @@ export async function getKommoMarkboxFieldId(
   return data?.markbox_field_id ?? null;
 }
 
+/**
+ * Lee el campo de CONTACTO donde va el Shipping Mark (SDD-0244 rebanada B).
+ * Hermano del de arriba: aquél muere con el trato, éste es permanente.
+ */
+export async function getKommoMarkboxContactFieldId(
+  supabase: SupabaseClient,
+): Promise<number | null> {
+  const { data } = await supabase
+    .from("kommo_connections")
+    .select("markbox_contact_field_id")
+    .maybeSingle<{ markbox_contact_field_id: number | null }>();
+  return data?.markbox_contact_field_id ?? null;
+}
+
 // ── Lectura para el panel de visibilidad (SDD-0078 · pestaña Dirección) ──────
 
 export type WritebackGate = "off" | "dry_run" | "live";
