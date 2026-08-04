@@ -382,7 +382,7 @@ export async function resolveClientNameByMarkbox(
   const nombre = data?.name?.trim();
   if (nombre) return nombre;
 
-  // Camino raro pero caro si falla (SDD-0244): el bulto viene rotulado con un
+  // Camino raro pero caro si falla (SDD-0246): el bulto viene rotulado con un
   // Shipping Mark RETIRADO. Pasa cuando el cliente ya existía, se registró de
   // nuevo por la web, le dieron un código nuevo, se lo pasó a su proveedor —y
   // recién después alguien fusionó las dos fichas. La caja ya salió de Yiwu con

@@ -1,5 +1,5 @@
 /**
- * SDD-0244 · cuánta confianza da un par candidato a duplicado.
+ * SDD-0246 · cuánta confianza da un par candidato a duplicado.
  *
  * Esto no es cosmético: `candidateConfidence` es lo que decide si la pantalla de
  * fusión pide confirmación SOSTENIDA. El caso que lo motiva es real — en

@@ -149,7 +149,7 @@ export function isValidEmail(raw: string): boolean {
 }
 
 /**
- * Por cuál llave reconocimos que la cuenta ya existe (SDD-0244). Lo decide la
+ * Por cuál llave reconocimos que la cuenta ya existe (SDD-0246). Lo decide la
  * función `find_duplicate_client_service` en la DB.
  */
 export type DuplicateMatch = "documento" | "correo" | "telefono";
@@ -157,7 +157,7 @@ export type DuplicateMatch = "documento" | "correo" | "telefono";
 /**
  * Arma el aviso de "esta cuenta ya existe" EN EL CAMPO QUE CORRESPONDE.
  *
- * Por qué importa el campo: hasta SDD-0244 el dedup sólo miraba el documento, así
+ * Por qué importa el campo: hasta SDD-0246 el dedup sólo miraba el documento, así
  * que el aviso siempre caía ahí. Ahora también reconocemos por correo y por
  * teléfono, y un mensaje sobre el correo colgado del campo de la cédula es un
  * mensaje que el visitante no entiende (misma familia de bug que SDD-0225: el

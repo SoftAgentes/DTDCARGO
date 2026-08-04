@@ -1,5 +1,5 @@
 /**
- * SDD-0244 · la bifurcación "¿ya eres cliente?" se ve en el primer paso.
+ * SDD-0246 · la bifurcación "¿ya eres cliente?" se ve en el primer paso.
  *
  * Existe por un caso real: clientes que YA tienen Shipping Mark llegan a
  * /registro, se dan de alta creyendo que es lo que toca, y salen con un código

@@ -1,5 +1,5 @@
 /**
- * Clientes › Posibles duplicados (SDD-0244).
+ * Clientes › Posibles duplicados (SDD-0246).
  *
  * Un cliente que YA existe se registra por la web como si fuera nuevo y sale con
  * un Shipping Mark nuevo. Acá se revisan esos pares y se fusionan a mano.

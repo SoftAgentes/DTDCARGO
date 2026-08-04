@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Revisión y fusión de fichas duplicadas (SDD-0244).
+ * Revisión y fusión de fichas duplicadas (SDD-0246).
  *
  * Regla de la pantalla: el sistema PROPONE, el humano CONFIRMA. Nunca fusiona
  * sola. De los tres duplicados reales que había en producción, uno coincidía

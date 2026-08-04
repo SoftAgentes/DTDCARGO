@@ -1,5 +1,5 @@
 /**
- * SDD-0244 · un bulto rotulado con un Shipping Mark RETIRADO no llega huérfano.
+ * SDD-0246 · un bulto rotulado con un Shipping Mark RETIRADO no llega huérfano.
  *
  * El escenario, que es real y caro: el cliente YA existía, se registró de nuevo
  * por la web, el sistema le dio un código nuevo, él se lo pasó a su proveedor en

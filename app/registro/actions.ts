@@ -151,7 +151,7 @@ export async function registerClientAction(
   }
   const tenantId = tenantRow.id;
 
-  // 2. Dedup por las TRES llaves: documento, correo y teléfono (SDD-0244).
+  // 2. Dedup por las TRES llaves: documento, correo y teléfono (SDD-0246).
   //
   //    Antes se comparaba SÓLO el documento, y por eso el cliente viejo se colaba
   //    y salía con un Shipping Mark nuevo: 144 fichas del legado no tienen
@@ -181,7 +181,7 @@ export async function registerClientAction(
     //    commit reemplazó la consulta por documento que había.
     //
     //    Así que caemos al dedup viejo por documento: mismo comportamiento que
-    //    antes de SDD-0244 mientras la migración no esté aplicada, y dedup
+    //    antes de SDD-0246 mientras la migración no esté aplicada, y dedup
     //    completo apenas lo esté. Nunca "sin dedup".
     console.error("[registerClientAction] dedup RPC falló, uso el de documento:", dupErr);
     const { data: dupDoc } = await admin

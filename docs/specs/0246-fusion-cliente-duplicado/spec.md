@@ -1,5 +1,5 @@
 ---
-sdd: "0244"
+sdd: "0246"
 title: "Fusión de cliente duplicado y prevención del Shipping Mark repetido"
 status: done
 author: "Sam (founder) + Claude"
@@ -11,7 +11,7 @@ related: ["0010", "0042", "0046", "0059", "0106", "0131", "0225"]
 confidencialidad: interno
 ---
 
-# SDD-0244 — Fusión de cliente duplicado y prevención del Shipping Mark repetido
+# SDD-0246 — Fusión de cliente duplicado y prevención del Shipping Mark repetido
 
 ## 1. El problema
 

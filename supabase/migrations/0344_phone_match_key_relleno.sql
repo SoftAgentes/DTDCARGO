@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────
--- SDD-0244 · corrección sobre 0341 — los teléfonos de relleno no son llave.
+-- SDD-0246 · corrección sobre 0341 — los teléfonos de relleno no son llave.
 --
 -- Salió en la prueba funcional contra prod, no en los tests: un cliente
 -- GENUINAMENTE NUEVO con teléfono '+58 4120000000' dio match por teléfono. Sus
@@ -20,6 +20,18 @@
 -- ✅ APLICADA A PROD el 2026-08-03 con OK del founder nombrándola. Verificada
 -- contra prod: '+58 4120000000' y '+58 4121234567' ya NO hacen match, mientras
 -- documento, correo y un teléfono real siguen reconociéndose.
+--
+-- ⚠️ ESTE ARCHIVO SE RENUMERÓ DESPUÉS DE APLICARSE. Corrió como
+-- **`0342_phone_match_key_relleno`** y con ese nombre figura en el ledger de
+-- prod — no lo busques como 0344. Se movió a 0344 porque otra ventana publicó
+-- `0342_kommo_contact_link` en `main` primero, y la regla es que se mueve la que
+-- NO está en main. El contenido SQL no se tocó: es exactamente lo que se aplicó.
+--
+-- ⚠️ Los `comment on function` que esta migración dejó en prod dicen
+-- **SDD-0244**, porque ese era el número de la spec cuando se aplicó. La spec se
+-- renumeró a **SDD-0246** por la misma colisión (0244 quedó para
+-- `0244-kommo-recontacto-enrutado`). Corregir esos comentarios es cosmético y
+-- necesitaría otra migración con OK del founder; queda anotado, no olvidado.
 -- ─────────────────────────────────────────────────────────────
 
 -- ── La llave de teléfono, en un solo lugar ───────────────────
@@ -52,7 +64,7 @@ as $$
 $$;
 
 comment on function public.phone_match_key is
-  'SDD-0244: últimos 7 dígitos del teléfono como llave de dedup, o NULL si el número es corto o de relleno (0000000, 1234567…). Los de relleno no identifican a nadie: usarlos como llave bloquea el registro de un cliente nuevo real.';
+  'SDD-0246: últimos 7 dígitos del teléfono como llave de dedup, o NULL si el número es corto o de relleno (0000000, 1234567…). Los de relleno no identifican a nadie: usarlos como llave bloquea el registro de un cliente nuevo real.';
 
 revoke all on function public.phone_match_key(text) from public, anon;
 grant execute on function public.phone_match_key(text) to authenticated, service_role;

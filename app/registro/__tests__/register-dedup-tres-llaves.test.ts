@@ -1,5 +1,5 @@
 /**
- * Dedup del registro público por las TRES llaves (SDD-0244).
+ * Dedup del registro público por las TRES llaves (SDD-0246).
  *
  * El agujero que esto cierra: hasta ahora el dedup comparaba SÓLO el documento,
  * así que un cliente que YA existe se registraba como nuevo y salía con un
@@ -213,7 +213,7 @@ describe("registerClientAction · dedup por documento, correo y teléfono", () =
   // ── Orden de despliegue ──
   // Si el código sale a producción ANTES que la migración 0341, la función no
   // existe (PGRST202). Ignorar ese error dejaría el alta SIN dedup — peor que
-  // antes de SDD-0244, porque este cambio reemplazó la consulta por documento.
+  // antes de SDD-0246, porque este cambio reemplazó la consulta por documento.
   describe("cuando la migración 0341 todavía no está aplicada", () => {
     it("🔴 NO se queda sin dedup: cae al de documento y bloquea igual", async () => {
       dedupRpcFalla = true;

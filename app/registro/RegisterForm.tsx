@@ -855,7 +855,7 @@ function StepConfirmar({
 
 // ── "¿Ya tienes cuenta?" · recuperar acceso (chequeo en vivo) ─────
 /**
- * Bifurcación "¿ya eres cliente?" al tope del primer paso (SDD-0244).
+ * Bifurcación "¿ya eres cliente?" al tope del primer paso (SDD-0246).
  *
  * El problema que ataja: un cliente que YA tiene Shipping Mark llega acá, se
  * registra creyendo que es lo que toca, y sale con un código NUEVO. A partir de

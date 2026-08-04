@@ -1,5 +1,5 @@
 /**
- * Detección de fichas duplicadas del mismo cliente (SDD-0244).
+ * Detección de fichas duplicadas del mismo cliente (SDD-0246).
  *
  * El caso: un cliente que YA existe entra a /registro, se registra como si fuera
  * nuevo, y el sistema le emite un Shipping Mark nuevo. Queda con dos fichas.

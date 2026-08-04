@@ -1,7 +1,7 @@
 "use server";
 
 /**
- * Fusión de dos fichas del mismo cliente (SDD-0244).
+ * Fusión de dos fichas del mismo cliente (SDD-0246).
  *
  * Toda la lógica vive en la RPC `merge_clients`, que es ATÓMICA: mueve el
  * acceso y el historial, rellena los huecos del superviviente con los datos

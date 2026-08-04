@@ -107,7 +107,7 @@ export function ClientsClient({
           </p>
         </div>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          {/* SDD-0244: clientes que ya existían y se registraron otra vez por la
+          {/* SDD-0246: clientes que ya existían y se registraron otra vez por la
               web, así que tienen dos Shipping Mark. Se revisan y fusionan a mano. */}
           <Link href="/studio/clientes/duplicados" className="studio-btn studio-btn-ghost">
             Posibles duplicados

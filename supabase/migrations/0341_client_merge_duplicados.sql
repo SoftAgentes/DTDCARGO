@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────
--- SDD-0244 — Fusión de cliente duplicado.
+-- SDD-0246 — Fusión de cliente duplicado.
 --
 -- El problema: un cliente que YA existe entra a /registro, se registra como si
 -- fuera nuevo y el sistema le emite un Shipping Mark nuevo. Queda con dos
@@ -26,7 +26,13 @@
 -- contra los objetos: columna + 4 índices + constraint + 4 funciones, todas
 -- security definer con search_path sellado, anon sin EXECUTE en ninguna y
 -- find_duplicate_client_service SOLO para service_role. Cero filas modificadas.
--- ⚠️ Corregida por la 0342 (teléfonos de relleno). No editar este archivo.
+-- ⚠️ Corregida por la 0344 (teléfonos de relleno). No editar este archivo.
+--
+-- ⚠️ Los `comment on` que esta migración dejó en prod dicen **SDD-0244**, que era
+-- el número de la spec cuando se aplicó. La spec se renumeró a **SDD-0246**
+-- porque otra ventana publicó `0244-kommo-recontacto-enrutado` en `main`
+-- primero. El número de ESTE archivo (0341) no cambió: nadie más lo tomó y es el
+-- que figura en el ledger.
 -- ─────────────────────────────────────────────────────────────
 
 -- ── 1. El redirect ───────────────────────────────────────────
@@ -36,7 +42,7 @@ alter table public.clients
     references public.clients(id) on delete set null;
 
 comment on column public.clients.merged_into_client_id is
-  'SDD-0244: si no es null, esta ficha se fusionó en otra y este es el cliente superviviente. La fila se conserva soft-deleted para que su markbox siga resolviendo (una caja ya rotulada con ese código no queda huérfana) y para que el correlativo nunca lo reemita.';
+  'SDD-0246: si no es null, esta ficha se fusionó en otra y este es el cliente superviviente. La fila se conserva soft-deleted para que su markbox siga resolviendo (una caja ya rotulada con ese código no queda huérfana) y para que el correlativo nunca lo reemita.';
 
 -- Índice para "¿qué fichas se fusionaron en este cliente?" (lo usa el detalle).
 create index if not exists clients_merged_into_idx
@@ -122,7 +128,7 @@ end;
 $$;
 
 comment on function public.resolve_markbox is
-  'SDD-0244: dado un markbox devuelve el cliente vigente, siguiendo merged_into_client_id si esa ficha se fusionó. Sirve para que un bulto ya rotulado con un código retirado siga encontrando a su dueño.';
+  'SDD-0246: dado un markbox devuelve el cliente vigente, siguiendo merged_into_client_id si esa ficha se fusionó. Sirve para que un bulto ya rotulado con un código retirado siga encontrando a su dueño.';
 
 revoke all on function public.resolve_markbox(uuid, text) from public, anon;
 grant execute on function public.resolve_markbox(uuid, text) to authenticated, service_role;
@@ -200,7 +206,7 @@ as $$
 $$;
 
 comment on function public.client_duplicate_candidates is
-  'SDD-0244: pares (ficha legado ↔ ficha del registro público) que parecen el mismo cliente, con la razón de la coincidencia y un score. PROPONE — la fusión la confirma un humano.';
+  'SDD-0246: pares (ficha legado ↔ ficha del registro público) que parecen el mismo cliente, con la razón de la coincidencia y un score. PROPONE — la fusión la confirma un humano.';
 
 revoke all on function public.client_duplicate_candidates() from public, anon;
 grant execute on function public.client_duplicate_candidates() to authenticated;
@@ -272,7 +278,7 @@ as $$
 $$;
 
 comment on function public.find_duplicate_client_service is
-  'SDD-0244: ¿ya existe una ficha con este documento, correo o teléfono? Devuelve la primera y por cuál llave coincidió. Path-servidor-de-confianza (el registrante es anónimo): EXECUTE sólo para service_role.';
+  'SDD-0246: ¿ya existe una ficha con este documento, correo o teléfono? Devuelve la primera y por cuál llave coincidió. Path-servidor-de-confianza (el registrante es anónimo): EXECUTE sólo para service_role.';
 
 revoke all on function public.find_duplicate_client_service(uuid, text, text, text)
   from public, anon, authenticated;
@@ -549,7 +555,7 @@ end;
 $$;
 
 comment on function public.merge_clients is
-  'SDD-0244: fusiona la ficha duplicada (p_merged_id) en la superviviente (p_survivor_id). Muda el acceso y el historial, rellena los huecos del superviviente con los datos limpios del registro, y retira la ficha duplicada soft-deleted conservando su markbox para que siga resolviendo y nunca se reemita. Atómica: o pasa entera o no pasa. NO mueve legal_acceptances (una aceptación está atada a quién la aceptó).';
+  'SDD-0246: fusiona la ficha duplicada (p_merged_id) en la superviviente (p_survivor_id). Muda el acceso y el historial, rellena los huecos del superviviente con los datos limpios del registro, y retira la ficha duplicada soft-deleted conservando su markbox para que siga resolviendo y nunca se reemita. Atómica: o pasa entera o no pasa. NO mueve legal_acceptances (una aceptación está atada a quién la aceptó).';
 
 revoke all on function public.merge_clients(uuid, uuid) from public, anon;
 grant execute on function public.merge_clients(uuid, uuid) to authenticated;

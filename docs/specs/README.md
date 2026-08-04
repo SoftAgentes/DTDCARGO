@@ -271,7 +271,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0238 | El brand book se comparte con un link y un código | done | interno |
 | 0242 | Las piezas de producto se abren con un segundo código | in-progress | interno |
 | 0243 | Anulación gobernada de gastos | in-progress | interno |
-| 0244 | Fusión de cliente duplicado y prevención del Shipping Mark re… | done | interno |
+| 0246 | Fusión de cliente duplicado y prevención del Shipping Mark re… | done | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0239, 0240, 0241 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0239, 0240, 0241, 0244, 0245 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

@@ -1,6 +1,6 @@
 \set ON_ERROR_STOP on
 
--- Contrato desechable SDD-0244. Fixtures ficticios y rollback: no toca prod.
+-- Contrato desechable SDD-0246. Fixtures ficticios y rollback: no toca prod.
 --
 -- Lo que este test defiende, que es justo lo que puede romperse en silencio:
 --   1. el markbox retirado SIGUE RESOLVIENDO al superviviente (si no, una caja
@@ -153,9 +153,9 @@ create table public.legal_acceptances (
 grant select, insert, update, delete on public.clients to authenticated;
 
 \ir ../migrations/0341_client_merge_duplicados.sql
--- 0342 es la corrección de los teléfonos de relleno. Va acá y no en un archivo
--- aparte porque comparte fixture y son un solo contrato: el dedup de SDD-0244.
-\ir ../migrations/0342_phone_match_key_relleno.sql
+-- 0344 es la corrección de los teléfonos de relleno. Va acá y no en un archivo
+-- aparte porque comparte fixture y son un solo contrato: el dedup de SDD-0246.
+\ir ../migrations/0344_phone_match_key_relleno.sql
 
 -- ── Fixture ──────────────────────────────────────────────────
 -- Calca el caso real DTD-Y009 / DTD-9009: el legado tiene el documento
