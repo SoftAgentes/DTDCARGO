@@ -283,7 +283,7 @@ Si un hilo se murió, casi siempre fue uno de estos cuatro:
 mandaste al navegador, donde no tienes contexto ni segunda oportunidad. El link va acompañado,
 nunca solo.
 
-**El precio desnudo.** *"$800 el metro cúbico."* Punto. El cliente tiene dos opciones: comprar o
+**El precio desnudo.** *"$800 el metro cúbico."* Punto. *(el número es ilustrativo: la tarifa vigente sale siempre de la calculadora)*. El cliente tiene dos opciones: comprar o
 irse. Y se va, porque un precio sin marco solo se puede comparar contra otro precio.
 
 **La respuesta de una palabra.** *"Sí."* / *"Correcto."* Cierra el turno sin devolver la pelota, y

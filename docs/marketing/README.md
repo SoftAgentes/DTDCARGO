@@ -193,6 +193,15 @@ Brand Book vigente = el de mayor versión en `docs/design/studio/_norte/` (hoy *
 - [x] ~~Manual de entrenamiento del asesor (persona, no IA)~~ ✅ **HECHO 2026-08-03** →
   [`manual-asesor/`](manual-asesor/README.md). **Falta lo humano:** decidir quién lo corre, cuándo
   arranca la primera semana y quién revisa los ejercicios del Módulo 1.
-- [ ] ⚠️ **`manual-vendedores-peso.md` contradice al código.** Dice gracia 1.000 kg/m³, recargo
-  $2/kg y mínimo $380; `lib/calculadora.ts` dice **500 kg/m³, $1/kg y $50**. Manda el código. Es
-  interno y no va al equipo, pero un asesor que lo lea va a cotizar mal.
+- [x] ~~`manual-vendedores-peso.md` contradice al código (1.000 kg/m³ vs 500).~~ ❌ **La nota
+  estaba al revés y la corrijo:** el manual tenía razón. **Producción cobra 1.000 kg/m³ y $2/kg
+  desde el 2026-07-06**; el `CONFIG` de `lib/calculadora.ts` era el **respaldo stale** (500 / $1),
+  que solo entra si la RPC no responde. Lo arregló el commit `535aa0ec` — o sea que ante una caída
+  de Supabase el sitio cobraba otro precio en silencio, y con el peso incluido a la mitad le habría
+  cobrado excedente al doble de clientes. ⭐ **Lección: el `CONFIG` del código NO es la fuente de
+  verdad de las tarifas — lo es la RPC `public_calculator_config`.**
+- [ ] ⚠️ **La tarifa pública sube a $850/CBM el 4-sep-2026** (migración `0336`, decisión founder
+  2026-08-05). Los documentos que citan **$800** lo hacen como ejemplo de un mensaje mal escrito,
+  no como tarifa vigente, pero conviene revisarlos después de esa fecha:
+  [`conversacion-crm.md`](conversacion-crm.md), `equipo-crm/07-como-conversar.md` y
+  [`manual-asesor/01-diagnostico.md`](manual-asesor/01-diagnostico.md).

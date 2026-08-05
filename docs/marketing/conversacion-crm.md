@@ -330,7 +330,7 @@ Si un hilo se murió, casi siempre fue uno de estos:
 1. **El link solo.** *"Aquí tienes: dtdcargo.com/tarifas"*. Lo sacaste de la conversación y lo
    mandaste al navegador, donde no tienes contexto ni segunda oportunidad. El link va
    **acompañado**, nunca solo.
-2. **El precio desnudo.** *"$800 el metro cúbico."* Punto. El cliente tiene dos opciones:
+2. **El precio desnudo.** *"$800 el metro cúbico."* Punto. *(el número es ilustrativo: la tarifa vigente sale siempre de la calculadora)*. El cliente tiene dos opciones:
    comprar o irse. Y se va, porque un precio sin marco solo se puede comparar contra otro precio.
 3. **La respuesta de una palabra.** *"Sí."* / *"Correcto."* Cierra el turno sin devolver la
    pelota, y el cliente no tiene ninguna obligación de sostener la conversación.
