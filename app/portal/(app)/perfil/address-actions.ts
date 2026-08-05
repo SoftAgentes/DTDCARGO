@@ -46,7 +46,11 @@ export async function addAddressAction(
       await clearDefaultForClient(supabase, client.id);
     }
     await insertClientDeliveryAddress(supabase, client.id, parsed.value);
-  } catch {
+  } catch (err) {
+    // El detalle NUNCA va al cliente (convención apiError), pero SÍ al log: el
+    // hueco `city_slug` (0347) estuvo 34 días roto en silencio justamente porque
+    // este catch era ciego — el cliente reintentaba y nadie veía por qué fallaba.
+    console.error("[addAddressAction] insert dirección falló:", err);
     return { error: "No se pudo guardar la dirección. Intenta de nuevo." };
   }
   revalidatePath(PATH);
@@ -74,7 +78,8 @@ export async function updateAddressAction(
     }
     // RLS self-update: solo actualiza si la fila es del cliente (markbox).
     await updateClientDeliveryAddress(supabase, id, parsed.value);
-  } catch {
+  } catch (err) {
+    console.error("[updateAddressAction] update dirección falló:", err);
     return { error: "No se pudo actualizar la dirección. Intenta de nuevo." };
   }
   revalidatePath(PATH);
@@ -91,8 +96,9 @@ export async function setDefaultAddressAction(formData: FormData): Promise<void>
   try {
     await setDefaultDeliveryAddress(supabase, client.id, id);
     revalidatePath(PATH);
-  } catch {
-    /* no rompemos la navegación por un fallo transitorio */
+  } catch (err) {
+    /* no rompemos la navegación por un fallo transitorio, pero lo dejamos escrito */
+    console.error("[setDefaultAddressAction] falló:", err);
   }
 }
 
@@ -107,7 +113,8 @@ export async function deleteAddressAction(formData: FormData): Promise<void> {
     // RLS self-update cubre el soft-delete (set deleted_at) solo en filas propias.
     await softDeleteClientDeliveryAddress(supabase, id);
     revalidatePath(PATH);
-  } catch {
+  } catch (err) {
     /* idem */
+    console.error("[deleteAddressAction] falló:", err);
   }
 }
