@@ -1,7 +1,7 @@
 ---
 sdd: "0244"
 title: "Enrutado a Recontacto — el ERP reconoce al cliente que vuelve y le estampa su Shipping Mark"
-status: proposed
+status: in-progress
 author: "Sam (founder) + Claude"
 created: 2026-08-03
 updated: 2026-08-03
@@ -179,6 +179,121 @@ select count(*) filter (where kommo_contact_id is not null) as vinculados, count
 from clients;
 ```
 Esperado: arranca en ~243 y **sube solo** con cada cliente heredado que escribe.
+
+## 6.1 · Estado de implementación (2026-08-03)
+
+Se partió en dos rebanadas para poder desplegar hoy sin depender de config que
+todavía no existe en Kommo.
+
+### ✅ Rebanada A — construida (sin migración nueva)
+
+| Pieza | Dónde |
+|---|---|
+| Núcleo puro del enrutador | `supabase/functions/_shared/kommo-router.ts` |
+| Enrutado en `leads[add]` | `routeNewLeads` en `supabase/functions/kommo-webhook/index.ts` |
+| `patch_stage` → Recontacto | encolado desde el webhook (RPC `enqueue_kommo_writeback`) |
+| `patch_lead` → Shipping Mark **en el trato nuevo** | reusa `markbox_field_id` (1570535), ya configurado |
+| Auto-sanado de `kommo_contact_id` | mismo `routeNewLeads` |
+| Tests | `_shared/__tests__/kommo-router.test.ts` — 20 casos, incluidos contratos anti-drift |
+
+**Por qué el Shipping Mark va al LEAD en esta rebanada:** el campo de leads ya
+existe y está configurado, así que el asesor ve el código **hoy**. La marca
+permanente en el contacto (§3.2) es una mejora, no un requisito para reconocerlo.
+
+### ✅ Rebanada B — código construido (migración SIN aplicar)
+
+`patch_contact`: la marca permanente en el contacto. El campo del lead se lo lleva
+el trato al cerrarse; éste sobrevive, así que a partir de la primera vez el
+enrutado ya no depende del cruce por teléfono.
+
+| Pieza | Dónde | Estado |
+|---|---|---|
+| Migración `0344_kommo_writeback_contact_target.sql` | `supabase/migrations/` | ⏸️ **escrita, NO aplicada** |
+| Contrato SQL (10 invariantes, por mutación) | `supabase/tests/0344_*.test.sql` | ✅ verde |
+| Drain por `op` → `/api/v4/contacts/{id}` | `kommo-writeback/index.ts` | ✅ |
+| Encolado del `patch_contact` | `routeNewLeads` | ✅ (inerte sin el campo) |
+
+Lo que agrega la migración:
+- `kommo_connections.markbox_contact_field_id` (hermano del de leads)
+- `kommo_writeback_outbox.kommo_contact_id` + `kommo_lead_id` deja de ser `not null`
+- **`target_check`**: cada fila apunta a EXACTAMENTE un destino, y al que le toca
+  a su `op`. Sin esto un `patch_contact` sin contacto se drenaría contra
+  `/api/v4/leads/null`
+- RPC `enqueue_kommo_contact_writeback`, con clave de idempotencia namespaced `c:`
+
+#### Falta para encenderla
+
+1. **Aplicar la 0344** a producción (runbook: OK del founder nombrando el archivo).
+2. **Crear el campo "Shipping Mark" en CONTACTOS** en Kommo y guardar su id en
+   `markbox_contact_field_id`. Hoy sólo se puede por SQL: **falta la UI** en
+   `Dirección → MARKBOX en Kommo`.
+3. La etiqueta `Cliente` de §3.2 **queda fuera a propósito**: `PATCH /contacts`
+   con `_embedded.tags` **reemplaza** el conjunto de etiquetas, así que escribirla
+   sin resolver la semántica de merge borraría las que el contacto ya tenga.
+   Se hace cuando se verifique `tags_to_add`.
+
+### 🔴 Bug encontrado y corregido de paso
+
+`normalizeStageMap` sólo conservaba `sent|accepted|rejected`, y
+`saveKommoStageMapAction` hacía `update({ stage_map: clean })`. **Guardar el mapa
+de etapas desde el Studio borraba `recontacto`** y dejaba el enrutador inerte sin
+un solo error. Corregido en `lib/studio/kommo-types.ts` (`STAGE_MAP_KEYS`),
+`kommo-writeback.ts` y la action, que ahora preserva las claves del enrutador.
+
+### Decisiones de implementación no previstas en §3
+
+| Decisión | Por qué |
+|---|---|
+| Teléfono ambiguo (2+ clientes con el mismo) → **no enruta** | Estampar el Shipping Mark del que no es es peor que no enrutar |
+| El cruce por teléfono se hace en memoria sobre `clients` | 243 filas medidas. `clients_phone_last10_idx` queda para una RPC cuando el volumen lo pida |
+| El enrutador NO pega a la API si falta `stage_map.recontacto` | Inerte de verdad: cero llamadas, cero costo |
+
+### 🔴 Descubrimiento al desplegar: el webhook nunca estuvo vivo
+
+§1.1 da el webhook por "✅ desplegado (SDD-0043 Fase B)". Está desplegado, sí —
+pero **nunca funcionó ni una vez**. Medido el 2026-08-03 al desplegar el enrutador:
+
+| Comprobación | Resultado |
+|---|---|
+| `kommo-webhook` arranca y responde | ✅ (devuelve su propio JSON de error) |
+| Secret `KOMMO_WEBHOOK_SECRET` en el proyecto | ❌ **no existe** (`supabase secrets list`) |
+| Webhooks configurados en Kommo | ❌ **ninguno** (Ajustes → Centro de integraciones → Web hooks, vacío) |
+| Filas `webhook*` en `sync_logs` | ❌ **0**, desde siempre |
+| Llamadas a la función en 24 h de logs | ❌ 0 (salvo la prueba manual) |
+
+**Consecuencia:** el espejo se mantiene **sólo** con el cron diario de `kommo-sync`
+(07:00 UTC), no en vivo. Y el enrutador de este SDD, que vive dentro del webhook,
+es código correcto pero **inerte**: nadie lo llama.
+
+**Encendido el 2026-08-03** (autorizado por el founder), los dos extremos:
+
+1. ✅ `KOMMO_WEBHOOK_SECRET` generado (random 24 bytes hex) y guardado con
+   `supabase secrets set --project-ref xpfuzqombmjmxvprjgmi`. **No vive en el repo.**
+2. ✅ Webhook dado de alta en Kommo → Ajustes → Centro de integraciones →
+   **Web hooks**, apuntando a la función con `?secret=`, con **todos los eventos**
+   marcados (el parser filtra a lead/contact; lo demás devuelve `events: 0`).
+
+Verificado por respuesta HTTP de la función desplegada:
+
+| Prueba | Esperado | Resultado |
+|---|---|---|
+| POST con el secret correcto | `200 {"ok":true,"events":0}` | ✅ |
+| POST con secret inválido | `403 {"error":"Forbidden"}` | ✅ |
+
+⚠️ **Falta el último eslabón:** que Kommo de verdad dispare. Al cerrar la sesión
+no había ocurrido ningún evento orgánico (01:15 UTC) y no se inventó uno para no
+mutar datos de producción. **Se confirma con una fila `webhook_*` en `sync_logs`**
+la primera vez que alguien escriba o se toque un lead.
+
+### Verificación hecha
+
+- `pnpm typecheck` · `pnpm lint` · `pnpm test` (397 archivos / 4.704 tests) ✅
+- Typecheck **scoped de `supabase/functions`** con los tipos reales de Supabase ✅
+  (el `tsconfig.json` del repo excluye esa carpeta, así que no lo cubre el gate)
+- Los contratos anti-drift se validaron **por mutación**: romper `phoneKey` tumba
+  5 tests. No son decorado.
+- ⚠️ **Falta la prueba de humo en prod**: desplegar `kommo-webhook` y escribir
+  desde un número de cliente conocido con `writeback_dry_run=true`.
 
 ## 7. Dependencias
 

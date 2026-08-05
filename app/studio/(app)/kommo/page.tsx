@@ -8,6 +8,7 @@ import { createClient } from "@/lib/db/server";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 import { getKommoAnalytics } from "@/lib/studio/kommo-analytics";
 import {
+  getKommoMarkboxContactFieldId,
   getKommoMarkboxFieldId,
   getKommoStageMap,
   getWritebackStatus,
@@ -17,6 +18,7 @@ import {
   getKommoOverview,
   getKommoStatusCounts,
   listKommoBoardLeads,
+  listKommoContactCustomFields,
   listKommoLeadCustomFields,
   listKommoLeads,
   listKommoPipelines,
@@ -78,18 +80,24 @@ export default async function KommoPage({
   let canEditStageMap = false;
   let markboxFields: KommoCustomFieldRow[] = [];
   let markboxFieldId: number | null = null;
+  let markboxContactFields: KommoCustomFieldRow[] = [];
+  let markboxContactFieldId: number | null = null;
   if (tab === "direccion") {
-    const [wb, sm, mf, mfid, link] = await Promise.all([
+    const [wb, sm, mf, mfid, mcf, mcfid, link] = await Promise.all([
       getWritebackStatus(supabase),
       getKommoStageMap(supabase),
       listKommoLeadCustomFields(supabase),
       getKommoMarkboxFieldId(supabase),
+      listKommoContactCustomFields(supabase),
+      getKommoMarkboxContactFieldId(supabase),
       supabase.from("user_tenants").select("role").maybeSingle<{ role: string }>(),
     ]);
     writeback = wb;
     stageMap = sm;
     markboxFields = mf;
     markboxFieldId = mfid;
+    markboxContactFields = mcf;
+    markboxContactFieldId = mcfid;
     canEditStageMap = link.data?.role === "admin";
   }
 
@@ -185,6 +193,8 @@ export default async function KommoPage({
             canEditStageMap={canEditStageMap}
             markboxFields={markboxFields}
             markboxFieldId={markboxFieldId}
+            markboxContactFields={markboxContactFields}
+            markboxContactFieldId={markboxContactFieldId}
           />
         ) : null
       }

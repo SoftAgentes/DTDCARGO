@@ -61,14 +61,32 @@ export const CONFIG = {
    */
   tarifaBaseCBM: 800,
 
-  /** Gracia de peso por CBM incluida en la tarifa base. Sobre esto = excedente. */
-  pesoIncluidoKg: 500,
+  /**
+   * Gracia de peso por CBM incluida en la tarifa base. Sobre esto = excedente.
+   *
+   * ⚠️ ESPEJA `calculator_settings.peso_incluido_kg` DE PRODUCCIÓN. Igual que
+   * `tarifaBaseCBM` espeja la tarifa pública, este número es el respaldo que se
+   * usa cuando la RPC `public_calculator_config` no responde (Supabase caído,
+   * fila borrada). Si los dos no coinciden, una caída de Supabase no da error:
+   * cambia el precio EN SILENCIO.
+   *
+   * Pasó de verdad: el ERP tenía 1.000 kg desde el 2026-07-06 y acá seguía
+   * diciendo 500 — ante una caída, la calculadora habría cobrado excedente al
+   * doble de clientes. Corregido el 2026-08-05 (founder).
+   *
+   * Si se cambia en Admin › Calculadora pública, HAY QUE CAMBIARLO ACÁ TAMBIÉN.
+   */
+  pesoIncluidoKg: 1000,
 
   /**
    * Tarifa por kg que excede `pesoIncluidoKg` (recargo continuo, sin tope).
-   * Ej: si la carga pesa 600 kg en 1 CBM, el excedente es 100 kg × $1 = +$100.
+   * Ej: si la carga pesa 1.200 kg en 1 CBM, el excedente es 200 kg × $2 = +$400.
+   *
+   * ⚠️ Espeja `calculator_settings.recargo_excedente_kg` de producción — misma
+   * regla que `pesoIncluidoKg` de arriba: si se desincronizan, la caída de
+   * Supabase cobra distinto sin avisar.
    */
-  recargoExcedenteKg: 1,
+  recargoExcedenteKg: 2,
 
   /**
    * Descuento si el destino es Valencia (la sede DTD). USD.
@@ -85,9 +103,13 @@ export const CONFIG = {
 
   /**
    * Multiplicador del flete cuando la carga lleva baterías (riesgo/manejo).
-   * 1.5 = +50% sobre el flete (antes del descuento de sede).
+   * 1.3 = +30% sobre el flete (antes del descuento de sede).
+   *
+   * ⚠️ Espeja `calculator_settings.recargo_bateria_mult` de producción (1.3).
+   * Estuvo en 1.5 acá mientras el ERP ya cobraba 1.3 — mismo riesgo silencioso
+   * que `pesoIncluidoKg`. Corregido el 2026-08-05 (founder).
    */
-  recargoBateriaMult: 1.5,
+  recargoBateriaMult: 1.3,
 
   /**
    * ⚠️ LEGACY — ya no fija ningún precio (SDD-0237, founder 1-ago-2026).
@@ -791,9 +813,9 @@ export function calcularEnvioLCL(
   const recargoEmbalaje =
     input.embalaje === "especial" ? params.recargoEmbalajeEspecial : 0;
 
-  // 5.9 — Flete antes de baterías (base + recargos; `recargoExcedente` es 0
-  // siempre desde 2026-06-08, queda en la suma solo para que el desglose
-  // reconcilie Σ ítems = total).
+  // 5.9 — Flete antes de baterías (base + todos los recargos). `recargoExcedente`
+  // vuelve a cobrarse desde 2026-06-20 (ver 5.6); el comentario que decía "es 0
+  // siempre" quedó de la pausa del 2026-06-08 y ya no aplica.
   const fleteAntesBateria =
     precioBase + recargoExcedente + recargoCiudad + recargoEmbalaje;
 

@@ -224,6 +224,8 @@ export function DireccionTab({
   canEditStageMap,
   markboxFields,
   markboxFieldId,
+  markboxContactFields,
+  markboxContactFieldId,
 }: {
   data: KommoDireccionData;
   writeback: WritebackStatus | null;
@@ -233,6 +235,8 @@ export function DireccionTab({
   canEditStageMap: boolean;
   markboxFields: KommoCustomFieldRow[];
   markboxFieldId: number | null;
+  markboxContactFields: KommoCustomFieldRow[];
+  markboxContactFieldId: number | null;
 }) {
   if (data.totals.leads === 0) {
     return (
@@ -553,6 +557,21 @@ export function DireccionTab({
         <MarkboxFieldConfig
           fields={markboxFields}
           initialFieldId={markboxFieldId}
+          canEdit={canEditStageMap}
+        />
+      </SectionCard>
+
+      {/* SDD-0244 rebanada B: la marca PERMANENTE, en el contacto. El campo del
+          lead de arriba se lo lleva el trato al cerrarse; este sobrevive. */}
+      <SectionCard
+        eyebrow="Identidad"
+        title="Shipping Mark en el contacto"
+        hint="El campo permanente: sobrevive al cierre del trato y hace que el cliente que vuelve se reconozca solo."
+      >
+        <MarkboxFieldConfig
+          entity="contacts"
+          fields={markboxContactFields}
+          initialFieldId={markboxContactFieldId}
           canEdit={canEditStageMap}
         />
       </SectionCard>
