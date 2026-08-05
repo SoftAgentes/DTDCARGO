@@ -32,9 +32,26 @@ const DRAIN_BATCH = 100;
 
 interface OutboxRow {
   id: string;
-  kommo_lead_id: number;
+  /** null cuando la op apunta a un contacto (SDD-0244 · migr 0344). */
+  kommo_lead_id: number | null;
+  kommo_contact_id: number | null;
   op: string;
   payload: Record<string, unknown>;
+}
+
+/**
+ * SDD-0244 — a qué endpoint va cada op. El `target_check` de la migración 0344
+ * garantiza que el destino que corresponde NO es null, pero acá se vuelve a
+ * verificar: si alguna vez faltara, preferimos saltear la fila antes que pegarle
+ * a `/api/v4/leads/null`, que Kommo interpretaría como otra cosa.
+ */
+function resolveTarget(row: OutboxRow): { path: string } | { skip: string } {
+  if (row.op === "patch_contact") {
+    if (row.kommo_contact_id == null) return { skip: "patch_contact sin kommo_contact_id" };
+    return { path: `/api/v4/contacts/${row.kommo_contact_id}` };
+  }
+  if (row.kommo_lead_id == null) return { skip: `${row.op} sin kommo_lead_id` };
+  return { path: `/api/v4/leads/${row.kommo_lead_id}` };
 }
 
 interface ConnRow {
@@ -102,7 +119,7 @@ Deno.serve(async (req: Request) => {
     // 2) Pendientes (más viejos primero, hasta DRAIN_BATCH).
     const { data: rows, error: rowsErr } = await supabase
       .from("kommo_writeback_outbox")
-      .select("id, kommo_lead_id, op, payload")
+      .select("id, kommo_lead_id, kommo_contact_id, op, payload")
       .eq("tenant_id", tenant_id)
       .eq("status", "pending")
       .lt("attempts", 5)
@@ -118,9 +135,16 @@ Deno.serve(async (req: Request) => {
     for (let i = 0; i < pending.length; i++) {
       const row = pending[i];
 
+      const target = resolveTarget(row);
+      if ("skip" in target) {
+        await supabase.rpc("mark_kommo_writeback_skipped", { p_id: row.id, p_reason: target.skip });
+        skipped++;
+        continue;
+      }
+
       // DRY-RUN: no escribe. Loguea el PATCH que haría y marca 'skipped'.
       if (!willWrite) {
-        console.log("[kommo-writeback][dry-run] would PATCH lead", row.kommo_lead_id, row.op, row.payload);
+        console.log("[kommo-writeback][dry-run] would PATCH", target.path, row.op, row.payload);
         await supabase.rpc("mark_kommo_writeback_skipped", { p_id: row.id, p_reason: "dry-run" });
         skipped++;
         continue;
@@ -128,7 +152,7 @@ Deno.serve(async (req: Request) => {
 
       try {
         if (i > 0) await sleep(RATE_LIMIT_DELAY_MS); // respeta el rate limit de Kommo
-        await kommoWrite(baseUrl, tk, `/api/v4/leads/${row.kommo_lead_id}`, "PATCH", row.payload);
+        await kommoWrite(baseUrl, tk, target.path, "PATCH", row.payload);
         await supabase.rpc("mark_kommo_writeback_sent", { p_id: row.id });
         sent++;
       } catch (e) {

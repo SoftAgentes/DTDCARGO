@@ -12,7 +12,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  ESTIMATE_STAGE_KEYS,
+  STAGE_MAP_KEYS,
   type EstimateStageKey,
   type KommoStageMap,
   type KommoStageTarget,
@@ -102,15 +102,19 @@ export function buildStagePatchPayload(
 
 /**
  * Normaliza/valida la FORMA de un mapa de etapas crudo (de la DB o del form web).
- * Conserva solo las claves válidas (sent/accepted/rejected) cuyo destino tenga
+ * Conserva solo las claves válidas (`STAGE_MAP_KEYS`) cuyo destino tenga
  * `pipeline_id` y `status_id` enteros > 0; descarta el resto. PURO. (Que el par
  * exista en el espejo lo valida la action contra `kommo_statuses`.)
+ *
+ * ⚠️ Itera `STAGE_MAP_KEYS`, no `ESTIMATE_STAGE_KEYS`: si solo mirara las claves
+ * del estimado, normalizar el mapa leído de la DB **borraría `recontacto`** y el
+ * enrutador de SDD-0244 quedaría inerte sin avisar.
  */
 export function normalizeStageMap(raw: unknown): KommoStageMap {
   const out: KommoStageMap = {};
   if (!raw || typeof raw !== "object") return out;
   const obj = raw as Record<string, unknown>;
-  for (const key of ESTIMATE_STAGE_KEYS) {
+  for (const key of STAGE_MAP_KEYS) {
     const v = obj[key];
     if (!v || typeof v !== "object") continue;
     const rec = v as Record<string, unknown>;
@@ -283,6 +287,20 @@ export async function getKommoMarkboxFieldId(
     .select("markbox_field_id")
     .maybeSingle<{ markbox_field_id: number | null }>();
   return data?.markbox_field_id ?? null;
+}
+
+/**
+ * Lee el campo de CONTACTO donde va el Shipping Mark (SDD-0244 rebanada B).
+ * Hermano del de arriba: aquél muere con el trato, éste es permanente.
+ */
+export async function getKommoMarkboxContactFieldId(
+  supabase: SupabaseClient,
+): Promise<number | null> {
+  const { data } = await supabase
+    .from("kommo_connections")
+    .select("markbox_contact_field_id")
+    .maybeSingle<{ markbox_contact_field_id: number | null }>();
+  return data?.markbox_contact_field_id ?? null;
 }
 
 // ── Lectura para el panel de visibilidad (SDD-0078 · pestaña Dirección) ──────

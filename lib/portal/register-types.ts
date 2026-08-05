@@ -45,6 +45,16 @@ export type RegisterInput = {
   /** Teléfono de oficina/fijo (opcional, no WhatsApp). */
   officePhone: string | null;
   /**
+   * Ciudad de entrega (migr 0348). Del catálogo `ve_locality_catalog` cuando
+   * existe; texto libre si el cliente eligió "Mi ciudad no aparece".
+   */
+  city: string;
+  /**
+   * Estado (VE) de esa ciudad. Se autocompleta desde el catálogo; sólo se
+   * escribe a mano cuando la ciudad es libre.
+   */
+  state: string;
+  /**
    * Opt-in EXPLÍCITO a marketing por email (SDD-0082 · checkbox default OFF). NO
    * afecta el email transaccional (welcome/factura). true sólo si el visitante lo
    * marca → la action setea clients.email_marketing_optin_at + source.
@@ -102,7 +112,9 @@ export type RegisterFieldKey =
   | "document"
   | "email"
   | "whatsapp"
-  | "officePhone";
+  | "officePhone"
+  | "city"
+  | "state";
 
 /** Campos de la dirección VE (perfil). */
 export type AddressFieldKey =
@@ -149,6 +161,46 @@ export function isValidEmail(raw: string): boolean {
 }
 
 /**
+ * Por cuál llave reconocimos que la cuenta ya existe (SDD-0246). Lo decide la
+ * función `find_duplicate_client_service` en la DB.
+ */
+export type DuplicateMatch = "documento" | "correo" | "telefono";
+
+/**
+ * Arma el aviso de "esta cuenta ya existe" EN EL CAMPO QUE CORRESPONDE.
+ *
+ * Por qué importa el campo: hasta SDD-0246 el dedup sólo miraba el documento, así
+ * que el aviso siempre caía ahí. Ahora también reconocemos por correo y por
+ * teléfono, y un mensaje sobre el correo colgado del campo de la cédula es un
+ * mensaje que el visitante no entiende (misma familia de bug que SDD-0225: el
+ * error dibujado donde nadie lo ve).
+ *
+ * PRIVACIDAD: nunca decimos de QUIÉN es la cuenta — sólo que existe y por dónde
+ * la reconocimos. El visitante ya conoce el dato que acaba de escribir.
+ */
+export function duplicateFieldError(
+  kind: ClientKind,
+  matchedBy: DuplicateMatch | string,
+): NonNullable<RegisterActionState["fieldErrors"]> {
+  const recupera =
+    "Si eres tú, entra con tu Shipping Mark o pide recuperar tu contraseña.";
+  if (matchedBy === "correo") {
+    return { email: `Este correo ya tiene una cuenta en DTD Cargo. ${recupera}` };
+  }
+  if (matchedBy === "telefono") {
+    return {
+      whatsapp: `Este WhatsApp ya está registrado en una cuenta de DTD Cargo. ${recupera}`,
+    };
+  }
+  return {
+    document:
+      kind === "empresa"
+        ? `Este RIF ya tiene una cuenta en DTD Cargo. ${recupera}`
+        : `Esta cédula ya tiene una cuenta en DTD Cargo. ${recupera}`,
+  };
+}
+
+/**
  * Validación manual del alta self-service EXPRESS. Devuelve `input` canónico o
  * `fieldErrors`. Pide SOLO tipo/nombre/documento/email/WhatsApp (la dirección y la
  * foto se difieren al perfil). NO chequea dedup (eso es una query, va en la server
@@ -190,6 +242,16 @@ export function validateRegisterInput(partial: Partial<RegisterInput>): {
   const whatsapp = partial.whatsapp?.trim() || "";
   if (!whatsapp) errors.whatsapp = "Indica tu WhatsApp.";
 
+  // Ciudad + estado de entrega (migr 0348). Obligatorios: es a dónde va la
+  // mercancía. El formulario ofrece el catálogo y deja escribir la ciudad libre
+  // si no aparece — pero vacío no pasa.
+  const city = partial.city?.trim() || "";
+  if (!city) errors.city = "Indica tu ciudad.";
+  else if (city.length > 80) errors.city = "La ciudad es demasiado larga (máx 80).";
+  const state = partial.state?.trim() || "";
+  if (!state) errors.state = "Indica tu estado.";
+  else if (state.length > 80) errors.state = "El estado es demasiado largo (máx 80).";
+
   if (Object.keys(errors).length > 0) {
     return { fieldErrors: errors };
   }
@@ -203,6 +265,8 @@ export function validateRegisterInput(partial: Partial<RegisterInput>): {
       email,
       whatsapp,
       officePhone: partial.officePhone?.trim() || null,
+      city,
+      state,
       emailOptin: partial.emailOptin === true,
     },
   };

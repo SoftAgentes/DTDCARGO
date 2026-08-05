@@ -15,10 +15,19 @@ export const metadata = { title: "Etiquetas CN · DTD Studio" };
 
 type SearchParams = { [key: string]: string | string[] | undefined };
 
+/**
+ * Cliente del generador de etiquetas.
+ *
+ * ⚠️ NO agregar `company`: `clients` NO tiene esa columna y nunca la tuvo. Para
+ * empresa, la razón social YA ES `clients.name` (el alta guarda
+ * `input.company ?? input.name`) y el contacto va en `notes`. Este tipo pedía
+ * `company` y el `.select()` reventaba entero → `clientsData` llegaba null y el
+ * generador se quedaba SIN clientes, callado. Misma familia que el hueco
+ * `city_slug` de la 0347.
+ */
 export type LabelClient = {
   markbox: string;
   name: string;
-  company: string | null;
 };
 
 export type LabelWarehouseCn = {
@@ -54,7 +63,7 @@ export default async function EtiquetasPage({
     await Promise.all([
       supabase
         .from("clients")
-        .select("markbox, name, company")
+        .select("markbox, name")
         .is("deleted_at", null)
         .order("markbox", { ascending: true })
         .limit(500),
@@ -70,7 +79,6 @@ export default async function EtiquetasPage({
   const clients: LabelClient[] = (clientsData ?? []).map((c) => ({
     markbox: c.markbox as string,
     name: c.name as string,
-    company: (c.company as string | null) ?? null,
   }));
 
   const warehouses: LabelWarehouseCn[] = (warehousesData ?? []).map((w) => ({

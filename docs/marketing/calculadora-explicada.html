@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="es-VE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La calculadora, explicada — DTD Cargo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Black&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --wine:#7F0F1A; --wine-deep:#5E0A12;
+    --bg:#FBFAF7; --surface:#FFFFFF; --elevated:#F2F0EC;
+    --ink:#0F1E3D; --ink-soft:#6B6B6B; --border:#E8E6E2;
+    --success:#1F8A5B; --warning:#B8893A; --danger:#C2353F;
+    --f-sans:'Archivo',system-ui,-apple-system,sans-serif;
+    --f-display:'Archivo Black','Archivo',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:var(--f-sans); background:var(--bg); color:var(--ink);
+    line-height:1.55; font-size:16px; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:840px;margin:0 auto;padding:0 20px 80px}
+
+  /* ── Cabecera ─────────────────────────────────────────── */
+  header{
+    background:linear-gradient(90deg,#0B1428 0%,#0F1E3D 44%,#1F3055 100%);
+    color:#F2F0EC; padding:44px 20px 40px; margin-bottom:36px;
+  }
+  header .inner{max-width:840px;margin:0 auto}
+  .eyebrow{
+    font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    color:#D59FA7;margin-bottom:12px;
+  }
+  h1{font-family:var(--f-display);font-size:38px;line-height:1.1;letter-spacing:-.01em}
+  header p{margin-top:14px;font-size:17px;color:#C7CEDD;max-width:56ch}
+
+  /* ── Tipografía general ───────────────────────────────── */
+  h2{
+    font-family:var(--f-display);font-size:26px;line-height:1.2;
+    margin:52px 0 6px;letter-spacing:-.01em;
+  }
+  h2 .num{color:var(--wine)}
+  h3{font-size:18px;font-weight:700;margin:26px 0 8px}
+  .lead{color:var(--ink-soft);font-size:16px;margin-bottom:20px}
+  p{margin-bottom:12px}
+  strong{font-weight:700}
+  .rule{height:1px;background:var(--border);margin:0 0 4px}
+
+  /* ── Bloques ──────────────────────────────────────────── */
+  .card{
+    background:var(--surface);border:1px solid var(--border);border-radius:14px;
+    padding:22px 24px;margin:18px 0;
+  }
+  .key{
+    background:var(--surface);border:1px solid var(--border);
+    border-left:5px solid var(--wine);border-radius:12px;
+    padding:18px 22px;margin:20px 0;
+  }
+  .key .k-label{
+    font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--wine);margin-bottom:6px;
+  }
+  .key .k-text{font-size:19px;font-weight:600;line-height:1.4}
+  .note{
+    background:var(--elevated);border:1px solid var(--border);border-radius:12px;
+    padding:16px 20px;margin:18px 0;font-size:15px;
+  }
+  .warn{border-left:5px solid var(--warning)}
+  .stop{border-left:5px solid var(--danger)}
+  .note .n-label{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px}
+  .warn .n-label{color:#8A6526}
+  .stop .n-label{color:var(--danger)}
+
+  /* ── Números grandes ──────────────────────────────────── */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:22px 0}
+  .stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
+  .stat .v{font-family:var(--f-display);font-size:28px;color:var(--wine);line-height:1.1}
+  .stat .l{font-size:13px;color:var(--ink-soft);margin-top:6px;line-height:1.35}
+
+  /* ── Pasos ────────────────────────────────────────────── */
+  .steps{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;gap:10px;margin:24px 0}
+  .step{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center}
+  .step .n{
+    display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;
+    border-radius:50%;background:var(--ink);color:#fff;font-size:13px;font-weight:700;margin-bottom:8px;
+  }
+  .step .t{font-weight:700;font-size:15px}
+  .step .d{font-size:13px;color:var(--ink-soft);margin-top:4px;line-height:1.35}
+  .arrow{color:var(--wine);font-size:20px;font-weight:700;text-align:center}
+
+  /* ── Barras de peso ───────────────────────────────────── */
+  .bar-case{margin:20px 0}
+  .bar-title{font-size:15px;font-weight:700;margin-bottom:8px}
+  .bar{display:flex;height:44px;border-radius:8px;overflow:hidden;border:1px solid var(--border);background:var(--elevated)}
+  .bar .seg{display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#fff;white-space:nowrap}
+  .seg-in{background:var(--ink)}
+  .seg-over{background:var(--wine)}
+  .seg-free{color:var(--ink-soft);font-weight:500}
+  .bar-foot{display:flex;justify-content:space-between;font-size:13px;color:var(--ink-soft);margin-top:7px;gap:12px}
+  .bar-foot .res{font-weight:700;color:var(--ink)}
+  .bar-foot .res.cost{color:var(--wine)}
+
+  /* ── Tablas ───────────────────────────────────────────── */
+  .t-scroll{overflow-x:auto;margin:18px 0}
+  table{width:100%;border-collapse:collapse;font-size:14.5px;min-width:520px}
+  th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);font-weight:700}
+  tbody tr:last-child td{border-bottom:none}
+  td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+  td .tag{font-size:12px;font-weight:700;color:var(--wine)}
+
+  /* ── Guiones de respuesta ─────────────────────────────── */
+  .qa{border:1px solid var(--border);border-radius:12px;background:var(--surface);margin:12px 0;overflow:hidden}
+  .qa .q{padding:13px 18px;font-weight:700;font-size:15px;background:var(--elevated)}
+  .qa .a{padding:14px 18px;font-size:15px;color:#2A3550}
+  .qa .a::before{content:"“";color:var(--wine);font-weight:700}
+  .qa .a::after{content:"”";color:var(--wine);font-weight:700}
+
+  .never{list-style:none;margin:10px 0}
+  .never li{padding:9px 0 9px 26px;position:relative;font-size:15px;border-bottom:1px solid var(--border)}
+  .never li:last-child{border-bottom:none}
+  .never li::before{content:"✕";position:absolute;left:0;color:var(--danger);font-weight:700}
+  .yes li::before{content:"✓";color:var(--success)}
+
+  svg{display:block;max-width:100%;height:auto}
+  figcaption{font-size:13px;color:var(--ink-soft);margin-top:8px;text-align:center}
+
+  footer{
+    margin-top:56px;padding-top:22px;border-top:1px solid var(--border);
+    font-size:13.5px;color:var(--ink-soft);
+  }
+
+  @media (max-width:640px){
+    h1{font-size:29px} h2{font-size:22px}
+    .steps{grid-template-columns:1fr;gap:8px}
+    .arrow{transform:rotate(90deg)}
+  }
+  @media print{
+    header{background:#0F1E3D !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body{font-size:12pt} h2{page-break-after:avoid} .card,.key,.note,.qa{page-break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="inner">
+    <div class="eyebrow">DTD Cargo · Guía interna de atención al cliente</div>
+    <h1>La calculadora,<br>explicada en simple</h1>
+    <p>Todo lo que necesitas para explicarle a un cliente cómo le sale el precio, sin enredarte. Los números son los que el sistema está usando hoy.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="key">
+    <div class="k-label">En una sola frase</div>
+    <div class="k-text">El cliente dice cuánto <strong>espacio</strong> ocupa su carga y cuánto <strong>pesa</strong>. La calculadora le da un estimado al instante. El precio en firme lo cierra un asesor.</div>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="n">1</div>
+      <div class="t">Mete 3 datos</div>
+      <div class="d">Volumen (CBM), peso y ciudad de destino</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <div class="n">2</div>
+      <div class="t">Ve el precio</div>
+      <div class="d">Sale solo, sin botón y sin registrarse</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <div class="n">3</div>
+      <div class="t">Nos escribe</div>
+      <div class="d">El estimado le llega al asesor por WhatsApp</div>
+    </div>
+  </div>
+
+  <h2><span class="num">1.</span> ¿Cuáles calculadoras hay?</h2>
+  <div class="rule"></div>
+  <p class="lead">Son dos páginas. Nada más.</p>
+
+  <div class="t-scroll">
+  <table>
+    <thead>
+      <tr><th>Página</th><th>Qué calcula</th><th>Precio base</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>dtdcargo.com/tarifas</strong><br><span style="color:#6B6B6B;font-size:13px">Pestaña “Puerta a Puerta”</span></td>
+        <td>Consolidado (LCL) con <strong>todo incluido</strong>: flete, aduana, impuestos y entrega en su dirección.</td>
+        <td class="num"><strong>$800</strong> por m³</td>
+      </tr>
+      <tr>
+        <td><strong>dtdcargo.com/tarifas</strong><br><span style="color:#6B6B6B;font-size:13px">Pestaña “Consolidado”</span></td>
+        <td>Consolidado (LCL) <strong>hasta puerto</strong>, con su propio BL. La aduana y los impuestos los paga él.</td>
+        <td class="num"><strong>$580</strong> por m³</td>
+      </tr>
+      <tr>
+        <td><strong>dtdcargo.com/fcl</strong></td>
+        <td>Contenedor completo. Otra cosa, otras reglas.</td>
+        <td class="num">Tarifa fija por contenedor</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="note">
+    <div class="n-label">Ojo con esto</div>
+    Adentro de la calculadora hay una <strong>ayuda para sacar el CBM</strong> a partir de las medidas de las cajas. No es otra calculadora: es un panel del mismo formulario, para el cliente que no sabe su volumen.
+  </div>
+
+  <h2><span class="num">2.</span> Qué es el CBM</h2>
+  <div class="rule"></div>
+  <p class="lead">CBM = metro cúbico (m³). Es el espacio que ocupa la carga dentro del barco.</p>
+
+  <div class="card">
+    <svg viewBox="0 0 560 230" role="img" aria-label="Caja de 40 por 30 por 25 centímetros con su fórmula de volumen">
+      <!-- cubo -->
+      <polygon points="70,90 120,50 260,50 210,90" fill="#1F3055"/>
+      <polygon points="210,90 260,50 260,140 210,180" fill="#0B1428"/>
+      <rect x="70" y="90" width="140" height="90" fill="#0F1E3D"/>
+      <!-- cotas -->
+      <line x1="70" y1="196" x2="210" y2="196" stroke="#7F0F1A" stroke-width="2"/>
+      <text x="140" y="214" text-anchor="middle" font-family="Archivo, sans-serif" font-size="14" font-weight="700" fill="#7F0F1A">largo 40 cm</text>
+      <line x1="56" y1="90" x2="56" y2="180" stroke="#7F0F1A" stroke-width="2"/>
+      <text x="48" y="140" text-anchor="end" font-family="Archivo, sans-serif" font-size="14" font-weight="700" fill="#7F0F1A">alto<tspan x="48" dy="16">25 cm</tspan></text>
+      <line x1="222" y1="82" x2="270" y2="44" stroke="#7F0F1A" stroke-width="2"/>
+      <text x="284" y="52" font-family="Archivo, sans-serif" font-size="14" font-weight="700" fill="#7F0F1A">ancho 30 cm</text>
+      <!-- cuenta -->
+      <text x="300" y="110" font-family="Archivo, sans-serif" font-size="16" fill="#0F1E3D">40 × 30 × 25 = 30.000</text>
+      <text x="300" y="136" font-family="Archivo, sans-serif" font-size="16" fill="#0F1E3D">30.000 ÷ 1.000.000 =</text>
+      <text x="300" y="172" font-family="Archivo Black, Archivo, sans-serif" font-size="30" fill="#7F0F1A">0,03 m³</text>
+    </svg>
+    <figcaption>Con las medidas en centímetros: multiplicas las tres y divides entre un millón.</figcaption>
+  </div>
+
+  <div class="key">
+    <div class="k-label">La frase que sirve para todo</div>
+    <div class="k-text">“No pagas por lo que pesa. Pagas por el <strong>espacio</strong> que ocupa.”<br>
+    <span style="font-size:15px;font-weight:400;color:#6B6B6B">…y el peso solo entra si te pasas de la raya. Eso es lo que sigue.</span></div>
+  </div>
+
+  <p>Si el cliente tiene <strong>varias cajas iguales</strong>: saca el CBM de una y lo multiplica por la cantidad. 10 cajas como la del dibujo = 0,3 m³.</p>
+  <p>Se mide <strong>por fuera</strong>, con el embalaje puesto. Si algo sobresale, hasta el punto más ancho.</p>
+
+  <h2><span class="num">3.</span> La regla del peso</h2>
+  <div class="rule"></div>
+  <p class="lead">Esta es la que más se pregunta. Y es una sola regla.</p>
+
+  <div class="key">
+    <div class="k-label">Regla del peso</div>
+    <div class="k-text">Cada metro cúbico trae <strong>1.000 kg incluidos</strong>.<br>Lo que se pase, cuesta <strong>$2 por kilo</strong>.</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="v">1.000 kg</div><div class="l">incluidos por cada m³ (antes eran 500 — se amplió al doble)</div></div>
+    <div class="stat"><div class="v">$2</div><div class="l">por cada kilo que se pase, y solo por esos kilos</div></div>
+    <div class="stat"><div class="v">Se suma todo</div><div class="l">no es caja por caja: es el envío completo</div></div>
+  </div>
+
+  <p>Lo importante: <strong>el permiso de peso crece con el volumen.</strong> 3 m³ traen 3.000 kg incluidos. 10 m³ traen 10.000 kg incluidos. Por eso casi nadie paga este recargo: solo lo paga la carga muy apretada (repuestos, herramientas, cerámica, líquidos).</p>
+
+  <h3>Cómo se ve, con números reales</h3>
+
+  <div class="bar-case">
+    <div class="bar-title">Caso 1 · 2 m³ que pesan 800 kg</div>
+    <div class="bar">
+      <div class="seg seg-in" style="width:26.7%">800 kg</div>
+      <div class="seg seg-free" style="width:73.3%">…le sobran 1.200 kg de permiso</div>
+    </div>
+    <div class="bar-foot">
+      <span>Permiso: 2 m³ × 1.000 = 2.000 kg</span>
+      <span class="res">Recargo: $0</span>
+    </div>
+  </div>
+
+  <div class="bar-case">
+    <div class="bar-title">Caso 2 · 2 m³ que pesan 2.600 kg</div>
+    <div class="bar">
+      <div class="seg seg-in" style="width:66.7%">2.000 kg incluidos</div>
+      <div class="seg seg-over" style="width:20%">600 kg de más</div>
+      <div class="seg seg-free" style="width:13.3%"></div>
+    </div>
+    <div class="bar-foot">
+      <span>600 kg × $2</span>
+      <span class="res cost">Recargo: $1.200</span>
+    </div>
+  </div>
+
+  <div class="note">
+    <div class="n-label">Cómo lo ve el cliente en pantalla</div>
+    Le sale este aviso debajo del campo de peso: <em>“El máximo de peso sin recargo para 2 m³ es 2.000 kg. Te pasas por 600 kg.”</em><br>
+    Y en el desglose de la derecha aparece la línea <strong>“Excedente de peso · 600 kg sobre 2.000 kg incl.”</strong> con su monto.
+  </div>
+
+  <h3>Los dos topes donde la calculadora se rinde</h3>
+  <p>Hay cargas que ya no se cotizan solas. No es un error: es que necesitan un asesor.</p>
+
+  <div class="note stop">
+    <div class="n-label">Tope 1 · pesada Y apretada</div>
+    Más de <strong>9.000 kg</strong> <em>y además</em> muy densa (más de ~400 kg metidos en cada m³) → <strong>va al asesor</strong>.<br><br>
+    <strong>Por qué las dos condiciones:</strong> un envío pesado pero <em>esparcido</em> sí cotiza normal. Ejemplo: 30 m³ con 9.500 kg <strong>sí da precio</strong> ($24.000). Los mismos 9.500 kg en 12 m³ <strong>no</strong> — esa carga se come todo el peso del contenedor y deja el espacio sin vender.
+  </div>
+
+  <div class="note stop">
+    <div class="n-label">Tope 2 · el límite físico</div>
+    Más de <strong>27.000 kg</strong> o más de <strong>68 m³</strong> → ya no es consolidado, eso es un contenedor completo. <strong>Va al asesor.</strong>
+  </div>
+
+  <h2><span class="num">4.</span> La regla del mínimo</h2>
+  <div class="rule"></div>
+  <p class="lead">Acá está el malentendido más común. Léelo despacio.</p>
+
+  <div class="key">
+    <div class="k-label">Regla del mínimo (Puerta a Puerta)</div>
+    <div class="k-text">No hay un mínimo de metros. Hay un <strong>mínimo de plata: $50</strong>.<br>
+    <span style="font-size:15px;font-weight:400;color:#6B6B6B">Si la cuenta da menos de $50, se cobra $50. Y ya.</span></div>
+  </div>
+
+  <p>El sistema <strong>no rechaza</strong> la carga chiquita: le pone un piso al precio. Ese piso, traducido a espacio, son <strong>0,0625 m³ = 3 cajas de 40×30×25 cm</strong>. Por debajo de eso, todo cuesta lo mismo: $50.</p>
+
+  <div class="card">
+    <svg viewBox="0 0 620 270" role="img" aria-label="Gráfico: el precio se queda plano en 50 dólares hasta 0,0625 metros cúbicos y de ahí sube">
+      <!-- ejes -->
+      <line x1="56" y1="30" x2="56" y2="220" stroke="#E8E6E2" stroke-width="1"/>
+      <line x1="56" y1="220" x2="596" y2="220" stroke="#0F1E3D" stroke-width="1.5"/>
+      <!-- grid -->
+      <line x1="56" y1="167" x2="596" y2="167" stroke="#E8E6E2" stroke-width="1" stroke-dasharray="4 4"/>
+      <line x1="56" y1="114" x2="596" y2="114" stroke="#E8E6E2" stroke-width="1" stroke-dasharray="4 4"/>
+      <line x1="56" y1="62" x2="596" y2="62" stroke="#E8E6E2" stroke-width="1" stroke-dasharray="4 4"/>
+      <text x="46" y="171" text-anchor="end" font-family="Archivo, sans-serif" font-size="12" fill="#6B6B6B">$50</text>
+      <text x="46" y="118" text-anchor="end" font-family="Archivo, sans-serif" font-size="12" fill="#6B6B6B">$100</text>
+      <text x="46" y="66" text-anchor="end" font-family="Archivo, sans-serif" font-size="12" fill="#6B6B6B">$150</text>
+      <!-- zona plana -->
+      <rect x="56" y="167" width="164" height="53" fill="#F2F0EC"/>
+      <!-- curva -->
+      <path d="M56,167 H220 L580,51" fill="none" stroke="#7F0F1A" stroke-width="3.5" stroke-linejoin="round"/>
+      <!-- punto de quiebre -->
+      <circle cx="220" cy="167" r="5.5" fill="#7F0F1A"/>
+      <line x1="220" y1="167" x2="220" y2="220" stroke="#7F0F1A" stroke-width="1" stroke-dasharray="3 3"/>
+      <!-- etiquetas -->
+      <text x="138" y="199" text-anchor="middle" font-family="Archivo, sans-serif" font-size="13" font-weight="700" fill="#0F1E3D">Aquí siempre son $50</text>
+      <text x="236" y="150" font-family="Archivo, sans-serif" font-size="13" font-weight="700" fill="#7F0F1A">0,0625 m³ · 3 cajas</text>
+      <text x="236" y="167" font-family="Archivo, sans-serif" font-size="12.5" fill="#6B6B6B">de aquí en adelante paga por su volumen</text>
+      <!-- eje x -->
+      <text x="56" y="240" text-anchor="middle" font-family="Archivo, sans-serif" font-size="12" fill="#6B6B6B">0</text>
+      <text x="220" y="240" text-anchor="middle" font-family="Archivo, sans-serif" font-size="12" fill="#6B6B6B">0,06</text>
+      <text x="318" y="240" text-anchor="middle" font-family="Archivo, sans-serif" font-size="12" fill="#6B6B6B">0,10</text>
+      <text x="449" y="240" text-anchor="middle" font-family="Archivo, sans-serif" font-size="12" fill="#6B6B6B">0,15</text>
+      <text x="580" y="240" text-anchor="middle" font-family="Archivo, sans-serif" font-size="12" fill="#6B6B6B">0,20</text>
+      <text x="326" y="262" text-anchor="middle" font-family="Archivo, sans-serif" font-size="12.5" fill="#6B6B6B">volumen de la carga (m³)</text>
+    </svg>
+    <figcaption>Una caja o veinte kilos de muestras: igual son $50. Pasando las 3 cajas, empieza a contar el volumen real.</figcaption>
+  </div>
+
+  <div class="note">
+    <div class="n-label">Cómo lo ve el cliente en pantalla</div>
+    <em>“Nuestro mínimo son 3 cajas de 40×30×25 cm — por debajo, el envío sale $50.”</em><br>
+    Fíjate que se lo decimos <strong>en cajas</strong>, no en metros cúbicos. “0,0625 m³” no le dice nada a nadie.
+  </div>
+
+  <div class="note warn">
+    <div class="n-label">La excepción · el Consolidado sí tiene mínimo de metros</div>
+    En la pestaña <strong>Consolidado</strong> (la de $580 hasta puerto), por debajo de <strong>1 m³ no sale precio</strong>: manda al asesor.<br><br>
+    <strong>Por qué:</strong> esa modalidad necesita un BL a nombre del cliente, y ese documento cuesta <strong>hasta $300 fijos</strong> — no baja aunque la carga sea chiquita. En medio metro cúbico ese gasto se come el envío completo, y esa mercancía termina abandonada en el almacén fiscal.<br><br>
+    <strong>Se puede hacer una excepción</strong> si la mercancía es de muy alto valor y el cliente asume el riesgo. Pero eso lo decide un asesor, nunca la calculadora.
+  </div>
+
+  <h2><span class="num">5.</span> Lo demás que suma</h2>
+  <div class="rule"></div>
+
+  <div class="t-scroll">
+  <table>
+    <thead><tr><th>Concepto</th><th>Cuánto</th><th>Cuándo</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Entrega en Venezuela</strong></td><td class="num">Por m³, según la ciudad<br><span style="color:#6B6B6B;font-size:13px">ej. Puerto Ordaz $123,60/m³</span></td><td>Siempre, menos en las 8 ciudades donde va incluida (ver abajo)</td></tr>
+      <tr><td><strong>Embalaje especial</strong></td><td class="num">+$50</td><td>Madera o paleta. Una sola vez, no por caja</td></tr>
+      <tr><td><strong>Baterías</strong></td><td class="num">×1,3 <span style="color:#6B6B6B">(+30%)</span></td><td>Sobre todo el flete, por el manejo del litio</td></tr>
+      <tr><td><strong>Carga especial o peligrosa</strong></td><td class="num"><span class="tag">No cotiza</span></td><td>Frágil, con permisos, alto valor → asesor</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="note">
+    <div class="n-label">Entrega incluida ($0) en 8 ciudades</div>
+    Valencia · Caracas · Maracay · Barquisimeto · Acarigua · Guacara · Naguanagua · San Diego.<br>
+    En el desglose el cliente ve la línea de entrega con la palabra <strong>“Incluida”</strong> — para que se dé cuenta de lo que le estamos absorbiendo. <strong>No lo llames descuento:</strong> es entrega incluida.
+  </div>
+
+  <h2><span class="num">6.</span> Ejemplos completos</h2>
+  <div class="rule"></div>
+  <p class="lead">Estos números salieron del sistema, no de una cuenta a mano.</p>
+
+  <div class="t-scroll">
+  <table>
+    <thead><tr><th>La carga</th><th>Destino</th><th>Cómo sale la cuenta</th><th>Total</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>2 m³ · 800 kg</td><td>Caracas</td>
+        <td>2 × $800 = $1.600<br><span style="color:#6B6B6B;font-size:13px">peso adentro del permiso · entrega incluida</span></td>
+        <td class="num"><strong>$1.600</strong></td>
+      </tr>
+      <tr>
+        <td>2 m³ · <strong>2.600 kg</strong></td><td>Caracas</td>
+        <td>$1.600 + 600 kg × $2 = $1.200<br><span style="color:#6B6B6B;font-size:13px">se pasó del permiso de 2.000 kg</span></td>
+        <td class="num"><strong>$2.800</strong></td>
+      </tr>
+      <tr>
+        <td>2 m³ · 800 kg · <strong>con baterías</strong></td><td>Caracas</td>
+        <td>$1.600 × 1,3<br><span style="color:#6B6B6B;font-size:13px">el recargo se ve aparte: +$480</span></td>
+        <td class="num"><strong>$2.080</strong></td>
+      </tr>
+      <tr>
+        <td>3 m³ · 1.500 kg</td><td>Puerto Ordaz</td>
+        <td>$2.400 + entrega 3 × $123,60 = $370,80</td>
+        <td class="num"><strong>$2.770,80</strong></td>
+      </tr>
+      <tr>
+        <td><strong>1 caja</strong> · 0,03 m³ · 20 kg</td><td>Caracas</td>
+        <td>La cuenta da $24 → sube al mínimo<br><span style="color:#6B6B6B;font-size:13px">en el desglose aparece “Ajuste a mínimo +$26”</span></td>
+        <td class="num"><strong>$50</strong></td>
+      </tr>
+      <tr>
+        <td>12 m³ · 9.500 kg</td><td>Caracas</td>
+        <td>Pesada y apretada</td>
+        <td class="num"><span class="tag">Asesor</span></td>
+      </tr>
+      <tr>
+        <td>30 m³ · 9.500 kg</td><td>Caracas</td>
+        <td>Mismo peso, pero esparcido → sí cotiza</td>
+        <td class="num"><strong>$24.000</strong></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2><span class="num">7.</span> Qué responder</h2>
+  <div class="rule"></div>
+
+  <div class="qa">
+    <div class="q">“¿Ustedes cobran por peso o por volumen?”</div>
+    <div class="a">Por volumen. Pagas el espacio que ocupa tu carga. El peso solo entra si vienes muy pesado: cada metro cúbico trae 1.000 kilos incluidos, y si te pasas son $2 por kilo de más.</div>
+  </div>
+
+  <div class="qa">
+    <div class="q">“Tengo 1 m³ pero pesa 1.400 kg. ¿Cuánto es?”</div>
+    <div class="a">Tu metro cúbico trae 1.000 kg incluidos, así que te pasas por 400. Serían $800 del volumen más $800 del peso extra. Te lo confirmo exacto en un momento.</div>
+  </div>
+
+  <div class="qa">
+    <div class="q">“¿Cuál es el mínimo que puedo mandar?”</div>
+    <div class="a">No tenemos mínimo de cantidad: te llevamos hasta una caja. Lo que sí hay es un mínimo de $50, que equivale a unas 3 cajas de 40×30×25. Por debajo de eso el envío igual sale en $50.</div>
+  </div>
+
+  <div class="qa">
+    <div class="q">“El precio que me dio la página, ¿es el que voy a pagar?”</div>
+    <div class="a">Es un estimado bien cercano, calculado con nuestras tarifas reales. El precio en firme te lo confirmo yo cuando revisemos tu carga y tu destino.</div>
+  </div>
+
+  <div class="qa">
+    <div class="q">“¿Por qué a mí no me da precio y a mi socio sí?”</div>
+    <div class="a">Porque tu carga se sale de lo que la calculadora cotiza sola — por el peso, por el volumen o por el tipo de mercancía. Eso no es un no: significa que te la cotizamos a la medida. Pásame las medidas y el peso.</div>
+  </div>
+
+  <h3>Lo que nunca hay que decir</h3>
+  <ul class="never">
+    <li><strong>“Ese es tu precio final.”</strong> — Es un estimado. El asesor cierra.</li>
+    <li><strong>“No te podemos llevar tan poquito.”</strong> — Sí se puede. Es $50 y punto.</li>
+    <li><strong>“El sistema está fallando.”</strong> — Cuando manda al asesor, está funcionando bien: esa carga necesita ojo humano.</li>
+    <li><strong>“Te regalamos la entrega.”</strong> — Se dice <em>entrega incluida</em>.</li>
+    <li><strong>Inventar un precio</strong> para una ciudad que la calculadora no cotiza. Si no da número, no hay número.</li>
+  </ul>
+
+  <footer>
+    <strong>Números vigentes al 5 de agosto de 2026</strong>, tomados directo de la configuración del sistema (tarifa base $800/m³, mínimo $50, 1.000 kg incluidos por m³, $2 por kilo excedente, baterías ×1,3).<br><br>
+    Estos valores se cambian desde el ERP, en <strong>Studio › Admin › Calculadora pública</strong>. Si alguien los mueve, esta guía queda vieja: pide la actualizada antes de citar cifras de memoria.
+  </footer>
+
+</div>
+</body>
+</html>

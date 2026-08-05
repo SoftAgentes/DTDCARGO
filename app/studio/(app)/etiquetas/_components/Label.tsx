@@ -201,20 +201,8 @@ export function Label({
           >
             {client.name}
           </div>
-          {client.company && (
-            <div
-              style={{
-                font: `500 ${isCompact ? 8.5 : 10}px/1.2 Archivo, sans-serif`,
-                color: "#6B6B6B",
-                marginTop: 1,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {client.company}
-            </div>
-          )}
+          {/* Sin línea de razón social aparte: para empresa, `name` YA es la
+              razón social (ver LabelClient en ../page.tsx). */}
         </div>
 
         {qr && (

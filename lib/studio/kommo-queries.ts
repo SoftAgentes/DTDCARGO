@@ -116,6 +116,23 @@ export async function listKommoLeadCustomFields(
 }
 
 /**
+ * Custom fields de CONTACTOS (SDD-0244 rebanada B). El campo del lead muere con
+ * el trato; éste es el permanente, y es el que hace que la próxima vez el cliente
+ * se reconozca sin cruzar teléfonos.
+ */
+export async function listKommoContactCustomFields(
+  supabase: SupabaseClient,
+): Promise<KommoCustomFieldRow[]> {
+  const { data, error } = await supabase
+    .from("kommo_custom_fields")
+    .select("id, name, type, code")
+    .eq("entity_type", "contacts")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return (data as KommoCustomFieldRow[] | null) ?? [];
+}
+
+/**
  * Leads con filtros opcionales (embudo · búsqueda · asesor · antigüedad · orden).
  * Hasta 200. Orden por kommo_updated_at (reciente por default; "oldest" saca el
  * cementerio primero para el worklist). RLS filtra por tenant.

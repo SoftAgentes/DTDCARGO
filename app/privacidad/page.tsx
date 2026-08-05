@@ -14,7 +14,11 @@ import { CONTACT } from "@/lib/design-tokens";
 
 const DESC =
   "Política de Privacidad de DTD Cargo — qué datos recogemos, para qué los usamos, con quién los compartimos y qué derechos tienes.";
-const UPDATED = "30 de julio de 2026";
+// Al cambiar QUÉ se recoge hay que mover esta fecha: la política se publica con
+// su fecha de vigencia y lo publicado obliga por haberse publicado. El 2026-08-05
+// el registro pasó a pedir ciudad y estado de entrega (migr 0348) y el texto
+// todavía decía que la dirección se agregaba después, en el Portal.
+const UPDATED = "5 de agosto de 2026";
 
 export const metadata: Metadata = {
   title: "Política de Privacidad",
@@ -43,7 +47,7 @@ const CAPTURA: [string, string][] = [
   ],
   [
     "Registro de cliente",
-    "Nombre, documento de identidad (cédula o RIF), correo y teléfono. Al registrarte se genera tu número de cliente (Shipping Mark). La dirección de entrega se agrega después, en tu perfil del Portal.",
+    "Nombre, documento de identidad (cédula o RIF), correo, teléfono y la ciudad y el estado a donde entregamos tu mercancía. Al registrarte se genera tu número de cliente (Shipping Mark). La dirección detallada (calle, edificio, punto de referencia) la agregas después, en tu perfil del Portal.",
   ],
   [
     "Portal del Cliente",

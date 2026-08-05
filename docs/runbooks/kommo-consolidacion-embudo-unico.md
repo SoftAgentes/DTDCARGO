@@ -24,9 +24,10 @@
 
 ### Los 4 hallazgos que justifican el cambio
 
-1. **Los leads nuevos no entran al embudo principal.** 290 de los últimos 291 leads (90 días) cayeron
-   en `Embudo de ventas → Atencion al cliente`. El principal ("Prueba") está vacío. **Arreglar el
-   embudo sin arreglar la captación no resuelve nada.**
+1. **Los leads no llegan al ERP.** De los que aceptaron, 290 de 291 (90 días) cayeron en
+   `Embudo de ventas → Atencion al cliente`; el principal ("Prueba") está vacío. Pero el problema mayor
+   es que **la mayoría ni se acepta**: quedan en la bandeja de chat, invisibles para el ERP (ver Fase 0).
+   **Arreglar el embudo sin arreglar por dónde entran no resuelve nada.**
 2. **El embudo único ya se construyó dos veces y ninguna se usó:** "Atencion a leeds" (29-jun) y
    "Prueba". Ambos vacíos. No hay que crear nada.
 3. **Cementerio:** 2.562 leads fríos (>90 d) = 89%. 2.239 muertos (>1 año) = 78%. Solo 16 tocados en
@@ -84,17 +85,55 @@ mercancía · Validación de proveedores · Visa China · Otro` — reemplaza lo
 
 > **Regla de oro:** nunca borrar un embudo con leads adentro (Kommo los orfana). Vaciar → verificar 0 → borrar.
 
-### Fase 0 · Investigar la captación — 🔴 BLOQUEANTE
+### Fase 0 · ✅ RESUELTA (2026-08-03) — la captación NO se detuvo: el ERP está ciego
 
-No tiene sentido ordenar el embudo si la entrada está rota. **Los leads por semana pasaron de 84
-(8-jun) a 0 durante tres semanas de julio.**
+> ⚠️ **Corrección.** Una versión anterior de este runbook afirmaba que *"la captación se detuvo"*.
+> **Era falso.** Los leads entran todo el día; lo que pasa es que **no llegan al ERP**.
 
-- [ ] **0.** Abrir Kommo → **Leads entrantes** y anotar el contador.
-      - **Si hay leads apilados** → son invisibles para el ERP (el sync no lee `/api/v4/leads/unsorted`).
-        Se aceptan al embudo nuevo y se evalúa desactivar la bandeja para que entren directo.
-      - **Si está vacía** → la captación se rompió de verdad. Revisar formularios y fuentes que apunten
-        al subdominio viejo `doortudoor.kommo.com` (hoy es `dtdcargo`).
-- [ ] Reportar el hallazgo **antes de seguir**. Puede cambiar las fases siguientes.
+**Prueba (captura del Inbox de chat, 2026-08-03):** de 11 leads visibles con actividad de hoy,
+**8 no existen en el espejo**. Los 3 que sí están (23276339, 23275787, 23271529) fueron creados el
+29-30 jul y viven en *Embudo de ventas* — alguien los aceptó. Los otros 8 nunca se aceptaron.
+
+**Confirmación por el otro lado:** `sync_logs` reporta `ok` todos los días con **exactamente 2.877
+leads**, congelado desde el 30-jul, mientras `contacts` sí crece (3.034 → 3.041). El sync funciona;
+lo que no ve es la bandeja.
+
+**Causa:** los leads de WhatsApp/formularios caen en la bandeja de entrada y **`/api/v4/leads` no los
+devuelve** hasta que alguien los acepta. El sync sólo consulta ese endpoint (`unsorted` no aparece en
+ningún archivo del repo).
+
+**🔴 Estado operativo al momento de medir: 626 conversaciones sin leer · 3.304 chats abiertos**
+contra 2.877 leads en el espejo. El bot responde el saludo automático, pero nadie retoma.
+
+### ✅ Medido de verdad (2026-08-03, tras aplicar SDD-0245)
+
+Con la migración 0343 aplicada y `kommo-sync` v7 desplegada, la bandeja ya se espeja. Primera corrida:
+**7/7 entidades ok · 148 entradas en `kommo_unsorted`**, y la reconciliación da **148 de 148
+genuinamente ausentes** de `kommo_leads` (cero falsos positivos).
+
+| Fuente | Leads sin aceptar | Desde | Hasta |
+|---|---|---|---|
+| **WhatsApp `waba:974617042407664`** | **118** | **2026-07-01** | hoy |
+| Instagram Business | 21 | **2025-06-23** | 2026-08-01 |
+| WhatsApp `waba:253896374482910` | 5 | 2026-01-23 | 2026-01-26 |
+| Comentarios de Instagram | 4 | 2026-07-26 | 2026-07-29 |
+
+**Los 118 de WhatsApp desde el 1-jul son exactamente el hueco** que hacía ver el embudo congelado.
+17 llevan más de 30 días esperando; el más viejo es de **junio de 2025**.
+
+⚠️ Hay **dos números de WhatsApp** conectados: el segundo (`…482910`) dejó de recibir en enero.
+Vale confirmar si sigue publicado en algún lado.
+
+**Consecuencias para este plan:**
+
+1. La **Fase 2 (redirigir la captación) sube a máxima prioridad**: no es cosmética, es lo que hace que
+   los leads existan para el ERP. Es exactamente lo que pidió el founder desde el inicio — *"que no
+   entren a la sección general de leads, sino directo al embudo"*.
+2. **Sumar `/api/v4/leads/unsorted` al sync** → especificado en
+   [SDD-0245](../specs/0245-kommo-espejo-unsorted/spec.md) (migración 0343 + entidad `unsorted` en el
+   sync). Mientras no esté aplicado, el ERP mide sobre una fracción del embudo.
+3. Antes de confiar en cualquier conteo de este runbook, recordar que **el espejo subestima**: los
+   2.877 son sólo los leads aceptados.
 
 ### Fase 1 · Preparar (sin riesgo, embudos vacíos)
 
@@ -113,8 +152,11 @@ No tiene sentido ordenar el embudo si la entrada está rota. **Los leads por sem
 
 > Requiere SDD propio. Sin esto el enrutador falla en silencio.
 
-- [ ] **7.** Rellenar `clients.phone` en los **186 clientes sin teléfono** desde el espejo de Kommo
-      (hoy sólo **242 de 428 son ruteables**).
+- [ ] **7.** ~~Rellenar `clients.phone` en los 186 clientes sin teléfono~~ → ❌ **DESCARTADO, medido
+      2026-08-03.** De los 186 sólo 77 tienen email y **apenas 8** son recuperables desde Kommo;
+      desde `persons` (vía `legacy_client_id`) son **0**. Ese teléfono no existe en el ERP.
+      **En su lugar: auto-sanado al contacto** — cuando escriba alguien no reconocido y el asesor lo
+      vincule a su cliente, el ERP guarda el teléfono y el `kommo_contact_id` en ese momento.
 - [ ] **8.** Migración: columna **`kommo_contact_id` en `clients`** (+ índice).
 - [ ] **9.** Cruzar los 428 clientes contra los 3.041 contactos de Kommo por teléfono **una sola vez**
       y guardar el `kommo_contact_id`. Reusar `phonesMatch` de `lib/studio/estimado-linking.ts`.
@@ -193,10 +235,23 @@ Cuando un cliente vuelve a escribir, su trato debe caer en **Recontacto** con su
 **Flujo:** cliente escribe → Kommo crea el trato → webhook avisa al ERP → el ERP resuelve el contacto
 contra `clients` → encola *mover a Recontacto + estampar Shipping Mark + marcar Recompra*.
 
-⚠️ **Dos límites medidos:** (1) sólo **242 de 428 clientes** tienen teléfono en el ERP; (2)
-`findKommoContactsByPhone` sólo revisa los **500 contactos más recientes** de 3.041 y el propio código
-advierte *"es una ayuda, no una garantía"* → **no sirve como enrutador**. Por eso la Fase 1b guarda
-`kommo_contact_id` una vez y después se busca por id indexado.
+### Cobertura real del enrutador (medido 2026-08-03)
+
+| Grupo | Clientes | Altas | Con portal | ¿Ruteable? |
+|---|---|---|---|---|
+| **Con teléfono** | **243** | 24-may → **hoy** | **51** | ✅ sí |
+| Sin teléfono (base heredada) | 186 | 24-may → **12-jun**, y paró | **0** | ❌ no |
+
+**El 57% de cobertura no es el problema que parece:** los 186 sin teléfono son el bloque de la base
+heredada que se importó — se cortan en seco el 12-jun y **ninguno tiene portal**. Los 243 ruteables
+son los clientes vivos: llegan hasta hoy e incluyen los 51 con portal activo.
+
+**Para los 186 no se hace backfill** (no hay de dónde sacar el teléfono). Se **auto-sanan al contacto**:
+la primera vez que uno escriba y el asesor lo vincule, el ERP guarda su teléfono y `kommo_contact_id`.
+
+⚠️ **Límite técnico:** `findKommoContactsByPhone` sólo revisa los **500 contactos más recientes** de
+3.041 y el propio código advierte *"es una ayuda, no una garantía"* → **no sirve como enrutador**.
+Por eso la Fase 1b guarda `kommo_contact_id` una vez y después se busca por id indexado.
 
 ⚠️ **Duda sin verificar** (sin acceso a Kommo): si una *condición* de Salesbot puede leer un campo del
 **contacto**. Las documentadas son a nivel lead. Por eso el enrutado va por el ERP y Salesbot queda

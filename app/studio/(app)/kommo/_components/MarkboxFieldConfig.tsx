@@ -11,22 +11,36 @@ import { useState, useTransition } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import type { KommoCustomFieldRow } from "@/lib/studio/kommo-types";
-import { saveKommoMarkboxFieldAction } from "../actions";
+import {
+  saveKommoMarkboxContactFieldAction,
+  saveKommoMarkboxFieldAction,
+} from "../actions";
+
+/**
+ * Qué entidad de Kommo se está configurando. Los ids de campo de leads y de
+ * contactos viven en espacios distintos: elegir uno del otro lado escribiría en
+ * la nada, por eso cada variante valida contra su propio `entity_type`.
+ */
+type MarkboxFieldEntity = "leads" | "contacts";
 
 export function MarkboxFieldConfig({
   fields,
   initialFieldId,
   canEdit,
+  entity = "leads",
 }: {
   fields: KommoCustomFieldRow[];
   initialFieldId: number | null;
   canEdit: boolean;
+  entity?: MarkboxFieldEntity;
 }) {
   const toast = useToast();
   const [fieldId, setFieldId] = useState<number | null>(initialFieldId);
   const [pending, startTransition] = useTransition();
 
+  const isContact = entity === "contacts";
   const configured = fieldId != null && fieldId > 0;
+  const selectId = isContact ? "markbox-contact-field" : "markbox-field";
 
   const save = () => {
     if (fieldId === initialFieldId) {
@@ -34,7 +48,9 @@ export function MarkboxFieldConfig({
       return;
     }
     startTransition(async () => {
-      const res = await saveKommoMarkboxFieldAction(fieldId);
+      const res = isContact
+        ? await saveKommoMarkboxContactFieldAction(fieldId)
+        : await saveKommoMarkboxFieldAction(fieldId);
       if (res.ok) toast.success("Campo de Shipping Mark guardado.");
       else toast.error(res.error ?? "No se pudo guardar el campo.");
     });
@@ -55,23 +71,38 @@ export function MarkboxFieldConfig({
           margin: 0,
         }}
       >
-        Al convertir un lead en cliente, su <strong>Shipping Mark</strong> se
-        escribe en este campo del lead en Kommo, para que el asesor vea ahí que ya es
-        cliente DTD. Déjalo en <strong>Sin configurar</strong> para no escribir nada. Se
-        aplica con el mismo interruptor del write-back (hoy en ensayo).
+        {isContact ? (
+          <>
+            Cuando un cliente conocido vuelve a escribir, su{" "}
+            <strong>Shipping Mark</strong> se escribe en este campo del{" "}
+            <strong>contacto</strong>. A diferencia del campo del lead, el contacto
+            no se cierra: la marca queda ahí para siempre, y desde la segunda vez el
+            cliente se reconoce sin cruzar teléfonos.
+          </>
+        ) : (
+          <>
+            Al convertir un lead en cliente, su <strong>Shipping Mark</strong> se
+            escribe en este campo del lead en Kommo, para que el asesor vea ahí que ya
+            es cliente DTD. Ojo: el trato se cierra y se lleva la marca — la
+            permanente es la del contacto.
+          </>
+        )}{" "}
+        Déjalo en <strong>Sin configurar</strong> para no escribir nada. Se aplica con
+        el mismo interruptor del write-back (hoy en ensayo).
       </p>
 
       {fields.length === 0 ? (
         <p style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
-          No hay campos de lead sincronizados todavía. Corre el sync de Kommo y vuelve.
+          No hay campos de {isContact ? "contacto" : "lead"} sincronizados todavía. Corre
+          el sync de Kommo y vuelve.
         </p>
       ) : (
         <div style={{ maxWidth: 380 }}>
-          <label className="studio-label" htmlFor="markbox-field">
-            Campo del lead en Kommo
+          <label className="studio-label" htmlFor={selectId}>
+            Campo del {isContact ? "contacto" : "lead"} en Kommo
           </label>
           <select
-            id="markbox-field"
+            id={selectId}
             className="studio-input"
             disabled={!canEdit || pending}
             value={fieldId ?? ""}

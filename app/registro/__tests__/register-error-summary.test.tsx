@@ -38,6 +38,10 @@ async function llegarAConfirmarYEnviar() {
   await user.click(screen.getByRole("button", { name: /continuar/i }));
 
   await user.type(await screen.findByPlaceholderText("412 1668021"), "4121668021");
+  // Ciudad + estado de entrega (migr 0348). Sin catálogo el campo cae a texto
+  // libre, que es como se renderiza acá: <RegisterForm /> va sin `cities`.
+  await user.type(await screen.findByPlaceholderText("Escribe tu ciudad"), "Valencia");
+  await user.type(screen.getByPlaceholderText("Carabobo"), "Carabobo");
   await user.click(screen.getByRole("button", { name: /continuar/i }));
   await user.click(await screen.findByRole("button", { name: /continuar/i }));
 

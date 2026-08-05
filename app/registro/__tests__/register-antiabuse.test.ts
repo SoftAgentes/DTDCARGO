@@ -152,6 +152,9 @@ function validForm(overrides: Record<string, string> = {}): FormData {
   f.set("document", "V-12345678");
   f.set("email", "carlos@empresa.com");
   f.set("whatsapp", "+58 412 1668021");
+  // Ciudad + estado de entrega: obligatorios desde la migr 0348.
+  f.set("city", "Valencia");
+  f.set("state", "Carabobo");
   for (const [k, v] of Object.entries(overrides)) f.set(k, v);
   // Registro EXPRESS: la foto + dirección se difieren al perfil → no van en el alta.
   return f;

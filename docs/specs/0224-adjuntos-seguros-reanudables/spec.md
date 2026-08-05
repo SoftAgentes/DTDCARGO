@@ -4,7 +4,7 @@ title: "Adjuntos seguros, reanudables y recuperables"
 status: approved
 author: "Sam (founder) + Codex"
 created: 2026-07-31
-updated: 2026-08-02
+updated: 2026-08-04
 supersedes: null
 superseded_by: null
 related: ["0049", "0186", "0191"]
@@ -264,9 +264,25 @@ independientes de Supabase y Vercel. Debe soportar:
 - exportación completa al terminar el contrato;
 - logs de subida, cambio de retención, intento de borrado y restore.
 
-Backblaze B2 es candidato, no decisión. Su retención Object Lock de hasta 3.000
-días no cubre por sí sola el default de diez años de MP-D1; se requiere una
-estrategia adicional demostrable o un proveedor equivalente.
+AWS quedó implementado como alternativa técnica el 2026-08-03, pero el alta de
+cuenta quedó bloqueada por verificación SMS desde Venezuela. El 2026-08-04 el
+founder seleccionó **Cloudflare R2 + ClamAV administrado por DTD** para evitar
+ese bloqueo sin mezclar almacenamiento con la base de datos.
+
+Configuración real creada: bucket privado
+`dtdcargo-attachments-archive-prod`, clase Standard, ubicación sugerida ENAM,
+regla R2 Bucket Lock `dtdcargo-gastos-10y1d` por 3654 días y credencial limitada
+a lectura/escritura de objetos del bucket. ENAM es una ubicación sugerida, no
+una garantía de país o jurisdicción. R2 Bucket Lock impide borrar y sobrescribir
+objetos mientras aplica la regla, pero no implementa S3 Object Lock ni
+`VersionId`; el recibo canónico es `etag:<ETag>` y el mecanismo se registra como
+`R2_BUCKET_LOCK`.
+
+El worker conserva el outbox de Supabase como cola durable, por lo que no exige
+Cloudflare Queues ni un plan Workers pago. El scanner es un adaptador HTTP local
+ligado a loopback sobre `clamd`. Cuenta, DPA/subprocesadores, decisión PIPL,
+instalación alojada de ClamAV, EICAR, borrado API denegado y restore/RPO/RTO
+siguen siendo gates separados y fail-closed.
 
 Objetivos operativos aprobados para el diseño:
 
@@ -312,7 +328,7 @@ asesoría legal ni declara cumplimiento.
 
 - SDD y ADR aprobados el 2026-07-31;
 - RPO y RTO fijados como objetivos de diseño;
-- evaluar el proveedor externo;
+- evaluar y seleccionar el proveedor externo;
 - preparar allowlist exacta del piloto.
 
 ### Fase 1 · piloto no productivo de Gastos
@@ -457,7 +473,7 @@ su implementación.
 
 1. aprobación separada de la allowlist del piloto no productivo;
 2. implementación y pruebas locales en worktree limpio;
-3. evaluación del proveedor y transferencia VE/China;
+3. cierre contractual y de transferencia VE/China del proveedor seleccionado;
 4. autorización separada por cada migration Cloud;
 5. autorización separada de cuenta/proveedor externo;
 6. `cerrar` para commit y push.

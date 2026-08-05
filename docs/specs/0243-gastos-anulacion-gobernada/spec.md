@@ -1,7 +1,7 @@
 ---
 sdd: "0243"
 title: "Anulación gobernada de gastos"
-status: in-progress
+status: done
 author: "Sam (founder) + Codex"
 created: 2026-08-03
 updated: 2026-08-03
@@ -94,6 +94,9 @@ No se propone excepción ni una política nueva.
 - `docs/governance/README.md`
 - `docs/governance/reviews/post-governance-10-gastos-r3-audit-2026-08-03.md`
 - `docs/governance/reviews/gastos-r3-expense-void-implementation-2026-08-03.md`
+- `docs/governance/reviews/gastos-r3-expense-void-production-close-2026-08-03.md`
+- `docs/governance/BASELINE-2026-08-03-02.md`
+- `.agents/plugins/plugins/erp-studio-governance/references/policy-registry.json`
 - `.agents/handoffs/2026-08-03-post-governance-10-sdd-0243-close.md`
 - `app/studio/(app)/gastos/page.tsx`
 - `app/studio/(app)/gastos/actions.ts`
