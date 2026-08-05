@@ -50,6 +50,13 @@ las prohibiciones de vocabulario van en los dos. Ambos textos están en
 > Claude Code (habla de `var(--*)`, de `BrandMark.tsx` y de ratios WCAG) y para una persona
 > haciendo una pieza es ruido. No compartas `BRAND.md` con el equipo — comparte el `06`.
 
+## El manual de operación → [`manual/`](manual/README.md)
+
+Los `01`–`07` dicen **qué responder**. La subcarpeta [`manual/`](manual/README.md) explica
+**cómo funciona**: el precio, el paso a paso de cada servicio, el portal, qué hacer cuando
+algo falla y dónde está el material de marketing. Es lo que se le da a **Codex** —
+empieza por [`manual/PROMPT.md`](manual/PROMPT.md).
+
 ## Cómo actualizarlo
 
 1. Edita el `.md` acá.
