@@ -45,6 +45,16 @@ export type RegisterInput = {
   /** Teléfono de oficina/fijo (opcional, no WhatsApp). */
   officePhone: string | null;
   /**
+   * Ciudad de entrega (migr 0348). Del catálogo `ve_locality_catalog` cuando
+   * existe; texto libre si el cliente eligió "Mi ciudad no aparece".
+   */
+  city: string;
+  /**
+   * Estado (VE) de esa ciudad. Se autocompleta desde el catálogo; sólo se
+   * escribe a mano cuando la ciudad es libre.
+   */
+  state: string;
+  /**
    * Opt-in EXPLÍCITO a marketing por email (SDD-0082 · checkbox default OFF). NO
    * afecta el email transaccional (welcome/factura). true sólo si el visitante lo
    * marca → la action setea clients.email_marketing_optin_at + source.
@@ -102,7 +112,9 @@ export type RegisterFieldKey =
   | "document"
   | "email"
   | "whatsapp"
-  | "officePhone";
+  | "officePhone"
+  | "city"
+  | "state";
 
 /** Campos de la dirección VE (perfil). */
 export type AddressFieldKey =
@@ -230,6 +242,16 @@ export function validateRegisterInput(partial: Partial<RegisterInput>): {
   const whatsapp = partial.whatsapp?.trim() || "";
   if (!whatsapp) errors.whatsapp = "Indica tu WhatsApp.";
 
+  // Ciudad + estado de entrega (migr 0348). Obligatorios: es a dónde va la
+  // mercancía. El formulario ofrece el catálogo y deja escribir la ciudad libre
+  // si no aparece — pero vacío no pasa.
+  const city = partial.city?.trim() || "";
+  if (!city) errors.city = "Indica tu ciudad.";
+  else if (city.length > 80) errors.city = "La ciudad es demasiado larga (máx 80).";
+  const state = partial.state?.trim() || "";
+  if (!state) errors.state = "Indica tu estado.";
+  else if (state.length > 80) errors.state = "El estado es demasiado largo (máx 80).";
+
   if (Object.keys(errors).length > 0) {
     return { fieldErrors: errors };
   }
@@ -243,6 +265,8 @@ export function validateRegisterInput(partial: Partial<RegisterInput>): {
       email,
       whatsapp,
       officePhone: partial.officePhone?.trim() || null,
+      city,
+      state,
       emailOptin: partial.emailOptin === true,
     },
   };

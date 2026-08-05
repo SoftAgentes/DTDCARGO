@@ -18,6 +18,7 @@ import {
   type RegisterActionState,
   type RegisterFieldKey,
 } from "@/lib/portal/register-types";
+import type { RegisterCity } from "@/lib/portal/register-cities";
 import { trackLead } from "@/components/Analytics";
 import { registerClientAction } from "./actions";
 
@@ -35,6 +36,8 @@ const FIELD_STEP: Record<RegisterFieldKey, number> = {
   email: 0,
   whatsapp: 1,
   officePhone: 1,
+  city: 1,
+  state: 1,
 };
 
 /** Cómo lo llama la persona, no cómo lo llama la tabla. */
@@ -45,6 +48,8 @@ const FIELD_LABEL: Record<RegisterFieldKey, string> = {
   email: "Correo",
   whatsapp: "WhatsApp",
   officePhone: "Teléfono de oficina",
+  city: "Ciudad",
+  state: "Estado",
 };
 
 /** `id` del input, para devolverle el foco al volver al paso. */
@@ -55,6 +60,8 @@ const FIELD_DOM_ID: Record<RegisterFieldKey, string> = {
   email: "reg-email",
   whatsapp: "reg-whatsapp",
   officePhone: "reg-office-phone",
+  city: "reg-city",
+  state: "reg-state",
 };
 
 type FormData0 = {
@@ -66,6 +73,10 @@ type FormData0 = {
   whatsapp: string;
   /** Teléfono de oficina / fijo (opcional · no WhatsApp). */
   officePhone: string;
+  /** Ciudad de entrega (migr 0348) — del catálogo o escrita a mano. */
+  city: string;
+  /** Estado de esa ciudad. Se autocompleta al elegirla del catálogo. */
+  state: string;
   /** SDD-0082: opt-in explícito de marketing por email (default OFF). */
   emailOptin: boolean;
 };
@@ -78,6 +89,8 @@ const EMPTY: FormData0 = {
   email: "",
   whatsapp: "",
   officePhone: "",
+  city: "",
+  state: "",
   emailOptin: false,
 };
 
@@ -100,10 +113,13 @@ const EMPTY: FormData0 = {
 export function RegisterForm({
   est,
   refCode,
+  cities = [],
 }: {
   est?: string;
   /** Código de referido del `?ref=` (invitación por correo o código compartido). */
   refCode?: string;
+  /** Catálogo de ciudades del paso 2 (migr 0348). Vacío → texto libre. */
+  cities?: RegisterCity[];
 }) {
   const [state, action, pending] = useActionState(registerClientAction, initial);
   const [data, setData] = useState<FormData0>(EMPTY);
@@ -163,12 +179,19 @@ export function RegisterForm({
   const emailTrim = data.email.trim();
   const errName = tried && !data.name.trim();
   const errCompany = tried && isCompany && !data.company.trim();
-  const errDoc = tried && (!data.document.trim() || !docNorm);
+  // Igual que el email: vacío y mal escrito son errores DISTINTOS. Antes el
+  // documento en blanco te decía "Cédula o pasaporte inválido. Formato:
+  // V-12345678" — acusa de escribirlo mal a quien todavía no ha escrito nada.
+  const docTrim = data.document.trim();
+  const errDoc = tried && !docTrim;
+  const errDocFormato = tried && !!docTrim && !docNorm;
   const errEmail = tried && !emailTrim;
   // Vacío y mal escrito son errores DISTINTOS: "Campo obligatorio" no le sirve
   // de nada a quien ya escribió algo.
   const errEmailFormato = tried && !!emailTrim && !isValidEmail(emailTrim);
   const errPhone = tried && !data.whatsapp.trim();
+  const errCity = tried && !data.city.trim();
+  const errState = tried && !data.state.trim();
 
   const step0Valid =
     !!data.name.trim() &&
@@ -176,7 +199,7 @@ export function RegisterForm({
     !!docNorm &&
     !alreadyExists &&
     isValidEmail(data.email);
-  const step1Valid = !!data.whatsapp.trim();
+  const step1Valid = !!data.whatsapp.trim() && !!data.city.trim() && !!data.state.trim();
   const valid = step0Valid && step1Valid;
 
   const STEPS = [
@@ -362,6 +385,8 @@ export function RegisterForm({
             <input type="hidden" name="email" value={data.email} />
             <input type="hidden" name="whatsapp" value={data.whatsapp} />
             <input type="hidden" name="office_phone" value={data.officePhone} />
+            <input type="hidden" name="city" value={data.city} />
+            <input type="hidden" name="state" value={data.state} />
             <input type="hidden" name="est" value={est ?? ""} />
             <input type="hidden" name="ref" value={refCode ?? ""} />
             {/* email_optin se parsea por PRESENCIA (!= null) en el action → solo
@@ -395,6 +420,7 @@ export function RegisterForm({
                       errName={errName}
                       errCompany={errCompany}
                       errDoc={errDoc}
+                      errDocFormato={errDocFormato}
                       errEmail={errEmail}
                       errEmailFormato={errEmailFormato}
                       docFieldError={state.fieldErrors?.document}
@@ -411,6 +437,14 @@ export function RegisterForm({
                       onOffice={(v) => patch({ officePhone: v })}
                       errPhone={errPhone}
                       phoneFieldError={state.fieldErrors?.whatsapp}
+                      cities={cities}
+                      city={data.city}
+                      stateName={data.state}
+                      onUbicacion={patch}
+                      errCity={errCity}
+                      errState={errState}
+                      cityFieldError={state.fieldErrors?.city}
+                      stateFieldError={state.fieldErrors?.state}
                     />
                   )}
                   {step === 2 && (
@@ -439,8 +473,19 @@ export function RegisterForm({
                       ‹ Volver
                     </button>
                   )}
+                  {/* ⚠️ Las `key` distintas NO son decorativas: sin ellas React ve
+                      dos <button> con la misma forma en la misma posición y REUSA el
+                      nodo del DOM, cambiándole el `type` de "button" a "submit". El
+                      navegador decide la acción por defecto de un click DESPUÉS de
+                      correr los handlers — o sea, cuando el botón ya se volvió submit
+                      — y el formulario se envía: la cuenta se crea sin que la persona
+                      llegue a ver "Confirmar · Revisa tus datos". Con `key` propia,
+                      React desmonta uno y monta el otro, y el click en curso muere con
+                      el nodo viejo. Verificado en producción el 2026-08-05: el botón
+                      del paso 4 conservaba la marca puesta en el paso 1. */}
                   {step < 3 ? (
                     <button
+                      key="continuar"
                       type="button"
                       onClick={next}
                       className="btn btn-primary h-[52px] flex-1 justify-center gap-2"
@@ -449,6 +494,7 @@ export function RegisterForm({
                     </button>
                   ) : (
                     <button
+                      key="crear-cuenta"
                       type="submit"
                       disabled={pending}
                       className="btn btn-primary h-[52px] flex-1 justify-center gap-2 disabled:opacity-60 disabled:cursor-wait"
@@ -493,6 +539,7 @@ function StepIdentidad({
   errName,
   errCompany,
   errDoc,
+  errDocFormato,
   errEmail,
   errEmailFormato,
   docFieldError,
@@ -504,7 +551,10 @@ function StepIdentidad({
   isCompany: boolean;
   errName: boolean;
   errCompany: boolean;
+  /** No escribió nada (distinto de escribirlo mal). */
   errDoc: boolean;
+  /** Escribió algo pero no tiene forma de cédula/RIF. */
+  errDocFormato: boolean;
   errEmail: boolean;
   /** Escribió algo pero no tiene forma de correo (distinto de vacío). */
   errEmailFormato: boolean;
@@ -520,6 +570,7 @@ function StepIdentidad({
         title="Empecemos por ti"
         sub="Elige cómo importas y déjanos tus datos de acceso. Con esto creamos tu cuenta."
       />
+      <LeyendaObligatorio />
 
       <YaEresCliente />
 
@@ -547,6 +598,7 @@ function StepIdentidad({
         onChange={(v) => patch({ name: v })}
         placeholder="Carlos Pérez"
         autoComplete="name"
+        required
         error={errName ? "Campo obligatorio" : undefined}
       />
       {isCompany && (
@@ -557,6 +609,7 @@ function StepIdentidad({
           onChange={(v) => patch({ company: v })}
           placeholder="Importadora Pérez C.A."
           autoComplete="organization"
+          required
           error={errCompany ? "Campo obligatorio" : undefined}
         />
       )}
@@ -570,8 +623,16 @@ function StepIdentidad({
           onChange={(v) => patch({ document: v })}
           placeholder="J-12345678-9"
           mono
+          required
           hint="Lo usamos para identificarte y evitar cuentas duplicadas."
-          error={docFieldError ?? (errDoc ? "RIF inválido. Formato: J-12345678-9." : undefined)}
+          error={
+            docFieldError ??
+            (errDoc
+              ? "Campo obligatorio"
+              : errDocFormato
+                ? "RIF inválido. Formato: J-12345678-9."
+                : undefined)
+          }
         />
       ) : (
         <CedulaInput
@@ -582,7 +643,11 @@ function StepIdentidad({
           hint="Lo usamos para identificarte y evitar cuentas duplicadas."
           error={
             docFieldError ??
-            (errDoc ? "Cédula o pasaporte inválido. Formato: V-12345678 o P-A1234567." : undefined)
+            (errDoc
+              ? "Campo obligatorio"
+              : errDocFormato
+                ? "Cédula o pasaporte inválido. Formato: V-12345678 o P-A1234567."
+                : undefined)
           }
         />
       )}
@@ -598,6 +663,7 @@ function StepIdentidad({
         value={data.email}
         onChange={(v) => patch({ email: v })}
         placeholder="cperez@empresa.com"
+        required
         hint="Sin contraseñas: te enviamos un enlace de acceso al portal a tu correo."
         error={
           emailFieldError ??
@@ -612,7 +678,7 @@ function StepIdentidad({
   );
 }
 
-// ── Paso 2 · Contacto ────────────────────────────────────────────
+// ── Paso 2 · Contacto (+ ciudad de entrega, migr 0348) ───────────
 function StepContacto({
   firstName,
   isCompany,
@@ -621,6 +687,14 @@ function StepContacto({
   onOffice,
   errPhone,
   phoneFieldError,
+  cities,
+  city,
+  stateName,
+  onUbicacion,
+  errCity,
+  errState,
+  cityFieldError,
+  stateFieldError,
 }: {
   firstName: string;
   isCompany: boolean;
@@ -629,6 +703,16 @@ function StepContacto({
   onOffice: (v: string) => void;
   errPhone: boolean;
   phoneFieldError?: string;
+  /** Catálogo de ciudades (migr 0348). Vacío → el campo cae a texto libre. */
+  cities: RegisterCity[];
+  city: string;
+  /** Se llama `stateName` acá para no chocar con el estado de React. */
+  stateName: string;
+  onUbicacion: (p: { city?: string; state?: string }) => void;
+  errCity: boolean;
+  errState: boolean;
+  cityFieldError?: string;
+  stateFieldError?: string;
 }) {
   return (
     <div className="flex flex-col gap-5">
@@ -648,11 +732,13 @@ function StepContacto({
           </>
         }
       />
+      <LeyendaObligatorio />
       <PhoneInput
         id={FIELD_DOM_ID.whatsapp}
         label="Teléfono WhatsApp"
         onChange={onWhatsapp}
         placeholder="412 1668021"
+        required
         hint="Es el número por el que te contactamos · siempre por WhatsApp."
         error={phoneFieldError ?? (errPhone ? "Campo obligatorio" : undefined)}
       />
@@ -662,6 +748,16 @@ function StepContacto({
         onChange={onOffice}
         placeholder="241 4147886"
         hint="Otro número donde podemos ubicarte (fijo u oficina) · no se usa para WhatsApp."
+      />
+      <CiudadEntrega
+        cities={cities}
+        city={city}
+        state={stateName}
+        onChange={onUbicacion}
+        errCity={errCity}
+        errState={errState}
+        cityFieldError={cityFieldError}
+        stateFieldError={stateFieldError}
       />
     </div>
   );
@@ -741,6 +837,11 @@ function StepConfirmar({
     { k: isCompany ? "RIF" : "Cédula", v: docNorm ?? "—", mono: true },
     { k: "Correo", v: data.email || "—" },
     { k: "WhatsApp", v: data.whatsapp || "—", mono: true },
+    // Dónde entregar: es lo que el cliente más necesita ver antes de confirmar.
+    {
+      k: "Ciudad de entrega",
+      v: data.city ? `${data.city}${data.state ? `, ${data.state}` : ""}` : "—",
+    },
   ];
   return (
     <div className="flex flex-col gap-5">
@@ -1170,6 +1271,173 @@ function GuideStep({
 }
 
 // ── Primitivas de form ──────────────────────────────────────────
+/**
+ * Marca de campo obligatorio.
+ *
+ * El asterisco es SÓLO visual (`aria-hidden`): quien usa lector de pantalla se
+ * entera por `aria-required` en el input, no por un "asterisco" leído en voz
+ * alta. Antes el formulario marcaba lo OPCIONAL y callaba lo obligatorio, así
+ * que sólo descubrías qué hacía falta cuando el botón no te dejaba pasar.
+ */
+function Obligatorio() {
+  return (
+    <span aria-hidden="true" className="text-wine ml-1">
+      *
+    </span>
+  );
+}
+
+/**
+ * Ciudad de entrega + estado (migr 0348).
+ *
+ * El estado NO se teclea: sale del catálogo al elegir la ciudad. El 2026-08-05
+ * un cliente escribió "Carabo" a mano en el portal — un campo libre invita a
+ * eso. Cuando la ciudad no está en la lista ("Mi ciudad no aparece aquí"), se
+ * abre texto libre para ambos: perder el lead de un pueblo pequeño sería peor
+ * que guardar un texto sin normalizar.
+ */
+function CiudadEntrega({
+  cities,
+  city,
+  state,
+  onChange,
+  errCity,
+  errState,
+  cityFieldError,
+  stateFieldError,
+}: {
+  cities: RegisterCity[];
+  city: string;
+  state: string;
+  onChange: (p: { city?: string; state?: string }) => void;
+  errCity: boolean;
+  errState: boolean;
+  cityFieldError?: string;
+  stateFieldError?: string;
+}) {
+  const OTRA = "__otra__";
+  // ¿La ciudad actual salió del catálogo? Si no, estamos en modo libre.
+  const enCatalogo = cities.some((c) => c.city === city);
+  const [libre, setLibre] = useState(false);
+  const modoLibre = cities.length === 0 || libre || (!!city && !enCatalogo);
+
+  const errorCiudad = cityFieldError ?? (errCity ? "Campo obligatorio" : undefined);
+  const errorEstado = stateFieldError ?? (errState ? "Campo obligatorio" : undefined);
+
+  function elegir(valor: string) {
+    if (valor === OTRA) {
+      setLibre(true);
+      onChange({ city: "", state: "" });
+      return;
+    }
+    const hit = cities.find((c) => c.city === valor);
+    setLibre(false);
+    onChange({ city: valor, state: hit?.state ?? "" });
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      {!modoLibre ? (
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[11.5px] font-semibold tracking-[0.1em] uppercase text-grey-500">
+            Ciudad de entrega
+            <Obligatorio />
+          </span>
+          <select
+            id={FIELD_DOM_ID.city}
+            value={city}
+            onChange={(e) => elegir(e.target.value)}
+            aria-required="true"
+            aria-invalid={errorCiudad ? true : undefined}
+            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+            style={{
+              appearance: "none",
+              WebkitAppearance: "none",
+              backgroundImage: SELECT_ARROW,
+              backgroundRepeat: "no-repeat",
+              backgroundPosition: "right 14px center",
+            }}
+          >
+            <option value="">Elige tu ciudad…</option>
+            {cities.map((c) => (
+              <option key={`${c.city}|${c.state}`} value={c.city}>
+                {c.city} · {c.state}
+              </option>
+            ))}
+            <option value={OTRA}>Mi ciudad no aparece aquí…</option>
+          </select>
+          {errorCiudad ? (
+            <span className="text-[12px] text-wine leading-[1.4]">{errorCiudad}</span>
+          ) : (
+            <span className="text-[11.5px] text-grey-500 leading-[1.4]">
+              Aquí es donde vamos a entregar tu mercancía. El estado se completa solo.
+            </span>
+          )}
+        </label>
+      ) : (
+        <>
+          <Field
+            id={FIELD_DOM_ID.city}
+            label="Ciudad de entrega"
+            value={city}
+            onChange={(v) => onChange({ city: v })}
+            placeholder="Escribe tu ciudad"
+            required
+            hint="No la encontramos en la lista, así que escríbela como la conoces."
+            error={errorCiudad}
+          />
+          {cities.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                setLibre(false);
+                onChange({ city: "", state: "" });
+              }}
+              className="text-[12px] font-semibold text-wine hover:underline w-fit -mt-3"
+            >
+              ‹ Volver a la lista de ciudades
+            </button>
+          )}
+        </>
+      )}
+
+      {/* El estado sólo se escribe cuando la ciudad es libre; si vino del
+          catálogo se muestra ya resuelto y no se toca. */}
+      {modoLibre ? (
+        <Field
+          id={FIELD_DOM_ID.state}
+          label="Estado"
+          value={state}
+          onChange={(v) => onChange({ state: v })}
+          placeholder="Carabobo"
+          required
+          error={errorEstado}
+        />
+      ) : city ? (
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[11.5px] font-semibold tracking-[0.1em] uppercase text-grey-500">
+            Estado
+          </span>
+          <div className="h-12 px-3.5 rounded-[10px] bg-grey-100 flex items-center text-[14.5px] text-ink">
+            {state}
+          </div>
+          {/* El valor viaja por el espejo oculto del <form>, no desde acá: dos
+              inputs con name="state" mandarían el campo duplicado. */}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** Explica el asterisco. Un símbolo sin leyenda no informa a nadie. */
+function LeyendaObligatorio() {
+  return (
+    <p className="text-[11.5px] text-grey-500 leading-[1.4] -mt-1">
+      Los campos con <span className="text-wine font-semibold">*</span> son obligatorios.
+    </p>
+  );
+}
+
 function Field({
   id,
   label,
@@ -1182,6 +1450,7 @@ function Field({
   error,
   inputMode,
   autoComplete,
+  required = false,
 }: {
   id?: string;
   label: string;
@@ -1194,6 +1463,7 @@ function Field({
   error?: string;
   inputMode?: "text" | "email" | "tel" | "numeric";
   autoComplete?: string;
+  required?: boolean;
 }) {
   // ERR-01: el mensaje va debajo del campo Y atado por `aria-describedby`, para
   // que el lector de pantalla lo lea junto al input y no como texto suelto.
@@ -1203,6 +1473,7 @@ function Field({
     <label className="flex flex-col gap-1.5">
       <span className="text-[11.5px] font-semibold tracking-[0.1em] uppercase text-grey-500">
         {label}
+        {required && <Obligatorio />}
       </span>
       <input
         id={id}
@@ -1212,6 +1483,7 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        aria-required={required || undefined}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errId : hint ? hintId : undefined}
         className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
@@ -1277,6 +1549,7 @@ function CedulaInput({
     <label className="flex flex-col gap-1.5">
       <span className="text-[11.5px] font-semibold tracking-[0.1em] uppercase text-grey-500">
         Cédula
+        <Obligatorio />
       </span>
       <div className="flex items-stretch h-12 rounded-[10px] bg-grey-100 overflow-hidden focus-within:ring-2 focus-within:ring-wine focus-within:ring-offset-1">
         <select
@@ -1304,6 +1577,7 @@ function CedulaInput({
           onChange={(e) => onDigits(e.target.value)}
           inputMode={letter === "P" ? "text" : "numeric"}
           placeholder={letter === "P" ? "A1234567" : "18456321"}
+          aria-required="true"
           aria-invalid={error ? true : undefined}
           className="flex-1 min-w-0 px-3.5 bg-transparent border-0 outline-none text-[14.5px] text-ink"
           style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
@@ -1341,6 +1615,7 @@ function PhoneInput({
   placeholder,
   hint,
   error,
+  required = false,
 }: {
   /** Va en el input del número: es el que recibe el foco desde el resumen. */
   id?: string;
@@ -1349,6 +1624,7 @@ function PhoneInput({
   placeholder?: string;
   hint?: string;
   error?: string;
+  required?: boolean;
 }) {
   const [code, setCode] = useState("+58");
   const [digits, setDigits] = useState("");
@@ -1384,6 +1660,7 @@ function PhoneInput({
     <label className="flex flex-col gap-1.5">
       <span className="text-[11.5px] font-semibold tracking-[0.1em] uppercase text-grey-500">
         {label}
+        {required && <Obligatorio />}
       </span>
       <div className="flex items-stretch h-12 rounded-[10px] bg-grey-100 overflow-hidden focus-within:ring-2 focus-within:ring-wine focus-within:ring-offset-1">
         <select
@@ -1413,6 +1690,7 @@ function PhoneInput({
           onChange={(e) => onDigits(e.target.value)}
           inputMode="tel"
           placeholder={placeholder}
+          aria-required={required || undefined}
           aria-invalid={error ? true : undefined}
           className="flex-1 min-w-0 px-3.5 bg-transparent border-0 outline-none text-[14.5px] text-ink"
           style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}

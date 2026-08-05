@@ -84,6 +84,9 @@ function parseForm(formData: FormData): Partial<RegisterInput> {
     email: (formData.get("email") as string | null) ?? undefined,
     whatsapp: (formData.get("whatsapp") as string | null) ?? undefined,
     officePhone: (formData.get("office_phone") as string | null) ?? undefined,
+    // Ciudad + estado de entrega (migr 0348).
+    city: (formData.get("city") as string | null) ?? undefined,
+    state: (formData.get("state") as string | null) ?? undefined,
     // Checkbox HTML: presente ("on") sólo si el visitante lo marcó (SDD-0082).
     emailOptin: formData.get("email_optin") != null,
   };
@@ -234,8 +237,13 @@ export async function registerClientAction(
       name: input.company ?? input.name,
       email: input.email,
       phone: input.whatsapp,
-      // Dirección DIFERIDA al perfil → null al alta.
+      // Dirección DETALLADA (calle/edificio) DIFERIDA al perfil → null al alta.
+      // La ciudad y el estado SÍ se piden al registrarse (migr 0348): es a dónde
+      // hay que entregar, y sin eso el cliente quedaba registrado sin que
+      // supiéramos ni en qué estado está.
       address: null,
+      city: input.city,
+      state: input.state,
       rif: input.document,
       // El enum client_tier es regular|vip|premium (sin 'standard'): el alta
       // self-service entra como 'regular', que es además el default de la tabla.
@@ -396,8 +404,10 @@ export async function registerClientAction(
     document: input.document,
     email: input.email,
     whatsapp: input.whatsapp,
-    city: null,
-    state: null,
+    // Ya no van en null: el registro los pide (migr 0348). El aviso interno le
+    // dice al asesor a qué ciudad hay que entregar, sin abrir la ficha.
+    city: input.city,
+    state: input.state,
     channel: "portal",
   });
 
