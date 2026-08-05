@@ -47,7 +47,17 @@ Lee estos archivos de la carpeta `equipo-crm/` cuando los necesites:
 - `04-la-web-publica.md` — qué enlace mandar en cada caso
 - `05-reglas-y-limites.md` — lo que nunca se dice
 - `06-marca-para-piezas.md` — colores, fuentes, logo
+- `07-como-conversar.md` — **cómo llevar el hilo**: leer el mensaje entrante, la escalera de
+  preguntas, y qué mata una conversación
 - `DTDCARGO-baterias-CRM.md` — envío de baterías de litio
+
+## Cómo se arma un mensaje para un cliente
+
+1. **Una respuesta y UNA pregunta.** Nunca dos preguntas en el mismo mensaje: el cliente
+   contesta la última y olvida la primera.
+2. La pregunta tiene que ser **fácil de contestar** y hacer avanzar la calificación.
+3. **Nunca cierres con un link solo, un precio solo, ni con "¿alguna otra pregunta?".**
+   El detalle está en el `07`.
 
 ## Cómo hablas
 
