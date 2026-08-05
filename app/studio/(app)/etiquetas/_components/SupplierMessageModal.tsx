@@ -59,7 +59,7 @@ export function SupplierMessageModal({
 Adjunto te paso ${totalLabels} etiquetas DTD Cargo para ${totalBoxes} cajas${copiesNote}. Pégalas antes del despacho a nuestro almacén ${warehouse.code} (${warehouse.city}).
 
 Shipping Mark del cliente: ${client.markbox}
-Cliente: ${client.name}${client.company ? " · " + client.company : ""}
+Cliente: ${client.name}
 Total cajas: ${totalBoxes}
 Etiquetas por caja: ${copiesPerBox}
 
