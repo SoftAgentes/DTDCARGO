@@ -94,7 +94,36 @@ export type PortalClient = {
    * para empresa. Read-only en el portal (lo administra el asesor). SDD-0138.
    */
   rif: string | null;
+  /**
+   * Ciudad y estado de entrega declarados AL REGISTRARSE (`clients.city` /
+   * `clients.state`, migr 0348). Son el respaldo de "Mi perfil › Datos de
+   * cuenta" mientras el cliente todavía no cargó una dirección: sin esto el
+   * campo Ciudad se veía vacío aunque el dato ya estuviera guardado desde el
+   * alta. Null en las altas anteriores a la 0348.
+   */
+  city: string | null;
+  state: string | null;
 };
+
+/**
+ * Qué ciudad mostrar en "Mi perfil › Datos de cuenta".
+ *
+ * Precedencia: manda la **dirección predeterminada** —es la que de verdad recibe
+ * la carga— y sólo si no hay ninguna se cae a la ciudad declarada AL REGISTRARSE
+ * (migr 0348). Ese hueco existe de verdad: entre el alta y la primera dirección,
+ * el campo se veía vacío aunque el dato ya estuviera guardado desde el registro.
+ *
+ * Devuelve null cuando no hay ni una ni otra (altas anteriores a la 0348), para
+ * que la vista pinte su texto de vacío.
+ */
+export function ciudadDeCuenta(
+  ciudadDeLaDireccion: string | null | undefined,
+  cliente: { city: string | null; state: string | null },
+): string | null {
+  if (ciudadDeLaDireccion) return ciudadDeLaDireccion;
+  if (!cliente.city) return null;
+  return [cliente.city, cliente.state].filter(Boolean).join(", ");
+}
 
 /**
  * El asesor (account-director) ASIGNADO al cliente (ERP→Norte · clients.advisor_id

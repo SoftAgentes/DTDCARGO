@@ -3,7 +3,7 @@ import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { getPortalClient, getProfileCompleteness } from "@/lib/portal/portal-queries";
 import { PHOTO_BUCKET } from "@/lib/portal/client-photo";
-import { buildPortalSupplierMark } from "@/lib/portal/portal-types";
+import { buildPortalSupplierMark, ciudadDeCuenta } from "@/lib/portal/portal-types";
 import { docKindLabel } from "@/lib/studio/client-types";
 import { listClientDeliveryAddresses } from "@/lib/studio/client-address-queries";
 import type { ClientDeliveryAddress } from "@/lib/studio/client-address-types";
@@ -207,9 +207,14 @@ export default async function PortalProfilePage() {
                 mono
                 empty="Sin teléfono cargado"
               />
+              {/* La dirección predeterminada manda —es la que de verdad recibe la
+                  carga—, pero si todavía no cargó ninguna caemos a la ciudad que
+                  declaró AL REGISTRARSE (migr 0348). Antes este campo se veía
+                  vacío en ese hueco, aunque el dato ya estuviera guardado desde
+                  el alta. */}
               <Field
                 label="Ciudad"
-                value={defaultAddress?.city ?? null}
+                value={ciudadDeCuenta(defaultAddress?.city, client)}
                 empty="Según tu dirección predeterminada"
               />
             </dl>
