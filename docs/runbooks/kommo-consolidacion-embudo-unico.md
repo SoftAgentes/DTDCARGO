@@ -7,7 +7,51 @@
 > Cuenta: `https://dtdcargo.kommo.com`. Diseñado para **1-2 personas** operando el CRM.
 > Estado y decisiones: **2026-08-03** (reemplaza el plan del 2026-06-29, que quedó a medias).
 
-## Estado real (espejo Supabase, sync 2026-08-03 07:00 UTC)
+---
+
+## ✅ EJECUTADO — estado verificado 2026-08-06 (leer esto primero)
+
+**La consolidación ya se hizo.** Las casillas de abajo siguen en `[ ]` pero la realidad avanzó: se
+verificó en vivo contra la API de Kommo (`GET /api/v4/leads/pipelines`), no contra el espejo.
+
+**Queda UN solo embudo:** `Ventas DTD` — **id `14036567`** (el que este runbook llamaba "Prueba"),
+`is_main`. **Los otros 11 ya no existen.** Sus 7 etapas, en orden real:
+
+`Incoming leads → Contacto inicial → Recontacto → Estimado enviado → Negociación → Logrado con éxito / Ventas Perdidos`
+
+O sea: **Fase 1 (pasos 2 y 3), Fase 3 y Fase 4 están hechas** — se renombró `Tomar decisión` →
+`Estimado enviado`, se movió antes de `Negociación`, se creó `Recontacto` y se borraron los embudos.
+
+### 🔴 Fase 5 NO se hizo, y ahora es un bug vivo
+
+El `stage_map` de producción apunta a **`Atencion a leeds` (13967120)** — un embudo que **ya fue
+borrado** en la Fase 4. Cualquier write-back que se dispare escribe contra un pipeline inexistente.
+
+Los pasos **24, 25 y 26 siguen pendientes y ahora son bloqueantes**, no opcionales.
+*(El valor exacto del `stage_map` en prod no se releyó de la DB: se infiere del bloque JSON
+documentado abajo más la eliminación verificada del embudo. Confirmar antes de tocar.)*
+
+### Distribución real de los leads (tablero, 2026-08-06)
+
+| Etapa | Leads |
+|---|---|
+| Incoming leads | 14 |
+| **Contacto inicial** | **372** |
+| Recontacto | 14 |
+| **Estimado enviado** | **0** |
+| Negociación | 1 |
+
+**401 activos, y el 93% atascado en `Contacto inicial`.** El reparto esperado por este runbook era
+169 en Contacto inicial; quedaron 372.
+
+⚠️ **Por qué `Estimado enviado` tiene 0 y no es culpa del embudo:** el write-back ERP→Kommo **nunca
+ha corrido**. `kommo_writeback_outbox` = 0 filas en toda su historia, `clients.kommo_lead_id` NULL en
+432/432, y el cron del drain está **comentado** en `supabase/migrations/0136_kommo_writeback_outbox.sql:190`.
+El ERP encola y nadie drena. Arreglar el `stage_map` sin prender el drain no cambia nada.
+
+---
+
+## Estado real (espejo Supabase, sync 2026-08-03 07:00 UTC) — ⚠️ superado por el bloque de arriba
 
 | Embudo | id | Leads | Principal |
 |---|---|---|---|
