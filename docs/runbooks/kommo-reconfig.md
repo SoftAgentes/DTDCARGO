@@ -22,7 +22,33 @@ ningún cliente. Activarlo es decisión del founder y **no está autorizada**.
 | **Persona** | 1.280 car. Prohíbe explícitamente "DDP", "prepago", "financiamiento" y "responsabilidad" | pestaña Personalidad |
 | **Pautas** | **25** (tope de Kommo: 50 líneas × 300 car.) | pestaña Personalidad |
 | **Acciones** | **6** (tope: 20) | pestaña Acciones |
-| **Fuentes** | DOCX **v4** (33 secciones) + Datos clave + Productos y servicios + Descripción del negocio | pestaña Fuentes |
+| **Fuentes** | DOCX **v5** (33 secciones) + Datos clave + Productos y servicios + Descripción del negocio | pestaña Fuentes |
+
+### ⏱️ Una fuente recién subida NO responde de inmediato
+
+Kommo **indexa la fuente en segundo plano y puede tardar hasta ~2 horas** (founder, 2026-08-05).
+Mientras tanto el agente sigue contestando con la versión anterior.
+
+**La trampa:** subes el arreglo, pruebas a los cinco minutos, sale el comportamiento viejo y
+concluyes que el arreglo no sirve — cuando lo único que pasó es que todavía no indexó. Si vas a
+verificar un cambio de contenido, **espera** o valida de otra forma.
+
+**Cómo distinguir de dónde salió una respuesta:** el panel de prueba trae un desplegable
+**"Fuentes utilizadas"** en cada mensaje. Y hay una pista de contenido — si la respuesta cita algo
+textual que sólo existe en la versión nueva, ya indexó.
+
+⚠️ **Las Pautas NO tienen este retraso**: son parte del prompt y aplican al instante. Por eso una
+prueba puede pasar por la pauta y fallar por la fuente, o al revés. **Cuando pautas y fuente se
+contradicen, gana la fuente** — verificado el 2026-08-05 con la dirección de la bodega en China: la
+pauta decía "ofrece el registro primero" y el agente igual soltó la dirección completa porque la
+sección 28 la traía abierta. Los arreglos de CONTENIDO van en la fuente; las Pautas son para
+COMPORTAMIENTO.
+
+### ⚠️ Las 3 fuentes de texto no están respaldadas
+
+`Datos clave`, `Productos y servicios` y `Descripción del negocio` viven **sólo dentro de Kommo**.
+No están en git: si alguien las edita o las borra no hay historial ni forma de recuperarlas. El DOCX
+sí tiene respaldo (se genera desde `faq-knowledge-base.md`). **Pendiente:** bajarlas al repo.
 
 ### El traspaso a un humano — cómo funciona de verdad
 
