@@ -21,6 +21,10 @@ import {
   executeD1Operation,
 } from "@/lib/studio/audit/d1-access-config-adapters";
 import { executeAuthLifecycle } from "@/lib/studio/audit/auth-lifecycle-adapter";
+import {
+  beginD5ExternalEffect,
+  finishD5ExternalEffect,
+} from "@/lib/studio/audit/external-effect-adapter";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { generateTelegramLinkCode } from "@/lib/studio/telegram/link-code";
@@ -340,6 +344,166 @@ export async function enableUserAction(
 
   revalidatePath("/studio/usuarios");
   return { ok: true, userId: targetUserId };
+}
+
+// ─────────────────────────────────────────────────────────────
+// sendAccessLinkAction · repone el acceso de un miembro que YA existe
+// (SDD-0250 · migr 0350).
+//
+// Cubre el hueco que dejaba fuera a 5 de 7 usuarios: `inviteUserAction`
+// rechaza a propósito a quien ya es miembro (una invitación sobre un auth
+// user existente es un callejón sin salida), y no había ninguna otra vía —
+// la única era un UPDATE a mano sobre auth.users.
+//
+// Va por el carril D5 de EFECTOS EXTERNOS y no por el D1 de mutaciones:
+// esto no escribe nada en `public`, genera un enlace contra Supabase Auth y
+// manda un correo.
+//
+// `generateLink` NO envía el correo, devuelve el enlace — lo mandamos
+// nosotros con sendEmail para que pase por las plantillas del tenant,
+// mail_logs y Resend (el correo nativo de Supabase tiene plantillas aparte
+// y límites de envío bajos). Y devolvemos el link a la UI para copiar a
+// mano si el correo no llega, igual que hace la invitación.
+// ─────────────────────────────────────────────────────────────
+
+export async function sendAccessLinkAction(
+  _prev: UserActionState,
+  formData: FormData,
+): Promise<UserActionState> {
+  const targetUserId = (formData.get("target_user_id") as string | null)?.trim();
+  if (!targetUserId) return { errorCode: "invalid_input" };
+
+  const supabase = await createClient();
+  const { data: userResp } = await supabase.auth.getUser();
+  if (!userResp.user) return { errorCode: "user_signin_required" };
+
+  // Gate REAL: `users` es admin-only (matriz []). Va antes de tocar el admin
+  // client — una server action es invocable como endpoint desde cualquier ruta.
+  const denial = await moduleEditDenial(supabase, "users");
+  if (denial) return { error: denial };
+
+  const { data: myLink } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  if (!myLink?.tenant_id) return { error: "No se pudo resolver el tenant." };
+
+  const admin = createAdminClient();
+
+  // El destinatario tiene que ser miembro ACTIVO de MI tenant. Sin esto, un
+  // admin podría dispararle un enlace a un usuario de otro tenant pasando su
+  // id — el admin client no filtra por RLS.
+  const { data: membership } = await admin
+    .from("user_tenants")
+    .select("disabled_at")
+    .eq("user_id", targetUserId)
+    .eq("tenant_id", myLink.tenant_id)
+    .maybeSingle<{ disabled_at: string | null }>();
+  if (!membership) {
+    return { error: "Esa persona no es miembro de este equipo." };
+  }
+  if (membership.disabled_at) {
+    return {
+      error:
+        "Ese usuario está desactivado. Reactívalo primero — un enlace de acceso no lo dejaría entrar.",
+    };
+  }
+
+  const { data: targetUser } = await admin.auth.admin.getUserById(targetUserId);
+  const targetEmail = targetUser?.user?.email;
+  if (!targetEmail) {
+    return { error: "Ese usuario no tiene correo cargado en su cuenta." };
+  }
+
+  const redirectTo = `${SITE_URL}/studio/reset/confirmar`;
+  let operationId: string;
+  try {
+    operationId = await beginD5ExternalEffect(
+      supabase,
+      "studio.access_link",
+      targetUserId,
+    );
+  } catch {
+    return { error: "No se pudo registrar la operación. Reintenta." };
+  }
+
+  const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
+    type: "recovery",
+    email: targetEmail,
+    options: { redirectTo },
+  });
+
+  const tokenHash = linkData?.properties?.hashed_token;
+  if (linkErr || !tokenHash) {
+    await finishD5ExternalEffect(supabase, operationId, {
+      ok: false,
+      errorCode: "generate_link_failed",
+    });
+    return { error: "Supabase no devolvió el enlace de acceso. Reintenta." };
+  }
+
+  // Construimos el enlace contra NUESTRA ruta en vez de usar `action_link`:
+  // el flujo token-hash no depende de la cookie del navegador, así que
+  // funciona aunque abra el correo en otro dispositivo (mismo criterio que el
+  // callback del portal).
+  const accessLink = `${redirectTo}?token_hash=${encodeURIComponent(tokenHash)}&type=recovery`;
+
+  // El correo es best-effort: si falla, el admin tiene el enlace en pantalla
+  // para pasarlo por otro canal. Por eso el efecto se cierra como OK — el
+  // enlace SÍ se generó y es utilizable.
+  try {
+    const [{ data: senderProfile }, { data: targetProfile }, { data: tenant }] =
+      await Promise.all([
+        supabase
+          .from("user_profiles")
+          .select("first_name, last_name")
+          .eq("user_id", userResp.user.id)
+          .maybeSingle<{ first_name: string | null; last_name: string | null }>(),
+        admin
+          .from("user_profiles")
+          .select("first_name, last_name")
+          .eq("user_id", targetUserId)
+          .maybeSingle<{ first_name: string | null; last_name: string | null }>(),
+        supabase
+          .from("tenants")
+          .select("display_name")
+          .eq("id", myLink.tenant_id)
+          .maybeSingle<{ display_name: string }>(),
+      ]);
+
+    const senderName =
+      [senderProfile?.first_name, senderProfile?.last_name]
+        .filter(Boolean)
+        .join(" ")
+        .trim() || userResp.user.email || "Un admin";
+    const targetName =
+      [targetProfile?.first_name, targetProfile?.last_name]
+        .filter(Boolean)
+        .join(" ")
+        .trim() || targetEmail;
+
+    const sendResult = await sendEmail(admin, myLink.tenant_id, {
+      templateSlug: "studio_access_link",
+      to: targetEmail,
+      vars: {
+        user_name: targetName,
+        tenant_name: tenant?.display_name ?? "DTD Cargo",
+        access_link: accessLink,
+        sender_name: senderName,
+      },
+      metadata: { source: "sendAccessLinkAction", target_user_id: targetUserId },
+    });
+    if (!sendResult.ok) {
+      console.error("[sendAccessLinkAction] sendEmail failed:", sendResult.error);
+    }
+  } catch (err) {
+    console.error("[sendAccessLinkAction] sendEmail exception:", err);
+  }
+
+  await finishD5ExternalEffect(supabase, operationId, { ok: true });
+
+  revalidatePath("/studio/usuarios");
+  return { ok: true, userId: targetUserId, accessLink };
 }
 
 // ─────────────────────────────────────────────────────────────

@@ -6,7 +6,7 @@
  * SDD-0024 Fase 2.
  */
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
   ROLE_LABELS,
   STUDIO_USER_ROLES,
@@ -27,6 +27,7 @@ import {
   changeWarehouseScopeAction,
   disableUserAction,
   enableUserAction,
+  sendAccessLinkAction,
 } from "../actions";
 
 /**
@@ -100,7 +101,9 @@ export function MembersTable({ members, currentUserId }: Props) {
             <Th>Almacén</Th>
             <Th>Estado</Th>
             <Th>Último login</Th>
-            <Th align="right">Acciones</Th>
+            <Th align="right" sticky>
+              Acciones
+            </Th>
           </tr>
         </thead>
         <tbody>
@@ -144,14 +147,28 @@ function MemberRow({
     changeWarehouseScopeAction,
     INITIAL,
   );
+  const [accessState, accessAction, accessPending] = useActionState(
+    sendAccessLinkAction,
+    INITIAL,
+  );
+  const [copied, setCopied] = useState(false);
 
   const status = memberStatus(member);
   const tone = roleBadgeTone(member.role);
   const statusTone = status === "active" ? "success" : "neutral";
-  const anyPending = rolePending || disablePending || enablePending || scopePending;
+  const anyPending =
+    rolePending || disablePending || enablePending || scopePending || accessPending;
   const lastError =
-    roleState.error || disableState.error || enableState.error || scopeState.error;
+    roleState.error ||
+    disableState.error ||
+    enableState.error ||
+    scopeState.error ||
+    accessState.error;
   const memberScope = member.warehouse_scope ?? "all";
+  // Quien nunca entró no tiene forma de saber su clave: el alta del 3-jul les
+  // puso una que nadie les pasó. Señalarlo evita que el admin tenga que
+  // deducirlo de la columna "Último login".
+  const neverLoggedIn = !member.last_login_at;
 
   return (
     <tr style={{ borderTop: "1px solid var(--border)" }}>
@@ -276,8 +293,23 @@ function MemberRow({
         </span>
       </Td>
 
-      <Td align="right">
+      <Td align="right" sticky>
         <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+          {status === "active" && (
+            <form action={accessAction} style={{ display: "inline" }}>
+              <input type="hidden" name="target_user_id" value={member.user_id} />
+              <button
+                type="submit"
+                disabled={anyPending}
+                className={`studio-btn studio-btn-xs ${
+                  neverLoggedIn ? "studio-btn-primary" : "studio-btn-ghost"
+                }`}
+                title="Le manda por correo un enlace para que cree su contraseña"
+              >
+                {accessPending ? "…" : "Enviar acceso"}
+              </button>
+            </form>
+          )}
           {status === "active" ? (
             <form action={disableAction} style={{ display: "inline" }}>
               <input type="hidden" name="target_user_id" value={member.user_id} />
@@ -304,6 +336,45 @@ function MemberRow({
             </form>
           )}
         </div>
+        {/* Rastro persistente (no un toast): el admin necesita PODER COPIAR el
+            enlace si el correo no llega, así que se queda en pantalla. */}
+        {accessState.ok && accessState.accessLink && (
+          <div
+            style={{
+              marginTop: 6,
+              padding: "6px 8px",
+              background: "var(--success-bg, #E5F4ED)",
+              borderRadius: 4,
+              textAlign: "left",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: "var(--success, #1F8A5B)",
+                marginBottom: 4,
+              }}
+            >
+              Enlace enviado a {member.email}
+            </div>
+            <button
+              type="button"
+              className="studio-btn studio-btn-ghost studio-btn-xs"
+              onClick={() => {
+                void navigator.clipboard
+                  .writeText(accessState.accessLink as string)
+                  .then(() => {
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2500);
+                  });
+              }}
+              title="Por si el correo no llega — pásaselo por un canal privado"
+            >
+              {copied ? "Copiado" : "Copiar enlace"}
+            </button>
+          </div>
+        )}
         {lastError && (
           <div
             style={{
@@ -325,12 +396,22 @@ function MemberRow({
 // Helpers
 // ─────────────────────────────────────────────────────────────
 
+/**
+ * `sticky` fija la columna al borde derecho mientras la tabla scrollea en
+ * horizontal. La tabla tiene 7 columnas y el contenedor `overflow: auto`: en
+ * pantallas angostas la columna de Acciones quedaba FUERA DE VISTA, y con ella
+ * los únicos botones de la fila — se reportó como "no puedo desactivar a este
+ * usuario" (2026-08-06). El fondo es obligatorio: sin él, el contenido de las
+ * otras columnas se ve por debajo al pasar.
+ */
 function Th({
   children,
   align,
+  sticky,
 }: {
   children: React.ReactNode;
   align?: "left" | "right";
+  sticky?: boolean;
 }) {
   return (
     <th
@@ -343,6 +424,14 @@ function Th({
         color: "var(--ink-soft)",
         fontWeight: 600,
         whiteSpace: "nowrap",
+        ...(sticky
+          ? {
+              position: "sticky" as const,
+              right: 0,
+              background: "var(--bg-elevated, #F2F0EC)",
+              borderLeft: "1px solid var(--border, #E8E6E2)",
+            }
+          : null),
       }}
     >
       {children}
@@ -353,9 +442,11 @@ function Th({
 function Td({
   children,
   align,
+  sticky,
 }: {
   children: React.ReactNode;
   align?: "left" | "right";
+  sticky?: boolean;
 }) {
   return (
     <td
@@ -363,6 +454,14 @@ function Td({
         padding: "10px 12px",
         verticalAlign: "middle",
         textAlign: align ?? "left",
+        ...(sticky
+          ? {
+              position: "sticky" as const,
+              right: 0,
+              background: "var(--bg-surface, #FFFFFF)",
+              borderLeft: "1px solid var(--border, #E8E6E2)",
+            }
+          : null),
       }}
     >
       {children}

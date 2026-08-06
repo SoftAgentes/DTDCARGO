@@ -30,6 +30,27 @@ test.describe("Tier 1 · logins (render + negativos)", () => {
     await expect(page).not.toHaveURL(/\/studio\/resumen/);
   });
 
+  /**
+   * SDD-0250. El proxy rebota TODO `/studio/**` sin sesión al login — pero la
+   * ruta que canjea el enlace de acceso del correo, por definición, se pide SIN
+   * sesión (crearla es su trabajo). Si vuelve a quedar detrás del gate, el
+   * enlace muere antes de llegar al handler y el usuario aterriza en el login
+   * sin explicación: exactamente el bug que este trabajo elimina.
+   *
+   * Cómo se distingue: el rebote del proxy deja `/studio/login` PELADO (clona
+   * la URL, que no trae query). Que llegue con `?error=enlace` prueba que quien
+   * redirigió fue nuestro handler, o sea que el proxy lo dejó pasar.
+   */
+  test("Studio: la ruta del enlace de acceso NO la rebota el proxy", async ({ page }) => {
+    await page.goto("/studio/reset/confirmar");
+    await expect(page).toHaveURL(/error=enlace/);
+  });
+
+  test("Studio: la pantalla de clave nueva sin sesión avisa, no rebota muda", async ({ page }) => {
+    await page.goto("/studio/reset");
+    await expect(page).toHaveURL(/error=enlace/);
+  });
+
   test("Back: form email+password presente", async ({ page }) => {
     await page.goto("/back/login");
     await expect(page.locator("form")).toBeVisible();
