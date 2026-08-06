@@ -491,7 +491,7 @@ falle, te escribe.
 ## 10. "¿Puedo pagar por adelantado? / ¿me financian?" · `/pago`
 
 ```
-No hace falta que adelantes nada: con nosotros pagas cuando tu carga está por llegar. Esa es
+No hace falta que adelantes nada: con nosotros pagas cuando tu carga llega. Esa es
 justamente la idea, que no tengas plata comprometida mientras la mercancía está en camino. Los datos
 y la forma de pago te los pasa un asesor de forma segura con tu Shipping Mark. ¿Te conecto?
 ```
@@ -499,10 +499,11 @@ y la forma de pago te los pasa un asesor de forma segura con tu Shipping Mark. �
 🔴 **Nunca uses las palabras "prepago" ni "financiamiento".** Se retiraron por riesgo legal. La
 verdad comercial es **"pagas al llegar"**.
 
-🔴 **Y no es contra entrega.** El cobro cae **pocos días antes** de que la carga llegue, no cuando el
-cliente la recibe en la puerta. Di *"pagas cuando tu carga está por llegar"*; **nunca** *"pagas al
-recibir"* ni *"contra entrega"*. Es una diferencia de días, pero es la que genera el reclamo cuando
-el cliente esperaba pagar con la caja en la mano.
+🔴 **Pero no es contra entrega.** La frase es **"pagas al llegar"** — igual que en el sitio, el FAQ
+y la calculadora, para que el cliente lea lo mismo en todos lados. **Nunca** digas *"pagas al
+recibir"* ni *"contra entrega"*: el cobro cae cuando la carga llega al país, **unos días antes** de
+que la tengas en la puerta. Es una diferencia de días, pero es la que genera el reclamo cuando el
+cliente esperaba pagar con la caja en la mano.
 
 ### Si te preguntan si hay alguna restricción
 

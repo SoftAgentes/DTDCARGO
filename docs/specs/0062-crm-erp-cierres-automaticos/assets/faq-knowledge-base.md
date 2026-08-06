@@ -89,7 +89,7 @@ Apenas confirmas te aparece en pantalla tu **Shipping Mark** (唛头): es el có
 
 **Respuesta:** ¡Hola! Cuánto cuesta enviar de China a Venezuela depende sobre todo del **volumen (CBM)** de tu carga y de la ciudad de entrega. Lo bueno es que **lo calculas tú mismo al instante** en la calculadora, que ya tiene la tarifa vigente: 👉 **dtdcargo.com/tarifas**. Metes las medidas de tus cajas y te da el estimado en segundos. Es un **estimado**: el monto final lo confirma un asesor al reservar.
 
-Nuestro servicio principal es el **Puerta a Puerta**: un solo precio que ya incluye flete, aduana, impuestos y entrega en tu dirección, y **pagas cuando tu carga está por llegar a Venezuela** — sin adelantos. También trabajamos **Consolidado LCL** (hasta puerto, con tu propio BL) y **contenedor completo**, que se cotiza en **dtdcargo.com/fcl**. Todo va por vía **marítima**; el flete aéreo de carga está suspendido.
+Nuestro servicio principal es el **Puerta a Puerta**: un solo precio que ya incluye flete, aduana, impuestos y entrega en tu dirección, y **pagas cuando tu carga llega a Venezuela** — sin adelantos. También trabajamos **Consolidado LCL** (hasta puerto, con tu propio BL) y **contenedor completo**, que se cotiza en **dtdcargo.com/fcl**. Todo va por vía **marítima**; el flete aéreo de carga está suspendido.
 
 **Pregunta de continuación (elige UNA):** *"¿Ya traes directo de China o le compras a distribuidores aquí?"* — es la que más información da y la que abre el comparativo.
 
@@ -180,11 +180,15 @@ En resumen: con FOB lo cubre el proveedor; con EXW lo cubres tú. Saberlo te ayu
 > *Nota interna: cursos por activar; la captura de email arma la **lista de espera** para avisar al lanzar. Actualizar esta sección cuando haya temario/modalidad/precio/fechas. Decisión founder 2026-06-08.*
 
 ### 11. Seguimiento / Tracking
-**Preguntas:** ¿Cómo rastreo mi envío? · ¿Dónde veo el estado de mi carga? · ¿Tienen tracking? · ¿Cómo sé dónde va mi mercancía? · Quiero el estado de mi pedido.
+**Preguntas:** ¿Dónde está mi mercancía? · ¿Cómo rastreo mi envío? · ¿Dónde veo el estado de mi carga? · ¿Tienen tracking? · ¿Cómo sé dónde va mi mercancía? · Quiero el estado de mi pedido. · ¿En qué va mi envío? · ¿Ya llegó mi carga? · ¿Me puedes decir dónde va mi contenedor?
 
-**Respuesta (aprobada):** ¡Hola! Sigue tu carga así: con tu **código** en **dtdcargo.com/track**, o desde tu **portal** (**dtdcargo.com/portal**), donde ves cada etapa de tus pre-alertas y envíos. Si no tienes el código a mano, pásame tu **Shipping Mark** y un asesor te ubica el estado.
+**Respuesta (aprobada):** ¡Hola! Te la ubico enseguida. Para eso necesito **tu Shipping Mark** (el código DTD-XXXX) **o el número de tu envío** — con ese dato un asesor te dice exactamente en qué punto va tu carga.
 
-**Pregunta de continuación:** *"¿Ya estás armando el próximo pedido o esperas que llegue este primero?"*
+Y si ya estás registrado, entra a **dtdcargo.com/portal**, sección **Envíos**: ahí sigues tus compras y tus envíos sin tener que preguntarnos. Estamos terminando la vista de seguimiento paso a paso, así que muy pronto lo vas a ver todo ahí tú mismo.
+
+**Pregunta de continuación:** *"¿Cuál es tu Shipping Mark?"* — sin ese dato no se puede ubicar nada, así que es la única pregunta que va.
+
+> *Nota interna: ⚠️ **`dtdcargo.com/track` YA NO EXISTE** — `next.config.ts:388-389` lo redirige con **301 a `/portal/login`**. Esta sección lo seguía recomendando: un lead sin cuenta caía en una pantalla de login. Enlace retirado el 2026-08-05. El seguimiento del cliente vive en el portal (`app/portal/(app)/envios/`, con detalle en `envios/[code]/`). **No prometer fecha** de la vista paso a paso: el founder dice "muy pronto" y eso es lo que se comunica, sin comprometer un día. La RPC pública `public_track_shipment` sigue existiendo en `lib/public/tracking-queries.ts`, pero **sin ruta pública que la use** — si alguien la reactiva, actualizar acá.*
 
 ---
 
@@ -289,7 +293,7 @@ Calcula tu base en **dtdcargo.com/tarifas** y un asesor te arma la tarifa con tu
 
 **Respuesta (aprobada · captura email):** ¡Hola! El **Puerta a Puerta** es nuestro servicio principal, y funciona así: **un solo precio que ya incluye el flete desde China, la aduana, los impuestos y la entrega en tu dirección** en Venezuela. No tienes que gestionar nada con la aduana ni te aparecen cobros sorpresa después.
 
-Y sobre cuándo pagas: **pagas cuando tu carga está por llegar a Venezuela.** No adelantas nada, no hay depósito. *(Si usas compra asistida para pagarle al proveedor en China, eso se coordina aparte con el asesor.)*
+Y sobre cuándo pagas: **pagas cuando tu carga llega a Venezuela.** No adelantas nada, no hay depósito. *(Si usas compra asistida para pagarle al proveedor en China, eso se coordina aparte con el asesor.)*
 
 El monto se calcula por **volumen (CBM)** y ciudad de destino. Míralo en **dtdcargo.com/tarifas** — es un estimado; el monto final lo confirma un asesor al reservar.
 
@@ -299,7 +303,7 @@ El monto se calcula por **volumen (CBM)** y ciudad de destino. Míralo en **dtdc
 
 > *Nota interna: el diferenciador #1 de DTD, y **nadie más en el rubro lo comunica como promesa central** (ver `docs/marketing/competencia-precios.md`). NO hardcodear montos (van en la calculadora). ⚠️ **Corregido 2026-08-03:** esta sección decía "DDP" y "Financiamiento 100%". Ambos términos están **prohibidos**: "Financiamiento 100%" se retiró el 2026-06-09 por riesgo legal y "prepago" antes. La verdad comercial que sí se dice es **"pagas al llegar"**. La sigla DDP solo existe internamente (`puerta_a_puerta_DDP` en el enum); al cliente **siempre** es "Puerta a Puerta".*
 >
-> *⚠️ **Actualizado 2026-08-05 (founder):** (1) el pago **no es contra entrega** — se cobra pocos días ANTES de que la carga llegue. Se dice **"pagas cuando tu carga está por llegar"**, nunca "pagas al recibir". (2) **Regla de restricción, confirmada por el founder:** el valor de la mercancía tiene que superar al flete marítimo con ~30% de margen (mercancía ≥ flete × 1,3). **Es reactiva:** no se menciona si el cliente no pregunta; a la pregunta directa se contesta que sí existe. Quien la detecta de verdad es el **ERP**, no el chat, así que el número final siempre lo confirma un asesor. (3) ⛔ **El "50% del flete adelantado" NO se documentó acá a propósito.** Se mencionó en la misma conversación pero no se reconfirmó, y choca de frente con "sin adelantos"; hasta que el founder lo cierre por escrito, ese caso **escala a asesor** y el agente no lo nombra.*
+> *⚠️ **Actualizado 2026-08-05 (founder):** (1) la frase es **"pagas al llegar"** — la misma del sitio público, el FAQ (`lib/faqs.ts`) y la calculadora, para que el cliente lea lo mismo en todos lados. **Nunca "pagas al recibir" ni "contra entrega":** el cobro cae cuando la carga llega al país, unos días antes de que el cliente la tenga en la puerta. ⛔ **No inventar variantes propias** — durante esta sesión se probó "está por llegar" y el founder la revirtió justamente por eso: una tercera frase rompe la consistencia con el sitio. (2) **Regla de restricción, confirmada por el founder:** el valor de la mercancía tiene que superar al flete marítimo con ~30% de margen (mercancía ≥ flete × 1,3). **Es reactiva:** no se menciona si el cliente no pregunta; a la pregunta directa se contesta que sí existe. Quien la detecta de verdad es el **ERP**, no el chat, así que el número final siempre lo confirma un asesor. (3) ⛔ **El "50% del flete adelantado" NO se documentó acá a propósito.** Se mencionó en la misma conversación pero no se reconfirmó, y choca de frente con "sin adelantos"; hasta que el founder lo cierre por escrito, ese caso **escala a asesor** y el agente no lo nombra.*
 
 ### 23. Aduana e impuestos
 **Preguntas:** ¿Quién paga la aduana? · ¿El precio incluye impuestos? · ¿Tengo que hacer trámites de aduana? · ¿Hay cobros sorpresa? · ¿Me nacionalizan la carga?
