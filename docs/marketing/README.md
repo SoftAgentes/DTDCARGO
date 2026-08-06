@@ -84,6 +84,10 @@ Este índice no las mencionaba y era un hueco: cambiar una sin la otra las desin
   cadena de profundización · las objeciones · los datos falsos que circulan):
   [`conversacion-crm.md`](conversacion-crm.md). Evidencia y fuentes en
   [`research/INVESTIGACION-conversacion-ventas-crm.md`](../../research/INVESTIGACION-conversacion-ventas-crm.md).
+- ⭐ **Agentes de IA por etapa** — quién es cada arquetipo, por qué se eligió, su astucia, sus
+  preguntas y lo que nunca hace → [`agentes-ia-por-etapa.md`](agentes-ia-por-etapa.md). **El cliente
+  siempre habla con Manuel**, la identidad que el equipo ya usa hace años; los arquetipos son capa
+  interna. Empieza acá quien vaya a escribir un prompt de agente.
 - 🎓 **Manual del asesor** — el programa de entrenamiento de la **persona**, no de la IA: 4 módulos
   y **30 ejercicios con solución**, para hacer solo y sin formador al lado →
   [`manual-asesor/`](manual-asesor/README.md). Se hace un módulo por semana, en orden, y el
