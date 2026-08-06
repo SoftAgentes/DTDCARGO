@@ -159,7 +159,7 @@ No bloquean nada de la Parte 1. Los pongo en orden de urgencia real.
 | 4 | **DTD-1010 · ABDAL AKIL** | bienvenida atascada 07-jun, 0 correos entregados | 424 6097153 |
 | 5 | **DTD-1011 · Jose Diaz** | bienvenida atascada 07-jun, 0 correos entregados | +58 412 9819792 |
 | 6 | **DTD-A110 · Adrián Figueroa** | bienvenida **rebotó** 15-jul — el correo no sirve | 424 3745436 · pedirle correo nuevo |
-| 6b | 🔴 **DTD-9017 · Alain de Cardenas** | **sí recibió** el correo con su Shipping Mark, pero **no tiene cuenta de acceso**: el `client_users` del alta falló y quedó en un `console.error`. Se registró el 15-jul y la puerta nunca abrió | +58 424 4731021 · hay que crearle el acceso |
+| 6b | 🔴 **DTD-9017 · Alain de Cardenas** | Recibió su correo, **y entró**: hay login el 15-jul 21:04. Lo que falta es el **vínculo** `client_users` — el insert del alta falló y quedó en un `console.error`. Tiene cuenta de auth válida y el portal no puede resolver de qué cliente es | +58 424 4731021 · **Studio › Administración → invitación al portal** (`/studio/admin`). La RPC `portal_invite_client` crea justo esa fila y le manda el enlace; es idempotente y no toca su cuenta de auth. Desde la ficha del cliente no se puede. Se resuelve junto con el punto 8 |
 
 > Verificado uno por uno. **No** están en la lista: DTD-1008 (cuenta de prueba
 > "QA Bodysize"), DTD-1007 (alta interna del equipo), DTD-Y003 (tiene 3 correos

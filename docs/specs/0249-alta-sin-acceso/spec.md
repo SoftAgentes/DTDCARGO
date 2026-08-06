@@ -35,8 +35,17 @@ Medido en producción el 2026-08-05: **DTD-9017**, alta del 15 de julio por el
 registro self-service. Recibió su correo de bienvenida (1 entregado, confirmado
 por el webhook) y **no tenía fila en `client_users`**.
 
+Y no se quedó en la teoría: **entró**. `auth.users.last_sign_in_at` = 15-jul
+21:04. O sea, tiene cuenta de auth válida, el login funcionó, y el portal no
+tenía cómo resolver de qué cliente es. El paso que faltaba no era la puerta: era
+el vínculo.
+
 Uno solo entre 432 altas — es raro. Pero estuvo **tres semanas invisible**, y lo
 que hace visible a un fallo raro no es la suerte: es un check.
+
+> **Reparación** (no la hace este SDD): la RPC `portal_invite_client` inserta
+> exactamente esa fila y devuelve el token de reclamo, sin tocar la cuenta de
+> auth existente. Vive en Studio › Administración.
 
 ## Diseño
 
@@ -45,6 +54,11 @@ que hace visible a un fallo raro no es la suerte: es un check.
 - `buildAltaHealthMessage()` — puro y testeable; el mensaje trae el markbox
   (para buscarlo) **y la acción** (qué hacer). Un aviso sin la acción se lee una
   vez y se archiva.
+  Apunta a **Studio › Administración** (`/studio/admin`), no a la ficha del
+  cliente: quien provisiona el acceso es la RPC `portal_invite_client`
+  (idempotente), y vive en el backfill del portal. Desde la ficha no se puede,
+  así que mandar a `/studio/clientes` sería un callejón sin salida — hay un test
+  que lo fija.
 
 **`app/api/cron/alta-health/route.ts`** — diario, `0 12 * * *` (8am Caracas).
 Auth por `CRON_SECRET` en header. `?dry=1` clasifica sin avisar.
