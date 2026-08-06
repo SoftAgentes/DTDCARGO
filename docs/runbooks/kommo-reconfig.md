@@ -8,9 +8,94 @@ review-by: 2026-09-07
 
 # Runbook — Reconfiguración de Kommo (CRM)
 
-> Operación supervisada de la cuenta `doortudoor.kommo.com` (DTD CARGO / DoorTuDoor C.A) para SDD-0062. Se opera vía la extensión de Chrome con el founder logueado y confirmando cada acción destructiva. **Read-only primero; nada destructivo sin OK explícito.**
+> Operación supervisada de la cuenta **`dtdcargo.kommo.com`** (cuenta `31589859`) para SDD-0062. Se opera vía la extensión de Chrome con el founder logueado y confirmando cada acción destructiva. **Read-only primero; nada destructivo sin OK explícito.**
+>
+> ⚠️ **`doortudoor.kommo.com` NO existe** — devuelve `x-error: Account not found`, que se lee como un 401 y manda a diagnosticar el token cuando el problema es el subdominio. Este runbook lo decía mal hasta el 2026-08-05.
 
-## Snapshot del estado (en vivo, 2026-06-07 · read-only)
+## ✅ Estado actual del AI Agent (2026-08-05)
+
+**Agente "DTD Cargo asistente de ventas" (#326244) — `DESACTIVADO`, sin canales.** No le habla a
+ningún cliente. Activarlo es decisión del founder y **no está autorizada**.
+
+| Capa | Contenido | Dónde se cambia |
+|---|---|---|
+| **Persona** | 1.280 car. Prohíbe explícitamente "DDP", "prepago", "financiamiento" y "responsabilidad" | pestaña Personalidad |
+| **Pautas** | **25** (tope de Kommo: 50 líneas × 300 car.) | pestaña Personalidad |
+| **Acciones** | **6** (tope: 20) | pestaña Acciones |
+| **Fuentes** | DOCX **v5** (33 secciones) + Datos clave + Productos y servicios + Descripción del negocio | pestaña Fuentes |
+
+### ⏱️ Una fuente recién subida NO responde de inmediato
+
+Kommo **indexa la fuente en segundo plano y puede tardar hasta ~2 horas** (founder, 2026-08-05).
+Mientras tanto el agente sigue contestando con la versión anterior.
+
+**La trampa:** subes el arreglo, pruebas a los cinco minutos, sale el comportamiento viejo y
+concluyes que el arreglo no sirve — cuando lo único que pasó es que todavía no indexó. Si vas a
+verificar un cambio de contenido, **espera** o valida de otra forma.
+
+**Cómo distinguir de dónde salió una respuesta:** el panel de prueba trae un desplegable
+**"Fuentes utilizadas"** en cada mensaje. Y hay una pista de contenido — si la respuesta cita algo
+textual que sólo existe en la versión nueva, ya indexó.
+
+⚠️ **Las Pautas NO tienen este retraso**: son parte del prompt y aplican al instante. Por eso una
+prueba puede pasar por la pauta y fallar por la fuente, o al revés. **Cuando pautas y fuente se
+contradicen, gana la fuente** — verificado el 2026-08-05 con la dirección de la bodega en China: la
+pauta decía "ofrece el registro primero" y el agente igual soltó la dirección completa porque la
+sección 28 la traía abierta. Los arreglos de CONTENIDO van en la fuente; las Pautas son para
+COMPORTAMIENTO.
+
+### ⚠️ Las 3 fuentes de texto no están respaldadas
+
+`Datos clave`, `Productos y servicios` y `Descripción del negocio` viven **sólo dentro de Kommo**.
+No están en git: si alguien las edita o las borra no hay historial ni forma de recuperarlas. El DOCX
+sí tiene respaldo (se genera desde `faq-knowledge-base.md`). **Pendiente:** bajarlas al repo.
+
+### El traspaso a un humano — cómo funciona de verdad
+
+Kommo trae un intent **nativo**: en una acción, `Cuando → El cliente quiere → **hablar con un agente
+humano**`. No hay que escribir palabras clave ni adivinar sinónimos; el modelo clasifica la intención.
+La acción es **`Transferir al usuario`**, con dos parámetros que importan:
+
+- **`con` / `sin el permiso del cliente`** — "con permiso" hace que el agente pregunte antes. Para
+  este disparador va **`sin`**: el cliente YA pidió una persona, volver a preguntarle molesta.
+- **`con resumen de conversaciones`** — el asesor recibe el hilo resumido y el cliente no repite nada.
+
+Hay además un **mensaje de traspaso** opcional que se le manda al cliente en ese momento.
+
+Los tres disparadores de traspaso configurados hoy:
+
+| Cuando | Permiso |
+|---|---|
+| El cliente quiere **hablar con un agente humano** | sin permiso (creado 2026-08-05) |
+| El cliente confirma que **quiere comprar** | sin permiso |
+| El **sentimiento** del cliente es frustrado o triste | sin permiso |
+
+### El silencio: por qué NO se arregla con una Acción
+
+Si el cliente pregunta algo que no está en Fuentes, el agente **no dice "no sé": no responde nada**.
+Lo lógico sería una acción "cuando no encuentres información → transfiere". **No se puede**, y vale
+la pena dejarlo escrito para que nadie vuelva a intentarlo:
+
+1. **No existe un disparador de "no match".** Las condiciones disponibles son exactamente nueve:
+   `El cliente quiere` · `Cada vez que el cliente pregunta sobre` · `El cliente pregunta por primera
+   vez sobre` · `El sentimiento del cliente es` · `El cliente proporciona su` · `El mensaje entrante
+   contiene` · `El cliente no responde desde hace` · `El formato de mensaje es` · `El mensaje es
+   recibido en horas específicas`. Ninguna se dispara por ausencia de información.
+2. **El tema de `pregunta sobre` es un selector cerrado, no texto libre** (disponibilidad · tiempo de
+   entrega · precio · política de reembolso · estado del pedido · solución de problemas…). Si escribes
+   un tema propio, el campo **revierte en silencio** al valor por defecto. *(Las acciones viejas sí
+   tienen temas propios como "servicios de logística": quedaron de una versión anterior del builder o
+   se cargaron por otra vía; hoy la UI no deja crearlos.)*
+
+**Lo que sí funciona: una Pauta**, porque se evalúa en **cada** mensaje en vez de depender de que
+matchee un tema. Es la pauta 25: *"Nunca dejes un mensaje sin responder. Si el dato no está en tus
+fuentes, dilo con naturalidad… Quedarte callado es peor que no saber."*
+
+**Y el arreglo de fondo sigue siendo el contenido:** cada tema sin política cerrada necesita su
+sección de escalamiento **escrita** en la KB. Omitir un tema no produce un traspaso: produce un
+cliente en visto.
+
+## Snapshot del estado (en vivo, 2026-06-07 · read-only · ⚠️ desactualizado, ver arriba)
 
 | Área | Estado real | Implicación |
 |---|---|---|
