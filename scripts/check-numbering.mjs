@@ -70,6 +70,14 @@ const CHOQUES_HISTORICOS = {
   "0247": ["0247_client_notifications", "0247_grant_next_consolidation_ref_authenticated"],
   "0277": ["0277_calculator_cities_destinos_faltantes", "0277_version_rls_auto_enable"],
   "0297": ["0297_container_types_activos_y_capacidad_util", "0297_legal_docs_body_hash"],
+  // 2026-08-02/05: dos ventanas aplicaron su 0336 con 3 DÍAS de diferencia
+  // (pod_closes_shipment 20260802225220 · rate_ddp_850_septiembre_2026
+  // 20260805215529). Ambas en el ledger → ninguna se renumera.
+  //
+  // Detectado el 2026-08-05 mirando el ledger al revés: `pod_closes_shipment`
+  // estaba APLICADA en prod y su archivo sólo existía en un worktree sin
+  // pushear, así que el número ya estaba quemado y nadie lo veía.
+  "0336": ["0336_pod_closes_shipment", "0336_rate_ddp_850_septiembre_2026"],
   // 2026-08-03: dos ventanas aplicaron su 0342 con ~4 h de diferencia
   // (kommo_contact_link 20260803202130 · phone_match_key_relleno 20260804011156).
   // Ambas en el ledger → ninguna se renumera.
