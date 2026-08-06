@@ -32,6 +32,10 @@
       Sospecha principal: el espejo `kommo_custom_fields` está desactualizado
       respecto de Kommo — hoy solo resuelve `markbox` ("Shipping Mark - j102");
       `rif` y `tier` no existen como campos y se omiten.
+- [x] **SDD-0249 · Cliente con Shipping Mark y sin acceso.** ✅ Cron diario
+      `/api/cron/alta-health` + warning en el registro. Nació de encontrar a
+      **DTD-9017** roto en producción: recibió el correo invitándolo al portal y
+      la cuenta de acceso nunca se creó. Tres semanas invisible.
 - [ ] **Outbox para los 7 pasos best-effort del registro.** `app/registro/actions.ts`
       tiene 7 pasos que fallan en silencio (estimado, referido, `client_users`,
       welcome, aviso al equipo, Kommo, throttle). Un cliente puede registrarse
