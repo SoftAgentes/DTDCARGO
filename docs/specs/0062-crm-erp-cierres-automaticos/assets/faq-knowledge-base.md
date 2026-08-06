@@ -67,9 +67,20 @@ existe el Action de fallback descrito en el runbook. **Un hueco acá es un clien
 ### 1. Cómo iniciar un envío (registro · Shipping Mark)
 **Preguntas:** ¿Cómo empiezo a enviar con ustedes? · Ya compré en China, ¿ahora qué hago? · ¿Cómo registro mi compra? · ¿Cómo me registro como cliente? · ¿Qué tengo que hacer para enviar? · Ya hice mi compra en 1688, ¿cuál es el siguiente paso? · ¿Cómo abro una cuenta? · ¿Qué es una pre-alerta? · ¿Qué es el casillero? · ¿Qué es el Shipping Mark (Markbox)? · Cómo empiezo a importar.
 
-**Respuesta (aprobada · corta):** ¡Hola! Súper fácil 👇 Regístrate en **dtdcargo.com/registro**: al instante recibes tu **Shipping Mark** (唛头, para marcar tus cajas en China), tu **portal de seguimiento** y las **pre-alertas**.
+**Respuesta (aprobada):** ¡Hola! Registrarte toma dos minutos y **no necesitas tener la compra hecha todavía**. Entra en **dtdcargo.com/registro** y el formulario te va llevando paso a paso. Te pide poco:
+
+1. Si eres **persona o empresa**.
+2. **Nombre, cédula o RIF, correo y WhatsApp.**
+3. **Estado y ciudad**, para saber hasta dónde te entregamos.
+4. Revisas que todo esté bien y confirmas.
+
+Apenas confirmas te aparece en pantalla tu **Shipping Mark** (唛头): es el código que identifica tus cajas en nuestra bodega en China. Tu proveedor lo escribe en cada bulto y así sabemos que ese bulto es tuyo. Es lo que muchos llaman "casillero", pero aquí lo llamamos **Shipping Mark**.
+
+**No tienes que inventar ninguna contraseña:** te llega un correo con tu enlace de acceso al portal — si no lo ves, revisa spam. Ahí adentro cargas tus compras y haces tus **pre-alertas**, que le mandan a tu proveedor un enlace con todo lo que necesita para despacharte. El resto de tus datos los completas después, con calma, dentro del portal.
 
 **Pregunta de continuación:** *"¿Ya tienes la mercancía comprada en China o todavía estás buscando proveedor?"*
+
+> *Nota interna: datos verificados contra `app/registro/RegisterForm.tsx` y `app/registro/actions.ts` (2026-08-05). Obligatorios reales = tipo · nombre · documento · email · WhatsApp; el resto se difiere a `/portal/perfil`. La cuenta nace **activa** (`portal_approved_at = now`, SDD-0059): no hay pantalla de espera ni aprobación previa, y **no se pide contraseña** (enlace mágico por correo). El MARKBOX se genera atómico vía `rpc next_markbox_service`. **No prometer que el correo llega al instante** — el envío es best-effort y un fallo de email no rompe el alta.*
 
 ### 2. Cotización y tarifas (CBM)
 **Preguntas:** ¿Cuánto cuesta enviar de China a Venezuela? · ¿Cuánto me sale traer mercancía de China? · ¿Cómo cobran el flete? · ¿Cobran por peso o por volumen? · ¿Cuánto cobran por CBM? · ¿Qué precio tiene el envío? · ¿Cuánto cuesta un contenedor completo? · ¿Tienen servicio aéreo? · ¿Qué es DDP? · ¿Cuál es el costo del envío marítimo?
@@ -78,7 +89,7 @@ existe el Action de fallback descrito en el runbook. **Un hueco acá es un clien
 
 **Respuesta:** ¡Hola! Cuánto cuesta enviar de China a Venezuela depende sobre todo del **volumen (CBM)** de tu carga y de la ciudad de entrega. Lo bueno es que **lo calculas tú mismo al instante** en la calculadora, que ya tiene la tarifa vigente: 👉 **dtdcargo.com/tarifas**. Metes las medidas de tus cajas y te da el estimado en segundos. Es un **estimado**: el monto final lo confirma un asesor al reservar.
 
-Nuestro servicio principal es el **Puerta a Puerta**: un solo precio que ya incluye flete, aduana, impuestos y entrega en tu dirección, y **pagas cuando tu carga llega a Venezuela** — sin adelantos. También trabajamos **Consolidado LCL** (hasta puerto, con tu propio BL) y **contenedor completo**, que se cotiza en **dtdcargo.com/fcl**. Todo va por vía **marítima**; el flete aéreo de carga está suspendido.
+Nuestro servicio principal es el **Puerta a Puerta**: un solo precio que ya incluye flete, aduana, impuestos y entrega en tu dirección, y **pagas cuando tu carga está por llegar a Venezuela** — sin adelantos. También trabajamos **Consolidado LCL** (hasta puerto, con tu propio BL) y **contenedor completo**, que se cotiza en **dtdcargo.com/fcl**. Todo va por vía **marítima**; el flete aéreo de carga está suspendido.
 
 **Pregunta de continuación (elige UNA):** *"¿Ya traes directo de China o le compras a distribuidores aquí?"* — es la que más información da y la que abre el comparativo.
 
@@ -274,17 +285,21 @@ Calcula tu base en **dtdcargo.com/tarifas** y un asesor te arma la tarifa con tu
 > Secciones nuevas que cierran huecos detectados al cruzar el FAQ con el sitio público (`lib/faqs.ts`), el catálogo de 19 servicios y los 4 productos. Grounded en contenido real de DTD (sin inventar).
 
 ### 22. Puerta a Puerta: qué incluye y cuándo se paga
-**Preguntas:** ¿Qué es el Puerta a Puerta? · ¿Qué incluye el precio? · ¿Cuándo pago mi mercancía? · ¿Tengo que adelantar o dar depósito? · ¿Pago por adelantado? · ¿Qué es DDP?
+**Preguntas:** ¿Qué es el Puerta a Puerta? · ¿Qué incluye el precio? · ¿Cuándo pago mi mercancía? · ¿Tengo que adelantar o dar depósito? · ¿Pago por adelantado? · ¿Qué es DDP? · ¿Hay alguna restricción? · ¿Qué condiciones tiene pagar al llegar? · ¿Hay letra chica? · ¿Cualquier mercancía aplica? · ¿A todo el mundo le dan pagar al llegar?
 
 **Respuesta (aprobada · captura email):** ¡Hola! El **Puerta a Puerta** es nuestro servicio principal, y funciona así: **un solo precio que ya incluye el flete desde China, la aduana, los impuestos y la entrega en tu dirección** en Venezuela. No tienes que gestionar nada con la aduana ni te aparecen cobros sorpresa después.
 
-Y sobre cuándo pagas: **pagas cuando tu carga llega a Venezuela.** No adelantas nada, no hay depósito. *(Si usas compra asistida para pagarle al proveedor en China, eso se coordina aparte con el asesor.)*
+Y sobre cuándo pagas: **pagas cuando tu carga está por llegar a Venezuela.** No adelantas nada, no hay depósito. *(Si usas compra asistida para pagarle al proveedor en China, eso se coordina aparte con el asesor.)*
 
 El monto se calcula por **volumen (CBM)** y ciudad de destino. Míralo en **dtdcargo.com/tarifas** — es un estimado; el monto final lo confirma un asesor al reservar.
 
-**Pregunta de continuación:** *"¿Cada cuánto sueles reponer mercancía?"* — separa al mayorista recurrente del que compra una sola vez, que es la información que más vale.
+**Si el cliente pregunta si hay alguna restricción o condición** (no lo menciones tú si no pregunta): sí, hay una sola, y es de sentido común — **tu mercancía tiene que valer más que el flete**, con un margen de alrededor de **30% por encima**. En números: si tu flete sale en $1.000, tu mercancía debería valer al menos $1.300. La razón es que un envío donde el flete se come casi todo el valor de lo que traes no te conviene a ti ni a nosotros. Fuera de eso no hay requisitos. Si tienes dudas de si tu caso entra, pásame los datos y un asesor te lo confirma. Cierra ese mensaje preguntando *"¿más o menos en cuánto te salió la mercancía?"* — con ese dato el asesor confirma al toque si aplica.
+
+**Pregunta de continuación (cuando NO preguntó por restricciones):** *"¿Cada cuánto sueles reponer mercancía?"* — separa al mayorista recurrente del que compra una sola vez, que es la información que más vale.
 
 > *Nota interna: el diferenciador #1 de DTD, y **nadie más en el rubro lo comunica como promesa central** (ver `docs/marketing/competencia-precios.md`). NO hardcodear montos (van en la calculadora). ⚠️ **Corregido 2026-08-03:** esta sección decía "DDP" y "Financiamiento 100%". Ambos términos están **prohibidos**: "Financiamiento 100%" se retiró el 2026-06-09 por riesgo legal y "prepago" antes. La verdad comercial que sí se dice es **"pagas al llegar"**. La sigla DDP solo existe internamente (`puerta_a_puerta_DDP` en el enum); al cliente **siempre** es "Puerta a Puerta".*
+>
+> *⚠️ **Actualizado 2026-08-05 (founder):** (1) el pago **no es contra entrega** — se cobra pocos días ANTES de que la carga llegue. Se dice **"pagas cuando tu carga está por llegar"**, nunca "pagas al recibir". (2) **Regla de restricción, confirmada por el founder:** el valor de la mercancía tiene que superar al flete marítimo con ~30% de margen (mercancía ≥ flete × 1,3). **Es reactiva:** no se menciona si el cliente no pregunta; a la pregunta directa se contesta que sí existe. Quien la detecta de verdad es el **ERP**, no el chat, así que el número final siempre lo confirma un asesor. (3) ⛔ **El "50% del flete adelantado" NO se documentó acá a propósito.** Se mencionó en la misma conversación pero no se reconfirmó, y choca de frente con "sin adelantos"; hasta que el founder lo cierre por escrito, ese caso **escala a asesor** y el agente no lo nombra.*
 
 ### 23. Aduana e impuestos
 **Preguntas:** ¿Quién paga la aduana? · ¿El precio incluye impuestos? · ¿Tengo que hacer trámites de aduana? · ¿Hay cobros sorpresa? · ¿Me nacionalizan la carga?
