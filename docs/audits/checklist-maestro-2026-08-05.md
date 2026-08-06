@@ -86,12 +86,12 @@
       También se declaró la colisión **0336** en `CHOQUES_HISTORICOS`: hay dos
       0336 distintas **las dos aplicadas** (con 3 días de diferencia), así que
       ninguna se renumera.
-- [ ] 🔴 **El gate de migraciones mira en UNA sola dirección.** Compara
-      *archivo del repo → ledger de prod* y grita si falta aplicar. **No mira al
-      revés**: una entrada del ledger sin archivo en el repo le es invisible.
-      Así estuvieron esas 3 sin que nadie lo notara — y es el caso más peligroso
-      de los dos, porque el repo deja de poder reconstruir la DB.
-      Fix: agregar el chequeo inverso al mismo paso.
+- [x] **El gate de migraciones miraba en UNA sola dirección.** ✅ Ahora mide las
+      dos. Una entrada del ledger sin archivo en el repo ya no es invisible.
+      Para no volverlo ruido con 38 worktrees —donde aplicar y pushear el archivo
+      minutos después es el flujo normal— usa la **edad** que el ledger ya trae
+      en `version`: recién aplicada sale **amarilla**, más de 24 h sale **roja**.
+      7 tests nuevos, validados con mutación.
 - [ ] ⚠️ **El código de SDD-0239 / 0240 / 0241 sigue fuera de `main`.** Se
       rescataron sus migraciones (la DB ya las tiene), pero las specs y el código
       viven en `radiografia-erp-20260802` sin pushear. La DB tiene los cambios y
