@@ -375,29 +375,42 @@ export async function registerClientAction(
     status: "active",
     bound_at: new Date().toISOString(),
   });
+  // Si esto falla, el cliente queda con MARKBOX y SIN puerta: `portal_approved_at`
+  // dice "activo" en toda la UI y no hay cuenta con la cual entrar. Pasó con
+  // DTD-9017 el 15-jul y estuvo 3 semanas invisible, porque el único rastro era
+  // este console.error. Ahora además se le dice al visitante —para que no se
+  // estrelle contra un login que no existe— y `/api/cron/alta-health` lo levanta
+  // aunque nadie lea el log.
+  let accesoWarning: string | undefined;
   if (linkErr) {
     console.error("[registerClientAction] insert client_users error:", linkErr);
+    accesoWarning =
+      "Tu cuenta quedó creada con tu Shipping Mark, pero no pudimos activar el acceso al portal. Te contactamos para resolverlo.";
   }
 
   // 9. Email de bienvenida al CLIENTE con su MARKBOX (SIN la clave; template
   //    welcome_markbox). Envío real vía Resend (SDD-0059). Best-effort.
   //    Saluda con la razón social si es empresa (= el nombre con el que queda el
   //    cliente en el sistema), si no con el nombre de la persona.
-  let warning: string | undefined;
+  // El de acceso pesa más que el del correo: sin puerta no entra ni sabiendo su
+  // código. Si los dos fallan, gana este.
+  let warning: string | undefined = accesoWarning;
   const welcome = await sendWelcomeEmail(admin, tenantId, {
     markbox,
     name: input.company ?? input.name,
     email: input.email,
   });
   if (!welcome.ok) {
-    warning = "Cuenta creada. El email de bienvenida no se pudo enviar.";
+    // `??=`: el aviso de acceso pesa más y no se pisa. Sin puerta, que además
+    // no le haya llegado el correo es el menor de sus problemas.
+    warning ??= "Cuenta creada. El email de bienvenida no se pudo enviar.";
     console.warn("[registerClientAction] welcome email failed:", welcome.error);
   } else if (welcome.queued) {
     // `ok:true` + `queued:true` = el mail_log quedó registrado y el correo NO
     // salió. Antes esto pasaba como éxito y el cliente se iba creyendo que le
     // llegaría su Shipping Mark; tres clientes de junio siguen esperándolo.
     // Mismo texto que el fallo duro: para el cliente es lo mismo, no le llegó.
-    warning = "Cuenta creada. El email de bienvenida no se pudo enviar.";
+    warning ??= "Cuenta creada. El email de bienvenida no se pudo enviar.";
     console.warn(
       "[registerClientAction] welcome email quedó en queued (sin salir), log:",
       welcome.log_id,
