@@ -109,8 +109,13 @@ export function buildAltaHealthMessage(rows: AltaSinAcceso[], siteUrl: string): 
     ...lines,
     ``,
     `Se registraron solos, se les dijo que entraran al portal y la cuenta de`,
-    `acceso nunca se creó. Hay que crearsela desde Studio › Clientes.`,
+    `acceso nunca se creó.`,
     ``,
-    `${siteUrl}/studio/clientes`,
+    // Studio › Administración, NO la ficha del cliente: el que provisiona el
+    // acceso es `portal_invite_client` (idempotente), y vive en el backfill del
+    // portal. Desde la ficha no se puede.
+    `Se arregla desde Studio › Administración → invitación al portal.`,
+    ``,
+    `${siteUrl}/studio/admin`,
   ].join("\n");
 }

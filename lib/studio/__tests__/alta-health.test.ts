@@ -30,11 +30,15 @@ describe("buildAltaHealthMessage", () => {
     expect(msg).toContain("2026-07-15");
   });
 
-  it("dice qué hacer, no sólo qué pasó", () => {
-    // Un aviso sin la acción se lee una vez y se archiva.
+  it("manda a Administración, que es donde SÍ se puede arreglar", () => {
+    // Un aviso sin la acción se lee una vez y se archiva. Y peor que sin acción
+    // es con la acción equivocada: quien provisiona el acceso es
+    // `portal_invite_client` (Studio › Administración). Desde la ficha del
+    // cliente no se puede, así que mandar a /studio/clientes es un callejón.
     const msg = buildAltaHealthMessage([alta()], SITE);
-    expect(msg).toMatch(/crear/i);
-    expect(msg).toContain(`${SITE}/studio/clientes`);
+    expect(msg).toMatch(/administraci/i);
+    expect(msg).toContain(`${SITE}/studio/admin`);
+    expect(msg).not.toContain(`${SITE}/studio/clientes`);
   });
 
   it("cuenta cuántos son en el encabezado", () => {
