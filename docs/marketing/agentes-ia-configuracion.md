@@ -12,16 +12,26 @@
 |---|---|
 | **CAPA 1 · identidad de Manuel** | ✅ **cargada y verificada** — 1.457 car., recargando desde el servidor |
 | Pauta "¿eres una persona?" | ✅ reescrita a Manuel (decía "asistente virtual", contradecía la CAPA 1) |
-| Las 24 pautas previas | ✅ intactas |
-| **Las 11 pautas del arquetipo de Entrada** | ⛔ **pendientes** — ver la trampa de abajo |
+| **Las 3 pautas de réplicas** | ✅ **cargadas** — 262 · 202 · 188 car. |
+| Total de pautas | ✅ **27**, ninguna vacía |
+| **Fuente v7 (DOCX)** | ✅ subida, **35 subsecciones**, usada por el Agente **y** por "Respuesta sugerida" |
+| **Las 11 pautas del arquetipo de Entrada** | ⛔ **pendientes** — seguir los 4 pasos de abajo |
 | Cadena de traspaso a humano | ⛔ pendiente, bloqueada por una decisión (quién recibe) |
 
-🔴 **La trampa que costó una vuelta entera: las pautas nuevas hay que TECLEARLAS.**
-Editar por script un campo que **ya existe** (la persona, una pauta cargada) funciona: basta el setter
-nativo + `input` + `change` + `blur`, y aparece el botón `Guardar`. Pero al pulsar **`+ Añadir pauta`**
-y rellenar la fila nueva por script, **Kommo guarda la fila vacía**: el texto no llega nunca a su
-estado interno. Se comprobó recargando desde el servidor — quedaron **10 pautas en blanco**, que hubo
-que borrar una por una con su papelera. **Las filas nuevas exigen tecleo real.**
+🔴 **Cómo se carga una pauta nueva sin que se guarde en blanco** (aprendido a los golpes, 2026-08-06):
+
+1. **`+ Añadir pauta` con un clic real.** El clic también es lo que marca el formulario como sucio y
+   hace aparecer `Guardar`; rellenar por script un campo que ya existía **no ensucia nada** y el
+   botón nunca sale.
+2. **Teclear de verdad.** Un setter nativo sobre una fila recién creada no llega al estado interno de
+   Kommo: la fila se guarda vacía. *(Así quedaron 10 pautas en blanco que hubo que borrar una por
+   una con su papelera.)*
+3. ⭐ **Sacar el foco del campo antes de guardar — un `Tab` basta.** Ésta es la que cuesta encontrar:
+   **Kommo confirma el valor al perder el foco**, así que la ÚLTIMA fila tecleada se guarda vacía si
+   se pulsa `Guardar` con el cursor todavía dentro. Se ve clarísimo en el patrón: cargando tres
+   pautas seguidas, las dos primeras sobreviven —porque al añadir la siguiente pierden el foco— y la
+   tercera se pierde, siempre.
+4. **Verificar recargando la página.** Que el botón `Guardar` desaparezca **no prueba nada**.
 
 ## Cómo se usa
 
