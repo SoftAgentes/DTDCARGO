@@ -22,7 +22,7 @@ ningún cliente. Activarlo es decisión del founder y **no está autorizada**.
 | **Persona** | 1.280 car. Prohíbe explícitamente "DDP", "prepago", "financiamiento" y "responsabilidad" | pestaña Personalidad |
 | **Pautas** | **25** (tope de Kommo: 50 líneas × 300 car.) | pestaña Personalidad |
 | **Acciones** | **6** (tope: 20) | pestaña Acciones |
-| **Fuentes** | DOCX **v5** (33 secciones) + Datos clave + Productos y servicios + Descripción del negocio | pestaña Fuentes |
+| **Fuentes** | DOCX **v5** en Kommo · ⏳ **v6 generado, pendiente de subir** (33 secciones) + Datos clave + Productos y servicios + Descripción del negocio | pestaña Fuentes |
 
 ### ⏱️ Una fuente recién subida NO responde de inmediato
 
@@ -36,6 +36,17 @@ verificar un cambio de contenido, **espera** o valida de otra forma.
 **Cómo distinguir de dónde salió una respuesta:** el panel de prueba trae un desplegable
 **"Fuentes utilizadas"** en cada mensaje. Y hay una pista de contenido — si la respuesta cita algo
 textual que sólo existe en la versión nueva, ya indexó.
+
+⚠️ **Al guardar una fuente de texto NO sale ningún toast y el modal se queda abierto.** Parece que
+falló; no falló. La señal real está en la **columna TIPO de la lista**: pasa de `Texto` a
+**`Actualizando`** mientras reindexa y vuelve a `Texto` al terminar. Confundió dos veces en la misma
+sesión y llevó a re-guardar de más. **Verificá por la columna, no por el toast.**
+
+⚠️ **Editar una Pauta por código no basta.** Si se inyecta el valor con el setter nativo de React, el
+botón **Guardar ni siquiera aparece** y el cambio se pierde. Hay que **enfocar el campo de verdad y
+escribir con teclas** (o al menos hacer `blur()` después) para que React lo marque sucio. Patrón que
+funciona: `triple_click` para seleccionar todo → escribir el texto sin acentos → setter con la
+versión acentuada → `blur` → aparece **Guardar**.
 
 ⚠️ **Las Pautas NO tienen este retraso**: son parte del prompt y aplican al instante. Por eso una
 prueba puede pasar por la pauta y fallar por la fuente, o al revés. **Cuando pautas y fuente se
