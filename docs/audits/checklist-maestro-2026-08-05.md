@@ -42,14 +42,16 @@
 
 ### P1 · Bugs confirmados
 
-- [ ] **B3 · El gate de migraciones mide el checkout.**
-      `scripts/check-migrations-applied.mjs` usa `fs.readdirSync`; en un árbol
-      atrasado da verde por omisión. Que lea `git ls-tree origin/main`. Barato y
-      desbloquea confiar en el resto del gate.
-- [ ] **B1 · El push borra la suscripción del operario por un fallo de red.**
-      `lib/studio/notify/send-operario-push.ts:76-78` manda a `deadIds` fallos
-      transitorios y `:92` borra. Solo 410/404 debe matar una suscripción.
-      *Impacto hoy bajo* — `outbox_push_events` tiene 0 filas históricas.
+- [x] **B3 · El gate de migraciones medía el checkout.** ✅ Ahora mide
+      **`origin/main` ∪ el checkout**, con `git ls-tree` + fetch best-effort. Si
+      no puede consultar git lo dice con `[AVISO]` en vez de callarse. 4 tests
+      nuevos, validados con mutación. `AGENTS.md` actualizado — documentaba el
+      punto ciego como vigente.
+- [x] **B1 · El push borraba la suscripción del operario por un fallo de red.**
+      ✅ Ahora **solo 410/404** borra; los transitorios cuentan y siguen. El
+      archivo no tenía test propio: le puse 6, validados con mutación.
+      *Impacto hoy bajo* — `outbox_push_events` tiene 0 filas históricas, pero
+      era una bomba para cuando el push se encienda de verdad.
 - [ ] **B2 · Qué ve el cliente cuando un aviso rebota.** El webhook ya marca
       `bounced` y el dato está en `mail_logs.metadata`. Falta la pantalla.
 - [x] ~~**Numeración: 10 duplicados.**~~ ⚠️ **Descartado — el hallazgo era mío y
