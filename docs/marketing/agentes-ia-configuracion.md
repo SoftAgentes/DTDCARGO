@@ -13,10 +13,12 @@
 | **CAPA 1 · identidad de Manuel** | ✅ **cargada y verificada** — 1.457 car., recargando desde el servidor |
 | Pauta "¿eres una persona?" | ✅ reescrita a Manuel (decía "asistente virtual", contradecía la CAPA 1) |
 | **Las 3 pautas de réplicas** | ✅ **cargadas** — 262 · 202 · 188 car. |
-| Total de pautas | ✅ **27**, ninguna vacía |
+| **Las 11 pautas del arquetipo de Entrada** | ✅ **cargadas y verificadas** |
+| Total de pautas | ✅ **38** de 50, ninguna vacía |
 | **Fuente v7 (DOCX)** | ✅ subida, **35 subsecciones**, usada por el Agente **y** por "Respuesta sugerida" |
-| **Las 11 pautas del arquetipo de Entrada** | ⛔ **pendientes** — seguir los 4 pasos de abajo |
+| Probar la batería de 8 casos | ⛔ pendiente |
 | Cadena de traspaso a humano | ⛔ pendiente, bloqueada por una decisión (quién recibe) |
+| `Un usuario responde → Detener agente de IA` | ⛔ pendiente, **no** depende de esa decisión |
 
 🔴 **Cómo se carga una pauta nueva sin que se guarde en blanco** (aprendido a los golpes, 2026-08-06):
 
@@ -100,10 +102,10 @@ documento **hay que volver a subirlo a Kommo**. Tarda hasta ~2 h en indexar.
 Es el agente que existe hoy (#326244). **No se crea uno nuevo: se reescribe éste.** Su CAPA 1 ya
 está cargada; lo que falta son estas 11 pautas.
 
-### ⌨️ Las 11 pautas del arquetipo — **tecleadas a mano**, una por `+ Añadir pauta`
+### ✅ Las 11 pautas del arquetipo — cargadas el 2026-08-06
 
-Van **después** de las 24 que ya tiene. Ninguna contradice a las existentes; se revisó una por una.
-Cada línea es una pauta, todas por debajo de los 300 caracteres.
+Verificadas recargando desde el servidor, con estos largos: 117 · 163 · 97 · 145 · 139 · 123 · 112 ·
+174 · 149 · 87 · 110. Ninguna contradice a las que ya estaban; se revisó una por una.
 
 ```
 En esta etapa recibes y clasificas, no cotizas. Primero contestas lo que te preguntaron; recién después preguntas tú.
