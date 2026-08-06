@@ -8,9 +8,47 @@ review-by: 2026-09-07
 
 # Runbook — Reconfiguración de Kommo (CRM)
 
-> Operación supervisada de la cuenta `doortudoor.kommo.com` (DTD CARGO / DoorTuDoor C.A) para SDD-0062. Se opera vía la extensión de Chrome con el founder logueado y confirmando cada acción destructiva. **Read-only primero; nada destructivo sin OK explícito.**
+> Operación supervisada de la cuenta **`dtdcargo.kommo.com`** (cuenta `31589859`) para SDD-0062. Se opera vía la extensión de Chrome con el founder logueado y confirmando cada acción destructiva. **Read-only primero; nada destructivo sin OK explícito.**
+>
+> ⚠️ **`doortudoor.kommo.com` NO existe** — devuelve `x-error: Account not found`, que se lee como un 401 y manda a diagnosticar el token cuando el problema es el subdominio. Este runbook lo decía mal hasta el 2026-08-05.
 
-## Snapshot del estado (en vivo, 2026-06-07 · read-only)
+## ✅ Estado actual del AI Agent (2026-08-05)
+
+**Agente "DTD Cargo asistente de ventas" (#326244) — `DESACTIVADO`, sin canales.** No le habla a
+ningún cliente. Activarlo es decisión del founder y **no está autorizada**.
+
+| Capa | Contenido | Dónde se cambia |
+|---|---|---|
+| **Persona** | 1.280 car. Prohíbe explícitamente "DDP", "prepago", "financiamiento" y "responsabilidad" | pestaña Personalidad |
+| **Pautas** | **24** (tope de Kommo: 50 líneas × 300 car.) | pestaña Personalidad |
+| **Acciones** | **6** (tope: 20) | pestaña Acciones |
+| **Fuentes** | DOCX **v4** (33 secciones) + Datos clave + Productos y servicios + Descripción del negocio | pestaña Fuentes |
+
+### El traspaso a un humano — cómo funciona de verdad
+
+Kommo trae un intent **nativo**: en una acción, `Cuando → El cliente quiere → **hablar con un agente
+humano**`. No hay que escribir palabras clave ni adivinar sinónimos; el modelo clasifica la intención.
+La acción es **`Transferir al usuario`**, con dos parámetros que importan:
+
+- **`con` / `sin el permiso del cliente`** — "con permiso" hace que el agente pregunte antes. Para
+  este disparador va **`sin`**: el cliente YA pidió una persona, volver a preguntarle molesta.
+- **`con resumen de conversaciones`** — el asesor recibe el hilo resumido y el cliente no repite nada.
+
+Hay además un **mensaje de traspaso** opcional que se le manda al cliente en ese momento.
+
+Los tres disparadores de traspaso configurados hoy:
+
+| Cuando | Permiso |
+|---|---|
+| El cliente quiere **hablar con un agente humano** | sin permiso (creado 2026-08-05) |
+| El cliente confirma que **quiere comprar** | sin permiso |
+| El **sentimiento** del cliente es frustrado o triste | sin permiso |
+
+⚠️ **Ojo con el silencio.** Si el cliente pregunta algo que no está en Fuentes, el agente **no dice
+"no sé": no responde nada**. El traspaso sólo ocurre si hay una acción que lo dispare, así que cada
+tema sin política cerrada necesita su sección de escalamiento escrita — no basta con omitirlo.
+
+## Snapshot del estado (en vivo, 2026-06-07 · read-only · ⚠️ desactualizado, ver arriba)
 
 | Área | Estado real | Implicación |
 |---|---|---|
