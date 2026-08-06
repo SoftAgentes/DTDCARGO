@@ -353,17 +353,20 @@ Si tienes mucho volumen sí te conviene el **contenedor completo (FCL)**, que se
 ### 28. Dirección para recibir compras de Alibaba / 1688
 **Preguntas:** ¿Cómo registro mi dirección para que mis paquetes lleguen por Alibaba u otra plataforma 1688? · ¿Qué dirección pongo en Alibaba / 1688 / Taobao? · ¿A dónde envío mis compras online de China? · ¿Cuál es la dirección de recepción de la bodega en China? · ¿Cómo le digo a mi proveedor a dónde enviar? · Dirección de entrega para mis pedidos de Alibaba
 
-**Respuesta (aprobada · captura email):** ¡Hola! Para que tus compras de **Alibaba / 1688 / Taobao** lleguen a nuestra bodega en China, pon ESTA dirección como destino del pedido, con **tu código Shipping Mark (唛头) en el nombre del destinatario** (así sabemos que la caja es tuya):
+**Se responde en DOS pasos. No pegues la dirección en el primer mensaje.**
+
+**Paso 1 — primera vez que la piden:** ¡Hola! Te la puedo dar sin problema, pero déjame decirte lo que de verdad te conviene: **regístrate gratis en dtdcargo.com/registro** y carga tu compra con su **pre-alerta**. Ahí pasan dos cosas que valen oro: a tu proveedor le llega un **enlace con todo lo que necesita** para despacharte, y tú le **haces seguimiento** a esa compra desde tu portal en vez de andar preguntando. Y hay un detalle práctico: **la dirección sola no sirve** — el destinatario tiene que llevar **tu Shipping Mark**, porque si no, la caja llega a la bodega y no sabemos de quién es.
+
+**Pregunta de continuación:** *"¿Te ayudo a sacar tu Shipping Mark ahora? Es un minuto."*
+
+**Paso 2 — sólo si insiste o dice que la quiere igual:** ahí sí se la das completa, con el recordatorio del Shipping Mark en el nombre del destinatario:
 收货人 / Nombre: DTD Cargo - [tu Shipping Mark]  (ej. DTD-1014)
 电话 / Teléfono: +86 180 0689 1419
 地址 / Dirección: 浙江省义乌市义乌港二期直通仓2栋2号 货7-货11
 邮编 / Código postal: 322000
 仓库联系人 / Contacto de bodega: 林冠 (Lin Guan)
-Si aún no tienes tu Shipping Mark, regístrate gratis en dtdcargo.com/registro (te lo dan al instante) y déjame tu correo.
 
-**Pregunta de continuación:** *"¿Cada cuánto sueles hacer pedidos en Alibaba o 1688?"*
-
-> *Nota interna: dirección de recepción REAL para Alibaba/1688/Taobao (provista por founder 2026-06-08). El nombre del destinatario lleva el Shipping Mark del cliente → necesita registrarse. ⚠️ Revisar coherencia con #4 "Cómo enviar a nuestra bodega" (hoy defiere la dirección completa al registro); el founder decidió darla abierta para el flujo Alibaba.*
+> *Nota interna: dirección de recepción REAL para Alibaba/1688/Taobao (founder 2026-06-08). ⚠️ **Reordenada 2026-08-05 (founder):** antes se entregaba abierta en el primer mensaje y el agente la soltaba de una — verificado en el panel de prueba, incluyendo el contacto de bodega y el detalle de cargo. La instrucción vigente es **ofrecer el registro primero y darla sólo si insiste**, porque la pre-alerta es lo que le da seguimiento al cliente y le manda el enlace al proveedor. Esto ya no choca con #4: ambas difieren la dirección completa. La pauta equivalente está cargada en Kommo, pero **la fuente le gana a la pauta** — por eso el arreglo va acá.*
 
 ---
 
