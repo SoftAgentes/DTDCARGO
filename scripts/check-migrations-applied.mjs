@@ -15,12 +15,18 @@
  * (La 0169 cayó en la misma trampa y estuvo una ronda perdida; se aplicó el
  * 2026-07-16. Ambas están cerradas.)
  *
- * PUNTO CIEGO CONOCIDO — SE MIDE EL CHECKOUT, NO `origin/main`: la lista de
- * archivos sale de `supabase/migrations/` del árbol donde corre. En un checkout
- * atrasado los archivos nuevos no existen en disco, así que no se comparan contra
- * nada y el paso sale VERDE por omisión. Así pasaron las 0317-0324: estaban en
- * `main` (y su código desplegado en prod) pero no en la DB, y acá se veía verde.
- * Sincronizá con `origin/main` antes de creerle al verde.
+ * PUNTO CIEGO CERRADO (2026-08-05) — SE MIDE `origin/main` ∪ EL CHECKOUT: antes la
+ * lista salía sólo de `supabase/migrations/` del árbol donde corre, así que en un
+ * checkout atrasado los archivos nuevos no existían en disco, no se comparaban
+ * contra nada y el paso salía VERDE POR OMISIÓN. Así pasaron las 0317-0324:
+ * estaban en `main` (y su código desplegado en prod) pero no en la DB, y acá se
+ * veía verde. Ya no hay que acordarse de sincronizar antes de creerle.
+ *
+ * La unión es a propósito, y cada mitad cubre un caso distinto:
+ *   · `origin/main` → lo que YA está publicado y quizá no está en tu disco.
+ *   · el checkout    → lo que estás escribiendo y todavía no pusheaste.
+ * Si git no se puede consultar (sin remoto, clone shallow, sin red) NO se cae al
+ * verde silencioso: avisa en pantalla que está midiendo sólo el checkout.
  *
  * QUÉ **NO** HACE: buscar huecos en la numeración. Faltan 0061-0065, 0089, 0099,
  * 0111, 0112 en disco y está bien — números que nunca se usaron. El hueco de la
@@ -49,6 +55,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 
 const C = { green: "\x1b[32m", red: "\x1b[31m", dim: "\x1b[2m", yellow: "\x1b[33m", nc: "\x1b[0m" };
 const MIGRATIONS_DIR = path.join(process.cwd(), "supabase", "migrations");
@@ -95,13 +102,62 @@ function readEnvLocal() {
   return out;
 }
 
-/** Los .sql de supabase/migrations, sin extensión. */
-function localMigrations() {
+/** Los .sql de supabase/migrations EN DISCO, sin extensión. */
+function diskMigrations() {
   return fs
     .readdirSync(MIGRATIONS_DIR)
     .filter((f) => f.endsWith(".sql"))
-    .map((f) => f.replace(/\.sql$/, ""))
-    .sort();
+    .map((f) => f.replace(/\.sql$/, ""));
+}
+
+/**
+ * Los .sql de supabase/migrations EN `origin/main`, sin extensión.
+ *
+ * Devuelve `null` —no `[]`— cuando git no se puede consultar. La diferencia
+ * importa: `[]` diría "main no tiene migraciones", que es falso y volvería al
+ * verde por omisión que este check existe para evitar. `null` significa "no sé",
+ * y el caller lo reporta en pantalla.
+ *
+ * El `fetch` es best-effort: sin red se sigue con la ref local, que igual suele
+ * estar más adelantada que un worktree viejo.
+ */
+function mainMigrations() {
+  try {
+    try {
+      execFileSync("git", ["fetch", "origin", "main", "--quiet"], {
+        stdio: "ignore",
+        timeout: 20_000,
+      });
+    } catch {
+      // Sin red / sin remoto: seguimos con la ref local de origin/main.
+    }
+
+    const out = execFileSync(
+      "git",
+      ["ls-tree", "-r", "--name-only", "origin/main", "--", "supabase/migrations"],
+      { encoding: "utf8", timeout: 20_000 },
+    );
+
+    return out
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l.endsWith(".sql"))
+      // git siempre devuelve rutas con "/", también en Windows.
+      .map((l) => l.slice(l.lastIndexOf("/") + 1).replace(/\.sql$/, ""));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * La lista contra la que se mide: `origin/main` ∪ disco.
+ *
+ * @returns {{files: string[], sawMain: boolean}}
+ */
+export function collectMigrationFiles(fromMain, fromDisk) {
+  const all = new Set(fromDisk);
+  for (const f of fromMain ?? []) all.add(f);
+  return { files: [...all].sort(), sawMain: fromMain !== null };
 }
 
 /** Prefijo numérico del basename (0006b → 6, 0239_foo → 239). null si no arranca con NNNN. */
@@ -181,7 +237,14 @@ async function main() {
   }
 
   const { cutoff, pending } = readBaseline();
-  const files = localMigrations();
+  const { files, sawMain } = collectMigrationFiles(mainMigrations(), diskMigrations());
+  if (!sawMain) {
+    // No es un SKIP: el check sigue y mide lo que hay. Pero se dice en voz alta,
+    // porque este verde vale menos que el otro — es el punto ciego histórico.
+    console.log(
+      `${C.yellow}[AVISO]${C.nc} migrations-applied: no pude leer origin/main → mido SÓLO el checkout (punto ciego: un árbol atrasado sale verde por omisión)`,
+    );
+  }
 
   let ledger;
   try {

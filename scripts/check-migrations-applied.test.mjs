@@ -13,7 +13,11 @@
  * la línea de corte.
  */
 import { describe, expect, it } from "vitest";
-import { findMissing, migrationNumber } from "./check-migrations-applied.mjs";
+import {
+  collectMigrationFiles,
+  findMissing,
+  migrationNumber,
+} from "./check-migrations-applied.mjs";
 
 const CUTOFF = 238;
 
@@ -30,6 +34,44 @@ describe("migrationNumber", () => {
 
   it("devuelve null si no arranca con NNNN", () => {
     expect(migrationNumber("init_tenancy")).toBeNull();
+  });
+});
+
+describe("collectMigrationFiles", () => {
+  it("⭐ ve una migración que está en origin/main y NO en el disco — el punto ciego 0317-0324", () => {
+    // El caso real: un worktree atrasado. El archivo existe en main (y su código
+    // ya desplegado en prod) pero no en disco, así que antes no se comparaba
+    // contra nada y el gate salía VERDE por omisión.
+    const { files, sawMain } = collectMigrationFiles(
+      ["0317_en_main", "0318_en_main"],
+      ["0001_vieja"],
+    );
+
+    expect(files).toEqual(["0001_vieja", "0317_en_main", "0318_en_main"]);
+    expect(sawMain).toBe(true);
+    // Y llega entera hasta la decisión: sin la unión, esto daría [].
+    expect(findMissing(files, new Set(), CUTOFF)).toEqual([
+      "0317_en_main",
+      "0318_en_main",
+    ]);
+  });
+
+  it("sigue viendo lo que está en disco y todavía no se pusheó", () => {
+    const { files } = collectMigrationFiles(["0240_publicada"], ["0241_local_sin_pushear"]);
+    expect(files).toEqual(["0240_publicada", "0241_local_sin_pushear"]);
+  });
+
+  it("no duplica lo que está en los dos lados", () => {
+    const { files } = collectMigrationFiles(["0240_x"], ["0240_x"]);
+    expect(files).toEqual(["0240_x"]);
+  });
+
+  it("sin git (null) mide sólo el disco y lo marca — no finge que main está vacío", () => {
+    // `null` ≠ `[]`. Si mainMigrations() devolviera [] estaríamos afirmando "main
+    // no tiene migraciones", que es falso y reabre el verde por omisión.
+    const { files, sawMain } = collectMigrationFiles(null, ["0001_vieja"]);
+    expect(files).toEqual(["0001_vieja"]);
+    expect(sawMain).toBe(false);
   });
 });
 
