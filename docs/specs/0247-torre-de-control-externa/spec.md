@@ -1,5 +1,5 @@
 ---
-sdd: "0244"
+sdd: "0247"
 title: "Torre de control externa: un vigía que no vive adentro de lo que vigila"
 status: in-progress
 author: "Sam (founder) + Claude Code"
@@ -11,7 +11,7 @@ related: ["0238"]
 confidencialidad: interno
 ---
 
-# SDD-0244 · Torre de control externa
+# SDD-0247 · Torre de control externa
 
 ## El problema
 

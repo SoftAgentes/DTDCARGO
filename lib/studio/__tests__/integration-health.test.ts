@@ -1,5 +1,5 @@
 /**
- * Contrato del modo barato de `checkAllIntegrations` (SDD-0244).
+ * Contrato del modo barato de `checkAllIntegrations` (SDD-0247).
  *
  * Por qué existe: la torre de control externa sondea `/api/debug/health?cheap=1`
  * cada 15 minutos. El chequeo completo pinga SeaRates en CADA llamada, y esa

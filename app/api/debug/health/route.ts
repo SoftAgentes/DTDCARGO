@@ -15,7 +15,7 @@
  * Studio vía `fetchRemoteHealth`) o `?key=<s>` (fallback para chequeo manual desde
  * el navegador; el query puede quedar en logs, preferí el header).
  *
- * MODO BARATO (SDD-0244): `?cheap=1` salta las integraciones que consumen cuota o
+ * MODO BARATO (SDD-0247): `?cheap=1` salta las integraciones que consumen cuota o
  * tokens por ping (SeaRates, Anthropic, OpenRouter) y las marca `skipped` con el
  * motivo. Es para el vigía externo, que sondea cada 15 min: el chequeo completo
  * a esa cadencia son ~96 llamadas/día contra la cuota de SeaRates, que es de 100
