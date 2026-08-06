@@ -28,6 +28,10 @@ export async function GET(
   if (!id) return apiError("Falta el id de la conversación.", null, 400, "conversaciones");
 
   const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) {
+    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  }
 
   // El hilo debe ser visible para el tenant del caller (RLS).
   const { data: conv, error } = await supabase

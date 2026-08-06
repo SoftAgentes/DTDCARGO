@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { BrandMark } from "@/components/BrandMark";
 import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
   SERVICE_LABELS,
@@ -43,7 +44,7 @@ import {
 import { signOut } from "@/app/studio/(app)/actions";
 import {
   createExpenseAction,
-  softDeleteExpenseAction,
+  voidExpenseAction,
   updateExpenseAction,
 } from "../actions";
 import { ErpBottomNav } from "./ErpBottomNav";
@@ -165,6 +166,7 @@ export function MobileErpClient({
       {editingExpense && (
         <EditExpenseSheet
           expense={editingExpense}
+          canVoid={user.role === "accounting" || user.role === "admin"}
           receiptUrl={
             editingExpense.receipt_path
               ? receiptUrls[editingExpense.receipt_path]
@@ -2551,10 +2553,12 @@ function QuickAction({
 
 function EditExpenseSheet({
   expense,
+  canVoid,
   receiptUrl,
   onClose,
 }: {
   expense: Expense;
+  canVoid: boolean;
   receiptUrl?: string;
   onClose: () => void;
 }) {
@@ -2571,9 +2575,10 @@ function EditExpenseSheet({
   const [removeReceipt, setRemoveReceipt] = useState(false);
   const [receiptError, setReceiptError] = useState<string | null>(null);
 
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [voidOpen, setVoidOpen] = useState(false);
+  const [isVoiding, setIsVoiding] = useState(false);
+  const [voidError, setVoidError] = useState<string>();
+  const [voidRequestRef, setVoidRequestRef] = useState("");
 
   const updateBound = updateExpenseAction.bind(null, expense.id);
   const [state, formAction, isPending] = useActionState(
@@ -2605,25 +2610,32 @@ function EditExpenseSheet({
     setNewReceiptPreview(URL.createObjectURL(file));
   };
 
-  const handleDelete = async () => {
-    setIsDeleting(true);
-    setDeleteError(null);
-    const result = await softDeleteExpenseAction(expense.id);
+  const openVoidDialog = () => {
+    setVoidError(undefined);
+    setVoidRequestRef(`expense-void:${expense.id}:${crypto.randomUUID()}`);
+    setVoidOpen(true);
+  };
+
+  const handleVoid = async (reason: string) => {
+    setIsVoiding(true);
+    setVoidError(undefined);
+    const result = await voidExpenseAction(expense.id, reason, voidRequestRef);
     if (result.ok) {
       router.refresh();
       onClose();
       return;
     }
-    setDeleteError(result.error ?? "Error al eliminar.");
-    setIsDeleting(false);
+    setVoidError(result.error ?? "No se pudo anular el gasto.");
+    setIsVoiding(false);
   };
 
-  const canSubmit = Number(amount) > 0 && !!category && !isPending && !isDeleting;
+  const canSubmit = Number(amount) > 0 && !!category && !isPending && !isVoiding;
   const hasExistingPhoto = !!expense.receipt_path && !removeReceipt && !newReceiptPreview;
 
   return (
+    <>
     <div
-      onClick={onClose}
+      onClick={isPending || isVoiding ? undefined : onClose}
       style={{
         position: "fixed",
         inset: 0,
@@ -2693,7 +2705,7 @@ function EditExpenseSheet({
           <button
             type="button"
             onClick={onClose}
-            disabled={isPending || isDeleting}
+            disabled={isPending || isVoiding}
             style={{
               background: "transparent",
               border: 0,
@@ -3107,7 +3119,7 @@ function EditExpenseSheet({
           </div>
         </label>
 
-        {(state?.error || deleteError) && (
+        {state?.error && (
           <div
             style={{
               padding: 10,
@@ -3117,7 +3129,7 @@ function EditExpenseSheet({
               font: "600 12px/1.3 var(--f-sans)",
             }}
           >
-            {state?.error || deleteError}
+            {state.error}
           </div>
         )}
 
@@ -3126,7 +3138,7 @@ function EditExpenseSheet({
           <button
             type="button"
             onClick={onClose}
-            disabled={isPending || isDeleting}
+            disabled={isPending || isVoiding}
             className="studio-btn studio-btn-ghost"
           >
             Cancelar
@@ -3140,56 +3152,51 @@ function EditExpenseSheet({
           </button>
         </div>
 
-        {/* Delete con confirm inline */}
-        <div
-          style={{
-            marginTop: 4,
-            padding: "12px 0 4px",
-            borderTop: "1px solid var(--border)",
-            display: "flex",
-            justifyContent: "center",
-          }}
-        >
-          {!confirmDelete ? (
+        {canVoid && (
+          <div
+            style={{
+              marginTop: 4,
+              padding: "12px 0 4px",
+              borderTop: "1px solid var(--border)",
+              display: "flex",
+              justifyContent: "center",
+            }}
+          >
             <button
               type="button"
-              onClick={() => setConfirmDelete(true)}
-              disabled={isPending || isDeleting}
+              onClick={openVoidDialog}
+              disabled={isPending || isVoiding}
               className="studio-btn studio-btn-ghost studio-btn-sm"
               style={{ color: "var(--danger)" }}
             >
-              Eliminar este gasto
+              Anular este gasto
             </button>
-          ) : (
-            <div style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
-              <span
-                style={{
-                  font: "600 12px/1 var(--f-sans)",
-                  color: "var(--ink-soft)",
-                }}
-              >
-                ¿Seguro?
-              </span>
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="studio-btn studio-btn-danger studio-btn-sm"
-              >
-                {isDeleting ? "Eliminando…" : "Sí, eliminar"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmDelete(false)}
-                disabled={isDeleting}
-                className="studio-btn studio-btn-ghost studio-btn-sm"
-              >
-                No
-              </button>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </form>
     </div>
+      <ConfirmDialog
+        open={voidOpen}
+        danger
+        reason
+        reasonRequired
+        holdToConfirm
+        initialFocus="safe"
+        title={`Anular gasto ${expense.expense_code}`}
+        message="El registro y su recibo se conservarán. El asiento contable asociado quedará anulado y dejará de afectar los saldos."
+        confirmLabel="Anular gasto"
+        reasonLabel="Motivo de la anulación"
+        reasonPlaceholder="Ej: gasto duplicado después de conciliación"
+        holdLabel="Mantén presionado para anular"
+        holdAlternativeLabel="Entiendo que el registro se conservará y prefiero anular con un clic"
+        pending={isVoiding}
+        error={voidError}
+        onCancel={() => {
+          setVoidOpen(false);
+          setVoidError(undefined);
+        }}
+        onConfirm={handleVoid}
+      />
+    </>
   );
 }

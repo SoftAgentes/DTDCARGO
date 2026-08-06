@@ -24,6 +24,13 @@ import {
   type ExpenseCategory,
   type ExpenseMethod,
 } from "@/lib/studio/expense-types";
+import { capabilityDenial } from "@/lib/studio/rbac-guard";
+import {
+  expenseVoidErrorMessage,
+  validateExpenseVoidInput,
+  voidExpenseGoverned,
+  type ExpenseVoidOutcome,
+} from "@/lib/studio/expense-void";
 
 const RECEIPT_BUCKET = "expense-receipts";
 const RECEIPT_MAX_BYTES = 5 * 1024 * 1024;
@@ -352,56 +359,25 @@ export async function updateExpenseAction(
   return { ok: true, expenseCode: existing.expense_code };
 }
 
-/**
- * Soft-delete del gasto + cleanup de la foto en Storage si existe.
- */
-export async function softDeleteExpenseAction(
+/** Anulación P3/R3: conserva gasto, asiento, referencias y recibo. */
+export async function voidExpenseAction(
   id: string,
-): Promise<{ ok?: boolean; error?: string }> {
+  reason: string,
+  requestRef: string,
+): Promise<{ ok?: boolean; outcome?: ExpenseVoidOutcome; error?: string }> {
+  const parsed = validateExpenseVoidInput({ expenseId: id, reason, requestRef });
+  if ("error" in parsed) return { error: parsed.error };
+
   const supabase = await createClient();
+  const denial = await capabilityDenial(supabase, "void_expense");
+  if (denial) return { error: denial };
 
-  const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Inicia sesión primero." };
-
-  const { data: existing, error: loadErr } = await supabase
-    .from("expenses")
-    .select("receipt_path, user_id, tenant_id, occurred_at")
-    .eq("id", id)
-    .maybeSingle<{
-      receipt_path: string | null;
-      user_id: string;
-      tenant_id: string;
-      occurred_at: string;
-    }>();
-
-  if (loadErr || !existing) return { error: "Gasto no encontrado." };
-  if (existing.user_id !== userResp.user.id) {
-    return { error: "Solo puedes eliminar tus propios gastos." };
+  try {
+    const outcome = await voidExpenseGoverned(supabase, parsed.input);
+    revalidatePath("/m/erp");
+    revalidatePath("/studio/gastos");
+    return { ok: true, outcome };
+  } catch (error) {
+    return { error: expenseVoidErrorMessage(error, parsed.input.requestRef) };
   }
-
-  // Guard de período cerrado (SDD-0080): no borrar un gasto de período cerrado.
-  const accSettings = await getAccountingSettings(supabase);
-  if (isPeriodClosed(accSettings.closing_date, existing.occurred_at)) {
-    return {
-      error: `Período contable cerrado al ${accSettings.closing_date}: no puedes borrar un gasto de período cerrado.`,
-    };
-  }
-
-  const { error: updateErr } = await supabase
-    .from("expenses")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id);
-
-  if (updateErr) return { error: `No se pudo eliminar: ${updateErr.message}` };
-
-  // Anular el asiento del gasto (best-effort · SDD-0079).
-  await voidExpenseEntriesForExpense(existing.tenant_id, id);
-
-  if (existing.receipt_path) {
-    // Cleanup soft · si falla, el gasto igual quedó eliminado
-    await supabase.storage.from(RECEIPT_BUCKET).remove([existing.receipt_path]);
-  }
-
-  revalidatePath("/m/erp");
-  return { ok: true };
 }

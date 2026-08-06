@@ -4,6 +4,7 @@ import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import {
   kommoFetch,
   paginateTwoPass,
+  paginateUnsorted,
   RATE_LIMIT_DELAY_MS,
   sleep,
 } from "./kommo-client.ts";
@@ -15,6 +16,7 @@ import type {
   KommoCustomField,
   KommoLead,
   KommoPipeline,
+  KommoUnsorted,
   KommoUser,
 } from "./types.ts";
 // SDD-0043 Alcance B · mapeo compartido (single source of truth con kommo-webhook + Vitest).
@@ -208,6 +210,68 @@ export async function syncAll(
         fetched: items.length,
         upserted: await upsertRows(supabase, "kommo_leads", rows),
       };
+    }),
+  );
+
+  // 4b) Bandeja de entrada — leads que llegaron y NADIE acepto todavia (SDD-0245).
+  // `/api/v4/leads` NO los devuelve, asi que sin esto el ERP mide sobre una
+  // fraccion del embudo (medido 2026-08-03: 8 de 11 leads del dia, invisibles).
+  await sleep(RATE_LIMIT_DELAY_MS);
+  results.push(
+    await logged(supabase, conn, "unsorted", async () => {
+      // Marca de agua ANTES del upsert: todo lo que siga vivo quedara con
+      // synced_at >= runAt, y lo que ya no este en Kommo quedara por debajo.
+      const runAt = new Date().toISOString();
+
+      const { items, truncated } = await paginateUnsorted<KommoUnsorted>(
+        baseUrl,
+        token,
+      );
+
+      const rows = items.map((u) => ({
+        tenant_id: t,
+        uid: u.uid,
+        category: u.category ?? null,
+        source_name: u.source_name ?? null,
+        pipeline_id: u.pipeline_id ?? null,
+        lead_id: u._embedded?.leads?.[0]?.id ?? null,
+        contact_id: u._embedded?.contacts?.[0]?.id ?? null,
+        kommo_created_at: u.created_at
+          ? new Date(u.created_at * 1000).toISOString()
+          : null,
+        raw: u,
+      }));
+
+      const upserted = await upsertRows(
+        supabase,
+        "kommo_unsorted",
+        rows,
+        "tenant_id,uid",
+      );
+
+      // La bandeja es una COLA que drena: lo aceptado/rechazado desaparece de
+      // Kommo y debe desaparecer del espejo, o el conteo miente al alza.
+      //
+      // ⚠️ Solo se drena si la lectura fue COMPLETA. Con la cola truncada por el
+      // tope de paginas, lo que no vimos no esta "aceptado" — esta mas alla de la
+      // pagina 20, y borrarlo seria inventar que ya no existe.
+      if (!truncated) {
+        const { error } = await supabase
+          .from("kommo_unsorted")
+          .delete()
+          .eq("tenant_id", t)
+          .lt("synced_at", runAt);
+        if (error) throw new Error(`kommo_unsorted drenaje: ${error.message}`);
+      }
+
+      if (truncated) {
+        // No es un `ok` limpio: el conteo es un piso, no un total.
+        throw new Error(
+          `bandeja truncada en el tope de ${items.length} entradas: hay mas sin espejar`,
+        );
+      }
+
+      return { fetched: items.length, upserted };
     }),
   );
 

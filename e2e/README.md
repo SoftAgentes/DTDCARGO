@@ -30,6 +30,7 @@ BASE_URL=http://localhost:3001 node node_modules/@playwright/test/cli.js test e2
 | `mobile-operario.spec.ts` | 2 | ⬜ | branch + seed-e2e |
 | `studio-crud.spec.ts` | 3 | ⬜ | branch + seed-e2e |
 | `finanzas.spec.ts` | 3 | ⬜ | branch + seed-e2e |
+| `nomina-settlement-void.spec.ts` | 3 | ✅ | branch efímero + `seed:e2e` + `STUDIO_E2E_*` |
 | `rls-isolation.spec.ts` | 4 | ⬜ | branch + seed-e2e (2 tenants) |
 
 ## Las 4 superficies de auth (cada una con su mecanismo)
@@ -49,7 +50,8 @@ corrida CI** — NO contra prod ni dev. Flujo:
 1. **Crear branch** (Supabase MCP `create_branch` o `supabase branches create`) → DB limpia
    con todas las migraciones aplicadas.
 2. **Seed e2e** (`scripts/seed-e2e.ts`): fixture mínimo y determinista para
-   SDD-0168 (tenant + 2 usuarios + perfiles/membresías + embarque). Se niega a
+   SDD-0168 y SDD-0226 (tenant + 2 usuarios + perfiles/membresías + embarque +
+   empleado y finiquito ficticios). Se niega a
    ejecutar contra el `project_ref` productivo y valida que URL/ref coincidan.
    La ampliación al journey transversal sigue pendiente:
    1 tenant + usuarios auth con email/password conocidos (Studio/Back) + 1 operario

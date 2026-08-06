@@ -32,6 +32,10 @@ const IN_TRANSIT_STATES: ShipmentStatus[] = [
 
 export async function GET() {
   const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) {
+    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  }
   const { data, error } = await supabase
     .from("shipments")
     .select("status");

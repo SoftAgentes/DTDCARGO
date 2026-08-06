@@ -136,6 +136,92 @@ async function main() {
   });
   await check(shipmentError, "No se pudo preparar el embarque");
 
+  const { error: employeeError } = await admin.from("nomina_employees").insert({
+    id: fixture.payrollEmployeeId,
+    tenant_id: fixture.tenantId,
+    employee_code: fixture.payrollEmployeeCode,
+    full_name: "Persona Ficticia E2E",
+    position_label: "Analista de pruebas",
+    department: "Calidad",
+    salary_usd: 1200,
+    hire_date: "2024-01-15",
+    status: "egresado",
+    notes: "Fixture desechable SDD-0226; no corresponde a una persona real.",
+    created_by: adminUser.id,
+  });
+  await check(employeeError, "No se pudo preparar el empleado ficticio de Nómina");
+
+  const { error: journalError } = await admin.from("journal_entries").insert({
+    id: fixture.payrollJournalEntryId,
+    tenant_id: fixture.tenantId,
+    entry_code: fixture.payrollJournalEntryCode,
+    entry_date: "2026-07-31",
+    memo: "Fixture desechable del finiquito gobernado SDD-0226",
+    status: "asentado",
+    source: "payroll_settlement",
+    posted_at: "2026-07-31T12:00:00.000Z",
+  });
+  await check(journalError, "No se pudo preparar el asiento ficticio de Nómina");
+
+  const { error: settlementError } = await admin.from("nomina_settlements").insert({
+    id: fixture.payrollSettlementId,
+    tenant_id: fixture.tenantId,
+    settlement_code: fixture.payrollSettlementCode,
+    employee_id: fixture.payrollEmployeeId,
+    employee_code: fixture.payrollEmployeeCode,
+    employee_name: "Persona Ficticia E2E",
+    termination_cause: "renuncia_76",
+    hire_date: "2024-01-15",
+    termination_date: "2026-07-31",
+    base_salary_usd: 1200,
+    rules_snapshot: { fixture: "SDD-0226", advisory: true },
+    // El guard de 0316 sólo permite crear renglones mientras el finiquito
+    // sigue abierto. El fixture reproduce el orden real: borrador, desglose y
+    // recién entonces confirmación.
+    status: "borrador",
+    total_prestaciones_usd: 800,
+    total_fracciones_usd: 250,
+    total_indemnizacion_usd: 0,
+    total_intereses_usd: 25,
+    total_deductions_usd: 75,
+    total_net_usd: 1000,
+    salario_integral_usd: 1300,
+    journal_entry_id: fixture.payrollJournalEntryId,
+    confirmed_at: null,
+    notes: "Fixture desechable SDD-0226; no corresponde a una liquidación real.",
+    created_by: adminUser.id,
+  });
+  await check(settlementError, "No se pudo preparar el finiquito ficticio");
+
+  const { error: settlementLineError } = await admin
+    .from("nomina_settlement_lines")
+    .insert({
+      id: fixture.payrollSettlementLineId,
+      tenant_id: fixture.tenantId,
+      settlement_id: fixture.payrollSettlementId,
+      kind: "prestaciones",
+      label: "Prestaciones sociales ficticias E2E",
+      days: 20,
+      base_usd: 1200,
+      amount_usd: 800,
+    });
+  await check(
+    settlementLineError,
+    "No se pudo preparar el desglose ficticio del finiquito",
+  );
+
+  const { error: confirmSettlementError } = await admin
+    .from("nomina_settlements")
+    .update({
+      status: "confirmado",
+      confirmed_at: "2026-07-31T12:00:00.000Z",
+    })
+    .eq("id", fixture.payrollSettlementId);
+  await check(
+    confirmSettlementError,
+    "No se pudo confirmar el finiquito ficticio",
+  );
+
   console.log(
     JSON.stringify({
       ready: true,
@@ -143,6 +229,8 @@ async function main() {
       projectRef: environment.projectRef,
       tenantId: fixture.tenantId,
       shipmentId: fixture.shipmentId,
+      payrollSettlementId: fixture.payrollSettlementId,
+      payrollSettlementCode: fixture.payrollSettlementCode,
       adminUserId: adminUser.id,
       mentionedUserId: mentionedUser.id,
     }),

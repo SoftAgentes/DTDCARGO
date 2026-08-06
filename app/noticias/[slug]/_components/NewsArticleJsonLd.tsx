@@ -17,6 +17,7 @@
 import type { NewsPostRow } from "@/lib/news/types";
 import { getCategoryInfo } from "@/lib/news/categories";
 import { articleSchemaTypeOf } from "@/lib/news/editorial";
+import { serializeJsonLd } from "@/lib/public/json-ld";
 
 interface Props {
   post: NewsPostRow;
@@ -124,7 +125,7 @@ export function NewsArticleJsonLd({ post }: Props) {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: serializeJsonLd(data) }}
     />
   );
 }

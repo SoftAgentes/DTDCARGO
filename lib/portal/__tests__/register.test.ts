@@ -35,6 +35,9 @@ const VALID_PERSONA: Partial<RegisterInput> = {
   document: "V-12345678",
   email: "Carlos@Empresa.com",
   whatsapp: "+58 412 1668021",
+  // Ciudad + estado de entrega: obligatorios desde la migr 0348.
+  city: "Valencia",
+  state: "Carabobo",
 };
 
 describe("validateRegisterInput — alta express (persona)", () => {
@@ -46,8 +49,33 @@ describe("validateRegisterInput — alta express (persona)", () => {
     expect(input?.company).toBeNull();
   });
 
-  it("NO exige dirección (se difiere al perfil)", () => {
-    // El express no pide estado/ciudad/etc: con los 5 campos mínimos pasa.
+  it("exige ciudad y estado de entrega (migr 0348)", () => {
+    // Es a dónde va la mercancía: sin esto el cliente quedaba registrado sin que
+    // supiéramos ni en qué estado está.
+    const sinCiudad = validateRegisterInput({ ...VALID_PERSONA, city: "" });
+    expect(sinCiudad.fieldErrors?.city).toBeDefined();
+    expect(sinCiudad.input).toBeUndefined();
+
+    const sinEstado = validateRegisterInput({ ...VALID_PERSONA, state: "  " });
+    expect(sinEstado.fieldErrors?.state).toBeDefined();
+  });
+
+  it("acepta una ciudad fuera del catálogo (texto libre)", () => {
+    // "Mi ciudad no aparece aquí": perder el lead de un pueblo pequeño sería peor
+    // que guardar un texto sin normalizar. Se recorta el espacio sobrante.
+    const { input, fieldErrors } = validateRegisterInput({
+      ...VALID_PERSONA,
+      city: "  Punta de Mata ",
+      state: " Monagas ",
+    });
+    expect(fieldErrors).toBeUndefined();
+    expect(input?.city).toBe("Punta de Mata");
+    expect(input?.state).toBe("Monagas");
+  });
+
+  it("NO exige la dirección detallada (se difiere al perfil)", () => {
+    // La calle/edificio, el CP y la foto de cédula siguen difiriéndose al portal:
+    // acá se pide en QUÉ ciudad entregar, no la dirección exacta.
     const { input, fieldErrors } = validateRegisterInput(VALID_PERSONA);
     expect(fieldErrors).toBeUndefined();
     expect(input).toBeDefined();
