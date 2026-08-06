@@ -29,8 +29,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import {
+  buildSupersedeIndex,
   collectFailures,
   listMailHealthCandidates,
+  listRecentSuccesses,
   markMailAlerted,
   STUCK_MINUTES,
 } from "@/lib/studio/mail/mail-health";
@@ -90,7 +92,12 @@ export async function GET(req: NextRequest) {
 
   for (const t of (tenants ?? []) as Array<{ id: string }>) {
     const rows = await listMailHealthCandidates(admin, t.id, sinceIso, BATCH_CAP);
-    const failures = collectFailures(rows, now, STUCK_MINUTES);
+    // Un intento fallido cuyo reintento al mismo destinatario YA salió no es un
+    // pendiente: reportarlo entrena al equipo a ignorar el aviso.
+    const supersede = buildSupersedeIndex(
+      await listRecentSuccesses(admin, t.id, sinceIso, BATCH_CAP * 10),
+    );
+    const failures = collectFailures(rows, now, STUCK_MINUTES, supersede);
 
     const summary: TenantSummary = {
       tenant_id: t.id,

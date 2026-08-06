@@ -72,19 +72,75 @@ export type MailFailure = {
   kind: MailFailureKind;
 };
 
+/** Fila de un correo que SÍ salió — insumo del índice de superados. */
+export type MailSuccessRow = {
+  to_email: string;
+  subject: string | null;
+  template_slug: string | null;
+  created_at: string;
+};
+
+/** Statuses que significan "este correo sí salió". */
+const DELIVERED_STATUSES = ["sent", "delivered"];
+
+/**
+ * Clave de "el mismo correo al mismo destinatario".
+ *
+ * Deliberadamente ESTRECHA: destinatario + plantilla (o el asunto, cuando la
+ * fila no guardó plantilla). NO alcanza con "a esta persona le llegó algo
+ * después" — a un cliente le pueden llegar diez facturas y su bienvenida seguir
+ * sin salir. Estrechar acá evita callar un fallo real.
+ */
+export function supersedeKey(row: {
+  to_email: string;
+  template_slug: string | null;
+  subject: string | null;
+}): string {
+  const what = row.template_slug
+    ? `tpl:${row.template_slug}`
+    : `subj:${(row.subject ?? "").trim().toLowerCase()}`;
+  return `${row.to_email.trim().toLowerCase()}|${what}`;
+}
+
+/**
+ * Índice destinatario+correo → epoch ms del ÚLTIMO envío exitoso.
+ *
+ * Existe porque el aviso contaba intentos, no resultados: el 2026-07-11 una
+ * invitación al portal falló 16:22 y salió bien 21:11 el mismo día, y el aviso
+ * seguía reportando la de las 16:22 como "nunca salió". Reportar algo que ya se
+ * resolvió entrena al equipo a ignorar el aviso, que es como muere una alerta.
+ */
+export function buildSupersedeIndex(
+  successes: MailSuccessRow[],
+): Map<string, number> {
+  const index = new Map<string, number>();
+  for (const row of successes) {
+    const ms = Date.parse(row.created_at);
+    if (Number.isNaN(ms)) continue;
+    const key = supersedeKey(row);
+    const prev = index.get(key);
+    if (prev === undefined || ms > prev) index.set(key, ms);
+  }
+  return index;
+}
+
 /**
  * ¿Esta fila es un fallo del que hay que avisar? `null` = no avisar.
  *
  * Pura y determinista: recibe el "ahora" en vez de leer el reloj, para que el
  * test pueda fijar la ventana sin esperar 15 minutos.
  *
- * @param nowMs         epoch ms del momento de la evaluación
- * @param stuckMinutes  ventana de `queued` (default {@link STUCK_MINUTES})
+ * @param nowMs           epoch ms del momento de la evaluación
+ * @param stuckMinutes    ventana de `queued` (default {@link STUCK_MINUTES})
+ * @param supersededAtMs  epoch ms del último envío EXITOSO del mismo correo al
+ *                        mismo destinatario, o `null` si no hubo. Ver
+ *                        {@link buildSupersedeIndex}.
  */
 export function classifyMailFailure(
   row: MailHealthRow,
   nowMs: number,
   stuckMinutes: number = STUCK_MINUTES,
+  supersededAtMs: number | null = null,
 ): MailFailureKind | null {
   const meta = row.metadata ?? {};
 
@@ -93,6 +149,13 @@ export function classifyMailFailure(
 
   // Ya avisado: no repetir. El aviso es una vez por fila, no un recordatorio.
   if (meta[ALERTED_KEY]) return null;
+
+  // Ya superado: al MISMO destinatario le salió el MISMO correo después de este
+  // intento. El fallo existió, pero ya está atendido — avisarlo es ruido.
+  if (supersededAtMs !== null) {
+    const createdMs = Date.parse(row.created_at);
+    if (!Number.isNaN(createdMs) && supersededAtMs > createdMs) return null;
+  }
 
   if (UNDELIVERED_STATUSES.has(row.status)) return "no_llego";
 
@@ -107,15 +170,22 @@ export function classifyMailFailure(
   return null;
 }
 
-/** Aplica {@link classifyMailFailure} a un lote y devuelve solo los fallos. */
+/**
+ * Aplica {@link classifyMailFailure} a un lote y devuelve solo los fallos.
+ *
+ * @param supersede  índice de {@link buildSupersedeIndex}. Omitirlo mantiene el
+ *                   comportamiento viejo (avisar de todo intento fallido).
+ */
 export function collectFailures(
   rows: MailHealthRow[],
   nowMs: number,
   stuckMinutes: number = STUCK_MINUTES,
+  supersede?: Map<string, number>,
 ): MailFailure[] {
   const out: MailFailure[] = [];
   for (const row of rows) {
-    const kind = classifyMailFailure(row, nowMs, stuckMinutes);
+    const supersededAtMs = supersede?.get(supersedeKey(row)) ?? null;
+    const kind = classifyMailFailure(row, nowMs, stuckMinutes, supersededAtMs);
     if (kind) out.push({ row, kind });
   }
   return out;
@@ -150,6 +220,33 @@ export async function listMailHealthCandidates(
 
   if (error || !data) return [];
   return data as MailHealthRow[];
+}
+
+/**
+ * Correos que SÍ salieron en la misma ventana — insumo de
+ * {@link buildSupersedeIndex}.
+ *
+ * Misma ventana `sinceIso` que los candidatos: si el reintento exitoso quedara
+ * fuera del piso, el fallo volvería a reportarse como si nadie lo hubiera
+ * atendido.
+ */
+export async function listRecentSuccesses(
+  admin: SupabaseClient,
+  tenantId: string,
+  sinceIso: string,
+  cap: number,
+): Promise<MailSuccessRow[]> {
+  const { data, error } = await admin
+    .from("mail_logs")
+    .select("to_email, subject, template_slug, created_at")
+    .eq("tenant_id", tenantId)
+    .in("status", DELIVERED_STATUSES)
+    .gte("created_at", sinceIso)
+    .order("created_at", { ascending: true })
+    .limit(cap);
+
+  if (error || !data) return [];
+  return data as MailSuccessRow[];
 }
 
 /**
