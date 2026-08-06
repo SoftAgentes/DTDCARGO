@@ -123,8 +123,25 @@
 
 Nada roto: está desplegado y sus migraciones 0341/0342 verificadas en prod.
 
-- [ ] ⭐ **Ampliar `client_duplicate_candidates()` para detectar duplicados
-      dentro del legado.** Hoy solo compara legado ↔ registro nuevo, y por eso
+- [x] ⭐ **Ampliar `client_duplicate_candidates()` para detectar duplicados
+      dentro del legado.** ✅ **Escrita y verificada — ⏸ esperando que la
+      nombres**: `supabase/migrations/0349_duplicados_dentro_del_legado.sql`.
+      Los dos problemas que había que resolver, resueltos:
+      · **par espejo** — un `case` da la orientación: si uno es legado y el otro
+        no, el legado va primero (como siempre); si son de la misma clase, gana
+        el de `(created_at, markbox)` menor. Sale **una** fila por par.
+      · **quién sobrevive entre dos legados** — ⚠️ **la lista NO recomienda**.
+        Los 371 del legado se importaron el mismo día y comparten `created_at`
+        (verificado: 1 sola fecha), así que el orden lo decide el markbox, que no
+        dice nada sobre quién tiene más historia. Es sólo un orden estable.
+        Quién sobrevive lo elige la persona: `merge_clients` recibe
+        `p_survivor_id` y `p_merged_id` por separado.
+      De yapa entran los pares nuevo↔nuevo, que tampoco se miraban.
+      **76 contratos SQL en verde, validada con DOS mutaciones**: con la
+      condición vieja salen 0 pares, sin la orientación salen 2.
+      Declarada en `pendingBelowCutoff` para no dejar el gate rojo a las demás
+      ventanas mientras espera.
+      *(Detalle original de la tarea, para cuando se aplique:)* Hoy solo compara legado ↔ registro nuevo, y por eso
       hay **6 pares invisibles**: DTD-A119·DTD-Y040, DTD-J066·DTD-Y017,
       DTD-A079·DTD-A135, DTD-A032·DTD-J004, DTD-J044·DTD-Y041, DTD-A080·DTD-D032.
       Al quitar `v.es_legado and not n.es_legado` hay que resolver dos cosas que
