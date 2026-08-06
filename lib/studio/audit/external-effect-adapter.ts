@@ -5,7 +5,13 @@ export type D5ExternalOperationType =
   | "portal.whatsapp_link"
   | "portal.bulk_whatsapp_link"
   | "portal.email_invite"
-  | "portal.email_resend";
+  | "portal.email_resend"
+  /**
+   * Reponerle el acceso al Studio a un miembro del equipo (SDD-0250 · migr
+   * 0350). Va por D5 y no por D1 porque no escribe nada en `public`: genera un
+   * enlace contra Supabase Auth y manda un correo — un efecto externo.
+   */
+  | "studio.access_link";
 
 export async function beginD5ExternalEffect(
   supabase: SupabaseClient,
