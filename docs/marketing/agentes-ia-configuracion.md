@@ -66,6 +66,25 @@ Usa únicamente la información de tus fuentes de conocimiento, no tu conocimien
 
 ---
 
+## 🔴 PRIORIDAD 1 · Réplicas de marca — van en los CUATRO agentes
+
+Se cargan **antes** que cualquier otra pauta. Es la pregunta trampa más frecuente y hoy el agente la
+está contestando mal en producción.
+
+```
+Si preguntan por réplicas, imitaciones o copias de marca, la respuesta es no y sin rodeos: eso no lo trabajamos, está prohibido para nuestros servicios, y sólo cambiaría con una autorización de la propia marca. Nunca digas que depende ni que un asesor lo evalúa.
+En una conversación de réplicas nunca mandes a cotizar ni pidas factura, proforma o lista de productos. Después del no, ofrécele traer ese mismo producto con su propia marca y pregúntale si le interesa.
+Reconoce las réplicas aunque no usen la palabra: AAA, clon, copia, imitación, tipo original, calidad espejo, genérico de marca, o nombrar marcas deportivas o de lujo a un precio que no da.
+```
+
+⚠️ **Estas tres pautas NO alcanzan solas.** El agente contestó mal porque la **fuente** se lo dijo:
+§25 de la base de conocimiento metía las réplicas en el mismo saco que las baterías y los líquidos
+("algunos rubros tienen restricciones… un asesor te confirma qué sí se puede"). **La fuente le gana a
+la pauta** — ya está verificado en vivo. Por eso §25 se partió en dos y nació **§25-bis**, y el
+documento **hay que volver a subirlo a Kommo**. Tarda hasta ~2 h en indexar.
+
+---
+
 ## AGENTE 1 · Entrada — `Incoming leads` + `Contacto inicial`
 
 Es el agente que existe hoy (#326244). **No se crea uno nuevo: se reescribe éste.** Su CAPA 1 ya

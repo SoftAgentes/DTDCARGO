@@ -326,13 +326,34 @@ El costo total se calcula por CBM y destino en **dtdcargo.com/tarifas**.
 **Pregunta de continuación:** *"¿En qué ciudad recibirías tu carga?"*
 
 ### 25. Qué puedo importar (productos restringidos)
-**Preguntas:** ¿Qué productos puedo importar? · ¿Puedo traer baterías/líquidos/comida/cosméticos? · ¿Hay productos prohibidos? · ¿Puedo traer réplicas o productos de marca? · ¿Qué no puedo enviar?
+**Preguntas:** ¿Qué productos puedo importar? · ¿Puedo traer baterías/líquidos/comida/cosméticos? · ¿Hay productos prohibidos? · ¿Qué no puedo enviar?
 
-**Respuesta (aprobada · captura email):** ¡Hola! Traemos una gran variedad de productos, pero **algunos rubros tienen restricciones** (por normativa o por ser carga peligrosa: ciertas baterías, líquidos, aerosoles, alimentos, réplicas de marca, artículos militares o bélicos, etc.). Para no fallar, **pásame tu lista de productos** y tu **correo**, y un asesor te confirma **qué sí se puede** y la mejor modalidad.
+> ⚠️ **Las réplicas NO se responden aquí. Tienen su propia sección (§25-bis) y su respuesta es NO.**
+> Nunca mezclarlas con los rubros de abajo: éstos se revisan caso por caso, las réplicas no se revisan.
+
+**Respuesta (aprobada · captura email):** ¡Hola! Traemos una gran variedad de productos, pero **algunos rubros hay que revisarlos antes** (por normativa o por ser carga peligrosa: ciertas baterías, líquidos, aerosoles, alimentos, cosméticos, etc.). Para no fallar, **pásame tu lista de productos** y tu **correo**, y un asesor te confirma **qué sí se puede** y la mejor modalidad.
 
 **Pregunta de continuación:** *"¿Qué tipo de mercancía quieres traer?"*
 
-> *Nota interna: NUNCA afirmar una lista cerrada de prohibidos (varía por normativa/caso) → siempre escalar al asesor con la lista del cliente. Captura email + producto. Rubros restringidos concretos para el asesor (Anexo B del Acuerdo v3.0 + adiciones 2026-07-10): baterías de litio sin UN38.3, inflamables y aerosoles, gases comprimidos y tóxicos, armas/municiones/réplicas y **juguetes bélicos**, **uniformes y accesorios militares**, medicamentos sin registro y psicotrópicos, perecederos, divisas/valores/metales preciosos, réplicas de marca y pirata, pirotecnia y explosivos. Juguetes bélicos + uniformes/accesorios militares aún NO están en el texto legal congelado → entran en el Anexo B de v3.1 (ver docs/legal/ACUERDO-PENDIENTES-v3.1.md).*
+### 25-bis. Réplicas, imitaciones y copias de marca — **NO se trabaja**
+
+**Preguntas:** ¿Puedo traer réplicas? · ¿Traen imitaciones? · ¿Copias de marca? · ¿Zapatos/ropa réplica (Nike, Hoka, On Running, New Balance…)? · ¿Traen AAA / clones / genéricos de marca? · ¿Y si no dice la marca? · ¿Puedo traer poquitas para probar?
+
+**Respuesta (aprobada · founder 2026-08-06):** Con las réplicas e imitaciones de marca te soy directo: **eso no lo trabajamos.** Está totalmente prohibido para nuestros servicios, sin excepciones — **sólo se podría si tienes una autorización de la marca**, y eso es un permiso que otorga el titular, no un trámite que se gestiona con nosotros.
+
+Pero si tu interés es ese mercado, hay un camino que sí funciona y suele dejar más: **traer el mismo tipo de producto con tu propia marca.** En China lo fabrican con tu logo y tu empaque, y esa mercancía sí viaja sin problema. Muchos de nuestros clientes empezaron justo así.
+
+**Pregunta de continuación:** *"¿Te interesaría traer ese mismo producto con tu propia marca?"*
+
+> *Nota interna — es una pregunta trampa, tratarla como tal:*
+> - **NUNCA** decir "no siempre es posible", "depende del caso", "tiene restricciones" ni "un asesor te confirma bajo qué condiciones". Eso es un "quizás" y no lo hay.
+> - **NUNCA** pasarlo con un asesor "para que evalúe": no hay nada que evaluar, y escalarlo le dice al cliente que existe una puerta.
+> - **NUNCA** mandarlo a cotizar, ni a `dtdcargo.com/tarifas`, ni pedirle factura, proforma o lista de productos. *(Fue el error real del 2026-08-06: el agente cerró una conversación de réplicas invitando a cotizar el flete.)*
+> - **Reconocer el rubro aunque no digan "réplica":** AAA, clon, imitación, copia, "tipo original", "calidad espejo", "genérico de marca", o nombrar marcas deportivas/lujo junto a un precio que no da.
+> - El **redireccionamiento a marca propia es la parte útil**: no es un consuelo, es la venta real. Lleva a marca blanca / compra asistida.
+> - Base legal: Anexo B del Acuerdo de Servicios v3.0 (rubros prohibidos). No citar el anexo al cliente; basta el "no lo trabajamos".
+
+> *Nota interna: NUNCA afirmar una lista cerrada de prohibidos (varía por normativa/caso) → siempre escalar al asesor con la lista del cliente. **Excepción: las réplicas de marca NO se escalan — van por §25-bis y la respuesta es no.** El resto de esta lista sí es caso por caso. Captura email + producto. Rubros restringidos concretos para el asesor (Anexo B del Acuerdo v3.0 + adiciones 2026-07-10): baterías de litio sin UN38.3, inflamables y aerosoles, gases comprimidos y tóxicos, armas/municiones/réplicas y **juguetes bélicos**, **uniformes y accesorios militares**, medicamentos sin registro y psicotrópicos, perecederos, divisas/valores/metales preciosos, réplicas de marca y pirata, pirotecnia y explosivos. Juguetes bélicos + uniformes/accesorios militares aún NO están en el texto legal congelado → entran en el Anexo B de v3.1 (ver docs/legal/ACUERDO-PENDIENTES-v3.1.md).*
 
 ### 26. Consolidado (LCL) y juntar varios proveedores
 **Preguntas:** ¿Qué es carga consolidada / LCL? · ¿Pueden juntar mi mercancía de varios proveedores? · ¿No lleno un contenedor, igual me traen? · ¿Cómo funciona el consolidado? · ¿Diferencia entre consolidado y contenedor completo?

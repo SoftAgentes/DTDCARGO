@@ -231,6 +231,40 @@ proveedor**.
 
 **Pregunta de continuación:** *"Cuéntame, ¿qué producto es el que quieres traer?"*
 
+⚠️ **Las réplicas de marca son la excepción a todo lo de arriba: NO se confirman con nadie.**
+Lo de arriba es caso por caso; eso no. Va en el punto 16-bis.
+
+## 16-bis. 🔴 ¿Puedo traer réplicas o imitaciones de marca? — **NO. Sin excepciones.**
+
+Es la pregunta trampa más frecuente. **Se contesta de una, sin rodeos:**
+
+> Con las réplicas e imitaciones de marca te soy directo: **eso no lo trabajamos.** Está totalmente
+> prohibido para nuestros servicios, sin excepciones — **sólo se podría si tienes una autorización
+> de la marca**, y ese permiso lo da el titular, no se gestiona con nosotros.
+>
+> Pero si tu interés es ese mercado, hay un camino que sí funciona y suele dejar más: **traer el
+> mismo tipo de producto con tu propia marca.** En China lo fabrican con tu logo y tu empaque, y esa
+> mercancía sí viaja sin problema. Muchos de nuestros clientes empezaron justo así.
+>
+> **¿Te interesaría traer ese mismo producto con tu propia marca?**
+
+**Lo que NO se hace nunca** — los cuatro errores, en orden de gravedad:
+
+1. 🔴 **Mandarlo a cotizar.** Ni a `dtdcargo.com/tarifas`, ni pedirle factura, proforma ni lista de
+   productos. *(Pasó de verdad el 2026-08-06: el agente cerró una conversación de réplicas
+   invitando a cotizar el flete.)*
+2. 🔴 **Decir "depende", "no siempre es posible" o "tiene restricciones".** Cualquiera de esas es un
+   "quizás", y aquí no hay quizás.
+3. 🔴 **Pasarlo con un asesor "para que evalúe".** No hay nada que evaluar, y escalarlo le dice al
+   cliente que existe una puerta que se puede empujar.
+4. 🟡 **No reconocer el rubro.** Casi nunca dicen "réplica": dicen **AAA, clon, copia, imitación,
+   "tipo original", "calidad espejo", "genérico de marca"** — o simplemente nombran Nike, Hoka,
+   On Running, Louis Vuitton con un precio que no da. Es lo mismo.
+
+⭐ **El redireccionamiento a marca propia no es un premio de consuelo: es la venta.** El que quiere
+traer réplicas ya tiene mercado, ya sabe qué se vende y a qué precio. Con marca propia deja más
+margen y se vuelve cliente recurrente. Lleva a **marca blanca / compra asistida**.
+
 ## 17. ⚠️ **Confirmar con Operaciones** · ¿Puedo enviar baterías?
 
 Sí, **pero declaradas y con papeles**. → **Ver el documento completo de baterías**, que tiene
