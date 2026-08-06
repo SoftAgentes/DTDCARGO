@@ -19,14 +19,18 @@
 | Fundada | **2015** (fundación e inauguración en Venezuela = `foundingDate`) |
 | Experiencia con China | **desde 2008** (total autocalculado, nunca fijo) |
 | Oficina propia en China | **desde 2010** (hito, no es "empresa desde") |
-| Handle social | **@doortudoor_** (Instagram) |
+| Handle social | **@dtdcargo.ve** (Instagram, 20 mil seguidores) · **@dtdcargo** (YouTube) · **@dtdcargo.ve** (TikTok) — migrados desde `@doortudoor_`/`@doortudoor` (verificado en vivo 2026-08-04, ver nota abajo) |
 
 ## Convención de nombres (regla del founder)
 
 - **Público = "DTD Cargo"** (dos palabras; nunca "DTDCARGO").
 - **"DoorTuDoor"** = **sello de herencia** — ya **no** es el nombre del ERP (cambió 2026-07-14).
-  Sigue vivo en: `alternateName` del schema, el sello en `/brochure`, el dominio `doortudoor.com`
-  (301 → dtdcargo.com, no se toca) y el handle `@doortudoor_`.
+  Sigue vivo en: `alternateName` del schema, el sello en `/brochure` y el dominio `doortudoor.com`
+  (301 → dtdcargo.com, no se toca). ⚠️ **El handle `@doortudoor_` YA NO** — las redes migraron a
+  `@dtdcargo.ve`/`@dtdcargo` (verificado 2026-08-04: `@doortudoor_` en Instagram da "Página no
+  encontrada"; `@doortudoor` en YouTube/TikTok redirige al canal pero el handle vigente es
+  `@dtdcargo`/`@dtdcargo.ve`). Este doc y `redes.md` quedaron desactualizados desde la migración —
+  no volver a citar `@doortudoor_` como vigente.
 - **ERP/Studio interno (`app/studio`) = "DTD Cargo"** — mismo nombre que la marca pública.
   ⚠️ No confundir con **"DoorTuDoor Trading" / J-50220185**: esa es otra razón social y sigue
   **prohibida** en recibos y rendiciones (regla absoluta del handoff legal).
@@ -84,7 +88,7 @@ existen ahí, no en texto visible. *(Pendiente de la Fase 2 del plan de identida
 ## Ficha portable — "arrancar un chat nuevo"
 
 ```
-EMPRESA: DTD Cargo (público) · sello "DoorTuDoor" · IG @doortudoor_
+EMPRESA: DTD Cargo (público) · sello "DoorTuDoor" · IG @dtdcargo.ve
 RAZÓN SOCIAL: INVERSIONES DTD SERVICES, C.A — RIF J-50648869-8 — rep. legal José Méndez
 RUBRO: logística end-to-end China→Venezuela. Fundada en Venezuela en 2015; en el comercio
   con China desde 2008 y con oficina propia en China desde 2010. DDP puerta a puerta,
