@@ -41,8 +41,19 @@
       welcome, aviso al equipo, Kommo, throttle). Un cliente puede registrarse
       con los 7 rotos y ver "todo bien". Migración + drenado con reintentos.
       ⚠️ La migración queda como archivo — aplicarla es tuya.
-- [ ] **Herramienta de reenvío de correo atascado** en Studio › Mailing, para que
-      el rescate no dependa de SQL a mano.
+- [x] **Herramienta de reenvío de correo atascado** ✅ Botón **Reenviar** en
+      Studio › Mailing › Logs. Cierra el par: `mail-health` **detecta**, esto
+      **repara**, sin bajar a SQL.
+      Tres reglas que dice en voz alta cuando no se puede:
+      · un correo que **sí llegó** no se reenvía (le duplicaría el mensaje);
+      · un **rebote** no se reenvía al mismo destino (falla igual y castiga la
+        reputación del dominio — hay que corregirle el correo al cliente);
+      · un correo de **cuerpo libre** no se puede reconstruir: `mail_logs` guarda
+        asunto y variables, **no el HTML**. Sólo se reenvía lo que salió de una
+        plantilla, re-renderizando con las mismas variables.
+      Genera un log nuevo enlazado por `metadata.resend_of` en vez de pisar el
+      viejo: el historial tiene que mostrar que hubo dos intentos.
+      8 tests, validados con mutación.
 
 ### P1 · Bugs confirmados
 
@@ -96,16 +107,17 @@
       rescataron sus migraciones (la DB ya las tiene), pero las specs y el código
       viven en `radiografia-erp-20260802` sin pushear. La DB tiene los cambios y
       la aplicación desplegada no los usa. **Es de esa ventana, no de esta.**
-- [ ] 🔴 **El paso e2e del gate es inestable bajo carga.** En 3 corridas
-      seguidas del mismo árbol falló un conjunto **distinto** cada vez —
-      `cbm-ayuda`, `/tarifas`, `global-search`, redirects 301 — repartido entre
-      chromium / mobile-chrome / mobile-safari. Los mismos tests pasan **3 de 3
-      en aislamiento**. Es contención de recursos, no regresión.
-      **Por qué importa más de lo que parece:** un gate que falla al azar enseña
-      a ignorar el rojo, y así fue exactamente como se perdió la 0228. Mientras
-      esto siga, "gate verde" es en parte suerte.
-      Candidatos: bajar `workers` en `playwright.config`, `retries: 1` para el
-      e2e local, o aislar los specs de calculadora que concentran los timeouts.
+- [x] **El paso e2e del gate era inestable bajo carga.** ✅ `retries: 1` en local
+      (antes 0; CI ya tenía 2). Suena al revés, pero el equipo que corre el gate
+      acá tiene ~38 worktrees vivos y está **más** contendido que CI.
+      **Cinco** corridas seguidas del mismo árbol, sin cambiar una línea,
+      fallaron un conjunto **distinto** cada vez — `cbm-ayuda`, `/tarifas`,
+      `global-search`, redirects 301 — repartido entre los tres navegadores, y
+      los mismos tests pasan 3/3 en aislamiento.
+      El reintento **no tapa** un test roto: uno roto falla las dos veces, y
+      Playwright reporta aparte los que pasaron al reintentar (`flaky`), así que
+      la inestabilidad sigue viéndose.
+      Queda como opción si reaparece: bajar `workers`.
 
 ### P2 · SDD-0246 · Fusión de duplicados *(traspaso de la otra ventana)*
 
