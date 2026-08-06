@@ -192,7 +192,12 @@ async function dispatchEmail(
       schedule_id: row.id,
     },
   });
-  return res.ok ? "sent" : "transient_fail";
+  // ⚠️ `res.ok` NO alcanza: sendEmail devuelve ok:true con queued:true cuando el
+  //    correo quedó REGISTRADO pero no salió (Resend sin key). Darlo por 'sent'
+  //    marcaba el aviso como entregado y lo sacaba de la cola para siempre.
+  //    Como transitorio, el drain lo reintenta — y cuando la key esté, sale.
+  if (res.ok && !res.queued) return "sent";
+  return "transient_fail";
 }
 
 async function dispatchPush(
