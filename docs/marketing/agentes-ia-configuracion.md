@@ -89,11 +89,47 @@ En una conversación de réplicas nunca mandes a cotizar ni pidas factura, profo
 Reconoce las réplicas aunque no usen la palabra: AAA, clon, copia, imitación, tipo original, calidad espejo, genérico de marca, o nombrar marcas deportivas o de lujo a un precio que no da.
 ```
 
-⚠️ **Estas tres pautas NO alcanzan solas.** El agente contestó mal porque la **fuente** se lo dijo:
-§25 de la base de conocimiento metía las réplicas en el mismo saco que las baterías y los líquidos
-("algunos rubros tienen restricciones… un asesor te confirma qué sí se puede"). **La fuente le gana a
-la pauta** — ya está verificado en vivo. Por eso §25 se partió en dos y nació **§25-bis**, y el
-documento **hay que volver a subirlo a Kommo**. Tarda hasta ~2 h en indexar.
+⚠️ **Estas tres pautas NO alcanzan solas, y la fuente tampoco.** Probado en vivo el 2026-08-06 con
+*"buenas, tienen zapatos replica de hoka y on running? necesito unos 200 pares"*:
+
+> **"Te conectaré con un colega que puede ayudarte con los próximos pasos."** — y transfirió el chat.
+
+El panel de prueba muestra `Fuentes utilizadas: DTDCARGO-Kommo-KnowledgeSource-v7-2026-08-06.docx`,
+o sea que **sí leyó el §25-bis** y aun así no dio el "no". *(Ojo: eso también desmiente la excusa
+fácil de "todavía no indexa" — la fuente estaba lista en menos de 2 h.)*
+
+## ⭐⭐ Son TRES capas, no dos — y las Acciones mandan
+
+La regla que veníamos usando, *"la fuente le gana a la pauta"*, se queda corta. Hay una capa por
+encima de las dos:
+
+```
+ACCIONES  >  FUENTE  >  PAUTA
+```
+
+Las **Acciones** (pestaña `Acciones` del agente) son condiciones WHEN → DO que se evalúan antes de
+redactar. Hoy hay seis, y **tres de ellas transfieren el chat**:
+
+| Cuando | Hacer |
+|---|---|
+| El cliente quiere hablar con un agente humano | Transferir |
+| **Cliente listo para comprar · o el cliente quiere comprar** | **Transferir** |
+| El sentimiento del cliente es frustrado o triste | Transferir |
+
+🔴 **Ésa del medio es la que se comió la prueba.** *"Necesito unos 200 pares"* es intención de compra:
+la acción disparó y transfirió antes de que el §25-bis tuviera oportunidad de aplicarse. El agente
+nunca llegó a decir el "no" — no porque no lo supiera, sino porque **una Acción decidió primero**.
+
+**Lo que falta: no hay ninguna Acción para rubros prohibidos.** Sin ella, un mensaje de réplicas cae
+en la acción que matchee primero (compra, frustración, lo que sea). El arreglo es una Acción propia:
+
+- **Cuando:** el cliente pregunta sobre réplicas / imitaciones / copias de marca
+- **Hacer:** *Intentar hablar sobre este tema* → el no rotundo + ofrecer marca propia
+- **Más:** nunca transferir, nunca cotizar
+
+📌 **Y de paso, una corrección a lo documentado:** el tema del `Cuando` **NO es un selector cerrado**.
+Las acciones vivas usan temas propios — *"servicios de logística"*, *"transporte puerta a puerta"*—
+que no están en la lista de Kommo. Se pueden escribir.
 
 ---
 
@@ -227,10 +263,20 @@ automatización.
 ```
 Cliente pide humano
   → [agente]  Transferir al usuario · sin permiso · con resumen   ← ya configurado
-  → [pipeline] Detener agente de IA        ← si no, sigue escribiendo encima del asesor
+  → [pipeline] Detener agente de IA        ← ⛔ NO se puede como lo planteamos, ver abajo
   → [pipeline] Cambiar responsable         ← ⛔ falta decidir a quién
   → [pipeline] Agregar tarea con vencimiento
 ```
+
+🔴 **`Un usuario responde → Detener agente de IA` no se puede construir** (verificado en la UI,
+2026-08-06). La acción `Detener agente de IA` existe en el tablero de automatizaciones, pero su
+desplegable `Ejecutar:` ofrece **un solo disparador: "cuando se crea en esta etapa"**. No hay
+disparador por mensaje saliente ni por respuesta de un humano.
+
+Lo que sí cubre el caso, y ya está puesto: la Acción `El cliente quiere hablar con un agente humano →
+Transferir` lleva la instrucción *"después de transferir no sigas respondiendo"*. Es un guion, no un
+interruptor —el agente puede desobedecerlo— pero es lo que Kommo permite hoy. **Vale medirlo antes de
+buscar alternativas: transferir un chat de prueba y ver si el agente se calla de verdad.**
 
 ⚠️ **`Agregar tarea` es la pieza que no se puede saltar.** Un traspaso sin tarea es un lead en el
 limbo: nadie sabe que le toca contestar y no hay a quién reclamarle.
