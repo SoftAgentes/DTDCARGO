@@ -183,7 +183,20 @@ Pasarse cuesta **−24% de cierre** (Chorus). Al que sabe no se le educa.
 están donde están.
 
 **Nunca:** cotiza de memoria · amontona preguntas al inicio (*"los promedio las amontonan"*) · le pide
-al cliente que elija un servicio.
+al cliente que elija un servicio · empuja el registro antes de explicar para qué sirve.
+
+### Criterios de salida
+
+| Estado al que llega la conversación | A dónde va |
+|---|---|
+| Tiene **medidas y ciudad** | → `Estimado enviado` |
+| Interesado pero **todavía no está listo** | → `Recontacto`, **con fecha acordada** |
+| Es un cliente con **mercancía ya en proceso** | → agente de Post-venta (etiquetar, no vender) |
+| Pide una persona · aduana propia · reclamo | → **humano** |
+| Sin encaje (no importa, revende local, otro país) | → `Ventas Perdidos` **con motivo** |
+
+⚠️ **"Con fecha acordada" no es adorno:** un `Recontacto` sin fecha es un lead perdido con otro
+nombre. Si no hay fecha, no se mueve.
 
 ---
 
@@ -218,8 +231,25 @@ El reenganche lo dispara un humano —existe el módulo de Recuperación en `/st
 y enlaces `wa.me` en tandas de 10— y el agente **atiende la respuesta**. Prometer un bot que reactiva
 solo sería falso: **no hay WhatsApp saliente automatizado** en el ERP.
 
-**Nunca:** repite una pregunta ya hecha · insiste más allá del calendario (pasadas ~20 h los intentos
-adicionales **empeoran** el contacto).
+**Nunca:** repite una pregunta ya hecha · lo saluda como desconocido ni le vuelve a pedir el nombre ·
+**le vende mientras tiene un reclamo abierto** · insiste más allá del calendario (pasadas ~20 h los
+intentos adicionales **empeoran** el contacto).
+
+### Su primera pregunta es siempre de desambiguación
+
+Un conocido que escribe puede venir por cuatro cosas distintas, y confundirlas es el error más caro:
+
+> **"¿Esto es por una compra nueva o por mercancía que ya tienes en proceso?"**
+
+### Criterios de salida
+
+| Estado | A dónde va |
+|---|---|
+| **Compra nueva** | nueva oportunidad sobre el mismo contacto → sigue el flujo de Entrada |
+| Listo para estimar | → `Estimado enviado` |
+| **Mercancía activa** o facturación | → Post-venta (**no** es venta) |
+| Todavía no es el momento | → se queda en `Recontacto` **con fecha nueva** |
+| Reclamo | → **humano**, y se suspende cualquier venta |
 
 ---
 
@@ -246,8 +276,37 @@ cliente no repita nada.
 **Su verdad incómoda:** *la objeción de precio se previene preguntando bien, no se resuelve
 negociando*. Si el Clasificador hizo su trabajo, este agente casi no tiene objeciones que manejar.
 
+### Primero confirma, después negocia
+
+Cubre dos etapas y son dos momentos distintos. **En `Estimado enviado` todavía no hay objeción: hay
+silencio o duda.** Antes de defender un número hay que saber si siquiera lo leyeron:
+
+> **"¿Pudiste abrir el estimado?"** · **"¿La mercancía y las cantidades coinciden con lo que quieres traer?"**
+>
+> Y para encontrar el freno real: **"¿Qué pesa más ahora en tu decisión: costo, tiempo, confianza o
+> momento de compra?"**
+
+Esa última evita el error de asumir que todo silencio es precio. Muchas veces es que el estimado está
+mal armado, o que la decisión depende de otra persona.
+
+**En `Negociación`** ya hay objeción concreta, y ahí entran las dos preguntas de arriba más las de
+aislamiento: *"¿el freno principal es el presupuesto?"* · *"¿la decisión depende también de alguien
+más?"*
+
+### Criterios de salida
+
+| Estado | A dónde va |
+|---|---|
+| Duda aclarada, acepta | → **humano** para confirmar y facturar |
+| El estimado está mal armado | → **humano** para corregirlo (no lo arregla el agente) |
+| Aparece objeción comercial | `Estimado enviado` → `Negociación` |
+| Pide precio o condición fuera de tarifa | → **humano autorizado**. Nunca el agente |
+| Aplaza de verdad | → `Recontacto` **con fecha** |
+| No hay encaje | → `Ventas Perdidos` **con motivo** |
+
 **Nunca:** descuenta (descontar de inmediato cierra **~25% menos** a largo plazo) · dice "precio de
-lista" (alarga el ciclo ~19%) · inventa un monto.
+lista" (alarga el ciclo ~19%) · inventa un monto · desacredita a un competidor · crea urgencia falsa ·
+cierra preguntando *"¿qué te pareció?"*
 
 ---
 
@@ -268,7 +327,17 @@ Primero resuelve; después, y sólo si resolvió, abre:
 existentes** (WebCargo/Freightos). Es el ciclo de venta más corto disponible.
 
 **Nunca:** vende agresivo a quien acaba de pagar · promete fecha de entrega garantizada · usa la
-palabra "responsabilidad".
+palabra "responsabilidad" · **intenta vender durante una incidencia**.
+
+### Criterios de salida
+
+| Estado | A dónde va |
+|---|---|
+| Consulta operativa **con dato vivo disponible** | la responde y cierra |
+| Consulta operativa **sin dato vivo** | → **humano**. No estima, no supone, no tranquiliza con aire |
+| Facturación o pago | → **humano**. Nunca afirma que un pago entró sin verlo |
+| Incidencia o reclamo | → **humano**, reconociendo el impacto y recogiendo el hecho mínimo |
+| Menciona una compra nueva | → nueva oportunidad, tratada por el flujo de Entrada |
 
 ---
 
@@ -309,16 +378,51 @@ de fuera de horario. Recepción, menús de servicio, información general, asign
 
 ---
 
+## Cómo se escribe cada agente — las 5 capas
+
+Cada agente se compone siempre en este orden. **Las capas 1 y 5 son idénticas en los cuatro**; sólo
+cambian la 2, la 3 y la 4.
+
+| # | Capa | Dónde vive en Kommo | Quién la cambia |
+|---|---|---|---|
+| 1 | **Identidad común** — Manuel, voz, largo, vocabulario, una pregunta | `Rol y personalidad` (copiado textual) | Marca |
+| 2 | **Arquetipo y objetivo de etapa** — quién es y qué busca conseguir | `Rol y personalidad` (bloque final) | Ventas |
+| 3 | **Fuente de conocimiento permitida** — qué puede citar | pestaña `Fuentes` | Operaciones |
+| 4 | **Preguntas, criterios de salida y movimientos autorizados** | `Pautas` + `Acciones` | Ventas |
+| 5 | **Prohibiciones y traspaso a humano** | `Pautas` + `Acciones` | Marca / Legal |
+
+⚠️ **Se escribe la capa 1 PRIMERO y una sola vez.** Si se escribe después, cada agente nace con su
+propia voz y ya no hay forma de unificarlos sin reescribir los cuatro.
+
 ## Cómo se verifica
 
 Batería mínima por agente, en el panel de prueba, **reiniciando el chat entre casos** (el historial
-contamina):
+contamina — verificado: una respuesta vieja hace que el agente se copie a sí mismo):
 
 precio · restricción · pedir un humano · dirección de la bodega en China · "DDP"/"casillero" ·
 pérdida o daño · una pregunta que no esté en las fuentes.
 
-Cada agente añade los casos de su etapa. **La métrica real, a 2 semanas:** cuántos de los 372 salieron
-de `Contacto inicial` y cuántos llegaron a `Estimado enviado`. Línea base: 0.
+### Las 10 pruebas de aceptación
+
+Se pasan **todas** antes de activar un agente en un canal con clientes reales:
+
+1. Responde la duda **antes** de preguntar.
+2. Hace **como máximo una** pregunta por turno.
+3. **No repite** información que ya está en la conversación o en el CRM.
+4. Distingue **compra nueva** de **mercancía activa**.
+5. Un cliente frecuente recibe **trato de continuidad**, no de desconocido.
+6. Una objeción **no produce un descuento inventado**.
+7. Una consulta operativa **sin dato vivo termina en transferencia**, no en una suposición.
+8. Pedir una persona **detiene inmediatamente** la conversación automática.
+9. Cambiar de columna durante una conversación **no provoca una presentación artificial**.
+10. Una conversación **nueva** empieza con el arquetipo de su etapa.
+
+**La métrica real, a 2 semanas:** cuántos de los 372 salieron de `Contacto inicial` y cuántos llegaron
+a `Estimado enviado`. Línea base: 0.
+
+⚠️ **El presupuesto es el techo:** quedan **775 de 2.250 créditos** y cada respuesta cuesta 19-28.
+Probar cuatro agentes con diez casos cada uno **no entra**. Se prueba el de Entrada completo y de los
+otros sólo los casos que cambian respecto de él.
 
 ⚠️ **Una fuente recién subida tarda hasta ~2 h en indexar; las pautas aplican al instante. Cuando
 fuente y pauta se contradicen, gana la fuente** — el contenido va a la fuente, el comportamiento a las
