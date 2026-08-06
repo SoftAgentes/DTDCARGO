@@ -80,6 +80,14 @@ function ok(latencyMs: number, detail?: string): IntegrationHealth {
 function err(latencyMs: number, error: string): IntegrationHealth {
   return { status: "error", latencyMs, error, detail: null };
 }
+/**
+ * Integración NO consultada a propósito. Distinto de `skipped()`, que significa
+ * "no configurada": acá SÍ está configurada, pero cada ping cuesta cuota o
+ * tokens y un vigía externo que sondea cada pocos minutos la agotaría.
+ */
+function notChecked(motivo: string): IntegrationHealth {
+  return { status: "skipped", latencyMs: null, error: null, detail: motivo };
+}
 
 // ─── Supabase ─────────────────────────────────────────────────
 async function checkSupabase(): Promise<IntegrationHealth> {
@@ -260,10 +268,30 @@ async function checkSeaRates(): Promise<IntegrationHealth> {
   return err(r.latencyMs, r.error ?? `HTTP ${r.status}`);
 }
 
+/**
+ * Integraciones cuyo ping consume cuota o tokens facturables. SeaRates es el
+ * caso duro: cuota de 100 llamadas/MES compartida con el cotizador FCL, contra
+ * un vigía externo que sondearía ~96 veces por DÍA.
+ */
+export const METERED_INTEGRATIONS = ["anthropic", "openrouter", "searates"] as const;
+
+export type CheckAllOptions = {
+  /**
+   * Salta las de `METERED_INTEGRATIONS` y las devuelve como `skipped` con el
+   * motivo en `detail`. Default `false`: sin argumentos el comportamiento es
+   * idéntico al de siempre — que es lo que usa /studio/debug.
+   */
+  skipMetered?: boolean;
+};
+
 // ─── Orquestador · corre las 9 en paralelo ────────────────────
-export async function checkAllIntegrations(): Promise<
-  Record<IntegrationKey, IntegrationHealth>
-> {
+export async function checkAllIntegrations(
+  options: CheckAllOptions = {},
+): Promise<Record<IntegrationKey, IntegrationHealth>> {
+  const skipMetered = options.skipMetered === true;
+  const saltada = (): IntegrationHealth =>
+    notChecked("no consultada · modo barato (consume cuota)");
+
   const [
     supabase,
     resend,
@@ -280,10 +308,10 @@ export async function checkAllIntegrations(): Promise<
     checkResendWebhook(),
     checkTelegramBot(),
     checkTelegramWebhook(),
-    checkAnthropic(),
-    checkOpenRouter(),
+    skipMetered ? saltada() : checkAnthropic(),
+    skipMetered ? saltada() : checkOpenRouter(),
     checkHailuway(),
-    checkSeaRates(),
+    skipMetered ? saltada() : checkSeaRates(),
   ]);
   return {
     supabase,
