@@ -1,6 +1,6 @@
 \set ON_ERROR_STOP on
 
--- Contrato desechable de la migr 0350. Fixtures ficticios y rollback: no toca prod.
+-- Contrato desechable de la migr 0352. Fixtures ficticios y rollback: no toca prod.
 --
 -- Lo que defiende, que es exactamente lo que puede romperse en silencio:
 --   1. el invitado legítimo acepta y queda con SU rol y SU oficina (el camino
@@ -74,7 +74,7 @@ values
   ('00000000-0000-0000-0000-0000000000f1', '  MAYUS@DTD.test  ', 'commercial', 'cn',
    'TOK-MAYUSCULAS', '00000000-0000-0000-0000-0000000000a1', now() + interval '7 days');
 
-\ir ../migrations/0350_invitacion_nominal.sql
+\ir ../migrations/0352_invitacion_nominal.sql
 
 -- ── 2 + 3. Una sesión ajena con el token NO se lleva el rol ──────────────────
 do $t1$

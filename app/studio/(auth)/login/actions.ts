@@ -2,7 +2,7 @@
  * Server actions para el login del Studio.
  *
  * signIn(): autentica al operador contra Supabase Auth y exige membresía
- * ACTIVA en `user_tenants` (SDD-0250) — autenticarse no es tener acceso: el
+ * ACTIVA en `user_tenants` (SDD-0251) — autenticarse no es tener acceso: el
  * portal cliente comparte el mismo Supabase Auth.
  * Si OK → redirect al `?next=` validado (o /studio/resumen por default).
  * Si es cliente del portal → redirect a /portal (su sesión es válida, su casa
@@ -55,7 +55,7 @@ export async function signIn(
     return { error: "No pudimos iniciarte sesión. Intenta de nuevo." };
   }
 
-  // ── Gate de membresía (SDD-0250) ──────────────────────────────────────
+  // ── Gate de membresía (SDD-0251) ──────────────────────────────────────
   // El portal cliente comparte el mismo Supabase Auth. Sin esto, un cliente
   // teclea sus credenciales acá, el login le dice que sí, y recién el layout
   // del Studio lo rebota — se vive como "entré al ERP" y el 2026-08-06 llegó

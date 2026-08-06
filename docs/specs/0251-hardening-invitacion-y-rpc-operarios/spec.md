@@ -1,5 +1,5 @@
 ---
-sdd: "0250"
+sdd: "0251"
 title: "Hardening: invitación nominal, RPC de operario con rol, y dos candados de borde"
 status: in-progress
 author: "Sam (founder) + Claude"
@@ -7,11 +7,20 @@ created: 2026-08-06
 updated: 2026-08-06
 supersedes: null
 superseded_by: null
-related: ["0024", "0028", "0042", "0085", "0139"]
+related: ["0024", "0028", "0042", "0085", "0139", "0250"]
 confidencialidad: interno
 ---
 
-# SDD-0250 — Hardening de acceso: invitación nominal + RPC de operario con rol
+> **Renumerada 0250 → 0251 el 2026-08-06.** Nació como 0250 porque `pnpm sdd:next`
+> lo daba libre, pero otra ventana ya tenía tomado ese número sin pushear
+> (SDD-0250 · "Acceso y recuperación del Studio") y llegó a `main` primero. Se
+> movió la que NO estaba en `main`, que es la regla. Igual pasó con la migración:
+> `0350` → `0352`, porque la 0350 de `main` ya está aplicada en producción y una
+> migración aplicada nunca se renumera. **Los mensajes de los 5 commits previos
+> dicen SDD-0250** — son historia inmutable; el rastro sano para `git log` es
+> buscar por `0251-hardening-invitacion-y-rpc-operarios`.
+
+# SDD-0251 — Hardening de acceso: invitación nominal + RPC de operario con rol
 
 ## 1. De dónde sale
 
@@ -23,7 +32,7 @@ cierra.
 
 ## 2. Qué se arregla
 
-### a) La invitación al Studio era al portador, no nominal · migr `0350`
+### a) La invitación al Studio era al portador, no nominal · migr `0352`
 
 `studio_accept_invitation` validaba token, expiración, revocación y que no
 aceptaras tu propia invitación — pero **nunca comparaba el correo de la
@@ -85,7 +94,7 @@ mensaje.
 ## 3. Decisiones
 
 - **Dos migraciones, no una.** Los hallazgos son independientes y con radios de
-  daño distintos; el runbook manda aplicar **de a una**. `0350` invitación,
+  daño distintos; el runbook manda aplicar **de a una**. `0352` invitación,
   `0351` operarios.
 - **El candado de rol vive en la base, no en la action.** La action ya tenía su
   gate y no alcanzó — el control tiene que estar donde termina el salto.
@@ -121,7 +130,7 @@ mensaje.
 
 ## 6. Verificación
 
-- `supabase/tests/0350_invitacion_nominal.test.sql` — el legítimo entra con su
+- `supabase/tests/0352_invitacion_nominal.test.sql` — el legítimo entra con su
   rol y su region; una sesión ajena con el mismo token rebota **y no escribe**
   (ni membresía, ni invitación quemada); mayúsculas/espacios no dejan afuera al
   dueño; siguen vivos los candados viejos.
@@ -131,13 +140,23 @@ mensaje.
 - `app/studio/(auth)/login/__tests__/actions.test.ts` — las 4 ramas del gate.
 - `node scripts/verify.mjs` en verde + `pnpm build`.
 
-## 7. Aplicación a producción — PENDIENTE
+## 7. Aplicación a producción
 
-Las dos migraciones están **escritas, no aplicadas**. Por el runbook
-`docs/runbooks/aplicar-migraciones-prod.md`: OK del founder **nombrando la
-migración**, de a **UNA**, con `name` = basename exacto del archivo.
+| Migración | Estado |
+|---|---|
+| `0351_operario_rpc_exige_rol` | ✅ **aplicada el 2026-08-06** — verificada contra el objeto: las 4 RPC tienen el candado, `authenticated` ejecuta, `anon` no |
+| `0352_invitacion_nominal` | ⛔ **pendiente** — requiere OK del founder nombrándola |
 
-Orden sugerido: `0351` primero (cero impacto en flujos vivos: sólo restringe) y
-`0350` después (toca el alta de usuarios; conviene avisar si hay invitaciones
-pendientes en vuelo, porque una emitida a un correo y aceptada desde otro deja
-de funcionar — que es justamente el punto).
+Por el runbook `docs/runbooks/aplicar-migraciones-prod.md`: OK del founder
+**nombrando la migración**, de a **UNA**, con `name` = basename exacto.
+
+Sobre la `0352`: se midió antes de proponerla y hay **0 invitaciones en vuelo**
+(5 en total, 2 aceptadas, ninguna pendiente), así que aplicarla hoy no puede
+romper ningún alta a mitad de camino. El riesgo que quedaba —una invitación
+emitida a un correo y aceptada desde otro— no tiene con qué materializarse.
+
+⚠️ **Deriva conocida:** la `0351` ya corrió con el comentario `Fix 0351
+(SDD-0250)` dentro del `comment on function`. El archivo del repo ahora dice
+`SDD-0251` (por la renumeración de arriba); la base sigue diciendo `SDD-0250`.
+Es texto de comentario, no comportamiento, y **no se re-aplica** para no
+reescribir una migración ya corrida.

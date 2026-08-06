@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────
--- SDD-0250 · b) Las RPC de operario exigen ROL, no sólo tenant.
+-- SDD-0251 · b) Las RPC de operario exigen ROL, no sólo tenant.
 --
 -- EL HUECO. `admin_create_operario`, `admin_reset_operario_pin`,
 -- `admin_set_operario_active` y `admin_update_operario` sólo llamaban
@@ -49,7 +49,7 @@ end;
 $$;
 
 comment on function public.assert_studio_role(text[]) is
-  'SDD-0250. Hermano de assert_tenant_match(): exige que el llamante tenga uno de los roles dados en su tenant (activo). Para RPC alcanzables directo por PostgREST, donde el gate de la server action no alcanza.';
+  'SDD-0251. Hermano de assert_tenant_match(): exige que el llamante tenga uno de los roles dados en su tenant (activo). Para RPC alcanzables directo por PostgREST, donde el gate de la server action no alcanza.';
 
 revoke all on function public.assert_studio_role(text[]) from public, anon;
 grant execute on function public.assert_studio_role(text[]) to authenticated, service_role;
@@ -201,7 +201,7 @@ end;
 $$;
 
 comment on function public.admin_reset_operario_pin(uuid, text) is
-  'Resetea el PIN de un operario. Fix 0351 (SDD-0250): exige rol admin|operations, no sólo tenant.';
+  'Resetea el PIN de un operario. Fix 0351 (SDD-0251): exige rol admin|operations, no sólo tenant.';
 
 -- Grants sin cambio (create or replace los preserva; se reafirman por claridad).
 revoke all on function public.admin_create_operario(uuid, uuid, text, text, text, text) from public, anon;

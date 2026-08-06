@@ -81,7 +81,7 @@ function makeSupabase(opts: FakeOpts) {
               return { data: null };
             },
             eq() {
-              // user_tenants: getStudioAccess (SDD-0250) encadena
+              // user_tenants: getStudioAccess (SDD-0251) encadena
               // .eq("user_id", …).is("disabled_at", null).limit(1) → sigue
               // siendo chainable.
               if (table === "user_tenants") return sel;

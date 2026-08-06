@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────
--- SDD-0250 · a) La invitación al Studio pasa a ser NOMINAL.
+-- SDD-0251 · a) La invitación al Studio pasa a ser NOMINAL.
 --
 -- EL HUECO. `studio_accept_invitation` validaba token, expiración, revocación
 -- y que no aceptaras tu propia invitación — pero NUNCA comparaba el correo de
@@ -61,7 +61,7 @@ begin
     raise exception 'No puedes aceptar una invitación que tú mismo creaste' using errcode = '42501';
   end if;
 
-  -- ── SDD-0250: la invitación es NOMINAL ────────────────────────────────
+  -- ── SDD-0251: la invitación es NOMINAL ────────────────────────────────
   -- El token demuestra que tienes el link, no que seas el invitado. Sin este
   -- chequeo el link ES la credencial.
   select lower(u.email) into v_actor_email
@@ -99,7 +99,7 @@ end;
 $$;
 
 comment on function public.studio_accept_invitation(text, text, text) is
-  'Acepta invitación por token: upsert perfil + membresía (rol + oficina/region). Fix 0203: propaga region. Fix 0350 (SDD-0250): NOMINAL — el correo del auth.uid() debe coincidir con el de la invitación.';
+  'Acepta invitación por token: upsert perfil + membresía (rol + oficina/region). Fix 0203: propaga region. Fix 0352 (SDD-0251): NOMINAL — el correo del auth.uid() debe coincidir con el de la invitación.';
 
 -- Grants sin cambio (create or replace los preserva; se reafirman por claridad).
 revoke execute on function public.studio_accept_invitation(text, text, text) from public, anon;

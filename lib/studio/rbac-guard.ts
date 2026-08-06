@@ -45,7 +45,7 @@ export interface StudioAccess {
 export async function getStudioAccess(
   supabase: StudioClient,
 ): Promise<StudioAccess> {
-  // SDD-0250: filtrar por `user_id` explícito. Hoy no cambia ningún resultado
+  // SDD-0251: filtrar por `user_id` explícito. Hoy no cambia ningún resultado
   // —la policy de `user_tenants` ya se auto-scopea (`user_id = auth.uid()`,
   // migr 0200)— pero deja de DEPENDER de ella. La migr 0040 llegó a abrir "ver
   // miembros de tu tenant" y la 0041 la revirtió: si algo así vuelve, sin este

@@ -1,5 +1,5 @@
 /**
- * SDD-0250 · el login del Studio exige MEMBRESÍA, no sólo credenciales.
+ * SDD-0251 · el login del Studio exige MEMBRESÍA, no sólo credenciales.
  *
  * El portal cliente comparte el mismo Supabase Auth que el ERP. Antes de este
  * gate, un cliente tecleaba su correo y clave en /studio/login, el login le

@@ -24,7 +24,7 @@ let clientsWriteError: { code?: string; message: string } | null = null;
 
 function makeSupabase() {
   return {
-    // getStudioAccess (SDD-0250) resuelve la sesión antes de leer user_tenants,
+    // getStudioAccess (SDD-0251) resuelve la sesión antes de leer user_tenants,
     // para filtrar el membership por user_id en vez de fiarse sólo de la RLS.
     auth: {
       getUser: async () => ({ data: { user: { id: "u-1" } } }),
