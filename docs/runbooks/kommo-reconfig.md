@@ -20,7 +20,7 @@ ningún cliente. Activarlo es decisión del founder y **no está autorizada**.
 | Capa | Contenido | Dónde se cambia |
 |---|---|---|
 | **Persona** | 1.280 car. Prohíbe explícitamente "DDP", "prepago", "financiamiento" y "responsabilidad" | pestaña Personalidad |
-| **Pautas** | **24** (tope de Kommo: 50 líneas × 300 car.) | pestaña Personalidad |
+| **Pautas** | **25** (tope de Kommo: 50 líneas × 300 car.) | pestaña Personalidad |
 | **Acciones** | **6** (tope: 20) | pestaña Acciones |
 | **Fuentes** | DOCX **v4** (33 secciones) + Datos clave + Productos y servicios + Descripción del negocio | pestaña Fuentes |
 
@@ -44,9 +44,30 @@ Los tres disparadores de traspaso configurados hoy:
 | El cliente confirma que **quiere comprar** | sin permiso |
 | El **sentimiento** del cliente es frustrado o triste | sin permiso |
 
-⚠️ **Ojo con el silencio.** Si el cliente pregunta algo que no está en Fuentes, el agente **no dice
-"no sé": no responde nada**. El traspaso sólo ocurre si hay una acción que lo dispare, así que cada
-tema sin política cerrada necesita su sección de escalamiento escrita — no basta con omitirlo.
+### El silencio: por qué NO se arregla con una Acción
+
+Si el cliente pregunta algo que no está en Fuentes, el agente **no dice "no sé": no responde nada**.
+Lo lógico sería una acción "cuando no encuentres información → transfiere". **No se puede**, y vale
+la pena dejarlo escrito para que nadie vuelva a intentarlo:
+
+1. **No existe un disparador de "no match".** Las condiciones disponibles son exactamente nueve:
+   `El cliente quiere` · `Cada vez que el cliente pregunta sobre` · `El cliente pregunta por primera
+   vez sobre` · `El sentimiento del cliente es` · `El cliente proporciona su` · `El mensaje entrante
+   contiene` · `El cliente no responde desde hace` · `El formato de mensaje es` · `El mensaje es
+   recibido en horas específicas`. Ninguna se dispara por ausencia de información.
+2. **El tema de `pregunta sobre` es un selector cerrado, no texto libre** (disponibilidad · tiempo de
+   entrega · precio · política de reembolso · estado del pedido · solución de problemas…). Si escribes
+   un tema propio, el campo **revierte en silencio** al valor por defecto. *(Las acciones viejas sí
+   tienen temas propios como "servicios de logística": quedaron de una versión anterior del builder o
+   se cargaron por otra vía; hoy la UI no deja crearlos.)*
+
+**Lo que sí funciona: una Pauta**, porque se evalúa en **cada** mensaje en vez de depender de que
+matchee un tema. Es la pauta 25: *"Nunca dejes un mensaje sin responder. Si el dato no está en tus
+fuentes, dilo con naturalidad… Quedarte callado es peor que no saber."*
+
+**Y el arreglo de fondo sigue siendo el contenido:** cada tema sin política cerrada necesita su
+sección de escalamiento **escrita** en la KB. Omitir un tema no produce un traspaso: produce un
+cliente en visto.
 
 ## Snapshot del estado (en vivo, 2026-06-07 · read-only · ⚠️ desactualizado, ver arriba)
 
