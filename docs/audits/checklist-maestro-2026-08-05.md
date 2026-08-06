@@ -166,8 +166,23 @@ Nada roto: está desplegado y sus migraciones 0341/0342 verificadas en prod.
 
 ### P3 · Comercial atado
 
-- [ ] **Invitaciones al portal** — 364 de 432 clientes (84%) sin acceso.
-      Necesita 3 migraciones bajo runbook.
+- [x] **Invitaciones al portal — ⚠️ no hacía falta construir nada.** La nota de
+      "3 migraciones bajo runbook" estaba vieja: `bulkInvitePortalAction` y
+      `portal_invite_client` **ya están vivos** en Studio › Administración.
+      El bloqueo real no era código, era **el correo**, y se reparte así:
+
+      | | Clientes | Del legado |
+      |---|---|---|
+      | **A · invitables HOY** (tienen correo) | **228** | 224 |
+      | **B** · sin correo, con WhatsApp → pedírselo | 27 | 26 |
+      | **C** · 🔴 sin correo **ni** WhatsApp → **incontactables** | **109** | 109 |
+
+      Los 228 salen hoy sin escribir una línea (pasa a la Parte 2).
+      La vía de WhatsApp **también exige correo** —el enlace de acceso se ata a
+      él— así que para el grupo B primero hay que capturárselo.
+      El grupo C es el hallazgo feo: **109 fichas del legado que el sistema no
+      puede contactar por ningún canal.** No es un problema de software; es
+      calidad de la importación.
 - [ ] **Lead de calculadora en <5 min** — requiere persistir el lead primero.
 - [ ] **Tracking del courier chino** — cuenta en 17TRACK/Kuaidi100 + migración.
 
@@ -218,7 +233,9 @@ No bloquean nada de la Parte 1. Los pongo en orden de urgencia real.
 | # | Qué |
 |---|---|
 | 7 | Fusionar los 3 duplicados en **Studio › Clientes › Posibles duplicados** |
-| 8 | Invitar los 179 al portal — **Studio › Administración** |
+| 8 | ⭐ **Invitar 228 al portal — ya se puede, sin esperar nada.** Studio › Administración. Son los que tienen correo; el resto está bloqueado por falta de datos, no por software (ver el desglose A/B/C en la Parte 1). Acá también se resuelve DTD-9017 |
+| 8b | **Capturarle el correo a 27 clientes** que sólo tienen WhatsApp — el enlace de acceso se ata al correo, así que sin él no hay invitación posible |
+| 8c | 🔴 **Decidir qué hacer con 109 fichas incontactables** — del legado, sin correo ni WhatsApp. El sistema no puede alcanzarlas por ningún canal. O se completan a mano, o se retiran |
 | 9 | Mandar el mensaje al gerente comercial |
 | 10 | Confirmar cuáles de los 29 se retiran |
 
