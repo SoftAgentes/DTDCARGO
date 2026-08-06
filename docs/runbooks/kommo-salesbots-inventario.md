@@ -7,6 +7,23 @@
 > Extraído el **2026-08-06** del endpoint interno `GET /ajax/v4/bots/{id}?with=text` de
 > `dtdcargo.kommo.com`. No hay API pública de Salesbots en la v4.
 
+## ✅ EJECUTADO — 2026-08-06
+
+**Los 11 bots quedaron APAGADOS** (`settings.active: false`, verificado por API) y se cerraron sus
+sesiones colgadas: **de 3.082 a 4**.
+
+⚠️ **Kommo NO ofrece borrar un Salesbot desde la lista.** La barra de acciones masivas sólo tiene
+`apagar` · `turn on` · `detener sesión` · `reiniciar las estadísticas`. Apagar es lo que hay, y es
+reversible — que para este caso es mejor que borrar.
+
+Las dos acciones usadas, para repetirlas si hace falta:
+- **`apagar`** → deja `settings.active: false`. El bot no puede dispararse.
+- **`detener sesión`** → cierra las sesiones colgadas. Hubo que correrlo **dos veces**: procesa por
+  lotes (3.082 → 467 → 4).
+
+Se cerraron las sesiones porque una sesión de Salesbot abierta **puede impedir que el agente de IA
+tome esa conversación**. Con los bots apagados no podían continuar de todas formas.
+
 ## ⭐ El hallazgo: ya están muertos
 
 **Ningún bot tiene disparador.** El panel `Disparadores` está vacío en los 11 (sólo `NPS Bot` declara
