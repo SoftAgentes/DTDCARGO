@@ -392,6 +392,16 @@ export async function registerClientAction(
   if (!welcome.ok) {
     warning = "Cuenta creada. El email de bienvenida no se pudo enviar.";
     console.warn("[registerClientAction] welcome email failed:", welcome.error);
+  } else if (welcome.queued) {
+    // `ok:true` + `queued:true` = el mail_log quedó registrado y el correo NO
+    // salió. Antes esto pasaba como éxito y el cliente se iba creyendo que le
+    // llegaría su Shipping Mark; tres clientes de junio siguen esperándolo.
+    // Mismo texto que el fallo duro: para el cliente es lo mismo, no le llegó.
+    warning = "Cuenta creada. El email de bienvenida no se pudo enviar.";
+    console.warn(
+      "[registerClientAction] welcome email quedó en queued (sin salir), log:",
+      welcome.log_id,
+    );
   }
 
   // 10. Aviso interno al EQUIPO: entró un cliente nuevo (SDD-0059). Best-effort —

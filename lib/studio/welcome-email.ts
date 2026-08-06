@@ -29,7 +29,17 @@ export type WelcomeEmailInput = {
 };
 
 export type WelcomeEmailResult =
-  | { ok: true; log_id: string }
+  | {
+      ok: true;
+      log_id: string;
+      /**
+       * `true` = el `mail_log` quedó REGISTRADO pero el correo NO salió (Resend
+       * sin key). El caller debe tratarlo como "no enviado": antes esta señal se
+       * perdía acá y el alta reportaba éxito, así que el cliente veía su
+       * Shipping Mark en pantalla y nunca lo recibía por correo.
+       */
+      queued: boolean;
+    }
   | { ok: false; error: string };
 
 /**
@@ -74,6 +84,6 @@ export async function sendWelcomeEmail(
     metadata: { source: "welcome_markbox" },
   });
 
-  if (result.ok) return { ok: true, log_id: result.logId };
+  if (result.ok) return { ok: true, log_id: result.logId, queued: result.queued };
   return { ok: false, error: result.error };
 }

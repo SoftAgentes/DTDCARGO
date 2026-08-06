@@ -43,7 +43,7 @@ describe("sendWelcomeEmail", () => {
       email: "carlos@empresa.com",
     });
 
-    expect(res).toEqual({ ok: true, log_id: "log-1" });
+    expect(res).toEqual({ ok: true, log_id: "log-1", queued: false });
     expect(sendEmailMock).toHaveBeenCalledTimes(1);
 
     const [, tenantId, input] = sendEmailMock.mock.calls[0] as [
@@ -62,6 +62,28 @@ describe("sendWelcomeEmail", () => {
     expect(input.vars?.client_name).toBe("Carlos Pérez");
     expect(input.vars?.portal_link).toContain("/portal/login");
     expect(input.vars?.portal_link).not.toContain("portal.dtdcargo.com");
+  });
+
+  it("propaga queued:true cuando el correo NO salió (Resend sin key)", async () => {
+    // El bug que esto cierra: sendEmail devuelve ok:true con queued:true cuando
+    // el correo quedó registrado pero nunca se entregó a Resend. Antes esta
+    // señal se perdía acá, el alta reportaba éxito y el cliente veía su Shipping
+    // Mark en pantalla sin recibirlo nunca por correo. Tres clientes de junio
+    // siguen esperándolo.
+    sendEmailMock.mockResolvedValue({
+      ok: true,
+      logId: "log-2",
+      resendId: null,
+      queued: true,
+    });
+
+    const res = await sendWelcomeEmail(fakeAdmin, "t", {
+      markbox: "DTD-1",
+      name: "X",
+      email: "x@y.com",
+    });
+
+    expect(res).toEqual({ ok: true, log_id: "log-2", queued: true });
   });
 
   it("propaga el error cuando sendEmail falla", async () => {
