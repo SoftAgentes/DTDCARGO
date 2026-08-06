@@ -78,6 +78,24 @@
       `sent_at` null para siempre y la regla alertaría cada 30 min, para siempre.
       Arreglar la representación primero (mismo arreglo que el outbox de P0).
 - [ ] **`migrations-check` de la torre** — va después de B3.
+- [x] **3 migraciones aplicadas en prod sin archivo en `main`.** ✅ Rescatadas:
+      `0336_pod_closes_shipment`, `0337_feature_flags_seed_and_trigger`,
+      `0338_ve_locality_catalog_read_policy`. Vivían **sólo** en el worktree
+      `radiografia-erp-20260802` (32 commits sin pushear). Si ese worktree se
+      borraba, el schema dejaba de reconstruirse desde cero.
+      También se declaró la colisión **0336** en `CHOQUES_HISTORICOS`: hay dos
+      0336 distintas **las dos aplicadas** (con 3 días de diferencia), así que
+      ninguna se renumera.
+- [ ] 🔴 **El gate de migraciones mira en UNA sola dirección.** Compara
+      *archivo del repo → ledger de prod* y grita si falta aplicar. **No mira al
+      revés**: una entrada del ledger sin archivo en el repo le es invisible.
+      Así estuvieron esas 3 sin que nadie lo notara — y es el caso más peligroso
+      de los dos, porque el repo deja de poder reconstruir la DB.
+      Fix: agregar el chequeo inverso al mismo paso.
+- [ ] ⚠️ **El código de SDD-0239 / 0240 / 0241 sigue fuera de `main`.** Se
+      rescataron sus migraciones (la DB ya las tiene), pero las specs y el código
+      viven en `radiografia-erp-20260802` sin pushear. La DB tiene los cambios y
+      la aplicación desplegada no los usa. **Es de esa ventana, no de esta.**
 - [ ] 🔴 **El paso e2e del gate es inestable bajo carga.** En 3 corridas
       seguidas del mismo árbol falló un conjunto **distinto** cada vez —
       `cbm-ayuda`, `/tarifas`, `global-search`, redirects 301 — repartido entre
