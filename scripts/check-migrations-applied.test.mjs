@@ -16,10 +16,21 @@ import { describe, expect, it } from "vitest";
 import {
   collectMigrationFiles,
   findMissing,
+  findOrphans,
   migrationNumber,
+  parseLedgerVersion,
 } from "./check-migrations-applied.mjs";
 
 const CUTOFF = 238;
+/** 2026-08-05 12:00 UTC — el "ahora" fijo de los tests de huérfanas. */
+const NOW = Date.UTC(2026, 7, 5, 12, 0, 0);
+/** Ledger row aplicada `h` horas antes de NOW. */
+function aplicadaHace(name, h) {
+  const d = new Date(NOW - h * 3_600_000);
+  const p = (n, w = 2) => String(n).padStart(w, "0");
+  const version = `${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}${p(d.getUTCHours())}${p(d.getUTCMinutes())}${p(d.getUTCSeconds())}`;
+  return { version, name };
+}
 
 describe("migrationNumber", () => {
   it("saca el prefijo numérico del basename", () => {
@@ -34,6 +45,72 @@ describe("migrationNumber", () => {
 
   it("devuelve null si no arranca con NNNN", () => {
     expect(migrationNumber("init_tenancy")).toBeNull();
+  });
+});
+
+describe("parseLedgerVersion", () => {
+  it("lee el timestamp UTC del ledger", () => {
+    expect(parseLedgerVersion("20260802225220")).toBe(Date.UTC(2026, 7, 2, 22, 52, 20));
+  });
+
+  it("devuelve null si no tiene la forma YYYYMMDDHHMMSS", () => {
+    expect(parseLedgerVersion("2026080222")).toBeNull();
+    expect(parseLedgerVersion(undefined)).toBeNull();
+  });
+});
+
+describe("findOrphans · la dirección que faltaba (prod → repo)", () => {
+  it("⭐ caza la migración aplicada cuyo archivo no está en el repo — el caso 0336/0337/0338", () => {
+    // Aplicadas hace 3 días, archivos colgando de un worktree sin pushear.
+    const ledger = [
+      aplicadaHace("0336_pod_closes_shipment", 72),
+      aplicadaHace("0337_feature_flags_seed_and_trigger", 72),
+    ];
+    const { olvidadas, enVuelo } = findOrphans(ledger, ["0239_rpc"], CUTOFF, NOW);
+
+    expect(olvidadas.map((o) => o.name)).toEqual([
+      "0336_pod_closes_shipment",
+      "0337_feature_flags_seed_and_trigger",
+    ]);
+    expect(enVuelo).toEqual([]);
+  });
+
+  it("NO grita por una recién aplicada: con 38 worktrees, pushear después es lo normal", () => {
+    // Si esto fuera rojo, el gate de TODAS las demás ventanas se pondría rojo por
+    // algo ajeno y transitorio — el camino más corto a que el rojo se ignore.
+    const ledger = [aplicadaHace("0350_recien_aplicada", 2)];
+    const { olvidadas, enVuelo } = findOrphans(ledger, [], CUTOFF, NOW);
+
+    expect(olvidadas).toEqual([]);
+    expect(enVuelo.map((o) => o.name)).toEqual(["0350_recien_aplicada"]);
+  });
+
+  it("respeta el borde exacto de la gracia", () => {
+    const ledger = [aplicadaHace("0350_justo", 24), aplicadaHace("0351_casi", 23)];
+    const { olvidadas, enVuelo } = findOrphans(ledger, [], CUTOFF, NOW);
+
+    expect(olvidadas.map((o) => o.name)).toEqual(["0350_justo"]);
+    expect(enVuelo.map((o) => o.name)).toEqual(["0351_casi"]);
+  });
+
+  it("calla cuando el archivo SÍ está en el repo", () => {
+    const ledger = [aplicadaHace("0336_pod_closes_shipment", 72)];
+    const r = findOrphans(ledger, ["0336_pod_closes_shipment"], CUTOFF, NOW);
+    expect(r.olvidadas).toEqual([]);
+    expect(r.enVuelo).toEqual([]);
+  });
+
+  it("ignora lo histórico: por debajo del corte el name diverge y sería puro ruido", () => {
+    // 'init_tenancy' vive en prod bajo ese nombre y en el repo como
+    // 0001_init_tenancy. Mirar ahí abajo devolvería decenas de falsos positivos.
+    const ledger = [aplicadaHace("0001_init_tenancy", 9999), { version: "x", name: "init_tenancy" }];
+    expect(findOrphans(ledger, [], CUTOFF, NOW).olvidadas).toEqual([]);
+  });
+
+  it("una fecha ilegible cuenta como olvidada — ante la duda, que grite", () => {
+    const ledger = [{ version: "no-es-fecha", name: "0350_sin_fecha" }];
+    const { olvidadas } = findOrphans(ledger, [], CUTOFF, NOW);
+    expect(olvidadas.map((o) => o.name)).toEqual(["0350_sin_fecha"]);
   });
 });
 

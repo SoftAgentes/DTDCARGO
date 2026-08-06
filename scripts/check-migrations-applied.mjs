@@ -190,6 +190,73 @@ export function findMissing(files, applied, cutoff, pending = {}) {
   });
 }
 
+/**
+ * `20260802225220` → epoch ms (UTC). `null` si no tiene la forma esperada.
+ * El `version` del ledger de Supabase es siempre YYYYMMDDHHMMSS en UTC.
+ */
+export function parseLedgerVersion(version) {
+  const m = String(version ?? "").match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/);
+  if (!m) return null;
+  const [, y, mo, d, h, mi, s] = m.map(Number);
+  return Date.UTC(y, mo - 1, d, h, mi, s);
+}
+
+/**
+ * LA OTRA DIRECCIÓN: ¿qué hay APLICADO en prod que el repo no registra?
+ *
+ * `findMissing` compara repo → prod y caza el caso 0228 (archivo que nunca se
+ * aplicó). Este compara prod → repo y caza el inverso, que es **peor**: el
+ * archivo vive sólo en el worktree de quien la aplicó y si esa carpeta se borra
+ * el schema deja de reconstruirse desde cero. No revienta nunca; simplemente un
+ * día no se puede rehacer la base.
+ *
+ * Pasó el 2026-08-05 con 0336_pod_closes_shipment, 0337_feature_flags_seed_and_trigger
+ * y 0338_ve_locality_catalog_read_policy: aplicadas el 2 y 3 de agosto, archivos
+ * colgando de una rama sin pushear, gate en verde todo el tiempo.
+ *
+ * ── Por qué se parte en dos ────────────────────────────────────────────────
+ * Con ~38 worktrees en paralelo, aplicar una migración y pushear su archivo
+ * minutos después es el flujo NORMAL. Marcar rojo en esa ventana pondría en rojo
+ * el gate de todas las demás ventanas por algo ajeno y transitorio — el camino
+ * más corto a que el rojo se ignore, que es exactamente cómo se perdió la 0228.
+ *
+ * Así que se usa la edad, que el ledger ya trae en `version`:
+ *   · recién aplicada (< gracia) → **en vuelo**, aviso amarillo
+ *   · más vieja que la gracia    → **olvidada**, rojo
+ *
+ * Debajo del `cutoff` no se mira: ahí el `name` del ledger diverge del basename
+ * por mil motivos históricos y sería puro ruido (es la razón de ser del baseline).
+ *
+ * @param {{version?: string, name?: string}[]} ledger
+ * @param {string[]} files      basenames del repo (origin/main ∪ checkout)
+ * @param {number} cutoff
+ * @param {number} nowMs
+ * @param {number} graceHours   ventana de "todavía puede estar pusheándose"
+ * @returns {{enVuelo: {name: string, horas: number}[], olvidadas: {name: string, horas: number}[]}}
+ */
+export function findOrphans(ledger, files, cutoff, nowMs, graceHours = 24) {
+  const fileSet = new Set(files);
+  const enVuelo = [];
+  const olvidadas = [];
+
+  for (const row of ledger ?? []) {
+    const name = row?.name;
+    if (!name) continue;
+    const n = migrationNumber(name);
+    if (n === null || n <= cutoff) continue;
+    if (fileSet.has(name)) continue;
+
+    const appliedMs = parseLedgerVersion(row.version);
+    // Sin fecha legible no se puede saber si está en vuelo → se trata como
+    // olvidada. Ante la duda, que grite: el silencio es el modo de falla que
+    // este check vino a eliminar.
+    const horas = appliedMs === null ? Infinity : (nowMs - appliedMs) / 3_600_000;
+    (horas >= graceHours ? olvidadas : enVuelo).push({ name, horas });
+  }
+
+  return { enVuelo, olvidadas };
+}
+
 function readBaseline() {
   let b;
   try {
@@ -256,6 +323,7 @@ async function main() {
   const appliedNames = new Set((ledger ?? []).map((r) => r.name).filter(Boolean));
 
   const missing = findMissing(files, appliedNames, cutoff, pending);
+  const { enVuelo, olvidadas } = findOrphans(ledger, files, cutoff, Date.now());
 
   // Entradas de pending que ya no corresponden a ningún archivo: baseline envejecido.
   // No es rojo, pero se avisa — un baseline con basura vuelve a ser ruido.
@@ -273,6 +341,36 @@ async function main() {
   }
   for (const n of stalePending) {
     console.log(`${C.yellow}   ⚠ baseline vencido: '${n}' no existe como archivo → sacalo de pendingBelowCutoff${C.nc}`);
+  }
+
+  for (const o of enVuelo) {
+    console.log(
+      `${C.yellow}   ⏳ '${o.name}' está en prod y su archivo no está en el repo — aplicada hace ${o.horas.toFixed(1)} h, probablemente todavía sin pushear${C.nc}`,
+    );
+  }
+
+  if (olvidadas.length > 0) {
+    console.log(
+      `${C.red}[FAIL]${C.nc} ${olvidadas.length} migración(es) APLICADA(s) en prod cuyo archivo NO está en el repo:`,
+    );
+    for (const o of olvidadas) {
+      const edad = Number.isFinite(o.horas) ? `${(o.horas / 24).toFixed(1)} días` : "fecha ilegible";
+      console.log(`${C.red}   🔴 ${o.name}${C.nc}${C.dim}  (aplicada hace ${edad})${C.nc}`);
+    }
+    console.log(
+      `${C.dim}\n   La DB cambió y el repo no lo registra. Esto NO revienta solo: revienta\n` +
+        `   el día que haya que reconstruir el schema desde cero, y para entonces el\n` +
+        `   archivo puede no existir en ningún lado.\n\n` +
+        `   Qué hacer:\n` +
+        `   1. Buscá el worktree que tiene el .sql — suele ser el de quien la aplicó:\n` +
+        `      git worktree list, y en cada uno: ls supabase/migrations/<nombre>.sql\n` +
+        `   2. Llevá ESE archivo a main, tal cual (no lo reescribas: tiene que ser el\n` +
+        `      que corrió). Si su código todavía no está listo, el .sql igual va —\n` +
+        `      el repo debe poder rehacer la DB aunque la feature no esté publicada.\n` +
+        `   3. Si el número choca con otro ya aplicado, NO renumeres: declaralo en\n` +
+        `      CHOQUES_HISTORICOS de scripts/check-numbering.mjs.${C.nc}`,
+    );
+    throw new Exit(1);
   }
 
   if (missing.length > 0) {
