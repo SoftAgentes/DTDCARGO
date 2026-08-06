@@ -52,8 +52,18 @@
       archivo no tenía test propio: le puse 6, validados con mutación.
       *Impacto hoy bajo* — `outbox_push_events` tiene 0 filas históricas, pero
       era una bomba para cuando el push se encienda de verdad.
-- [ ] **B2 · Qué ve el cliente cuando un aviso rebota.** El webhook ya marca
-      `bounced` y el dato está en `mail_logs.metadata`. Falta la pantalla.
+- [x] **B2 · Un aviso que rebotó se mostraba como "Enviado".** ✅ Eran **dos**
+      agujeros, no uno:
+      1. El webhook de Resend marcaba `bounced` en `mail_logs` y nadie tocaba
+         `client_notification_schedule` → la fila quedaba en `sent` para
+         siempre. El hilo ya existía (el drain guarda `schedule_id` en la
+         metadata del log): ahora el webhook lo usa y degrada el aviso a
+         `failed`. Sin migración. `failed` es terminal para el drain, así que no
+         genera bucle de reenvío contra una dirección muerta.
+      2. `dispatchEmail` daba por `sent` cualquier `res.ok`, y `sendEmail`
+         devuelve `ok:true` aunque el correo no haya salido (mismo bug raíz que
+         SDD-0248). Ahora un `queued` cuenta como transitorio y se reintenta.
+      6 tests nuevos, validados con mutación.
 - [x] ~~**Numeración: 10 duplicados.**~~ ⚠️ **Descartado — el hallazgo era mío y
       estaba mal.** 3 no eran duplicados (`0020/0020b` es la convención `NNNNb`
       de fix post-aplicación) y las 7 reales ya están en `CHOQUES_HISTORICOS` de
@@ -64,6 +74,16 @@
       `sent_at` null para siempre y la regla alertaría cada 30 min, para siempre.
       Arreglar la representación primero (mismo arreglo que el outbox de P0).
 - [ ] **`migrations-check` de la torre** — va después de B3.
+- [ ] 🔴 **El paso e2e del gate es inestable bajo carga.** En 3 corridas
+      seguidas del mismo árbol falló un conjunto **distinto** cada vez —
+      `cbm-ayuda`, `/tarifas`, `global-search`, redirects 301 — repartido entre
+      chromium / mobile-chrome / mobile-safari. Los mismos tests pasan **3 de 3
+      en aislamiento**. Es contención de recursos, no regresión.
+      **Por qué importa más de lo que parece:** un gate que falla al azar enseña
+      a ignorar el rojo, y así fue exactamente como se perdió la 0228. Mientras
+      esto siga, "gate verde" es en parte suerte.
+      Candidatos: bajar `workers` en `playwright.config`, `retries: 1` para el
+      e2e local, o aislar los specs de calculadora que concentran los timeouts.
 
 ### P2 · SDD-0246 · Fusión de duplicados *(traspaso de la otra ventana)*
 
@@ -135,6 +155,7 @@ No bloquean nada de la Parte 1. Los pongo en orden de urgencia real.
 | 4 | **DTD-1010 · ABDAL AKIL** | bienvenida atascada 07-jun, 0 correos entregados | 424 6097153 |
 | 5 | **DTD-1011 · Jose Diaz** | bienvenida atascada 07-jun, 0 correos entregados | +58 412 9819792 |
 | 6 | **DTD-A110 · Adrián Figueroa** | bienvenida **rebotó** 15-jul — el correo no sirve | 424 3745436 · pedirle correo nuevo |
+| 6b | 🔴 **DTD-9017 · Alain de Cardenas** | **sí recibió** el correo con su Shipping Mark, pero **no tiene cuenta de acceso**: el `client_users` del alta falló y quedó en un `console.error`. Se registró el 15-jul y la puerta nunca abrió | +58 424 4731021 · hay que crearle el acceso |
 
 > Verificado uno por uno. **No** están en la lista: DTD-1008 (cuenta de prueba
 > "QA Bodysize"), DTD-1007 (alta interna del equipo), DTD-Y003 (tiene 3 correos
