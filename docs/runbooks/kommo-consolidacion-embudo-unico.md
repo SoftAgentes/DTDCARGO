@@ -31,6 +31,40 @@ Los pasos **24, 25 y 26 siguen pendientes y ahora son bloqueantes**, no opcional
 *(El valor exacto del `stage_map` en prod no se releyó de la DB: se infiere del bloque JSON
 documentado abajo más la eliminación verificada del embudo. Confirmar antes de tocar.)*
 
+#### Los IDs reales — leídos de `GET /api/v4/leads/pipelines/14036567` el 2026-08-06
+
+| Etapa | `status_id` | sort |
+|---|---|---|
+| Incoming leads | `108343827` | 10 |
+| Contacto inicial | `108343831` | 20 |
+| **Recontacto** | `108343835` | 30 |
+| **Estimado enviado** | `108343839` | 40 |
+| Negociación | `109855104` | 50 |
+| **Logrado con éxito** | `142` | — |
+| **Ventas Perdidos** | `143` | — |
+
+**El `stage_map` correcto** (para `/studio/kommo → Dirección → Mapa de etapas`, o SQL directo sobre
+`kommo_connections.stage_map`):
+
+```json
+{"sent":     {"pipeline_id": 14036567, "status_id": 108343839},
+ "accepted": {"pipeline_id": 14036567, "status_id": 142},
+ "rejected": {"pipeline_id": 14036567, "status_id": 143}}
+```
+
+Y la clave que **SDD-0244** necesita para que el enrutador de recontacto deje de estar inerte:
+
+```json
+"recontacto": {"pipeline_id": 14036567, "status_id": 108343835}
+```
+
+⚠️ **Trampa de renumeración:** el id `108343835` **cambió de significado**. Este runbook lo
+documentaba como `Negociación`; hoy es **`Recontacto`**, y `Negociación` es un id nuevo (`109855104`,
+de otra serie — se creó después). Cualquier cosa que haya guardado `108343835` pensando en
+Negociación ahora apunta a Recontacto. *(Revisado: el repo no hardcodea ids de etapa salvo los
+reservados 142/143, así que no hay código afectado — pero sí puede haberlo en filtros guardados o
+automatizaciones dentro de Kommo.)*
+
 ### Distribución real de los leads (tablero, 2026-08-06)
 
 | Etapa | Leads |
