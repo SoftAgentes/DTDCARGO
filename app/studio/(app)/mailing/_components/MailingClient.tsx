@@ -7,9 +7,12 @@
  * Templates y Reglas son placeholders con próximamente.
  */
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { Icon } from "@/app/studio/_components/icons";
+import { resendStuckMailAction } from "../actions";
 import type {
   MailRuleWithTemplate,
   MailScheduled,
@@ -205,6 +208,23 @@ export function MailingClient({
 // LogsView · tabla read-only de mail_logs con filters
 // ─────────────────────────────────────────────────────────────
 
+/**
+ * ¿Mostrar el botón de reenviar en esta fila?
+ *
+ * Chequeo LIVIANO, sólo para no dibujar un botón que va a fallar. La regla
+ * autoritativa vive en `lib/studio/mail/resend-stuck.ts` (`canResend`) y la
+ * aplica la server action — acá no hay `rendered_variables` para decidir bien.
+ *
+ * `bounced` y `complained` quedan fuera a propósito: reenviar a una dirección
+ * que rebotó falla igual y castiga la reputación del dominio. Ahí lo que hay que
+ * hacer es corregirle el correo al cliente, no reintentar.
+ */
+function puedeReenviar(log: MailLogRow): boolean {
+  return (
+    (log.status === "queued" || log.status === "failed") && !!log.template_slug
+  );
+}
+
 function LogsView({
   logs,
   templates,
@@ -216,8 +236,25 @@ function LogsView({
   filters: MailingFilters;
   setQp: (key: string, value: string | null) => void;
 }) {
+  const [resendError, setResendError] = useState<string | null>(null);
+
   return (
     <>
+      {resendError && (
+        <div
+          role="alert"
+          style={{
+            marginBottom: 12,
+            padding: "8px 12px",
+            borderRadius: 6,
+            fontSize: 13,
+            color: "var(--danger)",
+            background: "var(--danger-soft, #FBEAEA)",
+          }}
+        >
+          {resendError}
+        </div>
+      )}
       {/* Filters */}
       <div
         style={{
@@ -296,6 +333,7 @@ function LogsView({
                 <Th>Template</Th>
                 <Th>Enviado</Th>
                 <Th>Entregado</Th>
+                <Th> </Th>
               </tr>
             </thead>
             <tbody>
@@ -387,6 +425,26 @@ function LogsView({
                       <RelTime iso={log.delivered_at} />
                     ) : (
                       <span style={{ color: "var(--ink-soft)" }}>—</span>
+                    )}
+                  </Td>
+                  <Td>
+                    {puedeReenviar(log) && (
+                      <ActionButton
+                        variant="ghost"
+                        size="sm"
+                        idleLabel="Reenviar"
+                        loadingLabel="Reenviando…"
+                        successLabel="Reenviado"
+                        idleIcon={Icon.mail(13)}
+                        successIcon={Icon.check(13)}
+                        onError={setResendError}
+                        onAction={async () => {
+                          setResendError(null);
+                          const fd = new FormData();
+                          fd.set("id", log.id);
+                          return resendStuckMailAction(fd);
+                        }}
+                      />
                     )}
                   </Td>
                 </tr>
