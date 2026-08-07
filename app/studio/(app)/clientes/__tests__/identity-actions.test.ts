@@ -80,8 +80,12 @@ function makeSupabase(opts: FakeOpts) {
               if (table === "user_tenants") return { data: userTenantsRow };
               return { data: null };
             },
-            // clients select(...).eq(id).maybeSingle()
             eq() {
+              // user_tenants: getStudioAccess (SDD-0251) encadena
+              // .eq("user_id", …).is("disabled_at", null).limit(1) → sigue
+              // siendo chainable.
+              if (table === "user_tenants") return sel;
+              // clients select(...).eq(id).maybeSingle()
               return {
                 maybeSingle: async () => ({
                   data: opts.client ?? null,

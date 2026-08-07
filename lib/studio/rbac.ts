@@ -27,9 +27,18 @@
  *   - Sourcing/proveedores = `commercial`; `operations` verifica, NUNCA mueve
  *     plata.
  *
- * Las listas acá son el DEFAULT del código. A futuro la "Matriz rol→persona"
- * y los overrides por tenant viven en DB (SDD-0085 §Futuro). El test
- * anti-drift (`rbac.test.ts`) garantiza que la matriz y el registro de
+ * Las listas acá son el DEFAULT del código, y ahí se quedan: la decisión del
+ * founder de 2026-07-02 (§Candados, más abajo) descartó formalmente la matriz
+ * editable en DB y los overrides por usuario. ⚠️ Esta cabecera prometía lo
+ * contrario —"a futuro los overrides viven en DB (SDD-0085 §Futuro)"— y quedó
+ * contradiciendo a la decisión que vive 100 líneas más abajo en este MISMO
+ * archivo: quien leía sólo el encabezado concluía al revés. Corregido 2026-08-07.
+ *
+ * SDD-0139 dejó cláusula de reapertura para la matriz en DB ("revisar recién
+ * con el 'empleado 4-5' o el primer pedido real del founder, como spec propia");
+ * los overrides por usuario exigen una spec que supersede a 0139.
+ *
+ * El test anti-drift (`rbac.test.ts`) garantiza que la matriz y el registro de
  * módulos (`modules.ts`) nunca se desincronicen.
  *
  * El `owner_role` del motor de flujo interno (FASE-FUTURA) reusa estos mismos

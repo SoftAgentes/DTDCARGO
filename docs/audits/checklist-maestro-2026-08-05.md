@@ -41,8 +41,19 @@
       welcome, aviso al equipo, Kommo, throttle). Un cliente puede registrarse
       con los 7 rotos y ver "todo bien". Migración + drenado con reintentos.
       ⚠️ La migración queda como archivo — aplicarla es tuya.
-- [ ] **Herramienta de reenvío de correo atascado** en Studio › Mailing, para que
-      el rescate no dependa de SQL a mano.
+- [x] **Herramienta de reenvío de correo atascado** ✅ Botón **Reenviar** en
+      Studio › Mailing › Logs. Cierra el par: `mail-health` **detecta**, esto
+      **repara**, sin bajar a SQL.
+      Tres reglas que dice en voz alta cuando no se puede:
+      · un correo que **sí llegó** no se reenvía (le duplicaría el mensaje);
+      · un **rebote** no se reenvía al mismo destino (falla igual y castiga la
+        reputación del dominio — hay que corregirle el correo al cliente);
+      · un correo de **cuerpo libre** no se puede reconstruir: `mail_logs` guarda
+        asunto y variables, **no el HTML**. Sólo se reenvía lo que salió de una
+        plantilla, re-renderizando con las mismas variables.
+      Genera un log nuevo enlazado por `metadata.resend_of` en vez de pisar el
+      viejo: el historial tiene que mostrar que hubo dos intentos.
+      8 tests, validados con mutación.
 
 ### P1 · Bugs confirmados
 
@@ -78,23 +89,59 @@
       `sent_at` null para siempre y la regla alertaría cada 30 min, para siempre.
       Arreglar la representación primero (mismo arreglo que el outbox de P0).
 - [ ] **`migrations-check` de la torre** — va después de B3.
-- [ ] 🔴 **El paso e2e del gate es inestable bajo carga.** En 3 corridas
-      seguidas del mismo árbol falló un conjunto **distinto** cada vez —
-      `cbm-ayuda`, `/tarifas`, `global-search`, redirects 301 — repartido entre
-      chromium / mobile-chrome / mobile-safari. Los mismos tests pasan **3 de 3
-      en aislamiento**. Es contención de recursos, no regresión.
-      **Por qué importa más de lo que parece:** un gate que falla al azar enseña
-      a ignorar el rojo, y así fue exactamente como se perdió la 0228. Mientras
-      esto siga, "gate verde" es en parte suerte.
-      Candidatos: bajar `workers` en `playwright.config`, `retries: 1` para el
-      e2e local, o aislar los specs de calculadora que concentran los timeouts.
+- [x] **3 migraciones aplicadas en prod sin archivo en `main`.** ✅ Rescatadas:
+      `0336_pod_closes_shipment`, `0337_feature_flags_seed_and_trigger`,
+      `0338_ve_locality_catalog_read_policy`. Vivían **sólo** en el worktree
+      `radiografia-erp-20260802` (32 commits sin pushear). Si ese worktree se
+      borraba, el schema dejaba de reconstruirse desde cero.
+      También se declaró la colisión **0336** en `CHOQUES_HISTORICOS`: hay dos
+      0336 distintas **las dos aplicadas** (con 3 días de diferencia), así que
+      ninguna se renumera.
+- [x] **El gate de migraciones miraba en UNA sola dirección.** ✅ Ahora mide las
+      dos. Una entrada del ledger sin archivo en el repo ya no es invisible.
+      Para no volverlo ruido con 38 worktrees —donde aplicar y pushear el archivo
+      minutos después es el flujo normal— usa la **edad** que el ledger ya trae
+      en `version`: recién aplicada sale **amarilla**, más de 24 h sale **roja**.
+      7 tests nuevos, validados con mutación.
+- [ ] ⚠️ **El código de SDD-0239 / 0240 / 0241 sigue fuera de `main`.** Se
+      rescataron sus migraciones (la DB ya las tiene), pero las specs y el código
+      viven en `radiografia-erp-20260802` sin pushear. La DB tiene los cambios y
+      la aplicación desplegada no los usa. **Es de esa ventana, no de esta.**
+- [x] **El paso e2e del gate era inestable bajo carga.** ✅ `retries: 1` en local
+      (antes 0; CI ya tenía 2). Suena al revés, pero el equipo que corre el gate
+      acá tiene ~38 worktrees vivos y está **más** contendido que CI.
+      **Cinco** corridas seguidas del mismo árbol, sin cambiar una línea,
+      fallaron un conjunto **distinto** cada vez — `cbm-ayuda`, `/tarifas`,
+      `global-search`, redirects 301 — repartido entre los tres navegadores, y
+      los mismos tests pasan 3/3 en aislamiento.
+      El reintento **no tapa** un test roto: uno roto falla las dos veces, y
+      Playwright reporta aparte los que pasaron al reintentar (`flaky`), así que
+      la inestabilidad sigue viéndose.
+      Queda como opción si reaparece: bajar `workers`.
 
 ### P2 · SDD-0246 · Fusión de duplicados *(traspaso de la otra ventana)*
 
 Nada roto: está desplegado y sus migraciones 0341/0342 verificadas en prod.
 
-- [ ] ⭐ **Ampliar `client_duplicate_candidates()` para detectar duplicados
-      dentro del legado.** Hoy solo compara legado ↔ registro nuevo, y por eso
+- [x] ⭐ **Ampliar `client_duplicate_candidates()` para detectar duplicados
+      dentro del legado.** ✅ **Escrita y verificada — ⏸ esperando que la
+      nombres**: `supabase/migrations/0349_duplicados_dentro_del_legado.sql`.
+      Los dos problemas que había que resolver, resueltos:
+      · **par espejo** — un `case` da la orientación: si uno es legado y el otro
+        no, el legado va primero (como siempre); si son de la misma clase, gana
+        el de `(created_at, markbox)` menor. Sale **una** fila por par.
+      · **quién sobrevive entre dos legados** — ⚠️ **la lista NO recomienda**.
+        Los 371 del legado se importaron el mismo día y comparten `created_at`
+        (verificado: 1 sola fecha), así que el orden lo decide el markbox, que no
+        dice nada sobre quién tiene más historia. Es sólo un orden estable.
+        Quién sobrevive lo elige la persona: `merge_clients` recibe
+        `p_survivor_id` y `p_merged_id` por separado.
+      De yapa entran los pares nuevo↔nuevo, que tampoco se miraban.
+      **76 contratos SQL en verde, validada con DOS mutaciones**: con la
+      condición vieja salen 0 pares, sin la orientación salen 2.
+      Declarada en `pendingBelowCutoff` para no dejar el gate rojo a las demás
+      ventanas mientras espera.
+      *(Detalle original de la tarea, para cuando se aplique:)* Hoy solo compara legado ↔ registro nuevo, y por eso
       hay **6 pares invisibles**: DTD-A119·DTD-Y040, DTD-J066·DTD-Y017,
       DTD-A079·DTD-A135, DTD-A032·DTD-J004, DTD-J044·DTD-Y041, DTD-A080·DTD-D032.
       Al quitar `v.es_legado and not n.es_legado` hay que resolver dos cosas que
@@ -119,8 +166,23 @@ Nada roto: está desplegado y sus migraciones 0341/0342 verificadas en prod.
 
 ### P3 · Comercial atado
 
-- [ ] **Invitaciones al portal** — 364 de 432 clientes (84%) sin acceso.
-      Necesita 3 migraciones bajo runbook.
+- [x] **Invitaciones al portal — ⚠️ no hacía falta construir nada.** La nota de
+      "3 migraciones bajo runbook" estaba vieja: `bulkInvitePortalAction` y
+      `portal_invite_client` **ya están vivos** en Studio › Administración.
+      El bloqueo real no era código, era **el correo**, y se reparte así:
+
+      | | Clientes | Del legado |
+      |---|---|---|
+      | **A · invitables HOY** (tienen correo) | **228** | 224 |
+      | **B** · sin correo, con WhatsApp → pedírselo | 27 | 26 |
+      | **C** · 🔴 sin correo **ni** WhatsApp → **incontactables** | **109** | 109 |
+
+      Los 228 salen hoy sin escribir una línea (pasa a la Parte 2).
+      La vía de WhatsApp **también exige correo** —el enlace de acceso se ata a
+      él— así que para el grupo B primero hay que capturárselo.
+      El grupo C es el hallazgo feo: **109 fichas del legado que el sistema no
+      puede contactar por ningún canal.** No es un problema de software; es
+      calidad de la importación.
 - [ ] **Lead de calculadora en <5 min** — requiere persistir el lead primero.
 - [ ] **Tracking del courier chino** — cuenta en 17TRACK/Kuaidi100 + migración.
 
@@ -171,7 +233,9 @@ No bloquean nada de la Parte 1. Los pongo en orden de urgencia real.
 | # | Qué |
 |---|---|
 | 7 | Fusionar los 3 duplicados en **Studio › Clientes › Posibles duplicados** |
-| 8 | Invitar los 179 al portal — **Studio › Administración** |
+| 8 | ⭐ **Invitar 228 al portal — ya se puede, sin esperar nada.** Studio › Administración. Son los que tienen correo; el resto está bloqueado por falta de datos, no por software (ver el desglose A/B/C en la Parte 1). Acá también se resuelve DTD-9017 |
+| 8b | **Capturarle el correo a 27 clientes** que sólo tienen WhatsApp — el enlace de acceso se ata al correo, así que sin él no hay invitación posible |
+| 8c | 🔴 **Decidir qué hacer con 109 fichas incontactables** — del legado, sin correo ni WhatsApp. El sistema no puede alcanzarlas por ningún canal. O se completan a mano, o se retiran |
 | 9 | Mandar el mensaje al gerente comercial |
 | 10 | Confirmar cuáles de los 29 se retiran |
 

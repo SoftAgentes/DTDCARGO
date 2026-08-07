@@ -61,10 +61,30 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  /**
+   * Rutas del Studio que se sirven SIN sesión porque su trabajo es crearla.
+   *
+   * Hoy sólo el login. La recuperación de acceso vive en `/acceso/[token]`
+   * (SDD-0250 · migr 0354), FUERA de `/studio`, así que ni siquiera entra al
+   * matcher de este proxy — igual que `/invitar`. Es a propósito: una pantalla
+   * pensada para quien no tiene sesión no debería depender de que alguien
+   * recuerde mantenerle un hueco abierto en el gate.
+   */
+  function isStudioEntryPoint(p: string): boolean {
+    return p === "/studio/login";
+  }
+
   // ─── /studio/** ─────────────────────────────────────────────
   if (pathname.startsWith("/studio")) {
-    // Sin sesión y NO en login → redirect a login
-    if (!user && pathname !== "/studio/login") {
+    // Sin sesión y NO en una puerta de entrada → redirect a login.
+    //
+    // Las puertas de entrada son las rutas que EXISTEN PARA construir una
+    // sesión, así que exigirles una sería circular. `/studio/reset/confirmar`
+    // (SDD-0250) es el que canjea el token del correo: si el proxy lo rebota,
+    // el enlace de acceso muere antes de llegar al handler y el usuario
+    // termina otra vez en el login sin saber por qué — exactamente el
+    // síntoma que este trabajo viene a eliminar.
+    if (!user && !isStudioEntryPoint(pathname)) {
       const url = request.nextUrl.clone();
       url.pathname = "/studio/login";
       return NextResponse.redirect(url);

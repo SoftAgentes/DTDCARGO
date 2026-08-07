@@ -25,7 +25,21 @@ export default defineConfig({
   timeout: 60_000,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  // Local con 1 reintento, no 0. Suena al revés —"si falla, que falle"— pero el
+  // que corre el gate acá es un equipo con ~38 worktrees vivos, bastante MÁS
+  // contendido que CI, y sin reintentos la contención se ve idéntica a una
+  // regresión.
+  //
+  // Medido el 2026-08-05: cinco corridas seguidas del mismo árbol, sin cambiar
+  // una línea, fallaron un conjunto DISTINTO cada vez (cbm-ayuda, /tarifas,
+  // global-search, redirects 301) repartido entre los tres navegadores. Los
+  // mismos tests pasan 3/3 en aislamiento. Eso no es información: es ruido que
+  // enseña a ignorar el rojo — y así fue exactamente como se perdió la 0228.
+  //
+  // El reintento NO tapa un test roto: uno roto de verdad falla las dos veces.
+  // Y Playwright reporta aparte los que pasaron al reintentar ("flaky"), así que
+  // la inestabilidad sigue siendo visible en vez de desaparecer.
+  retries: process.env.CI ? 2 : 1,
   reporter: process.env.CI ? "github" : "list",
   use: {
     baseURL: BASE_URL,

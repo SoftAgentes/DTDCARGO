@@ -45,9 +45,21 @@ export interface StudioAccess {
 export async function getStudioAccess(
   supabase: StudioClient,
 ): Promise<StudioAccess> {
+  // SDD-0251: filtrar por `user_id` explícito. Hoy no cambia ningún resultado
+  // —la policy de `user_tenants` ya se auto-scopea (`user_id = auth.uid()`,
+  // migr 0200)— pero deja de DEPENDER de ella. La migr 0040 llegó a abrir "ver
+  // miembros de tu tenant" y la 0041 la revirtió: si algo así vuelve, sin este
+  // filtro el `limit(1)` entregaría el rol de un compañero cualquiera, y acá
+  // ese rol es el que decide si pasás. Sin sesión → fail-closed.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { role: null, warehouseScope: "all" };
+
   const { data } = await supabase
     .from("user_tenants")
     .select("*")
+    .eq("user_id", user.id)
     .is("disabled_at", null)
     .limit(1)
     .maybeSingle<{ role: StudioUserRole | null; warehouse_scope?: string | null }>();

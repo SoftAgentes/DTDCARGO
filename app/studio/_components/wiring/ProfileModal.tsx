@@ -294,7 +294,7 @@ function PasswordTabContent({ onClose }: { onClose: () => void }) {
           font: "500 12.5px/1.4 var(--f-sans)",
         }}
       >
-        La contraseña debe tener mínimo <strong>12 caracteres</strong>. Mezclá
+        La contraseña debe tener mínimo <strong>12 caracteres</strong>. Mezcla
         mayúsculas, minúsculas, números y símbolos.
       </div>
 

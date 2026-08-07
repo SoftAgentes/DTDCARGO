@@ -31,6 +31,7 @@
   ],
   "cutoff": 238,
   "pendingBelowCutoff": {
-    "0017_no_olvidar": "SDD-0025 (No-Olvidar) vive en la rama feat/no-olvidar SIN merge, gated por un review criptográfico externo (envelope encryption). El archivo llegó a main pero NO se aplica hasta pasar ese gate. Verificado 2026-07-16: to_regclass('public.no_olvidar_items') → NULL. El código es inerte (el page.tsx es un EmptyState 'Próximamente' que no toca la DB y nadie importa no-olvidar-queries.ts), así que la ruta no revienta. Al aplicarla, sacala de acá."
+    "0017_no_olvidar": "SDD-0025 (No-Olvidar) vive en la rama feat/no-olvidar SIN merge, gated por un review criptográfico externo (envelope encryption). El archivo llegó a main pero NO se aplica hasta pasar ese gate. Verificado 2026-07-16: to_regclass('public.no_olvidar_items') → NULL. El código es inerte (el page.tsx es un EmptyState 'Próximamente' que no toca la DB y nadie importa no-olvidar-queries.ts), así que la ruta no revienta. Al aplicarla, sacala de acá.",
+    "0349_duplicados_dentro_del_legado": "Escrita y verificada el 2026-08-05 (76 contratos SQL en verde, validada con DOS mutaciones: con la condición vieja salen 0 pares y sin la orientación salen 2). Espera el OK del founder NOMBRÁNDOLA, que es la regla del repo para aplicar a prod. Sólo reemplaza el cuerpo de client_duplicate_candidates() para que también vea los duplicados dentro del legado (6 pares hoy invisibles). No crea ni borra nada, no toca datos, y la fusión sigue siendo manual — aplicarla no fusiona a nadie. Al aplicarla, sacala de acá."
   }
 }
