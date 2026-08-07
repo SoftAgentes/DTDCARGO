@@ -25,6 +25,11 @@ import {
   beginD5ExternalEffect,
   finishD5ExternalEffect,
 } from "@/lib/studio/audit/external-effect-adapter";
+import { randomBytes } from "node:crypto";
+import {
+  accessTokenExpiry,
+  accessTokenPath,
+} from "@/lib/studio/access-token";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { generateTelegramLinkCode } from "@/lib/studio/telegram/link-code";
@@ -37,6 +42,19 @@ import {
 } from "@/lib/studio/user-types";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+/**
+ * Secreto del enlace de acceso (SDD-0250 · migr 0354). 24 bytes = 192 bits →
+ * 48 caracteres hex, dentro del CHECK de la tabla.
+ *
+ * Vive ACÁ y no en `lib/studio/access-token.ts` porque ese módulo lo importa un
+ * componente cliente, y `node:crypto` en el bundle del navegador rompe el build
+ * entero ("Reading from node:crypto is not handled by plugins"). Este archivo
+ * es "use server", así que acá sí corresponde.
+ */
+function generateAccessToken(): string {
+  return randomBytes(24).toString("hex");
+}
 
 // ─────────────────────────────────────────────────────────────
 // inviteUserAction · crea invitation + devuelve link copy/paste
@@ -415,7 +433,6 @@ export async function sendAccessLinkAction(
     return { error: "Ese usuario no tiene correo cargado en su cuenta." };
   }
 
-  const redirectTo = `${SITE_URL}/studio/reset/confirmar`;
   let operationId: string;
   try {
     operationId = await beginD5ExternalEffect(
@@ -427,26 +444,40 @@ export async function sendAccessLinkAction(
     return { error: "No se pudo registrar la operación. Reintenta." };
   }
 
-  const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
-    type: "recovery",
-    email: targetEmail,
-    options: { redirectTo },
+  // Token PROPIO (migr 0354), no el de recuperación de Supabase.
+  //
+  // El de Supabase se canjea al ABRIR el enlace, y eso lo mataba siempre: el
+  // escáner de correo del destinatario abre los enlaces del mensaje apenas
+  // llega y consumía el token de un solo uso antes de que la persona hiciera
+  // clic. Medido el 2026-08-06: con envío de correo el token moría en menos de
+  // 37 s sin que nadie lo tocara; sin envío seguía vivo.
+  //
+  // El nuestro se consume en el POST del formulario (`/acceso/[token]`), así
+  // que abrirlo mil veces no le hace nada. Va en la RUTA, no en la query, para
+  // sobrevivir el copiar/pegar y WhatsApp.
+  //
+  // NO anulamos los enlaces anteriores del usuario a propósito: con el de
+  // Supabase, generar uno nuevo mataba el viejo en silencio y el admin mandaba
+  // dos que ya no servían. Todos los vigentes funcionan hasta usarse o vencer.
+  const token = generateAccessToken();
+  const { error: tokenErr } = await admin.from("studio_access_tokens").insert({
+    tenant_id: myLink.tenant_id,
+    user_id: targetUserId,
+    token,
+    created_by: userResp.user.id,
+    expires_at: accessTokenExpiry(),
   });
 
-  const tokenHash = linkData?.properties?.hashed_token;
-  if (linkErr || !tokenHash) {
+  if (tokenErr) {
     await finishD5ExternalEffect(supabase, operationId, {
       ok: false,
-      errorCode: "generate_link_failed",
+      errorCode: "token_insert_failed",
     });
-    return { error: "Supabase no devolvió el enlace de acceso. Reintenta." };
+    console.error("[sendAccessLinkAction] insert token:", tokenErr.message);
+    return { error: "No se pudo generar el enlace de acceso. Reintenta." };
   }
 
-  // Construimos el enlace contra NUESTRA ruta en vez de usar `action_link`:
-  // el flujo token-hash no depende de la cookie del navegador, así que
-  // funciona aunque abra el correo en otro dispositivo (mismo criterio que el
-  // callback del portal).
-  const accessLink = `${redirectTo}?token_hash=${encodeURIComponent(tokenHash)}&type=recovery`;
+  const accessLink = `${SITE_URL}${accessTokenPath(token)}`;
 
   // El correo es best-effort: si falla, el admin tiene el enlace en pantalla
   // para pasarlo por otro canal. Por eso el efecto se cierra como OK — el

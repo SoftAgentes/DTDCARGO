@@ -31,24 +31,39 @@ test.describe("Tier 1 · logins (render + negativos)", () => {
   });
 
   /**
-   * SDD-0250. El proxy rebota TODO `/studio/**` sin sesión al login — pero la
-   * ruta que canjea el enlace de acceso del correo, por definición, se pide SIN
-   * sesión (crearla es su trabajo). Si vuelve a quedar detrás del gate, el
-   * enlace muere antes de llegar al handler y el usuario aterriza en el login
-   * sin explicación: exactamente el bug que este trabajo elimina.
+   * SDD-0250 · migr 0354. El enlace de acceso vive en `/acceso/<token>`, FUERA
+   * de `/studio`, porque quien lo abre no tiene sesión. Si alguna vez lo mueven
+   * bajo `/studio`, el proxy lo rebotaría al login y el enlace moriría antes de
+   * llegar a su pantalla — el bug que este trabajo elimina.
    *
-   * Cómo se distingue: el rebote del proxy deja `/studio/login` PELADO (clona
-   * la URL, que no trae query). Que llegue con `?error=enlace` prueba que quien
-   * redirigió fue nuestro handler, o sea que el proxy lo dejó pasar.
+   * Con un token inventado debe RENDERIZAR su mensaje, no redirigir: que se
+   * quede en `/acceso/...` prueba que el gate no lo tocó.
    */
-  test("Studio: la ruta del enlace de acceso NO la rebota el proxy", async ({ page }) => {
-    await page.goto("/studio/reset/confirmar");
-    await expect(page).toHaveURL(/error=enlace/);
+  test("Acceso: la pantalla del enlace NO la rebota el proxy al login", async ({ page }) => {
+    await page.goto("/acceso/tokenquenoexiste000000000000000000000000000000");
+    await expect(page).toHaveURL(/\/acceso\//);
+    await expect(page).not.toHaveURL(/\/studio\/login/);
+    await expect(page.getByText(/enlace no existe/i)).toBeVisible();
   });
 
-  test("Studio: la pantalla de clave nueva sin sesión avisa, no rebota muda", async ({ page }) => {
-    await page.goto("/studio/reset");
-    await expect(page).toHaveURL(/error=enlace/);
+  /**
+   * ⚠️ EL CONTRATO CENTRAL DEL ARREGLO: abrir el enlace NO lo consume.
+   *
+   * La versión anterior canjeaba el token en el GET, y el escáner de correo de
+   * Gmail —que abre los enlaces del mensaje apenas llega— lo gastaba antes de
+   * que la persona hiciera clic. Ningún enlace llegó vivo a su destinatario.
+   *
+   * Abrir dos veces y obtener lo MISMO es la prueba de que el GET es
+   * idempotente. Si alguien vuelve a mover el consumo a la apertura, la segunda
+   * carga cambiaría de mensaje y este test se pone rojo.
+   */
+  test("Acceso: abrir el enlace dos veces da el mismo resultado (no se consume)", async ({ page }) => {
+    const url = "/acceso/tokenquenoexiste000000000000000000000000000000";
+    await page.goto(url);
+    const primera = await page.locator("body").innerText();
+    await page.goto(url);
+    const segunda = await page.locator("body").innerText();
+    expect(segunda).toBe(primera);
   });
 
   test("Back: form email+password presente", async ({ page }) => {

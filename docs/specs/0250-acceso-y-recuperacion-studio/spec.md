@@ -167,6 +167,71 @@ el seed mantiene la paridad local.
 - Manual, tras aplicar la migración: enviar acceso a un usuario de prueba, abrir
   el correo, fijar clave, entrar.
 
+## Corrección 2026-08-06 · el diseño de arriba falló en producción
+
+La primera versión **no funcionó ni una sola vez** con un destinatario real, y el
+motivo no fue un bug de código sino un error de diseño.
+
+### Qué pasó
+
+Canjeaba el token de recuperación de Supabase al **abrir** el enlace (un GET, en
+`/studio/reset/confirmar`). El escáner de correo del destinatario —Gmail abre los
+enlaces del mensaje apenas llega, para revisar que no sean maliciosos— disparaba
+ese GET y **consumía el token de un solo uso**. Cuando la persona hacía clic
+minutos después, ya estaba gastado.
+
+El síntoma no ayudaba: quien hacía clic aterrizaba en el login con `?error=enlace`
+y parecía que el enlace venía roto.
+
+### Cómo se midió
+
+Experimento controlado, mismo usuario, misma llamada, una sola variable:
+
+| | Token generado | ¿Vivo? |
+|---|---|---|
+| **Con envío de correo** | 14:35:42 | ❌ muerto en **< 37 s**, sin que nadie hiciera clic |
+| **Sin envío de correo** | 22:38:38 | ✅ vivo a los **49 s** |
+
+Verificado contra `auth.one_time_tokens`, que es donde Supabase guarda de verdad
+los tokens de un solo uso.
+
+⚠️ **Dos diagnósticos previos fueron falsos** y quedan escritos para que nadie los
+repita: (1) "el enlace llega mutilado" — venía completo; el `?error=enlace` era
+ambiguo porque el mismo código se usaba para *falta el token* y para *no hay
+sesión*. (2) "`auth.users.recovery_token` vacío prueba el consumo" — **todos** los
+usuarios lo tienen vacío, esa columna ya no se usa. Lo único que sirvió fue el
+experimento con y sin correo.
+
+### La regla
+
+> **Un token de un solo uso NUNCA se consume en un GET.** Los GET los dispara
+> cualquiera —escáneres de correo, vistas previas de WhatsApp, buscadores— y
+> deben ser idempotentes. El consumo va en el POST.
+
+`/invitar/<token>` (SDD-0024) nunca tuvo el problema porque siempre respetó eso:
+abrir sólo *busca* la invitación; el token se gasta al aceptar.
+
+### Diseño corregido
+
+- Tabla propia `studio_access_tokens` (migr **0354**) en vez del token de Supabase.
+- Ruta pública **`/acceso/[token]`**, fuera de `/studio` igual que `/invitar` — así
+  no depende de que alguien recuerde mantenerle un hueco al proxy.
+- **Abrir no consume.** El token se gasta en la server action, con un
+  compare-and-swap (`.is("used_at", null)`) para que dos envíos simultáneos no
+  cambien la contraseña dos veces. Si el cambio de clave falla después de marcar
+  el token, se revierte el marcado.
+- Token **en la ruta**, sin `?` ni `&`: sobrevive el copiar/pegar y WhatsApp.
+- **Generar un enlace nuevo ya NO anula el anterior.** Con el de Supabase sí lo
+  hacía, en silencio: el founder mandó dos y el primero quedó muerto sin aviso.
+- Se retiran `/studio/reset` y `/studio/reset/confirmar` y su excepción en el
+  proxy: eran rotas por diseño.
+
+Contratos que lo defienden: `supabase/tests/0354_*.test.sql` (RLS, `authenticated`
+sin acceso al secreto, unicidad, largo mínimo, cascada), el unit test del enlace
+en la ruta (validado con mutación: devolverlo a la query lo pone rojo) y un e2e
+que abre el enlace **dos veces** y exige el mismo resultado — si alguien vuelve a
+consumir en el GET, se pone rojo.
+
 ## Pendiente tras esta spec
 
 - Decisión del founder sobre el autoservicio desde el login (`/studio/recuperar`).

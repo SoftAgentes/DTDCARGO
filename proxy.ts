@@ -63,15 +63,15 @@ export async function proxy(request: NextRequest) {
 
   /**
    * Rutas del Studio que se sirven SIN sesión porque su trabajo es crearla.
-   * Exacto, no `startsWith` suelto: `/studio/reset` cubre la pantalla de clave
-   * nueva y `/studio/reset/confirmar` el canje del token; nada más entra.
+   *
+   * Hoy sólo el login. La recuperación de acceso vive en `/acceso/[token]`
+   * (SDD-0250 · migr 0354), FUERA de `/studio`, así que ni siquiera entra al
+   * matcher de este proxy — igual que `/invitar`. Es a propósito: una pantalla
+   * pensada para quien no tiene sesión no debería depender de que alguien
+   * recuerde mantenerle un hueco abierto en el gate.
    */
   function isStudioEntryPoint(p: string): boolean {
-    return (
-      p === "/studio/login" ||
-      p === "/studio/reset" ||
-      p === "/studio/reset/confirmar"
-    );
+    return p === "/studio/login";
   }
 
   // ─── /studio/** ─────────────────────────────────────────────
