@@ -7,7 +7,135 @@
 > Cuenta: `https://dtdcargo.kommo.com`. Diseñado para **1-2 personas** operando el CRM.
 > Estado y decisiones: **2026-08-03** (reemplaza el plan del 2026-06-29, que quedó a medias).
 
-## Estado real (espejo Supabase, sync 2026-08-03 07:00 UTC)
+---
+
+## ✅ EJECUTADO — estado verificado 2026-08-06 (leer esto primero)
+
+**La consolidación ya se hizo.** Las casillas de abajo siguen en `[ ]` pero la realidad avanzó: se
+verificó en vivo contra la API de Kommo (`GET /api/v4/leads/pipelines`), no contra el espejo.
+
+**Queda UN solo embudo:** `Ventas DTD` — **id `14036567`** (el que este runbook llamaba "Prueba"),
+`is_main`. **Los otros 11 ya no existen.** Sus 7 etapas, en orden real:
+
+`Incoming leads → Contacto inicial → Recontacto → Estimado enviado → Negociación → Logrado con éxito / Ventas Perdidos`
+
+O sea: **Fase 1 (pasos 2 y 3), Fase 3 y Fase 4 están hechas** — se renombró `Tomar decisión` →
+`Estimado enviado`, se movió antes de `Negociación`, se creó `Recontacto` y se borraron los embudos.
+
+### ✅ Fase 5 SÍ está hecha — corrección del 2026-08-06
+
+**Este runbook decía que el `stage_map` apuntaba al embudo borrado `13967120`. Es falso.** Esa
+afirmación se **infería** del plan viejo; nunca se había leído la DB. Leída (`select stage_map from
+kommo_connections`), el mapa de producción está **completo y correcto**, incluida la clave
+`recontacto` que SDD-0244 necesita:
+
+```json
+{"sent":       {"pipeline_id": 14036567, "status_id": 108343839},
+ "accepted":   {"pipeline_id": 14036567, "status_id": 142},
+ "rejected":   {"pipeline_id": 14036567, "status_id": 143},
+ "recontacto": {"pipeline_id": 14036567, "status_id": 108343835}}
+```
+
+Y `writeback_enabled` ya está en `true`; `writeback_dry_run` sigue en `true` (ensayo).
+
+⭐ **La lección, que vale más que el dato:** un runbook que *deduce* el estado de producción a partir
+de su propio plan se convierte en un bloqueador imaginario. Costó una noche de "no puedo prender
+esto". **Antes de declarar un bloqueador, medirlo.** Aquí eran dos consultas.
+
+### 🔴 El bloqueador real es otro: nadie ata un cliente a su lead
+
+Medido el 2026-08-06 contra producción:
+
+| Qué | Valor | Qué significa |
+|---|---|---|
+| `clients.kommo_lead_id` no nulo | **0 de 432** | 🔴 nada puede encolarse jamás |
+| `kommo_writeback_outbox` | **0 filas en toda su historia** | la cola nunca recibió nada |
+| Cron del drain en `cron.job` | **no existe** | sólo están `kommo-sync-dtd` y `rate-ddp-850-sep2026` |
+
+El único código que escribe `kommo_lead_id` es `convertLead()`
+([`lib/studio/kommo-convert.ts:162`](../../lib/studio/kommo-convert.ts)) — la acción manual
+*"Convertir a cliente"* del módulo Kommo. **Nunca se ha usado.**
+
+⚠️ **Por lo tanto, apagar `dry_run` hoy no haría nada:** ni bien ni mal. La cadena tiene tres eslabones
+y el que falta es el **primero**, no el último:
+
+```
+convertir lead → cliente     ← 0 de 432. NADIE ha hecho esto
+  → enqueue_kommo_writeback  ← nunca se dispara (además, ningún trigger lo llama: lo llama la app)
+  → drenar la outbox         ← no hay cron
+  → dry_run = false          ← el único paso que estaba en la lista
+```
+
+**El orden correcto para prenderlo** (no es "prender el interruptor"):
+
+1. Convertir a cliente **un lead de prueba** desde `/studio/kommo` y confirmar que su `kommo_lead_id`
+   quedó escrito.
+2. Crear el cron del drain — está **comentado** en
+   `supabase/migrations/0136_kommo_writeback_outbox.sql:190`. Va por el runbook de migraciones a prod.
+3. Dejarlo **un día en `dry_run`** y mirar `SALTADOS (DRY-RUN)` en `/studio/kommo`. Es la primera vez
+   que corre: conviene verlo antes de soltarlo.
+4. Recién ahí `writeback_dry_run = false`.
+
+Operación bautizada **`kommo-writeback-live-2026-08-06`**. No lleva número de SDD: es configuración
+más un cron, no una migración de esquema nueva.
+
+#### Los IDs reales — leídos de `GET /api/v4/leads/pipelines/14036567` el 2026-08-06
+
+| Etapa | `status_id` | sort |
+|---|---|---|
+| Incoming leads | `108343827` | 10 |
+| Contacto inicial | `108343831` | 20 |
+| **Recontacto** | `108343835` | 30 |
+| **Estimado enviado** | `108343839` | 40 |
+| Negociación | `109855104` | 50 |
+| **Logrado con éxito** | `142` | — |
+| **Ventas Perdidos** | `143` | — |
+
+Estos cuatro ids son los que ya están guardados en `kommo_connections.stage_map` (ver arriba). Se
+administran en `/studio/kommo → Dirección → Mapa de etapas`.
+
+⚠️ **El desplegable de embudos de esa pantalla ofrece los 12 embudos, y 11 ya no existen.** El
+espejo (`kommo_pipelines`) conserva **12 filas** porque el sync no purga lo borrado. O sea: la UI te
+deja elegir un embudo muerto sin avisarte. Elegir siempre **`Ventas DTD`**.
+
+⚠️ **Trampa de renumeración:** el id `108343835` **cambió de significado**. Este runbook lo
+documentaba como `Negociación`; hoy es **`Recontacto`**, y `Negociación` es un id nuevo (`109855104`,
+de otra serie — se creó después). Cualquier cosa que haya guardado `108343835` pensando en
+Negociación ahora apunta a Recontacto. *(Revisado: el repo no hardcodea ids de etapa salvo los
+reservados 142/143, así que no hay código afectado — pero sí puede haberlo en filtros guardados o
+automatizaciones dentro de Kommo.)*
+
+### Distribución real de los leads — medida en SQL sobre el espejo, 2026-08-06
+
+`select l.status_id, count(*) from kommo_leads l where l.pipeline_id = 14036567 group by 1`
+
+| Etapa | Leads |
+|---|---|
+| **Ventas Perdidos** | **2.402** |
+| **Contacto inicial** | **372** |
+| Logrado con éxito | 243 |
+| Incoming leads | 14 |
+| Recontacto | 14 |
+| Negociación | 1 |
+| **Estimado enviado** | **0** |
+
+**3.046 leads en total; 401 activos, y el 93% de los activos atascado en `Contacto inicial`.** El
+reparto esperado por este runbook era 169 en Contacto inicial; quedaron 372.
+
+🔴 **No creerle al tablero `/studio/kommo` para estas cifras.** Muestra **1000 leads** y **1000
+contactos** — dos tablas distintas dando el mismo número redondo, que es la firma del tope
+`db-max-rows` de PostgREST. El código pide 5.000
+([`lib/studio/kommo-analytics.ts:321`](../../lib/studio/kommo-analytics.ts)) y el servidor devuelve
+1.000 en silencio. Con eso, el tablero dice `Contacto inicial 208 · Perdidos 724 · Ganados 40` cuando
+la verdad es **372 · 2.402 · 243**, y su tarjeta "76% CONVERSIÓN KOMMO" no es conversión sino
+(ganados+perdidos)/1000 de la muestra truncada. **La conversión real es 243/(243+2.402) = 9,2%.**
+
+⚠️ **Por qué `Estimado enviado` tiene 0 y no es culpa del embudo:** ver el bloqueador de arriba —
+ningún cliente está atado a su lead, así que el ERP nunca encola nada.
+
+---
+
+## Estado real (espejo Supabase, sync 2026-08-03 07:00 UTC) — ⚠️ superado por el bloque de arriba
 
 | Embudo | id | Leads | Principal |
 |---|---|---|---|
@@ -204,21 +332,18 @@ Para cada uno: abrir → seleccionar todos → editar en lote → setear **Tipo 
 - [ ] **23.** Borrar los que ya están vacíos hoy: Sam (10079836), Carga China VZLA Ofidoc (11074572),
        Investigación productos (11337468), **Atencion a leeds (13967120)**.
 
-### Fase 5 · Re-mapear el ERP — ⚠️ OBLIGATORIO
+### Fase 5 · Re-mapear el ERP — ✅ HECHA (medido 2026-08-06)
 
-**Hoy el `stage_map` apunta al embudo equivocado** (`Atencion a leeds`, 13967120), que va a ser borrado:
+> ⚠️ Este bloque **afirmaba** que el `stage_map` apuntaba a `Atencion a leeds` (13967120). Era una
+> inferencia del plan, no una medición. Al leer la DB apareció **ya correcto**. El JSON de abajo se
+> conserva tachado para que nadie lo vuelva a copiar.
 
-```json
-{"sent":     {"pipeline_id": 13967120, "status_id": 107792068},
- "accepted": {"pipeline_id": 13967120, "status_id": 142},
- "rejected": {"pipeline_id": 13967120, "status_id": 143}}
-```
+- [x] **24.** El sync corre a diario (`cron.job` → `kommo-sync-dtd`, 07:00 UTC). Último: 2026-08-05.
+- [x] **25.** `stage_map` apunta a `Ventas DTD (14036567)` en las cuatro claves, `recontacto` incluida.
+- [x] **26.** Campos confirmados: en el lead `Shipping Mark - j102` (**1570535**) y en el contacto
+       `Shipping Mark` (**1570723**). Los dos configurados.
 
-- [ ] **24.** Forzar sync en `/studio/kommo` (o esperar el cron 07:00 UTC) para que el espejo traiga
-       los nombres/IDs nuevos.
-- [ ] **25.** `/studio/kommo → Dirección → Mapa de etapas`: re-mapear a **DTD — Ventas (14036567)** —
-       `enviado → Estimado enviado` · `aceptado → GANADO (142)` · `rechazado → PERDIDO (143)`.
-- [ ] **26.** Confirmar el campo **Shipping Mark** (id 1570535) en `Dirección → MARKBOX en Kommo`.
+~~`{"sent": {"pipeline_id": 13967120, "status_id": 107792068}, …}`~~ ← **obsoleto, no usar.**
 
 ## Enrutado automático a Recontacto — lo hace el ERP, no Salesbot
 
@@ -262,8 +387,9 @@ sólo para la alerta — así la duda no bloquea nada.
 - **El write-back está en `dry_run=true`** (con `writeback_enabled=true`): el ERP **loguea pero no
   escribe** en Kommo. Es la ventana ideal para reestructurar. La outbox está en **0 pendientes** →
   no hay escrituras encoladas esperando salir hacia etapas muertas.
-- ⚠️ **No apagar `dry_run` hasta terminar la Fase 5.** Si se apaga antes, el ERP escribe hacia etapas
-  de un embudo borrado.
+- ⚠️ **No apagar `dry_run` hasta convertir un lead de prueba y crear el cron del drain.** El riesgo ya
+  no es escribir hacia un embudo borrado (el mapa está bien): es que **no pasa nada** y se dé por
+  funcionando algo que nunca corrió. Ver "El bloqueador real" al tope.
 - **Rollback:** Kommo guarda el historial de embudo/etapa de cada lead. Un movimiento en lote mal hecho
   se revierte seleccionando los leads y moviéndolos de vuelta. Por eso: **un embudo a la vez**, y
   verificar el conteo **antes** de borrar nada.
