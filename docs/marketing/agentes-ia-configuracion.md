@@ -294,6 +294,49 @@ figura legal y aduana. Ahí el agente escala, no responde.
 
 ## AGENTE 2 · Reenganche — `Recontacto`
 
+Agente nuevo (id `350032`, nombre en Kommo "DTD Cargo Reenganche"), creado desde cero — a
+diferencia de Post-venta, no había ningún agente dormido que reusar para esta etapa. **Es el
+segundo de los tres nuevos construido**, por prioridad de volumen — ver nota al tope del archivo.
+
+### 🟢 Estado en vivo (2026-08-07)
+
+| Qué | Estado |
+|---|---|
+| **CAPA 1 · identidad de Manuel** | ✅ **cargada y verificada recargando** — idéntica a la de los otros tres agentes |
+| **11 pautas** | ✅ cargadas y verificadas: 1 de desambiguación (ver nota) + 4 propias del arquetipo + 3 de réplicas + 3 anti-repetición |
+| **Longitud de las respuestas** | Media (por defecto traía "Corta"; se cambió para consistencia con el resto) |
+| **Acción de réplicas** | ✅ creada, idéntica a la del Agente 1 y Post-venta |
+| **Acción "quiere hablar con humano"** | ✅ — `sin permiso, con resumen` + `Agregar tarea` 15 min |
+| **Acción "sentimiento frustrado"** | ✅ — `sin permiso, con resumen` + `Agregar tarea` 15 min |
+| **Acción "reportar una incidencia o reclamo con su pedido"** | ✅ — tema personalizado creado con "Crear valor" (igual patrón que Post-venta), `sin permiso, con resumen` + `Agregar tarea` 15 min |
+| **Fuente v7 (DOCX)** | ✅ enganchada vía "Fuente de conocimiento existente" — no se resubió |
+| **Probado en vivo** | ✅ 2 de 8 casos: réplicas (no transfiere, da el "no" completo, 16 créditos) y "quiero hablar con un asesor" (transfirió correctamente, confirmado con "El agente transfirió el chat a un usuario"). Los 6 restantes de la batería del §6 del encargo — **⛔ pendientes**. |
+| Activar el agente | ⛔ **pendiente** — sigue "Desactivado", decisión del founder |
+
+⚠️ **La pregunta de desambiguación no estaba en la lista original de "Pautas propias" de abajo.**
+El encargo (`agentes-ia-por-etapa.md`) la marca como **la regla más importante de este agente**
+("⭐ Su primera pregunta siempre desambigua"), así que se agregó como pauta explícita, no sólo como
+descripción de CAPA 2:
+
+```
+Tu primera pregunta siempre desambigua: ¿esto es por una compra nueva o por mercancía que ya tienes en proceso? Confundir esas dos cosas es el error más caro de esta etapa.
+```
+
+🔴 **Trampas nuevas encontradas construyendo este agente** (no estaban documentadas antes):
+- Al editar el valor de un campo `Cuando` con `ctrl+a` + `Delete` + `type`, a veces queda una
+  **"a" residual al inicio** del valor (ej. "aréplicas o imitaciones de marca"). **Corrección:**
+  `triple_click` sobre el campo, `ctrl+a`, `Delete`, y si aún queda una "a" suelta, un `BackSpace`
+  extra antes de escribir. Pasó también una vez en el campo `Rol y personalidad` completo
+  ("aEres Manuel...") — hay que revisar visualmente después de escribir, no asumir que salió bien.
+- El **viewport del navegador cambia de tamaño solo**, varias veces por sesión (observado: 1568×765,
+  1538×784, 852×1248). Las coordenadas de clic quedan obsoletas de una llamada a la siguiente.
+  **Mitigación:** usar `find` + `read_page` para obtener `ref_N` y clicar por referencia en vez de
+  coordenadas cuando el elemento es crítico (checkboxes de fuentes, botones de Guardar); si se usan
+  coordenadas, tomar screenshot fresco antes de cada clic importante.
+- Guardar una "Fuente de conocimiento existente" a veces **no persiste al primer intento** aunque el
+  modal se cierre sin error — verificar que la fuente aparezca en la tabla después de guardar, no
+  sólo que el modal se haya cerrado.
+
 ### CAPA 2
 
 ```
