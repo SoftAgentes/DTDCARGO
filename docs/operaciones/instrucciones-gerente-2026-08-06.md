@@ -30,22 +30,28 @@ cambiar roles y ver todos los módulos, incluidos los de dinero.
 > Para hacer este cambio **tú tienes que ser Admin**. Si no ves la opción, es que
 > tu usuario no tiene el permiso — avísale a Sam.
 
-### ⛔ El paso que NO puedes hacer tú: la contraseña
+### ✅ La contraseña: ahora también la haces tú
 
-Acá está el problema, y es del sistema, no tuyo.
+> **Corregido el 2026-08-07.** Este documento decía antes que la clave "sólo la
+> puede poner Sam" y que la persona "no la va a poder cambiar ella misma". **Las
+> dos cosas eran falsas** y ya no aplican. Se deja escrito para que nadie actúe
+> sobre la versión vieja.
 
-**El Studio no tiene "¿olvidaste tu contraseña?".** El propio login lo dice:
-*"escríbele a Sam"*. Tampoco hay pantalla para que un usuario se cambie la clave
-una vez adentro. O sea: **la contraseña de José sólo la puede poner Sam**, desde
-la administración de la base de datos.
+En **Studio › Usuarios**, en la fila de la persona, tienes el botón
+**«Enviar acceso»**. Al apretarlo le llega un correo con un enlace, y **ella
+misma crea su contraseña**. Tú nunca ves ni eliges su clave.
 
-**Qué tienes que hacer:** cambiarle el rol (los 3 pasos de arriba) y avisarle a
-Sam que le falta la clave a José. Sin eso, José tiene el permiso pero no puede
-entrar.
+Si el correo no llega, en esa misma fila queda **«Copiar enlace»** para
+pasárselo por WhatsApp directo (no un grupo).
 
-**Cuando Sam te pase la clave**, mándasela a José por un canal privado
-(WhatsApp directo, no un grupo). Y avísale que **por ahora no la va a poder
-cambiar él mismo** — eso está pendiente de arreglo.
+**Y una vez adentro, cada quien se cambia la clave cuando quiera:** clic en su
+avatar, arriba a la derecha → **«Cambiar contraseña»**. Mínimo 12 caracteres.
+
+Dos cosas que conviene saber del enlace:
+
+- **Dura 7 días** y sirve **una sola vez** — se consume cuando la persona guarda
+  su contraseña, no cuando lo abre.
+- **Mandar uno nuevo NO anula el anterior.** Si enviaste dos, los dos sirven.
 
 ---
 
@@ -119,7 +125,7 @@ dejar reenviárselo.
 | | Tarea | Quién |
 |---|---|---|
 | 1 | Cambiarle el rol a José → Admin | **Tú** |
-| 2 | Ponerle la contraseña a José | **Solo Sam** |
+| 2 | Mandarle el acceso a José (botón «Enviar acceso») | **Tú** |
 | 3 | Invitar a los 228 al portal | **Tú** |
 | 4 | Llamar a los 27 y cargarles el correo | **Tú** |
 | 5 | Reenviar los 3 correos atascados | **Tú** |

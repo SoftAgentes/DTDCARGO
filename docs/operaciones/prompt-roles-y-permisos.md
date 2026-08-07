@@ -47,17 +47,23 @@ no lo des por cierto:
   está en enabled=true, pero su migración 0017 NO está aplicada a propósito. Un
   flag encendido para algo que no existe en la base.
 
-## Dos huecos que hay que resolver en el mismo diseño
+## Dos huecos que ya se resolvieron (2026-08-07)
 
-1. NO HAY RECUPERACIÓN DE CONTRASEÑA. El login del Studio dice literalmente
-   "¿Olvidaste tu contraseña? Escríbele a Sam", y no existe ninguna pantalla para
-   que un usuario se cambie la clave estando adentro (cero referencias a
-   password en app/studio/(app)/usuarios/actions.ts). Hoy la única vía es que yo
-   la ponga por base de datos. Un director con una clave que no puede cambiar no
-   es aceptable.
-2. 5 DE 7 USUARIOS NUNCA HAN ENTRADO. Se crearon todos el 3 de julio y sólo dos
-   admins tienen login registrado. Tenelo presente al diseñar: el problema no es
-   sólo de permisos, es de adopción — si el alta es engorrosa, nadie entra.
+⚠️ Este bloque decía que no había recuperación de contraseña Y que no existía
+pantalla para cambiarla estando adentro. **La segunda afirmación era FALSA** —
+salió de grepear un solo archivo (`usuarios/actions.ts`) y concluir que la
+función no existía. La pantalla existía desde el 31-jul en el menú del avatar.
+Se deja escrito porque es la clase de error que se propaga: de ahí pasó a las
+instrucciones del gerente, que estuvieron a punto de mandarse.
+
+1. RECUPERACIÓN DE CONTRASEÑA — **resuelto** (SDD-0250 · migr 0354). Studio ›
+   Usuarios trae «Enviar acceso» por fila; la persona crea su propia clave en
+   `/acceso/<token>`. Y estando adentro cualquiera se la cambia desde el menú de
+   su avatar. Lo que sigue SIN existir es el "olvidé mi contraseña" del propio
+   login: hoy la repone un admin, no la pide la persona.
+2. 5 DE 7 USUARIOS NUNCA HABÍAN ENTRADO — **parcialmente resuelto**. El director
+   ya entró. Faltan cuatro, y ahora es un clic por persona. El problema de fondo
+   era de adopción y de un enlace que se rompía, no de permisos.
 
 ## Cómo trabajar acá
 
