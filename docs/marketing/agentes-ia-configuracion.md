@@ -14,7 +14,9 @@
 | Pauta "¿eres una persona?" | ✅ reescrita a Manuel (decía "asistente virtual", contradecía la CAPA 1) |
 | **Las 3 pautas de réplicas** | ✅ **cargadas** — 262 · 202 · 188 car. |
 | **Las 11 pautas del arquetipo de Entrada** | ✅ **cargadas y verificadas** |
-| Total de pautas | ✅ **38** de 50, ninguna vacía |
+| **Las 3 pautas contra la repetición** | ✅ **cargadas** — ver abajo |
+| **Acciones 2 y 3 corregidas** | ✅ ya no clavan la pregunta de cierre |
+| Total de pautas | ✅ **41** de 50, ninguna vacía |
 | **Fuente v7 (DOCX)** | ✅ subida, **35 subsecciones**, usada por el Agente **y** por "Respuesta sugerida" |
 | Probar la batería de 8 casos | ⛔ pendiente |
 | Cadena de traspaso a humano | ⛔ pendiente, bloqueada por una decisión (quién recibe) |
@@ -97,6 +99,40 @@ Reconoce las réplicas aunque no usen la palabra: AAA, clon, copia, imitación, 
 El panel de prueba muestra `Fuentes utilizadas: DTDCARGO-Kommo-KnowledgeSource-v7-2026-08-06.docx`,
 o sea que **sí leyó el §25-bis** y aun así no dio el "no". *(Ojo: eso también desmiente la excusa
 fácil de "todavía no indexa" — la fuente estaba lista en menos de 2 h.)*
+
+## 🔁 El agente se repetía porque nosotros se lo pedimos (2026-08-07)
+
+Caso real en WhatsApp: el agente explicó el Puerta a Puerta y cerró con *"¿cada cuánto repones
+mercancía?"*. El cliente contestó *"Sería desde china a Venezuela Maracay"*. **El agente volvió a
+explicar lo mismo y volvió a hacer la misma pregunta, palabra por palabra.**
+
+No fue que perdiera el hilo. La **Acción 3** traía la pregunta escrita a mano:
+
+> ~~*"Cierra con UNA sola pregunta: ¿cada cuánto repones mercancía?"*~~
+
+Esa Acción se re-evalúa en **cada** mensaje que toque precio, y cada vez dictaba la misma frase. La
+Acción 2 hacía lo mismo con la explicación del servicio. ⭐ **Una instrucción fija sin cláusula de
+memoria produce un loro, no un vendedor.**
+
+**Corregido en las dos Acciones** (verificado recargando):
+
+- **Acción 3 · Más:** *"Cierra con UNA pregunta que haga avanzar y nunca repitas una que ya hiciste
+  en esta conversación. Si el cliente acaba de darte un dato, reconócelo y pide sólo lo que falta:
+  las medidas y el peso de las cajas. No inventes montos ni prometas descuentos por volumen."*
+- **Acción 2 · Más:** añade *"Si ya explicaste el servicio en esta conversación, no lo repitas: da
+  por sabido que lo entendió y pide lo que falte."*
+
+**Y tres pautas transversales**, para que valga en toda conversación y no sólo en esos dos temas:
+
+```
+Nunca repitas una explicación ni una pregunta que ya hiciste en esta conversación. Si el cliente acaba de darte un dato, reconócelo en pocas palabras y pide lo que falta.
+Si el cliente te repite algo que ya te dijo, es señal de que no le contestaste lo que preguntó. No vuelvas a explicar: contesta lo puntual y ofrécele pasar con un asesor.
+Para armar un estimado necesitas qué trae, las medidas y el peso de las cajas, y la ciudad de entrega. Pide sólo lo que falte y nunca vuelvas a pedir un dato que el cliente ya te dio.
+```
+
+📌 **Descartado a propósito: el "ya te contesté arriba".** El founder lo propuso; suena a reproche y
+con alguien que está evaluando comprarte es caro. La pauta hace **reconocer y avanzar**, y sólo
+escala a un humano si el cliente insiste una tercera vez.
 
 ## ⭐⭐ Son TRES capas, no dos — y las Acciones mandan
 
