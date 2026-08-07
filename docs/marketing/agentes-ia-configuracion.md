@@ -19,6 +19,7 @@
 | **Acción de réplicas** | ✅ **creada y PROBADA en vivo** — ver abajo |
 | Total de pautas | ✅ **41** de 50, ninguna vacía |
 | Salesbots | ✅ verificados muertos; quedan 4 sesiones pegadas |
+| **Traspaso a humano** | ✅ **cerrado** — tarea de 15 min + Telegram en las 3 acciones que transfieren |
 | **Fuente v7 (DOCX)** | ✅ subida, **35 subsecciones**, usada por el Agente **y** por "Respuesta sugerida" |
 | Probar la batería de 8 casos | ⛔ pendiente |
 | Cadena de traspaso a humano | ⛔ pendiente, bloqueada por una decisión (quién recibe) |
@@ -362,7 +363,45 @@ Cuando ya resolviste, puedes preguntar: "¿ya estás armando el próximo pedido 
 
 ---
 
-## La cadena de traspaso a humano
+## ✅ El traspaso a humano — resuelto para un operador solo (2026-08-07)
+
+⭐ **Con un solo usuario, "quién recibe" es la pregunta equivocada.** En Kommo hay dos cuentas activas
+y una es un consultor externo, así que el reparto no tiene a dónde repartir. **La pregunta real es
+"cómo se entera".**
+
+De las tres piezas del plan original, dos sobran y una es la que importa:
+
+| Pieza | Con un operador solo |
+|---|---|
+| `Cambiar responsable` | ❌ sobra — ya es él |
+| `Detener agente de IA` | ⚠️ ya cubierto: la acción de transferir dice *"después de transferir no sigas respondiendo"* |
+| **`Agregar tarea` con vencimiento** | ⭐ **la única que importa** |
+
+**Puesto y verificado:** las **tres** acciones que transfieren llevan ahora una segunda acción
+`Agregar tarea` con **fecha límite 15 minutos**, responsable actual, tipo Seguimiento, y un
+comentario que dice de qué se trata sin abrir el chat.
+
+**Telegram ya estaba conectado** y con las filas de tareas marcadas, así que la cadena queda:
+
+```
+traspaso → tarea a 15 min → Telegram al minuto 10 ("5 minutos antes")
+                          → Telegram al minuto 15 si no se atendió ("ha caducado")
+                          → y la tarea queda VENCIDA y visible en el calendario
+```
+
+⭐ **El aviso se puede perder; la tarea no.** Por eso van las dos, no una.
+
+**Por qué 15 y no 60:** con la condición ancha `El cliente quiere comprar` (ya eliminada), 15 minutos
+habría sido insoportable — llegaba casi un lead tras otro y se silencia en dos días. Ahora que sólo
+se transfiere quien **confirma** que quiere ordenar, el volumen baja y 15 minutos deja de ser ruido.
+**Decisión del founder: sin horario silencioso.** Un traspaso a las 2 a.m. suena a las 2 a.m., porque
+son pocos y de alto valor. *(Manuel contestó a las 23:07 y a la 01:38, así que sí entran de noche.)*
+
+📌 **No se usaron las estadísticas típicas de velocidad de respuesta** —*"el 78% le compra al primero
+que responde"*, *"el lead se enfría a los 5 minutos"*— porque **no tienen fuente primaria**. El
+argumento de los 15 minutos es el caso concreto: poco volumen y alta intención.
+
+## La cadena de traspaso a humano — el plan original (superado por el bloque de arriba)
 
 Va como **acción de pipeline**, no dentro del agente. El agente sólo transfiere; el resto lo hace la
 automatización.
