@@ -16,7 +16,10 @@
 | **Las 11 pautas del arquetipo de Entrada** | ✅ **cargadas y verificadas** |
 | **Las 3 pautas contra la repetición** | ✅ **cargadas** — ver abajo |
 | **Acciones 2 y 3 corregidas** | ✅ ya no clavan la pregunta de cierre |
+| **Acción de réplicas** | ✅ **creada**, primera de las 7 |
 | Total de pautas | ✅ **41** de 50, ninguna vacía |
+| Probar la Acción de réplicas en el panel | ⏳ enviada, falta leer la respuesta |
+| ¿Queda algún Salesbot vivo? | ⏳ por verificar — ver abajo |
 | **Fuente v7 (DOCX)** | ✅ subida, **35 subsecciones**, usada por el Agente **y** por "Respuesta sugerida" |
 | Probar la batería de 8 casos | ⛔ pendiente |
 | Cadena de traspaso a humano | ⛔ pendiente, bloqueada por una decisión (quién recibe) |
@@ -36,6 +39,14 @@
    pautas seguidas, las dos primeras sobreviven —porque al añadir la siguiente pierden el foco— y la
    tercera se pierde, siempre.
 4. **Verificar recargando la página.** Que el botón `Guardar` desaparezca **no prueba nada**.
+
+🔎 **Pendiente de verificar: ¿queda un Salesbot vivo?** En una conversación real del 2026-08-06
+apareció un mensaje con menú — *"Para carga especial, peligrosa o que requiere permisos de
+exportación, consulta con tu asesor — la cotizamos a medida"* — y entradas de `Robot` en la línea de
+tiempo. Los 11 Salesbots se apagaron el 2026-08-06
+([`../runbooks/kommo-salesbots-inventario.md`](../runbooks/kommo-salesbots-inventario.md)), así que
+eso no debería existir. Puede ser una automatización de lead entrante y no un Salesbot, pero hay que
+mirarlo: si un bot viejo sigue hablando, contradice todo lo de arriba.
 
 ## Cómo se usa
 
@@ -156,16 +167,39 @@ redactar. Hoy hay seis, y **tres de ellas transfieren el chat**:
 la acción disparó y transfirió antes de que el §25-bis tuviera oportunidad de aplicarse. El agente
 nunca llegó a decir el "no" — no porque no lo supiera, sino porque **una Acción decidió primero**.
 
-**Lo que falta: no hay ninguna Acción para rubros prohibidos.** Sin ella, un mensaje de réplicas cae
-en la acción que matchee primero (compra, frustración, lo que sea). El arreglo es una Acción propia:
+### ✅ La Acción de réplicas — creada el 2026-08-07
 
-- **Cuando:** el cliente pregunta sobre réplicas / imitaciones / copias de marca
-- **Hacer:** *Intentar hablar sobre este tema* → el no rotundo + ofrecer marca propia
-- **Más:** nunca transferir, nunca cotizar
+Quedó **primera de las 7**, por encima de *"el cliente quiere comprar → Transferir"*, que es la que
+se había comido la prueba.
 
-📌 **Y de paso, una corrección a lo documentado:** el tema del `Cuando` **NO es un selector cerrado**.
-Las acciones vivas usan temas propios — *"servicios de logística"*, *"transporte puerta a puerta"*—
-que no están en la lista de Kommo. Se pueden escribir.
+| | |
+|---|---|
+| **Cuando** | Cada vez que el cliente pregunta sobre **réplicas o imitaciones de marca** |
+| **Hacer** | **Responder siempre con esta información específica** *(no "Transferir", que es el valor por defecto)* |
+| Texto | *"No trabajamos réplicas ni imitaciones de marca sin un permiso específico de la marca. La aduana las clasifica como réplica, piratería o falsificación, y sin ese documento no se puede. Lo que sí funciona es traer ese mismo producto con su propia marca: en China lo fabrican con su logo y su empaque."* (298 de 300 car.) |
+| **Más** | *"Contesta tú: nunca transfieras ni digas que un asesor lo evalúa, porque no hay nada que evaluar. Nunca lo mandes a cotizar ni le pidas factura o lista de productos. Cierra preguntándole si le interesaría traerlo con su propia marca."* |
+
+⭐ **El argumento de aduana es del founder y es mejor que el que yo tenía escrito:** *"la aduana lo
+clasifica como réplica, piratería o falsificación"* es un hecho verificable, no una política nuestra.
+Un cliente discute una política; no discute a la aduana.
+
+⚠️ **El `Hacer` nace en "Transferir al usuario".** Si se deja el valor por defecto, la Acción hace
+exactamente lo contrario de lo que se busca. Hay que cambiarlo sí o sí.
+
+### Lo que ofrece el desplegable `Hacer` (2026-08-07)
+
+`Transferir al usuario` · `No responder` (Nuevo) · `Utilizar siempre este mismo mensaje` ·
+**`Responder siempre con esta información específica`** · `Hablar siempre sobre este tema` ·
+`Agregar tarea`.
+
+Se eligió *"Responder siempre con…"* y no *"Utilizar siempre este mismo mensaje"*: el mensaje literal
+garantiza las palabras pero suena a robot y choca con la persona de Manuel. Éste obliga el contenido
+y deja que lo redacte.
+
+📌 **Corrección a lo documentado:** el tema del `Cuando` **NO es un selector cerrado**. La lista
+sugiere seis temas (disponibilidad · tiempo de entrega · precio · política de reembolso · estado del
+pedido · solución de problemas), pero el campo **acepta texto y ofrece "Crear valor"**. Así se
+crearon *"servicios de logística"* y ahora *"réplicas o imitaciones de marca"*.
 
 ---
 
