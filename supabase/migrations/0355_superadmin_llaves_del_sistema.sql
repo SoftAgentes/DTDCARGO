@@ -60,6 +60,60 @@ begin
 end;
 $preflight$;
 
+-- ─── Segundo juego de llaves · cuenta de respaldo del founder ─
+--
+-- POR QUÉ: al aplicar esta migración las llaves quedan en UNA sola cuenta, y
+-- `platform_admins` sólo la escribe `service_role` — o sea que si el founder
+-- pierde el acceso a su correo principal, NADIE puede devolvérselas desde el
+-- Studio: hay que entrar al SQL Editor de Supabase. Antes de esta migración eso
+-- no importaba porque ningún código leía la tabla; ahora sí.
+--
+-- Decisión del founder (2026-08-07): que su segunda cuenta,
+-- `hailuway.com@hotmail.com`, tenga la llave **y** membresía de Admin. Sin el
+-- rol la llave no sirve para recuperar: `is_platform_admin()` devolvería true,
+-- pero sin membership no puede abrir ninguna pantalla del Studio —incluida la
+-- de feature flags— así que sostendría un permiso que no puede ejercer.
+--
+-- Idempotente y portable: si ese correo no existe (entorno de prueba, branch
+-- efímero) sólo deja un NOTICE y sigue. La postcondición no lo exige por eso.
+do $respaldo$
+declare
+  v_user uuid;
+  v_tenant uuid;
+  v_otorgante uuid;
+begin
+  select id into v_user from auth.users where email = 'hailuway.com@hotmail.com';
+  if v_user is null then
+    raise notice '0355: hailuway.com@hotmail.com no existe en este entorno — se omite el segundo juego de llaves';
+    return;
+  end if;
+
+  -- Tenant y otorgante: los del platform admin que ya existe, para no
+  -- hardcodear ids y que funcione igual en cualquier entorno.
+  select pa.user_id into v_otorgante from public.platform_admins pa limit 1;
+  select ut.tenant_id into v_tenant
+  from public.user_tenants ut
+  where ut.user_id = v_otorgante and ut.disabled_at is null
+  limit 1;
+
+  if v_tenant is null then
+    raise notice '0355: no se pudo resolver el tenant del platform admin — se omite el segundo juego de llaves';
+    return;
+  end if;
+
+  insert into public.user_tenants (user_id, tenant_id, role)
+  values (v_user, v_tenant, 'admin')
+  on conflict (user_id, tenant_id) do update
+    set role = 'admin', disabled_at = null;
+
+  insert into public.platform_admins (user_id, granted_by, notes)
+  values (v_user, v_otorgante, 'Cuenta de respaldo del founder — segundo juego de llaves (0355)')
+  on conflict (user_id) do nothing;
+
+  raise notice '0355: segundo juego de llaves otorgado a hailuway.com@hotmail.com';
+end;
+$respaldo$;
+
 -- ─── Llave 1 · feature flags ─────────────────────────────────
 -- La policy vieja dejaba actualizar a CUALQUIER admin activo del tenant.
 -- Se conserva el scope por tenant y se le suma la exigencia de plataforma.

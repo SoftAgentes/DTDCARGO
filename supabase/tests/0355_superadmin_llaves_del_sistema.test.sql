@@ -26,7 +26,8 @@ end;
 $roles$;
 
 create schema auth;
-create table auth.users (id uuid primary key);
+-- `email` porque 0355 busca por correo la cuenta de respaldo del founder.
+create table auth.users (id uuid primary key, email text unique);
 create function auth.uid() returns uuid language sql stable set search_path = ''
 as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
 
@@ -107,11 +108,14 @@ end; $f$;
 
 -- ── Fixture ────────────────────────────────────────────────────────────────
 insert into public.tenants values ('11111111-1111-1111-1111-111111111111');
-insert into auth.users values
-  ('a0000000-0000-0000-0000-000000000001'),  -- Sam · admin + PLATAFORMA
-  ('a0000000-0000-0000-0000-000000000002'),  -- Jose · admin normal
-  ('a0000000-0000-0000-0000-000000000003'),  -- VZLA · admin normal
-  ('a0000000-0000-0000-0000-000000000004');  -- Yolimar · contabilidad
+insert into auth.users (id, email) values
+  ('a0000000-0000-0000-0000-000000000001','sam@ejemplo.test'),      -- admin + PLATAFORMA
+  ('a0000000-0000-0000-0000-000000000002','jose@ejemplo.test'),     -- admin normal
+  ('a0000000-0000-0000-0000-000000000003','vzla@ejemplo.test'),     -- admin normal
+  ('a0000000-0000-0000-0000-000000000004','yolimar@ejemplo.test'),  -- contabilidad
+  -- La cuenta de respaldo, con el correo REAL que busca la migración: así el
+  -- test ejerce el camino que de verdad va a correr en producción.
+  ('a0000000-0000-0000-0000-000000000005','hailuway.com@hotmail.com');
 insert into public.user_tenants (user_id, tenant_id, role) values
   ('a0000000-0000-0000-0000-000000000001','11111111-1111-1111-1111-111111111111','admin'),
   ('a0000000-0000-0000-0000-000000000002','11111111-1111-1111-1111-111111111111','admin'),
@@ -122,6 +126,27 @@ insert into public.feature_flags (tenant_id, key, enabled) values
   ('11111111-1111-1111-1111-111111111111','whatsapp', true);
 
 \ir ../migrations/0355_superadmin_llaves_del_sistema.sql
+
+-- ── 0. El segundo juego de llaves quedó COMPLETO ───────────────────────────
+-- No basta con la llave: sin membresía de admin, `is_platform_admin()` diría
+-- true pero la cuenta no podría abrir ninguna pantalla del Studio — sostendría
+-- un permiso que no puede ejercer. Se prueban las DOS mitades.
+do $t0$
+declare v_rol text; v_llave boolean;
+begin
+  select ut.role into v_rol from public.user_tenants ut
+   where ut.user_id = 'a0000000-0000-0000-0000-000000000005';
+  select exists(select 1 from public.platform_admins
+                 where user_id='a0000000-0000-0000-0000-000000000005') into v_llave;
+
+  if not v_llave then
+    raise exception 'La cuenta de respaldo no recibio la llave de plataforma';
+  end if;
+  if v_rol is distinct from 'admin' then
+    raise exception 'La cuenta de respaldo quedo SIN rol admin (rol: %) — la llave no abriria nada', coalesce(v_rol,'ninguno');
+  end if;
+end;
+$t0$;
 
 -- ── 1 + 2 + 3 + 4. Suspender ───────────────────────────────────────────────
 do $t1$
@@ -207,9 +232,12 @@ do $t3$
 declare ok boolean;
 begin
   -- Dejamos a Sam como UNICO admin activo y que intente degradarse.
+  -- Ojo: la cuenta de respaldo (…005) tambien es admin desde que la migracion
+  -- la creo, asi que hay que degradarla tambien o Sam nunca es el ultimo.
   perform set_config('request.jwt.claim.sub','a0000000-0000-0000-0000-000000000001', true);
   perform public.studio_change_user_role('a0000000-0000-0000-0000-000000000002','support');
   perform public.studio_change_user_role('a0000000-0000-0000-0000-000000000003','support');
+  perform public.studio_change_user_role('a0000000-0000-0000-0000-000000000005','support');
 
   ok := false;
   begin
