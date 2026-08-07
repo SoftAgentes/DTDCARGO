@@ -16,7 +16,7 @@ const initialState: SignInState = {};
 /** Cuántos ms se muestra la contraseña antes de auto-ocultarse */
 const REVEAL_PASSWORD_MS = 3000;
 
-export function LoginForm({ next }: { next?: string }) {
+export function LoginForm({ next, listo }: { next?: string; listo?: boolean }) {
   const [state, formAction, isPending] = useActionState(signIn, initialState);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -50,6 +50,26 @@ export function LoginForm({ next }: { next?: string }) {
         >
           Entra al <span style={{ color: "#C2747F" }}>Studio</span>.
         </h1>
+
+        {/* Acuse de "ya creaste tu contraseña" (SDD-0250). Sin esto, quien viene
+            de /acceso/[token] aterriza acá sin saber si funcionó. */}
+        {listo && (
+          <div
+            role="status"
+            style={{
+              padding: "10px 12px",
+              marginBottom: 16,
+              background: "rgba(31, 138, 91, 0.18)",
+              border: "1px solid rgba(31, 138, 91, 0.35)",
+              borderRadius: 6,
+              color: "#A7E8C8",
+              font: "500 12.5px/1.4 Archivo, sans-serif",
+            }}
+          >
+            Tu contraseña quedó lista. Entra con tu correo y la clave que acabas
+            de crear.
+          </div>
+        )}
 
         <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {next ? <input type="hidden" name="next" value={next} /> : null}
