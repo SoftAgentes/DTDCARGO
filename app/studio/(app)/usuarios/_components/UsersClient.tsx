@@ -19,6 +19,7 @@ import { createPortal } from "react-dom";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { InviteUserDrawer } from "./InviteUserDrawer";
 import { MembersTable } from "./MembersTable";
+import { UserDetailDrawer } from "./UserDetailDrawer";
 import { InvitationsTable } from "./InvitationsTable";
 import {
   ROLE_DESCRIPTIONS,
@@ -56,6 +57,8 @@ const TONE_FG: Record<string, string> = {
 
 export function UsersClient({ members, invitations, currentUserId }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Ficha de la persona: null = cerrada (SDD-0250).
+  const [detailMember, setDetailMember] = useState<UserMembershipWithProfile | null>(null);
   const [permsModalOpen, setPermsModalOpen] = useState(false);
   const [showInvitations, setShowInvitations] = useState(false);
   const [roleFilter, setRoleFilter] = useState<StudioUserRole | "all">("all");
@@ -208,7 +211,20 @@ export function UsersClient({ members, invitations, currentUserId }: Props) {
       </div>
 
       {/* ─── Tabla de miembros ─── */}
-      <MembersTable members={filteredMembers} currentUserId={currentUserId} />
+      <MembersTable
+        members={filteredMembers}
+        currentUserId={currentUserId}
+        onOpenDetail={setDetailMember}
+      />
+
+      {/* Ficha de la persona (SDD-0250). Overlay encima, como en el Norte:
+          allá 'Perfil de usuario' es un OVERLAY, no una ruta ni una carpeta. */}
+      {detailMember && (
+        <UserDetailDrawer
+          member={detailMember}
+          onClose={() => setDetailMember(null)}
+        />
+      )}
 
       {/* ─── Disclosure: Invitaciones pendientes ─── */}
       <section style={{ marginTop: 28 }}>

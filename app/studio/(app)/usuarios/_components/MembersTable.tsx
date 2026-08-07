@@ -63,9 +63,11 @@ const TONE_FG: Record<string, string> = {
 interface Props {
   members: UserMembershipWithProfile[];
   currentUserId: string;
+  /** Abre la ficha de la persona (SDD-0250). */
+  onOpenDetail?: (member: UserMembershipWithProfile) => void;
 }
 
-export function MembersTable({ members, currentUserId }: Props) {
+export function MembersTable({ members, currentUserId, onOpenDetail }: Props) {
   if (members.length === 0) {
     return (
       <div
@@ -112,6 +114,7 @@ export function MembersTable({ members, currentUserId }: Props) {
               key={m.user_id}
               member={m}
               isSelf={m.user_id === currentUserId}
+              onOpenDetail={onOpenDetail}
             />
           ))}
         </tbody>
@@ -127,9 +130,11 @@ export function MembersTable({ members, currentUserId }: Props) {
 function MemberRow({
   member,
   isSelf,
+  onOpenDetail,
 }: {
   member: UserMembershipWithProfile;
   isSelf: boolean;
+  onOpenDetail?: (member: UserMembershipWithProfile) => void;
 }) {
   const [roleState, roleAction, rolePending] = useActionState(
     changeUserRoleAction,
@@ -179,9 +184,40 @@ function MemberRow({
             tone={tone}
           />
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <span style={{ fontWeight: 600, color: "var(--ink)" }}>
-              {userDisplayName(member.profile, member.email)}
-            </span>
+            {/* Sólo el nombre abre la ficha, no la fila entera: la fila tiene
+                selects y formularios que se comerían el clic. */}
+            {onOpenDetail ? (
+              <button
+                type="button"
+                onClick={() => onOpenDetail(member)}
+                title="Ver la ficha de esta persona"
+                style={{
+                  background: "transparent",
+                  border: 0,
+                  padding: 0,
+                  textAlign: "left",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  fontSize: 13,
+                  fontFamily: "inherit",
+                  color: "var(--ink)",
+                  textDecoration: "underline",
+                  textDecorationColor: "var(--border)",
+                  textUnderlineOffset: 3,
+                }}
+              >
+                {userDisplayName(member.profile, member.email)}
+              </button>
+            ) : (
+              <span style={{ fontWeight: 600, color: "var(--ink)" }}>
+                {userDisplayName(member.profile, member.email)}
+              </span>
+            )}
+            {member.profile?.position_label && (
+              <span style={{ fontSize: 11, color: "var(--ink-soft)" }}>
+                {member.profile.position_label}
+              </span>
+            )}
             {isSelf && (
               <span style={{ fontSize: 10, color: "var(--ink-soft)" }}>
                 (tú)

@@ -538,6 +538,84 @@ export async function sendAccessLinkAction(
 }
 
 // ─────────────────────────────────────────────────────────────
+// updateMemberProfileAction · un admin edita la ficha de OTRA persona
+// (SDD-0250 · ficha de usuario).
+//
+// Distinto de updateMyProfileAction, que sólo toca el perfil de quien está
+// logueado. Sin esto no había forma de cargarle el cargo a nadie: los 8
+// miembros del equipo tienen `position_label` vacío desde el alta, y por eso
+// "gerente" no figura en ningún lado del sistema.
+//
+// Va por el admin client porque las policies de user_profiles no le dan a
+// `authenticated` un UPDATE sobre filas ajenas (y está bien que no se lo den).
+// El gate real es moduleEditDenial sobre `users`, que es admin-only.
+// ─────────────────────────────────────────────────────────────
+
+export async function updateMemberProfileAction(
+  _prev: UserActionState,
+  formData: FormData,
+): Promise<UserActionState> {
+  const targetUserId = (formData.get("target_user_id") as string | null)?.trim();
+  if (!targetUserId) return { errorCode: "invalid_input" };
+
+  const firstName = ((formData.get("first_name") as string | null) ?? "").trim();
+  const lastName = ((formData.get("last_name") as string | null) ?? "").trim();
+  const phone = ((formData.get("phone") as string | null) ?? "").trim();
+  const positionLabel = ((formData.get("position_label") as string | null) ?? "").trim();
+
+  const fieldErrors: Record<string, string> = {};
+  if (firstName.length > 80) fieldErrors.first_name = "Máximo 80 caracteres";
+  if (lastName.length > 80) fieldErrors.last_name = "Máximo 80 caracteres";
+  if (phone.length > 40) fieldErrors.phone = "Máximo 40 caracteres";
+  if (positionLabel.length > 80) fieldErrors.position_label = "Máximo 80 caracteres";
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
+
+  const supabase = await createClient();
+  const { data: userResp } = await supabase.auth.getUser();
+  if (!userResp.user) return { errorCode: "user_signin_required" };
+
+  const denial = await moduleEditDenial(supabase, "users");
+  if (denial) return { error: denial };
+
+  const { data: myLink } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  if (!myLink?.tenant_id) return { error: "No se pudo resolver el tenant." };
+
+  const admin = createAdminClient();
+
+  // El objetivo tiene que ser miembro de MI tenant. El admin client no filtra
+  // por RLS, así que sin este chequeo un admin podría editarle el perfil a
+  // alguien de otro tenant pasando su id (mismo criterio que sendAccessLink).
+  const { data: membership } = await admin
+    .from("user_tenants")
+    .select("user_id")
+    .eq("user_id", targetUserId)
+    .eq("tenant_id", myLink.tenant_id)
+    .maybeSingle<{ user_id: string }>();
+  if (!membership) {
+    return { error: "Esa persona no es miembro de este equipo." };
+  }
+
+  const { error } = await admin
+    .from("user_profiles")
+    .update({
+      first_name: firstName || null,
+      last_name: lastName || null,
+      phone: phone || null,
+      position_label: positionLabel || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", targetUserId);
+
+  if (error) return { error: `No se pudo guardar: ${error.message}` };
+
+  revalidatePath("/studio/usuarios");
+  return { ok: true, userId: targetUserId };
+}
+
+// ─────────────────────────────────────────────────────────────
 // revokeInvitationAction · vía RPC studio_revoke_invitation (migr 0200).
 // El UPDATE directo estaba bloqueado por `no_direct_update using(false)` →
 // no-op silencioso que la UI reportaba como éxito.
