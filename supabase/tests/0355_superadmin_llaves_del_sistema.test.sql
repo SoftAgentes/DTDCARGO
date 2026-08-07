@@ -32,12 +32,26 @@ create function auth.uid() returns uuid language sql stable set search_path = ''
 as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
 
 create table public.tenants (id uuid primary key);
+
+-- ⚠️ FIDELIDAD QUE COSTÓ UN INTENTO CONTRA PROD: en la base real
+-- `user_tenants` tiene FK a `user_profiles` (user_tenants_user_id_profile_fkey).
+-- La primera versión de este stub no la tenía, el contrato pasó en verde, y la
+-- migración reventó al aplicarla porque la cuenta de respaldo existe en
+-- auth.users SIN fila de perfil (23503). Un stub más permisivo que la tabla real
+-- no prueba nada: reproduce la restricción o el test miente.
+create table public.user_profiles (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  first_name text,
+  last_name text
+);
 create table public.user_tenants (
   user_id uuid not null,
   tenant_id uuid not null,
   role text not null,
   disabled_at timestamptz,
-  primary key (user_id, tenant_id)
+  primary key (user_id, tenant_id),
+  constraint user_tenants_user_id_profile_fkey
+    foreign key (user_id) references public.user_profiles(user_id)
 );
 
 create function public.get_user_tenant_id() returns uuid
@@ -116,6 +130,13 @@ insert into auth.users (id, email) values
   -- La cuenta de respaldo, con el correo REAL que busca la migración: así el
   -- test ejerce el camino que de verdad va a correr en producción.
   ('a0000000-0000-0000-0000-000000000005','hailuway.com@hotmail.com');
+-- Los cuatro del equipo SÍ tienen perfil. La cuenta de respaldo (…005) NO —
+-- igual que en producción: es lo que hace que este test ejerza el caso real.
+insert into public.user_profiles (user_id) values
+  ('a0000000-0000-0000-0000-000000000001'),
+  ('a0000000-0000-0000-0000-000000000002'),
+  ('a0000000-0000-0000-0000-000000000003'),
+  ('a0000000-0000-0000-0000-000000000004');
 insert into public.user_tenants (user_id, tenant_id, role) values
   ('a0000000-0000-0000-0000-000000000001','11111111-1111-1111-1111-111111111111','admin'),
   ('a0000000-0000-0000-0000-000000000002','11111111-1111-1111-1111-111111111111','admin'),

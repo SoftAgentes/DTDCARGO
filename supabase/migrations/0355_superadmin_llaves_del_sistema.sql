@@ -101,6 +101,16 @@ begin
     return;
   end if;
 
+  -- ⚠️ EL PERFIL VA PRIMERO. `user_tenants` tiene FK
+  -- `user_tenants_user_id_profile_fkey` → `user_profiles`, y esta cuenta existe
+  -- en `auth.users` SIN fila de perfil (es anterior al trigger handle_new_user,
+  -- o se creó por otra vía). Sin esta inserción la migración revienta con
+  -- 23503 — pasó en el primer intento de aplicarla contra prod, 2026-08-07.
+  -- Sólo `user_id` es obligatorio; el resto tiene default o admite null.
+  insert into public.user_profiles (user_id)
+  values (v_user)
+  on conflict (user_id) do nothing;
+
   insert into public.user_tenants (user_id, tenant_id, role)
   values (v_user, v_tenant, 'admin')
   on conflict (user_id, tenant_id) do update
