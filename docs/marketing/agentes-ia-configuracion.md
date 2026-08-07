@@ -6,6 +6,15 @@
 > **Límites duros de Kommo** (leídos del `maxlength` del DOM, 2026-08-06): Persona **≤1.500
 > caracteres** · cada pauta **≤300** · **20 Acciones** por agente · el nombre del agente **≤255**.
 
+> ⚠️ **La numeración de este archivo (AGENTE 2 = Reenganche, AGENTE 3 = Cotizador, AGENTE 4 =
+> Post-venta) es el plan ORIGINAL y quedó superada.** Medido contra producción el 2026-08-06,
+> `Logrado con éxito` (Post-venta) tenía **243 leads ganados sin atender** contra **14** en
+> `Recontacto` (Reenganche) y **1** en `Estimado enviado`+`Negociación` (Cotizador). El orden de
+> construcción real es **Post-venta → Reenganche → Cotizador** — ver
+> [`prompt-agentes-2-3-4.md`](prompt-agentes-2-3-4.md). Las secciones de abajo conservan sus
+> nombres originales (Agente 2/3/4 = Reenganche/Cotizador/Post-venta); el orden en que se
+> construyeron fue el de prioridad.
+
 ## 🟢 Estado en vivo — agente "DTD Cargo asistente de ventas" (2026-08-06)
 
 | Qué | Estado |
@@ -337,7 +346,42 @@ Si la decisión depende de otra persona, pregúntalo directo: "¿la decisión de
 
 ## AGENTE 4 · Post-venta — `Logrado con éxito`
 
-Reusar el agente dormido **"Atención al cliente de comercio minorista"**.
+Reusar el agente dormido **"Atención al cliente de comercio minorista"** (id `28571`). **Es el
+primero de los tres nuevos construido**, por prioridad de volumen — ver nota al tope del archivo.
+
+### 🟢 Estado en vivo (2026-08-07)
+
+| Qué | Estado |
+|---|---|
+| **Limpieza del template genérico** | ✅ — el agente dormido traía 10 pautas y 8 Acciones 100% genéricas de Kommo (catálogo de productos, políticas de la compañía…), cero contenido de DTD. Se borraron todas. |
+| **CAPA 1 · identidad de Manuel** | ✅ **cargada y verificada recargando** — idéntica a la del Agente 1 |
+| **CAPA 2 + pautas propias de Post-venta** | ✅ **cargadas** — las 5 de abajo + 1 extra sobre el portal (ver nota) |
+| **3 pautas de réplicas** | ✅ cargadas |
+| **3 pautas contra la repetición** | ✅ cargadas |
+| Total de pautas | ✅ **12** de 50, ninguna vacía, verificadas recargando |
+| **Acción de réplicas** | ✅ creada — `Cuando: réplicas o imitaciones de marca` → `Responder siempre con esta información específica` (mismo texto que el Agente 1) |
+| **Acción "quiere hablar con humano"** | ✅ reusada del template, corregida a `con resumen de conversaciones` (traía `sin resumen`) + `Agregar tarea` 15 min |
+| **Acción "sentimiento frustrado"** | ✅ reusada del template (ya traía `con resumen`) + `Agregar tarea` 15 min |
+| **Acción "quiere cambiar un pedido"** | ✅ **repurpuesta** a `Cuando: reportar una incidencia o reclamo con su pedido` (tema personalizado, "Crear valor") + mensaje de traspaso reescrito + `Agregar tarea` 15 min |
+| **Fuente v7 (DOCX)** | ✅ **enganchada** vía "Fuente de conocimiento existente" — NO se resubió, comparte la misma que el Agente 1 |
+| **Probado en vivo** | ✅ 2 de 8 casos: réplicas (no transfirió, dio el "no" completo, 17 créditos) y "quiero hablar con un asesor" (transfirió correctamente). Los 6 restantes de la batería del §6 del encargo — **⛔ pendientes**. |
+| Activar el agente | ⛔ **pendiente** — sigue "Desactivado", decisión del founder |
+
+⚠️ **Una pauta se agregó fuera de lo documentado en este archivo** (sección "Pautas propias" abajo
+trae 5; en Kommo hay una 6ª): el encargo (`prompt-agentes-2-3-4.md` §5) advierte específicamente
+sobre el portal — *"si preguntan dónde está su mercancía, pedir el Shipping Mark… y mencionar que
+pronto lo podrá ver en su portal. No prometer que ya está disponible."* Se agregó como pauta:
+
+```
+Si preguntan dónde está su mercancía, pide el Shipping Mark o el número de envío. Puedes mencionar que pronto podrá verlo en su portal, pero nunca digas que ya está disponible.
+```
+
+🔴 **La sesión de Kommo se cayó dos veces durante la construcción** (una vez por choque de sesión
+única, otra por la extensión de Chrome). **Todo lo que no se había guardado con el botón `Guardar`
+de arriba a la derecha se perdió** — las 4 Acciones ya editadas volvieron a su estado genérico tras
+el primer corte. ⭐ **Lección: guardar (`Guardar` arriba, no sólo `Guardar acción`) después de CADA
+bloque de cambios en Acciones**, no acumular varios antes de guardar. Las Pautas parecen tolerar
+más edición antes de perder el trabajo, pero no se probó a fondo si también se pierden sin guardar.
 
 ### CAPA 2
 
@@ -359,6 +403,7 @@ Nunca prometas una fecha de entrega garantizada. Los tiempos los define la navie
 Nunca afirmes que un pago entró si no lo estás viendo. Pasa con un asesor.
 Si hay una incidencia o un reclamo, reconoce el impacto, recoge el hecho mínimo y pasa con un asesor. No intentes vender durante una incidencia.
 Cuando ya resolviste, puedes preguntar: "¿ya estás armando el próximo pedido o esperas que llegue este primero?".
+Si preguntan dónde está su mercancía, pide el Shipping Mark o el número de envío. Puedes mencionar que pronto podrá verlo en su portal, pero nunca digas que ya está disponible.
 ```
 
 ---
