@@ -16,10 +16,9 @@
 | **Las 11 pautas del arquetipo de Entrada** | ✅ **cargadas y verificadas** |
 | **Las 3 pautas contra la repetición** | ✅ **cargadas** — ver abajo |
 | **Acciones 2 y 3 corregidas** | ✅ ya no clavan la pregunta de cierre |
-| **Acción de réplicas** | ✅ **creada**, primera de las 7 |
+| **Acción de réplicas** | ✅ **creada y PROBADA en vivo** — ver abajo |
 | Total de pautas | ✅ **41** de 50, ninguna vacía |
-| Probar la Acción de réplicas en el panel | ⏳ enviada, falta leer la respuesta |
-| ¿Queda algún Salesbot vivo? | ⏳ por verificar — ver abajo |
+| Salesbots | ✅ verificados muertos; quedan 4 sesiones pegadas |
 | **Fuente v7 (DOCX)** | ✅ subida, **35 subsecciones**, usada por el Agente **y** por "Respuesta sugerida" |
 | Probar la batería de 8 casos | ⛔ pendiente |
 | Cadena de traspaso a humano | ⛔ pendiente, bloqueada por una decisión (quién recibe) |
@@ -40,13 +39,16 @@
    tercera se pierde, siempre.
 4. **Verificar recargando la página.** Que el botón `Guardar` desaparezca **no prueba nada**.
 
-🔎 **Pendiente de verificar: ¿queda un Salesbot vivo?** En una conversación real del 2026-08-06
-apareció un mensaje con menú — *"Para carga especial, peligrosa o que requiere permisos de
-exportación, consulta con tu asesor — la cotizamos a medida"* — y entradas de `Robot` en la línea de
-tiempo. Los 11 Salesbots se apagaron el 2026-08-06
-([`../runbooks/kommo-salesbots-inventario.md`](../runbooks/kommo-salesbots-inventario.md)), así que
-eso no debería existir. Puede ser una automatización de lead entrante y no un Salesbot, pero hay que
-mirarlo: si un bot viejo sigue hablando, contradice todo lo de arriba.
+✅ **Salesbots verificados el 2026-08-07: siguen muertos.** Se revisó por el sospechoso de una
+conversación real —un menú de *"la cotizamos a medida"*— y **no salió de un Salesbot**. La prueba son
+los contadores: `Bienvenida 2734` · `Carga marítima 505` · `Asignar asesor 3886` · `Solicitud de
+datos 887`, **idénticos a los del 2026-08-06**. Ninguno se lanzó desde que se apagaron. Los 11 siguen
+en gris.
+
+⚠️ **Quedan 4 sesiones pegadas** (2 en `Carga marítima`, 2 en `Bienvenida horario oficina`) que
+**`detener sesión` ya no cierra** — se corrió dos veces más sin efecto. Con los bots apagados no
+pueden continuar, pero una sesión abierta puede impedir que el agente tome esa conversación. Son 4
+como máximo; si aparece un chat donde Manuel no contesta, mirar ahí primero.
 
 ## Cómo se usa
 
@@ -185,6 +187,41 @@ Un cliente discute una política; no discute a la aduana.
 
 ⚠️ **El `Hacer` nace en "Transferir al usuario".** Si se deja el valor por defecto, la Acción hace
 exactamente lo contrario de lo que se busca. Hay que cambiarlo sí o sí.
+
+### 🔴 Crear la Acción NO alcanzó: dos intentos fallaron antes de que funcionara
+
+Con la Acción ya creada y **primera de la lista**, el agente **seguía transfiriendo**. El panel de
+prueba lo explicó:
+
+> **Intención identificada:** *"réplicas o imitaciones de marca"* **y** *"El cliente quiere comprar"*
+> **Acciones completadas:** *"El agente transfirió al usuario…"*
+
+**Detectaba bien las réplicas, pero disparaba las dos intenciones y ganaba la de transferir.**
+
+1. **Intento 1 — poner la excepción en el campo `Más` de la acción de transferir.** No sirvió.
+   ⭐ **El `Más` es orientativo, no manda:** la Acción dispara por su condición y el texto no la frena.
+2. **Intento 2 — quitar la condición.** La acción de transferir tenía **dos** condiciones unidas por
+   *"se cumple alguna"*: `Cliente explícitamente confirma listo para comprar/ordenar` **o**
+   `El cliente quiere comprar`. La segunda es tan ancha que *"necesito 200 pares"* la activa. **Se
+   eliminó la segunda y quedó sólo la explícita.** Ahí sí funcionó.
+
+⭐ **Efecto colateral, y es bueno:** `El cliente quiere comprar` disparaba con casi cualquier lead, o
+sea que el agente transfería antes de calificar — lo contrario del arquetipo de Entrada. Ahora sólo
+pasa a un humano quien **confirma explícitamente** que quiere ordenar.
+*(Para revertirlo: editar esa acción y volver a agregar la condición `El cliente quiere → comprar`.)*
+
+### ✅ La prueba en vivo (2026-08-07)
+
+Entrada: *"buenas, tienen zapatos replica de hoka y on running? necesito unos 200 pares"* →
+
+> *"No trabajamos réplicas ni imitaciones de marca sin un permiso específico de la marca. La aduana
+> las clasifica como réplica, piratería o falsificación, y sin ese documento no se puede. Lo que sí
+> funciona es traer ese mismo producto con su propia marca: en China lo fabrican con su logo y su
+> empaque. Si te interesa importar calzado personalizado con tu marca, podemos ayudarte. ¿Te gustaría
+> explorar esa opción?"*
+
+22 créditos. **Sin transferir** — desapareció el bloque `Acciones completadas`. No mandó a cotizar, no
+pidió factura, cerró con UNA pregunta.
 
 ### Lo que ofrece el desplegable `Hacer` (2026-08-07)
 
