@@ -22,6 +22,7 @@ import {
   DrawerShell,
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { Badge } from "@/app/studio/_components/ui/Badge";
 import {
   ROLE_LABELS,
   ROLE_DESCRIPTIONS,
@@ -126,11 +127,25 @@ export function UserDetailDrawer({
           {nuncaEntro && activo && (
             <p
               style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: "var(--s-2)",
                 font: "500 12px/1.5 var(--f-sans)",
-                color: "var(--warning)",
+                color: "var(--ink)",
                 margin: "var(--s-2) 0 0",
               }}
             >
+              <span
+                aria-hidden
+                style={{
+                  width: 6,
+                  height: 6,
+                  marginTop: 5,
+                  flexShrink: 0,
+                  borderRadius: "50%",
+                  background: "var(--warning)",
+                }}
+              />
               Esta persona nunca ha entrado. Mándale su enlace de acceso para que
               cree su contraseña.
             </p>
@@ -359,15 +374,21 @@ function Dato({
       <span style={{ font: "400 12.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
         {etiqueta}
       </span>
-      <span
-        style={{
-          font: `${alerta ? 600 : 500} 12.5px/1.4 ${mono ? "var(--f-mono)" : "var(--f-sans)"}`,
-          color: alerta ? "var(--warning)" : "var(--ink)",
-          textAlign: "right",
-        }}
-      >
-        {valor}
-      </span>
+      {alerta ? (
+        <Badge tone="warning" size="sm" dot>
+          {valor}
+        </Badge>
+      ) : (
+        <span
+          style={{
+            font: `500 12.5px/1.4 ${mono ? "var(--f-mono)" : "var(--f-sans)"}`,
+            color: "var(--ink)",
+            textAlign: "right",
+          }}
+        >
+          {valor}
+        </span>
+      )}
     </div>
   );
 }
