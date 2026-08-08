@@ -15,6 +15,31 @@
 > nombres originales (Agente 2/3/4 = Reenganche/Cotizador/Post-venta); el orden en que se
 > construyeron fue el de prioridad.
 
+## 🟢 Los 4 agentes están ACTIVOS en producción (2026-08-07)
+
+Activados con OK explícito del founder. Los cuatro comparten el mismo canal real —
+**"Importador de China"** (WhatsApp) — que es el nombre del canal en Kommo, no de la marca.
+**"Whu Dragon Chino"** (Instagram/Facebook) existe como canal pero ningún agente lo usa hoy.
+
+| Agente | id Kommo | Etapas del pipeline `Ventas DTD` |
+|---|---|---|
+| **DTD Cargo asistente de ventas** (Entrada) | `326244` | Leads Entrantes · Contacto inicial · Ventas Perdidos |
+| **DTD Cargo Cotizador** | `350054` | Estimado enviado · Negociación |
+| **DTD Cargo Reenganche** | `350032` | Recontacto |
+| **Atención al cliente de comercio minorista** (Post-venta) | `28571` | Logrado con éxito |
+
+🔴 **El Agente 1 traía por defecto Recontacto y Logrado con éxito también** — Kommo permite
+**un solo agente de IA por etapa**, así que antes de activar Reenganche y Post-venta hubo que
+**quitarle esas dos etapas al Agente 1** (verificado y guardado, recargando). Sin ese paso, activar
+los nuevos agentes habría competido con el Agente 1 por la misma conversación. Esto explica en
+parte los "243 leads ganados sin atender" en `Logrado con éxito`: el Agente 1 sí les contestaba,
+pero con el guion de Entrada, que no aplica a un cliente que ya compró.
+
+⚠️ **Verificar antes de asumir el canal:** el listado de "+ Añadir canal" muestra tres opciones con
+nombres que no coinciden con "DTD Cargo" (`Whu Dragon Chino` ×2, `Importador de China`). Se
+confirmó cuál es el real revisando `Ajustes` del Agente 1 (que ya funciona en producción), no
+adivinando por el nombre.
+
 ## 🟢 Estado en vivo — agente "DTD Cargo asistente de ventas" (2026-08-06)
 
 | Qué | Estado |
@@ -311,7 +336,7 @@ segundo de los tres nuevos construido**, por prioridad de volumen — ver nota a
 | **Acción "reportar una incidencia o reclamo con su pedido"** | ✅ — tema personalizado creado con "Crear valor" (igual patrón que Post-venta), `sin permiso, con resumen` + `Agregar tarea` 15 min |
 | **Fuente v7 (DOCX)** | ✅ enganchada vía "Fuente de conocimiento existente" — no se resubió |
 | **Probado en vivo** | ✅ 2 de 8 casos: réplicas (no transfiere, da el "no" completo, 16 créditos) y "quiero hablar con un asesor" (transfirió correctamente, confirmado con "El agente transfirió el chat a un usuario"). Los 6 restantes de la batería del §6 del encargo — **⛔ pendientes**. |
-| Activar el agente | ⛔ **pendiente** — sigue "Desactivado", decisión del founder |
+| Activar el agente | ✅ **activo** (2026-08-07) — canal "Importador de China", con OK explícito del founder |
 
 ⚠️ **La pregunta de desambiguación no estaba en la lista original de "Pautas propias" de abajo.**
 El encargo (`agentes-ia-por-etapa.md`) la marca como **la regla más importante de este agente**
@@ -379,7 +404,7 @@ en sus dos etapas. Construido igual, con el mismo nivel de detalle que los otros
 | **Acción "quiere un descuento o precio especial"** | ✅ tema personalizado creado con "Crear valor" (específico de este agente, no replicado de los otros) — `sin permiso, con resumen`, mensaje de traspaso propio + `Agregar tarea` 15 min |
 | **Fuente v7 (DOCX)** | ✅ enganchada vía "Fuente de conocimiento existente" — no se resubió |
 | **Probado en vivo** | ✅ 2 de 8 casos: réplicas (no transfiere, da el "no" completo, 16 créditos) y "quiero hablar con un asesor" (transfirió correctamente). Los 6 restantes de la batería del §6 del encargo — **⛔ pendientes**. |
-| Activar el agente | ⛔ **pendiente** — sigue "Desactivado", decisión del founder |
+| Activar el agente | ✅ **activo** (2026-08-07) — canal "Importador de China", con OK explícito del founder |
 
 ⚠️ **La técnica de "responder con pregunta, no con argumento" no estaba en la lista original de
 "Pautas propias".** `agentes-ia-por-etapa.md` la marca como **la astucia central de este
@@ -436,7 +461,7 @@ primero de los tres nuevos construido**, por prioridad de volumen — ver nota a
 | **Acción "quiere cambiar un pedido"** | ✅ **repurpuesta** a `Cuando: reportar una incidencia o reclamo con su pedido` (tema personalizado, "Crear valor") + mensaje de traspaso reescrito + `Agregar tarea` 15 min |
 | **Fuente v7 (DOCX)** | ✅ **enganchada** vía "Fuente de conocimiento existente" — NO se resubió, comparte la misma que el Agente 1 |
 | **Probado en vivo** | ✅ 2 de 8 casos: réplicas (no transfirió, dio el "no" completo, 17 créditos) y "quiero hablar con un asesor" (transfirió correctamente). Los 6 restantes de la batería del §6 del encargo — **⛔ pendientes**. |
-| Activar el agente | ⛔ **pendiente** — sigue "Desactivado", decisión del founder |
+| Activar el agente | ✅ **activo** (2026-08-07) — canal "Importador de China", con OK explícito del founder |
 
 ⚠️ **Una pauta se agregó fuera de lo documentado en este archivo** (sección "Pautas propias" abajo
 trae 5; en Kommo hay una 6ª): el encargo (`prompt-agentes-2-3-4.md` §5) advierte específicamente
