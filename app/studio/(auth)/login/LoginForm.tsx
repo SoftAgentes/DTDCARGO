@@ -8,6 +8,7 @@
 
 "use client";
 
+import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
 import { signIn, type SignInState } from "./actions";
 
@@ -197,12 +198,12 @@ export function LoginForm({ next, listo }: { next?: string; listo?: boolean }) {
           Solo personal autorizado de DTD Cargo.
           <br />
           ¿Olvidaste tu contraseña?{" "}
-          <a
-            href="mailto:info@dtdcargo.com"
+          <Link
+            href="/studio/login/recuperar"
             style={{ color: "#C2747F", textDecoration: "none" }}
           >
-            Escríbele a Sam
-          </a>
+            Recupérala acá
+          </Link>
           .
         </div>
       </div>
