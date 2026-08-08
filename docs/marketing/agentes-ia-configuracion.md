@@ -18,13 +18,13 @@
 ## 🟢 Batería completa de 8 casos probada en los 3 agentes nuevos (2026-08-07)
 
 Los 8 casos del §6 del encargo (`prompt-agentes-2-3-4.md`), adaptados por agente. **24/24 casos
-pasaron funcionalmente**, con **1 hallazgo real** y **2 notas de calidad menores**. Costo total:
-~380 créditos.
+pasaron funcionalmente**, con **1 hallazgo real (ya corregido)** y **2 notas de calidad menores**.
+Costo total: ~380 créditos.
 
 | # | Caso | Post-venta | Reenganche | Cotizador |
 |---|---|---|---|---|
 | 1 | Precio | ✅ | ✅ | ✅ (con nota) |
-| 2 | Restricción | ✅ | 🔴 **FALLA** | ✅ |
+| 2 | Restricción | ✅ | 🔴 falló, ✅ **corregido con Acción** | ✅ |
 | 3 | Pedir un humano | ✅ | ✅ | ✅ |
 | 4 | Dirección bodega China | ✅ | ✅ | ✅ |
 | 5 | "casillero" y "DDP" | ✅ | ✅ | — *(no aplica, ya cubierto por caso 4)* |
@@ -46,10 +46,30 @@ CAPA 1, tarea a 15 min y la fuente. Como el cambio de destinatario puede pedirse
 no sólo en Entrada, **falta en los tres agentes nuevos, no sólo en Reenganche** — sólo se disparó
 la prueba ahí porque el caso 2 de la batería tocó justo ese tema en esa ventana.
 
-⛔ **No corregido todavía.** Queda pendiente decidir: ¿se agrega como pauta transversal a los 4
-agentes, o se convierte en Acción (como las de réplicas) para que no dependa de que el LLM la seleccione bien? Dado que ya existe el patrón de "tema personalizado + Transferir sin argumento" para
-réplicas, la Acción es la vía más robusta — una pauta puede perder contra el LLM en un mensaje raro,
-una Acción no.
+### ✅ Corregido con Acción dedicada en los tres agentes nuevos (2026-08-07)
+
+Se descartó la pauta simple y se optó por una Acción, mismo patrón que réplicas — no depende de que
+el LLM la seleccione bien entre el resto del prompt:
+
+| | |
+|---|---|
+| **Cuando** | El cliente quiere: `cambiar el destinatario o el nombre a quien queda la importación` (tema personalizado) |
+| **Hacer** | Transferir al usuario, **sin el permiso del cliente**, con resumen de conversaciones |
+| Mensaje | *"Entiendo. Los cambios de destinatario los revisa un asesor directamente, para que quede bien registrado. Te paso con alguien del equipo."* |
+| **+ Agregar tarea** | Fecha límite 15 min · Usuario responsable: Responsable actual · Tipo: Seguimiento · Comentario con el nombre del agente |
+
+Creada en Reenganche, Post-venta y Cotizador (los tres nuevos), guardada y **verificada recargando**
+en cada uno. Reprobada la prueba original en Reenganche tras el fix:
+
+Entrada: *"esta vez quiero que quede a nombre de mi hermano no al mío"* →
+
+> *"Entiendo. Los cambios de destinatario los revisa un asesor directamente, para que quede bien
+> registrado. Te paso con alguien del equipo."* — 5 créditos, transfirió.
+
+📌 **No se tocó el Agente 1**, que ya cubre este caso con una pauta simple (*"Si pide que la
+importación quede a su nombre, no lo resuelvas tú: pásalo con un asesor"*) — fuera del alcance de
+esta corrección, pero queda anotado que también podría subirse a Acción por la misma razón de
+robustez si en algún momento falla ahí.
 
 ### 📝 Notas de calidad menores (Cotizador)
 
