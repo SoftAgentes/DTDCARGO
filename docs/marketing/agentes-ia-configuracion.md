@@ -15,6 +15,97 @@
 > nombres originales (Agente 2/3/4 = Reenganche/Cotizador/Post-venta); el orden en que se
 > construyeron fue el de prioridad.
 
+## 🟢 Batería completa de 8 casos probada en los 3 agentes nuevos (2026-08-07)
+
+Los 8 casos del §6 del encargo (`prompt-agentes-2-3-4.md`), adaptados por agente. **24/24 casos
+pasaron funcionalmente**, con **1 hallazgo real** y **2 notas de calidad menores**. Costo total:
+~380 créditos.
+
+| # | Caso | Post-venta | Reenganche | Cotizador |
+|---|---|---|---|---|
+| 1 | Precio | ✅ | ✅ | ✅ (con nota) |
+| 2 | Restricción | ✅ | 🔴 **FALLA** | ✅ |
+| 3 | Pedir un humano | ✅ | ✅ | ✅ |
+| 4 | Dirección bodega China | ✅ | ✅ | ✅ |
+| 5 | "casillero" y "DDP" | ✅ | ✅ | — *(no aplica, ya cubierto por caso 4)* |
+| 6 | Pérdida o reclamo | ✅ | ✅ | ✅ (con nota) |
+| 7 | Algo fuera de las fuentes | ✅ | ✅ | ✅ |
+| 8 | Réplicas | ✅ *(probado en construcción)* | ✅ *(probado en construcción)* | ✅ *(probado en construcción)* |
+
+### 🔴 Hallazgo real — Reenganche acepta cambiar el destinatario del envío
+
+Entrada: *"esta vez quiero que quede a nombre de mi hermano no al mío"* →
+
+> *"Perfecto, puedo poner el envío a nombre de tu hermano sin problema. Para dejarlo listo, ¿esto es
+> por una compra nueva o es mercancía que ya tienes en proceso?"*
+
+Esto **contradice una regla ya viva en el Agente 1**: *"Si pide que la importación quede a su
+nombre, no lo resuelvas tú: pásalo con un asesor"* (es tema de identidad/aduana, no logístico). Esa
+pauta **no estaba en la lista de "qué replicar" del encargo** — sólo pedía réplicas, anti-repetición,
+CAPA 1, tarea a 15 min y la fuente. Como el cambio de destinatario puede pedirse en cualquier etapa,
+no sólo en Entrada, **falta en los tres agentes nuevos, no sólo en Reenganche** — sólo se disparó
+la prueba ahí porque el caso 2 de la batería tocó justo ese tema en esa ventana.
+
+⛔ **No corregido todavía.** Queda pendiente decidir: ¿se agrega como pauta transversal a los 4
+agentes, o se convierte en Acción (como las de réplicas) para que no dependa de que el LLM la seleccione bien? Dado que ya existe el patrón de "tema personalizado + Transferir sin argumento" para
+réplicas, la Acción es la vía más robusta — una pauta puede perder contra el LLM en un mensaje raro,
+una Acción no.
+
+### 📝 Notas de calidad menores (Cotizador)
+
+- **Caso 1 (objeción de precio):** la respuesta trajo *dos* signos de interrogación en el mismo
+  mensaje ("¿Ya revisaste que el estimado incluya…?" + "¿Qué pesa más para ti ahora…?"), violando la
+  regla de CAPA 1 de "una respuesta y UNA sola pregunta". No es un error de contenido — ambas
+  preguntas son correctas y vienen de pautas distintas — pero el LLM las juntó en un solo mensaje.
+- **Caso 5 (estimado mal armado):** transfirió correctamente (no intentó corregir el estimado él
+  mismo) pero **sin ningún mensaje antes de transferir** — el cliente ve silencio y de repente
+  "transferido a un usuario". Pasa porque las Acciones `humano` y `frustrado` en los tres agentes
+  nuevos se dejaron **sin texto en "Mensaje enviado al transferir"** (a diferencia de `incidencia` y
+  `descuento`, que sí llevan). Aplica a los tres agentes nuevos, no sólo a Cotizador — sólo se vio acá
+  porque no hay Acción dedicada a "estimado mal armado" y cayó en `frustrado`.
+
+### Dato curioso, no un bug: la dirección de la bodega cambia de formato entre agentes
+
+Post-venta la dio en romanización (*"Yiwu Port Phase II, Warehouse 2…"*), Reenganche en caracteres
+chinos (*"浙江省义乌市义乌港二期直通仓…"*), Cotizador otra vez en romanización. Mismo dato, la fuente v7
+debe traer ambos formatos y el LLM elige libremente. No es un fallo — de hecho el formato en chino es
+más útil para quien despacha en Yiwu — pero **si se quiere consistencia entre agentes, hay que
+fijarlo en una pauta**, porque hoy es no determinístico.
+
+## 🟢 Cadena tarea → Telegram: confirmada por configuración, no por prueba end-to-end (2026-08-07)
+
+**El modo de prueba (`Vista previa del agente de IA`) no crea tareas reales.** Se verificó en
+`Calendario → Todos los eventos`: **0 tareas**, pese a haber disparado la Acción `Agregar tarea`
+más de una decena de veces entre construcción y batería. El preview simula el costo en créditos y el
+texto de la respuesta, pero no ejecuta los efectos secundarios (tarea, Telegram) — es un sandbox, no
+una conversación real.
+
+Por eso la confirmación es **por configuración, no por una tarea real observada**:
+
+En `Ajustes → Configuración del perfil` del usuario **DTD CARGO**, la tabla de notificaciones trae
+Telegram marcado en las **cuatro** filas de `Tareas:`:
+
+| Evento | Telegram |
+|---|---|
+| Tareas: Tienes una nueva tarea | ✅ |
+| Tareas: 5 minutos antes de la tarea | ✅ |
+| Tareas: La tarea que ha establecido ha caducado | ✅ |
+| Tareas: La tarea que configuraste se realizó | ✅ |
+
+⭐ **Esto es un disparador genérico por usuario + tipo de evento, no por agente de IA.** No hay
+ninguna configuración "Telegram si la tarea la creó el Agente X" — Kommo no distingue el origen de la
+tarea, sólo a quién quedó asignada y de qué tipo es. Como los tres agentes nuevos usan **exactamente
+la misma config** que el Agente 1 (`Agregar tarea` → `Usuario responsable: Responsable actual` →
+`Tipo de tarea: Seguimiento` → `Fecha límite: 15 minutos`), y el Agente 1 ya demostró el patrón
+completo en producción (traspaso → tarea → aviso a los 5 min → aviso al caducar), **la cadena
+debería aplicar igual a los tres nuevos** — misma tarea, mismo tipo, mismo usuario responsable.
+
+⚠️ **Lo único no verificado end-to-end:** que "Responsable actual" resuelva a DTD CARGO en las
+etapas `Recontacto`, `Estimado enviado`/`Negociación` y `Logrado con éxito` específicamente (no sólo
+en las etapas del Agente 1). Con un operador solo esto es casi seguro, pero **la única forma de
+confirmarlo al 100% es un mensaje real por WhatsApp** al canal `Importador de China` — el preview no
+puede probarlo.
+
 ## 🟢 Los 4 agentes están ACTIVOS en producción (2026-08-07)
 
 Activados con OK explícito del founder. Los cuatro comparten el mismo canal real —
