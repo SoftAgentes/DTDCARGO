@@ -237,7 +237,16 @@ daño alto, porque el Studio escribe con el cliente del USUARIO y no con
 | `0351_operario_rpc_exige_rol` | ✅ **aplicada el 2026-08-06** — verificada contra el objeto: las 4 RPC tienen el candado, `authenticated` ejecuta, `anon` no |
 | `0352_invitacion_nominal` | ✅ **aplicada** — confirmada en `supabase_migrations.schema_migrations` el 2026-08-08. Esta fila decía "pendiente" hasta esa fecha: era **drift del documento**, no del sistema |
 | `0358_merge_clients_exige_rol` | ✅ **aplicada el 2026-08-08** — con OK del founder nombrándola. Verificado en prod: `marketing` rebota con `42501`, `admin` pasa el candado y muere en `P0002` (id inexistente) |
-| `0359_confirm_payment_report_exige_rol` | ⛔ **pendiente** — requiere OK del founder nombrándola |
+| `0359_confirm_payment_report_exige_rol` | ✅ **aplicada el 2026-08-08** — con OK del founder nombrándola. Verificado en prod: `marketing` rebota con `42501`; `accounting` y `admin` pasan el candado y mueren en `no_data_found` (id inexistente) |
+
+📌 **Efecto lateral de la `0359`, medido y aceptado:** el `0195` que corría en
+prod estaba **de-acentuado y comprimido** respecto del archivo del repo (mismo
+drift que el `0341`). Al reemplazar el cuerpo, el mensaje de la rama de acción
+inválida pasó de `'accion invalida'` a `'acción inválida'` — o sea que prod
+quedó igual al repo, que es lo correcto. Verificado que **ningún código matchea
+ese texto** (la server action muestra `error.message` tal cual) y que la rama es
+**inalcanzable desde la app** (valida `confirmado|rechazado` antes de llamar).
+El resto del cuerpo es idéntico: la divergencia total eran 4 caracteres.
 
 ⚠️ **Lo que se descubrió al aplicar la `0358`, y conviene no re-descubrir:** el
 texto de `merge_clients` que corría en prod **no era el del archivo `0341`**.
