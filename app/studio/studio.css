@@ -1154,3 +1154,30 @@ details[open] > .calc-why-summary .calc-why-chev {
     transition: none;
   }
 }
+
+/* ───────────────────────────────────────────────────────────
+   Matriz de permisos editable — celdas clickeables (SDD-0252)
+   ─────────────────────────────────────────────────────────── */
+.studio-permcell {
+  transition: filter 0.12s ease;
+}
+.studio-permcell:hover:not(:disabled) {
+  filter: brightness(0.94);
+}
+.studio-permcell:focus-visible {
+  outline: 2px solid var(--wine);
+  outline-offset: 2px;
+}
+.studio-permcell-reset:hover:not(:disabled) {
+  border-color: var(--wine);
+  color: var(--wine);
+}
+.studio-permcell-reset:focus-visible {
+  outline: 2px solid var(--wine);
+  outline-offset: 1px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .studio-permcell {
+    transition: none;
+  }
+}

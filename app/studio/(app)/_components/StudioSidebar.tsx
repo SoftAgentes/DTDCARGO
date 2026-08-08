@@ -38,7 +38,11 @@ import {
   type ModuleDef,
   type ParentDef,
 } from "@/lib/studio/modules";
-import { canAccessModule, scopeAllowsModule } from "@/lib/studio/rbac";
+import {
+  canAccessModule,
+  scopeAllowsModule,
+  type RoleModuleOverrides,
+} from "@/lib/studio/rbac";
 import type { StudioUserRole, WarehouseScope } from "@/lib/studio/user-types";
 
 const STORAGE_KEY = "studio_sidebar_collapsed";
@@ -73,6 +77,12 @@ interface Props {
    * tiene asignado (cn/cola-qr/etiquetas vs ve). admin siempre ve todo.
    */
   warehouseScope?: WarehouseScope;
+  /**
+   * Desvíos de la matriz por rol (SDD-0252, migr 0357) — sin esto, un módulo
+   * otorgado por la matriz editable no aparecería acá aunque `requireModuleView`
+   * ya lo deje entrar (y viceversa con uno revocado).
+   */
+  overrides?: RoleModuleOverrides;
 }
 
 export function StudioSidebar({
@@ -80,6 +90,7 @@ export function StudioSidebar({
   expenseAlertCount = 0,
   role = null,
   warehouseScope = "all",
+  overrides,
 }: Props = {}) {
   const pathname = usePathname();
   const t = useT();
@@ -452,7 +463,7 @@ export function StudioSidebar({
     (m) =>
       !m.hidden &&
       isModuleEnabled(m.id, flags) &&
-      canAccessModule(role, m.id) &&
+      canAccessModule(role, m.id, overrides) &&
       (role === "admin" || scopeAllowsModule(warehouseScope, m.id)),
   );
 

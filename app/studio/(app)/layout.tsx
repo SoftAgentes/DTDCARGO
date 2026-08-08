@@ -23,6 +23,7 @@ import { LocaleProvider } from "@/lib/i18n";
 import { StudioSidebar } from "./_components/StudioSidebar";
 import { StudioTopbar } from "./_components/StudioTopbar";
 import type { StudioUserRole, WarehouseScope } from "@/lib/studio/user-types";
+import { getRoleModuleOverrides } from "@/lib/studio/role-module-overrides-queries";
 import { WiringProvider } from "../_components/wiring/WiringProvider";
 import { ToastProvider } from "../_components/ui/ToastProvider";
 import { BugFABButton } from "../_components/bug-reporter/BugFABButton";
@@ -140,6 +141,7 @@ export default async function StudioAppLayout({
     expenseAlertCount,
     initialNotifications,
     initialUnreadConversations,
+    roleModuleOverrides,
   ] = await Promise.all([
     listFeatureFlags(supabase),
     countActiveAlerts(supabase),
@@ -153,6 +155,9 @@ export default async function StudioAppLayout({
     listUnreadConversationsForBadge(supabase).catch(
       () => [] as { id: string; unread_count: number }[],
     ),
+    // Matriz editable (SDD-0252, migr 0357): sólo importa para no-admin — el
+    // sidebar sólo ESCONDE módulos (UX), el gate real es requireModuleView.
+    role && role !== "admin" ? getRoleModuleOverrides(supabase) : Promise.resolve({}),
   ]);
 
   return (
@@ -174,6 +179,7 @@ export default async function StudioAppLayout({
               expenseAlertCount={expenseAlertCount}
               role={role}
               warehouseScope={warehouseScope}
+              overrides={roleModuleOverrides}
             />
 
             <main
