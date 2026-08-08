@@ -1,13 +1,13 @@
 ---
 sdd: "0251"
-title: "Hardening: invitación nominal, RPC de operario con rol, y dos candados de borde"
+title: "Hardening: invitación nominal, RPC con rol (operarios + fusión de clientes), y dos candados de borde"
 status: in-progress
 author: "Sam (founder) + Claude"
 created: 2026-08-06
-updated: 2026-08-06
+updated: 2026-08-08
 supersedes: null
 superseded_by: null
-related: ["0024", "0028", "0042", "0085", "0139", "0250"]
+related: ["0024", "0028", "0042", "0085", "0139", "0246", "0250"]
 confidencialidad: interno
 ---
 
@@ -91,6 +91,31 @@ de hoy**.
 (su sesión es legítima, su casa es otra). Sin membresía ni portal → `signOut` +
 mensaje.
 
+### e) `merge_clients` validaba tenant, no rol · migr `0358`
+
+Hallado el **2026-08-08**, midiendo contra prod. Es **el mismo hueco que (b)**,
+en una RPC que aquel barrido no tocó: `merge_clients` (SDD-0246, migr `0341`)
+llama `assert_tenant_match()` y ahí se queda — valida QUE seas del tenant, no
+QUIÉN eres dentro de él.
+
+La matriz dice `clients: ["commercial","operations","accounting","support"]`
+(`lib/studio/rbac.ts:90`) y la action tiene su `moduleEditDenial`
+(`app/studio/(app)/clientes/merge-actions.ts:43`), pero PostgREST expone la RPC
+directo. Fusionar es **irreversible**: mueve el acceso al portal, arrastra el
+historial y retira un Shipping Mark.
+
+**Alcance medido en prod (2026-08-08):** 8 usuarios de Studio activos —
+`admin:4 · accounting:1 · marketing:1 · operations:1 · warehouse:1`. De esos,
+`marketing` y `warehouse` no están en la matriz de `clients` y podían fusionar
+igual. Son 2 personas, pero el agujero crece con cada rol nuevo.
+
+**Lo que NO era:** los 60 clientes del portal no podían — viven en
+`client_users`, no en `user_tenants`, así que `get_user_tenant_id()` les da NULL
+y `assert_tenant_match()` ya los rebotaba.
+
+**Fix:** `assert_studio_role()` de primero, igual que en (b). El cuerpo de la
+función se copió textual de `0341`; el diff son las 8 líneas del candado.
+
 ## 3. Decisiones
 
 - **Dos migraciones, no una.** Los hallazgos son independientes y con radios de
@@ -111,7 +136,16 @@ mensaje.
   auditaron una por una — ⚠️ el clasificador por regex da **falsos positivos**
   (marcó `studio_change_user_role` como sin validar rol, y sí valida: lee
   `user_tenants` directo en lugar de llamar `current_studio_role()`). Requiere
-  pasada manual, es trabajo aparte.
+  pasada manual, es trabajo aparte. **`merge_clients` salió de esa bolsa el
+  2026-08-08 y es el punto (e)** — confirma que la bolsa tiene hallazgos reales
+  adentro, y que el regex sigue mintiendo en las dos direcciones (esa misma
+  pasada marcó 141 funciones "sin chequeo" y casi todas se defienden solas).
+- ⚠️ **Los overrides por tenant de `0357` no llegan a la base.** El candado de
+  (b) y (e) usa la matriz **BASE**. `studio_role_module_overrides` hoy sólo lo
+  lee la app: no existe helper SQL que lo refleje. Un tenant que le QUITE
+  `clients` a `support` por la matriz seguiría dejándolo llamar la RPC directo.
+  Es mucho más chico que el hueco que se cierra, pero **es un hueco** y queda
+  escrito acá en vez de tapado.
 - Superficie `/back`, login por PIN de `/m/cn` y `/m/ve`, y `npm audit`.
 
 ## 5. Verificado limpio en la revisión (no re-derivar)
@@ -137,6 +171,13 @@ mensaje.
 - `supabase/tests/0351_operario_rpc_exige_rol.test.sql` — admin/operations
   siguen trabajando; marketing y support rebotan y el hash no se mueve; sin
   oráculo de ids; un desactivado no pasa; el candado de tenant sigue vivo.
+- `supabase/tests/0358_merge_clients_exige_rol.test.sql` — los roles de la
+  matriz siguen fusionando; marketing y warehouse rebotan **y las fichas quedan
+  intactas**; sin oráculo de ids; un desactivado no pasa; el candado de tenant
+  sigue vivo. **Validado por mutación** (2026-08-08): quitándole el
+  `assert_studio_role` a la migración, el contrato falla con *"REGRESIÓN: el rol
+  marketing fusionó dos clientes"*. Un contrato que no se probó al revés es
+  decorado.
 - `app/studio/(auth)/login/__tests__/actions.test.ts` — las 4 ramas del gate.
 - `node scripts/verify.mjs` en verde + `pnpm build`.
 
@@ -145,7 +186,8 @@ mensaje.
 | Migración | Estado |
 |---|---|
 | `0351_operario_rpc_exige_rol` | ✅ **aplicada el 2026-08-06** — verificada contra el objeto: las 4 RPC tienen el candado, `authenticated` ejecuta, `anon` no |
-| `0352_invitacion_nominal` | ⛔ **pendiente** — requiere OK del founder nombrándola |
+| `0352_invitacion_nominal` | ✅ **aplicada** — confirmada en `supabase_migrations.schema_migrations` el 2026-08-08. Esta fila decía "pendiente" hasta esa fecha: era **drift del documento**, no del sistema |
+| `0358_merge_clients_exige_rol` | ⛔ **pendiente** — requiere OK del founder nombrándola |
 
 Por el runbook `docs/runbooks/aplicar-migraciones-prod.md`: OK del founder
 **nombrando la migración**, de a **UNA**, con `name` = basename exacto.
