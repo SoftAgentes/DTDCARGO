@@ -269,14 +269,14 @@ export function UserDetailDrawer({
               style={{
                 marginTop: "var(--s-3)",
                 padding: "var(--s-2) var(--s-3)",
-                background: "var(--success-bg, #E5F4ED)",
+                background: "var(--success-bg)",
                 borderRadius: "var(--r-sm)",
               }}
             >
               <div
                 style={{
                   font: "600 12px/1.4 var(--f-sans)",
-                  color: "var(--success)",
+                  color: "var(--ink)",
                   marginBottom: "var(--s-2)",
                 }}
               >
