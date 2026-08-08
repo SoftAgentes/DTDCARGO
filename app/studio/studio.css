@@ -1176,8 +1176,26 @@ details[open] > .calc-why-summary .calc-why-chev {
   outline: 2px solid var(--wine);
   outline-offset: 1px;
 }
+/* Destello al guardar (SDD-0252, feedback del founder): la celda cicla entre
+   3 estados de texto — sin esto, volver al valor por defecto no deja NINGÚN
+   rastro visual de que el guardado ocurrió. */
+@keyframes studio-permcell-saved {
+  0% {
+    box-shadow: 0 0 0 3px var(--wine);
+  }
+  100% {
+    box-shadow: 0 0 0 3px transparent;
+  }
+}
+.studio-permcell-flash {
+  animation: studio-permcell-saved 0.7s ease-out;
+}
 @media (prefers-reduced-motion: reduce) {
   .studio-permcell {
     transition: none;
+  }
+  .studio-permcell-flash {
+    animation: none;
+    box-shadow: 0 0 0 3px var(--wine);
   }
 }
