@@ -23,8 +23,12 @@ import {
   canEditModule,
   canSpecial,
   scopeAllowsModule,
+  SUPERADMIN_ONLY_MODULES,
+  type RoleModuleOverrides,
   type StudioCapability,
 } from "@/lib/studio/rbac";
+import { isPlatformAdmin } from "@/lib/studio/platform-admin";
+import { getRoleModuleOverrides } from "@/lib/studio/role-module-overrides-queries";
 
 type StudioClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -32,6 +36,12 @@ export interface StudioAccess {
   role: StudioUserRole | null;
   /** Scope de almacén (SDD-0139). 'all' si la columna aún no existe o no hay asignación. */
   warehouseScope: WarehouseScope;
+  /**
+   * Desvíos de la matriz por rol (SDD-0252, migr 0357). `{}` sin sesión, con
+   * rol `admin` (nunca los necesita) o si la lectura falla — fail-closed
+   * suave: nunca abre más de lo que el default de código ya permitía.
+   */
+  overrides: RoleModuleOverrides;
 }
 
 /**
@@ -54,7 +64,7 @@ export async function getStudioAccess(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { role: null, warehouseScope: "all" };
+  if (!user) return { role: null, warehouseScope: "all", overrides: {} };
 
   const { data } = await supabase
     .from("user_tenants")
@@ -64,9 +74,14 @@ export async function getStudioAccess(
     .limit(1)
     .maybeSingle<{ role: StudioUserRole | null; warehouse_scope?: string | null }>();
   const scope = data?.warehouse_scope;
+  const role = data?.role ?? null;
+  // Overrides sólo importan para no-admin — admin ya lo ve/edita todo.
+  const overrides =
+    role && role !== "admin" ? await getRoleModuleOverrides(supabase) : {};
   return {
-    role: data?.role ?? null,
+    role,
     warehouseScope: scope === "cn" || scope === "ve" ? scope : "all",
+    overrides,
   };
 }
 
@@ -95,13 +110,22 @@ export async function requireModuleView(
   moduleId: string,
 ): Promise<StudioUserRole | null> {
   const supabase = await createClient();
-  const { role, warehouseScope } = await getStudioAccess(supabase);
-  if (!canAccessModule(role, moduleId)) {
+  const { role, warehouseScope, overrides } = await getStudioAccess(supabase);
+  if (!canAccessModule(role, moduleId, overrides)) {
     redirect(`/studio/dashboard?denied=${encodeURIComponent(moduleId)}`);
   }
   // Scope de almacén (SDD-0139): restringe los módulos con lado geográfico
   // (cn/cola-qr/etiquetas vs ve) para no-admin. admin siempre pasa.
   if (role !== "admin" && !scopeAllowsModule(warehouseScope, moduleId)) {
+    redirect(`/studio/dashboard?denied=${encodeURIComponent(moduleId)}`);
+  }
+  // SDD-0252 · segundo candado: financiero-china/legal/no-olvidar/renditions
+  // son ADMIN_ONLY (matriz []), así que llegar acá ya implica role === 'admin'
+  // — esto exige además is_platform_admin(), igual que 0355 con feature flags.
+  if (
+    SUPERADMIN_ONLY_MODULES.has(moduleId) &&
+    !(await isPlatformAdmin(supabase))
+  ) {
     redirect(`/studio/dashboard?denied=${encodeURIComponent(moduleId)}`);
   }
   return role;
@@ -122,12 +146,19 @@ export async function moduleEditDenial(
   supabase: StudioClient,
   moduleId: string,
 ): Promise<string | null> {
-  const { role, warehouseScope } = await getStudioAccess(supabase);
-  if (!canEditModule(role, moduleId)) {
+  const { role, warehouseScope, overrides } = await getStudioAccess(supabase);
+  if (!canEditModule(role, moduleId, overrides)) {
     return "No tienes permiso para realizar esta acción.";
   }
   if (role !== "admin" && !scopeAllowsModule(warehouseScope, moduleId)) {
     return "No tienes permiso para realizar esta acción.";
+  }
+  // SDD-0252 · segundo candado, ver requireModuleView.
+  if (
+    SUPERADMIN_ONLY_MODULES.has(moduleId) &&
+    !(await isPlatformAdmin(supabase))
+  ) {
+    return "Esta acción la reserva el superadministrador. Pídesela a quien administra el sistema.";
   }
   return null;
 }
