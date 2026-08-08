@@ -187,7 +187,19 @@ función se copió textual de `0341`; el diff son las 8 líneas del candado.
 |---|---|
 | `0351_operario_rpc_exige_rol` | ✅ **aplicada el 2026-08-06** — verificada contra el objeto: las 4 RPC tienen el candado, `authenticated` ejecuta, `anon` no |
 | `0352_invitacion_nominal` | ✅ **aplicada** — confirmada en `supabase_migrations.schema_migrations` el 2026-08-08. Esta fila decía "pendiente" hasta esa fecha: era **drift del documento**, no del sistema |
-| `0358_merge_clients_exige_rol` | ⛔ **pendiente** — requiere OK del founder nombrándola |
+| `0358_merge_clients_exige_rol` | ✅ **aplicada el 2026-08-08** — con OK del founder nombrándola. Verificado en prod: `marketing` rebota con `42501`, `admin` pasa el candado y muere en `P0002` (id inexistente) |
+
+⚠️ **Lo que se descubrió al aplicar la `0358`, y conviene no re-descubrir:** el
+texto de `merge_clients` que corría en prod **no era el del archivo `0341`**.
+La aplicaron con los comentarios quitados y con `$fn$` en vez de `$$` (16.704
+caracteres en el ledger contra 8.480 en el objeto). La **lógica** era la misma
+—se probó normalizando ambos cuerpos: 7.484 caracteres, md5 idéntico, una vez
+descontados comentarios, espacios y el candado nuevo— pero comparar por longitud
+o por hash crudo da un falso positivo de "cambió algo". Para verificar una
+`create or replace` sobre una función viva: **compará el cuerpo entre `declare` y
+`end;`, normalizado**, nunca el `pg_get_functiondef` entero (el encabezado lo
+reescribe Postgres: `set search_path = public` vuelve como
+`SET search_path TO 'public'`).
 
 Por el runbook `docs/runbooks/aplicar-migraciones-prod.md`: OK del founder
 **nombrando la migración**, de a **UNA**, con `name` = basename exacto.
