@@ -116,6 +116,49 @@ y `assert_tenant_match()` ya los rebotaba.
 **Fix:** `assert_studio_role()` de primero, igual que en (b). El cuerpo de la
 función se copió textual de `0341`; el diff son las 8 líneas del candado.
 
+### f) `confirm_payment_report` validaba tenant, no rol · migr `0359`
+
+Hallado el **2026-08-08** atacando el "grupo dinero" de la lista de las 13.
+Mismo hueco que (b) y (e): la función (SDD-0134 Slice B, migr `0195`) arranca
+con `if v_tenant is null then raise` — valida que seas del equipo, no quién eres
+dentro de él. La matriz dice `invoices: ["accounting"]` y la action tiene su
+`moduleEditDenial`, pero PostgREST expone la RPC directo.
+
+**Qué habilitaba:** confirmar el reporte de pago de un cliente, o sea sumar a
+`invoices.paid_amount` y recomputar el `status` — **dar una factura por pagada**
+sin ser de contabilidad.
+
+**No arrastra el límite de la `0358`:** `invoices` está en la lista de módulos
+con candado de gobernanza de la migr `0357`, así que la matriz BASE **es** el
+permiso efectivo y no hay override por tenant que pueda desalinearse.
+
+### ⚠️ Las cinco `void_*_with_audit_reason` NO se arreglan así — están mal clasificadas
+
+Medido contra prod el 2026-08-08, y es la razón por la que este carril se
+detuvo en una sola RPC en vez de seis:
+
+- Las cinco **no son `SECURITY DEFINER`** — corren como invoker. Quien las
+  protege no es la función sino la RLS de la tabla, que es
+  `(tenant_id = get_user_tenant_id())` con `cmd = ALL` para `authenticated`:
+  tenant sí, rol no.
+- `authenticated` tiene **SELECT, INSERT, UPDATE, DELETE y TRUNCATE** sobre
+  `invoices`, `journal_entries`, `payment_receipts`, `supplier_bills` y
+  `supplier_payments`.
+
+Conclusión: ponerles `assert_studio_role` adentro **sería teatro** — se esquiva
+con un `UPDATE` directo por PostgREST sin pasar por la RPC. Sacarlas de la
+cuenta de "RPC sin chequeo de rol" no es cerrar el hueco: es reconocer que su
+hueco vive **en otra capa**.
+
+**El tamaño de esa capa (medido):** de 239 tablas en `public`, `authenticated`
+puede `UPDATE` en **161** y `DELETE` en **118**. Las 239 tienen RLS prendida, o
+sea que el aislamiento **por tenant está sano**; lo que no existe en ninguna es
+la dimensión de rol. Es la generalización de lo que ya avisaba SDD-0085.
+**Necesita SDD propio** (RLS que mire el rol, o revocar el DML de
+`authenticated` y enrutar las escrituras por RPC `SECURITY DEFINER`): radio de
+daño alto, porque el Studio escribe con el cliente del USUARIO y no con
+`service_role`. **No se toca sin medir módulo por módulo.**
+
 ## 3. Decisiones
 
 - **Dos migraciones, no una.** Los hallazgos son independientes y con radios de
@@ -178,6 +221,12 @@ función se copió textual de `0341`; el diff son las 8 líneas del candado.
   `assert_studio_role` a la migración, el contrato falla con *"REGRESIÓN: el rol
   marketing fusionó dos clientes"*. Un contrato que no se probó al revés es
   decorado.
+- `supabase/tests/0359_confirm_payment_report_exige_rol.test.sql` — accounting y
+  admin siguen confirmando y la plata se aplica bien (400 de 1000 → `parcial`);
+  marketing/warehouse/commercial/support rebotan **y `paid_amount` no se mueve**;
+  sin oráculo de ids; un desactivado no pasa; el candado de tenant sigue vivo.
+  **Validado por mutación** (2026-08-08): sin el `assert_studio_role` falla con
+  *"REGRESIÓN: el rol marketing dio por pagada una factura"*.
 - `app/studio/(auth)/login/__tests__/actions.test.ts` — las 4 ramas del gate.
 - `node scripts/verify.mjs` en verde + `pnpm build`.
 
@@ -188,6 +237,7 @@ función se copió textual de `0341`; el diff son las 8 líneas del candado.
 | `0351_operario_rpc_exige_rol` | ✅ **aplicada el 2026-08-06** — verificada contra el objeto: las 4 RPC tienen el candado, `authenticated` ejecuta, `anon` no |
 | `0352_invitacion_nominal` | ✅ **aplicada** — confirmada en `supabase_migrations.schema_migrations` el 2026-08-08. Esta fila decía "pendiente" hasta esa fecha: era **drift del documento**, no del sistema |
 | `0358_merge_clients_exige_rol` | ✅ **aplicada el 2026-08-08** — con OK del founder nombrándola. Verificado en prod: `marketing` rebota con `42501`, `admin` pasa el candado y muere en `P0002` (id inexistente) |
+| `0359_confirm_payment_report_exige_rol` | ⛔ **pendiente** — requiere OK del founder nombrándola |
 
 ⚠️ **Lo que se descubrió al aplicar la `0358`, y conviene no re-descubrir:** el
 texto de `merge_clients` que corría en prod **no era el del archivo `0341`**.
