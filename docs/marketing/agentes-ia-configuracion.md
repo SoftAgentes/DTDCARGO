@@ -362,6 +362,34 @@ Prepárate para lo que pregunta un conocido: dónde va su carga, cuándo cierra 
 
 ## AGENTE 3 · Cotizador — `Estimado enviado` + `Negociación`
 
+Agente nuevo (id `350054`, nombre en Kommo "DTD Cargo Cotizador"), creado desde cero. **Es el
+tercero y último construido** — el encargo lo marca como el de menor prioridad, hoy con ~1 lead
+en sus dos etapas. Construido igual, con el mismo nivel de detalle que los otros dos.
+
+### 🟢 Estado en vivo (2026-08-07)
+
+| Qué | Estado |
+|---|---|
+| **CAPA 1 · identidad de Manuel** | ✅ cargada y verificada recargando |
+| **13 pautas** | ✅ cargadas y verificadas: 1 sobre responder objeciones con pregunta (ver nota) + 6 propias del arquetipo + 3 de réplicas + 3 anti-repetición |
+| **Longitud de las respuestas** | Media (por defecto traía "Corta") |
+| **Acción de réplicas** | ✅ creada, idéntica a la de los otros tres agentes |
+| **Acción "quiere hablar con humano"** | ✅ — `sin permiso, con resumen` + `Agregar tarea` 15 min |
+| **Acción "sentimiento frustrado"** | ✅ — `sin permiso, con resumen` + `Agregar tarea` 15 min |
+| **Acción "quiere un descuento o precio especial"** | ✅ tema personalizado creado con "Crear valor" (específico de este agente, no replicado de los otros) — `sin permiso, con resumen`, mensaje de traspaso propio + `Agregar tarea` 15 min |
+| **Fuente v7 (DOCX)** | ✅ enganchada vía "Fuente de conocimiento existente" — no se resubió |
+| **Probado en vivo** | ✅ 2 de 8 casos: réplicas (no transfiere, da el "no" completo, 16 créditos) y "quiero hablar con un asesor" (transfirió correctamente). Los 6 restantes de la batería del §6 del encargo — **⛔ pendientes**. |
+| Activar el agente | ⛔ **pendiente** — sigue "Desactivado", decisión del founder |
+
+⚠️ **La técnica de "responder con pregunta, no con argumento" no estaba en la lista original de
+"Pautas propias".** `agentes-ia-por-etapa.md` la marca como **la astucia central de este
+arquetipo** (54,3% de los mejores vendedores la usan vs. 31% del promedio, según Gong), así que se
+agregó como pauta explícita:
+
+```
+Ante una objeción de precio, nunca respondas con un argumento: respondela con una pregunta. Usa ¿comparado con qué? o ¿cómo llegaste a esa cifra?
+```
+
 ### CAPA 2
 
 ```
