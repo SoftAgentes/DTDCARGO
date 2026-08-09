@@ -38,7 +38,7 @@ create table if not exists public.portal_access_links (
 comment on table public.portal_access_links is
   'SDD-0253: códigos cortos de acceso al portal (dtdcargo.com/entrar/<code>). Llave al portador: un solo uso, vence, revocable.';
 comment on column public.portal_access_links.code is
-  'Código de 10 chars (alfabeto sin 0/O/1/I/L/U). 50 bits. Es la URL que ve el cliente.';
+  'Código de 10 chars sobre 30 símbolos (sin 0/O/1/I/L/U) ≈ 49 bits. Es la URL que ve el cliente.';
 comment on column public.portal_access_links.used_at is
   'Sellado en el POST del botón, NO al abrir la página: si se sellara en el GET, el crawler de WhatsApp lo quemaría — que es justo el bug que este SDD cierra.';
 
@@ -71,7 +71,7 @@ grant select on public.portal_access_links to authenticated;
 --
 -- El código lo genera el caller (TypeScript) y se pasa acá: mantener la
 -- generación en un solo lenguaje evita dos alfabetos que se desincronizan. El
--- unique de `code` es la red si dos llamadas chocan (probabilidad ~0 a 50 bits).
+-- unique de `code` es la red si dos llamadas chocan (probabilidad ~0 a 49 bits).
 create or replace function public.portal_create_access_link(
   p_client_id  uuid,
   p_code       text,
