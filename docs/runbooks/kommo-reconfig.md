@@ -1,6 +1,6 @@
 ---
 title: "Runbook — Reconfiguración de Kommo (CRM) para SDD-0062"
-updated: 2026-06-07
+updated: 2026-08-05
 confidencialidad: interno
 related: ["0062","0043","0058"]
 review-by: 2026-09-07
@@ -14,15 +14,36 @@ review-by: 2026-09-07
 
 ## ✅ Estado actual del AI Agent (2026-08-05)
 
-**Agente "DTD Cargo asistente de ventas" (#326244) — `DESACTIVADO`, sin canales.** No le habla a
-ningún cliente. Activarlo es decisión del founder y **no está autorizada**.
+> Este bloque reemplaza los snapshots operativos anteriores. Las secciones fechadas más abajo se
+> conservan sólo como historial y no deben usarse para decidir la configuración vigente.
+
+**Agente "DTD Cargo asistente de ventas" (#326244) — activo en WhatsApp `Importador de China`.**
+Está conectado en `Incoming leads`, `Contacto inicial` y `Recontacto`; no se observó activo en
+`Estimado enviado` ni `Negociación`. Esta constatación fue **read-only**: no se activó, desactivó ni
+guardó ninguna configuración durante la auditoría.
 
 | Capa | Contenido | Dónde se cambia |
 |---|---|---|
 | **Persona** | 1.280 car. Prohíbe explícitamente "DDP", "prepago", "financiamiento" y "responsabilidad" | pestaña Personalidad |
 | **Pautas** | **25** (tope de Kommo: 50 líneas × 300 car.) | pestaña Personalidad |
 | **Acciones** | **6** (tope: 20) | pestaña Acciones |
-| **Fuentes** | DOCX **v5** en Kommo · ⏳ **v6 generado, pendiente de subir** (33 secciones) + Datos clave + Productos y servicios + Descripción del negocio | pestaña Fuentes |
+| **Fuentes** | DOCX **v6** cargado (**34 subsecciones**) + Datos clave + Productos y servicios + Descripción del negocio | pestaña Fuentes |
+
+La configuración observada tiene límite de **10 respuestas**, 6 acciones y 25 pautas. El dashboard
+de los últimos 7 días mostraba actividad y uso en cero; eso describe esa ventana de medición, no
+demuestra por sí solo que el agente nunca haya respondido.
+
+El diseño vigente, la estrategia por etapa, el inventario de fuentes y la auditoría de los 11
+Salesbots están en
+[`docs/marketing/kommo-ia-fuente-conocimiento-pipeline.md`](../marketing/kommo-ia-fuente-conocimiento-pipeline.md).
+
+### Salesbots heredados: decisión operativa vigente
+
+Los 11 Salesbots revisados **no están aprobados para reutilizarse tal como están**. Varios contienen
+marca, años, tarifas, tiempos, nombres de vendedores o flujos de captura desactualizados; además,
+varios muestran sesiones activas sin terminar. La regla es: **cuarentena primero, borrado individual
+después de cortar disparadores, mapear referencias y probar qué ocurre con las sesiones activas**.
+No ejecutar borrado masivo.
 
 ### ⏱️ Una fuente recién subida NO responde de inmediato
 
@@ -106,7 +127,10 @@ fuentes, dilo con naturalidad… Quedarte callado es peor que no saber."*
 sección de escalamiento **escrita** en la KB. Omitir un tema no produce un traspaso: produce un
 cliente en visto.
 
-## Snapshot del estado (en vivo, 2026-06-07 · read-only · ⚠️ desactualizado, ver arriba)
+## Snapshot histórico (en vivo, 2026-06-07 · read-only · ⚠️ desactualizado, ver arriba)
+
+> Registro histórico. Las etapas, canales, fuentes y conexiones que siguen corresponden al
+> 2026-06-07 y no representan el estado confirmado el 2026-08-05.
 
 | Área | Estado real | Implicación |
 |---|---|---|
@@ -149,7 +173,12 @@ El conocimiento y la IA **ya existen** pero **no están enchufados al canal del 
 | 2026-06-07 | Snapshot read-only completo (sin cambios) | Claude (Chrome) |
 | 2026-06-07 | **Añadida Fuente de conocimiento URL `https://dtdcargo.com`** (con subpáginas) → procesando crawl (~2h). Reversible (se puede borrar) | Claude (Chrome), OK founder |
 
-## Acciones pendientes
+## Acciones pendientes del snapshot 2026-06-07 — histórico, no ejecutar
+
+> Esta lista quedó superada por la auditoría del 2026-08-05. Para el trabajo vigente usa el
+> [blueprint integral](../marketing/kommo-ia-fuente-conocimiento-pipeline.md), especialmente sus
+> secciones 16–18.
+
 **Founder (credenciales / negocio):**
 - Reconectar la fuente WhatsApp en "Error de conexión" (+ WeChat si se usa).
 - Crear **cuentas de asesores** en Gestión de usuarios para habilitar el reparto.

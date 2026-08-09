@@ -70,6 +70,7 @@ de alta frecuencia y 7–20 quedan marcadas como prioridad editorial hasta instr
 ### 🤝 CRM — Kommo
 Connector SDD-0043 (sync E2E en prod: leads/contactos/pipelines/webhooks). Fuente externa, no el CRM de prod. Ver memoria `project_sdd0043_kommo_connector`.
 - **Diseño del embudo de ventas** (5 etapas), **mapa de etapas (MARKBOX)** para SDD-0084 y **campos del Kanban**: [`embudo-ventas.md`](embudo-ventas.md). Análisis triangulado (2 agentes + Codex) sobre el embudo real; recomendación lista para configurar en Kommo. Cómo ACTIVAR el write-back: [`../runbooks/activar-crm-kommo.md`](../runbooks/activar-crm-kommo.md).
+- **Blueprint integral de EI/IAE por etapa + fuente de conocimiento + arquetipos + Salesbot/difusión + automatizaciones:** [`kommo-ia-fuente-conocimiento-pipeline.md`](kommo-ia-fuente-conocimiento-pipeline.md). Auditoría live read-only del 2026-08-05; nada del blueprint está aplicado todavía.
 
 #### 🧠 El conocimiento que consume la IA — **hay DOS bases, y no son la misma**
 
@@ -77,7 +78,7 @@ Este índice no las mencionaba y era un hueco: cambiar una sin la otra las desin
 
 | Base | Ruta | Quién la consume | Cómo se actualiza |
 |---|---|---|---|
-| **KB del AI Agent de Kommo** | [`../specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md`](../specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md) | El bot de Kommo (#326244) — hoy **solo en Instagram** | Editar el `.md` → convertir a DOCX → **subir a Kommo reemplazando el anterior**. No basta con commitear. Proceso en [`../runbooks/kommo-reconfig.md`](../runbooks/kommo-reconfig.md). |
+| **KB del AI Agent de Kommo** | [`../specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md`](../specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md) | IAE `DTD Cargo asistente de ventas` (#326244), activa en WhatsApp `Importador de China` para `Incoming leads`, `Contacto inicial` y `Recontacto` | Editar el `.md` → convertir a DOCX → **subir a Kommo reemplazando el anterior**. No basta con commitear. Proceso en [`../runbooks/kommo-reconfig.md`](../runbooks/kommo-reconfig.md). |
 | **Paquete del equipo** | [`../../equipo-crm/README.md`](../../equipo-crm/README.md) | La cuenta Claude del equipo (`doortudoorservices@gmail.com`) | Editar el `.md` → borrar el archivo viejo del Proyecto y subir el nuevo. |
 
 - ⭐ **Cómo llevar la conversación** (leer el mensaje entrante · una pregunta por mensaje · la
@@ -180,20 +181,27 @@ Brand Book vigente = el de mayor versión en `docs/design/studio/_norte/` (hoy *
 - [ ] **GA4/GTM:** re-apuntar el stream `doortudoor.com → dtdcargo.com` + borrar 2 contenedores GTM sin uso.
 - [ ] **SEO:** monitorear el traspaso del "Cambio de dirección" (~180 días) en Search Console.
 
-### 🤖 CRM · IA — abierto tras la revisión del 2026-08-03
+### 🤖 CRM · IA — abierto tras la auditoría live del 2026-08-05
 
-- [ ] 🔴 **Regenerar el DOCX de la KB y volver a subirlo a Kommo.** El que está cargado hoy es el
-  de junio y **le sigue diciendo "Financiamiento 100%" al cliente** — el término retirado por
-  riesgo legal. Commitear el `.md` no cambia nada en el CRM. Proceso en
-  [`../runbooks/kommo-reconfig.md`](../runbooks/kommo-reconfig.md).
+- [x] **DOCX v6 subido y conectado.** En la auditoría live aparece
+  `DTDCARGO-Kommo-KnowledgeSource-v6-2026-08-05.docx` con 34 subsecciones. Falta el control
+  editorial completo y retirar fuentes duplicadas; subir una fuente no demuestra que todas sus
+  respuestas sean correctas.
 - [x] ~~¿El agente dice que es un bot?~~ **RESUELTO (founder, 2026-08-03): no es obligatorio.**
   Operamos en Venezuela, que no tiene normativa sobre divulgación de bots, y no nos atamos a la
   ley de California ni al Reglamento de IA de la UE. Lo que sí se mantiene: si el cliente
   **pregunta** si es una persona, el agente lo dice; y la salida a humano siempre disponible.
-- [ ] **Aplicar la config v2 del AI Agent en Kommo** (Persona + Guidelines + Actions, con el
-  Action de fallback que cubre el silencio). Es trabajo manual vía Chrome: Kommo no tiene conector.
-- [ ] **Auditar los 3 textos sueltos de Kommo** (Datos clave · Productos y servicios · Descripción
-  del negocio): pueden seguir diciendo "opera desde 2008". La fundación es **2015**.
+- [x] **Config actual inspeccionada:** una IAE activa, 25 pautas, 6 Acciones, límite de 10
+  respuestas y WhatsApp en tres etapas. La arquitectura especializada por columna sigue pendiente.
+- [x] **Tres textos sueltos auditados:** `Descripción del negocio` conserva 2008/2010/2015;
+  `Datos clave` y `Productos y servicios` mezclan hechos con instrucciones de comportamiento.
+- [ ] **Sanear la fuente:** decidir la política de condiciones por volumen/frecuencia, retirar la
+  promesa `casi 24 horas`, separar hechos de pautas y eliminar duplicación.
+- [x] **11 Salesbots legacy auditados en modo lectura.** Contienen marca, años, personas, reglas y
+  flujos obsoletos; varios tienen cientos de sesiones activas. Ninguno se reutiliza tal cual.
+- [ ] **Aprobar cuarentena y retiro de Salesbots legacy.** Primero cortar lanzamientos y resolver
+  sesiones activas; después borrar uno por uno. Construir solo dos bots nuevos en v1: reenganche
+  individual y recordatorio de datos faltantes. Detalle en el blueprint integral.
 - [x] ~~Manual de entrenamiento del asesor (persona, no IA)~~ ✅ **HECHO 2026-08-03** →
   [`manual-asesor/`](manual-asesor/README.md). **Falta lo humano:** decidir quién lo corre, cuándo
   arranca la primera semana y quién revisa los ejercicios del Módulo 1.
