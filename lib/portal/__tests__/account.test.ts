@@ -75,6 +75,10 @@ const FULL_ROW = {
   address: "Av. Bolívar, Galpón 4, Valencia, Carabobo",
   rif: "J-40551288-3",
   doc_kind: "empresa",
+  // Ciudad + estado del registro (migr 0348). Alimentan el campo Ciudad de
+  // "Datos de cuenta" mientras el cliente no tenga dirección predeterminada.
+  city: "Valencia",
+  state: "Carabobo",
 };
 
 describe("getPortalClient — incluye address (dirección de entrega)", () => {
@@ -91,7 +95,22 @@ describe("getPortalClient — incluye address (dirección de entrega)", () => {
       address: "Av. Bolívar, Galpón 4, Valencia, Carabobo",
       docKind: "empresa",
       rif: "J-40551288-3",
+      city: "Valencia",
+      state: "Carabobo",
     });
+  });
+
+  it("un alta anterior a la 0348 no tiene ciudad y eso no rompe nada", async () => {
+    // 432 clientes quedaron así al aplicar la migración: null es "todavía no lo
+    // sabemos", y el perfil pinta su texto de vacío.
+    const sinUbicacion: Record<string, unknown> = { ...FULL_ROW };
+    delete sinUbicacion.city;
+    delete sinUbicacion.state;
+    const { supabase } = clientStub({ portalClientId: "c-1", row: sinUbicacion });
+    const client = await getPortalClient(supabase);
+
+    expect(client?.city).toBeNull();
+    expect(client?.state).toBeNull();
   });
 
   it("doc_kind fuera de los canónicos → null (SDD-0138: sólo persona|empresa)", async () => {

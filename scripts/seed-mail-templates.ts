@@ -202,6 +202,29 @@ const MAIL_TEMPLATE_SEED: MailTemplateSeed[] = [
     `),
   },
   {
+    // SDD-0250: un admin le repone el acceso al Studio a un miembro que ya
+    // existe (Studio › Usuarios → "Enviar acceso"). NO es la invitación:
+    // team_invitation crea la cuenta, esta sólo devuelve la entrada a quien ya
+    // la tiene. La migración 0350 siembra esta MISMA plantilla en prod — si
+    // cambias el contenido acá, cámbialo allá (el correo es una fila de
+    // producción, no sólo código).
+    slug: "studio_access_link",
+    name: "Acceso al Studio · enlace para crear contraseña",
+    category: "interno",
+    channel: "email",
+    subject: "Tu acceso a {{tenant_name}} · DTD Studio",
+    body_html: htmlBlock(`
+      <p>Hola {{user_name}},</p>
+      <p><strong>{{sender_name}}</strong> te habilitó el acceso a <strong>{{tenant_name}}</strong> en DTD Studio.</p>
+      <p>Entra por este enlace y crea tu contraseña:</p>
+      <p style="margin:20px 0;"><a href="{{access_link}}" style="display:inline-block;padding:10px 18px;background:#7F0F1A;color:#fff;text-decoration:none;font:600 14px Archivo,sans-serif;border-radius:6px;">Crear mi contraseña →</a></p>
+      <p style="color:#6B6B6B;font-size:13px;">El enlace es de un solo uso y caduca. Si no funciona, pídele a quien te lo envió que te genere uno nuevo.</p>
+      <p style="color:#6B6B6B;font-size:13px;">Una vez adentro puedes cambiar tu contraseña cuando quieras desde el menú de tu usuario, arriba a la derecha.</p>
+      <hr style="border:0;border-top:1px solid #E8E6E2;margin:24px 0;">
+      <p style="color:#6B6B6B;font-size:12px;margin:0;">¿Problemas con el enlace? Cópialo a tu navegador:<br><code style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#7F0F1A;word-break:break-all;">{{access_link}}</code></p>
+    `),
+  },
+  {
     // SDD-0082 (SDD-0062 Slice D): reactivación de prospectos inactivos por email.
     // MARKETING → lleva footer de baja obligatorio ({{unsubscribe_url}}). Sin sender
     // automático todavía: un admin crea la regla en /studio/mailing cuando corresponda.

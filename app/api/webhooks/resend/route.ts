@@ -24,6 +24,10 @@ import {
   type ResendWebhookEvent,
 } from "@/lib/studio/mail/resend-api";
 import { refreshCampaignCounters } from "@/lib/studio/newsletter/sender";
+import {
+  markNotificationUndelivered,
+  scheduleIdToDowngrade,
+} from "@/lib/studio/notifications/mark-notification-undelivered";
 
 export const runtime = "nodejs";
 
@@ -130,6 +134,15 @@ export async function POST(request: NextRequest) {
 
   if (Object.keys(update).length > 0) {
     await supabaseAdmin.from("mail_logs").update(update).eq("id", log.id);
+  }
+
+  // 5b. Si era un aviso al cliente y NO llegó, degradar la fila del aviso.
+  //     El drain la marca 'sent' como claim atómico ANTES de despachar, así que
+  //     sin esto un rebote quedaba mostrándose como "Enviado" para siempre —
+  //     peor que no avisar, porque cierra la pregunta.
+  const scheduleId = scheduleIdToDowngrade(status, log.metadata);
+  if (scheduleId) {
+    await markNotificationUndelivered(supabaseAdmin, scheduleId, status as string);
   }
 
   // 6. Increment template metrics si aplica

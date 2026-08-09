@@ -1,0 +1,269 @@
+# Checklist maestro · 2026-08-05
+
+> Fuente: auditoría contra producción ([estado-operacional-2026-08-05.md](estado-operacional-2026-08-05.md))
+> \+ el checklist de la torre de control + el traspaso de SDD-0246 de la otra ventana.
+>
+> **Ordenado por criterio de daño, no por facilidad.** La Parte 1 es lo que puedo
+> hacer solo, de corrido. La Parte 2 es lo que necesita tus manos y no bloquea la
+> Parte 1.
+
+---
+
+## Parte 1 · Lo que puedo hacer solo
+
+### P0 · Sangrado activo — data y contacto de clientes
+
+- [x] **SDD-0248 · Alerta de correo no entregado** — cron `/api/cron/mail-health`
+      cada 30 min, Telegram + correo, guard anti-bucle validado con mutación.
+      Tapa la fuente: `sendEmail` devolvía éxito para correos que nunca salieron.
+      *Hecho en esta ventana.*
+- [x] ~~**B4 · Kommo: el 200 que miente.**~~ **Diagnosticado — NO es un bug de
+      código.** `kommo-push-client` "nace apagado" por diseño (SDD-0074): corre
+      en **dry-run** salvo que el secreto `KOMMO_PUSH_DRY_RUN` valga `"false"`.
+      En producción nunca se puso.
+      **Prueba:** `sync_logs` tiene **18 corridas `push_client_dryrun`, todas ok,
+      la última hoy** — y **una sola** `push_client` real, del 2026-07-11, **en
+      error**. Por eso 0 de 432 clientes tienen `kommo_lead_id`.
+      → El arreglo es de configuración, pasa a la Parte 2 (#21).
+- [ ] ⚠️ **B4b · El 400 que espera detrás del interruptor.** El único intento
+      real murió con `Kommo 400 · código 205`. Flipar el secreto sin resolver
+      esto solo cambia "no escribe" por "escribe error". Hay que reproducirlo con
+      `{dry_run:false}` sobre UN cliente y ver el payload que Kommo rechaza.
+      Sospecha principal: el espejo `kommo_custom_fields` está desactualizado
+      respecto de Kommo — hoy solo resuelve `markbox` ("Shipping Mark - j102");
+      `rif` y `tier` no existen como campos y se omiten.
+- [x] **SDD-0249 · Cliente con Shipping Mark y sin acceso.** ✅ Cron diario
+      `/api/cron/alta-health` + warning en el registro. Nació de encontrar a
+      **DTD-9017** roto en producción: recibió el correo invitándolo al portal y
+      la cuenta de acceso nunca se creó. Tres semanas invisible.
+- [ ] **Outbox para los 7 pasos best-effort del registro.** `app/registro/actions.ts`
+      tiene 7 pasos que fallan en silencio (estimado, referido, `client_users`,
+      welcome, aviso al equipo, Kommo, throttle). Un cliente puede registrarse
+      con los 7 rotos y ver "todo bien". Migración + drenado con reintentos.
+      ⚠️ La migración queda como archivo — aplicarla es tuya.
+- [x] **Herramienta de reenvío de correo atascado** ✅ Botón **Reenviar** en
+      Studio › Mailing › Logs. Cierra el par: `mail-health` **detecta**, esto
+      **repara**, sin bajar a SQL.
+      Tres reglas que dice en voz alta cuando no se puede:
+      · un correo que **sí llegó** no se reenvía (le duplicaría el mensaje);
+      · un **rebote** no se reenvía al mismo destino (falla igual y castiga la
+        reputación del dominio — hay que corregirle el correo al cliente);
+      · un correo de **cuerpo libre** no se puede reconstruir: `mail_logs` guarda
+        asunto y variables, **no el HTML**. Sólo se reenvía lo que salió de una
+        plantilla, re-renderizando con las mismas variables.
+      Genera un log nuevo enlazado por `metadata.resend_of` en vez de pisar el
+      viejo: el historial tiene que mostrar que hubo dos intentos.
+      8 tests, validados con mutación.
+
+### P1 · Bugs confirmados
+
+- [x] **B3 · El gate de migraciones medía el checkout.** ✅ Ahora mide
+      **`origin/main` ∪ el checkout**, con `git ls-tree` + fetch best-effort. Si
+      no puede consultar git lo dice con `[AVISO]` en vez de callarse. 4 tests
+      nuevos, validados con mutación. `AGENTS.md` actualizado — documentaba el
+      punto ciego como vigente.
+- [x] **B1 · El push borraba la suscripción del operario por un fallo de red.**
+      ✅ Ahora **solo 410/404** borra; los transitorios cuentan y siguen. El
+      archivo no tenía test propio: le puse 6, validados con mutación.
+      *Impacto hoy bajo* — `outbox_push_events` tiene 0 filas históricas, pero
+      era una bomba para cuando el push se encienda de verdad.
+- [x] **B2 · Un aviso que rebotó se mostraba como "Enviado".** ✅ Eran **dos**
+      agujeros, no uno:
+      1. El webhook de Resend marcaba `bounced` en `mail_logs` y nadie tocaba
+         `client_notification_schedule` → la fila quedaba en `sent` para
+         siempre. El hilo ya existía (el drain guarda `schedule_id` en la
+         metadata del log): ahora el webhook lo usa y degrada el aviso a
+         `failed`. Sin migración. `failed` es terminal para el drain, así que no
+         genera bucle de reenvío contra una dirección muerta.
+      2. `dispatchEmail` daba por `sent` cualquier `res.ok`, y `sendEmail`
+         devuelve `ok:true` aunque el correo no haya salido (mismo bug raíz que
+         SDD-0248). Ahora un `queued` cuenta como transitorio y se reintenta.
+      6 tests nuevos, validados con mutación.
+- [x] ~~**Numeración: 10 duplicados.**~~ ⚠️ **Descartado — el hallazgo era mío y
+      estaba mal.** 3 no eran duplicados (`0020/0020b` es la convención `NNNNb`
+      de fix post-aplicación) y las 7 reales ya están en `CHOQUES_HISTORICOS` de
+      `scripts/check-numbering.mjs`, con motivo y ambas aplicadas. **El gate de
+      numeración funciona.** No hay nada que hacer acá.
+- [ ] **`estado-colas` de la torre** — bloqueado porque `outbox_push_events` no
+      tiene columna de status: un push que agota sus 5 intentos queda con
+      `sent_at` null para siempre y la regla alertaría cada 30 min, para siempre.
+      Arreglar la representación primero (mismo arreglo que el outbox de P0).
+- [ ] **`migrations-check` de la torre** — va después de B3.
+- [x] **3 migraciones aplicadas en prod sin archivo en `main`.** ✅ Rescatadas:
+      `0336_pod_closes_shipment`, `0337_feature_flags_seed_and_trigger`,
+      `0338_ve_locality_catalog_read_policy`. Vivían **sólo** en el worktree
+      `radiografia-erp-20260802` (32 commits sin pushear). Si ese worktree se
+      borraba, el schema dejaba de reconstruirse desde cero.
+      También se declaró la colisión **0336** en `CHOQUES_HISTORICOS`: hay dos
+      0336 distintas **las dos aplicadas** (con 3 días de diferencia), así que
+      ninguna se renumera.
+- [x] **El gate de migraciones miraba en UNA sola dirección.** ✅ Ahora mide las
+      dos. Una entrada del ledger sin archivo en el repo ya no es invisible.
+      Para no volverlo ruido con 38 worktrees —donde aplicar y pushear el archivo
+      minutos después es el flujo normal— usa la **edad** que el ledger ya trae
+      en `version`: recién aplicada sale **amarilla**, más de 24 h sale **roja**.
+      7 tests nuevos, validados con mutación.
+- [ ] ⚠️ **El código de SDD-0239 / 0240 / 0241 sigue fuera de `main`.** Se
+      rescataron sus migraciones (la DB ya las tiene), pero las specs y el código
+      viven en `radiografia-erp-20260802` sin pushear. La DB tiene los cambios y
+      la aplicación desplegada no los usa. **Es de esa ventana, no de esta.**
+- [x] **El paso e2e del gate era inestable bajo carga.** ✅ `retries: 1` en local
+      (antes 0; CI ya tenía 2). Suena al revés, pero el equipo que corre el gate
+      acá tiene ~38 worktrees vivos y está **más** contendido que CI.
+      **Cinco** corridas seguidas del mismo árbol, sin cambiar una línea,
+      fallaron un conjunto **distinto** cada vez — `cbm-ayuda`, `/tarifas`,
+      `global-search`, redirects 301 — repartido entre los tres navegadores, y
+      los mismos tests pasan 3/3 en aislamiento.
+      El reintento **no tapa** un test roto: uno roto falla las dos veces, y
+      Playwright reporta aparte los que pasaron al reintentar (`flaky`), así que
+      la inestabilidad sigue viéndose.
+      Queda como opción si reaparece: bajar `workers`.
+
+### P2 · SDD-0246 · Fusión de duplicados *(traspaso de la otra ventana)*
+
+Nada roto: está desplegado y sus migraciones 0341/0342 verificadas en prod.
+
+- [x] ⭐ **Ampliar `client_duplicate_candidates()` para detectar duplicados
+      dentro del legado.** ✅ **Escrita y verificada — ⏸ esperando que la
+      nombres**: `supabase/migrations/0349_duplicados_dentro_del_legado.sql`.
+      Los dos problemas que había que resolver, resueltos:
+      · **par espejo** — un `case` da la orientación: si uno es legado y el otro
+        no, el legado va primero (como siempre); si son de la misma clase, gana
+        el de `(created_at, markbox)` menor. Sale **una** fila por par.
+      · **quién sobrevive entre dos legados** — ⚠️ **la lista NO recomienda**.
+        Los 371 del legado se importaron el mismo día y comparten `created_at`
+        (verificado: 1 sola fecha), así que el orden lo decide el markbox, que no
+        dice nada sobre quién tiene más historia. Es sólo un orden estable.
+        Quién sobrevive lo elige la persona: `merge_clients` recibe
+        `p_survivor_id` y `p_merged_id` por separado.
+      De yapa entran los pares nuevo↔nuevo, que tampoco se miraban.
+      **76 contratos SQL en verde, validada con DOS mutaciones**: con la
+      condición vieja salen 0 pares, sin la orientación salen 2.
+      Declarada en `pendingBelowCutoff` para no dejar el gate rojo a las demás
+      ventanas mientras espera.
+      *(Detalle original de la tarea, para cuando se aplique:)* Hoy solo compara legado ↔ registro nuevo, y por eso
+      hay **6 pares invisibles**: DTD-A119·DTD-Y040, DTD-J066·DTD-Y017,
+      DTD-A079·DTD-A135, DTD-A032·DTD-J004, DTD-J044·DTD-Y041, DTD-A080·DTD-D032.
+      Al quitar `v.es_legado and not n.es_legado` hay que resolver dos cosas que
+      hoy no existen: **evitar el par espejo** (A↔B y B↔A saldrían dos veces) y
+      **decidir quién sobrevive cuando los dos son legado** (hoy sobrevive el
+      legado por definición, y ahí ya no aplica).
+      - Leer primero la memoria `project_sdd0246_fusion_cliente_duplicado.md` y
+        `docs/specs/0246-fusion-cliente-duplicado/spec.md`. ⚠️ En `git log`
+        búscala como **0244** — se renumeró por colisión.
+      - Tests contractuales SQL **validados con mutación**.
+      - ⚠️ La migración queda como archivo. Aplicarla es tuya.
+
+**Reglas duras de este bloque, que no se rompen:**
+- El markbox **nunca** se renumera — es un valor copiado dentro de facturas y
+  expedientes sellados.
+- La fusión **nunca** es automática. De los 3 duplicados reales, uno coincide
+  solo por nombre, y el nombre es "Jose Mendez".
+- Si se prueba en producción: markbox muy por debajo del máximo (el máximo está
+  en **9046**) y borrado con `DELETE` real. Un `DTD-####` por encima del máximo
+  quema el correlativo para siempre, y al llegar a 9999 el siguiente sale con 5
+  dígitos y rompe el formato.
+
+### P3 · Comercial atado
+
+- [x] **Invitaciones al portal — ⚠️ no hacía falta construir nada.** La nota de
+      "3 migraciones bajo runbook" estaba vieja: `bulkInvitePortalAction` y
+      `portal_invite_client` **ya están vivos** en Studio › Administración.
+      El bloqueo real no era código, era **el correo**, y se reparte así:
+
+      | | Clientes | Del legado |
+      |---|---|---|
+      | **A · invitables HOY** (tienen correo) | **228** | 224 |
+      | **B** · sin correo, con WhatsApp → pedírselo | 27 | 26 |
+      | **C** · 🔴 sin correo **ni** WhatsApp → **incontactables** | **109** | 109 |
+
+      Los 228 salen hoy sin escribir una línea (pasa a la Parte 2).
+      La vía de WhatsApp **también exige correo** —el enlace de acceso se ata a
+      él— así que para el grupo B primero hay que capturárselo.
+      El grupo C es el hallazgo feo: **109 fichas del legado que el sistema no
+      puede contactar por ningún canal.** No es un problema de software; es
+      calidad de la importación.
+- [ ] **Lead de calculadora en <5 min** — requiere persistir el lead primero.
+- [ ] **Tracking del courier chino** — cuenta en 17TRACK/Kuaidi100 + migración.
+
+### P4 · Contable atado
+
+- [ ] **Crear la fila de `accounting_settings`** — hoy hay **0**. Es el primer
+      candado: sin ella no hay configuración ni fecha de cierre.
+      ⚠️ Escribir datos en prod necesita tu OK.
+- [ ] **Dejar el motor listo para el primer asiento** — `journal_entries` = 0 en
+      toda la historia. Depende de que decidas si el ERP **lleva** la
+      contabilidad o solo la **refleja** (ver Parte 2).
+
+### P5 · Higiene
+
+- [ ] **Borrar el MCP `n8n` viejo** (el del Server Trigger, sigue en 401):
+      `claude mcp remove --scope user n8n`.
+
+---
+
+## Parte 2 · Requiere tus manos
+
+No bloquean nada de la Parte 1. Los pongo en orden de urgencia real.
+
+### Con reloj corriendo
+
+| # | Qué | Cuándo |
+|---|---|---|
+| 1 | 🔴 **Renovar `doortudoor.com`** — expira el 2026-10-31, quedan **87 días**. El 301 a dtdcargo.com no se puede perder | antes del 31-oct |
+| 2 | **Trámite de WhatsApp saliente con Meta** — habilitador del 60% del impacto; de él cuelgan 3 pendientes más | semanas, empezar ya |
+
+### Rescate de clientes (la lista concreta)
+
+| # | Cliente | Qué pasó | Cómo contactarlo |
+|---|---|---|---|
+| 3 | **DTD-1009 · Johana Matheus** | bienvenida atascada 07-jun, 0 correos entregados | +58 412 2155899 |
+| 4 | **DTD-1010 · ABDAL AKIL** | bienvenida atascada 07-jun, 0 correos entregados | 424 6097153 |
+| 5 | **DTD-1011 · Jose Diaz** | bienvenida atascada 07-jun, 0 correos entregados | +58 412 9819792 |
+| 6 | **DTD-A110 · Adrián Figueroa** | bienvenida **rebotó** 15-jul — el correo no sirve | 424 3745436 · pedirle correo nuevo |
+| 6b | 🔴 **DTD-9017 · Alain de Cardenas** | Recibió su correo, **y entró**: hay login el 15-jul 21:04. Lo que falta es el **vínculo** `client_users` — el insert del alta falló y quedó en un `console.error`. Tiene cuenta de auth válida y el portal no puede resolver de qué cliente es | +58 424 4731021 · **Studio › Administración → invitación al portal** (`/studio/admin`). La RPC `portal_invite_client` crea justo esa fila y le manda el enlace; es idempotente y no toca su cuenta de auth. Desde la ficha del cliente no se puede. Se resuelve junto con el punto 8 |
+
+> Verificado uno por uno. **No** están en la lista: DTD-1008 (cuenta de prueba
+> "QA Bodysize"), DTD-1007 (alta interna del equipo), DTD-Y003 (tiene 3 correos
+> entregados, está comunicado), los dos rebotes de hoy (QA de DTD-9047, no existe
+> el cliente) y el rebote del 4-jul (`example.com`, spam del formulario).
+
+### Operación en el Studio
+
+| # | Qué |
+|---|---|
+| 7 | Fusionar los 3 duplicados en **Studio › Clientes › Posibles duplicados** |
+| 8 | ⭐ **Invitar 228 al portal — ya se puede, sin esperar nada.** Studio › Administración. Son los que tienen correo; el resto está bloqueado por falta de datos, no por software (ver el desglose A/B/C en la Parte 1). Acá también se resuelve DTD-9017 |
+| 8b | **Capturarle el correo a 27 clientes** que sólo tienen WhatsApp — el enlace de acceso se ata al correo, así que sin él no hay invitación posible |
+| 8c | 🔴 **Decidir qué hacer con 109 fichas incontactables** — del legado, sin correo ni WhatsApp. El sistema no puede alcanzarlas por ningún canal. O se completan a mano, o se retiran |
+| 9 | Mandar el mensaje al gerente comercial |
+| 10 | Confirmar cuáles de los 29 se retiran |
+
+### Decisiones que solo tú puedes tomar
+
+| # | Qué | Por qué te toca |
+|---|---|---|
+| 11 | **¿El ERP lleva la contabilidad o solo la refleja?** | Con 0 asientos y QBO en el mapa, esto no está resuelto y bloquea todo el bloque contable |
+| 12 | **Recuperación Kommo** | Revierte el punto 3 de la spec 0157, que eligió no automatizar el envío. Necesita decisión por escrito |
+| 13 | **OK para aplicar cada migración a producción** | Regla del repo: de a UNA, nombrándola. Ver [runbook](../runbooks/aplicar-migraciones-prod.md) |
+
+### Credenciales y accesos (no los toco por diseño)
+
+| # | Qué |
+|---|---|
+| 14 | **Bot de Telegram propio del vigía** — @BotFather → `/newbot`. ⚠️ **NO** el `TELEGRAM_BOT_TOKEN` de producción: ese habla con clientes y un Telegram Trigger le haría `setWebhook` y tumbaría `app/api/telegram/webhook` |
+| 15 | Credencial **Telegram** en n8n con ese token |
+| 16 | **Chat ID** en los dos workflows (reemplazar `PON_AQUI_TU_CHAT_ID`) |
+| 17 | Credencial **Header Auth** → `Bearer <DEBUG_HEALTH_SECRET>`, secreto dedicado y rotable, distinto del que usa el Studio |
+| 18 | Credencial **Header Auth** → `Bearer <token GitHub>`, fine-grained solo lectura (`Contents: Read`) sobre `hailuwaycom-sketch/DTDCARGO`. ⛔ Nunca un token de Vercel |
+| 19 | **Rotar la API key de n8n** — quedó visible en una captura |
+| 20 | **Activar los dos workflows** por API (dijiste que los activas tú) — ⚠️ con SDD-0247 desplegado ANTES, si no el health responde sin `?cheap=1` y se come la cuota de SeaRates igual |
+| 21 | ⭐ **Encender el push a Kommo**: secreto `KOMMO_PUSH_DRY_RUN="false"` en la Edge Function. Es lo que desbloquea que los registros web lleguen al CRM. ⚠️ **Primero B4b** (el 400/205) y luego una prueba supervisada sobre UN cliente — si no, cada alta escribirá un error en vez de un lead. No lo toco yo: es config de producción que escribe en un sistema externo |
+
+---
+
+## Nota de método
+
+Todo lo de la Parte 1 sale con commits atómicos y selectivos, cada uno con su
+gate en verde antes de pushear. **Ninguna migración se aplica a producción sin
+que la nombres.** Las escribo como archivo, las valido local y quedan esperando.

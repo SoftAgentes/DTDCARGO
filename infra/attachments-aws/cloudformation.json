@@ -1,0 +1,370 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "SDD-0224 - GuardDuty scan inbox, SQS adapter, immutable S3 backup and cost guardrails.",
+  "Parameters": {
+    "ProjectName": { "Type": "String", "Default": "dtdcargo-attachments", "AllowedPattern": "^[a-z0-9-]+$" },
+    "Environment": { "Type": "String", "Default": "prod", "AllowedValues": ["lab", "prod"] },
+    "BudgetNotificationEmail": { "Type": "String", "AllowedPattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$" },
+    "MonthlyBudgetUsd": { "Type": "Number", "Default": 75, "MinValue": 1 }
+  },
+  "Resources": {
+    "ScanKey": {
+      "Type": "AWS::KMS::Key",
+      "Properties": {
+        "Description": "DTD Cargo attachment scan inbox",
+        "EnableKeyRotation": true,
+        "PendingWindowInDays": 30,
+        "KeyPolicy": {
+          "Version": "2012-10-17",
+          "Statement": [{
+            "Sid": "EnableAccountAdministration",
+            "Effect": "Allow",
+            "Principal": { "AWS": { "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:root" } },
+            "Action": "kms:*",
+            "Resource": "*"
+          }]
+        }
+      }
+    },
+    "BackupKey": {
+      "Type": "AWS::KMS::Key",
+      "Properties": {
+        "Description": "DTD Cargo immutable attachment backup",
+        "EnableKeyRotation": true,
+        "PendingWindowInDays": 30,
+        "KeyPolicy": {
+          "Version": "2012-10-17",
+          "Statement": [{
+            "Sid": "EnableAccountAdministration",
+            "Effect": "Allow",
+            "Principal": { "AWS": { "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:root" } },
+            "Action": "kms:*",
+            "Resource": "*"
+          }]
+        }
+      }
+    },
+    "ScanBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketEncryption": { "ServerSideEncryptionConfiguration": [{
+          "BucketKeyEnabled": true,
+          "ServerSideEncryptionByDefault": { "SSEAlgorithm": "aws:kms", "KMSMasterKeyID": { "Fn::GetAtt": ["ScanKey", "Arn"] } }
+        }] },
+        "VersioningConfiguration": { "Status": "Enabled" },
+        "OwnershipControls": { "Rules": [{ "ObjectOwnership": "BucketOwnerEnforced" }] },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true, "BlockPublicPolicy": true, "IgnorePublicAcls": true, "RestrictPublicBuckets": true
+        },
+        "NotificationConfiguration": { "EventBridgeConfiguration": { "EventBridgeEnabled": true } },
+        "LifecycleConfiguration": { "Rules": [
+          {
+            "Id": "delete-clean-after-one-day", "Status": "Enabled",
+            "TagFilters": [{ "Key": "GuardDutyMalwareScanStatus", "Value": "NO_THREATS_FOUND" }],
+            "ExpirationInDays": 1, "NoncurrentVersionExpiration": { "NoncurrentDays": 1 }
+          },
+          {
+            "Id": "delete-threats-after-thirty-days", "Status": "Enabled",
+            "TagFilters": [{ "Key": "GuardDutyMalwareScanStatus", "Value": "THREATS_FOUND" }],
+            "ExpirationInDays": 30, "NoncurrentVersionExpiration": { "NoncurrentDays": 30 }
+          },
+          {
+            "Id": "cap-unresolved-scan-retention", "Status": "Enabled", "Prefix": "scan/v1/",
+            "ExpirationInDays": 30, "NoncurrentVersionExpiration": { "NoncurrentDays": 30 }
+          },
+          {
+            "Id": "cap-validation-retention", "Status": "Enabled", "Prefix": "validation/",
+            "ExpirationInDays": 30, "NoncurrentVersionExpiration": { "NoncurrentDays": 30 }
+          }
+        ] }
+      }
+    },
+    "ScanBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": { "Ref": "ScanBucket" },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{
+            "Sid": "DenyInsecureTransport", "Effect": "Deny", "Principal": "*", "Action": "s3:*",
+            "Resource": [{ "Fn::GetAtt": ["ScanBucket", "Arn"] }, { "Fn::Sub": "${ScanBucket.Arn}/*" }],
+            "Condition": { "Bool": { "aws:SecureTransport": "false" } }
+          }]
+        }
+      }
+    },
+    "BackupBucket": {
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "ObjectLockEnabled": true,
+        "ObjectLockConfiguration": {
+          "ObjectLockEnabled": "Enabled",
+          "Rule": { "DefaultRetention": { "Mode": "COMPLIANCE", "Years": 10 } }
+        },
+        "BucketEncryption": { "ServerSideEncryptionConfiguration": [{
+          "BucketKeyEnabled": true,
+          "ServerSideEncryptionByDefault": { "SSEAlgorithm": "aws:kms", "KMSMasterKeyID": { "Fn::GetAtt": ["BackupKey", "Arn"] } }
+        }] },
+        "VersioningConfiguration": { "Status": "Enabled" },
+        "OwnershipControls": { "Rules": [{ "ObjectOwnership": "BucketOwnerEnforced" }] },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true, "BlockPublicPolicy": true, "IgnorePublicAcls": true, "RestrictPublicBuckets": true
+        },
+        "LifecycleConfiguration": { "Rules": [{
+          "Id": "glacier-instant-after-thirty-days", "Status": "Enabled",
+          "Transitions": [{ "StorageClass": "GLACIER_IR", "TransitionInDays": 30 }],
+          "NoncurrentVersionTransitions": [{ "StorageClass": "GLACIER_IR", "TransitionInDays": 30 }]
+        }] }
+      }
+    },
+    "BackupBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": { "Ref": "BackupBucket" },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{
+            "Sid": "DenyInsecureTransport", "Effect": "Deny", "Principal": "*", "Action": "s3:*",
+            "Resource": [{ "Fn::GetAtt": ["BackupBucket", "Arn"] }, { "Fn::Sub": "${BackupBucket.Arn}/*" }],
+            "Condition": { "Bool": { "aws:SecureTransport": "false" } }
+          }]
+        }
+      }
+    },
+    "ScanDeadLetterQueue": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "MessageRetentionPeriod": 1209600,
+        "SqsManagedSseEnabled": true,
+        "Tags": [{ "Key": "DataClassification", "Value": "restricted-metadata" }]
+      }
+    },
+    "ScanResultQueue": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "MessageRetentionPeriod": 1209600,
+        "VisibilityTimeout": 180,
+        "ReceiveMessageWaitTimeSeconds": 20,
+        "SqsManagedSseEnabled": true,
+        "RedrivePolicy": {
+          "deadLetterTargetArn": { "Fn::GetAtt": ["ScanDeadLetterQueue", "Arn"] },
+          "maxReceiveCount": 8
+        },
+        "Tags": [{ "Key": "DataClassification", "Value": "restricted-metadata" }]
+      }
+    },
+    "ScanResultRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Description": "Only DTD scan/v1 GuardDuty results reach the worker queue",
+        "EventPattern": {
+          "source": ["aws.guardduty"],
+          "detail-type": ["GuardDuty Malware Protection Object Scan Result"],
+          "detail": {
+            "s3ObjectDetails": {
+              "bucketName": [{ "Ref": "ScanBucket" }],
+              "objectKey": [{ "prefix": "scan/v1/" }]
+            }
+          }
+        },
+        "State": "ENABLED",
+        "Targets": [{ "Arn": { "Fn::GetAtt": ["ScanResultQueue", "Arn"] }, "Id": "ScanResultQueue" }]
+      }
+    },
+    "ScanResultQueuePolicy": {
+      "Type": "AWS::SQS::QueuePolicy",
+      "Properties": {
+        "Queues": [{ "Ref": "ScanResultQueue" }],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{
+            "Sid": "AllowEventBridgeOnly", "Effect": "Allow",
+            "Principal": { "Service": "events.amazonaws.com" },
+            "Action": "sqs:SendMessage", "Resource": { "Fn::GetAtt": ["ScanResultQueue", "Arn"] },
+            "Condition": { "ArnEquals": { "aws:SourceArn": { "Fn::GetAtt": ["ScanResultRule", "Arn"] } } }
+          }]
+        }
+      }
+    },
+    "AlarmTopic": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "DisplayName": "DTD Cargo attachment security alerts",
+        "Subscription": [{ "Endpoint": { "Ref": "BudgetNotificationEmail" }, "Protocol": "email" }],
+        "Tags": [{ "Key": "DataClassification", "Value": "operational-no-pii" }]
+      }
+    },
+    "ScanQueueAgeAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Oldest GuardDuty scan result has waited at least 30 minutes",
+        "Namespace": "AWS/SQS",
+        "MetricName": "ApproximateAgeOfOldestMessage",
+        "Dimensions": [{ "Name": "QueueName", "Value": { "Fn::GetAtt": ["ScanResultQueue", "QueueName"] } }],
+        "Statistic": "Maximum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "DatapointsToAlarm": 1,
+        "Threshold": 1800,
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "TreatMissingData": "notBreaching",
+        "AlarmActions": [{ "Ref": "AlarmTopic" }]
+      }
+    },
+    "ScanDeadLetterAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "At least one GuardDuty scan result reached the dead-letter queue",
+        "Namespace": "AWS/SQS",
+        "MetricName": "ApproximateNumberOfMessagesVisible",
+        "Dimensions": [{ "Name": "QueueName", "Value": { "Fn::GetAtt": ["ScanDeadLetterQueue", "QueueName"] } }],
+        "Statistic": "Maximum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "DatapointsToAlarm": 1,
+        "Threshold": 1,
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "TreatMissingData": "notBreaching",
+        "AlarmActions": [{ "Ref": "AlarmTopic" }]
+      }
+    },
+    "GuardDutyRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{
+            "Effect": "Allow", "Principal": { "Service": "malware-protection-plan.guardduty.amazonaws.com" },
+            "Action": "sts:AssumeRole"
+          }]
+        },
+        "Policies": [{
+          "PolicyName": "guardduty-scan-bucket",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": ["events:PutRule", "events:DeleteRule", "events:PutTargets", "events:RemoveTargets"],
+                "Resource": { "Fn::Sub": "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/DO-NOT-DELETE-AmazonGuardDutyMalwareProtectionS3*" },
+                "Condition": { "StringLike": { "events:ManagedBy": "malware-protection-plan.guardduty.amazonaws.com" } }
+              },
+              {
+                "Effect": "Allow",
+                "Action": ["events:DescribeRule", "events:ListTargetsByRule"],
+                "Resource": { "Fn::Sub": "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/DO-NOT-DELETE-AmazonGuardDutyMalwareProtectionS3*" }
+              },
+              {
+                "Effect": "Allow", "Action": ["s3:GetBucketNotification", "s3:PutBucketNotification", "s3:GetBucketLocation", "s3:GetBucketVersioning", "s3:ListBucket"],
+                "Resource": { "Fn::GetAtt": ["ScanBucket", "Arn"] }
+              },
+              {
+                "Effect": "Allow", "Action": ["s3:GetObject", "s3:GetObjectVersion", "s3:GetObjectTagging", "s3:PutObjectTagging", "s3:GetObjectVersionTagging", "s3:PutObjectVersionTagging"],
+                "Resource": { "Fn::Sub": "${ScanBucket.Arn}/*" }
+              },
+              {
+                "Effect": "Allow", "Action": "s3:PutObject",
+                "Resource": { "Fn::Sub": "${ScanBucket.Arn}/malware-protection-resource-validation-object" }
+              },
+              {
+                "Effect": "Allow", "Action": ["kms:Decrypt", "kms:GenerateDataKey"],
+                "Resource": { "Fn::GetAtt": ["ScanKey", "Arn"] },
+                "Condition": { "StringLike": { "kms:ViaService": { "Fn::Sub": "s3.${AWS::Region}.amazonaws.com" } } }
+              }
+            ]
+          }
+        }]
+      }
+    },
+    "MalwareProtectionPlan": {
+      "Type": "AWS::GuardDuty::MalwareProtectionPlan",
+      "DependsOn": ["ScanBucketPolicy"],
+      "Properties": {
+        "Actions": { "Tagging": { "Status": "ENABLED" } },
+        "ProtectedResource": { "S3Bucket": { "BucketName": { "Ref": "ScanBucket" }, "ObjectPrefixes": ["scan/v1/", "validation/"] } },
+        "Role": { "Fn::GetAtt": ["GuardDutyRole", "Arn"] },
+        "Tags": [{ "Key": "Project", "Value": { "Ref": "ProjectName" } }]
+      }
+    },
+    "WorkerPolicy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Least privilege for DTD external attachment worker",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow", "Action": ["s3:PutObject", "s3:GetObject", "s3:GetObjectVersion", "s3:GetObjectTagging", "s3:GetObjectVersionTagging"],
+              "Resource": [{ "Fn::Sub": "${ScanBucket.Arn}/scan/v1/*" }, { "Fn::Sub": "${BackupBucket.Arn}/dtdcargo/*" }]
+            },
+            {
+              "Effect": "Allow", "Action": ["s3:GetObjectRetention", "s3:PutObjectRetention"],
+              "Resource": { "Fn::Sub": "${BackupBucket.Arn}/dtdcargo/*" }
+            },
+            {
+              "Effect": "Allow", "Action": ["sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:ChangeMessageVisibility", "sqs:GetQueueAttributes"],
+              "Resource": { "Fn::GetAtt": ["ScanResultQueue", "Arn"] }
+            },
+            {
+              "Effect": "Allow", "Action": ["kms:Encrypt", "kms:Decrypt", "kms:GenerateDataKey"],
+              "Resource": [{ "Fn::GetAtt": ["ScanKey", "Arn"] }, { "Fn::GetAtt": ["BackupKey", "Arn"] }]
+            }
+          ]
+        }
+      }
+    },
+    "ValidationPolicy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Time-bounded policy for EICAR, Object Lock denial and restore evidence",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow", "Action": ["s3:PutObject", "s3:GetObject", "s3:GetObjectVersion", "s3:GetObjectTagging", "s3:GetObjectVersionTagging"],
+              "Resource": [{ "Fn::Sub": "${ScanBucket.Arn}/validation/*" }, { "Fn::Sub": "${BackupBucket.Arn}/validation/*" }]
+            },
+            {
+              "Effect": "Allow", "Action": ["s3:GetObjectRetention", "s3:PutObjectRetention", "s3:DeleteObjectVersion"],
+              "Resource": { "Fn::Sub": "${BackupBucket.Arn}/validation/*" }
+            },
+            {
+              "Effect": "Allow", "Action": ["kms:Encrypt", "kms:Decrypt", "kms:GenerateDataKey"],
+              "Resource": [{ "Fn::GetAtt": ["ScanKey", "Arn"] }, { "Fn::GetAtt": ["BackupKey", "Arn"] }]
+            }
+          ]
+        }
+      }
+    },
+    "MonthlyBudget": {
+      "Type": "AWS::Budgets::Budget",
+      "Properties": {
+        "Budget": {
+          "BudgetLimit": { "Amount": { "Ref": "MonthlyBudgetUsd" }, "Unit": "USD" },
+          "BudgetName": { "Fn::Sub": "${ProjectName}-${Environment}-monthly" },
+          "BudgetType": "COST", "TimeUnit": "MONTHLY"
+        },
+        "NotificationsWithSubscribers": [
+          { "Notification": { "ComparisonOperator": "GREATER_THAN", "NotificationType": "ACTUAL", "Threshold": 50, "ThresholdType": "PERCENTAGE" }, "Subscribers": [{ "Address": { "Ref": "BudgetNotificationEmail" }, "SubscriptionType": "EMAIL" }] },
+          { "Notification": { "ComparisonOperator": "GREATER_THAN", "NotificationType": "ACTUAL", "Threshold": 75, "ThresholdType": "PERCENTAGE" }, "Subscribers": [{ "Address": { "Ref": "BudgetNotificationEmail" }, "SubscriptionType": "EMAIL" }] },
+          { "Notification": { "ComparisonOperator": "GREATER_THAN", "NotificationType": "FORECASTED", "Threshold": 90, "ThresholdType": "PERCENTAGE" }, "Subscribers": [{ "Address": { "Ref": "BudgetNotificationEmail" }, "SubscriptionType": "EMAIL" }] }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "Region": { "Value": { "Ref": "AWS::Region" } },
+    "ScanBucket": { "Value": { "Ref": "ScanBucket" } },
+    "ScanQueueUrl": { "Value": { "Ref": "ScanResultQueue" } },
+    "ScanQueueArn": { "Value": { "Fn::GetAtt": ["ScanResultQueue", "Arn"] } },
+    "ScanKmsKeyArn": { "Value": { "Fn::GetAtt": ["ScanKey", "Arn"] } },
+    "BackupBucket": { "Value": { "Ref": "BackupBucket" } },
+    "BackupKmsKeyArn": { "Value": { "Fn::GetAtt": ["BackupKey", "Arn"] } },
+    "GuardDutyPlanId": { "Value": { "Fn::GetAtt": ["MalwareProtectionPlan", "MalwareProtectionPlanId"] } },
+    "GuardDutyPlanStatus": { "Value": { "Fn::GetAtt": ["MalwareProtectionPlan", "Status"] } },
+    "WorkerPolicyArn": { "Value": { "Ref": "WorkerPolicy" } },
+    "ValidationPolicyArn": { "Value": { "Ref": "ValidationPolicy" } }
+  }
+}

@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 236 specs)
+### Índice de specs (generado · 241 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -271,9 +271,14 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0238 | El brand book se comparte con un link y un código | done | interno |
 | 0242 | Las piezas de producto se abren con un segundo código | in-progress | interno |
 | 0243 | Anulación gobernada de gastos | done | interno |
-| 0244 | Enrutado a Recontacto — el ERP reconoce al cliente que vuelve… | proposed | interno |
+| 0244 | Enrutado a Recontacto — el ERP reconoce al cliente que vuelve… | in-progress | interno |
 | 0245 | Espejo de la bandeja de entrada de Kommo — el ERP deja de med… | proposed | interno |
 | 0246 | Fusión de cliente duplicado y prevención del Shipping Mark re… | done | interno |
+| 0247 | Torre de control externa: un vigía que no vive adentro de lo … | in-progress | interno |
+| 0248 | Alerta de correo no entregado | in-progress | interna |
+| 0249 | Cliente con Shipping Mark y sin acceso al portal | in-progress | interna |
+| 0250 | Acceso y recuperación de contraseña del Studio | in-progress | interna |
+| 0251 | Hardening: invitación nominal, RPC de operario con rol, y dos… | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0239, 0240, 0241 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

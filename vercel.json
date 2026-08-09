@@ -57,6 +57,14 @@
     {
       "path": "/api/cron/rate-expiry-alert",
       "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/mail-health",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/alta-health",
+      "schedule": "0 12 * * *"
     }
   ]
 }

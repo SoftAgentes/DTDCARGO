@@ -156,6 +156,8 @@ export interface UserActionState {
   fieldErrors?: ActionFieldErrors;
   invitationId?: string;
   invitationLink?: string;
+  /** SDD-0250: enlace de acceso recién generado, para copiar si el correo no llega. */
+  accessLink?: string;
   userId?: string;
 }
 

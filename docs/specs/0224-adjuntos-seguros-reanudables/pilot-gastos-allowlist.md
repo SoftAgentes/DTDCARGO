@@ -179,7 +179,11 @@ Reglas del adapter:
 - `scripts/attachments-pilot-worker.mjs`
 - `scripts/attachments-pilot-preflight.mjs`
 - `scripts/attachments-pilot-restore-drill.mjs`
+- `scripts/attachments-r2-live-validation.mjs`
+- `scripts/attachments-clamav-http.mjs`
 - `scripts/__tests__/attachments-pilot-preflight.test.mjs`
+- `scripts/__tests__/attachments-r2-validation-contract.test.mjs`
+- `scripts/__tests__/attachments-clamav-http.test.mjs`
 
 El worker se ejecuta fuera del request de Next.js y solo en entorno desechable.
 Debe fallar cerrado si faltan scanner, target de backup o credenciales. El
@@ -272,3 +276,54 @@ Obligatorios antes de presentar el piloto:
   feature gate apagado por defecto.
 - Los permisos posteriores para commit, push, Cloud y Producción se registran
   y verifican como gates separados; no se infieren de esta aprobación.
+
+## Ampliación AWS · 2026-08-03
+
+El founder autorizó explícitamente implementar/probar EventBridge/SQS, preparar
+la cuenta AWS, cerrar el expediente contractual/PIPL, ejecutar EICAR/Object
+Lock/restore/RPO/RTO y activar únicamente después de evidencias verdes. Esta
+ampliación no permite inventar credenciales, aceptar contratos en nombre de la
+sociedad ni presentar pruebas locales como alojadas.
+
+Archivos adicionales permitidos:
+
+- `infra/attachments-aws/cloudformation.json`;
+- `scripts/attachments-guardduty-adapter.mjs`;
+- `scripts/attachments-aws-live-validation.mjs`;
+- `scripts/attachments-aws-deploy.mjs`;
+- `scripts/attachments-aws-postflight.mjs`;
+- `scripts/attachments-aws-evidence.mjs`;
+- `scripts/__tests__/attachments-guardduty-adapter.test.mjs`;
+- `scripts/__tests__/attachments-aws-infra.test.mjs`;
+- `scripts/__tests__/attachments-aws-evidence.test.mjs`;
+- `docs/legal/privacidad/aws-adjuntos-expediente-contractual.md`;
+- `docs/legal/privacidad/pipl-aws-adjuntos.md`;
+- documentación, configuración segura y lockfile ya enumerados en esta
+  allowlist.
+
+La dependencia AWS puede ampliarse únicamente con
+`@aws-sdk/client-cloudformation` y `@aws-sdk/client-sts` para desplegar y
+verificar identidad/stack mediante la cadena de credenciales del runtime. No se
+guardan access keys en archivos.
+
+La activación permanece fail-closed mientras falte una cuenta autenticada,
+receipt contractual, decisión PIPL, consentimiento cuando corresponda y receipt
+del simulacro alojado.
+
+## Ampliación Cloudflare R2 · 2026-08-04
+
+El founder autorizó sustituir AWS por Cloudflare R2 debido al bloqueo del alta
+por SMS en Venezuela, completar facturación/credenciales, implementar el
+adaptador y validar de extremo a extremo. Esta ampliación mantiene antivirus y
+piloto apagados hasta cerrar evidencia real y autoriza además:
+
+- `supabase/migrations/0346_r2_bucket_lock_backup_receipts.sql`;
+- `supabase/tests/0346_r2_bucket_lock_backup_receipts.test.sql`;
+- `docs/legal/privacidad/cloudflare-r2-adjuntos-expediente-contractual.md`;
+- `docs/legal/privacidad/pipl-cloudflare-r2-adjuntos.md`;
+- los scripts y tests R2/ClamAV enumerados arriba;
+- actualización provider-neutral de esta SDD, runbook, evaluación y variables.
+
+La reserva de `0346` se publicó antes de escribir el cuerpo. Crear y probar la
+migración no autoriza aplicarla en Supabase Cloud. ClamAV se instala al final y
+el piloto permanece en `0` hasta EICAR, restore y recibos externos verdes.

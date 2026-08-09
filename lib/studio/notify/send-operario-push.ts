@@ -9,6 +9,18 @@
  * Best-effort + auto-cleanup: una subscription que devuelve 410/404 está
  * muerta (el usuario desinstaló la PWA o revocó el permiso) → la borramos.
  *
+ * ⚠️ SOLO 410/404 BORRA. Antes, 3 fallos TRANSITORIOS acumulados (red caída,
+ * 500 del push service, timeout) también borraban la subscription, y el
+ * operario dejaba de recibir avisos para siempre sin que nadie lo supiera: para
+ * volver tenía que desinstalar y reinstalar la PWA. Un corte de red de la
+ * oficina de Yiwu podía dejar sordo a todo el turno. `failure_count` se sigue
+ * llevando —sirve para diagnosticar— pero ya no mata.
+ *
+ * La contra aceptada: una subscription rota que NUNCA devuelve 410 se queda en
+ * la tabla acumulando fallos. Es barato (una fila y un POST fallido por aviso) y
+ * es el lado correcto en el que equivocarse: perder un aviso es peor que
+ * conservar una fila muerta.
+ *
  * Llamado desde el worker drain (/api/cron/push-drain) que consume
  * outbox_push_events. NO se llama inline en hot paths · siempre vía outbox
  * para durabilidad + retry.
@@ -25,8 +37,6 @@ type OperarioSubRow = {
   auth: string;
   failure_count: number;
 };
-
-const MAX_FAILURES_BEFORE_DROP = 3;
 
 /**
  * Envía push a todas las subscriptions activas del operario.
@@ -71,15 +81,16 @@ export async function sendPushToOperario(
       } catch (err) {
         const statusCode = (err as { statusCode?: number })?.statusCode;
         if (statusCode === 410 || statusCode === 404) {
-          // Subscription muerta · borrar
-          deadIds.push(s.id);
-        } else if (s.failure_count + 1 >= MAX_FAILURES_BEFORE_DROP) {
-          // Demasiados fallos transitorios consecutivos · descartar
+          // Subscription muerta de verdad (el push service dice que ya no
+          // existe) · única causa de borrado.
           deadIds.push(s.id);
         } else {
+          // Fallo TRANSITORIO: contamos y seguimos. NO se borra — ver la nota
+          // del encabezado. El operario tiene que poder recibir el próximo
+          // aviso aunque la red se haya caído tres veces.
           bumpIds.push(s.id);
           console.error(
-            `[send-operario-push] fallo (op ${operarioId}, status ${statusCode}):`,
+            `[send-operario-push] fallo transitorio (op ${operarioId}, status ${statusCode}, fallos ${s.failure_count + 1}):`,
             (err as Error)?.message ?? err,
           );
         }

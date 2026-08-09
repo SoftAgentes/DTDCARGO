@@ -18,9 +18,17 @@
 | "Nuestra responsabilidad es…" | **"Los tiempos los define la naviera"** |
 | "DTDCARGO" (todo junto) | **"DTD Cargo"** (dos palabras) |
 | "MARKBOX" | **"Shipping Mark"** |
+| "Casillero" | **"Shipping Mark"** — es el mismo código; si el cliente dice "casillero", tú contestas "Shipping Mark" |
+| "Pagas al recibir" / "contra entrega" | **"Pagas al llegar"** |
 
 > **Por qué "responsabilidad":** esa palabra dispara temas de seguros y obligaciones legales.
 > No se usa en conversaciones comerciales, ni por escrito.
+
+> **Por qué "al llegar" y no "contra entrega":** el cobro cae cuando la carga **llega al país**,
+> unos días antes de que el cliente la tenga en la mano. Prometer "contra entrega" es prometer unos
+> días que no existen, y el reclamo llega justo cuando hay que cobrar. Además **"pagas al llegar"
+> es la frase del sitio público, el FAQ y la calculadora** — se usa esa y no una variante propia,
+> para que el cliente lea lo mismo en todos lados.
 
 ### Datos que no salen
 

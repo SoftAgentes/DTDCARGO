@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { RutaF2, type RutaF2Props } from "@/components/servicios/RutaF2";
+import { CONTACT } from "@/lib/design-tokens";
 
 /**
  * Ficha de servicio completa (article.f2) — shell reutilizable para las ~17
@@ -69,7 +70,7 @@ export function FichaF2({
           <span className="dv">·</span>
           <span>dtdcargo.com</span>
           <span className="dv">·</span>
-          <span>@doortudoor_</span>
+          <span>{CONTACT.instagram.handle}</span>
         </div>
         <span className="tagl">Con Confianza, de China a tu puerta.</span>
       </div>

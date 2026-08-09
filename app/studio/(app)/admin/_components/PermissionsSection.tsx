@@ -1,41 +1,161 @@
+"use client";
+
 /**
- * PermissionsSection — sección "Permisos por rol" del admin (SDD-0124).
+ * PermissionsSection — sección "Permisos por rol" del admin (SDD-0124 →
+ * SDD-0252: matriz editable en DB).
  *
- * Matriz READ-ONLY rol × módulo, derivada de la config RBAC estática
- * (`ROLE_MODULE_ACCESS` + `canAccessModule`/`canEditModule`, SDD-0085). Los
- * permisos viven en código (no en DB), así que acá se visualizan, no se editan.
+ * Celdas NO bloqueadas: click cicla Ø → Ver → Ver+Editar → Ø (Ø vía
+ * `studio_set_role_module_access(false,false)` — un desvío EXPLÍCITO, no un
+ * "sin override"). `support` cicla Ø → Ver → Ø (nunca edita, es read-only V1
+ * inmutable). Una celda con override activo muestra un punto y, al pasar el
+ * mouse, un botón "×" que la vuelve al default de código
+ * (`studio_reset_role_module_access`).
  *
- * Server-safe (sin hooks): la config es data pura importable.
+ * Celdas bloqueadas (candado de gobernanza — dinero ∪ admin-only) y la
+ * columna `admin` NO son clickeables: el candado real vive en el RPC (y en un
+ * CHECK de la tabla), esto es sólo UX que no lo intenta.
+ *
+ * Guardado y confirmación (feedback del founder tras probarlo, 2026-08-07):
+ * cada click guarda solo, sin botón — mismo patrón que Feature Flags en esta
+ * misma pantalla — pero ahí cada control es un switch grande que se ve
+ * encendido/apagado sin ambigüedad; acá la celda es una pastilla de texto que,
+ * si el ciclo vuelve al valor por defecto, queda visualmente IGUAL a como
+ * estaba antes de tocarla — cero rastro de que pasó algo. Se cierra con un
+ * destello wine en la celda (`.studio-permcell-flash`, `studio.css`) + un
+ * toast que NOMBRA el cambio ("Marketing ahora ve Reportes"), no uno genérico.
  */
 
+import { useRef, useState, useTransition } from "react";
 import { MODULES, type Group } from "@/lib/studio/modules";
-import { LOCKED_MODULES, canAccessModule, canEditModule } from "@/lib/studio/rbac";
+import {
+  LOCKED_MODULES,
+  canAccessModule,
+  canEditModule,
+  type RoleModuleOverrides,
+} from "@/lib/studio/rbac";
 import { Icon } from "@/app/studio/_components/icons";
 import {
   STUDIO_USER_ROLES,
   ROLE_LABELS,
   type StudioUserRole,
 } from "@/lib/studio/user-types";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import {
+  resetRoleModuleAccessAction,
+  setRoleModuleAccessAction,
+} from "../actions";
 
 const GROUP_ORDER: Group[] = ["OPERACIÓN", "COMERCIAL", "FINANZAS", "MARKETING", "SISTEMA"];
 
 type Cell = { label: string; bg: string; fg: string };
 
-function cellFor(role: StudioUserRole, moduleId: string): Cell {
+function cellFor(
+  role: StudioUserRole,
+  moduleId: string,
+  overrides: RoleModuleOverrides,
+): Cell {
   if (role === "admin") return { label: "TOTAL", bg: "var(--wine)", fg: "#fff" };
-  const view = canAccessModule(role, moduleId);
+  const view = canAccessModule(role, moduleId, overrides);
   if (!view) return { label: "—", bg: "var(--bg-elevated)", fg: "var(--ink-mute)" };
-  const edit = canEditModule(role, moduleId);
+  const edit = canEditModule(role, moduleId, overrides);
   return edit
     ? { label: "V·E", bg: "var(--success-bg)", fg: "var(--success)" }
     : { label: "V", bg: "var(--info-bg)", fg: "var(--info)" };
 }
 
-export function PermissionsSection() {
+/** Siguiente estado del ciclo — support nunca pasa por V·E (read-only V1). */
+function nextState(
+  role: StudioUserRole,
+  current: { view: boolean; edit: boolean },
+): { view: boolean; edit: boolean } {
+  if (!current.view) return { view: true, edit: false };
+  if (!current.edit) {
+    if (role === "support") return { view: false, edit: false };
+    return { view: true, edit: true };
+  }
+  return { view: false, edit: false };
+}
+
+/** Mensaje del toast — nombra el cambio, no un genérico "Guardado". */
+function describeChange(
+  role: StudioUserRole,
+  moduleLabel: string,
+  next: { view: boolean; edit: boolean },
+): string {
+  const roleLabel = ROLE_LABELS[role];
+  if (!next.view) return `${roleLabel} ya no ve ${moduleLabel}.`;
+  if (next.edit) return `${roleLabel} ahora ve y edita ${moduleLabel}.`;
+  return `${roleLabel} ahora ve ${moduleLabel}.`;
+}
+
+export function PermissionsSection({
+  initialOverrides = {},
+}: {
+  initialOverrides?: RoleModuleOverrides;
+}) {
+  const [overrides, setOverrides] = useState<RoleModuleOverrides>(initialOverrides);
+  const [pendingKey, setPendingKey] = useState<string | null>(null);
+  const [justSavedKey, setJustSavedKey] = useState<string | null>(null);
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [, startTransition] = useTransition();
+  const toast = useToast();
+
   const grouped = GROUP_ORDER.map((g) => ({
     group: g,
     items: MODULES.filter((m) => m.group === g),
   })).filter((x) => x.items.length > 0);
+
+  /** Destello breve en la celda que acaba de guardar — ver docstring del archivo. */
+  const flash = (key: string) => {
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    setJustSavedKey(key);
+    flashTimer.current = setTimeout(() => setJustSavedKey(null), 700);
+  };
+
+  const handleCycle = (role: StudioUserRole, moduleId: string, moduleLabel: string) => {
+    const key = `${role}:${moduleId}`;
+    if (pendingKey) return;
+    const current = overrides[key] ?? {
+      view: canAccessModule(role, moduleId),
+      edit: canEditModule(role, moduleId),
+    };
+    const next = nextState(role, current);
+    setPendingKey(key);
+    const previous = overrides;
+    setOverrides({ ...overrides, [key]: next });
+    startTransition(async () => {
+      const res = await setRoleModuleAccessAction(role, moduleId, next.view, next.edit);
+      setPendingKey(null);
+      if (res.error) {
+        setOverrides(previous);
+        toast.error(res.error);
+        return;
+      }
+      flash(key);
+      toast.success(describeChange(role, moduleLabel, next));
+    });
+  };
+
+  const handleReset = (role: StudioUserRole, moduleId: string, moduleLabel: string) => {
+    const key = `${role}:${moduleId}`;
+    if (pendingKey) return;
+    setPendingKey(key);
+    const previous = overrides;
+    const rest = { ...overrides };
+    delete rest[key];
+    setOverrides(rest);
+    startTransition(async () => {
+      const res = await resetRoleModuleAccessAction(role, moduleId);
+      setPendingKey(null);
+      if (res.error) {
+        setOverrides(previous);
+        toast.error(res.error);
+        return;
+      }
+      flash(key);
+      toast.success(`${moduleLabel} volvió al default para ${ROLE_LABELS[role]}.`);
+    });
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -67,8 +187,12 @@ export function PermissionsSection() {
         >
           {Icon.lock(12)} candado de gobernanza
         </span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--wine)" }} />
+          desvío del default — click × para quitarlo
+        </span>
         <span style={{ marginLeft: "auto", font: "600 11px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
-          Definido en código (SDD-0085/0139) · read-only
+          Click en una celda para cambiarla
         </span>
       </section>
 
@@ -118,7 +242,16 @@ export function PermissionsSection() {
           </thead>
           <tbody>
             {grouped.map(({ group, items }) => (
-              <GroupRows key={group} group={group} items={items} />
+              <GroupRows
+                key={group}
+                group={group}
+                items={items}
+                overrides={overrides}
+                pendingKey={pendingKey}
+                justSavedKey={justSavedKey}
+                onCycle={handleCycle}
+                onReset={handleReset}
+              />
             ))}
           </tbody>
         </table>
@@ -127,7 +260,23 @@ export function PermissionsSection() {
   );
 }
 
-function GroupRows({ group, items }: { group: Group; items: typeof MODULES }) {
+function GroupRows({
+  group,
+  items,
+  overrides,
+  pendingKey,
+  justSavedKey,
+  onCycle,
+  onReset,
+}: {
+  group: Group;
+  items: typeof MODULES;
+  overrides: RoleModuleOverrides;
+  pendingKey: string | null;
+  justSavedKey: string | null;
+  onCycle: (role: StudioUserRole, moduleId: string, moduleLabel: string) => void;
+  onReset: (role: StudioUserRole, moduleId: string, moduleLabel: string) => void;
+}) {
   return (
     <>
       <tr>
@@ -145,56 +294,141 @@ function GroupRows({ group, items }: { group: Group; items: typeof MODULES }) {
           {group}
         </td>
       </tr>
-      {items.map((m) => (
-        <tr key={m.id} style={{ borderTop: "1px solid var(--border)" }}>
-          <td
-            style={{
-              padding: "10px 16px",
-              font: "600 12.5px/1.2 var(--f-sans)",
-              color: "var(--ink)",
-              position: "sticky",
-              left: 0,
-              background: "var(--bg-surface)",
-              borderRight: "1px solid var(--border)",
-            }}
-          >
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              {m.label}
-              {LOCKED_MODULES.has(m.id) && (
-                <span
-                  style={{ color: "var(--ink-mute)", display: "inline-flex" }}
-                  title="Candado de gobernanza — solo se cambia en código"
-                  role="img"
-                  aria-label="Candado de gobernanza"
-                >
-                  {Icon.lock(12)}
-                </span>
-              )}
-            </span>
-          </td>
-          {STUDIO_USER_ROLES.map((r) => {
-            const c = cellFor(r, m.id);
-            return (
-              <td key={r} style={{ padding: "8px 6px", textAlign: "center" }}>
-                <span
-                  style={{
-                    display: "inline-block",
-                    minWidth: 42,
-                    padding: "5px 8px",
-                    borderRadius: "var(--r-sm)",
-                    background: c.bg,
-                    color: c.fg,
-                    font: "700 10.5px/1 var(--f-mono)",
-                    letterSpacing: "0.04em",
-                  }}
-                >
-                  {c.label}
-                </span>
-              </td>
-            );
-          })}
-        </tr>
-      ))}
+      {items.map((m) => {
+        const locked = LOCKED_MODULES.has(m.id);
+        return (
+          <tr key={m.id} style={{ borderTop: "1px solid var(--border)" }}>
+            <td
+              style={{
+                padding: "10px 16px",
+                font: "600 12.5px/1.2 var(--f-sans)",
+                color: "var(--ink)",
+                position: "sticky",
+                left: 0,
+                background: "var(--bg-surface)",
+                borderRight: "1px solid var(--border)",
+              }}
+            >
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                {m.label}
+                {locked && (
+                  <span
+                    style={{ color: "var(--ink-mute)", display: "inline-flex" }}
+                    title="Candado de gobernanza — solo se cambia en código"
+                    role="img"
+                    aria-label="Candado de gobernanza"
+                  >
+                    {Icon.lock(12)}
+                  </span>
+                )}
+              </span>
+            </td>
+            {STUDIO_USER_ROLES.map((r) => {
+              if (r === "admin" || locked) {
+                const c = cellFor(r, m.id, overrides);
+                return (
+                  <td key={r} style={{ padding: "8px 6px", textAlign: "center" }}>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        minWidth: 42,
+                        padding: "5px 8px",
+                        borderRadius: "var(--r-sm)",
+                        background: c.bg,
+                        color: c.fg,
+                        font: "700 10.5px/1 var(--f-mono)",
+                        letterSpacing: "0.04em",
+                      }}
+                    >
+                      {c.label}
+                    </span>
+                  </td>
+                );
+              }
+              const key = `${r}:${m.id}`;
+              const overridden = key in overrides;
+              const c = cellFor(r, m.id, overrides);
+              const pending = pendingKey === key;
+              const justSaved = justSavedKey === key;
+              return (
+                <td key={r} style={{ padding: "8px 6px", textAlign: "center" }}>
+                  <span
+                    style={{
+                      position: "relative",
+                      display: "inline-flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => onCycle(r, m.id, m.label)}
+                      disabled={pending}
+                      title="Click para cambiar"
+                      className={
+                        justSaved ? "studio-permcell studio-permcell-flash" : "studio-permcell"
+                      }
+                      style={{
+                        minWidth: 42,
+                        padding: "5px 8px",
+                        borderRadius: "var(--r-sm)",
+                        background: c.bg,
+                        color: c.fg,
+                        font: "700 10.5px/1 var(--f-mono)",
+                        letterSpacing: "0.04em",
+                        border: 0,
+                        cursor: pending ? "wait" : "pointer",
+                        opacity: pending ? 0.55 : 1,
+                      }}
+                    >
+                      {c.label}
+                    </button>
+                    {overridden && (
+                      <>
+                        <span
+                          aria-hidden
+                          style={{
+                            position: "absolute",
+                            top: -3,
+                            right: -3,
+                            width: 6,
+                            height: 6,
+                            borderRadius: "50%",
+                            background: "var(--wine)",
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => onReset(r, m.id, m.label)}
+                          disabled={pending}
+                          title="Quitar desvío — vuelve al default"
+                          aria-label={`Quitar desvío de ${ROLE_LABELS[r]} sobre ${m.label}`}
+                          className="studio-permcell-reset"
+                          style={{
+                            marginLeft: 3,
+                            width: 16,
+                            height: 16,
+                            display: "inline-grid",
+                            placeItems: "center",
+                            borderRadius: "50%",
+                            background: "transparent",
+                            color: "var(--ink-mute)",
+                            border: "1px solid var(--border)",
+                            cursor: pending ? "wait" : "pointer",
+                            font: "700 9px/1 var(--f-sans)",
+                            padding: 0,
+                          }}
+                        >
+                          ×
+                        </button>
+                      </>
+                    )}
+                  </span>
+                </td>
+              );
+            })}
+          </tr>
+        );
+      })}
     </>
   );
 }

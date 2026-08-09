@@ -276,7 +276,6 @@ function LabelGeneratorInner({
                 }}
               >
                 {client.name}
-                {client.company ? ` · ${client.company}` : ""}
               </div>
             </div>
           </Card>

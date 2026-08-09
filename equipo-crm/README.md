@@ -39,16 +39,24 @@ las prohibiciones de vocabulario van en los dos. Ambos textos están en
 |---|---|
 | [`00-INSTRUCCIONES-PROYECTO.md`](00-INSTRUCCIONES-PROYECTO.md) | El texto de las Instrucciones. **No se sube como archivo** — se pega en el campo. |
 | [`01-servicios-y-cotizacion.md`](01-servicios-y-cotizacion.md) | Los 5 servicios, qué incluye cada uno, las 2 decisiones del cliente, cómo se cotiza, CBM, servicios adicionales, el flujo completo |
-| [`02-respuestas-CRM.md`](02-respuestas-CRM.md) | **El documento de batalla.** Las 20 preguntas frecuentes con respuesta redactada + los guiones de WhatsApp + las objeciones |
+| [`02-respuestas-CRM.md`](02-respuestas-CRM.md) | **El documento de batalla.** Las 20 preguntas frecuentes con respuesta redactada + los guiones de WhatsApp + **12 objeciones** |
 | [`03-el-ERP-por-dentro.md`](03-el-ERP-por-dentro.md) | Los 57 módulos del Studio por grupo, el portal del cliente, los estados de envío |
 | [`04-la-web-publica.md`](04-la-web-publica.md) | Qué enlace mandar en cada situación + los redirects viejos |
 | [`05-reglas-y-limites.md`](05-reglas-y-limites.md) | Lo que nunca se dice, a quién escalar, datos personales |
 | [`06-marca-para-piezas.md`](06-marca-para-piezas.md) | Tagline, colores en hex, fuentes, las 4 variantes del logo, qué es AI slop. Para presentaciones, video y redes. |
+| [`07-como-conversar.md`](07-como-conversar.md) | **Cómo llevar la conversación**, que es lo que faltaba: leer el mensaje entrante, la escalera de preguntas, cómo profundizar cuando el cliente menciona un problema, los 4 asesinos de conversación, y los datos falsos que circulan por ahí. |
 | [`DTDCARGO-baterias-CRM.md`](DTDCARGO-baterias-CRM.md) | Guía completa de baterías de litio (ya existía) |
 
 > **`06` es la versión HUMANA de [`BRAND.md`](../BRAND.md).** El original está escrito para
 > Claude Code (habla de `var(--*)`, de `BrandMark.tsx` y de ratios WCAG) y para una persona
 > haciendo una pieza es ruido. No compartas `BRAND.md` con el equipo — comparte el `06`.
+
+## El manual de operación → [`manual/`](manual/README.md)
+
+Los `01`–`07` dicen **qué responder**. La subcarpeta [`manual/`](manual/README.md) explica
+**cómo funciona**: el precio, el paso a paso de cada servicio, el portal, qué hacer cuando
+algo falla y dónde está el material de marketing. Es lo que se le da a **Codex** —
+empieza por [`manual/PROMPT.md`](manual/PROMPT.md).
 
 ## Cómo actualizarlo
 

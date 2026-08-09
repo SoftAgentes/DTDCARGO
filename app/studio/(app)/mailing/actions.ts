@@ -20,6 +20,7 @@ import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { sendEmail } from "@/lib/studio/mail/send-email";
+import { resendStuckMail, type StuckMailRow } from "@/lib/studio/mail/resend-stuck";
 import { buildSampleVars } from "@/lib/studio/mail-sample-vars";
 import { getDefaultSignature } from "@/lib/studio/mail-queries";
 import { renderSignatureHtml } from "@/lib/studio/mail-signature-render";
@@ -881,4 +882,63 @@ export async function cancelScheduledAction(
 
   revalidatePath("/studio/mailing");
   return { ok: true, message: "Programado cancelado." };
+}
+
+/**
+ * Reenvía un correo del historial que NO llegó (SDD-0248 · reparación).
+ *
+ * El cron `/api/cron/mail-health` avisa cuáles se perdieron; esto los arregla
+ * sin bajar a SQL. Las reglas de qué se puede reenviar viven en
+ * `lib/studio/mail/resend-stuck.ts` — acá sólo se resuelve el permiso, el
+ * tenant, y se le muestra al operador el motivo exacto cuando no se puede.
+ *
+ * Firma `(formData)` (sin _prev) para <ActionButton>.
+ */
+export async function resendStuckMailAction(
+  formData: FormData,
+): Promise<MailingActionState> {
+  const id = (formData.get("id") as string | null)?.trim();
+  if (!id) return { error: "Falta id." };
+
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "mailing");
+  if (denial) return { error: denial };
+
+  const { data: link } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  if (!link?.tenant_id) return { error: "Sin tenant." };
+
+  // Se lee con el cliente del USUARIO (no el admin) para que la RLS del tenant
+  // decida qué puede ver: así un id de otro tenant no devuelve fila, en vez de
+  // depender de un `.eq('tenant_id')` que alguien podría olvidar mañana.
+  const { data: row, error: readErr } = await supabase
+    .from("mail_logs")
+    .select("id, tenant_id, to_email, to_name, subject, template_slug, rendered_variables, status")
+    .eq("id", id)
+    .maybeSingle<StuckMailRow>();
+
+  if (readErr) return { error: readErr.message };
+  if (!row) return { error: "No encontré ese correo en el historial." };
+
+  let supabaseAdmin;
+  try {
+    supabaseAdmin = createAdminClient();
+  } catch {
+    return { error: "Admin client no configurado." };
+  }
+
+  const result = await resendStuckMail(supabaseAdmin, row);
+  if (!result.ok) return { error: result.error };
+
+  revalidatePath("/studio/mailing");
+  return {
+    ok: true,
+    // `queued:true` = quedó registrado y NO salió. Decirlo: dar por enviado algo
+    // que no salió es justo el bug que este módulo vino a cerrar.
+    message: result.queued
+      ? "Registrado, pero NO salió: falta RESEND_API_KEY. Revisá la configuración."
+      : "Correo reenviado.",
+  };
 }

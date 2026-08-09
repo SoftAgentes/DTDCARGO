@@ -1,14 +1,20 @@
 # Redes / Canales sociales — DTD Cargo (bitácora)
 
 Estado y plan de los canales sociales. Parte del tree [Marketing](README.md).
-Marca pública = **DTD Cargo**; handle Instagram **@doortudoor_**; canal YouTube **@doortudoor** (ver [`identidad.md`](identidad.md)).
+Marca pública = **DTD Cargo**; handle Instagram **@dtdcargo.ve**; canal YouTube **@dtdcargo**; TikTok **@dtdcargo.ve** (ver [`identidad.md`](identidad.md)).
 
-## Estado actual (2026-06-08)
+> ⚠️ **Migración de handles (detectada 2026-08-04):** las redes migraron de `@doortudoor_`/`@doortudoor`
+> a `@dtdcargo.ve`/`@dtdcargo` en algún punto entre el 2026-06-08 de este doc y hoy. `@doortudoor_` en
+> Instagram ya da "Página no encontrada". Se corrigió el link cruzado en la página de Facebook
+> (`facebook.com/dtdcargove`), que todavía apuntaba al handle viejo. Las métricas de la tabla de abajo
+> quedan desactualizadas — ver cifras reales verificadas en la nota de cada fila.
+
+## Estado actual (2026-06-08, métricas actualizadas 2026-08-04)
 
 | Canal | Métricas | Estado | Rol |
 |---|---|---|---|
-| **Instagram `@doortudoor_`** | 5.003 seg · 128 posts · destacados Q&A/Servicios/Visa + reels educativos | 🟢 **El canal fuerte** | **Fuente** de contenido (todo se recicla desde acá) |
-| **YouTube `@doortudoor`** | 223 subs · 11 videos (podcast sobre China) | 🔴 Abandonado | **Destino** a reactivar reciclando IG |
+| **Instagram `@dtdcargo.ve`** | **20 mil seg · 136 posts** (verificado 2026-08-04; antes `@doortudoor_` 5.003 seg · 128 posts) · destacados Clientes/Ubicación/Servicios/Q&A/Visa China/Eventos/Equipo | 🟢 **El canal fuerte** | **Fuente** de contenido (todo se recicla desde acá) |
+| **YouTube `@dtdcargo`** | **224 subs · 10 videos** (verificado 2026-08-04; antes `@doortudoor` 223 subs · 11 videos) | 🔴 Abandonado | **Destino** a reactivar reciclando IG |
 | **Google Business (Valencia)** | — | ⏳ por verificar (founder) | Tracción local + reseñas |
 
 > Prioridad 5 del [`plan-accion-digital.md`](plan-accion-digital.md): *"Reactivar YouTube reciclando contenido de Instagram"*. Este documento es el sistema para ejecutarla.
@@ -50,7 +56,7 @@ Marca pública = **DTD Cargo**; handle Instagram **@doortudoor_**; canal YouTube
   - Bloque fijo (footer reutilizable): quiénes somos (DTD Cargo, puerta a puerta DDP China→Venezuela, +15 años, ruta Yiwu) + WhatsApp +58 412 166 8021 + sitio.
 - **Hashtags** (3-5, en la descripción): `#ImportarDeChina #DDP #Logística #Venezuela #Yiwu`.
 - **Playlists** = silos temáticos (espejan el sitio): *Calcular tu envío* · *Incoterms explicados* · *Puerta a puerta DDP* · *China / Yiwu*. Las playlists rankean solas.
-- **Handle/branding** uniforme: nombre del canal "DTD Cargo", `@doortudoor`, mismo isologo y banner que la marca (no mezclar logos viejos).
+- **Handle/branding** uniforme: nombre del canal "DTD Cargo", `@dtdcargo`, mismo isologo y banner que la marca (no mezclar logos viejos).
 
 ### Mapa título → destino en el sitio (cross-promo)
 Cada tema de Short apunta a una página real (refuerza SEO de entidad + manda tráfico):

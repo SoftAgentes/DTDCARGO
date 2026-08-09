@@ -4,6 +4,7 @@ import { jetbrainsMonoUi } from "@/lib/fonts";
 import { socialMeta } from "@/lib/seo-og";
 import { createClient } from "@/lib/db/server";
 import { getPortalClient } from "@/lib/portal/portal-queries";
+import { listRegisterCities } from "@/lib/portal/register-cities";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
@@ -64,11 +65,15 @@ export default async function RegistroPage({
   const refRaw = Array.isArray(raw.ref) ? raw.ref[0] : raw.ref;
   const refCode = (refRaw ?? "").trim().slice(0, 40) || undefined;
 
+  // Catálogo de ciudades del paso 2 (migr 0348). Si falla, viene [] y el form
+  // degrada a texto libre — nunca bloquea el alta.
+  const cities = await listRegisterCities(supabase);
+
   return (
     <>
       <Nav />
       <main className={`${jetbrainsMonoUi.variable} bg-paper min-h-screen`}>
-        <RegisterForm est={est} refCode={refCode} />
+        <RegisterForm est={est} refCode={refCode} cities={cities} />
       </main>
       <Footer />
       <WhatsAppFAB />

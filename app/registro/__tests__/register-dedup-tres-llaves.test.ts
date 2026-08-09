@@ -143,6 +143,9 @@ function validForm(overrides: Record<string, string> = {}): FormData {
   f.set("document", "V-20108108");
   f.set("email", "eliasmoes@hotmail.com");
   f.set("whatsapp", "+58 4140538566");
+  // Ciudad + estado de entrega: obligatorios desde la migr 0348.
+  f.set("city", "Valencia");
+  f.set("state", "Carabobo");
   for (const [k, v] of Object.entries(overrides)) f.set(k, v);
   return f;
 }

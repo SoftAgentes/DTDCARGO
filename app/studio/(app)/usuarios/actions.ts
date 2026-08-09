@@ -21,6 +21,15 @@ import {
   executeD1Operation,
 } from "@/lib/studio/audit/d1-access-config-adapters";
 import { executeAuthLifecycle } from "@/lib/studio/audit/auth-lifecycle-adapter";
+import {
+  beginD5ExternalEffect,
+  finishD5ExternalEffect,
+} from "@/lib/studio/audit/external-effect-adapter";
+import { randomBytes } from "node:crypto";
+import {
+  accessTokenExpiry,
+  accessTokenPath,
+} from "@/lib/studio/access-token";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { generateTelegramLinkCode } from "@/lib/studio/telegram/link-code";
@@ -33,6 +42,19 @@ import {
 } from "@/lib/studio/user-types";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+/**
+ * Secreto del enlace de acceso (SDD-0250 · migr 0354). 24 bytes = 192 bits →
+ * 48 caracteres hex, dentro del CHECK de la tabla.
+ *
+ * Vive ACÁ y no en `lib/studio/access-token.ts` porque ese módulo lo importa un
+ * componente cliente, y `node:crypto` en el bundle del navegador rompe el build
+ * entero ("Reading from node:crypto is not handled by plugins"). Este archivo
+ * es "use server", así que acá sí corresponde.
+ */
+function generateAccessToken(): string {
+  return randomBytes(24).toString("hex");
+}
 
 // ─────────────────────────────────────────────────────────────
 // inviteUserAction · crea invitation + devuelve link copy/paste
@@ -337,6 +359,257 @@ export async function enableUserAction(
               : "No se pudo completar la reactivación.",
     };
   }
+
+  revalidatePath("/studio/usuarios");
+  return { ok: true, userId: targetUserId };
+}
+
+// ─────────────────────────────────────────────────────────────
+// sendAccessLinkAction · repone el acceso de un miembro que YA existe
+// (SDD-0250 · migr 0350).
+//
+// Cubre el hueco que dejaba fuera a 5 de 7 usuarios: `inviteUserAction`
+// rechaza a propósito a quien ya es miembro (una invitación sobre un auth
+// user existente es un callejón sin salida), y no había ninguna otra vía —
+// la única era un UPDATE a mano sobre auth.users.
+//
+// Va por el carril D5 de EFECTOS EXTERNOS y no por el D1 de mutaciones:
+// esto no escribe nada en `public`, genera un enlace contra Supabase Auth y
+// manda un correo.
+//
+// `generateLink` NO envía el correo, devuelve el enlace — lo mandamos
+// nosotros con sendEmail para que pase por las plantillas del tenant,
+// mail_logs y Resend (el correo nativo de Supabase tiene plantillas aparte
+// y límites de envío bajos). Y devolvemos el link a la UI para copiar a
+// mano si el correo no llega, igual que hace la invitación.
+// ─────────────────────────────────────────────────────────────
+
+export async function sendAccessLinkAction(
+  _prev: UserActionState,
+  formData: FormData,
+): Promise<UserActionState> {
+  const targetUserId = (formData.get("target_user_id") as string | null)?.trim();
+  if (!targetUserId) return { errorCode: "invalid_input" };
+
+  const supabase = await createClient();
+  const { data: userResp } = await supabase.auth.getUser();
+  if (!userResp.user) return { errorCode: "user_signin_required" };
+
+  // Gate REAL: `users` es admin-only (matriz []). Va antes de tocar el admin
+  // client — una server action es invocable como endpoint desde cualquier ruta.
+  const denial = await moduleEditDenial(supabase, "users");
+  if (denial) return { error: denial };
+
+  const { data: myLink } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  if (!myLink?.tenant_id) return { error: "No se pudo resolver el tenant." };
+
+  const admin = createAdminClient();
+
+  // El destinatario tiene que ser miembro ACTIVO de MI tenant. Sin esto, un
+  // admin podría dispararle un enlace a un usuario de otro tenant pasando su
+  // id — el admin client no filtra por RLS.
+  const { data: membership } = await admin
+    .from("user_tenants")
+    .select("disabled_at")
+    .eq("user_id", targetUserId)
+    .eq("tenant_id", myLink.tenant_id)
+    .maybeSingle<{ disabled_at: string | null }>();
+  if (!membership) {
+    return { error: "Esa persona no es miembro de este equipo." };
+  }
+  if (membership.disabled_at) {
+    return {
+      error:
+        "Ese usuario está desactivado. Reactívalo primero — un enlace de acceso no lo dejaría entrar.",
+    };
+  }
+
+  const { data: targetUser } = await admin.auth.admin.getUserById(targetUserId);
+  const targetEmail = targetUser?.user?.email;
+  if (!targetEmail) {
+    return { error: "Ese usuario no tiene correo cargado en su cuenta." };
+  }
+
+  let operationId: string;
+  try {
+    operationId = await beginD5ExternalEffect(
+      supabase,
+      "studio.access_link",
+      targetUserId,
+    );
+  } catch {
+    return { error: "No se pudo registrar la operación. Reintenta." };
+  }
+
+  // Token PROPIO (migr 0354), no el de recuperación de Supabase.
+  //
+  // El de Supabase se canjea al ABRIR el enlace, y eso lo mataba siempre: el
+  // escáner de correo del destinatario abre los enlaces del mensaje apenas
+  // llega y consumía el token de un solo uso antes de que la persona hiciera
+  // clic. Medido el 2026-08-06: con envío de correo el token moría en menos de
+  // 37 s sin que nadie lo tocara; sin envío seguía vivo.
+  //
+  // El nuestro se consume en el POST del formulario (`/acceso/[token]`), así
+  // que abrirlo mil veces no le hace nada. Va en la RUTA, no en la query, para
+  // sobrevivir el copiar/pegar y WhatsApp.
+  //
+  // NO anulamos los enlaces anteriores del usuario a propósito: con el de
+  // Supabase, generar uno nuevo mataba el viejo en silencio y el admin mandaba
+  // dos que ya no servían. Todos los vigentes funcionan hasta usarse o vencer.
+  const token = generateAccessToken();
+  const { error: tokenErr } = await admin.from("studio_access_tokens").insert({
+    tenant_id: myLink.tenant_id,
+    user_id: targetUserId,
+    token,
+    created_by: userResp.user.id,
+    expires_at: accessTokenExpiry(),
+  });
+
+  if (tokenErr) {
+    await finishD5ExternalEffect(supabase, operationId, {
+      ok: false,
+      errorCode: "token_insert_failed",
+    });
+    console.error("[sendAccessLinkAction] insert token:", tokenErr.message);
+    return { error: "No se pudo generar el enlace de acceso. Reintenta." };
+  }
+
+  const accessLink = `${SITE_URL}${accessTokenPath(token)}`;
+
+  // El correo es best-effort: si falla, el admin tiene el enlace en pantalla
+  // para pasarlo por otro canal. Por eso el efecto se cierra como OK — el
+  // enlace SÍ se generó y es utilizable.
+  try {
+    const [{ data: senderProfile }, { data: targetProfile }, { data: tenant }] =
+      await Promise.all([
+        supabase
+          .from("user_profiles")
+          .select("first_name, last_name")
+          .eq("user_id", userResp.user.id)
+          .maybeSingle<{ first_name: string | null; last_name: string | null }>(),
+        admin
+          .from("user_profiles")
+          .select("first_name, last_name")
+          .eq("user_id", targetUserId)
+          .maybeSingle<{ first_name: string | null; last_name: string | null }>(),
+        supabase
+          .from("tenants")
+          .select("display_name")
+          .eq("id", myLink.tenant_id)
+          .maybeSingle<{ display_name: string }>(),
+      ]);
+
+    const senderName =
+      [senderProfile?.first_name, senderProfile?.last_name]
+        .filter(Boolean)
+        .join(" ")
+        .trim() || userResp.user.email || "Un admin";
+    const targetName =
+      [targetProfile?.first_name, targetProfile?.last_name]
+        .filter(Boolean)
+        .join(" ")
+        .trim() || targetEmail;
+
+    const sendResult = await sendEmail(admin, myLink.tenant_id, {
+      templateSlug: "studio_access_link",
+      to: targetEmail,
+      vars: {
+        user_name: targetName,
+        tenant_name: tenant?.display_name ?? "DTD Cargo",
+        access_link: accessLink,
+        sender_name: senderName,
+      },
+      metadata: { source: "sendAccessLinkAction", target_user_id: targetUserId },
+    });
+    if (!sendResult.ok) {
+      console.error("[sendAccessLinkAction] sendEmail failed:", sendResult.error);
+    }
+  } catch (err) {
+    console.error("[sendAccessLinkAction] sendEmail exception:", err);
+  }
+
+  await finishD5ExternalEffect(supabase, operationId, { ok: true });
+
+  revalidatePath("/studio/usuarios");
+  return { ok: true, userId: targetUserId, accessLink };
+}
+
+// ─────────────────────────────────────────────────────────────
+// updateMemberProfileAction · un admin edita la ficha de OTRA persona
+// (SDD-0250 · ficha de usuario).
+//
+// Distinto de updateMyProfileAction, que sólo toca el perfil de quien está
+// logueado. Sin esto no había forma de cargarle el cargo a nadie: los 8
+// miembros del equipo tienen `position_label` vacío desde el alta, y por eso
+// "gerente" no figura en ningún lado del sistema.
+//
+// Va por el admin client porque las policies de user_profiles no le dan a
+// `authenticated` un UPDATE sobre filas ajenas (y está bien que no se lo den).
+// El gate real es moduleEditDenial sobre `users`, que es admin-only.
+// ─────────────────────────────────────────────────────────────
+
+export async function updateMemberProfileAction(
+  _prev: UserActionState,
+  formData: FormData,
+): Promise<UserActionState> {
+  const targetUserId = (formData.get("target_user_id") as string | null)?.trim();
+  if (!targetUserId) return { errorCode: "invalid_input" };
+
+  const firstName = ((formData.get("first_name") as string | null) ?? "").trim();
+  const lastName = ((formData.get("last_name") as string | null) ?? "").trim();
+  const phone = ((formData.get("phone") as string | null) ?? "").trim();
+  const positionLabel = ((formData.get("position_label") as string | null) ?? "").trim();
+
+  const fieldErrors: Record<string, string> = {};
+  if (firstName.length > 80) fieldErrors.first_name = "Máximo 80 caracteres";
+  if (lastName.length > 80) fieldErrors.last_name = "Máximo 80 caracteres";
+  if (phone.length > 40) fieldErrors.phone = "Máximo 40 caracteres";
+  if (positionLabel.length > 80) fieldErrors.position_label = "Máximo 80 caracteres";
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
+
+  const supabase = await createClient();
+  const { data: userResp } = await supabase.auth.getUser();
+  if (!userResp.user) return { errorCode: "user_signin_required" };
+
+  const denial = await moduleEditDenial(supabase, "users");
+  if (denial) return { error: denial };
+
+  const { data: myLink } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  if (!myLink?.tenant_id) return { error: "No se pudo resolver el tenant." };
+
+  const admin = createAdminClient();
+
+  // El objetivo tiene que ser miembro de MI tenant. El admin client no filtra
+  // por RLS, así que sin este chequeo un admin podría editarle el perfil a
+  // alguien de otro tenant pasando su id (mismo criterio que sendAccessLink).
+  const { data: membership } = await admin
+    .from("user_tenants")
+    .select("user_id")
+    .eq("user_id", targetUserId)
+    .eq("tenant_id", myLink.tenant_id)
+    .maybeSingle<{ user_id: string }>();
+  if (!membership) {
+    return { error: "Esa persona no es miembro de este equipo." };
+  }
+
+  const { error } = await admin
+    .from("user_profiles")
+    .update({
+      first_name: firstName || null,
+      last_name: lastName || null,
+      phone: phone || null,
+      position_label: positionLabel || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", targetUserId);
+
+  if (error) return { error: `No se pudo guardar: ${error.message}` };
 
   revalidatePath("/studio/usuarios");
   return { ok: true, userId: targetUserId };

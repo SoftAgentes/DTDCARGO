@@ -173,20 +173,28 @@ export const CONTACT = {
   },
   // Web y social
   web: "www.dtdcargo.com",
+  /**
+   * MIGRACIÓN DE HANDLES (verificada en vivo 2026-08-04, ver
+   * `docs/marketing/redes.md`): las redes pasaron de `@doortudoor_`/`@doortudoor`
+   * a `@dtdcargo.ve`/`@dtdcargo`. El handle viejo de Instagram ya da "Página no
+   * encontrada" — y este bloque alimenta el `sameAs` del `@graph`
+   * (`app/layout.tsx`), o sea que apuntaba a una cuenta muerta.
+   */
   instagram: {
-    handle: "@doortudoor_",
+    handle: "@dtdcargo.ve",
     // URL canónica sin tracking params — limpio para schema.org sameAs.
-    url: "https://www.instagram.com/doortudoor_",
+    url: "https://www.instagram.com/dtdcargo.ve",
   },
   youtube: {
     // sameAs usa la URL por ID del canal (PERMANENTE) — sobrevive a renombres de
     // nombre y de handle. ID verificado 200 (canal "DoorTuDoor" → "DTD Cargo").
-    handle: "@doortudoor",
+    // Por eso la migración de handle NO tocó esta URL: sólo el handle visible.
+    handle: "@dtdcargo",
     url: "https://www.youtube.com/channel/UCzUeKxFb47h5yImw5xiJ-gg",
   },
   tiktok: {
-    handle: "@doortudoor",
-    url: "https://www.tiktok.com/@doortudoor",
+    handle: "@dtdcargo.ve",
+    url: "https://www.tiktok.com/@dtdcargo.ve",
   },
   // Email general (fuente brochure)
   emailGeneral: "info@dtdcargo.com",

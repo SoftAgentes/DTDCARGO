@@ -51,6 +51,8 @@ import {
 } from "@/lib/studio/client-queries";
 import type { PrealertaAddon } from "@/lib/studio/prealertas/addons";
 import { getNumberingOverview } from "@/lib/studio/numbering-queries";
+import { getRoleModuleOverrides } from "@/lib/studio/role-module-overrides-queries";
+import type { RoleModuleOverrides } from "@/lib/studio/rbac";
 import {
   listGovernedAuditEvents,
   parseAuditFilters,
@@ -250,8 +252,8 @@ const SECTIONS: AdminSection[] = [
     label: "Permisos por rol",
     icon: "lock",
     description:
-      "Matriz rol × módulo (ver / ver+editar) definida en código, con candados de gobernanza inmutables. El lado de almacén (CN/VE) se asigna por usuario en Usuarios.",
-    sddRef: "SDD-0124",
+      "Matriz rol × módulo (ver / ver+editar), editable por celda. Los módulos con candado de gobernanza (dinero, admin-only) son inmutables — ni la UI ni el RPC los dejan tocar. El lado de almacén (CN/VE) se asigna por usuario en Usuarios.",
+    sddRef: "SDD-0252",
   },
   {
     id: "audit",
@@ -388,7 +390,11 @@ export default async function AdminPage({
   let adoptionStats: PortalAdoptionStats | null = null;
   let coldInvitees: PortalColdInvitee[] | null = null;
   let contactlessClients: PortalContactlessClient[] | null = null;
-  if (active.id === "legal-docs" || active.id === "acceptances") {
+  let roleModuleOverrides: RoleModuleOverrides = {};
+  if (active.id === "permissions") {
+    const supabase = await createClient();
+    roleModuleOverrides = await getRoleModuleOverrides(supabase);
+  } else if (active.id === "legal-docs" || active.id === "acceptances") {
     const supabase = await createClient();
     // RLS ya acota al tenant del admin logueado; listLegalDocs sin tenantId se
     // apoya en RLS (a diferencia del gate, que corre como service_role).
@@ -558,6 +564,7 @@ export default async function AdminPage({
           adoptionStats={adoptionStats}
           coldInvitees={coldInvitees}
           contactlessClients={contactlessClients}
+          roleModuleOverrides={roleModuleOverrides}
         />
       </div>
     </div>
@@ -668,6 +675,7 @@ function Content({
   adoptionStats,
   coldInvitees,
   contactlessClients,
+  roleModuleOverrides,
 }: {
   section: AdminSection;
   companyData: CompanyData | null;
@@ -687,6 +695,7 @@ function Content({
   adoptionStats: PortalAdoptionStats | null;
   coldInvitees: PortalColdInvitee[] | null;
   contactlessClients: PortalContactlessClient[] | null;
+  roleModuleOverrides: RoleModuleOverrides;
 }) {
   return (
     <div key={section.id}>
@@ -747,7 +756,7 @@ function Content({
           governedViewerEnabled={process.env.AUDIT_GOVERNED_VIEWER !== "false"}
         />
       ) : section.id === "permissions" ? (
-        <PermissionsSection />
+        <PermissionsSection initialOverrides={roleModuleOverrides} />
       ) : section.id === "masterdata" ? (
         <MasterDataSection containerTypes={containerTypes} />
       ) : section.id === "rates" && ratesData ? (

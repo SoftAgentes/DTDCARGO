@@ -214,13 +214,26 @@ export async function sendEmail(
     return { ok: true, logId: log.id, resendId: result.id, queued: false };
   }
 
-  // 7c. No Resend key configurada (V1 sin envío real)
+  // 7c. No Resend key configurada (V1 sin envío real).
+  //
+  //     La fila queda en 'queued' y NADIE la reintenta: `/api/cron/mail-scheduled`
+  //     drena `mail_scheduled`, que es otra tabla. Por eso se escribe el motivo:
+  //     sin él la fila queda con error=null y es indistinguible de un correo en
+  //     vuelo. Así fue como 8 correos —3 de ellos bienvenidas de clientes—
+  //     estuvieron meses atascados sin que se pudiera diagnosticar por qué.
+  //     `/api/cron/mail-health` los levanta y avisa al equipo.
   if (result.error === "mock_no_key") {
+    await supabaseAdmin
+      .from("mail_logs")
+      .update({ error: "no_key" })
+      .eq("id", log.id);
     return {
       ok: true,
       logId: log.id,
       resendId: null,
-      queued: true, // queda en queued para procesar cuando se configure key
+      // ⚠️ `ok:true` con `queued:true` significa "registrado, NO enviado". Un
+      // caller que solo mire `.ok` le va a decir al usuario que su correo salió.
+      queued: true,
     };
   }
 

@@ -27,9 +27,18 @@
  *   - Sourcing/proveedores = `commercial`; `operations` verifica, NUNCA mueve
  *     plata.
  *
- * Las listas acá son el DEFAULT del código. A futuro la "Matriz rol→persona"
- * y los overrides por tenant viven en DB (SDD-0085 §Futuro). El test
- * anti-drift (`rbac.test.ts`) garantiza que la matriz y el registro de
+ * Las listas acá son el DEFAULT del código, y ahí se quedan: la decisión del
+ * founder de 2026-07-02 (§Candados, más abajo) descartó formalmente la matriz
+ * editable en DB y los overrides por usuario. ⚠️ Esta cabecera prometía lo
+ * contrario —"a futuro los overrides viven en DB (SDD-0085 §Futuro)"— y quedó
+ * contradiciendo a la decisión que vive 100 líneas más abajo en este MISMO
+ * archivo: quien leía sólo el encabezado concluía al revés. Corregido 2026-08-07.
+ *
+ * SDD-0139 dejó cláusula de reapertura para la matriz en DB ("revisar recién
+ * con el 'empleado 4-5' o el primer pedido real del founder, como spec propia");
+ * los overrides por usuario exigen una spec que supersede a 0139.
+ *
+ * El test anti-drift (`rbac.test.ts`) garantiza que la matriz y el registro de
  * módulos (`modules.ts`) nunca se desincronicen.
  *
  * El `owner_role` del motor de flujo interno (FASE-FUTURA) reusa estos mismos
@@ -107,7 +116,10 @@ export const ROLE_MODULE_ACCESS: Record<string, readonly StudioUserRole[]> = {
   treasury: ["accounting"], // tesorería mueve plata → accounting + admin
   fiscal: ["accounting"],
   "financiero-china": [], // admin only
-  documents: ["commercial", "operations", "accounting", "warehouse", "support"],
+  // marketing (SDD-0252, founder 2026-08-07): único rol excluido pese a estar
+  // en casi todos los demás módulos transversales — era un olvido, no una
+  // decisión (confirmado con el founder al medir la matriz).
+  documents: ["commercial", "operations", "accounting", "warehouse", "support", "marketing"],
   reports: ["accounting"],
   costing: ["accounting"], // márgenes — sensible
   // Nómina (SDD-0103): dinero + PII de empleados → SOLO accounting (+admin). La
@@ -170,6 +182,22 @@ export const ADMIN_ONLY_MODULES: ReadonlySet<string> = new Set([
 export const LOCKED_MODULES: ReadonlySet<string> = new Set([
   ...MONEY_MODULES,
   ...ADMIN_ONLY_MODULES,
+]);
+
+/**
+ * Subconjunto de ADMIN_ONLY_MODULES que además exige `is_platform_admin()`
+ * (SDD-0252, corte 2 tras la 0355). Mueven plata internacional (financiero
+ * de China), tienen efecto legal (T&C) o custodian recuperación (No-Olvidar);
+ * Rendiciones es dinero + admin-only a la vez. Dirección y Mailing se quedan
+ * en admin-por-rol a propósito (founder 2026-08-07: menor daño, los necesita
+ * cualquier director). El check real vive en `rbac-guard.ts` — acá sólo es
+ * data pura, igual que el resto del archivo.
+ */
+export const SUPERADMIN_ONLY_MODULES: ReadonlySet<string> = new Set([
+  "financiero-china",
+  "legal",
+  "no-olvidar",
+  "renditions",
 ]);
 
 // ─── Capabilities: acciones peligrosas con gate explícito (SDD-0139) ─────
@@ -255,16 +283,46 @@ export function scopeAllowsModule(
   return scope === side;
 }
 
+/** Ver/editar de un (rol, módulo) — una fila de `studio_role_module_overrides`. */
+export interface ModuleAccessOverride {
+  view: boolean;
+  edit: boolean;
+}
+
+/**
+ * Desvíos del default de `ROLE_MODULE_ACCESS` por (rol, módulo) — SDD-0252,
+ * migr 0357. Clave `"${role}:${moduleId}"`. Fila ausente en el mapa = aplica
+ * el default de código. Se hidrata en `rbac-guard.ts` (gate real) y en
+ * `app/studio/(app)/layout.tsx` → `StudioSidebar` (UX); el resto de los
+ * call sites de `canAccessModule`/`canEditModule` no cambian.
+ */
+export type RoleModuleOverrides = Readonly<Record<string, ModuleAccessOverride>>;
+
+function overrideKey(role: string, moduleId: string): string {
+  return `${role}:${moduleId}`;
+}
+
 /**
  * ¿El rol puede VER el módulo? `admin` siempre; rol nulo/desconocido = no.
  * Fail-closed: un módulo sin entrada en la matriz solo lo ve admin.
+ *
+ * `overrides` (SDD-0252) es opcional y por defecto `undefined` → idéntico al
+ * comportamiento de siempre. Un módulo LOCKED (dinero ∪ admin-only) IGNORA
+ * cualquier override — el candado de gobernanza no se abre desde la matriz,
+ * ni siquiera si una fila se coló por fuera del RPC (mismo candado que el
+ * CHECK de la tabla, en la otra punta).
  */
 export function canAccessModule(
   role: StudioUserRole | null | undefined,
   moduleId: string,
+  overrides?: RoleModuleOverrides,
 ): boolean {
   if (role === "admin") return true;
   if (!role) return false;
+  if (overrides && !LOCKED_MODULES.has(moduleId)) {
+    const o = overrides[overrideKey(role, moduleId)];
+    if (o) return o.view;
+  }
   const allowed = ROLE_MODULE_ACCESS[moduleId];
   if (!allowed) return false; // fail-closed
   return allowed.includes(role);
@@ -272,15 +330,21 @@ export function canAccessModule(
 
 /**
  * ¿El rol puede EDITAR (mutar) en el módulo? = puede ver Y no es `support`
- * (read-only V1). `admin` siempre.
+ * (read-only V1, inmutable — la matriz NO lo cambia). `admin` siempre.
  */
 export function canEditModule(
   role: StudioUserRole | null | undefined,
   moduleId: string,
+  overrides?: RoleModuleOverrides,
 ): boolean {
   if (role === "admin") return true;
   if (role === "support") return false; // read-only V1
-  return canAccessModule(role, moduleId);
+  if (!role) return false;
+  if (overrides && !LOCKED_MODULES.has(moduleId)) {
+    const o = overrides[overrideKey(role, moduleId)];
+    if (o) return o.edit;
+  }
+  return canAccessModule(role, moduleId, overrides);
 }
 
 /**

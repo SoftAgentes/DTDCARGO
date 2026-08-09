@@ -24,14 +24,14 @@ import {
  *
  * Modelo (densidad reactivada · founder 2026-06-20): el cliente ingresa CBM + peso.
  * - Precio = CBM × tarifaBase + recargo por DENSIDAD: el peso que excede
- *   pesoIncluidoKg (500) por CBM se cobra a recargoExcedenteKg ($1) por kg
+ *   pesoIncluidoKg (1.000) por CBM se cobra a recargoExcedenteKg ($2) por kg
  *   (configurable desde el ERP). El recargo es CONTINUO sin tope: `pesoMaxKg`
  *   NO entra al cálculo ni deriva al asesor (founder 2026-07-06); el precio se ve.
  * - Tope ABSOLUTO de peso: > 27.000 kg → deriva al asesor.
  * - Tope de volumen: > 68 CBM → deriva al asesor (FCL).
  * - Destinos: Valencia (descuento), Maracay/Caracas (casco), fuera del casco (km × $)
  * - Embalaje: estándar (0) vs especial (+$50)
- * - Baterías: ×1.5 sobre el flete
+ * - Baterías: ×1.3 sobre el flete
  * - Carga especial/peligrosa → no cotiza, deriva al asesor
  * - Validación: carga inválida (CBM/peso <= 0), ciudad inválida
  */
@@ -43,7 +43,7 @@ describe("calcularEnvioLCL", () => {
   it("calcula una carga normal a Valencia sin descuento de sede (default 0)", () => {
     const cot = calcularEnvioLCL({
       cbmTotal: 1,
-      pesoKg: 400, // < 500 kg/CBM → sin excedente
+      pesoKg: 400, // < 1.000 kg/CBM → sin excedente
       embalaje: "estandar",
       ciudadId: "valencia",
     });
@@ -60,26 +60,27 @@ describe("calcularEnvioLCL", () => {
     expect(cot.alerta).toBeUndefined();
   });
 
-  // Densidad reactivada (2026-06-20): 1 CBM @ 600 kg → density 600 > pesoIncluidoKg
-  // (500) → recargo (600 − 500) × $1 = $100. Sin alerta (el precio se ve).
+  // Densidad reactivada (2026-06-20): 1 CBM @ 1.200 kg → density 1.200 >
+  // pesoIncluidoKg (1.000) → recargo (1.200 − 1.000) × $2 = $400. Sin alerta
+  // (el precio se ve).
   it("aplica recargo por densidad cuando el peso excede pesoIncluidoKg/CBM", () => {
     const cot = calcularEnvioLCL({
       cbmTotal: 1,
-      pesoKg: 600,
+      pesoKg: 1200,
       embalaje: "estandar",
       ciudadId: "caracas",
     });
 
     expect(cot.cbm).toBe(1);
-    expect(cot.densidadKgM3).toBe(600);
+    expect(cot.densidadKgM3).toBe(1200);
     expect(cot.precioBase).toBe(800);
-    expect(cot.recargoExcedente).toBe(100); // (600 − 500) × $1
+    expect(cot.recargoExcedente).toBe(400); // (1200 − 1000) × $2
     expect(cot.recargoCiudad).toBe(0); // Caracas es casco
-    expect(cot.total).toBe(900); // 800 + 100
+    expect(cot.total).toBe(1200); // 800 + 400
     expect(cot.alerta).toBeUndefined();
   });
 
-  // Carga MUY densa (0,3 CBM @ 1000 kg): recargo sobre lo que excede 500 kg/CBM.
+  // Carga MUY densa (0,3 CBM @ 1000 kg): recargo sobre lo que excede 1.000 kg/CBM.
   // Sin alerta → el precio se ve, con el recargo por peso sumado.
   it("una carga muy densa (0,3 CBM @ 1000 kg) cobra recargo y NO oculta el precio", () => {
     const cot = calcularEnvioLCL({
@@ -91,23 +92,23 @@ describe("calcularEnvioLCL", () => {
 
     expect(cot.alerta).toBeUndefined();
     expect(cot.precioBase).toBe(240); // 0.3 × 800
-    expect(cot.recargoExcedente).toBe(850); // (1000 − 0.3×500) × $1 = 850
-    expect(cot.total).toBe(1090); // 240 + 850
+    expect(cot.recargoExcedente).toBe(1400); // (1000 − 0.3×1000) × $2 = 1400
+    expect(cot.total).toBe(1640); // 240 + 1400
   });
 
-  // 1 CBM @ 800 kg (density 800 > pesoMaxKg 600): el recargo sigue CONTINUO — ya
-  // no deriva al asesor (founder 2026-07-06); el cálculo NO setea alerta.
+  // 1 CBM @ 1.800 kg: el recargo sigue CONTINUO — ya no deriva al asesor
+  // (founder 2026-07-06); el cálculo NO setea alerta.
   it("carga ultra densa: cobra recargo y NO setea alerta (el precio se ve)", () => {
     const cot = calcularEnvioLCL({
       cbmTotal: 1,
-      pesoKg: 800,
+      pesoKg: 1800,
       embalaje: "estandar",
       ciudadId: "caracas",
     });
 
     expect(cot.alerta).toBeUndefined();
-    expect(cot.recargoExcedente).toBe(300); // (800 − 500) × $1
-    expect(cot.total).toBe(1100); // 800 + 300
+    expect(cot.recargoExcedente).toBe(1600); // (1800 − 1000) × $2
+    expect(cot.total).toBe(2400); // 800 + 1600
   });
 
   // Entrega nacional = CBM × precio del tramo (SDD-0237). Ya no hay km en la
@@ -224,8 +225,8 @@ describe("calcularEnvioLCL", () => {
     }
   });
 
-  // Baterías: multiplican el flete ×1.5
-  it("aplica el multiplicador de baterías (×1.5) sobre el flete", () => {
+  // Baterías: multiplican el flete ×1.3
+  it("aplica el multiplicador de baterías (×1.3) sobre el flete", () => {
     const cot = calcularEnvioLCL({
       cbmTotal: 1,
       pesoKg: 400,
@@ -234,9 +235,9 @@ describe("calcularEnvioLCL", () => {
       bateria: true,
     });
 
-    // flete antes de batería = 800; con batería = 1200
-    expect(cot.recargoBateria).toBe(400);
-    expect(cot.total).toBe(1200);
+    // flete antes de batería = 800; con batería = 1040
+    expect(cot.recargoBateria).toBe(240);
+    expect(cot.total).toBe(1040);
   });
 
   // Carga especial / peligrosa → no cotiza, deriva al asesor
@@ -526,17 +527,18 @@ describe("calcularEnvioLCL con params configurables", () => {
       { cbmTotal: 1, pesoKg: 400, embalaje: "estandar", ciudadId: "caracas" },
       withParams({ pesoIncluidoKg: 300 }), // density 400 > 300 → cobra
     );
-    expect(cot.recargoExcedente).toBe(100); // (400 − 300) × $1
-    expect(cot.total).toBe(900); // 800 + 100
+    expect(cot.recargoExcedente).toBe(200); // (400 − 300) × $2
+    expect(cot.total).toBe(1000); // 800 + 200
   });
 
   it("USA params.recargoExcedenteKg ($/kg del excedente, configurable en el ERP)", () => {
     const cot = calcularEnvioLCL(
-      { cbmTotal: 1, pesoKg: 600, embalaje: "estandar", ciudadId: "caracas" },
-      withParams({ recargoExcedenteKg: 2 }), // (600 − 500) × $2
+      { cbmTotal: 1, pesoKg: 1600, embalaje: "estandar", ciudadId: "caracas" },
+      // $3/kg ≠ el default ($2): si el motor ignorara el param, daría 1.200.
+      withParams({ recargoExcedenteKg: 3 }), // (1600 − 1000) × $3
     );
-    expect(cot.recargoExcedente).toBe(200);
-    expect(cot.total).toBe(1000);
+    expect(cot.recargoExcedente).toBe(1800);
+    expect(cot.total).toBe(2600);
   });
 
   it("USA params.pesoMaxEnvioKg como tope para derivar al asesor", () => {
@@ -554,17 +556,17 @@ describe("calcularEnvioLCL con params configurables", () => {
     expect(alto.alerta?.tipo).toBe("peso_envio_excedido");
   });
 
-  it("cobro por densidad continuo sin tope (650 kg/CBM sí cotiza)", () => {
+  it("cobro por densidad continuo sin tope (1.300 kg/CBM sí cotiza)", () => {
     const cot = calcularEnvioLCL({
       cbmTotal: 1,
-      pesoKg: 650,
+      pesoKg: 1300,
       embalaje: "estandar",
       ciudadId: "caracas",
     });
-    // El recargo es sobre pesoIncluidoKg (500): (650 − 500) × $1 = 150.
-    expect(cot.recargoExcedente).toBe(150);
+    // El recargo es sobre pesoIncluidoKg (1.000): (1300 − 1000) × $2 = 600.
+    expect(cot.recargoExcedente).toBe(600);
     expect(cot.alerta).toBeUndefined(); // el cálculo nunca setea alerta de densidad
-    expect(cot.total).toBe(950);
+    expect(cot.total).toBe(1400);
   });
 
   it("usa params.descuentoValencia", () => {
@@ -796,8 +798,8 @@ describe("cbmFromDimensions", () => {
     });
     expect(cot.cbm).toBe(0.72);
     expect(cot.precioBase).toBe(576);
-    expect(cot.recargoExcedente).toBe(4640); // (5000 − 0.72×500) × $1 = 4640
-    expect(cot.total).toBe(5216); // 576 + 4640
+    expect(cot.recargoExcedente).toBe(8560); // (5000 − 0.72×1000) × $2 = 8560
+    expect(cot.total).toBe(9136); // 576 + 8560
   });
 });
 
@@ -832,7 +834,7 @@ describe("LCL Consolidado · tarifa 580/CBM + mismos recargos", () => {
     expect(cot.precioBase).toBe(5800); // 10 × 580
     expect(cot.recargoCiudad).toBe(0); // hasta puerto: sin distancia
     expect(cot.descuentoSede).toBe(0);
-    expect(cot.recargoExcedente).toBe(0); // 3000 kg ≤ 10 × 500 incl.
+    expect(cot.recargoExcedente).toBe(0); // 3000 kg ≤ 10 × 1.000 incl.
     expect(cot.total).toBe(5800);
   });
 
@@ -847,7 +849,7 @@ describe("LCL Consolidado · tarifa 580/CBM + mismos recargos", () => {
   });
 
   it("aplica el multiplicador de baterías sobre el flete (params del ERP)", () => {
-    // El multiplicador es configurable (default 1.5; en prod hoy 1.3). El test
+    // El multiplicador es configurable (default 1.3, igual que prod). El test
     // usa params explícitos para no depender del valor vigente en la DB.
     const params: CalcParams = { ...DEFAULT_PARAMS, recargoBateriaMult: 1.3 };
     const cot = calcularEnvioLCL(
@@ -861,13 +863,13 @@ describe("LCL Consolidado · tarifa 580/CBM + mismos recargos", () => {
 
   it("cobra el excedente de densidad con la misma regla ($/kg sobre la gracia)", () => {
     const cot = calcularEnvioLCL(
-      { ...base, cbmTotal: 2, pesoKg: 1500 },
+      { ...base, cbmTotal: 2, pesoKg: 2600 },
       DEFAULT_PARAMS,
       ciudades,
     );
     expect(cot.precioBase).toBe(1160); // 2 × 580
-    expect(cot.recargoExcedente).toBe(500); // (1500 − 2×500) × $1
-    expect(cot.total).toBe(1660);
+    expect(cot.recargoExcedente).toBe(1200); // (2600 − 2×1000) × $2
+    expect(cot.total).toBe(2360);
   });
 
   it("hereda los topes: > 68 CBM y > 27.000 kg derivan al asesor", () => {

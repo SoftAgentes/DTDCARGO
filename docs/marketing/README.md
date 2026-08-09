@@ -11,6 +11,7 @@
 - **Identidad y estrategia** (propósito · misión · visión · valores · objetivos + norte interno): [`estrategia.md`](estrategia.md) · identidad pública/legal + NAP + nombres: [`identidad.md`](identidad.md) · línea de ventas cliente-ancla: [`ventas.md`](ventas.md) · **embudo de ventas operativo + mapa de etapas Kommo (MARKBOX) + campos del Kanban**: [`embudo-ventas.md`](embudo-ventas.md) · **sistema de adquisición (oferta + canal + proceso de prospección, manual del asesor)**: [`adquisicion.md`](adquisicion.md) · **precios de la competencia verificados (motores de precio de Asiaven e Import2Ven, mínimos del mercado, dónde queda DTD)**: [`competencia-precios.md`](competencia-precios.md).
 - **Motor de Crecimiento DTD** — marco de los 6 sistemas (adquisición · ventas · entrega · manual de operaciones · contratación · control financiero) + dónde entra cada trabajo: [`sistemas-negocio.md`](sistemas-negocio.md) · **el programa de construcción (re-auditoría ultra 18-jul + brechas + hoja de ruta por dueño + decisiones + metodología de activación §M)**: [`motor-crecimiento.md`](motor-crecimiento.md) · **el ritual del viernes que lo mueve (agenda de 30 min lista para correr)**: [`revision-del-motor.md`](revision-del-motor.md) · base conceptual (transcripciones de 2 expertas): [`research/expertos-sistematizacion.md`](../../research/expertos-sistematizacion.md) · prompt histórico que generó la v1: [`prompt-sesion-5-sistemas.md`](prompt-sesion-5-sistemas.md).
 - **Infografías de servicios** (copy fuente por servicio, nuestro proceso China→VE; alimenta Cloud Design + web/PDF): [`servicios-infografias/`](servicios-infografias/README.md).
+- **La calculadora explicada, para atención al cliente** (guía gráfica de 5 minutos: qué es el CBM, la regla del peso —1.000 kg incluidos por m³— y la del mínimo —piso de $50, no de metros—, con ejemplos verificados contra el motor real y guiones de respuesta): [`calculadora-explicada.html`](calculadora-explicada.html). Es HTML: doble clic, sin internet. **Si cambian las tarifas en Admin › Calculadora pública, esta guía queda vieja** — los números están fechados adentro.
 - **Sistema Editorial Técnico DTD Cargo** (pauta aplicada en Canva Brand Hub; reglas de composición y 3 plantillas piloto para redes): [`sistema-editorial-tecnico-dtd/`](sistema-editorial-tecnico-dtd/README.md).
 - **Logs detallados por área** en archivos hermanos a medida que crezca: [`seo.md`](seo.md) (activo), **[20 preguntas SEO/AEO desde el CRM](seo-aeo-preguntas-crm.md)** (contenido fuente basado en 401 conversaciones), [`redes.md`](redes.md) (activo), `ads.md`, `analytics.md`, … (se crean al tocar cada área).
 - **Leer estos docs sin abrir el repo:** dentro del ERP en **Studio › Marketing › Documentos** (`/studio/marketing/docs`, SDD-0158, se actualiza solo) · **offline** (un HTML portable, doble clic sin internet) corriendo **`pnpm marketing:reader`** → genera `outputs/lector-marketing-dtd.html` (o `node scripts/build-marketing-reader.mjs "C:/ruta/Lector.html"` para otro destino). Ambos leen ESTOS `.md` — la fuente de verdad sigue siendo este tree.
@@ -69,6 +70,34 @@ de alta frecuencia y 7–20 quedan marcadas como prioridad editorial hasta instr
 ### 🤝 CRM — Kommo
 Connector SDD-0043 (sync E2E en prod: leads/contactos/pipelines/webhooks). Fuente externa, no el CRM de prod. Ver memoria `project_sdd0043_kommo_connector`.
 - **Diseño del embudo de ventas** (5 etapas), **mapa de etapas (MARKBOX)** para SDD-0084 y **campos del Kanban**: [`embudo-ventas.md`](embudo-ventas.md). Análisis triangulado (2 agentes + Codex) sobre el embudo real; recomendación lista para configurar en Kommo. Cómo ACTIVAR el write-back: [`../runbooks/activar-crm-kommo.md`](../runbooks/activar-crm-kommo.md).
+- **Blueprint integral de EI/IAE por etapa + fuente de conocimiento + arquetipos + Salesbot/difusión + automatizaciones:** [`kommo-ia-fuente-conocimiento-pipeline.md`](kommo-ia-fuente-conocimiento-pipeline.md). Auditoría live read-only del 2026-08-05; nada del blueprint está aplicado todavía.
+
+#### 🧠 El conocimiento que consume la IA — **hay DOS bases, y no son la misma**
+
+Este índice no las mencionaba y era un hueco: cambiar una sin la otra las desincroniza.
+
+| Base | Ruta | Quién la consume | Cómo se actualiza |
+|---|---|---|---|
+| **KB del AI Agent de Kommo** | [`../specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md`](../specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md) | IAE `DTD Cargo asistente de ventas` (#326244), activa en WhatsApp `Importador de China` para `Incoming leads`, `Contacto inicial` y `Recontacto` | Editar el `.md` → convertir a DOCX → **subir a Kommo reemplazando el anterior**. No basta con commitear. Proceso en [`../runbooks/kommo-reconfig.md`](../runbooks/kommo-reconfig.md). |
+| **Paquete del equipo** | [`../../equipo-crm/README.md`](../../equipo-crm/README.md) | La cuenta Claude del equipo (`doortudoorservices@gmail.com`) | Editar el `.md` → borrar el archivo viejo del Proyecto y subir el nuevo. |
+
+- ⭐ **Cómo llevar la conversación** (leer el mensaje entrante · una pregunta por mensaje · la
+  cadena de profundización · las objeciones · los datos falsos que circulan):
+  [`conversacion-crm.md`](conversacion-crm.md). Evidencia y fuentes en
+  [`research/INVESTIGACION-conversacion-ventas-crm.md`](../../research/INVESTIGACION-conversacion-ventas-crm.md).
+- ⭐ **Agentes de IA por etapa** — quién es cada arquetipo, por qué se eligió, su astucia, sus
+  preguntas y lo que nunca hace → [`agentes-ia-por-etapa.md`](agentes-ia-por-etapa.md). **El cliente
+  siempre habla con Manuel**, la identidad que el equipo ya usa hace años; los arquetipos son capa
+  interna. Empieza acá quien vaya a escribir un prompt de agente.
+- 🎓 **Manual del asesor** — el programa de entrenamiento de la **persona**, no de la IA: 4 módulos
+  y **30 ejercicios con solución**, para hacer solo y sin formador al lado →
+  [`manual-asesor/`](manual-asesor/README.md). Se hace un módulo por semana, en orden, y el
+  Módulo 1 se repite al mes. **No se carga en el asistente de IA** (es pedagogía, le agregaría ruido).
+- ⚠️ **Regla de coherencia (SDD-0063/0064):** lo que diga la KB de Kommo debe coincidir con
+  `lib/faqs.ts` y con la web pública. Cambiar uno sin el otro rompe un gate declarado.
+- ⚠️ **Un hueco en la KB de Kommo produce SILENCIO, no un "no sé":** el AI Agent solo responde
+  cuando encuentra información relevante en sus Sources. Por eso los temas sin redactar se marcan
+  explícitamente como escalamiento.
 
 ### 📝 Contenido / Captación de leads
 - **Centro editorial = `/noticias`**, nombre público **Actualidad** y portada
@@ -151,3 +180,40 @@ Brand Book vigente = el de mayor versión en `docs/design/studio/_norte/` (hoy *
 - [ ] **Google Ads:** migrar Final URL de la Search probada → `dtdcargo.com/estimacion`; decidir reactivación (des-pausar = gasta).
 - [ ] **GA4/GTM:** re-apuntar el stream `doortudoor.com → dtdcargo.com` + borrar 2 contenedores GTM sin uso.
 - [ ] **SEO:** monitorear el traspaso del "Cambio de dirección" (~180 días) en Search Console.
+
+### 🤖 CRM · IA — abierto tras la auditoría live del 2026-08-05
+
+- [x] **DOCX v6 subido y conectado.** En la auditoría live aparece
+  `DTDCARGO-Kommo-KnowledgeSource-v6-2026-08-05.docx` con 34 subsecciones. Falta el control
+  editorial completo y retirar fuentes duplicadas; subir una fuente no demuestra que todas sus
+  respuestas sean correctas.
+- [x] ~~¿El agente dice que es un bot?~~ **RESUELTO (founder, 2026-08-03): no es obligatorio.**
+  Operamos en Venezuela, que no tiene normativa sobre divulgación de bots, y no nos atamos a la
+  ley de California ni al Reglamento de IA de la UE. Lo que sí se mantiene: si el cliente
+  **pregunta** si es una persona, el agente lo dice; y la salida a humano siempre disponible.
+- [x] **Config actual inspeccionada:** una IAE activa, 25 pautas, 6 Acciones, límite de 10
+  respuestas y WhatsApp en tres etapas. La arquitectura especializada por columna sigue pendiente.
+- [x] **Tres textos sueltos auditados:** `Descripción del negocio` conserva 2008/2010/2015;
+  `Datos clave` y `Productos y servicios` mezclan hechos con instrucciones de comportamiento.
+- [ ] **Sanear la fuente:** decidir la política de condiciones por volumen/frecuencia, retirar la
+  promesa `casi 24 horas`, separar hechos de pautas y eliminar duplicación.
+- [x] **11 Salesbots legacy auditados en modo lectura.** Contienen marca, años, personas, reglas y
+  flujos obsoletos; varios tienen cientos de sesiones activas. Ninguno se reutiliza tal cual.
+- [ ] **Aprobar cuarentena y retiro de Salesbots legacy.** Primero cortar lanzamientos y resolver
+  sesiones activas; después borrar uno por uno. Construir solo dos bots nuevos en v1: reenganche
+  individual y recordatorio de datos faltantes. Detalle en el blueprint integral.
+- [x] ~~Manual de entrenamiento del asesor (persona, no IA)~~ ✅ **HECHO 2026-08-03** →
+  [`manual-asesor/`](manual-asesor/README.md). **Falta lo humano:** decidir quién lo corre, cuándo
+  arranca la primera semana y quién revisa los ejercicios del Módulo 1.
+- [x] ~~`manual-vendedores-peso.md` contradice al código (1.000 kg/m³ vs 500).~~ ❌ **La nota
+  estaba al revés y la corrijo:** el manual tenía razón. **Producción cobra 1.000 kg/m³ y $2/kg
+  desde el 2026-07-06**; el `CONFIG` de `lib/calculadora.ts` era el **respaldo stale** (500 / $1),
+  que solo entra si la RPC no responde. Lo arregló el commit `535aa0ec` — o sea que ante una caída
+  de Supabase el sitio cobraba otro precio en silencio, y con el peso incluido a la mitad le habría
+  cobrado excedente al doble de clientes. ⭐ **Lección: el `CONFIG` del código NO es la fuente de
+  verdad de las tarifas — lo es la RPC `public_calculator_config`.**
+- [ ] ⚠️ **La tarifa pública sube a $850/CBM el 4-sep-2026** (migración `0336`, decisión founder
+  2026-08-05). Los documentos que citan **$800** lo hacen como ejemplo de un mensaje mal escrito,
+  no como tarifa vigente, pero conviene revisarlos después de esa fecha:
+  [`conversacion-crm.md`](conversacion-crm.md), `equipo-crm/07-como-conversar.md` y
+  [`manual-asesor/01-diagnostico.md`](manual-asesor/01-diagnostico.md).

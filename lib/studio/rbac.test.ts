@@ -8,6 +8,7 @@ import {
   LOCKED_MODULES,
   MONEY_MODULES,
   ROLE_MODULE_ACCESS,
+  SUPERADMIN_ONLY_MODULES,
   WAREHOUSE_SCOPED_MODULES,
   canAccessModule,
   canEditModule,
@@ -15,6 +16,7 @@ import {
   isKnownModule,
   moduleIdForPath,
   scopeAllowsModule,
+  type RoleModuleOverrides,
 } from "@/lib/studio/rbac";
 import { STUDIO_USER_ROLES, type StudioUserRole } from "@/lib/studio/user-types";
 
@@ -307,5 +309,77 @@ describe("RBAC anti-drift: gate de acción en módulos sensibles", () => {
         `${rel} debe gatear sus mutaciones con moduleEditDenial`,
       ).toContain("moduleEditDenial");
     }
+  });
+});
+
+describe("RBAC: SUPERADMIN_ONLY_MODULES (SDD-0252, corte 2 tras 0355)", () => {
+  it("es subconjunto de ADMIN_ONLY_MODULES — no tiene sentido subir un módulo que no es admin-only", () => {
+    for (const id of SUPERADMIN_ONLY_MODULES) {
+      expect(ADMIN_ONLY_MODULES.has(id), `${id} debe estar en ADMIN_ONLY_MODULES`).toBe(true);
+    }
+  });
+
+  it("es EXACTAMENTE lo que aprobó el founder — Dirección y Mailing se quedan afuera", () => {
+    expect([...SUPERADMIN_ONLY_MODULES].sort()).toEqual(
+      ["financiero-china", "legal", "no-olvidar", "renditions"].sort(),
+    );
+  });
+
+  it("todos son módulos reales", () => {
+    for (const id of SUPERADMIN_ONLY_MODULES) {
+      expect(isKnownModule(id), `SUPERADMIN_ONLY_MODULES contiene módulo fantasma "${id}"`).toBe(true);
+    }
+  });
+});
+
+describe("RBAC: documents + marketing (SDD-0252)", () => {
+  it("Fiorella (marketing) ahora ve Documentos, igual que el resto de roles transversales", () => {
+    expect(canAccessModule("marketing", "documents")).toBe(true);
+  });
+});
+
+describe("RBAC: overrides de la matriz editable (SDD-0252, migr 0357)", () => {
+  it("sin overrides, el comportamiento es IDÉNTICO al de siempre", () => {
+    expect(canAccessModule("marketing", "documents", undefined)).toBe(
+      canAccessModule("marketing", "documents"),
+    );
+    expect(canEditModule("commercial", "quotes", undefined)).toBe(
+      canEditModule("commercial", "quotes"),
+    );
+  });
+
+  it("un override sobre un módulo LOCKED se IGNORA — el candado no se abre desde la matriz", () => {
+    const overrides: RoleModuleOverrides = {
+      "marketing:nomina": { view: true, edit: true }, // dinero
+      "marketing:legal": { view: true, edit: true }, // admin-only
+    };
+    expect(canAccessModule("marketing", "nomina", overrides)).toBe(false);
+    expect(canAccessModule("marketing", "legal", overrides)).toBe(false);
+    expect(canEditModule("marketing", "nomina", overrides)).toBe(false);
+  });
+
+  it("un override REVOKE explícito (false,false) cierra un módulo que el default sí daba", () => {
+    const overrides: RoleModuleOverrides = { "marketing:dashboard": { view: false, edit: false } };
+    expect(canAccessModule("marketing", "dashboard")).toBe(true); // default: sí lo ve
+    expect(canAccessModule("marketing", "dashboard", overrides)).toBe(false); // override lo cierra
+  });
+
+  it("un override VIEW+EDIT en un módulo NO locked funciona en ambas direcciones", () => {
+    const grant: RoleModuleOverrides = { "warehouse:reclamos": { view: true, edit: true } };
+    expect(canAccessModule("warehouse", "reclamos")).toBe(false); // default: warehouse no está en reclamos
+    expect(canAccessModule("warehouse", "reclamos", grant)).toBe(true);
+    expect(canEditModule("warehouse", "reclamos", grant)).toBe(true);
+  });
+
+  it("support NUNCA edita, ni con un override que le dé edit=true (read-only V1 inmutable)", () => {
+    const overrides: RoleModuleOverrides = { "support:tracking": { view: true, edit: true } };
+    expect(canAccessModule("support", "tracking", overrides)).toBe(true);
+    expect(canEditModule("support", "tracking", overrides)).toBe(false);
+  });
+
+  it("admin ignora overrides por completo (siempre TOTAL)", () => {
+    const overrides: RoleModuleOverrides = { "admin:users": { view: false, edit: false } };
+    expect(canAccessModule("admin", "users", overrides)).toBe(true);
+    expect(canEditModule("admin", "users", overrides)).toBe(true);
   });
 });

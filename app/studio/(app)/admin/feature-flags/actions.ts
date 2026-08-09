@@ -1,15 +1,22 @@
 "use server";
 
 /**
- * Server actions de feature flags (admin only).
+ * Server actions de feature flags (SUPERADMIN only desde la migr 0355).
  *
- * RLS de feature_flags ya bloquea UPDATE a no-admins (policy
- * `feature_flags_admin_update`). Acá replicamos el check antes de la
- * query para devolver un error claro al UI antes de pegar al DB.
+ * Encender o apagar un módulo del ERP le cambia el sistema a TODO el equipo, así
+ * que dejó de ser una facultad de cualquier `admin` y pasó a la capa de
+ * plataforma — fue el primer permiso que el founder pidió subir.
+ *
+ * El control REAL es la policy `feature_flags_platform_admin_update` (migr
+ * 0355): sin ella, gatear sólo acá dejaría el hueco abierto para quien invoque
+ * PostgREST directo. El guard de abajo existe para dar un error legible —
+ * sin él, la RLS descarta el UPDATE en silencio y el interruptor "no hace nada"
+ * sin explicar por qué.
  */
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { platformAdminDenial } from "@/lib/studio/platform-admin";
 import { executeD1Operation } from "@/lib/studio/audit/d1-access-config-adapters";
 import { FEATURE_FLAG_KEYS, type FeatureFlagKey } from "@/lib/studio/feature-flags-types";
 
@@ -36,6 +43,10 @@ export async function toggleFeatureFlagAction(
   const enabled = enabledRaw === "on" || enabledRaw === "true" || enabledRaw === "1";
 
   const supabase = await createClient();
+
+  const denial = await platformAdminDenial(supabase);
+  if (denial) return { error: denial };
+
   try {
     await executeD1Operation(supabase, {
       operationType: "feature_flag.toggle",
