@@ -28,9 +28,12 @@ function fmt(iso: string | null): string {
 /**
  * Acceso al Portal del Cliente (SDD-0042) — en el detalle del cliente.
  * Habilita/revoca el portal. La invitación por correo lleva un enlace DIRECTO (un
- * clic → adentro). Como ese enlace vence pronto (30 min), acá también se puede
- * "Compartir acceso por WhatsApp": genera un enlace fresco para mandarlo al
- * WhatsApp del cliente y coordinar en vivo (founder 2026-07-01).
+ * clic → adentro).
+ *
+ * "Compartir por WhatsApp" arma un enlace **corto y propio**
+ * (`dtdcargo.com/entrar/<código>`, SDD-0253), no el magic-link crudo de Supabase:
+ * ese lo quemaba el robot de vista previa de WhatsApp antes de que el cliente lo
+ * tocara. El código dura 72 h, así que ya no hay que coordinar en vivo.
  */
 export function PortalAccessCard({
   clientId,
@@ -61,7 +64,7 @@ export function PortalAccessCard({
     setWaLink(null);
     const res = await portalAccessLinkAction(clientId);
     if (!res.ok) return { error: res.error };
-    const msg = `Hola${res.name ? " " + res.name : ""}, este es tu acceso directo al portal de DTD Cargo (un solo uso, vence pronto): ${res.link}`;
+    const msg = `Hola${res.name ? " " + res.name : ""}, este es tu acceso al portal de DTD Cargo. Ábrelo y toca "Entrar a mi portal": ${res.link}\n\nEs personal y de un solo uso — no lo reenvíes a nadie.`;
     setWaLink(
       res.whatsappRaw
         ? `https://wa.me/${res.whatsappRaw}?text=${encodeURIComponent(msg)}`
@@ -221,7 +224,7 @@ export function PortalAccessCard({
                 }}
               >
                 Se abre WhatsApp con el enlace listo. Envíaselo <b>solo al cliente</b>:
-                entra con un clic, es de un solo uso y vence pronto.
+                es de un solo uso y vale por 72 horas.
               </p>
             </div>
           )}

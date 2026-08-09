@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 241 specs)
+### Índice de specs (generado · 243 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -278,7 +278,9 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0248 | Alerta de correo no entregado | in-progress | interna |
 | 0249 | Cliente con Shipping Mark y sin acceso al portal | in-progress | interna |
 | 0250 | Acceso y recuperación de contraseña del Studio | in-progress | interna |
-| 0251 | Hardening: invitación nominal, RPC de operario con rol, y dos… | in-progress | interno |
+| 0251 | Hardening: invitación nominal, RPC con rol (operarios + fusió… | in-progress | interno |
+| 0252 | Cierre del carril roles y permisos — superadmin, matriz edita… | in-progress | interna |
+| 0253 | Enlace de acceso al portal corto y con marca propia | in-progress | interna |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0239, 0240, 0241 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

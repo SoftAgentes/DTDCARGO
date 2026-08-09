@@ -21,10 +21,8 @@ import {
   beginD5ExternalEffect,
   finishD5ExternalEffect,
 } from "@/lib/studio/audit/external-effect-adapter";
-import {
-  sendPortalInviteEmail,
-  generatePortalAccessLink,
-} from "@/lib/studio/portal-invite-email";
+import { sendPortalInviteEmail } from "@/lib/studio/portal-invite-email";
+import { createAccessLink } from "@/lib/studio/portal/access-link";
 import { toWhatsAppRaw } from "@/lib/portal/portal-types";
 
 export type BulkInviteState = {
@@ -157,15 +155,17 @@ export async function portalWhatsAppInviteAction(
     return { ok: false, error: "No se pudo registrar la intención del enlace." };
   }
 
-  const admin = createAdminClient();
-  const link = await generatePortalAccessLink(admin, email);
-  if (!link) {
+  // SDD-0253: enlace corto propio, NO el magic-link crudo — el robot de vista
+  // previa de WhatsApp quemaba el token antes que el cliente.
+  const issued = await createAccessLink(supabase, clientId);
+  if (!issued.ok) {
     await finishD5ExternalEffect(supabase, operationId, {
       ok: false,
-      errorCode: "auth_link_failed",
+      errorCode: "access_link_failed",
     }).catch(() => undefined);
-    return { ok: false, error: "No se pudo generar el enlace. Intenta de nuevo." };
+    return { ok: false, error: issued.error };
   }
+  const link = issued.url;
   try {
     await finishD5ExternalEffect(supabase, operationId, { ok: true });
   } catch {
@@ -241,7 +241,6 @@ export async function bulkWhatsAppInviteAction(
   const batch = ids.slice(0, WA_BATCH_MAX);
   const remaining = ids.length - batch.length;
 
-  const admin = createAdminClient();
   const items: WhatsAppBatchItem[] = [];
   let skipped = 0;
 
@@ -286,15 +285,17 @@ export async function bulkWhatsAppInviteAction(
       continue;
     }
 
-    const link = await generatePortalAccessLink(admin, email);
-    if (!link) {
+    // SDD-0253: enlace corto propio (ver el 1×1 de arriba).
+    const issued = await createAccessLink(supabase, clientId);
+    if (!issued.ok) {
       await finishD5ExternalEffect(supabase, operationId, {
         ok: false,
-        errorCode: "auth_link_failed",
+        errorCode: "access_link_failed",
       }).catch(() => undefined);
       skipped++;
       continue;
     }
+    const link = issued.url;
     try {
       await finishD5ExternalEffect(supabase, operationId, { ok: true });
     } catch {
