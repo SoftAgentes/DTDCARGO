@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manual del asesor · CRM DTD Cargo</title>
+<style>
+  :root{
+    --wine:#7f0f1a; --ink:#0f1e3d; --paper:#fbfaf7;
+    --ink-soft:#5a6478; --line:#e3e0d9; --card:#fff;
+    --ok:#1d6b45; --ok-bg:#e3f2e9; --warn:#9a6400; --warn-bg:#fdf0d8;
+    --bad:#a01722; --bad-bg:#fbe4e6; --info:#1f4e8c; --info-bg:#e4edf9;
+    --mono:ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font:400 17px/1.7 var(--sans)}
+  .wrap{max-width:900px;margin:0 auto;padding:40px 24px 90px}
+  header.top{background:var(--ink);color:#fff;margin:-40px -24px 36px;padding:44px 24px 38px}
+  header.top .eyebrow{font:700 12px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;
+    color:#e8a5ad;margin:0 0 12px}
+  header.top h1{font:800 38px/1.1 var(--sans);margin:0 0 12px;letter-spacing:-.025em}
+  header.top p{margin:0;color:#c3cad8;font-size:16.5px;max-width:62ch}
+  h2{font:800 27px/1.2 var(--sans);margin:56px 0 14px;letter-spacing:-.02em;
+     padding-left:16px;border-left:6px solid var(--wine)}
+  h3{font:700 19px/1.3 var(--sans);margin:34px 0 10px}
+  p{margin:0 0 16px}
+  .num-badge{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;
+    border-radius:50%;background:var(--wine);color:#fff;font:800 15px/1 var(--sans);margin-right:10px;
+    vertical-align:-6px}
+  table{width:100%;border-collapse:collapse;margin:20px 0 26px;font-size:15.5px;background:var(--card)}
+  th,td{text-align:left;padding:13px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:var(--ink);color:#fff;font:700 13px/1.3 var(--sans);text-transform:uppercase;letter-spacing:.05em}
+  tbody tr:nth-child(even){background:#faf8f5}
+  .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  code{font-family:var(--mono);font-size:.88em;background:#f0ede8;padding:2px 6px;border-radius:3px}
+  .pill{display:inline-block;font:700 11.5px/1 var(--sans);letter-spacing:.05em;text-transform:uppercase;
+        padding:6px 10px;border-radius:20px;white-space:nowrap}
+  .p-ok{background:var(--ok-bg);color:var(--ok)} .p-warn{background:var(--warn-bg);color:var(--warn)}
+  .p-bad{background:var(--bad-bg);color:var(--bad)} .p-info{background:var(--info-bg);color:var(--info)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:20px 24px;margin:22px 0}
+  .card.do{border-left:6px solid var(--ok);background:linear-gradient(90deg,#f4fbf7 0%,#fff 6%)}
+  .card.dont{border-left:6px solid var(--bad);background:linear-gradient(90deg,#fef6f7 0%,#fff 6%)}
+  .card.tip{border-left:6px solid var(--info);background:linear-gradient(90deg,#f5f9fe 0%,#fff 6%)}
+  .card.warn{border-left:6px solid var(--warn);background:linear-gradient(90deg,#fffaf0 0%,#fff 6%)}
+  .card .h{font:800 16px/1.3 var(--sans);margin:0 0 10px;display:flex;align-items:center;gap:9px}
+  .card p:last-child,.card ul:last-child{margin-bottom:0}
+  .fig{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:24px;margin:26px 0}
+  .fig figcaption{font:600 14px/1.5 var(--sans);color:var(--ink-soft);margin-top:16px;text-align:center}
+  svg{max-width:100%;height:auto;display:block;margin:0 auto}
+  blockquote{margin:14px 0;padding:14px 18px;background:#f4f2ee;border-radius:5px;
+             border-left:4px solid var(--ink-soft);font-style:italic;color:#3d465a}
+  .steps{counter-reset:s;list-style:none;padding:0;margin:22px 0}
+  .steps li{counter-increment:s;position:relative;padding:0 0 20px 52px;margin:0}
+  .steps li::before{content:counter(s);position:absolute;left:0;top:0;width:34px;height:34px;
+    border-radius:50%;background:var(--ink);color:#fff;font:800 16px/34px var(--sans);text-align:center}
+  .steps li strong{display:block;font-size:17px;margin-bottom:2px}
+  .steps li span{color:var(--ink-soft);font-size:15.5px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:22px 0}
+  @media(max-width:680px){.two{grid-template-columns:1fr}}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:20px 26px;margin-bottom:40px}
+  .toc ol{margin:0;padding-left:22px} .toc li{margin:7px 0;font-size:16px}
+  .toc a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line)}
+  .toc a:hover{color:var(--wine);border-color:var(--wine)}
+  footer{margin-top:70px;padding-top:24px;border-top:2px solid var(--line);color:var(--ink-soft);font-size:14.5px}
+  @media(max-width:640px){.wrap{padding:26px 16px 60px}header.top{margin:-26px -16px 30px;padding:34px 16px 28px}
+    header.top h1{font-size:29px}h2{font-size:22px}body{font-size:16px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <p class="eyebrow">DTD Cargo · Guía de trabajo</p>
+  <h1>Manual del asesor</h1>
+  <p>Cómo atender a los clientes desde el CRM sin perder a nadie por el camino.
+  No necesitas saber nada de CRM para leer esto.</p>
+</header>
+
+<nav class="toc">
+  <strong>Lo que vas a encontrar</strong>
+  <ol>
+    <li><a href="#s1">Las dos cosas que nunca se confunden</a></li>
+    <li><a href="#s2">El tablero, columna por columna</a></li>
+    <li><a href="#s3">La bandeja de solicitudes (lo que más se olvida)</a></li>
+    <li><a href="#s4">¿Tu mensaje llegó? Aprende a mirarlo</a></li>
+    <li><a href="#s5">Si el cliente ya te había escrito antes</a></li>
+    <li><a href="#s6">Cuando ganas: aparece el Shipping Mark</a></li>
+    <li><a href="#s7">Los seis errores que rompen los números</a></li>
+  </ol>
+</nav>
+
+<h2 id="s1"><span class="num-badge">1</span>Las dos cosas que nunca se confunden</h2>
+
+<p>Todo el sistema se entiende si tienes clara esta diferencia. Es la única idea difícil del manual;
+el resto sale solo.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 720 250" role="img" aria-label="Diferencia entre contacto (persona) y trato (venta)">
+  <defs><style>
+    .ttl{font:800 17px system-ui} .txt{font:400 13.5px system-ui;fill:#5a6478}
+    .lab{font:700 11px system-ui;letter-spacing:.08em;text-transform:uppercase}
+  </style></defs>
+  <rect x="6" y="6" width="336" height="234" rx="8" fill="#fff" stroke="#0f1e3d" stroke-width="2"/>
+  <rect x="6" y="6" width="336" height="42" rx="8" fill="#0f1e3d"/>
+  <rect x="6" y="34" width="336" height="14" fill="#0f1e3d"/>
+  <text class="lab" x="26" y="33" fill="#fff">La persona</text>
+  <text class="ttl" x="26" y="80" fill="#0f1e3d">CONTACTO</text>
+  <text class="txt" x="26" y="108">Es María. Existe una sola vez.</text>
+  <text class="txt" x="26" y="132">Aquí vive su Shipping Mark.</text>
+  <text class="txt" x="26" y="156">No nace ni muere: se queda.</text>
+  <rect x="26" y="176" width="290" height="44" rx="5" fill="#e3f2e9"/>
+  <text class="txt" x="40" y="196" fill="#1d6b45" font-weight="700">Una vez es cliente,</text>
+  <text class="txt" x="40" y="213" fill="#1d6b45" font-weight="700">nunca vuelve a ser desconocida.</text>
+
+  <rect x="378" y="6" width="336" height="234" rx="8" fill="#fff" stroke="#7f0f1a" stroke-width="2"/>
+  <rect x="378" y="6" width="336" height="42" rx="8" fill="#7f0f1a"/>
+  <rect x="378" y="34" width="336" height="14" fill="#7f0f1a"/>
+  <text class="lab" x="398" y="33" fill="#fff">Una venta</text>
+  <text class="ttl" x="398" y="80" fill="#7f0f1a">TRATO</text>
+  <text class="txt" x="398" y="108">Es "el envío de María de agosto".</text>
+  <text class="txt" x="398" y="132">Nace, avanza, se gana o se pierde.</text>
+  <text class="txt" x="398" y="156">Se cierra y no se vuelve a abrir.</text>
+  <rect x="398" y="176" width="290" height="44" rx="5" fill="#fbe4e6"/>
+  <text class="txt" x="412" y="196" fill="#a01722" font-weight="700">Si María compra otra vez,</text>
+  <text class="txt" x="412" y="213" fill="#a01722" font-weight="700">es un trato NUEVO.</text>
+</svg>
+<figcaption>Una persona puede tener muchos tratos a lo largo del tiempo. Un trato pertenece a una sola persona.</figcaption>
+</figure>
+
+<div class="card tip">
+  <p class="h">💡 La forma fácil de recordarlo</p>
+  <p>El <strong>contacto</strong> es la ficha de la persona en tu agenda. El <strong>trato</strong> es una factura:
+  se emite, se cobra o se anula, y se archiva. Nadie reabre una factura vieja para vender otra vez —
+  emite una nueva.</p>
+</div>
+
+<h2 id="s2"><span class="num-badge">2</span>El tablero, columna por columna</h2>
+
+<p>Un solo tablero: <strong>Ventas DTD</strong>. Cinco columnas y dos finales. Lo más importante de cada columna
+no es qué significa, sino <strong>cuándo la mueves a la siguiente</strong>.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 780 230" role="img" aria-label="Las cinco columnas del tablero con sus dos entradas">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5a6478"/></marker>
+    <style>
+      .cx{fill:#fff;stroke:#0f1e3d;stroke-width:1.6}
+      .nm{font:700 12.5px system-ui;fill:#0f1e3d} .sm{font:400 10.5px system-ui;fill:#5a6478}
+      .fl{stroke:#5a6478;stroke-width:1.6;fill:none;marker-end:url(#ar)}
+    </style>
+  </defs>
+  <rect class="cx" x="6" y="14" width="148" height="44" rx="5"/>
+  <text class="nm" x="18" y="36">1 · Leads entrantes</text><text class="sm" x="18" y="51">Alguien nuevo escribió</text>
+  <rect class="cx" x="6" y="76" width="148" height="44" rx="5"/>
+  <text class="nm" x="18" y="98">2 · Contacto inicial</text><text class="sm" x="18" y="113">Ya le respondiste</text>
+  <rect class="cx" x="6" y="142" width="148" height="44" rx="5" fill="#7f0f1a" stroke="#7f0f1a"/>
+  <text class="nm" x="18" y="164" fill="#fff">3 · RECONTACTO</text><text class="sm" x="18" y="179" fill="#f0cdd1">Ya es cliente nuestro</text>
+  <path class="fl" d="M154 36 H196 V100 H222"/>
+  <path class="fl" d="M154 98 H222"/>
+  <path class="fl" d="M154 164 H196 V100 H222"/>
+  <rect class="cx" x="224" y="76" width="150" height="44" rx="5"/>
+  <text class="nm" x="236" y="98">4 · Estimado enviado</text><text class="sm" x="236" y="113">Ya tiene precio</text>
+  <path class="fl" d="M374 98 H412"/>
+  <rect class="cx" x="414" y="76" width="140" height="44" rx="5"/>
+  <text class="nm" x="426" y="98">5 · Negociación</text><text class="sm" x="426" y="113">Discute condiciones</text>
+  <path class="fl" d="M554 90 H594 V50 H628"/>
+  <path class="fl" d="M554 106 H594 V148 H628"/>
+  <rect class="cx" x="630" y="26" width="142" height="44" rx="5" fill="#e3f2e9" stroke="#1d6b45"/>
+  <text class="nm" x="642" y="48" fill="#1d6b45">✓ GANADO</text><text class="sm" x="642" y="63">Quedó registrado</text>
+  <rect class="cx" x="630" y="126" width="142" height="44" rx="5" fill="#fbe4e6" stroke="#a01722"/>
+  <text class="nm" x="642" y="148" fill="#a01722">✕ PERDIDO</text><text class="sm" x="642" y="163">Con el motivo escrito</text>
+  <text class="sm" x="6" y="212" font-weight="700" fill="#7f0f1a">Fíjate: hay DOS entradas.</text>
+  <text class="sm" x="128" y="212">Un desconocido entra por la 1. Un cliente conocido entra por la 3 y se salta la presentación.</text>
+</svg>
+<figcaption>Un cliente que ya compró no vuelve a empezar desde cero. Entra por Recontacto.</figcaption>
+</figure>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Columna</th><th>Qué haces aquí</th><th>Cuándo la mueves</th></tr></thead>
+  <tbody>
+    <tr><td><strong>1 · Leads entrantes</strong></td>
+        <td>Leer qué quiere y responderle.</td>
+        <td>Apenas le respondes → <strong>Contacto inicial</strong></td></tr>
+    <tr><td><strong>2 · Contacto inicial</strong></td>
+        <td>Averiguar qué compra, a dónde va, si ya tiene proveedor.</td>
+        <td>Cuando le mandas números → <strong>Estimado enviado</strong></td></tr>
+    <tr><td style="background:#fbe4e6"><strong>3 · Recontacto</strong></td>
+        <td>Reconocerlo por su nombre y su Shipping Mark. Resolver rápido.</td>
+        <td><strong>En 1 o 2 días.</strong> Es un pasillo, no un cuarto.</td></tr>
+    <tr><td><strong>4 · Estimado enviado</strong></td>
+        <td>Confirmar tarifa y tiempos. Responder dudas.</td>
+        <td>Discute precio → <strong>Negociación</strong> · Acepta → <strong>GANADO</strong></td></tr>
+    <tr><td><strong>5 · Negociación</strong></td>
+        <td>Cerrar condiciones.</td>
+        <td>Acepta → <strong>GANADO</strong> · Se cae → <strong>PERDIDO</strong></td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="card warn">
+  <p class="h">⚠️ La regla que mantiene sano el tablero</p>
+  <p><strong>Recontacto se vacía.</strong> Si empiezan a acumularse tratos ahí, dejó de ser un pasillo y se
+  convirtió en un cuarto. Así fue como se llenó el tablero viejo con más de dos mil tratos parados.
+  Si ves Recontacto creciendo, avisa.</p>
+</div>
+
+<h2 id="s3"><span class="num-badge">3</span>La bandeja de solicitudes</h2>
+
+<p>Arriba de la primera columna hay una zona que dice <strong>"Solicitudes"</strong>. Ahí caen los mensajes
+nuevos <strong>antes</strong> de convertirse en tratos.</p>
+
+<div class="card dont">
+  <p class="h">🚫 Lo que casi nadie sabe</p>
+  <p>Un mensaje que está en Solicitudes <strong>todavía no es un trato</strong>. No aparece en los reportes,
+  no se le puede asignar tarea, y si nadie lo acepta se queda ahí para siempre. Así se acumularon
+  <strong>152 conversaciones</strong>, la más vieja de hace más de un año.</p>
+</div>
+
+<h3>Cómo se trabaja una solicitud</h3>
+
+<ol class="steps">
+  <li><strong>Ábrela y lee la conversación completa</strong>
+    <span>Baja hasta el final. Muchas ya tienen respuestas anteriores: quizá no es alguien nuevo.</span></li>
+  <li><strong>Decide si es cliente conocido o desconocido</strong>
+    <span>Mira si dice "soy cliente", si menciona un código DTD-XXXX, o si su nombre te suena.</span></li>
+  <li><strong>Pulsa <em>Aceptar</em></strong>
+    <span>Ahí se convierte en trato y entra al tablero.</span></li>
+  <li><strong>Muévelo a la columna correcta</strong>
+    <span>Conocido → <strong>Recontacto</strong>. Desconocido → <strong>Contacto inicial</strong>.</span></li>
+  <li><strong>Responde</strong>
+    <span>Y si es cliente, salúdalo por su nombre y su Shipping Mark.</span></li>
+</ol>
+
+<div class="card warn">
+  <p class="h">⚠️ El paso 4 no es opcional</p>
+  <p>Al aceptar, el trato <strong>no cae solo en el tablero nuevo</strong>: cae donde estaba configurada la
+  conversación cuando llegó el mensaje, que en las conversaciones viejas es el tablero anterior.
+  <strong>Si no lo mueves, desaparece de tu vista.</strong></p>
+</div>
+
+<h2 id="s4"><span class="num-badge">4</span>¿Tu mensaje llegó? Aprende a mirarlo</h2>
+
+<p>Debajo de cada mensaje que envías hay una palabra pequeña. <strong>No es decoración: te dice si el cliente
+lo recibió.</strong> Se han encontrado casos de mensajes que nunca llegaron y el asesor daba la conversación
+por atendida.</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th style="width:150px">Lo que dice</th><th>Qué significa</th><th>Qué haces</th></tr></thead>
+  <tbody>
+    <tr><td><span class="pill p-ok">Leído</span></td>
+        <td>Le llegó y lo abrió.</td>
+        <td>Nada. Todo bien.</td></tr>
+    <tr><td><span class="pill p-info">Entregado</span></td>
+        <td>Le llegó, pero <strong>todavía no lo ha abierto</strong>.</td>
+        <td>Espera. Si pasan días, un recordatorio corto.</td></tr>
+    <tr><td><span class="pill p-bad">Error</span></td>
+        <td>🔴 <strong>NO le llegó.</strong> El cliente no vio nada.</td>
+        <td><strong>Vuelve a enviarlo.</strong> Y si se repite, avisa —
+            puede ser un problema del canal, no tuyo.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="card tip">
+  <p class="h">💡 Antes de cerrar el día</p>
+  <p>Repasa los mensajes que enviaste y busca la palabra <code>Error</code>. Es de las revisiones más baratas
+  que existen: toma un minuto y evita perder a un cliente que cree que lo ignoraste.</p>
+</div>
+
+<h3>Y otra cosa que se pierde sola: los borradores</h3>
+<p>Si empiezas a escribir una respuesta y no la envías, ese texto se queda en el cuadro de mensaje
+<strong>sin avisarle a nadie</strong>. Se han encontrado conversaciones importantes con la respuesta escrita
+a medias, sin enviar, durante días. <strong>Si empiezas a responder, termina o crea una tarea.</strong></p>
+
+<h2 id="s5"><span class="num-badge">5</span>Si el cliente ya te había escrito antes</h2>
+
+<p>Este es el caso que más se equivoca. Son tres situaciones distintas y cada una se trabaja diferente.</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Situación</th><th>Qué haces</th><th>Qué NO haces</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Tiene un trato abierto</strong><br><span style="color:#5a6478;font-size:14px">Ya está en el tablero</span></td>
+        <td>Le respondes ahí mismo. Se queda donde está.</td>
+        <td>❌ No lo muevas hacia atrás. ❌ No abras otro trato.</td></tr>
+    <tr><td><strong>Ya es cliente y quiere un pedido nuevo</strong></td>
+        <td>Abres un <strong>trato nuevo</strong> y lo marcas como <em>Recompra</em>.</td>
+        <td>❌ No toques el trato ganado viejo. Ese ya está cerrado para siempre.</td></tr>
+    <tr><td><strong>Ya es cliente y pregunta por su carga</strong></td>
+        <td>No es una venta. Le respondes o lo mandas al portal.</td>
+        <td>❌ No abras un trato de venta por una consulta de seguimiento.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="card dont">
+  <p class="h">🚫 El error más caro que se ha visto</p>
+  <p>Una clienta escribió: <em>"Hola DTD Cargo, soy cliente y necesito un documento de mis envíos"</em>.
+  La respuesta que recibió fue la <strong>plantilla de bienvenida para clientes nuevos</strong>,
+  pidiéndole que se registrara en la página web.</p>
+  <p><strong>Ya tenía su Shipping Mark desde hacía semanas.</strong> Su pregunta nunca fue respondida.</p>
+</div>
+
+<div class="card do">
+  <p class="h">✅ Cómo se hace bien</p>
+  <p>Si alguien dice <em>"soy cliente"</em>, <em>"ya me registré"</em> o menciona un código <code>DTD-XXXX</code>:
+  <strong>créele y verifícalo</strong> antes de mandarle nada automático.</p>
+  <p>Frase que funciona:</p>
+  <blockquote>"Hola [nombre], claro que sí — veo que ya eres cliente nuestro, tu Shipping Mark es DTD-XXXX.
+  Cuéntame qué necesitas."</blockquote>
+  <p>Con eso el cliente sabe que no arranca de cero, y tú te ahorras pedirle datos que el sistema ya tiene.</p>
+</div>
+
+<h2 id="s6"><span class="num-badge">6</span>Cuando ganas: aparece el Shipping Mark</h2>
+
+<p>Marcar <strong>GANADO</strong> significa una sola cosa: <strong>el cliente quedó registrado</strong>.
+No significa que ya pagó ni que la carga llegó — eso lo lleva el sistema de operaciones.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 700 120" role="img" aria-label="De ganado a Shipping Mark y acceso al portal">
+  <defs><marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#1d6b45"/></marker>
+    <style>.n2{font:700 13px system-ui} .s2{font:400 11.5px system-ui;fill:#5a6478}</style></defs>
+  <rect x="6" y="26" width="180" height="60" rx="6" fill="#e3f2e9" stroke="#1d6b45" stroke-width="2"/>
+  <text class="n2" x="24" y="52" fill="#1d6b45">Marcas GANADO</text>
+  <text class="s2" x="24" y="72">en el tablero</text>
+  <path d="M188 56 H244" stroke="#1d6b45" stroke-width="2" fill="none" marker-end="url(#a2)"/>
+  <rect x="248" y="26" width="190" height="60" rx="6" fill="#fff" stroke="#0f1e3d" stroke-width="2"/>
+  <text class="n2" x="266" y="52" fill="#0f1e3d">Se emite DTD-XXXX</text>
+  <text class="s2" x="266" y="72">su Shipping Mark</text>
+  <path d="M440 56 H496" stroke="#1d6b45" stroke-width="2" fill="none" marker-end="url(#a2)"/>
+  <rect x="500" y="26" width="194" height="60" rx="6" fill="#fff" stroke="#0f1e3d" stroke-width="2"/>
+  <text class="n2" x="518" y="52" fill="#0f1e3d">Recibe su acceso</text>
+  <text class="s2" x="518" y="72">al portal del cliente</text>
+</svg>
+<figcaption>Si el código aparece, tu trabajo quedó bien hecho y el sistema ya rastrea a esa persona.</figcaption>
+</figure>
+
+<div class="card do">
+  <p class="h">✅ Ese código es tu señal de que funcionó</p>
+  <p>No tienes que revisar nada más. <strong>Si el Shipping Mark aparece, quedó registrado.</strong>
+  Si no aparece, algo falló en el registro y hay que avisar.</p>
+</div>
+
+<h2 id="s7"><span class="num-badge">7</span>Los seis errores que rompen los números</h2>
+
+<p>No son reglas por gusto. Cada uno tiene una consecuencia concreta.</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th style="width:34%">El error</th><th>Lo que provoca</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Dejar solicitudes sin aceptar</strong></td>
+        <td>La conversación no existe para el sistema. Nadie la ve, nadie la reclama, y el cliente cree que lo ignoraste.</td></tr>
+    <tr><td><strong>Aceptar y no mover al tablero nuevo</strong></td>
+        <td>El trato queda en el tablero viejo, fuera de tu vista diaria.</td></tr>
+    <tr><td><strong>Reabrir un trato ganado</strong></td>
+        <td>Se pierde el histórico de esa venta y deja de contar la recompra. Abre uno nuevo.</td></tr>
+    <tr><td><strong>Mover un lead hacia atrás</strong></td>
+        <td>Los tiempos por etapa dejan de significar algo y no se sabe dónde se traba el embudo.</td></tr>
+    <tr><td><strong>Dejar el monto vacío</strong></td>
+        <td>No se puede saber cuánto vale lo que está en juego, ni priorizar a quién atender primero.</td></tr>
+    <tr><td><strong>No marcar el tipo de servicio</strong></td>
+        <td>No se sabe qué se vende más y se pierde la posibilidad de enfocar el esfuerzo.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="card tip">
+  <p class="h">💡 Si solo te vas a acordar de tres cosas</p>
+  <ol style="margin:0;padding-left:22px">
+    <li><strong>La bandeja de Solicitudes se vacía todos los días.</strong></li>
+    <li><strong>Un cliente conocido va a Recontacto</strong>, nunca a Contacto inicial.</li>
+    <li><strong>Revisa que tus mensajes no digan <code>Error</code>.</strong></li>
+  </ol>
+</div>
+
+<footer>
+  <p><strong>Manual del asesor · CRM DTD Cargo</strong><br>
+  Documento vivo — se actualiza cuando cambia la forma de trabajar.<br>
+  Última actualización: <strong>4 de agosto de 2026</strong> · <code>docs/marketing/crm/manual-asesor-crm.html</code></p>
+</footer>
+
+</div>
+</body>
+</html>
