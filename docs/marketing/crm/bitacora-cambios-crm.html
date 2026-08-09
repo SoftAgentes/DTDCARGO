@@ -79,7 +79,7 @@
   <h1>Bitácora de cambios del CRM</h1>
   <p class="sub">Historial del trabajo sobre Kommo y su integración con el ERP DoorTuDoor.<br>
   Preparado para el asesor que implementó el sistema. <strong>Documento vivo</strong> — cubre del
-  <strong>24 de mayo</strong> al <strong>4 de agosto de 2026</strong>.</p>
+  <strong>24 de mayo</strong> al <strong>4 de agosto de 2026 (tarde)</strong>.</p>
 </header>
 
 <nav class="toc">
@@ -464,7 +464,94 @@ ni fuente citable.</blockquote>
     Seis de los primeros catorce clics <strong>no se guardaron pese a reportarse como exitosos</strong>: al
     navegar inmediatamente después de aceptar, la petición se cancela a medias. Sin verificar contra la base
     habrían quedado seis clientes fuera.</p></li>
+
+  <li><span class="when">— Cierre</span>
+    <p class="what">✅ La bandeja queda vaciada: 143 entradas aceptadas y reubicadas</p>
+    <p class="why">Reparto final, verificado contra la base:
+    <strong>127 a Contacto inicial</strong>, <strong>14 a Recontacto</strong> (los clientes registrados) y
+    2 en Leads Entrantes. <strong>Cero quedaron en el embudo viejo.</strong>
+    Los <strong>8 de más de 90 días se preservaron intactos</strong>, tal como se decidió tras descubrir que
+    también habían sido respondidos en su momento.</p>
+    <p class="ev">Ventas DTD pasa de 2 a 145 tratos · el embudo viejo queda sólo con su histórico</p></li>
 </ul>
+
+<div class="box good">
+  <p class="h">✅ Qué significa este cierre</p>
+  <p>La bandeja sin clasificar era <strong>la "sección general" que originó todo este trabajo</strong>: la cola
+  donde los mensajes quedaban invisibles para el tablero y para el ERP. Al 4 de agosto <strong>ya no existe
+  como acumulación</strong>: todo lo vivo está en el embudo nuevo, en la etapa que le corresponde, y los
+  clientes registrados entraron directo por Recontacto sin pasar por descubrimiento.</p>
+</div>
+
+<h3>Tarde del 4 de agosto — reclasificación de los embudos secundarios</h3>
+<ul class="tl">
+  <li><span class="when">— Previo</span>
+    <p class="what">Se reconecta Facebook (Messenger y Comentarios) sobre Ventas DTD</p>
+    <p class="why">Bloqueaba el borrado de los embudos vacíos: una fuente de leads seguía atada al embudo
+    viejo. Se desconectó de la página compartida y se reconectó desde dentro de Ventas DTD, mismo patrón
+    que ya se había usado con Instagram. Verificado en <em>Ajustes del embudo</em>: ninguna fuente quedó
+    apuntando al embudo de ventas original.</p></li>
+
+  <li class="hit"><span class="when">— Compra asistida</span>
+    <p class="what">✅ Sus 232 tratos se mueven a Ventas DTD → Ventas Perdidos (motivo <code>Limpieza 2026-08</code>)</p>
+    <p class="why">Embudo 100 % vencido, sin trato vivo. Se ejecutó en cinco tandas (6, 6, 170, 50×3, 20) porque
+    la casilla "seleccionar todo" del encabezado solo marca las filas que el navegador ya renderizó —no las
+    232 a la vez— y cada tanda se verificó contra la base antes de avanzar. Un intento de tanda quedó mal
+    apuntado a "Logrado con éxito" (ganado) en vez de "Ventas Perdidos"; se detectó en el mismo paso, antes
+    de guardar, con <strong>Cancelar</strong> y se repitió bien. <strong>Compra asistida queda en 0 tratos</strong>,
+    lista para borrar.</p></li>
+
+  <li class="hit"><span class="when">— Embudo Carga</span>
+    <p class="what">✅ Sus 240 tratos se mueven a Ventas DTD → Logrado con éxito (GANADO) — <strong>no</strong> a Perdido</p>
+    <p class="why">Excepción deliberada del plan: estos 240 sí compraron, así que marcarlos como perdidos
+    falsearía la conversión. Mismo patrón de tandas verificadas. <strong>Embudo Carga queda en 0 tratos</strong>,
+    listo para borrar.</p>
+    <p class="ev">Ventas DTD: Ventas Perdidos 358 · Logrado con éxito 240 · Contacto inicial 127 · Recontacto 14 · Leads Entrantes 5 (total 744)</p></li>
+
+  <li><span class="when">— Ya vacíos</span>
+    <p class="what">Cursos y Verificación de mercancía aparecen en 0 tratos sin tocarlos en esta sesión</p>
+    <p class="why">Quedaron vacíos de un trabajo de reclasificación anterior no documentado en esta bitácora.
+    Se listan igual porque también quedan listos para borrar.</p></li>
+
+  <li><span class="when">— Se dejan sin tocar</span>
+    <p class="what">1 trato en Validación de proveedores y 1 en VISA China no se reclasificaron</p>
+    <p class="why">No encajan en el patrón de "embudo 100 % vencido" que justifica el barrido en bloque: el de
+    Validación de proveedores está en <strong>Logrado con éxito</strong> (un cierre real, moverlo a Perdido
+    destruiría un dato de negocio) y el de VISA China está en <strong>Contacto inicial</strong> con un id de
+    lead reciente, compatible con un ingreso nuevo en curso. Ambos quedan pendientes de revisión humana antes
+    de decidir su destino o borrar esos dos embudos.</p></li>
+</ul>
+
+<div class="box note">
+  <p class="h">Refinamiento a la trampa del desplegable de etapa (ver más abajo)</p>
+  <p>La causa exacta, medida con <code>getBoundingClientRect()</code>: el navegador reporta un <em>viewport</em>
+  distinto al tamaño real de la captura de pantalla (factor de escala variable, hasta 2,18× en un momento y
+  0,75× en otro dentro de la misma sesión, sin que cambiara el zoom). Un clic calculado a ojo sobre la captura
+  cae varias filas fuera del campo real. <strong>La solución que funcionó de forma repetible:</strong> antes de
+  cada clic sobre el desplegable, leer la posición real del elemento vía JavaScript
+  (<code>document.querySelector('.pipeline-select-wrapper')</code> y <code>.pipeline-select__dropdown__item</code>)
+  y convertir esa coordenada con la razón <code>ancho_de_la_captura / window.innerWidth</code> medida en el
+  mismo instante — nunca reusar una razón de una captura anterior.</p>
+</div>
+
+<h4>Cómo se ejecutó, para quien tenga que repetirlo</h4>
+<p>El botón de aceptar se identificó por su <strong>ícono</strong> y no por su posición, que es lo que hace el
+clic inequívoco:</p>
+<div class="scroll">
+<table>
+  <thead><tr><th>Ícono</th><th>Acción</th></tr></thead>
+  <tbody>
+    <tr><td><code>#leads--unsorted-accept</code></td><td>✅ Aceptar — el que se usó</td></tr>
+    <tr><td><code>#common--linking-chain</code></td><td>Vincular a un trato existente</td></tr>
+    <tr><td><code>#common--trash</code></td><td>⚠️ Rechazar — pegado al anterior</td></tr>
+  </tbody>
+</table>
+</div>
+<p>Los 8 a preservar viajaron en una lista de exclusión dentro de cada lote, y se confirmó en cada corte que
+seguían pendientes. Dos límites del entorno que conviene anotar: el ejecutor corta a los <strong>45
+segundos</strong> (lotes de 8-9), y el DOM <strong>se queda rancio</strong> — llegó a mostrar como pendientes
+cinco entradas ya aceptadas. Por eso el conteo se llevó siempre contra la base de datos y nunca contra la
+pantalla.</p>
 
 <h3>Dos límites de la interfaz que costaron encontrar</h3>
 
@@ -623,24 +710,44 @@ ni fuente citable.</blockquote>
   <tbody>
     <tr><td>Mensajes entrantes por mes</td><td class="num">142</td><td>131 WhatsApp · 11 Instagram · 0 Messenger</td></tr>
     <tr><td>Lapso medio de réplica</td><td class="num">44 min</td><td>Solo cuenta los que sí recibieron respuesta</td></tr>
-    <tr><td>Entradas en bandeja</td><td class="num">152</td><td>149 atadas al embudo viejo</td></tr>
+    <tr><td>Entradas en bandeja</td><td class="num">152</td><td>Al 4-ago: <strong>143 aceptadas y reubicadas</strong> · 8 preservadas · 1 de prueba</td></tr>
+    <tr><td>Tratos en Ventas DTD</td><td class="num">744</td><td>Era 2 al iniciar el día · 145 tras vaciar la bandeja · 744 tras reclasificar Compra asistida y Embudo Carga</td></tr>
+    <tr><td>Embudos secundarios en 0 tratos</td><td class="num">8 / 12</td><td>Listos para borrar: Sam, Carga China VZLA Ofidoc, Atencion a leeds, Investigación productos, Cursos, Verificación de mercancía, Compra asistida, Embudo Carga</td></tr>
     <tr><td>Clientes con teléfono utilizable</td><td class="num">244</td><td>De 430 vivos</td></tr>
     <tr><td>Vínculo contacto Kommo ↔ cliente</td><td class="num">33</td><td>El resto se resuelve por teléfono, más frágil</td></tr>
   </tbody>
 </table>
 </div>
 
+<h4>Cerrado el 4 de agosto</h4>
+<ul>
+  <li>✅ <strong>Vaciar la bandeja sin clasificar</strong> — 143 entradas aceptadas y reubicadas en el embudo
+      nuevo; 8 antiguas preservadas a propósito.</li>
+  <li>✅ <strong>Los 14 clientes registrados a Recontacto</strong>, leídos uno por uno antes de moverlos.</li>
+  <li>✅ <strong>Corregido el hallazgo A</strong> — la fusión de clientes ya hereda el vínculo con el contacto
+      de Kommo. Migración escrita y validada por mutación; <em>falta aplicarla a producción</em>.</li>
+  <li>✅ <strong>Reconectado Facebook</strong> (Messenger y Comentarios) sobre Ventas DTD.</li>
+  <li>✅ <strong>Compra asistida reclasificada</strong> — 232 tratos → Ventas Perdidos, embudo en 0.</li>
+  <li>✅ <strong>Embudo Carga reclasificado</strong> — 240 tratos → GANADO (excepción: sí compraron), embudo en 0.</li>
+</ul>
+
 <h4>Pendientes</h4>
 <ol>
-  <li><strong>Terminar de mover los 14 clientes</strong> aceptados a Recontacto.</li>
-  <li><strong>Aceptar los 127 desconocidos recientes</strong> y llevarlos al embudo nuevo.</li>
-  <li><strong>Rechazar únicamente las 8 entradas</strong> de más de 90 días, revisadas una por una.</li>
-  <li><strong>Reconectar Facebook Messenger y Comentarios</strong> — bloquea el borrado del embudo viejo.</li>
-  <li><strong>Reclasificar los 2.879 tratos históricos</strong> y borrar los 11 embudos vacíos.</li>
+  <li><strong>Rechazar las 8 entradas</strong> de más de 90 días, revisadas una por una.</li>
+  <li><strong>Reclasificar Embudo de ventas</strong> — 2.278 tratos, el último y más grande de los embudos
+      secundarios. Falta decidir en la práctica el criterio (split por contacto previo del plan original, o
+      el respaldo de mover todo a Leads entrantes con lista de prioridad — ver riesgo abajo).</li>
+  <li><strong>Decidir los 2 tratos que quedaron sin tocar</strong> — uno ganado en Validación de proveedores,
+      uno nuevo en VISA China.</li>
+  <li><strong>Borrar los 8 embudos ya en 0 tratos</strong>, solo después de confirmar que no queda ninguno vivo:
+      Sam, Carga China VZLA Ofidoc, Atencion a leeds, Investigación productos, Cursos, Verificación de
+      mercancía, Compra asistida, Embudo Carga.</li>
+  <li><strong>Aplicar a producción la migración del hallazgo A.</strong></li>
   <li><strong>Regenerar y subir a Kommo la base de conocimiento</strong> — la cargada sigue siendo la de junio.</li>
   <li><strong>Aplicar la configuración v2 del agente</strong> y llevarlo a WhatsApp.</li>
   <li><strong>Salir del modo ensayo</strong> del enrutado, una vez terminada la limpieza.</li>
-  <li><strong>Corregir el hallazgo A</strong> — que la fusión copie también el vínculo con el contacto.</li>
+  <li><strong>Resolver los hallazgos B y C</strong> — las dos normalizaciones de teléfono y el código retirado
+      que sólo se resuelve en el almacén de China.</li>
 </ol>
 
 <footer>

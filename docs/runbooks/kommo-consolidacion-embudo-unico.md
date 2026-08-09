@@ -229,7 +229,8 @@ Para cada uno: abrir → seleccionar todos → editar en lote → setear **Tipo 
 > vivos están todos en Embudo de ventas.
 
 - [ ] **15.** VISA China (5) → `Visa China` → **4 a PERDIDO · 1 a Leads entrantes**
-- [ ] **16.** Validación de proveedores (13) → `Validación de proveedores` → **PERDIDO**
+- [x] **16.** ✅ Validación de proveedores (13) → 12 a **Ventas DTD · Ventas Perdidos** (motivo
+       "Limpieza 2026-08") · 1 preservado (`Logrado con éxito`, ya es cliente ganado — no bloquea nada)
 - [ ] **17.** Verificación de mercancía (15) → `Verificación de mercancía` → **PERDIDO**
 - [ ] **18.** Cursos (95) → `Cursos` → **PERDIDO**
 - [ ] **19.** Compra asistida (232) → `Compra asistida` → **PERDIDO**
