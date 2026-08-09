@@ -31,10 +31,8 @@ import {
 import { geocodeAddress, type GeocodeResult } from "@/lib/studio/geocoding";
 import { validateMarkboxFormat } from "@/lib/studio/markbox-utils";
 import { sendWelcomeEmail } from "@/lib/studio/welcome-email";
-import {
-  sendPortalInviteEmail,
-  generatePortalAccessLink,
-} from "@/lib/studio/portal-invite-email";
+import { sendPortalInviteEmail } from "@/lib/studio/portal-invite-email";
+import { createAccessLink } from "@/lib/studio/portal/access-link";
 import { toWhatsAppRaw } from "@/lib/portal/portal-types";
 import { verifyIdentity, type VerifyResult } from "@/lib/studio/identity";
 import { notifyIdentityMismatch } from "@/lib/studio/identity/notify-mismatch";
@@ -413,14 +411,23 @@ export async function invitePortalAction(
 }
 
 /**
- * Genera un enlace de acceso DIRECTO al portal para COMPARTIR por WhatsApp (founder
- * 2026-07-01). El asesor lo manda al WhatsApp del cliente y coordina en vivo → así
- * el TTL corto del enlace (30 min) no molesta. Devuelve el link + el número wa.me
- * del cliente (si tiene) para que la tarjeta arme el `wa.me/…?text=`.
+ * Genera un enlace de acceso al portal para COMPARTIR por WhatsApp (founder
+ * 2026-07-01). Devuelve el link + el número wa.me del cliente (si tiene) para que
+ * la tarjeta arme el `wa.me/…?text=`.
  *
- * ⚠️ Seguridad: el enlace LOGUEA a quien lo abra como el cliente → mandarlo SOLO a
- * su WhatsApp. Es de un solo uso y caduca. El botón que llama esto solo se muestra
- * cuando el cliente ya está invitado/activo (si no, el bind por email fallaría).
+ * ⚠️ **Ya NO devuelve el magic-link crudo de Supabase (SDD-0253).** Devuelve un
+ * enlace corto propio, `dtdcargo.com/entrar/<código>`, que abre una página con un
+ * botón. El magic-link se acuña cuando el CLIENTE aprieta ese botón.
+ *
+ * Por qué cambió: el robot de previsualización de WhatsApp recorría la cadena del
+ * magic-link para armar la tarjeta del chat y **consumía el token de un solo uso
+ * antes que el cliente** (medido el 2026-08-09 con DTD-9017). Un crawler hace GET;
+ * la página nueva sólo gasta el código en el POST del botón. De regalo se cae el
+ * TTL de 30 minutos: el token nace cuando el cliente lee, no cuando el asesor
+ * manda.
+ *
+ * ⚠️ Seguridad: el código sigue LOGUEANDO como el cliente a quien lo abra →
+ * mandarlo SOLO a su WhatsApp. Un solo uso, vence en 72 h, revocable.
  */
 export async function portalAccessLinkAction(
   clientId: string,
@@ -446,15 +453,13 @@ export async function portalAccessLinkAction(
     };
   }
 
-  const admin = createAdminClient();
-  const link = await generatePortalAccessLink(admin, client.email);
-  if (!link) {
-    return { ok: false, error: "No se pudo generar el enlace de acceso. Intenta de nuevo." };
-  }
+  // El RPC valida el tenant adentro → va con la sesión del asesor, no con admin.
+  const issued = await createAccessLink(supabase, clientId);
+  if (!issued.ok) return { ok: false, error: issued.error };
 
   return {
     ok: true,
-    link,
+    link: issued.url,
     whatsappRaw: toWhatsAppRaw(client.phone),
     name: client.name,
   };

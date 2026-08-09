@@ -358,8 +358,10 @@ function buildWaHref(raw: string | null, name: string | null, link: string): str
   const msg = [
     `Hola${saludo}, te damos acceso a tu portal de DTD Cargo: ahí ves tus envíos, tus facturas y tu Shipping Mark.`,
     ``,
-    `Entra directo a tu cuenta con este enlace (es de un solo uso y vence pronto):`,
+    `Ábrelo aquí y toca "Entrar a mi portal":`,
     link,
+    ``,
+    `Es personal y de un solo uso — no lo reenvíes a nadie.`,
     ``,
     `Si también te llegó por correo y no lo ves, revisa la carpeta de spam.`,
     ``,
@@ -735,7 +737,7 @@ function CandidateRow({
               }}
             >
               Se abre WhatsApp con el enlace listo. Envíaselo <b>solo al cliente</b>:
-              entra con un clic, es de un solo uso y vence pronto.
+              es de un solo uso y vale por 72 horas.
             </span>
           )}
         </div>
