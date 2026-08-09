@@ -1,24 +1,34 @@
--- 0345_merge_clients_conserva_kommo_contact.sql
+-- ─────────────────────────────────────────────────────────────
+-- 0361 · SDD-0246 + SDD-0244 — `merge_clients` también hereda el CONTACTO.
+--
+-- REEMPLAZA A LA 0345, QUE NO SE APLICÓ NUNCA Y NO DEBE APLICARSE.
+-- La 0345 arreglaba esto mismo, pero su cuerpo se copió de la migr 0341 y es
+-- del 2026-08-03. Después llegó la 0358 (SDD-0251) y volvió a reemplazar la
+-- MISMA función para meterle `assert_studio_role()`. Aplicar la 0345 hoy sería
+-- un `create or replace` con el cuerpo viejo: el candado de rol desaparecería
+-- en silencio y cualquier autenticado del tenant podría volver a fusionar
+-- fichas. Medido el 2026-08-09 contra prod: el cuerpo vivo es el de la 0358
+-- (md5 del cuerpo normalizado idéntico) y NO contiene `kommo_contact_id`.
+--
+-- Es la tercera vuelta del mismo tropiezo, y conviene decirlo: la 0345 nació
+-- porque la 0341 y la 0342 no se vieron entre sí; ahora la 0345 y la 0358
+-- tampoco. La regla que queda es leer la función VIVA antes de un
+-- `create or replace`, no el archivo que uno cree que corrió.
 --
 -- QUÉ ARREGLA
--- `merge_clients` (0341, SDD-0246) copiaba al sobreviviente el vínculo con el
--- TRATO de Kommo (`kommo_lead_id`) pero NO el vínculo con el CONTACTO
--- (`kommo_contact_id`). No fue un descuido: esa columna nació unas horas
--- después, en la 0342 (SDD-0244), desde otra ventana de trabajo. Las dos
--- migraciones son del 2026-08-03 y ninguna vio a la otra.
+-- `merge_clients` copiaba al sobreviviente el vínculo con el TRATO de Kommo
+-- (`kommo_lead_id`) pero no el vínculo con el CONTACTO (`kommo_contact_id`,
+-- nacido en la 0342).
 --
 -- POR QUÉ IMPORTA
--- `kommo_contact_id` es el camino RÁPIDO y exacto del enrutador de Recontacto:
--- cuando un cliente conocido escribe, el webhook lo resuelve por ese vínculo sin
--- cruzar teléfonos. El vínculo se llena solo (auto-sanado) la primera vez que
--- alguien escribe, y ése es el mecanismo por el que la cobertura crece sin
--- backfill.
---
--- Si la ficha que se RETIRA en la fusión era la que tenía el contacto vinculado
--- —que es el caso probable, porque la ficha nueva nace del registro web y el
--- vínculo lo estampa el enrutador sobre quien escribe— la fusión BORRA ese
--- vínculo y el cliente vuelve al cruce por teléfono para siempre. Falla en
--- silencio: no hay error, sólo un enrutado más frágil.
+-- `kommo_contact_id` es el camino rápido y exacto del enrutador de Recontacto:
+-- cuando un cliente conocido escribe, el webhook lo resuelve por ese vínculo
+-- sin cruzar teléfonos. Se llena solo la primera vez que alguien escribe, y ése
+-- es el mecanismo por el que la cobertura crece sin backfill. Si la ficha que
+-- se RETIRA en la fusión era la que tenía el contacto vinculado —el caso
+-- probable, porque la ficha nueva nace del registro web y el vínculo lo estampa
+-- el enrutador sobre quien escribe— la fusión BORRA ese vínculo y el cliente
+-- vuelve al cruce por teléfono para siempre. Falla en silencio.
 --
 -- POR QUÉ ES SEGURO COPIARLO
 --   1. `clients_kommo_contact_idx` (0342) NO es único: es un índice parcial de
@@ -26,18 +36,16 @@
 --   2. Aunque quedaran dos filas con el mismo contacto, el enrutador filtra
 --      `deleted_at is null` en sus DOS consultas (kommo-webhook/index.ts:139 y
 --      :108), y la fusión retira la ficha absorbida en la misma transacción.
---      O sea que sólo el sobreviviente queda visible.
 --   3. Se usa `coalesce(sobreviviente, absorbida)`: si el sobreviviente ya tiene
---      vínculo, se respeta. Sólo rellena el hueco, igual que el resto de la
---      función.
+--      vínculo, se respeta. Sólo rellena el hueco, igual que el resto.
 --
 -- FORMA
--- La 0341 ya está aplicada en producción, así que NO se edita: esto es un
--- `create or replace` de la misma función con una línea más. El resto del cuerpo
--- va idéntico al de la 0341, a propósito, para que el diff sea de una línea y se
--- pueda auditar de un vistazo.
+-- El cuerpo se copió TEXTUAL de la migr 0358 —candado de rol incluido— y lo
+-- único que cambia es UNA línea en el bloque de relleno. El diff contra la 0358
+-- es de una línea más su comentario, a propósito, para auditarlo de un vistazo.
 --
--- Ref: SDD-0246 (fusión) · SDD-0244 (enrutado) · hallazgo A de la bitácora de CRM.
+-- Ref: SDD-0246 (fusión) · SDD-0244 (enrutado) · SDD-0251 (candado de rol).
+-- ─────────────────────────────────────────────────────────────
 
 create or replace function public.merge_clients(p_survivor_id uuid, p_merged_id uuid)
 returns jsonb
@@ -58,6 +66,14 @@ declare
   v_claims int := 0;
   v_filled text[] := '{}';
 begin
+
+  -- ── EL CANDADO NUEVO (SDD-0251 d) ────────────────────────────────────────
+  -- De primero, antes de tocar `clients`: sin permiso no se puede ni sondear
+  -- qué ids existen usando el mensaje de error como oráculo.
+  perform public.assert_studio_role(
+    array['admin', 'commercial', 'operations', 'accounting', 'support']
+  );
+
   if p_survivor_id is null or p_merged_id is null then
     raise exception 'Hacen falta los dos clientes para fusionar' using errcode = '22023';
   end if;
@@ -242,7 +258,7 @@ begin
     person_id = coalesce(c.person_id, m.person_id),
     advisor_id = coalesce(c.advisor_id, m.advisor_id),
     kommo_lead_id = coalesce(c.kommo_lead_id, m.kommo_lead_id),
-    -- 0345: el vínculo con la PERSONA también se hereda. Sin esta línea la
+    -- 0361: el vínculo con la PERSONA también se hereda. Sin esta línea la
     -- fusión rompía el camino rápido del enrutador de Recontacto.
     kommo_contact_id = coalesce(c.kommo_contact_id, m.kommo_contact_id),
     portal_approved_at = coalesce(c.portal_approved_at, m.portal_approved_at),
@@ -297,3 +313,9 @@ begin
   );
 end;
 $$;
+
+comment on function public.merge_clients(uuid, uuid) is
+  'SDD-0246 · fusión atómica de dos fichas del mismo cliente. SDD-0251 d): exige rol de la matriz `clients` (+admin) vía assert_studio_role, porque assert_tenant_match sólo validaba el tenant y PostgREST expone la RPC directo.';
+
+revoke all on function public.merge_clients(uuid, uuid) from public, anon;
+grant execute on function public.merge_clients(uuid, uuid) to authenticated, service_role;
