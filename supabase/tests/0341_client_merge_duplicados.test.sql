@@ -52,6 +52,25 @@ begin
 end;
 $$;
 
+-- Calco de assert_studio_role (real: migr 0351). Hace falta porque la 0361
+-- —que se carga más abajo— lo invoca de PRIMERO. Acá no se prueba el candado:
+-- de eso se ocupa 0358_merge_clients_exige_rol.test.sql. Se copia igual el
+-- comportamiento (rol fuera de la lista → 42501) en vez de un no-op, para que
+-- este contrato no pase por una razón distinta a la de producción.
+create function public.assert_studio_role(p_roles text[]) returns void
+language plpgsql stable security definer set search_path = public as $$
+declare
+  v_role text;
+begin
+  select ut.role into v_role from public.user_tenants ut
+   where ut.user_id = auth.uid() and ut.disabled_at is null limit 1;
+  if v_role is null or not (v_role = any(p_roles)) then
+    raise exception 'No tienes permiso para realizar esta acción'
+      using errcode = '42501';
+  end if;
+end;
+$$;
+
 -- clients con TODAS las columnas que lee merge_clients + los índices únicos que
 -- de verdad existen en prod (son los que hacen peligrosa la fusión).
 create table public.clients (
@@ -74,7 +93,7 @@ create table public.clients (
   doc_verify_status text, doc_verify_source text, doc_registry_name text,
   doc_verified_at timestamptz, doc_verified_by uuid,
   kommo_lead_id bigint,
-  -- 0345: el vínculo con la PERSONA en Kommo. Nació en la 0342 (SDD-0244), o sea
+  -- 0361: el vínculo con la PERSONA en Kommo. Nació en la 0342 (SDD-0244), o sea
   -- DESPUÉS de merge_clients, y por eso la fusión no lo heredaba.
   kommo_contact_id bigint,
   email_marketing_optin_at timestamptz, email_optin_source text,
@@ -159,8 +178,12 @@ grant select, insert, update, delete on public.clients to authenticated;
 -- 0342 es la corrección de los teléfonos de relleno. Va acá y no en un archivo
 -- aparte porque comparte fixture y son un solo contrato: el dedup de SDD-0246.
 \ir ../migrations/0342_phone_match_key_relleno.sql
--- 0345 reemplaza merge_clients para que herede también kommo_contact_id.
-\ir ../migrations/0345_merge_clients_conserva_kommo_contact.sql
+-- 0361 reemplaza merge_clients para que herede también kommo_contact_id.
+-- Antes acá venía la 0345, que se borró: su cuerpo se había copiado de la 0341
+-- y aplicarla habría revertido el candado de rol que metió la 0358. La 0361
+-- parte del cuerpo de la 0358 y le suma la misma línea. Por eso este contrato
+-- necesita el stub de assert_studio_role de más arriba.
+\ir ../migrations/0361_merge_clients_conserva_kommo_contact.sql
 
 -- ── Fixture ──────────────────────────────────────────────────
 -- Calca el caso real DTD-Y009 / DTD-9009: el legado tiene el documento
@@ -296,7 +319,7 @@ $dedup$;
 set local role authenticated;
 set local request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000000000001';
 
--- 0345 · El vínculo con el CONTACTO de Kommo lo tiene la ficha que se RETIRA.
+-- 0361 · El vínculo con el CONTACTO de Kommo lo tiene la ficha que se RETIRA.
 -- Es el caso realista: la ficha nueva nace del registro web y el enrutador le
 -- estampa el contacto la primera vez que esa persona escribe por WhatsApp.
 -- Si la fusión no lo hereda, el superviviente queda sin camino rápido y ese
@@ -308,7 +331,7 @@ do $pre_contacto$
 begin
   if (select kommo_contact_id from public.clients
        where id = 'c0000000-0000-0000-0000-00000000000a') is not null then
-    raise exception 'TEST 0345: el superviviente ya tenía vínculo; el caso no prueba nada';
+    raise exception 'TEST 0361: el superviviente ya tenía vínculo; el caso no prueba nada';
   end if;
 end;
 $pre_contacto$;
@@ -341,14 +364,14 @@ begin
 end;
 $fusion$;
 
--- 0345 · El superviviente HEREDÓ el vínculo con el contacto de Kommo.
+-- 0361 · El superviviente HEREDÓ el vínculo con el contacto de Kommo.
 -- Ésta es la línea que valida por mutación: si se quita
--- `kommo_contact_id = coalesce(...)` de la 0345, este bloque falla.
+-- `kommo_contact_id = coalesce(...)` de la 0361, este bloque falla.
 do $post_contacto$
 begin
   if (select kommo_contact_id from public.clients
        where id = 'c0000000-0000-0000-0000-00000000000a') is distinct from 55507788 then
-    raise exception 'TEST 0345: la fusión PERDIÓ el vínculo con el contacto de Kommo — '
+    raise exception 'TEST 0361: la fusión PERDIÓ el vínculo con el contacto de Kommo — '
       'el enrutador de Recontacto vuelve al cruce por teléfono para este cliente';
   end if;
 
@@ -356,7 +379,7 @@ begin
   -- absorbida dejaría sin rastro de dónde vino el vínculo.
   if (select kommo_contact_id from public.clients
        where id = 'c0000000-0000-0000-0000-00000000000b') is distinct from 55507788 then
-    raise exception 'TEST 0345: la ficha retirada perdió su vínculo original';
+    raise exception 'TEST 0361: la ficha retirada perdió su vínculo original';
   end if;
 end;
 $post_contacto$;
