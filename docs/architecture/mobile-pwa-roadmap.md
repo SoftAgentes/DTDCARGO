@@ -26,9 +26,10 @@
 |---|---|---|---|
 | Superficies móviles | Operario CN, bodeguero VE, camionero VE, ERP staff | `app/m/{cn,ve/bodeguero,ve/camionero,erp}` | ✅ prod (SDD-0016/0017/0030) |
 | Portal cliente | 5ª superficie, magic-link | `app/portal/` | ✅ prod (SDD-0042) |
-| Manifest PWA | 1 solo, scope `/m`, `standalone`, `portrait`, theme navy `#0F1E3D`, íconos 192/512/maskable | `public/m/manifest.json` | ✅ |
+| Manifest PWA (operario) | scope `/m`, "DTD Operario", `standalone`, `portrait`, theme navy `#0F1E3D`, íconos 192/512/maskable (reverse sobre navy) | `public/m/manifest.json` | ✅ |
+| Manifest PWA (cliente) | scope `/portal`, "DTD Cargo", `standalone`, `portrait`, theme navy `#0F1E3D`, íconos 192/512/maskable (primary sobre paper) + `appleWebApp` | `public/portal/manifest.json`, enganchado en `app/portal/layout.tsx` | ✅ |
 | Service worker (operario) | `dtd-operario-v2-push`; `install/activate` + `push` + `notificationclick`; **`fetch` = passthrough (sin caché)** | `public/m/sw.js` | ⚠️ sin offline |
-| Service worker (bug reporter) | push del Studio | `public/sw.js` | ✅ |
+| Service worker (bug reporter + portal) | push del Studio; el portal lo registra vía `PortalPushRegister`. **No tiene handler `fetch`** → en Android Chrome no dispara el prompt de instalación (iOS no lo necesita) | `public/sw.js` | ⚠️ sin `fetch` |
 | Registro del SW | client-side, off en dev | `app/m/_components/PwaRegister.tsx` | ✅ |
 | Escáner QR | **`BarcodeDetector` nativo** + fallback manual; qr/code_128/code_39/ean_13 | `app/m/_components/QrScanner.tsx` | ✅ |
 | GPS / geolocalización | `watchPosition` throttled 30s + haversine | `lib/studio/hooks/use-geolocation.ts`, `app/m/ve/camionero/_components/GpsBlock.tsx`, `app/api/m/tms/ping/route.ts` | ✅ |
