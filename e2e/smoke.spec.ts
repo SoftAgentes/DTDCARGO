@@ -51,9 +51,20 @@ test.describe("rutas públicas críticas", () => {
     await expect(destino).toHaveRole("combobox");
 
     // Pestaña B = consolidado: sin ciudad, hasta puerto y con BL propio.
-    await tabs.nth(1).click();
+    //
+    // El clic va dentro de `toPass` porque `click()` espera a que la pestaña sea
+    // accionable pero NO a que React haya enganchado el handler: bajo carga
+    // aterriza antes de la hidratación, se pierde, y el `toBeVisible()` espera
+    // para siempre un panel que ya nadie va a abrir. Se consulta `aria-selected`
+    // primero para que el bloque sea idempotente — un toggle reintentado a
+    // ciegas volvería a la pestaña A.
     const panelB = page.locator("#panel-consolidado");
-    await expect(panelB).toBeVisible();
+    await expect(async () => {
+      if ((await tabs.nth(1).getAttribute("aria-selected")) !== "true") {
+        await tabs.nth(1).click();
+      }
+      await expect(panelB).toBeVisible({ timeout: 1_500 });
+    }).toPass({ timeout: 20_000 });
     await expect(panelB).toContainText(/hasta puerto/i);
     await expect(panelB).toContainText(/Bill of Lading/i);
     // Sin selector de destino: el consolidado llega hasta puerto, no hay ciudad
@@ -74,6 +85,13 @@ test.describe("rutas públicas críticas", () => {
   test("las rutas viejas de calc/estimación redirigen (301) a la calc que toca", async ({
     page,
   }) => {
+    // CINCO navegaciones completas en un solo test, cada una con su compilación
+    // y su render. Con los 60s por defecto el presupuesto alcanza en seco pero
+    // no cuando corren tres navegadores en paralelo: el 2026-08-09 murió acá con
+    // "Test timeout of 60000ms exceeded" en la tercera. No es lentitud de la
+    // app, es el presupuesto del test.
+    test.setTimeout(150_000);
+
     // CBM/LCL: /cotizar, /estimacion y /calculadora → /tarifas.
     for (const old of ["/cotizar", "/estimacion", "/calculadora"]) {
       await page.goto(old);
