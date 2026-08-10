@@ -11,6 +11,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/db/server";
 import { apiError } from "@/lib/http/api-error";
+import { requireStudioSession } from "@/lib/http/studio-session";
 import { getUserTenantId } from "@/lib/auth/session";
 import {
   isShipmentService,
@@ -34,7 +35,12 @@ type ShipmentCreatePayload = {
 };
 
 export async function GET() {
-  const supabase = await createClient();
+  // Sin este guard, RLS devolvía cero filas a un anónimo y la ruta respondía
+  // `{shipments: []}` con 200: una API que miente sobre lo que hizo.
+  const sesion = await requireStudioSession();
+  if (sesion instanceof NextResponse) return sesion;
+  const { supabase } = sesion;
+
   const { data, error } = await supabase
     .from("shipments")
     .select(

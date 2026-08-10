@@ -15,6 +15,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/db/server";
 import { apiError } from "@/lib/http/api-error";
+import { requireStudioSession } from "@/lib/http/studio-session";
 import {
   getBugDetail,
   getBugTechData,
@@ -131,7 +132,13 @@ export async function PATCH(
     return NextResponse.json({ error: "Severidad inválida." }, { status: 400 });
   }
 
-  const supabase = await createClient();
+  // El guard va acá y no sólo en RLS: un UPDATE que RLS bloquea afecta 0 filas
+  // sin devolver error, así que la respuesta no distingue "no existe" de "no
+  // tenés permiso". Defensa en profundidad, además, si una policy se cae.
+  const sesion = await requireStudioSession();
+  if (sesion instanceof NextResponse) return sesion;
+  const { supabase } = sesion;
+
   const { data, error } = await supabase
     .from("bug_reports")
     .update(update)
