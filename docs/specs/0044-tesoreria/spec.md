@@ -37,7 +37,7 @@ de CxP** (aging, KPIs) y el historial de pagos. Multi-moneda USD/VES/USDT/CNY (a
 ### Incluye
 
 #### Backend (Supabase)
-- Migration `0087_tesoreria.sql`:
+- Migration `0088_tesoreria.sql`:
   - Tabla `public.suppliers` (proveedor-lite): id, tenant_id, supplier_code (unique por tenant,
     `PRV-NNNN`), name, name_cn (nullable, 唛/proveedor chino), type (text: `proveedor_cn/naviera/
     agente_aduanal/servicio/otro`), country (text: `CN/VE/otro`), default_currency (`invoice_currency`,

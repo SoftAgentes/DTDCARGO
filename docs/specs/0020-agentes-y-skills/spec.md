@@ -235,7 +235,7 @@ Cada tool: `{ key, description, input_schema (JSON Schema), handler: async (ctx,
 
 ```
 docs/specs/0020-agentes-y-skills/spec.md
-supabase/migrations/0012_agents.sql
+supabase/migrations/0015_agents.sql
 lib/studio/agent-types.ts
 lib/studio/agent-queries.ts
 lib/studio/agents/
