@@ -6,6 +6,7 @@ import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import { Timeline } from "@/components/Timeline";
 import { Stats } from "@/components/Stats";
+import { serializeJsonLd } from "@/lib/public/json-ld";
 import {
   CONTACT,
   buildWhatsAppLink,
@@ -99,7 +100,7 @@ export default function NosotrosPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(aboutJsonLd).replace(/</g, "\\u003c"),
+          __html: serializeJsonLd(aboutJsonLd),
         }}
       />
       {/* Revestido al Norte con la superficie de recursos (`.rp-surface`).

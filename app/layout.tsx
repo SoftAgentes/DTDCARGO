@@ -19,6 +19,7 @@ import "./recursos.css";
 import "./noticias/noticias.css";
 // Superficie de `/pre-alertas` (`.pa-surface`) — mismo criterio que recursos.css.
 import "./prealertas.css";
+import { serializeJsonLd } from "@/lib/public/json-ld";
 
 const archivo = Archivo({
   subsets: ["latin"],
@@ -327,7 +328,7 @@ export default function RootLayout({
           // Escapar `<` previene que un valor con `</script>` rompa el tag.
           // JSON.stringify por default no lo hace. Defense-in-depth gratis.
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+            __html: serializeJsonLd(jsonLd),
           }}
         />
       </head>

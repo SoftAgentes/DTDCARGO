@@ -15,6 +15,7 @@ import { agruparPorViaje } from "@/lib/servicios-timeline";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { jetbrainsMono } from "@/lib/fonts";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
+import { serializeJsonLd } from "@/lib/public/json-ld";
 
 /**
  * `/puerta-a-puerta` — página SEO standalone del concepto protagonista de DTD
@@ -104,12 +105,12 @@ export default async function PuertaAPuertaPage() {
       <Nav />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(serviceJsonLd) }}
       />
       {faqPuertaAPuerta.length > 0 && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd) }}
         />
       )}
       <WebPageJsonLd
