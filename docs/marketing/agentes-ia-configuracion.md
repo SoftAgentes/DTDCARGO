@@ -15,6 +15,46 @@
 > nombres originales (Agente 2/3/4 = Reenganche/Cotizador/Post-venta); el orden en que se
 > construyeron fue el de prioridad.
 
+## 🔴 Los 4 agentes están PARADOS por falta de créditos (medido 2026-08-10)
+
+Leído en vivo en `/settings/ai-agent/`: **Créditos usados 7.281 / 7.250** y el aviso *"Has
+alcanzado tu límite mensual de créditos"*. La columna **Última actividad** de los cuatro agentes
+marca **07/08/2026** — tres días sin actuar.
+
+**Magnitud del hueco:** desde el 07-ago entraron **63 leads** (11 · 19 · 14 · 19 por día). 41
+siguen en `Contacto inicial`, **18 ya cayeron en `Ventas Perdidos`** y 4 llegaron a `Negociación`.
+Ninguno fue atendido por un agente.
+
+⚠️ **No es sólo recargar: el plan no da.** A 19-28 créditos por respuesta, 7.250 créditos son
+**~300 respuestas al mes, unas 10 por día**. Con ~16 leads diarios el techo se vuelve a chocar
+aunque se recargue. La decisión es de plan, no de saldo.
+
+### El canal de Instagram sigue sin agente — y lo que contesta ahí NO sale de Kommo
+
+Los cuatro agentes muestran un único canal en la columna CANALES: **`Importador de China`**
+(WhatsApp). **Instagram no aparece en ninguno**, igual que el 07-ago.
+
+Un lead real de Instagram (`#23317615`, contacto `santorini_72`, comentó *"Información"* en un post
+el 09-ago) recibió **dos mensajes publicitarios automáticos** —*"¡Hola, emprendedor! …"* y *"¿El
+precio de tus productos te limita? …"*— que Kommo etiqueta como `SalesBot:`. **No los mandó Kommo.**
+Los tres sospechosos internos quedaron descartados **por medición**, no por lectura:
+
+| Sospechoso | Veredicto | Prueba |
+|---|---|---|
+| Salesbots | **no fue** | los 11 en `settings.active: false`; lanzamientos **idénticos** a los del inventario del 06-ago (Asignar asesor 3.886 · Bienvenida 2.734) → cero disparos nuevos |
+| Difusiones | **no fue** | `/chats/tools/broadcasting` está en pantalla de onboarding: **nunca se creó ninguna** |
+| Agente de IA | **no fue** | sin créditos desde el 07-ago **y** sin el canal de Instagram |
+
+⭐ **Conclusión: la automatización vive en Instagram/Meta**, fuera de Kommo (respuesta automática a
+comentarios). Kommo sólo registra el saliente y lo firma `SalesBot:` porque llega por API sin autor
+humano. **Cambiar pautas del agente no cambia una sola palabra de lo que se responde en Instagram.**
+
+⚠️ **Un mensaje del hilo tampoco era del bot:** el *"Hola amigo, ¿tiene alguna duda en específico?
+Si me regala su whatsapp…"* (09-ago 10:35) lo escribió una persona del equipo, y está en **usted**
+cuando toda la voz de Manuel es tuteo.
+
+El guion que debería responder ahí: [`instagram-entrada.md`](instagram-entrada.md).
+
 ## 🟢 Batería completa de 8 casos probada en los 3 agentes nuevos (2026-08-07)
 
 Los 8 casos del §6 del encargo (`prompt-agentes-2-3-4.md`), adaptados por agente. **24/24 casos

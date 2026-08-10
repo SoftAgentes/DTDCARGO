@@ -71,6 +71,8 @@ de alta frecuencia y 7–20 quedan marcadas como prioridad editorial hasta instr
 Connector SDD-0043 (sync E2E en prod: leads/contactos/pipelines/webhooks). Fuente externa, no el CRM de prod. Ver memoria `project_sdd0043_kommo_connector`.
 - **Diseño del embudo de ventas** (5 etapas), **mapa de etapas (MARKBOX)** para SDD-0084 y **campos del Kanban**: [`embudo-ventas.md`](embudo-ventas.md). Análisis triangulado (2 agentes + Codex) sobre el embudo real; recomendación lista para configurar en Kommo. Cómo ACTIVAR el write-back: [`../runbooks/activar-crm-kommo.md`](../runbooks/activar-crm-kommo.md).
 - **Blueprint integral de EI/IAE por etapa + fuente de conocimiento + arquetipos + Salesbot/difusión + automatizaciones:** [`kommo-ia-fuente-conocimiento-pipeline.md`](kommo-ia-fuente-conocimiento-pipeline.md). Auditoría live read-only del 2026-08-05; nada del blueprint está aplicado todavía.
+- 🔴 **Los 4 agentes están PARADOS desde el 07-ago por límite de créditos** (7.281/7.250) — 63 leads entraron sin atender, 18 ya perdidos. Medido en vivo el 2026-08-10: [`agentes-ia-configuracion.md`](agentes-ia-configuracion.md). ⚠️ No es sólo recargar: a 19-28 créditos por respuesta el plan da ~10 respuestas/día contra ~16 leads/día.
+- **Guion de entrada por Instagram** (el canal más fuerte y el único sin guion): [`instagram-entrada.md`](instagram-entrada.md). ⭐ Lo que responde hoy a los comentarios **no sale de Kommo** — Salesbots apagados, cero difusiones, ningún agente con ese canal: la automatización vive en **Instagram/Meta**.
 
 #### 🧠 El conocimiento que consume la IA — **hay DOS bases, y no son la misma**
 
