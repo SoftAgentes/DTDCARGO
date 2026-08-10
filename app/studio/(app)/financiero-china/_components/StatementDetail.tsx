@@ -274,8 +274,8 @@ export function StatementDetail({
         }}
       >
         {[
-          { label: "Total estado · USD", v: fmtLine(totalUsd, "USD"), c: "var(--ink-inv)" },
-          { label: "Total estado · RMB", v: fmtLine(totalRmb, "RMB"), c: "var(--ink-inv)" },
+          { label: "Total estado · USD", v: fmtLine(totalUsd, "USD"), c: "var(--ink-side-strong)" },
+          { label: "Total estado · RMB", v: fmtLine(totalRmb, "RMB"), c: "var(--ink-side-strong)" },
           {
             label: "Conciliado",
             v: `${pct}%`,
@@ -291,7 +291,7 @@ export function StatementDetail({
             <div
               style={{
                 font: "700 10px/1 var(--f-sans)",
-                color: "var(--ink-inv-mute)",
+                color: "var(--ink-side-soft)",
                 letterSpacing: "0.1em",
                 textTransform: "uppercase",
                 marginBottom: 8,

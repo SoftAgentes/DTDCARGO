@@ -398,7 +398,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
                 <code
                   style={{
                     font: "900 18px/1 var(--f-mono)",
-                    color: "var(--ink-inv)",
+                    color: "var(--ink-side-strong)",
                   }}
                 >
                   ${totalComputed.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

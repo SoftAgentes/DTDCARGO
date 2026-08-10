@@ -242,7 +242,7 @@ export function ConversationList({
                       padding: "0 5px",
                       borderRadius: "var(--r-pill)",
                       background: "var(--wine)",
-                      color: "var(--ink-inv)",
+                      color: "var(--ink-side-strong)",
                       font: "700 10px/18px var(--f-sans)",
                       textAlign: "center",
                     }}
