@@ -1,4 +1,26 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Locator } from "@playwright/test";
+
+/**
+ * Abre el panel de forma resistente a la hidratación.
+ *
+ * POR QUÉ HACE FALTA: `locator.click()` espera a que el elemento sea
+ * accionable —visible, estable, habilitado— pero NO a que React haya enganchado
+ * el handler. Bajo carga el clic aterriza antes de la hidratación, se pierde, y
+ * el `toBeVisible()` siguiente espera para siempre algo que ya nadie va a
+ * disparar. Es la causa de que este archivo flakeara 4 veces el 2026-08-09.
+ *
+ * No se puede reintentar el clic a secas: el botón es un TOGGLE y el segundo
+ * clic cerraría lo que el primero abrió. Por eso se consulta `aria-expanded`
+ * antes — así el bloque es idempotente y `toPass` puede repetirlo sin miedo.
+ */
+async function abrirPanel(boton: Locator, panel: Locator) {
+  await expect(async () => {
+    if ((await boton.getAttribute("aria-expanded")) !== "true") {
+      await boton.click();
+    }
+    await expect(panel).toBeVisible({ timeout: 1_500 });
+  }).toPass({ timeout: 20_000 });
+}
 
 /**
  * Regresión del panel de ayuda del CBM (`components/CbmAyuda.tsx`).
@@ -36,8 +58,7 @@ test.describe("ayuda del CBM en la calculadora", () => {
     await expect(panel).toHaveCSS("display", "none");
 
     // 2) Abre con el "?"
-    await boton.click();
-    await expect(panel).toBeVisible();
+    await abrirPanel(boton, panel);
     await expect(boton).toHaveAttribute("aria-expanded", "true");
 
     // 3) Cierra con la ×  (antes: seguía visible)
@@ -46,14 +67,12 @@ test.describe("ayuda del CBM en la calculadora", () => {
     await expect(panel).toHaveCSS("display", "none");
 
     // 4) Cierra con Esc  (antes: seguía visible)
-    await boton.click();
-    await expect(panel).toBeVisible();
+    await abrirPanel(boton, panel);
     await page.keyboard.press("Escape");
     await expect(panel).toBeHidden();
 
     // 5) Cierra con clic afuera  (antes: seguía visible)
-    await boton.click();
-    await expect(panel).toBeVisible();
+    await abrirPanel(boton, panel);
     await page.locator("h1").first().click({ force: true });
     await expect(panel).toBeHidden();
   });
@@ -67,8 +86,7 @@ test.describe("ayuda del CBM en la calculadora", () => {
     const panelId = await boton.getAttribute("aria-controls");
     const panel = page.locator(`#${panelId}`);
 
-    await boton.click();
-    await expect(panel).toBeVisible();
+    await abrirPanel(boton, panel);
 
     const panelBox = await panel.boundingBox();
     const campoBox = await page
