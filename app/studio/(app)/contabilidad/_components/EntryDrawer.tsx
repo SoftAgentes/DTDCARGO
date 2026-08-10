@@ -385,7 +385,7 @@ export function EntryDrawer({ postableAccounts, onClose }: Props) {
                 display: "flex",
                 justifyContent: "space-between",
                 font: "500 13px/1 var(--f-sans)",
-                color: "var(--ink-inv-soft)",
+                color: "var(--ink-side)",
               }}
             >
               <span>Total debe</span>
@@ -398,7 +398,7 @@ export function EntryDrawer({ postableAccounts, onClose }: Props) {
                 display: "flex",
                 justifyContent: "space-between",
                 font: "500 13px/1 var(--f-sans)",
-                color: "var(--ink-inv-soft)",
+                color: "var(--ink-side)",
               }}
             >
               <span>Total haber</span>
@@ -406,7 +406,7 @@ export function EntryDrawer({ postableAccounts, onClose }: Props) {
                 ${fmtAmount(totals.credit)}
               </span>
             </div>
-            <div style={{ height: 1, background: "var(--ink-inv-mute)" }} />
+            <div style={{ height: 1, background: "var(--ink-side-soft)" }} />
             <div
               style={{
                 display: "flex",
@@ -417,7 +417,7 @@ export function EntryDrawer({ postableAccounts, onClose }: Props) {
               <span
                 style={{
                   font: "600 10.5px/1 var(--f-sans)",
-                  color: "var(--ink-inv-mute)",
+                  color: "var(--ink-side-soft)",
                   letterSpacing: "0.14em",
                   textTransform: "uppercase",
                 }}

@@ -328,7 +328,7 @@ export function FilingDetailDrawer({
                 <code
                   style={{
                     font: "900 22px/1 var(--f-mono)",
-                    color: "var(--ink-inv)",
+                    color: "var(--ink-side-strong)",
                   }}
                 >
                   ${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

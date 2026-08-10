@@ -441,7 +441,7 @@ export function StatementDrawer({ bankAccounts, onClose }: Props) {
             <SaldoRow label="Saldo inicial" value={Number(opening) || 0} />
             <SaldoRow label="+ Créditos" value={balance.totalCredit} color="var(--success)" />
             <SaldoRow label="− Débitos" value={balance.totalDebit} color="var(--wine-soft)" />
-            <div style={{ height: 1, background: "var(--ink-inv-mute)" }} />
+            <div style={{ height: 1, background: "var(--ink-side-soft)" }} />
             <SaldoRow label="Saldo final esperado" value={balance.expectedClosing} />
             <div
               style={{
@@ -453,7 +453,7 @@ export function StatementDrawer({ bankAccounts, onClose }: Props) {
               <span
                 style={{
                   font: "600 10.5px/1 var(--f-sans)",
-                  color: "var(--ink-inv-mute)",
+                  color: "var(--ink-side-soft)",
                   letterSpacing: "0.14em",
                   textTransform: "uppercase",
                 }}

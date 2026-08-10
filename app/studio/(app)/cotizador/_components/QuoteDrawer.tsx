@@ -768,7 +768,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
                 display: "flex",
                 justifyContent: "space-between",
                 font: "500 13px/1 var(--f-sans)",
-                color: "var(--ink-inv-soft)",
+                color: "var(--ink-side)",
               }}
             >
               <span>Subtotal flete</span>
@@ -782,7 +782,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
                   display: "flex",
                   justifyContent: "space-between",
                   font: "500 13px/1 var(--f-sans)",
-                  color: "var(--ink-inv-soft)",
+                  color: "var(--ink-side)",
                 }}
               >
                 <span>Embalaje</span>

@@ -301,15 +301,15 @@ export default async function DashboardPage() {
           }}
         />
         <div style={{ position: "relative", zIndex: 1 }}>
-          <div className="studio-eyebrow" style={{ marginBottom: 10, color: "var(--ink-inv-soft)" }}>
+          <div className="studio-eyebrow" style={{ marginBottom: 10, color: "var(--ink-side)" }}>
             {`OPERACIÓN · ${eyebrowDateVE(now)}`}
           </div>
-          <h1 className="studio-display" style={{ fontSize: 30, margin: "0 0 var(--s-2)", color: "var(--ink-inv)" }}>
+          <h1 className="studio-display" style={{ fontSize: 30, margin: "0 0 var(--s-2)", color: "var(--ink-side-strong)" }}>
             {greeting}, {subject}.
           </h1>
-          <p style={{ font: "400 14px/1.5 var(--f-sans)", color: "var(--ink-inv-soft)", margin: 0 }}>
-            Operando como <strong style={{ color: "var(--ink-inv)" }}>{tenant?.display_name ?? "DTD Cargo"}</strong>
-            {" · "}Moneda base: <strong style={{ color: "var(--ink-inv)" }}>{tenant?.base_currency ?? "USD"}</strong>.
+          <p style={{ font: "400 14px/1.5 var(--f-sans)", color: "var(--ink-side)", margin: 0 }}>
+            Operando como <strong style={{ color: "var(--ink-side-strong)" }}>{tenant?.display_name ?? "DTD Cargo"}</strong>
+            {" · "}Moneda base: <strong style={{ color: "var(--ink-side-strong)" }}>{tenant?.base_currency ?? "USD"}</strong>.
           </p>
         </div>
       </div>

@@ -80,7 +80,7 @@ export function ConversationsIndicator({
             justifyContent: "center",
             borderRadius: 8,
             background: "var(--wine)",
-            color: "var(--ink-inv)",
+            color: "var(--ink-side-strong)",
             font: "800 9px/1 var(--f-mono)",
             boxShadow: "0 0 0 2px var(--bg-surface)",
             pointerEvents: "none",
