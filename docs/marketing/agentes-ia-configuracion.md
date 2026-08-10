@@ -45,9 +45,19 @@ Los tres sospechosos internos quedaron descartados **por medición**, no por lec
 | Difusiones | **no fue** | `/chats/tools/broadcasting` está en pantalla de onboarding: **nunca se creó ninguna** |
 | Agente de IA | **no fue** | sin créditos desde el 07-ago **y** sin el canal de Instagram |
 
-⭐ **Conclusión: la automatización vive en Instagram/Meta**, fuera de Kommo (respuesta automática a
-comentarios). Kommo sólo registra el saliente y lo firma `SalesBot:` porque llega por API sin autor
-humano. **Cambiar pautas del agente no cambia una sola palabra de lo que se responde en Instagram.**
+⭐ **Conclusión (cerrada el 2026-08-10 con el equipo): no hay ninguna automatización — lo escribe una
+persona a mano** desde la app de Instagram, pegando copy de campaña. También se descartó Meta:
+Business Suite tiene **una sola automatización, apagada, vacía y sólo para Messenger**, y **cero apps
+de terceros** en el portfolio comercial.
+
+🔴 **La pista falsa: `SalesBot:` no prueba que exista un bot.** Kommo firma así cualquier saliente que
+entra por webhook **sin un usuario de Kommo asociado** — que es exactamente lo que pasa cuando alguien
+responde desde la app de Instagram en vez de desde el CRM. Se buscó durante horas una automatización
+que no existía. **Antes de cazar el bot, preguntarle al equipo si fue alguien.**
+
+**Consecuencia:** no hay nada que apagar. Lo que se cambia es el **guion de la persona** —
+[`instagram-entrada.md`](instagram-entrada.md)— y conviene que conteste **desde Kommo**, para que el
+mensaje quede atribuido y trazado en el lead.
 
 ⚠️ **Un mensaje del hilo tampoco era del bot:** el *"Hola amigo, ¿tiene alguna duda en específico?
 Si me regala su whatsapp…"* (09-ago 10:35) lo escribió una persona del equipo, y está en **usted**

@@ -201,16 +201,39 @@ Contactos nuevos de los últimos 30 días, por origen:
 que ningún agente atiende. *(Medida por presencia de teléfono en el contacto: los de mensajería
 social entran sin número. Los nombres lo confirman: `casr273`, `quail.7761624`, `gladysp_camacho`.)*
 
-## Dónde se cambia cada cosa — son dos sitios distintos
+## ⭐ No hay ninguna automatización — lo escribe una persona
+
+**Confirmado por el founder con el equipo, 2026-08-10.** El *"¡Hola, emprendedor! …"* y el *"¿El
+precio de tus productos te limita? …"* **los escribe alguien del equipo a mano**, pegando copy de
+campaña desde la app de Instagram. No hay ningún sistema que apagar.
+
+Se llegó ahí descartando **todos** los sospechosos, midiendo cada uno:
+
+| Dónde | Qué se encontró |
+|---|---|
+| Kommo · Salesbots | los 11 apagados, lanzamientos idénticos al inventario del 06-ago |
+| Kommo · Difusiones | ninguna creada |
+| Kommo · Agentes de IA | ninguno tiene el canal de Instagram |
+| Meta · Automatizaciones | **una sola, "Preguntas y respuestas": apagada, vacía y sólo Messenger** |
+| Meta · Apps de terceros | **ninguna** en el portfolio comercial |
+
+🔴 **La trampa que casi nos cuesta el diagnóstico: Kommo firma `SalesBot:` los mensajes que entran
+por webhook sin un usuario de Kommo asociado.** Cuando alguien responde **desde la app de Instagram**
+en vez de desde el CRM, el saliente llega sin autor y la UI lo rotula como bot. **Ese prefijo no
+prueba que exista un bot.** Durante horas se buscó una automatización que nunca existió.
+
+**Consecuencia práctica:** lo que hay que cambiar no es una configuración, es **el guion de la
+persona que contesta** — o sea, este documento. Para que además quede trazado en el CRM, conviene
+responder **desde Kommo** y no desde la app.
+
+## Dónde se hace cada cosa
 
 | Qué | Dónde |
 |---|---|
-| **Responder un comentario o un DM a mano** | **en Kommo**, sobre el lead (ver los dos tiempos, arriba) |
-| **La respuesta automática** que hoy dispara el copy publicitario | **Instagram / Meta Business Suite** |
-
-⚠️ **La automatización no vive en Kommo.** Está medido: los Salesbots están apagados, no hay
-difusiones creadas y ningún agente de IA tiene el canal de Instagram. Mientras no se cambie en Meta,
-seguirá saliendo el anuncio aunque alguien conteste bien después.
+| Responder un comentario | **en Kommo**, clic en el nombre del autor dentro del bloque del comentario |
+| Responder el DM | **en Kommo**, compositor del lead (sale al DM por defecto) |
+| Responder desde el teléfono | app de Instagram — funciona, pero **el mensaje entra a Kommo sin autor** y se rotula `SalesBot:` |
+| Automatizar la respuesta al comentario | Meta Business Suite → Bandeja de entrada → Automatizaciones → plantilla **"Respuesta a comentario"** (hoy **sin crear**) |
 
 Si en algún momento se decide que Manuel atienda Instagram, hay que sumarle el canal en
 `/settings/ai-agent/`. Eso **consume créditos**: al 2026-08-10 el saldo quedó en 7.281/12.250 tras
