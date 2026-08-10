@@ -32,7 +32,11 @@ export type FeatureFlagKey =
   | "sustainability"
   | "backup_auto"
   | "sso"
-  | "marketing_news";
+  | "marketing_news"
+  // Sembrado por 0066 y por el catálogo de 0337, y LEÍDO por la PWA de
+  // bodeguero. Faltaba acá, así que el panel de admin nunca lo mostró: la
+  // migración dice "para que el panel pueda tocarlo" y el panel no lo veía.
+  | "dispatch.show_warehouse_location";
 
 export type FeatureFlags = Record<FeatureFlagKey, boolean>;
 
@@ -75,6 +79,7 @@ export const FEATURE_FLAG_DEFAULTS: FeatureFlags = {
   // Default off · habilitar manualmente cuando migrations 0053-0056
   // (seo_drafts, news_writers, news_posts, seed) estén aplicadas a prod.
   marketing_news: false,
+  "dispatch.show_warehouse_location": false,
 };
 
 export const FEATURE_FLAG_KEYS: FeatureFlagKey[] = Object.keys(
@@ -106,6 +111,8 @@ export const FEATURE_FLAG_LABELS: Record<FeatureFlagKey, string> = {
   backup_auto: "Backup automático",
   sso: "Single Sign-On",
   marketing_news: "Marketing · Generador de Noticias Web",
+  "dispatch.show_warehouse_location":
+    "Bodeguero · mostrar pasillo/zona/estante del paquete",
 };
 
 /**
@@ -154,3 +161,70 @@ export function mergeFlagsWithDefaults(rows: FeatureFlagRow[]): FeatureFlags {
   }
   return out;
 }
+
+/** Qué hace de verdad un interruptor cuando se apaga. */
+export type FeatureFlagEffect =
+  /** Bloquea la URL: un `layout.tsx`/`page.tsx` rebota si está apagado. */
+  | "ruta"
+  /** Sólo esconde el módulo del sidebar; la URL sigue abriendo. */
+  | "sidebar"
+  /**
+   * Lo consume la PWA (`app/m/**`), no el Studio. Existe porque el detector de
+   * "ruta" sólo recorre `app/studio/(app)`: sin esta categoría, un flag que la
+   * PWA sí respeta habría que marcarlo "ninguno" — una mentira.
+   */
+  | "movil"
+  /** Nada. El interruptor se mueve y el sistema no cambia. */
+  | "ninguno";
+
+/**
+ * EFECTO REAL DE CADA FLAG — medido contra el código, no declarado de deseo.
+ *
+ * El panel de admin muestra 21 interruptores. Este mapa dice cuáles hacen algo,
+ * y `__tests__/feature-flags-catalog.test.ts` verifica que sea CIERTO: recorre
+ * `app/studio/(app)` buscando guards reales y se pone rojo si un flag marcado
+ * `ruta` no tiene quién lo lea, o si uno marcado `ninguno` sí se consume.
+ *
+ * ⚠️ **17 de los 21 son `ninguno` hoy.** No es un descuido de este mapa: es el
+ * estado real, medido el 2026-08-10 buscando toda lectura (`flags.<key>`,
+ * `requireFeatureEnabled`, `MODULE_FLAG_MAP`) en `app`, `lib` y `components`.
+ * Sólo cuatro se consumen en algún lado. Los demás se prenden y se apagan sin
+ * que el sistema cambie — el panel promete un control que no existe.
+ *
+ * Eso NO se arregla acá: cablearlos es trabajo por flag, cada uno con su
+ * decisión de producto. Lo que este mapa hace es dejar de esconderlo, y que la
+ * próxima vez que alguien cablee uno el contrato le exija actualizar la fila.
+ */
+export const FEATURE_FLAG_EFFECT: Record<FeatureFlagKey, FeatureFlagEffect> = {
+  // ── Los que sí hacen algo ──
+  /** `seniat/layout.tsx` → requireFeatureEnabled("seniat"). */
+  customs_seniat: "ruta",
+  /** `cola-qr/layout.tsx` → requireFeatureEnabled("qrqueue"). */
+  mobile_operator: "ruta",
+  /** `marketing/noticias-web/page.tsx:62` lee `flags.marketing_news` directo. */
+  marketing_news: "ruta",
+  /** Sólo esconde "no-olvidar" del sidebar; la ruta no lo consulta. */
+  vault: "sidebar",
+  /** `app/m/ve/bodeguero/page.tsx` lo consulta por `.eq("key", …)`. */
+  "dispatch.show_warehouse_location": "movil",
+
+  // ── Los que hoy no hacen nada ──
+  // Sembrados y visibles en el panel, sin un solo consumidor en el código.
+  cargo_insurance: "ninguno",
+  hs_autodetect: "ninguno",
+  cn_translation: "ninguno",
+  ai_copilot: "ninguno",
+  whatsapp: "ninguno",
+  email_sequences: "ninguno",
+  branding_xcliente: "ninguno",
+  multi_currency: "ninguno",
+  audit_log: "ninguno",
+  api_public: "ninguno",
+  webhooks: "ninguno",
+  comments: "ninguno",
+  consolidation_partial: "ninguno",
+  portal_cliente: "ninguno",
+  sustainability: "ninguno",
+  backup_auto: "ninguno",
+  sso: "ninguno",
+};
