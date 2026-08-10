@@ -18,7 +18,16 @@ async function abrirPanel(boton: Locator, panel: Locator) {
     if ((await boton.getAttribute("aria-expanded")) !== "true") {
       await boton.click();
     }
+    // Las DOS condiciones van adentro del bloque a propósito. Con sólo la
+    // visibilidad, el helper salía en cuanto el panel se veía y dejaba que el
+    // llamador leyera un `aria-expanded` todavía en "false" — la aserción de
+    // afuera atrapaba ese transitorio y volvía a flakear, ahora en
+    // `toHaveAttribute`. Exigiendo las dos, el bloque sólo pasa cuando el estado
+    // visual y el ARIA ya coinciden.
     await expect(panel).toBeVisible({ timeout: 1_500 });
+    await expect(boton).toHaveAttribute("aria-expanded", "true", {
+      timeout: 1_500,
+    });
   }).toPass({ timeout: 20_000 });
 }
 
