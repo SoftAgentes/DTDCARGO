@@ -502,7 +502,7 @@ function OdDetail({
         style={{
           padding: 16,
           background: "var(--bg-sidebar)",
-          color: "var(--ink-inv)",
+          color: "var(--ink-side-strong)",
           borderRadius: "var(--r-md)",
         }}
       >
@@ -524,7 +524,7 @@ function OdDetail({
         <div style={{ font: "900 18px/1.2 var(--f-display)", marginBottom: 6 }}>
           {od.route?.name ?? "Sin ruta"}
         </div>
-        <div style={{ font: "500 12.5px/1.3 var(--f-sans)", color: "var(--ink-inv-soft)" }}>
+        <div style={{ font: "500 12.5px/1.3 var(--f-sans)", color: "var(--ink-side)" }}>
           {od.truck?.plate ?? "—"} · {od.truck?.brand ?? "—"} · {od.driver?.name ?? "—"}
         </div>
         <div
@@ -533,7 +533,7 @@ function OdDetail({
             display: "flex",
             gap: 16,
             font: "700 12px/1 var(--f-mono)",
-            color: "var(--ink-inv)",
+            color: "var(--ink-side-strong)",
           }}
         >
           <span>{od.package_count} pkg</span>

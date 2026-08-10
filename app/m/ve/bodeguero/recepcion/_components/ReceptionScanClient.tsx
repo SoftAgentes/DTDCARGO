@@ -180,7 +180,7 @@ export function ReceptionScanClient({ receipt, tenantId, operario }: Props) {
           style={{
             padding: 16,
             background: "var(--bg-sidebar)",
-            color: "var(--ink-inv)",
+            color: "var(--ink-side-strong)",
             borderRadius: "var(--r-md)",
           }}
         >
@@ -229,7 +229,7 @@ export function ReceptionScanClient({ receipt, tenantId, operario }: Props) {
                 <span
                   style={{
                     font: "700 16px/1 var(--f-display)",
-                    color: "var(--ink-inv-soft)",
+                    color: "var(--ink-side)",
                   }}
                 >
                   {" / "}
@@ -239,7 +239,7 @@ export function ReceptionScanClient({ receipt, tenantId, operario }: Props) {
               <div
                 style={{
                   font: "500 11.5px/1.2 var(--f-sans)",
-                  color: "var(--ink-inv-soft)",
+                  color: "var(--ink-side)",
                   marginTop: 4,
                 }}
               >
@@ -257,7 +257,7 @@ export function ReceptionScanClient({ receipt, tenantId, operario }: Props) {
                 <span
                   style={{
                     font: "700 14px/1 var(--f-display)",
-                    color: "var(--ink-inv-soft)",
+                    color: "var(--ink-side)",
                   }}
                 >
                   {" / "}
@@ -267,7 +267,7 @@ export function ReceptionScanClient({ receipt, tenantId, operario }: Props) {
               <div
                 style={{
                   font: "500 11.5px/1.2 var(--f-sans)",
-                  color: "var(--ink-inv-soft)",
+                  color: "var(--ink-side)",
                   marginTop: 4,
                 }}
               >
