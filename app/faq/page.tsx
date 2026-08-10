@@ -8,6 +8,7 @@ import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import { FAQS } from "@/lib/faqs";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { FaqExplorer } from "@/components/FaqExplorer";
+import { serializeJsonLd } from "@/lib/public/json-ld";
 
 // JetBrains Mono (mono de marca) para los valores copiables de la guía Alibaba
 // (Shipping Mark, teléfono, código postal, email): la página monta --font-mono
@@ -60,7 +61,7 @@ export default function FaqPage() {
       <Nav />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd) }}
       />
       <BreadcrumbJsonLd
         items={[

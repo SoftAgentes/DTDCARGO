@@ -8,6 +8,7 @@ import { GEO_ZONAS } from "@/lib/geo-zonas";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { socialMeta } from "@/lib/seo-og";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
+import { serializeJsonLd } from "@/lib/public/json-ld";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 
@@ -59,7 +60,7 @@ export default function ImportarHubPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(itemListJsonLd).replace(/</g, "\\u003c"),
+          __html: serializeJsonLd(itemListJsonLd),
         }}
       />
       <BreadcrumbJsonLd

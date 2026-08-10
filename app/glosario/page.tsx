@@ -12,6 +12,7 @@ import {
 } from "@/lib/design-tokens";
 import { renderBolded } from "@/lib/text";
 import { ArrowIcon } from "@/components/Icon";
+import { serializeJsonLd } from "@/lib/public/json-ld";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 
@@ -66,7 +67,7 @@ export default function GlosarioPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(definedTermSetJsonLd).replace(/</g, "\\u003c"),
+          __html: serializeJsonLd(definedTermSetJsonLd),
         }}
       />
       <BreadcrumbJsonLd

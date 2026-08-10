@@ -15,6 +15,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/pre-alertas`, priority: 0.8, changeFrequency: "monthly" },
     { url: `${base}/servicios`,   priority: 0.9, changeFrequency: "monthly" },
     { url: `${base}/servicios/inspeccion`, priority: 0.7, changeFrequency: "monthly" },
+    // Las tres hermanas de /servicios/inspeccion quedaron fuera del sitemap sin
+    // que nadie lo decidiera. Van a 0.7 como ella: por debajo de la landing
+    // /puerta-a-puerta (0.9) para que la jerarquía quede clara y la página de
+    // detalle no le compita a la principal por la misma búsqueda.
+    { url: `${base}/servicios/puerta-a-puerta`, priority: 0.7, changeFrequency: "monthly" },
+    { url: `${base}/servicios/fcl`, priority: 0.7, changeFrequency: "monthly" },
+    { url: `${base}/servicios/lcl`, priority: 0.7, changeFrequency: "monthly" },
+    // Herramienta pública, misma familia que /calculadora-terrestre.
+    { url: `${base}/llenado`, priority: 0.8, changeFrequency: "monthly" },
     { url: `${base}/academia`,    priority: 0.8, changeFrequency: "monthly" },
     { url: `${base}/nosotros`,    priority: 0.7, changeFrequency: "monthly" },
     { url: `${base}/brochure`,    priority: 0.8, changeFrequency: "monthly" },

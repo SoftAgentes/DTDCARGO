@@ -11,6 +11,7 @@ import { SvpBand, type SvpPrincipal } from "@/components/servicios/SvpBand";
 import { SvpMoments, type SvpMoment } from "@/components/servicios/SvpMoments";
 import { HubRouter } from "@/components/servicios/HubRouter";
 import { HUB_FICHAS } from "@/components/servicios/hub-fichas";
+import { serializeJsonLd } from "@/lib/public/json-ld";
 
 const SERVICE_META_DESC =
   "Servicios entre Yiwu y Valencia: puerta a puerta DDP, LCL, FCL, aduana, inspección, sourcing, registro de marca, visado y transporte terrestre.";
@@ -154,7 +155,7 @@ export default async function ServiciosPage() {
       <Nav />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(serviciosJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(serviciosJsonLd) }}
       />
       <BreadcrumbJsonLd
         items={[

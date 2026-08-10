@@ -8,6 +8,7 @@ import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ChipF2 } from "@/components/servicios/ChipF2";
 import { svcHref } from "@/components/servicios/svcHref";
+import { serializeJsonLd } from "@/lib/public/json-ld";
 import {
   FichaF2,
   SecF2,
@@ -65,7 +66,7 @@ export default function InspeccionPage() {
       <Nav />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(servicioJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(servicioJsonLd) }}
       />
       <BreadcrumbJsonLd
         items={[

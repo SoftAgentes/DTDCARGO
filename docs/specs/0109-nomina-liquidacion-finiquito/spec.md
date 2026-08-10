@@ -275,7 +275,7 @@ Idéntica al resto de Nómina (SDD-0103 §3) — **dinero + PII de egreso**:
 ## 9. Archivos (propuesto)
 
 ```
-supabase/migrations/0178_nomina_settlements.sql           (nº real lo fija el Director)
+supabase/migrations/0179_nomina_settlements.sql           (nº real lo fija el Director)
 lib/studio/nomina/settlement-types.ts                     (calcLiquidacion + buildSalarioIntegral + validadores)
 lib/studio/nomina/settlement-queries.ts                   (queries puras que reciben SupabaseClient)
 lib/studio/nomina/settlement-types.test.ts                (Vitest)

@@ -7,6 +7,7 @@ import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ChipF2 } from "@/components/servicios/ChipF2";
+import { serializeJsonLd } from "@/lib/public/json-ld";
 import {
   FichaF2,
   SecF2,
@@ -94,7 +95,7 @@ export default function FclPage() {
       <Nav />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(servicioJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(servicioJsonLd) }}
       />
       <BreadcrumbJsonLd
         items={[

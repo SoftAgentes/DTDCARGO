@@ -7,6 +7,7 @@ import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 import { RespuestaRapida } from "@/components/RespuestaRapida";
 import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
+import { serializeJsonLd } from "@/lib/public/json-ld";
 
 /**
  * `/pre-alertas` — landing de la pre-alerta de carga (acción del portal).
@@ -85,7 +86,7 @@ export default function PreAlertasPage() {
       <Nav />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(serviceJsonLd) }}
       />
       <BreadcrumbJsonLd
         items={[

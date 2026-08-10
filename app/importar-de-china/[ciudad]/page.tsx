@@ -9,6 +9,7 @@ import { GEO_ZONAS, getGeoZona } from "@/lib/geo-zonas";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { socialMeta } from "@/lib/seo-og";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
+import { serializeJsonLd } from "@/lib/public/json-ld";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 
@@ -108,11 +109,11 @@ export default async function ImportarCiudadPage({
       <Nav />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(serviceJsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd) }}
       />
       <BreadcrumbJsonLd
         items={[

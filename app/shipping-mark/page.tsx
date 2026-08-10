@@ -11,6 +11,7 @@ import { WebPageJsonLd } from "@/components/WebPageJsonLd";
 import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import { FAQS } from "@/lib/faqs";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
+import { serializeJsonLd } from "@/lib/public/json-ld";
 
 /**
  * `/shipping-mark` — página del sistema de marcaje Shipping Mark / 唛头.
@@ -103,12 +104,12 @@ export default function ShippingMarkPage() {
       <Nav />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(serviceJsonLd) }}
       />
       {faqShippingMark.length > 0 && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd) }}
         />
       )}
       <WebPageJsonLd
