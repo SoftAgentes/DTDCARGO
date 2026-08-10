@@ -53,17 +53,38 @@ test.describe("Tier 1 · logins (render + negativos)", () => {
    * Gmail —que abre los enlaces del mensaje apenas llega— lo gastaba antes de
    * que la persona hiciera clic. Ningún enlace llegó vivo a su destinatario.
    *
-   * Abrir dos veces y obtener lo MISMO es la prueba de que el GET es
-   * idempotente. Si alguien vuelve a mover el consumo a la apertura, la segunda
-   * carga cambiaría de mensaje y este test se pone rojo.
+   * ⚠️ LO QUE ESTE TEST **NO** PRUEBA, y antes decía que sí.
+   *
+   * Usa un token INEXISTENTE, así que no puede detectar la regresión: si alguien
+   * devuelve el consumo al GET, el `update` no encuentra fila que gastar, las dos
+   * cargas muestran el mismo mensaje y esto se queda VERDE. La invariante se
+   * vigila donde vive —en el código— con
+   * `lib/studio/__tests__/token-get-idempotente.test.ts`, que se pone rojo si
+   * aparece un `.update()` en el `page.tsx`.
+   *
+   * Lo que sí prueba, y vale: que la ruta pública renderiza su mensaje de error
+   * de forma determinista, sin 500 ni pantalla en blanco, para un token basura
+   * repetido.
+   *
+   * Antes comparaba `body.innerText()` ENTERO entre las dos cargas. Eso lo hacía
+   * flakear por la razón equivocada: en la primera carga Next todavía compila y
+   * el texto no coincide con el de la segunda (falló así el 2026-08-09). Ahora
+   * afirma el marcador estable de la página.
    */
-  test("Acceso: abrir el enlace dos veces da el mismo resultado (no se consume)", async ({ page }) => {
+  test("Acceso: un token inválido renderiza el mismo error las dos veces", async ({ page }) => {
     const url = "/acceso/tokenquenoexiste000000000000000000000000000000";
-    await page.goto(url);
-    const primera = await page.locator("body").innerText();
-    await page.goto(url);
-    const segunda = await page.locator("body").innerText();
-    expect(segunda).toBe(primera);
+    for (const vuelta of ["primera", "segunda"]) {
+      await page.goto(url);
+      // Se afirma el TEXTO, no `getByRole("heading")`: `AccesoError` pinta el
+      // título en un <p>, no en un h1/h2 (verificado en page.tsx:170). Asumir el
+      // rol dejaba el test rojo en los tres navegadores.
+      await expect(
+        page.getByText(/Este enlace no existe/i).first(),
+        `${vuelta} carga: el token basura debe caer en el mensaje de "no existe"`,
+      ).toBeVisible();
+      // Y nunca el formulario de clave: eso sería tratar un token inválido como bueno.
+      await expect(page.locator('input[type="password"]')).toHaveCount(0);
+    }
   });
 
   test("Back: form email+password presente", async ({ page }) => {
