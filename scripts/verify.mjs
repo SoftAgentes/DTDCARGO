@@ -28,6 +28,43 @@ const C = { green: "\x1b[32m", red: "\x1b[31m", dim: "\x1b[2m", yellow: "\x1b[33
 const ok = (m) => console.log(`${C.green}[OK]${C.nc}   ${m}`);
 const fail = (m) => console.log(`${C.red}[FAIL]${C.nc} ${m}`);
 const skip = (m) => console.log(`${C.yellow}[SKIP]${C.nc} ${m}`);
+const warn = (m) => console.log(`${C.yellow}[AVISO]${C.nc} ${m}`);
+
+// Reporte JSON del e2e. Corre EN PARALELO al reporter `list` (que es el que se
+// ve en pantalla): sirve para distinguir "un test falló" de "el proceso salió
+// ≠0 sin ningún test fallado". Ver `e2eAbsolver`.
+const E2E_JSON = path.join(os.tmpdir(), `dtd-e2e-${process.pid}.json`);
+
+/**
+ * ¿El e2e salió ≠0 SIN que fallara un solo test?
+ *
+ * Pasa siempre, y siempre por lo mismo: al terminar la corrida, el worker de
+ * **WebKit** (`mobile-safari`, iPhone 14) no cierra en Windows. Playwright
+ * espera 300 s, lo mata a la fuerza y devuelve 1 con un "1 error was not a part
+ * of any test". Medido el 2026-08-09 sobre cinco corridas del gate: los SEIS
+ * cuelgues venían precedidos exclusivamente por tests de `mobile-safari`, nunca
+ * de chromium ni de mobile-chrome.
+ *
+ * Sin esto el gate re-corría la suite entera —~7 min— para llegar al mismo
+ * verde. Y NO puede tapar una regresión: si un test falla de verdad,
+ * `stats.unexpected` es > 0 y el paso se marca rojo igual. Lo único que absuelve
+ * es un proceso que se fue mal habiendo pasado todo.
+ */
+function e2eAbsolver() {
+  let stats;
+  try {
+    stats = JSON.parse(fs.readFileSync(E2E_JSON, "utf8")).stats;
+  } catch {
+    return null; // sin reporte legible no se absuelve nada
+  }
+  if (!stats || stats.unexpected !== 0) return null;
+  const flaky = stats.flaky ? `, ${stats.flaky} flaky` : "";
+  return (
+    `e2e: ${stats.expected} tests pasaron${flaky} y ninguno falló, pero el proceso salió ≠0 — ` +
+    `es el worker de WebKit que no cierra en Windows, no una regresión. ` +
+    `No se re-corre la suite por eso.`
+  );
+}
 
 // ¿Hay navegadores de Playwright instalados? El e2e necesita al menos chromium.
 // Sin ellos, el paso e2e se OMITE (no rojo) para no romper el gate por algo
@@ -161,10 +198,13 @@ const STEPS = [
   // → dos ventanas nunca colisionan. Los specs Tier-3 que piden seed se auto-omiten sin creds.
   {
     name: "e2e",
-    argv: ["node_modules/@playwright/test/cli.js", "test"],
-    env: { E2E_PORT: String(e2ePort()) },
+    // `list` es lo que se ve; `json` va a un archivo y sólo lo lee `e2eAbsolver`
+    // cuando el proceso sale ≠0, para saber si de verdad falló un test.
+    argv: ["node_modules/@playwright/test/cli.js", "test", "--reporter=list,json"],
+    env: { E2E_PORT: String(e2ePort()), PLAYWRIGHT_JSON_OUTPUT_NAME: E2E_JSON },
     retry: 1,
     preflight: e2ePreflight,
+    absolver: e2eAbsolver,
   },
 ];
 
@@ -187,15 +227,27 @@ for (const step of STEPS) {
       : process.env;
   const attempts = (step.retry ?? 0) + 1;
   let r;
+  let absuelto = null;
   for (let i = 1; i <= attempts; i++) {
+    // El absolvedor lee el reporte de ESTA corrida: si quedó uno viejo, mentiría.
+    try {
+      fs.rmSync(E2E_JSON, { force: true });
+    } catch {}
     r = spawnSync(process.execPath, step.argv, { stdio: "inherit", cwd: process.cwd(), env });
     if (r.status === 0) break;
+    // Antes de gastar un reintento: ¿el proceso se fue mal habiendo pasado todo?
+    absuelto = step.absolver ? step.absolver() : null;
+    if (absuelto) break;
     if (i < attempts) {
       console.log(`${C.dim}   ${step.name} falló (exit ${r.status ?? "señal " + r.signal}) → reintento ${i}/${attempts - 1} (flaky conocido)${C.nc}`);
     }
   }
   if (r.status === 0) ok(step.name);
-  else {
+  else if (absuelto) {
+    // Amarillo, no verde: pasó, pero que se vea que hubo una anomalía.
+    warn(absuelto);
+    ok(`${step.name} (con aviso)`);
+  } else {
     fail(`${step.name} (exit ${r.status ?? "señal " + r.signal})`);
     failures.push(step.name);
   }

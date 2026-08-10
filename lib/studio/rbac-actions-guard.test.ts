@@ -10,9 +10,25 @@
  * excepción acá con su razón. Mantené la lista CORTA — cada entrada es una
  * excepción de seguridad que alguien debería poder defender en un review.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
+
+/**
+ * ⏱️ I/O-BOUND: este contrato RECORRE EL ÁRBOL DE ARCHIVOS del repo.
+ *
+ * Aislado corre en ~1 s. Pero la suite tiene NUEVE contratos que hacen lo mismo
+ * y vitest los reparte en paralelo sobre 427 archivos de test: compitiendo por
+ * el mismo disco, la lectura se va a 26-53 s y expira contra el `testTimeout`
+ * global de 20 s. Falla un conjunto DISTINTO cada corrida — la firma de la
+ * contención, no de una regresión (una regresión falla el mismo test las dos
+ * veces, y con una aserción, no con un reloj).
+ *
+ * El timeout se sube ACÁ y no en `vitest.config.ts` a propósito: subirlo global
+ * relajaría los otros ~4.960 tests, donde 20 s ya es señal de que algo va mal.
+ */
+vi.setConfig({ testTimeout: 120_000 });
+
 
 const STUDIO_APP = join(process.cwd(), "app", "studio", "(app)");
 
