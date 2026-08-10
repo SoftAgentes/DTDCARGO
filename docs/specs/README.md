@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 243 specs)
+### Índice de specs (generado · 247 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -183,7 +183,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0149 | Resumen mensual de conversaciones con IA — histórico navegabl… | in-progress | interno |
 | 0150 | Secretarias de reunión v2 — default rica + Escucha Activa + t… | in-progress | interno |
 | 0151 | Perfil cliente — aviso de pendientes in-page + solicitud de c… | done | interno |
-| 0152 | Estiba por zonas — identidad por bulto, captura al cargar y v… | in-progress | interno |
+| 0152 | Estiba por zonas — identidad por bulto, captura al cargar y v… | superseded | interno |
 | 0153 | Etiqueta pre-declarada · la caja nace con el aviso, no con la… | in-progress | interno |
 | 0154 | Recibir por escaneo · la etiqueta pre-declarada materializa l… | in-progress | interno |
 | 0155 | Estiba por lotes · escanear una caja monta el lote; posición … | in-progress | interno |
@@ -269,6 +269,9 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0236 | Transportistas terrestres y su tarifario por CBM | done | interno |
 | 0237 | La calculadora pública cobra la entrega nacional por CBM | done | interno |
 | 0238 | El brand book se comparte con un link y un código | done | interno |
+| 0239 | El POD del camionero cierra el embarque | in-progress | interna |
+| 0240 | Feature flags: siembra por tenant y panel que no miente | in-progress | interna |
+| 0241 | El catálogo de localidades VE quedó ilegible: RLS encendida s… | done | interna |
 | 0242 | Las piezas de producto se abren con un segundo código | in-progress | interno |
 | 0243 | Anulación gobernada de gastos | done | interno |
 | 0244 | Enrutado a Recontacto — el ERP reconoce al cliente que vuelve… | in-progress | interno |
@@ -281,6 +284,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0251 | Hardening: invitación nominal, RPC con rol (operarios + fusió… | in-progress | interno |
 | 0252 | Cierre del carril roles y permisos — superadmin, matriz edita… | in-progress | interna |
 | 0253 | Enlace de acceso al portal corto y con marca propia | in-progress | interna |
+| 0254 | Guardar el Shipping Mark en el WhatsApp del cliente al regist… | in-progress | interna |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0239, 0240, 0241 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

@@ -19,6 +19,8 @@ import {
   type RegisterFieldKey,
 } from "@/lib/portal/register-types";
 import type { RegisterCity } from "@/lib/portal/register-cities";
+import { buildWhatsAppLink } from "@/lib/design-tokens";
+import { buildMarkboxWhatsAppMessage } from "@/lib/public/markbox-whatsapp";
 import { trackLead } from "@/components/Analytics";
 import { registerClientAction } from "./actions";
 
@@ -1019,7 +1021,11 @@ function DupRecover({ isCompany }: { isCompany: boolean }) {
 }
 
 // ── Paso 5 · ¡Listo! (celebración del Shipping Mark) ─────────────
-function StepDone({
+// Exportado para poder probarlo solo: llegar acá por el wizard exige pasar las
+// validaciones de 4 pasos, y `fireEvent.submit` no dispara el `useActionState`
+// de React 19 en jsdom. Sin esto, la pantalla que le da al cliente su código
+// —y su única red si el correo rebota— no tendría ninguna prueba.
+export function StepDone({
   markbox,
   firstName,
   email,
@@ -1091,6 +1097,27 @@ function StepDone({
         >
           {markbox}
         </div>
+      </div>
+
+      {/* Red debajo del correo (SDD-0254). Si la bienvenida rebota, el cliente se
+          queda sin código Y sin puerta: la clave que le crea el registro es
+          aleatoria, así que la única entrada es un enlace al correo. Esto le deja
+          el código en SU historial de WhatsApp, que no depende de nada nuestro.
+          No es un envío automático —no hay API de WhatsApp— sino un wa.me que
+          abre el chat con el mensaje escrito; el cliente aprieta enviar. */}
+      <div className="w-full max-w-[440px] flex flex-col items-center gap-2">
+        <a
+          href={buildWhatsAppLink(buildMarkboxWhatsAppMessage(markbox, firstName))}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn btn-ghost w-full"
+        >
+          Guárdalo en mi WhatsApp
+        </a>
+        <p className="text-[12px] text-grey-700 leading-[1.5] text-center max-w-[38ch]">
+          Te abrimos el chat con nosotros y tu código ya escrito. Solo tienes que
+          enviarlo y te queda guardado, aunque el correo no llegue.
+        </p>
       </div>
 
       <MarkboxGuide markbox={markbox} />
