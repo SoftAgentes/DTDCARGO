@@ -120,6 +120,55 @@ async function logged(
   }
 }
 
+/**
+ * Igual que `logged`, pero la falla NO tumba la corrida.
+ *
+ * Para trabajo de LIMPIEZA (la poda). El motivo es el radio de explosión:
+ * `index.ts` marca `kommo_connections.status = 'error'` si CUALQUIER entidad
+ * falla, y con la conexión en 'error' se niegan con 409 el sync, **el drenaje
+ * del write-back** y el push de altas. Dejar que una tarea de mantenimiento
+ * cosmética pueda apagar el canal que lleva el Shipping Mark a Kommo es
+ * desproporcionado — y es el modo de falla de SDD-0195, donde un hipo de red
+ * mató el sync y nadie se enteró en 13 días.
+ *
+ * El error igual queda escrito en `sync_logs` con status 'error', así que es
+ * visible y greppable; lo que no hace es contaminar el veredicto de la corrida.
+ */
+async function loggedJanitorial(
+  supabase: SupabaseClient,
+  conn: KommoConnection,
+  entity: string,
+  fn: () => Promise<{ fetched: number; upserted: number }>,
+): Promise<EntityResult> {
+  const started_at = new Date().toISOString();
+  try {
+    const { fetched, upserted } = await fn();
+    await supabase.from("sync_logs").insert({
+      tenant_id: conn.tenant_id,
+      connection_id: conn.id,
+      entity,
+      started_at,
+      finished_at: new Date().toISOString(),
+      records_fetched: fetched,
+      records_upserted: upserted,
+      status: "ok",
+    });
+    return { entity, status: "ok", fetched, upserted };
+  } catch (e) {
+    await supabase.from("sync_logs").insert({
+      tenant_id: conn.tenant_id,
+      connection_id: conn.id,
+      entity,
+      started_at,
+      finished_at: new Date().toISOString(),
+      status: "error",
+      error_detail: errMsg(e),
+    });
+    // 'ok' a propósito: ver el comentario de arriba. El detalle está en sync_logs.
+    return { entity, status: "ok", fetched: 0, upserted: 0 };
+  }
+}
+
 export async function syncAll(
   supabase: SupabaseClient,
   conn: KommoConnection,
@@ -200,7 +249,7 @@ export async function syncAll(
   // de etapas. Las dos guardas viven en `_shared/kommo-prune.ts`: lectura vacía
   // no borra nada, y nada que tenga leads espejados se toca.
   results.push(
-    await logged(supabase, conn, "pipelines_prune", async () => {
+    await loggedJanitorial(supabase, conn, "pipelines_prune", async () => {
       const { data: mirroredRaw, error } = await supabase
         .from("kommo_pipelines")
         .select("id")
@@ -236,7 +285,7 @@ export async function syncAll(
   );
 
   results.push(
-    await logged(supabase, conn, "statuses_prune", async () => {
+    await loggedJanitorial(supabase, conn, "statuses_prune", async () => {
       const { data: mirroredRaw, error } = await supabase
         .from("kommo_statuses")
         .select("pipeline_id, id")
