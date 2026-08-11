@@ -26,7 +26,7 @@ import {
   type SupplierChargeWithNet,
   type PartnerLedgerEntry,
 } from "@/lib/studio/partner-finance/types";
-import type { SupplierOption } from "./FinancieroChinaClient";
+import type { SupplierOption } from "@/lib/studio/partner-finance/types";
 import { ImportStatementDrawer } from "./ImportStatementDrawer";
 import { StatementDetail } from "./StatementDetail";
 import { getStatementDetail } from "../actions";

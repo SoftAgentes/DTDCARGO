@@ -21,7 +21,7 @@ import {
   type PartnerBalance,
   type PartnerLedgerEntry,
 } from "@/lib/studio/partner-finance/types";
-import type { SupplierOption } from "./FinancieroChinaClient";
+import type { SupplierOption } from "@/lib/studio/partner-finance/types";
 import { SupplierPicker } from "./SupplierPicker";
 
 function fmtUsd(n: number): string {

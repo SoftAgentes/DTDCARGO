@@ -5,7 +5,7 @@
  * cargos (SDD-0059 · Slice B2). Muestra código + nombre (+ nombre CN si lo hay).
  */
 
-import type { SupplierOption } from "./FinancieroChinaClient";
+import type { SupplierOption } from "@/lib/studio/partner-finance/types";
 
 export function SupplierPicker({
   suppliers,

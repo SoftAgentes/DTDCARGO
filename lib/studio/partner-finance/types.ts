@@ -57,6 +57,22 @@ export function isPartnerCurrency(v: unknown): v is PartnerCurrency {
 }
 
 // ╔═══════════════════════════════════════════════════════════╗
+// ║ Socio en el selector (proyección mínima de suppliers)      ║
+// ╚═══════════════════════════════════════════════════════════╝
+/**
+ * Lo que la UI necesita de un socio para poder elegirlo. Vive acá y no en el
+ * componente cliente: lo consumen los 7 tabs/drawers del módulo, y tenerlo en
+ * `FinancieroChinaClient.tsx` obligaba a que todos importaran del componente
+ * raíz (ciclo de imports a nivel de tipos).
+ */
+export type SupplierOption = {
+  id: string;
+  code: string;
+  name: string;
+  name_cn: string | null;
+};
+
+// ╔═══════════════════════════════════════════════════════════╗
 // ║ supplier_bills.bill_kind (PP/CA/full)                     ║
 // ╚═══════════════════════════════════════════════════════════╝
 export type BillKind = "pp" | "ca" | "full";

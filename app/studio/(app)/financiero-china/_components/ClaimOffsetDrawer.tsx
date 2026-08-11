@@ -11,7 +11,7 @@ import { useState, useTransition } from "react";
 import { DrawerShell, DrawerFooter } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
-import type { SupplierOption } from "./FinancieroChinaClient";
+import type { SupplierOption } from "@/lib/studio/partner-finance/types";
 import { addClaimOffsetAction } from "../actions";
 
 export function ClaimOffsetDrawer({

@@ -21,7 +21,7 @@ import {
   chargeStatusTone,
   type SupplierChargeWithNet,
 } from "@/lib/studio/partner-finance/types";
-import type { SupplierOption } from "./FinancieroChinaClient";
+import type { SupplierOption } from "@/lib/studio/partner-finance/types";
 import { SupplierPicker } from "./SupplierPicker";
 import { ChargeDrawer } from "./ChargeDrawer";
 import { CreditNoteDrawer } from "./CreditNoteDrawer";

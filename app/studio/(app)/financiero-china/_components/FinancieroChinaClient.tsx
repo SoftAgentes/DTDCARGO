@@ -22,6 +22,7 @@ import type {
   PartnerLedgerEntry,
   PartnerStatement,
   SupplierChargeWithNet,
+  SupplierOption,
 } from "@/lib/studio/partner-finance/types";
 import type { PartnerFinanceHealth } from "@/lib/studio/partner-finance/posting-health-queries";
 import { getSupplierFinance } from "../actions";
@@ -33,13 +34,6 @@ import { ClaimOffsetsTab } from "./ClaimOffsetsTab";
 import { PartnerAlertsBanner } from "./PartnerAlertsBanner";
 import type { CurrencyConversion, SupplierClaimOffset } from "@/lib/studio/partner-finance/types";
 import type { PartnerBillAlert } from "@/lib/studio/partner-finance/alerts-queries";
-
-export type SupplierOption = {
-  id: string;
-  code: string;
-  name: string;
-  name_cn: string | null;
-};
 
 type Tab = "reconciliacion" | "cuenta" | "cargos" | "conversiones" | "cruces";
 

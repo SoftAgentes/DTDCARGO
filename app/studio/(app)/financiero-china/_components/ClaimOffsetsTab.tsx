@@ -20,7 +20,7 @@ import {
   claimOffsetStatusTone,
   CLAIM_OFFSET_NEXT,
 } from "@/lib/studio/partner-finance/types";
-import type { SupplierOption } from "./FinancieroChinaClient";
+import type { SupplierOption } from "@/lib/studio/partner-finance/types";
 import { ClaimOffsetDrawer } from "./ClaimOffsetDrawer";
 import { transitionClaimOffsetAction } from "../actions";
 

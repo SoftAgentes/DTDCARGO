@@ -28,7 +28,7 @@ import {
   type ParsedStatement,
   type StatementColumnMap,
 } from "@/lib/studio/partner-finance/statement-parser";
-import type { SupplierOption } from "./FinancieroChinaClient";
+import type { SupplierOption } from "@/lib/studio/partner-finance/types";
 import { importStatement } from "../actions";
 
 type DraftLine = {
