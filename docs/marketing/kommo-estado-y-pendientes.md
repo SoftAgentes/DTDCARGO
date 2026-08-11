@@ -238,6 +238,29 @@ disparadores para esa acción trae **una sola opción**: *"cuando es movido a es
 
 ### Desarrollo (SDD, sesión aparte)
 
+### 🟢 El Shipping Mark: todo listo salvo dos desplegables (investigado 2026-08-11)
+
+**No hace falta código ni migración.** Existe UI en el Studio y los campos ya existen en Kommo:
+
+| Dónde | Campo en Kommo | id |
+|---|---|---|
+| **Lead** | `Shipping Mark - j102` | **1570535** |
+| **Contacto** | `Shipping Mark` | **1570723** |
+
+**Se configura en** `/studio/kommo` → pestaña **Dirección**, en dos tarjetas: *"Shipping Mark en
+Kommo"* (el del lead) y *"Shipping Mark en el contacto"*. Server Action admin-only
+`saveKommoMarkboxFieldAction`, que valida contra el espejo `kommo_custom_fields`.
+
+⭐ **El que importa para "reconocer al cliente que vuelve" es el del CONTACTO** (SDD-0244 rebanada B).
+El del lead *"se lo lleva el trato al cerrarse"*; el del contacto sobrevive. Y la tarjeta del
+pipeline ya está mostrando `Contacto: Shipping Mark` en su primera fila, así que **en cuanto se
+llene, aparece sin tocar nada más**.
+
+⚠️ **No hay backfill.** El write-back se dispara **sólo al convertir un lead en cliente** desde el
+Studio (`convertLeadToClientAction` → `enqueueKommoMarkboxWriteback`). Los clientes que ya existen
+**no se actualizan retroactivamente**: sólo se marcarán los que se conviertan de ahora en adelante.
+Para los viejos haría falta un backfill que **no está construido**.
+
 - [ ] ⭐ **Activar el write-back del MARKBOX → Kommo (SDD-0086).** **Ya está construido**:
       `lib/studio/kommo-writeback.ts` → `buildMarkboxPatchPayload()` · `queueMarkboxWriteback()`,
       que resuelven `markbox → clients.kommo_lead_id` y hacen `PATCH /api/v4/leads/{id}`.
