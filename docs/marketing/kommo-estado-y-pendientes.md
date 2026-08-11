@@ -132,7 +132,34 @@ Y **58 de 63 leads nuevos no tienen ninguna tarea**, porque hoy sólo se crean e
 agente transfiere porque el cliente **pide un humano** o porque **confirma que quiere comprar**
 (pestaña *Acciones* del agente, tarea de 15 min).
 
-**Lo que falta:** una tarea automática al recibir un mensaje. 🔴 **Y no se pudo crear** — ver abajo.
+### 🟢 Resuelto el 2026-08-11 — la tarea automática se crea DESDE EL AGENTE
+
+El disparador del pipeline está bloqueado (ver abajo), pero **la misma acción existe dentro del
+agente**, en la pestaña **Acciones**, y ahí sí se guarda.
+
+⭐ **La llave es la condición `El mensaje es recibido en horas específicas`, cuyo valor por defecto
+es `Siempre`** — o sea, **cada mensaje entrante**, sin restricción de horario. Es la única condición
+del catálogo que se dispara con todos los mensajes; las demás van por intención (*el cliente quiere*,
+*pregunta sobre*, *el sentimiento es*…).
+
+Quedó configurada **en los 4 agentes**, verificada recargando:
+
+```
+Cuando  El mensaje es recibido en horas específicas: Siempre
+Hacer   Agregar tarea · Fecha límite: 2 horas · Usuario responsable: Responsable actual
+        Tipo: Seguimiento · Comentario: "Responder al cliente"
+```
+
+Con eso, **cada mensaje que entra crea una tarea a 2 horas**; si nadie responde, la tarea vence y
+**la tarjeta se pone roja**. Cubre todo el pipeline, porque entre los 4 agentes están las 7 etapas.
+
+⚠️ **Ojo al elegir la acción:** el desplegable de *Hacer* viene en **"Transferir al usuario"**, y
+dejarlo así haría que el agente transfiriera en **cada** mensaje. Hay que cambiarlo a **"Agregar
+tarea"** — el clic tiene que caer sobre el texto de la opción, no al borde, o el desplegable se
+cierra sin aplicar y parece que no pasó nada.
+
+⚠️ **Pendiente de medir:** con ~16 leads/día habrá muchas tareas. Si el tablero queda rojo
+permanentemente el indicador pierde valor y hay que subir el plazo de 2 h.
 
 ## 🔴 El bloqueo: "Cannot run two different agents in the same status"
 
@@ -179,8 +206,9 @@ disparadores para esa acción trae **una sola opción**: *"cuando es movido a es
 
 - [x] 🟢 **Notificación de traspaso del Cotizador y del Reenganche** → **DTD CARGO** *(hecho 10-ago)*.
 - [ ] **Decidir si el Post-venta lleva límite** de mensajes/créditos. Hoy no tiene ninguno.
-- [ ] 🔴 **Tarea automática al recibir mensaje** — vía `+ Añadir condición de parada` en el agente, o
-      escribiendo a soporte de Kommo por el bloqueo. Es lo que enciende las alertas rojas.
+- [x] 🟢 **Tarea automática al recibir mensaje** *(hecho 11-ago)* — en los 4 agentes, vía la acción
+      `El mensaje es recibido en horas específicas: Siempre → Agregar tarea (2 h)`. Es lo que
+      enciende las alertas rojas. ⚠️ Falta **medir en unos días** si 2 h es el plazo correcto.
 - [x] 🟢 ~~Reasignar los 3 leads de Sergio Quevedo~~ — **se resolvió solo**: al desactivar al usuario,
       Kommo reasignó sus leads. Verificado: Sergio en **0** (la API devuelve `204`) y DTD CARGO pasó
       de 3.125 a **3.130**.
