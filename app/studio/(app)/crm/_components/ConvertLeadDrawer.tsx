@@ -110,7 +110,7 @@ export function ConvertLeadDrawer({
       >
         <div>
           <label className="studio-label" htmlFor="ck-contact-q">
-            Vincular contacto de Kommo (opcional)
+            Vincular contacto del CRM (opcional)
           </label>
           <input
             id="ck-contact-q"
@@ -129,7 +129,7 @@ export function ConvertLeadDrawer({
             }}
           >
             El nombre, email y teléfono del cliente se toman del contacto que elijas
-            (Kommo no trae dirección → la completas después en Clientes).
+            (el CRM no trae dirección → la completas después en Clientes).
           </p>
         </div>
 

@@ -381,6 +381,14 @@ const nextConfig: NextConfig = {
       // es "Shipping Mark"; MARKBOX quedó como identificador interno). 301 para
       // no perder el SEO de la URL vieja, que estaba indexada.
       { source: "/markbox", destination: "/shipping-mark", permanent: true },
+      // Studio · el módulo comercial se unificó en UNA sola entrada llamada
+      // "CRM" (founder 2026-08-11): `/studio/kommo` se renombró a `/studio/crm`
+      // —el rótulo es neutro respecto al proveedor— y el placeholder vacío
+      // `/studio/leads` ("CRM · Leads") se eliminó. 308 permanente para no
+      // romper marcadores ni el historial del equipo; Next preserva el query
+      // string, así que los deep-links `?tab=…&pipeline=…` siguen sirviendo.
+      { source: "/studio/kommo", destination: "/studio/crm", permanent: true },
+      { source: "/studio/leads", destination: "/studio/crm", permanent: true },
       // Fase 6: el rastreo público se retiró — vive dentro del portal. El
       // buscador `/track` y los deep-links `/track/<código>` (que se comparten
       // por WhatsApp) hacen 301 permanente al login del portal, sin dejar 404.

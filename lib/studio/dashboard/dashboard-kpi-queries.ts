@@ -212,7 +212,7 @@ export async function leadsKpi(supabase: SupabaseClient): Promise<KpiValue> {
   const { count, error } = await supabase
     .from("kommo_leads")
     .select("id", { count: "exact", head: true });
-  if (error) return { value: "—", sub: "Kommo no sincronizado", tone: "neutral" };
+  if (error) return { value: "—", sub: "CRM no sincronizado", tone: "neutral" };
   return {
     value: String(count ?? 0),
     sub: "en pipeline",

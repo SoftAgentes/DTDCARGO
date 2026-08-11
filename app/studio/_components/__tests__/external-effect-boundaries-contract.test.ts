@@ -6,7 +6,7 @@ const source = (path: string) => readFileSync(join(process.cwd(), path), "utf8")
 
 const consumers = [
   "app/p/[token]/PackingListFormSection.tsx",
-  "app/studio/(app)/kommo/_components/ConvertLeadDrawer.tsx",
+  "app/studio/(app)/crm/_components/ConvertLeadDrawer.tsx",
   "app/studio/(app)/tracking/[id]/_components/ChangeDestinationModal.tsx",
   "app/studio/(app)/usuarios/_components/UsersClient.tsx",
   "app/studio/_components/ui/useRowHighlight.ts",

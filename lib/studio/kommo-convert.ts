@@ -187,7 +187,7 @@ export async function convertLead(
     .eq("tenant_id", tenantId)
     .eq("id", leadId)
     .maybeSingle<{ name: string | null }>();
-  if (!lead) return { error: "No se encontró el lead en el espejo de Kommo." };
+  if (!lead) return { error: "No se encontró el lead en el espejo del CRM." };
 
   // 3. MARKBOX atómico.
   const { data: markboxData, error: mErr } = await supabase.rpc("next_markbox", {
@@ -201,7 +201,7 @@ export async function convertLead(
   const name =
     (prefill.name ?? "").trim() ||
     (lead.name ?? "").trim() ||
-    `Lead Kommo ${leadId}`;
+    `Lead ${leadId}`;
   const insertRow: Record<string, unknown> = {
     tenant_id: tenantId,
     markbox,

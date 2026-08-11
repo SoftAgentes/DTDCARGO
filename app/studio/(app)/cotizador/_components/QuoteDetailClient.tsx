@@ -143,10 +143,10 @@ export function QuoteDetailClient({
               }}
             >
               <strong style={{ color: "var(--ink)" }}>
-                Coincide con Kommo:
+                Coincide con el CRM:
               </strong>{" "}
               este teléfono ya figura en {kommoMatches.length} contacto
-              {kommoMatches.length > 1 ? "s" : ""} de Kommo
+              {kommoMatches.length > 1 ? "s" : ""} del CRM
               {" ("}
               {kommoMatches.slice(0, 3).map((c) => c.name).join(", ")}
               {kommoMatches.length > 3 ? "…" : ""}

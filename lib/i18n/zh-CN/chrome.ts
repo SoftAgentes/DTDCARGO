@@ -81,7 +81,8 @@ export const chrome: ChromeDict = {
   // 商务 (COMERCIAL)
   "chrome.sidebar.quotes": "估价",
   "chrome.sidebar.clients": "客户",
-  "chrome.sidebar.leads": "CRM · 潜在客户",
+  // La sigla CRM no se traduce: el equipo de Yiwu la usa tal cual.
+  "chrome.sidebar.crm": "CRM",
   "chrome.sidebar.suppliers_cn": "服务预报单",
   "chrome.sidebar.rates": "费率",
   // 财务 (FINANZAS)

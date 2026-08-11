@@ -143,9 +143,9 @@ export const ROLE_QUEUE_LABELS: Record<BitacoraAssignableRole, string> = {
   marketing: "Marketing",
 };
 
-/** Regla Kommo vs Bitácora — va también en el empty-state del módulo. */
+/** Regla CRM vs Bitácora — va también en el empty-state del módulo. */
 export const BITACORA_EMPTY_RULE =
-  "Kommo = pipeline y venta · Bitácora = compromisos internos accionables";
+  "CRM = pipeline y venta · Bitácora = compromisos internos accionables";
 
 /** Orden de columnas del tablero (flujo de avance). */
 export const ESTADO_FLOW: readonly BitacoraTaskEstado[] = BITACORA_TASK_ESTADOS;

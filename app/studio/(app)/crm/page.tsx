@@ -45,7 +45,7 @@ import { resolveKommoTab } from "./_components/kommo-tabs.shared";
 /** Tope de leads traídos por embudo para el Tablero kanban. */
 const BOARD_CAP = 2000;
 
-export const metadata = { title: "Kommo CRM" };
+export const metadata = { title: "CRM" };
 
 export default async function KommoPage({
   searchParams,

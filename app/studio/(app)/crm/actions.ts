@@ -60,7 +60,7 @@ export async function convertLeadToClientAction(
         markbox: res.markbox,
       });
     }
-    revalidatePath("/studio/kommo");
+    revalidatePath("/studio/crm");
   }
   return res;
 }
@@ -180,7 +180,7 @@ export async function saveKommoStageMapAction(
     return { error: "No hay una conexión de Kommo configurada para tu cuenta." };
   }
 
-  revalidatePath("/studio/kommo");
+  revalidatePath("/studio/crm");
   return { ok: true };
 }
 
@@ -236,7 +236,7 @@ export async function saveKommoMarkboxFieldAction(
     return { error: "No hay una conexión de Kommo configurada para tu cuenta." };
   }
 
-  revalidatePath("/studio/kommo");
+  revalidatePath("/studio/crm");
   return { ok: true };
 }
 
@@ -294,6 +294,6 @@ export async function saveKommoMarkboxContactFieldAction(
     return { error: "No hay una conexión de Kommo configurada para tu cuenta." };
   }
 
-  revalidatePath("/studio/kommo");
+  revalidatePath("/studio/crm");
   return { ok: true };
 }

@@ -122,8 +122,10 @@ export const MODULES: ModuleDef[] = [
   { id: "clients", group: "COMERCIAL", label: "Clientes", labelKey: "chrome.sidebar.clients", icon: "users", slug: "/studio/clientes" },
   // CRM / relación
   { id: "conversaciones", group: "COMERCIAL", label: "Conversaciones", icon: "mail", slug: "/studio/conversaciones" },
-  { id: "leads", group: "COMERCIAL", label: "CRM · Leads", labelKey: "chrome.sidebar.leads", icon: "spark", slug: "/studio/leads" },
-  { id: "kommo", group: "COMERCIAL", label: "Kommo CRM", icon: "radar", slug: "/studio/kommo" },
+  // Una sola entrada de CRM (founder 2026-08-11). El rótulo es neutro respecto
+  // al proveedor: si mañana cambiamos de herramienta, sobrevive. El `id` sigue
+  // siendo "kommo" a propósito — es la clave de RBAC y de las tablas, plomería.
+  { id: "kommo", group: "COMERCIAL", label: "CRM", labelKey: "chrome.sidebar.crm", icon: "radar", slug: "/studio/crm" },
   // Órdenes: venta al cliente → sourcing (proveedores → compra)
   { id: "sales-orders", group: "COMERCIAL", label: "Órdenes de venta", icon: "invoice", slug: "/studio/ordenes-venta" },
   // Renombre founder 2026-07-03: son solicitudes de servicio (prealertas), no

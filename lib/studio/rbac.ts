@@ -89,7 +89,10 @@ export const ROLE_MODULE_ACCESS: Record<string, readonly StudioUserRole[]> = {
   quotes: ["commercial", "operations", "accounting", "support"],
   clients: ["commercial", "operations", "accounting", "support"],
   conversaciones: ["commercial", "operations", "support"],
-  leads: ["commercial", "support"],
+  // CRM (id interno "kommo", rótulo visible "CRM"). El placeholder vacío
+  // "CRM · Leads" se eliminó en el rebrand del 2026-08-11; `support` no hereda
+  // su acceso — ampliarle el alcance es una decisión de permisos aparte, no un
+  // efecto colateral de borrar una pantalla que no mostraba nada.
   kommo: ["commercial"],
   suppliers: ["commercial", "operations"],
   "purchase-orders": ["commercial", "operations", "accounting"],

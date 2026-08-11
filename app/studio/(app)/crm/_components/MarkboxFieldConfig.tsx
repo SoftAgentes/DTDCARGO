@@ -82,7 +82,7 @@ export function MarkboxFieldConfig({
         ) : (
           <>
             Al convertir un lead en cliente, su <strong>Shipping Mark</strong> se
-            escribe en este campo del lead en Kommo, para que el asesor vea ahí que ya
+            escribe en este campo del lead en el CRM, para que el asesor vea ahí que ya
             es cliente DTD. Ojo: el trato se cierra y se lleva la marca — la
             permanente es la del contacto.
           </>
@@ -94,12 +94,12 @@ export function MarkboxFieldConfig({
       {fields.length === 0 ? (
         <p style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
           No hay campos de {isContact ? "contacto" : "lead"} sincronizados todavía. Corre
-          el sync de Kommo y vuelve.
+          la sincronización y vuelve.
         </p>
       ) : (
         <div style={{ maxWidth: 380 }}>
           <label className="studio-label" htmlFor={selectId}>
-            Campo del {isContact ? "contacto" : "lead"} en Kommo
+            Campo del {isContact ? "contacto" : "lead"} en el CRM
           </label>
           <select
             id={selectId}
@@ -141,7 +141,7 @@ export function MarkboxFieldConfig({
           </span>
         ) : fields.length === 0 ? (
           <span style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
-            Sincroniza los campos de Kommo para habilitarlo.
+            Sincroniza los campos del CRM para habilitarlo.
           </span>
         ) : null}
       </div>

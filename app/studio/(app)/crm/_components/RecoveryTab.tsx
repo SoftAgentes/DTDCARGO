@@ -21,7 +21,7 @@ import {
   type RecoveryFilters,
   type RecoveryRow,
   type RecoverySegment,
-} from "@/lib/studio/kommo-recovery";
+} from "@/lib/studio/crm-recovery";
 import { exportRecoverySmsCsvAction } from "../actions";
 
 const GRID = "36px 1.7fr 1fr 64px 56px 140px";
@@ -85,7 +85,7 @@ export function RecoveryTab({
     if (cur.raged) s.set("raged", cur.raged);
     if (cur.rq.trim()) s.set("rq", cur.rq.trim());
     if (cur.rsort) s.set("rsort", cur.rsort);
-    startTransition(() => router.push(`/studio/kommo?${s.toString()}`));
+    startTransition(() => router.push(`/studio/crm?${s.toString()}`));
   };
   const pushFiltersEvent = useEffectEvent(pushFilters);
   useEffect(() => {
@@ -188,11 +188,11 @@ export function RecoveryTab({
             maxWidth: "68ch",
           }}
         >
-          La base warm del CRM: contactos de Kommo con teléfono (una persona = una
+          La base warm del CRM: contactos con teléfono (una persona = una
           fila), cruzados con los clientes del ERP. Selecciona hasta{" "}
           {RECOVERY_WA_BATCH_MAX} y genera la tanda de WhatsApp con el guion del
-          segmento; el resto sale por CSV para SMS. Registra cada toque en Kommo
-          (nota o tarea) — esta pantalla no escribe nada.
+          segmento; el resto sale por CSV para SMS. Registra cada toque en la ficha
+          del contacto (nota o tarea) — esta pantalla no escribe nada.
         </p>
         <button
           type="button"
@@ -314,7 +314,7 @@ export function RecoveryTab({
             className="studio-btn studio-btn-ghost studio-btn-sm"
             style={{ height: 38 }}
             onClick={() =>
-              startTransition(() => router.push("/studio/kommo?tab=recuperacion"))
+              startTransition(() => router.push("/studio/crm?tab=recuperacion"))
             }
           >
             Limpiar
@@ -424,7 +424,7 @@ export function RecoveryTab({
           >
             <span style={{ font: "700 12.5px/1 var(--f-sans)", color: "var(--ink)" }}>
               Tanda lista · {batch.length} contactos — abre cada chat y registra el
-              toque en Kommo
+              toque en la ficha
             </span>
             <button
               type="button"
@@ -473,7 +473,7 @@ export function RecoveryTab({
             description={
               hasFilters
                 ? "Prueba ajustar los filtros o limpia la búsqueda."
-                : "Corre el sync de Kommo para poblar el espejo de contactos."
+                : "Corre la sincronización para poblar el espejo de contactos."
             }
           />
         ) : (

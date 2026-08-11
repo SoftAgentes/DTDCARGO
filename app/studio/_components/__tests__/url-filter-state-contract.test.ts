@@ -6,8 +6,8 @@ const FILES = [
   "app/studio/(app)/clientes/_components/ClientsClient.tsx",
   "app/studio/(app)/cotizador/_components/CotizadorClient.tsx",
   "app/studio/(app)/facturacion/_components/FacturacionClient.tsx",
-  "app/studio/(app)/kommo/_components/KommoClient.tsx",
-  "app/studio/(app)/kommo/_components/RecoveryTab.tsx",
+  "app/studio/(app)/crm/_components/KommoClient.tsx",
+  "app/studio/(app)/crm/_components/RecoveryTab.tsx",
   "app/studio/(app)/seniat/_components/SeniatClient.tsx",
   "app/studio/(app)/tarifas/_components/TarifasClient.tsx",
 ] as const;
@@ -32,7 +32,7 @@ describe("filtros URL", () => {
 
   it("fusiona datos convertidos del servidor sin perder optimismo", () => {
     const code = source(
-      "app/studio/(app)/kommo/_components/KommoClient.tsx",
+      "app/studio/(app)/crm/_components/KommoClient.tsx",
     );
     expect(code).toContain("{ ...convertedLeads, ...prev }");
   });

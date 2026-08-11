@@ -16,18 +16,18 @@ import type { CSSProperties, ReactNode } from "react";
 import { Badge, type BadgeTone } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
-import type { OwnerSlice } from "@/lib/studio/kommo-analytics";
+import type { OwnerSlice } from "@/lib/studio/crm-analytics";
 import {
   KOMMO_AGE_OPTIONS,
   type KommoFilters,
   type KommoSort,
-} from "@/lib/studio/kommo-queries";
+} from "@/lib/studio/crm-queries";
 import type {
   KommoLeadRow,
   KommoOverview,
   KommoPipelineRow,
   KommoStatusRow,
-} from "@/lib/studio/kommo-types";
+} from "@/lib/studio/crm-types";
 import { KOMMO_TABS, type KommoTabKey } from "./kommo-tabs.shared";
 import { ConvertLeadDrawer } from "./ConvertLeadDrawer";
 import { fmtUsd } from "@/lib/money";
@@ -171,7 +171,7 @@ export function KommoClient({
     if (cur.aged) s.set("aged", cur.aged);
     if (cur.sort) s.set("sort", cur.sort);
     startTransition(() => {
-      router.push(`/studio/kommo?${s.toString()}`);
+      router.push(`/studio/crm?${s.toString()}`);
     });
   };
   const pushFiltersEvent = useEffectEvent(pushFilters);
@@ -184,7 +184,7 @@ export function KommoClient({
   const goTab = (key: KommoTabKey) => {
     if (key === tab) return;
     startTransition(() => {
-      router.push(key === "direccion" ? "/studio/kommo" : `/studio/kommo?tab=${key}`);
+      router.push(key === "direccion" ? "/studio/crm" : `/studio/crm?tab=${key}`);
     });
   };
 
@@ -220,7 +220,7 @@ export function KommoClient({
             className="studio-display"
             style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
           >
-            Kommo CRM.
+            CRM.
           </h1>
           <p
             style={{
@@ -230,9 +230,9 @@ export function KommoClient({
               maxWidth: "64ch",
             }}
           >
-            Tablero <strong>solo lectura</strong> del espejo de tu cuenta Kommo,
-            cruzado con la plata real del ERP. Se sincroniza una vez al día. Esta
-            pantalla no modifica nada en Kommo.
+            Tablero <strong>solo lectura</strong> del embudo comercial, cruzado
+            con la plata real del ERP. Se sincroniza una vez al día. Esta
+            pantalla todavía no modifica nada.
           </p>
         </div>
         <div
@@ -402,7 +402,7 @@ export function KommoClient({
                 className="studio-btn studio-btn-ghost studio-btn-sm"
                 style={{ height: 38 }}
                 onClick={() =>
-                  startTransition(() => router.push("/studio/kommo?tab=asesor"))
+                  startTransition(() => router.push("/studio/crm?tab=asesor"))
                 }
               >
                 Limpiar
@@ -422,7 +422,7 @@ export function KommoClient({
                 description={
                   hasFilters
                     ? "Prueba ajustar los filtros o limpia la búsqueda."
-                    : "Corre el sync de Kommo para traer los leads al espejo."
+                    : "Corre la sincronización para traer los leads al espejo."
                 }
               />
             ) : (
@@ -448,7 +448,7 @@ export function KommoClient({
             }}
           >
             Mostrando hasta 200 leads. Valor = facturado en el ERP si el lead ya es
-            cliente; si no, el price de Kommo. Datos espejados · solo lectura.
+            cliente; si no, el valor del CRM. Datos espejados · solo lectura.
           </p>
         </>
       )}
@@ -492,7 +492,7 @@ function LeadsTable({
     >
       {/* Scroll de rescate en anchos chicos: la fila de acción no se aplasta. */}
       <div style={{ overflowX: "auto" }}>
-        <div role="table" aria-label="Leads de Kommo" style={{ minWidth: 680 }}>
+        <div role="table" aria-label="Leads del CRM" style={{ minWidth: 680 }}>
           {/* Header */}
           <div
             role="row"
@@ -570,7 +570,7 @@ function LeadsTable({
                       href={href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      title="Abrir el lead en Kommo (pestaña nueva)"
+                      title="Abrir la ficha completa (pestaña nueva)"
                       className="studio-link-quiet"
                       style={nameStyle}
                     >
@@ -622,7 +622,7 @@ function LeadsTable({
                     erpVal != null
                       ? "Facturado en el ERP (12m)"
                       : kommoPrice > 0
-                        ? "Valor en Kommo"
+                        ? "Valor en el CRM"
                         : "Sin valor"
                   }
                 >

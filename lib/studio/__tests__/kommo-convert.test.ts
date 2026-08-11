@@ -113,7 +113,7 @@ describe("convertLead", () => {
     });
   });
 
-  it("lead sin nombre → name fallback 'Lead Kommo <id>'", async () => {
+  it("lead sin nombre → name fallback 'Lead <id>'", async () => {
     const { client, inserted } = makeStub({
       clientsMaybeSingle: [null],
       lead: { name: null },
@@ -121,7 +121,7 @@ describe("convertLead", () => {
     });
     const res = await convertLead(client, TENANT, 789);
     expect(res.created).toBe(true);
-    expect(inserted[0].name).toBe("Lead Kommo 789");
+    expect(inserted[0].name).toBe("Lead 789");
   });
 
   it("lead inexistente en el espejo → error, sin insertar", async () => {

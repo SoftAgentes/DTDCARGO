@@ -236,7 +236,7 @@ export function DireccionTab({
       <EmptyState
         eyebrow="Sin datos"
         title="Todavía no hay leads sincronizados."
-        description="Corre el sync de Kommo para traer el embudo al espejo y ver el tablero."
+        description="Corre la sincronización para traer el embudo al espejo y ver el tablero."
       />
     );
   }
@@ -277,7 +277,7 @@ export function DireccionTab({
         <KpiCard value={data.totals.contacts} label="Contactos" highlightWhenPositive={false} />
         <KpiCard
           value={fmtConvPct(conversion.closedRatePct)}
-          label="Conversión Kommo"
+          label="Conversión del CRM"
           valueColor={conversion.closedRatePct < 1 ? "var(--danger)" : "var(--ink)"}
           sub={`${conversion.won} ganados · ${conversion.lost} perdidos (histórico)`}
         />
@@ -407,8 +407,8 @@ export function DireccionTab({
 
         <SectionCard
           eyebrow="Valor"
-          title="Kommo vs ERP"
-          hint="Kommo no ve la plata del ERP — este cruce sí."
+          title="CRM vs ERP"
+          hint="El CRM no ve la plata del ERP — este cruce sí."
         >
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
@@ -432,7 +432,7 @@ export function DireccionTab({
                     marginTop: 6,
                   }}
                 >
-                  Valor en Kommo
+                  Valor en el CRM
                 </div>
                 <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 4 }}>
                   Σ price de los leads
@@ -474,7 +474,7 @@ export function DireccionTab({
                 borderTop: "1px solid var(--border)",
               }}
             >
-              El embudo de Kommo está ciego al dinero (price ≈ $0). El valor real vive en el ERP
+              El embudo del CRM está ciego al dinero (valor ≈ $0). El valor real vive en el ERP
               (facturas) y se ata al lead cuando se convierte a cliente.
             </p>
           </div>
@@ -485,7 +485,7 @@ export function DireccionTab({
       {writeback && (
         <SectionCard
           eyebrow="Integración"
-          title="Write-back a Kommo"
+          title="Escritura al CRM"
           hint="Manda el valor del estimado al lead. Nace apagado; míralo antes de prenderlo."
         >
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -531,7 +531,7 @@ export function DireccionTab({
       <SectionCard
         eyebrow="Automatización"
         title="Mapa de etapas"
-        hint="A qué etapa de Kommo mover el lead cuando el estimado cambia de estado."
+        hint="A qué etapa mover el lead cuando el estimado cambia de estado."
       >
         <StageMapConfig
           pipelines={pipelines}
@@ -544,7 +544,7 @@ export function DireccionTab({
       {/* MARKBOX → Kommo (SDD-0086): campo del lead donde va el Shipping Mark. */}
       <SectionCard
         eyebrow="Identidad"
-        title="Shipping Mark en Kommo"
+        title="Shipping Mark en el CRM"
         hint="En qué campo del lead escribir el Shipping Mark cuando se convierte en cliente."
       >
         <MarkboxFieldConfig

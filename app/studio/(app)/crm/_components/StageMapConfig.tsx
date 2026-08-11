@@ -138,9 +138,9 @@ export function StageMapConfig({
         }}
       >
         Cuando un estimado pasa a cada estado, su lead vinculado se mueve a la etapa
-        de Kommo que elijas aquí. Déjalo en <strong>Sin mapear</strong> para no mover
-        el lead en ese estado. Se aplica con el mismo interruptor del write-back (hoy
-        en ensayo).
+        que elijas aquí. Déjalo en <strong>Sin mapear</strong> para no mover
+        el lead en ese estado. Se aplica con el mismo interruptor de la escritura al
+        CRM (hoy en ensayo).
       </p>
 
       <div style={{ display: "flex", flexDirection: "column" }}>

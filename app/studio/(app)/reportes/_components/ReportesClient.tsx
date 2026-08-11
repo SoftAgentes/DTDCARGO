@@ -1027,7 +1027,7 @@ function ByAgentView({ data }: { data: CommercialByAgent }) {
       <EmptyState
         eyebrow="Por agente"
         title="Sin datos de asesores todavía"
-        description="El desempeño por agente lee el espejo de Kommo (leads por asesor) cruzado con la facturación real del ERP. Cuando el CRM esté sincronizado con leads asignados, vas a ver acá estimados, conversión y revenue por asesor."
+        description="El desempeño por agente lee el espejo del CRM (leads por asesor) cruzado con la facturación real del ERP. Cuando el CRM esté sincronizado con leads asignados, vas a ver acá estimados, conversión y revenue por asesor."
       />
     );
   }
@@ -1112,10 +1112,10 @@ function ByAgentView({ data }: { data: CommercialByAgent }) {
       </Card>
 
       <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
-        Estimados = leads asignados al asesor en Kommo; ganadas/perdidas por los
+        Estimados = leads asignados al asesor en el CRM; ganadas/perdidas por los
         estados de cierre del CRM. El revenue es facturación real del ERP
         (últimos 12 meses, USD) de los leads que se convirtieron en cliente —{" "}
-        <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>no el valor estimado de Kommo</strong>.
+        <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>no el valor estimado del CRM</strong>.
         NPS y satisfacción se omiten: no hay fuente real todavía.
       </p>
     </div>

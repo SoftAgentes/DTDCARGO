@@ -19,7 +19,7 @@
 import Link from "next/link";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
-import type { KommoLeadRow, KommoPipelineRow, KommoStatusRow } from "@/lib/studio/kommo-types";
+import type { KommoLeadRow, KommoPipelineRow, KommoStatusRow } from "@/lib/studio/crm-types";
 import { fmtUsd } from "@/lib/money";
 
 const DAY_MS = 86_400_000;
@@ -77,7 +77,7 @@ export function KommoBoardView({
       <EmptyState
         eyebrow="Sin embudos"
         title="Todavía no hay embudos sincronizados."
-        description="Corre el sync de Kommo para traer los embudos y sus etapas al espejo."
+        description="Corre la sincronización para traer los embudos y sus etapas al espejo."
       />
     );
   }
@@ -119,7 +119,7 @@ export function KommoBoardView({
           return (
             <Link
               key={p.id}
-              href={`/studio/kommo?tab=tablero&pipeline=${p.id}`}
+              href={`/studio/crm?tab=tablero&pipeline=${p.id}`}
               role="tab"
               aria-selected={isActive}
               className="studio-btn studio-btn-sm"
@@ -141,7 +141,7 @@ export function KommoBoardView({
         <EmptyState
           eyebrow="Sin etapas"
           title="Este embudo no tiene etapas en el espejo."
-          description="Corre el sync de Kommo o elige otro embudo."
+          description="Corre la sincronización o elige otro embudo."
         />
       ) : (
         <div
@@ -223,7 +223,7 @@ export function KommoBoardView({
                     title={
                       truncated
                         ? "Σ parcial — embudo grande, ver aviso al pie"
-                        : "Suma de valor de la columna (facturado ERP si es cliente; si no, price de Kommo)"
+                        : "Suma de valor de la columna (facturado ERP si es cliente; si no, el valor del CRM)"
                     }
                   >
                     {total > 0 ? `${truncated ? "~" : ""}${fmtUsd(total)}` : "—"}
@@ -282,7 +282,7 @@ export function KommoBoardView({
                               href={href}
                               target="_blank"
                               rel="noopener noreferrer"
-                              title="Abrir el lead en Kommo (pestaña nueva)"
+                              title="Abrir la ficha completa (pestaña nueva)"
                               className="studio-link-quiet"
                               style={{
                                 display: "block",
@@ -330,7 +330,7 @@ export function KommoBoardView({
                             ) : kommoPrice > 0 ? (
                               <span
                                 style={{ font: "600 12px/1 var(--f-mono)", color: "var(--ink-soft)" }}
-                                title="Valor en Kommo"
+                                title="Valor en el CRM"
                               >
                                 {fmtUsd(kommoPrice)}
                               </span>
@@ -414,7 +414,7 @@ export function KommoBoardView({
         }}
       >
         Vista de solo lectura del embudo espejado. Valor = facturado en el ERP si el
-        lead ya es cliente; si no, el price de Kommo. Para convertir un lead a cliente,
+        lead ya es cliente; si no, el valor del CRM. Para convertir un lead a cliente,
         usa la pestaña <strong>Asesor</strong>.
         {anyTruncated &&
           ` Embudo grande: las columnas con ~ muestran las ${boardCap.toLocaleString(

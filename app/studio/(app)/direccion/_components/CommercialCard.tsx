@@ -46,7 +46,7 @@ export function CommercialCard({
           Comercial
         </span>
         <Link
-          href="/studio/kommo"
+          href="/studio/crm"
           style={{
             font: "600 11.5px/1 var(--f-sans)",
             color: "var(--wine-text)",
@@ -56,7 +56,7 @@ export function CommercialCard({
             textDecoration: "none",
           }}
         >
-          Kommo CRM {Icon.arrowR(11)}
+          CRM {Icon.arrowR(11)}
         </Link>
       </div>
 
@@ -66,14 +66,14 @@ export function CommercialCard({
           value={fmtUsd(commercial.pipeline)}
           sub="en etapas abiertas"
           icon={Icon.spark(16)}
-          href="/studio/kommo"
+          href="/studio/crm"
         />
         <MiniStat
           label="Leads activos"
           value={commercial.leadsActivos}
           sub="sin cerrar"
           icon={Icon.users(16)}
-          href="/studio/kommo"
+          href="/studio/crm"
         />
       </div>
     </div>
