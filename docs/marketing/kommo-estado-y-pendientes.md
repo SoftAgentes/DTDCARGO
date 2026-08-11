@@ -238,37 +238,116 @@ disparadores para esa acción trae **una sola opción**: *"cuando es movido a es
 
 ### Desarrollo (SDD, sesión aparte)
 
-### 🟢 El Shipping Mark: todo listo salvo dos desplegables (investigado 2026-08-11)
+### 🔴 El Shipping Mark: los dos campos YA estaban puestos — y aun así no escribe nada (medido 2026-08-11)
 
-**No hace falta código ni migración.** Existe UI en el Studio y los campos ya existen en Kommo:
+⚠️ **Corrige lo que decía esta misma sección el 11-ago por la mañana.** Decía que faltaba "sólo
+elegir dos desplegables en `/studio/kommo`". Se midió contra la base de producción: **los dos
+campos ya están guardados**, y elegirlos **no habría encendido nada**, porque el problema está
+tres pasos más abajo.
 
-| Dónde | Campo en Kommo | id |
-|---|---|---|
-| **Lead** | `Shipping Mark - j102` | **1570535** |
-| **Contacto** | `Shipping Mark` | **1570723** |
-
-**Se configura en** `/studio/kommo` → pestaña **Dirección**, en dos tarjetas: *"Shipping Mark en
-Kommo"* (el del lead) y *"Shipping Mark en el contacto"*. Server Action admin-only
-`saveKommoMarkboxFieldAction`, que valida contra el espejo `kommo_custom_fields`.
+| Dónde | Campo en Kommo | id | En `kommo_connections` |
+|---|---|---|---|
+| **Lead** | `Shipping Mark - j102` | **1570535** | `markbox_field_id` = **1570535** ✅ |
+| **Contacto** | `Shipping Mark` | **1570723** | `markbox_contact_field_id` = **1570723** ✅ |
 
 ⭐ **El que importa para "reconocer al cliente que vuelve" es el del CONTACTO** (SDD-0244 rebanada B).
 El del lead *"se lo lleva el trato al cerrarse"*; el del contacto sobrevive. Y la tarjeta del
-pipeline ya está mostrando `Contacto: Shipping Mark` en su primera fila, así que **en cuanto se
-llene, aparece sin tocar nada más**.
+pipeline ya muestra `Contacto: Shipping Mark` en su primera fila — o sea que **el día que se llene,
+aparece sin tocar nada más**. Eso sigue siendo cierto.
 
-⚠️ **No hay backfill.** El write-back se dispara **sólo al convertir un lead en cliente** desde el
-Studio (`convertLeadToClientAction` → `enqueueKommoMarkboxWriteback`). Los clientes que ya existen
-**no se actualizan retroactivamente**: sólo se marcarán los que se conviertan de ahora en adelante.
-Para los viejos haría falta un backfill que **no está construido**.
+#### La cadena completa, y dónde está cortada
 
-- [ ] ⭐ **Activar el write-back del MARKBOX → Kommo (SDD-0086).** **Ya está construido**:
-      `lib/studio/kommo-writeback.ts` → `buildMarkboxPatchPayload()` · `queueMarkboxWriteback()`,
-      que resuelven `markbox → clients.kommo_lead_id` y hacen `PATCH /api/v4/leads/{id}`.
-      Falta **configuración, no código**: crear/identificar el campo, cargar
-      `kommo_connections.markbox_field_id` y encender el doble gate (`writeback_enabled` +
-      `writeback_dry_run`). Runbook: [`../runbooks/deploy-kommo-writeback.md`](../runbooks/deploy-kommo-writeback.md).
-      ✅ El campo **Shipping Mark ya existe** en Kommo y **ya tiene su lugar en la tarjeta** — está
-      vacío sólo porque nadie lo llena.
+```
+① convertLeadToClientAction ──┐
+   (Studio: convertir lead)   │
+                              ├──► ② kommo_writeback_outbox ──► ③ drenaje ──► ④ PATCH a Kommo
+② routeNewLeads (webhook) ────┘
+   (cliente que vuelve)
+```
+
+| # | Eslabón | Estado medido | Evidencia |
+|---|---|---|---|
+| ① | Conversión desde el Studio | **nunca corrió** | **0 de 442** clientes tienen `kommo_lead_id` |
+| ① | Enrutador del webhook | **corre, 0 aciertos** | 117 leads nuevos desde el 04-ago; `stage_map.recontacto` sí está puesto |
+| ② | La cola | **vacía, siempre estuvo** | `kommo_writeback_outbox` = **0 filas** de cualquier `op` |
+| ③ | El drenaje | 🟢 **programado el 11-ago** | `cron.job` #3 `kommo-writeback-drain-dtd`, `*/15 * * * *`, `active` |
+| ④ | La escritura | 🟢 **abierta el 11-ago** | `writeback_enabled=true` · `writeback_dry_run=false` (16:21 UTC) |
+
+⭐ **Los pasos 3 y 5 del runbook nunca se ejecutaron.**
+[`deploy-kommo-writeback.md`](../runbooks/deploy-kommo-writeback.md) pide programar el cron del
+drenaje (Paso 3) y recién después apagar el dry-run (Paso 5). El único `writeback_dryrun` de
+`sync_logs` es del **2026-06-20** — hace casi dos meses. Nadie drenó nada desde entonces.
+
+⚠️ **Conclusión: el Shipping Mark nunca llegó a Kommo, ni una vez.** No por los desplegables —
+esos ya estaban— sino porque nadie drenaba la cola y, aun drenándola, el gate está en ensayo.
+
+#### 🟢 Paso 3 hecho y VERIFICADO (2026-08-11)
+
+Se programó el cron del drenaje con el OK del founder:
+
+```sql
+select cron.schedule('kommo-writeback-drain-dtd', '*/15 * * * *',
+  $job$select public.kommo_run_writeback_drain();$job$);
+```
+
+⭐ **La verificación no fue mirar que el `INSERT` devolviera un id.** La función **no tiene retorno
+temprano con la cola vacía**: cada corrida escribe una fila en `sync_logs` pase lo que pase. O sea
+que el primer tick es una prueba que **puede salir roja** — si el cron no alcanza a la función (llave
+de cron mala, auth, token de Vault), no aparece nada.
+
+Apareció: **`writeback_dryrun · ok · 15:45:01 UTC · records_fetched=0`**. Eso deja probada la cadena
+completa **pg_cron → `kommo_run_writeback_drain()` → Edge Function → auth → token de Vault →
+`sync_logs`**. Lo único que falta es que haya algo en la cola y que el gate deje escribir.
+
+⚠️ **Ojo con el orden a partir de acá.** Con dry-run encendido el drenaje **consume** las filas: las
+marca `skipped`, no las deja pendientes. Si encolas una prueba ahora, el cron se la come en ≤15 min y
+apagar el dry-run después **no la reenvía** — hay que volver a encolar.
+
+#### El espejo sí está sano (no confundir una cosa con la otra)
+
+`webhook_leads` **11.124 corridas ok** (la última hoy 15:28) y `webhook_contacts` **699 ok**, contra
+**8 errores** en total — caídas intermitentes de HTTP/2 contra `dtdcargo.kommo.com`, 0,07%. El
+webhook **no es el problema**; espeja bien. Lo que no se ejecuta es el write-back.
+
+⚠️ **El universo real son 442 clientes, no "3.000+".** El 3.125/3.130 que aparece más arriba en este
+documento son **leads asignados al usuario DTD CARGO en Kommo**, que es otra cosa. De los 442: **32**
+tienen `kommo_contact_id` y **0** tienen `kommo_lead_id`.
+
+- [x] 🟢 ~~Cargar `markbox_field_id` y `markbox_contact_field_id`~~ — **ya estaban puestos**
+      (1570535 y 1570723). Verificado contra `kommo_connections` el 11-ago.
+- [x] 🟢 ~~Programar el drenaje de la cola~~ (Paso 3) — **hecho y verificado el 11-ago**: `cron.job`
+      #3 `kommo-writeback-drain-dtd`, `*/15 * * * *`, y el primer tick logueó `writeback_dryrun · ok`
+      a las 15:45:01 UTC. La Edge Function ya estaba desplegada (v5 `ACTIVE`, Paso 2).
+- [x] 🟢 ~~Apagar el dry-run~~ (Paso 5) — **hecho el 11-ago 16:21 UTC** con el OK del founder:
+      `writeback_enabled=true` · `writeback_dry_run=false`. Verificado releyendo la fila.
+      **Rollback de una línea** si hace falta:
+      ```sql
+      update public.kommo_connections set writeback_dry_run = true
+        where tenant_id = '4ede88a0-b9c4-49ff-962b-e5a5014776e6';
+      ```
+- [ ] 🔴 ⭐ **Verificar E2E — es lo único que queda, y necesita al founder.** El write-back ya está
+      LIVE pero **todavía no escribió nada**, porque la cola está vacía. Hace falta encolar algo:
+      1. Entrar a `/studio/kommo` con la cuenta **ADMIN** del Studio *(en la sesión del 11-ago el
+         navegador tenía sesión de un cliente de prueba, DTD-9887, y `/studio/kommo` rebotaba a
+         `/portal`)*.
+      2. Convertir un lead de prueba a cliente → encola un `patch_lead`.
+      3. En ≤15 min el cron lo drena. Mirar el trato en Kommo y `kommo_writeback_outbox`:
+         `status='sent'` = escribió · `status='error'` tras 5 intentos = ver el punto de abajo.
+      ⚠️ Eso valida el campo del **lead**, no el del contacto: el del contacto lo encola **sólo**
+      `routeNewLeads` cuando un cliente que ya existe abre un trato nuevo (0 enganches en 117 leads
+      hasta ahora).
+- [ ] ⚠️ **Vigilar el primer PATCH real** — se destapa la pregunta abierta #4 del SDD-0062: si el
+      token de Vault es de **sólo-lectura**, el `PATCH` devuelve **401**, el drenaje reintenta 5
+      veces y deja la fila en `status='error'` con el detalle. Ahí habría que regenerar un token de
+      Kommo con permiso de escritura. ⚠️ **NO tocar la "Clave secreta" de la integración** —
+      invalida el token de larga duración.
+- [ ] **Decidir el backfill de los clientes viejos** (decisión del founder, no está construido).
+      El universo real es **442 clientes**, no 3.000+. Pero de esos, **0 tienen `kommo_lead_id`** y
+      sólo **32 tienen `kommo_contact_id`** — o sea que hoy un backfill sólo podría marcar a esos 32;
+      para los otros 410 no hay contra qué escribir sin cruzarlos antes por teléfono (256 lo tienen).
+      ⭐ **Por eso el backfill no es el primer paso, es el tercero:** primero que la cadena escriba
+      (drenaje + dry-run apagado), después medir cuántos clientes que vuelven engancha el enrutador
+      solo, y recién ahí decidir si vale un SDD para los que queden fríos.
 - [ ] **Extender el write-back al `name` del lead.** El mismo `PATCH` acepta `name`; escribir algo
       como `María Rodríguez — DTD-9054` dejaría cliente y Shipping Mark en la tarjeta. Hoy el nombre
       se resuelve por la vista (Contacto: Nombre), que funciona pero depende de que el contacto tenga
