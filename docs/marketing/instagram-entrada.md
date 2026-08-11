@@ -233,7 +233,34 @@ responder **desde Kommo** y no desde la app.
 | Responder un comentario | **en Kommo**, clic en el nombre del autor dentro del bloque del comentario |
 | Responder el DM | **en Kommo**, compositor del lead (sale al DM por defecto) |
 | Responder desde el teléfono | app de Instagram — funciona, pero **el mensaje entra a Kommo sin autor** y se rotula `SalesBot:` |
-| Automatizar la respuesta al comentario | Meta Business Suite → Bandeja de entrada → Automatizaciones → plantilla **"Respuesta a comentario"** (hoy **sin crear**) |
+| Automatizar la respuesta al comentario | Meta Business Suite → Bandeja de entrada → Automatizaciones → **"Respuesta a comentario - Comentarios · info y precio"** (🟢 **activa desde 2026-08-10**) |
+
+### 🟢 La automatización de comentarios — qué hace exactamente
+
+Creada y verificada contra el servidor el **2026-08-10**. Dispara cuando un comentario **contiene**
+una de estas 7 palabras: `información` `info` `precio` `cuánto` `cuanto` `china` `importar`.
+Canales: **Messenger + Instagram**. Hace las dos cosas en orden — responde el comentario y después
+manda el DM:
+
+**Respuesta pública al comentario:**
+> Te escribimos por privado con la información. Te adelanto que el costo va por el volumen que ocupa
+> la carga.
+
+**Mensaje privado (DM):**
+> Hola, gracias por escribirnos. Somos DTD Cargo: traemos mercancía desde China hasta la puerta de tu
+> negocio en Venezuela. La recogemos donde tu proveedor, la consolidamos con tu Shipping Mark y te la
+> entregamos aquí. El costo se calcula por el volumen que ocupa la carga, no por lo que valga la
+> mercancía, y el tránsito toma entre 60 y 90 días. ¿Qué producto estás trayendo o pensando traer?
+
+⚠️ **Coordinar con quien contesta a mano.** Si la automatización manda el DM y además una persona
+escribe, el cliente recibe dos mensajes seguidos. La regla: **la automatización abre, la persona
+continúa** — sin volver a saludar ni presentarse, retomando desde la pregunta que ya se hizo.
+
+🔴 **Gotcha del formulario de Meta (costó tres intentos):** los dos campos de texto se cruzan con
+facilidad y el desplegable de palabras clave **roba el foco** — lo escrito termina dentro del campo
+de palabras clave en vez del textarea. Y si el foco se pierde, el `?` del texto abre la ventana de
+métodos abreviados de Facebook. **Después de guardar hay que volver a entrar a Editar y leer los dos
+campos**: el largo es el DM, el corto es el comentario. Si están al revés, se cruzaron.
 
 Si en algún momento se decide que Manuel atienda Instagram, hay que sumarle el canal en
 `/settings/ai-agent/`. Eso **consume créditos**: al 2026-08-10 el saldo quedó en 7.281/12.250 tras
