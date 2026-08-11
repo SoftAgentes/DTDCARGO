@@ -62,6 +62,24 @@
   --cat-5: #6B3A5E;   /* ciruela  */
   --cat-6: #4A6270;   /* acero    */
 
+  /* Fondos de los categóricos — BRAND-CHECK autorizado por el founder 2026-08-11.
+     NO son colores nuevos: son los MISMOS hex de arriba con alfa, siguiendo la
+     convención de --success-bg (0.10 claro / 0.14 oscuro). Cero hue nuevo.
+
+     Para qué: el chip de etapa del CRM. La etapa se reconoce de un vistazo por el
+     punto de color, pero su NOMBRE está siempre escrito — el color acompaña, no
+     sustituye (VIS-01 §3: "categórico nunca sustituye semántica").
+
+     ⛔ El categórico es PUNTO y BARRA, NUNCA LETRA. Medido sobre estos hex: como
+     texto da 4.36:1 en oscuro y no llega a AA. Como punto da 3.81:1 (≥3 para
+     elementos de UI) y --ink sobre el chip da 8.87:1 en el peor caso. */
+  --cat-1-bg: rgba(31,95,107,0.10);
+  --cat-2-bg: rgba(58,78,140,0.10);
+  --cat-3-bg: rgba(90,122,52,0.10);
+  --cat-4-bg: rgba(168,90,60,0.10);
+  --cat-5-bg: rgba(107,58,94,0.10);
+  --cat-6-bg: rgba(74,98,112,0.10);
+
   /* Sombreado de las caras del cubo isométrico + casco del contenedor.
      Neutros sobre el color del cliente: así el token de cliente es UNO solo y
      no hacen falta 3 variantes por color. */
@@ -275,6 +293,15 @@
   --cat-4: #DE9070;   /* arcilla  */
   --cat-5: #B279A2;   /* ciruela  */
   --cat-6: #8AA3B4;   /* acero    */
+
+  /* Fondos de los categóricos — dark. Alfa 0.14 (misma convención que
+     --success-bg dark). Mismos hex de arriba; cero hue nuevo. */
+  --cat-1-bg: rgba(79,163,176,0.14);
+  --cat-2-bg: rgba(124,143,212,0.14);
+  --cat-3-bg: rgba(150,188,102,0.14);
+  --cat-4-bg: rgba(222,144,112,0.14);
+  --cat-5-bg: rgba(178,121,162,0.14);
+  --cat-6-bg: rgba(138,163,180,0.14);
 
   --face-top-tint: rgba(255,255,255,0.16);
   --face-left-tint: rgba(0,0,0,0.28);
