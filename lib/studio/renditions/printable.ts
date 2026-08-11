@@ -18,6 +18,9 @@
  */
 
 import type { Rendition, RenditionLine } from "./types";
+import { fmtAmount } from "@/lib/money";
+
+export { fmtAmount };
 
 // ── Literales del documento (NO mezclar con Canopy / DoorTuDoor Trading) ──
 
@@ -40,12 +43,6 @@ export const RENDITION_FOOTER =
 // ── Helpers puros ─────────────────────────────────────────────
 
 /** Formato de monto USD (en-US, 2 decimales). Exportado para la página. */
-export function fmtUsd(n: number): string {
-  return Number(n).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
 
 // ── Tipos de salida ───────────────────────────────────────────
 
@@ -95,17 +92,17 @@ export function buildRenditionPrintable(args: {
     {
       label: LABEL_THIRD_PARTY,
       amountUsd: rendition.third_party_usd,
-      formatted: fmtUsd(rendition.third_party_usd),
+      formatted: fmtAmount(rendition.third_party_usd),
     },
     {
       label: LABEL_LOCAL_REVENUE,
       amountUsd: rendition.local_revenue_usd,
-      formatted: fmtUsd(rendition.local_revenue_usd),
+      formatted: fmtAmount(rendition.local_revenue_usd),
     },
     {
       label: LABEL_NET,
       amountUsd: rendition.net_to_operadora_usd,
-      formatted: fmtUsd(rendition.net_to_operadora_usd),
+      formatted: fmtAmount(rendition.net_to_operadora_usd),
     },
   ];
 
@@ -134,7 +131,7 @@ export function buildRenditionPrintable(args: {
     const mark = l.clientMarkbox ?? "—";
     const name = l.clientName ?? "—";
     textLines.push(
-      `· ${l.receiptCode} · ${name} · ${mark} · Ref. ${ref} · ${l.receivedAt} · USD ${fmtUsd(l.amountUsd)}`,
+      `· ${l.receiptCode} · ${name} · ${mark} · Ref. ${ref} · ${l.receivedAt} · USD ${fmtAmount(l.amountUsd)}`,
     );
   }
   textLines.push("");

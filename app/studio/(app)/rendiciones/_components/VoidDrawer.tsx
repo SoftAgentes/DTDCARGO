@@ -13,7 +13,7 @@
 import { useState } from "react";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
-import { fmtUsd } from "@/lib/studio/renditions/printable";
+import { fmtAmount } from "@/lib/studio/renditions/printable";
 import type { Rendition } from "@/lib/studio/renditions/types";
 import { voidRenditionAction } from "../actions";
 
@@ -60,7 +60,7 @@ export function VoidDrawer({
         >
           Neto a favor de la Operadora:{" "}
           <strong style={{ color: "var(--ink)", fontFamily: "var(--f-mono)" }}>
-            USD {fmtUsd(rendition.net_to_operadora_usd)}
+            USD {fmtAmount(rendition.net_to_operadora_usd)}
           </strong>{" "}
           · {rendition.receipt_count} recibos.
         </div>

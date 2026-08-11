@@ -80,6 +80,7 @@ import type { Attendance, Holiday } from "@/lib/studio/nomina/attendance-types";
 import type { Position } from "@/lib/studio/nomina/position-types";
 import { PuestosTab } from "./PuestosTab";
 import { PuestoDrawer } from "./PuestoDrawer";
+import { fmtUsd } from "@/lib/money";
 
 type Tab =
   | "empleados"
@@ -93,15 +94,6 @@ type Tab =
   | "liquidaciones"
   | "comunicaciones"
   | "reglas";
-
-function fmtUsd(n: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(n);
-}
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";

@@ -12,7 +12,8 @@
 
 import Link from "next/link";
 import { Icon } from "@/app/studio/_components/icons";
-import { fmtUsd, type ForecastWeek } from "@/lib/studio/direccion/queries";
+import type { ForecastWeek } from "@/lib/studio/direccion/queries";
+import { fmtUsd } from "@/lib/money";
 
 export function ForecastCard({ forecast }: { forecast: ForecastWeek[] }) {
   const maxUsd = Math.max(...forecast.map((w) => w.usd), 1);

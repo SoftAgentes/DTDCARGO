@@ -40,10 +40,6 @@ function round2(n: number): number {
  * tipográfico U+2212 (−), no el guion ASCII. Fuente única del módulo: la usan
  * el page y las cards (no duplicar el helper · SDD-0048 §9).
  */
-export function fmtUsd(n: number): string {
-  const sign = n < 0 ? "−" : "";
-  return sign + "$" + Math.round(Math.abs(n)).toLocaleString("en-US");
-}
 
 // ── Tipos de salida ────────────────────────────────────────────
 

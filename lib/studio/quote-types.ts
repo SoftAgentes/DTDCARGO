@@ -5,6 +5,7 @@
 
 import type { ShipmentService } from "./shipment-types";
 import { SERVICE_LABELS } from "./shipment-types";
+import { fmtAmount } from "@/lib/money";
 
 export type QuoteStatus =
   | "draft"
@@ -286,12 +287,6 @@ export function isExpired(quote: Pick<Quote, "valid_until" | "status">): boolean
 // contactos de Kommo no tienen email, así que hoy el envío es transcripción
 // manual. Estos helpers arman el desglose listo para WhatsApp. PUROS y testeables.
 
-const fmtUsd2 = (n: number) =>
-  Number(n).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-
 /**
  * Texto del estimado para WhatsApp (desglose legible, con *negritas* de WhatsApp).
  * Muestra CBM/tarifa para LCL/DDP y tarifa fija para FCL/terrestre. PURO.
@@ -309,15 +304,15 @@ export function buildQuoteWhatsappText(quote: Quote): string {
   ];
   if (mode === "per_cbm") {
     if (quote.cbm != null) lines.push(`Volumen: ${Number(quote.cbm).toFixed(3)} m³`);
-    if (quote.rate_per_cbm != null) lines.push(`Tarifa: $${fmtUsd2(quote.rate_per_cbm)}/CBM`);
+    if (quote.rate_per_cbm != null) lines.push(`Tarifa: $${fmtAmount(quote.rate_per_cbm)}/CBM`);
   } else if (quote.flat_rate != null) {
-    lines.push(`Tarifa: $${fmtUsd2(quote.flat_rate)} (tarifa fija)`);
+    lines.push(`Tarifa: $${fmtAmount(quote.flat_rate)} (tarifa fija)`);
   }
-  lines.push(`Subtotal: $${fmtUsd2(quote.subtotal_usd)}`);
+  lines.push(`Subtotal: $${fmtAmount(quote.subtotal_usd)}`);
   if (Number(quote.packaging_cost) > 0) {
-    lines.push(`Embalaje (${packagingLabel(quote.packaging)}): +$${fmtUsd2(quote.packaging_cost)}`);
+    lines.push(`Embalaje (${packagingLabel(quote.packaging)}): +$${fmtAmount(quote.packaging_cost)}`);
   }
-  lines.push(`*Total: $${fmtUsd2(quote.total_usd)} USD*`);
+  lines.push(`*Total: $${fmtAmount(quote.total_usd)} USD*`);
   lines.push(`Vigencia hasta: ${quote.valid_until}`);
   return lines.join("\n");
 }

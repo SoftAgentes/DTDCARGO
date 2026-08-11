@@ -23,14 +23,11 @@ import {
 } from "@/lib/studio/partner-finance/types";
 import type { SupplierOption } from "@/lib/studio/partner-finance/types";
 import { SupplierPicker } from "./SupplierPicker";
+import { fmtUsd as fmtUsdBase } from "@/lib/money";
 
+/** El mayor muestra el cero como raya, no como `$0.00` (convención de la tabla). */
 function fmtUsd(n: number): string {
-  if (n === 0) return "—";
-  const sign = n < 0 ? "−" : "";
-  return `${sign}$${Math.abs(n).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+  return n === 0 ? "—" : fmtUsdBase(n);
 }
 function fmtRmb(n: number): string {
   if (n === 0) return "—";

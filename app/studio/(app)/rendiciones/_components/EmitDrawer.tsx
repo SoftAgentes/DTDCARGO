@@ -15,7 +15,7 @@ import { useState } from "react";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { Icon } from "@/app/studio/_components/icons";
-import { fmtUsd } from "@/lib/studio/renditions/printable";
+import { fmtAmount } from "@/lib/studio/renditions/printable";
 import type { QuincenaCard } from "../page";
 import { emitRenditionAction } from "../actions";
 
@@ -186,7 +186,7 @@ export function EmitDrawer({
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {fmtUsd(l.amountUsd)}
+                      {fmtAmount(l.amountUsd)}
                     </td>
                   </tr>
                 ))}
@@ -311,7 +311,7 @@ function SummaryRow({
           whiteSpace: "nowrap",
         }}
       >
-        USD {fmtUsd(value)}
+        USD {fmtAmount(value)}
       </span>
     </div>
   );

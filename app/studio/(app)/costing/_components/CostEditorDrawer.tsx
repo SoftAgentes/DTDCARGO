@@ -25,12 +25,10 @@ import {
 } from "@/lib/studio/costing/types";
 import type { CostingRow } from "@/lib/studio/costing/queries";
 import { saveShipmentCosts } from "../actions";
+import { fmtUsd } from "@/lib/money";
 
 const FORM_ID = "cost-editor-form";
 const initialState: CostActionState = {};
-
-const fmtUsd = (n: number) =>
-  `$${Math.round(n).toLocaleString("en-US")}`;
 
 function rowAmounts(row: CostingRow): CostAmounts {
   if (!row.costs) return emptyCosts();

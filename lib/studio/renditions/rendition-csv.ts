@@ -10,7 +10,7 @@
  */
 
 import { rowsToCsv, type CsvValue } from "../reports/export-csv";
-import { fmtUsd } from "./printable";
+import { fmtAmount } from "./printable";
 import type { Rendition, RenditionLine } from "./types";
 
 const CSV_HEADERS = [
@@ -92,4 +92,4 @@ export function buildRenditionCsv(
 }
 
 /** Re-export para que el caller no formatee aparte. */
-export { fmtUsd };
+export { fmtAmount };

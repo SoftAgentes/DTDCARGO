@@ -26,7 +26,7 @@ import {
   renditionStatusTone,
   type Rendition,
 } from "@/lib/studio/renditions/types";
-import { fmtUsd } from "@/lib/studio/renditions/printable";
+import { fmtAmount } from "@/lib/studio/renditions/printable";
 import type { QuincenaCard } from "../page";
 import { EmitDrawer } from "./EmitDrawer";
 import { VoidDrawer } from "./VoidDrawer";
@@ -240,10 +240,10 @@ export function RendicionesClient({
                     <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
                       {r.period_from} → {r.period_to}
                     </td>
-                    <td style={cellNum}>{fmtUsd(r.third_party_usd)}</td>
-                    <td style={cellNum}>{fmtUsd(r.local_revenue_usd)}</td>
+                    <td style={cellNum}>{fmtAmount(r.third_party_usd)}</td>
+                    <td style={cellNum}>{fmtAmount(r.local_revenue_usd)}</td>
                     <td style={{ ...cellNum, fontWeight: 700 }}>
-                      {fmtUsd(r.net_to_operadora_usd)}
+                      {fmtAmount(r.net_to_operadora_usd)}
                     </td>
                     <td style={cellNum}>{r.receipt_count}</td>
                     <td style={{ padding: "10px 14px" }}>
@@ -452,7 +452,7 @@ function TotalRow({
           whiteSpace: "nowrap",
         }}
       >
-        USD {fmtUsd(value)}
+        USD {fmtAmount(value)}
       </span>
     </div>
   );

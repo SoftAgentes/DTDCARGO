@@ -52,6 +52,7 @@ import {
 } from "@/lib/studio/reports/builder-types";
 import { VolumeBars, Donut, Progress, HeaderRow, type DonutSlice } from "./charts";
 import { BuilderView } from "./BuilderView";
+import { fmtUsd, fmtUsdCompact } from "@/lib/money";
 
 type Category = "op" | "com" | "con" | "build" | "mix";
 
@@ -97,18 +98,6 @@ const CATEGORIES: {
   { id: "build", label: "Constructor", count: 2, slice: null },
   { id: "mix", label: "Combinados", count: 3, slice: null },
 ];
-
-const fmtUsd = (n: number) =>
-  n >= 1_000_000
-    ? `$${(n / 1_000_000).toFixed(2)}M`
-    : n >= 1_000
-      ? `$${Math.round(n / 1000)}K`
-      : `$${Math.round(n).toLocaleString("en-US")}`;
-
-const fmtUsdFull = (n: number) => {
-  const sign = n < 0 ? "−" : "";
-  return `${sign}$${Math.round(Math.abs(n)).toLocaleString("en-US")}`;
-};
 
 const fmtNum = (n: number) => Math.round(n).toLocaleString("en-US");
 
@@ -588,7 +577,7 @@ function OverviewView({ overview }: { overview: OperationalOverview }) {
       >
         <KpiCard value={fmtNum(overview.shipments)} label="Embarques" sub="en el período" valueColor="var(--wine-text)" />
         <KpiCard value={fmtNum(overview.cbm)} label="CBM movido" sub="metros cúbicos" />
-        <KpiCard value={fmtUsd(overview.revenueUsd)} label="Revenue" sub="facturado · USD" valueColor="var(--success)" />
+        <KpiCard value={fmtUsdCompact(overview.revenueUsd)} label="Revenue" sub="facturado · USD" valueColor="var(--success)" />
         <KpiCard value={fmtNum(overview.active)} label="Activos" sub="en curso ahora" />
       </div>
 
@@ -629,7 +618,7 @@ function OverviewView({ overview }: { overview: OperationalOverview }) {
             >
               Facturado sin embarque del período ·{" "}
               <strong style={{ font: "700 12px/1 var(--f-mono)", color: "var(--ink)" }}>
-                {fmtUsd(overview.orphanRevenueUsd)}
+                {fmtUsdCompact(overview.orphanRevenueUsd)}
               </strong>
             </span>
           )}
@@ -770,7 +759,7 @@ function RoutesView({ routes }: { routes: RouteRow[] }) {
           </span>
           <div>
             <span style={{ font: "800 13px/1 var(--f-mono)", color: "var(--ink)" }}>
-              {fmtUsd(r.revenue)}
+              {fmtUsdCompact(r.revenue)}
             </span>
             <div style={{ marginTop: 5 }}>
               <Progress value={(r.revenue / max) * 100} tone="var(--wine)" height={3} />
@@ -868,7 +857,7 @@ function ServicesView({ services }: { services: ServiceRow[] }) {
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                 <span style={{ font: "700 13px/1 var(--f-sans)", color: "var(--ink)" }}>{s.label}</span>
                 <span style={{ font: "800 14px/1 var(--f-mono)", color: "var(--ink)" }}>
-                  {fmtUsd(s.revenue)}
+                  {fmtUsdCompact(s.revenue)}
                 </span>
               </div>
               <Progress
@@ -918,7 +907,7 @@ function ByClientView({ data }: { data: CommercialByClient }) {
       >
         <KpiCard value={fmtNum(data.totalClients)} label="Clientes" sub="en cartera" valueColor="var(--wine-text)" />
         <KpiCard value={fmtNum(ranked.length)} label="Con facturación" sub="últimos 12 meses" />
-        <KpiCard value={fmtUsd(data.totalBilledUsd)} label="Facturado" sub="trailing 12m · USD" valueColor="var(--success)" />
+        <KpiCard value={fmtUsdCompact(data.totalBilledUsd)} label="Facturado" sub="trailing 12m · USD" valueColor="var(--success)" />
       </div>
 
       <div
@@ -975,7 +964,7 @@ function ByClientView({ data }: { data: CommercialByClient }) {
                   </div>
                   <div>
                     <span style={{ font: "800 13px/1 var(--f-mono)", color: "var(--ink)" }}>
-                      {fmtUsd(r.billedUsd)}
+                      {fmtUsdCompact(r.billedUsd)}
                     </span>
                     <div style={{ marginTop: 5 }}>
                       <Progress value={(r.billedUsd / maxBilled) * 100} tone="var(--wine)" height={3} />
@@ -1060,7 +1049,7 @@ function ByAgentView({ data }: { data: CommercialByAgent }) {
         <KpiCard value={fmtNum(t.leads)} label="Estimados" sub="leads asignados" valueColor="var(--wine-text)" />
         <KpiCard value={fmtNum(t.won)} label="Ganadas" sub={`${t.convPct}% conv. promedio`} valueColor="var(--success)" />
         <KpiCard value={fmtNum(t.clients)} label="Convertidos" sub="a cliente del ERP" />
-        <KpiCard value={fmtUsd(t.revenueUsd)} label="Revenue equipo" sub="facturado 12m · USD" valueColor="var(--success)" />
+        <KpiCard value={fmtUsdCompact(t.revenueUsd)} label="Revenue equipo" sub="facturado 12m · USD" valueColor="var(--success)" />
       </div>
 
       <Card eyebrow="Performance por agente" style={{ padding: 0 }}>
@@ -1112,7 +1101,7 @@ function ByAgentView({ data }: { data: CommercialByAgent }) {
             </span>
             <div>
               <span style={{ font: "800 13px/1 var(--f-mono)", color: "var(--ink)" }}>
-                {fmtUsd(r.revenueUsd)}
+                {fmtUsdCompact(r.revenueUsd)}
               </span>
               <div style={{ marginTop: 5 }}>
                 <Progress value={(r.revenueUsd / maxRev) * 100} tone="var(--wine)" height={3} />
@@ -1260,14 +1249,14 @@ function PipelineView({ data }: { data: PipelineReport }) {
         }}
       >
         <KpiCard value={fmtNum(data.openCbm)} label="CBM en pipeline" sub={`${fmtNum(data.openCount)} estimados abiertos`} valueColor="var(--wine-text)" />
-        <KpiCard value={fmtUsd(data.openUsd)} label="USD en pipeline" sub="borrador + enviadas" />
+        <KpiCard value={fmtUsdCompact(data.openUsd)} label="USD en pipeline" sub="borrador + enviadas" />
         <KpiCard
           value={`${data.pctOfTarget}%`}
           label="De la meta"
           sub={`${fmtNum(data.avgMonthlyOpenCbm)} vs ${data.monthlyTargetCbm} CBM/mes`}
           valueColor={data.pctOfTarget >= 100 ? "var(--success)" : "var(--wine-text)"}
         />
-        <KpiCard value={fmtUsd(data.wonUsd)} label="Aceptado" sub={`${fmtNum(data.wonCount)} en el período`} valueColor="var(--success)" />
+        <KpiCard value={fmtUsdCompact(data.wonUsd)} label="Aceptado" sub={`${fmtNum(data.wonCount)} en el período`} valueColor="var(--success)" />
       </div>
 
       <Card eyebrow="Avance vs meta" title={`${fmtNum(data.avgMonthlyOpenCbm)} de ${data.monthlyTargetCbm} CBM/mes`}>
@@ -1316,7 +1305,7 @@ function PipelineView({ data }: { data: PipelineReport }) {
               {fmtNum(s.cbm)}
             </span>
             <div>
-              <span style={{ font: "800 13px/1 var(--f-mono)", color: "var(--ink)" }}>{fmtUsd(s.usd)}</span>
+              <span style={{ font: "800 13px/1 var(--f-mono)", color: "var(--ink)" }}>{fmtUsdCompact(s.usd)}</span>
               <div style={{ marginTop: 5 }}>
                 <Progress value={(s.usd / maxUsd) * 100} tone="var(--wine)" height={3} />
               </div>
@@ -1379,7 +1368,7 @@ function IncomeStatementView({ income }: { income: IncomeStatement }) {
                 textAlign: "right",
               }}
             >
-              {fmtUsdFull(row.amount)}
+              {fmtUsd(row.amount)}
             </span>
             <span style={{ font: "600 11.5px/1 var(--f-mono)", color: "var(--ink-soft)", textAlign: "right" }}>
               {row.pct != null ? `${row.pct}%` : "—"}
@@ -1467,7 +1456,7 @@ function AgingSideCard({
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 16 }}>
             <div>
               <div style={{ font: "900 26px/1 var(--f-display)", color: "var(--ink)", letterSpacing: "-0.02em" }}>
-                {fmtUsdFull(side.total)}
+                {fmtUsd(side.total)}
               </div>
               <div style={{ font: "600 11px/1 var(--f-sans)", color: "var(--ink-soft)", marginTop: 4 }}>
                 Total
@@ -1480,7 +1469,7 @@ function AgingSideCard({
                   color: side.overdue > 0 ? "var(--danger)" : "var(--ink-soft)",
                 }}
               >
-                {fmtUsdFull(side.overdue)}
+                {fmtUsd(side.overdue)}
               </div>
               <div style={{ font: "600 11px/1 var(--f-sans)", color: "var(--ink-soft)", marginTop: 4 }}>
                 Vencido
@@ -1496,7 +1485,7 @@ function AgingSideCard({
                     {b.label}
                   </span>
                   <span style={{ font: "700 12px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
-                    {fmtUsdFull(b.amount)} · {b.pct}%
+                    {fmtUsd(b.amount)} · {b.pct}%
                   </span>
                 </div>
                 <Progress value={b.pct} tone={tones[b.id]} height={8} />
@@ -1543,11 +1532,11 @@ function IvaView({ iva }: { iva: IvaPosition }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtUsdFull(iva.debito)} label="Débito fiscal" sub="IVA en ventas" valueColor="var(--success)" />
-        <KpiCard value={fmtUsdFull(iva.credito)} label="Crédito fiscal" sub="IVA en compras" valueColor="var(--warning)" />
-        <KpiCard value={fmtUsdFull(iva.cuota)} label="Cuota tributaria" sub="débito − crédito" />
+        <KpiCard value={fmtUsd(iva.debito)} label="Débito fiscal" sub="IVA en ventas" valueColor="var(--success)" />
+        <KpiCard value={fmtUsd(iva.credito)} label="Crédito fiscal" sub="IVA en compras" valueColor="var(--warning)" />
+        <KpiCard value={fmtUsd(iva.cuota)} label="Cuota tributaria" sub="débito − crédito" />
         <KpiCard
-          value={fmtUsdFull(outcomeValue)}
+          value={fmtUsd(outcomeValue)}
           label={aPagar ? "IVA a pagar" : "Excedente a favor"}
           sub={aPagar ? "luego de retenciones" : "crédito trasladable"}
           valueColor={aPagar ? "var(--wine-text)" : "var(--success)"}
@@ -1558,12 +1547,12 @@ function IvaView({ iva }: { iva: IvaPosition }) {
         <p style={{ font: "500 12.5px/1.6 var(--f-sans)", color: "var(--ink)", margin: "0 0 var(--s-3)" }}>
           En el período <strong style={{ fontWeight: 700 }}>{iva.range.from} → {iva.range.to}</strong> el
           débito fiscal (IVA cobrado en ventas) es{" "}
-          <strong style={{ fontWeight: 700 }}>{fmtUsdFull(iva.debito)}</strong> y el crédito fiscal
-          (IVA soportado en compras) es <strong style={{ fontWeight: 700 }}>{fmtUsdFull(iva.credito)}</strong>.
-          La cuota tributaria resultante es <strong style={{ fontWeight: 700 }}>{fmtUsdFull(iva.cuota)}</strong>
+          <strong style={{ fontWeight: 700 }}>{fmtUsd(iva.debito)}</strong> y el crédito fiscal
+          (IVA soportado en compras) es <strong style={{ fontWeight: 700 }}>{fmtUsd(iva.credito)}</strong>.
+          La cuota tributaria resultante es <strong style={{ fontWeight: 700 }}>{fmtUsd(iva.cuota)}</strong>
           {aPagar
-            ? <>, con <strong style={{ fontWeight: 700 }}>{fmtUsdFull(iva.aPagar)}</strong> a pagar.</>
-            : <>, con <strong style={{ fontWeight: 700 }}>{fmtUsdFull(iva.excedente)}</strong> de excedente a favor.</>}
+            ? <>, con <strong style={{ fontWeight: 700 }}>{fmtUsd(iva.aPagar)}</strong> a pagar.</>
+            : <>, con <strong style={{ fontWeight: 700 }}>{fmtUsd(iva.excedente)}</strong> de excedente a favor.</>}
         </p>
 
         <div
@@ -1574,8 +1563,8 @@ function IvaView({ iva }: { iva: IvaPosition }) {
             marginBottom: 4,
           }}
         >
-          <MiniStat label="Base gravada" value={fmtUsdFull(iva.baseGravada)} />
-          <MiniStat label="Base no gravada" value={fmtUsdFull(iva.baseNoGravada)} sub="exenta + tasa cero" />
+          <MiniStat label="Base gravada" value={fmtUsd(iva.baseGravada)} />
+          <MiniStat label="Base no gravada" value={fmtUsd(iva.baseNoGravada)} sub="exenta + tasa cero" />
           <MiniStat label="Facturas de venta" value={fmtNum(iva.salesRows)} />
           <MiniStat label="Compras" value={fmtNum(iva.purchaseRows)} />
         </div>
@@ -1678,10 +1667,10 @@ function CashflowView({ cashflow }: { cashflow: CashflowReport }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtUsd(cashflow.totalBilled)} label="Facturado" sub="en el período" valueColor="var(--wine-text)" />
-        <KpiCard value={fmtUsd(cashflow.totalCollected)} label="Cobrado" sub="en el período" valueColor="var(--success)" />
-        <KpiCard value={fmtUsd(cashflow.outstanding)} label="Por cobrar" sub="saldo vivo total" />
-        <KpiCard value={fmtUsd(cashflow.overdue)} label="Vencido" sub="saldo vivo" valueColor="var(--danger)" />
+        <KpiCard value={fmtUsdCompact(cashflow.totalBilled)} label="Facturado" sub="en el período" valueColor="var(--wine-text)" />
+        <KpiCard value={fmtUsdCompact(cashflow.totalCollected)} label="Cobrado" sub="en el período" valueColor="var(--success)" />
+        <KpiCard value={fmtUsdCompact(cashflow.outstanding)} label="Por cobrar" sub="saldo vivo total" />
+        <KpiCard value={fmtUsdCompact(cashflow.overdue)} label="Vencido" sub="saldo vivo" valueColor="var(--danger)" />
       </div>
 
       <Card eyebrow="Facturado vs cobrado" title="Serie mensual · USD">
@@ -1692,7 +1681,7 @@ function CashflowView({ cashflow }: { cashflow: CashflowReport }) {
         Facturado y cobrado del período se normalizan a USD (VES por fx de la
         factura/recibo). <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>CNY no incluido en V1.</strong>{" "}
         Por cobrar y vencido son saldos vivos totales (no del rango). Diferencia
-        facturado − cobrado del período: {fmtUsd(pendiente)}.
+        facturado − cobrado del período: {fmtUsdCompact(pendiente)}.
       </p>
     </div>
   );
@@ -1823,9 +1812,9 @@ function CombinedKpis({ combined }: { combined: CombinedReport }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtUsd(t.revenue)} label="Ingreso" sub="facturado · USD" valueColor="var(--success)" />
-        <KpiCard value={fmtUsd(t.cost)} label="Costo directo" sub={`${t.revenue > 0 ? Math.round((t.cost / t.revenue) * 100) : 0}% sobre ingreso`} valueColor="var(--warning)" />
-        <KpiCard value={fmtUsdFull(t.margin)} label="Margen bruto" sub={`${fmtPct(t.avgMarginPct)} margen`} valueColor="var(--wine-text)" />
+        <KpiCard value={fmtUsdCompact(t.revenue)} label="Ingreso" sub="facturado · USD" valueColor="var(--success)" />
+        <KpiCard value={fmtUsdCompact(t.cost)} label="Costo directo" sub={`${t.revenue > 0 ? Math.round((t.cost / t.revenue) * 100) : 0}% sobre ingreso`} valueColor="var(--warning)" />
+        <KpiCard value={fmtUsd(t.margin)} label="Margen bruto" sub={`${fmtPct(t.avgMarginPct)} margen`} valueColor="var(--wine-text)" />
         <KpiCard value={fmtNum(combined.withCosts)} label="Con costos" sub={`${coveragePct}% de ${fmtNum(combined.shipments)} embarques`} />
       </div>
       {combined.withCosts < combined.shipments && (
@@ -1890,13 +1879,13 @@ function MarginTable({
             )}
           </div>
           <span style={{ font: "700 12px/1 var(--f-mono)", textAlign: "right", color: "var(--ink)" }}>
-            {fmtUsd(r.revenue)}
+            {fmtUsdCompact(r.revenue)}
           </span>
           <span style={{ font: "700 12px/1 var(--f-mono)", textAlign: "right", color: "var(--ink-soft)" }}>
-            {fmtUsd(r.cost)}
+            {fmtUsdCompact(r.cost)}
           </span>
           <span style={{ font: "800 13px/1 var(--f-mono)", textAlign: "right", color: marginColor(r.margin) }}>
-            {fmtUsdFull(r.margin)}
+            {fmtUsd(r.margin)}
           </span>
           <span style={{ textAlign: "right" }}>
             <Badge tone={r.tone as BadgeTone} size="sm">
@@ -2022,10 +2011,10 @@ function CostCbmView({ combined }: { combined: CombinedReport }) {
                 {r.cbm.toFixed(1)}
               </span>
               <span style={{ font: "700 12px/1 var(--f-mono)", textAlign: "right", color: "var(--ink)" }}>
-                {fmtUsd(r.revenuePerCbm)}
+                {fmtUsdCompact(r.revenuePerCbm)}
               </span>
               <span style={{ font: "600 12px/1 var(--f-mono)", textAlign: "right", color: "var(--ink-soft)" }}>
-                {fmtUsd(r.costPerCbm)}
+                {fmtUsdCompact(r.costPerCbm)}
               </span>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ flex: 1 }}>
@@ -2043,7 +2032,7 @@ function CostCbmView({ combined }: { combined: CombinedReport }) {
                     textAlign: "right",
                   }}
                 >
-                  {fmtUsdFull(m)}
+                  {fmtUsd(m)}
                 </span>
               </div>
             </div>

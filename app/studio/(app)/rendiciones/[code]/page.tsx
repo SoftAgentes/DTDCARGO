@@ -23,7 +23,7 @@ import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { getRenditionWithReceipts } from "@/lib/studio/renditions/queries";
 import {
   buildRenditionPrintable,
-  fmtUsd,
+  fmtAmount,
 } from "@/lib/studio/renditions/printable";
 import {
   renditionStatusLabel,
@@ -338,7 +338,7 @@ export default async function RenditionPrintPage({
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {fmtUsd(l.amountUsd)}
+                    {fmtAmount(l.amountUsd)}
                   </td>
                 </tr>
               ))}

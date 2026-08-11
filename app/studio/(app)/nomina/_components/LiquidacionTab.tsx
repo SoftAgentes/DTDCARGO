@@ -16,15 +16,7 @@ import {
   type Settlement,
 } from "@/lib/studio/nomina/settlement-types";
 import { FiniquitoDetalle } from "./FiniquitoDetalle";
-
-function fmtUsd(n: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(n);
-}
+import { fmtUsd } from "@/lib/money";
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";

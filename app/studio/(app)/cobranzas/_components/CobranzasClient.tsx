@@ -43,17 +43,12 @@ import type {
 import { CobranzaDrawer, type CashAccountOption } from "./CobranzaDrawer";
 import { IdentifyPaymentDrawer } from "./IdentifyPaymentDrawer";
 import { UnidentifiedPaymentDrawer } from "./UnidentifiedPaymentDrawer";
+import { fmtAmount } from "@/lib/money";
 
 function fmtMoney(n: number): string {
   return n.toLocaleString("en-US", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  });
-}
-function fmtAmount(n: number): string {
-  return n.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
   });
 }
 
@@ -308,13 +303,6 @@ export function CobranzasClient({
   );
 }
 
-function fmtUsd(n: number): string {
-  return n.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
 /**
  * Card de separación de fondos (SDD-0068): lo recaudado del período por
  * clase — fondos de terceros (Operadora) vs ingreso local (DTD Services) —
@@ -365,7 +353,7 @@ function FundsSeparationCard({ separation }: { separation: FundsSeparation }) {
               color: "var(--info)",
             }}
           >
-            ${fmtUsd(separation.thirdPartyUsd)}
+            ${fmtAmount(separation.thirdPartyUsd)}
           </div>
           <div
             style={{
@@ -384,7 +372,7 @@ function FundsSeparationCard({ separation }: { separation: FundsSeparation }) {
               color: "var(--success)",
             }}
           >
-            ${fmtUsd(separation.localRevenueUsd)}
+            ${fmtAmount(separation.localRevenueUsd)}
           </div>
           <div
             style={{
@@ -406,7 +394,7 @@ function FundsSeparationCard({ separation }: { separation: FundsSeparation }) {
                   : "var(--ink)",
             }}
           >
-            ${fmtUsd(separation.unidentifiedUsd)}
+            ${fmtAmount(separation.unidentifiedUsd)}
           </div>
           <div
             style={{
@@ -517,7 +505,7 @@ function UnidentifiedSection({
               color: "var(--ink)",
             }}
           >
-            ${fmtUsd(r.amount)} {r.currency}
+            ${fmtAmount(r.amount)} {r.currency}
           </span>
           <div style={{ display: "flex", gap: 8 }}>
             <Link

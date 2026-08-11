@@ -26,7 +26,7 @@ import {
   type ReferralStatus,
 } from "@/lib/studio/fidelizacion/types";
 import type { ApplicableInvoice } from "@/lib/studio/fidelizacion/referral-credit-queries";
-import { fmtUsd } from "../format";
+import { fmtUsd } from "@/lib/money";
 import {
   accreditReferral,
   applyReferralCredit,

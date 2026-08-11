@@ -18,18 +18,10 @@ import type { LoanWithBalance } from "@/lib/studio/nomina/loan-types";
 import type { NominaActionState } from "@/lib/studio/nomina/employee-types";
 import { registerLoanInstallmentAction, cancelLoanAction } from "../actions";
 import { Field, ErrorBox } from "./form-bits";
+import { fmtUsd } from "@/lib/money";
 
 const FORM_ID = "cuota-prestamo-form";
 const initial: NominaActionState = {};
-
-function fmtUsd(n: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(n);
-}
 
 export function CuotaPrestamoDrawer({
   loan,

@@ -11,7 +11,8 @@
  */
 
 import Link from "next/link";
-import { fmtUsd, type FinanceHealth } from "@/lib/studio/direccion/queries";
+import type { FinanceHealth } from "@/lib/studio/direccion/queries";
+import { fmtUsd } from "@/lib/money";
 
 function FinRow({
   label,

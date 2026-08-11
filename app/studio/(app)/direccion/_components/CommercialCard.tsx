@@ -9,7 +9,8 @@
 
 import Link from "next/link";
 import { Icon } from "@/app/studio/_components/icons";
-import { fmtUsd, type CommercialSummary } from "@/lib/studio/direccion/queries";
+import type { CommercialSummary } from "@/lib/studio/direccion/queries";
+import { fmtUsd } from "@/lib/money";
 import { MiniStat } from "./MiniStat";
 
 export function CommercialCard({

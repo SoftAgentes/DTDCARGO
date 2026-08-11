@@ -13,7 +13,7 @@ import { useActionState, useEffect } from "react";
 import type { MyEmployee, MyBankChange } from "@/lib/studio/nomina/employee-self-queries";
 import { updateMyProfileAction, type EmpActionState } from "../actions";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
-import { fmtUsd } from "../format";
+import { fmtUsd } from "@/lib/money";
 
 const INITIAL: EmpActionState = {};
 

@@ -14,6 +14,7 @@ import { StarIcon } from "@/components/Icon";
 import { getProfileCompleteness } from "@/lib/portal/portal-queries";
 import { isModuleLocked } from "@/lib/portal/verify-gate";
 import { PortalVerifyGate } from "../_components/PortalVerifyGate";
+import { fmtUsd } from "@/lib/money";
 
 export const metadata: Metadata = { title: "Referidos" };
 
@@ -29,8 +30,6 @@ export const metadata: Metadata = { title: "Referidos" };
  * hero). Créditos con copy HONESTO: en V1 son advisory (el asesor los aplica), no
  * se descuentan automático (SDD-0051).
  */
-const fmtUsd = (n: number) =>
-  "$" + Math.round(Number(n) || 0).toLocaleString("en-US");
 
 export default async function PortalReferralsPage() {
   const supabase = await createClient();

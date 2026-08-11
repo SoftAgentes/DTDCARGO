@@ -20,7 +20,7 @@ import {
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { type ReferralActionState } from "@/lib/studio/fidelizacion/types";
-import { fmtUsd } from "../format";
+import { fmtUsd } from "@/lib/money";
 import { registerReferral } from "../actions";
 
 const INITIAL: ReferralActionState = {};

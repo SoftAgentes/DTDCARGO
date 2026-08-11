@@ -33,6 +33,7 @@ import {
 } from "@/lib/studio/reports/builder-types";
 import { PERIOD_OPTIONS, type ReportPeriod } from "@/lib/studio/reports/types";
 import { Progress, HeaderRow } from "./charts";
+import { fmtUsd } from "@/lib/money";
 
 const STORAGE_KEY = "dtd_saved_reports_v1";
 
@@ -46,9 +47,6 @@ type SavedReport = {
   filterFieldI: number;
   filterVal: string;
 };
-
-const fmtUsd = (n: number) =>
-  `$${Math.round(n).toLocaleString("en-US")}`;
 
 /** Lee los reportes guardados de localStorage (SSR-safe; [] si no hay window). */
 function readSaved(): SavedReport[] {

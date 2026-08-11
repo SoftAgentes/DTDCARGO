@@ -38,7 +38,7 @@ import type {
   TopReferrer,
 } from "@/lib/studio/fidelizacion/queries";
 import type { ReferralSettingsInput } from "@/lib/studio/fidelizacion/referral-settings-types";
-import { fmtUsd } from "../format";
+import { fmtUsd } from "@/lib/money";
 import { RegisterReferralDrawer } from "./RegisterReferralDrawer";
 import { ReferralDrawer } from "./ReferralDrawer";
 import { ReferralSettingsDrawer } from "./ReferralSettingsDrawer";

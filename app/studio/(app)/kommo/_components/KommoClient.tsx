@@ -30,6 +30,7 @@ import type {
 } from "@/lib/studio/kommo-types";
 import { KOMMO_TABS, type KommoTabKey } from "./kommo-tabs.shared";
 import { ConvertLeadDrawer } from "./ConvertLeadDrawer";
+import { fmtUsd } from "@/lib/money";
 
 const GRID = "1.5fr 0.9fr 0.8fr 56px 96px 148px";
 const DAY_MS = 86_400_000;
@@ -43,14 +44,6 @@ function fmtDateTime(iso: string | null): string {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function fmtUsd(n: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(Math.round(n));
 }
 
 function daysSince(iso: string | null): number | null {

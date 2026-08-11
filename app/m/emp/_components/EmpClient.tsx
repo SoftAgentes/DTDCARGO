@@ -15,7 +15,7 @@ import { commIsUnread, commNeedsAck } from "@/lib/studio/nomina/comms-types";
 import { ReciboTab } from "./ReciboTab";
 import { MensajesTab } from "./MensajesTab";
 import { PerfilTab } from "./PerfilTab";
-import { fmtUsd } from "../format";
+import { fmtUsd } from "@/lib/money";
 
 type Tab = "inicio" | "recibo" | "mensajes" | "perfil";
 

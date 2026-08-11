@@ -22,6 +22,7 @@ import type {
 } from "@/lib/studio/kommo-types";
 import { StageMapConfig } from "./StageMapConfig";
 import { MarkboxFieldConfig } from "./MarkboxFieldConfig";
+import { fmtUsd } from "@/lib/money";
 
 function fmtDateTime(iso: string | null): string {
   if (!iso) return "—";
@@ -38,14 +39,6 @@ function wbGateLabel(g: WritebackGate): string {
 }
 function wbGateTone(g: WritebackGate): "success" | "warning" | "neutral" {
   return g === "live" ? "success" : g === "dry_run" ? "warning" : "neutral";
-}
-
-function fmtUsd(n: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(Math.round(n));
 }
 
 function pct1(n: number): string {

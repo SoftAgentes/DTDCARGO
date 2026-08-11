@@ -20,6 +20,7 @@ import Link from "next/link";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import type { KommoLeadRow, KommoPipelineRow, KommoStatusRow } from "@/lib/studio/kommo-types";
+import { fmtUsd } from "@/lib/money";
 
 const DAY_MS = 86_400_000;
 const CARDS_PER_COLUMN = 40;
@@ -28,14 +29,6 @@ const HEX_RE = /^#[0-9a-fA-F]{3,8}$/;
 /** Solo dejamos pasar un #hex válido (data de Kommo); si no, sin acento. */
 function accentColor(raw: string | null): string {
   return raw && HEX_RE.test(raw) ? raw : "var(--border)";
-}
-
-function fmtUsd(n: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(Math.round(n));
 }
 
 function daysSince(iso: string | null): number | null {

@@ -35,6 +35,7 @@ import {
   softDeleteTemplate,
   updateTemplate,
 } from "../actions";
+import { fmtUsd } from "@/lib/money";
 
 const FORM_ID = "template-editor-form";
 const initialState: TemplateActionState = {};
@@ -45,8 +46,6 @@ const SERVICE_OPTIONS = (Object.keys(SERVICE_LABELS) as ShipmentService[]).map(
     return { value: s, label: l.sub ? `${l.primary} (${l.sub})` : l.primary };
   },
 );
-
-const fmtUsd = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 
 function templateAmounts(tpl: RouteCostTemplate | null): CostAmounts {
   if (!tpl) return emptyCosts();
