@@ -146,20 +146,40 @@ Quedó configurada **en los 4 agentes**, verificada recargando:
 
 ```
 Cuando  El mensaje es recibido en horas específicas: Siempre
-Hacer   Agregar tarea · Fecha límite: 2 horas · Usuario responsable: Responsable actual
+Hacer   Agregar tarea · Fecha límite: Ahora · Usuario responsable: Responsable actual
         Tipo: Seguimiento · Comentario: "Responder al cliente"
 ```
 
-Con eso, **cada mensaje que entra crea una tarea a 2 horas**; si nadie responde, la tarea vence y
-**la tarjeta se pone roja**. Cubre todo el pipeline, porque entre los 4 agentes están las 7 etapas.
+⭐ **El plazo es `Ahora`, no 2 horas** (corregido el 11-ago tras probarlo). Con 2 h la tarjeta se
+quedaba verde dos horas y **el rojo llegaba cuando ya no servía**. Con `Ahora` la tarea nace vencida:
+**la tarjeta se pone roja apenas el cliente escribe, y se apaga cuando alguien la completa.** O sea,
+rojo = *sin atender*, que es la semántica que se buscaba.
+
+Cubre todo el pipeline, porque entre los 4 agentes están las 7 etapas.
+
+### El pipeline, ordenado por quién escribió último
+
+`…` → **Ordenar → Por último mensaje**. Sube al tope de cada columna a quien habló más reciente, para
+no depender del Inbox de chat. Aplicado el 11-ago.
 
 ⚠️ **Ojo al elegir la acción:** el desplegable de *Hacer* viene en **"Transferir al usuario"**, y
 dejarlo así haría que el agente transfiriera en **cada** mensaje. Hay que cambiarlo a **"Agregar
 tarea"** — el clic tiene que caer sobre el texto de la opción, no al borde, o el desplegable se
 cierra sin aplicar y parece que no pasó nada.
 
-⚠️ **Pendiente de medir:** con ~16 leads/día habrá muchas tareas. Si el tablero queda rojo
-permanentemente el indicador pierde valor y hay que subir el plazo de 2 h.
+⚠️ **Pendiente de medir:** con ~16 leads/día habrá mucho rojo. Si el tablero queda rojo
+permanentemente el indicador pierde valor y habrá que subir el plazo. La decisión se toma con datos,
+en unos días, no antes.
+
+🔴 **Limitación que hay que tener presente: la acción vive DENTRO del agente**, y los 4 agentes
+cubren **sólo el canal de WhatsApp**. Los mensajes de **Instagram y Facebook no crean tarea y no se
+ponen rojos** — ese es el 32% de la captación. Cubrirlos exige sumarle el canal a un agente, y eso
+consume créditos.
+
+🔴 **Y el botón de arriba a la derecha cambia según el contexto.** Sin cambios pendientes dice
+**"Desactivar agente"**; con cambios, **"Guardar"**. Están en la misma coordenada: hacer clic a
+ciegas ahí abrió el diálogo *"¿Desactivar tu agente de IA?"* en producción. **Verificar el rótulo
+antes de cada clic.**
 
 ## 🔴 El bloqueo: "Cannot run two different agents in the same status"
 
