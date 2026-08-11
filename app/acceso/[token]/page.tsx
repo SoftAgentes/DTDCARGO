@@ -102,7 +102,20 @@ export default async function AccesoPage({
 // Server components helpers
 // ─────────────────────────────────────────────────────────────
 
-function AccesoContainer({ children }: { children: React.ReactNode }) {
+/**
+ * `titulo` es el H1 de la pantalla. Por default habla del camino feliz, pero las
+ * pantallas de error TIENEN que pasarlo: antes el contenedor decía siempre
+ * "Crea tu contraseña" y debajo aparecía "Este enlace no existe" — el encabezado
+ * contradecía al contenido, y para quien navega por encabezados eso es lo único
+ * que oye.
+ */
+function AccesoContainer({
+  titulo = "Crea tu contraseña",
+  children,
+}: {
+  titulo?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div
       style={{
@@ -145,7 +158,7 @@ function AccesoContainer({ children }: { children: React.ReactNode }) {
               letterSpacing: "-0.01em",
             }}
           >
-            Crea tu contraseña
+            {titulo}
           </h1>
         </div>
         {children}
@@ -166,16 +179,7 @@ function AccesoError({
   ctaLabel?: string;
 }) {
   return (
-    <AccesoContainer>
-      <p
-        style={{
-          font: "700 15px/1.4 var(--f-sans, Archivo, sans-serif)",
-          color: "var(--ink, #0F1E3D)",
-          margin: "0 0 8px",
-        }}
-      >
-        {titulo}
-      </p>
+    <AccesoContainer titulo={titulo}>
       <p
         style={{
           font: "500 13.5px/1.55 var(--f-sans, Archivo, sans-serif)",

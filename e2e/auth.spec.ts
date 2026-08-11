@@ -75,12 +75,13 @@ test.describe("Tier 1 · logins (render + negativos)", () => {
     const url = "/acceso/tokenquenoexiste000000000000000000000000000000";
     for (const vuelta of ["primera", "segunda"]) {
       await page.goto(url);
-      // Se afirma el TEXTO, no `getByRole("heading")`: `AccesoError` pinta el
-      // título en un <p>, no en un h1/h2 (verificado en page.tsx:170). Asumir el
-      // rol dejaba el test rojo en los tres navegadores.
+      // Se afirma el ROL, no sólo el texto: `AccesoError` pintaba el título en
+      // un <p>, así que un lector de pantalla no encontraba encabezado alguno y
+      // la persona quedaba sin punto de entrada. Ya es un <h1>; pedir el rol
+      // acá deja fijo ese arreglo — si alguien lo devuelve a <p>, esto cae.
       await expect(
-        page.getByText(/Este enlace no existe/i).first(),
-        `${vuelta} carga: el token basura debe caer en el mensaje de "no existe"`,
+        page.getByRole("heading", { name: /Este enlace no existe/i }),
+        `${vuelta} carga: el token basura debe caer en el mensaje de "no existe", y como ENCABEZADO`,
       ).toBeVisible();
       // Y nunca el formulario de clave: eso sería tratar un token inválido como bueno.
       await expect(page.locator('input[type="password"]')).toHaveCount(0);
