@@ -109,8 +109,15 @@ pnpm seed                # datos demo del Studio (tsx scripts/seed.ts)
 pnpm docs:index / docs:check   # índice + validación de specs SDD
 node scripts/run-sql-tests.mjs # contratos SQL (RLS/GRANT/triggers) en Postgres desechable
 node scripts/check-schema-rebuild.mjs  # ¿el schema se reconstruye desde cero? (267 migr.)
+node scripts/check-edge-functions.mjs  # deno check sobre supabase/functions (tsc NO las mira)
 ```
 Test puntual: `pnpm test path/to/file.test.ts` o `pnpm test -t "nombre"`. E2e puntual: `pnpm test:e2e path/to/spec.ts` o `pnpm test:e2e -g "nombre"` (modo interactivo: `pnpm test:e2e:ui`).
+
+### ⚠️ Las Edge Functions viven FUERA de `tsc` — las chequea Deno
+
+`supabase/functions` está en el `exclude` de `tsconfig.json`, así que **`pnpm typecheck` no las mira**, y Vitest sólo ejecuta los módulos puros de `_shared/` *transpilando sin chequear tipos*. Hasta el 2026-08-11 eso dejaba sin ninguna verificación estática al código que escribe a Kommo (`kommo-writeback`, LIVE) y al que **poda embudos y etapas del espejo** (`kommo-sync`). Lo cierra el paso **`edge-functions`** de `verify.mjs` (`scripts/check-edge-functions.mjs`): corre `deno check` sobre las 4 entradas `supabase/functions/*/index.ts` y, por el grafo de imports, cubre de rebote los 5 módulos de `_shared/`. Usa el `deno` del PATH si existe; si no, `npx --yes deno@2` (no instala nada permanente). **Sin poder obtener Deno → SKIP, nunca rojo**; `VERIFY_SKIP_EDGE=1` lo omite a pedido.
+
+Si lo corres a mano, respeta las dos banderas: **`--no-lock`** (si no, deja un `deno.lock` en la raíz del repo) y **`--node-modules-dir=none`** (si no, Deno ve el `package.json`, se cree un proyecto Node y baja el árbol entero de dependencias a `node_modules/.deno` de *cada* worktree — 42 s la primera vez). Hueco conocido que **no** cubre: `_shared/__tests__/*.test.ts`, cuyos imports van sin extensión (ilegal en Deno) y no los alcanza ninguna entrada.
 
 ## Mapa del repo (graphify) — exploración para agentes
 

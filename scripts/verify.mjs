@@ -2,8 +2,9 @@
 /**
  * scripts/verify.mjs — Gate de verificación del harness DTD Cargo.
  *
- * Corre, en orden: lint → rsc-boundary → typecheck → test → docs:check →
- * numbering → components:check → governance:check → migrations-applied → e2e.
+ * Corre, en orden: lint → rsc-boundary → typecheck → edge-functions → test →
+ * docs:check → numbering → components:check → governance:check →
+ * migrations-applied → sql-tests → schema-rebuild → e2e.
  * Es el "init.sh real" del proyecto, multiplataforma (Node, cero deps).
  *
  * El paso `e2e` (Playwright) va último y se OMITE con gracia si no hay
@@ -153,6 +154,16 @@ const STEPS = [
   // (typecheck/vitest no lo ven; explota 500 en runtime — ver SDD-0050). Cero deps, rápido.
   { name: "rsc-boundary", argv: ["scripts/check-rsc-boundary.mjs"] },
   { name: "typecheck", argv: ["node_modules/typescript/bin/tsc", "--noEmit"] },
+  // Las Edge Functions NO las miraba nadie: `tsconfig.json` tiene
+  // `supabase/functions` en `exclude` (→ tsc pasa de largo) y Vitest sólo
+  // ejecuta los módulos puros de `_shared/`, transpilando SIN chequear tipos.
+  // O sea: `kommo-writeback` (PATCH a Kommo, LIVE) y `kommo-sync` (que PODA
+  // embudos y etapas del espejo) viajaban a prod sin verificación estática.
+  // Este paso corre `deno check` sobre las 4 entradas; el grafo de imports cubre
+  // de rebote los 5 módulos de `_shared/`. DEGRADA CON GRACIA: sin poder obtener
+  // Deno (sin red ni caché) → SKIP, nunca rojo. `VERIFY_SKIP_EDGE=1` lo omite.
+  // `retry: 1` porque la PRIMERA vez baja Deno por npx y eso toca la red.
+  { name: "edge-functions", argv: ["scripts/check-edge-functions.mjs"], retry: 1 },
   // `retry: 1` → el pool de workers de Vitest cae en seco de forma transitoria en
   // Windows ("failed to find the runner" / reading 'config' en TODOS los archivos):
   // es flakiness conocida, no regresión. Reintentar 1 vez auto-sana el gate; un test
