@@ -82,7 +82,31 @@ export default async function MarcaPage() {
   const withFiles = sections.filter((s) => s.assets.length > 0).length;
 
   return (
-    <div className={`bg-paper min-h-screen text-ink ${jetbrainsMonoUi.variable}`}>
+    <div
+      className={`bg-paper min-h-screen text-ink ${jetbrainsMonoUi.variable}`}
+      /*
+        `/marca` RESPIRA EN MONITOR GRANDE — y sólo `/marca`.
+
+        `--maxw` vale 1280px para todo el sitio, que es lo correcto para páginas
+        de LECTURA: una línea de texto más ancha que ~75 caracteres se lee peor,
+        no mejor. Pero esto no es una página de lectura, es una PARRILLA de
+        archivos: acá el ancho de más no estira renglones, agranda miniaturas —
+        que es justo lo que se viene a hacer, mirar el material. En una pantalla
+        de 2560px el catálogo usaba la mitad del monitor y las fichas quedaban
+        apretadas al lado de dos franjas de papel vacío.
+
+        Se sobreescribe la VARIABLE y no los `.wrap` uno por uno: `.wrap` lee
+        `var(--maxw)` y las variables heredan, así que declararla acá la re-apunta
+        para todo lo que cuelga de esta página —cabecera, hero, catálogo, pie— sin
+        tocar una sola clase y sin filtrarse al resto del sitio.
+
+        El `clamp` no es decorativo: por debajo de 1280 no cambia NADA (sigue
+        mandando el ancho de siempre), entre 1280 y ~1900 crece con la pantalla, y
+        se detiene en 1760 porque más allá la fila de fichas empieza a pedir un
+        barrido de cabeza para recorrerla completa. Ancho, no infinito.
+      */
+      style={{ ["--maxw" as string]: "clamp(1280px, 94vw, 1760px)" }}
+    >
       {/* Header propio: /marca no cuelga del layout del sitio público ni del ERP */}
       <header
         className="sticky top-0 z-30 bg-paper border-b border-grey-200"

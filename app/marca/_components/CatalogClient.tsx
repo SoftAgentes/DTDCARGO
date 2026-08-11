@@ -368,7 +368,19 @@ export function CatalogClient({
               {doctrine && <div className="mt-9">{doctrine}</div>}
 
               {count > 0 ? (
-                <div className="mt-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div
+                  /*
+                    La cuarta columna entra SÓLO en 2xl (1536px+), y es a
+                    propósito que no entre antes. Con el contenedor ya abierto a
+                    1760px, tres columnas en una pantalla de 2560 dan fichas de
+                    ~570px de ancho con una miniatura de 224 de alto: mucha ficha
+                    para poca imagen. En cuatro la proporción vuelve a su sitio y
+                    siguen siendo bastante más grandes que las de antes.
+
+                    Debajo de 1536 no cambia nada: 1 · 2 · 3 como siempre.
+                  */
+                  className="mt-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-5"
+                >
                   {section.assets.map((a) => (
                     <AssetCard
                       key={a.id}
