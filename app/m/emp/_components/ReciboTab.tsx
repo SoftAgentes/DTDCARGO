@@ -14,7 +14,7 @@ import { useState, useTransition } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import type { MyEmployee, MyPayslip, MyPayslipPeriod } from "@/lib/studio/nomina/employee-self-queries";
 import { fetchMyPayslipAction } from "../actions";
-import { fmtUsd } from "./EmpClient";
+import { fmtUsd } from "../format";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 
 export function ReciboTab({

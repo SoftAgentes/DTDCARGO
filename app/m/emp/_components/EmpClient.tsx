@@ -15,16 +15,9 @@ import { commIsUnread, commNeedsAck } from "@/lib/studio/nomina/comms-types";
 import { ReciboTab } from "./ReciboTab";
 import { MensajesTab } from "./MensajesTab";
 import { PerfilTab } from "./PerfilTab";
+import { fmtUsd } from "../format";
 
 type Tab = "inicio" | "recibo" | "mensajes" | "perfil";
-
-export function fmtUsd(n: number): string {
-  return new Intl.NumberFormat("es-VE", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-  }).format(n ?? 0);
-}
 
 export function EmpClient({
   me,
