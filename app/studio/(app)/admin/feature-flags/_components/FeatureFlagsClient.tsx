@@ -12,6 +12,7 @@
 import { useActionState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
+  FEATURE_FLAG_EFFECT,
   FEATURE_FLAG_KEYS,
   FEATURE_FLAG_LABELS,
   MODULE_FLAG_MAP,
@@ -85,6 +86,7 @@ function FlagCard({
   }, [state.ok, router]);
 
   const label = FEATURE_FLAG_LABELS[flagKey];
+  const efecto = FEATURE_FLAG_EFFECT[flagKey];
 
   return (
     <form
@@ -173,21 +175,51 @@ function FlagCard({
         </button>
       </div>
 
-      {modulesAffected.length > 0 && (
-        <div
-          style={{
-            font: "500 11px/1.4 var(--font-sans, 'Archivo')",
-            color: "var(--ink-soft)",
-            paddingTop: 6,
-            borderTop: "1px solid var(--border)",
-          }}
-        >
-          Al apagar: oculta del sidebar{" "}
-          <strong style={{ color: "var(--ink)" }}>
-            {modulesAffected.join(" · ")}
-          </strong>
-        </div>
-      )}
+      {/* Qué hace de verdad este interruptor. Sale de FEATURE_FLAG_EFFECT, que
+          un contrato mantiene sincronizado con el código: si alguien cablea un
+          flag y no actualiza el mapa, el gate se pone rojo. Antes esta tarjeta
+          sólo hablaba cuando el flag escondía un módulo, así que los 17 que no
+          hacen nada se veían idénticos a los que sí — y el panel prometía un
+          control que no existe. */}
+      <div
+        style={{
+          font: "500 11px/1.4 var(--font-sans, 'Archivo')",
+          color: "var(--ink-soft)",
+          paddingTop: 6,
+          borderTop: "1px solid var(--border)",
+        }}
+      >
+        {efecto === "ninguno" ? (
+          <>
+            <strong style={{ color: "var(--ink)" }}>Sin efecto todavía.</strong>{" "}
+            Se puede prender y apagar, pero nada del sistema lo consulta.
+          </>
+        ) : efecto === "ruta" ? (
+          <>
+            Al apagar:{" "}
+            <strong style={{ color: "var(--ink)" }}>bloquea la ruta</strong>
+            {modulesAffected.length > 0 && (
+              <> y la oculta del menú ({modulesAffected.join(" · ")})</>
+            )}
+          </>
+        ) : efecto === "movil" ? (
+          <>
+            Al apagar:{" "}
+            <strong style={{ color: "var(--ink)" }}>
+              lo respeta la app móvil
+            </strong>{" "}
+            — el Studio no lo consulta.
+          </>
+        ) : (
+          <>
+            Al apagar: oculta del menú{" "}
+            <strong style={{ color: "var(--ink)" }}>
+              {modulesAffected.join(" · ")}
+            </strong>
+            . La URL directa sigue abriendo.
+          </>
+        )}
+      </div>
 
       {state.error && state.flagKey === flagKey && (
         <div
