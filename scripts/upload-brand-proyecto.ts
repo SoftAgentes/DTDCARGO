@@ -28,6 +28,35 @@
  * duplica. Para publicar una versión nueva se corre otra vez; lo que ya no se
  * alcanza queda huérfano en el bucket (no molesta, no se sirve).
  *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 🛑 ANTES DE CORRERLO: HOY PRODUCCIÓN ES LA COPIA MÁS COMPLETA QUE EXISTE.
+ *
+ * `upsert` significa que esto PISA lo que está publicado. Y la carpeta que
+ * produjo la publicación viva ya no existe intacta en ningún disco — se buscó
+ * el 2026-08-11 y se identificó por huella (la clave lleva un hash FNV-1a de la
+ * ruta original, así que la coincidencia no se puede fingir):
+ *
+ *   Downloads/…/dtd-cargo/project        231 de 319 claves
+ *   Downloads/…/DTD-Cargo (8)/Handoff v5.0  110 de 319
+ *   las dos fusionadas                    297 de 319  (93,1%)
+ *
+ * Los 22 que faltan son `erp-mockups-v5/`, que NO está en ningún disco: sólo
+ * sobrevive en el bucket. Y de las 297 que sí se reproducen, **40 difieren en
+ * contenido** respecto de producción, en ambas direcciones (p. ej.
+ * `ciclo/Ciclo DTD · Variantes de marca.html`: prod 19.431 B, disco 16.364 B).
+ *
+ * O sea: correr esto sobre una copia vieja de `Downloads/` no restaura nada —
+ * REGRESA 40 archivos y deja 22 colgando. **Si vas a republicar, hazlo sobre la
+ * carpeta que mande Cloud Design por NORTE-SYNC, no sobre lo que haya en
+ * Downloads.** Y corre `--dry-run` primero.
+ *
+ * ⚠️ El `--dry-run` NO es un gate de que los documentos funcionen: sólo mira
+ * archivos locales. No ve los `<script src>` a CDN (eso lo decide la CSP de
+ * `/marca/doc/*`) ni distingue una referencia real de un string dentro de
+ * `<script>` o de un `<pre>`. Ver
+ * `docs/design/studio/cloud-design-2026-08-11-isotipo-y-favicons-falsos-positivos.md`.
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
  * Uso:
  *   pnpm tsx scripts/upload-brand-proyecto.ts "C:/ruta/dtd-cargo/project"
  *   pnpm tsx scripts/upload-brand-proyecto.ts "C:/ruta/project" --dry-run
