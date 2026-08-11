@@ -21,7 +21,7 @@ import {
   type RecoveryFilters,
   type RecoveryRow,
   type RecoverySegment,
-} from "@/lib/studio/crm-recovery";
+} from "@/lib/studio/kommo-recovery";
 import { exportRecoverySmsCsvAction } from "../actions";
 
 const GRID = "36px 1.7fr 1fr 64px 56px 140px";

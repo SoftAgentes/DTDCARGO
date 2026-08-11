@@ -19,7 +19,7 @@
 import Link from "next/link";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
-import type { KommoLeadRow, KommoPipelineRow, KommoStatusRow } from "@/lib/studio/crm-types";
+import type { KommoLeadRow, KommoPipelineRow, KommoStatusRow } from "@/lib/studio/kommo-types";
 import { fmtUsd } from "@/lib/money";
 
 const DAY_MS = 86_400_000;

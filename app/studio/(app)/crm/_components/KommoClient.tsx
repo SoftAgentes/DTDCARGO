@@ -16,18 +16,18 @@ import type { CSSProperties, ReactNode } from "react";
 import { Badge, type BadgeTone } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
-import type { OwnerSlice } from "@/lib/studio/crm-analytics";
+import type { OwnerSlice } from "@/lib/studio/kommo-analytics";
 import {
   KOMMO_AGE_OPTIONS,
   type KommoFilters,
   type KommoSort,
-} from "@/lib/studio/crm-queries";
+} from "@/lib/studio/kommo-queries";
 import type {
   KommoLeadRow,
   KommoOverview,
   KommoPipelineRow,
   KommoStatusRow,
-} from "@/lib/studio/crm-types";
+} from "@/lib/studio/kommo-types";
 import { KOMMO_TABS, type KommoTabKey } from "./kommo-tabs.shared";
 import { ConvertLeadDrawer } from "./ConvertLeadDrawer";
 import { fmtUsd } from "@/lib/money";
