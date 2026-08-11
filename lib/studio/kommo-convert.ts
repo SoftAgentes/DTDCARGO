@@ -10,7 +10,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { normalizePhone, phonesMatch } from "./estimado-linking";
+import { normalizePhone } from "./estimado-linking";
 
 export type ConvertLeadResult = {
   ok?: true;
@@ -121,35 +121,40 @@ export async function searchKommoContacts(
  * y así evitar abrir una bandeja duplicada. Read-only sobre el espejo (RLS por
  * tenant). PURA respecto del client de Supabase.
  *
- * El teléfono vive en `kommo_contacts.custom_fields` (jsonb anidado), no en una
- * columna → no se puede filtrar en SQL con un índice. Traemos los `limit` más
- * recientes y filtramos por sufijo de dígitos en JS (advisory, no hot-path). Si
- * el match estuviera fuera de los `limit` recientes, no aparece — es una ayuda,
- * no una garantía (un match exhaustivo pediría des-anidar el teléfono a columna).
+ * Desde la migración 0363 esto es una búsqueda EXACTA e indexada, no una ayuda:
+ * el teléfono dejó de vivir sólo dentro de `custom_fields` y `phone_last10` es
+ * una columna generada con índice `(tenant_id, phone_last10)`.
+ *
+ * Antes se traían los 500 contactos más recientes y se comparaba en JS, así que
+ * un match fuera de esa ventana simplemente no aparecía — con 3.167 contactos,
+ * el 84% quedaba fuera de la ventana. Ahora responde sobre el universo completo.
+ *
+ * Los últimos 10 dígitos son la clave de cruce (misma regla que `phoneKey` y que
+ * `clients_phone_last10_idx`): un número con menos de 10 dígitos NO se cruza —
+ * preferimos no sugerir nada antes que sugerir a la persona equivocada.
  */
 export async function findKommoContactsByPhone(
   supabase: SupabaseClient,
   phone: string | null | undefined,
-  limit = 500,
 ): Promise<KommoContactPick[]> {
-  if (normalizePhone(phone).length < 7) return [];
+  const digits = normalizePhone(phone);
+  if (digits.length < 10) return [];
   const { data, error } = await supabase
     .from("kommo_contacts")
-    .select("id, name, custom_fields")
+    .select("id, name, phone, email")
+    .eq("phone_last10", digits.slice(-10))
     .order("kommo_updated_at", { ascending: false, nullsFirst: false })
-    .limit(limit);
+    .limit(20);
   if (error) throw error;
 
-  const out: KommoContactPick[] = [];
-  for (const c of (data as
-    | { id: number; name: string | null; custom_fields: unknown }[]
-    | null) ?? []) {
-    const { email, phone: cphone } = parseContactFields(c.custom_fields);
-    if (cphone && phonesMatch(cphone, phone)) {
-      out.push({ id: c.id, name: c.name ?? `Contacto ${c.id}`, email, phone: cphone });
-    }
-  }
-  return out;
+  return ((data as
+    | { id: number; name: string | null; phone: string | null; email: string | null }[]
+    | null) ?? []).map((c) => ({
+    id: c.id,
+    name: c.name ?? `Contacto ${c.id}`,
+    email: c.email,
+    phone: c.phone,
+  }));
 }
 
 /**

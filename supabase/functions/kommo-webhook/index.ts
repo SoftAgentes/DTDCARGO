@@ -19,7 +19,9 @@ import { kommoFetch } from "../kommo-sync/kommo-client.ts";
 import { upsertRows } from "../kommo-sync/sync.ts";
 import type { KommoContact, KommoLead } from "../kommo-sync/types.ts";
 import {
+  epochToIso,
   mapContactRow,
+  mapLeadContactLinks,
   mapLeadRow,
 } from "../_shared/kommo-mapping.ts";
 import {
@@ -248,10 +250,18 @@ async function applyEntityEvents(
   }
 
   // add/update/status → fetch entidad por id (puede traer 404 si ya no existe → se ignora)
+  // Los leads se piden con `?with=contacts`: así el vínculo lead↔contacto se
+  // mantiene EN VIVO y no sólo en el sync diario. Es el mismo request, con un
+  // parámetro más.
+  const linkUpdates: { leadId: number; updatedAt: string | null; links: unknown }[] = [];
   for (const ev of upserts) {
     const data =
       entity === "lead"
-        ? await kommoFetch<KommoLead>(baseUrl, token, `/api/v4/leads/${ev.id}`)
+        ? await kommoFetch<KommoLead>(
+            baseUrl,
+            token,
+            `/api/v4/leads/${ev.id}?with=contacts`,
+          )
         : await kommoFetch<KommoContact>(
             baseUrl,
             token,
@@ -259,15 +269,38 @@ async function applyEntityEvents(
           );
     if (!data) continue; // 204 / sin contenido → nada que upsertear
     fetched += 1;
-    rows.push(
-      entity === "lead"
-        ? mapLeadRow(data as KommoLead, tenantId)
-        : mapContactRow(data as KommoContact, tenantId),
-    );
+    if (entity === "lead") {
+      const lead = data as KommoLead;
+      rows.push(mapLeadRow(lead, tenantId));
+      linkUpdates.push({
+        leadId: lead.id,
+        updatedAt: epochToIso(lead.updated_at),
+        links: mapLeadContactLinks(
+          lead as { _embedded?: { contacts?: { id: number }[] } },
+        ),
+      });
+    } else {
+      rows.push(mapContactRow(data as KommoContact, tenantId));
+    }
   }
 
   // El trigger de la migr 0107 descarta filas con kommo_updated_at más viejo (orden).
   const upserted = await upsertRows(supabase, table, rows);
+
+  // Vínculos, DESPUÉS del upsert (la FK compuesta exige que el lead exista).
+  // La RPC aplica la misma guarda de orden que el trigger 0107, así que un
+  // webhook que llega tarde no pisa vínculos más nuevos. No tumba el espejo:
+  // si falla, el lead ya quedó bien guardado.
+  for (const u of linkUpdates) {
+    const { error } = await supabase.rpc("kommo_replace_lead_contacts", {
+      p_tenant_id: tenantId,
+      p_lead_id: u.leadId,
+      p_links: u.links,
+      p_lead_updated_at: u.updatedAt,
+    });
+    if (error) console.error("[kommo-webhook] vínculos", u.leadId, error.message);
+  }
+
   return { fetched, upserted, deleted };
 }
 

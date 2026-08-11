@@ -20,7 +20,12 @@ import type {
   KommoUser,
 } from "./types.ts";
 // SDD-0043 Alcance B · mapeo compartido (single source of truth con kommo-webhook + Vitest).
-import { mapContactRow, mapLeadRow } from "../_shared/kommo-mapping.ts";
+import {
+  epochToIso,
+  mapContactRow,
+  mapLeadContactLinks,
+  mapLeadRow,
+} from "../_shared/kommo-mapping.ts";
 import {
   pipelinesToPrune,
   statusesToPrune,
@@ -368,15 +373,45 @@ export async function syncAll(
     }),
   );
 
-  // 4) Leads
+  // 4) Leads — con `with=contacts` para traer el vínculo lead↔contacto.
+  //
+  // Sin ese embed, `kommo_leads` sólo tiene `name` y no hay forma de mostrar un
+  // teléfono al lado de un lead (el teléfono vive en `kommo_contacts`). El embed
+  // viaja dentro de las MISMAS páginas: cero requests extra.
+  let leadLinkRows: { lead_id: number; updated_at: string | null; links: unknown }[] = [];
   results.push(
     await logged(supabase, conn, "leads", async () => {
-      const items = await paginateTwoPass<KommoLead>(baseUrl, token, "leads");
+      const items = await paginateTwoPass<KommoLead>(baseUrl, token, "leads", "contacts");
       const rows = items.map((l) => mapLeadRow(l, t));
-      return {
-        fetched: items.length,
-        upserted: await upsertRows(supabase, "kommo_leads", rows),
-      };
+      const upserted = await upsertRows(supabase, "kommo_leads", rows);
+      // Se arma acá pero se escribe en su propia entidad: el espejo de leads no
+      // debe fallar porque los vínculos fallen.
+      leadLinkRows = items.map((l) => ({
+        lead_id: l.id,
+        updated_at: epochToIso(l.updated_at),
+        links: mapLeadContactLinks(l as { _embedded?: { contacts?: { id: number }[] } }),
+      }));
+      return { fetched: items.length, upserted };
+    }),
+  );
+
+  // 4a) Vínculos lead↔contacto. Janitorial: si esto falla, el espejo de leads ya
+  // quedó bien y la integración NO se apaga (ver loggedJanitorial).
+  results.push(
+    await loggedJanitorial(supabase, conn, "lead_contacts", async () => {
+      if (leadLinkRows.length === 0) return { fetched: 0, upserted: 0 };
+      // Por lotes: 3.100 leads serían 3.100 round-trips uno por uno.
+      const CHUNK = 500;
+      let written = 0;
+      for (let i = 0; i < leadLinkRows.length; i += CHUNK) {
+        const { data, error } = await supabase.rpc("kommo_replace_lead_contacts_bulk", {
+          p_tenant_id: t,
+          p_rows: leadLinkRows.slice(i, i + CHUNK),
+        });
+        if (error) throw new Error(`kommo_replace_lead_contacts_bulk: ${error.message}`);
+        written += Number(data ?? 0);
+      }
+      return { fetched: leadLinkRows.length, upserted: written };
     }),
   );
 

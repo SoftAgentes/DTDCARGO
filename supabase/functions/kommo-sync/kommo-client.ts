@@ -169,16 +169,24 @@ export async function paginateUnsorted<T>(
 /**
  * M2 — paginación de DOS PASADAS: order[updated_at]=desc y order[created_at]=desc,
  * deduplicando por id. Corta cuando la página viene incompleta (< limit) o 204.
+ *
+ * `withEmbed` agrega `&with=…` al path. Se usa con `"contacts"` en leads para que
+ * cada lead traiga `_embedded.contacts` — el vínculo lead↔contacto **sin un solo
+ * request extra**, porque viaja dentro de las mismas páginas que ya se piden.
+ * Opcional a propósito: los contactos siguen pidiéndose exactamente igual que
+ * antes, y este es el camino probado en prod por el cron diario.
  */
 export async function paginateTwoPass<T extends { id: number }>(
   baseUrl: string,
   token: string,
   entity: "leads" | "contacts",
+  withEmbed?: string,
 ): Promise<T[]> {
+  const embed = withEmbed ? `&with=${encodeURIComponent(withEmbed)}` : "";
   const byId = new Map<number, T>();
   for (const order of ["updated_at", "created_at"] as const) {
     for (let page = 1; page <= MAX_PAGES; page++) {
-      const path = `/api/v4/${entity}?limit=${LIMIT}&page=${page}&order[${order}]=desc`;
+      const path = `/api/v4/${entity}?limit=${LIMIT}&page=${page}&order[${order}]=desc${embed}`;
       const data = await kommoFetch<HalList<T>>(baseUrl, token, path);
       if (!data) break; // 204 → fin de esta pasada
       const items = (data._embedded?.[entity] ?? []) as T[];
