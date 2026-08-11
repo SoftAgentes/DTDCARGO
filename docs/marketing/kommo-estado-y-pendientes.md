@@ -181,7 +181,9 @@ disparadores para esa acción trae **una sola opción**: *"cuando es movido a es
 - [ ] **Decidir si el Post-venta lleva límite** de mensajes/créditos. Hoy no tiene ninguno.
 - [ ] 🔴 **Tarea automática al recibir mensaje** — vía `+ Añadir condición de parada` en el agente, o
       escribiendo a soporte de Kommo por el bloqueo. Es lo que enciende las alertas rojas.
-- [ ] **Reasignar los 3 leads de Sergio Quevedo** a DTD CARGO (quedaron con responsable inactivo).
+- [x] 🟢 ~~Reasignar los 3 leads de Sergio Quevedo~~ — **se resolvió solo**: al desactivar al usuario,
+      Kommo reasignó sus leads. Verificado: Sergio en **0** (la API devuelve `204`) y DTD CARGO pasó
+      de 3.125 a **3.130**.
 - [ ] **Los 63 leads del apagón**: 58 sin tarea de seguimiento, 18 ya en `Ventas Perdidos`.
 - [ ] **Renombrar el widget "Tinción no es un leads acti…"** — error de tipeo de quien lo instaló.
 - [ ] **Avisar al equipo** que el panel de pruebas y "Respuestas sugeridas" consumen del mismo saldo.
