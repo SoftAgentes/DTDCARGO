@@ -16,7 +16,13 @@
 --
 -- La expresión es la MISMA de `phoneKey` (_shared/kommo-router.ts) y del índice
 -- `clients_phone_last10_idx` (migración 0342): los últimos 10 dígitos, y null si
--- hay menos de 10. Eso hace equivalentes "+58 412-1668021", "0412-1668021" y
+-- hay menos de 10.
+--
+-- ⚠️ `regexp_replace`, `length` y `right` van calificados con `pg_catalog.`
+-- (expresión de columna generada: no debe depender del search_path), pero
+-- `coalesce` NO — es sintaxis SQL, no una función, y `pg_catalog.coalesce(...)`
+-- da `42883: function does not exist`. La 0342 ya lo hacía así; calificarlo de
+-- más costó un intento fallido de aplicar. Eso hace equivalentes "+58 412-1668021", "0412-1668021" y
 -- "4121668021", y deja fuera los números incompletos — preferimos no cruzar antes
 -- que cruzar con la persona equivocada.
 
@@ -40,10 +46,10 @@ alter table public.kommo_contacts
   generated always as (
     case
       when pg_catalog.length(
-             pg_catalog.regexp_replace(pg_catalog.coalesce(phone, ''), '\D', '', 'g')
+             pg_catalog.regexp_replace(coalesce(phone, ''), '\D', '', 'g')
            ) >= 10
       then pg_catalog."right"(
-             pg_catalog.regexp_replace(pg_catalog.coalesce(phone, ''), '\D', '', 'g'),
+             pg_catalog.regexp_replace(coalesce(phone, ''), '\D', '', 'g'),
              10
            )
     end
