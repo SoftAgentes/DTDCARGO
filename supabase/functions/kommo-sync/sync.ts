@@ -21,8 +21,45 @@ import type {
 } from "./types.ts";
 // SDD-0043 Alcance B · mapeo compartido (single source of truth con kommo-webhook + Vitest).
 import { mapContactRow, mapLeadRow } from "../_shared/kommo-mapping.ts";
+import {
+  pipelinesToPrune,
+  statusesToPrune,
+  type StatusRef,
+} from "../_shared/kommo-prune.ts";
 
 const errMsg = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
+/**
+ * Tope al leer el espejo de embudos/etapas. Si una lectura vuelve EXACTA en el
+ * tope no podemos saber si había más, así que no se poda: preferimos dejar
+ * basura a borrar lo que no vimos. (Realista: hoy son 12 y ~77 filas.)
+ */
+const MIRROR_READ_CAP = 500;
+
+/**
+ * ¿Hay AL MENOS UN lead espejado que apunte acá?
+ *
+ * `limit(1)` a propósito: PostgREST corta las respuestas en `db-max-rows`
+ * (1000), así que "traer los leads y mirar" puede devolver una lista corta y
+ * hacer creer que un embudo está vacío cuando no lo está — el mismo truncamiento
+ * silencioso que hacía mentir al tablero. Preguntar por la EXISTENCIA de una
+ * fila es inmune a cualquier tope.
+ */
+async function hasLeads(
+  supabase: SupabaseClient,
+  tenantId: string,
+  filter: { pipeline_id: number; status_id?: number },
+): Promise<boolean> {
+  let q = supabase
+    .from("kommo_leads")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("pipeline_id", filter.pipeline_id);
+  if (filter.status_id != null) q = q.eq("status_id", filter.status_id);
+  const { data, error } = await q.limit(1);
+  if (error) throw new Error(`kommo_leads (guarda de poda): ${error.message}`);
+  return ((data as unknown[] | null) ?? []).length > 0;
+}
 
 /** M3 — upsert por chunks, idempotente por onConflict. Refresca synced_at en cada corrida. */
 export async function upsertRows(
@@ -83,6 +120,55 @@ async function logged(
   }
 }
 
+/**
+ * Igual que `logged`, pero la falla NO tumba la corrida.
+ *
+ * Para trabajo de LIMPIEZA (la poda). El motivo es el radio de explosión:
+ * `index.ts` marca `kommo_connections.status = 'error'` si CUALQUIER entidad
+ * falla, y con la conexión en 'error' se niegan con 409 el sync, **el drenaje
+ * del write-back** y el push de altas. Dejar que una tarea de mantenimiento
+ * cosmética pueda apagar el canal que lleva el Shipping Mark a Kommo es
+ * desproporcionado — y es el modo de falla de SDD-0195, donde un hipo de red
+ * mató el sync y nadie se enteró en 13 días.
+ *
+ * El error igual queda escrito en `sync_logs` con status 'error', así que es
+ * visible y greppable; lo que no hace es contaminar el veredicto de la corrida.
+ */
+async function loggedJanitorial(
+  supabase: SupabaseClient,
+  conn: KommoConnection,
+  entity: string,
+  fn: () => Promise<{ fetched: number; upserted: number }>,
+): Promise<EntityResult> {
+  const started_at = new Date().toISOString();
+  try {
+    const { fetched, upserted } = await fn();
+    await supabase.from("sync_logs").insert({
+      tenant_id: conn.tenant_id,
+      connection_id: conn.id,
+      entity,
+      started_at,
+      finished_at: new Date().toISOString(),
+      records_fetched: fetched,
+      records_upserted: upserted,
+      status: "ok",
+    });
+    return { entity, status: "ok", fetched, upserted };
+  } catch (e) {
+    await supabase.from("sync_logs").insert({
+      tenant_id: conn.tenant_id,
+      connection_id: conn.id,
+      entity,
+      started_at,
+      finished_at: new Date().toISOString(),
+      status: "error",
+      error_detail: errMsg(e),
+    });
+    // 'ok' a propósito: ver el comentario de arriba. El detalle está en sync_logs.
+    return { entity, status: "ok", fetched: 0, upserted: 0 };
+  }
+}
+
 export async function syncAll(
   supabase: SupabaseClient,
   conn: KommoConnection,
@@ -115,6 +201,7 @@ export async function syncAll(
       };
     }),
   );
+  let fetchedStatuses: StatusRef[] = [];
   results.push(
     await logged(supabase, conn, "statuses", async () => {
       // 142 "ganado" / 143 "perdido" se repiten en cada pipeline con el mismo id:
@@ -138,6 +225,10 @@ export async function syncAll(
           seen.add(k);
           return true;
         });
+      fetchedStatuses = rows.map((r) => ({
+        pipeline_id: Number(r.pipeline_id),
+        id: Number(r.id),
+      }));
       return {
         fetched: rows.length,
         upserted: await upsertRows(
@@ -147,6 +238,82 @@ export async function syncAll(
           "tenant_id,pipeline_id,id",
         ),
       };
+    }),
+  );
+
+  // 1b) PODA de embudos y etapas que Kommo ya no tiene.
+  //
+  // El sync es upsert-only y nunca borraba: al 2026-08-11 el espejo cargaba 12
+  // embudos (11 eliminados en Kommo al consolidar en "Ventas DTD") y 68 etapas
+  // huérfanas. Eso llenaba de opciones muertas el selector del Tablero y el Mapa
+  // de etapas. Las dos guardas viven en `_shared/kommo-prune.ts`: lectura vacía
+  // no borra nada, y nada que tenga leads espejados se toca.
+  results.push(
+    await loggedJanitorial(supabase, conn, "pipelines_prune", async () => {
+      const { data: mirroredRaw, error } = await supabase
+        .from("kommo_pipelines")
+        .select("id")
+        .eq("tenant_id", t)
+        .limit(MIRROR_READ_CAP);
+      if (error) throw new Error(`kommo_pipelines: ${error.message}`);
+      const mirrored = (mirroredRaw as { id: number }[] | null) ?? [];
+      // Lectura que topa el cap: no sabemos si vimos todo → no podamos.
+      if (mirrored.length >= MIRROR_READ_CAP) return { fetched: 0, upserted: 0 };
+
+      const candidates = pipelinesToPrune(pipelines, mirrored);
+      let deleted = 0;
+      for (const id of candidates) {
+        if (await hasLeads(supabase, t, { pipeline_id: id })) continue; // guarda 2
+        const { error: delErr } = await supabase
+          .from("kommo_pipelines")
+          .delete()
+          .eq("tenant_id", t)
+          .eq("id", id);
+        if (delErr) throw new Error(`kommo_pipelines poda: ${delErr.message}`);
+        deleted++;
+        // Las etapas del embudo se van con él. Si el embudo no tiene leads,
+        // ninguna de sus etapas puede tenerlos — no hace falta re-chequear.
+        const { error: sErr } = await supabase
+          .from("kommo_statuses")
+          .delete()
+          .eq("tenant_id", t)
+          .eq("pipeline_id", id);
+        if (sErr) throw new Error(`kommo_statuses poda (embudo): ${sErr.message}`);
+      }
+      return { fetched: candidates.length, upserted: deleted };
+    }),
+  );
+
+  results.push(
+    await loggedJanitorial(supabase, conn, "statuses_prune", async () => {
+      const { data: mirroredRaw, error } = await supabase
+        .from("kommo_statuses")
+        .select("pipeline_id, id")
+        .eq("tenant_id", t)
+        .limit(MIRROR_READ_CAP);
+      if (error) throw new Error(`kommo_statuses: ${error.message}`);
+      const mirrored = (mirroredRaw as StatusRef[] | null) ?? [];
+      if (mirrored.length >= MIRROR_READ_CAP) return { fetched: 0, upserted: 0 };
+
+      // Acá sólo quedan etapas de embudos VIVOS que Kommo dejó de devolver
+      // (las de embudos borrados ya cayeron arriba). Ésas sí se re-chequean:
+      // un lead puede estar parado en una etapa que el asesor acaba de borrar.
+      const candidates = statusesToPrune(fetchedStatuses, mirrored);
+      let deleted = 0;
+      for (const s of candidates) {
+        if (await hasLeads(supabase, t, { pipeline_id: s.pipeline_id, status_id: s.id })) {
+          continue; // guarda 2
+        }
+        const { error: delErr } = await supabase
+          .from("kommo_statuses")
+          .delete()
+          .eq("tenant_id", t)
+          .eq("pipeline_id", s.pipeline_id)
+          .eq("id", s.id);
+        if (delErr) throw new Error(`kommo_statuses poda: ${delErr.message}`);
+        deleted++;
+      }
+      return { fetched: candidates.length, upserted: deleted };
     }),
   );
   await sleep(RATE_LIMIT_DELAY_MS);
