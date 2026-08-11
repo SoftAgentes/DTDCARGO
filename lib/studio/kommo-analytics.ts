@@ -317,38 +317,90 @@ export function valueContrast(
 const ANALYTICS_LEAD_COLUMNS =
   "id, status_id, pipeline_id, price, responsible_user_id, kommo_updated_at";
 
-/** Hasta `cap` leads del espejo (lean) para agregación en JS. RLS por tenant. */
-export async function getAnalyticsLeads(
+/** Tamaño de página. PostgREST no devuelve más de `db-max-rows` por request. */
+const ANALYTICS_PAGE = 1000;
+/** Tope de seguridad: 60 páginas = 60.000 filas. Hoy hay ~3.100. */
+const ANALYTICS_MAX_PAGES = 60;
+
+/** Resultado de una lectura paginada: las filas + si se pudo leer TODO. */
+export type PagedRows<T> = { rows: T[]; complete: boolean };
+
+/**
+ * Lee una tabla del espejo COMPLETA, paginando con `.range()`.
+ *
+ * Por qué existe: PostgREST corta la respuesta en `db-max-rows` (1000 en
+ * Supabase) y **un `.limit(5000)` no lo sortea** — devuelve 1000 y no avisa.
+ * Como este módulo agrega en JS, una lectura corta no produce un error sino
+ * algo peor: un tablero que miente con cara de verdad. El 2026-08-11 mostraba
+ * "1.000 leads" de 3.145 reales, y el embudo, el cementerio de antigüedad, la
+ * cartera por asesor y la conversión salían todos del 32% de los datos.
+ *
+ * Corte: **sólo** cuando una página vuelve VACÍA, y el avance es por la
+ * cantidad realmente recibida — no por el tamaño pedido. Esto lo hace inmune
+ * al tope del servidor: si `db-max-rows` fuera 500, pedir 1000 devolvería 500 y
+ * un corte del tipo "vino menos de lo que pedí ⇒ terminé" volvería a truncar en
+ * silencio, que es exactamente el bug que este helper existe para matar.
+ * Cuesta un request extra (el último, vacío); es barato al lado de subcontar.
+ *
+ * Si se agotan las páginas antes de la vacía, devuelve `complete: false` en vez
+ * de un número plausible — preferimos decir "no sé" a repetir el mismo error
+ * con otro tope. El orden por `id` es estable (es parte de la PK); sin él la
+ * paginación podría repetir o saltear filas.
+ */
+async function fetchAllRows<T>(
   supabase: SupabaseClient,
-  cap = 5000,
-): Promise<AnalyticsLead[]> {
-  const { data, error } = await supabase
-    .from("kommo_leads")
-    .select(ANALYTICS_LEAD_COLUMNS)
-    .limit(cap);
-  if (error) throw error;
-  return ((data as Record<string, unknown>[] | null) ?? []).map((r) => ({
-    id: Number(r.id),
-    status_id: r.status_id == null ? null : Number(r.status_id),
-    pipeline_id: r.pipeline_id == null ? null : Number(r.pipeline_id),
-    price: Number(r.price) || 0,
-    responsible_user_id:
-      r.responsible_user_id == null ? null : Number(r.responsible_user_id),
-    kommo_updated_at: (r.kommo_updated_at as string | null) ?? null,
-  }));
+  table: string,
+  columns: string,
+): Promise<PagedRows<T>> {
+  const rows: T[] = [];
+  let from = 0;
+  for (let page = 0; page < ANALYTICS_MAX_PAGES; page++) {
+    const { data, error } = await supabase
+      .from(table)
+      .select(columns)
+      .order("id", { ascending: true })
+      .range(from, from + ANALYTICS_PAGE - 1);
+    if (error) throw error;
+    const batch = (data as T[] | null) ?? [];
+    if (batch.length === 0) return { rows, complete: true };
+    rows.push(...batch);
+    from += batch.length;
+  }
+  return { rows, complete: false };
 }
 
-/** custom_fields de los contactos (solo lo necesario para la cobertura email). */
+/** TODOS los leads del espejo (lean) para agregación en JS. RLS por tenant. */
+export async function getAnalyticsLeads(
+  supabase: SupabaseClient,
+): Promise<PagedRows<AnalyticsLead>> {
+  const { rows, complete } = await fetchAllRows<Record<string, unknown>>(
+    supabase,
+    "kommo_leads",
+    ANALYTICS_LEAD_COLUMNS,
+  );
+  return {
+    complete,
+    rows: rows.map((r) => ({
+      id: Number(r.id),
+      status_id: r.status_id == null ? null : Number(r.status_id),
+      pipeline_id: r.pipeline_id == null ? null : Number(r.pipeline_id),
+      price: Number(r.price) || 0,
+      responsible_user_id:
+        r.responsible_user_id == null ? null : Number(r.responsible_user_id),
+      kommo_updated_at: (r.kommo_updated_at as string | null) ?? null,
+    })),
+  };
+}
+
+/** custom_fields de TODOS los contactos (para la cobertura de email). */
 export async function getContactEmailFlags(
   supabase: SupabaseClient,
-  cap = 5000,
-): Promise<{ custom_fields: unknown }[]> {
-  const { data, error } = await supabase
-    .from("kommo_contacts")
-    .select("custom_fields")
-    .limit(cap);
-  if (error) throw error;
-  return (data as { custom_fields: unknown }[] | null) ?? [];
+): Promise<PagedRows<{ custom_fields: unknown }>> {
+  return fetchAllRows<{ custom_fields: unknown }>(
+    supabase,
+    "kommo_contacts",
+    "id, custom_fields",
+  );
 }
 
 /** `leadId → markbox` de TODOS los leads convertidos a cliente vivo. RLS por tenant. */
@@ -383,6 +435,12 @@ export type KommoDireccionData = {
   convertedMarkboxByLead: Record<number, string>;
   /** leadId → USD facturado trailing-12m de los leads convertidos (>0; los 0 se omiten). */
   valueByLead: Record<number, number>;
+  /**
+   * `false` si la lectura del espejo se quedó corta (tope de páginas). Todo lo
+   * de arriba sería entonces una MUESTRA, no el total — la UI tiene que decirlo
+   * en vez de mostrar porcentajes que parecen ciertos.
+   */
+  complete: boolean;
 };
 
 /**
@@ -390,14 +448,16 @@ export type KommoDireccionData = {
  * corre las funciones puras. Una sola pasada de fetches (compartida con el
  * worklist del asesor vía `convertedMarkboxByLead` / `valueByLead`).
  *
- * Nota: `getAnalyticsLeads` topa en 5000 filas — hoy hay ~2.675, holgado. Si
- * algún día se supera, el tablero subcontaría (revisar el cap entonces).
+ * Las funciones puras siempre estuvieron bien; lo que mentía era la LECTURA
+ * (ver `fetchAllRows`). Ahora reciben el espejo completo, así que el embudo, el
+ * cementerio, la cartera y la conversión son sobre el total, no sobre las
+ * primeras 1000 filas.
  */
 export async function getKommoAnalytics(
   supabase: SupabaseClient,
   now: Date = new Date(),
 ): Promise<KommoDireccionData> {
-  const [leads, contacts, pipelines, statuses, billing, converted, users] =
+  const [leadsPage, contactsPage, pipelines, statuses, billing, converted, users] =
     await Promise.all([
       getAnalyticsLeads(supabase),
       getContactEmailFlags(supabase),
@@ -408,6 +468,9 @@ export async function getKommoAnalytics(
       // Resiliente: si kommo_users no existe aún (gap deploy↔migración), cae a [].
       listKommoUsers(supabase).catch(() => []),
     ]);
+
+  const leads = leadsPage.rows;
+  const contacts = contactsPage.rows;
 
   // id→nombre del asesor (espejo kommo_users, SDD-0087). Vacío → "Asesor #id".
   const nameById = new Map<number, string>();
@@ -433,5 +496,6 @@ export async function getKommoAnalytics(
     value: valueContrast(leads, converted, billing),
     convertedMarkboxByLead: converted,
     valueByLead,
+    complete: leadsPage.complete && contactsPage.complete,
   };
 }

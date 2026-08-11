@@ -557,7 +557,9 @@ export async function commercialByAgent(
 
   let leads: AnalyticsLead[];
   try {
-    leads = await getAnalyticsLeads(supabase);
+    // `.rows` = el espejo COMPLETO (paginado). Antes esto leía 1000 filas de
+    // 3.145 y el desempeño por asesor salía del 32% de la cartera, sin avisar.
+    leads = (await getAnalyticsLeads(supabase)).rows;
   } catch {
     // kommo_leads ausente (gap deploy↔migración) → sin datos, honesto.
     return { rows: [], totals: { ...EMPTY_AGENT_TOTALS }, hasKommo: false };

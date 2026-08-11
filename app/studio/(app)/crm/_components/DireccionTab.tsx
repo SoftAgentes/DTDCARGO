@@ -265,6 +265,28 @@ export function DireccionTab({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+      {/* Lectura incompleta: TODO lo de abajo sería una muestra, no el total.
+          Decirlo es el punto — un tablero que subcuenta en silencio es peor
+          que uno que no carga (el 2026-08-11 mostró 1.000 de 3.145 sin avisar). */}
+      {!data.complete && (
+        <div
+          role="alert"
+          style={{
+            border: "1px solid var(--warning)",
+            background: "var(--warning-bg)",
+            borderRadius: "var(--r-md)",
+            padding: "var(--s-3) var(--s-4)",
+            font: "500 12.5px/1.45 var(--f-sans)",
+            color: "var(--ink)",
+          }}
+        >
+          <strong>Estos números son parciales.</strong> No se pudo leer el espejo
+          completo, así que los totales, el embudo, la antigüedad y la cartera
+          salen de una muestra. No los uses para decidir hasta que la
+          sincronización vuelva a completarse.
+        </div>
+      )}
+
       {/* KPIs */}
       <div
         style={{
