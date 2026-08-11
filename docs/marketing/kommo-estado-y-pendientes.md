@@ -96,12 +96,19 @@ Instagram ni Facebook.**
 | Agente | id | Etapas | Límite msj | Límite créditos | Notifica al transferir |
 |---|---|---|---|---|---|
 | **Asistente de ventas** (Entrada) | `326244` | Leads Entrantes · **Contacto inicial** · Ventas Perdidos | 10 | — | **DTD CARGO** |
-| **Cotizador** | `350054` | Estimado enviado · Negociación | 20 | **300** | 🔴 **No notificar a nadie** |
-| **Reenganche** | `350032` | Recontacto | — | — | — |
-| **Post-venta** | `28571` | Logrado con éxito | — | — | — |
+| **Cotizador** | `350054` | Estimado enviado · Negociación | 20 | 300 | ✅ **DTD CARGO** *(corregido 10-ago)* |
+| **Reenganche** | `350032` | Recontacto | 20 | 300 | ✅ **DTD CARGO** *(corregido 10-ago)* |
+| **Post-venta** | `28571` | Logrado con éxito | 🔴 **sin límite** | 🔴 **sin límite** | *(no aplica)* |
 
-🔴 **El Cotizador transfiere a un humano y no avisa a nadie.** En `Estimado enviado` y `Negociación`,
-cuando el agente se rinde, la conversación queda esperando sin que nadie lo sepa.
+🟢 **Corregido el 2026-08-10:** el Cotizador y el Reenganche estaban en **"No notificar a nadie"** —
+transferían a un humano y la conversación quedaba esperando sin que nadie se enterara, en
+`Estimado enviado`, `Negociación` y `Recontacto`. Ambos pasaron a **DTD CARGO** y se verificó
+recargando.
+
+🔴 **El Post-venta no tiene ningún techo.** Es el único con `Límite de mensajes` y `Límite de
+créditos` desactivados, y atiende `Logrado con éxito`, donde hay cientos de leads ganados. Con el
+saldo apretado es el que más puede sangrar sin que se note. Ponerle límite es una decisión de
+negocio (afecta a clientes que ya compraron), por eso queda en el checklist y no se tocó.
 
 ### Volumen (2026-08-10)
 
@@ -170,8 +177,8 @@ disparadores para esa acción trae **una sola opción**: *"cuando es movido a es
 
 ### Se pueden hacer sin gastar
 
-- [ ] 🔴 **Arreglar la notificación del Cotizador**: pasar *"No notificar a nadie"* a **DTD CARGO**,
-      como el agente de Entrada. Hoy transfiere al vacío en `Estimado enviado` y `Negociación`.
+- [x] 🟢 **Notificación de traspaso del Cotizador y del Reenganche** → **DTD CARGO** *(hecho 10-ago)*.
+- [ ] **Decidir si el Post-venta lleva límite** de mensajes/créditos. Hoy no tiene ninguno.
 - [ ] 🔴 **Tarea automática al recibir mensaje** — vía `+ Añadir condición de parada` en el agente, o
       escribiendo a soporte de Kommo por el bloqueo. Es lo que enciende las alertas rojas.
 - [ ] **Reasignar los 3 leads de Sergio Quevedo** a DTD CARGO (quedaron con responsable inactivo).
