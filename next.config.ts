@@ -74,6 +74,59 @@ const brandBookCspHeader = [
 ].join("; ");
 
 /**
+ * Los CDN que cargan los documentos de Cloud Design, y por qué hay que nombrarlos.
+ *
+ * NO ES UNA CONCESIÓN ESTÉTICA: sin esto, 14 de los 35 documentos publicados
+ * están rotos en producción y cinco **abren en blanco**. Medido el 2026-08-11
+ * bajando los 35 de Storage y leyendo sus `<script src>`:
+ *
+ *  · `unpkg.com` — React + ReactDOM + Babel standalone. `Iconos de Perfil` (los
+ *    avatares de WhatsApp de cada rol), `WeChat · Perfil`, `Ciclo DTD` y
+ *    `Uniformes` MONTAN su contenido con React. Bloqueado el script, el
+ *    contenedor queda vacío: se reportó como "no están las imágenes", y era
+ *    exacto — no es que la imagen falle, es que la página nunca se pinta.
+ *  · `cdnjs.cloudflare.com` / `cdn.jsdelivr.net` — html2canvas, JSZip y demás.
+ *    Son los que arman las descargas. Sin ellos el documento SE VE pero el botón
+ *    "Descargar PNG" no hace nada: el segundo síntoma que se reportó.
+ *
+ * ⚠️ QUÉ CUESTA, sin maquillaje: estos tres hosts pasan a poder ejecutar script
+ * en nuestro origen dentro de `/marca/doc/*`. La superficie ya era ancha —esta
+ * CSP concede `unsafe-inline` y `unsafe-eval` a HTML que no escribimos
+ * nosotros—, así que el delta es "el HTML de Cloud Design puede todo" → "…y
+ * además tres CDN". No es gratis y NO se debe extender: va sólo en el visor de
+ * documentos; el catálogo, que sí es código nuestro, sigue con la CSP estricta.
+ * Autorizado por el founder el 2026-08-11.
+ *
+ * Se listan hosts EXACTOS y no comodines a propósito: `https:` a secas habría
+ * arreglado lo mismo abriendo el origen a internet entero.
+ *
+ * La alternativa —bajar las librerías y reescribir los `<script src>` al subir—
+ * se descartó: todo este sistema se apoya en NO reescribir un solo atributo, que
+ * es lo que lo hace sobrevivir al próximo NORTE-SYNC sin un parche que
+ * mantener. Ver la cabecera de `app/marca/doc/[...ruta]/route.ts`.
+ */
+const CDN_DOCUMENTOS =
+  "https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com";
+
+/**
+ * CSP del VISOR de documentos (`/marca/doc/*`): la permisiva de arriba + los CDN.
+ *
+ * `connect-src` va incluido además de `script-src` porque varias de esas
+ * librerías se traen sus propios recursos por `fetch` una vez cargadas (los
+ * chunks de Babel, lo que html2canvas resuelve). Sin él el script arranca y
+ * muere a la mitad — se ve igual de roto pero cuesta mucho más encontrarlo.
+ */
+const brandDocCspHeader = brandBookCspHeader
+  .replace(
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+    `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${CDN_DOCUMENTOS}`,
+  )
+  .replace(
+    "connect-src 'self' data: blob:",
+    `connect-src 'self' data: blob: ${CDN_DOCUMENTOS}`,
+  );
+
+/**
  * Security headers aplicados a TODAS las rutas.
  *
  * Verificar en prod con: https://securityheaders.com/?q=dtdcargo.com
@@ -288,9 +341,19 @@ const nextConfig: NextConfig = {
       // con la permisiva por la misma razón — scripts inline, `data:` y Google
       // Fonts que no controlamos. Bajo la estricta el visor abre en blanco, que es
       // exactamente el fallo que costó tres verdes falsos en esta misma spec.
+      //
+      // Y va con la permisiva MÁS los CDN (`brandDocCspHeader`), que es lo único
+      // que lo distingue del standalone de `/marca/asset/*`: aquel embebe todo en
+      // base64 y no pide nada de afuera; estos documentos sueltos cargan React y
+      // html2canvas de unpkg/cdnjs/jsdelivr. Ver `CDN_DOCUMENTOS` arriba — con la
+      // lista corta, 14 de 35 documentos estaban rotos en producción.
       {
         source: "/marca/doc/:path*",
-        headers: marcaHeaders,
+        headers: marcaHeaders.map((h) =>
+          h.key === "Content-Security-Policy"
+            ? { key: h.key, value: brandDocCspHeader }
+            : h,
+        ),
       },
       {
         source: "/marca/:path((?!asset|doc).*)",

@@ -70,8 +70,26 @@ export function AssetCard({
           `overflow-hidden` es el cinturón por si alguien vuelve a tocar esto.
         */}
         <div
-          className="relative h-[132px] overflow-hidden flex items-center justify-center p-5 border-b border-grey-200"
-          style={{ background: tileBackground(asset) }}
+          className="relative overflow-hidden flex items-center justify-center p-5 border-b border-grey-200"
+          /*
+            La altura CRECE con la pantalla. Era `h-[132px]` fijo, y en un monitor
+            ancho eso deja la foto del tamaño de un sello mientras sobra sitio a
+            los lados: para juzgar una foto de campaña o un isólogo hay que verlo,
+            y 92px útiles no alcanzan.
+
+            El `clamp` mantiene el piso EXACTO de antes (132px), así que en
+            teléfono y tablet no se mueve un píxel — ahí el problema nunca
+            existió. Sólo se abre de 1100px de ancho en adelante.
+
+            ⚠️ Sigue siendo una altura DEFINIDA, y eso importa: el `max-h-full`
+            del <img> de abajo resuelve contra este content box. Una altura
+            `auto` volvería a traer el desborde de 185px que documenta el
+            comentario de acá arriba — `clamp()` da un valor concreto, no auto.
+          */
+          style={{
+            height: "clamp(132px, 12vw, 224px)",
+            background: tileBackground(asset),
+          }}
         >
           {isRaster ? (
             /* URL firmada que caduca en 60 s: el optimizador de next/image la
