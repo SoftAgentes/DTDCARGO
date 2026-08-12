@@ -98,7 +98,13 @@ con el deep link `wa.me`, que ya funciona.
 
 ## Deuda que encontré y no cerré
 
-- **20 e2e en rojo** (`mobile-safari`, rutas públicas). Preexistente, no lo toqué.
+- ~~**20 e2e en rojo** (`mobile-safari`). Preexistente.~~ **FALSO, y la corrección importa
+  más que el dato:** los causé yo en ese worktree al correr
+  `deno check --node-modules-dir=auto`. Con `auto`, Deno ve el `package.json` de la raíz,
+  se cree dueño del árbol y **rehace `node_modules` desde los RANGOS**, no desde el
+  lockfile: quedó Playwright 1.62.1 donde el lockfile pinea 1.60.0, y ése pedía un WebKit
+  que no estaba instalado. No es deuda del repo — **no salgas a cazar ese fantasma**.
+  Cura: `pnpm install`. ⭐ Usar siempre `--node-modules-dir=none` (además es 6× más rápido).
 - **`docs/marketing/checklist-kommo.md` desactualizado** — sigue diciendo que el cron
   del drenaje es "el bloqueo real", y se cerró el 11-ago.
 - **Rama `docs/kommo-instagram-diagnostico` sin mergear** — tiene toda la foto del CRM
