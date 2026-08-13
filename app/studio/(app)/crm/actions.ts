@@ -10,6 +10,7 @@
  */
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { createClient } from "@/lib/db/server";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { createAdminClient } from "@/lib/db/admin";
@@ -21,6 +22,10 @@ import {
   type KommoContactPick,
 } from "@/lib/studio/kommo-convert";
 import {
+  buildOwnerPatchPayload,
+  buildStagePatchPayload,
+  buildTagsPatchPayload,
+  enqueueKommoLeadOp,
   enqueueKommoMarkboxWriteback,
   normalizeStageMap,
 } from "@/lib/studio/kommo-writeback";
@@ -295,5 +300,176 @@ export async function saveKommoMarkboxContactFieldAction(
   }
 
   revalidatePath("/studio/crm");
+  return { ok: true };
+}
+
+// ── Fase 4 · SDD-0256 — los verbos que mueven el embudo desde el ERP ─────────
+//
+// Todos siguen el mismo contrato: RBAC → tenant → validación propia → ENCOLAR
+// (nunca un PATCH directo a Kommo) → revalidar → nudge.
+//
+// El ERP no escribe el espejo (guardrail 0107): la pantalla sigue mostrando lo
+// viejo hasta que Kommo re-espeje por webhook. Por eso la UI pinta "en camino"
+// leyendo la outbox — si no, el asesor cree que no pasó nada y clickea de nuevo.
+
+type VerbResult = { ok?: true; error?: string };
+
+/** RBAC + tenant del usuario. Devuelve el error listo para mostrar, o el tenant. */
+async function resolveCrmWriter(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<{ tenantId: string } | { error: string }> {
+  const denial = await moduleEditDenial(supabase, "kommo");
+  if (denial) return { error: denial };
+  const { data: link } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  if (!link?.tenant_id) return { error: "No se pudo resolver el tenant." };
+  return { tenantId: link.tenant_id };
+}
+
+/**
+ * Despierta el drenaje en vez de esperar al cron.
+ *
+ * Sin esto la latencia medida es **14 min 38 s** (el cron corre cada 15) y el
+ * asesor deja de usar la pantalla. No rompe el modelo de seguridad: el ERP
+ * invoca su PROPIA edge function, no la API de Kommo — el token sigue en Vault.
+ * El cron queda como red: drena lo que el nudge no alcanzó.
+ *
+ * Es best-effort dentro de `after()`: corre DESPUÉS de responderle al asesor,
+ * así la pantalla no espera el cold start de la función.
+ */
+function nudgeWriteback(tenantId: string): void {
+  try {
+    after(async () => {
+      try {
+        const { error } = await createAdminClient().functions.invoke("kommo-writeback", {
+          body: { tenant_id: tenantId },
+        });
+        if (error) console.warn("[crm] nudge del drenaje falló (best-effort):", error.message);
+      } catch (e) {
+        console.warn("[crm] nudge del drenaje lanzó (best-effort):", e);
+      }
+    });
+  } catch {
+    // `after()` sólo vale dentro de un request scope; fuera (tests) lanza al
+    // registrar. Se ignora: el cron drena igual.
+  }
+}
+
+/**
+ * Mueve un lead de etapa.
+ *
+ * ⚠️ Rechaza las etapas de tipo 1 ("Leads Entrantes"): Kommo **no permite
+ * mover un lead HACIA la etapa de entrantes por API** — esa la gobierna la
+ * bandeja `unsorted`. Verificado contra prod el 2026-08-12: devuelve
+ * `400 NotSupportedChoice`. Se corta acá para que el asesor vea un mensaje que
+ * se entiende, no un error de la API 15 minutos después.
+ */
+export async function moveLeadStageAction(
+  leadId: number,
+  statusId: number,
+): Promise<VerbResult> {
+  const supabase = await createClient();
+  const who = await resolveCrmWriter(supabase);
+  if ("error" in who) return who;
+
+  if (!Number.isInteger(leadId) || leadId <= 0) return { error: "Lead inválido." };
+  if (!Number.isInteger(statusId) || statusId <= 0) return { error: "Etapa inválida." };
+
+  // El lead tiene que ser de este tenant (RLS ya scopea, pero además necesitamos
+  // su embudo: Kommo exige status_id + pipeline_id juntos).
+  const { data: lead } = await supabase
+    .from("kommo_leads")
+    .select("id, pipeline_id")
+    .eq("id", leadId)
+    .maybeSingle<{ id: number; pipeline_id: number | null }>();
+  if (!lead?.pipeline_id) return { error: "Ese lead no existe o no tiene embudo." };
+
+  const { data: stage } = await supabase
+    .from("kommo_statuses")
+    .select("id, name, type")
+    .eq("pipeline_id", lead.pipeline_id)
+    .eq("id", statusId)
+    .maybeSingle<{ id: number; name: string | null; type: number | null }>();
+  if (!stage) return { error: "Esa etapa no existe en el embudo del lead." };
+  if (Number(stage.type) === 1) {
+    return {
+      error: `"${stage.name ?? "Entrantes"}" es la bandeja de entrada: Kommo no deja mover un lead hacia ahí.`,
+    };
+  }
+
+  const id = await enqueueKommoLeadOp(createAdminClient(), who.tenantId, {
+    leadId,
+    op: "patch_stage",
+    payload: buildStagePatchPayload({ pipeline_id: lead.pipeline_id, status_id: statusId }),
+  });
+  if (!id) return { error: "No se pudo encolar el cambio de etapa." };
+
+  revalidatePath("/studio/crm");
+  nudgeWriteback(who.tenantId);
+  return { ok: true };
+}
+
+/** Reasigna el asesor responsable del lead. */
+export async function reassignLeadOwnerAction(
+  leadId: number,
+  responsibleUserId: number,
+): Promise<VerbResult> {
+  const supabase = await createClient();
+  const who = await resolveCrmWriter(supabase);
+  if ("error" in who) return who;
+
+  if (!Number.isInteger(leadId) || leadId <= 0) return { error: "Lead inválido." };
+  const payload = buildOwnerPatchPayload(responsibleUserId);
+  if (!payload) return { error: "Asesor inválido." };
+
+  // El asesor tiene que existir en el espejo: reasignar a un id inventado
+  // dejaría el lead sin dueño real y Kommo lo aceptaría igual.
+  const { data: user } = await supabase
+    .from("kommo_users")
+    .select("id")
+    .eq("id", responsibleUserId)
+    .maybeSingle<{ id: number }>();
+  if (!user) return { error: "Ese asesor no existe en el CRM." };
+
+  const id = await enqueueKommoLeadOp(createAdminClient(), who.tenantId, {
+    leadId,
+    op: "patch_owner",
+    payload,
+  });
+  if (!id) return { error: "No se pudo encolar la reasignación." };
+
+  revalidatePath("/studio/crm");
+  nudgeWriteback(who.tenantId);
+  return { ok: true };
+}
+
+/** Agrega y/o quita etiquetas del lead (incremental: no pisa las del asesor). */
+export async function setLeadTagsAction(
+  leadId: number,
+  add: string[],
+  remove: string[],
+): Promise<VerbResult> {
+  const supabase = await createClient();
+  const who = await resolveCrmWriter(supabase);
+  if ("error" in who) return who;
+
+  if (!Number.isInteger(leadId) || leadId <= 0) return { error: "Lead inválido." };
+  const payload = buildTagsPatchPayload({
+    add: Array.isArray(add) ? add : [],
+    remove: Array.isArray(remove) ? remove : [],
+  });
+  if (!payload) return { error: "No indicaste ninguna etiqueta." };
+
+  const id = await enqueueKommoLeadOp(createAdminClient(), who.tenantId, {
+    leadId,
+    op: "patch_tags",
+    payload,
+  });
+  if (!id) return { error: "No se pudo encolar el cambio de etiquetas." };
+
+  revalidatePath("/studio/crm");
+  nudgeWriteback(who.tenantId);
   return { ok: true };
 }

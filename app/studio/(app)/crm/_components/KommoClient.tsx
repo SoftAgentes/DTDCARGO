@@ -32,6 +32,7 @@ import type {
 } from "@/lib/studio/kommo-types";
 import { KOMMO_TABS, type KommoTabKey } from "./kommo-tabs.shared";
 import { ConvertLeadDrawer } from "./ConvertLeadDrawer";
+import { moveLeadStageAction } from "../actions";
 import { fmtUsd } from "@/lib/money";
 
 const GRID = "1.5fr 0.9fr 0.8fr 56px 96px 148px";
@@ -88,6 +89,7 @@ export function KommoClient({
   convertedLeads,
   valueByLead,
   contactByLead,
+  pendingOpsByLead,
   responsibleUsers,
 }: {
   tab: KommoTabKey;
@@ -108,6 +110,8 @@ export function KommoClient({
   valueByLead: Record<number, number>;
   /** kommo_lead_id → contacto principal (nombre + teléfono). Vacío si no hay vínculo. */
   contactByLead: Record<number, KommoLeadContactInfo>;
+  /** leadId → ops encoladas que aún no llegaron a Kommo (chip "en camino"). */
+  pendingOpsByLead: Record<number, string[]>;
   /** Asesores presentes (para el filtro), ordenados desc por leads. */
   responsibleUsers: OwnerSlice[];
 }) {
@@ -142,6 +146,14 @@ export function KommoClient({
         },
       },
     );
+  };
+
+  // Resultado de un verbo: avisa y refresca para que el chip "en camino"
+  // aparezca sin que el asesor tenga que recargar a mano.
+  const onVerbDone = (msg: string, error?: boolean) => {
+    if (error) toast.error(msg);
+    else toast.success(msg);
+    startTransition(() => router.refresh());
   };
 
   // ── Filtros del worklist (solo pestaña Asesor) ──
@@ -435,11 +447,14 @@ export function KommoClient({
             ) : (
               <LeadsTable
                 leads={leads}
+                statuses={statuses}
                 statusName={statusName}
                 subdomain={overview.subdomain}
                 converted={converted}
                 valueByLead={valueByLead}
                 contactByLead={contactByLead}
+                pendingOps={pendingOpsByLead}
+                onVerbDone={onVerbDone}
                 onConvertClick={(l) =>
                   setConvertingLead({ id: l.id, name: l.name || "(sin nombre)" })
                 }
@@ -471,24 +486,123 @@ export function KommoClient({
   );
 }
 
+/**
+ * La etapa, y el control para MOVERLA (Fase 4 · SDD-0256).
+ *
+ * Mientras la orden viaja, la fila muestra "En camino": el ERP nunca escribe el
+ * espejo (guardrail 0107), así que hasta que Kommo re-espeje por webhook la
+ * pantalla sigue diciendo la etapa vieja. Sin ese aviso el asesor cree que el
+ * clic no hizo nada y vuelve a clickear.
+ *
+ * ⚠️ `stages` ya viene SIN la bandeja de entrada (`type === 1`): Kommo devuelve
+ * `400 NotSupportedChoice` si se intenta mover un lead hacia ahí.
+ */
+function StageCell({
+  leadId,
+  etapa,
+  stages,
+  enCamino,
+  onDone,
+}: {
+  leadId: number;
+  etapa: string;
+  stages: KommoStatusRow[];
+  enCamino: boolean;
+  onDone: (msg: string, error?: boolean) => void;
+}) {
+  const [abierto, setAbierto] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+
+  if (enCamino) {
+    return (
+      <Badge tone="info" size="sm" dot>
+        En camino
+      </Badge>
+    );
+  }
+
+  if (!abierto) {
+    return (
+      <button
+        type="button"
+        onClick={() => setAbierto(true)}
+        title="Mover de etapa"
+        className="studio-link-quiet"
+        style={{
+          background: "none",
+          border: 0,
+          padding: 0,
+          cursor: "pointer",
+          font: "inherit",
+        }}
+      >
+        <Badge tone="neutral" size="sm">
+          {etapa}
+        </Badge>
+      </button>
+    );
+  }
+
+  return (
+    <select
+      className="studio-input"
+      style={{ font: "500 12px/1 var(--f-sans)", padding: "4px 6px", maxWidth: 170 }}
+      autoFocus
+      disabled={enviando}
+      defaultValue=""
+      onBlur={() => setAbierto(false)}
+      onChange={async (e) => {
+        const statusId = Number(e.target.value);
+        if (!Number.isFinite(statusId) || statusId <= 0) return;
+        setEnviando(true);
+        const res = await moveLeadStageAction(leadId, statusId);
+        setEnviando(false);
+        setAbierto(false);
+        onDone(res.error ?? "Etapa en camino a el CRM", Boolean(res.error));
+      }}
+    >
+      <option value="" disabled>
+        Mover a…
+      </option>
+      {stages.map((s) => (
+        <option key={s.id} value={String(s.id)}>
+          {s.name ?? `#${s.id}`}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 function LeadsTable({
   leads,
+  statuses,
   statusName,
   subdomain,
   converted,
   valueByLead,
   contactByLead,
+  pendingOps,
+  onVerbDone,
   onConvertClick,
 }: {
   leads: KommoLeadRow[];
+  statuses: KommoStatusRow[];
   statusName: Map<string, string>;
   subdomain: string | null;
   converted: Record<number, string>;
   valueByLead: Record<number, number>;
   /** leadId → contacto principal. Vacío si el vínculo aún no está espejado. */
   contactByLead: Record<number, KommoLeadContactInfo>;
+  /** leadId → ops encoladas que todavía no llegaron a Kommo. */
+  pendingOps: Record<number, string[]>;
+  onVerbDone: (msg: string, error?: boolean) => void;
   onConvertClick: (lead: KommoLeadRow) => void;
 }) {
+  // Destinos válidos por embudo, sin la bandeja de entrada.
+  const stagesFor = (pipelineId: number | null): KommoStatusRow[] =>
+    pipelineId == null
+      ? []
+      : statuses.filter((s) => s.pipeline_id === pipelineId && Number(s.type) !== 1);
   return (
     <div
       style={{
@@ -645,10 +759,16 @@ function LeadsTable({
                     </span>
                   )}
                 </span>
-                <span role="cell">
-                  <Badge tone="neutral" size="sm">
-                    {etapa}
-                  </Badge>
+                {/* Etapa: se puede MOVER desde acá (Fase 4). El nombre siempre
+                    está escrito — el color nunca es el único portador. */}
+                <span role="cell" style={{ minWidth: 0 }}>
+                  <StageCell
+                    leadId={l.id}
+                    etapa={etapa}
+                    stages={stagesFor(l.pipeline_id)}
+                    enCamino={(pendingOps[l.id] ?? []).includes("patch_stage")}
+                    onDone={onVerbDone}
+                  />
                 </span>
                 <span
                   role="cell"
