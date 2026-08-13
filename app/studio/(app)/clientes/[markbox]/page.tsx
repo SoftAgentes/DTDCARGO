@@ -33,6 +33,10 @@ import { Icon } from "@/app/studio/_components/icons";
 import { ClientDetailClient } from "../_components/ClientDetailClient";
 import { PortalAccessCard } from "../_components/PortalAccessCard";
 import { AdvisorAssignCard } from "../_components/AdvisorAssignCard";
+import { AliadoCard } from "../_components/AliadoCard";
+import { getAliadoByClientId, listAliadoOptions } from "@/lib/studio/aliados/aliado-queries";
+import { getStudioRole } from "@/lib/studio/rbac-guard";
+import { canEditModule } from "@/lib/studio/rbac";
 import { DeliveryAddressesCard } from "../_components/DeliveryAddressesCard";
 import { IdentityVerificationCard } from "../_components/IdentityVerificationCard";
 import { listClientDeliveryAddresses } from "@/lib/studio/client-address-queries";
@@ -98,6 +102,17 @@ export default async function ClienteDetallePage({
   const advisors = tenantLink?.tenant_id
     ? await listTenantAdvisors(createAdminClient(), tenantLink.tenant_id)
     : [];
+
+  // Aliados white-label (SDD-0255). `aliado` es la ficha de aliado que cuelga de
+  // ESTE cliente (null si todavía no lo es); `aliadoOptions` son todos los del
+  // tenant, y hacen falta para elegir aliado padre y para componer la cadena de
+  // prefijos sin pagar un RPC por fila.
+  const [aliado, aliadoOptions, studioRole] = await Promise.all([
+    getAliadoByClientId(supabase, client.id),
+    listAliadoOptions(supabase),
+    getStudioRole(supabase),
+  ]);
+  const puedeEditarClientes = canEditModule(studioRole, "clients");
 
   // Documentos del DMS genérico (SDD-0049) adjuntos a este cliente — KYC, RIF,
   // contratos, poderes. Coexiste con shipment_documents.
@@ -472,6 +487,15 @@ export default async function ClienteDetallePage({
             markbox={client.markbox}
             currentAdvisorId={client.advisor_id}
             advisors={advisors}
+          />
+
+          <AliadoCard
+            clientId={client.id}
+            clientName={client.name}
+            markbox={client.markbox}
+            aliado={aliado}
+            aliados={aliadoOptions}
+            canEdit={puedeEditarClientes}
           />
 
           <DeliveryAddressesCard
