@@ -13,6 +13,8 @@ import { useState } from "react";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import type { LabelClient } from "../page";
 import type { WarehouseAddress } from "./Label";
+import { brandNameCjk } from "@/lib/shared/brand-context";
+import { printMarkbox } from "@/lib/shared/markbox-chain";
 
 type SupplierFreeForm = {
   contactName: string;
@@ -56,9 +58,9 @@ export function SupplierMessageModal({
 
   const msgEs = `Hola ${supplier.contactName || "equipo"},
 
-Adjunto te paso ${totalLabels} etiquetas DTD Cargo para ${totalBoxes} cajas${copiesNote}. Pégalas antes del despacho a nuestro almacén ${warehouse.code} (${warehouse.city}).
+Adjunto te paso ${totalLabels} etiquetas ${client.brand.name} para ${totalBoxes} cajas${copiesNote}. Pégalas antes del despacho a nuestro almacén ${warehouse.code} (${warehouse.city}).
 
-Shipping Mark del cliente: ${client.markbox}
+Shipping Mark del cliente: ${printMarkbox(client.markbox)}
 Cliente: ${client.name}
 Total cajas: ${totalBoxes}
 Etiquetas por caja: ${copiesPerBox}
@@ -66,13 +68,13 @@ Etiquetas por caja: ${copiesPerBox}
 Cualquier duda escríbeme por WeChat: ${warehouse.wechat}
 
 Gracias!
-DTD Cargo`;
+${client.brand.name}`;
 
   const msgCn = `${supplier.contactCn ? supplier.contactCn + "您好" : "您好"}：
 
-附件是 ${totalLabels} 张 DTD Cargo 标签，用于 ${totalBoxes} 个箱子${copiesNoteCn}。请在发到我们仓库 ${warehouse.code}（${warehouse.city_cn}）之前贴好。
+附件是 ${totalLabels} 张 ${client.brand.name} 标签，用于 ${totalBoxes} 个箱子${copiesNoteCn}。请在发到我们仓库 ${warehouse.code}（${warehouse.city_cn}）之前贴好。
 
-客户编号 (Shipping Mark): ${client.markbox}
+客户编号 (Shipping Mark): ${printMarkbox(client.markbox)}
 客户名称: ${client.name}
 总箱数: ${totalBoxes}
 每箱标签数: ${copiesPerBox}
@@ -80,7 +82,7 @@ DTD Cargo`;
 如有疑问请微信联系: ${warehouse.wechat}
 
 谢谢！
-DTD Cargo 国际货运`;
+${brandNameCjk(client.brand)}`;
 
   async function copy(text: string, label: "es" | "cn") {
     try {
@@ -106,7 +108,7 @@ DTD Cargo 国际货运`;
 
   const mailtoHref = supplier.email
     ? `mailto:${encodeURIComponent(supplier.email)}?subject=${encodeURIComponent(
-        `DTD Cargo · ${totalBoxes} etiquetas · Shipping Mark ${client.markbox}`,
+        `${client.brand.name} · ${totalBoxes} etiquetas · Shipping Mark ${printMarkbox(client.markbox)}`,
       )}&body=${encodeURIComponent(msgEs + "\n\n— — —\n\n" + msgCn)}`
     : null;
 
