@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 249 specs)
+### Índice de specs (generado · 251 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -287,6 +287,8 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0254 | Guardar el Shipping Mark en el WhatsApp del cliente al regist… | in-progress | interna |
 | 0255 | Aliados white-label: entidad, insignia propia jerárquica y ta… | in-progress | interno |
 | 0256 | El CRM se opera desde el ERP: la cola de escritura y los verb… | in-progress | interno |
+| 0257 | La calculadora da precio sin el peso, y dice hasta cuándo vale | in-progress | interna |
+| 0258 | Historial de Shipping Mark (renombrar sin perder nada) y sub-… | draft | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
