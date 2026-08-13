@@ -19,6 +19,8 @@ export type KommoStatusRow = {
   name: string | null;
   color: string | null;
   sort: number | null;
+  /** 1 = bandeja de entrada. Kommo NO deja mover un lead hacia ahi por API. */
+  type: number | null;
 };
 
 /** Definición de un custom field del espejo (para el dropdown de config). */

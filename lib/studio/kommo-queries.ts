@@ -96,7 +96,7 @@ export async function listKommoStatuses(
 ): Promise<KommoStatusRow[]> {
   const { data, error } = await supabase
     .from("kommo_statuses")
-    .select("id, pipeline_id, name, color, sort")
+    .select("id, pipeline_id, name, color, sort, type")
     .order("sort", { ascending: true });
   if (error) throw error;
   return (data as KommoStatusRow[] | null) ?? [];
