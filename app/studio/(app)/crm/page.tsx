@@ -13,6 +13,7 @@ import {
   getKommoStageMap,
   getWritebackStatus,
   type WritebackStatus,
+  getPendingOpsByLead,
 } from "@/lib/studio/kommo-writeback";
 import {
   getKommoOverview,
@@ -192,6 +193,14 @@ export default async function KommoPage({
         ).catch(() => ({}))
       : {};
 
+  // Órdenes que ya salieron del ERP pero todavía no llegaron a Kommo. Es lo que
+  // la fila pinta como "en camino": entre el clic y el webhook de vuelta el
+  // espejo sigue mostrando lo viejo (guardrail 0107).
+  const pendingOpsByLead =
+    leads.length > 0
+      ? await getPendingOpsByLead(supabase, leads.map((l) => l.id)).catch(() => ({}))
+      : {};
+
   return (
     <KommoClient
       tab={tab}
@@ -221,6 +230,7 @@ export default async function KommoPage({
       convertedLeads={visibleConverted}
       valueByLead={visibleValue}
       contactByLead={contactByLead}
+      pendingOpsByLead={pendingOpsByLead}
       responsibleUsers={analytics.ownership.owners}
     />
   );

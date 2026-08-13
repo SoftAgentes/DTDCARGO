@@ -30,16 +30,26 @@ import {
 import { Icon } from "@/app/studio/_components/icons";
 import { SplitActionButton } from "@/app/studio/_components/ui/SplitActionButton";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { prefixChain, type AliadoOption } from "@/lib/studio/aliados/aliado-types";
 
 interface Props {
   mode: "create" | "edit";
   client?: Client;
   onClose: () => void;
+  /** SDD-0255: aliados del tenant, para el selector "Pertenece a" del alta. */
+  aliados?: AliadoOption[];
 }
 
 const initialState: ClientActionState = {};
 
-export function ClientDrawer({ mode, client, onClose }: Props) {
+export function ClientDrawer({ mode, client, onClose, aliados = [] }: Props) {
+  // SDD-0255: sólo se ofrecen aliados ACTIVOS — `next_markbox_aliado` rechaza a
+  // los suspendidos y cerrados, así que ofrecerlos sería prometer algo que la
+  // base va a negar después.
+  const aliadosActivos = aliados.filter((a) => a.status === "activo");
+  const [aliadoId, setAliadoId] = useState("");
+  const cadenaElegida = aliadoId ? prefixChain(aliados, aliadoId) : "";
+
   const action =
     mode === "edit" && client
       ? updateClientAction.bind(null, client.markbox)
@@ -144,6 +154,11 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
     formEl?.reset();
     setTier("regular");
     setDocKind("persona");
+    // SDD-0255: el aliado NO se limpia a propósito. "Crear y empezar otra" se usa
+    // para cargar una tanda, y una tanda es casi siempre del mismo aliado. El
+    // `formEl.reset()` de arriba tampoco lo mueve: el select es controlado, así
+    // que React lo repinta con `aliadoId`. Si algún día se quiere limpiar, hay
+    // que hacerlo acá explícito — el reset del DOM no alcanza.
     setLat("");
     setLng("");
     setGeoStatus("idle");
@@ -343,17 +358,56 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
           }}
         >
           {mode === "create" && (
-            <div
-              style={{
-                padding: "10px 12px",
-                background: "var(--bg-elevated)",
-                borderRadius: "var(--r-sm)",
-                font: "500 11.5px/1.4 var(--f-sans)",
-                color: "var(--ink-soft)",
-              }}
-            >
-              El Shipping Mark se asigna automáticamente al crear el cliente.
-            </div>
+            <>
+              {/* SDD-0255 · a quién pertenece el cliente. Si cuelga de un aliado,
+                  el código sale de `next_markbox_aliado` (la insignia del aliado)
+                  y no de `next_markbox` (DTD-). Son dos correlativos
+                  independientes: uno no mueve al otro. */}
+              {aliados.length > 0 && (
+                <div>
+                  <label htmlFor="cliente-aliado" className="studio-label">
+                    Pertenece a
+                  </label>
+                  <select
+                    id="cliente-aliado"
+                    name="aliadoId"
+                    className="studio-input"
+                    value={aliadoId}
+                    onChange={(e) => setAliadoId(e.target.value)}
+                    style={{ width: "100%" }}
+                  >
+                    <option value="">DTD Cargo — cliente directo</option>
+                    {aliadosActivos.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {prefixChain(aliados, a.id)} · {a.tradeName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div
+                style={{
+                  padding: "10px 12px",
+                  background: "var(--bg-elevated)",
+                  borderRadius: "var(--r-sm)",
+                  font: "500 11.5px/1.4 var(--f-sans)",
+                  color: "var(--ink-soft)",
+                }}
+              >
+                {cadenaElegida ? (
+                  <>
+                    El Shipping Mark se asigna automáticamente y va a empezar por{" "}
+                    <b style={{ color: "var(--ink)", font: "600 12px/1.4 var(--f-mono)" }}>
+                      {cadenaElegida}-
+                    </b>
+                    . Este cliente es del aliado, no de DTD.
+                  </>
+                ) : (
+                  <>El Shipping Mark se asigna automáticamente al crear el cliente.</>
+                )}
+              </div>
+            </>
           )}
 
           {/* Tipo de documento · persona (cédula) / empresa (RIF) — SDD-0131 */}

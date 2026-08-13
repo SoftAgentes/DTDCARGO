@@ -78,10 +78,10 @@ describe("funnelHealth", () => {
     { id: 2, name: "Carga", sort: 1, is_main: false },
   ];
   const statuses: KommoStatusRow[] = [
-    { id: 10, pipeline_id: 1, name: "Primer contacto", sort: 0, color: null },
-    { id: 11, pipeline_id: 1, name: "Atención al cliente", sort: 1, color: null },
-    { id: 12, pipeline_id: 1, name: "Tomar decisión", sort: 2, color: null },
-    { id: 20, pipeline_id: 2, name: "Otra", sort: 0, color: null },
+    { id: 10, pipeline_id: 1, name: "Primer contacto", sort: 0, color: null, type: 0 },
+    { id: 11, pipeline_id: 1, name: "Atención al cliente", sort: 1, color: null, type: 0 },
+    { id: 12, pipeline_id: 1, name: "Tomar decisión", sort: 2, color: null, type: 0 },
+    { id: 20, pipeline_id: 2, name: "Otra", sort: 0, color: null, type: 0 },
   ];
 
   it("usa el embudo principal, cuenta por etapa y marca el cuello", () => {
