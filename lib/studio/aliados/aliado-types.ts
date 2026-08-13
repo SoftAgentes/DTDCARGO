@@ -46,6 +46,8 @@ export type Aliado = {
 /** Fila liviana para selectores y listados. */
 export type AliadoOption = {
   id: string;
+  /** El cliente-padre: el cliente que ES este aliado. */
+  clientId: string;
   prefix: string;
   tradeName: string;
   parentAliadoId: string | null;

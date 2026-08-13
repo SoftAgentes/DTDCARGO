@@ -8,6 +8,8 @@ import type { BoxLabel } from "@/lib/studio/prealertas/types";
 import { labelVerifyUrl } from "@/lib/studio/etiquetas-qr";
 import { PackingListFormSection } from "./PackingListFormSection";
 import { SupplierUploadSection } from "./SupplierUploadSection";
+import type { BrandContext } from "@/lib/shared/brand-context";
+import { printMarkbox } from "@/lib/shared/markbox-chain";
 
 // Latin → Archivo (marca); CJK → Noto Sans SC (fallback por-glifo, Archivo no
 // trae hanzi). El proveedor lee chino → es crítico que el CJK use Noto SC.
@@ -33,6 +35,7 @@ export function ProviderShareClient({
   supplierName,
   supplierWechat,
   labels,
+  brand,
 }: {
   token: string;
   code: string;
@@ -42,12 +45,14 @@ export function ProviderShareClient({
   supplierName: string | null;
   supplierWechat: string | null;
   labels: BoxLabel[];
+  /** SDD-0255 · marca con la que se pinta. Obligatoria: sin default silencioso. */
+  brand: BrandContext;
 }) {
   const [copied, setCopied] = useState(false);
 
   const cn = CONTACT.cn;
   const addressText = [
-    `收货人 / Destinatario: DTD Cargo - ${markbox}`,
+    `收货人 / Destinatario: ${brand.name} - ${printMarkbox(markbox)}`,
     `电话 / Teléfono: ${cn.phone}`,
     `地址 / Dirección: 浙江省${cn.addressCjk}`,
     `邮编 / Código postal: ${cn.postalCode}`,
@@ -86,7 +91,7 @@ export function ProviderShareClient({
         {/* Header */}
         <div className="no-print">
           <div className="text-[13px] font-bold tracking-[0.04em] text-ink">
-            DTD <span className="text-wine">Cargo</span>
+            {brand.name}
           </div>
           <h1 className="mt-4 text-[24px] sm:text-[28px] font-bold text-ink leading-tight">
             <span lang="zh">给供应商的资料</span>
@@ -116,10 +121,10 @@ export function ProviderShareClient({
               </span>
             </div>
             <p className="mt-1.5 text-[12.5px] text-grey-700 leading-[1.55]" lang="zh">
-              请把货物寄到这个地址，并把 Shipping Mark（{markbox}）写在每个箱子上。
+              请把货物寄到这个地址，并把 Shipping Mark（{printMarkbox(markbox)}）写在每个箱子上。
               <span lang="es" className="block text-grey-500 mt-1">
                 Envía la mercancía a esta dirección y escribe el Shipping Mark
-                ({markbox}) en cada caja.
+                ({printMarkbox(markbox)}) en cada caja.
               </span>
             </p>
             <pre
@@ -175,8 +180,9 @@ export function ProviderShareClient({
             <LabelCard
               key={l.boxN}
               label={l}
-              clientName={clientName ?? markbox}
+              clientName={clientName ?? printMarkbox(markbox)}
               markbox={markbox}
+              brand={brand}
             />
           ))}
         </div>
@@ -260,10 +266,12 @@ function LabelCard({
   label,
   clientName,
   markbox,
+  brand,
 }: {
   label: BoxLabel;
   clientName: string;
   markbox: string;
+  brand: BrandContext;
 }) {
   // SDD-0153: QR real → /verificar. Con la caja pre-declarada lleva su DTD-B en
   // `&b=` (escaneable por caja al recibir/estibar); si no, solo el Shipping Mark.
@@ -282,7 +290,7 @@ function LabelCard({
         className="text-[8px] font-bold tracking-[0.14em] uppercase"
         style={{ color: "var(--color-grey-500)" }}
       >
-        Shipping to DTD-Cargo
+        Shipping to {brand.name}
       </div>
       <div className="mx-auto my-3 grid place-items-center" style={{ width: 56, height: 56 }}>
         <QRCodeSVG
@@ -294,7 +302,7 @@ function LabelCard({
           aria-label={
             label.boxCode
               ? `扫描箱子 Escanear caja ${label.boxCode}`
-              : `Verificar ${markbox}`
+              : `Verificar ${printMarkbox(markbox)}`
           }
         />
       </div>

@@ -10,6 +10,11 @@
 import { createClient } from "@/lib/db/server";
 import { listSuppliers } from "@/lib/studio/prealertas/queries";
 import { LabelGeneratorClient } from "./_components/LabelGeneratorClient";
+import {
+  resolveBrand,
+  type AliadoBrandRow,
+  type BrandContext,
+} from "@/lib/shared/brand-context";
 
 export const metadata = { title: "Etiquetas CN · DTD Studio" };
 
@@ -28,6 +33,13 @@ type SearchParams = { [key: string]: string | string[] | undefined };
 export type LabelClient = {
   markbox: string;
   name: string;
+  /**
+   * SDD-0255 · marca con la que se pinta la etiqueta y el mensaje al proveedor.
+   * Para un cliente directo es la de DTD; para un cliente de aliado, la del
+   * aliado. Se resuelve acá (server) y viaja con el cliente para no pagar una
+   * consulta por cada cambio de selección en el generador.
+   */
+  brand: BrandContext;
 };
 
 export type LabelWarehouseCn = {
@@ -63,7 +75,12 @@ export default async function EtiquetasPage({
     await Promise.all([
       supabase
         .from("clients")
-        .select("markbox, name")
+        // ⚠️ Pedir una columna inexistente rompe el select ENTERO y la pantalla
+        // se queda sin clientes en silencio (ver la nota del tope del archivo).
+        // `aliado_id` y la tabla `aliados` existen en prod desde la migr 0362.
+        .select(
+          "markbox, name, aliado_id, aliados:aliado_id (trade_name, brand_name, brand_primary, brand_secondary, support_email, support_whatsapp, support_website, hide_dtd_brand)",
+        )
         .is("deleted_at", null)
         .order("markbox", { ascending: true })
         .limit(500),
@@ -76,10 +93,17 @@ export default async function EtiquetasPage({
       listSuppliers(supabase).catch(() => []),
     ]);
 
-  const clients: LabelClient[] = (clientsData ?? []).map((c) => ({
-    markbox: c.markbox as string,
-    name: c.name as string,
-  }));
+  const clients: LabelClient[] = (clientsData ?? []).map((c) => {
+    // PostgREST devuelve el embed como objeto o como array según cómo infiera la
+    // relación; se normaliza para no depender de esa inferencia.
+    const raw = (c as { aliados?: unknown }).aliados;
+    const row = (Array.isArray(raw) ? raw[0] : raw) ?? null;
+    return {
+      markbox: c.markbox as string,
+      name: c.name as string,
+      brand: resolveBrand(row as AliadoBrandRow | null),
+    };
+  });
 
   const warehouses: LabelWarehouseCn[] = (warehousesData ?? []).map((w) => ({
     id: w.id as string,

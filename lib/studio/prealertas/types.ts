@@ -12,7 +12,10 @@
  * Helpers PUROS + validadores manuales (no Zod, patrón del repo).
  */
 
+import { parseMarkbox, printMarkbox } from "@/lib/shared/markbox-chain";
+
 // ── Tonos de badge (set del sistema) ──────────────────────────
+
 export type BadgeTone =
   | "success"
   | "warning"
@@ -63,15 +66,49 @@ export function isPrealertaStatus(v: unknown): v is PrealertaStatus {
 // ╚═══════════════════════════════════════════════════════════╝
 
 /**
- * Número de cliente desde el MARKBOX (`DTD-5532` → `"5532"`). El code del Norte
- * usa este segmento como `clientNo`. Si el MARKBOX no tiene el patrón esperado,
- * cae al MARKBOX completo (normalizado) para no romper — la red es el
- * `unique(tenant, code)`.
+ * Número de cliente desde el MARKBOX de la CASA (`DTD-5532` → `"5532"`).
+ *
+ * ⚠️ **Sólo vale para markbox de la casa.** Con una insignia de aliado devuelve
+ * basura: `HR-0001` → `"0001"` (que choca con el `DTD-0001`) y `DC-FA-1232` →
+ * `"FA"` (igual para TODOS los clientes de ese sub-aliado). Por eso el código de
+ * compra ya **no** se arma con esta función, sino con
+ * `prealertaBaseFromMarkbox()`. Se conserva porque su contrato —"el número"— es
+ * legítimo y hay tests que lo fijan; no la uses para construir identificadores.
  */
 export function clientNoFromMarkbox(markbox: string): string {
   const norm = (markbox ?? "").trim().toUpperCase();
   const parts = norm.split("-");
   return parts.length >= 2 && parts[1] ? parts[1] : norm;
+}
+
+/**
+ * Base del código de compra: el Shipping Mark en su forma **IMPRESA**
+ * (SDD-0255). Es lo que el cliente ve, así que el código de su compra hereda su
+ * propia insignia y no la de arriba.
+ *
+ * `DTD-5532` → `"DTD-5532"` · `HR-0001` → `"HR-0001"` · `DC-FA-1232` → `"FA-1232"`
+ *
+ * **Por qué la forma impresa y no la guardada:** el cliente de un sub-aliado no
+ * debe ver el segmento raíz. Y como `aliados_prefix_uq` hace el prefijo único
+ * global (migr 0362), la forma impresa sigue siendo única — que es lo que el
+ * `unique (tenant_id, code)` de `prealertas` necesita.
+ *
+ * ⚠️ **Compatibilidad medida (2026-08-13):** para los `DTD-NNNN` y para los
+ * códigos de VENDEDOR del legado (`DTD-A101`, `DTD-J044`) devuelve exactamente
+ * lo mismo que la fórmula vieja, así que **ningún código vivo se mueve**. Se
+ * verificaron las 5 prealertas de producción: las 5 son de clientes `DTD-NNNN`.
+ * Lo único que cambia es lo que antes estaba roto (`AD-001`, `ITS-01`,
+ * `DTD-LEG-SN01`, y cualquier insignia de aliado), que no tiene ninguna compra.
+ */
+export function prealertaBaseFromMarkbox(markbox: string): string {
+  const norm = (markbox ?? "").trim().toUpperCase();
+  const parsed = parseMarkbox(norm);
+  // Cadena reconocible (casa o aliado) → forma impresa.
+  if (parsed) return printMarkbox(norm);
+  // No parsea (código de vendedor del legado, basura): se conserva el
+  // comportamiento histórico para no mover códigos existentes.
+  const parts = norm.split("-");
+  return parts.length >= 2 && parts[1] ? `DTD-${parts[1]}` : `DTD-${norm}`;
 }
 
 /**
@@ -88,10 +125,10 @@ export function buildPrealertaCode(
   supplierSeq: number,
   orderSeq: number,
 ): string {
-  const clientNo = clientNoFromMarkbox(markbox);
+  const base = prealertaBaseFromMarkbox(markbox);
   const s = Math.max(1, Math.trunc(Number(supplierSeq) || 1));
   const o = Math.max(1, Math.trunc(Number(orderSeq) || 1));
-  return `DTD-${clientNo}-${s}-${o}`;
+  return `${base}-${s}-${o}`;
 }
 
 // ╔═══════════════════════════════════════════════════════════╗

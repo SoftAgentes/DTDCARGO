@@ -55,6 +55,11 @@ export type Client = {
    */
   advisor_id: string | null;
   /**
+   * SDD-0255 · aliado dueño del cliente (el más profundo de la cadena).
+   * NULL = cliente directo de DTD.
+   */
+  aliado_id: string | null;
+  /**
    * SDD-0106: identidad (tabla `persons`, anclada por cédula) de este perfil de
    * carga. La cédula es el identificador estable de la persona a través de
    * servicios (carga, academia); el Shipping Mark es el rastreo de cajas.

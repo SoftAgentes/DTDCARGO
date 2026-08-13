@@ -15,7 +15,7 @@ export type ClientFilters = {
 };
 
 const CLIENT_COLUMNS =
-  "id, tenant_id, markbox, name, email, phone, address, rif, contact_name, tier, notes, lat, lng, registration_channel, doc_kind, doc_verify_status, doc_verify_source, doc_registry_name, doc_verified_at, cedula_photo_path, advisor_id, person_id, created_at, updated_at, deleted_at";
+  "id, tenant_id, markbox, name, email, phone, address, rif, contact_name, tier, notes, lat, lng, registration_channel, doc_kind, doc_verify_status, doc_verify_source, doc_registry_name, doc_verified_at, cedula_photo_path, advisor_id, aliado_id, person_id, created_at, updated_at, deleted_at";
 
 /**
  * Lista de clientes con filtros opcionales. RLS filtra por tenant.
