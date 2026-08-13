@@ -36,7 +36,7 @@ export async function getAliadoByClientId(
 export async function listAliadoOptions(supabase: SupabaseClient): Promise<AliadoOption[]> {
   const { data, error } = await supabase
     .from("aliados")
-    .select("id, prefix, trade_name, parent_aliado_id, status")
+    .select("id, client_id, prefix, trade_name, parent_aliado_id, status")
     .is("deleted_at", null)
     .order("prefix");
 
@@ -44,6 +44,7 @@ export async function listAliadoOptions(supabase: SupabaseClient): Promise<Aliad
 
   return (data ?? []).map((r) => ({
     id: r.id as string,
+    clientId: r.client_id as string,
     prefix: r.prefix as string,
     tradeName: r.trade_name as string,
     parentAliadoId: (r.parent_aliado_id as string | null) ?? null,
