@@ -30,6 +30,7 @@
     "docs:check": "node scripts/build-docs-index.mjs --check",
     "sdd:next": "node scripts/next-number.mjs",
     "sdd:check": "node scripts/check-numbering.mjs",
+    "edge:check": "node scripts/check-edge-functions.mjs",
     "attachments:preflight": "node scripts/attachments-pilot-preflight.mjs",
     "attachments:r2:validate": "node scripts/attachments-r2-live-validation.mjs",
     "attachments:clamav:serve": "node scripts/attachments-clamav-http.mjs",

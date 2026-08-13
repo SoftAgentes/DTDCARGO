@@ -10,7 +10,14 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { mapLeadRow, mapContactRow, epochToIso } from "../kommo-mapping";
+import {
+  mapLeadRow,
+  mapContactRow,
+  epochToIso,
+  mapLeadContactLinks,
+  parseContactFieldsShared,
+} from "../kommo-mapping";
+import { parseContactFields } from "@/lib/studio/kommo-convert";
 
 const TENANT = "11111111-1111-1111-1111-111111111111";
 
@@ -102,6 +109,10 @@ describe("mapContactRow", () => {
       kommo_created_at: "2023-11-14T22:13:20.000Z",
       kommo_updated_at: "2023-11-14T23:13:20.000Z",
       custom_fields: cfv,
+      // Desnormalizados desde el jsonb (migración 0363). `phone_last10` NO va
+      // acá: es columna GENERADA, la calcula Postgres y no puede driftear.
+      phone: "+58",
+      email: null,
     });
   });
 
@@ -115,6 +126,88 @@ describe("mapContactRow", () => {
       kommo_created_at: null,
       kommo_updated_at: null,
       custom_fields: [],
+      phone: null,
+      email: null,
     });
+  });
+});
+
+describe("parseContactFieldsShared ≡ parseContactFields", () => {
+  // Existen dos copias porque las Edge Functions no importan de `lib/`. Este test
+  // es lo único que impide que se separen en silencio — mismo patrón que la
+  // equivalencia phoneKey ≡ phonesMatch de kommo-router.test.ts.
+  const casos: unknown[] = [
+    null,
+    undefined,
+    [],
+    "no es un array",
+    [{ field_code: "PHONE", values: [{ value: "+58 412 1668021" }] }],
+    [{ field_code: "EMAIL", values: [{ value: "a@b.com" }] }],
+    [
+      { field_code: "PHONE", values: [{ value: "0412-1668021" }] },
+      { field_code: "EMAIL", values: [{ value: "x@y.com" }] },
+    ],
+    // Gana el PRIMERO de cada código.
+    [
+      { field_code: "PHONE", values: [{ value: "111" }] },
+      { field_code: "PHONE", values: [{ value: "222" }] },
+    ],
+    // Minúsculas: el código se normaliza a mayúsculas.
+    [{ field_code: "phone", values: [{ value: "333" }] }],
+    // Valor vacío se ignora, no gana el primer turno.
+    [
+      { field_code: "PHONE", values: [{ value: "" }] },
+      { field_code: "PHONE", values: [{ value: "444" }] },
+    ],
+    // Formas rotas: no revientan.
+    [{ field_code: "PHONE" }],
+    [{ field_code: "PHONE", values: [] }],
+    [null, 7, "x", { values: [{ value: "z" }] }],
+    // Numérico → string.
+    [{ field_code: "PHONE", values: [{ value: 584121668021 }] }],
+  ];
+
+  it.each(casos.map((c, i) => [i, c] as const))(
+    "caso %i devuelve lo mismo en las dos copias",
+    (_i, entrada) => {
+      expect(parseContactFieldsShared(entrada)).toEqual(parseContactFields(entrada));
+    },
+  );
+});
+
+describe("mapLeadContactLinks", () => {
+  it("saca los vínculos de _embedded.contacts respetando is_main", () => {
+    expect(
+      mapLeadContactLinks({
+        _embedded: { contacts: [{ id: 10 }, { id: 11, is_main: true }] },
+      }),
+    ).toEqual([
+      { id: 10, is_main: false },
+      { id: 11, is_main: true },
+    ]);
+  });
+
+  it("sin el embed → [] (el llamador decide si eso significa 'sin contactos')", () => {
+    // Distinción que importa: si el fetch NO pidió `with=contacts`, el campo no
+    // viene y borrar los vínculos existentes sería inventar que se perdieron.
+    expect(mapLeadContactLinks({})).toEqual([]);
+    expect(mapLeadContactLinks({ _embedded: {} })).toEqual([]);
+    expect(mapLeadContactLinks({ _embedded: { contacts: null } })).toEqual([]);
+  });
+
+  it("descarta ids inválidos y deduplica", () => {
+    expect(
+      mapLeadContactLinks({
+        _embedded: {
+          contacts: [
+            { id: 5 },
+            { id: 5, is_main: true }, // duplicado: gana el primero
+            { id: 0 },
+            { id: -3 },
+            { id: NaN },
+          ] as { id: number; is_main?: boolean }[],
+        },
+      }),
+    ).toEqual([{ id: 5, is_main: false }]);
   });
 });

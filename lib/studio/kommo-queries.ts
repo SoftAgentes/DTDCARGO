@@ -218,6 +218,67 @@ export async function getKommoStatusCounts(
   return Object.fromEntries(entries);
 }
 
+/** El contacto principal de un lead, ya listo para pintar en la fila. */
+export type KommoLeadContactInfo = {
+  contactId: number;
+  name: string | null;
+  phone: string | null;
+  email: string | null;
+};
+
+/**
+ * `leadId → contacto principal` para un puñado de leads (los que se van a pintar).
+ *
+ * Es lo que permite mostrar el teléfono al lado del lead: `kommo_leads` no lo
+ * tiene, vive en `kommo_contacts` y el puente es `kommo_lead_contacts`
+ * (migración 0362). Dos queries indexadas, sin parsear jsonb en el camino
+ * caliente — `phone` y `email` son columnas desde la 0363.
+ *
+ * Si un lead tiene varios contactos gana el `is_main`; si ninguno lo es, el
+ * primero. Un lead sin vínculos simplemente no aparece en el mapa.
+ */
+export async function getLeadContactInfo(
+  supabase: SupabaseClient,
+  leadIds: number[],
+): Promise<Record<number, KommoLeadContactInfo>> {
+  if (leadIds.length === 0) return {};
+
+  const { data: links, error: linkErr } = await supabase
+    .from("kommo_lead_contacts")
+    .select("lead_id, contact_id, is_main")
+    .in("lead_id", leadIds);
+  if (linkErr) throw linkErr;
+
+  const rows = (links as { lead_id: number; contact_id: number; is_main: boolean }[] | null) ?? [];
+  if (rows.length === 0) return {};
+
+  // lead → contacto elegido (is_main gana; si no, el primero que vino).
+  const chosen = new Map<number, number>();
+  for (const r of rows) {
+    const prev = chosen.get(Number(r.lead_id));
+    if (prev == null || r.is_main) chosen.set(Number(r.lead_id), Number(r.contact_id));
+  }
+
+  const { data: contacts, error: cErr } = await supabase
+    .from("kommo_contacts")
+    .select("id, name, phone, email")
+    .in("id", [...new Set(chosen.values())]);
+  if (cErr) throw cErr;
+
+  const byId = new Map<number, { name: string | null; phone: string | null; email: string | null }>();
+  for (const c of (contacts as { id: number; name: string | null; phone: string | null; email: string | null }[] | null) ?? []) {
+    byId.set(Number(c.id), { name: c.name, phone: c.phone, email: c.email });
+  }
+
+  const out: Record<number, KommoLeadContactInfo> = {};
+  for (const [leadId, contactId] of chosen) {
+    const c = byId.get(contactId);
+    if (!c) continue; // el contacto aún no está espejado (orden del webhook)
+    out[leadId] = { contactId, name: c.name, phone: c.phone, email: c.email };
+  }
+  return out;
+}
+
 /** Parsea filtros del URL (?pipeline=&q=&asesor=&aged=&sort=). */
 export function parseKommoFiltersFromSearchParams(
   raw: Record<string, string | string[] | undefined>,

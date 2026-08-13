@@ -17,6 +17,7 @@ import {
 import {
   getKommoOverview,
   getKommoStatusCounts,
+  getLeadContactInfo,
   listKommoBoardLeads,
   listKommoContactCustomFields,
   listKommoLeadCustomFields,
@@ -179,6 +180,18 @@ export default async function KommoPage({
     if (v != null) visibleValue[l.id] = v;
   }
 
+  // Contacto de cada lead visible (nombre + teléfono). Sólo de los ≤200 que se
+  // pintan, no del espejo entero: dos queries indexadas contra `kommo_lead_contacts`
+  // (migr 0362) y las columnas planas de `kommo_contacts` (0363). Si falla, la
+  // tabla se pinta sin la columna en vez de tumbar la pantalla.
+  const contactByLead =
+    leads.length > 0
+      ? await getLeadContactInfo(
+          supabase,
+          leads.map((l) => l.id),
+        ).catch(() => ({}))
+      : {};
+
   return (
     <KommoClient
       tab={tab}
@@ -207,6 +220,7 @@ export default async function KommoPage({
       filters={filters}
       convertedLeads={visibleConverted}
       valueByLead={visibleValue}
+      contactByLead={contactByLead}
       responsibleUsers={analytics.ownership.owners}
     />
   );
