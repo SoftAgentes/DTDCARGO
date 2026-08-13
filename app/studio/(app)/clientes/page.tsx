@@ -14,6 +14,7 @@ import {
   parseClientFiltersFromSearchParams,
 } from "@/lib/studio/client-queries";
 import { ClientsClient } from "./_components/ClientsClient";
+import { listAliadoOptions } from "@/lib/studio/aliados/aliado-queries";
 
 export const metadata = { title: "Clientes" };
 
@@ -31,6 +32,9 @@ export default async function ClientesPage({
 
   const supabase = await createClient();
   const clients = await listClients(supabase, filters);
+  // SDD-0255: los aliados alimentan el selector "Pertenece a" del alta. Un
+  // cliente creado bajo un aliado recibe la insignia de ese aliado, no DTD-.
+  const aliados = await listAliadoOptions(supabase);
 
-  return <ClientsClient clients={clients} filters={filters} />;
+  return <ClientsClient clients={clients} filters={filters} aliados={aliados} />;
 }
