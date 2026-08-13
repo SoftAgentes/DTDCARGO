@@ -91,6 +91,7 @@ export function KommoClient({
   valueByLead,
   contactByLead,
   pendingOpsByLead,
+  canEdit,
   responsibleUsers,
 }: {
   tab: KommoTabKey;
@@ -113,6 +114,8 @@ export function KommoClient({
   contactByLead: Record<number, KommoLeadContactInfo>;
   /** leadId → ops encoladas que aún no llegaron a Kommo (chip "en camino"). */
   pendingOpsByLead: Record<number, string[]>;
+  /** ¿Puede mover, o sólo mirar? Deriva de moduleEditDenial en la página. */
+  canEdit: boolean;
   /** Asesores presentes (para el filtro), ordenados desc por leads. */
   responsibleUsers: OwnerSlice[];
 }) {
@@ -455,6 +458,7 @@ export function KommoClient({
                 valueByLead={valueByLead}
                 contactByLead={contactByLead}
                 pendingOps={pendingOpsByLead}
+                canEdit={canEdit}
                 onVerbDone={onVerbDone}
                 onConvertClick={(l) =>
                   setConvertingLead({ id: l.id, name: l.name || "(sin nombre)" })
@@ -496,6 +500,7 @@ function LeadsTable({
   valueByLead,
   contactByLead,
   pendingOps,
+  canEdit,
   onVerbDone,
   onConvertClick,
 }: {
@@ -509,6 +514,7 @@ function LeadsTable({
   contactByLead: Record<number, KommoLeadContactInfo>;
   /** leadId → ops encoladas que todavía no llegaron a Kommo. */
   pendingOps: Record<number, string[]>;
+  canEdit: boolean;
   onVerbDone: (msg: string, error?: boolean) => void;
   onConvertClick: (lead: KommoLeadRow) => void;
 }) {
@@ -676,6 +682,7 @@ function LeadsTable({
                     etapa={etapa}
                     stages={stageTargets(statuses, l.pipeline_id)}
                     enCamino={(pendingOps[l.id] ?? []).includes("patch_stage")}
+                    canEdit={canEdit}
                     onDone={onVerbDone}
                   />
                 </span>
