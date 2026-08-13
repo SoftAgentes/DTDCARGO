@@ -103,14 +103,31 @@ Además de deshonestas, el equipo después tiene que sostener la mentira en el c
 ⚠️ **Una sola vez, no una secuencia.** Un recordatorio se perdona; tres seguidos hacen que reporten
 el número y ahí se pierde el canal entero, no un lead.
 
-### Lo que falta para armarlo
+### ✅ Armado y disparando en producción (2026-08-13)
 
-⛔ **Bloqueado por acceso:** el 2026-08-13 Kommo cerró la sesión en los dos navegadores a mitad del
-trabajo y no volvió. Falta:
+Salesbot **"Seguimiento antes de que cierre la ventana de 24 horas"**, creado desde la plantilla del
+mismo nombre que ya trae Kommo. **A los pocos minutos de guardarlo había disparado 5 veces**, y se
+verificó en el Inbox: cinco conversaciones a las 08:03 con el texto exacto, firmadas `Salesbot:`
+(leads `#23331015` · `#23330181` · `#23330565` · `#23331029` · `#23309673`).
 
-1. Crear el Salesbot en `Automatizaciones → Bots`.
-2. Disparador a las **23 h sin respuesta del cliente** (no 23 h desde el último mensaje nuestro —
-   la diferencia importa: si el cliente escribió hace 1 h y nosotros no contestamos, el ping sobra).
-3. Un solo paso: enviar el mensaje de arriba.
-4. **Probarlo con un número real.** El panel de prueba de Kommo **no ejecuta efectos secundarios**
-   (ya se comprobó con las tareas: 0 creadas pese a dispararlas una decena de veces).
+| Ajuste | Valor | Por qué |
+|---|---|---|
+| Disparador | `23 horas después del último mensaje **entrante**` | ⭐ **entrante = del cliente.** Si fuera desde nuestro último mensaje, le escribiría a alguien que acaba de escribirnos y no le hemos contestado |
+| `Para todos los leads con` | Etapa ∈ {Leads Entrantes, Contacto inicial, Recontacto, Estimado enviado, Negociación} | 🔴 **lo más importante de toda la configuración** — ver abajo |
+| Horas activas | Siempre | la ventana de 24 h es un plazo duro: restringir horario dejaría que se cierre |
+| Paso 1 | mensaje al cliente | |
+| Paso 2 | aviso interno al usuario responsable | viene de la plantilla; es gratis y útil |
+
+🔴 **El campo de condición venía VACÍO, y así habría sido un desastre.** Sin condición, el bot le
+escribe a *cualquier* lead — incluidos los **2.796 perdidos** y los **244 ganados**. Mandarle *"voy a
+cerrar tu solicitud"* a alguien que ya te pagó es vergonzoso; un envío masivo a 2.796 perdidos es la
+forma más rápida de que reporten el número y **se pierda el canal entero, no un lead**. Las dos etapas
+terminales quedaron fuera.
+
+*(Que dispararan **5** y no miles confirmó además que el disparador es un **momento** —justo al
+cumplirse 23 h— y no un estado "lleva más de 23 h en silencio".)*
+
+⚠️ **Lo que NO está verificado y hay que mirar en unos días:** si el cliente contesta y vuelve a
+quedarse callado 23 h, **el bot debería volver a dispararse**. No se comprobó si Kommo deduplica.
+Si un mismo lead recibe el mensaje dos o tres veces, hay que agregarle una etiqueta al dispararse y
+excluir a los que ya la tienen. **Un recordatorio se perdona; tres seguidos hacen que te reporten.**
