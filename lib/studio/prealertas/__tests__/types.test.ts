@@ -14,6 +14,7 @@ import {
   normalizeClientNote,
   PREALERTA_CLIENT_NOTE_MAX,
   clientNoFromMarkbox,
+  prealertaBaseFromMarkbox,
   buildPrealertaCode,
   buildLabels,
   buildLabelsFromBoxes,
@@ -687,5 +688,70 @@ describe("normalizeClientNote", () => {
   it("justo en el tope pasa entera", () => {
     const justa = "y".repeat(PREALERTA_CLIENT_NOTE_MAX);
     expect(normalizeClientNote(justa)).toHaveLength(PREALERTA_CLIENT_NOTE_MAX);
+  });
+});
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ prealertaBaseFromMarkbox · el código hereda la insignia    ║
+// ╚═══════════════════════════════════════════════════════════╝
+//
+// SDD-0255. Antes de esto, `buildPrealertaCode` partía el markbox por guiones y
+// tomaba el segmento [1]. Con insignias de aliado eso produce colisiones que el
+// `unique (tenant_id, code)` de `prealertas` convierte en "no puedes crear tu
+// primera compra":
+//   · HR-0001    → "0001" → DTD-0001-1-1, el MISMO código que el cliente DTD-0001
+//   · DC-FA-1232 → "FA"   → DTD-FA-1-1,   el MISMO para TODOS los clientes de FA
+// Reventaba el día que se cargara el primer aliado real.
+
+describe("prealertaBaseFromMarkbox · SDD-0255", () => {
+  it("⭐ no mueve NINGÚN código vivo: los DTD-NNNN quedan igual", () => {
+    // Las 5 prealertas de producción (2026-08-13) son de clientes DTD-NNNN.
+    expect(buildPrealertaCode("DTD-1004", 2, 1)).toBe("DTD-1004-2-1");
+    expect(buildPrealertaCode("DTD-1004", 2, 2)).toBe("DTD-1004-2-2");
+    expect(buildPrealertaCode("DTD-9000", 1, 1)).toBe("DTD-9000-1-1");
+    expect(buildPrealertaCode("DTD-9011", 1, 1)).toBe("DTD-9011-1-1");
+    expect(buildPrealertaCode("DTD-9011", 2, 1)).toBe("DTD-9011-2-1");
+  });
+
+  it("los códigos de VENDEDOR del legado tampoco se mueven", () => {
+    // A=Darilis, J=José… 361 fichas. No parsean como cadena y conservan la
+    // fórmula histórica.
+    expect(buildPrealertaCode("DTD-A101", 1, 1)).toBe("DTD-A101-1-1");
+    expect(buildPrealertaCode("DTD-J044", 3, 2)).toBe("DTD-J044-3-2");
+  });
+
+  it("⭐ dos clientes del MISMO sub-aliado ya no chocan", () => {
+    const a = buildPrealertaCode("DC-FA-1232", 1, 1);
+    const b = buildPrealertaCode("DC-FA-1233", 1, 1);
+    expect(a).toBe("FA-1232-1-1");
+    expect(b).toBe("FA-1233-1-1");
+    expect(a).not.toBe(b);
+  });
+
+  it("⭐ un aliado raíz ya no choca con el cliente directo del mismo número", () => {
+    expect(buildPrealertaCode("HR-0001", 1, 1)).toBe("HR-0001-1-1");
+    expect(buildPrealertaCode("DTD-0001", 1, 1)).toBe("DTD-0001-1-1");
+    expect(buildPrealertaCode("HR-0001", 1, 1)).not.toBe(
+      buildPrealertaCode("DTD-0001", 1, 1),
+    );
+  });
+
+  it("y dos aliados distintos con el mismo número tampoco", () => {
+    expect(buildPrealertaCode("HR-0001", 1, 1)).not.toBe(
+      buildPrealertaCode("DC-0001", 1, 1),
+    );
+  });
+
+  it("⭐ el código NO delata al aliado raíz: usa la forma impresa", () => {
+    // El cliente de FA no debe ver DC en el código de su compra.
+    expect(buildPrealertaCode("DC-FA-1232", 1, 1)).not.toMatch(/DC/);
+    expect(buildPrealertaCode("HR-0001", 1, 1)).not.toMatch(/DTD/);
+  });
+
+  it("base: casa, raíz y sub-aliado", () => {
+    expect(prealertaBaseFromMarkbox("DTD-5532")).toBe("DTD-5532");
+    expect(prealertaBaseFromMarkbox("HR-0001")).toBe("HR-0001");
+    expect(prealertaBaseFromMarkbox("DC-FA-1232")).toBe("FA-1232");
+    expect(prealertaBaseFromMarkbox("  dc-fa-1232 ")).toBe("FA-1232");
   });
 });
