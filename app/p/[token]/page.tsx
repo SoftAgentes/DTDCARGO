@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { jetbrainsMonoUi } from "@/lib/fonts";
 import { createAdminClient } from "@/lib/db/admin";
+import { resolveBrandForClient } from "@/lib/studio/aliados/brand-resolve";
 import { getProviderShareByToken } from "@/lib/studio/prealertas/queries";
 import { buildLabels, buildLabelsFromBoxes } from "@/lib/studio/prealertas/types";
 import { ProviderShareClient } from "./ProviderShareClient";
@@ -37,6 +38,10 @@ export default async function ProviderSharePage({
 
   // SDD-0153: etiqueta escaneable por caja si la compra ya está pre-declarada;
   // si no, la etiqueta por cliente de siempre.
+  // SDD-0255 · marca del cliente dueño de la compra. Esta ruta ya corre con
+  // service_role (política `aliados service_role all`, migr 0362).
+  const brand = await resolveBrandForClient(admin, { markbox: data.markbox });
+
   const labels =
     data.predeclaredBoxes.length > 0
       ? buildLabelsFromBoxes(data.code, data.predeclaredBoxes)
@@ -55,6 +60,7 @@ export default async function ProviderSharePage({
         supplierName={data.supplierName}
         supplierWechat={data.supplierWechat}
         labels={labels}
+        brand={brand}
       />
     </div>
   );

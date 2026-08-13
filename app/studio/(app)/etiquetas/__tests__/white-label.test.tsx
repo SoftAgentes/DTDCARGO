@@ -17,6 +17,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { resolveBrand, type BrandContext } from "@/lib/shared/brand-context";
 import { Label, type WarehouseAddress } from "../_components/Label";
 import type { LabelClient } from "../page";
+import { LabelsClient } from "@/app/portal/(app)/compras/[code]/etiquetas/LabelsClient";
+import { ProviderShareClient } from "@/app/p/[token]/ProviderShareClient";
+import { buildLabels } from "@/lib/studio/prealertas/types";
 
 /**
  * Lo que delata a la casa.
@@ -76,12 +79,25 @@ function clienteDe(brand: BrandContext, markbox: string): LabelClient {
  * El registro. Cada entrada devuelve el texto FINAL que ve el cliente.
  * ⚠️ Al sumar una salida de cara al cliente, agrégala acá Y sube TOTAL_SALIDAS.
  */
+/**
+ * Sólo el TEXTO VISIBLE. Se quitan las etiquetas y con ellas los atributos —
+ * porque el valor del QR lleva la forma GUARDADA del Shipping Mark a propósito:
+ * `/verificar` busca `clients.markbox` por igualdad exacta, así que mandarle la
+ * forma impresa daría "no reconocido". Lo que no puede aparecer es en pantalla.
+ */
+function textoVisible(html: string): string {
+  return html.replace(/<[^>]*>/g, " ");
+}
+
 const SALIDAS: {
   nombre: string;
+  /** La cadena con la que ESA superficie nombra a la casa. Cada una redacta distinto. */
+  marcaCasa: string;
   render: (brand: BrandContext, markbox: string) => string;
 }[] = [
   {
     nombre: "Etiqueta de la caja · formato compacto (A4-8up, el default)",
+    marcaCasa: "SHIPPING TO · DTD Cargo",
     render: (brand, markbox) =>
       renderToStaticMarkup(
         <Label
@@ -97,6 +113,7 @@ const SALIDAS: {
   },
   {
     nombre: "Etiqueta de la caja · formato grande",
+    marcaCasa: "SHIPPING TO · DTD Cargo",
     render: (brand, markbox) =>
       renderToStaticMarkup(
         <Label
@@ -110,9 +127,49 @@ const SALIDAS: {
         />,
       ),
   },
+  {
+    nombre: "Etiqueta del PORTAL (la imprime el propio cliente)",
+    marcaCasa: "DTD Cargo",
+    render: (brand, markbox) =>
+      renderToStaticMarkup(
+        <LabelsClient
+          code="FA-1232-1-1"
+          markbox={markbox}
+          clientName="Comercial Los Andes"
+          supplierName="Yiwu Trading Co."
+          description="Cajas de mercancía"
+          labels={buildLabels("FA-1232-1-1", 2)}
+          brand={brand}
+        />,
+      ),
+  },
+  {
+    nombre: "Share público /p/[token] (lo que se le manda al proveedor)",
+    marcaCasa: "DTD Cargo",
+    render: (brand, markbox) =>
+      renderToStaticMarkup(
+        <ProviderShareClient
+          token="tok-123"
+          code="FA-1232-1-1"
+          description="Cajas de mercancía"
+          markbox={markbox}
+          clientName="Comercial Los Andes"
+          supplierName="Yiwu Trading Co."
+          supplierWechat={null}
+          labels={buildLabels("FA-1232-1-1", 2)}
+          brand={brand}
+        />,
+      ),
+  },
 ];
 
-const TOTAL_SALIDAS = 2;
+/**
+ * ⚠️ El **comprobante del portal** NO está en el barrido: es un server component
+ * `async` y `renderToStaticMarkup` no lo renderiza. Está cableado
+ * (`app/portal/(app)/facturas/[code]/comprobante/page.tsx`) pero su verificación
+ * es a ojo, en el navegador. Decirlo acá y no simular que está cubierto.
+ */
+const TOTAL_SALIDAS = 4;
 
 describe("white-label documental · SDD-0255", () => {
   it("el registro no perdió superficies", () => {
@@ -122,7 +179,7 @@ describe("white-label documental · SDD-0255", () => {
 
   for (const salida of SALIDAS) {
     it(`⭐ ${salida.nombre} · cliente de aliado → SIN marca DTD`, () => {
-      expect(salida.render(ALIADO, "DC-FA-1232")).not.toMatch(MARCA_DTD);
+      expect(textoVisible(salida.render(ALIADO, "DC-FA-1232"))).not.toMatch(MARCA_DTD);
     });
 
     it(`${salida.nombre} · cliente directo → CON marca DTD`, () => {
@@ -130,25 +187,25 @@ describe("white-label documental · SDD-0255", () => {
       // ⚠️ Se ancla al NOMBRE, no a un /DTD Cargo/ suelto: la línea en chino
       // también contiene "DTD Cargo", así que un match libre pasaba aunque el
       // nombre latino estuviera roto. Verificado con mutación el 2026-08-13.
-      const html = salida.render(DIRECTO, "DTD-9058");
-      expect(html).toContain("SHIPPING TO · DTD Cargo");
-      expect(html).toContain("寄至：DTD Cargo 国际货运");
+      expect(textoVisible(salida.render(DIRECTO, "DTD-9058"))).toContain(
+        salida.marcaCasa,
+      );
     });
 
     it(`${salida.nombre} · imprime la forma IMPRESA del Shipping Mark`, () => {
-      const html = salida.render(ALIADO, "DC-FA-1232");
-      expect(html).toContain("FA-1232");
+      const visible = textoVisible(salida.render(ALIADO, "DC-FA-1232"));
+      expect(visible).toContain("FA-1232");
       // Las dos mitades: sin ésta, un renderer que imprima la cadena entera pasa.
-      expect(html).not.toContain("DC-FA-1232");
+      expect(visible).not.toContain("DC-FA-1232");
     });
   }
 
   it("un cliente directo conserva su código tal cual", () => {
-    expect(SALIDAS[0].render(DIRECTO, "DTD-9058")).toContain("DTD-9058");
+    expect(textoVisible(SALIDAS[0].render(DIRECTO, "DTD-9058"))).toContain("DTD-9058");
   });
 
   it("y un código de VENDEDOR del legado también", () => {
     // Los 361 DTD-<letra>NNN no son cadenas de aliado: se imprimen como siempre.
-    expect(SALIDAS[0].render(DIRECTO, "DTD-A101")).toContain("DTD-A101");
+    expect(textoVisible(SALIDAS[0].render(DIRECTO, "DTD-A101"))).toContain("DTD-A101");
   });
 });

@@ -6,6 +6,8 @@ import { QRCodeSVG } from "qrcode.react";
 import { ArrowIcon, CheckIcon, DownloadIcon } from "@/components/Icon";
 import type { BoxLabel } from "@/lib/studio/prealertas/types";
 import { labelVerifyUrl } from "@/lib/studio/etiquetas-qr";
+import type { BrandContext } from "@/lib/shared/brand-context";
+import { printMarkbox } from "@/lib/shared/markbox-chain";
 
 /**
  * Vista de etiquetas imprimibles de una compra (SDD-0057 · Slice B · V1).
@@ -28,6 +30,7 @@ export function LabelsClient({
   supplierName,
   description,
   labels,
+  brand,
 }: {
   code: string;
   markbox: string;
@@ -35,6 +38,8 @@ export function LabelsClient({
   supplierName: string | null;
   description: string;
   labels: BoxLabel[];
+  /** SDD-0255 · marca con la que se pinta. Obligatoria: sin default silencioso. */
+  brand: BrandContext;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -131,6 +136,7 @@ export function LabelsClient({
             key={l.boxCode ?? `${l.code}-${l.boxN}-${i}`}
             label={l}
             markbox={markbox}
+            brand={brand}
             clientName={clientName}
           />
         ))}
@@ -145,10 +151,12 @@ function LabelCard({
   label,
   markbox,
   clientName,
+  brand,
 }: {
   label: BoxLabel;
   markbox: string;
   clientName: string;
+  brand: BrandContext;
 }) {
   // QR real → /verificar. Con caja pre-declarada lleva su DTD-B en `&b=`.
   const verifyUrl = labelVerifyUrl(
@@ -166,7 +174,7 @@ function LabelCard({
         className="text-[8px] font-bold tracking-[0.14em] uppercase"
         style={{ color: "var(--color-grey-500)" }}
       >
-        Shipping to DTD-Cargo
+        Shipping to {brand.name}
       </div>
 
       <div
@@ -182,7 +190,7 @@ function LabelCard({
           aria-label={
             label.boxCode
               ? `Escanear caja ${label.boxCode}`
-              : `Verificar ${markbox}`
+              : `Verificar ${printMarkbox(markbox)}`
           }
         />
       </div>
