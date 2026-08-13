@@ -1,42 +1,96 @@
-# Checklist Kommo — lo que falta para encender el CRM (founder)
+# Checklist CRM (Kommo) — qué falta de verdad
 
-> **Una página, en orden.** El embudo único YA quedó configurado (29-jun: se reusó "Atencion a
-> leeds" con 6 etapas — ver [`../runbooks/kommo-consolidacion-embudo-unico.md`](../runbooks/kommo-consolidacion-embudo-unico.md)).
-> **Sincronizado con prod 2026-07-19** (auditoría del Motor de Crecimiento): 4 pasos ya estaban
-> hechos de facto y el estado real de los flags no era el que el doc creía. Detalle abajo.
+> **Medido contra producción el 2026-08-13.** Todos los números de esta página
+> salen de consultar la base, no de recordar. Si vuelves acá dentro de un mes y
+> no dice "medido el <fecha de hoy>", **desconfía y vuelve a medir** — esta
+> página estuvo congelada del 19-jul al 13-ago declarando como "el bloqueo
+> técnico real" un paso que se había cerrado el 11-ago.
 
-> **⚠️ Lo que la auditoría destapó (19-jul):**
-> - Los flags del write-back estaban en prod como `writeback_enabled=true, dry_run=false`
->   **fuera de orden** — el paso 5 (cron del drain + validación en dry-run) nunca ocurrió, así que
->   armado en real pero SIN cron = no escribió nunca, pero listo para escribir de una.
-> - **Corregido el 19-jul:** se volvió a `dry_run=true` (con OK del founder) para que el orden
->   seguro se cumpla. El write real vuelve solo tras el paso 5.
-> - La conexión está en `status='error'` desde el sync fallido del 18-jul → el drain y el push
->   rehúsan hasta que el sync vuelva a `active` (paso 1).
-> - El error del push de alta NO es un 401 de token: es **Kommo 400 code 205** (derechos de
->   cuenta / payload). Diagnosticar antes de prender el push real.
+## Dónde estamos
 
-| # | Paso | Quién | Dónde / cómo | Estado |
-|---|---|---|---|---|
-| 1 | **Sync del espejo** en verde (`status='active'`) — hoy en `error` desde el 18-jul | Coordinación (o esperar el cron diario 7am UTC) | `/studio/kommo` — el espejo debe mostrar el embudo con sus 6 etapas | 🟡 en error |
-| 2 | **Crear los custom fields** de la tarjeta: Tipo comercial · Cadencia esperada · Volumen estimado · Canal de origen · Motivo de pérdida | **Tú** (navegador, Kommo → Leads → Configurar → Campos) | Lista exacta: [`embudo-ventas.md`](embudo-ventas.md) §3 | ⬜ |
-| 3 | **Cargar el mapa de etapas** (enviado → "Tomar decisión (Estimado)" · aceptado → "Servicio Logrado con éxito" · rechazado → "Ventas Perdidos") | **Tú** en `/studio/kommo → Dirección → "Mapa de etapas"` | No escribe nada mientras el write-back esté apagado — solo deja lista la intención | ✅ hecho (stage_map cargado en prod) |
-| 4 | **Elegir el campo del Shipping Mark** (campo de TEXTO en leads; crearlo si no existe) | **Tú** en `/studio/kommo → Dirección → "MARKBOX en Kommo"` | [`../runbooks/activar-crm-kommo.md`](../runbooks/activar-crm-kommo.md) Track Founder §1 | ✅ hecho (`markbox_field_id` elegido) |
-| 5 | **Programar el cron del drain** del write-back (unblock #1) + validar en dry-run | Coordinación + tú viendo | Runbook maestro §A.2-A.3 — el SQL exacto está ahí | ⬜ **el bloqueo técnico real** |
-| 6 | **Prender el write real** (`writeback_enabled=true, dry_run=false`) | Coordinación **con tu OK** tras ver el dry-run | Runbook §A.4 · rollback en cualquier momento: volver a dry-run | ⬜ (revertido a dry-run el 19-jul — se re-prende tras el paso 5) |
-| 7 | **Migrar los leads de los 10 embudos viejos** al único (de menor a mayor volumen) + campo "Tipo de servicio" | **Tú** (bulk edit en Kommo, contigo delante — NUNCA desatendido) | Mapa embudo→destino: [`../runbooks/kommo-consolidacion-embudo-unico.md`](../runbooks/kommo-consolidacion-embudo-unico.md) §Mapa | ⬜ |
-| 8 | **Decisión del cementerio** (los ~2.225 atascados en "Atención al cliente"): ⭐ bulk → Perdido "limpieza 2026" / re-trabajar / triage por fecha | **Tú** | Las 3 opciones: runbook consolidación §Caso especial. Nota: la pestaña **Recuperación** de `/studio/kommo` (SDD-0157) ya trabaja esos contactos aunque el lead esté en Perdido — limpiar el tablero NO pierde a nadie | ⬜ |
-| 9 | **Repartir la cartera** (hoy 99,9% en 1 asesor): asignar Responsable por lead activo | **Tú** (bulk edit por lotes en Kommo) | Con el embudo ya limpio (paso 7-8) son muchos menos leads reales | ⬜ |
-| 10 | **`kommo-sync` con nombres de asesor** (en vez de "Asesor #id") | Coordinación | Runbook maestro §B.7 — independiente de los demás pasos | ✅ hecho (sync v6 con `kommo_users` poblado) |
+**El CRM ya escribe a Kommo desde el ERP y funciona.** Lo que era el bloqueo
+—el drenaje de la cola— se cerró el 11-ago; el write-back está en real desde
+entonces. El embudo quedó en **1** (eran 12) con **7 etapas** (eran 75).
 
-**Estado real (19-jul):** hechos de facto = 3, 4, 10. Bloqueo técnico único = **paso 5** (cron del
-drain). Requieren tu navegador = 2, 7, 8, 9. Paso 1 = destrabar el sync (`status='error'`).
+| | Valor en prod |
+|---|---|
+| Conexión | `active` · último sync 13-ago 07:00 UTC |
+| Write-back | `writeback_enabled = true` · `dry_run = false` → **escribe en real** |
+| Embudos / etapas | **1** / **7** — sin huérfanos |
+| Leads / contactos | 3.168 / 3.190 |
+| Contactos con teléfono | **1.701** de 3.190 |
+| Vínculos lead↔contacto | 3.180 |
+| Asesores espejados | 5 |
+| Cola de escritura | 4 enviadas · **0 pendientes** |
 
-**Orden recomendado:** 1 (sync verde) → 2-4 (config inerte, 3-4 ya hechos) → 5 (dry-run) → 6 (write
-real con tu OK) → 7-9 (limpieza con el tablero ya automatizado). El vínculo de los ~405 clientes
-(`kommo_lead_id` = 0 hoy) va junto al paso 6 — sin llave, el write-back no encuentra a quién
-escribir (ver Motor de Crecimiento F1-T02/T03).
+**Reparto del embudo:** Ventas Perdidos 2.877 · Logrado con éxito 244 · Contacto
+inicial 19 · Negociación 12 · Recontacto 11 · Incoming 3 · Estimado enviado 2.
 
-**Regla de oro:** nunca borrar un embudo con leads dentro; el write-back en dry-run hace que
-reestructurar Kommo no dispare nada — la ventana ideal para los pasos 7-9 es ANTES del paso 6 o
-en cualquier momento con dry-run puesto.
+## Los pasos
+
+| # | Paso | Quién | Estado medido |
+|---|---|---|---|
+| 1 | Sync del espejo en verde | cron 7am UTC | ✅ `active` |
+| 2 | **Crear los 5 campos comerciales** de la tarjeta: Tipo comercial · Cadencia esperada · Volumen estimado · Canal de origen · Motivo de pérdida | **Tú** (Kommo → Leads → Configurar → Campos) | ⬜ **ninguno existe.** Los 20 campos de lead que hay hoy son de tracking (`utm_*`, `gclid`, `fbclid`, `finance`, `Priority`) más `Shipping Mark - j102`. Lista exacta: [`embudo-ventas.md`](embudo-ventas.md) §3 |
+| 3 | Cargar el mapa de etapas | Tú | ✅ 4 claves en `stage_map` |
+| 4 | Elegir el campo del Shipping Mark | Tú | ✅ en lead (`1570535`) **y** en contacto (`1570723`) |
+| 5 | Programar el cron del drenaje | Coordinación | ✅ hecho el 11-ago (`*/15`), más *nudge* desde el ERP: la latencia bajó de **14 min 38 s** a segundos |
+| 6 | Prender el write real | Coordinación con tu OK | ✅ `enabled=true`, `dry_run=false` |
+| 7 | Migrar los leads de los embudos viejos al único | Tú | ✅ 1 embudo, 0 leads huérfanos |
+| 8 | Decisión del cementerio | Tú | ✅ de facto: 2.877 en "Ventas Perdidos". La pestaña **Recuperación** los sigue trabajando aunque estén en Perdido |
+| 9 | **Repartir la cartera** | **Tú** (bulk edit en Kommo) | ⬜ **2 asesores de 5 tienen carga.** Con el embudo ya limpio son ~47 leads activos, no miles |
+| 10 | `kommo-sync` con nombres de asesor | Coordinación | ✅ 5 en `kommo_users` |
+
+## Lo que queda, en una línea
+
+**Sólo dos pasos, y los dos son tuyos en el navegador de Kommo: el 2 (crear los
+5 campos comerciales) y el 9 (repartir la cartera).** Todo lo técnico está
+cerrado.
+
+## ⚠️ El vínculo cliente↔Kommo: no es una ganancia automática
+
+La versión vieja de esta página decía *"el vínculo de los ~405 clientes va junto
+al paso 6"*, como si fuera un paso más. **Medido, no lo es.**
+
+| | |
+|---|---|
+| Clientes en el ERP | 449 |
+| …con `kommo_contact_id` | **33** |
+| …con `kommo_lead_id` | **1** |
+| …con teléfono de 10 dígitos usable | 256 |
+| **Emparejables por teléfono contra Kommo** | **61** (⇒ **28** nuevos sobre los 33 que ya están) |
+| De esos, ambiguos (más de un contacto Kommo con el mismo teléfono) | 7 |
+
+Cruzar teléfonos —que ahora es barato, con el índice `phone_last10` de la
+migración 0363— sube el vínculo de 33 a ~61 de 449. **13,6%.** No es un
+problema de implementación: la mayoría de los clientes de DTD nunca fueron
+contactos de Kommo, porque la cartera es anterior al CRM o entró por fuera.
+
+**Qué SÍ y qué NO depende de esto:**
+
+- **No depende:** mover de etapa, reasignar, etiquetar, y todo el tablero. Esos
+  verbos trabajan directo sobre `kommo_leads`, sin pasar por `clients`.
+- **Sí depende:** empujar automáticamente a Kommo el **Shipping Mark**, el saldo
+  pendiente y la carga en tránsito del cliente. Sin llave no hay a quién
+  escribirle.
+
+Decidir si eso vale una campaña de vinculación manual es una decisión de
+negocio, no un pendiente técnico. Se documenta acá para que nadie lo vuelva a
+listar como "un paso que falta".
+
+## Reglas que no se rompen
+
+- Nunca borrar un embudo con leads dentro.
+- La bandeja de entrada (**Incoming leads**) no acepta que le muevan un lead
+  *hacia* ella por API — Kommo devuelve `400 NotSupportedChoice`. El ERP ya la
+  excluye como destino; si la ves ofrecida en algún lado, es un bug.
+- Los créditos de IA de Kommo se agotan alrededor del **18-ago** (renovación el
+  29-ago). Si el agente se apaga, dejan de entrar leads nuevos que mirar —
+  detalle en [`kommo-consumo-y-limites.md`](kommo-consumo-y-limites.md).
+
+## Dónde está el resto
+
+- Foto completa y pendientes: [`kommo-estado-y-pendientes.md`](kommo-estado-y-pendientes.md)
+- Consumo, límites y ping de 23 h: [`kommo-consumo-y-limites.md`](kommo-consumo-y-limites.md)
+- Cómo se opera desde el ERP (normativo): [`../specs/0256-crm-outbox-operable/spec.md`](../specs/0256-crm-outbox-operable/spec.md)
+- Consolidación del embudo: [`../runbooks/kommo-consolidacion-embudo-unico.md`](../runbooks/kommo-consolidacion-embudo-unico.md)

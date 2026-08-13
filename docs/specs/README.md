@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 248 specs)
+### Índice de specs (generado · 249 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -286,6 +286,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0253 | Enlace de acceso al portal corto y con marca propia | in-progress | interna |
 | 0254 | Guardar el Shipping Mark en el WhatsApp del cliente al regist… | in-progress | interna |
 | 0255 | Aliados white-label: entidad, insignia propia jerárquica y ta… | in-progress | interno |
+| 0256 | El CRM se opera desde el ERP: la cola de escritura y los verb… | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
