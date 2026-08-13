@@ -421,3 +421,74 @@ export async function getWritebackStatus(
     lastDrainEntity: log.data?.entity ?? null,
   };
 }
+
+/**
+ * Encola una op de LEAD genérica (Fase 4 · SDD-0256).
+ *
+ * El ERP nunca le pega a la API de Kommo: sólo deja la orden en la outbox y la
+ * Edge Function `kommo-writeback` la drena con el token de Vault. Esta función
+ * es el único camino que usan los verbos de la pantalla.
+ *
+ * `kommo_updated_at` se sella al encolar para el chequeo optimista: si el lead
+ * se movió en Kommo entre el encolado y el envío, se puede detectar en vez de
+ * pisar el trabajo del asesor.
+ *
+ * Best-effort en el mismo sentido que sus hermanas: devuelve el id de la fila o
+ * `null`; NUNCA tira.
+ */
+export async function enqueueKommoLeadOp(
+  admin: SupabaseClient,
+  tenantId: string,
+  args: { leadId: number; op: WritebackOp; payload: Record<string, unknown> },
+): Promise<string | null> {
+  try {
+    const { data: lead } = await admin
+      .from("kommo_leads")
+      .select("kommo_updated_at")
+      .eq("tenant_id", tenantId)
+      .eq("id", args.leadId)
+      .maybeSingle<{ kommo_updated_at: string | null }>();
+
+    const { data, error } = await admin.rpc("enqueue_kommo_writeback", {
+      p_tenant_id: tenantId,
+      p_kommo_lead_id: args.leadId,
+      p_op: args.op,
+      p_payload: args.payload,
+      p_kommo_updated_at: lead?.kommo_updated_at ?? null,
+    });
+    if (error) {
+      console.warn("[enqueueKommoLeadOp]", args.op, error.message);
+      return null;
+    }
+    return (data as string | null) ?? null;
+  } catch (e) {
+    console.warn("[enqueueKommoLeadOp] lanzó (best-effort):", e);
+    return null;
+  }
+}
+
+/**
+ * Órdenes de este lead que todavía no llegaron a Kommo — lo que la UI pinta como
+ * "en camino". Incluye `processing` (ya reservadas por un drenaje) además de
+ * `pending`: entre el clic y el webhook de vuelta, el espejo sigue mostrando lo
+ * viejo, y si la pantalla no lo dice el asesor cree que no pasó nada y vuelve a
+ * clickear. RLS deja leer la outbox del propio tenant (0136).
+ */
+export async function getPendingOpsByLead(
+  supabase: SupabaseClient,
+  leadIds: number[],
+): Promise<Record<number, string[]>> {
+  if (leadIds.length === 0) return {};
+  const { data, error } = await supabase
+    .from("kommo_writeback_outbox")
+    .select("kommo_lead_id, op")
+    .in("kommo_lead_id", leadIds)
+    .in("status", ["pending", "processing"]);
+  if (error) return {};
+  const out: Record<number, string[]> = {};
+  for (const r of (data as { kommo_lead_id: number | null; op: string }[] | null) ?? []) {
+    if (r.kommo_lead_id == null) continue;
+    (out[Number(r.kommo_lead_id)] ??= []).push(r.op);
+  }
+  return out;
+}
