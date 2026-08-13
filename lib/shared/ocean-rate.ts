@@ -38,19 +38,26 @@ export type OceanContainer = (typeof OCEAN_CONTAINERS)[number];
 
 /**
  * PUERTOS de exportación CACHEADOS (origen) — el cron los consulta por coords.
- * La grilla 5 puertos × 5 destinos VE = 25 rutas se recorta al cap (23/semana,
- * founder 2026-06-21): las 2 menos comunes (Qingdao→Maracaibo/Punto Fijo) caen a
- * WhatsApp. Las CIUDADES de origen (Yiwu, Guangzhou…) mapean a estos puertos (ver
- * OCEAN_ORIGIN_CITIES) → "escribe la ciudad, resuelve al puerto" sin gastar cuota
- * extra. Coords [lat,lng] validadas EN VIVO. Qingdao va ÚLTIMO (el cap lo recorta
- * primero, por ser el origen más débil — menos navieras).
+ * La grilla 4 puertos × 5 destinos VE = 20 rutas entra ENTERA en el cap semanal
+ * (`WEEKLY_CALL_CAP` = 20 ≈ 87 llamadas/mes, bajo las 100 gratis), así que hoy no
+ * se recorta ninguna. Las CIUDADES de origen (Yiwu, Guangzhou…) mapean a estos
+ * puertos (ver OCEAN_ORIGIN_CITIES) → "escribe la ciudad, resuelve al puerto" sin
+ * gastar cuota extra. Coords [lat,lng] validadas EN VIVO.
+ *
+ * ⛔ **Qingdao se quitó el 2026-08-13 y no conviene reponerlo sin datos nuevos.**
+ * Se había agregado subiendo el cap de 20 a 23 para que entrara. Medido en prod
+ * ese día: de sus 5 rutas, 2 las recortaba el cap y `qingdao→la-guaira` y
+ * `qingdao→puerto-cabello` volvían con `valid_to` de hacía DOS MESES — o sea
+ * SeaRates no tiene tarifas vivas Qingdao→Venezuela. Sólo servía `qingdao→guanta`.
+ * Resultado: gastaba ~2 llamadas/semana en rutas que nunca mostraban precio y
+ * empujaba el consumo a ~115/mes en meses de 5 lunes, sobre las 100 gratis.
+ * Antes de reponerlo, comprobar que SeaRates devuelve ofertas VIGENTES.
  */
 export const OCEAN_ORIGINS: readonly OceanPoint[] = [
   { id: "ningbo", name: "Ningbo", country: "CN", lat: 29.87, lng: 121.83 },
   { id: "shanghai", name: "Shanghai", country: "CN", lat: 31.23, lng: 121.49 },
   { id: "nansha", name: "Nansha", country: "CN", lat: 22.76, lng: 113.62 },
   { id: "shekou", name: "Shekou", country: "CN", lat: 22.48, lng: 113.9 },
-  { id: "qingdao", name: "Qingdao", country: "CN", lat: 36.08, lng: 120.32 },
 ];
 
 /** Puertos de DESTINO (Venezuela). Coords [lat,lng] validadas EN VIVO contra SeaRates. */
@@ -98,10 +105,9 @@ export const OCEAN_ORIGIN_CITIES: readonly OceanOriginCity[] = [
   { id: "shenzhen", name: "Shenzhen", portId: "shekou" },
   { id: "shekou", name: "Shekou", portId: "shekou" },
   { id: "huizhou", name: "Huizhou", portId: "shekou" },
-  // → Qingdao (Shandong / norte de China)
-  { id: "qingdao", name: "Qingdao", portId: "qingdao" },
-  { id: "jinan", name: "Jinan", portId: "qingdao" },
-  { id: "yantai", name: "Yantai", portId: "qingdao" },
+  // Shandong (Qingdao/Jinan/Yantai) quedó FUERA junto con su puerto — ver el
+  // bloque ⛔ de OCEAN_ORIGINS. Esas ciudades caen a WhatsApp, como cualquier
+  // otra fuera del mapa.
 ];
 
 const ORIGIN_IDS = new Set(OCEAN_ORIGINS.map((p) => p.id));
@@ -198,6 +204,7 @@ export type PublicOceanRate = {
   rateUsd: number | null;
   currency: string | null;
   transitDays: number | null;
+  /** Naviera. `null` cuando SeaRates no la nombra — ver `displayCarrier`. */
   carrier: string | null;
   offersCount: number | null;
   validTo: string | null;
@@ -239,3 +246,23 @@ export const OCEAN_RATE_DISCLAIMER =
   "y puede variar según el cupo, la fecha de salida, la temporada y tu tipo de " +
   "carga. Los tiempos de tránsito los define la naviera. ¿Lo quieres en firme? " +
   "Escríbenos y un asesor te lo cierra.";
+
+/**
+ * Naviera mostrable, o `null` si no hay una de verdad.
+ *
+ * SeaRates devuelve el literal **"Carrier TBN"** (to be nominated) cuando la
+ * oferta es un co-load y todavía no hay naviera asignada. Medido el 2026-08-13:
+ * **33 de 41 filas cacheadas** venían así, y salía tal cual en el cotizador
+ * público — al cliente "Carrier TBN" no le dice nada y parece un error nuestro.
+ * Mejor no mostrar el dato que mostrar un placeholder del proveedor.
+ *
+ * Se normaliza en la LECTURA (no al cachear) a propósito: así cubre también las
+ * filas que ya están en `ocean_rates`, sin esperar a que el cron las refresque.
+ */
+export function displayCarrier(carrier: string | null | undefined): string | null {
+  const v = (carrier ?? "").trim();
+  if (!v) return null;
+  // "Carrier TBN", "TBN", "To Be Nominated" — todas variantes del mismo hueco.
+  if (/^(carrier\s+)?tbn$/i.test(v) || /^to\s+be\s+nominated$/i.test(v)) return null;
+  return v;
+}

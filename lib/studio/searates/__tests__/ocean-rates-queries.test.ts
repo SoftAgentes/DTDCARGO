@@ -156,12 +156,22 @@ describe("refreshOceanRates", () => {
     expect(summary).toMatchObject({ requested: 25, total: WEEKLY_CALL_CAP, capped: true });
   });
 
-  it("el cron recorta la matriz de producción al cap (protege la cuota)", async () => {
-    // La grilla 5×5 = 25 > cap (23) a propósito: el cron cachea las 23 principales.
+  it("la matriz de producción entra ENTERA en el cap — ninguna ruta se cae", async () => {
+    // Desde que se quitó Qingdao (2026-08-13) la grilla es 4×5 = 20 = cap, así que
+    // el cron no recorta nada y el cotizador no tiene rutas mudas. Se afirma la
+    // propiedad, no un `min()`: con `min()` este test pasaba igual si la matriz
+    // creciera y empezara a perder rutas en silencio.
     const { client } = fakeAdmin();
     const fetchRate: RateFetcher = vi.fn(async () => NO_RATE);
     const summary = await refreshOceanRates(client, { fetchRate });
-    expect(fetchRate).toHaveBeenCalledTimes(Math.min(OCEAN_RATES_MATRIX.length, WEEKLY_CALL_CAP));
-    expect(summary.total).toBeLessThanOrEqual(WEEKLY_CALL_CAP);
+    expect(OCEAN_RATES_MATRIX.length).toBeLessThanOrEqual(WEEKLY_CALL_CAP);
+    expect(fetchRate).toHaveBeenCalledTimes(OCEAN_RATES_MATRIX.length);
+    expect(summary).toMatchObject({ requested: OCEAN_RATES_MATRIX.length, capped: false });
+  });
+
+  it("el cap mantiene el consumo bajo las 100 llamadas/mes gratis de SeaRates", () => {
+    // 5 lunes es el peor mes. Si alguien sube el cap o suma puertos, esto avisa
+    // ANTES de que la factura o el corte de cuota lo hagan.
+    expect(WEEKLY_CALL_CAP * 5).toBeLessThanOrEqual(100);
   });
 });

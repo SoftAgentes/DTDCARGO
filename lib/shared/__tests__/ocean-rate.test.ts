@@ -5,6 +5,7 @@ import {
   findOceanPoint,
   resolveOriginCity,
   isOceanRateExpired,
+  displayCarrier,
   OCEAN_ORIGINS,
   OCEAN_ORIGIN_CITIES,
   OCEAN_DESTINATIONS,
@@ -118,7 +119,10 @@ describe("findOceanPoint + coherencia del catálogo", () => {
   it("ciudades de origen resuelven a un puerto export existente (Yiwu → Ningbo)", () => {
     expect(resolveOriginCity("yiwu")?.portId).toBe("ningbo");
     expect(resolveOriginCity("GUANGZHOU")?.portId).toBe("nansha");
-    expect(resolveOriginCity("qingdao")?.portId).toBe("qingdao");
+    // Qingdao (y su Shandong) se quitaron el 2026-08-13: SeaRates no tiene
+    // tarifas vigentes hacia Venezuela desde ahí. Deben caer a WhatsApp.
+    expect(resolveOriginCity("qingdao")).toBeUndefined();
+    expect(resolveOriginCity("jinan")).toBeUndefined();
     expect(resolveOriginCity("ciudad-inexistente")).toBeUndefined();
     const portIds = new Set(OCEAN_ORIGINS.map((p) => p.id));
     expect(OCEAN_ORIGIN_CITIES.every((c) => portIds.has(c.portId))).toBe(true);
@@ -145,5 +149,29 @@ describe("isOceanRateExpired · vigencia de la tarifa cacheada", () => {
     expect(isOceanRateExpired(undefined, NOW)).toBe(false);
     expect(isOceanRateExpired("", NOW)).toBe(false);
     expect(isOceanRateExpired("no-es-fecha", NOW)).toBe(false);
+  });
+});
+
+describe("displayCarrier · no mostrarle el placeholder del proveedor al cliente", () => {
+  it("oculta 'Carrier TBN' y sus variantes", () => {
+    // Medido 2026-08-13: 33 de 41 filas cacheadas venían así y salía tal cual
+    // en el cotizador público.
+    expect(displayCarrier("Carrier TBN")).toBeNull();
+    expect(displayCarrier("carrier tbn")).toBeNull();
+    expect(displayCarrier("TBN")).toBeNull();
+    expect(displayCarrier("To Be Nominated")).toBeNull();
+  });
+
+  it("deja pasar una naviera de verdad", () => {
+    expect(displayCarrier("ANL")).toBe("ANL");
+    expect(displayCarrier("  Maersk  ")).toBe("Maersk");
+    // Un nombre que sólo CONTIENE 'tbn' no es el placeholder.
+    expect(displayCarrier("TBN Shipping Co")).toBe("TBN Shipping Co");
+  });
+
+  it("trata vacío/ausente como sin naviera", () => {
+    expect(displayCarrier(null)).toBeNull();
+    expect(displayCarrier(undefined)).toBeNull();
+    expect(displayCarrier("   ")).toBeNull();
   });
 });

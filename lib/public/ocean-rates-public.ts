@@ -11,7 +11,7 @@
  */
 
 import { getAnonClient } from "./supabase-anon";
-import { isOceanRateExpired } from "@/lib/shared/ocean-rate";
+import { isOceanRateExpired, displayCarrier } from "@/lib/shared/ocean-rate";
 import type {
   OceanRouteInput,
   OceanRateStatus,
@@ -53,7 +53,9 @@ export async function getPublicOceanRate(
       rateUsd: row.rate_usd == null ? null : Number(row.rate_usd),
       currency: row.currency ?? null,
       transitDays: row.transit_days == null ? null : Number(row.transit_days),
-      carrier: row.carrier ?? null,
+      // "Carrier TBN" es el placeholder de SeaRates para co-loads sin naviera
+      // asignada: al cliente no le dice nada. `displayCarrier` lo vuelve null.
+      carrier: displayCarrier(row.carrier),
       offersCount: row.offers_count == null ? null : Number(row.offers_count),
       validTo: row.valid_to ?? null,
       indicative: row.indicative ?? null,

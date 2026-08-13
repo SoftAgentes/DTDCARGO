@@ -5,10 +5,10 @@
  * destinos × [40'HQ]. La query a SeaRates usa COORDENADAS (`coordsFrom`/`coordsTo`
  * del catálogo) → agregar un puerto al cotizador = sumar su lat/lng, sin cazar IDs.
  *
- *   5 puertos export (CN) × 5 destinos (VE) × 1 contenedor (40'HQ) = 25 rutas; el cap
- *   (WEEKLY_CALL_CAP=23) cachea las 23 principales (las 2 menos comunes → WhatsApp).
+ *   4 puertos export (CN) × 5 destinos (VE) × 1 contenedor (40'HQ) = 20 rutas, que
+ *   es exactamente `WEEKLY_CALL_CAP` → hoy el cap no recorta ninguna.
  *   Cacheamos SOLO el 40'HQ (founder 2026-06-21): así entran MÁS
- *   puertos dentro del tope de 20; el 20'/40' estándar cae a "pedir por WhatsApp".
+ *   puertos dentro del tope; el 20'/40' estándar cae a "pedir por WhatsApp".
  *
  * `refreshOceanRates` además aplica el tope duro de 20/corrida como guard de cuota.
  * Cada llamada gasta 1 rate (+ 1 auth cacheada).
@@ -40,7 +40,7 @@ export type OceanMatrixRoute = {
 /** Contenedor cacheado: SOLO el default (40' High Cube), para que entren más puertos. */
 const CACHED_CONTAINER: OceanContainer = "HC40";
 
-/** La matriz: orígenes × destinos × [40'HQ]. 5×4 = 20 = WEEKLY_CALL_CAP. */
+/** La matriz: orígenes × destinos × [40'HQ]. 4×5 = 20 = WEEKLY_CALL_CAP. */
 export const OCEAN_RATES_MATRIX: readonly OceanMatrixRoute[] = OCEAN_ORIGINS.flatMap((from) =>
   OCEAN_DESTINATIONS.map((to) => ({
     fromId: from.id,
