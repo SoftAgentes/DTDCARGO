@@ -12,6 +12,8 @@ import {
   calcularEnvioLCL,
   cbmFromDimensions,
   whatsappTextFromCotizacion,
+  avisoCampoPesoVacio,
+  mensajeEstimadoSinPeso,
   coberturaDestino,
   describirVolumenEnCajas,
   mensajeDestinoSinTarifa,
@@ -222,7 +224,16 @@ export function CalculadoraForm({
     () => cityList.filter((c) => c.casco),
     [cityList],
   );
-  const tieneCarga = effectiveForm.cbmTotal > 0 && effectiveForm.pesoKg > 0;
+  // ¿Hay suficiente para mostrar algo? **Sólo el CBM (SDD-0257).**
+  //
+  // Antes esto exigía además el peso, y de ahí salía el bug que lo motivó: el
+  // cliente escribía 12 m³, veía el contenedor llenarse al 18% —`ContainerFill`
+  // usa sólo el CBM— y del otro lado no aparecía nada. Ni precio, ni desglose,
+  // ni botón de WhatsApp: TODO el CTA vive detrás de este booleano. No se leía
+  // como "me falta un dato", se leía como que se trancó, y el cliente se iba.
+  const tieneCarga = effectiveForm.cbmTotal > 0;
+  // Hay precio, pero es un piso: falta el peso. Lo decide el motor, no la UI.
+  const sinPeso = cotizacion.sinPeso;
 
   // Aviso del CBM: mínimo (punto de cruce) o máximo (contenedor). Usa el CBM
   // efectivo (derivado de medidas si el panel está abierto).
@@ -250,13 +261,23 @@ export function CalculadoraForm({
   // corte en `pesoMaxKg` (el monto lo computa lib/calculadora.ts). El único
   // bloqueo real es el peso absoluto por contenedor. Usa `effectiveCbm`
   // (contempla el panel "CBM por medidas").
+  const pesoIngresado = form.pesoKg ?? 0;
   const pesoWarning = ((): CalcWarning => {
-    if (form.pesoKg > params.pesoMaxContenedorKg)
+    if (pesoIngresado > params.pesoMaxContenedorKg)
       return {
         text: "Esto es más que el peso permitido por contenedor; consulta a tu asesor.",
         tone: "danger",
       };
-    if (effectiveCbm <= 0 || form.pesoKg <= 0) return null;
+    // SDD-0257 — falta el peso pero YA hay precio. Tono `info` (wine), NUNCA
+    // rojo: el campo no está mal llenado, está pendiente. El techo lo dicta el
+    // motor (`pesoMaxSinRecargoKg`), que es el mismo número que sostiene el
+    // "Desde $X" del panel — no se re-deriva acá.
+    if (sinPeso && cotizacion.pesoMaxSinRecargoKg > 0)
+      return {
+        text: avisoCampoPesoVacio(cotizacion.pesoMaxSinRecargoKg),
+        tone: "info",
+      };
+    if (effectiveCbm <= 0 || pesoIngresado <= 0) return null;
     // Tope de peso por envío (anti-monopolio), density-aware: deriva al asesor
     // solo si es pesado Y denso (densidad > equilibrio del contenedor). Un envío
     // pesado pero liviano no monopoliza el peso → sigue cotizando.
@@ -265,8 +286,8 @@ export function CalculadoraForm({
         ? params.pesoMaxContenedorKg / params.cbmMaxContenedor
         : Infinity;
     if (
-      form.pesoKg > params.pesoMaxEnvioKg &&
-      form.pesoKg / effectiveCbm > equilibrioDensidad
+      pesoIngresado > params.pesoMaxEnvioKg &&
+      pesoIngresado / effectiveCbm > equilibrioDensidad
     )
       return {
         text: "Por el peso de esta carga la cotizamos a medida — escríbele a tu asesor.",
@@ -278,8 +299,8 @@ export function CalculadoraForm({
     // MONTO ($) y el $/kg NO van acá (founder 2026-07-12): el $/kg se ajusta con
     // el cambio que definamos, así que el dinero vive SOLO en el desglose de la
     // derecha ("Excedente de peso"). Acá dejamos únicamente el dato físico (kg).
-    if (form.pesoKg > maxSinRecargo) {
-      const exceso = form.pesoKg - maxSinRecargo;
+    if (pesoIngresado > maxSinRecargo) {
+      const exceso = pesoIngresado - maxSinRecargo;
       return {
         text: `El máximo de peso sin recargo para ${fmt(effectiveCbm)} m³ es ${fmt(maxSinRecargo)} kg. Te pasas por ${fmt(exceso)} kg.`,
         tone: "info",
@@ -441,10 +462,14 @@ export function CalculadoraForm({
             <BigInput
               label="Peso total"
               suffix="kg"
-              value={form.pesoKg}
+              value={pesoIngresado}
               onChange={(v) => update("pesoKg", v)}
               placeholder="4800"
               warning={pesoWarning}
+              // El peso dejó de ser obligatorio (SDD-0257) y hay que DECIRLO:
+              // el cliente que lo deja vacío tiene que saber que no está
+              // rompiendo nada, no adivinarlo porque igual salió un precio.
+              tag={sinPeso ? "opcional" : undefined}
             />
           </div>
 
@@ -639,7 +664,9 @@ export function CalculadoraForm({
             origin: "China",
             destination: cotizacion.ciudad?.label ?? "Venezuela",
             cbm: effectiveForm.cbmTotal,
-            weightKg: effectiveForm.pesoKg,
+            // `null`, no `0` (SDD-0257): en el ERP "0 kg" se lee como un peso
+            // medido y "sin dato" es otra cosa. El campo acepta null.
+            weightKg: pesoIngresado > 0 ? pesoIngresado : null,
             packaging: effectiveForm.embalaje === "especial" ? "madera" : "carton",
             totalUsd: cotizacion.total,
             subtotalUsd: cotizacion.total,
@@ -786,12 +813,25 @@ function BigInput({
       : warning?.tone === "info"
         ? "border-wine"
         : "border-status-warning";
+  // ⚠️ El texto del tono `info` NO puede usar `text-wine`.
+  //
+  // Medido en el navegador el 2026-08-13 sobre esta card navy: `text-wine`
+  // resuelve a #7F0F1A y da **1,57:1** — ilegible, muy por debajo del 4,5:1 que
+  // pide AA (BRAND.md, regla 6). Es el mismo wine que en fondo claro está bien;
+  // acá hay que usar el hermano para fondo oscuro, `--wine-on-dark` (#d59fa7 en
+  // /tarifas → 6,9:1), que es lo que ya usa el resto de este componente.
+  //
+  // Va como `style` y no como clase porque el token vive en CSS, no en Tailwind.
   const warnText =
     warning?.tone === "danger"
       ? "text-status-danger"
       : warning?.tone === "info"
-        ? "text-wine"
+        ? ""
         : "text-status-warning";
+  const warnStyle =
+    warning?.tone === "info"
+      ? { color: "var(--wine-on-dark, #E8748A)" }
+      : undefined;
   return (
     <label className="flex flex-col gap-1.5 min-w-0">
       <span className="flex items-center gap-2 min-w-0">
@@ -829,7 +869,10 @@ function BigInput({
         <span className="text-[13px] whitespace-nowrap" style={{ color: "rgba(255,255,255,0.5)" }}>{suffix}</span>
       </div>
       {warning && (
-        <span className={`text-[11px] leading-[1.35] font-medium ${warnText}`}>
+        <span
+          className={`text-[11px] leading-[1.35] font-medium ${warnText}`}
+          style={warnStyle}
+        >
           {warning.text}
         </span>
       )}
@@ -1087,8 +1130,13 @@ function ContainerFill({ cbm, max }: { cbm: number; max: number }) {
 /**
  * Panel del resultado: total (gradiente navy) + desglose itemizado (estilo
  * Norte / Cloud Design) + badge financiamiento + nudge "ya está lista" + CTA
- * WhatsApp + microcopy. Maneja 3 estados: vacío (sin CBM/peso), deriva al asesor
- * (alerta), normal.
+ * WhatsApp + microcopy. Maneja 4 estados: vacío (sin CBM), deriva al asesor
+ * (alerta), **estimado sin peso** (SDD-0257) y normal.
+ *
+ * El estado "sin peso" es precio real, no un placeholder: el total es el PISO de
+ * esa carga y se marca en cuatro sitios —píldora "Falta el peso", "Desde" pegado
+ * al monto, la nota con el techo en kg, y la fila fantasma del desglose— porque
+ * un solo aviso se pierde y el número grande es lo único que el cliente recuerda.
  *
  * Desglose (founder 2026-07-12): SIEMPRE visible con carga válida — antes estaba
  * detrás de `cot.recargoExcedente > 0`, así que desaparecía cuando la carga no
@@ -1133,7 +1181,7 @@ function ResultPanel({
   // La tarifa se DERIVA de precioBase/cbm (evita re-derivar el override/CONFIG).
   const tarifaEff = cot.cbm > 0 ? Math.round(cot.precioBase / cot.cbm) : 0;
   const incluidoKg = Math.round(cot.cbm * pesoIncluidoKg);
-  const excesoKg = Math.max(0, Math.round(input.pesoKg - incluidoKg));
+  const excesoKg = Math.max(0, Math.round((input.pesoKg ?? 0) - incluidoKg));
 
   // Filas del desglose. Cada recargo que aplica tiene su propia línea.
   // `kind` decide el signo/color del monto.
@@ -1145,6 +1193,11 @@ function ResultPanel({
     accent?: boolean;
     /** Se muestra "Incluida" en verde en vez de "+$0" (zona sin costo). */
     incluida?: boolean;
+    /**
+     * Fila FANTASMA (SDD-0257): la línea existe pero su monto todavía no se
+     * puede calcular. Se pinta con "?" en vez de un número.
+     */
+    pendiente?: boolean;
   }[] = [
     {
       label: "Volumen base",
@@ -1175,6 +1228,19 @@ function ResultPanel({
           value: cot.recargoExcedente,
           kind: "add" as const,
           accent: true,
+        }]
+      : []),
+    // Fila FANTASMA cuando falta el peso (SDD-0257). Es la pieza que ENSEÑA sin
+    // bloquear: el cliente ve que al desglose le falta un renglón y entiende por
+    // qué el total dice "Desde". Es excluyente con la de arriba — o hay
+    // excedente calculado, o falta el peso para calcularlo.
+    ...(cot.sinPeso
+      ? [{
+          label: "Excedente de peso",
+          sub: "falta el peso de tu carga",
+          value: 0,
+          kind: "add" as const,
+          pendiente: true,
         }]
       : []),
     ...(cot.recargoEmbalaje > 0
@@ -1208,18 +1274,35 @@ function ResultPanel({
             "linear-gradient(150deg, var(--hero-from, var(--color-ink)), var(--hero-to, #1F3055))",
         }}
       >
-        <div
-          className="text-[11px] font-bold tracking-[0.12em] uppercase"
-          style={{ color: "rgba(255,255,255,0.5)" }}
-        >
-          Total estimado
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <span
+            className="text-[11px] font-bold tracking-[0.12em] uppercase"
+            style={{ color: "rgba(255,255,255,0.5)" }}
+          >
+            Total estimado
+          </span>
+          {/* Píldora "falta el peso" (SDD-0257) — el estado del estimado se
+              declara ARRIBA, junto al rótulo, para que se lea antes que el
+              número. Wine sobre navy, el mismo tono `info` del campo: es un
+              pendiente, no un error. */}
+          {tieneCarga && !hasAlerta && cot.sinPeso && (
+            <span
+              className="text-[9.5px] font-bold tracking-[0.08em] uppercase rounded-[6px] px-2 py-[3px]"
+              style={{
+                color: "var(--wine-on-dark, #E8748A)",
+                background: "rgba(255,255,255,0.08)",
+              }}
+            >
+              Falta el peso
+            </span>
+          )}
         </div>
         {!tieneCarga ? (
           <p
             className="mt-2 text-[14.5px] leading-[1.5]"
             style={{ color: "rgba(255,255,255,0.8)" }}
           >
-            Ingresa tu CBM y peso para ver el estimado al instante.
+            Ingresa tu CBM para ver el estimado al instante.
           </p>
         ) : hasAlerta ? (
           <p
@@ -1230,11 +1313,28 @@ function ResultPanel({
           </p>
         ) : (
           <div className="mt-1.5 flex items-end justify-between gap-3 flex-wrap">
-            <span
-              className="num text-[44px] lg:text-[52px] leading-none text-white"
-              style={{ fontFamily: "var(--font-archivo-black)" }}
-            >
-              {money(cot.total)}
+            {/* "Desde" (SDD-0257) cuando no hay peso: el número es el PISO real
+                de esa carga, no el precio cerrado. Va pegado al monto —no en una
+                nota aparte— porque es la única forma de que viaje con el número
+                cuando el cliente lo lee de reojo o lo captura en pantalla. */}
+            <span className="flex items-baseline gap-2 flex-wrap">
+              {cot.sinPeso && (
+                <span
+                  className="text-[19px] lg:text-[22px] leading-none"
+                  style={{
+                    fontFamily: "var(--font-archivo-black)",
+                    color: "rgba(255,255,255,0.6)",
+                  }}
+                >
+                  Desde
+                </span>
+              )}
+              <span
+                className="num text-[44px] lg:text-[52px] leading-none text-white"
+                style={{ fontFamily: "var(--font-archivo-black)" }}
+              >
+                {money(cot.total)}
+              </span>
             </span>
             <span
               className="text-[12px] leading-[1.4] text-right"
@@ -1255,6 +1355,25 @@ function ResultPanel({
               )}
             </span>
           </div>
+        )}
+        {/* Hasta cuándo vale ese "Desde" (SDD-0257). Es la pieza que evita el
+            reclamo: sin este techo el cliente asume que el número es final, y
+            una carga densa lo puede duplicar. El texto sale del motor
+            (`mensajeEstimadoSinPeso`), que es donde vive la regla que lo
+            calcula — acá no se re-escribe. `role="status"` porque aparece y
+            desaparece solo al escribir el peso. */}
+        {tieneCarga && !hasAlerta && cot.sinPeso && (
+          <p
+            role="status"
+            className="mt-3 rounded-[10px] px-3 py-2.5 text-[12.5px] leading-[1.5]"
+            style={{
+              background: "rgba(255,255,255,0.08)",
+              border: "1px solid var(--wine-on-dark, #E8748A)",
+              color: "rgba(255,255,255,0.88)",
+            }}
+          >
+            {mensajeEstimadoSinPeso(cot.pesoMaxSinRecargoKg)}
+          </p>
         )}
         {tieneCarga && !hasAlerta && (
           <p
@@ -1307,12 +1426,28 @@ function ResultPanel({
                   {r.label}
                 </span>
                 {r.sub && (
-                  <span className="num text-[11px] leading-tight mt-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>
+                  // 0.55 y no 0.45 (SDD-0257): medido sobre el navy de este
+                  // panel, 0.45 da 4,11:1 y reprueba AA para 11px. Estos
+                  // subtextos NO son decorativos —"12 CBM × $800" es la cuenta,
+                  // y "falta el peso de tu carga" es la explicación de la fila
+                  // fantasma—, así que tienen que leerse. 0.55 → 5,5:1.
+                  <span className="num text-[11px] leading-tight mt-0.5" style={{ color: "rgba(255,255,255,0.55)" }}>
                     {r.sub}
                   </span>
                 )}
               </span>
-              {r.incluida ? (
+              {r.pendiente ? (
+                <span
+                  className="num text-[13px] font-bold whitespace-nowrap rounded-[6px] px-2 py-[1px]"
+                  style={{
+                    color: "var(--wine-on-dark, #E8748A)",
+                    background: "rgba(255,255,255,0.08)",
+                  }}
+                  aria-label="pendiente: falta el peso"
+                >
+                  ?
+                </span>
+              ) : r.incluida ? (
                 <span
                   className="text-[12px] font-bold whitespace-nowrap"
                   // El alias `--success-on-dark` sólo existe dentro de
@@ -1362,7 +1497,11 @@ function ResultPanel({
             style={{ borderTop: "1px solid rgba(255,255,255,0.12)" }}
           >
             <span className="text-[13px] font-bold text-white">Total estimado</span>
-            <span className="num text-[15px] font-bold text-white">{money(cot.total)}</span>
+            {/* El "desde" se repite acá al pie del desglose: es la línea que el
+                cliente lee cuando ya bajó del monto grande. */}
+            <span className="num text-[15px] font-bold text-white">
+              {cot.sinPeso ? `desde ${money(cot.total)}` : money(cot.total)}
+            </span>
           </div>
         </div>
       )}
@@ -1394,8 +1533,20 @@ function ResultPanel({
                 className="nudge-vibrate w-full rounded-[12px] text-white text-center text-[13.5px] leading-[1.35] py-3 px-4"
                 style={{ background: "var(--hero-from, var(--color-ink))" }}
               >
-                Tu cotización ya está lista —{" "}
-                <strong>solo falta enviarla.</strong>
+                {/* Sin peso el nudge no puede decir "ya está lista": empuja al
+                    dato que falta, pero deja abierta la salida — el punto del
+                    cambio es que se pueda enviar igual. */}
+                {cot.sinPeso ? (
+                  <>
+                    Súmale el peso y te damos el precio exacto —{" "}
+                    <strong>o envíala así y lo confirmamos.</strong>
+                  </>
+                ) : (
+                  <>
+                    Tu cotización ya está lista —{" "}
+                    <strong>solo falta enviarla.</strong>
+                  </>
+                )}
               </div>
               <svg width="22" height="11" viewBox="0 0 22 11" fill="none" aria-hidden="true">
                 <path d="M2 1l9 8 9-8" stroke="var(--hero-from, var(--color-ink))" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
