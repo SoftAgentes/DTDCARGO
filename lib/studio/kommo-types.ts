@@ -23,6 +23,23 @@ export type KommoStatusRow = {
   type: number | null;
 };
 
+/**
+ * Etapas a las que un lead de `pipelineId` SÍ se puede mover desde el ERP.
+ *
+ * Vive acá y no en la vista porque lo usan las dos —la fila del worklist y la
+ * tarjeta del kanban— y el predicado no puede divergir: si una vista ofrece la
+ * bandeja de entrada, Kommo devuelve `400 NotSupportedChoice` (verificado
+ * contra prod el 2026-08-12) y el asesor se entera 15 minutos después.
+ */
+export function stageTargets(
+  statuses: KommoStatusRow[],
+  pipelineId: number | null,
+): KommoStatusRow[] {
+  return pipelineId == null
+    ? []
+    : statuses.filter((s) => s.pipeline_id === pipelineId && Number(s.type) !== 1);
+}
+
 /** Definición de un custom field del espejo (para el dropdown de config). */
 export type KommoCustomFieldRow = {
   id: number;

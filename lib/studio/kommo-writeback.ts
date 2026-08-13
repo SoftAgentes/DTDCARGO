@@ -485,6 +485,37 @@ export async function getPendingOpsByLead(
     .in("kommo_lead_id", leadIds)
     .in("status", ["pending", "processing"]);
   if (error) return {};
+  return groupOpsByLead(data);
+}
+
+/** Tope de órdenes en vuelo que trae el Tablero. Ver `getPendingOpsForBoard`. */
+export const PENDING_OPS_CAP = 500;
+
+/**
+ * Lo mismo, pero sin pasarle la lista de leads — es lo que usa el Tablero.
+ *
+ * El kanban pinta hasta 2.000 tarjetas, y un `.in()` de 2.000 ids es una URL
+ * enorme por una respuesta que en régimen tiene unidades de filas: el nudge
+ * drena en segundos, así que la outbox vive casi vacía. Se trae la cola entera
+ * del tenant (RLS la scopea) con tope, y se agrupa acá.
+ *
+ * Si la cola llegara al tope —un drenaje caído— lo que se pierde es el rótulo
+ * "En camino" de las tarjetas más viejas, no el dato: la orden sigue encolada.
+ */
+export async function getPendingOpsForBoard(
+  supabase: SupabaseClient,
+): Promise<Record<number, string[]>> {
+  const { data, error } = await supabase
+    .from("kommo_writeback_outbox")
+    .select("kommo_lead_id, op")
+    .in("status", ["pending", "processing"])
+    .not("kommo_lead_id", "is", null)
+    .limit(PENDING_OPS_CAP);
+  if (error) return {};
+  return groupOpsByLead(data);
+}
+
+function groupOpsByLead(data: unknown): Record<number, string[]> {
   const out: Record<number, string[]> = {};
   for (const r of (data as { kommo_lead_id: number | null; op: string }[] | null) ?? []) {
     if (r.kommo_lead_id == null) continue;
