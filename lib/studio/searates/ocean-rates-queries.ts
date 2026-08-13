@@ -20,13 +20,22 @@ import type { SeaRatesQuoteInput, SeaRatesRate } from "./searates-types";
 import { OCEAN_RATES_MATRIX, type OceanMatrixRoute } from "./ocean-rates-matrix";
 
 /**
- * Tope DURO de llamadas a SeaRates por corrida del cron (founder 2026-06-21).
- * 23/semana ≈ 100/mes (usa la cuota FCL completa; en meses de 5 lunes ~115, un
- * toque sobre las 100 gratis). La matriz de producción = grilla 5×5 = 25 rutas; el
- * cap recorta a 23 → las 2 menos comunes (Qingdao→Maracaibo/Punto Fijo) → WhatsApp.
+ * Tope DURO de llamadas a SeaRates por corrida del cron.
+ *
+ * **20/semana ≈ 87/mes, cómodo bajo las 100 gratis** — incluso en meses de 5
+ * lunes (100 exactas). La matriz de producción = grilla 4×5 = 20 rutas, así que
+ * hoy el cap NO recorta nada: es un guard por si alguien suma puertos sin mirar
+ * la cuota.
+ *
+ * Estuvo en 23 para que entrara Qingdao (founder 2026-06-21). Se bajó a 20 el
+ * 2026-08-13 al quitarlo: medido en prod, SeaRates no tiene tarifas vigentes
+ * Qingdao→Venezuela (ver el bloque ⛔ de `lib/shared/ocean-rate.ts`), así que
+ * esas llamadas se gastaban sin mostrar precio y en meses de 5 lunes pasaban de
+ * las 100 gratis.
+ *
  * GUARD de cuota: el cron nunca consulta más de WEEKLY_CALL_CAP rutas/corrida.
  */
-export const WEEKLY_CALL_CAP = 23;
+export const WEEKLY_CALL_CAP = 20;
 
 /** Firma del fetcher inyectado (la cumple `getOceanRate`). */
 export type RateFetcher = (

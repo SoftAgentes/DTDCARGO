@@ -166,7 +166,39 @@ describe("conversionStats", () => {
       open: 7,
       closedRatePct: 30,
       wonRatePct: 10,
+      wonOfClosedPct: (1 / 3) * 100,
     });
+  });
+
+  it("la conversión es sobre los CERRADOS, no sobre el total", () => {
+    // Reproduce la forma real del embudo del 2026-08-13: casi todo cerrado y
+    // casi todo perdido. Es el escenario que discrimina — con estos números
+    // las tres tasas dan valores MUY distintos, así que si alguien vuelve a
+    // pintar `closedRatePct` como "conversión", este test lo agarra.
+    const leads = [
+      ...Array.from({ length: 244 }, (_, i) => lead({ id: i + 1, status_id: KOMMO_WON_STATUS_ID })),
+      ...Array.from({ length: 2796 }, (_, i) => lead({ id: 1000 + i, status_id: KOMMO_LOST_STATUS_ID })),
+      ...Array.from({ length: 127 }, (_, i) => lead({ id: 90000 + i, status_id: 108343831 })),
+    ];
+    const r = conversionStats(leads);
+
+    expect(r.total).toBe(3167);
+    expect(r.closed).toBe(3040);
+    expect(r.open).toBe(127);
+
+    // La que se muestra: 244 de 3.040 decididos.
+    expect(r.wonOfClosedPct).toBeCloseTo(8.03, 2);
+    // Las otras dos NO sirven como "conversión", y por eso difieren tanto.
+    expect(r.closedRatePct).toBeCloseTo(95.99, 2); // el 96% que mentía
+    expect(r.wonRatePct).toBeCloseTo(7.7, 1);
+  });
+
+  it("sin cerrados no inventa una tasa: 0, no NaN", () => {
+    const leads = Array.from({ length: 5 }, (_, i) => lead({ id: i, status_id: 108343831 }));
+    const r = conversionStats(leads);
+    expect(r.closed).toBe(0);
+    expect(r.wonOfClosedPct).toBe(0);
+    expect(Number.isNaN(r.wonOfClosedPct)).toBe(false);
   });
 });
 

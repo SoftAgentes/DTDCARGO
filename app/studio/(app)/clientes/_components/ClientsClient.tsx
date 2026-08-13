@@ -20,6 +20,7 @@ import {
   type Client,
 } from "@/lib/studio/client-types";
 import type { ClientFilters } from "@/lib/studio/client-queries";
+import type { AliadoOption } from "@/lib/studio/aliados/aliado-types";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { ClientDrawer } from "./ClientDrawer";
@@ -27,11 +28,13 @@ import { ClientDrawer } from "./ClientDrawer";
 type DrawerState = null | { mode: "create" } | { mode: "edit"; client: Client };
 
 export function ClientsClient({
+  aliados,
   clients,
   filters,
 }: {
   clients: Client[];
   filters: ClientFilters;
+  aliados: AliadoOption[];
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -236,6 +239,7 @@ export function ClientsClient({
         <ClientDrawer
           mode={drawer.mode}
           client={drawer.mode === "edit" ? drawer.client : undefined}
+          aliados={aliados}
           onClose={() => setDrawer(null)}
         />
       )}

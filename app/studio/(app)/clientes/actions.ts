@@ -26,6 +26,7 @@ import {
   validateAliadoInput,
   type AliadoActionState,
 } from "@/lib/studio/aliados/aliado-types";
+import { parseMarkbox } from "@/lib/shared/markbox-chain";
 import {
   insertClientDeliveryAddress,
   clearDefaultForClient,
@@ -105,21 +106,63 @@ export async function createClientAction(
     return { error: "No se pudo resolver el tenant del usuario." };
   }
 
-  // Generar MARKBOX atómico
-  const { data: markboxData, error: markboxErr } = await supabase.rpc(
-    "next_markbox",
-    { p_tenant_id: link.tenant_id },
-  );
-  if (markboxErr || !markboxData) {
-    return { error: "No se pudo generar el Shipping Mark." };
-  }
-  const markbox = String(markboxData);
+  // ── El Shipping Mark: de la casa o del aliado (SDD-0255) ─────────────────
+  // Si el cliente cuelga de un aliado, el código NO sale de `next_markbox`: sale
+  // de `next_markbox_aliado`, que numera por cadena exacta. Los dos correlativos
+  // son independientes por construcción — `HR-0001` no matchea `^DTD-\d+$`, así
+  // que meter clientes de aliado no mueve el contador de la casa.
+  const aliadoIdRaw = String(formData.get("aliadoId") ?? "").trim();
+  const aliadoId = aliadoIdRaw === "" ? null : aliadoIdRaw;
 
-  // SDD-0032: defensive double check del formato post-RPC
-  if (!validateMarkboxFormat(markbox)) {
-    return {
-      error: `Shipping Mark inválido generado: ${markbox}. Verifica el RPC next_markbox.`,
-    };
+  let markbox: string;
+
+  if (aliadoId) {
+    // Se lee el prefijo del aliado para poder verificar el código emitido contra
+    // el aliado que el usuario eligió (y no sólo contra "parece un código").
+    const { data: aliadoRow } = await supabase
+      .from("aliados")
+      .select("prefix, status")
+      .eq("id", aliadoId)
+      .is("deleted_at", null)
+      .maybeSingle<{ prefix: string; status: string }>();
+
+    if (!aliadoRow) return { error: "Ese aliado no existe o no está disponible." };
+    if (aliadoRow.status !== "activo") {
+      return { error: "Ese aliado no está activo: no se le pueden dar de alta clientes nuevos." };
+    }
+
+    const { data, error: rpcErr } = await supabase.rpc("next_markbox_aliado", {
+      p_aliado_id: aliadoId,
+    });
+    if (rpcErr || !data) {
+      return { error: "No se pudo generar el Shipping Mark del aliado." };
+    }
+    markbox = String(data);
+
+    // Doble chequeo defensivo, equivalente al del camino de la casa: el código
+    // tiene que parsear como cadena Y terminar en el prefijo del aliado elegido.
+    const parsed = parseMarkbox(markbox);
+    if (!parsed || parsed.prefixes[parsed.prefixes.length - 1] !== aliadoRow.prefix.toUpperCase()) {
+      return {
+        error: `Shipping Mark inválido generado: ${markbox}. Verifica el RPC next_markbox_aliado.`,
+      };
+    }
+  } else {
+    const { data: markboxData, error: markboxErr } = await supabase.rpc(
+      "next_markbox",
+      { p_tenant_id: link.tenant_id },
+    );
+    if (markboxErr || !markboxData) {
+      return { error: "No se pudo generar el Shipping Mark." };
+    }
+    markbox = String(markboxData);
+
+    // SDD-0032: defensive double check del formato post-RPC
+    if (!validateMarkboxFormat(markbox)) {
+      return {
+        error: `Shipping Mark inválido generado: ${markbox}. Verifica el RPC next_markbox.`,
+      };
+    }
   }
 
   const { data: created, error } = await supabase
@@ -138,15 +181,29 @@ export async function createClientAction(
       notes: input!.notes,
       lat: input!.lat,
       lng: input!.lng,
+      aliado_id: aliadoId,
     })
     .select("id")
     .single<{ id: string }>();
 
   if (error) {
-    // Unique-violation del índice clients_tenant_doc_unique (documento normalizado
-    // por tenant) → mensaje amable en vez del error crudo de Postgres.
+    // ⚠️ Hay DOS índices únicos que devuelven 23505 y significan cosas distintas.
+    // Antes se traducían los dos como "ya existe ese RIF/cédula", así que una
+    // colisión de correlativo —que existe: el MAX+1 del RPC no tiene lock— se le
+    // reportaba al usuario como documento duplicado y lo mandaba a buscar una
+    // ficha que no existe. Se distinguen por el nombre del constraint.
     if (error.code === "23505") {
+      if (/clients_tenant_id_markbox_key/.test(error.message)) {
+        return {
+          error: "Dos altas tomaron el mismo Shipping Mark al mismo tiempo. Intenta otra vez — el código siguiente ya está libre.",
+        };
+      }
       return { error: "Ya existe un cliente con ese RIF/cédula en este tenant." };
+    }
+    // El trigger clients_guard_markbox_aliado_t (migr 0362) rechaza con 23514 si
+    // el código y el aliado no se corresponden.
+    if (error.code === "23514" && /insignia|Shipping Mark/i.test(error.message)) {
+      return { error: error.message };
     }
     return { error: `No se pudo crear el cliente: ${error.message}` };
   }
