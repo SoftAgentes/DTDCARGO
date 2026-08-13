@@ -230,8 +230,23 @@ export type ConversionResult = {
   lost: number;
   closed: number;
   open: number;
+  /** % del embudo que ya llegó a un estado final. Higiene, NO conversión. */
   closedRatePct: number;
+  /** Ganados sobre el total, abiertos incluidos. Piso: aún puede subir. */
   wonRatePct: number;
+  /**
+   * ⭐ La conversión de verdad: ganados sobre los que **ya se decidieron**.
+   *
+   * Es la única de las tres que responde "de los que cerraron, ¿cuántos
+   * ganamos?". Las otras dos meten en el denominador leads que todavía no
+   * decidieron nada, así que se mueven solas cuando entran leads nuevos.
+   *
+   * 🔴 Existe porque el tablero mostraba `closedRatePct` con la etiqueta
+   * "Conversión del CRM": el 2026-08-13 decía **96%** cuando la real era
+   * **8,0%** (244 ganados de 3.040 cerrados). Un 96% de "conversión" en un
+   * embudo con 2.796 perdidos es una cifra que se lee de lejos y es mentira.
+   */
+  wonOfClosedPct: number;
 };
 
 /** Conversión a partir de los estados de sistema (won 142 / lost 143). PURA. */
@@ -252,6 +267,7 @@ export function conversionStats(leads: AnalyticsLead[]): ConversionResult {
     open: total - closed,
     closedRatePct: total ? (closed / total) * 100 : 0,
     wonRatePct: total ? (won / total) * 100 : 0,
+    wonOfClosedPct: closed ? (won / closed) * 100 : 0,
   };
 }
 
@@ -403,21 +419,36 @@ export async function getContactEmailFlags(
   );
 }
 
-/** `leadId → markbox` de TODOS los leads convertidos a cliente vivo. RLS por tenant. */
+/**
+ * `leadId → markbox` de TODOS los leads convertidos a cliente vivo. RLS por tenant.
+ *
+ * Pagina igual que `fetchAllRows` y por el mismo motivo — no puede reusarlo
+ * porque lleva filtros. ⚠️ Este quedó con `.limit(5000)` cuando se paginaron
+ * los otros dos: hoy no se nota porque hay 1 solo cliente convertido, pero es
+ * el mismo bug esperando a que pasen de 1.000. Un tope que sólo miente cuando
+ * el negocio crece es el peor de todos.
+ */
 export async function allConvertedLeads(
   supabase: SupabaseClient,
 ): Promise<Record<number, string>> {
-  const { data, error } = await supabase
-    .from("clients")
-    .select("kommo_lead_id, markbox")
-    .not("kommo_lead_id", "is", null)
-    .is("deleted_at", null)
-    .limit(5000);
-  if (error) throw error;
   const map: Record<number, string> = {};
-  for (const r of (data as { kommo_lead_id: number | null; markbox: string }[] | null) ??
-    []) {
-    if (r.kommo_lead_id != null) map[Number(r.kommo_lead_id)] = r.markbox;
+  let from = 0;
+  for (let page = 0; page < ANALYTICS_MAX_PAGES; page++) {
+    const { data, error } = await supabase
+      .from("clients")
+      .select("kommo_lead_id, markbox")
+      .not("kommo_lead_id", "is", null)
+      .is("deleted_at", null)
+      .order("kommo_lead_id", { ascending: true })
+      .range(from, from + ANALYTICS_PAGE - 1);
+    if (error) throw error;
+    const batch =
+      (data as { kommo_lead_id: number | null; markbox: string }[] | null) ?? [];
+    if (batch.length === 0) break;
+    for (const r of batch) {
+      if (r.kommo_lead_id != null) map[Number(r.kommo_lead_id)] = r.markbox;
+    }
+    from += batch.length;
   }
   return map;
 }

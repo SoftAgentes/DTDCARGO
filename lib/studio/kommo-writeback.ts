@@ -18,7 +18,69 @@ import {
   type KommoStageTarget,
 } from "./kommo-types";
 
-export type WritebackOp = "patch_price" | "patch_stage" | "patch_lead";
+export type WritebackOp =
+  | "patch_price"
+  | "patch_stage"
+  | "patch_lead"
+  | "patch_owner"
+  | "patch_tags";
+
+/**
+ * Payload del PATCH para reasignar el asesor de un lead. PURO.
+ * `null` si el id no es un entero positivo: mejor no encolar que mandarle a
+ * Kommo un `responsible_user_id` inválido y que reasigne a nadie.
+ */
+export function buildOwnerPatchPayload(
+  responsibleUserId: number | null | undefined,
+): { responsible_user_id: number } | null {
+  const n = Number(responsibleUserId);
+  if (!Number.isInteger(n) || n <= 0) return null;
+  return { responsible_user_id: n };
+}
+
+/**
+ * Payload del PATCH para etiquetar. PURO.
+ *
+ * ⭐ Usa `tags_to_add` / `tags_to_delete`, que son INCREMENTALES: agregan y
+ * quitan sin tocar el resto. SDD-0244 asumía que había que reemplazar
+ * `_embedded.tags` completo, y eso **borraría las etiquetas que puso el asesor
+ * a mano** — verificado contra la doc de la API v4.
+ *
+ * Normaliza: recorta, descarta vacíos, deduplica sin distinguir mayúsculas, y
+ * si una etiqueta aparece en las dos listas gana QUITAR (la intención más
+ * destructiva es la explícita). `null` si no queda nada que hacer.
+ */
+export function buildTagsPatchPayload(input: {
+  add?: readonly string[];
+  remove?: readonly string[];
+}): { tags_to_add?: { name: string }[]; tags_to_delete?: { name: string }[] } | null {
+  const limpiar = (xs: readonly string[] | undefined): string[] => {
+    const vistas = new Set<string>();
+    const out: string[] = [];
+    for (const raw of xs ?? []) {
+      const t = String(raw ?? "").trim();
+      if (!t) continue;
+      const k = t.toLowerCase();
+      if (vistas.has(k)) continue;
+      vistas.add(k);
+      out.push(t);
+    }
+    return out;
+  };
+
+  const quitar = limpiar(input.remove);
+  const fuera = new Set(quitar.map((t) => t.toLowerCase()));
+  const agregar = limpiar(input.add).filter((t) => !fuera.has(t.toLowerCase()));
+
+  if (agregar.length === 0 && quitar.length === 0) return null;
+  const payload: {
+    tags_to_add?: { name: string }[];
+    tags_to_delete?: { name: string }[];
+  } = {};
+  if (agregar.length) payload.tags_to_add = agregar.map((name) => ({ name }));
+  if (quitar.length) payload.tags_to_delete = quitar.map((name) => ({ name }));
+  return payload;
+}
 
 /**
  * Payload del PATCH `/api/v4/leads/{id}` para setear el `price` del lead. PURO.

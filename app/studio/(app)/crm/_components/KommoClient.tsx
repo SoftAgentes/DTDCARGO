@@ -17,9 +17,11 @@ import { Badge, type BadgeTone } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import type { OwnerSlice } from "@/lib/studio/kommo-analytics";
+import { buildProspectWaLink } from "@/lib/studio/estimado-linking";
 import {
   KOMMO_AGE_OPTIONS,
   type KommoFilters,
+  type KommoLeadContactInfo,
   type KommoSort,
 } from "@/lib/studio/kommo-queries";
 import type {
@@ -85,6 +87,7 @@ export function KommoClient({
   filters,
   convertedLeads,
   valueByLead,
+  contactByLead,
   responsibleUsers,
 }: {
   tab: KommoTabKey;
@@ -103,6 +106,8 @@ export function KommoClient({
   convertedLeads: Record<number, string>;
   /** kommo_lead_id → USD facturado (12m) de los leads convertidos. */
   valueByLead: Record<number, number>;
+  /** kommo_lead_id → contacto principal (nombre + teléfono). Vacío si no hay vínculo. */
+  contactByLead: Record<number, KommoLeadContactInfo>;
   /** Asesores presentes (para el filtro), ordenados desc por leads. */
   responsibleUsers: OwnerSlice[];
 }) {
@@ -188,9 +193,6 @@ export function KommoClient({
     });
   };
 
-  const pipelineName = new Map<number, string>(
-    pipelines.map((p) => [p.id, p.name ?? `Embudo #${p.id}`]),
-  );
   const statusName = new Map<string, string>(
     statuses.map((s) => [`${s.pipeline_id}:${s.id}`, s.name ?? `#${s.id}`]),
   );
@@ -326,24 +328,29 @@ export function KommoClient({
                 onChange={(e) => setQ(e.target.value)}
               />
             </div>
-            <div style={{ flex: "0 0 200px" }}>
-              <label className="studio-label" htmlFor="kommo-pipeline">
-                Embudo
-              </label>
-              <select
-                id="kommo-pipeline"
-                className="studio-input"
-                value={pipeline}
-                onChange={(e) => pushFilters({ pipeline: e.target.value })}
-              >
-                <option value="">Todos</option>
-                {pipelines.map((p) => (
-                  <option key={p.id} value={String(p.id)}>
-                    {p.name ?? `Embudo #${p.id}`}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* El filtro de embudo sólo aparece si hay más de uno que elegir.
+                Con la cuenta consolidada en un solo embudo, este desplegable
+                ofrecía una única opción: ocupaba sitio sin decidir nada. */}
+            {pipelines.length > 1 && (
+              <div style={{ flex: "0 0 200px" }}>
+                <label className="studio-label" htmlFor="kommo-pipeline">
+                  Embudo
+                </label>
+                <select
+                  id="kommo-pipeline"
+                  className="studio-input"
+                  value={pipeline}
+                  onChange={(e) => pushFilters({ pipeline: e.target.value })}
+                >
+                  <option value="">Todos</option>
+                  {pipelines.map((p) => (
+                    <option key={p.id} value={String(p.id)}>
+                      {p.name ?? `Embudo #${p.id}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div style={{ flex: "0 0 180px" }}>
               <label className="studio-label" htmlFor="kommo-asesor">
                 Asesor
@@ -428,11 +435,11 @@ export function KommoClient({
             ) : (
               <LeadsTable
                 leads={leads}
-                pipelineName={pipelineName}
                 statusName={statusName}
                 subdomain={overview.subdomain}
                 converted={converted}
                 valueByLead={valueByLead}
+                contactByLead={contactByLead}
                 onConvertClick={(l) =>
                   setConvertingLead({ id: l.id, name: l.name || "(sin nombre)" })
                 }
@@ -466,19 +473,20 @@ export function KommoClient({
 
 function LeadsTable({
   leads,
-  pipelineName,
   statusName,
   subdomain,
   converted,
   valueByLead,
+  contactByLead,
   onConvertClick,
 }: {
   leads: KommoLeadRow[];
-  pipelineName: Map<number, string>;
   statusName: Map<string, string>;
   subdomain: string | null;
   converted: Record<number, string>;
   valueByLead: Record<number, number>;
+  /** leadId → contacto principal. Vacío si el vínculo aún no está espejado. */
+  contactByLead: Record<number, KommoLeadContactInfo>;
   onConvertClick: (lead: KommoLeadRow) => void;
 }) {
   return (
@@ -510,7 +518,7 @@ function LeadsTable({
             }}
           >
             <span role="columnheader">Lead</span>
-            <span role="columnheader">Embudo</span>
+            <span role="columnheader">Contacto</span>
             <span role="columnheader">Etapa</span>
             <span role="columnheader" style={{ textAlign: "right" }}>
               Días
@@ -531,10 +539,8 @@ function LeadsTable({
               l.pipeline_id != null && l.status_id != null
                 ? statusName.get(`${l.pipeline_id}:${l.status_id}`) ?? "—"
                 : "—";
-            const embudo =
-              l.pipeline_id != null
-                ? pipelineName.get(l.pipeline_id) ?? "—"
-                : "—";
+            const contacto = contactByLead[l.id];
+            const waHref = contacto?.phone ? buildProspectWaLink(contacto.phone) : null;
             const markbox = converted[l.id];
             const days = daysSince(l.kommo_updated_at);
             const erpVal = valueByLead[l.id];
@@ -587,17 +593,57 @@ function LeadsTable({
                     </span>
                   )}
                 </span>
+                {/* Contacto: el teléfono es la acción, no un dato de adorno —
+                    por eso va como enlace a WhatsApp cuando se puede marcar. */}
                 <span
                   role="cell"
-                  style={{
-                    font: "500 12.5px/1.3 var(--f-sans)",
-                    color: "var(--ink-soft)",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
+                  style={{ minWidth: 0, overflow: "hidden" }}
                 >
-                  {embudo}
+                  {contacto?.phone ? (
+                    waHref ? (
+                      <a
+                        href={waHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={`Escribirle por WhatsApp${contacto.name ? ` a ${contacto.name}` : ""}`}
+                        className="studio-link-quiet"
+                        style={{
+                          display: "block",
+                          font: "500 12px/1.3 var(--f-mono)",
+                          color: "var(--wine-text)",
+                          fontVariantNumeric: "tabular-nums",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {contacto.phone}
+                      </a>
+                    ) : (
+                      // Menos de 10 dígitos: se muestra, pero no se puede marcar.
+                      <span
+                        style={{
+                          display: "block",
+                          font: "500 12px/1.3 var(--f-mono)",
+                          color: "var(--ink-soft)",
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                        title="Número incompleto: no se puede abrir WhatsApp"
+                      >
+                        {contacto.phone}
+                      </span>
+                    )
+                  ) : (
+                    <span
+                      style={{
+                        font: "400 12px/1.3 var(--f-sans)",
+                        color: "var(--ink-soft)",
+                        fontStyle: "italic",
+                      }}
+                    >
+                      sin teléfono
+                    </span>
+                  )}
                 </span>
                 <span role="cell">
                   <Badge tone="neutral" size="sm">

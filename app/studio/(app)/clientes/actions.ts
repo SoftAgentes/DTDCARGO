@@ -23,6 +23,10 @@ import {
 } from "@/lib/studio/client-types";
 import { validateClientAddressInput } from "@/lib/studio/client-address-types";
 import {
+  validateAliadoInput,
+  type AliadoActionState,
+} from "@/lib/studio/aliados/aliado-types";
+import {
   insertClientDeliveryAddress,
   clearDefaultForClient,
   setDefaultDeliveryAddress,
@@ -768,4 +772,114 @@ export async function deleteClientAddressAction(
 
   revalidatePath(`/studio/clientes/${markbox}`);
   return { ok: true };
+}
+
+// ── Aliados white-label (SDD-0255) ─────────────────────────────────────────
+// El founder marca a mano: entra a la ficha de un cliente y lo convierte en
+// aliado. El aliado ES un cliente; la fila de `aliados` le cuelga por client_id.
+//
+// Toda la validación dura vive en la base (migr 0362): formato e insignia
+// reservada por CHECK, unicidad global del prefijo por índice único, y el
+// anti-ciclo por trigger. Acá se valida lo mismo antes de viajar para dar un
+// mensaje decente, y se traducen los errores de Postgres que igual pueden llegar
+// (dos ventanas marcando aliados a la vez).
+
+export async function convertirEnAliadoAction(
+  markbox: string,
+  _prev: AliadoActionState,
+  formData: FormData,
+): Promise<AliadoActionState> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "clients");
+  if (denial) return { error: denial };
+
+  const parsed = validateAliadoInput(formData);
+  if (parsed.error) return { error: parsed.error };
+  const input = parsed.value!;
+
+  const { data: link } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  if (!link?.tenant_id) return { error: "No se pudo resolver el tenant." };
+
+  const { error } = await supabase.from("aliados").insert({
+    tenant_id: link.tenant_id,
+    client_id: input.clientId,
+    parent_aliado_id: input.parentAliadoId,
+    prefix: input.prefix,
+    trade_name: input.tradeName,
+    agreement_notes: input.agreementNotes,
+    status: input.status,
+  });
+
+  if (error) return { error: mensajeDeErrorAliado(error) };
+
+  revalidatePath(`/studio/clientes/${markbox}`);
+  return { ok: true };
+}
+
+export async function actualizarAliadoAction(
+  aliadoId: string,
+  markbox: string,
+  _prev: AliadoActionState,
+  formData: FormData,
+): Promise<AliadoActionState> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "clients");
+  if (denial) return { error: denial };
+
+  const parsed = validateAliadoInput(formData);
+  if (parsed.error) return { error: parsed.error };
+  const input = parsed.value!;
+
+  if (input.parentAliadoId === aliadoId) {
+    return { error: "Un aliado no puede colgar de sí mismo." };
+  }
+
+  const { error } = await supabase
+    .from("aliados")
+    .update({
+      parent_aliado_id: input.parentAliadoId,
+      prefix: input.prefix,
+      trade_name: input.tradeName,
+      agreement_notes: input.agreementNotes,
+      status: input.status,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", aliadoId);
+
+  if (error) return { error: mensajeDeErrorAliado(error) };
+
+  revalidatePath(`/studio/clientes/${markbox}`);
+  return { ok: true };
+}
+
+/**
+ * Traduce los errores que la base puede devolver al marcar o editar un aliado.
+ * Cada rama corresponde a una guarda REAL de la migr 0362 — no son mensajes
+ * defensivos genéricos.
+ */
+function mensajeDeErrorAliado(error: { code?: string; message: string }): string {
+  // Índice único aliados_prefix_uq (tenant_id, upper(prefix)).
+  if (error.code === "23505" && /prefix/i.test(error.message)) {
+    return "Ya hay un aliado con esa insignia. Tiene que ser única: la forma impresa del Shipping Mark omite el segmento de la raíz, así que dos insignias iguales harían ambiguo el código en el papel.";
+  }
+  // Constraint aliados_client_uq (client_id).
+  if (error.code === "23505") {
+    return "Ese cliente ya está marcado como aliado.";
+  }
+  // Triggers y CHECKs: anti-ciclo, formato, insignia reservada.
+  if (error.code === "23514") {
+    if (/ciclo|sí mismo/i.test(error.message)) {
+      return "Esa jerarquía haría un ciclo: el aliado padre no puede colgar (directa o indirectamente) del mismo aliado que estás editando.";
+    }
+    if (/prefix/i.test(error.message)) {
+      return "La insignia no es válida: son 2 a 4 letras y no puede ser DTD, ITS, AD ni LEG.";
+    }
+    return `La base rechazó el cambio: ${error.message}`;
+  }
+  return `No se pudo guardar el aliado: ${error.message}`;
 }

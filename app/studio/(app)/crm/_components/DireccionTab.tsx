@@ -297,11 +297,22 @@ export function DireccionTab({
       >
         <KpiCard value={data.totals.leads} label="Leads" highlightWhenPositive={false} />
         <KpiCard value={data.totals.contacts} label="Contactos" highlightWhenPositive={false} />
+        {/*
+          Conversión = ganados sobre los que YA se decidieron, no sobre el total.
+          Antes pintaba `closedRatePct` (cuántos llegaron a un estado final) con
+          esta misma etiqueta, y decía 96% cuando la real era 8,0%. El `sub`
+          ahora muestra el denominador completo para que el número se pueda
+          reconstruir a ojo.
+        */}
         <KpiCard
-          value={fmtConvPct(conversion.closedRatePct)}
+          value={fmtConvPct(conversion.wonOfClosedPct)}
           label="Conversión del CRM"
-          valueColor={conversion.closedRatePct < 1 ? "var(--danger)" : "var(--ink)"}
-          sub={`${conversion.won} ganados · ${conversion.lost} perdidos (histórico)`}
+          valueColor={
+            conversion.closed > 0 && conversion.won === 0
+              ? "var(--danger)"
+              : "var(--ink)"
+          }
+          sub={`${conversion.won} ganados · ${conversion.lost} perdidos · ${conversion.open} abiertos`}
         />
         <KpiCard
           value={convertedCount}

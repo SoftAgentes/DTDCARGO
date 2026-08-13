@@ -116,16 +116,27 @@ Deno.serve(async (req: Request) => {
     const tk = token as string;
     const baseUrl = `https://${conn.subdomain}.${conn.domain}`;
 
-    // 2) Pendientes (más viejos primero, hasta DRAIN_BATCH).
-    const { data: rows, error: rowsErr } = await supabase
-      .from("kommo_writeback_outbox")
-      .select("id, kommo_lead_id, kommo_contact_id, op, payload")
-      .eq("tenant_id", tenant_id)
-      .eq("status", "pending")
-      .lt("attempts", 5)
-      .order("created_at", { ascending: true })
-      .limit(DRAIN_BATCH);
-    if (rowsErr) return json({ error: `outbox: ${rowsErr.message}` }, 500);
+    // 2a) Soltar lo que quedó colgado de una corrida que murió a mitad. Va
+    // ANTES de reservar para que esas filas entren en este mismo lote.
+    const { data: reaped, error: reapErr } = await supabase.rpc(
+      "reap_kommo_writeback_stale",
+      { p_tenant_id: tenant_id, p_older: "10 minutes" },
+    );
+    if (reapErr) return json({ error: `reaper: ${reapErr.message}` }, 500);
+    if (Number(reaped ?? 0) > 0) {
+      console.log("[kommo-writeback] reservas vencidas soltadas:", reaped);
+    }
+
+    // 2b) RESERVAR el lote (no sólo leerlo). `claim_…` pasa las filas a
+    // 'processing' con FOR UPDATE SKIP LOCKED, así que si el cron y el nudge
+    // corren a la vez se reparten el trabajo en vez de procesar lo mismo dos
+    // veces. Con PATCH duplicar es inocuo; con los POST de la Fase 5 crearía
+    // notas repetidas.
+    const { data: rows, error: rowsErr } = await supabase.rpc(
+      "claim_kommo_writeback_batch",
+      { p_tenant_id: tenant_id, p_limit: DRAIN_BATCH },
+    );
+    if (rowsErr) return json({ error: `outbox claim: ${rowsErr.message}` }, 500);
 
     const pending = (rows ?? []) as OutboxRow[];
     let sent = 0;
@@ -157,7 +168,9 @@ Deno.serve(async (req: Request) => {
         sent++;
       } catch (e) {
         const detail = e instanceof Error ? e.message : String(e);
-        await supabase.rpc("bump_kommo_writeback_attempt", { p_id: row.id, p_error: detail });
+        // `record_…` y NO `bump_…`: el intento ya lo contó el claim. Bumpear acá
+        // contaría doble cada reintento y la fila se rendiría a los 2-3 tries.
+        await supabase.rpc("record_kommo_writeback_error", { p_id: row.id, p_error: detail });
         failed++;
       }
     }
