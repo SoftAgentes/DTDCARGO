@@ -10,6 +10,8 @@
 import { describe, it, expect } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  buildOwnerPatchPayload,
+  buildTagsPatchPayload,
   buildMarkboxPatchPayload,
   buildPricePatchPayload,
   buildStagePatchPayload,
@@ -281,5 +283,54 @@ describe("enqueueKommoMarkboxWriteback", () => {
       },
       p_kommo_updated_at: "2026-06-14T00:00:00Z",
     });
+  });
+});
+
+describe("buildOwnerPatchPayload", () => {
+  it("id válido → payload de reasignación", () => {
+    expect(buildOwnerPatchPayload(9976747)).toEqual({ responsible_user_id: 9976747 });
+  });
+
+  it("null si el id no sirve — mejor no encolar que reasignar a nadie", () => {
+    for (const malo of [null, undefined, 0, -3, 1.5, NaN, "abc" as unknown as number]) {
+      expect(buildOwnerPatchPayload(malo)).toBeNull();
+    }
+  });
+});
+
+describe("buildTagsPatchPayload", () => {
+  it("usa tags_to_add/delete (incrementales), no _embedded.tags", () => {
+    // Reemplazar _embedded.tags borraría las etiquetas que puso el asesor.
+    const p = buildTagsPatchPayload({ add: ["VIP"], remove: ["frío"] });
+    expect(p).toEqual({
+      tags_to_add: [{ name: "VIP" }],
+      tags_to_delete: [{ name: "frío" }],
+    });
+    expect(JSON.stringify(p)).not.toContain("_embedded");
+  });
+
+  it("recorta, descarta vacíos y deduplica sin distinguir mayúsculas", () => {
+    expect(buildTagsPatchPayload({ add: ["  vip ", "VIP", "", "   ", "vip"] })).toEqual({
+      tags_to_add: [{ name: "vip" }],
+    });
+  });
+
+  it("si una etiqueta está en las dos listas, gana QUITAR", () => {
+    // La intención destructiva es la explícita: si el asesor la marcó para
+    // sacar, no se la volvemos a poner en el mismo PATCH.
+    expect(buildTagsPatchPayload({ add: ["vip"], remove: ["VIP"] })).toEqual({
+      tags_to_delete: [{ name: "VIP" }],
+    });
+  });
+
+  it("nada que hacer → null (no se encola una orden vacía)", () => {
+    expect(buildTagsPatchPayload({})).toBeNull();
+    expect(buildTagsPatchPayload({ add: [], remove: [] })).toBeNull();
+    expect(buildTagsPatchPayload({ add: ["  ", ""] })).toBeNull();
+  });
+
+  it("omite la clave que no aplica en vez de mandarla vacía", () => {
+    expect(buildTagsPatchPayload({ add: ["a"] })).toEqual({ tags_to_add: [{ name: "a" }] });
+    expect(buildTagsPatchPayload({ remove: ["b"] })).toEqual({ tags_to_delete: [{ name: "b" }] });
   });
 });
