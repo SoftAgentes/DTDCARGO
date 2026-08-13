@@ -78,6 +78,19 @@ const CHOQUES_HISTORICOS = {
   // estaba APLICADA en prod y su archivo sólo existía en un worktree sin
   // pushear, así que el número ya estaba quemado y nadie lo veía.
   "0336": ["0336_pod_closes_shipment", "0336_rate_ddp_850_septiembre_2026"],
+  // 2026-08-11/12: la ventana del CRM y la de Aliados tomaron los MISMOS dos
+  // números el mismo día. `pnpm sdd:next` no falló — devolvió 0362 libre, y la
+  // otra ventana lo tomó DESPUÉS y lo aplicó ANTES. Es exactamente el caso que
+  // la regla del founder describe: entre numerar y pushear pasan horas.
+  //
+  // Orden real en el ledger de prod:
+  //   20260811223034  0362_kommo_lead_contacts
+  //   20260811223239  0363_kommo_contacts_telefono
+  //   20260811225120  0362_aliados_base                    (19 min después)
+  //   20260812204711  0363_storage_bug_replays_restrictive
+  // Las cuatro aplicadas → ninguna se renumera.
+  "0362": ["0362_aliados_base", "0362_kommo_lead_contacts"],
+  "0363": ["0363_kommo_contacts_telefono", "0363_storage_bug_replays_restrictive"],
   // 2026-08-03: dos ventanas aplicaron su 0342 con ~4 h de diferencia
   // (kommo_contact_link 20260803202130 · phone_match_key_relleno 20260804011156).
   // Ambas en el ledger → ninguna se renumera.
