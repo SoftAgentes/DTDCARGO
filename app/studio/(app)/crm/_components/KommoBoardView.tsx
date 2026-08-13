@@ -1,10 +1,15 @@
 /**
  * Tablero kanban del CRM Kommo (SDD-0078 · vista Tablero).
  *
- * Server component READ-ONLY: replica el LAYOUT del embudo de Kommo (columnas =
- * etapas en orden, tarjetas = leads) para que el founder/asesor lea el pipeline
- * de un vistazo. NO muta nada (ni Kommo ni el espejo). La conversión a cliente
- * vive en la pestaña Asesor (worklist accionable).
+ * Server component que replica el LAYOUT del embudo de Kommo (columnas = etapas
+ * en orden, tarjetas = leads) para que el founder/asesor lea el pipeline de un
+ * vistazo. La conversión a cliente vive en la pestaña Asesor.
+ *
+ * Cada tarjeta trae el MISMO control de etapa que la fila del worklist
+ * (`<StageControl variant="card">`, Fase 4 · SDD-0256). Nació de sólo lectura y
+ * eso fue un error de uso: el kanban es donde uno mueve cosas, así que el asesor
+ * clickeaba una tarjeta que no hacía nada. Sigue sin arrastrar — el menú
+ * "Mover a…" cubre el mismo verbo con una fracción del riesgo.
  *
  * Marca: el chrome es 100% tokens del Studio (`var(--*)`); lo único que usa el
  * color crudo de Kommo es el ACENTO de la etapa (borde superior + punto), y es
@@ -19,7 +24,13 @@
 import Link from "next/link";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
-import type { KommoLeadRow, KommoPipelineRow, KommoStatusRow } from "@/lib/studio/kommo-types";
+import {
+  stageTargets,
+  type KommoLeadRow,
+  type KommoPipelineRow,
+  type KommoStatusRow,
+} from "@/lib/studio/kommo-types";
+import { StageControl } from "./StageControl";
 import { fmtUsd } from "@/lib/money";
 
 const DAY_MS = 86_400_000;
@@ -55,6 +66,7 @@ export function KommoBoardView({
   convertedMarkboxByLead,
   valueByLead,
   ownerName,
+  pendingOpsByLead,
   boardCap,
 }: {
   pipelines: KommoPipelineRow[];
@@ -69,6 +81,8 @@ export function KommoBoardView({
   convertedMarkboxByLead: Record<number, string>;
   valueByLead: Record<number, number>;
   ownerName: Record<number, string>;
+  /** leadId → ops encoladas que todavía no llegaron a Kommo ("en camino"). */
+  pendingOpsByLead: Record<number, string[]>;
   /** Tope de leads traídos por embudo (para el aviso de recorte). */
   boardCap: number;
 }) {
@@ -89,6 +103,11 @@ export function KommoBoardView({
   const cols = statuses
     .filter((s) => s.pipeline_id === activeId)
     .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
+
+  // Destinos válidos del embudo activo (sin la bandeja de entrada). Se calcula
+  // una vez para todo el tablero; cada columna le quita su propia etapa, que
+  // como destino no significa nada.
+  const targets = stageTargets(statuses, activeId);
 
   const leadsByStatus = new Map<number, KommoLeadRow[]>();
   for (const l of leads) {
@@ -161,6 +180,7 @@ export function KommoBoardView({
             const shown = colLeads.slice(0, CARDS_PER_COLUMN);
             const rest = realCount - shown.length;
             const accent = accentColor(s.color);
+            const colTargets = targets.filter((t) => t.id !== s.id);
 
             return (
               <section
@@ -382,6 +402,28 @@ export function KommoBoardView({
                               )}
                             </div>
                           )}
+
+                          {/* Mover de etapa. Siempre visible, no sólo al pasar
+                              el mouse: si el verbo se esconde, el asesor
+                              concluye que el tablero no hace nada. */}
+                          {colTargets.length > 0 && (
+                            <div
+                              style={{
+                                marginTop: 8,
+                                paddingTop: 8,
+                                borderTop: "1px solid var(--border)",
+                              }}
+                            >
+                              <StageControl
+                                leadId={l.id}
+                                stages={colTargets}
+                                variant="card"
+                                enCamino={(pendingOpsByLead[l.id] ?? []).includes(
+                                  "patch_stage",
+                                )}
+                              />
+                            </div>
+                          )}
                         </article>
                       );
                     })
@@ -413,9 +455,10 @@ export function KommoBoardView({
           marginTop: 14,
         }}
       >
-        Vista de solo lectura del embudo espejado. Valor = facturado en el ERP si el
-        lead ya es cliente; si no, el valor del CRM. Para convertir un lead a cliente,
-        usa la pestaña <strong>Asesor</strong>.
+        Mover una tarjeta de etapa manda la orden al CRM; la tarjeta dice{" "}
+        <strong>En camino</strong> hasta que el CRM confirma y vuelve espejada. Valor =
+        facturado en el ERP si el lead ya es cliente; si no, el valor del CRM. Para
+        convertir un lead a cliente, usa la pestaña <strong>Asesor</strong>.
         {anyTruncated &&
           ` Embudo grande: las columnas con ~ muestran las ${boardCap.toLocaleString(
             "es-VE",

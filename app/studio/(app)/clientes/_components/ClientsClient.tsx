@@ -20,7 +20,7 @@ import {
   type Client,
 } from "@/lib/studio/client-types";
 import type { ClientFilters } from "@/lib/studio/client-queries";
-import type { AliadoOption } from "@/lib/studio/aliados/aliado-types";
+import { prefixChain, type AliadoOption } from "@/lib/studio/aliados/aliado-types";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { ClientDrawer } from "./ClientDrawer";
@@ -232,7 +232,7 @@ export function ClientsClient({
           />
         )
       ) : (
-        <ClientsTable clients={clients} />
+        <ClientsTable clients={clients} aliados={aliados} />
       )}
 
       {drawer && (
@@ -247,7 +247,19 @@ export function ClientsClient({
   );
 }
 
-function ClientsTable({ clients }: { clients: Client[] }) {
+function ClientsTable({
+  clients,
+  aliados,
+}: {
+  clients: Client[];
+  aliados: AliadoOption[];
+}) {
+  // SDD-0255 · índices por cliente-padre y por id. El aliado ES un cliente, así
+  // que en el listado hay que poder distinguirlo de un vistazo: hoy se ven los
+  // tier (VIP, Premium) pero nada decía que una ficha es un aliado.
+  const aliadoPorClienteId = new Map(aliados.map((a) => [a.clientId, a]));
+  const aliadoPorId = new Map(aliados.map((a) => [a.id, a]));
+
   return (
     <div
       style={{
@@ -327,6 +339,29 @@ function ClientsTable({ clients }: { clients: Client[] }) {
               style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
             >
               {c.name}
+              {/* SDD-0255 · esta ficha ES un aliado. Tono `success` a propósito:
+                  `info` y `wine` ya los usan VIP y Premium, así que el aliado
+                  tiene que leerse distinto de un vistazo. Muestra CUÁL aliado,
+                  que es más útil que decir sólo que lo es. */}
+              {aliadoPorClienteId.has(c.id) && (
+                <Badge tone="success" size="sm">
+                  Aliado · {prefixChain(aliados, aliadoPorClienteId.get(c.id)!.id)}
+                </Badge>
+              )}
+              {/* Y si el cliente PERTENECE a un aliado, de quién es. */}
+              {c.aliado_id && aliadoPorId.has(c.aliado_id) && (
+                <span
+                  title={`Cliente de ${aliadoPorId.get(c.aliado_id)!.tradeName}`}
+                  style={{
+                    font: "600 10px/1 var(--f-mono)",
+                    color: "var(--ink-mute)",
+                    letterSpacing: "0.06em",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  de {prefixChain(aliados, c.aliado_id)}
+                </span>
+              )}
               {/* SDD-0046: badge advisory de verificación · solo para self-registrados. */}
               {c.registration_channel === "portal" && (
                 <Badge tone={docVerifyBadge(c.doc_verify_status).tone} size="sm">

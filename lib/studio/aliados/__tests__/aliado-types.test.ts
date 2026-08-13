@@ -11,10 +11,10 @@ import {
 
 /** DC (raíz) → FA (cuelga de DC) → XY (cuelga de FA). HR aparte, raíz. */
 const ALIADOS: AliadoOption[] = [
-  { id: "dc", prefix: "DC", tradeName: "Dynasty Cargo", parentAliadoId: null, status: "activo" },
-  { id: "fa", prefix: "FA", tradeName: "Sub de Dynasty", parentAliadoId: "dc", status: "activo" },
-  { id: "xy", prefix: "XY", tradeName: "Sub del sub", parentAliadoId: "fa", status: "activo" },
-  { id: "hr", prefix: "HR", tradeName: "Herneka", parentAliadoId: null, status: "activo" },
+  { id: "dc", clientId: "c-dc", prefix: "DC", tradeName: "Dynasty Cargo", parentAliadoId: null, status: "activo" },
+  { id: "fa", clientId: "c-fa", prefix: "FA", tradeName: "Sub de Dynasty", parentAliadoId: "dc", status: "activo" },
+  { id: "xy", clientId: "c-xy", prefix: "XY", tradeName: "Sub del sub", parentAliadoId: "fa", status: "activo" },
+  { id: "hr", clientId: "c-hr", prefix: "HR", tradeName: "Herneka", parentAliadoId: null, status: "activo" },
 ];
 
 describe("validateAliadoPrefix", () => {
@@ -116,8 +116,8 @@ describe("prefixChain", () => {
     // El trigger anti-ciclo lo impide en la base, pero un render colgado sería
     // peor que una cadena rara.
     const ciclo: AliadoOption[] = [
-      { id: "a", prefix: "AA", tradeName: "A", parentAliadoId: "b", status: "activo" },
-      { id: "b", prefix: "BB", tradeName: "B", parentAliadoId: "a", status: "activo" },
+      { id: "a", clientId: "c-a", prefix: "AA", tradeName: "A", parentAliadoId: "b", status: "activo" },
+      { id: "b", clientId: "c-b", prefix: "BB", tradeName: "B", parentAliadoId: "a", status: "activo" },
     ];
     const r = prefixChain(ciclo, "a");
     expect(r.split("-").length).toBeLessThanOrEqual(10);

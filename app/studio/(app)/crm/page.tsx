@@ -14,6 +14,7 @@ import {
   getWritebackStatus,
   type WritebackStatus,
   getPendingOpsByLead,
+  getPendingOpsForBoard,
 } from "@/lib/studio/kommo-writeback";
 import {
   getKommoOverview,
@@ -116,9 +117,12 @@ export default async function KommoPage({
       const statusIds = statuses
         .filter((s) => s.pipeline_id === boardPipelineId)
         .map((s) => s.id);
-      const [boardLeads, realCountByStatus] = await Promise.all([
+      const [boardLeads, realCountByStatus, boardPendingOps] = await Promise.all([
         listKommoBoardLeads(supabase, boardPipelineId, BOARD_CAP),
         getKommoStatusCounts(supabase, boardPipelineId, statusIds),
+        // Las tarjetas también mueven de etapa (SDD-0256), así que necesitan
+        // saber qué órdenes van en camino. Si falla, se pintan sin el rótulo.
+        getPendingOpsForBoard(supabase).catch(() => ({})),
       ]);
       const ownerName: Record<number, string> = {};
       for (const o of analytics.ownership.owners) {
@@ -135,6 +139,7 @@ export default async function KommoPage({
           convertedMarkboxByLead={analytics.convertedMarkboxByLead}
           valueByLead={analytics.valueByLead}
           ownerName={ownerName}
+          pendingOpsByLead={boardPendingOps}
           boardCap={BOARD_CAP}
         />
       );

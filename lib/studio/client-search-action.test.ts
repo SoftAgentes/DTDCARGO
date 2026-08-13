@@ -56,6 +56,7 @@ function client(over: Partial<Client> & { id: string }): Client {
     doc_verified_at: null,
     cedula_photo_path: null,
     advisor_id: null,
+  aliado_id: null,
     person_id: over.person_id ?? null,
     created_at: "2026-01-01",
     updated_at: "2026-01-01",

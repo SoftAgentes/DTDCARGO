@@ -11,6 +11,8 @@
  */
 
 import { QRCodeSVG } from "qrcode.react";
+import { brandNameCjk, type BrandContext } from "@/lib/shared/brand-context";
+import { printMarkbox } from "@/lib/shared/markbox-chain";
 
 import { CONTACT } from "@/lib/design-tokens";
 import { labelVerifyUrl } from "@/lib/studio/etiquetas-qr";
@@ -62,6 +64,9 @@ export function warehouseAddress(w: LabelWarehouseCn): WarehouseAddress {
   };
 }
 
+// SDD-0255: la marca con la que se pinta la etiqueta. Un cliente de aliado
+// no debe ver DTD Cargo en la caja que recibe.
+
 // ─────────────────────────────────────────────────────────────
 // Label component
 // ─────────────────────────────────────────────────────────────
@@ -74,6 +79,7 @@ export function Label({
   totalBoxes,
   qr,
   boxCode = null,
+  brand,
 }: {
   format: LabelFormat;
   client: LabelClient;
@@ -88,6 +94,11 @@ export function Label({
    * y el QR sigue identificando solo al cliente.
    */
   boxCode?: string | null;
+  /**
+   * SDD-0255 · marca con la que se pinta. **Obligatoria a propósito**: un default
+   * silencioso es exactamente cómo se cuela DTD en la etiqueta de un aliado.
+   */
+  brand: BrandContext;
 }) {
   const isCompact = format.cell.h < 80; // A4-8up + térmica 100×100
   const padding = isCompact ? "7px 9px" : "11px 13px";
@@ -134,7 +145,7 @@ export function Label({
               letterSpacing: "0.02em",
             }}
           >
-            SHIPPING TO · DTD Cargo
+            SHIPPING TO · {brand.name}
           </div>
           <div
             style={{
@@ -143,7 +154,7 @@ export function Label({
               marginTop: 2,
             }}
           >
-            寄至：DTD Cargo 国际货运
+            寄至：{brandNameCjk(brand)}
           </div>
         </div>
         <div
@@ -191,7 +202,7 @@ export function Label({
               marginBottom: isCompact ? 4 : 7,
             }}
           >
-            {client.markbox}
+            {printMarkbox(client.markbox)}
           </div>
           <div
             style={{
@@ -216,8 +227,8 @@ export function Label({
               level={isCompact ? "L" : "M"}
               aria-label={
                 boxCode
-                  ? `Caja ${boxCode} · ${client.markbox} · ${boxIndex} de ${totalBoxes}`
-                  : `Verificar ${client.markbox} · caja ${boxIndex} de ${totalBoxes}`
+                  ? `Caja ${boxCode} · ${printMarkbox(client.markbox)} · ${boxIndex} de ${totalBoxes}`
+                  : `Verificar ${printMarkbox(client.markbox)} · caja ${boxIndex} de ${totalBoxes}`
               }
             />
           </div>

@@ -31,6 +31,9 @@ import { formatInvoiceAmount } from "@/lib/portal/portal-types";
 import { buildComprobante } from "@/lib/portal/comprobante";
 import { CONTACT } from "@/lib/design-tokens";
 import { BrandMark } from "@/components/BrandMark";
+import { createAdminClient } from "@/lib/db/admin";
+import { resolveBrandForClient } from "@/lib/studio/aliados/brand-resolve";
+import { printMarkbox } from "@/lib/shared/markbox-chain";
 import { ArrowIcon } from "@/components/Icon";
 import { PrintButton } from "./PrintButton";
 
@@ -70,6 +73,13 @@ export default async function PortalComprobantePage({ params }: Props) {
   // La RLS + el filtro por markbox sólo devuelven facturas del cliente logueado;
   // si no hay match (ajena, borrador o inexistente) → 404. Igual que el detalle.
   if (!inv || !client) notFound();
+
+  // SDD-0255 · la marca del documento. ⚠️ ADMIN client a propósito: la política
+  // de `aliados` filtra por `get_user_tenant_id()` y un usuario del portal no
+  // tiene fila en `user_tenants`; con su sesión esto daría DTD siempre, callado.
+  const brand = await resolveBrandForClient(createAdminClient(), {
+    markbox: client.markbox,
+  });
 
   const c = buildComprobante(inv);
   const pill = statusPill(c, inv.dueDate);
@@ -124,7 +134,18 @@ export default async function PortalComprobantePage({ params }: Props) {
             }}
           >
             <div>
-              <BrandMark variant="primary" size={40} />
+              {brand.kind === "dtd" ? (
+                <BrandMark variant="primary" size={40} />
+              ) : (
+                <span
+                  style={{
+                    font: "900 20px/1 'Archivo Black', Archivo, sans-serif",
+                    color: "var(--doc-wine)",
+                  }}
+                >
+                  {brand.name}
+                </span>
+              )}
               <div
                 style={{
                   fontFamily: "var(--font-archivo-black)",
@@ -135,8 +156,12 @@ export default async function PortalComprobantePage({ params }: Props) {
                   letterSpacing: "0.01em",
                 }}
               >
-                Con <span style={{ color: "var(--doc-wine)" }}>Confianza</span>, de
-                China a tu puerta.
+                {brand.kind === "dtd" ? (
+                  <>
+                    Con <span style={{ color: "var(--doc-wine)" }}>Confianza</span>,
+                    de China a tu puerta.
+                  </>
+                ) : null}
               </div>
             </div>
             <div style={{ textAlign: "right", flex: "none" }}>
@@ -191,17 +216,21 @@ export default async function PortalComprobantePage({ params }: Props) {
             }}
           >
             <Party label="Emisor">
-              <PartyName>DTD Cargo</PartyName>
-              <PartyLine>{CONTACT.ve.address}</PartyLine>
-              <PartyLine>{CONTACT.ve.city}</PartyLine>
-              <PartyLine mono>{CONTACT.emailGeneral}</PartyLine>
-              <PartyLine mono>{CONTACT.web}</PartyLine>
+              <PartyName>{brand.name}</PartyName>
+              {brand.kind === "dtd" && (
+                <>
+                  <PartyLine>{CONTACT.ve.address}</PartyLine>
+                  <PartyLine>{CONTACT.ve.city}</PartyLine>
+                </>
+              )}
+              <PartyLine mono>{brand.supportEmail}</PartyLine>
+              {brand.supportWebsite && <PartyLine mono>{brand.supportWebsite}</PartyLine>}
             </Party>
             <Party label="Cliente">
               <PartyName>{inv.clientName}</PartyName>
               <PartyLine mono>
                 Shipping Mark ·{" "}
-                <b style={{ color: "var(--doc-wine)" }}>{client.markbox}</b>
+                <b style={{ color: "var(--doc-wine)" }}>{printMarkbox(client.markbox)}</b>
               </PartyLine>
               {client.address ? <PartyLine>{client.address}</PartyLine> : null}
             </Party>
@@ -367,7 +396,7 @@ export default async function PortalComprobantePage({ params }: Props) {
                 color: "var(--doc-ink)",
               }}
             >
-              Este comprobante refleja el estado de tu cuenta con DTD Cargo. No
+              Este comprobante refleja el estado de tu cuenta con {brand.name}. No
               constituye factura fiscal.
             </div>
             {inv.notes ? (
@@ -390,7 +419,7 @@ export default async function PortalComprobantePage({ params }: Props) {
                 color: "var(--doc-ink-mute)",
               }}
             >
-              Generado el {generatedAt} · {client.markbox}
+              Generado el {generatedAt} · {printMarkbox(client.markbox)}
             </p>
           </div>
         </div>
@@ -409,8 +438,11 @@ export default async function PortalComprobantePage({ params }: Props) {
           }}
         >
           <div style={{ fontSize: 11, color: "rgba(251,250,247,.72)" }}>
-            <b style={{ color: "var(--doc-cream)" }}>{CONTACT.legalName}</b> ·{" "}
-            {CONTACT.emailGeneral} · {CONTACT.web}
+            <b style={{ color: "var(--doc-cream)" }}>
+              {brand.legalName ?? brand.name}
+            </b>{" "}
+            · {brand.supportEmail}
+            {brand.supportWebsite ? ` · ${brand.supportWebsite}` : ""}
           </div>
           <div
             style={{
@@ -420,7 +452,7 @@ export default async function PortalComprobantePage({ params }: Props) {
               color: "var(--doc-wine)",
             }}
           >
-            Con Confianza, de China a tu puerta.
+            {brand.kind === "dtd" ? "Con Confianza, de China a tu puerta." : ""}
           </div>
         </footer>
       </article>

@@ -678,6 +678,7 @@ function LabelGeneratorInner({
                       boxIndex={boxIdx}
                       totalBoxes={totalBoxes}
                       qr={qr}
+                      brand={client.brand}
                     />
                   ))}
                   <div

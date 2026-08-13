@@ -177,6 +177,7 @@ const clients = [
     doc_verified_at: null,
     cedula_photo_path: null,
     advisor_id: null,
+  aliado_id: null,
     person_id: null,
     created_at: "2026-07-31T00:00:00.000Z",
     updated_at: "2026-07-31T00:00:00.000Z",

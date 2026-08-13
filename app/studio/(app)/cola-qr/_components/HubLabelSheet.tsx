@@ -19,6 +19,7 @@
 import { Label, warehouseAddress } from "../../etiquetas/_components/Label";
 import { FORMATS, type LabelFormat } from "@/lib/studio/etiquetas-formats";
 import type { LabelWarehouseCn } from "../../etiquetas/page";
+import { DTD_BRAND } from "@/lib/shared/brand-context";
 
 type Props = {
   formatId: string;
@@ -49,7 +50,12 @@ export function HubLabelSheet({
 }: Props) {
   const format: LabelFormat = FORMATS.find((f) => f.id === formatId) ?? FORMATS[0];
   const warehouse = warehouseAddress(warehouseRow ?? FALLBACK_WAREHOUSE);
-  const client = { markbox, name: clientName, company: null };
+  // SDD-0255 · el HUB imprime desde `qr_print_orders`, que guarda el markbox
+  // desnormalizado y nunca toca `clients`, así que desde acá NO se puede resolver
+  // el aliado sin una consulta nueva. Va con la marca de la casa a propósito: hoy
+  // `qr_print_orders` tiene 0 filas en producción — nunca se imprimió una— así que
+  // no hay etiqueta de aliado en riesgo. Al primer uso real, resolver por markbox.
+  const client = { markbox, name: clientName, company: null, brand: DTD_BRAND };
 
   // Con cajas reales, una etiqueta por caja y su código. Sin ellas, por conteo.
   const items: { boxIndex: number; total: number; code: string | null }[] = boxes
@@ -102,7 +108,8 @@ export function HubLabelSheet({
                   totalBoxes={it.total}
                   qr
                   boxCode={it.code}
-                />
+                  brand={client.brand}
+                  />
               ))}
               <div
                 className="dtd-pagenum"
