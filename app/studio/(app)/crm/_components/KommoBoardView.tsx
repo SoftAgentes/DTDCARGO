@@ -67,6 +67,7 @@ export function KommoBoardView({
   valueByLead,
   ownerName,
   pendingOpsByLead,
+  canEdit,
   boardCap,
 }: {
   pipelines: KommoPipelineRow[];
@@ -83,6 +84,8 @@ export function KommoBoardView({
   ownerName: Record<number, string>;
   /** leadId → ops encoladas que todavía no llegaron a Kommo ("en camino"). */
   pendingOpsByLead: Record<number, string[]>;
+  /** ¿Puede mover, o sólo mirar? Deriva de moduleEditDenial en la página. */
+  canEdit: boolean;
   /** Tope de leads traídos por embudo (para el aviso de recorte). */
   boardCap: number;
 }) {
@@ -406,7 +409,7 @@ export function KommoBoardView({
                           {/* Mover de etapa. Siempre visible, no sólo al pasar
                               el mouse: si el verbo se esconde, el asesor
                               concluye que el tablero no hace nada. */}
-                          {colTargets.length > 0 && (
+                          {canEdit && colTargets.length > 0 && (
                             <div
                               style={{
                                 marginTop: 8,
@@ -418,6 +421,7 @@ export function KommoBoardView({
                                 leadId={l.id}
                                 stages={colTargets}
                                 variant="card"
+                                canEdit={canEdit}
                                 enCamino={(pendingOpsByLead[l.id] ?? []).includes(
                                   "patch_stage",
                                 )}
@@ -455,8 +459,15 @@ export function KommoBoardView({
           marginTop: 14,
         }}
       >
-        Mover una tarjeta de etapa manda la orden al CRM; la tarjeta dice{" "}
-        <strong>En camino</strong> hasta que el CRM confirma y vuelve espejada. Valor =
+        {canEdit ? (
+          <>
+            Mover una tarjeta de etapa manda la orden al CRM; la tarjeta dice{" "}
+            <strong>En camino</strong> hasta que el CRM confirma y vuelve espejada.{" "}
+          </>
+        ) : (
+          <>Vista de lectura: tu rol no mueve leads en el CRM. </>
+        )}
+        Valor =
         facturado en el ERP si el lead ya es cliente; si no, el valor del CRM. Para
         convertir un lead a cliente, usa la pestaña <strong>Asesor</strong>.
         {anyTruncated &&

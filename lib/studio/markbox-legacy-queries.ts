@@ -17,8 +17,15 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { LegacyResumen } from "./markbox-legacy-types";
 
-/** Espejo del predicado de la migr 0369 — si cambia allá, cambia acá. */
-const LEGADO_RE = /^DTD-[A-Za-z]/;
+/**
+ * Espejo del predicado de la migr 0370 — si cambia allá, cambia acá.
+ *
+ * Un código de vendedor es `DTD-` + UNA letra + un DÍGITO. Las `DTD-LEG-*`
+ * llevan tres letras y quedan fuera (decisión del founder, 2026-08-14).
+ * ⚠️ Sin anclar al final a propósito: en prod hay una ficha `DTD-A102-`, de la
+ * serie A con un guion de más, y anclar la dejaría fuera en silencio.
+ */
+const LEGADO_RE = /^DTD-[A-Za-z]\d/;
 
 export async function getLegacyResumen(supabase: SupabaseClient): Promise<LegacyResumen> {
   const { data, error } = await supabase

@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 254 specs)
+### Índice de specs (generado · 255 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -292,6 +292,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0259 | Registrar lo que el cliente calcula en la calculadora pública | in-progress | interna |
 | 0260 | El portal avisa que la acción está en curso también a quien n… | in-progress | interna |
 | 0261 | En el portal el vino de marca deja de significar "error | proposed | interna |
+| 0262 | Confirmar el borrado de una dirección de entrega del cliente | in-progress | interna |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

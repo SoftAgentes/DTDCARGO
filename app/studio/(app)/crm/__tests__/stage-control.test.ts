@@ -47,6 +47,46 @@ describe("el control de etapa está en las dos vistas", () => {
   });
 });
 
+/**
+ * El permiso de la PANTALLA y el de la ACCIÓN salen del mismo predicado.
+ *
+ * Si la vista se inventa su propia regla ("es admin", "el rol no es support"),
+ * tarde o temprano difiere del servidor y el asesor ve un control que le va a
+ * responder que no. Que sea la misma llamada es lo que hace que no puedan
+ * divergir. Esto NO reemplaza el candado del servidor: una server action se
+ * invoca directo como un endpoint, así que `moduleEditDenial` sigue corriendo
+ * dentro de cada acción (SDD-0085 §Seguridad).
+ */
+describe("el permiso de la UI sale del mismo predicado que el de la acción", () => {
+  const page = read("app/studio/(app)/crm/page.tsx");
+  const actions = read("app/studio/(app)/crm/actions.ts");
+
+  it("la página deriva canEdit de moduleEditDenial, no de una regla propia", () => {
+    expect(page).toContain('moduleEditDenial(supabase, "kommo")');
+    expect(page).toContain("const canEdit =");
+    // Nada de reglas paralelas por rol para decidir si se puede mover.
+    expect(page).not.toContain('role === "commercial"');
+    expect(page).not.toContain('role !== "support"');
+  });
+
+  it("la acción sigue validando por su cuenta (el candado real)", () => {
+    expect(actions).toContain('moduleEditDenial(supabase, "kommo")');
+  });
+
+  it("las dos vistas reciben canEdit y se lo pasan al control", () => {
+    expect(page).toContain("canEdit={canEdit}");
+    for (const path of VISTAS) {
+      expect(read(path)).toContain("canEdit={canEdit}");
+    }
+  });
+
+  it("sin permiso el control no se puede abrir", () => {
+    // La guarda vive en el control, antes de renderizar el botón: así ninguna
+    // de las dos vistas puede olvidarse de aplicarla por su cuenta.
+    expect(read(`${DIR}/StageControl.tsx`)).toContain("if (!canEdit)");
+  });
+});
+
 describe("stageTargets", () => {
   const s = (
     id: number,

@@ -5,7 +5,7 @@
  * (ni Kommo ni el mirror).
  */
 import { createClient } from "@/lib/db/server";
-import { requireModuleView } from "@/lib/studio/rbac-guard";
+import { moduleEditDenial, requireModuleView } from "@/lib/studio/rbac-guard";
 import { getKommoAnalytics } from "@/lib/studio/kommo-analytics";
 import {
   getKommoMarkboxContactFieldId,
@@ -66,6 +66,14 @@ export default async function KommoPage({
   const filters = parseKommoFiltersFromSearchParams(raw);
 
   const supabase = await createClient();
+
+  // ¿Este usuario puede MOVER, o sólo mirar? Se deriva del MISMO predicado que
+  // usa la server action (`moduleEditDenial`), no de una regla paralela: si la
+  // pantalla y el servidor no comparten el criterio, terminan divergiendo y el
+  // asesor ve un control que le va a decir que no. Sigue siendo cosmético — el
+  // candado real vive en la acción (SDD-0085 §Seguridad), porque una server
+  // action es invocable directo como un endpoint.
+  const canEdit = (await moduleEditDenial(supabase, "kommo")) === null;
 
   // La analítica corre siempre: alimenta el tablero Dirección + el reparto de
   // asesores del filtro + los mapas convertido/valor del worklist (sin re-query).
@@ -140,6 +148,7 @@ export default async function KommoPage({
           valueByLead={analytics.valueByLead}
           ownerName={ownerName}
           pendingOpsByLead={boardPendingOps}
+          canEdit={canEdit}
           boardCap={BOARD_CAP}
         />
       );
@@ -236,6 +245,7 @@ export default async function KommoPage({
       valueByLead={visibleValue}
       contactByLead={contactByLead}
       pendingOpsByLead={pendingOpsByLead}
+      canEdit={canEdit}
       responsibleUsers={analytics.ownership.owners}
     />
   );
