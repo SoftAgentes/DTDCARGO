@@ -104,7 +104,23 @@ menús armados a mano** que sí existen y que el SDD-0263 documenta.
 
 ---
 
-### 2 · Se borra una dirección de entrega del cliente SIN preguntar nada
+### 2 · Se borra una dirección de entrega del cliente SIN preguntar nada — ✅ CERRADO
+
+> ✅ **Resuelto en `origin/main` por
+> [SDD-0262](../../specs/0262-confirmar-borrado-de-direccion/spec.md)** (commit
+> `c36966fb`). El botón abre un `ConfirmDialog` con el nombre de la dirección y
+> su consecuencia, en `--danger`, con el error dentro del diálogo.
+>
+> ⚠️ **Se implementó DOS VECES.** Esta ventana lo implementó en paralelo, con el
+> mismo número de SDD y el mismo análisis (P2/R2 por MP-01, sin camino de
+> restauración → no califica R1). Al mergear se conservó **la versión publicada**
+> —regla de AGENTS.md: la que se mueve es la que NO está en `main`— y se descartó
+> la duplicada. La versión publicada además prueba el foco inicial en Cancelar y
+> la guarda de doble clic, que la mía no cubría.
+>
+> Causa de la duplicación: se tomó el número con `pnpm sdd:next` pero **no se
+> reservó** con `--reserve`, que es justo el riesgo que la spec descartada dejó
+> escrito. Ver §"Lección" al final.
 
 **Clasificación: `no conformidad`** — SGE-00.03 (aprobada) · MP-01 v1.1
 (aprobada). **Es el hallazgo de mayor riesgo del informe**, aunque no sea el que
@@ -377,3 +393,25 @@ CMP-01 válido: 4 fuente(s), agregado reproducible y cero rutas rotas
 | **Push** | **no** |
 | **Archivos de producto tocados** | **ninguno** |
 | **Archivo creado** | este informe |
+
+---
+
+## 8. Lección de esta ronda: el número no se toma, se reserva
+
+El hallazgo 2 se implementó **dos veces en paralelo**, con el mismo número de
+SDD (0262), sobre el mismo archivo, con el mismo análisis de MP-01. Una de las
+dos se tiró a la basura.
+
+`pnpm sdd:next` hace `fetch` y mira todas las refs, locales y remotas — y aun así
+devolvió 0262 a las dos ventanas, porque **entre pedir el número y publicar
+pasaron horas**. AGENTS.md ya lo dice con todas las letras:
+
+> **Resérvalo si el trabajo va a durar:** `pnpm sdd:next --reserve <slug>`.
+
+Acá no se reservó, con el argumento de que reservar exige pushear y no había OK
+para pushear. Ese argumento **es real pero no alcanza**: el costo de no reservar
+fue una implementación completa duplicada.
+
+Lo que sí funcionó: el paso `numbering` de `verify.mjs` habría cazado las dos
+carpetas `0262-*` al mergear. La colisión se detectó antes, al traer
+`origin/main`, pero la red de seguridad estaba puesta.
