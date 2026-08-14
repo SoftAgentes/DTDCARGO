@@ -17,7 +17,11 @@ export type { TramoTerrestre };
  * ═══════════════════════════════════════════════════════════════════
  *
  *  Lógica (resumen para no-devs):
- *  1. El cliente ingresa el CBM total (m³) directo y el peso total (kg).
+ *  1. El cliente ingresa el CBM total (m³) directo y, si lo sabe, el peso total
+ *     (kg). **El peso es OPCIONAL desde SDD-0257**: sin él la cotización sale
+ *     igual, sin recargo por densidad, y se marca `sinPeso: true` — el total es
+ *     el piso real de esa carga, exacto hasta `pesoMaxSinRecargo()` kg. El CBM
+ *     sí es obligatorio: es el que fija el precio.
  *  2. Precio = CBM × tarifaBase + recargo por DENSIDAD: el peso que excede
  *     `pesoIncluidoKg` por CBM se cobra a `recargoExcedenteKg`/kg (founder
  *     2026-06-20, reactiva la regla pausada el 2026-06-08; configurable en el ERP).
@@ -432,8 +436,22 @@ export type EnvioInput = {
   modo?: CalcModo;
   /** Volumen total del envío en m³ (CBM). El cliente ya lo conoce. */
   cbmTotal: number;
-  /** Peso total de toda la carga en kg. */
-  pesoKg: number;
+  /**
+   * Peso total de toda la carga en kg. **Opcional (SDD-0257).**
+   *
+   * `0`, `null` y `undefined` significan todos lo mismo: **el cliente no indicó
+   * el peso**. No se distinguen a propósito — el `DecimalInput` de la UI
+   * devuelve `0` cuando el campo se borra, así que no hay forma de separarlos ni
+   * motivo para hacerlo.
+   *
+   * Sin peso la cotización SIGUE saliendo: el peso sólo entra al precio por el
+   * recargo por densidad (5.6) y por los dos topes que derivan al asesor (5.3b y
+   * 5.4b). Sin él, esos tres no aplican y el total que sale es el **piso real**
+   * de esa carga — exacto para cualquier envío de hasta `pesoMaxSinRecargo()`
+   * kg. La cotización lo marca con `sinPeso: true` para que la UI no lo venda
+   * como precio final.
+   */
+  pesoKg?: number | null;
   /** Tipo de embalaje (afecta recargo). */
   embalaje: TipoEmbalaje;
   /** Ciudad de destino en Venezuela (slug de CIUDADES). */
@@ -459,8 +477,23 @@ export type EnvioInput = {
 export type EnvioCotizacion = {
   /** Volumen total en m³ (CBM). */
   cbm: number;
-  /** Densidad calculada (peso/CBM). */
+  /** Densidad calculada (peso/CBM). `0` cuando no se indicó el peso. */
   densidadKgM3: number;
+
+  /**
+   * El cliente NO indicó el peso y el precio se calculó igual (SDD-0257).
+   *
+   * El total es el **piso real** de esa carga, no un promedio: es exacto para
+   * cualquier envío de hasta `pesoMaxSinRecargoKg`. La UI tiene que decirlo
+   * ("desde") en vez de venderlo como precio cerrado.
+   */
+  sinPeso: boolean;
+
+  /**
+   * Hasta cuántos kg vale el precio de arriba. Sólo se llena cuando
+   * `sinPeso` es true — es el número que sostiene el "desde".
+   */
+  pesoMaxSinRecargoKg: number;
 
   /** Cargos individuales (todos en USD, para mostrar desglose). */
   precioBase: number;       // CBM × tarifaBase
@@ -609,6 +642,91 @@ export function coberturaDestino(ciudad: Ciudad): CoberturaDestino {
 }
 
 // ────────────────────────────────────────────────────────────────────
+// 4b) EL ESTIMADO SIN PESO (SDD-0257) — hasta cuándo vale el precio
+// ────────────────────────────────────────────────────────────────────
+
+/**
+ * El peso máximo (kg) hasta el cual el precio calculado SIN peso sigue siendo
+ * exacto. Arriba de este número el envío o suma recargo o deriva al asesor.
+ *
+ * ⚠️ ES EL NÚMERO QUE SOSTIENE EL "DESDE $X" DE LA UI. Si miente, la
+ * calculadora promete un precio que la operación no honra, y el reclamo llega
+ * cuando la carga ya está en Yiwu. Por eso vive acá, junto a las reglas que
+ * espeja, y no suelto en el componente: mismo criterio que
+ * `mensajeDestinoSinTarifa`.
+ *
+ * Tiene que cumplir DOS condiciones a la vez, no una:
+ *
+ *  1. **No sumar recargo** → `peso ≤ cbm × pesoIncluidoKg` (topeado en
+ *     `pesoMaxContenedorKg`, que es el límite físico del contenedor).
+ *  2. **Seguir auto-cotizando** → no caer en el anti-monopolio del paso 5.4b,
+ *     que deriva al asesor cuando el envío es pesado (`> pesoMaxEnvioKg`) Y
+ *     denso (por encima del equilibrio `pesoMaxContenedorKg/cbmMaxContenedor`).
+ *
+ * Olvidar la segunda es el error fácil, y da un techo optimista: en 12 m³ la
+ * cuenta ingenua diría 12.000 kg, pero 12.000 kg en 12 m³ son 1.000 kg/m³ —muy
+ * por encima del equilibrio de ~397— y con más de 9.000 kg eso ya deriva al
+ * asesor. El techo real ahí son 9.000 kg.
+ *
+ * Comprobado: 5 m³ → 5.000 kg · 12 m³ → 9.000 kg · 30 m³ → 11.912 kg.
+ */
+export function pesoMaxSinRecargo(cbm: number, params: CalcParams): number {
+  if (!Number.isFinite(cbm) || cbm <= 0) return 0;
+  const sinRecargo = Math.min(
+    cbm * params.pesoIncluidoKg,
+    params.pesoMaxContenedorKg,
+  );
+  // Por debajo del tope por envío el anti-monopolio no puede activarse (exige
+  // las DOS cosas), así que el techo es el del recargo y punto.
+  if (sinRecargo <= params.pesoMaxEnvioKg) return round(sinRecargo);
+  const equilibrio =
+    params.cbmMaxContenedor > 0
+      ? params.pesoMaxContenedorKg / params.cbmMaxContenedor
+      : Infinity;
+  // Arriba del tope por envío hace falta quedarse bajo el equilibrio de
+  // densidad; `pesoMaxEnvioKg` es piso porque hasta ahí nunca deriva.
+  return round(
+    Math.max(params.pesoMaxEnvioKg, Math.min(sinRecargo, cbm * equilibrio)),
+  );
+}
+
+/**
+ * Copy del estimado sin peso. Vive acá —y no en el componente— porque el mismo
+ * texto lo usan el panel de resultado y el mensaje de WhatsApp que le llega al
+ * asesor: si se escribieran por separado, un día dirían techos distintos.
+ */
+export function mensajeEstimadoSinPeso(pesoMaxKg: number): string {
+  return (
+    `Este precio vale si tu carga pesa hasta ` +
+    `${kg(pesoMaxKg)}. Si pesa más, suma un ajuste por el peso extra.`
+  );
+}
+
+/**
+ * La versión corta, para el aviso bajo el campo de peso.
+ *
+ * Son dos textos y no uno porque están a diez centímetros de distancia en la
+ * misma pantalla: repetir la frase completa al lado del precio se lee como un
+ * error de la página, no como énfasis. El campo empuja ("falta esto"), el panel
+ * explica ("y esto significa").
+ */
+export function avisoCampoPesoVacio(pesoMaxKg: number): string {
+  return `Falta el peso. Te damos el precio base, válido hasta ${kg(pesoMaxKg)}.`;
+}
+
+/**
+ * Kilos con separador de miles a la venezolana: `9000` → "9.000 kg".
+ *
+ * El punto se pone a mano y no con `toLocaleString("es-VE")` a propósito: el
+ * formato de `Intl` depende de los datos ICU del runtime, y este texto lo
+ * comparan tests por igualdad exacta. Un build de Node sin ICU completo lo
+ * pondría en rojo por algo que no es el cálculo.
+ */
+function kg(n: number): string {
+  return `${Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")} kg`;
+}
+
+// ────────────────────────────────────────────────────────────────────
 // 5) FUNCIÓN PRINCIPAL DEL CÁLCULO (pura, sin side effects)
 // ────────────────────────────────────────────────────────────────────
 
@@ -629,6 +747,12 @@ export function calcularEnvioLCL(
   params: CalcParams = DEFAULT_PARAMS,
   ciudades: Ciudad[] = CIUDADES,
 ): EnvioCotizacion {
+  // 5.0 — Peso normalizado (SDD-0257). `0`, `null`, `undefined` y cualquier cosa
+  // que no sea un número finito positivo son LO MISMO: el cliente no indicó el
+  // peso. A partir de acá `pesoKg` es un número y `sinPeso` dice si es real.
+  const pesoKg = normalizarPeso(input.pesoKg);
+  const sinPeso = pesoKg <= 0;
+
   // 5.1 — Carga especial / peligrosa → no cotiza, deriva al asesor
   if (input.cargaEspecial) {
     return cotizacionVacia({
@@ -683,11 +807,15 @@ export function calcularEnvioLCL(
     };
   }
 
-  // 5.3 — Validar carga
-  if (input.cbmTotal <= 0 || input.pesoKg <= 0) {
+  // 5.3 — Validar carga. **Sólo el CBM (SDD-0257.)** El peso dejó de ser
+  // obligatorio: es el dato que el cliente más se olvida, y exigirlo dejaba la
+  // calculadora sin mostrar NADA —ni precio, ni desglose, ni botón— cuando ya
+  // había suficiente para cotizar. El CBM sí sigue siendo obligatorio: es el que
+  // fija el precio, sin él no hay cuenta que hacer.
+  if (input.cbmTotal <= 0) {
     return cotizacionVacia({
       tipo: "carga_invalida",
-      mensaje: "El CBM total y el peso deben ser mayores a cero.",
+      mensaje: "Indica el CBM total de tu carga para ver el estimado.",
     }, input);
   }
 
@@ -699,7 +827,7 @@ export function calcularEnvioLCL(
       mensaje: "Eso es más que un contenedor. Consulta a tu asesor",
     }, input);
   }
-  if (input.pesoKg > params.pesoMaxContenedorKg) {
+  if (pesoKg > params.pesoMaxContenedorKg) {
     return cotizacionVacia({
       tipo: "peso_contenedor_excedido",
       mensaje:
@@ -725,7 +853,9 @@ export function calcularEnvioLCL(
   // 5.4 — Volumen (CBM) y densidad (peso/CBM). La densidad alimenta el recargo
   // por exceso de peso en 5.6 y el tope de peso por envío en 5.4b.
   const cbm = roundCBM(input.cbmTotal);
-  const densidadKgM3 = input.pesoKg / cbm;
+  // Sin peso no hay densidad que calcular (SDD-0257): queda en 0 y ni el recargo
+  // de 5.6 ni el tope de 5.4b pueden activarse.
+  const densidadKgM3 = sinPeso ? 0 : pesoKg / cbm;
 
   // 5.4b — Tope de peso POR ENVÍO (anti-monopolio), density-aware. Deriva al
   // asesor SOLO si el envío es pesado (> pesoMaxEnvioKg) Y denso (densidad por
@@ -737,10 +867,7 @@ export function calcularEnvioLCL(
     params.cbmMaxContenedor > 0
       ? params.pesoMaxContenedorKg / params.cbmMaxContenedor
       : Infinity;
-  if (
-    input.pesoKg > params.pesoMaxEnvioKg &&
-    densidadKgM3 > equilibrioDensidad
-  ) {
+  if (pesoKg > params.pesoMaxEnvioKg && densidadKgM3 > equilibrioDensidad) {
     return cotizacionVacia({
       tipo: "peso_envio_excedido",
       mensaje:
@@ -765,9 +892,11 @@ export function calcularEnvioLCL(
   // Founder 2026-07-06: el recargo es CONTINUO sin tope (el viejo `pesoMaxKg` que
   // derivaba a FCL se eliminó en 2026-07-06). Acá NUNCA seteamos `alerta` por
   // densidad: el cliente debe VER el precio con el recargo aplicado.
+  // Sin peso indicado (SDD-0257) el recargo es 0 y el total queda en el PISO de
+  // esa carga — exacto hasta `pesoMaxSinRecargo()`. No se estima ni se promedia.
   let recargoExcedente = 0;
-  if (densidadKgM3 > params.pesoIncluidoKg) {
-    const kgExcedente = Math.max(0, input.pesoKg - cbm * params.pesoIncluidoKg);
+  if (!sinPeso && densidadKgM3 > params.pesoIncluidoKg) {
+    const kgExcedente = Math.max(0, pesoKg - cbm * params.pesoIncluidoKg);
     recargoExcedente = roundUSD(kgExcedente * params.recargoExcedenteKg);
   }
   const alerta: EnvioCotizacion["alerta"] | undefined = undefined;
@@ -848,6 +977,8 @@ export function calcularEnvioLCL(
   return {
     cbm,
     densidadKgM3: round(densidadKgM3),
+    sinPeso,
+    pesoMaxSinRecargoKg: sinPeso ? pesoMaxSinRecargo(cbm, params) : 0,
     precioBase: roundUSD(precioBase),
     recargoExcedente: roundUSD(recargoExcedente),
     recargoCiudad: roundUSD(recargoCiudad),
@@ -883,6 +1014,18 @@ function round(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+/**
+ * El peso "de verdad" de un input (SDD-0257): `0` cuando el cliente no lo
+ * indicó, en cualquiera de sus formas (`0`, `null`, `undefined`, `NaN`).
+ *
+ * Existe para que el motor y el texto de WhatsApp decidan lo mismo. Si cada uno
+ * escribiera su propio chequeo, el día que uno acepte `NaN` el asesor recibiría
+ * "NaN kg" mientras la UI dice "sin indicar".
+ */
+function normalizarPeso(pesoKg: number | null | undefined): number {
+  return pesoKg != null && Number.isFinite(pesoKg) && pesoKg > 0 ? pesoKg : 0;
+}
+
 /** Devuelve una cotización en estado de error (con alerta). */
 function cotizacionVacia(
   alerta: NonNullable<EnvioCotizacion["alerta"]>,
@@ -891,6 +1034,10 @@ function cotizacionVacia(
   return {
     cbm: 0,
     densidadKgM3: 0,
+    // No hay precio que sostener, así que no hay "desde" que explicar: el estado
+    // de error manda su propio mensaje y la UI no pinta el aviso del peso.
+    sinPeso: false,
+    pesoMaxSinRecargoKg: 0,
     precioBase: 0,
     recargoExcedente: 0,
     recargoCiudad: 0,
@@ -1098,9 +1245,13 @@ export function whatsappTextFromCotizacion(
   // Datos que el cliente calculó. Esta es la pieza clave: el mensaje viaja con
   // la cotización al WhatsApp del negocio (y de ahí al CRM), así el asesor ve
   // exactamente lo que el cliente estimó en la web.
+  //
+  // El peso puede no venir (SDD-0257). Antes esto escribía "Peso total: 0 kg",
+  // que le MIENTE al asesor: "0" se lee como un dato, no como un dato ausente.
+  const pesoKg = normalizarPeso(input.pesoKg);
   const datos = [
     `• CBM total: ${input.cbmTotal} m³`,
-    `• Peso total: ${input.pesoKg} kg`,
+    pesoKg > 0 ? `• Peso total: ${pesoKg} kg` : `• Peso total: sin indicar`,
     `• Embalaje: ${embalaje}`,
     `• Baterías: ${input.bateria ? "Sí" : "No"}`,
     `• Destino: ${ciudad}`,
@@ -1117,6 +1268,22 @@ export function whatsappTextFromCotizacion(
       cot.alerta.mensaje,
       "",
       "¿Me ayudan con una cotización a medida?",
+    ].join("\n");
+  }
+
+  // Sin peso el estimado es un PISO, y el mensaje tiene que decirlo con todas
+  // las letras: es lo que evita que el asesor confirme como final un número que
+  // todavía puede subir por densidad.
+  if (cot.sinPeso) {
+    return [
+      "Acabo de cotizar en tu calculadora. Esto es lo que estoy calculando:",
+      "",
+      ...datos,
+      `• Estimado web: desde US$${cot.total.toFixed(2)}`,
+      "",
+      `Todavía no sé el peso de mi carga. ${mensajeEstimadoSinPeso(cot.pesoMaxSinRecargoKg)}`,
+      "",
+      "¿Me ayudan a cerrar el precio? (pagas al llegar)",
     ].join("\n");
   }
 
