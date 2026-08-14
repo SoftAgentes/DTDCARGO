@@ -13,9 +13,10 @@ confidencialidad: interna
 
 # SDD-0261 · En el portal el vino de marca deja de significar "error"
 
-> **Estado `draft` a propósito.** Media spec depende de una decisión de color que
-> es del founder (§"La decisión que falta"). La otra media ya se puede cerrar.
-> Pasa a `proposed` cuando esa decisión exista.
+> **Estado `draft`.** El founder eligió la **opción A** el 2026-08-14 (ícono +
+> prefijo, ver §"La decisión tomada"). Eso fija la presentación del error y
+> **destraba el slice del acento**, pero **no elige el color** — y ERR-01 exige
+> las dos cosas en la misma regla. Pasa a `proposed` cuando esté el color.
 
 ## Problema
 
@@ -35,6 +36,15 @@ dice textual:
 No hay margen de lectura. El vino es identidad; `danger` es estado. Cuando el
 mismo color pinta el eyebrow de una sección, el enlace "Ver detalle" **y** el
 mensaje "No pudimos guardar", el color deja de significar nada.
+
+Y hay una **segunda política aprobada** que el portal tampoco cumple.
+[ERR-01 v1.0](../../governance/policies/err-01.md) (aprobada 2026-07-29,
+REV-SGE-003), sección Reglas, dice:
+
+> Color danger se acompaña con texto/icono **y contraste**.
+
+Las dos mitades de esa frase están incumplidas hoy: el error del portal viaja
+**sólo en el color**, y ese color mide 3,00:1. Ver §"La decisión tomada".
 
 ### 2 · Contraste — medido en vivo el 2026-08-14
 
@@ -97,7 +107,70 @@ esta mitad: es cambiar `text-wine` → `text-wine-text` donde el vino sea texto.
 `bg-wine/10`, íconos decorativos) **no se toca**. `--color-wine` como fondo con
 `--color-on-accent` encima ya mide 4,96:1 y está correcto.
 
-## La decisión que falta (y por qué no la tomo yo)
+## La decisión tomada — opción A (founder, 2026-08-14)
+
+**El error deja de viajar sólo en el color: suma ícono y prefijo.**
+
+Resulta que esto no era una preferencia. Es lo que **ERR-01 v1.0 ya obliga**
+(*"Color danger se acompaña con texto/icono y contraste"*) y lo que **SGE-00.11**
+pone como ley constitucional (*"Color, icono o animación nunca son el único
+portador del significado"*). O sea: la opción A no agrega una capa opcional —
+cierra una no conformidad que estaba abierta y que la auditoría no había nombrado.
+
+### Contrato de presentación del error
+
+Todo mensaje de error del portal, en los tres niveles que aplican del
+[taxonómico de ERR-01](../../governance/policies/err-01.md):
+
+| Elemento | Regla | Origen |
+|---|---|---|
+| Ícono | Ícono de alerta a la izquierda, `aria-hidden` (no se lee dos veces) | ERR-01 · SGE-00.11 |
+| Prefijo | El texto empieza nombrando el problema, no el color | ERR-01 |
+| Rol | `role="alert"` en errores de campo y de formulario | A11Y-01 |
+| Ubicación | Pegado a su causa; el toast no reemplaza | ERR-01 |
+| Contenido | Qué pasó, qué se conservó y qué puede hacer la persona | ERR-01 |
+| Contraste | ≥ 4,5:1 sobre card **y** sobre paper | ERR-01 · WCAG 1.4.3 |
+
+**Hallazgo nuevo que sale de aplicar esto:**
+[`perfil/AvatarEditor.tsx:82`](<../../../app/portal/(app)/perfil/AvatarEditor.tsx>)
+anuncia un error con `role="status"` en vez de `role="alert"`. `status` es para
+lo no urgente: el lector no lo interrumpe. Entra al slice B.
+
+### ⚠️ La A no cierra el contraste — y ERR-01 lo dice en la misma frase
+
+*"…se acompaña con texto/icono **y contraste**"*. Si los ~42 errores se quedan en
+`text-wine` con un ícono al lado, siguen midiendo **3,00:1** y siguen violando
+BTN-01 §2. **Falta elegir el color.**
+
+### Pero elegir A cambia la evaluación de la opción B
+
+Éste es el efecto útil de tu decisión. La objeción contra
+`--color-status-danger-on-dark` (`#f6929a`) era que a ΔE 7,1 de
+`--color-wine-text` **el color sería el único diferenciador** entre un enlace y un
+error, y a 12 px no alcanzaría.
+
+**Con ícono y prefijo, el color deja de ser el único diferenciador.** La objeción
+no desaparece, pero deja de ser bloqueante: el canal que distingue error de
+enlace pasa a ser el ícono, y el color queda como refuerzo.
+
+| Candidato bajo A | Contraste (peor caso) | ΔE vs `wine-text` | Veredicto |
+|---|---|---|---|
+| Quedarse en `--color-wine` `#c24450` | 3,00:1 | — | ❌ viola BTN-01 §2 y AA |
+| `--color-status-danger` `#e0606b` (hoy) | 4,29:1 card | 15,5 | ❌ AA por 0,21 |
+| ⭐ **`--color-status-danger-on-dark` `#f6929a`** | **4,64:1** nav · **6,73:1** card | 7,1 | ✅ mitigado por el ícono |
+| Token propio del portal (opción C) | a medir | a medir | requiere `BRAND-CHECK` |
+
+**Recomendación: A + B.** Es la única combinación que pasa AA en las cuatro
+superficies **sin token nuevo** y sin `BRAND-CHECK`. Y trae un bonus: bajo A, el
+slice del acento **ya no necesita mover los enlaces fuera de `wine-text`** —el
+requisito que hacía cara a la opción B— porque el ícono hace el trabajo.
+
+**Sigue pendiente tu OK sobre el color.** No lo doy por dado.
+
+---
+
+<details>
+<summary>Análisis original de las 3 opciones (previo a la decisión)</summary>
 
 Los ~42 errores tienen que salir del vino. **A qué color van es decisión tuya**,
 porque el candidato obvio tiene un problema que ningún medidor de contraste ve.
@@ -135,26 +208,44 @@ trade-off en vez de cerrarlo.
 
 **No invento ningún token.** Las tres esperan tu decisión.
 
+</details>
+
 ## Alcance por slices
-
-### Slice A — el acento a `--color-wine-text` *(listo para ejecutar)*
-
-No depende de ninguna decisión. Cambia `text-wine` → `text-wine-text` en los usos
-de acento **que sean texto**, dejando intactos los rellenos y los `hover:`.
-Cierra ~76 usos de la no conformidad WCAG 1.4.3.
-
-**Precondición:** el paso de clasificación (abajo) tiene que estar hecho.
 
 ### Slice 0 — clasificar los 118 a mano *(primero, siempre)*
 
-Recorrer los 118 usos y etiquetar cada uno: `error` · `acento-texto` ·
+Recorrer los 118 usos y etiquetar cada uno con el nivel de ERR-01 cuando aplique:
+`error-campo` · `error-formulario` · `error-transacción` · `acento-texto` ·
 `acento-relleno` · `hover`. Sale una allowlist exacta por categoría. **Sin esto
-no arranca ni A ni B.**
+no arranca ningún otro slice.**
 
-### Slice B — los errores salen del vino *(bloqueado por la decisión)*
+### Slice A — el acento a `--color-wine-text` *(listo para ejecutar)*
 
-Los ~42 usos de error pasan al color que decidas, y —si eliges la opción A— suman
-ícono y prefijo. Cierra la no conformidad de **BTN-01 §2**, que es la que bloquea.
+No depende del color de error. Cambia `text-wine` → `text-wine-text` en los usos
+de acento **que sean texto**, dejando intactos los rellenos y los `hover:`.
+Cierra ~76 usos de la no conformidad WCAG 1.4.3 (3,00:1 → 6,44:1).
+
+✅ **Bajo la opción A ya elegida, este slice NO tiene que mover los enlaces fuera
+de `wine-text`.** Ése era el costo de la opción B y el ícono lo vuelve
+innecesario. El slice queda como estaba pensado.
+
+**Precondición:** slice 0.
+
+### Slice B — presentación del error *(ejecutable en su mitad)*
+
+Dos mitades con distinta disponibilidad:
+
+| Mitad | Qué hace | Estado |
+|---|---|---|
+| **B.1 — estructura** | Ícono + prefijo + `role="alert"` + copy según ERR-01 en los ~42. Incluye corregir el `role="status"` de `AvatarEditor.tsx:82`. | ✅ **Destrabado por la decisión A.** No depende del color. |
+| **B.2 — color** | Los ~42 pasan del vino al token de peligro elegido. | ⏸ **Esperando tu OK** sobre el color (recomendado: `#f6929a`). |
+
+**B.1 cierra ERR-01 y SGE-00.11. B.2 cierra BTN-01 §2 y WCAG 1.4.3.** Son la misma
+no conformidad vista desde dos políticas: hasta que las dos estén, la spec no
+cierra.
+
+⚠️ **B.1 sola no basta y no se reporta como cierre.** Un error con ícono pero a
+3,00:1 sigue siendo ilegible; ERR-01 pide texto/icono **y** contraste.
 
 ### Slice C — que no vuelva a pasar *(opcional, al final)*
 
@@ -167,12 +258,19 @@ promueve al gate **después** de que B esté adentro, no antes.
 1. Los 118 usos están clasificados, con la lista versionada en esta carpeta.
 2. Cero usos de `text-wine` crudo en un nodo que renderice error.
 3. Ningún uso de acento **textual** se queda en `--color-wine`; los rellenos sí.
-4. Medición en vivo posterior, con el mismo banco: todo texto de error y de
+4. **Todo mensaje de error lleva ícono `aria-hidden` + prefijo que nombra el
+   problema**, y `role="alert"` donde ERR-01 lo pide. `AvatarEditor.tsx:82` deja
+   de usar `role="status"` para un error.
+5. Medición en vivo posterior, con el mismo banco: todo texto de error y de
    acento ≥ 4,5:1 sobre **card** (`#16264A`) y sobre **paper** (`#0B1428`).
-5. **ΔE2000 ≥ 15** entre el color de error final y el color de enlace final. Si
-   la opción elegida no lo alcanza, se documenta como excepción con motivo —
-   no se deja pasar en silencio.
-6. `pnpm typecheck`, `pnpm lint`, `pnpm test`; `node scripts/verify.mjs` de cierre.
+6. **ΔE2000 entre el color de error final y el de enlace final:** ≥ 15 lo cierra
+   sin más. **Entre 7 y 15 se acepta SÓLO si el criterio 4 está cumplido** —el
+   ícono es el que carga la distinción— y se documenta como excepción con motivo,
+   responsable y fecha de revisión. Nunca en silencio.
+7. **Prueba de la mitigación, no supuesto:** verificar con una captura de un
+   formulario que tenga un enlace y un error visibles a la vez, a tamaño real,
+   que se distinguen. Si no se distinguen, el criterio 6 vuelve a ≥ 15.
+8. `pnpm typecheck`, `pnpm lint`, `pnpm test`; `node scripts/verify.mjs` de cierre.
 
 ## Matriz SGE-00
 
@@ -187,19 +285,26 @@ promueve al gate **después** de que B esté adentro, no antes.
 | SGE-00.07 Estado visible y verdadero | `cumple` parcial | El error se muestra; el problema es que no se lee y no se distingue. |
 | SGE-00.09 Reutilizar el patrón | **`no cumple`** | 118 usos sueltos del mismo color con 4 significados distintos. El portal no tiene primitiva de error (ver SDD-0260, misma raíz). |
 | **SGE-00.10 Accesible y equivalente** | **`no cumple` → lo corrige esta spec** | 3,00:1 medido, umbral 4,5:1. |
-| **SGE-00.11 Decir qué pasó** | **`no cumple`** | *"Color … nunca es el único portador del significado"* — hoy el color es el único canal de "esto es un error", y encima es el mismo color de la marca. |
+| **SGE-00.11 Decir qué pasó** | **`no cumple` → lo corrige el slice B.1** | *"Color … nunca es el único portador del significado"* — hoy el color es el único canal de "esto es un error", y encima es el mismo color de la marca. El ícono + prefijo de la opción A es exactamente el remedio. |
 | SGE-00.12 IA propone | `no aplica` | — |
 
 ## Gobernanza
 
 | Control | Valor |
 |---|---|
-| Política que obliga | **BTN-01 v1.1 §2** (aprobada) → **bloquea** · A11Y-01 v1.1 (aprobada) |
+| Políticas que obligan | **BTN-01 v1.1 §2** (aprobada) · **ERR-01 v1.0** *"color danger se acompaña con texto/icono y contraste"* (aprobada) · A11Y-01 v1.1 (aprobada) · SGE-00.10 y .11 → **las cuatro bloquean** |
 | Clasificación | **no conformidad** — la de mayor severidad de la auditoría |
 | Componente `canonical` involucrado | ninguno (el portal no consume ninguno de los 4 del registro) |
 | ¿Suma consumidores a un `deprecated`? | **No.** |
-| Decisión pendiente del founder | color de error del portal (§"La decisión que falta") + `BRAND-CHECK` si sale la opción C |
-| Recomendación mía, **no** bloqueante | la opción A (ícono + prefijo) y el umbral ΔE ≥ 15 del criterio 5 |
+| Decisión del founder ya tomada | **opción A** (ícono + prefijo), 2026-08-14 → destraba B.1 y el slice A |
+| Decisión pendiente del founder | **el color** de los ~42 errores. Recomendado `--color-status-danger-on-dark` (`#f6929a`, ya aprobado el 2026-08-13 · sin token nuevo · sin `BRAND-CHECK`). |
+| Recomendación mía, **no** bloqueante | la combinación A+B y el umbral ΔE del criterio 6 |
+
+⚠️ **La opción A resultó no ser una recomendación mía.** Al abrir ERR-01 para
+redactar el contrato apareció que *"color danger se acompaña con texto/icono y
+contraste"* ya es regla **aprobada**. O sea que el ícono y el prefijo pasan de
+"buena idea" a **obligación incumplida** — una no conformidad que la auditoría
+del 2026-08-14 no había levantado porque no abrió ERR-01. Se corrige acá.
 
 ## Riesgos
 
@@ -207,5 +312,6 @@ promueve al gate **después** de que B esté adentro, no antes.
 |---|---|
 | Reemplazo masivo sobre una lista heurística cambia colores que no son errores | Slice 0 obligatorio: clasificación a mano antes de tocar nada. Ya hay 1 falso positivo confirmado. |
 | Se arreglan los 5 hallazgos de contraste juntos y desaparece el síntoma sin saber la causa | Esta spec toca **sólo** el vino. El `--color-status-danger` (4,29:1) y el `--color-status-success` van por separado — comparten síntoma, **no** causa. |
-| Se elige un color que pasa contraste pero se confunde con el enlace | Criterio 5: ΔE ≥ 15 medido, no supuesto. |
+| Se elige un color que pasa contraste pero se confunde con el enlace | Criterios 6 y 7: el ΔE se mide, y si queda entre 7 y 15 hay que **probar** que el ícono distingue con una captura real — no basta con afirmar que mitiga. |
+| Se cierra B.1 (ícono) y se reporta la spec como cumplida sin B.2 | ERR-01 pide texto/icono **y** contraste en la misma regla. La spec no cierra con media. |
 | Otro worktree numera 0261 | Número de `pnpm sdd:next` (23 refs, locales y remotas), **sin reservar** — no se pushea sin OK. El paso `numbering` de `verify.mjs` lo agarra al mergear. |
