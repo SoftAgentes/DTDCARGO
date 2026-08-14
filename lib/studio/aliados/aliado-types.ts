@@ -48,6 +48,13 @@ export type AliadoOption = {
   id: string;
   /** El cliente-padre: el cliente que ES este aliado. */
   clientId: string;
+  /**
+   * Shipping Mark de ese cliente, para enlazar a su ficha — la ruta del Studio
+   * es `/studio/clientes/[markbox]`, no por id. Opcional a propósito: los
+   * selectores y la composición de la cadena no lo necesitan, y así los tests de
+   * `prefixChain`/`parentOptions` siguen valiendo sin tocarlos.
+   */
+  markbox?: string | null;
   prefix: string;
   tradeName: string;
   parentAliadoId: string | null;

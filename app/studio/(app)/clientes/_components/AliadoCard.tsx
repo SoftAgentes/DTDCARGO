@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { Badge } from "@/app/studio/_components/ui/Badge";
@@ -70,6 +71,12 @@ export function AliadoCard({
     null,
   );
 
+  // Sub-insignias: los aliados que cuelgan de ÉSTE. Es el caso del founder —
+  // Dynasty Cargo con su insignia DC, y las otras puerta a puerta que ella captó,
+  // cada una con la suya. Sus clientes salen `DC-FA-1232` guardado y `FA-1232`
+  // impreso, así que el cliente de FA no ve de quién cuelga.
+  const subInsignias = aliado ? aliados.filter((a) => a.parentAliadoId === aliado.id) : [];
+
   // Cadena previsualizada: los prefijos del padre elegido + el que se escribe.
   const padres = parentOptions(aliados, aliado?.id ?? null);
   const cadenaPadre = parentId ? prefixChain(aliados, parentId) : "";
@@ -128,6 +135,66 @@ export function AliadoCard({
               <Fila termino="Acuerdo" valor={aliado.agreement_notes} />
             )}
           </dl>
+
+          <div
+            style={{
+              background: "var(--bg-base)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--r-md)",
+              padding: 12,
+              marginBottom: 14,
+            }}
+          >
+            <div
+              style={{
+                font: "600 11px/1.3 var(--f-sans)",
+                color: "var(--ink-soft)",
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+                marginBottom: 8,
+              }}
+            >
+              Sub-insignias
+            </div>
+
+            {subInsignias.length > 0 ? (
+              <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8 }}>
+                {subInsignias.map((s) => (
+                  <li key={s.id} style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+                    <span style={{ font: "600 14px/1.3 var(--f-mono)", color: "var(--ink)", letterSpacing: "0.04em" }}>
+                      {prefixChain(aliados, s.id)}
+                    </span>
+                    <span style={{ font: "500 12.5px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>
+                      {s.tradeName}
+                    </span>
+                    {s.markbox && (
+                      <Link
+                        href={`/studio/clientes/${encodeURIComponent(s.markbox)}`}
+                        style={{ font: "500 12px/1.3 var(--f-sans)", color: "var(--ink-soft)", textDecoration: "underline" }}
+                      >
+                        ver ficha
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p style={{ font: "500 12.5px/1.45 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
+                Todavía ninguna. Si {aliado.trade_name} hizo alianza con otra
+                puerta a puerta y quiere darle su propia insignia, ábrele ficha de
+                cliente a esa empresa y en su ficha usa{" "}
+                <b style={{ color: "var(--ink)" }}>Convertir en aliado</b> eligiendo{" "}
+                <b style={{ color: "var(--ink)" }}>Cuelga de: {prefixChain(aliados, aliado.id)}</b>.
+              </p>
+            )}
+
+            {subInsignias.length > 0 && (
+              <p style={{ font: "500 12px/1.45 var(--f-sans)", color: "var(--ink-soft)", margin: "10px 0 0" }}>
+                Sus clientes llevan la cadena completa en el Studio y sólo su
+                propia insignia en los documentos, así que no ven de quién cuelgan.
+              </p>
+            )}
+          </div>
         </>
       ) : (
         <p
