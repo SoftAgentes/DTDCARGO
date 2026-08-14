@@ -350,12 +350,12 @@ export function CalculadoraForm({
               className="text-[19px] leading-none"
               style={{ fontFamily: "var(--font-brand-display)" }}
             >
-              <span style={{ color: "var(--wine-on-dark, #E8748A)" }}>DTD</span>{" "}
+              <span style={{ color: "var(--wine-on-dark, #D59FA7)" }}>DTD</span>{" "}
               <span className="text-white">Cargo</span>
             </span>
             <span
               className="text-[11px] font-bold tracking-[0.14em] uppercase"
-              style={{ color: "var(--wine-on-dark, #E8748A)" }}
+              style={{ color: "var(--wine-on-dark, #D59FA7)" }}
             >
               {esConsolidado
                 ? "Calculadora LCL consolidado"
@@ -406,7 +406,7 @@ export function CalculadoraForm({
               <span
                 className="text-[9.5px] font-bold tracking-[0.08em] uppercase rounded-[6px] px-2 py-[3px]"
                 style={{
-                  color: "var(--wine-on-dark, #E8748A)",
+                  color: "var(--wine-on-dark, #D59FA7)",
                   background: "rgba(255,255,255,0.08)",
                 }}
               >
@@ -600,7 +600,7 @@ export function CalculadoraForm({
         <details className="mt-2.5 group">
           <summary
             className="text-[11.5px] font-semibold cursor-pointer list-none inline-flex items-center gap-1.5 min-h-[44px] transition-colors rounded-[4px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-            style={{ color: "var(--wine-on-dark, #E8748A)" }}
+            style={{ color: "var(--wine-on-dark, #D59FA7)" }}
           >
             <span aria-hidden="true" className="text-[9px] leading-none transition-transform group-open:rotate-90">▶</span>
             ¿Qué incluye tu estimado?
@@ -807,31 +807,32 @@ function BigInput({
 }) {
   // Severidad → tono (alineado al Norte): danger = rojo (bloqueo), info = wine
   // (dato de precio), warning = ámbar (fallback).
-  const warnBorder =
-    warning?.tone === "danger"
-      ? "border-status-danger"
-      : warning?.tone === "info"
-        ? "border-wine"
-        : "border-status-warning";
-  // ⚠️ El texto del tono `info` NO puede usar `text-wine`.
   //
-  // Medido en el navegador el 2026-08-13 sobre esta card navy: `text-wine`
-  // resuelve a #7F0F1A y da **1,57:1** — ilegible, muy por debajo del 4,5:1 que
-  // pide AA (BRAND.md, regla 6). Es el mismo wine que en fondo claro está bien;
-  // acá hay que usar el hermano para fondo oscuro, `--wine-on-dark` (#d59fa7 en
-  // /tarifas → 6,9:1), que es lo que ya usa el resto de este componente.
+  // ⚠️ Ni `info` ni `danger` pueden usar su token crudo acá: los dos son colores
+  // pensados para fondo CLARO y esta card es navy. Medido en el navegador el
+  // 2026-08-13 sobre la card (#16233F, la parada clara de su gradiente):
   //
-  // Va como `style` y no como clase porque el token vive en CSS, no en Tailwind.
-  const warnText =
+  //   tono     token crudo            texto (AA 4,5:1)   borde (AA 3:1)
+  //   danger   #c2353f                 2,88 ✗             2,88 ✗
+  //   info     #7F0F1A (wine)          1,57 ✗             1,47 ✗
+  //   warning  #b8893a (ámbar)         4,96 ✓             4,96 ✓
+  //
+  // El texto pequeño pide 4,5:1 (BRAND.md, regla 6) y el borde 3:1 (WCAG 2.1
+  // §1.4.11: es no-textual, pero SÍ transmite el estado). Sólo el ámbar aguanta
+  // los dos; los otros dos usan sus hermanos para fondo oscuro:
+  // `--wine-on-dark` (#d59fa7 → 6,94:1) y `--danger-on-dark` (#f6929a → 7,05:1).
+  //
+  // Un solo color por tono para el borde Y el texto — antes eran dos ramas
+  // separadas y por eso el borde se quedó atrás cuando se arregló el texto.
+  // Van como `style` y no como clase porque los tokens viven en CSS, no en
+  // Tailwind; el fallback del `var()` cubre a `/tarifas/embed`, que se renderiza
+  // fuera de toda clase de superficie y por tanto sin los alias.
+  const toneColor =
     warning?.tone === "danger"
-      ? "text-status-danger"
+      ? "var(--danger-on-dark, #f6929a)"
       : warning?.tone === "info"
-        ? ""
-        : "text-status-warning";
-  const warnStyle =
-    warning?.tone === "info"
-      ? { color: "var(--wine-on-dark, #E8748A)" }
-      : undefined;
+        ? "var(--wine-on-dark, #D59FA7)"
+        : "var(--color-status-warning, #b8893a)";
   return (
     <label className="flex flex-col gap-1.5 min-w-0">
       <span className="flex items-center gap-2 min-w-0">
@@ -842,7 +843,7 @@ function BigInput({
         {tag && (
           <span
             className="text-[9px] font-bold tracking-[0.06em] uppercase rounded-[5px] px-1.5 py-[2px] whitespace-nowrap"
-            style={{ color: "var(--wine-on-dark, #E8748A)", background: "rgba(255,255,255,0.08)" }}
+            style={{ color: "var(--wine-on-dark, #D59FA7)", background: "rgba(255,255,255,0.08)" }}
           >
             {tag}
           </span>
@@ -850,9 +851,12 @@ function BigInput({
       </span>
       <div
         className={`flex items-center gap-2 rounded-[12px] border px-3.5 h-[60px] transition-colors ${
-          warning ? warnBorder : "border-white/[0.14] focus-within:border-white/40"
+          warning ? "" : "border-white/[0.14] focus-within:border-white/40"
         }`}
-        style={{ background: readOnly ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.04)" }}
+        style={{
+          borderColor: warning ? toneColor : undefined,
+          background: readOnly ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.04)",
+        }}
       >
         {readOnly ? (
           <span className="num flex-1 min-w-0 text-[24px] font-bold text-white truncate">
@@ -870,8 +874,8 @@ function BigInput({
       </div>
       {warning && (
         <span
-          className={`text-[11px] leading-[1.35] font-medium ${warnText}`}
-          style={warnStyle}
+          className="text-[11px] leading-[1.35] font-medium"
+          style={{ color: toneColor }}
         >
           {warning.text}
         </span>
@@ -915,7 +919,7 @@ function CbmPorMedidas({
         onClick={() => onToggle(!open)}
         aria-expanded={open}
         className="self-start inline-flex items-center gap-2 text-[13px] font-bold hover:text-white transition-colors rounded-[4px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-        style={{ color: "var(--wine-on-dark, #E8748A)" }}
+        style={{ color: "var(--wine-on-dark, #D59FA7)" }}
       >
         <span
           aria-hidden="true"
@@ -1289,7 +1293,7 @@ function ResultPanel({
             <span
               className="text-[9.5px] font-bold tracking-[0.08em] uppercase rounded-[6px] px-2 py-[3px]"
               style={{
-                color: "var(--wine-on-dark, #E8748A)",
+                color: "var(--wine-on-dark, #D59FA7)",
                 background: "rgba(255,255,255,0.08)",
               }}
             >
@@ -1368,7 +1372,7 @@ function ResultPanel({
             className="mt-3 rounded-[10px] px-3 py-2.5 text-[12.5px] leading-[1.5]"
             style={{
               background: "rgba(255,255,255,0.08)",
-              border: "1px solid var(--wine-on-dark, #E8748A)",
+              border: "1px solid var(--wine-on-dark, #D59FA7)",
               color: "rgba(255,255,255,0.88)",
             }}
           >
@@ -1421,7 +1425,7 @@ function ResultPanel({
               <span className="flex flex-col min-w-0">
                 <span
                   className="text-[13px] leading-tight"
-                  style={r.accent ? { fontWeight: 600, color: "var(--wine-on-dark, #E8748A)" } : { color: "rgba(255,255,255,0.7)" }}
+                  style={r.accent ? { fontWeight: 600, color: "var(--wine-on-dark, #D59FA7)" } : { color: "rgba(255,255,255,0.7)" }}
                 >
                   {r.label}
                 </span>
@@ -1440,7 +1444,7 @@ function ResultPanel({
                 <span
                   className="num text-[13px] font-bold whitespace-nowrap rounded-[6px] px-2 py-[1px]"
                   style={{
-                    color: "var(--wine-on-dark, #E8748A)",
+                    color: "var(--wine-on-dark, #D59FA7)",
                     background: "rgba(255,255,255,0.08)",
                   }}
                   aria-label="pendiente: falta el peso"
@@ -1465,7 +1469,7 @@ function ResultPanel({
               ) : (
                 <span
                   className="num text-[13px] whitespace-nowrap"
-                  style={r.accent ? { fontWeight: 700, color: "var(--wine-on-dark, #E8748A)" } : { fontWeight: 600, color: "#fff" }}
+                  style={r.accent ? { fontWeight: 700, color: "var(--wine-on-dark, #D59FA7)" } : { fontWeight: 600, color: "#fff" }}
                 >
                   {r.kind === "sub" ? "−" : r.kind === "add" ? "+" : ""}
                   {money(r.value)}
