@@ -30,6 +30,7 @@ export function StageControl({
   etapa,
   stages,
   enCamino,
+  canEdit,
   variant = "chip",
   onDone,
 }: {
@@ -38,6 +39,13 @@ export function StageControl({
   etapa?: string;
   stages: KommoStatusRow[];
   enCamino: boolean;
+  /**
+   * ¿Puede mover, o sólo mirar? Viene de `moduleEditDenial` en la página — el
+   * MISMO predicado que aplica la acción. Es cosmético: el candado real está
+   * en el servidor. Sin esto el que sólo mira ve el control, lo usa, recibe un
+   * error de permiso y aprende que la pantalla no sirve.
+   */
+  canEdit: boolean;
   /**
    * `chip` = la celda Etapa de la tabla (el nombre ES el botón).
    * `card` = la tarjeta del kanban, donde la etapa ya la dice la columna.
@@ -59,6 +67,16 @@ export function StageControl({
     return (
       <Badge tone="info" size="sm" dot>
         En camino
+      </Badge>
+    );
+  }
+
+  // Sin permiso de edición: la etapa se lee, no se toca. En la tarjeta del
+  // kanban la etapa ya la dice la columna, así que no se pinta nada.
+  if (!canEdit) {
+    return variant === "card" ? null : (
+      <Badge tone="neutral" size="sm">
+        {etapa}
       </Badge>
     );
   }

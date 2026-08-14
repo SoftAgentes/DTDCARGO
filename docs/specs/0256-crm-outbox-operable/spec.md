@@ -106,15 +106,28 @@ usan las dos vistas y no puede divergir.
 - **Pendiente de ojos humanos:** el control del Tablero no se vio en pantalla —
   el Studio pide sesión.
 
-## 6. ⚠️ Contradicción abierta con SDD-0087
+## 6. Reasignar asesor: RESUELTO — se hace desde los dos lados
 
-`docs/specs/0087-kommo-users-mirror/spec.md:47` lista, bajo *"Fuera de alcance
-(diferido)"*: **"Reasignar leads / round-robin (eso vive en Kommo, no en el
-ERP)"**. Esta spec construyó `reassignLeadOwnerAction`.
+`docs/specs/0087-kommo-users-mirror/spec.md:47` listaba, bajo *"Fuera de alcance
+(diferido)"*: *"Reasignar leads / round-robin (eso vive en Kommo, no en el
+ERP)"*. Esta spec construyó `reassignLeadOwnerAction` de todos modos, y la
+contradicción quedó abierta.
 
-No se resuelve acá: es decisión del founder. Mientras no se resuelva, el verbo
-queda **sin superficie de UI** — el servidor está listo, pero nadie puede
-dispararlo. Se documenta para que el próximo no lo tome por olvido.
+**Decisión del founder (2026-08-13): se puede reasignar desde el ERP Y desde
+Kommo. Las dos partes.** Esta spec **supersede** esa línea de SDD-0087.
+
+Consecuencias, y por qué no rompen nada:
+
+- El verbo `patch_owner` **se queda** y le toca UI (drawer del lead).
+- **No hay bucle.** El ERP encola → Kommo aplica → el webhook re-espeja. El
+  invariante que lo sostiene es que **nunca se encola write-back desde un evento
+  `update`/`status`** del webhook: `routeNewLeads` sólo actúa en `add`.
+- **No hay carrera con el asesor** que reasigne del otro lado. La columna
+  `kommo_updated_at_at_enqueue` existe desde la 0136 para exactamente esto —
+  si el lead se movió en Kommo desde que se encoló, la orden se marca `skipped`
+  con motivo en vez de pisar. **Hoy la columna se guarda y no se lee**; con la
+  edición bidireccional confirmada, activar ese chequeo deja de ser opcional y
+  pasa a ser prerrequisito de la UI de este verbo.
 
 ## 7. Estado
 
