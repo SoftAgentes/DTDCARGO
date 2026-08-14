@@ -174,7 +174,7 @@ metida dentro de la propia herramienta de verificación.
 | Archivo | Qué hace | Estado |
 |---|---|---|
 | `0376_kommo_writeback_chequeo_optimista.sql` | Tabla `kommo_writeback_echo` + `record_kommo_writeback_echo` + columna `skip_code` + `mark_kommo_writeback_skipped` pasa a 3 args. **Dropea** la firma de 2 args (si no, ambigüedad) | ✅ **APLICADA** 14-ago 21:39 UTC |
-| `0377_kommo_outbox_post_idempotente.sql` | Ops `add_note`/`add_task`, `dedupe_token` + índice único, `enqueue_kommo_writeback` con token, `record_error` cierra los POST. **Dropea** la firma de 5 args | ⏳ esperando OK |
+| `0377_kommo_outbox_post_idempotente.sql` | Ops `add_note`/`add_task`, `dedupe_token` + índice único, `enqueue_kommo_writeback` con token, `record_error` cierra los POST. **Dropea** la firma de 5 args | ✅ **APLICADA** 14-ago 22:0x UTC |
 | `0378_kommo_contact_estado_comercial.sql` | Dos columnas de config en `kommo_connections`. Aditiva pura | ⏳ esperando OK |
 
 **Orden obligatorio: 0376 → 0377 → 0378.** La 0377 usa `skip_code`, que crea la
@@ -187,6 +187,22 @@ cerrado ✔ · **una sola** versión de `mark_kommo_writeback_skipped`, la de 3 
 SELECT sobre el eco ✔. Antes de aplicar se comparó la huella de la función viva
 en prod contra la de la 0136: **idéntica**, nadie la había tocado. La cola estaba
 vacía (0 en vuelo), así que el drop/create no interrumpió ninguna orden.
+
+**Verificación de la 0377 contra el OBJETO**: **una sola** versión de
+`enqueue_kommo_writeback`, la de 6 args (la de 5 se dropeó, sin ambigüedad) ✔ ·
+`dedupe_token` ✔ · índice único **sin filtro de status** ✔ · el CHECK admite
+`add_note`/`add_task` ✔ · `record_kommo_writeback_error` mira la op ✔ ·
+`authenticated` sin EXECUTE ✔ · `skip_code` de la 0376 en pie ✔.
+
+⭐ **Y lo que NO se dio por sentado:** que los tres callers legacy
+(`enqueueKommoWriteback`, `…StageWriteback`, `…MarkboxWriteback`) llaman con **5
+nombres** contra una firma de 6. Se verificó en el catálogo —los 5 nombres
+existen y sólo 4 argumentos son obligatorios— **sin ejecutar la RPC**: llamarla
+de verdad habría creado una fila que dispara un PATCH a Kommo.
+
+Antes de aplicar se comparó la huella de las dos funciones vivas: `enqueue_…`
+traía `kommo_merge_payload` (es la de la 0366) y `record_…error` traía el tope de
+5 intentos (es la de la 0365). Ninguna tocada por otra ventana. Cola vacía.
 
 ## 3b. ⚠️ La colisión de la 0373 y cómo se resolvió
 
@@ -309,8 +325,8 @@ primero, encender después" en vez de vender la feature.
 
 ## 7. Lo que sigue
 
-1. **Tu OK para las dos que faltan**, de a una: `0377_kommo_outbox_post_idempotente`
-   y después `0378_kommo_contact_estado_comercial`. La 0376 ya está aplicada.
+1. **Tu OK para la última**: `0378_kommo_contact_estado_comercial` (aditiva
+   pura: dos columnas de config). La 0376 y la 0377 ya están aplicadas.
 2. **Tu OK para pushear.** ⚠️ El último commit del push tiene que tocar código,
    no sólo `docs/**` — si no, `vercel.json` cancela el deploy en silencio.
 3. **Migraciones antes del deploy** (§3).
