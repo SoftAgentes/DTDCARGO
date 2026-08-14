@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
   lastMileEstimate,
@@ -54,6 +55,13 @@ export function DeliveryAddressesCard({
   // Guard anti doble-click de las acciones por fila (predeterminar/eliminar):
   // mientras una está en vuelo, las demás quedan deshabilitadas.
   const [busy, setBusy] = useState<string | null>(null);
+  // SDD-0262 · borrar una dirección es P2/R2 en MP-01 (soft-delete restaurable,
+  // pero HOY sin UI de restauración → no califica R1), así que la fricción
+  // mínima es un ConfirmDialog que nombre el registro y su consecuencia. Antes
+  // el onClick llamaba la action directo: un clic y la dirección desaparecía
+  // también del portal del cliente.
+  const [aBorrar, setABorrar] = useState<ClientDeliveryAddress | null>(null);
+  const [errorBorrado, setErrorBorrado] = useState<string | null>(null);
 
   // Campos del alta (form controlado, patrón de las cards del módulo). La ciudad
   // sale del catálogo del calculador (Slice C: slug → estimado); "otra" = texto libre.
@@ -230,27 +238,22 @@ export function DeliveryAddressesCard({
                     {busy === `default:${a.id}` ? "Guardando…" : "Predeterminar"}
                   </button>
                 )}
+                {/* SDD-0262 · abre el diálogo; el borrado corre al confirmar.
+                    En `--danger` y no `--ink-soft`: BTN-01 §2 pide variante
+                    destructiva para el rol destructivo, y estaba invertido —
+                    "Predeterminar", que no destruye nada, se veía MÁS que esto. */}
                 <button
                   type="button"
                   className="studio-link-quiet"
                   disabled={busy != null}
-                  onClick={async () => {
+                  onClick={() => {
                     setError(null);
-                    setBusy(`delete:${a.id}`);
-                    try {
-                      const res = await deleteClientAddressAction(markbox, a.id);
-                      if (res.error) setError(res.error);
-                      else {
-                        toast.success(`Dirección eliminada de ${markbox}`);
-                        router.refresh();
-                      }
-                    } finally {
-                      setBusy(null);
-                    }
+                    setErrorBorrado(null);
+                    setABorrar(a);
                   }}
                   style={{
                     font: "600 12px/1 var(--f-sans)",
-                    color: "var(--ink-soft)",
+                    color: "var(--danger)",
                     background: "none",
                     border: 0,
                     cursor: busy != null ? "wait" : "pointer",
@@ -428,6 +431,51 @@ export function DeliveryAddressesCard({
           </div>
         </div>
       )}
+
+      {/* SDD-0262 · MP-01 R2: nombra el registro y su consecuencia. El error de
+          la action queda DENTRO del diálogo y el diálogo no se cierra, para que
+          el asesor no reintente a ciegas. Sin HTD-01: la presión sostenida está
+          reservada a consumidores R3 clasificados, y esto es R2. */}
+      <ConfirmDialog
+        open={aBorrar != null}
+        danger
+        pending={busy === `delete:${aBorrar?.id}`}
+        error={errorBorrado ?? undefined}
+        title="¿Eliminar esta dirección de entrega?"
+        message={
+          aBorrar
+            ? `Se elimina «${aBorrar.label?.trim() || aBorrar.line}» de ${markbox}. ` +
+              `El cliente también deja de verla en su portal.` +
+              (aBorrar.isDefault
+                ? " Es la dirección PREDETERMINADA: la operación la usa para la entrega."
+                : "")
+            : ""
+        }
+        confirmLabel="Eliminar dirección"
+        cancelLabel="Cancelar"
+        onCancel={() => {
+          setABorrar(null);
+          setErrorBorrado(null);
+        }}
+        onConfirm={async () => {
+          if (!aBorrar) return;
+          const objetivo = aBorrar;
+          setErrorBorrado(null);
+          setBusy(`delete:${objetivo.id}`);
+          try {
+            const res = await deleteClientAddressAction(markbox, objetivo.id);
+            if (res.error) {
+              setErrorBorrado(res.error);
+              return; // el diálogo QUEDA abierto con el motivo a la vista
+            }
+            setABorrar(null);
+            toast.success(`Dirección eliminada de ${markbox}`);
+            router.refresh();
+          } finally {
+            setBusy(null);
+          }
+        }}
+      />
     </section>
   );
 }
