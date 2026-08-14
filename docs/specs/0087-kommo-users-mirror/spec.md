@@ -44,7 +44,11 @@ worklist ya lo renderizan. Cambia el contenido del label, no los componentes.
 
 ## Fuera de alcance (diferido)
 - Mostrar email/foto del asesor, o una vista de "equipo". Solo el nombre, donde ya se usa el id.
-- Reasignar leads / round-robin (eso vive en Kommo, no en el ERP).
+- ~~Reasignar leads / round-robin (eso vive en Kommo, no en el ERP).~~
+  **Superado por [SDD-0256](../0256-crm-outbox-operable/spec.md) §6** — decisión
+  del founder del 2026-08-13: **reasignar se hace desde los DOS lados**, ERP y
+  Kommo. El round-robin automático sigue fuera de alcance; lo que cambia es la
+  reasignación manual desde el ERP.
 
 ## Criterios de aceptación
 - [ ] `node scripts/verify.mjs` verde (incl. test del cruce id→nombre + fallback en `ownershipDistribution`).
