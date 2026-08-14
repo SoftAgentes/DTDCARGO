@@ -807,33 +807,32 @@ function BigInput({
 }) {
   // Severidad → tono (alineado al Norte): danger = rojo (bloqueo), info = wine
   // (dato de precio), warning = ámbar (fallback).
-  const warnBorder =
-    warning?.tone === "danger"
-      ? "border-status-danger"
-      : warning?.tone === "info"
-        ? "border-wine"
-        : "border-status-warning";
+  //
   // ⚠️ Ni `info` ni `danger` pueden usar su token crudo acá: los dos son colores
-  // pensados para fondo CLARO y esta card es navy.
+  // pensados para fondo CLARO y esta card es navy. Medido en el navegador el
+  // 2026-08-13 sobre la card (#16233F, la parada clara de su gradiente):
   //
-  // Medido en el navegador el 2026-08-13 sobre esta card (#16233F, la parada
-  // clara de su gradiente):
-  //   · `text-wine` (#7F0F1A) → **1,57:1** — ilegible.
-  //   · `text-status-danger` (#c2353f) → **2,88:1** — reprueba, y es el peor
-  //     sitio para que pase: son los mensajes que BLOQUEAN la cotización.
-  // Ambos por debajo del 4,5:1 que pide AA (BRAND.md, regla 6). Se usan los
-  // hermanos para fondo oscuro: `--wine-on-dark` (#d59fa7 → 7,0:1) y
-  // `--danger-on-dark` (#f6929a → 7,05:1).
+  //   tono     token crudo            texto (AA 4,5:1)   borde (AA 3:1)
+  //   danger   #c2353f                 2,88 ✗             2,88 ✗
+  //   info     #7F0F1A (wine)          1,57 ✗             1,47 ✗
+  //   warning  #b8893a (ámbar)         4,96 ✓             4,96 ✓
   //
+  // El texto pequeño pide 4,5:1 (BRAND.md, regla 6) y el borde 3:1 (WCAG 2.1
+  // §1.4.11: es no-textual, pero SÍ transmite el estado). Sólo el ámbar aguanta
+  // los dos; los otros dos usan sus hermanos para fondo oscuro:
+  // `--wine-on-dark` (#d59fa7 → 6,94:1) y `--danger-on-dark` (#f6929a → 7,05:1).
+  //
+  // Un solo color por tono para el borde Y el texto — antes eran dos ramas
+  // separadas y por eso el borde se quedó atrás cuando se arregló el texto.
   // Van como `style` y no como clase porque los tokens viven en CSS, no en
-  // Tailwind. El `warning` (ámbar) sí se queda en clase: su token ya es legible.
-  const warnText = warning?.tone === "warning" ? "text-status-warning" : "";
-  const warnStyle =
+  // Tailwind; el fallback del `var()` cubre a `/tarifas/embed`, que se renderiza
+  // fuera de toda clase de superficie y por tanto sin los alias.
+  const toneColor =
     warning?.tone === "danger"
-      ? { color: "var(--danger-on-dark, #f6929a)" }
+      ? "var(--danger-on-dark, #f6929a)"
       : warning?.tone === "info"
-        ? { color: "var(--wine-on-dark, #E8748A)" }
-        : undefined;
+        ? "var(--wine-on-dark, #E8748A)"
+        : "var(--color-status-warning, #b8893a)";
   return (
     <label className="flex flex-col gap-1.5 min-w-0">
       <span className="flex items-center gap-2 min-w-0">
@@ -852,9 +851,12 @@ function BigInput({
       </span>
       <div
         className={`flex items-center gap-2 rounded-[12px] border px-3.5 h-[60px] transition-colors ${
-          warning ? warnBorder : "border-white/[0.14] focus-within:border-white/40"
+          warning ? "" : "border-white/[0.14] focus-within:border-white/40"
         }`}
-        style={{ background: readOnly ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.04)" }}
+        style={{
+          borderColor: warning ? toneColor : undefined,
+          background: readOnly ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.04)",
+        }}
       >
         {readOnly ? (
           <span className="num flex-1 min-w-0 text-[24px] font-bold text-white truncate">
@@ -872,8 +874,8 @@ function BigInput({
       </div>
       {warning && (
         <span
-          className={`text-[11px] leading-[1.35] font-medium ${warnText}`}
-          style={warnStyle}
+          className="text-[11px] leading-[1.35] font-medium"
+          style={{ color: toneColor }}
         >
           {warning.text}
         </span>
