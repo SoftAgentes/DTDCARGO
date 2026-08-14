@@ -69,6 +69,25 @@ export default async function PortalProfilePage() {
   ]);
   const calcDestinos = combinarDestinos(calcCities, calcTariffs);
 
+  // Códigos que este cliente TUVO (SDD-0258). Se leen con el ADMIN client y
+  // SCOPEADO por `client.id` —el cliente resuelto por sesión, nunca por un
+  // parámetro— porque la RLS de `client_markbox_history` es para el equipo, no
+  // para el portal. Best-effort: si la migr 0367 no está, lista vacía.
+  //
+  // Se le muestra porque le sirve de verdad: su proveedor en China puede tener
+  // el código viejo rotulado, y necesita saber que esa caja llega igual.
+  let codigosAnteriores: string[] = [];
+  try {
+    const { data } = await createAdminClient()
+      .from("client_markbox_history")
+      .select("markbox")
+      .eq("client_id", client.id)
+      .order("retired_at", { ascending: false });
+    codigosAnteriores = (data ?? []).map((r) => String(r.markbox));
+  } catch {
+    codigosAnteriores = [];
+  }
+
   // Fotos del bucket privado (avatar cosmético + cédula de verificación):
   // signed URLs server-side con el ADMIN client, scopeado al cliente resuelto
   // por sesión. Best-effort: sin columna/archivo → null, sin romper.
@@ -186,6 +205,40 @@ export default async function PortalProfilePage() {
             >
               Tu Shipping Mark. Identifica tus cajas en nuestra bodega de Yiwu.
             </p>
+
+            {/* SDD-0258: si su código cambió, lo primero que necesita saber es
+                que el viejo NO dejó de servir — su proveedor en China pudo
+                haber rotulado con él. Sin historial esto no ocupa nada. */}
+            {codigosAnteriores.length > 0 && (
+              <div
+                className="mt-3.5 border-t pt-3"
+                style={{ borderColor: "var(--hero-soft, var(--color-grey-200))", opacity: 0.9 }}
+              >
+                <div
+                  className="text-[10px] font-bold tracking-[0.14em] uppercase"
+                  style={{ color: "var(--hero-accent, var(--color-paper))" }}
+                >
+                  {codigosAnteriores.length === 1 ? "Tu código anterior" : "Tus códigos anteriores"}
+                </div>
+                <div
+                  className="mt-1.5 text-[15px] leading-tight"
+                  style={{
+                    fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
+                    color: "var(--hero-ink, var(--color-paper))",
+                    letterSpacing: "0.02em",
+                  }}
+                >
+                  {codigosAnteriores.join(" · ")}
+                </div>
+                <p
+                  className="mt-1.5 text-[11.5px] leading-[1.45]"
+                  style={{ color: "var(--hero-soft, var(--color-grey-200))" }}
+                >
+                  Siguen funcionando. Si tu proveedor rotuló una caja con
+                  {codigosAnteriores.length === 1 ? " él" : " alguno"}, llega igual.
+                </p>
+              </div>
+            )}
           </div>
 
           <CopyCodeButton markbox={client.markbox} />

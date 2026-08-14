@@ -34,7 +34,7 @@ import { ClientDetailClient } from "../_components/ClientDetailClient";
 import { PortalAccessCard } from "../_components/PortalAccessCard";
 import { AdvisorAssignCard } from "../_components/AdvisorAssignCard";
 import { AliadoCard } from "../_components/AliadoCard";
-import { ShippingMarkCard } from "../_components/ShippingMarkCard";
+import { ShippingMarkChip } from "../_components/ShippingMarkChip";
 import { getAliadoByClientId, listAliadoOptions } from "@/lib/studio/aliados/aliado-queries";
 import { listMarkboxHistory } from "@/lib/studio/markbox-history-queries";
 import type { MarkboxHistoryEntry } from "@/lib/studio/markbox-history-types";
@@ -235,19 +235,15 @@ export default async function ClienteDetallePage({
               marginBottom: 8,
             }}
           >
-            <span
-              style={{
-                font: "800 18px/1 var(--f-mono)",
-                color: "var(--ink)",
-                letterSpacing: "0.02em",
-                padding: "8px 14px",
-                background: "var(--bg-elevated)",
-                borderRadius: "var(--r-md)",
-                border: "1px solid var(--border)",
-              }}
-            >
-              {client.markbox}
-            </span>
+            {/* SDD-0258: el Shipping Mark es la IDENTIDAD del cliente, así que
+                vive en la cabecera y no en una tarjeta al fondo. El historial
+                cuelga de acá y no ocupa nada cuando está vacío. */}
+            <ShippingMarkChip
+              clientId={client.id}
+              markbox={client.markbox}
+              historial={markboxHistory}
+              canEdit={puedeEditarClientes}
+            />
             <h1
               className="studio-display"
               style={{
@@ -502,21 +498,6 @@ export default async function ClienteDetallePage({
             advisors={advisors}
           />
 
-          <ShippingMarkCard
-            clientId={client.id}
-            markbox={client.markbox}
-            historial={markboxHistory}
-            canEdit={puedeEditarClientes}
-          />
-
-          <AliadoCard
-            clientId={client.id}
-            clientName={client.name}
-            markbox={client.markbox}
-            aliado={aliado}
-            aliados={aliadoOptions}
-            canEdit={puedeEditarClientes}
-          />
 
           <DeliveryAddressesCard
             clientId={client.id}
@@ -564,6 +545,20 @@ export default async function ClienteDetallePage({
             />
           </section>
           </div>
+
+          {/* Columna derecha: la ANCHA (1.6fr). Antes sólo traía el histórico de
+              envíos y quedaba medio vacía mientras todo se apilaba a la
+              izquierda; ahora también lleva lo del aliado, que es donde de
+              verdad hace falta espacio para las sub-insignias y el acuerdo. */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          <AliadoCard
+            clientId={client.id}
+            clientName={client.name}
+            markbox={client.markbox}
+            aliado={aliado}
+            aliados={aliadoOptions}
+            canEdit={puedeEditarClientes}
+          />
 
           {/* Histórico de envíos */}
           <section
@@ -662,6 +657,7 @@ export default async function ClienteDetallePage({
               </div>
             )}
           </section>
+          </div>
         </div>
       </ClientDetailClient>
     </div>
