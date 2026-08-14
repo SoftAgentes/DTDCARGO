@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { escribir } from "./_helpers/escribir";
 
 /**
  * SDD-0259 · el evento anónimo sale al tocar el CTA, y no lleva nada personal.
@@ -24,8 +25,8 @@ test.describe("SDD-0259 · telemetría de la calculadora", () => {
 
     await page.goto("/tarifas");
     const panel = page.locator("#panel-ddp");
-    await panel.locator('input[placeholder="12"]').fill("12");
-    await panel.locator('input[placeholder="4800"]').fill("4800");
+    await escribir(panel.locator('input[placeholder="12"]'), "12");
+    await escribir(panel.locator('input[placeholder="4800"]'), "4800");
 
     // El CTA es un <a> a wa.me: se bloquea la navegación para no abrir WhatsApp.
     await page.route("**/wa.me/**", (route) => route.abort());
@@ -67,7 +68,7 @@ test.describe("SDD-0259 · telemetría de la calculadora", () => {
 
     await page.goto("/tarifas");
     const panel = page.locator("#panel-ddp");
-    await panel.locator('input[placeholder="12"]').fill("12");
+    await escribir(panel.locator('input[placeholder="12"]'), "12");
     await expect(panel).toContainText(/Desde/);
 
     await panel.locator('a[href*="wa.me"]').click({ noWaitAfter: true });
