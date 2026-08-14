@@ -115,6 +115,11 @@ export function ClientsClient({
           <Link href="/studio/clientes/duplicados" className="studio-btn studio-btn-ghost">
             Posibles duplicados
           </Link>
+          {/* SDD-0258: las fichas que todavía llevan la serie de VENDEDOR del
+              legado (DTD-A101, DTD-j029…) y se pasan a la serie de la casa. */}
+          <Link href="/studio/clientes/migrar-legado" className="studio-btn studio-btn-ghost">
+            Códigos del legado
+          </Link>
           <button
             type="button"
             className="studio-btn studio-btn-primary"

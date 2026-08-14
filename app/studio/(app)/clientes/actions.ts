@@ -29,6 +29,10 @@ import {
 } from "@/lib/studio/aliados/aliado-types";
 import { parseMarkbox } from "@/lib/shared/markbox-chain";
 import {
+  parseLoteResult,
+  type LoteLegadoActionState,
+} from "@/lib/studio/markbox-legacy-types";
+import {
   validateNuevoMarkbox,
   type RenameMarkboxActionState,
 } from "@/lib/studio/markbox-history-types";
@@ -989,6 +993,55 @@ function mensajeDeErrorRenombrado(error: { code?: string; message: string }): st
     return "No se encontró ese cliente.";
   }
   return `No se pudo cambiar el Shipping Mark: ${error.message}`;
+}
+
+/**
+ * Migración por lote de los códigos del legado (SDD-0258, migr 0369).
+ *
+ * Un solo camino para simular y para ejecutar, con la misma función de la base:
+ * lo que se previsualiza es exactamente lo que se va a correr. Si la simulación
+ * la hiciera otra consulta, podría desincronizarse del ejecutor y el operador
+ * estaría aprobando algo distinto de lo que pasa.
+ */
+export async function loteLegadoAction(
+  batch: number,
+  ejecutar: boolean,
+): Promise<LoteLegadoActionState> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "clients");
+  if (denial) return { error: denial };
+
+  if (!Number.isInteger(batch) || batch < 1 || batch > 500) {
+    return { error: "El tamaño del lote va entre 1 y 500." };
+  }
+
+  const { data, error } = await supabase.rpc("rename_legacy_markboxes", {
+    p_batch: batch,
+    p_dry_run: !ejecutar,
+    p_reason: "migración del código de vendedor a la serie de la casa",
+  });
+
+  if (error) {
+    if (error.code === "42501") {
+      return {
+        error:
+          "Un lote sólo lo puede correr un administrador. El renombrado de a uno sí lo puede hacer comercial u operaciones.",
+      };
+    }
+    return { error: `No se pudo correr el lote: ${error.message}` };
+  }
+
+  const result = parseLoteResult(data);
+  if (!result) return { error: "La base respondió algo que no se pudo leer." };
+
+  if (ejecutar) {
+    // Cada ficha migrada cambia su propia ruta, y el listado muestra los códigos.
+    revalidatePath("/studio/clientes");
+    revalidatePath("/studio/clientes/migrar-legado");
+  }
+
+  return { ok: true, result };
 }
 
 /**

@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { escribir } from "./_helpers/escribir";
 
 /**
  * SDD-0257 · la calculadora cotiza SIN el peso.
@@ -32,7 +33,7 @@ test.describe("SDD-0257 · precio sin el peso", () => {
     await expect(panel).toContainText(/Ingresa tu CBM para ver el estimado/i);
     await expect(panel).not.toContainText(/Ingresa tu CBM y peso/i);
 
-    await cbm.fill("12");
+    await escribir(cbm, "12");
     await expect(peso).toHaveValue("");
 
     // 12 m³ × $800 = $9.600. Se afirma el número: si el precio deja de salir,
@@ -64,10 +65,10 @@ test.describe("SDD-0257 · precio sin el peso", () => {
     await page.goto("/tarifas");
 
     const panel = page.locator("#panel-ddp");
-    await panel.locator('input[placeholder="12"]').fill("12");
+    await escribir(panel.locator('input[placeholder="12"]'), "12");
     await expect(panel).toContainText(/Desde/);
 
-    await panel.locator('input[placeholder="4800"]').fill("4800");
+    await escribir(panel.locator('input[placeholder="4800"]'), "4800");
 
     // 4.800 kg en 12 m³ no llega al techo → mismo total, pero ya es precio
     // cerrado: se van el "Desde", la píldora y la fila fantasma.
@@ -92,13 +93,13 @@ test.describe("SDD-0257 · precio sin el peso", () => {
 
     // 4 m³ × $580 = $2.320, techo 4 × 1.000 = 4.000 kg (por debajo del tope
     // por envío, así que acá manda el recargo por densidad).
-    await cbm.fill("4");
+    await escribir(cbm, "4");
     await expect(panel).toContainText("2,320");
     await expect(panel).toContainText(/hasta 4\.000 kg/);
 
     // Por debajo de 1 m³ NO cotiza, con peso o sin él: el BL propio es un gasto
     // fijo que no baja con el volumen. Eso no lo relajó SDD-0257.
-    await cbm.fill("0,5");
+    await escribir(cbm, "0,5");
     await expect(panel).not.toContainText(/Desde/);
     await expect(panel).toContainText(/asesor/i);
   });
