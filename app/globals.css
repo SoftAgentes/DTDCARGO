@@ -1708,12 +1708,14 @@
   --f-brand-display: var(--font-archivo-black);
   --f-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
   /* Rojo de peligro legible sobre navy (ver --color-status-danger-on-dark al
-     tope). Va en el puente COMPARTIDO y no por superficie como --wine-on-dark:
-     lo consume la calculadora, que se renderiza en más de una superficie.
-     ⚠️ No escribas la palabra "theme" precedida de arroba dentro de un
-     comentario de este archivo: Tailwind la lee aunque esté comentada y se
-     descarta la declaración que sigue (medido el 2026-08-13 — el alias
-     desaparecía del CSS compilado sin ningún error). */
+     tope). Va en el puente COMPARTIDO y no por superficie como --wine-on-dark
+     por dos razones: lo consume la calculadora, que se renderiza en más de una
+     superficie; y Tailwind v4 **poda los tokens del bloque de tema que no se
+     referencian desde este archivo** — con el alias sólo en `recursos.css`, el
+     `--color-status-danger-on-dark` no llegaba a emitirse y el `var()` del
+     componente caía a su fallback. Medido aislando la variable el 2026-08-13:
+     al cambiar esta línea por un valor que no referencia el token, el token
+     desaparece de `:root`. */
   --danger-on-dark: var(--color-status-danger-on-dark);
   /* Superficies → tokens del sitio */
   --bg-base: var(--color-paper);
