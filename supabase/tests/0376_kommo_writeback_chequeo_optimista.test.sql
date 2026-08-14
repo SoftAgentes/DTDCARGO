@@ -1,6 +1,6 @@
 \set ON_ERROR_STOP on
 
--- Contrato desechable de la migración 0373 (SDD-0256 · Fase 4 · A1).
+-- Contrato desechable de la migración 0376 (SDD-0256 · Fase 4 · A1).
 -- Fixtures ficticios + rollback. Carga la migración REAL con `\i`: un contrato
 -- que reimplementa el DDL deja de medir el archivo que se aplica.
 --
@@ -54,7 +54,7 @@ returns void language sql as $$
 $$;
 
 -- ── La migración bajo prueba ────────────────────────────────────────────────
-\i /sb/migrations/0373_kommo_writeback_chequeo_optimista.sql
+\i /sb/migrations/0376_kommo_writeback_chequeo_optimista.sql
 
 -- ── 1) ⭐ La firma vieja NO puede seguir viva: dos candidatas = ambigüedad ───
 do $una_sola$

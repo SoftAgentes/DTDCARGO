@@ -5,7 +5,7 @@
  *
  * Reasignar asesor y etiquetar tenían la cadena de servidor COMPLETA —RBAC,
  * validación, payload probado, encolado, nudge— y **cero** consumidores desde
- * agosto. Notas y tareas eran imposibles hasta la 0374. Los cuatro viven acá.
+ * agosto. Notas y tareas eran imposibles hasta la 0377. Los cuatro viven acá.
  *
  * ── Un formulario a la vez, a propósito ─────────────────────────────────────
  * El patrón del Studio es `<form id="X">` en el cuerpo + `<button type="submit"
@@ -20,7 +20,7 @@
  *   · doble clic sobre el mismo texto → mismo token → UNA nota.
  *   · dos notas distintas seguidas    → dos tokens  → DOS notas.
  * Sin eso, la clave `<leadId>:<op>` colapsaría las dos notas en una fila y la
- * primera se perdería sin error (migración 0374).
+ * primera se perdería sin error (migración 0377).
  */
 
 import { useState, useTransition } from "react";

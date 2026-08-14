@@ -1,4 +1,4 @@
--- 0375_kommo_contact_estado_comercial.sql
+-- 0378_kommo_contact_estado_comercial.sql
 --
 -- CRM · SDD-0256 · Fase 5 (B4) — el agente de IA de Kommo deja de contestar a ciegas.
 --
@@ -32,7 +32,7 @@ set statement_timeout = '60s';
 do $preflight$
 begin
   if to_regclass('public.kommo_connections') is null then
-    raise exception '0375 requiere public.kommo_connections (migración 0043)';
+    raise exception '0378 requiere public.kommo_connections (migración 0043)';
   end if;
 end;
 $preflight$;

@@ -159,7 +159,7 @@ describe("los verbos del drawer están en las dos vistas", () => {
 
   it("⭐ las ops que CREAN llevan token de idempotencia", () => {
     // Sin token, dos notas distintas colapsan en una fila por la clave
-    // `<leadId>:<op>` y la primera se pierde sin error (migración 0374).
+    // `<leadId>:<op>` y la primera se pierde sin error (migración 0377).
     const code = read(`${DIR}/LeadDrawer.tsx`);
     expect(code).toContain("randomUUID");
     expect(code).toMatch(/addLeadNoteAction\([^)]*token/s);

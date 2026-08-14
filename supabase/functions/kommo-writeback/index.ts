@@ -268,7 +268,7 @@ Deno.serve(async (req: Request) => {
         const detail = e instanceof Error ? e.message : String(e);
         // `record_…` y NO `bump_…`: el intento ya lo contó el claim. Bumpear acá
         // contaría doble cada reintento y la fila se rendiría a los 2-3 tries.
-        // Desde la 0374, `record_…` manda los POST directo a `error`: repetir un
+        // Desde la 0377, `record_…` manda los POST directo a `error`: repetir un
         // POST crea otra nota.
         await supabase.rpc("record_kommo_writeback_error", { p_id: row.id, p_error: detail });
         failed++;

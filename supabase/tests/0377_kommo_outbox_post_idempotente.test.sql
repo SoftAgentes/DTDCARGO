@@ -1,10 +1,10 @@
 \set ON_ERROR_STOP on
 
--- Contrato desechable de la migración 0374 (SDD-0256 · Fase 5 · B2 + B3).
+-- Contrato desechable de la migración 0377 (SDD-0256 · Fase 5 · B2 + B3).
 --
 -- Valida con MUTACIÓN en el sentido fuerte, igual que el de la 0366: primero
 -- REPRODUCE el colapso de dos notas distintas en una sola fila con la clave
--- anterior —y falla si NO se reproduce— y recién después aplica la 0374.
+-- anterior —y falla si NO se reproduce— y recién después aplica la 0377.
 --
 -- Carga las migraciones REALES con `\i`. Lo único inline es la tabla, que es el
 -- fixture.
@@ -55,7 +55,7 @@ $$;
 \i /sb/migrations/0364_kommo_outbox_fusiona_payload.sql
 \i /sb/migrations/0365_kommo_outbox_claim.sql
 \i /sb/migrations/0366_kommo_outbox_fusiona_arrays.sql
-\i /sb/migrations/0373_kommo_writeback_chequeo_optimista.sql
+\i /sb/migrations/0376_kommo_writeback_chequeo_optimista.sql
 
 -- ── 1) ⭐ EL BUG EXISTE: dos notas DISTINTAS colapsan en una sola fila ───────
 --
@@ -93,7 +93,7 @@ $bug$;
 delete from public.kommo_writeback_outbox;
 
 -- ── La migración bajo prueba ────────────────────────────────────────────────
-\i /sb/migrations/0374_kommo_outbox_post_idempotente.sql
+\i /sb/migrations/0377_kommo_outbox_post_idempotente.sql
 
 -- ── 2) Las ops nuevas se aceptan; una inventada NO ─────────────────────────
 do $ops$

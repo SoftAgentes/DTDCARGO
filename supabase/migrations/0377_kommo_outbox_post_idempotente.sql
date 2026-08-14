@@ -1,4 +1,4 @@
--- 0374_kommo_outbox_post_idempotente.sql
+-- 0377_kommo_outbox_post_idempotente.sql
 --
 -- CRM · SDD-0256 · Fase 5 (B2 + B3) — la cola aprende a llevar POST sin duplicar.
 --
@@ -41,10 +41,10 @@ set statement_timeout = '60s';
 do $preflight$
 begin
   if to_regclass('public.kommo_writeback_outbox') is null then
-    raise exception '0374 requiere public.kommo_writeback_outbox (migración 0136)';
+    raise exception '0377 requiere public.kommo_writeback_outbox (migración 0136)';
   end if;
   if to_regprocedure('public.kommo_merge_payload(jsonb, jsonb)') is null then
-    raise exception '0374 requiere public.kommo_merge_payload (migración 0366)';
+    raise exception '0377 requiere public.kommo_merge_payload (migración 0366)';
   end if;
 end;
 $preflight$;

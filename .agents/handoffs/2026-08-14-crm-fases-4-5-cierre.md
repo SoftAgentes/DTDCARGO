@@ -19,11 +19,11 @@ y se guardaba sin que nadie la leyera.
 |---|---|
 | La comparación (pura) | `supabase/functions/_shared/kommo-writeback-plan.ts:141` (`evaluarChequeoOptimista`) |
 | El I/O del drenaje | `supabase/functions/kommo-writeback/index.ts:189` |
-| El eco + `skip_code` | `supabase/migrations/0373_kommo_writeback_chequeo_optimista.sql` |
+| El eco + `skip_code` | `supabase/migrations/0376_kommo_writeback_chequeo_optimista.sql` |
 | Lectura para la UI | `lib/studio/kommo-writeback.ts:637` (`getStaleOpsByLead`) |
 | El aviso en pantalla | `app/studio/(app)/crm/_components/LeadDrawer.tsx:257` (`AvisoFrenado`) |
 | Reintentar | `app/studio/(app)/crm/actions.ts:604` (`retryStaleWritebackAction`) |
-| Contrato SQL | `supabase/tests/0373_kommo_writeback_chequeo_optimista.test.sql` |
+| Contrato SQL | `supabase/tests/0376_kommo_writeback_chequeo_optimista.test.sql` |
 
 ⭐ **El eco es la parte que no estaba en el pedido y sin la cual el chequeo se
 rompe solo.** El snapshot sale del espejo, que se llena por webhook. Cuando el
@@ -60,9 +60,9 @@ componentes reales. Capturas entregadas.
 | # | Qué | Dónde |
 |---|---|---|
 | B1 | `resolveRequest(row) → {path, method, envolverEnArray}` | `_shared/kommo-writeback-plan.ts:58` |
-| B2 | Token de idempotencia para POST | `0374_kommo_outbox_post_idempotente.sql` |
+| B2 | Token de idempotencia para POST | `0377_kommo_outbox_post_idempotente.sql` |
 | B3 | `add_note` + `add_task` | `actions.ts:498`, `actions.ts:534`; payloads en `lib/studio/kommo-writeback.ts:97` |
-| B4 | Estado comercial al contacto | `lib/studio/kommo-contact-status.ts`, `app/api/cron/kommo-contact-status/route.ts`, `0375_…sql` |
+| B4 | Estado comercial al contacto | `lib/studio/kommo-contact-status.ts`, `app/api/cron/kommo-contact-status/route.ts`, `0378_…sql` |
 
 **B1** — el método se **deriva de la op**, sin columna `http_method`: así el par
 incoherente `(add_note, PATCH)` no se puede ni representar.
@@ -80,7 +80,7 @@ lo dejé como estaba, a propósito**: extenderlo a `processing` sería un retroc
 fila saldría `sent` con el valor viejo, que es la pérdida silenciosa que cerró la
 0364—. Hoy se abre una fila nueva y Kommo termina en el estado que el asesor pidió
 último; repetir un PATCH es inocuo. El hueco real de `processing` era el de POST.
-Está razonado en la cabecera de la 0374 y en la spec §5.
+Está razonado en la cabecera de la 0377 y en la spec §5.
 
 **B3** — `complete_till` en epoch de **segundos**. Hay un test que cuenta los
 dígitos (10, no 13): en milisegundos el vencimiento cae en el año 57.000, Kommo
@@ -89,7 +89,7 @@ que nadie mira.
 
 **El reaper falla cerrado: confirmado, no asumido.** Ya estaba probado en
 `supabase/tests/0365_kommo_outbox_claim.test.sql:147`, pero **abriendo el CHECK a
-mano** porque `add_note` no existía. Ahora existe: el contrato de la 0374 (§9) lo
+mano** porque `add_note` no existía. Ahora existe: el contrato de la 0377 (§9) lo
 mide con las ops reales (`add_note` y `add_task` → `error`; `patch_stage` →
 `pending`).
 
@@ -131,13 +131,13 @@ abajo.
 
 | # | Mutación | Resultado |
 |---|---|---|
-| M6 | 0373: se borra el `where` del upsert del eco | 🟢 **VERDE — no discriminó** |
-| M6b | 0373: se borra el `greatest()` **y** el `where` | 🔴 `EL ECO RETROCEDIO a 2026-08-14 11:00` |
-| M7 | 0373: no se dropea la firma vieja de `mark_..._skipped` | 🔴 `quedaron 2 versiones… seria ambigua` |
-| M8 | 0374: el enqueue ignora el token (= la clave de hoy) | 🔴 `dos notas distintas debian dejar 2 filas, dejaron 1` |
-| M9 | 0374: `record_error` no mira la op (= la 0365) | 🔴 `un POST fallido quedo en pending… Kommo terminaria con DOS notas` |
-| M10 | 0374: el índice del token filtra por status | 🔴 `no unique or exclusion constraint matching` |
-| M10b | 0374: índice **y** on-conflict filtran por status | 🔴 `con la nota YA ENVIADA, el mismo token creo otra fila` |
+| M6 | 0376: se borra el `where` del upsert del eco | 🟢 **VERDE — no discriminó** |
+| M6b | 0376: se borra el `greatest()` **y** el `where` | 🔴 `EL ECO RETROCEDIO a 2026-08-14 11:00` |
+| M7 | 0376: no se dropea la firma vieja de `mark_..._skipped` | 🔴 `quedaron 2 versiones… seria ambigua` |
+| M8 | 0377: el enqueue ignora el token (= la clave de hoy) | 🔴 `dos notas distintas debian dejar 2 filas, dejaron 1` |
+| M9 | 0377: `record_error` no mira la op (= la 0365) | 🔴 `un POST fallido quedo en pending… Kommo terminaria con DOS notas` |
+| M10 | 0377: el índice del token filtra por status | 🔴 `no unique or exclusion constraint matching` |
+| M10b | 0377: índice **y** on-conflict filtran por status | 🔴 `con la nota YA ENVIADA, el mismo token creo otra fila` |
 
 🔴 **M6 es el hallazgo de proceso de esta sesión.** Borré el `where` del upsert
 del eco esperando rojo y salió **verde**. El motivo: el `greatest()` ya impide el
@@ -167,18 +167,50 @@ metida dentro de la propia herramienta de verificación.
 
 ---
 
-## 3. Migraciones — **preparadas, esperando tu OK**
+## 3. Migraciones
 
-Ninguna aplicada. Autorizaste "preparadas, aplicar al final, de a una".
+⚠️ **Se renumeraron por una colisión.** Ver §3b.
 
-| Archivo | Qué hace | Riesgo |
+| Archivo | Qué hace | Estado |
 |---|---|---|
-| `0373_kommo_writeback_chequeo_optimista.sql` | Tabla `kommo_writeback_echo` + `record_kommo_writeback_echo` + columna `skip_code` + `mark_kommo_writeback_skipped` pasa a 3 args | **Dropea** la firma de 2 args (si no, ambigüedad). Los callers de 2 args siguen andando: hay test |
-| `0374_kommo_outbox_post_idempotente.sql` | Ops `add_note`/`add_task`, `dedupe_token` + índice único, `enqueue_kommo_writeback` con token, `record_error` cierra los POST | **Dropea** la firma de 5 args de `enqueue_kommo_writeback` y crea la de 6 con default |
-| `0375_kommo_contact_estado_comercial.sql` | Dos columnas de config en `kommo_connections` | Aditiva pura |
+| `0376_kommo_writeback_chequeo_optimista.sql` | Tabla `kommo_writeback_echo` + `record_kommo_writeback_echo` + columna `skip_code` + `mark_kommo_writeback_skipped` pasa a 3 args. **Dropea** la firma de 2 args (si no, ambigüedad) | ✅ **APLICADA** 14-ago 21:39 UTC |
+| `0377_kommo_outbox_post_idempotente.sql` | Ops `add_note`/`add_task`, `dedupe_token` + índice único, `enqueue_kommo_writeback` con token, `record_error` cierra los POST. **Dropea** la firma de 5 args | ⏳ esperando OK |
+| `0378_kommo_contact_estado_comercial.sql` | Dos columnas de config en `kommo_connections`. Aditiva pura | ⏳ esperando OK |
 
-**Orden obligatorio: 0373 → 0374 → 0375.** La 0374 usa `skip_code`, que crea la
-0373.
+**Orden obligatorio: 0376 → 0377 → 0378.** La 0377 usa `skip_code`, que crea la
+0376.
+
+**Verificación de la 0376 contra el OBJETO** (no contra el nombre): tabla del eco
+con RLS ✔ · RPC del eco ✔ · columna `skip_code` con su CHECK de vocabulario
+cerrado ✔ · **una sola** versión de `mark_kommo_writeback_skipped`, la de 3 args
+(la vieja se dropeó, sin ambigüedad) ✔ · `anon`/`authenticated` sin EXECUTE y sin
+SELECT sobre el eco ✔. Antes de aplicar se comparó la huella de la función viva
+en prod contra la de la 0136: **idéntica**, nadie la había tocado. La cola estaba
+vacía (0 en vuelo), así que el drop/create no interrumpió ninguna orden.
+
+## 3b. ⚠️ La colisión de la 0373 y cómo se resolvió
+
+Corrí `pnpm sdd:next` al empezar y me dio 0373. Entre numerar y aplicar pasaron
+~5 horas, y en el medio la ventana del lote legado aplicó **y pusheó** 0371, 0372
+y `0373_lote_legado_con_nombre`. Al aplicar quedaron **dos 0373 aplicadas**, y la
+suya ya estaba en `main`. Es exactamente el modo de falla que describe el runbook
+("una fue después de haber chequeado `origin/main`, porque entre numerar y
+pushear pasaron horas").
+
+Por la regla del repo —**la que se mueve es la que NO está en `main`**— se movió
+la mía. Y se movieron **las tres**, no sólo la 0373: la 0377 usa `skip_code` que
+crea la 0376, así que mandar sólo una al final habría roto
+`check-schema-rebuild` al reconstruir el schema desde cero.
+
+Con OK del founder se corrigió **el `name` de UNA fila del ledger**
+(`version = 20260814213957`, de `0373_kommo_writeback_chequeo_optimista` a
+`0376_…`). El `version` —la identidad real— no se tocó. Sin esa corrección, la
+renumeración dejaba **dos rojos permanentes**: `findMissing` por el archivo que
+el ledger no conoce, y `findOrphans` a las 24 h por la fila sin archivo.
+
+⭐ **Esta colisión NO entró a la tabla de excepciones** de
+`migrations-baseline.json` — se resolvió renumerando, que es lo que pedía la
+auditoría y lo contrario de las cuatro anteriores.
 
 ⚠️ **Antes de aplicar, comparar la huella de las funciones vivas en prod**
 (`enqueue_kommo_writeback`, `record_kommo_writeback_error`,
@@ -277,8 +309,8 @@ primero, encender después" en vez de vender la feature.
 
 ## 7. Lo que sigue
 
-1. **Tu OK para aplicar las migraciones**, de a una y en orden (0373 → 0374 →
-   0375).
+1. **Tu OK para las dos que faltan**, de a una: `0377_kommo_outbox_post_idempotente`
+   y después `0378_kommo_contact_estado_comercial`. La 0376 ya está aplicada.
 2. **Tu OK para pushear.** ⚠️ El último commit del push tiene que tocar código,
    no sólo `docs/**` — si no, `vercel.json` cancela el deploy en silencio.
 3. **Migraciones antes del deploy** (§3).

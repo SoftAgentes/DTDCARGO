@@ -1,4 +1,4 @@
--- 0373_kommo_writeback_chequeo_optimista.sql
+-- 0376_kommo_writeback_chequeo_optimista.sql
 --
 -- CRM · SDD-0256 · Fase 4 (A1) — la cola deja de PISAR al asesor en silencio.
 --
@@ -45,10 +45,10 @@ set statement_timeout = '60s';
 do $preflight$
 begin
   if to_regclass('public.kommo_writeback_outbox') is null then
-    raise exception '0373 requiere public.kommo_writeback_outbox (migración 0136)';
+    raise exception '0376 requiere public.kommo_writeback_outbox (migración 0136)';
   end if;
   if to_regclass('public.tenants') is null then
-    raise exception '0373 requiere public.tenants';
+    raise exception '0376 requiere public.tenants';
   end if;
 end;
 $preflight$;

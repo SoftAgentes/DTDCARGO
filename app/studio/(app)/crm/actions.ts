@@ -505,7 +505,7 @@ export async function setLeadTagsAction(
 // mismo valor dos veces y no pasa nada; un POST repetido deja DOS notas. Por eso
 // estas dos acciones exigen `dedupeToken` —lo genera el drawer al abrirse— y por
 // eso el drenaje las manda a `error` al primer fallo en vez de reintentarlas
-// (migración 0374).
+// (migración 0377).
 
 /** El token del drawer tiene que ser un id de verdad, no cualquier string. */
 function tokenValido(t: string | null | undefined): string | null {
