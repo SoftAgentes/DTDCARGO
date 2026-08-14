@@ -96,13 +96,26 @@ Es el **peor contraste de texto funcional de todo el portal** — peor que el
 hallazgo que estaba abierto. Y los consumidores no son decorativos: son los
 mensajes de error del flujo de compra, a 12–12,5 px, dentro de cards.
 
-Consumidores medidos (todos dentro de `card-shadow bg-white`, o sea `#16264A`):
+> ⚠️ **CORRECCIÓN (2026-08-14, al abrir el SDD-0261): acá decía "14
+> consumidores" y el número estaba MAL.** Salió de un grep que sólo agarraba las
+> líneas donde `{state.error}` aparece en la MISMA línea que la clase, y la
+> mayoría de los mensajes tienen el texto en la línea siguiente. Conteo real con
+> un clasificador que mira contexto: **≈42 usos como error en 17 archivos**, más
+> **≈76 usos como acento** (eyebrows, enlaces, íconos) que miden el mismo 3,00:1
+> pero cuyo arreglo es otro (`--color-wine-text`, 6,44:1). **118 en total.**
+> El detalle, la advertencia de que la clasificación es heurística (1 falso
+> positivo ya confirmado) y el plan por slices están en
+> [SDD-0261](../../specs/0261-portal-el-vino-no-es-el-error/spec.md).
+
+Consumidores (muestra — la lista completa y clasificada es el slice 0 del SDD-0261):
 
 - [`compras/nueva/NewPurchaseForm.tsx:109`](<../../../app/portal/(app)/compras/nueva/NewPurchaseForm.tsx>) · `:131` · `:148` · `:206` · `:208`
 - [`compras/nueva/NewPurchaseWizard.tsx:263`](<../../../app/portal/(app)/compras/nueva/NewPurchaseWizard.tsx>) · `:268`
 - [`compras/nueva/PurchaseStepDetalle.tsx:119`](<../../../app/portal/(app)/compras/nueva/PurchaseStepDetalle.tsx>) · `:146` · `:171` · `:231`
 - [`compras/nueva/SupplierPicker.tsx:442`](<../../../app/portal/(app)/compras/nueva/SupplierPicker.tsx>)
 - [`compras/[code]/etiquetas/ServiceSection.tsx:250`](<../../../app/portal/(app)/compras/[code]/etiquetas/ServiceSection.tsx>)
+- [`facturas/[code]/reportar/PaymentReportForm.tsx:97`](<../../../app/portal/(app)/facturas/[code]/reportar/PaymentReportForm.tsx>) · `:127` · `:149` · `:174` · `:196` — los 5 con `role="alert"`
+- `perfil/DataChangeEditor.tsx:121` · `:201` · `:262` · `reclamos/PortalClaims.tsx:131` · `:149` · `:188` · y 20 más
 
 **La parte de gobernanza es la más dura.** BTN-01 v1.1 §2 dice, textual:
 *"el vino de marca no sustituye `danger`"*. Acá el vino **es** el canal de error.
