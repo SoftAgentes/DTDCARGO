@@ -142,18 +142,31 @@ Si lo corres a mano, respeta las dos banderas: **`--no-lock`** (si no, deja un `
 ✅ **Y mide en las DOS direcciones (2026-08-05).** Antes sólo comparaba *archivo del repo → ledger de prod*; una entrada del ledger **sin archivo en el repo** le era invisible, y ése es el caso peligroso: no revienta nunca, revienta el día que haya que reconstruir el schema desde cero. Así estuvieron 3 días las `0336_pod_closes_shipment`, `0337_feature_flags_seed_and_trigger` y `0338_ve_locality_catalog_read_policy` — aplicadas en prod, con sus archivos colgando de un worktree sin pushear. Ahora una huérfana **recién aplicada** sale amarilla (con 38 worktrees, pushear el archivo minutos después es lo normal) y una de **más de 24 h** sale **roja**.
 - **CI/automatización:** si una tarea no admite OAuth, guarda el PAT únicamente en el secret manager del proveedor, con expiración y propósito identificable; nunca en archivos locales del repo.
 
-## Integraciones del sitio público (estado · actualizado 2026-07-05)
+## Integraciones del sitio público (estado · **medido** 2026-08-14)
 
-Los mocks originales **ya no existen** (`mockSubmit` desapareció del código). La captación es real:
+⚠️ Esta tabla estuvo desactualizada y mandó a más de un agente a buscar rutas
+que ya no existen. Lo de abajo se midió contra el código, no se recordó — si la
+vas a cambiar, **mide igual**: `find app -name page.tsx` para las rutas, los
+`redirects()` de `next.config.ts` para los 301, y un `grep` de llamadores para
+saber si un endpoint está vivo o sólo existe.
 
-| Endpoint | Estado | Usado por |
+| Endpoint | Estado | Lo llama |
 |---|---|---|
-| RPC pública `public_track_shipment` (consulta server-side) | ✅ real | `/track/[code]` |
-| `POST /api/public/estimacion` | ✅ real — crea `EST-XXXX` en el ERP | `/estimacion` y `/calculadora` (EstimadoModal) |
-| `POST /api/contact` | ✅ real — Resend equipo + cliente, honeypot + throttle IP | `/contacto` |
-| Server Action de registro + `POST /api/registro/check` | ✅ real — alta cliente + MARKBOX | `/registro` |
+| `POST /api/public/calc-event` | ✅ **vivo** — telemetría anónima (SDD-0259) | `/tarifas` (las 2 pestañas), en el CTA |
+| Server Action de registro + `POST /api/registro/check` | ✅ **vivo** — alta cliente + MARKBOX | `/registro` |
+| `POST /api/public/estimacion` | 🟠 **sin llamadores** — y ya **NO crea `EST-`**: sólo avisa al equipo | nadie (`EstimadoModal` sólo se monta si NO es `directWhatsApp`, y las calculadoras vivas lo son) |
+| `POST /api/contact` | 🟠 **sin llamadores** | nadie — `/contacto` manda **sólo por WhatsApp** |
+| RPC `public_track_shipment` | 🟠 **sin llamadores** — `lib/public/tracking-queries.ts` está huérfano | nadie — `/track` hace 301 a `/portal/login` |
 
-`/cotizar` fue renombrada a `/estimacion` (301 en `next.config.ts`, SDD-0061).
+### Las rutas que ya NO existen (todas son 301, no páginas)
+
+`/cotizar` · `/estimacion` · `/calculadora` · `/calculadora/embed` →
+**`/tarifas`** · `/calculadora-fcl` y `/cotizador-flete` → **`/fcl`** ·
+`/markbox` → **`/shipping-mark`** · `/track` y `/track/*` →
+**`/portal/login`**.
+
+Las calculadoras públicas vivas son **`/tarifas`** (LCL puerta a puerta +
+consolidado), **`/tarifas/embed`**, **`/fcl`** y **`/calculadora-terrestre`**.
 
 ## Convenciones
 
