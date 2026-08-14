@@ -286,7 +286,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0253 | Enlace de acceso al portal corto y con marca propia | in-progress | interna |
 | 0254 | Guardar el Shipping Mark en el WhatsApp del cliente al regist… | in-progress | interna |
 | 0255 | Aliados white-label: entidad, insignia propia jerárquica y ta… | in-progress | interno |
-| 0256 | El CRM se opera desde el ERP: la cola de escritura y los verb… | in-progress | interno |
+| 0256 | El CRM se opera desde el ERP: la cola de escritura y los verb… | done | interno |
 | 0257 | La calculadora da precio sin el peso, y dice hasta cuándo vale | done | interna |
 | 0258 | Historial de Shipping Mark (renombrar sin perder nada) y sub-… | draft | interno |
 | 0259 | Registrar lo que el cliente calcula en la calculadora pública | in-progress | interna |

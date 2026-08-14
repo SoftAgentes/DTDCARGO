@@ -1,10 +1,10 @@
 ---
 sdd: "0256"
 title: "El CRM se opera desde el ERP: la cola de escritura y los verbos que mueven el embudo"
-status: in-progress
+status: done
 author: "Sam (founder) + Claude"
 created: 2026-08-13
-updated: 2026-08-13
+updated: 2026-08-14
 supersedes: null
 superseded_by: null
 related: ["0043", "0078", "0083", "0084", "0086", "0087", "0157", "0244"]
@@ -59,8 +59,17 @@ en vez de otro comentario para el próximo, la función falla nombrando la clave
 | Verbo | Op | Servidor | Pantalla |
 |---|---|---|---|
 | Mover de etapa | `patch_stage` | ✅ | ✅ tabla (Asesor) **y** tarjeta (Tablero) |
-| Reasignar asesor | `patch_owner` | ✅ | ⬜ **pendiente** — ver §6 |
-| Etiquetar | `patch_tags` | ✅ | ⬜ pendiente (desbloqueado por la 0366) |
+| Reasignar asesor | `patch_owner` | ✅ | ✅ drawer del lead, en las dos vistas |
+| Etiquetar | `patch_tags` | ✅ | ✅ drawer del lead |
+| Dejar una nota | `add_note` | ✅ | ✅ drawer del lead |
+| Crear una tarea | `add_task` | ✅ | ✅ drawer del lead |
+
+Los tres verbos nuevos viven en `_components/LeadDrawer.tsx`, y el botón que lo
+abre en `_components/LeadActionsButton.tsx` — client, para que el Tablero (que
+es server) lo pueda montar igual que la tabla. Que estén en LAS DOS vistas lo
+fija un contrato (`__tests__/stage-control.test.ts`), porque el error de dejar
+un verbo en una sola superficie ya se cometió una vez y el diagnóstico fue "el
+ERP no escribe al CRM".
 
 **El nudge.** `after(() => admin.functions.invoke("kommo-writeback"))`, el mismo
 patrón de `app/registro/actions.ts`. La latencia medida sin él fue **14 min
