@@ -79,25 +79,28 @@ cuál entraste.
 Ninguno `canonical`: es markup suelto. **Ninguna propuesta de este informe suma
 consumidores a `LLMModeToggle`**, el único `deprecated` del registro.
 
-#### ⚠️ Esto no es exclusivo de Clientes
+#### 🔴 CORRECCIÓN (2026-08-14, al abrir el SDD-0263): acá dije que el patrón se repetía, y NO se repite
 
-Conteo de ocurrencias de `studio-btn-ghost` por archivo `*Client.tsx`:
+La versión original de esta sección traía un conteo de `studio-btn-ghost` por
+archivo (Naviera 6, Nómina 5, Fiscal 5, Academia 4, Proveedores 4) y decía *"esto
+no es exclusivo de Clientes"*. **Ese conteo era de ocurrencias en el archivo
+entero, no de la cabecera** — lo advertí, pero la conclusión igual insinuaba una
+amplitud que no existe.
 
-| Módulo | ghost | primario |
-|---|---|---|
-| Naviera | 6 | 7 |
-| Nómina | 5 | 7 |
-| Fiscal | 5 | 3 |
-| Academia | 4 | 5 |
-| Proveedores | 4 | 3 |
-| **Clientes** | **4** | **2** |
+Al abrirlos uno por uno:
 
-⚠️ **Ese conteo es de ocurrencias en el archivo, NO verificado que todas estén en
-la cabecera.** Sólo en Clientes abrí y confirmé la composición exacta del header.
-Sirve para decir "el patrón se repite", no para acusar a un módulo concreto.
+| Módulo | Cabecera real |
+|---|---|
+| Naviera | 1 ghost + 1 primario (`NavieraClient.tsx:152,159`) — **forma correcta** |
+| Academia | 1 ghost + 1 primario (`AcademiaClient.tsx:109,116`) — **forma correcta** |
+| Fiscal · Nómina · Proveedores · Reclamos | sus ghosts son **filtros** o **acciones de fila**, no cabecera |
+| **Clientes** | **2 ghosts + 1 primario** |
 
-Consecuencia práctica: la solución correcta **no es un parche en Clientes**. Es
-una primitiva de menú + su adopción por slices. Ver §4.
+**Clientes es el caso atípico, no la norma.** Retiro la afirmación.
+
+Eso **no** debilita la recomendación de la primitiva, pero le cambia el
+fundamento: no se justifica por cabeceras cargadas, se justifica por los **cinco
+menús armados a mano** que sí existen y que el SDD-0263 documenta.
 
 ---
 
