@@ -206,6 +206,7 @@ export function MigrarLegadoClient({
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>
+                  <th style={th}>Cliente</th>
                   <th style={th}>Código viejo</th>
                   <th style={th}>Código nuevo</th>
                 </tr>
@@ -213,6 +214,27 @@ export function MigrarLegadoClient({
               <tbody>
                 {result.mapeo.map((m) => (
                   <tr key={m.de}>
+                    <td style={{ ...td, font: "500 13.5px/1.4 var(--f-sans)", color: "var(--ink)", minWidth: 200 }}>
+                      {m.nombre || <span style={{ color: "var(--ink-soft)" }}>—</span>}
+                      {/* Con portal = alguien lo va a ver cambiado. Sin portal,
+                          la ficha sólo existe en el ERP. */}
+                      {m.portal && (
+                        <span
+                          title="Tiene portal: va a ver el código nuevo al entrar"
+                          style={{
+                            marginLeft: 8,
+                            font: "600 10.5px/1 var(--f-sans)",
+                            color: "var(--ink-soft)",
+                            border: "1px solid var(--border)",
+                            borderRadius: 999,
+                            padding: "3px 7px",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          portal
+                        </span>
+                      )}
+                    </td>
                     <td style={td}>{m.de}</td>
                     <td style={{ ...td, color: "var(--ink)" }}>{m.a}</td>
                   </tr>
