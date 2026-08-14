@@ -17,7 +17,18 @@ export type LoteLegadoResult = {
    * Leerlo como "ya faltan menos" sería un error.
    */
   pendientesDespues: number;
-  mapeo: { de: string; a: string }[];
+  mapeo: {
+    de: string;
+    a: string;
+    /** Para saber a QUIÉN se le está cambiando el código, no sólo cuál. */
+    nombre: string;
+    /**
+     * Si tiene acceso activo al portal. Ése es el que se entera del cambio:
+     * entra y ve un código distinto al que le dimos. Los demás sólo existen
+     * en el ERP.
+     */
+    portal: boolean;
+  }[];
 };
 
 export type LoteLegadoActionState =
@@ -44,7 +55,14 @@ export function parseLoteResult(raw: unknown): LoteLegadoResult | null {
     pendientesDespues: Number(r.pendientes_despues ?? 0),
     mapeo: mapeoRaw
       .filter((m): m is Record<string, unknown> => !!m && typeof m === "object")
-      .map((m) => ({ de: String(m.de ?? ""), a: String(m.a ?? "") }))
+      .map((m) => ({
+        de: String(m.de ?? ""),
+        a: String(m.a ?? ""),
+        // Tolerante a propósito: una respuesta de antes de la migr 0373 no trae
+        // estos campos, y la pantalla tiene que seguir pintando el mapeo.
+        nombre: String(m.nombre ?? ""),
+        portal: m.portal === true,
+      }))
       .filter((m) => m.de !== "" && m.a !== ""),
   };
 }

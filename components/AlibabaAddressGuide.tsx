@@ -7,7 +7,7 @@ import { CONTACT, FONT_MONO } from "@/lib/design-tokens";
  * Guía "Datos para web de compra" — la dirección canónica de la bodega de Yiwu
  * para pegar en Alibaba / 1688 / Taobao.
  *
- * Estructura en DOS pasos (SDD-0263), no en una lista de campos sueltos. El
+ * Estructura en DOS pasos (SDD-0264), no en una lista de campos sueltos. El
  * formulario de Alibaba trae un "Rellenar automáticamente la dirección" que de
  * una sola pegada llena los ocho campos — ése es el camino rápido, y es lo que
  * el cliente quiere. Pero hay dos trampas MEDIDAS contra el formulario real

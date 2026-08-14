@@ -1,5 +1,5 @@
 ---
-sdd: 0263
+sdd: 0264
 title: La dirección de la bodega en Alibaba, medida contra el formulario real
 status: in-progress
 author: Claude (ventana 2026-08-14)
@@ -11,7 +11,7 @@ related: [0099]
 confidencialidad: interna
 ---
 
-# SDD-0263 · La dirección de la bodega en Alibaba, medida contra el formulario real
+# SDD-0264 · La dirección de la bodega en Alibaba, medida contra el formulario real
 
 ## Problema
 

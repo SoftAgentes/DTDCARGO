@@ -265,7 +265,7 @@ export const CONTACT = {
      *
      * Yiwu es ciudad de NIVEL CONDADO bajo la prefectura de Jinhua: no es la
      * "Ciudad" del formulario, es el "Distrito". Publicar 义乌市 como Ciudad
-     * (lo que se hacía hasta SDD-0263) deja al cliente trancado, porque busca
+     * (lo que se hacía hasta SDD-0264) deja al cliente trancado, porque busca
      * Yiwu en el selector que no lo tiene y nunca llega al Distrito.
      */
     provinceCjk: "浙江省", // Estado/provincia — Zhejiang
