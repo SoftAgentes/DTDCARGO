@@ -23,7 +23,17 @@ export type WritebackOp =
   | "patch_stage"
   | "patch_lead"
   | "patch_owner"
-  | "patch_tags";
+  | "patch_tags"
+  | "add_note"
+  | "add_task";
+
+/**
+ * Las ops que CREAN algo en Kommo (POST). Repetirlas no es inocuo: cada intento
+ * deja otra nota, otra tarea. Por eso van con `dedupeToken` y por eso el
+ * drenaje las manda a `error` al primer fallo en vez de reintentarlas
+ * (migración 0374).
+ */
+export const OPS_QUE_CREAN: readonly WritebackOp[] = ["add_note", "add_task"] as const;
 
 /**
  * Payload del PATCH para reasignar el asesor de un lead. PURO.
@@ -79,6 +89,67 @@ export function buildTagsPatchPayload(input: {
   } = {};
   if (agregar.length) payload.tags_to_add = agregar.map((name) => ({ name }));
   if (quitar.length) payload.tags_to_delete = quitar.map((name) => ({ name }));
+  return payload;
+}
+
+// ── Fase 5 · lo que se CREA en Kommo (POST) ─────────────────────────────────
+//
+// Los payloads se arman acá, del lado que encola. La Edge Function sólo los
+// transporta y decide ruta y método (`_shared/kommo-writeback-plan.ts`). Tener
+// la forma de Kommo escrita en los dos lados sería dos definiciones de lo mismo,
+// y la que no se usa driftea sin que nada lo note.
+
+/**
+ * Nota común sobre el lead (`POST /api/v4/leads/{id}/notes`). PURO.
+ *
+ * Kommo envuelve el texto en `params`, no lo pone suelto. `null` si no hay nada
+ * que escribir: mejor no encolar que dejar una nota en blanco en el CRM.
+ */
+export function buildNotePayload(texto: string): Record<string, unknown> | null {
+  const t = String(texto ?? "").trim();
+  if (!t) return null;
+  return { note_type: "common", params: { text: t } };
+}
+
+/**
+ * Tarea sobre el lead (`POST /api/v4/tasks`). PURO.
+ *
+ * Es la que pone la **tarjeta roja** en Kommo cuando vence — el semáforo real
+ * del equipo, y por eso es la op de más valor operativo de la Fase 5.
+ *
+ * ⚠️ `complete_till` va en epoch de **SEGUNDOS** (gemelo de `epochToIso`, que
+ * hace el camino inverso en el espejo). Mandarlo en milisegundos pone el
+ * vencimiento en el año 57.000: Kommo lo acepta sin chistar y la tarjeta no se
+ * pone roja nunca. Falla en la dirección que no se ve — de ahí el test que
+ * cuenta los dígitos.
+ */
+export function buildTaskPayload(input: {
+  leadId: number;
+  texto: string;
+  completeTillIso: string;
+  responsibleUserId?: number | null;
+}): Record<string, unknown> | null {
+  const leadId = Math.trunc(Number(input.leadId));
+  if (!Number.isFinite(leadId) || leadId <= 0) return null;
+
+  const texto = String(input.texto ?? "").trim();
+  if (!texto) return null;
+
+  const ms = Date.parse(String(input.completeTillIso ?? ""));
+  if (!Number.isFinite(ms)) return null;
+  const completeTill = Math.floor(ms / 1000);
+
+  const payload: Record<string, unknown> = {
+    text: texto,
+    complete_till: completeTill,
+    entity_id: leadId,
+    entity_type: "leads",
+  };
+
+  const responsable = Math.trunc(Number(input.responsibleUserId));
+  if (Number.isFinite(responsable) && responsable > 0) {
+    payload.responsible_user_id = responsable;
+  }
   return payload;
 }
 
@@ -439,7 +510,18 @@ export async function getWritebackStatus(
 export async function enqueueKommoLeadOp(
   admin: SupabaseClient,
   tenantId: string,
-  args: { leadId: number; op: WritebackOp; payload: Record<string, unknown> },
+  args: {
+    leadId: number;
+    op: WritebackOp;
+    payload: Record<string, unknown>;
+    /**
+     * Sólo para las ops que CREAN (`add_note`, `add_task`). Lo genera el drawer
+     * al abrirse: dos notas distintas = dos tokens = dos filas; doble submit =
+     * un token = una fila (migración 0374). Un PATCH va sin token — ahí la
+     * semántica correcta es "gana el último" y la fusión de la 0364/0366.
+     */
+    dedupeToken?: string | null;
+  },
 ): Promise<string | null> {
   try {
     const { data: lead } = await admin
@@ -455,6 +537,7 @@ export async function enqueueKommoLeadOp(
       p_op: args.op,
       p_payload: args.payload,
       p_kommo_updated_at: lead?.kommo_updated_at ?? null,
+      p_dedupe_token: args.dedupeToken ?? null,
     });
     if (error) {
       console.warn("[enqueueKommoLeadOp]", args.op, error.message);
@@ -463,6 +546,43 @@ export async function enqueueKommoLeadOp(
     return (data as string | null) ?? null;
   } catch (e) {
     console.warn("[enqueueKommoLeadOp] lanzó (best-effort):", e);
+    return null;
+  }
+}
+
+/**
+ * Encola una op contra un CONTACTO de Kommo (SDD-0244 · migr 0344).
+ *
+ * Hermana de `enqueueKommoLeadOp`, con dos diferencias que importan: va por la
+ * RPC de contacto (clave de idempotencia `c:<id>:<op>`, para no chocar con la
+ * del lead) y no lleva snapshot de `kommo_updated_at` — el chequeo optimista es
+ * del lead, y un contacto no tiene etapa que alguien pueda estar moviendo a la
+ * vez.
+ *
+ * Best-effort como sus hermanas: devuelve el id de la fila o `null`; NUNCA tira.
+ */
+export async function enqueueKommoContactOp(
+  admin: SupabaseClient,
+  tenantId: string,
+  args: { contactId: number; payload: Record<string, unknown> },
+): Promise<string | null> {
+  try {
+    const contactId = Math.trunc(Number(args.contactId));
+    if (!Number.isFinite(contactId) || contactId <= 0) return null;
+
+    const { data, error } = await admin.rpc("enqueue_kommo_contact_writeback", {
+      p_tenant_id: tenantId,
+      p_kommo_contact_id: contactId,
+      p_op: "patch_contact",
+      p_payload: args.payload,
+    });
+    if (error) {
+      console.warn("[enqueueKommoContactOp]", error.message);
+      return null;
+    }
+    return (data as string | null) ?? null;
+  } catch (e) {
+    console.warn("[enqueueKommoContactOp] lanzó (best-effort):", e);
     return null;
   }
 }
@@ -520,6 +640,92 @@ function groupOpsByLead(data: unknown): Record<number, string[]> {
   for (const r of (data as { kommo_lead_id: number | null; op: string }[] | null) ?? []) {
     if (r.kommo_lead_id == null) continue;
     (out[Number(r.kommo_lead_id)] ??= []).push(r.op);
+  }
+  return out;
+}
+
+// ── A1 · las órdenes que el chequeo optimista FRENÓ ─────────────────────────
+//
+// Una orden `skipped` con `skip_code = 'stale'` es la que no se mandó porque el
+// lead cambió en Kommo entre el clic y el envío. Si la pantalla no lo dice, el
+// asesor ve desaparecer el "En camino" y asume que salió — que es exactamente
+// el silencio que el chequeo vino a romper. Se muestra, se explica y se ofrece
+// reintentar.
+//
+// Sólo las recientes: una orden frenada hace días ya no es accionable y llenaría
+// la tabla de ruido histórico.
+
+export type StaleOp = {
+  /** id de la fila de outbox — es lo que necesita el botón de reintentar. */
+  id: string;
+  op: string;
+  motivo: string | null;
+  at: string | null;
+};
+
+/** Cuánto tiempo se sigue mostrando una orden frenada. */
+export const STALE_VENTANA_HORAS = 48;
+
+/** Tope de órdenes frenadas que se traen de una. */
+export const STALE_CAP = 200;
+
+export async function getStaleOpsByLead(
+  supabase: SupabaseClient,
+  leadIds: number[],
+): Promise<Record<number, StaleOp[]>> {
+  if (leadIds.length === 0) return {};
+  const desde = new Date(Date.now() - STALE_VENTANA_HORAS * 3_600_000).toISOString();
+  const { data, error } = await supabase
+    .from("kommo_writeback_outbox")
+    .select("id, kommo_lead_id, op, last_error, sent_at")
+    .in("kommo_lead_id", leadIds)
+    .eq("status", "skipped")
+    .eq("skip_code", "stale")
+    .gte("sent_at", desde)
+    .order("sent_at", { ascending: false })
+    .limit(STALE_CAP);
+  if (error) return {};
+  return groupStale(data);
+}
+
+/** Lo mismo sin lista de ids — el Tablero, igual que `getPendingOpsForBoard`. */
+export async function getStaleOpsForBoard(
+  supabase: SupabaseClient,
+): Promise<Record<number, StaleOp[]>> {
+  const desde = new Date(Date.now() - STALE_VENTANA_HORAS * 3_600_000).toISOString();
+  const { data, error } = await supabase
+    .from("kommo_writeback_outbox")
+    .select("id, kommo_lead_id, op, last_error, sent_at")
+    .eq("status", "skipped")
+    .eq("skip_code", "stale")
+    .not("kommo_lead_id", "is", null)
+    .gte("sent_at", desde)
+    .order("sent_at", { ascending: false })
+    .limit(STALE_CAP);
+  if (error) return {};
+  return groupStale(data);
+}
+
+function groupStale(data: unknown): Record<number, StaleOp[]> {
+  const out: Record<number, StaleOp[]> = {};
+  const rows =
+    (data as
+      | {
+          id: string;
+          kommo_lead_id: number | null;
+          op: string;
+          last_error: string | null;
+          sent_at: string | null;
+        }[]
+      | null) ?? [];
+  for (const r of rows) {
+    if (r.kommo_lead_id == null) continue;
+    const lista = (out[Number(r.kommo_lead_id)] ??= []);
+    // Una sola por (lead, op): lo accionable es la más reciente, y el `order`
+    // ya la puso primera. Mostrar tres "no se pisó la etapa" seguidos no agrega
+    // información, agrega ruido.
+    if (lista.some((x) => x.op === r.op)) continue;
+    lista.push({ id: r.id, op: r.op, motivo: r.last_error, at: r.sent_at });
   }
   return out;
 }
