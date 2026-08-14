@@ -1,7 +1,7 @@
 ---
 sdd: 0257
 title: La calculadora da precio sin el peso, y dice hasta cuándo vale
-status: in-progress
+status: done
 author: Claude (ventana 2026-08-13)
 created: 2026-08-13
 updated: 2026-08-13
@@ -101,8 +101,9 @@ trabajo que esta spec no compra.
 
 ### Lo que NO se hace
 
-* **Presets de peso** (opción 2 del análisis): necesita que el founder dicte las
-  densidades típicas por rubro. Queda para después.
+* **Presets de peso** (opción 2 del análisis): **evaluados y descartados**
+  (founder, 2026-08-13). Ver la sección "Presets: por qué no" al final — no es un
+  pendiente, es una decisión con medición detrás.
 * **Rango mín–máx con slider** (opción 3): descartada — un rango lee como
   incertidumbre y el número de arriba asusta.
 * **Modal que pide el peso a la salida** (opción 4 completa): `/tarifas` no
@@ -149,3 +150,44 @@ No toca `/calculadora-terrestre` (último km) ni el FCL: son motores aparte.
   miente).
 * `node scripts/verify.mjs` en verde.
 * `/ui-check` antes del commit (regla del founder para cambio visual).
+* **`e2e/calculadora-sin-peso.spec.ts`** — 3 casos que recorren la página de
+  verdad. Es el eslabón que faltaba: todo lo demás prueba el motor, pero el
+  estado "hay precio sin peso" vive detrás de un booleano de la UI
+  (`tieneCarga`), y eso no lo ve ningún test de motor. Corriéndolos con
+  `BASE_URL=https://dtdcargo.com` sirven para auditar producción.
+
+## Presets: por qué no
+
+La opción 2 del análisis eran chips de peso por rubro ("liviano / medio /
+pesado") que rellenaran el campo con `CBM × densidad típica`. El 2026-08-13 se
+intentó calibrarlos con datos reales de producción, en vez de inventar las
+densidades. **No hay con qué.** Barrido de todas las tablas con CBM y peso:
+
+| Fuente | Filas | Valores **distintos** | Días | Mediana kg/m³ |
+|---|---|---|---|---|
+| `shipments` | 18 | 17 | ~10 (9 el mismo día) | 260 |
+| `warehouse_boxes` | 99 | **6** | **1** | 113 |
+| `quotes` | 12 | 10 | 7 | 125 |
+| `warehouse_receipt_ve_boxes` | 8 | 7 | 1 | 68 |
+| `consolidation_items` | 1 | 1 | 1 | 6 |
+| `dispatch_order_packages` | 0 | — | — | — |
+
+Tres motivos, y cualquiera solo alcanza:
+
+1. ⚠️ **Las 99 cajas son 6 mediciones.** `warehouse_boxes` se deriva de
+   `warehouse_receipts_cn` por trigger y copia el CBM/peso del recibo a cada
+   caja. El `count(*)` engaña: hay que contar `count(distinct …)`.
+2. **Las medianas van de 6 a 260 kg/m³** — 45× entre fuentes. No hay densidad
+   típica que extraer, hay ruido.
+3. **Cero rubro.** Ninguna tabla de carga guarda qué contiene (revisados los 15
+   `category` del schema: son de agentes, correo, bugs, gastos, contenido).
+
+**Decisión: no se hacen.** Un preset con números inventados le quita al
+`Desde $X` lo único que lo hace defendible — ser un piso honesto — y mete un
+peso que el cliente no declaró, con riesgo de cotizar por debajo del real.
+
+**Cómo se desbloquea:** instrumentar la captura. Que la calculadora pública
+registre el CBM y el peso que escriben los clientes; en semanas hay cientos de
+datos y los presets se calibran solos. De paso, el barrido confirma desde la DB
+lo que SDD-0153/0155 ya decía: los módulos de captura existen y la operación no
+los está usando.
