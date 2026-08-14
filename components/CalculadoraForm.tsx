@@ -34,6 +34,7 @@ import { EstimadoModal, type EstimadoContact } from "@/components/EstimadoModal"
 import { DestinoCombobox } from "@/components/DestinoCombobox";
 import { trackWhatsAppConversion } from "@/components/Analytics";
 import { buildEstimadoWhatsAppMessage } from "@/lib/public/estimado-web";
+import { reportCalcEvent } from "@/lib/public/calc-event-report";
 
 /**
  * Calculadora LCL DDP — UI del formulario + render del resultado.
@@ -1265,6 +1266,32 @@ function ResultPanel({
   const whatsappText = whatsappTextFromCotizacion(cot, input);
   const whatsappUrl = `https://wa.me/${CONTACT.ve.whatsappRaw}?text=${encodeURIComponent(whatsappText)}`;
 
+  /**
+   * SDD-0259 · deja registrado, ANÓNIMAMENTE, lo que este visitante calculó.
+   *
+   * Va en el CTA y no en el tipeo: acá el valor ya está comprometido. Es
+   * fire-and-forget — si falla, el cliente igual se va a WhatsApp y no se
+   * entera. Nunca `await`: la telemetría no puede costar una conversión.
+   *
+   * `total_usd` viaja en null cuando hubo alerta, porque ahí NO hubo precio;
+   * el par (total null + alerta) es lo que mide contra qué paredes choca la
+   * gente. Y `weightKg` en null es la métrica de SDD-0257: cada cuánto el
+   * cliente no sabe el peso.
+   */
+  function reportarCalculo() {
+    reportCalcEvent({
+      modo,
+      cbm: input.cbmTotal,
+      weightKg: input.pesoKg && input.pesoKg > 0 ? input.pesoKg : null,
+      ciudadId: input.ciudadId ?? null,
+      embalaje: input.embalaje,
+      bateria: !!input.bateria,
+      cargaEspecial: !!input.cargaEspecial,
+      totalUsd: cot.alerta ? null : cot.total,
+      alerta: cot.alerta?.tipo ?? null,
+    });
+  }
+
   return (
     <>
       {/* Panel del total (gradiente navy) — superficie navy ESTABLE: en el portal
@@ -1566,6 +1593,7 @@ function ResultPanel({
               target="_blank"
               rel="noopener noreferrer"
               className="btn bg-whatsapp text-white"
+              onClick={reportarCalculo}
             >
               <WhatsAppIcon size={20} />
               Consultar con un asesor
@@ -1578,6 +1606,7 @@ function ResultPanel({
               target="_blank"
               rel="noopener noreferrer"
               className="btn bg-whatsapp text-white"
+              onClick={reportarCalculo}
             >
               <WhatsAppIcon size={20} />
               Enviar por WhatsApp
@@ -1585,7 +1614,10 @@ function ResultPanel({
           ) : (
             <button
               type="button"
-              onClick={onEstimar}
+              onClick={() => {
+                reportarCalculo();
+                onEstimar();
+              }}
               className="btn bg-whatsapp text-white"
             >
               <WhatsAppIcon size={20} />

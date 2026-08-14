@@ -1,7 +1,7 @@
 ---
 sdd: 0259
 title: Registrar lo que el cliente calcula en la calculadora pública
-status: proposed
+status: in-progress
 author: Claude (ventana 2026-08-13)
 created: 2026-08-13
 updated: 2026-08-13
@@ -87,14 +87,39 @@ el valor final y comprometido. Menos volumen y más señal.
 
 ## Alcance
 
-- Una migración (nº libre al momento de escribir: **0368**) con la tabla, su
-  RLS y la vía de escritura anónima.
-- ⚠️ La escritura anónima va por **RPC acotada**, no por `GRANT INSERT` a
-  `anon` sobre la tabla. Ver la deuda ya conocida de RPCs abiertas a `anon` y
-  la regla de que RLS sin política niega todo.
-- Throttle en el endpoint, como ya lo tiene `/api/contact` (honeypot + tope por
-  IP). La IP se usa **en tránsito** para el tope; no se persiste.
-- Un punto de llamada en `components/CalculadoraForm.tsx`, en el CTA.
+- `supabase/migrations/0368_public_calc_events.sql` — la tabla y su cerradura.
+- `lib/public/calc-event.ts` — lista blanca + validación (puro).
+- `lib/public/calc-event-report.ts` — el disparo desde el navegador.
+- `app/api/public/calc-event/route.ts` — throttle + insert.
+- `components/CalculadoraForm.tsx` — la llamada, en el CTA.
+
+### ⚠️ Lo que cambió del plan al construirlo
+
+**No hay RPC para `anon`.** La spec proponía una RPC acotada; sobra, y quitarla
+es más seguro. El sitio público **no puede importar `@supabase/*`** (frontera
+dura forzada por ESLint), así que el navegador nunca podría llamarla: la
+escritura la hace el endpoint **server-side con `service_role`**, igual que
+`/api/public/estimacion`. Resultado: `anon` no recibe **ningún** permiso nuevo.
+
+La cerradura es **RLS activa con CERO políticas** — eso niega todo, y los
+`revoke` van explícitos por si mañana alguien agrega una política sin pensar.
+El contrato de 0368 lo verifica con `set role anon` e intentando leer y escribir
+de verdad, no mirando el catálogo de GRANTs.
+
+**Sobre la IP:** el throttle reusa `portal_registro_throttle` con namespace
+propio (`calc:`), el mismo mecanismo de `/api/public/estimacion`. La IP queda en
+ese bucket compartido —que ya existía— y **nunca** en la tabla de eventos. La
+frase de arriba "no se persiste" era imprecisa: se persiste en el bucket
+anti-abuso, como en el resto de los endpoints públicos; lo que no ocurre es que
+toque la telemetría.
+
+**Disparo:** `fetch` con `keepalive: true`, sin `await`, dentro de try/catch. El
+`keepalive` no es adorno: sin él el navegador cancela la request al navegar a
+wa.me y se pierde justo el evento del que **sí** convirtió.
+
+**Tenant memorizado** en el módulo: es constante en la práctica y ahorraba un
+viaje a la base por evento (medido: la ruta pasó de ~3,7 s a ~1,2 s desde local
+contra la Supabase de producción; en Vercel, misma región, es mucho menos).
 
 ### Lo que NO entra
 
@@ -111,14 +136,25 @@ el valor final y comprometido. Menos volumen y más señal.
 
 ## Verificación
 
-- Test de contrato SQL de la migración (RLS + GRANTs + que `anon` sólo pueda lo
-  que la RPC permite), validado **con mutación**: romper la política a mano y
-  ver el test en rojo.
-- Unitario del armado del evento: que nunca incluya campos personales. Es el
-  test que protege la regla 1 — debe fallar si alguien agrega `email` al
-  payload.
-- E2E: tocar el CTA en `/tarifas` sin peso deja un evento con `weight_kg` nulo.
-- `node scripts/verify.mjs` en verde.
+Todo corrido, y **las dos guardias validadas con mutación** — un contrato que no
+se pone rojo al romper lo que vigila es decoración:
+
+| Qué | Resultado |
+|---|---|
+| `supabase/tests/0368_public_calc_events.test.sql` · 9 casos | ✅ dentro de los 96 contratos |
+| ↳ mutación: abrirle `grant`+política a `anon` | ✅ **rojo** — "tiene 1 política(s)" |
+| ↳ mutación: agregar una columna `ip` | ✅ **rojo** — "columna(s) que pueden ser dato personal: ip" |
+| `lib/public/__tests__/calc-event.test.ts` · 10 casos | ✅ |
+| ↳ mutación: copiar el payload entero (`...payload`) | ✅ **rojo** — 14 claves donde debían ser 9 |
+| `e2e/calc-event.spec.ts` · 2 casos | ✅ incluye el caso sin peso → `weightKg: null` |
+| `pnpm typecheck` · `pnpm lint` (frontera pública↔ERP) | ✅ |
+| Suite completa | ✅ 5.186 tests en 443 archivos |
+| `schema-rebuild` | ✅ 349 migraciones desde cero + aislamiento multi-tenant |
+| En vivo: `POST /api/public/calc-event` | ✅ 204 y cuerpo vacío **aun sin la tabla** — el camino silencioso funciona |
+
+⏳ **`migrations-applied` en rojo a propósito:** el gate marca `0368` como no
+aplicada a producción, que es correcto y es la puerta del runbook — aplicar
+exige OK del founder nombrando la migración, de a una.
 
 ## Cómo se cierra el ciclo
 

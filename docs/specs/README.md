@@ -288,7 +288,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0255 | Aliados white-label: entidad, insignia propia jerárquica y ta… | in-progress | interno |
 | 0256 | El CRM se opera desde el ERP: la cola de escritura y los verb… | in-progress | interno |
 | 0257 | La calculadora da precio sin el peso, y dice hasta cuándo vale | done | interna |
-| 0259 | Registrar lo que el cliente calcula en la calculadora pública | proposed | interna |
+| 0259 | Registrar lo que el cliente calcula en la calculadora pública | in-progress | interna |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0258 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
