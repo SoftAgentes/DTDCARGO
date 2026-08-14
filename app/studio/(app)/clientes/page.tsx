@@ -10,7 +10,7 @@
 import { createClient } from "@/lib/db/server";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 import {
-  listClients,
+  listClientsPage,
   parseClientFiltersFromSearchParams,
 } from "@/lib/studio/client-queries";
 import { ClientsClient } from "./_components/ClientsClient";
@@ -31,10 +31,24 @@ export default async function ClientesPage({
   const filters = parseClientFiltersFromSearchParams(rawParams);
 
   const supabase = await createClient();
-  const clients = await listClients(supabase, filters);
+  // SDD-0265: el listado necesita saber cuántos hay en total, no sólo los que
+  // caben en la página. Sin eso la pantalla mentía por omisión.
+  const { clients, total, limite, topeAlcanzado } = await listClientsPage(
+    supabase,
+    filters,
+  );
   // SDD-0255: los aliados alimentan el selector "Pertenece a" del alta. Un
   // cliente creado bajo un aliado recibe la insignia de ese aliado, no DTD-.
   const aliados = await listAliadoOptions(supabase);
 
-  return <ClientsClient clients={clients} filters={filters} aliados={aliados} />;
+  return (
+    <ClientsClient
+      clients={clients}
+      total={total}
+      limite={limite}
+      topeAlcanzado={topeAlcanzado}
+      filters={filters}
+      aliados={aliados}
+    />
+  );
 }

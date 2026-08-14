@@ -6,30 +6,60 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Client, ClientTier } from "./client-types";
+// SDD-0265: los topes viven en `client-types` porque el componente client los
+// necesita para el "Ver más" y NO puede importar este archivo (cruce
+// server→client; el gate tiene un paso que lo vigila).
+import { CLIENTS_MAX, CLIENTS_PAGE } from "./client-types";
 
 export type ClientFilters = {
   tier?: ClientTier | "all";
   q?: string;
   /** SDD-0046: solo clientes self-registrados aún sin verificar la identidad. */
   pendingReview?: boolean;
+  /**
+   * SDD-0265: cuántas filas traer. Sube de a `CLIENTS_PAGE` con "Ver más".
+   * Se normaliza en `parseClientFiltersFromSearchParams` — nunca confíes en el
+   * valor crudo de la URL.
+   */
+  limite?: number;
+};
+
+/** Lo que devuelve el listado: la página pedida más cuántos hay en total. */
+export type ClientsPage = {
+  clients: Client[];
+  /** Total que matchea los filtros, contado en servidor (no `clients.length`). */
+  total: number;
+  /** Cuántas filas se pidieron — el tope efectivo de esta carga. */
+  limite: number;
+  /** `true` si el techo de PostgREST impide seguir mostrando más. */
+  topeAlcanzado: boolean;
 };
 
 const CLIENT_COLUMNS =
   "id, tenant_id, markbox, name, email, phone, address, rif, contact_name, tier, notes, lat, lng, registration_channel, doc_kind, doc_verify_status, doc_verify_source, doc_registry_name, doc_verified_at, cedula_photo_path, advisor_id, aliado_id, person_id, created_at, updated_at, deleted_at";
 
 /**
- * Lista de clientes con filtros opcionales. RLS filtra por tenant.
- * Hasta 200 ordenados por created_at DESC.
+ * Arma la query del listado con sus filtros. Una sola definición para las dos
+ * variantes; `conTotal` sólo agrega el `count`, que es lo único que las separa.
+ *
+ * El `count` NO va siempre: lo paga la query, y los otros cinco consumidores de
+ * `listClients` (buscador global, combobox de cédula, Bitácora, CN, ERP móvil)
+ * no necesitan el total y no tienen por qué costearlo.
  */
-export async function listClients(
+function construirQuery(
   supabase: SupabaseClient,
-  filters: ClientFilters = {},
-): Promise<Client[]> {
-  let query = supabase
-    .from("clients")
-    .select(CLIENT_COLUMNS)
+  filters: ClientFilters,
+  limite: number,
+  conTotal: boolean,
+) {
+  const base = supabase.from("clients");
+  let query = (
+    conTotal
+      ? base.select(CLIENT_COLUMNS, { count: "exact" })
+      : base.select(CLIENT_COLUMNS)
+  )
     .order("created_at", { ascending: false })
-    .limit(200);
+    .limit(limite);
 
   if (filters.tier && filters.tier !== "all") {
     query = query.eq("tier", filters.tier);
@@ -41,23 +71,71 @@ export async function listClients(
   }
 
   if (filters.q && filters.q.trim()) {
-    const q = filters.q.trim().replace(/[,()]/g, " ").replace(/\s+/g, " ").trim();
+    const term = filters.q.trim().replace(/[,()]/g, " ").replace(/\s+/g, " ").trim();
     // SDD-0106: cédula primero, Shipping Mark después. Para un match exacto
     // tolerante a formato usá getClientByCedula(); esta búsqueda libre es ilike.
     query = query.or(
       [
-        `rif.ilike.%${q}%`,
-        `name.ilike.%${q}%`,
-        `markbox.ilike.%${q}%`,
-        `email.ilike.%${q}%`,
-        `phone.ilike.%${q}%`,
+        `rif.ilike.%${term}%`,
+        `name.ilike.%${term}%`,
+        `markbox.ilike.%${term}%`,
+        `email.ilike.%${term}%`,
+        `phone.ilike.%${term}%`,
       ].join(","),
     );
   }
 
-  const { data, error } = await query;
+  return query;
+}
+
+/**
+ * Lista de clientes con filtros opcionales. RLS filtra por tenant.
+ * Hasta `CLIENTS_PAGE` ordenados por created_at DESC.
+ *
+ * Firma intacta a propósito: la usan el buscador global, el combobox de cédula,
+ * Bitácora, CN y el ERP móvil. Para el LISTADO del módulo, que necesita saber
+ * cuántos hay en total, usá `listClientsPage`.
+ */
+export async function listClients(
+  supabase: SupabaseClient,
+  filters: ClientFilters = {},
+): Promise<Client[]> {
+  const limite = Math.min(filters.limite ?? CLIENTS_PAGE, CLIENTS_MAX);
+  const { data, error } = await construirQuery(supabase, filters, limite, false);
   if (error) throw error;
   return (data as Client[] | null) ?? [];
+}
+
+/**
+ * Igual que `listClients`, pero además devuelve **cuántos hay en total**.
+ *
+ * SDD-0265 — existe porque el listado mentía por omisión. Medido el 2026-08-14:
+ * con 451 filas en `clients`, la pantalla mostraba 200 y no decía nada, así que
+ * 251 (el 56%) eran inalcanzables al navegar. Y como el orden es descendente,
+ * los que desaparecían eran los MÁS VIEJOS — los de más recorrido.
+ *
+ * El `count: "exact"` cuenta contra los MISMOS filtros, así que el número que ve
+ * el usuario es el de su búsqueda, no el del catálogo entero.
+ */
+export async function listClientsPage(
+  supabase: SupabaseClient,
+  filters: ClientFilters = {},
+): Promise<ClientsPage> {
+  const limite = Math.min(filters.limite ?? CLIENTS_PAGE, CLIENTS_MAX);
+  const { data, error, count } = await construirQuery(supabase, filters, limite, true);
+  if (error) throw error;
+
+  const clients = (data as Client[] | null) ?? [];
+  // Si PostgREST no devuelve `count`, NO inventamos un total: usamos lo que
+  // trajimos, que es lo único que sabemos de verdad.
+  const total = count ?? clients.length;
+
+  return {
+    clients,
+    total,
+    limite,
+    topeAlcanzado: limite >= CLIENTS_MAX && total > CLIENTS_MAX,
+  };
 }
 
 /** Cliente individual por markbox. RLS valida ownership. */
@@ -551,9 +629,18 @@ export function parseClientFiltersFromSearchParams(
       ? tierRaw
       : "all";
 
+  // SDD-0265: el `limite` viene de la URL, así que se normaliza acá y no se
+  // confía en el crudo. Basura, negativos o un número gigante caen al bloque
+  // por defecto o al techo; nunca pasan tal cual a la query.
+  const limiteRaw = Number.parseInt(single("limite") ?? "", 10);
+  const limite = Number.isFinite(limiteRaw)
+    ? Math.min(Math.max(limiteRaw, CLIENTS_PAGE), CLIENTS_MAX)
+    : CLIENTS_PAGE;
+
   return {
     tier,
     q: single("q") || undefined,
     pendingReview: single("pending") === "1",
+    limite,
   };
 }
