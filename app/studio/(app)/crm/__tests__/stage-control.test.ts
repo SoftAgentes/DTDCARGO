@@ -117,3 +117,72 @@ describe("stageTargets", () => {
     expect(stageTargets([s(4, 10, null)], 10).map((x) => x.id)).toEqual([4]);
   });
 });
+
+// ── Fase 4 + 5 · los OTROS verbos también están en las dos vistas ───────────
+//
+// `reassignLeadOwnerAction` y `setLeadTagsAction` tuvieron la cadena de servidor
+// completa —RBAC, validación, payload probado, encolado, nudge— y CERO
+// consumidores durante toda la Fase 4. La UI se saltó, y sin ella el verbo no
+// existe. Este contrato hace que volver a ese estado sea rojo, no silencioso.
+//
+// MUTACIÓN QUE LO VALIDA: se quitó `<LeadActionsButton` de KommoBoardView.tsx
+// (dejándolo sólo en la tabla, que es exactamente el error que ya se cometió
+// una vez con el control de etapa). El caso del Tablero se puso rojo.
+describe("los verbos del drawer están en las dos vistas", () => {
+  it.each(VISTAS)("%s monta <LeadActionsButton>", (path) => {
+    expect(read(path)).toContain("<LeadActionsButton");
+  });
+
+  it("el drawer cablea los CUATRO verbos, no sólo los dos viejos", () => {
+    const code = read(`${DIR}/LeadDrawer.tsx`);
+    for (const accion of [
+      "reassignLeadOwnerAction",
+      "setLeadTagsAction",
+      "addLeadNoteAction",
+      "addLeadTaskAction",
+    ]) {
+      expect(code).toContain(accion);
+    }
+  });
+
+  it("usa el patrón de DrawerShell: form en el cuerpo, submit en el footer", () => {
+    const code = read(`${DIR}/LeadDrawer.tsx`);
+    expect(code).toContain("DrawerShell");
+    expect(code).toContain("DrawerFooter");
+    expect(code).toContain("formId={FORM_ID}");
+    expect(code).toContain("id={FORM_ID}");
+    // El hack que el patrón vino a reemplazar. Se busca la LLAMADA (`.requestSubmit(`)
+    // y no la palabra: el docstring del componente la nombra para explicar por
+    // qué no se usa, y un `toContain` sobre el nombre daría rojo por el comentario.
+    expect(code).not.toMatch(/\.requestSubmit\(/);
+  });
+
+  it("⭐ las ops que CREAN llevan token de idempotencia", () => {
+    // Sin token, dos notas distintas colapsan en una fila por la clave
+    // `<leadId>:<op>` y la primera se pierde sin error (migración 0374).
+    const code = read(`${DIR}/LeadDrawer.tsx`);
+    expect(code).toContain("randomUUID");
+    expect(code).toMatch(/addLeadNoteAction\([^)]*token/s);
+    expect(code).toMatch(/addLeadTaskAction\([\s\S]*?token/);
+  });
+
+  it("⭐ el permiso sale del MISMO predicado que la acción, no de una regla por rol", () => {
+    // `canEdit` se deriva de `moduleEditDenial(supabase, "kommo")` en la página.
+    // Una regla propia por rol acá divergiría del servidor y el asesor vería un
+    // control que le va a decir que no.
+    const boton = read(`${DIR}/LeadActionsButton.tsx`);
+    expect(boton).toContain("if (!canEdit) return null;");
+    expect(boton).not.toMatch(/role\s*===\s*["']admin["']/);
+    expect(read("app/studio/(app)/crm/page.tsx")).toContain(
+      'moduleEditDenial(supabase, "kommo")',
+    );
+  });
+
+  it("el aviso de lo frenado se ve SIN abrir el drawer", () => {
+    // Si sólo viviera dentro del drawer habría que abrir lead por lead para
+    // enterarse de que una orden no se mandó — o sea, no se enteraría nadie.
+    const boton = read(`${DIR}/LeadActionsButton.tsx`);
+    expect(boton).toMatch(/frenada/);
+    expect(boton).toContain("staleOps");
+  });
+});

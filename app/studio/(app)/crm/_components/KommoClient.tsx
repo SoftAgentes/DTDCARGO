@@ -17,6 +17,7 @@ import { Badge, type BadgeTone } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import type { OwnerSlice } from "@/lib/studio/kommo-analytics";
+import type { StaleOp } from "@/lib/studio/kommo-writeback";
 import { buildProspectWaLink } from "@/lib/studio/estimado-linking";
 import {
   KOMMO_AGE_OPTIONS,
@@ -33,10 +34,11 @@ import {
 } from "@/lib/studio/kommo-types";
 import { KOMMO_TABS, type KommoTabKey } from "./kommo-tabs.shared";
 import { ConvertLeadDrawer } from "./ConvertLeadDrawer";
+import { LeadActionsButton } from "./LeadActionsButton";
 import { StageControl } from "./StageControl";
 import { fmtUsd } from "@/lib/money";
 
-const GRID = "1.5fr 0.9fr 0.8fr 56px 96px 148px";
+const GRID = "1.5fr 0.9fr 0.8fr 56px 96px 148px 116px";
 const DAY_MS = 86_400_000;
 
 function fmtDateTime(iso: string | null): string {
@@ -91,6 +93,7 @@ export function KommoClient({
   valueByLead,
   contactByLead,
   pendingOpsByLead,
+  staleOpsByLead,
   canEdit,
   responsibleUsers,
 }: {
@@ -114,6 +117,8 @@ export function KommoClient({
   contactByLead: Record<number, KommoLeadContactInfo>;
   /** leadId → ops encoladas que aún no llegaron a Kommo (chip "en camino"). */
   pendingOpsByLead: Record<number, string[]>;
+  /** leadId → órdenes que el chequeo optimista frenó para no pisar el CRM. */
+  staleOpsByLead: Record<number, StaleOp[]>;
   /** ¿Puede mover, o sólo mirar? Deriva de moduleEditDenial en la página. */
   canEdit: boolean;
   /** Asesores presentes (para el filtro), ordenados desc por leads. */
@@ -458,6 +463,8 @@ export function KommoClient({
                 valueByLead={valueByLead}
                 contactByLead={contactByLead}
                 pendingOps={pendingOpsByLead}
+                staleOps={staleOpsByLead}
+                asesores={responsibleUsers}
                 canEdit={canEdit}
                 onVerbDone={onVerbDone}
                 onConvertClick={(l) =>
@@ -500,6 +507,8 @@ function LeadsTable({
   valueByLead,
   contactByLead,
   pendingOps,
+  staleOps,
+  asesores,
   canEdit,
   onVerbDone,
   onConvertClick,
@@ -514,6 +523,10 @@ function LeadsTable({
   contactByLead: Record<number, KommoLeadContactInfo>;
   /** leadId → ops encoladas que todavía no llegaron a Kommo. */
   pendingOps: Record<number, string[]>;
+  /** leadId → órdenes frenadas por el chequeo optimista. */
+  staleOps: Record<number, StaleOp[]>;
+  /** Asesores del espejo — el drawer los ofrece para reasignar. */
+  asesores: OwnerSlice[];
   canEdit: boolean;
   onVerbDone: (msg: string, error?: boolean) => void;
   onConvertClick: (lead: KommoLeadRow) => void;
@@ -529,7 +542,7 @@ function LeadsTable({
     >
       {/* Scroll de rescate en anchos chicos: la fila de acción no se aplasta. */}
       <div style={{ overflowX: "auto" }}>
-        <div role="table" aria-label="Leads del CRM" style={{ minWidth: 680 }}>
+        <div role="table" aria-label="Leads del CRM" style={{ minWidth: 800 }}>
           {/* Header */}
           <div
             role="row"
@@ -557,6 +570,9 @@ function LeadsTable({
             </span>
             <span role="columnheader" style={{ textAlign: "right" }}>
               Cliente DTD
+            </span>
+            <span role="columnheader" style={{ textAlign: "right" }}>
+              Acciones
             </span>
           </div>
 
@@ -742,6 +758,22 @@ function LeadsTable({
                       Convertir a cliente
                     </button>
                   )}
+                </span>
+                {/* Los verbos que no caben en una fila: asesor, etiquetas,
+                    nota y tarea. Y el aviso de lo que el chequeo optimista
+                    frenó, que tiene que verse SIN abrir el drawer. */}
+                <span role="cell" style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <LeadActionsButton
+                    lead={{
+                      id: l.id,
+                      name: l.name || "(sin nombre)",
+                      ownerId: l.responsible_user_id,
+                    }}
+                    asesores={asesores}
+                    staleOps={staleOps[l.id] ?? []}
+                    canEdit={canEdit}
+                    onDone={onVerbDone}
+                  />
                 </span>
               </div>
             );
