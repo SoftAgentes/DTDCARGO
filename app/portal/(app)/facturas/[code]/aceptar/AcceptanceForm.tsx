@@ -174,6 +174,7 @@ export function AcceptanceForm({
         <button
           type="submit"
           disabled={pending}
+          aria-busy={pending}
           className="btn btn-primary disabled:opacity-60 disabled:cursor-wait"
         >
           {pending ? "Registrando…" : copy.submitLabel}

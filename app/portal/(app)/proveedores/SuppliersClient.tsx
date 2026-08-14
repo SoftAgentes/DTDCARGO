@@ -413,6 +413,7 @@ function EditSupplierForm({
         <button
           type="submit"
           disabled={pending}
+          aria-busy={pending}
           className="btn btn-primary inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-wait"
         >
           {pending ? "Guardando…" : "Guardar cambios"}
@@ -507,6 +508,7 @@ function AddSupplierForm({
         <button
           type="submit"
           disabled={pending}
+          aria-busy={pending}
           className="btn btn-primary inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-wait"
         >
           {pending ? "Creando…" : "Crear y generar código"}

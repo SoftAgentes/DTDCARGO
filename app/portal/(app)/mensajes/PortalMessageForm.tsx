@@ -51,6 +51,7 @@ export function PortalMessageForm({ prefill }: { prefill?: string }) {
         <button
           type="submit"
           disabled={pending}
+          aria-busy={pending}
           className="btn btn-primary disabled:opacity-60 disabled:cursor-wait"
         >
           {pending ? "Enviando…" : "Enviar mensaje"}

@@ -1,7 +1,7 @@
 ---
 sdd: 0260
 title: El portal avisa que la acción está en curso también a quien no ve la pantalla
-status: proposed
+status: in-progress
 author: Claude (ventana 2026-08-14)
 created: 2026-08-14
 updated: 2026-08-14

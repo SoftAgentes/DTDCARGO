@@ -237,6 +237,7 @@ export function PurchaseStepDetalle({
             <button
               type="submit"
               disabled={pending}
+              aria-busy={pending}
               className="btn btn-primary w-full inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait"
             >
               {pending ? "Guardando…" : "Guardar y avanzar al paso 3"}

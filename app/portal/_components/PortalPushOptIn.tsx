@@ -178,6 +178,7 @@ export function PortalPushOptIn() {
               type="button"
               onClick={() => void enable()}
               disabled={loading}
+              aria-busy={loading}
               className="btn btn-ghost mt-3 inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-wait"
             >
               <Bell size={15} />
