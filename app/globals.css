@@ -29,6 +29,24 @@
      sobre ese mismo fondo. Úsalo para texto de estado sobre fondo oscuro; el
      token normal es para fondo claro. */
   --color-status-success-on-dark: #6ee7a8;
+  /* Rojo de peligro legible SOBRE NAVY. Tercer hermano de la familia on-dark.
+     `--color-status-danger` (#c2353f) mide **2,88:1** sobre la card navy de la
+     calculadora (#16233F, la parada CLARA de su gradiente — medido en el
+     navegador el 2026-08-13) y reprueba AA de calle. Es el peor sitio posible:
+     pinta los mensajes que BLOQUEAN la cotización ("Eso es más que un
+     contenedor").
+     ⚠️ Este NO sale de la receta habitual (mismo tono y saturación, más claro).
+     Esa receta literal —hsl(355,7°, 57%, 76%) = #e59fa4— sí pasa AA, pero cae a
+     ΔE 7,1 de `--color-wine-on-dark` (#d59fa7): a 11px son el MISMO color, y los
+     dos tonos conviven en el mismo componente (`BigInput` pinta `info` en wine y
+     `danger` en rojo). Así que se mantiene el tono (355,7°) y se sube la
+     saturación 57% → 85%, que es lo que separa el rojo de alarma del wine
+     apagado (ΔE 19,3 · se distinguen).
+     Medido: 7,05:1 sobre #16233F (card de /tarifas) · 4,64:1 sobre #26406F
+     (extremo claro de --grad-navy-hero, el peor caso de las bandas públicas) ·
+     5,89:1 sobre #1F3055 (panel del total) · 6,73:1 sobre #16264A (card del
+     portal oscuro). Aprobado por el founder el 2026-08-13. */
+  --color-status-danger-on-dark: #f6929a;
   --color-ink: #0f1e3d;
 
   /* Greys */
@@ -1689,6 +1707,14 @@
   --f-brand: var(--font-archivo);
   --f-brand-display: var(--font-archivo-black);
   --f-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  /* Rojo de peligro legible sobre navy (ver --color-status-danger-on-dark al
+     tope). Va en el puente COMPARTIDO y no por superficie como --wine-on-dark:
+     lo consume la calculadora, que se renderiza en más de una superficie.
+     ⚠️ No escribas la palabra "theme" precedida de arroba dentro de un
+     comentario de este archivo: Tailwind la lee aunque esté comentada y se
+     descarta la declaración que sigue (medido el 2026-08-13 — el alias
+     desaparecía del CSS compilado sin ningún error). */
+  --danger-on-dark: var(--color-status-danger-on-dark);
   /* Superficies → tokens del sitio */
   --bg-base: var(--color-paper);
   --bg-surface: var(--color-white);

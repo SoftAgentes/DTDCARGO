@@ -813,25 +813,27 @@ function BigInput({
       : warning?.tone === "info"
         ? "border-wine"
         : "border-status-warning";
-  // ⚠️ El texto del tono `info` NO puede usar `text-wine`.
+  // ⚠️ Ni `info` ni `danger` pueden usar su token crudo acá: los dos son colores
+  // pensados para fondo CLARO y esta card es navy.
   //
-  // Medido en el navegador el 2026-08-13 sobre esta card navy: `text-wine`
-  // resuelve a #7F0F1A y da **1,57:1** — ilegible, muy por debajo del 4,5:1 que
-  // pide AA (BRAND.md, regla 6). Es el mismo wine que en fondo claro está bien;
-  // acá hay que usar el hermano para fondo oscuro, `--wine-on-dark` (#d59fa7 en
-  // /tarifas → 6,9:1), que es lo que ya usa el resto de este componente.
+  // Medido en el navegador el 2026-08-13 sobre esta card (#16233F, la parada
+  // clara de su gradiente):
+  //   · `text-wine` (#7F0F1A) → **1,57:1** — ilegible.
+  //   · `text-status-danger` (#c2353f) → **2,88:1** — reprueba, y es el peor
+  //     sitio para que pase: son los mensajes que BLOQUEAN la cotización.
+  // Ambos por debajo del 4,5:1 que pide AA (BRAND.md, regla 6). Se usan los
+  // hermanos para fondo oscuro: `--wine-on-dark` (#d59fa7 → 7,0:1) y
+  // `--danger-on-dark` (#f6929a → 7,05:1).
   //
-  // Va como `style` y no como clase porque el token vive en CSS, no en Tailwind.
-  const warnText =
-    warning?.tone === "danger"
-      ? "text-status-danger"
-      : warning?.tone === "info"
-        ? ""
-        : "text-status-warning";
+  // Van como `style` y no como clase porque los tokens viven en CSS, no en
+  // Tailwind. El `warning` (ámbar) sí se queda en clase: su token ya es legible.
+  const warnText = warning?.tone === "warning" ? "text-status-warning" : "";
   const warnStyle =
-    warning?.tone === "info"
-      ? { color: "var(--wine-on-dark, #E8748A)" }
-      : undefined;
+    warning?.tone === "danger"
+      ? { color: "var(--danger-on-dark, #f6929a)" }
+      : warning?.tone === "info"
+        ? { color: "var(--wine-on-dark, #E8748A)" }
+        : undefined;
   return (
     <label className="flex flex-col gap-1.5 min-w-0">
       <span className="flex items-center gap-2 min-w-0">
