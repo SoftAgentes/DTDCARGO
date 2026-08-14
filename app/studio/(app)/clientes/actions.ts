@@ -11,6 +11,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
@@ -27,6 +28,10 @@ import {
   type AliadoActionState,
 } from "@/lib/studio/aliados/aliado-types";
 import { parseMarkbox } from "@/lib/shared/markbox-chain";
+import {
+  validateNuevoMarkbox,
+  type RenameMarkboxActionState,
+} from "@/lib/studio/markbox-history-types";
 import {
   insertClientDeliveryAddress,
   clearDefaultForClient,
@@ -912,6 +917,78 @@ export async function actualizarAliadoAction(
 
   revalidatePath(`/studio/clientes/${markbox}`);
   return { ok: true };
+}
+
+/**
+ * Cambia el Shipping Mark de un cliente (SDD-0258).
+ *
+ * NO hace el UPDATE acá: llama a la RPC `rename_client_markbox()` (migr 0367),
+ * que mueve las 30 tablas que copian el código en UNA transacción y jubila el
+ * viejo en `client_markbox_history`. Hacerlo desde la app serían 30 llamadas
+ * sueltas de PostgREST, y el primer error dejaría al cliente partido a la mitad.
+ *
+ * ⚠️ Termina en `redirect()` y no en `return { ok: true }` a propósito: la ruta
+ * es `/studio/clientes/[markbox]`, así que después del renombrado la URL actual
+ * ya no existe. Sin el redirect el operador se queda mirando un 404 de la ficha
+ * que acaba de editar.
+ */
+export async function renombrarMarkboxAction(
+  clientId: string,
+  markboxActual: string,
+  _prev: RenameMarkboxActionState,
+  formData: FormData,
+): Promise<RenameMarkboxActionState> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "clients");
+  if (denial) return { error: denial };
+
+  const parsed = validateNuevoMarkbox(String(formData.get("nuevoMarkbox") ?? ""), markboxActual);
+  if (parsed.error) return { error: parsed.error };
+
+  const motivoRaw = String(formData.get("motivo") ?? "").trim();
+
+  const { data, error } = await supabase.rpc("rename_client_markbox", {
+    p_client_id: clientId,
+    p_new_markbox: parsed.value!,
+    p_reason: motivoRaw === "" ? null : motivoRaw.slice(0, 500),
+  });
+
+  if (error) return { error: mensajeDeErrorRenombrado(error) };
+
+  const nuevo = (data as { new_markbox?: string } | null)?.new_markbox ?? parsed.value!;
+
+  // Las dos rutas: la vieja para que no quede cacheada apuntando a nada, y la
+  // nueva porque es a donde vamos.
+  revalidatePath(`/studio/clientes/${markboxActual}`);
+  revalidatePath(`/studio/clientes/${nuevo}`);
+  revalidatePath("/studio/clientes");
+
+  redirect(`/studio/clientes/${encodeURIComponent(nuevo)}`);
+}
+
+/**
+ * Traduce los errores de `rename_client_markbox()`. Cada rama corresponde a una
+ * guarda REAL de la migr 0367 — no son mensajes defensivos genéricos.
+ */
+function mensajeDeErrorRenombrado(error: { code?: string; message: string }): string {
+  if (error.code === "23505") {
+    if (/retirado/i.test(error.message)) {
+      return "Ese Shipping Mark ya lo tuvo alguien y quedó reservado para él. Un código retirado no se reutiliza nunca: si se reasignara, la carga rotulada con ese código llegaría a la ficha equivocada.";
+    }
+    return "Ese Shipping Mark ya es de otro cliente.";
+  }
+  if (error.code === "23514") {
+    // Guard de coherencia con el módulo de aliados.
+    return error.message;
+  }
+  if (error.code === "42501") {
+    return "No tienes permiso para cambiar el Shipping Mark. Hace falta rol de administración, comercial u operaciones.";
+  }
+  if (error.code === "P0002") {
+    return "No se encontró ese cliente.";
+  }
+  return `No se pudo cambiar el Shipping Mark: ${error.message}`;
 }
 
 /**

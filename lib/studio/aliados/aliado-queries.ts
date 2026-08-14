@@ -34,22 +34,31 @@ export async function getAliadoByClientId(
 
 /** Todos los aliados vivos del tenant, para selectores y listados. */
 export async function listAliadoOptions(supabase: SupabaseClient): Promise<AliadoOption[]> {
+  // El embed de `clients` trae el Shipping Mark para poder enlazar a la ficha del
+  // sub-aliado: la ruta del Studio es /studio/clientes/[markbox], no por id.
   const { data, error } = await supabase
     .from("aliados")
-    .select("id, client_id, prefix, trade_name, parent_aliado_id, status")
+    .select("id, client_id, prefix, trade_name, parent_aliado_id, status, clients:client_id (markbox)")
     .is("deleted_at", null)
     .order("prefix");
 
   if (error) throw error;
 
-  return (data ?? []).map((r) => ({
-    id: r.id as string,
-    clientId: r.client_id as string,
-    prefix: r.prefix as string,
-    tradeName: r.trade_name as string,
-    parentAliadoId: (r.parent_aliado_id as string | null) ?? null,
-    status: r.status as AliadoOption["status"],
-  }));
+  return (data ?? []).map((r) => {
+    // PostgREST devuelve el embed como objeto o como arreglo según cómo infiera
+    // la relación; se normalizan los dos casos en vez de apostar por uno.
+    const rel = (r as { clients?: { markbox?: string } | { markbox?: string }[] | null }).clients;
+    const embedded = Array.isArray(rel) ? rel[0] : rel;
+    return {
+      id: r.id as string,
+      clientId: r.client_id as string,
+      markbox: embedded?.markbox ?? null,
+      prefix: r.prefix as string,
+      tradeName: r.trade_name as string,
+      parentAliadoId: (r.parent_aliado_id as string | null) ?? null,
+      status: r.status as AliadoOption["status"],
+    };
+  });
 }
 
 /**

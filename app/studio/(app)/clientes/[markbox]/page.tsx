@@ -34,7 +34,10 @@ import { ClientDetailClient } from "../_components/ClientDetailClient";
 import { PortalAccessCard } from "../_components/PortalAccessCard";
 import { AdvisorAssignCard } from "../_components/AdvisorAssignCard";
 import { AliadoCard } from "../_components/AliadoCard";
+import { ShippingMarkCard } from "../_components/ShippingMarkCard";
 import { getAliadoByClientId, listAliadoOptions } from "@/lib/studio/aliados/aliado-queries";
+import { listMarkboxHistory } from "@/lib/studio/markbox-history-queries";
+import type { MarkboxHistoryEntry } from "@/lib/studio/markbox-history-types";
 import { getStudioRole } from "@/lib/studio/rbac-guard";
 import { canEditModule } from "@/lib/studio/rbac";
 import { DeliveryAddressesCard } from "../_components/DeliveryAddressesCard";
@@ -113,6 +116,16 @@ export default async function ClienteDetallePage({
     getStudioRole(supabase),
   ]);
   const puedeEditarClientes = canEditModule(studioRole, "clients");
+
+  // Shipping Marks que este cliente TUVO (SDD-0258). Best-effort igual que las
+  // direcciones: si la migr 0367 no está aplicada, degradamos a lista vacía en
+  // vez de tumbar la ficha entera.
+  let markboxHistory: MarkboxHistoryEntry[] = [];
+  try {
+    markboxHistory = await listMarkboxHistory(supabase, client.id);
+  } catch {
+    markboxHistory = [];
+  }
 
   // Documentos del DMS genérico (SDD-0049) adjuntos a este cliente — KYC, RIF,
   // contratos, poderes. Coexiste con shipment_documents.
@@ -487,6 +500,13 @@ export default async function ClienteDetallePage({
             markbox={client.markbox}
             currentAdvisorId={client.advisor_id}
             advisors={advisors}
+          />
+
+          <ShippingMarkCard
+            clientId={client.id}
+            markbox={client.markbox}
+            historial={markboxHistory}
+            canEdit={puedeEditarClientes}
           />
 
           <AliadoCard
