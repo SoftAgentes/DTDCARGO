@@ -55,13 +55,32 @@ export function DeliveryAddressesCard({
   // Guard anti doble-click de las acciones por fila (predeterminar/eliminar):
   // mientras una está en vuelo, las demás quedan deshabilitadas.
   const [busy, setBusy] = useState<string | null>(null);
-  // SDD-0262 · borrar una dirección es P2/R2 en MP-01 (soft-delete restaurable,
-  // pero HOY sin UI de restauración → no califica R1), así que la fricción
-  // mínima es un ConfirmDialog que nombre el registro y su consecuencia. Antes
-  // el onClick llamaba la action directo: un clic y la dirección desaparecía
-  // también del portal del cliente.
-  const [aBorrar, setABorrar] = useState<ClientDeliveryAddress | null>(null);
-  const [errorBorrado, setErrorBorrado] = useState<string | null>(null);
+
+  // SDD-0262 · MP-01 R2. El borrado es soft-delete (P2) pero NO tiene camino de
+  // restauración en el Studio, así que no califica como R1 "ejecutar y deshacer":
+  // pide confirmación con el nombre del registro y su consecuencia. El error se
+  // queda DENTRO del diálogo — si se pintara en la card, se perdería al cerrar.
+  const [pendingDelete, setPendingDelete] = useState<ClientDeliveryAddress | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  async function confirmarBorrado() {
+    const a = pendingDelete;
+    if (!a) return;
+    setDeleteError(null);
+    setBusy(`delete:${a.id}`);
+    try {
+      const res = await deleteClientAddressAction(markbox, a.id);
+      if (res.error) {
+        setDeleteError(res.error);
+        return;
+      }
+      setPendingDelete(null);
+      toast.success(`Dirección eliminada de ${markbox}`);
+      router.refresh();
+    } finally {
+      setBusy(null);
+    }
+  }
 
   // Campos del alta (form controlado, patrón de las cards del módulo). La ciudad
   // sale del catálogo del calculador (Slice C: slug → estimado); "otra" = texto libre.
@@ -238,18 +257,17 @@ export function DeliveryAddressesCard({
                     {busy === `default:${a.id}` ? "Guardando…" : "Predeterminar"}
                   </button>
                 )}
-                {/* SDD-0262 · abre el diálogo; el borrado corre al confirmar.
-                    En `--danger` y no `--ink-soft`: BTN-01 §2 pide variante
-                    destructiva para el rol destructivo, y estaba invertido —
-                    "Predeterminar", que no destruye nada, se veía MÁS que esto. */}
+                {/* BTN-01 §2 y §4: una destructiva se lee como destructiva y no
+                    comparte borde con una positiva ("Predeterminar" va al lado).
+                    La decisión final vive en el diálogo, con objeto y consecuencia. */}
                 <button
                   type="button"
                   className="studio-link-quiet"
                   disabled={busy != null}
                   onClick={() => {
                     setError(null);
-                    setErrorBorrado(null);
-                    setABorrar(a);
+                    setDeleteError(null);
+                    setPendingDelete(a);
                   }}
                   style={{
                     font: "600 12px/1 var(--f-sans)",
@@ -257,10 +275,10 @@ export function DeliveryAddressesCard({
                     background: "none",
                     border: 0,
                     cursor: busy != null ? "wait" : "pointer",
-                    opacity: busy === `delete:${a.id}` ? 0.6 : 1,
+                    marginLeft: 6,
                   }}
                 >
-                  {busy === `delete:${a.id}` ? "Eliminando…" : "Eliminar"}
+                  Eliminar
                 </button>
               </div>
             </li>
@@ -432,52 +450,48 @@ export function DeliveryAddressesCard({
         </div>
       )}
 
-      {/* SDD-0262 · MP-01 R2: nombra el registro y su consecuencia. El error de
-          la action queda DENTRO del diálogo y el diálogo no se cierra, para que
-          el asesor no reintente a ciegas. Sin HTD-01: la presión sostenida está
-          reservada a consumidores R3 clasificados, y esto es R2. */}
+      {/* SDD-0262 · SGE-00.03 (fricción proporcional al riesgo) + SGE-00.11
+          (la confirmación expresa la consecuencia) + MP-01 §3 R2 (nombre del
+          registro y consecuencia). Nada promete recuperación: no existe camino
+          de restauración en el Studio, y BTN-01 §3 prohíbe prometerla. */}
       <ConfirmDialog
-        open={aBorrar != null}
+        open={pendingDelete != null}
         danger
-        pending={busy === `delete:${aBorrar?.id}`}
-        error={errorBorrado ?? undefined}
-        title="¿Eliminar esta dirección de entrega?"
-        message={
-          aBorrar
-            ? `Se elimina «${aBorrar.label?.trim() || aBorrar.line}» de ${markbox}. ` +
-              `El cliente también deja de verla en su portal.` +
-              (aBorrar.isDefault
-                ? " Es la dirección PREDETERMINADA: la operación la usa para la entrega."
-                : "")
-            : ""
-        }
+        title="Eliminar dirección"
+        message={pendingDelete ? mensajeBorrado(pendingDelete, markbox) : ""}
         confirmLabel="Eliminar dirección"
-        cancelLabel="Cancelar"
+        pending={pendingDelete != null && busy === `delete:${pendingDelete.id}`}
+        error={deleteError ?? undefined}
         onCancel={() => {
-          setABorrar(null);
-          setErrorBorrado(null);
+          setPendingDelete(null);
+          setDeleteError(null);
         }}
-        onConfirm={async () => {
-          if (!aBorrar) return;
-          const objetivo = aBorrar;
-          setErrorBorrado(null);
-          setBusy(`delete:${objetivo.id}`);
-          try {
-            const res = await deleteClientAddressAction(markbox, objetivo.id);
-            if (res.error) {
-              setErrorBorrado(res.error);
-              return; // el diálogo QUEDA abierto con el motivo a la vista
-            }
-            setABorrar(null);
-            toast.success(`Dirección eliminada de ${markbox}`);
-            router.refresh();
-          } finally {
-            setBusy(null);
-          }
+        onConfirm={() => {
+          void confirmarBorrado();
         }}
       />
     </section>
   );
+}
+
+/** La dirección tal como la ve el asesor, para que confirme lo que cree. */
+function describirDireccion(a: ClientDeliveryAddress): string {
+  return [a.label, a.line, [a.city, a.state].filter(Boolean).join(", ")]
+    .map((p) => (p ?? "").trim())
+    .filter(Boolean)
+    .join(" · ");
+}
+
+/**
+ * Consecuencia real, medida contra el código: `softDeleteClientDeliveryAddress`
+ * sólo sella `deleted_at` y NO reasigna la predeterminada, así que borrar la
+ * predeterminada deja al cliente sin dirección para el last-mile.
+ */
+function mensajeBorrado(a: ClientDeliveryAddress, markbox: string): string {
+  const base = `«${describirDireccion(a)}» deja de estar disponible para los envíos de ${markbox} y no se puede recuperar desde el Studio.`;
+  return a.isDefault
+    ? `${base} Además es la predeterminada: ${markbox} queda sin dirección de entrega hasta que marques otra.`
+    : base;
 }
 
 /**

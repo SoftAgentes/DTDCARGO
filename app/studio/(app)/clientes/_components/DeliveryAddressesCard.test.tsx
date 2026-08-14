@@ -1,188 +1,159 @@
 /**
  * SDD-0262 · Borrar una dirección de entrega exige confirmación.
  *
- * Ejecuta los criterios de aceptación 1, 2, 3, 4 y 5 de la spec. El que importa
- * es el primero: ANTES, el `onClick` del botón llamaba `deleteClientAddressAction`
- * directo, así que un clic borraba. La prueba falla si esa regresión vuelve.
- *
- * El Studio pide login con contraseña, así que la pantalla real no se puede
- * verificar en el navegador desde acá. Esto es la verificación que sí se puede
- * ejecutar: el contrato del componente.
+ * Estos tests fallan si el arreglo se revierte: antes del SDD-0262 el `onClick`
+ * del botón "Eliminar" llamaba a la acción directo, así que el primer caso
+ * ("abrir el diálogo no borra") es rojo apenas alguien vuelva al patrón viejo.
  */
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DeliveryAddressesCard } from "./DeliveryAddressesCard";
 import type { ClientDeliveryAddress } from "@/lib/studio/client-address-types";
 
-const deleteClientAddressAction = vi.fn();
-const toastSuccess = vi.fn();
-const routerRefresh = vi.fn();
-
-vi.mock("../actions", () => ({
-  deleteClientAddressAction: (...args: unknown[]) =>
-    deleteClientAddressAction(...args),
-  addClientAddressAction: vi.fn(),
+const mocks = vi.hoisted(() => ({
+  refresh: vi.fn(),
+  deleteClientAddressAction: vi.fn(),
   setDefaultClientAddressAction: vi.fn(),
+  addClientAddressAction: vi.fn(),
+  success: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh: routerRefresh }),
+  useRouter: () => ({ refresh: mocks.refresh }),
 }));
-
+vi.mock("../actions", () => ({
+  deleteClientAddressAction: mocks.deleteClientAddressAction,
+  setDefaultClientAddressAction: mocks.setDefaultClientAddressAction,
+  addClientAddressAction: mocks.addClientAddressAction,
+}));
 vi.mock("@/app/studio/_components/ui/ToastProvider", () => ({
-  useToast: () => ({ success: toastSuccess, error: vi.fn(), info: vi.fn() }),
+  useToast: () => ({ success: mocks.success, error: vi.fn(), info: vi.fn(), warning: vi.fn() }),
 }));
 
-const { DeliveryAddressesCard } = await import("./DeliveryAddressesCard");
+const CLIENT_ID = "40000000-0000-4000-8000-000000000001";
 
-// ConfirmDialog mide `offsetParent` para el foco inicial.
-const originalOffsetParent = Object.getOwnPropertyDescriptor(
-  HTMLElement.prototype,
-  "offsetParent",
-);
-beforeAll(() => {
-  Object.defineProperty(HTMLElement.prototype, "offsetParent", {
-    configurable: true,
-    get() {
-      return document.body;
-    },
-  });
-});
-afterAll(() => {
-  if (originalOffsetParent) {
-    Object.defineProperty(
-      HTMLElement.prototype,
-      "offsetParent",
-      originalOffsetParent,
-    );
-  }
-});
-afterEach(() => {
-  cleanup();
-  vi.clearAllMocks();
-});
-
-const BASE: ClientDeliveryAddress = {
-  id: "addr-1",
-  clientId: "cli-1",
-  label: "Casa",
-  line: "Av. Bolívar, Res. Los Pinos, apto 4B",
-  city: "Valencia",
-  citySlug: null,
-  state: "Carabobo",
-  reference: null,
-  isDefault: false,
-};
-
-function direccion(
-  over: Partial<ClientDeliveryAddress> = {},
-): ClientDeliveryAddress {
-  return { ...BASE, ...over };
+function direccion(over: Partial<ClientDeliveryAddress> = {}): ClientDeliveryAddress {
+  return {
+    id: "50000000-0000-4000-8000-000000000001",
+    clientId: CLIENT_ID,
+    label: "Casa",
+    line: "Av. Bolívar, Res. Aurora, apto 4-B",
+    city: "Valencia",
+    citySlug: "valencia",
+    state: "Carabobo",
+    reference: null,
+    isDefault: false,
+    ...over,
+  };
 }
 
-function montar(addresses: ClientDeliveryAddress[]) {
+function renderCard(addresses: ClientDeliveryAddress[]) {
   return render(
     <DeliveryAddressesCard
-      clientId="cli-1"
+      clientId={CLIENT_ID}
       markbox="DTD-1234"
       addresses={addresses}
     />,
   );
 }
 
-describe("DeliveryAddressesCard · SDD-0262 · borrar exige confirmación", () => {
-  it("pulsar Eliminar NO borra: abre el diálogo (criterio 1)", async () => {
+async function abrirDialogo(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("button", { name: "Eliminar" }));
+  return screen.getByRole("dialog", { name: "Eliminar dirección" });
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.deleteClientAddressAction.mockResolvedValue({ ok: true });
+});
+afterEach(cleanup);
+
+describe("DeliveryAddressesCard · borrado con confirmación (SDD-0262)", () => {
+  it("abrir el diálogo NO borra", async () => {
     const user = userEvent.setup();
-    montar([direccion()]);
+    renderCard([direccion()]);
 
-    await user.click(screen.getByRole("button", { name: /eliminar/i }));
+    const dialog = await abrirDialogo(user);
 
-    // Lo que esta prueba existe para impedir:
-    expect(deleteClientAddressAction).not.toHaveBeenCalled();
+    expect(mocks.deleteClientAddressAction).not.toHaveBeenCalled();
+    expect(dialog).toBeVisible();
+  });
+
+  it("nombra la dirección y dice la consecuencia", async () => {
+    const user = userEvent.setup();
+    renderCard([direccion()]);
+
+    const dialog = await abrirDialogo(user);
+
+    // El registro se nombra DENTRO del diálogo (MP-01 §3 R2). Se acota con
+    // `within` porque la dirección también está en la fila de la card: sin
+    // acotar, el aserto pasaría por el texto de la fila y no probaría nada.
     expect(
-      screen.getByText(/¿Eliminar esta dirección de entrega\?/i),
-    ).toBeTruthy();
+      within(dialog).getByText(/Av\. Bolívar, Res\. Aurora, apto 4-B/),
+    ).toBeVisible();
+    // … y la consecuencia se expresa (SGE-00.11), sin prometer recuperación
+    // (BTN-01 §3 prohíbe prometer lo que hoy dependería de soporte).
+    expect(
+      within(dialog).getByText(/no se puede recuperar desde el Studio/),
+    ).toBeVisible();
   });
 
-  it("el diálogo nombra la dirección y avisa que el cliente la ve en su portal (criterio 2)", async () => {
+  it("avisa que borrar la predeterminada deja al cliente sin dirección de entrega", async () => {
     const user = userEvent.setup();
-    montar([direccion({ label: "Oficina" })]);
+    renderCard([direccion({ isDefault: true })]);
 
-    await user.click(screen.getByRole("button", { name: /^eliminar$/i }));
+    await abrirDialogo(user);
 
-    const dialogo = screen.getByRole("dialog");
-    expect(dialogo.textContent).toContain("Oficina");
-    expect(dialogo.textContent).toContain("DTD-1234");
-    expect(dialogo.textContent).toMatch(/portal/i);
+    expect(
+      screen.getByText(/queda sin dirección de entrega hasta que marques otra/),
+    ).toBeVisible();
   });
 
-  it("si es la predeterminada, el mensaje lo dice (criterio 3)", async () => {
+  it("el foco inicial es Cancelar y Escape cierra sin borrar (BTN-01 §4)", async () => {
     const user = userEvent.setup();
-    montar([direccion({ isDefault: true })]);
+    renderCard([direccion()]);
 
-    await user.click(screen.getByRole("button", { name: /^eliminar$/i }));
-
-    expect(screen.getByRole("dialog").textContent).toMatch(/PREDETERMINADA/);
-  });
-
-  it("sin etiqueta, nombra la dirección por su línea", async () => {
-    const user = userEvent.setup();
-    montar([direccion({ label: null })]);
-
-    await user.click(screen.getByRole("button", { name: /^eliminar$/i }));
-
-    expect(screen.getByRole("dialog").textContent).toContain("Av. Bolívar");
-  });
-
-  it("Cancelar no borra y cierra el diálogo (criterio 4)", async () => {
-    const user = userEvent.setup();
-    montar([direccion()]);
-
-    await user.click(screen.getByRole("button", { name: /^eliminar$/i }));
-    await user.click(screen.getByRole("button", { name: /^cancelar$/i }));
-
-    expect(deleteClientAddressAction).not.toHaveBeenCalled();
+    await abrirDialogo(user);
     await waitFor(() =>
-      expect(screen.queryByRole("dialog")).toBeNull(),
+      expect(screen.getByRole("button", { name: "Cancelar" })).toHaveFocus(),
     );
+
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(mocks.deleteClientAddressAction).not.toHaveBeenCalled();
   });
 
-  it("al confirmar sí borra, con el id correcto", async () => {
-    deleteClientAddressAction.mockResolvedValue({ ok: true });
+  it("confirmar borra UNA sola vez, con el markbox y el id de esa dirección", async () => {
     const user = userEvent.setup();
-    montar([direccion({ id: "addr-99" })]);
+    const a = direccion();
+    renderCard([a]);
 
-    await user.click(screen.getByRole("button", { name: /^eliminar$/i }));
-    await user.click(
-      screen.getByRole("button", { name: /eliminar dirección/i }),
-    );
+    await abrirDialogo(user);
+    await user.click(screen.getByRole("button", { name: "Eliminar dirección" }));
 
     await waitFor(() =>
-      expect(deleteClientAddressAction).toHaveBeenCalledWith(
-        "DTD-1234",
-        "addr-99",
-      ),
+      expect(mocks.deleteClientAddressAction).toHaveBeenCalledTimes(1),
     );
-    expect(toastSuccess).toHaveBeenCalled();
+    expect(mocks.deleteClientAddressAction).toHaveBeenCalledWith("DTD-1234", a.id);
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
   });
 
-  it("un error de la action queda DENTRO del diálogo y no lo cierra (criterio 5)", async () => {
-    deleteClientAddressAction.mockResolvedValue({
-      error: "No se pudo eliminar la dirección: conflicto",
+  it("si la acción falla, el diálogo NO se cierra y muestra el error (SGE-00.07)", async () => {
+    mocks.deleteClientAddressAction.mockResolvedValue({
+      error: "No se pudo eliminar la dirección: permiso denegado",
     });
     const user = userEvent.setup();
-    montar([direccion()]);
+    renderCard([direccion()]);
 
-    await user.click(screen.getByRole("button", { name: /^eliminar$/i }));
-    await user.click(
-      screen.getByRole("button", { name: /eliminar dirección/i }),
-    );
+    await abrirDialogo(user);
+    await user.click(screen.getByRole("button", { name: "Eliminar dirección" }));
 
-    await waitFor(() =>
-      expect(screen.getByRole("dialog").textContent).toContain("conflicto"),
-    );
-    // El contexto no se pierde: el asesor ve el motivo sin reintentar a ciegas.
-    expect(screen.getByRole("dialog")).toBeTruthy();
-    expect(toastSuccess).not.toHaveBeenCalled();
+    expect(await screen.findByRole("alert")).toHaveTextContent("permiso denegado");
+    expect(screen.getByRole("dialog", { name: "Eliminar dirección" })).toBeVisible();
+    // No se anuncia un éxito que no ocurrió.
+    expect(mocks.success).not.toHaveBeenCalled();
+    expect(mocks.refresh).not.toHaveBeenCalled();
   });
 });

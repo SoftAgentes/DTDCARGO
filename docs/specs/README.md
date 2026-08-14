@@ -290,7 +290,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0257 | La calculadora da precio sin el peso, y dice hasta cuándo vale | done | interna |
 | 0258 | Historial de Shipping Mark (renombrar sin perder nada) y sub-… | draft | interno |
 | 0259 | Registrar lo que el cliente calcula en la calculadora pública | in-progress | interna |
-| 0262 | Borrar una dirección de entrega deja de ser un clic sin pregu… | in-progress | interna |
+| 0262 | Confirmar el borrado de una dirección de entrega del cliente | in-progress | interna |
 | 0263 | El Studio tiene una primitiva de menú de acciones, y deja de … | in-progress | interna |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0260, 0261 — código sin spec o renumerado, auditar caso por caso.
