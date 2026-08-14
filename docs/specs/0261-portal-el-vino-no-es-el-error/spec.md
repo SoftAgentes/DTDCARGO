@@ -1,7 +1,7 @@
 ---
 sdd: 0261
 title: En el portal el vino de marca deja de significar "error"
-status: draft
+status: proposed
 author: Claude (ventana 2026-08-14)
 created: 2026-08-14
 updated: 2026-08-14
@@ -13,10 +13,11 @@ confidencialidad: interna
 
 # SDD-0261 · En el portal el vino de marca deja de significar "error"
 
-> **Estado `draft`.** El founder eligió la **opción A** el 2026-08-14 (ícono +
-> prefijo, ver §"La decisión tomada"). Eso fija la presentación del error y
-> **destraba el slice del acento**, pero **no elige el color** — y ERR-01 exige
-> las dos cosas en la misma regla. Pasa a `proposed` cuando esté el color.
+> **Estado `proposed`.** Las dos decisiones del founder están tomadas
+> (2026-08-14): **opción A** (ícono + prefijo) y el **color
+> `--color-status-danger-on-dark` `#f6929a`**. La spec queda ejecutable de punta
+> a punta. Trae una **excepción formal documentada** por el ΔE 7,1 (§"Excepción
+> EXC-0261-01").
 
 ## Problema
 
@@ -165,7 +166,73 @@ superficies **sin token nuevo** y sin `BRAND-CHECK`. Y trae un bonus: bajo A, el
 slice del acento **ya no necesita mover los enlaces fuera de `wine-text`** —el
 requisito que hacía cara a la opción B— porque el ícono hace el trabajo.
 
-**Sigue pendiente tu OK sobre el color.** No lo doy por dado.
+## El color decidido — `#f6929a` (founder, 2026-08-14)
+
+Aprobado **A + B**. El color de error del portal pasa a
+`--color-status-danger-on-dark` (`#f6929a`), token que **ya existe** y que el
+founder aprobó el 2026-08-13. **Cero tokens nuevos. Sin `BRAND-CHECK`.**
+
+### 🎁 Se aplica en UNA línea, y cierra dos hallazgos más
+
+El portal ya redefine el token de peligro por tema. La implementación **no es
+tocar 42 archivos con una clase nueva**: es cambiar el valor en
+[`app/globals.css:142`](../../../app/globals.css), dentro de
+`[data-portal-theme="dark"]`:
+
+```diff
+- --color-status-danger: #e0606b;
++ --color-status-danger: #f6929a;
+```
+
+El tema claro no se toca: `:root` conserva `#c2353f` (globals.css:68), que ya
+pasa AA sobre papel.
+
+Y como todo el portal oscuro lee ese mismo token, la línea **cierra de paso dos
+hallazgos de la auditoría que tenían SDD pendiente**:
+
+| Hallazgo de la auditoría | Antes | Después | |
+|---|---|---|---|
+| #3 · `--color-status-danger` como texto sobre card | 4,29:1 | **6,73:1** | ✅ |
+| #8 · punto de aviso del sidebar sobre `#26406F` | 2,96:1 | **4,64:1** | ✅ |
+| Bordes de error (`AcceptanceForm`, `PaymentReportForm`) | 4,29:1 | **6,73:1** | ✅ |
+
+⚠️ **Eso NO significa que la causa fuera una sola.** El `text-wine` de los ~42
+errores sigue siendo un problema **distinto** —semántico, BTN-01 §2— y esta línea
+no lo toca: los errores tienen que dejar de usar `text-wine` igual. Que un cambio
+haga desaparecer tres síntomas no convierte a los tres en el mismo bug.
+
+### Contraste medido del token elegido
+
+Medido en vivo el 2026-08-14, tema oscuro:
+
+| Superficie | `#f6929a` | Umbral |
+|---|---|---|
+| Paper `#0B1428` | **8,29:1** | 4,5:1 ✔ |
+| Card `#16264A` | **6,73:1** | 4,5:1 ✔ |
+| Grey-100 `#1F3055` | **5,89:1** | 4,5:1 ✔ |
+| Nav, parada clara `#26406F` *(peor caso)* | **4,64:1** | 4,5:1 ✔ |
+
+Tema claro (`#c2353f`, sin cambios): **medido** como conforme en la auditoría —
+no apareció entre las fallas del barrido del tema claro. *(El valor puntual sobre
+blanco, ~5,4:1, es **calculado**, no medido: se confirma en el criterio 5.)*
+
+## Excepción EXC-0261-01 — ΔE 7,1 entre el error y el enlace
+
+Registrada según [gobernanza §5](../../governance/README.md): motivo, alcance,
+responsable, fecha de revisión, política afectada y mitigación.
+
+| Campo | Valor |
+|---|---|
+| **Qué se excepciona** | El criterio de derivación de los tokens `on-dark`, que en `globals.css:38-44` descartó un candidato por quedar a **ΔE 7,1** de un vecino ("a 11px son el MISMO color"). `#f6929a` queda a ese mismo ΔE 7,1 de `--color-wine-text` (`#d89aa4`), el color de los enlaces del portal. |
+| **Motivo** | Ese criterio se escribió para un caso donde **el color era el único diferenciador**. Bajo la opción A —ya obligatoria por ERR-01— el error lleva ícono y prefijo, así que la distinción error/enlace deja de descansar en el tono. |
+| **Alcance** | Sólo el tema oscuro del Portal del Cliente. No aplica a la web pública, donde `--color-wine-on-dark` y `--color-status-danger-on-dark` conviven **sin** ícono obligatorio. |
+| **Responsable** | Sam (founder) — decisión del 2026-08-14 |
+| **Fecha de revisión** | Al cerrar el slice B, con la evidencia del criterio 7 |
+| **Política afectada** | Ninguna política numerada: es el criterio del token, no una regla del registro. Por eso **no requiere `BRAND-CHECK`** (el token ya está aprobado) pero sí queda registrada acá. |
+| **Mitigación y prueba** | Criterio 7: captura real de un formulario con un enlace y un error visibles a la vez, a tamaño real. **Si no se distinguen, la excepción se revoca** y vuelve el umbral ΔE ≥ 15 (opción C). |
+
+**Esto no se cierra por decreto.** La excepción vive mientras la captura la
+sostenga.
 
 ---
 
@@ -238,7 +305,7 @@ Dos mitades con distinta disponibilidad:
 | Mitad | Qué hace | Estado |
 |---|---|---|
 | **B.1 — estructura** | Ícono + prefijo + `role="alert"` + copy según ERR-01 en los ~42. Incluye corregir el `role="status"` de `AvatarEditor.tsx:82`. | ✅ **Destrabado por la decisión A.** No depende del color. |
-| **B.2 — color** | Los ~42 pasan del vino al token de peligro elegido. | ⏸ **Esperando tu OK** sobre el color (recomendado: `#f6929a`). |
+| **B.2 — color** | Una línea en `globals.css:142` (`#e0606b` → `#f6929a`) **más** sacar los ~42 errores de `text-wine` y ponerlos en `text-status-danger`. | ✅ **Destrabado.** Color aprobado el 2026-08-14. |
 
 **B.1 cierra ERR-01 y SGE-00.11. B.2 cierra BTN-01 §2 y WCAG 1.4.3.** Son la misma
 no conformidad vista desde dos políticas: hasta que las dos estén, la spec no
@@ -261,12 +328,20 @@ promueve al gate **después** de que B esté adentro, no antes.
 4. **Todo mensaje de error lleva ícono `aria-hidden` + prefijo que nombra el
    problema**, y `role="alert"` donde ERR-01 lo pide. `AvatarEditor.tsx:82` deja
    de usar `role="status"` para un error.
-5. Medición en vivo posterior, con el mismo banco: todo texto de error y de
-   acento ≥ 4,5:1 sobre **card** (`#16264A`) y sobre **paper** (`#0B1428`).
+5. Medición en vivo posterior, con el mismo banco, **en LOS DOS TEMAS**: todo
+   texto de error y de acento ≥ 4,5:1 sobre card, paper y grey-100. En oscuro
+   card = `#16264A` / paper = `#0B1428`; en claro card = `#FFFFFF` / paper =
+   `#FBFAF7`. Incluye confirmar el `#c2353f` del tema claro, que hoy sólo está
+   **calculado** (~5,4:1), no medido punto por punto.
 6. **ΔE2000 entre el color de error final y el de enlace final:** ≥ 15 lo cierra
    sin más. **Entre 7 y 15 se acepta SÓLO si el criterio 4 está cumplido** —el
    ícono es el que carga la distinción— y se documenta como excepción con motivo,
    responsable y fecha de revisión. Nunca en silencio.
+   → Con `#f6929a` el valor es **7,1**: cae en la banda de excepción, registrada
+   como **EXC-0261-01**.
+6b. **Los hallazgos #3 y #8 de la auditoría se vuelven a medir** después del
+   cambio de `globals.css:142` y se cierran en el informe, o se explica por qué
+   no. No se dan por cerrados de arrastre.
 7. **Prueba de la mitigación, no supuesto:** verificar con una captura de un
    formulario que tenga un enlace y un error visibles a la vez, a tamaño real,
    que se distinguen. Si no se distinguen, el criterio 6 vuelve a ≥ 15.
@@ -296,9 +371,10 @@ promueve al gate **después** de que B esté adentro, no antes.
 | Clasificación | **no conformidad** — la de mayor severidad de la auditoría |
 | Componente `canonical` involucrado | ninguno (el portal no consume ninguno de los 4 del registro) |
 | ¿Suma consumidores a un `deprecated`? | **No.** |
-| Decisión del founder ya tomada | **opción A** (ícono + prefijo), 2026-08-14 → destraba B.1 y el slice A |
-| Decisión pendiente del founder | **el color** de los ~42 errores. Recomendado `--color-status-danger-on-dark` (`#f6929a`, ya aprobado el 2026-08-13 · sin token nuevo · sin `BRAND-CHECK`). |
-| Recomendación mía, **no** bloqueante | la combinación A+B y el umbral ΔE del criterio 6 |
+| Decisiones del founder ya tomadas | **opción A** (ícono + prefijo) y **color `#f6929a`** — ambas 2026-08-14. Sin decisiones pendientes. |
+| Excepción registrada | **EXC-0261-01** (ΔE 7,1) — con motivo, alcance, responsable, revisión y prueba de mitigación |
+| ¿Requiere `BRAND-CHECK`? | **No.** El token ya estaba aprobado el 2026-08-13; no se inventa ninguno. |
+| Recomendación mía, **no** bloqueante | el umbral ΔE ≥ 15 del criterio 6 como estado ideal al que volver si la excepción se revoca |
 
 ⚠️ **La opción A resultó no ser una recomendación mía.** Al abrir ERR-01 para
 redactar el contrato apareció que *"color danger se acompaña con texto/icono y

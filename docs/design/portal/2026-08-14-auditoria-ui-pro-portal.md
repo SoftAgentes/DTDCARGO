@@ -183,6 +183,14 @@ Barrido de consumidores del token en oscuro (más allá del que ya estaba citado
 **En tema claro este token pasa.** La falla es exclusiva del oscuro, que es el
 default. Ver §5 para por qué el arreglo obvio no es tan obvio.
 
+> ✅ **Resuelto en [SDD-0261](../../specs/0261-portal-el-vino-no-es-el-error/spec.md)
+> (founder, 2026-08-14).** El token de peligro del portal oscuro pasa a `#f6929a`
+> en **una línea** (`app/globals.css:142`) → **6,73:1** sobre card. La misma línea
+> cierra el hallazgo **#8** (punto de aviso: 2,96:1 → **4,64:1**) y los bordes de
+> error. ⚠️ **No cierra el ⭐1**: el `text-wine` de los ~42 errores es un problema
+> semántico distinto y hay que sacarlo igual. Tres síntomas menos no son un solo
+> bug. Se re-mide antes de darlos por cerrados (criterio 6b del SDD-0261).
+
 ---
 
 ### 4 · `--color-status-success` reprueba en LOS DOS temas
@@ -286,7 +294,7 @@ va a `BRAND-CHECK` para que decidas.
 
 ---
 
-### 8 · Punto de aviso rojo del sidebar: 2,96:1 (no-texto, umbral 3:1)
+### 8 · Punto de aviso rojo del sidebar: 2,96:1 (no-texto, umbral 3:1) — ✅ resuelto por SDD-0261
 
 **Clasificación: `no conformidad`** WCAG 1.4.11 — **marginal**.
 

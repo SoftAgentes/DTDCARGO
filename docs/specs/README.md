@@ -291,7 +291,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0258 | Historial de Shipping Mark (renombrar sin perder nada) y sub-… | draft | interno |
 | 0259 | Registrar lo que el cliente calcula en la calculadora pública | in-progress | interna |
 | 0260 | El portal avisa que la acción está en curso también a quien n… | proposed | interna |
-| 0261 | En el portal el vino de marca deja de significar "error | draft | interna |
+| 0261 | En el portal el vino de marca deja de significar "error | proposed | interna |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
