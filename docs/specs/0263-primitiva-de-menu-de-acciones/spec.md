@@ -1,7 +1,7 @@
 ---
 sdd: 0263
 title: El Studio tiene una primitiva de menú de acciones, y deja de haber cinco
-status: proposed
+status: in-progress
 author: Claude (ventana 2026-08-14)
 created: 2026-08-14
 updated: 2026-08-14
@@ -140,11 +140,52 @@ type ActionMenuProps = {
 
 **Este SDD entrega el componente y su registro. No cambia ninguna pantalla.**
 
-| Entrega | Ruta |
-|---|---|
-| Componente | `app/studio/_components/ui/ActionMenu.tsx` |
-| Pruebas de teclado y foco | `app/studio/_components/ui/ActionMenu.test.tsx` |
-| Entrada del registro CMP-01 | `docs/governance/components/action-menu.json` |
+| Entrega | Ruta | Estado |
+|---|---|---|
+| Componente | `app/studio/_components/ui/ActionMenu.tsx` | ✅ hecho |
+| Pruebas de teclado y foco | `app/studio/_components/ui/ActionMenu.test.tsx` | ✅ 17 pruebas, 8 mutaciones muertas |
+| Entrada del registro CMP-01 | `docs/governance/components/action-menu.json` | ⏸ **bloqueada** — ver abajo |
+
+### 🔴 El registro CMP-01 no puede representar un `proposed` a medio verificar
+
+Al escribir la entrada apareció un hueco del schema. `component-registry.schema.json`
+define:
+
+```json
+"evidenceState": { "enum": ["verified", "not-applicable"] }
+```
+
+**No hay un valor para "aplica, pero todavía no está verificado".** Y el bloque
+`accessibility` exige los cinco ejes (`keyboard`, `focus`, `screenReader`,
+`contrast`, `reducedMotion`).
+
+Para `ActionMenu` hoy:
+
+| Eje | Evidencia real | Valor honesto |
+|---|---|---|
+| `keyboard` | 17 pruebas + 8 mutaciones muertas | `verified` |
+| `focus` | ídem (retorno al trigger probado y mutado) | `verified` |
+| `screenReader` | roles, `aria-haspopup`, `aria-expanded`, `aria-disabled` y nombres accesibles bajo prueba — mismo criterio con el que `ConfirmDialog` figura `verified` | `verified` |
+| `reducedMotion` | el componente no anima nada | `not-applicable` |
+| **`contrast`** | **no medido** — el Studio exige sesión autenticada | **no existe el valor** |
+
+Poner `verified` en `contrast` sería falso; poner `not-applicable` también, porque
+el contraste sí aplica a un menú. **Así que la entrada no se crea todavía**, y el
+componente queda implementado pero **fuera del registro**.
+
+Esto es coherente con CMP-01 —*"crear un componente no lo hace canónico"*— pero
+deja ver que el schema asume que todo componente registrado ya tiene evidencia
+completa, cuando `proposed` existe justamente para lo contrario.
+
+**Dos salidas, las dos son decisión del founder:**
+
+| | Salida | Costo |
+|---|---|---|
+| ⭐ **1** | **Medir el contraste** con el banco de medición y registrar con los cinco ejes honestos | Requiere parchear `proxy.ts` localmente en desarrollo (corta todo `/studio/**` sin sesión, sin bypass), medir y revertir |
+| **2** | **Extender el enum** de `evidenceState` con un tercer valor (`pending`) | Toca el schema de gobernanza → es un cambio normativo, con su propia revisión |
+
+Mientras tanto: **el componente existe y está probado, pero no está en el
+registro**, y eso queda dicho acá en vez de resolverse con un valor falso.
 
 ### Fuera de alcance, a propósito
 
