@@ -294,6 +294,7 @@ function MagicSent({
         <button
           type="submit"
           disabled={pending}
+          aria-busy={pending}
           className="text-[13px] font-semibold text-wine hover:text-wine-deep disabled:opacity-60"
         >
           {pending ? "Reenviando…" : "Reenviar enlace"}

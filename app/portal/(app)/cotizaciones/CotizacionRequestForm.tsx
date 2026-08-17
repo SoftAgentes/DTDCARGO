@@ -191,6 +191,7 @@ export function CotizacionRequestForm({
         <button
           type="submit"
           disabled={pending}
+          aria-busy={pending}
           className="btn btn-primary inline-flex items-center gap-1.5 disabled:opacity-60"
         >
           {pending ? "Enviando…" : "Pedir cotización"}

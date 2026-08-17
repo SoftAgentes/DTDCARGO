@@ -8,20 +8,39 @@
 
 ## Guía destacada: cómo poner la dirección de la bodega en Alibaba
 
-Copia y pega esta dirección TAL CUAL en el formulario de Alibaba (en chino, sin traducir):
+Son dos pasos. **Paso 1 · la dirección de una pegada:** en «Agregar dirección» despliega
+«Rellenar automáticamente la dirección» (viene plegado detrás de «Ver más»), pega esta línea
+y dale a «Rellenar formulario»:
+
+```
+浙江省金华市义乌市义乌港二期直通仓2栋2号 货7-货11, 322000
+```
+
+**Paso 2 · el destinatario, a mano:** el rellenado automático **borra tu Shipping Mark del
+nombre**. Vuelve al campo «Nombre y apellido» y escribe `林冠` + tu Shipping Mark.
+
+Si prefieres llenarlo campo por campo (valores medidos contra el formulario real, ago-2026):
 
 | Campo en Alibaba | Qué pones |
 |---|---|
-| 收货人 / Destinatario | `DTD Cargo - [TU SHIPPING MARK]` (ej. DTD Cargo - DTD-1014) |
-| 电话 / Teléfono (+86) | `18006891419` |
-| 地址 / Dirección | `浙江省义乌市义乌港二期直通仓2栋2号 货7-货11` |
-| 省 / Provincia | `浙江省` (Zhejiang) |
-| 市 / Ciudad | `义乌市` (Yiwu) — en el selector está bajo `金华市` (Jinhua) |
+| 收货人 / Nombre y apellido | `林冠 [TU SHIPPING MARK]` (ej. 林冠 DTD-1014) |
+| 电话 / Teléfono (+86) | `18606891419` |
+| 地址 / Dirección o apartado postal | `义乌港二期直通仓2栋2号` |
+| 详细地址 / Apartamento, suite, unidad… | `货7-货11` |
+| 省 / Estado o provincia | `浙江省` (Zhejiang) |
+| 市 / Ciudad | `金华市` (Jinhua) |
+| 区/县 / Distrito | `义乌市` (Yiwu) |
 | 邮编 / Código postal | `322000` |
-| 仓库联系人 / Contacto bodega | `林冠 (Lin Guan)` |
 | Email | `info@dtdcargo.com` |
 
-**Importante:** en el formulario el destinatario lleva "DTD Cargo + tu Shipping Mark", pero
+**Ojo con la ciudad:** Yiwu **no aparece** en el selector de Ciudad. Es una ciudad de nivel
+condado que pertenece a la prefectura de Jinhua, así que en Ciudad va `金华市` y Yiwu va en
+**Distrito**, que es obligatorio.
+
+**Ojo con el nombre:** Alibaba exige chino ahí. Con letras latinas solas devuelve el error
+«Debe estar en chino»; `林冠` + tu Shipping Mark sí lo acepta.
+
+**Importante:** en el formulario el nombre lleva "林冠 + tu Shipping Mark", pero
 en el **rótulo físico de la caja** va SOLO tu Shipping Mark (sin nombre ni datos personales).
 Tu Shipping Mark es lo que nos permite identificar tu caja.
 
@@ -30,10 +49,13 @@ Tu Shipping Mark es lo que nos permite identificar tu caja.
 ## FAQ
 
 **¿Cómo registro la dirección de DTD en Alibaba para que mi proveedor envíe a la bodega?**
-Copia y pega la dirección de nuestra bodega de Yiwu en el formulario de Alibaba, tal cual, en
-chino. En "Destinatario" pon `DTD Cargo - [tu Shipping Mark]`, el teléfono +86 18006891419, y la
-dirección, provincia (Zhejiang), ciudad (Yiwu, bajo Jinhua) y código postal 322000 de la guía. Tu
-Shipping Mark es lo que nos permite saber que esa caja es tuya.
+Alibaba pide el nombre del destinatario y la dirección en chino, así que hazlo en dos pasos.
+Primero despliega "Rellenar automáticamente la dirección" y pega
+`浙江省金华市义乌市义乌港二期直通仓2栋2号 货7-货11, 322000`: se llenan provincia, ciudad, distrito,
+código postal y las dos líneas de dirección de un golpe. Después vuelve al campo "Nombre y
+apellido" y escribe a mano `林冠` + tu Shipping Mark, porque el rellenado automático te lo borra
+sin avisar. El teléfono es +86 18606891419. Ojo: Yiwu no está en el selector de Ciudad (ahí va
+Jinhua) sino en el de Distrito. Tu Shipping Mark es lo que nos permite saber que esa caja es tuya.
 
 **¿Tienen casillero o bodega en China?**
 Sí. Tenemos bodega propia en Yiwu donde recibimos lo que compras en Alibaba, 1688, Taobao o a
