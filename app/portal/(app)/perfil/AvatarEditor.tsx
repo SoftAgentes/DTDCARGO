@@ -2,6 +2,7 @@
 
 import { useActionState, useRef } from "react";
 import { updateAvatarAction, type AvatarActionState } from "./avatar-actions";
+import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 
 const initial: AvatarActionState = {};
 
@@ -65,13 +66,14 @@ export function AvatarEditor({
           <button
             type="button"
             disabled={pending}
+            aria-busy={pending}
             onClick={() => {
               // Limpiar el value antes de abrir el picker: si no, re-elegir el
               // MISMO archivo tras un error no dispara onChange (browser estándar).
               if (fileRef.current) fileRef.current.value = "";
               fileRef.current?.click();
             }}
-            className="text-[12.5px] font-semibold text-wine hover:text-wine-deep disabled:opacity-60"
+            className="text-[12.5px] font-semibold text-wine-text hover:text-wine-deep disabled:opacity-60"
           >
             {pending ? "Subiendo…" : avatarUrl ? "Cambiar foto" : "Subir foto de perfil"}
           </button>
@@ -79,9 +81,10 @@ export function AvatarEditor({
         {/* role="status" (aria-live polite): el lector de pantalla anuncia el
             resultado de la subida (WCAG 4.1.3). */}
         {state.error ? (
-          <p role="status" className="mt-1 text-[12px] text-wine leading-[1.4]">
-            {state.error}
-          </p>
+          /* SDD-0261 · era `role="status"` para un ERROR, y status es el rol de
+             lo no urgente: el lector no interrumpe. `PortalFieldError` usa
+             `role="alert"`, que además sí se anuncia al insertarse. */
+          <PortalFieldError>{state.error}</PortalFieldError>
         ) : state.ok ? (
           <p
             role="status"

@@ -77,7 +77,7 @@ export function PortalAdvisorCard({
           rel="noopener noreferrer"
           className="flex items-center gap-3 rounded-[10px] bg-grey-100 px-3 py-2.5 transition-colors hover:bg-grey-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
         >
-          <span className="text-wine shrink-0">
+          <span className="text-wine-text shrink-0">
             <WhatsAppIcon size={16} />
           </span>
           <span className="text-[12.5px] font-bold text-ink">
@@ -88,7 +88,7 @@ export function PortalAdvisorCard({
           href={`tel:${CONTACT.ve.phoneRaw}`}
           className="flex items-center gap-3 rounded-[10px] bg-grey-100 px-3 py-2.5 transition-colors hover:bg-grey-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
         >
-          <span className="text-wine shrink-0">
+          <span className="text-wine-text shrink-0">
             <PhoneIcon size={16} />
           </span>
           <span

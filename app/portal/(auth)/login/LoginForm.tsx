@@ -6,6 +6,7 @@ import { BrandMark } from "@/components/BrandMark";
 import { ArrowIcon, CheckIcon, MailIcon } from "@/components/Icon";
 import { requestMagicLink, type PortalLoginState } from "./actions";
 import { signOutAction } from "../../actions";
+import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 
 const initialMagic: PortalLoginState = {};
 
@@ -140,9 +141,7 @@ export function LoginForm({
                   </label>
 
                   {magicState.error && (
-                    <p className="mt-1 text-[13px] text-wine leading-[1.45]">
-                      {magicState.error}
-                    </p>
+                    <PortalFieldError nivel="formulario">{magicState.error}</PortalFieldError>
                   )}
 
                   <button
@@ -170,7 +169,7 @@ export function LoginForm({
                 </div>
                 <Link
                   href="/registro"
-                  className="self-center inline-flex items-center gap-1.5 text-[12.5px] font-extrabold text-wine hover:text-wine-deep"
+                  className="self-center inline-flex items-center gap-1.5 text-[12.5px] font-extrabold text-wine-text hover:text-wine-deep"
                 >
                   Crea tu cuenta gratis <ArrowIcon size={13} />
                 </Link>
@@ -294,7 +293,8 @@ function MagicSent({
         <button
           type="submit"
           disabled={pending}
-          className="text-[13px] font-semibold text-wine hover:text-wine-deep disabled:opacity-60"
+          aria-busy={pending}
+          className="text-[13px] font-semibold text-wine-text hover:text-wine-deep disabled:opacity-60"
         >
           {pending ? "Reenviando…" : "Reenviar enlace"}
         </button>

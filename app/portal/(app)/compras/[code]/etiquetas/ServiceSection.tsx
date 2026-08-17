@@ -21,6 +21,7 @@ import {
   BeforeWarehouseNotice,
   PrealertaServiceVideo,
 } from "../../../../_components/PrealertaAddons";
+import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 
 const initial: ServiceRequestActionState = {};
 
@@ -247,13 +248,14 @@ function AddServiceForm({
       </label>
 
       {state.error && (
-        <p className="text-[12.5px] text-wine">{state.error}</p>
+        <PortalFieldError nivel="formulario">{state.error}</PortalFieldError>
       )}
 
       <div className="flex gap-2.5">
         <button
           type="submit"
           disabled={pending || !code}
+          aria-busy={pending}
           className="btn btn-primary inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-wait"
         >
           {pending ? "Pidiendo…" : "Pedir este servicio"}

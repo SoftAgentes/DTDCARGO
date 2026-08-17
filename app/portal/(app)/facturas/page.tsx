@@ -318,7 +318,7 @@ function TableRow({ inv }: { inv: PortalInvoiceRow }) {
       <div className="flex justify-end">
         <ArrowIcon
           size={16}
-          className="text-grey-300 group-hover:text-wine transition-colors"
+          className="text-grey-300 group-hover:text-wine-text transition-colors"
         />
       </div>
     </Link>

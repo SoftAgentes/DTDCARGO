@@ -60,7 +60,7 @@ export function ShipmentRow({ shipment }: { shipment: PortalShipmentRow }) {
           Actualizado {formatDate(shipment.updatedAt)}
         </span>
         <ArrowIcon
-          className="text-grey-300 transition-colors group-hover:text-wine"
+          className="text-grey-300 transition-colors group-hover:text-wine-text"
           size={18}
         />
       </div>

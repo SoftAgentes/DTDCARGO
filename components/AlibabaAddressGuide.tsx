@@ -5,16 +5,23 @@ import { CONTACT, FONT_MONO } from "@/lib/design-tokens";
 
 /**
  * Guía "Datos para web de compra" — la dirección canónica de la bodega de Yiwu
- * para pegar en Alibaba / 1688 / Taobao, en formato COMPACTO (portada del Norte
- * · portal "DATOS PARA TU PROVEEDOR"): tarjeta contenida con el Shipping Mark
- * arriba + "Copiar todo", y el detalle campo por campo detrás de "Desplegar"
- * (no se muestra abierto de una — eso se veía disperso).
+ * para pegar en Alibaba / 1688 / Taobao.
  *
- * Fuente única de la dirección: CONTACT.cn en lib/design-tokens.ts. El visitante
- * escribe su Shipping Mark y el campo Destinatario se arma solo; sin Shipping
- * Mark la caja llega a la bodega pero no se puede identificar de quién es — por
- * eso "Copiar todo" y el copiar de Destinatario NO usan el placeholder DTD-XXXX:
- * enfocan el input y piden el mark real.
+ * Estructura en DOS pasos (SDD-0264), no en una lista de campos sueltos. El
+ * formulario de Alibaba trae un "Rellenar automáticamente la dirección" que de
+ * una sola pegada llena los ocho campos — ése es el camino rápido, y es lo que
+ * el cliente quiere. Pero hay dos trampas MEDIDAS contra el formulario real
+ * (logistics.alibaba.com/luyou/shipto · 2026-08-14):
+ *
+ *   1. El rellenado BORRA el Shipping Mark del nombre. Pegando
+ *      "林冠 DTD-1014, …" el campo "Nombre y apellido" queda en "林冠" pelado,
+ *      sin avisar. La caja llegaría a Yiwu sin poder identificarse. Por eso el
+ *      paso 2 existe y no es opcional.
+ *   2. El nombre debe llevar chino ("Debe estar en chino" es el error literal
+ *      del formulario ante "DTD-Canopy"). 林冠 + el mark sí lo acepta el
+ *      servidor: probado guardando la dirección.
+ *
+ * Fuente única de los datos: CONTACT.cn en lib/design-tokens.ts.
  */
 
 type GuideField = {
@@ -46,43 +53,60 @@ export function AlibabaAddressGuide({ markbox }: { markbox?: string } = {}) {
 
   const hasMark = mark.trim().length > 0;
   const markOrPlaceholder = mark.trim().toUpperCase() || "DTD-XXXX";
+  const destinatario = `${CONTACT.cn.contactPersonCjk} ${markOrPlaceholder}`;
 
   const fields: GuideField[] = [
     { id: "pais", labelCjk: "国家/地区", label: "País / región", value: "China" },
     {
       id: "destinatario",
       labelCjk: "收货人",
-      label: "Destinatario",
-      value: `DTD-Canopy - ${markOrPlaceholder}`,
-      hint: "Tu Shipping Mark va al final — sin él no podemos saber que la caja es tuya.",
+      label: "Nombre y apellido (destinatario)",
+      value: destinatario,
+      hint: "Alibaba exige chino en este campo. 林冠 es el encargado de la bodega; tu Shipping Mark va detrás.",
+      cjk: true,
     },
     { id: "telefono", labelCjk: "电话", label: "Teléfono (+86)", value: CONTACT.cn.phoneCjk },
     {
       id: "direccion",
       labelCjk: "地址",
-      label: "Dirección",
-      value: CONTACT.cn.addressCjk,
-      hint: "Pégala en chino tal cual, sin traducir — es para el transporte dentro de China.",
+      label: "Dirección o apartado postal",
+      value: CONTACT.cn.addressLine1Cjk,
+      hint: "En chino tal cual, sin traducir — es para el transporte dentro de China.",
       cjk: true,
     },
-    { id: "provincia", labelCjk: "省", label: "Provincia", value: CONTACT.cn.provinceCjk, hint: "Zhejiang", cjk: true },
+    {
+      id: "direccion2",
+      labelCjk: "详细地址",
+      label: "Apartamento, suite, unidad, edificio, piso",
+      value: CONTACT.cn.addressLine2Cjk,
+      hint: "Dice «opcional», pero es el número de nuestro puesto. Ponlo.",
+      cjk: true,
+    },
+    {
+      id: "provincia",
+      labelCjk: "省",
+      label: "Estado / provincia",
+      value: CONTACT.cn.provinceCjk,
+      hint: "Zhejiang",
+      cjk: true,
+    },
     {
       id: "ciudad",
       labelCjk: "市",
       label: "Ciudad",
       value: CONTACT.cn.cityCjk,
-      hint: `Yiwu — en el selector aparece bajo ${CONTACT.cn.cityParentCjk} (Jinhua)`,
+      hint: "Jinhua. Aquí NO busques Yiwu: no aparece, porque Yiwu va en el Distrito.",
+      cjk: true,
+    },
+    {
+      id: "distrito",
+      labelCjk: "区/县",
+      label: "Distrito",
+      value: CONTACT.cn.districtCjk,
+      hint: "Yiwu — aquí sí. Es obligatorio, aunque muchas guías ni lo mencionan.",
       cjk: true,
     },
     { id: "postal", labelCjk: "邮编", label: "Código postal", value: CONTACT.cn.postalCode },
-    {
-      id: "contacto",
-      labelCjk: "仓库联系人",
-      label: "Contacto de bodega",
-      value: CONTACT.cn.contactPersonCjk,
-      hint: CONTACT.cn.contactPersonPinyin,
-      cjk: true,
-    },
     { id: "email", label: "Email", value: CONTACT.cn.email },
   ];
 
@@ -97,12 +121,7 @@ export function AlibabaAddressGuide({ markbox }: { markbox?: string } = {}) {
     setTimeout(() => setCopiedField((c) => (c === flag ? null : c)), 2000);
   }
 
-  async function copyValue(id: string, value: string) {
-    // Copiar "DTD Cargo - DTD-XXXX" literal = caja sin identificar en Yiwu.
-    if ((id === "destinatario" || id === "mark") && !hasMark) {
-      requireMark(id === "mark" ? "mark-missing" : "destinatario-missing");
-      return;
-    }
+  async function copyText(id: string, value: string) {
     try {
       await navigator.clipboard.writeText(value);
       flashCopied(id);
@@ -111,18 +130,22 @@ export function AlibabaAddressGuide({ markbox }: { markbox?: string } = {}) {
     }
   }
 
+  async function copyValue(id: string, value: string) {
+    // Copiar "林冠 DTD-XXXX" literal = caja sin identificar en Yiwu.
+    if ((id === "destinatario" || id === "mark") && !hasMark) {
+      requireMark(id === "mark" ? "mark-missing" : "destinatario-missing");
+      return;
+    }
+    await copyText(id, value);
+  }
+
   async function copyAll() {
     if (!hasMark) {
       requireMark("all-missing");
       return;
     }
     const text = fields.map((f) => `${f.label}: ${f.value}`).join("\n");
-    try {
-      await navigator.clipboard.writeText(text);
-      flashCopied("all");
-    } catch {
-      /* fallback silencioso */
-    }
+    await copyText("all", text);
   }
 
   return (
@@ -131,9 +154,9 @@ export function AlibabaAddressGuide({ markbox }: { markbox?: string } = {}) {
         Datos para web de compra
       </span>
       <p className="mt-2 text-[13.5px] leading-[1.55] text-grey-700">
-        Pégalos en <strong className="text-ink">Alibaba, 1688, Taobao</strong> u
-        otras webs que piden dirección de envío. Todo llega a nuestra bodega en
-        China con tu Shipping Mark.
+        Para <strong className="text-ink">Alibaba, 1688, Taobao</strong> u otras
+        webs que piden dirección de envío. Todo llega a nuestra bodega en China
+        con tu Shipping Mark.
       </p>
 
       {/* Bloque del Shipping Mark (input público) — arma el Destinatario en vivo */}
@@ -184,11 +207,11 @@ export function AlibabaAddressGuide({ markbox }: { markbox?: string } = {}) {
       </div>
       <p className="mt-2 text-[12px] leading-[1.5] text-grey-700">
         {fixed ? (
-          "Este código va en el campo Destinatario. Sin él, la caja llega a la bodega pero no sabemos de quién es."
+          "Este código va en el campo Nombre y apellido. Sin él, la caja llega a la bodega pero no sabemos de quién es."
         ) : (
           <>
-            Escríbelo y el campo Destinatario se arma solo. Este dato lo obtienes
-            dentro de tu registro de clientes.{" "}
+            Escríbelo y los dos pasos de abajo se arman solos. Este dato lo
+            obtienes dentro de tu registro de clientes.{" "}
             <a
               href="/registro"
               className="font-semibold underline underline-offset-2"
@@ -200,6 +223,98 @@ export function AlibabaAddressGuide({ markbox }: { markbox?: string } = {}) {
         )}
       </p>
 
+      {/* ── Paso 1: el rellenado automático de Alibaba ─────────────────── */}
+      <div className="mt-5 rounded-[12px] border border-grey-200 p-3.5">
+        <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-wine-text">
+          Paso 1 · La dirección, de una sola pegada
+        </span>
+        <p className="mt-1.5 text-[12.5px] leading-[1.5] text-grey-700">
+          En Alibaba, abre{" "}
+          <strong className="text-ink">
+            «Rellenar automáticamente la dirección»
+          </strong>{" "}
+          (está plegado detrás de «Ver más»), pega esto y dale a «Rellenar
+          formulario». Se llenan provincia, ciudad, distrito, código postal y las
+          dos líneas de dirección de un golpe.
+        </p>
+        <div
+          className="mt-2.5 rounded-[10px] px-3 py-2.5 text-[13px] leading-[1.5] text-ink break-words"
+          lang="zh-Hans"
+          style={{ background: "var(--color-paper)", fontFamily: NOTO_SC }}
+        >
+          {CONTACT.cn.addressAutofillCjk}
+        </div>
+        <button
+          type="button"
+          onClick={() => copyText("autofill", CONTACT.cn.addressAutofillCjk)}
+          className="mt-2.5 inline-flex w-full items-center justify-center gap-2 h-11 px-4 rounded-[10px] text-[13.5px] font-bold transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine-soft"
+          // `--color-on-accent`, NO `text-white`: en el tema oscuro del portal
+          // `--color-white` vale navy, así que `text-white` sobre relleno wine
+          // se vuelve navy-sobre-wine (ilegible). Este token no voltea.
+          style={{
+            background: "var(--color-wine)",
+            color: "var(--color-on-accent)",
+          }}
+        >
+          {copiedField === "autofill" ? (
+            <>
+              <CheckMini /> Copiado
+            </>
+          ) : (
+            <>
+              <CopyMini /> Copiar la dirección
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* ── Paso 2: el destinatario, que el automático borra ───────────── */}
+      <div
+        className="mt-3 rounded-[12px] p-3.5"
+        style={{
+          background: "var(--color-paper)",
+          borderLeft: "3px solid var(--color-wine)",
+        }}
+      >
+        <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-wine-text">
+          Paso 2 · El destinatario, a mano
+        </span>
+        <p className="mt-1.5 text-[12.5px] leading-[1.5] text-grey-700">
+          <strong className="text-ink">
+            El rellenado automático borra tu Shipping Mark del nombre.
+          </strong>{" "}
+          Vuelve al campo «Nombre y apellido» y escribe esto — Alibaba exige que
+          lleve chino, y así lo acepta:
+        </p>
+        <div className="mt-2.5 flex items-center gap-2.5">
+          <div
+            className="min-w-0 flex-1 rounded-[10px] border border-grey-200 bg-white px-3 py-2.5 text-[15px] font-semibold text-ink break-words"
+            lang="zh-Hans"
+            style={{ fontFamily: NOTO_SC }}
+          >
+            {destinatario}
+          </div>
+          <button
+            type="button"
+            onClick={() => copyValue("destinatario", destinatario)}
+            aria-label={
+              hasMark
+                ? "Copiar el destinatario"
+                : "Escribe tu Shipping Mark primero"
+            }
+            className="flex-shrink-0 h-10 w-10 grid place-items-center rounded-[8px] border border-grey-200 bg-white text-grey-700 hover:border-wine hover:text-wine transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine-soft"
+          >
+            {copiedField === "destinatario-missing" ? (
+              <span className="text-[15px] leading-none text-wine">↑</span>
+            ) : copiedField === "destinatario" ? (
+              <CheckMini />
+            ) : (
+              <CopyMini />
+            )}
+          </button>
+        </div>
+      </div>
+
       {/* Acciones: Desplegar + Copiar todo */}
       <div className="mt-4 flex flex-wrap gap-2.5">
         <button
@@ -208,20 +323,13 @@ export function AlibabaAddressGuide({ markbox }: { markbox?: string } = {}) {
           aria-expanded={expanded}
           className="inline-flex items-center gap-1.5 h-11 px-4 rounded-[10px] border border-grey-200 bg-white text-[13.5px] font-bold text-ink hover:border-wine hover:text-wine transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine-soft"
         >
-          {expanded ? "Ocultar campos" : "Desplegar campos"}
+          {expanded ? "Ocultar campos" : "Ver campo por campo"}
           <Chevron open={expanded} />
         </button>
         <button
           type="button"
           onClick={copyAll}
-          className="inline-flex flex-1 min-w-[160px] items-center justify-center gap-2 h-11 px-4 rounded-[10px] text-[13.5px] font-bold transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine-soft"
-          // `--color-on-accent`, NO `text-white`: en el tema oscuro del portal
-          // `--color-white` vale navy, así que `text-white` sobre relleno wine
-          // se vuelve navy-sobre-wine (ilegible). Este token no voltea.
-          style={{
-            background: "var(--color-wine)",
-            color: "var(--color-on-accent)",
-          }}
+          className="inline-flex flex-1 min-w-[160px] items-center justify-center gap-2 h-11 px-4 rounded-[10px] border border-grey-200 bg-white text-[13.5px] font-bold text-ink hover:border-wine hover:text-wine transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine-soft"
         >
           {copiedField === "all" ? (
             <>
@@ -307,7 +415,7 @@ export function AlibabaAddressGuide({ markbox }: { markbox?: string } = {}) {
         style={{ background: "var(--color-paper)", borderLeft: "3px solid var(--color-wine)" }}
       >
         <strong className="text-ink">Importante:</strong> en el formulario el
-        destinatario lleva «DTD-Canopy + tu Shipping Mark», pero en el{" "}
+        nombre lleva «林冠 + tu Shipping Mark», pero en el{" "}
         <strong className="text-ink">rótulo físico de la caja</strong> va SOLO tu
         Shipping Mark — sin tu nombre, dirección ni teléfono personal (los datos
         personales en la caja causan confusión o decomiso).

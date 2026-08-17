@@ -13,6 +13,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useEffectEvent, useState, useTransition } from "react";
 import {
+  CLIENTS_MAX,
+  CLIENTS_PAGE,
   CLIENT_TIER_OPTIONS,
   docVerifyBadge,
   tierBadgeTone,
@@ -23,6 +25,7 @@ import type { ClientFilters } from "@/lib/studio/client-queries";
 import { prefixChain, type AliadoOption } from "@/lib/studio/aliados/aliado-types";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import { ActionMenu } from "@/app/studio/_components/ui/ActionMenu";
 import { ClientDrawer } from "./ClientDrawer";
 
 type DrawerState = null | { mode: "create" } | { mode: "edit"; client: Client };
@@ -31,10 +34,19 @@ export function ClientsClient({
   aliados,
   clients,
   filters,
+  total,
+  limite,
+  topeAlcanzado,
 }: {
   clients: Client[];
   filters: ClientFilters;
   aliados: AliadoOption[];
+  /** SDD-0265: cuántos matchean los filtros en total, no cuántos se muestran. */
+  total: number;
+  /** Cuántas filas se pidieron en esta carga. */
+  limite: number;
+  /** El techo de PostgREST impide seguir trayendo más. */
+  topeAlcanzado: boolean;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -54,6 +66,9 @@ export function ClientsClient({
   const hasActiveFilter =
     !!filters.q || filters.tier !== "all" || !!filters.pendingReview;
 
+  // Ojo: arma los params DESDE CERO, así que un cambio de filtro borra el
+  // `limite` y el listado vuelve al primer bloque. Es lo que corresponde: otra
+  // búsqueda es otro conjunto, y arrastrar el tope viejo mostraría de más.
   const pushFilters = (next: {
     q?: string;
     tier?: string;
@@ -68,6 +83,18 @@ export function ClientsClient({
       router.push(qs ? `/studio/clientes?${qs}` : "/studio/clientes");
     });
   };
+
+  // SDD-0265 · "Ver más" conserva los filtros vigentes y sube el tope un bloque.
+  const verMas = () => {
+    const s = new URLSearchParams(params.toString());
+    s.set("limite", String(Math.min(limite + CLIENTS_PAGE, CLIENTS_MAX)));
+    startTransition(() => {
+      router.push(`/studio/clientes?${s.toString()}`);
+    });
+  };
+
+  const mostrados = clients.length;
+  const hayMas = mostrados < total;
   const pushFiltersEvent = useEffectEvent(pushFilters);
   useEffect(() => {
     if (q === (params.get("q") ?? "")) return;
@@ -110,16 +137,27 @@ export function ClientsClient({
           </p>
         </div>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          {/* SDD-0246: clientes que ya existían y se registraron otra vez por la
-              web, así que tienen dos Shipping Mark. Se revisan y fusionan a mano. */}
-          <Link href="/studio/clientes/duplicados" className="studio-btn studio-btn-ghost">
-            Posibles duplicados
-          </Link>
-          {/* SDD-0258: las fichas que todavía llevan la serie de VENDEDOR del
-              legado (DTD-A101, DTD-j029…) y se pasan a la serie de la casa. */}
-          <Link href="/studio/clientes/migrar-legado" className="studio-btn studio-btn-ghost">
-            Códigos del legado
-          </Link>
+          {/* SDD-0266 · BTN-01 §4: "acciones raras pasan al menú". Fusionar
+              duplicados (SDD-0246) y migrar códigos del legado (SDD-0258) son
+              mantenimiento episódico; antes ocupaban permanentemente el mismo
+              renglón que la única acción de uso diario. Van con `href` y no con
+              `onSelect`: son rutas, y el menú las renderiza como <a>. */}
+          <ActionMenu
+            label="Mantenimiento"
+            ariaLabel="Tareas de mantenimiento de clientes"
+            items={[
+              {
+                key: "duplicados",
+                label: "Posibles duplicados",
+                href: "/studio/clientes/duplicados",
+              },
+              {
+                key: "legado",
+                label: "Códigos del legado",
+                href: "/studio/clientes/migrar-legado",
+              },
+            ]}
+          />
           <button
             type="button"
             className="studio-btn studio-btn-primary"
@@ -237,7 +275,68 @@ export function ClientsClient({
           />
         )
       ) : (
-        <ClientsTable clients={clients} aliados={aliados} />
+        <>
+          <ClientsTable clients={clients} aliados={aliados} />
+
+          {/* SDD-0265 · SGE-00.07: el estado tiene que ser visible Y verdadero.
+              Antes se mostraban 200 de 451 sin decirlo en ninguna parte. */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 12,
+              flexWrap: "wrap",
+              marginTop: 12,
+            }}
+          >
+            <p
+              role="status"
+              aria-live="polite"
+              style={{
+                margin: 0,
+                font: "500 12.5px/1.4 var(--f-sans)",
+                color: "var(--ink-soft)",
+              }}
+            >
+              {hayMas
+                ? `Mostrando ${mostrados} de ${total} clientes`
+                : total === 1
+                  ? "1 cliente"
+                  : `${total} clientes`}
+              {hasActiveFilter ? " que coinciden con los filtros" : ""}
+            </p>
+
+            {hayMas &&
+              (topeAlcanzado ? (
+                // Honestidad antes que un botón que no cumpliría: por encima del
+                // tope de PostgREST no se pueden traer más filas, así que se dice
+                // y se manda al buscador en vez de prometer otro bloque.
+                <span
+                  style={{
+                    font: "500 12.5px/1.4 var(--f-sans)",
+                    color: "var(--ink-soft)",
+                    maxWidth: "48ch",
+                  }}
+                >
+                  Es el máximo que se puede listar de una vez. Usa el buscador
+                  para llegar a un cliente puntual.
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="studio-btn studio-btn-ghost studio-btn-sm"
+                  onClick={verMas}
+                  disabled={isPending}
+                  aria-busy={isPending}
+                >
+                  {isPending
+                    ? "Cargando…"
+                    : `Ver ${Math.min(CLIENTS_PAGE, total - mostrados)} más`}
+                </button>
+              ))}
+          </div>
+        </>
       )}
 
       {drawer && (

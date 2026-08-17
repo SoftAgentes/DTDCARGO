@@ -58,7 +58,7 @@ export default async function PortalLessonPage({
       </div>
 
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-widest text-wine">
+        <span className="text-[11px] font-bold uppercase tracking-widest text-wine-text">
           Lección {idx + 1} de {lessons.length}
         </span>
         <h1 className="text-xl font-extrabold text-ink leading-snug">{lesson.title}</h1>
@@ -133,7 +133,7 @@ export default async function PortalLessonPage({
                   </span>
                   <span
                     className={`flex-1 min-w-0 truncate text-[13px] ${
-                      current ? "font-bold text-wine" : "font-medium text-ink"
+                      current ? "font-bold text-wine-text" : "font-medium text-ink"
                     }`}
                   >
                     {ll.done ? <span className="sr-only">Completada · </span> : null}

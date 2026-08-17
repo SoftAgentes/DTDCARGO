@@ -19,6 +19,7 @@ import { PurchaseSummaryPanel } from "./PurchaseSummaryPanel";
 import type { ChecklistItem, OrderRecap } from "./PurchaseSummaryPanel";
 import type { PrealertaActionState } from "@/lib/studio/prealertas/types";
 import { updatePrealertaDetalleAction } from "../../proveedores/actions";
+import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 
 const initial: PrealertaActionState = {};
 
@@ -116,9 +117,7 @@ export function PurchaseStepDetalle({
               className="mt-1.5 w-full px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-none disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
             />
             {state.fieldErrors?.description && (
-              <p className="mt-1 text-[12px] text-wine">
-                {state.fieldErrors.description}
-              </p>
+              <PortalFieldError>{state.fieldErrors.description}</PortalFieldError>
             )}
           </div>
 
@@ -143,9 +142,7 @@ export function PurchaseStepDetalle({
                 }}
               />
               {state.fieldErrors?.boxes && (
-                <p className="mt-1 text-[12px] text-wine">
-                  {state.fieldErrors.boxes}
-                </p>
+                <PortalFieldError>{state.fieldErrors.boxes}</PortalFieldError>
               )}
             </div>
             <div>
@@ -168,9 +165,7 @@ export function PurchaseStepDetalle({
                 }}
               />
               {state.fieldErrors?.estValueUsd && (
-                <p className="mt-1 text-[12px] text-wine">
-                  {state.fieldErrors.estValueUsd}
-                </p>
+                <PortalFieldError>{state.fieldErrors.estValueUsd}</PortalFieldError>
               )}
             </div>
           </div>
@@ -228,7 +223,7 @@ export function PurchaseStepDetalle({
           </div>
 
           {state.error && (
-            <p className="mt-3 text-[12.5px] text-wine">{state.error}</p>
+            <PortalFieldError nivel="formulario">{state.error}</PortalFieldError>
           )}
         </div>
 
@@ -237,6 +232,7 @@ export function PurchaseStepDetalle({
             <button
               type="submit"
               disabled={pending}
+              aria-busy={pending}
               className="btn btn-primary w-full inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait"
             >
               {pending ? "Guardando…" : "Guardar y avanzar al paso 3"}

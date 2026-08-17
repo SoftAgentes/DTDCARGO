@@ -155,7 +155,7 @@ export default async function AcceptTermsPage({ params }: Props) {
                       {doc.version}
                     </span>
                   </span>
-                  <span className="text-[12px] font-semibold text-wine">
+                  <span className="text-[12px] font-semibold text-wine-text">
                     Ver / ocultar
                   </span>
                 </summary>
@@ -203,7 +203,7 @@ export default async function AcceptTermsPage({ params }: Props) {
               </p>
               <a
                 href="#documentos-legales"
-                className="mt-1.5 inline-block text-[13px] font-semibold text-wine hover:underline"
+                className="mt-1.5 inline-block text-[13px] font-semibold text-wine-text hover:underline"
               >
                 {REACCEPTANCE_LINK_LABEL}
               </a>

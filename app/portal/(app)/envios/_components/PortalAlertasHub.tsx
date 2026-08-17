@@ -193,12 +193,12 @@ export function PortalAlertasHub({
               type="button"
               onClick={() => setStage(t.k)}
               className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12.5px] font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${
-                on ? "bg-white text-wine card-shadow" : "text-grey-500 hover:text-ink"
+                on ? "bg-white text-wine-text card-shadow" : "text-grey-500 hover:text-ink"
               }`}
             >
               {t.l}
               <span
-                className={`text-[10.5px] ${on ? "text-wine" : "text-grey-500"}`}
+                className={`text-[10.5px] ${on ? "text-wine-text" : "text-grey-500"}`}
                 style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
               >
                 {counts[t.k]}
@@ -299,7 +299,7 @@ function AlertRow({
           {isEnvio ? (
             <Link
               href={`/portal/envios/${encodeURIComponent(item.code)}`}
-              className="inline-flex items-center gap-1.5 rounded text-[12.5px] font-bold text-wine hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              className="inline-flex items-center gap-1.5 rounded text-[12.5px] font-bold text-wine-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
             >
               Ver seguimiento <ArrowIcon size={13} />
             </Link>
@@ -366,7 +366,7 @@ function DocsPanel({ code, docs }: { code: string; docs: DocPresence | undefined
       </div>
       <Link
         href={`/portal/compras/${encodeURIComponent(code)}/etiquetas`}
-        className="mt-3 inline-flex items-center gap-1.5 rounded text-[12.5px] font-bold text-wine hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        className="mt-3 inline-flex items-center gap-1.5 rounded text-[12.5px] font-bold text-wine-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
       >
         Gestionar documentos y etiquetas <ArrowIcon size={13} />
       </Link>
@@ -393,7 +393,7 @@ function ConsolidadoBanner({
       }}
     >
       <div className="flex items-center gap-2.5">
-        <ShipIcon size={18} className="text-wine flex-shrink-0" />
+        <ShipIcon size={18} className="text-wine-text flex-shrink-0" />
         <div className="text-[14px] font-bold text-ink">
           Próximo consolidado · {banner.route}
         </div>
@@ -510,7 +510,7 @@ function TrackGroupCard({ group }: { group: TrackGroup }) {
         </div>
       </div>
       {consolidado ? null : (
-        <span className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-wine">
+        <span className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-wine-text">
           Ver <ArrowIcon size={13} />
         </span>
       )}
@@ -573,7 +573,7 @@ function TrackGroupCard({ group }: { group: TrackGroup }) {
               <span className="flex-1 min-w-0 truncate text-[12px] text-grey-500">
                 {t.statusLabel}
               </span>
-              <ArrowIcon size={13} className="text-wine flex-shrink-0" />
+              <ArrowIcon size={13} className="text-wine-text flex-shrink-0" />
             </Link>
           </li>
         ))}

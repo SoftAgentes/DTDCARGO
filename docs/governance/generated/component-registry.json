@@ -1,8 +1,110 @@
 {
   "schemaVersion": "1.1",
-  "generatedAt": "2026-07-31T00:00:00.000Z",
-  "sourceCommit": "b3e908acb6f5530076a070015674a381e58b4a62",
+  "generatedAt": "2026-08-14T00:00:00.000Z",
+  "sourceCommit": "77c9a6afe79d8ef8e31d985f8a7f202bcb53eb26",
   "components": [
+    {
+      "schemaVersion": "1.1",
+      "id": "action-menu",
+      "name": "ActionMenu",
+      "purpose": "Agrupar acciones dispares o poco frecuentes detrás de un trigger, con el contrato de teclado y foco de BTN-01 §7 implementado una sola vez.",
+      "owner": "Studio UI",
+      "status": "canonical",
+      "implementation": {
+        "path": "app/studio/_components/ui/ActionMenu.tsx",
+        "exportName": "ActionMenu"
+      },
+      "policyRefs": [
+        {
+          "code": "SGE-00",
+          "version": "1.0",
+          "path": "docs/governance/policies/sge-00.md"
+        },
+        {
+          "code": "BTN-01",
+          "version": "1.1",
+          "path": "docs/governance/policies/btn-01.md"
+        },
+        {
+          "code": "A11Y-01",
+          "version": "1.1",
+          "path": "docs/governance/policies/a11y-01.md"
+        },
+        {
+          "code": "CMP-01",
+          "version": "1.1",
+          "path": "docs/governance/policies/cmp-01.md"
+        }
+      ],
+      "api": {
+        "contractPath": "docs/specs/0263-primitiva-de-menu-de-acciones/spec.md",
+        "summary": "Trigger con texto o sólo icono (ariaLabel obligatorio). Items que EJECUTAN (onSelect → <button>) o que NAVEGAN (href → <a>), mutuamente excluyentes por tipo. Rol semántico default/destructive, separadores, deshabilitado con motivo visible. Sin memoria de la última opción, a propósito."
+      },
+      "tokens": [
+        "--bg-surface",
+        "--bg-elevated",
+        "--border",
+        "--ink",
+        "--ink-soft",
+        "--danger",
+        "--r-sm",
+        "--r-md",
+        "--shadow-pop",
+        "--f-sans"
+      ],
+      "accessibility": {
+        "keyboard": "verified",
+        "focus": "verified",
+        "screenReader": "verified",
+        "contrast": "verified",
+        "reducedMotion": "not-applicable",
+        "evidence": [
+          "app/studio/_components/ui/ActionMenu.test.tsx",
+          "docs/specs/0263-primitiva-de-menu-de-acciones/spec.md"
+        ]
+      },
+      "breakpoints": [
+        "mobile",
+        "tablet",
+        "desktop"
+      ],
+      "examples": {
+        "correct": [
+          "app/studio/(app)/clientes/_components/ClientsClient.tsx",
+          "app/studio/_components/ui/ActionMenu.test.tsx"
+        ],
+        "incorrect": [
+          "app/studio/(app)/ve/_components/VeRowActions.tsx",
+          "app/studio/(app)/bitacora/_components/ExportMenu.tsx",
+          "app/studio/_components/ui/columns/ColumnConfig.tsx"
+        ]
+      },
+      "tests": [
+        {
+          "type": "accessibility",
+          "path": "app/studio/_components/ui/ActionMenu.test.tsx",
+          "case": "Las 11 reglas de teclado y foco de BTN-01 §7: roving focus, flechas con vuelta, Home/End, Enter, Escape con retorno al trigger, apertura por primera/última, Tab, clic afuera y hover sin ejecutar."
+        },
+        {
+          "type": "accessibility",
+          "path": "app/studio/_components/ui/ActionMenu.test.tsx",
+          "case": "Opciones de navegación: href renderiza <a>, no devuelve el foco al trigger, se recorren con flechas y un href deshabilitado vuelve a <button>."
+        }
+      ],
+      "consumers": [
+        {
+          "path": "app/studio/(app)/clientes/_components/ClientsClient.tsx",
+          "verifiedAt": "2026-08-14"
+        }
+      ],
+      "review": {
+        "reviewPath": "docs/specs/0266-clientes-cabecera-con-menu/spec.md",
+        "reviewer": "Claude (ventana 2026-08-14)",
+        "approvedBy": "Sam (founder)",
+        "lastReviewedAt": "2026-08-14",
+        "nextReviewAt": "2027-02-14"
+      }
+    },
     {
       "schemaVersion": "1.1",
       "id": "confirm-dialog",

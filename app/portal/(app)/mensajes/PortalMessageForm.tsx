@@ -6,6 +6,7 @@ import {
   sendPortalMessageAction,
   type PortalMessageState,
 } from "./actions";
+import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 
 const initial: PortalMessageState = {};
 
@@ -46,11 +47,12 @@ export function PortalMessageForm({ prefill }: { prefill?: string }) {
           className="px-3.5 py-3 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink leading-[1.5] resize-y disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
         />
       </label>
-      {state.error && <p className="text-[13px] text-wine leading-[1.4]">{state.error}</p>}
+      {state.error && <PortalFieldError nivel="formulario">{state.error}</PortalFieldError>}
       <div className="flex justify-end">
         <button
           type="submit"
           disabled={pending}
+          aria-busy={pending}
           className="btn btn-primary disabled:opacity-60 disabled:cursor-wait"
         >
           {pending ? "Enviando…" : "Enviar mensaje"}

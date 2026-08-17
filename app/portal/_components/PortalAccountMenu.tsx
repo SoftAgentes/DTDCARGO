@@ -125,7 +125,7 @@ export function PortalAccountMenu({
           <form action={signOutAction}>
             <button
               type="submit"
-              className="block w-full text-left px-3 py-2 text-[14px] font-medium text-wine hover:bg-grey-100 transition-colors"
+              className="block w-full text-left px-3 py-2 text-[14px] font-medium text-wine-text hover:bg-grey-100 transition-colors"
             >
               Cerrar sesión
             </button>

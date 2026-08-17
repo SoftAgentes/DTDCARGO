@@ -45,7 +45,7 @@ export default async function PortalCotizacionesPage() {
           <p className="mt-2 text-[14px] text-grey-700 max-w-[48ch] mx-auto leading-[1.55]">
             Cuando quieras un precio formal para una carga puntual, pídelo acá y tu
             asesor te lo arma. ¿Solo quieres un cálculo rápido? Usa la{" "}
-            <Link href="/portal/estimados" className="text-wine font-semibold hover:underline">
+            <Link href="/portal/estimados" className="text-wine-text font-semibold hover:underline">
               calculadora de estimados
             </Link>
             .

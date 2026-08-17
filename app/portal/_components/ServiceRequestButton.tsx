@@ -74,7 +74,7 @@ export function ServiceRequestButton({ markbox }: { markbox: string }) {
         <span className="flex flex-col items-start leading-none">
           <span className="text-[14px] font-bold text-ink">Otros servicios</span>
           <span
-            className="text-[9px] font-bold tracking-[0.14em] text-wine mt-1"
+            className="text-[9px] font-bold tracking-[0.14em] text-wine-text mt-1"
             style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
           >
             = ESTIMADO
@@ -98,7 +98,7 @@ export function ServiceRequestButton({ markbox }: { markbox: string }) {
                   <span className="block text-[13px] font-bold text-ink">{s.label}</span>
                   <span className="block text-[11px] text-grey-700">{s.sub}</span>
                 </span>
-                <span className="text-wine flex-shrink-0">
+                <span className="text-wine-text flex-shrink-0">
                   {s.external ? <WhatsAppIcon size={14} /> : <ArrowIcon size={13} />}
                 </span>
               </>

@@ -567,13 +567,14 @@ function incotermsHTML(){
 function direccionHTML(){
   const F=[
     {k:"国家/地区",l:"País / región",v:"China"},
-    {k:"收货人",l:"Destinatario",v:"DTD Cargo - "+MARK,dest:true,hint:"Tu MARKBOX va al final — sin él no podemos saber que la caja es tuya."},
+    {k:"收货人",l:"Nombre y apellido",v:"林冠 "+MARK,dest:true,zh:true,hint:"Alibaba exige chino aquí. 林冠 (Lin Guan) es el encargado de la bodega; tu MARKBOX va detrás — sin él no podemos saber que la caja es tuya."},
     {k:"电话",l:"Teléfono (+86)",v:"18606891419"},
-    {k:"地址",l:"Dirección",v:"浙江省义乌市义乌港二期直通仓2栋2号 货7-货11",zh:true,hint:"Pégala en chino tal cual, sin traducir — es para el transporte dentro de China."},
-    {k:"省",l:"Provincia",v:"浙江省",zh:true,hint:"Zhejiang"},
-    {k:"市",l:"Ciudad",v:"义乌市",zh:true,hint:"Yiwu — en el selector aparece bajo 金华市 (Jinhua)"},
+    {k:"地址",l:"Dirección o apartado postal",v:"义乌港二期直通仓2栋2号",zh:true,hint:"Pégala en chino tal cual, sin traducir — es para el transporte dentro de China."},
+    {k:"详细地址",l:"Apartamento, suite, unidad, edificio, piso",v:"货7-货11",zh:true,hint:"Dice «opcional», pero es el número de nuestro puesto. Ponlo."},
+    {k:"省",l:"Estado / provincia",v:"浙江省",zh:true,hint:"Zhejiang"},
+    {k:"市",l:"Ciudad",v:"金华市",zh:true,hint:"Jinhua. Aquí NO busques Yiwu: no aparece, porque Yiwu va en el Distrito."},
+    {k:"区/县",l:"Distrito",v:"义乌市",zh:true,hint:"Yiwu — aquí sí. Es obligatorio."},
     {k:"邮编",l:"Código postal",v:"322000"},
-    {k:"仓库联系人",l:"Contacto de bodega",v:"林冠",zh:true,hint:"Lin Guan"},
     {k:"",l:"Email",v:"info@dtdcargo.com"},
   ];
   let rows="";
@@ -589,9 +590,10 @@ function direccionHTML(){
   return '<div class="dir-card">'+
     '<div class="dir-mark"><label>Tu MARKBOX'+(HAS_MARK?"":" (opcional)")+'</label><div class="row">'+
       '<input id="dirMark" type="text" maxlength="50" placeholder="DTD-XXXX" value="'+(HAS_MARK?URL_MARK:"")+'" autocapitalize="characters" autocomplete="off">'+
-      '<div class="h">'+(HAS_MARK?((URL_NAME?"<b>Hola, "+esc(URL_NAME)+".</b> ":"")+"Tu MARKBOX <b>"+MARK+"</b> ya está cargado — cópialo junto a «DTD Cargo» en la dirección de Alibaba."):'Escríbelo y el campo Destinatario se arma solo. <a href="https://dtdcargo.com/registro" target="_blank" rel="noopener">¿No tienes uno? Regístrate →</a>')+'</div>'+
+      '<div class="h">'+(HAS_MARK?((URL_NAME?"<b>Hola, "+esc(URL_NAME)+".</b> ":"")+"Tu MARKBOX <b>"+MARK+"</b> ya está cargado — cópialo junto a «林冠» en la dirección de Alibaba."):'Escríbelo y el campo Nombre y apellido se arma solo. <a href="https://dtdcargo.com/registro" target="_blank" rel="noopener">¿No tienes uno? Regístrate →</a>')+'</div>'+
     '</div></div>'+rows+
-    '<div class="dir-nota"><b>Importante:</b> en el formulario de Alibaba el destinatario lleva «DTD Cargo + tu MARKBOX», pero en el <b>rótulo físico de la caja</b> va SOLO tu MARKBOX — sin tu nombre, dirección ni teléfono personal (causan confusión o decomiso).</div>'+
+    '<div class="dir-nota"><b>Atajo:</b> en «Agregar dirección» de Alibaba despliega <b>«Rellenar automáticamente la dirección»</b> (está detrás de «Ver más»), pega <span class="cjk">浙江省金华市义乌市义乌港二期直通仓2栋2号 货7-货11, 322000</span> y dale a «Rellenar formulario»: se llenan provincia, ciudad, distrito, código postal y las dos líneas de una vez. Después vuelve al campo <b>Nombre y apellido</b> y escribe <span class="cjk">林冠</span> + tu MARKBOX a mano: el rellenado automático lo borra sin avisar.</div>'+
+    '<div class="dir-nota"><b>Importante:</b> en el formulario de Alibaba el nombre lleva «林冠 + tu MARKBOX», pero en el <b>rótulo físico de la caja</b> va SOLO tu MARKBOX — sin tu nombre, dirección ni teléfono personal (causan confusión o decomiso).</div>'+
   '</div>';
 }
 
@@ -682,13 +684,13 @@ function wire(){
   stageEl.querySelectorAll("[data-calc]").forEach(b=> b.addEventListener("click",()=>calcTool(b.dataset.calc)));
   // direccion: MARKBOX en vivo + copiar por campo (espejo del FAQ)
   const dirM = stageEl.querySelector("#dirMark");
-  if(dirM){ dirM.addEventListener("input", ()=>{ const m=(dirM.value||"").trim().toUpperCase(); const d=stageEl.querySelector("#dirDest"); if(d) d.textContent="DTD Cargo - "+(m||"DTD-XXXX"); }); }
+  if(dirM){ dirM.addEventListener("input", ()=>{ const m=(dirM.value||"").trim().toUpperCase(); const d=stageEl.querySelector("#dirDest"); if(d) d.textContent="林冠 "+(m||"DTD-XXXX"); }); }
   stageEl.querySelectorAll(".dir-copy").forEach(btn=> btn.addEventListener("click",()=>{
     let val=btn.dataset.val;
     if(btn.dataset.field==="destinatario"){
       const i=stageEl.querySelector("#dirMark"); const m=((i&&i.value)||"").trim().toUpperCase();
       if(!m){ if(i) i.focus(); const o=btn.textContent; btn.textContent="Falta tu mark ↑"; setTimeout(()=>btn.textContent=o,1800); return; }
-      val="DTD Cargo - "+m;
+      val="林冠 "+m;
     }
     navigator.clipboard.writeText(val).then(()=>{ const o=btn.textContent; btn.textContent="✓ Copiado"; setTimeout(()=>btn.textContent=o,1600); }).catch(()=>{});
   }));

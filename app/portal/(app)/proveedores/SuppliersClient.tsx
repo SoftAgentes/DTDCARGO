@@ -29,6 +29,7 @@ import type {
 } from "@/lib/studio/prealertas/types";
 import type { PrealertaAddon } from "@/lib/studio/prealertas/addons";
 import { PrealertaServiceGallery } from "../../_components/PrealertaAddons";
+import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 
 const supplierInitial: SupplierActionState = {};
 const deleteSupplierInitial: DeleteSupplierActionState = {};
@@ -67,7 +68,7 @@ export function SuppliersClient({
           </h1>
           <p className="lead mt-3 max-w-[64ch]">
             Cada <strong className="text-ink">compra</strong> es una{" "}
-            <strong className="text-wine">prealerta</strong>: nos avisas que viene
+            <strong className="text-wine-text">prealerta</strong>: nos avisas que viene
             mercancía de China para esperarla y procesarla más rápido. Genera el
             código y las etiquetas para tus proveedores, o vuelve a comprarle a uno
             que ya tengas.
@@ -176,7 +177,7 @@ export function SuppliersClient({
       <div className="mt-8">
         <Link
           href="/portal/compras"
-          className="inline-flex items-center gap-1.5 text-[13.5px] font-bold text-wine hover:underline"
+          className="inline-flex items-center gap-1.5 text-[13.5px] font-bold text-wine-text hover:underline"
         >
           Ver todas mis compras <ArrowIcon size={14} />
         </Link>
@@ -261,12 +262,10 @@ function SupplierCard({ supplier }: { supplier: SupplierView }) {
         >
           {supplier.orderCount} compra{supplier.orderCount === 1 ? "" : "s"} ·
           próxima:{" "}
-          <span className="text-wine font-bold">{supplier.nextCode}</span>
+          <span className="text-wine-text font-bold">{supplier.nextCode}</span>
         </div>
         {deleteState.error && (
-          <p className="mt-1.5 text-[12px] text-wine leading-[1.4]">
-            {deleteState.error}
-          </p>
+          <PortalFieldError>{deleteState.error}</PortalFieldError>
         )}
       </div>
 
@@ -278,7 +277,7 @@ function SupplierCard({ supplier }: { supplier: SupplierView }) {
             <button
               type="submit"
               disabled={deletePending}
-              className="btn btn-ghost text-wine disabled:opacity-60"
+              className="btn btn-ghost text-wine-text disabled:opacity-60"
             >
               {deletePending ? "Borrando…" : "Sí, borrar"}
             </button>
@@ -368,9 +367,7 @@ function EditSupplierForm({
         className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
       />
       {state.fieldErrors?.name && (
-        <p className="text-[12px] text-wine leading-[1.4]">
-          {state.fieldErrors.name}
-        </p>
+        <PortalFieldError>{state.fieldErrors.name}</PortalFieldError>
       )}
 
       <FieldLabel htmlFor={`${uid}-wechat`}>WeChat (opcional)</FieldLabel>
@@ -406,13 +403,14 @@ function EditSupplierForm({
       />
 
       {state.error && (
-        <p className="text-[12.5px] text-wine leading-[1.4]">{state.error}</p>
+        <PortalFieldError nivel="formulario">{state.error}</PortalFieldError>
       )}
 
       <div className="flex gap-2.5">
         <button
           type="submit"
           disabled={pending}
+          aria-busy={pending}
           className="btn btn-primary inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-wait"
         >
           {pending ? "Guardando…" : "Guardar cambios"}
@@ -466,9 +464,7 @@ function AddSupplierForm({
         className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
       />
       {state.fieldErrors?.name && (
-        <p className="text-[12px] text-wine leading-[1.4]">
-          {state.fieldErrors.name}
-        </p>
+        <PortalFieldError>{state.fieldErrors.name}</PortalFieldError>
       )}
 
       <FieldLabel htmlFor={`${uid}-wechat`}>WeChat del proveedor (opcional)</FieldLabel>
@@ -501,12 +497,13 @@ function AddSupplierForm({
       />
 
       {state.error && (
-        <p className="text-[12.5px] text-wine leading-[1.4]">{state.error}</p>
+        <PortalFieldError nivel="formulario">{state.error}</PortalFieldError>
       )}
       <div className="flex gap-2.5">
         <button
           type="submit"
           disabled={pending}
+          aria-busy={pending}
           className="btn btn-primary inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-wait"
         >
           {pending ? "Creando…" : "Crear y generar código"}

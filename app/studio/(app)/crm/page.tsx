@@ -15,6 +15,8 @@ import {
   type WritebackStatus,
   getPendingOpsByLead,
   getPendingOpsForBoard,
+  getStaleOpsByLead,
+  getStaleOpsForBoard,
 } from "@/lib/studio/kommo-writeback";
 import {
   getKommoOverview,
@@ -125,13 +127,17 @@ export default async function KommoPage({
       const statusIds = statuses
         .filter((s) => s.pipeline_id === boardPipelineId)
         .map((s) => s.id);
-      const [boardLeads, realCountByStatus, boardPendingOps] = await Promise.all([
-        listKommoBoardLeads(supabase, boardPipelineId, BOARD_CAP),
-        getKommoStatusCounts(supabase, boardPipelineId, statusIds),
-        // Las tarjetas también mueven de etapa (SDD-0256), así que necesitan
-        // saber qué órdenes van en camino. Si falla, se pintan sin el rótulo.
-        getPendingOpsForBoard(supabase).catch(() => ({})),
-      ]);
+      const [boardLeads, realCountByStatus, boardPendingOps, boardStaleOps] =
+        await Promise.all([
+          listKommoBoardLeads(supabase, boardPipelineId, BOARD_CAP),
+          getKommoStatusCounts(supabase, boardPipelineId, statusIds),
+          // Las tarjetas también mueven de etapa (SDD-0256), así que necesitan
+          // saber qué órdenes van en camino. Si falla, se pintan sin el rótulo.
+          getPendingOpsForBoard(supabase).catch(() => ({})),
+          // Y qué órdenes NO se mandaron para no pisar al asesor (A1). Si esto
+          // no se pinta, el "En camino" desaparece y el asesor asume que salió.
+          getStaleOpsForBoard(supabase).catch(() => ({})),
+        ]);
       const ownerName: Record<number, string> = {};
       for (const o of analytics.ownership.owners) {
         if (o.id != null) ownerName[o.id] = o.label;
@@ -148,6 +154,8 @@ export default async function KommoPage({
           valueByLead={analytics.valueByLead}
           ownerName={ownerName}
           pendingOpsByLead={boardPendingOps}
+          staleOpsByLead={boardStaleOps}
+          asesores={analytics.ownership.owners}
           canEdit={canEdit}
           boardCap={BOARD_CAP}
         />
@@ -210,10 +218,15 @@ export default async function KommoPage({
   // Órdenes que ya salieron del ERP pero todavía no llegaron a Kommo. Es lo que
   // la fila pinta como "en camino": entre el clic y el webhook de vuelta el
   // espejo sigue mostrando lo viejo (guardrail 0107).
-  const pendingOpsByLead =
+  const [pendingOpsByLead, staleOpsByLead] =
     leads.length > 0
-      ? await getPendingOpsByLead(supabase, leads.map((l) => l.id)).catch(() => ({}))
-      : {};
+      ? await Promise.all([
+          getPendingOpsByLead(supabase, leads.map((l) => l.id)).catch(() => ({})),
+          // Las órdenes que el chequeo optimista frenó: el asesor tiene que
+          // enterarse sin abrir lead por lead.
+          getStaleOpsByLead(supabase, leads.map((l) => l.id)).catch(() => ({})),
+        ])
+      : [{}, {}];
 
   return (
     <KommoClient
@@ -245,6 +258,7 @@ export default async function KommoPage({
       valueByLead={visibleValue}
       contactByLead={contactByLead}
       pendingOpsByLead={pendingOpsByLead}
+      staleOpsByLead={staleOpsByLead}
       canEdit={canEdit}
       responsibleUsers={analytics.ownership.owners}
     />

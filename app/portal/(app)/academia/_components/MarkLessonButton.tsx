@@ -43,6 +43,7 @@ export function MarkLessonButton({
         type="button"
         onClick={toggle}
         disabled={pending}
+        aria-busy={pending}
         aria-pressed={done}
         className={`${done ? "btn btn-ghost" : "btn btn-primary"} text-sm disabled:opacity-60`}
       >

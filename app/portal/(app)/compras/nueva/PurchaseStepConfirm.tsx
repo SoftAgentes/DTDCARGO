@@ -127,7 +127,7 @@ export function PurchaseStepConfirm({
                 <p className="mt-2 text-[11.5px] text-grey-700 leading-[1.5] m-0">
                   El link se está generando. Lo encuentras en el detalle de tu
                   compra, en{" "}
-                  <Link href="/portal/compras" className="text-wine font-semibold">
+                  <Link href="/portal/compras" className="text-wine-text font-semibold">
                     Mis compras
                   </Link>
                   .

@@ -1,41 +1,56 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import Link from "next/link";
+
+import { useCallback, useEffect, useState, useTransition } from "react";
 
 import { Badge } from "@/app/studio/_components/ui/Badge";
-import {
-  TAMANOS_DE_LOTE,
-  type LegacyResumen,
-  type LoteLegadoResult,
-} from "@/lib/studio/markbox-legacy-types";
+import { TAMANOS_DE_LOTE, type LoteLegadoResult } from "@/lib/studio/markbox-legacy-types";
 import { loteLegadoAction } from "../actions";
 
 /**
  * Clientes › Migrar códigos del legado (SDD-0258).
  *
- * Pasa las fichas con serie de VENDEDOR (`DTD-A101`, `DTD-j029`…) a la serie
- * limpia de la casa. Cada renombrado jubila su código viejo: queda reservado y
+ * Pasa las fichas con serie de VENDEDOR al rango `DTD-8xxx`, separado de la
+ * serie viva de la casa, para que migrar el legado no empuje el correlativo de
+ * los clientes reales. Cada renombrado jubila su código viejo: queda reservado y
  * sigue resolviendo, así que una caja rotulada con él no llega huérfana.
  *
- * El simulacro y la ejecución llaman a la MISMA función de la base, así que lo
- * que se aprueba en pantalla es exactamente lo que corre. Y ejecutar pide
- * confirmación aparte: son decenas de fichas de una vez.
+ * ⚠️ TODOS los números —pendientes, desglose y mapeo— salen de la MISMA función
+ * que ejecuta, llamada en simulacro. No hay un conteo paralelo: el anterior se
+ * desincronizó de la base en cuatro horas y mostraba 201 donde había 361.
  */
-export function MigrarLegadoClient({
-  resumen,
-  esAdmin,
-}: {
-  resumen: LegacyResumen;
-  esAdmin: boolean;
-}) {
+export function MigrarLegadoClient({ esAdmin }: { esAdmin: boolean }) {
   const [batch, setBatch] = useState<number>(10);
+  /** Lo que se muestra arriba: siempre lo último que dijo la base. */
+  const [resumen, setResumen] = useState<Pick<
+    LoteLegadoResult,
+    "pendientesDespues" | "porSerie"
+  > | null>(null);
+  /** Lo que se muestra abajo: sólo tras un Simular o un Migrar explícitos. */
   const [result, setResult] = useState<LoteLegadoResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmando, setConfirmando] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  // El número que manda es el de la base, no el conteo orientativo de la página.
-  const pendientes = result ? result.pendientesDespues : resumen.pendientes;
+  const guardarResumen = useCallback((r: LoteLegadoResult) => {
+    setResumen({ pendientesDespues: r.pendientesDespues, porSerie: r.porSerie });
+  }, []);
+
+  // Al abrir la pantalla se pide el resumen con un simulacro de UNA ficha: es la
+  // llamada más barata que devuelve los números autoritativos. No escribe nada.
+  useEffect(() => {
+    if (!esAdmin) return;
+    let vivo = true;
+    void loteLegadoAction(1, false).then((r) => {
+      if (!vivo || !r) return;
+      if ("error" in r) setError(r.error);
+      else guardarResumen(r.result);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [esAdmin, guardarResumen]);
 
   function correr(ejecutar: boolean) {
     setError(null);
@@ -49,23 +64,46 @@ export function MigrarLegadoClient({
         return;
       }
       setResult(r.result);
+      guardarResumen(r.result);
     });
   }
+
+  const pendientes = resumen?.pendientesDespues ?? null;
 
   return (
     <div style={{ display: "grid", gap: 20, maxWidth: 900 }}>
       <header>
-        <span className="studio-eyebrow">Clientes</span>
+        {/* SDD-0266 · misma razón que en Duplicados: se llega sólo desde el menú
+            de la cabecera y no hay entrada en el nav lateral. */}
+        <Link
+          href="/studio/clientes"
+          className="studio-link-quiet"
+          style={{
+            font: "600 12px/1 var(--f-sans)",
+            color: "var(--ink-soft)",
+            textDecoration: "none",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            marginBottom: 10,
+          }}
+        >
+          ← Clientes
+        </Link>
+        <span className="studio-eyebrow" style={{ display: "block" }}>
+          Clientes
+        </span>
         <h1 style={{ font: "800 26px/1.2 var(--f-display)", color: "var(--ink)", margin: "6px 0 8px" }}>
           Migrar códigos del legado
         </h1>
         <p style={{ font: "500 14px/1.55 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
-          Quedan fichas con la serie de <b style={{ color: "var(--ink)" }}>vendedor</b> —
-          cada vendedor tenía su letra (A, D, J, P, Y) en una época sin gobernanza
-          de códigos. Acá pasan a la serie limpia de la casa. El código viejo{" "}
-          <b style={{ color: "var(--ink)" }}>no se borra</b>: queda reservado para
-          ese cliente y sigue resolviendo, así que una caja rotulada con él llega
-          igual a su ficha.
+          Las fichas con serie de <b style={{ color: "var(--ink)" }}>vendedor</b> —
+          cada vendedor tenía su letra (A, D, J, P, Y)— pasan al rango{" "}
+          <b style={{ color: "var(--ink)" }}>DTD-8xxx</b>, separado de la serie viva
+          de la casa. Así migrar el legado no empuja el correlativo de tus clientes
+          reales. El código viejo <b style={{ color: "var(--ink)" }}>no se borra</b>:
+          queda reservado y sigue resolviendo, así que una caja rotulada con él
+          llega igual a su ficha.
         </p>
       </header>
 
@@ -78,13 +116,17 @@ export function MigrarLegadoClient({
         }}
       >
         <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 14 }}>
-          <span style={{ font: "800 34px/1 var(--f-mono)", color: "var(--ink)" }}>{pendientes}</span>
+          <span style={{ font: "800 34px/1 var(--f-mono)", color: "var(--ink)" }}>
+            {pendientes ?? "—"}
+          </span>
           <span style={{ font: "500 14px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
-            ficha{pendientes === 1 ? "" : "s"} por migrar
+            {pendientes === null
+              ? "consultando…"
+              : `ficha${pendientes === 1 ? "" : "s"} por migrar`}
           </span>
         </div>
 
-        {resumen.porSerie.length > 0 && (
+        {resumen && resumen.porSerie.length > 0 && (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
             {resumen.porSerie.map((s) => (
               <Badge key={s.serie} tone="neutral" size="md">
@@ -140,15 +182,15 @@ export function MigrarLegadoClient({
                   type="button"
                   className="studio-btn studio-btn-dark studio-btn-sm"
                   onClick={() => setConfirmando(true)}
-                  disabled={pending}
+                  disabled={pending || pendientes === null}
                 >
                   Migrar esta tanda
                 </button>
               ) : (
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <span style={{ font: "600 13px/1.4 var(--f-sans)", color: "var(--ink)" }}>
-                    ¿Migrar {Math.min(batch, pendientes)} ficha
-                    {Math.min(batch, pendientes) === 1 ? "" : "s"}?
+                    ¿Migrar {Math.min(batch, pendientes ?? batch)} ficha
+                    {Math.min(batch, pendientes ?? batch) === 1 ? "" : "s"}?
                   </span>
                   <button
                     type="button"
@@ -216,8 +258,6 @@ export function MigrarLegadoClient({
                   <tr key={m.de}>
                     <td style={{ ...td, font: "500 13.5px/1.4 var(--f-sans)", color: "var(--ink)", minWidth: 200 }}>
                       {m.nombre || <span style={{ color: "var(--ink-soft)" }}>—</span>}
-                      {/* Con portal = alguien lo va a ver cambiado. Sin portal,
-                          la ficha sólo existe en el ERP. */}
                       {m.portal && (
                         <span
                           title="Tiene portal: va a ver el código nuevo al entrar"

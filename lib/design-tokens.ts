@@ -255,10 +255,40 @@ export const CONTACT = {
      * Fuente: brand book § China Supplier Clip.
      */
     addressCjk: "浙江省义乌市义乌港二期直通仓2栋2号 货7-货11",
-    /** Provincia y ciudad en chino — para formularios tipo Alibaba (selectores separados). */
-    provinceCjk: "浙江省", // Zhejiang
-    cityCjk: "义乌市", // Yiwu — en los selectores aparece bajo 金华市 (Jinhua)
-    cityParentCjk: "金华市", // Jinhua (prefectura a la que pertenece Yiwu)
+    /**
+     * Campos del formulario de dirección de Alibaba — MEDIDOS contra el
+     * formulario real (logistics.alibaba.com/luyou/shipto · 2026-08-14), no
+     * inferidos. La división administrativa china tiene TRES niveles y Alibaba
+     * los pide en tres selectores separados, el tercero obligatorio:
+     *
+     *   Estado/provincia → 浙江省    Ciudad → 金华市    Distrito → 义乌市
+     *
+     * Yiwu es ciudad de NIVEL CONDADO bajo la prefectura de Jinhua: no es la
+     * "Ciudad" del formulario, es el "Distrito". Publicar 义乌市 como Ciudad
+     * (lo que se hacía hasta SDD-0264) deja al cliente trancado, porque busca
+     * Yiwu en el selector que no lo tiene y nunca llega al Distrito.
+     */
+    provinceCjk: "浙江省", // Estado/provincia — Zhejiang
+    cityCjk: "金华市", // Ciudad — Jinhua (prefectura)
+    districtCjk: "义乌市", // Distrito — Yiwu (ciudad de nivel condado)
+    /** Las dos líneas de dirección, tal como Alibaba las separa al rellenar. */
+    addressLine1Cjk: "义乌港二期直通仓2栋2号", // "Dirección o apartado postal"
+    addressLine2Cjk: "货7-货11", // "Apartamento, suite, unidad, edificio, piso"
+    /**
+     * Cadena para el "Rellenar automáticamente la dirección" de Alibaba: de una
+     * sola pegada llena los ocho campos. Necesita la jerarquía COMPLETA —
+     * incluido 金华市, que `addressCjk` omite. Sin 金华市, Alibaba mete 义乌市 en
+     * Ciudad y la combinación no corresponde.
+     *
+     * El código postal va al final y con coma: medido vaciando el campo primero,
+     * sin él en la cadena el rellenado no lo repone. La coma es la que lo separa
+     * de la línea de dirección.
+     *
+     * ⚠️ El rellenado automático BORRA del nombre todo lo que no reconozca como
+     * nombre: pegando "林冠 DTD-1014, …" el campo queda en "林冠" pelado. Por eso
+     * el Shipping Mark NO va en esta cadena — se escribe aparte, después.
+     */
+    addressAutofillCjk: "浙江省金华市义乌市义乌港二期直通仓2栋2号 货7-货11, 322000",
     /** Encargado de bodega — 林冠 (Lin Guan) */
     contactPersonCjk: "林冠",
     contactPersonPinyin: "Lin Guan",

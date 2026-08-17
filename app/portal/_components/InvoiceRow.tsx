@@ -76,7 +76,7 @@ export function InvoiceRow({ invoice }: { invoice: PortalInvoiceRow }) {
           {invoice.issuedAt ? `Emitida ${formatDate(invoice.issuedAt)}` : "Sin emitir"}
         </span>
         <ArrowIcon
-          className="text-grey-300 transition-colors group-hover:text-wine"
+          className="text-grey-300 transition-colors group-hover:text-wine-text"
           size={18}
         />
       </div>

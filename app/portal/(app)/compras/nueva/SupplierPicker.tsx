@@ -30,6 +30,7 @@ import {
   type SupplierActionState,
 } from "@/lib/studio/prealertas/types";
 import { createSupplierAction } from "../../proveedores/actions";
+import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 
 const supplierInitial: SupplierActionState = {};
 
@@ -325,7 +326,7 @@ export function SupplierPicker({
                     onSelect("");
                     setSupplierOpen(false);
                   }}
-                  className="w-full flex items-center gap-2 px-3.5 py-2.5 text-[13.5px] font-bold text-wine"
+                  className="w-full flex items-center gap-2 px-3.5 py-2.5 text-[13.5px] font-bold text-wine-text"
                   style={{ background: "var(--color-paper)" }}
                 >
                   + Crear &ldquo;{supplierQuery.trim()}&rdquo;
@@ -427,7 +428,7 @@ export function SupplierPicker({
           }}
         >
           <input type="hidden" name="name" value={newSupplierName} />
-          {/* `text-wine` crudo mide 3.70:1 en el portal oscuro (medido): el wine
+          {/* `text-wine-text` crudo mide 3.70:1 en el portal oscuro (medido): el wine
               como TEXTO va por --color-wine-text, que sí alcanza en ambos temas. */}
           <p
             className="text-[10px] font-bold tracking-[0.08em] uppercase"
@@ -439,9 +440,7 @@ export function SupplierPicker({
             + Se creará &ldquo;{newSupplierName}&rdquo;
           </p>
           {newSupplierState.fieldErrors?.name && (
-            <p className="mt-1 text-[12px] text-wine">
-              {newSupplierState.fieldErrors.name}
-            </p>
+            <PortalFieldError>{newSupplierState.fieldErrors.name}</PortalFieldError>
           )}
 
           {showProfile && <SupplierProfileFields disabled={newSupplierPending} />}

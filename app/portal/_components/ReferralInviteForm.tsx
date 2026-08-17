@@ -6,6 +6,7 @@ import {
   inviteReferralAction,
   type InviteReferralState,
 } from "../(app)/referidos/actions";
+import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 
 const initial: InviteReferralState = {};
 
@@ -34,7 +35,7 @@ export function ReferralInviteForm() {
 
   return (
     <div className="mt-5 card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-7">
-      <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-wine">
+      <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-wine-text">
         Invita por correo
       </div>
       <h2 className="mt-1.5 text-[18px] font-bold text-ink leading-tight">
@@ -79,9 +80,7 @@ export function ReferralInviteForm() {
               className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
             />
             {state.fieldErrors?.email && (
-              <span className="text-[12px] text-wine leading-[1.4]">
-                {state.fieldErrors.email}
-              </span>
+              <PortalFieldError>{state.fieldErrors.email}</PortalFieldError>
             )}
           </label>
 
@@ -99,21 +98,20 @@ export function ReferralInviteForm() {
               className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
             />
             {state.fieldErrors?.name && (
-              <span className="text-[12px] text-wine leading-[1.4]">
-                {state.fieldErrors.name}
-              </span>
+              <PortalFieldError>{state.fieldErrors.name}</PortalFieldError>
             )}
           </label>
         </div>
 
         {state.error && (
-          <p className="text-[13px] text-wine leading-[1.45]">{state.error}</p>
+          <PortalFieldError nivel="formulario">{state.error}</PortalFieldError>
         )}
 
         <div>
           <button
             type="submit"
             disabled={pending || !email.trim()}
+            aria-busy={pending}
             className="btn btn-primary disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {pending ? "Enviando…" : "Enviar invitación"}

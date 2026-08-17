@@ -45,6 +45,7 @@ import {
   clampHoldCount,
   buildPurchaseOrderLines,
 } from "@/lib/portal/purchase-order-lines";
+import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 
 const prealertaInitial: PrealertaActionState = {};
 
@@ -260,12 +261,10 @@ export function NewPurchaseWizard({
           </div>
 
           {state.fieldErrors?.supplierId && (
-            <p className="mt-3 text-[12.5px] text-wine">
-              {state.fieldErrors.supplierId}
-            </p>
+            <PortalFieldError nivel="formulario">{state.fieldErrors.supplierId}</PortalFieldError>
           )}
           {state.error && (
-            <p className="mt-3 text-[12.5px] text-wine">{state.error}</p>
+            <PortalFieldError nivel="formulario">{state.error}</PortalFieldError>
           )}
         </div>
 
@@ -281,6 +280,7 @@ export function NewPurchaseWizard({
           <button
             type="submit"
             disabled={pending || !supplierId}
+            aria-busy={pending}
             className="btn btn-primary w-full inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait"
           >
             {pending ? "Registrando compra…" : "Registrar compra"}

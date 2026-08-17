@@ -40,12 +40,12 @@ export function DocumentsClient({ docs }: { docs: PortalDocView[] }) {
                 onClick={() => setType(c.key)}
                 aria-pressed={on}
                 className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${
-                  on ? "bg-white text-wine card-shadow" : "text-grey-500 hover:text-ink"
+                  on ? "bg-white text-wine-text card-shadow" : "text-grey-500 hover:text-ink"
                 }`}
               >
                 {c.label}
                 <span
-                  className={`text-[10.5px] ${on ? "text-wine" : "text-grey-500"}`}
+                  className={`text-[10.5px] ${on ? "text-wine-text" : "text-grey-500"}`}
                   style={{ fontFamily: MONO }}
                 >
                   {c.count}

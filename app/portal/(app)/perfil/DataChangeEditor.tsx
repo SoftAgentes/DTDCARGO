@@ -12,6 +12,7 @@ import {
   buildChangeRequestDiff,
   type ClientChangeRequest,
 } from "@/lib/portal/change-request-types";
+import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 
 const initial: ChangeRequestActionState = {};
 
@@ -88,7 +89,7 @@ export function DataChangeEditor({
             <button
               type="button"
               onClick={() => setConfirmingCancel(true)}
-              className="inline-flex items-center min-h-[24px] rounded-[4px] text-[12.5px] font-semibold text-grey-700 hover:text-wine focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              className="inline-flex items-center min-h-[24px] rounded-[4px] text-[12.5px] font-semibold text-grey-700 hover:text-wine-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
             >
               Cancelar esta solicitud
             </button>
@@ -118,9 +119,7 @@ export function DataChangeEditor({
             </form>
           )}
           {cancelState.error ? (
-            <p role="alert" className="mt-2 text-[12px] text-wine">
-              {cancelState.error}
-            </p>
+            <PortalFieldError>{cancelState.error}</PortalFieldError>
           ) : null}
         </div>
       </div>
@@ -140,7 +139,7 @@ export function DataChangeEditor({
               asesor la aprueba. Tu código y tu email no se editan aquí.
             </p>
             {lastRejected && lastRejected.reviewNote ? (
-              <p className="mt-2 text-[12.5px] text-wine leading-[1.5]">
+              <p className="mt-2 text-[12.5px] text-wine-text leading-[1.5]">
                 Tu última solicitud no se aprobó: {lastRejected.reviewNote}
               </p>
             ) : null}
@@ -198,15 +197,14 @@ export function DataChangeEditor({
           </div>
 
           {state.error ? (
-            <p role="alert" className="text-[12.5px] text-wine">
-              {state.error}
-            </p>
+            <PortalFieldError nivel="formulario">{state.error}</PortalFieldError>
           ) : null}
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <button
               type="submit"
               disabled={pending}
+              aria-busy={pending}
               className="btn btn-primary inline-flex items-center justify-center gap-2 disabled:opacity-60"
             >
               {pending ? "Enviando…" : "Enviar solicitud"}
@@ -221,7 +219,7 @@ export function DataChangeEditor({
             </button>
             <Link
               href="/portal/soporte?tema=datos"
-              className="text-[12.5px] font-semibold text-wine hover:text-wine-deep inline-flex items-center gap-1.5 sm:ml-auto"
+              className="text-[12.5px] font-semibold text-wine-text hover:text-wine-deep inline-flex items-center gap-1.5 sm:ml-auto"
             >
               <ChatIcon size={14} /> Mejor lo hablo por el chat
             </Link>
@@ -259,9 +257,7 @@ function EditField({
         className="h-11 px-3 rounded-[10px] bg-white border-[1.5px] border-grey-200 outline-none text-[14px] text-ink transition-colors focus:border-wine"
       />
       {error ? (
-        <span id={`${name}-err`} className="text-[12px] text-wine">
-          {error}
-        </span>
+        <PortalFieldError id={`${name}-err`}>{error}</PortalFieldError>
       ) : null}
     </label>
   );

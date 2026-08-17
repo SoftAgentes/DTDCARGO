@@ -91,7 +91,7 @@ export default async function NuevaCompraPage({
           </div>
           <p className="mt-3 text-[14px] text-grey-700 leading-[1.55] max-w-[60ch]">
             Cada <strong className="text-ink">compra</strong> es una{" "}
-            <strong className="text-wine">prealerta</strong>: nos avisas que
+            <strong className="text-wine-text">prealerta</strong>: nos avisas que
             viene mercancía de China para esperarla en bodega y procesarla más
             rápido.
           </p>

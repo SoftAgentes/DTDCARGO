@@ -32,7 +32,7 @@ export default async function PortalEstimatesPage() {
         formal para una carga puntual, pide una{" "}
         <Link
           href="/portal/cotizaciones"
-          className="text-wine font-semibold hover:underline"
+          className="text-wine-text font-semibold hover:underline"
         >
           cotización
         </Link>

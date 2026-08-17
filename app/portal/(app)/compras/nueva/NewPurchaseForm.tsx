@@ -14,6 +14,7 @@ import type { SupplierView } from "@/lib/studio/prealertas/types";
 import type { PrealertaActionState } from "@/lib/studio/prealertas/types";
 import type { PrealertaAddon } from "@/lib/studio/prealertas/addons";
 import { createPrealertaAction } from "../../proveedores/actions";
+import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 
 const prealertaInitial: PrealertaActionState = {};
 
@@ -106,9 +107,7 @@ export function NewPurchaseForm({
             className="mt-1.5 w-full px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-none disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
           />
           {state.fieldErrors?.description && (
-            <p className="mt-1 text-[12px] text-wine">
-              {state.fieldErrors.description}
-            </p>
+            <PortalFieldError>{state.fieldErrors.description}</PortalFieldError>
           )}
         </div>
 
@@ -128,7 +127,7 @@ export function NewPurchaseForm({
               style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
             />
             {state.fieldErrors?.boxes && (
-              <p className="mt-1 text-[12px] text-wine">{state.fieldErrors.boxes}</p>
+              <PortalFieldError>{state.fieldErrors.boxes}</PortalFieldError>
             )}
           </div>
           <div>
@@ -145,9 +144,7 @@ export function NewPurchaseForm({
               style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
             />
             {state.fieldErrors?.estValueUsd && (
-              <p className="mt-1 text-[12px] text-wine">
-                {state.fieldErrors.estValueUsd}
-              </p>
+              <PortalFieldError>{state.fieldErrors.estValueUsd}</PortalFieldError>
             )}
           </div>
         </div>
@@ -203,13 +200,14 @@ export function NewPurchaseForm({
         <PrealertaAddonPicker addons={addons} />
 
         {state.fieldErrors?.supplierId && (
-          <p className="text-[12.5px] text-wine">{state.fieldErrors.supplierId}</p>
+          <PortalFieldError nivel="formulario">{state.fieldErrors.supplierId}</PortalFieldError>
         )}
-        {state.error && <p className="text-[12.5px] text-wine">{state.error}</p>}
+        {state.error && <PortalFieldError nivel="formulario">{state.error}</PortalFieldError>}
 
         <button
           type="submit"
           disabled={pending || !supplierId}
+          aria-busy={pending}
           className="btn btn-primary inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait"
         >
           {pending ? "Registrando compra…" : "Registrar compra"}
