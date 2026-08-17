@@ -20,6 +20,9 @@ import { navieraKpis } from "../queries";
  * promesa final entrega data+count. Sirve tanto para los `count head:true` de
  * KPIs como para las lecturas de filas de listLooseCargo.
  */
+/** Tope por request del doble: el `db-max-rows` de Supabase. */
+const SERVER_CAP = 1000;
+
 function makeClient(
   tables: Record<string, { data?: unknown[]; count?: number }>,
 ): SupabaseClient {
@@ -31,6 +34,15 @@ function makeClient(
       for (const m of ["select", "eq", "in", "is", "not", "order", "limit"]) {
         chain[m] = () => passthrough();
       }
+      // Terminal paginado: corta en SERVER_CAP por request igual que PostgREST.
+      // Si el doble fuera más generoso que el servidor, el KPI saldría verde en
+      // el test y truncado en producción.
+      chain.range = (desde: number, hasta: number) => {
+        const filas = entry.data ?? [];
+        const pedido = hasta - desde + 1;
+        const trozo = filas.slice(desde, desde + Math.min(pedido, SERVER_CAP));
+        return Promise.resolve({ data: trozo, count: entry.count ?? 0, error: null });
+      };
       chain.then = (resolve: (v: Record<string, unknown>) => unknown) =>
         Promise.resolve({
           data: entry.data ?? [],

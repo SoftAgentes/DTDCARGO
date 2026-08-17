@@ -23,6 +23,9 @@ import { listLooseCargo } from "../queries";
  * Para el caso (3) sí respetamos `.in("id", ...)` para confirmar que la query
  * solo pide los candidatos correctos.
  */
+/** Tope por request del doble: el `db-max-rows` de Supabase. */
+const SERVER_CAP = 1000;
+
 function makeClient(
   tables: Record<string, unknown[]>,
   capture?: { inIds?: string[] },
@@ -38,6 +41,14 @@ function makeClient(
       chain.in = (_col: string, ids: string[]) => {
         if (capture && table === "shipments") capture.inIds = ids;
         return passthrough();
+      };
+      // Terminal paginado, cortando en SERVER_CAP por request igual que
+      // PostgREST. Sin esto el doble sería más generoso que el servidor y el
+      // test saldría verde con código que en producción trunca.
+      chain.range = (desde: number, hasta: number) => {
+        const pedido = hasta - desde + 1;
+        const trozo = rows.slice(desde, desde + Math.min(pedido, SERVER_CAP));
+        return Promise.resolve({ data: trozo, error: null });
       };
       chain.then = (resolve: (v: Record<string, unknown>) => unknown) =>
         Promise.resolve({ data: rows, error: null }).then(resolve);

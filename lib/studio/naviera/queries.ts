@@ -10,6 +10,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllByIds, fetchAllPaged } from "@/lib/db/paginate";
 import {
   containerStats,
   type Booking,
@@ -196,7 +197,8 @@ export async function listCarriers(
     .from("carriers")
     .select(CARRIER_COLUMNS)
     .order("name", { ascending: true })
-    .limit(2000);
+    // Tope DECLARADO: catálogo de navieras, decenas. Mil no se alcanzan.
+    .limit(1000);
   if (opts.activeOnly) query = query.eq("active", true);
 
   const { data, error } = await query;
@@ -211,7 +213,8 @@ export async function listPorts(supabase: SupabaseClient): Promise<Port[]> {
     .select(PORT_COLUMNS)
     .order("country", { ascending: true })
     .order("code", { ascending: true })
-    .limit(2000);
+    // Tope DECLARADO: catálogo de puertos, centenas. Mil no se alcanzan.
+    .limit(1000);
   if (error) throw error;
   return ((data as Record<string, unknown>[] | null) ?? []).map(coercePort);
 }
@@ -238,17 +241,24 @@ export async function listSailings(
   supabase: SupabaseClient,
   opts: { status?: string } = {},
 ): Promise<Sailing[]> {
-  let query = supabase
-    .from("sailings")
-    .select(SAILING_COLUMNS)
-    .order("etd", { ascending: true, nullsFirst: false })
-    .order("created_at", { ascending: false })
-    .limit(2000);
-  if (opts.status) query = query.eq("status", opts.status);
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return ((data as Record<string, unknown>[] | null) ?? []).map(coerceSailing);
+  // Paginado: los zarpes se acumulan con los años y esta lista alimenta el
+  // selector de reservas — un zarpe que no aparece no se puede reservar.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) => {
+      let query = supabase
+        .from("sailings")
+        .select(SAILING_COLUMNS)
+        .order("etd", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: true });
+      if (opts.status) query = query.eq("status", opts.status);
+      return query.range(d, h);
+    },
+  );
+  if (!complete) {
+    throw new Error("Los zarpes superan el tope de lectura; acota por estado.");
+  }
+  return data.map(coerceSailing);
 }
 
 // ── Bookings ───────────────────────────────────────────────────
@@ -258,17 +268,23 @@ export async function listBookings(
   supabase: SupabaseClient,
   opts: { status?: string; sailingId?: string } = {},
 ): Promise<Booking[]> {
-  let query = supabase
-    .from("bookings")
-    .select(BOOKING_COLUMNS)
-    .order("created_at", { ascending: false })
-    .limit(2000);
-  if (opts.status) query = query.eq("status", opts.status);
-  if (opts.sailingId) query = query.eq("sailing_id", opts.sailingId);
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return ((data as Record<string, unknown>[] | null) ?? []).map(coerceBooking);
+  // Paginado: las reservas se acumulan y el reporte por naviera las cuenta.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) => {
+      let query = supabase
+        .from("bookings")
+        .select(BOOKING_COLUMNS)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: true });
+      if (opts.status) query = query.eq("status", opts.status);
+      if (opts.sailingId) query = query.eq("sailing_id", opts.sailingId);
+      return query.range(d, h);
+    },
+  );
+  if (!complete) {
+    throw new Error("Las reservas superan el tope de lectura; acota por estado o zarpe.");
+  }
+  return data.map(coerceBooking);
 }
 
 // ── Consolidations ─────────────────────────────────────────────
@@ -278,19 +294,26 @@ export async function listConsolidations(
   supabase: SupabaseClient,
   opts: { status?: string } = {},
 ): Promise<Consolidation[]> {
-  let query = supabase
-    .from("consolidations")
-    .select(CONSOLIDATION_COLUMNS)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false })
-    .limit(2000);
-  if (opts.status) query = query.eq("status", opts.status);
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return ((data as Record<string, unknown>[] | null) ?? []).map(
-    coerceConsolidation,
+  // Paginado: los contenedores se acumulan y `listConsolidationsWithStats`
+  // suma su CBM. Un contenedor que no aparece no se puede autorizar.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) => {
+      let query = supabase
+        .from("consolidations")
+        .select(CONSOLIDATION_COLUMNS)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: true });
+      if (opts.status) query = query.eq("status", opts.status);
+      return query.range(d, h);
+    },
   );
+  if (!complete) {
+    throw new Error(
+      "Los contenedores superan el tope de lectura; acota por estado.",
+    );
+  }
+  return data.map(coerceConsolidation);
 }
 
 export type ConsolidationAuthorizationResult = {
@@ -355,13 +378,25 @@ export async function listConsolidationsWithStats(
   if (consolidations.length === 0) return [];
 
   const ids = consolidations.map((c) => c.id);
-  const { data: itemRows, error: itemErr } = await supabase
-    .from("consolidation_items")
-    .select(ITEM_COLUMNS)
-    .in("consolidation_id", ids)
-    .order("created_at", { ascending: true })
-    .limit(10000);
-  if (itemErr) throw itemErr;
+  // Por lotes y paginado: estas filas se SUMAN para el CBM y el peso de cada
+  // contenedor. El `.limit(10000)` devolvía 1.000 y el contenedor parecía más
+  // vacío de lo que está — con eso se sobrevende espacio.
+  const { rows: itemRows, complete: itemsOk } = await fetchAllByIds<
+    Record<string, unknown>
+  >(ids, (lote, d, h) =>
+    supabase
+      .from("consolidation_items")
+      .select(ITEM_COLUMNS)
+      .in("consolidation_id", lote)
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(d, h),
+  );
+  if (!itemsOk) {
+    throw new Error(
+      "Los ítems de los contenedores superan el tope de lectura; el CBM ocupado no se puede totalizar.",
+    );
+  }
 
   const items = ((itemRows as Record<string, unknown>[] | null) ?? []).map(
     coerceItem,
@@ -447,18 +482,29 @@ export async function listLooseCargo(
   supabase: SupabaseClient,
 ): Promise<LooseCargo[]> {
   // (1) embarques con recepción CN cerrada (consolidado).
-  const { data: receiptRows, error: receiptErr } = await supabase
-    .from("warehouse_receipts_cn")
-    .select("shipment_id")
-    .eq("status", "consolidado")
-    .not("shipment_id", "is", null)
-    .is("deleted_at", null)
-    .limit(5000);
-  if (receiptErr) throw receiptErr;
+  // Paginado: si se trunca acá, hay carga lista para consolidar que NUNCA
+  // aparece en el tablero — se queda en el almacén sin que nadie la vea.
+  const { rows: receiptRows, complete: recOk } = await fetchAllPaged<
+    Record<string, unknown>
+  >((d, h) =>
+    supabase
+      .from("warehouse_receipts_cn")
+      .select("id, shipment_id")
+      .eq("status", "consolidado")
+      .not("shipment_id", "is", null)
+      .is("deleted_at", null)
+      .order("id", { ascending: true })
+      .range(d, h),
+  );
+  if (!recOk) {
+    throw new Error(
+      "Las recepciones cerradas superan el tope de lectura; la carga suelta quedaría incompleta.",
+    );
+  }
 
   const closedShipmentIds = Array.from(
     new Set(
-      ((receiptRows as Record<string, unknown>[] | null) ?? [])
+      receiptRows
         .map((r) => (r.shipment_id as string | null) ?? null)
         .filter((v): v is string => !!v),
     ),
@@ -466,15 +512,28 @@ export async function listLooseCargo(
   if (closedShipmentIds.length === 0) return [];
 
   // (2) embarques ya asignados a un contenedor.
-  const { data: assignedRows, error: assignedErr } = await supabase
-    .from("consolidation_items")
-    .select("shipment_id")
-    .not("shipment_id", "is", null)
-    .limit(5000);
-  if (assignedErr) throw assignedErr;
+  // ⚠️ Ésta es la peligrosa de las tres: es la lista de lo YA ASIGNADO. Si se
+  // trunca, un embarque que ya está en un contenedor vuelve a ofrecerse como
+  // suelto y se consolida DOS VECES. Truncar acá no muestra de menos: muestra
+  // de más, igual que la doble conciliación del banco.
+  const { rows: assignedRows, complete: asgOk } = await fetchAllPaged<
+    Record<string, unknown>
+  >((d, h) =>
+    supabase
+      .from("consolidation_items")
+      .select("id, shipment_id")
+      .not("shipment_id", "is", null)
+      .order("id", { ascending: true })
+      .range(d, h),
+  );
+  if (!asgOk) {
+    throw new Error(
+      "No se pudo verificar completo qué embarques ya están consolidados; no se ofrece carga suelta sobre una lectura parcial.",
+    );
+  }
 
   const assignedIds = new Set(
-    ((assignedRows as Record<string, unknown>[] | null) ?? [])
+    assignedRows
       .map((r) => (r.shipment_id as string | null) ?? null)
       .filter((v): v is string => !!v),
   );
@@ -483,18 +542,28 @@ export async function listLooseCargo(
   if (candidateIds.length === 0) return [];
 
   // (3) shipments consolidado_lcl entre los candidatos.
-  const { data: shipmentRows, error: shipmentErr } = await supabase
-    .from("shipments")
-    .select(
-      "id, code, client_name, client_markbox, weight_kg, volume_m3, shipment_service",
-    )
-    .eq("shipment_service", "consolidado_lcl")
-    .is("deleted_at", null)
-    .in("id", candidateIds)
-    .limit(5000);
-  if (shipmentErr) throw shipmentErr;
+  // Por lotes y paginado: dos topes, el `.in(...)` en la URL y las filas.
+  const { rows: shipmentRows, complete: shpOk } = await fetchAllByIds<
+    Record<string, unknown>
+  >(candidateIds, (lote, d, h) =>
+    supabase
+      .from("shipments")
+      .select(
+        "id, code, client_name, client_markbox, weight_kg, volume_m3, shipment_service",
+      )
+      .eq("shipment_service", "consolidado_lcl")
+      .is("deleted_at", null)
+      .in("id", lote)
+      .order("id", { ascending: true })
+      .range(d, h),
+  );
+  if (!shpOk) {
+    throw new Error(
+      "Los embarques candidatos superan el tope de lectura; la carga suelta quedaría incompleta.",
+    );
+  }
 
-  return ((shipmentRows as Record<string, unknown>[] | null) ?? []).map((r) => ({
+  return shipmentRows.map((r) => ({
     shipment_id: String(r.id),
     code: String(r.code ?? ""),
     client_markbox: (r.client_markbox as string | null) ?? null,
@@ -579,16 +648,27 @@ export async function listStuffingByConsolidation(
 ): Promise<Record<string, StuffedBox[]>> {
   if (consolidationIds.length === 0) return {};
 
-  const { data, error } = await supabase
-    .from("consolidation_box_positions")
-    .select(
-      "consolidation_id, box_id, zx, zy, zz, seq, warehouse_boxes(code, markbox, client_name)",
-    )
-    .in("consolidation_id", consolidationIds)
-    .is("unstuffed_at", null)
-    .order("seq", { ascending: true })
-    .limit(10000);
-  if (error) throw error;
+  // Por lotes y paginado: son las cajas ESTIBADAS. Si se truncan, el plano
+  // del contenedor muestra huecos donde hay carga.
+  const { rows: data, complete } = await fetchAllByIds<Record<string, unknown>>(
+    consolidationIds,
+    (lote, d, h) =>
+      supabase
+        .from("consolidation_box_positions")
+        .select(
+          "consolidation_id, box_id, zx, zy, zz, seq, warehouse_boxes(code, markbox, client_name)",
+        )
+        .in("consolidation_id", lote)
+        .is("unstuffed_at", null)
+        .order("seq", { ascending: true })
+        .order("box_id", { ascending: true })
+        .range(d, h),
+  );
+  if (!complete) {
+    throw new Error(
+      "Las cajas estibadas superan el tope de lectura; el plano quedaría incompleto.",
+    );
+  }
 
   const out: Record<string, StuffedBox[]> = {};
   for (const raw of (data as Record<string, unknown>[] | null) ?? []) {
