@@ -22,12 +22,15 @@ import {
   type KommoContactPick,
 } from "@/lib/studio/kommo-convert";
 import {
+  buildNotePayload,
   buildOwnerPatchPayload,
   buildStagePatchPayload,
   buildTagsPatchPayload,
+  buildTaskPayload,
   enqueueKommoLeadOp,
   enqueueKommoMarkboxWriteback,
   normalizeStageMap,
+  type WritebackOp,
 } from "@/lib/studio/kommo-writeback";
 import {
   ESTIMATE_STAGE_KEYS,
@@ -411,6 +414,26 @@ export async function moveLeadStageAction(
   return { ok: true };
 }
 
+/**
+ * ¿Este lead existe y es de este tenant? RLS ya scopea la lectura, así que
+ * `maybeSingle` sobre `kommo_leads` responde las dos cosas de una.
+ *
+ * Existía sólo dentro de `moveLeadStageAction` (que además necesitaba el
+ * embudo); los otros dos verbos encolaban contra un id que podía no existir y
+ * la fila se quedaba dando vueltas hasta agotar los 5 intentos contra un 404.
+ */
+async function leadExiste(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  leadId: number,
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("kommo_leads")
+    .select("id")
+    .eq("id", leadId)
+    .maybeSingle<{ id: number }>();
+  return Boolean(data);
+}
+
 /** Reasigna el asesor responsable del lead. */
 export async function reassignLeadOwnerAction(
   leadId: number,
@@ -421,6 +444,7 @@ export async function reassignLeadOwnerAction(
   if ("error" in who) return who;
 
   if (!Number.isInteger(leadId) || leadId <= 0) return { error: "Lead inválido." };
+  if (!(await leadExiste(supabase, leadId))) return { error: "Ese lead no existe." };
   const payload = buildOwnerPatchPayload(responsibleUserId);
   if (!payload) return { error: "Asesor inválido." };
 
@@ -456,6 +480,7 @@ export async function setLeadTagsAction(
   if ("error" in who) return who;
 
   if (!Number.isInteger(leadId) || leadId <= 0) return { error: "Lead inválido." };
+  if (!(await leadExiste(supabase, leadId))) return { error: "Ese lead no existe." };
   const payload = buildTagsPatchPayload({
     add: Array.isArray(add) ? add : [],
     remove: Array.isArray(remove) ? remove : [],
@@ -473,3 +498,176 @@ export async function setLeadTagsAction(
   nudgeWriteback(who.tenantId);
   return { ok: true };
 }
+
+// ── Fase 5 · SDD-0256 — lo que se CREA en Kommo (POST) ──────────────────────
+//
+// Diferencia de fondo con los verbos de arriba: un PATCH repetido escribe el
+// mismo valor dos veces y no pasa nada; un POST repetido deja DOS notas. Por eso
+// estas dos acciones exigen `dedupeToken` —lo genera el drawer al abrirse— y por
+// eso el drenaje las manda a `error` al primer fallo en vez de reintentarlas
+// (migración 0377).
+
+/** El token del drawer tiene que ser un id de verdad, no cualquier string. */
+function tokenValido(t: string | null | undefined): string | null {
+  const s = String(t ?? "").trim();
+  // uuid v4 del `crypto.randomUUID()` del drawer. Un token corto o repetido
+  // colapsaría notas distintas de leads distintos: se rechaza en vez de
+  // aceptarlo y perder una nota.
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)
+    ? s
+    : null;
+}
+
+/** Deja una nota en el lead. Es lo que el asesor escribe después de llamar. */
+export async function addLeadNoteAction(
+  leadId: number,
+  texto: string,
+  dedupeToken: string,
+): Promise<VerbResult> {
+  const supabase = await createClient();
+  const who = await resolveCrmWriter(supabase);
+  if ("error" in who) return who;
+
+  if (!Number.isInteger(leadId) || leadId <= 0) return { error: "Lead inválido." };
+  if (!(await leadExiste(supabase, leadId))) return { error: "Ese lead no existe." };
+
+  const token = tokenValido(dedupeToken);
+  if (!token) return { error: "No se pudo identificar el envío. Cierra y vuelve a abrir." };
+
+  const payload = buildNotePayload(texto);
+  if (!payload) return { error: "La nota está vacía." };
+
+  const id = await enqueueKommoLeadOp(createAdminClient(), who.tenantId, {
+    leadId,
+    op: "add_note",
+    payload,
+    dedupeToken: token,
+  });
+  if (!id) return { error: "No se pudo encolar la nota." };
+
+  revalidatePath("/studio/crm");
+  nudgeWriteback(who.tenantId);
+  return { ok: true };
+}
+
+/**
+ * Crea una tarea sobre el lead — la que pone la tarjeta roja en Kommo al vencer.
+ *
+ * `fecha` viene del `<input type="date">` del drawer (YYYY-MM-DD). Se ancla a
+ * las 9:00 hora de Venezuela (UTC-4): una tarea "para el martes" que vence a
+ * medianoche UTC ya está roja el lunes por la tarde para el equipo.
+ */
+export async function addLeadTaskAction(
+  leadId: number,
+  texto: string,
+  fecha: string,
+  responsibleUserId: number | null,
+  dedupeToken: string,
+): Promise<VerbResult> {
+  const supabase = await createClient();
+  const who = await resolveCrmWriter(supabase);
+  if ("error" in who) return who;
+
+  if (!Number.isInteger(leadId) || leadId <= 0) return { error: "Lead inválido." };
+  if (!(await leadExiste(supabase, leadId))) return { error: "Ese lead no existe." };
+
+  const token = tokenValido(dedupeToken);
+  if (!token) return { error: "No se pudo identificar el envío. Cierra y vuelve a abrir." };
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(fecha ?? ""))) {
+    return { error: "Elige una fecha de vencimiento." };
+  }
+
+  // Si el asesor eligió responsable, tiene que existir en el espejo — mismo
+  // criterio que la reasignación.
+  if (responsibleUserId != null) {
+    const { data: user } = await supabase
+      .from("kommo_users")
+      .select("id")
+      .eq("id", responsibleUserId)
+      .maybeSingle<{ id: number }>();
+    if (!user) return { error: "Ese asesor no existe en el CRM." };
+  }
+
+  const payload = buildTaskPayload({
+    leadId,
+    texto,
+    completeTillIso: `${fecha}T09:00:00-04:00`,
+    responsibleUserId,
+  });
+  if (!payload) return { error: "Falta el texto de la tarea." };
+
+  const id = await enqueueKommoLeadOp(createAdminClient(), who.tenantId, {
+    leadId,
+    op: "add_task",
+    payload,
+    dedupeToken: token,
+  });
+  if (!id) return { error: "No se pudo encolar la tarea." };
+
+  revalidatePath("/studio/crm");
+  nudgeWriteback(who.tenantId);
+  return { ok: true };
+}
+
+/**
+ * Reintenta una orden que el chequeo optimista frenó (SDD-0256 · A1).
+ *
+ * No "desfrena" la fila vieja: encola una NUEVA con el mismo verbo y un snapshot
+ * fresco. La vieja queda como estaba, que es el registro de que hubo un
+ * conflicto y de que alguien decidió pisar igual — borrarlo sería perder la
+ * única evidencia de que el trabajo del asesor se sobrescribió a propósito.
+ *
+ * Sólo se puede reintentar lo que se frenó por conflicto (`skip_code='stale'`).
+ * Una fila salteada por dry-run no se reintenta: el gate está apagado y
+ * reintentarla la saltearía igual.
+ */
+export async function retryStaleWritebackAction(outboxId: string): Promise<VerbResult> {
+  const supabase = await createClient();
+  const who = await resolveCrmWriter(supabase);
+  if ("error" in who) return who;
+
+  if (!tokenValido(outboxId)) return { error: "Orden inválida." };
+
+  // RLS scopea la outbox al tenant del usuario (0136).
+  const { data: fila } = await supabase
+    .from("kommo_writeback_outbox")
+    .select("id, kommo_lead_id, op, payload, status, skip_code")
+    .eq("id", outboxId)
+    .maybeSingle<{
+      id: string;
+      kommo_lead_id: number | null;
+      op: string;
+      payload: Record<string, unknown>;
+      status: string;
+      skip_code: string | null;
+    }>();
+
+  if (!fila) return { error: "Esa orden ya no existe." };
+  if (fila.status !== "skipped" || fila.skip_code !== "stale") {
+    return { error: "Esa orden no quedó frenada por un cambio en el CRM." };
+  }
+  if (fila.kommo_lead_id == null) return { error: "Esa orden no apunta a ningún lead." };
+  if (!RETRY_OPS.includes(fila.op)) {
+    return { error: "Ese tipo de orden no se reintenta desde acá." };
+  }
+
+  const id = await enqueueKommoLeadOp(createAdminClient(), who.tenantId, {
+    leadId: fila.kommo_lead_id,
+    op: fila.op as WritebackOp,
+    payload: fila.payload,
+  });
+  if (!id) return { error: "No se pudo reencolar la orden." };
+
+  revalidatePath("/studio/crm");
+  nudgeWriteback(who.tenantId);
+  return { ok: true };
+}
+
+/**
+ * Qué se puede reintentar desde la pantalla. Lista blanca a propósito: sólo los
+ * verbos que la propia pantalla dispara. Sin esto, el botón sería un camino para
+ * reencolar cualquier op que alguna vez haya quedado `stale` — incluidas las que
+ * escribe el motor de estimados, que nadie decidió reintentar a mano.
+ */
+const RETRY_OPS: readonly string[] = ["patch_stage", "patch_owner", "patch_tags"];

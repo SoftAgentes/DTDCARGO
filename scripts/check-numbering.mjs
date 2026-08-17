@@ -95,19 +95,33 @@ const CHOQUES_HISTORICOS = {
   // (kommo_contact_link 20260803202130 · phone_match_key_relleno 20260804011156).
   // Ambas en el ledger → ninguna se renumera.
   "0342": ["0342_kommo_contact_link", "0342_phone_match_key_relleno"],
-  // 2026-08-14: NUEVE MINUTOS de diferencia — el margen más corto hasta ahora.
+  // 2026-08-14 · el choque 0373 NO está acá, y el motivo importa.
+  //
   //   20260814213028  0373_lote_legado_con_nombre            (SDD-0258)
   //   20260814213957  0373_kommo_writeback_chequeo_optimista (SDD-0256)
-  // Las dos aplicadas → ninguna se renumera.
   //
-  // Lo que enseña este caso: la ventana del CRM tenía el gate EN VERDE, porque
-  // en su árbol existía una sola 0373 — la otra estaba en `main` y ella todavía
-  // no había mergeado. El choque sólo se hace visible al mergear, que es
-  // justamente cuando ya es tarde para renumerar si ambas se aplicaron. Con
-  // nueve minutos entre una y otra, ningún `sdd:next` lo habría evitado:
-  // el hueco no está en pedir el número, está en aplicar a prod antes de
-  // pushear el archivo.
-  "0373": ["0373_kommo_writeback_chequeo_optimista", "0373_lote_legado_con_nombre"],
+  // NUEVE MINUTOS de diferencia — el margen más corto hasta ahora. Se declaró
+  // acá como exención (commit `e16c80b5`) y la entrada se retiró después,
+  // porque el desenlace fue otro: la del CRM se **renumeró a 0376** y se
+  // corrigió el `name` de esa fila del ledger, con OK del founder. Verificado:
+  // hoy sólo existe `0373_lote_legado_con_nombre`, en disco y en prod. Dejar la
+  // entrada declaraba un choque inexistente y —peor— habría enmascarado un
+  // 0373 nuevo de verdad, porque el set nunca volvería a coincidir.
+  //
+  // ⭐ Lo que enseña el caso, que sigue valiendo: la ventana del CRM tenía el
+  // gate EN VERDE porque en su árbol existía una sola 0373 — la otra vivía en
+  // `main` y todavía no había mergeado. El choque sólo se hace visible al
+  // mergear, y con nueve minutos entre una y otra ningún `sdd:next` lo habría
+  // evitado: el hueco no está en pedir el número, está en **aplicar a prod
+  // antes de pushear el archivo**.
+  //
+  // ⭐ Y la salida que este caso estrenó: cuando las dos están aplicadas, la
+  // exención NO es el único desenlace. Si la que choca arrastra una cadena de
+  // dependencias (acá 0377 usa `skip_code`, que crea la 0376), se puede
+  // renumerar la que no está en `main` **y corregir el `name` en el ledger** —
+  // que es justamente el "mapa de alias" cuya ausencia motivaba la regla de no
+  // tocar una aplicada. Requiere OK del founder: escribe en
+  // `supabase_migrations`. El `version` no se toca nunca.
 };
 
 /** Prefijo numérico de 4 dígitos, o null si el nombre no arranca con uno. */

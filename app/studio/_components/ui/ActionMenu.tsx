@@ -309,8 +309,14 @@ function OpcionDelMenu({
         background: "transparent",
         textAlign: "left",
         font: "600 12.5px/1.2 var(--f-sans)",
+        // `--ink-soft` y NO `--ink-mute` para el deshabilitado: medido el
+        // 2026-08-14 en el navegador, `--ink-mute` da 2,78:1 en claro y 3,40:1
+        // en oscuro — reprueba AA. `--ink-soft` mide 4,68:1 / 6,00:1 y sigue
+        // leyéndose claramente más apagado que el `--ink` de una opción activa
+        // (16,49:1), así que conserva la señal de "no disponible" sin volverse
+        // ilegible. BTN-01 §6 exige que el motivo se pueda leer.
         color: item.disabled
-          ? "var(--ink-mute)"
+          ? "var(--ink-soft)"
           : destructiva
             ? "var(--danger)"
             : "var(--ink)",
@@ -327,7 +333,7 @@ function OpcionDelMenu({
         <span
           style={{
             font: "500 11px/1.3 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
           }}
         >
           {item.disabledReason}

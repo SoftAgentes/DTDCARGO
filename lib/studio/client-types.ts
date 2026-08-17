@@ -5,6 +5,23 @@
 
 export type ClientTier = "regular" | "vip" | "premium";
 
+/**
+ * SDD-0265 · tamaño del bloque del listado: lo que trae la primera carga y lo
+ * que suma cada "Ver más".
+ *
+ * Vive acá y no en `client-queries` a propósito: el componente client lo
+ * necesita para armar el "Ver más", y no puede importar el módulo de queries
+ * sin cruzar la frontera server→client (el gate tiene un paso que lo vigila).
+ */
+export const CLIENTS_PAGE = 200;
+
+/**
+ * Techo duro del listado. PostgREST corta en su `max-rows` (1000 en este
+ * proyecto) **sin avisar**, así que pedir más sería mostrar otro número igual de
+ * falso. Al llegar acá la pantalla manda a buscar en vez de prometer más filas.
+ */
+export const CLIENTS_MAX = 1000;
+
 /** Origen del alta del cliente (SDD-0046). */
 export type RegistrationChannel = "admin" | "portal";
 /** Tipo de documento del cliente (SDD-0046): cédula vs RIF. */

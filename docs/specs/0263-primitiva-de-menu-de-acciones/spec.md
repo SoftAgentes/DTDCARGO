@@ -144,7 +144,55 @@ type ActionMenuProps = {
 |---|---|---|
 | Componente | `app/studio/_components/ui/ActionMenu.tsx` | ✅ hecho |
 | Pruebas de teclado y foco | `app/studio/_components/ui/ActionMenu.test.tsx` | ✅ 17 pruebas, 8 mutaciones muertas |
-| Entrada del registro CMP-01 | `docs/governance/components/action-menu.json` | ⏸ **bloqueada** — ver abajo |
+| Entrada del registro CMP-01 | `docs/governance/components/action-menu.json` | ✅ **registrado `proposed`** — se midió el contraste |
+
+### ✅ Desbloqueado: se midió el contraste, y encontró un defecto
+
+El bloqueo de abajo se resolvió **midiendo**, no extendiendo el schema. Banco de
+medición en el navegador el 2026-08-14, con el wrapper real `.studio-sys` y los
+dos temas del Studio.
+
+**Y la medición encontró un defecto del propio componente.** La primera versión
+pintaba la opción deshabilitada y su motivo en `--ink-mute`:
+
+| | claro | oscuro | umbral |
+|---|---|---|---|
+| `--ink-mute` (versión inicial) | **2,78:1** | **3,40:1** | 4,5:1 ❌ |
+| `--ink-soft` (corregido) | **5,33:1** | **6,86:1** | 4,5:1 ✅ |
+
+Eso importaba más de lo que parece: el texto que fallaba era el
+`disabledReason`, o sea **justo la explicación que BTN-01 §6 exige que se pueda
+leer**. Un motivo ilegible no cumple la regla aunque el atributo esté.
+
+`--ink-soft` conserva la señal de "no disponible" —la opción activa va en `--ink`
+a 16,49:1, así que la diferencia se sigue viendo— sin caer bajo AA.
+
+#### Medición final, los dos temas
+
+| Elemento | claro | oscuro | umbral | |
+|---|---|---|---|---|
+| Opción normal | 16,49:1 | 13,08:1 | 4,5:1 | ✅ |
+| Opción deshabilitada | 5,33:1 | 6,86:1 | 4,5:1 | ✅ |
+| Motivo del deshabilitado (11 px) | 5,33:1 | 6,86:1 | 4,5:1 | ✅ |
+| Opción destructiva | 6,58:1 | 5,07:1 | 4,5:1 | ✅ |
+| Trigger sobre card | 4,68:1 | 6,00:1 | 4,5:1 | ✅ |
+
+**Todo el texto pasa AA en los dos temas.**
+
+#### ⚠️ Lo único que no se reduce a un número: el borde del panel
+
+El panel usa `--bg-surface`, **el mismo relleno que la card sobre la que flota**
+(#FFFFFF sobre #FFFFFF en claro; #16264A sobre #16264A en oscuro). Su separación
+la dan el borde (1,25:1) y `--shadow-pop`.
+
+Una sombra **no se mide como razón de contraste**, así que esto queda como
+**no verificable por contraste**, no como aprobado ni reprobado. No es una
+regresión que introduzca este componente: los cinco menús a mano usan los mismos
+tokens. Si se decide que el panel necesita un borde a 3:1, es un cambio de
+token y por tanto decisión del founder.
+
+<details>
+<summary>El bloqueo original, conservado como registro del problema del schema</summary>
 
 ### 🔴 El registro CMP-01 no puede representar un `proposed` a medio verificar
 
@@ -186,6 +234,13 @@ completa, cuando `proposed` existe justamente para lo contrario.
 
 Mientras tanto: **el componente existe y está probado, pero no está en el
 registro**, y eso queda dicho acá en vez de resolverse con un valor falso.
+
+**Se resolvió midiendo** (ver arriba). Pero el hueco del schema **sigue ahí**
+para el próximo componente `proposed` que no pueda medir todo: `evidenceState`
+sigue sin un valor para "aplica, aún no verificado". Queda registrado como deuda
+de CMP-01, no cerrado.
+
+</details>
 
 ### Fuera de alcance, a propósito
 

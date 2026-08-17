@@ -23,6 +23,8 @@
 
 import Link from "next/link";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import type { OwnerSlice } from "@/lib/studio/kommo-analytics";
+import type { StaleOp } from "@/lib/studio/kommo-writeback";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import {
   stageTargets,
@@ -30,6 +32,7 @@ import {
   type KommoPipelineRow,
   type KommoStatusRow,
 } from "@/lib/studio/kommo-types";
+import { LeadActionsButton } from "./LeadActionsButton";
 import { StageControl } from "./StageControl";
 import { fmtUsd } from "@/lib/money";
 
@@ -67,6 +70,8 @@ export function KommoBoardView({
   valueByLead,
   ownerName,
   pendingOpsByLead,
+  staleOpsByLead,
+  asesores,
   canEdit,
   boardCap,
 }: {
@@ -84,6 +89,10 @@ export function KommoBoardView({
   ownerName: Record<number, string>;
   /** leadId → ops encoladas que todavía no llegaron a Kommo ("en camino"). */
   pendingOpsByLead: Record<number, string[]>;
+  /** leadId → órdenes que el chequeo optimista frenó (SDD-0256 · A1). */
+  staleOpsByLead: Record<number, StaleOp[]>;
+  /** Asesores del espejo — el drawer los ofrece para reasignar. */
+  asesores: OwnerSlice[];
   /** ¿Puede mover, o sólo mirar? Deriva de moduleEditDenial en la página. */
   canEdit: boolean;
   /** Tope de leads traídos por embudo (para el aviso de recorte). */
@@ -409,22 +418,45 @@ export function KommoBoardView({
                           {/* Mover de etapa. Siempre visible, no sólo al pasar
                               el mouse: si el verbo se esconde, el asesor
                               concluye que el tablero no hace nada. */}
-                          {canEdit && colTargets.length > 0 && (
+                          {canEdit && (
                             <div
                               style={{
                                 marginTop: 8,
                                 paddingTop: 8,
                                 borderTop: "1px solid var(--border)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: 8,
+                                flexWrap: "wrap",
                               }}
                             >
-                              <StageControl
-                                leadId={l.id}
-                                stages={colTargets}
-                                variant="card"
+                              {colTargets.length > 0 && (
+                                <StageControl
+                                  leadId={l.id}
+                                  stages={colTargets}
+                                  variant="card"
+                                  canEdit={canEdit}
+                                  enCamino={(pendingOpsByLead[l.id] ?? []).includes(
+                                    "patch_stage",
+                                  )}
+                                />
+                              )}
+                              {/* El resto de los verbos, en la MISMA superficie.
+                                  Que la etapa se mueva desde la tarjeta y el
+                                  asesor haya que cambiarlo en otra pantalla es
+                                  el mismo error de media milla, una capa más
+                                  arriba. */}
+                              <LeadActionsButton
+                                lead={{
+                                  id: l.id,
+                                  name: l.name || "(sin nombre)",
+                                  ownerId: l.responsible_user_id,
+                                }}
+                                asesores={asesores}
+                                staleOps={staleOpsByLead[l.id] ?? []}
                                 canEdit={canEdit}
-                                enCamino={(pendingOpsByLead[l.id] ?? []).includes(
-                                  "patch_stage",
-                                )}
+                                variant="card"
                               />
                             </div>
                           )}
