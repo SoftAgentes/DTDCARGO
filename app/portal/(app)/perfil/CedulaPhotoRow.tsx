@@ -111,7 +111,14 @@ export function CedulaPhotoRow({
           contenido (WCAG 4.1.3 · mismo patrón que CopyCodeButton). */}
       <p
         role="status"
-        className={`text-[12px] leading-[1.4] ${state.error ? "mt-1.5 text-wine" : state.ok && !done ? "mt-1.5" : ""}`}
+        // SDD-0261 · `text-status-danger` y no `text-wine` (3,00:1 sobre card en
+        // oscuro · BTN-01 §2: el vino no sustituye danger). Éste NO usa
+        // `<PortalFieldError>` a propósito: partirlo en un nodo condicional
+        // reintroduciría justo el bug que el comentario de arriba evita —la
+        // región debe nacer montada—. Queda sin el ícono que pide ERR-01, con el
+        // motivo declarado, en vez de romper una decisión de accesibilidad ya
+        // tomada. Su ícono es el slice que sigue.
+        className={`text-[12px] leading-[1.4] ${state.error ? "mt-1.5 text-status-danger" : state.ok && !done ? "mt-1.5" : ""}`}
         style={
           !state.error && state.ok && !done
             ? { color: "var(--color-status-success)" }

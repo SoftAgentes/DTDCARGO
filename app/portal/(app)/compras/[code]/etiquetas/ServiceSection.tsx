@@ -21,6 +21,7 @@ import {
   BeforeWarehouseNotice,
   PrealertaServiceVideo,
 } from "../../../../_components/PrealertaAddons";
+import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 
 const initial: ServiceRequestActionState = {};
 
@@ -247,7 +248,7 @@ function AddServiceForm({
       </label>
 
       {state.error && (
-        <p className="text-[12.5px] text-wine">{state.error}</p>
+        <PortalFieldError nivel="formulario">{state.error}</PortalFieldError>
       )}
 
       <div className="flex gap-2.5">
