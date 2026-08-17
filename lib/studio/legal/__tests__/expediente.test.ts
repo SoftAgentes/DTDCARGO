@@ -199,6 +199,9 @@ type Rows = Record<string, Record<string, unknown>[]>;
  *  - .maybeSingle() → primera fila o null
  *  - .storage.from(bucket).createSignedUrls(paths, ttl) → 1 URL fake por path
  */
+/** Tope por request del doble: el `db-max-rows` de Supabase. */
+const SERVER_CAP = 1000;
+
 function stub(rowsByTable: Rows, signError = false): SupabaseClient {
   return {
     from(table: string) {
@@ -226,6 +229,16 @@ function stub(rowsByTable: Rows, signError = false): SupabaseClient {
         },
         maybeSingle: () =>
           Promise.resolve({ data: apply()[0] ?? null, error: null }),
+        // Terminal paginado: corta en SERVER_CAP por request igual que
+        // PostgREST. Un doble más generoso que el servidor deja pasar código
+        // que en producción trunca — el expediente saldría con evidencia de
+        // menos y el test en verde.
+        range: (desde: number, hasta: number) => {
+          const filas = apply();
+          const pedido = hasta - desde + 1;
+          const trozo = filas.slice(desde, desde + Math.min(pedido, SERVER_CAP));
+          return Promise.resolve({ data: trozo, error: null });
+        },
         then: (resolve: (v: { data: unknown; error: null }) => unknown) =>
           Promise.resolve({ data: apply(), error: null }).then(resolve),
       };

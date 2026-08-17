@@ -30,6 +30,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllByIds, fetchAllPaged } from "@/lib/db/paginate";
 import {
   listAcceptanceEvidenceByQuote,
   type AcceptanceEvidenceExport,
@@ -198,15 +199,20 @@ async function getPackingSection(
     // tabla 0118 no está aplicada en un env).
     let docRows: Record<string, unknown>[] = [];
     try {
-      const { data: docs } = await supabase
-        .from("prealerta_documents")
-        .select("id, prealerta_id, doc_type, storage_path, file_name")
-        .eq("tenant_id", tenantId)
-        .in("prealerta_id", prealertaIds)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: true })
-        .limit(2000);
-      docRows = (docs as Record<string, unknown>[] | null) ?? [];
+      const { rows: docs } = await fetchAllByIds<Record<string, unknown>>(
+        prealertaIds,
+        (lote, d, h) =>
+          supabase
+            .from("prealerta_documents")
+            .select("id, prealerta_id, doc_type, storage_path, file_name")
+            .eq("tenant_id", tenantId)
+            .in("prealerta_id", lote)
+            .is("deleted_at", null)
+            .order("created_at", { ascending: true })
+            .order("id", { ascending: true })
+            .range(d, h),
+      );
+      docRows = docs;
     } catch {
       docRows = [];
     }
@@ -293,14 +299,19 @@ async function buildOriginSection(
     // Fotos de TODAS las recepciones (fail-soft si la tabla no está).
     let photoRows: Record<string, unknown>[] = [];
     try {
-      const { data } = await supabase
-        .from("warehouse_receipt_photos")
-        .select("id, receipt_id, storage_path, position")
-        .eq("tenant_id", tenantId)
-        .in("receipt_id", receiptIds)
-        .order("position", { ascending: true })
-        .limit(2000);
-      photoRows = (data as Record<string, unknown>[] | null) ?? [];
+      const { rows } = await fetchAllByIds<Record<string, unknown>>(
+        receiptIds,
+        (lote, d, h) =>
+          supabase
+            .from("warehouse_receipt_photos")
+            .select("id, receipt_id, storage_path, position")
+            .eq("tenant_id", tenantId)
+            .in("receipt_id", lote)
+            .order("position", { ascending: true })
+            .order("id", { ascending: true })
+            .range(d, h),
+      );
+      photoRows = rows;
     } catch {
       photoRows = [];
     }
@@ -355,19 +366,20 @@ async function getTimelineSection(
   shipmentId: string,
 ): Promise<DefenseSection<DefenseEvent>> {
   try {
-    const { data, error } = await supabase
-      .from("shipment_events")
-      .select("id, status, note, occurred_at")
-      .eq("tenant_id", tenantId)
-      .eq("shipment_id", shipmentId)
-      .is("deleted_at", null)
-      .order("occurred_at", { ascending: true })
-      .limit(2000);
+    const { rows: data } = await fetchAllPaged<Record<string, unknown>>(
+      (d, h) =>
+        supabase
+          .from("shipment_events")
+          .select("id, status, note, occurred_at")
+          .eq("tenant_id", tenantId)
+          .eq("shipment_id", shipmentId)
+          .is("deleted_at", null)
+          .order("occurred_at", { ascending: true })
+          .order("id", { ascending: true })
+          .range(d, h),
+    );
 
-    if (error) return section<DefenseEvent>([]);
-    const items: DefenseEvent[] = (
-      (data as Record<string, unknown>[] | null) ?? []
-    ).map((e) => ({
+    const items: DefenseEvent[] = data.map((e) => ({
       id: String(e.id),
       status: String(e.status ?? ""),
       note: (e.note as string | null) ?? null,
@@ -403,16 +415,21 @@ async function getPodSection(
 
   try {
     // Salto 1: paquetes de despacho que referencian estas recepciones CN.
-    const { data: pkgs } = await supabase
-      .from("dispatch_order_packages")
-      .select("od_id, package_id")
-      .eq("package_kind", "warehouse_receipt_cn")
-      .in("package_id", receiptIds)
-      .limit(2000);
+    const { rows: pkgs } = await fetchAllByIds<Record<string, unknown>>(
+      receiptIds,
+      (lote, d, h) =>
+        supabase
+          .from("dispatch_order_packages")
+          .select("od_id, package_id")
+          .eq("package_kind", "warehouse_receipt_cn")
+          .in("package_id", lote)
+          .order("package_id", { ascending: true })
+          .range(d, h),
+    );
 
     const odIds = [
       ...new Set(
-        ((pkgs as Record<string, unknown>[] | null) ?? [])
+        pkgs
           .map((p) => String(p.od_id ?? ""))
           .filter(Boolean),
       ),
@@ -422,14 +439,19 @@ async function getPodSection(
     // Salto 2: order_code de cada OD (para etiquetar el POD). Tenant explícito.
     let orderCodeById = new Map<string, string>();
     try {
-      const { data: ods } = await supabase
-        .from("dispatch_orders")
-        .select("id, order_code")
-        .eq("tenant_id", tenantId)
-        .in("id", odIds)
-        .limit(2000);
+      const { rows: ods } = await fetchAllByIds<Record<string, unknown>>(
+        odIds,
+        (lote, d, h) =>
+          supabase
+            .from("dispatch_orders")
+            .select("id, order_code")
+            .eq("tenant_id", tenantId)
+            .in("id", lote)
+            .order("id", { ascending: true })
+            .range(d, h),
+      );
       orderCodeById = new Map(
-        ((ods as Record<string, unknown>[] | null) ?? []).map((o) => [
+        ods.map((o) => [
           String(o.id),
           String(o.order_code ?? ""),
         ]),

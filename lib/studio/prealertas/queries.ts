@@ -11,6 +11,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import {
   type Prealerta,
   type PrealertaDocType,
@@ -104,17 +105,24 @@ export async function listSuppliers(
   supabase: SupabaseClient,
   opts: { markbox?: string } = {},
 ): Promise<Supplier[]> {
-  let query = supabase
-    .from("suppliers_cn")
-    .select(SUPPLIER_COLUMNS)
-    .is("deleted_at", null)
-    .order("supplier_seq", { ascending: true })
-    .limit(2000);
-  if (opts.markbox) query = query.eq("client_markbox", opts.markbox);
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return ((data as Record<string, unknown>[] | null) ?? []).map(coerceSupplier);
+  // Paginado: los proveedores se acumulan por cliente y esta lista alimenta el
+  // selector de la prealerta — uno que no aparece no se puede elegir.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) => {
+      let query = supabase
+        .from("suppliers_cn")
+        .select(SUPPLIER_COLUMNS)
+        .is("deleted_at", null)
+        .order("supplier_seq", { ascending: true })
+        .order("id", { ascending: true });
+      if (opts.markbox) query = query.eq("client_markbox", opts.markbox);
+      return query.range(d, h);
+    },
+  );
+  if (!complete) {
+    throw new Error("Los proveedores superan el tope de lectura; filtra por cliente.");
+  }
+  return data.map(coerceSupplier);
 }
 
 // ── Prealertas ─────────────────────────────────────────────────
@@ -133,15 +141,18 @@ export async function listPrealertas(
     .select(PREALERTA_COLUMNS)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
-    .limit(2000);
+    .order("id", { ascending: true });
   if (opts.markbox) query = query.eq("client_markbox", opts.markbox);
   if (opts.status) query = query.eq("status", opts.status);
 
-  const { data, error } = await query;
-  if (error) throw error;
-  return ((data as Record<string, unknown>[] | null) ?? []).map(
-    coercePrealerta,
+  // Paginado: las prealertas se acumulan con los meses.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) => query.range(d, h),
   );
+  if (!complete) {
+    throw new Error("Las prealertas superan el tope de lectura; filtra por estado o cliente.");
+  }
+  return data.map(coercePrealerta);
 }
 
 /**
@@ -153,13 +164,24 @@ export async function listPrealertas(
 export async function cbmByPrealerta(
   supabase: SupabaseClient,
 ): Promise<Record<string, number>> {
-  const { data, error } = await supabase
-    .from("warehouse_receipts_cn")
-    .select("prealerta_id, total_cbm")
-    .not("prealerta_id", "is", null)
-    .is("deleted_at", null)
-    .limit(4000);
-  if (error) throw error;
+  // Paginado: acá se SUMA el CBM por prealerta. Con `.limit(4000)` PostgREST
+  // devolvía 1.000 y la prealerta mostraba menos volumen del recibido — con eso
+  // se factura de menos.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) =>
+      supabase
+        .from("warehouse_receipts_cn")
+        .select("id, prealerta_id, total_cbm")
+        .not("prealerta_id", "is", null)
+        .is("deleted_at", null)
+        .order("id", { ascending: true })
+        .range(d, h),
+  );
+  if (!complete) {
+    throw new Error(
+      "Las recepciones CN superan el tope de lectura; el CBM por prealerta no se puede totalizar.",
+    );
+  }
   const map: Record<string, number> = {};
   for (const r of (data ?? []) as {
     prealerta_id: string | null;
@@ -416,14 +438,18 @@ export async function prealertaStats(
   };
 
   try {
-    const { data, error } = await supabase
-      .from("prealertas")
-      .select("status")
-      .is("deleted_at", null)
-      .limit(20000);
-    if (error) throw error;
-
-    const rows = (data as { status: string }[] | null) ?? [];
+    // Paginado: esto CUENTA prealertas por estado. Truncar no muestra menos
+    // filas: da un conteo equivocado en el tablero.
+    const { rows, complete } = await fetchAllPaged<{ id: string; status: string }>(
+      (d, h) =>
+        supabase
+          .from("prealertas")
+          .select("id, status")
+          .is("deleted_at", null)
+          .order("id", { ascending: true })
+          .range(d, h),
+    );
+    if (!complete) throw new Error("Prealertas: lectura incompleta para el conteo.");
     const byStatus = { ...empty.byStatus };
     for (const r of rows) {
       if (r.status in byStatus) {
@@ -547,14 +573,22 @@ export async function listDisabledSharePrealertaIds(
   supabase: SupabaseClient,
 ): Promise<string[]> {
   try {
-    const { data, error } = await supabase
-      .from("prealertas")
-      .select("id")
-      .not("share_disabled_at", "is", null)
-      .is("deleted_at", null)
-      .limit(2000);
-    if (error) throw error;
-    return ((data as { id: string }[] | null) ?? []).map((r) => String(r.id));
+    // Paginado: es la lista de prealertas con el enlace REVOCADO. Si se trunca,
+    // un enlace revocado se trata como vigente — se muestra data que se quiso
+    // cerrar. Otra vez: truncar acá muestra de MÁS.
+    const { rows, complete } = await fetchAllPaged<{ id: string }>((d, h) =>
+      supabase
+        .from("prealertas")
+        .select("id")
+        .not("share_disabled_at", "is", null)
+        .is("deleted_at", null)
+        .order("id", { ascending: true })
+        .range(d, h),
+    );
+    if (!complete) {
+      throw new Error("No se pudo leer completa la lista de enlaces revocados.");
+    }
+    return rows.map((r) => String(r.id));
   } catch {
     return [];
   }
