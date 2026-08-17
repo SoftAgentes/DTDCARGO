@@ -265,12 +265,29 @@ function cmdFinish({ slug, deleteBranch, dryRun }) {
     // desde otro worktree. Verificamos explícitamente que la rama ya esté en `main`.
     if (!refExists(branch)) {
       warn(`la rama ${branch} no existe (¿ya borrada?).`);
-    } else if (git(["merge-base", "--is-ancestor", branch, "main"]).code === 0) {
-      const r = git(["branch", "-D", branch]); // -D seguro: ya verificamos que está en main.
-      if (r.code === 0) ok(`rama ${branch} borrada (mergeada a main)`);
-      else warn(`no pude borrar ${branch}: ${r.err.split("\n").pop()}`);
     } else {
-      warn(`rama ${branch} NO borrada: tiene commits que main no tiene. Mergeala a main primero.`);
+      // Se compara contra origin/main, NO contra `main` local: un `main` local
+      // atrasado hace que la rama parezca mergeada y el borrado se lleve
+      // trabajo que nunca se publico. Asi se perdio el codigo de SDD-0091.
+      const base =
+        git(["rev-parse", "--verify", "origin/main"]).code === 0
+          ? "origin/main"
+          : "main";
+      if (base === "main") {
+        warn(
+          "sin origin/main (sin remoto o clone shallow) — se compara contra `main` local, que puede estar atrasado",
+        );
+      }
+      if (git(["merge-base", "--is-ancestor", branch, base]).code === 0) {
+        const r = git(["branch", "-D", branch]);
+        if (r.code === 0) ok(`rama ${branch} borrada (ya esta en ${base})`);
+        else warn(`no pude borrar ${branch}`);
+      } else {
+        const n = (git(["rev-list", "--count", `${base}..${branch}`]).out || "").trim();
+        warn(
+          `rama ${branch} NO borrada: tiene ${n || "algunos"} commit(s) que ${base} no tiene. Publicala primero.`,
+        );
+      }
     }
   } else {
     info(`  rama ${branch} conservada (no se pierde el trabajo). Borrala con --delete-branch tras mergear.`);

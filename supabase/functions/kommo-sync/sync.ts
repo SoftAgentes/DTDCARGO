@@ -360,14 +360,23 @@ export async function syncAll(
   // 3) Contactos
   results.push(
     await logged(supabase, conn, "contacts", async () => {
-      const items = await paginateTwoPass<KommoContact>(
+      const { items, truncated } = await paginateTwoPass<KommoContact>(
         baseUrl,
         token,
         "contacts",
       );
+      // Una lectura truncada NO puede pasar por completa: el sync poda el
+      // espejo contra lo que trajo, y podar contra una lista parcial borra
+      // contactos que existen. Antes esto cortaba en silencio.
+      if (truncated) {
+        console.warn(
+          "[kommo-sync] contacts: se alcanzo el tope de paginas — lectura PARCIAL",
+        );
+      }
       const rows = items.map((c) => mapContactRow(c, t));
       return {
         fetched: items.length,
+        truncated,
         upserted: await upsertRows(supabase, "kommo_contacts", rows),
       };
     }),
@@ -381,7 +390,17 @@ export async function syncAll(
   let leadLinkRows: { lead_id: number; updated_at: string | null; links: unknown }[] = [];
   results.push(
     await logged(supabase, conn, "leads", async () => {
-      const items = await paginateTwoPass<KommoLead>(baseUrl, token, "leads", "contacts");
+      const { items, truncated } = await paginateTwoPass<KommoLead>(
+        baseUrl,
+        token,
+        "leads",
+        "contacts",
+      );
+      if (truncated) {
+        console.warn(
+          "[kommo-sync] leads: se alcanzo el tope de paginas — lectura PARCIAL",
+        );
+      }
       const rows = items.map((l) => mapLeadRow(l, t));
       const upserted = await upsertRows(supabase, "kommo_leads", rows);
       // Se arma acá pero se escribe en su propia entidad: el espejo de leads no
@@ -391,7 +410,7 @@ export async function syncAll(
         updated_at: epochToIso(l.updated_at),
         links: mapLeadContactLinks(l as { _embedded?: { contacts?: { id: number }[] } }),
       }));
-      return { fetched: items.length, upserted };
+      return { fetched: items.length, truncated, upserted };
     }),
   );
 

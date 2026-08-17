@@ -30,6 +30,19 @@ try {
 } catch {
   process.exit(0); // sin git o error → fail-open
 }
+// 2b. Trabajo COMMITEADO que nunca se publicó. Va antes del corto-circuito
+//     porque es justo el estado en el que no hay cambios sin commitear: todo
+//     prolijo, todo verde, y la rama nunca pusheada. Así se perdió SDD-0091.
+//     Es un AVISO en stderr, no un bloqueo: hay ramas legítimamente a medias.
+try {
+  const u = spawnSync(process.execPath, ["scripts/check-unpublished.mjs"], {
+    encoding: "utf8",
+  });
+  if ((u.stdout || "").includes("[AVISO]")) process.stderr.write(u.stdout);
+} catch {
+  /* el aviso nunca traba el cierre */
+}
+
 if (!changed.trim()) process.exit(0); // no tocaste código → cierre instantáneo
 
 // 3. Tocaste código → corre el gate.

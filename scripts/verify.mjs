@@ -166,15 +166,52 @@ function pidAlive(pid) {
 // DIRECTORIO en `.next/dev/lock` con pid + puerto + appUrl. Como el lock es
 // por-dir, ese server sirve EXACTAMENTE el código de este worktree → se puede
 // reusar sin riesgo (nunca es el de otra ventana, que vive en otro dir/lock).
+/**
+ * El `next dev` de ESTE worktree, si hay uno vivo — con la hora en que arrancó.
+ *
+ * La hora NO es adorno. El 2026-08-14 un dev server huérfano —quedó colgado al
+ * matar un gate a mitad— hizo que el e2e midiera un ÁRBOL VIEJO: los specs de
+ * la calculadora fallaban contra código que ya no existía, y los rojos parecían
+ * una regresión. El gate reusa el server (para no chocar con el lock por-dir de
+ * Next) y no decía cuál, así que no había forma de sospecharlo.
+ *
+ * `startedAt` sale del mtime del propio lock, que Next reescribe al arrancar.
+ */
 function runningDevServer() {
   try {
-    const raw = fs.readFileSync(path.join(process.cwd(), ".next", "dev", "lock"), "utf8");
+    const lockPath = path.join(process.cwd(), ".next", "dev", "lock");
+    const raw = fs.readFileSync(lockPath, "utf8");
     const lock = JSON.parse(raw);
     if (!lock?.port || !lock?.pid || !pidAlive(lock.pid)) return null;
-    return { pid: lock.pid, appUrl: lock.appUrl ?? `http://localhost:${lock.port}` };
+    let startedAt = null;
+    try {
+      startedAt = fs.statSync(lockPath).mtime;
+    } catch {}
+    return {
+      pid: lock.pid,
+      port: lock.port,
+      startedAt,
+      appUrl: lock.appUrl ?? `http://localhost:${lock.port}`,
+    };
   } catch {
     return null;
   }
+}
+
+/**
+ * ¿El dev server arrancó ANTES que el commit que estamos probando? Si sí, muy
+ * probablemente está sirviendo código viejo y el e2e no mide lo que dice medir.
+ * Devuelve el aviso listo para imprimir, o `null` si no hay nada que decir.
+ */
+function devServerDesfasado(startedAt) {
+  if (!startedAt) return null;
+  const r = spawnSync("git", ["log", "-1", "--format=%cI"], { encoding: "utf8" });
+  if (r.status !== 0) return null;
+  const commitAt = new Date(String(r.stdout).trim());
+  if (Number.isNaN(commitAt.getTime())) return null;
+  if (startedAt >= commitAt) return null;
+  const mins = Math.round((commitAt - startedAt) / 60000);
+  return `el dev server arrancó ${mins} min ANTES del commit bajo prueba — puede estar sirviendo código viejo`;
 }
 
 // Preflight del paso e2e: decide si correrlo, omitirlo o reusar un server.
@@ -191,11 +228,20 @@ function e2ePreflight() {
   // webServer de Playwright): evita el choque del lock por-dir al intentar
   // levantar un segundo `next dev` en la misma carpeta.
   const running = runningDevServer();
-  if (running)
+  if (running) {
+    const hora = running.startedAt
+      ? running.startedAt.toLocaleString("es-VE")
+      : "hora desconocida";
+    const desfase = devServerDesfasado(running.startedAt);
     return {
       env: { BASE_URL: running.appUrl },
-      note: `reusando el dev server del worktree en ${running.appUrl} (PID ${running.pid})`,
+      note:
+        `reusando el dev server del worktree en ${running.appUrl} ` +
+        `(PID ${running.pid} · puerto ${running.port} · arrancado ${hora})` +
+        (desfase ? `
+   ⚠️  ${desfase}` : ""),
     };
+  }
   return null; // sin dev acá → Playwright levanta el suyo en E2E_PORT (puerto propio por worktree, ver e2ePort)
 }
 
@@ -206,6 +252,14 @@ function e2ePort() {
   const h = crypto.createHash("sha1").update(process.cwd()).digest();
   return 3100 + (h.readUInt16BE(0) % 700); // rango 3100–3799
 }
+
+/**
+ * Contrato de salida de los pasos que DEGRADAN CON GRACIA (sql-tests,
+ * schema-rebuild, edge-functions, migrations-applied): 0 = corrio y paso ·
+ * 1 = fallo · 3 = NO CORRIO. Antes el salto salia 0 y era indistinguible de un
+ * verde. Si agregas un paso que puede auto-omitirse, sale con este codigo.
+ */
+const EXIT_SKIPPED = 3;
 
 // Cada check = un binario JS invocado con el mismo node que corre este script.
 const STEPS = [
@@ -280,6 +334,11 @@ const STEPS = [
 ];
 
 const failures = [];
+/**
+ * Pasos que NO corrieron. Se lleva aparte de `failures` a proposito: no son un
+ * fallo del cambio, pero tampoco son un verde — y el resumen tiene que decirlo.
+ */
+const skipped = [];
 for (const step of STEPS) {
   console.log(`\n${C.dim}── ${step.name} ──────────────────────────────────${C.nc}`);
   let preflightEnv = null;
@@ -287,6 +346,7 @@ for (const step of STEPS) {
     const pf = step.preflight();
     if (pf?.skip) {
       skip(`${step.name}: ${pf.reason}`);
+      skipped.push({ name: step.name, reason: pf.reason });
       continue;
     }
     if (pf?.note) console.log(`${C.dim}   ${pf.note}${C.nc}`);
@@ -305,7 +365,9 @@ for (const step of STEPS) {
       fs.rmSync(E2E_JSON, { force: true });
     } catch {}
     r = spawnSync(process.execPath, step.argv, { stdio: "inherit", cwd: process.cwd(), env });
-    if (r.status === 0) break;
+    // Un SALTO no se reintenta: falta Docker/Deno/credenciales, y eso no cambia
+    // por correrlo de nuevo — sólo imprimiría el mismo [SKIP] dos veces.
+    if (r.status === 0 || r.status === EXIT_SKIPPED) break;
     // Antes de gastar un reintento: ¿el proceso se fue mal habiendo pasado todo?
     absuelto = step.absolver ? step.absolver() : null;
     if (absuelto) break;
@@ -313,7 +375,13 @@ for (const step of STEPS) {
       console.log(`${C.dim}   ${step.name} falló (exit ${r.status ?? "señal " + r.signal}) → reintento ${i}/${attempts - 1} (flaky conocido)${C.nc}`);
     }
   }
-  if (r.status === 0) ok(step.name);
+  if (r.status === EXIT_SKIPPED) {
+    // El hijo se auto-omitio (sin Docker, sin Deno, sin credenciales). Antes
+    // salia 0 y aca se imprimia [OK]: el gate no podia distinguir "paso" de
+    // "no corrio", y un cierre declaraba TODO VERDE con pasos apagados.
+    skipped.push({ name: step.name, reason: "no se midio (ver su [SKIP] arriba)" });
+    warn(`${step.name}: OMITIDO — no se midio`);
+  } else if (r.status === 0) ok(step.name);
   else if (absuelto) {
     // Amarillo, no verde: pasó, pero que se vea que hubo una anomalía.
     warn(absuelto);
@@ -325,9 +393,31 @@ for (const step of STEPS) {
 }
 
 console.log(`\n${C.dim}── resumen ───────────────────────────────────${C.nc}`);
-if (failures.length === 0) {
-  ok("verify: TODO VERDE ✓");
+// Cuantos de los pasos declarados se MIDIERON de verdad. Este es el numero que
+// hay que citar al cerrar: "13 de 13" no es lo mismo que "11 de 13".
+const corrieron = STEPS.length - skipped.length;
+console.log(
+  `${C.dim}   ${corrieron} de ${STEPS.length} pasos corrieron de verdad${C.nc}`,
+);
+
+for (const om of skipped) warn(`omitido: ${om.name} — ${om.reason}`);
+
+if (failures.length > 0) {
+  fail(`verify: ${failures.length} fallo(s) → ${failures.join(", ")}`);
+  process.exit(1);
+}
+
+if (skipped.length > 0) {
+  // Verde CON RESERVA, y se dice con todas las letras. No es rojo —el entorno
+  // no es culpa del cambio— pero tampoco se puede citar como "todo verde":
+  // exactamente eso paso cinco veces con migrations-applied apagado.
+  warn(
+    `verify: sin fallos, pero ${skipped.length} paso(s) NO se midieron → ${skipped
+      .map((om) => om.name)
+      .join(", ")}. Esto NO es un cierre verde completo.`,
+  );
   process.exit(0);
 }
-fail(`verify: ${failures.length} fallo(s) → ${failures.join(", ")}`);
-process.exit(1);
+
+ok(`verify: TODO VERDE ✓ (${corrieron}/${STEPS.length} pasos medidos)`);
+process.exit(0);

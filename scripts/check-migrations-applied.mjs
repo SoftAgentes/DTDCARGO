@@ -73,9 +73,23 @@ class Exit {
 }
 
 /** Salida limpia con SKIP: algo del entorno falta, no es culpa del cambio. */
+/**
+ * Codigo de salida del SALTO — no es 0 a proposito.
+ *
+ * Antes este `skip` salia 0, asi que `verify.mjs` lo veia identico a un verde e
+ * imprimia `[OK]`. Un cierre podia declarar "TODO VERDE" con este paso apagado,
+ * y paso: cinco cierres publicaron con `migrations-applied` omitido, y el
+ * 2026-08-15 el gate salio "verde" con `sql-tests` y `schema-rebuild` apagados
+ * por no tener Docker levantado.
+ *
+ * Un paso que se omite en silencio es peor que uno que falla: el que falla se
+ * arregla, el que se omite se cree.
+ */
+const EXIT_SKIPPED = 3;
+
 function skip(reason) {
   console.log(`${C.yellow}[SKIP]${C.nc} migrations-applied: ${reason}`);
-  throw new Exit(0);
+  throw new Exit(EXIT_SKIPPED);
 }
 
 /**
