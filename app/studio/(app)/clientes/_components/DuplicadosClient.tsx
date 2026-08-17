@@ -60,7 +60,29 @@ export function DuplicadosClient({ candidates }: { candidates: DuplicateCandidat
   return (
     <div style={{ maxWidth: 1100 }}>
       <div style={{ marginBottom: 24 }}>
-        <span className="studio-eyebrow">Comercial</span>
+        {/* SDD-0266 · esta pantalla NO está en el nav lateral: se llega sólo
+            desde el menú de la cabecera de Clientes, así que sin este enlace
+            queda sin salida dentro de la página. Y la migaja dice "Clientes"
+            —no "Comercial"— porque nombra de dónde vienes, que es lo que hace
+            navegable un sub-nivel. */}
+        <Link
+          href="/studio/clientes"
+          className="studio-link-quiet"
+          style={{
+            font: "600 12px/1 var(--f-sans)",
+            color: "var(--ink-soft)",
+            textDecoration: "none",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            marginBottom: 10,
+          }}
+        >
+          ← Clientes
+        </Link>
+        <span className="studio-eyebrow" style={{ display: "block" }}>
+          Clientes
+        </span>
         <h1
           className="studio-display"
           style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}

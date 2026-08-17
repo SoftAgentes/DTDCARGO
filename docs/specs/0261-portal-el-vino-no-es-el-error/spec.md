@@ -304,8 +304,8 @@ Dos mitades con distinta disponibilidad:
 
 | Mitad | Qué hace | Estado |
 |---|---|---|
-| **B.1 — estructura** | Ícono + prefijo + `role="alert"` + copy según ERR-01 en los ~42. Incluye corregir el `role="status"` de `AvatarEditor.tsx:82`. | ✅ **Destrabado por la decisión A.** No depende del color. |
-| **B.2 — color** | Una línea en `globals.css:142` (`#e0606b` → `#f6929a`) **más** sacar los ~42 errores de `text-wine` y ponerlos en `text-status-danger`. | ✅ **Destrabado.** Color aprobado el 2026-08-14. |
+| **B.1 — estructura** ✅ HECHO | | Ícono + prefijo + `role="alert"` + copy según ERR-01 en los ~42. Incluye corregir el `role="status"` de `AvatarEditor.tsx:82`. | ✅ **Destrabado por la decisión A.** No depende del color. |
+| **B.2 — color** ✅ HECHO | | Una línea en `globals.css:142` (`#e0606b` → `#f6929a`) **más** sacar los ~42 errores de `text-wine` y ponerlos en `text-status-danger`. | ✅ **Destrabado.** Color aprobado el 2026-08-14. |
 
 **B.1 cierra ERR-01 y SGE-00.11. B.2 cierra BTN-01 §2 y WCAG 1.4.3.** Son la misma
 no conformidad vista desde dos políticas: hasta que las dos estén, la spec no
@@ -391,3 +391,58 @@ del 2026-08-14 no había levantado porque no abrió ERR-01. Se corrige acá.
 | Se elige un color que pasa contraste pero se confunde con el enlace | Criterios 6 y 7: el ΔE se mide, y si queda entre 7 y 15 hay que **probar** que el ícono distingue con una captura real — no basta con afirmar que mitiga. |
 | Se cierra B.1 (ícono) y se reporta la spec como cumplida sin B.2 | ERR-01 pide texto/icono **y** contraste en la misma regla. La spec no cierra con media. |
 | Otro worktree numera 0261 | Número de `pnpm sdd:next` (23 refs, locales y remotas), **sin reservar** — no se pushea sin OK. El paso `numbering` de `verify.mjs` lo agarra al mergear. |
+
+---
+
+## Estado de ejecución (2026-08-14)
+
+### ✅ Slice B — HECHO y verificado
+
+| Pieza | Resultado |
+|---|---|
+| **B.2 · color** | `app/globals.css:142` → `#f6929a`. Una línea; todo el portal oscuro lee ese token. |
+| **B.1 · estructura** | `app/portal/_components/PortalFieldError.tsx` — ícono + `role="alert"` + copy de ERR-01, en un solo lugar. |
+| **Los ~42 errores** | **41 convertidos**: 36 por script sobre formas inequívocas, 5 a mano. Quedan **cero** usos reales de `text-wine` como error. |
+
+**Se cierran, además del ⭐1:** el hallazgo 3 de la auditoría del portal (danger
+4,29 → **6,73:1** sobre card) y el 8 (punto de aviso del sidebar 2,96 →
+**4,64:1**), porque salen del mismo token.
+
+**Hallazgo nuevo, corregido de paso:** `perfil/AvatarEditor.tsx` anunciaba un
+**error** con `role="status"` — el rol de lo no urgente, que no interrumpe. Ahora
+va por `PortalFieldError`, o sea `role="alert"`.
+
+### ⚠️ Una excepción declarada: `CedulaPhotoRow` no usa la primitiva
+
+`perfil/CedulaPhotoRow.tsx` mantiene **a propósito** una región `role="status"`
+**siempre montada**, porque varios lectores de pantalla no anuncian regiones que
+nacen junto con su contenido (WCAG 4.1.3). Partirla en un nodo condicional
+habría reintroducido ese bug.
+
+Recibe el **color** correcto (`text-status-danger`) pero **no el ícono** que pide
+ERR-01. Romper una decisión de accesibilidad ya tomada para cumplir otra regla no
+es cumplir: queda declarado y su ícono es trabajo del slice siguiente.
+
+### ⏸ Slice A — PENDIENTE: los 77 acentos
+
+Los usos de `text-wine` como **acento** (eyebrows, enlaces, íconos) siguen
+midiendo **3,00:1**. Su arreglo es `--color-wine-text` (**6,44:1**) y **no
+depende** del color de error.
+
+Quedó fuera de esta pasada a propósito: es un barrido sobre 38 archivos donde hay
+que separar **texto** de **relleno**, y el clasificador ahí es heurístico —
+`SuppliersClient.tsx:265` ya demostró que confunde un código con un error. Merece
+su propia pasada, no el final de otra.
+
+### Criterios: dónde quedó cada uno
+
+| # | Criterio | Estado |
+|---|---|---|
+| 1 | 118 clasificados | ✅ 42 error / 76 acento, re-medido contra `main` |
+| 2 | Cero `text-wine` en nodo de error | ✅ |
+| 3 | Acento textual fuera de `--color-wine` | ⏸ slice A |
+| 4 | Ícono + prefijo + `role="alert"` | ✅ salvo `CedulaPhotoRow` (declarado) |
+| 5 | Medición en vivo, los dos temas | ⏸ **no verificable** todavía — requiere banco de medición del portal |
+| 6 | ΔE ≥ 15, o excepción con el criterio 4 cumplido | ✅ EXC-0261-01 vigente: el ícono ya está |
+| 7 | Captura que pruebe la distinción | ⏸ pendiente |
+| 8 | typecheck · lint · test · verify | ✅ `TODO VERDE ✓`, 5286 pruebas |

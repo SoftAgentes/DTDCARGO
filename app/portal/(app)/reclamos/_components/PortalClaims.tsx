@@ -21,6 +21,7 @@ import {
 import type { PortalClaimRow } from "@/lib/portal/portal-claims";
 import type { ClaimEvidenceItem } from "@/lib/studio/reclamos/claim-evidence";
 import { createPortalClaimAction, type PortalClaimState } from "../actions";
+import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 
 const initial: PortalClaimState = {};
 
@@ -128,7 +129,7 @@ export function PortalClaims({
               ))}
             </select>
             {state.fieldErrors?.claim_type && (
-              <span className="text-[12.5px] text-wine">{state.fieldErrors.claim_type}</span>
+              <PortalFieldError nivel="formulario">{state.fieldErrors.claim_type}</PortalFieldError>
             )}
           </label>
 
@@ -146,7 +147,7 @@ export function PortalClaims({
               className={`${INPUT_CLASS} resize-y`}
             />
             {state.fieldErrors?.description && (
-              <span className="text-[12.5px] text-wine">{state.fieldErrors.description}</span>
+              <PortalFieldError nivel="formulario">{state.fieldErrors.description}</PortalFieldError>
             )}
           </label>
 
@@ -185,7 +186,7 @@ export function PortalClaims({
           </label>
 
           {state.error && (
-            <p className="text-[13px] text-wine leading-[1.4]">{state.error}</p>
+            <PortalFieldError nivel="formulario">{state.error}</PortalFieldError>
           )}
 
           <div className="flex justify-end">

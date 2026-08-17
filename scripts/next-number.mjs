@@ -19,10 +19,17 @@
  * vería el número libre igual. La reserva crea el `spec.md` de verdad (stub en
  * `status: draft`), que es lo que hace visible el número para todo el mundo.
  *
- * ⚠️ CADA RESERVA DISPARA UN DEPLOY DE PRODUCCIÓN. `vercel.json` no tiene
- * `ignoreCommand`, así que cualquier push a `main` —aunque sea sólo docs—
- * construye. Por eso `--reserve` **prepara y NO pushea**: te imprime el comando
- * exacto para que el push sea una decisión tuya, no un efecto secundario.
+ * Una reserva NO dispara deploy. `vercel.json` **sí** tiene `ignoreCommand`
+ * (`git diff --quiet HEAD^ HEAD -- . ':(exclude)docs/**' ':(exclude,glob)*.md'`),
+ * y el stub toca un solo `.md` bajo `docs/`, así que el build se cancela solo.
+ * Aun así `--reserve` **prepara y NO pushea**: publicar en `main` es una
+ * decisión tuya, no un efecto secundario de pedir un número.
+ *
+ * ⚠️ Este bloque decía lo contrario —"cada reserva dispara un deploy"— y era
+ * FALSO. Corregido el 2026-08-14: ese aviso hizo que una ventana se saltara la
+ * reserva ("no tengo OK para pushear") y terminó implementando el SDD-0262 por
+ * duplicado, en paralelo con otra. El costo del aviso equivocado fue una
+ * implementación completa a la basura.
  *
  * Uso:
  *   node scripts/next-number.mjs                    → próximo libre de spec y de migración
@@ -220,7 +227,7 @@ function main(argv) {
     console.log(
       `\n${C.yellow}⚠ Falta publicarla${C.nc} — hasta que no esté en main, no reserva nada:\n` +
         `     ${C.bold}git push origin ${commit}:refs/heads/main${C.nc}\n` +
-        `${C.dim}   Ojo: eso dispara un deploy de producción (vercel.json no tiene ignoreCommand).\n` +
+        `${C.dim}   El stub es doc-only, así que el ignoreCommand de vercel.json cancela el build: NO despliega.\n` +
         `   Después, en tu rama: git fetch origin && git merge origin/main${C.nc}`,
     );
     return 0;

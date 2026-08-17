@@ -4,7 +4,7 @@
   "name": "ActionMenu",
   "purpose": "Agrupar acciones dispares o poco frecuentes detrás de un trigger, con el contrato de teclado y foco de BTN-01 §7 implementado una sola vez.",
   "owner": "Studio UI",
-  "status": "proposed",
+  "status": "canonical",
   "implementation": {
     "path": "app/studio/_components/ui/ActionMenu.tsx",
     "exportName": "ActionMenu"
@@ -33,7 +33,7 @@
   ],
   "api": {
     "contractPath": "docs/specs/0263-primitiva-de-menu-de-acciones/spec.md",
-    "summary": "Trigger con texto o sólo icono (ariaLabel obligatorio), items con rol semántico default/destructive, separadores, deshabilitado con motivo visible, alineación y tamaño. Sin memoria de la última opción, a propósito."
+    "summary": "Trigger con texto o sólo icono (ariaLabel obligatorio). Items que EJECUTAN (onSelect → <button>) o que NAVEGAN (href → <a>), mutuamente excluyentes por tipo. Rol semántico default/destructive, separadores, deshabilitado con motivo visible. Sin memoria de la última opción, a propósito."
   },
   "tokens": [
     "--bg-surface",
@@ -58,9 +58,16 @@
       "docs/specs/0263-primitiva-de-menu-de-acciones/spec.md"
     ]
   },
-  "breakpoints": ["mobile", "tablet", "desktop"],
+  "breakpoints": [
+    "mobile",
+    "tablet",
+    "desktop"
+  ],
   "examples": {
-    "correct": ["app/studio/_components/ui/ActionMenu.test.tsx"],
+    "correct": [
+      "app/studio/(app)/clientes/_components/ClientsClient.tsx",
+      "app/studio/_components/ui/ActionMenu.test.tsx"
+    ],
     "incorrect": [
       "app/studio/(app)/ve/_components/VeRowActions.tsx",
       "app/studio/(app)/bitacora/_components/ExportMenu.tsx",
@@ -72,11 +79,21 @@
       "type": "accessibility",
       "path": "app/studio/_components/ui/ActionMenu.test.tsx",
       "case": "Las 11 reglas de teclado y foco de BTN-01 §7: roving focus, flechas con vuelta, Home/End, Enter, Escape con retorno al trigger, apertura por primera/última, Tab, clic afuera y hover sin ejecutar."
+    },
+    {
+      "type": "accessibility",
+      "path": "app/studio/_components/ui/ActionMenu.test.tsx",
+      "case": "Opciones de navegación: href renderiza <a>, no devuelve el foco al trigger, se recorren con flechas y un href deshabilitado vuelve a <button>."
     }
   ],
-  "consumers": [],
+  "consumers": [
+    {
+      "path": "app/studio/(app)/clientes/_components/ClientsClient.tsx",
+      "verifiedAt": "2026-08-14"
+    }
+  ],
   "review": {
-    "reviewPath": "docs/specs/0263-primitiva-de-menu-de-acciones/spec.md",
+    "reviewPath": "docs/specs/0266-clientes-cabecera-con-menu/spec.md",
     "reviewer": "Claude (ventana 2026-08-14)",
     "approvedBy": "Sam (founder)",
     "lastReviewedAt": "2026-08-14",

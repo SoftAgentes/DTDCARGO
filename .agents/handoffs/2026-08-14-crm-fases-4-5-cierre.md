@@ -240,6 +240,44 @@ después.**
 
 ---
 
+## 3c. 🔴 El deploy de la Edge Function — el hueco que casi se escapa
+
+`git push` dispara **Vercel** y nada más. `supabase/functions/` se despliega
+**aparte**, con el CLI. Tras publicar la rama, `kommo-writeback` seguía en la
+**v7, la vieja**: `"PATCH"` literal y sin conocer `add_note`/`add_task`.
+
+Con la UI ya viva, la cadena que eso abría era: el asesor deja una nota →
+`add_note` se encola bien (la migración ya está) → el drenaje viejo manda un
+**PATCH** al lead con el cuerpo de la nota → Kommo ignora los campos que no
+entiende y responde OK → la fila sale **`sent`**. **La nota nunca existió y la
+pantalla decía que sí.** El mismo fallo silencioso que esta spec vino a cerrar,
+reintroducido por el orden del despliegue.
+
+Se detectó a tiempo: medido, **0 notas/tareas encoladas** y 0 en vuelo.
+
+**Desplegada con OK del founder** — `v7 → v8`, `ezbr_sha256` de `e3813ee1…` a
+`1292ab7c…`, `verify_jwt=false` preservado. El CLI resolvió el grafo de imports
+solo (4 archivos, incluido `types.ts`).
+
+⭐ **Y la verificación NO fue el `version`.** Que suba de 7 a 8 prueba que *algo*
+subió, no *qué*. Se invocó el drenaje en dry-run con la cola en 0 y devolvió:
+
+```json
+{"processed":0,"sent":0,"skipped":0,"failed":0,"pisadas_evitadas":0,"dry_run":true}
+```
+
+`pisadas_evitadas` **sólo existe en el código nuevo** — la v7 no lo devuelve. Eso
+prueba tres cosas de una: corre el código nuevo, los imports de `_shared/`
+resuelven en el runtime real, y el gate de escritura sigue respetándose.
+
+**El orden de cierre, para la próxima:** migraciones → push (Vercel) → deploy de
+la función. Si hay que espaciarlos, invertir los dos últimos: desplegar la
+función antes es inocuo —entiende ops que nadie encola todavía—; al revés no.
+
+⚠️ **El gate no cubre esto.** `verify.mjs` corre `deno check`, así que sabe que
+las funciones **compilan** — no que estén **desplegadas**. Falta el gemelo de
+`migrations-applied` para edge functions.
+
 ## 4. Lo que NO se pudo hacer, y por qué
 
 **No pude autenticarme en el Studio.** El `proxy.ts` corta `/studio/**` sin

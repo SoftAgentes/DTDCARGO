@@ -11,6 +11,7 @@ import {
   reportPaymentAction,
   type PaymentReportFormState,
 } from "./actions";
+import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 
 const initial: PaymentReportFormState = {};
 
@@ -94,9 +95,7 @@ export function PaymentReportForm({
           />
         </div>
         {state.fieldErrors?.amount ? (
-          <p role="alert" className="text-[12.5px] text-wine">
-            {state.fieldErrors.amount}
-          </p>
+          <PortalFieldError nivel="formulario">{state.fieldErrors.amount}</PortalFieldError>
         ) : null}
       </div>
 
@@ -124,9 +123,7 @@ export function PaymentReportForm({
           ))}
         </select>
         {state.fieldErrors?.method ? (
-          <p role="alert" className="text-[12.5px] text-wine">
-            {state.fieldErrors.method}
-          </p>
+          <PortalFieldError nivel="formulario">{state.fieldErrors.method}</PortalFieldError>
         ) : null}
       </div>
 
@@ -146,9 +143,7 @@ export function PaymentReportForm({
           className="rounded-[10px] border border-grey-300 px-3 py-2.5 text-[15px] text-ink focus:outline-none focus:border-wine"
         />
         {state.fieldErrors?.paidAt ? (
-          <p role="alert" className="text-[12.5px] text-wine">
-            {state.fieldErrors.paidAt}
-          </p>
+          <PortalFieldError nivel="formulario">{state.fieldErrors.paidAt}</PortalFieldError>
         ) : null}
       </div>
 
@@ -171,9 +166,7 @@ export function PaymentReportForm({
           Captura de la transferencia o recibo. PDF, JPG, PNG o WebP (máx 10 MB).
         </p>
         {state.fieldErrors?.proof ? (
-          <p role="alert" className="text-[12.5px] text-wine">
-            {state.fieldErrors.proof}
-          </p>
+          <PortalFieldError nivel="formulario">{state.fieldErrors.proof}</PortalFieldError>
         ) : null}
       </div>
 
@@ -193,9 +186,7 @@ export function PaymentReportForm({
           placeholder="Referencia de la transferencia, banco, etc."
         />
         {state.fieldErrors?.note ? (
-          <p role="alert" className="text-[12.5px] text-wine">
-            {state.fieldErrors.note}
-          </p>
+          <PortalFieldError nivel="formulario">{state.fieldErrors.note}</PortalFieldError>
         ) : null}
       </div>
 

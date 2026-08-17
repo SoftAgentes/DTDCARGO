@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useCallback, useEffect, useState, useTransition } from "react";
 
 import { Badge } from "@/app/studio/_components/ui/Badge";
@@ -71,7 +73,26 @@ export function MigrarLegadoClient({ esAdmin }: { esAdmin: boolean }) {
   return (
     <div style={{ display: "grid", gap: 20, maxWidth: 900 }}>
       <header>
-        <span className="studio-eyebrow">Clientes</span>
+        {/* SDD-0266 · misma razón que en Duplicados: se llega sólo desde el menú
+            de la cabecera y no hay entrada en el nav lateral. */}
+        <Link
+          href="/studio/clientes"
+          className="studio-link-quiet"
+          style={{
+            font: "600 12px/1 var(--f-sans)",
+            color: "var(--ink-soft)",
+            textDecoration: "none",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            marginBottom: 10,
+          }}
+        >
+          ← Clientes
+        </Link>
+        <span className="studio-eyebrow" style={{ display: "block" }}>
+          Clientes
+        </span>
         <h1 style={{ font: "800 26px/1.2 var(--f-display)", color: "var(--ink)", margin: "6px 0 8px" }}>
           Migrar códigos del legado
         </h1>
