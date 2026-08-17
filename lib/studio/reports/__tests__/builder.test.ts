@@ -250,6 +250,9 @@ describe("buildReportCsv", () => {
 });
 
 // ── builderRows (query · stub Supabase) ────────────────────────
+/** Tope por request del doble: el `db-max-rows` de Supabase. */
+const SERVER_CAP = 1000;
+
 type Recorded = { gte: [string, unknown][]; lte: [string, unknown][]; neq: [string, unknown][]; is: [string, unknown][] };
 function stub(rowsByTable: Record<string, Record<string, unknown>[]>): {
   client: SupabaseClient;
@@ -266,6 +269,20 @@ function stub(rowsByTable: Record<string, Record<string, unknown>[]>): {
         select: () => chain,
         order: () => chain,
         limit: () => chain,
+        // Corta en SERVER_CAP por request igual que PostgREST: si el doble es
+        // más generoso que el servidor, el test sale verde con código que en
+        // producción trunca — que es exactamente cómo este bug sobrevivió.
+        range: (desde: number, hasta: number) => {
+          const pedido = hasta - desde + 1;
+          const trozo = Array.isArray(rows)
+            ? rows.slice(desde, desde + Math.min(pedido, SERVER_CAP))
+            : [];
+          return {
+            ...chain,
+            then: (resolve: (v: { data: unknown; error: null }) => unknown) =>
+              Promise.resolve({ data: trozo, error: null }).then(resolve),
+          };
+        },
         not: () => chain,
         in: () => chain,
         eq: () => chain,

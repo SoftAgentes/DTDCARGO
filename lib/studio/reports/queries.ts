@@ -17,6 +17,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import { invoiceUsdAmount } from "@/lib/studio/fidelizacion/types";
 import {
   clientsWithTier,
@@ -159,22 +160,54 @@ function coerceShipment(r: Record<string, unknown>): ReportShipment {
 }
 
 /**
+ * Lee TODAS las filas de una lectura de reporte, paginando.
+ *
+ * Este módulo es el que más agrega en JS de todo el ERP: cada función de acá
+ * suma, promedia o agrupa lo que lee. Un `.limit(20000)` no protegía nada —
+ * PostgREST devuelve 1.000 y no avisa—, así que un reporte de un período
+ * grande daba un número **equivocado con cara de verdad**.
+ *
+ * Y no redondea cuando no puede leer completo: tira nombrando el reporte. Un
+ * estado de resultados a medias es peor que una pantalla que se queja, porque
+ * el que lo lee no tiene forma de saber que le falta la mitad.
+ */
+async function filasDelReporte<T>(
+  queReporte: string,
+  page: (from: number, to: number) => PromiseLike<{
+    data: unknown;
+    error: { message: string } | null;
+  }>,
+): Promise<T[]> {
+  const { rows, complete } = await fetchAllPaged<T>(page);
+  if (!complete) {
+    throw new Error(
+      `${queReporte}: el período supera el tope de lectura; el reporte no se puede calcular completo. Acota el rango.`,
+    );
+  }
+  return rows;
+}
+
+/**
  * Embarques (vivos) creados en el rango. RLS filtra por tenant; deleted_at null.
  */
 async function fetchShipments(
   supabase: SupabaseClient,
   range: DateRange,
 ): Promise<ReportShipment[]> {
-  const { data, error } = await supabase
-    .from("shipments")
-    .select(SHIPMENT_COLUMNS)
-    .is("deleted_at", null)
-    .gte("created_at", range.from)
-    .lte("created_at", `${range.to}T23:59:59.999Z`)
-    .order("created_at", { ascending: true })
-    .limit(20000);
-  if (error) throw error;
-  return ((data as Record<string, unknown>[] | null) ?? []).map(coerceShipment);
+  const data = await filasDelReporte<Record<string, unknown>>(
+    "Embarques del período",
+    (from, to) =>
+      supabase
+        .from("shipments")
+        .select(SHIPMENT_COLUMNS)
+        .is("deleted_at", null)
+        .gte("created_at", range.from)
+        .lte("created_at", `${range.to}T23:59:59.999Z`)
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+  );
+  return data.map(coerceShipment);
 }
 
 /**
@@ -191,19 +224,23 @@ async function fetchRevenueByCode(
   supabase: SupabaseClient,
   range: DateRange,
 ): Promise<Map<string, number>> {
-  const { data, error } = await supabase
-    .from("invoices")
-    .select("shipment_code, total_amount, currency, fx_rate, status")
-    .is("deleted_at", null)
-    .not("shipment_code", "is", null)
-    .in("status", ["emitida", "parcial", "pagada", "vencida"])
-    .gte("created_at", range.from)
-    .lte("created_at", `${range.to}T23:59:59.999Z`)
-    .limit(20000);
-  if (error) throw error;
+  const data = await filasDelReporte<Record<string, unknown>>(
+    "Facturación del período",
+    (from, to) =>
+      supabase
+        .from("invoices")
+        .select("id, shipment_code, total_amount, currency, fx_rate, status")
+        .is("deleted_at", null)
+        .not("shipment_code", "is", null)
+        .in("status", ["emitida", "parcial", "pagada", "vencida"])
+        .gte("created_at", range.from)
+        .lte("created_at", `${range.to}T23:59:59.999Z`)
+        .order("id", { ascending: true })
+        .range(from, to),
+  );
 
   const map = new Map<string, number>();
-  for (const row of (data as Record<string, unknown>[] | null) ?? []) {
+  for (const row of data) {
     const code = (row.shipment_code as string | null) ?? null;
     if (!code) continue;
     const usd = invoiceUsdAmount({
@@ -395,27 +432,35 @@ export async function reportByCarrier(
   const to = `${range.to}T23:59:59.999Z`;
 
   try {
-    const [bookingsRes, sailingsRes, carriersRes] = await Promise.all([
-      supabase
-        .from("bookings")
-        .select("carrier_id")
-        .is("deleted_at", null)
-        .gte("created_at", from)
-        .lte("created_at", to)
-        .limit(20000),
-      supabase
-        .from("sailings")
-        .select("carrier_id")
-        .is("deleted_at", null)
-        .gte("created_at", from)
-        .lte("created_at", to)
-        .limit(20000),
-      supabase.from("carriers").select("id, name").limit(2000),
+    const [bookingsRows, sailingsRows, carriersRes] = await Promise.all([
+      filasDelReporte<Record<string, unknown>>("Reservas del período", (d, h) =>
+        supabase
+          .from("bookings")
+          .select("id, carrier_id")
+          .is("deleted_at", null)
+          .gte("created_at", from)
+          .lte("created_at", to)
+          .order("id", { ascending: true })
+          .range(d, h),
+      ),
+      filasDelReporte<Record<string, unknown>>("Zarpes del período", (d, h) =>
+        supabase
+          .from("sailings")
+          .select("id, carrier_id")
+          .is("deleted_at", null)
+          .gte("created_at", from)
+          .lte("created_at", to)
+          .order("id", { ascending: true })
+          .range(d, h),
+      ),
+      // Tope DECLARADO: `carriers` es un catálogo de navieras — decenas, no
+      // miles. Mil filas nunca se alcanzan; paginarlo sería un request de más.
+      supabase.from("carriers").select("id, name").limit(1000),
     ]);
 
-    if (bookingsRes.error) throw bookingsRes.error;
-    if (sailingsRes.error) throw sailingsRes.error;
     if (carriersRes.error) throw carriersRes.error;
+    const bookingsRes = { data: bookingsRows };
+    const sailingsRes = { data: sailingsRows };
 
     const nameById = new Map<string, string>();
     for (const c of (carriersRes.data as Record<string, unknown>[] | null) ??
@@ -729,26 +774,38 @@ export async function cashflowReport(
 ): Promise<CashflowReport> {
   const range = periodRange(period, today);
 
-  const [invRes, recRes, kpis] = await Promise.all([
+  const [invRows, recRows, kpis] = await Promise.all([
     // Sin filtro de rango en SQL: el rango se aplica in-memory sobre
     // `issued_at ?? created_at` (el filtro SQL por una sola columna perdería las
     // filas cuyo issued_at cae en rango pero created_at no, o viceversa).
-    supabase
-      .from("invoices")
-      .select("total_amount, currency, fx_rate, status, issued_at, created_at")
-      .is("deleted_at", null)
-      .neq("status", "anulada")
-      .neq("status", "borrador")
-      .limit(20000),
-    supabase
-      .from("payment_receipts")
-      .select("amount, currency, fx_rate, received_at")
-      .is("deleted_at", null)
-      .gte("received_at", range.from)
-      .lte("received_at", range.to)
-      .limit(20000),
+    //
+    // ⚠️ Justamente por eso ésta es la lectura MÁS expuesta del módulo: no lee
+    // un período, lee la tabla ENTERA de facturas vivas. Con `.limit(20000)`
+    // devolvía las primeras 1.000 y el flujo de caja se calculaba sobre ellas.
+    filasDelReporte<Record<string, unknown>>("Flujo de caja · facturas", (d, h) =>
+      supabase
+        .from("invoices")
+        .select("id, total_amount, currency, fx_rate, status, issued_at, created_at")
+        .is("deleted_at", null)
+        .neq("status", "anulada")
+        .neq("status", "borrador")
+        .order("id", { ascending: true })
+        .range(d, h),
+    ),
+    filasDelReporte<Record<string, unknown>>("Flujo de caja · cobros", (d, h) =>
+      supabase
+        .from("payment_receipts")
+        .select("id, amount, currency, fx_rate, received_at")
+        .is("deleted_at", null)
+        .gte("received_at", range.from)
+        .lte("received_at", range.to)
+        .order("id", { ascending: true })
+        .range(d, h),
+    ),
     invoiceKpis(supabase),
   ]);
+  const invRes = { data: invRows, error: null };
+  const recRes = { data: recRows, error: null };
 
   if (invRes.error) throw invRes.error;
   if (recRes.error) throw recRes.error;
@@ -829,15 +886,19 @@ export async function ivaPosition(
   const settings = await getFiscalSettings(supabase);
 
   // ── Ventas (débito): facturas emitidas del rango, clasificadas por config.
-  const { data: invData, error: invErr } = await supabase
-    .from("invoices")
-    .select(INVOICE_COLUMNS)
-    .is("deleted_at", null)
-    .in("status", SALE_STATUSES as unknown as string[])
-    .gte("created_at", range.from)
-    .lte("created_at", `${range.to}T23:59:59.999Z`)
-    .limit(20000);
-  if (invErr) throw invErr;
+  const invData = await filasDelReporte<Record<string, unknown>>(
+    "Posición de IVA · ventas",
+    (d, h) =>
+      supabase
+        .from("invoices")
+        .select(INVOICE_COLUMNS)
+        .is("deleted_at", null)
+        .in("status", SALE_STATUSES as unknown as string[])
+        .gte("created_at", range.from)
+        .lte("created_at", `${range.to}T23:59:59.999Z`)
+        .order("id", { ascending: true })
+        .range(d, h),
+  );
 
   const salesCurrencies = new Set<string>();
   const salesRows = ((invData as Record<string, unknown>[] | null) ?? []).map(
@@ -868,15 +929,19 @@ export async function ivaPosition(
   const purchaseCurrencies = new Set<string>();
   let pt = purchaseTotals([]);
   try {
-    const { data: billData, error: billErr } = await supabase
-      .from("supplier_bills")
-      .select(IVA_BILL_COLUMNS)
-      .is("deleted_at", null)
-      .neq("status", "anulada")
-      .gte("issue_date", range.from)
-      .lte("issue_date", range.to)
-      .limit(20000);
-    if (billErr) throw billErr;
+    const billData = await filasDelReporte<Record<string, unknown>>(
+      "Posición de IVA · compras",
+      (d, h) =>
+        supabase
+          .from("supplier_bills")
+          .select(IVA_BILL_COLUMNS)
+          .is("deleted_at", null)
+          .neq("status", "anulada")
+          .gte("issue_date", range.from)
+          .lte("issue_date", range.to)
+          .order("id", { ascending: true })
+          .range(d, h),
+    );
     const purchaseRows = (
       (billData as Record<string, unknown>[] | null) ?? []
     ).map((r) => {
@@ -992,16 +1057,20 @@ async function invoiceBuilderRows(
   supabase: SupabaseClient,
   range: DateRange,
 ): Promise<BuilderRow[]> {
-  const { data, error } = await supabase
-    .from("invoices")
-    .select(INVOICE_BUILDER_COLUMNS)
-    .is("deleted_at", null)
-    .neq("status", "anulada")
-    .limit(20000);
-  if (error) throw error;
+  const data = await filasDelReporte<Record<string, unknown>>(
+    "Constructor de reportes · facturas",
+    (d, h) =>
+      supabase
+        .from("invoices")
+        .select(INVOICE_BUILDER_COLUMNS)
+        .is("deleted_at", null)
+        .neq("status", "anulada")
+        .order("id", { ascending: true })
+        .range(d, h),
+  );
 
   const rows: BuilderRow[] = [];
-  for (const r of (data as Record<string, unknown>[] | null) ?? []) {
+  for (const r of data) {
     const statusVal = r.status as InvoiceStatus;
     // Excluir anuladas (el .neq de la query + guard in-memory por robustez,
     // misma norma que cashflowReport).
@@ -1127,16 +1196,18 @@ export async function commercialRepurchase(
   supabase: SupabaseClient,
   today: Date = new Date(),
 ): Promise<RepurchaseReport> {
-  const { data, error } = await supabase
-    .from("shipments")
-    .select(REPURCHASE_SHIPMENT_COLUMNS)
-    .is("deleted_at", null)
-    .limit(20000);
-  if (error) throw error;
+  const data = await filasDelReporte<Record<string, unknown>>(
+    "Recompra · embarques",
+    (d, h) =>
+      supabase
+        .from("shipments")
+        .select(REPURCHASE_SHIPMENT_COLUMNS)
+        .is("deleted_at", null)
+        .order("id", { ascending: true })
+        .range(d, h),
+  );
 
-  const rows: RepurchaseShipment[] = (
-    (data as Record<string, unknown>[] | null) ?? []
-  ).map((r) => ({
+  const rows: RepurchaseShipment[] = data.map((r) => ({
     markbox: (r.client_markbox as string | null) ?? null,
     clientName: (r.client_name as string | null) ?? null,
     code: String(r.code ?? ""),
@@ -1161,18 +1232,20 @@ export async function commercialPipeline(
   today?: Date,
 ): Promise<PipelineReport> {
   const range = periodRange(period, today);
-  const { data, error } = await supabase
-    .from("quotes")
-    .select("status, cbm, total_usd")
-    .is("deleted_at", null)
-    .gte("created_at", range.from)
-    .lte("created_at", `${range.to}T23:59:59.999Z`)
-    .limit(20000);
-  if (error) throw error;
+  const data = await filasDelReporte<Record<string, unknown>>(
+    "Embudo comercial · cotizaciones",
+    (d, h) =>
+      supabase
+        .from("quotes")
+        .select("id, status, cbm, total_usd")
+        .is("deleted_at", null)
+        .gte("created_at", range.from)
+        .lte("created_at", `${range.to}T23:59:59.999Z`)
+        .order("id", { ascending: true })
+        .range(d, h),
+  );
 
-  const quotes: PipelineQuote[] = (
-    (data as Record<string, unknown>[] | null) ?? []
-  ).map((r) => ({
+  const quotes: PipelineQuote[] = data.map((r) => ({
     status: r.status as QuoteStatus,
     cbm: numOrNull(r.cbm),
     total_usd: num(r.total_usd),
