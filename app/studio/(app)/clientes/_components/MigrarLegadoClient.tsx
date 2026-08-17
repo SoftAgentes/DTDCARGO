@@ -173,6 +173,7 @@ export function MigrarLegadoClient({ esAdmin }: { esAdmin: boolean }) {
                 className="studio-btn studio-btn-ghost studio-btn-sm"
                 onClick={() => correr(false)}
                 disabled={pending}
+                aria-busy={pending}
               >
                 {pending ? "Calculando…" : "Simular"}
               </button>

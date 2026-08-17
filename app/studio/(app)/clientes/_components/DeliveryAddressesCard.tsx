@@ -230,6 +230,11 @@ export function DeliveryAddressesCard({
                     type="button"
                     className="studio-link-quiet"
                     disabled={busy != null}
+                    // SDD-0267 · BTN-01 §5. `aria-busy` sólo cuando ESTA fila
+                    // está trabajando: `disabled` se activa con cualquier fila
+                    // en vuelo (guarda anti doble-click), pero "ocupado" es de
+                    // la que ejecuta.
+                    aria-busy={busy === `default:${a.id}`}
                     onClick={async () => {
                       setError(null);
                       setBusy(`default:${a.id}`);

@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 259 specs)
+### Índice de specs (generado · 260 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -297,6 +297,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0264 | La dirección de la bodega en Alibaba, medida contra el formul… | in-progress | interna |
 | 0265 | El listado de Clientes dice cuántos hay y deja llegar a los q… | in-progress | interna |
 | 0266 | La cabecera de Clientes deja de competir consigo misma | in-progress | interna |
+| 0267 | Clientes cierra sus tres huecos de accesibilidad — tabla, car… | in-progress | interna |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

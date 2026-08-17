@@ -213,7 +213,7 @@ export function ShippingMarkChip({
                 </p>
               )}
               <div style={{ display: "flex", gap: 8 }}>
-                <button type="submit" className="studio-btn studio-btn-dark studio-btn-sm" disabled={pending}>
+                <button type="submit" className="studio-btn studio-btn-dark studio-btn-sm" disabled={pending} aria-busy={pending}>
                   {pending ? "Cambiando…" : "Cambiar"}
                 </button>
                 <button
