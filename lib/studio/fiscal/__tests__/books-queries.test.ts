@@ -70,6 +70,9 @@ const REAL_FISCAL_BOOK_ENTRY_COLUMNS = new Set([
 
 type Recorded = { eq: [string, unknown][]; selects: string[] };
 
+/** Tope por request del doble de prueba: el `db-max-rows` de Supabase. */
+const SERVER_CAP = 1000;
+
 function stub(rowsByTable: Record<string, Record<string, unknown>[] | null>): {
   client: SupabaseClient;
   calls: Record<string, Recorded>;
@@ -96,6 +99,21 @@ function stub(rowsByTable: Record<string, Record<string, unknown>[] | null>): {
         order: () => chain,
         limit: () => chain,
         maybeSingle: () => Promise.resolve(single),
+        // Se comporta como PostgREST de verdad: por más rango que se pida,
+        // nunca devuelve más de SERVER_CAP filas. Sin esto el doble de prueba
+        // sería más generoso que el servidor y el test saldría verde con
+        // código que en producción trunca.
+        range: (from: number, to: number) => {
+          const pedido = to - from + 1;
+          const trozo = Array.isArray(rows)
+            ? rows.slice(from, from + Math.min(pedido, SERVER_CAP))
+            : [];
+          return {
+            ...chain,
+            then: (resolve: (v: { data: unknown; error: null }) => unknown) =>
+              Promise.resolve({ data: trozo, error: null }).then(resolve),
+          };
+        },
         then: (resolve: (v: typeof listResult) => unknown) =>
           Promise.resolve(listResult).then(resolve),
       };
@@ -309,5 +327,68 @@ describe("listPostedBooks", () => {
     expect(list[0].status).toBe("anulado");
     expect(list[0].entries).toEqual([]);
     expect(list[0].voidReason).toBe("corrección");
+  });
+});
+
+/**
+ * El bug del tope de 1.000 filas, sobre el documento que se PRESENTA.
+ *
+ * El doble de prueba corta en 1.000 filas por request igual que PostgREST, así
+ * que este test falla con `.limit(20000)` y pasa con paginación real. Es la
+ * demostración de que el número cambia: sin ella, el arreglo sería una
+ * afirmación sin medir.
+ */
+describe("getPostedBook · el libro no se trunca en 1.000 líneas", () => {
+  const libro = {
+    id: "b1",
+    period: "2026-06",
+    book_type: "ventas",
+    status: "asentado",
+    total_base: "0",
+    total_iva: "0",
+    total_total: "0",
+    total_base_exenta: "0",
+    total_base_gravada: "0",
+    total_base_tasa_cero: "0",
+    row_count: "1500",
+    currencies: ["USD"],
+    default_iva_mode: null,
+    posted_at: "2026-07-01T00:00:00Z",
+    posted_by: null,
+    voided_at: null,
+    voided_by: null,
+    void_reason: null,
+  };
+
+  it("trae las 1.500 líneas, no las primeras 1.000", async () => {
+    const lineas = Array.from({ length: 1500 }, (_, i) => ({
+      id: `l${i + 1}`,
+      line_no: i + 1,
+      op_date: "2026-06-15",
+      document_number: `F-${i + 1}`,
+      control_number: null,
+      rif: "J-123",
+      party_name: "Cliente",
+      iva_class: "gravada",
+      base: "100",
+      rate: "16",
+      iva: "16",
+      total: "116",
+      retention: null,
+      currency: "USD",
+      source_type: "invoice",
+      source_ref: null,
+    }));
+
+    const { client } = stub({
+      fiscal_books: [libro],
+      fiscal_book_entries: lineas,
+    });
+
+    const res = await getPostedBook(client, "2026-06", "ventas");
+    expect(res).not.toBeNull();
+    expect(res!.entries).toHaveLength(1500);
+    // Y la última línea es la 1500: no se cortó ni se repitió una página.
+    expect(res!.entries[1499].lineNo).toBe(1500);
   });
 });

@@ -22,6 +22,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import {
   DEFAULT_FISCAL_SETTINGS,
   type DeclarationPeriod,
@@ -208,18 +209,27 @@ export async function salesBook(
   settings: FiscalSettings,
 ): Promise<FiscalBook<SalesBookRow>> {
   const range = fiscalRange(period);
-  const { data, error } = await supabase
-    .from("invoices")
-    .select(INVOICE_COLUMNS)
-    .is("deleted_at", null)
-    .in("status", SALE_STATUSES as unknown as string[])
-    .gte("created_at", range.from)
-    .lte("created_at", `${range.to}T23:59:59.999Z`)
-    .order("created_at", { ascending: true })
-    .limit(20000);
-  if (error) throw error;
-
-  const raw = (data as Record<string, unknown>[] | null) ?? [];
+  // Paginado: el libro de ventas del período se arma sumando estas facturas.
+  // `.limit(20000)` devolvía 1.000 y el libro salía corto — no "faltan
+  // facturas en una lista", sino ventas declaradas de menos.
+  const { rows: raw, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (from, to) =>
+      supabase
+        .from("invoices")
+        .select(INVOICE_COLUMNS)
+        .is("deleted_at", null)
+        .in("status", SALE_STATUSES as unknown as string[])
+        .gte("created_at", range.from)
+        .lte("created_at", `${range.to}T23:59:59.999Z`)
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+  );
+  if (!complete) {
+    throw new Error(
+      "Las ventas del período superan el tope de lectura; el libro no se puede armar completo.",
+    );
+  }
 
   // Resolver RIF + nombre desde clients (1 query por los markbox del período).
   const clientByMarkbox = await fetchClientsByMarkbox(
@@ -270,15 +280,34 @@ async function fetchClientsByMarkbox(
   const map = new Map<string, { rif: string | null; name: string | null }>();
   if (unique.length === 0) return map;
 
-  const { data, error } = await supabase
-    .from("clients")
-    .select("markbox, name, rif")
-    .is("deleted_at", null)
-    .in("markbox", unique)
-    .limit(20000);
-  if (error) throw error;
+  // Dos topes, los dos reales: las filas devueltas (se pagina) y el largo del
+  // `.in(...)`, que viaja en la URL (se parte en lotes). Si esta lectura se
+  // corta, las facturas de los clientes que quedaron fuera salen en el libro
+  // fiscal **sin RIF y sin nombre** — un libro con filas mudas, no un libro
+  // corto. `.limit(20000)` no protegía de ninguno de los dos.
+  const MARKBOX_POR_LOTE = 500;
+  const filas: Record<string, unknown>[] = [];
+  for (let i = 0; i < unique.length; i += MARKBOX_POR_LOTE) {
+    const lote = unique.slice(i, i + MARKBOX_POR_LOTE);
+    const { rows, complete } = await fetchAllPaged<Record<string, unknown>>(
+      (from, to) =>
+        supabase
+          .from("clients")
+          .select("id, markbox, name, rif")
+          .is("deleted_at", null)
+          .in("markbox", lote)
+          .order("id", { ascending: true })
+          .range(from, to),
+    );
+    if (!complete) {
+      throw new Error(
+        "No se pudieron resolver todos los RIF del período; el libro quedaría con filas sin identificar.",
+      );
+    }
+    filas.push(...rows);
+  }
 
-  for (const r of (data as Record<string, unknown>[] | null) ?? []) {
+  for (const r of filas) {
     const markbox = (r.markbox as string | null) ?? null;
     if (!markbox) continue;
     map.set(markbox, {
@@ -313,19 +342,30 @@ export async function purchaseBook(
   settings: FiscalSettings,
 ): Promise<FiscalBook<PurchaseBookRow>> {
   const range = fiscalRange(period);
-  const { data, error } = await supabase
-    .from("supplier_bills")
-    .select(BILL_COLUMNS)
-    .is("deleted_at", null)
-    .neq("status", "anulada")
-    .gte("issue_date", range.from)
-    .lte("issue_date", range.to)
-    .order("issue_date", { ascending: true })
-    .limit(20000);
-  if (error) throw error;
+
+  // Paginado: el libro de COMPRAS del período. Truncar acá declara menos
+  // crédito fiscal del que corresponde. `.limit(20000)` devolvía 1.000.
+  const { rows: filas, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (from, to) =>
+      supabase
+        .from("supplier_bills")
+        .select(BILL_COLUMNS)
+        .is("deleted_at", null)
+        .neq("status", "anulada")
+        .gte("issue_date", range.from)
+        .lte("issue_date", range.to)
+        .order("issue_date", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+  );
+  if (!complete) {
+    throw new Error(
+      "Las compras del período superan el tope de lectura; el libro no se puede armar completo.",
+    );
+  }
 
   const currencies = new Set<string>();
-  const rows = ((data as Record<string, unknown>[] | null) ?? []).map((r) => {
+  const rows = filas.map((r) => {
     const currency = (r.currency as string | null) ?? null;
     if (currency) currencies.add(currency);
     // El embed PostgREST puede venir como objeto o array según la relación.

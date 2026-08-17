@@ -13,6 +13,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import {
   type PostedBook,
   type PostedBookEntry,
@@ -148,15 +149,25 @@ export async function getPostedBook(
   if (error) throw error;
   if (!data) return null;
 
-  const { data: lineData, error: lineErr } = await supabase
-    .from("fiscal_book_entries")
-    .select(FISCAL_BOOK_ENTRY_COLUMNS)
-    .eq("book_id", data.id)
-    .order("line_no", { ascending: true })
-    .limit(20000);
-  if (lineErr) throw lineErr;
+  // Paginado: este es el libro fiscal ASENTADO, el que se presenta. Un mes
+  // movido pasa de mil líneas sin esfuerzo, y `.limit(20000)` no lo evitaba —
+  // PostgREST devolvía 1.000 y el libro salía incompleto sin decir nada.
+  // `line_no` es único dentro del libro, así que ya desempata.
+  const { rows: lineData, complete } = await fetchAllPaged<EntryRow>((from, to) =>
+    supabase
+      .from("fiscal_book_entries")
+      .select(FISCAL_BOOK_ENTRY_COLUMNS)
+      .eq("book_id", data.id)
+      .order("line_no", { ascending: true })
+      .range(from, to),
+  );
+  if (!complete) {
+    throw new Error(
+      "Este libro fiscal supera el tope de lectura; no se puede mostrar incompleto.",
+    );
+  }
 
-  const entries = ((lineData as EntryRow[] | null) ?? []).map(mapEntry);
+  const entries = lineData.map(mapEntry);
   return mapHeader(data, entries);
 }
 
@@ -175,7 +186,12 @@ export async function listPostedBooks(
     .eq("book_type", bookType)
     .order("period", { ascending: false })
     .order("posted_at", { ascending: false })
-    .limit(2000);
+    // Tope DECLARADO, no paginado: acá cada fila es la CABECERA de un libro
+    // (uno por período y tipo), así que mil filas son ~83 años de libros
+    // mensuales. El `.limit(2000)` anterior era falso —PostgREST devuelve
+    // 1.000 igual—; éste dice la verdad y no gasta un request extra en
+    // paginar algo que no va a crecer.
+    .limit(1000);
   if (error) throw error;
   return ((data as BookRow[] | null) ?? []).map((r) => mapHeader(r, []));
 }

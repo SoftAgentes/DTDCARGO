@@ -14,6 +14,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import {
   type TaxWithholding,
   type WithholdingStatus,
@@ -80,15 +81,26 @@ export async function listWithholdings(
   supabase: SupabaseClient,
   period: string,
 ): Promise<TaxWithholding[]> {
-  const { data, error } = await supabase
-    .from("tax_withholdings")
-    .select(WITHHOLDING_COLUMNS)
-    .eq("period", period)
-    .order("op_date", { ascending: true })
-    .order("created_at", { ascending: true })
-    .limit(20000);
-  if (error) throw error;
-  return ((data as WithholdingRow[] | null) ?? []).map(mapRow);
+  // Paginado: estas filas alimentan `withholdingTotals`, que SUMA el IVA y el
+  // ISLR retenidos del período. Truncar acá no muestra menos retenciones —
+  // declara menos impuesto retenido. `.limit(20000)` devolvía 1.000.
+  // Se desempata por `id`: dos retenciones pueden compartir fecha y creación.
+  const { rows, complete } = await fetchAllPaged<WithholdingRow>((from, to) =>
+    supabase
+      .from("tax_withholdings")
+      .select(WITHHOLDING_COLUMNS)
+      .eq("period", period)
+      .order("op_date", { ascending: true })
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  if (!complete) {
+    throw new Error(
+      "Las retenciones del período superan el tope de lectura; los totales no se pueden calcular completos.",
+    );
+  }
+  return rows.map(mapRow);
 }
 
 /** Totales del período por tipo. SOLO cuenta los `emitido` (anulados fuera). */

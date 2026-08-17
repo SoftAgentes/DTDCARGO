@@ -44,6 +44,9 @@ const REAL_WITHHOLDING_COLUMNS = new Set([
 
 type Recorded = { eq: [string, unknown][]; selects: string[] };
 
+/** Tope por request del doble de prueba: el `db-max-rows` de Supabase. */
+const SERVER_CAP = 1000;
+
 function stub(rows: Record<string, unknown>[]): {
   client: SupabaseClient;
   calls: Record<string, Recorded>;
@@ -62,6 +65,21 @@ function stub(rows: Record<string, unknown>[]): {
         eq: (c: string, v: unknown) => (rec.eq.push([c, v]), chain),
         order: () => chain,
         limit: () => chain,
+        // Se comporta como PostgREST de verdad: por más rango que se pida,
+        // nunca devuelve más de SERVER_CAP filas. Sin esto el doble de prueba
+        // sería más generoso que el servidor y el test saldría verde con
+        // código que en producción trunca.
+        range: (from: number, to: number) => {
+          const pedido = to - from + 1;
+          const trozo = Array.isArray(rows)
+            ? rows.slice(from, from + Math.min(pedido, SERVER_CAP))
+            : [];
+          return {
+            ...chain,
+            then: (resolve: (v: { data: unknown; error: null }) => unknown) =>
+              Promise.resolve({ data: trozo, error: null }).then(resolve),
+          };
+        },
         then: (resolve: (v: typeof listResult) => unknown) =>
           Promise.resolve(listResult).then(resolve),
       };
