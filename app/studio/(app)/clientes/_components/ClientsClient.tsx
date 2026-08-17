@@ -365,7 +365,15 @@ function ClientsTable({
   const aliadoPorId = new Map(aliados.map((a) => [a.id, a]));
 
   return (
+    /* SDD-0267 · Esto se ve como una tabla y no lo era: `<div>` en grid, y los
+       seis encabezados eran `<span>` sueltos SIN asociar a sus celdas. Un lector
+       de pantalla anunciaba seis cadenas por fila sin decir cuál es la cédula y
+       cuál el Shipping Mark — dos códigos alfanuméricos seguidos, indescifrables
+       de oído. Los roles ARIA de tabla arreglan la relación (WCAG 1.3.1) SIN
+       tocar un píxel: el layout sigue siendo el mismo grid. */
     <div
+      role="table"
+      aria-label="Clientes"
       style={{
         background: "var(--bg-surface)",
         border: "1px solid var(--border)",
@@ -375,6 +383,7 @@ function ClientsTable({
     >
       {/* Header */}
       <div
+        role="row"
         style={{
           display: "grid",
           gridTemplateColumns: "120px 120px 1.5fr 100px 1.2fr 140px",
@@ -388,12 +397,12 @@ function ClientsTable({
           color: "var(--ink-soft)",
         }}
       >
-        <span>Shipping Mark</span>
-        <span>Cédula/RIF</span>
-        <span>Nombre</span>
-        <span>Tier</span>
-        <span>Contacto</span>
-        <span>Creado</span>
+        <span role="columnheader">Shipping Mark</span>
+        <span role="columnheader">Cédula/RIF</span>
+        <span role="columnheader">Nombre</span>
+        <span role="columnheader">Tier</span>
+        <span role="columnheader">Contacto</span>
+        <span role="columnheader">Creado</span>
       </div>
 
       {clients.map((c, i) => (
@@ -401,6 +410,16 @@ function ClientsTable({
           key={c.id}
           href={`/studio/clientes/${c.markbox}`}
           className="studio-tracking-row"
+          /* ⚠️ SALDO DECLARADO: `role="row"` sobre el <a> **sustituye** el rol
+             de enlace, así que el lector ya no dice "enlace". Se compensa con
+             `aria-label`, que nombra a quién lleva la fila. El arreglo COMPLETO
+             es el que prescribe BTN-01 §4 —"la navegación principal suele ser
+             enlace en la identidad de la fila"—: mover el <a> a la celda del
+             Shipping Mark y dejar el clic de fila como afordancia de ratón. Eso
+             cambia cómo se opera el listado y necesita su propio slice; no se
+             cuela acá. Ver §"Fuera de alcance" del SDD-0267. */
+          role="row"
+          aria-label={`${c.name} · Shipping Mark ${c.markbox}`}
           style={{
             display: "grid",
             gridTemplateColumns: "120px 120px 1.5fr 100px 1.2fr 140px",
@@ -413,6 +432,7 @@ function ClientsTable({
           }}
         >
           <span
+            role="cell"
             style={{
               font: "700 12.5px/1 var(--f-mono)",
               color: "var(--ink)",
@@ -422,6 +442,7 @@ function ClientsTable({
             {c.markbox}
           </span>
           <span
+            role="cell"
             style={{
               font: "600 12px/1 var(--f-mono)",
               color: c.rif ? "var(--ink)" : "var(--ink-mute)",
@@ -434,6 +455,7 @@ function ClientsTable({
             {c.rif ?? "—"}
           </span>
           <div
+            role="cell"
             style={{
               font: "600 13px/1.3 var(--f-sans)",
               color: "var(--ink)",
@@ -488,12 +510,13 @@ function ClientsTable({
               </div>
             )}
           </div>
-          <span>
+          <span role="cell">
             <Badge tone={tierBadgeTone(c.tier)} size="sm">
               {tierLabel(c.tier)}
             </Badge>
           </span>
           <div
+            role="cell"
             style={{
               font: "500 12px/1.3 var(--f-sans)",
               color: "var(--ink-soft)",
@@ -525,6 +548,7 @@ function ClientsTable({
             {!c.email && !c.phone && <span style={{ color: "var(--ink-mute)" }}>—</span>}
           </div>
           <span
+            role="cell"
             style={{
               font: "500 11.5px/1 var(--f-sans)",
               color: "var(--ink-soft)",

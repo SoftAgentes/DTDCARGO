@@ -359,7 +359,7 @@ export function AliadoCard({
           )}
 
           <div style={{ display: "flex", gap: 8 }}>
-            <button type="submit" className="studio-btn studio-btn-dark studio-btn-sm" disabled={pending}>
+            <button type="submit" className="studio-btn studio-btn-dark studio-btn-sm" disabled={pending} aria-busy={pending}>
               {pending ? "Guardando…" : esAliado ? "Guardar acuerdo" : "Convertir en aliado"}
             </button>
             <button

@@ -29,6 +29,7 @@ import {
 } from "../actions";
 import { Icon } from "@/app/studio/_components/icons";
 import { SplitActionButton } from "@/app/studio/_components/ui/SplitActionButton";
+import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { prefixChain, type AliadoOption } from "@/lib/studio/aliados/aliado-types";
 
@@ -262,86 +263,25 @@ export function ClientDrawer({ mode, client, onClose, aliados = [] }: Props) {
   const title = mode === "create" ? "Nuevo cliente" : "Editar cliente";
 
   return (
-    <div
-      onClick={() => !isPending && !isDeleting && onClose()}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="client-drawer-title"
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15, 30, 61, 0.55)",
-        zIndex: 100,
-        display: "flex",
-        justifyContent: "flex-end",
-      }}
-    >
-      <aside
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "min(560px, 96vw)",
-          height: "100vh",
-          background: "var(--bg-surface)",
-          borderLeft: "1px solid var(--border)",
-          boxShadow: "var(--shadow-pop)",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
-        {/* Header */}
-        <header
-          style={{
-            padding: "18px 22px",
-            borderBottom: "1px solid var(--border)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexShrink: 0,
-            gap: 12,
-          }}
-        >
-          <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
-            <h2
-              id="client-drawer-title"
-              className="studio-display"
-              style={{ fontSize: 18, margin: 0, color: "var(--ink)" }}
-            >
-              {title}
-            </h2>
-            {mode === "edit" && client && (
-              <div
-                style={{
-                  font: "700 11.5px/1 var(--f-mono)",
-                  color: "var(--ink-soft)",
-                  letterSpacing: "0.02em",
-                }}
-              >
-                {client.markbox}
-              </div>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            disabled={isPending || isDeleting}
-            style={{
-              width: 32,
-              height: 32,
-              display: "grid",
-              placeItems: "center",
-              borderRadius: "var(--r-sm)",
-              color: "var(--ink-soft)",
-              background: "transparent",
-              cursor: isPending || isDeleting ? "wait" : "pointer",
-              flexShrink: 0,
-            }}
-          >
-            {Icon.close(14)}
-          </button>
-        </header>
+    /* SDD-0267 · Antes esto armaba el diálogo a mano, y le faltaba lo que no se
+       ve: NI foco inicial, NI trampa de foco, NI Escape para cerrar (medido: 0
+       ocurrencias de `useDialogA11y|Escape|focus()`). Con teclado se podía tabular
+       FUERA del drawer hacia la página de atrás y no había forma de cerrarlo sin
+       ratón. Además `role="dialog"` estaba sobre el SCRIM, no sobre el panel, y
+       el velo era un hex a mano (`rgba(15,30,61,.55)`) en vez de `var(--scrim)`.
 
+       `DrawerShell` es el patrón de la casa por goleada —105 archivos lo usan,
+       20 no— y trae `useDialogA11y`: foco inicial, restauración al cerrar,
+       trampa y Escape. Esto no es consistencia cosmética: es un defecto
+       funcional de accesibilidad que se cierra reusando lo que ya existe. */
+    <DrawerShell
+      title={title}
+      subtitle={mode === "edit" && client ? client.markbox : undefined}
+      onClose={onClose}
+      pending={isPending || isDeleting}
+      width={560}
+      closeLabel="Cerrar"
+    >
         <form
           id="client-drawer-form"
           action={mode === "edit" ? formAction : undefined}
@@ -614,6 +554,9 @@ export function ClientDrawer({ mode, client, onClose, aliados = [] }: Props) {
                   className="studio-btn studio-btn-ghost studio-btn-sm"
                   onClick={geocodeFromAddress}
                   disabled={isGeocoding || geoStatus === "loading"}
+                  // Ocupado sólo cuando ESTE botón trabaja: `disabled` también
+                  // se activa mientras corre el GPS del botón de al lado.
+                  aria-busy={isGeocoding}
                   style={{ whiteSpace: "nowrap" }}
                   title="Geocoding via OpenStreetMap a partir de la dirección"
                 >
@@ -624,6 +567,8 @@ export function ClientDrawer({ mode, client, onClose, aliados = [] }: Props) {
                   className="studio-btn studio-btn-ghost studio-btn-sm"
                   onClick={captureGps}
                   disabled={isGeocoding || geoStatus === "loading"}
+                  // Misma lógica que su etiqueta de carga de abajo.
+                  aria-busy={geoStatus === "loading" && !isGeocoding}
                   style={{ whiteSpace: "nowrap" }}
                 >
                   {geoStatus === "loading" && !isGeocoding ? "Capturando…" : "Capturar GPS aquí"}
@@ -936,14 +881,14 @@ export function ClientDrawer({ mode, client, onClose, aliados = [] }: Props) {
                 form="client-drawer-form"
                 className="studio-btn studio-btn-primary"
                 disabled={isPending}
+                aria-busy={isPending}
               >
                 {isPending ? "Guardando…" : "Guardar cambios"}
               </button>
             )}
           </div>
         </footer>
-      </aside>
-    </div>
+    </DrawerShell>
   );
 }
 
