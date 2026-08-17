@@ -21,6 +21,9 @@ import { hashEvidence } from "../seal";
 import type { DocRef } from "../types";
 
 // ── Stub de SupabaseClient con filtrado real por .eq ──────────
+/** Tope por request del doble: el `db-max-rows` de Supabase. */
+const SERVER_CAP = 1000;
+
 function stub(
   rowsByTable: Record<string, Record<string, unknown>[]>,
 ): SupabaseClient {
@@ -40,6 +43,21 @@ function stub(
         eq(col: string, val: unknown) {
           filters.push([col, val]);
           return chain;
+        },
+        // Terminal paginado: corta en SERVER_CAP por request igual que
+        // PostgREST. Un doble más generoso que el servidor deja pasar código
+        // que en producción trunca.
+        range(desde: number, hasta: number) {
+          const all = rowsByTable[table] ?? [];
+          const filtradas = all.filter((row) =>
+            filters.every(([col, val]) => row[col] === val),
+          );
+          const pedido = hasta - desde + 1;
+          const trozo = filtradas.slice(
+            desde,
+            desde + Math.min(pedido, SERVER_CAP),
+          );
+          return Promise.resolve({ data: trozo, error: null });
         },
         then(resolve: (v: { data: unknown; error: null }) => unknown) {
           const all = rowsByTable[table] ?? [];

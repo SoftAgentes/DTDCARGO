@@ -35,10 +35,22 @@ describe("tallyStatusCounts", () => {
   });
 });
 
-/** Mock de conteos: select→eq→limit resuelve `{ data, error }`. */
+/** Tope por request del doble: el `db-max-rows` de Supabase. */
+const SERVER_CAP = 1000;
+
+/** Mock de conteos: select→eq→order→range resuelve `{ data, error }`. */
 function makeCountsAdmin(rows: Array<{ status: string }>, error: unknown = null) {
   const chain = {
     eq: () => chain,
+    order: () => chain,
+    // Corta en SERVER_CAP por request igual que PostgREST: un doble más
+    // generoso que el servidor deja pasar código que en producción trunca.
+    range: (desde: number, hasta: number) => {
+      if (error) return Promise.resolve({ data: null, error });
+      const pedido = hasta - desde + 1;
+      const trozo = rows.slice(desde, desde + Math.min(pedido, SERVER_CAP));
+      return Promise.resolve({ data: trozo, error: null });
+    },
     limit: () => Promise.resolve({ data: error ? null : rows, error }),
   };
   return { from: () => ({ select: () => chain }) } as never;

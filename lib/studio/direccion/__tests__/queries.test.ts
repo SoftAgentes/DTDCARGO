@@ -220,6 +220,9 @@ describe("firstOfMonth", () => {
  * métodos de la cadena son passthrough; `maybeSingle()` y el thenable final
  * entregan data+count. `rpc()` resuelve el valor configurado.
  */
+/** Tope por request del doble: el `db-max-rows` de Supabase. */
+const SERVER_CAP = 1000;
+
 function makeClient(opts: {
   tables?: Record<string, { data?: unknown[]; count?: number }>;
   rpc?: Record<string, unknown>;
@@ -255,6 +258,15 @@ function makeClient(opts: {
           data: (entry.data ?? [])[0] ?? null,
           error: null,
         });
+      // Terminal paginado: corta en SERVER_CAP por request igual que PostgREST.
+      // Un doble más generoso que el servidor deja pasar código que en
+      // producción trunca — así sobrevivió el bug del tope de 1.000 filas.
+      chain.range = (desde: number, hasta: number) => {
+        const todas = entry.data ?? [];
+        const pedido = hasta - desde + 1;
+        const trozo = todas.slice(desde, desde + Math.min(pedido, SERVER_CAP));
+        return Promise.resolve({ ...result, data: trozo, error: null });
+      };
       chain.then = (resolve: (v: unknown) => unknown) =>
         Promise.resolve(result).then(resolve);
       return chain;

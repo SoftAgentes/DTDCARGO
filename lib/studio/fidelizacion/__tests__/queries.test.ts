@@ -35,6 +35,9 @@ type Recorded = { eq: [string, unknown][]; or: string[] };
  * (default []). Encadena select/order/limit/eq/or y se resuelve como promise
  * al final (await). Registra eq/or por tabla en `calls`.
  */
+/** Tope por request del doble: el `db-max-rows` de Supabase. */
+const SERVER_CAP = 1000;
+
 function stub(rowsByTable: Record<string, Record<string, unknown>[]>): {
   client: SupabaseClient;
   calls: Record<string, Recorded>;
@@ -53,6 +56,15 @@ function stub(rowsByTable: Record<string, Record<string, unknown>[]>): {
         },
         order() {
           return chain;
+        },
+        // Terminal paginado: corta en SERVER_CAP por request igual que
+        // PostgREST. Un doble más generoso que el servidor deja pasar
+        // código que en producción trunca.
+        range(desde: number, hasta: number) {
+          const pedido = hasta - desde + 1;
+          const todas = rows ?? [];
+          const trozo = todas.slice(desde, desde + Math.min(pedido, SERVER_CAP));
+          return Promise.resolve({ data: trozo, error: null });
         },
         limit() {
           return chain;

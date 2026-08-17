@@ -21,6 +21,9 @@ import {
 } from "../invoice-queries";
 import type { Invoice } from "../invoice-types";
 
+/** Tope por request del doble: el `db-max-rows` de Supabase. */
+const SERVER_CAP = 1000;
+
 const YEAR = new Date().getFullYear();
 const past = (() => {
   const d = new Date();
@@ -107,21 +110,26 @@ describe("tabCounts", () => {
   });
 });
 
-/** Stub de SupabaseClient para invoiceKpis (cadena from().select().limit()). */
+/**
+ * Stub de SupabaseClient para invoiceKpis: `from().select().order().range()`.
+ *
+ * El `range` corta en SERVER_CAP por request igual que PostgREST. Sin ese tope
+ * el doble sería más generoso que el servidor y el test saldría verde con
+ * código que en producción trunca — que es exactamente cómo el bug del tope de
+ * 1.000 filas sobrevivió meses en este repo.
+ */
 function kpiStub(rows: Record<string, unknown>[]): SupabaseClient {
-  return {
-    from() {
-      return {
-        select() {
-          return {
-            limit() {
-              return Promise.resolve({ data: rows, error: null });
-            },
-          };
-        },
-      };
+  const chain: Record<string, unknown> = {
+    select: () => chain,
+    order: () => chain,
+    limit: () => Promise.resolve({ data: rows, error: null }),
+    range: (desde: number, hasta: number) => {
+      const pedido = hasta - desde + 1;
+      const trozo = rows.slice(desde, desde + Math.min(pedido, SERVER_CAP));
+      return Promise.resolve({ data: trozo, error: null });
     },
-  } as unknown as SupabaseClient;
+  };
+  return { from: () => chain } as unknown as SupabaseClient;
 }
 
 describe("invoiceKpis", () => {
@@ -165,6 +173,15 @@ function listStub(rows: Record<string, unknown>[]): SupabaseClient {
   const chain = {
     order() {
       return chain;
+    },
+    // Terminal paginado: corta en SERVER_CAP por request igual que
+    // PostgREST. Un doble más generoso que el servidor deja pasar
+    // código que en producción trunca.
+    range(desde: number, hasta: number) {
+      const pedido = hasta - desde + 1;
+      const todas = rows ?? [];
+      const trozo = todas.slice(desde, desde + Math.min(pedido, SERVER_CAP));
+      return Promise.resolve({ data: trozo, error: null });
     },
     limit() {
       return chain;
