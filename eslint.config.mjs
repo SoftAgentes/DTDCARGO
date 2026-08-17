@@ -152,6 +152,40 @@ const eslintConfig = defineConfig([
       "react-hooks/refs": "warn",
     },
   },
+
+  // ─── El tope de 1.000 filas de PostgREST ────────────────────────────────
+  //
+  // `.limit(5000)` NO sortea `db-max-rows`: PostgREST devuelve 1.000 filas, sin
+  // error y sin aviso. El número es una intención, no un contrato.
+  //
+  // Donde se pinta una lista se ven menos filas y se nota. Donde el resultado
+  // se AGREGA en JS —una suma, un conteo, un promedio— no falta una fila: sale
+  // un número equivocado con cara de verdad. Ya pasó: el tablero del CRM decía
+  // "1.000 leads" teniendo 3.145, y el embudo, la antigüedad, la cartera por
+  // asesor y la conversión salían todos del 32% de los datos. Meses así, porque
+  // nada falla — sólo miente.
+  //
+  // Esta regla es el mecanismo que impide la recaída. Entre la auditoría del
+  // 2026-08-13 y el día siguiente, los sitios pasaron de 102 a 105 **sin que
+  // nadie hiciera nada mal**: simplemente no había nada que lo cazara.
+  //
+  // Si de verdad hace falta un tope alto y declarado (una lista de UI que se
+  // corta a propósito), el `eslint-disable-next-line` va con el motivo escrito
+  // al lado. Un tope dicho es una decisión; uno silencioso es este bug.
+  {
+    files: ["lib/**/*.ts", "lib/**/*.tsx", "app/**/*.ts", "app/**/*.tsx"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "CallExpression[callee.property.name='limit'][arguments.0.type='Literal'][arguments.0.value>1000]",
+          message:
+            "`.limit(N)` con N > 1000 no sortea el tope de PostgREST: devuelve 1000 filas en silencio. Usa fetchAllPaged() de @/lib/db/paginate, o agrega en SQL con una RPC. Si el tope es a propósito, decláralo con un eslint-disable y el motivo.",
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

@@ -11,6 +11,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import type {
   Conversation,
   ConversationAgent,
@@ -231,13 +232,20 @@ export async function computeConversationKpis(
   supabase: SupabaseClient,
   now: Date = new Date(),
 ): Promise<ConversationKpis> {
-  const { data, error } = await supabase
-    .from("conversations")
-    .select("status, is_case, assigned_to, unread_count, updated_at")
-    .is("deleted_at", null)
-    .limit(2000);
+  // Paginado: son los KPI de conversaciones (conteos por estado).
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) =>
+      supabase
+        .from("conversations")
+        .select("status, is_case, assigned_to, unread_count, updated_at")
+        .is("deleted_at", null)
+        .order("id", { ascending: true })
+        .range(d, h),
+  );
+  if (!complete) {
+    throw new Error("Las conversaciones superan el tope de lectura para el KPI.");
+  }
 
-  if (error || !data) return EMPTY_KPIS;
 
   return aggregateKpis(
     data as Array<{

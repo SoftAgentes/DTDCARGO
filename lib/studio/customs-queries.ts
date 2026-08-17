@@ -6,6 +6,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import type {
   CustomsAgent,
   CustomsDocument,
@@ -330,11 +331,20 @@ export async function computeCustomsKpis(
         .from("customs_filings")
         .select("id", { count: "exact", head: true })
         .not("alert", "is", null),
-      supabase
-        .from("customs_filings")
-        .select("total_duty, igtf, iva, agent_fee")
-        .gte("created_at", yearStart)
-        .limit(2000),
+      // Paginado: estos cuatro campos se SUMAN para el pagado del año.
+      fetchAllPaged<Record<string, unknown>>((d, h) =>
+        supabase
+          .from("customs_filings")
+          .select("id, total_duty, igtf, iva, agent_fee")
+          .gte("created_at", yearStart)
+          .order("id", { ascending: true })
+          .range(d, h),
+      ).then((r) => {
+        if (!r.complete) {
+          throw new Error("Las declaraciones del año superan el tope de lectura.");
+        }
+        return { data: r.rows, error: null };
+      }),
     ]);
 
   const totalPaidUsd = ((totalsResult.data as {
@@ -377,13 +387,20 @@ export async function computeTaxBreakdownYtd(
 ): Promise<TaxBreakdown> {
   const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
 
-  const { data, error } = await supabase
-    .from("customs_filings")
-    .select("total_duty, igtf, iva, agent_fee")
-    .gte("created_at", yearStart)
-    .limit(2000);
+  // Paginado: se SUMAN los cuatro campos del año fiscal.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) =>
+      supabase
+        .from("customs_filings")
+        .select("total_duty, igtf, iva, agent_fee")
+        .gte("created_at", yearStart)
+        .order("id", { ascending: true })
+        .range(d, h),
+  );
+  if (!complete) {
+    throw new Error("Las declaraciones del año superan el tope de lectura.");
+  }
 
-  if (error) throw error;
 
   const rows = (data as
     | { total_duty: number | string; igtf: number | string; iva: number | string; agent_fee: number | string }[]

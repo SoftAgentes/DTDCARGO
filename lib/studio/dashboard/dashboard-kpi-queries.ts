@@ -15,6 +15,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import { isOverdue, type InvoiceStatus } from "@/lib/studio/invoice-types";
 import { costingRows, costingTotals } from "@/lib/studio/costing/queries";
 import { listEmployees } from "@/lib/studio/nomina/employee-queries";
@@ -42,13 +43,21 @@ export type FinanceInvoiceKpis = {
 export async function financeInvoiceKpis(
   supabase: SupabaseClient,
 ): Promise<FinanceInvoiceKpis> {
-  const { data, error } = await supabase
-    .from("invoices")
-    .select("status, due_date, issued_at, total_amount, paid_amount, created_at")
-    .limit(5000);
+  // Paginado: KPI financiero del tablero — suma montos y cuenta estados.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) =>
+      supabase
+        .from("invoices")
+        .select("status, due_date, issued_at, total_amount, paid_amount, created_at")
+        .order("id", { ascending: true })
+        .range(d, h),
+  );
+  if (!complete) {
+    throw new Error("Las facturas superan el tope de lectura para el KPI del tablero.");
+  }
 
   const empty = "$0";
-  if (error || !data) {
+  if (data.length === 0) {
     return {
       monthRevenue: { value: empty, sub: "sin facturas", tone: "neutral" },
       invoicesDue: { value: "0", sub: "ninguna vencida", tone: "success" },

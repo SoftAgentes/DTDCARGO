@@ -10,6 +10,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import {
   PURCHASE_ORDER_STATUSES,
   type PurchaseOrder,
@@ -68,17 +69,22 @@ export async function listPurchaseOrders(
   supabase: SupabaseClient,
   opts: { status?: string } = {},
 ): Promise<PurchaseOrder[]> {
-  let query = supabase
-    .from("purchase_orders")
-    .select(PO_COLUMNS)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false })
-    .limit(2000);
-  if (opts.status) query = query.eq("status", opts.status);
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return ((data as Record<string, unknown>[] | null) ?? []).map(
+  // Paginado: las órdenes de compra se acumulan con los meses.
+  const pagina = (d: number, h: number) => {
+    let q = supabase
+      .from("purchase_orders")
+      .select(PO_COLUMNS)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true });
+    if (opts.status) q = q.eq("status", opts.status);
+    return q.range(d, h);
+  };
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(pagina);
+  if (!complete) {
+    throw new Error("Las órdenes de compra superan el tope de lectura; filtra por estado.");
+  }
+  return data.map(
     coercePurchaseOrder,
   );
 }
@@ -128,7 +134,7 @@ export async function listPurchaseOrderItems(
     .order("created_at", { ascending: true })
     .limit(500);
   if (error) throw error;
-  return ((data as Record<string, unknown>[] | null) ?? []).map(coercePoItem);
+  return data.map(coercePoItem);
 }
 
 // ── Stats del operador ─────────────────────────────────────────
@@ -163,12 +169,18 @@ export async function purchaseOrderStats(
   };
 
   try {
-    const { data, error } = await supabase
-      .from("purchase_orders")
-      .select("status, total_cost_usd")
-      .is("deleted_at", null)
-      .limit(20000);
-    if (error) throw error;
+    // Paginado: son los KPI de órdenes de compra — SUMAN montos.
+    const { rows: data, complete } = await fetchAllPaged<
+      Record<string, unknown>
+    >((d, h) =>
+      supabase
+        .from("purchase_orders")
+        .select("id, " + "status, total_cost_usd".replace(/^"|"$/g, "") )
+        .is("deleted_at", null)
+        .order("id", { ascending: true })
+        .range(d, h),
+    );
+    if (!complete) throw new Error("Las órdenes de compra superan el tope de lectura.");
 
     const rows =
       (data as { status: string; total_cost_usd: unknown }[] | null) ?? [];

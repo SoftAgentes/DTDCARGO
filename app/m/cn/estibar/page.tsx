@@ -10,6 +10,7 @@
  */
 
 import Link from "next/link";
+import { fetchAllByIds } from "@/lib/db/paginate";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/db/admin";
 import { getCurrentOperario } from "@/lib/auth/operario-session";
@@ -71,17 +72,22 @@ export default async function EstibarIndexPage() {
   // Cuántas cajas ya están estibadas en cada uno
   const counts = new Map<string, number>();
   if (consolidations.length > 0) {
-    const { data: pos } = await admin
-      .from("consolidation_box_positions")
-      .select("consolidation_id")
-      .in(
-        "consolidation_id",
-        consolidations.map((c) => c.id),
-      )
-      .is("unstuffed_at", null)
-      .limit(5000);
+    // Por lotes y paginado: es el CONTEO de cajas ya estibadas por contenedor.
+    // Truncar no muestra menos contenedores — muestra contenedores más vacíos
+    // de lo que están, y el operario vuelve a estibar sobre lo ya estibado.
+    const { rows: pos } = await fetchAllByIds<{ consolidation_id: string }>(
+      consolidations.map((c) => c.id),
+      (lote, d, h) =>
+        admin
+          .from("consolidation_box_positions")
+          .select("box_id, consolidation_id")
+          .in("consolidation_id", lote)
+          .is("unstuffed_at", null)
+          .order("box_id", { ascending: true })
+          .range(d, h),
+    );
 
-    for (const p of (pos as { consolidation_id: string }[] | null) ?? []) {
+    for (const p of pos) {
       counts.set(p.consolidation_id, (counts.get(p.consolidation_id) ?? 0) + 1);
     }
   }

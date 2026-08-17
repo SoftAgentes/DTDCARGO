@@ -11,6 +11,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import {
   STAGE_MAP_KEYS,
   type EstimateStageKey,
@@ -470,7 +471,17 @@ export async function getWritebackStatus(
       .from("kommo_connections")
       .select("writeback_enabled, writeback_dry_run")
       .maybeSingle<{ writeback_enabled: boolean | null; writeback_dry_run: boolean | null }>(),
-    supabase.from("kommo_writeback_outbox").select("status").limit(5000),
+    // Paginado: esto CUENTA la cola por estado (pendientes, enviadas, con
+    // error). Truncar no muestra menos filas — da un panel de write-back con
+    // números equivocados, y es justo el panel al que se mira para saber si la
+    // cola está sana.
+    fetchAllPaged<{ status: string }>((d, h) =>
+      supabase
+        .from("kommo_writeback_outbox")
+        .select("id, status")
+        .order("id", { ascending: true })
+        .range(d, h),
+    ),
     supabase
       .from("sync_logs")
       .select("started_at, entity")
@@ -481,7 +492,7 @@ export async function getWritebackStatus(
   ]);
 
   const counts = { pending: 0, sent: 0, skipped: 0, error: 0 };
-  for (const r of (rows.data as { status: string }[] | null) ?? []) {
+  for (const r of rows.rows) {
     if (r.status in counts) counts[r.status as keyof typeof counts]++;
   }
 

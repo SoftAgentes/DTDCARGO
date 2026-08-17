@@ -12,6 +12,7 @@
  * ante error → vacío/ceros.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import { journeyEventLabel } from "./client-notification-types";
 
 export type NotificationStatus =
@@ -118,13 +119,18 @@ export async function getNotificationStatusCounts(
   tenantId: string,
 ): Promise<NotificationStatusCounts> {
   try {
-    const { data, error } = await admin
-      .from("client_notification_schedule")
-      .select("status")
-      .eq("tenant_id", tenantId)
-      .limit(5000);
-    if (error || !data) return emptyStatusCounts();
-    return tallyStatusCounts(data as Array<{ status: string }>);
+    // Paginado: son CONTEOS por estado de la cola de avisos al cliente.
+    const { rows, complete } = await fetchAllPaged<{ status: string }>(
+      (d, h) =>
+        admin
+          .from("client_notification_schedule")
+          .select("id, status")
+          .eq("tenant_id", tenantId)
+          .order("id", { ascending: true })
+          .range(d, h),
+    );
+    if (!complete) return emptyStatusCounts();
+    return tallyStatusCounts(rows);
   } catch (err) {
     console.error("[client-notif] getNotificationStatusCounts falló:", err);
     return emptyStatusCounts();

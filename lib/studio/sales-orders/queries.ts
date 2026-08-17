@@ -13,6 +13,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import {
   SALES_ORDER_STATUSES,
   type SalesOrder,
@@ -95,17 +96,22 @@ export async function listSalesOrders(
   supabase: SupabaseClient,
   opts: { status?: string } = {},
 ): Promise<SalesOrder[]> {
-  let query = supabase
-    .from("sales_orders")
-    .select(SO_SELECT)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false })
-    .limit(2000);
-  if (opts.status) query = query.eq("status", opts.status);
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return ((data as Record<string, unknown>[] | null) ?? []).map(
+  // Paginado: las órdenes de venta se acumulan con los meses.
+  const pagina = (d: number, h: number) => {
+    let q = supabase
+      .from("sales_orders")
+      .select(SO_SELECT)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true });
+    if (opts.status) q = q.eq("status", opts.status);
+    return q.range(d, h);
+  };
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(pagina);
+  if (!complete) {
+    throw new Error("Las órdenes de venta superan el tope de lectura; filtra por estado.");
+  }
+  return data.map(
     coerceSalesOrder,
   );
 }
@@ -160,7 +166,7 @@ export async function listPrealertasForSalesOrder(
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) throw error;
-    return ((data as Record<string, unknown>[] | null) ?? []).map(
+    return data.map(
       coercePrealerta,
     );
   } catch {
@@ -225,7 +231,7 @@ export async function listInvoicesForSalesOrder(
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) throw error;
-    return ((data as Record<string, unknown>[] | null) ?? []).map((r) => ({
+    return data.map((r) => ({
       id: String(r.id),
       invoice_code: String(r.invoice_code ?? ""),
       total_amount: num(r.total_amount),
@@ -270,12 +276,18 @@ export async function salesOrderStats(
   };
 
   try {
-    const { data, error } = await supabase
-      .from("sales_orders")
-      .select("status, total_usd")
-      .is("deleted_at", null)
-      .limit(20000);
-    if (error) throw error;
+    // Paginado: son los KPI de órdenes de venta — SUMAN montos.
+    const { rows: data, complete } = await fetchAllPaged<
+      Record<string, unknown>
+    >((d, h) =>
+      supabase
+        .from("sales_orders")
+        .select("id, " + "status, total_usd".replace(/^"|"$/g, "") )
+        .is("deleted_at", null)
+        .order("id", { ascending: true })
+        .range(d, h),
+    );
+    if (!complete) throw new Error("Las órdenes de venta superan el tope de lectura.");
 
     const rows =
       (data as { status: string; total_usd: unknown }[] | null) ?? [];

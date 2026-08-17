@@ -11,6 +11,7 @@
  */
 
 import { redirect } from "next/navigation";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import { createAdminClient } from "@/lib/db/admin";
 import { getCurrentOperario } from "@/lib/auth/operario-session";
 import { EstibaClient, type SugerenciaPlan } from "../_components/EstibaClient";
@@ -58,14 +59,17 @@ export default async function EstibarPage({
 
   // Lo ya montado (solo posiciones vivas). SDD-0155: lo que importa para la UI del
   // operario es CUÁNTAS cajas y CUÁNTOS lotes (load_order distintos), no la grilla.
-  const { data: posRows } = await admin
-    .from("consolidation_box_positions")
-    .select("load_order")
-    .eq("consolidation_id", consolidationId)
-    .is("unstuffed_at", null)
-    .limit(5000);
-
-  const rows = (posRows as { load_order: number | null }[] | null) ?? [];
+  // Paginado: de acá salen "cuántas cajas" y "cuántos lotes" que ve el
+  // operario. Truncar le dice que falta menos carga de la que falta.
+  const { rows } = await fetchAllPaged<{ load_order: number | null }>((d, h) =>
+    admin
+      .from("consolidation_box_positions")
+      .select("box_id, load_order")
+      .eq("consolidation_id", consolidationId)
+      .is("unstuffed_at", null)
+      .order("box_id", { ascending: true })
+      .range(d, h),
+  );
   const stuffedCount = rows.length;
   const lotsCount = new Set(rows.map((r) => r.load_order ?? 0)).size;
 

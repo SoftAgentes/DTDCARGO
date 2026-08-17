@@ -9,6 +9,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import {
   invoiceUsdAmount,
   REFERRAL_RULES,
@@ -63,14 +64,22 @@ export async function clientAnnualBilling(
   supabase: SupabaseClient,
   now: Date = new Date(),
 ): Promise<Map<string, number>> {
-  const { data, error } = await supabase
-    .from("invoices")
-    .select(
-      "client_markbox, currency, total_amount, fx_rate, status, issued_at, created_at",
-    )
-    .limit(5000);
+  // Paginado: acá se SUMA la facturación anual por cliente, que es lo que
+  // decide su nivel de fidelización. Truncar baja de nivel a quien no le toca.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) =>
+      supabase
+        .from("invoices")
+        .select(
+          "client_markbox, currency, total_amount, fx_rate, status, issued_at, created_at",
+        )
+        .order("id", { ascending: true })
+        .range(d, h),
+  );
+  if (!complete) {
+    throw new Error("Las facturas superan el tope de lectura; la facturación anual quedaría corta.");
+  }
 
-  if (error) throw error;
 
   const start = trailingStart(now);
   const out = new Map<string, number>();
@@ -125,12 +134,19 @@ export async function clientsWithTier(
 ): Promise<ClientWithTier[]> {
   const billing = await clientAnnualBilling(supabase, now);
 
-  const { data, error } = await supabase
-    .from("clients")
-    .select("id, markbox, name")
-    .limit(2000);
+  // Paginado: la cartera completa para cruzar con la facturación.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) =>
+      supabase
+        .from("clients")
+        .select("id, markbox, name")
+        .order("id", { ascending: true })
+        .range(d, h),
+  );
+  if (!complete) {
+    throw new Error("Los clientes superan el tope de lectura.");
+  }
 
-  if (error) throw error;
 
   const rows = ((data as Record<string, unknown>[] | null) ?? []).map((r) => {
     const markbox = String(r.markbox ?? "");

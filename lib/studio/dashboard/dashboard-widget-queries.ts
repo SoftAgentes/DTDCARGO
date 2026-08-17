@@ -10,6 +10,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import type { ShipmentStatus } from "@/lib/shared/shipment-public";
 
 /** Statuses NO activos (no aparecen en "en curso" ni en el gráfico de volumen). */
@@ -74,12 +75,20 @@ export async function getMonthlyVolume(
   const from = new Date(now.getFullYear(), now.getMonth() - 11, 1);
   const fromIso = from.toISOString().slice(0, 10);
 
-  const { data, error } = await supabase
-    .from("shipments")
-    .select("volume_m3, created_at")
-    .is("deleted_at", null)
-    .gte("created_at", fromIso)
-    .limit(5000);
+  // Paginado: el CBM mensual del widget se suma sobre estas filas.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) =>
+      supabase
+        .from("shipments")
+        .select("volume_m3, created_at")
+        .is("deleted_at", null)
+        .gte("created_at", fromIso)
+        .order("id", { ascending: true })
+        .range(d, h),
+  );
+  if (!complete) {
+    throw new Error("Los embarques del período superan el tope de lectura.");
+  }
 
   // 12 buckets: index 0 = hace 11 meses … index 11 = mes actual.
   const buckets: MonthlyVolumePoint[] = [];
@@ -88,9 +97,9 @@ export async function getMonthlyVolume(
     buckets.push({ label: MONTH_LABELS[d.getMonth()], value: 0 });
   }
 
-  if (error || !data) return buckets;
+  if (data.length === 0) return buckets;
 
-  for (const raw of data as Record<string, unknown>[]) {
+  for (const raw of data) {
     const created = String(raw.created_at ?? "");
     const dt = new Date(created);
     if (Number.isNaN(dt.getTime())) continue;

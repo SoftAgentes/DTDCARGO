@@ -26,6 +26,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import {
   measureMatches,
   type DocRef,
@@ -98,7 +99,7 @@ export async function currentClientDocs(
     .order("key", { ascending: true });
 
   if (error) throw error;
-  return ((data as Record<string, unknown>[] | null) ?? []).map(coerceDoc);
+  return data.map(coerceDoc);
 }
 
 /**
@@ -125,7 +126,7 @@ export async function listLegalDocs(
   const { data, error } = await q;
 
   if (error) throw error;
-  return ((data as Record<string, unknown>[] | null) ?? []).map(coerceDoc);
+  return data.map(coerceDoc);
 }
 
 const ACCEPTANCE_COLUMNS =
@@ -161,18 +162,25 @@ export async function listAcceptances(
   supabase: SupabaseClient,
   filter: AcceptanceFilter = {},
 ): Promise<LegalAcceptance[]> {
-  let q = supabase
-    .from("legal_acceptances")
-    .select(ACCEPTANCE_COLUMNS)
-    .order("accepted_at", { ascending: false })
-    .limit(2000);
+  // Paginado: son las aceptaciones de términos — evidencia legal. Una que
+  // no aparece se lee como que el cliente nunca aceptó.
+  const pagina = (d: number, h: number) => {
+    let q = supabase
+      .from("legal_acceptances")
+      .select(ACCEPTANCE_COLUMNS)
+      .order("accepted_at", { ascending: false })
+      .order("id", { ascending: true });
+    if (filter.client) q = q.eq("client_id", filter.client);
+    return q.range(d, h);
+  };
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(pagina);
+  if (!complete) {
+    throw new Error("Las aceptaciones superan el tope de lectura; filtra por cliente.");
+  }
 
-  if (filter.client) q = q.eq("client_id", filter.client);
 
-  const { data, error } = await q;
-  if (error) throw error;
 
-  let rows = ((data as Record<string, unknown>[] | null) ?? []).map(
+  let rows = data.map(
     coerceAcceptance,
   );
 

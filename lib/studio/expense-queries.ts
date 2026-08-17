@@ -3,6 +3,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import { EXPENSE_CATEGORY_ACCOUNT_CODE } from "./expense-types";
 import type {
   Expense,
@@ -173,15 +174,25 @@ export async function listMonthExpensesForExport(
   month?: string,
 ): Promise<ExportRow[]> {
   const { start, end } = monthRange(month);
-  const { data, error } = await supabase
-    .from("expenses")
-    .select(EXPENSE_COLUMNS + ", shipments(code)")
-    .is("deleted_at", null)
-    .gte("occurred_at", start)
-    .lt("occurred_at", end)
-    .order("occurred_at", { ascending: true })
-    .limit(5000);
-  if (error) throw error;
+  // Paginado: es el EXPORT de los gastos del mes. Un export corto se ve igual
+  // que un mes tranquilo — nadie nota que faltan filas.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) =>
+      supabase
+        .from("expenses")
+        .select(EXPENSE_COLUMNS + ", shipments(code)")
+        .is("deleted_at", null)
+        .gte("occurred_at", start)
+        .lt("occurred_at", end)
+        .order("occurred_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(d, h),
+  );
+  if (!complete) {
+    throw new Error(
+      "Los gastos del mes superan el tope de lectura; el export quedaría incompleto.",
+    );
+  }
 
   type Raw = Expense & {
     shipments: { code: string | null } | { code: string | null }[] | null;

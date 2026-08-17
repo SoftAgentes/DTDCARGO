@@ -12,6 +12,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import type { Account } from "../account-types";
 import { isCashAccount } from "../payment-queries";
 import { invoiceUsdAmount } from "../fidelizacion/types";
@@ -96,17 +97,23 @@ export async function listBills(
   supabase: SupabaseClient,
   opts: { supplierId?: string } = {},
 ): Promise<SupplierBill[]> {
-  let query = supabase
-    .from("supplier_bills")
-    .select(BILL_COLUMNS)
-    .order("due_date", { ascending: true, nullsFirst: false })
-    .order("created_at", { ascending: false })
-    .limit(2000);
-  if (opts.supplierId) query = query.eq("supplier_id", opts.supplierId);
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return ((data as Record<string, unknown>[] | null) ?? []).map(coerceBill);
+  // Paginado: es la cola de PAGOS a proveedor, ordenada por vencimiento —
+  // lo que se perdía por el tope era justo lo que vence después.
+  const pagina = (d: number, h: number) => {
+    let q = supabase
+      .from("supplier_bills")
+      .select(BILL_COLUMNS)
+      .order("due_date", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true });
+    if (opts.supplierId) q = q.eq("supplier_id", opts.supplierId);
+    return q.range(d, h);
+  };
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(pagina);
+  if (!complete) {
+    throw new Error("Las facturas de proveedor superan el tope de lectura; filtra por proveedor.");
+  }
+  return data.map(coerceBill);
 }
 
 /** Lee una CxP por id. null si no existe (o RLS la oculta). */
@@ -138,7 +145,7 @@ export async function listPayments(
 
   const { data, error } = await query;
   if (error) throw error;
-  return ((data as Record<string, unknown>[] | null) ?? []).map(coercePayment);
+  return data.map(coercePayment);
 }
 
 // ── Cola de CxP (derivada) ─────────────────────────────────────
@@ -387,7 +394,7 @@ async function listAccounts(supabase: SupabaseClient): Promise<Account[]> {
     .select(ACCOUNT_COLUMNS)
     .limit(1000);
   if (error) throw error;
-  return ((data as Record<string, unknown>[] | null) ?? []).map(coerceAccount);
+  return data.map(coerceAccount);
 }
 
 /** Lista las cuentas de costo/gasto postables del tenant (para el select de CxP). */

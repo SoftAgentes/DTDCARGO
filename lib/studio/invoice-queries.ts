@@ -5,6 +5,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import {
   computeBalance,
   isInvoiceIvaMode,
@@ -158,14 +159,22 @@ export type InvoiceKpis = {
 export async function invoiceKpis(
   supabase: SupabaseClient,
 ): Promise<InvoiceKpis> {
-  const { data, error } = await supabase
-    .from("invoices")
-    .select(
-      "status, due_date, issued_at, total_amount, paid_amount, created_at",
-    )
-    .limit(2000);
+  // Paginado: los KPI de facturación (por cobrar, vencido) salen de sumar
+  // estas filas. Es la fuente que reusan el tablero y el flujo de caja.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) =>
+      supabase
+        .from("invoices")
+        .select(
+          "status, due_date, issued_at, total_amount, paid_amount, created_at",
+        )
+        .order("id", { ascending: true })
+        .range(d, h),
+  );
+  if (!complete) {
+    throw new Error("Las facturas superan el tope de lectura para los KPI.");
+  }
 
-  if (error) throw error;
 
   const rows = ((data as Record<string, unknown>[] | null) ?? []).map((r) => ({
     status: r.status as InvoiceStatus,

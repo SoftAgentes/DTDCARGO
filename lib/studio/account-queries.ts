@@ -5,6 +5,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllByIds, fetchAllPaged } from "@/lib/db/paginate";
 import {
   compareCodes,
   normalSide,
@@ -164,31 +165,47 @@ export async function accountBalances(
   // Traemos los ids de asientos asentados (con filtro de fecha opcional)
   // y luego sus líneas. Dos queries simples evitan depender de la forma del
   // embedded join de PostgREST.
-  let entriesQuery = supabase
-    .from("journal_entries")
-    .select("id")
-    .eq("status", "asentado")
-    .is("deleted_at", null)
-    .limit(10000);
-  if (opts.upToDate) entriesQuery = entriesQuery.lte("entry_date", opts.upToDate);
-  if (opts.fromDate) entriesQuery = entriesQuery.gte("entry_date", opts.fromDate);
+  // Paginado: son los asientos que entran al BALANCE. Uno que no entra
+  // desaparece del saldo de su cuenta, sin error.
+  const entriesPaged = await fetchAllPaged<{ id: string }>((d, h) => {
+    let q = supabase
+      .from("journal_entries")
+      .select("id")
+      .eq("status", "asentado")
+      .is("deleted_at", null)
+      .order("id", { ascending: true });
+    if (opts.upToDate) q = q.lte("entry_date", opts.upToDate);
+    if (opts.fromDate) q = q.gte("entry_date", opts.fromDate);
+    return q.range(d, h);
+  });
+  if (!entriesPaged.complete) {
+    throw new Error(
+      "Los asientos superan el tope de lectura; el balance no se puede calcular completo.",
+    );
+  }
 
-  const { data: entryRows, error: entriesErr } = await entriesQuery;
-  if (entriesErr) throw entriesErr;
-
-  const entryIds = ((entryRows as { id: string }[] | null) ?? []).map(
-    (r) => r.id,
-  );
+  const entryIds = entriesPaged.rows.map((r) => r.id);
   if (entryIds.length === 0) {
     return computeBalances(accounts, []);
   }
 
-  const { data: lineRows, error: linesErr } = await supabase
-    .from("journal_lines")
-    .select("account_id, debit, credit")
-    .in("entry_id", entryIds)
-    .limit(50000);
-  if (linesErr) throw linesErr;
+  // Por lotes y paginado: son las LÍNEAS del balance. Dos topes reales —
+  // el `.in(...)` en la URL y las filas devueltas.
+  const { rows: lineRows, complete: linesOk } = await fetchAllByIds<
+    Record<string, unknown>
+  >(entryIds, (lote, d, h) =>
+    supabase
+      .from("journal_lines")
+      .select("id, account_id, debit, credit")
+      .in("entry_id", lote)
+      .order("id", { ascending: true })
+      .range(d, h),
+  );
+  if (!linesOk) {
+    throw new Error(
+      "Las líneas de asiento superan el tope de lectura; el balance quedaría descuadrado.",
+    );
+  }
 
   const postings = ((lineRows as Record<string, unknown>[] | null) ?? []).map(
     (r) => ({

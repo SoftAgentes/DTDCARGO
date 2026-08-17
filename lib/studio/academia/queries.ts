@@ -5,6 +5,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import {
   countAttended,
   attendanceRatio,
@@ -424,14 +425,24 @@ export async function findPersonByCedula(
   // Traemos los candidatos del tenant con cédula no-nula y filtramos normalizado
   // en TS (Postgrest no expone regexp_replace en el filtro). El universo de
   // personas por tenant es chico; si crece, esto pasa a una RPC como 0174.
-  const { data } = await supabase
-    .from("persons")
-    .select("id, name, national_id")
-    .not("national_id", "is", null)
-    .is("deleted_at", null)
-    .limit(2000);
+  // Paginado: se busca UNA persona por cédula recorriendo todas. Si la
+  // lectura se corta, la persona existe y el sistema dice que no — y ahí se
+  // crea un duplicado.
+  const { rows: data } = await fetchAllPaged<{
+    id: string;
+    name: string;
+    national_id: string | null;
+  }>((d, h) =>
+    supabase
+      .from("persons")
+      .select("id, name, national_id")
+      .not("national_id", "is", null)
+      .is("deleted_at", null)
+      .order("id", { ascending: true })
+      .range(d, h),
+  );
 
-  for (const p of (data ?? []) as { id: string; name: string; national_id: string | null }[]) {
+  for (const p of data) {
     if (p.national_id && normalizeCedula(p.national_id) === target) return p;
   }
   return null;

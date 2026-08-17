@@ -4,6 +4,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import type {
   TmsDriver,
   TmsIncidentRow,
@@ -404,13 +405,20 @@ export async function computeIncidentsKpis(
     .toISOString()
     .slice(0, 10);
 
-  const { data, error } = await supabase
-    .from("tms_incidents")
-    .select("incident_type, cost_usd")
-    .gte("occurred_at", monthStart)
-    .limit(2000);
+  // Paginado: los incidentes del mes se agrupan y su costo se SUMA.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) =>
+      supabase
+        .from("tms_incidents")
+        .select("incident_type, cost_usd")
+        .gte("occurred_at", monthStart)
+        .order("id", { ascending: true })
+        .range(d, h),
+  );
+  if (!complete) {
+    throw new Error("Los incidentes del mes superan el tope de lectura.");
+  }
 
-  if (error) throw error;
   const rows =
     (data as { incident_type: TmsIncidentType; cost_usd: number | string }[] | null) ??
     [];
