@@ -33,27 +33,39 @@ import {
 } from "react";
 import { Icon, type IconName } from "@/app/studio/_components/icons";
 
-/** Una opción del menú, o un separador entre grupos. */
+/** Lo común a una opción, navegue o ejecute. */
+type OpcionBase = {
+  key: string;
+  label: string;
+  icon?: IconName;
+  /**
+   * Rol SEMÁNTICO, no color (BTN-01 §2). `destructive` pinta la opción en
+   * `--danger`; la confirmación la decide el consumidor según MP-01.
+   */
+  role?: "default" | "destructive";
+  disabled?: boolean;
+  /**
+   * BTN-01 §6: una acción deshabilitada que el usuario espera debe explicar
+   * qué falta. Se muestra bajo la etiqueta, no sólo como tooltip — un botón
+   * nativamente deshabilitado no siempre recibe hover ni foco.
+   */
+  disabledReason?: string;
+  separator?: never;
+};
+
+/**
+ * Una opción del menú, o un separador entre grupos.
+ *
+ * BTN-01 §2 separa las dos cosas y el tipo lo obliga: **`href` navega y
+ * renderiza `<a>`; `onSelect` ejecuta y renderiza `<button>`**. No se pueden
+ * pasar los dos. Lo destapó el primer consumidor (SDD-0266): "Posibles
+ * duplicados" y "Códigos del legado" son rutas, no acciones, y meterlas como
+ * `onSelect` con un `router.push` adentro habría sido un botón disfrazado de
+ * enlace — justo lo que la política separa.
+ */
 export type ActionMenuItem =
-  | {
-      key: string;
-      label: string;
-      icon?: IconName;
-      /**
-       * Rol SEMÁNTICO, no color (BTN-01 §2). `destructive` pinta la opción en
-       * `--danger`; la confirmación la decide el consumidor según MP-01.
-       */
-      role?: "default" | "destructive";
-      disabled?: boolean;
-      /**
-       * BTN-01 §6: una acción deshabilitada que el usuario espera debe explicar
-       * qué falta. Se muestra bajo la etiqueta, no sólo como tooltip — un botón
-       * nativamente deshabilitado no siempre recibe hover ni foco.
-       */
-      disabledReason?: string;
-      onSelect: () => void | Promise<void>;
-      separator?: never;
-    }
+  | (OpcionBase & { onSelect: () => void | Promise<void>; href?: never })
+  | (OpcionBase & { href: string; onSelect?: never })
   | { key: string; separator: true };
 
 type Props = {
@@ -253,9 +265,13 @@ export function ActionMenu({
                 key={item.key}
                 item={item}
                 onEjecutar={() => {
+                  // Al navegar NO se devuelve el foco al trigger: la página
+                  // cambia y el foco viaja con ella. Devolverlo acá pelearía
+                  // con el enrutador.
                   setAbierto(false);
+                  if ("href" in item && item.href) return;
                   triggerRef.current?.focus();
-                  void item.onSelect();
+                  void item.onSelect?.();
                 }}
               />
             ) : (
@@ -279,24 +295,35 @@ function OpcionDelMenu({
   item,
   onEjecutar,
 }: {
-  item: Extract<ActionMenuItem, { onSelect: unknown }>;
+  item: Exclude<ActionMenuItem, { separator: true }>;
   onEjecutar: () => void;
 }) {
   const destructiva = item.role === "destructive";
+  // BTN-01 §2: navega → `<a>`; ejecuta → `<button>`. La apariencia es la misma;
+  // lo que cambia es lo que el navegador y el lector de pantalla entienden.
+  const navega = "href" in item && !!item.href && !item.disabled;
+  const Etiqueta = navega ? "a" : "button";
+  const propsSegunTipo = navega
+    ? { href: (item as { href: string }).href }
+    : { type: "button" as const };
   return (
-    <button
-      type="button"
+    <Etiqueta
+      {...propsSegunTipo}
       role="menuitem"
       // `aria-disabled` y no `disabled`: un botón nativamente deshabilitado no
       // recibe foco, así que el motivo de BTN-01 §6 quedaría inalcanzable con
       // teclado. La guarda real está en el onClick.
       aria-disabled={item.disabled || undefined}
       tabIndex={-1}
-      onClick={() => {
-        if (item.disabled) return;
+      onClick={(e: React.MouseEvent) => {
+        if (item.disabled) {
+          e.preventDefault();
+          return;
+        }
         onEjecutar();
       }}
       style={{
+        textDecoration: "none",
         display: "flex",
         flexDirection: "column",
         alignItems: "flex-start",
@@ -339,6 +366,6 @@ function OpcionDelMenu({
           {item.disabledReason}
         </span>
       )}
-    </button>
+    </Etiqueta>
   );
 }

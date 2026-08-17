@@ -256,3 +256,67 @@ describe("ActionMenu · BTN-01 §7", () => {
     spy.mockRestore();
   });
 });
+
+describe("ActionMenu · opciones que NAVEGAN (SDD-0266)", () => {
+  const navItems: ActionMenuItem[] = [
+    { key: "dup", label: "Posibles duplicados", href: "/studio/clientes/duplicados" },
+    { key: "leg", label: "Códigos del legado", href: "/studio/clientes/migrar-legado" },
+  ];
+
+  it("una opción con `href` renderiza <a>, no <button> (BTN-01 §2)", async () => {
+    const user = userEvent.setup();
+    render(<ActionMenu ariaLabel="Mantenimiento" items={navItems} />);
+    await user.click(screen.getByRole("button", { name: /mantenimiento/i }));
+
+    const opcion = screen.getByRole("menuitem", { name: /posibles duplicados/i });
+    expect(opcion.tagName).toBe("A");
+    expect(opcion.getAttribute("href")).toBe("/studio/clientes/duplicados");
+  });
+
+  it("navegar NO devuelve el foco al trigger: la página se va con él", async () => {
+    const user = userEvent.setup();
+    render(<ActionMenu ariaLabel="Mantenimiento" items={navItems} />);
+    const trigger = screen.getByRole("button", { name: /mantenimiento/i });
+    await user.click(trigger);
+    await user.click(screen.getByRole("menuitem", { name: /códigos del legado/i }));
+
+    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+    expect(document.activeElement).not.toBe(trigger);
+  });
+
+  it("las de navegación también se recorren con flechas", async () => {
+    const user = userEvent.setup();
+    render(<ActionMenu ariaLabel="Mantenimiento" items={navItems} />);
+    await user.click(screen.getByRole("button", { name: /mantenimiento/i }));
+
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getAllByRole("menuitem")[0]),
+    );
+    await user.keyboard("{ArrowDown}");
+    expect(document.activeElement).toBe(screen.getAllByRole("menuitem")[1]);
+  });
+
+  it("un `href` deshabilitado no navega: vuelve a <button> y no ejecuta", async () => {
+    const user = userEvent.setup();
+    render(
+      <ActionMenu
+        ariaLabel="Mantenimiento"
+        items={[
+          {
+            key: "dup",
+            label: "Posibles duplicados",
+            href: "/studio/clientes/duplicados",
+            disabled: true,
+            disabledReason: "No hay candidatos por ahora",
+          },
+        ]}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /mantenimiento/i }));
+
+    const opcion = screen.getByRole("menuitem");
+    expect(opcion.tagName).toBe("BUTTON");
+    expect(opcion.getAttribute("href")).toBeNull();
+    expect(screen.getByText("No hay candidatos por ahora")).toBeTruthy();
+  });
+});

@@ -25,6 +25,7 @@ import type { ClientFilters } from "@/lib/studio/client-queries";
 import { prefixChain, type AliadoOption } from "@/lib/studio/aliados/aliado-types";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import { ActionMenu } from "@/app/studio/_components/ui/ActionMenu";
 import { ClientDrawer } from "./ClientDrawer";
 
 type DrawerState = null | { mode: "create" } | { mode: "edit"; client: Client };
@@ -136,16 +137,27 @@ export function ClientsClient({
           </p>
         </div>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          {/* SDD-0246: clientes que ya existían y se registraron otra vez por la
-              web, así que tienen dos Shipping Mark. Se revisan y fusionan a mano. */}
-          <Link href="/studio/clientes/duplicados" className="studio-btn studio-btn-ghost">
-            Posibles duplicados
-          </Link>
-          {/* SDD-0258: las fichas que todavía llevan la serie de VENDEDOR del
-              legado (DTD-A101, DTD-j029…) y se pasan a la serie de la casa. */}
-          <Link href="/studio/clientes/migrar-legado" className="studio-btn studio-btn-ghost">
-            Códigos del legado
-          </Link>
+          {/* SDD-0266 · BTN-01 §4: "acciones raras pasan al menú". Fusionar
+              duplicados (SDD-0246) y migrar códigos del legado (SDD-0258) son
+              mantenimiento episódico; antes ocupaban permanentemente el mismo
+              renglón que la única acción de uso diario. Van con `href` y no con
+              `onSelect`: son rutas, y el menú las renderiza como <a>. */}
+          <ActionMenu
+            label="Mantenimiento"
+            ariaLabel="Tareas de mantenimiento de clientes"
+            items={[
+              {
+                key: "duplicados",
+                label: "Posibles duplicados",
+                href: "/studio/clientes/duplicados",
+              },
+              {
+                key: "legado",
+                label: "Códigos del legado",
+                href: "/studio/clientes/migrar-legado",
+              },
+            ]}
+          />
           <button
             type="button"
             className="studio-btn studio-btn-primary"

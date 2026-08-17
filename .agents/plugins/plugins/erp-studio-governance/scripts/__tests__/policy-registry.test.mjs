@@ -42,7 +42,9 @@ describe("PLG-01 policy registry", () => {
     // name, status, implementation, policyRefs y replacement. Por eso acá se
     // afirma el `status` y no los `consumers` — ese campo no viaja.
     const actionMenu = registry.components.find(({ id }) => id === "action-menu");
-    expect(actionMenu.status).toBe("proposed");
+    // `canonical` desde SDD-0266: la cabecera de Clientes es su consumidor
+    // verificado, que es lo que CMP-01 exige para promover.
+    expect(actionMenu.status).toBe("canonical");
     expect(actionMenu.policyRefs.some(({ code }) => code === "BTN-01")).toBe(true);
     const deprecated = registry.components.find(
       ({ id }) => id === "llm-mode-toggle",
