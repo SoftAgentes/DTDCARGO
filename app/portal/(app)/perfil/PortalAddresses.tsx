@@ -105,6 +105,9 @@ function AddressRow({
   address: ClientDeliveryAddress;
   cities: AddressCity[];
 }) {
+  // SDD-0268 · segundo paso del borrado. Es estado LOCAL de la fila a propósito:
+  // con dos direcciones abiertas, confirmar una no debe armar la otra.
+  const [confirmando, setConfirmando] = useState(false);
   const parts = [address.city, address.state].filter(Boolean).join(", ");
   // Cómo se cobra la entrega, si la ciudad es del catálogo.
   //
@@ -188,14 +191,56 @@ function AddressRow({
             />
           </form>
         )}
-        <form action={deleteAddressAction}>
-          <input type="hidden" name="addressId" value={address.id} />
-          <PendingTextButton
-            className="text-[12px] font-semibold text-grey-500 hover:text-ink"
-            idle="Eliminar"
-            pending="Eliminando…"
-          />
-        </form>
+        {/* SDD-0268 · Antes esto borraba con UN clic: un <form> con su submit y
+            nada más. Es el gemelo del que se cerró en el Studio (SDD-0262) sobre
+            la MISMA tabla (`client_delivery_addresses`, migr 0198), pero acá lo
+            pulsa el cliente en su propio portal.
+
+            MP-01 lo clasifica igual: P2 (soft-delete) y R2, porque no existe
+            camino de restauración —ni acá ni en el Studio—, así que no califica
+            como R1 "ejecutar y deshacer".
+
+            ⚠️ MP-01 R2 pide literalmente un `ConfirmDialog`, y el Portal NO
+            TIENE esa primitiva: los 4 componentes canónicos de CMP-01 viven en
+            `app/studio/_components/ui/` y el portal no importa de ahí (frontera).
+            Se entrega la SUSTANCIA de R2 —confirmación explícita que nombra el
+            registro y su consecuencia— con lo que hay, en vez de cruzar la
+            frontera o inventar una primitiva para un solo consumidor. Queda
+            declarado en la spec, no disimulado. */}
+        {confirmando ? (
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <span className="text-[12px] leading-[1.35] text-ink text-right">
+              ¿Eliminar «{address.label?.trim() || address.line}»? Tu asesor
+              deja de verla.
+            </span>
+            <form action={deleteAddressAction}>
+              <input type="hidden" name="addressId" value={address.id} />
+              <PendingTextButton
+                className="text-[12px] font-bold text-status-danger"
+                idle="Sí, eliminar"
+                pending="Eliminando…"
+              />
+            </form>
+            <button
+              type="button"
+              onClick={() => setConfirmando(false)}
+              className="text-[12px] font-semibold text-grey-500 hover:text-ink"
+            >
+              Cancelar
+            </button>
+          </div>
+        ) : (
+          /* `text-status-danger` y no `text-grey-500`: BTN-01 §2 pide variante
+             destructiva para el rol destructivo, y estaba invertido —
+             "Predeterminar", que no destruye nada, se veía MÁS que esto. */
+          <button
+            type="button"
+            onClick={() => setConfirmando(true)}
+            className="text-[12px] font-semibold text-status-danger hover:underline"
+          >
+            Eliminar
+          </button>
+        )}
       </div>
     </li>
   );
