@@ -13,6 +13,7 @@ import {
   type AddressActionState,
 } from "./address-actions";
 import { ArrowIcon, CheckIcon } from "@/components/Icon";
+import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 
 const initial: AddressActionState = {};
 
@@ -273,7 +274,7 @@ function AddForm({
       </label>
 
       {state.error ? (
-        <p className="text-[13px] text-wine leading-[1.45]">{state.error}</p>
+        <PortalFieldError nivel="formulario">{state.error}</PortalFieldError>
       ) : null}
 
       <div className="flex items-center gap-2">
@@ -344,7 +345,7 @@ function Input({
         required={required}
         className="h-11 px-3 rounded-[10px] bg-white border-[1.5px] border-grey-200 outline-none text-[14px] text-ink transition-colors focus:border-wine"
       />
-      {error ? <span className="text-[12px] text-wine">{error}</span> : null}
+      {error ? <PortalFieldError>{error}</PortalFieldError> : null}
     </label>
   );
 }

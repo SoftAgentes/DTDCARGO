@@ -139,7 +139,14 @@
   --color-wine-text: #d89aa4; /* = --wine-soft dark de Studio: wine legible como texto en oscuro (~6-8:1). --color-wine crudo NO alcanza AA como texto pequeño (~3-3.7:1) */
   --color-status-success: #2ea36e;
   --color-status-warning: #d3a24a;
-  --color-status-danger: #e0606b;
+  /* SDD-0261 · era #e0606b, que medía 4,29:1 sobre la card del portal (#16264A)
+     y reprobaba AA — justo donde viven los formularios. Pasa al token on-dark
+     que el founder aprobó el 2026-08-13. Medido: 8,29:1 sobre paper, 6,73:1
+     sobre card, 5,89:1 sobre grey-100 y 4,64:1 sobre la parada clara del nav
+     (peor caso). El tema claro NO se toca: :root conserva #c2353f (línea 68).
+     Esta línea cierra de paso el punto de aviso del sidebar (2,96 → 4,64:1) y
+     los bordes de error de los dos formularios de facturas. */
+  --color-status-danger: #f6929a;
   /* El héroe sube un escalón sobre el fondo navy de la página (resalta como card) */
   --hero-from: #1b2e54;
   --hero-to: #25406c;

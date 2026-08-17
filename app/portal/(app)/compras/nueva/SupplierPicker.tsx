@@ -30,6 +30,7 @@ import {
   type SupplierActionState,
 } from "@/lib/studio/prealertas/types";
 import { createSupplierAction } from "../../proveedores/actions";
+import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 
 const supplierInitial: SupplierActionState = {};
 
@@ -439,9 +440,7 @@ export function SupplierPicker({
             + Se creará &ldquo;{newSupplierName}&rdquo;
           </p>
           {newSupplierState.fieldErrors?.name && (
-            <p className="mt-1 text-[12px] text-wine">
-              {newSupplierState.fieldErrors.name}
-            </p>
+            <PortalFieldError>{newSupplierState.fieldErrors.name}</PortalFieldError>
           )}
 
           {showProfile && <SupplierProfileFields disabled={newSupplierPending} />}

@@ -12,6 +12,7 @@ import {
   cancelPaymentReportAction,
   type PaymentReportFormState,
 } from "../reportar/actions";
+import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 
 const initial: PaymentReportFormState = {};
 
@@ -116,9 +117,7 @@ function CancelButton({
         {pending ? "Cancelando…" : "Cancelar reporte"}
       </button>
       {state.error ? (
-        <p role="alert" className="mt-1 text-[11px] text-wine">
-          {state.error}
-        </p>
+        <PortalFieldError>{state.error}</PortalFieldError>
       ) : null}
     </form>
   );

@@ -29,6 +29,7 @@ import type {
 } from "@/lib/studio/prealertas/types";
 import type { PrealertaAddon } from "@/lib/studio/prealertas/addons";
 import { PrealertaServiceGallery } from "../../_components/PrealertaAddons";
+import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 
 const supplierInitial: SupplierActionState = {};
 const deleteSupplierInitial: DeleteSupplierActionState = {};
@@ -264,9 +265,7 @@ function SupplierCard({ supplier }: { supplier: SupplierView }) {
           <span className="text-wine font-bold">{supplier.nextCode}</span>
         </div>
         {deleteState.error && (
-          <p className="mt-1.5 text-[12px] text-wine leading-[1.4]">
-            {deleteState.error}
-          </p>
+          <PortalFieldError>{deleteState.error}</PortalFieldError>
         )}
       </div>
 
@@ -368,9 +367,7 @@ function EditSupplierForm({
         className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
       />
       {state.fieldErrors?.name && (
-        <p className="text-[12px] text-wine leading-[1.4]">
-          {state.fieldErrors.name}
-        </p>
+        <PortalFieldError>{state.fieldErrors.name}</PortalFieldError>
       )}
 
       <FieldLabel htmlFor={`${uid}-wechat`}>WeChat (opcional)</FieldLabel>
@@ -406,7 +403,7 @@ function EditSupplierForm({
       />
 
       {state.error && (
-        <p className="text-[12.5px] text-wine leading-[1.4]">{state.error}</p>
+        <PortalFieldError nivel="formulario">{state.error}</PortalFieldError>
       )}
 
       <div className="flex gap-2.5">
@@ -467,9 +464,7 @@ function AddSupplierForm({
         className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
       />
       {state.fieldErrors?.name && (
-        <p className="text-[12px] text-wine leading-[1.4]">
-          {state.fieldErrors.name}
-        </p>
+        <PortalFieldError>{state.fieldErrors.name}</PortalFieldError>
       )}
 
       <FieldLabel htmlFor={`${uid}-wechat`}>WeChat del proveedor (opcional)</FieldLabel>
@@ -502,7 +497,7 @@ function AddSupplierForm({
       />
 
       {state.error && (
-        <p className="text-[12.5px] text-wine leading-[1.4]">{state.error}</p>
+        <PortalFieldError nivel="formulario">{state.error}</PortalFieldError>
       )}
       <div className="flex gap-2.5">
         <button

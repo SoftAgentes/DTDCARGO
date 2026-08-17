@@ -8,6 +8,7 @@ import {
   registerAcceptanceAction,
   type AcceptanceFormState,
 } from "./actions";
+import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 
 const initial: AcceptanceFormState = {};
 
@@ -119,13 +120,7 @@ export function AcceptanceForm({
         </span>
       </label>
       {state.fieldErrors?.accept_docs ? (
-        <p
-          id="err-accept-docs"
-          role="alert"
-          className="mt-2 ml-[30px] text-[13px] text-wine leading-[1.4]"
-        >
-          {state.fieldErrors.accept_docs}
-        </p>
+        <PortalFieldError id="err-accept-docs" nivel="formulario" className="ml-[30px]">{state.fieldErrors.accept_docs}</PortalFieldError>
       ) : null}
 
       {/* Checkbox 2 · declaración de comerciante (siempre visible) */}
@@ -148,13 +143,7 @@ export function AcceptanceForm({
         </span>
       </label>
       {state.fieldErrors?.accept_merchant ? (
-        <p
-          id="err-accept-merchant"
-          role="alert"
-          className="mt-2 ml-[30px] text-[13px] text-wine leading-[1.4]"
-        >
-          {state.fieldErrors.accept_merchant}
-        </p>
+        <PortalFieldError id="err-accept-merchant" nivel="formulario" className="ml-[30px]">{state.fieldErrors.accept_merchant}</PortalFieldError>
       ) : null}
 
       {state.error ? (

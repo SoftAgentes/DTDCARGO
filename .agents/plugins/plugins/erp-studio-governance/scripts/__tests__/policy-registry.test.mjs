@@ -31,11 +31,21 @@ describe("PLG-01 policy registry", () => {
         ({ code, version }) => code === "A11Y-01" && version === "1.1",
       ),
     ).toBe(true);
-    expect(registry.components).toHaveLength(4);
+    // 5 desde SDD-0263: `action-menu` entra `proposed`. La cápsula del plugin
+    // es un derivado read-only del registro, así que refleja el alta.
+    expect(registry.components).toHaveLength(5);
     const numericInput = registry.components.find(
       ({ id }) => id === "numeric-input",
     );
     expect(numericInput.status).toBe("canonical");
+    // La cápsula es una PROYECCIÓN del registro, no una copia: sólo trae id,
+    // name, status, implementation, policyRefs y replacement. Por eso acá se
+    // afirma el `status` y no los `consumers` — ese campo no viaja.
+    const actionMenu = registry.components.find(({ id }) => id === "action-menu");
+    // `canonical` desde SDD-0266: la cabecera de Clientes es su consumidor
+    // verificado, que es lo que CMP-01 exige para promover.
+    expect(actionMenu.status).toBe("canonical");
+    expect(actionMenu.policyRefs.some(({ code }) => code === "BTN-01")).toBe(true);
     const deprecated = registry.components.find(
       ({ id }) => id === "llm-mode-toggle",
     );
