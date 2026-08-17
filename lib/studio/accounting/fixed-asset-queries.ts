@@ -7,6 +7,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import type {
   AssetDepreciationRow,
   AssetMethod,
@@ -63,19 +64,29 @@ export async function assetDepreciationRows(
   supabase: SupabaseClient,
   opts: { assetId?: string } = {},
 ): Promise<AssetDepreciationRow[]> {
-  let query = supabase
-    .from("fixed_asset_depreciation")
-    .select(
-      "id, asset_id, tenant_id, period, amount, entry_id, posted_at, created_at, journal_entries ( entry_code )",
-    )
-    .order("period", { ascending: false })
-    .limit(5000);
-  if (opts.assetId) query = query.eq("asset_id", opts.assetId);
+  // Paginado: estas filas alimentan el KPI de "ya depreciado este mes", o sea
+  // que se SUMAN. Con `.limit(5000)` PostgREST devolvía 1.000 y el acumulado
+  // salía corto sin avisar. Se ordena también por `id` porque `period` repite
+  // (todos los activos comparten el mismo mes) y sin desempate la paginación
+  // puede repetir o saltear filas.
+  const { rows, complete } = await fetchAllPaged<Record<string, unknown>>((from, to) => {
+    let q = supabase
+      .from("fixed_asset_depreciation")
+      .select(
+        "id, asset_id, tenant_id, period, amount, entry_id, posted_at, created_at, journal_entries ( entry_code )",
+      )
+      .order("period", { ascending: false })
+      .order("id", { ascending: true });
+    if (opts.assetId) q = q.eq("asset_id", opts.assetId);
+    return q.range(from, to);
+  });
+  if (!complete) {
+    throw new Error(
+      "El historial de depreciación supera el tope de lectura; el acumulado no se puede calcular completo.",
+    );
+  }
 
-  const { data, error } = await query;
-  if (error) throw error;
-
-  return ((data as Record<string, unknown>[] | null) ?? []).map((row) => {
+  return rows.map((row) => {
     const je = (row.journal_entries as { entry_code?: string } | null) ?? null;
     return {
       id: String(row.id),

@@ -7,6 +7,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import type {
   BankStatement,
   BankStatementLine,
@@ -102,17 +103,31 @@ export async function statementWithLines(
   if (!data) return null;
   const statement = coerceStatement(data as Record<string, unknown>);
 
-  const { data: lineRows, error: linesErr } = await supabase
-    .from("bank_statement_lines")
-    .select(`${LINE_COLUMNS}, journal_entries ( entry_code )`)
-    .eq("statement_id", statementId)
-    .order("line_date", { ascending: true })
-    .limit(2000);
-  if (linesErr) throw linesErr;
-
-  statement.lines = ((lineRows as Record<string, unknown>[] | null) ?? []).map(
-    coerceLine,
+  // Paginado: un extracto de un mes movido pasa de mil líneas sin esfuerzo, y
+  // `.limit(2000)` no lo evita — PostgREST devuelve 1.000. Faltarían
+  // movimientos del extracto sin que nada lo diga, y la conciliación cuadraría
+  // contra un extracto incompleto.
+  //
+  // Se ordena por `id` además de `line_date`: la fecha sola no desempata dos
+  // movimientos del mismo día, y sin orden estricto la paginación puede repetir
+  // o saltear filas. El orden de presentación por fecha se conserva.
+  const { rows: lineRows, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (from, to) =>
+      supabase
+        .from("bank_statement_lines")
+        .select(`${LINE_COLUMNS}, journal_entries ( entry_code )`)
+        .eq("statement_id", statementId)
+        .order("line_date", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
   );
+  if (!complete) {
+    throw new Error(
+      "Este extracto supera el tope de lectura; no se puede conciliar sobre una lectura parcial.",
+    );
+  }
+
+  statement.lines = lineRows.map(coerceLine);
   return statement;
 }
 
@@ -142,14 +157,24 @@ export async function listEntryCandidates(
   opts: { accountId: string; tenantId: string },
 ): Promise<EntryCandidate[]> {
   // 1. Asientos asentados vivos del tenant que tienen una línea en la cuenta-banco.
-  const { data: lineRows, error: lineErr } = await supabase
-    .from("journal_lines")
-    .select(
-      "entry_id, debit, credit, journal_entries!inner ( id, entry_code, entry_date, memo, status, deleted_at, tenant_id )",
-    )
-    .eq("account_id", opts.accountId)
-    .limit(2000);
-  if (lineErr) throw lineErr;
+  // Paginado: si se truncan los candidatos, el asiento que hay que conciliar
+  // simplemente NO APARECE en la lista, y el operador concluye que no existe.
+  const { rows: lineRows, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (from, to) =>
+      supabase
+        .from("journal_lines")
+        .select(
+          "id, entry_id, debit, credit, journal_entries!inner ( id, entry_code, entry_date, memo, status, deleted_at, tenant_id )",
+        )
+        .eq("account_id", opts.accountId)
+        .order("id", { ascending: true })
+        .range(from, to),
+  );
+  if (!complete) {
+    throw new Error(
+      "Hay demasiados asientos candidatos para leerlos completos; filtra por período antes de conciliar.",
+    );
+  }
 
   type Row = {
     entry_id: string;
@@ -193,18 +218,36 @@ export async function listEntryCandidates(
   if (candidates.length === 0) return [];
 
   // 2. ¿Cuáles ya están ligados a un movimiento? (1:1, anti doble-conciliación).
+  //
+  // ⚠️ Acá el truncamiento no muestra de menos: muestra de MÁS, y peor. Si esta
+  // lectura se corta, un asiento que YA está conciliado no entra al set y sale
+  // con `alreadyLinked: false` — la pantalla lo vuelve a ofrecer y se puede
+  // conciliar dos veces el mismo asiento. Justo lo que el 1:1 existe para
+  // impedir. Antes decía `.limit(2000)` y PostgREST devolvía 1.000.
+  //
+  // Dos topes distintos, los dos reales: el de FILAS devueltas (se pagina) y el
+  // largo del `.in(...)`, que viaja en la URL (se parte en lotes).
   const ids = candidates.map((c) => c.id);
-  const { data: linkedRows, error: linkedErr } = await supabase
-    .from("bank_statement_lines")
-    .select("matched_entry_id")
-    .in("matched_entry_id", ids)
-    .limit(2000);
-  if (linkedErr) throw linkedErr;
-  const linked = new Set(
-    ((linkedRows as { matched_entry_id: string | null }[] | null) ?? [])
-      .map((r) => r.matched_entry_id)
-      .filter((x): x is string => Boolean(x)),
-  );
+  const IDS_POR_LOTE = 500;
+  const linked = new Set<string>();
+  for (let i = 0; i < ids.length; i += IDS_POR_LOTE) {
+    const lote = ids.slice(i, i + IDS_POR_LOTE);
+    const { rows, complete } = await fetchAllPaged<{ matched_entry_id: string | null }>(
+      (from, to) =>
+        supabase
+          .from("bank_statement_lines")
+          .select("id, matched_entry_id")
+          .in("matched_entry_id", lote)
+          .order("id", { ascending: true })
+          .range(from, to),
+    );
+    if (!complete) {
+      throw new Error(
+        "No se pudo verificar completo qué asientos ya están conciliados; no se ofrecen candidatos sobre una lectura parcial.",
+      );
+    }
+    for (const r of rows) if (r.matched_entry_id) linked.add(r.matched_entry_id);
+  }
   for (const c of candidates) {
     if (linked.has(c.id)) c.alreadyLinked = true;
   }

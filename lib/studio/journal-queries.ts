@@ -5,6 +5,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import {
   normalSide,
   type Account,
@@ -196,14 +197,33 @@ export async function ledgerForAccount(
     updated_at: String(acctRow.updated_at),
   };
 
-  const { data: lineRows, error: linesErr } = await supabase
-    .from("journal_lines")
-    .select(
-      "entry_id, debit, credit, line_memo, journal_entries!inner ( entry_code, entry_date, status, memo, deleted_at )",
-    )
-    .eq("account_id", accountId)
-    .limit(5000);
-  if (linesErr) throw linesErr;
+  // Paginado, no `.limit(5000)`: PostgREST corta en 1.000 y no avisa, y acá el
+  // resultado no es una lista — es el SALDO de la cuenta. Una cuenta de banco
+  // con más de mil movimientos habría mostrado un saldo corrido equivocado,
+  // sin error y sin forma de notarlo.
+  //
+  // Y el filtro se baja a SQL: antes se traían las líneas de TODOS los estados
+  // y se descartaban en JS los borradores y los borrados. Con el tope, ese
+  // descarte llegaba tarde — las 1.000 filas ya se habían gastado en asientos
+  // que no cuentan.
+  const { rows: lineRows, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (from, to) =>
+      supabase
+        .from("journal_lines")
+        .select(
+          "id, entry_id, debit, credit, line_memo, journal_entries!inner ( entry_code, entry_date, status, memo, deleted_at )",
+        )
+        .eq("account_id", accountId)
+        .eq("journal_entries.status", "asentado")
+        .is("journal_entries.deleted_at", null)
+        .order("id", { ascending: true })
+        .range(from, to),
+  );
+  if (!complete) {
+    throw new Error(
+      "El libro mayor de esta cuenta supera el tope de lectura; el saldo no se puede calcular completo.",
+    );
+  }
 
   type Row = {
     entry_id: string;
