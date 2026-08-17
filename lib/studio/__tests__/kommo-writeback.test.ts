@@ -403,3 +403,119 @@ describe("buildTaskPayload", () => {
     expect(buildTaskPayload({ ...BASE, completeTillIso: "mañana" })).toBeNull();
   });
 });
+
+/**
+ * Resolución por código JUBILADO (SDD-0258).
+ *
+ * ⚠️ El fallo que esto cierra NO se veía: con un código retirado, el lookup
+ * directo devolvía null y el write-back se descartaba en silencio — un mensaje
+ * al CRM que nunca sale. Con 523 códigos jubilados en producción dejó de ser
+ * hipotético.
+ *
+ * Stub propio, con dos cosas que el de arriba no distingue: de qué columna se
+ * consultó `clients` (markbox vs id) y qué RPC se llamó. Sin eso no se puede
+ * comprobar lo más importante — que el camino directo NO paga el desvío.
+ */
+function makeStubJubilado(cfg: {
+  porMarkbox: { kommo_lead_id: number | null } | null;
+  resolve: { client_id: string; canonical_markbox: string }[] | null;
+  porId?: { kommo_lead_id: number | null } | null;
+}) {
+  const calls = {
+    rpc: [] as string[],
+    clientsPor: [] as string[],
+  };
+  const chain = (table: string): Record<string, unknown> => {
+    let porId = false;
+    const c: Record<string, unknown> = {
+      select: () => c,
+      eq: (col: string) => {
+        if (col === "id") porId = true;
+        return c;
+      },
+      is: () => c,
+      maybeSingle: async () => {
+        if (table !== "clients") return { data: null, error: null };
+        calls.clientsPor.push(porId ? "id" : "markbox");
+        return { data: porId ? (cfg.porId ?? null) : cfg.porMarkbox, error: null };
+      },
+    };
+    return c;
+  };
+  const stub = {
+    from: (table: string) => chain(table),
+    rpc: async (name: string) => {
+      calls.rpc.push(name);
+      if (name === "resolve_markbox") return { data: cfg.resolve, error: null };
+      return { data: "outbox-1", error: null };
+    },
+  };
+  return { stub: stub as unknown as SupabaseClient, calls };
+}
+
+describe("write-back con un Shipping Mark JUBILADO", () => {
+  it("⭐ ya no se descarta: encuentra el lead siguiendo el historial", async () => {
+    const { stub, calls } = makeStubJubilado({
+      porMarkbox: null, // el código viejo ya no está en `clients`
+      resolve: [{ client_id: "c-1", canonical_markbox: "DTD-8333" }],
+      porId: { kommo_lead_id: 991 },
+    });
+
+    const res = await enqueueKommoWriteback(stub, "t-1", {
+      clientMarkbox: "DTD-Y018",
+      totalUsd: 120,
+    });
+
+    expect(res).toBe("outbox-1");
+    expect(calls.rpc).toContain("resolve_markbox");
+    expect(calls.rpc).toContain("enqueue_kommo_writeback");
+    // Se consultó primero por markbox y después por id: ése es el desvío.
+    expect(calls.clientsPor).toEqual(["markbox", "id"]);
+  });
+
+  it("⭐ el camino directo NO paga el desvío: sin resolve_markbox", async () => {
+    // Sin este caso, alguien podría "simplificar" llamando siempre al RPC y
+    // el 99% del tráfico pagaría una consulta extra sin que nada gritara.
+    const { stub, calls } = makeStubJubilado({
+      porMarkbox: { kommo_lead_id: 77 },
+      resolve: null,
+    });
+
+    const res = await enqueueKommoWriteback(stub, "t-1", {
+      clientMarkbox: "DTD-8042",
+      totalUsd: 50,
+    });
+
+    expect(res).toBe("outbox-1");
+    expect(calls.rpc).not.toContain("resolve_markbox");
+    expect(calls.clientsPor).toEqual(["markbox"]);
+  });
+
+  it("un código que no conoce nadie sigue devolviendo null sin encolar", async () => {
+    const { stub, calls } = makeStubJubilado({ porMarkbox: null, resolve: [] });
+
+    const res = await enqueueKommoWriteback(stub, "t-1", {
+      clientMarkbox: "DTD-0000",
+      totalUsd: 10,
+    });
+
+    expect(res).toBeNull();
+    expect(calls.rpc).not.toContain("enqueue_kommo_writeback");
+  });
+
+  it("el cliente existe pero no tiene lead: null, sin encolar", async () => {
+    const { stub, calls } = makeStubJubilado({
+      porMarkbox: null,
+      resolve: [{ client_id: "c-2", canonical_markbox: "DTD-8100" }],
+      porId: { kommo_lead_id: null },
+    });
+
+    const res = await enqueueKommoWriteback(stub, "t-1", {
+      clientMarkbox: "DTD-A005",
+      totalUsd: 10,
+    });
+
+    expect(res).toBeNull();
+    expect(calls.rpc).not.toContain("enqueue_kommo_writeback");
+  });
+});

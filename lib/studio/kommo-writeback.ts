@@ -172,6 +172,60 @@ export function buildPricePatchPayload(
  * fila de outbox, o `null` si el cliente no tiene lead vinculado o si algo falla.
  * NUNCA tira — el caller (transición del estimado) no debe romperse por esto.
  */
+/**
+ * Lead de Kommo del cliente, resolviendo TAMBIÉN los códigos jubilados (SDD-0258).
+ *
+ * ⚠️ Antes esto era un `.eq("markbox", …)` seco en los dos llamadores. Con un
+ * código retirado devolvía null y el write-back se descartaba **en silencio**:
+ * no es un dato viejo en pantalla, es un mensaje al CRM que nunca sale y del que
+ * nadie se entera. Con 523 códigos jubilados en producción (migr 0367) eso dejó
+ * de ser hipotético.
+ *
+ * El camino directo va primero porque es el caso del 99% y no paga nada extra.
+ * Sólo si no encuentra se recurre a `resolve_markbox`, que sigue el historial de
+ * renombrados y la cadena de fusiones.
+ */
+async function resolveLeadId(
+  admin: SupabaseClient,
+  tenantId: string,
+  markbox: string,
+): Promise<number | null> {
+  const { data: directo } = await admin
+    .from("clients")
+    .select("kommo_lead_id")
+    .eq("tenant_id", tenantId)
+    .eq("markbox", markbox)
+    .is("deleted_at", null)
+    .maybeSingle<{ kommo_lead_id: number | null }>();
+  if (directo) return directo.kommo_lead_id ?? null;
+
+  const { data: resuelto, error } = await admin.rpc("resolve_markbox", {
+    p_tenant_id: tenantId,
+    p_markbox: markbox,
+  });
+  if (error) return null;
+
+  const fila = (Array.isArray(resuelto) ? resuelto[0] : null) as
+    | { client_id?: string | null; canonical_markbox?: string | null }
+    | null;
+  const clientId = fila?.client_id ?? null;
+  if (!clientId) return null;
+
+  // Se deja rastro: que un código retirado siga llegando acá es normal (la caja
+  // ya estaba rotulada), pero saber cuánto pasa dice cuándo hace falta empujarle
+  // el código nuevo a Kommo.
+  console.warn(
+    `[kommo-writeback] "${markbox}" es un código retirado; resuelto a ${fila?.canonical_markbox ?? "?"}`,
+  );
+
+  const { data: cliente } = await admin
+    .from("clients")
+    .select("kommo_lead_id")
+    .eq("id", clientId)
+    .maybeSingle<{ kommo_lead_id: number | null }>();
+  return cliente?.kommo_lead_id ?? null;
+}
+
 export async function enqueueKommoWriteback(
   admin: SupabaseClient,
   tenantId: string,
@@ -182,14 +236,7 @@ export async function enqueueKommoWriteback(
     if (!markbox) return null;
 
     // Resolver el lead de Kommo del cliente (markbox → clients.kommo_lead_id).
-    const { data: client } = await admin
-      .from("clients")
-      .select("kommo_lead_id")
-      .eq("tenant_id", tenantId)
-      .eq("markbox", markbox)
-      .is("deleted_at", null)
-      .maybeSingle<{ kommo_lead_id: number | null }>();
-    const leadId = client?.kommo_lead_id ?? null;
+    const leadId = await resolveLeadId(admin, tenantId, markbox);
     if (leadId == null) return null; // cliente sin lead de Kommo → nada que sincronizar
 
     // Snapshot del updated_at del lead (trazabilidad anti-overwrite). Best-effort.
@@ -292,14 +339,7 @@ export async function enqueueKommoStageWriteback(
     if (!target) return null;
 
     // 2) Lead del cliente (markbox → clients.kommo_lead_id).
-    const { data: client } = await admin
-      .from("clients")
-      .select("kommo_lead_id")
-      .eq("tenant_id", tenantId)
-      .eq("markbox", markbox)
-      .is("deleted_at", null)
-      .maybeSingle<{ kommo_lead_id: number | null }>();
-    const leadId = client?.kommo_lead_id ?? null;
+    const leadId = await resolveLeadId(admin, tenantId, markbox);
     if (leadId == null) return null; // cliente sin lead → nada que sincronizar
 
     // 3) Snapshot del updated_at del lead (trazabilidad anti-overwrite). Best-effort.
