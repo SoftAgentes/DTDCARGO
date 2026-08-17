@@ -95,6 +95,19 @@ const CHOQUES_HISTORICOS = {
   // (kommo_contact_link 20260803202130 · phone_match_key_relleno 20260804011156).
   // Ambas en el ledger → ninguna se renumera.
   "0342": ["0342_kommo_contact_link", "0342_phone_match_key_relleno"],
+  // 2026-08-14: NUEVE MINUTOS de diferencia — el margen más corto hasta ahora.
+  //   20260814213028  0373_lote_legado_con_nombre            (SDD-0258)
+  //   20260814213957  0373_kommo_writeback_chequeo_optimista (SDD-0256)
+  // Las dos aplicadas → ninguna se renumera.
+  //
+  // Lo que enseña este caso: la ventana del CRM tenía el gate EN VERDE, porque
+  // en su árbol existía una sola 0373 — la otra estaba en `main` y ella todavía
+  // no había mergeado. El choque sólo se hace visible al mergear, que es
+  // justamente cuando ya es tarde para renumerar si ambas se aplicaron. Con
+  // nueve minutos entre una y otra, ningún `sdd:next` lo habría evitado:
+  // el hueco no está en pedir el número, está en aplicar a prod antes de
+  // pushear el archivo.
+  "0373": ["0373_kommo_writeback_chequeo_optimista", "0373_lote_legado_con_nombre"],
 };
 
 /** Prefijo numérico de 4 dígitos, o null si el nombre no arranca con uno. */

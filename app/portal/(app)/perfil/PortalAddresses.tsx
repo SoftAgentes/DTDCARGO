@@ -280,6 +280,7 @@ function AddForm({
         <button
           type="submit"
           disabled={pending}
+          aria-busy={pending}
           className="btn btn-primary inline-flex items-center gap-2 disabled:opacity-60"
         >
           {pending ? "Guardando…" : "Guardar dirección"}
@@ -312,7 +313,7 @@ function PendingTextButton({
 }) {
   const { pending: busy } = useFormStatus();
   return (
-    <button type="submit" disabled={busy} className={`${className} disabled:opacity-60`}>
+    <button type="submit" disabled={busy} aria-busy={busy} className={`${className} disabled:opacity-60`}>
       {busy ? pending : idle}
     </button>
   );

@@ -91,6 +91,7 @@ export function CedulaPhotoRow({
             <button
               type="button"
               disabled={pending}
+              aria-busy={pending}
               onClick={() => {
                 // Limpiar el value antes de abrir el picker: re-elegir el MISMO
                 // archivo tras un error no dispara onChange (browser estándar).

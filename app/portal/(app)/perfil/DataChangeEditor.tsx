@@ -207,6 +207,7 @@ export function DataChangeEditor({
             <button
               type="submit"
               disabled={pending}
+              aria-busy={pending}
               className="btn btn-primary inline-flex items-center justify-center gap-2 disabled:opacity-60"
             >
               {pending ? "Enviando…" : "Enviar solicitud"}

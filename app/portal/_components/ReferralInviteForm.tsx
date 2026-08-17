@@ -114,6 +114,7 @@ export function ReferralInviteForm() {
           <button
             type="submit"
             disabled={pending || !email.trim()}
+            aria-busy={pending}
             className="btn btn-primary disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {pending ? "Enviando…" : "Enviar invitación"}
