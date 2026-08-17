@@ -78,27 +78,40 @@ mensajes es la vía que sí hay.
 
 ⭐ **Regla general: la IA para conversar, el bot mecánico para recordar.**
 
-### El mensaje aprobado
+### El mensaje — tres rondas hasta el que quedó
 
-Se eligió el que pide una **corrección**, no un favor:
+⚠️ **Este mensaje cambió tres veces el mismo día.** Si vas a citarlo, cítalo del CRM, no de acá.
+
+**1ª ronda — la que pide una corrección.** *"Voy a cerrar tu solicitud por ahora. ¿La cierro o
+todavía quieres traer tu mercancía?"* Se armó y disparó 7 veces. Descartada por el founder:
+**"no me suena apto"** — suena a trámite y a amenaza chiquita.
+
+**2ª ronda — la binaria cómoda.** *"¿Te aparto el cupo en el próximo consolidado o lo dejamos para
+más adelante? ¿Qué has decidido respecto al tema?"* Llegó a guardarse; se reemplazó a los minutos.
+
+**3ª ronda — ✅ la que quedó** (founder, 2026-08-13):
 
 ```
-Voy a cerrar tu solicitud por ahora. ¿La cierro o todavía quieres traer tu mercancía?
+¡Hola! ¿Cómo vas? ¿Sigue en pie tu proyecto de importación o prefieres que
+coordinemos los siguientes pasos?
+Ejemplo:
+¿Te ayudo a validar tu proveedor para que tengas una compra segura?
+¿Te ayudo a registrarte para que tengas tu Shipping Mark?
+¿Tienes alguna pregunta que te pueda ayudar a guiarte?
 ```
 
-**Por qué ése y no otro:** a la gente le cuesta iniciar, pero corregir algo que va a pasar es casi un
-reflejo. Y es honesto — la solicitud sí se va a cerrar. Además califica solo: el que contesta
-"todavía quiero" se identificó como vivo sin que nadie le pregunte nada más.
+⭐ **Lo que enseñó el cambio:** el founder no quería una pregunta más astuta, quería una **más
+abierta y que ofreciera ayuda concreta**. Las tres opciones no son retórica: son las tres puertas
+reales del negocio (validar proveedor · registro con Shipping Mark · consulta libre). Al que no
+sabe qué necesita, un menú de ayudas le resulta más fácil de contestar que una pregunta de sí/no.
 
-Las otras dos que se ofrecieron, por si se quiere rotar el mensaje:
-
-| Variante | Resorte | Cuidado |
-|---|---|---|
-| *"¿Te aparto cupo en el próximo consolidado o lo dejamos para más adelante?"* | binaria, las dos puertas cómodas | la más suave, también la que menos califica |
-| *"La tarifa sube el 4 de septiembre. ¿Tu carga sale antes o después de esa fecha?"* | fecha real (cron `rate-ddp-850-sep2026`) | ⚠️ **caduca el 4-sep**; después es mentira |
+*(Del texto original sólo se corrigió puntuación: sobraba un punto en `segura.?` y faltaba el cierre
+`?` de la línea del Shipping Mark. La línea `Ejemplo:` va dentro del mensaje a propósito.)*
 
 🔴 **Se descartaron a propósito las que inventan urgencia** (cupos falsos, "última oportunidad").
-Además de deshonestas, el equipo después tiene que sostener la mentira en el chat.
+Además de deshonestas, el equipo después tiene que sostener la mentira en el chat. La variante que
+usaba la subida de tarifa del 4-sep (cron `rate-ddp-850-sep2026`) era honesta pero **caduca ese
+día**: después es mentira. Por eso tampoco quedó.
 
 ⚠️ **Una sola vez, no una secuencia.** Un recordatorio se perdona; tres seguidos hacen que reporten
 el número y ahí se pierde el canal entero, no un lead.
@@ -113,7 +126,7 @@ verificó en el Inbox: cinco conversaciones a las 08:03 con el texto exacto, fir
 | Ajuste | Valor | Por qué |
 |---|---|---|
 | Disparador | `23 horas después del último mensaje **entrante**` | ⭐ **entrante = del cliente.** Si fuera desde nuestro último mensaje, le escribiría a alguien que acaba de escribirnos y no le hemos contestado |
-| `Para todos los leads con` | Etapa ∈ {Leads Entrantes, Contacto inicial, Recontacto, Estimado enviado, Negociación} | 🔴 **lo más importante de toda la configuración** — ver abajo |
+| `Para todos los leads con` | ~~Etapa ∈ {Leads Entrantes, Contacto inicial, Recontacto, Estimado enviado, Negociación}~~ → **sólo `Contacto inicial`** (2026-08-13) | 🔴 **lo más importante de toda la configuración** — ver abajo y la sección "Un bot por etapa" |
 | Horas activas | Siempre | la ventana de 24 h es un plazo duro: restringir horario dejaría que se cierre |
 | Paso 1 | mensaje al cliente | |
 | Paso 2 | aviso interno al usuario responsable | viene de la plantilla; es gratis y útil |
@@ -131,3 +144,35 @@ cumplirse 23 h— y no un estado "lleva más de 23 h en silencio".)*
 quedarse callado 23 h, **el bot debería volver a dispararse**. No se comprobó si Kommo deduplica.
 Si un mismo lead recibe el mensaje dos o tres veces, hay que agregarle una etiqueta al dispararse y
 excluir a los que ya la tienen. **Un recordatorio se perdona; tres seguidos hacen que te reporten.**
+
+🟢 **Medido el 2026-08-13 por la tarde: el contador iba en 7 lanzamientos, no en cientos.** El bot
+está calibrado y no repite sobre los mismos. Lo que sí llama la atención: **7 enviados, 0 leídos.**
+
+## Un bot por etapa (founder, 2026-08-13)
+
+Un solo mensaje para las 5 etapas era un error de diseño: a alguien que ya recibió su estimado,
+*"¿te aparto cupo?"* le suena a que no lo escuchamos. **Cada etapa significa que el cliente está
+trabado en otra cosa**, y el mensaje tiene que nombrar esa cosa.
+
+⭐ **Y la decisión que más importa: en las dos etapas de abajo el bot NO le escribe al cliente.**
+Ahí hay un asesor trabajando el lead, y un bot escribiendo encima es exactamente el problema que
+resolvió el límite de mensajes. En su lugar, **crea una tarea**.
+
+| Etapa | Qué hace | Estado |
+|---|---|---|
+| Leads Entrantes | mensaje: *"¡Hola! ¿Cómo vas? Vi que nos escribiste y quiero ayudarte. ¿Qué es lo que estás buscando traer de China? Con eso te digo si te conviene por barco o por avión, y cuánto sería."* | aprobado, **sin construir** |
+| **Contacto inicial** | el mensaje de la 3ª ronda | ✅ **vivo y verificado** |
+| Recontacto | mensaje: *"¡Hola! ¿Cómo vas? No quiero estar escribiéndote de más. ¿Te aviso cuando salga el próximo consolidado o prefieres que lo dejemos hasta que tú me escribas?"* | aprobado, **sin construir** |
+| Estimado enviado | ⭐ **tarea** para el responsable, vence en 1 h · cero mensajes al cliente | aprobado, **sin construir** |
+| Negociación | igual — **el mismo bot cubre las dos**, la acción es idéntica | aprobado, **sin construir** |
+
+El vencimiento de 1 h no es arbitrario: dispara a las 23 h y la ventana muere a las 24. Ése es
+exactamente el tiempo que queda para escribirle.
+
+Texto de la tarea: *"La ventana de WhatsApp se cierra en 1 hora y este lead no ha contestado.
+Escríbele tú antes de que se cierre."*
+
+⛔ **Los tres bots que faltan quedaron bloqueados por acceso, no por decisión.** Kommo admite **una
+sola sesión a la vez**: cada vez que el founder abre el CRM por su lado, expulsa la del agente. Para
+construirlos hay que entrar en el panel del navegador del agente y **no abrir Kommo en otra ventana**
+mientras dure el trabajo.
