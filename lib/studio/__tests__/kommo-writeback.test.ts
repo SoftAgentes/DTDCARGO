@@ -10,8 +10,10 @@
 import { describe, it, expect } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  buildNotePayload,
   buildOwnerPatchPayload,
   buildTagsPatchPayload,
+  buildTaskPayload,
   buildMarkboxPatchPayload,
   buildPricePatchPayload,
   buildStagePatchPayload,
@@ -332,5 +334,72 @@ describe("buildTagsPatchPayload", () => {
   it("omite la clave que no aplica en vez de mandarla vacía", () => {
     expect(buildTagsPatchPayload({ add: ["a"] })).toEqual({ tags_to_add: [{ name: "a" }] });
     expect(buildTagsPatchPayload({ remove: ["b"] })).toEqual({ tags_to_delete: [{ name: "b" }] });
+  });
+});
+
+// ── Fase 5 · los payloads que CREAN algo en Kommo (POST) ────────────────────
+//
+// MUTACIÓN QUE LOS VALIDA:
+//   1. `buildTaskPayload` con `Math.floor(ms)` en vez de `Math.floor(ms / 1000)`
+//      — el error de unidad clásico. Se pone rojo el caso del epoch.
+//   2. `buildNotePayload` devolviendo `{ text }` suelto en vez de envuelto en
+//      `params`. Se pone rojo el primero.
+// Las dos se corrieron y las dos salieron rojas.
+describe("buildNotePayload", () => {
+  it("el texto va envuelto en params — Kommo lo ignora si va suelto", () => {
+    expect(buildNotePayload("  Llamé, no contestó  ")).toEqual({
+      note_type: "common",
+      params: { text: "Llamé, no contestó" },
+    });
+  });
+
+  it("una nota vacía no se encola: mejor nada que una nota en blanco en el CRM", () => {
+    expect(buildNotePayload("   ")).toBeNull();
+    expect(buildNotePayload("")).toBeNull();
+  });
+});
+
+describe("buildTaskPayload", () => {
+  const BASE = {
+    leadId: 4242,
+    texto: "Volver a llamar",
+    completeTillIso: "2026-08-20T15:00:00.000Z",
+  };
+
+  it("complete_till va en SEGUNDOS y el lead viaja en el cuerpo", () => {
+    expect(buildTaskPayload(BASE)).toEqual({
+      text: "Volver a llamar",
+      complete_till: Date.UTC(2026, 7, 20, 15, 0, 0) / 1000,
+      entity_id: 4242,
+      entity_type: "leads",
+    });
+  });
+
+  it("⭐ el epoch tiene 10 dígitos, no 13: en ms la tarjeta NUNCA se pone roja", () => {
+    // El vencimiento en milisegundos cae en el año 57.000. Kommo lo acepta sin
+    // chistar y la tarea deja de ser un semáforo — falla en la dirección que
+    // nadie mira.
+    const p = buildTaskPayload(BASE) as { complete_till: number };
+    expect(String(p.complete_till)).toHaveLength(10);
+    expect(new Date(p.complete_till * 1000).getUTCFullYear()).toBe(2026);
+  });
+
+  it("el responsable se omite si no es un id válido", () => {
+    expect(buildTaskPayload({ ...BASE, responsibleUserId: 0 })).not.toHaveProperty(
+      "responsible_user_id",
+    );
+    expect(buildTaskPayload({ ...BASE, responsibleUserId: null })).not.toHaveProperty(
+      "responsible_user_id",
+    );
+    expect(buildTaskPayload({ ...BASE, responsibleUserId: 99 })).toHaveProperty(
+      "responsible_user_id",
+      99,
+    );
+  });
+
+  it("sin texto, sin lead o sin fecha legible no se encola nada", () => {
+    expect(buildTaskPayload({ ...BASE, texto: "  " })).toBeNull();
+    expect(buildTaskPayload({ ...BASE, leadId: 0 })).toBeNull();
+    expect(buildTaskPayload({ ...BASE, completeTillIso: "mañana" })).toBeNull();
   });
 });
