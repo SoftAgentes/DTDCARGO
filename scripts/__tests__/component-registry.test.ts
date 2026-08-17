@@ -15,8 +15,12 @@ type SourceRecord = {
 describe("CMP-01 component registry", () => {
   it("valida las fuentes reales y representa A11Y-01", async () => {
     const sources = (await loadSourceRecords()) as SourceRecord[];
-    expect(sources).toHaveLength(4);
+    // La lista va fijada a propósito: agregar un componente al registro CMP-01
+    // tiene que ser una decisión deliberada, no algo que se cuele. `action-menu`
+    // entra con SDD-0263 en estado `proposed` (sin consumidores todavía).
+    expect(sources).toHaveLength(5);
     expect(sources.map(({ record }) => record.id)).toEqual([
+      "action-menu",
       "confirm-dialog",
       "llm-mode-toggle",
       "numeric-input",
