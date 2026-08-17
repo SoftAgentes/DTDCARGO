@@ -19,6 +19,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllByIds, fetchAllPaged } from "@/lib/db/paginate";
 import { receiptAmountUsd } from "../accounting/receipt-posting";
 import type { InvoiceCurrency } from "../invoice-types";
 import type { PaymentReceipt } from "../payment-types";
@@ -112,15 +113,25 @@ export async function localRevenueInvoicedSummary(
   supabase: SupabaseClient,
   range: { from: string; to: string },
 ): Promise<LocalRevenueInvoiced> {
-  const { data, error } = await supabase
-    .from("invoices")
-    .select("fund_class, status, issued_at, currency, total_amount, fx_rate")
-    .eq("fund_class", "local_revenue")
-    .gte("issued_at", range.from)
-    .lte("issued_at", range.to)
-    .is("deleted_at", null)
-    .limit(20000);
-  if (error) throw error;
+  // Paginado: estas facturas se SUMAN para el ingreso local del período.
+  // `.limit(20000)` devolvía 1.000 y el total salía corto sin avisar.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (from, to) =>
+      supabase
+        .from("invoices")
+        .select("id, fund_class, status, issued_at, currency, total_amount, fx_rate")
+        .eq("fund_class", "local_revenue")
+        .gte("issued_at", range.from)
+        .lte("issued_at", range.to)
+        .is("deleted_at", null)
+        .order("id", { ascending: true })
+        .range(from, to),
+  );
+  if (!complete) {
+    throw new Error(
+      "Las facturas del período superan el tope de lectura; el ingreso local no se puede totalizar completo.",
+    );
+  }
 
   const invoices: LocalInvoiceRow[] = (
     (data as Record<string, unknown>[] | null) ?? []
@@ -241,16 +252,27 @@ export async function previewRendition(
 ): Promise<RenditionPreview> {
   // 1. Recibos elegibles: filtros duros en la query (third_party + aplicado +
   //    en rango + vivos); isReceiptEligible re-valida en memoria (cinturón).
-  const { data: recRows, error: recErr } = await supabase
-    .from("payment_receipts")
-    .select(ELIGIBLE_RECEIPT_COLUMNS)
-    .eq("fund_class", "third_party")
-    .eq("application_status", "aplicado")
-    .gte("received_at", range.from)
-    .lte("received_at", range.to)
-    .is("deleted_at", null)
-    .limit(20000);
-  if (recErr) throw recErr;
+  // Paginado: ésta es la plata de TERCEROS que entra a la rendición. Un recibo
+  // que se cae por el tope es plata del cliente que no se le rinde — y no queda
+  // rastro, porque la lectura no falla. `.limit(20000)` devolvía 1.000.
+  const { rows: recRows, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (from, to) =>
+      supabase
+        .from("payment_receipts")
+        .select(ELIGIBLE_RECEIPT_COLUMNS)
+        .eq("fund_class", "third_party")
+        .eq("application_status", "aplicado")
+        .gte("received_at", range.from)
+        .lte("received_at", range.to)
+        .is("deleted_at", null)
+        .order("id", { ascending: true })
+        .range(from, to),
+  );
+  if (!complete) {
+    throw new Error(
+      "Los recibos del período superan el tope de lectura; no se puede rendir sobre una lectura parcial.",
+    );
+  }
 
   const receipts: EligibleReceiptRow[] = (
     (recRows as Record<string, unknown>[] | null) ?? []
@@ -276,12 +298,24 @@ export async function previewRendition(
   ];
   const invoiceCodeById = new Map<string, string>();
   if (invoiceIds.length > 0) {
-    const { data: invRows, error: invErr } = await supabase
-      .from("invoices")
-      .select("id, invoice_code")
-      .in("id", invoiceIds)
-      .limit(20000);
-    if (invErr) throw invErr;
+    // Por lotes y paginado: si esta lectura se corta, los recibos de las
+    // facturas que quedaron fuera salen SIN referencia en el detalle de la
+    // rendición. No faltan líneas — las líneas quedan mudas.
+    const { rows: invRows, complete: invComplete } = await fetchAllByIds<
+      Record<string, unknown>
+    >(invoiceIds, (lote, from, to) =>
+      supabase
+        .from("invoices")
+        .select("id, invoice_code")
+        .in("id", lote)
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
+    if (!invComplete) {
+      throw new Error(
+        "No se pudieron resolver todas las referencias de factura; la rendición quedaría con líneas sin identificar.",
+      );
+    }
     for (const row of (invRows as Record<string, unknown>[] | null) ?? []) {
       invoiceCodeById.set(String(row.id), String(row.invoice_code));
     }
@@ -374,12 +408,24 @@ export async function getRenditionWithReceipts(
   if (!rendRow) return null;
   const rendition = coerceRendition(rendRow as Record<string, unknown>);
 
-  const { data: brRows, error: brErr } = await supabase
-    .from("rendition_receipts")
-    .select(RENDITION_RECEIPT_COLUMNS)
-    .eq("rendition_id", rendition.id)
-    .limit(20000);
-  if (brErr) throw brErr;
+  // Paginado: este puente es lo que dice QUÉ recibos entraron en la rendición
+  // ya emitida. Si se trunca, el documento muestra menos plata rendida de la
+  // que se rindió. `.limit(20000)` devolvía 1.000.
+  const { rows: brRows, complete: brComplete } = await fetchAllPaged<
+    Record<string, unknown>
+  >((from, to) =>
+    supabase
+      .from("rendition_receipts")
+      .select(RENDITION_RECEIPT_COLUMNS)
+      .eq("rendition_id", rendition.id)
+      .order("receipt_id", { ascending: true })
+      .range(from, to),
+  );
+  if (!brComplete) {
+    throw new Error(
+      "Esta rendición supera el tope de lectura; no se puede mostrar incompleta.",
+    );
+  }
   const bridge = ((brRows as Record<string, unknown>[] | null) ?? []).map(
     coerceRenditionReceipt,
   );
@@ -388,16 +434,27 @@ export async function getRenditionWithReceipts(
   const receiptIds = bridge.map((b) => b.receipt_id);
   const lines: RenditionLine[] = [];
   if (receiptIds.length > 0) {
-    const { data: recRows, error: recErr } = await supabase
-      .from("payment_receipts")
-      .select(
-        "id, receipt_code, invoice_id, client_markbox, client_name, amount, currency, received_at",
-      )
-      .in("id", receiptIds)
-      .limit(20000);
-    if (recErr) throw recErr;
+    // Por lotes y paginado: si esta lectura se corta, los recibos que quedan
+    // fuera del mapa pierden código, cliente y monto en el detalle emitido.
+    const { rows: recRows, complete: recComplete } = await fetchAllByIds<
+      Record<string, unknown>
+    >(receiptIds, (lote, from, to) =>
+      supabase
+        .from("payment_receipts")
+        .select(
+          "id, receipt_code, invoice_id, client_markbox, client_name, amount, currency, received_at",
+        )
+        .in("id", lote)
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
+    if (!recComplete) {
+      throw new Error(
+        "No se pudieron leer todos los recibos de la rendición; el detalle quedaría incompleto.",
+      );
+    }
     const recById = new Map<string, Record<string, unknown>>();
-    for (const r of (recRows as Record<string, unknown>[] | null) ?? []) {
+    for (const r of recRows) {
       recById.set(String(r.id), r);
     }
 
@@ -411,12 +468,26 @@ export async function getRenditionWithReceipts(
     ];
     const invoiceCodeById = new Map<string, string>();
     if (invoiceIds.length > 0) {
-      const { data: invRows } = await supabase
-        .from("invoices")
-        .select("id, invoice_code")
-        .in("id", invoiceIds)
-        .limit(20000);
-      for (const row of (invRows as Record<string, unknown>[] | null) ?? []) {
+      // Por lotes y paginado. Y de paso: acá el `error` se descartaba —
+      // `const { data: invRows }` sin chequearlo—, así que una lectura fallida
+      // se veía igual que una vacía y la rendición salía sin referencias sin
+      // que nada lo dijera. `fetchAllByIds` tira si el servidor falla.
+      const { rows: invRows, complete: invComplete } = await fetchAllByIds<
+        Record<string, unknown>
+      >(invoiceIds, (lote, from, to) =>
+        supabase
+          .from("invoices")
+          .select("id, invoice_code")
+          .in("id", lote)
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
+      if (!invComplete) {
+        throw new Error(
+          "No se pudieron resolver todas las referencias de factura de la rendición.",
+        );
+      }
+      for (const row of invRows) {
         invoiceCodeById.set(String(row.id), String(row.invoice_code));
       }
     }

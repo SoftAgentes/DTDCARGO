@@ -27,6 +27,9 @@ import { emitRenditionFor, voidRenditionFor } from "../actions-helpers";
 
 type Row = Record<string, unknown>;
 
+/** Tope por request del doble de prueba: el `db-max-rows` de Supabase. */
+const SERVER_CAP = 1000;
+
 /**
  * Stub chainable de Supabase para el camino de emit/void. Soporta:
  *  - auth.getUser()
@@ -63,6 +66,18 @@ function makeStub(opts: {
     const filters: Row = {};
     const inFilters: Record<string, unknown[]> = {};
 
+    /** Las filas de la tabla tras aplicar los filtros eq + in acumulados. */
+    const filtradas = (): Row[] => {
+      let rows = tables[table] ?? [];
+      for (const [k, v] of Object.entries(filters)) {
+        rows = rows.filter((r) => r[k] === v);
+      }
+      for (const [k, vals] of Object.entries(inFilters)) {
+        rows = rows.filter((r) => vals.includes(r[k]));
+      }
+      return rows;
+    };
+
     const api: Row = {
       select() {
         return api;
@@ -89,14 +104,16 @@ function makeStub(opts: {
       },
       limit() {
         // Terminal de lista: aplica filtros eq + in.
-        let rows = tables[table] ?? [];
-        for (const [k, v] of Object.entries(filters)) {
-          rows = rows.filter((r) => r[k] === v);
-        }
-        for (const [k, vals] of Object.entries(inFilters)) {
-          rows = rows.filter((r) => vals.includes(r[k]));
-        }
-        return Promise.resolve({ data: rows, error: null });
+        return Promise.resolve({ data: filtradas(), error: null });
+      },
+      // Terminal paginado. Corta en SERVER_CAP por request igual que PostgREST:
+      // si el doble fuera más generoso que el servidor, un test saldría verde
+      // con código que en producción trunca — que es cómo este bug sobrevivió.
+      range(desde: number, hasta: number) {
+        const rows = filtradas();
+        const pedido = hasta - desde + 1;
+        const trozo = rows.slice(desde, desde + Math.min(pedido, SERVER_CAP));
+        return Promise.resolve({ data: trozo, error: null });
       },
       maybeSingle() {
         let rows = tables[table] ?? [];

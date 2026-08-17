@@ -76,6 +76,46 @@ export const MAX_PAGES = 60;
 /** Lo mínimo que tiene que devolver la página: la forma de PostgREST. */
 type PageResult = { data: unknown; error: { message: string } | null };
 
+/**
+ * Cuántos ids entran en un `.in(...)`. El filtro viaja en la URL, así que acá
+ * el tope no es de filas: es de largo de la petición.
+ */
+export const IDS_POR_LOTE = 500;
+
+/**
+ * Buscar filas por una lista de ids — el patrón "resolver un mapa".
+ *
+ * Tiene **dos topes distintos y los dos son reales**, y por eso merece nombre
+ * propio en vez de copiarse: el `.in(...)` viaja en la URL (se parte en lotes)
+ * y la respuesta la corta `db-max-rows` (se pagina). Arreglar uno solo deja el
+ * bug vivo por el otro lado.
+ *
+ * Y acá el truncamiento es especialmente traicionero porque el resultado suele
+ * ser un `Map` de consulta: lo que falta no se ve como "faltan filas", se ve
+ * como **campos vacíos** en filas que sí están. Un libro fiscal sin RIF, un
+ * asiento que parece no conciliado. Nada falla; el dato queda mudo.
+ */
+export async function fetchAllByIds<T>(
+  ids: readonly string[],
+  page: (lote: string[], from: number, to: number) => PromiseLike<PageResult>,
+  opts: { idsPerBatch?: number; pageSize?: number; maxPages?: number } = {},
+): Promise<PagedRows<T>> {
+  const porLote = Math.max(1, opts.idsPerBatch ?? IDS_POR_LOTE);
+  const rows: T[] = [];
+
+  for (let i = 0; i < ids.length; i += porLote) {
+    const lote = ids.slice(i, i + porLote);
+    const parcial = await fetchAllPaged<T>(
+      (from, to) => page([...lote], from, to),
+      opts,
+    );
+    rows.push(...parcial.rows);
+    if (!parcial.complete) return { rows, complete: false };
+  }
+
+  return { rows, complete: true };
+}
+
 export async function fetchAllPaged<T>(
   page: (from: number, to: number) => PromiseLike<PageResult>,
   opts: { pageSize?: number; maxPages?: number } = {},

@@ -33,6 +33,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllByIds, fetchAllPaged } from "@/lib/db/paginate";
 import { createAdminClient } from "@/lib/db/admin";
 import { previewRendition } from "./queries";
 import {
@@ -248,14 +249,27 @@ export async function voidRenditionFor(
   }
 
   // Recibos incluidos (para revertirlos a `aplicado`).
-  const { data: bridge } = await supabase
-    .from("rendition_receipts")
-    .select("receipt_id")
-    .eq("rendition_id", rend.id)
-    .limit(20000);
-  const receiptIds = (
-    (bridge as { receipt_id: string }[] | null) ?? []
-  ).map((b) => b.receipt_id);
+  //
+  // Paginado: si esta lectura se corta, los recibos que quedan fuera NO vuelven
+  // a `aplicado` — quedan marcados como rendidos en una rendición que ya no
+  // existe, y no se pueden volver a rendir. El `.limit(20000)` era falso:
+  // PostgREST devolvía 1.000.
+  const { rows: bridge, complete } = await fetchAllPaged<{ receipt_id: string }>(
+    (from, to) =>
+      supabase
+        .from("rendition_receipts")
+        .select("receipt_id")
+        .eq("rendition_id", rend.id)
+        .order("receipt_id", { ascending: true })
+        .range(from, to),
+  );
+  if (!complete) {
+    return {
+      error:
+        "No se pudieron leer todos los recibos de la rendición; anularla dejaría recibos trabados.",
+    };
+  }
+  const receiptIds = bridge.map((b) => b.receipt_id);
 
   // 1. status → anulada + void_reason. El trigger de inmutabilidad solo permite
   //    esta transición; el trigger de sync marca el puente (rendition_voided).
