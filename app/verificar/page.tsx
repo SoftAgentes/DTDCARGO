@@ -55,16 +55,20 @@ function normMark(raw: string | undefined): string {
 async function markStatus(mark: string): Promise<boolean | null> {
   if (!mark) return null;
   try {
+    // SDD-0258: la consulta directa buscaba `clients.markbox` por igualdad
+    // exacta, y con eso NEGABA los 523 códigos jubilados que hay en producción
+    // — códigos que están en las cajas del cliente, en sus correos y en manos de
+    // su proveedor en Yiwu. La RPC reconoce las tres formas: el actual,
+    // cualquiera de sus jubilados, y la forma IMPRESA de un cliente de
+    // sub-aliado (`FA-1232` cuando lo guardado es `DC-FA-1232`).
+    //
+    // Sigue devolviendo SÓLO existencia: ni nombre ni datos del cliente.
     const admin = createAdminClient();
-    const { data, error } = await admin
-      .from("clients")
-      .select("markbox")
-      .eq("markbox", mark)
-      .is("deleted_at", null)
-      .limit(1)
-      .maybeSingle<{ markbox: string }>();
+    const { data, error } = await admin.rpc("markbox_existe_publico", {
+      p_markbox: mark,
+    });
     if (error) return null;
-    return Boolean(data);
+    return data === true;
   } catch {
     return null;
   }
