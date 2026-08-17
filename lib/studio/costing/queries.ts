@@ -11,6 +11,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import {
   invoiceUsdAmount,
   marginTone,
@@ -78,15 +79,22 @@ const COST_COLUMNS =
 export async function listShipmentCosts(
   supabase: SupabaseClient,
 ): Promise<Map<string, ShipmentCosts>> {
-  const { data, error } = await supabase
-    .from("shipment_costs")
-    .select(COST_COLUMNS)
-    .limit(5000);
-
-  if (error) throw error;
+  // Paginado: es el MAPA de costos por embarque. Un embarque que no entra al
+  // mapa se costea en cero — margen inflado, no margen faltante.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) =>
+      supabase
+        .from("shipment_costs")
+        .select(COST_COLUMNS)
+        .order("id", { ascending: true })
+        .range(d, h),
+  );
+  if (!complete) {
+    throw new Error("Los costos superan el tope de lectura; el margen quedaría inflado.");
+  }
 
   const out = new Map<string, ShipmentCosts>();
-  for (const raw of (data as Record<string, unknown>[] | null) ?? []) {
+  for (const raw of data) {
     const c = coerceCosts(raw);
     if (c.shipment_id) out.set(c.shipment_id, c);
   }
@@ -137,19 +145,26 @@ export async function revenueByShipment(
   supabase: SupabaseClient,
   period?: Period,
 ): Promise<RevenueMaps> {
-  const { data, error } = await supabase
-    .from("invoices")
-    .select(
-      "shipment_id, shipment_code, currency, total_amount, fx_rate, status, issued_at, created_at",
-    )
-    .limit(5000);
-
-  if (error) throw error;
+  // Paginado: el ingreso por embarque. Si falta una factura, ese embarque
+  // aparece con menos ingreso del real y su margen sale negativo sin serlo.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) =>
+      supabase
+        .from("invoices")
+        .select(
+          "id, shipment_id, shipment_code, currency, total_amount, fx_rate, status, issued_at, created_at",
+        )
+        .order("id", { ascending: true })
+        .range(d, h),
+  );
+  if (!complete) {
+    throw new Error("Las facturas superan el tope de lectura; el ingreso por embarque quedaría corto.");
+  }
 
   const byId = new Map<string, number>();
   const byCode = new Map<string, number>();
 
-  const rows = ((data as Record<string, unknown>[] | null) ?? []).map(
+  const rows = data.map(
     (r): RevenueRow => ({
       shipment_id: (r.shipment_id as string | null) ?? null,
       shipment_code: (r.shipment_code as string | null) ?? null,
@@ -218,13 +233,20 @@ export async function costingRows(
   const [costsMap, rev, shipmentsRes] = await Promise.all([
     listShipmentCosts(supabase),
     revenueByShipment(supabase, period),
-    supabase.from("shipments").select(SHIPMENT_COLUMNS).limit(5000),
+    fetchAllPaged<Record<string, unknown>>((d, h) =>
+      supabase
+        .from("shipments")
+        .select(SHIPMENT_COLUMNS)
+        .order("id", { ascending: true })
+        .range(d, h),
+    ),
   ]);
 
-  if (shipmentsRes.error) throw shipmentsRes.error;
+  if (!shipmentsRes.complete) {
+    throw new Error("Los embarques superan el tope de lectura; el costeo quedaría incompleto.");
+  }
 
-  const shipments = ((shipmentsRes.data as Record<string, unknown>[] | null) ??
-    []) as unknown as Shipment[];
+  const shipments = shipmentsRes.rows as unknown as Shipment[];
 
   return shipments
     .filter((s) => s.deleted_at == null)

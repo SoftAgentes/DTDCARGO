@@ -10,6 +10,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllByIds, fetchAllPaged } from "@/lib/db/paginate";
 import type { Account } from "./account-types";
 import { computeBalance, type Invoice } from "./invoice-types";
 import { invoiceUsdAmount } from "./fidelizacion/types";
@@ -305,15 +306,25 @@ export async function fundsSeparationSummary(
   supabase: SupabaseClient,
   range: { from: string; to: string },
 ): Promise<FundsSeparation> {
-  const { data, error } = await supabase
-    .from("payment_receipts")
-    .select("amount, currency, fx_rate, fund_class, application_status")
-    .gte("received_at", range.from)
-    .lte("received_at", range.to)
-    .limit(20000);
-  if (error) throw error;
+  // Paginado: la separación de fondos SUMA lo recaudado del período y decide
+  // cuánto es de terceros y cuánto propio. Truncar reparte plata mal.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) =>
+      supabase
+        .from("payment_receipts")
+        .select("id, amount, currency, fx_rate, fund_class, application_status")
+        .gte("received_at", range.from)
+        .lte("received_at", range.to)
+        .order("id", { ascending: true })
+        .range(d, h),
+  );
+  if (!complete) {
+    throw new Error(
+      "Los cobros del período superan el tope de lectura; la separación de fondos no se puede calcular.",
+    );
+  }
 
-  const receipts = ((data as Record<string, unknown>[] | null) ?? []).map(
+  const receipts = data.map(
     (r) => ({
       amount: num(r.amount),
       currency: (r.currency as PaymentReceipt["currency"]) ?? "USD",
@@ -482,31 +493,49 @@ export async function receivablesQueue(
   supabase: SupabaseClient,
   today: string = new Date().toISOString().slice(0, 10),
 ): Promise<Receivable[]> {
-  const { data: invRows, error: invErr } = await supabase
-    .from("invoices")
-    .select(INVOICE_COLUMNS)
-    .neq("status", "anulada")
-    .order("due_date", { ascending: true, nullsFirst: false })
-    .limit(2000);
-  if (invErr) throw invErr;
+  // Paginado: es la cola de COBRANZA. Una factura vencida que no aparece no
+  // se cobra — y la lista se ordena por vencimiento, así que lo que se pierde
+  // por el tope es justo la cola más nueva.
+  const { rows: invRows, complete: invOk } = await fetchAllPaged<
+    Record<string, unknown>
+  >((d, h) =>
+    supabase
+      .from("invoices")
+      .select(INVOICE_COLUMNS)
+      .neq("status", "anulada")
+      .order("due_date", { ascending: true, nullsFirst: false })
+      .order("id", { ascending: true })
+      .range(d, h),
+  );
+  if (!invOk) {
+    throw new Error("Las facturas superan el tope de lectura para armar la cobranza.");
+  }
 
-  const invoices = ((invRows as Record<string, unknown>[] | null) ?? [])
+  const invoices = invRows
     .map(coerceInvoice)
     .filter((i) => computeBalance(i) > 0);
 
   if (invoices.length === 0) return [];
 
   const ids = invoices.map((i) => i.id);
-  const { data: actRows, error: actErr } = await supabase
-    .from("collection_activities")
-    .select(ACTIVITY_COLUMNS)
-    .in("invoice_id", ids)
-    .order("created_at", { ascending: false })
-    .limit(5000);
-  if (actErr) throw actErr;
+  // Por lotes y paginado: dos topes (el `.in(...)` en la URL y las filas).
+  const { rows: actRows, complete: actOk } = await fetchAllByIds<
+    Record<string, unknown>
+  >(ids, (lote, d, h) =>
+    supabase
+      .from("collection_activities")
+      .select(ACTIVITY_COLUMNS)
+      .in("invoice_id", lote)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(d, h),
+  );
+  if (!actOk) {
+    throw new Error("Las gestiones de cobranza superan el tope de lectura.");
+  }
 
   const byInvoice = new Map<string, CollectionActivity[]>();
-  for (const r of (actRows as Record<string, unknown>[] | null) ?? []) {
+  for (const r of actRows) {
     const a = coerceActivity(r);
     const arr = byInvoice.get(a.invoice_id) ?? [];
     arr.push(a);

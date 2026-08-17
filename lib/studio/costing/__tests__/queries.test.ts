@@ -27,6 +27,9 @@ import {
   type CostingRow,
 } from "../queries";
 
+/** Tope por request del doble: el `db-max-rows` de Supabase. */
+const SERVER_CAP = 1000;
+
 // ── Stub de SupabaseClient ────────────────────────────────────
 function stub(rowsByTable: Record<string, Record<string, unknown>[]>): SupabaseClient {
   return {
@@ -44,6 +47,14 @@ function stub(rowsByTable: Record<string, Record<string, unknown>[]>): SupabaseC
         },
         eq() {
           return chain;
+        },
+        // Terminal paginado: corta en SERVER_CAP por request igual que
+        // PostgREST. Un doble más generoso que el servidor deja pasar código
+        // que trunca en producción.
+        range(desde: number, hasta: number) {
+          const pedido = hasta - desde + 1;
+          const trozo = rows.slice(desde, desde + Math.min(pedido, SERVER_CAP));
+          return Promise.resolve({ data: trozo, error: null });
         },
         then(resolve: (v: { data: unknown; error: null }) => unknown) {
           return Promise.resolve({ data: rows, error: null }).then(resolve);

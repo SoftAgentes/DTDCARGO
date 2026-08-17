@@ -5,6 +5,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import type {
   DispatchHub,
   DispatchOrder,
@@ -367,15 +368,22 @@ export async function computeDispatchDashboardStats(
   const days = period === "7d" ? 7 : period === "30d" ? 30 : 90;
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-  const { data, error } = await supabase
-    .from("dispatch_orders")
-    .select(
-      "status, created_at, completed_at, departed_at, route:dispatch_routes!route_id(sla_hours)",
-    )
-    .gte("created_at", since)
-    .limit(2000);
-
-  if (error) throw error;
+  // Paginado: alimenta los KPI de despacho (cumplimiento de SLA, tiempos).
+  // Truncar da un porcentaje equivocado, no una lista corta.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) =>
+      supabase
+        .from("dispatch_orders")
+        .select(
+          "status, created_at, completed_at, departed_at, route:dispatch_routes!route_id(sla_hours)",
+        )
+        .gte("created_at", since)
+        .order("id", { ascending: true })
+        .range(d, h),
+  );
+  if (!complete) {
+    throw new Error("Despachos: la lectura supera el tope; el KPI quedaría mal.");
+  }
 
   type Row = {
     status: DispatchOrderStatus;
@@ -437,16 +445,23 @@ export async function listDispatchRouteRanking(
   const days = period === "7d" ? 7 : period === "30d" ? 30 : 90;
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-  const { data, error } = await supabase
-    .from("dispatch_orders")
-    .select(
-      "status, departed_at, completed_at, route:dispatch_routes!route_id(id, route_code, name, sla_hours)",
-    )
-    .gte("created_at", since)
-    .not("route_id", "is", null)
-    .limit(2000);
-
-  if (error) throw error;
+  // Paginado: alimenta los KPI de despacho (cumplimiento de SLA, tiempos).
+  // Truncar da un porcentaje equivocado, no una lista corta.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) =>
+      supabase
+        .from("dispatch_orders")
+        .select(
+          "status, departed_at, completed_at, route:dispatch_routes!route_id(id, route_code, name, sla_hours)",
+        )
+        .gte("created_at", since)
+        .not("route_id", "is", null)
+        .order("id", { ascending: true })
+        .range(d, h),
+  );
+  if (!complete) {
+    throw new Error("Despachos por ruta: la lectura supera el tope; el KPI quedaría mal.");
+  }
 
   type Row = {
     status: DispatchOrderStatus;
@@ -514,15 +529,22 @@ export async function listDispatchTopCities(
   const days = period === "7d" ? 7 : period === "30d" ? 30 : 90;
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-  const { data, error } = await supabase
-    .from("dispatch_order_packages")
-    .select(
-      "city, weight_kg, boxes_shipped, boxes_total, od:dispatch_orders!od_id(created_at, tenant_id, status, departed_at, completed_at, route:dispatch_routes!route_id(sla_hours))",
-    )
-    .gte("od.created_at", since)
-    .limit(5000);
-
-  if (error) throw error;
+  // Paginado: alimenta los KPI de despacho (cumplimiento de SLA, tiempos).
+  // Truncar da un porcentaje equivocado, no una lista corta.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) =>
+      supabase
+        .from("dispatch_order_packages")
+        .select(
+          "city, weight_kg, boxes_shipped, boxes_total, od:dispatch_orders!od_id(created_at, tenant_id, status, departed_at, completed_at, route:dispatch_routes!route_id(sla_hours))",
+        )
+        .gte("od.created_at", since)
+        .order("id", { ascending: true })
+        .range(d, h),
+  );
+  if (!complete) {
+    throw new Error("Paquetes de despacho: la lectura supera el tope; el KPI quedaría mal.");
+  }
 
   type Row = {
     city: string;
