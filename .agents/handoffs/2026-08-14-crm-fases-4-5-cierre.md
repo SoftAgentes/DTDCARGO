@@ -175,7 +175,7 @@ metida dentro de la propia herramienta de verificación.
 |---|---|---|
 | `0376_kommo_writeback_chequeo_optimista.sql` | Tabla `kommo_writeback_echo` + `record_kommo_writeback_echo` + columna `skip_code` + `mark_kommo_writeback_skipped` pasa a 3 args. **Dropea** la firma de 2 args (si no, ambigüedad) | ✅ **APLICADA** 14-ago 21:39 UTC |
 | `0377_kommo_outbox_post_idempotente.sql` | Ops `add_note`/`add_task`, `dedupe_token` + índice único, `enqueue_kommo_writeback` con token, `record_error` cierra los POST. **Dropea** la firma de 5 args | ✅ **APLICADA** 14-ago 22:0x UTC |
-| `0378_kommo_contact_estado_comercial.sql` | Dos columnas de config en `kommo_connections`. Aditiva pura | ⏳ esperando OK |
+| `0378_kommo_contact_estado_comercial.sql` | Dos columnas de config en `kommo_connections`. Aditiva pura | ✅ **APLICADA** 14-ago |
 
 **Orden obligatorio: 0376 → 0377 → 0378.** La 0377 usa `skip_code`, que crea la
 0376.
@@ -325,8 +325,13 @@ primero, encender después" en vez de vender la feature.
 
 ## 7. Lo que sigue
 
-1. **Tu OK para la última**: `0378_kommo_contact_estado_comercial` (aditiva
-   pura: dos columnas de config). La 0376 y la 0377 ya están aplicadas.
+1. ~~Aplicar las migraciones~~ — **las tres están aplicadas y verificadas**
+   (0376, 0377, 0378). La 0378 se verificó además *inerte de verdad*: las dos
+   columnas están en NULL en la fila real, así que el job no escribe nada.
+2. 🔴 **Ajeno, pero bloquea el gate:** `0379_legado_al_rango_8000` está aplicada
+   en prod y su archivo vive **sólo** en `feat/sdd-0258-rango-8000` (worktree
+   `rango8000`), sin pushear. `migrations-applied` la marca como huérfana. No se
+   toca desde acá: es de esa ventana, y llevarla yo chocaría cuando publiquen.
 2. **Tu OK para pushear.** ⚠️ El último commit del push tiene que tocar código,
    no sólo `docs/**` — si no, `vercel.json` cancela el deploy en silencio.
 3. **Migraciones antes del deploy** (§3).
