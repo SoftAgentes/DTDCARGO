@@ -274,7 +274,7 @@ function ResumenMensualCard({
             key={d.id}
             className="rounded-[12px] bg-grey-100 px-4 py-3"
           >
-            <div className="text-[11.5px] font-bold text-wine capitalize">
+            <div className="text-[11.5px] font-bold text-wine-text capitalize">
               {fmtPeriod(d.period)}
             </div>
             <p className="mt-1.5 text-[13px] text-ink leading-[1.55] whitespace-pre-wrap break-words">
@@ -332,7 +332,7 @@ function OtrosCanalesCard({
           rel="noopener noreferrer"
           className="flex items-center gap-3 rounded-[10px] bg-grey-100 px-3 py-2.5 transition-colors hover:bg-grey-200"
         >
-          <span className="text-wine shrink-0">
+          <span className="text-wine-text shrink-0">
             <WhatsAppIcon size={16} />
           </span>
           <span className="min-w-0">
@@ -346,7 +346,7 @@ function OtrosCanalesCard({
           href={`mailto:${CONTACT.ve.email}`}
           className="flex items-center gap-3 rounded-[10px] bg-grey-100 px-3 py-2.5 transition-colors hover:bg-grey-200"
         >
-          <span className="text-wine shrink-0">
+          <span className="text-wine-text shrink-0">
             <MailIcon size={16} />
           </span>
           <span className="min-w-0">
@@ -360,7 +360,7 @@ function OtrosCanalesCard({
           href={`tel:${CONTACT.ve.phoneRaw}`}
           className="flex items-center gap-3 rounded-[10px] bg-grey-100 px-3 py-2.5 transition-colors hover:bg-grey-200"
         >
-          <span className="text-wine shrink-0">
+          <span className="text-wine-text shrink-0">
             <PhoneIcon size={16} />
           </span>
           <span className="min-w-0">

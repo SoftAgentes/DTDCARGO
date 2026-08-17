@@ -169,7 +169,7 @@ export function LoginForm({
                 </div>
                 <Link
                   href="/registro"
-                  className="self-center inline-flex items-center gap-1.5 text-[12.5px] font-extrabold text-wine hover:text-wine-deep"
+                  className="self-center inline-flex items-center gap-1.5 text-[12.5px] font-extrabold text-wine-text hover:text-wine-deep"
                 >
                   Crea tu cuenta gratis <ArrowIcon size={13} />
                 </Link>
@@ -294,7 +294,7 @@ function MagicSent({
           type="submit"
           disabled={pending}
           aria-busy={pending}
-          className="text-[13px] font-semibold text-wine hover:text-wine-deep disabled:opacity-60"
+          className="text-[13px] font-semibold text-wine-text hover:text-wine-deep disabled:opacity-60"
         >
           {pending ? "Reenviando…" : "Reenviar enlace"}
         </button>

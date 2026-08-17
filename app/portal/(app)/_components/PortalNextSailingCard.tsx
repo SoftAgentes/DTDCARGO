@@ -136,7 +136,7 @@ function Unit({ n, label, big = false }: { n: number; label: string; big?: boole
   return (
     <div className="flex items-baseline gap-1">
       <span
-        className={big ? "text-[34px] leading-none text-wine" : "text-[18px] leading-none text-ink"}
+        className={big ? "text-[34px] leading-none text-wine-text" : "text-[18px] leading-none text-ink"}
         style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace", fontWeight: 800 }}
       >
         {n}

@@ -97,7 +97,7 @@ export function AcceptanceForm({
       </p>
       <a
         href="#documentos-legales"
-        className="mt-1.5 inline-block text-[13px] font-semibold text-wine hover:underline"
+        className="mt-1.5 inline-block text-[13px] font-semibold text-wine-text hover:underline"
       >
         {copy.readLinkLabel}
       </a>

@@ -431,7 +431,7 @@ function QuickCalc() {
               type="button"
               onClick={() => press(k)}
               className={`py-3 rounded-[10px] border border-grey-200 text-[16px] font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${
-                op ? "text-wine" : "text-ink bg-white hover:bg-grey-100"
+                op ? "text-wine-text" : "text-ink bg-white hover:bg-grey-100"
               }`}
               style={{
                 fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
@@ -448,7 +448,7 @@ function QuickCalc() {
         <button
           type="button"
           onClick={() => press("C")}
-          className="py-2.5 rounded-[10px] border border-grey-200 bg-white text-[13px] font-bold text-wine hover:bg-grey-100 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          className="py-2.5 rounded-[10px] border border-grey-200 bg-white text-[13px] font-bold text-wine-text hover:bg-grey-100 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
         >
           C
         </button>
@@ -478,7 +478,7 @@ function QuickCalc() {
       <button
         type="button"
         onClick={copy}
-        className="w-full mt-2 py-2.5 rounded-[10px] border border-grey-200 bg-white text-[12px] font-bold text-wine hover:bg-grey-100 inline-flex items-center justify-center gap-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        className="w-full mt-2 py-2.5 rounded-[10px] border border-grey-200 bg-white text-[12px] font-bold text-wine-text hover:bg-grey-100 inline-flex items-center justify-center gap-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
       >
         {copied ? <CheckIcon size={13} /> : <DocIcon size={13} />}
         {copied ? "Copiado" : "Copiar resultado"}

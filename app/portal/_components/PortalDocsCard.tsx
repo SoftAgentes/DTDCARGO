@@ -55,7 +55,7 @@ export function PortalDocsCard({
           const inner = (
             <>
               <span
-                className="text-[10px] font-bold tracking-wide text-wine bg-paper border border-grey-200 rounded-md px-2 py-1 flex-shrink-0"
+                className="text-[10px] font-bold tracking-wide text-wine-text bg-paper border border-grey-200 rounded-md px-2 py-1 flex-shrink-0"
                 style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
               >
                 {shipmentDocTypeShort(doc.doc_type)}
@@ -80,7 +80,7 @@ export function PortalDocsCard({
                   aria-label={`Ver documento ${doc.file_name}`}
                 >
                   {inner}
-                  <span className="text-[12.5px] font-semibold text-wine inline-flex items-center gap-1 flex-shrink-0">
+                  <span className="text-[12.5px] font-semibold text-wine-text inline-flex items-center gap-1 flex-shrink-0">
                     Ver <ArrowIcon size={14} className="group-hover:translate-x-0.5 transition-transform" />
                   </span>
                 </a>

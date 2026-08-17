@@ -73,7 +73,7 @@ export function AvatarEditor({
               if (fileRef.current) fileRef.current.value = "";
               fileRef.current?.click();
             }}
-            className="text-[12.5px] font-semibold text-wine hover:text-wine-deep disabled:opacity-60"
+            className="text-[12.5px] font-semibold text-wine-text hover:text-wine-deep disabled:opacity-60"
           >
             {pending ? "Subiendo…" : avatarUrl ? "Cambiar foto" : "Subir foto de perfil"}
           </button>

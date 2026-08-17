@@ -112,7 +112,7 @@ function CancelButton({
         type="submit"
         disabled={pending}
         aria-busy={pending}
-        className="text-[11.5px] font-semibold text-grey-500 hover:text-wine disabled:opacity-60 disabled:cursor-wait underline"
+        className="text-[11.5px] font-semibold text-grey-500 hover:text-wine-text disabled:opacity-60 disabled:cursor-wait underline"
       >
         {pending ? "Cancelando…" : "Cancelar reporte"}
       </button>

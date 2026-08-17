@@ -68,7 +68,7 @@ export function SuppliersClient({
           </h1>
           <p className="lead mt-3 max-w-[64ch]">
             Cada <strong className="text-ink">compra</strong> es una{" "}
-            <strong className="text-wine">prealerta</strong>: nos avisas que viene
+            <strong className="text-wine-text">prealerta</strong>: nos avisas que viene
             mercancía de China para esperarla y procesarla más rápido. Genera el
             código y las etiquetas para tus proveedores, o vuelve a comprarle a uno
             que ya tengas.
@@ -177,7 +177,7 @@ export function SuppliersClient({
       <div className="mt-8">
         <Link
           href="/portal/compras"
-          className="inline-flex items-center gap-1.5 text-[13.5px] font-bold text-wine hover:underline"
+          className="inline-flex items-center gap-1.5 text-[13.5px] font-bold text-wine-text hover:underline"
         >
           Ver todas mis compras <ArrowIcon size={14} />
         </Link>
@@ -262,7 +262,7 @@ function SupplierCard({ supplier }: { supplier: SupplierView }) {
         >
           {supplier.orderCount} compra{supplier.orderCount === 1 ? "" : "s"} ·
           próxima:{" "}
-          <span className="text-wine font-bold">{supplier.nextCode}</span>
+          <span className="text-wine-text font-bold">{supplier.nextCode}</span>
         </div>
         {deleteState.error && (
           <PortalFieldError>{deleteState.error}</PortalFieldError>
@@ -277,7 +277,7 @@ function SupplierCard({ supplier }: { supplier: SupplierView }) {
             <button
               type="submit"
               disabled={deletePending}
-              className="btn btn-ghost text-wine disabled:opacity-60"
+              className="btn btn-ghost text-wine-text disabled:opacity-60"
             >
               {deletePending ? "Borrando…" : "Sí, borrar"}
             </button>

@@ -101,7 +101,7 @@ function MisCursos({ courses }: { courses: { courseId: string; title: string; ti
               className="rounded-xl border border-grey-200 bg-white p-4 flex flex-col gap-3 hover:border-wine transition-colors"
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-wide text-wine">{tierLabel(c.tier)}</span>
+                <span className="text-[11px] font-bold uppercase tracking-wide text-wine-text">{tierLabel(c.tier)}</span>
                 {c.completed && (
                   <span className="text-[11px] font-bold uppercase tracking-wide text-status-success">Completado</span>
                 )}
@@ -142,7 +142,7 @@ function MisDiplomas({ diplomas }: { diplomas: { id: string; folio: string; cour
               <span className="text-[11px] text-grey-500">{d.issuedAt}</span>
               <Link
                 href={`/verificar?c=${encodeURIComponent(d.folio)}`}
-                className="text-[12px] font-semibold text-wine hover:underline"
+                className="text-[12px] font-semibold text-wine-text hover:underline"
               >
                 Verificar
               </Link>

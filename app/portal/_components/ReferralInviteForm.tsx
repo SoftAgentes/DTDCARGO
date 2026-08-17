@@ -35,7 +35,7 @@ export function ReferralInviteForm() {
 
   return (
     <div className="mt-5 card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-7">
-      <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-wine">
+      <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-wine-text">
         Invita por correo
       </div>
       <h2 className="mt-1.5 text-[18px] font-bold text-ink leading-tight">

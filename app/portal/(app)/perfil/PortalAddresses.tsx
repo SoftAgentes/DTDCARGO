@@ -64,7 +64,7 @@ export function PortalAddresses({
             cuenta"/"Identidad" en Mi perfil); gris cuando es sección embebida. */}
         <h2
           className={`text-[11px] font-bold tracking-[0.14em] uppercase ${
-            framed ? "text-grey-500" : "text-wine"
+            framed ? "text-grey-500" : "text-wine-text"
           }`}
         >
           Direcciones de entrega
@@ -73,7 +73,7 @@ export function PortalAddresses({
           <button
             type="button"
             onClick={() => setAdding(true)}
-            className="text-[12.5px] font-bold text-wine hover:text-wine-deep inline-flex items-center gap-1"
+            className="text-[12.5px] font-bold text-wine-text hover:text-wine-deep inline-flex items-center gap-1"
           >
             + Agregar
           </button>
@@ -132,7 +132,7 @@ function AddressRow({
           ) : null}
           {address.isDefault ? (
             <span
-              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.06em] text-wine"
+              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.06em] text-wine-text"
               style={{ background: "color-mix(in srgb, var(--color-wine) 12%, transparent)" }}
             >
               <CheckIcon size={11} /> Predeterminada
@@ -182,7 +182,7 @@ function AddressRow({
           <form action={setDefaultAddressAction}>
             <input type="hidden" name="addressId" value={address.id} />
             <PendingTextButton
-              className="text-[12px] font-semibold text-wine hover:text-wine-deep whitespace-nowrap"
+              className="text-[12px] font-semibold text-wine-text hover:text-wine-deep whitespace-nowrap"
               idle="Predeterminar"
               pending="Guardando…"
             />
@@ -337,7 +337,7 @@ function Input({
     <label className="flex flex-col gap-1.5">
       <span className="text-[11px] font-semibold tracking-[0.1em] uppercase text-grey-500">
         {label}
-        {required ? <span className="text-wine"> *</span> : null}
+        {required ? <span className="text-wine-text"> *</span> : null}
       </span>
       <input
         name={name}

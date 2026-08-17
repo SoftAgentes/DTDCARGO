@@ -277,7 +277,7 @@ function TierCard({ program }: { program: PortalReferralProgram }) {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
           <span
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] text-wine"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] text-wine-text"
             style={{ background: "color-mix(in srgb, var(--color-wine) 12%, transparent)" }}
             aria-hidden
           >

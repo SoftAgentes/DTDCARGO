@@ -446,3 +446,56 @@ su propia pasada, no el final de otra.
 | 6 | ΔE ≥ 15, o excepción con el criterio 4 cumplido | ✅ EXC-0261-01 vigente: el ícono ya está |
 | 7 | Captura que pruebe la distinción | ⏸ pendiente |
 | 8 | typecheck · lint · test · verify | ✅ `TODO VERDE ✓`, 5286 pruebas |
+
+---
+
+## ✅ Slice A — HECHO (2026-08-14)
+
+**86 usos de `text-wine` → `text-wine-text`, en 43 archivos.** Cero `text-wine`
+crudo queda en `app/portal`.
+
+### Por qué el barrido resultó ser seguro, y no hizo falta separar texto de icono
+
+Al medir los tokens apareció el dato que cambia el riesgo del slice:
+
+| Token | Tema claro | Tema oscuro |
+|---|---|---|
+| `--color-wine` | **#7f0f1a** (globals.css:10) | #c24450 |
+| `--color-wine-text` | **#7f0f1a** (globals.css:17) | #d89aa4 |
+
+**En claro los dos valen exactamente lo mismo.** O sea que la conversión **no
+puede cambiar un solo píxel en el tema claro**, y en oscuro sólo puede mejorar
+(3,00 → 6,44:1).
+
+Eso volvió innecesaria la separación texto/icono que la spec anticipaba: al icono
+también le sirve, y no hay caso en que empeore. El primer intento de clasificador
+—que separaba TEXTO/ICONO/HOVER— resultó tener falsos positivos (metía enlaces
+con icono **y** texto en el grupo ICONO); se descartó a favor de la regla simple,
+que además es demostrablemente segura.
+
+**Lo que NO se tocó:** `bg-wine`, `border-wine` y `ring-wine`. Ahí el vino es
+relleno o borde de marca, no color de texto, y el lookahead del patrón los
+protege junto con `text-wine-deep`.
+
+### Criterio 5 — medición en vivo, CERRADO
+
+Banco de medición con el shell real del portal, los dos temas:
+
+| Probe | claro | oscuro | umbral |
+|---|---|---|---|
+| Acento · eyebrow 11 px | **10,58:1** | **6,44:1** | 4,5:1 ✅ |
+| Acento · enlace 12,5 px | **10,58:1** | **6,44:1** | 4,5:1 ✅ |
+| Error · campo 12 px | **5,42:1** | **6,73:1** | 4,5:1 ✅ |
+| Error · formulario 13 px | **5,42:1** | **6,73:1** | 4,5:1 ✅ |
+
+El `#c2353f` del tema claro, que estaba **calculado** (~5,4:1), queda **medido**:
+5,42:1.
+
+### Criterio 7 — sigue PENDIENTE
+
+La captura que pruebe que error (#F6929A) y enlace (#D89AA4) se distinguen a
+tamaño real **no se pudo tomar**: el panel del navegador no compone frames en
+esta sesión y `screenshot` expira.
+
+**No se da por cumplido.** La excepción EXC-0261-01 se apoya en el criterio 4
+—el ícono, que sí está y está probado— pero su prueba visual queda abierta.

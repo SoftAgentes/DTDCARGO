@@ -54,7 +54,7 @@ export function ProfilePendingBanner({
               <span className="flex-1 text-[13.5px] font-semibold text-ink">
                 {it.label}
               </span>
-              <span className="flex-shrink-0 text-[12px] font-bold text-wine inline-flex items-center gap-1">
+              <span className="flex-shrink-0 text-[12px] font-bold text-wine-text inline-flex items-center gap-1">
                 Completar
                 <ArrowIcon />
               </span>

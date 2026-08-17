@@ -90,7 +90,7 @@ export default async function ReportPaymentPage({ params }: Props) {
             <div className="flex items-center justify-between gap-4 pt-2 border-t border-grey-200">
               <dt className="text-[13.5px] font-bold text-ink">Saldo pendiente</dt>
               <dd
-                className="text-[15px] font-extrabold text-wine whitespace-nowrap"
+                className="text-[15px] font-extrabold text-wine-text whitespace-nowrap"
                 style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
               >
                 {formatInvoiceAmount(balance, inv.currency)}

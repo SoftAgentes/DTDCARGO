@@ -103,7 +103,7 @@ export function PortalShipmentDetailNorte({
           </div>
           <div className="mt-3 flex items-center gap-2.5 flex-wrap text-[15px]">
             <span className="font-bold text-ink">{cityOf(shipment.origin)}</span>
-            <span className="text-wine">→</span>
+            <span className="text-wine-text">→</span>
             <span className="font-bold text-ink">
               {cityOf(shipment.destination)}
             </span>
@@ -527,7 +527,7 @@ function Field({
       </dt>
       <dd
         className={`text-[15.5px] ${
-          highlight ? "font-extrabold text-wine" : "font-semibold text-ink"
+          highlight ? "font-extrabold text-wine-text" : "font-semibold text-ink"
         }`}
         style={
           mono

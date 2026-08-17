@@ -161,7 +161,7 @@ function GroupBuyCard({ gb }: { gb: PortalClubGroupBuy }) {
           {route && <span className="text-xs font-semibold text-grey-500">{route}</span>}
         </div>
         {gb.myParticipation && (
-          <span className="flex-shrink-0 text-[11px] font-bold uppercase tracking-wide rounded-full px-2.5 py-1 bg-wine/10 text-wine">
+          <span className="flex-shrink-0 text-[11px] font-bold uppercase tracking-wide rounded-full px-2.5 py-1 bg-wine/10 text-wine-text">
             {gb.myParticipation.statusLabel}
           </span>
         )}
@@ -233,7 +233,7 @@ function EventCard({ ev }: { ev: PortalClubEvent }) {
           {meta && <span className="text-xs font-semibold text-grey-500">{meta}</span>}
         </div>
         {ev.myRegistrationLabel && (
-          <span className="flex-shrink-0 text-[11px] font-bold uppercase tracking-wide rounded-full px-2.5 py-1 bg-wine/10 text-wine">
+          <span className="flex-shrink-0 text-[11px] font-bold uppercase tracking-wide rounded-full px-2.5 py-1 bg-wine/10 text-wine-text">
             {ev.myRegistrationLabel}
           </span>
         )}

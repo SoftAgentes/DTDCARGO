@@ -167,7 +167,7 @@ export default async function PortalProfilePage() {
           <AvatarEditor name={client.name} avatarUrl={avatarUrl} />
 
           <span
-            className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-paper border border-grey-200 px-3 py-1.5 text-[11px] font-bold tracking-[0.04em] text-wine"
+            className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-paper border border-grey-200 px-3 py-1.5 text-[11px] font-bold tracking-[0.04em] text-wine-text"
           >
             {esEmpresa ? "Cuenta de empresa" : "Cuenta personal"}
           </span>
@@ -248,7 +248,7 @@ export default async function PortalProfilePage() {
         <div className="flex flex-col gap-6">
           {/* Datos de cuenta (read-only · mediados por el asesor) */}
           <section className="card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-8">
-            <h2 className="text-[11px] font-bold tracking-[0.14em] uppercase text-wine">
+            <h2 className="text-[11px] font-bold tracking-[0.14em] uppercase text-wine-text">
               Datos de cuenta
             </h2>
             <dl className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -293,7 +293,7 @@ export default async function PortalProfilePage() {
             className="scroll-mt-24 card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-8"
           >
             <div className="flex items-center gap-2.5">
-              <h2 className="text-[11px] font-bold tracking-[0.14em] uppercase text-wine">
+              <h2 className="text-[11px] font-bold tracking-[0.14em] uppercase text-wine-text">
                 Identidad y documentos
               </h2>
               {!completeness.hasPhoto && (
@@ -346,7 +346,7 @@ export default async function PortalProfilePage() {
                 className="mt-6 rounded-[12px] bg-paper border border-grey-200 border-l-[3px] p-5"
                 style={{ borderLeftColor: "var(--color-wine)" }}
               >
-                <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine">
+                <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine-text">
                   ¿Importas para tu negocio?
                 </div>
                 <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.55]">
@@ -389,7 +389,7 @@ export default async function PortalProfilePage() {
             className="card-shadow bg-white border border-grey-200 rounded-[18px] border-l-[3px] p-6 sm:p-8"
             style={{ borderLeftColor: "var(--color-wine)" }}
           >
-            <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-wine">
+            <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-wine-text">
               Tu Shipping Mark para tus proveedores
             </div>
             <h2
@@ -487,7 +487,7 @@ function Step({ n, title, copy }: { n: string; title: string; copy: string }) {
   return (
     <li className="flex gap-4">
       <span
-        className="flex-shrink-0 text-[18px] leading-none text-wine"
+        className="flex-shrink-0 text-[18px] leading-none text-wine-text"
         style={{ fontFamily: "var(--font-archivo-black)" }}
       >
         {n}

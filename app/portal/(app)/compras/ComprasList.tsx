@@ -99,12 +99,12 @@ export function ComprasList({ items }: { items: CompraItem[] }) {
                 type="button"
                 onClick={() => setStatus(p.k)}
                 className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12.5px] font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${
-                  on ? "bg-white text-wine card-shadow" : "text-grey-500 hover:text-ink"
+                  on ? "bg-white text-wine-text card-shadow" : "text-grey-500 hover:text-ink"
                 }`}
               >
                 {p.l}
                 <span
-                  className={`text-[10.5px] ${on ? "text-wine" : "text-grey-500"}`}
+                  className={`text-[10.5px] ${on ? "text-wine-text" : "text-grey-500"}`}
                   style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
                 >
                   {counts[p.k]}
@@ -156,7 +156,7 @@ export function ComprasList({ items }: { items: CompraItem[] }) {
 
               <span className="flex items-center gap-2 flex-shrink-0 self-center">
                 <span className="text-[12px] text-grey-500 hidden sm:inline">Ver etiquetas</span>
-                <ArrowIcon size={18} className="text-grey-300 transition-colors group-hover:text-wine" />
+                <ArrowIcon size={18} className="text-grey-300 transition-colors group-hover:text-wine-text" />
               </span>
             </Link>
           );

@@ -89,7 +89,7 @@ export function DataChangeEditor({
             <button
               type="button"
               onClick={() => setConfirmingCancel(true)}
-              className="inline-flex items-center min-h-[24px] rounded-[4px] text-[12.5px] font-semibold text-grey-700 hover:text-wine focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              className="inline-flex items-center min-h-[24px] rounded-[4px] text-[12.5px] font-semibold text-grey-700 hover:text-wine-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
             >
               Cancelar esta solicitud
             </button>
@@ -139,7 +139,7 @@ export function DataChangeEditor({
               asesor la aprueba. Tu código y tu email no se editan aquí.
             </p>
             {lastRejected && lastRejected.reviewNote ? (
-              <p className="mt-2 text-[12.5px] text-wine leading-[1.5]">
+              <p className="mt-2 text-[12.5px] text-wine-text leading-[1.5]">
                 Tu última solicitud no se aprobó: {lastRejected.reviewNote}
               </p>
             ) : null}
@@ -219,7 +219,7 @@ export function DataChangeEditor({
             </button>
             <Link
               href="/portal/soporte?tema=datos"
-              className="text-[12.5px] font-semibold text-wine hover:text-wine-deep inline-flex items-center gap-1.5 sm:ml-auto"
+              className="text-[12.5px] font-semibold text-wine-text hover:text-wine-deep inline-flex items-center gap-1.5 sm:ml-auto"
             >
               <ChatIcon size={14} /> Mejor lo hablo por el chat
             </Link>

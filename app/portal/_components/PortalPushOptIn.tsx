@@ -147,7 +147,7 @@ export function PortalPushOptIn() {
         <button
           type="button"
           onClick={() => void disable()}
-          className="text-[12px] font-semibold text-grey-500 hover:text-wine shrink-0"
+          className="text-[12px] font-semibold text-grey-500 hover:text-wine-text shrink-0"
         >
           Desactivar
         </button>
@@ -161,7 +161,7 @@ export function PortalPushOptIn() {
   return (
     <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-5">
       <div className="flex items-start gap-3">
-        <span className="grid place-items-center h-9 w-9 rounded-full bg-paper text-wine shrink-0">
+        <span className="grid place-items-center h-9 w-9 rounded-full bg-paper text-wine-text shrink-0">
           <Bell size={16} />
         </span>
         <div className="min-w-0 flex-1">

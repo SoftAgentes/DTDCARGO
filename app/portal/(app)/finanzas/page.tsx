@@ -172,7 +172,7 @@ function AccesoChip({
 }) {
   const inner = (
     <>
-      <span className="text-wine flex-shrink-0">{icon}</span>
+      <span className="text-wine-text flex-shrink-0">{icon}</span>
       <span className="text-[13px] font-semibold text-ink">{label}</span>
       {soon && (
         <span className="text-[9px] font-bold tracking-[0.1em] uppercase text-grey-500 bg-grey-100 rounded-full px-1.5 py-0.5">
