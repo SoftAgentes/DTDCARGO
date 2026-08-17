@@ -14,6 +14,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import {
   billBalanceToUsd,
   daysOverdue,
@@ -81,15 +82,22 @@ export async function listOverduePartnerBills(
   supabase: SupabaseClient,
   today: string = new Date().toISOString().slice(0, 10),
 ): Promise<PartnerBillAlert[]> {
-  const { data, error } = await supabase
-    .from("supplier_bills")
-    .select(ALERT_BILL_COLUMNS)
-    .in("bill_kind", ["pp", "ca"])
-    .neq("status", "anulada")
-    .is("deleted_at", null)
-    .order("due_date", { ascending: true })
-    .limit(2000);
-  if (error) throw error;
+  // Paginado: son las ALERTAS de vencimiento. Se ordenan por due_date, así
+  // que lo que se perdía por el tope era la cola más lejana — que es la que
+  // se vuelve urgente mañana.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) =>
+      supabase
+        .from("supplier_bills")
+        .select(ALERT_BILL_COLUMNS)
+        .in("bill_kind", ["pp", "ca"])
+        .neq("status", "anulada")
+        .is("deleted_at", null)
+        .order("due_date", { ascending: true })
+        .order("id", { ascending: true })
+        .range(d, h),
+  );
+  if (!complete) throw new Error("Las alertas de vencimiento superan el tope de lectura.");
 
   const bills = ((data as Record<string, unknown>[] | null) ?? []).map(
     coerceAlertBill,

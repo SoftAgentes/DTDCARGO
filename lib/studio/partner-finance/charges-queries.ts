@@ -9,6 +9,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import {
   canTransitionCharge,
   deriveNetAmount,
@@ -52,15 +53,21 @@ export async function listCharges(
   supabase: SupabaseClient,
   supplierId?: string,
 ): Promise<SupplierChargeWithNet[]> {
-  let q = supabase
-    .from("supplier_charges")
-    .select(CHARGE_COLUMNS)
-    .order("charged_on", { ascending: false })
-    .limit(5000);
-  if (supplierId) q = q.eq("supplier_id", supplierId);
-
-  const { data, error } = await q;
-  if (error) throw error;
+  // Paginado: son los cargos del socio; se cruzan con notas de crédito para el neto.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) => {
+      let q = supabase
+        .from("supplier_charges")
+        .select(CHARGE_COLUMNS)
+        .order("charged_on", { ascending: false })
+        .order("id", { ascending: true });
+    if (supplierId) q = q.eq("supplier_id", supplierId);
+      return q.range(d, h);
+    },
+  );
+  if (!complete) {
+    throw new Error("Los cargos del socio superan el tope de lectura; filtra por proveedor.");
+  }
 
   const charges = ((data as Record<string, unknown>[] | null) ?? []).map(
     coerceCharge,

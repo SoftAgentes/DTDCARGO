@@ -20,6 +20,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 
 export type PartnerFinanceHealth = {
   /** Cargos vivos no `cancelado` sin asiento. */
@@ -82,25 +83,37 @@ export async function getPartnerFinanceHealth(
   //    al menos una nota de crédito viva → el asiento quedó al bruto. Traemos
   //    los charge_id asentados y los charge_id con NC viva, e intersectamos en
   //    memoria (no hay join barato en PostgREST sin embebido).
-  const { data: postedRows, error: postedErr } = await supabase
-    .from("supplier_charges")
-    .select("id")
-    .not("journal_entry_id", "is", null)
-    .is("deleted_at", null)
-    .limit(20000);
-  if (postedErr) throw new Error(postedErr.message);
+  const { rows: postedRows, complete: postedOk } = await fetchAllPaged<
+    Record<string, unknown>
+  >((d, h) =>
+    supabase
+      .from("supplier_charges")
+      .select("id")
+      .not("journal_entry_id", "is", null)
+      .is("deleted_at", null)
+      .order("id", { ascending: true })
+      .range(d, h),
+  );
+  if (!postedOk) throw new Error("Cargos asentados: lectura incompleta.");
   const postedIds = new Set(
     ((postedRows as { id: string }[] | null) ?? []).map((r) => r.id),
   );
 
   let staleCharges = 0;
   if (postedIds.size > 0) {
-    const { data: noteRows, error: noteErr } = await supabase
-      .from("supplier_credit_notes")
-      .select("charge_id")
-      .is("deleted_at", null)
-      .limit(20000);
-    if (noteErr) throw new Error(noteErr.message);
+    // ⚠️ Truncar acá muestra MENOS problemas de los que hay: la salud del
+    // asentado diría que todo está bien porque no llegó a ver las notas.
+    const { rows: noteRows, complete: noteOk } = await fetchAllPaged<
+      Record<string, unknown>
+    >((d, h) =>
+      supabase
+        .from("supplier_credit_notes")
+        .select("id, charge_id")
+        .is("deleted_at", null)
+        .order("id", { ascending: true })
+        .range(d, h),
+    );
+    if (!noteOk) throw new Error("Notas de crédito: lectura incompleta.");
     const chargesWithNote = new Set(
       ((noteRows as { charge_id: string }[] | null) ?? []).map(
         (r) => r.charge_id,

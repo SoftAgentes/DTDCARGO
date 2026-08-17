@@ -14,6 +14,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import { markChargesReconciled } from "./charges-queries";
 import { countLines } from "./reconciliation-view";
 import {
@@ -109,15 +110,21 @@ export async function listStatements(
   supabase: SupabaseClient,
   supplierId?: string,
 ): Promise<PartnerStatement[]> {
-  let q = supabase
-    .from("partner_statements")
-    .select(STATEMENT_COLUMNS)
-    .order("imported_at", { ascending: false })
-    .limit(2000);
-  if (supplierId) q = q.eq("supplier_id", supplierId);
-
-  const { data, error } = await q;
-  if (error) throw error;
+  // Paginado: son los estados de cuenta importados del socio.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) => {
+      let q = supabase
+        .from("partner_statements")
+        .select(STATEMENT_COLUMNS)
+        .order("imported_at", { ascending: false })
+        .order("id", { ascending: true });
+    if (supplierId) q = q.eq("supplier_id", supplierId);
+      return q.range(d, h);
+    },
+  );
+  if (!complete) {
+    throw new Error("Los estados de cuenta superan el tope de lectura; filtra por proveedor.");
+  }
   return ((data as Record<string, unknown>[] | null) ?? []).map(coerceStatement);
 }
 

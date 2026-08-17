@@ -9,6 +9,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import {
   computePartnerBalance,
   num,
@@ -38,19 +39,24 @@ export async function listLedgerEntries(
   supabase: SupabaseClient,
   supplierId?: string,
 ): Promise<PartnerLedgerEntry[]> {
-  let q = supabase
-    .from("partner_ledger_entries")
-    .select(LEDGER_COLUMNS)
-    .order("occurred_on", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(5000);
+  // Paginado: es el libro del socio; el saldo sale de estas entradas.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) => {
+      let q = supabase
+        .from("partner_ledger_entries")
+        .select(LEDGER_COLUMNS)
+        .order("occurred_on", { ascending: false })
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: true });
+      if (supplierId) q = q.eq("supplier_id", supplierId);
+      return q.range(d, h);
+    },
+  );
+  if (!complete) {
+    throw new Error("El libro del socio supera el tope de lectura; filtra por proveedor.");
+  }
 
-  if (supplierId) q = q.eq("supplier_id", supplierId);
-
-  const { data, error } = await q;
-  if (error) throw error;
-
-  return ((data as Record<string, unknown>[] | null) ?? []).map(coerceEntry);
+  return data.map(coerceEntry);
 }
 
 /**
@@ -61,15 +67,24 @@ export async function getPartnerBalance(
   supabase: SupabaseClient,
   supplierId: string,
 ): Promise<PartnerBalance> {
-  const { data, error } = await supabase
-    .from("partner_ledger_entries")
-    .select("direction, amount_usd, amount_rmb, deleted_at")
-    .eq("supplier_id", supplierId)
-    .limit(20000);
+  // Paginado: acá se calcula el SALDO con el socio. Truncar no muestra menos
+  // movimientos: da un saldo equivocado, y sobre ese saldo se le paga.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) =>
+      supabase
+        .from("partner_ledger_entries")
+        .select("id, direction, amount_usd, amount_rmb, deleted_at")
+        .eq("supplier_id", supplierId)
+        .order("id", { ascending: true })
+        .range(d, h),
+  );
+  if (!complete) {
+    throw new Error(
+      "Los movimientos del socio superan el tope de lectura; el saldo no se puede calcular.",
+    );
+  }
 
-  if (error) throw error;
-
-  const rows = ((data as Record<string, unknown>[] | null) ?? []).map((r) => ({
+  const rows = data.map((r) => ({
     direction: String(r.direction) as PartnerLedgerEntry["direction"],
     amount_usd: num(r.amount_usd),
     amount_rmb: num(r.amount_rmb),

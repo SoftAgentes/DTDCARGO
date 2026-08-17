@@ -34,6 +34,9 @@ type Captured = {
  * devuelve el payload (array si era array, o [payload]); `insert().select().single()`
  * devuelve la fila con id. `select()...` sin insert devuelve rows.
  */
+/** Tope por request del doble: el `db-max-rows` de Supabase. */
+const SERVER_CAP = 1000;
+
 function stub(tables: Tables, captured?: Captured): SupabaseClient {
   return {
     rpc() {
@@ -53,6 +56,15 @@ function stub(tables: Tables, captured?: Captured): SupabaseClient {
         },
         limit() {
           return chain;
+        },
+        // Terminal paginado: corta en SERVER_CAP por request igual que
+        // PostgREST. Un doble más generoso que el servidor deja pasar
+        // código que en producción trunca — así sobrevivió este bug.
+        range(desde: number, hasta: number) {
+          const pedido = hasta - desde + 1;
+          const todas = rows;
+          const trozo = todas.slice(desde, desde + Math.min(pedido, SERVER_CAP));
+          return Promise.resolve({ data: trozo, count: null, error: null });
         },
         eq() {
           return chain;

@@ -10,6 +10,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import {
   CLAIM_OFFSET_NEXT,
   CLAIM_OFFSET_STAGE_DATE_FIELD,
@@ -35,15 +36,21 @@ export async function listClaimOffsets(
   supabase: SupabaseClient,
   status?: ClaimOffsetStatus,
 ): Promise<SupplierClaimOffset[]> {
-  let q = supabase
-    .from("supplier_claim_offsets")
-    .select(CLAIM_OFFSET_COLUMNS)
-    .order("claimed_on", { ascending: false })
-    .limit(5000);
-  if (status) q = q.eq("status", status);
-
-  const { data, error } = await q;
-  if (error) throw error;
+  // Paginado: son los reclamos que compensan deuda con el socio.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) => {
+      let q = supabase
+        .from("supplier_claim_offsets")
+        .select(CLAIM_OFFSET_COLUMNS)
+        .order("claimed_on", { ascending: false })
+        .order("id", { ascending: true });
+    if (status) q = q.eq("status", status);
+      return q.range(d, h);
+    },
+  );
+  if (!complete) {
+    throw new Error("Los reclamos superan el tope de lectura; filtra por estado.");
+  }
   return ((data as Record<string, unknown>[] | null) ?? []).map(
     coerceClaimOffset,
   );

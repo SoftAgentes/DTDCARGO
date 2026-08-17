@@ -28,6 +28,9 @@ function matches(row: Row, filters: Filter[]): boolean {
   });
 }
 
+/** Tope por request del doble: el `db-max-rows` de Supabase. */
+const SERVER_CAP = 1000;
+
 function stub(tables: Record<string, Row[]>): SupabaseClient {
   return {
     from(table: string) {
@@ -59,6 +62,20 @@ function stub(tables: Record<string, Row[]>): SupabaseClient {
         },
         limit() {
           return chain;
+        },
+        // La paginación exige un orden estable, así que el código real ahora
+        // encadena `.order("id")` — el doble tiene que aceptarlo.
+        order() {
+          return chain;
+        },
+        // Terminal paginado: corta en SERVER_CAP por request igual que
+        // PostgREST. Un doble más generoso que el servidor deja pasar
+        // código que en producción trunca — así sobrevivió este bug.
+        range(desde: number, hasta: number) {
+          const pedido = hasta - desde + 1;
+          const todas = rows.filter((r) => matches(r, filters));
+          const trozo = todas.slice(desde, desde + Math.min(pedido, SERVER_CAP));
+          return Promise.resolve({ data: trozo, count: null, error: null });
         },
         then(resolve: (v: { data: Row[] | null; count: number | null; error: null }) => unknown) {
           const filtered = rows.filter((r) => matches(r, filters));

@@ -8,6 +8,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import {
   computeConversionSpread,
   num,
@@ -34,13 +35,20 @@ function coerceConversion(r: Record<string, unknown>): CurrencyConversion {
 export async function listConversions(
   supabase: SupabaseClient,
 ): Promise<CurrencyConversion[]> {
-  const { data, error } = await supabase
-    .from("currency_conversions")
-    .select(CONVERSION_COLUMNS)
-    .order("converted_on", { ascending: false })
-    .limit(5000);
-  if (error) throw error;
-  return ((data as Record<string, unknown>[] | null) ?? []).map(
+  // Paginado: las conversiones de moneda del socio.
+  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) =>
+      supabase
+        .from("currency_conversions")
+        .select(CONVERSION_COLUMNS)
+        .order("converted_on", { ascending: false })
+        .order("id", { ascending: true })
+        .range(d, h),
+  );
+  if (!complete) {
+    throw new Error("Las conversiones superan el tope de lectura.");
+  }
+  return data.map(
     coerceConversion,
   );
 }
@@ -91,14 +99,20 @@ export async function addConversion(
 export async function getForexRevenue(
   supabase: SupabaseClient,
 ): Promise<{ total_commission: number; count: number }> {
-  const { data, error } = await supabase
-    .from("currency_conversions")
-    .select("commission_amount, deleted_at")
-    .is("deleted_at", null)
-    .limit(20000);
-  if (error) throw error;
-
-  const rows = (data as Record<string, unknown>[] | null) ?? [];
+  // Paginado: SUMA la comisión de cambio — es ingreso. Truncar la declara de
+  // menos, y el conteo que va al lado sale igual de corto.
+  const { rows, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (d, h) =>
+      supabase
+        .from("currency_conversions")
+        .select("id, commission_amount, deleted_at")
+        .is("deleted_at", null)
+        .order("id", { ascending: true })
+        .range(d, h),
+  );
+  if (!complete) {
+    throw new Error("Las conversiones superan el tope; la comisión no se puede totalizar.");
+  }
   const total = rows.reduce((acc, r) => acc + num(r.commission_amount), 0);
   return {
     total_commission: Math.round((total + Number.EPSILON) * 100) / 100,
