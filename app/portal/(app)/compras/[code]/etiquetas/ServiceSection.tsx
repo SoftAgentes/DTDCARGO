@@ -254,6 +254,7 @@ function AddServiceForm({
         <button
           type="submit"
           disabled={pending || !code}
+          aria-busy={pending}
           className="btn btn-primary inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-wait"
         >
           {pending ? "Pidiendo…" : "Pedir este servicio"}

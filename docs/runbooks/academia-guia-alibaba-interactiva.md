@@ -40,7 +40,8 @@ Vive en `components/` (frontera OK: solo design-tokens, reusable público↔port
 
 > **MARKBOX automático en el portal.** Como el cliente está logueado, le pasamos su MARKBOX (y nombre) por
 > querystring al iframe. La guía lee `?mark=` y **pre-llena** el campo MARKBOX + arma el Destinatario solo
-> (`DTD Cargo - DTD-1042`) + saluda + refuerza que lo ponga en la dirección. **Sin `?mark=` = guía pública/manual**
+> (`林冠 DTD-1042` desde SDD-0264 — Alibaba exige chino en ese campo) + saluda + refuerza que lo ponga en la
+> dirección. **Sin `?mark=` = guía pública/manual**
 > (placeholder `DTD-XXXX`). El mark se sanitiza en la guía (solo `A-Z0-9-`, se le antepone `DTD-` si falta).
 
 ```tsx

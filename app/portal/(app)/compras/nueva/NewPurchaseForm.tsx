@@ -210,6 +210,7 @@ export function NewPurchaseForm({
         <button
           type="submit"
           disabled={pending || !supplierId}
+          aria-busy={pending}
           className="btn btn-primary inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait"
         >
           {pending ? "Registrando compra…" : "Registrar compra"}
