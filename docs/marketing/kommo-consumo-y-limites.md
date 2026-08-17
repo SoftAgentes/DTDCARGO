@@ -145,8 +145,10 @@ quedarse callado 23 h, **el bot debería volver a dispararse**. No se comprobó 
 Si un mismo lead recibe el mensaje dos o tres veces, hay que agregarle una etiqueta al dispararse y
 excluir a los que ya la tienen. **Un recordatorio se perdona; tres seguidos hacen que te reporten.**
 
-🟢 **Medido el 2026-08-13 por la tarde: el contador iba en 7 lanzamientos, no en cientos.** El bot
-está calibrado y no repite sobre los mismos. Lo que sí llama la atención: **7 enviados, 0 leídos.**
+📈 **El contador el 2026-08-13: 7 lanzamientos a media tarde, 41 al final del día.** Con ~73 leads
+en Contacto inicial, 41 sigue siendo compatible con "uno por lead" — pero es el número que hay que
+mirar mañana. Si pasa de los leads que hay en la etapa, está repitiendo. Lo que sí llama la atención
+desde el principio: **enviados 41, leídos 0.**
 
 ## Un bot por etapa (founder, 2026-08-13)
 
@@ -158,13 +160,17 @@ trabado en otra cosa**, y el mensaje tiene que nombrar esa cosa.
 Ahí hay un asesor trabajando el lead, y un bot escribiendo encima es exactamente el problema que
 resolvió el límite de mensajes. En su lugar, **crea una tarea**.
 
-| Etapa | Qué hace | Estado |
+### ✅ Los 4 bots, armados y verificados recargando (2026-08-13)
+
+Todos con el mismo disparador —`23 horas después del último mensaje entrante`— y `Horas activas:
+Siempre`. Lo único que cambia entre ellos es la **etapa** y **qué hacen**.
+
+| Bot en Kommo | Etapa | Qué hace |
 |---|---|---|
-| Leads Entrantes | mensaje: *"¡Hola! ¿Cómo vas? Vi que nos escribiste y quiero ayudarte. ¿Qué es lo que estás buscando traer de China? Con eso te digo si te conviene por barco o por avión, y cuánto sería."* | aprobado, **sin construir** |
-| **Contacto inicial** | el mensaje de la 3ª ronda | ✅ **vivo y verificado** |
-| Recontacto | mensaje: *"¡Hola! ¿Cómo vas? No quiero estar escribiéndote de más. ¿Te aviso cuando salga el próximo consolidado o prefieres que lo dejemos hasta que tú me escribas?"* | aprobado, **sin construir** |
-| Estimado enviado | ⭐ **tarea** para el responsable, vence en 1 h · cero mensajes al cliente | aprobado, **sin construir** |
-| Negociación | igual — **el mismo bot cubre las dos**, la acción es idéntica | aprobado, **sin construir** |
+| `Ping 23 h — Leads Entrantes` | Leads Entrantes | *"¡Hola! ¿Cómo vas? Vi que nos escribiste y quiero ayudarte. ¿Qué es lo que estás buscando traer de China? Con eso te digo si te conviene por barco o por avión, y cuánto sería."* |
+| `Seguimiento antes de que cierre la ventana de 24 horas` | **Contacto inicial** | el mensaje de la 3ª ronda (el 93% del embudo) |
+| `Ping 23 h — Recontacto` | Recontacto | *"¡Hola! ¿Cómo vas? No quiero estar escribiéndote de más. ¿Te aviso cuando salga el próximo consolidado o prefieres que lo dejemos hasta que tú me escribas?"* |
+| `Aviso interno — ventana de 24 h por cerrarse` | Estimado enviado **+** Negociación | ⭐ **tarea** al usuario responsable, tipo *Seguimiento*, vence en **1 h** · **cero mensajes al cliente** |
 
 El vencimiento de 1 h no es arbitrario: dispara a las 23 h y la ventana muere a las 24. Ése es
 exactamente el tiempo que queda para escribirle.
@@ -172,7 +178,21 @@ exactamente el tiempo que queda para escribirle.
 Texto de la tarea: *"La ventana de WhatsApp se cierra en 1 hora y este lead no ha contestado.
 Escríbele tú antes de que se cierre."*
 
-⛔ **Los tres bots que faltan quedaron bloqueados por acceso, no por decisión.** Kommo admite **una
-sola sesión a la vez**: cada vez que el founder abre el CRM por su lado, expulsa la del agente. Para
-construirlos hay que entrar en el panel del navegador del agente y **no abrir Kommo en otra ventana**
-mientras dure el trabajo.
+⭐ **Un solo bot cubre Estimado y Negociación** porque la acción es idéntica. Dos bots con el mismo
+paso sólo serían dos cosas que mantener sincronizadas.
+
+### Trampas medidas al armarlos
+
+- 🔴 **El campo de condición nace VACÍO en cada bot nuevo, y vacío = TODAS las etapas.** No es sólo
+  cosa de la plantilla: pasa también empezando desde cero. Revisarlo antes de guardar, siempre.
+- 🔴 **En el selector de etapas hay que hacer clic en la ETIQUETA, no en la casilla.** Clicando la
+  casilla la lista se cierra sin marcar nada y el siguiente clic cae en el control de abajo —
+  así se cambió `Horas activas` a "Lu-Sá 09:00-19:00" sin querer. Clicando el texto, la lista se
+  queda abierta y se pueden marcar varias.
+- ⚠️ **`computer type` no mete acentos.** Para texto con tildes, escribir y después corregir con el
+  setter nativo (`value` + `input`/`change`/`blur`), que en campos que ya existen sí registra.
+- ⚠️ **Kommo reusa el nombre "Salesbot #N"** entre bots nuevos. Para saber si abriste uno nuevo o el
+  anterior, mira si la tarjeta *Disparadores* trae chip: sin chip = nuevo.
+- 🔴 **Kommo admite una sola sesión a la vez.** Cada vez que el founder abre el CRM por su lado,
+  expulsa la del agente — y al revés. Costó cuatro rondas. Para trabajar: el agente en su navegador,
+  el founder sin abrir Kommo mientras dure.
