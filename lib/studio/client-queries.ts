@@ -5,6 +5,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import type { Client, ClientTier } from "./client-types";
 
 export type ClientFilters = {
@@ -21,6 +22,33 @@ const CLIENT_COLUMNS =
  * Lista de clientes con filtros opcionales. RLS filtra por tenant.
  * Hasta 200 ordenados por created_at DESC.
  */
+/**
+ * Lee una tabla completa del portal, paginando.
+ *
+ * Estas lecturas alimentan PORCENTAJES de adopcion (cuantos clientes tienen
+ * acceso, cuantos entraron alguna vez). Truncar no muestra menos clientes:
+ * cambia el porcentaje. Y un porcentaje mal no se ve mal — se ve como un dato.
+ *
+ * Hoy la cartera son ~449 clientes, muy por debajo del tope, asi que esto no
+ * corrige un numero equivocado: evita que se vuelva equivocado en silencio el
+ * dia que la cartera pase de mil.
+ */
+async function todasLasFilas<T>(
+  que: string,
+  page: (from: number, to: number) => PromiseLike<{
+    data: unknown;
+    error: { message: string } | null;
+  }>,
+): Promise<T[]> {
+  const { rows, complete } = await fetchAllPaged<T>(page);
+  if (!complete) {
+    throw new Error(
+      que + ": la lectura supera el tope; el dato quedaria incompleto.",
+    );
+  }
+  return rows;
+}
+
 export async function listClients(
   supabase: SupabaseClient,
   filters: ClientFilters = {},
@@ -192,27 +220,36 @@ export async function getPortalAdoptionStats(
     withoutEmail: 0,
   };
   try {
-    const [clientsRes, linkedRes, prealertasRes] = await Promise.all([
-      supabase
-        .from("clients")
-        .select("id, markbox, email")
-        .is("deleted_at", null)
-        .limit(5000),
-      supabase
-        .from("client_users")
-        .select("client_id, last_login_at, status, bound_at")
-        .limit(5000),
-      supabase
-        .from("prealertas")
-        .select("client_markbox")
-        .is("deleted_at", null)
-        .limit(5000),
+    const [clients, linked, prealertasRows] = await Promise.all([
+      todasLasFilas<{ id: string; markbox: string; email: string | null }>(
+        "Clientes",
+        (d, h) =>
+          supabase
+            .from("clients")
+            .select("id, markbox, email")
+            .is("deleted_at", null)
+            .order("id", { ascending: true })
+            .range(d, h),
+      ),
+      todasLasFilas<{ client_id: string; last_login_at: string | null; status: string; bound_at: string | null }>(
+        "Accesos al portal",
+        (d, h) =>
+          supabase
+            .from("client_users")
+            .select("client_id, last_login_at, status, bound_at")
+            .order("client_id", { ascending: true })
+            .range(d, h),
+      ),
+      todasLasFilas<Record<string, unknown>>("Prealertas", (d, h) =>
+        supabase
+          .from("prealertas")
+          .select("id, client_markbox")
+          .is("deleted_at", null)
+          .order("id", { ascending: true })
+          .range(d, h),
+      ),
     ]);
-    if (clientsRes.error) throw clientsRes.error;
-    if (linkedRes.error) throw linkedRes.error;
-
-    const clients = (clientsRes.data as { id: string; markbox: string; email: string | null }[] | null) ?? [];
-    const linked = (linkedRes.data as { client_id: string; last_login_at: string | null; status: string; bound_at: string | null }[] | null) ?? [];
+    const prealertasRes = { data: prealertasRows, error: null };
     const prealertas = (prealertasRes.data as { client_markbox: string | null }[] | null) ?? [];
 
     const accessIds = new Set(linked.map((r) => String(r.client_id)));
@@ -278,16 +315,25 @@ function looksLikeDemo(name: string, email: string): boolean {
 export async function listPortalInviteCandidates(
   supabase: SupabaseClient,
 ): Promise<PortalInviteCandidate[]> {
-  const [clientsRes, linkedRes] = await Promise.all([
-    supabase
-      .from("clients")
-      .select("id, markbox, name, email, phone")
-      .is("deleted_at", null)
-      .limit(5000),
-    supabase.from("client_users").select("client_id").limit(5000),
+  const [clientsRows, linkedRows] = await Promise.all([
+    todasLasFilas<Record<string, unknown>>("Clientes", (d, h) =>
+      supabase
+        .from("clients")
+        .select("id, markbox, name, email, phone")
+        .is("deleted_at", null)
+        .order("id", { ascending: true })
+        .range(d, h),
+    ),
+    todasLasFilas<Record<string, unknown>>("Accesos al portal", (d, h) =>
+      supabase
+        .from("client_users")
+        .select("client_id")
+        .order("client_id", { ascending: true })
+        .range(d, h),
+    ),
   ]);
-  if (clientsRes.error) throw clientsRes.error;
-  if (linkedRes.error) throw linkedRes.error;
+  const clientsRes = { data: clientsRows, error: null };
+  const linkedRes = { data: linkedRows, error: null };
 
   const hasAccess = new Set(
     ((linkedRes.data as { client_id: string }[] | null) ?? []).map((r) =>
@@ -367,30 +413,45 @@ export async function listPortalColdInvitees(
   // las columnas nuevas falla → caemos a la versión sin contadores (badges en 0). Así
   // el deploy no depende del timing de la migración; los contadores se encienden solos
   // cuando se aplique.
-  const [linkedRes, clientsRes] = await Promise.all([
-    supabase
-      .from("client_users")
-      .select(
-        "client_id, email, invited_at, email_invite_count, whatsapp_invite_count, last_email_invite_at, last_whatsapp_invite_at, last_email_invite_by, last_whatsapp_invite_by",
-      )
-      .eq("status", "invited")
-      .limit(5000),
-    supabase
-      .from("clients")
-      .select("id, markbox, name, phone")
-      .is("deleted_at", null)
-      .limit(5000),
+  // Paginado. El `.catch` del primero conserva el fallback defensivo: si la
+  // migracion de contadores aun no esta, el select ancho falla y se reintenta
+  // con el basico.
+  const [linkedRes, clientsRows] = await Promise.all([
+    todasLasFilas<Record<string, unknown>>("Invitados al portal", (d, h) =>
+      supabase
+        .from("client_users")
+        .select(
+          "client_id, email, invited_at, email_invite_count, whatsapp_invite_count, last_email_invite_at, last_whatsapp_invite_at, last_email_invite_by, last_whatsapp_invite_by",
+        )
+        .eq("status", "invited")
+        .order("client_id", { ascending: true })
+        .range(d, h),
+    )
+      .then((rows) => ({ data: rows, error: null as { message: string } | null }))
+      .catch((e: Error) => ({ data: null, error: { message: e.message } })),
+    todasLasFilas<Record<string, unknown>>("Clientes", (d, h) =>
+      supabase
+        .from("clients")
+        .select("id, markbox, name, phone")
+        .is("deleted_at", null)
+        .order("id", { ascending: true })
+        .range(d, h),
+    ),
   ]);
+  const clientsRes = { data: clientsRows, error: null };
   let linkedData: Record<string, unknown>[] | null =
     linkedRes.data as Record<string, unknown>[] | null;
   if (linkedRes.error) {
-    const basic = await supabase
-      .from("client_users")
-      .select("client_id, email, invited_at")
-      .eq("status", "invited")
-      .limit(5000);
-    if (basic.error) throw basic.error; // error real (no la columna faltante)
-    linkedData = basic.data as Record<string, unknown>[] | null;
+    linkedData = await todasLasFilas<Record<string, unknown>>(
+      "Invitados al portal",
+      (d, h) =>
+        supabase
+          .from("client_users")
+          .select("client_id, email, invited_at")
+          .eq("status", "invited")
+          .order("client_id", { ascending: true })
+          .range(d, h),
+    );
   }
   if (clientsRes.error) throw clientsRes.error;
 
@@ -480,16 +541,25 @@ export type PortalContactlessClient = {
 export async function listPortalContactlessClients(
   supabase: SupabaseClient,
 ): Promise<PortalContactlessClient[]> {
-  const [clientsRes, linkedRes] = await Promise.all([
-    supabase
-      .from("clients")
-      .select("id, markbox, name, email, phone")
-      .is("deleted_at", null)
-      .limit(5000),
-    supabase.from("client_users").select("client_id").limit(5000),
+  const [clientsRows, linkedRows] = await Promise.all([
+    todasLasFilas<Record<string, unknown>>("Clientes", (d, h) =>
+      supabase
+        .from("clients")
+        .select("id, markbox, name, email, phone")
+        .is("deleted_at", null)
+        .order("id", { ascending: true })
+        .range(d, h),
+    ),
+    todasLasFilas<Record<string, unknown>>("Accesos al portal", (d, h) =>
+      supabase
+        .from("client_users")
+        .select("client_id")
+        .order("client_id", { ascending: true })
+        .range(d, h),
+    ),
   ]);
-  if (clientsRes.error) throw clientsRes.error;
-  if (linkedRes.error) throw linkedRes.error;
+  const clientsRes = { data: clientsRows, error: null };
+  const linkedRes = { data: linkedRows, error: null };
 
   const hasAccess = new Set(
     ((linkedRes.data as { client_id: string }[] | null) ?? []).map((r) =>
