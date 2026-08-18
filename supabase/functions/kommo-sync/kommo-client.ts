@@ -181,9 +181,14 @@ export async function paginateTwoPass<T extends { id: number }>(
   token: string,
   entity: "leads" | "contacts",
   withEmbed?: string,
-): Promise<T[]> {
+): Promise<{ items: T[]; truncated: boolean }> {
   const embed = withEmbed ? `&with=${encodeURIComponent(withEmbed)}` : "";
   const byId = new Map<number, T>();
+  // ¿Se acabaron las páginas antes que los datos? Su hermana `paginateUnsorted`
+  // ya avisaba; ésta cortaba EN SILENCIO al llegar a MAX_PAGES y devolvía lo que
+  // llevaba como si fuera todo. En un sync eso no falla: poda el espejo contra
+  // una lectura parcial, que es la forma más cara de equivocarse acá.
+  let truncated = false;
   for (const order of ["updated_at", "created_at"] as const) {
     for (let page = 1; page <= MAX_PAGES; page++) {
       const path = `/api/v4/${entity}?limit=${LIMIT}&page=${page}&order[${order}]=desc${embed}`;
@@ -192,9 +197,10 @@ export async function paginateTwoPass<T extends { id: number }>(
       const items = (data._embedded?.[entity] ?? []) as T[];
       for (const it of items) byId.set(it.id, it);
       if (items.length < LIMIT) break; // página incompleta → fin
+      if (page === MAX_PAGES) truncated = true; // tope con la página llena
       await sleep(RATE_LIMIT_DELAY_MS);
     }
     await sleep(RATE_LIMIT_DELAY_MS);
   }
-  return [...byId.values()];
+  return { items: [...byId.values()], truncated };
 }
