@@ -37,6 +37,13 @@ export async function listPriceBooks(
     .from("price_books")
     .select(`${BOOK_COLUMNS}, aliados(prefix), rates(count)`)
     .is("deleted_at", null)
+    // ⚠️ El `deleted_at` del embed va EXPLÍCITO, no se hereda del de arriba.
+    // La RLS de `rates` ya excluye las borradas para un usuario del Studio, así
+    // que sin esta línea el conteo *parece* correcto — hasta que lo lee un
+    // camino con service_role, que salta RLS y devuelve las borradas también.
+    // Medido contra prod el 2026-08-18: 8 sin el filtro, 4 con él. El número
+    // que se muestra en la ficha del aliado no puede depender de qué rol lo pida.
+    .is("rates.deleted_at", null)
     .order("is_house", { ascending: false })
     .order("name", { ascending: true });
 
