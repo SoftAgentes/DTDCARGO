@@ -36,6 +36,8 @@ import { AdvisorAssignCard } from "../_components/AdvisorAssignCard";
 import { AliadoCard } from "../_components/AliadoCard";
 import { ShippingMarkChip } from "../_components/ShippingMarkChip";
 import { getAliadoByClientId, listAliadoOptions } from "@/lib/studio/aliados/aliado-queries";
+import { listPriceBooks } from "@/lib/studio/price-books/price-book-queries";
+import type { PriceBookOption } from "@/lib/studio/price-books/price-book-types";
 import { listMarkboxHistory } from "@/lib/studio/markbox-history-queries";
 import type { MarkboxHistoryEntry } from "@/lib/studio/markbox-history-types";
 import { getStudioRole } from "@/lib/studio/rbac-guard";
@@ -116,6 +118,19 @@ export default async function ClienteDetallePage({
     getStudioRole(supabase),
   ]);
   const puedeEditarClientes = canEditModule(studioRole, "clients");
+
+  // Su lista de precios (SDD-0269). Best-effort igual que el histórico de
+  // Shipping Marks: si la migr 0382 todavía no está aplicada, la ficha muestra
+  // "cotiza con la de la casa" en vez de caerse entera.
+  let priceBook: PriceBookOption | null = null;
+  if (aliado) {
+    try {
+      const books = await listPriceBooks(supabase);
+      priceBook = books.find((b) => b.aliadoId === aliado.id) ?? null;
+    } catch {
+      priceBook = null;
+    }
+  }
 
   // Shipping Marks que este cliente TUVO (SDD-0258). Best-effort igual que las
   // direcciones: si la migr 0367 no está aplicada, degradamos a lista vacía en
@@ -557,6 +572,7 @@ export default async function ClienteDetallePage({
             markbox={client.markbox}
             aliado={aliado}
             aliados={aliadoOptions}
+            priceBook={priceBook}
             canEdit={puedeEditarClientes}
           />
 

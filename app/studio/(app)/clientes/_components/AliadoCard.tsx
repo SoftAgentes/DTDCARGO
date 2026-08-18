@@ -16,7 +16,9 @@ import {
   type AliadoActionState,
   type AliadoOption,
 } from "@/lib/studio/aliados/aliado-types";
+import type { PriceBookOption } from "@/lib/studio/price-books/price-book-types";
 import { printMarkbox } from "@/lib/shared/markbox-chain";
+import { AliadoTarifaPanel } from "./AliadoTarifaPanel";
 import { actualizarAliadoAction, convertirEnAliadoAction } from "../actions";
 
 /**
@@ -37,6 +39,7 @@ export function AliadoCard({
   markbox,
   aliado,
   aliados,
+  priceBook,
   canEdit,
 }: {
   clientId: string;
@@ -46,6 +49,8 @@ export function AliadoCard({
   aliado: Aliado | null;
   /** Todos los aliados del tenant, para elegir padre y componer la cadena. */
   aliados: AliadoOption[];
+  /** Su lista de precios (SDD-0269). null = todavía cotiza con la de la casa. */
+  priceBook: PriceBookOption | null;
   canEdit: boolean;
 }) {
   const router = useRouter();
@@ -128,13 +133,23 @@ export function AliadoCard({
               nota={
                 aliado.parent_aliado_id
                   ? "Hereda del aliado raíz — un sub-aliado no factura con DTD."
-                  : "El monto se define aparte."
+                  : "Cuánto, abajo."
               }
             />
             {aliado.agreement_notes && (
               <Fila termino="Acuerdo" valor={aliado.agreement_notes} />
             )}
           </dl>
+
+          <AliadoTarifaPanel
+            aliadoId={aliado.id}
+            markbox={markbox}
+            tradeName={aliado.trade_name}
+            esSubAliado={aliado.parent_aliado_id != null}
+            raiz={raizDe(aliados, aliado.id)}
+            book={priceBook}
+            canEdit={canEdit}
+          />
 
           <div
             style={{
@@ -406,4 +421,32 @@ function Ejemplo({ etiqueta, valor }: { etiqueta: string; valor: string }) {
       </span>
     </div>
   );
+}
+
+/**
+ * El aliado RAÍZ del que cuelga uno dado. Sube por `parentAliadoId` hasta el
+ * primero sin padre. Devuelve null si el aliado YA es raíz — es quien pacta.
+ *
+ * El tope de saltos no es decoración: el trigger anti-ciclo de la migr 0362 lo
+ * impide del lado de la base, pero un ciclo que llegara acá colgaría el
+ * navegador del founder, no la sesión de Postgres.
+ */
+function raizDe(
+  aliados: AliadoOption[],
+  aliadoId: string,
+): { cadena: string; tradeName: string; markbox: string | null } | null {
+  const porId = new Map(aliados.map((a) => [a.id, a]));
+  let actual = porId.get(aliadoId);
+  if (!actual?.parentAliadoId) return null;
+
+  for (let saltos = 0; saltos < 10 && actual?.parentAliadoId; saltos += 1) {
+    actual = porId.get(actual.parentAliadoId);
+  }
+  if (!actual) return null;
+
+  return {
+    cadena: prefixChain(aliados, actual.id),
+    tradeName: actual.tradeName,
+    markbox: actual.markbox ?? null,
+  };
 }

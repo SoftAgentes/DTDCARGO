@@ -14,6 +14,12 @@ export type RateFilters = {
   q?: string;
   /** Solo tarifas con valid_until >= today. Default false. */
   onlyValid?: boolean;
+  /**
+   * Lista de precios (SDD-0269). Sin esto la pantalla mezclaría las tarifas de
+   * la casa con las pactadas con cada aliado, que es justo lo que no se puede
+   * confundir. La página lo resuelve a la lista de la casa cuando no viene una.
+   */
+  priceBookId?: string;
 };
 
 // ⚠️ NO agregar expiry_warn_sent_at/expiry_overdue_sent_at acá: este select
@@ -49,6 +55,13 @@ export async function listRates(
 
   if (filters.service && filters.service !== "all") {
     query = query.eq("service", filters.service);
+  }
+
+  // Sólo se filtra cuando hay lista resuelta. Si la migr 0382 todavía no está
+  // aplicada, `listPriceBooks` falla, la página no manda `priceBookId` y esto
+  // se comporta exactamente como antes de existir las listas.
+  if (filters.priceBookId) {
+    query = query.eq("price_book_id", filters.priceBookId);
   }
 
   if (filters.onlyValid) {
@@ -170,5 +183,6 @@ export function parseRateFiltersFromSearchParams(
     service,
     q: single("q") || undefined,
     onlyValid: single("onlyValid") === "1" ? true : undefined,
+    priceBookId: single("book") || undefined,
   };
 }

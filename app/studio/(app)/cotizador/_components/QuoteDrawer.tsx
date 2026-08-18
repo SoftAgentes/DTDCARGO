@@ -32,6 +32,9 @@ import {
   softDeleteQuote,
   updateQuote,
 } from "../actions";
+import type { SugerenciaTarifa } from "../actions";
+import { fmtDescuento, origenTarifaLabel } from "@/lib/studio/price-books/price-book-types";
+import type { OrigenTarifa } from "@/lib/studio/price-books/price-book-types";
 import type { Rate } from "@/lib/studio/rate-types";
 import { Icon } from "@/app/studio/_components/icons";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
@@ -92,7 +95,11 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
   );
   const [notes, setNotes] = useState(quote?.notes ?? "");
 
-  const [suggestedRate, setSuggestedRate] = useState<Rate | null>(null);
+  // La sugerencia YA resuelta para este cliente (SDD-0269): trae el precio y
+  // de dónde salió — su tarifa propia, la de la casa, o la de la casa con su
+  // descuento. El drawer lo muestra en vez de sólo el número.
+  const [sugerencia, setSugerencia] = useState<SugerenciaTarifa | null>(null);
+  const suggestedRate = sugerencia?.rate ?? null;
   const [lookupPending, setLookupPending] = useState(false);
 
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -124,7 +131,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
       new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString().slice(0, 10),
     );
     setNotes("");
-    setSuggestedRate(null);
+    setSugerencia(null);
   };
 
   /**
@@ -220,20 +227,24 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
     onClose();
   }, [state.ok, state.createdCode, mode, quote, router, toast, onClose]);
 
-  // Lookup automático de rate al cambiar destino
+  // Lookup automático de rate al cambiar destino, el servicio o el CLIENTE.
+  // El cliente entra en las dependencias desde SDD-0269: la tarifa ya no es una
+  // sola — un cliente de aliado cotiza con la lista de precios de su aliado, así
+  // que cambiar de cliente cambia el precio.
   useEffect(() => {
     if (!destination.trim()) return;
     const t = setTimeout(async () => {
       setLookupPending(true);
       try {
-        const { rate } = await lookupSuggestedRate(service, destination);
-        setSuggestedRate(rate);
+        setSugerencia(
+          await lookupSuggestedRate(service, destination, clientMarkbox || null),
+        );
       } finally {
         setLookupPending(false);
       }
     }, 400);
     return () => clearTimeout(t);
-  }, [destination, service]);
+  }, [destination, service, clientMarkbox]);
 
   // Cálculo live del total
   const totals = calcQuoteTotal({
@@ -246,7 +257,9 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
 
   const applySuggestion = () => {
     if (!suggestedRate) return;
-    setRateUsedId(suggestedRate.id);
+    // El id que se guarda es el de la fila REAL de `rates` — cuando el precio
+    // sale de un descuento, ésa es la tarifa de la casa, no una fila inventada.
+    setRateUsedId(sugerencia?.rateId ?? suggestedRate.id);
     if (mode$ === "per_cbm" && suggestedRate.per_cbm != null) {
       setRatePerCbm(String(suggestedRate.per_cbm));
     }
@@ -496,7 +509,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
                 onChange={(e) => {
                   const next = e.target.value;
                   setDestination(next);
-                  if (!next.trim()) setSuggestedRate(null);
+                  if (!next.trim()) setSugerencia(null);
                 }}
                 placeholder="Valencia, La Guaira…"
                 required
@@ -507,6 +520,9 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
               {destination.trim() && (
                 <RateSuggestionLine
                   rate={suggestedRate}
+                  origen={sugerencia?.origen ?? null}
+                  descuentoPct={sugerencia?.descuentoPct ?? null}
+                  bookName={sugerencia?.bookName ?? null}
                   pending={lookupPending}
                   onApply={applySuggestion}
                 />
@@ -969,10 +985,17 @@ function RateSuggestionLine({
   rate,
   pending,
   onApply,
+  origen,
+  descuentoPct,
+  bookName,
 }: {
   rate: Rate | null;
   pending: boolean;
   onApply: () => void;
+  /** De dónde salió el precio (SDD-0269). null = no se resolvió por lista. */
+  origen: OrigenTarifa | null;
+  descuentoPct: number | null;
+  bookName: string | null;
 }) {
   if (pending) {
     return (
@@ -1002,6 +1025,17 @@ function RateSuggestionLine({
   }
   const price =
     rate.per_cbm != null ? `$${rate.per_cbm}/CBM` : `$${rate.flat_rate}/ctr`;
+
+  // Un precio que no es el de la casa tiene que decir por qué. Sin esta línea,
+  // el vendedor ve un número distinto al del catálogo y no sabe si es un error.
+  const esDeAliado = origen === "propia" || origen === "descuento";
+  const explicacion =
+    origen === "descuento" && descuentoPct != null
+      ? `${bookName ?? "Su lista"} · ${fmtDescuento(descuentoPct)} sobre la de la casa`
+      : origen
+        ? origenTarifaLabel(origen, bookName)
+        : null;
+
   return (
     <div
       style={{
@@ -1011,8 +1045,8 @@ function RateSuggestionLine({
         justifyContent: "space-between",
         gap: 8,
         padding: "6px 10px",
-        background: "var(--success-bg)",
-        border: "1px solid var(--success)",
+        background: esDeAliado ? "var(--info-bg)" : "var(--success-bg)",
+        border: `1px solid ${esDeAliado ? "var(--info)" : "var(--success)"}`,
         borderRadius: "var(--r-sm)",
       }}
     >
@@ -1024,11 +1058,22 @@ function RateSuggestionLine({
       >
         Tarifa en catálogo:{" "}
         <strong
-          style={{ font: "700 11.5px/1 var(--f-mono)", color: "var(--success)" }}
+          style={{
+            font: "700 11.5px/1 var(--f-mono)",
+            color: esDeAliado ? "var(--info)" : "var(--success)",
+          }}
         >
           {price}
         </strong>{" "}
         ({rate.origin} → {rate.destination})
+        {explicacion && (
+          <span style={{ display: "block", color: "var(--ink-soft)", marginTop: 2 }}>
+            {explicacion}
+            {origen === "descuento" && rate.min_charge != null && (
+              <> · el piso de ${rate.min_charge} no lleva descuento</>
+            )}
+          </span>
+        )}
       </span>
       <button
         type="button"

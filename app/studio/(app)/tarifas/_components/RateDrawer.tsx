@@ -38,11 +38,27 @@ interface Props {
   mode: "create" | "edit";
   rate?: Rate;
   onClose: () => void;
+  /**
+   * Lista de precios en la que nace la tarifa (SDD-0269). Sin esto una tarifa
+   * pactada con un aliado terminaría en la lista de la casa — o sea, en la
+   * calculadora del sitio. Al editar no se toca: mover una tarifa de lista es
+   * cambiarle el precio a un tercero.
+   */
+  priceBookId?: string | null;
+  priceBookName?: string | null;
+  priceBookEsCasa?: boolean;
 }
 
 const initialState: RateActionState = {};
 
-export function RateDrawer({ mode, rate, onClose }: Props) {
+export function RateDrawer({
+  mode,
+  rate,
+  onClose,
+  priceBookId,
+  priceBookName,
+  priceBookEsCasa = true,
+}: Props) {
   const action =
     mode === "edit" && rate
       ? updateRate.bind(null, rate.id)
@@ -161,6 +177,25 @@ export function RateDrawer({ mode, rate, onClose }: Props) {
             gap: 14,
           }}
         >
+          {mode === "create" && priceBookId && (
+            <input type="hidden" name="price_book_id" value={priceBookId} />
+          )}
+          {mode === "create" && priceBookId && !priceBookEsCasa && (
+            <p
+              style={{
+                font: "500 12.5px/1.45 var(--f-sans)",
+                color: "var(--ink)",
+                background: "var(--info-bg)",
+                border: "1px solid var(--info)",
+                borderRadius: "var(--r-sm)",
+                padding: "8px 10px",
+                margin: "0 0 var(--s-4)",
+              }}
+            >
+              Esta tarifa entra en <b>{priceBookName}</b> — sólo la ven sus
+              clientes. No sale en la calculadora del sitio.
+            </p>
+          )}
           {/* Servicio */}
           <div>
             <label className="studio-label" htmlFor="service">
