@@ -84,6 +84,25 @@ function isPublicRateConflict(
   );
 }
 
+/**
+ * El candado de la migr 0382: sólo una tarifa de la lista de la casa puede ser
+ * la pública del sitio. Sin traducirlo, el founder vería el texto crudo de un
+ * `raise` de Postgres y no sabría qué hacer con él.
+ */
+function esTarifaDeAliadoPublicada(
+  error: { code?: string; message?: string } | null,
+): boolean {
+  if (!error) return false;
+  return (
+    error.code === "23514" &&
+    (error.message ?? "").includes("lista de la casa")
+  );
+}
+
+const ALIADO_PUBLIC_MSG =
+  "La calculadora del sitio sólo puede mostrar una tarifa de la lista de la casa. " +
+  "Esta pertenece a un aliado: publicarla sería mostrar su precio negociado en la web.";
+
 export async function createRate(
   _prev: RateActionState,
   formData: FormData,
@@ -122,6 +141,10 @@ export async function createRate(
       valid_until: input!.valid_until,
       is_public: input!.is_public,
       notes: input!.notes,
+      // La lista en la que nace (SDD-0269). Si no viene, el trigger
+      // `rates_guard_price_book_t` la manda a la de la casa — que es lo que
+      // hace el código ya desplegado, y por eso la columna es nullable.
+      price_book_id: parseStringOrNull(formData.get("price_book_id")),
     })
     .select("id")
     .single<{ id: string }>();
@@ -129,6 +152,9 @@ export async function createRate(
   if (error || !inserted) {
     if (isPublicRateConflict(error)) {
       return { error: PUBLIC_RATE_CONFLICT_MSG };
+    }
+    if (esTarifaDeAliadoPublicada(error)) {
+      return { error: ALIADO_PUBLIC_MSG };
     }
     return {
       error: `No se pudo crear la tarifa: ${error?.message ?? "desconocido"}`,
@@ -175,6 +201,9 @@ export async function updateRate(
   if (error) {
     if (isPublicRateConflict(error)) {
       return { error: PUBLIC_RATE_CONFLICT_MSG };
+    }
+    if (esTarifaDeAliadoPublicada(error)) {
+      return { error: ALIADO_PUBLIC_MSG };
     }
     return { error: `No se pudo guardar la tarifa: ${error.message}` };
   }
@@ -330,9 +359,16 @@ export async function previewRatesImportAction(
  * si ya existe una tarifa viva con el mismo (service, origin, destination), la
  * salta. Admin-only no es requisito (cualquier usuario del tenant edita rates),
  * pero la inserción la cubre la RLS de rates (por tenant).
+ *
+ * ⚠️ SDD-0269: el dedup es POR LISTA DE PRECIOS, no global. Que la casa ya tenga
+ * «China → Venezuela» no puede impedir que Dynasty Cargo tenga la suya: el punto
+ * entero de las listas es que la MISMA ruta valga distinto según a quién se le
+ * cotice. Sin este scope, importar la tarifa de un aliado saltaría todas las
+ * filas en silencio y el resultado diría «0 importadas, N ya existían».
  */
 export async function importRatesAction(
   csv: string,
+  priceBookId?: string | null,
 ): Promise<RateImportResult> {
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "rates");
@@ -355,11 +391,13 @@ export async function importRatesAction(
   const who = await resolveTenantAdmin(supabase);
   if (!who.ok) return { error: who.error, preview };
 
-  // Dedup contra la DB: traemos las llaves vivas existentes del tenant.
-  const { data: existing, error: existErr } = await supabase
+  // Dedup contra la DB: las llaves vivas existentes DE ESTA LISTA.
+  let dedupQuery = supabase
     .from("rates")
     .select("service, origin, destination")
     .is("deleted_at", null);
+  if (priceBookId) dedupQuery = dedupQuery.eq("price_book_id", priceBookId);
+  const { data: existing, error: existErr } = await dedupQuery;
   if (existErr) {
     return { error: `No se pudo verificar duplicados: ${existErr.message}`, preview };
   }
@@ -395,6 +433,10 @@ export async function importRatesAction(
     is_public: false,
     status: "draft", // importadas entran como borrador, NO van live
     notes: r.notes,
+    // La lista que se está viendo. Sin esto, importar estando en la tarifa de un
+    // aliado metería sus precios en la de la casa — o sea, camino a la
+    // calculadora del sitio.
+    price_book_id: priceBookId ?? null,
   }));
 
   const { error } = await supabase.from("rates").insert(rows);

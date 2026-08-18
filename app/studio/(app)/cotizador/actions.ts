@@ -33,6 +33,11 @@ import {
   linkEstimateToClient,
   suggestRateForQuote,
 } from "@/lib/studio/quote-queries";
+import {
+  clientIdByMarkbox,
+  resolveRateForClient,
+} from "@/lib/studio/price-books/price-book-queries";
+import type { OrigenTarifa } from "@/lib/studio/price-books/price-book-types";
 import type { Rate } from "@/lib/studio/rate-types";
 import {
   isShipmentService,
@@ -475,16 +480,72 @@ export async function softDeleteQuote(
  * Lookup helper que el QuoteDrawer llama on blur del input destino.
  * Devuelve la rate sugerida para (service, destination) o null.
  */
+export type SugerenciaTarifa = {
+  rate: Rate | null;
+  /** De dónde salió el precio. null cuando no hay tarifa. */
+  origen: OrigenTarifa | null;
+  descuentoPct: number | null;
+  bookName: string | null;
+  /** La fila REAL de `rates` que se usó — lo que se guarda en `rate_used_id`. */
+  rateId: string | null;
+};
+
+const SIN_TARIFA: SugerenciaTarifa = {
+  rate: null,
+  origen: null,
+  descuentoPct: null,
+  bookName: null,
+  rateId: null,
+};
+
+/**
+ * La tarifa que le toca a ESTE cliente (SDD-0269).
+ *
+ * Antes sugería siempre la de la casa, así que un cliente de Dynasty Cargo
+ * cotizaba a precio de calle y había que corregir el número a mano en cada
+ * estimado. Ahora resuelve por su lista de precios: su tarifa propia, o la de
+ * la casa con su descuento.
+ *
+ * Sin `clientMarkbox` (un prospecto que todavía no tiene ficha) sigue siendo la
+ * de la casa, que es lo correcto.
+ */
 export async function lookupSuggestedRate(
   service: ShipmentService,
   destination: string,
-): Promise<{ rate: Rate | null }> {
-  if (!destination?.trim()) return { rate: null };
+  clientMarkbox?: string | null,
+): Promise<SugerenciaTarifa> {
+  if (!destination?.trim()) return SIN_TARIFA;
   const supabase = await createClient();
+
   try {
-    const rate = await suggestRateForQuote(supabase, service, destination);
-    return { rate };
+    const clientId = clientMarkbox
+      ? await clientIdByMarkbox(supabase, clientMarkbox)
+      : null;
+    const resuelta = await resolveRateForClient(supabase, {
+      service,
+      destination,
+      clientId,
+    });
+    if (!resuelta) return SIN_TARIFA;
+    return {
+      rate: resuelta.rate,
+      origen: resuelta.origen,
+      descuentoPct: resuelta.descuentoPct,
+      bookName: resuelta.bookName,
+      rateId: resuelta.rateId,
+    };
   } catch {
-    return { rate: null };
+    // Red de seguridad para la ventana entre el despliegue y la migr 0382: si
+    // `price_books` todavía no existe, el cotizador sugiere la tarifa de la casa
+    // como siempre en vez de quedarse mudo. Es el mismo orden código↔migración
+    // que ya rompió producción una vez (ver lib/studio/rate-queries.ts:19-28).
+    try {
+      const rate = await suggestRateForQuote(supabase, service, destination);
+      return rate
+        ? { rate, origen: "casa", descuentoPct: null, bookName: null, rateId: rate.id }
+        : SIN_TARIFA;
+    } catch {
+      return SIN_TARIFA;
+    }
   }
 }
