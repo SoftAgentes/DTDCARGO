@@ -110,6 +110,63 @@ const entries = fs
 
 if (entries.length === 0) skip("ninguna carpeta de supabase/functions/ tiene index.ts");
 
+// ── El tope de 1.000 filas, acá también ───────────────────────────────────────
+// `supabase/functions/**` está en el IGNORE GLOBAL de ESLint (corren en Deno,
+// con imports `jsr:`), así que la regla `no-restricted-syntax` que prohíbe
+// `.limit(N>1000)` en lib/ y app/ NUNCA puede alcanzarlas. El punto ciego es
+// estructural, no un olvido — por eso el escaneo vive acá, en el paso que sí
+// es dueño de esta carpeta.
+//
+// ⚠️ Corre ANTES de buscar Deno a propósito: leer archivos no necesita Deno, y
+// colgarlo del camino de Deno lo volvería un chequeo que se omite en silencio
+// cada vez que no haya binario. Un paso que se omite se cree.
+//
+// Lo que motivó esto: `kommo-webhook` pedía `.limit(10000)` para traer el
+// universo de clientes del cruce por teléfono. PostgREST corta en 1.000, y ahí
+// el truncamiento se INVIERTE — el candidato que vuelve el cruce ambiguo puede
+// ser justo el que se cae, y el enrutador estampa el Shipping Mark del que no es.
+{
+  const listar = (dir) =>
+    fs.readdirSync(dir, { withFileTypes: true }).flatMap((d) => {
+      const p = path.join(dir, d.name);
+      if (d.isDirectory()) return d.name === "node_modules" ? [] : listar(p);
+      return /\.(ts|tsx|js|mjs)$/.test(d.name) ? [p] : [];
+    });
+  const RE = /\.limit\(\s*(\d{4,})\s*\)/g;
+  const hallazgos = [];
+  for (const abs of listar(FUNCTIONS_DIR)) {
+    const src = fs.readFileSync(abs, "utf8");
+    const lineas = src.split("\n");
+    for (let i = 0; i < lineas.length; i++) {
+      const linea = lineas[i];
+      if (/eslint-disable|limite-declarado/.test(linea)) continue;
+      // Los COMENTARIOS no cuentan. Se aprendió midiendo: la primera versión de
+      // este chequeo se disparó con el comentario que explica el bug, porque
+      // ahí dice `.limit(10000)` en prosa. Un escaneo que no distingue código de
+      // prosa convierte en rojo a quien documenta.
+      const suelto = linea.trimStart();
+      if (suelto.startsWith("//") || suelto.startsWith("*") || suelto.startsWith("/*")) continue;
+      const corte = linea.indexOf("//");
+      for (const m of linea.matchAll(RE)) {
+        if (corte !== -1 && m.index > corte) continue;
+        if (Number(m[1]) > 1000) {
+          hallazgos.push(`${path.relative(process.cwd(), abs)}:${i + 1}  .limit(${m[1]})`);
+        }
+      }
+    }
+  }
+  if (hallazgos.length > 0) {
+    console.error(`${C.red}[FAIL]${C.nc} edge-functions: ${hallazgos.length} sitio(s) con \`.limit(N)\` mayor a 1.000`);
+    for (const h of hallazgos) console.error(`   ${h}`);
+    console.error(
+      `${C.dim}   PostgREST corta en 1.000 filas: ese numero no es un limite, es un deseo.\n` +
+        `   Pagina, o filtra por clave exacta. Si el tope es a proposito, escribe\n` +
+        `   \`limite-declarado\` en la misma linea con el motivo.${C.nc}`,
+    );
+    process.exit(1);
+  }
+}
+
 // ── ¿Con qué Deno? ────────────────────────────────────────────────────────────
 // Un binario LOCAL (VERIFY_DENO_BIN / PATH) se prueba antes de usarlo: `--version` es
 // instantáneo y, si no existe, falla al toque. `npx` NO se prueba antes — cada
