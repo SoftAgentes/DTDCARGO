@@ -18,6 +18,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   aplicarDescuento,
   fmtDescuento,
+  validateBasePerCbm,
   validateDescuento,
 } from "../price-book-types";
 import { resolveRateForClient } from "../price-book-queries";
@@ -59,6 +60,7 @@ function rate(over: Partial<Rate> = {}): Rate {
 function makeSupabase(opts: {
   bookDelCliente: string | null;
   descuentoDC?: number | null;
+  pactadoDC?: number | null;
   tarifas: Record<string, Rate | null>;
 }) {
   return {
@@ -79,7 +81,13 @@ function makeSupabase(opts: {
           if (tabla === "price_books") {
             if (filtros.is_house === true) {
               return {
-                data: { id: CASA, name: "Tarifa DTD Cargo", is_house: true, discount_pct: null },
+                data: {
+                  id: CASA,
+                  name: "Tarifa DTD Cargo",
+                  is_house: true,
+                  discount_pct: null,
+                  base_per_cbm: null,
+                },
                 error: null,
               };
             }
@@ -90,6 +98,7 @@ function makeSupabase(opts: {
                   name: "Tarifa Dynasty Cargo",
                   is_house: false,
                   discount_pct: opts.descuentoDC ?? null,
+                  base_per_cbm: opts.pactadoDC ?? null,
                 },
                 error: null,
               };
@@ -164,6 +173,25 @@ describe("validateDescuento", () => {
     expect(validateDescuento("0").error).toBeTruthy();
     expect(validateDescuento("100").error).toBeTruthy();
     expect(validateDescuento("mucho").error).toBeTruthy();
+  });
+});
+
+describe("validateBasePerCbm", () => {
+  it("vacío es SIN precio pactado, no cero", () => {
+    expect(validateBasePerCbm("")).toEqual({ value: null });
+    expect(validateBasePerCbm(null)).toEqual({ value: null });
+  });
+
+  it("tolera cómo se teclea de verdad: con $, con espacios y con coma", () => {
+    expect(validateBasePerCbm("$690")).toEqual({ value: 690 });
+    expect(validateBasePerCbm(" 690,50 ")).toEqual({ value: 690.5 });
+  });
+
+  it("rechaza el 0, el negativo y el error de tecleo", () => {
+    expect(validateBasePerCbm("0").error).toBeTruthy();
+    expect(validateBasePerCbm("-690").error).toBeTruthy();
+    expect(validateBasePerCbm("690000").error).toBeTruthy();
+    expect(validateBasePerCbm("caro").error).toBeTruthy();
   });
 });
 
@@ -260,6 +288,81 @@ describe("resolveRateForClient", () => {
     });
 
     expect(await resolveRateForClient(supabase, { ...PEDIDO, clientId: "c5" })).toBeNull();
+  });
+
+  it("⭐ el precio PACTADO manda sobre el descuento — es más específico", async () => {
+    const supabase = makeSupabase({
+      bookDelCliente: BOOK_DC,
+      descuentoDC: 12,
+      pactadoDC: 690,
+      tarifas: {
+        [CASA]: rate({ id: "rate-casa", per_cbm: 800, min_charge: 50 }),
+        [BOOK_DC]: null,
+      },
+    });
+
+    const r = await resolveRateForClient(supabase, { ...PEDIDO, clientId: "c6" });
+    expect(r?.origen).toBe("pactada");
+    // 690 pactado, NO 704 (que sería el 12 % sobre 800).
+    expect(r?.rate.per_cbm).toBe(690);
+    expect(r?.descuentoPct).toBeNull();
+    // El piso sigue siendo el de la casa, igual que con el descuento.
+    expect(r?.rate.min_charge).toBe(50);
+    expect(r?.rateId).toBe("rate-casa");
+  });
+
+  it("pero la tarifa PROPIA sigue mandando sobre el pactado", async () => {
+    const supabase = makeSupabase({
+      bookDelCliente: BOOK_DC,
+      pactadoDC: 690,
+      tarifas: {
+        [CASA]: rate({ id: "rate-casa", per_cbm: 800 }),
+        [BOOK_DC]: rate({ id: "rate-dc", per_cbm: 640 }),
+      },
+    });
+
+    const r = await resolveRateForClient(supabase, { ...PEDIDO, clientId: "c7" });
+    expect(r?.origen).toBe("propia");
+    expect(r?.rate.per_cbm).toBe(640);
+  });
+
+  it("⭐ en un tramo que va por CONTENEDOR el $/CBM pactado no aplica", async () => {
+    const supabase = makeSupabase({
+      bookDelCliente: BOOK_DC,
+      descuentoDC: 10,
+      pactadoDC: 690,
+      tarifas: {
+        // FCL: se cobra por contenedor, no por metro cúbico.
+        [CASA]: rate({ id: "rate-fcl", service: "fcl_directo", per_cbm: null, flat_rate: 8500 }),
+        [BOOK_DC]: null,
+      },
+    });
+
+    const r = await resolveRateForClient(supabase, {
+      service: "fcl_directo",
+      destination: "La Guaira",
+      clientId: "c8",
+    });
+    // Cae al descuento, que sí sabe bajar un flat_rate. Nunca a "pactada".
+    expect(r?.origen).toBe("descuento");
+    expect(r?.rate.flat_rate).toBe(7650);
+    expect(r?.rate.per_cbm).toBeNull();
+  });
+
+  it("un pactado sin descuento y sin tarifa propia igual se aplica", async () => {
+    const supabase = makeSupabase({
+      bookDelCliente: BOOK_DC,
+      descuentoDC: null,
+      pactadoDC: 725.5,
+      tarifas: {
+        [CASA]: rate({ id: "rate-casa", per_cbm: 800 }),
+        [BOOK_DC]: null,
+      },
+    });
+
+    const r = await resolveRateForClient(supabase, { ...PEDIDO, clientId: "c9" });
+    expect(r?.origen).toBe("pactada");
+    expect(r?.rate.per_cbm).toBe(725.5);
   });
 
   it("sin destino no consulta nada", async () => {

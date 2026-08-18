@@ -25,6 +25,7 @@ import {
   fmtDescuento,
   type PriceBookOption,
 } from "@/lib/studio/price-books/price-book-types";
+import { fmtUsd } from "@/lib/money";
 import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
@@ -140,9 +141,14 @@ export function TarifasClient({
             >
               Estás viendo la tarifa pactada con{" "}
               <b>{activeBook.aliadoPrefix ?? activeBook.name}</b>
+              {activeBook.basePerCbm != null && (
+                <> · tiene {fmtUsd(activeBook.basePerCbm)} el CBM pactado</>
+              )}
               {activeBook.discountPct != null && (
-                <> · además tiene {fmtDescuento(activeBook.discountPct)} sobre la de la casa
-                  donde no cargue tarifa propia</>
+                <> · y {fmtDescuento(activeBook.discountPct)} sobre la de la casa</>
+              )}
+              {(activeBook.basePerCbm != null || activeBook.discountPct != null) && (
+                <> para lo que no cargue acá</>
               )}
               . Estas tarifas <b>no</b> salen en la calculadora del sitio.
             </p>

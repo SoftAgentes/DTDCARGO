@@ -9,6 +9,7 @@ import {
   nombreListaDeAliado,
   type PriceBookOption,
 } from "@/lib/studio/price-books/price-book-types";
+import { fmtUsd } from "@/lib/money";
 import type { AliadoActionState } from "@/lib/studio/aliados/aliado-types";
 import { guardarTarifaAliadoAction } from "../actions";
 
@@ -116,9 +117,14 @@ export function AliadoTarifaPanel({
               gap: 24,
               flexWrap: "wrap",
               alignItems: "baseline",
-              marginBottom: 8,
+              marginBottom: 10,
             }}
           >
+            <Dato
+              etiqueta="Precio pactado"
+              valor={book.basePerCbm != null ? `${fmtUsd(book.basePerCbm)}/CBM` : "—"}
+              destacado={book.basePerCbm != null}
+            />
             <Dato
               etiqueta="Descuento sobre la casa"
               valor={fmtDescuento(book.discountPct)}
@@ -131,29 +137,7 @@ export function AliadoTarifaPanel({
             />
           </div>
 
-          <p style={{ font: "500 12px/1.45 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
-            {book.tarifas > 0 && book.discountPct != null ? (
-              <>
-                Su tarifa propia manda donde exista; donde no tenga, se le aplica el{" "}
-                {fmtDescuento(book.discountPct)} sobre la de la casa.
-              </>
-            ) : book.tarifas > 0 ? (
-              <>
-                Cotiza con sus tarifas propias. Donde no tenga una, paga la de la
-                casa sin descuento.
-              </>
-            ) : book.discountPct != null ? (
-              <>
-                Cotiza con la tarifa de la casa menos {fmtDescuento(book.discountPct)}.
-                El piso (<i>min_charge</i>) no lleva descuento.
-              </>
-            ) : (
-              <>
-                Su lista existe pero está vacía y sin descuento: hoy cotiza igual
-                que un cliente directo.
-              </>
-            )}
-          </p>
+          <ComoSeLeCotiza book={book} />
 
           <Link
             href={`/studio/tarifas?book=${encodeURIComponent(book.id)}`}
@@ -177,6 +161,37 @@ export function AliadoTarifaPanel({
             </button>
           ) : (
             <form action={formAction} style={{ display: "grid", gap: 10 }}>
+              <div>
+                <label
+                  htmlFor="tarifa-pactado"
+                  className="studio-label"
+                  style={{ display: "block", marginBottom: 6 }}
+                >
+                  Precio pactado por CBM (USD)
+                </label>
+                <input
+                  id="tarifa-pactado"
+                  name="basePerCbm"
+                  className="studio-input"
+                  defaultValue={book?.basePerCbm != null ? String(book.basePerCbm) : ""}
+                  placeholder="690"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  style={{ width: 160, font: "600 15px/1.3 var(--f-mono)" }}
+                />
+                <p
+                  style={{
+                    font: "500 12px/1.4 var(--f-sans)",
+                    color: "var(--ink-soft)",
+                    margin: "6px 0 0",
+                  }}
+                >
+                  El número que acordaron. Manda sobre el descuento. Aplica donde
+                  se cobra por CBM; el FCL, que va por contenedor, sigue con el
+                  descuento o con la tarifa de la casa.
+                </p>
+              </div>
+
               <div>
                 <label
                   htmlFor="tarifa-descuento"
@@ -253,6 +268,76 @@ export function AliadoTarifaPanel({
             </form>
           )}
         </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Cómo se le cotiza a este aliado, en ORDEN de precedencia.
+ *
+ * Con tres formas de pactar que conviven (tarifa propia · precio pactado ·
+ * descuento) las combinaciones son ocho, y describirlas en prosa da un párrafo
+ * distinto para cada una — imposible de mantener y fácil de dejar mintiendo.
+ * Mostrar la lista de lo que aplica, en el orden en que aplica, siempre es
+ * correcto y se lee de un vistazo.
+ */
+function ComoSeLeCotiza({ book }: { book: PriceBookOption }) {
+  const pasos: { que: string; donde: string }[] = [];
+
+  if (book.tarifas > 0) {
+    pasos.push({
+      que: `Sus ${book.tarifas} tarifa${book.tarifas === 1 ? "" : "s"} propia${book.tarifas === 1 ? "" : "s"}`,
+      donde: "en las rutas que tenga cargadas",
+    });
+  }
+  if (book.basePerCbm != null) {
+    pasos.push({
+      que: `${fmtUsd(book.basePerCbm)} el CBM`,
+      donde: "en todo lo que se cobre por CBM",
+    });
+  }
+  if (book.discountPct != null) {
+    pasos.push({
+      que: `${fmtDescuento(book.discountPct)} sobre la tarifa de la casa`,
+      donde: pasos.length > 0 ? "en lo que quede — el FCL, por ejemplo" : "en todo",
+    });
+  }
+  pasos.push({
+    que: "La tarifa de la casa",
+    donde: pasos.length > 0 ? "si nada de lo anterior aplica" : "igual que un cliente directo",
+  });
+
+  return (
+    <div>
+      <ol
+        style={{
+          margin: 0,
+          paddingLeft: 18,
+          display: "grid",
+          gap: 4,
+          font: "500 12.5px/1.45 var(--f-sans)",
+          color: "var(--ink)",
+        }}
+      >
+        {pasos.map((p) => (
+          <li key={p.que}>
+            {p.que}{" "}
+            <span style={{ color: "var(--ink-soft)" }}>· {p.donde}</span>
+          </li>
+        ))}
+      </ol>
+      {(book.basePerCbm != null || book.discountPct != null) && (
+        <p
+          style={{
+            font: "500 12px/1.45 var(--f-sans)",
+            color: "var(--ink-soft)",
+            margin: "8px 0 0",
+          }}
+        >
+          El piso mínimo por envío sigue siendo el de la casa: no lleva descuento
+          ni se reemplaza por el precio pactado.
+        </p>
       )}
     </div>
   );
