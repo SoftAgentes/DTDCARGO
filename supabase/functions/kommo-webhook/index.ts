@@ -33,6 +33,7 @@ import {
   buildStagePayload,
   contactPhoneKeys,
   decideRoute,
+  phoneKey,
   readRecontactoTarget,
   type RouterClientRow,
 } from "../_shared/kommo-router.ts";
@@ -96,23 +97,38 @@ async function routeNewLeads(
   if (!target) return { skipped: "sin stage_map.recontacto (enrutador inerte)" };
   if (leadIds.length === 0) return { checked: 0 };
 
-  // Universo de clientes con teléfono, una sola vez por request. Son cientos de
-  // filas (medido 2026-08-03: 243), así que el cruce en memoria es barato y
-  // exacto. Cuando esto crezca, la evolución es una RPC que use el índice
-  // `clients_phone_last10_idx` (migración 0342) en vez de traer las filas.
-  let phoneUniverse: RouterClientRow[] | null = null;
-  const loadPhoneUniverse = async (): Promise<RouterClientRow[]> => {
-    if (phoneUniverse) return phoneUniverse;
-    const { data } = await supabase
-      .from("clients")
-      .select("id, markbox, kommo_contact_id, phone")
-      .eq("tenant_id", conn.tenant_id)
-      .is("deleted_at", null)
-      .not("phone", "is", null)
-      .neq("phone", "")
-      .limit(10000);
-    phoneUniverse = ((data as RouterClientRow[] | null) ?? []);
-    return phoneUniverse;
+  // Candidatos por CLAVE EXACTA, no el universo entero.
+  //
+  // 🔴 Antes esto traía la tabla completa con `.limit(10000)`, y PostgREST corta
+  // en 1.000. Con 447 clientes no truncaba, pero al pasar de mil el recorte se
+  // INVIERTE de la peor forma: el segundo candidato —el que vuelve el cruce
+  // AMBIGUO— puede ser justo el que se cae, y entonces `hits.length === 1` da
+  // match único. El enrutador estamparía el Shipping Mark del cliente
+  // equivocado, que es exactamente lo que `decideRoute` dice estar evitando.
+  //
+  // Con `clients.phone_last10` (migración 0383, columna GENERADA gemela de la
+  // de `kommo_contacts`) el filtro es exacto e indexado. Y el tope deja de
+  // poder mentir: si mil clientes compartieran una clave, cualquier conteo ≥2
+  // ya es ambiguo — truncar no puede convertir un ambiguo en un único.
+  const porClave = new Map<string, RouterClientRow[]>();
+  const loadClientesPorClaves = async (claves: string[]): Promise<RouterClientRow[]> => {
+    const faltan = claves.filter((k) => !porClave.has(k));
+    if (faltan.length > 0) {
+      const { data } = await supabase
+        .from("clients")
+        .select("id, markbox, kommo_contact_id, phone")
+        .eq("tenant_id", conn.tenant_id)
+        .is("deleted_at", null)
+        .in("phone_last10", faltan);
+      // Sembrar en vacío primero: una clave sin filas también queda cacheada, si
+      // no se vuelve a consultar en cada lead del mismo request.
+      for (const k of faltan) porClave.set(k, []);
+      for (const row of ((data as RouterClientRow[] | null) ?? [])) {
+        const k = phoneKey(row.phone);
+        if (k) porClave.get(k)?.push(row);
+      }
+    }
+    return claves.flatMap((k) => porClave.get(k) ?? []);
   };
 
   let routed = 0;
@@ -151,7 +167,7 @@ async function routeNewLeads(
           `/api/v4/contacts/${contactId}`,
         );
         phones = contactPhoneKeys(contact);
-        if (phones.length > 0) universe = await loadPhoneUniverse();
+        if (phones.length > 0) universe = await loadClientesPorClaves(phones);
       }
 
       const decision = decideRoute(contactId, phones, linked, universe);
