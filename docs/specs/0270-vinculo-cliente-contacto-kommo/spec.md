@@ -1,7 +1,7 @@
 ---
 sdd: 0270
 title: El vínculo cliente ↔ contacto de Kommo deja de depender del azar
-status: in-progress
+status: done
 author: Claude (ventana 2026-08-18)
 created: 2026-08-18
 updated: 2026-08-18
@@ -126,11 +126,50 @@ verde al quitarlo. Su primera versión se disparó con **el comentario que expli
 el bug** —ahí dice `.limit(10000)` en prosa—, así que ahora ignora comentarios:
 un escaneo que no distingue código de prosa convierte en rojo a quien documenta.
 
+## Resultado en producción (2026-08-18) — medido, no estimado
+
+Migración aplicada, `kommo-webhook` desplegada (v7 → **v8**, `verify_jwt` sigue
+en `false`) y barrido corrido con OK del founder.
+
+| | |
+|---|---|
+| Vinculados | **32 → 62** de 457 (7% → 13,6%) |
+| Contactos compartidos por 2 clientes | **0** — la guarda funcionó |
+| Vínculos a un contacto inexistente | **0** |
+| Segunda corrida en seco | **0 vinculables** — es idempotente |
+| Ambiguos que quedan | 1 por cliente · 7 por contacto |
+
+### 🔴 Y el resultado que importa: esto NO desbloquea la Parte 2 del bloque E
+
+**De los 62 clientes vinculados, CERO tienen saldo y CERO tienen carga en
+tránsito.** El ERP tiene exactamente 2 con saldo y 6 con carga — los mismos de
+antes. **El barrido no rescató a ninguno de ellos.**
+
+El diagnóstico descarta que sea un problema del cruce. De los 6 clientes
+relevantes (los dos conjuntos se solapan):
+
+| Motivo | Cuántos |
+|---|---|
+| Sin fila de cliente | 0 |
+| Ya vinculados | 0 |
+| Sin teléfono utilizable | **1** |
+| **Teléfono que no existe entre los 3.228 contactos de Kommo** | **5** |
+| Había contacto pero era ambiguo | 0 |
+
+⭐ **No es un problema de vinculación: es de cobertura.** Los clientes que deben
+plata o tienen carga navegando **no están en Kommo**. Nunca entraron por el CRM.
+Ninguna heurística de cruce puede inventar un contacto que no existe.
+
+**Consecuencia para el bloque E:** crear los 2 campos de contacto sigue valiendo
+la pena —el job ya les escribiría "No/No" a 62 contactos, y eso es más que
+nada—, pero **no va a hacer que el agente de IA sepa quién debe plata**, que era
+el motivo de crearlos. Para eso hay que resolver antes que esos clientes existan
+como contactos en Kommo.
+
 ## Pendiente del founder
 
-⛔ **La migración NO se aplicó.** Escribir `clients.kommo_contact_id` en
-producción necesita OK nombrando el archivo, por
-[`docs/runbooks/aplicar-migraciones-prod.md`](../../runbooks/aplicar-migraciones-prod.md).
+✅ **Ya está todo aplicado** (ver la sección de arriba). Lo que queda es lo que
+el barrido no puede resolver solo.
 
 **El orden recomendado, y por qué:**
 
