@@ -25,7 +25,18 @@ const CSV_PLACEHOLDER = `service,origin,destination,per_cbm,flat_rate,min_charge
 consolidado_lcl,Yiwu,Valencia,800,,380,38,2026-01-01,2026-12-31,Tarifa Q1
 fcl_directo,Shenzhen,La Guaira,,8500,,40,,,Contrato naviero`;
 
-export function ImportRatesDrawer({ onClose }: { onClose: () => void }) {
+export function ImportRatesDrawer({
+  onClose,
+  priceBookId,
+  priceBookName,
+  priceBookEsCasa = true,
+}: {
+  onClose: () => void;
+  /** Lista de precios en la que entran las tarifas importadas (SDD-0269). */
+  priceBookId?: string | null;
+  priceBookName?: string | null;
+  priceBookEsCasa?: boolean;
+}) {
   const toast = useToast();
   const [csv, setCsv] = useState("");
   const [preview, setPreview] = useState<RateImportPreview | null>(null);
@@ -88,9 +99,27 @@ export function ImportRatesDrawer({ onClose }: { onClose: () => void }) {
               consolidado_lcl · puerta_a_puerta_DDP · fcl_directo ·
               transporte_terrestre. Indica per_cbm o flat_rate. Las filas se
               importan como <strong style={{ color: "var(--ink)" }}>borrador</strong>{" "}
-              (no van live). Dedup por servicio + origen + destino.
+              (no van live). Dedup por servicio + origen + destino{" "}
+              <b style={{ color: "var(--ink)" }}>dentro de esta lista</b>.
             </p>
           </div>
+
+          {priceBookId && !priceBookEsCasa && (
+            <p
+              style={{
+                font: "500 12.5px/1.45 var(--f-sans)",
+                color: "var(--ink)",
+                background: "var(--info-bg)",
+                border: "1px solid var(--info)",
+                borderRadius: "var(--r-sm)",
+                padding: "8px 10px",
+                margin: 0,
+              }}
+            >
+              Estas tarifas entran en <b>{priceBookName}</b> — sólo las ven sus
+              clientes, y no salen en la calculadora del sitio.
+            </p>
+          )}
 
           <div>
             <label className="studio-label" htmlFor="csv">
@@ -292,7 +321,7 @@ export function ImportRatesDrawer({ onClose }: { onClose: () => void }) {
             successIcon={Icon.check(14)}
             disabled={!canImport}
             onAction={async () => {
-              const r = await importRatesAction(csv);
+              const r = await importRatesAction(csv, priceBookId ?? null);
               setResult(r);
               setPreview(r.preview ?? preview);
               if (r.error) return { error: r.error };

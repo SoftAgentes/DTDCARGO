@@ -21,6 +21,10 @@ import {
 } from "@/lib/studio/rate-types";
 import { SERVICE_LABELS } from "@/lib/studio/shipment-types";
 import type { RateFilters } from "@/lib/studio/rate-queries";
+import {
+  fmtDescuento,
+  type PriceBookOption,
+} from "@/lib/studio/price-books/price-book-types";
 import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
@@ -36,9 +40,15 @@ type DrawerState = null | { mode: "create" } | { mode: "edit"; rate: Rate };
 export function TarifasClient({
   rates,
   filters,
+  books,
+  activeBook,
 }: {
   rates: Rate[];
   filters: RateFilters;
+  /** Las listas de precios del tenant (SDD-0269). Vacío = migr 0382 sin aplicar. */
+  books: PriceBookOption[];
+  /** La que se está viendo. null cuando todavía no hay listas. */
+  activeBook: PriceBookOption | null;
 }) {
   const [importOpen, setImportOpen] = useState(false);
   const router = useRouter();
@@ -57,10 +67,14 @@ export function TarifasClient({
     setService(params.get("service") ?? "");
   }
 
-  const pushFilters = (next: { q?: string; service?: string }) => {
+  const pushFilters = (next: { q?: string; service?: string; book?: string }) => {
     const search = new URLSearchParams();
     if (next.q && next.q.trim()) search.set("q", next.q.trim());
     if (next.service) search.set("service", next.service);
+    // La lista sobrevive a cualquier otro filtro: buscar dentro de la tarifa de
+    // un aliado no puede devolverte en silencio a la de la casa.
+    const book = next.book !== undefined ? next.book : (params.get("book") ?? "");
+    if (book) search.set("book", book);
     const qs = search.toString();
     startTransition(() => {
       router.push(qs ? `/studio/tarifas?${qs}` : "/studio/tarifas");
@@ -115,6 +129,24 @@ export function TarifasClient({
             LCL cobrado por CBM. FCL como tarifa cerrada por contenedor. Editables
             por ruta y vigencia. Los Estimados las consumen para sugerir precios.
           </p>
+          {activeBook && !activeBook.isHouse && (
+            <p
+              style={{
+                font: "500 12.5px/1.45 var(--f-sans)",
+                color: "var(--ink)",
+                margin: "8px 0 0",
+                maxWidth: "62ch",
+              }}
+            >
+              Estás viendo la tarifa pactada con{" "}
+              <b>{activeBook.aliadoPrefix ?? activeBook.name}</b>
+              {activeBook.discountPct != null && (
+                <> · además tiene {fmtDescuento(activeBook.discountPct)} sobre la de la casa
+                  donde no cargue tarifa propia</>
+              )}
+              . Estas tarifas <b>no</b> salen en la calculadora del sitio.
+            </p>
+          )}
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <button
@@ -146,6 +178,28 @@ export function TarifasClient({
           transition: "opacity var(--dur-fast) var(--ease)",
         }}
       >
+        {books.length > 1 && (
+          <div style={{ flex: "0 0 280px" }}>
+            <label className="studio-label" htmlFor="rate-book">
+              Lista de precios
+            </label>
+            <select
+              id="rate-book"
+              className="studio-input"
+              value={activeBook?.id ?? ""}
+              onChange={(e) => pushFilters({ q, service, book: e.target.value })}
+            >
+              {books.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.isHouse
+                    ? `${b.name} · la casa`
+                    : `${b.aliadoPrefix ? `${b.aliadoPrefix} · ` : ""}${b.name}`}
+                  {b.tarifas === 0 ? " (vacía)" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div style={{ flex: "1 1 280px", minWidth: 240 }}>
           <label className="studio-label" htmlFor="rate-q">
             Buscar
@@ -229,6 +283,9 @@ export function TarifasClient({
       {/* Drawer crear/editar */}
       {drawer && (
         <RateDrawer
+          priceBookId={activeBook?.id ?? null}
+          priceBookName={activeBook?.name ?? null}
+          priceBookEsCasa={activeBook?.isHouse ?? true}
           mode={drawer.mode}
           rate={drawer.mode === "edit" ? drawer.rate : undefined}
           onClose={() => setDrawer(null)}
@@ -236,7 +293,14 @@ export function TarifasClient({
       )}
 
       {/* Importador masivo */}
-      {importOpen && <ImportRatesDrawer onClose={() => setImportOpen(false)} />}
+      {importOpen && (
+        <ImportRatesDrawer
+          onClose={() => setImportOpen(false)}
+          priceBookId={activeBook?.id ?? null}
+          priceBookName={activeBook?.name ?? null}
+          priceBookEsCasa={activeBook?.isHouse ?? true}
+        />
+      )}
     </div>
   );
 }

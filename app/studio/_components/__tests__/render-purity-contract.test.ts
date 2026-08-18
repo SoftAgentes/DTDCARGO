@@ -20,7 +20,11 @@ describe("pureza de render", () => {
       "app/studio/(app)/cotizador/_components/QuoteDrawer.tsx",
     );
     expect(code).toContain("quote?.valid_until ?? DEFAULT_VALID_UNTIL");
-    expect(code).toContain("if (!next.trim()) setSuggestedRate(null)");
+    // Lo que se protege es que la sugerencia se limpie EN EL HANDLER, no que el
+    // setter se llame de una forma. Con el nombre literal, este contrato se
+    // ponía rojo por un rename que no cambiaba una coma del comportamiento
+    // (pasó en SDD-0269, al pasar la sugerencia a traer también su origen).
+    expect(code).toMatch(/if \(!next\.trim\(\)\) set\w+\(null\)/);
   });
 
   it("usa referencia estable en mailing y fecha absoluta en tracking", () => {

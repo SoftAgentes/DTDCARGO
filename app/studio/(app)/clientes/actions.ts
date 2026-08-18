@@ -27,6 +27,12 @@ import {
   validateAliadoInput,
   type AliadoActionState,
 } from "@/lib/studio/aliados/aliado-types";
+import {
+  nombreListaDeAliado,
+  validateDescuento,
+  validatePriceBookName,
+} from "@/lib/studio/price-books/price-book-types";
+import { getPriceBookByAliado } from "@/lib/studio/price-books/price-book-queries";
 import { parseMarkbox } from "@/lib/shared/markbox-chain";
 import {
   parseLoteResult,
@@ -920,6 +926,89 @@ export async function actualizarAliadoAction(
   if (error) return { error: mensajeDeErrorAliado(error) };
 
   revalidatePath(`/studio/clientes/${markbox}`);
+  return { ok: true };
+}
+
+/**
+ * Pacta (o repacta) la tarifa de un aliado — SDD-0269.
+ *
+ * La tarifa vive en una LISTA DE PRECIOS propia del aliado (`price_books`,
+ * migr 0382). Esta acción crea la lista si todavía no existe y guarda su
+ * descuento; las tarifas propias, si las pacta, se cargan después desde
+ * /studio/tarifas eligiendo su lista.
+ *
+ * Sólo el aliado RAÍZ tiene lista: un sub-aliado le factura a su padre, no a
+ * DTD. La base lo impide igual (trigger `price_books_guard_aliado_t`); acá se
+ * corta antes para poder dar un mensaje que se entienda.
+ */
+export async function guardarTarifaAliadoAction(
+  aliadoId: string,
+  markbox: string,
+  _prev: AliadoActionState,
+  formData: FormData,
+): Promise<AliadoActionState> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "clients");
+  if (denial) return { error: denial };
+
+  const { data: aliado } = await supabase
+    .from("aliados")
+    .select("id, tenant_id, parent_aliado_id, trade_name")
+    .eq("id", aliadoId)
+    .is("deleted_at", null)
+    .maybeSingle<{
+      id: string;
+      tenant_id: string;
+      parent_aliado_id: string | null;
+      trade_name: string;
+    }>();
+
+  if (!aliado) return { error: "No se encontró el aliado." };
+  if (aliado.parent_aliado_id) {
+    return {
+      error:
+        "La tarifa se pacta con el aliado raíz. Este es un sub-aliado: hereda la de su raíz.",
+    };
+  }
+
+  const descuento = validateDescuento(String(formData.get("discountPct") ?? ""));
+  if (descuento.error) return { error: descuento.error };
+
+  const nombre = validatePriceBookName(
+    String(formData.get("bookName") ?? "") || nombreListaDeAliado(aliado.trade_name),
+  );
+  if (nombre.error) return { error: nombre.error };
+
+  const existente = await getPriceBookByAliado(supabase, aliadoId);
+
+  const { error } = existente
+    ? await supabase
+        .from("price_books")
+        .update({
+          name: nombre.value!,
+          discount_pct: descuento.value,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existente.id)
+    : await supabase.from("price_books").insert({
+        tenant_id: aliado.tenant_id,
+        aliado_id: aliadoId,
+        name: nombre.value!,
+        discount_pct: descuento.value,
+      });
+
+  if (error) {
+    return {
+      error:
+        error.code === "23505"
+          ? "Este aliado ya tiene una lista de precios."
+          : `No se pudo guardar la tarifa: ${error.message}`,
+    };
+  }
+
+  revalidatePath(`/studio/clientes/${markbox}`);
+  revalidatePath("/studio/tarifas");
   return { ok: true };
 }
 
