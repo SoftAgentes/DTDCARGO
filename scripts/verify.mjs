@@ -291,6 +291,7 @@ const STEPS = [
   // comparaba el `sdd:` contra la carpeta. Salta al MERGEAR, que es cuando
   // todavía se puede renumerar. Puro filesystem → NUNCA hace skip.
   { name: "numbering", argv: ["scripts/check-numbering.mjs"] },
+  { name: "feature-constants", argv: ["scripts/check-feature-constants.mjs"] },
   { name: "components:check", argv: ["scripts/validate-component-registry.mjs"] },
   {
     name: "governance:check",
