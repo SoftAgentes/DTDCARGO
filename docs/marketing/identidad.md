@@ -48,7 +48,7 @@
 |---|---|
 | Nombre (schema `name`) | DTD Cargo |
 | `alternateName` | DoorTuDoor · Doortudoor Services |
-| Sede Venezuela | Edificio Kokuy, Calle 151 (entre Av. Bolívar Norte y Av. Paseo Cabriales) — Valencia, Carabobo, VE · CP 2001 · GPS 10.220449, -68.008481 |
+| Sede Venezuela | Torre Profesional Kokuy, Calle 151 (entre Av. Bolívar Norte y Av. Paseo Cabriales) — Valencia, Carabobo, VE · CP 2001 · GPS 10.220449, -68.008481 |
 | Bodega China | Yiwu Port Phase II, Warehouse 2, No. 2 (Cargo 7-11) — Yiwu, Zhejiang, CN |
 | Teléfono público primario | +58 412 166 8021 (CRM WhatsApp) |
 | Teléfono público secundario | +58 241 414 7886 (Fijo Valencia) |
@@ -59,17 +59,21 @@ schema. Esta tabla es la referencia canónica para mantener la consistencia entr
 
 ### Dirección VE — una sola, y las variantes muertas
 
-**Canónica (founder 2026-07-11, reconfirmada 2026-07-30):**
-`Edificio Kokuy, Calle 151 (entre Av. Bolívar Norte y Av. Paseo Cabriales) — Valencia,
-Carabobo, VE`. **La entrada da únicamente a Calle 151**; Av. Bolívar Norte es referencia
-cruzada, **no la dirección, y no lleva número de puerta**. CP **2001** (Valencia; el 5001 es
-San Cristóbal/Táchira). Pin verificado: `https://maps.app.goo.gl/76T5MAeeTyynwV1M6`.
+**Canónica (founder 2026-07-11, reconfirmada 2026-07-30; nombre del edificio corregido
+2026-08-18):** `Torre Profesional Kokuy, Calle 151 (entre Av. Bolívar Norte y Av. Paseo
+Cabriales) — Valencia, Carabobo, VE`. **La entrada da únicamente a Calle 151**; Av. Bolívar
+Norte es referencia cruzada, **no la dirección, y no lleva número de puerta**. CP **2001**
+(Valencia; el 5001 es San Cristóbal/Táchira).
 
-Estas dos variantes circularon y son **incorrectas — reemplazar donde aparezcan**:
+⚠️ El pin `https://maps.app.goo.gl/76T5MAeeTyynwV1M6` **decía "verificado" y no lo estaba** —
+ver § "La ficha de Google Maps" más abajo.
+
+Estas tres variantes circularon y son **incorrectas — reemplazar donde aparezcan**:
 
 | Variante muerta | Por qué está mal | Dónde sobrevive |
 |---|---|---|
 | `Edificio Kokuy, Av. Bolívar Norte — Valencia, Carabobo` | le falta la calle real (Calle 151) | Brand Book v4.6 (`_norte/` + `private/marca/`), `docs/specs/0001-mvp-public-web/spec.md` |
+| `Edificio Kokuy` (a secas, sin "Torre Profesional") | nombre **incompleto** del edificio: no es como se llama ni como Google lo tiene indexado, así que el NAP del sitio no casaba con el de la ficha | fue el valor del repo hasta 2026-08-18 (`lib/design-tokens.ts`, `public/llms.txt`); sigue vivo en `docs/legal/casos/` (histórico: cita textual de un cliente, **no se reescribe**) y en `docs/specs/0001-mvp-public-web/spec.md` |
 | `Av. Bolívar Norte 14, Valencia` | el **"14" no existe** — confirmado por el founder 2026-07-30; además pierde "Edificio Kokuy" y la calle | piezas del Norte: `Aplicaciones de Marca.html`, `Ficha 3D · Aviso de Fachada`, `_norte/CLAUDE.md`, `design_handoff_mobile_app/CLAUDE.md`, `handoff-enlaces/HANDOFF.md`, `SYNC-NORTE-2026-06-14.md` |
 
 ⚠️ La variante del "14" está en **colateral que se imprime** (membrete A4, credencial CR-80,
@@ -78,6 +82,38 @@ contra esta sección.
 
 El material del Norte es **read-only** (se reemplaza en el próximo NORTE-SYNC): la corrección se
 sube a Cloud Design, no se parcha acá.
+
+### La ficha de Google Maps — medido 2026-08-18
+
+La ficha **`DTD Cargo services`** (`0x8e805d8921ef9f17:0x534069318a455204` · `/g/11r9w2fzdb`)
+está mal en tres cosas a la vez, y **las tres son el mismo bug de fondo: la ficha no tiene
+domicilio estructurado propio**, así que Google la cuelga del punto de interés más cercano y
+hereda su geocodificación.
+
+| Qué muestra | Qué debería | Nota |
+|---|---|---|
+| `Torre Profesional Kokuy, Valencia` | la dirección canónica de arriba | eso **no es una dirección**: es el nombre de un POI + la ciudad |
+| CP `5000` | CP **2001** | `5000` no es un código postal válido de Valencia |
+| pin en Plus Code `6XCR+5JC` | el edificio está en `6XCR+5HQ` | ~4 m corrido — el founder lo confirmó a ojo |
+
+⚠️ **La coordenada de `CONTACT.ve.geo` NO verifica nada:** está a **36 cm** del pin de la ficha
+porque se copió de ahí. No es una segunda fuente que confirma — es un eco. Cuando el pin se
+corrija en Google Business Profile, hay que traer la coordenada nueva a `lib/design-tokens.ts`
+y a este documento.
+
+⚠️ **Google no tiene numeración de calle en esa zona.** La prueba: la ficha del propio edificio
+—que está establecida, con 10 reseñas— muestra como dirección `6XCR+5HQ, Calle 151`, o sea un
+Plus Code en lugar de un número de puerta. Por eso llenar la dirección estructurada **no
+alcanza**: lo que fija la ubicación de verdad es el pin, y el Plus Code que resulta de él.
+
+🔴 **No crear una ficha nueva:** `DTD Cargo services` ya existe. Una segunda ficha en la misma
+dirección es un duplicado, y Google los castiga suspendiendo una (o las dos) y partiendo
+reseñas y antigüedad. El camino es **reclamar** la existente.
+
+🔴 **Ojo con el Administrador de Negocio:** el flujo de alta ofrece vincular la ficha a
+**"Doortudoor Trading, C.A"** (una cuenta de Merchant Center que ya existe). Esa es la razón
+social **muerta** — la viva es `INVERSIONES DTD SERVICES, C.A` / `J-50648869-8`. El link
+*"Este perfil corresponde a otra empresa"* es la salida para no colgarlo de ahí.
 
 ## Versión-máquina (schema.org)
 

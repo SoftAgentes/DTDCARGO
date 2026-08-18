@@ -211,16 +211,26 @@ export const CONTACT = {
      * ⚠️ La entrada da únicamente a Calle 151. Av. Bolívar Norte NO lleva número
      * de puerta — si ves "Av. Bolívar Norte 14" en algún lado, es la variante
      * muerta del Norte (ver docs/marketing/identidad.md § "Dirección VE").
+     *
+     * El edificio se llama "Torre Profesional Kokuy" — confirmado por el founder
+     * 2026-08-18. "Edificio Kokuy" (a secas) era el nombre incompleto que usó el
+     * repo hasta esa fecha y NO coincidía con el que Google tiene indexado, lo
+     * que rompía la consistencia NAP entre el sitio y la ficha de Maps.
      */
     address:
-      "Edificio Kokuy, Calle 151 (entre Av. Bolívar Norte y Av. Paseo Cabriales)",
+      "Torre Profesional Kokuy, Calle 151 (entre Av. Bolívar Norte y Av. Paseo Cabriales)",
     addressFull:
-      "Edificio Kokuy, Calle 151 (entre Av. Bolívar Norte y Av. Paseo Cabriales), Valencia, Carabobo, Venezuela",
+      "Torre Profesional Kokuy, Calle 151 (entre Av. Bolívar Norte y Av. Paseo Cabriales), Valencia, Carabobo, Venezuela",
     postalCode: "2001", // Valencia, Carabobo — para schema.org PostalAddress
 
     /**
-     * Coordenadas GPS exactas del Edificio Kokuy (founder 2026-07-11) — para
-     * schema.org GeoCoordinates (señal fuerte de local SEO) y pin de mapas.
+     * 🔴 OJO: esta coordenada NO está verificada contra el edificio — se copió
+     * del pin que Google tenía para la ficha (medido 2026-08-18: están a 36 cm).
+     * No es una segunda fuente que confirma, es un eco. Y ese pin está corrido:
+     * cae en el Plus Code 6XCR+5JC, mientras el edificio está en 6XCR+5HQ (~4 m).
+     *
+     * Cuando el pin se corrija en Google Business Profile, traer la coordenada
+     * nueva acá — alimenta schema.org GeoCoordinates y el pin de mapas.
      */
     geo: { lat: 10.220449465809326, lng: -68.00848104738162 },
 

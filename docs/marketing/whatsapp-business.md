@@ -92,7 +92,7 @@ final**, aunque su número no se publique (el catálogo solo ayuda a quien ya ti
 | **Nombre** | Según la tabla de arriba | [ ] |
 | **Categoría** | *Servicio de carga / Logística / Transporte* | [ ] |
 | **Descripción** (máx. 512) | "Logística puerta a puerta China → Venezuela. +15 años. DDP todo incluido, consolidación LCL/FCL, aduana, agente de compra e inspección en origen. 📦 Calcula tu importación: dtdcargo.com/calculadora" | [ ] |
-| **Dirección** | Edificio Kokuy, Calle 151 (entre Av. Bolívar Norte y Av. Paseo Cabriales) — Valencia, Carabobo, VE · [pin GPS](https://maps.app.goo.gl/76T5MAeeTyynwV1M6) | [ ] |
+| **Dirección** | Torre Profesional Kokuy, Calle 151 (entre Av. Bolívar Norte y Av. Paseo Cabriales) — Valencia, Carabobo, VE · [pin GPS](https://maps.app.goo.gl/76T5MAeeTyynwV1M6) | [ ] |
 | **Horario** | `todos los días de 8:00 a 20:00` | [ ] |
 | **Email** | `info@dtdcargo.com` | [ ] |
 | **Sitio web 1** | `www.dtdcargo.com` | [ ] |
@@ -224,7 +224,7 @@ www.dtdcargo.com/calculadora
 | `/track` | Rastrea tu envío con tu código DTD 👉 www.dtdcargo.com/track |
 | `/registro` | Regístrate para obtener tu Shipping Mark (唛头) y empezar a importar 👉 www.dtdcargo.com/registro |
 | `/horario` | Nuestro horario de atención es todos los días de 8:00 a 20:00. ¡Con gusto te ayudamos! |
-| `/ubicacion` | 📍 Edificio Kokuy, Calle 151 (entre Av. Bolívar Norte y Av. Paseo Cabriales) — Valencia, Carabobo. También operamos bodega propia en Yiwu, China. |
+| `/ubicacion` | 📍 Torre Profesional Kokuy, Calle 151 (entre Av. Bolívar Norte y Av. Paseo Cabriales) — Valencia, Carabobo. También operamos bodega propia en Yiwu, China. |
 | `/pago` | Con el servicio DDP pagas cuando tu carga llega a Venezuela, no por adelantado.* Te avisamos al arribo. *(pueden aplicar restricciones) |
 
 ### 4.4 · Etiquetas para organizar los chats (recomendado en CRM/Ventas)
