@@ -59,16 +59,31 @@ price_books
 `rates` gana **una** columna (`price_book_id`) y quién usa cuál se decide en un
 solo punto: `resolve_price_book(client_id)`.
 
-### Las dos formas de pactar
+### Las tres formas de pactar
 
 | Forma | Cómo se guarda | Cuándo conviene |
 |---|---|---|
-| **Descuento** | `price_books.discount_pct` | Lo más común. Se mueve solo cuando la casa sube o baja el precio. Cero filas que mantener. |
-| **Tarifa propia** | Filas de `rates` dentro de su lista | Cuando el precio no es una función del de la casa. |
+| **Precio pactado** | `price_books.base_per_cbm` | ⭐ Cómo lo piensa el founder: *«con Dynasty tengo $690 el CBM»*. Un número, sin porcentaje y sin ruta. |
+| **Descuento** | `price_books.discount_pct` | Cuando el acuerdo es relativo. Se mueve solo cuando la casa sube o baja el precio. |
+| **Tarifa propia** | Filas de `rates` dentro de su lista | Cuando el precio cambia por ruta y hace falta el detalle. |
 
-**Conviven, y el orden es explícito:** su tarifa propia manda donde exista;
-donde no tenga, se le aplica el descuento sobre la de la casa; si no pactó
-descuento, paga la de la casa.
+**Conviven, y el orden es explícito**, de lo más específico a lo más general:
+
+1. **Tarifa propia** — una fila suya para esa ruta.
+2. **Precio pactado** — el `base_per_cbm`.
+3. **Descuento** — sobre la de la casa.
+4. **La casa** — tal cual.
+
+⚠️ **El precio pactado sólo entra donde el tramo se cobra POR CBM.** El FCL va
+por contenedor, así que un $/CBM no tiene dónde aplicarse y ese tramo sigue con
+el descuento o con la de la casa. La decisión NO se toma mirando el `service`
+sino la **forma** de la tarifa de la casa (`per_cbm is not null`): el `service`
+de la fila pública ya divergió una vez de lo que representaba (migr 0255).
+
+La ficha del aliado **no describe** esto en prosa — lo **muestra como lista
+ordenada** de lo que se le aplica y dónde. Con tres formas que conviven las
+combinaciones son ocho, y un párrafo por combinación es imposible de mantener y
+fácil de dejar mintiendo.
 
 ### La regla que se DICE en pantalla
 
@@ -87,7 +102,7 @@ buscar. **Un cliente de FA cotiza con la tarifa de DC.**
 
 ## 3. Lo que se construyó
 
-### Base de datos — migr `0382_price_books.sql`
+### Base de datos — migr `0382_price_books.sql` y `0384_price_book_valor_pactado.sql`
 
 - Tabla `price_books` con RLS por tenant.
 - `rates.price_book_id`, **nullable con backfill y relleno automático**. No es
@@ -101,6 +116,12 @@ buscar. **Un cliente de FA cotiza con la tarifa de DC.**
   id ajeno devuelve NULL solo. Un definer acá sería regalar un oráculo.
 - Cuatro candados: la pública sólo de la casa · una lista sólo en aliado raíz ·
   una sola lista de la casa por tenant · una sola lista por aliado.
+- **0384** agrega `base_per_cbm` (nullable, `> 0`). Es una columna y no una fila
+  de `rates` porque una fila exige servicio + origen + destino, y el acuerdo con
+  un aliado **no tiene ruta**: es el precio de su carga, venga de donde venga.
+  Pedirle al founder que invente un destino para guardar un número sería
+  obligarlo a mentirle al catálogo — y ese destino inventado después competiría
+  en el ILIKE con los de verdad.
 
 ### Aplicación
 
@@ -158,6 +179,20 @@ Del lado TypeScript, otras cuatro:
 | M3 | La tarifa propia pierde prioridad sobre el descuento | rojo ✓ |
 | M4 | Un descuento de 0 % se acepta | rojo ✓ |
 
+Y seis más sobre el precio pactado (migr 0384):
+
+| # | Mutación | Resultado |
+|---|---|---|
+| M1 | El precio pactado pierde prioridad frente al descuento | rojo ✓ |
+| M2 | El $/CBM pactado se aplica también donde se cobra por contenedor | rojo ✓ |
+| M3 | El precio pactado también pisa el piso | rojo ✓ |
+| M4 | La tarifa propia deja de mandar sobre el pactado | rojo ✓ |
+| M5 | Un precio pactado de $0 se acepta | rojo ✓ |
+| M6 | `rate_used_id` deja de apuntar a la tarifa real de la casa | rojo ✓ |
+
+Más dos en SQL: el `check` de positivo apagado, y la columna naciendo con un
+precio por default. Las dos rojas.
+
 ### Degradación medida
 
 Las tres pantallas cargan la lista con `try/catch`: con la migr 0382 **sin
@@ -182,7 +217,7 @@ base donde `price_books` todavía no existe.
 
 ## 6. Lo que hay que decidir
 
-1. **El número.** El descuento de Dynasty Cargo y el de Antonella Guerrero no
-   los sabe el sistema. La pantalla está lista; falta el dato.
+1. **El número.** Ni el precio pactado ni el descuento de Dynasty Cargo y
+   Antonella Guerrero los sabe el sistema. La pantalla está lista; falta el dato.
 2. **Si el descuento debe tocar el piso.** Hoy no lo toca, y así está escrito en
    pantalla. Es reversible con una línea.

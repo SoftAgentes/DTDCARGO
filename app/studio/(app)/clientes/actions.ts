@@ -29,6 +29,7 @@ import {
 } from "@/lib/studio/aliados/aliado-types";
 import {
   nombreListaDeAliado,
+  validateBasePerCbm,
   validateDescuento,
   validatePriceBookName,
 } from "@/lib/studio/price-books/price-book-types";
@@ -975,6 +976,9 @@ export async function guardarTarifaAliadoAction(
   const descuento = validateDescuento(String(formData.get("discountPct") ?? ""));
   if (descuento.error) return { error: descuento.error };
 
+  const pactado = validateBasePerCbm(String(formData.get("basePerCbm") ?? ""));
+  if (pactado.error) return { error: pactado.error };
+
   const nombre = validatePriceBookName(
     String(formData.get("bookName") ?? "") || nombreListaDeAliado(aliado.trade_name),
   );
@@ -988,6 +992,7 @@ export async function guardarTarifaAliadoAction(
         .update({
           name: nombre.value!,
           discount_pct: descuento.value,
+          base_per_cbm: pactado.value,
           updated_at: new Date().toISOString(),
         })
         .eq("id", existente.id)
@@ -996,6 +1001,7 @@ export async function guardarTarifaAliadoAction(
         aliado_id: aliadoId,
         name: nombre.value!,
         discount_pct: descuento.value,
+        base_per_cbm: pactado.value,
       });
 
   if (error) {

@@ -22,7 +22,7 @@ import {
 } from "./price-book-types";
 
 const BOOK_COLUMNS =
-  "id, tenant_id, aliado_id, name, is_house, discount_pct, notes, created_at, updated_at, deleted_at";
+  "id, tenant_id, aliado_id, name, is_house, discount_pct, base_per_cbm, notes, created_at, updated_at, deleted_at";
 
 // Mismas columnas que usa el módulo Tarifas, más la lista. Ver el comentario de
 // lib/studio/rate-queries.ts sobre por qué las columnas del cron NO van acá.
@@ -61,6 +61,7 @@ export async function listPriceBooks(
       name: b.name,
       isHouse: b.is_house,
       discountPct: b.discount_pct != null ? Number(b.discount_pct) : null,
+      basePerCbm: b.base_per_cbm != null ? Number(b.base_per_cbm) : null,
       aliadoId: b.aliado_id,
       aliadoPrefix: aliado?.prefix ?? null,
       tarifas: b.rates?.[0]?.count ?? 0,
@@ -201,9 +202,14 @@ async function findRateInBook(
  * ⭐ El precio que le toca a ESTE cliente.
  *
  * Orden de resolución, de lo más específico a lo más general:
- *   1. Tarifa propia de su lista.
- *   2. La de la casa con el descuento de su lista.
- *   3. La de la casa a secas.
+ *   1. Tarifa propia   — una fila suya en `rates` para esa ruta.
+ *   2. Precio pactado  — el $/CBM acordado con el aliado (`base_per_cbm`).
+ *   3. Descuento       — la de la casa menos su %.
+ *   4. La casa         — tal cual.
+ *
+ * El precio pactado sólo entra donde el tramo se cobra POR CBM. Se decide
+ * mirando la forma de la tarifa de la casa (`per_cbm is not null`), no el
+ * `service`: el FCL va por contenedor y un $/CBM no tiene dónde aplicarse ahí.
  *
  * Devuelve también de dónde salió: el cotizador tiene que poder decir por qué
  * el número es ése. `rateId` siempre apunta a la fila REAL de `rates` que se
@@ -248,11 +254,27 @@ export async function resolveRateForClient(
     };
   }
 
-  // 2/3. Donde no tiene tarifa propia, la de la casa — con su descuento si lo pactó.
+  // Sin tarifa propia, todo lo demás se apoya en la de la casa: de ahí salen la
+  // ruta, los días de tránsito y el piso. Sin ella no hay precio que dar.
   if (!casa) return null;
   const deLaCasa = await findRateInBook(supabase, casa.id, service, destination);
   if (!deLaCasa) return null;
 
+  // 2. El número pactado. Manda sobre el descuento por ser más específico, y
+  //    sólo aplica donde la casa cobra por CBM.
+  const pactado = book.base_per_cbm != null ? Number(book.base_per_cbm) : null;
+  if (pactado != null && pactado > 0 && deLaCasa.per_cbm != null) {
+    return {
+      // El piso sigue siendo el de la casa, igual que con el descuento.
+      rate: { ...deLaCasa, per_cbm: pactado },
+      rateId: deLaCasa.id,
+      origen: "pactada",
+      descuentoPct: null,
+      bookName: book.name,
+    };
+  }
+
+  // 3/4. El descuento sobre la de la casa, o la de la casa a secas.
   const pct = book.discount_pct != null ? Number(book.discount_pct) : null;
   if (pct == null) {
     return {

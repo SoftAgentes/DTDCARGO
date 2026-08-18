@@ -1069,7 +1069,7 @@ function RateSuggestionLine({
         {explicacion && (
           <span style={{ display: "block", color: "var(--ink-soft)", marginTop: 2 }}>
             {explicacion}
-            {origen === "descuento" && rate.min_charge != null && (
+            {(origen === "descuento" || origen === "pactada") && rate.min_charge != null && (
               <> · el piso de ${rate.min_charge} no lleva descuento</>
             )}
           </span>

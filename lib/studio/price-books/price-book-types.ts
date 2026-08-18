@@ -24,6 +24,8 @@ export type PriceBook = {
   is_house: boolean;
   /** % sobre la tarifa de la casa. null = sin descuento. */
   discount_pct: number | null;
+  /** $/CBM pactado con este aliado. null = no se pactó un número. */
+  base_per_cbm: number | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -36,6 +38,8 @@ export type PriceBookOption = {
   name: string;
   isHouse: boolean;
   discountPct: number | null;
+  /** $/CBM pactado. Manda sobre el descuento donde el tramo se cobra por CBM. */
+  basePerCbm: number | null;
   aliadoId: string | null;
   /** Insignia del aliado dueño, para etiquetar el selector (`DC`). */
   aliadoPrefix: string | null;
@@ -47,7 +51,14 @@ export type PriceBookOption = {
  * De dónde salió el precio que se está mostrando. Se muestra en pantalla: el
  * cotizador tiene que decir por qué el número es ése y no el de la lista.
  */
-export type OrigenTarifa = "propia" | "descuento" | "casa";
+/**
+ * De dónde salió el precio, de lo más específico a lo más general:
+ *   propia    — una fila suya en `rates` para esa ruta exacta
+ *   pactada   — el $/CBM que se acordó con el aliado (`base_per_cbm`)
+ *   descuento — la de la casa menos su %
+ *   casa      — la de la casa, tal cual
+ */
+export type OrigenTarifa = "propia" | "pactada" | "descuento" | "casa";
 
 export type TarifaResuelta = {
   /** La tarifa a usar. Si `origen` es "descuento", los importes ya vienen bajados. */
@@ -103,6 +114,7 @@ export function fmtDescuento(pct: number | null): string {
 /** Cómo se le explica al usuario de dónde salió el precio. */
 export function origenTarifaLabel(o: OrigenTarifa, bookName?: string | null): string {
   if (o === "propia") return bookName ? `Tarifa propia de ${bookName}` : "Tarifa propia";
+  if (o === "pactada") return bookName ? `Precio pactado con ${bookName}` : "Precio pactado";
   if (o === "descuento") return "Tarifa de la casa con su descuento";
   return "Tarifa de la casa";
 }
@@ -131,6 +143,31 @@ export function validateDescuento(raw: string | null | undefined): {
   }
   if (n > DESCUENTO_MAX) {
     return { error: `El descuento no puede llegar a 100 %. El máximo es ${DESCUENTO_MAX} %.` };
+  }
+  return { value: aCentavos(n) };
+}
+
+/**
+ * Valida el $/CBM pactado con el aliado.
+ * Vacío = no se pactó un número (null), que no es lo mismo que cero — cero no es
+ * un acuerdo, es llevarle la carga gratis.
+ */
+export function validateBasePerCbm(raw: string | null | undefined): {
+  value?: number | null;
+  error?: string;
+} {
+  const s = (raw ?? "").trim().replace(/[$\s]/g, "").replace(",", ".");
+  if (s === "") return { value: null };
+
+  const n = Number(s);
+  if (!Number.isFinite(n)) {
+    return { error: "El precio pactado es un número, por ejemplo 690 o 690,50." };
+  }
+  if (n <= 0) {
+    return { error: "Un precio de $0 el CBM no es un acuerdo: déjalo vacío." };
+  }
+  if (n > 100000) {
+    return { error: "Ese precio por CBM parece un error de tecleo." };
   }
   return { value: aCentavos(n) };
 }
