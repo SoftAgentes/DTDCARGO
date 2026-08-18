@@ -1586,12 +1586,17 @@ function ResultPanel({
           )}
 
           {/* CTA WhatsApp · con precio válido abre el modal de captura del
-              estimado (POST al ERP + wa.me); con alerta va directo a WhatsApp. */}
+              estimado (POST al ERP + wa.me); con alerta va directo a WhatsApp.
+              SIN target="_blank" (medido 2026-08-18): con el mensaje multilínea
+              de la cotización, algunas extensiones de link-cleaning/antivirus
+              reescriben la URL de la pestaña nueva y el navegador tira
+              ERR_ADDRESS_INVALID — el link en sí es válido (se verificó con
+              `new URL()`), pero la pestaña en blanco deja al cliente sin forma
+              de volver. En la misma pestaña, si algo interfiere el cliente cae
+              en un error navegable con el botón atrás, no en un callejón sin salida. */}
           {hasAlerta ? (
             <a
               href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
               className="btn bg-whatsapp text-white"
               onClick={reportarCalculo}
             >
@@ -1603,8 +1608,6 @@ function ResultPanel({
             // conversión la captura el listener global de <a> a wa.me).
             <a
               href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
               className="btn bg-whatsapp text-white"
               onClick={reportarCalculo}
             >
