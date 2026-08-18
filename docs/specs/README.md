@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 262 specs)
+### Índice de specs (generado · 263 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -300,6 +300,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0267 | Clientes cierra sus tres huecos de accesibilidad — tabla, car… | in-progress | interna |
 | 0268 | En el portal, borrar una dirección también deja de ser un cli… | in-progress | interna |
 | 0269 | La tarifa del aliado: listas de precios por aliado, con descu… | in-progress | interno |
+| 0270 | El vínculo cliente ↔ contacto de Kommo deja de depender del azar | done | interna |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
