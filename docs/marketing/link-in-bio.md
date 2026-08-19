@@ -48,8 +48,8 @@ todo y mide clics.
 
 ## Mismo link en otras redes
 
-`dtdcargo.com/enlaces` sirve igual para el link de perfil de **TikTok** (`@doortudoor`) y
-**YouTube** (`@doortudoor`). Un solo destino para mantener todo consistente.
+`dtdcargo.com/enlaces` sirve igual para el link de perfil de **TikTok** (`@dtdcargo`) y
+**YouTube** (`@dtdcargo`). Un solo destino para mantener todo consistente.
 
 ## Atribución — de dónde vino cada clic
 

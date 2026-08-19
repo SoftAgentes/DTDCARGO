@@ -67,7 +67,7 @@ DTD Cargo hace **logística y trading puerta a puerta China → Venezuela**. Equ
 - En el comercio con China **desde 2008**, con oficina propia en China **desde 2010**, y
   operando en Venezuela **desde 2015** (2015 es el año de fundación).
 - Marca pública: **DTD Cargo** (dos palabras, nunca "DTDCARGO"). **DoorTuDoor** es el sello
-  de herencia y el handle de Instagram `@doortudoor_`.
+  de herencia (RETIRADO 2026-08-19) y el handle de Instagram `@dtdcargo.ve`.
 - Web: **dtdcargo.com** · WhatsApp CRM **+58 412 166 8021** · Fijo Valencia
   **+58 241 414 7886** · **info@dtdcargo.com**
 

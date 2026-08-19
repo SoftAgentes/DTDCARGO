@@ -222,10 +222,14 @@ Y entre nosotros... muchas veces andamos casi 24 horas pegados al teléfono, as�
 
 > *Nota interna (⚠️ corregido 2026-08-03): decía "opera desde 2008", que contradice la regla canónica. **2008 = experiencia comercial con China · 2010 = primera oficina propia en China · 2015 = fundación en Venezuela** (`foundingDate` del schema). Fuente: `docs/marketing/estrategia.md`. **Nunca escribir un total fijo de años** — se calcula, no se hardcodea.*
 
-### 15. DoorTuDoor y DTD CARGO (misma empresa)
-**Preguntas:** ¿DoorTuDoor y DTD Cargo son lo mismo? · ¿Son la misma empresa? · ¿Qué significa DTD? · ¿Por qué dos nombres? · En Instagram son DoorTuDoor pero la web es DTD Cargo.
+### 15. Un solo nombre: DTD Cargo
+**Preguntas:** ¿DoorTuDoor y DTD Cargo son lo mismo? · ¿Son la misma empresa? · ¿Qué significa DTD? · ¿Por qué antes los veía con otro nombre? · En Instagram los veía distinto.
 
-**Respuesta:** ¡Hola! Sí, **somos la misma empresa**. **DoorTuDoor** es el nombre con que nacimos como marca, y evolucionamos a **DTD CARGO** ("DTD" = abreviación de DoorTuDoor). Por eso nos ves como "DoorTuDoor" en redes y "DTD CARGO" en la web: mismo equipo, mismo servicio. Puedes confiar en cualquiera de los dos nombres.
+*(⚠️ Los disparadores de arriba **conservan a propósito el nombre viejo**: la IA tiene que
+RECONOCER la pregunta cuando un cliente la escriba. La respuesta de abajo ya no lo promueve.
+Detectar ≠ promover — no quitar la palabra de la línea de preguntas.)*
+
+**Respuesta:** ¡Hola! Sí, somos la misma empresa de siempre: mismo equipo, mismo servicio, misma gente. Hoy nuestro **único nombre es DTD Cargo**, tanto en la web como en redes. Si nos conociste antes con otro nombre, estás en el lugar correcto.
 
 **Pregunta de continuación:** *"Y para saber por dónde empezar contigo: ¿ya has traído mercancía de China antes o esta sería tu primera vez?"*
 
@@ -265,14 +269,14 @@ Calcula tu base en **dtdcargo.com/tarifas** y un asesor te arma la tarifa con tu
 ### 19. Reseñas
 **Preguntas:** ¿Cómo dejo una opinión/reseña del servicio? · ¿Dónde dejo un comentario?
 
-**Respuesta:** ¡Hola! Nos encantaría conocer tu opinión. Puedes compartir tu experiencia por aquí o etiquetándonos: Instagram **@doortudoor_** · TikTok **@doortudoor**. ¡Gracias por ayudarnos a mejorar!
+**Respuesta:** ¡Hola! Nos encantaría conocer tu opinión. Puedes compartir tu experiencia por aquí o etiquetándonos: Instagram **@dtdcargo.ve** · TikTok **@dtdcargo.ve**. ¡Gracias por ayudarnos a mejorar!
 
 **Pregunta de continuación:** *"¿Y ese envío fue tu primera carga con nosotros o ya vas por varias?"*
 
 ### 20. Redes sociales
 **Preguntas:** ¿Tienen redes sociales? · ¿Cuál es su Instagram/Facebook? · ¿Dónde los sigo?
 
-**Respuesta:** ¡Hola! Síguenos: Instagram **https://www.instagram.com/doortudoor_/** · TikTok **https://www.tiktok.com/@doortudoor** · YouTube **https://www.youtube.com/@doortudoor** · WhatsApp **https://api.whatsapp.com/send/?phone=584121668021**. Novedades en **https://dtdcargo.com/noticias**.
+**Respuesta:** ¡Hola! Síguenos: Instagram **https://www.instagram.com/dtdcargo.ve/** · TikTok **https://www.tiktok.com/@dtdcargo.ve** · YouTube **https://www.youtube.com/@dtdcargo** · WhatsApp **https://api.whatsapp.com/send/?phone=584121668021**. Novedades en **https://dtdcargo.com/noticias**.
 
 **Pregunta de continuación:** *"Y para pasarte el contenido que más te sirva: ¿qué tipo de mercancía estás buscando traer?"*
 

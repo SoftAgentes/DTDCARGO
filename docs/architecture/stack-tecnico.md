@@ -18,7 +18,7 @@
 | | | NO shadcn / MUI / Radix | — | Componentes custom inline o components/ propios |
 | | | Fonts | next/font/google | Archivo + Archivo Black + Noto Sans SC |
 | 4 | Backend | Next.js Server Actions + Route Handlers | n/a | No hay backend separado |
-| | | Base de datos | Supabase Postgres | proyecto xpfuzqombmjmxvprjgmi (DoorTuDoor), us-east-1, Postgres **17.6** |
+| | | Base de datos | Supabase Postgres | proyecto xpfuzqombmjmxvprjgmi (el nombre visible en el dashboard de Supabase todavía dice "DoorTuDoor" — pendiente de renombrar; lo que importa es el project_ref), us-east-1, Postgres **17.6** |
 | | | ORM / queries | @supabase/supabase-js ^2.106.1 | Sin Prisma/Drizzle, queries directos con RLS |
 | | | Storage | Supabase Storage (S3-compat) | buckets receipt-photos + futuro back-assets |
 | 5 | Auth | @supabase/ssr ^0.5.2 | — | Email+password vía Supabase Auth; cookie-based con proxy.ts que refresca JWT |
@@ -71,7 +71,7 @@ Pero conviven **4 productos** dentro del mismo Next.js app:
 | Producto | Path en el repo | URL | Backend |
 |----------|-----------------|-----|---------|
 | Sitio público marketing | `app/` (raíz) | `dtdcargo.com` | Mostly static; futuro HTTP al ERP HailuWay |
-| Studio ERP (DoorTuDoor) | `app/studio/(app)/*` | `dtdcargo.com/studio/*` | Supabase propio (DoorTuDoor) |
+| Studio ERP (DTD Cargo) | `app/studio/(app)/*` | `dtdcargo.com/studio/*` | Supabase propio |
 | Back de admin contenido | `app/back/*` | `dtdcargo.com/back/*` | Supabase compartido con Studio |
 | Operario mobile PWA | `app/m/cn/*` + `app/m/ve/*` | `dtdcargo.com/m/{cn,ve}` | Supabase + PIN auth custom |
 | Admin CBM (privado) | `app/admin/cbm-estudio/*` | `dtdcargo.com/admin/cbm-estudio` | Token URL único |

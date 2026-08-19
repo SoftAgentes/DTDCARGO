@@ -87,8 +87,8 @@ flowchart TD
 
 | Canal | Estado |
 |---|---|
-| **Instagram `@doortudoor_`** | 🟢 El más fuerte — 5.003 seguidores |
-| YouTube `@doortudoor` | 🔴 Abandonado — el plan de reactivación está en `redes.md` |
+| **Instagram `@dtdcargo.ve`** | 🟢 El más fuerte — 5.003 seguidores |
+| YouTube `@dtdcargo` | 🔴 Abandonado — el plan de reactivación está en `redes.md` |
 | WhatsApp CRM | **+58 412 166 8021** |
 | Fijo Valencia | **+58 241 414 7886** |
 | Correo | **info@dtdcargo.com** |

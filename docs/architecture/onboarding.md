@@ -17,7 +17,7 @@ confidencialidad: interno
 | Superficie | Qué es | Dónde | Backend |
 |---|---|---|---|
 | **Sitio público** | dtdcargo.com (marketing + tracking) | `app/{cotizar,track,contacto,calculadora,servicios,noticias,glosario}` + `components/` | HTTP al ERP externo · tracking lee un RPC anon de Supabase |
-| **Studio ERP** | operación interna "DoorTuDoor" | `app/studio/(app)/<modulo>/` | Supabase (`@/lib/db`) |
+| **Studio ERP** | operación interna "DTD Cargo" | `app/studio/(app)/<modulo>/` | Supabase (`@/lib/db`) |
 | **Móvil PWA** | apps de operario (almacén/camionero) | `app/m/{cn,ve,erp}/` | Supabase (reusa `lib/studio`) |
 | **Back** | CMS del contenido del sitio público | `app/back/(app)/` | Supabase (`lib/back/`) |
 

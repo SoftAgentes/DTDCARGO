@@ -54,7 +54,7 @@ Estructura tomada del *patrón* de OneWay (NO su copy ni sus imágenes — es co
   ya no es etiqueta visible en ningún lado).
 - Sin inventar precios, tiempos de tránsito ni SLA. Lo que no sé va como placeholder **«...»** para que
   el founder lo llene.
-- Marca: DTD Cargo. Sello de herencia: DoorTuDoor. BRAND.md manda en lo visual.
+- Marca: DTD Cargo (única — "DoorTuDoor" retirado 2026-08-19). BRAND.md manda en lo visual.
 
 ## Bloque de contacto (para el pie de cada infografía)
 

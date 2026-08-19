@@ -8,7 +8,7 @@
 - **Formato 9:16 vertical**, 30–90 s.
 - **Hook en los primeros 3 s** (si no enganchas ahí, no te ven).
 - **Subtítulos quemados** (la mayoría ve sin sonido).
-- **Marca visible** (logo DTD / handle `@doortudoor_`).
+- **Marca visible** (logo DTD / handle `@dtdcargo.ve`).
 - Presentador real hablando (la idea: alguien de DTD explicando el proceso).
 - **CTA fija de cierre** según el embudo (abajo). Cero menciones a otros operadores.
 
