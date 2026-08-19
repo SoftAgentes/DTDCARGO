@@ -1,21 +1,27 @@
 # Acuerdo de Servicios de Consolidación y Embarque / 拼箱与发货服务协议
 
-> **Ámbito:** INTERNO · contrato B2B entre DTDCARGO y el operador de consolidación en China.
+> **Ámbito:** INTERNO · contrato B2B entre DTD Cargo y el operador de consolidación en China.
+>
+> 🔴 **RAZÓN SOCIAL CORREGIDA 2026-08-19.** Este borrador nombraba como PARTE A a
+> **DoorTuDoor Trading C.A. / RIF J-50220185-8**, que es una entidad **MUERTA**. Firmarlo así
+> habría obligado a una empresa que ya no existe frente a un operador chino y una aseguradora.
+> Ahora dice la entidad viva: **INVERSIONES DTD SERVICES, C.A / RIF J-50648869-8**.
+> **En revisión con la abogada — no firmar hasta que ella lo valide.**
 > NO es de cara al cliente. Versión simple para firma, bilingüe español / 中文.
 > Original Word: `legal/DTDCARGO_Acuerdo_Operador_Consolidacion_ES_ZH.docx`.
 >
 > ⚠️ **Borrador de trabajo, no dictamen legal.** Completar los campos entre `[CORCHETES]`
 > (nombres legales, datos de registro, foro). Validar con un abogado en China antes de firmar.
 
-Entre **DoorTuDoor Trading C.A. (DTDCARGO, Venezuela)** y el operador de consolidación en China.
+Entre **INVERSIONES DTD SERVICES, C.A (marca DTD Cargo, Venezuela)** y el operador de consolidación en China.
 
 ---
 
 ## Partes / 协议双方
 
-**PARTE A (Cliente del servicio):** DoorTuDoor Trading C.A., sociedad mercantil que opera bajo la marca comercial DTDCARGO (DoorTuDoor), RIF J-50220185-8, domicilio en [ciudad], Venezuela, representada por [José Méndez].
+**PARTE A (Cliente del servicio):** INVERSIONES DTD SERVICES, C.A, sociedad mercantil que opera bajo la marca comercial DTD Cargo, RIF J-50648869-8, domicilio en Valencia, estado Carabobo, Venezuela, representada por [José Méndez].
 
-> 甲方（服务委托方）：DoorTuDoor Trading C.A.（以商号 DTDCARGO／DoorTuDoor 经营），税号（RIF）：J-50220185-8，[城市]，委内瑞拉，代表人：[José Méndez]。
+> 甲方（服务委托方）：INVERSIONES DTD SERVICES, C.A（以商号 DTD Cargo 经营），税号（RIF）：J-50648869-8，瓦伦西亚市，卡拉博州，委内瑞拉，代表人：[José Méndez]。
 
 **PARTE B (Operador de consolidación):** [nombre legal del operador], [datos de registro], representada por [____].
 
@@ -79,6 +85,6 @@ Este acuerdo se firma en español y chino. [Definir cuál versión prevalece en 
 
 ## Firmas / 签署
 
-**PARTE A / 甲方 — DoorTuDoor Trading C.A. (DTDCARGO):** ______________________  Fecha / 日期: ____________
+**PARTE A / 甲方 — INVERSIONES DTD SERVICES, C.A (DTD Cargo):** ______________________  Fecha / 日期: ____________
 
 **PARTE B / 乙方 — [operador de consolidación]:** ______________________  Fecha / 日期: ____________

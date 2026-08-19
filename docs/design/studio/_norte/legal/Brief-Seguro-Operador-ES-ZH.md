@@ -4,7 +4,10 @@
 > póliza de seguro de carga con aseguradoras en China. NO es de cara al cliente.
 > Bilingüe español / 中文. Original Word: `legal/DTDCARGO_Brief_Seguro_Operador_ES_ZH.docx`.
 
-DoorTuDoor Trading C.A. (marca DTDCARGO) — para negociar con aseguradoras en China.
+INVERSIONES DTD SERVICES, C.A (marca DTD Cargo), RIF J-50648869-8 — para negociar con aseguradoras en China.
+
+> 🔴 **Razón social corregida 2026-08-19:** decía "DoorTuDoor Trading C.A.", entidad **muerta**.
+> En revisión con la abogada.
 
 **Objetivo:** que el operador cotice y negocie una póliza de seguro de carga con aseguradoras chinas, para que DTD pueda ofrecer el seguro a sus clientes.
 
