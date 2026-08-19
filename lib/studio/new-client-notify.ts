@@ -9,7 +9,9 @@
  * Modelado sobre lib/studio/bug-email-notify.ts (SDD-0036 Fase 5):
  *   - Email a cada admin vía `sendEmail` (subject+html crudos, sin template → sin
  *     migración).
- *   - Telegram a cada admin que linkeó su cuenta (user_profiles.telegram_chat_id).
+ *   - Telegram por la categoría `registro` (SDD-0271): UNA vez por chat, al
+ *     destino configurado en Ajustes › Alertas de Telegram. Antes era uno por
+ *     admin, y como dos cuentas admin comparten chat, llegaba duplicado.
  *
  * Best-effort por canal: cada fallo se loguea a console.error pero NO rompe el
  * alta ni los otros canales. Se dispara SOLO en el alta self-service (el alta
@@ -18,7 +20,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendEmail } from "@/lib/studio/mail/send-email";
-import { sendTelegramMessage } from "@/lib/studio/telegram/send-message";
+import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 
@@ -41,8 +43,8 @@ export interface NewClientNotifyPayload {
 }
 
 /**
- * Avisa a los admins del tenant que entró un cliente nuevo. Best-effort, nunca
- * tira. Email siempre; Telegram solo a quien linkeó su chat.
+ * Avisa que entró un cliente nuevo. Best-effort, nunca tira. Email a cada admin;
+ * Telegram una sola vez por chat, al destino de la categoría `registro`.
  */
 export async function notifyNewClientToAdmin(
   supabaseAdmin: SupabaseClient,
@@ -78,10 +80,20 @@ export async function notifyNewClientToAdmin(
       if (!res.ok) {
         console.error("[new-client-notify] email falló:", res.error);
       }
-
-      // Telegram (skip silencioso si el admin no linkeó su chat).
-      await sendAdminTelegram(supabaseAdmin, admin.user_id, telegramText);
     }
+
+    // Telegram: UNA vez por CHAT, fuera del bucle de admins (SDD-0271).
+    // Adentro mandaba uno por PERSONA, y como dos cuentas admin de producción
+    // comparten el mismo telegram_chat_id, el alta llegaba dos veces al mismo
+    // hilo. El correo sí sigue saliendo uno por admin: ahí los destinatarios
+    // son distintos de verdad.
+    await dispatchTelegramAlert(
+      supabaseAdmin,
+      tenantId,
+      "registro",
+      telegramText,
+      { logTag: "new-client-notify" },
+    );
   } catch (err) {
     console.error("[new-client-notify] notifyNewClientToAdmin falló:", err);
   }
@@ -114,27 +126,10 @@ export async function resolveAdminEntries(
     .map((u) => ({ user_id: u.id, email: u.email as string }));
 }
 
-/** Telegram a un admin si linkeó su chat. Best-effort, nunca tira. Exportado:
- *  lo reusa contact-lead-notify. */
-export async function sendAdminTelegram(
-  supabaseAdmin: SupabaseClient,
-  userId: string,
-  text: string,
-): Promise<void> {
-  try {
-    const { data: profile } = await supabaseAdmin
-      .from("user_profiles")
-      .select("telegram_chat_id")
-      .eq("user_id", userId)
-      .maybeSingle<{ telegram_chat_id: string | null }>();
-    const chatId = profile?.telegram_chat_id;
-    if (!chatId) return;
-    const res = await sendTelegramMessage(chatId, text);
-    if (!res.ok) console.error("[new-client-notify] telegram falló:", res.error);
-  } catch (err) {
-    console.error("[new-client-notify] sendAdminTelegram falló:", err);
-  }
-}
+// `sendAdminTelegram` vivía acá y mandaba un Telegram por PERSONA. Lo borró
+// SDD-0271: ese bucle era el duplicado (dos cuentas admin, un solo chat). Su
+// reemplazo es `dispatchTelegramAlert`, que resuelve por CHAT ÚNICO —
+// lib/studio/telegram/alert-routing.ts.
 
 type Derived = { clientUrl: string; ubicacion: string; contacto: string };
 

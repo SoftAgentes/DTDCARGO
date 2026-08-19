@@ -5,8 +5,10 @@
  * El secret se pasa por query param (Telegram no soporta headers custom)
  * y se compara contra TELEGRAM_WEBHOOK_SECRET.
  *
- * Updates esperados (MVP):
- *   - /start {linkCode}   → matchea telegram_link_code, setea chat_id
+ * Updates esperados:
+ *   - /start {linkCode}   → matchea `user_profiles.telegram_link_code` (una
+ *                           CUENTA) y si no, `telegram_destinations.link_code`
+ *                           (un DESTINO de alertas, SDD-0271). Setea chat_id.
  *
  * Otros mensajes se ignoran. No respondemos a comandos no esperados
  * para mantener el bot minimal.
@@ -74,6 +76,27 @@ export async function POST(req: Request) {
     .maybeSingle<{ user_id: string }>();
 
   if (lookupErr || !profile) {
+    // SDD-0271 · el mismo `/start <código>` enlaza también un DESTINO de
+    // alertas (Ajustes › Alertas de Telegram), que no cuelga de ningún usuario:
+    // es un chat con nombre propio al que se rutean categorías de aviso. Un
+    // chat_id no se puede derivar de un número de teléfono — el bot sólo lo
+    // aprende cuando esa cuenta le escribe. Este es ese momento.
+    const linked = await linkAlertDestination(admin, linkCode, chatId, username);
+    if (linked.ok) {
+      await sendTelegramMessage(
+        chatId,
+        `Listo · este chat quedó enlazado como destino de alertas "${linked.label}" de DTD Cargo.`,
+      );
+      return NextResponse.json({ ok: true, linkedDestination: linked.id });
+    }
+    if (linked.reason === "duplicate") {
+      await sendTelegramMessage(
+        chatId,
+        "Este chat ya está enlazado como destino de alertas. No hace falta enlazarlo de nuevo.",
+      );
+      return NextResponse.json({ ok: true, ignored: "destination duplicate" });
+    }
+
     await sendTelegramMessage(
       chatId,
       "Código inválido o expirado. Genera uno nuevo desde Preferencias en DTD Studio.",
@@ -111,6 +134,54 @@ export async function POST(req: Request) {
   );
 
   return NextResponse.json({ ok: true, linked: profile.user_id });
+}
+
+/**
+ * Enlaza un DESTINO de alertas (`telegram_destinations`, SDD-0271) con el chat
+ * que mandó el `/start <código>`. Devuelve `{ok:false, reason}` en vez de tirar:
+ * el webhook tiene que responder 200 a Telegram pase lo que pase, o Telegram
+ * reintenta el update en bucle.
+ *
+ * `reason: "duplicate"` = el chat ya es otro destino del mismo tenant (lo frena
+ * el índice único `telegram_destinations_chat_uq`). No es un error del usuario y
+ * merece un mensaje propio: repetir "código inválido" ahí despistaría.
+ */
+async function linkAlertDestination(
+  admin: ReturnType<typeof createAdminClient>,
+  linkCode: string,
+  chatId: string,
+  username: string | null,
+): Promise<
+  | { ok: true; id: string; label: string }
+  | { ok: false; reason: "not-found" | "duplicate" | "error" }
+> {
+  const { data: dest } = await admin
+    .from("telegram_destinations")
+    .select("id, label")
+    .eq("link_code", linkCode)
+    .maybeSingle<{ id: string; label: string }>();
+
+  if (!dest) return { ok: false, reason: "not-found" };
+
+  const { error } = await admin
+    .from("telegram_destinations")
+    .update({
+      chat_id: chatId,
+      telegram_username: username,
+      linked_at: new Date().toISOString(),
+      link_code: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", dest.id);
+
+  if (error) {
+    // 23505 = unique_violation: ese chat ya es otro destino del tenant.
+    if (error.code === "23505") return { ok: false, reason: "duplicate" };
+    console.error("[telegram-webhook] enlace de destino falló:", error.message);
+    return { ok: false, reason: "error" };
+  }
+
+  return { ok: true, id: dest.id, label: dest.label };
 }
 
 // GET para sanity check del endpoint (útil setWebhook + curl)

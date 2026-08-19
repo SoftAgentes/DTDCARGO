@@ -24,7 +24,8 @@ import {
   buildAltaHealthMessage,
   listAltasSinAcceso,
 } from "@/lib/studio/alta-health";
-import { resolveAdminEntries, sendAdminTelegram } from "@/lib/studio/new-client-notify";
+import { resolveAdminEntries } from "@/lib/studio/new-client-notify";
+import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 
 export const dynamic = "force-dynamic";
@@ -76,11 +77,17 @@ export async function GET(req: NextRequest) {
 
     if (rotos.length > 0 && !dry) {
       const text = buildAltaHealthMessage(rotos, SITE_URL);
+
+      // Telegram primero: es el canal que no depende del correo, y este aviso
+      // convive con fallas de correo (ver mail-health). UNA vez por CHAT, fuera
+      // del bucle de admins (SDD-0271): adentro, dos cuentas admin con el mismo
+      // telegram_chat_id recibían el aviso dos veces.
+      await dispatchTelegramAlert(admin, t.id, "equipo", text, {
+        logTag: "alta-health",
+      });
+
       const admins = await resolveAdminEntries(admin, t.id);
       for (const a of admins) {
-        // Telegram primero: es el canal que no depende del correo, y este aviso
-        // convive con fallas de correo (ver mail-health).
-        await sendAdminTelegram(admin, a.user_id, text);
         await sendEmail(admin, t.id, {
           subject: `⚠️ ${rotos.length} cliente(s) sin acceso al portal · DTD Cargo`,
           html: `<pre style="font-family:Archivo,system-ui,sans-serif;font-size:14px;white-space:pre-wrap">${escapeHtml(text)}</pre>`,

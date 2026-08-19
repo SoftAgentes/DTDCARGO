@@ -5,7 +5,8 @@
  * respuesta. Avisa a los admins del tenant con el código + el detalle.
  *
  * Reusa los helpers de lib/studio/new-client-notify (resolveAdminEntries +
- * sendAdminTelegram + escapeHtml) — misma mecánica "avisar al equipo". Email vía
+ * escapeHtml) — misma mecánica "avisar al equipo"; el Telegram sale por la
+ * categoría `equipo` (SDD-0271), una vez por chat. Email vía
  * `sendEmail` (subject+html crudos, sin template → sin migración). Best-effort por
  * canal: cada fallo se loguea pero NO rompe el alta de la cotización.
  */
@@ -14,9 +15,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import {
   resolveAdminEntries,
-  sendAdminTelegram,
   escapeHtml,
 } from "@/lib/studio/new-client-notify";
+import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
 import { SERVICE_LABELS } from "@/lib/shared/shipment-public";
 import type { ShipmentService } from "@/lib/shared/shipment-public";
 
@@ -73,8 +74,12 @@ export async function notifyCotizacionRequestToAdmin(
       if (!res.ok) {
         console.error("[cotizacion-request-notify] email falló:", res.error);
       }
-      await sendAdminTelegram(supabaseAdmin, admin.user_id, telegramText);
     }
+
+    // Telegram: UNA vez por CHAT, fuera del bucle de admins (SDD-0271).
+    await dispatchTelegramAlert(supabaseAdmin, tenantId, "equipo", telegramText, {
+      logTag: "cotizacion-request-notify",
+    });
   } catch (err) {
     console.error(
       "[cotizacion-request-notify] notifyCotizacionRequestToAdmin falló:",

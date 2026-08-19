@@ -20,9 +20,9 @@ import { sendEmail } from "@/lib/studio/mail/send-email";
 import { CONTACT } from "@/lib/design-tokens";
 import {
   resolveAdminEntries,
-  sendAdminTelegram,
   escapeHtml,
 } from "@/lib/studio/new-client-notify";
+import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
 
 export interface EstimadoLeadPayload {
   prospectName: string;
@@ -77,10 +77,10 @@ export async function notifyEstimadoLeadToAdmin(
     else console.error("[estimado-lead-notify] email falló:", res.error);
   }
 
-  // Telegram a cada admin que linkeó su chat (best-effort, skip silencioso).
-  for (const a of admins) {
-    await sendAdminTelegram(supabaseAdmin, a.user_id, telegramText);
-  }
+  // Telegram: UNA vez por CHAT, no una por admin (SDD-0271).
+  await dispatchTelegramAlert(supabaseAdmin, tenantId, "equipo", telegramText, {
+    logTag: "estimado-lead-notify",
+  });
 
   return { ok: emailedOk };
 }

@@ -17,14 +17,15 @@
  * ya fue avisado por esta tanda → se omite.
  *
  * Calca el patrón de `payment-report-notify.ts` / `new-client-notify.ts`: reusa
- * `sendTelegramToUser` (per-usuario) + `resolveAdminEntries`/`sendAdminTelegram`
- * (broadcast). SIEMPRE con service_role. Best-effort: loguea pero NUNCA tira — un
+ * `dispatchTelegramAlert` (SDD-0271): el asesor asignado MÁS el chat de la
+ * categoría `conversaciones`, una sola vez por chat — si el asesor ES ese chat,
+ * no le llega dos veces. SIEMPRE con service_role. Best-effort: loguea pero NUNCA tira — un
  * fallo del aviso no debe romper el envío del mensaje del cliente.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { sendTelegramToUser } from "@/lib/studio/notify/send-user-telegram";
 import { resolveAdminEntries } from "@/lib/studio/new-client-notify";
+import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 
@@ -114,11 +115,15 @@ export async function notifyConversationInbound(
     ].join("\n");
 
     if (assignedTo) {
-      // Hilo asignado (o recién auto-asignado por advisor_id) → solo a ese agente,
-      // si no silenció el aviso del portal (TOGGLE).
-      if (await wantsPortalNotif(admin, assignedTo)) {
-        await sendTelegramToUser(admin, assignedTo, text);
-      }
+      // Hilo asignado (o recién auto-asignado por advisor_id) → a ese agente si
+      // no silenció el aviso del portal (TOGGLE), MÁS el chat de la categoría
+      // `conversaciones` (SDD-0271). Una sola vez por chat: si el asesor ES ese
+      // chat, no le llega dos veces.
+      await dispatchTelegramAlert(admin, conv.tenant_id, "conversaciones", text, {
+        alsoUserIds: (await wantsPortalNotif(admin, assignedTo)) ? [assignedTo] : [],
+        fallback: "none",
+        logTag: "conversacion-asignada",
+      });
     } else {
       // #2 Round-robin: sin asesor del cliente → asigna al ADMIN menos cargado
       // (menos conversaciones abiertas asignadas) y notifica SOLO a él. Reparte la
@@ -154,9 +159,11 @@ export async function notifyConversationInbound(
         .eq("id", args.conversationId)
         .is("assigned_to", null);
       // Se asigna igual; el Telegram respeta el TOGGLE del agente.
-      if (await wantsPortalNotif(admin, best)) {
-        await sendTelegramToUser(admin, best, text);
-      }
+      await dispatchTelegramAlert(admin, conv.tenant_id, "conversaciones", text, {
+        alsoUserIds: (await wantsPortalNotif(admin, best)) ? [best] : [],
+        fallback: "none",
+        logTag: "conversacion-round-robin",
+      });
     }
   } catch (err) {
     console.error("[conversation-inbound-notify] falló:", err);

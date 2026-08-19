@@ -1,7 +1,7 @@
 /**
  * SDD-0096 · Aviso al equipo cuando un PROVEEDOR envía su packing list online
  * desde /p/{token}. Modelado sobre contact-lead-notify (mismo "avisar al equipo
- * de un inbound"), reusando sus helpers (resolveAdminEntries / sendAdminTelegram
+ * de un inbound"), reusando sus helpers (resolveAdminEntries / escapeHtml
  * / escapeHtml):
  *   - Email a la casilla general (info@) + a cada admin del tenant (dedup).
  *   - Telegram a cada admin que linkeó su chat.
@@ -16,9 +16,9 @@ import { sendEmail } from "@/lib/studio/mail/send-email";
 import { CONTACT } from "@/lib/design-tokens";
 import {
   resolveAdminEntries,
-  sendAdminTelegram,
   escapeHtml,
 } from "@/lib/studio/new-client-notify";
+import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
 
 export interface PackingListNotifyPayload {
   /** Folio del documento (DTD-PL-YYYY-NNNN). */
@@ -74,9 +74,10 @@ export async function notifyPackingListToAdmin(
     else console.error("[packing-list-notify] email falló:", res.error);
   }
 
-  for (const a of admins) {
-    await sendAdminTelegram(supabaseAdmin, a.user_id, telegramText);
-  }
+  // Telegram: UNA vez por CHAT, no una por admin (SDD-0271).
+  await dispatchTelegramAlert(supabaseAdmin, tenantId, "equipo", telegramText, {
+    logTag: "packing-list-notify",
+  });
 
   return { ok: emailedOk };
 }

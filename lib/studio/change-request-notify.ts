@@ -11,7 +11,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { resolveAdminEntries, sendAdminTelegram } from "@/lib/studio/new-client-notify";
+import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
 import { sendTelegramToUser } from "@/lib/studio/notify/send-user-telegram";
 import { sendPushToUserDevices } from "@/lib/studio/notify/send-user-push";
 import type { ChangeRequestDiffRow } from "@/lib/portal/change-request-types";
@@ -56,10 +56,10 @@ export async function notifyChangeRequestToAdmin(
       }
     }
 
-    const admins = await resolveAdminEntries(supabaseAdmin, args.tenantId);
-    for (const admin of admins) {
-      await sendAdminTelegram(supabaseAdmin, admin.user_id, text);
-    }
+    // UNA vez por CHAT, no una por admin (SDD-0271).
+    await dispatchTelegramAlert(supabaseAdmin, args.tenantId, "equipo", text, {
+      logTag: "change-request-notify",
+    });
   } catch (err) {
     console.error("[change-request-notify] falló:", err);
   }
