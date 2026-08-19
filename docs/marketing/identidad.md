@@ -11,7 +11,6 @@
 | Dato | Valor |
 |---|---|
 | Marca comercial (pública) | **DTD Cargo** |
-| Sello de herencia | **DoorTuDoor** |
 | Nombre del ERP/Studio interno | **DTD Cargo** (decisión founder 2026-07-14) |
 | Razón social | **INVERSIONES DTD SERVICES, C.A** |
 | RIF / taxID | **J-50648869-8** |
@@ -24,13 +23,28 @@
 ## Convención de nombres (regla del founder)
 
 - **Público = "DTD Cargo"** (dos palabras; nunca "DTDCARGO").
-- **"DoorTuDoor"** = **sello de herencia** — ya **no** es el nombre del ERP (cambió 2026-07-14).
-  Sigue vivo en: `alternateName` del schema, el sello en `/brochure` y el dominio `doortudoor.com`
-  (301 → dtdcargo.com, no se toca). ⚠️ **El handle `@doortudoor_` YA NO** — las redes migraron a
-  `@dtdcargo.ve`/`@dtdcargo` (verificado 2026-08-04: `@doortudoor_` en Instagram da "Página no
-  encontrada"; `@doortudoor` en YouTube/TikTok redirige al canal pero el handle vigente es
-  `@dtdcargo`/`@dtdcargo.ve`). Este doc y `redes.md` quedaron desactualizados desde la migración —
-  no volver a citar `@doortudoor_` como vigente.
+- 🔴 **"DoorTuDoor" está RETIRADO del vocabulario de marca** (founder, 2026-08-19:
+  *"ya no existe esa palabra en nuestro vocabulario"*). **Deroga la política anterior**, que lo
+  mantenía como "sello de herencia" vivo en `alternateName`, el sello de `/brochure` y los alt/
+  caption de la galería. Ninguno de esos sigue en pie. **No se escribe en superficie alguna.**
+
+  Sobrevive **sólo en dos formas, y ninguna es texto de marca**:
+  1. **El dominio `doortudoor.com`** — es el 301 que transfiere la autoridad SEO a `dtdcargo.com`.
+     Regla dura: no se quita, no se deja expirar, no vuelve a servir contenido propio.
+  2. **La cuenta `doortudoorservices@gmail.com`** — una dirección de Gmail es inmutable, y esa
+     cuenta es dueña de la ficha de Maps verificada, de GA4 y de Ads. Es un login; su nombre
+     visible ya dice "DTD Cargo".
+
+  ⚠️ **Y hay un tercer sitio donde la palabra DEBE quedarse: los tests.**
+  `lib/studio/receipts/__tests__/receipt-template.test.ts`, `renditions.test.ts` y
+  `app/studio/(app)/etiquetas/__tests__/white-label.test.tsx` la usan en **aserciones negativas**
+  (`expect(...).not.toMatch(/doortudoor/i)`) y en un regex de detección. Son el candado que
+  impide que la razón social muerta reaparezca en un recibo: **borrar la palabra ahí desarma la
+  alarma.** Un `sed` global sobre el repo rompe 8 tests por esta vía.
+
+  ⚠️ **Los handles `@doortudoor_` / `@doortudoor` ya no existen** — las redes migraron a
+  `@dtdcargo.ve` / `@dtdcargo` (verificado 2026-08-04: `@doortudoor_` en Instagram da "Página no
+  encontrada"). No volver a citarlos como vigentes.
 - **ERP/Studio interno (`app/studio`) = "DTD Cargo"** — mismo nombre que la marca pública.
   ⚠️ No confundir con **"DoorTuDoor Trading" / J-50220185**: esa es otra razón social y sigue
   **prohibida** en recibos y rendiciones (regla absoluta del handoff legal).
@@ -47,7 +61,7 @@
 | Campo | Valor |
 |---|---|
 | Nombre (schema `name`) | DTD Cargo |
-| `alternateName` | DoorTuDoor · Doortudoor Services |
+| `alternateName` | *(vacío — retirado 2026-08-19)* |
 | Sede Venezuela | Torre Profesional Kokuy, Calle 151 (entre Av. Bolívar Norte y Av. Paseo Cabriales) — Valencia, Carabobo, VE · CP 2001 · GPS 10.220449, -68.008481 |
 | Bodega China | Yiwu Port Phase II, Warehouse 2, No. 2 (Cargo 7-11) — Yiwu, Zhejiang, CN |
 | Teléfono público primario | +58 412 166 8021 (CRM WhatsApp) |

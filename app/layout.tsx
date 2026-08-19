@@ -139,7 +139,6 @@ const jsonLd = {
       "@type": "LocalBusiness",
       "@id": ORG_ID,
       name: CONTACT.brandName,
-      alternateName: ["DoorTuDoor", "Doortudoor Services"],
       // Identidad legal real — solo en el schema, nunca en texto visible.
       legalName: CONTACT.legalEntity.legalName,
       taxID: CONTACT.legalEntity.taxID,

@@ -143,7 +143,7 @@ export default function BrochurePage() {
             VideoObject — sin esto el schema quedaba duplicado (inválido). */}
         <WorkBand noVideoSchema />
 
-        {/* 3c · El sello DoorTuDoor (fotos de marca en la operación) */}
+        {/* 3c · El sello de DTD Cargo (fotos de marca en la operación) */}
         <OperationGallery />
 
         {/* 4-5 · Los 15 servicios (héroe DDP + 4 grupos) */}

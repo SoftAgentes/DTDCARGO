@@ -2,7 +2,7 @@ import { LazyVideo } from "./LazyVideo";
 
 /**
  * Banda "Operación real · Yiwu" — clip mudo en loop del equipo cargando un
- * contenedor en China, con la marca DTD/DoorTuDoor visible (camisetas, stickers
+ * contenedor en China, con la marca DTD Cargo visible (camisetas, stickers
  * en cajas, shipping marks). Prueba del diferenciador "equipo y bodega propios".
  * Va después de <YiwuAdvantage />. Server component (video HTML nativo).
  *

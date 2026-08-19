@@ -43,21 +43,21 @@ const videoJsonLd = {
 const PHOTOS = [
   {
     src: "/fotos/carga-contenedor-precinto-doortudoor-dtd-cargo-puerta-a-puerta-china-venezuela.jpg",
-    alt: "Carga consolidada en el contenedor con el precinto DoorTuDoor de DTD Cargo en Yiwu, China — envío puerta a puerta a Venezuela",
+    alt: "Carga consolidada en el contenedor con el precinto de DTD Cargo en Yiwu, China — envío puerta a puerta a Venezuela",
     caption: "Carga precintada por DTD Cargo · Yiwu, China",
   },
   {
     src: "/fotos/precinto-doortudoor-contenedor-dtd-cargo-puerta-a-puerta-china-venezuela.jpg",
-    alt: "Precinto DoorTuDoor de DTD Cargo en la puerta del contenedor — carga puerta a puerta de China a Venezuela",
-    caption: "El sello DoorTuDoor en cada contenedor",
+    alt: "Precinto de DTD Cargo en la puerta del contenedor — carga puerta a puerta de China a Venezuela",
+    caption: "El sello de DTD Cargo en cada contenedor",
   },
 ];
 
 const CLIPS = [
   {
     base: "/videos/cinta-embalaje-doortudoor-dtd-cargo-puerta-a-puerta-china-venezuela",
-    alt: "Cajas selladas con la cinta de embalaje DoorTuDoor de DTD Cargo en la bodega de China — carga puerta a puerta a Venezuela",
-    caption: "Cinta DoorTuDoor en cada bulto",
+    alt: "Cajas selladas con la cinta de embalaje de DTD Cargo en la bodega de China — carga puerta a puerta a Venezuela",
+    caption: "Cinta de DTD Cargo en cada bulto",
   },
   {
     base: "/videos/shipping-mark-dtd-pallets-dtd-cargo-puerta-a-puerta-china-venezuela",
@@ -100,7 +100,7 @@ export function OperationGallery() {
           </figcaption>
         </figure>
 
-        {/* Evidencia de apoyo: el sello DoorTuDoor (fotos del precinto) */}
+        {/* Evidencia de apoyo: el sello de DTD Cargo (fotos del precinto) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-10">
           {PHOTOS.map((p) => (
             <figure key={p.src} className="m-0">

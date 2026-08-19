@@ -159,7 +159,7 @@ export function buildGoogleMapsLink(fullAddress: string): string {
 
 export const CONTACT = {
   // String de marca para el footer (NO es la razón social legal)
-  legalName: "DTD Cargo · DoorTuDoor Services",
+  legalName: "DTD Cargo",
   // Nombre público limpio para schema.org (name / knowledge graph)
   brandName: "DTD Cargo",
   /**

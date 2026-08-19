@@ -1,4 +1,4 @@
-# DTD Cargo (DoorTuDoor)
+# DTD Cargo
 
 > Agente de carga (freight forwarder) puerta a puerta entre China y Venezuela,
 > fundado en 2015 y con experiencia en el comercio con China desde 2008.
