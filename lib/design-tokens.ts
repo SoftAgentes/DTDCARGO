@@ -213,7 +213,7 @@ export const CONTACT = {
      * muerta del Norte (ver docs/marketing/identidad.md § "Dirección VE").
      *
      * El edificio se llama "Torre Profesional Kokuy" — confirmado por el founder
-     * 2026-08-18. "Edificio Kokuy" (a secas) era el nombre incompleto que usó el
+     * 2026-08-19. "Edificio Kokuy" (a secas) era el nombre incompleto que usó el
      * repo hasta esa fecha y NO coincidía con el que Google tiene indexado, lo
      * que rompía la consistencia NAP entre el sitio y la ficha de Maps.
      */
@@ -225,7 +225,7 @@ export const CONTACT = {
 
     /**
      * 🔴 OJO: esta coordenada NO está verificada contra el edificio — se copió
-     * del pin que Google tenía para la ficha (medido 2026-08-18: están a 36 cm).
+     * del pin que Google tenía para la ficha (medido 2026-08-19: están a 36 cm).
      * No es una segunda fuente que confirma, es un eco. Y ese pin está corrido:
      * cae en el Plus Code 6XCR+5JC, mientras el edificio está en 6XCR+5HQ (~4 m).
      *

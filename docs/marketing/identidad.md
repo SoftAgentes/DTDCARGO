@@ -60,7 +60,7 @@ schema. Esta tabla es la referencia canónica para mantener la consistencia entr
 ### Dirección VE — una sola, y las variantes muertas
 
 **Canónica (founder 2026-07-11, reconfirmada 2026-07-30; nombre del edificio corregido
-2026-08-18):** `Torre Profesional Kokuy, Calle 151 (entre Av. Bolívar Norte y Av. Paseo
+2026-08-19):** `Torre Profesional Kokuy, Calle 151 (entre Av. Bolívar Norte y Av. Paseo
 Cabriales) — Valencia, Carabobo, VE`. **La entrada da únicamente a Calle 151**; Av. Bolívar
 Norte es referencia cruzada, **no la dirección, y no lleva número de puerta**. CP **2001**
 (Valencia; el 5001 es San Cristóbal/Táchira).
@@ -73,7 +73,7 @@ Estas tres variantes circularon y son **incorrectas — reemplazar donde aparezc
 | Variante muerta | Por qué está mal | Dónde sobrevive |
 |---|---|---|
 | `Edificio Kokuy, Av. Bolívar Norte — Valencia, Carabobo` | le falta la calle real (Calle 151) | Brand Book v4.6 (`_norte/` + `private/marca/`), `docs/specs/0001-mvp-public-web/spec.md` |
-| `Edificio Kokuy` (a secas, sin "Torre Profesional") | nombre **incompleto** del edificio: no es como se llama ni como Google lo tiene indexado, así que el NAP del sitio no casaba con el de la ficha | fue el valor del repo hasta 2026-08-18 (`lib/design-tokens.ts`, `public/llms.txt`); sigue vivo en `docs/legal/casos/` (histórico: cita textual de un cliente, **no se reescribe**) y en `docs/specs/0001-mvp-public-web/spec.md` |
+| `Edificio Kokuy` (a secas, sin "Torre Profesional") | nombre **incompleto** del edificio: no es como se llama ni como Google lo tiene indexado, así que el NAP del sitio no casaba con el de la ficha | fue el valor del repo hasta 2026-08-19 (`lib/design-tokens.ts`, `public/llms.txt`); sigue vivo en `docs/legal/casos/` (histórico: cita textual de un cliente, **no se reescribe**) y en `docs/specs/0001-mvp-public-web/spec.md` |
 | `Av. Bolívar Norte 14, Valencia` | el **"14" no existe** — confirmado por el founder 2026-07-30; además pierde "Edificio Kokuy" y la calle | piezas del Norte: `Aplicaciones de Marca.html`, `Ficha 3D · Aviso de Fachada`, `_norte/CLAUDE.md`, `design_handoff_mobile_app/CLAUDE.md`, `handoff-enlaces/HANDOFF.md`, `SYNC-NORTE-2026-06-14.md` |
 
 ⚠️ La variante del "14" está en **colateral que se imprime** (membrete A4, credencial CR-80,
@@ -83,7 +83,7 @@ contra esta sección.
 El material del Norte es **read-only** (se reemplaza en el próximo NORTE-SYNC): la corrección se
 sube a Cloud Design, no se parcha acá.
 
-### La ficha de Google Maps — medido 2026-08-18
+### La ficha de Google Maps — medido 2026-08-19
 
 La ficha **`DTD Cargo services`** (`0x8e805d8921ef9f17:0x534069318a455204` · `/g/11r9w2fzdb`)
 está mal en tres cosas a la vez, y **las tres son el mismo bug de fondo: la ficha no tiene

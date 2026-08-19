@@ -18,8 +18,8 @@ antes y arrastra los nombres de entonces.
 | Dónde | Nombre que tiene hoy | Debería | Fuente / fecha |
 |---|---|---|---|
 | Cuenta de Google (login) | `doortudoorservices@gmail.com` | *(no se puede renombrar — ver §2)* | `README.md` L85 |
-| Administrador de Negocio / Merchant Center | **Doortudoor Trading, C.A** | razón social viva | captura del founder 2026-08-18 |
-| Ficha de Maps | **DTD Cargo services** (*s* minúscula) | **DTD Cargo** | URL de Maps 2026-08-18 |
+| Administrador de Negocio / Merchant Center | **Doortudoor Trading, C.A** | razón social viva | captura del founder 2026-08-19 |
+| Ficha de Maps | **DTD Cargo services** (*s* minúscula) | **DTD Cargo** | URL de Maps 2026-08-19 |
 | Cuenta Google Ads | **Dooortudoor services** (ocid `579348138`) ⚠️ con tres "o" | **DTD Cargo** | `README.md` L50 |
 | Campaña Ads | **DoorTuDoor Trafico** | interno, no lo ve el cliente | `README.md` L51 |
 | GA4 — cuenta activa | DTD Cargo (`396905128`) ✅ | ya está bien | `README.md` L60 |
@@ -44,12 +44,17 @@ Hay dos caminos, y no cuestan lo mismo:
 | Tiempo | una tarde | semanas, con ventanas de re-verificación |
 | Qué ve el cliente | **lo mismo en ambos casos** | idem |
 
-**Recomendación: renombrar.** El correo de login **no lo ve ningún cliente** — lo que ven es el
+✅ **DECIDIDO POR EL FOUNDER (2026-08-19): se renombra, no se migra.** El correo de login **no lo ve ningún cliente** — lo que ven es el
 nombre del perfil, el de la ficha y el remitente. Migrar mueve mucho riesgo a cambio de un dato
 que nadie externo mira. Si algún día se hace, que sea con las verificaciones ya estables, nunca
 en el mismo movimiento que se arregla la ficha.
 
 ## 3. Fase 1 — Configuración de Google *(en curso)*
+
+> 🔴 **Esta fase es del founder, entera.** Ningún agente tiene acceso a las consolas de
+> Google — ni a la cuenta, ni al Perfil de Empresa, ni a Merchant Center, ni a Ads. Lo que sí
+> se hace desde el repo es todo lo de la Fase 2 hacia abajo (traer la coordenada, el NAP, los
+> docs). Si un agente dice que "ya renombró" algo de esta lista, está inventando.
 
 Orden pensado para que ningún paso deshaga al anterior.
 
@@ -90,7 +95,7 @@ antes, Google re-geocodifica contra un domicilio que no existe y deshace el arra
 - [ ] Copiar el **Plus Code** que quede y traerlo al repo → `CONTACT.ve.geo` en `lib/design-tokens.ts`.
 - [ ] Actualizar la tabla de [`identidad.md`](identidad.md) con la coordenada nueva.
 
-**Estado medido 2026-08-18:** el pin está en `6XCR+5JC`; el edificio está en `6XCR+5HQ` (~4 m).
+**Estado medido 2026-08-19:** el pin está en `6XCR+5JC`; el edificio está en `6XCR+5HQ` (~4 m).
 La coordenada del repo está a 36 cm del pin **porque se copió de ahí** — es un eco, no una
 verificación.
 
@@ -110,7 +115,7 @@ El resto del SEO on-site vive en [`seo.md`](seo.md); la reestructura de Ads en
 
 ## 6. Lo que ya está hecho
 
-- ✅ **NAP del sitio corregido** (commit `8eae702f`, 2026-08-18): el edificio es **Torre
+- ✅ **NAP del sitio corregido** (commit `8eae702f`, 2026-08-19): el edificio es **Torre
   Profesional Kokuy**, no "Edificio Kokuy". Antes el sitio y la ficha nombraban el mismo local
   de dos formas distintas — inconsistencia NAP, que es señal negativa de SEO local por sí sola.
 - ✅ **Diagnóstico de la ficha medido**, no supuesto: los 3 síntomas (dirección, CP, pin) son un
