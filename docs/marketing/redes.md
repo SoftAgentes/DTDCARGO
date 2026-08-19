@@ -41,11 +41,15 @@ whatsapp: +584121668021
 #China #importacion #Venezuela #follow #DTD
 ```
 
-⏳ **Quedan tres cosas menores:**
-1. El título del privado duplicado (81 vistas) — y conviene decidir si ese duplicado se borra.
-2. `SOMOS DTD Cargo` (20 vistas, público): *"con más de **mas de** una decada"* — repetición y errata.
-3. `¡Sin límites al importar!` (privado, **1.708 vistas**) publica `vzla@dtdcargo.com`, que es el
-   buzón interno y no el alias público. Si alguna vez se publica, saldría con la dirección mala.
+✅ `SOMOS DTD Cargo` y `¡Sin límites al importar!` corregidos también: el primero cambió la errata
+*"con más de mas de una decada"* por la fórmula canónica de años, y el segundo dejó de publicar
+`vzla@dtdcargo.com` (buzón interno) en favor de `info@dtdcargo.com`.
+
+⏳ **Pendiente único:** el video **privado duplicado** `¡Próxima salida 30 de mayo! – DoorTuDoor`
+(81 vistas, id `1LSmEsPthdY`) — es copia del que ya está publicado y corregido (`Xwg9IKqucTY`).
+**Lo borra el founder:** eliminar un video de YouTube es permanente y sin papelera, así que no
+lo hace un agente. Alternativa no destructiva si se prefiere conservarlo: cambiarle el título,
+que ya está en privado y no lo ve nadie.
 
 ### 📜 Cómo estaba antes — YouTube no estaba muerto, estaba desviando tráfico
 
