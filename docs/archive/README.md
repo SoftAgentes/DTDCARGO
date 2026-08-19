@@ -1,5 +1,11 @@
 # Archivo de conversaciones
 
+> ⚠️ **Estos documentos son HISTÓRICOS: no se reescriben.** Contienen la marca
+> **"DoorTuDoor"**, retirada del vocabulario el 2026-08-19
+> (ver [`docs/marketing/identidad.md`](../marketing/identidad.md)). Son transcripciones
+> de lo que se dijo en su momento — corregirlas falsearía el registro. Si un barrido
+> de marca las reporta, la respuesta correcta es **omitirlas**, no limpiarlas.
+
 Transcripciones de sesiones de Claude Code rescatadas de los JSONL en
 `~/.claude/projects/C--Users-Trabajo-Desktop-DTDCargo/`.
 

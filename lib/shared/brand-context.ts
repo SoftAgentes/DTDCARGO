@@ -67,11 +67,19 @@ export type AliadoBrandRow = {
 /**
  * La marca de la casa. Es el fallback y el único camino que hoy corre en prod.
  *
- * ⚠️ `legalName` es `CONTACT.brandName`, NO `CONTACT.legalName`. El segundo vale
- * "DTD Cargo · DoorTuDoor Services" y filtra el sello heredado al pie del
- * comprobante de todos los clientes — el patrón exacto del caso Greaves, ya
- * activo hoy sin aliados de por medio. La razón social real va sólo en el
- * schema.org (`CONTACT.legal.legalName`), nunca en texto visible.
+ * ⚠️ `legalName` es `CONTACT.brandName`, NO `CONTACT.legalName`, y la distinción
+ * se mantiene a propósito aunque hoy los dos valgan lo mismo.
+ *
+ * Por qué: hasta el 2026-08-19 `CONTACT.legalName` valía "DTD Cargo · DoorTuDoor
+ * Services", y usarlo acá filtraba el sello heredado al pie del comprobante de
+ * TODOS los clientes — el patrón exacto del caso Greaves, y ya activo sin
+ * aliados de por medio. Ese string se limpió al retirar la marca vieja, así que
+ * el síntoma concreto desapareció, pero el riesgo NO: `legalName` es el campo
+ * que puede volver a cargarse con un sello, y este es el pie de un documento
+ * que ve el cliente final. Se sigue leyendo `brandName`.
+ *
+ * La razón social real va sólo en el schema.org (`CONTACT.legal.legalName`),
+ * nunca en texto visible.
  */
 export const DTD_BRAND: BrandContext = {
   kind: "dtd",
