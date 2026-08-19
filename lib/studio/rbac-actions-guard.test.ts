@@ -41,6 +41,8 @@ const ALLOWLIST: Record<string, string> = {
   "admin/feature-flags/actions.ts": "toggleFeatureFlag valida role==='admin' inline.",
   "admin/notificaciones/actions.ts":
     "SDD-0156: requireAdmin() valida role==='admin' inline antes de cada mutación; config admin-only, RLS por tenant en client_notification_rules.",
+  "admin/alertas-telegram/actions.ts":
+    "SDD-0271: requireAdmin() valida role==='admin' inline en las 4 mutaciones, y es MÁS estricto que moduleEditDenial('admin'), que resuelve por la matriz y admite overrides por rol (SDD-0252). Acá se decide a qué chat de Telegram llegan los avisos internos: un override no debería poder abrirlo. RLS admin-only por tenant en telegram_destinations / telegram_alert_routes (migr 0386).",
   "dashboard/actions.ts":
     "SDD-0114: cada usuario edita SU PROPIA config de dashboard (fila user_dashboard_prefs, RLS por dueño). No muta datos de negocio ni de otros usuarios; además la action filtra los ids con canAccessModule antes de persistir.",
   "ordenes-compra/actions.ts": "Barrel: las actions con guard viven en lib/studio/purchase-orders/actions.ts.",

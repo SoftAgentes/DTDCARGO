@@ -118,7 +118,12 @@ sólo admin del tenant, más `service_role` para los envíos del servidor.
 ## 4. Superficie tocada
 
 - **Nuevo** · `lib/studio/telegram/alert-routing.ts` — el despachador y el resolvedor.
-- **Nuevo** · `app/studio/(app)/ajustes/` — pantalla de destinos y matriz de categorías.
+- **Nuevo** · `app/studio/(app)/admin/alertas-telegram/` — pantalla de destinos y
+  matriz de categorías, con su tarjeta en el hub de Administración.
+  ⚠️ No confundir con `admin/notificaciones` (SDD-0156): esa configura los avisos
+  AL CLIENTE del viaje China→VE; ésta, los avisos AL EQUIPO. Audiencias distintas.
+  Vivió un rato en `/studio/ajustes`, que es un placeholder MVP-0 al que **no
+  enlaza nadie** — o sea que sólo se llegaba tecleando la URL.
 - **Cambia** · `app/api/telegram/webhook/route.ts` — `/start <código>` también enlaza destinos.
 - **Cambia** · los diez módulos de aviso: el bucle `sendAdminTelegram` por admin pasa a un solo `dispatchTelegramAlert` por categoría. El **correo no se toca** — sigue saliendo uno por admin.
 

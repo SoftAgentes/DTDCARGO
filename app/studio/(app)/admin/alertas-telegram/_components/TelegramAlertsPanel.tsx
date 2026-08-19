@@ -1,7 +1,8 @@
 "use client";
 
 /**
- * Ajustes › Alertas de Telegram (SDD-0271).
+ * Administración › Alertas de Telegram (SDD-0271). El título lo pone la page;
+ * acá vive la matriz destino x categoría.
  *
  * Una matriz destino × categoría. La pantalla existe para responder dos
  * preguntas de un vistazo:
@@ -79,13 +80,7 @@ export function TelegramAlertsPanel({
   }
 
   return (
-    <section style={{ marginBottom: 40 }}>
-      <h2
-        className="studio-display"
-        style={{ fontSize: 20, margin: "0 0 4px", color: "var(--ink)" }}
-      >
-        Alertas de Telegram.
-      </h2>
+    <section>
       <p
         style={{
           font: "400 14px/1.6 var(--f-sans)",

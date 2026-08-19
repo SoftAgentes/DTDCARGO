@@ -1,15 +1,15 @@
 "use server";
 
 /**
- * Server actions de Ajustes › Alertas de Telegram (SDD-0271).
+ * Server actions de Administración › Alertas de Telegram (SDD-0271).
  *
  * Patrón del Studio: "use server" + parsing manual de FormData + validación
  * propia (sin Zod) + revalidatePath. Todas exigen rol `admin`: es el mismo
  * gate que la RLS de la migr 0386, acá para que la UI no sea la única barrera.
  *
- * `ajustes` no está en la matriz RBAC por módulo (no es un módulo registrado,
- * es la pantalla de configuración del tenant), por eso el guard va por rol
- * directo en vez de `moduleEditDenial`.
+ * El gate de navegación es el `layout.tsx` (requireModuleView("admin")); acá se
+ * revalida por ROL porque una pantalla escondida no es una barrera: estas
+ * actions son endpoints y hay que poder llamarlas directo y que rebote.
  */
 
 import { revalidatePath } from "next/cache";
@@ -21,7 +21,7 @@ import {
   type TelegramAlertCategory,
 } from "@/lib/studio/telegram/alert-routing";
 
-const AJUSTES_PATH = "/studio/ajustes";
+const ALERTAS_PATH = "/studio/admin/alertas-telegram";
 
 type StudioClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -86,7 +86,7 @@ export async function createTelegramDestinationAction(
       link_code: linkCode,
     });
     if (!error) {
-      revalidatePath(AJUSTES_PATH);
+      revalidatePath(ALERTAS_PATH);
       return { ok: true, linkCode };
     }
     if (error.code !== "23505") {
@@ -127,7 +127,7 @@ export async function regenerateTelegramLinkCodeAction(
       .eq("id", destinationId)
       .eq("tenant_id", guard.tenantId);
     if (!error) {
-      revalidatePath(AJUSTES_PATH);
+      revalidatePath(ALERTAS_PATH);
       return { ok: true, linkCode };
     }
     if (error.code !== "23505") {
@@ -183,7 +183,7 @@ export async function toggleTelegramRouteAction(
     }
   }
 
-  revalidatePath(AJUSTES_PATH);
+  revalidatePath(ALERTAS_PATH);
   return { ok: true };
 }
 
@@ -213,6 +213,6 @@ export async function deleteTelegramDestinationAction(
     return { error: "No se pudo borrar el destino." };
   }
 
-  revalidatePath(AJUSTES_PATH);
+  revalidatePath(ALERTAS_PATH);
   return { ok: true };
 }
