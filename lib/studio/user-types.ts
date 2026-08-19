@@ -165,7 +165,8 @@ export interface UserActionState {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function isValidEmail(s: string): boolean {
+/** Exportada desde SDD-0272: la reusa `changeMemberEmailAction`. */
+export function isValidEmail(s: string): boolean {
   return EMAIL_RE.test(s.trim());
 }
 

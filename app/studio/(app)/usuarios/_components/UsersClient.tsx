@@ -58,7 +58,11 @@ const TONE_FG: Record<string, string> = {
 export function UsersClient({ members, invitations, currentUserId }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   // Ficha de la persona: null = cerrada (SDD-0250).
-  const [detailMember, setDetailMember] = useState<UserMembershipWithProfile | null>(null);
+  // Se guarda el ID, no el objeto (SDD-0272): así, cuando una acción de la
+  // ficha llama a `revalidatePath`, el drawer se redibuja con la fila FRESCA.
+  // Guardando el objeto se quedaba mostrando el snapshot de cuando se abrió —
+  // se notaba al cambiar el correo, que seguía apareciendo el anterior.
+  const [detailUserId, setDetailUserId] = useState<string | null>(null);
   const [permsModalOpen, setPermsModalOpen] = useState(false);
   const [showInvitations, setShowInvitations] = useState(false);
   const [roleFilter, setRoleFilter] = useState<StudioUserRole | "all">("all");
@@ -89,6 +93,12 @@ export function UsersClient({ members, invitations, currentUserId }: Props) {
   );
 
   // Filtro client-side (volúmenes < 200 usuarios por tenant V1)
+  // La fila viva que corresponde al drawer abierto. Se busca en `members`
+  // (sin filtrar) para que cambiar un filtro no cierre la ficha.
+  const detailMember = detailUserId
+    ? (members.find((m) => m.user_id === detailUserId) ?? null)
+    : null;
+
   const filteredMembers = members.filter((m) => {
     if (roleFilter !== "all" && m.role !== roleFilter) return false;
     if (statusFilter === "active" && m.disabled_at) return false;
@@ -214,7 +224,7 @@ export function UsersClient({ members, invitations, currentUserId }: Props) {
       <MembersTable
         members={filteredMembers}
         currentUserId={currentUserId}
-        onOpenDetail={setDetailMember}
+        onOpenDetail={(m) => setDetailUserId(m.user_id)}
       />
 
       {/* Ficha de la persona (SDD-0250). Overlay encima, como en el Norte:
@@ -222,7 +232,8 @@ export function UsersClient({ members, invitations, currentUserId }: Props) {
       {detailMember && (
         <UserDetailDrawer
           member={detailMember}
-          onClose={() => setDetailMember(null)}
+          esYo={detailMember.user_id === currentUserId}
+          onClose={() => setDetailUserId(null)}
         />
       )}
 

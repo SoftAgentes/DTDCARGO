@@ -35,6 +35,7 @@ import {
   type UserMembershipWithProfile,
 } from "@/lib/studio/user-types";
 import {
+  changeMemberEmailAction,
   disableUserAction,
   enableUserAction,
   sendAccessLinkAction,
@@ -45,9 +46,12 @@ const INICIAL: UserActionState = {};
 
 export function UserDetailDrawer({
   member,
+  esYo,
   onClose,
 }: {
   member: UserMembershipWithProfile;
+  /** El admin se está mirando a sí mismo — cambia el aviso del correo. */
+  esYo?: boolean;
   onClose: () => void;
 }) {
   const [perfilState, perfilAction, perfilPending] = useActionState(
@@ -66,17 +70,27 @@ export function UserDetailDrawer({
     enableUserAction,
     INICIAL,
   );
+  const [correoState, correoAction, correoPending] = useActionState(
+    changeMemberEmailAction,
+    INICIAL,
+  );
   const [copiado, setCopiado] = useState(false);
+  const [editandoCorreo, setEditandoCorreo] = useState(false);
 
   const estado = memberStatus(member);
   const activo = estado === "active";
   const pendiente =
-    perfilPending || accesoPending || disablePending || enablePending;
+    perfilPending ||
+    accesoPending ||
+    disablePending ||
+    enablePending ||
+    correoPending;
   const error =
     perfilState.error ||
     accesoState.error ||
     disableState.error ||
-    enableState.error;
+    enableState.error ||
+    correoState.error;
   const nuncaEntro = !member.last_login_at;
   const scope = member.warehouse_scope ?? "all";
 
@@ -100,7 +114,146 @@ export function UserDetailDrawer({
       >
         {/* ── Acceso ─────────────────────────────────────────── */}
         <Seccion titulo="Acceso">
-          <Dato etiqueta="Correo" valor={member.email} mono />
+          {/* Correo · editable (SDD-0272). Va detrás de un gesto explícito y
+              no suelto entre los datos, porque guardarlo REVOCA los enlaces de
+              acceso y las invitaciones vigentes del buzón anterior. */}
+          <div
+            style={{
+              padding: "var(--s-2) 0",
+              borderBottom: "1px solid var(--border)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: "var(--s-3)",
+              }}
+            >
+              <span
+                style={{
+                  font: "400 12.5px/1.4 var(--f-sans)",
+                  color: "var(--ink-soft)",
+                }}
+              >
+                Correo
+              </span>
+              <span
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "var(--s-2)",
+                }}
+              >
+                <span
+                  style={{
+                    font: "500 12.5px/1.4 var(--f-mono)",
+                    color: "var(--ink)",
+                    textAlign: "right",
+                    wordBreak: "break-all",
+                  }}
+                >
+                  {member.email}
+                </span>
+                <button
+                  type="button"
+                  className="studio-btn studio-btn-ghost studio-btn-xs"
+                  disabled={pendiente}
+                  aria-expanded={editandoCorreo}
+                  onClick={() => setEditandoCorreo((v) => !v)}
+                >
+                  {editandoCorreo ? "Cancelar" : "Cambiar"}
+                </button>
+              </span>
+            </div>
+
+            {editandoCorreo && (
+              <form
+                action={correoAction}
+                style={{
+                  marginTop: "var(--s-3)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "var(--s-2)",
+                }}
+              >
+                <input
+                  type="hidden"
+                  name="target_user_id"
+                  value={member.user_id}
+                />
+                <Campo
+                  id="ficha-correo"
+                  nombre="new_email"
+                  etiqueta="Correo nuevo"
+                  defecto={member.email}
+                  error={correoState.fieldErrors?.new_email}
+                  disabled={pendiente}
+                />
+                <p
+                  style={{
+                    font: "400 11.5px/1.5 var(--f-sans)",
+                    color: "var(--ink-soft)",
+                    margin: 0,
+                  }}
+                >
+                  Al guardar, los enlaces de acceso y las invitaciones que sigan
+                  vigentes para <strong>{member.email}</strong> quedan anulados.
+                  Las sesiones ya abiertas no se cierran — para eso está
+                  «Suspender acceso».
+                </p>
+                <p
+                  style={{
+                    font: "400 11.5px/1.5 var(--f-sans)",
+                    color: "var(--ink-soft)",
+                    margin: 0,
+                  }}
+                >
+                  Esto corrige la dirección de la <strong>misma</strong>{" "}
+                  persona. Si cambió quién ocupa el puesto, desactiva a quien se
+                  va e invita a quien llega: así el historial de cada quien
+                  queda a su nombre.
+                </p>
+                {esYo && (
+                  <p
+                    role="alert"
+                    style={{
+                      font: "600 11.5px/1.5 var(--f-sans)",
+                      color: "var(--ink)",
+                      margin: 0,
+                    }}
+                  >
+                    Es tu propio correo: de aquí en adelante entras con el
+                    nuevo.
+                  </p>
+                )}
+                <div>
+                  <button
+                    type="submit"
+                    className="studio-btn studio-btn-primary studio-btn-sm"
+                    disabled={pendiente}
+                  >
+                    {correoPending ? "Guardando…" : "Guardar correo"}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {correoState.ok && (
+              <p
+                role="status"
+                style={{
+                  font: "600 11.5px/1.4 var(--f-sans)",
+                  color: "var(--success)",
+                  margin: "var(--s-2) 0 0",
+                }}
+              >
+                Correo actualizado. Los enlaces anteriores quedaron anulados —
+                mándale uno nuevo con «Enviar acceso».
+              </p>
+            )}
+          </div>
           <Dato etiqueta="Rol" valor={ROLE_LABELS[member.role]} />
           <Dato
             etiqueta="Almacén"

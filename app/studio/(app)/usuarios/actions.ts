@@ -36,6 +36,7 @@ import { generateTelegramLinkCode } from "@/lib/studio/telegram/link-code";
 import {
   ROLE_LABELS,
   invitationAcceptPath,
+  isValidEmail,
   validateInviteUserInput,
   type StudioUserRole,
   type UserActionState,
@@ -610,6 +611,155 @@ export async function updateMemberProfileAction(
     .eq("user_id", targetUserId);
 
   if (error) return { error: `No se pudo guardar: ${error.message}` };
+
+  revalidatePath("/studio/usuarios");
+  return { ok: true, userId: targetUserId };
+}
+
+// ─────────────────────────────────────────────────────────────
+// changeMemberEmailAction · un admin CORRIGE el correo de otra persona
+//
+// SDD-0272 · migr 0387. Es la corrección de una dirección mal cargada, NO la
+// sucesión de un puesto: el `user_id` NO cambia, así que todo lo que ya está
+// registrado sigue siendo de la MISMA persona.
+//
+// ⚠️ SI SE VA ALEJANDRO Y ENTRA PEDRO, ESTE NO ES EL GESTO. Todo el rastro del
+// ERP se guarda contra `user_id` (append_audit_event, created_by de facturas y
+// embarques), no contra el correo. Reescribirle el correo a la fila haría que
+// cada factura y cada evento que registró Alejandro apareciera, hacia atrás y
+// en silencio, como hecho por Pedro. La sucesión es: desactivar a quien se va +
+// invitar a quien llega; lo que se hereda es el rol y el alcance, que con
+// SDD-0252 viven por rol y no por persona. Ver §Sucesión de la spec.
+//
+// "Desactivar el correo anterior" = revocar lo que ese buzón todavía podría
+// usar para FABRICAR una sesión nueva: enlaces de acceso vigentes (migr 0354) e
+// invitaciones pendientes (migr 0019). Las sesiones YA abiertas no se tumban:
+// `admin.signOut` de @supabase/auth-js exige el JWT de la persona, que un admin
+// no tiene (medido 2026-08-19 sobre 2.106.1). Para cortar sesiones existe
+// "Suspender acceso", que sí banea. Ver §"Lo que NO revoca" de la spec.
+// ─────────────────────────────────────────────────────────────
+
+export async function changeMemberEmailAction(
+  _prev: UserActionState,
+  formData: FormData,
+): Promise<UserActionState> {
+  const targetUserId = (formData.get("target_user_id") as string | null)?.trim();
+  if (!targetUserId) return { errorCode: "invalid_input" };
+
+  const nuevoEmail = ((formData.get("new_email") as string | null) ?? "")
+    .trim()
+    .toLowerCase();
+  if (!isValidEmail(nuevoEmail)) {
+    return { fieldErrors: { new_email: "Correo inválido" } };
+  }
+
+  const supabase = await createClient();
+  const { data: userResp } = await supabase.auth.getUser();
+  if (!userResp.user) return { errorCode: "user_signin_required" };
+
+  // Gate REAL antes de tocar el admin client: `users` es admin-only (matriz
+  // []), y una server action es invocable como endpoint desde cualquier ruta.
+  const denial = await moduleEditDenial(supabase, "users");
+  if (denial) return { error: denial };
+
+  const { data: myLink } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  if (!myLink?.tenant_id) return { error: "No se pudo resolver el tenant." };
+
+  const admin = createAdminClient();
+
+  // La persona objetivo tiene que ser miembro de MI tenant — el admin client no
+  // filtra por RLS (mismo criterio que sendAccessLink y updateMemberProfile).
+  const { data: membership } = await admin
+    .from("user_tenants")
+    .select("user_id")
+    .eq("user_id", targetUserId)
+    .eq("tenant_id", myLink.tenant_id)
+    .maybeSingle<{ user_id: string }>();
+  if (!membership) {
+    return { error: "Esa persona no es miembro de este equipo." };
+  }
+
+  const { data: targetUser } = await admin.auth.admin.getUserById(targetUserId);
+  const emailAnterior = targetUser?.user?.email?.toLowerCase() ?? null;
+  if (!emailAnterior) {
+    return { error: "Ese usuario no tiene correo cargado en su cuenta." };
+  }
+
+  // Sin cambio real → no se toca nada. Revocarle los enlaces a alguien por
+  // guardar el formulario sin editarlo sería un corte de acceso gratis.
+  if (emailAnterior === nuevoEmail) {
+    return { ok: true, userId: targetUserId };
+  }
+
+  let operationId: string;
+  try {
+    operationId = await beginD5ExternalEffect(
+      supabase,
+      "studio.email_change",
+      targetUserId,
+    );
+  } catch {
+    return { error: "No se pudo registrar la operación. Reintenta." };
+  }
+
+  // 1. El cambio va PRIMERO. Si Auth lo rechaza no se revocó nada y la persona
+  //    sigue entrando con lo que tenía.
+  const { error: authErr } = await admin.auth.admin.updateUserById(
+    targetUserId,
+    // `email_confirm: true` deja el correo usable de una: sin esto Supabase
+    // abre un cambio PENDIENTE que exige confirmar desde el buzón, y el buzón
+    // nuevo puede no ser accesible todavía (o el viejo ya no serlo).
+    { email: nuevoEmail, email_confirm: true },
+  );
+
+  if (authErr) {
+    await finishD5ExternalEffect(supabase, operationId, {
+      ok: false,
+      errorCode: "auth_update_failed",
+    });
+    const msg = authErr.message ?? "";
+    if (/already|registered|exists|duplicate/i.test(msg)) {
+      return {
+        error:
+          "Ese correo ya pertenece a otra cuenta. Si es la misma persona duplicada, desactiva la cuenta vieja antes de reusar el correo.",
+      };
+    }
+    return { error: `No se pudo cambiar el correo: ${msg}` };
+  }
+
+  // 2 y 3. Revocar lo que el buzón ANTERIOR todavía podría canjear. Best-effort
+  //    con log: el correo ya cambió (que es lo que el admin pidió) y volver
+  //    atrás sería peor que dejar el rastro del fallo parcial.
+  const ahora = new Date().toISOString();
+
+  const { error: tokenErr } = await admin
+    .from("studio_access_tokens")
+    .update({ revoked_at: ahora })
+    .eq("user_id", targetUserId)
+    .is("used_at", null)
+    .is("revoked_at", null);
+  if (tokenErr) {
+    console.error("[changeMemberEmailAction] revocar tokens falló:", tokenErr);
+  }
+
+  const { error: inviteErr } = await admin
+    .from("user_invitations")
+    .update({ revoked_at: ahora, revoked_by: userResp.user.id })
+    .eq("tenant_id", myLink.tenant_id)
+    .eq("email", emailAnterior)
+    .is("accepted_at", null)
+    .is("revoked_at", null);
+  if (inviteErr) {
+    console.error(
+      "[changeMemberEmailAction] revocar invitaciones falló:",
+      inviteErr,
+    );
+  }
+
+  await finishD5ExternalEffect(supabase, operationId, { ok: true });
 
   revalidatePath("/studio/usuarios");
   return { ok: true, userId: targetUserId };

@@ -11,7 +11,13 @@ export type D5ExternalOperationType =
    * 0350). Va por D5 y no por D1 porque no escribe nada en `public`: genera un
    * enlace contra Supabase Auth y manda un correo — un efecto externo.
    */
-  | "studio.access_link";
+  | "studio.access_link"
+  /**
+   * Corregir el correo de un miembro del equipo (SDD-0272 · migr 0387).
+   * D5 por el mismo motivo que `studio.access_link`: la escritura ocurre en
+   * `auth.users` vía el admin API, no en `public`.
+   */
+  | "studio.email_change";
 
 export async function beginD5ExternalEffect(
   supabase: SupabaseClient,
