@@ -50,6 +50,7 @@ import {
   resolveUserDisplayName,
 } from "@/lib/studio/notify/resolve-recipient";
 import { sendTelegramMessage } from "@/lib/studio/telegram/send-message";
+import { resolveCategoryChatIds } from "@/lib/studio/telegram/alert-routing";
 import {
   BUG_STATE_LABELS,
   BUG_SEVERITY_LABELS,
@@ -233,6 +234,29 @@ export async function notifyBugCreatedToAdmin(
 
     const bugUrlPath = `/studio/bugs?focus=${bug.id}`;
 
+    // SDD-0271 · si la categoría `bugs` tiene destino configurado, el Telegram
+    // sale por ahí: UNA vez, al chat que eligió el founder, sin depender de
+    // quién tenga `channel_telegram` encendido.
+    //
+    // ⚠️ Este camino NO pasa por el outbox de reintentos (`bug_notifications`),
+    // porque esa tabla es por USUARIO y un chat de categoría no es de nadie: un
+    // fallo se loguea, no se reintenta. El camino per-admin de abajo —el que
+    // corre cuando no hay rutas— conserva el outbox intacto.
+    const routedBugChats = await resolveCategoryChatIds(
+      supabaseAdmin,
+      tenantId,
+      "bugs",
+    );
+    if (routedBugChats.length > 0) {
+      const text = `${notifLabel} · ${bug.folio}\n\n${bug.title}\nReportado por ${reporterName}.\n\n${SITE_URL}${bugUrlPath}`;
+      for (const chatId of routedBugChats) {
+        const res = await sendTelegramMessage(chatId, text);
+        if (!res.ok) {
+          console.error("[bug-email-notify] telegram ruteado falló:", res.error);
+        }
+      }
+    }
+
     for (const admin of admins) {
       const channels = await resolveChannels(
         supabaseAdmin,
@@ -300,7 +324,9 @@ export async function notifyBugCreatedToAdmin(
       }
 
       // Telegram · respeta channel_telegram (default OFF) + link. Fallo → outbox P3.
-      if (channels.telegram) {
+      // Sólo cuando la categoría `bugs` no tiene destino: si lo tiene, el aviso
+      // ya salió arriba y repetirlo acá sería el duplicado que cierra SDD-0271.
+      if (channels.telegram && routedBugChats.length === 0) {
         const result = await sendBugTelegramToUser(supabaseAdmin, admin.user_id, {
           title: `${notifLabel} · ${bug.folio}`,
           body: `${bug.title}\nReportado por ${reporterName}.`,

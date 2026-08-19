@@ -101,8 +101,15 @@ export async function notifyRateExpiry(
   let telegramSent = 0;
   let emailSent = 0;
 
+  // UNA vez por CHAT, no una por persona (SDD-0271): dos cuentas del staff
+  // pueden compartir `telegram_chat_id` —en producción hay dos admins así— y
+  // el bucle pelado mandaba el mismo aviso dos veces al mismo hilo. El correo
+  // no necesita esto: ahí los destinatarios sí son distintos.
+  const chatsAvisados = new Set<string>();
+
   for (const r of recipients) {
-    if (r.telegram_chat_id) {
+    if (r.telegram_chat_id && !chatsAvisados.has(r.telegram_chat_id)) {
+      chatsAvisados.add(r.telegram_chat_id);
       const result = await sendTelegramMessage(r.telegram_chat_id, text);
       if (result.ok) telegramSent++;
     }

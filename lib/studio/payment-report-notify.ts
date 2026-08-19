@@ -4,7 +4,8 @@
  * confirmar. Avisa a los admins del tenant con la factura + el monto + método.
  *
  * Calca `cotizacion-request-notify.ts`: reusa resolveAdminEntries +
- * sendAdminTelegram + escapeHtml (mecánica "avisar al equipo") y `sendEmail`
+ * escapeHtml (mecánica "avisar al equipo"); el Telegram sale por la categoría
+ * `equipo` (SDD-0271), una vez por chat. Y `sendEmail`
  * (subject+html crudos, sin template → sin migración). Best-effort por canal: cada
  * fallo se loguea pero NO rompe el alta del reporte.
  */
@@ -13,9 +14,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import {
   resolveAdminEntries,
-  sendAdminTelegram,
   escapeHtml,
 } from "@/lib/studio/new-client-notify";
+import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
 import {
   paymentMethodLabel,
   type PaymentReportMethod,
@@ -79,8 +80,12 @@ export async function notifyPaymentReportToAdmin(
       if (!res.ok) {
         console.error("[payment-report-notify] email falló:", res.error);
       }
-      await sendAdminTelegram(supabaseAdmin, admin.user_id, telegramText);
     }
+
+    // Telegram: UNA vez por CHAT, fuera del bucle de admins (SDD-0271).
+    await dispatchTelegramAlert(supabaseAdmin, tenantId, "equipo", telegramText, {
+      logTag: "payment-report-notify",
+    });
   } catch (err) {
     console.error(
       "[payment-report-notify] notifyPaymentReportToAdmin falló:",

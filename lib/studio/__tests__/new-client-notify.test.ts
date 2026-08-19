@@ -1,11 +1,16 @@
 /**
- * Tests del aviso interno de cliente nuevo (SDD-0059).
+ * Tests del aviso interno de cliente nuevo (SDD-0059, ruteo SDD-0271).
  *
  * Verifica que `notifyNewClientToAdmin`:
- *   - manda email a CADA admin del tenant,
- *   - manda Telegram SOLO a los admins que linkearon su chat,
+ *   - manda email a CADA admin del tenant (ahí los destinatarios sí difieren),
+ *   - manda Telegram UNA vez por CHAT, no una por admin,
+ *   - respeta el destino configurado para la categoría `registro`,
  *   - no manda nada si no hay admins,
  *   - es best-effort: un fallo de email no corta el Telegram ni tira.
+ *
+ * El caso que motivó SDD-0271 está abajo con nombre propio: dos cuentas admin
+ * con el MISMO `telegram_chat_id` —la situación real de producción— tienen que
+ * producir UN solo mensaje.
  *
  * `sendEmail`, `sendTelegramMessage` y el admin client se mockean — sin red ni DB.
  */
@@ -22,52 +27,45 @@ vi.mock("@/lib/studio/telegram/send-message", () => ({
 }));
 
 import { notifyNewClientToAdmin } from "../new-client-notify";
+import { makeFakeSupabase, type FakeDb } from "../telegram/__tests__/fake-db";
+
+const TENANT = "tenant-1";
 
 type AdminOpts = {
   admins: Array<{ user_id: string }>;
   users: Array<{ id: string; email: string }>;
   chatByUser: Record<string, string | null>;
+  destinations?: FakeDb["telegram_destinations"];
+  routes?: FakeDb["telegram_alert_routes"];
 };
 
-/** Fake admin client: user_tenants (thenable) + listUsers + user_profiles (maybeSingle). */
+/**
+ * Admin client falso: el doble de `fake-db` (que sí aplica los filtros y
+ * resuelve el embed) + `auth.admin.listUsers`, que PostgREST no cubre.
+ */
 function makeAdmin(opts: AdminOpts) {
-  function from(table: string) {
-    const filters: Record<string, unknown> = {};
-    const chain: Record<string, unknown> = {
-      select: () => chain,
-      eq: (col: string, val: unknown) => {
-        filters[col] = val;
-        return chain;
-      },
-      is: () => chain,
-      maybeSingle: async () => {
-        if (table === "user_profiles") {
-          const uid = filters.user_id as string;
-          return { data: { telegram_chat_id: opts.chatByUser[uid] ?? null }, error: null };
-        }
-        return { data: null, error: null };
-      },
-      then: (
-        resolve: (v: unknown) => unknown,
-        reject?: (e: unknown) => unknown,
-      ) => {
-        const result =
-          table === "user_tenants"
-            ? { data: opts.admins, error: null }
-            : { data: null, error: null };
-        return Promise.resolve(result).then(resolve, reject);
-      },
-    };
-    return chain;
-  }
-  return {
-    from,
-    auth: {
-      admin: {
-        listUsers: async () => ({ data: { users: opts.users }, error: null }),
-      },
+  const db: FakeDb = {
+    user_tenants: opts.admins.map((a) => ({
+      user_id: a.user_id,
+      tenant_id: TENANT,
+      role: "admin",
+      disabled_at: null,
+    })),
+    user_profiles: Object.entries(opts.chatByUser).map(([user_id, chat]) => ({
+      user_id,
+      telegram_chat_id: chat,
+    })),
+    telegram_destinations: opts.destinations ?? [],
+    telegram_alert_routes: opts.routes ?? [],
+  };
+
+  const client = makeFakeSupabase(db) as unknown as Record<string, unknown>;
+  client.auth = {
+    admin: {
+      listUsers: async () => ({ data: { users: opts.users }, error: null }),
     },
   };
+  return client;
 }
 
 const payload = {
@@ -100,7 +98,7 @@ describe("notifyNewClientToAdmin", () => {
       chatByUser: { u1: null, u2: null },
     });
 
-    await notifyNewClientToAdmin(admin as never, "tenant-1", payload);
+    await notifyNewClientToAdmin(admin as never, TENANT, payload);
 
     expect(sendEmailMock).toHaveBeenCalledTimes(2);
     const recipients = sendEmailMock.mock.calls.map(
@@ -123,16 +121,54 @@ describe("notifyNewClientToAdmin", () => {
       chatByUser: { u1: "123456", u2: null },
     });
 
-    await notifyNewClientToAdmin(admin as never, "tenant-1", payload);
+    await notifyNewClientToAdmin(admin as never, TENANT, payload);
 
     expect(sendTelegramMock).toHaveBeenCalledTimes(1);
     expect(sendTelegramMock.mock.calls[0][0]).toBe("123456");
     expect(sendTelegramMock.mock.calls[0][1]).toContain("DTD-5452");
   });
 
+  // ── La regresión de SDD-0271 ──────────────────────────────────────────────
+  it("dos admins con el MISMO chat reciben UN solo Telegram (y sus DOS correos)", async () => {
+    const admin = makeAdmin({
+      admins: [{ user_id: "sam-gmail" }, { user_id: "sam-vzla" }],
+      users: [
+        { id: "sam-gmail", email: "gmail@dtd.com" },
+        { id: "sam-vzla", email: "vzla@dtd.com" },
+      ],
+      // El caso real de producción: dos cuentas, un solo Telegram.
+      chatByUser: { "sam-gmail": "6512220774", "sam-vzla": "6512220774" },
+    });
+
+    await notifyNewClientToAdmin(admin as never, TENANT, payload);
+
+    expect(sendTelegramMock).toHaveBeenCalledTimes(1);
+    // El correo NO se dedupe: las casillas sí son distintas de verdad.
+    expect(sendEmailMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("con destino configurado, el aviso va a ESE chat y no a los admins", async () => {
+    const admin = makeAdmin({
+      admins: [{ user_id: "u1" }],
+      users: [{ id: "u1", email: "a@dtd.com" }],
+      chatByUser: { u1: "6512220774" },
+      destinations: [
+        { id: "d1", tenant_id: TENANT, chat_id: "comercial-999", active: true },
+      ],
+      routes: [
+        { tenant_id: TENANT, category: "registro", destination_id: "d1" },
+      ],
+    });
+
+    await notifyNewClientToAdmin(admin as never, TENANT, payload);
+
+    expect(sendTelegramMock).toHaveBeenCalledTimes(1);
+    expect(sendTelegramMock.mock.calls[0][0]).toBe("comercial-999");
+  });
+
   it("sin admins → no manda nada", async () => {
     const admin = makeAdmin({ admins: [], users: [], chatByUser: {} });
-    await notifyNewClientToAdmin(admin as never, "tenant-1", payload);
+    await notifyNewClientToAdmin(admin as never, TENANT, payload);
     expect(sendEmailMock).not.toHaveBeenCalled();
     expect(sendTelegramMock).not.toHaveBeenCalled();
   });
@@ -146,7 +182,7 @@ describe("notifyNewClientToAdmin", () => {
     });
 
     await expect(
-      notifyNewClientToAdmin(admin as never, "tenant-1", payload),
+      notifyNewClientToAdmin(admin as never, TENANT, payload),
     ).resolves.toBeUndefined();
 
     expect(sendTelegramMock).toHaveBeenCalledTimes(1);

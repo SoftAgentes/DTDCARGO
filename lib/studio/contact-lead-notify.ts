@@ -2,7 +2,8 @@
  * Aviso al equipo de un lead del formulario de contacto (/contacto).
  *
  * Modelado sobre new-client-notify (mismo "avisar al equipo de un lead inbound"),
- * reusando sus helpers (resolveAdminEntries / sendAdminTelegram / escapeHtml):
+ * reusando sus helpers (resolveAdminEntries / escapeHtml) y el despachador
+ * por categoría de SDD-0271:
  *   - Email a la casilla general (info@) + a cada admin del tenant (dedup).
  *   - Telegram a cada admin que linkeó su chat.
  *
@@ -19,9 +20,9 @@ import { sendEmail } from "@/lib/studio/mail/send-email";
 import { CONTACT } from "@/lib/design-tokens";
 import {
   resolveAdminEntries,
-  sendAdminTelegram,
   escapeHtml,
 } from "@/lib/studio/new-client-notify";
+import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
 
 export interface ContactLeadPayload {
   /** Código de referencia del lead (DTD-XXXX). */
@@ -61,10 +62,11 @@ export async function notifyContactLeadToAdmin(
     else console.error("[contact-lead-notify] email falló:", res.error);
   }
 
-  // Telegram a cada admin que linkeó su chat (best-effort, skip silencioso).
-  for (const a of admins) {
-    await sendAdminTelegram(supabaseAdmin, a.user_id, telegramText);
-  }
+  // Telegram: UNA vez por CHAT, no una por admin (SDD-0271). El bucle de
+  // antes duplicaba el aviso cuando dos cuentas admin comparten chat.
+  await dispatchTelegramAlert(supabaseAdmin, tenantId, "equipo", telegramText, {
+    logTag: "contact-lead-notify",
+  });
 
   return { ok: emailedOk };
 }

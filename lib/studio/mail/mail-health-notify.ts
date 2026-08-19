@@ -18,9 +18,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendEmail } from "./send-email";
 import {
   resolveAdminEntries,
-  sendAdminTelegram,
   escapeHtml,
 } from "@/lib/studio/new-client-notify";
+import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
 import { MAIL_HEALTH_SOURCE, type MailFailure } from "./mail-health";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
@@ -29,7 +29,7 @@ export type MailHealthNotifyResult = {
   emailSent: number;
   /**
    * Admins a los que se intentó el Telegram. NO es "entregados":
-   * `sendAdminTelegram` hace skip silencioso si el admin no linkeó su chat y no
+   * El despachador hace skip silencioso si no hay ningún chat resuelto y no
    * devuelve estado. Se llama `Attempted` para no mentir en el resumen del cron.
    */
   telegramAttempted: number;
@@ -78,11 +78,14 @@ export async function notifyMailHealth(
       });
       if (res.ok) result.emailSent += 1;
       else console.error("[mail-health] email de aviso falló:", res.error);
-
-      // Telegram: independiente de Resend. Si el correo está roto, este llega.
-      await sendAdminTelegram(admin, a.user_id, telegramText);
-      result.telegramAttempted += 1;
     }
+
+    // Telegram: independiente de Resend. Si el correo está roto, este llega.
+    // UNA vez por CHAT, fuera del bucle de admins (SDD-0271).
+    const tg = await dispatchTelegramAlert(admin, tenantId, "equipo", telegramText, {
+      logTag: "mail-health",
+    });
+    result.telegramAttempted = tg.chatIds.length;
   } catch (err) {
     console.error("[mail-health] notifyMailHealth falló:", err);
   }

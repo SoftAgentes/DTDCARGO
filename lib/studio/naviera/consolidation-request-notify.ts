@@ -15,7 +15,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { resolveAdminEntries, sendAdminTelegram } from "@/lib/studio/new-client-notify";
+import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
 import { sendPushToOperario } from "@/lib/studio/notify/send-operario-push";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
@@ -27,9 +27,6 @@ export async function notifyConsolidationRequestToOffice(
   payload: { containerType: string; operarioName?: string | null },
 ): Promise<void> {
   try {
-    const admins = await resolveAdminEntries(admin, tenantId);
-    if (admins.length === 0) return;
-
     const quien = payload.operarioName ? ` · ${payload.operarioName}` : "";
     const text = [
       `Solicitud de consolidado${quien}`,
@@ -40,9 +37,10 @@ export async function notifyConsolidationRequestToOffice(
       `${SITE_URL}/studio/naviera`,
     ].join("\n");
 
-    for (const a of admins) {
-      await sendAdminTelegram(admin, a.user_id, text);
-    }
+    // UNA vez por CHAT, no una por admin (SDD-0271).
+    await dispatchTelegramAlert(admin, tenantId, "equipo", text, {
+      logTag: "consolidation-request-notify",
+    });
   } catch (err) {
     console.error("[consolidation-request-notify] office falló:", err);
   }

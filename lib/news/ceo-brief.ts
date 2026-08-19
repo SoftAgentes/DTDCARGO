@@ -18,6 +18,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import Anthropic from "@anthropic-ai/sdk";
 import type { TextBlock } from "@anthropic-ai/sdk/resources/messages";
 import { sendTelegramMessage } from "@/lib/studio/telegram/send-message";
+import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
 
 const MODEL = "claude-sonnet-4-6";
 
@@ -233,18 +234,36 @@ function buildFallbackBrief(kpis: CeoBriefKpis): string {
 }
 
 /**
- * Manda el brief al admin del tenant via Telegram.
+ * Manda el brief a los destinos de la categoría `reportes` (SDD-0271).
  *
- * Estrategia V1: 1 brief por tenant, al primer user con role=admin y
- * telegram_chat_id no-null. Si quiere distribuirse a varios admins, se
- * itera en V2.
+ * El founder pidió que el brief diario —las operaciones del día y los
+ * movimientos— llegue a DOS teléfonos, y eso es justo lo que la V1 no podía
+ * hacer: mandaba a UN admin, el primero con `telegram_chat_id`. Ahora sale a
+ * todos los destinos ruteados a `reportes`, una vez por chat.
+ *
+ * Sin rutas configuradas cae a la V1 (primer admin con chat): un tenant sin
+ * configurar sigue recibiendo su brief.
  */
 export async function sendCeoBriefToTenant(
   supabase: SupabaseClient,
   tenantId: string,
   brief: string,
 ): Promise<{ ok: boolean; sentTo?: string; error?: string }> {
-  // Buscar admin con telegram_chat_id configurado.
+  const routed = await dispatchTelegramAlert(
+    supabase,
+    tenantId,
+    "reportes",
+    brief,
+    { fallback: "none", logTag: "ceo-brief" },
+  );
+  if (routed.chatIds.length > 0) {
+    if (routed.sent === 0) {
+      return { ok: false, error: `Telegram: 0/${routed.chatIds.length} entregados` };
+    }
+    return { ok: true, sentTo: routed.chatIds.join(", ") };
+  }
+
+  // Sin rutas → V1: el primer admin con telegram_chat_id configurado.
   const { data: adminLink, error: linkErr } = await supabase
     .from("user_tenants")
     .select("user_id, user_profiles!inner(telegram_chat_id, first_name)")
