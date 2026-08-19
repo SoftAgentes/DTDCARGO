@@ -244,7 +244,21 @@ export const CONTACT = {
     phoneRaw: "+582414147886",
     whatsapp: "+58 412 166 8021",
     whatsappRaw: "584121668021",
-    email: "info@dtdcargo.com", // unificado al buzón general (vzla@ es alias del mismo correo en Hostinger)
+    /**
+     * ⚠️ `info@` es un ALIAS que SOLO RECIBE — el buzón real detrás es
+     * `vzla@dtdcargo.com` en Hostinger (founder, 2026-08-19). Este comentario
+     * decía lo contrario ("vzla@ es alias") y estaba invertido.
+     *
+     * Consecuencia viva: se publica `info@` pero las respuestas a mano salen
+     * desde `vzla@`, así que el cliente escribe a una dirección y le contesta
+     * otra. Se arregla con un "enviar como" en el cliente de correo, no acá.
+     *
+     * 🔴 Y no son dos direcciones, son cuatro: el correo transaccional sale
+     * con `from: noreply@` y `reply_to: comercial@` (ver `mail_config`, sembrada
+     * en supabase/migrations/0018_mailing.sql). Mapa completo y decisión
+     * pendiente en docs/marketing/identidad.md § "Los cuatro buzones".
+     */
+    email: "info@dtdcargo.com",
     hours: "Lun a Vie · 9:00 – 17:00 (GMT-4)",
     whatsappHours: "Todos los días · 8:00 – 20:00 (GMT-4)",
   },

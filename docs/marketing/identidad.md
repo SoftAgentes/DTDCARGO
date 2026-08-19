@@ -115,6 +115,39 @@ reseñas y antigüedad. El camino es **reclamar** la existente.
 social **muerta** — la viva es `INVERSIONES DTD SERVICES, C.A` / `J-50648869-8`. El link
 *"Este perfil corresponde a otra empresa"* es la salida para no colgarlo de ahí.
 
+## Los cuatro buzones — medido 2026-08-19
+
+El repo daba por hecho que había un solo correo público. Hay **cuatro direcciones en
+circulación**, y ninguna documentación las reconocía juntas:
+
+| Dirección | Qué es de verdad | Dónde vive |
+|---|---|---|
+| `info@dtdcargo.com` | **alias que SOLO RECIBE** y reenvía a `vzla@` | lo que se publica en TODA superficie pública (18 sitios) |
+| `vzla@dtdcargo.com` | **el buzón real** en Hostinger — desde acá salen las respuestas a mano | no se publica en ningún lado |
+| `noreply@dtdcargo.com` | `from` del correo transaccional | `mail_config`, sembrada en `supabase/migrations/0018_mailing.sql:417` |
+| `comercial@dtdcargo.com` | **`reply_to` del correo transaccional** | idem |
+
+🔴 **El problema que esto genera, en dos frentes:**
+
+1. **A mano:** publicas `info@`, el cliente escribe a `info@`, y le contesta `vzla@`. Dirección
+   distinta a la que él escribió — rompe el hilo en su cliente de correo y puntúa peor en spam.
+2. **Automático:** si el cliente le da "Responder" a una factura, una cotización o el newsletter,
+   **no cae ni en `info@` ni en `vzla@`: cae en `comercial@`**, que hasta hoy no figuraba en este
+   documento ni en `CONTACT`.
+
+**La salida del frente 1** no es tocar Hostinger: es configurar un **"enviar como"** en el cliente
+de correo, para que las respuestas *salgan* desde `info@` aunque se escriban desde el buzón
+`vzla@`. Así queda **una sola dirección pública y un solo buzón que atender**. SPF y DKIM ya
+cubren porque es el mismo dominio.
+
+⏳ **PENDIENTE DE DECISIÓN DEL FOUNDER (frente 2):** si el `reply_to` transaccional debe seguir
+siendo `comercial@` o pasar a `info@`. No es una corrección de dato — depende de quién atiende
+qué. Hasta que se decida, **no se toca `mail_config`**.
+
+⚠️ Los valores de la tabla de arriba para `noreply@`/`comercial@` son los **sembrados en la
+migración**. El valor **vivo** está en `mail_config` en producción y **no se ha leído** — leer
+filas de negocio requiere OK del founder. No dar por hecho que siguen igual.
+
 ## Versión-máquina (schema.org)
 
 La identidad legible por Google / motores de IA vive en el **`@graph` de `app/layout.tsx`**

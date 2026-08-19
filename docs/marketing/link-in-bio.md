@@ -37,7 +37,10 @@ Refuerzan el contacto directo y conviven con el link de la bio:
 1. **Editar perfil** → **Botones de acción** (o **Información de contacto**).
 2. Activa:
    - **WhatsApp** → `+58 412 166 8021` (CRM, número público primario).
-   - **Cómo llegar** → dirección de la oficina en Valencia (Av. Bolívar Norte).
+   - **Cómo llegar** → dirección de la oficina en Valencia. ⚠️ **Usa el NAP exacto de
+     [`identidad.md`](identidad.md)** — "Torre Profesional Kokuy, Calle 151 (entre Av. Bolívar
+     Norte y Av. Paseo Cabriales)". NO abrevies a "Av. Bolívar Norte": es referencia cruzada, no
+     la dirección, y esta es justo la superficie que Google cruza contra la ficha de Maps.
    - **Correo** → `info@dtdcargo.com`.
 
 Resultado: botones nativos arriba del perfil **+** `/enlaces` como el link único que agrupa
