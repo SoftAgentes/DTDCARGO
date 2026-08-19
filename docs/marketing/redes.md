@@ -18,7 +18,36 @@ Marca pública = **DTD Cargo**; handle Instagram **@dtdcargo.ve**; canal YouTube
 | **YouTube `@dtdcargo`** | **225 subs · 10 videos** (medido 2026-08-19; el 2026-08-04 decía 224/10 y antes `@doortudoor` 223/11) | 🔴 Abandonado — pero ver el ⚠️ de abajo | **Destino** a reactivar reciclando IG |
 | **Google Business (Valencia)** | 5,0 ★ · **24 opiniones** · 586 vistas · 301 interacciones · 113 vistas el mes previo | 🟢 **Verificada al 100%** (2026-08-19) | Tracción local + reseñas |
 
-### 🔴 YouTube NO está muerto — tiene 24 mil vistas mandando a un WhatsApp que no existe
+### ✅ RESUELTO 2026-08-19 — el canal quedó limpio
+
+Medido con una búsqueda sobre los 16 videos: **queda UNA sola ocurrencia de "DoorTuDoor"** en
+todo el canal, y es el título de un video **privado** (el duplicado viejo de "¡Próxima salida
+30 de mayo!", 81 vistas). **Ningún video público** conserva la marca retirada, el dominio viejo
+ni el WhatsApp muerto.
+
+Se corrigieron **9 videos** entre el founder y esta sesión, más la descripción y los vínculos del
+canal. Plantilla de descripción que quedó como estándar:
+
+```
+"¿Necesitas ayuda para importar productos de China a Venezuela?"
+
+¡DTD Cargo está aquí para ayudarte! 🚢
+
+¡Contáctanos hoy mismo para obtener más información".
+
+www.DTDCargo.com
+whatsapp: +584121668021
+
+#China #importacion #Venezuela #follow #DTD
+```
+
+⏳ **Quedan tres cosas menores:**
+1. El título del privado duplicado (81 vistas) — y conviene decidir si ese duplicado se borra.
+2. `SOMOS DTD Cargo` (20 vistas, público): *"con más de **mas de** una decada"* — repetición y errata.
+3. `¡Sin límites al importar!` (privado, **1.708 vistas**) publica `vzla@dtdcargo.com`, que es el
+   buzón interno y no el alias público. Si alguna vez se publica, saldría con la dirección mala.
+
+### 📜 Cómo estaba antes — YouTube no estaba muerto, estaba desviando tráfico
 
 Medido en vivo el 2026-08-19. El canal se daba por "abandonado", pero **un solo video se lleva
 casi todo el tráfico** y su descripción manda al lugar equivocado:
