@@ -1,17 +1,51 @@
 /**
  * Ajustes del Studio.
  *
- * MVP-0: placeholder. Configuraciones reales (tarifas, integraciones, equipo, branding)
- * vienen en SDDs futuros.
+ * Primera configuración real que aterriza acá: las alertas de Telegram
+ * (SDD-0271). El resto —tarifas, integraciones, equipo, branding— sigue
+ * pendiente de sus propios SDD.
  *
- * Refactor visual: eyebrow con guión wine-soft + H1 30px + spacing rítmico 8/12/32.
+ * Gate por ROL, no por módulo: `ajustes` no está en la matriz RBAC (no es un
+ * módulo registrado). El gate de fondo es la RLS admin-only de la migr 0386;
+ * esto evita mostrar una pantalla que no va a poder guardar nada.
  */
+
+import { createClient } from "@/lib/db/server";
+import { getStudioRole } from "@/lib/studio/rbac-guard";
+import { TELEGRAM_ALERT_CATEGORIES } from "@/lib/studio/telegram/alert-routing";
+import {
+  listTelegramDestinations,
+  categoriesWithoutLiveDestination,
+} from "@/lib/studio/telegram/destination-queries";
+import { TelegramAlertsPanel } from "./_components/TelegramAlertsPanel";
 
 export const metadata = {
   title: "Ajustes",
 };
 
-export default function AjustesPage() {
+export default async function AjustesPage() {
+  const supabase = await createClient();
+  const role = await getStudioRole(supabase);
+  const isAdmin = role === "admin";
+
+  let destinations: Awaited<ReturnType<typeof listTelegramDestinations>> = [];
+  if (isAdmin) {
+    const { data } = await supabase
+      .from("user_tenants")
+      .select("tenant_id")
+      .is("disabled_at", null)
+      .limit(1)
+      .maybeSingle<{ tenant_id: string }>();
+    if (data?.tenant_id) {
+      destinations = await listTelegramDestinations(supabase, data.tenant_id);
+    }
+  }
+
+  const huerfanas = categoriesWithoutLiveDestination(
+    destinations,
+    TELEGRAM_ALERT_CATEGORIES,
+  );
+
   return (
     <div style={{ maxWidth: 800 }}>
       <span className="studio-eyebrow">Configuración</span>
@@ -21,6 +55,14 @@ export default function AjustesPage() {
       >
         Ajustes.
       </h1>
+
+      {isAdmin && (
+        <TelegramAlertsPanel
+          destinations={destinations}
+          huerfanas={huerfanas}
+          botUsername={process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? null}
+        />
+      )}
 
       <div
         style={{
@@ -37,8 +79,9 @@ export default function AjustesPage() {
             margin: 0,
           }}
         >
-          Tarifas, integraciones, gestión de equipo y branding del tenant vendrán en
-          SDDs futuros. Por ahora, este es un placeholder.
+          {isAdmin
+            ? "Tarifas, integraciones, gestión de equipo y branding del tenant vendrán en SDDs futuros."
+            : "Las alertas de Telegram y el resto de la configuración del tenant las administra un administrador."}
         </p>
       </div>
     </div>
