@@ -454,7 +454,7 @@ export const SERVICES_CN: Service[] = [
 export const SERVICES_VE: Service[] = [
   {
     slug: "dtd-services-lcl",
-    title: "DTD Services — Carga puerta a puerta (LCL)",
+    title: "Puerta a puerta DDP — Carga consolidada (LCL)",
     subtitle: "Less than Container Load · Carga consolidada",
     copy: "División de carga consolidada puerta a puerta, nacida en 2015. Especializada en volúmenes menores que no justifican un contenedor completo: consolidamos en China y entregamos directo en Venezuela.",
     benefit: "Promesa door-to-door cumplida",
@@ -503,7 +503,7 @@ export const SERVICES: Service[] = [...SERVICES_VE, ...SERVICES_CN];
 
 // Para vistas previas / home: los 5 más representativos (featured + estratégicos)
 export const SERVICES_FEATURED: Service[] = [
-  SERVICES_VE[0], // DTD Services LCL (featured VE)
+  SERVICES_VE[0], // Puerta a puerta DDP / LCL (featured VE)
   SERVICES_CN[1], // Consolidación bodega Yiwu (featured CN)
   SERVICES_CN[0], // Reserva FCL (con BL propio)
   SERVICES_VE[3], // Tránsito aduana
@@ -963,7 +963,7 @@ export const STATS = [
     label: "En el comercio con China desde 2008",
   },
   {
-    // Hito de expansión a Venezuela (2015 · DTD Services LCL). Se muestra como
+    // Hito de expansión a Venezuela (2015 · puerta a puerta LCL). Se muestra como
     // AÑO (no "AÑOS") para no repetir el formato de la cifra de China de arriba
     // — evita la doble antigüedad contigua que confundia (auditoria ui-ux).
     num: "2015",
@@ -1022,7 +1022,7 @@ export const TIMELINE = [
   {
     year: "2015",
     title: "Expansión a Venezuela",
-    copy: "Nace DTD Services — carga LCL puerta a puerta para el mercado venezolano.",
+    copy: "Nace DTD Cargo — carga LCL puerta a puerta para el mercado venezolano.",
   },
   {
     year: "2016",
