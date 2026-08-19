@@ -202,7 +202,13 @@ function MemberRow({
                   fontFamily: "inherit",
                   color: "var(--ink)",
                   textDecoration: "underline",
-                  textDecorationColor: "var(--border)",
+                  // SDD-0272: era `var(--border)` (#E8E6E2) sobre #FFFFFF =
+                  // 1,25:1. El subrayado es el UNICO indicio de que el nombre
+                  // abre la ficha, y a ese contraste no se ve: por eso el
+                  // modulo se sentia de solo lectura. `--ink-soft` (#6B6B6B)
+                  // da 5,33:1, arriba del 3:1 que pide WCAG 1.4.11 para un
+                  // indicador de interfaz.
+                  textDecorationColor: "var(--ink-soft)",
                   textUnderlineOffset: 3,
                 }}
               >

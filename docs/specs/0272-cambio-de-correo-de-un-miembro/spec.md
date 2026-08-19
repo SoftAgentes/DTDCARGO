@@ -143,6 +143,26 @@ a la persona sin acceso y con el correo viejo si Auth rechaza el cambio.
 | `app/studio/(app)/usuarios/actions.ts` | `changeMemberEmailAction` |
 | `app/studio/(app)/usuarios/_components/UserDetailDrawer.tsx` | el correo pasa de dato fijo a campo con su propia confirmación |
 | `app/studio/(app)/usuarios/__tests__/change-member-email.test.ts` | lado negativo + happy path |
+| `app/studio/(app)/usuarios/_components/MembersTable.tsx` | el subrayado que abre la ficha sube de 1,25:1 a 5,33:1 (ver abajo) |
+
+## El arreglo de contraste que viaja con esta spec
+
+La ficha editable existe desde SDD-0250, pero el módulo se sentía de sólo
+lectura. El motivo es medible: el **único** indicio de que el nombre de la
+persona abre la ficha es un subrayado pintado con `var(--border)` (`#E8E6E2`)
+sobre `var(--bg-surface)` (`#FFFFFF`) — **1,25:1**. WCAG 1.4.11 pide **3:1**
+para un indicador de interfaz. Con `var(--ink-soft)` (`#6B6B6B`) queda en
+**5,33:1**.
+
+Viaja acá y no en una spec aparte porque sin eso el campo de correo que esta
+spec construye es inalcanzable: se llega a él por ese mismo subrayado.
+
+Lo que NO se hace acá: mover las acciones de la fila al `ActionMenu` canónico
+(CMP-01). La fila tiene hoy dos botones sueltos —"Enviar acceso" y
+"Desactivar"— donde el registro de componentes marca `ActionMenu` como el
+canónico para acciones dispares, y ahí es donde correspondería un ítem
+"Editar ficha" explícito. Es un cambio de superficie mayor y merece su propia
+spec; subir el contraste cierra la no conformidad medida sin arrastrarlo.
 
 ## Verificación
 
