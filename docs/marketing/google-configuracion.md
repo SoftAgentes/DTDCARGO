@@ -49,6 +49,45 @@ nombre del perfil, el de la ficha y el remitente. Migrar mueve mucho riesgo a ca
 que nadie externo mira. Si algún día se hace, que sea con las verificaciones ya estables, nunca
 en el mismo movimiento que se arregla la ficha.
 
+## 📍 Estado de la Fase 1 — medido en vivo el 2026-08-19
+
+🔴 **El plan original de esta sección decía "reclamar la ficha". ESO ESTABA MAL:** al entrar al
+Administrador de Perfil de Negocio se vio **"1 empresa · Se verificó el 100% · Verificada"**. La
+ficha ya era del founder y ya estaba verificada — no había nada que reclamar. Los cambios de
+abajo no le hicieron perder la verificación.
+
+**Y el problema real era otro, mucho peor:** el campo de dirección estaba **corrupto**. Tenía las
+coordenadas GPS metidas como texto en "Línea 2 de la dirección postal"
+(`10.220449465809326, -68.00848104738162`), CP **5001** (que es San Cristóbal, Táchira — no 5000
+como se había supuesto), "Edificio Kokuy", "Av. Bolivar Nte.", "Cabriaeles" mal escrito, y ciudad
+repetida. Google no podía geocodificar eso: por eso el pin caía sobre el edificio vecino. **Los
+tres síntomas eran un solo bug.**
+
+*(Esos 15 decimales dentro del campo de dirección confirman que `CONTACT.ve.geo` y el pin de Google
+son el mismo dato copiado, no dos mediciones que coinciden.)*
+
+| | Estado |
+|---|---|
+| Nombre de la ficha → `DTD Cargo` | ✅ hecho (era "DTD Cargo services") |
+| Dirección + CP **2001** | ✅ **aprobada** |
+| Categoría "Compañía de transporte de carga" | ✅ correcta — se queda |
+| Dirección con "Oficina 1" · pin · perfiles de redes | ⏳ **en cola de Google, hasta 7 días** |
+| Nombre corto (sigue `DoorTuDoor`) | ⏳ al liberarse la cola |
+| Código de tienda (sigue `DoorTuDoor`) | ⏳ idem |
+| Doble coma en `Calle 151,, Oficina 1` | ⏳ idem — produce una "y," suelta al inicio de la dirección en Maps |
+| Atributo "Se identifica como mujer empresaria" | ⏳ quitar si no aplica (es público y filtra búsquedas) |
+| Logo + foto de perfil de la cuenta | ⏳ pendiente |
+
+⚠️ **Mientras haya una edición en revisión, no encimar otras** — se acumulan en la misma cola.
+
+✅ **El enlace corto `maps.app.goo.gl/76T5MAeeTyynwV1M6` sobrevivió a los cambios** (mismo CID
+`0x8e805d8921ef9f17:0x534069318a455204`). No hay que tocar `CONTACT.ve.mapsUrl`.
+
+⚠️ **Lección de método:** la URL de Google Maps **no sirve para medir dónde está el pin** — se
+reescribe sola con la interacción. En una sesión dio dos coordenadas separadas por 4 km. El dato
+fiable es el **Plus Code que la ficha publica**. Hoy publica `6XCR+5J`; el edificio está en
+`6XCR+5H` — celdas contiguas de ~14 m, o sea el pin está al lado, no encima.
+
 ## 3. Fase 1 — Configuración de Google *(en curso)*
 
 > 🔴 **Esta fase es del founder, entera.** Ningún agente tiene acceso a las consolas de

@@ -9,13 +9,39 @@ Marca pública = **DTD Cargo**; handle Instagram **@dtdcargo.ve**; canal YouTube
 > (`facebook.com/dtdcargove`), que todavía apuntaba al handle viejo. Las métricas de la tabla de abajo
 > quedan desactualizadas — ver cifras reales verificadas en la nota de cada fila.
 
-## Estado actual (2026-06-08, métricas actualizadas 2026-08-04)
+## Estado actual (métricas medidas en vivo el 2026-08-19)
 
 | Canal | Métricas | Estado | Rol |
 |---|---|---|---|
-| **Instagram `@dtdcargo.ve`** | **20 mil seg · 136 posts** (verificado 2026-08-04; antes `@doortudoor_` 5.003 seg · 128 posts) · destacados Clientes/Ubicación/Servicios/Q&A/Visa China/Eventos/Equipo | 🟢 **El canal fuerte** | **Fuente** de contenido (todo se recicla desde acá) |
-| **YouTube `@dtdcargo`** | **224 subs · 10 videos** (verificado 2026-08-04; antes `@doortudoor` 223 subs · 11 videos) | 🔴 Abandonado | **Destino** a reactivar reciclando IG |
-| **Google Business (Valencia)** | — | ⏳ por verificar (founder) | Tracción local + reseñas |
+| **Instagram `@dtdcargo.ve`** | **20 mil seg · 136 posts** (2026-08-04; antes `@doortudoor_` 5.003 seg · 128 posts) · destacados Clientes/Ubicación/Servicios/Q&A/Visa China/Eventos/Equipo | 🟢 **El canal fuerte** | **Fuente** de contenido (todo se recicla desde acá) |
+| **TikTok `@dtdcargo.ve`** | **2.827 seguidores · 2.287 me gusta · 337 siguiendo** (medido 2026-08-19). Bio: *"📦 Importamos tus productos de China a Venezuela · ⭐ +5.000 importadores Confían"* · link → `dtdcargo.com/enlaces` ✅ | 🟡 Vivo, sin plan | Sin rol asignado — **este doc nunca lo había registrado** |
+| **YouTube `@dtdcargo`** | **225 subs · 10 videos** (medido 2026-08-19; el 2026-08-04 decía 224/10 y antes `@doortudoor` 223/11) | 🔴 Abandonado — pero ver el ⚠️ de abajo | **Destino** a reactivar reciclando IG |
+| **Google Business (Valencia)** | 5,0 ★ · **24 opiniones** · 586 vistas · 301 interacciones · 113 vistas el mes previo | 🟢 **Verificada al 100%** (2026-08-19) | Tracción local + reseñas |
+
+### 🔴 YouTube NO está muerto — tiene 24 mil vistas mandando a un WhatsApp que no existe
+
+Medido en vivo el 2026-08-19. El canal se daba por "abandonado", pero **un solo video se lleva
+casi todo el tráfico** y su descripción manda al lugar equivocado:
+
+| Video | Vistas | Qué tiene mal |
+|---|---|---|
+| *"Somos Door tu door" \| importa desde China Ya!* | **23.962** | descripción: `www.doortudoor.com` y **`whatsapp: 04148870000`** |
+
+🔴 **Ese número no es ninguno de los vigentes** (+58 412 166 8021 CRM · +58 241 414 7886 fijo).
+No aparece en ninguna parte del repo. Los otros nueve videos juntos no llegan a 1.600 vistas, o sea
+que **ese video ES el canal** — y la gente que quiso escribir después de verlo fue a un buzón muerto.
+Arreglar esa descripción es de lo más rentable del tree, y no depende de que Google apruebe nada.
+
+**Otros dos pendientes del canal, misma medición:**
+
+1. **La descripción del canal contradice la cronología canónica.** Dice *"...entre China y Venezuela
+   **desde 2010 (+15 años)**"*. Son dos errores: 2010 es el año de la **oficina propia en China**, no
+   el de fundación (2015), y **"+15 años" es un total fijo escrito a mano** — la regla dice que los
+   años se calculan, nunca se hardcodean (`aniosComercioChina()`). Texto propuesto:
+   > DTD Cargo — logística y trading puerta a puerta entre China y Venezuela. En el comercio con
+   > China desde 2008, con oficina propia en China desde 2010 y operando en Venezuela desde 2015.
+2. **Seis títulos de video llevan la marca retirada** ("...| Doortudoor", "– DoorTuDoor",
+   "Somos Door tu door"). Editar el título en YouTube Studio **no** afecta vistas ni posicionamiento.
 
 > Prioridad 5 del [`plan-accion-digital.md`](plan-accion-digital.md): *"Reactivar YouTube reciclando contenido de Instagram"*. Este documento es el sistema para ejecutarla.
 
