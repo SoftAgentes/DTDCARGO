@@ -114,7 +114,7 @@ rótulo, "click" suave en los taps del portal y un "beep" corto opcional al pasa
 código de barras. Sin drops ni efectos estridentes.
 
 **CTA final (últimos 4–5 s):** pantalla de cierre con isologo DTD + "Actívalo desde tu portal" +
-**dtdcargo.com** + WhatsApp **+58 412 166 8021** + @doortudoor_. La regla "Pídelo ANTES de que tu
+**dtdcargo.com** + WhatsApp **+58 412 166 8021** + @dtdcargo.ve. La regla "Pídelo ANTES de que tu
 compra llegue a la bodega" queda visible hasta el final.
 
 **Qué NO hacer:**

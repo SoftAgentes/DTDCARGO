@@ -36,7 +36,7 @@ ordenada con **UN solo packing list** — en lugar de muchos paquetes sueltos.
 Consulta la tarifa vigente con tu asesor.
 
 ## Contacto
-WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
+WhatsApp +58 412 166 8021 · dtdcargo.com · @dtdcargo.ve
 
 ---
 **Notas para Cloud Design:** el visual es **muchos paquetes pequeños → un solo empaque** (convergencia

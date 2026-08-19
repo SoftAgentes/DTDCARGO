@@ -18,7 +18,7 @@ Todo el trabajo previo ya está hecho: catálogo, guiones, guía de producción,
 
 ## 1. Contexto del negocio (lo mínimo indispensable)
 
-- **DTD Cargo** = marca pública. **DoorTuDoor** = el ERP interno (55 módulos en producción). El handle es **@doortudoor_**.
+- **DTD Cargo** = marca pública **y también el nombre del ERP interno** (57 módulos; el ERP dejó de llamarse "DoorTuDoor" el 2026-07-14). **DoorTuDoor** hoy es sólo el **sello de herencia**. El handle es **@dtdcargo.ve**.
 - Negocio: logística y trading **puerta a puerta China → Venezuela**. Equipo propio en **Yiwu (China)** y **Valencia (Venezuela)**.
 - **Jamás Miami, jamás "casillero".** Nuestra ruta es China → Venezuela. (Esto importa porque la referencia de la que copiamos el *patrón* es un courier Miami→Venezuela.)
 - **Fundación = 2015** (Venezuela). 2008 = "en el comercio con China desde…" (experiencia, no fundación). Nunca digas que la empresa existe desde 2008 o 2010.
@@ -200,7 +200,7 @@ Cada brief trae 3 secciones: **(a)** productor/diseñador — escenas, rótulos,
 - Un corte cada 2–4 s en los bloques de pasos; el gancho puede ser un solo plano. Nada estático más de 5 s.
 - B-roll **real** (bodega, cajas, cinta, etiquetas, manos contando) **sin rostros protagonistas**. Prohibido stock genérico reconocible como stock.
 - Música de librería con licencia, ritmo medio, **-18 dB** bajo la voz. Sin drops estridentes. SFX sutiles.
-- **CTA final estándar en los 5:** `dtdcargo.com` + WhatsApp **+58 412 166 8021** + **@doortudoor_** (rótulo + hablado).
+- **CTA final estándar en los 5:** `dtdcargo.com` + WhatsApp **+58 412 166 8021** + **@dtdcargo.ve** (rótulo + hablado).
 
 ---
 
@@ -317,7 +317,7 @@ El repo ya tiene **Playwright** configurado (`pnpm test:e2e`, MCP de Playwright 
 - [ ] Aparece la regla "antes de que llegue a la bodega" (hablado **y** en texto)
 - [ ] **NO** menciona montos ni precios (salvo las 2 excepciones permitidas)
 - [ ] Muestra los pasos reales en el portal (cuenta demo, cursor pausado)
-- [ ] CTA final: `dtdcargo.com` + WhatsApp +58 412 166 8021 + @doortudoor_
+- [ ] CTA final: `dtdcargo.com` + WhatsApp +58 412 166 8021 + @dtdcargo.ve
 - [ ] Cero material (visual o verbal) de la competencia
 - [ ] Archivo nombrado `dtd-video-<codigo>.mp4`
 - [ ] Subido como YouTube Short **público** y el link entregado

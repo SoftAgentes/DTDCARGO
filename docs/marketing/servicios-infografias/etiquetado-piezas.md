@@ -38,7 +38,7 @@ Se cobra **por pieza**. Consulta la tarifa vigente con tu asesor.
 vigencia, y si aplica igual a las dos opciones.
 
 ## Contacto
-WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
+WhatsApp +58 412 166 8021 · dtdcargo.com · @dtdcargo.ve
 
 ---
 **Notas para Cloud Design:** presentar las **2 opciones como selector/tarjetas gemelas** (código de

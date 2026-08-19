@@ -37,7 +37,7 @@ los resultados.
 Consulta la tarifa vigente con tu asesor; depende del ensayo o permiso que tu producto necesite.
 
 ## Contacto
-WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
+WhatsApp +58 412 166 8021 · dtdcargo.com · @dtdcargo.ve
 
 ---
 **Notas para Cloud Design:** visual de "producto → laboratorio → certificado → embarque". ⚠️ NO

@@ -42,7 +42,7 @@ decidir con información clara antes de pagar el saldo o autorizar el embarque.
 Consulta la tarifa vigente con tu asesor; te comparte también un **ejemplo del reporte**.
 
 ## Contacto
-WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
+WhatsApp +58 412 166 8021 · dtdcargo.com · @dtdcargo.ve
 
 ---
 **Notas para Cloud Design:** ⚠️ confusión #1 del cliente (HANDOFF §1): tratamiento visual DISTINTO

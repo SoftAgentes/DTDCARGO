@@ -37,7 +37,7 @@ Hasta puerto, según **volumen (CBM) y peso**. **No incluye** almacén fiscal, a
 transporte final. Consulta la tarifa vigente con tu asesor.
 
 ## Contacto
-WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
+WhatsApp +58 412 166 8021 · dtdcargo.com · @dtdcargo.ve
 
 ---
 **Notas para Cloud Design:** dejar clarísimo que **el servicio llega hasta el puerto** (vs Puerta a

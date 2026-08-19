@@ -98,7 +98,7 @@ regresiva). Archivo Black, vino `#7F0F1A` / navy `#0F1E3D` sobre zonas limpias.
 autenticidad); "click" suave en los taps del portal.
 
 **CTA final (últimos 4–5 s):** isologo DTD + "Actívalo desde tu portal" + **dtdcargo.com** +
-WhatsApp **+58 412 166 8021** + @doortudoor_. La regla del PRIMER bulto visible hasta el final.
+WhatsApp **+58 412 166 8021** + @dtdcargo.ve. La regla del PRIMER bulto visible hasta el final.
 
 **Qué NO hacer:**
 - No copiar frases, arte ni música del video de la competencia (referencia interna: estructura

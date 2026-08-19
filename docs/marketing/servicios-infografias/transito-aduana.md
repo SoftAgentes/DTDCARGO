@@ -45,7 +45,7 @@ Se cotiza según el **valor de tu carga** (por valorización de la factura). Com
 factores, consulta el aproximado y la tarifa vigente con tu asesor por WhatsApp.
 
 ## Contacto
-WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
+WhatsApp +58 412 166 8021 · dtdcargo.com · @dtdcargo.ve
 
 ---
 **Notas para Cloud Design:** esta pieza **absorbe los Documentos de importación** (fusión founder

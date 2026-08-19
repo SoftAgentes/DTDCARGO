@@ -38,7 +38,7 @@ El costo depende de la **tarifa por peso volumétrico** de tu envío. Consulta l
 tu asesor.
 
 ## Contacto
-WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
+WhatsApp +58 412 166 8021 · dtdcargo.com · @dtdcargo.ve
 
 ---
 **Notas para Cloud Design:** contrastar visualmente **courier (sobre / paquete pequeño, veloz)** vs

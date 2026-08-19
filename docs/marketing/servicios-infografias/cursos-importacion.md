@@ -16,7 +16,7 @@ Estamos trabajando en el programa. **¿Quieres un cupo?** Déjanos tus datos con
 apenas abran las inscripciones.
 
 ## Contacto
-WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
+WhatsApp +58 412 166 8021 · dtdcargo.com · @dtdcargo.ve
 
 ---
 **Notas para Cloud Design:** tarjeta visible con badge "próximamente", sin CTA de cotizar. Tratamiento

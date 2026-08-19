@@ -94,7 +94,7 @@ factura"). Animación simple de entrada (slide/fade corto), tipografía Archivo 
 rótulo y un "click" suave en los taps del portal. Sin drops ni efectos estridentes.
 
 **CTA final (últimos 4–5 s):** pantalla de cierre con isologo DTD + "Actívala desde tu portal" +
-**dtdcargo.com** + WhatsApp **+58 412 166 8021** + @doortudoor_. La regla "Pídela ANTES de que tu
+**dtdcargo.com** + WhatsApp **+58 412 166 8021** + @dtdcargo.ve. La regla "Pídela ANTES de que tu
 compra llegue a la bodega" queda visible hasta el final.
 
 **Qué NO hacer:**

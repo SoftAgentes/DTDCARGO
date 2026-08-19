@@ -40,7 +40,7 @@ El HOLD dentro del bodegaje gratis **no tiene costo**. Vencido el plazo, se cobr
 Consulta la tarifa vigente con tu asesor.
 
 ## Contacto
-WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
+WhatsApp +58 412 166 8021 · dtdcargo.com · @dtdcargo.ve
 
 ---
 **Notas para Cloud Design:** dejar clarísima la regla del "MISMO contenedor" y el trade-off demora↔

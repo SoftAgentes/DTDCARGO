@@ -43,7 +43,7 @@ Consulta la tarifa vigente con tu asesor (varía según la modalidad: online o f
 comparte también un **ejemplo del reporte**.
 
 ## Contacto
-WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
+WhatsApp +58 412 166 8021 · dtdcargo.com · @dtdcargo.ve
 
 ---
 **Notas para Cloud Design:** contrastar las 2 modalidades lado a lado (online = ícono de documento/

@@ -64,7 +64,7 @@ veas el formato**: duración, ritmo, cómo enganchan en los primeros 3 segundos,
 6. **Tuteo venezolano**: "tú puedes", "tu compra". Nada de "vos", nada de anglicismos.
 7. **Marca DTD**: isologo pequeño fijo en esquina, rótulos con la tipografía de marca, colores del
    sistema. Sin marcas de terceros visibles (ropa, pantallas, cajas).
-8. **CTA final estándar en los 5**: dtdcargo.com + WhatsApp +58 412 166 8021 + @doortudoor_.
+8. **CTA final estándar en los 5**: dtdcargo.com + WhatsApp +58 412 166 8021 + @dtdcargo.ve.
 9. **Nada de datos reales de clientes** en pantalla — cuenta demo.
 10. **Entrega**: archivo `dtd-video-<codigo>.mp4` (el código está en la guía) + subir como Short
     público y pasar el link (alimenta el campo de video del portal).

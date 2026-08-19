@@ -36,7 +36,7 @@ El **honorario cubre nuestra gestión** del trámite (configurado en el sistema;
 vigente con tu asesor). La **tasa oficial del consulado se paga aparte, en bolívares.**
 
 ## Contacto
-WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
+WhatsApp +58 412 166 8021 · dtdcargo.com · @dtdcargo.ve
 
 ---
 **Notas para Cloud Design:** iconografía de pasaporte/sello y ruta Valencia → consulado → China.

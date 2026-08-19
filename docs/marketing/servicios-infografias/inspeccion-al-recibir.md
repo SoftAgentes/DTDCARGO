@@ -40,7 +40,7 @@ Incluye la Validación (conteo), por eso su tarifa es **mayor que la de la Valid
 la tarifa vigente con tu asesor.
 
 ## Contacto
-WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
+WhatsApp +58 412 166 8021 · dtdcargo.com · @dtdcargo.ve
 
 ---
 **Notas para Cloud Design:** ⚠️ tratamiento visual **DISTINTO** de la **Inspección de calidad en

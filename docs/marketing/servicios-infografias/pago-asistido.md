@@ -33,7 +33,7 @@ pagues con respaldo.
 Consulta la tarifa vigente con tu asesor.
 
 ## Contacto
-WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
+WhatsApp +58 412 166 8021 · dtdcargo.com · @dtdcargo.ve
 
 ---
 **Notas para Cloud Design:** visual de **puente Venezuela → China**: el cliente paga en Venezuela

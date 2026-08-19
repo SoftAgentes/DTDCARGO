@@ -52,7 +52,7 @@ porcentaje. En la modalidad sobre tu proveedor la comisión es **la mitad** de l
 completo. **Pide la tabla a tu asesor.**
 
 ## Contacto
-WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
+WhatsApp +58 412 166 8021 · dtdcargo.com · @dtdcargo.ve
 
 ---
 **Notas para Cloud Design:** presentar las **2 modalidades como selector A/B** (tarjetas gemelas o

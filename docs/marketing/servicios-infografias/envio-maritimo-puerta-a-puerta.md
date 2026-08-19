@@ -44,7 +44,7 @@ todo el camino** — incluida la **nacionalización** y el pago de gastos hasta 
 Según volumen y peso de tu carga. **Consulta la tarifa vigente** con tu asesor o en la calculadora.
 
 ## Contacto
-WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
+WhatsApp +58 412 166 8021 · dtdcargo.com · @dtdcargo.ve
 
 ---
 **Notas para Cloud Design:** infografía vertical, marca DTD (tokens/Archivo, BRAND.md). Destacar el mapa

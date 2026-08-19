@@ -116,7 +116,7 @@ rótulo, "click" suave en los taps del portal y un "beep" discreto en el escaneo
 Sin drops ni efectos estridentes.
 
 **CTA final (últimos 4–5 s):** pantalla de cierre con isologo DTD + "Regístrala desde tu portal" +
-**dtdcargo.com** + WhatsApp **+58 412 166 8021** + @doortudoor_. Los rótulos "La pre-alerta es
+**dtdcargo.com** + WhatsApp **+58 412 166 8021** + @dtdcargo.ve. Los rótulos "La pre-alerta es
 GRATIS" y "Hazla ANTES de que tu compra llegue a la bodega" quedan visibles hasta el final.
 
 **Qué NO hacer:**

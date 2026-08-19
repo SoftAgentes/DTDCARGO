@@ -61,9 +61,9 @@ de alta frecuencia y 7–20 quedan marcadas como prioridad editorial hasta instr
 - **Pendiente (founder):** borrar **2 contenedores GTM sin uso** (`GTM-KWRDZS4`, `GTM-PD3JF2GW`) — no se usan (es gtag directo). Ver memoria `project_google_analytics_ga4`.
 
 ### 📱 Redes / Canales sociales — detalle en [`redes.md`](redes.md)
-- **Instagram `@doortudoor_`** — 5.003 seguidores · 128 posts · audiencia activa · destacados por intención (Q&A, Servicios, Visa) + reels educativos. 🟢 **El canal más fuerte** (fuente de contenido para reciclar).
-- **YouTube `@doortudoor`** — 223 subs · 11 videos (podcast sobre China). 🔴 Abandonado → reactivar reciclando IG (prioridad 5). **Plan de reciclaje IG→YouTube en [`redes.md`](redes.md).**
-- **Google Business Profile (Valencia)** — ⏳ verificar + reseñas (prioridad 2, founder). Tracción local.
+- **Instagram `@dtdcargo.ve`** — 20 mil seguidores · audiencia activa · destacados por intención (Q&A, Servicios, Visa) + reels educativos. 🟢 **El canal más fuerte** (fuente de contenido para reciclar). ⚠️ Migrado desde `@doortudoor_`, que **ya no existe** (verificado en vivo 2026-08-04) — los 5.003 seguidores que decía este README eran el dato viejo de la cuenta anterior.
+- **YouTube `@dtdcargo`** — 223 subs · 11 videos (podcast sobre China). 🔴 Abandonado → reactivar reciclando IG (prioridad 5). **Plan de reciclaje IG→YouTube en [`redes.md`](redes.md).** *(El handle viejo `@doortudoor` redirige, pero el vigente es `@dtdcargo`.)*
+- **Google Business Profile (Valencia)** — ⏳ reclamar + corregir datos + reseñas. **Plan completo y orden de operaciones en [`google-configuracion.md`](google-configuracion.md)** (inventario de cuentas, por qué sale el nombre viejo, y las 3 fases: config → geo → SEO).
 - **Link-in-bio propio = `dtdcargo.com/enlaces`** (ruta `app/enlaces`, activo de marca): agrupa todos los enlaces bajo una URL, con atribución UTM + etiqueta de origen en WhatsApp. Cómo ponerlo en Instagram (+ botones nativos de cuenta profesional) y cómo editar los enlaces: [`link-in-bio.md`](link-in-bio.md).
 - Plan/sistema en [`redes.md`](redes.md); contexto de prioridades en [`plan-accion-digital.md`](plan-accion-digital.md).
 

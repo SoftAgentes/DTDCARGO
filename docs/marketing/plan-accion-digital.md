@@ -14,7 +14,7 @@
 | Activo | Estado | Lectura |
 |---|---|---|
 | **Sitio `dtdcargo.com`** | SEO técnico OK (title/meta/canonical, JSON-LD LocalBusiness 2 sedes, OG, responsive, indexable). Conversión 100% WhatsApp. | ⚠️ Falta profundidad de contenido: blog + páginas de servicio. *(Hoy ya hay 18 geo-páginas + hub `/importar-de-china`.)* |
-| **Instagram `@doortudoor_`** | 5.003 seguidores · 128 posts · audiencia activa · destacados por intención (Q&A, Servicios, Visa) + reels educativos. | 🟢 **El canal más fuerte.** Es la fuente de contenido para reciclar. |
+| **Instagram `@dtdcargo.ve`** | **20 mil seguidores · 136 posts** (verificado 2026-08-04) · audiencia activa · destacados por intención (Q&A, Servicios, Visa) + reels educativos. | 🟢 **El canal más fuerte.** Es la fuente de contenido para reciclar. ⚠️ Migrado desde `@doortudoor_` (5.003 seg), que **ya no existe**. |
 | **YouTube `@doortudoor`** | 223 subs · 11 videos · buen contenido (podcast sobre China). | 🔴 Prácticamente abandonado → reactivar reciclando IG. |
 | **Google Ads** | 8 campañas muertas/duplicadas · solo concordancia amplia sin negativas · error de prender/apagar (reinició el aprendizaje). "DoorTuDoor Trafico" pausada. | ⚠️ Reestructura pendiente. *(Medición + dominio ya resueltos hoy.)* |
 

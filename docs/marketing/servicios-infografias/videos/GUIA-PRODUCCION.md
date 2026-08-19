@@ -105,7 +105,7 @@ Nuestra versión de ese cierre (hablado **y** en pantalla, en los 5 videos):
 - **Música:** de librería con licencia, ritmo medio, volumen bajo la voz (-18 dB aprox). Sin
   drops estridentes. SFX sutiles para transiciones y aparición de rótulos (whoosh/pop discretos).
 - **CTA final estándar (los 5 videos):** portal **dtdcargo.com** + WhatsApp **+58 412 166 8021**
-  + "@doortudoor_" · rótulo + hablado.
+  + "@dtdcargo.ve" · rótulo + hablado.
 
 ## 6b. Grabación de pantalla del portal (OBLIGATORIA en los 5 videos — founder 18-jul)
 

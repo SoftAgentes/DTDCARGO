@@ -19,7 +19,7 @@ Estamos trabajando para activarlo. **¿Te interesa?** Déjanos tus datos con tu 
 primeros en saber cuando esté disponible.
 
 ## Contacto
-WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
+WhatsApp +58 412 166 8021 · dtdcargo.com · @dtdcargo.ve
 
 ---
 **Notas para Cloud Design:** en el portal de pre-alertas esta modalidad va **visible pero deshabilitada**

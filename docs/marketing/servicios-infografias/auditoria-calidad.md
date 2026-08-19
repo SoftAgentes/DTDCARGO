@@ -40,7 +40,7 @@ Consulta la tarifa vigente con tu asesor; depende del alcance (online o presenci
 intervenciones durante la producción).
 
 ## Contacto
-WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
+WhatsApp +58 412 166 8021 · dtdcargo.com · @dtdcargo.ve
 
 ---
 **Notas para Cloud Design:** el elemento central es la **línea de tiempo de la producción**

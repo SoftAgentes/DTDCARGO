@@ -37,7 +37,7 @@ tratas con nadie en China: **DTD gestiona todo el proceso**.
 monto vigente con tu asesor.
 
 ## Contacto
-WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
+WhatsApp +58 412 166 8021 · dtdcargo.com · @dtdcargo.ve
 
 ---
 **Notas para Cloud Design:** ícono de escudo + ® protegiendo la marca; narrativa en dos geografías

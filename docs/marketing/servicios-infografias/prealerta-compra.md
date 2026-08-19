@@ -38,7 +38,7 @@ recibir tu carga sin errores.
 La pre-alerta **no tiene costo**. Los servicios extra de la llegada se cotizan aparte con tu asesor.
 
 ## Contacto
-WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
+WhatsApp +58 412 166 8021 · dtdcargo.com · @dtdcargo.ve
 
 ---
 **Notas para Cloud Design:** esta es la infografía "madre" del flujo. Mostrar los 3 actores (cliente →

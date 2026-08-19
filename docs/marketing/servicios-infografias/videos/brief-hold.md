@@ -99,7 +99,7 @@ o con "MISMO" resaltado. Tipografía Archivo Black sobre zonas limpias.
 (honestidad); vuelve para el cierre. SFX sutil al juntarse las cajas y en los taps del portal.
 
 **CTA final (últimos 4–5 s):** isologo DTD + "Actívalo desde tu portal" + **dtdcargo.com** +
-WhatsApp **+58 412 166 8021** + @doortudoor_. La regla "antes de la bodega" visible hasta el final.
+WhatsApp **+58 412 166 8021** + @dtdcargo.ve. La regla "antes de la bodega" visible hasta el final.
 
 **Qué NO hacer:**
 - No copiar frases, arte ni música del video de la competencia (referencia interna: estructura

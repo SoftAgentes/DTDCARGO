@@ -1,7 +1,10 @@
 # Validación de miniaturas en Instagram · V1
 
 **Fecha:** 2026-07-22  
-**Perfil:** `@doortudoor_`  
+**Perfil:** `@doortudoor_` — ⚠️ **handle histórico.** Era el vigente en la fecha de este
+documento; las redes migraron a `@dtdcargo.ve` (detectado 2026-08-04). No copiar de acá.
+*(Dato retrospectivo: el fallo al abrir el perfil que se describe abajo ya era síntoma de la
+migración — se leyó como un problema de red.)*  
 **Estado:** validación visual local; nada fue publicado.
 
 ## Método y límite

@@ -33,7 +33,7 @@ Se cobra **por caja**. Consulta la tarifa vigente con tu asesor. *(Ejemplo de re
 publicar: «…» por caja.)*
 
 ## Contacto
-WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
+WhatsApp +58 412 166 8021 · dtdcargo.com · @dtdcargo.ve
 
 ---
 **Notas para Cloud Design:** diferenciar visualmente **Validación (conteo)** de **Inspección (calidad)** —

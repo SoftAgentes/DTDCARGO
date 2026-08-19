@@ -90,7 +90,7 @@ instante** en la calculadora FCL: **dtdcargo.com/calculadora-fcl** — la tarifa
 asesor.
 
 ## Contacto
-WhatsApp +58 412 166 8021 · dtdcargo.com · @doortudoor_
+WhatsApp +58 412 166 8021 · dtdcargo.com · @dtdcargo.ve
 
 ---
 **Notas para Cloud Design:** UNA sola tarjeta con **selector de 2 modalidades** — jamás como dos
