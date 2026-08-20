@@ -12,7 +12,7 @@ Un solo Next.js app con **4 superficies** y una **frontera dura** entre el sitio
 | Superficie | Rutas | Backend | Frontera |
 |---|---|---|---|
 | **Sitio público** | `app/{cotizar,track,contacto,calculadora,servicios,noticias,glosario}` + `components/` (raíz) | HTTP al ERP HailuWay externo (`NEXT_PUBLIC_HAILUWAY_API`; hoy mocks) | ❌ NUNCA importa `@/lib/studio`, `@/lib/db`, `@supabase/*` |
-| **Studio ERP** ("DTD Cargo") | `app/studio/(app)/<modulo>/` (57 módulos registrados) + `app/api/studio/` | Supabase propio (`@/lib/db/server`) + Server Actions | — |
+| **Studio ERP** ("DTD Cargo") | `app/studio/(app)/<modulo>/` (56 módulos en `lib/studio/modules.ts`) + `app/api/studio/` | Supabase propio (`@/lib/db/server`) + Server Actions | — |
 | **Móvil PWA** | `app/m/{cn,ve,erp}/` | Supabase (reusa `lib/studio`, permitido) | — |
 | **Back (CMS público)** | `app/back/(app)/` | Supabase (`lib/back/`) | no importa `@/lib/studio` ni `app/studio` |
 
@@ -94,7 +94,9 @@ git diff --quiet HEAD^ HEAD -- . ':(exclude)docs/**' ':(exclude,glob)*.md' \
 
 - **Next.js 16** App Router · **React 19** · **TypeScript** strict · **Tailwind v4** · **pnpm**
 - Backend Studio: **Supabase** (Postgres). Tests: **Vitest** (unit) + **Playwright** (e2e).
-- Fuentes de marca (vía `next/font/google` en `app/layout.tsx`): **Archivo** (UI) · **Archivo Black** (display) · **JetBrains Mono** (código) · **Noto Sans SC** (CJK).
+- Fuentes de marca, todas por `next/font/google` — pero **NO se cargan todas en el mismo sitio**:
+  - **Globales**, en `app/layout.tsx`: **Archivo** (UI) · **Archivo Black** (display) · **Noto Sans SC** y **Noto Serif SC** (CJK).
+  - 🔴 **`JetBrains Mono` NO está en el layout** — vive en [`lib/fonts.ts`](lib/fonts.ts) (`jetbrainsMono` para el sitio público, `jetbrainsMonoUi` para portal/cuenta) y **cada página que la use tiene que meter su `.variable` en el árbol**, como hace `/faq`. Sin eso `--font-mono` no resuelve y el texto cae a la mono del sistema **en silencio**: se ve distinto en cada máquina y nada falla. Pasó en `/tarifas` y `/shipping-mark`, que pintaban códigos con `FONT_MONO` sin cargarla (corregido 2026-08-19). Si agregas una página que muestre códigos, cifras o direcciones en mono, cárgala ahí.
 
 ## Comandos
 
@@ -108,7 +110,7 @@ pnpm test:e2e            # Playwright
 pnpm seed                # datos demo del Studio (tsx scripts/seed.ts)
 pnpm docs:index / docs:check   # índice + validación de specs SDD
 node scripts/run-sql-tests.mjs # contratos SQL (RLS/GRANT/triggers) en Postgres desechable
-node scripts/check-schema-rebuild.mjs  # ¿el schema se reconstruye desde cero? (267 migr.)
+node scripts/check-schema-rebuild.mjs  # ¿el schema se reconstruye desde cero? (el script cuenta solo)
 node scripts/check-edge-functions.mjs  # deno check sobre supabase/functions (tsc NO las mira)
 ```
 Test puntual: `pnpm test path/to/file.test.ts` o `pnpm test -t "nombre"`. E2e puntual: `pnpm test:e2e path/to/spec.ts` o `pnpm test:e2e -g "nombre"` (modo interactivo: `pnpm test:e2e:ui`).
@@ -142,7 +144,7 @@ Si lo corres a mano, respeta las dos banderas: **`--no-lock`** (si no, deja un `
 ✅ **Y mide en las DOS direcciones (2026-08-05).** Antes sólo comparaba *archivo del repo → ledger de prod*; una entrada del ledger **sin archivo en el repo** le era invisible, y ése es el caso peligroso: no revienta nunca, revienta el día que haya que reconstruir el schema desde cero. Así estuvieron 3 días las `0336_pod_closes_shipment`, `0337_feature_flags_seed_and_trigger` y `0338_ve_locality_catalog_read_policy` — aplicadas en prod, con sus archivos colgando de un worktree sin pushear. Ahora una huérfana **recién aplicada** sale amarilla (con 38 worktrees, pushear el archivo minutos después es lo normal) y una de **más de 24 h** sale **roja**.
 - **CI/automatización:** si una tarea no admite OAuth, guarda el PAT únicamente en el secret manager del proveedor, con expiración y propósito identificable; nunca en archivos locales del repo.
 
-## Integraciones del sitio público (estado · **medido** 2026-08-14)
+## Integraciones del sitio público (estado · **medido** 2026-08-19)
 
 ⚠️ Esta tabla estuvo desactualizada y mandó a más de un agente a buscar rutas
 que ya no existen. Lo de abajo se midió contra el código, no se recordó — si la
@@ -150,12 +152,20 @@ vas a cambiar, **mide igual**: `find app -name page.tsx` para las rutas, los
 `redirects()` de `next.config.ts` para los 301, y un `grep` de llamadores para
 saber si un endpoint está vivo o sólo existe.
 
+🔴 **Y decir "medido" no alcanza: el 2026-08-19 esta tabla daba `/api/contact`
+por huérfano y `/academia` lo llamaba en vivo.** El error fue de método —
+se miró el sospechoso obvio (`/contacto`) y se concluyó de ahí, en vez de barrer
+el árbol entero. **Grepea el endpoint en todo `app/`, `components/` y `lib/`, no
+sólo donde esperas encontrarlo.** Y un `fetch` en un archivo **no** prueba que
+esté vivo: hay que seguir la cadena hasta una página que se monte de verdad
+(`EstimadoModal` la tiene cortada por una bandera, no por falta de importador).
+
 | Endpoint | Estado | Lo llama |
 |---|---|---|
 | `POST /api/public/calc-event` | ✅ **vivo** — telemetría anónima (SDD-0259) | `/tarifas` (las 2 pestañas), en el CTA |
 | Server Action de registro + `POST /api/registro/check` | ✅ **vivo** — alta cliente + MARKBOX | `/registro` |
 | `POST /api/public/estimacion` | 🟠 **sin llamadores** — y ya **NO crea `EST-`**: sólo avisa al equipo | nadie (`EstimadoModal` sólo se monta si NO es `directWhatsApp`, y las calculadoras vivas lo son) |
-| `POST /api/contact` | 🟠 **sin llamadores** | nadie — `/contacto` manda **sólo por WhatsApp** |
+| `POST /api/contact` | ✅ **vivo** — notifica al equipo + confirma al cliente + throttle | `/academia`, vía [`AcademiaLeadForm.tsx:45`](app/academia/_components/AcademiaLeadForm.tsx). ⚠️ `/contacto` **no** lo usa: manda sólo por WhatsApp — de ahí venía el error de creerlo huérfano |
 | RPC `public_track_shipment` | 🟠 **sin llamadores** — `lib/public/tracking-queries.ts` está huérfano | nadie — `/track` hace 301 a `/portal/login` |
 
 ### Las rutas que ya NO existen (todas son 301, no páginas)
@@ -219,7 +229,7 @@ Fork MIT de [Carlos Domínguez](https://github.com/Carlos-Dominguez-faber/revisa
 
 - **Identidad / nombres / NAP** → fuente única [`docs/marketing/identidad.md`](docs/marketing/identidad.md). Marca pública = **DTD Cargo** · sello de herencia + nombre del ERP interno = **DoorTuDoor** · handles **@dtdcargo.ve** (IG/TikTok) y **@dtdcargo** (YouTube) — ⚠️ **`@doortudoor_` ya NO existe**, las redes migraron (verificado 2026-08-04); el sello "DoorTuDoor" y el dominio `doortudoor.com` sí siguen vivos. La **razón social (INVERSIONES DTD SERVICES, C.A) y el RIF (J-50648869-8) van SOLO en el schema** (`legalName`/`taxID`), **nunca en texto visible**. Versión-máquina = `@graph` en [`app/layout.tsx`](app/layout.tsx) (`#organization` + `#website`); datos desde `CONTACT` en `lib/design-tokens.ts`.
 - **Estrategia / misión-visión / valores / ventas** → [`docs/marketing/estrategia.md`](docs/marketing/estrategia.md) + [`docs/marketing/ventas.md`](docs/marketing/ventas.md). Misión/visión/valores son **canónicos** (reemplazan los de 2020). Norte **interno** = **2 contenedores/mes** (umbral de equilibrio, **no se publica**) vía mayoristas recurrentes + aliados white-label.
-- **Negocio:** logística + trading puerta a puerta China↔Venezuela; equipo propio en Yiwu y Valencia. **Cronología (founder 2026-07-20):** **2008** = empezamos a trabajar con China y sustenta la **experiencia**, no la fundación; **2010** = abrimos la primera oficina propia en China, tampoco es el año de fundación; **2015** = **fundación e inauguración en Venezuela = EL año de fundación** (`foundingDate` del schema y todo copy de "opera/operando desde"). Frase modelo: *"En el comercio con China desde 2008, con oficina propia en China desde 2010 y operando en Venezuela desde 2015."* Los años de experiencia se calculan con `aniosComercioChina()`: nunca escribir un total fijo. El trading propio es **interno** (la web vende el servicio). El ERP (Studio "DoorTuDoor", 57 módulos registrados) apunta a **cerrar el loop comercial** (recompra día 30/45 + alertas de cadencia + KPI 2 cont./mes + white-label aliados); **no es greenfield**.
+- **Negocio:** logística + trading puerta a puerta China↔Venezuela; equipo propio en Yiwu y Valencia. **Cronología (founder 2026-07-20):** **2008** = empezamos a trabajar con China y sustenta la **experiencia**, no la fundación; **2010** = abrimos la primera oficina propia en China, tampoco es el año de fundación; **2015** = **fundación e inauguración en Venezuela = EL año de fundación** (`foundingDate` del schema y todo copy de "opera/operando desde"). Frase modelo: *"En el comercio con China desde 2008, con oficina propia en China desde 2010 y operando en Venezuela desde 2015."* Los años de experiencia se calculan con `aniosComercioChina()`: nunca escribir un total fijo. El trading propio es **interno** (la web vende el servicio). El ERP (Studio "DoorTuDoor", 56 módulos registrados) apunta a **cerrar el loop comercial** (recompra día 30/45 + alertas de cadencia + KPI 2 cont./mes + white-label aliados); **no es greenfield**.
 - **Trato con el founder (Sam):** español **venezolano neutro, TUTEO, CERO voseo** (regla dura, no negociable). Usar **"tú tienes / puedes / quieres / necesitas / mira"**; **NUNCA** "vos tenés / podés / querés / necesitás / mirá" ni imperativos voseo ("cotizá", "pagás", "escribinos", "dale"). El voseo es argentino, **no se habla en Venezuela** — si lo uso es un bug. Además: directo, sin relleno ni adulación; salidas listas para copiar con rutas explícitas; opciones por prioridad con **⭐ en la #1**; preguntas cortas; decir "Fase 5", no "F5". **Verificar la rama antes de commit; NO hacer push sin su OK; commits selectivos si hay varias ventanas.**
 
 ## Organización · ISO 9001 §7.5 → detalle en `docs/README.md`
