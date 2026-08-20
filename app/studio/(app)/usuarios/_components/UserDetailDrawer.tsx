@@ -287,7 +287,12 @@ export function UserDetailDrawer({
 
         {/* ── Rol y alcance ──────────────────────────────────── */}
         <Seccion titulo="Rol y alcance">
-          <RolYAlcanceCard member={member} esYo={esYo} onCambio={onClose} />
+          {/* NO se pasa `onClose`: cerrar la ficha al aplicar descartaba en
+              silencio lo que hubiera escrito el admin en «Datos de la persona»
+              (son inputs no controlados, viven sólo en el DOM). El
+              `revalidatePath` de la acción ya redibuja la ficha con la fila
+              fresca — `UsersClient` guarda el ID, no el objeto. */}
+          <RolYAlcanceCard member={member} esYo={esYo} />
         </Seccion>
 
         {/* ── Datos editables ────────────────────────────────── */}

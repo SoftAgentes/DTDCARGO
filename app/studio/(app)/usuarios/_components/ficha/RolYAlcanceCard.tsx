@@ -30,6 +30,7 @@
 
 import { useState, useTransition } from "react";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
+import { D1_REASON_MIN_LENGTH } from "@/lib/studio/audit/d1-access-config-adapters";
 import {
   ROLE_DESCRIPTIONS,
   ROLE_LABELS,
@@ -46,8 +47,12 @@ import {
   changeWarehouseScopeAction,
 } from "../../actions";
 
-/** Mínimo que exige `d1Reason` para no caer al texto enlatado del servidor. */
-const MOTIVO_MIN = 8;
+/**
+ * Mínimo que exige `d1Reason` para no caer al texto enlatado del servidor.
+ * Se importa del adaptador en vez de copiarse: si el umbral sube allá, esto
+ * sube solo. Antes era un `8` a mano atado nada más que por un comentario.
+ */
+const MOTIVO_MIN = D1_REASON_MIN_LENGTH;
 
 export function RolYAlcanceCard({
   member,
@@ -65,14 +70,19 @@ export function RolYAlcanceCard({
   const [scope, setScope] = useState<WarehouseScope>(scopeActual);
   const [confirmando, setConfirmando] = useState(false);
   const [error, setError] = useState<string | undefined>();
+  const [aplicado, setAplicado] = useState<string | null>(null);
   const [pendiente, startTransition] = useTransition();
 
   const cambioRol = rol !== member.role;
   const cambioScope = scope !== scopeActual;
-  const hayCambio = cambioRol || cambioScope;
 
   // El alcance sólo aplica a los roles cuyos módulos tienen lado geográfico.
   const scopeAplica = SCOPED_ROLES.has(rol);
+  // Misma condición que gobierna la escritura en `aplicar()`: sin esto se
+  // podía confirmar un cambio que no escribía nada (alcance tocado sobre un
+  // rol que no lo admite) y la ficha se cerraba como si algo hubiera pasado.
+  const hayCambio = cambioRol || (cambioScope && scopeAplica);
+
 
   const bloqueo = esYo
     ? "No puedes cambiar tu propio rol ni tu alcance. Pídeselo a otro admin."
@@ -120,6 +130,7 @@ export function RolYAlcanceCard({
       }
 
       setConfirmando(false);
+      setAplicado(resumen);
       onCambio?.();
     });
   }
@@ -179,8 +190,9 @@ export function RolYAlcanceCard({
               margin: 0,
             }}
           >
-            El almacén no aplica a {ROLE_LABELS[rol]}: sus módulos no tienen lado
-            geográfico.
+            {rol === "admin"
+              ? "El admin ve los dos almacenes; el alcance no lo limita."
+              : `El almacén no aplica a ${ROLE_LABELS[rol]}: sus módulos no tienen lado geográfico.`}
           </p>
         )}
 
@@ -198,14 +210,30 @@ export function RolYAlcanceCard({
           </p>
         )}
 
+        {/* BTN-01 §5: el éxito se anuncia con el RESULTADO, no con un toast
+            que se va. Se queda en la sección porque la ficha ya no se cierra. */}
+        {aplicado && (
+          <p
+            role="status"
+            style={{
+              font: "600 11.5px/1.5 var(--f-sans)",
+              color: "var(--success)",
+              margin: 0,
+            }}
+          >
+            Listo: {aplicado}.
+          </p>
+        )}
+
         <div>
           <button
             type="button"
-            className="studio-btn studio-btn-sm"
+            className="studio-btn studio-btn-ghost studio-btn-sm"
             disabled={!hayCambio || pendiente || !!bloqueo}
             aria-busy={pendiente}
             onClick={() => {
               setError(undefined);
+              setAplicado(null);
               setConfirmando(true);
             }}
           >
@@ -218,7 +246,7 @@ export function RolYAlcanceCard({
         open={confirmando}
         reason
         reasonRequired
-        reasonLabel="Motivo del cambio"
+        reasonLabel={`Motivo del cambio · mínimo ${MOTIVO_MIN} caracteres`}
         reasonPlaceholder="Ej: pasa a llevar la conciliación con China"
         initialFocus="reason"
         title="Confirmar cambio de acceso"

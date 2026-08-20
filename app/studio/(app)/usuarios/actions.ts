@@ -17,6 +17,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
 import {
+  D1OperationError,
   d1Reason,
   executeD1Operation,
 } from "@/lib/studio/audit/d1-access-config-adapters";
@@ -55,6 +56,38 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
  */
 function generateAccessToken(): string {
   return randomBytes(24).toString("hex");
+}
+
+/**
+ * Traduce el error de una operación D1 a algo que una persona pueda leer.
+ *
+ * ⚠️ `D1OperationError` hace `super(code)`, así que su `.message` **es el
+ * código** — no el mensaje de Postgres, que `mapDatabaseError` descarta. Antes
+ * el catch devolvía `err.message` tal cual y el admin terminaba leyendo
+ * "permission_denied" dentro del diálogo de confirmación. El comentario que
+ * decía "vienen como string ya formateado en Postgres" dejó de ser cierto el
+ * día que entró el adaptador D1 (SDD-0273).
+ */
+function mensajeDeError(err: unknown): string {
+  const code = err instanceof D1OperationError ? err.code : null;
+  switch (code) {
+    case "permission_denied":
+      return "No tienes permiso para este cambio. Cambiar el rol de un administrador lo hace el superadministrador.";
+    case "invalid_state":
+      return "Esa persona ya no está activa en el equipo. Refresca la pantalla.";
+    case "invalid_input":
+      return "Los datos del cambio no son válidos.";
+    case "idempotency_conflict":
+      return "Ese cambio ya se estaba aplicando. Refresca antes de reintentar.";
+    case "audit_failed":
+      return "El cambio no se aplicó porque no se pudo dejar el rastro de auditoría.";
+    case "query_failed":
+      return "La base rechazó el cambio. Puede ser el candado que impide dejar al equipo sin administradores.";
+    default:
+      return err instanceof Error && err.message
+        ? err.message
+        : "No se pudo aplicar el cambio.";
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -227,17 +260,13 @@ export async function changeUserRoleAction(
       // cambio de rol sin decir por qué — AUD-01 §3 pide lo contrario.
       reason: d1Reason(
         formData.get("reason"),
-        "Cambio de rol desde la ficha de usuario",
+        "Cambio de rol sin motivo declarado",
       ),
     });
     revalidatePath("/studio/usuarios");
     return { ok: true, userId: targetUserId };
   } catch (err) {
-    // Errores del RPC (anti-lockout, permisos, etc.) vienen como string ya
-    // formateado en Postgres. Los pasamos como `error` legacy en lugar de
-    // intentar mapearlos a errorCode — son contextuales.
-    const msg = err instanceof Error ? err.message : String(err);
-    return { error: msg };
+    return { error: mensajeDeError(err) };
   }
 }
 
@@ -270,12 +299,11 @@ export async function changeWarehouseScopeAction(
       input: { scope: scopeRaw },
       reason: d1Reason(
         formData.get("reason"),
-        "Cambio de alcance desde la ficha de usuario",
+        "Cambio de alcance sin motivo declarado",
       ),
     });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return { error: msg };
+    return { error: mensajeDeError(err) };
   }
 
   revalidatePath("/studio/usuarios");

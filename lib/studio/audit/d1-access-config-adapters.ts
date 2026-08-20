@@ -101,11 +101,18 @@ export async function executeD1Operation(
   return data as unknown as D1OperationResult;
 }
 
+/**
+ * Largo mínimo de un motivo para que cuente como motivo. Por debajo de esto
+ * `d1Reason` cae al texto por defecto. Se exporta para que la UI que pide el
+ * motivo valide contra el MISMO número y no contra una copia a mano.
+ */
+export const D1_REASON_MIN_LENGTH = 8;
+
 export function d1Reason(
   value: FormDataEntryValue | null,
   fallback: string,
 ): string {
-  if (typeof value === "string" && value.trim().length >= 8) {
+  if (typeof value === "string" && value.trim().length >= D1_REASON_MIN_LENGTH) {
     return value.trim().slice(0, 500);
   }
   return fallback;

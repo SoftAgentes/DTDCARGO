@@ -30,10 +30,6 @@ import {
   sendAccessLinkAction,
 } from "../actions";
 
-/**
- * Roles con lado de almacén asignable (Norte users.jsx: needsScope). Para el
- * resto el scope no aplica (sus módulos no tienen lado geográfico) → "—".
- */
 const INITIAL: UserActionState = {};
 
 const TONE_BG: Record<string, string> = {

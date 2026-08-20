@@ -11,8 +11,12 @@
  * devuelva `ok`. Un test que sólo afirme `ok` pasa igual con el `reason`
  * borrado, que es exactamente el bug que había.
  *
- * `disableUserAction` ya leía el motivo desde antes; se prueba igual porque
- * ahora la UI sí se lo manda y el fallback enlatado deja de ser lo normal.
+ * `disableUserAction` ya leía el motivo desde antes. Se prueba igual, pero
+ * ojo con lo que el test afirma: fija el CONTRATO de que la acción sabe
+ * recibirlo, no que alguna pantalla se lo mande. Hoy **ninguna UI le manda
+ * motivo al suspender** —ni la tabla ni la ficha tienen input ni confirmación
+ * para eso—, así que sigue cayendo al fallback de `d1Reason`. Ese hueco lo
+ * cierra el slice que le ponga confirmación a suspender.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -30,13 +34,13 @@ vi.mock("@/lib/studio/rbac-guard", () => ({
 }));
 
 const executeD1Mock = vi.fn();
-vi.mock("@/lib/studio/audit/d1-access-config-adapters", () => ({
+vi.mock("@/lib/studio/audit/d1-access-config-adapters", async (importOriginal) => ({
+  // Sólo se stubea la llamada al RPC. `d1Reason`, su umbral y la clase de
+  // error se toman de VERDAD: un doble que repitiera el mínimo a mano sería
+  // más generoso que el servidor el día que ese número suba, y el test daría
+  // verde con la UI aceptando motivos que el servidor tira a la basura.
+  ...(await importOriginal<Record<string, unknown>>()),
   executeD1Operation: (...a: unknown[]) => executeD1Mock(...a),
-  // Copia fiel del helper real: <8 caracteres cae al fallback.
-  d1Reason: (value: unknown, fallback: string) =>
-    typeof value === "string" && value.trim().length >= 8
-      ? value.trim().slice(0, 500)
-      : fallback,
 }));
 
 const authLifecycleMock = vi.fn();
@@ -107,7 +111,38 @@ describe("changeUserRoleAction · el motivo llega al RPC", () => {
 
     const arg = executeD1Mock.mock.calls[0][1] as { reason?: string };
     expect(arg.reason).toBeTruthy();
-    expect(arg.reason).toMatch(/ficha de usuario/i);
+    expect(arg.reason).toMatch(/sin motivo declarado/i);
+  });
+
+  it("el texto por defecto NO afirma de dónde vino el cambio", async () => {
+    // Los <select> de la fila siguen vivos hasta el Slice 2 y no mandan
+    // motivo: un fallback que dijera "desde la ficha" les escribiría una
+    // procedencia falsa a todos esos cambios.
+    await changeUserRoleAction({}, form({ target_user_id: TARGET, new_role: "accounting" }));
+
+    const arg = executeD1Mock.mock.calls[0][1] as { reason?: string };
+    expect(arg.reason).not.toMatch(/ficha|tabla|fila/i);
+  });
+
+  it("el umbral del motivo se mide contra el helper real, no contra un 8 copiado", async () => {
+    const { D1_REASON_MIN_LENGTH } = await import(
+      "@/lib/studio/audit/d1-access-config-adapters"
+    );
+    const justo = "x".repeat(D1_REASON_MIN_LENGTH);
+    const corto = "x".repeat(D1_REASON_MIN_LENGTH - 1);
+
+    await changeUserRoleAction(
+      {},
+      form({ target_user_id: TARGET, new_role: "accounting", reason: justo }),
+    );
+    expect((executeD1Mock.mock.calls[0][1] as { reason?: string }).reason).toBe(justo);
+
+    executeD1Mock.mockClear();
+    await changeUserRoleAction(
+      {},
+      form({ target_user_id: TARGET, new_role: "accounting", reason: corto }),
+    );
+    expect((executeD1Mock.mock.calls[0][1] as { reason?: string }).reason).not.toBe(corto);
   });
 
   it("un motivo demasiado corto no se guarda como motivo", async () => {
@@ -162,8 +197,8 @@ describe("changeWarehouseScopeAction · el motivo llega al RPC", () => {
   });
 });
 
-describe("disableUserAction · el motivo deja de ser el enlatado", () => {
-  it("manda a la auditoría el motivo escrito por el admin", async () => {
+describe("disableUserAction · sabe recibir el motivo (aunque nadie se lo mande aún)", () => {
+  it("si le llega un motivo, viaja a la auditoría tal cual", async () => {
     await disableUserAction({}, form({ target_user_id: TARGET, reason: MOTIVO }));
 
     expect(authLifecycleMock).toHaveBeenCalledWith(
