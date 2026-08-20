@@ -60,7 +60,7 @@ const IC = {
 };
 
 const STATIONS: Station[] = [
-  { cx: 250, cy: 200, n: "1", label: "Cotiza", sub: "DDP", icon: IC.cotiza },
+  { cx: 250, cy: 200, n: "1", label: "Cotiza", sub: "Todo incluido", icon: IC.cotiza },
   { cx: 390, cy: 200, n: "2", label: "Compra", sub: "Prealerta", icon: IC.compra },
   { cx: 390, cy: 440, n: "3", label: "Recibimos", sub: "En China", icon: IC.recibe, bottom: true },
   { cx: 250, cy: 440, n: "4", label: "Entregamos", sub: "A tu puerta", icon: IC.entrega, bottom: true },

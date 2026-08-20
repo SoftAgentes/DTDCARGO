@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { socialMeta } from "@/lib/seo-og";
+// La calculadora pinta códigos y cifras con FONT_MONO (vía CbmAyuda). Sin esta
+// variable en el árbol, `--font-mono` no resuelve y caen a la mono del sistema:
+// se veía distinto en cada máquina y sin avisar. Mismo patrón que /faq.
+import { jetbrainsMono } from "@/lib/fonts";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
@@ -25,7 +29,7 @@ import {
 export const revalidate = 300;
 
 const DESC =
-  "Calcula tu envío China → Venezuela por volumen (CBM) al instante: puerta a puerta DDP todo incluido, o LCL consolidado hasta puerto con tu propio Bill of Lading. Sin registro. El precio en firme lo cierra un asesor por WhatsApp.";
+  "Calcula tu envío China → Venezuela por volumen (CBM) al instante: puerta a puerta todo incluido, o LCL consolidado hasta puerto con tu propio Bill of Lading. Sin registro. El precio en firme lo cierra un asesor por WhatsApp.";
 
 export const metadata: Metadata = {
   title: "Tarifas y calculadora de envíos (CBM · LCL)",
@@ -73,7 +77,7 @@ export default async function TarifasPage() {
           las TRES tarjetas de modalidad que el mockup abre antes de la
           calculadora y que producción no tenía. */}
       <main
-        className="rp-surface min-h-screen"
+        className={`rp-surface min-h-screen ${jetbrainsMono.variable}`}
         style={{ ["--rp-w" as string]: "1180px" }}
       >
         <section className="rp-hero">

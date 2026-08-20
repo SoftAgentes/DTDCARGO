@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { socialMeta } from "@/lib/seo-og";
+// AlibabaAddressGuide pinta la dirección de bodega con FONT_MONO. Sin esta
+// variable en el árbol, `--font-mono` no resuelve y cae a la mono del sistema.
+import { jetbrainsMono } from "@/lib/fonts";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
@@ -123,7 +126,7 @@ export default function ShippingMarkPage() {
         ]}
       />
 
-      <main className="sm-surface">
+      <main className={`sm-surface ${jetbrainsMono.variable}`}>
         {/* ── Hero ── */}
         <section className="sm-hero">
           <div className="sm-hero-in">

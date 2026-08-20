@@ -81,7 +81,7 @@ export default function HomePage() {
                 <li>Puerta a puerta, todo incluido</li>
                 <li>Aduana e impuestos incluidos</li>
                 <li>Carga con Shipping Mark</li>
-                <li>Pagas al llegar · DDP</li>
+                <li>Pagas al llegar</li>
               </ul>
             </div>
 
@@ -158,7 +158,7 @@ export default function HomePage() {
                 </div>
                 <h3>Envíos puerta a puerta</h3>
                 <p>
-                  Flete, aduana, impuestos y entrega en una sola tarifa DDP. Pagas al
+                  Flete, aduana, impuestos y entrega en una sola tarifa. Pagas al
                   llegar, sin trámites ni sorpresas de tu lado.
                 </p>
               </div>

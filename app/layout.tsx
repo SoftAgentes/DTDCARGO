@@ -157,7 +157,7 @@ const jsonLd = {
       image: `${SITE_URL}${BRAND_ASSETS.ogImage}`,
       slogan: "Con Confianza, de China a tu puerta.",
       description:
-        "Operación logística integral China–Venezuela desde 2015: carga consolidada puerta a puerta DDP, agente de compra e inspección de fábrica en origen. Equipo propio en Yiwu y Valencia. Con Confianza, de China a tu puerta.",
+        "Operación logística integral China–Venezuela desde 2015: carga consolidada puerta a puerta, agente de compra e inspección de fábrica en origen. Equipo propio en Yiwu y Valencia. Con Confianza, de China a tu puerta.",
       // priceRange es opcional; en freight no hay tier fijo → texto honesto (no "$$").
       priceRange: "Cotización a medida según volumen y ruta",
       // 2015 = fundación e inauguración en Venezuela = año de fundación (founder
@@ -274,7 +274,9 @@ const jsonLd = {
         },
         {
           "@type": "DefinedTerm",
-          name: "Servicio puerta a puerta DDP (Delivered Duty Paid)",
+          // El nombre del servicio es "Puerta a puerta"; DDP queda como
+          // aclaración del Incoterm, que es lo que la regla de marca permite.
+          name: "Servicio puerta a puerta (DDP · Delivered Duty Paid)",
         },
         { "@type": "DefinedTerm", name: "Consolidación de carga (grupaje LCL)" },
         {

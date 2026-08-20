@@ -454,7 +454,7 @@ export const SERVICES_CN: Service[] = [
 export const SERVICES_VE: Service[] = [
   {
     slug: "dtd-services-lcl",
-    title: "Puerta a puerta DDP — Carga consolidada (LCL)",
+    title: "Puerta a puerta — Carga consolidada (LCL)",
     subtitle: "Less than Container Load · Carga consolidada",
     copy: "División de carga consolidada puerta a puerta, nacida en 2015. Especializada en volúmenes menores que no justifican un contenedor completo: consolidamos en China y entregamos directo en Venezuela.",
     benefit: "Promesa door-to-door cumplida",

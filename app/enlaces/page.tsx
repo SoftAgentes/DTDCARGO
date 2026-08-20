@@ -29,7 +29,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 export const metadata: Metadata = {
   title: "Enlaces",
   description:
-    "Todos los enlaces de DTD Cargo en un solo lugar: cotiza DDP por WhatsApp, calcula tu envío, rastrea tu carga y entra a tu portal. China → Venezuela, con Confianza.",
+    "Todos los enlaces de DTD Cargo en un solo lugar: cotiza por WhatsApp, calcula tu envío, rastrea tu carga y entra a tu portal. China → Venezuela, con Confianza.",
   alternates: { canonical: "/enlaces" },
   openGraph: {
     type: "website",
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     siteName: "DTD Cargo",
     title: "DTD Cargo · Con Confianza, de China a tu puerta",
     description:
-      "Cotiza DDP por WhatsApp, calcula tu envío, rastrea tu carga y entra a tu portal.",
+      "Cotiza por WhatsApp, calcula tu envío, rastrea tu carga y entra a tu portal.",
     images: [
       {
         url: "/brand/og-enlaces.png",
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "DTD Cargo · Con Confianza, de China a tu puerta",
     description:
-      "Cotiza DDP por WhatsApp, calcula tu envío, rastrea tu carga y entra a tu portal.",
+      "Cotiza por WhatsApp, calcula tu envío, rastrea tu carga y entra a tu portal.",
     images: ["/brand/og-enlaces.png"],
   },
 };
@@ -172,7 +172,7 @@ function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
 
 // ── CONFIG · datos reales DTD Cargo (editar acá cambia el render) ──
 const PRIMARY = {
-  label: "Cotizar DDP por WhatsApp",
+  label: "Cotizar por WhatsApp",
   sub: "Te respondemos al toque · China → Venezuela",
   href: waLink(
     "cotizar-ddp",
@@ -223,7 +223,7 @@ const LINKS: LinkRow[] = [
   {
     icon: "truck",
     label: "Servicios puerta a puerta",
-    sub: "DDP, consolidación, inspección",
+    sub: "Puerta a puerta, consolidación, inspección",
     href: webLink("/servicios", "servicios"),
   },
 ];

@@ -83,7 +83,7 @@ const serviceJsonLd = {
   "@context": "https://schema.org",
   "@type": "Service",
   name: "Puerta a puerta (DDP) China → Venezuela",
-  serviceType: "Carga consolidada DDP China → Venezuela puerta a puerta",
+  serviceType: "Carga consolidada China → Venezuela puerta a puerta",
   description: DESC,
   areaServed: { "@type": "Country", name: "Venezuela" },
   provider: { "@id": `${SITE_URL}/#organization` },
@@ -136,7 +136,7 @@ export default async function PuertaAPuertaPage() {
           <div className="rp-hero-in">
             <div className="rp-eyebrow">
               <span className="rule" />
-              Puerta a puerta · DDP
+              Puerta a puerta · Todo incluido
             </div>
             <h1>
               De la fábrica en China,{" "}

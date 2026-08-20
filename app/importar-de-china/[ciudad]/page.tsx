@@ -60,7 +60,7 @@ export default async function ImportarCiudadPage({
     "@context": "https://schema.org",
     "@type": "Service",
     name: `Importar de China a ${z.ciudad}`,
-    serviceType: "Carga consolidada DDP China → Venezuela puerta a puerta",
+    serviceType: "Carga consolidada China → Venezuela puerta a puerta",
     description: z.metaDescription,
     areaServed: [
       { "@type": "City", name: z.ciudad, containedInPlace: { "@type": "Country", name: "Venezuela" } },

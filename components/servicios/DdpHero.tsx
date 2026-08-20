@@ -22,7 +22,7 @@ export function DdpHero({ ddp }: { ddp: ServicioDetalle | null }) {
   if (!ddp) return null;
 
   const wa = buildWhatsAppLink(
-    "Hola DTD Cargo, quiero cotizar un envío puerta a puerta DDP de China a Venezuela.",
+    "Hola DTD Cargo, quiero cotizar un envío puerta a puerta de China a Venezuela.",
   );
 
   return (
@@ -42,7 +42,7 @@ export function DdpHero({ ddp }: { ddp: ServicioDetalle | null }) {
                   className="mt-4 text-[30px] lg:text-[46px] leading-[1.04] tracking-[-0.01em] text-ink"
                   style={{ fontFamily: "var(--font-archivo-black)" }}
                 >
-                  Puerta a puerta DDP.
+                  Puerta a puerta.
                   <br />
                   <span style={{ color: "var(--color-wine)" }}>Pagas al llegar.</span>
                 </h2>

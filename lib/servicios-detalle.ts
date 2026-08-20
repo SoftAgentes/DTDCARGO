@@ -87,7 +87,7 @@ export const SERVICIOS_GRUPOS: ServicioGrupo[] = [
     id: "transporte",
     titulo: "Transporte de China a tu puerta",
     blurb:
-      "El núcleo: traer tu mercancía de China a Venezuela. Desde el puerta a puerta DDP con todo incluido (servicio principal) hasta las modalidades de carga compartida (LCL) y contenedor completo (FCL), más la aduana cuando la necesitas.",
+      "El núcleo: traer tu mercancía de China a Venezuela. Desde el puerta a puerta con todo incluido (servicio principal) hasta las modalidades de carga compartida (LCL) y contenedor completo (FCL), más la aduana cuando la necesitas.",
   },
   {
     id: "bodega",
@@ -122,7 +122,7 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
   // ── Grupo: transporte ────────────────────────────────────────────
   {
     slug: "dtd-services-lcl",
-    titulo: "Puerta a puerta DDP · Pagas al llegar",
+    titulo: "Puerta a puerta · Pagas al llegar",
     sede: "ambas",
     destacado: true,
     // grounded: FAQ §22/§23/§24/§26 + dictado founder 2026-06-09
@@ -272,7 +272,7 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
       "Súmalo a tu carga LCL o FCL hasta puerto: escríbenos por WhatsApp con tu nombre o el de tu empresa para iniciar el trámite.",
     tiempos: "Nacionalización de 5 a 6 días hábiles.",
     estado: "activo",
-    nota: "Incluido en el puerta a puerta DDP y en el FCL todo pagado; opcional (adicional) en LCL y FCL hasta puerto.",
+    nota: "Incluido en el puerta a puerta y en el FCL todo pagado; opcional (adicional) en LCL y FCL hasta puerto.",
   },
   // ── Grupo: bodega (mini-servicios de recepción) ──────────────────
   {

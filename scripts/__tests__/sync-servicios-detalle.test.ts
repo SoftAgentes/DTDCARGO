@@ -95,7 +95,17 @@ describe("buildSyncPlan (datos reales — guard de drift)", () => {
     const ddp = plan.rows.find((r) => r.serviceKey === "puerta-a-puerta-ddp");
     expect(ddp).toBeDefined();
     expect(ddp?.legacySlug).toBe("dtd-services-lcl");
-    expect(ddp?.columns.title_public).toContain("Puerta a puerta DDP");
+    expect(ddp?.columns.title_public).toContain("Puerta a puerta");
+  });
+
+  // Decisión del founder (2026-07-17): "DDP" NO se usa como nombre de servicio
+  // de cara al cliente — el servicio se llama "Puerta a puerta". La sigla sólo
+  // vale entre paréntesis, en el glosario y en keywords SEO. Este título viaja
+  // a la DB y de ahí a /servicios, así que si vuelve a traer la sigla, pisa el
+  // copy público sin que nadie lo note.
+  it("el título público del servicio principal no lleva la sigla DDP", () => {
+    const ddp = plan.rows.find((r) => r.serviceKey === "puerta-a-puerta-ddp");
+    expect(ddp?.columns.title_public).not.toMatch(/\bDDP\b/);
   });
 
   it("cada fila trae título y un service_state válido", () => {

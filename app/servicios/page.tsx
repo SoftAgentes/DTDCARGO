@@ -14,7 +14,7 @@ import { HUB_FICHAS } from "@/components/servicios/hub-fichas";
 import { serializeJsonLd } from "@/lib/public/json-ld";
 
 const SERVICE_META_DESC =
-  "Servicios entre Yiwu y Valencia: puerta a puerta DDP, LCL, FCL, aduana, inspección, sourcing, registro de marca, visado y transporte terrestre.";
+  "Servicios entre Yiwu y Valencia: puerta a puerta, LCL, FCL, aduana, inspección, sourcing, registro de marca, visado y transporte terrestre.";
 
 export const metadata: Metadata = {
   title: "Servicios",

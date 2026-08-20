@@ -282,7 +282,8 @@ Cada pantalla los cubre con el mismo cuidado que el "happy path".
 ## ✍️ Tono y voz
 
 - **Castellano venezolano neutro, tuteo** — usar "tú" (recibes, rastrea, cotiza, confirma). **Sin voseo** (nada de vos / sos / arrancá / mirá). *(Regla del founder 2026-06-08: en Venezuela no se usa voseo. Aplica a copy de marca y a la comunicación de los agentes.)*
-- **Verbos directos** en CTAs: "Cotizar DDP", "Crear embarque", "Enviar correo". **NUNCA** "Click acá", "Enviar formulario", "Submit".
+- **Verbos directos** en CTAs: "Cotizar envío", "Crear embarque", "Enviar correo". **NUNCA** "Click acá", "Enviar formulario", "Submit".
+  - ⚠️ El ejemplo decía "Cotizar DDP" y contradecía la decisión del founder (2026-07-17): **"DDP" no se usa como nombre de servicio de cara al cliente** — el servicio es "Puerta a puerta". DDP solo vale como aclaración entre paréntesis, en el glosario y en keywords SEO.
 - Sin emoji en UI de producto **a menos que la marca lo apruebe**. Si necesitas un símbolo, usa un icono del set `window.Icon`.
 - Sin signos de exclamación múltiples. Sin mayúsculas sostenidas (excepto en eyebrows que ya lo hacen vía `text-transform: uppercase`).
 
