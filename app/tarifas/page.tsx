@@ -5,6 +5,7 @@ import { socialMeta } from "@/lib/seo-og";
 // variable en el árbol, `--font-mono` no resuelve y caen a la mono del sistema:
 // se veía distinto en cada máquina y sin avisar. Mismo patrón que /faq.
 import { jetbrainsMono } from "@/lib/fonts";
+import { ConGlosario } from "@/components/TerminoGlosario";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
@@ -159,7 +160,14 @@ export default async function TarifasPage() {
                 Tipos de contenedor frecuentes · 20&apos; / 40&apos; HQ
               </p>
               <ul className="tf-feats">
-                <li>Contenedor completo para ti, puerta a puerta (DDP)</li>
+                <li>
+                  {/* nuevaPestana: /tarifas es superficie de conversión — sacar
+                      al visitante al glosario en la misma pestaña le borra la
+                      cotización a medio llenar (misma razón que CbmAyuda). */}
+                  <ConGlosario nuevaPestana>
+                    Contenedor completo para ti, puerta a puerta (DDP)
+                  </ConGlosario>
+                </li>
                 <li>Ideal para alto volumen o carga de un solo cliente</li>
                 <li>Un asesor arma tu cotización a medida</li>
                 <li>
@@ -206,6 +214,7 @@ export default async function TarifasPage() {
 
         <RespuestaRapida
           id="respuesta-rapida"
+          glosarioEnNuevaPestana
           pregunta="¿Cuánto cuesta traer mercancía de China a Venezuela?"
           respuesta="El envío marítimo de carga suelta se cobra por volumen (CBM). En la modalidad puerta a puerta el precio depende del volumen y de la ciudad de destino, e incluye flete, aduana, impuestos y entrega; en la modalidad LCL consolidado la carga viaja hasta puerto en Venezuela y te entregamos tu propio Bill of Lading, con la aduana e impuestos por cuenta del cliente. Calcula tu estimado al instante con la herramienta de arriba; la tarifa final la confirma un asesor por WhatsApp según el producto, el peso y el volumen reales."
         />

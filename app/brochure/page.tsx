@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { socialMeta } from "@/lib/seo-og";
+import { ConGlosario } from "@/components/TerminoGlosario";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
@@ -82,9 +83,11 @@ export default function BrochurePage() {
               de China a tu puerta.
             </h1>
             <p className="lead mt-6" style={{ fontSize: "19px" }}>
-              Carga consolidada puerta a puerta entre China y Venezuela, todo
-              incluido (DDP). Y pagas cuando llega a
-              Venezuela, no por adelantado.
+              <ConGlosario>
+                Carga consolidada puerta a puerta entre China y Venezuela, todo
+                incluido (DDP). Y pagas cuando llega a Venezuela, no por
+                adelantado.
+              </ConGlosario>
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a

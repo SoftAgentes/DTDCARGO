@@ -19,6 +19,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Faq, FaqCategoria } from "@/lib/faqs";
 import { FAQ_CATEGORIAS } from "@/lib/faqs";
 import { WhatsAppIcon, ArrowIcon } from "@/components/Icon";
+import { ConGlosario } from "@/components/TerminoGlosario";
 import { AlibabaAddressGuide } from "@/components/AlibabaAddressGuide";
 import { CbmExplicador } from "@/components/CbmExplicador";
 
@@ -254,13 +255,15 @@ export function FaqExplorer({ faqs, waHref }: { faqs: Faq[]; waHref: string }) {
                             ))}
                           </ul>
                         ) : (
-                          <p key={bi}>{b.texto}</p>
+                          <p key={bi}>
+                            <ConGlosario>{b.texto}</ConGlosario>
+                          </p>
                         ),
                       )}
                     </div>
                   ) : (
                     <p className="-mt-1 pb-5 text-[14.5px] leading-[1.65] text-grey-700">
-                      {f.respuesta}
+                      <ConGlosario>{f.respuesta}</ConGlosario>
                     </p>
                   )}
                 </details>

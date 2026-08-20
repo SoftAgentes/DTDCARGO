@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ConGlosario } from "@/components/TerminoGlosario";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
@@ -83,10 +84,11 @@ export default function ImportarHubPage() {
             </div>
             <h1>Importar de China a Venezuela, ciudad por ciudad.</h1>
             <p>
-              Traemos tu carga consolidada de China puerta a puerta a todo el
-              país: flete, aduana e impuestos incluidos (DDP), pagas cuando
-              llega —no por adelantado— y entrega coordinada
-              hasta tu ciudad.
+              <ConGlosario>
+                Traemos tu carga consolidada de China puerta a puerta a todo el
+                país: flete, aduana e impuestos incluidos (DDP), pagas cuando
+                llega —no por adelantado— y entrega coordinada hasta tu ciudad.
+              </ConGlosario>{" "}
               Todo sale de nuestra bodega propia en Valencia, donde recibimos la
               mercancía desde Yiwu.
             </p>

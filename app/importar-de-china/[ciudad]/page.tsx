@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ConGlosario } from "@/components/TerminoGlosario";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
@@ -156,9 +157,12 @@ export default async function ImportarCiudadPage({
             <h2 className="h-section mt-4">Cómo llega tu carga a {z.ciudad}.</h2>
             <p className="lead mt-5 max-w-[64ch]">{z.anguloLocal}</p>
             <p className="mt-5 text-[15px] leading-[1.6] text-grey-700 max-w-[64ch]">
-              {z.notaEntrega} Tu mercancía se consolida e inspecciona en nuestra
-              bodega de Yiwu (China) antes de embarcar y viaja en modalidad DDP
-              hasta Venezuela — un solo punto de contacto de la fábrica a tu puerta.
+              {z.notaEntrega}{" "}
+              <ConGlosario>
+                Tu mercancía se consolida e inspecciona en nuestra bodega de
+                Yiwu (China) antes de embarcar y viaja en modalidad DDP hasta
+                Venezuela — un solo punto de contacto de la fábrica a tu puerta.
+              </ConGlosario>
             </p>
           </div>
         </section>

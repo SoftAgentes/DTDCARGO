@@ -1,3 +1,5 @@
+import { ConGlosario } from "@/components/TerminoGlosario";
+
 /**
  * "Respuesta rápida" — bloque GEO/SEO de respuesta directa (SDD-0064 Fase 6).
  *
@@ -10,11 +12,18 @@ export function RespuestaRapida({
   pregunta,
   respuesta,
   id,
+  glosarioEnNuevaPestana = false,
 }: {
   pregunta: string;
   respuesta: React.ReactNode;
   /** id opcional para anclar el bloque (ej. selector `speakable` del home). */
   id?: string;
+  /**
+   * `true` en superficies de conversión (`/tarifas`, `/fcl`): el enlace al
+   * glosario abre en pestaña nueva para no borrarle al visitante lo que llevaba
+   * escrito en la calculadora. Ver el docblock de `CbmAyuda`.
+   */
+  glosarioEnNuevaPestana?: boolean;
 }) {
   return (
     <section
@@ -28,7 +37,17 @@ export function RespuestaRapida({
           {pregunta}
         </h2>
         <p className="mt-3 text-[15px] lg:text-[15.5px] leading-[1.6] text-grey-700 max-w-[70ch]">
-          {respuesta}
+          {/* La jerga se enlaza al glosario sólo cuando la respuesta viene como
+              texto. Si una página pasa JSX (porque necesita negritas o un
+              enlace propio), se respeta tal cual: envolverlo rompería su
+              marcado. */}
+          {typeof respuesta === "string" ? (
+            <ConGlosario nuevaPestana={glosarioEnNuevaPestana}>
+              {respuesta}
+            </ConGlosario>
+          ) : (
+            respuesta
+          )}
         </p>
       </div>
     </section>

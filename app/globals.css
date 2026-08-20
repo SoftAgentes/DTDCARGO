@@ -4723,3 +4723,54 @@ a.svp-it:hover .nm {
     transition: none;
   }
 }
+
+/* ──────────────────────────────────────────────────────────────────
+   TÉRMINO DEL GLOSARIO — la jerga enlazada a /glosario#<ancla>.
+   Render en `components/TerminoGlosario.tsx`; reglas en
+   `lib/glosario-enlaces.ts`.
+
+   Se ve como una ABREVIATURA (subrayado punteado), no como un link de
+   navegación: la promesa es "acá hay una definición", no "te saco de la
+   página". Por eso hereda tamaño, peso Y COLOR del texto que lo rodea.
+
+   🔴 **`color: inherit` no es pereza — es lo único que no se rompe.** El primer
+   intento usaba `var(--color-wine-text)` (vino oscuro) y quedó ILEGIBLE en el
+   primer sitio donde se probó: los heroes de `.rp-hero` son una banda navy
+   (`#1f3055 → #0b1428`, en `recursos.css`) con texto crema. Un enlace no sabe
+   sobre qué fondo lo van a poner, y este componente se usa en texto corrido de
+   cualquier página. Heredando el color, es legible dondequiera que caiga —
+   por construcción, no por haber acertado el token. Lo que lo distingue del
+   texto normal es el SUBRAYADO, que se dibuja con `currentColor` y por lo
+   tanto hereda el mismo contraste.
+   ────────────────────────────────────────────────────────────────── */
+.termino-glosario {
+  color: inherit;
+  text-decoration: underline dotted currentColor;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  /* Sin esto, las colas de las letras cortan los puntos y el subrayado se
+     lee como sucio en vez de punteado. */
+  text-decoration-skip-ink: none;
+  /* La jerga suele ser una sigla corta: que no se parta al final de línea. */
+  white-space: nowrap;
+  transition: text-decoration-style 0.15s ease;
+}
+
+.termino-glosario:hover {
+  text-decoration-style: solid;
+}
+
+/* El foco de teclado tiene que verse: es un enlace dentro de un párrafo y
+   sin esto se pierde entre el texto. `currentColor` otra vez, por lo mismo
+   que arriba: el contorno tiene que verse sobre navy y sobre crema. */
+.termino-glosario:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .termino-glosario {
+    transition: none;
+  }
+}
